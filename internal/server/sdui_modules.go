@@ -204,12 +204,20 @@ func (rv *sduiResolver) moduleItems(mod string, req sdui.SourceRequest) (sdui.So
 		return sdui.SourceResult{}, err
 	}
 	out := sdui.SourceResult{Total: ans.Total, More: ans.More}
+	var yields []string
+	if ui := s.Modules.UI(mod); ui != nil {
+		for _, src := range ui.Sources {
+			if src.Type == req.Source.Type() {
+				yields = src.Yields
+			}
+		}
+	}
 	for i := range ans.Items {
 		if len(out.Items) >= req.Limit {
 			out.More = true
 			break
 		}
-		it, ok := rv.cleanModuleItem(mod, ans.Items[i])
+		it, ok := rv.cleanModuleItem(mod, ans.Items[i], yields)
 		if ok {
 			out.Items = append(out.Items, it)
 		}
@@ -226,8 +234,8 @@ var moduleItemCan = []string{"play", "download", "share", "watchLater", "watched
 // place in the app, pictures on this server, nothing over length, and nothing the profile
 // may not see. A title it says can be played must be one of the library's that the profile
 // may play.
-func (rv *sduiResolver) cleanModuleItem(mod string, it sdui.Item) (sdui.Item, bool) {
-	if it.ID == "" || len(it.ID) > 200 || !slices.Contains(sdui.ItemKinds, it.Kind) || strings.TrimSpace(it.Title) == "" {
+func (rv *sduiResolver) cleanModuleItem(mod string, it sdui.Item, yields []string) (sdui.Item, bool) {
+	if it.ID == "" || len(it.ID) > 200 || !slices.Contains(yields, it.Kind) || strings.TrimSpace(it.Title) == "" {
 		return it, false
 	}
 	if !rv.acc.AllowsOutside(it.Kind, it.ContentRating, it.Genres) {
@@ -259,8 +267,10 @@ func (rv *sduiResolver) cleanModuleItem(mod string, it sdui.Item) (sdui.Item, bo
 			*id = ""
 		}
 	}
+	// What a title page offers acts on a title of the library: an item that isn't one
+	// offers nothing.
 	if it.PlayID == "" {
-		it.Can = slices.DeleteFunc(it.Can, func(c string) bool { return c == "play" || c == "playOn" || c == "watchParty" || c == "download" })
+		it.Can = nil
 	}
 	if len(it.Badges) > 3 {
 		it.Badges = it.Badges[:3]
@@ -284,6 +294,7 @@ func (rv *sduiResolver) cleanModuleItem(mod string, it sdui.Item) (sdui.Item, bo
 func (s *Server) sduiModuleRoutes(m *http.ServeMux) {
 	m.Handle("GET /api/sdui/modules", s.requireAdmin(s.handleSDUIModules))
 	m.Handle("GET /api/sdui/modules/{module}/images/{name}", s.requireUser(s.handleSDUIModuleImage))
+	m.Handle("GET /api/sdui/modules/settings", s.requireUser(s.handleModuleSettingsList))
 	m.Handle("GET /api/sdui/modules/{module}/settings", s.requireUser(s.handleModuleSettingsGet))
 	m.Handle("PUT /api/sdui/modules/{module}/settings", s.requireAdmin(s.handleModuleSettingsPut))
 	m.Handle("PUT /api/sdui/modules/{module}/settings/personal", s.requireUser(s.handleModuleSettingsPersonalPut))
@@ -463,7 +474,11 @@ type moduleSettingsView struct {
 func (s *Server) moduleSettingsView(r *http.Request, ui *sdui.ModuleUI) moduleSettingsView {
 	u := userFrom(r)
 	rows := settingRows(ui)
-	v := moduleSettingsView{Module: ui.Module, Label: ui.Theme.Label, Pages: []sdui.SettingsPage{}, Values: map[string]any{}, SecretsSet: []string{}, Editable: u.IsAdmin}
+	label := ui.Theme.Label
+	if label == "" {
+		label = s.Modules.Name(ui.Module)
+	}
+	v := moduleSettingsView{Module: ui.Module, Label: label, Pages: []sdui.SettingsPage{}, Values: map[string]any{}, SecretsSet: []string{}, Editable: u.IsAdmin}
 	for _, p := range ui.Settings {
 		if !p.Admin || u.IsAdmin {
 			v.Pages = append(v.Pages, p)
@@ -504,6 +519,28 @@ func (s *Server) moduleSettingsView(r *http.Request, ui *sdui.ModuleUI) moduleSe
 		}
 	}
 	return v
+}
+
+// moduleSettingsEntry is one module with settings this profile sees, for the list under
+// Settings → Modules.
+type moduleSettingsEntry struct {
+	Module string `json:"module"`
+	Label  string `json:"label"`
+	Icon   string `json:"icon,omitempty"`
+	URL    string `json:"url"`
+}
+
+// GET /api/sdui/modules/settings: the modules in use with settings this profile sees.
+func (s *Server) handleModuleSettingsList(w http.ResponseWriter, r *http.Request) {
+	out := []moduleSettingsEntry{}
+	for _, ui := range s.modulesFor(r).Modules() {
+		v := s.moduleSettingsView(r, &ui)
+		if len(v.Pages) == 0 {
+			continue
+		}
+		out = append(out, moduleSettingsEntry{Module: ui.Module, Label: v.Label, Icon: v.Pages[0].Icon, URL: "/api/v1/sdui/modules/" + ui.Module + "/settings"})
+	}
+	writeJSON(w, 200, map[string]any{"modules": out})
 }
 
 // GET /api/sdui/modules/{module}/settings: the module's settings for this profile.

@@ -41049,6 +41049,37 @@
         "x-wms-auth": "admin"
       }
     },
+    "/sdui/modules/settings": {
+      "get": {
+        "operationId": "getSduiModuleSettingsList",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The modules in use with settings this profile sees, for the list under Settings → Modules: {modules: [{module, label, icon, url}]}.",
+        "tags": [
+          "Server-driven UI"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/sdui/modules/{module}/images/{name}": {
       "get": {
         "operationId": "getSduiModuleImage",

@@ -75,6 +75,9 @@ func readUI(dir string, man *wittymodule.Manifest, checks sdui.ModuleChecks) (*s
 	if err != nil {
 		return nil, err
 	}
+	if len(ui.Sources) > 0 && man.Delivery != wittymodule.DeliveryHelper {
+		return nil, fmt.Errorf("its %s has data sources, and only a helper can answer them; it is delivered as %q", sdui.ModuleFile, man.Delivery)
+	}
 	if issues := sdui.ValidateModuleUI(ui, man.ID, checks); sdui.HasErrors(issues) {
 		var words []string
 		for _, is := range issues {
@@ -186,4 +189,14 @@ func (m *Manager) SettingsChanged(id string, values map[string]any) {
 	if running {
 		_, _, _ = m.call(id, MethodSettingsChanged, map[string]any{"values": values}, nil)
 	}
+}
+
+// Name is a module's name, for an app to show; its ID when it has none.
+func (m *Manager) Name(id string) string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if e := m.mods[id]; e != nil && e.man != nil && e.man.Name != "" {
+		return e.man.Name
+	}
+	return id
 }

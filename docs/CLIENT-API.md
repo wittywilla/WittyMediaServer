@@ -1618,6 +1618,7 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `PUT /sdui/pages/{page}/personal` | user | Replace this profile's arrangement of a page. Only its own. 403 when the profile may not rearrange pages (the editLayout switch) or the server has it off; 400 lists what is wrong. |
 | `DELETE /sdui/pages/{page}/personal` | user | Back to the page as everyone has it. |
 | `GET /sdui/topshelf` | user | Content for a tvOS Top Shelf extension: what this account was watching and what is new, within its limits, at most 4 sections of 10 pictures, each sized for the device. 304 with If-None-Match when unchanged. |
+| `GET /sdui/modules/settings` | user | The modules with settings this profile sees: `{modules: [{module, label, icon, url}]}`, for the list under Settings → Modules. |
 | `GET /sdui/modules/{module}/images/{name}` | user | A picture a module's cards show (module sources put these addresses in `images`). PNG, JPEG, WebP or GIF. |
 | `GET /sdui/modules/{module}/settings` | user | A module's settings, described and with their values, for the app's own Settings to draw under Settings → Modules ([SDUI-MODULES.md](SDUI-MODULES.md#settings)). |
 | `PUT /sdui/modules/{module}/settings/personal` | user | This profile's own values of a module's settings: `{values}`. |

@@ -367,8 +367,8 @@ func ValidateModuleUI(ui *ModuleUI, module string, checks ModuleChecks) []Issue 
 				v.err(fmt.Sprintf("%s/pageKinds/%d", p, j), suggest(k, pageKindNames()), "%q is not a kind of page", k)
 			}
 		}
-		if self.Component(c.Section.Component) != nil {
-			v.err(p+"/section/component", "Build it from the catalogue's components.", "a component is made of the catalogue's components, not of another of the module's")
+		if nested := moduleComponentIn(self, c.Section, p+"/section"); nested != "" {
+			v.err(nested+"/component", "Build it from the catalogue's components.", "a component is made of the catalogue's components, not of another of the module's")
 			continue
 		}
 		for _, ph := range placeholders(c.Section) {
@@ -469,7 +469,17 @@ func ValidateModuleUI(ui *ModuleUI, module string, checks ModuleChecks) []Issue 
 	}
 	nav := Navigation{Items: append(append([]NavItem(nil), ui.Navigation...), NavItem{ID: "settings", Type: "native", Screen: "settings"})}
 	for _, is := range ValidateNavigation(&nav, func(id string) bool { _, stock := StockPage(id); return pageIDs[id] || stock }) {
-		v.issues = append(v.issues, Issue{Path: is.Path, Severity: is.Severity, Message: is.Message, Fix: is.Fix})
+		if rest, ok := strings.CutPrefix(is.Path, "/items/"); ok {
+			if n, tail, _ := strings.Cut(rest, "/"); n == fmt.Sprint(len(ui.Navigation)) {
+				continue // the Settings entry added to check the menu as a whole
+			} else {
+				is.Path = "/navigation/" + n
+				if tail != "" {
+					is.Path += "/" + tail
+				}
+			}
+		}
+		v.issues = append(v.issues, is)
 	}
 	for i := range ui.Navigation {
 		it := &ui.Navigation[i]
@@ -1197,4 +1207,18 @@ func (s *ModuleSet) PageModule(id string) string {
 		return ""
 	}
 	return s.pageOwner[id]
+}
+
+// moduleComponentIn is the path of a section in t, at any depth, that uses one of the
+// module's own components; "" for none.
+func moduleComponentIn(set *ModuleSet, t Section, path string) string {
+	if set.Component(t.Component) != nil {
+		return path
+	}
+	for i, c := range t.Children {
+		if p := moduleComponentIn(set, c, fmt.Sprintf("%s/children/%d", path, i)); p != "" {
+			return p
+		}
+	}
+	return ""
 }

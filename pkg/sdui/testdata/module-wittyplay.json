@@ -2,7 +2,7 @@
   "format": "wittymodule-sdui",
   "formatVersion": 1,
   "module": "wittyplay",
-  "catalog": 4,
+  "catalog": 6,
   "theme": {
     "scope": "wittyplay",
     "label": "Games",
@@ -112,7 +112,7 @@
       "paged": false,
       "seeAll": "/page/wittyplay",
       "title": "What this server plays",
-      "since": 4
+      "since": 6
     },
     {
       "type": "wittyplay.recent",
@@ -137,7 +137,7 @@
       "cardStyle": "game",
       "paged": false,
       "title": "Recent",
-      "since": 4
+      "since": 6
     },
     {
       "type": "wittyplay.collections",
@@ -200,7 +200,7 @@
       "cardStyle": "tile",
       "paged": true,
       "title": "Classics",
-      "since": 4
+      "since": 6
     },
     {
       "type": "wittyplay.friends",
@@ -220,12 +220,12 @@
         }
       ],
       "yields": [
-        "view"
+        "person"
       ],
-      "cardStyle": "landscape",
+      "cardStyle": "person",
       "paged": false,
       "title": "Friends",
-      "since": 4
+      "since": 6
     },
     {
       "type": "wittyplay.rooms",
@@ -250,12 +250,12 @@
       "cardStyle": "landscape",
       "paged": false,
       "title": "Open rooms",
-      "since": 4
+      "since": 6
     },
     {
       "type": "wittyplay.room",
       "label": "Your room",
-      "description": "The game this profile is playing with others: the room first (its code for the host), then each player, or Waiting… for a free seat.",
+      "description": "The game this profile is playing with others: the room first (a view: its code for the host), then each player as a person, or Waiting… for a free seat.",
       "icon": "users",
       "category": "",
       "params": [
@@ -270,12 +270,13 @@
         }
       ],
       "yields": [
-        "view"
+        "view",
+        "person"
       ],
-      "cardStyle": "landscape",
+      "cardStyle": "person",
       "paged": false,
       "title": "Your room",
-      "since": 4
+      "since": 6
     },
     {
       "type": "wittyplay.saveStates",
@@ -311,7 +312,7 @@
       ],
       "paged": false,
       "title": "Save states",
-      "since": 4
+      "since": 6
     },
     {
       "type": "wittyplay.memories",
@@ -337,7 +338,7 @@
       "cardStyle": "landscape",
       "paged": true,
       "title": "Memories",
-      "since": 4
+      "since": 6
     },
     {
       "type": "wittyplay.controllers",
@@ -362,7 +363,7 @@
       "cardStyle": "landscape",
       "paged": false,
       "title": "Controllers",
-      "since": 4
+      "since": 6
     }
   ],
   "settings": [

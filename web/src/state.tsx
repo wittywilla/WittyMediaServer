@@ -3,10 +3,11 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { api, isNativeShell, serverBase, setToken, type Library, type User } from './api'
 import { setLogVersion } from './errorReport'
+import type { StyledPart } from './brandStyle.ts'
 import { loadCatalogue } from './sdui/catalogue'
-import { applyBrand, applyTheme, clearThemeOverrides, deviceTheme, loadThemeOverrides } from './theme'
+import { applyBrand, applyTheme, setStatusBrandParts, clearThemeOverrides, deviceTheme, loadThemeOverrides } from './theme'
 
-type Status = { name: string; version: string; setupRequired: boolean; onboarding: boolean; pickerLocal: boolean; user: User | null; brandName?: string; brandColouring?: string; brandLogo?: string; theme?: string; update?: string; legalAck?: boolean; plainConnection?: boolean }
+type Status = { name: string; version: string; setupRequired: boolean; onboarding: boolean; pickerLocal: boolean; user: User | null; brandName?: string; brandColouring?: string; brandParts?: StyledPart[]; brandLogo?: string; theme?: string; update?: string; legalAck?: boolean; plainConnection?: boolean }
 
 type AppState = {
   user: User | null
@@ -89,6 +90,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setVersion(s.version)
       setLogVersion(s.version)
       setBrandName(s.brandName || '', s.brandColouring || 'auto')
+      setStatusBrandParts(s.brandParts)
       setBrandLogo(s.brandLogo || '')
       setServerThemeState(s.theme || 'default')
       applyTheme(deviceTheme() || s.theme || 'default')

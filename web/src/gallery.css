@@ -138,11 +138,6 @@
 .col-dialog .seg { margin: 8px 0; }
 .col-preview-row { display: flex; gap: 5px; margin-top: 5px; overflow: hidden; }
 .col-preview-row img { width: 46px; height: 68px; object-fit: cover; border-radius: var(--r-xs); background: var(--bg-3); flex: none; }
-.ch-tag { flex: none; padding: 5px 12px; font-size: var(--text-sm); font-weight: 600; border: 0; border-radius: var(--r-sm); background: var(--bg-3); color: var(--fg-2); cursor: pointer; }
-.ch-tag:hover { color: var(--fg); background: var(--bg-4); }
-.ch-tag.on { background: var(--accent); color: var(--accent-fg); }
-.ch-tag:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
-.ch-tags { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 14px; scrollbar-width: none; }
 
 /* Radio */
 .radio-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }

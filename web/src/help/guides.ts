@@ -134,6 +134,7 @@ export { settingsHelp }
 export const settingsPages: Record<string, string> = {
   Libraries: 'libraries',
   'Pages & menu': 'pages',
+  'Module settings': 'module-settings',
   'Metadata agents': 'metadata',
   'Playback & discs': 'playback',
   'Channels & tuners': 'channels',

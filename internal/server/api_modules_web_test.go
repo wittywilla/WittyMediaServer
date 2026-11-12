@@ -59,14 +59,23 @@ func hexSum(b []byte) string {
 // installedBundle makes a manager with a real signed bundle of wittycomics in use.
 func installedBundle(t *testing.T, script, style string) *modmgr.Manager {
 	t.Helper()
+	return installedBundleWith(t, script, style, wittymodule.API, nil)
+}
+
+// installedBundleWith is installedBundle for a version built for api, with more files.
+func installedBundleWith(t *testing.T, script, style string, api int, extra map[string][]byte) *modmgr.Manager {
+	t.Helper()
 	pub, key, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
 	}
 	const id, ver = "wittycomics", "0.2.0"
-	raw, _ := json.Marshal(wittymodule.Manifest{ID: id, Name: "WittyComics", Version: ver, Repo: "wittywilla/WittyComics", Delivery: wittymodule.DeliveryWeb, Entry: "index.js", Style: "style.css", API: wittymodule.API, MinServer: "0.4.0", MaxServer: "0.5.x"})
+	raw, _ := json.Marshal(wittymodule.Manifest{ID: id, Name: "WittyComics", Version: ver, Repo: "wittywilla/WittyComics", Delivery: wittymodule.DeliveryWeb, Entry: "index.js", Style: "style.css", API: api, MinServer: "0.4.0", MaxServer: "0.5.x"})
 	top := wittymodule.WebTopFolder(id, ver)
 	files := map[string][]byte{wittymodule.ManifestFile: raw, "index.js": []byte(script), "style.css": []byte(style)}
+	for n, b := range extra {
+		files[n] = b
+	}
 	var buf bytes.Buffer
 	gz := gzip.NewWriter(&buf)
 	tw := tar.NewWriter(gz)
@@ -92,7 +101,7 @@ func installedBundle(t *testing.T, script, style string) *modmgr.Manager {
 	}
 	feed.rels = []update.GHRelease{rel}
 	builtin, _ := json.Marshal(wittymodule.Manifest{ID: id, Name: "WittyComics", Version: "0.1.0", Repo: "wittywilla/WittyComics", Delivery: wittymodule.DeliveryWeb, API: wittymodule.API, MinServer: "0.1.0", MaxServer: "0.x"})
-	m := modmgr.New(modmgr.Config{Dir: filepath.Join(t.TempDir(), "modules"), Server: "0.4.0", Builtins: [][]byte{builtin}, Keys: []ed25519.PublicKey{pub},
+	m := modmgr.New(modmgr.Config{Dir: filepath.Join(t.TempDir(), "modules"), Server: "0.4.0", Builtins: [][]byte{builtin}, Keys: []ed25519.PublicKey{pub}, UIChecks: UIChecks(),
 		Fetch: &update.Fetcher{UserAgent: "test", Transport: feed}, Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
 	t.Cleanup(m.Close)
 	m.Check(context.Background(), 0)

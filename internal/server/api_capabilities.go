@@ -107,6 +107,9 @@ var serverFeatures = []string{
 	"p2p",
 	// A device away from home shows a code, and someone signed in types it in: POST /api/v1/p2p/join.
 	"p2p-join",
+	// Modules carry their own SDUI (docs/SDUI-MODULES.md): their pages, rows, menu entries,
+	// sources and colours are merged in; their pictures and settings have routes of their own.
+	"sdui-modules", "module-settings",
 }
 
 // minClientVersions names the oldest version of each app this server still works with, by

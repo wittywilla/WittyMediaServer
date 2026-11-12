@@ -258,9 +258,18 @@ func packFiles(top string, files map[string][]byte) []byte {
 // returns the addresses of its files so a test can spoil one.
 func (w *world) publish(ver string, man []byte) map[string]string {
 	w.t.Helper()
+	return w.publishWith(ver, man, nil)
+}
+
+// publishWith publishes a version with more files in its archive, such as sdui.json.
+func (w *world) publishWith(ver string, man []byte, extra map[string][]byte) map[string]string {
+	w.t.Helper()
 	const id = "wittyphotos"
 	top := wittymodule.TopFolder(id, ver, runtime.GOOS, runtime.GOARCH)
 	files := map[string][]byte{wittymodule.ManifestFile: man, entryName(): helperBytes(w.t), "LICENSE": []byte("license")}
+	for n, b := range extra {
+		files[n] = b
+	}
 	archive := packFiles(top, files)
 	archiveName := wittymodule.ArchiveName(id, ver, runtime.GOOS, runtime.GOARCH)
 	manName := wittymodule.ManifestName(id, ver)

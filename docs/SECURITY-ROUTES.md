@@ -747,6 +747,9 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `PUT /api/sdui/pages/{page}/personal` | Signed-in | own arrangement only. Page exists. The profile's editLayout switch and the server's personalisation switch (403). 8 KB, strict JSON, IDs by form, at most 64 pages a profile |
 | `DELETE /api/sdui/pages/{page}/personal` | Signed-in | own arrangement only. Page exists. The same switches as saving |
 | `GET /api/sdui/topshelf` | Signed-in | limits. The account's own continue-watching and what is new in libraries it may open, at most 4 rows of 10. Device class by form. No games with games turned off for the profile |
+| `GET /api/sdui/modules/{module}/images/{name}` | Signed-in | the module is in use and the profile isn't kept from it (404). Name by form. Only pictures, as sniffed, with nosniff and a sandboxing CSP |
+| `GET /api/sdui/modules/{module}/settings` | Signed-in | the module is in use and the profile isn't kept from it (404). Admin pages and values only for administrators; secrets never sent |
+| `PUT /api/sdui/modules/{module}/settings/personal` | Signed-in | own values only; profile rows only; each value checked against its row. 64 KB, strict JSON |
 | `GET /api/sdui/config` | Admin | Nothing |
 | `PUT /api/sdui/config` | Admin | If-Match must be the current ETag (412 otherwise, 428 when missing), or target=draft. 16 MB body, strict JSON: no unknown fields. Every page and the navigation through the SDUI validator: known components and sources only, routes on this server only, pictures from this server only; theme overrides name known colour tokens and colour values only |
 | `GET /api/sdui/config/history` | Admin | Nothing |
@@ -761,6 +764,8 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `DELETE /api/sdui/config/navigation` | Admin | If-Match as for the configuration, or target=draft |
 | `POST /api/sdui/validate` | Admin | 16 MB body. Saves nothing |
 | `GET /api/sdui/presets` | Admin | Nothing |
+| `GET /api/sdui/modules` | Admin | Nothing |
+| `PUT /api/sdui/modules/{module}/settings` | Admin | The module is in use. Server rows only; every value checked against its row. 64 KB, strict JSON |
 | `POST /api/sdui/presets/{id}/apply` | Admin | Preset exists and is a page. If-Match as for the configuration, or target=draft |
 | `GET /api/sdui/draft` | Admin | Nothing |
 | `PUT /api/sdui/draft` | Admin | If-Match, when sent, must be the draft's ETag (the configuration's when there is no draft). Validated as the configuration is |

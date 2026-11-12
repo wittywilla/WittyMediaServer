@@ -1190,3 +1190,11 @@ func (s *ModuleSet) viewOptions() []EnumOption {
 	}
 	return out
 }
+
+// PageModule is the module a page of the set comes from, "" for none.
+func (s *ModuleSet) PageModule(id string) string {
+	if s == nil {
+		return ""
+	}
+	return s.pageOwner[id]
+}

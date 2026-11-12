@@ -41018,6 +41018,236 @@
         "x-wms-auth": "admin"
       }
     },
+    "/sdui/modules": {
+      "get": {
+        "operationId": "getSduiModules",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Every module in use with its SDUI file (docs/SDUI-MODULES.md): {modules: [ModuleUI]}, so the editor can show where pages, rows and menu entries come from.",
+        "tags": [
+          "Server-driven UI"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/sdui/modules/{module}/images/{name}": {
+      "get": {
+        "operationId": "getSduiModuleImage",
+        "parameters": [
+          {
+            "description": "The module's ID.",
+            "in": "path",
+            "name": "module",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The picture's name: letters, digits, . _ and -.",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/*": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A picture a module's cards show, answered by the module's helper: PNG, JPEG, WebP or GIF only. 404 for a module that isn't in use or that the profile is kept from.",
+        "tags": [
+          "Server-driven UI"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/sdui/modules/{module}/settings": {
+      "get": {
+        "operationId": "getSduiModuleSettings",
+        "parameters": [
+          {
+            "description": "The module's ID.",
+            "in": "path",
+            "name": "module",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A module's settings as every app's Settings draws them: {module, label, pages: [SettingsPage], values, secretsSet, editable}. Pages marked admin, and their values, only for administrators; secrets' values never.",
+        "tags": [
+          "Server-driven UI"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putSduiModuleSettings",
+        "parameters": [
+          {
+            "description": "The module's ID.",
+            "in": "path",
+            "name": "module",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            }
+          },
+          "description": "{values: {key: value or null}}",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Saves the server's values of a module's settings: {values: {key: value}}; null puts a value back to its default. Each value is checked against its row; a profile's own setting is refused here. Answers as GET.",
+        "tags": [
+          "Server-driven UI"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/sdui/modules/{module}/settings/personal": {
+      "put": {
+        "operationId": "putSduiModuleSettingsPersonal",
+        "parameters": [
+          {
+            "description": "The module's ID.",
+            "in": "path",
+            "name": "module",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            }
+          },
+          "description": "{values: {key: value or null}}",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Saves this profile's own values of a module's settings (rows with scope profile): {values: {key: value}}; null puts a value back to its default. Answers as GET.",
+        "tags": [
+          "Server-driven UI"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/sdui/navigation": {
       "get": {
         "operationId": "getSduiNavigation",

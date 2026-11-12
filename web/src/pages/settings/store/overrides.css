@@ -1,0 +1,79 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
+/* Overrides, release status, uploads and the module audit. The weight of the override dialog
+   grows with its severity, in the design's warning and danger tones only. */
+
+/* The override dialog. */
+.ov-dialog { border-top: 4px solid var(--warn); }
+.ov-dialog.ov-sev-1 { border-top-width: 2px; }
+.ov-dialog.ov-sev-3, .ov-dialog.ov-sev-4 { border-top-color: var(--danger); }
+.ov-dialog.ov-sev-4 { border-top-width: 6px; box-shadow: 0 0 0 1px var(--danger), var(--e-3); }
+.ov-form { display: grid; gap: var(--sp-3); min-width: 0; }
+.ov-banner { display: flex; gap: var(--sp-3); align-items: flex-start; padding: var(--sp-3); border-radius: var(--r-md); border: 1px solid; line-height: var(--leading-body); font-size: var(--text-sm); color: var(--fg); }
+.ov-banner > svg { flex: none; margin-top: 2px; }
+.ov-banner p { margin: var(--sp-1) 0 0; color: var(--fg-2); }
+.ov-banner strong { font-size: var(--text-md); }
+.ov-banner.warn { background: var(--warn-soft); border-color: color-mix(in srgb, var(--warn) 50%, transparent); }
+.ov-banner.warn > svg { color: var(--warn); }
+.ov-banner.danger { background: var(--danger-soft); border-color: color-mix(in srgb, var(--danger) 55%, transparent); }
+.ov-banner.danger > svg { color: var(--danger); }
+.ov-sev-4 .ov-banner.danger { border-width: 2px; }
+.ov-sev-4 .ov-banner strong { font-size: var(--text-lg); }
+.ov-set { display: grid; gap: var(--sp-2); margin: 0; padding: 0; border: 0; min-width: 0; }
+.ov-set legend { margin-bottom: var(--sp-2); padding: 0; font-size: var(--text-sm); font-weight: 600; color: var(--fg); }
+.ov-check { display: flex; gap: var(--sp-2); align-items: flex-start; min-height: 2.25rem; padding: var(--sp-2); border-radius: var(--r-sm); background: var(--bg-3); font-size: var(--text-sm); line-height: var(--leading-snug); cursor: pointer; }
+.ov-check input { flex: none; width: 1.15rem; height: 1.15rem; margin: 1px 0 0; accent-color: var(--accent); }
+.ov-check > span { display: grid; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.ov-check:has(input:checked) { box-shadow: inset 0 0 0 1px var(--border-strong); }
+.ov-reason { color: var(--fg-2); }
+.ov-small { margin: 0; color: var(--fg-2); font-size: var(--text-xs); line-height: var(--leading-snug); }
+.ov-small a { color: var(--accent-text); text-decoration: underline; }
+.ov-id { font-family: var(--font-mono); font-size: var(--text-md); padding: 0 var(--sp-1); border-radius: var(--r-xs); background: var(--bg-3); user-select: all; }
+.ov-form .input { width: 100%; }
+
+/* An override on a module, its status note, and what it adds. */
+.ov-record { display: grid; gap: var(--sp-2); padding: var(--sp-3); border-radius: var(--r-md); background: var(--warn-soft); border: 1px solid color-mix(in srgb, var(--warn) 50%, transparent); font-size: var(--text-sm); line-height: var(--leading-body); color: var(--fg); min-width: 0; }
+.ov-record.danger { background: var(--danger-soft); border-color: color-mix(in srgb, var(--danger) 50%, transparent); }
+.ov-record h3 { display: flex; align-items: center; gap: var(--sp-2); margin: 0; font-size: var(--text-md); }
+.ov-record ul { margin: 0; padding-left: 1.25em; display: grid; gap: var(--sp-1); }
+.ov-record p { margin: 0; color: var(--fg-2); }
+.ov-record .ms-facts { margin: 0; }
+.ov-adds { margin: 0; padding-left: 1.25em; display: grid; gap: var(--sp-1); color: var(--fg-2); font-size: var(--text-sm); line-height: var(--leading-body); }
+.ov-adds b { color: var(--fg); }
+
+/* Installing from a file. */
+.up-form { display: grid; gap: var(--sp-3); min-width: 0; }
+.up-file { display: grid; gap: var(--sp-1); font-size: var(--text-sm); font-weight: 500; color: var(--fg); }
+.up-file input[type=file] { min-height: 2.5rem; padding: var(--sp-2); border: 1px dashed var(--control-line); border-radius: var(--r-md); background: var(--bg-3); color: var(--fg-2); font-size: var(--text-sm); max-width: 100%; }
+.up-file input[type=file]:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.up-hint { font-weight: 400; color: var(--fg-3); font-size: var(--text-xs); }
+.up-optional { display: grid; gap: var(--sp-3); padding: var(--sp-3); border-radius: var(--r-md); border: 1px solid var(--border); }
+.up-optional legend { padding: 0 var(--sp-1); font-size: var(--text-sm); font-weight: 600; }
+.up-progress { display: grid; gap: var(--sp-1); font-size: var(--text-sm); color: var(--fg-2); }
+.up-found { display: grid; gap: var(--sp-3); min-width: 0; }
+.up-sig { display: flex; gap: var(--sp-2); align-items: flex-start; font-size: var(--text-sm); line-height: var(--leading-snug); }
+.up-sig > svg { flex: none; margin-top: 1px; }
+.up-sig.ok > svg { color: var(--ok); }
+.up-sig.warn > svg { color: var(--warn); }
+.up-sig.danger > svg { color: var(--danger); }
+.up-problems { margin: 0; padding-left: 1.25em; display: grid; gap: var(--sp-1); font-size: var(--text-sm); color: var(--fg-2); }
+.up-print code { font-family: var(--font-mono); overflow-wrap: anywhere; }
+
+/* The module audit. */
+.au-list { list-style: none; margin: 0; padding: 0; display: grid; }
+.au-row { display: grid; grid-template-columns: minmax(9rem, auto) 1fr; gap: var(--sp-1) var(--sp-3); padding: var(--sp-2) 0; border-top: 1px solid var(--border); font-size: var(--text-sm); line-height: var(--leading-snug); min-width: 0; }
+.au-row:first-child { border-top: 0; }
+.au-row time { color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.au-what { display: grid; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.au-detail { color: var(--fg-2); }
+.au-more { margin-top: var(--sp-2); }
+
+@media (max-width: 600px) {
+  .au-row { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 600px), (pointer: coarse) {
+  .ov-check { min-height: 2.75rem; align-items: center; }
+  .ov-check input { margin-top: 0; }
+}
+.using-controller .ov-check { min-height: 2.75rem; align-items: center; }
+.up-title { margin: 0; font-size: var(--text-lg); outline: none; overflow-wrap: anywhere; }

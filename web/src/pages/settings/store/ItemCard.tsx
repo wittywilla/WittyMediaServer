@@ -6,6 +6,9 @@ import { ApiError } from '../../../api'
 import { toast } from '../../../state'
 import { Button, Dialog, Progress } from '../../../ui'
 import { FailureDialog, itemPath, ModuleIcon, StateTags } from './parts'
+import { useOverrideDialog } from './overrideParts'
+import { moduleKindTitle, needsOverrideOf } from './overrides'
+import type { OverrideBody } from './OverrideDialog'
 import { categoryTitle, currentRun, failureOf, installModule, isBusy, mb, PHASE, type Failure, type RunItem, type StoreItem } from './storeApi'
 
 // One module, with the one thing to do next, wherever it's shown. What can be done comes from
@@ -47,27 +50,41 @@ export function useInstall(it: StoreItem, onChanged: () => void, repairRoute: st
       if (!r || r.finished) return r
     }
   }
-  const run = async (confirm: boolean) => {
-    if (going.current) return
-    going.current = true
-    setPlan(null); setWorking(true)
+  const over = useOverrideDialog()
+  // After the server took the request: follow it to the end, then say how it went.
+  const watch = async () => {
     try {
-      await installModule(it.id, confirm)
       onChanged()
       const r = await follow()
       if (!alive.current) return
       const failed = r?.items.find((x) => x.failure)
       if (failed?.failure) setFailure(failed.failure)
       else if (r) { toast(`${it.name} is ready`); setTimeout(() => focusAfter?.(), 0) }
-    } catch (e) {
-      if (e instanceof ApiError && e.data?.code === 'plan') setPlan(e.data.plan as RunItem[])
-      else setFailure(failureOf(e, it.name))
     } finally { going.current = false; if (alive.current) setWorking(false) }
+  }
+  // With an override, a refusal goes back to the override dialog, which explains it in place.
+  const run = async (confirm: boolean, override?: OverrideBody) => {
+    if (going.current) return
+    going.current = true
+    setPlan(null); setWorking(true)
+    try {
+      await installModule(it.id, confirm, override)
+    } catch (e) {
+      going.current = false; if (alive.current) setWorking(false)
+      if (override) throw e
+      const need = needsOverrideOf(e)
+      if (e instanceof ApiError && e.data?.code === 'plan') setPlan(e.data.plan as RunItem[])
+      else if (need) over.open({ id: it.id, name: it.name, need, send: (body) => run(confirm, body) })
+      else setFailure(failureOf(e, it.name))
+      return
+    }
+    void watch()
   }
   const dialogs = (
     <>
       {plan && <PlanDialog item={it} plan={plan} onClose={() => setPlan(null)} onYes={() => run(true)} />}
       {failure && <FailureDialog failure={failure} name={it.name} moduleId={it.id} repairRoute={repairRoute} onClose={() => setFailure(null)} onRetry={() => run(false)} />}
+      {over.dialog}
     </>
   )
   return { press: () => run(false), working, dialogs }
@@ -123,7 +140,7 @@ export function ItemCard({ item, onChanged, repairRoute }: { item: StoreItem; on
         <ModuleIcon item={item} />
         <span className="st-card-text">
           <b className="st-card-name">{item.name}</b>
-          <span className="st-card-by">{item.publisher?.name || 'Part of this server'} · {categoryTitle(item.group)}</span>
+          <span className="st-card-by">{[item.publisher?.name || 'Part of this server', categoryTitle(item.group), moduleKindTitle(item.moduleKind)].filter(Boolean).join(' · ')}</span>
           {item.summary && <span className="st-card-sum">{item.summary}</span>}
         </span>
       </Link>

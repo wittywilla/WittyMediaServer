@@ -9,6 +9,8 @@ import { Button, Chip, Chips, EmptyState, Input, LinkButton, Notice, Select, Spi
 import { PageHead } from '../ui'
 import { ItemCard } from './ItemCard'
 import { FailureDialog, FailureNotice, SandboxNote, UpdateAllPanel, useStoreView } from './parts'
+import { MODULE_KIND_WORDS, MODULE_KINDS, passesExtra, readFilters, STATUS_WORDS, STATUSES } from './overrides'
+import { useFeatures } from '../../../sdui/useSdui'
 import { CATEGORIES, categoryOf, categoryTitle, checkAll, failureOf, matches, platformName, rank, showsRun, type Failure, type StoreItem } from './storeApi'
 
 // The store: find a module by searching or by what it's for, and see at a glance what's installed
@@ -35,7 +37,10 @@ export default function ModuleStore() {
   const publisher = params.get('publisher') || ''
   const platform = params.get('platform') || ''
   const set = (k: string, v: string) => setParams((p) => { const n = new URLSearchParams(p); if (v) n.set(k, v); else n.delete(k); return n }, { replace: true })
-  const filtered = !!(q || cat || show || publisher || platform)
+  const extra = readFilters(params)
+  const { moduleKind, status } = extra
+  const filtered = !!(q || cat || show || publisher || platform || moduleKind || status)
+  const features = useFeatures()
 
   const items = view?.items
   const shown = useMemo(() => (items || []).filter((i) =>
@@ -44,8 +49,11 @@ export default function ModuleStore() {
     (show !== 'installed' || i.status?.installed) &&
     (show !== 'updates' || (i.status?.installed && i.status.latest)) &&
     (!publisher || i.publisher?.name === publisher) &&
-    (!platform || i.platforms?.includes(platform) || i.platforms?.includes('all'))
-  ).sort((a, b) => rank(a, q) - rank(b, q) || a.name.localeCompare(b.name)), [items, q, cat, show, publisher, platform])
+    (!platform || i.platforms?.includes(platform) || i.platforms?.includes('all')) &&
+    passesExtra(i, { moduleKind, status })
+  ).sort((a, b) => rank(a, q) - rank(b, q) || a.name.localeCompare(b.name)), [items, q, cat, show, publisher, platform, moduleKind, status])
+  // Kinds are offered when the server says what each module is; a status, whenever any isn't stable.
+  const kindsHere = useMemo(() => MODULE_KINDS.filter((k) => (items || []).some((i) => i.moduleKind === k)), [items])
 
   const publishers = useMemo(() => [...new Set((items || []).map((i) => i.publisher?.name).filter(Boolean) as string[])].sort(), [items])
   const platforms = useMemo(() => [...new Set((items || []).flatMap((i) => i.platforms || []).filter((p) => p !== 'all'))].sort(), [items])
@@ -112,6 +120,16 @@ export default function ModuleStore() {
           <label className="st-filter">
             <span>Platform</span>
             <Select inputSize="sm" value={platform} onChange={(e) => set('platform', e.target.value)} options={[{ value: '', label: 'Any' }, ...platforms.map((p) => ({ value: p, label: p === view.platform ? `${platformName(p)} (this server)` : platformName(p) }))]} />
+          </label>
+          {(features?.has('module-store-kinds') || kindsHere.length > 0) && (
+            <label className="st-filter">
+              <span>Kind</span>
+              <Select inputSize="sm" value={moduleKind} onChange={(e) => set('moduleKind', e.target.value)} options={[{ value: '', label: 'Any' }, ...MODULE_KINDS.map((k) => ({ value: k, label: MODULE_KIND_WORDS[k] }))]} />
+            </label>
+          )}
+          <label className="st-filter">
+            <span>Status</span>
+            <Select inputSize="sm" value={status} onChange={(e) => set('status', e.target.value)} options={[{ value: '', label: 'Any' }, ...STATUSES.map((st) => ({ value: st, label: STATUS_WORDS[st].title }))]} />
           </label>
           <Button size="sm" variant="ghost" className="st-check" icon={<IconRefresh />} aria-busy={checking} aria-label="Check for updates now" onClick={check}>{checking ? 'Checking…' : 'Check now'}</Button>
         </div>

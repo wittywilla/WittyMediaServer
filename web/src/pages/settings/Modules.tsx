@@ -17,6 +17,11 @@ import { ChangeNotes, FailureNotice, ModuleIcon, ModuleLogDialog, PolicyNote, Sa
 import { checkAll, failureForStatus, type Failure } from './store/storeApi'
 import { Dialog } from '../../ui/Overlay'
 import { ConfirmOwner, OwnerFields, type OwnerAsk } from './ConfirmOwner'
+import { OverrideRecordBox, OverrideTags, PendingNotice, StatusNotice, useOverrideDialog, type OverrideAsk } from './store/overrideParts'
+import { needsOverrideOf, overrideLines, releaseStatus, statusWarns, type NeedsOverride } from './store/overrides'
+import { InstallFromFile } from './store/InstallFromFile'
+import { ModuleAudit } from './store/ModuleAudit'
+import { useFeatures } from '../../sdui/useSdui'
 
 // The module store: what this server can do, by what it is for, to add and take away,
 // with the versions, pins and forks of the ones that have releases of their own. Nothing
@@ -99,6 +104,8 @@ export default function ModulesSettings() {
   const [hostReady, setHostReady] = useState(false)
   const store = useStoreView()
   const [logOf, setLogOf] = useState<ModuleStatus | null>(null)
+  const features = useFeatures()
+  const { user } = useApp()
 
   useEffect(() => {
     api.get<ModuleReport>('/modules').then(setR).catch((e) => setFailed(e.message))
@@ -172,15 +179,24 @@ export default function ModulesSettings() {
       catch (e: any) { setRefused({ id: m.id, why: e.message }) }
     },
   })
+  const over = useOverrideDialog()
+  // A version the usual rules refuse, installed with an override: the dialog sends it again.
+  const overrideInstall = (m: ModuleStatus, version: string, need: NeedsOverride) => over.open(overrideAskFor(m, version, need, (n) => { setR(n); void store.reload(); focusRow(m.id) }))
   const update = async (m: ModuleStatus) => {
     if (!m.latest) return
     const version = m.latest.version
     const install = (confirm: boolean) => api.post<ModuleReport>(`/modules/${m.id}/install`, { version, confirm })
     try { setR(await install(false)); focusRow(m.id) } catch (e: any) {
-      if (e instanceof ApiError && e.data?.code === 'confirm') setAsk({ title: `Update ${m.name} to ${version}?`, body: <p>{e.data.warning}</p>, action: 'Update anyway', run: async () => { await act(() => install(true)); focusRow(m.id) } })
+      const need = needsOverrideOf(e)
+      if (need) overrideInstall(m, version, need)
+      else if (e instanceof ApiError && e.data?.code === 'confirm') setAsk({ title: `Update ${m.name} to ${version}?`, body: <p>{e.data.warning}</p>, action: 'Update anyway', run: async () => {
+        try { setR(await install(true)); focusRow(m.id) } catch (x) { const n = needsOverrideOf(x); if (n) overrideInstall(m, version, n); else toast(x instanceof Error ? x.message : String(x)) }
+      } })
       else toast(e.message)
     }
   }
+  // A release held after its download, waiting for the go-ahead.
+  const goAhead = (m: ModuleStatus) => { if (m.pending) overrideInstall(m, m.pending.version, { ...m.pending.needsOverride, version: m.pending.version, pending: true }) }
   const rollback = (m: ModuleStatus) => setOwnerAsk({
     title: m.previous ? `Go back to version ${m.previous}?` : `Stop using ${m.name} ${m.version}?`, action: m.previous ? 'Go back' : 'Stop using it',
     body: <p>{m.name} stops using version {m.version}, and that version is marked as taken out of use, so automatic updates won’t bring it back. You can still choose it yourself.{m.previous ? ' An older version may lack security fixes, so this asks for your password.' : ' There’s no earlier version here, so it won’t be working until you install another. This asks for your password.'}</p>,
@@ -202,6 +218,8 @@ export default function ModulesSettings() {
     </div>
   )
   if (!r) return <div><PageHead title="Modules" /><Spinner /></div>
+  const canUpload = !!features?.has('module-upload')
+  const canAudit = !!features?.has('module-audit') && !!user?.isAdmin
 
   // Until it is set, the automatic check follows the one for server updates.
   const autoCheck = (settings?.moduleUpdateCheck || settings?.updateCheck || '1') === '1'
@@ -212,7 +230,7 @@ export default function ModulesSettings() {
   const groups = shelves(shown.filter((m) => !m.core))
   const nameOf = (id: string) => r.modules.find((m) => m.id === id)?.name || id
   const row = (m: ModuleStatus) => (
-    <ModuleRow key={m.id} m={m} isOpen={open === m.id} marked={hi === m.id} checkedAt={r.checkedAt} nameOf={nameOf} refused={refused?.id === m.id ? refused.why : ''}
+    <ModuleRow key={m.id} m={m} onGoAhead={() => goAhead(m)} onOverride={(n) => { if (n) setR(n); else api.get<ModuleReport>('/modules').then(setR).catch(() => {}); void store.reload() }} isOpen={open === m.id} marked={hi === m.id} checkedAt={r.checkedAt} nameOf={nameOf} refused={refused?.id === m.id ? refused.why : ''}
       onToggle={() => setOpen(open === m.id ? null : m.id)} onReport={setR}
       onAdd={() => add(m)} onRemove={() => remove(m)} onUpdate={() => update(m)} onVersions={() => setVersionsOf(m)}
       onPin={() => pin(m)} onRollback={() => rollback(m)} onOfficial={() => official(m)} onAuto={(on) => setAuto(m, on)} onLatest={() => toLatest(m)} onLog={() => setLogOf(m)} repairRoute={store.view?.repairRoute || '/settings/repair'} serverFailure={store.view?.items.find((i) => i.official && i.id === m.id)?.failure} serverAuto={settings?.moduleAutoInstall === '1' && autoCheck} kinds={r.libraries || []} />
@@ -265,7 +283,12 @@ export default function ModulesSettings() {
         </div>
       )}
 
-      {filter === 'all' && (
+      {canUpload ? (
+        <Section id="custom-modules" title="Custom modules" actions={<InstallFromFile onInstalled={() => { api.get<ModuleReport>('/modules').then(setR).catch(() => {}); void store.reload() }} />}
+          desc="Install a module from its release archive: one you built, or one someone gave you. The server checks the file and says what it found before anything is installed. Replacing an existing module with someone’s fork is done from that module above, under Advanced.">
+          <p className="ms-note">A module is someone’s code running on your server, so only install one from a publisher you trust. Anything unsigned, signed by a key this server doesn’t trust, or new to this server needs an override, gets no permissions you don’t tick, and never updates by itself. <HelpLink to="module-store#installing-from-a-file">Installing from a file</HelpLink></p>
+        </Section>
+      ) : filter === 'all' && (
         <div className="ms-quiet">
           <Section title="Custom modules" actions={<span className="set-pill">In development</span>}
             desc="Adding a wholly new kind of module isn’t available yet. Replacing an existing module with someone’s fork is: open that module above, then Advanced.">
@@ -273,6 +296,9 @@ export default function ModulesSettings() {
           </Section>
         </div>
       )}
+
+      {canAudit && <ModuleAudit nameOf={nameOf} />}
+      {over.dialog}
 
       {ownerAsk && <ConfirmOwner ask={ownerAsk} onClose={() => setOwnerAsk(null)} />}
       {versionsOf && <VersionsDialog m={r.modules.find((m) => m.id === versionsOf.id) || versionsOf} onClose={() => setVersionsOf(null)} onReport={setR} />}
@@ -304,8 +330,10 @@ function Tags({ m }: { m: ModuleStatus }) {
         : needsLook(m) ? <Tag tone="bad" icon={<IconInfo size={12} />}>Needs a look</Tag>
         : m.latest ? <Tag tone="new">Update available</Tag>
         : <Tag tone="ok" icon={<IconCheck size={12} />}>Installed</Tag>}
+      {m.pending && <Tag tone="warn">Needs your go-ahead</Tag>}
       {m.installed && m.pin && <Tag>Pinned</Tag>}
       {m.source && <Tag tone="warn" icon={<IconShield size={12} />}>Other publisher</Tag>}
+      <OverrideTags override={m.override} status={m.releaseStatus} />
     </span>
   )
 }
@@ -315,6 +343,7 @@ type RowProps = {
   onToggle: () => void; onReport: (r: ModuleReport) => void
   onAdd: () => void; onRemove: () => void; onUpdate: () => void; onVersions: () => void; onPin: () => void; onRollback: () => void; onOfficial: () => void
   onAuto: (on: boolean) => void; onLatest: () => void; onLog: () => void; repairRoute: string; serverFailure?: Failure; serverAuto: boolean; kinds: LibraryKind[]
+  onGoAhead: () => void; onOverride: (r?: ModuleReport) => void
 }
 
 // One module: a line to scan, and everything else when it is opened.
@@ -389,13 +418,16 @@ function BroughtKind({ type, m, kinds, onReport }: { type: string; m: ModuleStat
   )
 }
 
-function ModuleDetail({ id, m, checkedAt, nameOf, refused, onReport, kinds, onRemove, onUpdate, onVersions, onPin, onRollback, onOfficial, onAuto, onLatest, onLog, repairRoute, serverFailure, serverAuto }: RowProps & { id: string }) {
+function ModuleDetail({ id, m, checkedAt, nameOf, refused, onReport, kinds, onRemove, onUpdate, onVersions, onPin, onRollback, onOfficial, onAuto, onLatest, onLog, repairRoute, serverFailure, serverAuto, onGoAhead, onOverride }: RowProps & { id: string }) {
   const working = busy(m)
   const failure = serverFailure || failureForStatus(m)
   const events = [...(m.events || [])].reverse().slice(0, 8)
   const latest = m.latest ? m.latest.version : checkedAt ? 'This is the newest known' : 'Not checked yet'
   return (
     <div className="ms-detail" id={id}>
+      <PendingNotice m={m} onGo={onGoAhead} onDropped={onOverride} />
+      {m.override && <OverrideRecordBox id={m.id} name={m.name} record={m.override} disabled={working} onRemoved={onOverride} />}
+      {statusWarns(releaseStatus(m.releaseStatus)) && <StatusNotice status={m.releaseStatus} note={m.statusNote} name={m.name} installed={m.installed} />}
       {m.source && <PublisherNote m={m} onOfficial={onOfficial} disabled={working} />}
       {refused && <p className="error" role="alert">{refused} <Link to="/settings/libraries">Go to Libraries</Link></p>}
       {failure && <FailureNotice failure={failure} name={m.name} moduleId={m.id} repairRoute={repairRoute} onRetry={m.latest ? onUpdate : undefined} />}
@@ -437,13 +469,14 @@ function ModuleDetail({ id, m, checkedAt, nameOf, refused, onReport, kinds, onRe
       {m.installed && m.pin && <p className="ms-note">Kept on {pinWords(m.pin)} on purpose. Automatic updates leave it alone, though a version withdrawn for security reasons still goes out of use.</p>}
 
       {m.installed && m.updatable && (
-        <Row label="Update this module by itself" dim={!!m.source || !!m.pin || !serverAuto}
-          desc={m.source ? 'A module from another publisher never updates by itself: you choose each version.'
+        <Row label="Update this module by itself" dim={!!m.source || !!m.pin || !!m.override || !serverAuto}
+          desc={m.override ? 'It was installed with an override, so it never updates by itself. Remove the override, or choose a version that needs none, to let it update again.'
+            : m.source ? 'A module from another publisher never updates by itself: you choose each version.'
             : m.pin ? 'It is pinned, so automatic updates leave it alone whatever this says.'
             : !serverAuto ? 'Automatic updates are off for the whole server, above, so this changes nothing until they are on.'
             : m.autoUpdate ? 'Installs new versions when they appear, if they work with this server.'
             : 'It still looks for new versions and shows them here, and waits for you to install them.'}>
-          <Switch label={`Update ${m.name} by itself`} checked={m.autoUpdate} disabled={working || !!m.source} onChange={onAuto} />
+          <Switch label={`Update ${m.name} by itself`} checked={m.autoUpdate && !m.override} disabled={working || !!m.source || !!m.override} onChange={onAuto} />
         </Row>
       )}
 
@@ -571,6 +604,7 @@ function VersionsDialog({ m, onClose, onReport }: { m: ModuleStatus; onClose: ()
   const [checking, setChecking] = useState(false)
   const [pending, setPending] = useState<{ v: VersionInfo; warning: string } | null>(null)
   const [needPassword, setNeedPassword] = useState<VersionInfo | null>(null)
+  const over = useOverrideDialog()
   const load = () => api.get<VersionList>(`/modules/${m.id}/versions`).then((l) => { setList(l); setErr('') }).catch((e) => setErr(e.message))
   useEffect(() => { void load() }, [m.id])
   // Check now is the only thing here that goes online, and someone has to press it.
@@ -592,7 +626,9 @@ function VersionsDialog({ m, onClose, onReport }: { m: ModuleStatus; onClose: ()
       onReport(await post(v, confirm))
       onClose()
     } catch (e: any) {
-      if (e instanceof ApiError && e.data?.code === 'confirm') setPending({ v, warning: e.data.warning })
+      const need = needsOverrideOf(e)
+      if (need) over.open(overrideAskFor(m, v.version, need, (n) => { onReport(n); onClose() }))
+      else if (e instanceof ApiError && e.data?.code === 'confirm') setPending({ v, warning: e.data.warning })
       else if (e instanceof ApiError && e.data?.code === 'password-needed') setNeedPassword(v)
       else { setErr(e.message); backToButton(v.version) }
     }
@@ -635,13 +671,14 @@ function VersionsDialog({ m, onClose, onReport }: { m: ModuleStatus; onClose: ()
       {needPassword && <ConfirmOwner ask={{ title: `Go back to ${m.name} ${needPassword.version}?`, body: <p>An older version may lack security fixes, so this asks for your password.</p>, action: 'Go back',
         run: async (password, code) => { onReport(await post(needPassword, true, { password, code })); onClose() } }}
         onClose={() => { setNeedPassword(null); backToButton(needPassword.version) }} />}
+      {over.dialog}
     </>
   )
 }
 
 function VersionRow({ v, working, onChoose }: { v: VersionInfo; working: boolean; onChoose: () => void }) {
   const link = safeUrl(v.url)
-  const can = !v.inUse && v.allowed
+  const can = !v.inUse && (v.allowed || !!v.override)
   return (
     <li className={'ms-ver-row' + (v.inUse ? ' on' : '') + (v.withdrawn ? ' withdrawn' : '') + (!v.inUse && !v.allowed ? ' no' : '')}>
       <div className="ms-ver-head">
@@ -656,11 +693,12 @@ function VersionRow({ v, working, onChoose }: { v: VersionInfo; working: boolean
             {v.withdrawn && <Tag tone="bad" icon={<IconInfo size={12} />}>Withdrawn</Tag>}
           </span>
         </div>
-        {!v.inUse && <button type="button" id={'ver-' + v.version} className="btn sm" disabled={!can || working} onClick={onChoose} aria-label={`${v.installed ? 'Switch to' : 'Install'} version ${v.version}`}>{v.installed ? 'Switch to this' : 'Install'}</button>}
+        {!v.inUse && <button type="button" id={'ver-' + v.version} className="btn sm" disabled={!can || working} onClick={onChoose} aria-label={`${v.installed ? 'Switch to' : 'Install'} version ${v.version}${!v.allowed && v.override ? ', with an override' : ''}`}>{!v.allowed && v.override ? 'Install anyway…' : v.installed ? 'Switch to this' : 'Install'}</button>}
       </div>
       <div className="muted ms-ver-fit">Works with servers {v.minServer} to {v.maxServer}{v.size ? ` · ${mb(v.size)} MB` : ''}{link && <> · <a href={link} target="_blank" rel="noreferrer">On GitHub</a></>}</div>
       {v.withdrawn && <p className="ms-bad">Withdrawn {severity(v.withdrawn.severity)}: {v.withdrawn.reason}</p>}
-      {v.refused && !/withdrawn/i.test(v.refused) && <p className="ms-why">Can’t be chosen: {v.refused}</p>}
+      {v.override && !v.allowed && <p className="ms-why">Needs an override: {overrideLines(v.override).map((l) => l.reason || l.title).join(' ')}</p>}
+      {v.refused && !v.override && !/withdrawn/i.test(v.refused) && <p className="ms-why">Can’t be chosen: {v.refused}</p>}
       {v.blocked && !v.withdrawn && <p className="ms-why">Taken out of use before: {v.blocked}</p>}
       <details className="ms-more">
         <summary>Release notes</summary>
@@ -668,4 +706,17 @@ function VersionRow({ v, working, onChoose }: { v: VersionInfo; working: boolean
       </details>
     </li>
   )
+}
+
+// What the override dialog sends for a version of an installed module: the same install request,
+// confirmed, with the password, code and override beside the version.
+function overrideAskFor(m: ModuleStatus, version: string, need: NeedsOverride, done: (r: ModuleReport) => void): OverrideAsk {
+  return {
+    id: m.id, name: `${m.name} ${version}`, need: { ...need, version: need.version || version },
+    send: async (body) => {
+      const r = await api.post<ModuleReport>(`/modules/${m.id}/install`, { version, confirm: true, ...body })
+      toast(`${m.name} ${version} is being installed`)
+      done(r)
+    },
+  }
 }

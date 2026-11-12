@@ -2,6 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { api, ApiError } from '../../../api'
 import type { ModuleStatus, VersionInfo } from '../../../moduleStore'
+import type { OverrideRecord, UiSummary } from './overrides'
 
 // What the module store's pages ask the server. Everything a page shows about a module comes
 // from here, including its pictures: a page never fetches from an address in a catalogue, and
@@ -20,6 +21,8 @@ export type StoreItem = {
   libraries?: string[]; requires?: string[]; needs?: string[]; core?: boolean; updates?: string; stays?: string
   platforms?: string[]; delivery?: string; version?: string; released?: string; size?: number; license?: string; permissions?: string[]; changelog?: string
   minServer?: string; maxServer?: string; fit: Fit; status?: ModuleStatus; failure?: Failure
+  // What sort of module it is, how finished its release is, what its SDUI adds, and its override.
+  moduleKind?: string; releaseStatus?: string; statusNote?: string; ui?: UiSummary; override?: OverrideRecord
 }
 export type RunItem = { id: string; name: string; from?: string; to?: string; state: 'queued' | 'working' | 'done' | 'failed' | 'skipped' | 'undone'; why?: string; phase?: string; done?: number; total?: number; failure?: Failure }
 export type Run = { id: string; kind: string; by?: string; started: number; finished?: number; items: RunItem[]; updated: number; failed: number; skipped: number; canUndo?: boolean; undone?: boolean }
@@ -46,7 +49,7 @@ export const currentRun = () => api.get<{ run?: Run }>('/modulestore/run').then(
 export type OwnerSecrets = { password: string; code: string }
 export const undoRun = (secrets: OwnerSecrets) => api.post<Run>('/modulestore/run/undo', secrets)
 export const dismissRun = () => api.del('/modulestore/run')
-export const installModule = (id: string, confirm: boolean) => api.post<Run>('/modulestore/install', { id, confirm })
+export const installModule = (id: string, confirm: boolean, more?: object) => api.post<Run>('/modulestore/install', { id, confirm, ...more })
 export const moduleLog = (id: string) => api.get<ModuleLog>(`/modulestore/modules/${encodeURIComponent(id)}/log`)
 export const previewStore = (url: string, key: string, allowPrivate: boolean, secrets?: OwnerSecrets) => api.post<StorePreview>('/modulestore/stores/preview', { url, key, private: allowPrivate, ...secrets })
 export const addStore = (url: string, key: string, allowPrivate: boolean, agreed: boolean, secrets: OwnerSecrets) => api.post<StoreInfo>('/modulestore/stores', { url, key, private: allowPrivate, agreed, ...secrets })

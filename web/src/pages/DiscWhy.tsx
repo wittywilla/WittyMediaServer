@@ -30,6 +30,7 @@ export type DiscAnalysis = {
   secondOpinion?: { enabled: boolean; available: boolean; version?: string; reason?: string }
 }
 
+const capital = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s)
 const sure = (c: number) => `${Math.round(c * 100)}% sure`
 const levelWord = (l: string) => (l === 'high' ? 'High confidence' : l === 'medium' ? 'Medium confidence' : l === 'low' ? 'Low confidence' : '')
 
@@ -83,7 +84,9 @@ export default function DiscWhy({ item, analysis, setAnalysis, unit }: {
       </div>
     )
   }
-  const others = rk.candidates.filter((c) => c.ttn !== a.main)
+  // The film's own parts (titles it plays through) aren't another film to choose.
+  const parts = new Set(rk.feature?.assembled ? rk.feature.titles : [])
+  const others = rk.candidates.filter((c) => c.ttn !== a.main && !parts.has(c.ttn) && c.class !== 'part')
   return (
     <div className="disc-why" aria-labelledby="why-h">
       <h3 className="section-title" id="why-h">Why this {unit.toLowerCase()}</h3>
@@ -147,10 +150,12 @@ function ChosenLine({ a, name, busy, clear }: { a: DiscAnalysis; name: (n: numbe
 }
 
 // DiscChoices lists a TV disc's episodes and the film's other versions, each to play.
-export function DiscChoices({ item, rank, playable, unit }: { item: Item; rank: DiscRank; playable: boolean; unit: string }) {
+export function DiscChoices({ item, rank, main, playable, unit }: { item: Item; rank: DiscRank; main: number; playable: boolean; unit: string }) {
   const nav = useNavigate()
   const go = (q: string) => nav(`/play/${item.id}?mode=title&${q}`)
-  const versions = (rank.versions || []).filter((v) => !v.main)
+  // Every other way to see the film than what Play plays now: with a chosen title, the
+  // engine's own pick is one of them.
+  const versions = (rank.versions || []).filter((v) => (v.kind === 'angle' ? !(v.main && v.ttn === main) : v.ttn !== main))
   return (
     <>
       {rank.episodes && rank.episodes.length > 0 && (
@@ -173,7 +178,7 @@ export function DiscChoices({ item, rank, playable, unit }: { item: Item; rank: 
             {versions.map((v, i) => (
               <li key={i}>
                 <Button size="sm" icon={<IconPlay />} disabled={!playable}
-                  onClick={() => go(`ttn=${v.ttn}${v.kind === 'angle' && v.angle ? `&angle=${v.angle}` : ''}`)}>{v.label || `${unit} ${v.ttn}`}</Button>
+                  onClick={() => go(`ttn=${v.ttn}${v.kind === 'angle' && v.angle ? `&angle=${v.angle}` : ''}`)}>{capital(v.label) || `${unit} ${v.ttn}`}</Button>
                 <span className="muted"> {fmtTime(v.durationSec)}</span>
               </li>
             ))}

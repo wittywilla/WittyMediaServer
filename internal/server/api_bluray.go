@@ -78,7 +78,8 @@ func (s *Server) handleDiscBluray(w http.ResponseWriter, r *http.Request, it *li
 	if rk := rankOf(it); rk != nil {
 		playlists = playlists[:0:0]
 		for _, c := range rk.Candidates {
-			if c.Class != "duplicate" && c.Class != "stub" {
+			// Another cut of the film is under the page's other versions, not a bonus feature.
+			if c.Class != "duplicate" && c.Class != "stub" && !isVersion(rk, c.TTN) {
 				playlists = append(playlists, c.TTN)
 			}
 		}

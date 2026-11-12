@@ -151,20 +151,21 @@
     "default": 60
    },
    {
-    "id": "speed",
-    "type": "number",
-    "min": 0.5,
-    "max": 2,
-    "default": 1
+    "id": "speedPct",
+    "type": "int",
+    "min": 50,
+    "max": 200,
+    "default": 100,
+    "unit": "%"
    },
    {
     "id": "colour",
     "type": "enum",
     "options": [
-     "theme",
-     "album"
+     "effect",
+     "theme"
     ],
-    "default": "theme"
+    "default": "effect"
    },
    {
     "id": "canvas",

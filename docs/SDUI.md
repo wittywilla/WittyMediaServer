@@ -258,6 +258,11 @@ Go types are `sdui.Document`, `sdui.Node`, `sdui.Action`, `sdui.Focus`.
 | `back` | | Goes back. |
 | `command` | `op`, `item`, `params` | Carries out one of the [Commands](#commands), then asks for the page again. |
 
+A row or card made from a source's item normally opens the item's route or plays it. An item
+may instead carry its own `action`, always a `command` (a disc's candidate row does
+`disc.choose` with its `ttn`, for an administrator): the node then has that action. Only sources
+the server answers itself set it; an item from a module's helper never has one.
+
 Ignore an action type you don't know.
 
 A command's request is built from its catalogue entry: put the action's
@@ -3268,6 +3273,10 @@ A menu entry (`type: native`) may open the screens marked *menu*; the others nee
 | `watched.clear` | Forgets the profile's progress in the title; for a show, in every episode. | `DELETE /api/v1/items/{item}/progress` |
 | `selectTab` | Asks for the page again with tab=<params.tab>, or shows the tab's content when the client already has it. |  |
 | `control.open` | Client-handled, from a Dock: params.control is sort, filter, view or jump and params.target the Grid. sort and filter open the page's FilterBar choices for the target; view switches it between its grid and a list and remembers it for the profile on the device; jump opens a letter picker (A to Z and #) and brings the grid to the first title starting with the letter by asking its more.url until one has arrived, at most 20 pages. |  |
+| `disc.choose` | Discs: an administrator makes params.ttn (a DVD's title or a Blu-ray's playlist) the disc's film (item), for everyone, instead of the engine's pick. | `PUT /api/v1/items/{item}/disc/choice` with `{"ttn":"{ttn}"}`; `ttn` (int, required) |
+| `disc.clearChoice` | Discs: forgets the film an administrator chose for the disc (item): the engine's pick plays again. | `DELETE /api/v1/items/{item}/disc/choice` |
+| `disc.rank` | Discs: an administrator has the disc's module work out which title of the disc (item) is the film again. | `POST /api/v1/items/{item}/disc/analysis` with `{"secondOpinion":false}` |
+| `disc.compare` | Blu-rays: an administrator has a libbluray installed on the server compare its reading of the disc (item); the setting has to allow it. | `POST /api/v1/items/{item}/disc/analysis` with `{"secondOpinion":true}` |
 | `wittyplay.room.create` | WittyPlay Online: opens the game being played (item: its session) to the friends who may see it, so they join with no code. Answers the host's code. | `POST /api/play/{item}/room` with `{"open":true}` |
 | `wittyplay.room.join` | WittyPlay Online: takes a seat in an open room (item: its session) or, with params.code, the room that code belongs to (no item). | `POST /api/play/join` with `{"room":"{item}","code":"{code}"}`; `code` (string) |
 | `wittyplay.room.invite` | WittyPlay Online: a join code for the game being played (item: its session), good for a short while, which a phone's QR join link carries. Answers {code, expiresAt}. | `POST /api/play/{item}/invite` |

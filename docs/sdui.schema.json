@@ -985,6 +985,9 @@
     },
     "Item": {
       "properties": {
+        "action": {
+          "$ref": "#/$defs/Action"
+        },
         "artist": {
           "type": "string"
         },

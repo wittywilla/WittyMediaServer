@@ -3,7 +3,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api, backdropUrl, codecName, fitWidth, sized, dvdStartMode, episodeLabel, fmtRuntime, fmtTime, getPrefs, insertFxOn, isDisc, langName, posterUrl, type Item, type Prefs, discName, isBluray } from '../api'
-import DiscSections from './DiscSections'
 import EditDetails, { type EditSection } from '../components/edit/EditDetails'
 import RefreshDialog from '../components/edit/RefreshDialog'
 import TitleArtPicker, { PosterMenu, appliedOnPage } from '../components/edit/TitleArtPicker'
@@ -205,7 +204,6 @@ export default function ItemPage() {
 
           <TitleExtras target="item" id={it.id} libraryId={it.libraryId} />
           {it.showId == null && <Suspense fallback={null}><WhereToWatch itemId={it.id} /></Suspense>}
-          {disc && <DiscSections item={it} admin={!!user?.isAdmin} playable={playable} />}
           <div className="page-back">{it.showId != null
             ? <BackLink to={`/show/${it.showId}?season=${it.season ?? -1}`} label={`Back to ${it.showTitle}`} />
             : <BackLink to={`/library/${it.libraryId}`} label="Back to library" />}</div>

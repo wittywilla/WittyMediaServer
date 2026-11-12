@@ -491,6 +491,11 @@ type Item struct {
 	Can []string `json:"can,omitempty"`
 	// NextID is the item Play should start for a show: its next episode.
 	NextID string `json:"nextId,omitempty"`
+	// Action is what activating the item does instead of opening its route or playing it:
+	// only one of the catalogue's commands. The server's own sources set it, for what a row
+	// of a title's page does to that title (a disc's "Make it the film"); one a module's
+	// helper sends is dropped.
+	Action *Action `json:"action,omitempty"`
 	// Group is the part of a title's credits a person card is in: cast, guests, or a crew
 	// department (CreditGroups). The card's subtitle is the part played or the job.
 	Group string `json:"group,omitempty"`

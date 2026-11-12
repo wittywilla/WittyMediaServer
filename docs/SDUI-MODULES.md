@@ -283,6 +283,7 @@ only this (`cleanModuleItem` in `internal/server/sdui_modules.go`):
 | `images` | Only `poster`, `backdrop`, `square` and `logo`, and only paths on this server beginning `/api/`. Others are removed. The renderer adds the width to ask for. |
 | `playId`, `nextId` | Kept only when it is the ID of a library item this profile may see and play, and its screen time isn't over. Otherwise removed. A module can't make anything playable that isn't in a library. |
 | `can` | Only `play`, `download`, `share`, `watchLater`, `watched`, `playOn`, `watchParty`. Every one of them acts on a title of the library, so an item without a `playId` that survives the check above offers none. |
+| `action` | Always removed. An item's own action (a catalogue command, such as a disc row's `disc.choose`) is only ever set by sources the server answers itself. |
 | `badges` | At most 3, each cut to 12 characters. |
 | `icon` | Kept when it is one of the [icons](SDUI.md#icons). |
 | `scope` | Defaults to the module's ID. |

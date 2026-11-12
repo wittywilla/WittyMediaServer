@@ -2,7 +2,8 @@
 // Copyright (C) 2026 WittyWilla and contributors
 // What the web app adds to a title's server-driven header from its own stock: the tools
 // an administrator has for a title (artwork, details, refresh), the credit a metadata
-// source asks for, the file's technical facts, and a disc's titles and extras. The page
+// source asks for, and the file's technical facts. A disc's sections come from its
+// module's own sdui.json (WittyDVD, WittyBluray). The page
 // model has no components for these; they are the app's own, as on its hand-built pages.
 
 import { lazy, Suspense, useEffect, useState } from 'react'
@@ -20,7 +21,6 @@ import type { Document, Node } from '../types'
 const EditDetails = lazy(() => import('../../components/edit/EditDetails'))
 const RefreshDialog = lazy(() => import('../../components/edit/RefreshDialog'))
 const TitleExtras = lazy(() => import('../../components/edit/TitleExtras'))
-const DiscSections = lazy(() => import('../../pages/DiscSections'))
 const PlayOn = lazy(() => import('../../remote/PlayOn'))
 const CanvasManager = lazy(() => import('../../canvas/CanvasManager'))
 const AlbumCanvasManager = lazy(() => import('../../canvas/AlbumCanvasManager'))
@@ -103,7 +103,6 @@ export default function DetailExtras({ place, header, doc }: { place: 'tools' | 
   return (
     <div className="sdui-extras">
       <Credit provider={title.provider} providerId={title.providerId} />
-      {item && disc && item.disc?.scrambled && <div className="error">This disc is encrypted, so it can't be played: encrypted media isn't supported, and nothing here bypasses copy protection.</div>}
       {item && (item.width > 0 || item.container || disc) && (
         <div className="facts">
           {item.width > 0 && <div className="fact"><div className="k">Video</div><div className="v">{item.width}×{item.height} {codecName(item.videoCodec)}{disc && main ? ` · ${isBluray(item) ? main.standard : ''}` : ''}</div></div>}
@@ -116,7 +115,6 @@ export default function DetailExtras({ place, header, doc }: { place: 'tools' | 
       )}
       <Suspense fallback={null}>
         <TitleExtras target={t.target} id={t.id} libraryId={title.libraryId} />
-        {item && disc && <DiscSections item={item} admin={!!user?.isAdmin} playable={!item.disc?.scrambled} />}
       </Suspense>
       <LegalNote kind="metadata" />
     </div>

@@ -1165,6 +1165,9 @@ func (r *renderer) listItem(parent string, it *Item) Node {
 		n.Props["badges"] = it.Badges[:min(len(it.Badges), 2)]
 	}
 	switch {
+	case it.Action != nil && it.Action.Type == ActCommand:
+		a := *it.Action
+		n.Action = &a
 	case it.Route != "":
 		n.Action = &Action{Type: ActNavigate, To: it.Route}
 	case it.PlayID != "":

@@ -651,13 +651,15 @@ h3.section-title { font-size: var(--text-lg); margin-top: var(--sp-6); }
 .ok { color: var(--ok); }
 .muted { color: var(--fg-3); }
 .center { display: grid; place-items: center; min-height: 100vh; min-height: 100dvh; padding: var(--sp-5); }
-.center:has(.auth-card) { align-content: center; gap: var(--sp-5); background: radial-gradient(70% 60% at 50% 0%, rgb(var(--accent-rgb) / .12), transparent 70%), var(--bg); }
+.center:has(:is(.auth-card, .auth-spec)) { align-content: center; gap: var(--sp-5); background: radial-gradient(70% 60% at 50% 0%, rgb(var(--accent-rgb) / .12), transparent 70%), var(--bg); }
 .auth-card { position: relative; width: 100%; max-width: 380px; background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r-xl); padding: var(--sp-8); box-shadow: var(--e-3); }
 .auth-card .brand { justify-content: center; font-size: var(--text-xl); padding: 0; margin-bottom: var(--sp-2); }
 .auth-card p { color: var(--fg-2); text-align: center; margin: 0 0 var(--sp-6); }
 .auth-card .form .btn { width: 100%; margin-top: var(--sp-1); }
 @media (max-width: 420px) { .auth-card { padding: var(--sp-6) var(--sp-5); } }
-.auth-plain { margin: 0 0 var(--sp-3); padding: var(--sp-2) var(--sp-3); border: 1px solid var(--danger); border-radius: var(--r-sm); background: var(--danger-soft); color: var(--fg); font-size: var(--text-sm); line-height: 1.5; }
+.auth-spec { width: 100%; max-width: 32rem; } /* sign-in is drawn from a spec (spec/specs/auth.ts) */
+.auth-spec .brand { justify-content: center; font-size: var(--text-xl); padding: 0; margin-bottom: var(--sp-2); }
+.auth-spec .auth-profile { margin-bottom: var(--sp-3); }
 .empty { display: grid; justify-items: center; text-align: center; color: var(--fg-2); padding: var(--sp-16) var(--sp-5); }
 .empty-ic { display: grid; place-items: center; width: 56px; height: 56px; margin-bottom: var(--sp-4); border-radius: 50%; background: var(--bg-3); color: var(--fg-3); }
 .empty-ic svg { width: 26px; height: 26px; }

@@ -183,7 +183,9 @@ async function pageChecks(where) {
 // ---------------------------------------- Tab from the top to the end
 async function tabWalk(where) {
   const all = await tagAll()
-  await page.eval(`document.activeElement?.blur(); window.scrollTo(0, 0)`)
+  // Blurring keeps the browser's place for Tab at the control that had focus, so a page that focuses its own first
+  // field as it opens (the pairing code) would be walked from the middle: the start is put back at the top.
+  await page.eval(`document.activeElement?.blur(); getSelection()?.setPosition(document.body, 0); window.scrollTo(0, 0)`)
   const order = []
   const limit = all.length * 2 + 40
   // A page can put focus on its own content as it opens, so Tab goes on past the end of the page and

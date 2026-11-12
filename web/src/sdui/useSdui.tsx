@@ -8,6 +8,7 @@ import { getTvMode, useTvMode } from '../tvmode/mode'
 import { onPreview, prefetchPage, serverFeatures } from './client'
 import { describe, deviceKey, type Device } from './device'
 import { resolve } from './routes'
+import { ownLibraryTab } from './native'
 
 const SduiPage = lazy(() => SduiPageCode())
 
@@ -84,11 +85,14 @@ const SduiPageCode = () => import('./SduiPage').then((m) => { pageCode = true; r
 export function SduiRoute({ fallback, loading }: { fallback: ReactNode; loading?: ReactNode }) {
   const features = useFeatures()
   const device = useDevice()
+  const { libraries } = useApp()
   const loc = useLocation()
   usePreviewChanges()
   if (features === null) return <>{loading ?? <div className="loading-box" role="status" aria-label="Loading"><div className="spinner" /></div>}</>
   const at = resolve(loc.pathname, loc.search)
   if (!features.has('sdui-pages') || !at || at.kind !== 'page' || !at.page) return <>{fallback}</>
+  // A tab only the app's own page has (a music library's Songs, Playlists): that page.
+  if (at.page === 'library' && ownLibraryTab(at.params, libraries)) return <>{fallback}</>
   if (!pageCode) prefetchPage(at.page, device, at.params)
   return <Suspense fallback={loading ?? <div className="loading-box" role="status" aria-label="Loading"><div className="spinner" /></div>}><SduiPage page={at.page} params={at.params} fallback={fallback} /></Suspense>
 }

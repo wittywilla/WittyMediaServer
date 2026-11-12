@@ -6,10 +6,12 @@
 // model has no components for these; they are the app's own, as on its hand-built pages.
 
 import { lazy, Suspense, useEffect, useState } from 'react'
-import { api, codecName, discName, isBluray, isDisc, langName, type Item, type Show } from '../../api'
+import { api, codecName, discName, getPrefs, isBluray, isDisc, langName, type Item, type Show } from '../../api'
+import { toast } from '../../state'
+import { onEpisodeViewChosen, setEpisodeView, useEpisodeView, type EpisodeView } from './episodeView'
 import TitleArtPicker, { appliedOnPage } from '../../components/edit/TitleArtPicker'
 import LegalNote from '../../components/LegalNote'
-import { IconEdit, IconImage, IconMore, IconRefresh } from '../../icons'
+import { IconEdit, IconImage, IconMore, IconPlay, IconRefresh } from '../../icons'
 import { useApp } from '../../state'
 import { Menu, type MenuEntry } from '../../ui/Menu'
 import { bump } from '../client'
@@ -68,11 +70,12 @@ export default function DetailExtras({ place, header, doc }: { place: 'tools' | 
   const show = t.target === 'show' ? title as Show : null
   const changed = () => { asked.clear(); bump() }
   if (place === 'tools') {
+    if (show) return <ShowTools show={show} admin={!!user?.isAdmin} onPick={(w) => setOpen(w)} open={open} close={() => setOpen('')} t={t} changed={changed} />
     if (!user?.isAdmin) return null
     const entries: MenuEntry[] = [
       { key: 'art', label: 'Artwork', icon: <IconImage />, onSelect: () => setOpen('art') },
       { key: 'edit', label: 'Edit details', icon: <IconEdit />, onSelect: () => setOpen('edit') },
-      ...(show || item?.showId == null ? [{ key: 'refresh', label: 'Check for new details', icon: <IconRefresh />, onSelect: () => setOpen('refresh') } as MenuEntry] : []),
+      ...(item?.showId == null ? [{ key: 'refresh', label: 'Check for new details', icon: <IconRefresh />, onSelect: () => setOpen('refresh') } as MenuEntry] : []),
     ]
     return (
       <>
@@ -108,5 +111,51 @@ export default function DetailExtras({ place, header, doc }: { place: 'tools' | 
       </Suspense>
       <LegalNote kind="metadata" />
     </div>
+  )
+}
+
+// A show's tools: its episodes' layout (the show's own, which an administrator keeps for
+// everyone, else the server's default), and for an administrator the same menu as a film's
+// with "Find intros and credits", which compares a season's episodes by ear as a task.
+function ShowTools({ show, admin, onPick, open, close, t, changed }: {
+  show: Show; admin: boolean; onPick: (w: 'art' | 'edit' | 'refresh') => void; open: string; close: () => void; t: NonNullable<Target>; changed: () => void
+}) {
+  const key = `show-${show.id}`
+  const now = useEpisodeView(key)
+  useEffect(() => {
+    if (now) return
+    let live = true
+    const own = (show as Show & { view?: string }).view
+    if (own === 'cards' || own === 'list') { setEpisodeView(key, own); return }
+    getPrefs().then((p) => { const v = (p as { episodeView?: string }).episodeView; if (live && (v === 'cards' || v === 'list')) setEpisodeView(key, v as EpisodeView) }).catch(() => {})
+    return () => { live = false }
+  }, [key]) // eslint-disable-line react-hooks/exhaustive-deps
+  // An administrator's choice is kept for the show; anyone else's lasts while they are here.
+  useEffect(() => {
+    if (!admin) return
+    return onEpisodeViewChosen((which, v) => {
+      if (which !== key) return
+      api.put(`/shows/${show.id}/view`, { view: v }).catch((e) => toast((e as Error).message, { tone: 'danger' }))
+    })
+  }, [admin, key, show.id])
+  if (!admin) return null
+  const findIntros = async () => {
+    try { await api.post(`/shows/${show.id}/detect-intros`, {}); toast('Looking for intros and credits. Tasks shows how far it has got.') } catch (e) { toast((e as Error).message, { tone: 'danger' }) }
+  }
+  const entries: MenuEntry[] = [
+    { key: 'art', label: 'Artwork', icon: <IconImage />, onSelect: () => onPick('art') },
+    { key: 'edit', label: 'Edit details', icon: <IconEdit />, onSelect: () => onPick('edit') },
+    { key: 'refresh', label: 'Check for new details', icon: <IconRefresh />, onSelect: () => onPick('refresh') },
+    { key: 'intros', label: 'Find intros and credits', icon: <IconPlay />, onSelect: () => void findIntros() },
+  ]
+  return (
+    <>
+      <Menu label="Manage this show" align="end" items={entries} trigger={(props) => <button type="button" {...props} className="btn ghost square" aria-label="Manage this show" title="Manage this show"><IconMore /></button>} />
+      <Suspense fallback={null}>
+        {open === 'art' && <TitleArtPicker target={t.target} id={t.id} onApplied={appliedOnPage(changed)} onClose={close} />}
+        {open === 'edit' && <EditDetails target={t.target} id={t.id} start="match" onClose={close} onChanged={changed} />}
+        {open === 'refresh' && <RefreshDialog target={t.target} id={t.id} onClose={close} onChanged={changed} />}
+      </Suspense>
+    </>
   )
 }

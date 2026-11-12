@@ -594,7 +594,12 @@ func (rv *sduiResolver) Items(req sdui.SourceRequest) (sdui.SourceResult, error)
 		}
 		all := make([]sdui.Item, 0, len(albums))
 		for _, a := range albums {
-			all = append(all, rv.album(lib.ID, a))
+			it := rv.album(lib.ID, a)
+			// An album's own page doesn't offer it again under "More by this artist".
+			if rv.subject != nil && rv.subject.Kind == "album" && rv.subject.ID == it.ID {
+				continue
+			}
+			all = append(all, it)
 		}
 		return page(all, req), nil
 	case "artists":

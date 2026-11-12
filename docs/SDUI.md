@@ -863,7 +863,18 @@ own window, is one of the three renderers.
   for such a library or title is drawn as written. Under a title's header
   the app adds what the model has no component for: the credit a metadata
   source asks for, the file's technical facts, a disc's titles and extras,
-  and, for administrators, artwork, details and refresh.
+  and, for administrators, artwork, details and refresh (for a show also
+  "Find intros and credits"). Above a show's episodes is the Cards or
+  Playlist switch (an administrator's choice is kept for the show).
+- **The app's own tools.** Under the title of a library of films or shows:
+  Filters with every filter of the app's Filters panel (the page passes
+  them on: `series`, `kind`, `disc`, `minRating`, `audio`, `subtitle`,
+  `format`, `edition`, `search`, `seed` beside the filter bar's own),
+  saving a view and the saved views, and for administrators Select (to
+  edit titles together), Categories, Fix matches and Scan. A music library
+  has Play all, Songs and Playlists (those two open the app's own music
+  page on that tab) and Scan; Collections has New collection; a collection
+  has Play all, Edit, Remove titles and Delete (`extras/PageTools.tsx`).
 - **Customise and the editor.** `document.personal` drives "Customise this
   page"; the menu's `personal` drives "Arrange the menu" in Settings,
   Appearance. The administrator's editor is Settings, Pages & menu, built
@@ -2465,7 +2476,7 @@ Every source also takes `map`: `{"subtitle": "studio"}` puts another field of th
 |---|---|---|---|---|---|
 | `home` | The first page of the app. | `/` | tab |  |  |
 | `libraries` | Every library the profile can open. | `/libraries` | tab |  |  |
-| `library` | One library's own page. | `/library/{library}` | library, tab, sort, desc, genre, decade, year, content, resolution, watched, studio, network, tag | $library | library, libraryKind |
+| `library` | One library's own page. | `/library/{library}` | library, tab, sort, desc, genre, decade, year, content, resolution, watched, studio, network, tag, series, kind, disc, minRating, audio, subtitle, format, edition, search, seed | $library | library, libraryKind |
 | `detail` | The page of one film, show, episode, album, book, game or collection. | `/item/{item}` | item, show, season, collection, library, artist, album, tab | $item, $show, $season, $collection, $library, $artist, $album | mediaKind, library, libraryKind |
 | `search` | Search across everything. | `/search` | q, tab | $query |  |
 | `livetv` | Channels and the guide. | `/tv` | tab |  |  |

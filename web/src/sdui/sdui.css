@@ -207,3 +207,15 @@ a.sdui-row:hover, button.sdui-row:hover { background: var(--hover); }
   .sdui:not(.ff-tv) .hero { height: auto; min-height: min(66vh, 520px); display: flex; flex-direction: column; justify-content: flex-end; padding-top: calc(var(--topbar-h) + var(--sp-12)); }
   .sdui:not(.ff-tv) .hero .info { position: relative; left: auto; bottom: auto; margin: 0 var(--gutter) var(--sp-6); width: auto; }
 }
+
+/* The app's own tools under a page's title (extras/PageTools.tsx). */
+.sdui-tools { display: grid; gap: var(--sp-2); margin-bottom: var(--sdui-m); }
+.sdui-tools-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.sdui.ff-tv .sdui-tools { display: none; }
+.sdui-pick { display: grid; gap: var(--sp-3); }
+.sdui-pick-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); }
+.sdui-pick-head .input { flex: 1 1 220px; }
+.sdui-pick-all { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.sdui-pick-list { list-style: none; margin: 0; padding: 0; max-height: min(60vh, 520px); overflow: auto; }
+.sdui-pick-list li { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-2) var(--sp-1); box-shadow: 0 1px var(--border); }
+.sdui-pick-list label { display: flex; align-items: center; gap: var(--sp-2); flex: 1; min-width: 0; cursor: pointer; }

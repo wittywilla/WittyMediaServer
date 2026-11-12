@@ -116,7 +116,7 @@ export function CollectionPage() {
 
 const TYPES: [string, string][] = [['movies', 'Movies'], ['shows', 'TV shows'], ['anime', 'Anime'], ['discs', 'Discs'], ['videos', 'Home videos'], ['music', 'Music'], ['musicvideos', 'Music videos'], ['audiobooks', 'Audiobooks'], ['podcasts', 'Podcasts'], ['books', 'Books'], ['channels', 'Creator videos'], ['shorts', 'Vertical videos'], ['photos', 'Photos']]
 
-function CollectionDialog({ collection, onClose, onSaved }: { collection?: Collection; onClose: () => void; onSaved: () => void }) {
+export function CollectionDialog({ collection, onClose, onSaved }: { collection?: Collection; onClose: () => void; onSaved: () => void }) {
   const [name, setName] = useState(collection?.name || '')
   const [desc, setDesc] = useState(collection?.description || '')
   const [shared, setShared] = useState(collection?.shared || false)

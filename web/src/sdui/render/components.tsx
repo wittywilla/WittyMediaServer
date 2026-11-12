@@ -23,6 +23,7 @@ import { plan } from '../routes'
 import type { Node, Props } from '../types'
 import { px, usePage } from './context'
 import { kindIcon, sduiIcon } from './icons'
+import { chooseEpisodeView, useEpisodeView } from '../extras/episodeView'
 import { Markdown } from './markdown'
 
 const NativeViewHost = lazy(() => import('./NativeViewHost'))
@@ -381,6 +382,9 @@ function HeroView({ view }: { view: View }) {
 
 // ---------------------------------------------------------------- a title's header
 
+// Titles whose cover is square: what stands in for a missing one is square too.
+const SQUARE_KINDS = ['album', 'podcast', 'audiobook']
+
 function DetailHeaderView({ view }: { view: View }) {
   const page = usePage()
   const p = view.node.props || {}
@@ -404,7 +408,8 @@ function DetailHeaderView({ view }: { view: View }) {
         </div>
       )}
       <div className={'detail' + (layout === 'compact' ? ' compact' : '')}>
-        {poster && layout !== 'compact' && <div><div className={'poster' + (str(poster, 'aspect') === '1/1' ? ' square' : '')}><Picture image={poster} kind={p.kind} /></div></div>}
+        {poster && layout !== 'compact' && <div><div className={'poster' + (str(poster, 'aspect') === '1/1' ? ' square' : '')}><Picture image={poster} kind={p.kind} title={view.text?.title} /></div></div>}
+        {!poster && layout === 'poster' && <div><div className={'poster' + (SQUARE_KINDS.includes(str(p, 'kind')) ? ' square' : '')}><Picture image={undefined} kind={p.kind} title={view.text?.title} /></div></div>}
         <div>
           {logo ? <h1 className="sdui-logo"><img src={logo} alt={view.text?.title || ''} /></h1> : <h1 className="sdui-clamp" style={clamp(view.lines?.title)}>{view.text?.title}</h1>}
           {view.text?.tagline && <div className="tagline">{view.text.tagline}</div>}
@@ -440,11 +445,20 @@ function DetailHeaderView({ view }: { view: View }) {
 
 // ---------------------------------------------------------------- seasons and tracks
 
+// The show a page is about, from its header ("show-5"), or ''.
+function showOf(root: Node): string {
+  if (root.type === 'DetailHeader') { const id = str(root.props, 'itemId'); return /^show-\d+$/.test(id) ? id : '' }
+  for (const c of root.children || []) { const hit = showOf(c); if (hit) return hit }
+  return ''
+}
+
 function SeasonListView({ view }: { view: View }) {
   const page = usePage()
   const p = view.node.props || {}
   const seasons = (Array.isArray(p.seasons) ? p.seasons : []) as Props[]
-  const list = str(p, 'style') === 'list'
+  const showId = showOf(page.doc.root)
+  const own = useEpisodeView(showId)
+  const list = own ? own === 'list' : str(p, 'style') === 'list'
   const waiting = loading(view, page.busy(view.id) && view.children.length === 0)
   return (
     <section className="sdui-seasons" role="region" aria-label={view.label} style={{ ...cardVars(view, page.pt), ...scopeStyle(view.node) }} data-sdui-section={view.id}>
@@ -461,6 +475,15 @@ function SeasonListView({ view }: { view: View }) {
               </button>
             )
           })}
+        </div>
+      )}
+      {showId && !page.inert && (
+        <div className="view-toggle sdui-episode-view">
+          <span className="muted" id={view.id + '-layout'}>Layout</span>
+          <div className="seg" role="group" aria-labelledby={view.id + '-layout'}>
+            <button type="button" className={!list ? 'active' : ''} aria-pressed={!list} onClick={() => chooseEpisodeView(showId, 'cards')}>Cards</button>
+            <button type="button" className={list ? 'active' : ''} aria-pressed={list} onClick={() => chooseEpisodeView(showId, 'list')}>Playlist</button>
+          </div>
         </div>
       )}
       <StateLine view={view} />

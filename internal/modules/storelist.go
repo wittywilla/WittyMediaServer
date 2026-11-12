@@ -479,7 +479,7 @@ func (s *Stores) Detail(store, id string) (*ItemDetail, error) {
 // manifest to pass. Without confirm it answers *ErrNeedsConfirm and changes nothing. seen is the
 // fingerprint the admin was shown, when the page sends it: the store may have named another key
 // since, and that one wasn't agreed to.
-func (s *Stores) UseFork(store, id, by string, confirm bool, seen string) error {
+func (s *Stores) UseFork(store, id, by string, confirm bool, seen string, accept *OverrideAccept) error {
 	if why := ForkRefusal(); why != "" {
 		return errors.New(why)
 	}
@@ -515,6 +515,9 @@ func (s *Stores) UseFork(store, id, by string, confirm bool, seen string) error 
 	}
 	if seen != "" && seen != Fingerprint(k) {
 		return errors.New("the store has named a different signing key since you were asked, so nothing changed. Look at its page again")
+	}
+	if err := forkGoAhead(id, accept); err != nil {
+		return err
 	}
 	v, fit := s.offer(mod)
 	if v == nil || !fit.OK {

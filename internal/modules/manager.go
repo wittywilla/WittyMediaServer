@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -40,6 +41,8 @@ const (
 	PhaseVerifying   = "verifying"
 	PhaseInstalling  = "installing"
 	PhaseFailed      = "failed"
+	// PhaseNeedsOverride: a download is held until an administrator overrides what it needs.
+	PhaseNeedsOverride = "needs-override"
 )
 
 // What a module is doing.
@@ -124,11 +127,19 @@ type Status struct {
 	Icon        string                 `json:"icon,omitempty"`
 	Enabled     bool                   `json:"enabled"`
 	Installed   bool                   `json:"installed"`
-	Core        bool                   `json:"core,omitempty"`        // other modules are built on it, so it stays
-	ComesInside bool                   `json:"comesInside,omitempty"` // a library: it reaches this server inside what's built on it
-	Libraries   []string               `json:"libraries,omitempty"`   // the kinds of library it makes possible
-	Requires    []string               `json:"requires,omitempty"`
-	RequiredBy  []string               `json:"requiredBy,omitempty"`
+
+	// Overrides (override.go): what an administrator bypassed for the version in use, a
+	// download held for a go-ahead, what the version says of itself, and what it adds to the apps.
+	Override      *OverrideInfo `json:"override,omitempty"`
+	Pending       *PendingInfo  `json:"pending,omitempty"`
+	ReleaseStatus string        `json:"releaseStatus,omitempty"`
+	StatusNote    string        `json:"statusNote,omitempty"`
+	UIAdds        *UIAdds       `json:"uiAdds,omitempty"`
+	Core          bool          `json:"core,omitempty"`        // other modules are built on it, so it stays
+	ComesInside   bool          `json:"comesInside,omitempty"` // a library: it reaches this server inside what's built on it
+	Libraries     []string      `json:"libraries,omitempty"`   // the kinds of library it makes possible
+	Requires      []string      `json:"requires,omitempty"`
+	RequiredBy    []string      `json:"requiredBy,omitempty"`
 
 	// A fork in place of the module's own repository.
 	StockRepo string      `json:"stockRepo"`
@@ -180,6 +191,8 @@ type moduleState struct {
 	Removed  bool    `json:"removed,omitempty"`  // someone took it off this server
 	Disabled bool    `json:"disabled,omitempty"` // someone turned it off, and it stays on disk
 	Source   *Source `json:"source,omitempty"`   // a fork in place of its own repository
+	// Override is what an administrator bypassed to install the version in use (override.go).
+	Override *Override `json:"override,omitempty"`
 	// StockWithdrawn keeps the module's own list while a fork is in use, so going back
 	// can't bring an older list in.
 	StockWithdrawn *wittymodule.Withdrawals `json:"stockWithdrawn,omitempty"`
@@ -204,14 +217,18 @@ type entry struct {
 	listed  *wittymodule.CatalogModule // where a catalogue describes it
 	state   moduleState
 
-	man      *wittymodule.Manifest // the version in use
-	dir      string                // its folder; "" with no version in use
-	proc     *proc                 // for a helper; nil otherwise
-	web      *webFiles             // for a bundle; nil otherwise
-	ui       *sdui.ModuleUI        // its SDUI (sdui.json), checked; nil when it has none
-	notice   string
-	fails    int
-	failedAt time.Time
+	man     *wittymodule.Manifest // the version in use
+	dir     string                // its folder; "" with no version in use
+	proc    *proc                 // for a helper; nil otherwise
+	web     *webFiles             // for a bundle; nil otherwise
+	ui      *sdui.ModuleUI        // its SDUI (sdui.json), checked; nil when it has none
+	pending string                // a held download waiting for a go-ahead (override.go)
+	// relStatus and relNote are what the version in use says of itself: stable, beta,
+	// experimental or incomplete (module API 4).
+	relStatus, relNote string
+	notice             string
+	fails              int
+	failedAt           time.Time
 	// restUntil: the only version there is failed again and again, so it isn't asked for a
 	// while, rather than being taken out of use for good. Never saved: a restart tries again.
 	restUntil time.Time
@@ -281,7 +298,8 @@ type Manager struct {
 
 	mu        sync.Mutex
 	mods      map[string]*entry
-	uiGen     uint64 // changes whenever the versions in use, and so their SDUI, may have
+	uiGen     uint64           // changes whenever the versions in use, and so their SDUI, may have
+	held      map[string]*held // versions waiting for a go-ahead, by token (override.go)
 	order     []string
 	checked   time.Time
 	checkErr  string
@@ -332,6 +350,7 @@ func New(cfg Config) *Manager {
 	}
 	sort.Strings(m.order)
 	m.loadKnown(saved)
+	m.loadCustom(saved)
 	lifted := false
 	for _, id := range m.order {
 		m.checkSavedSource(id, m.mods[id])
@@ -493,7 +512,8 @@ func (m *Manager) usable(id string, e *entry, ver string) (*wittymodule.Manifest
 	if err := verifyInstalled(dir, man, m.keysFor(e)); err != nil {
 		return nil, "", err
 	}
-	if err := supports(man, m.cfg.Server); err != nil {
+	ov := e.overrideFor(ver)
+	if err := supports(man, m.cfg.Server); err != nil && !(ov.has(OverrideOutOfRange) && rangeOnly(man, m.cfg.Server)) {
 		return nil, "", err
 	}
 	if !e.absent && man.Delivery != e.builtin.Delivery {
@@ -508,8 +528,13 @@ func (m *Manager) usable(id string, e *entry, ver string) (*wittymodule.Manifest
 	if r := dataRefusal(e.builtin.Name, man, e.state.DataHigh); r != "" {
 		return nil, "", errors.New(r)
 	}
-	if _, err := readUI(dir, man, m.cfg.UIChecks); err != nil {
+	if _, err := readUI(dir, man, m.cfg.UIChecks); err != nil && !ov.has(OverrideIncomplete) {
 		return nil, "", err
+	}
+	if ov.forkLike() {
+		if r := overrideRefusal(); r != "" {
+			return nil, "", errors.New(r)
+		}
 	}
 	return man, dir, nil
 }
@@ -564,9 +589,13 @@ func (m *Manager) resolve(id string, e *entry) {
 		e.proc = nil
 	}
 	e.fails, e.web, e.dir, e.ui = 0, nil, "", nil
+	e.relStatus, e.relNote = "", ""
 	m.uiGen++
 	if pick != nil {
 		e.man, e.dir = pick, pickDir
+		if raw, err := os.ReadFile(filepath.Join(pickDir, wittymodule.ManifestFile)); err == nil {
+			e.relStatus, e.relNote = manifestStatus(raw)
+		}
 		// usable has just checked it.
 		if ui, err := readUI(pickDir, pick, m.cfg.UIChecks); err == nil {
 			e.ui = ui
@@ -610,7 +639,13 @@ func (m *Manager) newProcFor(id string, e *entry, man *wittymodule.Manifest, dir
 	keys := m.keysFor(e)
 	p := newProc(man, dir, func() error { return verifyInstalled(dir, man, keys) }, m.log)
 	// A fork never gets any of these, and nor does anything not listed.
+	ov := e.overrideFor(man.Version)
 	may := func(permission string) bool {
+		if ov.forkLike() {
+			// Someone else's code: only what an administrator ticked for it, and never while
+			// whoever runs the machine keeps other publishers off.
+			return slices.Contains(ov.Grants, permission) && man.Asks(permission) && os.Getenv(LockForks) != "1"
+		}
 		return e.state.Source == nil && mayHave[id][permission] && man.Asks(permission)
 	}
 	p.network = may(wittymodule.PermissionNetwork)
@@ -628,7 +663,7 @@ func (m *Manager) newProcFor(id string, e *entry, man *wittymodule.Manifest, dir
 			}
 		}
 	}
-	p.strict = e.state.Source != nil
+	p.strict = e.state.Source != nil || ov.forkLike()
 	p.launch = m.cfg.Launcher
 	if !p.strict {
 		p.launch = helperLauncher(goos(), id, p.launch)
@@ -760,6 +795,7 @@ func (m *Manager) Report() Report {
 	for _, id := range m.order {
 		m.loadFeed(id, m.mods[id])
 		st := m.mods[id].status(id)
+		m.overrideStatus(m.mods[id], &st)
 		st.RequiredBy = m.requiredBy(id)
 		st.Unavailable = m.unavailable(m.mods[id])
 		r.Modules = append(r.Modules, st)
@@ -1238,7 +1274,7 @@ func (m *Manager) autoInstall() {
 	var ids []string
 	for _, id := range m.order {
 		e := m.mods[id]
-		if e.latest != nil && e.latest.Blocked == "" && e.rel != nil && !e.busy && e.state.Pin == "" && !e.state.NoAuto && !e.state.Removed && e.state.Source == nil {
+		if e.latest != nil && e.latest.Blocked == "" && e.rel != nil && !e.busy && e.state.Pin == "" && !e.state.NoAuto && !e.state.Removed && e.state.Source == nil && e.state.Override == nil {
 			ids = append(ids, id)
 		}
 	}

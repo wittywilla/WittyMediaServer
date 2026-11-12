@@ -56,9 +56,20 @@ func needForks(t *testing.T) {
 	}
 }
 
+// A fork is let in only where something boxes it in: the system's sandbox, or on a Mac Apple's,
+// confirmed working and then only with the weak-sandbox override.
 func TestForksAreRefusedWithoutASandbox(t *testing.T) {
 	if sandboxAvailable {
 		t.Skip("this system boxes in a fork")
+	}
+	if weakSandboxForOthers() {
+		if ForkRefusal() != "" && os.Getenv(LockForks) != "1" {
+			t.Fatalf("refused with a sandbox that works: %s", ForkRefusal())
+		}
+		if forkGoAhead("wittydvd", nil) == nil {
+			t.Fatal("a fork here would be let in without the weak-sandbox override")
+		}
+		return
 	}
 	if ForkRefusal() == "" {
 		t.Fatal("a fork would be let in with nothing to box it in")
@@ -312,7 +323,7 @@ func installWait(t *testing.T, m *Manager) Status {
 	deadline := time.Now().Add(2 * time.Minute)
 	for time.Now().Before(deadline) {
 		s := one(t, m)
-		if s.Phase == PhaseIdle || s.Phase == PhaseFailed {
+		if s.Phase == PhaseIdle || s.Phase == PhaseFailed || s.Phase == PhaseNeedsOverride {
 			return s
 		}
 		time.Sleep(10 * time.Millisecond)

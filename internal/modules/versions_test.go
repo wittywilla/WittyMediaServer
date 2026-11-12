@@ -18,6 +18,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -119,7 +120,10 @@ func TestVersionsAreListedAndExplained(t *testing.T) {
 	if v := find(t, l, "0.5.0"); v.Allowed || !strings.Contains(v.Refused, "0.9.0 or newer") {
 		t.Fatalf("incompatible: %+v", v)
 	}
-	if err := m.InstallVersion("wittyphotos", "0.5.0", true); err == nil || !strings.Contains(err.Error(), "0.9.0 or newer") {
+	// Its module API is one this server speaks, so it isn't impossible: it asks for an
+	// administrator's go-ahead past the range, and installs nothing without it.
+	var need *ErrNeedsOverride
+	if err := m.InstallVersion("wittyphotos", "0.5.0", true); !errors.As(err, &need) || !slices.Equal(need.Kinds, []string{OverrideOutOfRange}) {
 		t.Fatalf("installed something incompatible: %v", err)
 	}
 	if v := find(t, l, builtinVersion); !v.Builtin || !v.InUse {
@@ -861,18 +865,18 @@ func TestForkTakesAModulesPlace(t *testing.T) {
 
 	// Nothing changes until someone has read the warning.
 	var need *ErrNeedsConfirm
-	if err := m.SetSource("wittyphotos", repo, keyText, "admin", false); !errors.As(err, &need) || !strings.Contains(need.Warning, "trust") || !strings.Contains(need.Warning, Fingerprint(forkPub)) {
+	if err := m.SetSource("wittyphotos", repo, keyText, "admin", false, forkAccept("wittyphotos")); !errors.As(err, &need) || !strings.Contains(need.Warning, "trust") || !strings.Contains(need.Warning, Fingerprint(forkPub)) {
 		t.Fatalf("%v", err)
 	}
 	if s := one(t, m); s.Source != nil || s.Version != "0.2.0" {
 		t.Fatalf("%+v", s)
 	}
 	for _, bad := range [][2]string{{"not a repo", keyText}, {repo, "not a key"}, {repo, ""}, {"../../x", keyText}} {
-		if err := m.SetSource("wittyphotos", bad[0], bad[1], "admin", true); err == nil {
+		if err := m.SetSource("wittyphotos", bad[0], bad[1], "admin", true, forkAccept("wittyphotos")); err == nil {
 			t.Errorf("accepted %v", bad)
 		}
 	}
-	if err := m.SetSource("wittyphotos", repo, keyText, "admin", true); err != nil {
+	if err := m.SetSource("wittyphotos", repo, keyText, "admin", true, forkAccept("wittyphotos")); err != nil {
 		t.Fatal(err)
 	}
 	// What the stock key signed goes, and the built-in copy carries on.
@@ -994,7 +998,7 @@ func TestWittyTunerCantBeForked(t *testing.T) {
 	m := New(Config{Dir: w.dir, Server: w.server, Builtins: [][]byte{raw}, Keys: []ed25519.PublicKey{w.pub}, Fetch: &update.Fetcher{UserAgent: "test", Transport: w.gh}, Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
 	defer m.Close()
 	pub, _, _ := ed25519.GenerateKey(rand.Reader)
-	err := m.SetSource("wittytuner", "someone/WittyTuner", base64.StdEncoding.EncodeToString(pub), "admin", true)
+	err := m.SetSource("wittytuner", "someone/WittyTuner", base64.StdEncoding.EncodeToString(pub), "admin", true, forkAccept("wittytuner"))
 	if err == nil || !strings.Contains(err.Error(), "encrypted") {
 		t.Fatalf("%v", err)
 	}
@@ -1234,7 +1238,7 @@ func TestGoingBackFromAForkLeavesNothingBehind(t *testing.T) {
 	defer m.Close()
 	check(t, m)
 	pub, _, _ := ed25519.GenerateKey(rand.Reader)
-	if err := m.SetSource("wittyphotos", "someone/WittyPhotos", base64.StdEncoding.EncodeToString(pub), "admin", true); err != nil {
+	if err := m.SetSource("wittyphotos", "someone/WittyPhotos", base64.StdEncoding.EncodeToString(pub), "admin", true, forkAccept("wittyphotos")); err != nil {
 		t.Fatal(err)
 	}
 	m.mu.Lock()

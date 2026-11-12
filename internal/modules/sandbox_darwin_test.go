@@ -173,8 +173,24 @@ func TestMacHelperKeepsWhatItNeeds(t *testing.T) {
 }
 
 // A fork never starts in this launcher, whatever got it this far.
-func TestMacLauncherRefusesAFork(t *testing.T) {
-	if code := RunSandboxed([]string{"0", strconv.Itoa(SandboxStrict), "/bin/sh", "-c", "exit 0"}); code == 0 {
-		t.Fatal("a fork started")
+// A module from another publisher runs on a Mac only through the weak-sandbox override, and only
+// inside Apple's sandbox, with the limits a fork gets: here, that it can't start another program.
+// (RunSandboxed itself replaces the process, so the profile is tried directly.)
+func TestMacRunsAForkOnlyInTheSandbox(t *testing.T) {
+	if weakSandboxForOthers() != profileWorks() {
+		t.Fatal("other publishers' modules would be offered without the sandbox working")
+	}
+	if !profileWorks() {
+		t.Skip("Apple's sandbox doesn't work on this Mac, so other publishers' modules are refused here")
+	}
+	profile := helperProfile(SandboxStrict, "/bin/sh", nil)
+	if err := exec.Command(sandboxExec, "-p", profile, "/bin/sh", "-c", "/usr/bin/true").Run(); err == nil {
+		t.Fatal("a fork in the sandbox started another program")
+	}
+	if overrideRefusal() != "" && os.Getenv(LockForks) != "1" {
+		t.Fatalf("refused with the sandbox working: %s", overrideRefusal())
+	}
+	if !othersNeedWeakSandbox() {
+		t.Fatal("another publisher's module doesn't need the weak-sandbox override here")
 	}
 }

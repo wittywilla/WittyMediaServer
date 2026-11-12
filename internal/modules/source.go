@@ -11,6 +11,7 @@ import (
 	"errors"
 	"os"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -94,10 +95,20 @@ func ForkRefusal() string {
 	switch {
 	case os.Getenv(LockForks) == "1":
 		return "Whoever runs this machine has kept modules from other publishers off with " + LockForks + "."
-	case !sandboxAvailable:
+	case !sandboxAvailable && !weakSandboxForOthers():
 		return "This system has no way to box in a module from another publisher, so they can't be used here."
 	}
 	return ""
+}
+
+// forkGoAhead is what choosing someone else's code needs on a system whose sandbox for it is
+// weaker (a Mac's): the weak-sandbox override, with the module's name typed, beside the fork's
+// own warning.
+func forkGoAhead(id string, accept *OverrideAccept) error {
+	if !othersNeedWeakSandbox() {
+		return nil
+	}
+	return accept.covers(needsOverride("", []string{OverrideWeakSandbox}, nil), id, nil)
 }
 
 // OlderThanInUse says a version is older than the one in use. "" means none is.
@@ -154,6 +165,18 @@ func (e *entry) repo() string {
 // or this project's. A fork's key is good for that one module and nothing else. Call with
 // m.mu held, or on an entry nothing else has yet.
 func (m *Manager) keysFor(e *entry) []ed25519.PublicKey {
+	// The key an override accepted for the version in use: an untrusted publisher's, or this
+	// server's own for an unsigned version. Good for that module only.
+	if o := e.state.Override; o != nil && o.Key != "" {
+		k, err := parseSourceKey(o.Key)
+		if err != nil {
+			return []ed25519.PublicKey{}
+		}
+		if o.forkLike() {
+			return []ed25519.PublicKey{k}
+		}
+		return append(slices.Clone(m.keys), k)
+	}
 	if e.state.Source != nil {
 		if k, err := parseSourceKey(e.state.Source.Key); err == nil {
 			return []ed25519.PublicKey{k}
@@ -179,7 +202,7 @@ func (e *entry) sourceInfo() *SourceInfo {
 // *ErrNeedsConfirm with the warning, and changes nothing. What was downloaded from the old
 // source goes, since it was signed by someone else: the module has no version in use
 // until one of the fork's is chosen, and nothing installs on its own.
-func (m *Manager) SetSource(id, repo, key, by string, confirm bool) error {
+func (m *Manager) SetSource(id, repo, key, by string, confirm bool, accept *OverrideAccept) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	e := m.mods[id]
@@ -205,6 +228,9 @@ func (m *Manager) SetSource(id, repo, key, by string, confirm bool) error {
 	}
 	if !confirm {
 		return &ErrNeedsConfirm{Warning: ForkWarning + " The key's fingerprint is " + Fingerprint(k) + "."}
+	}
+	if err := forkGoAhead(id, accept); err != nil {
+		return err
 	}
 	return m.changeSource(id, e, &Source{Repo: repo, Key: base64.StdEncoding.EncodeToString(k), AddedAt: time.Now().UnixMilli(), AddedBy: by}, "fork of "+repo+", key "+Fingerprint(k))
 }

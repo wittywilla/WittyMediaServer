@@ -226,6 +226,18 @@
    "formFactor": "phone"
   },
   {
+   "id": "backdrops-iphone",
+   "file": "backdrops-iphone.json",
+   "title": "Backdrops on a 402-point iPhone, and titles without one",
+   "formFactor": "phone"
+  },
+  {
+   "id": "detail-film-phone-no-backdrop",
+   "file": "detail-film-phone-no-backdrop.json",
+   "title": "A film with no backdrop, on a 402-point iPhone",
+   "formFactor": "phone"
+  },
+  {
    "id": "detail-film-kids",
    "file": "detail-film-kids.json",
    "title": "A film's page for a profile without downloads or sharing",

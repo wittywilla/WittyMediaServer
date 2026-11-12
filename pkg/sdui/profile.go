@@ -275,7 +275,18 @@ func (l *Layout) clone() *Layout {
 // ImageWidth is the picture width a card of this width in points asks for:
 // the smallest bucket that covers it at the device's scale, or the largest.
 func (l *Layout) ImageWidth(points int) int {
-	want := points * max(l.Scale, 1)
+	return l.imageWidthAt(points, l.Scale)
+}
+
+// BackdropWidth is the picture width for a backdrop that spans a window this wide in
+// points: at most twice the width, whatever the device's scale. A backdrop sits behind
+// text, under a scrim, so a phone's third pixel per point is never worth its bytes.
+func (l *Layout) BackdropWidth(points int) int {
+	return l.imageWidthAt(points, min(l.Scale, 2))
+}
+
+func (l *Layout) imageWidthAt(points, scale int) int {
+	want := points * max(scale, 1)
 	for _, w := range l.ImageWidths {
 		if w >= want {
 			return w

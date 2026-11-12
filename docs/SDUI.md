@@ -443,9 +443,13 @@ own props as they are now. Never ask for the same cursor twice at once.
 - `props.image` is `{url, width, height, aspect, kind}`. Ask for `url` as it
   is: it already carries the width (`?w=`), chosen from
   `layout.imageWidths` as the smallest that covers the card at the device's
-  scale. Don't ask for another size. A picture that spans the window (a
-  title's backdrop, a hero's slide) is chosen for the window's width (the
-  `viewport` sent, else the breakpoint's usual window), never wider.
+  scale. Don't ask for another size. A backdrop that spans the window (a
+  title's header, a hero's slide) is chosen for the window's width (the
+  `viewport` sent, else the breakpoint's usual window) at no more than two
+  pixels a point, whatever the device's scale: 960 on a 402-point phone.
+  Only a real backdrop is sent as one: a title that has only a poster gets
+  no `image` on a hero slide or banner and no `images.backdrop` in its
+  header, never its poster stretched to 16/9; draw it on the theme's colours.
 - Draw it in the card's aspect, cropped to fill (`cover`), except a channel's
   logo and a title's logo, which are fitted inside (`contain`) on a plain
   tile in token `bg3`.

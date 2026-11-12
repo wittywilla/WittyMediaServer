@@ -41,6 +41,18 @@ func film(i int) sdui.Item {
 		Can: []string{"play", "watchLater", "watched", "download", "share", "playOn", "watchParty"}}
 }
 
+// posterOnlyFirst takes the first title's backdrop away: it has a poster and nothing wider.
+func posterOnlyFirst(items []sdui.Item) []sdui.Item {
+	img := map[string]string{}
+	for k, v := range items[0].Images {
+		if k != "backdrop" {
+			img[k] = v
+		}
+	}
+	items[0].Images = img
+	return items
+}
+
 func films(n int) []sdui.Item {
 	out := make([]sdui.Item, n)
 	for i := range out {
@@ -480,6 +492,15 @@ func cases() []kase {
 		{id: "detail-film-tv", title: "A film's page on a television", in: detail("detail", "tv", map[string]string{"item": "103"}, movieData(), nil),
 			checks: []string{"the header's facts, buttons and pictures", "Resume is primary; Play from the start follows it", "focus starts on the header"}},
 		{id: "detail-film-phone", title: "A film's page on a phone", in: detail("detail", "phone", map[string]string{"item": "103"}, movieData(), nil), checks: []string{"the overview is cut to the phone's limit"}},
+		{id: "backdrops-iphone", title: "Backdrops on a 402-point iPhone, and titles without one", in: Input{Page: sdui.Page{ID: "spotlight", Kind: "custom", Title: "Spotlight", Sections: []sdui.Section{
+			sec("hero", "Hero", nil, sdui.Source{"type": "featured"}),
+		}}, Request: func() Request { r := request("phone"); r.Viewport = "402x874"; return r }(), Data: Data{Sources: []CannedSource{src(map[string]any{"type": "featured"}, posterOnlyFirst(films(3)), 0)}}},
+			checks: []string{"a slide's backdrop is asked for at twice the window's width, bucketed: 960", "a title with a poster and no backdrop has no image, never the poster in a 16/9 slot"}},
+		{id: "detail-film-phone-no-backdrop", title: "A film with no backdrop, on a 402-point iPhone", in: detail("detail", "phone", map[string]string{"item": "103"}, func() Data {
+			d := movieData()
+			delete(d.Subject.Images, "backdrop")
+			return d
+		}(), func(in *Input) { in.Request.Viewport = "402x874" }), checks: []string{"no backdrop is sent; the poster stays the poster"}},
 		{id: "detail-film-kids", title: "A film's page for a profile without downloads or sharing", in: detail("detail", "tablet", map[string]string{"item": "103"}, movieData(), func(in *Input) {
 			in.Data.Subject.Can = []string{"play", "watched"}
 			in.Data.Subject.Progress, in.Data.Subject.ResumeSec = 0, 0

@@ -83,12 +83,14 @@ export function StatusNotice({ status, note, name, installed }: { status?: strin
 // What a module's SDUI adds to the app: its pages, its menu entries and whether it has settings.
 export function WhatItAdds({ ui, name }: { ui?: UiSummary | null; name: string }) {
   const l = uiLines(ui)
-  if (!l) return null
+  // An empty summary only says its server-driven screens add nothing; it may still have a page of
+  // its own, so nothing is claimed either way.
+  if (!l || l.empty) return null
   return (
     <section className="st-mod-sec" aria-labelledby="st-adds">
       <h2 id="st-adds">What it adds</h2>
-      {l.empty ? <p>No pages, menu entries or settings of its own. {name} works behind the scenes.</p> : (
-        <ul className="ov-adds">
+      {(
+        <ul className="ov-adds" aria-label={`What ${name} adds`}>
           {l.pages.length > 0 && <li><b>{l.pages.length === 1 ? 'A page' : `${l.pages.length} pages`}:</b> {l.pages.join(', ')}</li>}
           {l.navigation.length > 0 && <li><b>In the menu:</b> {l.navigation.join(', ')}</li>}
           <li><b>Settings:</b> {l.settings ? 'its own page in Settings' : 'none of its own'}</li>

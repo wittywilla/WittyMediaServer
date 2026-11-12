@@ -793,8 +793,8 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
           </div>
           {remoteOn && (sheetLayout
             ? <RemoteSheet onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemote(false)} label={label} note={keysNote} />
-            : prefs.remoteStyle === 'bar'
-              ? <RemoteBar onKey={onRemote} enabled={remoteEnabled} note={keysNote} />
+            : prefs.remoteStyle === 'bar' || prefs.remoteStyle === 'barBelow'
+              ? <RemoteBar below={prefs.remoteStyle === 'barBelow'} onKey={onRemote} enabled={remoteEnabled} note={keysNote} />
               : <Remote onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemote(false)} label={label} note={keysNote} />)}
           {pres?.kind === 'title' && (
             <Controls disc video={video} duration={title?.durationSec || 0} chapters={chapters} chapterNames={chapterNames} onSeek={seek}

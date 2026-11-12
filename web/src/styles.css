@@ -822,7 +822,7 @@ h3.section-title { font-size: var(--text-lg); margin-top: var(--sp-6); }
 
 /* ---------------------------------------------------------------- accessibility */
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
-.skip-link { position: fixed; left: var(--sp-3); top: -60px; z-index: 1000; background: var(--accent); color: var(--accent-fg); padding: 10px var(--sp-4); border-radius: var(--r-md); font-weight: 700; transition: top var(--dur-2); }
+.skip-link { position: fixed; left: var(--sp-3); top: -60px; z-index: 1000; background: var(--accent); color: var(--accent-fg); padding: 10px var(--sp-4); border-radius: var(--r-md); font-weight: 700; }
 .skip-link:focus { top: var(--sp-3); }
 /* Keyboard, remote and controller focus is always visible, in a colour that
    reads on every surface. */

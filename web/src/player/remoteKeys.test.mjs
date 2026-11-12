@@ -81,3 +81,16 @@ test('any other video: the same as a copy, without chapter digits or a line', ()
   for (const k of ['prev', 'next', 'play', 'audio']) assert.ok(keys.includes(k), k)
   assert.equal(remoteNote('video'), '')
 })
+
+test('the catalogue says which keys a kind dims, and a dimmed key does nothing', async () => {
+  const { setRemoteCatalogue, catalogueDims, keyWorks } = await import('./remoteKeys.ts')
+  setRemoteCatalogue({ kinds: { dvd: { dimmed: ['red', 'green', 'yellow', 'blue'] }, bluray: { dimmed: [], dimmedWhen: { oneAngle: ['angle'] } }, video: { dimmed: ['topMenu', 'menu', 'angle'] } } })
+  try {
+    assert.equal(catalogueDims('dvd', 'red'), true)
+    assert.equal(catalogueDims('dvd', 'menu'), false)
+    assert.equal(catalogueDims('bluray', 'angle', { angles: 1 }), true)
+    assert.equal(catalogueDims('bluray', 'angle', { angles: 3 }), false)
+    assert.equal(catalogueDims('video', 'topmenu'), true) // the catalogue's topMenu is this remote's topmenu
+    assert.equal(keyWorks('dvd', 'red', { bdj: true }), false)
+  } finally { setRemoteCatalogue({}) }
+})

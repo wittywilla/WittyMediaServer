@@ -12,12 +12,14 @@
 // What a controller looks like to this code: the parts of the Gamepad API's Gamepad it reads.
 export type Pad = { id: string; mapping: string; buttons: readonly { pressed: boolean }[]; axes: readonly number[] }
 
-// The player's own meanings: while a full-screen player is up, the buttons belong to it.
+// While a full-screen player is up: the shared model's meanings, in the player's words. A selects (on the picture it
+// is play and pause: tv.ts turns it into Space there, and leaves it Enter while a disc menu or a control has it), the
+// bumpers seek (J and L), Y is the info panel, X the options or the disc's menu, LT and RT the previous and next
+// chapter, B is the Back ladder (Esc). Select is the disc's title menu, and Start the options again.
 export const STD: Record<number, string> = {
-  0: 'Enter', 1: 'Escape', 2: ' ', 3: 'm', // A/Cross, B/Circle, X/Square (play/pause), Y/Triangle (disc menu)
-  4: 'PageUp', 5: 'PageDown', // bumpers: previous / next chapter, and in TV mode the tab to the left or right
-  6: 'MediaRewind', 7: 'MediaFastForward', // triggers
-  8: 't', 9: 'ContextMenu', // View/Share/Select: title menu, Menu/Options/Start: disc menu, and in TV mode the screen's options
+  0: 'Enter', 1: 'Escape', 2: 'ContextMenu', 3: 'i',
+  4: 'j', 5: 'l', 6: 'PageUp', 7: 'PageDown',
+  8: 't', 9: 'ContextMenu',
   12: 'ArrowUp', 13: 'ArrowDown', 14: 'ArrowLeft', 15: 'ArrowRight',
 }
 

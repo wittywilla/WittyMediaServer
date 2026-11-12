@@ -26,6 +26,7 @@ import { tiltBlocked } from '../ui/tilt'
 import { setTvMode, useTvMode } from '../tvmode/mode'
 import { useUserPref } from '../ui/userPrefs'
 import { jumpTo } from './settings/jump'
+import { LAYOUT_EVENT } from './ShellEditor'
 import { Row, Section } from './settings/ui'
 import AutoSkipSection from './settings/AutoSkip'
 
@@ -333,6 +334,7 @@ function LayoutSection() {
   return (
     <Section title="Look" desc={<>How the app looks and is laid out on this device: where the menu is, how pages are drawn, its finish and type. Colours are the theme, above. Kept for you on this device; your other devices keep their own. Rearrange a page with <b>Customise this page</b> at its foot.</>}>
       {menu.experiences && <ServerLookRows choice={menu.experiences} />}
+      <Row label="Edit layout" desc="Move the menu, the server’s name, search, the Dock and the spotlight, or hide what you don’t use: for you on this device, or for everyone."><Button onClick={() => window.dispatchEvent(new Event(LAYOUT_EVENT))}>Edit layout…</Button></Row>
       <NavCustomize />
       <DensityRow />
     </Section>

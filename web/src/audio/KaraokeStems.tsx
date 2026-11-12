@@ -120,12 +120,12 @@ export function KaraokeStemsControl({ k }: { k: KaraokeStemsState }) {
   const v = k.sing ? 0 : levelOf(a, k.levels, 'vocals')
   return (
     <div className="kar-stems" role="group" aria-label="Singer's voice">
-      <Level big label="Vocals" value={v} onChange={(n) => k.setLevel('vocals', n)} />
+      <Level big label="Vocals (approximate)" value={v} onChange={(n) => k.setLevel('vocals', n)} />
       <button type="button" className={'kar-chip' + (k.sing ? ' on' : '')} aria-pressed={k.sing} onClick={() => k.setSing(!k.sing)} title="Take the singer out, or put them back (V)">Sing</button>
       <button type="button" className={'kar-chip' + (more ? ' on' : '')} aria-expanded={more} onClick={() => setMore(!more)}>More</button>
       {more && (
         <div className="kar-more">
-          {sliders(a).filter((s) => s.id !== 'vocals').map((s) => <Level key={s.id} label={s.label} value={levelOf(a, k.levels, s.id)} onChange={(n) => k.setLevel(s.id, n)} />)}
+          {sliders(a).filter((s) => s.id !== 'vocals').map((s) => <Level key={s.id} label={s.label + ' (approximate)'} value={levelOf(a, k.levels, s.id)} onChange={(n) => k.setLevel(s.id, n)} />)}
           <div className="kar-more-foot">
             <span className="kar-quality">{qualityName(a)}</span>
             <button type="button" className="kar-chip" onClick={k.reset} disabled={!k.sing && sliders(a).every((s) => levelOf(a, k.levels, s.id) === defaultLevel(a, s.id))}>Reset</button>

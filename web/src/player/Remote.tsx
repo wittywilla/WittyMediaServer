@@ -184,10 +184,10 @@ function Colours() {
 
 // RemoteBar is the same remote laid out as one strip above the seek bar, for
 // viewers who prefer it out of the picture.
-export function RemoteBar({ onKey, enabled, disc = true, note }: { onKey: (k: RemoteKey) => void; enabled: (k: RemoteKey) => boolean; disc?: boolean; note?: string }) {
+export function RemoteBar({ onKey, enabled, disc = true, note, below = false }: { onKey: (k: RemoteKey) => void; enabled: (k: RemoteKey) => boolean; disc?: boolean; note?: string; below?: boolean }) {
   return (
     <KeyCtx.Provider value={{ enabled, press: onKey, pressed: null }}>
-    <div className="remote-bar" role="toolbar" aria-label="Disc remote" onClick={(e) => e.stopPropagation()}>
+    <div className={'remote-bar' + (below ? ' below' : '')} role="toolbar" aria-label="Disc remote" onClick={(e) => e.stopPropagation()}>
       {note && <span className="rb-note" role="note">{note}</span>}
       <BarKey k="topmenu" label="Top menu">TOP MENU</BarKey>
       <BarKey k="menu" label="Menu">MENU</BarKey>

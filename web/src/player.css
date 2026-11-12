@@ -51,7 +51,7 @@
 .remote .rk svg { fill: currentColor; }
 .remote .rk:hover:not(:disabled) { background: linear-gradient(180deg, #4a4f5c, #343844); }
 .remote .rk.down, .remote .rk:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 0 0 #0c0d10; }
-.remote .rk:disabled { opacity: .3; cursor: not-allowed; }
+.remote .rk:disabled { opacity: .45; cursor: not-allowed; outline: 1px dashed currentColor; outline-offset: -3px; } /* a key this disc doesn't use stays in place, dimmed with a dashed outline */
 .remote .rk.round { width: 30px; height: 30px; border-radius: 50%; padding: 0; font-size: var(--text-md); }
 .remote .rk.red { background: linear-gradient(180deg, #c0392b, #8e2a20); }
 .remote .rk.ghost { background: transparent; box-shadow: none; }
@@ -437,7 +437,9 @@
   font-size: var(--text-2xs); font-weight: 700; letter-spacing: .5px; display: grid; place-items: center; }
 .remote-bar .rb svg { fill: currentColor; }
 .remote-bar .rb:hover:not(:disabled) { background: color-mix(in srgb, var(--on-image) 20%, transparent); }
-.remote-bar .rb:disabled { opacity: .3; }
+.remote-bar .rb:disabled { opacity: .45; outline: 1px dashed currentColor; outline-offset: -3px; }
+.remote-bar.below { bottom: 8px; }
+.player:has(.remote-bar.below) .bottom { margin-bottom: 48px; }
 .remote-bar .rb.accent { background: var(--accent); color: var(--accent-fg); }
 .remote-bar .rb.red { background: #b03a2e; } /* design-ok: the remote's red key */
 .remote-bar .rb-sep { width: 1px; height: 20px; background: var(--border-strong); margin: 0 4px; flex: none; }

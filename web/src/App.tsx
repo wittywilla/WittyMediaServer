@@ -19,6 +19,7 @@ import { PlayerDock } from './player/PlayerPage'
 import { Announcer, useDialogs } from './a11y'
 import LegalNote, { legalAckText } from './components/LegalNote'
 import { KeyHelp } from './ui/KeyHelp'
+import { ShellEditorHost } from './pages/ShellEditor'
 import { AskHost } from './ui/Overlay'
 import ScreenTimeWatch from './shell/ScreenTime'
 import { loadUserPrefs, useUserPref } from './ui/userPrefs'
@@ -91,6 +92,7 @@ export default function App() {
       <ScreenTimeWatch />
       <AskHost />
       <KeyHelp />
+      <ShellEditorHost />
       <Announcer />
     </AppProvider>
   )
@@ -141,6 +143,14 @@ function Shell() {
   )
 }
 
+// The shell's regions where the experience, the administrator and the profile have put them (layout.shell.placements):
+// each as data-r-<region>="hidden" or its position, for design2.css to answer.
+function regionAttrs(p: Record<string, { position?: string; visible?: boolean }> | undefined): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const [id, v] of Object.entries(p || {})) { const val = v.visible === false ? 'hidden' : v.position; if (val) out['data-r-' + id] = val }
+  return out
+}
+
 // The page's frame. On wide screens the side menu sits beside the page and can fold
 // to a rail or away, which this device remembers; narrower, it's a drawer over the page.
 function AppFrame() {
@@ -171,7 +181,7 @@ function AppFrame() {
     if (wide) { setNavCollapsed(!folded); setFolded(!folded) } else setDrawer((o) => !o)
   }
   return (
-    <div className={'app nav-' + style + (open ? ' nav-open' : '') + (rail ? ' nav-rail' : '') + (frame.overlay ? ' nav-overlay' : '') + (frame.tabBar ? '' : ' no-tabbar')} data-nav-style={frame.nav} data-experience={menu.shell?.experience || undefined}>
+    <div className={'app nav-' + style + (open ? ' nav-open' : '') + (rail ? ' nav-rail' : '') + (frame.overlay ? ' nav-overlay' : '') + (frame.tabBar ? '' : ' no-tabbar')} data-nav-style={frame.nav} data-experience={menu.shell?.experience || undefined} {...regionAttrs(menu.shell?.placements)}>
       <a className="skip-link" data-nav-skip href="#main">Skip to content</a>
       <Sidebar open={open} rail={rail} drawer={!wide} onClose={() => setDrawer(false)} withDrawer={frame.drawer} />
       <div className="main">

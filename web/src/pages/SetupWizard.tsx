@@ -18,6 +18,8 @@ import { Listings } from './setup/Listings'
 import { Tv } from './setup/Tv'
 import { Logos } from './setup/Logos'
 import { Look, Theme } from './setup/Look'
+import { People } from './setup/People'
+import { Remote } from './setup/Remote'
 import { Media } from './setup/Media'
 import { Modules } from './setup/Modules'
 import { Music } from './setup/Music'
@@ -131,6 +133,8 @@ export default function SetupWizard() {
           {step.id === 'tv' && <Tv {...props} />}
           {step.id === 'look' && <Look {...props} />}
           {step.id === 'theme' && <Theme {...props} />}
+          {step.id === 'people' && <People {...props} />}
+          {step.id === 'remote' && <Remote {...props} />}
           {step.id === 'done' && <Done steps={steps} onFinish={finish} />}
         </main>
         <footer className="oobe-foot"><VersionTag version={version} /></footer>

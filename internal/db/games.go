@@ -44,6 +44,15 @@ var gameMigrations = []string{
 	 ALTER TABLE game_meta ADD COLUMN entry_name TEXT NOT NULL DEFAULT '';
 	 ALTER TABLE game_meta ADD COLUMN alt_crcs TEXT NOT NULL DEFAULT '';
 	 DROP TABLE IF EXISTS game_archives;`,
+	// 3: WittyPlay Online. Whether a profile lets others on this server see what it plays
+	// (no row: yes, except for a guest), and the profiles an administrator lets
+	// a Kids profile see, and be seen by, as friends.
+	`CREATE TABLE IF NOT EXISTS wittyplay_presence (
+	   user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, share INTEGER NOT NULL);
+	 CREATE TABLE IF NOT EXISTS wittyplay_kids_friends (
+	   kid_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	   friend_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	   PRIMARY KEY(kid_id, friend_id)) WITHOUT ROWID;`,
 }
 
 func (d *DB) migrateGames(ctx context.Context) error {

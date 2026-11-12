@@ -132,6 +132,9 @@ var wittyTVMigrations = []string{
 	 ALTER TABLE recordings ADD COLUMN season INTEGER;
 	 ALTER TABLE recordings ADD COLUMN episode INTEGER;
 	 CREATE INDEX IF NOT EXISTS epg_programmes_title ON epg_programmes(title COLLATE NOCASE, start);`,
+	// 8: what a guide says about a programme beyond its line in the grid (credits, scores, languages,
+	// subtitles, sound, year), as JSON, for its More info. Read for one programme at a time.
+	`ALTER TABLE epg_programmes ADD COLUMN extra TEXT NOT NULL DEFAULT '';`,
 }
 
 func (d *DB) migrateWittyTV(ctx context.Context) error {

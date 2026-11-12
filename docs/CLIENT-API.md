@@ -700,6 +700,31 @@ Tuner rows also carry `health` (`ok` or `failing`) from the last check or tune, 
 stopped working. A channel can have backups, the same station from other sources, which the server tries by itself
 when it won't open; they don't appear in the guide.
 
+### More info
+
+The Design 2 **More info** screen for a programme in the guide (feature `tv-programme-info`) reads
+`GET /tv/{key}/programme?start=<a moment in it, Unix seconds>`. It answers:
+
+- `channel`: `key`, `kind`, `number`, `name`, `logo`, `brand`, `catchupDays`.
+- `programme`: `start`, `end`, `kind`, `title`, `sub`, `desc`, `genres`, `rating`, `year`, `season`, `episode`,
+  `lengthMin`, `scores` (`value`, `system`), `studio`, `language`, `origLanguage`, `country`, `subtitles`,
+  `signLanguage`, `audio`, `hd`, `premiere`, `new`, `repeat`, `keywords`. Each field is there only when the guide or
+  the library says it.
+- `actions`: which buttons to show: `watch`, `record`, `remind` (and `reminded`), `fromStart`, `watchLater` (and
+  `inList`), `open`.
+- `library`: `itemId` or `showId` when the title is in the library and the profile may see it. **Open item page**
+  and **Watchlist** use these.
+- `credits`: the same shape as the people/credits model (`cast`, `guests`, `crew`). It comes from the library's
+  credits for that title, or else the guide's own (`source: "guide"`, no `personId`).
+- `trailers`: the library item's trailers and clips (`itemId`, `title`, `type`, `durationSec`).
+- `schedule`: the title's other airings in the next 14 days on channels the profile may watch, with `this` marking
+  the one asked about.
+- `ids`: `imdb` and `tmdb`, when the guide gives them, for `GET /discover/where-to-watch`.
+
+A 404 means the channel or the programme isn't there for this profile. A 403 means a library channel is showing
+something the profile may not see. In SDUI, the `credits` source takes `programme: "<key>@<start>"` and draws the same
+cast and crew.
+
 ### Recording
 
 **`canRecord` is the only signal for offering Record.** Show **Record**, **Record every airing** (a series), and any
@@ -1835,6 +1860,7 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `PUT /tv-sets/{id}` | user | Rename, share or replace the channels of a set. |
 | `POST /tv-sets/{id}/channels` | user | Add and remove channels: `add`, `remove`. |
 | `DELETE /tv-sets/{id}` | user | Delete a set. |
+| `GET /tv/{key}/programme` | user | WittyTV More info: one programme in full, `start=<unix>`. See "More info". |
 | `GET /tv/{key}/catchup` | user | Watch a programme from its start, from the source's archive: `start`, `end`, `viewer`. Answers like `/tune`. See "Catch-up". |
 | `GET /tv/{key}/catchup/{start}/playlist.m3u8` | user | The catch-up stream. |
 | `GET /tv/{key}/catchup/{start}/seg/{name}` | user | A segment of the catch-up stream. |
@@ -2257,10 +2283,19 @@ See [LIBRARY-TRANSCODING.md](LIBRARY-TRANSCODING.md).
 | `GET /play/{sid}/ws` | user | Play WS. |
 | `POST /play/{sid}/stream` | user | Connects a device over WebRTC, version 2: `{hello, sdp}` in, `{stream, sdp}` out. See [the stream](GAMING-STREAM.md). |
 | `GET /play/{sid}/stream` | user | Version 2's WebSocket: the same messages as over WebRTC, the hello first. |
-| `POST /play/join` | user | Join someone's game with their code: `{code}` answers `{sid, seat, itemId, title, console, host}`. Wrong codes are limited. |
+| `POST /play/join` | user | Join someone's game with their code, `{code}`, or a friend's open room with none, `{room: sid}` (not for a Kids or guest profile). Answers `{sid, seat, itemId, title, console, host}`. Wrong codes are limited. |
 | `POST /play/{sid}/invite` | user | The host makes a four-letter code others can join with, for ten minutes. |
 | `GET /play/{sid}/seats` | user | The host and everyone who joined; the host also sees the code. |
 | `DELETE /play/{sid}/seats/{user}` | user | Frees a seat: the host frees anyone's, and anyone may leave. |
+| `POST /play/{sid}/room` | user | The host opens its game to the friends who may see it, so they join with no code (`{open}`, default true), or closes it. Answers `{sid, open, code, expiresAt}`: the code is for a phone's QR join link. Kids and guest profiles can't open a game. |
+| `PUT /play/{sid}/seats/{user}` | user | The host moves someone who joined to another player, `{seat}` from 1, or -1 to watch; a seat someone else holds is swapped. Answers the seats. |
+| `POST /play/{sid}/screenshot` | user | Keeps the current picture in the host's memories. Answers `{name, itemId, url}`. |
+| `GET /games/{id}/shots/{name}` | user | One kept screenshot, as a PNG. |
+| `DELETE /games/{id}/shots/{name}` | user | Deletes a kept screenshot. |
+| `GET /games/online/me` | user | Whether this profile lets its friends see what it plays and whether it's here: `{sharePlaying, canShare}`. |
+| `PUT /games/online/me` | user | Sets it: `{sharePlaying}`. A guest has no friends to share with. |
+| `GET /games/online/kids/{user}` | admin | The profiles a Kids profile may see, and be seen by, as friends: `{user, friends}`. |
+| `PUT /games/online/kids/{user}` | admin | Sets them: `{friends: [id…]}`. |
 | `POST /play/{sid}/action` | user | Play action. |
 | `GET /play/{sid}/stats` | user | A running game's numbers: frame rates, encode time, bitrate, drops. |
 | `GET /play/{sid}/screenshot` | user | The current picture as a PNG. |

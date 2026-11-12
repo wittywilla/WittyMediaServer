@@ -15,6 +15,7 @@ import LegalNote from '../../components/LegalNote'
 import BackgroundPlayChoice from './BackgroundPlayChoice'
 import { ChannelLogo } from './ChannelLogo'
 import { channelVars, previousChannel, rememberChannel, surfaceOf, themeRoot, useLook, type Look } from './look'
+import DetailsDialog from './Details'
 import MiniGuide from './MiniGuide'
 import Slate from './Slate'
 import { useLiveTracks } from './tracks'
@@ -208,6 +209,7 @@ export default function TvPlayer() {
   const last = () => { if (lastKey.current) nav(`/tv/watch/${lastKey.current}`, { replace: true, state: from }) }
   // Back to the guide this came from, or to one in this player's place: leaving a guide opened from
   // here mustn't lead back into the player, or Back could never get out.
+  const [more, setMore] = useState(false)
   const guide = () => { if (from?.fromGuide) nav(-1); else nav('/tv', { replace: true }) }
   const tuneTo = (k: string) => { setMini(false); if (k !== key) nav(`/tv/watch/${k}`, { replace: true, state: from }) }
   const setRemoteOn = (on: boolean) => { setRemoteOnState(on); try { localStorage.setItem(REMOTE_KEY, on ? '1' : '0') } catch { /* ignore */ } }
@@ -234,7 +236,9 @@ export default function TvPlayer() {
         case 'r': setRemoteOn(!remoteOn); break
         case 'a': tracks.nextAudio(); break
         case 's': tracks.nextSubtitle(); break
-        case 'i': case 'Enter': e.preventDefault(); showBanner(); break
+        case 'Enter': e.preventDefault(); showBanner(); break
+        // More info: the programme's pop-up over the picture, without leaving the channel.
+        case 'i': case 'I': e.preventDefault(); if (info?.now) setMore(true); else showBanner(); break
         case 'g': case 'G': case 'ContextMenu': e.preventDefault(); setMini(true); break
         case 'l': goLive(); break
         case 'Backspace': e.preventDefault(); last(); break
@@ -302,7 +306,8 @@ export default function TvPlayer() {
         <div className="grow"><h2>{info ? `${info.number} ${info.name}` : 'Tuning…'}</h2><div className="sub">{fromStart ? 'From the start' : isBehind ? `${Math.round(win.behind / 60)} min behind live` : 'Live'}</div></div>
       </div>
       {remoteOn && <Remote onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemoteOn(false)} label="WittyTV" />}
-      {banner && !mini && (info ? <Banner info={info} look={look} fromStart={fromStart} /> : zap && <ZapBanner ch={zap} look={look} />)}
+      {banner && !mini && (info ? <Banner info={info} look={look} fromStart={fromStart} onMore={() => setMore(true)} /> : zap && <ZapBanner ch={zap} look={look} />)}
+      {more && info?.now && <DetailsDialog ch={info} p={info.now} now={Date.now() / 1000} look={look} onClose={() => setMore(false)} onWatch={() => setMore(false)} onRecord={() => setMore(false)} />}
       {mini && <MiniGuide channel={key} onTune={tuneTo} onClose={() => setMini(false)} onFull={guide} />}
       {settingsOpen && <Dialog title="Player settings" onClose={() => setSettingsOpen(false)}><BackgroundPlayChoice /></Dialog>}
       <Controls video={video} duration={windowLen} offset={-win.start} onSeek={(t) => seekTo(win.start + t)} onFullscreen={() => toggleFullscreen(root.current)}
@@ -332,7 +337,7 @@ function ZapBanner({ ch, look }: { ch: GuideChannel; look: Look }) {
 }
 
 // The banner: what every box of the era showed on a channel change.
-function Banner({ info, look, fromStart }: { info: TuneInfo; look: Look; fromStart?: boolean }) {
+function Banner({ info, look, fromStart, onMore }: { info: TuneInfo; look: Look; fromStart?: boolean; onMore: () => void }) {
   const [now, setNow] = useState(() => Date.now() / 1000)
   useEffect(() => { const t = setInterval(() => setNow(Date.now() / 1000), 5000); return () => clearInterval(t) }, [])
   const p = info.now
@@ -352,6 +357,7 @@ function Banner({ info, look, fromStart }: { info: TuneInfo; look: Look; fromSta
         {info.playing && <div className="ctv-banner-next">Playing now: {info.playing.title}</div>}
         {info.notices?.map((n) => <div key={n} className="ctv-banner-notice">{n}{info.alternative ? ` Channel ${info.alternative.number} has the same station with sound.` : ''}</div>)}
         <BannerRights ch={info} look={look} />
+        {p && <button type="button" className="ctv-btn sm ctv-banner-more" onClick={() => onMore()} aria-label="More info">More info <kbd aria-hidden="true">I</kbd></button>}
       </div>
       <div className="ctv-banner-clock">{fmtClock(now)}</div>
     </div>

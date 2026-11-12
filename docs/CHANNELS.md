@@ -115,7 +115,7 @@ WittyTV has themes of its own, apart from the app's theme. Press **Look** on the
 | **Compact** | Small type and tight rows, with the top reduced to a strip, for seeing the most channels at once | From your app theme |
 | **Custom** | Your own: choose the layout from any of the above, the type and the colours. It starts from what was on your screen, and it stays as you left it if you try another theme | Your choice |
 
-**Which wins.** Your own choice comes first. Then what your [app theme](THEMES.md#tv-looks) suggests. Then the theme the server's owner chose for new viewers, under **Options** in **Settings → Channels & tuners**. **Look** always says which of these you're seeing. **Stop choosing, and use the default** goes back down that list, and **Back to how it started** undoes all your choices. Custom is each viewer's own, so an owner or an app theme can't set it. Looks saved before there were themes moved over as they were: anything that wasn't one of the themes became that theme's overrides, or Custom.
+**Which wins.** Your own choice comes first. Then what your [app theme](THEMES.md#wittytv-themes) suggests. Then the theme the server's owner chose for new viewers, under **Options** in **Settings → Channels & tuners**. **Look** always says which of these you're seeing. **Stop choosing, and use the default** goes back down that list, and **Back to how it started** undoes all your choices. Custom is each viewer's own, so an owner or an app theme can't set it. Looks saved before there were themes moved over as they were: anything that wasn't one of the themes became that theme's overrides, or Custom.
 
 **Colours.** Under **Colours**, choose **Background**, **Programmes**, **On now**, **Highlight**, **Accent** or **Text**, and pick one of the swatches, any colour, or type its code. A colour you pick overrides that one for this theme only, and **Back to following the app theme** or **Back to its own colours** undoes them. Text is always worked out to be readable on what it's on, and a colour that can't be read is moved until it can, whatever you choose, and it says so when that happens.
 
@@ -379,6 +379,8 @@ A playlist comes from an `http://` or `https://` address, or a file on the serve
 
 ATSC huffman-compressed guide text isn't read, so those events are skipped.
 
+Besides the title and times, the server keeps what an XMLTV guide says about each programme for **More info**: cast and crew, star ratings, the year, length, languages, country, subtitles, sound and picture, new or repeat, and IMDb and TMDB ids. A guide's programme pictures aren't kept, because showing them would send viewers' devices to the provider's site.
+
 ## Recordings
 
 Highlight a show on a tuner channel, and press **R** or **Record**. **Record every airing**, under more about a programme, follows a title on that channel.
@@ -488,6 +490,8 @@ Everything here lives on the server behind JSON, so apps can draw their own guid
 
 **The look.** An account's WittyTV look is kept under `tvLook` in `GET /api/me/ui`, so an app can follow it: `theme`, with `custom` for its layout and type and `themeColours` for what's overridden, per theme. Which look shows: the person's own choice, then what their UI suggests, then the owner's, which `GET /api/guide` gives as `theme` (empty when the owner chose none).
 
+**More info.** `GET /api/tv/{key}/programme?start=<a moment in it>` is one programme in full, for the Design 2 More info screen: the guide's facts, which buttons apply, the library title when there is one (its credits, trailers and page), else the guide's own credits, and the title's other airings in the next 14 days. The SDUI `credits` source takes `programme: "<key>@<start>"` for the same cast and crew. See [Client API](CLIENT-API.md#more-info).
+
 **Encrypted channels.** The guide, the tune answer and the tuner settings give each tuner channel `security: {state, label, detail, reason, helpUrl}`, where state is `encrypted`, `clear` or `unknown`, and `alternative` names a clear version. Show those, and the page from `GET /api/tv/encrypted-help`, rather than wording of your own. Keep the device notes here in step with `internal/livetv/help.go`.
 
 **A channel's definition:**
@@ -517,6 +521,7 @@ Definition
 | `GET` and `POST /api/channels/bumpers`, `POST .../upload`, `DELETE .../item/{id}` | Admin | The bumper library |
 | `GET /api/channels/discs`, `POST /api/channels/clip-preview` | Admin | Discs for scenes, and trying one |
 | `GET /api/tv/{key}/tune` | Signed in | What's on, and the stream |
+| `GET /api/tv/{key}/programme?start` | Signed in | One programme in full, for More info |
 | `GET /api/tv/{key}/live/playlist.m3u8`, `/seg/{name}` | Signed in | The shared stream |
 | `POST /api/tv/{key}/leave?viewer=` | Signed in | A player has gone |
 | `GET /api/time` | Signed in | The server's clock, for keeping viewers to the same moment |

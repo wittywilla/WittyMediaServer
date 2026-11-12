@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useMemo, useState, type ReactElement } from 'react'
-import { Link, NavLink } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import { sduiIcon } from '../sdui/render/icons'
 import { Switch } from '../ui/Field'
 import { Brand, BrandMark, UpdateDot, VersionTag } from '../components/common'
@@ -79,9 +79,18 @@ export function Sidebar({ open, rail, drawer, onClose, withDrawer }: { open: boo
             <span className="rail-drawer-ic" aria-hidden="true">{sduiIcon(opened.icon)}</span>
             <div><h2>{opened.title}</h2>{opened.count ? <p className="muted">{opened.count.toLocaleString()} {opened.count === 1 ? 'title' : 'titles'}</p> : null}</div>
           </header>
-          {opened.views.map((v) => <NavLink key={v.id} to={v.route} className="nav-link" onClick={() => setDrawerOf('')}>{sduiIcon(v.icon)} <span>{v.label}</span></NavLink>)}
+          {opened.views.map((v) => <DrawerView key={v.id} view={v} onGo={() => setDrawerOf('')} />)}
         </nav>
       )}
     </>
   )
+}
+
+// One view of a library's drawer. Views of one library share a path and differ by their query, so it is the whole
+// address that decides which is current (NavLink alone would mark every one).
+function DrawerView({ view, onGo }: { view: { id: string; label: string; icon: string; route: string }; onGo: () => void }) {
+  const loc = useLocation()
+  const [path, query = ''] = view.route.split('?')
+  const here = loc.pathname === path && (loc.search.replace(/^\?/, '') === query)
+  return <Link to={view.route} className={'nav-link' + (here ? ' active' : '')} aria-current={here ? 'page' : undefined} onClick={onGo}>{sduiIcon(view.icon)} <span>{view.label}</span></Link>
 }

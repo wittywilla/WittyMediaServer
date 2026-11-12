@@ -377,6 +377,8 @@ function onKey(e: KeyboardEvent) {
 // A key name with a modifier ('Ctrl+[') is that key held with Ctrl: how a pad's shoulder buttons reach the keyboard shortcuts.
 export function press(name: string, from?: 'pad', padId?: string) {
   const target = (document.activeElement as HTMLElement | null) || document.body
+  // A on the picture is play and pause; on a control, or while a disc's menu is showing, it is Enter.
+  if (from === 'pad' && name === 'Enter' && target.matches?.('.player:not(.mini):not(.inline)') && !target.querySelector('.dvd-layer .hit, .bdj-layer')) name = ' '
   const ctrl = name.startsWith('Ctrl+')
   const key = ctrl ? name.slice(5) : name
   if (from === 'pad') noteInput('pad', { key: name, padId })
@@ -411,8 +413,8 @@ let sinceFullRead = 0
 // The pads seen to report their D-pad on one axis (see gamepad.ts).
 const hatPads = new Set<string>()
 // Read each time, as it was before the mapping moved out: cheap, and a test can change it.
-// Where a pad's buttons are the player's or a book's own (docs/plans/DESIGN-2.md section 3 applies everywhere else).
-const ownPad = () => !!document.querySelector(`${FULL_PLAYER}, .reader, .audio-bar.full, .wp-playing, .wp-capture`)
+// Where a pad's buttons are the video player's own or a game's (docs/plans/DESIGN-2.md section 3 applies everywhere else).
+const ownPad = () => !!document.querySelector(`${FULL_PLAYER}, .wp-playing, .wp-capture`)
 // The meanings are kept while anything is held, so buttons still down as a game or the player closes aren't read again as
 // something else (View and Menu together are Help in the app).
 let padContext: 'ui' | 'player' | null = null

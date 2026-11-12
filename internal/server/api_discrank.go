@@ -5,6 +5,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -50,7 +51,10 @@ type discAnalysisView struct {
 	ChosenBy  string            `json:"chosenBy,omitempty"`
 	Rank      *library.DiscRank `json:"rank"`
 	CanChoose bool              `json:"canChoose"`
-	Protected bool              `json:"protected"`
+	// RankError says why the ranking couldn't be worked out lately. It is asked again after
+	// a while, or at once by an admin's "Rank again".
+	RankError string `json:"rankError,omitempty"`
+	Protected bool   `json:"protected"`
 	// SecondOpinion says whether a libbluray can be asked: Blu-rays, and admins, only.
 	SecondOpinion *secondOpinionState `json:"secondOpinion,omitempty"`
 }
@@ -85,18 +89,98 @@ func (s *Server) engineOf(it *library.Item) string {
 	if isBluray(it) {
 		id = "wittybluray"
 	}
-	if s.Modules == nil {
-		return ""
-	}
-	if v := s.Modules.VersionInUse(id); v != "" {
+	if v := moduleVersion(s, id); v != "" {
 		return id + " " + v
 	}
 	return ""
 }
 
+// moduleVersion is the version of a module in use, or "". Tests stand in for it.
+var moduleVersion = func(s *Server, id string) string {
+	if s.Modules == nil {
+		return ""
+	}
+	return s.Modules.VersionInUse(id)
+}
+
+// A disc whose ranking failed isn't asked about again for a while: every visit to its page
+// would otherwise start another helper on it, and a disc that makes a helper hang would
+// hold one for the whole time limit each time. A new version of its module, or an admin's
+// "Rank again", asks at once.
+const (
+	rankRetryAfter  = 15 * time.Minute
+	maxRankFailures = 1024
+)
+
+type rankFailureKey struct {
+	s  *Server
+	id int64
+}
+
+type rankFailure struct {
+	engine string
+	at     time.Time
+	err    string
+}
+
+var rankFailures = struct {
+	sync.Mutex
+	m map[rankFailureKey]rankFailure
+}{m: map[rankFailureKey]rankFailure{}}
+
+// rankFailed remembers that ranking an item failed with the engine in use.
+func (s *Server) rankFailed(it *library.Item, err error) {
+	rankFailures.Lock()
+	defer rankFailures.Unlock()
+	if len(rankFailures.m) >= maxRankFailures {
+		// Bounded: what is past its time goes first, and if that frees nothing, all of it.
+		for k, f := range rankFailures.m {
+			if time.Since(f.at) > rankRetryAfter {
+				delete(rankFailures.m, k)
+			}
+		}
+		if len(rankFailures.m) >= maxRankFailures {
+			clear(rankFailures.m)
+		}
+	}
+	rankFailures.m[rankFailureKey{s, it.ID}] = rankFailure{engine: s.engineOf(it), at: time.Now(), err: err.Error()}
+}
+
+// rankFailedLately is the error of a recent failed ranking of the item with the engine in
+// use, or "".
+func (s *Server) rankFailedLately(it *library.Item) string {
+	rankFailures.Lock()
+	defer rankFailures.Unlock()
+	f, ok := rankFailures.m[rankFailureKey{s, it.ID}]
+	if !ok {
+		return ""
+	}
+	if time.Since(f.at) > rankRetryAfter || f.engine != s.engineOf(it) {
+		delete(rankFailures.m, rankFailureKey{s, it.ID})
+		return ""
+	}
+	return f.err
+}
+
+func (s *Server) rankSucceeded(it *library.Item) {
+	rankFailures.Lock()
+	delete(rankFailures.m, rankFailureKey{s, it.ID})
+	rankFailures.Unlock()
+}
+
 // rankDisc asks the item's engine for its ranking and keeps it with the item. second asks a
 // libbluray too. The engines remember their answers for as long as the disc is the same.
 func (s *Server) rankDisc(ctx context.Context, it *library.Item, second bool) error {
+	err := s.rankDiscOnce(ctx, it, second)
+	if err != nil && ctx.Err() == nil {
+		s.rankFailed(it, err)
+	} else if err == nil {
+		s.rankSucceeded(it)
+	}
+	return err
+}
+
+func (s *Server) rankDiscOnce(ctx context.Context, it *library.Item, second bool) error {
 	var rank *library.DiscRank
 	if isBluray(it) {
 		an, err := bdsession.Analyze(it.Path, second, s.Log)
@@ -193,7 +277,8 @@ func (s *Server) handleDiscAnalysis(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pending := false
-	if s.rankStale(it) {
+	failed := s.rankFailedLately(it)
+	if failed == "" && s.rankStale(it) {
 		if s.DB.GetSetting(r.Context(), "lowPower", "0") == "1" {
 			// Nobody waits for it on a machine that is being spared: it is worked out
 			// behind, one disc at a time, and the page asks again.
@@ -215,9 +300,14 @@ func (s *Server) handleDiscAnalysis(w http.ResponseWriter, r *http.Request) {
 			}
 			// The page still has what the scan found.
 			s.Log.WarnContext(r.Context(), "a disc couldn't be ranked", "cat", "discs", "item", it.ID, "err", err)
+			failed = err.Error()
 		}
 	}
-	writeJSON(w, 200, s.discAnalysis(r, it, pending))
+	v := s.discAnalysis(r, it, pending)
+	if failed != "" {
+		v.RankError = s.viewerError(r, errors.New(failed))
+	}
+	writeJSON(w, 200, v)
 }
 
 // POST /api/items/{id}/disc/analysis  {"secondOpinion":true}

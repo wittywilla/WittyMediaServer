@@ -38,7 +38,10 @@ html[data-type="mono"] body { letter-spacing: 0; }
   --gloss-glow: color-mix(in srgb, var(--accent) 78%, var(--on-image));
   --gloss-edge: color-mix(in srgb, var(--accent) 68%, var(--picture-bg));
   /* The recipe as paint: highlight to upper body over the top half, lower body to glow under it. */
-  --gloss-paint: linear-gradient(180deg, var(--gloss-hi) 0%, var(--gloss-up) 48%, var(--gloss-lo) 52%, var(--gloss-glow) 100%);
+  /* The light is kept to the top third and the bottom edge, so the words, which sit across the middle, are on the deeper body
+     colour (white on Aero's body reads 4.5:1 or better; the recipe's own upper body alone gave about 3:1). */
+  --gloss-mid: color-mix(in srgb, var(--gloss-lo) 55%, var(--gloss-edge));
+  --gloss-paint: linear-gradient(180deg, var(--gloss-hi) 0%, color-mix(in srgb, var(--gloss-up) 55%, var(--gloss-mid)) 24%, var(--gloss-mid) 42%, var(--gloss-mid) 66%, var(--gloss-lo) 84%, var(--gloss-glow) 100%);
   --glass-paint: linear-gradient(180deg, var(--glass-hi), var(--glass-lo));
 }
 

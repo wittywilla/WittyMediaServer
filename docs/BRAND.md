@@ -190,10 +190,13 @@ Words are glyph outlines from Inter (see [The name](#the-name)). Module marks ar
 (`modules.go`), each an original drawing, never a console's, disc format's, service's or studio's logo, so their icons
 are PNG only.
 
-Backgrounds start from one scene (`compose.go`, `wide.go`): the house theme's dark lit by soft glows of violet, coral
-and mint, with a scatter of small sparks in the apps' colours that never fall where words or icons go. The Top Shelf,
-TV banners, the TV sign-in backdrop, the installers, the disk image, the macOS installer and the website's hero and
-social picture are all that scene with the right mark or name on it.
+Backgrounds start from one quiet scene (`compose.go`, `wide.go`), made to sit behind words without pulling the eye:
+the house theme's night (or the Light theme's paper), one soft violet light right of centre, four thin, faint orbits
+around it, each open at a gap like the logo's ring with a small dot in the apps' dot colours, and a sparse field of
+tiny, dim stars. Nothing sparkles or moves. Stars and dots never fall where words or icons go, and the left side,
+where screens put their text, stays the calmest. On full-screen backdrops the W in its ring sits faintly at the
+orbits' centre. The Top Shelf, TV banners, the TV sign-in backdrop, the installers, the disk image, the macOS
+installer and the website's hero and social picture are all that scene with the right mark or name on it.
 
 ## Other designs
 

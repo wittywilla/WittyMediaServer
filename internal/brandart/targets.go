@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"path"
 	"sort"
+	"strings"
 )
 
 // Files is what a target writes: a path inside the repository (always with forward slashes) and
@@ -284,12 +285,15 @@ func (k Kit) android(f Files) {
 	adaptive := []byte("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!-- " + note + " -->\n<adaptive-icon xmlns:android=\"http://schemas.android.com/apk/res/android\">\n    <background android:drawable=\"@drawable/ic_launcher_background\" />\n    <foreground android:drawable=\"@drawable/ic_launcher_foreground\" />\n    <monochrome android:drawable=\"@drawable/ic_launcher_monochrome\" />\n</adaptive-icon>\n")
 	f[res+"mipmap-anydpi-v26/ic_launcher.xml"] = adaptive
 	f[res+"mipmap-anydpi-v26/ic_launcher_round.xml"] = adaptive
-	// The TV launcher's banner: 320×180 dp.
-	f[res+"drawable-xhdpi/banner.png"] = k.Banner(Client, 320, 180).PNG(640, 360)
-	f[res+"drawable-xxxhdpi/banner.png"] = k.Banner(Client, 320, 180).PNG(1280, 720)
+	// The TV launcher's banner: 320×180 dp, at every density (lint asks for each folder).
+	for _, d := range densities {
+		f[res+"drawable-"+d.name+"/banner.png"] = k.Banner(Client, 320, 180).PNG(int(320*d.scale), int(180*d.scale))
+	}
 	// Splash: Android 12 on shows splash_icon on the background colour; before that the launch
 	// theme's window background is splash_screen (the colour with the mark in the middle).
-	f[res+"drawable/splash_icon.xml"] = k.Glyph(Client, 0, 1).VectorDrawable(288, 288, note)
+	// 288 dp is what the Android 12 splash asks for, larger than lint's 200 dp advice for vectors.
+	f[res+"drawable/splash_icon.xml"] = []byte(strings.Replace(string(k.Glyph(Client, 0, 1).VectorDrawable(288, 288, note)),
+		`xmlns:aapt="http://schemas.android.com/aapt"`, `xmlns:aapt="http://schemas.android.com/aapt"`+"\n    xmlns:tools=\"http://schemas.android.com/tools\"\n    tools:ignore=\"VectorRaster\"", 1))
 	f[res+"drawable/splash_mark.xml"] = k.Splash(Client, 160).VectorDrawable(160, 160, note)
 	f[res+"drawable/splash_screen.xml"] = []byte("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!-- " + note + " -->\n<layer-list xmlns:android=\"http://schemas.android.com/apk/res/android\">\n    <item android:drawable=\"@color/background\" />\n    <item android:drawable=\"@drawable/splash_mark\" android:gravity=\"center\" android:width=\"160dp\" android:height=\"160dp\" />\n</layer-list>\n")
 	// Behind the TV's sign-in and connect screens.

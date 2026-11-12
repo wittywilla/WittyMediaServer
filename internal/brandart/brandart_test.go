@@ -70,6 +70,7 @@ func TestEveryTargetInEveryConcept(t *testing.T) {
 		"android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png":    {192, 192},
 		"android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png": {48, 48},
 		"android/app/src/main/res/drawable-xhdpi/banner.png":         {640, 360},
+		"android/app/src/main/res/drawable-mdpi/banner.png":          {320, 180},
 		"apple/Brand/iOS.xcassets/AppIcon.appiconset/AppIcon.png":    {1024, 1024},
 		"apple/Brand/tvOS.xcassets/App Icon & Top Shelf Image.brandassets/App Icon.imagestack/Back.imagestacklayer/Content.imageset/Back@1x.png":                 {400, 240},
 		"apple/Brand/tvOS.xcassets/App Icon & Top Shelf Image.brandassets/App Icon.imagestack/Front.imagestacklayer/Content.imageset/Front@2x.png":               {800, 480},

@@ -14,10 +14,9 @@ import { CdGraphics } from './CdGraphics'
 import InsertDisc from './InsertDisc'
 import './cd.css'
 
-// The CD player: a window in the spirit of the desktop media players of the early
-// 2000s, with our own design and colours: glossy keys, a dark stage, a list of tracks
-// and a lit display. The disc goes in as on the disc loading screen, and spins behind a
-// smoked window in the drive's lid. The music itself lives in the audio player, so it
+// The CD player: a panel in the look and theme of the rest of the app (tokens only), with
+// the disc, the display, the list of tracks and the keys. The disc goes in as on the disc
+// loading screen and spins on the stage. The music itself lives in the audio player, so it
 // carries on, with the bar along the bottom, when you leave this page.
 
 const SECTORS_PER_SEC = 75
@@ -254,7 +253,6 @@ export default function CdPlayer() {
                 </div>
               ) : (
                 <div className="cdp-lid">
-                  <span className="cdp-shine" />
                   <div className="cdp-well">
                     <div className="cdp-plane">
                       <div className={'cdp-disc' + (spinning ? ' spin' : '')}>

@@ -79,15 +79,15 @@ test('a server\'s menu becomes the bar: its order, the end entries last, Setting
     { id: 'settings', label: 'Settings', to: '/settings', placement: 'end', screen: 'settings' },
   ]
   const tabs = tabsFromMenu(menu)
-  assert.deepEqual(tabs.map((t) => t.id), ['home', 'search', 'libraries', 'you'])
+  assert.deepEqual(tabs.map((t) => t.id), ['home', 'libraries', 'search', 'you'])
   assert.equal(tabRootOf('/libraries', tabs), 'libraries')
   assert.equal(tabRootOf('/library/3', tabs), null)
-  assert.equal(stepTab('home', 1, tabs), 'search')
+  assert.equal(stepTab('home', 1, tabs), 'libraries')
   assert.equal(stepTab('you', 1, tabs), null)
   assert.equal(tabPath('libraries', tabs), '/libraries')
   assert.equal(backStep({ tab: 'home', inBar: true, first: 'home' }), 'leave')
   // With no You to reach it from, Settings stays in the bar.
-  assert.deepEqual(tabsFromMenu(menu.filter((m) => m.id !== 'you')).map((t) => t.id), ['home', 'search', 'libraries', 'settings'])
+  assert.deepEqual(tabsFromMenu(menu.filter((m) => m.id !== 'you')).map((t) => t.id), ['home', 'libraries', 'search', 'settings'])
 })
 
 test('a server menu\'s More entries are gathered under one More tab, before the end entries', () => {
@@ -100,8 +100,8 @@ test('a server menu\'s More entries are gathered under one More tab, before the 
     { id: 'you', label: 'You', to: '/you', placement: 'end', screen: 'profiles' },
     { id: 'settings', label: 'Settings', to: '/settings', placement: 'more', screen: 'settings' },
   ]
-  assert.deepEqual(tabsFromMenu(menu).map((t) => t.id), ['home', 'search', 'lib-1', 'more', 'you'])
+  assert.deepEqual(tabsFromMenu(menu).map((t) => t.id), ['home', 'lib-1', 'more', 'search', 'you'])
   assert.deepEqual(moreTabs(menu).map((t) => t.id), ['collections', 'lib-2'])
   // Nothing placed under More: no More tab.
-  assert.deepEqual(tabsFromMenu(menu.filter((m) => m.placement !== 'more')).map((t) => t.id), ['home', 'search', 'lib-1', 'you'])
+  assert.deepEqual(tabsFromMenu(menu.filter((m) => m.placement !== 'more')).map((t) => t.id), ['home', 'lib-1', 'search', 'you'])
 })

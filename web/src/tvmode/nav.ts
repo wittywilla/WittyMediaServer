@@ -18,6 +18,9 @@ export function tabsFromMenu(items: MenuEntry[]): TvTab[] {
   const more = usable.filter((it) => it.placement === 'more' && it.id !== 'search')
   const bar = usable.filter((it) => (it.placement !== 'end' && it.placement !== 'more') || it.id === 'search').map(tab)
   if (more.length) bar.push({ id: 'more', path: MORE_PATH, label: 'More', icon: 'more' })
+  // Search is always the last thing before You (docs/plans/DESIGN-2.md section 1, rule 4).
+  const at = bar.findIndex((t) => t.id === 'search')
+  if (at >= 0) bar.push(...bar.splice(at, 1))
   return [...bar, ...usable.filter((it) => it.placement === 'end' && it.id !== 'search').map(tab)]
 }
 

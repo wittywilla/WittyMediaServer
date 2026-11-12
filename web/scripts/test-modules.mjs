@@ -31,6 +31,7 @@ const PAGES = {
   comics: '/library/3', comicReader: '/read/14',
   pdf: '/library/4', pdfReader: '/read/15',
   photos: '/library/1', stats: '/m/wittystats/stats',
+  cd: '/cd/3', dvd: '/item/2', bluray: '/item/1', games: '/library/3', game: '/item/7',
   ...(process.env.WMS_MAP ? JSON.parse(process.env.WMS_MAP) : {}),
 }
 const pick = (v, all) => (v ? v.split(',') : all)
@@ -172,7 +173,7 @@ try {
     if (exp?.theme) await api('PUT', '/settings', { theme: exp.theme })
     for (const p of pages) {
       await visit(p, PAGES[p], look)
-      if (['books', 'photos', 'stats'].includes(p)) await visit(p, PAGES[p], look, { phone: true, shot: false })
+      if (['books', 'photos', 'stats', 'cd', 'dvd', 'bluray', 'games', 'game'].includes(p)) await visit(p, PAGES[p], look, { phone: true, shot: false })
     }
   }
   // Every theme under the first look.

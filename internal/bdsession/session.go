@@ -358,8 +358,8 @@ func (s *Session) playTitle(ctx context.Context, ttn, chapter int) *Presentation
 		return s.stop("the disc has nothing to play", false)
 	}
 	item, t := 0, uint32(0)
-	if marks := chapterMarks(pl); chapter >= 1 && chapter <= len(marks) {
-		item, t = marks[chapter-1].Item, marks[chapter-1].Time
+	if chs := Chapters(s.disc.DiscEngine, pl); chapter >= 1 && chapter <= len(chs) {
+		item, t = chs[chapter-1].Item, chs[chapter-1].ClipTime
 	}
 	return s.show(ctx, s.nav.PlayPlaylist(pl, item, t))
 }
@@ -874,19 +874,12 @@ func (s *Session) layout(pl *bluray.Playlist, only int) *playing {
 		t += pi.duration
 	}
 	out.duration = t
-	for _, m := range chapterMarks(pl) {
-		if pi := out.find(m.Item); pi != nil {
-			out.chapters = append(out.chapters, pi.start+float64(int64(m.Time)-int64(pi.startPTS))/45000)
-		}
-	}
-	return out
-}
-
-func chapterMarks(pl *bluray.Playlist) []bluray.Mark {
-	var out []bluray.Mark
-	for _, m := range pl.Marks {
-		if m.Type == 1 {
-			out = append(out, m)
+	// Chapters come from the engine, which puts a mark that lies outside its play item
+	// back inside it. They are placed on what really plays here, as an item whose clip is
+	// missing is left out above.
+	for _, ch := range Chapters(s.disc.DiscEngine, pl) {
+		if pi := out.find(ch.Item); pi != nil {
+			out.chapters = append(out.chapters, max(pi.start+float64(int64(ch.ClipTime)-int64(pi.startPTS))/45000, 0))
 		}
 	}
 	return out

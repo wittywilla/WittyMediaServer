@@ -933,6 +933,13 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 
 	// What a disc holds: kept when someone chose it, else worked out.
 	if it.Disc != nil {
+		// The film someone chose stays chosen for as long as the disc has that title.
+		if existing != nil && existing.Disc != nil && existing.Disc.Chosen != nil && it.Disc.HasTitle(existing.Disc.Chosen.TTN) {
+			c := *existing.Disc.Chosen
+			c.Was = it.Disc.MainTitle
+			it.Disc.Chosen = &c
+			applyMain(it, c.TTN)
+		}
 		if existing != nil && existing.Disc != nil && existing.Disc.ContentManual {
 			it.Disc.Content, it.Disc.ContentManual = existing.Disc.Content, true
 		} else {
@@ -1287,6 +1294,7 @@ func (s *Scanner) probeDisc(ctx context.Context, it *Item) {
 		s.Log.InfoContext(ctx, "this DVD is encrypted, so it won't play", "file", it.Path)
 		it.Container = "dvd"
 		it.Disc = &DiscInfo{Format: "dvd", Scrambled: true}
+		s.rankProtectedDVD(ctx, it)
 		return
 	}
 	if err != nil {
@@ -1333,7 +1341,7 @@ func (s *Scanner) probeDisc(ctx context.Context, it *Item) {
 		}
 		info.Titles = append(info.Titles, dt)
 	}
-	if m := o.Disc.MainTitle(); m != nil {
+	if m := s.rankDVD(ctx, it.Path, o.Disc, info); m != nil {
 		info.MainTitle = m.Number
 		it.RuntimeSec = m.Duration
 		it.Width, it.Height = m.Video.Size()
@@ -1389,7 +1397,7 @@ func (s *Scanner) frameAt(ctx context.Context, it *Item, prefix string, width in
 			return "", err
 		}
 		defer o.Close()
-		m := o.Disc.MainTitle()
+		m := DiscMainTitle(o.Disc, it.Disc)
 		if m == nil || len(m.Cells) == 0 {
 			return "", fmt.Errorf("no main title")
 		}

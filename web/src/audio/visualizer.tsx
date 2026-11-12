@@ -11,33 +11,26 @@ import { soundGraph } from './sound'
 // all that's in the main script, and the plugin (a newer bundle if the server has one, or
 // the copy in the app) arrives with the first press.
 
-// Kept per person with their other interface choices, which the server stores whole, so
-// what's there is read first and only this part changes.
-//
-// Effects changed by themselves every 30 seconds until now, whether anyone asked or not.
-// They don't any more, so a timer saved from those days (and nobody chose that) is dropped
-// once. From then on what's saved is someone's own choice.
+// Kept per person as the module's own profile settings (the keys of its sdui.json: effect, speedPct,
+// colour ...), through the module settings routes, so the Settings page and the visualizer's own
+// panel agree. Whether the notice about flashing was read, and whether it shows with the player,
+// are the player's own and kept with the person's other interface choices.
 let saving = Promise.resolve()
-const MODULE_SETTINGS = '/sdui/modules/wittyvisualizer/settings'
-// The choices also shown in Settings, under Modules (WittyVisualizer's sdui.json), kept by the
-// server with the profile's module settings: what was chosen there wins over the copy here.
-type ToModule = (s: unknown) => Record<string, unknown>
+type Player = { on?: boolean; notice?: boolean }
+const SETTINGS = '/sdui/modules/wittyvisualizer/settings'
 export const visualizerHost: VisualizerHost = {
   loadSettings: () => Promise.all([
-    api.get<{ visualizer?: Record<string, unknown>; visualizerStays?: boolean }>('/me/ui'),
-    api.get<{ values?: Record<string, unknown> }>(MODULE_SETTINGS).then((r) => r.values ?? {}).catch(() => ({})),
-  ]).then(([u, chosen]) => {
-    const v = { ...(u.visualizer ?? {}), ...chosen }
-    return u.visualizerStays ? v : { ...v, cycleSec: 0 }
-  }),
+    api.get<{ values?: Record<string, unknown> }>(SETTINGS),
+    api.get<{ visualizerPlayer?: Player }>('/me/ui'),
+  ]).then(([m, ui]) => ({ ...(m.values ?? {}), on: ui.visualizerPlayer?.on === true, notice: ui.visualizerPlayer?.notice === true })),
   saveSettings: (settings) => {
     saving = saving.then(async () => {
+      const p = await loadPlugin()
+      if (!p) return
+      const s = settings as Parameters<Plugin['moduleSettingValues']>[0] & Player
+      await api.put(SETTINGS + '/personal', { values: p.moduleSettingValues(s) })
       const ui = await api.get<Record<string, unknown>>('/me/ui')
-      await api.put('/me/ui', { ...ui, visualizer: settings, visualizerStays: true })
-      const toModule = (plugin as unknown as { moduleSettingValues?: ToModule; normalizeSettings?: (v: unknown) => unknown } | null)
-      if (toModule?.moduleSettingValues && toModule.normalizeSettings) {
-        await api.put(MODULE_SETTINGS + '/personal', { values: toModule.moduleSettingValues(toModule.normalizeSettings(settings)) })
-      }
+      await api.put('/me/ui', { ...ui, visualizerPlayer: { on: s.on === true, notice: s.notice === true } })
     }).catch(() => { /* the next change tries again */ })
   },
 }

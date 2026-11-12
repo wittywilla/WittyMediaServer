@@ -1,8 +1,6 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 /* Copyright (C) 2026 WittyWilla and contributors */
 /* Fix matches: a list on the left and the one being fixed on the right. */
-.fm-tabs { margin-bottom: var(--sp-3); }
-.fm-actions { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; margin-bottom: var(--sp-3); }
 .fm-search { width: min(280px, 100%); }
 .fm-job { display: inline-flex; align-items: center; gap: var(--sp-2); font-size: var(--text-sm); color: var(--fg-2); flex-wrap: wrap; }
 .fm-split { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); gap: var(--sp-4); align-items: start; }
@@ -24,16 +22,7 @@
 .fm-detail { min-width: 0; background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-4) var(--sp-5); }
 .fm-detail-head { display: flex; justify-content: space-between; gap: var(--sp-3); flex-wrap: wrap; }
 .fm-detail-head h2 { margin: 0; font-size: var(--text-xl); overflow-wrap: anywhere; }
-.fm-detail-btns { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
 .fm-file { font-size: var(--text-xs); overflow: hidden; text-overflow: ellipsis; margin: var(--sp-1) 0 0; overflow-wrap: anywhere; }
-.fm-why { margin: var(--sp-3) 0; font-size: var(--text-sm); }
-.fm-why ul { margin: var(--sp-1) 0 0; padding-left: var(--sp-5); color: var(--fg-2); }
-.fm-find { margin-bottom: var(--sp-3); }
-.fm-sugg-h { margin: var(--sp-3) 0 var(--sp-2); font-size: var(--text-sm); color: var(--fg-2); }
-.fm-sugg { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-2); }
-.fm-sugg li { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; align-items: center; gap: var(--sp-2); }
-.fm-sugg .ed-result { background: var(--bg-3); }
-.fm-num { font-size: var(--text-xs); color: var(--fg-3); font-weight: 700; text-align: center; }
 .fm-keys { margin-top: var(--sp-3); font-size: var(--text-xs); }
 .fm-keys kbd { display: inline-block; padding: 0 var(--sp-1); border: 1px solid var(--border-strong); border-radius: var(--r-xs); font: inherit; font-size: var(--text-2xs); }
 .fm-bar-what { font-size: var(--text-sm); }
@@ -65,6 +54,4 @@
   .fm-rule-list li { grid-template-columns: minmax(0, 1fr); }
   .fm-keys { display: none; }
   .fm-try li { grid-template-columns: minmax(0, 1fr); }
-  .fm-sugg li { grid-template-columns: minmax(0, 1fr); }
-  .fm-num { display: none; }
 }

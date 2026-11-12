@@ -1,11 +1,12 @@
 {
  "version": 1,
- "catalog": 6,
+ "catalog": 8,
  "page": {
-  "id": "play",
+  "id": "wittyplay-online",
   "kind": "custom",
-  "title": "Play",
-  "route": "/page/play"
+  "title": "WittyPlay Online",
+  "icon": "game",
+  "route": "/page/wittyplay-online"
  },
  "layout": {
   "formFactor": "tv",
@@ -252,500 +253,275 @@
   },
   "externalLinks": false
  },
+ "theme": {
+  "scope": "wittyplay",
+  "tokens": {
+   "accent": "#7F46B8"
+  }
+ },
  "root": {
   "type": "Page",
   "id": "page",
   "props": {
-   "title": "Play"
+   "title": "WittyPlay Online"
   },
   "children": [
    {
-    "type": "Shelf",
-    "id": "recent",
+    "type": "Tabs",
+    "id": "tabs",
     "props": {
-     "card": {
-      "aspect": "3/4",
-      "height": 333,
-      "shape": "poster",
-      "width": 250
-     },
-     "cardSize": "m",
-     "cardStyle": "game",
-     "title": "Recent",
-     "total": 3,
-     "focusGrow": true,
-     "detail": true
+     "selected": "recent",
+     "style": "tabs"
     },
     "children": [
      {
-      "type": "Card",
-      "id": "recent:7101",
+      "type": "Tab",
+      "id": "recent",
       "props": {
-       "badges": [
-        "16-bit"
-       ],
-       "image": {
-        "aspect": "3/4",
-        "height": 427,
-        "kind": "poster",
-        "url": "/api/items/7101/poster?w=320",
-        "width": 320
-       },
-       "itemId": "7101",
-       "kind": "game",
-       "shape": "poster",
-       "style": "game",
-       "subtitle": "16-bit classics \u00b7 1 to 2 players \u00b7 Played 3 hr 12 min \u00b7 Save state 3 ready",
-       "title": "Star Tide",
-       "actions": [
-        {
-         "id": "play",
-         "label": "Resume",
-         "glyph": "a",
-         "primary": true,
-         "action": {
-          "type": "play",
-          "item": "7101"
-         }
-        },
-        {
-         "id": "online",
-         "label": "Play online",
-         "glyph": "x",
-         "action": {
-          "type": "command",
-          "op": "wittyplay.room.create",
-          "item": "7101"
-         }
-        },
-        {
-         "id": "options",
-         "label": "Options",
-         "glyph": "y",
-         "action": {
-          "type": "menu"
-         }
-        }
-       ]
+       "icon": "history",
+       "label": "Recent",
+       "selected": true
       },
+      "children": [
+       {
+        "type": "Shelf",
+        "id": "recent-row",
+        "props": {
+         "card": {
+          "aspect": "3/4",
+          "height": 416,
+          "shape": "poster",
+          "width": 312
+         },
+         "cardSize": "l",
+         "cardStyle": "game",
+         "detail": true,
+         "focusGrow": true,
+         "total": 3
+        },
+        "children": [
+         {
+          "type": "Card",
+          "id": "recent-row:7101",
+          "props": {
+           "badges": [
+            "16-bit"
+           ],
+           "image": {
+            "aspect": "3/4",
+            "height": 427,
+            "kind": "poster",
+            "url": "/api/items/7101/poster?w=320",
+            "width": 320
+           },
+           "itemId": "7101",
+           "kind": "game",
+           "shape": "poster",
+           "style": "game",
+           "subtitle": "16-bit classics \u00b7 1 to 2 players \u00b7 Played 3 hr 12 min \u00b7 Save state 3 ready",
+           "title": "Star Tide"
+          },
+          "action": {
+           "type": "navigate",
+           "to": "/game/7101"
+          },
+          "focus": {
+           "order": 6,
+           "group": "recent-row",
+           "default": true
+          },
+          "scope": "wittyplay",
+          "tokens": {
+           "accent": "#7F46B8"
+          }
+         },
+         {
+          "type": "Card",
+          "id": "recent-row:7102",
+          "props": {
+           "badges": [
+            "8-bit"
+           ],
+           "image": {
+            "aspect": "3/4",
+            "height": 427,
+            "kind": "poster",
+            "url": "/api/items/7102/poster?w=320",
+            "width": 320
+           },
+           "itemId": "7102",
+           "kind": "game",
+           "shape": "poster",
+           "style": "game",
+           "subtitle": "8-bit classics \u00b7 1 to 2 players \u00b7 Played 48 min",
+           "title": "Pixel Orchard"
+          },
+          "action": {
+           "type": "navigate",
+           "to": "/game/7102"
+          },
+          "focus": {
+           "order": 7,
+           "group": "recent-row"
+          },
+          "scope": "wittyplay",
+          "tokens": {
+           "accent": "#7F46B8"
+          }
+         },
+         {
+          "type": "Card",
+          "id": "recent-row:7103",
+          "props": {
+           "badges": [
+            "Handheld"
+           ],
+           "image": {
+            "aspect": "3/4",
+            "height": 427,
+            "kind": "poster",
+            "url": "/api/items/7103/poster?w=320",
+            "width": 320
+           },
+           "itemId": "7103",
+           "kind": "game",
+           "shape": "poster",
+           "style": "game",
+           "subtitle": "Handheld classics \u00b7 1 player",
+           "title": "Lantern Keep"
+          },
+          "action": {
+           "type": "navigate",
+           "to": "/game/7103"
+          },
+          "focus": {
+           "order": 8,
+           "group": "recent-row"
+          },
+          "scope": "wittyplay",
+          "tokens": {
+           "accent": "#7F46B8"
+          }
+         }
+        ]
+       }
+      ],
       "action": {
-       "type": "navigate",
-       "to": "/game/7101"
+       "type": "command",
+       "op": "selectTab",
+       "params": {
+        "tab": "recent"
+       }
       },
       "focus": {
        "order": 1,
-       "group": "recent",
-       "default": true
-      },
-      "scope": "wittyplay",
-      "tokens": {
-       "accent": "#7F46B8"
+       "group": "tabs"
       }
      },
      {
-      "type": "Card",
-      "id": "recent:7102",
+      "type": "Tab",
+      "id": "classics",
       "props": {
-       "badges": [
-        "8-bit"
-       ],
-       "image": {
-        "aspect": "3/4",
-        "height": 427,
-        "kind": "poster",
-        "url": "/api/items/7102/poster?w=320",
-        "width": 320
-       },
-       "itemId": "7102",
-       "kind": "game",
-       "shape": "poster",
-       "style": "game",
-       "subtitle": "8-bit classics \u00b7 1 to 2 players \u00b7 Played 48 min",
-       "title": "Pixel Orchard",
-       "actions": [
-        {
-         "id": "play",
-         "label": "Resume",
-         "glyph": "a",
-         "primary": true,
-         "action": {
-          "type": "play",
-          "item": "7102"
-         }
-        },
-        {
-         "id": "online",
-         "label": "Play online",
-         "glyph": "x",
-         "action": {
-          "type": "command",
-          "op": "wittyplay.room.create",
-          "item": "7102"
-         }
-        },
-        {
-         "id": "options",
-         "label": "Options",
-         "glyph": "y",
-         "action": {
-          "type": "menu"
-         }
-        }
-       ]
+       "icon": "game",
+       "label": "Classics"
       },
       "action": {
-       "type": "navigate",
-       "to": "/game/7102"
+       "type": "command",
+       "op": "selectTab",
+       "params": {
+        "tab": "classics"
+       }
       },
       "focus": {
        "order": 2,
-       "group": "recent"
-      },
-      "scope": "wittyplay",
-      "tokens": {
-       "accent": "#7F46B8"
+       "group": "tabs"
       }
      },
      {
-      "type": "Card",
-      "id": "recent:7103",
+      "type": "Tab",
+      "id": "together",
       "props": {
-       "badges": [
-        "Handheld"
-       ],
-       "image": {
-        "aspect": "3/4",
-        "height": 427,
-        "kind": "poster",
-        "url": "/api/items/7103/poster?w=320",
-        "width": 320
-       },
-       "itemId": "7103",
-       "kind": "game",
-       "shape": "poster",
-       "style": "game",
-       "subtitle": "Handheld classics \u00b7 1 player",
-       "title": "Lantern Keep",
-       "actions": [
-        {
-         "id": "play",
-         "label": "Resume",
-         "glyph": "a",
-         "primary": true,
-         "action": {
-          "type": "play",
-          "item": "7103"
-         }
-        },
-        {
-         "id": "online",
-         "label": "Play online",
-         "glyph": "x",
-         "action": {
-          "type": "command",
-          "op": "wittyplay.room.create",
-          "item": "7103"
-         }
-        },
-        {
-         "id": "options",
-         "label": "Options",
-         "glyph": "y",
-         "action": {
-          "type": "menu"
-         }
-        }
-       ]
+       "icon": "users",
+       "label": "Together"
       },
       "action": {
-       "type": "navigate",
-       "to": "/game/7103"
+       "type": "command",
+       "op": "selectTab",
+       "params": {
+        "tab": "together"
+       }
       },
       "focus": {
        "order": 3,
-       "group": "recent"
-      },
-      "scope": "wittyplay",
-      "tokens": {
-       "accent": "#7F46B8"
+       "group": "tabs"
       }
-     }
-    ]
-   },
-   {
-    "type": "Shelf",
-    "id": "classics",
-    "props": {
-     "card": {
-      "aspect": "16/9",
-      "height": 236,
-      "shape": "landscape",
-      "width": 420
      },
-     "cardSize": "m",
-     "cardStyle": "tile",
-     "title": "Classics",
-     "total": 3
-    },
-    "children": [
      {
-      "type": "Card",
-      "id": "classics:era-8-bit",
+      "type": "Tab",
+      "id": "memories",
       "props": {
-       "count": 24,
-       "icon": "game",
-       "itemId": "era-8-bit",
-       "kind": "collection",
-       "shape": "landscape",
-       "style": "tile",
-       "title": "8-bit classics"
+       "icon": "photo",
+       "label": "Memories"
       },
       "action": {
-       "type": "navigate",
-       "to": "/games?era=8-bit"
+       "type": "command",
+       "op": "selectTab",
+       "params": {
+        "tab": "memories"
+       }
       },
       "focus": {
        "order": 4,
-       "group": "classics"
-      },
-      "scope": "wittyplay",
-      "tokens": {
-       "accent": "#7F46B8"
+       "group": "tabs"
       }
      },
      {
-      "type": "Card",
-      "id": "classics:era-16-bit",
+      "type": "Tab",
+      "id": "discover",
       "props": {
-       "count": 31,
-       "icon": "game",
-       "itemId": "era-16-bit",
-       "kind": "collection",
-       "shape": "landscape",
-       "style": "tile",
-       "title": "16-bit classics"
+       "icon": "sparkles",
+       "label": "Discover"
       },
       "action": {
-       "type": "navigate",
-       "to": "/games?era=16-bit"
+       "type": "command",
+       "op": "selectTab",
+       "params": {
+        "tab": "discover"
+       }
       },
       "focus": {
        "order": 5,
-       "group": "classics"
-      },
-      "scope": "wittyplay",
-      "tokens": {
-       "accent": "#7F46B8"
-      }
-     },
-     {
-      "type": "Card",
-      "id": "classics:era-pocket",
-      "props": {
-       "count": 12,
-       "icon": "game",
-       "itemId": "era-pocket",
-       "kind": "collection",
-       "shape": "landscape",
-       "style": "tile",
-       "title": "Handheld classics"
-      },
-      "action": {
-       "type": "navigate",
-       "to": "/games?era=pocket"
-      },
-      "focus": {
-       "order": 6,
-       "group": "classics"
-      },
-      "scope": "wittyplay",
-      "tokens": {
-       "accent": "#7F46B8"
+       "group": "tabs"
       }
      }
     ]
    },
    {
-    "type": "Grid",
-    "id": "friends",
+    "type": "Dock",
+    "id": "dock",
     "props": {
-     "card": {
-      "aspect": "1/1",
-      "height": 200,
-      "shape": "circle",
-      "width": 200
-     },
-     "cardSize": "m",
-     "cardStyle": "person",
-     "title": "Friends",
-     "total": 4,
-     "columns": 1
+     "placement": "bottom",
+     "title": "Options"
     },
     "children": [
      {
-      "type": "Card",
-      "id": "friends:profile-2",
+      "type": "KeyLegend",
+      "id": "dock:keys",
       "props": {
-       "badges": [
-        "Playing"
-       ],
-       "icon": "user",
-       "itemId": "profile-2",
-       "kind": "person",
-       "shape": "circle",
-       "style": "person",
-       "subtitle": "Playing Star Tide",
-       "title": "Pip",
-       "focusable": true
-      },
-      "focus": {
-       "order": 7,
-       "group": "friends"
-      },
-      "scope": "wittyplay",
-      "tokens": {
-       "accent": "#7F46B8"
-      }
-     },
-     {
-      "type": "Card",
-      "id": "friends:profile-3",
-      "props": {
-       "badges": [
-        "Online"
-       ],
-       "icon": "user",
-       "itemId": "profile-3",
-       "kind": "person",
-       "shape": "circle",
-       "style": "person",
-       "subtitle": "Online",
-       "title": "Sam",
-       "focusable": true
-      },
-      "focus": {
-       "order": 8,
-       "group": "friends"
-      },
-      "scope": "wittyplay",
-      "tokens": {
-       "accent": "#7F46B8"
-      }
-     },
-     {
-      "type": "Card",
-      "id": "friends:profile-4",
-      "props": {
-       "badges": [
-        "Away"
-       ],
-       "icon": "user",
-       "itemId": "profile-4",
-       "kind": "person",
-       "shape": "circle",
-       "style": "person",
-       "subtitle": "Away",
-       "title": "Tom",
-       "focusable": true
-      },
-      "focus": {
-       "order": 9,
-       "group": "friends"
-      },
-      "scope": "wittyplay",
-      "tokens": {
-       "accent": "#7F46B8"
-      }
-     },
-     {
-      "type": "Card",
-      "id": "friends:profile-5",
-      "props": {
-       "badges": [
-        "Offline"
-       ],
-       "icon": "user",
-       "itemId": "profile-5",
-       "kind": "person",
-       "shape": "circle",
-       "style": "person",
-       "subtitle": "Offline",
-       "title": "Lee",
-       "focusable": true
-      },
-      "focus": {
-       "order": 10,
-       "group": "friends"
-      },
-      "scope": "wittyplay",
-      "tokens": {
-       "accent": "#7F46B8"
-      }
-     }
-    ]
-   },
-   {
-    "type": "Shelf",
-    "id": "rooms",
-    "props": {
-     "card": {
-      "aspect": "16/9",
-      "height": 236,
-      "shape": "landscape",
-      "width": 420
-     },
-     "cardSize": "m",
-     "cardStyle": "landscape",
-     "title": "Open rooms",
-     "total": 2
-    },
-    "children": [
-     {
-      "type": "Card",
-      "id": "rooms:s-moth",
-      "props": {
-       "badges": [
-        "Shared"
-       ],
-       "icon": "users",
-       "itemId": "s-moth",
-       "kind": "view",
-       "shape": "landscape",
-       "style": "landscape",
-       "subtitle": "Shared \u00b7 Sam",
-       "title": "Moth Racer \u00b7 3 of 4"
-      },
-      "focus": {
-       "order": 11,
-       "group": "rooms"
-      },
-      "scope": "wittyplay",
-      "tokens": {
-       "accent": "#7F46B8"
-      }
-     },
-     {
-      "type": "Card",
-      "id": "rooms:s-tennis",
-      "props": {
-       "badges": [
-        "Shared"
-       ],
-       "icon": "users",
-       "itemId": "s-tennis",
-       "kind": "view",
-       "shape": "landscape",
-       "style": "landscape",
-       "subtitle": "Shared \u00b7 Ines",
-       "title": "Tin Roof Tennis \u00b7 1 of 2"
-      },
-      "focus": {
-       "order": 12,
-       "group": "rooms"
-      },
-      "scope": "wittyplay",
-      "tokens": {
-       "accent": "#7F46B8"
+       "entries": [
+        {
+         "action": "select",
+         "label": "Select"
+        },
+        {
+         "action": "back",
+         "label": "Back"
+        },
+        {
+         "action": "options",
+         "label": "Options"
+        }
+       ]
       }
      }
     ]
@@ -764,27 +540,66 @@
   ],
   "sections": [
    {
-    "id": "recent",
-    "title": "Recent"
+    "id": "tabs",
+    "title": "Tabs"
    },
    {
-    "id": "classics",
-    "title": "Classics"
-   },
-   {
-    "id": "friends",
-    "title": "Friends"
-   },
-   {
-    "id": "rooms",
-    "title": "Open rooms"
+    "id": "dock",
+    "title": "Dock"
    }
   ],
-  "url": "/api/v1/sdui/pages/play/personal"
+  "url": "/api/v1/sdui/pages/wittyplay-online/personal"
+ },
+ "regions": {
+  "statusBar": [
+   {
+    "id": "me",
+    "kind": "profile",
+    "text": "WittyPlay Online"
+   },
+   {
+    "id": "server",
+    "kind": "server"
+   }
+  ],
+  "systemDock": [
+   {
+    "id": "search",
+    "label": "Search",
+    "icon": "search",
+    "route": "/search"
+   },
+   {
+    "id": "together",
+    "label": "Together",
+    "icon": "users",
+    "route": "/page/wittyplay-online?tab=together"
+   },
+   {
+    "id": "controllers",
+    "label": "Controllers",
+    "icon": "devices",
+    "route": "/page/wittyplay-controllers",
+    "as": "layer"
+   },
+   {
+    "id": "memories",
+    "label": "Memories",
+    "icon": "photo",
+    "route": "/page/wittyplay-online?tab=memories"
+   },
+   {
+    "id": "settings",
+    "label": "Settings",
+    "icon": "settings",
+    "route": "/page/wittyplay-privacy",
+    "as": "layer"
+   }
+  ]
  },
  "meta": {
   "generatedAt": "2026-11-11T19:30:00Z",
-  "etag": "W/\"sha256-aeeebdc210f15a9a9d8d47763b070085\"",
+  "etag": "W/\"sha256-37ccf4a7069269bf6cf8a184f3f2488a\"",
   "source": "builtin",
   "ttlSeconds": 300
  }

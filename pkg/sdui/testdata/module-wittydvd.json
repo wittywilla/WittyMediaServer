@@ -1,0 +1,446 @@
+{
+  "format": "wittymodule-sdui",
+  "formatVersion": 1,
+  "module": "wittydvd",
+  "catalog": 7,
+  "theme": {
+    "scope": "wittydvd",
+    "label": "DVDs"
+  },
+  "inserts": [
+    {
+      "page": "detail",
+      "before": "credits",
+      "section": {
+        "id": "wittydvd-refusal",
+        "component": "List",
+        "props": {
+          "title": "This disc can't be played"
+        },
+        "source": {
+          "item": "$item",
+          "type": "wittydvd.refusal"
+        }
+      }
+    },
+    {
+      "page": "detail",
+      "before": "credits",
+      "section": {
+        "id": "wittydvd-feature",
+        "component": "List",
+        "props": {
+          "title": "Feature Presentation"
+        },
+        "source": {
+          "item": "$item",
+          "type": "wittydvd.feature"
+        }
+      }
+    },
+    {
+      "page": "detail",
+      "before": "credits",
+      "section": {
+        "id": "wittydvd-scenes",
+        "component": "Shelf",
+        "props": {
+          "title": "Scenes"
+        },
+        "source": {
+          "item": "$item",
+          "type": "wittydvd.scenes"
+        }
+      }
+    },
+    {
+      "page": "detail",
+      "before": "credits",
+      "section": {
+        "id": "wittydvd-episodes",
+        "component": "List",
+        "props": {
+          "title": "Episodes"
+        },
+        "source": {
+          "item": "$item",
+          "type": "wittydvd.episodes"
+        }
+      }
+    },
+    {
+      "page": "detail",
+      "before": "credits",
+      "section": {
+        "id": "wittydvd-versions",
+        "component": "List",
+        "props": {
+          "title": "Other versions"
+        },
+        "source": {
+          "item": "$item",
+          "type": "wittydvd.versions"
+        }
+      }
+    },
+    {
+      "page": "detail",
+      "before": "credits",
+      "section": {
+        "id": "wittydvd-bonus",
+        "component": "List",
+        "props": {
+          "title": "Bonus material"
+        },
+        "source": {
+          "item": "$item",
+          "type": "wittydvd.bonus"
+        }
+      }
+    },
+    {
+      "page": "detail",
+      "before": "credits",
+      "section": {
+        "id": "wittydvd-menus",
+        "component": "List",
+        "props": {
+          "title": "Disc menus"
+        },
+        "source": {
+          "item": "$item",
+          "type": "wittydvd.menus"
+        }
+      }
+    },
+    {
+      "page": "detail",
+      "before": "credits",
+      "section": {
+        "id": "wittydvd-why",
+        "component": "List",
+        "props": {
+          "title": "Why this title"
+        },
+        "source": {
+          "item": "$item",
+          "type": "wittydvd.why"
+        }
+      }
+    },
+    {
+      "page": "detail",
+      "before": "credits",
+      "section": {
+        "id": "wittydvd-copy",
+        "component": "List",
+        "props": {
+          "title": "Diagnosis"
+        },
+        "source": {
+          "item": "$item",
+          "type": "wittydvd.copy"
+        }
+      }
+    }
+  ],
+  "sources": [
+    {
+      "type": "wittydvd.refusal",
+      "label": "Can't play",
+      "description": "An encrypted DVD: a plain message saying so, that nothing was changed or copied, and what the disc's index still says.",
+      "icon": "warning",
+      "category": "",
+      "params": [
+        {
+          "name": "item",
+          "type": "ref",
+          "label": "Disc",
+          "help": "$item on a DVD's page.",
+          "required": true,
+          "since": 0
+        }
+      ],
+      "yields": [
+        "view"
+      ],
+      "cardStyle": "landscape",
+      "pageKinds": [
+        "detail"
+      ],
+      "paged": false,
+      "title": "This disc can't be played",
+      "since": 7
+    },
+    {
+      "type": "wittydvd.feature",
+      "label": "Feature Presentation",
+      "description": "Play the film, the whole of it however the disc cuts it into titles, and how many scenes it has.",
+      "icon": "play",
+      "category": "",
+      "params": [
+        {
+          "name": "item",
+          "type": "ref",
+          "label": "Disc",
+          "help": "$item on a DVD's page.",
+          "required": true,
+          "since": 0
+        }
+      ],
+      "yields": [
+        "view"
+      ],
+      "cardStyle": "landscape",
+      "pageKinds": [
+        "detail"
+      ],
+      "paged": false,
+      "title": "Feature Presentation",
+      "since": 7
+    },
+    {
+      "type": "wittydvd.scenes",
+      "label": "Scenes",
+      "description": "The film's chapters as pictures, each playing from its start, with the names given to them.",
+      "icon": "list",
+      "category": "",
+      "params": [
+        {
+          "name": "item",
+          "type": "ref",
+          "label": "Disc",
+          "help": "$item on a DVD's page.",
+          "required": true,
+          "since": 0
+        },
+        {
+          "name": "limit",
+          "type": "int",
+          "label": "At most",
+          "default": 99,
+          "min": 1,
+          "max": 999,
+          "since": 0
+        }
+      ],
+      "yields": [
+        "view"
+      ],
+      "cardStyle": "landscape",
+      "pageKinds": [
+        "detail"
+      ],
+      "paged": false,
+      "title": "Scenes",
+      "since": 7
+    },
+    {
+      "type": "wittydvd.episodes",
+      "label": "Episodes",
+      "description": "A TV disc's episodes in viewing order, each from its own place.",
+      "icon": "show",
+      "category": "",
+      "params": [
+        {
+          "name": "item",
+          "type": "ref",
+          "label": "Disc",
+          "help": "$item on a DVD's page.",
+          "required": true,
+          "since": 0
+        },
+        {
+          "name": "limit",
+          "type": "int",
+          "label": "At most",
+          "default": 99,
+          "min": 1,
+          "max": 99,
+          "since": 0
+        }
+      ],
+      "yields": [
+        "view"
+      ],
+      "cardStyle": "landscape",
+      "pageKinds": [
+        "detail"
+      ],
+      "paged": false,
+      "title": "Episodes",
+      "since": 7
+    },
+    {
+      "type": "wittydvd.versions",
+      "label": "Other versions",
+      "description": "Other cuts and camera angles of the film than the one Play plays.",
+      "icon": "movie",
+      "category": "",
+      "params": [
+        {
+          "name": "item",
+          "type": "ref",
+          "label": "Disc",
+          "help": "$item on a DVD's page.",
+          "required": true,
+          "since": 0
+        },
+        {
+          "name": "limit",
+          "type": "int",
+          "label": "At most",
+          "default": 16,
+          "min": 1,
+          "max": 16,
+          "since": 0
+        }
+      ],
+      "yields": [
+        "view"
+      ],
+      "cardStyle": "landscape",
+      "pageKinds": [
+        "detail"
+      ],
+      "paged": false,
+      "title": "Other versions",
+      "since": 7
+    },
+    {
+      "type": "wittydvd.bonus",
+      "label": "Bonus material",
+      "description": "The disc's other titles worth watching, longest first, without its decoys.",
+      "icon": "video",
+      "category": "",
+      "params": [
+        {
+          "name": "item",
+          "type": "ref",
+          "label": "Disc",
+          "help": "$item on a DVD's page.",
+          "required": true,
+          "since": 0
+        },
+        {
+          "name": "limit",
+          "type": "int",
+          "label": "At most",
+          "default": 50,
+          "min": 1,
+          "max": 200,
+          "since": 0
+        }
+      ],
+      "yields": [
+        "view"
+      ],
+      "cardStyle": "landscape",
+      "pageKinds": [
+        "detail"
+      ],
+      "paged": false,
+      "title": "Bonus material",
+      "since": 7
+    },
+    {
+      "type": "wittydvd.menus",
+      "label": "Disc menus",
+      "description": "Shortcuts straight into the disc's own menus.",
+      "icon": "disc",
+      "category": "",
+      "params": [
+        {
+          "name": "item",
+          "type": "ref",
+          "label": "Disc",
+          "help": "$item on a DVD's page.",
+          "required": true,
+          "since": 0
+        }
+      ],
+      "yields": [
+        "view"
+      ],
+      "cardStyle": "landscape",
+      "pageKinds": [
+        "detail"
+      ],
+      "paged": false,
+      "title": "Disc menus",
+      "since": 7
+    },
+    {
+      "type": "wittydvd.why",
+      "label": "Why this title",
+      "description": "Which title is the film and why, how sure the disc engine is, and the other candidates, each to play once.",
+      "icon": "info",
+      "category": "",
+      "params": [
+        {
+          "name": "item",
+          "type": "ref",
+          "label": "Disc",
+          "help": "$item on a DVD's page.",
+          "required": true,
+          "since": 0
+        },
+        {
+          "name": "limit",
+          "type": "int",
+          "label": "At most",
+          "default": 20,
+          "min": 1,
+          "max": 32,
+          "since": 0
+        }
+      ],
+      "yields": [
+        "view"
+      ],
+      "cardStyle": "landscape",
+      "pageKinds": [
+        "detail"
+      ],
+      "paged": false,
+      "title": "Why this title",
+      "since": 7
+    },
+    {
+      "type": "wittydvd.copy",
+      "label": "Diagnosis",
+      "description": "What was wrong with this copy of the disc and what was mended, and for an administrator the way to check it.",
+      "icon": "check",
+      "category": "",
+      "params": [
+        {
+          "name": "item",
+          "type": "ref",
+          "label": "Disc",
+          "help": "$item on a DVD's page.",
+          "required": true,
+          "since": 0
+        },
+        {
+          "name": "limit",
+          "type": "int",
+          "label": "At most",
+          "default": 32,
+          "min": 1,
+          "max": 32,
+          "since": 0
+        }
+      ],
+      "yields": [
+        "view"
+      ],
+      "cardStyle": "landscape",
+      "pageKinds": [
+        "detail"
+      ],
+      "paged": false,
+      "title": "Diagnosis",
+      "since": 7
+    }
+  ]
+}

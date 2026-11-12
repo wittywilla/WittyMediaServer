@@ -156,8 +156,42 @@ func analysisOf(t *testing.T, ts *testServer, tok string, id int64) discAnalysis
 	return v
 }
 
+// sectionsOf is the ids of a title page's top-level sections, as an app is sent them, with
+// the titles of their rows.
+func sectionsOf(t *testing.T, ts *testServer, tok string, id int64) map[string][]string {
+	t.Helper()
+	w := ts.do(t, "GET", fmt.Sprintf("/api/sdui/pages/detail?item=%d&catalog=2", id), tok, nil)
+	if w.Code != 200 {
+		t.Fatalf("the title page: %d %s", w.Code, w.Body)
+	}
+	var doc struct {
+		Root struct {
+			Children []struct {
+				ID       string `json:"id"`
+				Children []struct {
+					Props map[string]any `json:"props"`
+				} `json:"children"`
+			} `json:"children"`
+		} `json:"root"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &doc); err != nil {
+		t.Fatal(err)
+	}
+	out := map[string][]string{}
+	for _, c := range doc.Root.Children {
+		var rows []string
+		for _, r := range c.Children {
+			if s, ok := r.Props["title"].(string); ok {
+				rows = append(rows, s)
+			}
+		}
+		out[c.ID] = rows
+	}
+	return out
+}
+
 func TestRankedDVDsWithTheRealModule(t *testing.T) {
-	m := modtest.Need(t, "wittydvd")
+	m := modtest.Need(t, "wittydvd", "wittybluray")
 	var list []synthDVD
 	dir := synthList(t, "wittydvd", &list)
 	ts := newTestServer(t)
@@ -207,6 +241,23 @@ func TestRankedDVDsWithTheRealModule(t *testing.T) {
 			}
 			if a := analysisOf(t, ts, admin, it.ID); !a.CanChoose {
 				t.Error("an admin can't choose")
+			}
+
+			// The title page carries WittyDVD's sections from its own sdui.json, and none of WittyBluray's.
+			secs := sectionsOf(t, ts, viewer, it.ID)
+			if rows := secs["wittydvd-feature"]; len(rows) == 0 || rows[0] != "Play the film" {
+				t.Errorf("Feature Presentation: %v (sections %v)", rows, secs)
+			}
+			if rows := secs["wittydvd-why"]; len(rows) == 0 || !strings.HasSuffix(rows[0], "is the film") {
+				t.Errorf("Why this title: %v", rows)
+			}
+			if len(want.EpisodeStarts) > 2 && len(secs["wittydvd-episodes"]) != len(want.EpisodeStarts) {
+				t.Errorf("Episodes: %v", secs["wittydvd-episodes"])
+			}
+			for id := range secs {
+				if strings.HasPrefix(id, "wittybluray-") || id == "wittydvd-refusal" {
+					t.Errorf("a section that doesn't belong on this DVD: %s", id)
+				}
 			}
 
 			// Play plays the film: the whole of it, through every title it runs through.
@@ -293,7 +344,7 @@ func TestRankedDVDsWithTheRealModule(t *testing.T) {
 }
 
 func TestRankedBlurayWithTheRealModule(t *testing.T) {
-	m := modtest.Need(t, "wittybluray")
+	m := modtest.Need(t, "wittydvd", "wittybluray")
 	var list []synthBD
 	dir := synthList(t, "wittybluray", &list)
 	ts := newTestServer(t)
@@ -365,6 +416,19 @@ func TestRankedBlurayWithTheRealModule(t *testing.T) {
 			}
 			if page.Rank == nil || page.Rank["why"] == "" {
 				t.Errorf("the page doesn't say why: %v", page.Rank)
+			}
+
+			secs := sectionsOf(t, ts, viewer, it.ID)
+			if rows := secs["wittybluray-feature"]; len(rows) == 0 || rows[0] != "Play the film" {
+				t.Errorf("Feature Presentation: %v (sections %v)", rows, secs)
+			}
+			if len(want.Editions) > 1 && len(secs["wittybluray-versions"]) == 0 {
+				t.Errorf("no other versions: %v", secs)
+			}
+			for id := range secs {
+				if strings.HasPrefix(id, "wittydvd-") {
+					t.Errorf("a DVD's section on a Blu-ray: %s", id)
+				}
 			}
 
 			_, p := openDisc(t, ts, viewer, it.ID, map[string]any{"mode": "title"})

@@ -26,7 +26,21 @@ func (rv *sduiResolver) books(src sdui.Source, req sdui.SourceRequest, lib *libr
 	if lib == nil || lib.Type != "books" {
 		return sdui.SourceResult{}, nil
 	}
-	q := library.ItemQuery{LibraryID: lib.ID, Kind: "book", Access: rv.acc, Brief: true, Limit: req.Limit + 1, Offset: req.Offset}
+	q := library.ItemQuery{LibraryID: lib.ID, Kind: "book", Access: rv.acc, Brief: true, Limit: req.Limit + 1, Offset: req.Offset, UserID: rv.u.ID}
+	// With filterable on, the page's FilterBar (format, reading state, order) narrows it.
+	if src.Bool("filterable") {
+		for _, k := range []string{"format", "reading", "sort", "desc"} {
+			if v := req.Filter[k]; v != "" {
+				src[k] = v
+			}
+		}
+		if req.Filter["desc"] == "1" {
+			src["desc"] = true
+		}
+	}
+	if r := src.Str("reading"); r == "reading" || r == "finished" || r == "unread" {
+		q.Reading = r
+	}
 	group := func(name string) *string {
 		v := strings.TrimSpace(src.Str(name))
 		if v == "" {

@@ -37,10 +37,7 @@
 .le-note { font-size: var(--text-sm); flex: 1 1 100%; }
 .le-devices { display: flex; flex-wrap: wrap; gap: var(--sp-3); margin-top: var(--sp-4); align-items: flex-end; }
 .le-device { min-block-size: 44px; padding: 0 var(--sp-4); border-radius: var(--r-md); border: 0; background: var(--bg-2); color: var(--fg-2); font: inherit; font-size: var(--text-sm); cursor: pointer; box-shadow: inset 0 0 0 1px var(--border-strong); }
-.le-device.d-tv, .le-device.d-headset { inline-size: 124px; block-size: 70px; }
-.le-device.d-desktop { inline-size: 110px; block-size: 70px; }
-.le-device.d-tablet { inline-size: 90px; block-size: 70px; }
-.le-device.d-phone { inline-size: 54px; block-size: 70px; padding: 0; }
+
 .le-device.on { background: var(--accent-soft); color: var(--accent-text); box-shadow: inset 0 0 0 2px var(--focus); }
 .le-device:focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: 2px; }
 .le-panel { padding: var(--sp-4); border-radius: var(--r-lg); background: var(--bg-2); align-self: start; }
@@ -55,3 +52,6 @@
 .z-start .le-tile-main, .z-end .le-tile-main, .z-start .le-drop, .z-end .le-drop { white-space: normal; }
 /* Save, Undo, Redo and Reset stay in view however tall the picture is. */
 .modal.ui-dialog.layout-editor > .actions { position: sticky; inset-block-end: calc(-1 * var(--sp-4)); z-index: var(--z-sticky); padding-block: var(--sp-3); background: var(--bg-2); }
+
+.le-device { display: grid; gap: var(--sp-1); justify-items: center; padding: var(--sp-2); inline-size: 9rem; }
+.le-device .le-thumb { inline-size: 100%; block-size: auto; border-radius: var(--r-sm); }

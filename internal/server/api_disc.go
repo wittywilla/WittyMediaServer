@@ -15,6 +15,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/dvd"
@@ -54,20 +55,125 @@ var menuLabels = map[string]string{
 	"audio": "Audio & languages", "subpicture": "Subtitles", "angle": "Angles",
 }
 
+// discPageView is a disc's page: the film, the other titles worth watching, and the disc's
+// own menus to jump into. The web's and apps' disc sections (the modules' sdui.json, answered
+// in disc_sources.go) and GET /api/items/{id}/disc are both made from it.
+type discPageView struct {
+	Main   *discTitle
+	Extras []discTitle
+	Menus  []discMenu
+	// Hidden counts titles the engine found to be decoys or didn't list; -1 without a ranking.
+	Hidden int
+}
+
+// errDiscEncrypted: the disc's video is encrypted, so nothing of it is read to play.
+var errDiscEncrypted = errors.New("This disc is encrypted, and encrypted discs aren't supported.")
+
 // GET /api/items/{id}/disc
 func (s *Server) handleDisc(w http.ResponseWriter, r *http.Request) {
-	if id, ok := pathInt(r, "id"); ok {
-		if it, err := s.visibleItem(r, id); err == nil && isBluray(it) {
-			s.handleDiscBluray(w, r, it)
-			return
-		}
-	}
-	it, o, ok := s.openDisc(w, r)
+	id, ok := pathInt(r, "id")
 	if !ok {
+		writeErr(w, 400, "bad id")
 		return
 	}
+	it, err := s.visibleItem(r, id)
+	if err != nil || !isDiscKind(it) {
+		writeErr(w, 404, "disc not found")
+		return
+	}
+	v, err := s.discPage(r.Context(), it)
+	if writeModuleMissing(w, err) {
+		return
+	}
+	switch {
+	case errors.Is(err, errDiscEncrypted):
+		writeErr(w, 403, err.Error())
+		return
+	case err != nil:
+		writeErr(w, 500, s.viewerError(r, err))
+		return
+	}
+	out := map[string]any{"main": nil, "extras": []discTitle{}, "menus": []discMenu{}}
+	if v.Main != nil {
+		out["main"] = *v.Main
+	}
+	if v.Extras != nil {
+		out["extras"] = v.Extras
+	}
+	if v.Menus != nil {
+		out["menus"] = v.Menus
+	}
+	if v.Hidden >= 0 {
+		out["hidden"] = v.Hidden
+	}
+	addRank(out, it)
+	writeJSON(w, 200, out)
+}
+
+// discPages keeps the last few disc pages worked out, for a short while: one page of the
+// app asks for a disc's feature, scenes, extras and menus as separate sections, and each
+// would otherwise start the disc's helper again. A change to the disc's names or its film
+// forgets it (discPageForget).
+var discPages = struct {
+	sync.Mutex
+	m map[int64]discPageCached
+}{m: map[int64]discPageCached{}}
+
+type discPageCached struct {
+	v   *discPageView
+	key string
+	at  time.Time
+}
+
+const (
+	discPageLife = 30 * time.Second
+	discPageMax  = 16
+)
+
+func discPageForget(id int64) {
+	discPages.Lock()
+	delete(discPages.m, id)
+	discPages.Unlock()
+}
+
+// discPage works a disc's page out, or takes it from the last few.
+func (s *Server) discPage(ctx context.Context, it *library.Item) (*discPageView, error) {
+	key := fmt.Sprintf("%s|%d|%v", it.Path, it.Disc.MainTitle, it.Disc.Rank != nil)
+	discPages.Lock()
+	if c, ok := discPages.m[it.ID]; ok && c.key == key && time.Since(c.at) < discPageLife {
+		discPages.Unlock()
+		return c.v, nil
+	}
+	discPages.Unlock()
+	var v *discPageView
+	var err error
+	if isBluray(it) {
+		v, err = s.discPageBluray(ctx, it)
+	} else {
+		v, err = s.discPageDVD(ctx, it)
+	}
+	if err != nil {
+		return nil, err
+	}
+	discPages.Lock()
+	if len(discPages.m) >= discPageMax {
+		clear(discPages.m)
+	}
+	discPages.m[it.ID] = discPageCached{v: v, key: key, at: time.Now()}
+	discPages.Unlock()
+	return v, nil
+}
+
+func (s *Server) discPageDVD(ctx context.Context, it *library.Item) (*discPageView, error) {
+	if it.Disc != nil && it.Disc.Scrambled {
+		return nil, errDiscEncrypted
+	}
+	o, err := dvdsession.Open(it.Path)
+	if err != nil {
+		return nil, err
+	}
 	defer o.Close()
-	labels := s.Store.DiscLabels(r.Context(), it.ID)
+	labels := s.Store.DiscLabels(ctx, it.ID)
 	d := o.Disc
 	view := func(ts *dvd.TitleSummary) discTitle {
 		t := discTitle{TTN: ts.Number, Label: labels.Titles[strconv.Itoa(ts.Number)], DurationSec: ts.Duration, Angles: ts.Angles, Wide: ts.Video.Wide,
@@ -85,13 +191,14 @@ func (s *Server) handleDisc(w http.ResponseWriter, r *http.Request) {
 		}
 		return t
 	}
-	out := map[string]any{"main": nil, "extras": []discTitle{}, "menus": []discMenu{}}
+	out := &discPageView{Hidden: -1}
 	// The film is the title an admin chose, or the engine's ranked pick laid out as the
 	// engine plays it, or with neither the older rule's guess.
 	main := library.DiscMainTitle(d, it.Disc)
 	seen := map[[2]int]bool{}
 	if main != nil {
-		out["main"] = view(main)
+		v := view(main)
+		out.Main = &v
 		seen[[2]int{main.VTS, main.VTSTitle}] = true
 	}
 	// With a ranking, the extras are what the engine counts as something to watch: not
@@ -118,24 +225,18 @@ func (s *Server) handleDisc(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
-		out["hidden"] = rk.Hidden + rk.Decoys
+		out.Hidden = rk.Hidden + rk.Decoys
 	}
-	addRank(out, it)
-	var extras []discTitle
 	for _, ts := range d.Titles() {
 		k := [2]int{ts.VTS, ts.VTSTitle}
 		if seen[k] || ts.Duration < 10 || (listed != nil && !listed[ts.Number]) {
 			continue // duplicates (several title numbers for one program) and tiny stubs
 		}
 		seen[k] = true
-		extras = append(extras, view(&ts))
+		out.Extras = append(out.Extras, view(&ts))
 	}
-	sort.SliceStable(extras, func(i, j int) bool { return extras[i].DurationSec > extras[j].DurationSec })
-	if extras != nil {
-		out["extras"] = extras
-	}
+	sort.SliceStable(out.Extras, func(i, j int) bool { return out.Extras[i].DurationSec > out.Extras[j].DurationSec })
 	// Menus a viewer can jump straight into.
-	var menus []discMenu
 	has := func(lus []dvd.LangUnit, typ int) bool {
 		for _, lu := range lus {
 			for _, e := range lu.PGCs {
@@ -150,18 +251,15 @@ func (s *Server) handleDisc(w http.ResponseWriter, r *http.Request) {
 		if v := d.VTS[main.VTS]; v != nil {
 			for _, kind := range []string{"root", "chapter", "audio", "subpicture", "angle"} {
 				if has(v.Menus, dvd.MenuTypes[kind]) {
-					menus = append(menus, discMenu{Kind: kind, VTS: main.VTS, Label: menuLabels[kind]})
+					out.Menus = append(out.Menus, discMenu{Kind: kind, VTS: main.VTS, Label: menuLabels[kind]})
 				}
 			}
 		}
 	}
 	if has(d.VMG.Menus, dvd.MenuTypes["title"]) {
-		menus = append(menus, discMenu{Kind: "title", Label: menuLabels["title"]})
+		out.Menus = append(out.Menus, discMenu{Kind: "title", Label: menuLabels["title"]})
 	}
-	if menus != nil {
-		out["menus"] = menus
-	}
-	writeJSON(w, 200, out)
+	return out, nil
 }
 
 func (s *Server) openDisc(w http.ResponseWriter, r *http.Request) (*library.Item, *dvdsession.Engine, bool) {
@@ -202,6 +300,7 @@ func (s *Server) handleDiscLabels(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
+	discPageForget(id)
 	writeJSON(w, 200, s.Store.DiscLabels(r.Context(), id))
 }
 

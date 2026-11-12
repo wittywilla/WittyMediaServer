@@ -219,6 +219,15 @@ func (r *renderer) card(parent, style, size string, it *Item, src Source) Node {
 	if it.Route != "" {
 		n.Action = &Action{Type: ActNavigate, To: it.Route}
 	}
+	if it.Action != nil {
+		n.Action = it.Action
+	}
+	if acts := cleanActions(it.Actions); len(acts) > 0 {
+		p["actions"] = acts
+	}
+	if c := cleanControl(it.Control); c != nil {
+		p["control"] = c
+	}
 	if it.PlayID != "" && contains(it.Can, "play") {
 		p["playId"] = it.PlayID
 	}
@@ -237,4 +246,20 @@ func programme(pg *Programme, limit int) map[string]any {
 		m["end"] = pg.End
 	}
 	return m
+}
+
+// cleanActions are an item's detail-panel buttons as a card carries them: at most four, each with a
+// label and an action, and a glyph only of the pad's four keys.
+func cleanActions(in []ItemAction) []ItemAction {
+	var out []ItemAction
+	for _, a := range in {
+		if a.Action == nil || a.Label == "" || len(out) == 4 {
+			continue
+		}
+		if !contains(Glyphs, a.Glyph) {
+			a.Glyph = ""
+		}
+		out = append(out, a)
+	}
+	return out
 }

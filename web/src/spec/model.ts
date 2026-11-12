@@ -25,7 +25,7 @@ export function withIds(p: SpecPageData): SpecPageData {
   return {
     ...p,
     sections: p.sections.map((s, si): SpecSection => {
-      if (s.kind === 'rows') return { ...s, items: s.items.map((r, i) => ({ ...r, id: id(r.id, si, i) })) }
+      if (s.kind === 'rows') return { ...s, items: s.items.map((r, i) => ({ ...r, id: id(r.id, si, i), ...(r.actions ? { actions: r.actions.map((a, j) => ({ ...a, id: id(a.id, si, i, j) })) } : {}) })) }
       if (s.kind === 'chips') return { ...s, items: s.items.map((c, i) => ({ ...c, id: id(c.id, si, i) })) }
       if (s.kind === 'cards') return { ...s, items: s.items.map((c, i) => ({ ...c, id: id(c.id, si, i) })) }
       if (s.kind === 'fields') return { ...s, items: s.items.map((c, i) => ({ ...c, id: id(c.id, si, i) })) }
@@ -58,6 +58,7 @@ export function problems(p: SpecPageData): string[] {
       }
       return
     }
+    if (s.kind === 'rows') for (const r of s.items) for (const a of r.actions || []) { if (!a.title.trim()) out.push(`${at}: an action of ${r.title} has no title`); seen(a.id, a.title) }
     for (const it of s.items) { if (!('title' in it) || !it.title.trim()) out.push(`${at}: section ${si} has an item with no title`); seen(it.id, it.title) }
   })
   if (p.actions.filter((a) => a.kind === 'primary').length > 1) out.push(`${at}: more than one primary action`)
@@ -72,8 +73,8 @@ export const sectionId = (key: string, i: number) => `spec-${key.replace(/[^a-z0
 // handled: the ids the page's onAction answers (SpecPage), or null for "every id".
 export function reachable(p: SpecPageData, handled: ReadonlySet<string> | null): string[] {
   const out: string[] = []
-  const ok = (it: { id?: string; to?: string; disabled?: boolean }) => !it.disabled && (!!it.to || (!!it.id && (!handled || handled.has(it.id))))
-  for (const s of p.sections) if (s.kind === 'fields') { for (const f of s.items) if (f.kind !== 'code' && f.kind !== 'qr' && !f.disabled) out.push(f.id || '') } else if (s.kind !== 'note') for (const it of s.items) if (ok(it)) out.push(it.id || '')
+  const ok = (it: { id?: string; to?: string; href?: string; disabled?: boolean }) => !it.disabled && (!!it.to || !!it.href || (!!it.id && (!handled || handled.has(it.id))))
+  for (const s of p.sections) if (s.kind === 'fields') { for (const f of s.items) if (f.kind !== 'code' && f.kind !== 'qr' && !f.disabled) out.push(f.id || '') } else if (s.kind !== 'note') for (const it of s.items) { if (ok(it)) out.push(it.id || ''); if ('actions' in it) for (const a of it.actions || []) if (ok(a)) out.push(a.id || '') }
   for (const a of p.actions) if (ok(a)) out.push(a.id || '')
   return out
 }

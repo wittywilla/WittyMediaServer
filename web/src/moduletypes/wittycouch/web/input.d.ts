@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-// Copyright (C) 2026 WittyWilla and contributors
 export type Send = (m: Uint8Array, reliable: boolean) => void;
 export declare const MAX_PADS = 4;
 type PadState = {

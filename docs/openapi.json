@@ -10917,6 +10917,12 @@
       },
       "SDUIAction": {
         "properties": {
+          "as": {
+            "type": "string"
+          },
+          "confirm": {
+            "type": "string"
+          },
           "item": {
             "type": "string"
           },
@@ -11009,6 +11015,12 @@
         "properties": {
           "aspect": {
             "type": "string"
+          },
+          "badgeTones": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
           },
           "description": {
             "type": "string"
@@ -11313,6 +11325,46 @@
                 },
                 "type": {
                   "type": "string"
+                },
+                "wire": {
+                  "additionalProperties": {
+                    "properties": {
+                      "brand": {
+                        "type": "string"
+                      },
+                      "cards": {
+                        "type": "string"
+                      },
+                      "dock": {
+                        "type": "boolean"
+                      },
+                      "finish": {
+                        "type": "string"
+                      },
+                      "home": {
+                        "type": "string"
+                      },
+                      "nav": {
+                        "type": "string"
+                      },
+                      "open": {
+                        "type": "boolean"
+                      },
+                      "style": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "brand",
+                      "cards",
+                      "finish",
+                      "home",
+                      "nav",
+                      "style"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "object"
                 }
               },
               "required": [
@@ -11332,7 +11384,8 @@
                 "tagline",
                 "theme",
                 "tvTheme",
-                "type"
+                "type",
+                "wire"
               ],
               "type": "object"
             },
@@ -11870,6 +11923,9 @@
             "type": "string"
           },
           "method": {
+            "type": "string"
+          },
+          "module": {
             "type": "string"
           },
           "op": {
@@ -12708,6 +12764,74 @@
               }
             ]
           },
+          "regions": {
+            "anyOf": [
+              {
+                "properties": {
+                  "statusBar": {
+                    "items": {
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "kind": {
+                          "type": "string"
+                        },
+                        "text": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "kind"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "systemDock": {
+                    "items": {
+                      "properties": {
+                        "as": {
+                          "type": "string"
+                        },
+                        "icon": {
+                          "type": "string"
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string"
+                        },
+                        "route": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "icon",
+                        "id",
+                        "label",
+                        "route"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  }
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "root": {
             "$ref": "#/components/schemas/SDUINode"
           },
@@ -13454,6 +13578,74 @@
               }
             ]
           },
+          "regions": {
+            "anyOf": [
+              {
+                "properties": {
+                  "statusBar": {
+                    "items": {
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "kind": {
+                          "type": "string"
+                        },
+                        "text": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "kind"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "systemDock": {
+                    "items": {
+                      "properties": {
+                        "as": {
+                          "type": "string"
+                        },
+                        "icon": {
+                          "type": "string"
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string"
+                        },
+                        "route": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "icon",
+                        "id",
+                        "label",
+                        "route"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  }
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "scope": {
             "type": "string"
           },
@@ -13465,6 +13657,9 @@
               "array",
               "null"
             ]
+          },
+          "slot": {
+            "type": "string"
           },
           "title": {
             "type": "string"
@@ -47562,6 +47757,51 @@
           "SDUI"
         ],
         "x-wms-auth": "public"
+      }
+    },
+    "/sdui/slots/{slot}": {
+      "get": {
+        "operationId": "getSduiSettingsSlot",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slot",
+            "required": true,
+            "schema": {
+              "enum": [
+                "you.games",
+                "people.profile"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The settings pages modules put in one place of the hand-built Settings (you.games, people.profile for administrators): {slot, pages: [{module, label, id, title, icon, url or route}]}: url is a module's settings, route a module page to open through the SDUI renderer (for people.profile it ends ?item={profile}).",
+        "tags": [
+          "Server-driven UI"
+        ],
+        "x-wms-auth": "user"
       }
     },
     "/sdui/topshelf": {

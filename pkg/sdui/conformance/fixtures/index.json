@@ -1,7 +1,7 @@
 {
  "kit": 1,
  "schemaVersion": 1,
- "catalogRevision": 7,
+ "catalogRevision": 8,
  "cases": [
   {
    "id": "home-tv-hd",
@@ -418,6 +418,36 @@
    "formFactor": "phone"
   },
   {
+   "id": "qr-room-phone",
+   "file": "qr-room-phone.json",
+   "title": "QR codes from an item's link and from an address, on a phone",
+   "formFactor": "phone"
+  },
+  {
+   "id": "wittyplay-online-empty-tv",
+   "file": "wittyplay-online-empty-tv.json",
+   "title": "WittyPlay Online's home with nothing played and nobody online, on a television",
+   "formFactor": "tv"
+  },
+  {
+   "id": "wittyplay-online-home-tv",
+   "file": "wittyplay-online-home-tv.json",
+   "title": "WittyPlay Online's home page, as WittyPlay defines it, on a television",
+   "formFactor": "tv"
+  },
+  {
+   "id": "forms-wittyplay-privacy-phone",
+   "file": "forms-wittyplay-privacy-phone.json",
+   "title": "A Form of switches, a list of switches that save at once, and a command button that asks first, on a phone",
+   "formFactor": "phone"
+  },
+  {
+   "id": "wittyplay-online-focus-tv",
+   "file": "wittyplay-online-focus-tv.json",
+   "title": "WittyPlay Online home: focused tile grows, detail panel, regions, on a television",
+   "formFactor": "tv"
+  },
+  {
    "id": "wittyplay-people-tv",
    "file": "wittyplay-people-tv.json",
    "title": "Friends and a room's players as person cards on a television",
@@ -427,6 +457,18 @@
    "id": "wittyplay-online-tv",
    "file": "wittyplay-online-tv.json",
    "title": "WittyPlay Online's rows on a television",
+   "formFactor": "tv"
+  },
+  {
+   "id": "wittydvd-disc-page-web",
+   "file": "wittydvd-disc-page-web.json",
+   "title": "A DVD's page with WittyDVD's sections, in a browser",
+   "formFactor": "web"
+  },
+  {
+   "id": "wittydvd-disc-page-tv",
+   "file": "wittydvd-disc-page-tv.json",
+   "title": "A DVD's page with WittyDVD's sections, on a television",
    "formFactor": "tv"
   },
   {

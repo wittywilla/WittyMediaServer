@@ -93,6 +93,7 @@ export const NATIVE_ROUTES: Record<string, string> = {
 // What an action comes to in this app. Pure, so it can be tested: the page carries it out.
 export type Step =
   | { do: 'go'; to: string }
+  | { do: 'layer'; to: string }
   | { do: 'back' }
   | { do: 'play'; item: string; resume: boolean }
   | { do: 'open'; url: string }
@@ -108,7 +109,7 @@ const safeRoute = (to: string) => to.startsWith('/') && !to.startsWith('//')
 
 // The catalogue's commands (GET /sdui/catalog `commands`): the request each op carries out and the values besides {item}
 // it needs (docs/SDUI.md, "Commands"). Set when the catalogue has been read.
-export type CommandSpec = { op: string; method: string; path: string; body?: string; params?: { name: string; type: 'string' | 'int'; required?: boolean }[] }
+export type CommandSpec = { op: string; method: string; path: string; body?: string; params?: { name: string; type: 'string' | 'int' | 'bool' | 'ints' | 'object'; required?: boolean }[] }
 let commandSpecs = new Map<string, CommandSpec>()
 export const setCommandSpecs = (list: CommandSpec[]) => { commandSpecs = new Map(list.map((c) => [c.op, c])) }
 // The ops the app answers with a panel of its own, with no request.
@@ -119,15 +120,39 @@ const inJSON = (v: string) => JSON.stringify(v).slice(1, -1)
 // commandRequest: a catalogue command as a request. {item} is the action's item as it is; each parameter goes in place
 // of {name}, from the action's params: URL-escaped in the path, escaped as a JSON string in the body, and for an int
 // parameter the quoted token is replaced by the number. A parameter not given is an empty string.
+// objectParam: an `object` parameter from a Form's controls named `<param>.<key>` (`rule.yearFrom`): each is a key; a number field
+// gives a number, an empty control gives no key, and a key ending `[]` (`rule.genres[]`) splits comma-separated text into a list.
+export function objectParam(name: string, params: Record<string, unknown> | undefined): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(params || {})) {
+    if (!k.startsWith(name + '.')) continue
+    let key = k.slice(name.length + 1)
+    if (v === undefined || v === null || v === '') continue
+    if (key.endsWith('[]')) {
+      key = key.slice(0, -2)
+      const parts = (Array.isArray(v) ? v.map(String) : String(v).split(',')).map((x) => x.trim()).filter(Boolean)
+      if (parts.length) out[key] = parts
+    } else out[key] = typeof v === 'number' || typeof v === 'boolean' ? v : v
+  }
+  return out
+}
+
 export function commandRequest(spec: CommandSpec, a: Action): Step {
   const given = (n: string) => { const v = a.params?.[n]; return v === undefined || v === null ? '' : String(v) }
   const item = a.item ?? ''
-  if (spec.params?.some((p) => p.required && given(p.name) === '')) return { do: 'nothing' }
+  if (spec.params?.some((p) => p.required && p.type !== 'object' && given(p.name) === '')) return { do: 'nothing' }
   let path = spec.path.replace(/^\/api(\/v1)?/, '').replaceAll('{item}', encodeURIComponent(item))
   let body = spec.body
   for (const p of spec.params || []) {
     path = path.replaceAll(`{${p.name}}`, encodeURIComponent(given(p.name)))
-    if (body) body = p.type === 'int' ? body.replaceAll(`"{${p.name}}"`, String(Number(given(p.name)) || 0)) : body.replaceAll(`{${p.name}}`, inJSON(given(p.name)))
+    if (!body) continue
+    const token = `"{${p.name}}"`
+    const v = a.params?.[p.name]
+    if (p.type === 'int') body = body.replaceAll(token, String(Number(given(p.name)) || 0))
+    else if (p.type === 'bool') body = body.replaceAll(token, v === true || given(p.name) === 'true' ? 'true' : 'false')
+    else if (p.type === 'ints') body = body.replaceAll(token, JSON.stringify((Array.isArray(v) ? v : given(p.name).split(',')).map(Number).filter((n) => Number.isFinite(n) && String(n) !== '')))
+    else if (p.type === 'object') body = body.replaceAll(token, JSON.stringify(objectParam(p.name, a.params)))
+    else body = body.replaceAll(`{${p.name}}`, inJSON(given(p.name)))
   }
   if (body) body = body.replaceAll('{item}', inJSON(item))
   const method = spec.method === 'PUT' ? 'PUT' : spec.method === 'DELETE' ? 'DELETE' : 'POST'
@@ -139,7 +164,7 @@ export function commandRequest(spec: CommandSpec, a: Action): Step {
 export function plan(a: Action | undefined, opts: { externalLinks?: boolean } = {}): Step {
   if (!a) return { do: 'nothing' }
   switch (a.type) {
-    case 'navigate': return a.to && safeRoute(a.to) ? { do: 'go', to: a.to } : { do: 'nothing' }
+    case 'navigate': return a.to && safeRoute(a.to) ? { do: a.as === 'layer' ? 'layer' : 'go', to: a.to } : { do: 'nothing' }
     case 'back': return { do: 'back' }
     case 'play': return a.item ? { do: 'play', item: a.item, resume: a.params?.resume !== false } : { do: 'nothing' }
     case 'external': return a.url && /^https?:\/\//i.test(a.url) && opts.externalLinks !== false ? { do: 'open', url: a.url } : { do: 'nothing' }

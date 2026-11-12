@@ -6,7 +6,6 @@ package server
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
@@ -25,22 +24,17 @@ import (
 // with chapters, and the top menu as a shortcut. "ttn" is the playlist
 // number, as it is for the player.
 
-func (s *Server) handleDiscBluray(w http.ResponseWriter, r *http.Request, it *library.Item) {
+func (s *Server) discPageBluray(ctx context.Context, it *library.Item) (*discPageView, error) {
 	od, err := bdsession.Open(it.Path, s.Log)
-	if writeModuleMissing(w, err) {
-		return
-	}
 	if err != nil {
-		writeErr(w, 500, s.viewerError(r, err))
-		return
+		return nil, err
 	}
 	if od.Disc == nil {
-		writeErr(w, 403, "This disc is encrypted, and encrypted discs aren't supported.")
-		return
+		return nil, errDiscEncrypted
 	}
 	d := od.Disc
 	defer d.Close()
-	labels := s.Store.DiscLabels(r.Context(), it.ID)
+	labels := s.Store.DiscLabels(ctx, it.ID)
 	view := func(pl *bluray.Playlist) discTitle {
 		t := discTitle{TTN: pl.Number, Label: labels.Titles[strconv.Itoa(pl.Number)], DurationSec: d.PlaylistDuration(pl), Angles: 1, Wide: true,
 			Chapters: []discChapter{}, Audio: []string{}, Subtitles: []string{}}
@@ -61,7 +55,7 @@ func (s *Server) handleDiscBluray(w http.ResponseWriter, r *http.Request, it *li
 		}
 		return t
 	}
-	out := map[string]any{"main": nil, "extras": []discTitle{}, "menus": []discMenu{}}
+	out := &discPageView{Hidden: -1}
 	// The film is the playlist an admin chose, or the engine's ranked pick.
 	main := d.MainPlaylist()
 	if it.Disc != nil && (it.Disc.Chosen != nil || it.Disc.Rank != nil) && it.Disc.MainTitle >= 0 {
@@ -70,7 +64,8 @@ func (s *Server) handleDiscBluray(w http.ResponseWriter, r *http.Request, it *li
 		}
 	}
 	if main != nil {
-		out["main"] = view(main)
+		v := view(main)
+		out.Main = &v
 	}
 	// With a ranking, the extras are what the engine sent as worth watching. A disc with
 	// a thousand decoy playlists then lists none of them, and asks for none of them.
@@ -83,10 +78,8 @@ func (s *Server) handleDiscBluray(w http.ResponseWriter, r *http.Request, it *li
 				playlists = append(playlists, c.TTN)
 			}
 		}
-		out["hidden"] = rk.Hidden + rk.Decoys
+		out.Hidden = rk.Hidden + rk.Decoys
 	}
-	addRank(out, it)
-	var extras []discTitle
 	for _, n := range playlists {
 		pl := d.Playlist(n)
 		if pl == nil || pl == main || d.PlaylistDuration(pl) < 10 || len(pl.Items) == 0 || len(pl.Items[0].Video) == 0 {
@@ -95,16 +88,13 @@ func (s *Server) handleDiscBluray(w http.ResponseWriter, r *http.Request, it *li
 		if len(pl.Items[0].IG) > 0 && d.PlaylistDuration(pl) < 600 {
 			continue // menu loops
 		}
-		extras = append(extras, view(pl))
+		out.Extras = append(out.Extras, view(pl))
 	}
-	sort.SliceStable(extras, func(i, j int) bool { return extras[i].DurationSec > extras[j].DurationSec })
-	if extras != nil {
-		out["extras"] = extras
-	}
+	sort.SliceStable(out.Extras, func(i, j int) bool { return out.Extras[i].DurationSec > out.Extras[j].DurationSec })
 	if od.Index != nil && od.Index.TopMenu.Kind != bluray.ObjectNone {
-		out["menus"] = []discMenu{{Kind: "title", Label: "Top menu"}}
+		out.Menus = []discMenu{{Kind: "title", Label: "Top menu"}}
 	}
-	writeJSON(w, 200, out)
+	return out, nil
 }
 
 // makeBlurayThumb grabs a frame of a playlist (chapter n, 0 = the start).

@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import type { GameConsole } from '../../api'
-import { IconCheck } from '../../icons'
+import { useMemo } from 'react'
+import SpecPage from '../../spec/SpecPage'
+import { coresSpec } from '../../spec/specs/consoleCores'
 import { drawsWords, platformName, type CoreSupport, type Draws, type PlatformSupport } from './platforms'
 
 // A console's cores on its collection page: how each draws on this server, and which other server platforms it
@@ -34,21 +36,16 @@ function runsOnLine(s: CoreSupport) {
 
 export function ConsoleCores({ c }: { c: GameConsole }) {
   const support = (c as WithSupport).coreSupport
-  if (!support || Object.keys(support).length === 0) return null
-  const names = new Map([...c.cores, ...(c.customCores || [])].map((x) => [x.id, x.name]))
+  const page = useMemo(() => {
+    if (!support || Object.keys(support).length === 0) return null
+    const names = new Map([...c.cores, ...(c.customCores || [])].map((x) => [x.id, x.name]))
+    return coresSpec(c.short, Object.entries(support).map(([id, s]) => ({ id, name: names.get(id) || id, installed: c.installed.some((x) => x.id === id), here: hereWords(s.here), runs: runsOnLine(s) })))
+  }, [c, support])
+  if (!page) return null
   return (
     <section className="gm-cores gm-section" aria-labelledby="gm-cores-h">
       <h2 id="gm-cores-h">Where {c.short} games run</h2>
-      <ul>
-        {Object.entries(support).map(([id, s]) => (
-          <li key={id}>
-            <b>{names.get(id) || id}{c.installed.some((x) => x.id === id) && <span className="gm-core-on"><IconCheck size={14} /> Installed</span>}</b>
-            <small>On this server: {hereWords(s.here)}</small>
-            <small>{runsOnLine(s)}</small>
-          </li>
-        ))}
-      </ul>
-      <p className="muted">Every device plays them: the server runs the game and streams it.</p>
+      <SpecPage bare page={page} />
     </section>
   )
 }

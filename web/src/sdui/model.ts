@@ -401,6 +401,8 @@ function viewOf(x: Node, depth: number, parent: Node | undefined, l: Layout, pag
     case 'Divider': e.role = 'separator'; break
     case 'NativeView': e.role = 'group'; e.label = str(p, 'view'); break
     case 'Stack': case 'Split': case 'Spacer': break
+    // A Form is drawn as a form (Save and Cancel); the kit's layout calls it a plain column of what it holds.
+    case 'Form': case 'QR': break
     // A type this catalogue doesn't have is drawn as a plain column of its children.
     default: e.type = 'Stack'
   }
@@ -464,7 +466,7 @@ export function normalise(m: PageModel): unknown {
   const visible: unknown[] = []
   const walk = (v: View) => {
     const { node: _node, children, ...rest } = v
-    visible.push(rest)
+    visible.push(rest.type === 'Form' || rest.type === 'QR' ? { ...rest, type: 'Stack' } : rest)
     children.forEach(walk)
   }
   walk(m.root)

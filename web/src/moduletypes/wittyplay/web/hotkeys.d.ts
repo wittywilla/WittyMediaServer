@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-// Copyright (C) 2026 WittyWilla and contributors
 import type { DisplayValues } from './display';
 export type HotAction = 'fastForward' | 'rewind' | 'slow' | 'quickSave' | 'quickLoad' | 'pause' | 'advance' | 'screenshot' | 'menu' | 'mute' | 'osd';
 export declare const HOLD_ACTIONS: HotAction[];

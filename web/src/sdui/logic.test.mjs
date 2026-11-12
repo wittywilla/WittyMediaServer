@@ -171,7 +171,7 @@ test('device: what each kind of window says it is', () => {
   assert.notEqual(deviceKey(describe(facts), 1440), deviceKey(describe(facts), 1000))
   assert.equal(deviceKey(describe(facts), 1440), deviceKey(describe(facts), 1300))
   const q = new URLSearchParams(query(describe({ ...facts, reducedMotion: true }), { library: '3', tab: undefined }))
-  assert.equal(q.get('catalog'), '7'); assert.equal(q.get('viewport'), '1440x900'); assert.equal(q.get('library'), '3')
+  assert.equal(q.get('catalog'), '8'); assert.equal(q.get('viewport'), '1440x900'); assert.equal(q.get('library'), '3')
   assert.equal(q.get('views'), 'guide,photoTimeline,photoMap,coverFlow'); assert.ok(q.get('capabilities').includes('reducedMotion')); assert.equal(q.has('tab'), false)
 })
 
@@ -227,4 +227,15 @@ test('catalogue commands: {item} and the parameters fill the path and the body',
   assert.deepEqual(plan({ type: 'command', op: 'rewind.open' }), { do: 'client', op: 'rewind.open', params: {} })
   assert.deepEqual(plan({ type: 'command', op: 'nothing.here' }), { do: 'nothing' })
   setCommandSpecs([])
+})
+
+test('command params: bool, ints and an object built from a Form\'s controls', async () => {
+  const { commandRequest, objectParam } = await import('./routes.ts')
+  const online = { op: 'wittyplay.online.set', method: 'PUT', path: '/api/games/online/me', body: '{"sharePlaying":"{sharePlaying}","appearOnline":"{appearOnline}"}', params: [{ name: 'sharePlaying', type: 'bool', required: true }, { name: 'appearOnline', type: 'bool', required: true }] }
+  assert.deepEqual(commandRequest(online, { type: 'command', op: online.op, params: { sharePlaying: true, appearOnline: false } }).body, { sharePlaying: true, appearOnline: false })
+  const kids = { op: 'x.kids', method: 'POST', path: '/api/k', body: '{"see":"{see}"}', params: [{ name: 'see', type: 'ints' }] }
+  assert.deepEqual(commandRequest(kids, { type: 'command', op: 'x.kids', params: { see: [3, 5] } }).body, { see: [3, 5] })
+  assert.deepEqual(objectParam('rule', { 'rule.yearFrom': 1990, 'rule.title': '', 'rule.genres[]': 'Drama, Comedy,', other: 1 }), { yearFrom: 1990, genres: ['Drama', 'Comedy'] })
+  const smart = { op: 'collection.createSmart', method: 'POST', path: '/api/collections/smart', body: '{"name":"{name}","rule":"{rule}"}', params: [{ name: 'name', type: 'string', required: true }, { name: 'rule', type: 'object' }] }
+  assert.deepEqual(commandRequest(smart, { type: 'command', op: smart.op, params: { name: 'Old', 'rule.yearTo': 1999 } }).body, { name: 'Old', rule: { yearTo: 1999 } })
 })

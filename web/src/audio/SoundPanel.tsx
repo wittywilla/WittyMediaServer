@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { IconClose } from '../icons'
-import { EQ_FREQS, EQ_PRESETS, isAppleMobile } from './sound'
+import { DEFAULTS, EQ_FREQS, EQ_PRESETS, isAppleMobile } from './sound'
 import type { PlayerView } from './types'
 
 // How it sounds on this device: kept on the device, as speakers differ.
@@ -17,6 +17,7 @@ export function SoundPanel({ p, onClose }: { p: PlayerView; onClose: () => void 
         <h3>Sound</h3>
         <button type="button" className="mp-ibtn" onClick={onClose} aria-label="Close sound settings"><IconClose /></button>
       </div>
+      <p className="np-hint np-lede">Per device. Kept on this one, as speakers differ.</p>
       <div className="np-sound">
         {isAppleMobile() && <p className="np-note">On an iPhone or iPad, the equaliser and volume leveling stop when the screen locks. That's how those devices treat them, and playing without them keeps going.</p>}
         {p.soundNote && <p className="np-note" role="status">{p.soundNote}</p>}
@@ -69,6 +70,10 @@ export function SoundPanel({ p, onClose }: { p: PlayerView; onClose: () => void 
           </div>
           <p className="np-hint">If boosting makes loud parts crackle, lower the overall level a little.</p>
         </section>
+      </div>
+      <div className="np-side-actions np-pills np-foot">
+        <button type="button" className="np-chip small on" onClick={onClose}>Done</button>
+        <button type="button" className="np-chip small" onClick={() => p.setSound({ gapless: DEFAULTS.gapless, crossfade: DEFAULTS.crossfade, crossfadeAlbums: DEFAULTS.crossfadeAlbums, replayGain: DEFAULTS.replayGain, eqOn: DEFAULTS.eqOn, eqPreset: DEFAULTS.eqPreset, eqGains: DEFAULTS.eqGains, preamp: DEFAULTS.preamp })}>Reset</button>
       </div>
     </div>
   )

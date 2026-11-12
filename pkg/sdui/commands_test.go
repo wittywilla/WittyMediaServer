@@ -43,7 +43,7 @@ func TestCommandParamsFillToJSON(t *testing.T) {
 	for _, cmd := range Catalog().Commands {
 		declared := map[string]CommandParam{}
 		for _, p := range cmd.Params {
-			if p.Type != "string" && p.Type != "int" {
+			if p.Type != "string" && p.Type != "int" && p.Type != "bool" && p.Type != "ints" && p.Type != "object" {
 				t.Errorf("%s: param %s has type %q", cmd.Op, p.Name, p.Type)
 			}
 			declared[p.Name] = p
@@ -60,9 +60,16 @@ func TestCommandParamsFillToJSON(t *testing.T) {
 		}
 		body := cmd.Body
 		for name, p := range declared {
-			if p.Type == "int" {
+			switch p.Type {
+			case "int":
 				body = strings.ReplaceAll(body, `"{`+name+`}"`, "3")
-			} else {
+			case "bool":
+				body = strings.ReplaceAll(body, `"{`+name+`}"`, "true")
+			case "ints":
+				body = strings.ReplaceAll(body, `"{`+name+`}"`, "[1,2]")
+			case "object":
+				body = strings.ReplaceAll(body, `"{`+name+`}"`, `{"a":1}`)
+			default:
 				body = strings.ReplaceAll(body, `"{`+name+`}"`, `"a\"b"`)
 			}
 		}
@@ -79,8 +86,8 @@ func TestWittyPlayCommands(t *testing.T) {
 		"wittyplay.room.create": "POST /api/play/{item}/room", "wittyplay.room.join": "POST /api/play/join",
 		"wittyplay.room.invite": "POST /api/play/{item}/invite", "wittyplay.state.save": "POST /api/play/{item}/action",
 		"wittyplay.state.load": "POST /api/play/{item}/action", "wittyplay.state.delete": "DELETE /api/games/{item}/saves/{slot}",
-		"wittyplay.controller.assign": "PUT /api/play/{item}/seats/{user}",
-		"rewind.open":                 " ", "controller.remap": " ",
+		"wittyplay.controller.assign": "PUT /api/play/{item}/seats/{user}", "wittyplay.room.leave": "DELETE /api/play/{item}/seats/{user}",
+		"rewind.open": " ", "controller.remap": " ",
 	}
 	for _, cmd := range Catalog().Commands {
 		if w, ok := want[cmd.Op]; ok {

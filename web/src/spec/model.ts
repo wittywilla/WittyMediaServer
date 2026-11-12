@@ -9,6 +9,9 @@ export const secR = (h: string, items: SpecRow[]): SpecSection => ({ kind: 'rows
 export const secP = (h: string, items: SpecChip[]): SpecSection => ({ kind: 'chips', h, items })
 export const secC = (h: string, items: SpecCard[]): SpecSection => ({ kind: 'cards', h, items })
 export const secF = (h: string, items: SpecField[]): SpecSection => ({ kind: 'fields', h, items })
+// Name a section's heading id, and mark a rows section as one choice among its rows.
+export const anchored = (s: SpecSection, anchor: string): SpecSection => ({ ...s, anchor })
+export const choice = (s: SpecSection): SpecSection => (s.kind === 'rows' ? { ...s, choice: true } : s)
 export const secN = (h: string, text: string, tone?: boolean): SpecSection => ({ kind: 'note', h, text, tone: !!tone })
 export const A1 = (title: string, to?: string): SpecAction => ({ title, kind: 'primary', ...(to ? { to } : {}) })
 export const A2 = (title: string, to?: string): SpecAction => ({ title, kind: 'secondary', ...(to ? { to } : {}) })

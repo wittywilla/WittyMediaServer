@@ -13,7 +13,7 @@ export interface SpecChip { id?: string; title: string; on?: boolean; to?: strin
 export interface SpecCard { id?: string; title: string; sub?: string; on?: boolean; to?: string; art?: string; bg?: string; bg2?: string; disabled?: boolean }
 // A form control. The page owns the value (it is in the spec, so a page that changes it builds the spec again) and
 // hears changes through SpecPage's onField(id, value). `code` and `qr` only show: a code to read out, a QR to scan.
-export type SpecFieldKind = 'text' | 'password' | 'number' | 'pin' | 'switch' | 'select' | 'slider' | 'code' | 'qr' | 'file'
+export type SpecFieldKind = 'time' | 'text' | 'password' | 'number' | 'pin' | 'switch' | 'select' | 'slider' | 'code' | 'qr' | 'file'
 export interface SpecField {
   id?: string
   kind: SpecFieldKind
@@ -29,17 +29,20 @@ export interface SpecField {
   length?: number // pin: how many digits
   autoComplete?: string
   accept?: string // file
+  autoFocus?: boolean
   // qr: what the picture says. code: the characters (value). Both need a words alternative.
   text?: string
 }
 export type SpecTone = 'info' | 'ok' | 'warn' | 'danger'
 
+// A section may carry `anchor`, the DOM id of its heading (a page other code jumps to by section: Settings search),
+// and a rows section may be a `choice`: one row of several is the setting (role radio, arrows move and choose).
 export type SpecSection =
-  | { kind: 'rows'; h: string; items: SpecRow[] }
-  | { kind: 'chips'; h: string; items: SpecChip[] }
-  | { kind: 'cards'; h: string; items: SpecCard[] }
-  | { kind: 'fields'; h: string; items: SpecField[] }
-  | { kind: 'note'; h: string; text: string; tone?: boolean }
+  | { kind: 'rows'; h: string; items: SpecRow[]; anchor?: string; choice?: boolean }
+  | { kind: 'chips'; h: string; items: SpecChip[]; anchor?: string }
+  | { kind: 'cards'; h: string; items: SpecCard[]; anchor?: string }
+  | { kind: 'fields'; h: string; items: SpecField[]; anchor?: string }
+  | { kind: 'note'; h: string; text: string; tone?: boolean; anchor?: string }
 
 // A page's own buttons, at the Dock: one primary at most, in the order given.
 export interface SpecAction { id?: string; title: string; kind: 'primary' | 'secondary'; to?: string; disabled?: boolean }

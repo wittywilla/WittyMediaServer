@@ -51,7 +51,7 @@ export default function SpecPage({ page: raw, onAction, onField, handled, after,
       )}
       {before}
       {page.sections.map((s, i) => (
-        <Section key={i} s={s} bare={!!bare} hid={sectionId(page.key, i)} live={live} onAction={onAction} onField={onField}>{after?.[i]}</Section>
+        <Section key={i} s={s} bare={!!bare} hid={s.anchor || sectionId(page.key, i)} live={live} onAction={onAction} onField={onField}>{after?.[i]}</Section>
       ))}
       {page.foot && <p className="spec-foot">{page.foot}</p>}
       {dock.length > 0 && <Dock label={page.title} actions={dock} legend={false} className="spec-dock" />}
@@ -73,7 +73,7 @@ function Section({ s, hid, live, onAction, onField, bare, children }: { s: SpecS
   return (
     <section className="spec-sec" {...label}>
       {h}
-      {s.kind === 'rows' && <ul className="spec-rows">{s.items.map((r) => <li key={r.id}><Row r={r} live={live(r)} onAction={onAction} /></li>)}</ul>}
+      {s.kind === 'rows' && <ul className="spec-rows" role={s.choice ? 'radiogroup' : undefined} {...(s.choice ? label : {})} onKeyDown={s.choice ? arrowChoose : undefined}>{s.items.map((r) => <li key={r.id}><Row r={r} live={live(r)} onAction={onAction} choice={!!s.choice} /></li>)}</ul>}
       {s.kind === 'fields' && <div className="spec-fields">{s.items.map((f) => <FieldItem key={f.id} f={f} onField={onField} />)}</div>}
       {s.kind === 'chips' && <div className="spec-chips" role="group" {...label}>{s.items.map((c) => <Chip key={c.id} c={c} live={live(c)} onAction={onAction} />)}</div>}
       {s.kind === 'cards' && <ul className="spec-cards">{s.items.map((c) => <li key={c.id}><Card c={c} live={live(c)} onAction={onAction} /></li>)}</ul>}
@@ -82,7 +82,18 @@ function Section({ s, hid, live, onAction, onField, bare, children }: { s: SpecS
   )
 }
 
-function Row({ r, live, onAction }: { r: SpecRow; live: boolean; onAction?: (id: string) => void }) {
+// In a choice, Up and Down (and Left and Right) move to the next row and choose it, as radio buttons do.
+function arrowChoose(e: React.KeyboardEvent<HTMLUListElement>) {
+  const d = e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? -1 : 0
+  if (!d) return
+  const rows = Array.from(e.currentTarget.querySelectorAll<HTMLElement>('[role=radio]:not([disabled])'))
+  const i = rows.indexOf(document.activeElement as HTMLElement)
+  const next = rows[i + d]
+  if (i < 0 || !next) return
+  e.preventDefault(); e.stopPropagation(); next.focus(); next.click()
+}
+
+function Row({ r, live, onAction, choice }: { r: SpecRow; live: boolean; onAction?: (id: string) => void; choice?: boolean }) {
   const body = (
     <>
       <span className="spec-row-main"><span className="spec-row-title">{r.title}</span>{r.sub && <small className="spec-row-sub">{r.sub}</small>}</span>
@@ -90,8 +101,9 @@ function Row({ r, live, onAction }: { r: SpecRow; live: boolean; onAction?: (id:
     </>
   )
   const cls = 'spec-row' + (r.on ? ' on' : '') + (live ? ' live' : '')
-  const cur = r.on ? { 'aria-current': 'true' as const } : {}
+  const cur = r.on && !choice ? { 'aria-current': 'true' as const } : {}
   if (live && r.to) return <Link to={r.to} className={cls} {...cur}>{body}</Link>
+  if (live && choice) return <button type="button" role="radio" aria-checked={!!r.on} tabIndex={r.on ? 0 : -1} className={cls} onClick={() => r.id && onAction?.(r.id)}>{body}</button>
   if (live) return <button type="button" className={cls} onClick={() => r.id && onAction?.(r.id)} {...cur}>{body}</button>
   return <div className={cls} {...cur}>{body}</div>
 }
@@ -127,7 +139,7 @@ function FieldItem({ f, onField }: { f: SpecField; onField?: OnField }) {
   const sid = useId()
   const set = (v: string | number | boolean | File) => onField?.(id, v)
   const dis = f.disabled || !onField
-  const common = { disabled: dis, placeholder: f.placeholder, autoComplete: f.autoComplete, 'data-field': id }
+  const common = { disabled: dis, placeholder: f.placeholder, autoComplete: f.autoComplete, autoFocus: f.autoFocus, 'data-field': id }
   if (f.kind === 'code') {
     const v = String(f.value ?? '')
     return (
@@ -160,7 +172,8 @@ function FieldItem({ f, onField }: { f: SpecField; onField?: OnField }) {
     : f.kind === 'slider' ? <SliderControl f={f} dis={dis} set={set} />
     : f.kind === 'number' ? <Input {...common} type="number" inputMode="decimal" value={String(f.value ?? '')} min={f.min} max={f.max} step={f.step} onChange={(e) => set(e.target.value === '' ? '' : Number(e.target.value))} />
     : f.kind === 'pin' ? <Input {...common} className="spec-pin" type="password" inputMode="numeric" pattern="[0-9]*" autoComplete={f.autoComplete || 'one-time-code'} maxLength={f.length} value={String(f.value ?? '')} onChange={(e) => set(e.target.value.replace(/\D/g, '').slice(0, f.length))} />
-    : f.kind === 'file' ? <input {...common} className="spec-file" type="file" accept={f.accept} onChange={(e) => { const file = e.target.files?.[0]; if (file) set(file) }} />
+    : f.kind === 'time' ? <Input {...common} type="time" value={String(f.value ?? '')} onChange={(e) => set(e.target.value)} />
+    : f.kind === 'file' ? <input {...common} aria-label={f.label} className="spec-file" type="file" accept={f.accept} onChange={(e) => { const file = e.target.files?.[0]; if (file) set(file) }} />
     : <Input {...common} type={f.kind === 'password' ? 'password' : 'text'} value={String(f.value ?? '')} onChange={(e) => set(e.target.value)} />
   return <Field label={f.label} hint={f.hint} error={f.error} required={f.required} className="spec-field">{body}</Field>
 }

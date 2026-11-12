@@ -760,8 +760,6 @@ h3.section-title { font-size: var(--text-lg); margin-top: var(--sp-6); }
 .legal-toc ul { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-4); list-style: none; margin: 0; padding: 0; }
 .legal-toc a { display: inline-block; padding: 4px 0; color: var(--accent-text); text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: from-font; }
 .legal-fill { padding: 1px 4px; border-radius: var(--r-xs); background: var(--bg-3); color: var(--fg); outline: 1px dashed var(--fg-3); }
-.legal-owner { white-space: pre-wrap; overflow-wrap: anywhere; }
-.legal-owner-input { width: 100%; }
 .legal-updated { max-width: 72ch; font-size: var(--text-sm); }
 .legal-services { display: grid; gap: var(--sp-3); margin: var(--sp-3) 0 0; padding: 0; list-style: none; max-width: 72ch; }
 .legal-services li { padding-top: var(--sp-3); border-top: 1px solid var(--border); color: var(--fg-2); font-size: var(--text-sm); line-height: 1.5; }

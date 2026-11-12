@@ -1500,7 +1500,7 @@ Fallback: Its content in a column.
 | Property | Type | Default | What it is |
 |---|---|---|---|
 | `target` (required) | section |  | Filters. The Grid this bar filters. Its source must be filterable. |
-| `fields` | enumList: genre, decade, year, content, resolution, watched, studio, network, tag | `genre, decade, watched` | Filters. Which filters are offered, in order. One with no choices in this library is left out. |
+| `fields` | enumList: genre, decade, year, content, resolution, watched, studio, network, tag, service | `genre, decade, watched` | Filters. Which filters are offered, in order. One with no choices in this library is left out. |
 | `sorts` | enumList: title, added, newest, oldest, rating, shuffle | `title, added, newest, rating` | Sort by. The orders offered; the first is the default. |
 | `showCount` | bool | `true` | Show how many. The number of titles found. |
 
@@ -2441,6 +2441,7 @@ Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 48
 | `studio` | string, at most 120 |  | Studio |
 | `network` | string, at most 120 |  | Network |
 | `tag` | string, at most 60 |  | Tag |
+| `service` | string, at most 80 |  | Streaming on. A streaming service, by its key: what it streams in the server's region. Needs streaming listings on. |
 | `series` | string, at most 120 |  | Film series |
 | `year` | int 0 to 2200 |  | Year |
 | `decade` | int 0 to 2200 |  | Decade. The decade's first year: 1990. |
@@ -2725,7 +2726,7 @@ Every source also takes `map`: `{"subtitle": "studio"}` puts another field of th
 |---|---|---|---|---|---|
 | `home` | The first page of the app. | `/` | tab |  |  |
 | `libraries` | Every library the profile can open. | `/libraries` | tab |  |  |
-| `library` | One library's own page. | `/library/{library}` | library, tab, sort, desc, genre, decade, year, content, resolution, watched, studio, network, tag, series, kind, disc, minRating, audio, subtitle, format, edition, search, seed | $library | library, libraryKind |
+| `library` | One library's own page. | `/library/{library}` | library, tab, sort, desc, genre, decade, year, content, resolution, watched, studio, network, tag, service, series, kind, disc, minRating, audio, subtitle, format, edition, search, seed | $library | library, libraryKind |
 | `detail` | The page of one film, show, episode, album, artist, book, game or collection. | `/item/{item}` | item, show, season, collection, library, artist, album, tab | $item, $show, $season, $collection, $library, $artist, $album | mediaKind, library, libraryKind |
 | `search` | Search across everything. | `/search` | q, tab | $query |  |
 | `livetv` | Channels and the guide. | `/tv` | tab |  |  |

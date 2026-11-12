@@ -602,7 +602,7 @@ func specParam(s *SourceSpec, name string) *PropSpec {
 // filterKeys are the page parameters a filterable source takes.
 // The ones after "tag" are the rest of a client's own filters and saved views (the same as
 // GET /browse takes); a FilterBar offers only the first ones.
-var filterKeys = []string{"sort", "desc", "genre", "decade", "year", "content", "resolution", "watched", "studio", "network", "tag",
+var filterKeys = []string{"sort", "desc", "genre", "decade", "year", "content", "resolution", "watched", "studio", "network", "tag", "service",
 	"series", "kind", "disc", "minRating", "audio", "subtitle", "format", "edition", "search", "seed"}
 
 func (r *renderer) filter(src Source) map[string]string {

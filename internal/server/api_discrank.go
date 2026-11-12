@@ -14,6 +14,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/bdsession"
 	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/pace"
 )
 
@@ -118,6 +119,9 @@ func (s *Server) rankDisc(ctx context.Context, it *library.Item, second bool) er
 					rank.Feature.Segments = nil
 				}
 				_ = o.Close()
+			} else {
+				// The feature's cells stay as the engine gave them; playing it will say more.
+				s.Log.DebugContext(ctx, "a disc couldn't be opened to lay out its feature", "cat", "discs", "item", it.ID, "err", err)
 			}
 		}
 	}
@@ -133,7 +137,12 @@ func (s *Server) rankDisc(ctx context.Context, it *library.Item, second bool) er
 			rank.Feature.Segments = nil
 		}
 	}
-	return s.Store.SetDiscRank(ctx, it, rank)
+	if err := s.Store.SetDiscRank(ctx, it, rank); err != nil {
+		return err
+	}
+	s.Log.InfoContext(ctx, "a disc was ranked", "cat", "discs", "item", it.ID, "engine", rank.Engine, "main", rank.Main,
+		"confidence", rank.Confidence, "level", rank.Level, "protected", rank.Protected, "secondOpinion", second)
+	return nil
 }
 
 // rankStale says the kept ranking isn't the engine in use's: there is none, or another
@@ -199,15 +208,19 @@ func (s *Server) handleDiscAnalysis(w http.ResponseWriter, r *http.Request) {
 			// behind, one disc at a time, and the page asks again.
 			pending = true
 			if ranking.TryLock() {
-				go func(it library.Item) {
+				item, req := *it, logging.RequestFrom(r.Context())
+				started := s.background("disc ranking", func(bg context.Context) {
 					defer ranking.Unlock()
-					ctx, cancel := context.WithTimeout(pace.Background(context.WithoutCancel(r.Context())), 5*time.Minute)
+					ctx, cancel := context.WithTimeout(pace.Background(logging.WithRequest(bg, req)), 5*time.Minute)
 					defer cancel()
 					pace.Yield(ctx)
-					if err := s.rankDisc(ctx, &it, false); err != nil {
-						s.Log.WarnContext(ctx, "a disc couldn't be ranked", "cat", "discs", "item", it.ID, "err", err)
+					if err := s.rankDisc(ctx, &item, false); err != nil && ctx.Err() == nil {
+						s.Log.WarnContext(ctx, "a disc couldn't be ranked", "cat", "discs", "item", item.ID, "err", err)
 					}
-				}(*it)
+				}, "cat", "discs", "item", item.ID)
+				if !started {
+					ranking.Unlock()
+				}
 			}
 		} else if err := s.rankDisc(r.Context(), it, false); err != nil {
 			if writeModuleMissing(w, err) {

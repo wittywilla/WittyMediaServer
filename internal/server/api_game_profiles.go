@@ -75,15 +75,23 @@ func (s *Server) cleanGameProfile(r *http.Request, p wittyplay.Profile) (wittypl
 	return clean, nil
 }
 
-func (s *Server) profileError(w http.ResponseWriter, err error) {
+func (s *Server) profileError(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, library.ErrNoProfile):
 		writeErr(w, 404, "not found")
 	case errors.Is(err, library.ErrTooManyProfiles):
 		writeErr(w, 409, err.Error())
 	default:
+		s.Log.WarnContext(r.Context(), "could not save or read a game profile", "cat", "games", "by", userFrom(r).Name, "err", err)
 		writeErr(w, 500, err.Error())
 	}
+}
+
+// profileSaved notes a controller profile written for an account: what was done, never its
+// buttons.
+func (s *Server) profileSaved(r *http.Request, what string, p wittyplay.Profile) {
+	s.Log.DebugContext(r.Context(), "game profile saved", "cat", "games", "what", what, "kind", p.Kind, "console", p.Console, "profile", p.ID,
+		"active", p.Active, "by", userFrom(r).Name)
 }
 
 func readProfile(w http.ResponseWriter, r *http.Request) (wittyplay.Profile, bool) {
@@ -127,9 +135,10 @@ func (s *Server) handleGameProfileCreate(w http.ResponseWriter, r *http.Request)
 	}
 	saved, err := s.Store.SaveGameProfile(r.Context(), userFrom(r).ID, clean)
 	if err != nil {
-		s.profileError(w, err)
+		s.profileError(w, r, err)
 		return
 	}
+	s.profileSaved(r, "created", saved)
 	writeJSON(w, 201, saved)
 }
 
@@ -141,7 +150,7 @@ func (s *Server) ownProfile(w http.ResponseWriter, r *http.Request) (wittyplay.P
 	}
 	p, err := s.Store.GameProfile(r.Context(), userFrom(r).ID, id)
 	if err != nil {
-		s.profileError(w, err)
+		s.profileError(w, r, err)
 		return p, false
 	}
 	return p, true
@@ -172,9 +181,10 @@ func (s *Server) handleGameProfilePut(w http.ResponseWriter, r *http.Request) {
 	}
 	saved, err := s.Store.SaveGameProfile(r.Context(), userFrom(r).ID, clean)
 	if err != nil {
-		s.profileError(w, err)
+		s.profileError(w, r, err)
 		return
 	}
+	s.profileSaved(r, "changed", saved)
 	writeJSON(w, 200, saved)
 }
 
@@ -186,9 +196,10 @@ func (s *Server) handleGameProfileDelete(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	if err := s.Store.DeleteGameProfile(r.Context(), userFrom(r).ID, id); err != nil {
-		s.profileError(w, err)
+		s.profileError(w, r, err)
 		return
 	}
+	s.Log.DebugContext(r.Context(), "game profile deleted", "cat", "games", "profile", id, "by", userFrom(r).Name)
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
 
@@ -211,9 +222,10 @@ func (s *Server) handleGameProfileCopy(w http.ResponseWriter, r *http.Request) {
 	p.ID, p.Active, p.Name = 0, false, copyName(p.Name)
 	saved, err := s.Store.SaveGameProfile(r.Context(), userFrom(r).ID, p)
 	if err != nil {
-		s.profileError(w, err)
+		s.profileError(w, r, err)
 		return
 	}
+	s.profileSaved(r, "copied", saved)
 	writeJSON(w, 201, saved)
 }
 
@@ -233,9 +245,10 @@ func (s *Server) handleGameProfileActive(w http.ResponseWriter, r *http.Request)
 	p.Active = b.Active
 	saved, err := s.Store.SaveGameProfile(r.Context(), userFrom(r).ID, p)
 	if err != nil {
-		s.profileError(w, err)
+		s.profileError(w, r, err)
 		return
 	}
+	s.profileSaved(r, "active", saved)
 	writeJSON(w, 200, saved)
 }
 
@@ -361,6 +374,7 @@ func (s *Server) handleGameProfileImport(w http.ResponseWriter, r *http.Request)
 				rejected = append(rejected, importRejected{Index: i, Name: clean.Name, Error: err.Error()})
 				continue
 			}
+			s.Log.WarnContext(ctx, "could not save an imported game profile", "cat", "games", "by", userFrom(r).Name, "imported", len(imported), "err", err)
 			writeErr(w, 500, err.Error())
 			return
 		}
@@ -369,6 +383,7 @@ func (s *Server) handleGameProfileImport(w http.ResponseWriter, r *http.Request)
 		}
 		imported = append(imported, saved)
 	}
+	s.Log.DebugContext(ctx, "game profiles imported", "cat", "games", "imported", len(imported), "rejected", len(rejected), "by", userFrom(r).Name)
 	writeJSON(w, 200, map[string]any{"imported": imported, "rejected": rejected, "notes": notes})
 }
 

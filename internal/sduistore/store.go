@@ -227,7 +227,7 @@ func Open(dir string, opt Options) (*Store, error) {
 	switch {
 	case errors.Is(err, os.ErrNotExist):
 		if c := s.newestGoodRevision(); c != nil {
-			s.log.Warn("ui_config.json was missing: restored the newest kept revision", "cat", "ui", "revision", c.Revision)
+			s.log.Warn("ui_config.json was missing: restored the newest kept revision", "cat", "sdui", "revision", c.Revision)
 			return s, s.adopt(c)
 		}
 		c := s.defaults()
@@ -251,7 +251,10 @@ func Open(dir string, opt Options) (*Store, error) {
 		s.cur = &Config{Revision: c.Revision}
 		c.Revision = s.nextRevision()
 		c.UpdatedAt, c.UpdatedBy = s.now().UTC(), "converted from the earlier format"
-		s.log.Info("ui_config.json was in the earlier format: converted, the original kept as "+LegacyBackup, "cat", "ui", "pages", len(c.Pages), "notes", c.Notes)
+		s.log.Info("ui_config.json was in the earlier format: converted, the original kept", "cat", "sdui", "file", LegacyBackup, "pages", len(c.Pages))
+		if len(c.Notes) > 0 {
+			s.log.Warn("some of the earlier ui_config.json could not be carried over", "cat", "sdui", "dropped", len(c.Notes), "notes", c.Notes)
+		}
 		if err := s.write(c); err != nil {
 			return nil, err
 		}
@@ -270,7 +273,7 @@ func Open(dir string, opt Options) (*Store, error) {
 	s.setAside(raw, perr)
 	c = s.newestGoodRevision()
 	if c == nil {
-		s.log.Warn("ui_config.json could not be used and no kept revision could either: using the built-in pages", "cat", "ui", "err", perr)
+		s.log.Warn("ui_config.json could not be used and no kept revision could either: using the built-in pages", "cat", "sdui", "err", perr)
 		c = s.defaults()
 		c.Revision = s.nextRevision()
 		c.UpdatedBy = "defaults (recovered)"
@@ -280,7 +283,7 @@ func Open(dir string, opt Options) (*Store, error) {
 		s.cur = c
 		return s, nil
 	}
-	s.log.Warn("ui_config.json could not be used: went back to the newest good revision", "cat", "ui", "err", perr, "revision", c.Revision)
+	s.log.Warn("ui_config.json could not be used: went back to the newest good revision", "cat", "sdui", "err", perr, "revision", c.Revision)
 	return s, s.adopt(c)
 }
 
@@ -425,7 +428,7 @@ func (s *Store) write(c *Config) error {
 		return err
 	}
 	if err := writeFileAtomic(s.historyPath(c.Revision), b); err != nil {
-		s.log.Warn("could not keep a copy of the UI configuration", "cat", "ui", "err", err)
+		s.log.Warn("could not keep a copy of the UI configuration", "cat", "sdui", "err", err)
 	}
 	s.prune()
 	c.ETag = ETag(c)
@@ -473,7 +476,7 @@ func (s *Store) reloadLocked() {
 		return // another reader got here first
 	}
 	if err != nil {
-		s.log.Warn("ui_config.json disappeared: writing the current configuration back", "cat", "ui", "err", err)
+		s.log.Warn("ui_config.json disappeared: writing the current configuration back", "cat", "sdui", "err", err)
 		_ = s.adopt(s.cur)
 		return
 	}
@@ -487,7 +490,7 @@ func (s *Store) reloadLocked() {
 	}
 	if err != nil {
 		s.setAside(raw, err)
-		s.log.Warn("ui_config.json was changed on disk and can't be used: keeping the last good configuration", "cat", "ui", "err", err, "revision", s.cur.Revision)
+		s.log.Warn("ui_config.json was changed on disk and can't be used: keeping the last good configuration", "cat", "sdui", "err", err, "revision", s.cur.Revision)
 		_ = s.adopt(s.cur)
 		return
 	}
@@ -495,9 +498,9 @@ func (s *Store) reloadLocked() {
 		s.remember() // touched, or saved unchanged
 		return
 	}
-	s.log.Info("ui_config.json was changed on disk: using it", "cat", "ui")
+	s.log.Info("ui_config.json was changed on disk: using it", "cat", "sdui")
 	if _, err := s.saveLocked(c, "file on disk"); err != nil {
-		s.log.Warn("could not save the configuration changed on disk", "cat", "ui", "err", err)
+		s.log.Warn("could not save the configuration changed on disk", "cat", "sdui", "err", err)
 		s.remember()
 	}
 }
@@ -508,10 +511,10 @@ func (s *Store) setAside(raw []byte, why error) {
 		return
 	}
 	if err := writeFileAtomic(s.path+".bad", raw); err != nil {
-		s.log.Warn("could not keep the unusable ui_config.json", "cat", "ui", "err", err)
+		s.log.Warn("could not keep the unusable ui_config.json", "cat", "sdui", "err", err)
 		return
 	}
-	s.log.Warn("the unusable ui_config.json was kept as ui_config.json.bad", "cat", "ui", "why", why)
+	s.log.Warn("the unusable ui_config.json was kept as ui_config.json.bad", "cat", "sdui", "why", why)
 }
 
 // ---- history files ----
@@ -882,7 +885,7 @@ func (s *Store) loadDraft() {
 	}
 	c, err := s.parseAndValidate(raw)
 	if err != nil {
-		s.log.Warn("the UI draft could not be used: kept as "+DraftName+".bad", "cat", "ui", "err", err)
+		s.log.Warn("the UI draft could not be used: kept as "+DraftName+".bad", "cat", "sdui", "err", err)
 		_ = os.Rename(s.draftPath(), s.draftPath()+".bad")
 		return
 	}

@@ -93,6 +93,8 @@ func TestAnnounceNegotiates(t *testing.T) {
 
 func TestPresenceExpires(t *testing.T) {
 	h, c := newHub(nil)
+	var dropped []string
+	h.OnDrop = func(d Device, why string) { dropped = append(dropped, d.ID+" "+why) }
 	never := announce(t, h, 1, "a")
 	d := announce(t, h, 1, "b")
 	conn, _, err := h.Attach(d.ID, 1, "b")
@@ -128,6 +130,9 @@ func TestPresenceExpires(t *testing.T) {
 	}
 	if n, _, _ := h.Counts(); n != 0 {
 		t.Fatal(n)
+	}
+	if want := []string{never.ID + " expired", d.ID + " idle"}; strings.Join(dropped, ",") != strings.Join(want, ",") {
+		t.Errorf("OnDrop was told %v, want %v", dropped, want)
 	}
 }
 

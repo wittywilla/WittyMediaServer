@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
 	"github.com/wittywilla/wittymediaserver/internal/sduistore"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
@@ -201,6 +202,7 @@ func (rv *sduiResolver) moduleItems(mod string, req sdui.SourceRequest) (sdui.So
 		Settings: s.moduleSettingValues(rv.r, mod)}
 	ans, err := s.Modules.UIItems(mod, ask)
 	if err != nil {
+		s.Log.WarnContext(rv.r.Context(), "a module's data source failed", "cat", "sdui", "module", mod, "source", req.Source.Type(), "err", err)
 		return sdui.SourceResult{}, err
 	}
 	out := sdui.SourceResult{Total: ans.Total, More: ans.More}
@@ -438,7 +440,30 @@ func (s *Server) moduleSettingValues(r *http.Request, mod string) map[string]any
 	for k, v := range withDefaults(rows, sdui.SettingScopeProfile, s.personalModuleSettings(r, mod)) {
 		out[k] = v
 	}
+	hideSecretSettings(rows, out)
 	return out
+}
+
+// hideSecretSettings makes sure the values of a module's secret settings never reach the
+// log, wherever they turn up after this: the helper's environment, its stderr, an error.
+func hideSecretSettings(rows map[string]*sdui.SettingRow, vals map[string]any) {
+	for k, v := range vals {
+		if row := rows[k]; row != nil && row.Kind == sdui.SettingSecret {
+			if str, ok := v.(string); ok {
+				logging.AddSecret(str)
+			}
+		}
+	}
+}
+
+// moduleSettingNames are the names of the settings a change sets or clears, never their values.
+func moduleSettingNames(changes map[string]any) []string {
+	keys := make([]string, 0, len(changes))
+	for k := range changes {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 // ModuleSettingsEnv is a module's server settings, with defaults, as environment for its
@@ -451,7 +476,9 @@ func (s *Server) ModuleSettingsEnv(mod string) []string {
 	if ui == nil || len(ui.Settings) == 0 {
 		return nil
 	}
-	vals := withDefaults(settingRows(ui), sdui.SettingScopeServer, s.serverModuleSettings(context.Background(), mod))
+	rows := settingRows(ui)
+	vals := withDefaults(rows, sdui.SettingScopeServer, s.serverModuleSettings(context.Background(), mod))
+	hideSecretSettings(rows, vals)
 	b, err := json.Marshal(vals)
 	if err != nil {
 		return nil
@@ -609,18 +636,22 @@ func (s *Server) handleModuleSettingsPut(w http.ResponseWriter, r *http.Request)
 	rows := settingRows(ui)
 	changes, err := readSettingValues(r, rows, sdui.SettingScopeServer)
 	if err != nil {
+		s.Log.InfoContext(r.Context(), "module settings refused", "cat", "sdui", "module", ui.Module, "by", adminName(r), "err", err)
 		writeErr(w, 400, err.Error())
 		return
 	}
+	hideSecretSettings(rows, changes)
 	s.sdui.mods.settingsMu.Lock()
 	saved := mergeValues(s.serverModuleSettings(r.Context(), ui.Module), changes)
 	b, _ := json.Marshal(saved)
 	err = s.DB.SetSetting(r.Context(), moduleSettingKey(ui.Module), string(b))
 	s.sdui.mods.settingsMu.Unlock()
 	if err != nil {
+		s.Log.ErrorContext(r.Context(), "could not save module settings", "cat", "sdui", "module", ui.Module, "by", adminName(r), "err", err)
 		writeErr(w, 500, err.Error())
 		return
 	}
+	s.Log.InfoContext(r.Context(), "module settings changed", "cat", "sdui", "module", ui.Module, "by", adminName(r), "keys", moduleSettingNames(changes))
 	s.Modules.SettingsChanged(ui.Module, withDefaults(rows, sdui.SettingScopeServer, saved))
 	writeJSON(w, 200, s.moduleSettingsView(r, ui))
 }
@@ -631,11 +662,14 @@ func (s *Server) handleModuleSettingsPersonalPut(w http.ResponseWriter, r *http.
 	if !ok {
 		return
 	}
-	changes, err := readSettingValues(r, settingRows(ui), sdui.SettingScopeProfile)
+	prow := settingRows(ui)
+	changes, err := readSettingValues(r, prow, sdui.SettingScopeProfile)
 	if err != nil {
+		s.Log.InfoContext(r.Context(), "personal module settings refused", "cat", "sdui", "module", ui.Module, "profile", adminName(r), "err", err)
 		writeErr(w, 400, err.Error())
 		return
 	}
+	hideSecretSettings(prow, changes)
 	// The profile's whole UI document is read, changed and written back, as its page
 	// arrangements are.
 	s.sdui.personalMu.Lock()
@@ -660,8 +694,10 @@ func (s *Server) handleModuleSettingsPersonalPut(w http.ResponseWriter, r *http.
 		return
 	}
 	if err := s.Auth.SetUI(r.Context(), uid, string(bytes.TrimSpace(b))); err != nil {
+		s.Log.ErrorContext(r.Context(), "could not save personal module settings", "cat", "sdui", "module", ui.Module, "profile", adminName(r), "err", err)
 		writeErr(w, 500, err.Error())
 		return
 	}
+	s.Log.DebugContext(r.Context(), "personal module settings changed", "cat", "sdui", "module", ui.Module, "profile", adminName(r), "keys", moduleSettingNames(changes))
 	writeJSON(w, 200, s.moduleSettingsView(r, ui))
 }

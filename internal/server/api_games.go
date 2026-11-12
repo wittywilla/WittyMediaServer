@@ -706,9 +706,11 @@ func (s *Server) handlePutGameControl(w http.ResponseWriter, r *http.Request) {
 			writeErr(w, 409, err.Error())
 			return
 		}
+		s.Log.WarnContext(r.Context(), "could not save a control layout", "cat", "games", "kind", b.Kind, "console", id, "by", userFrom(r).Name, "err", err)
 		writeErr(w, 500, err.Error())
 		return
 	}
+	s.Log.DebugContext(r.Context(), "control layout saved", "cat", "games", "kind", b.Kind, "console", id, "by", userFrom(r).Name, "removed", clean == nil)
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
 
@@ -786,7 +788,8 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		s.findBIOSNear(r.Context(), it.Path)
 		for _, want := range console.Cores {
 			if err := wittyplay.CollectBIOS(console, want.ID, it.Path, systemDir); err != nil {
-				s.Log.Warn("copying a BIOS", "console", console.ID, "err", err)
+				// File names only, never what is in them.
+				s.Log.WarnContext(ctx, "copying a BIOS", "cat", "games", "console", console.ID, "core", want.ID, "err", err)
 			}
 		}
 		pick := s.pickCore(ctx, console, it.ID, systemDir)
@@ -934,7 +937,8 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 		}
 		coreOptions = wittyplay.StartOptions(console.ID, core[0].ID, s.DB.GetSetting(ctx, "gamingResolution", ""), systemDir)
 	}
-	s.Log.Debug("game prepared", "item", it.ID, "seconds", time.Since(began).Seconds())
+	// No game session yet: the request's ID ties this to the "game started" that follows.
+	s.Log.DebugContext(ctx, "game prepared", "cat", "games", "item", it.ID, "console", console.ID, "core", coreID, "seconds", time.Since(began).Seconds())
 	userID := userFrom(r).ID
 	var coreAssets string
 	var loadLimit time.Duration
@@ -997,6 +1001,8 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 	if version != "" {
 		s.Modules.ReportWorking(wittyPlayID, version)
 	}
+	s.Log.InfoContext(ctx, "game started", "cat", "games", "session", sess.ID(), "item", it.ID, "game", it.Title, "console", console.ID, "core", coreID,
+		"gpu", gpu, "software", software, "resume", b.Resume)
 	logging.Go("game play time", func() { s.recordPlayTime(sess, userID, it.ID) }, "cat", "games", "session", sess.ID())
 	s.streams.game(sess.ID(), userID, userFrom(r).Name, it.Title, sess.Done(), func() GameView {
 		st := sess.Stats()
@@ -1014,7 +1020,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 	}
 	s.noteGameStarted(sess, userID, hostName, deviceName(b.Device, r))
 	if err := s.Store.NoteGamePlayed(ctx, userID, it.ID); err != nil {
-		s.Log.Warn("recording a play", "err", err)
+		s.Log.WarnContext(ctx, "recording a play", "cat", "games", "session", sess.ID(), "err", err)
 	}
 	info := sess.Info()
 	info.Modes = g.mgr.Modes(gameClient(b.Client))
@@ -1041,6 +1047,11 @@ func (s *Server) recordPlayTime(sess *stream.Session, userID, itemID int64) {
 	<-sess.Done()
 	ctx := context.Background()
 	played := time.Since(start).Seconds()
+	why := sess.Failure()
+	if why == "" {
+		why = "stopped"
+	}
+	s.Log.Info("game session ended", "cat", "games", "session", sess.ID(), "item", itemID, "played", time.Duration(played*float64(time.Second)).Round(time.Second).String(), "why", why)
 	var total float64
 	_ = s.DB.QueryRowContext(ctx, `SELECT position_sec FROM progress WHERE user_id = ? AND item_id = ?`, userID, itemID).Scan(&total)
 	if err := s.Store.SetProgress(ctx, userID, itemID, library.Progress{PositionSec: total + played}); err != nil {

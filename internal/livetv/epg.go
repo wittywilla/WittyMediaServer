@@ -122,6 +122,7 @@ func (m *Manager) AddSource(ctx context.Context, name, place string) (*EPGSource
 		return nil, err
 	}
 	id, _ := res.LastInsertId()
+	m.Log.InfoContext(ctx, "guide source added", "source", id, "name", name, "url", place)
 	m.Start()
 	m.background("guide refresh", func(ctx context.Context) {
 		if err := m.FetchSource(ctx, id); err != nil && ctx.Err() == nil {
@@ -140,6 +141,7 @@ func (m *Manager) DeleteSource(ctx context.Context, id int64) error {
 	if n, _ := res.RowsAffected(); n == 0 {
 		return ErrNotFound
 	}
+	m.Log.InfoContext(ctx, "guide source removed", "source", id)
 	return nil
 }
 
@@ -233,10 +235,13 @@ func (m *Manager) FetchSource(ctx context.Context, id int64) (err error) {
 		_, _ = m.DB.ExecContext(ctx, `UPDATE epg_sources SET last_error = ?, last_fetch = ? WHERE id = ?`, PublicError(err), db.Now(), id)
 		return err
 	}
+	began := time.Now()
 	n, err := m.fetch(ctx, id, place, auth, client)
 	msg := ""
 	if err != nil {
 		msg = PublicError(err)
+	} else {
+		m.Log.InfoContext(ctx, "guide fetched", "source", id, "programmes", n, "took", time.Since(began).Round(time.Millisecond).String())
 	}
 	_, _ = m.DB.ExecContext(ctx, `UPDATE epg_sources SET last_error = ?, last_fetch = ?, programmes = ? WHERE id = ?`, msg, db.Now(), n, id)
 	return err

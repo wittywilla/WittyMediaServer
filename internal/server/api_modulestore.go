@@ -149,7 +149,7 @@ func (s *Server) handleStoreInstall(w http.ResponseWriter, r *http.Request) {
 		writeStoreErr(w, "That module", err)
 		return
 	}
-	s.Log.InfoContext(r.Context(), "module install started", "cat", "modules", "module", b.ID, "by", userFrom(r).Name)
+	s.Log.InfoContext(r.Context(), "module install started", "cat", "modules-store", "module", b.ID, "by", userFrom(r).Name)
 	writeJSON(w, 202, run)
 }
 
@@ -280,7 +280,7 @@ func (s *Server) handleStoreMedia(w http.ResponseWriter, r *http.Request) {
 	}
 	path, typ, err := s.ModuleStores.Media(r.Context(), r.PathValue("store"), r.PathValue("sha"))
 	if err != nil {
-		s.Log.DebugContext(r.Context(), "a store's picture wasn't served", "cat", "modules", "store", r.PathValue("store"), "err", err)
+		s.Log.DebugContext(r.Context(), "a store's picture wasn't served", "cat", "modules-store", "store", r.PathValue("store"), "err", err)
 		writeErr(w, 404, "no such picture")
 		return
 	}
@@ -432,10 +432,13 @@ func (s *Server) handleStoreFork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.ModuleStores.UseFork(r.PathValue("id"), r.PathValue("module"), userFrom(r).Name, b.Confirm, b.Fingerprint, b.Override.accept(userFrom(r).Name)); err != nil {
+		if b.Override != nil {
+			s.auditOverride(r, "module override install failed", r.PathValue("module"), "store", r.PathValue("id"), "overrides", b.Override.kinds(), "err", err)
+		}
 		writeStoreErr(w, "That module", err)
 		return
 	}
-	s.Log.Warn("a module now comes from another store", "module", r.PathValue("module"), "store", r.PathValue("id"), "by", userFrom(r).Name)
-	s.auditModule(r, "module-source", r.PathValue("module"), "now from store "+r.PathValue("id"))
+	s.Log.WarnContext(r.Context(), "a module now comes from another store", "cat", "modules-store", "module", r.PathValue("module"), "store", r.PathValue("id"), "by", userFrom(r).Name, "overrides", b.Override.kinds())
+	s.auditModule(r, "module-source", r.PathValue("module"), "now from store "+r.PathValue("id")+b.Override.words())
 	w.WriteHeader(202)
 }

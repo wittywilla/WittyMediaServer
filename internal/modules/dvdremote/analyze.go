@@ -6,6 +6,7 @@ package dvdremote
 import (
 	"errors"
 	"log/slog"
+	"strings"
 	"sync"
 	"time"
 
@@ -78,6 +79,7 @@ func analyze(h helper, report reporter, log *slog.Logger, path string) (*dvdsess
 	var opened dvd.Opened
 	blob, err := h.Call(dvd.MethodOpen, dvd.OpenParams{Path: path}, &opened)
 	if err != nil {
+		log.Warn("dvd: the disc couldn't be opened for its title ranking", "cat", "discs", "path", path, "err", err)
 		return nil, err
 	}
 	d, err := dvd.DecodeDisc(blob)
@@ -86,6 +88,7 @@ func analyze(h helper, report reporter, log *slog.Logger, path string) (*dvdsess
 	}
 	if err != nil {
 		report(err.Error())
+		log.Warn("dvd: the disc's structure was refused by the server", "cat", "discs", "path", path, "err", err)
 		return nil, err
 	}
 	out.Repairs = d.Repairs
@@ -115,7 +118,14 @@ func analyze(h helper, report reporter, log *slog.Logger, path string) (*dvdsess
 	if blob, err := h.Call(dvd.MethodReadStats, nil, nil); err == nil {
 		if st, err := dvd.DecodeReadStats(blob); err == nil {
 			out.Stats = st
+		} else {
+			log.Debug("dvd: the read statistics were unreadable", "cat", "discs", "path", path, "err", err)
 		}
+	} else {
+		log.Debug("dvd: no read statistics", "cat", "discs", "path", path, "err", err)
 	}
+	log.Debug("dvd: titles ranked", "cat", "discs", "path", path, "main", r.Main, "confidence", r.Confidence, "level", r.Level,
+		"candidates", len(r.Candidates), "decisions", len(r.Decisions), "warnings", strings.Join(r.Warnings, "; "),
+		"repairs", len(out.Repairs), "protected", out.Protected)
 	return out, nil
 }

@@ -76,6 +76,7 @@ func (s *Server) handleModuleInstall(w http.ResponseWriter, r *http.Request) {
 		}
 		id := r.PathValue("id")
 		if err := s.Modules.InstallVersionWith(id, b.Version, true, b.Override.accept(userFrom(r).Name)); err != nil {
+			s.auditOverride(r, "module override install failed", id, "version", b.Version, "overrides", b.Override.kinds(), "grants", b.Override.Grants, "err", err)
 			writeModuleErr(w, err)
 			return
 		}
@@ -98,11 +99,11 @@ func (s *Server) handleModuleInstall(w http.ResponseWriter, r *http.Request) {
 		err = s.Modules.InstallVersion(r.PathValue("id"), b.Version, b.Confirm)
 	}
 	if err != nil {
-		s.Log.WarnContext(r.Context(), "module update refused", "cat", "modules", "module", r.PathValue("id"), "err", err)
+		s.Log.WarnContext(r.Context(), "module update refused", "cat", "modules-store", "module", r.PathValue("id"), "err", err)
 		writeModuleErr(w, err)
 		return
 	}
-	s.Log.InfoContext(r.Context(), "module update started", "cat", "modules", "module", r.PathValue("id"), "version", b.Version, "user", userFrom(r).Name)
+	s.Log.InfoContext(r.Context(), "module update started", "cat", "modules-store", "module", r.PathValue("id"), "version", b.Version, "by", userFrom(r).Name)
 	writeJSON(w, 202, s.Modules.Report())
 }
 
@@ -123,12 +124,12 @@ func (s *Server) handleModuleVersions(w http.ResponseWriter, r *http.Request) {
 
 // POST /api/modules/{id}/pin: keep the version in use; automatic updates leave it alone.
 func (s *Server) handleModulePin(w http.ResponseWriter, r *http.Request) {
-	s.moduleAction(w, r, "module pinned", 200, func(id string) error { return s.Modules.Pin(id) })
+	s.moduleAction(w, r, "pin", 200, func(id string) error { return s.Modules.Pin(id) })
 }
 
 // DELETE /api/modules/{id}/pin: let automatic updates move it again.
 func (s *Server) handleModuleUnpin(w http.ResponseWriter, r *http.Request) {
-	s.moduleAction(w, r, "module unpinned", 200, func(id string) error { return s.Modules.Unpin(id) })
+	s.moduleAction(w, r, "unpin", 200, func(id string) error { return s.Modules.Unpin(id) })
 }
 
 // PUT /api/modules/{id}/autoupdate: whether this module may update by itself while the
@@ -149,13 +150,13 @@ func (s *Server) handleModuleAutoUpdate(w http.ResponseWriter, r *http.Request) 
 		writeModuleErr(w, err)
 		return
 	}
-	s.Log.Info("module automatic updates changed", "module", r.PathValue("id"), "on", *b.On, "by", userFrom(r).Name)
+	s.Log.InfoContext(r.Context(), "module automatic updates changed", "cat", "modules-store", "module", r.PathValue("id"), "on", *b.On, "by", userFrom(r).Name)
 	writeJSON(w, 200, s.Modules.Report())
 }
 
 // POST /api/modules/{id}/latest: end a pin and move to the newest version that fits.
 func (s *Server) handleModuleLatest(w http.ResponseWriter, r *http.Request) {
-	s.moduleAction(w, r, "module returning to the latest", 202, func(id string) error { return s.Modules.ToLatest(id) })
+	s.moduleAction(w, r, "to-latest", 202, func(id string) error { return s.Modules.ToLatest(id) })
 }
 
 // moduleSecrets are what a change to which code runs asks for.
@@ -169,6 +170,7 @@ type moduleSecrets struct {
 // nothing given, the answer says what to ask for.
 func (s *Server) moduleGate(w http.ResponseWriter, r *http.Request, b moduleSecrets, id string) bool {
 	if b.Password == "" {
+		s.auditOverride(r, "module change asked for the password", id, "route", r.Method+" "+r.URL.Path)
 		writeJSON(w, 403, map[string]any{"error": "This asks for your password.", "code": "password-needed"})
 		return false
 	}
@@ -196,16 +198,18 @@ func (s *Server) auditModule(r *http.Request, action, id, detail string) {
 	s.writeAudit(r.Context(), userFrom(r), "module", action, "module "+id, detail)
 }
 
-func (s *Server) moduleAction(w http.ResponseWriter, r *http.Request, what string, code int, do func(id string) error) {
+// moduleAction runs one change to a module; action is fixed text for the log ("pin", ...).
+func (s *Server) moduleAction(w http.ResponseWriter, r *http.Request, action string, code int, do func(id string) error) {
 	if s.Modules == nil {
 		writeErr(w, 404, "modules can't be updated in this build")
 		return
 	}
 	if err := do(r.PathValue("id")); err != nil {
+		s.Log.InfoContext(r.Context(), "module change refused", "cat", "modules-store", "action", action, "module", r.PathValue("id"), "by", adminName(r), "err", err)
 		writeModuleErr(w, err)
 		return
 	}
-	s.Log.Info(what, "module", r.PathValue("id"), "by", userFrom(r).Name)
+	s.Log.InfoContext(r.Context(), "module changed", "cat", "modules-store", "action", action, "module", r.PathValue("id"), "by", adminName(r))
 	writeJSON(w, code, s.Modules.Report())
 }
 
@@ -239,25 +243,25 @@ func (s *Server) handleModuleSource(w http.ResponseWriter, r *http.Request) {
 		writeModuleErr(w, err)
 		return
 	}
-	s.Log.Warn("a module now comes from another publisher", "module", r.PathValue("id"), "repo", b.Repo, "by", userFrom(r).Name)
-	s.auditModule(r, "module-source", r.PathValue("id"), "now from "+b.Repo)
+	s.Log.WarnContext(r.Context(), "a module now comes from another publisher", "cat", "modules-store", "module", r.PathValue("id"), "repo", b.Repo, "by", userFrom(r).Name, "overrides", b.Override.kinds())
+	s.auditModule(r, "module-source", r.PathValue("id"), "now from "+b.Repo+b.Override.words())
 	writeJSON(w, 200, s.Modules.Report())
 }
 
 // DELETE /api/modules/{id}/source: back to the module's own repository.
 func (s *Server) handleModuleSourceClear(w http.ResponseWriter, r *http.Request) {
-	s.moduleAction(w, r, "module back to its own repository", 200, func(id string) error { return s.Modules.ClearSource(id) })
+	s.moduleAction(w, r, "source-cleared", 200, func(id string) error { return s.Modules.ClearSource(id) })
 }
 
 // POST /api/modules/{id}/add: put a module on this server. Works straight away, offline.
 func (s *Server) handleModuleAdd(w http.ResponseWriter, r *http.Request) {
-	s.moduleAction(w, r, "module added", 202, func(id string) error { return s.Modules.AddModule(id) })
+	s.moduleAction(w, r, "add", 202, func(id string) error { return s.Modules.AddModule(id) })
 }
 
 // POST /api/modules/{id}/remove: take a module off this server. Refused, with their
 // names, while libraries need it. No data is touched.
 func (s *Server) handleModuleRemove(w http.ResponseWriter, r *http.Request) {
-	s.moduleAction(w, r, "module removed", 200, func(id string) error {
+	s.moduleAction(w, r, "remove", 200, func(id string) error {
 		libs, err := s.librariesByType(r.Context())
 		if err != nil {
 			return err
@@ -290,7 +294,7 @@ func (s *Server) handleModulesInstalled(w http.ResponseWriter, r *http.Request) 
 		writeModuleErr(w, err)
 		return
 	}
-	s.Log.Info("modules chosen", "installed", b.Installed, "by", userFrom(r).Name)
+	s.Log.InfoContext(r.Context(), "modules chosen", "cat", "modules-store", "installed", b.Installed, "by", userFrom(r).Name)
 	writeJSON(w, 200, s.Modules.Report())
 }
 
@@ -324,7 +328,7 @@ func (s *Server) handleModuleLibraryLabel(w http.ResponseWriter, r *http.Request
 		writeModuleErr(w, err)
 		return
 	}
-	s.Log.Info("a kind of library was named", "type", r.PathValue("type"), "label", b.Label, "by", userFrom(r).Name)
+	s.Log.InfoContext(r.Context(), "a kind of library was named", "cat", "modules", "type", r.PathValue("type"), "label", b.Label, "by", userFrom(r).Name)
 	writeJSON(w, 200, s.Modules.Report())
 }
 
@@ -441,7 +445,7 @@ func (s *Server) handleModuleFailed(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(429)
 		return
 	}
-	s.Log.Warn("a browser reported a module failing", "module", r.PathValue("id"), "version", b.Version, "reason", b.Reason, "by", userFrom(r).Name)
+	s.Log.WarnContext(r.Context(), "a browser reported a module failing", "cat", "modules", "module", r.PathValue("id"), "version", b.Version, "reason", b.Reason, "by", userFrom(r).Name)
 	if err := s.Modules.ReportBrowserFailure(r.PathValue("id"), b.Version, "in a browser: "+b.Reason, userFrom(r).IsAdmin); err != nil {
 		writeModuleErr(w, err)
 		return
@@ -462,11 +466,11 @@ func (s *Server) handleModuleRollback(w http.ResponseWriter, r *http.Request) {
 		s.auditModule(r, "module-rollback", r.PathValue("id"), "")
 	}
 	if err := s.Modules.Rollback(r.PathValue("id")); err != nil {
-		s.Log.WarnContext(r.Context(), "module rollback failed", "cat", "modules", "module", r.PathValue("id"), "err", err)
+		s.Log.WarnContext(r.Context(), "module rollback failed", "cat", "modules-store", "module", r.PathValue("id"), "err", err)
 		writeModuleErr(w, err)
 		return
 	}
-	s.Log.InfoContext(r.Context(), "module rolled back", "cat", "modules", "module", r.PathValue("id"), "user", userFrom(r).Name)
+	s.Log.InfoContext(r.Context(), "module rolled back", "cat", "modules-store", "module", r.PathValue("id"), "by", userFrom(r).Name)
 	writeJSON(w, 200, s.Modules.Report())
 }
 
@@ -534,9 +538,9 @@ func (s *Server) handleModuleDisable(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) setModuleEnabled(w http.ResponseWriter, r *http.Request, on bool) {
-	what := "module turned off"
+	what := "disable"
 	if on {
-		what = "module turned on"
+		what = "enable"
 	}
 	s.moduleAction(w, r, what, 200, func(id string) error {
 		libs, err := s.librariesByType(r.Context())

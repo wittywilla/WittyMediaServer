@@ -202,7 +202,7 @@ func (s *Server) accessOf(ctx context.Context, u *auth.User) *library.Access {
 	r, err := s.Store.Resolve(ctx, a)
 	if err != nil {
 		if ctx.Err() == nil {
-			s.Log.WarnContext(ctx, "could not look up an account's limits by collection", "cat", "auth", "account", u.ID, "err", err)
+			s.Log.WarnContext(ctx, "could not look up an account's limits by collection", "cat", "profiles", "account", u.ID, "err", err)
 		}
 		return a // unresolved: allows no single title
 	}
@@ -276,7 +276,7 @@ func (s *Server) parentalGate(w http.ResponseWriter, r *http.Request, u *auth.Us
 	// Something that goes on for a long time is stopped when the time runs out:
 	// the answer stops being written, and a connection held open is told to end.
 	ctx, cancel := context.WithCancel(r.Context())
-	pw := &playWatch{s: s, userID: u.ID, rules: a.Time, cancel: cancel}
+	pw := &playWatch{s: s, userID: u.ID, name: u.Name, rules: a.Time, cancel: cancel}
 	pw.until.Store(v.Until.UnixNano())
 	pw.arm()
 	return &timedWriter{ResponseWriter: w, watch: pw}, r.WithContext(ctx), pw.stop, true
@@ -286,6 +286,7 @@ func (s *Server) parentalGate(w http.ResponseWriter, r *http.Request, u *auth.Us
 type playWatch struct {
 	s      *Server
 	userID int64
+	name   string // the profile's, for the log
 	rules  *parental.TimeRules
 	cancel context.CancelFunc
 	until  atomic.Int64 // when to look again, in nanoseconds
@@ -311,6 +312,7 @@ func (p *playWatch) arm() {
 	}
 	p.timer = time.AfterFunc(max(d, 0)+time.Second, func() {
 		if p.expired() {
+			p.s.Log.Info("playback stopped: the profile's screen time ran out", "cat", "profiles", "profile", p.name)
 			p.cancel()
 			return
 		}
@@ -418,11 +420,13 @@ func (s *Server) noteRefused(ctx context.Context, u *auth.User, kind string, ite
 	p.seen[key] = now
 	p.mu.Unlock()
 	ctx = context.WithoutCancel(ctx)
+	// Once per refusal while it keeps being asked for, as it is written down.
+	s.Log.InfoContext(ctx, "profile refused", "cat", "profiles", "profile", u.Name, "kind", kind, "detail", detail, "item", itemID)
 	if len(title) > 200 {
 		title = title[:200]
 	}
 	if _, err := s.DB.ExecContext(ctx, `INSERT INTO profile_events(user_id, at, kind, item_id, title, detail) VALUES(?,?,?,?,?,?)`, u.ID, s.clock().Unix(), kind, itemID, title, detail); err != nil {
-		s.Log.WarnContext(ctx, "could not write down a refusal", "cat", "auth", "err", err)
+		s.Log.WarnContext(ctx, "could not write down a refusal", "cat", "profiles", "err", err)
 		return
 	}
 	_, _ = s.DB.ExecContext(ctx, `DELETE FROM profile_events WHERE user_id = ? AND id <= (SELECT id FROM profile_events WHERE user_id = ? ORDER BY id DESC LIMIT 1 OFFSET ?)`, u.ID, u.ID, eventsKept)

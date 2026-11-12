@@ -543,6 +543,8 @@ func (s *Scanner) rankDVD(ctx context.Context, path string, d *dvd.Disc, info *D
 func (s *Scanner) rankProtectedDVD(ctx context.Context, it *Item) {
 	an, err := dvdsession.Analyze(it.Path)
 	if err != nil {
+		// Per disc in a scan, and usually no WittyDVD: the page says the disc is protected anyway.
+		s.Log.DebugContext(ctx, "an encrypted DVD's structure couldn't be read", "cat", "discs", "file", it.Path, "err", err)
 		return
 	}
 	rank := DVDRank(an)
@@ -613,6 +615,7 @@ func (s *Scanner) rankBluray(ctx context.Context, path string, d bdsession.DiscE
 func (s *Scanner) rankProtectedBluray(ctx context.Context, it *Item) {
 	an, err := bdsession.Analyze(it.Path, false, s.Log)
 	if err != nil {
+		s.Log.DebugContext(ctx, "an encrypted Blu-ray's structure couldn't be read", "cat", "discs", "file", it.Path, "err", err)
 		return
 	}
 	rank := BlurayRank(an)

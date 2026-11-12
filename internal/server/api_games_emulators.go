@@ -118,7 +118,7 @@ func (s *Server) handleGameEmulators(w http.ResponseWriter, r *http.Request) {
 		defer cancel()
 		var got []emulatorOffer
 		if err := callWittyPlay(ctx, "docker.Offers", []any{console.ID, s.games().systemDir()}, []any{&got}); err != nil {
-			s.Log.Debug("games: asking WittyPlay which emulators play a game", "item", it.ID, "err", err)
+			s.Log.DebugContext(ctx, "games: asking WittyPlay which emulators play a game", "cat", "emulators", "item", it.ID, "err", err)
 		} else if got != nil {
 			out = got
 		}
@@ -191,11 +191,14 @@ func (s *Server) handleGamePlayEmulator(w http.ResponseWriter, r *http.Request) 
 		if writeModuleMissing(w, err) {
 			return
 		}
-		s.Log.WarnContext(ctx, "could not start a game in an emulator", "cat", "games", "module", wittyPlayID, "item", it.ID, "emulator", b.Emulator, "err", err)
+		s.Log.WarnContext(ctx, "could not start a game in an emulator", "cat", "emulators", "module", wittyPlayID, "item", it.ID, "emulator", b.Emulator, "err", err)
 		writeErr(w, 500, "This game could not start. "+err.Error())
 		return
 	case res.Refusal != nil:
 		done()
+		// The refusal's words name what is missing (a BIOS's or firmware's file name), never what is in a file.
+		s.Log.WarnContext(ctx, "an emulator refused to start a game", "cat", "emulators", "module", wittyPlayID, "item", it.ID, "console", console.ID,
+			"emulator", b.Emulator, "code", res.Refusal.Code, "reason", res.Refusal.Text, "busy", res.Refusal.Busy)
 		status := 409
 		if res.Refusal.Busy {
 			status = 503
@@ -204,6 +207,7 @@ func (s *Server) handleGamePlayEmulator(w http.ResponseWriter, r *http.Request) 
 		return
 	case res.Session == nil || res.Session.ID == "":
 		done()
+		s.Log.WarnContext(ctx, "WittyPlay answered without a game", "cat", "emulators", "module", wittyPlayID, "item", it.ID, "emulator", b.Emulator)
 		writeErr(w, 500, "This game could not start: WittyPlay answered without a game.")
 		return
 	}
@@ -212,23 +216,26 @@ func (s *Server) handleGamePlayEmulator(w http.ResponseWriter, r *http.Request) 
 	// Whose it is, for as long as it runs: see emulator_sessions.go.
 	game := emulatorGame{id: sess.ID, session: sessionOf(r), user: u.ID, item: it.ID}
 	s.emus.add(&game)
+	started := time.Now()
 	logging.Go("emulator session end", func() {
-		waitForEmulator(sess.ID)
+		why := waitForEmulator(sess.ID)
 		s.emus.remove(sess.ID)
 		close(ended)
 		done()
-	}, "cat", "games", "session", sess.ID)
+		s.Log.Info("an emulator session ended", "cat", "emulators", "module", wittyPlayID, "session", sess.ID, "item", it.ID, "emulator", sess.Emulator,
+			"played", time.Since(started).Round(time.Second).String(), "why", why)
+	}, "cat", "emulators", "session", sess.ID)
 	if accessFor(u) != nil {
-		logging.Go("emulator limits", func() { s.watchEmulator(game, ended) }, "cat", "games", "session", sess.ID)
+		logging.Go("emulator limits", func() { s.watchEmulator(game, ended) }, "cat", "emulators", "session", sess.ID)
 	}
 	s.streams.game(sess.ID, u.ID, u.Name, it.Title, ended, func() GameView {
 		return GameView{Core: sess.Name, Width: sess.Width, Height: sess.Height}
 	})
-	logging.Go("emulator play time", func() { s.recordEmulatorTime(ended, u.ID, it.ID) }, "cat", "games", "session", sess.ID)
+	logging.Go("emulator play time", func() { s.recordEmulatorTime(ended, u.ID, it.ID) }, "cat", "emulators", "session", sess.ID)
 	if err := s.Store.NoteGamePlayed(ctx, u.ID, it.ID); err != nil {
-		s.Log.Warn("recording a play", "err", err)
+		s.Log.WarnContext(ctx, "recording a play", "cat", "emulators", "session", sess.ID, "err", err)
 	}
-	s.Log.InfoContext(ctx, "a game started in an emulator", "cat", "games", "module", wittyPlayID, "item", it.ID, "game", it.Title, "emulator", sess.Emulator, "backend", sess.Backend,
+	s.Log.InfoContext(ctx, "a game started in an emulator", "cat", "emulators", "module", wittyPlayID, "session", sess.ID, "item", it.ID, "console", console.ID, "game", it.Title, "emulator", sess.Emulator, "backend", sess.Backend,
 		"device", deviceName(b.Device, r))
 	// The module's paths are its own; a client reaches them under this server's.
 	under := func(p string) string {
@@ -259,14 +266,18 @@ func emulatorID(id string) bool {
 
 // waitForEmulator returns when a game in an emulator has ended. The module going away ends it
 // too: an emulator doesn't outlive the module that watches it.
-func waitForEmulator(id string) {
+func waitForEmulator(id string) (why string) {
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 		var over bool
 		err := callWittyPlay(ctx, "stream.Session.Wait", []any{id}, []any{&over})
 		cancel()
-		if over || (err != nil && !errors.Is(err, context.DeadlineExceeded)) {
-			return
+		switch {
+		case over:
+			return "ended"
+		case err != nil && !errors.Is(err, context.DeadlineExceeded):
+			// WittyPlay went, or forgot the session: either way it is over here.
+			return "lost: " + err.Error()
 		}
 	}
 }
@@ -280,6 +291,6 @@ func (s *Server) recordEmulatorTime(ended <-chan struct{}, userID, itemID int64)
 	var total float64
 	_ = s.DB.QueryRowContext(ctx, `SELECT position_sec FROM progress WHERE user_id = ? AND item_id = ?`, userID, itemID).Scan(&total)
 	if err := s.Store.SetProgress(ctx, userID, itemID, library.Progress{PositionSec: total + played}); err != nil {
-		s.Log.Warn("could not save time played", "cat", "games", "err", err)
+		s.Log.Warn("could not save time played", "cat", "emulators", "item", itemID, "err", err)
 	}
 }

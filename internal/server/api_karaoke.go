@@ -221,6 +221,9 @@ func (s *Server) approxRefusal(r *http.Request) string {
 var errNotStereo = errors.New("this song is mono, so there are no two channels to take from each other")
 
 func (s *Server) makeApproxInstrumental(ctx context.Context, it *library.Item, dir string) error {
+	log := s.jobLog(ctx).With("item", it.ID)
+	log.Debug("making an approximate instrumental")
+	started := time.Now()
 	if s.Tools.FFprobe != "" {
 		pctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		p, err := s.Tools.ProbeFile(pctx, it.Path)
@@ -264,6 +267,7 @@ func (s *Server) makeApproxInstrumental(ctx context.Context, it *library.Item, d
 	if err := os.Rename(tmps[0], filepath.Join(dir, "instrumental"+mediaextras.ApproxExt)); err != nil {
 		return err
 	}
+	log.Info("an approximate instrumental was made", "took", time.Since(started).Round(time.Millisecond).String())
 	s.karaokeTidy(ctx, it)
 	return nil
 }
@@ -277,10 +281,12 @@ func (s *Server) handleStemsSeparate(w http.ResponseWriter, r *http.Request) {
 	}
 	words := s.separatorWords()
 	if words == nil {
+		s.Log.WarnContext(r.Context(), "stems asked for, but no stem separator is set up", "cat", "extras", "item", it.ID)
 		writeErr(w, 409, "No stem separator is set up on this server. Its owner names one where the server starts: see \"Making stems\" in the lyrics and karaoke guide.")
 		return
 	}
 	if _, _, err := mediaextras.SeparatorCommand(words, "in", "out"); err != nil {
+		s.Log.WarnContext(r.Context(), "the stem separator's command can't be used", "cat", "extras", "item", it.ID, "err", err)
 		writeErr(w, 409, err.Error())
 		return
 	}
@@ -310,6 +316,9 @@ func (s *Server) separateStems(ctx context.Context, it *library.Item, words []st
 		return err
 	}
 	task.Phase("Separating")
+	log := s.jobLog(ctx).With("item", it.ID)
+	log.Info("separating a song into stems", "separator", filepath.Base(prog))
+	log.Debug("separator command", "args", strings.Join(append([]string{prog}, args...), " "))
 	cctx, cancel := context.WithTimeout(ctx, separatorTimeout)
 	defer cancel()
 	cmd := exec.CommandContext(cctx, prog, args...)
@@ -324,8 +333,12 @@ func (s *Server) separateStems(ctx context.Context, it *library.Item, words []st
 	cmd.Stdout, cmd.Stderr = out, out
 	cmd.WaitDelay = 10 * time.Second
 	started := time.Now()
-	if err := ffmpeg.RunLow(cmd); err != nil {
+	err = ffmpeg.RunLow(cmd)
+	// It printed its progress and its complaints to the same place, so the tail holds both.
+	logging.ChildExit(log, "separator", err, ctx.Err() != nil, said, started)
+	if err != nil {
 		if cctx.Err() != nil && ctx.Err() == nil {
+			log.Warn("the separator took too long and was stopped", "after", separatorTimeout.String())
 			return fmt.Errorf("the separator was stopped after %s without finishing", separatorTimeout)
 		}
 		var notFound *exec.Error
@@ -349,7 +362,10 @@ func (s *Server) separateStems(ctx context.Context, it *library.Item, words []st
 	for k := range list {
 		names = append(names, k)
 	}
-	_ = os.WriteFile(filepath.Join(dst, mediaextras.SeparatedList), []byte(strings.Join(names, "\n")+"\n"), 0o644)
+	if err := os.WriteFile(filepath.Join(dst, mediaextras.SeparatedList), []byte(strings.Join(names, "\n")+"\n"), 0o644); err != nil {
+		// The parts are kept; only the list saying they are real is missing.
+		log.Warn("could not save the list of separated stems", "dir", dst, "err", err)
+	}
 	// Real parts replace the approximate pair.
 	if list["instrumental"] || list["vocals"] {
 		approx := filepath.Join(filepath.Dir(dst), mediaextras.ApproxDir)
@@ -358,6 +374,6 @@ func (s *Server) separateStems(ctx context.Context, it *library.Item, words []st
 	}
 	s.karaokeTidy(ctx, it)
 	task.Result(fmt.Sprintf("Kept %s.", strings.Join(kept, ", ")))
-	s.Log.Info("a song was separated into stems", "cat", "library", "item", it.ID, "parts", kept, "took", time.Since(started).Round(time.Second).String())
+	log.Info("a song was separated into stems", "parts", kept, "took", time.Since(started).Round(time.Second).String())
 	return nil
 }

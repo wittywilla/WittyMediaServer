@@ -6,12 +6,25 @@ package syncplay
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"math"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 )
+
+// lockedWriter lets a test read what was logged while rooms are written to it.
+type lockedWriter struct {
+	mu *sync.Mutex
+	b  *strings.Builder
+}
+
+func (l lockedWriter) Write(p []byte) (int, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.b.Write(p)
+}
 
 // world is an engine with a clock the test moves, ids that count up, and a list of what
 // each account may not see.
@@ -320,7 +333,11 @@ func TestConcurrentCommands(t *testing.T) {
 }
 
 func TestWaitForEveryoneAndItsTimeout(t *testing.T) {
-	w := newWorld(t, nil)
+	var logged strings.Builder
+	var logMu sync.Mutex
+	w := newWorld(t, func(c *Config) {
+		c.Log = slog.New(slog.NewTextHandler(lockedWriter{&logMu, &logged}, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	})
 	host := w.create(person(1), 10)
 	a := w.join(person(2), host.Code)
 	b := w.join(person(3), host.Code)
@@ -364,6 +381,15 @@ func TestWaitForEveryoneAndItsTimeout(t *testing.T) {
 	v = w.view(a, 2)
 	if v.State.Waiting || stateOf(v, b.You) != MemberLagging || !near(v.State.PositionSec, 20) {
 		t.Fatalf("%+v", v)
+	}
+	logMu.Lock()
+	out := logged.String()
+	logMu.Unlock()
+	if !strings.Contains(out, `level=WARN msg="watch party stopped waiting for members still loading" cat=remotectl session=party-`+host.ID) || !strings.Contains(out, "lagging=[p3]") {
+		t.Errorf("the timeout wasn't logged for the room, naming who it stopped waiting for:\n%s", out)
+	}
+	if strings.Contains(out, host.Code) || strings.Contains(out, b.You) {
+		t.Errorf("a room code or a member id was logged:\n%s", out)
 	}
 	// Still stalling: for the next minute that can't stop the room again.
 	w.pass(5 * time.Second)

@@ -12,7 +12,7 @@ import { toast, useApp } from '../../state'
 import { onEpisodeViewChosen, setEpisodeView, useEpisodeView, type EpisodeView } from './episodeView'
 import TitleArtPicker, { appliedOnPage } from '../../components/edit/TitleArtPicker'
 import LegalNote from '../../components/LegalNote'
-import { IconDevices, IconEdit, IconFilm, IconImage, IconMore, IconPlay, IconRefresh, IconUsers } from '../../icons'
+import { IconDevices, IconEdit, IconFilm, IconImage, IconMore, IconPlay, IconRefresh, IconSettings, IconUsers } from '../../icons'
 import { useRemoteAllowed } from '../../remote/allowed'
 import { Menu, type MenuEntry } from '../../ui/Menu'
 import { bump } from '../client'
@@ -22,6 +22,8 @@ const EditDetails = lazy(() => import('../../components/edit/EditDetails'))
 const RefreshDialog = lazy(() => import('../../components/edit/RefreshDialog'))
 const TitleExtras = lazy(() => import('../../components/edit/TitleExtras'))
 const PlayOn = lazy(() => import('../../remote/PlayOn'))
+const DiscSettingsDialog = lazy(() => import('../../components/edit/DiscDialogs').then((m) => ({ default: m.DiscSettingsDialog })))
+const DiscNamesDialog = lazy(() => import('../../components/edit/DiscDialogs').then((m) => ({ default: m.DiscNamesDialog })))
 const CanvasManager = lazy(() => import('../../canvas/CanvasManager'))
 const AlbumCanvasManager = lazy(() => import('../../canvas/AlbumCanvasManager'))
 const WatchParty = lazy(() => import('../../remote/WatchParty'))
@@ -68,7 +70,7 @@ export default function DetailExtras({ place, header, doc }: { place: 'tools' | 
   const { user } = useApp()
   const t = targetOf(header)
   const title = useTitle(t, doc.meta?.etag || '')
-  const [open, setOpen] = useState<'' | 'art' | 'edit' | 'refresh' | 'canvas'>('')
+  const [open, setOpen] = useState<'' | 'art' | 'edit' | 'refresh' | 'canvas' | 'disc' | 'names'>('')
   if (place === 'tools' && header.props?.kind === 'album' && user?.isAdmin) return <AlbumCanvasTool doc={doc} />
   if (!t || !title) return null
   const item = t.target === 'item' ? title as Item : null
@@ -82,6 +84,8 @@ export default function DetailExtras({ place, header, doc }: { place: 'tools' | 
       { key: 'art', label: 'Artwork', icon: <IconImage />, onSelect: () => setOpen('art') },
       { key: 'edit', label: 'Edit details', icon: <IconEdit />, onSelect: () => setOpen('edit') },
       ...(item && (item.kind === 'video' || isDisc(item)) ? [{ key: 'canvas', label: 'Canvas', icon: <IconFilm />, onSelect: () => setOpen('canvas') } as MenuEntry] : []),
+      ...(item && isDisc(item) ? [{ key: 'disc', label: 'Disc settings', icon: <IconSettings />, onSelect: () => setOpen('disc') } as MenuEntry,
+        ...(!item.disc?.scrambled ? [{ key: 'names', label: 'Name titles and scenes', icon: <IconEdit />, onSelect: () => setOpen('names') } as MenuEntry] : [])] : []),
       ...(item?.showId == null ? [{ key: 'refresh', label: 'Check for new details', icon: <IconRefresh />, onSelect: () => setOpen('refresh') } as MenuEntry] : []),
     ]
     return (
@@ -92,6 +96,8 @@ export default function DetailExtras({ place, header, doc }: { place: 'tools' | 
           {open === 'art' && <TitleArtPicker target={t.target} id={t.id} onApplied={appliedOnPage(changed)} onClose={() => setOpen('')} />}
           {open === 'edit' && <EditDetails target={t.target} id={t.id} start="match" onClose={() => setOpen('')} onChanged={changed} />}
           {open === 'refresh' && <RefreshDialog target={t.target} id={t.id} onClose={() => setOpen('')} onChanged={changed} />}
+          {open === 'disc' && item && <DiscSettingsDialog item={item} onClose={() => setOpen('')} onSaved={() => { setOpen(''); toast('Disc settings saved'); changed() }} />}
+          {open === 'names' && item && <DiscNamesDialog item={item} onClose={() => setOpen('')} onSaved={() => { setOpen(''); changed() }} />}
           {open === 'canvas' && item && <CanvasManager itemId={item.id} title={item.title} kind={isDisc(item) ? 'disc' : 'video'} runtimeSec={item.runtimeSec} onClose={() => { setOpen(''); changed() }} />}
         </Suspense>
       </>

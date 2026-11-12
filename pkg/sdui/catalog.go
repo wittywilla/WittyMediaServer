@@ -198,7 +198,8 @@ type CommandSpec struct {
 	Label       string `json:"label"`
 	Description string `json:"description"`
 	// Method and Path are the request that carries it out; {item} is the
-	// action's item.
+	// action's item, as it is ("5", "show-5"): URL-escaped in Path, and in Body
+	// always inside a JSON string, escaped as one, so the body is JSON for any ID.
 	Method string `json:"method"`
 	Path   string `json:"path"`
 	Body   string `json:"body,omitempty"`

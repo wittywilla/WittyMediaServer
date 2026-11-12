@@ -740,9 +740,9 @@ func buildCatalogue() *Catalogue {
 		Components: buildComponents(), CardStyles: cardStylesOnce(), Sources: buildSources(), Conditions: buildConditions(),
 		PageKinds: buildPageKinds(), Routes: buildRoutes(),
 		Commands: []CommandSpec{
-			{Op: "watchLater.add", Label: "Watch later", Description: "Adds the title to the profile's Watch later list.", Method: "POST", Path: "/api/v1/collections/watch-later/items", Body: `{"items":[{item}]}`},
-			{Op: "watched.set", Label: "Mark watched", Description: "Marks the title watched.", Method: "POST", Path: "/api/v1/items/{item}/progress", Body: `{"watched":true}`},
-			{Op: "watched.clear", Label: "Mark unwatched", Description: "Forgets the profile's progress in the title.", Method: "DELETE", Path: "/api/v1/items/{item}/progress"},
+			{Op: "watchLater.add", Label: "Watch later", Description: "Adds the title to the profile's Watch later list.", Method: "POST", Path: "/api/v1/collections/watch-later/items", Body: `{"items":["{item}"]}`},
+			{Op: "watched.set", Label: "Mark watched", Description: "Marks the title watched; for a show, every episode.", Method: "POST", Path: "/api/v1/items/{item}/progress", Body: `{"watched":true}`},
+			{Op: "watched.clear", Label: "Mark unwatched", Description: "Forgets the profile's progress in the title; for a show, in every episode.", Method: "DELETE", Path: "/api/v1/items/{item}/progress"},
 			{Op: "selectTab", Label: "Choose a tab", Description: "Asks for the page again with tab=<params.tab>, or shows the tab's content when the client already has it.", Method: "GET", Path: ""},
 			{Op: "refresh", Label: "Refresh", Description: "Asks for the page again.", Method: "GET", Path: ""},
 		},

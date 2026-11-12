@@ -320,6 +320,13 @@ Go types are `sdui.Document`, `sdui.Node`, `sdui.Action`, `sdui.Focus`.
 
 Ignore an action type you don't know.
 
+A command's request is built from its catalogue entry: put the action's
+`item`, exactly as sent (`"5"`, `"show-5"`), in place of `{item}`,
+URL-escaped in the path and JSON-escaped in the body, where it always stands
+inside a string (`{"items":["{item}"]}`), so the body is JSON for any title.
+The routes take a show's `show-<n>` as they take a number: Watch later adds
+the show, `watched.set` and `watched.clear` mark every episode of it.
+
 ## Rules for renderers
 
 These are requirements. The conformance kit checks the ones that can be

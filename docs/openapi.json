@@ -16462,7 +16462,7 @@
             "bearer": []
           }
         ],
-        "summary": "Watch later add.",
+        "summary": "Watch later add. {items, shows}: each a number, or a string \"5\" or \"show-5\" (a show, wherever it is listed).",
         "tags": [
           "Collections and your year"
         ],
@@ -24656,7 +24656,7 @@
             "bearer": []
           }
         ],
-        "summary": "Forget the position (mark as not started).",
+        "summary": "Forget the position (mark as not started). {id} show-<n>: in every episode of the show.",
         "tags": [
           "Browsing"
         ],
@@ -24723,7 +24723,7 @@
             "bearer": []
           }
         ],
-        "summary": "Save the viewer's position. Past 92% counts as watched. Discs send `discTitle` too.",
+        "summary": "Save the viewer's position. Past 92% counts as watched. Discs send `discTitle` too. {id} show-<n> with {\"watched\": true} marks every episode of the show this profile may see watched.",
         "tags": [
           "Browsing"
         ],

@@ -918,7 +918,9 @@ func (rv *sduiResolver) Subject() (*sdui.Item, error) {
 			return nil, sdui.ErrNotFound
 		}
 		it := rv.show(sh)
-		it.Can = []string{"watchLater"}
+		// watched.set and watched.clear take the show's ID too (show_watched.go).
+		it.Can = []string{"watchLater", "watched"}
+		it.Watched = sh.EpisodeCount > 0 && sh.Unwatched == 0
 		if rv.acc.Can(library.FeatureSharing) {
 			it.Can = append(it.Can, "share")
 		}

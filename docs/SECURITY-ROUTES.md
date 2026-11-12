@@ -152,8 +152,8 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/shows/{id}/artwork` | Admin | Show exists |
 | `GET /api/shows/{id}/art/{kind}` | Signed-in; address token | limits. Pictures only |
 | `GET /api/items/{id}/backdrop` | Signed-in; ticket; address token | limits. Pictures only |
-| `POST /api/items/{id}/progress` | Signed-in | limits. own |
-| `DELETE /api/items/{id}/progress` | Signed-in | own |
+| `POST /api/items/{id}/progress` | Signed-in | limits. own. show-<n>: the show within limits, each episode the profile may see |
+| `DELETE /api/items/{id}/progress` | Signed-in | own. show-<n>: the show within limits, each episode the profile may see |
 | `POST /api/pair/info` | Adult | Code, with a limit on wrong codes |
 | `GET /api/auth/pair/{session}/info` | Adult | Session is waiting. A wrong QR check is refused. Limit on wrong codes. Never says the PIN or the device's secret |
 | `POST /api/auth/pair/{session}/approve` | Adult | The PIN shown now or the one before it, used once. Five wrong PINs end the session. Limit on wrong codes. The device signs in as the caller or a profile the caller manages; as an administrator only with that administrator's password again |

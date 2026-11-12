@@ -1355,8 +1355,8 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `PUT /shows/{id}/view` | admin | A show's episode layout: `cards`, `list`, or empty for the default. |
 | `GET /shows/{id}/artwork` | admin | Artwork to choose from. |
 | `GET /shows/{id}/art/{kind}` | user | A show's picture: `poster`, `backdrop` or `season` (with `n`). |
-| `POST /items/{id}/progress` | user | Save the viewer's position. Past 92% counts as watched. Discs send `discTitle` too. |
-| `DELETE /items/{id}/progress` | user | Forget the position (mark as not started). |
+| `POST /items/{id}/progress` | user | Save the viewer's position. Past 92% counts as watched. Discs send `discTitle` too. `{id}` `show-<n>` with `{"watched": true}` marks every episode of the show this profile may see watched. |
+| `DELETE /items/{id}/progress` | user | Forget the position (mark as not started). `{id}` `show-<n>`: in every episode of the show. |
 
 ### Metadata, matches and browsing
 
@@ -1918,7 +1918,7 @@ one of these games answers 409 with `"rig": true`.
 | `POST /collections` | user | Create collection. |
 | `POST /collections/preview` | user | Preview rule. |
 | `GET /collections/holding` | user | Collections holding. |
-| `POST /collections/watch-later/items` | user | Watch later add. |
+| `POST /collections/watch-later/items` | user | Watch later add. `{items, shows}`: each a number, or a string `"5"` or `"show-5"` (a show, wherever it is listed). |
 | `GET /collections/{id}` | user | Collection. |
 | `PUT /collections/{id}` | user | Update collection. |
 | `DELETE /collections/{id}` | user | Delete collection. |

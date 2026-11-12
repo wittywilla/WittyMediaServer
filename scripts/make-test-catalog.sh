@@ -100,7 +100,7 @@ for repo in "${mods[@]}"; do
   [ -f "$dir/export_synth_test.go" ] || continue
   var="$(tr 'a-z' 'A-Z' <<<"$id")_SYNTH_OUT"
   rm -rf "$out/synth/$id"
-  if (cd "$dir" && env "$var=$out/synth/$id" go test -run '^TestExportSyntheticDiscs$' -count=1 . >/dev/null); then
+  if (cd -P "$dir" && env "$var=$out/synth/$id" go test -run '^TestExportSyntheticDiscs$' -count=1 . >/dev/null); then
     echo "synthetic discs for $id"
   else
     echo "no synthetic discs for $id: its export test failed" >&2

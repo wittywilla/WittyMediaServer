@@ -229,6 +229,7 @@ a.sdui-row:hover, button.sdui-row:hover { background: var(--hover); }
 .sdui-row-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgb(var(--bg-rgb) / .6); }
 .sdui-row-progress i { display: block; height: 100%; background: var(--accent); }
 .sdui-row-badges { display: flex; gap: var(--sp-1); flex: none; }
+.sdui-row-badges .badge { position: static; }
 .sdui.ff-tv .sdui-row-art.poster { width: calc(var(--sdui-pt) * 60px); height: calc(var(--sdui-pt) * 90px); }
 .sdui.ff-tv .sdui-row-art.wide { width: calc(var(--sdui-pt) * 160px); height: calc(var(--sdui-pt) * 90px); }
 .sdui.ff-tv .sdui-row-art.square { width: calc(var(--sdui-pt) * 90px); height: calc(var(--sdui-pt) * 90px); }

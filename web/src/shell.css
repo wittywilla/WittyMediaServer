@@ -87,9 +87,10 @@
   /* The server's name stays on a phone: its mark first (and its name when there is room), the sections after it. */
   .phone-brand { display: inline-flex; flex: none; max-inline-size: 42%; overflow: hidden; }
   .phone-brand .brand-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-md); }
-  .section-row { margin-left: 0; padding-inline: var(--sp-2) var(--sp-5); }
+  .section-row { margin-left: 0; padding-inline: var(--sp-4) var(--sp-5); scroll-snap-type: x proximity; scroll-padding-inline: var(--sp-4) var(--sp-5); }
+  .section-row a { scroll-snap-align: start; }
   /* The row fades out at its end, before the activity button, so a name is never cut off by it. */
-  .section-row { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - var(--sp-5)), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - var(--sp-5)), transparent); } /* design-ok: a mask only reads how solid it is */
+  .section-row { -webkit-mask-image: linear-gradient(90deg, transparent, #000 var(--sp-4), #000 calc(100% - var(--sp-5)), transparent); mask-image: linear-gradient(90deg, transparent, #000 var(--sp-4), #000 calc(100% - var(--sp-5)), transparent); } /* design-ok: a mask only reads how solid it is */
   /* Below a tab's first page: Back in the row's place, and the activity button at the far end. */
   .top-back { position: relative; display: grid; place-items: center; flex: none; width: 40px; height: 40px; margin-right: auto; padding: 0; border: 0; border-radius: 50%; background: rgb(var(--bg-rgb) / .7); color: var(--fg); transition: transform var(--dur-1); }
   .top-back::after { content: ''; position: absolute; inset: -2px; border-radius: 50%; } /* a 44 target around the 40 circle */

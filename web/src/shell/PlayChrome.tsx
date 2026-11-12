@@ -40,7 +40,7 @@ export function StatusBar({ parts }: { parts: StatusPart[] }) {
     <header className="play-status" aria-label="Status">
       <div className="play-who">
         <span className="play-avatar" aria-hidden="true">{cornerName(user).slice(0, 1).toUpperCase()}</span>
-        <span className="play-who-text"><b>{cornerName(user)}</b>{parts.filter((p) => p.kind === 'text').map((p) => <span key={p.id}>{p.text}</span>)}</span>
+        <span className="play-who-text"><b>{cornerName(user)}</b>{parts.filter((p) => p.kind === 'text' || (p.kind === 'profile' && p.text)).map((p) => <span key={p.id}>{p.text}</span>)}</span>
       </div>
       <div className="play-right">
         {parts.some((p) => p.kind === 'server') && <span className="play-brand"><Brand name={brandName} /></span>}

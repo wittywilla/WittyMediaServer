@@ -16,6 +16,7 @@ import { NowPlayingCanvas } from '../canvas/NowPlayingCanvas'
 import { useCanvas } from '../canvas/useCanvas'
 import { QueuePanel } from './QueuePanel'
 import { ReadPanel, useExtras } from './ReadPanel'
+import { SleepPanel } from './SleepPanel'
 import { SoundPanel } from './SoundPanel'
 import PartyButton from './PartyButton'
 import type { PlayerView } from './types'
@@ -53,7 +54,7 @@ function readPrefs(v: unknown): Prefs {
 
 const isNative = (style: string): style is NativeStyle => NATIVE_STYLES.some((n) => n.id === style)
 
-type Panel = '' | 'lyrics' | 'queue' | 'sound' | 'read'
+type Panel = '' | 'lyrics' | 'queue' | 'sound' | 'read' | 'sleep'
 
 export default function NowPlaying({ p }: { p: PlayerView }) {
   const it = p.current!
@@ -90,7 +91,7 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
     }).catch(() => {}).finally(() => setPrefsLoaded(true))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
   // The plugin comes when it's needed: most people's Bars, Waves and Drift don't need it.
-  const needShaders = prefsLoaded && prefs.viz && (!isNative(prefs.style) || (prefs.shuffleEvery > 0 && prefs.shufflePool === 'all'))
+  const needShaders = prefsLoaded && prefs.viz && p.vizHere
   const loadShaders = useCallback(() => { shaderEffects().then(setShaders).catch(() => {}) }, [])
   useEffect(() => { if (needShaders) loadShaders() }, [needShaders, loadShaders])
   useEffect(() => { root.current?.focus({ preventScroll: true }) }, [])
@@ -222,7 +223,7 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
         <div className="np-top-right">
           <Volume p={p} />
           {!p.live && <AddToPlaylist items={[it]} />}
-          <SleepButton p={p} />
+          <button type="button" className={'mp-ibtn' + (panel === 'sleep' || p.sleepAt !== null ? ' on' : '')} aria-pressed={panel === 'sleep'} aria-label={p.sleepAt !== null ? 'Sleep timer: on' : 'Sleep timer'} title="Sleep timer" onClick={() => setPanel(panel === 'sleep' ? '' : 'sleep')}><IconMoon /></button>
           <button type="button" className={'mp-ibtn' + (panel === 'queue' ? ' on' : '')} aria-pressed={panel === 'queue'} aria-label={placeLine} title={`${placeLine} (Q)`} onClick={() => setPanel(panel === 'queue' ? '' : 'queue')}>{p.books ? <IconChapters /> : <IconList />}</button>
           <Like p={p} />
           <PartyButton p={p} />
@@ -323,10 +324,11 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
         </div>
 
         {panel && (
-          <aside className="np-panel" aria-label={panel === 'lyrics' ? 'Lyrics' : panel === 'queue' ? placeLine : panel === 'sound' ? 'Sound' : 'Read'}>
+          <aside className="np-panel" aria-label={panel === 'lyrics' ? 'Lyrics' : panel === 'queue' ? placeLine : panel === 'sound' ? 'Sound' : panel === 'sleep' ? 'Sleep timer' : 'Read'}>
             {panel === 'lyrics' && <LyricsPanel p={p} ly={ly} onClose={() => setPanel('')} />}
             {panel === 'queue' && <QueuePanel p={p} heading={placeLine} onClose={() => setPanel('')} />}
             {panel === 'sound' && <SoundPanel p={p} onClose={() => setPanel('')} />}
+            {panel === 'sleep' && <SleepPanel p={p} onClose={() => setPanel('')} />}
             {panel === 'read' && <ReadPanel itemId={it.id} extras={extras} ly={ly} onClose={() => setPanel('')} />}
           </aside>
         )}
@@ -339,22 +341,6 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
       <div className="mp-sr" aria-live="polite">{said}</div>
       {karaoke && <Suspense fallback={null}><Karaoke p={p} ly={ly} choice={behindChoice} behind={karaokeBehind} onClose={() => { setKaraoke(false); root.current?.focus({ preventScroll: true }) }} /></Suspense>}
     </div>
-  )
-}
-
-function SleepButton({ p }: { p: PlayerView }) {
-  const on = p.sleepAt !== null
-  const at = typeof p.sleepAt === 'number' ? new Date(p.sleepAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''
-  return (
-    <Pop label={on ? (at ? `Sleep timer: stops at ${at}` : 'Sleep timer: stops after this one') : 'Sleep timer'} on={on} icon={<IconMoon />}>
-      {(close) => (
-        <div className="mp-menu" role="menu">
-          {on && <button type="button" role="menuitem" onClick={() => { p.setSleepAt(null); close() }}>Turn it off{at ? ` (stops at ${at})` : ''}</button>}
-          {[15, 30, 45, 60, 90].map((m) => <button type="button" role="menuitem" key={m} onClick={() => { p.setSleepAt(Date.now() + m * 60000); close() }}>In {m < 60 ? `${m} minutes` : m === 60 ? '1 hour' : '90 minutes'}</button>)}
-          {!p.live && <button type="button" role="menuitem" onClick={() => { p.setSleepAt('chapter'); close() }}>{p.books ? 'At the end of this chapter' : 'After this song'}</button>}
-        </div>
-      )}
-    </Pop>
   )
 }
 
@@ -407,9 +393,17 @@ function EffectChips({ effects, current, onPick }: { effects: ShaderEffect[]; cu
   const s = shaderSession()
   const [calm, setCalm] = useState<boolean>(() => s?.calm ?? false)
   const [intensity, setIntensity] = useState<number>(() => s?.settings.intensity ?? 1)
+  // Speed (speedPct, 50 to 200) and Colour (effect or theme) are WittyVisualizer's own settings keys, saved through its module settings.
+  const extra = (s?.settings ?? {}) as unknown as { speedPct?: number; colour?: string }
+  const [speed, setSpeed] = useState<number>(extra.speedPct ?? 100)
+  const [colour, setColour] = useState<string>(extra.colour ?? 'effect')
+  const patch = (v: Record<string, unknown>) => shaderSession()?.update(v as never)
+  const [cycle, setCycle] = useState<number>(s?.settings.cycleSec ?? 0)
+  const lively = effects.find((e) => e.id === current)?.motion === 'lively'
   const keeps = (e: ShaderEffect) => !calm || e.motion === 'gentle'
   return (
     <div className="np-effects" role="group" aria-label="Visualizer effects">
+      {lively && !calm && <p className="np-note np-callout" role="status">This effect flashes. Calm mode leaves out the lively ones and keeps everything else.</p>}
       <div className="np-effect-chips" role="radiogroup" aria-label="Effect">
         {effects.map((e) => (
           <button type="button" role="radio" key={e.id} aria-checked={current === e.id} disabled={!keeps(e)} className={current === e.id ? 'on' : ''} onClick={() => onPick(e.id)}>
@@ -418,12 +412,23 @@ function EffectChips({ effects, current, onPick }: { effects: ShaderEffect[]; cu
         ))}
       </div>
       <div className="np-effect-opts">
+        <label className="np-range"><span>Auto-change</span>
+          <select className="select sm" value={cycle} onChange={(e) => { const v = Number(e.target.value); setCycle(v); shaderSession()?.update({ cycleSec: v }) }}>
+            {[0, 10, 15, 30, 60, 120, 300].map((c) => <option key={c} value={c}>{c === 0 ? 'Off' : c < 60 ? `Every ${c} s` : `Every ${c / 60} min`}</option>)}
+          </select>
+        </label>
         <button type="button" className={'np-chip small' + (calm ? ' on' : '')} aria-pressed={calm} title="Keeps to the gentle effects and slows everything" onClick={() => { const v = !calm; setCalm(v); shaderSession()?.update({ calm: v }) }}>Calm mode</button>
         <label className="np-range"><span>Intensity</span>
           <input type="range" min={30} max={150} step={5} value={Math.round(intensity * 100)} aria-valuetext={`${Math.round(intensity * 100)}%`}
             onChange={(e) => { const v = Number(e.target.value) / 100; setIntensity(v); shaderSession()?.update({ intensity: v }) }} />
           <output>{Math.round(intensity * 100)}%</output>
         </label>
+        <label className="np-range"><span>Speed</span>
+          <input type="range" min={50} max={200} step={5} value={speed} aria-valuetext={`${speed}%`} onChange={(e) => { const v = Number(e.target.value); setSpeed(v); patch({ speedPct: v }) }} />
+          <output>{speed}%</output>
+        </label>
+        <Segmented label="Colour" value={colour === 'theme' ? 'theme' : 'effect'} onChange={(v) => { setColour(v); patch({ colour: v }) }}
+          options={[{ value: 'effect', label: "Effect's own" }, { value: 'theme', label: 'Follows the theme' }]} />
       </div>
     </div>
   )

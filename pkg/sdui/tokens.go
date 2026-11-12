@@ -222,9 +222,15 @@ var componentTokens = map[string]TokenRoles{
 	"List": {Colors: join(focusRing, map[string]string{"text": "fg", "secondaryText": "fg2", "border": "border"}),
 		Type: map[string]string{"title": "heading"}, Shape: focusShape},
 	"ListItem": {Colors: join(focusRing, map[string]string{"text": "fg", "secondaryText": "fg2", "hintText": "fg3", "icon": "fg2", "surface": "bg3",
-		"hover": "hover", "pressed": "pressed", "selected": "accentSoft", "selectedText": "fg"}),
-		Type:  map[string]string{"title": "body", "subtitle": "caption", "trailing": "caption"},
-		Shape: join(focusShape, map[string]string{"corner": "row", "art": "thumb", "icon": "row"})},
+		"hover": "hover", "pressed": "pressed", "selected": "accentSoft", "selectedText": "fg",
+		// A control in the row: a switch's on part and knob, a field's outline, a slider's filled and empty parts.
+		"accent": "accent", "onAccent": "accentFg", "fieldOutline": "controlLine", "progress": "accent", "progressTrack": "controlLine", "danger": "danger"}),
+		Type:  map[string]string{"title": "body", "subtitle": "caption", "trailing": "caption", "why": "caption"},
+		Shape: join(focusShape, map[string]string{"corner": "row", "art": "thumb", "icon": "row", "field": "field"})},
+	"Form": {Colors: join(focusRing, buttonParts, map[string]string{"text": "fg", "secondaryText": "fg2", "border": "border", "danger": "danger"}),
+		Type: map[string]string{"title": "heading", "button": "body", "error": "caption"}, Shape: join(focusShape, map[string]string{"button": "button"})},
+	// A QR code is always black on white whatever the theme: a scanner needs the contrast. Only the caption wears the theme.
+	"QR": {Colors: map[string]string{"text": "fg", "secondaryText": "fg2", "surface": "bg2"}, Type: map[string]string{"text": "caption"}},
 	"NativeView": {Colors: join(focusRing, map[string]string{"background": "bg", "surface": "bg2", "text": "fg", "secondaryText": "fg2", "outline": "borderStrong"}),
 		Type: map[string]string{"text": "body"}, Shape: join(focusShape, map[string]string{"corner": "image"})},
 }

@@ -14,6 +14,7 @@ import { shapeFor } from './ui/Surface'
 import { LinkButton } from './ui'
 import { AudioProvider } from './audio/player'
 import ConnectServer from './components/ConnectServer'
+import Unreachable from './components/Unreachable'
 import AuthPage from './pages/AuthPage'
 import { usePageRegions } from './sdui/regions'
 import { StatusBar, SystemDock } from './shell/PlayChrome'
@@ -59,7 +60,6 @@ const ModulePage = lazy(() => import('./pages/ModulePage'))
 const CouchHostPage = lazy(() => import('./pages/Couch').then((m) => ({ default: m.CouchHostPage })))
 const CouchPlayPage = lazy(() => import('./pages/Couch').then((m) => ({ default: m.CouchPlayPage })))
 const RigPlayPage = lazy(() => import('./pages/Couch').then((m) => ({ default: m.RigPlayPage })))
-const CollectionPage = lazy(() => import('./pages/CollectionsPage').then((m) => ({ default: m.CollectionPage })))
 const ReviewPage = lazy(() => import('./pages/ReviewPage'))
 const CreatorPage = lazy(() => import('./pages/creators/ChannelsLibrary').then((m) => ({ default: m.CreatorPage })))
 // Every other page comes when it is opened: the first screen a phone or an
@@ -104,7 +104,7 @@ export default function App() {
 }
 
 function Shell() {
-  const { user, loading, setupRequired, onboarding, needServer } = useApp()
+  const { user, loading, setupRequired, onboarding, needServer, unreachable } = useApp()
   const loc = useLocation()
   const tvMode = useTvMode()
   // A module's pages can be tinted differently from the rest (the theme engine's module overrides).
@@ -121,6 +121,7 @@ function Shell() {
   if (isHelp && (needServer || (!loading && (!user || (onboarding && user.isAdmin))))) return <Suspense fallback={<Spinner />}><Routes><Route path="/help" element={<HelpPublicPage />} /><Route path="/help/:guide" element={<HelpPublicPage />} /></Routes></Suspense>
   // From away, for anyone: how a device away from home joins (the parts that make an invite wait for a sign-in).
   if (loc.pathname === '/away' && !loading && !user && !needServer && !setupRequired) return <div className="center-page"><AwayPage /></div>
+  if (unreachable) return <Unreachable />
   if (loading) return <div className="center"><div className="spinner" /></div>
   if (needServer) return <ConnectServer />
   if (!user) return setupRequired ? <Suspense fallback={<Spinner />}><SetupWizard /></Suspense> : <AuthPage />
@@ -232,7 +233,7 @@ export function PageRoutes() {
       <Route path="/couch" element={<Suspense fallback={<Spinner />}><CouchPage /></Suspense>} />
       <Route path="/couch/:id" element={<Suspense fallback={<Spinner />}><CouchHostPage /></Suspense>} />
       <Route path="/collections" element={<SduiRoute fallback={<NotFound />} />} />
-      <Route path="/collections/:id" element={<SduiRoute fallback={<Suspense fallback={<Spinner />}><CollectionPage /></Suspense>} />} />
+      <Route path="/collections/:id" element={<SduiRoute fallback={<NotFound />} />} />
       <Route path="/person/:id" element={<SduiRoute fallback={<NotFound />} loading={<RouteSkeleton />} />} />
       <Route path="/review" element={<Suspense fallback={<Spinner />}><ReviewPage /></Suspense>} />
       <Route path="/watch/:id" element={<Suspense fallback={<Spinner />}><WatchPage /></Suspense>} />

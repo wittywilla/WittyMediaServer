@@ -119,3 +119,21 @@ html.tv-mode .remote-sheet .remote-dpad .right { right: 8px; left: auto; top: 87
 html.tv-mode .remote-sheet .remote-dpad .rk.enter { inline-size: 88px; block-size: 88px; left: 76px; top: 76px; }
 html.tv-mode .sheet-keys { grid-template-columns: 240px minmax(0, 1fr); }
 @container (min-width: 560px) { html.tv-mode .sheet-keys { grid-template-columns: minmax(0, 1fr) 240px minmax(0, 1fr) minmax(0, 1.4fr); } }
+
+/* The transport keys are 66 wide as well as high on a television; the Viewing settings panel is as tall as the picture allows and scrolls inside. */
+html.tv-mode .sheet-transport { grid-template-columns: repeat(auto-fill, minmax(66px, 1fr)); }
+html.tv-mode .sheet-transport .rk { min-inline-size: 66px; }
+@container (min-width: 560px) { html.tv-mode .sheet-transport { grid-template-columns: repeat(4, minmax(66px, 1fr)); } }
+.view-settings { max-block-size: calc(100% - 6.5rem); overflow-y: auto; overscroll-behavior: contain; }
+
+/* The sheet on a television rises above the control bar so the bar stays reachable, and the phone's rows of keys wrap rather than shrink below 44. */
+html.tv-mode .remote.remote-sheet { inset-block-end: 9rem; max-block-size: calc(100% - 11rem); }
+.sheet-transport { grid-template-columns: repeat(auto-fill, minmax(2.75rem, 1fr)); }
+.sheet-digits { grid-template-columns: repeat(auto-fill, minmax(2.75rem, 1fr)); }
+.remote-sheet .remote-colours { grid-template-columns: repeat(auto-fill, minmax(2.75rem, 1fr)); }
+.remote-sheet :is(.sheet-menus, .sheet-tracks) .rk, .remote-sheet .remote-colours .rk, .remote-sheet .rk.pill { min-inline-size: 2.75rem; }
+
+/* On a television the sheet is wide enough for all four groups of keys, the transport keys included. */
+html.tv-mode .remote.remote-sheet { inline-size: min(66rem, calc(100% - 2 * var(--gutter))); overflow-x: hidden; }
+@container (min-width: 560px) { html.tv-mode .sheet-keys { grid-template-columns: minmax(0, 1fr) 240px minmax(0, 1fr) minmax(19rem, 1.5fr); } }
+html.tv-mode .sheet-transport { grid-template-columns: repeat(4, minmax(66px, 1fr)); }

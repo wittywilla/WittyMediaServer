@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-// Copyright (C) 2026 WittyWilla and contributors
 export type Choice = {
     value: string;
     label: string;
@@ -94,6 +92,7 @@ export type OptionInfo = {
 };
 export type CoreOptionsView = {
     core: string;
+    coreName?: string;
     known: boolean;
     options: OptionInfo[];
     values: Record<string, string>;
@@ -107,6 +106,7 @@ export interface SettingsHost {
     upload<T>(path: string, body: Blob): Promise<T>;
     mediaUrl(path: string): string;
     isAdmin: boolean;
+    chooseCore?(): Promise<'restart' | 'later' | 'none'>;
 }
 export declare const LEVEL_RANK: Record<string, number>;
 export declare function levelName(level: string, consoleName?: string): string;

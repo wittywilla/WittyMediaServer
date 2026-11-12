@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-// Copyright (C) 2026 WittyWilla and contributors
 import { type ControlsData, type SaveControl } from './consoles';
 import type { ControllerData } from './mapping';
 import { type SettingsHost } from './settings';

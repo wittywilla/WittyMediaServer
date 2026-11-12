@@ -2,9 +2,9 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { api, backdropUrl, codecName, fitWidth, sized, dvdStartMode, episodeLabel, fmtRuntime, fmtTime, getPrefs, insertFxOn, isDisc, langName, posterUrl, type Item, type Prefs, discName, isBluray } from '../api'
-import DiscSections from './DiscSections'
+import { api, backdropUrl, codecName, fitWidth, sized, dvdStartMode, episodeLabel, fmtRuntime, fmtTime, insertFxOn, isDisc, langName, posterUrl, type Item, discName, isBluray } from '../api'
 import EditDetails, { type EditSection } from '../components/edit/EditDetails'
+import { DiscSettingsDialog } from '../components/edit/DiscDialogs'
 import RefreshDialog from '../components/edit/RefreshDialog'
 import TitleArtPicker, { PosterMenu, appliedOnPage } from '../components/edit/TitleArtPicker'
 import TitleExtras, { TitleLogo } from '../components/edit/TitleExtras'
@@ -39,7 +39,6 @@ export default function ItemPage() {
   const [art, setArt] = useState(false)
   const [canvas, setCanvas] = useState(false)
   const [discSettings, setDiscSettings] = useState(false)
-  const [prefs, setPrefs] = useState<Prefs | null>(null)
   const [broken, setBroken] = useState(false)
   const [more, setMore] = useState(false)
   const [sendTo, setSendTo] = useState<'device' | 'party' | null>(null)
@@ -48,7 +47,6 @@ export default function ItemPage() {
   const phone = useMedia('(max-width: 760px)')
   const load = () => { setBroken(false); return api.get<Item>(`/items/${id}`).then(setIt).catch((e) => { if (e.status >= 500) setBroken(true); else setErr(e.message) }) }
   useEffect(() => { load() }, [id])
-  useEffect(() => { getPrefs().then(setPrefs) }, [])
   // Coming back from picking a time in the player opens where it was.
   useEffect(() => { if (params.get('edit')) { const p = new URLSearchParams(params); p.delete('edit'); setParams(p, { replace: true }) } }, []) // eslint-disable-line react-hooks/exhaustive-deps
   if (broken) return <LoadError what="This title" onRetry={load} />
@@ -205,7 +203,6 @@ export default function ItemPage() {
 
           <TitleExtras target="item" id={it.id} libraryId={it.libraryId} />
           {it.showId == null && <Suspense fallback={null}><WhereToWatch itemId={it.id} /></Suspense>}
-          {disc && <DiscSections item={it} admin={!!user?.isAdmin} playable={playable} />}
           <div className="page-back">{it.showId != null
             ? <BackLink to={`/show/${it.showId}?season=${it.season ?? -1}`} label={`Back to ${it.showTitle}`} />
             : <BackLink to={`/library/${it.libraryId}`} label="Back to library" />}</div>
@@ -228,52 +225,7 @@ export default function ItemPage() {
       {art && <TitleArtPicker target="item" id={it.id} onClose={() => setArt(false)} onApplied={appliedOnPage(load)} />}
       {canvas && <Suspense fallback={null}><CanvasManager itemId={it.id} title={it.title} kind={disc ? 'disc' : 'video'} runtimeSec={it.runtimeSec} onClose={() => setCanvas(false)} /></Suspense>}
       {refreshing && <RefreshDialog target="item" id={it.id} onClose={() => setRefreshing(false)} onChanged={load} />}
-      {discSettings && <DiscSettings item={it} prefs={prefs} onClose={() => setDiscSettings(false)} onSaved={(x) => { setIt(x); setDiscSettings(false); toast('Disc settings saved') }} />}
+      {discSettings && <DiscSettingsDialog item={it} onClose={() => setDiscSettings(false)} onSaved={(x) => { setIt(x); setDiscSettings(false); toast('Disc settings saved') }} />}
     </>
-  )
-}
-
-function DiscSettings({ item, prefs, onClose, onSaved }: { item: Item; prefs: Prefs | null; onClose: () => void; onSaved: (it: Item) => void }) {
-  const [playMode, setPlayMode] = useState(item.playMode)
-  const [insertFx, setInsertFx] = useState(item.insertFx)
-  const [content, setContent] = useState(item.disc?.contentManual ? item.disc.content || '' : '')
-  const [err, setErr] = useState('')
-  const save = async () => {
-    try { onSaved(await api.put<Item>(`/items/${item.id}`, { playMode, insertFx, discContent: content })) } catch (e: any) { setErr(e.message) }
-  }
-  const guessed = !item.disc?.contentManual && item.disc?.content === 'tv' ? 'TV series' : 'movie'
-  const def = prefs?.dvdStart === 'title' ? 'main feature' : 'disc menu'
-  return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2>Disc settings</h2>
-        <div className="form full">
-          <label>What’s on this disc
-            <select className="select" value={content} onChange={(e) => setContent(e.target.value)}>
-              <option value="">Work it out from the name ({item.disc?.contentManual ? 'automatic' : guessed})</option>
-              <option value="movie">A movie</option>
-              <option value="tv">Episodes of a TV series</option>
-            </select>
-            <span className="hint">Sorts the disc under Movies or TV series in its library. Discs of a series aren’t looked up as movies.</span>
-          </label>
-          <label>When this disc is inserted
-            <select className="select" value={playMode} onChange={(e) => setPlayMode(e.target.value as Item['playMode'])}>
-              <option value="">Server default ({def})</option>
-              <option value="menu" disabled={!item.disc?.hasMenus}>Start with the disc menu (like a {discName(item)} player)</option>
-              <option value="title">Skip menus and play the main feature</option>
-            </select>
-          </label>
-          <label>Insert {discName(item)} effect (tray animation and sound)
-            <select className="select" value={insertFx} onChange={(e) => setInsertFx(e.target.value as Item['insertFx'])}>
-              <option value="">Server default ({prefs?.insertFx === false ? 'off' : 'on'})</option>
-              <option value="on">On for this disc</option>
-              <option value="off">Off for this disc</option>
-            </select>
-          </label>
-          {err && <div className="error">{err}</div>}
-        </div>
-        <div className="actions"><button className="btn ghost" onClick={onClose}>Cancel</button><button className="btn primary" onClick={save}>Save</button></div>
-      </div>
-    </div>
   )
 }

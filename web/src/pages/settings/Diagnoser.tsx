@@ -79,7 +79,15 @@ function DiscChoice({ onStarted }: { onStarted: (j: Job) => void }) {
   const [damage, setDamage] = useState(false)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
-  useEffect(() => { api.get<Targets>('/diagnose/targets').then(setTargets).catch(() => {}) }, [])
+  useEffect(() => {
+    api.get<Targets>('/diagnose/targets').then((t) => {
+      setTargets(t)
+      // From a disc's page ("Check this disc"): that disc is already chosen.
+      const asked = Number(new URLSearchParams(window.location.search).get('item'))
+      const disc = asked ? t.discs.find((d) => d.id === asked) : undefined
+      if (disc) setPath(disc.path)
+    }).catch(() => {})
+  }, [])
   const pick = (p: string) => { setPath(p); setBrowsing(false); setErr('') }
   const start = async () => {
     setBusy(true); setErr('')

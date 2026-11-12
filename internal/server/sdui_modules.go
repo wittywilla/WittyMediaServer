@@ -209,6 +209,15 @@ func (rv *sduiResolver) moduleItems(mod string, req sdui.SourceRequest) (sdui.So
 			return rv.cleanModuleResult(mod, req, res), nil
 		}
 	}
+	// A disc's sections are about this server's copy of the disc: its kept ranking, the
+	// choice of film and the names of its titles (disc_sources.go).
+	if res, ok, err := rv.discSources(mod, req); ok {
+		if err != nil || s.Modules.VersionInUse(mod) == "" {
+			return sdui.SourceResult{}, err
+		}
+		// Cleaned like any module's items, actions and all.
+		return rv.cleanModuleResult(mod, req, res), nil
+	}
 	ask := modmgr.ItemsRequest{Source: req.Source, Filter: req.Filter, Offset: req.Offset, Limit: req.Limit, Viewer: rv.moduleViewer(),
 		Settings: s.moduleSettingValues(rv.r, mod)}
 	ans, err := s.Modules.UIItems(mod, ask)
@@ -304,7 +313,123 @@ func (rv *sduiResolver) cleanModuleItem(mod string, it sdui.Item, yields []strin
 	if it.Scope == "" {
 		it.Scope = mod
 	}
+	it.Trailing = clip(it.Trailing, 40)
+	if it.Link != "" && !(sdui.ValidRoute(it.Link) || sdui.ValidURL(it.Link)) {
+		it.Link = ""
+	}
+	it.Action = rv.cleanModuleAction(mod, it.Action)
+	var acts []sdui.ItemAction
+	for _, a := range it.Actions {
+		a.Label, a.ID = clip(a.Label, 24), clip(a.ID, 40)
+		if a.Action = rv.cleanModuleAction(mod, a.Action); a.Action != nil && a.Label != "" && len(acts) < 4 {
+			acts = append(acts, a)
+		}
+	}
+	it.Actions = acts
+	it.Control = cleanModuleControl(it.Control, clip)
 	return it, true
+}
+
+// cleanModuleAction holds an action a module put on an item to what a client may run for a tap: a
+// route of this app, playing a title the profile may play, one of the module's own commands (its
+// ID, a dot, a name: the catalogue lists them), or a screen of the app. Anything else, and every
+// address outside the app, is dropped.
+func (rv *sduiResolver) cleanModuleAction(mod string, a *sdui.Action) *sdui.Action {
+	if a == nil {
+		return nil
+	}
+	out := &sdui.Action{Type: a.Type}
+	switch a.Type {
+	case sdui.ActNavigate:
+		if !sdui.ValidRoute(a.To) {
+			return nil
+		}
+		out.To = a.To
+		if a.As == sdui.PresentLayer {
+			out.As = a.As
+		}
+	case sdui.ActBack:
+	case sdui.ActNative:
+		if !slices.Contains(sdui.NativeScreens, a.To) {
+			return nil
+		}
+		out.To, out.Item = a.To, a.Item
+	case sdui.ActPlay:
+		n, err := strconv.ParseInt(a.Item, 10, 64)
+		li, ierr := rv.s.Store.Item(rv.ctx, n)
+		if err != nil || ierr != nil || !rv.acc.AllowsItem(li, nil) || rv.noPlay {
+			return nil
+		}
+		out.Item = a.Item
+	case sdui.ActCommand:
+		known := false
+		var spec sdui.CommandSpec
+		for _, c := range sdui.Catalog().Commands {
+			if c.Op == a.Op {
+				known, spec = true, c
+			}
+		}
+		if !known || !(spec.Module == mod || strings.HasPrefix(a.Op, mod+".")) || len(a.Item) > 200 {
+			return nil
+		}
+		out.Op, out.Item = a.Op, a.Item
+		for _, p := range spec.Params {
+			v, ok := a.Params[p.Name]
+			if !ok {
+				continue
+			}
+			switch x := v.(type) {
+			case string:
+				if len(x) <= 200 {
+					out.Params = putParam(out.Params, p.Name, x)
+				}
+			case float64, bool:
+				out.Params = putParam(out.Params, p.Name, x)
+			}
+		}
+	default:
+		return nil
+	}
+	return out
+}
+
+func putParam(m map[string]any, k string, v any) map[string]any {
+	if m == nil {
+		m = map[string]any{}
+	}
+	m[k] = v
+	return m
+}
+
+// cleanModuleControl holds a control a module gave to what a row may draw: a known type, short
+// text, at most 50 choices.
+func cleanModuleControl(c *sdui.Control, clip func(string, int) string) *sdui.Control {
+	if c == nil || !slices.Contains([]string{sdui.ControlSwitch, sdui.ControlSelect, sdui.ControlField, sdui.ControlSlider}, c.Type) {
+		return nil
+	}
+	out := *c
+	out.Name, out.Unit, out.Placeholder, out.Why = clip(c.Name, 40), clip(c.Unit, 8), clip(c.Placeholder, 80), clip(c.Why, 160)
+	out.Input = ""
+	if slices.Contains([]string{"text", "number", "url", "search"}, c.Input) {
+		out.Input = c.Input
+	}
+	if out.MaxLength < 0 || out.MaxLength > 2000 {
+		out.MaxLength = 0
+	}
+	out.Options = nil
+	for _, o := range c.Options {
+		if len(out.Options) < 50 {
+			out.Options = append(out.Options, sdui.EnumOption{Value: clip(o.Value, 80), Label: clip(o.Label, 80)})
+		}
+	}
+	switch v := c.Value.(type) {
+	case string:
+		out.Value = clip(v, 2000)
+	case bool, float64:
+	default:
+		out.Value = nil
+	}
+	return &out
 }
 
 // ---------------------------------------------------------------------------
@@ -315,6 +440,7 @@ func (s *Server) sduiModuleRoutes(m *http.ServeMux) {
 	m.Handle("GET /api/sdui/modules", s.requireAdmin(s.handleSDUIModules))
 	m.Handle("GET /api/sdui/modules/{module}/images/{name}", s.requireUser(s.handleSDUIModuleImage))
 	m.Handle("GET /api/sdui/modules/settings", s.requireUser(s.handleModuleSettingsList))
+	m.Handle("GET /api/sdui/slots/{slot}", s.requireUser(s.handleSettingsSlot))
 	m.Handle("GET /api/sdui/modules/{module}/settings", s.requireUser(s.handleModuleSettingsGet))
 	m.Handle("PUT /api/sdui/modules/{module}/settings", s.requireAdmin(s.handleModuleSettingsPut))
 	m.Handle("PUT /api/sdui/modules/{module}/settings/personal", s.requireUser(s.handleModuleSettingsPersonalPut))
@@ -586,6 +712,51 @@ func (s *Server) handleModuleSettingsList(w http.ResponseWriter, r *http.Request
 		out = append(out, moduleSettingsEntry{Module: ui.Module, Label: v.Label, Icon: v.Pages[0].Icon, URL: "/api/v1/sdui/modules/" + ui.Module + "/settings"})
 	}
 	writeJSON(w, 200, map[string]any{"modules": out})
+}
+
+// GET /api/sdui/slots/{slot}: the settings pages modules put in one place of the hand-built Settings
+// (you.games, people.profile), as {slot, pages: [{module, label, id, title, icon, url}]}; the url is
+// the module's settings (GET and PUT as ever) the page's rows belong to. A slot for administrators
+// lists nothing for anyone else, and a module the profile is kept from or has off is not listed.
+func (s *Server) handleSettingsSlot(w http.ResponseWriter, r *http.Request) {
+	slot := r.PathValue("slot")
+	adminOnly, ok := sdui.SettingsSlots[slot]
+	if !ok {
+		writeErr(w, 404, "no such place for settings")
+		return
+	}
+	type entry struct {
+		Module string `json:"module"`
+		Label  string `json:"label,omitempty"`
+		ID     string `json:"id"`
+		Title  string `json:"title"`
+		Icon   string `json:"icon,omitempty"`
+		URL    string `json:"url,omitempty"`
+		// Route is a module PAGE in the slot (opened through the SDUI renderer, as a layer or a screen): for
+		// people.profile it ends with ?item={profile}, which the hand-built Settings fills with the profile's id.
+		Route string `json:"route,omitempty"`
+	}
+	out := []entry{}
+	if !adminOnly || userFrom(r).IsAdmin {
+		for _, ui := range s.modulesFor(r).Modules() {
+			v := s.moduleSettingsView(r, &ui)
+			for _, p := range v.Pages {
+				if p.Slot == slot {
+					out = append(out, entry{Module: ui.Module, Label: v.Label, ID: p.ID, Title: p.Title, Icon: p.Icon, URL: "/api/v1/sdui/modules/" + ui.Module + "/settings"})
+				}
+			}
+			for _, p := range ui.Pages {
+				if p.Slot == slot {
+					route := "/page/" + p.ID
+					if slot == "people.profile" {
+						route += "?item={profile}"
+					}
+					out = append(out, entry{Module: ui.Module, Label: v.Label, ID: p.ID, Title: p.Title, Icon: p.Icon, Route: route})
+				}
+			}
+		}
+	}
+	writeJSON(w, 200, map[string]any{"slot": slot, "pages": out})
 }
 
 // GET /api/sdui/modules/{module}/settings: the module's settings for this profile.

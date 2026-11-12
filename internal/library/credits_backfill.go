@@ -135,7 +135,11 @@ func (s *Scanner) creditsTodo(ctx context.Context, lib *Library) ([]creditsTodo,
 		UNION ALL
 		SELECT 'show', t.id, t.provider, t.provider_id FROM shows t WHERE t.library_id = ?1 AND t.missing = 0
 		  AND t.provider IN (`+in+`) AND t.provider <> 'tmdb' AND t.provider_id <> ''
-		  AND NOT EXISTS (SELECT 1 FROM credits_read r WHERE r.target = 'show' AND r.target_id = t.id AND r.source = `+source+`)
+		  AND (NOT EXISTS (SELECT 1 FROM credits_read r WHERE r.target = 'show' AND r.target_id = t.id AND r.source = `+source+`)
+		    -- episodes added since the show was read: the services that name episodes' people
+		    OR (t.provider IN ('tvdb', 'tmdb-tv') AND EXISTS (SELECT 1 FROM items e WHERE e.show_id = t.id AND e.missing = 0
+		      AND e.provider = t.provider AND e.provider_id <> ''
+		      AND NOT EXISTS (SELECT 1 FROM credits_read r WHERE r.target = 'item' AND r.target_id = e.id AND r.source = `+source+`))))
 		) LIMIT ?2`, lib.ID, creditsOnlineBatch)
 	if err != nil {
 		return nil, err
@@ -225,10 +229,11 @@ func (s *Scanner) setEpisodeCredits(ctx context.Context, td creditsTodo, eps map
 		return err
 	}
 	for _, e := range list {
-		m, ok := eps[[2]int{e.season, e.episode}]
-		if !ok || !m.CreditsRead || e.provider != td.provider {
+		if e.provider != td.provider {
 			continue
 		}
+		// An episode the service no longer knows names nobody, and isn't asked about again.
+		m := eps[[2]int{e.season, e.episode}]
 		if err := s.Store.SetCredits(ctx, TargetItem, e.id, creditSourceOf(td.provider), m.Credits); err != nil {
 			return err
 		}

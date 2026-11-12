@@ -788,3 +788,41 @@ func TestRefreshReadsTheNFOAgain(t *testing.T) {
 	c, _ = s.Store.ItemCredits(ctx, oneItem(t, s, lib.ID))
 	sameView(t, "cast once the NFO is gone", view(c.Cast), []creditView{})
 }
+
+// A show matched to TMDB before credits existed gets its people and its episodes' after a scan,
+// once; an episode added later is filled in by the next pass.
+func TestCreditsBackfillShowEpisodes(t *testing.T) {
+	s, lib, root := creditsLibrary(t, "shows")
+	fake := newFakeTMDBCredits(t)
+	s.TMDBBase, s.TMDBKey = fake.srv.URL, func() string { return "key" }
+	ctx := context.Background()
+	sh := &Show{LibraryID: lib.ID, Path: filepath.Join(root, "Harbour Watch"), Title: "Harbour Watch", Provider: "tmdb-tv", ProviderID: "9"}
+	if err := s.Store.UpsertShow(ctx, sh); err != nil {
+		t.Fatal(err)
+	}
+	episode := func(n int) *Item {
+		season, number := 1, n
+		it := &Item{LibraryID: lib.ID, Kind: "video", Path: filepath.Join(sh.Path, fmt.Sprintf("Harbour Watch S01E%02d.mkv", n)), Title: "Episode",
+			ShowID: &sh.ID, Season: &season, Episode: &number, Provider: "tmdb-tv", ProviderID: strconv.Itoa(9100 + n)}
+		if err := s.Store.upsertItem(ctx, it); err != nil {
+			t.Fatal(err)
+		}
+		return it
+	}
+	first := episode(1)
+	s.fillCredits(ctx, lib)
+	sc, _ := s.Store.ShowCredits(ctx, sh.ID, -1, nil)
+	sameView(t, "show cast", view(sc.Cast), []creditView{{"Ana Lima", "Harbourmaster", "", "tmdb"}, {"Jon Reef", "Diver / Diver's Twin", "", "tmdb"}})
+	c, _ := s.Store.ItemCredits(ctx, first)
+	sameView(t, "episode 1 guests", view(c.Guests), []creditView{{"Gus Visitor", "Smuggler", "", "tmdb"}})
+	asked := fake.count("/tv/9/season/1")
+	s.fillCredits(ctx, lib)
+	if n := fake.count("/tv/9/season/1"); n != asked {
+		t.Errorf("a show already read was asked again (%d times)", n-asked)
+	}
+	second := episode(2)
+	s.fillCredits(ctx, lib)
+	if !s.Store.CreditsRead(ctx, TargetItem, second.ID, CreditsTMDB) || fake.count("/tv/9/season/1") != asked+1 {
+		t.Errorf("an episode added later wasn't filled in: asked %d more times", fake.count("/tv/9/season/1")-asked)
+	}
+}

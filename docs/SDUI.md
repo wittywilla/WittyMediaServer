@@ -491,6 +491,26 @@ A `Form` component (a container of Lists, Text and Notices with a `submitLabel`,
 
 A Shelf with `focusGrow` scales the focused card up (1.45 on a television, 1.25 on a tablet and desktop, none on a phone, whose first card is simply larger) and moves the cards after it aside; with reduced motion it gets a ring and no animation. A Shelf with `detail` draws a panel under the row for the focused item (the first until focus moves): the title large, the subtitle as one line, and the item's `actions` as buttons carrying their key glyph (`a` select, `b` back, `x` and `y` the secondary and options keys of the shared pad map). A card carries `props.actions` (`[{id, label, glyph, action}]`, at most four); an item with none shows title and subtitle, and the card's own action is the A action. `focusable` on a Shelf, Grid or List makes a card with no action a focus stop anyway (a friend in a lobby). A **person** card draws a presence dot on its avatar from its badge text, by the card style's `badgeTones` in the catalogue (Playing and Online ok, Away warn, Offline muted): the same on every app.
 
+### Pages the server serves for every app
+
+These pages are drawn from the server's own data by the same renderer as every other page; no app needs a screen of its own for them (an app that has a hand-built one may keep it, but it must open these routes through the renderer when a row or button names them). None is in the menu. Opened with `GET /sdui/pages/{page}?item=…&name=…` as the route table says.
+
+| Route | Page | Opened about | What it holds |
+|---|---|---|---|
+| `/studio/{name}`, `/network/{name}`, `/category/{name}` | `studio`, `network`, `category` | a name | Everything under it across the libraries the profile can open: Movies (n) and Shows (n), each a grid; the heading is the name. A category is a genre. |
+| `/versions/{item}` | `versions` | a title | The files it plays from, one row each (label and quality, length, size); a row plays that file. |
+| `/save-to/{item}` | `save-to` | a title | The profile's lists as switch rows (Watch later and its own manual lists): flipping one runs `collection.add` or `collection.remove`; a Form with a field makes a new list (`collection.create`). |
+| `/devices` | `devices` | | Where the profile is signed in, this device first; a row signs another out (`session.end`, after asking); Sign out the others. |
+| `/year` | `year` | | Totals, months, top titles, shows, artists and genres from the profile's own play log; Clear my history (asks first). |
+| `/activity` | `activity` | | Tabs Now and History of what the server is doing; what the profile may see follows its limits. |
+| `/notifications` | `notifications` | | Reminders and, for an administrator, a new version. |
+
+A page opened about something is a `custom` page that takes `item`, `name` and `of`; its sources read `$item`, `$name` and `$of`, and `{title}` is the title (item) or the name. Each source checks what it is asked about against the profile's limits: a title a profile may not see has no versions and no lists, whatever the URL says.
+
+**Search** is scoped: below the search box, Tabs for Everything, Movies, Shows, Music, People and Live TV, each holding what it searches (a repeat over libraries of those kinds, the people row, the channels row). Home's *Recommended for you* row says why under its heading (`{reason}`, from the source: "Because you watch Sci-Fi").
+
+**The key legend.** Every page rendered for a television or a headset ends with a Dock holding the key legend (Select, Back, Options), whether or not the page has controls to put in a Dock: a client draws no legend of its own and never needs to put the Dock back.
+
 ### The conformance kit
 
 [`pkg/sdui/conformance/fixtures`](../pkg/sdui/conformance/fixtures/index.json) holds
@@ -2780,6 +2800,13 @@ Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 48
 | [`episodes`](#episodes) | Episodes | context | episode | episode | yes | detail |
 | [`tracks`](#tracks) | Tracks | context | track | square |  | detail |
 | [`similar`](#similar) | More like this | context | movie, show | poster |  | detail |
+| [`versions`](#versions) | Versions of a title | context | video | square |  | custom |
+| [`listsFor`](#listsfor) | Lists a title can be in | context | collection | tile |  | custom |
+| [`newList`](#newlist) | A new list's name | context | view | tile |  | custom |
+| [`devices`](#devices) | Signed-in devices | personal | view | tile |  | any |
+| [`year`](#year) | Your year | personal | view | tile |  | any |
+| [`activity`](#activity) | What the server is doing | structure | view | tile |  | any |
+| [`notices`](#notices) | Notifications | personal | view | tile |  | any |
 | [`search`](#search) | Search results | context | movie, show, album, book, game, channel, person | poster |  | search |
 
 #### continueWatching
@@ -3239,6 +3266,91 @@ Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 48
 {"type":"similar","item":"$item","limit":12}
 ```
 
+#### versions
+
+*Versions of a title.* The files one title plays from, its own and the versions attached to it, each a row that plays that file with its label and quality, its length and size.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `item` (required) | ref |  | Title. $item on a page opened about a title. |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"versions","item":"$item"}
+```
+
+#### listsFor
+
+*Lists a title can be in.* The profile's own lists (Watch later and the lists it made), each a switch row: on when the title is in it, and flipping it adds or takes the title out.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `item` (required) | ref |  | Title. $item on a page opened about a title. |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"listsFor","item":"$item"}
+```
+
+#### newList
+
+*A new list's name.* One row holding a field for the name of a new list, for a Form whose command is collection.create.
+
+```json
+{"type":"newList"}
+```
+
+#### devices
+
+*Signed-in devices.* Where the profile is signed in: this device first, then the others with when each was last used, a row that signs it out after asking.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"devices"}
+```
+
+#### year
+
+*Your year.* The profile's year from its own play log: the totals, or the top titles, shows, artists or genres, or the months.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `part` | enum: totals, months, titles, shows, artists, genres | `totals` | Part |
+| `year` | int 0 to 3000 |  | Year. 0 is this year. |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"year","part":"titles","limit":10}
+```
+
+#### activity
+
+*What the server is doing.* The tasks running now, with how far each has got, or those just finished. What the profile may see of them follows its limits.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `part` | enum: now, history | `now` | Part |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"activity","part":"now"}
+```
+
+#### notices
+
+*Notifications.* What the profile may want to know: a reminder that a programme is on, and for an administrator that a new version of the server is ready.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"notices"}
+```
+
 #### search
 
 *Search results.* What a search finds in one library, among the channels, or among the people credited on titles the profile may see. Nothing under two characters.
@@ -3320,6 +3432,15 @@ What shows each place in the app: an SDUI page, asked for with the parameters gi
 | `/photos` | page `photos` |  |
 | `/books` | page `books` |  |
 | `/games` | page `games` |  |
+| `/studio/{name}` | page `studio` | name={name} |
+| `/network/{name}` | page `network` | name={name} |
+| `/category/{name}` | page `category` | name={name} |
+| `/versions/{item}` | page `versions` | item={item} |
+| `/save-to/{item}` | page `save-to` | item={item} |
+| `/devices` | page `devices` |  |
+| `/year` | page `year` |  |
+| `/activity` | page `activity` |  |
+| `/notifications` | page `notifications` |  |
 | `/page/{id}` | page `{id}` |  |
 | `/settings` | native `settings` |  |
 | `/settings/{section}` | native `settings` |  |
@@ -3380,6 +3501,12 @@ A menu entry (`type: native`) may open the screens marked *menu*; the others nee
 | `wittyplay.kids.friends` | WittyPlay Online, administrators: replaces the profiles a Kids profile (item: its ID) sees and is seen by with params.friends. | `PUT /api/games/online/kids/{item}` with `{"friends":"{friends}"}`; `friends` (ints, required) |
 | `wittyplay.screenshot.keep` | WittyPlay: keeps a screenshot of the game being played (item: its session) in the profile's Memories. | `POST /api/play/{item}/screenshot` |
 | `wittyplay.memory.delete` | WittyPlay: deletes one of the profile's kept screenshots (item: the game's ID, params.name its name). | `DELETE /api/games/{item}/shots/{name}`; `name` (string, required) |
+| `collection.add` | Puts the title (item) in the profile's list params.collection. | `POST /api/collections/{collection}/items` with `{"items":["{item}"]}`; `collection` (string, required) |
+| `collection.remove` | Takes the title (item) off the profile's list params.collection. | `DELETE /api/collections/{collection}/items` with `{"items":["{item}"]}`; `collection` (string, required) |
+| `collection.create` | Makes a list of the profile's own, named params.name. | `POST /api/collections` with `{"name":"{name}","kind":"manual"}`; `name` (string, required) |
+| `session.end` | Signs out the device params.session. | `DELETE /api/sessions/{session}`; `session` (string, required) |
+| `sessions.endOthers` | Signs out every device of the profile but this one. | `DELETE /api/sessions` |
+| `history.clear` | Forgets what the profile watched and listened to. It cannot be undone. | `DELETE /api/me/history` |
 | `rewind.open` | Client-handled, in the game player: opens the player's rewind panel. No request. |  |
 | `controller.remap` | Client-handled, in the game player: opens the player's own controller-mapping panel. No request. |  |
 | `refresh` | Asks for the page again. |  |
@@ -3421,6 +3548,7 @@ The menu's style on each form factor, the theme and WittyTV look each wears by d
 | `{query}` | What was searched for |
 | `{each}` | What a repeated section is repeated over |
 | `{count}` | How many items a source gave |
+| `{reason}` | Why a source chose its items (a row's subtitle) |
 | `{genre}` | The source's genre |
 | `{studio}` | The source's studio |
 | `{tag}` | The source's tag |
@@ -3447,6 +3575,15 @@ The menu's style on each form factor, the theme and WittyTV look each wears by d
 | `home` | home | every home page | `setup` (Notice), `welcome` (Notice), `hero` (Hero of featured), `libraries` (Shelf of libraries), `jump` (Shelf of continueWatching), `onnow` (Shelf of liveNow), `foryou` (Shelf of recommended), `nextup` (Shelf of nextUp), `view` (Shelf of savedView, per pinnedView), `recent` (Shelf of recentlyAdded, per librarie), `shuffle` (Banner of random) |
 | `libraries` | libraries | every libraries page | `all` (Grid of libraries) |
 | `library` | library | every library page | `all` (Grid of recentlyAdded) |
+| `studio` | custom | every custom page | `films` (Grid of browse), `shows` (Grid of browse) |
+| `network` | custom | every custom page | `films` (Grid of browse), `shows` (Grid of browse) |
+| `category` | custom | every custom page | `films` (Grid of browse), `shows` (Grid of browse) |
+| `versions` | custom | every custom page | `lead` (Text), `files` (List of versions) |
+| `save-to` | custom | every custom page | `lead` (Text), `lists` (List of listsFor), `new` (Form), `name` (List of newList) |
+| `devices` | custom | every custom page | `lead` (Text), `list` (List of devices), `others` (Button) |
+| `year` | custom | every custom page | `totals` (List of year), `months` (List of year), `titles` (List of year), `shows` (List of year), `artists` (List of year), `genres` (List of year), `clear` (Button) |
+| `activity` | custom | every custom page | `tabs` (Tabs), `now` (Tab), `running` (List of activity), `history` (Tab), `done` (List of activity) |
+| `notifications` | custom | every custom page | `recent` (List of notices) |
 | `library-movies` | library | movies | `filters` (FilterBar), `all` (Grid of browse) |
 | `library-shows` | library | shows | `filters` (FilterBar), `all` (Grid of browse) |
 | `library-anime` | library | anime | `filters` (FilterBar), `all` (Grid of browse) |
@@ -3463,7 +3600,7 @@ The menu's style on each form factor, the theme and WittyTV look each wears by d
 | `detail-artist` | detail | artist | `header` (DetailHeader), `albums` (Shelf of albums), `tracks` (TrackList of tracks) |
 | `detail-collection` | detail | collection | `header` (DetailHeader), `all` (Grid of collection) |
 | `detail-person` | detail | person | `header` (DetailHeader), `titles` (Shelf of filmography, per personPart) |
-| `search` | search | every search page | `q` (SearchBox), `idle` (Text), `found` (Shelf of search, per librarie), `people` (Shelf of search), `channels` (Shelf of search) |
+| `search` | search | every search page | `q` (SearchBox), `idle` (Text), `scope` (Tabs), `all` (Tab), `found` (Shelf of search, per librarie), `people` (Shelf of search), `channels` (Shelf of search), `movies` (Tab), `found-movies` (Shelf of search, per librarie), `shows` (Tab), `found-shows` (Shelf of search, per librarie), `music` (Tab), `found-music` (Shelf of search, per librarie), `people-tab` (Tab), `people-only` (Shelf of search), `tv` (Tab), `channels-only` (Shelf of search) |
 | `livetv` | livetv | every livetv page | `guide` (NativeView), `favourites` (Shelf of liveNow), `recordings` (Shelf of recordings), `channels` (Grid of liveNow) |
 | `music` | music | every music page | `listening` (Shelf of continueWatching), `played` (Shelf of albums, per librarie), `added` (Shelf of albums, per librarie), `artists` (Shelf of artists, per librarie) |
 | `photos` | photos | every photos page | `recent` (Shelf of recentlyAdded, per librarie) |

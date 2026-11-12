@@ -387,6 +387,9 @@
         "method": {
           "type": "string"
         },
+        "module": {
+          "type": "string"
+        },
         "op": {
           "type": "string"
         },
@@ -2806,6 +2809,13 @@
     "episodes",
     "tracks",
     "similar",
+    "versions",
+    "listsFor",
+    "newList",
+    "devices",
+    "year",
+    "activity",
+    "notices",
     "search"
   ]
 }

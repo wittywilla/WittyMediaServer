@@ -5,6 +5,7 @@ package sdui
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 )
 
@@ -57,5 +58,50 @@ func TestExperienceFilesAreWhole(t *testing.T) {
 	}
 	if sh := ShellFor("rail", FormTV); sh.Nav != NavTVSideMenu || sh.Open != 400 || sh.Drawer != 480 {
 		t.Errorf("the rail on a television: %+v", sh)
+	}
+}
+
+// Every category of Crossbar's Home has a name of its own: a row repeated over libraries or pinned
+// views has "{each}" in its title, which would make a blank tab, so the tab is named for what the
+// copies are. A page whose Tab has no label is refused by the validator.
+func TestCrossbarTabsAreAllLabelled(t *testing.T) {
+	home, _ := StockPage("home")
+	e := ExperienceByID("crossbar")
+	if e == nil {
+		t.Fatal("no crossbar experience")
+	}
+	p := styled(home, e)
+	var bar *Section
+	for i := range p.Sections {
+		if p.Sections[i].Component == "CrossBar" {
+			bar = &p.Sections[i]
+		}
+	}
+	if bar == nil || len(bar.Children) < 3 {
+		t.Fatalf("Home in Crossbar has no bar of categories: %+v", p.Sections)
+	}
+	seen := map[string]bool{}
+	for _, tab := range bar.Children {
+		label := propStr(tab.Props, "label", "")
+		if label == "" || strings.Contains(label, "{") || seen[label] {
+			t.Errorf("tab %s has the label %q", tab.ID, label)
+		}
+		seen[label] = true
+	}
+	if !seen["Saved views"] || !seen["Recently added"] {
+		t.Errorf("the repeated rows should be named for what they are: %v", seen)
+	}
+	if issues := ValidatePage(&p); HasErrors(issues) {
+		t.Errorf("the restructured Home doesn't validate: %v", issues)
+	}
+}
+
+func TestValidatorRefusesATabWithoutALabel(t *testing.T) {
+	for _, label := range []string{"", "   ", "{each}"} {
+		p := Page{ID: "x", Kind: "custom", Title: "X", Sections: []Section{{ID: "bar", Component: "CrossBar", Children: []Section{
+			{ID: "a", Component: "Tab", Props: map[string]any{"label": label}, Children: []Section{{ID: "t", Component: "Text", Props: map[string]any{"text": "hi"}}}}}}}}
+		if !HasErrors(ValidatePage(&p)) {
+			t.Errorf("a tab labelled %q passed", label)
+		}
 	}
 }

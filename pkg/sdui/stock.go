@@ -50,7 +50,7 @@ func buildStockPages() []Page {
 			when(sec("libraries", "Shelf", props{"title": "Your libraries", "cardStyle": "tile", "seeAll": "never"}, Source{"type": "libraries"}), notTV),
 			sec("jump", "Shelf", props{"title": "Jump back in"}, Source{"type": "continueWatching", "media": "all"}),
 			when(scoped(sec("onnow", "Shelf", props{"title": "On TV now"}, Source{"type": "liveNow"}), "wittytv"), Condition{Can: "liveTv", Feature: "live-tv"}),
-			sec("foryou", "Shelf", props{"title": "Recommended for you"}, Source{"type": "recommended", "limit": 20}),
+			sec("foryou", "Shelf", props{"title": "Recommended for you", "subtitle": "{reason}"}, Source{"type": "recommended", "limit": 20}),
 			sec("nextup", "Shelf", props{"title": "Next up", "cardStyle": "progress"}, Source{"type": "nextUp"}),
 			repeated(sec("view", "Shelf", props{"title": "{each}"}, Source{"type": "savedView", "view": "$each", "limit": 20}), "pinnedViews"),
 			repeated(sec("recent", "Shelf", props{"title": "Recently added in {each}", "seeAll": "always"}, Source{"type": "recentlyAdded", "library": "$each", "limit": 20}), "libraries"),
@@ -163,13 +163,30 @@ func buildStockPages() []Page {
 			repeated(sec("titles", "Shelf", props{"title": "{each}", "seeAll": "never"}, Source{"type": "filmography", "person": "$person", "part": "$each"}), "personParts"),
 		}}
 
+	// Search: a scope (Everything, Films, Shows, Music, People, Live TV) as tabs, each holding what that scope
+	// searches; the search box and the hint stay above them.
+	foundIn := func(id string, kinds ...string) Section {
+		return repeated(sec(id, "Shelf", props{"title": "{each}", "seeAll": "never"}, Source{"type": "search", "query": "$query", "library": "$each"}), "libraries", kinds...)
+	}
+	peopleRow := func(id string) Section {
+		return sec(id, "Shelf", props{"title": "People", "seeAll": "never"}, Source{"type": "search", "query": "$query", "in": "people"})
+	}
+	channelRow := func(id string) Section {
+		return when(scoped(sec(id, "Shelf", props{"title": "Channels", "seeAll": "never"}, Source{"type": "search", "query": "$query", "in": "channels"}), "wittytv"), Condition{Can: "liveTv"})
+	}
+	scopes := with(sec("scope", "Tabs", props{"style": "segments", "default": "all"}, nil),
+		with(sec("all", "Tab", props{"label": "Everything"}, nil), foundIn("found"), peopleRow("people"), channelRow("channels")),
+		with(sec("movies", "Tab", props{"label": "Movies", "icon": "movie"}, nil), foundIn("found-movies", "movies", "discs", "videos")),
+		with(sec("shows", "Tab", props{"label": "Shows", "icon": "show"}, nil), foundIn("found-shows", "shows", "anime")),
+		with(sec("music", "Tab", props{"label": "Music", "icon": "music"}, nil), foundIn("found-music", "music", "audiobooks", "podcasts")),
+		with(sec("people-tab", "Tab", props{"label": "People", "icon": "users"}, nil), peopleRow("people-only")),
+		when(with(sec("tv", "Tab", props{"label": "Live TV", "icon": "live"}, nil), channelRow("channels-only")), Condition{Can: "liveTv"}),
+	)
 	search := Page{ID: "search", Kind: "search", Title: "Search", Icon: "search",
 		Sections: []Section{
 			sec("q", "SearchBox", props{"placeholder": "Films, shows, people, music, books, channels", "autofocus": true}, nil),
 			when(sec("idle", "Text", props{"text": "Type at least two letters to search every library you can open.", "role": "caption"}, nil), Condition{Not: &Condition{Flag: "hasQuery"}}),
-			repeated(sec("found", "Shelf", props{"title": "{each}", "seeAll": "never"}, Source{"type": "search", "query": "$query", "library": "$each"}), "libraries"),
-			sec("people", "Shelf", props{"title": "People", "seeAll": "never"}, Source{"type": "search", "query": "$query", "in": "people"}),
-			when(scoped(sec("channels", "Shelf", props{"title": "Channels", "seeAll": "never"}, Source{"type": "search", "query": "$query", "in": "channels"}), "wittytv"), Condition{Can: "liveTv"}),
+			when(scopes, Condition{Flag: "hasQuery"}),
 		}}
 
 	livetv := Page{ID: "livetv", Kind: "livetv", Title: "Live TV", Icon: "live", Scope: "wittytv",
@@ -205,6 +222,7 @@ func buildStockPages() []Page {
 		}}
 
 	out := []Page{home, libraries, library}
+	out = append(out, buildUtilityPages()...)
 	out = append(out, videoLibs...)
 	out = append(out, musicLib)
 	out = append(out, spokenLibs...)

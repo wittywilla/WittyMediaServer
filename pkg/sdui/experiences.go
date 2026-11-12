@@ -354,10 +354,7 @@ func restructure(list []Section, kind string, st PageStyle) []Section {
 		if len(bar.Children) >= 8 || (s.Component != "Shelf" && s.Component != "Grid" && s.Component != "Hero") || s.Source.Type() == "" {
 			continue
 		}
-		label := propStr(s.Props, "title", "")
-		if label == "" {
-			label = "Featured"
-		}
+		label := tabLabel(s)
 		row := s
 		row.Component, row.Props = "List", map[string]any{"dense": true}
 		bar.Children = append(bar.Children, Section{ID: s.ID + "-tab", Component: "Tab", When: s.When, Props: map[string]any{"label": label, "icon": "list"}, Children: []Section{row}})
@@ -366,6 +363,23 @@ func restructure(list []Section, kind string, st PageStyle) []Section {
 		return list
 	}
 	return append(keep, bar)
+}
+
+// tabLabel is the name of the category a row becomes in a cross bar: its title, with what a repeated
+// row puts in its title ("{each}", " in {each}") taken out, since the tab stands for every copy; a row
+// with no title of its own is named for what its source is.
+func tabLabel(s Section) string {
+	label := propStr(s.Props, "title", "")
+	label = strings.TrimSpace(strings.ReplaceAll(strings.ReplaceAll(label, " in {each}", ""), "{each}", ""))
+	if label != "" {
+		return label
+	}
+	if spec, ok := SourceType(s.Source.Type()); ok && s.Repeat != nil && s.Repeat.Over == "pinnedViews" {
+		return "Saved views"
+	} else if ok && spec.Label != "" {
+		return spec.Label
+	}
+	return "Featured"
 }
 
 // filterTargets are the grids a filter bar drives: they stay grids.

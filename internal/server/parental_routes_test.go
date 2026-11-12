@@ -218,7 +218,7 @@ var plainRoutes = []string{
 	// A profile's own layout: like its page arrangements, kept from it by editLayout in the handler.
 	"GET /api/sdui/placements", "PUT /api/sdui/placements", "DELETE /api/sdui/placements", "GET /api/sdui/experiences", "GET /api/sdui/experience", "PUT /api/sdui/experience", "DELETE /api/sdui/experience", "POST /api/themes/mine",
 	// A module's pictures and settings: a module the profile is kept from is 404 in the handler.
-	"GET /api/sdui/modules/{module}/images/{name}", "GET /api/sdui/modules/settings", "GET /api/sdui/modules/{module}/settings", "PUT /api/sdui/modules/{module}/settings/personal",
+	"GET /api/sdui/modules/{module}/images/{name}", "GET /api/sdui/modules/settings", "GET /api/sdui/slots/{slot}", "GET /api/sdui/modules/{module}/settings", "PUT /api/sdui/modules/{module}/settings/personal",
 	"GET /api/syncplay",
 	"POST /api/media/{id}/stems/approximate",
 	"POST /api/media/{id}/karaoke/prepare",

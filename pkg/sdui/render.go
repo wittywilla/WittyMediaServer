@@ -55,6 +55,9 @@ type SourceResult struct {
 	// all, -1 when that isn't known.
 	More  bool
 	Total int
+	// Reason says why these were chosen, in a line ("Because you watch Sci-Fi"): a row whose subtitle
+	// is "{reason}" shows it under its heading.
+	Reason string
 	// Selected is the season an "episodes" source chose when none was named.
 	Selected string
 }
@@ -199,6 +202,7 @@ func Render(page Page, ctx *RenderContext) (Document, error) {
 	}
 	r.finishFilters(&root)
 	r.finishDocks(&root)
+	r.ensureLegend(&root)
 	stampFocus(&root)
 	if info != nil {
 		for i := range info.Sections {
@@ -1040,7 +1044,7 @@ func (r *renderer) collectionPage(n *Node, in instance, offset, limit int, allow
 	if title != "" {
 		n.Props["title"] = Truncate(title, r.l.TextLimits.Title)
 	}
-	if st := r.fill(propStr(p, "subtitle", ""), in.each, s.Source); st != "" {
+	if st := r.fill(propStr(p, "subtitle", ""), in.each, s.Source); st != "" && !strings.Contains(st, "{reason}") {
 		n.Props["subtitle"] = st
 	}
 	if hs := propStr(p, "headingStyle", "plain"); hs != "plain" {
@@ -1080,6 +1084,7 @@ func (r *renderer) collectionPage(n *Node, in instance, offset, limit int, allow
 	// in them must not cost a small server a query for every row.
 	if allowDefer && (r.eager >= r.l.Budget.EagerSections || r.asked >= 3*r.l.Budget.EagerSections) && !listLike(s.Component) {
 		n.State = "deferred"
+		dropCount(n)
 		n.Props["more"] = map[string]any{"url": r.moreURL(n.ID, 0)}
 		return true
 	}
@@ -1091,10 +1096,12 @@ func (r *renderer) collectionPage(n *Node, in instance, offset, limit int, allow
 	}
 	if err != nil {
 		n.State = "error"
+		dropCount(n)
 		n.Props["more"] = map[string]any{"url": r.moreURL(n.ID, offset)}
 		return true
 	}
 	if len(res.Items) == 0 && offset == 0 {
+		dropCount(n)
 		if propStr(p, "empty", "hide") != "message" {
 			return false
 		}
@@ -1103,6 +1110,19 @@ func (r *renderer) collectionPage(n *Node, in instance, offset, limit int, allow
 		return true
 	}
 	r.eager++
+	if t, _ := n.Props["title"].(string); strings.Contains(t, "{count}") {
+		count := res.Total
+		if count <= 0 {
+			count = len(res.Items)
+		}
+		n.Props["title"] = strings.TrimSpace(strings.ReplaceAll(t, "{count}", strconv.Itoa(count)))
+	}
+	// A row's subtitle of "{reason}" says why the source chose what it did, when it said.
+	if st := propStr(p, "subtitle", ""); strings.Contains(st, "{reason}") {
+		if line := strings.TrimSpace(strings.ReplaceAll(st, "{reason}", res.Reason)); res.Reason != "" && line != "" {
+			n.Props["subtitle"] = line
+		}
+	}
 	for i := range res.Items {
 		it := &res.Items[i]
 		if listLike(s.Component) {
@@ -1801,6 +1821,34 @@ func (r *renderer) dock(n *Node, in instance, depth int) bool {
 	return true
 }
 
+// ensureLegend gives every page on a television or a headset a Dock with the key legend (Select,
+// Back, Options), whatever the page is: a remote or a pad is always in use there, and the keys
+// are what a person looks for. A page that has a Dock keeps its own; clients draw no legend of
+// their own.
+func (r *renderer) ensureLegend(root *Node) {
+	if r.l.FormFactor != FormTV && r.l.FormFactor != FormHeadset {
+		return
+	}
+	has := false
+	var find func(n *Node)
+	find = func(n *Node) {
+		has = has || n.Type == "Dock"
+		for i := range n.Children {
+			find(&n.Children[i])
+		}
+	}
+	find(root)
+	if has {
+		return
+	}
+	id := r.uniqueID("dock")
+	legend := Node{Type: "KeyLegend", ID: r.uniqueID(id + ":keys"), Props: map[string]any{}}
+	if !r.keyLegend(&legend, instance{sec: &Section{ID: legend.ID, Component: "KeyLegend"}, id: legend.ID}) {
+		return
+	}
+	root.Children = append(root.Children, Node{Type: "Dock", ID: id, Props: map[string]any{"title": "Options", "placement": r.l.Dock.Placement}, Children: []Node{legend}})
+}
+
 func anyList(in []string) []any {
 	out := make([]any, len(in))
 	for i, s := range in {
@@ -2316,3 +2364,11 @@ func (r *renderer) regions(in *PageRegions) *PageRegions {
 
 // StatusItems are the status bar's items, in order.
 func (p *PageRegions) StatusItems() []StatusItem { return slices.Clone(p.StatusBar) }
+
+// dropCount takes "{count}" out of a title that has no count to show (the section hasn't been asked for yet,
+// or came to nothing): "Movies ({count})" is "Movies".
+func dropCount(n *Node) {
+	if t, _ := n.Props["title"].(string); strings.Contains(t, "{count}") {
+		n.Props["title"] = strings.TrimSpace(strings.NewReplacer(" ({count})", "", "{count}", "").Replace(t))
+	}
+}

@@ -357,7 +357,7 @@ func (rv *sduiResolver) cleanModuleAction(mod string, a *sdui.Action) *sdui.Acti
 				known, spec = true, c
 			}
 		}
-		if !known || !strings.HasPrefix(a.Op, mod+".") || len(a.Item) > 200 {
+		if !known || !(spec.Module == mod || strings.HasPrefix(a.Op, mod+".")) || len(a.Item) > 200 {
 			return nil
 		}
 		out.Op, out.Item = a.Op, a.Item
@@ -428,6 +428,7 @@ func (s *Server) sduiModuleRoutes(m *http.ServeMux) {
 	m.Handle("GET /api/sdui/modules", s.requireAdmin(s.handleSDUIModules))
 	m.Handle("GET /api/sdui/modules/{module}/images/{name}", s.requireUser(s.handleSDUIModuleImage))
 	m.Handle("GET /api/sdui/modules/settings", s.requireUser(s.handleModuleSettingsList))
+	m.Handle("GET /api/sdui/slots/{slot}", s.requireUser(s.handleSettingsSlot))
 	m.Handle("GET /api/sdui/modules/{module}/settings", s.requireUser(s.handleModuleSettingsGet))
 	m.Handle("PUT /api/sdui/modules/{module}/settings", s.requireAdmin(s.handleModuleSettingsPut))
 	m.Handle("PUT /api/sdui/modules/{module}/settings/personal", s.requireUser(s.handleModuleSettingsPersonalPut))
@@ -699,6 +700,39 @@ func (s *Server) handleModuleSettingsList(w http.ResponseWriter, r *http.Request
 		out = append(out, moduleSettingsEntry{Module: ui.Module, Label: v.Label, Icon: v.Pages[0].Icon, URL: "/api/v1/sdui/modules/" + ui.Module + "/settings"})
 	}
 	writeJSON(w, 200, map[string]any{"modules": out})
+}
+
+// GET /api/sdui/slots/{slot}: the settings pages modules put in one place of the hand-built Settings
+// (you.games, people.profile), as {slot, pages: [{module, label, id, title, icon, url}]}; the url is
+// the module's settings (GET and PUT as ever) the page's rows belong to. A slot for administrators
+// lists nothing for anyone else, and a module the profile is kept from or has off is not listed.
+func (s *Server) handleSettingsSlot(w http.ResponseWriter, r *http.Request) {
+	slot := r.PathValue("slot")
+	adminOnly, ok := sdui.SettingsSlots[slot]
+	if !ok {
+		writeErr(w, 404, "no such place for settings")
+		return
+	}
+	type entry struct {
+		Module string `json:"module"`
+		Label  string `json:"label,omitempty"`
+		ID     string `json:"id"`
+		Title  string `json:"title"`
+		Icon   string `json:"icon,omitempty"`
+		URL    string `json:"url"`
+	}
+	out := []entry{}
+	if !adminOnly || userFrom(r).IsAdmin {
+		for _, ui := range s.modulesFor(r).Modules() {
+			v := s.moduleSettingsView(r, &ui)
+			for _, p := range v.Pages {
+				if p.Slot == slot {
+					out = append(out, entry{Module: ui.Module, Label: v.Label, ID: p.ID, Title: p.Title, Icon: p.Icon, URL: "/api/v1/sdui/modules/" + ui.Module + "/settings"})
+				}
+			}
+		}
+	}
+	writeJSON(w, 200, map[string]any{"slot": slot, "pages": out})
 }
 
 // GET /api/sdui/modules/{module}/settings: the module's settings for this profile.

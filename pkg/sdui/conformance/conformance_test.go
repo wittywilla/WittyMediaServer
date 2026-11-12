@@ -235,6 +235,22 @@ func checkDocument(t *testing.T, doc *sdui.Document) {
 	if len(orders) > 0 && defaults != 1 {
 		t.Errorf("%d nodes are marked as where focus starts; want 1", defaults)
 	}
+	// A television and a headset always show the key legend, so every page has a Dock holding it, whatever
+	// the page is (a not-found page has no document to check).
+	if ff := doc.Layout.FormFactor; ff == sdui.FormTV || ff == sdui.FormHeadset {
+		legend := false
+		var find func(n *sdui.Node, inDock bool)
+		find = func(n *sdui.Node, inDock bool) {
+			legend = legend || (inDock && n.Type == "KeyLegend")
+			for i := range n.Children {
+				find(&n.Children[i], inDock || n.Type == "Dock")
+			}
+		}
+		find(&doc.Root, false)
+		if !legend {
+			t.Errorf("a %s page has no Dock with the key legend", ff)
+		}
+	}
 	if doc.Meta.ETag != sdui.ETag(*doc) {
 		t.Errorf("meta.etag is not the document's ETag")
 	}

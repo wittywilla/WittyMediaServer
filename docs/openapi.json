@@ -11884,6 +11884,9 @@
           "method": {
             "type": "string"
           },
+          "module": {
+            "type": "string"
+          },
           "op": {
             "type": "string"
           },
@@ -47710,6 +47713,51 @@
           "SDUI"
         ],
         "x-wms-auth": "public"
+      }
+    },
+    "/sdui/slots/{slot}": {
+      "get": {
+        "operationId": "getSduiSettingsSlot",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slot",
+            "required": true,
+            "schema": {
+              "enum": [
+                "you.games",
+                "people.profile"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The settings pages modules put in one place of the hand-built Settings (you.games, people.profile for administrators): {slot, pages: [{module, label, id, title, icon, url}]}.",
+        "tags": [
+          "Server-driven UI"
+        ],
+        "x-wms-auth": "user"
       }
     },
     "/sdui/topshelf": {

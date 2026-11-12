@@ -387,6 +387,11 @@ func (v *validator) sections(list []Section, path string, depth int, parent stri
 				v.err(sp+"/component", "Wrap it in a Tab.", "Tabs and a CrossBar hold only Tab sections, not %s", s.Component)
 			}
 		}
+		if s.Component == "Tab" {
+			if label := strings.TrimSpace(strings.ReplaceAll(propStr(s.Props, "label", ""), "{each}", "")); label == "" {
+				v.err(sp+"/props/label", "Give the tab a name: it is all that shows in the strip.", "a tab needs a label of its own (an empty one, or only {each}, leaves a blank tab)")
+			}
+		}
 		if parent == "List" && s.Component != "ListItem" {
 			v.err(sp+"/component", "Use a ListItem.", "a List holds only ListItem sections, not %s", s.Component)
 		}

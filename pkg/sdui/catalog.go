@@ -226,6 +226,11 @@ type CommandSpec struct {
 	// empty string (an int one is required, so it is always given). Body stays JSON whatever
 	// the values.
 	Params []CommandParam `json:"params,omitempty"`
+	// Module is the module whose pages and items may carry this command besides the server's own
+	// pages; empty: only the server's pages. A module's item may carry a command only when it is the
+	// module's (Module, or an op beginning with its ID and a dot), so a module can't ask a client to
+	// sign a device out. Disc settings, for one, are a module page whose rows run disc.choose.
+	Module string `json:"module,omitempty"`
 }
 
 // CommandParam is one value a command takes besides the action's item.

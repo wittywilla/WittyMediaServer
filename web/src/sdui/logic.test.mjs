@@ -190,3 +190,15 @@ test('the app\'s own tools: which pages get them, and which music tabs open the 
   assert.equal(ownLibraryTab({ library: '2', tab: 'albums' }, libs), false)
   assert.equal(ownLibraryTab({ library: '1', tab: 'songs' }, libs), false)
 })
+
+test('a browser names itself once, randomly, and the name goes with every request', async () => {
+  const { deviceName, describe, query } = await import('./device.ts')
+  const kept = new Map()
+  const store = { getItem: (k) => kept.get(k) ?? null, setItem: (k, v) => kept.set(k, v) }
+  const a = deviceName(false, store, () => 'ab12cd34ef')
+  assert.match(a, /^web-[a-z0-9]+$/)
+  assert.equal(deviceName(false, store, () => 'zzzz'), a, 'kept')
+  assert.match(deviceName(true, new Map() && { getItem: () => null, setItem: () => {} }, () => 'q1'), /^desktop-q1$/)
+  const d = describe({ width: 1280, height: 800, tvMode: false, desktopShell: false, touch: false, pointer: true, reducedMotion: false, hdr: false, locale: 'en', uhd: false }, [], a)
+  assert.equal(new URLSearchParams(query(d)).get('device'), a)
+})

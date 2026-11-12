@@ -10,6 +10,11 @@ import { toast, useApp } from '../state'
 import { applyTheme, AUTO_THEME, currentThemeId, CUSTOM_THEME, deviceTheme, setCustomThemeCss, setDeviceTheme, type ThemeMeta } from '../theme'
 import { setNavStyle, useNavStyle, type NavStyle } from '../navPrefs'
 import NavCustomize from '../shell/NavCustomize'
+import { useMenu } from '../shell/useNav'
+import { bump } from '../sdui/client'
+import { query } from '../sdui/device'
+import { useDevice } from '../sdui/useSdui'
+import { announce } from '../a11y'
 import { globalView, setGlobalView, type ViewPrefs } from '../player/viewPrefs'
 import { Button } from '../ui/Button'
 import { Segmented } from '../ui/Choice'
@@ -238,8 +243,65 @@ export default function AppearanceSettings() {
   )
 }
 
+// The layout options a server offers (docs/SDUI.md, "Layout options"): one for this profile on
+// this device, kept by the server; "As the server sets it" follows the administrator's choice.
+const LAYOUT_HINTS: Record<string, string> = {
+  sidebar: 'The menu down the side; a bar at the bottom on a phone',
+  topTabs: 'Tabs across the top, the whole width for the page',
+  tvRows: 'Rows of large cards, as on a television, with a narrow rail',
+  compactList: 'A line per title, the most on the screen at once',
+  streaming: 'A big spotlight under a see-through menu, then rows of wide cards',
+}
+const LAYOUT_PIC: Record<string, string> = { sidebar: 'side', topTabs: 'top', tvRows: 'rail', compactList: 'list', streaming: 'stream' }
+
+function ServerLayouts({ layouts }: { layouts: NonNullable<ReturnType<typeof useMenu>['layouts']> }) {
+  const [busy, setBusy] = useState('')
+  const device = useDevice()
+  const choose = async (value: string) => {
+    setBusy(value)
+    // For this device: its name and what it is, as the menu was asked for.
+    const path = layouts.url.replace(/^\/api(\/v1)?/, '') + (layouts.url.includes('?') ? '&' : '?') + query(device)
+    try {
+      if (value) await api.put(path, { layout: value })
+      else await api.del(path)
+      bump()
+      announce(value ? `Layout: ${layouts.options.find((o) => o.value === value)?.label || value}` : 'Layout: as the server sets it')
+    } catch (e) { toast((e as Error).message, { tone: 'danger' }) } finally { setBusy('') }
+  }
+  const current = layouts.chosen || ''
+  return (
+    <>
+      <div className="layout-opts" role="radiogroup" aria-label="Layout on this device">
+        {layouts.options.map((o) => (
+          <button key={o.value} type="button" role="radio" aria-checked={layouts.current === o.value} disabled={!!busy} className={'layout-opt' + (layouts.current === o.value ? ' on' : '')} onClick={() => void choose(o.value)}>
+            <span className={'layout-pic pic-' + (LAYOUT_PIC[o.value] || 'side')} aria-hidden="true"><i className="s" /><i className="t" /><i className="c" /></span>
+            <b>{o.label}</b><span className="muted">{LAYOUT_HINTS[o.value] || ''}</span>
+          </button>
+        ))}
+      </div>
+      <Row label="As the server sets it" desc={current ? 'This device has a layout of its own. Go back to the one the server gives everyone.' : 'This device follows the server’s layout.'}>
+        <Button size="sm" variant="ghost" disabled={!current || !!busy} onClick={() => void choose('')}>Use the server’s</Button>
+      </Row>
+    </>
+  )
+}
+
 // Where the navigation sits on this device, and what's in it.
 function LayoutSection() {
+  const menu = useMenu()
+  if (menu.server && menu.layouts) {
+    return (
+      <Section title="Layout" desc={<>How the app is laid out on this device: where the menu is and how pages look. Kept for you on this device; your other devices keep their own. Rearrange a page with <b>Customise this page</b> at its foot.</>}>
+        <ServerLayouts layouts={menu.layouts} />
+        <NavCustomize />
+      </Section>
+    )
+  }
+  return <OwnLayoutSection />
+}
+
+// Against a server without layout options: this device's own choice of where the menu sits.
+function OwnLayoutSection() {
   const style = useNavStyle()
   const opts: [NavStyle, string, string][] = [
     ['side', 'Side menu', 'Libraries in a menu on the left'],

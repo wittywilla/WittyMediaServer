@@ -231,3 +231,4 @@
 .pe-frame.phone .pe-frame-page .hero .info { position: relative; left: auto; bottom: auto; margin: 0 var(--gutter) var(--sp-6); width: auto; }
 .pe-frame.phone .pe-frame-page .detail-hero:not(.bare) { height: calc(var(--pe-vh) * 38); min-height: 240px; }
 .pe-frame.tv .pe-frame-page .hero { height: auto; min-height: 0; }
+.pe-actions { display: flex; gap: var(--sp-2); margin-top: var(--sp-4); }

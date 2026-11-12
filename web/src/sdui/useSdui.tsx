@@ -6,7 +6,7 @@ import { getToken, serverBase } from '../api'
 import { useApp } from '../state'
 import { getTvMode, useTvMode } from '../tvmode/mode'
 import { onPreview, prefetchPage, serverFeatures } from './client'
-import { describe, deviceKey, type Device } from './device'
+import { describe, deviceKey, deviceName, type Device } from './device'
 import { useModuleViews } from '../moduleBundles'
 import { resolve } from './routes'
 import { ownLibraryTab } from './native'
@@ -27,14 +27,17 @@ function facts() {
 // useDevice: what this window is, kept the same object until something a page depends
 // on changes (TV mode, the breakpoint, reduced motion), so a page isn't asked for again
 // on every pixel of a resize.
+let name = ''
+const ownName = () => (name ||= deviceName(facts().desktopShell, typeof localStorage === 'undefined' ? null : localStorage, () => Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)))
+
 export function useDevice(): Device {
   const tv = useTvMode()
   const views = useModuleViews()
-  const [device, setDevice] = useState<Device>(() => describe(facts(), views))
+  const [device, setDevice] = useState<Device>(() => describe(facts(), views, ownName()))
   useEffect(() => {
     let timer = 0
     const check = () => {
-      const next = describe(facts(), views)
+      const next = describe(facts(), views, ownName())
       setDevice((was) => (deviceKey(was, Number(was.viewport?.split('x')[0]) || 0) === deviceKey(next, window.innerWidth) ? was : next))
     }
     check()

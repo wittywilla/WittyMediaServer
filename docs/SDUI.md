@@ -946,6 +946,17 @@ own window, is one of the three renderers.
   A module's view (`<module>.<name>`) is drawn by its web bundle, and the
   app sends the views of the bundles in use with its own
   ([Modules in server-driven UI](SDUI-MODULES.md#what-apps-need-to-do)).
+- **Layout options.** The frame follows the navigation's `shell`:
+  `sidebar` and `rail` are the side menu open or folded to icons (at the
+  sizes sent), `topTabs` the bar of tabs along the top (with no tab bar on a
+  phone), `bottomTabs` a phone's tab bar, and `overlay` lets the top bar lie
+  over the page until it scrolls. In TV mode `tvTopMenu` is the bar of
+  pills and `tvSideMenu` a column of icons that opens to show names while
+  it has focus. The app names itself with `device=`, a random name kept in
+  the browser. Settings, Appearance, Layout offers `layouts.options` and
+  "Use the server's"; Settings, Pages & menu, Layouts is the
+  administrator's `config/layouts`. Against a server without layouts the
+  device keeps its own choice of where the menu sits.
 - **Modules.** Their settings are under Settings, Module settings, drawn
   with Settings' own rows; their pages of the app's own (`/m/...`) and their
   views take the module's colours where its palette differs from everyone's.

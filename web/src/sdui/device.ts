@@ -7,7 +7,9 @@ import { CATALOG } from './types.ts'
 
 export type DeviceFacts = { width: number; height: number; tvMode: boolean; desktopShell: boolean; touch: boolean; pointer: boolean; reducedMotion: boolean; hdr: boolean; locale: string; uhd: boolean }
 
-export type Device = { platform: string; formFactor: string; deviceClass?: string; viewport?: string; capabilities: string[]; locale: string; views: string[] }
+export type Device = { platform: string; formFactor: string; deviceClass?: string; viewport?: string; capabilities: string[]; locale: string; views: string[]
+  // A stable name of this browser's own (device=), for the layout a profile chose here; never anything about the hardware.
+  name?: string }
 
 // The app's own views a NativeView can ask for: all four are in the web app.
 export const VIEWS = ['guide', 'photoTimeline', 'photoMap', 'coverFlow']
@@ -20,10 +22,10 @@ export function breakpoint(width: number): string {
 // screen of middling width a tablet, so each gets the sizes made for it; the rest is the
 // web (or the desktop app around it).
 // moduleViews are the views of loaded module bundles (moduleBundles.tsx); the server takes 16 names at most.
-export function describe(f: DeviceFacts, moduleViews: string[] = []): Device {
+export function describe(f: DeviceFacts, moduleViews: string[] = [], name = ''): Device {
   const platform = f.desktopShell ? 'desktop' : 'web'
   const capabilities = [f.touch && 'touch', f.pointer && 'pointer', 'keyboard', f.hdr && 'hdr', f.reducedMotion && 'reducedMotion'].filter(Boolean) as string[]
-  const base = { platform, capabilities, locale: f.locale, views: [...VIEWS, ...moduleViews].slice(0, 16) }
+  const base = { platform, capabilities, locale: f.locale, views: [...VIEWS, ...moduleViews].slice(0, 16), ...(name ? { name } : {}) }
   if (f.tvMode) return { ...base, formFactor: 'tv', deviceClass: f.uhd ? '4k' : 'hd' }
   const viewport = `${Math.max(1, Math.round(f.width))}x${Math.max(1, Math.round(f.height))}`
   const formFactor = f.width < 600 ? 'phone' : f.touch && !f.pointer && f.width < 1200 ? 'tablet' : f.desktopShell ? 'desktop' : 'web'
@@ -43,6 +45,20 @@ export function query(d: Device, extra: Record<string, string | undefined> = {})
   if (d.views.length) q.set('views', d.views.join(','))
   if (d.capabilities.length) q.set('capabilities', d.capabilities.join(','))
   if (d.locale) q.set('locale', d.locale)
+  if (d.name) q.set('device', d.name)
   for (const [k, v] of Object.entries(extra)) if (v) q.set(k, v)
   return q.toString()
+}
+
+// deviceName: this browser's own name for the server's per-device choices (the layout), made
+// once and kept: letters, digits and - only, and random, so it says nothing about the machine.
+export function deviceName(desktop: boolean, store: Pick<Storage, 'getItem' | 'setItem'> | null, random: () => string): string {
+  const KEY = 'wms.sdui.device'
+  try {
+    const had = store?.getItem(KEY) || ''
+    if (/^[a-z0-9-]{4,64}$/.test(had)) return had
+    const made = `${desktop ? 'desktop' : 'web'}-${random().replace(/[^a-z0-9]/g, '').slice(0, 16) || '0'}`
+    store?.setItem(KEY, made)
+    return made
+  } catch { return '' }
 }

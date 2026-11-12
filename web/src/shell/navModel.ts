@@ -91,3 +91,20 @@ export const moved = <T,>(list: T[], from: number, to: number): T[] => {
   next.splice(to, 0, ...next.splice(from, 1))
   return next
 }
+
+// frameFor: the app's frame from the server's shell (docs/SDUI.md, "Layout options"): which of
+// the frame's own pieces show (the side menu, folded to a rail or not, the bar along the top,
+// a phone's tab bar) and whether the top bar lies over the page. The server picks the style;
+// the app never picks one of its own. TV mode draws its own frame from the same shell.
+export type Frame = { style: 'side' | 'top'; rail: boolean; overlay: boolean; tabBar: boolean; sidebar?: number; railWidth?: number }
+export function frameFor(shell: { nav: string; overlay?: boolean; size: number } | undefined, fallback: 'side' | 'top' | 'both'): Frame {
+  const legacy = { style: (fallback === 'top' ? 'top' : 'side') as 'side' | 'top', rail: false, overlay: false, tabBar: true }
+  if (!shell) return legacy
+  switch (shell.nav) {
+    case 'sidebar': return { style: 'side', rail: false, overlay: !!shell.overlay, tabBar: true, sidebar: shell.size || undefined }
+    case 'rail': return { style: 'side', rail: true, overlay: !!shell.overlay, tabBar: true, railWidth: shell.size || undefined }
+    case 'topTabs': return { style: 'top', rail: false, overlay: !!shell.overlay, tabBar: false }
+    case 'bottomTabs': return { style: 'side', rail: false, overlay: !!shell.overlay, tabBar: true }
+  }
+  return legacy
+}

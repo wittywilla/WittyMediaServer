@@ -563,6 +563,8 @@ A normal build of the server needs only WittyModule and the core libraries `go.m
 go run ./kit/facade -config <module>/facade.json -module <module> -server <this checkout>
 ```
 
+With `-check` it writes nothing and fails if either side's `gen.go` isn't what it would write; CI's `with-modules` job runs that for both modules. What the module uses only itself, such as WittyPlay's relay for standalone emulators, is listed under `internal` in `facade.json`: the server gets no stub for it, and the module answers no call for it.
+
 **To try a real module on a server,** build a catalogue from your checkouts with a throwaway key. Only a server built with the `updatetest` tag reads it, and no release can be:
 
 ```bash

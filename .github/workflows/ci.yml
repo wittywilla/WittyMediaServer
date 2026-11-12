@@ -253,6 +253,15 @@ jobs:
             git clone -q --depth 1 "https://github.com/wittywilla/$r" "$RUNNER_TEMP/repos/$r"
           done
           scripts/make-test-catalog.sh "$RUNNER_TEMP/catalog" "$RUNNER_TEMP/repos"
+      # The server's stubs for WittyPlay and WittyCouch (internal/play, internal/couch) and each
+      # module's call handlers are written by kit/facade from the module's facade.json. Both
+      # sides have to be what it writes now, or a call reaches a method the other side lacks.
+      - name: The modules' facades are as kit/facade writes them
+        run: |
+          for m in WittyPlay WittyCouch; do
+            (cd "$RUNNER_TEMP/repos/WittyModule" && GOWORK=off go run ./kit/facade -check \
+              -config "$RUNNER_TEMP/repos/$m/facade.json" -module "$RUNNER_TEMP/repos/$m" -server "$GITHUB_WORKSPACE")
+          done
       - name: Tests, with them
         env:
           WMS_TEST_CATALOG: ${{ runner.temp }}/catalog

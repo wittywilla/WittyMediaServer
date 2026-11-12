@@ -2,3 +2,7 @@
 /* Copyright (C) 2026 WittyWilla and contributors */
 /* Over the video, so always on the player's own dark colours. */
 .pick-intro { position: absolute; left: 50%; transform: translateX(-50%); bottom: 110px; z-index: 7; display: flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: var(--sp-3); max-width: calc(100% - var(--sp-8)); padding: var(--sp-3) var(--sp-4); border-radius: var(--r-lg); background: var(--bg-2); color: var(--fg); box-shadow: var(--e-3); }
+/* Marking any part: a choice of which, and the two ends. */
+.pick-markers .pick-part { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--text-sm); font-weight: 600; }
+.pick-markers .pick-now { font-size: var(--text-sm); color: var(--fg-2); min-width: 9ch; }
+.pick-markers .error { flex-basis: 100%; margin: 0; }

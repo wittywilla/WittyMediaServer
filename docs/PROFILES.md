@@ -10,6 +10,7 @@ This guide is for a household sharing one server: a TV everyone uses, a tablet t
 - [Screen time](#screen-time)
 - [Asking a parent for more time](#asking-a-parent-for-more-time)
 - [What a parent can see](#what-a-parent-can-see)
+- [What a Kids or Guest profile is shown](#what-a-kids-or-guest-profile-is-shown)
 - [What limits can't do](#what-limits-cant-do)
 - [For app makers](#for-app-makers)
 - [Why it is built this way](#why-it-is-built-this-way)
@@ -21,6 +22,8 @@ A profile is an account. Each person on your server has one, with its own watch 
 Limits are set by whoever manages a profile. An administrator manages everyone. An adult manages Kids profiles, unless the administrator keeps that to themselves, and unless that adult has limits of their own. See [Who manages whom](ACCOUNTS.md#who-manages-whom).
 
 **Every limit is applied by the server.** An app only shows what the server gives it, so a limit holds in the web app, the TV and phone apps, and for anything else that talks to the server.
+
+**A change takes hold while the profile is signed in.** What it may see changes with the next list it opens. The web app reads the profile's switches and time rules again when its page comes back into view, and every few minutes while it's in use, so its menus follow without signing out: with Live TV turned off the TV guide leaves the menu, and with games off so do the game settings.
 
 ## Switching profile
 
@@ -78,7 +81,7 @@ A collection made from a rule can't be used as a limit, because it has no list o
 
 ### Hidden means hidden everywhere
 
-A title outside someone's limits doesn't show in lists, search, Home, *Continue watching*, recommendations, collections, counts or *Your year*, even if they watched it before the limit was set. Asking for it by its address answers "not found", as do its pictures, its file and its details. A share link they made to it stops working.
+A title outside someone's limits doesn't show in lists, search, Home, *Continue watching*, recommendations, collections, counts or *Your year*, even if they watched it before the limit was set. A library's count of titles, as that profile is told it, is of what the profile may see. Asking for it by its address answers "not found", as do its pictures, its file and its details. A share link they made to it stops working.
 
 ## What a profile can do
 
@@ -163,7 +166,13 @@ A parent can also give time from their own device: **Settings → Profiles**, **
 - **What they watched:** each day's titles and for how long, and the day's screen time.
 - **What was refused, and extra time:** a hidden title they asked for by its address, playing when time was up, something that's turned off, and each time more time was given and by whom.
 
+With a remote or a keyboard, the arrows step through the days and the list of what was refused, and read on through one that is longer than the window.
+
 This is kept only for profiles with limits, and for 400 days. The profile can't see or clear it. **Clear** forgets it, except today's screen time. An adult nobody has limited has no such record: their history is their own, and nobody else can read it.
+
+## What a Kids or Guest profile is shown
+
+Nothing that's for whoever runs the server. Its Settings has its own name and picture, its devices, how the app looks, and Help, About and Legal; the pages for share links and the activity button aren't listed, because it can't use them. **Sign in a TV** isn't in its menu. Where a library has nothing it may see, the page says so in plain words and suggests asking a grown-up, and never mentions folders, scans or Settings. A title outside its limits opened by its address says it isn't available, the same words as for a title that's gone.
 
 ## What limits can't do
 

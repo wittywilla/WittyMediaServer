@@ -31,7 +31,7 @@ function useAccount() {
     { key: 'look', label: 'Appearance', icon: <IconPalette />, to: '/settings/appearance' },
     // Your other devices and what they're playing; and watching with other people.
     // Either can be turned off for a profile, and then isn't offered.
-    ...(may.playOn ? [{ key: 'playon', label: 'Play on another device', icon: <IconDevices />, onSelect: openPlayOn }] : []),
+    ...(may.playOn ? [{ key: 'playon', label: 'Play on another device', icon: <IconDevices />, onSelect: () => openPlayOn() }] : []),
     ...(may.party ? [{ key: 'party', label: 'Watch party', icon: <IconUsers />, onSelect: openWatchParty }] : []),
     // The Apple TV and Android TV layout, for a screen across the room.
     { key: 'tvmode', label: 'TV mode', icon: <IconFull />, onSelect: () => { setTvMode(true); nav('/') } },

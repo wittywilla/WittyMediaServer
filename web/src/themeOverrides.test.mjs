@@ -9,6 +9,8 @@ test('a colour name becomes the CSS variable themes use', () => {
   assert.equal(tokenVar('bg2'), '--bg-2')
   assert.equal(tokenVar('borderStrong'), '--border-strong')
   assert.equal(tokenVar('fg'), '--fg')
+  // The hovered accent is --accent-2 in every stylesheet; --accent-hover is nothing.
+  assert.equal(tokenVar('accentHover'), '--accent-2')
 })
 
 test('a page belongs to a module or to the server', () => {

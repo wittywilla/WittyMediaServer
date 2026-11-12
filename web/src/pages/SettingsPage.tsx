@@ -10,6 +10,8 @@ import { ChooseFolderButton } from '../components/FolderPicker'
 import { useModulePages } from '../moduleBundles'
 import { IconHelp, IconActivity, IconChannels, IconClose, IconContrast, IconDownload, IconDrive, IconEdit, IconFile, IconFilm, IconFolder, IconGamepad, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconNetwork, IconPalette, IconPlay, IconPlug, IconPlus, IconRefresh, IconRemote, IconRight, IconShield, IconSidebar, IconTag, IconTrash, IconTune, IconUsers, IconWrench, libIcon } from '../icons'
 import { toast, useApp } from '../state'
+import { settingsPageHidden } from '../profileWords'
+import { useMyLimits } from '../myLimits'
 import AppearanceSettings from './AppearanceSettings'
 import Profiles from './Profiles'
 import LicenseList from './settings/Licenses'
@@ -118,7 +120,8 @@ export default function SettingsPage() {
   const { user, version } = useApp()
   const loc = useLocation()
   const modulePages = useModulePages().filter((p) => p.where === 'settings')
-  const groups = useMemo(() => GROUPS.map((g) => ({ ...g, pages: g.pages.filter((p) => !p.admin || user?.isAdmin) })).filter((g) => g.pages.length), [user?.isAdmin])
+  const features = useMyLimits()?.features
+  const groups = useMemo(() => GROUPS.map((g) => ({ ...g, pages: g.pages.filter((p) => (!p.admin || user?.isAdmin) && !settingsPageHidden(p.to, user, features)) })).filter((g) => g.pages.length), [user?.isAdmin, user?.kind, features]) // eslint-disable-line react-hooks/exhaustive-deps
   const pages = useMemo(() => groups.flatMap((g) => g.pages), [groups])
   const moduleKey = modulePages.map((p) => `${p.module}/${p.id}/${p.title}`).join('|')
   const moduleResults = useMemo(() => modulePages.map((p) => ({ to: `/m/${p.module}/${p.id}`, title: p.title, where: 'From modules' })), [moduleKey])

@@ -1,0 +1,70 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
+
+/* Settings, Appearance: the theme engine's colour overrides (ColourOverrides.tsx). The rows
+   of colours on one side, each look of the theme drawn with them on the other; on a narrow
+   screen one under the other. */
+.ec { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: var(--sp-4) var(--sp-5); align-items: start; }
+.ec-edit { display: grid; gap: var(--sp-3); min-width: 0; }
+.ec-groups.seg { flex-wrap: wrap; justify-self: start; max-width: 100%; }
+.ec-rows { display: grid; }
+.ec-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-1) var(--sp-4); align-items: center; padding: var(--sp-3) 0; border-top: 1px solid var(--border); }
+.ec-row:first-child { border-top: 0; }
+.ec-row-text { min-width: 0; }
+.ec-row-label { font-weight: 600; }
+.ec-row-hint { color: var(--fg-2); font-size: var(--text-sm); }
+.ec-row-ctl { display: flex; align-items: center; gap: var(--sp-2); }
+.ec-pick.input { flex: none; width: calc(var(--control-h) * 1.25); }
+.ec-code.input { width: 13ch; min-width: 0; font-family: var(--font-mono); }
+/* The automatic theme has two colours of its own to show in the empty field. */
+.ec-code.input.two { width: 22ch; }
+.ec-row-note { grid-column: 1 / -1; font-size: var(--text-sm); }
+.ec-short { color: var(--warn); }
+.ec-foot { grid-column: 1 / -1; display: grid; gap: var(--sp-3); }
+.set-card-body > .form + .ec { margin-top: var(--sp-4); }
+.ec-foot .panel-actions { margin-top: 0; }
+.ec-warnings { margin: var(--sp-1) 0; padding-left: var(--sp-5); }
+
+.ec-looks { display: grid; gap: var(--sp-3); position: sticky; top: calc(var(--topbar-h) + 72px); min-width: 0; }
+.ec-look { margin: 0; display: grid; gap: var(--sp-1); min-width: 0; }
+.ec-look figcaption { color: var(--fg-2); font-size: var(--text-sm); }
+
+/* The drawing. The shades a theme leaves to be worked out from its other colours are worked
+   out again here, from the drawing's own, exactly as styles.css does on the page. */
+.ec-preview {
+  --border-strong: color-mix(in srgb, var(--fg) 20%, transparent);
+  --hover: color-mix(in srgb, var(--fg) 7%, transparent);
+  --pressed: color-mix(in srgb, var(--fg) 12%, transparent);
+  --accent-soft: rgb(var(--accent-rgb) / .14);
+  --accent-line: rgb(var(--accent-rgb) / .45);
+  --ok-soft: color-mix(in srgb, var(--ok) 13%, transparent);
+  --warn-soft: color-mix(in srgb, var(--warn) 13%, transparent);
+  --danger-soft: color-mix(in srgb, var(--danger) 11%, transparent);
+  --focus: var(--accent-text);
+  display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); overflow: hidden; pointer-events: none;
+  background: var(--bg); color: var(--fg); border: 1px solid var(--border-strong); border-radius: var(--r-md); font-size: var(--text-sm); line-height: var(--leading-snug);
+}
+.ec-panel { display: grid; align-content: start; gap: var(--sp-1); padding: var(--sp-3); background: var(--bg-2); border-right: 1px solid var(--border); }
+.ec-page { display: grid; align-content: start; gap: var(--sp-2); padding: var(--sp-3); min-width: 0; }
+.ec-card { display: grid; gap: 2px; padding: var(--sp-2) var(--sp-3); background: var(--bg-3); border: 1px solid var(--border); border-radius: var(--r-sm); }
+.ec-preview .btn.sm { min-height: 0; height: 1.75rem; }
+.ec-fg2 { color: var(--fg-2); }
+.ec-fg3 { color: var(--fg-3); font-size: var(--text-xs); }
+.ec-link { color: var(--accent-text); text-decoration: underline; text-underline-offset: 2px; }
+.ec-line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.ec-field { padding: 2px var(--sp-2); background: var(--bg-3); border: 1px solid var(--control-line); border-radius: var(--r-sm); color: var(--fg-2); }
+.ec-picked { padding: 2px var(--sp-2); background: var(--accent-soft); border: 1px solid var(--accent-line); border-radius: var(--r-sm); outline: 2px solid var(--focus); outline-offset: 2px; }
+.ec-status { gap: var(--sp-3); font-weight: 600; }
+.ec-danger { color: var(--danger); }
+.ec-ok { color: var(--ok); }
+.ec-warn { color: var(--warn); }
+
+@media (max-width: 1100px) {
+  .ec { grid-template-columns: minmax(0, 1fr); }
+  .ec-looks { position: static; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+}
+@media (max-width: 560px) {
+  .ec-row { grid-template-columns: minmax(0, 1fr); }
+  .ec-row-ctl { justify-content: flex-start; }
+  .ec-code.input { flex: 1 1 auto; width: auto; }
+}

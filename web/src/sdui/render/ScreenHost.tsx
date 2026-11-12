@@ -6,6 +6,7 @@
 
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
+import { api, type Item } from '../../api'
 import ShareDialog from '../../components/ShareDialog'
 import { Button } from '../../ui/Button'
 import { Dialog } from '../../ui/Overlay'
@@ -28,7 +29,7 @@ export default function ScreenHost({ screen, item, title, onClose }: { screen: s
     return <PlaceLink title={title} path={here} onClose={onClose} />
   }
   if (screen === 'playOn' && numeric) return <Suspense fallback={null}><PlayOn source={{ kind: 'item', itemId: numeric, title }} onClose={onClose} /></Suspense>
-  if (screen === 'watchParty' && numeric) return <Suspense fallback={null}><WatchParty item={{ id: numeric, title }} onClose={onClose} /></Suspense>
+  if (screen === 'watchParty' && numeric) return <PartyFor id={numeric} title={title} onClose={onClose} />
   return null
 }
 
@@ -45,4 +46,14 @@ function PlaceLink({ title, path, onClose }: { title: string; path: string; onCl
       <input ref={field} className="input" readOnly aria-label="Link" value={link} onFocus={(e) => e.currentTarget.select()} />
     </Dialog>
   )
+}
+
+// A watch party starts from what the title is: an episode carries on through its season.
+function PartyFor({ id, title, onClose }: { id: number; title: string; onClose: () => void }) {
+  const [it, setIt] = useState<Item | null>(null)
+  useEffect(() => {
+    api.get<Item>(`/items/${id}`).then(setIt).catch((e) => { toast((e as Error).message, { tone: 'danger' }); onClose() })
+  }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
+  if (!it) return null
+  return <Suspense fallback={null}><WatchParty item={{ id: it.id, title: it.title || title, kind: it.kind, showId: it.showId ?? undefined }} onClose={onClose} /></Suspense>
 }

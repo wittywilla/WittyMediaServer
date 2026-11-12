@@ -10,6 +10,8 @@ import { useCdEngine, type CdActions, type CdNow } from './cdEngine'
 import MiniPlayer from './MiniPlayer'
 import { canRoute, loadSound, openGraph, saveSound, soundGraph, type SoundSettings } from './sound'
 import type { AudioMode, PlayerView, Repeat } from './types'
+import { useMusicParty } from './partyMusic'
+import AudioTarget from '../remote/AudioTarget'
 
 export type { AudioMode } from './types'
 
@@ -819,7 +821,8 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     nav(url, { replace: wasFull })
   }
 
-  const view: PlayerView = {
+  // In a listening party the room has the say over seeking, next and speed (partyMusic.ts).
+  const view: PlayerView = useMusicParty({
     queue, index, current, mode, playing, time, duration: dur, shuffle: cdActive ? !!cd.now?.shuffle : shuffle, repeat: cdActive ? cd.now!.repeat : repeat, rate, maxSpeed, sleepAt, retrying,
     stationNow: ctx.nowPlaying, books, live, cdActive, vizHere, full, fullOpts, collapsed, albumUrl, artistUrl, sound, soundNote,
     media: mediaEl, position, seek, toggle: ctx.toggle, next, prev, stop: ctx.stop, jump: goTo, moveInQueue, removeFromQueue, clearUpNext,
@@ -830,7 +833,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       if (cdActive) cd.actions.setRepeat(n); else setRepeat(n)
     },
     changeRate, setSleepAt, setSound, liked: ctx.liked(current?.id ?? -1), toggleLike, openFull, closeFull, setCollapsed, goTowards, startRadio: ctx.startRadio,
-  }
+  }, ctx.play)
 
   const onDeck = (el: EventTarget) => el === audio.current
   const deckEvents = {
@@ -890,7 +893,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <Ctx.Provider value={ctx}>
-      <CdCtx.Provider value={cdValue}>{children}</CdCtx.Provider>
+      <CdCtx.Provider value={cdValue}>{children}<AudioTarget p={view} /></CdCtx.Provider>
       <audio ref={(el) => { deckA.current = el; if (el && !audio.current) audio.current = el }} preload="auto" {...deckEvents} />
       <audio ref={deckB} preload="none" {...deckEvents} />
       {current && !takenOver && !(cdActive && loc.pathname === `/cd/${cd.now!.disc.id}`) && (

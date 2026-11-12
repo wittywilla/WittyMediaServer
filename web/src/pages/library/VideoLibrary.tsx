@@ -11,6 +11,7 @@ import LibraryHeader, { type SortOption } from '../../components/LibraryHeader'
 import { IconCheck, IconEdit, IconFilm, IconPlus, IconRefresh, IconTune } from '../../icons'
 import { artPictureUrl, type BrowseResult, type BrowseRow, type Category, type ListingStatus, type SavedView, type Shelves } from '../../metadata'
 import { toast, useApp } from '../../state'
+import { emptyLibraryWords } from '../../profileWords'
 import BulkEdit from './BulkEdit'
 import CategoryEditor from './CategoryEditor'
 import { ActiveFilters, FILTER_KEYS, FilterPanel, SaveViewDialog } from './Filters'
@@ -262,10 +263,11 @@ export default function VideoLibrary({ lib }: { lib: Library }) {
 function GridBody({ rows, failed, onRetry, scanning, filtered, lib, isAdmin, selecting, selected, toggle }: {
   rows: BrowseRow[] | null; failed: boolean; onRetry: () => void; scanning: boolean; filtered: boolean; lib: Library; isAdmin: boolean; selecting: boolean; selected: Map<string, BrowseRow>; toggle: (r: BrowseRow) => void
 }) {
+  const { user } = useApp()
   if (!rows) return failed ? <LoadError what="This library" onRetry={onRetry} /> : <SkeletonGrid />
   if (rows.length === 0) {
     return <EmptyState icon={<IconFilm />} title={scanning ? 'Scanning…' : filtered ? 'Nothing matches' : 'Nothing here yet'}
-      text={scanning ? 'Titles appear as they are found.' : filtered ? 'Try taking away a filter.' : lib.type === 'shows' || lib.type === 'anime' ? 'Organize episodes as Show/Season 1/Show - S01E01 - Title.mkv and scan again.' : 'No videos were found in this library’s folders.'}
+      text={scanning ? 'Titles appear as they are found.' : filtered ? 'Try taking away a filter.' : emptyLibraryWords(user, lib.type === 'shows' || lib.type === 'anime' ? 'Organize episodes as Show/Season 1/Show - S01E01 - Title.mkv and scan again.' : 'No videos were found in this library’s folders.')}
       action={!scanning && !filtered && isAdmin ? <Link to="/settings/libraries" className="btn">Check its folders</Link> : undefined} />
   }
   if (!selecting) return <div className="grid">{rows.map((r) => <RowCard key={r.type + (r.type === 'item' ? r.item.id : r.show.id)} row={r} />)}</div>

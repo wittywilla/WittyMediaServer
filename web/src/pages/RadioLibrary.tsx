@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api, artPreviewUrl, posterUrl, type Item, type Library } from '../api'
 import { useAudio } from '../audio/player'
+import { PlayOnButton } from '../remote/PlayOnButton'
 import { BackLink, CardRow, EmptyState, Placeholder, SkeletonGrid, Spinner } from '../components/common'
 import { IconCheck, IconGlobe, IconPause, IconPlay, IconPlus, IconRefresh, IconSearch, IconStar, IconTrash, libIcon } from '../icons'
 import { toast, useApp } from '../state'
@@ -399,6 +400,7 @@ export function RadioStationPage() {
           <div className="rd-actions">
             <button data-tv-first className="btn primary big" onClick={() => play.toggle(s)}>{play.isPlaying(s) ? <><IconPause /> Pause</> : <><IconPlay /> Play</>}</button>
             <button className={'btn big' + (m.favorite ? ' rd-faved' : '')} aria-pressed={m.favorite} disabled={busy === 'fav'} onClick={favourite}><IconStar /> {m.favorite ? 'Favourite' : 'Add to favourites'}</button>
+            <PlayOnButton className="btn big" source={{ kind: 'item', itemId: s.id, itemKind: 'radio', title: s.title }} />
             {safeLink(m.homepage) && <WebLink className="btn big ghost" href={m.homepage}><IconGlobe /> Website</WebLink>}
           </div>
           {on && <NowLine />}

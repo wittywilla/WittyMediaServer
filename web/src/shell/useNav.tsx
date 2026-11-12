@@ -13,6 +13,7 @@ import type { Navigation, Personal } from '../sdui/types'
 import { useDevice, useFeatures } from '../sdui/useSdui'
 import { useApp } from '../state'
 import { getUserPref, setUserPref, useUserPref } from '../ui/userPrefs'
+import { featureOff, useMyLimits } from '../myLimits'
 import type { NavItem, NavPrefs } from './navModel'
 
 // The main menu. A server with server-driven pages says what is in it, in what order, for
@@ -190,15 +191,17 @@ export function useMenu(): MenuState {
 // The menu as the web app worked it out before servers described it.
 function useLegacyItems(own: NavItem[]): NavItem[] {
   const { libraries } = useApp()
+  // Live TV turned off for this profile isn't offered (GET /me/limits).
+  const noTv = featureOff(useMyLimits(), 'liveTv')
   return useMemo(() => {
     const list: NavItem[] = [
       { id: 'home', label: 'Home', to: '/', end: true },
-      { id: 'tv', label: 'TV guide', to: '/tv' },
+      ...(noTv ? [] : [{ id: 'tv', label: 'TV guide', to: '/tv' }]),
       ...libraries.filter(inMainMenus).map((l) => ({ id: 'lib:' + l.id, label: l.name, to: `/library/${l.id}`, kind: l.type })),
     ]
     if (libraries.length > 0) list.push({ id: 'collections', label: 'Collections', to: '/collections' })
     return [...list, ...own]
-  }, [libraries, own])
+  }, [libraries, own, noTv])
 }
 
 // useNavItems: what the side menu and the top bar list, in order.

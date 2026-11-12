@@ -7,6 +7,8 @@ import { canPost, canReact, fmtSize, photoFull, photoThumb, setReaction, takenDa
 import { IconClose, IconInfo, IconLeft, IconPause, IconPlay, IconPlus, IconRight } from '../../icons'
 import InlinePlayer from '../../player/InlinePlayer'
 import { toast, useApp } from '../../state'
+import { usePhotoRemote } from '../../remote/pageTargets'
+import { PlayOnButton } from '../../remote/PlayOnButton'
 
 // One picture filling the screen: step through the list, zoom, slideshow, its
 // details and its place on the map. With a remote: Left and Right step, Enter
@@ -51,6 +53,9 @@ export default function PhotoViewer({ id, list, lib, onOpen, onClose, onChanged 
     const t = setTimeout(() => { if (next) onOpen(next.id); else if (list.length) onOpen(list[0].id) }, slide * 1000)
     return () => clearTimeout(t)
   }, [slide, id, next?.id, d?.kind]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Another device steering this one (docs/REMOTE-PROTOCOL.md).
+  usePhotoRemote({ id, slideshow: slide > 0, next: next ? () => onOpen(next.id) : null, previous: prev ? () => onOpen(prev.id) : null, setSlideshow: (on) => setSlide((s) => (on ? s || 5 : 0)), close: onClose })
 
   const zoomBy = (f: number) => setZoom((z) => { const n = Math.min(8, Math.max(1, z * f)); if (n === 1) setPan({ x: 0, y: 0 }); return n })
   const onKey = (e: React.KeyboardEvent) => {
@@ -119,6 +124,7 @@ export default function PhotoViewer({ id, list, lib, onOpen, onClose, onChanged 
         {d?.motion && <button className={'btn sm' + (motion ? ' primary' : '')} onClick={() => setMotion(!motion)} aria-pressed={motion}>Live</button>}
         {canPost(user) && <button className="ibtn" onClick={() => setAlbum(true)} aria-label="Add to album" title="Add to album"><IconPlus /></button>}
         {canPost(user) && <button className="btn sm" onClick={() => setShare(true)}>Share</button>}
+        {d && <PlayOnButton className="ibtn" iconOnly label="Show on another device" source={{ kind: 'item', itemId: d.id, itemKind: d.kind, title: d.title }} />}
         <select className="select sm gal-slide" value={slide} aria-label="Slideshow" onChange={(e) => setSlide(Number(e.target.value))}>
           <option value={0}>Slideshow</option>
           {SLIDE_SECONDS.map((s) => <option key={s} value={s}>{s} s per picture</option>)}

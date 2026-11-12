@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { api, type MyLimits, type ScreenTime } from '../api'
 import { useApp } from '../state'
+import { publishLimits } from '../myLimits'
 import { Button } from '../ui/Button'
 import { Segmented } from '../ui/Choice'
 import { Field, Input } from '../ui/Field'
@@ -14,7 +15,9 @@ import './switchprofile.css'
 // Screen time, for a profile that has time rules. The server does the deciding and the stopping:
 // it refuses to play when the time is up and ends what is being sent. This only tells the person
 // why, a few minutes ahead and when it happens, and lets a parent give more on the spot.
-// A profile with no time rules pays one request when it signs in and nothing after.
+// A profile with no time rules pays one request when it signs in. A parent can change the rules
+// while the profile is signed in, so they are read again, at most every few minutes and only
+// while the page is in use: when it comes back into view, and as the person moves around.
 
 const minutes = (sec: number) => {
   const m = Math.max(1, Math.round(sec / 60))
@@ -29,6 +32,11 @@ function nextText(st: ScreenTime) {
   const next = new Date(st.nextAt * 1000), now = new Date()
   return next.toDateString() === now.toDateString() ? `You can watch again at ${clock(st.nextAt)}.` : `You can watch again tomorrow at ${clock(st.nextAt)}.`
 }
+
+// How long the rules read last are trusted for: when the page comes back into view, and while
+// the person is moving around in it.
+const LIMITS_ON_RETURN_MS = 60_000
+const LIMITS_WHILE_BROWSING_MS = 5 * 60_000
 
 export default function ScreenTimeWatch() {
   const { user } = useApp()
@@ -48,13 +56,37 @@ export default function ScreenTimeWatch() {
     was.current = next.allowed
   }, [])
 
+  // Reads the rules, for the profile that is signed in now. With rules, the time left comes with
+  // them; without (any more), whatever this was showing goes.
+  const who = useRef(0)
+  const lastRead = useRef(0)
+  const readLimits = useCallback(() => {
+    const id = who.current
+    if (!id) return
+    lastRead.current = Date.now()
+    api.get<MyLimits>('/me/limits').then((l) => {
+      if (who.current !== id) return
+      setLimits(l); publishLimits(l)
+      if (l.time) take(l.screenTime)
+      else if (l.screenTime.allowed) { setSt(null); setTelling(false); was.current = true }
+    }).catch(() => {})
+  }, [take])
+
   useEffect(() => {
-    setLimits(null); setSt(null); setTelling(false); was.current = true
-    if (!user || user.isAdmin) return
-    let gone = false
-    api.get<MyLimits>('/me/limits').then((l) => { if (!gone) { setLimits(l); if (l.time) take(l.screenTime) } }).catch(() => {})
-    return () => { gone = true }
-  }, [user?.id, take]) // eslint-disable-line react-hooks/exhaustive-deps
+    setLimits(null); publishLimits(null); setSt(null); setTelling(false); was.current = true
+    who.current = user && !user.isAdmin ? user.id : 0
+    readLimits()
+    return () => { who.current = 0 }
+  }, [user?.id, readLimits]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Have the rules changed? Asked when the page comes back into view (a minute apart at most),
+  // and every few minutes as the person goes from page to page.
+  useEffect(() => {
+    const back = () => { if (!document.hidden && Date.now() - lastRead.current > LIMITS_ON_RETURN_MS) readLimits() }
+    document.addEventListener('visibilitychange', back)
+    return () => document.removeEventListener('visibilitychange', back)
+  }, [readLimits])
+  useEffect(() => { if (Date.now() - lastRead.current > LIMITS_WHILE_BROWSING_MS) readLimits() }, [loc.pathname, readLimits])
 
   // Ask again each minute while this page is showing, and at the moment the time runs out.
   useEffect(() => {
@@ -69,10 +101,12 @@ export default function ScreenTimeWatch() {
 
   // The server refused to play something: say why, whatever page asked.
   useEffect(() => {
-    const refused = (e: Event) => { const d = (e as CustomEvent<ScreenTime>).detail; if (d) { setSt(d); was.current = false } stopPlaying(); setTelling(true) }
+    // The rules may be newer than the ones read at sign-in (time rules set since, a parents' PIN
+    // made since): read them again, so the notice offers what is true now.
+    const refused = (e: Event) => { const d = (e as CustomEvent<ScreenTime>).detail; if (d) { setSt(d); was.current = false } stopPlaying(); setTelling(true); readLimits() }
     window.addEventListener('wms:screen-time', refused)
     return () => window.removeEventListener('wms:screen-time', refused)
-  }, [])
+  }, [readLimits])
 
   if (!user || !st) return null
   const close = () => {

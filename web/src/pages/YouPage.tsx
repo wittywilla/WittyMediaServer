@@ -14,6 +14,8 @@ import { useMedia } from '../shell/useNav'
 import { useSignOut } from '../shell/Account'
 import { useSwitchProfile } from '../shell/SwitchProfile'
 import { useApp } from '../state'
+import { featureOff, useMyLimits } from '../myLimits'
+import { settingsPageHidden } from '../profileWords'
 import { AUTO_THEME, CUSTOM_THEME, deviceTheme } from '../theme'
 import { ask } from '../ui'
 import './you.css'
@@ -71,6 +73,7 @@ export default function YouPage() {
     return () => { gone = true }
   }, [phone, user?.id, adult]) // eslint-disable-line react-hooks/exhaustive-deps
   if (!phone) return <Navigate to="/settings/users" replace />
+  const gamesOff = featureOff(useMyLimits(), 'games')
   if (!user) return null
 
   const shown = profileName(user)
@@ -110,9 +113,10 @@ export default function YouPage() {
       <Group title="Yours">
         <Row to="/review" icon={<IconSparkles />} tint={TINT.year} label="Your year" />
         <Row to="/collections" icon={<IconStack />} tint={TINT.teal} label="Collections and playlists" />
-        <Row to="/settings/sharing" icon={<IconLink />} tint={TINT.account} label="Share links" />
-        <Row to="/settings/activity" icon={<IconActivity />} tint={TINT.gold} label="Activity" />
-        {games && <Row to="/settings/games" icon={<IconContrast />} tint={TINT.devices} label="Game settings" />}
+        {/* A Kids or Guest profile makes no share links and has no activity button to set: no rows that lead nowhere. */}
+        {!settingsPageHidden('sharing', user) && <Row to="/settings/sharing" icon={<IconLink />} tint={TINT.account} label="Share links" />}
+        {!settingsPageHidden('activity', user) && <Row to="/settings/activity" icon={<IconActivity />} tint={TINT.gold} label="Activity" />}
+        {games && !gamesOff && <Row to="/settings/games" icon={<IconContrast />} tint={TINT.devices} label="Game settings" />}
         {games && <Row to="/controllers" icon={<IconGamepad />} tint={TINT.password} label="Controllers" />}
       </Group>
       <Group title="On this device">

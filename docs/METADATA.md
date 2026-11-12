@@ -201,6 +201,14 @@ Apps can also ask where one title can be watched: `GET /api/v1/media/{id}/where-
 | **Kept** | As long as listings (two weeks). **Check now** under listings, or turning listings off, forgets them |
 | **Who sees what** | Someone who can't see a title isn't told it's on the server |
 
+**In the web app,** a film's or a show's page has a **Where to watch** section:
+
+- **In your library** gives the quality of your copy, and lists every version when there are several, each a link to that version.
+- With a TMDB key, the services follow, under **Stream**, **Free**, **Free with adverts**, **Rent** and **Buy**. Each one links to TMDB's page of offers, and the note under them says nothing plays from these services, names the country and the date, and carries the credit. **Country** looks at another country's offers for this one title; it doesn't change the server's region.
+- Without a key, nothing about services is shown. An administrator sees one line saying where the key goes; other profiles see the section only for a title with several versions.
+
+The services' logos are the ones TMDB sends, so the browser fetches those small pictures from TMDB's image server, without saying which page they are for.
+
 Other sources can be added beside TMDB later without changing what apps get. See [the client API](CLIENT-API.md#media-extras).
 
 ## The logo service

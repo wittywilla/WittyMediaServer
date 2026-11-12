@@ -7,12 +7,15 @@ import { IconBack15, IconChapters, IconClose, IconDown, IconForward30, IconFull,
 import { useArtColour } from './art'
 import { Backdrop, NATIVE_STYLES, type NativeStyle } from './backdrop'
 import { AddToPlaylist, Like, Pop, Seek, Volume } from './controls'
+import { AudioPlayOn } from '../remote/PlayOnButton'
 import { IconKaraoke, IconList, IconMoon, IconMore, IconReadOpen, IconRepeat, IconRepeatOne, IconShuffle, IconSliders, IconStation, IconTurtle } from './icons'
 import { LyricsPanel } from './LyricsPanel'
 import { useLyrics } from './lyrics'
+import { NowPlayingCanvas } from '../canvas/NowPlayingCanvas'
 import { QueuePanel } from './QueuePanel'
 import { ReadPanel, useExtras } from './ReadPanel'
 import { SoundPanel } from './SoundPanel'
+import PartyButton from './PartyButton'
 import type { PlayerView } from './types'
 import { placeIn, useMusicLinks } from '../pages/music/links'
 import { acceptedFlashNotice, shaderEffects, shaderSession, trackingMedia, VisualizerView, type ShaderEffect } from './visualizer'
@@ -188,6 +191,7 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
     <div className={'np' + (panel ? ' has-panel panel-' + panel : '')} ref={root} tabIndex={-1} role="dialog" aria-modal="true" aria-label={`Now playing: ${it.title}`}
       style={{ '--art': rgb } as React.CSSProperties} onClickCapture={(e) => { if (e.detail > 0) requestAnimationFrame(() => { if (!document.activeElement?.closest('input, select, textarea, .mp-pop-body, .np-panel')) root.current?.focus({ preventScroll: true }) }) }}>
       <div className="np-glow" aria-hidden="true" />
+      {canSing && <NowPlayingCanvas itemId={it.id} playing={p.playing} />}
       {/* One canvas: it goes to the whole-screen view while that's open, and comes back after. */}
       {p.vizHere && prefsLoaded && prefs.viz && !wholeShader && <NpBackground style={style} slow={prefs.slow} rgb={rgb} playing={p.playing} media={p.media} trackMedia={trackMedia} onDecline={() => { setShown(''); setPrefs({ style: 'bars' }) }} />}
       {wholeShader && <VisualizerView media={trackMedia} place="full" onPlace={(pl) => { if (pl !== 'full') leaveWhole() }} onClose={leaveWhole} />}
@@ -204,6 +208,8 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
           <SleepButton p={p} />
           <button type="button" className={'mp-ibtn' + (panel === 'queue' ? ' on' : '')} aria-pressed={panel === 'queue'} aria-label={placeLine} title={`${placeLine} (Q)`} onClick={() => setPanel(panel === 'queue' ? '' : 'queue')}>{p.books ? <IconChapters /> : <IconList />}</button>
           <Like p={p} />
+          <PartyButton p={p} />
+          <AudioPlayOn p={p} />
           <button type="button" className="mp-ibtn np-fill" onClick={toggleFullscreen} aria-label="Fill the screen (F)" title="Fill the screen (F)"><IconFull /></button>
           <Pop label="More" icon={<IconMore />}>
             {(close) => (

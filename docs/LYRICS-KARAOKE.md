@@ -161,6 +161,8 @@ An administrator can also upload a part for a song, which is kept in the server'
 
 The web app, the desktop app and the phone and TV apps all play them, with the **Vocals** slider [above](#karaoke-versions-made-for-you). With only an instrumental beside the song, the slider blends it against the song itself. In the web and desktop apps the parts play at any speed and for a song of any length: at normal speed and up to 15 minutes they are loaded whole and start on the same sample; faster, slower or longer, each part is streamed like the song and kept within a few hundredths of a second of it.
 
+A stem beside a song isn't listed as a song of its own: the scan leaves out a file named as in the table when the song it belongs to is there. A real song with a dot in its name, such as `Mr. Bass.flac`, stays, unless a song called `Mr.flac` sits beside it.
+
 ### Making stems
 
 The server does this by itself when someone opens karaoke ([Karaoke versions, made for you](#karaoke-versions-made-for-you)). This part is for doing it by hand, and for naming your own separator. For a song that came without stems, the server can make them in two ways. Each is a [task](TASKS.md): it waits its turn (one at a time on the whole server, sixteen waiting at most), runs at low priority so playing isn't disturbed, shows in **Tasks**, and can be stopped there.
@@ -184,7 +186,7 @@ or `-stem-separator '…'`, or `"stemSeparator": "…"` in the [config file](CON
 
 **The approximate instrumental.** `POST /api/v1/media/{id}/stems/approximate` makes it, and it is kept (as AAC) so it's made once. It gives way to a real `instrumental` as soon as there is one. A mono song has no two channels to take from each other, and the task says so. Apps should tell people what it is: the listing carries a sentence for that in `separation.approximate.note`.
 
-Apps ask one thing, `GET /api/v1/media/{id}/karaoke`, and play what it says: see [the client API](CLIENT-API.md#karaoke-that-sets-itself-up). For the details, `GET /api/v1/media/{id}/stems` says under `separation` which of the two this server can do for a song, why not (`no-ffmpeg`, `not-configured`, `admin-only`, `not-a-song`, `not-a-file`), and the task when one is being made.
+Apps ask one thing, `GET /api/v1/media/{id}/karaoke`, and play what it says: see [the client API](CLIENT-API.md#karaoke-that-sets-itself-up). For the details, `GET /api/v1/media/{id}/stems` says under `separation` which of the two this server can do for a song, why not (`no-ffmpeg`, `not-configured`, `admin-only`, `not-a-song`, `not-a-file`), the task when one is being made, and, when the last try failed, why (`error`).
 
 ### Keys
 

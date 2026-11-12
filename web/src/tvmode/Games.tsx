@@ -10,6 +10,7 @@ import GamesLibrary, { GameCard } from '../pages/games/Library'
 import { consoleMap, GameLinksContext, type GameLinks } from '../pages/games/data'
 import '../pages/games/games-ui.css'
 import { useApp } from '../state'
+import { featureOff, useMyLimits } from '../myLimits'
 
 // Games: WittyPlay's couch library, with the existing games pages until WittyPlay's own TV look replaces
 // them. One games library opens straight in; several are a shelf each, as Home's rows are.
@@ -50,11 +51,13 @@ function Shelf({ lib }: { lib: Library }) {
 
 export default function Games() {
   const libs = useGameLibraries()
+  // Games turned off for this profile: its game libraries aren't listed, and that is why.
+  const off = featureOff(useMyLimits(), 'games')
   if (libs.length === 0) {
     return (
       <div className="tvm-page">
         <h1 className="tvm-title">Games</h1>
-        <EmptyState icon={<IconGamepad />} title="No games here yet" text="This server has no games library. An owner adds one in Settings on the server’s website." />
+        <EmptyState icon={<IconGamepad />} title={off ? 'Games are off for this profile' : 'No games here yet'} text={off ? 'Whoever looks after this profile can turn them on.' : 'This server has no games library. An owner adds one in Settings on the server’s website.'} />
       </div>
     )
   }

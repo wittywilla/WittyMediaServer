@@ -18,6 +18,7 @@ import AuthPage from './pages/AuthPage'
 import { PlayerDock } from './player/PlayerPage'
 import { Announcer, useDialogs } from './a11y'
 import LegalNote, { legalAckText } from './components/LegalNote'
+import { KeyHelp } from './ui/KeyHelp'
 import { AskHost } from './ui/Overlay'
 import ScreenTimeWatch from './shell/ScreenTime'
 import { loadUserPrefs, useUserPref } from './ui/userPrefs'
@@ -89,6 +90,7 @@ export default function App() {
       <ToastHost />
       <ScreenTimeWatch />
       <AskHost />
+      <KeyHelp />
       <Announcer />
     </AppProvider>
   )
@@ -176,7 +178,7 @@ function AppFrame() {
         <TopBar onMenu={toggle} showMenu={side || !wide} topNav={style !== 'side'} menuOpen={open} wide={wide} allTabs={!frame.tabBar} />
         <LegalAckBar />
         <PlainAwayBar />
-        <main className="content" id="main" tabIndex={-1}>
+        <main className="content" id="main" data-nav-zone="stage" tabIndex={-1}>
           <Suspense fallback={<RouteSkeleton />}><PageRoutes /></Suspense>
           <LegalNote kind="general" className="legal-foot" />
           <footer className="page-foot"><VersionTag version={version} /></footer>

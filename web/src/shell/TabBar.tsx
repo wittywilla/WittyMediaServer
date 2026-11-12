@@ -15,7 +15,7 @@ export function TabBar({ onMenu }: { onMenu: () => void }) {
   if (!menu.server) {
     const shown = new Set(menu.all.map((it) => it.id))
     return (
-      <nav className="tabbar" aria-label="Main">
+      <nav className="tabbar" data-nav-zone="bar" aria-label="Main">
         {shown.has('home') && <NavLink to="/" end aria-label="Home"><IconHome /></NavLink>}
         {shown.has('tv') && !noTv && <NavLink to="/tv" aria-label="TV guide"><IconTv /></NavLink>}
         <NavLink to="/search" aria-label="Search"><IconSearch /></NavLink>
@@ -28,7 +28,7 @@ export function TabBar({ onMenu }: { onMenu: () => void }) {
   const bar = menu.all.filter((it) => (it.placement === 'primary' || it.placement === 'end') && it.screen !== 'profiles' && it.screen !== 'settings').slice(0, 4)
   const you = menu.all.some((it) => it.screen === 'profiles')
   return (
-    <nav className="tabbar" aria-label="Main">
+    <nav className="tabbar" data-nav-zone="bar" aria-label="Main">
       {bar.map((it) => <NavLink key={it.id} to={it.to} end={it.end} aria-label={it.label}>{navIcon(it)}</NavLink>)}
       <button type="button" onClick={onMenu} aria-label="Menu"><IconMenu /></button>
       {you && <YouTab />}

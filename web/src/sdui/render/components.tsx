@@ -17,6 +17,9 @@ import { IconCheck, IconDown, IconLeft, IconPause, IconPlay, IconRight, IconSear
 import { tokenVar } from '../../themeOverrides'
 import { Segmented, Tabs as TabStrip } from '../../ui/Choice'
 import { Select } from '../../ui/Field'
+import { DockView } from './DockView'
+import { useList } from '../gridView'
+import { KeyLegend } from '../../ui/KeyLegend'
 import { safeLink as safeHref } from '../../safeLink'
 import { buttonsOf, cardGap, creditGroups, factsOf, fieldOf, gridColumns, initials, type ButtonSpec, type View } from '../model'
 import { plan } from '../routes'
@@ -77,6 +80,7 @@ function Pressable({ view, className, children, label, style, first, title }: { 
   const common = {
     className, style, title,
     'data-sdui-focus': node.focus ? node.id : undefined,
+    'data-card-id': view.type === 'Card' ? node.id : undefined,
     'data-tv-first': first || node.focus?.default || undefined,
     'aria-label': label ?? (view.label || undefined),
     onContextMenu: view.type === 'Card' && !page.inert ? (e: React.MouseEvent) => { e.preventDefault(); page.menu(view, { x: e.clientX, y: e.clientY }) } : undefined,
@@ -177,11 +181,11 @@ function Heading({ view, level = 2, id }: { view: View; level?: 2 | 3; id: strin
   const title = view.text?.title
   const sub = view.text?.subtitle
   const H = level === 2 ? 'h2' : 'h3'
-  if (!title && !view.seeAll) return null
+  if (!title && !(view.seeAll && !view.seeAllCard)) return null
   return (
     <div className="hub-head" data-sdui-head>
       <div className="sdui-head-text">{title && <H id={id} className="sdui-clamp" style={clamp(view.lines?.title)}>{title}</H>}{sub && <p className="muted">{sub}</p>}</div>
-      {view.seeAll && view.seeAll.startsWith('/') && <Link to={view.seeAll} aria-label={`See all: ${title || ''}`}>{str(obj(view.node.props, 'seeAll'), 'label') || 'See all'} <IconRight /></Link>}
+      {view.seeAll && !view.seeAllCard && view.seeAll.startsWith('/') && <Link to={view.seeAll} aria-label={`See all: ${title || ''}`}>{str(obj(view.node.props, 'seeAll'), 'label') || 'See all'} <IconRight /></Link>}
     </div>
   )
 }
@@ -196,6 +200,15 @@ function StateLine({ view }: { view: View }) {
 }
 
 const loading = (view: View, busy: boolean) => view.state === 'deferred' || (busy && view.children.length === 0)
+
+// The card that ends a shelf: the same size as its cards, so the row keeps its rhythm, and a link to the whole list.
+function SeeAllCard({ to, label, title, wide }: { to: string; label: string; title?: string; wide?: boolean }) {
+  return (
+    <Link to={to} className={'card sdui-seeall' + (wide ? ' wide' : '')} aria-label={`${label}: ${title || ''}`.trim()}>
+      <div className="poster"><span className="sdui-seeall-in"><IconRight size={28} /><b>{label}</b></span></div>
+    </Link>
+  )
+}
 
 function ShelfView({ view, depth }: { view: View; depth: number }) {
   const page = usePage()
@@ -225,8 +238,12 @@ function ShelfView({ view, depth }: { view: View; depth: number }) {
   const showTitles = view.node.props?.showTitles !== false
   const tiles = view.cardStyle === 'tile' && !view.children.some((c) => obj(c.node.props, 'image'))
   const chips = view.cardStyle === 'chip'
+  // See all is the last card of the row (as well as its heading's link): the end of the row says there is more.
+  const seeAllCard = !!view.seeAllCard && !!view.seeAll && view.seeAll.startsWith('/') && view.children.length > 0 && !chips
+  const seeAllLabel = str(obj(view.node.props, 'seeAll'), 'label') || 'See all'
+  const wideCards = view.cardStyle === 'landscape' || view.children[0]?.node.props?.shape === 'landscape'
   return (
-    <section className={'hub sdui-shelf' + (view.node.props?.numbered ? ' numbered' : '')} style={{ ...cardVars(view, page.pt), ...scopeStyle(view.node) }} data-scope={view.scope} data-sdui-section={depth === 1 ? view.id : undefined} aria-busy={waiting || undefined}>
+    <section className={'hub sdui-shelf' + (view.node.props?.numbered ? ' numbered' : '')} style={{ ...cardVars(view, page.pt), '--peek': view.peek || 0, ...scopeStyle(view.node) } as CSSProperties} data-scope={view.scope} data-sdui-section={depth === 1 ? view.id : undefined} aria-busy={waiting || undefined}>
       <Heading view={view} id={id} />
       {view.state === 'deferred' && !failed && <Near onNear={() => page.more(view.id)} />}
       {failed || view.state === 'empty' ? <StateLine view={view} /> : tiles && !waiting ? (
@@ -241,6 +258,7 @@ function ShelfView({ view, depth }: { view: View; depth: number }) {
             {waiting ? <Placeholders view={view} /> : view.children.map((c) => <div role="listitem" key={c.id} className="sdui-item"><CardView view={c} showTitles={showTitles} /></div>)}
             {view.hasMore && !waiting && <Near horizontal root={row} onNear={() => page.more(view.id)} />}
             {page.busy(view.id) && !waiting && <Placeholders view={{ ...view, placeholders: 2 }} />}
+            {seeAllCard && !waiting && !view.hasMore && <div role="listitem" className="sdui-item"><SeeAllCard to={view.seeAll!} label={seeAllLabel} title={view.text?.title} wide={wideCards} /></div>}
           </div>
           <button ref={next} type="button" className="row-arrow next" tabIndex={-1} aria-hidden="true" onClick={() => by(1)} hidden><IconRight /></button>
         </div>
@@ -277,13 +295,15 @@ function GridView({ view, depth }: { view: View; depth: number }) {
   const gap = px(cardGap(page.layout), page.pt)
   const tiles = view.cardStyle === 'tile'
   const role = view.role === 'grid' ? 'list' : view.role // cards are links: a list of them, in rows
+  const { user } = useApp()
+  const asList = useList(page.doc.page.id, view.id, user?.id ?? 0)
   return (
     <section className="sdui-grid-section" style={{ ...cardVars(view, page.pt), ...scopeStyle(view.node) }} data-scope={view.scope} data-sdui-section={depth === 1 ? view.id : undefined} aria-busy={waiting || undefined}>
       <Heading view={view} id={id} />
       {view.state === 'deferred' && !failed && <Near onNear={() => page.more(view.id)} />}
       {failed || view.state === 'empty' ? <StateLine view={view} /> : (
-        <div ref={box} className={'grid sdui-grid' + (tiles ? ' sdui-tiles' : '')} role={role} aria-labelledby={view.text?.title ? id : undefined} aria-label={view.text?.title ? undefined : view.label || undefined}
-          data-nav-group data-cols={cols} style={{ gridTemplateColumns: `repeat(${Math.max(1, cols || 1)}, minmax(0, 1fr))`, columnGap: gap }}>
+        <div ref={box} className={'grid sdui-grid' + (tiles ? ' sdui-tiles' : '') + (asList ? ' as-list' : '')} role={role} aria-labelledby={view.text?.title ? id : undefined} aria-label={view.text?.title ? undefined : view.label || undefined}
+          data-nav-group data-cols={cols} style={{ gridTemplateColumns: asList ? undefined : `repeat(${Math.max(1, cols || 1)}, minmax(0, 1fr))`, columnGap: gap }}>
           {waiting ? <Placeholders view={view} grid /> : view.children.map((c) => <div role="listitem" key={c.id} className="sdui-item"><CardView view={c} showTitles={showTitles} /></div>)}
           {page.busy(view.id) && !waiting && <Placeholders view={{ ...view, columns: cols }} grid />}
         </div>
@@ -962,6 +982,9 @@ export function Draw({ view, depth }: { view: View; depth: number }): ReactNode 
     case 'Banner': return <BannerView view={view} />
     case 'Text': return <TextView view={view} />
     case 'Notice': return <NoticeView view={view} />
+    // Two components of the catalogue (docs/plans/DESIGN-2.md): a screen's Dock and the key legend.
+    case 'Dock': return <DockView view={view} />
+    case 'KeyLegend': return <KeyLegend />
     case 'Divider': return <hr className={'sdui-divider' + (view.node.props?.inset === true ? ' inset' : '')} />
     case 'Spacer': {
       const size = page.layout.spacing[str(view.node.props, 'size') || 'm'] ?? 16

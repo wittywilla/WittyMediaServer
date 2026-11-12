@@ -18,7 +18,7 @@
 .ctv[data-shape="box"] .ctv-ch { border-right-width: 3px; }
 .ctv[data-shape="box"] .ctv-num { font-size: var(--text-lg); }
 .ctv[data-shape="box"] .ctv-preview { border-width: 3px; }
-.ctv[data-shape="box"] .ctv-help { border-top-width: 3px; }
+.ctv[data-shape="box"] .ctv-dock { border-top-width: 3px; }
 
 /* ------------------------------------------------- Modern: quiet, round, big picture up top.
    White for what's selected, and the line at the current time doing the talking. */

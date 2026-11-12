@@ -75,3 +75,20 @@ test('the Back button on every remote', () => {
   for (const e of [{ key: 'GoBack' }, { key: 'BrowserBack' }, { key: 'Unidentified', keyCode: 461 }, { key: 'XF86Back', keyCode: 10009 }]) assert.ok(isBackKey(e))
   assert.ok(!isBackKey({ key: 'Enter', keyCode: 13 }))
 })
+
+test('the scoring weights come from the design tokens, and fall back to the defaults', async () => {
+  const { DEFAULT_WEIGHTS, setWeights, weightsFrom, currentWeights } = await import('./spatial.ts')
+  assert.deepEqual(weightsFrom(undefined), DEFAULT_WEIGHTS)
+  assert.deepEqual(weightsFrom({ weights: { offLine: { up: 'x', down: -1, left: 9 } } }).offLine, { left: 9, right: 4, up: 1.2, down: 1.2 })
+  assert.deepEqual(weightsFrom({ weights: { unknown: 1 }, other: 2 }), DEFAULT_WEIGHTS)
+  const a = box(0, 0), far = box(900, 400)
+  const before = score(a, far, 'down')
+  try {
+    // Sideways drift made free: going down scores only the gap.
+    setWeights({ weights: { leavesLine: { left: 0, right: 0, up: 0, down: 0 }, offLine: { left: 0, right: 0, up: 0, down: 0 }, offCentre: { left: 0, right: 0, up: 0, down: 0 } } })
+    assert.equal(score(a, far, 'down'), 250)
+    assert.equal(currentWeights().offLine.right, 0)
+  } finally { setWeights() }
+  assert.equal(score(a, far, 'down'), before)
+  assert.equal(currentWeights().offLine.right, 4)
+})

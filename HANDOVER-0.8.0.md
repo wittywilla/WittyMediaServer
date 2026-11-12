@@ -10,6 +10,17 @@ Open / not verified:
 - Focus ring vs accent fills: the ring is checked against surfaces and neutral raised fills; an accent-filled control is separated from its ring by the focus gap, not by 3:1 colour contrast (gold on gold cannot pass).
 - Fallbacks, `catalog`/`components` negotiation and the first-format `ui_config.json` conversion are removed (catalogue revision 4): every renderer draws every component. Modules declaring `catalog` below 4 in their ui.json are still accepted by the module validator (1 to 4).
 
+## Design 2 (W2): web and desktop
+
+Branch `wip/design-web` (worktree `.worktrees/design-web-WittyMediaServer`), NOT yet merged into `v0.8.0-alpha`: no heavy slot was free for `npm run build`, the browser checks and `npm run test:keys`/`test:tv` for the whole session. tsc, design-check, design-tokens --check, theme-contrast, the node tests, `npm run test:pads` and the 85 SDUI conformance cases pass.
+
+Built: input model (`ui/inputModel.ts`, `ui/shortcuts.ts`, `ui/zones*.ts`, `ui/inputKind.ts`, key legend, Dock, key help), pad map in two contexts (app, player/book/games), spatial weights from `nav.weights`, SDUI catalogue 3 (Dock with `control.open`, KeyLegend, peek, See all card, grid/list view, letter jump), density row in Settings, `design2.css`, TV mode on `--tv-*` units, WittyTV guide Dock and half-window paging.
+
+Not done / not verified:
+- Nothing was run in a browser: no screenshots at 390/820/1440/1920/TV, `test:keys`, `test:tv` (its Look selector was changed to `.ctv-dock`), `npm run build`.
+- Hero peek (phone swipe), the TV "Dock reached by Start" on the SDUI page, and Back-ladder wiring inside TvFrame (it uses `backStep`, the Dock step is in `ui/shortcuts.ts`) are not exercised.
+- Fallback/legacy still present, per owner's "no legacy" rule: `TV_TABS` and the no-menu path in `tvmode/TvFrame.tsx`, the no-sets/no-paging branches in `pages/tv/GuidePage.tsx` (S6's logic), the games/reader pad map (`ownPad()` in `tv.ts`; games pages read the old buttons by key).
+- Desktop (Electron) needs no change: it loads the web.
 ## Design 2 (W3): Apple apps
 
 Merged into the client's `v0.8.0-alpha` (client `3d48fe9`). Checked: `swift test` in apple/WittyKit 644 tests green (SDUI conformance 85 of 85 with the fixtures required), tvOS and iOS simulator builds clean; one real run of the tvOS app on the Apple TV simulator against a scratch server (generated media): Home with the top pills, billboard, the concentric focus ring on Play, shelf with peek.

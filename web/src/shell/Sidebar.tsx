@@ -33,7 +33,7 @@ export function Sidebar({ open, rail, drawer, onClose }: { open: boolean; rail: 
   return (
     <>
       {holding && <div className="backdrop-dim" onClick={onClose} />}
-      <aside className="sidebar" aria-label="Main navigation" aria-hidden={!shown} inert={!shown || undefined}
+      <aside className="sidebar" data-nav-zone="bar" aria-label="Main navigation" aria-hidden={!shown} inert={!shown || undefined}
         role={holding ? 'dialog' : undefined} aria-modal={holding || undefined}>
         <Link to="/" className="brand" aria-label={rail ? brandName || 'Home' : undefined}><BrandMark /><span className="nav-text"><Brand name={brandName} /></span></Link>
         {list.map((e) => {

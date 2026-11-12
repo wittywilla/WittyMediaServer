@@ -149,7 +149,7 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.ctrlKey || e.altKey || e.metaKey || document.querySelector('.modal')) return
       if ((e.target as Element | null)?.matches?.('input, textarea, select, [contenteditable]')) return
-      if ((!e.isTrusted && e.key === 'm') || (e.isTrusted && e.key === 'f')) { e.preventDefault(); toggleFav.current() }
+      if (e.key === 'ContextMenu' || (e.isTrusted && e.key === 'f')) { e.preventDefault(); toggleFav.current() }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)

@@ -12,6 +12,7 @@
 // What a controller looks like to this code: the parts of the Gamepad API's Gamepad it reads.
 export type Pad = { id: string; mapping: string; buttons: readonly { pressed: boolean }[]; axes: readonly number[] }
 
+// The player's own meanings: while a full-screen player is up, the buttons belong to it.
 export const STD: Record<number, string> = {
   0: 'Enter', 1: 'Escape', 2: ' ', 3: 'm', // A/Cross, B/Circle, X/Square (play/pause), Y/Triangle (disc menu)
   4: 'PageUp', 5: 'PageDown', // bumpers: previous / next chapter, and in TV mode the tab to the left or right
@@ -19,6 +20,21 @@ export const STD: Record<number, string> = {
   8: 't', 9: 'ContextMenu', // View/Share/Select: title menu, Menu/Options/Start: disc menu, and in TV mode the screen's options
   12: 'ArrowUp', 13: 'ArrowDown', 14: 'ArrowLeft', 15: 'ArrowRight',
 }
+
+// Everywhere else, the one input model of docs/plans/DESIGN-2.md section 3: A selects, B goes back, X is the
+// options of the thing or screen, Y is search, LB and RB switch tabs (Ctrl+[ and Ctrl+]), LT and RT page a long
+// list, Start opens the screen's Dock (F6), a click of the right stick jumps to the top (Home), and Back and Start
+// together ask for help (?). Key names are what tv.ts's key handler already answers to from a keyboard, so a pad
+// and a keyboard take one path. `themes/tokens.json` `input.gamepad` carries the same table for the apps.
+export const UI: Record<number, string> = {
+  0: 'Enter', 1: 'Escape', 2: 'ContextMenu', 3: '/',
+  4: 'Ctrl+[', 5: 'Ctrl+]', 6: 'PageUp', 7: 'PageDown',
+  9: 'F6', 11: 'Home',
+  12: 'ArrowUp', 13: 'ArrowDown', 14: 'ArrowLeft', 15: 'ArrowRight',
+}
+// Back (View, Share, Select) and Start together.
+export const HELP_CHORD = '?'
+export type PadContext = 'ui' | 'player'
 
 // Nintendo's vendor id, as Chromium writes it ("Vendor: 057e") or Firefox does ("057e-2009-" or, on
 // some systems, "57e-2009-" with a name such as "Wireless Gamepad").
@@ -42,6 +58,8 @@ export type PadOptions = {
   android?: boolean
   // The pads already seen to have a D-pad on one axis. It's only seen at rest, so it's remembered.
   hats: Set<string>
+  // Which meanings the buttons have: the app's own ('ui'), or the full-screen player's ('player', the default).
+  context?: PadContext
 }
 
 const standardLayout = (p: Pad, o: PadOptions) => p.mapping === 'standard' || !!o.android
@@ -56,10 +74,15 @@ export function padKeys(pads: readonly (Pad | null)[], o: PadOptions): Set<strin
     const known = knownLayout(p, o)
     const standard = standardLayout(p, o) || !!known
     if (standard) {
+      const map = o.context === 'ui' ? UI : STD
+      // Back and Start together are a chord of their own: neither does its own job while the other is held.
+      const chord = o.context === 'ui' && p.buttons.length > 9 && !known && p.buttons[8]?.pressed && p.buttons[9]?.pressed
+      if (chord) down.add(HELP_CHORD)
       for (let i = 0; i < p.buttons.length; i++) {
         if (!p.buttons[i].pressed) continue
         const s = known ? known[i] ?? -1 : i
-        let k = STD[s]
+        if (chord && (s === 8 || s === 9)) continue
+        let k = map[s]
         if (swap && (s === 0 || s === 1)) k = STD[1 - s]
         if (k) down.add(k)
       }

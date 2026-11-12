@@ -17,7 +17,10 @@
 //   while one is connected, so this costs nothing otherwise.
 
 import { padKeys } from './ui/gamepad'
-import { isBackKey, nearest, ranked, type Dir } from './ui/spatial'
+import { noteInput, trackInput } from './ui/inputKind'
+import { installShortcuts, runAction } from './ui/shortcuts'
+import { nav as designNav } from '../../themes/tokens.json'
+import { isBackKey, nearest, ranked, setWeights, type Dir } from './ui/spatial'
 
 const FOCUSABLE = 'a[href], button:not([disabled]), summary, input:not([disabled]):not([type=hidden]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 // Inside the player only these areas take part in spatial navigation.
@@ -286,6 +289,7 @@ export function focusPlayerControls(where: 'top' | 'first' = 'first'): boolean {
 // normal navigation again.
 const inGame = () => !!document.querySelector('.wp-playing, .wp-capture')
 
+let lastUpAt = 0
 function onKey(e: KeyboardEvent) {
   lastKeyAt = performance.now()
   if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || inGame()) return
@@ -345,7 +349,13 @@ function onKey(e: KeyboardEvent) {
     }
     const left = move(dir)
     if (left || target?.tagName === 'SELECT') e.preventDefault()
-    else if (dir === 'up') upToApp(target, e)
+    else if (dir === 'up') {
+      // Up twice at the top of a page is "jump to top" on a remote, which has no Home key.
+      const at = performance.now()
+      if (at - lastUpAt < 450 && runAction('top', e)) e.preventDefault()
+      else upToApp(target, e)
+      lastUpAt = at
+    }
     return
   }
   if (isBackKey(e) || (e.key === 'Backspace' && !typing(target))) {
@@ -364,9 +374,13 @@ function onKey(e: KeyboardEvent) {
 // ---------------------------------------------------------------- controllers
 
 // Also what a key from another device's remote does here (remote/device.ts).
-export function press(key: string) {
+// A key name with a modifier ('Ctrl+[') is that key held with Ctrl: how a pad's shoulder buttons reach the keyboard shortcuts.
+export function press(name: string, from?: 'pad', padId?: string) {
   const target = (document.activeElement as HTMLElement | null) || document.body
-  const ev = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })
+  const ctrl = name.startsWith('Ctrl+')
+  const key = ctrl ? name.slice(5) : name
+  if (from === 'pad') noteInput('pad', { key: name, padId })
+  const ev = new KeyboardEvent('keydown', { key, ctrlKey: ctrl, bubbles: true, cancelable: true })
   target.dispatchEvent(ev)
   // Synthetic key events do not activate buttons; do it when nothing else used the key.
   if (!ev.defaultPrevented && (key === 'Enter' || key === ' ') && target !== document.body && target.matches('button, a[href], [role=button], [role=radio], [role=switch], summary, input[type=checkbox]')) {
@@ -397,7 +411,20 @@ let sinceFullRead = 0
 // The pads seen to report their D-pad on one axis (see gamepad.ts).
 const hatPads = new Set<string>()
 // Read each time, as it was before the mapping moved out: cheap, and a test can change it.
-const keysDown = (pads: readonly (Gamepad | null)[]) => padKeys(pads, { android: /Android/.test(navigator.userAgent), hats: hatPads })
+// Where a pad's buttons are the player's or a book's own (docs/plans/DESIGN-2.md section 3 applies everywhere else).
+const ownPad = () => !!document.querySelector(`${FULL_PLAYER}, .reader, .audio-bar.full, .wp-playing, .wp-capture`)
+// The meanings are kept while anything is held, so buttons still down as a game or the player closes aren't read again as
+// something else (View and Menu together are Help in the app).
+let padContext: 'ui' | 'player' | null = null
+const keysDown = (pads: readonly (Gamepad | null)[]) => {
+  if (!held.size || !padContext) padContext = ownPad() ? 'player' : 'ui'
+  return padKeys(pads, { android: /Android/.test(navigator.userAgent), hats: hatPads, context: padContext })
+}
+const firstPadId = (pads: readonly (Gamepad | null)[]) => pads.find(Boolean)?.id
+
+const HOLD_MS = 500
+let holdingA = false
+const onCard = () => !!(document.activeElement as HTMLElement | null)?.closest?.('.card, [data-sdui-card]') && !ownPad()
 
 function poll() {
   const pads = navigator.getGamepads ? navigator.getGamepads() : []
@@ -422,12 +449,21 @@ function poll() {
   }
   if (!down.size && !held.size) return
   const now = performance.now()
+  const id = firstPadId(pads)
   for (const k of down) {
     const next = held.get(k)
-    if (next === undefined) { press(k); held.set(k, now + 420) } // first press, then repeat after a pause
-    else if (now >= next && k.startsWith('Arrow')) { press(k); held.set(k, now + 110) }
+    if (next === undefined) {
+      // A on a card: a tap opens it, a hold (half a second) is its options. The tap is answered on release.
+      if (k === 'Enter' && onCard()) { held.set(k, now + HOLD_MS); holdingA = true; continue }
+      press(k, 'pad', id); held.set(k, now + 420) // first press, then repeat after a pause
+    } else if (holdingA && k === 'Enter') {
+      if (now >= next) { holdingA = false; press('ContextMenu', 'pad', id); held.set(k, Infinity) }
+    } else if (now >= next && (k.startsWith('Arrow') || k.startsWith('Page'))) { press(k, 'pad', id); held.set(k, now + 110) }
   }
-  for (const k of held.keys()) if (!down.has(k)) held.delete(k)
+  for (const k of held.keys()) if (!down.has(k)) {
+    if (k === 'Enter' && holdingA) { holdingA = false; press('Enter', 'pad', id) }
+    held.delete(k)
+  }
 }
 
 function startPolling() {
@@ -444,6 +480,10 @@ export function installTVInput() {
   // A TV app around this page answers Back itself when the page has nothing to close, and asks here.
   document.documentElement.dataset.ownBack = OWN_BACK
   window.addEventListener('keydown', onKey)
+  // The scoring of where an arrow goes is a design token, the same for every app.
+  setWeights(designNav)
+  installShortcuts()
+  trackInput()
   window.addEventListener('focusin', (e) => {
     const el = e.target as HTMLElement
     const group = groupOf(el)

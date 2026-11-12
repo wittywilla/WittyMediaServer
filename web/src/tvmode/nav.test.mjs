@@ -54,7 +54,7 @@ test('every remote\'s Back, and the controller\'s B, is Back', () => {
 test('the bumpers and Start, but not while typing', () => {
   assert.equal(tvKey({ key: 'PageUp' }, false), 'prevTab')
   assert.equal(tvKey({ key: 'PageDown' }, false), 'nextTab')
-  assert.equal(tvKey({ key: 'ContextMenu' }, false), 'options')
+  assert.equal(tvKey({ key: 'ContextMenu' }, false), null) // options are app-wide now (ui/shortcuts.ts)
   assert.equal(tvKey({ key: 'PageDown' }, true), null)
   assert.equal(tvKey({ key: 'Enter' }, false), null)
   assert.equal(tvKey({ key: 'ArrowUp' }, false), null)

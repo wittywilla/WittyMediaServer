@@ -47,6 +47,7 @@ before(async () => {
   const g = globalThis as any
   g.window = g
   g.addEventListener = (n: string, f: (e: any) => void) => { listeners.set(n, [...(listeners.get(n) || []), f]) }
+  g.scrollTo = () => {}; g.scrollBy = () => {}
   Object.defineProperty(g, 'navigator', { configurable: true, value: { getGamepads: () => pads } })
   Object.defineProperty(g, 'performance', { configurable: true, value: { now: () => clock } })
   g.setInterval = (fn: () => void, every: number) => { const id = nextId++; timers.push({ fn, every, next: clock + every, id }); return id }
@@ -123,7 +124,7 @@ describe('coming out of a game', () => {
     assert.deepEqual(keys, [])
     set(VIEW, false); set(MENU, false); run(50)
     tap(MENU, 40, 40)
-    assert.deepEqual(keys, ['ContextMenu'], 'pressed again, it counts')
+    assert.deepEqual(keys, ['F6'], 'pressed again, it counts')
   })
 
   test('a direction held through it does not start repeating', () => {
@@ -165,8 +166,9 @@ describe('which button confirms', () => {
     const id = 'Nintendo Switch Combined Joy-Cons (Vendor: 057e Product: 2008)'
     assert.deepEqual(pressA(id, '', 1), ['Enter'], 'A')
     assert.deepEqual(pressA(id, '', 0), ['Escape'], 'B')
-    for (const [b, k] of [[14, 'ArrowUp'], [15, 'ArrowDown'], [16, 'ArrowLeft'], [17, 'ArrowRight'], [10, 'ContextMenu'], [9, 't'], [2, 'm']] as const)
+    for (const [b, k] of [[14, 'ArrowUp'], [15, 'ArrowDown'], [16, 'ArrowLeft'], [17, 'ArrowRight'], [10, 'F6'], [2, '/']] as const)
       assert.deepEqual(pressA(id, '', b), [k], `button ${b}`)
+    assert.deepEqual(pressA(id, '', 9), [], 'Minus alone does nothing in the app')
     assert.deepEqual(pressA(id, '', 4), [], 'Capture does nothing')
   })
 })

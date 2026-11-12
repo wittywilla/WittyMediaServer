@@ -3,7 +3,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  addAll, canCatchup, catchupKey, channelOf, chooseSet, dialOutcome, filterChannels, moveItem, pageCount, pageLabel, pageStartOf,
+  addAll, edgeLanding, windowStepSlots, canCatchup, catchupKey, channelOf, chooseSet, dialOutcome, filterChannels, moveItem, pageCount, pageLabel, pageStartOf,
   parseCatchupKey, prefsKey, readGuidePrefs, readPageSize, removeAll, rowsOnPage, sectionsOf, stepPage, stepSet, toggleIn, widerLookup, editableSets,
 } from './guideLogic.ts'
 
@@ -134,4 +134,22 @@ test('what this device remembers is read safely', () => {
   assert.deepEqual(readGuidePrefs('{"set":3,"pageSize":33}'), { set: undefined, pageSize: 0 })
   assert.deepEqual(readGuidePrefs('not json'), { set: undefined, pageSize: 0 })
   assert.deepEqual(readGuidePrefs(null), { set: undefined, pageSize: 0 })
+})
+
+test('past the edge the time window pages by half its width', () => {
+  assert.deepEqual([3, 4, 5, 6, 8].map(windowStepSlots), [1, 2, 2, 3, 4])
+  assert.equal(windowStepSlots(1), 1)
+  assert.equal(windowStepSlots(0), 1)
+})
+
+test('the highlight lands just past the edge it left, inside the paged window', () => {
+  const from = 1000, to = 1000 + 6 * 1800, step = windowStepSlots(6) * 1800
+  // Right: the cell after the window, which the new window now holds.
+  const right = edgeLanding(1, from, to, to + 600)
+  assert.ok(right >= from + step && right < to + step)
+  // A programme that ended inside the window still lands at its edge.
+  assert.equal(edgeLanding(1, from, to, to - 100), to)
+  // Left: the moment just before the window, inside the window that moved back.
+  const left = edgeLanding(-1, from, to)
+  assert.ok(left >= from - step && left < to - step)
 })

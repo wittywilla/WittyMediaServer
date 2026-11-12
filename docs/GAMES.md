@@ -462,7 +462,8 @@ A core is the usual way to play, and the only one most servers need. Some consol
 | Wii U | Cemu | `.wud` and `.wux` images need your games' disc keys in the BIOS folder |
 | PlayStation 3 | RPCS3 | Disc images and folder dumps; RPCS3 installs the system software (`PS3UPDAT.PUP`) from the BIOS folder |
 | Xbox | xemu | Needs the boot ROM, BIOS and hard disk image of an Xbox you own |
-| Switch | Only an emulator you installed yourself | This server offers no Switch emulator; see WittyPlay's [Standalone emulators guide](https://github.com/wittywilla/WittyPlay/blob/master/docs/STANDALONE-EMULATORS.md#the-switch) |
+| Switch | Ryujinx or Lichii, which you install yourself | Never downloaded by this server; see [The Switch and the Switch 2](#the-switch-and-the-switch-2) |
+| Switch 2 | Lichii, which you install yourself | Its games are known by their folder (`Switch 2`) or a Switch 2 library, as their files look like Switch games' |
 
 When a console has no core, its games' **Play** starts the emulator that's set up for it. **Settings → What this server plays** lists every console, whether it plays here, and how.
 
@@ -486,6 +487,25 @@ When a console has no core, its games' **Play** starts the emulator that's set u
 A small server is told plainly what it can't run: on a Raspberry Pi 3 every emulator says it needs more memory than there is, and nothing is started. Cores are the way to play there.
 
 This is new: no game has yet been played in a standalone emulator on a real Docker host, a Windows PC or a Mac with those permissions given. See [What hasn't been tried](#what-hasnt-been-tried).
+
+### The Switch and the Switch 2
+
+Two emulators play them, **Ryujinx** (Switch) and **Lichii** (Switch 2, and Switch), and this server never downloads either, nor any keys or firmware. You install them yourself, from their own projects only:
+
+- **Ryujinx:** <https://ryujinx.app> (the Ryubing project). It plays Switch games, and no Switch 2 games.
+- **Lichii:** <https://github.com/zortos293/Lichii/releases>, and nowhere else (its own README warns that lichii.org isn't its authors'). It plays Switch 2 and Switch games; its authors call it very experimental, with rendering errors and crashes to expect. Windows, Linux and Apple silicon Macs on macOS 15 or later.
+
+Then, in **Settings → Standalone emulators**, press **Add it** on the emulator. The server shows what it found where it's usually installed, or takes the program's full path, checks it really is that emulator, and says its version. On a server with no screen, or in Docker, put its **Linux** build (the AppImage, or its unpacked folder) in the folder that page names, on the server's `/config` volume, or name it in the `manual.json` file the page names; the [Standalone emulators guide](https://github.com/wittywilla/WittyPlay/blob/master/docs/STANDALONE-EMULATORS.md#the-switch-and-the-switch-2) has every detail, with what a server in Docker also needs.
+
+Keys and firmware come from your own console, into the same [BIOS folder](#bios-files) as other consoles' files:
+
+| File or folder | What it is |
+|---|---|
+| `prod.keys` | Your console's keys. Required |
+| `title.keys` | Your games' title keys. Some games need them |
+| `switch-firmware/` | Your console's firmware, as the emulator installs it (the contents of its `registered` folder). You can also install it from the emulator's own menu |
+
+The server copies them to where each emulator looks, and the emulator's card and each game's page say which are found. **You're responsible for having the right to the keys, firmware and games you use**: use only what you dumped from a console you own and games you own. Getting round a console's protection may be illegal where you live, and Nintendo has taken action against Switch emulator projects. Neither project is associated with this one or with Nintendo.
 
 ## Console icons
 

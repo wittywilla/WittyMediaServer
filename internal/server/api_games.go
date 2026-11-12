@@ -91,6 +91,7 @@ type gameService struct {
 	cores       *cores.Manager
 	archives    *gamearchive.Cache
 	dir         string
+	standalone  standaloneOffers // which consoles WittyPlay's emulators play here: games_standalone.go
 
 	gpuMu       sync.Mutex
 	gpu         stream.GPUProbe
@@ -358,6 +359,10 @@ type consoleView struct {
 	TotalGames int            `json:"totalGames,omitempty"`
 	// LogoName is the name to ask the logo service for, kind "console". See docs/METADATA.md.
 	LogoName string `json:"logoName,omitempty"`
+	// Emulators are the standalone emulators set up to play it here (games_standalone.go), and
+	// Standalone the one Play starts when no core plays it.
+	Emulators  []emulatorOffer `json:"standaloneEmulators,omitempty"`
+	Standalone string          `json:"standalone,omitempty"`
 }
 
 func (s *Server) consoleViews(ctx context.Context) []consoleView {
@@ -371,6 +376,7 @@ func (s *Server) consoleViews(ctx context.Context) []consoleView {
 	prefs := s.preferredCores(ctx)
 	customOn := s.customCoresOn(ctx)
 	var gpuWhy *string // asked once, and only if a console needs to know
+	offers := s.consoleOffers(ctx)
 	for _, c := range wittyplay.All() {
 		if c.Hidden && !testing {
 			continue
@@ -447,6 +453,9 @@ func (s *Server) consoleViews(ctx context.Context) []consoleView {
 			default:
 				v.Ready, v.Reason, v.Message, v.GPUMissing = false, "gpu", gpuMessage(c.Name, *gpuWhy), *gpuWhy
 			}
+		}
+		if v.Ready || len(c.Cores) == 0 || len(offers[c.ID]) > 0 {
+			applyStandalone(&v, offers[c.ID])
 		}
 		switch {
 		case v.Ready || v.Reason != "":

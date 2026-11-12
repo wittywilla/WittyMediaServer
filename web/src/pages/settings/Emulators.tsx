@@ -6,12 +6,12 @@ import { LoadError, Spinner } from '../../components/common'
 import { WebLink } from '../../components/WebLink'
 import { IconCheck, IconInfo, IconRefresh } from '../../icons'
 import { toast } from '../../state'
-import { ask, Dialog, Notice, Progress } from '../../ui'
+import { ask, Dialog, Input, Notice, Progress, Select, Switch } from '../../ui'
 import { useConsoles } from '../games/consoles'
 import { emulatorsApi } from '../games/emulatorsApi'
-import { fmtBytes, hostOf, jobProgress, requiresWords, same, sinceWords, wholeSettings, type BackendSettings, type CatalogueEntry, type DiagnosticCheck, type Diagnostics, type DockerStatus, type RunningSession, type Values } from '../games/emulatorsLogic'
+import { fmtBytes, hostOf, joinArgs, splitArgs, type OwnProgram, jobProgress, requiresWords, same, sinceWords, wholeSettings, type BackendSettings, type CatalogueEntry, type DiagnosticCheck, type Diagnostics, type DockerStatus, type RunningSession, type Values } from '../games/emulatorsLogic'
 import { SchemaForm } from '../games/SchemaForm'
-import { PageHead, SaveBar, Section } from './ui'
+import { PageHead, Row, SaveBar, Section } from './ui'
 import '../games/games-ui.css'
 import '../games/emulators.css'
 
@@ -88,13 +88,14 @@ export default function EmulatorsSettings() {
   if (!status) return <Spinner />
   return (
     <div ref={page}>
-      <PageHead title="Standalone emulators" desc="Some consoles are played by an emulator that is a whole program of its own, not a core. This server can run those too, each boxed in a container, and stream them like any other game. It’s off until you turn it on." />
-      <Section title="Docker and the sandbox" desc="Whether this computer can run emulators, and what would run them."
+      <PageHead title="Standalone emulators" desc="Some consoles are played by an emulator that is a whole program of its own, not a core: Xbox, PlayStation 3 and Wii U, and others where you’d rather. This server can run those too, boxed in on this computer or in a container, and stream them like any other game. It’s off until you turn it on." />
+      <Section title="Where emulators run" desc="Whether this computer can run emulators, and what would run them."
         actions={<button type="button" className="btn sm" disabled={refreshing} onClick={() => { void refresh() }}><IconRefresh size={16} /> {refreshing ? 'Checking…' : 'Refresh'}</button>}>
         <StatusFacts status={status} checks={checks} />
       </Section>
       <BackendForm onSaved={refresh} />
       <Catalogue list={list} error={listError} reload={loadList} setList={setList} page={page} />
+      <OwnPrograms />
       <Sessions />
     </div>
   )
@@ -110,7 +111,7 @@ function StatusFacts({ status, checks }: { status: DockerStatus; checks: Diagnos
         <dt>Standalone emulators</dt>
         <dd><span className={'gm-pill ' + (status.enabled ? 'ok' : 'off')}>{status.enabled ? <IconCheck size={14} /> : <IconInfo size={14} />} {status.enabled ? 'On' : 'Off'}</span></dd>
         <dt>A game would run in</dt>
-        <dd>{status.runtime === 'docker' ? 'A Docker container' : 'The local sandbox, without Docker'}</dd>
+        <dd>{status.runtime === 'docker' ? 'A Docker container' : status.runtime === 'host' ? 'This computer’s own desktop, boxed in by its own sandbox' : 'The local sandbox, without Docker'}</dd>
         <dt>Docker</dt>
         <dd>
           {status.available ? <><b>Reachable</b>{docker && docker !== 'Reachable' ? ` · ${docker}` : ''}</> : <b>Can’t be reached</b>}
@@ -119,6 +120,8 @@ function StatusFacts({ status, checks }: { status: DockerStatus; checks: Diagnos
         </dd>
         <dt>Local sandbox</dt>
         <dd>{status.local.available ? 'Available' : 'Not available here'}{status.local.why && <small>{status.local.why}</small>}</dd>
+        {status.desktop && <><dt>On this computer’s desktop</dt>
+          <dd>{status.desktop.available ? 'Available' : 'Not available here'}{status.desktop.why && <small>{status.desktop.why}</small>}</dd></>}
         <dt>Containers running</dt>
         <dd>{status.containers}</dd>
         {checks && <><dt>This computer</dt><dd>{[[checks.host.os, checks.host.arch].filter(Boolean).join(' '), checks.host.cpus ? `${checks.host.cpus} processor ${checks.host.cpus === 1 ? 'thread' : 'threads'}` : '', checks.host.memoryMB ? `${checks.host.memoryMB >= 1024 ? `${+(checks.host.memoryMB / 1024).toFixed(1)} GB` : `${checks.host.memoryMB} MB`} of memory` : ''].filter(Boolean).join(' · ')}</dd></>}
@@ -168,20 +171,23 @@ function BackendForm({ onSaved }: { onSaved: () => Promise<unknown> }) {
   }
   // The switch that turns it all on comes first, with what turning it on means beside it.
   const first = data?.schema.filter((f) => f.key === 'docker.enabled') || []
-  const rest = data?.schema.filter((f) => f.key !== 'docker.enabled') || []
+  // A container's own settings mean nothing to an emulator on this computer, and are left out.
+  const runtime = now['docker.runtime'] ?? data?.schema.find((f) => f.key === 'docker.runtime')?.default
+  const containerOnly = ['docker.network', 'docker.internal', 'docker.publishLoopback', 'docker.gpu', 'docker.images']
+  const rest = data?.schema.filter((f) => f.key !== 'docker.enabled' && (runtime === 'docker' || !containerOnly.includes(f.key))) || []
   const form = (schema: BackendSettings['schema']) => <SchemaForm schema={schema} values={now} onChange={change} under={(f) => f.default} disabled={busy} />
   return (
-    <Section title="How emulators run" desc="What an emulator’s container may use, and how its picture reaches you.">
+    <Section title="How emulators run" desc="What an emulator may use, and how its picture reaches you.">
       {failed ? <Notice tone="danger" action={<button type="button" className="btn sm" onClick={() => { void load() }}>Try again</button>}>{failed}</Notice>
         : !data ? <Spinner />
         : (
           <>
             {first.length > 0 && form(first)}
-            <div className="emu-warning">
+            {runtime === 'docker' && <div className="emu-warning">
               <Notice tone="warn" title="Access to Docker is the same as root on this computer">
                 <p>Whoever can reach Docker’s socket can do anything on this computer that its administrator can. Turning this on gives this server that reach, so only turn it on for a server you run yourself. Rootless Docker, or Podman, is the safer way: the emulators then run without root at all. <WebLink href={DOCS}>How the Docker backend works, and how to set up rootless Docker</WebLink>.</p>
               </Notice>
-            </div>
+            </div>}
             {rest.length > 0 && form(rest)}
             {error && <div className="emu-form-error"><Notice tone="danger">{error}</Notice></div>}
             <SaveBar dirty={dirty} busy={busy} save={() => { void save() }} discard={() => { setDraft({}); setError('') }} />
@@ -372,5 +378,100 @@ function Sessions() {
         )}
       </div>
     </Section>
+  )
+}
+
+// Emulators an administrator installed on this server themselves: added by their path, run in
+// the same sandbox as any other. The only way to play the Switch, for which WittyPlay offers no
+// emulator, and how a FreeBSD server uses its own packages.
+function OwnPrograms() {
+  const consoles = useConsoles()
+  const [list, setList] = useState<OwnProgram[] | null>(null)
+  const [max, setMax] = useState(32)
+  const [failed, setFailed] = useState('')
+  const [editing, setEditing] = useState<{ at: number; p: OwnProgram } | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [catalogue, setCatalogue] = useState<CatalogueEntry[]>([])
+  const load = useCallback(() => emulatorsApi.own().then((r) => { setList(r.own || []); setMax(r.max || 32); setFailed('') }).catch((e) => setFailed(e?.message || 'Your programs couldn’t be loaded.')), [])
+  useEffect(() => { void load(); emulatorsApi.catalogue().then((l) => setCatalogue(l || [])).catch(() => {}) }, [load])
+  const save = async (next: OwnProgram[]) => {
+    setBusy(true)
+    setError('')
+    try {
+      const r = await emulatorsApi.saveOwn(next)
+      setList(r.own || [])
+      setEditing(null)
+      toast('Saved')
+    } catch (e: any) {
+      setError(e?.message || 'That couldn’t be saved.')
+    } finally { setBusy(false) }
+  }
+  const remove = async (at: number) => {
+    if (!list) return
+    if (!(await ask({ title: `Remove ${list[at].name}?`, body: 'Its program stays where it is. People’s settings for it are kept.', confirm: 'Remove' }))) return
+    await save(list.filter((_, i) => i !== at))
+  }
+  const name = (id: string) => consoles.find((c) => c.id === id)?.short || id
+  return (
+    <Section title="Your own emulator programs" desc="An emulator you installed on this server yourself, from wherever you chose. It runs in the same sandbox as the others, on this computer, never in a container. WittyPlay downloads nothing for it and checks no hash: it’s yours."
+      actions={list && list.length < max ? <button type="button" className="btn sm" onClick={() => { setError(''); setEditing({ at: -1, p: { name: '', systems: [], program: '', args: [] } }) }}>Add a program</button> : undefined}>
+      {failed ? <Notice tone="danger" action={<button type="button" className="btn sm" onClick={() => { void load() }}>Try again</button>}>{failed}</Notice>
+        : !list ? <Spinner />
+        : !list.length ? <p className="muted">None yet. This is how Switch games play, as WittyPlay offers no Switch emulator, and how an emulator from your system’s packages is used.</p>
+        : (
+          <ul className="emu-sessions">
+            {list.map((p, i) => (
+              <li key={p.id || i}>
+                <span><b>{p.name}</b><small className="muted">{p.systems.map(name).join(', ')} · <code>{p.program}</code>{p.like ? ` · settings of ${catalogue.find((c) => c.id === p.like)?.name || p.like}` : ''}</small></span>
+                <span>
+                  <button type="button" className="btn sm" onClick={() => { setError(''); setEditing({ at: i, p }) }}>Change</button>
+                  <button type="button" className="btn sm ghost" disabled={busy} onClick={() => { void remove(i) }}>Remove</button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      {editing && list && (
+        <OwnProgramDialog program={editing.p} consoles={consoles} catalogue={catalogue} busy={busy} error={error} onClose={() => setEditing(null)}
+          onSave={(p) => { void save(editing.at < 0 ? [...list, p] : list.map((x, i) => (i === editing.at ? p : x))) }} />
+      )}
+    </Section>
+  )
+}
+
+function OwnProgramDialog({ program, consoles, catalogue, busy, error, onClose, onSave }: {
+  program: OwnProgram; consoles: { id: string; name: string }[]; catalogue: CatalogueEntry[]; busy: boolean; error: string
+  onClose: () => void; onSave: (p: OwnProgram) => void
+}) {
+  const [p, setP] = useState<OwnProgram>(program)
+  const [args, setArgs] = useState(joinArgs(program.args))
+  const ok = p.name.trim() !== '' && p.program.trim() !== '' && p.systems.length > 0
+  const toggle = (id: string) => setP((x) => ({ ...x, systems: x.systems.includes(id) ? x.systems.filter((s) => s !== id) : [...x.systems, id] }))
+  return (
+    <Dialog title={program.name ? `Change ${program.name}` : 'Add your own emulator program'} size="wide" onClose={onClose}
+      actions={<><button type="button" className="btn ghost" onClick={onClose}>Cancel</button><button type="button" className="btn primary" disabled={!ok || busy} onClick={() => onSave({ ...p, args: splitArgs(args) })}>{busy ? 'Saving…' : 'Save'}</button></>}>
+      <div className="emu-dialog-body emu-form">
+        <Row label="Name"><Input aria-label="Name" value={p.name} maxLength={60} onChange={(e) => setP({ ...p, name: e.target.value })} /></Row>
+        <Row label="The program" desc="Its full path on this server, such as /usr/local/bin/rpcs3 or C:\Emulators\MyEmulator\emulator.exe.">
+          <Input aria-label="The program’s full path" value={p.program} spellCheck={false} autoComplete="off" onChange={(e) => setP({ ...p, program: e.target.value })} />
+        </Row>
+        <Row label="A build of" desc="If it’s one of the emulators WittyPlay knows, from another source: its settings and controllers are set up the same way.">
+          <Select aria-label="A build of" value={p.like || ''} onChange={(e) => setP({ ...p, like: e.target.value || undefined })}>
+            <option value="">None of these</option>
+            {catalogue.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </Select>
+        </Row>
+        <Row label="Its command line" desc="What comes after the program. {game} is the game’s file, {config} the folder its settings go in, {bios} the BIOS folder. Without {game}, the game goes last." stack>
+          <Input aria-label="Its command line" value={args} spellCheck={false} autoComplete="off" placeholder="--fullscreen {game}" onChange={(e) => setArgs(e.target.value)} />
+        </Row>
+        <Row label="Consoles it plays" stack>
+          <ul className="emu-map">
+            {consoles.map((c) => <li key={c.id}><span>{c.name}</span><Switch checked={p.systems.includes(c.id)} onChange={() => toggle(c.id)} label={c.name} /></li>)}
+          </ul>
+        </Row>
+        {error && <div className="emu-form-error"><Notice tone="danger">{error}</Notice></div>}
+      </div>
+    </Dialog>
   )
 }

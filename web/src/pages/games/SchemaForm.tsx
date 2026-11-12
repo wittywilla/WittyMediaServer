@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { Input, Select, Switch } from '../../ui'
 import { Row } from '../settings/ui'
-import { asMap, numberFrom, placeholderOf, withMapEntry, type Field, type Values } from './emulatorsLogic'
+import { asMap, groupFields, LARGE_SCHEMA, numberFrom, placeholderOf, withMapEntry, type Field, type Values } from './emulatorsLogic'
 import './emulators.css'
 
 // A form drawn from what the server says its settings are: a switch, a number, some words, one
@@ -26,8 +26,50 @@ type Props = {
 
 const isSet = (v: unknown) => v !== undefined && v !== null
 
-export function SchemaForm({ schema, values, onChange, under, locked, canClear, disabled }: Props) {
-  if (!schema.length) return <p className="muted">There’s nothing to set here.</p>
+export function SchemaForm(props: Props) {
+  if (!props.schema.length) return <p className="muted">There’s nothing to set here.</p>
+  return props.schema.length > LARGE_SCHEMA ? <LargeForm {...props} /> : <Fields {...props} />
+}
+
+// A whole emulator's settings: a search, a switch for the ones most people never need, and a
+// heading per section of its own file, each opened when wanted. Only open sections draw rows,
+// so a schema of hundreds stays quick on a television's browser.
+function LargeForm(props: Props) {
+  const [query, setQuery] = useState('')
+  const [advanced, setAdvanced] = useState(false)
+  const [open, setOpen] = useState<Record<string, boolean>>({})
+  const id = useId()
+  const groups = useMemo(() => groupFields(props.schema, query, advanced), [props.schema, query, advanced])
+  const shown = groups.reduce((n, g) => n + g.fields.length, 0)
+  const changed = (fs: Field[]) => fs.filter((f) => isSet(props.values[f.key])).length
+  return (
+    <div className="emu-large">
+      <div className="emu-large-tools">
+        <Input type="search" aria-label="Find a setting" placeholder="Find a setting" value={query} onChange={(e) => setQuery(e.target.value)} spellCheck={false} autoComplete="off" />
+        <Switch checked={advanced} onChange={setAdvanced} label="Show advanced settings" />
+      </div>
+      <p className="muted emu-large-count" aria-live="polite">{query ? `${shown} ${shown === 1 ? 'setting matches' : 'settings match'}` : `${shown} settings in ${groups.length} sections`}</p>
+      {groups.map((g) => {
+        const isOpen = !!query || !!open[g.group]
+        const n = changed(g.fields)
+        return (
+          <section key={g.group} className="emu-group">
+            <h3>
+              <button type="button" className="emu-group-head" aria-expanded={isOpen} aria-controls={`${id}-${g.group}`} onClick={() => setOpen((o) => ({ ...o, [g.group]: !isOpen }))}>
+                <span>{g.group}</span>
+                <small className="muted">{g.fields.length}{n ? `, ${n} set here` : ''}</small>
+              </button>
+            </h3>
+            {isOpen && <div id={`${id}-${g.group}`}><Fields {...props} schema={g.fields} /></div>}
+          </section>
+        )
+      })}
+      {!groups.length && <p className="muted">No setting matches that.</p>}
+    </div>
+  )
+}
+
+function Fields({ schema, values, onChange, under, locked, canClear, disabled }: Props) {
   return (
     <div className="emu-form">
       {schema.map((f) => {

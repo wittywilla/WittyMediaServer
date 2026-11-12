@@ -175,17 +175,24 @@ func hintNames(folder string) []string {
 
 // mustHaveHeader lists the consoles whose every game has a header their cores rely on.
 // A file for one of them without it won't play, whatever it's called.
-var mustHaveHeader = map[string]bool{"gb": true, "gba": true, "n64": true, "nds": true, "ngp": true, "ps1": true, "ps2": true, "psp": true, "3ds": true}
+var mustHaveHeader = map[string]bool{"gb": true, "gba": true, "n64": true, "nds": true, "ngp": true, "ps1": true, "ps2": true, "psp": true, "3ds": true,
+	gameid.GameCube: true, gameid.Wii: true, gameid.WiiU: true, gameid.PS3: true, gameid.Xbox: true, gameid.Switch: true}
 
 // opaqueExts are formats a header can't be read from here: compressed in a way that would
 // take a decoder of its own, or with one offset nothing can guess. They go by where they're
 // kept. Nothing about them speaks against the folder.
-var opaqueExts = map[string]bool{".chd": true, ".cdi": true, ".nrg": true, ".mdf": true, ".gz": true, ".zcci": true, ".zcxi": true, ".z3dsx": true, ".bcci": true, ".bcxi": true, ".elf": true, ".axf": true, ".gdi": true, ".toc": true, ".ccd": true, ".m3u": true, ".cue": true}
+var opaqueExts = map[string]bool{".chd": true, ".cdi": true, ".nrg": true, ".mdf": true, ".gz": true, ".zcci": true, ".zcxi": true, ".z3dsx": true, ".bcci": true, ".bcxi": true, ".elf": true, ".axf": true, ".gdi": true, ".toc": true, ".ccd": true, ".m3u": true, ".cue": true,
+	// A GameCube disc embedded in another (.tgc), and a Switch content file (.nca), which is
+	// encrypted from its very first byte.
+	".tgc": true, ".nca": true}
 
 // extHasNoProof are extensions that belong to a console's cartridges, but are also what
 // other things are often called, so they need a header as well: .md is usually text, .dmg
 // a Mac disk image, .vb source code, .ws a script, .bs and .app anything.
 var extHasNoProof = map[string]bool{".md": true, ".bin": true, ".iso": true, ".img": true, ".dmg": true, ".cgb": true, ".sgb": true, ".app": true}
+
+// dvdConsoles are the consoles whose games come on DVDs, or discs made like them.
+var dvdConsoles = map[string]bool{"ps2": true, "psp": true, gameid.GameCube: true, gameid.Wii: true, gameid.Xbox: true}
 
 // headerless consoles have no header to check, so .bin is as good a name as any there.
 var headerless = map[string]bool{"a2600": true, "a7800": true, "pce": true, "vb": true, "ws": true}
@@ -211,6 +218,12 @@ func consoleName(id string) string {
 		return "Nintendo Wii"
 	case gameid.Xbox:
 		return "Xbox"
+	case gameid.WiiU:
+		return "Nintendo Wii U"
+	case gameid.PS3:
+		return "PlayStation 3"
+	case gameid.Switch:
+		return "Nintendo Switch"
 	case gameid.ThreeDO:
 		return "3DO"
 	case gameid.PCFX:
@@ -249,7 +262,10 @@ func proven(f gameid.Finding, library string) gameVerdict {
 	}
 	v := accept(f.Console, howBytes, 100, f.Proof)
 	v.Title, v.Serial, v.Region, v.NewOnly = f.Title, f.Serial, f.Region, f.NewOnly
-	if f.Encrypted {
+	// An encrypted 3DS file can't play here. Switch and Wii U games are encrypted as a
+	// rule, and a standalone emulator plays them with keys from the owner's own console:
+	// they're listed like any other game, and their proof says so.
+	if f.Encrypted && !f.NeedsKeys {
 		v.Problem = "encrypted"
 	}
 	return v
@@ -365,7 +381,7 @@ func decideByFolder(f gameid.Finding, ext, hint string, size int64, fits func(st
 		if f.Media == "gd" && hint != "dc" {
 			return needsLook("This is a GD-ROM, which only a Dreamcast uses, in a folder for "+name+".", "dc", hint)
 		}
-		if f.Media == "dvd" && hint != "ps2" && hint != "psp" {
+		if f.Media == "dvd" && !dvdConsoles[hint] {
 			return needsLook("This is a DVD image, in a folder for "+name+", which doesn't use DVDs.", hint)
 		}
 		return accept(hint, howFolder, 70, proof)

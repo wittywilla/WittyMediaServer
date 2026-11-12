@@ -118,7 +118,10 @@ export type GameConsole = {
   id: string; name: string; short: string; extensions: string[]; cores: GameCore[]; bios?: { file: string; for: string; required: boolean }[]
   unavailable?: string; installed: GameCore[]; ready: boolean; count?: number; needsGpu?: boolean
   // When it isn't ready: why (gpu means this server can't draw its games), in words for people.
-  reason?: 'unavailable' | 'core' | 'gpu'; message?: string; gpuMissing?: string
+  reason?: 'unavailable' | 'core' | 'gpu' | 'emulator'; message?: string; gpuMissing?: string
+  // Standalone emulators set up to play it here, and the one Play starts when no core plays it.
+  standaloneEmulators?: { id: string; name: string; version: string; ready: boolean; why?: string }[]; standalone?: string
+  totalGames?: number
   // Ready, with the processor drawing its games: no graphics card here. notice is the speed caveat.
   software?: boolean; notice?: string
   // Where each core on offer runs, how it draws there, and here: see pages/games/platforms.tsx.

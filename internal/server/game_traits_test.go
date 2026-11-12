@@ -22,7 +22,8 @@ func TestEveryConsoleRowIsComplete(t *testing.T) {
 		if row.Media != mediaCart && row.Media != mediaPocket && row.Media != mediaDisc {
 			t.Errorf("%s: media %q", id, row.Media)
 		}
-		if row.Launched < 1970 || row.Ended < row.Launched {
+		// No end year is a console still made: the Switch.
+		if row.Launched < 1970 || (row.Ended != 0 && row.Ended < row.Launched) || (row.Ended == 0 && id != "switch") {
 			t.Errorf("%s: years %d to %d", id, row.Launched, row.Ended)
 		}
 		c := row.Caps

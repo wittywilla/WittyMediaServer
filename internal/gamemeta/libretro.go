@@ -51,6 +51,9 @@ var rdbNames = map[string][]string{
 	"ps1":    {"Sony - PlayStation"},
 	"ps2":    {"Sony - PlayStation 2"},
 	"psp":    {"Sony - PlayStation Portable"},
+	"ps3":    {"Sony - PlayStation 3"}, // not its PSN list, which has no folder of pictures
+	"xbox":   {"Microsoft - Xbox"},
+	"switch": {"Nintendo - Nintendo Switch"}, // no folder of pictures yet: details, but no art
 	"pce":    {"NEC - PC Engine - TurboGrafx 16", "NEC - PC Engine CD - TurboGrafx-CD", "NEC - PC Engine SuperGrafx"},
 	"a2600":  {"Atari - 2600"},
 	"a5200":  {"Atari - 5200"},
@@ -382,8 +385,10 @@ func (d *libDB) closest(title string, want int) []struct {
 	return out
 }
 
-// discConsoles are consoles whose games are started by a product code on the disc.
-var discConsoles = map[string]bool{"ps1": true, "ps2": true, "psp": true, "dc": true, "saturn": true, "segacd": true, "gc": true, "wii": true}
+// discConsoles are consoles whose games are started by a product code on the disc, or,
+// for the Xbox, by a title id the product code is written from.
+var discConsoles = map[string]bool{"ps1": true, "ps2": true, "psp": true, "dc": true, "saturn": true, "segacd": true, "gc": true, "wii": true,
+	"wiiu": true, "ps3": true, "xbox": true}
 
 // sameGame says two names could be one game, or the first says nothing: a file called
 // rom.z64 isn't disagreeing with anything.

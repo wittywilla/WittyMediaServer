@@ -64,7 +64,11 @@ type Console struct {
 	// punctuation (see normalise).
 	Aliases []string `json:"-"`
 	Cores   []Core   `json:"cores"`
-	BIOS    []BIOS   `json:"bios,omitempty"`
+	// Emulators are the standalone emulators in the emulator list (package emulators) that
+	// play this console, by id. A console with no core is played only by one of these, or by an
+	// administrator's own emulator program.
+	Emulators []string `json:"emulators,omitempty"`
+	BIOS      []BIOS   `json:"bios,omitempty"`
 	// Unavailable, when set, says why games for this console can be listed but
 	// not played yet.
 	Unavailable string `json:"unavailable,omitempty"`
@@ -139,16 +143,6 @@ type PadButton struct {
 	Label string `json:"label"`
 }
 
-// ScreenFrame is one screen's part of a frame, as fractions of it. Touch: the stylus is for
-// this one.
-type ScreenFrame struct {
-	X     float64 `json:"x"`
-	Y     float64 `json:"y"`
-	W     float64 `json:"w"`
-	H     float64 `json:"h"`
-	Touch bool    `json:"touch,omitempty"`
-}
-
 // PadLayout says what a console's controller has.
 type PadLayout struct {
 	Face     []PadButton `json:"face"` // main buttons, left to right
@@ -156,9 +150,6 @@ type PadLayout struct {
 	Meta     []PadButton `json:"meta"` // Select, Start and their relatives
 	Sticks   bool        `json:"sticks,omitempty"`
 	Pointer  bool        `json:"pointer,omitempty"` // has a touch screen: clients send pointer states
-	// Screens: where each of a two-screen console's screens is in the frame, in the stacked
-	// layout its core is started in. A client can draw each where the person placed it.
-	Screens []ScreenFrame `json:"screens,omitempty"`
 	// Extra buttons a gamepad can reach but an on-screen controller leaves out, such
 	// as stick clicks.
 	Extra []PadButton `json:"extra,omitempty"`
@@ -617,11 +608,15 @@ type BIOSRule struct {
 
 // What the module's errors are, so errors.Is works on what comes back.
 var (
-	ErrEncrypted3DS = errors.New("This 3DS game file is encrypted: its program is scrambled, as it came from the console or the store. It can't be played here, and this server won't decrypt it")
+	ErrEncrypted3DS   = errors.New("This 3DS game file is encrypted: its program is scrambled, as it came from the console or the store. It can't be played here, and this server won't decrypt it")
+	ErrPlayBinWithCue = errors.New("Play! cannot open a PlayStation 2 .bin directly; open its .cue sheet or use LRPS2")
+	ErrPlayLoneBin    = errors.New("Play! cannot open a PlayStation 2 game kept as a single .bin; use LRPS2 or a .cue sheet")
 )
 
 func init() {
 	service.RegisterError("wittyplay.ErrEncrypted3DS", ErrEncrypted3DS)
+	service.RegisterError("wittyplay.ErrPlayBinWithCue", ErrPlayBinWithCue)
+	service.RegisterError("wittyplay.ErrPlayLoneBin", ErrPlayLoneBin)
 }
 
 // BuiltinPresets is the module's table of that name.
@@ -1039,6 +1034,15 @@ func ParseProfileFile(b []byte) ([]Profile, error) {
 func Refusal(path string, consoleID string) string {
 	var r0 string
 	_ = service.Call(context.Background(), "wittyplay", "wittyplay.Refusal", nil, nil, []any{path, consoleID}, []any{&r0})
+	return r0
+}
+
+// RefusalForCore says why a file for this console can't be played by a specific core,
+// in words for a person, or "" when nothing is known against it. When coreID is "",
+// only console-wide refusals are checked.
+func RefusalForCore(path string, consoleID string, coreID string) string {
+	var r0 string
+	_ = service.Call(context.Background(), "wittyplay", "wittyplay.RefusalForCore", nil, nil, []any{path, consoleID, coreID}, []any{&r0})
 	return r0
 }
 

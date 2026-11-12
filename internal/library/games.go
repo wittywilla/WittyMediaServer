@@ -29,6 +29,44 @@ import (
 var gameSkipDirs = map[string]bool{"bios": true, "system": true, "saves": true, "savestates": true, "states": true, "screenshots": true,
 	"boxart": true, "covers": true, "cover": true, "images": true, "media": true, "manuals": true, "__macosx": true, "@eadir": true}
 
+// dumpGame is the file that stands for a whole game kept as a folder, when dir is one: a PS3
+// disc's PS3_DISC.SFB beside its PS3_GAME folder, or a Wii U game's code/*.rpx beside its meta
+// folder. Names are matched in any case.
+func dumpGame(dir string) string {
+	entries, err := os.ReadDir(dir)
+	if err != nil || len(entries) > 64 {
+		return "" // a dump's root holds a handful of things; a folder of games holds more
+	}
+	var sfb, ps3Game, code, meta string
+	for _, e := range entries {
+		switch n := strings.ToLower(e.Name()); {
+		case n == "ps3_disc.sfb" && !e.IsDir():
+			sfb = e.Name()
+		case n == "ps3_game" && e.IsDir():
+			ps3Game = e.Name()
+		case n == "code" && e.IsDir():
+			code = e.Name()
+		case n == "meta" && e.IsDir():
+			meta = e.Name()
+		}
+	}
+	if sfb != "" && ps3Game != "" {
+		return filepath.Join(dir, sfb)
+	}
+	if code != "" && meta != "" {
+		list, err := os.ReadDir(filepath.Join(dir, code))
+		if err != nil {
+			return ""
+		}
+		for _, e := range list {
+			if !e.IsDir() && strings.EqualFold(filepath.Ext(e.Name()), ".rpx") {
+				return filepath.Join(dir, code, e.Name())
+			}
+		}
+	}
+	return ""
+}
+
 // discoverGames lists the games under a root. Multi-file games become one: a
 // .cue hides the tracks it names and an .m3u hides the discs it names, whatever
 // the case of the names in it.
@@ -57,6 +95,16 @@ func (ix *archiveIndex) discover(root, console string) ([]candidate, error) {
 		name := d.Name()
 		if d.IsDir() {
 			if p != root && (strings.HasPrefix(name, ".") || strings.HasPrefix(name, "$") || gameSkipDirs[strings.ToLower(name)]) {
+				return filepath.SkipDir
+			}
+			// A PS3 disc or a Wii U game kept as a folder is one game of thousands of files: it's
+			// listed by the one file every such dump has, and nothing else in it is looked at.
+			if game := dumpGame(p); game != "" {
+				if rel, err := filepath.Rel(root, game); err == nil {
+					if st, err := os.Stat(game); err == nil && st.Mode().IsRegular() {
+						files = append(files, seen{game, rel, st.Size(), st.ModTime().Unix()})
+					}
+				}
 				return filepath.SkipDir
 			}
 			return nil

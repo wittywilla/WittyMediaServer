@@ -297,3 +297,28 @@ func TestGamesStayWithoutWittyPlay(t *testing.T) {
 		t.Fatalf("%d items, %v", len(items), err)
 	}
 }
+
+// A PS3 disc or a Wii U game kept as a folder is found by the one file each dump has, and the
+// folder of games around them isn't mistaken for one.
+func TestDumpGame(t *testing.T) {
+	root := t.TempDir()
+	writeFiles(t, root, "PS3/Some Game/PS3_DISC.SFB", "PS3/Some Game/PS3_GAME/USRDIR/EBOOT.BIN", "PS3/Some Game/PS3_GAME/USRDIR/data.bin",
+		"Wii U/Other/code/game.rpx", "Wii U/Other/code/lib.rpl", "Wii U/Other/content/00000001.app", "Wii U/Other/meta/meta.xml",
+		"Wii U/NotADump/code/game.rpx", "PS3/Loose/PS3_DISC.SFB")
+	for dir, want := range map[string]string{
+		"PS3/Some Game":          "PS3/Some Game/PS3_DISC.SFB",
+		"Wii U/Other":            "Wii U/Other/code/game.rpx",
+		"Wii U/NotADump":         "", // no meta folder: not a dump's root
+		"PS3/Loose":              "", // no PS3_GAME beside it
+		"PS3":                    "",
+		"PS3/Some Game/PS3_GAME": "",
+	} {
+		got := dumpGame(filepath.Join(root, filepath.FromSlash(dir)))
+		if want != "" {
+			want = filepath.Join(root, filepath.FromSlash(want))
+		}
+		if got != want {
+			t.Errorf("%s: %q, want %q", dir, got, want)
+		}
+	}
+}

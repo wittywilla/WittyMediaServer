@@ -263,6 +263,31 @@ func (s *Server) handleWatchLaterAdd(w http.ResponseWriter, r *http.Request) {
 	s.addToCollection(w, r, c)
 }
 
+// DELETE /api/collections/watch-later/items {items, shows}: take titles off this account's
+// Watch later list. Titles that weren't on it are no error.
+func (s *Server) handleWatchLaterRemove(w http.ResponseWriter, r *http.Request) {
+	u := userFrom(r)
+	if !canReact(u) {
+		writeErr(w, 403, "this profile can't keep lists")
+		return
+	}
+	var b collectionItemsBody
+	if err := readJSON(r, &b); err != nil || !b.valid() {
+		writeErr(w, 400, "items and shows must list 1 to 2000 things")
+		return
+	}
+	c, err := s.Store.WatchLater(r.Context(), u.ID)
+	if err != nil {
+		writeLibErr(w, err)
+		return
+	}
+	if err := s.Store.RemoveFromCollection(r.Context(), c.ID, b.Items, b.Shows); err != nil {
+		writeLibErr(w, err)
+		return
+	}
+	writeJSON(w, 200, map[string]any{"ok": true})
+}
+
 func (s *Server) addToCollection(w http.ResponseWriter, r *http.Request, c *library.Collection) {
 	if c.Kind == "smart" {
 		writeErr(w, 400, "a smart playlist fills itself")

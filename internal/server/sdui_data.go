@@ -1006,6 +1006,7 @@ func (rv *sduiResolver) Subject() (*sdui.Item, error) {
 		// watched.set and watched.clear take the show's ID too (show_watched.go).
 		it.Can = []string{"watchLater", "watched"}
 		it.Watched = sh.EpisodeCount > 0 && sh.Unwatched == 0
+		it.InWatchLater, _ = s.Store.InWatchLater(rv.ctx, rv.u.ID, 0, sh.ID)
 		if rv.acc.Can(library.FeatureSharing) {
 			it.Can = append(it.Can, "share")
 		}
@@ -1030,6 +1031,9 @@ func (rv *sduiResolver) Subject() (*sdui.Item, error) {
 		}
 		_ = s.Store.AttachProgress(rv.ctx, rv.u.ID, []*library.Item{raw})
 		it := rv.item(raw)
+		if slices.Contains(it.Can, "watchLater") {
+			it.InWatchLater, _ = s.Store.InWatchLater(rv.ctx, rv.u.ID, raw.ID, 0)
+		}
 		rv.subject = &it
 	}
 	if rv.subject == nil {

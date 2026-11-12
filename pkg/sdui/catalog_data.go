@@ -278,7 +278,7 @@ func buildComponents() []ComponentSpec {
 
 		{Type: "FilterBar", Label: "Filter and sort", Icon: "filter", Category: "navigation", Since: 2, Authored: true, Data: "none", Focus: "stop",
 			Fallback: "", FallbackNote: "Left out: the grid shows everything in its default order.",
-			Description: "The controls that filter and sort a Grid on the same page. The server fills in each filter's choices from what the library holds; a change asks for the page again with the choice as a query parameter.",
+			Description: "The controls that filter and sort a Grid on the same page. The server fills in each filter's choices from what the library holds; a change asks for the page again with the choice as a query parameter. With showCount, the server sends count (a number) and countText, the words to show (\"1 title\", \"12 titles\").",
 			Props: []PropSpec{
 				req(pOf(PropSection, "target", "Filters", "The Grid this bar filters. Its source must be filterable.")),
 				pList("fields", "Filters", "Which filters are offered, in order. One with no choices in this library is left out.", []string{"genre", "decade", "watched"},
@@ -297,7 +297,7 @@ func buildComponents() []ComponentSpec {
 
 		{Type: "DetailHeader", Label: "Title header", Icon: "info", Category: "detail", Since: 2, Authored: true, Data: "none", Focus: "stop",
 			Fallback: "Stack", FallbackNote: "A column: the backdrop as an Image, the title and overview as Text, and the actions as Buttons in a row.",
-			Description: "The top of a title's page: its art, name, facts, score, synopsis and the buttons that play it and act on it. It shows the title the page was opened for.",
+			Description: "The top of a title's page: its art, name, facts, score, synopsis and the buttons that play it and act on it. It shows the title the page was opened for. A button that is a toggle (Watch later) has pressed true or false: draw it as on or off and say so to a screen reader; its label and command already match the state.",
 			Props: []PropSpec{
 				pEnum("layout", "Layout", "Backdrop behind the text, poster beside it, or a compact strip.", "backdrop", "backdrop|Backdrop", "poster|Poster beside", "compact|Compact"),
 				pList("actions", "Buttons", "The buttons offered, in order. One the title or the profile can't use is left out.", []string{"play", "restart", "watchLater", "watched", "download", "share"},
@@ -767,6 +767,7 @@ func buildCatalogue() *Catalogue {
 		PageKinds: buildPageKinds(), Routes: buildRoutes(),
 		Commands: []CommandSpec{
 			{Op: "watchLater.add", Label: "Watch later", Description: "Adds the title to the profile's Watch later list.", Method: "POST", Path: "/api/v1/collections/watch-later/items", Body: `{"items":["{item}"]}`},
+			{Op: "watchLater.remove", Label: "Remove from Watch later", Description: "Takes the title off the profile's Watch later list.", Method: "DELETE", Path: "/api/v1/collections/watch-later/items", Body: `{"items":["{item}"]}`},
 			{Op: "watched.set", Label: "Mark watched", Description: "Marks the title watched; for a show, every episode.", Method: "POST", Path: "/api/v1/items/{item}/progress", Body: `{"watched":true}`},
 			{Op: "watched.clear", Label: "Mark unwatched", Description: "Forgets the profile's progress in the title; for a show, in every episode.", Method: "DELETE", Path: "/api/v1/items/{item}/progress"},
 			{Op: "selectTab", Label: "Choose a tab", Description: "Asks for the page again with tab=<params.tab>, or shows the tab's content when the client already has it.", Method: "GET", Path: ""},

@@ -271,6 +271,7 @@ var routeRules = map[string]string{
 	"POST /api/collections":                                     "Adult: Name and description sizes. Rule fields",
 	"POST /api/collections/preview":                             "Signed-in: Rule fields. limits",
 	"POST /api/collections/watch-later/items":                   "Signed-in, not Guest: limits on each title. 1 to 2000",
+	"DELETE /api/collections/watch-later/items":                 "Signed-in, not Guest: Own list only. 1 to 2000",
 	"POST /api/collections/{id}/items":                          "Signed-in: Collection's owner or an admin. Not a smart list. limits on each title. 1 to 2000",
 	"POST /api/couch/hosts":                                     "Signed-in with game PC access: Address cleaned. Owner's network and port settings. Count and attempt limits. Must answer as a game PC",
 	"POST /api/couch/hosts/{id}/apps/{app}/play":                "Signed-in with game PC access: own. Request fields cleaned",

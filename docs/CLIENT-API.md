@@ -2009,6 +2009,7 @@ one of these games answers 409 with `"rig": true`.
 | `POST /collections/preview` | user | Preview rule. |
 | `GET /collections/holding` | user | Collections holding. |
 | `POST /collections/watch-later/items` | user | Watch later add. `{items, shows}`: each a number, or a string `"5"` or `"show-5"` (a show, wherever it is listed). |
+| `DELETE /collections/watch-later/items` | user | Watch later remove, with the same body; titles that weren't on it are no error. A title page's DetailHeader offers it as `watchLater.remove` ("In Watch later", `pressed: true`) when the title is on the list. |
 | `GET /collections/{id}` | user | Collection. |
 | `PUT /collections/{id}` | user | Update collection. |
 | `DELETE /collections/{id}` | user | Delete collection. |

@@ -132,3 +132,83 @@ func TestWatchLaterTakesSDUIIDs(t *testing.T) {
 		}
 	}
 }
+
+// A title's page says whether it is on Watch later, and its button takes it off again: for a
+// show and for a film, with the catalogue's own command templates, the page asked for again at
+// once as an app does after a command.
+func TestWatchLaterIsAToggleOnATitlesPage(t *testing.T) {
+	ts, _, adult, _, _ := showWorld(t)
+	films := t.TempDir()
+	film := ts.item(t, &library.Item{LibraryID: ts.library(t, "movies", films), Kind: "video", Title: "A film", Path: filepath.Join(films, "film.mkv"), ContentRating: "G", RuntimeSec: 5400}).ID
+	button := func(page string) map[string]any {
+		t.Helper()
+		doc := sduiDoc(t, ts.do(t, "GET", "/api/sdui/pages/detail?"+page, adult, nil))
+		var find func(n *sdui.Node) *sdui.Node
+		find = func(n *sdui.Node) *sdui.Node {
+			if n.Type == "DetailHeader" {
+				return n
+			}
+			for i := range n.Children {
+				if got := find(&n.Children[i]); got != nil {
+					return got
+				}
+			}
+			return nil
+		}
+		h := find(&doc.Root)
+		if h == nil {
+			t.Fatalf("%s: no DetailHeader", page)
+		}
+		acts, _ := h.Props["actions"].([]any)
+		for _, a := range acts {
+			if m, _ := a.(map[string]any); m["id"] == "watchLater" {
+				return m
+			}
+		}
+		t.Fatalf("%s: no Watch later button in %v", page, acts)
+		return nil
+	}
+	op := func(b map[string]any) string {
+		a, _ := b["action"].(map[string]any)
+		op, _ := a["op"].(string)
+		return op
+	}
+	run := func(name, item string) {
+		t.Helper()
+		for _, cmd := range sdui.Catalog().Commands {
+			if cmd.Op != name {
+				continue
+			}
+			body, _ := json.Marshal(item)
+			filled := strings.ReplaceAll(cmd.Body, `"{item}"`, string(body))
+			if w := ts.do(t, cmd.Method, "/api"+strings.TrimPrefix(cmd.Path, "/api/v1"), adult, []byte(filled)); w.Code != 200 {
+				t.Fatalf("%s %s: %d %s", name, item, w.Code, w.Body)
+			}
+			return
+		}
+		t.Fatalf("no %s command in the catalogue", name)
+	}
+	for _, c := range []struct{ page, item string }{{"show=5", "show-5"}, {fmt.Sprintf("item=%d", film), fmt.Sprint(film)}} {
+		if b := button(c.page); op(b) != "watchLater.add" || b["pressed"] != false || b["label"] != "Watch later" {
+			t.Errorf("%s, not on the list: %v", c.page, b)
+		}
+		run("watchLater.add", c.item)
+		if b := button(c.page); op(b) != "watchLater.remove" || b["pressed"] != true || b["label"] != "In Watch later" {
+			t.Errorf("%s, on the list: %v", c.page, b)
+		}
+		run("watchLater.remove", c.item)
+		if b := button(c.page); op(b) != "watchLater.add" || b["pressed"] != false {
+			t.Errorf("%s, taken off: %v", c.page, b)
+		}
+		// Taking off what isn't there is no error.
+		run("watchLater.remove", c.item)
+	}
+	if held := decode[[]int64](t, ts.do(t, "GET", "/api/collections/holding?show=5", adult, nil)); len(held) != 0 {
+		t.Errorf("still held: %v", held)
+	}
+	// A guest keeps no lists, either way.
+	_, guest := ts.user(t, "visitor", "guest", false, "")
+	if w := ts.do(t, "DELETE", "/api/collections/watch-later/items", guest, []byte(`{"items":["show-5"]}`)); w.Code != 403 {
+		t.Errorf("a guest: %d", w.Code)
+	}
+}

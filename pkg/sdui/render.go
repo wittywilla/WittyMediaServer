@@ -1199,7 +1199,7 @@ func (r *renderer) hero(n *Node, in instance) bool {
 			case a == "details" && it.Route != "":
 				acts = append(acts, button("details", "More info", "info", false, &Action{Type: ActNavigate, To: it.Route}))
 			case a == "watchLater" && contains(it.Can, "watchLater"):
-				acts = append(acts, button("watchLater", "Watch later", "clock", false, &Action{Type: ActCommand, Op: "watchLater.add", Item: it.ID}))
+				acts = append(acts, watchLaterButton(it))
 			}
 		}
 		if len(acts) > 0 {
@@ -1212,6 +1212,19 @@ func (r *renderer) hero(n *Node, in instance) bool {
 		n.Children = append(n.Children, c)
 	}
 	return true
+}
+
+// watchLaterButton adds a title to Watch later, or, when it's there already, says so and
+// takes it off: a toggle, marked pressed, so a renderer can draw it as one.
+func watchLaterButton(it *Item) map[string]any {
+	if it.InWatchLater {
+		b := button("watchLater", "In Watch later", "check", false, &Action{Type: ActCommand, Op: "watchLater.remove", Item: it.ID})
+		b["pressed"] = true
+		return b
+	}
+	b := button("watchLater", "Watch later", "clock", false, &Action{Type: ActCommand, Op: "watchLater.add", Item: it.ID})
+	b["pressed"] = false
+	return b
 }
 
 func button(id, label, icon string, primary bool, a *Action) map[string]any {
@@ -1447,7 +1460,7 @@ func headerActions(it *Item, want []string) []any {
 				out = append(out, button("restart", "Play from the start", "play", false, &Action{Type: ActPlay, Item: play, Params: map[string]any{"resume": false}}))
 			}
 		case "watchLater":
-			out = append(out, button("watchLater", "Watch later", "clock", false, &Action{Type: ActCommand, Op: "watchLater.add", Item: it.ID}))
+			out = append(out, watchLaterButton(it))
 		case "watched":
 			if it.Watched {
 				out = append(out, button("watched", "Mark unwatched", "check", false, &Action{Type: ActCommand, Op: "watched.clear", Item: it.ID}))
@@ -1506,6 +1519,14 @@ func factsLine(it *Item, want []string) []any {
 		}
 	}
 	return out
+}
+
+// titlesText is how many titles there are, in words: "1 title", "12 titles".
+func titlesText(n int) string {
+	if n == 1 {
+		return "1 title"
+	}
+	return strconv.Itoa(n) + " titles"
 }
 
 func countText(it *Item) string {
@@ -1626,6 +1647,7 @@ func (r *renderer) finishFilters(root *Node) {
 		if n.Type == "FilterBar" {
 			if t, ok := r.totals[propStr(n.Props, "target", "")]; ok && n.Props["showCount"] == true {
 				n.Props["count"] = t
+				n.Props["countText"] = titlesText(t)
 			}
 			delete(n.Props, "showCount")
 		}

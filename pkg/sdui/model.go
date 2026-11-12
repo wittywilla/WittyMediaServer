@@ -450,6 +450,8 @@ type Item struct {
 	Progress  float64 `json:"progress,omitempty"`
 	Watched   bool    `json:"watched,omitempty"`
 	Unwatched int     `json:"unwatched,omitempty"`
+	// InWatchLater: the title is on the profile's Watch later list.
+	InWatchLater bool `json:"inWatchLater,omitempty"`
 	// ResumeSec is where Play picks up, 0 to start over.
 	ResumeSec float64 `json:"resumeSec,omitempty"`
 	// Season and Episode number an episode; ShowTitle names its show.

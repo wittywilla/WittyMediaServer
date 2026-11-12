@@ -791,6 +791,9 @@
           },
           "type": "object"
         },
+        "inWatchLater": {
+          "type": "boolean"
+        },
         "kind": {
           "type": "string"
         },

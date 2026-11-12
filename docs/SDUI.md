@@ -1564,7 +1564,7 @@ Fallback: Its content in a column.
 
 #### FilterBar
 
-*Filter and sort.* The controls that filter and sort a Grid on the same page. The server fills in each filter's choices from what the library holds; a change asks for the page again with the choice as a query parameter.
+*Filter and sort.* The controls that filter and sort a Grid on the same page. The server fills in each filter's choices from what the library holds; a change asks for the page again with the choice as a query parameter. With showCount, the server sends count (a number) and countText, the words to show ("1 title", "12 titles").
 
 | Property | Type | Default | What it is |
 |---|---|---|---|
@@ -1600,7 +1600,7 @@ Fallback: Left out: the grid shows everything in its default order.
 
 #### DetailHeader
 
-*Title header.* The top of a title's page: its art, name, facts, score, synopsis and the buttons that play it and act on it. It shows the title the page was opened for.
+*Title header.* The top of a title's page: its art, name, facts, score, synopsis and the buttons that play it and act on it. It shows the title the page was opened for. A button that is a toggle (Watch later) has pressed true or false: draw it as on or off and say so to a screen reader; its label and command already match the state.
 
 | Property | Type | Default | What it is |
 |---|---|---|---|
@@ -2919,6 +2919,7 @@ A menu entry (`type: native`) may open the screens marked *menu*; the others nee
 | `op` | What it does | Request |
 |---|---|---|
 | `watchLater.add` | Adds the title to the profile's Watch later list. | `POST /api/v1/collections/watch-later/items` with `{"items":["{item}"]}` |
+| `watchLater.remove` | Takes the title off the profile's Watch later list. | `DELETE /api/v1/collections/watch-later/items` with `{"items":["{item}"]}` |
 | `watched.set` | Marks the title watched; for a show, every episode. | `POST /api/v1/items/{item}/progress` with `{"watched":true}` |
 | `watched.clear` | Forgets the profile's progress in the title; for a show, in every episode. | `DELETE /api/v1/items/{item}/progress` |
 | `selectTab` | Asks for the page again with tab=<params.tab>, or shows the tab's content when the client already has it. |  |

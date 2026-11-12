@@ -18277,6 +18277,47 @@
       }
     },
     "/collections/watch-later/items": {
+      "delete": {
+        "operationId": "deleteCollectionsWatchLaterItems",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            }
+          },
+          "description": "{items, shows}",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Watch later remove: take titles off this account's Watch later list. {items, shows} as for adding; titles that weren't on it are no error.",
+        "tags": [
+          "Collections and your year"
+        ],
+        "x-wms-auth": "user"
+      },
       "post": {
         "operationId": "postCollectionsWatchLaterItems",
         "parameters": [],

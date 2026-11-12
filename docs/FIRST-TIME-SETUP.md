@@ -49,6 +49,8 @@ Install the server first: [Getting started](GETTING_STARTED.md#install-it-and-st
 
 Choose a **name to sign in with**, and a **password** of at least 8 characters, typed twice. **Show what I'm typing** helps on a TV. Tick the box to say that the files you add are your own responsibility, then press **Create account**. On another device, the setup code goes here too.
 
+**Two-step sign-in (recommended)** is a tick under the password. If you tick it, the next page shows a QR code for an authenticator app (or a key to type), asks for the six digits it shows, then shows eight recovery codes, **once**: save them. Each works once in place of a code if you lose your phone. **Skip for now** leaves it off; it can be turned on later in **Settings → Security**. See [Accounts](ACCOUNTS.md).
+
 Keep the password somewhere safe: [forgetting it is hard to undo](ACCOUNTS.md#if-you-forget-your-password).
 
 ## 3. Name and address
@@ -62,7 +64,14 @@ The name appears in every app. The editor is the same one as **Settings → Appe
 - **Mark for the rail and small spaces:** the first letter, the initials, one or two characters of your own, or a PNG or JPEG logo up to 2 MB, always centred in a square badge. A logo that can't load falls back to the letter.
 - A **Check** appears if a colour is under 4.5 to 1 against the side menu or the top bar, with the words affected. The **live preview** shows the name in the side menu, top bar, rail header, sign-in page, and on a light and a black look. Fixed colours and gradients stay as chosen when the theme or look changes; the theme-following ones change with it.
 
-**Network** shows the port the server answers on, with **Change the port**.
+**Network and time:**
+
+- **Time zone:** the computer's own, or any other. The TV guide's days, schedules, recordings and the logs follow it.
+- **Find this server automatically** lets apps on your home network find it by name, with no address to type.
+- **Encrypted connections** says whether HTTPS is on, and links to **Settings → Remote Access**, where it is set up (a certificate needs a domain name).
+- The **port** the server answers on, with **Change the port**.
+
+When the server checks the name's fixed colours against the theme and finds words under 4.5 to 1, it saves them and says **Check:** with the words and ratios; press **Continue** again to keep them, or change the colours.
 
 ## 4. Look
 

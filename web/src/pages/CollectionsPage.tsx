@@ -1,15 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { PageHelp } from '../components/HelpLink'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import SpecPage from '../spec/SpecPage'
-import { handledIds, withIds } from '../spec/model'
-import { collectionsSpec } from '../spec/specs/collections'
 import { api, fitWidth, posterUrl, sized, type Item, type Show } from '../api'
 import { useAudio } from '../audio/player'
-import { BackLink, EmptyState, LoadError, ItemCard, ShowCard, Spinner } from '../components/common'
-import { canPost, type Collection, type CollectionRule } from '../gallery'
+import { BackLink, EmptyState, ItemCard, ShowCard, Spinner } from '../components/common'
+import { type Collection, type CollectionRule } from '../gallery'
 import { IconClose, IconEdit, IconLibrary, IconPlay, IconTrash } from '../icons'
 import { toast, useApp } from '../state'
 import '../gallery.css'
@@ -20,25 +16,6 @@ import { Segmented } from '../ui/Choice'
 // Collections and smart playlists, across every library. A smart playlist is a
 // saved rule the server works out each time (docs/COLLECTIONS.md); this page
 // lists them and builds the rule.
-
-export default function CollectionsPage() {
-  const { user } = useApp()
-  const [list, setList] = useState<Collection[] | null>(null)
-  const [making, setMaking] = useState(false)
-  const [failed, setFailed] = useState(false)
-  const load = useCallback(() => { setFailed(false); api.get<Collection[]>('/collections').then(setList).catch(() => setFailed(true)) }, [])
-  useEffect(load, [load])
-  const page = useMemo(() => (list ? collectionsSpec(list, user?.id, canPost(user)) : null), [list, user])
-  if (failed && !list) return <LoadError what="Your collections" onRetry={load} />
-  if (!list || !page) return <Spinner />
-  return (
-    <>
-      <div className="spec-page-help"><PageHelp to="collections" /></div>
-      <SpecPage page={page} handled={handledIds(withIds(page))} onAction={(id) => { if (id === 'new') setMaking(true) }} />
-      {making && <CollectionDialog onClose={() => setMaking(false)} onSaved={() => { setMaking(false); load() }} />}
-    </>
-  )
-}
 
 export function CollectionPage() {
   const { id } = useParams()

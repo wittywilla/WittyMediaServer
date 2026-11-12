@@ -39,3 +39,37 @@ html.tv-mode .spec-row, html.ten-foot .spec-row { min-height: 66px; }
 .spec-page.embedded .spec-dock { margin-inline: 0; }
 .spec-page-help { display: flex; justify-content: flex-end; max-width: 62rem; margin-inline: auto; }
 .spec-page.bare { max-width: none; margin-inline: 0; padding-block: 0; gap: var(--sp-4); }
+
+/* ---- form fields ---- */
+.spec-fields { display: flex; flex-direction: column; gap: var(--sp-3); }
+.spec-field { max-width: 32rem; }
+.spec-field .input, .spec-field .select { width: 100%; }
+.spec-field-label { font-weight: 600; font-size: var(--text-md); }
+.spec-field-hint { display: block; color: var(--fg-3); font-size: var(--text-sm); }
+.spec-pin { letter-spacing: .5em; font-variant-numeric: tabular-nums; text-align: center; font-size: var(--text-xl); }
+.spec-switch { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-4); max-width: none; min-height: var(--control-h, 2.75rem); padding: var(--sp-2) var(--sp-4); border: 1px solid var(--elev-1-line, transparent); border-radius: var(--r-md); background: var(--elev-1-fill, var(--bg-2)); }
+.spec-slider { display: flex; align-items: center; gap: var(--sp-3); }
+.spec-slider input { flex: 1; min-height: var(--control-h-sm, 2.25rem); accent-color: var(--accent); }
+.spec-slider output { min-width: 3.5ch; color: var(--fg-2); text-align: end; font-variant-numeric: tabular-nums; }
+.spec-code, .spec-qr { display: flex; flex-direction: column; gap: var(--sp-2); }
+.spec-code-chars { display: inline-flex; gap: var(--sp-2); }
+.spec-code-chars b { display: inline-grid; place-items: center; min-width: 1.6em; padding: var(--sp-2); border-radius: var(--r-md); background: var(--elev-2-fill, var(--bg-3)); font-size: var(--text-2xl, 1.75rem); font-variant-numeric: tabular-nums; }
+.spec-qr .qr { width: min(100%, 14rem); height: auto; border-radius: var(--r-md); }
+.spec-file { color: var(--fg-2); font: inherit; min-height: var(--control-h-sm, 2.25rem); }
+
+/* ---- the finish of each look, from the effects it sets (themes/design: glass, gloss, bevel) and its own character ---- */
+html[data-fx-glass="subtle"] :is(.spec-row, .spec-card, .spec-switch), html[data-fx-glass="full"] :is(.spec-row, .spec-card, .spec-switch) {
+  background-image: linear-gradient(180deg, color-mix(in srgb, var(--on-image) 12%, transparent), color-mix(in srgb, var(--on-image) 2%, transparent));
+  border-color: color-mix(in srgb, var(--on-image) 18%, transparent); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--on-image) 22%, transparent);
+}
+html[data-fx-gloss="subtle"] :is(.spec-chip.on, .spec-chip:hover), html[data-fx-gloss="full"] :is(.spec-chip.on, .spec-chip:hover) {
+  background-image: linear-gradient(180deg, color-mix(in srgb, var(--on-image) 32%, transparent), color-mix(in srgb, var(--on-image) 4%, transparent) 55%);
+}
+html[data-fx-gloss="full"] .spec-chip { background-image: linear-gradient(180deg, color-mix(in srgb, var(--on-image) 16%, transparent), transparent 60%); }
+html[data-fx-bevel="full"] :is(.spec-row, .spec-chip, .spec-card) { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--on-image) 28%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--picture-bg, #000) 30%, transparent); }
+html[data-experience="classicCable"] :is(.spec-row, .spec-card, .spec-switch) { border-width: 2px; border-color: var(--accent-line, var(--accent)); }
+html[data-experience="classicCable"] .spec-row.on, html[data-experience="classicCable"] .spec-card.on { border-color: var(--accent); }
+html[data-experience="classicSatellite"] :is(.spec-row, .spec-card, .spec-chip, .spec-switch) { border-radius: var(--r-sm, 4px); }
+html[data-experience="retro"] :is(.spec-row, .spec-card, .spec-chip, .spec-switch, .spec-note.tone) { border-radius: 0; border-width: 2px; }
+html[data-experience="retro"] .spec-eyebrow, html[data-experience="classicCable"] .spec-eyebrow { letter-spacing: .12em; }
+@media (prefers-reduced-transparency: reduce) { html[data-fx-glass] :is(.spec-row, .spec-card, .spec-switch) { background-image: none; box-shadow: none; } }

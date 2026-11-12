@@ -40,14 +40,22 @@ export function OverrideRecordBox({ id, name, record, onRemoved, disabled }: { i
   const when = toDate(record.at)
   const lines = overrideLines(record)
   const serious = lines.some((l) => ['unsigned', 'untrusted-key', 'custom', 'weak-sandbox'].includes(l.kind))
+  const custom = lines.some((l) => l.kind === 'custom')
   // Taking an override back changes which code runs, so it asks for the password like any other.
   const removeAsk: OwnerAsk = {
     title: `Remove the override on ${name}?`, action: 'Remove override',
-    body: <p>{name} goes back to the last version on this server that needed no override. If there isn’t one, {name} is taken off this server. Your files and what you’ve watched, read or played stay as they are. This asks for your password.</p>,
+    body: <p>{custom
+      ? `${name} isn’t a module this server knows, so there’s no other version to go back to: it’s taken off this server.`
+      : `${name} goes back to the last version on this server that needed no override. If there isn’t one, ${name} is taken off this server.`} Your files and what you’ve watched, read or played stay as they are. This asks for your password.</p>,
     run: async (password, code) => {
       const r = await api.del<ModuleReport>(`/modules/${encodeURIComponent(id)}/override`, { password, code })
-      toast(`The override on ${name} was removed`)
-      onRemoved(r && 'modules' in r ? r : undefined)
+      const report = r && 'modules' in r ? r : undefined
+      const gone = report ? !report.modules.some((m) => m.id === id) : custom
+      toast(gone ? `The override on ${name} was removed, and ${name} was taken off this server` : `The override on ${name} was removed`)
+      onRemoved(report)
+      // The button that opened this is gone with the module: keep keyboard focus on the page,
+      // at its heading, rather than letting it fall to the start of the document.
+      if (gone) setTimeout(() => { const h = document.querySelector<HTMLElement>('main h1'); if (h) { h.tabIndex = -1; h.focus() } }, 0)
     },
   }
   return (

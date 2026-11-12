@@ -380,7 +380,11 @@ func (m *Manager) StageUpload(u Upload) (*UploadInfo, error) {
 	}
 	if st := status; st == StatusExperimental || st == StatusIncomplete {
 		kinds = append(kinds, OverrideIncomplete)
-		info.Problems = append(info.Problems, UploadProblem{Kind: OverrideIncomplete, Text: "Its publisher marks it " + st + "." + strings.TrimSpace(" "+note)})
+		text := "Its publisher marks it " + st + "."
+		if note = strings.TrimSpace(note); note != "" {
+			text += " " + note
+		}
+		info.Problems = append(info.Problems, UploadProblem{Kind: OverrideIncomplete, Text: text})
 	}
 	m.mu.Lock()
 	checks := m.cfg.UIChecks

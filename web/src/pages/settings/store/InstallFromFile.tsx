@@ -35,6 +35,9 @@ function upload(p: Picked, onProgress: (sent: number, total: number) => void, si
     const tok = getToken()
     if (tok) x.setRequestHeader('Authorization', 'Bearer ' + tok)
     x.upload.onprogress = (e) => { if (e.lengthComputable) onProgress(e.loaded, e.total) }
+    // A small file goes in one piece with no progress event: once it's all sent, say so, so the
+    // page says the server is checking it rather than 0%.
+    x.upload.onload = () => { const n = p.archive?.size || 1; onProgress(n, n) }
     x.onerror = () => reject(new ApiError(0, 'Can’t reach your server. Check that it’s running and try again.'))
     x.onabort = () => reject(new DOMException('Stopped', 'AbortError'))
     x.onload = () => {
@@ -124,18 +127,19 @@ function UploadDialog({ onClose, onInstalled }: { onClose: () => void; onInstall
   const expires = toDate(r?.expiresAt)
   const pct = stage.at === 'uploading' && stage.total ? Math.round((stage.sent / stage.total) * 100) : 0
 
-  if (installing === 'override' && v?.need && r) return (
-    <OverrideDialog id={r.id || ''} name={r.name || r.id || 'This module'} need={v.need} onSubmit={install} onClose={() => setInstalling(null)} />
-  )
-  if (installing === 'password' && r) return (
-    <ConfirmOwner onClose={() => setInstalling(null)} ask={{
-      title: `Install ${r.name || r.id}?`, action: 'Install',
-      body: <p>This changes which code runs on this server, so it asks for your password.</p>,
-      run: (password, code) => install({ password, code }),
-    }} />
-  )
+  // The go-ahead opens over this dialog, which stays open beneath it: replacing it would close
+  // it, and with it the Back entry and the upload this dialog holds.
+  const next = installing === 'override' && v?.need && r
+    ? <OverrideDialog id={r.id || ''} name={r.name || r.id || 'This module'} need={v.need} onSubmit={install} onClose={() => setInstalling(null)} />
+    : installing === 'password' && r
+      ? <ConfirmOwner onClose={() => setInstalling(null)} ask={{
+        title: `Install ${r.name || r.id}?`, action: 'Install',
+        body: <p>This changes which code runs on this server, so it asks for your password.</p>,
+        run: (password, code) => install({ password, code }),
+      }} />
+      : null
 
-  return (
+  return (<>
     <Dialog title="Install a module from a file" size="md" onClose={onClose}
       actions={stage.at === 'found' ? <>
         <Button variant="ghost" onClick={discard}>Discard</Button>
@@ -201,5 +205,6 @@ function UploadDialog({ onClose, onInstalled }: { onClose: () => void; onInstall
         </div>
       )}
     </Dialog>
-  )
+    {next}
+  </>)
 }

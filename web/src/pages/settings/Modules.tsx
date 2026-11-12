@@ -85,6 +85,10 @@ function Confirm({ ask, onClose }: { ask: Ask; onClose: () => void }) {
   )
 }
 
+
+// A module installed past the rules that vouch for its publisher: what it says about itself is unchecked.
+const unvouched = (m: { override?: { kinds?: string[] } | null }) => !!m.override?.kinds?.some((k) => k === 'unsigned' || k === 'untrusted-key' || k === 'custom')
+
 export default function ModulesSettings() {
   const [r, setR] = useState<ModuleReport | null>(null)
   const [failed, setFailed] = useState('')
@@ -439,7 +443,8 @@ function ModuleDetail({ id, m, checkedAt, nameOf, refused, onReport, kinds, onRe
         {m.installed && m.updatable && <div><dt>Latest</dt><dd>{latest}</dd></div>}
         {!m.installed && <div><dt>Version</dt><dd>{m.latest?.version || 'None available yet'}</dd></div>}
         <div><dt>Works with</dt><dd>Servers {m.minServer} to {m.maxServer}</dd></div>
-        <div className="wide"><dt>{m.source ? 'Official repository' : 'Repository'}</dt><dd><a href={`https://github.com/${m.stockRepo || m.repo}`} target="_blank" rel="noreferrer">{m.stockRepo || m.repo}</a></dd></div>
+        {/* For a module nothing here checked (unsigned, an untrusted key, one this server doesn't know), the repository is only what its own file claims. */}
+        <div className="wide"><dt>{m.source ? 'Official repository' : unvouched(m) ? 'Says it comes from' : 'Repository'}</dt><dd><a href={`https://github.com/${m.stockRepo || m.repo}`} target="_blank" rel="noreferrer">{m.stockRepo || m.repo}</a>{unvouched(m) && <span className="ms-note"> Nothing checked this: it’s what the module’s own file says.</span>}</dd></div>
         {!!m.libraries?.length && <div className="wide"><dt>Brings these libraries</dt><dd>{m.libraries.map((t) => <BroughtKind key={t} type={t} m={m} kinds={kinds} onReport={onReport} />)}</dd></div>}
         {!!m.needs?.length && <div className="wide"><dt>What it needs</dt><dd>{m.needs.join(', ')}</dd></div>}
         {!!m.requires?.length && <div className="wide"><dt>Built on</dt><dd>{m.requires.map(nameOf).join(', ')}</dd></div>}

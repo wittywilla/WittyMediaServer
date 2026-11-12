@@ -19,7 +19,30 @@ import (
 func (s *Server) brand(ctx context.Context) (name, colouring string, parts []brandname.Part) {
 	name = s.DB.GetSetting(ctx, "brandName", "")
 	colouring = s.DB.GetSetting(ctx, "brandColouring", brandname.Auto)
-	return name, colouring, brandname.Parts(firstNonEmpty(name, brandname.Default), colouring)
+	shown := firstNonEmpty(name, brandname.Default)
+	// Spans the editor saved win over the quick modes; ones that no longer fit the name
+	// (it was renamed) are ignored.
+	if spans, err := brandname.ParseSpans(s.DB.GetSetting(ctx, "brandSpans", ""), len([]rune(shown))); err == nil && len(spans) > 0 {
+		return name, colouring, brandname.PartsFromSpans(shown, spans)
+	}
+	return name, colouring, brandname.Parts(shown, colouring)
+}
+
+// brandMark is the badge the rail, the tab bar's header and the sign-in draw: what it holds
+// and, for a logo, where it is. A logo that isn't on the server any more is the letter.
+func (s *Server) brandMark(ctx context.Context) brandname.Mark {
+	m, err := brandname.ParseMark(s.DB.GetSetting(ctx, "brandMark", ""))
+	if err != nil {
+		return brandname.Mark{Kind: brandname.MarkLetter}
+	}
+	if m.Kind == brandname.MarkImage {
+		if v := s.DB.GetSetting(ctx, "brandLogo", ""); v != "" {
+			m.ImageURL = "/api/v1/branding/logo?v=" + v
+		} else {
+			m = brandname.Mark{Kind: brandname.MarkLetter}
+		}
+	}
+	return m
 }
 
 // GET /api/themes (public: the login page is themed too)

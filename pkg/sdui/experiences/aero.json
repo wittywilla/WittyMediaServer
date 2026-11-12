@@ -5,7 +5,7 @@
   "tagline": "Glossy glass",
   "icon": "sparkles",
   "description": "Glossy glass bars, bevelled pills, sky and leaf gradients and rounded corners. Gloss and gradients, no heavy blur.",
-  "theme": "aeroDay",
+  "theme": "aeroday",
   "tvTheme": "modern",
   "nav": {
     "web": "floatingGlassBar",

@@ -92,3 +92,34 @@ func FuzzParts(f *testing.F) {
 		}
 	})
 }
+
+func TestSpansColourPartsAndMarkShowsLetters(t *testing.T) {
+	spans, err := ParseSpans(`[{"from":0,"to":5,"color":{"kind":"static","hex":"#b4491f"},"bold":true},{"from":5,"to":10,"color":{"kind":"gradient","stops":["#0a6aa8","#3aa84a"],"angle":90}}]`, 16)
+	if err != nil {
+		t.Fatal(err)
+	}
+	parts := PartsFromSpans("WittyMediaServer", spans)
+	if len(parts) != 3 || parts[0].Text != "Witty" || parts[0].Color.Kind != KindStatic || !parts[0].Bold || parts[1].Color.Kind != KindGradient || parts[2].Text != "Server" || parts[2].Color.Kind != KindFG {
+		t.Errorf("parts: %+v", parts)
+	}
+	for _, bad := range []string{`[{"from":3,"to":2,"color":{"kind":"fg"}}]`, `[{"from":0,"to":20,"color":{"kind":"fg"}}]`, `[{"from":0,"to":3,"color":{"kind":"static","hex":"red"}}]`,
+		`[{"from":0,"to":3,"color":{"kind":"gradient","stops":["#000000"]}}]`, `[{"from":0,"to":3,"color":{"kind":"neon"}}]`, `[{"from":0,"to":3,"colour":{}}]`} {
+		if _, err := ParseSpans(bad, 16); err == nil {
+			t.Errorf("accepted %s", bad)
+		}
+	}
+	for in, want := range map[string]string{"": "W", `{"kind":"initials"}`: "WMS", `{"kind":"text","text":"WM"}`: "WM"} {
+		m, err := ParseMark(in)
+		if err != nil || m.Shown("WittyMediaServer") != want {
+			t.Errorf("mark %q: %+v %v, shown %q want %q", in, m, err, m.Shown("WittyMediaServer"), want)
+		}
+	}
+	if _, err := ParseMark(`{"kind":"text","text":"abc"}`); err == nil {
+		t.Error("three characters of text")
+	}
+	for _, p := range Parts("WittyMediaServer", Auto) {
+		if p.Color == nil || (p.Accent != (p.Color.Kind == KindAccent)) {
+			t.Errorf("the quick modes carry their colour: %+v", p)
+		}
+	}
+}

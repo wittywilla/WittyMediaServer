@@ -1,16 +1,16 @@
 {
-  "id": "aeroMeadow",
-  "name": "Aero Meadow",
-  "description": "Spring green glass over a bright meadow.",
+  "id": "aeroaurora",
+  "name": "Aero Aurora",
+  "description": "Night glass: deep blue to teal, with a cyan glow.",
   "author": "WittyMediaServer",
   "version": "2",
-  "scheme": "light",
+  "scheme": "dark",
   "builtin": true,
   "preview": {
-    "bg": "#d9f5cc",
-    "surface": "#ecfae4",
-    "text": "#0d3a22",
-    "accent": "#217a36"
+    "bg": "#0b2a4a",
+    "surface": "#194a74",
+    "text": "#eaf6ff",
+    "accent": "#38c6f4"
   },
   "scene": {
     "layers": [
@@ -20,15 +20,15 @@
         "stops": [
           {
             "at": 0,
-            "color": "#bfeaff"
+            "color": "#0a1f3d"
           },
           {
-            "at": 45,
-            "color": "#d9f5cc"
+            "at": 55,
+            "color": "#0d3b66"
           },
           {
             "at": 100,
-            "color": "#8fe0a0"
+            "color": "#0e6b7e"
           }
         ]
       },
@@ -38,7 +38,7 @@
         "y": 8,
         "w": 60,
         "h": 45,
-        "color": "rgba(255,255,255,.35)",
+        "color": "rgba(255,255,255,.12)",
         "fade": 100
       },
       {
@@ -90,11 +90,11 @@
         "stops": [
           {
             "at": 0,
-            "color": "#5fcf6a"
+            "color": "#1c8a8a"
           },
           {
             "at": 100,
-            "color": "#2a8a3e"
+            "color": "#0d4a5a"
           }
         ]
       }
@@ -102,49 +102,49 @@
   },
   "finish": {
     "glass": {
-      "hi": "rgba(255,255,255,.9)",
-      "lo": "rgba(255,255,255,.5)",
-      "edge": "#ffffff",
-      "shadow": "rgba(20,140,80,.25)"
+      "hi": "rgba(255,255,255,.22)",
+      "lo": "rgba(255,255,255,.08)",
+      "edge": "rgba(255,255,255,.38)",
+      "shadow": "rgba(0,0,0,.4)"
     },
     "gloss": [
-      "#9be8a0",
-      "#2fae4d",
-      "#1f8a3a",
-      "#4fcf6a",
-      "#146b2e"
+      "#9aeaff",
+      "#38c6f4",
+      "#1a9fd0",
+      "#5fd6ff",
+      "#0f7ea6"
     ]
   },
   "colors": {
-    "bg": "#d9f5cc",
-    "bg2": "#ffffff",
-    "bg3": "#ecfae4",
-    "bg4": "#d6e7d1",
-    "fg": "#0d3a22",
-    "fg2": "#2f6b47",
-    "fg3": "#477455",
-    "accent": "#217a36",
-    "accentHover": "#299944",
-    "accentFg": "#ffffff",
-    "accentText": "#146b2e",
-    "brandAccent": "#146b2e",
-    "danger": "#b8222f",
-    "ok": "#116b45",
-    "warn": "#8a5300",
-    "border": "#0d3a221a",
-    "borderStrong": "#0d3a2233",
-    "controlLine": "#708f78",
-    "hover": "#0d3a2212",
-    "pressed": "#0d3a221f",
-    "accentSoft": "#217a3624",
-    "accentLine": "#217a3673",
-    "okSoft": "#116b4521",
-    "warnSoft": "#8a530021",
-    "dangerSoft": "#b8222f1c",
-    "focus": "#146b2e",
+    "bg": "#0b2a4a",
+    "bg2": "#123a5e",
+    "bg3": "#194a74",
+    "bg4": "#2e5b82",
+    "fg": "#eaf6ff",
+    "fg2": "#a8cfe6",
+    "fg3": "#9bbacf",
+    "accent": "#38c6f4",
+    "accentHover": "#31aed7",
+    "accentFg": "#00243a",
+    "accentText": "#7fdcff",
+    "brandAccent": "#7fdcff",
+    "danger": "#ff99a2",
+    "ok": "#3ad29f",
+    "warn": "#e8ae3f",
+    "border": "#eaf6ff1a",
+    "borderStrong": "#eaf6ff33",
+    "controlLine": "#4f9ad9",
+    "hover": "#eaf6ff12",
+    "pressed": "#eaf6ff1f",
+    "accentSoft": "#38c6f424",
+    "accentLine": "#38c6f473",
+    "okSoft": "#3ad29f21",
+    "warnSoft": "#e8ae3f21",
+    "dangerSoft": "#ff99a21c",
+    "focus": "#7fdcff",
     "onImage": "#ffffff",
     "scrim": "#000000ad",
-    "overlay": "#14182073"
+    "overlay": "#00000099"
   },
   "radius": 10,
   "shape": {
@@ -203,8 +203,8 @@
     }
   },
   "tv": {
-    "ringColor": "#0d3a22",
-    "heroScrim": 0.78,
-    "tvText": "#0c341f"
+    "ringColor": "#eaf6ff",
+    "heroScrim": 0.74,
+    "tvText": "#ecf7ff"
   }
 }

@@ -138,6 +138,8 @@ type Server struct {
 	routerMu  sync.Mutex
 	router    *portmap.Probe // the latest "check my router"
 
+	// setupFinished caches that first run is over: once it is, nothing about it is asked again.
+	setupFinished atomic.Bool
 	setupCode     string
 	setupCodeOnce sync.Once
 	audioSlots    chan struct{} // audio transcodes running at once
@@ -623,6 +625,7 @@ func (s *Server) Handler() http.Handler {
 	s.remoteControlRoutes(m)
 	s.syncplayRoutes(m)
 	s.p2pRoutes(m)
+	s.setupRoutes(m)
 
 	// Web UI (SPA)
 	m.Handle("/", s.spa())
@@ -630,7 +633,7 @@ func (s *Server) Handler() http.Handler {
 	s.audioSlots = make(chan struct{}, 2*max(s.Cfg.MaxTranscode, 1))
 	s.loginSlots = make(chan struct{}, loginConcurrency())
 	s.reloadNet(context.Background())
-	return s.identify(s.limits(s.logging(s.headers(s.gate(s.versioned(s.cors(s.csrf(s.compressLists(m)))))))))
+	return s.identify(s.limits(s.logging(s.headers(s.gate(s.setupGate(s.versioned(s.cors(s.csrf(s.compressLists(m))))))))))
 }
 
 // ---------------------------------------------------------------------------

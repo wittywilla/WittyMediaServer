@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"math"
 	"net/http"
 	"sort"
 	"strconv"
@@ -109,6 +110,28 @@ type ThemeBrand struct {
 	Parts []brandname.Part `json:"parts"`
 	Token string           `json:"token"`
 	Color string           `json:"color"`
+	// Mark is the badge for small spaces (the rail's header); Warnings say where a fixed
+	// colour of the name is under 4.5:1 on a surface it is drawn on, in this theme.
+	Mark     ThemeMark      `json:"mark"`
+	Warnings []BrandWarning `json:"warnings"`
+}
+
+// ThemeMark is the name's badge: what it holds and the text it shows.
+type ThemeMark struct {
+	brandname.Mark
+	// Shown is the characters the badge draws (the first letter, the initials or the owner's own).
+	Shown string `json:"shown"`
+}
+
+// ShownFor fills Shown.
+func (m ThemeMark) ShownFor(name string) string { return m.Mark.Shown(name) }
+
+// BrandWarning is one part of the name that is hard to read on a surface.
+type BrandWarning struct {
+	Text    string  `json:"text"`
+	Surface string  `json:"surface"`
+	Ratio   float64 `json:"ratio"`
+	Need    float64 `json:"need"`
 }
 
 // ThemeVariant is one look of a theme: the built-in theme behind it, its colours with the
@@ -326,8 +349,9 @@ func (s *Server) resolveThemeWith(r *http.Request, cfg *sduistore.Config, set *s
 		}
 	}
 	t.Warnings = dedupeWarnings(t.Warnings)
-	_, _, parts := s.brand(r.Context())
-	t.Brand = ThemeBrand{Parts: parts, Token: "brandAccent", Color: t.Tokens["brandAccent"]}
+	name, _, parts := s.brand(r.Context())
+	t.Brand = ThemeBrand{Parts: parts, Token: "brandAccent", Color: t.Tokens["brandAccent"], Mark: ThemeMark{Mark: s.brandMark(r.Context())}, Warnings: brandWarnings(parts, t.Tokens)}
+	t.Brand.Mark.Shown = t.Brand.Mark.Mark.Shown(firstNonEmpty(name, brandname.Default))
 	t.ETag = themeETag(t)
 	return t
 }
@@ -604,6 +628,33 @@ func (s *Server) sduiThemeScopes(r *http.Request, cfg *sduistore.Config, set *sd
 		}
 		if len(diff) > 0 {
 			out[mod] = diff
+		}
+	}
+	return out
+}
+
+// brandWarnings are the parts of the name drawn in a fixed colour (static, or a gradient's
+// stops) that fall under 4.5:1 on the surfaces the name sits on in this theme. Parts that
+// follow the theme are the theme's to get right.
+func brandWarnings(parts []brandname.Part, tokens map[string]string) []BrandWarning {
+	out := []BrandWarning{}
+	for _, p := range parts {
+		if p.Color == nil {
+			continue
+		}
+		var hexes []string
+		switch p.Color.Kind {
+		case brandname.KindStatic:
+			hexes = []string{p.Color.Hex}
+		case brandname.KindGradient:
+			hexes = p.Color.Stops
+		}
+		for _, h := range hexes {
+			for _, surf := range []string{"bg", "bg2", "bg3"} {
+				if r, ok := themes.ContrastRatio(h, tokens[surf]); ok && r < themes.ContrastAA {
+					out = append(out, BrandWarning{Text: p.Text, Surface: surf, Ratio: math.Round(r*100) / 100, Need: themes.ContrastAA})
+				}
+			}
 		}
 	}
 	return out

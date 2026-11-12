@@ -27,6 +27,10 @@ const MaxRunes = 80
 type Part struct {
 	Text   string `json:"text"`
 	Accent bool   `json:"accent,omitempty"`
+	// Color is how the part is drawn (colors.go): always set. Accent is the same thing for
+	// the accent kind, kept as the short way to ask.
+	Color *Color `json:"color,omitempty"`
+	Bold  bool   `json:"bold,omitempty"`
 }
 
 // The brandColouring setting: Auto (also when empty or unknown), One for the
@@ -69,7 +73,11 @@ func Parts(name, colouring string) []Part {
 	start := 0
 	for i := 1; i <= len(r); i++ {
 		if i == len(r) || accent[i] != accent[start] {
-			out = append(out, Part{Text: string(r[start:i]), Accent: accent[start]})
+			c := Color{Kind: KindFG}
+			if accent[start] {
+				c.Kind = KindAccent
+			}
+			out = append(out, Part{Text: string(r[start:i]), Accent: accent[start], Color: &c})
 			start = i
 		}
 	}

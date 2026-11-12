@@ -1,0 +1,210 @@
+{
+  "id": "aeroDay",
+  "name": "Aero Day",
+  "description": "Sky blue glass: gloss, gradients and a leaf-green hill.",
+  "author": "WittyMediaServer",
+  "version": "2",
+  "scheme": "light",
+  "builtin": true,
+  "preview": {
+    "bg": "#cfeeff",
+    "surface": "#e7f6ff",
+    "text": "#0b3a5a",
+    "accent": "#166fa1"
+  },
+  "scene": {
+    "layers": [
+      {
+        "type": "gradient",
+        "angle": 180,
+        "stops": [
+          {
+            "at": 0,
+            "color": "#6fcfff"
+          },
+          {
+            "at": 48,
+            "color": "#bfeaff"
+          },
+          {
+            "at": 100,
+            "color": "#e1f8d6"
+          }
+        ]
+      },
+      {
+        "type": "radial",
+        "x": 78,
+        "y": 8,
+        "w": 60,
+        "h": 45,
+        "color": "rgba(255,255,255,.35)",
+        "fade": 100
+      },
+      {
+        "type": "shape",
+        "kind": "circle",
+        "x": 12,
+        "y": 22,
+        "size": 9,
+        "color": "rgba(255,255,255,0.3)"
+      },
+      {
+        "type": "shape",
+        "kind": "circle",
+        "x": 30,
+        "y": 12,
+        "size": 5,
+        "color": "rgba(255,255,255,0.22)"
+      },
+      {
+        "type": "shape",
+        "kind": "circle",
+        "x": 62,
+        "y": 30,
+        "size": 7,
+        "color": "rgba(255,255,255,0.26)"
+      },
+      {
+        "type": "shape",
+        "kind": "circle",
+        "x": 86,
+        "y": 18,
+        "size": 11,
+        "color": "rgba(255,255,255,0.2)"
+      },
+      {
+        "type": "shape",
+        "kind": "circle",
+        "x": 48,
+        "y": 55,
+        "size": 6,
+        "color": "rgba(255,255,255,0.18)"
+      },
+      {
+        "type": "shape",
+        "kind": "hill",
+        "x": 50,
+        "y": 100,
+        "size": 70,
+        "stops": [
+          {
+            "at": 0,
+            "color": "#8fdc7a"
+          },
+          {
+            "at": 100,
+            "color": "#3aa84a"
+          }
+        ]
+      }
+    ]
+  },
+  "finish": {
+    "glass": {
+      "hi": "rgba(255,255,255,.9)",
+      "lo": "rgba(255,255,255,.5)",
+      "edge": "#ffffff",
+      "shadow": "rgba(20,120,200,.25)"
+    },
+    "gloss": [
+      "#7fd8ff",
+      "#1e9be0",
+      "#0c7fc4",
+      "#39b5f0",
+      "#0a6aa8"
+    ]
+  },
+  "colors": {
+    "bg": "#cfeeff",
+    "bg2": "#ffffff",
+    "bg3": "#e7f6ff",
+    "bg4": "#d1e3ee",
+    "fg": "#0b3a5a",
+    "fg2": "#2f6a8c",
+    "fg3": "#436e86",
+    "accent": "#166fa1",
+    "accentHover": "#1a88c5",
+    "accentFg": "#ffffff",
+    "accentText": "#0a6aa8",
+    "brandAccent": "#0a6aa8",
+    "danger": "#b8222f",
+    "ok": "#116b45",
+    "warn": "#8a5300",
+    "border": "#0b3a5a1a",
+    "borderStrong": "#0b3a5a33",
+    "controlLine": "#688aa0",
+    "hover": "#0b3a5a12",
+    "pressed": "#0b3a5a1f",
+    "accentSoft": "#166fa124",
+    "accentLine": "#166fa173",
+    "okSoft": "#116b4521",
+    "warnSoft": "#8a530021",
+    "dangerSoft": "#b8222f1c",
+    "focus": "#0a6aa8",
+    "onImage": "#ffffff",
+    "scrim": "#000000ad",
+    "overlay": "#14182073"
+  },
+  "radius": 10,
+  "shape": {
+    "radius": 10,
+    "card": 10,
+    "button": 10,
+    "field": 10,
+    "row": 10,
+    "thumb": 6,
+    "chip": 999,
+    "badge": 4,
+    "image": 14,
+    "sheet": 14,
+    "dialog": 20,
+    "pill": 999,
+    "focusWidth": 2,
+    "focusOffset": 2,
+    "focusScale": 1
+  },
+  "type": {
+    "display": [
+      "Inter",
+      "Segoe UI Variable Text",
+      "system-ui",
+      "-apple-system",
+      "Segoe UI",
+      "Roboto",
+      "Helvetica",
+      "Arial",
+      "sans-serif"
+    ],
+    "body": [
+      "Inter",
+      "Segoe UI Variable Text",
+      "system-ui",
+      "-apple-system",
+      "Segoe UI",
+      "Roboto",
+      "Helvetica",
+      "Arial",
+      "sans-serif"
+    ],
+    "mono": [
+      "ui-monospace",
+      "Cascadia Mono",
+      "SFMono-Regular",
+      "Menlo",
+      "Consolas",
+      "monospace"
+    ],
+    "weights": {
+      "body": 400,
+      "medium": 500,
+      "strong": 600,
+      "heading": 650
+    }
+  },
+  "tv": {
+    "ringColor": "#0b3a5a",
+    "heroScrim": 0.78,
+    "tvText": "#0a3451"
+  }
+}

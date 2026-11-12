@@ -1,0 +1,54 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
+/*
+ * Aero Meadow - a WittyMediaServer theme.
+ * Spring green glass over a bright meadow.
+ *
+ * Every variable below is explained in docs/THEMES.md. Copy this file into
+ * your own theme ZIP as a starting point.
+ */
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --bg: #d9f5cc;          /* page background */
+  --bg-2: #ffffff;        /* side menu, panels, dialogs */
+  --bg-3: #ecfae4;        /* fields, cards, hovered rows */
+  --bg-4: #d6e7d1;        /* pressed buttons, scrollbars */
+  --bg-rgb: 217 245 204;   /* --bg as "R G B", for see-through shades */
+  --border: color-mix(in srgb, var(--fg) 10%, transparent); /* hairlines between panels */
+  --control-line: #708f78;      /* outlines of fields and switches: 3:1 on every surface */
+
+  /* Text */
+  --fg: #0d3a22;          /* main text */
+  --fg-2: #2f6b47;        /* secondary text */
+  --fg-3: #477455;        /* hints, captions */
+
+  /* Accent: buttons, highlights, progress bars, selected items */
+  --accent: #217a36;
+  --accent-2: #299944;      /* hovered or pressed accent */
+  --accent-fg: #ffffff;     /* text on the accent */
+  --accent-text: #146b2e;   /* the accent as text: links, highlighted words */
+  --accent-rgb: 33 122 54;
+  --brand-accent: var(--accent-text); /* the highlighted word of the name in the corner */
+
+  /* Status */
+  --danger: #b8222f;
+  --ok: #116b45;
+  --warn: #8a5300;
+
+  /* Shape and depth */
+  --radius: 10px;
+  --shadow: 0 10px 30px rgba(20, 25, 40, 0.14);
+  --card-shadow: 0 10px 24px rgba(20, 25, 40, 0.18);
+  --overlay: rgba(20, 24, 32, 0.45);
+
+  /* Layout and type */
+  --sidebar: 240px;
+  --font: "Inter", "Segoe UI Variable Text", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  /* Ten feet away (docs/THEMES.md "The TV pass"): the focus ring, the scrim's strength behind hero text, body text a step stronger */
+  --tv-ring-color: #0d3a22;
+  --tv-text: #0c341f;
+  --hero-scrim: .78;
+}

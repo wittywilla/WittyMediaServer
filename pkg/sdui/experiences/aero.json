@@ -1,0 +1,49 @@
+{
+  "id": "aero",
+  "order": 4,
+  "name": "Aero",
+  "tagline": "Glossy glass",
+  "icon": "sparkles",
+  "description": "Glossy glass bars, bevelled pills, sky and leaf gradients and rounded corners. Gloss and gradients, no heavy blur.",
+  "theme": "aeroDay",
+  "tvTheme": "modern",
+  "nav": {
+    "web": "floatingGlassBar",
+    "desktop": "floatingGlassBar",
+    "tablet": "floatingGlassBar",
+    "phone": "bottomTabs",
+    "tv": "tvTopMenu",
+    "headset": "ornamentTabs"
+  },
+  "pages": {
+    "hero": "billboard"
+  },
+  "effects": {
+    "glass": "full",
+    "gloss": "full",
+    "glow": "subtle",
+    "texture": "none",
+    "bevel": "full"
+  },
+  "shape": {
+    "radiusMultiple": 2.0,
+    "cardSet": "poster"
+  },
+  "type": "rounded",
+  "density": "comfortable",
+  "motion": {
+    "focus": "glow",
+    "screen": "fade",
+    "overshoot": true
+  },
+  "home": {
+    "hero": "billboard",
+    "rows": "default"
+  },
+  "preview": {
+    "bg": "#bfeaff",
+    "surface": "#e7f6ff",
+    "accent": "#1e9be0"
+  },
+  "navExpand": ""
+}

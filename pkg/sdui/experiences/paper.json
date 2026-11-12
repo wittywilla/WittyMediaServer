@@ -1,0 +1,49 @@
+{
+  "id": "paper",
+  "order": 9,
+  "name": "Paper",
+  "tagline": "Editorial",
+  "icon": "book",
+  "description": "Top tabs, big serif type and generous space, on warm paper.",
+  "theme": "paper",
+  "tvTheme": "listings",
+  "nav": {
+    "web": "topTabs",
+    "desktop": "topTabs",
+    "tablet": "topTabs",
+    "phone": "topTabs",
+    "tv": "tvTopMenu",
+    "headset": "ornamentTabs"
+  },
+  "pages": {
+    "hero": "banner",
+    "sectionStyle": "underline"
+  },
+  "effects": {
+    "glass": "none",
+    "gloss": "none",
+    "glow": "none",
+    "texture": "none",
+    "bevel": "none"
+  },
+  "shape": {
+    "radiusMultiple": 0.4,
+    "cardSet": "poster"
+  },
+  "type": "serif",
+  "density": "spacious",
+  "motion": {
+    "focus": "ring",
+    "screen": "fade"
+  },
+  "home": {
+    "hero": "banner",
+    "rows": "default"
+  },
+  "preview": {
+    "bg": "#f6f0e6",
+    "surface": "#e6dccb",
+    "accent": "#b4491f"
+  },
+  "navExpand": ""
+}

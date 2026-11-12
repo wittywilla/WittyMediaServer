@@ -37,7 +37,7 @@ func TestInstallListAndUpload(t *testing.T) {
 		t.Fatal(err)
 	}
 	list := m.List()
-	if len(list) != 8 || list[0].ID != "default" {
+	if len(list) != 15 || list[0].ID != "default" {
 		t.Fatalf("built-in themes: %d, first %q", len(list), list[0].ID)
 	}
 	css, ct, err := m.File("midnight", "theme.css")

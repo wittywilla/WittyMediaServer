@@ -262,3 +262,25 @@ One mini player and one control bar serve songs, now playing, karaoke and the vi
 ## 11. Build order for the first-run and settings screens (added 2026-11-12)
 
 First run (14 steps, browser only), Settings, Appearance (look, theme, import), the administrator's required looks and themes, the first-use choice on phones and TVs, and the "server isn't set up yet" screen in apps are drawn on the canvas ("First run and editors", "Settings, policy, first use"). The server work they need: a setup-state gate on every client route (`setup_required`), the experience and theme resolution with `required` fields per profile and for everyone, theme import routes for administrators (and per profile when allowed), and the pre-sign-in preview document.
+
+## 12. The old design is removed (mandate, 2026-11-12)
+
+The owner has decided that Design 2 replaces the previous design completely. There is no fallback to it, no toggle for it, no compatibility layer. The design lead (the SDUI infrastructure session) owns the design contract and its removal list; every session follows it.
+
+**What stays:** the new token set (`themes/tokens.json`), experiences (the UIs), themes as colour and scene only, the new SDUI catalogue (revision 4 and later), the input model, the WittyRemote, WittyTV on the four places, and the module UI in every look. Settings stays hand-built, in its existing structure, wearing the new tokens.
+
+**What goes (each owner deletes it in the same change that replaces it):**
+- *Server:* the five layout options (`sidebar`, `topTabs`, `tvRows`, `compactList`, `streaming`) as a separate model; they become experiences. The old theme-pack class contract (a theme restyling `.sidebar`, `.card` and other classes; the "Every class" table in THEMES.md): themes are tokens, scene and assets only. `--tv-layout` and `--tv-colours`, `tvLook.layout` and `.skin`. Any route, field or doc that only served the old layouts.
+- *Web and desktop:* the old frame (sidebar, top bar, tab bar as built), the old TV mode (`web/src/tvmode`) and its CSS, the old pad map, the old player controls, the old DVD remote placement, all CSS in `scripts/design-check-baseline.json` (it must reach zero, and the file is deleted), unused classes and tokens.
+- *Apple and Android:* the old TV and phone frames, the old focus effects, the old WittyTV guide layouts and controls, every hand-built screen that exists only for a server without SDUI, the old theme translation, and `sduiAvailable`/`sduiOn` gating.
+- *Modules:* a module's old UI hooks that bypass SDUI (each module ships its SDUI definitions per the module contract).
+
+**How work is checked:** a change that adds code for the old design, or keeps it alive beside the new one, is rejected. A feature that has no drawn element goes to the design lead first (`docs/plans/DESIGN-2-FEATURE-GAPS.md`), is drawn on the canvas, then built. Merge `v0.8.0-alpha` and `wip/design` into your branch before starting.
+
+## 13. Visualizers, canvas and lyrics modes (added 2026-11-12)
+
+**Every visualizer effect is kept.** The seventeen that exist (Skyline, Phosphor Trace, Lantern Knots, Molten Glass, Wormhole, Warp Field, Ink Drift, Prism Wheel, Ember Fountain, Sun Dial, Lava Lamp, Hearth, Horizon Run, Cascade, Fractal Bloom, Northern Veil, Ripple Tank) stay exactly as they are, with their eight colour families, their changes (fade, dissolve, iris, sweep), Calm mode, the frame-rate rules and the web-only custom effect. The one new effect shown on the canvas, Aurora Rings, is added beside them. Nothing is removed or renamed; WittyVisualizer's own repository keeps its effects and they draw inside every look.
+
+**Album art, Canvas video or Visualizer, on every music view.** Now playing, Lyrics, Karaoke, the Visualizer and the mini player all offer the same three-way choice, remembered per device: the album art, the looping silent Canvas video (when the song or album has one; otherwise it is dimmed with a note, never hidden), or the visualizer. The Canvas stops with Low Power Mode, Reduce Motion, Data Saver or a metered connection, exactly as today.
+
+**Lyrics keep their two modes.** **Follow along** (timed lyrics): the line being sung in the middle, press any line to jump, a manual scroll holds the view still for a few seconds, **Sooner**, **Later** and **Reset** for timing. **Read** shows the same words as plain text to read at your own pace. Lyrics without times read as plain text and Follow along is dimmed with a note. Karaoke has both modes as well: words fill in as they are sung, or the full words to read. This matches how the player works today.

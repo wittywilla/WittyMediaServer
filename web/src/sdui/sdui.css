@@ -43,7 +43,7 @@
 .sdui .card .title.sdui-clamp { white-space: normal; }
 .sdui-noart { position: absolute; inset: 0; display: grid; place-items: center; background: var(--bg-3); color: var(--fg-2); }
 .sdui-noart svg { width: 28%; height: 28%; max-width: 48px; max-height: 48px; }
-.sdui .card .poster img { position: relative; }
+.sdui .card .poster img, .sdui-detail .poster img { position: relative; }
 .sdui-badges { position: absolute; top: var(--sp-2); left: var(--sp-2); z-index: 3; display: flex; gap: var(--sp-1); }
 .sdui-badges .badge { position: static; }
 .sdui-synopsis { white-space: normal; margin-top: var(--sp-1); line-height: var(--leading-snug); }

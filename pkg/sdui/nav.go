@@ -29,20 +29,23 @@ type NavDocument struct {
 	// Shell is how the app draws its frame with the layout option in force: the menu's
 	// style on this device, and whether it lies over the page.
 	Shell *Shell `json:"shell,omitempty"`
-	// Layouts are the layout options this profile may choose from on this device, the
+	// Experiences are the layout options this profile may choose from on this device, the
 	// one in force marked, for an app's "Layout" setting. Left out for a profile kept
 	// from rearranging.
-	Layouts *LayoutChoice `json:"layouts,omitempty"`
-	ETag    string        `json:"etag,omitempty"`
+	Experiences *ExperienceChoice `json:"experiences,omitempty"`
+	ETag        string            `json:"etag,omitempty"`
 }
 
-// LayoutChoice is what a profile may choose for its layout on a device.
-type LayoutChoice struct {
+// ExperienceChoice is what a profile may choose for its layout on a device.
+type ExperienceChoice struct {
 	Current string `json:"current"`
 	// Chosen is the profile's own choice for the device, "" when it follows the server.
 	Chosen  string       `json:"chosen,omitempty"`
 	Options []EnumOption `json:"options"`
 	URL     string       `json:"url"`
+	// Required says an administrator requires the experience: who, when and for whom. The
+	// person can't choose another; Options is then empty.
+	Required *RequiredPart `json:"required,omitempty"`
 }
 
 // NavEntry is one rendered entry of the main menu.
@@ -104,7 +107,7 @@ func maxPrimary(ff string) int {
 		return 5
 	case FormTV:
 		return 7
-	case FormTablet:
+	case FormTablet, FormHeadset:
 		return 8
 	}
 	return 24

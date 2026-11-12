@@ -1,0 +1,210 @@
+{
+  "id": "aeroMeadow",
+  "name": "Aero Meadow",
+  "description": "Spring green glass over a bright meadow.",
+  "author": "WittyMediaServer",
+  "version": "2",
+  "scheme": "light",
+  "builtin": true,
+  "preview": {
+    "bg": "#d9f5cc",
+    "surface": "#ecfae4",
+    "text": "#0d3a22",
+    "accent": "#217a36"
+  },
+  "scene": {
+    "layers": [
+      {
+        "type": "gradient",
+        "angle": 180,
+        "stops": [
+          {
+            "at": 0,
+            "color": "#bfeaff"
+          },
+          {
+            "at": 45,
+            "color": "#d9f5cc"
+          },
+          {
+            "at": 100,
+            "color": "#8fe0a0"
+          }
+        ]
+      },
+      {
+        "type": "radial",
+        "x": 78,
+        "y": 8,
+        "w": 60,
+        "h": 45,
+        "color": "rgba(255,255,255,.35)",
+        "fade": 100
+      },
+      {
+        "type": "shape",
+        "kind": "circle",
+        "x": 12,
+        "y": 22,
+        "size": 9,
+        "color": "rgba(255,255,255,0.3)"
+      },
+      {
+        "type": "shape",
+        "kind": "circle",
+        "x": 30,
+        "y": 12,
+        "size": 5,
+        "color": "rgba(255,255,255,0.22)"
+      },
+      {
+        "type": "shape",
+        "kind": "circle",
+        "x": 62,
+        "y": 30,
+        "size": 7,
+        "color": "rgba(255,255,255,0.26)"
+      },
+      {
+        "type": "shape",
+        "kind": "circle",
+        "x": 86,
+        "y": 18,
+        "size": 11,
+        "color": "rgba(255,255,255,0.2)"
+      },
+      {
+        "type": "shape",
+        "kind": "circle",
+        "x": 48,
+        "y": 55,
+        "size": 6,
+        "color": "rgba(255,255,255,0.18)"
+      },
+      {
+        "type": "shape",
+        "kind": "hill",
+        "x": 50,
+        "y": 100,
+        "size": 70,
+        "stops": [
+          {
+            "at": 0,
+            "color": "#5fcf6a"
+          },
+          {
+            "at": 100,
+            "color": "#2a8a3e"
+          }
+        ]
+      }
+    ]
+  },
+  "finish": {
+    "glass": {
+      "hi": "rgba(255,255,255,.9)",
+      "lo": "rgba(255,255,255,.5)",
+      "edge": "#ffffff",
+      "shadow": "rgba(20,140,80,.25)"
+    },
+    "gloss": [
+      "#9be8a0",
+      "#2fae4d",
+      "#1f8a3a",
+      "#4fcf6a",
+      "#146b2e"
+    ]
+  },
+  "colors": {
+    "bg": "#d9f5cc",
+    "bg2": "#ffffff",
+    "bg3": "#ecfae4",
+    "bg4": "#d6e7d1",
+    "fg": "#0d3a22",
+    "fg2": "#2f6b47",
+    "fg3": "#477455",
+    "accent": "#217a36",
+    "accentHover": "#299944",
+    "accentFg": "#ffffff",
+    "accentText": "#146b2e",
+    "brandAccent": "#146b2e",
+    "danger": "#b8222f",
+    "ok": "#116b45",
+    "warn": "#8a5300",
+    "border": "#0d3a221a",
+    "borderStrong": "#0d3a2233",
+    "controlLine": "#708f78",
+    "hover": "#0d3a2212",
+    "pressed": "#0d3a221f",
+    "accentSoft": "#217a3624",
+    "accentLine": "#217a3673",
+    "okSoft": "#116b4521",
+    "warnSoft": "#8a530021",
+    "dangerSoft": "#b8222f1c",
+    "focus": "#146b2e",
+    "onImage": "#ffffff",
+    "scrim": "#000000ad",
+    "overlay": "#14182073"
+  },
+  "radius": 10,
+  "shape": {
+    "radius": 10,
+    "card": 10,
+    "button": 10,
+    "field": 10,
+    "row": 10,
+    "thumb": 6,
+    "chip": 999,
+    "badge": 4,
+    "image": 14,
+    "sheet": 14,
+    "dialog": 20,
+    "pill": 999,
+    "focusWidth": 2,
+    "focusOffset": 2,
+    "focusScale": 1
+  },
+  "type": {
+    "display": [
+      "Inter",
+      "Segoe UI Variable Text",
+      "system-ui",
+      "-apple-system",
+      "Segoe UI",
+      "Roboto",
+      "Helvetica",
+      "Arial",
+      "sans-serif"
+    ],
+    "body": [
+      "Inter",
+      "Segoe UI Variable Text",
+      "system-ui",
+      "-apple-system",
+      "Segoe UI",
+      "Roboto",
+      "Helvetica",
+      "Arial",
+      "sans-serif"
+    ],
+    "mono": [
+      "ui-monospace",
+      "Cascadia Mono",
+      "SFMono-Regular",
+      "Menlo",
+      "Consolas",
+      "monospace"
+    ],
+    "weights": {
+      "body": 400,
+      "medium": 500,
+      "strong": 600,
+      "heading": 650
+    }
+  },
+  "tv": {
+    "ringColor": "#0d3a22",
+    "heroScrim": 0.78,
+    "tvText": "#0c341f"
+  }
+}

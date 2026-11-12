@@ -66,9 +66,8 @@ type Request struct {
 	NativeViews []string `json:"nativeViews,omitempty"`
 	// Capabilities are the client's (reducedMotion, touch, hdr).
 	Capabilities []string `json:"capabilities,omitempty"`
-	// Layout is the layout option the page is drawn with (docs/SDUI.md, "Layout
-	// options"); "" for none.
-	Layout string `json:"layout,omitempty"`
+	// Experience is the look the page is drawn with (docs/SDUI.md, "Experiences"); "" for none.
+	Experience string `json:"experience,omitempty"`
 	// Now is the server's clock, RFC 3339.
 	Now string `json:"now"`
 	// The profile: its kind, whether it administers, its name, the parental
@@ -246,8 +245,8 @@ func (in *Input) Context() *sdui.RenderContext {
 		NativeViews: r.NativeViews, Vars: r.Vars, Params: r.Params, Scopes: r.Scopes,
 		Personal: r.Personal, CanPersonalise: r.CanPersonalise, Resolver: canned{&in.Data}, BasePath: "/api/v1/sdui", Source: "builtin",
 	}
-	if r.Layout != "" {
-		ctx.Layout = sdui.LayoutByID(r.Layout)
+	if r.Experience != "" {
+		ctx.Experience = sdui.ExperienceByID(r.Experience)
 	}
 	if len(in.ModuleUI) > 0 {
 		ctx.UI = sdui.NewModuleSet(in.ModuleUI)

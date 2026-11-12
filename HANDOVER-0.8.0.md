@@ -34,3 +34,47 @@ Known issues / not verified:
 - macOS and visionOS targets not built (only tvOS and iOS). Density (compact/spacious) is in WittyKit but no screen reads it yet.
 - Guide `TvStyle` ring has no gap off the thing (look identity kept); Settings only takes the new ring colour/scale.
 - Generated ffmpeg test clips of 20 s and 130 s with 8-12 fps from my own commands were not indexed by the scratch server (copied clips were); cause not found.
+
+## Session 12: cast and crew (actors, directors, set designers, every credit)
+
+The owner asked for actors, directors, set designers and every credit under all films and shows. Built in the
+server and the web client; the Apple and Android apps draw it from the same contract (sessions 3 and 4).
+
+- **Data** (`internal/library/people.go`, metadata migrations 12–13): `people` (name, sort name, photo, birth and
+  death, birthplace, biography, known for, TMDB/IMDb/TheTVDB/TVmaze ids) and `credits` (person, item or show,
+  role cast / guest / crew, department, job, character, order, source), plus `credits_read`. All three are in
+  backups (library part). People are kept once: by an external id, else by name. Each source's credits are kept
+  apart and a page takes each part (cast, guests, each department) from the best source: NFO, TMDB, TheTVDB,
+  TVmaze, file tags. Sources: `credits_nfo.go`, `credits_online.go`, `credits_local.go`, `credits_sources.go`;
+  NFOs written with people when "save information beside the media" is on (`credits_nfo_write.go`); a paced
+  backfill after each scan fills titles matched before credits existed and people's biographies
+  (`credits_backfill.go`).
+- **API**: `GET /api/v1/items/{id}/credits`, `/shows/{id}/credits?season=`, `/people?search=`, `/people/{id}`,
+  `/people/{id}/photo`, `person=` on `/browse` and saved views; features `credits`, `people`, `sdui-credits`.
+  The limits walk (`authz_parental_walk_test.go`) now has people on hidden titles and walks every person id.
+- **SDUI catalogue revision 5** (on Design 2's no-fallback contract): `Credits` component under the header of the built-in film, show and episode
+  pages (a show opened with `?season=` adds that season's guest stars), sources `credits` and `filmography`,
+  people in `search` (`in: people`), the person page `detail-person` at `/person/{person}` with rows repeated
+  over `personParts`, facts `knownFor`/`born`/`died`. Six new conformance cases. Docs: SDUI.md "Cast and crew",
+  METADATA.md "Cast and crew", CLIENT-API.md "People".
+- **Web**: `CreditsView` (cast and guest rows of round portraits, initials when there is no picture, crew in
+  columns of departments, Show all), the person page, catalogue 3; TV mode styles.
+
+### Known issues / not verified
+- Seen on a scratch server against the owner's test media (saveMetadata off): a film's cast and crew from its
+  movie.nfo, a show's from TVmaze with photos, a person page. No TMDB key there, so no biographies were seen;
+  TMDB, TheTVDB and TVmaze parsing is verified against hand-written JSON fixtures only
+  (`internal/library/credits_sources_test.go`).
+- `RefreshShow` and the scan-time TheTVDB/TVmaze show lookups are not tested end to end (the scanner has no
+  base-address hook for those two services); their parsing and storage are.
+- File tags (`©dir` in MP4) are unit-tested only: the tests have no ffprobe.
+- TVmaze gives no per-episode guest stars (one request per episode); TMDB and TheTVDB do.
+- A film's or episode's NFO edited without the media file changing is read on Refresh metadata only (as every
+  NFO field already was); show NFOs are read every scan.
+- Apple and Android fail the six new fixtures until they draw `Credits` (S3/S4, W3/W4). The web's conformance
+  test also fails on upstream's `peek` (Design 2, W2's work), not on credits.
+- The design lead's canvas draws the crew as "Role · Name" chips and a separate "Cast and crew by department"
+  page; the server sends the crew as person cards grouped by department in one `Credits` node with Show all.
+  If the canvas's separate page is wanted, it needs a route and page of its own (not built).
+- Fixed on the way: a film folder with an NFO this server wrote earlier (no people) beside a media centre's
+  movie.nfo now takes the people from movie.nfo; the title header's poster no longer hides under its placeholder.

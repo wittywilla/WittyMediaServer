@@ -173,6 +173,12 @@
           },
           "type": "array"
         },
+        "experiences": {
+          "items": {
+            "$ref": "#/$defs/Experience"
+          },
+          "type": "array"
+        },
         "formFactors": {
           "items": {
             "type": "string"
@@ -182,12 +188,6 @@
         "icons": {
           "items": {
             "type": "string"
-          },
-          "type": "array"
-        },
-        "layouts": {
-          "items": {
-            "$ref": "#/$defs/LayoutSpec"
           },
           "type": "array"
         },
@@ -328,7 +328,7 @@
         "spacing",
         "limits",
         "profiles",
-        "layouts",
+        "experiences",
         "navStyles"
       ],
       "type": "object"
@@ -656,6 +656,33 @@
       ],
       "type": "object"
     },
+    "Effects": {
+      "properties": {
+        "bevel": {
+          "type": "string"
+        },
+        "glass": {
+          "type": "string"
+        },
+        "gloss": {
+          "type": "string"
+        },
+        "glow": {
+          "type": "string"
+        },
+        "texture": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "glass",
+        "gloss",
+        "glow",
+        "texture",
+        "bevel"
+      ],
+      "type": "object"
+    },
     "EnumOption": {
       "properties": {
         "label": {
@@ -668,6 +695,172 @@
       "required": [
         "value",
         "label"
+      ],
+      "type": "object"
+    },
+    "Experience": {
+      "properties": {
+        "density": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "effects": {
+          "$ref": "#/$defs/Effects"
+        },
+        "home": {
+          "$ref": "#/$defs/ExperienceHome"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "motion": {
+          "$ref": "#/$defs/ExperienceMotion"
+        },
+        "name": {
+          "type": "string"
+        },
+        "nav": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "navExpand": {
+          "type": "string"
+        },
+        "order": {
+          "type": "integer"
+        },
+        "overlay": {
+          "type": "boolean"
+        },
+        "pages": {
+          "$ref": "#/$defs/PageStyle"
+        },
+        "placements": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Placement"
+          },
+          "type": "object"
+        },
+        "preview": {
+          "$ref": "#/$defs/Preview"
+        },
+        "shape": {
+          "$ref": "#/$defs/ExperienceShape"
+        },
+        "tagline": {
+          "type": "string"
+        },
+        "theme": {
+          "type": "string"
+        },
+        "tvTheme": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "order",
+        "name",
+        "tagline",
+        "description",
+        "icon",
+        "preview",
+        "nav",
+        "pages",
+        "theme",
+        "tvTheme",
+        "effects",
+        "shape",
+        "type",
+        "density",
+        "motion",
+        "home"
+      ],
+      "type": "object"
+    },
+    "ExperienceChoice": {
+      "properties": {
+        "chosen": {
+          "type": "string"
+        },
+        "current": {
+          "type": "string"
+        },
+        "options": {
+          "items": {
+            "$ref": "#/$defs/EnumOption"
+          },
+          "type": "array"
+        },
+        "required": {
+          "$ref": "#/$defs/RequiredPart"
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "current",
+        "options",
+        "url"
+      ],
+      "type": "object"
+    },
+    "ExperienceHome": {
+      "properties": {
+        "hero": {
+          "type": "string"
+        },
+        "rows": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "hero",
+        "rows"
+      ],
+      "type": "object"
+    },
+    "ExperienceMotion": {
+      "properties": {
+        "focus": {
+          "type": "string"
+        },
+        "overshoot": {
+          "type": "boolean"
+        },
+        "screen": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "focus",
+        "screen"
+      ],
+      "type": "object"
+    },
+    "ExperienceShape": {
+      "properties": {
+        "cardSet": {
+          "type": "string"
+        },
+        "radiusMultiple": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "radiusMultiple",
+        "cardSet"
       ],
       "type": "object"
     },
@@ -993,68 +1186,6 @@
       ],
       "type": "object"
     },
-    "LayoutChoice": {
-      "properties": {
-        "chosen": {
-          "type": "string"
-        },
-        "current": {
-          "type": "string"
-        },
-        "options": {
-          "items": {
-            "$ref": "#/$defs/EnumOption"
-          },
-          "type": "array"
-        },
-        "url": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "current",
-        "options",
-        "url"
-      ],
-      "type": "object"
-    },
-    "LayoutSpec": {
-      "properties": {
-        "description": {
-          "type": "string"
-        },
-        "icon": {
-          "type": "string"
-        },
-        "id": {
-          "type": "string"
-        },
-        "label": {
-          "type": "string"
-        },
-        "nav": {
-          "additionalProperties": {
-            "type": "string"
-          },
-          "type": "object"
-        },
-        "overlay": {
-          "type": "boolean"
-        },
-        "pages": {
-          "$ref": "#/$defs/PageStyle"
-        }
-      },
-      "required": [
-        "id",
-        "label",
-        "description",
-        "icon",
-        "nav",
-        "pages"
-      ],
-      "type": "object"
-    },
     "Match": {
       "properties": {
         "library": {
@@ -1125,6 +1256,9 @@
         "etag": {
           "type": "string"
         },
+        "experiences": {
+          "$ref": "#/$defs/ExperienceChoice"
+        },
         "formFactor": {
           "type": "string"
         },
@@ -1133,9 +1267,6 @@
             "$ref": "#/$defs/NavEntry"
           },
           "type": "array"
-        },
-        "layouts": {
-          "$ref": "#/$defs/LayoutChoice"
         },
         "personal": {
           "$ref": "#/$defs/PersonalInfo"
@@ -1426,6 +1557,12 @@
         "cardSize": {
           "type": "string"
         },
+        "cardStyle": {
+          "type": "string"
+        },
+        "crossbar": {
+          "type": "boolean"
+        },
         "density": {
           "type": "string"
         },
@@ -1435,13 +1572,16 @@
         "hero": {
           "type": "string"
         },
-        "landscapeCards": {
-          "type": "boolean"
-        },
         "rowsAsLists": {
           "type": "boolean"
         },
+        "sectionStyle": {
+          "type": "string"
+        },
         "seeAllCard": {
+          "type": "boolean"
+        },
+        "widgets": {
           "type": "boolean"
         }
       },
@@ -1577,6 +1717,17 @@
       ],
       "type": "object"
     },
+    "Placement": {
+      "properties": {
+        "position": {
+          "type": "string"
+        },
+        "visible": {
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
     "Preset": {
       "properties": {
         "description": {
@@ -1616,6 +1767,25 @@
         "description",
         "icon",
         "kind"
+      ],
+      "type": "object"
+    },
+    "Preview": {
+      "properties": {
+        "accent": {
+          "type": "string"
+        },
+        "bg": {
+          "type": "string"
+        },
+        "surface": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "bg",
+        "surface",
+        "accent"
       ],
       "type": "object"
     },
@@ -1704,6 +1874,28 @@
       },
       "required": [
         "over"
+      ],
+      "type": "object"
+    },
+    "RequiredPart": {
+      "properties": {
+        "at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "by": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "value",
+        "scope"
       ],
       "type": "object"
     },
@@ -1825,7 +2017,10 @@
     },
     "Shell": {
       "properties": {
-        "layout": {
+        "drawer": {
+          "type": "integer"
+        },
+        "experience": {
           "type": "string"
         },
         "nav": {
@@ -1842,7 +2037,7 @@
         }
       },
       "required": [
-        "layout",
+        "experience",
         "nav",
         "size"
       ],
@@ -2196,9 +2391,12 @@
     "photo",
     "channel",
     "tile",
+    "plate",
+    "block",
+    "logo",
     "chip"
   ],
-  "x-catalogRevision": 5,
+  "x-catalogRevision": 6,
   "x-components": [
     "Page",
     "Hero",
@@ -2207,6 +2405,11 @@
     "Card",
     "Tabs",
     "Tab",
+    "Carousel",
+    "CrossBar",
+    "WidgetGrid",
+    "Widget",
+    "NumberedRow",
     "FilterBar",
     "Dock",
     "KeyLegend",
@@ -2303,6 +2506,7 @@
     "watchLater",
     "liked",
     "statistics",
+    "serverStatus",
     "savedView",
     "recentlyAdded",
     "recentlyReleased",

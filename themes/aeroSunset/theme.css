@@ -1,0 +1,54 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
+/*
+ * Aero Sunset - a WittyMediaServer theme.
+ * Golden-hour glass, orange to pink to violet.
+ *
+ * Every variable below is explained in docs/THEMES.md. Copy this file into
+ * your own theme ZIP as a starting point.
+ */
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --bg: #ffd9b8;          /* page background */
+  --bg-2: #fff6ee;        /* side menu, panels, dialogs */
+  --bg-3: #ffe9d6;        /* fields, cards, hovered rows */
+  --bg-4: #edd4c6;        /* pressed buttons, scrollbars */
+  --bg-rgb: 255 217 184;   /* --bg as "R G B", for see-through shades */
+  --border: color-mix(in srgb, var(--fg) 10%, transparent); /* hairlines between panels */
+  --control-line: #99757d;      /* outlines of fields and switches: 3:1 on every surface */
+
+  /* Text */
+  --fg: #4a1b3a;          /* main text */
+  --fg-2: #7a3d62;        /* secondary text */
+  --fg-3: #865468;        /* hints, captions */
+
+  /* Accent: buttons, highlights, progress bars, selected items */
+  --accent: #b23800;
+  --accent-2: #e06b36;      /* hovered or pressed accent */
+  --accent-fg: #ffffff;     /* text on the accent */
+  --accent-text: #ae3f0f;   /* the accent as text: links, highlighted words */
+  --accent-rgb: 178 56 0;
+  --brand-accent: var(--accent-text); /* the highlighted word of the name in the corner */
+
+  /* Status */
+  --danger: #b8222f;
+  --ok: #116b45;
+  --warn: #8a5300;
+
+  /* Shape and depth */
+  --radius: 10px;
+  --shadow: 0 10px 30px rgba(20, 25, 40, 0.14);
+  --card-shadow: 0 10px 24px rgba(20, 25, 40, 0.18);
+  --overlay: rgba(20, 24, 32, 0.45);
+
+  /* Layout and type */
+  --sidebar: 240px;
+  --font: "Inter", "Segoe UI Variable Text", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  /* Ten feet away (docs/THEMES.md "The TV pass"): the focus ring, the scrim's strength behind hero text, body text a step stronger */
+  --tv-ring-color: #4a1b3a;
+  --tv-text: #431834;
+  --hero-scrim: .78;
+}

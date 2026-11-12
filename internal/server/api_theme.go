@@ -85,6 +85,10 @@ type ResolvedTheme struct {
 	TV        themes.TV                       `json:"tv"`
 	Elevation map[string]themes.ElevationStep `json:"elevation"`
 	Density   themes.Density                  `json:"density"`
+	// Look is the experience and theme in force and who required what: the choice order is
+	// required, the trial asked for, the person's own, the server's, the experience's own
+	// (docs/plans/DESIGN-2.md section 8).
+	Look ThemeLook `json:"look"`
 	// Brand is the server's name ready to draw, and the colour token its coloured parts
 	// take, resolved like every other colour.
 	Brand ThemeBrand `json:"brand"`
@@ -252,11 +256,10 @@ func (s *Server) resolveTheme(r *http.Request) (*ResolvedTheme, error) {
 // Each layer brings the colours worked out from it (themes.Derive), over what is under it,
 // so a layer that sets only the accent gets a hover, tints and focus ring to match.
 func (s *Server) resolveThemeWith(r *http.Request, cfg *sduistore.Config, set *sdui.ModuleSet, choices themeChoices) *ResolvedTheme {
-	t := &ResolvedTheme{ID: s.serverTheme(r.Context()), Source: "server", Modules: map[string]ThemeModule{},
-		Overrides: map[string]string{}, Personal: overlay(nil, choices.Personal.Tokens), Warnings: []ThemeWarning{}, Revision: cfg.Revision}
-	if choices.Theme != "" {
-		t.ID, t.Source = choices.Theme, "user"
-	} else {
+	look := s.lookFor(r, cfg, choices)
+	t := &ResolvedTheme{ID: look.Theme, Source: look.ThemeSource, Modules: map[string]ThemeModule{},
+		Overrides: map[string]string{}, Personal: overlay(nil, choices.Personal.Tokens), Warnings: []ThemeWarning{}, Revision: cfg.Revision, Look: look.ThemeLook}
+	if t.Source != "user" && t.Source != "trial" {
 		t.Overrides = overlay(nil, cfg.Theme.Tokens)
 	}
 	// Each look is resolved the same way. An override that reads well on the dark look can

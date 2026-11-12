@@ -49,7 +49,11 @@ type Meta struct {
 	Shape *Shape      `json:"shape,omitempty"`
 	Type  *TypeTokens `json:"type,omitempty"`
 	// TV is the theme's ten-foot colours (design.go), also written by scripts/design-tokens.py.
-	TV      *TVColors `json:"tv,omitempty"`
+	TV *TVColors `json:"tv,omitempty"`
+	// Finish and Scene are the theme's glass and gloss recipes and background scene
+	// (design.go); hand-written, and worked out from the colours when left out.
+	Finish  *Finish `json:"finish,omitempty"`
+	Scene   *Scene  `json:"scene,omitempty"`
 	Preview struct {
 		BG      string `json:"bg,omitempty"`
 		Surface string `json:"surface,omitempty"`

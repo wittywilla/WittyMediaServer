@@ -1,0 +1,54 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
+/*
+ * Satellite - a WittyMediaServer theme.
+ * Silver bars on dark teal with orange highlights.
+ *
+ * Every variable below is explained in docs/THEMES.md. Copy this file into
+ * your own theme ZIP as a starting point.
+ */
+:root {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --bg: #0c1418;          /* page background */
+  --bg-2: #16262e;        /* side menu, panels, dialogs */
+  --bg-3: #1f3540;        /* fields, cards, hovered rows */
+  --bg-4: #344852;        /* pressed buttons, scrollbars */
+  --bg-rgb: 12 20 24;   /* --bg as "R G B", for see-through shades */
+  --border: color-mix(in srgb, var(--fg) 10%, transparent); /* hairlines between panels */
+  --control-line: #4c829d;      /* outlines of fields and switches: 3:1 on every surface */
+
+  /* Text */
+  --fg: #eef3f6;          /* main text */
+  --fg-2: #aebdc6;        /* secondary text */
+  --fg-3: #8e9ca3;        /* hints, captions */
+
+  /* Accent: buttons, highlights, progress bars, selected items */
+  --accent: #ff8a1f;
+  --accent-2: #e0791b;      /* hovered or pressed accent */
+  --accent-fg: #1a0e00;     /* text on the accent */
+  --accent-text: #ffa84d;   /* the accent as text: links, highlighted words */
+  --accent-rgb: 255 138 31;
+  --brand-accent: var(--accent-text); /* the highlighted word of the name in the corner */
+
+  /* Status */
+  --danger: #ff6b78;
+  --ok: #3ad29f;
+  --warn: #e8ae3f;
+
+  /* Shape and depth */
+  --radius: 10px;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  --card-shadow: 0 10px 24px rgba(0, 0, 0, 0.5);
+  --overlay: rgba(0, 0, 0, 0.6);
+
+  /* Layout and type */
+  --sidebar: 240px;
+  --font: "Inter", "Segoe UI Variable Text", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  /* Ten feet away (docs/THEMES.md "The TV pass"): the focus ring, the scrim's strength behind hero text, body text a step stronger */
+  --tv-ring-color: #eef3f6;
+  --tv-text: #f0f4f7;
+  --hero-scrim: .74;
+}

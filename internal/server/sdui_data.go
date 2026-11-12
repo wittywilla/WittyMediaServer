@@ -597,6 +597,17 @@ func (rv *sduiResolver) Items(req sdui.SourceRequest) (sdui.SourceResult, error)
 			all = append(all, sdui.Item{ID: "lib" + itoa(l.ID), Kind: "library", Title: l.Name, Count: l.ItemCount, Icon: sdui.LibraryIcon(l.Type), Route: "/library/" + itoa(l.ID)})
 		}
 		return page(all, req), nil
+	case "serverStatus":
+		if !rv.u.IsAdmin {
+			return sdui.SourceResult{}, nil
+		}
+		libs := rv.libraries()
+		items := []sdui.Item{
+			{ID: "libraries", Kind: "status", Title: "Libraries", Subtitle: itoa(int64(len(libs)))},
+			{ID: "playing", Kind: "status", Title: "Playing now", Subtitle: itoa(int64(len(s.streams.streams(0))))},
+			{ID: "uptime", Kind: "status", Title: "Up for", Subtitle: sdui.FormatRuntime(time.Since(serverStart).Seconds())},
+		}
+		return page(items, req), nil
 	case "genres":
 		if lib == nil {
 			return sdui.SourceResult{}, nil

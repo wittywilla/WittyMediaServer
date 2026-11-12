@@ -1,0 +1,50 @@
+{
+  "id": "compact",
+  "order": 8,
+  "name": "Compact",
+  "tagline": "Dense lists",
+  "icon": "list",
+  "description": "A rail and a line per title: the most on the screen at once, for power users and long libraries.",
+  "theme": "oled",
+  "tvTheme": "compact",
+  "nav": {
+    "web": "rail",
+    "desktop": "rail",
+    "tablet": "rail",
+    "phone": "bottomTabs",
+    "tv": "tvSideMenu",
+    "headset": "ornamentTabs"
+  },
+  "pages": {
+    "hero": "row",
+    "rowsAsLists": true,
+    "density": "compact"
+  },
+  "effects": {
+    "glass": "none",
+    "gloss": "none",
+    "glow": "none",
+    "texture": "none",
+    "bevel": "none"
+  },
+  "shape": {
+    "radiusMultiple": 0.8,
+    "cardSet": "row"
+  },
+  "type": "system",
+  "density": "compact",
+  "motion": {
+    "focus": "ring",
+    "screen": "cut"
+  },
+  "home": {
+    "hero": "row",
+    "rows": "list"
+  },
+  "preview": {
+    "bg": "#000000",
+    "surface": "#151515",
+    "accent": "#4da3ff"
+  },
+  "navExpand": ""
+}

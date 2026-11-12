@@ -931,8 +931,9 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 			break
 		}
 	}
-	if _, read := it.credits[CreditsNFO]; !read {
-		it.credits.set(CreditsNFO, nil) // no NFO (any more): it names nobody
+	if _, read := it.credits[CreditsNFO]; !read || len(it.credits[CreditsNFO]) == 0 {
+		// No NFO (any more) names nobody; one that names nobody may sit beside one that does.
+		it.credits.set(CreditsNFO, filmNFOPeople(filmNFOs(c.path, dir, base)))
 	}
 	for _, sc := range []string{c.path + ".metadata.json", filepath.Join(dir, base+".metadata.json"), filepath.Join(dir, "metadata.json")} {
 		if applySidecarJSON(it, sc) {
@@ -1002,6 +1003,20 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 	s.Store.recordScan(ctx, it.ID, meta, prov)
 	if hasRule && rule.Extra != "" {
 		s.Store.markRuleExtra(ctx, it, rule.Extra)
+	}
+	return nil
+}
+
+// filmNFOPeople are the people of the first of a film's NFOs that names anyone. The NFO the
+// title is read from may name nobody (one this server wrote before it kept people, or one
+// written by hand with the title alone) while a media centre's movie.nfo beside it lists the
+// whole cast.
+func filmNFOPeople(nfos []string) []CreditIn {
+	for _, nfo := range nfos {
+		var scratch Item
+		if applyNFO(&scratch, nfo) && len(scratch.credits[CreditsNFO]) > 0 {
+			return scratch.credits[CreditsNFO]
+		}
 	}
 	return nil
 }

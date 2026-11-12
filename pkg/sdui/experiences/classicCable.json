@@ -1,0 +1,51 @@
+{
+  "id": "classicCable",
+  "order": 6,
+  "name": "Classic Cable",
+  "tagline": "Blue guide",
+  "icon": "guide",
+  "description": "Flat blue rows, yellow highlights and coloured band headings, like a cable guide.",
+  "theme": "cable",
+  "tvTheme": "classic",
+  "nav": {
+    "web": "cableBar",
+    "desktop": "cableBar",
+    "tablet": "cableBar",
+    "phone": "bottomTabs",
+    "tv": "cableBar",
+    "headset": "ornamentTabs"
+  },
+  "pages": {
+    "hero": "row",
+    "cardStyle": "landscape",
+    "rowsAsLists": true,
+    "sectionStyle": "band"
+  },
+  "effects": {
+    "glass": "none",
+    "gloss": "none",
+    "glow": "none",
+    "texture": "none",
+    "bevel": "none"
+  },
+  "shape": {
+    "radiusMultiple": 0,
+    "cardSet": "list"
+  },
+  "type": "mono",
+  "density": "compact",
+  "motion": {
+    "focus": "fill",
+    "screen": "cut"
+  },
+  "home": {
+    "hero": "row",
+    "rows": "list"
+  },
+  "preview": {
+    "bg": "#08125e",
+    "surface": "#0f2bb8",
+    "accent": "#ffd84a"
+  },
+  "navExpand": ""
+}

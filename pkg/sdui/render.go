@@ -123,10 +123,10 @@ type RenderContext struct {
 	// UI are the modules in use: their components are expanded before the
 	// page is drawn, and their sources are asked like any other. nil: none.
 	UI *ModuleSet
-	// Layout is the layout option the page is drawn for (LayoutByID): its changes to
+	// Experience is the look the page is drawn for (ExperienceByID): its changes to
 	// pages are made here, and its shell is sent in document.layout.shell. nil: none,
 	// the page as written.
-	Layout *LayoutSpec
+	Experience *Experience
 	// BasePath is where the SDUI routes are: "/api/v1/sdui".
 	BasePath string
 	// Source and ConfigRevision are stamped into Meta.
@@ -163,7 +163,7 @@ type instance struct {
 // The page should have passed ValidatePage; Render never panics on one that
 // hasn't, but leaves out what it can't make sense of.
 func Render(page Page, ctx *RenderContext) (Document, error) {
-	page = zoned(styled(ctx.UI.ExpandPage(page), ctx.Layout), ctx.deviceFormFactor())
+	page = zoned(styled(ctx.UI.ExpandPage(page), ctx.Experience), ctx.deviceFormFactor())
 	r := newRenderer(&page, ctx)
 	sections, variant := r.sections()
 	top := r.expand(sections, true)
@@ -228,15 +228,15 @@ func newRenderer(page *Page, ctx *RenderContext) *renderer {
 		ctx.BasePath = "/api/v1/sdui"
 	}
 	l := ctx.Profile.WithViewport(ctx.Viewport)
-	if d := layoutDensity(ctx.Layout); d != "" {
+	if d := layoutDensity(ctx.Experience); d != "" {
 		l = l.WithDensity(d)
 	}
 	if ctx.Personal != nil && ctx.CanPersonalise && allows(page, "density") && ctx.Personal.Density != "" {
 		l = l.WithDensity(ctx.Personal.Density)
 	}
-	if ctx.Layout != nil {
+	if ctx.Experience != nil {
 		l = l.clone()
-		l.Shell = ShellFor(ctx.Layout.ID, l.FormFactor)
+		l.Shell = ShellFor(ctx.Experience.ID, l.FormFactor)
 	}
 	if contains(ctx.Capabilities, "reducedMotion") {
 		l = l.clone()
@@ -708,14 +708,25 @@ func (r *renderer) build(in instance, depth int) ([]Node, bool) {
 	p := s.Props
 	ok := true
 	switch s.Component {
-	case "Shelf", "Grid":
+	case "Shelf", "Grid", "Carousel", "NumberedRow":
 		ok = r.collection(&n, in)
+	case "CrossBar":
+		ok = r.tabs(&n, in, depth)
+	case "WidgetGrid":
+		n.Props["columns"] = propInt(p, "columns", 4)
+		n.Children = r.children(in, depth)
+		ok = len(n.Children) > 0
+	case "Widget":
+		ok = r.widget(&n, in)
 	case "List":
 		if s.Source.Type() != "" {
 			ok = r.collection(&n, in)
 		} else {
 			if t := r.fill(propStr(p, "title", ""), in.each, nil); t != "" {
 				n.Props["title"] = t
+			}
+			if hs := propStr(p, "headingStyle", "plain"); hs != "plain" {
+				n.Props["headingStyle"] = hs
 			}
 			n.Children = r.children(in, depth)
 			ok = len(n.Children) > 0
@@ -888,7 +899,7 @@ func (r *renderer) firstPage(component string, p map[string]any, src Source) int
 	switch component {
 	case "Grid":
 		n = r.l.Budget.GridItems
-	case "List", "TrackList", "SeasonList":
+	case "List", "NumberedRow", "TrackList", "SeasonList":
 		n = r.l.Budget.ListItems
 	}
 	if m := propInt(p, "maxItems", 0); m > 0 && m < n {
@@ -959,9 +970,9 @@ func (r *renderer) cardStyleFor(p map[string]any, src Source, each *Each) string
 		if s := libraryCardStyle[kind]; s != "" {
 			return s
 		}
-		// A layout with wide cards draws films' and shows' rows wide.
-		if r.ctx.Layout != nil && r.ctx.Layout.Pages.LandscapeCards && overlaps(spec.Yields, landscapeKinds) {
-			return "landscape"
+		// An experience with its own cards draws films' and shows' rows in them.
+		if r.ctx.Experience != nil && r.ctx.Experience.Pages.CardStyle != "" && overlaps(spec.Yields, landscapeKinds) {
+			return r.ctx.Experience.Pages.CardStyle
 		}
 	}
 	return spec.CardStyle
@@ -998,7 +1009,10 @@ func (r *renderer) collectionPage(n *Node, in instance, offset, limit int, allow
 	if st := r.fill(propStr(p, "subtitle", ""), in.each, s.Source); st != "" {
 		n.Props["subtitle"] = st
 	}
-	if s.Component != "List" {
+	if hs := propStr(p, "headingStyle", "plain"); hs != "plain" {
+		n.Props["headingStyle"] = hs
+	}
+	if !listLike(s.Component) {
 		m := r.l.Cards[style]
 		n.Props["cardStyle"], n.Props["cardSize"] = style, size
 		card := map[string]any{"width": m.Width[size], "shape": m.Shape}
@@ -1021,7 +1035,7 @@ func (r *renderer) collectionPage(n *Node, in instance, offset, limit int, allow
 	// empty with where to ask for it.
 	// So is one that comes after many empty ones: a page of rows with nothing
 	// in them must not cost a small server a query for every row.
-	if allowDefer && (r.eager >= r.l.Budget.EagerSections || r.asked >= 3*r.l.Budget.EagerSections) && s.Component != "List" {
+	if allowDefer && (r.eager >= r.l.Budget.EagerSections || r.asked >= 3*r.l.Budget.EagerSections) && !listLike(s.Component) {
 		n.State = "deferred"
 		n.Props["more"] = map[string]any{"url": r.moreURL(n.ID, 0)}
 		return true
@@ -1048,8 +1062,17 @@ func (r *renderer) collectionPage(n *Node, in instance, offset, limit int, allow
 	r.eager++
 	for i := range res.Items {
 		it := &res.Items[i]
-		if s.Component == "List" {
-			n.Children = append(n.Children, r.listItem(n.ID, it))
+		if listLike(s.Component) {
+			row := r.listItem(n.ID, it)
+			if s.Component == "NumberedRow" {
+				num := offset + i + 1
+				if it.Number != "" && propStr(p, "numbers", "auto") == "auto" {
+					row.Props["number"] = it.Number
+				} else {
+					row.Props["number"] = strconv.Itoa(num)
+				}
+			}
+			n.Children = append(n.Children, row)
 			continue
 		}
 		c := r.card(n.ID, style, size, it, s.Source)
@@ -1653,6 +1676,9 @@ func (r *renderer) filterBar(n *Node, in instance) bool {
 	return len(out) > 0 || len(sorts) > 1
 }
 
+// listLike is a component drawn as rows rather than cards.
+func listLike(c string) bool { return c == "List" || c == "NumberedRow" }
+
 // seeAllCard says whether a row's See all is its last card: the section's own choice, else
 // on a television and in the layouts that ask for it (TV rows, Streaming style).
 func (r *renderer) seeAllCard(p map[string]any) bool {
@@ -1662,7 +1688,7 @@ func (r *renderer) seeAllCard(p map[string]any) bool {
 	case "never":
 		return false
 	}
-	return r.l.FormFactor == FormTV || (r.ctx.Layout != nil && r.ctx.Layout.Pages.SeeAllCard)
+	return r.l.FormFactor == FormTV || (r.ctx.Experience != nil && r.ctx.Experience.Pages.SeeAllCard)
 }
 
 // keyHints are the labels of a KeyLegend's actions.
@@ -1912,7 +1938,7 @@ type SectionItems struct {
 // section's ID, "-" and the key); offset is the cursor; season chooses a
 // SeasonList's season.
 func RenderSection(page Page, nodeID string, offset int, season string, ctx *RenderContext) (SectionItems, error) {
-	page = styled(ctx.UI.ExpandPage(page), ctx.Layout)
+	page = styled(ctx.UI.ExpandPage(page), ctx.Experience)
 	r := newRenderer(&page, ctx)
 	sections, _ := r.sections()
 	in, ok := r.find(sections, nodeID)
@@ -1924,7 +1950,7 @@ func RenderSection(page Page, nodeID string, offset int, season string, ctx *Ren
 	r.ids[nodeID] = true
 	shown := false
 	switch in.sec.Component {
-	case "Shelf", "Grid", "List":
+	case "Shelf", "Grid", "List", "Carousel", "NumberedRow":
 		limit := r.l.Budget.PageSize
 		if offset == 0 {
 			limit = r.firstPage(in.sec.Component, in.sec.Props, in.sec.Source)
@@ -2138,4 +2164,60 @@ func (ctx *RenderContext) deviceFormFactor() string {
 		return FormWeb
 	}
 	return ctx.Profile.FormFactor
+}
+
+// widgetSources are the sources a widget kind takes its items from when the section names
+// none, and the card style they are drawn in.
+var widgetSources = map[string]struct {
+	source Source
+	style  string
+}{
+	"continue":     {Source{"type": "continueWatching", "media": "watch"}, "progress"},
+	"liveNow":      {Source{"type": "liveNow"}, "channel"},
+	"recordings":   {Source{"type": "recordings"}, "landscape"},
+	"stats":        {Source{"type": "statistics", "stat": "titles", "period": "month"}, "poster"},
+	"serverStatus": {Source{"type": "serverStatus"}, "tile"},
+}
+
+// widget fills a Widget: its place in the grid, its heading, and the cards of its kind's
+// source. A clock has no data; a widget whose source has nothing is left out.
+func (r *renderer) widget(n *Node, in instance) bool {
+	p := in.sec.Props
+	kind := propStr(p, "kind", "continue")
+	n.Props["kind"] = kind
+	for _, k := range []string{"x", "y"} {
+		n.Props[k] = propInt(p, k, 0)
+	}
+	for _, k := range []string{"w", "h"} {
+		n.Props[k] = max(1, propInt(p, k, 1))
+	}
+	titles := map[string]string{"continue": "Continue watching", "liveNow": "On TV now", "recordings": "Recordings", "stats": "Most watched", "serverStatus": "Server", "clock": "Clock"}
+	n.Props["title"] = firstNonEmpty(r.fill(propStr(p, "title", ""), in.each, nil), titles[kind])
+	if kind == "clock" {
+		return true
+	}
+	w, ok := widgetSources[kind]
+	if !ok {
+		return false
+	}
+	src := in.sec.Source
+	if src.Type() == "" {
+		src = w.source
+	}
+	limit := min(r.l.Budget.ShelfItems, 4+2*propInt(p, "w", 1))
+	res, _, err := r.ask(src, in.each, 0, limit)
+	if err != nil || len(res.Items) == 0 {
+		return false
+	}
+	r.eager++
+	n.Props["cardStyle"] = w.style
+	for i := range res.Items {
+		it := &res.Items[i]
+		if kind == "serverStatus" {
+			n.Children = append(n.Children, r.listItem(n.ID, it))
+			continue
+		}
+		n.Children = append(n.Children, r.card(n.ID, w.style, "m", it, src))
+	}
+	return true
 }

@@ -32,6 +32,7 @@ text. That list is made from what's really compiled in (`internal/licenses`), an
 | golang.org/x/crypto (password hashing; the Let's Encrypt client, used only if you choose it), golang.org/x/net, golang.org/x/image (reading WebP pictures, and resizing) | BSD-3-Clause |
 | golang.org/x/crypto (password hashing; the Let's Encrypt client, used only if you choose it), golang.org/x/net | BSD-3-Clause |
 | golang.org/x/image (decoding WebP images people upload for around a game's picture) | BSD-3-Clause |
+| The Go fonts (golang.org/x/image/font/gofont), whose outlines `scripts/genicon` uses for the words on banners and the social picture | BSD-3-Clause |
 | github.com/pion/webrtc and its family (ice, dtls, srtp, sctp, rtp, rtcp, stun, turn, interceptor and others). Compiled in because go-libp2p names its WebRTC transport, which this server doesn't turn on | MIT |
 | github.com/coder/websocket | ISC |
 | github.com/bodgit/sevenzip, github.com/bodgit/plumbing, github.com/bodgit/windows (reading .7z game archives) | BSD-3-Clause |

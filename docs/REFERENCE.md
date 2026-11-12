@@ -307,7 +307,7 @@ These are unsigned, as a test build should be. `docs/PUBLISHING.md` covers real 
 
 - The macOS tray app needs CGO (Cocoa), so it's built on a Mac. Everything else cross-compiles with `CGO_ENABLED=0`.
 - FreeBSD has no public static FFmpeg. `scripts/build-ffmpeg-static.sh` builds one in CI, for amd64.
-- `scripts/genicon` draws the app icon from code.
+- `scripts/genicon` draws every logo, icon and background of the family from code: see [BRAND.md](BRAND.md).
 
 See `CONTRIBUTING.md` in the source before sending changes.
 

@@ -195,7 +195,10 @@ make_app_bundle() {
   mv "$out/package-info.json" "$app/Resources/"
   # A starter set goes with the app, so whatever copies the app has it too (layout.Modules).
   if [ -d "$out/modules" ]; then mv "$out/modules" "$app/Resources/modules"; fi
-  "$TOOLS/genicon$HOSTEXE" "$app/Resources/icon.png" 512
+  # The icon, from the brand drawings (docs/BRAND.md): every size macOS asks for, on its grid.
+  "$TOOLS/genicon$HOSTEXE" -target server-package -o "$CACHE/brand" >/dev/null
+  cp "$CACHE/brand/icon.icns" "$app/Resources/WittyMediaServer.icns"
+  cp "$CACHE/brand/icon.png" "$app/Resources/icon.png"
   # A Mac's uninstaller is an app of its own, so it's found the way an app is.
   local un="$out/Uninstall WittyMediaServer.app/Contents"
   mkdir -p "$un/MacOS"
@@ -225,6 +228,7 @@ EOF
   <key>CFBundleVersion</key><string>${NUMERIC_VERSION}</string>
   <key>CFBundleShortVersionString</key><string>${VERSION}</string>
   <key>CFBundleExecutable</key><string>WittyMediaServer</string>
+  <key>CFBundleIconFile</key><string>WittyMediaServer</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>LSUIElement</key><true/>
   <key>LSMinimumSystemVersion</key><string>11.0</string>

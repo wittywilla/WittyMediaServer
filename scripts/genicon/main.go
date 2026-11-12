@@ -1,115 +1,146 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 
-// Command genicon writes the WittyMediaServer icon as PNG/ICO files for packaging (desktop
-// entries, web manifest, installers), and the pictures the Windows installer's wizard shows.
+// Command genicon draws every logo, icon and background of the WittyMediaServer family from the
+// brand drawings in internal/brandart (docs/BRAND.md): vector first, written as SVG, Android
+// vector drawables, Kotlin and Swift drawing code, and rasterised to every PNG, ICO, ICNS, BMP
+// and JPEG size each platform asks for. Colours come from the design tokens (themes/).
 //
-//	go run ./scripts/genicon out.png [size]
-//	go run ./scripts/genicon out.ico
-//	go run ./scripts/genicon -bitmaps <folder>   writes banner.bmp and welcome.bmp
+//	go run ./scripts/genicon -target <name> -o <repository> [-concept wink|monogram|signal] [-check]
+//	    writes one repository's set: server, server-package, client, player, reader, catalog,
+//	    website. -check changes nothing and fails if any file differs.
+//	go run ./scripts/genicon -sheet <out.png> [-concept ...]
+//	    the comparison sheet of the three concepts (the -concept one marked as chosen)
+//	go run ./scripts/genicon out.png [size] | out.ico | -bitmaps <folder>
+//	    single files, as the older packaging scripts ask for them
+//
+// Each repository has scripts/sync-brand.sh, which runs this with its own target.
 package main
 
 import (
 	"bytes"
-	"encoding/binary"
+	"encoding/json"
+	"flag"
 	"fmt"
-	"image"
-	"image/color"
-	"image/draw"
 	"image/png"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 
-	"github.com/wittywilla/wittymediaserver/internal/trayicon"
+	"github.com/wittywilla/wittymediaserver/internal/brandart"
 )
 
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, "usage: genicon <out.png|out.ico> [size] | -bitmaps <folder>")
-		os.Exit(2)
-	}
-	if os.Args[1] == "-bitmaps" && len(os.Args) == 3 {
-		check(bitmaps(os.Args[2]))
+	// The older forms: genicon out.png [size], genicon out.ico, genicon -bitmaps <folder>.
+	if len(os.Args) >= 2 && !strings.HasPrefix(os.Args[1], "-") {
+		legacy(os.Args[1:])
 		return
 	}
-	out := os.Args[1]
-	size := 256
-	if len(os.Args) > 2 {
-		size, _ = strconv.Atoi(os.Args[2])
+	if len(os.Args) == 3 && os.Args[1] == "-bitmaps" {
+		files, err := brandart.NewKit(brandart.DefaultConcept).Build("server-package", nil)
+		check(err)
+		for _, name := range []string{"banner.bmp", "welcome.bmp"} {
+			check(os.WriteFile(filepath.Join(os.Args[2], name), files[name], 0o644))
+		}
+		return
 	}
-	var data []byte
+
+	concept := flag.String("concept", string(brandart.DefaultConcept), "the design: wink, monogram or signal")
+	target := flag.String("target", "", "the set to write: "+strings.Join(brandart.Targets, ", "))
+	out := flag.String("o", ".", "the repository (or, for server-package, the folder) to write into")
+	checkOnly := flag.Bool("check", false, "change nothing; fail if a file differs from what would be written")
+	sheet := flag.String("sheet", "", "write the comparison sheet of the three concepts to this PNG")
+	flag.Parse()
+
+	c, err := brandart.ParseConcept(*concept)
+	check(err)
+	kit := brandart.NewKit(c)
+
+	if *sheet != "" {
+		var b bytes.Buffer
+		check(png.Encode(&b, brandart.Sheet(brandart.Concepts, c)))
+		check(os.WriteFile(*sheet, b.Bytes(), 0o644))
+		return
+	}
+	if *target == "" {
+		fmt.Fprintln(os.Stderr, "genicon: say which set with -target (", strings.Join(brandart.Targets, ", "), ")")
+		os.Exit(2)
+	}
+
+	var modules map[string]string
+	if *target == "catalog" {
+		modules, err = catalogModules(filepath.Join(*out, "catalog.json"))
+		check(err)
+	}
+	files, err := kit.Build(*target, modules)
+	check(err)
+
+	differ := 0
+	for _, p := range files.Paths() {
+		dst := filepath.Join(*out, filepath.FromSlash(p))
+		old, _ := os.ReadFile(dst)
+		if bytes.Equal(old, files[p]) {
+			continue
+		}
+		differ++
+		if *checkOnly {
+			fmt.Fprintln(os.Stderr, "differs:", p)
+			continue
+		}
+		check(os.MkdirAll(filepath.Dir(dst), 0o755))
+		check(os.WriteFile(dst, files[p], 0o644))
+	}
+	if *checkOnly && differ > 0 {
+		fmt.Fprintf(os.Stderr, "%d of %d brand files are out of date: run scripts/sync-brand.sh\n", differ, len(files))
+		os.Exit(1)
+	}
+	verb := "written"
+	if *checkOnly {
+		verb = "up to date"
+	}
+	fmt.Printf("%s: %d files, %d %s (concept %s)\n", *target, len(files), map[bool]int{true: len(files), false: differ}[*checkOnly], verb, c)
+}
+
+// catalogModules reads each module's id and category from WittyModuleCatalog's catalog.json.
+func catalogModules(path string) (map[string]string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var cat struct {
+		Modules []struct {
+			ID    string `json:"id"`
+			Group string `json:"group"`
+		} `json:"modules"`
+	}
+	if err := json.Unmarshal(data, &cat); err != nil {
+		return nil, err
+	}
+	out := map[string]string{}
+	for _, m := range cat.Modules {
+		out[m.ID] = m.Group
+	}
+	return out, nil
+}
+
+func legacy(args []string) {
+	kit := brandart.NewKit(brandart.DefaultConcept)
+	out := args[0]
 	if strings.EqualFold(filepath.Ext(out), ".ico") {
-		data = trayicon.ICO(false)
-	} else {
-		data = trayicon.PNG(size, false)
+		check(os.WriteFile(out, brandart.ICO(brandart.WindowsSizes, func(px int) brandart.Art { return kit.Tile(brandart.Server, px) }), 0o644))
+		return
 	}
-	check(os.WriteFile(out, data, 0o644))
+	size := 256
+	if len(args) > 1 {
+		size, _ = strconv.Atoi(args[1])
+	}
+	check(os.WriteFile(out, kit.Tile(brandart.Server, size).PNG(size, size), 0o644))
 }
 
 func check(err error) {
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(os.Stderr, "genicon:", err)
 		os.Exit(1)
 	}
-}
-
-// bitmaps draws the two pictures in the sizes Windows Installer's wizard wants: a banner along
-// the top of a page, and the first and last pages' panel down the left.
-func bitmaps(dir string) error {
-	white := image.NewUniform(color.White)
-	panel := image.NewUniform(color.RGBA{0x1b, 0x1f, 0x2e, 0xff})
-
-	banner := image.NewRGBA(image.Rect(0, 0, 493, 58))
-	draw.Draw(banner, banner.Bounds(), white, image.Point{}, draw.Src)
-	if err := drawIcon(banner, 44, 493-44-8, 7); err != nil {
-		return err
-	}
-
-	welcome := image.NewRGBA(image.Rect(0, 0, 493, 312))
-	draw.Draw(welcome, welcome.Bounds(), white, image.Point{}, draw.Src)
-	draw.Draw(welcome, image.Rect(0, 0, 164, 312), panel, image.Point{}, draw.Src)
-	if err := drawIcon(welcome, 96, (164-96)/2, 40); err != nil {
-		return err
-	}
-
-	if err := writeBMP(filepath.Join(dir, "banner.bmp"), banner); err != nil {
-		return err
-	}
-	return writeBMP(filepath.Join(dir, "welcome.bmp"), welcome)
-}
-
-func drawIcon(dst draw.Image, size, x, y int) error {
-	icon, err := png.Decode(bytes.NewReader(trayicon.PNG(size, false)))
-	if err != nil {
-		return err
-	}
-	draw.Draw(dst, image.Rect(x, y, x+size, y+size), icon, image.Point{}, draw.Over)
-	return nil
-}
-
-// writeBMP writes the 24-bit, bottom-up form Windows Installer takes.
-func writeBMP(path string, img *image.RGBA) error {
-	b := img.Bounds()
-	w, h := b.Dx(), b.Dy()
-	stride := (w*3 + 3) &^ 3
-	var out bytes.Buffer
-	size := 54 + stride*h
-	out.WriteString("BM")
-	le := binary.LittleEndian
-	for _, v := range []any{uint32(size), uint32(0), uint32(54), uint32(40), int32(w), int32(h), uint16(1), uint16(24), uint32(0), uint32(stride * h), int32(2835), int32(2835), uint32(0), uint32(0)} {
-		if err := binary.Write(&out, le, v); err != nil {
-			return err
-		}
-	}
-	row := make([]byte, stride)
-	for y := h - 1; y >= 0; y-- {
-		for x := 0; x < w; x++ {
-			c := img.RGBAAt(x, y)
-			row[x*3], row[x*3+1], row[x*3+2] = c.B, c.G, c.R
-		}
-		out.Write(row)
-	}
-	return os.WriteFile(path, out.Bytes(), 0o644)
 }

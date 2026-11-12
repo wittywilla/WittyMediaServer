@@ -12,15 +12,10 @@ Open / not verified:
 
 ## Design 2 (W2): web and desktop
 
-Branch `wip/design-web` (worktree `.worktrees/design-web-WittyMediaServer`), NOT yet merged into `v0.8.0-alpha`: no heavy slot was free for `npm run build`, the browser checks and `npm run test:keys`/`test:tv` for the whole session. tsc, design-check, design-tokens --check, theme-contrast, the node tests, `npm run test:pads` and the 85 SDUI conformance cases pass.
+Merged into `v0.8.0-alpha`. Built: the one input model (keys, pad, zones, key legend, Dock, key help), SDUI catalogue 6 (Dock with `control.open`, KeyLegend, peek, See all card, Carousel, CrossBar, WidgetGrid, Widget, NumberedRow, card styles plate/block/logo; conformance green), experiences (Look rows in Settings, Appearance with required locks, the admin's Looks editor with required looks per everyone/kids/profile, finish/type/density from the theme engine's `look` on `<html data-experience, data-fx-*, data-type>`), theme import for profiles, frame from every nav style, rail with the mark badge, open menu, Keep menu open and the library drawer, the Mark row under Name and logo, first run with Look (14 experiences tried as chosen) and Theme steps, setup state and setup complete kept on the server, 503 `setup_required` goes to `/setup`, TV mode on the `--tv-*` units, WittyTV guide Dock with More info (I), the legacy WittyTV look readers deleted.
 
-Built: input model (`ui/inputModel.ts`, `ui/shortcuts.ts`, `ui/zones*.ts`, `ui/inputKind.ts`, key legend, Dock, key help), pad map in two contexts (app, player/book/games), spatial weights from `nav.weights`, SDUI catalogue 3 (Dock with `control.open`, KeyLegend, peek, See all card, grid/list view, letter jump), density row in Settings, `design2.css`, TV mode on `--tv-*` units, WittyTV guide Dock and half-window paging.
+Not built (owner's list): finishing every one of the 14 shells in CSS (only the rail, sidebar and top bars are drawn; cableBar, bevelBar, teleKeys, crossbar, floatingGlassBar, ornamentTabs are laid out as top bars without their own finish), the other first-run steps the server names (name, people, remote), WittyRemote and the player bar variants, More info on the watch banner, recordings and sets, songs/karaoke/visualizer, module pages in every look, the layout editor and name editor, WittyPlay Online. See `docs/plans/DESIGN-2-FEATURE-GAPS.md` for web features with no canvas element.
 
-Not done / not verified:
-- Nothing was run in a browser: no screenshots at 390/820/1440/1920/TV, `test:keys`, `test:tv` (its Look selector was changed to `.ctv-dock`), `npm run build`.
-- Hero peek (phone swipe), the TV "Dock reached by Start" on the SDUI page, and Back-ladder wiring inside TvFrame (it uses `backStep`, the Dock step is in `ui/shortcuts.ts`) are not exercised.
-- Fallback/legacy still present, per owner's "no legacy" rule: `TV_TABS` and the no-menu path in `tvmode/TvFrame.tsx`, the no-sets/no-paging branches in `pages/tv/GuidePage.tsx` (S6's logic), the games/reader pad map (`ownPad()` in `tv.ts`; games pages read the old buttons by key).
-- Desktop (Electron) needs no change: it loads the web.
 ## Design 2 (W3): Apple apps
 
 Merged into the client's `v0.8.0-alpha` (client `3d48fe9`). Checked: `swift test` in apple/WittyKit 644 tests green (SDUI conformance 85 of 85 with the fixtures required), tvOS and iOS simulator builds clean; one real run of the tvOS app on the Apple TV simulator against a scratch server (generated media): Home with the top pills, billboard, the concentric focus ring on Play, shelf with peek.

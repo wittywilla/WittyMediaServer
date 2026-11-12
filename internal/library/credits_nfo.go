@@ -86,7 +86,7 @@ func (p *nfoPeople) crewTags() []struct {
 var jobInParens = regexp.MustCompile(`^(.*?)\s*\(([^()]+)\)\s*$`)
 
 // people turns an NFO's people into credits. episode: its actors are guest stars. photos finds
-// a picture in an .actors folder for an actor the NFO gives none.
+// a picture in an .actors folder, which is used before the NFO's <thumb>.
 func (p *nfoPeople) people(episode bool, photos *actorPhotos) []CreditIn {
 	var out []CreditIn
 	for i, a := range p.Actors {
@@ -111,9 +111,10 @@ func (p *nfoPeople) people(episode bool, photos *actorPhotos) []CreditIn {
 				ids.TVMaze = v
 			}
 		}
-		photo := firstWebAddress([]string{a.Thumb})
+		// The owner's own picture beside the media comes before one on the web.
+		photo := photos.find(name)
 		if photo == "" {
-			photo = photos.find(name)
+			photo = firstWebAddress([]string{a.Thumb})
 		}
 		order := i
 		for _, o := range []string{a.Order, a.SortOrder} {

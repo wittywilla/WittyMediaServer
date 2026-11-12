@@ -237,6 +237,8 @@ export default function CdPlayer() {
           <InsertDisc poster={art || undefined} title={disc.title} label="CD" sound={disc.insertSound} onDone={() => begin(disc)} />
         </div>
       )}
+      {/* While the disc goes in, the page behind the full-screen loading screen can't be reached by keys or a screen reader. */}
+      <div inert={phase === 'inserting' || undefined}>
       <BackLink to={`/library/${disc.libraryId}`} label="Back to the library" />
       <section className={'cdw' + (ejecting ? ' ejecting' : '')} aria-label="CD player">
         <header className="cdw-title">
@@ -329,6 +331,7 @@ export default function CdPlayer() {
       {disc.attribution && <p className="muted cdp-credit">{disc.attribution}{disc.releaseId && <> <a href={`https://musicbrainz.org/release/${disc.releaseId}`} target="_blank" rel="noreferrer">See this release</a>.</>}</p>}
       <p className="muted cdp-keyhelp"><kbd>Space</kbd> play or pause, <kbd>N</kbd>/<kbd>P</kbd> next or previous, <kbd>J</kbd>/<kbd>L</kbd> back or forward 10 seconds, <kbd>S</kbd> stop, <kbd>R</kbd> repeat, <kbd>H</kbd> shuffle, {vizAvailable && <><kbd>V</kbd> visualizer, </>}<kbd>E</kbd> eject.</p>
       <LegalNote kind="metadata" />
+      </div>
       {identify && <IdentifyDialog disc={disc} onClose={() => setIdentify(false)} onApplied={(d) => { setDisc(d); actions.refresh(d); setIdentify(false) }} />}
     </div>
   )

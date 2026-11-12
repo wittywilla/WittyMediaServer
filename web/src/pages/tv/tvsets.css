@@ -23,6 +23,11 @@ html.ten-foot .ctv-page .ctv-find input, html.using-controller .ctv-page .ctv-fi
   .ctv-bar:has(.ctv-find) > .ctv-bar-time { flex: 1 1 100%; overflow-x: auto; scrollbar-width: none; }
   .ctv-bar:has(.ctv-find) .ctv-find { flex: 1 1 7.5rem; min-width: 0; }
 }
+/* On a touch screen a text field under 16px makes Safari zoom in when it's tapped, which pushes the page and the
+   set picker wider than the phone. These fields keep to 1rem there. */
+@media (pointer: coarse) {
+  .ctv-find input, .ctv-sets .input, .ctv-setpick-bar .input, .ctv-setfield .input { font-size: 1rem; } /* design-ok: Safari zooms into a field under 16px */
+}
 
 /* Pages of channels, under the grid. */
 .ctv-pager { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px 14px; padding: 6px var(--ctv-edge); flex: none; background: var(--ctv-panel); border-top: 1px solid var(--ctv-line); }

@@ -176,7 +176,7 @@ type nfoMovie struct {
 		Type string `xml:"type,attr"`
 		ID   string `xml:",chardata"`
 	} `xml:"uniqueid"`
-	TMDBID  string `xml:"tmdbid"`
+	TMDBID string `xml:"tmdbid"`
 	nfoPeople
 	Ratings struct {
 		Rating []struct {

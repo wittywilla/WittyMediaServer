@@ -273,7 +273,7 @@ func (t *tmdbShows) Details(ctx context.Context, id string) (*MatchDetails, erro
 		CreatedBy        []tmdbCreator `json:"created_by"`
 		AggregateCredits tmdbCredits   `json:"aggregate_credits"`
 		Credits          tmdbCredits   `json:"credits"`
-		ContentRatings struct {
+		ContentRatings   struct {
 			Results []struct {
 				ISO    string `json:"iso_3166_1"`
 				Rating string `json:"rating"`

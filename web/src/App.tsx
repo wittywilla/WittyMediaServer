@@ -15,10 +15,12 @@ import { LinkButton } from './ui'
 import { AudioProvider } from './audio/player'
 import ConnectServer from './components/ConnectServer'
 import AuthPage from './pages/AuthPage'
-import { regionOn, StatusBar, SystemDock } from './shell/PlayChrome'
+import { usePageRegions } from './sdui/regions'
+import { StatusBar, SystemDock } from './shell/PlayChrome'
 import { PlayerDock } from './player/PlayerPage'
 import { Announcer, useDialogs } from './a11y'
 import LegalNote, { legalAckText } from './components/LegalNote'
+import AwayPage from './pages/AwayPage'
 import { KeyHelp } from './ui/KeyHelp'
 import { ShellEditorHost } from './pages/ShellEditor'
 import { AskHost } from './ui/Overlay'
@@ -117,6 +119,8 @@ function Shell() {
   // Help, for anyone: stuck at the sign-in page or partway through setup is when it's needed most.
   const isHelp = loc.pathname === '/help' || loc.pathname.startsWith('/help/')
   if (isHelp && (needServer || (!loading && (!user || (onboarding && user.isAdmin))))) return <Suspense fallback={<Spinner />}><Routes><Route path="/help" element={<HelpPublicPage />} /><Route path="/help/:guide" element={<HelpPublicPage />} /></Routes></Suspense>
+  // From away, for anyone: how a device away from home joins (the parts that make an invite wait for a sign-in).
+  if (loc.pathname === '/away' && !loading && !user && !needServer && !setupRequired) return <div className="center-page"><AwayPage /></div>
   if (loading) return <div className="center"><div className="spinner" /></div>
   if (needServer) return <ConnectServer />
   if (!user) return setupRequired ? <Suspense fallback={<Spinner />}><SetupWizard /></Suspense> : <AuthPage />
@@ -160,6 +164,7 @@ function regionAttrs(p: Record<string, { position?: string; visible?: boolean }>
 function AppFrame() {
   // The server says how the frame is drawn: the experience's nav style (docs/SDUI.md, "Experiences").
   const menu = useMenu()
+  const regions = usePageRegions()
   const frame = frameFor(menu.shell)
   const style = frame.style
   const side = style !== 'top'
@@ -192,7 +197,7 @@ function AppFrame() {
       <Sidebar open={open} rail={rail} drawer={!wide} onClose={() => setDrawer(false)} withDrawer={frame.drawer} />
       <div className="main">
         <TopBar onMenu={toggle} showMenu={side || !wide} topNav={style !== 'side'} menuOpen={open} wide={wide} allTabs={!frame.tabBar} />
-        {regionOn(menu.shell, 'statusBar') && <StatusBar line="WittyPlay Online" />}
+        {regions?.statusBar && <StatusBar parts={regions.statusBar} />}
         <LegalAckBar />
         <PlainAwayBar />
         <main className="content" id="main" data-nav-zone="stage" tabIndex={-1}>
@@ -200,7 +205,7 @@ function AppFrame() {
           <LegalNote kind="general" className="legal-foot" />
           <footer className="page-foot"><VersionTag version={version} /></footer>
         </main>
-        {regionOn(menu.shell, 'systemDock') && menu.shell?.systemDock && <SystemDock entries={menu.shell.systemDock} />}
+        {regions?.systemDock && <SystemDock entries={regions.systemDock} />}
       </div>
       <TabBar onMenu={() => setDrawer(true)} />
     </div>
@@ -237,6 +242,7 @@ export function PageRoutes() {
       <Route path="/fix-matches" element={<Suspense fallback={<Spinner />}><FixMatches /></Suspense>} />
       <Route path="/brand/:kind/:name" element={<Suspense fallback={<Spinner />}><BrandPage /></Suspense>} />
       <Route path="/pair" element={<PairPage />} />
+      <Route path="/away" element={<AwayPage />} />
       <Route path="/tv" element={<SduiRoute fallback={<Suspense fallback={tvFallback}><GuidePage /></Suspense>} loading={tvFallback} />} />
       {/* Places only a server with server-driven pages has: every library together, a kind of library together, a page of the owner's own. */}
       <Route path="/libraries" element={<SduiRoute fallback={<NotFound />} />} />

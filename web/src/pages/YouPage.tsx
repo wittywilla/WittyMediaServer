@@ -107,6 +107,7 @@ export default function YouPage() {
       {adult && (
         <Group title="Household">
           <Row to="/pair" icon={<IconTv />} tint={TINT.tv} label="Sign in a TV" />
+          <Row to="/away" icon={<IconTv />} tint={TINT.tv} label="From away" />
           <Row to="/settings/users" icon={<IconUsers />} tint={TINT.family} label="Profiles and parental limits" />
         </Group>
       )}

@@ -27,6 +27,8 @@ import { setTvMode, useTvMode } from '../tvmode/mode'
 import { useUserPref } from '../ui/userPrefs'
 import { jumpTo } from './settings/jump'
 import { LAYOUT_EVENT } from './ShellEditor'
+import { LayoutThumb } from '../ui/LayoutThumb'
+import type { WireMap } from '../ui/layoutSpecs'
 import { Row, Section } from './settings/ui'
 import AutoSkipSection from './settings/AutoSkip'
 
@@ -247,8 +249,7 @@ export default function AppearanceSettings() {
 // The experiences a server offers (docs/SDUI.md, "Experiences"): one for this profile on this device, kept by the
 // server; "As the server sets it" follows the administrator's choice. An administrator can require one, and it then
 // shows locked with who set it.
-type ExperienceCard = { id: string; name: string; tagline?: string; theme?: string; preview?: { bg: string; surface: string; accent: string }; nav: Record<string, string> }
-const NAV_PIC: Record<string, string> = { sidebar: 'side', rail: 'rail', railDrawer: 'rail', bottomTabs: 'top', topTabs: 'top', floatingGlassBar: 'top', cableBar: 'top', bevelBar: 'top', teleKeys: 'top', crossbar: 'stream', ornamentTabs: 'top', tvTopMenu: 'top', tvSideMenu: 'rail' }
+type ExperienceCard = { id: string; name: string; tagline?: string; theme?: string; preview?: { bg: string; surface: string; accent: string }; nav: Record<string, string>; wire?: WireMap }
 const lockText = (r: { by?: string; scope: string }) => `Required by ${r.by || 'an administrator'}${r.scope === 'everyone' ? ' for everyone' : r.scope === 'kids' ? ' for kids profiles' : ''}`
 
 function ServerLookRows({ choice }: { choice: NonNullable<ReturnType<typeof useMenu>['experiences']> }) {
@@ -281,7 +282,7 @@ function ServerLookRows({ choice }: { choice: NonNullable<ReturnType<typeof useM
           const on = choice.current === o.value
           return (
             <button key={o.value} type="button" role="radio" aria-checked={on} disabled={!!busy || locked} className={'layout-opt' + (on ? ' on' : '')} onClick={() => void choose(o.value)}>
-              <span className={'layout-pic pic-' + (NAV_PIC[c?.nav.desktop || ''] || 'side')} aria-hidden="true" style={c?.preview ? { background: c.preview.bg, ['--pic-surface' as string]: c.preview.surface, ['--pic-accent' as string]: c.preview.accent } : undefined}><i className="s" /><i className="t" /><i className="c" /></span>
+              <LayoutThumb wire={c?.wire} colours={c?.preview} />
               <b>{o.label}</b><span className="muted">{c?.tagline || ''}</span>
             </button>
           )

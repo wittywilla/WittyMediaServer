@@ -791,6 +791,30 @@ app: `lumen` (the default), `rail`, `stage`, `aero`, `classic`, `classicCable`,
 [Experiences](#experiences-1) below is written from the same files,
 `pkg/sdui/experiences/*.json`).
 
+**`wire`: the layout a chooser draws.** Each experience in `GET /sdui/experiences` has `wire`, a map from form
+factor (`tv`, `phone`, `tablet`, `desktop`, `web`, `headset`) to the layout in a few words, so a picker shows the
+layout a person is choosing and not only its colours (the existing `preview` is the colour swatch). It is worked
+out from the experience's own data (its menu on that form factor, its page changes, its effects), never written
+in its file, and it is what the design canvas's wire thumbnails draw. An optional, additive property: no
+revision change. Each is `{nav, open?, style, home, cards, dock?, brand, finish}`:
+
+| Field | Values and where they come from |
+|---|---|
+| `nav` | `top` (topTabs, floatingGlassBar, cableBar, bevelBar, teleKeys, tvTopMenu), `side` (sidebar, tvSideMenu), `rail` (rail, railDrawer), `bottom` (bottomTabs, ornamentTabs), `none` (crossbar: the categories are part of the page) |
+| `open` | true when the menu is drawn open all the time (a sidebar) |
+| `style` | how the entries are drawn: `pill`; `gloss` (floatingGlassBar), `cable`, `bevel`, `tele`, `crossbar`; `under` (a top bar whose headings are underlined, Paper's) |
+| `home` | `cross` (pages.crossbar), `widgets`, `list` (rowsAsLists), `tiles` (Home rows tiles), `banner`, `carousel`, else `hero` |
+| `cards` | `poster`, `landscape`, `plate`, `block` or `logo`: the page's cardStyle, else the shape's cardSet (a tile is drawn as landscape) |
+| `dock` | a dock of keys: on a television and in a headset |
+| `brand` | where the server's name sits: `left` of a top bar, `top` of a side menu, rail or tab bar, `centre` for a crossbar |
+| `finish` | `crt` (teleKeys), else `gloss`, `bevel` or `glass` when that effect is full, else `flat` |
+
+On a desktop window the fourteen are: Lumen top/hero, Rail rail/banner, Stage top/hero, Aero top (gloss)/hero,
+Classic side (open)/hero, Classic Cable top (cable)/list, Classic Satellite top (bevel)/hero, Compact rail/list,
+Paper top (under)/banner, Marquee top/carousel, Crossbar none/cross, Big picture top/tiles, Dashboard
+rail/widgets, Retro top (tele)/list. Compact and Dashboard are a side menu on a television. Conformance:
+`pkg/sdui/conformance/experience-wire-table.json` lists every wire.
+
 **An experience is not a theme.** Colour belongs to the theme (see
 [THEMES.md](THEMES.md)); each experience only names the theme it wears unless one is
 required or chosen, and the WittyTV look it suggests. Any experience can wear any

@@ -205,7 +205,7 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
   const placeLine = p.books ? 'Chapters' : p.live ? 'Stations' : 'Queue'
 
   return (
-    <div className={'np' + (panel ? ' has-panel panel-' + panel : '')} ref={root} tabIndex={-1} role="dialog" aria-modal="true" aria-label={`Now playing: ${it.title}`}
+    <div className={'np' + (panel ? ' has-panel panel-' + panel : '') + (prefs.viz && prefsLoaded ? ' viz-on' : '')} ref={root} tabIndex={-1} role="dialog" aria-modal="true" aria-label={`Now playing: ${it.title}`}
       style={{ '--art': rgb } as React.CSSProperties} onClickCapture={(e) => { if (e.detail > 0) requestAnimationFrame(() => { if (!document.activeElement?.closest('input, select, textarea, .mp-pop-body, .np-panel')) root.current?.focus({ preventScroll: true }) }) }}>
       <div className="np-glow" aria-hidden="true" />
       {canSing && prefs.canvas && !prefs.viz && <NowPlayingCanvas itemId={it.id} playing={p.playing} />}
@@ -292,6 +292,7 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
                     )}
                   </Pop>}
                 </div>}
+                {prefs.viz && p.vizHere && shaders.length > 0 && <EffectChips effects={shaders} current={style} onPick={pickStyle} />}
                 {prefs.viz && <button type="button" className={'np-chip slow-chip' + (prefs.slow ? ' on' : '')} aria-pressed={prefs.slow} title="A slower, gentler pace" onClick={() => setPrefs({ slow: !prefs.slow })}><IconTurtle size={20} /> Slow</button>}
                 {prefs.viz && (
                   <Pop label={prefs.shuffleEvery ? `Shuffling visualizers: ${everyLabel(prefs.shuffleEvery)}` : 'Shuffle visualizers'} className={'np-chip-pop' + (prefs.shuffleEvery ? ' on' : '')} icon={<><IconShuffle size={18} /><span>{prefs.shuffleEvery ? everyLabel(prefs.shuffleEvery).replace('Every ', '') : 'Styles'}</span></>}>
@@ -398,4 +399,32 @@ function ShaderBackground({ id, slow, media, onDecline }: { id: string; slow: bo
     return () => clearInterval(t)
   }, [id, slow])
   return <div className="np-shader"><VisualizerView media={media} place="panel" onClose={onDecline} /></div>
+}
+
+// All the effects at once, as the board draws them (Effects: all 18 kept, the classics and Aurora Rings), with the
+// two controls that belong to them: Calm mode, and how strongly they react. They talk to the running plugin.
+function EffectChips({ effects, current, onPick }: { effects: ShaderEffect[]; current: string; onPick: (id: string) => void }) {
+  const s = shaderSession()
+  const [calm, setCalm] = useState<boolean>(() => s?.calm ?? false)
+  const [intensity, setIntensity] = useState<number>(() => s?.settings.intensity ?? 1)
+  const keeps = (e: ShaderEffect) => !calm || e.motion === 'gentle'
+  return (
+    <div className="np-effects" role="group" aria-label="Visualizer effects">
+      <div className="np-effect-chips" role="radiogroup" aria-label="Effect">
+        {effects.map((e) => (
+          <button type="button" role="radio" key={e.id} aria-checked={current === e.id} disabled={!keeps(e)} className={current === e.id ? 'on' : ''} onClick={() => onPick(e.id)}>
+            {e.name}<small>{e.motion === 'gentle' ? 'Gentle' : 'Lively'}</small>
+          </button>
+        ))}
+      </div>
+      <div className="np-effect-opts">
+        <button type="button" className={'np-chip small' + (calm ? ' on' : '')} aria-pressed={calm} title="Keeps to the gentle effects and slows everything" onClick={() => { const v = !calm; setCalm(v); shaderSession()?.update({ calm: v }) }}>Calm mode</button>
+        <label className="np-range"><span>Intensity</span>
+          <input type="range" min={30} max={150} step={5} value={Math.round(intensity * 100)} aria-valuetext={`${Math.round(intensity * 100)}%`}
+            onChange={(e) => { const v = Number(e.target.value) / 100; setIntensity(v); shaderSession()?.update({ intensity: v }) }} />
+          <output>{Math.round(intensity * 100)}%</output>
+        </label>
+      </div>
+    </div>
+  )
 }

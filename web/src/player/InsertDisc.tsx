@@ -106,7 +106,9 @@ export default function InsertDisc({ poster, title, onDone, sound = true, label 
           <span className="front-display">{'LOADING'}</span>
         </div>
       </div>
-      <div className="insert-caption">Loading {title}…</div>
+      <div className="insert-caption" role="status">Loading {title}…</div>
+      {/* Keys and a remote can skip it too, not only a click. */}
+      <button className="btn sm insert-skip" autoFocus onClick={(e) => { e.stopPropagation(); onDone() }}>Skip</button>
     </div>
   )
 }

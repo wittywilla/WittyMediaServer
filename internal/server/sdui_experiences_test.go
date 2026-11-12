@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	builtin "github.com/wittywilla/wittymediaserver/themes"
+
 	"github.com/wittywilla/wittymediaserver/pkg/sdui"
 )
 
@@ -107,4 +109,59 @@ func TestExperiencesAreChosenByTheServerAndEachProfilePerDevice(t *testing.T) {
 		t.Fatalf("after reset: %+v", a)
 	}
 
+}
+
+// An administrator can require a look, a theme or both, for everyone, for kids or for one
+// profile: the server resolves it and says who required it; the person can't choose over it.
+func TestRequiredLookIsResolvedAndLocked(t *testing.T) {
+	ts, admin, adult, kid := sduiAccounts(t)
+	if err := ts.Themes.Install(builtin.Builtin); err != nil {
+		t.Fatal(err)
+	}
+	etag := func() string {
+		var cur struct{ ETag string }
+		_ = json.Unmarshal(ts.do(t, "GET", "/api/sdui/config/experience", admin, nil).Body.Bytes(), &cur)
+		return cur.ETag
+	}
+	put := func(body any) int {
+		return ts.do(t, "PUT", "/api/sdui/config/experience", admin, body, "If-Match", etag()).Code
+	}
+	if c := put(map[string]any{"required": map[string]any{"everyone": map[string]string{"experience": "spiral"}}}); c != 400 {
+		t.Errorf("an experience that isn't one: %d", c)
+	}
+	if c := put(map[string]any{"required": map[string]any{"everyone": map[string]string{"theme": "no-such-theme"}}}); c != 400 {
+		t.Errorf("a theme that isn't installed: %d", c)
+	}
+	if c := put(map[string]any{"required": map[string]any{"everyone": map[string]string{"experience": "rail", "theme": "cinema"}, "kids": map[string]string{"experience": "bigpicture"}}}); c != 200 {
+		t.Fatalf("saving the requirement: %d", c)
+	}
+	get := func(token string) experienceAnswer {
+		var a experienceAnswer
+		_ = json.Unmarshal(ts.do(t, "GET", "/api/v1/sdui/experience?formFactor=desktop", token, nil).Body.Bytes(), &a)
+		return a
+	}
+	if a := get(adult); a.Experience != "rail" || a.Editable || a.Choice == nil || a.Choice.Required == nil || a.Choice.Required.Scope != "everyone" || a.Choice.Required.By == "" {
+		t.Fatalf("an adult: %+v %+v", a, a.Choice)
+	}
+	if a := get(kid); a.Experience != "bigpicture" || a.Choice.Required.Scope != "kids" {
+		t.Fatalf("a kid: %+v", a)
+	}
+	if w := ts.do(t, "PUT", "/api/v1/sdui/experience?formFactor=desktop", adult, map[string]string{"experience": "paper"}); w.Code != 403 || !strings.Contains(w.Body.String(), "required") {
+		t.Errorf("choosing over a requirement: %d %s", w.Code, w.Body)
+	}
+	th := getTheme(t, ts, adult)
+	if th.ID != "cinema" || th.Source != "required" || th.Look.RequiredTheme == nil || th.Look.Experience != "rail" || th.Look.RequiredExperience == nil {
+		t.Errorf("the finished look: %q %q %+v", th.ID, th.Source, th.Look)
+	}
+	if len(th.Look.Finish.Gloss) == 0 || th.Look.Finish.Glass == nil || len(th.Look.Scene.Layers) == 0 {
+		t.Errorf("finish and scene: %+v", th.Look)
+	}
+	// Nothing required: the person's choice, and the experience's own theme.
+	if c := put(map[string]any{}); c != 200 {
+		t.Fatalf("clearing: %d", c)
+	}
+	th = getTheme(t, ts, adult)
+	if th.Source != "server" || th.Look.RequiredTheme != nil || th.Look.Experience != "lumen" {
+		t.Errorf("after clearing: %q %+v", th.Source, th.Look)
+	}
 }

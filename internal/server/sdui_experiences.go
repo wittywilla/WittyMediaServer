@@ -109,6 +109,7 @@ func (s *Server) experienceChoice(r *http.Request, cfg *sduistore.Config, formFa
 }
 
 func (s *Server) sduiExperienceRoutes(m *http.ServeMux) {
+	m.Handle("GET /api/sdui/experiences", s.requireUser(s.handleSDUIExperiences))
 	m.Handle("GET /api/sdui/experience", s.requireUser(s.handleSDUIExperienceGet))
 	m.Handle("PUT /api/sdui/experience", s.requireUser(s.handleSDUIExperiencePut))
 	m.Handle("DELETE /api/sdui/experience", s.requireUser(s.handleSDUIExperienceDelete))
@@ -377,4 +378,18 @@ func byAdmin(p *sdui.RequiredPart) string {
 		return ""
 	}
 	return " by " + p.By
+}
+
+// GET /api/sdui/experiences: every experience as data (docs/SDUI.md, "Experiences"), the
+// themes there are and which one each experience wears by default, so a chooser can draw
+// them all. The administrator's policy decides which a person may pick (GET
+// /sdui/experience); this is the catalogue.
+func (s *Server) handleSDUIExperiences(w http.ResponseWriter, r *http.Request) {
+	themeList := []string{}
+	if s.Themes != nil {
+		for _, m := range s.Themes.List() {
+			themeList = append(themeList, m.ID)
+		}
+	}
+	writeJSON(w, 200, map[string]any{"experiences": sdui.Experiences, "navStyles": sdui.NavStyles, "themes": themeList, "default": sdui.ExpLumen})
 }

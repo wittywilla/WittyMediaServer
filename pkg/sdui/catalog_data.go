@@ -230,7 +230,7 @@ func buildComponents() []ComponentSpec {
 				pBool("numbered", "Number the cards", "Large rank numbers beside the cards, for a top ten.", false),
 				pInt("maxItems", "Most cards at first", "How many cards are sent before the row asks for more. 0 uses the device's own limit.", 0, 0, 60),
 				rev3(pBool("peek", "Show the next card's edge", "layout.peek of the next card's width stays visible at the row's trailing edge, so it is clear the row scrolls on. Off cuts the row at a whole card.", true)),
-				rev3(pEnum("seeAllCard", "See all as a card", "See all as the last card of the row, in the shape of the row's cards, in place of the link beside the heading. Automatic: on a television and in the layouts that ask for it (TV rows, Streaming style).", "auto", "auto|Where the layout says", "always|Always", "never|Never")),
+				rev3(pEnum("seeAllCard", "See all as a card", "See all as the last card of the row, in the shape of the row's cards, in place of the link beside the heading. Automatic: on a television and in the experiences that ask for it (Stage, Big picture).", "auto", "auto|Where the layout says", "always|Always", "never|Never")),
 				propEmpty, propEmptyText,
 			},
 			Renders: map[string]string{

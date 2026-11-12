@@ -784,6 +784,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `PUT /api/sdui/pages/{page}/personal` | Signed-in | own arrangement only. Page exists. The profile's editLayout switch and the server's personalisation switch (403). 8 KB, strict JSON, IDs by form, at most 64 pages a profile |
 | `DELETE /api/sdui/pages/{page}/personal` | Signed-in | own arrangement only. Page exists. The same switches as saving |
 | `GET /api/sdui/topshelf` | Signed-in | limits. The account's own continue-watching and what is new in libraries it may open, at most 4 rows of 10. Device class by form. No games with games turned off for the profile |
+| `GET /api/sdui/experiences` | Signed-in | the same for everyone. The experiences the server ships and the themes installed; what a person may choose is GET /api/sdui/experience |
 | `GET /api/sdui/experience` | Signed-in | own choice only. The layout in force on this device, the profile's own choice and what it may choose from |
 | `PUT /api/sdui/experience` | Signed-in | own choice only, for this device (device by form, else the form factor). The profile's editLayout switch and the server's personalisation switch (403). Only a layout the server allows (403). 1 KB, strict JSON, at most 32 devices a profile |
 | `DELETE /api/sdui/experience` | Signed-in | own choice only. The same switches as saving |

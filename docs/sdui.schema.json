@@ -802,6 +802,9 @@
           },
           "type": "array"
         },
+        "required": {
+          "$ref": "#/$defs/RequiredPart"
+        },
         "url": {
           "type": "string"
         }
@@ -1871,6 +1874,28 @@
       },
       "required": [
         "over"
+      ],
+      "type": "object"
+    },
+    "RequiredPart": {
+      "properties": {
+        "at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "by": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "value",
+        "scope"
       ],
       "type": "object"
     },

@@ -38,7 +38,7 @@ func TestBuiltinThemesHaveTheTVPass(t *testing.T) {
 			}
 		}
 	}
-	if n != 8 {
+	if n != 15 {
 		t.Errorf("built-in themes: %d", n)
 	}
 }

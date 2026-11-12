@@ -44890,6 +44890,17 @@
         "x-wms-auth": "admin"
       }
     },
+    "/sdui/experiences": {
+      "get": {
+        "summary": "Every experience as data",
+        "operationId": "sduiExperiences",
+        "tags": ["SDUI"],
+        "x-wms-auth": "user",
+        "security": [{"bearer": []}],
+        "parameters": [],
+        "responses": {"200": {"description": "{experiences, navStyles, themes, default}", "content": {"application/json": {"schema": {"type": "object"}}}}, "default": {"$ref": "#/components/responses/Error"}}
+      }
+    },
     "/sdui/experience": {
       "delete": {
         "operationId": "deleteSduiLayout",

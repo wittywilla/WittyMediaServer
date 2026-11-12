@@ -723,88 +723,66 @@ profile may see, the most titles first, each subtitled with what they are
 known for and how many titles ("Acting · 3 titles"). The built-in search
 page has a People row.
 
-## Layout options
+## Experiences
 
-A layout option is a whole arrangement of an app: where its menu is and how
-it is drawn, and how pages look. There are five, the same on every app:
+An experience is a whole look of an app: where its menu is and how it is drawn, the
+corners, finish, type set, density and motion it wears, how its Home starts, and a set
+of changes to pages that the server makes itself. There are fourteen, the same on every
+app: `lumen` (the default), `rail`, `stage`, `aero`, `classic`, `classicCable`,
+`classicSatellite`, `compact`, `paper`, `marquee`, `crossbar`, `bigpicture`,
+`dashboard` and `retro`. `GET /sdui/experiences` has each as data (the reference table
+[Experiences](#experiences-1) below is written from the same files,
+`pkg/sdui/experiences/*.json`).
 
-| Layout | Menu | Pages |
-|---|---|---|
-| `sidebar` | A column down the side where there is room (240 points; 220 on a tablet), a tab bar on a phone, the top menu on a television. | As written. **The default everywhere**: the apps as they have always looked. |
-| `topTabs` | A row of tabs across the top on every device, leaving the whole width to the page. | As written. |
-| `tvRows` | A narrow rail of icons (80 points; 72 on a tablet), a phone's tab bar, a television's top menu. | Grids become rows of large cards with See all as the last card (except a grid a filter bar drives), the spotlight is a billboard, cards a section doesn't size are large. |
-| `compactList` | A rail; on a television a menu down the side, 120 points closed and 400 open. | Rows, grids and the spotlight become lists, a line per title with its picture in its own shape, progress and two badges; compact spacing. |
-| `streaming` | A see-through row of tabs over the top of the page, solid once it scrolls; a phone's tab bar; a television's top menu (never over the page). | A billboard spotlight, wide cards for films, shows and episodes, comfortable spacing. |
+**An experience is not a theme.** Colour belongs to the theme (see
+[THEMES.md](THEMES.md)); each experience only names the theme it wears unless one is
+required or chosen, and the WittyTV look it suggests. Any experience can wear any
+theme, built in or imported.
 
-**What decides it.** The administrator chooses which layout each form factor
-starts with and which layouts profiles may choose (`ui_config.json`
-`layouts: {default: {formFactor: layout}, allowed: [layout]}`; the editor's
-routes are `GET`/`PUT /sdui/config/experience`). Each profile chooses its own for
-each of its devices (`PUT /sdui/experience {layout}`; `DELETE` to follow the
-server again). An app names itself with `device=` (or `X-WMS-Device`): a
-stable name of its own, letters, digits, `-` and `_`, never anything that
-identifies the hardware; an app that sends none shares one choice per form
-factor. A profile kept from rearranging pages, or a server with
-personalisation off, follows the administrator's choice. `layout=` (or
-`X-WMS-Layout`) on a page or the navigation draws that one request with
-another layout, so an app can show a layout before it is chosen. Precedence:
-`layout=`, the profile's choice for the device, its choice for the form
-factor, the administrator's default for the form factor, `sidebar`; a layout
-the administrator doesn't allow is passed over.
+**What decides it.** In order: what an administrator *requires* of the profile; the
+profile's own choice for the device; the administrator's default for the form factor;
+`lumen`. Requirements (`PUT /sdui/config/experience`, body `{default, allowed,
+required: {everyone, kids, profiles: {"<id>": ...}}, profileThemes}`) are `{experience,
+theme}`, either part or both, for everyone, for every kids profile or for one profile;
+the most specific wins part by part. The server stamps each with who set it and when.
+A required look is sent finished: `GET /sdui/experience` answers `choice.required`
+(`{value, by, at, scope}`) and `editable: false`, `PUT /sdui/experience` answers 403, and
+the theme engine's `look` has `requiredExperience` and `requiredTheme`, so every client
+shows it locked ("Required by Willow"). `allowed` limits what profiles may pick and never
+overrides a requirement. Each profile chooses its own for each device
+(`PUT /sdui/experience {experience}`; `DELETE` to follow the server again). An app names
+itself with `device=` (or `X-WMS-Device`): a stable name of its own, letters, digits, `-`
+and `_`, never anything that identifies the hardware. `experience=` (or `X-WMS-Experience`)
+on a page, the navigation or the theme draws that one request with another experience, so
+an app can show a look before it is chosen; a requirement wins over it.
 
-**What a client is sent.** Every page carries `layout.shell` and the
-navigation carries `shell`: `{layout, nav, overlay, size, open}`. `nav` is
-the menu's style (`sidebar`, `rail`, `bottomTabs`, `topTabs`, `tvTopMenu`,
-`tvSideMenu`), `size` its breadth in points (a sidebar's or rail's width, a
-bar's height without the system's own inset), `overlay` that it lies over
-the top of the page, transparent until the page scrolls, and `open` how wide
-a television's side menu is while it has focus. An app draws its frame from
-the navigation's shell and lays the page out in what is left; it never picks
-a style of its own. The navigation also carries `layouts`: `{current,
-chosen, options, url}`, what the profile may choose on this device, for a
-**Layout** row in the app's own Settings (Settings is never SDUI; the row
-lives where the app's appearance settings are, reachable by keyboard, remote
-and controller, with the options read out by screen readers as a choice of
-five with the current one selected).
+**What a client is sent.** Every page carries `layout.shell` and the navigation carries
+`shell`: `{experience, nav, overlay, size, open, drawer}`. `nav` is the menu's style
+(`sidebar`, `rail`, `railDrawer`, `bottomTabs`, `topTabs`, `floatingGlassBar`, `cableBar`,
+`bevelBar`, `teleKeys`, `crossbar`, `ornamentTabs`, `tvTopMenu`, `tvSideMenu`), `size` its
+breadth in points, `overlay` that it lies over the top of the page, `open` how wide it is
+while open (a rail's full menu, a television's side menu) and `drawer` the width of a
+rail's library drawer beside it (`railDrawer` only: choosing a library opens a second
+column headed by the library's name, listing its views). An app draws its frame from the
+navigation's shell and lays the page out in what is left; it never picks a style of its
+own and never switches on an experience's id. The navigation also carries `experiences`:
+`{current, chosen, options, url, required}`, for an **Experience** row in the app's own
+Settings (Settings is never SDUI). On a headset (`formFactor=headset`, `platform=visionos`
+or `quest`) the form factor is `headset`: ornament tabs, 60-point targets, nothing at the
+edges.
 
-**What the server does for the app.** A layout's changes to pages are made
-by the server in the document, with the catalogue's own components: a
-renderer that follows the document draws every layout with nothing more. A
-`ListItem` made from a source carries its picture in the item's own shape
-(a poster upright, a still wide, a cover square), and `progress` and up to
-two `badges` when the item has them. The conformance kit has a case for every
-layout on the device it suits best (`layout-*.json`), including a
-television's side menu and a grid a filter bar keeps.
+**What the server does for the app.** An experience's changes to pages are made in the
+document with the catalogue's own components: a renderer that follows the document draws
+every experience with nothing more. Where it asks, a Hero becomes a `Carousel` (`marquee`),
+Home becomes a `CrossBar` of its rows (`crossbar`) or a `WidgetGrid` (`dashboard`), rows
+and grids become lists (`compact`, `classicCable`, `retro`), films' and shows' cards take
+the experience's card style (`plate`, `landscape`, `tile`, `block`), headings take its
+heading style (`band`, `underline`) and See all becomes a row's last card. The conformance
+kit has a case for every experience (`exp-*.json`).
 
-### Zones and the Dock
-
-Every screen has at most four zones: the **Bar** (the menu, from the navigation's
-shell), the **Stage** (the page), the **Dock** and the **Layer** (dialog, menu,
-player). The Dock is a `Dock` section: the persistent controls of one screen in a
-row that never moves, with a `KeyLegend` at its end. `layout.dock` says where it
-goes: `placement` `bottom` (a bar `height` points tall across the foot of the
-screen, outside the page's scroll: 112 on a television, 64 on a tablet, a desktop
-and the web) or `sheet` (a phone: no bar, an Options button opens the controls as
-a sheet), and `hintSize` for the legend. Its generated `controls` (`sort`,
-`filter`, `view`, `jump`) are Buttons whose action is the client command
-`control.open` with `params` `{control, target}`; the server builds them from the
-filter bar that drives `target`, leaves out those with nothing to offer (jump only
-when the sort is the title) and a Dock with no buttons. On a television the server
-adds a locked Dock to every page that has a filter bar over a grid. The Dock never
-takes default focus and the page's content comes before it in `focus.order`; the
-input that reaches it (Down from the last row, the options key, Start) is in
-`input` in themes/tokens.json, and `nav` there has the back ladder (Layer, Dock,
-Stage, Bar, Home).
-
-**Peek and See all.** `layout.peek` is the fraction of the next card or slide that
-shows at the trailing edge of a scrolling row or spotlight (0.18 on a television,
-0.12 on a phone and tablet, 0 elsewhere). A `Shelf` has it unless its node says
-`peek: false`; a `Hero` has it when its node says `peek: true`. A Shelf node with
-`seeAllCard: true` draws See all as its last card, in the shape of the row's cards.
-
-The reference table is [Layout options](#layout-options-1) in the catalogue
-below; `GET /sdui/catalog` has `layouts` and `navStyles`; `sdui-layouts` in
-`/capabilities` says a server has all of this.
+The theme engine's `look` carries the rest an experience brings: `effects` (glass, gloss,
+glow, texture and bevel, each `none`, `subtle` or `full`), `shape`, `type` set, `density`,
+`motion`, the WittyTV look it suggests, and the theme's `finish` and `scene`.
 
 ## Modules
 
@@ -1048,17 +1026,11 @@ own window, is one of the three renderers.
   A module's view (`<module>.<name>`) is drawn by its web bundle, and the
   app sends the views of the bundles in use with its own
   ([Modules in server-driven UI](SDUI-MODULES.md#what-apps-need-to-do)).
-- **Layout options.** The frame follows the navigation's `shell`:
-  `sidebar` and `rail` are the side menu open or folded to icons (at the
-  sizes sent), `topTabs` the bar of tabs along the top (with no tab bar on a
-  phone), `bottomTabs` a phone's tab bar, and `overlay` lets the top bar lie
-  over the page until it scrolls. In TV mode `tvTopMenu` is the bar of
-  pills and `tvSideMenu` a column of icons that opens to show names while
-  it has focus. The app names itself with `device=`, a random name kept in
-  the browser. Settings, Appearance, Layout offers `layouts.options` and
-  "Use the server's"; Settings, Pages & menu, Layouts is the
-  administrator's `config/layouts`. Against a server without layouts the
-  device keeps its own choice of where the menu sits.
+- **Experiences.** The frame follows the navigation's `shell`, whatever the
+  experience (see [Experiences](#experiences)). The app names itself with `device=`, a
+  random name kept in the browser. Settings, Appearance offers the experiences,
+  themes and Import a theme; Settings, Pages & menu, Experiences is the
+  administrator's `config/experience`, with the required looks.
 - **Modules.** Their settings are under Settings, Module settings, drawn
   with Settings' own rows; their pages of the app's own (`/m/...`) and their
   views take the module's colours where its palette differs from everyone's.
@@ -1336,7 +1308,7 @@ Focus: one stop in the page's focus order; it moves focus among its own parts. A
 | `numbered` | bool | `false` | Number the cards. Large rank numbers beside the cards, for a top ten. |
 | `maxItems` | int 0 to 60 |  | Most cards at first. How many cards are sent before the row asks for more. 0 uses the device's own limit. |
 | `peek` | bool | `true` | Show the next card's edge. layout.peek of the next card's width stays visible at the row's trailing edge, so it is clear the row scrolls on. Off cuts the row at a whole card. |
-| `seeAllCard` | enum: auto, always, never | `auto` | See all as a card. See all as the last card of the row, in the shape of the row's cards, in place of the link beside the heading. Automatic: on a television and in the layouts that ask for it (TV rows, Streaming style). |
+| `seeAllCard` | enum: auto, always, never | `auto` | See all as a card. See all as the last card of the row, in the shape of the row's cards, in place of the link beside the heading. Automatic: on a television and in the experiences that ask for it (Stage, Big picture). |
 | `empty` | enum: hide, message | `hide` | When there is nothing to show. Leave the section out, or keep it with a message. |
 | `emptyText` | text, at most 200 |  | Message when empty. Shown in place of the items when there are none. |
 
@@ -3259,26 +3231,26 @@ A menu entry (`type: native`) may open the screens marked *menu*; the others nee
 | `control.open` | Client-handled, from a Dock: params.control is sort, filter, view or jump and params.target the Grid. sort and filter open the page's FilterBar choices for the target; view switches it between its grid and a list and remembers it for the profile on the device; jump opens a letter picker (A to Z and #) and brings the grid to the first title starting with the letter by asking its more.url until one has arrived, at most 20 pages. |  |
 | `refresh` | Asks for the page again. |  |
 
-### Layout options
+### Experiences
 
-The menu's style on each form factor, and what the server changes about every page for the layout. Menu styles: `sidebar`, `rail`, `railDrawer`, `bottomTabs`, `topTabs`, `floatingGlassBar`, `cableBar`, `bevelBar`, `teleKeys`, `crossbar`, `ornamentTabs`, `tvTopMenu`, `tvSideMenu`.
+The menu's style on each form factor, the theme and WittyTV look each wears by default, and what the server changes about every page. Menu styles: `sidebar`, `rail`, `railDrawer`, `bottomTabs`, `topTabs`, `floatingGlassBar`, `cableBar`, `bevelBar`, `teleKeys`, `crossbar`, `ornamentTabs`, `tvTopMenu`, `tvSideMenu`.
 
-| Layout | What it is | TV | Phone | Tablet | Desktop | Web | Pages |
-|---|---|---|---|---|---|---|---|
-| `lumen` | **Lumen.** Top pills, a billboard spotlight and rows that peek at the next card. The default. | tvTopMenu | bottomTabs | topTabs | topTabs | topTabs | spotlight: billboard |
-| `rail` | **Rail.** An icon rail that opens into a full menu and a drawer for each library, with title-on-art cards. | tvSideMenu | bottomTabs | railDrawer | railDrawer | railDrawer | spotlight: banner, plate cards for films and shows |
-| `stage` | **Stage.** A see-through menu over a full-bleed spotlight, then rows of wide cards that overlap the art. | tvTopMenu | bottomTabs | topTabs | topTabs | topTabs | spotlight: billboard, landscape cards for films and shows, comfortable, menu over the page |
-| `aero` | **Aero.** Glossy glass bars, bevelled pills, sky and leaf gradients and rounded corners. Gloss and gradients, no heavy blur. | tvTopMenu | bottomTabs | floatingGlassBar | floatingGlassBar | floatingGlassBar | spotlight: billboard |
-| `classic` | **Classic.** The menu down the side, a tab bar on a phone and the top menu on a television. Today's design, polished. | tvTopMenu | bottomTabs | sidebar | sidebar | sidebar | spotlight: billboard |
-| `classicCable` | **Classic Cable.** Flat blue rows, yellow highlights and coloured band headings, like a cable guide. | cableBar | bottomTabs | cableBar | cableBar | cableBar | rows and grids as lists, spotlight: row, landscape cards for films and shows, band headings |
-| `classicSatellite` | **Classic Satellite.** Silver bevelled bars, orange highlights and logo tiles for channels. | bevelBar | bottomTabs | bevelBar | bevelBar | bevelBar | spotlight: billboard, underline headings |
-| `compact` | **Compact.** A rail and a line per title: the most on the screen at once, for power users and long libraries. | tvSideMenu | bottomTabs | rail | rail | rail | rows and grids as lists, spotlight: row, compact |
-| `paper` | **Paper.** Top tabs, big serif type and generous space, on warm paper. | tvTopMenu | topTabs | topTabs | topTabs | topTabs | spotlight: banner, underline headings |
-| `marquee` | **Marquee.** One big title at a time in a centred carousel of posters. | tvTopMenu | bottomTabs | topTabs | topTabs | topTabs | spotlight: carousel, cards l |
-| `crossbar` | **Crossbar.** A horizontal bar of categories with a vertical list under the chosen one. Games and music first. | crossbar | bottomTabs | crossbar | crossbar | crossbar | spotlight: row |
-| `bigpicture` | **Big picture.** Huge tiles, few choices and the strongest focus, with larger type and targets. | tvTopMenu | bottomTabs | topTabs | topTabs | topTabs | grids as rows, spotlight: billboard, cards l, tile cards for films and shows |
-| `dashboard` | **Dashboard.** A tile grid of widgets: continue watching, on TV now, statistics, server status, a clock. Every tile movable. | tvSideMenu | bottomTabs | rail | rail | rail | spotlight: row |
-| `retro` | **Retro.** Teletext and CRT: block type, eight colours and colour-coded keys. Scanlines are off until turned on. | teleKeys | bottomTabs | teleKeys | teleKeys | teleKeys | rows and grids as lists, spotlight: row, block cards for films and shows, band headings |
+| Experience | What it is | TV | Phone | Tablet | Desktop | Web | Headset | Theme | WittyTV | Pages |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `lumen` | **Lumen.** Top pills, a billboard spotlight and rows that peek at the next card. The default. | tvTopMenu | bottomTabs | topTabs | topTabs | topTabs | ornamentTabs | default | modern | spotlight: billboard |
+| `rail` | **Rail.** An icon rail that opens into a full menu and a drawer for each library, with title-on-art cards. | tvSideMenu | bottomTabs | railDrawer | railDrawer | railDrawer | ornamentTabs | cinema | classic | spotlight: banner, plate cards for films and shows |
+| `stage` | **Stage.** A see-through menu over a full-bleed spotlight, then rows of wide cards that overlap the art. | tvTopMenu | bottomTabs | topTabs | topTabs | topTabs | ornamentTabs | midnight | bigpicture | spotlight: billboard, landscape cards for films and shows, comfortable, menu over the page |
+| `aero` | **Aero.** Glossy glass bars, bevelled pills, sky and leaf gradients and rounded corners. Gloss and gradients, no heavy blur. | tvTopMenu | bottomTabs | floatingGlassBar | floatingGlassBar | floatingGlassBar | ornamentTabs | aeroDay | modern | spotlight: billboard |
+| `classic` | **Classic.** The menu down the side, a tab bar on a phone and the top menu on a television. Today's design, polished. | tvTopMenu | bottomTabs | sidebar | sidebar | sidebar | ornamentTabs | default | modern | spotlight: billboard |
+| `classicCable` | **Classic Cable.** Flat blue rows, yellow highlights and coloured band headings, like a cable guide. | cableBar | bottomTabs | cableBar | cableBar | cableBar | ornamentTabs | cable | classic | rows and grids as lists, spotlight: row, landscape cards for films and shows, band headings |
+| `classicSatellite` | **Classic Satellite.** Silver bevelled bars, orange highlights and logo tiles for channels. | bevelBar | bottomTabs | bevelBar | bevelBar | bevelBar | ornamentTabs | satellite | satellite | spotlight: billboard, underline headings |
+| `compact` | **Compact.** A rail and a line per title: the most on the screen at once, for power users and long libraries. | tvSideMenu | bottomTabs | rail | rail | rail | ornamentTabs | oled | compact | rows and grids as lists, spotlight: row, compact |
+| `paper` | **Paper.** Top tabs, big serif type and generous space, on warm paper. | tvTopMenu | topTabs | topTabs | topTabs | topTabs | ornamentTabs | paper | listings | spotlight: banner, underline headings |
+| `marquee` | **Marquee.** One big title at a time in a centred carousel of posters. | tvTopMenu | bottomTabs | topTabs | topTabs | topTabs | ornamentTabs | cinema | bigpicture | spotlight: carousel, cards l |
+| `crossbar` | **Crossbar.** A horizontal bar of categories with a vertical list under the chosen one. Games and music first. | crossbar | bottomTabs | crossbar | crossbar | crossbar | ornamentTabs | evergreen | satellite | spotlight: row, Home as a cross bar |
+| `bigpicture` | **Big picture.** Huge tiles, few choices and the strongest focus, with larger type and targets. | tvTopMenu | bottomTabs | topTabs | topTabs | topTabs | ornamentTabs | contrast | bigpicture | grids as rows, spotlight: billboard, cards l, tile cards for films and shows |
+| `dashboard` | **Dashboard.** A tile grid of widgets: continue watching, on TV now, statistics, server status, a clock. Every tile movable. | tvSideMenu | bottomTabs | rail | rail | rail | ornamentTabs | midnight | outline | spotlight: row, Home as widgets |
+| `retro` | **Retro.** Teletext and CRT: block type, eight colours and colour-coded keys. Scanlines are off until turned on. | teleKeys | bottomTabs | teleKeys | teleKeys | teleKeys | ornamentTabs | teletext | teletext | rows and grids as lists, spotlight: row, block cards for films and shows, band headings |
 
 ### Icons
 

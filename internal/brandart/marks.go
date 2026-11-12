@@ -71,7 +71,7 @@ type Mark struct {
 	Body    Layer   // the character's body: the middle depth
 	Ink     Layer   // its features, painted on the body: holes in the one-colour version
 	Accents []Layer // small touches in the app's colour on the body (front depth)
-	Spark   Layer   // the family's spark, in the app's colour (front depth)
+	Spark   Layer   // the app's dot (or a design's spark), in the app's own colour (front depth)
 }
 
 // Glyph is the mark without its background.
@@ -79,10 +79,10 @@ func (m Mark) Glyph() []Layer {
 	return append(append([]Layer{m.Body, m.Ink}, m.Accents...), m.Spark)
 }
 
-// Front is the nearest depth: features, accents and spark.
+// Front is the nearest depth: features, accents and the dot.
 func (m Mark) Front() []Layer { return append(append([]Layer{m.Ink}, m.Accents...), m.Spark) }
 
-// MonoPath is the mark in one colour: the body with its features cut out, and the spark.
+// MonoPath is the mark in one colour: the body with its features cut out, and the dot.
 func (m Mark) MonoPath() Path {
 	return Cut(m.Body.Path, m.Ink.Path).Add(m.Spark.Path.Solid())
 }

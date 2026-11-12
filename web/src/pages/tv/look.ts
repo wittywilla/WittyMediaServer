@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../../api'
 import { useApp } from '../../state'
+import { currentLook } from '../../theme'
 import { chooseTheme, contrast, FALLBACK_APP, FONT_STACKS, isHex, readableOn, SHAPES, themeById, themeTokens, upgradeSaved, type AppColours, type Colours, type Font, type OwnerLook, type Saved, type Shape, type Slot, type Suggestion, type ThemeId, type Tokens } from './tvThemes'
 
 // How WittyTV looks for this viewer, on every TV screen. It's their own, kept with their account
@@ -164,7 +165,8 @@ export function clearThemeColours(id: ThemeId) {
 export function themeSuggestion(): Suggestion {
   const css = getComputedStyle(document.documentElement)
   const one = (name: string) => css.getPropertyValue(name).trim() || undefined
-  return { theme: one('--tv-theme') }
+  // The look (experience) the app is wearing suggests one too (docs/plans/DESIGN-2.md 7.1, `tvTheme`); it comes before a theme's own.
+  return { theme: currentLook()?.tvTheme || one('--tv-theme') }
 }
 
 const toHex = (raw: string, fallback: string): string => {

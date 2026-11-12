@@ -179,6 +179,8 @@ function AppFrame() {
   const open = wide ? side && !folded && !frame.rail : drawer
   const rail = wide && side && (frame.rail || (folded && prefs.collapse !== 'hide'))
   const toggle = () => {
+    // A rail: the button keeps its full menu open, or lets it fold again.
+    if (wide && rail && frame.rail) { window.dispatchEvent(new Event('wms:rail-pin')); return }
     if (wide) { setNavCollapsed(!folded); setFolded(!folded) } else setDrawer((o) => !o)
   }
   return (

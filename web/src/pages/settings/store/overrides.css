@@ -43,21 +43,7 @@
 
 /* Installing from a file. */
 .up-form { display: grid; gap: var(--sp-3); min-width: 0; }
-.up-file { display: grid; gap: var(--sp-1); font-size: var(--text-sm); font-weight: 500; color: var(--fg); }
-.up-file input[type=file] { min-height: 2.5rem; padding: var(--sp-2); border: 1px dashed var(--control-line); border-radius: var(--r-md); background: var(--bg-3); color: var(--fg-2); font-size: var(--text-sm); max-width: 100%; }
-.up-file input[type=file]:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-.up-hint { font-weight: 400; color: var(--fg-3); font-size: var(--text-xs); }
-.up-optional { display: grid; gap: var(--sp-3); padding: var(--sp-3); border-radius: var(--r-md); border: 1px solid var(--border); }
-.up-optional legend { padding: 0 var(--sp-1); font-size: var(--text-sm); font-weight: 600; }
-.up-progress { display: grid; gap: var(--sp-1); font-size: var(--text-sm); color: var(--fg-2); }
 .up-found { display: grid; gap: var(--sp-3); min-width: 0; }
-.up-sig { display: flex; gap: var(--sp-2); align-items: flex-start; font-size: var(--text-sm); line-height: var(--leading-snug); }
-.up-sig > svg { flex: none; margin-top: 1px; }
-.up-sig.ok > svg { color: var(--ok); }
-.up-sig.warn > svg { color: var(--warn); }
-.up-sig.danger > svg { color: var(--danger); }
-.up-problems { margin: 0; padding-left: 1.25em; display: grid; gap: var(--sp-1); font-size: var(--text-sm); color: var(--fg-2); }
-.up-print code { font-family: var(--font-mono); overflow-wrap: anywhere; }
 
 /* The module audit. */
 .au-list { list-style: none; margin: 0; padding: 0; display: grid; }

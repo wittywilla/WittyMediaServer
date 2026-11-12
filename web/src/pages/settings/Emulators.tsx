@@ -427,7 +427,7 @@ function OwnPrograms() {
       actions={list && list.length < max ? <button type="button" className="btn sm" onClick={() => { setError(''); setEditing({ at: -1, p: { name: '', systems: [], program: '', args: [] } }) }}>Add a program</button> : undefined}>
       {failed ? <Notice tone="danger" action={<button type="button" className="btn sm" onClick={() => { void load() }}>Try again</button>}>{failed}</Notice>
         : !list ? <Spinner />
-        : !list.length ? <p className="muted">None yet. This is how Switch games play, as WittyPlay offers no Switch emulator, and how an emulator from your system’s packages is used.</p>
+        : !list.length ? <p className="muted">None yet. This is how an emulator WittyPlay doesn’t list is used, such as one from your system’s packages. Ryujinx and Lichii, for the Switch and the Switch 2, are added on their own cards above.</p>
         : (
           <ul className="emu-sessions">
             {list.map((p, i) => (

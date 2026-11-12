@@ -84,6 +84,8 @@ var coreNotes = map[string]coreNote{
 	// Nintendo 3DS
 	"azahar":   {strengthAccuracy, "Carries on from Citra, and plays the most games.", nil},
 	"panda3ds": {"", "A newer core, which plays fewer games.", nil},
+	// GameCube and Wii
+	"dolphin": {strengthAccuracy, "Dolphin, as a core: plays GameCube and Wii games on the server's graphics card.", nil},
 	// PlayStation 2
 	"pcsx2": {strengthAccuracy, "LRPS2, made from PCSX2: plays the most games. Needs a BIOS from your console.", nil},
 	"play":  {strengthBalanced, "Play!: needs no BIOS, and plays fewer games.", nil},

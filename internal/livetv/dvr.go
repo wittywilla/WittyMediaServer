@@ -253,6 +253,8 @@ func (m *Manager) SchedulePadded(ctx context.Context, channelID, userID int64, t
 		return nil, err
 	}
 	id, _ := res.LastInsertId()
+	m.recLog(id).InfoContext(ctx, "recording scheduled", "channel", channelID, "title", title, "start", time.Unix(start, 0).UTC().Format(time.RFC3339),
+		"minutes", (stop-start)/60, "account", userID)
 	m.Start()
 	return m.recording(ctx, id)
 }
@@ -317,13 +319,22 @@ func (m *Manager) CancelRecording(ctx context.Context, id int64, deleteFile bool
 	if cancel != nil {
 		cancel()
 	}
+	log := m.recLog(id)
 	if deleteFile && m.inRecordingsFolder(r.Path) {
 		if err := os.Remove(r.Path); err != nil && !os.IsNotExist(err) {
+			log.WarnContext(ctx, "could not delete a recording's file", "file", r.Path, "err", err)
 			return fmt.Errorf("the file could not be deleted: %w", err)
 		}
 	}
-	_, err = m.DB.ExecContext(ctx, `DELETE FROM recordings WHERE id = ?`, id)
-	return err
+	if _, err = m.DB.ExecContext(ctx, `DELETE FROM recordings WHERE id = ?`, id); err != nil {
+		return err
+	}
+	what := "recording cancelled"
+	if r.Status != "scheduled" && r.Status != "recording" {
+		what = "recording removed"
+	}
+	log.InfoContext(ctx, what, "status", r.Status, "wasRunning", cancel != nil, "fileDeleted", deleteFile && r.Path != "")
+	return nil
 }
 
 // AddRule records every airing of a title on a channel.
@@ -359,6 +370,8 @@ func (m *Manager) AddRuleWith(ctx context.Context, channelID, userID int64, titl
 		return nil, err
 	}
 	id, _ := res.LastInsertId()
+	m.Log.InfoContext(ctx, "series recording added", "rule", id, "channel", channelID, "title", title, "account", userID,
+		"anyChannel", o.AnyChannel, "newOnly", o.NewOnly, "keep", o.Keep)
 	m.Start()
 	return &Rule{ID: id, UserID: userID, ChannelID: channelID, Channel: c.Name, Title: title, RuleOptions: o}, nil
 }
@@ -380,6 +393,8 @@ func (m *Manager) UpdateRule(ctx context.Context, id int64, o RuleOptions) error
 	if _, err := m.DB.ExecContext(ctx, `DELETE FROM recordings WHERE rule_id = ? AND status = 'scheduled'`, id); err != nil {
 		return err
 	}
+	m.Log.InfoContext(ctx, "series recording changed", "rule", id, "anyChannel", o.AnyChannel, "newOnly", o.NewOnly, "keep", o.Keep,
+		"padBefore", o.PadBefore, "padAfter", o.PadAfter)
 	m.applyRules(ctx)
 	return nil
 }
@@ -414,17 +429,31 @@ func (m *Manager) DeleteRule(ctx context.Context, id int64) error {
 	if n, _ := res.RowsAffected(); n == 0 {
 		return ErrNotFound
 	}
-	_, err = m.DB.ExecContext(ctx, `DELETE FROM recordings WHERE rule_id = ? AND status = 'scheduled'`, id)
-	return err
+	res, err = m.DB.ExecContext(ctx, `DELETE FROM recordings WHERE rule_id = ? AND status = 'scheduled'`, id)
+	if err != nil {
+		return err
+	}
+	n, _ := res.RowsAffected()
+	m.Log.InfoContext(ctx, "series recording removed", "rule", id, "unscheduled", n)
+	return nil
 }
 
 // applyRules schedules new airings of each rule, from the guide.
 func (m *Manager) applyRules(ctx context.Context) {
 	rules, err := m.Rules(ctx)
 	if err != nil {
+		if ctx.Err() == nil {
+			m.Log.WarnContext(ctx, "could not read the series recordings to schedule them", "err", err)
+		}
 		return
 	}
 	now := time.Now()
+	added := 0
+	defer func() {
+		if added > 0 {
+			m.Log.InfoContext(ctx, "series recordings scheduled", "recordings", added, "rules", len(rules))
+		}
+	}()
 	for _, rule := range rules {
 		for _, a := range m.airings(ctx, rule, now, now.AddDate(0, 0, 7)) {
 			p := a.p
@@ -433,9 +462,17 @@ func (m *Manager) applyRules(ctx context.Context) {
 			}
 			// One statement: the scheduler and a new rule can both be here at once. The same
 			// airing is recorded once per rule, whichever channel it was found on.
-			_, _ = m.DB.ExecContext(ctx, `INSERT INTO recordings(channel_id, user_id, title, sub, start, stop, status, rule_id, created_at, pad_before, pad_after, season, episode)
+			// The database logs a failed statement itself; the next pass tries again.
+			res, err := m.DB.ExecContext(ctx, `INSERT INTO recordings(channel_id, user_id, title, sub, start, stop, status, rule_id, created_at, pad_before, pad_after, season, episode)
 				SELECT ?,NULLIF(?, 0),?,?,?,?,'scheduled',?,?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM recordings WHERE (channel_id = ? OR rule_id = ?) AND start = ?)`,
 				a.channel, rule.UserID, p.Title, p.Sub, p.Start, p.End, rule.ID, db.Now(), rule.PadBefore, rule.PadAfter, p.Season, p.Episode, a.channel, rule.ID, p.Start)
+			if err == nil {
+				if n, _ := res.RowsAffected(); n > 0 {
+					added++
+					m.Log.DebugContext(ctx, "series recording scheduled an airing", "rule", rule.ID, "channel", a.channel, "title", p.Title,
+						"start", time.Unix(p.Start, 0).UTC().Format(time.RFC3339))
+				}
+			}
 		}
 	}
 }
@@ -603,6 +640,7 @@ const stoppedReason = "the server stopped during this recording"
 func (m *Manager) failInterrupted() {
 	rows, err := m.DB.Query(`SELECT id FROM recordings WHERE status = 'recording'`)
 	if err != nil {
+		m.Log.Warn("could not look for recordings a stop interrupted", "err", err)
 		return
 	}
 	var ids []int64
@@ -615,6 +653,9 @@ func (m *Manager) failInterrupted() {
 	rows.Close()
 	for _, id := range ids {
 		m.finish(id, "failed", stoppedReason, "")
+	}
+	if len(ids) > 0 {
+		m.Log.Warn("recordings were interrupted when the server stopped", "recordings", len(ids))
 	}
 }
 

@@ -585,6 +585,7 @@ func (s *Server) handlePairStart(w http.ResponseWriter, r *http.Request) {
 	if !pairStartOK(w, err) {
 		return
 	}
+	s.Log.InfoContext(r.Context(), "pairing started", "cat", "auth", "device", p.device, "platform", platform, "from", ipOf(r), "v", 1)
 	writeJSON(w, 200, map[string]any{
 		"code":         showPairCode(p.code),
 		"deviceSecret": secret,
@@ -651,22 +652,27 @@ func (s *Server) writePoll(w http.ResponseWriter, r *http.Request, state int, p 
 		w.Header().Set("Retry-After", strconv.Itoa(int(pairInterval.Seconds())))
 		writeJSON(w, 429, map[string]any{"status": "slow-down", "error": "polling too fast", "intervalSec": int(pairInterval.Seconds())})
 	case pollGone:
+		s.Log.DebugContext(r.Context(), "pairing poll: expired or already collected", "cat", "auth", "session", r.PathValue("session"), "from", ipOf(r))
 		writeJSON(w, 410, map[string]any{"status": "expired", "error": "this code has expired or was already used; ask for a new one"})
 	case pollDenied:
+		s.Log.InfoContext(r.Context(), "pairing denied: the device was told", "cat", "auth", "session", p.id, "device", p.device, "from", ipOf(r))
 		writeJSON(w, 403, map[string]any{"status": "denied", "error": "the sign-in was refused"})
 	case pollLockedOut:
+		s.Log.InfoContext(r.Context(), "pairing locked: the device was told", "cat", "auth", "session", p.id, "device", p.device, "from", ipOf(r))
 		writeJSON(w, 410, map[string]any{"status": "locked", "error": "too many wrong PINs were typed; start again"})
 	case pollApproved:
 		if !s.stillSignedIn(r.Context(), p.session, p.approver) {
+			s.Log.InfoContext(r.Context(), "pairing not finished: whoever approved it has signed out", "cat", "auth", "session", p.id, "device", p.device)
 			writeJSON(w, 410, map[string]any{"status": "expired", "error": "this code has expired or was already used; ask for a new one"})
 			return
 		}
 		tok, u, err := s.Auth.IssueSession(r.Context(), p.userID, p.device)
 		if err != nil { // the account was deleted in the meantime
+			s.Log.InfoContext(r.Context(), "pairing not finished: the account is gone", "cat", "auth", "session", p.id, "device", p.device, "err", err)
 			writeJSON(w, 410, map[string]any{"status": "expired", "error": "this code has expired or was already used; ask for a new one"})
 			return
 		}
-		s.Log.InfoContext(r.Context(), "device signed in by pairing", "cat", "auth", "device", p.device, "user", u.Name)
+		s.Log.InfoContext(r.Context(), "device signed in by pairing", "cat", "auth", "session", p.id, "device", p.device, "user", u.Name)
 		s.notePlainSession(r, tok)
 		writeJSON(w, 200, map[string]any{"status": "approved", "token": tok, "user": u})
 	default:
@@ -793,7 +799,7 @@ func (s *Server) handlePairApprove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.logins.ok(k)
-	s.Log.InfoContext(r.Context(), "pairing approved", "cat", "auth", "device", p.device, "account", target.Name, "user", me.Name, "ip", p.ip)
+	s.Log.InfoContext(r.Context(), "pairing approved", "cat", "auth", "device", p.device, "account", target.Name, "user", me.Name, "from", p.ip)
 	writeJSON(w, 200, map[string]any{"ok": true, "device": p.device, "user": target})
 }
 
@@ -811,7 +817,7 @@ func (s *Server) handlePairDeny(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if p := s.pair.answer(b.Code, 0, 0, ""); p != nil {
-		s.Log.InfoContext(r.Context(), "pairing refused", "cat", "auth", "device", p.device, "user", userFrom(r).Name, "ip", p.ip)
+		s.Log.InfoContext(r.Context(), "pairing refused", "cat", "auth", "device", p.device, "user", userFrom(r).Name, "from", p.ip)
 	}
 	s.logins.ok(k)
 	writeJSON(w, 200, map[string]any{"ok": true})

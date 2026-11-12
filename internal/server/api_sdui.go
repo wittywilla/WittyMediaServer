@@ -610,7 +610,7 @@ func (s *Server) renderPage(w http.ResponseWriter, r *http.Request) (sdui.Docume
 		return sdui.Document{}, false
 	}
 	if err != nil {
-		s.Log.WarnContext(r.Context(), "a page could not be rendered", "cat", "ui", "page", rn.page.ID, "err", err)
+		s.Log.WarnContext(r.Context(), "a page could not be rendered", "cat", "sdui", "page", rn.page.ID, "err", err)
 		writeErr(w, 500, "This page could not be put together. It is in the log.")
 		return sdui.Document{}, false
 	}
@@ -875,7 +875,7 @@ func (s *Server) handleSDUISection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		s.Log.WarnContext(r.Context(), "a section could not be read", "cat", "ui", "page", rn.page.ID, "section", section, "err", err)
+		s.Log.WarnContext(r.Context(), "a section could not be read", "cat", "sdui", "page", rn.page.ID, "section", section, "err", err)
 		writeErr(w, 500, "This row could not be loaded. It is in the log.")
 		return
 	}
@@ -1064,9 +1064,11 @@ func (s *Server) handleSDUIPersonalPut(w http.ResponseWriter, r *http.Request) {
 		store = &p
 	}
 	if err := s.writePersonal(r, key, store); err != nil {
+		s.Log.InfoContext(r.Context(), "personal arrangement not saved", "cat", "sdui", "profile", adminName(r), "key", key, "err", err)
 		writeErr(w, 400, err.Error())
 		return
 	}
+	s.Log.DebugContext(r.Context(), "personal arrangement saved", "cat", "sdui", "profile", adminName(r), "key", key)
 	writeJSON(w, 200, map[string]any{"editable": true, "personal": p})
 }
 
@@ -1078,8 +1080,10 @@ func (s *Server) handleSDUIPersonalDelete(w http.ResponseWriter, r *http.Request
 		return
 	}
 	if err := s.writePersonal(r, key, nil); err != nil {
+		s.Log.ErrorContext(r.Context(), "could not reset a personal arrangement", "cat", "sdui", "profile", adminName(r), "key", key, "err", err)
 		writeErr(w, 500, err.Error())
 		return
 	}
+	s.Log.DebugContext(r.Context(), "personal arrangement reset", "cat", "sdui", "profile", adminName(r), "key", key)
 	writeJSON(w, 200, map[string]any{"editable": true, "personal": sdui.Personal{}})
 }

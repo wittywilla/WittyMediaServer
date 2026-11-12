@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/sduistore"
 	"github.com/wittywilla/wittymediaserver/pkg/sdui"
 )
@@ -54,23 +55,30 @@ func (s *Server) sduiAdminRoutes(m *http.ServeMux) {
 	m.Handle("POST /api/sdui/import", ad(s.handleSDUIImport))
 }
 
-// writeUIStoreErr answers for an error from the store.
-func writeUIStoreErr(w http.ResponseWriter, err error) {
+// writeUIStoreErr answers for an error from the store, and logs why a change to the UI
+// configuration was refused. action is a fixed word for what was tried ("publish", "page
+// saved", ...).
+func (s *Server) writeUIStoreErr(w http.ResponseWriter, r *http.Request, action string, err error) {
 	var inv *sduistore.InvalidError
 	var mc *sduistore.MergeConflictError
+	ctx := r.Context()
 	switch {
 	case errors.As(err, &mc):
+		s.Log.InfoContext(ctx, "UI configuration change refused: both sides changed the same items", "cat", "sdui", "action", action, "by", adminName(r), "conflicts", len(mc.Items), "baseRevision", mc.Base, "currentRevision", mc.Current)
 		writeJSON(w, 409, map[string]any{"error": mc.Error() + ": reload the draft and the published configuration, then publish again preferring one side (prefer=draft or prefer=published) or change the draft",
 			"conflicts": mc.Items, "baseRevision": mc.Base, "currentRevision": mc.Current})
 	case errors.Is(err, errNoSuchPage):
 		writeErr(w, 404, err.Error())
 	case errors.Is(err, sduistore.ErrConflict):
+		s.Log.InfoContext(ctx, "UI configuration change refused: it changed since it was read", "cat", "sdui", "action", action, "by", adminName(r))
 		writeErr(w, 412, err.Error()+": read it again and redo the change")
 	case errors.Is(err, sduistore.ErrNoRevision):
 		writeErr(w, 404, err.Error())
 	case errors.As(err, &inv):
+		s.Log.WarnContext(ctx, "UI configuration change refused as invalid", "cat", "sdui", "action", action, "by", adminName(r), "issues", len(inv.Issues))
 		writeJSON(w, 400, map[string]any{"error": inv.Error(), "issues": inv.Issues})
 	default:
+		s.Log.ErrorContext(ctx, "could not save the UI configuration", "cat", "sdui", "action", action, "by", adminName(r), "err", err)
 		writeErr(w, 500, err.Error())
 	}
 }
@@ -112,7 +120,8 @@ func (s *Server) sduiBase(r *http.Request, st *sduistore.Store) (*sduistore.Conf
 }
 
 // sduiMutate applies fn to the published configuration (If-Match required) or to the draft.
-func (s *Server) sduiMutate(w http.ResponseWriter, r *http.Request, what string, fn func(c *sduistore.Config) error) {
+// action is fixed text for the log; attrs say what it was done to (e.g. "page", id).
+func (s *Server) sduiMutate(w http.ResponseWriter, r *http.Request, action string, fn func(c *sduistore.Config) error, attrs ...any) {
 	st, err := s.uiStore()
 	if err != nil {
 		writeErr(w, 500, err.Error())
@@ -133,7 +142,7 @@ func (s *Server) sduiMutate(w http.ResponseWriter, r *http.Request, what string,
 		next := base.Clone()
 		if err := fn(next); err != nil {
 			if errors.Is(err, errNoSuchPage) {
-				writeUIStoreErr(w, err)
+				s.writeUIStoreErr(w, r, action, err)
 				return
 			}
 			writeErr(w, 400, err.Error())
@@ -153,14 +162,14 @@ func (s *Server) sduiMutate(w http.ResponseWriter, r *http.Request, what string,
 			writeErr(w, 400, err.Error())
 			return
 		}
-		writeUIStoreErr(w, err)
+		s.writeUIStoreErr(w, r, action, err)
 		return
 	}
 	where := "published"
 	if draft {
 		where = "draft"
 	}
-	s.Log.InfoContext(r.Context(), "UI configuration: "+what, "cat", "ui", "by", adminName(r), "target", where, "revision", saved.Revision)
+	s.Log.InfoContext(r.Context(), "UI configuration changed", append([]any{"cat", "sdui", "action", action, "by", adminName(r), "target", where, "revision", saved.Revision}, attrs...)...)
 	writeJSONTagged(w, 200, saved.ETag, saved)
 }
 
@@ -389,10 +398,11 @@ func (s *Server) handleSDUIRollback(w http.ResponseWriter, r *http.Request) {
 	}
 	saved, err := st.Rollback(rev, strings.TrimSpace(r.Header.Get("If-Match")), adminName(r))
 	if err != nil {
-		writeUIStoreErr(w, err)
+		s.Log.WarnContext(r.Context(), "could not roll back the UI configuration", "cat", "sdui", "by", adminName(r), "to", rev, "err", err)
+		s.writeUIStoreErr(w, r, "rollback", err)
 		return
 	}
-	s.Log.InfoContext(r.Context(), "UI configuration rolled back", "cat", "ui", "by", adminName(r), "to", rev, "revision", saved.Revision)
+	logging.Audit(r.Context(), s.Log, "UI configuration rolled back", "cat", "sdui", "by", adminName(r), "to", rev, "revision", saved.Revision)
 	writeJSONTagged(w, 200, saved.ETag, saved)
 }
 
@@ -509,13 +519,13 @@ func (s *Server) handleSDUIConfigPagePut(w http.ResponseWriter, r *http.Request)
 		writeErr(w, 400, "the page calls itself "+strconv.Quote(p.ID)+" but is being saved as "+strconv.Quote(id))
 		return
 	}
-	s.sduiMutate(w, r, "page "+id+" saved", func(c *sduistore.Config) error {
+	s.sduiMutate(w, r, "page saved", func(c *sduistore.Config) error {
 		if c.Pages == nil {
 			c.Pages = map[string]sdui.Page{}
 		}
 		c.Pages[id] = p
 		return nil
-	})
+	}, "page", id)
 }
 
 // DELETE /api/sdui/config/pages/{page}[?target=draft]: remove the configuration's page: a
@@ -524,7 +534,7 @@ func (s *Server) handleSDUIConfigPagePut(w http.ResponseWriter, r *http.Request)
 func (s *Server) handleSDUIConfigPageDelete(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("page")
 	set := s.moduleSet(nil)
-	s.sduiMutate(w, r, "page "+id+" reset", func(c *sduistore.Config) error {
+	s.sduiMutate(w, r, "page reset", func(c *sduistore.Config) error {
 		if _, ok := c.Pages[id]; !ok {
 			_, builtin := sdui.StockPage(id)
 			_, module := set.Page(id)
@@ -535,7 +545,7 @@ func (s *Server) handleSDUIConfigPageDelete(w http.ResponseWriter, r *http.Reque
 		}
 		delete(c.Pages, id)
 		return nil
-	})
+	}, "page", id)
 }
 
 // GET /api/sdui/config/navigation[?target=draft]: the navigation as authored, and the
@@ -678,13 +688,13 @@ func (s *Server) handleSDUIPresetApply(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	page := sdui.ClonePage(*p.Page)
-	s.sduiMutate(w, r, "preset "+p.ID+" applied", func(c *sduistore.Config) error {
+	s.sduiMutate(w, r, "preset applied", func(c *sduistore.Config) error {
 		if c.Pages == nil {
 			c.Pages = map[string]sdui.Page{}
 		}
 		c.Pages[page.ID] = page
 		return nil
-	})
+	}, "preset", p.ID)
 }
 
 // GET /api/sdui/draft: the unpublished draft, 404 when there is none.
@@ -722,9 +732,10 @@ func (s *Server) handleSDUIDraftPut(w http.ResponseWriter, r *http.Request) {
 	}
 	saved, err := st.SaveDraft(c, strings.TrimSpace(r.Header.Get("If-Match")), adminName(r))
 	if err != nil {
-		writeUIStoreErr(w, err)
+		s.writeUIStoreErr(w, r, "draft saved", err)
 		return
 	}
+	s.Log.InfoContext(r.Context(), "UI draft saved", "cat", "sdui", "by", adminName(r), "revision", saved.Revision)
 	writeJSONTagged(w, 200, saved.ETag, saved)
 }
 
@@ -736,9 +747,11 @@ func (s *Server) handleSDUIDraftDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := st.DiscardDraft(); err != nil {
+		s.Log.ErrorContext(r.Context(), "could not discard the UI draft", "cat", "sdui", "by", adminName(r), "err", err)
 		writeErr(w, 500, err.Error())
 		return
 	}
+	s.Log.InfoContext(r.Context(), "UI draft discarded", "cat", "sdui", "by", adminName(r))
 	s.sdui.mu.Lock()
 	s.sdui.preview = nil
 	s.sdui.mu.Unlock()
@@ -765,13 +778,13 @@ func (s *Server) handleSDUIDraftPublish(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	if err != nil {
-		writeUIStoreErr(w, err)
+		s.writeUIStoreErr(w, r, "publish", err)
 		return
 	}
 	s.sdui.mu.Lock()
 	s.sdui.preview = nil
 	s.sdui.mu.Unlock()
-	s.Log.InfoContext(r.Context(), "UI draft published", "cat", "ui", "by", adminName(r), "revision", saved.Revision)
+	logging.Audit(r.Context(), s.Log, "UI draft published", "cat", "sdui", "by", adminName(r), "revision", saved.Revision, "prefer", prefer)
 	writeJSONTagged(w, 200, saved.ETag, saved)
 }
 

@@ -11,7 +11,9 @@ import (
 	"net"
 	"net/http"
 	"net/netip"
+	"slices"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -99,6 +101,7 @@ type Node struct {
 	unreachable  []ma.Multiaddr
 	unchecked    []ma.Multiaddr
 	relayAddrs   []ma.Multiaddr
+	paths        map[peer.ID]string // each connected device's way here, to log when it changes
 	refused      int
 	refusedNote  time.Time
 }
@@ -116,7 +119,7 @@ func StartNode(cfg NodeConfig) (*Node, error) {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	n := &Node{cfg: cfg, log: lg, ctx: ctx, cancel: cancel, started: time.Now(),
-		streams: map[peer.ID]int{}, buckets: map[network.Conn]*bucket{}, temp: map[peer.ID]time.Time{},
+		streams: map[peer.ID]int{}, buckets: map[network.Conn]*bucket{}, temp: map[peer.ID]time.Time{}, paths: map[peer.ID]string{},
 		// An invite's secret is 128 bits, so these are not what keeps guessing
 		// out; they keep strangers from keeping the server busy.
 		enrolAll:  newWindow(60, time.Minute, 1),
@@ -176,10 +179,19 @@ func StartNode(cfg NodeConfig) (*Node, error) {
 	h.SetStreamHandler(ProtoHTTP, n.handleHTTP)
 	h.SetStreamHandler(ProtoEnrol, n.handleEnrol)
 	h.SetStreamHandler(ProtoJoin, n.handleJoin)
-	h.Network().Notify(&network.NotifyBundle{DisconnectedF: func(_ network.Network, c network.Conn) {
+	h.Network().Notify(&network.NotifyBundle{DisconnectedF: func(nw network.Network, c network.Conn) {
+		p := c.RemotePeer()
 		n.mu.Lock()
 		delete(n.buckets, c)
+		path, had := n.paths[p]
+		gone := had && nw.Connectedness(p) != network.Connected
+		if gone {
+			delete(n.paths, p)
+		}
 		n.mu.Unlock()
+		if gone {
+			n.log.Info("peer-to-peer: device disconnected", "session", ConnSession(p.String()), "device", ShortID(p.String()), "path", path)
+		}
 	}})
 	n.wg.Add(2)
 	Spawn("p2p http", func() {
@@ -261,15 +273,28 @@ func (n *Node) watch(sub event.Subscription) {
 				}
 				n.reachability = ev.Reachability
 			case event.EvtNATDeviceTypeChanged:
+				proto, was := "tcp", &n.natTCP
 				if ev.TransportProtocol == network.NATTransportUDP {
-					n.natUDP = ev.NatDeviceType
-				} else {
-					n.natTCP = ev.NatDeviceType
+					proto, was = "udp", &n.natUDP
 				}
+				if *was != ev.NatDeviceType {
+					// open: a hole can be punched; strict: only a relay reaches this server from away.
+					n.log.Info("peer-to-peer: the router's NAT type is known", "proto", proto, "nat", natWord(ev.NatDeviceType), "was", natWord(*was))
+				}
+				*was = ev.NatDeviceType
 			case event.EvtHostReachableAddrsChanged:
 				n.reachable, n.unreachable, n.unchecked = ev.Reachable, ev.Unreachable, ev.Unknown
+				n.log.Debug("peer-to-peer: addresses checked from outside", "reachable", len(ev.Reachable), "unreachable", len(ev.Unreachable), "unchecked", len(ev.Unknown))
 			case event.EvtAutoRelayAddrsUpdated:
+				before, after := relayIDs(n.relayAddrs), relayIDs(ev.RelayAddrs)
 				n.relayAddrs = ev.RelayAddrs
+				if before != after {
+					if after == "" {
+						n.log.Info("peer-to-peer: no relay holds a place for this server now")
+					} else {
+						n.log.Info("peer-to-peer: relays holding a place for this server", "relays", after)
+					}
+				}
 			}
 			n.mu.Unlock()
 		}
@@ -386,8 +411,38 @@ func (n *Node) handleHTTP(s network.Stream) {
 		if addr.Relayed {
 			path = "relayed"
 		}
+		n.notePath(p, path)
 		n.cfg.Devices.Seen(p.String(), path)
 	}
+}
+
+// notePath logs a device's first connection and every change in how it reaches
+// this server, direct or through a relay, under the device's connection session.
+func (n *Node) notePath(p peer.ID, path string) {
+	n.mu.Lock()
+	was, had := n.paths[p]
+	n.paths[p] = path
+	n.mu.Unlock()
+	switch {
+	case !had:
+		n.log.Info("peer-to-peer: device connected", "session", ConnSession(p.String()), "device", ShortID(p.String()), "path", path)
+	case was != path:
+		n.log.Info("peer-to-peer: path changed", "session", ConnSession(p.String()), "device", ShortID(p.String()), "from", was, "to", path)
+	}
+}
+
+// relayIDs is the relays in a list of addresses, by their short IDs, for the log.
+func relayIDs(list []ma.Multiaddr) string {
+	var ids []string
+	for _, a := range list {
+		if r := relayOf(a); r != "" {
+			if id := ShortID(r.String()); !slices.Contains(ids, id) {
+				ids = append(ids, id)
+			}
+		}
+	}
+	slices.Sort(ids)
+	return strings.Join(ids, ",")
 }
 
 func (n *Node) handleEnrol(s network.Stream) {

@@ -139,7 +139,7 @@ func (s *Server) syncEngine() *syncplay.Engine {
 			}
 			_, ok := s.itemFor(ctx, u, itemID)
 			return ok
-		}})
+		}, Log: s.Log})
 	})
 	return s.watch.engine
 }
@@ -505,6 +505,7 @@ func (s *Server) handleSyncClose(w http.ResponseWriter, r *http.Request) {
 		syncError(w, err)
 		return
 	}
+	s.Log.InfoContext(r.Context(), "watch party closed by hand", "cat", "remotectl", "session", "party-"+r.PathValue("id"), "by", u.Name)
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
 

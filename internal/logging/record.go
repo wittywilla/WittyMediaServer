@@ -36,6 +36,8 @@ type Record struct {
 	Msg     string       `json:"msg"`
 	Attrs   []Attr       `json:"attrs,omitempty"`
 	Explain *Explanation `json:"explain,omitempty"`
+
+	audit bool // written whatever the levels say: see Audit
 }
 
 // How much one record can hold. The long ones are what a process said and
@@ -377,7 +379,7 @@ var (
 // quiet spell says how many were left out.
 func (f *flood) allow(rec *Record) bool {
 	f.once.Do(func() { f.seed = maphash.MakeSeed() })
-	if rec.Lv >= LevelCrash {
+	if rec.Lv >= LevelCrash || rec.audit {
 		return true
 	}
 	var h maphash.Hash

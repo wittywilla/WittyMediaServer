@@ -141,6 +141,8 @@ func (s *Server) handleCanvasGenerate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) makeCanvas(ctx context.Context, it *library.Item, sh canvasShape, start, dur float64, enc string) error {
+	log := s.jobLog(ctx).With("item", it.ID)
+	log.Debug("making a canvas", "start", start, "seconds", dur, "height", sh.height, "encoder", enc)
 	rel := mediaextras.Key(it.ID, it.Path) + "/canvas"
 	dir := filepath.Join(s.extrasRoot(), mediaextras.Key(it.ID, it.Path))
 	if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -173,7 +175,10 @@ func (s *Server) makeCanvas(ctx context.Context, it *library.Item, sh canvasShap
 		return err
 	}
 	s.removeOthers(rel, mediaextras.CanvasExts, dst)
-	_ = os.WriteFile(filepath.Join(dir, mediaextras.GeneratedMark), nil, 0o644)
-	s.Log.Info("canvas made", "cat", "library", "item", it.ID, "bytes", fi.Size(), "seconds", dur, "height", sh.height)
+	if err := os.WriteFile(filepath.Join(dir, mediaextras.GeneratedMark), nil, 0o644); err != nil {
+		// The canvas is kept, but without the mark it counts as one someone put there.
+		log.Warn("could not mark the canvas as made by the server", "dir", dir, "err", err)
+	}
+	log.Info("canvas made", "bytes", fi.Size(), "seconds", dur, "height", sh.height)
 	return nil
 }

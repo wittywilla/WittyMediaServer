@@ -16,6 +16,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/introdetect"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/mediaextras"
 	"github.com/wittywilla/wittymediaserver/internal/pace"
 	"github.com/wittywilla/wittymediaserver/internal/tasks"
@@ -153,25 +154,30 @@ func (s *Server) handleDetectIntros(w http.ResponseWriter, r *http.Request) {
 	task := s.Tasks.Start(tasks.Spec{Type: tasks.TypeIntro, Title: "Finding intros and credits", Unit: "episodes", By: byUser(userFrom(r)), Cancel: stop, AdminOnly: true})
 	task.Item(sh.Title, "")
 	task.Progress(0, int64(total))
-	log := s.Log.With("cat", "library", "show", id)
+	sid := logging.NewID("intro")
+	log := s.Log.With("cat", "extras", "session", sid, "show", id)
+	log.Info("looking for intros", "episodes", total, "seasons", len(seasons), "task", task.ID())
+	began := time.Now()
 	started := s.background("intro detection", func(bg context.Context) {
 		defer done()
 		defer stop()
-		ctx, c := context.WithCancel(pace.Background(bg))
+		ctx, c := context.WithCancel(pace.Background(logging.WithSession(bg, sid)))
 		defer c()
 		defer context.AfterFunc(stopped, c)()
 		found, err := s.detectIntros(ctx, seasons, task)
 		if err != nil {
 			if !errors.Is(err, context.Canceled) {
 				log.Error("looking for intros failed", "err", err)
+			} else {
+				log.Debug("looking for intros was stopped")
 			}
 			task.Finish(err)
 			return
 		}
 		task.Result(fmt.Sprintf("Found an intro in %d of %d episodes, and credits in %d.", found.intros, total, found.credits))
-		log.Info("intros looked for", "episodes", total, "intros", found.intros, "credits", found.credits)
+		log.Info("intros looked for", "episodes", total, "intros", found.intros, "credits", found.credits, "took", time.Since(began).Round(time.Second).String())
 		task.Finish(nil)
-	}, "cat", "library")
+	}, "cat", "extras", "session", sid)
 	if !started {
 		done()
 		stop()
@@ -188,6 +194,7 @@ type introCounts struct{ intros, credits int }
 // An episode FFmpeg can't read is a problem on the task, and the rest carry on.
 func (s *Server) detectIntros(ctx context.Context, seasons map[int][]*library.Item, task *tasks.Handle) (introCounts, error) {
 	var n introCounts
+	log := s.jobLog(ctx)
 	keys := make([]int, 0, len(seasons))
 	for k := range seasons {
 		keys = append(keys, k)
@@ -207,6 +214,7 @@ func (s *Server) detectIntros(ctx context.Context, seasons map[int][]*library.It
 				return n, ctx.Err()
 			}
 			if err != nil {
+				log.Warn("an episode's sound couldn't be read", "item", it.ID, "title", it.Title, "err", err)
 				task.Problem(it.Title, "its sound couldn't be read")
 				task.Add(1)
 				continue
@@ -217,6 +225,8 @@ func (s *Server) detectIntros(ctx context.Context, seasons map[int][]*library.It
 			if it.RuntimeSec >= introdetect.HeadSec+introdetect.TailSec {
 				if tail, err := s.episodePCM(ctx, it, true); err == nil {
 					ep.Tail, ep.TailStart = introdetect.FromPCM(tail), it.RuntimeSec-introdetect.TailSec
+				} else if ctx.Err() == nil {
+					log.Debug("an episode's ending couldn't be read, so its credits aren't looked for", "item", it.ID, "err", err)
 				}
 				if ctx.Err() != nil {
 					return n, ctx.Err()
@@ -226,6 +236,7 @@ func (s *Server) detectIntros(ctx context.Context, seasons map[int][]*library.It
 			task.Add(1)
 		}
 		found, err := introdetect.Season(ctx, eps, pace.Yield)
+		log.Debug("season compared", "season", season, "episodes", len(eps), "found", len(found), "err", err)
 		// What was found before a stop is still kept: it is right as far as it goes.
 		for _, id := range introdetect.SortedIDs(found) {
 			f := found[id]
@@ -246,7 +257,9 @@ func (s *Server) detectIntros(ctx context.Context, seasons map[int][]*library.It
 		// been replaced by another file since.
 		for _, ep := range eps {
 			if _, ok := found[ep.ID]; !ok && err == nil {
-				_ = s.Store.SaveDetectedMarkers(ctx, ep.ID, nil)
+				if serr := s.Store.SaveDetectedMarkers(ctx, ep.ID, nil); serr != nil && ctx.Err() == nil {
+					log.Warn("could not clear an episode's old intro markers", "item", ep.ID, "err", serr)
+				}
 			}
 		}
 		if err != nil {

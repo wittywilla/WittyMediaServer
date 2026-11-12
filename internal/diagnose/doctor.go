@@ -36,11 +36,14 @@ const (
 	AreaMetadata Area = "metadata"
 	AreaModules  Area = "modules"
 	AreaInstall  Area = "install"
+	// AreaFeatures: peer to peer, module overrides, emulators, karaoke and channels, as a
+	// running server sees them. See doctor_features.go.
+	AreaFeatures Area = "features"
 )
 
 // Areas in the order they're shown and run. The database goes first: other checks need
 // to know whether what they read can be believed.
-var Areas = []Area{AreaData, AreaMetadata, AreaModules, AreaInstall}
+var Areas = []Area{AreaData, AreaMetadata, AreaModules, AreaInstall, AreaFeatures}
 
 // Safety says what a fix risks.
 type Safety string
@@ -134,6 +137,8 @@ type DoctorEnv struct {
 	// TryPort allows a short bind on 127.0.0.1 to see if the port is free.
 	TryPort bool
 	Log     *slog.Logger
+	// Features is set in a running server: how its newer features are doing.
+	Features func(ctx context.Context) *FeatureState
 	// Now is for tests.
 	Now func() time.Time
 
@@ -142,6 +147,9 @@ type DoctorEnv struct {
 	roErr   error
 	opened  bool
 	damaged string // why the database can't be believed
+
+	featuresDone bool
+	featureState *FeatureState
 }
 
 // log never returns nil.
@@ -247,7 +255,8 @@ func AllChecks() []Check {
 	out := append([]Check{}, dataChecks()...)
 	out = append(out, metadataChecks()...)
 	out = append(out, moduleChecks()...)
-	return append(out, installChecks()...)
+	out = append(out, installChecks()...)
+	return append(out, featureChecks()...)
 }
 
 func findCheck(id string) *Check {

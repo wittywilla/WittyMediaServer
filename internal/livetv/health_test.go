@@ -8,8 +8,10 @@ import (
 	"context"
 	"errors"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -133,6 +135,8 @@ func TestCheckingChannels(t *testing.T) {
 		t.Fatalf("%+v", c)
 	}
 	// A whole tuner, in the background.
+	buf := &syncBuffer{}
+	m.Log = slog.New(slog.NewTextHandler(buf, &slog.HandlerOptions{Level: slog.LevelDebug})).With("cat", "tv")
 	if err := m.StartHealth(2); err != nil {
 		t.Fatal(err)
 	}
@@ -142,6 +146,13 @@ func TestCheckingChannels(t *testing.T) {
 		if st != nil && !st.Running {
 			if st.Total != 2 || st.Done != 2 || st.OK != 1 || st.Failing != 1 {
 				t.Fatalf("%+v", st)
+			}
+			// One session from start to summary, with the failing channel said at Debug.
+			out := buf.String()
+			for _, want := range []string{"channel check started", "channel check finished", "total=2 checked=2 ok=1 failing=1", "channel check failed", "session=tvcheck-"} {
+				if !strings.Contains(out, want) {
+					t.Errorf("missing %q in: %s", want, out)
+				}
 			}
 			break
 		}

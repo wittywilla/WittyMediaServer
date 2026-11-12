@@ -134,3 +134,24 @@ func TestModuleDowngradesAskForThePassword(t *testing.T) {
 		t.Error("the change should be written down")
 	}
 }
+
+// Asking for the password is part of an override's story: it is logged as an audit record,
+// which a quiet log level doesn't hide, and the password itself never is.
+func TestModulePasswordAskIsAudited(t *testing.T) {
+	ts := newTestServer(t)
+	ts.Modules = installedBundle(t, "export default 1", "")
+	_, admin := ts.user(t, "owner", "adult", true, "")
+	var log strings.Builder
+	ts.Log = slog.New(slog.NewTextHandler(&log, &slog.HandlerOptions{Level: slog.LevelError}))
+	if w := ts.do(t, "POST", "/api/modules/wittycomics/install", admin, map[string]any{"version": "0.1.5", "confirm": true}); w.Code != 403 {
+		t.Fatalf("%d %s", w.Code, w.Body)
+	}
+	out := log.String()
+	if !strings.Contains(out, `msg="module change asked for the password"`) || !strings.Contains(out, "audit=yes") ||
+		!strings.Contains(out, "cat=modules-store") || !strings.Contains(out, "by=owner") || !strings.Contains(out, "module=wittycomics") {
+		t.Errorf("no audit record of the ask:\n%s", out)
+	}
+	if strings.Contains(out, "correct-horse-1") {
+		t.Errorf("a password was logged:\n%s", out)
+	}
+}

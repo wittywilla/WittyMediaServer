@@ -111,7 +111,7 @@ func (s *Server) watchEmulator(g emulatorGame, ended <-chan struct{}) {
 			return
 		}
 		if !s.emulatorMayGoOn(ctx, u, true) {
-			s.Log.Info("a game in an emulator was stopped: the profile may not play now", "cat", "games", "session", g.id, "name", u.Name)
+			s.Log.Info("a game in an emulator was stopped: the profile may not play now", "cat", "emulators", "session", g.id, "name", u.Name)
 			s.stopEmulator(g)
 			return
 		}
@@ -156,10 +156,10 @@ func (s *Server) stopEmulator(g emulatorGame) {
 	}
 	w := &discardAnswer{h: http.Header{}}
 	modmgr.ProxyToService(c, w, r, path, func(err error) {
-		s.Log.Warn("could not stop a game in an emulator", "cat", "games", "session", g.id, "err", err)
+		s.Log.Warn("could not stop a game in an emulator", "cat", "emulators", "session", g.id, "err", err)
 	})
 	if w.code >= 400 && w.code != 404 {
-		s.Log.Warn("WittyPlay would not stop a game in an emulator", "cat", "games", "session", g.id, "status", w.code)
+		s.Log.Warn("WittyPlay would not stop a game in an emulator", "cat", "emulators", "session", g.id, "status", w.code)
 	}
 }
 

@@ -147,18 +147,22 @@ func (s *Server) handleThemePersonalPut(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	if err := s.writeThemePersonal(r, p); err != nil {
+		s.Log.InfoContext(r.Context(), "personal colours not saved", "cat", "sdui", "profile", adminName(r), "err", err)
 		writeErr(w, 400, err.Error())
 		return
 	}
+	s.Log.DebugContext(r.Context(), "personal colours saved", "cat", "sdui", "profile", adminName(r), "tokens", len(p.Tokens), "modules", len(p.Modules))
 	writeJSONTagged(w, 200, t.ETag, personalView(p, t))
 }
 
 // DELETE /api/theme/personal: back to the theme's colours.
 func (s *Server) handleThemePersonalDelete(w http.ResponseWriter, r *http.Request) {
 	if err := s.writeThemePersonal(r, themePersonal{}); err != nil {
+		s.Log.ErrorContext(r.Context(), "could not reset personal colours", "cat", "sdui", "profile", adminName(r), "err", err)
 		writeErr(w, 500, err.Error())
 		return
 	}
+	s.Log.DebugContext(r.Context(), "personal colours reset", "cat", "sdui", "profile", adminName(r))
 	t, err := s.resolveTheme(r)
 	if err != nil {
 		writeErr(w, 500, err.Error())

@@ -275,8 +275,10 @@ func (m *Manager) Open(itemID int64, path string, prefs Prefs) (*Session, error)
 	}
 	m.mu.Lock()
 	m.sessions[s.ID] = s
+	open := len(m.sessions)
 	m.sweepSoon()
 	m.mu.Unlock()
+	s.log.Info("disc session opened", "item", itemID, "file", path, "owner", prefs.Owner, "open", open, "navigable", nav != nil)
 	return s, nil
 }
 

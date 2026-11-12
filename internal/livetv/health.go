@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/pace"
 	"github.com/wittywilla/wittymediaserver/internal/tuner"
 )
@@ -127,12 +128,15 @@ func (m *Manager) probe(ctx context.Context, st *tuner.Stream) error {
 	args := append([]string{"-v", "error", "-hide_banner"}, st.Input...)
 	args = append(args, "-show_entries", "stream=codec_type", "-of", "csv=p=0")
 	cmd := exec.CommandContext(ctx, m.Tools.FFprobe, args...)
-	var out, errb bytes.Buffer
+	var out bytes.Buffer
+	var errb logging.Tail
 	cmd.Stdout, cmd.Stderr = &out, &errb
 	if err := cmd.Run(); err != nil {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
+		// Debug: a check finds failing channels by design, and says so in its summary.
+		m.Log.DebugContext(ctx, "process ended", "process", "ffprobe", "reason", logging.ExitReason(err), "stderr", errb.String())
 		return fmt.Errorf("the stream couldn't be read: %s", lastLine(errb.String()))
 	}
 	if !strings.Contains(out.String(), "video") && !strings.Contains(out.String(), "audio") {
@@ -188,7 +192,8 @@ func (m *Manager) StartHealth(tunerID int64) error {
 		m.mu.Unlock()
 		return nil
 	}
-	ctx, cancel := context.WithCancel(pace.Background(m.stopCtx))
+	sid := logging.NewID("tvcheck")
+	ctx, cancel := context.WithCancel(pace.Background(logging.WithSession(m.stopCtx, sid)))
 	st := &HealthState{Running: true, Total: len(ids), Started: time.Now().Unix(), stop: cancel}
 	m.health[tunerID] = st
 	m.mu.Unlock()
@@ -198,7 +203,10 @@ func (m *Manager) StartHealth(tunerID int64) error {
 	if t.MaxStreams > 0 {
 		workers = min(workers, max(1, t.MaxStreams-1))
 	}
+	log := m.Log.With("session", sid, "tuner", tunerID)
 	started := m.background("channel check", func(stop context.Context) {
+		log.InfoContext(ctx, "channel check started", "channels", len(ids), "workers", workers)
+		began := time.Now()
 		defer cancel()
 		defer context.AfterFunc(stop, cancel)()
 		next := make(chan int64)
@@ -216,6 +224,9 @@ func (m *Manager) StartHealth(tunerID int64) error {
 						st.Failing++
 					}
 					m.mu.Unlock()
+					if err != nil && ctx.Err() == nil {
+						log.DebugContext(ctx, "channel check failed", "channel", id, "err", err)
+					}
 				}
 			}()
 		}
@@ -236,9 +247,14 @@ func (m *Manager) StartHealth(tunerID int64) error {
 			<-done
 		}
 		m.mu.Lock()
+		sum := *st
+		m.mu.Unlock()
+		log.InfoContext(ctx, "channel check finished", "total", sum.Total, "checked", sum.Done, "ok", sum.OK, "failing", sum.Failing,
+			"stopped", ctx.Err() != nil, "took", time.Since(began).Round(time.Second).String())
+		m.mu.Lock()
 		st.Running = false
 		m.mu.Unlock()
-	}, "cat", "tv", "tuner", tunerID)
+	}, "cat", "tv", "tuner", tunerID, "session", sid)
 	if !started {
 		cancel()
 		m.mu.Lock()

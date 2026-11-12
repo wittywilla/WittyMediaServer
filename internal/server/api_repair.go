@@ -70,6 +70,7 @@ func (s *Server) repairEnv() *diagnose.DoctorEnv {
 	if s.Modules != nil {
 		e.Modules = moduleOps{s.Modules}
 	}
+	e.Features = s.featureState
 	return e
 }
 

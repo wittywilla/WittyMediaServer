@@ -47,7 +47,7 @@ import (
 
 func init() {
 	// A panic in the node's own goroutines is reported like any other.
-	p2p.Spawn = func(name string, fn func()) { logging.Go(name, fn, "cat", "remote") }
+	p2p.Spawn = func(name string, fn func()) { logging.Go(name, fn, "cat", "p2p") }
 }
 
 func (s *Server) p2pRoutes(m *http.ServeMux) {
@@ -103,7 +103,7 @@ func (s *Server) loadP2P(ctx context.Context) p2pSettings {
 	c := defaultP2P()
 	if raw := s.DB.GetSetting(ctx, p2pSettingKey, ""); raw != "" {
 		if err := json.Unmarshal([]byte(raw), &c); err != nil {
-			s.Log.WarnContext(ctx, "the peer-to-peer settings are unreadable; treating them as off", "cat", "remote", "err", err)
+			s.Log.WarnContext(ctx, "the peer-to-peer settings are unreadable; treating them as off", "cat", "p2p", "err", err)
 			return defaultP2P()
 		}
 	}
@@ -173,7 +173,7 @@ func (s *Server) p2pNode() *p2p.Node {
 func (s *Server) p2pSeed(ctx context.Context) ([]byte, error) {
 	raw := s.DB.GetSetting(ctx, p2pSeedKey, "")
 	if seed, err := p2p.DecodeSeed(raw); err == nil {
-		logging.AddSecret(raw)
+		logging.KeepSecret(raw)
 		return seed, nil
 	}
 	seed, err := p2p.NewSeed()
@@ -181,7 +181,7 @@ func (s *Server) p2pSeed(ctx context.Context) ([]byte, error) {
 		return nil, err
 	}
 	enc := p2p.EncodeSeed(seed)
-	logging.AddSecret(enc)
+	logging.KeepSecret(enc)
 	if err := s.DB.SetSetting(ctx, p2pSeedKey, enc); err != nil {
 		return nil, fmt.Errorf("saving the connection key: %w", err)
 	}
@@ -222,7 +222,7 @@ func (s *Server) StartP2P(ctx context.Context, handler http.Handler) {
 		return // nothing is loaded, started or contacted
 	}
 	if err := s.applyP2P(ctx); err != nil {
-		s.Log.WarnContext(ctx, "peer-to-peer connections could not start", "cat", "remote", "err", err)
+		s.Log.WarnContext(ctx, "peer-to-peer connections could not start", "cat", "p2p", "err", err)
 	}
 }
 
@@ -274,7 +274,7 @@ func (s *Server) applyP2P(ctx context.Context) error {
 		Seed: seed, Port: cfg.Port, Layers: cfg.Layers, StaticRelays: cfg.StaticRelays,
 		DevicesOnly: cfg.DevicesOnly, RelayBitrate: int64(cfg.RelayKbps) * 1000,
 		Devices: &s.p2p.devices, Enrol: s.p2pEnrol, Handler: s.p2p.handler,
-		Log: s.Log.With("cat", "remote"),
+		Log: s.Log.With("cat", "p2p"),
 		ConnInfo: func(ctx context.Context, a *p2p.Addr) context.Context {
 			return remote.WithP2P(ctx, remote.P2PConn{Addr: a.IP, Device: a.Peer, Relayed: a.Relayed, Known: a.Known})
 		},
@@ -396,9 +396,9 @@ func (d *p2pDevices) Seen(id, path string) {
 	if write && srv != nil {
 		srv.background("p2p last seen", func(ctx context.Context) {
 			if _, err := srv.DB.ExecContext(ctx, `UPDATE p2p_devices SET last_seen = ?, last_path = ? WHERE id = ?`, now, path, id); err != nil {
-				srv.Log.WarnContext(ctx, "could not note when a device last connected", "cat", "remote", "err", err)
+				srv.Log.WarnContext(ctx, "could not note when a device last connected", "cat", "p2p", "err", err)
 			}
-		}, "cat", "remote")
+		}, "cat", "p2p")
 	}
 }
 
@@ -583,7 +583,7 @@ func (in *p2pInvites) take(secret string) (*p2pInvite, string) {
 // /api/v1/pair/redeem like any code typed on a TV, with the same limits.
 func (s *Server) p2pEnrol(ctx context.Context, id string, req p2p.EnrolRequest, from netip.Addr) p2p.EnrolResponse {
 	fail := func(reason, msg string) p2p.EnrolResponse {
-		s.Log.InfoContext(ctx, "peer-to-peer invite refused", "cat", "auth", "why", reason, "device", p2p.ShortID(id), "from", from.String())
+		s.Log.InfoContext(ctx, "peer-to-peer invite refused", "cat", "p2p", "session", p2p.ConnSession(id), "why", reason, "device", p2p.ShortID(id), "from", from.String())
 		return p2p.EnrolResponse{Reason: reason, Error: msg}
 	}
 	in, reason := s.p2p.invites.take(req.Secret)
@@ -606,14 +606,14 @@ func (s *Server) p2pEnrol(ctx context.Context, id string, req p2p.EnrolRequest, 
 	code, err := s.pair.newInvite(in.by, in.userID, in.session)
 	if err != nil {
 		// On the list, but with no code: the device can still sign in by hand.
-		s.Log.WarnContext(ctx, "a device joined by invite, but no sign-in code could be made for it", "cat", "auth", "err", err)
+		s.Log.WarnContext(ctx, "a device joined by invite, but no sign-in code could be made for it", "cat", "p2p", "session", p2p.ConnSession(id), "err", err)
 	}
 	u, _ := s.Auth.User(ctx, in.userID)
 	who := ""
 	if u != nil {
 		who = u.Name
 	}
-	s.Log.WarnContext(ctx, "a device was added to the peer-to-peer list by invite", "cat", "auth", "device", p2p.ShortID(id), "name", dev.Name,
+	logging.Audit(ctx, s.Log, "a device was added to the peer-to-peer list by invite", "cat", "p2p", "session", p2p.ConnSession(id), "device", p2p.ShortID(id), "name", dev.Name,
 		"platform", dev.Platform, "account", who, "from", from.String())
 	res := p2p.EnrolResponse{OK: true, ServerName: s.ServerName(ctx)}
 	if code != nil {
@@ -722,7 +722,7 @@ func (s *Server) handleP2PAddDevice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c := clientFrom(r)
-	s.Log.WarnContext(r.Context(), "a device was added to the peer-to-peer list", "cat", "auth", "device", p2p.ShortID(d.ID), "name", d.Name,
+	logging.Audit(r.Context(), s.Log, "a device was added to the peer-to-peer list", "cat", "p2p", "session", p2p.ConnSession(d.ID), "device", p2p.ShortID(d.ID), "name", d.Name,
 		"platform", d.Platform, "account", me.Name, "from", c.IP.String(), "where", c.Where.String())
 	d.Mine = true
 	writeJSON(w, 200, d)
@@ -745,7 +745,7 @@ func (s *Server) handleP2PRemoveDevice(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
-	s.Log.WarnContext(r.Context(), "a device was removed from the peer-to-peer list", "cat", "auth", "device", p2p.ShortID(d.ID), "name", d.Name, "by", me.Name)
+	logging.Audit(r.Context(), s.Log, "a device was removed from the peer-to-peer list", "cat", "p2p", "session", p2p.ConnSession(d.ID), "device", p2p.ShortID(d.ID), "name", d.Name, "by", me.Name)
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
 
@@ -803,7 +803,7 @@ func (s *Server) handleP2PInvite(w http.ResponseWriter, r *http.Request) {
 	link := p2p.Invite{ServerID: node.ID(), Secret: secret, Name: s.ServerName(r.Context()), Addrs: inviteAddrs(node.Addrs())}.String()
 	// The link is a way in for fifteen minutes: it must not sit in a log.
 	logging.AddSecret(secret)
-	s.Log.InfoContext(r.Context(), "a peer-to-peer invite was made", "cat", "auth", "by", me.Name, "for", target.Name)
+	logging.Audit(r.Context(), s.Log, "a peer-to-peer invite was made", "cat", "p2p", "by", me.Name, "for", target.Name)
 	writeJSON(w, 200, map[string]any{"link": link, "expiresInSec": int(p2pInviteTTL.Seconds()), "user": target})
 }
 
@@ -920,12 +920,12 @@ func (s *Server) handlePutP2PSettings(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
-	s.Log.WarnContext(r.Context(), "peer-to-peer settings changed", "cat", "remote", "user", userFrom(r).Name, "enabled", cur.Enabled,
+	logging.Audit(r.Context(), s.Log, "peer-to-peer settings changed", "cat", "p2p", "by", userFrom(r).Name, "enabled", cur.Enabled,
 		"devicesOnly", cur.DevicesOnly, "dht", cur.Layers.DHT, "relay", cur.Layers.Relay, "holePunch", cur.Layers.HolePunch,
 		"portMap", cur.Layers.PortMap, "ipv6", cur.Layers.IPv6, "relayForOthers", cur.RelayForOthers, "ownRelays", len(cur.StaticRelays))
 	errText := ""
 	if err := s.applyP2P(r.Context()); err != nil {
-		s.Log.WarnContext(r.Context(), "could not apply the peer-to-peer settings", "cat", "remote", "err", err)
+		s.Log.WarnContext(r.Context(), "could not apply the peer-to-peer settings", "cat", "p2p", "err", err)
 		errText = err.Error()
 	}
 	writeJSON(w, 200, s.p2pView(r, errText))
@@ -953,12 +953,12 @@ func (s *Server) handleP2PRotate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	enc := p2p.EncodeSeed(seed)
-	logging.AddSecret(enc)
+	logging.KeepSecret(enc)
 	if err := s.DB.SetSetting(r.Context(), p2pSeedKey, enc); err != nil {
 		writeErr(w, 500, err.Error())
 		return
 	}
-	s.Log.WarnContext(r.Context(), "the server's peer-to-peer key was replaced: devices must learn its new ID before they can connect from away", "cat", "remote", "user", userFrom(r).Name)
+	logging.Audit(r.Context(), s.Log, "the server's peer-to-peer key was replaced: devices must learn its new ID before they can connect from away", "cat", "p2p", "by", userFrom(r).Name)
 	s.p2p.mu.Lock()
 	s.stopP2PLocked()
 	s.p2p.mu.Unlock()
@@ -1140,9 +1140,25 @@ func (s *Server) handleP2PTest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer s.p2p.testing.Unlock()
-	steps := s.p2pSelfTest(r.Context(), node)
+	// One session for the whole test, so the viewer can follow it with what the
+	// node said while the test's own device dialled in.
+	ctx := logging.WithSession(r.Context(), logging.NewID("p2p"))
+	s.Log.InfoContext(ctx, "peer-to-peer connection test started", "cat", "p2p", "by", userFrom(r).Name)
+	steps := s.p2pSelfTest(ctx, node)
 	st := node.Status()
-	s.Log.InfoContext(r.Context(), "peer-to-peer connection test", "cat", "remote", "user", userFrom(r).Name, "result", fmt.Sprint(steps))
+	failed := 0
+	for _, step := range steps {
+		lv := slog.LevelInfo
+		if step.State != "ok" {
+			lv = slog.LevelWarn
+			if step.State == "fail" {
+				failed++
+			}
+		}
+		s.Log.Log(ctx, lv, "peer-to-peer test step", "cat", "p2p", "step", step.Name, "state", step.State, "detail", step.Detail)
+	}
+	s.Log.InfoContext(ctx, "peer-to-peer connection test finished", "cat", "p2p", "steps", len(steps), "failed", failed,
+		"reachability", st.Reachability, "natUdp", st.NATUDP, "natTcp", st.NATTCP, "relays", len(st.Relays), "portMapped", st.Mapping.On, "mappingProtocol", st.Mapping.Protocol, "sharedAddress", st.Mapping.Shared)
 	writeJSON(w, 200, map[string]any{"steps": steps, "status": st, "layers": describeP2P(st, len(s.p2p.devices.list()))})
 }
 

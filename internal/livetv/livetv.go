@@ -357,9 +357,11 @@ func (m *Manager) Create(ctx context.Context, t *Tuner) (*Tuner, error) {
 		return nil, err
 	}
 	id, _ := res.LastInsertId()
+	m.Log.InfoContext(ctx, "tuner added", "id", id, "driver", t.Driver, "tuner", t.Name)
 	m.Start()
 	if err := m.Refresh(ctx, id); err != nil {
-		m.Log.WarnContext(ctx, "tuner added, channels not read yet", "tuner", t.Name, "err", err)
+		// Refresh warned with the reason; the device may simply be off.
+		m.Log.InfoContext(ctx, "tuner added, channels not read yet", "tuner", t.Name, "err", err)
 	}
 	return m.Tuner(ctx, id)
 }
@@ -403,6 +405,7 @@ func (m *Manager) Update(ctx context.Context, id int64, name string, options map
 		return nil, err
 	}
 	m.forget(id)
+	m.Log.InfoContext(ctx, "tuner changed", "id", id, "driver", t.Driver, "tuner", name, "enabled", enabled, "maxStreams", max(maxStreams, 0))
 	return m.Tuner(ctx, id)
 }
 
@@ -415,9 +418,11 @@ func (m *Manager) Delete(ctx context.Context, id int64) error {
 	if n, _ := res.RowsAffected(); n == 0 {
 		return ErrNotFound
 	}
+	// The database logs its own failures; a guide source left behind is only refetched.
 	_, _ = m.DB.ExecContext(ctx, `DELETE FROM epg_sources WHERE tuner_id = ?`, id)
 	m.forget(id)
 	m.unorphanBackups(ctx)
+	m.Log.InfoContext(ctx, "tuner removed", "id", id)
 	return nil
 }
 
@@ -454,15 +459,20 @@ func (m *Manager) Refresh(ctx context.Context, id int64) error {
 	if err != nil {
 		return err
 	}
+	log := m.tunerLog().With("topic", "tuner", "tuner", id)
 	ch, err := s.Channels(ctx)
 	if err != nil {
+		log.WarnContext(ctx, "could not read a tuner's channels", "err", err)
 		m.setError(id, PublicError(err))
 		return err
 	}
 	if ch != nil {
-		if _, err := m.saveChannels(ctx, id, ch); err != nil {
+		added, err := m.saveChannels(ctx, id, ch)
+		if err != nil {
+			log.WarnContext(ctx, "could not save a tuner's channels", "err", err)
 			return err
 		}
+		log.InfoContext(ctx, "tuner channels read", "channels", len(ch), "new", added)
 	}
 	m.setError(id, "")
 	m.ensureGuide(ctx, id, s)
@@ -470,7 +480,9 @@ func (m *Manager) Refresh(ctx context.Context, id int64) error {
 }
 
 func (m *Manager) setError(id int64, msg string) {
-	_, _ = m.DB.Exec(`UPDATE tuners SET last_error = ? WHERE id = ?`, msg, id)
+	if _, err := m.DB.Exec(`UPDATE tuners SET last_error = ? WHERE id = ?`, msg, id); err != nil {
+		m.Log.Warn("could not save a tuner's last error", "tuner", id, "err", err)
+	}
 }
 
 // ensureGuide offers a source's own guide address as a guide source.
@@ -486,8 +498,12 @@ func (m *Manager) ensureGuide(ctx context.Context, id int64, s tuner.Source) {
 			auth = string(raw)
 		}
 	}
-	_, _ = m.DB.ExecContext(ctx, `INSERT INTO epg_sources(name, url, auth, tuner_id) VALUES(?,?,?,?) ON CONFLICT(url) DO UPDATE SET auth = excluded.auth, tuner_id = excluded.tuner_id`,
-		"From "+info.Name, info.GuideURL, auth, id)
+	if _, err := m.DB.ExecContext(ctx, `INSERT INTO epg_sources(name, url, auth, tuner_id) VALUES(?,?,?,?) ON CONFLICT(url) DO UPDATE SET auth = excluded.auth, tuner_id = excluded.tuner_id`,
+		"From "+info.Name, info.GuideURL, auth, id); err != nil {
+		m.Log.WarnContext(ctx, "could not add a tuner's own guide", "tuner", id, "err", err)
+		return
+	}
+	m.Log.DebugContext(ctx, "a tuner's own guide is a guide source", "tuner", id)
 	m.Start()
 	m.background("guide refresh", m.refreshDue, "cat", "tv")
 }
@@ -982,6 +998,7 @@ func (m *Manager) Open(ctx context.Context, channelID int64) (*Opened, error) {
 	if berr != nil {
 		m.Log.WarnContext(ctx, "could not list a channel's backups", "cat", "tv", "channel", channelID, "err", berr)
 	}
+	tried := 0
 	for _, b := range backups {
 		bo, berr := m.openOne(ctx, b)
 		if berr == nil {
@@ -989,8 +1006,13 @@ func (m *Manager) Open(ctx context.Context, channelID int64) (*Opened, error) {
 			return bo, nil
 		}
 		if ctx.Err() != nil {
-			break
+			return nil, err
 		}
+		tried++
+		m.tunerLog().DebugContext(ctx, "a backup channel didn't open either", "topic", "tuner", "channel", channelID, "backup", b, "err", berr)
+	}
+	if tried > 0 {
+		m.tunerLog().WarnContext(ctx, "a channel and every backup failed to open", "topic", "tuner", "channel", channelID, "backups", tried, "err", err)
 	}
 	return nil, err
 }

@@ -15,7 +15,7 @@ import './repair.css'
 // someone presses a fix. A safety copy is made first. The server does the work, so this page
 // can be left and come back to.
 
-type Area = 'data' | 'metadata' | 'modules' | 'install'
+type Area = 'data' | 'metadata' | 'modules' | 'install' | 'features'
 type Safety = 'safe' | 'careful' | 'manual'
 type Issue = Finding & {
   key: string; check: string; area: Area; safety: Safety; steps?: string[]; count?: number; exclusive?: boolean
@@ -35,6 +35,7 @@ const AREAS: { id: Area; title: string; desc: string }[] = [
   { id: 'metadata', title: 'Metadata', desc: 'Titles, matches, artwork and the files beside your media.' },
   { id: 'modules', title: 'Modules', desc: 'What’s installed, whether it’s whole, and whether it’s signed.' },
   { id: 'install', title: 'The install', desc: 'FFmpeg, folders, disk space, the port and the firewall.' },
+  { id: 'features', title: 'Features', desc: 'Peer to peer from away, modules under an override, emulators and their permissions, karaoke’s separator and channels failing their checks.' },
 ]
 const SAFETY_WORDS: Record<Safety, string> = { safe: 'Safe', careful: 'Backed up first', manual: 'You’ll need to do this yourself' }
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))

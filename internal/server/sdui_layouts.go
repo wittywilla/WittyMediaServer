@@ -155,9 +155,11 @@ func (s *Server) handleSDUILayoutPut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.writeLayout(r, ff, body.Layout); err != nil {
+		s.Log.InfoContext(r.Context(), "layout choice not saved", "cat", "sdui", "profile", adminName(r), "formFactor", ff, "err", err)
 		writeErr(w, 400, err.Error())
 		return
 	}
+	s.Log.DebugContext(r.Context(), "layout chosen", "cat", "sdui", "profile", adminName(r), "formFactor", ff, "layout", body.Layout)
 	s.handleSDUILayoutGet(w, r)
 }
 
@@ -171,9 +173,11 @@ func (s *Server) handleSDUILayoutDelete(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	if err := s.writeLayout(r, ff, ""); err != nil {
+		s.Log.InfoContext(r.Context(), "layout choice not reset", "cat", "sdui", "profile", adminName(r), "formFactor", ff, "err", err)
 		writeErr(w, 400, err.Error())
 		return
 	}
+	s.Log.DebugContext(r.Context(), "layout choice reset", "cat", "sdui", "profile", adminName(r), "formFactor", ff)
 	s.handleSDUILayoutGet(w, r)
 }
 

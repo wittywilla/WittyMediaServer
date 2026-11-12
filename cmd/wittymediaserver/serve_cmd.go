@@ -248,7 +248,7 @@ func cmdServe(args []string) int {
 		log.Warn("The Java location saved in Settings is no longer used: a web account can't choose what the server runs. If Java isn't found by itself, name it in the config file (javaPath) or with WMS_JAVA.", "cat", "discs")
 	}
 
-	themeMgr := &themes.Manager{Dir: filepath.Join(cfg.DataDir, "themes")}
+	themeMgr := &themes.Manager{Dir: filepath.Join(cfg.DataDir, "themes"), Log: log.With("cat", "sdui")}
 	if err := themeMgr.Install(builtinthemes.Builtin); err != nil {
 		log.Warn("themes", "err", err)
 	}

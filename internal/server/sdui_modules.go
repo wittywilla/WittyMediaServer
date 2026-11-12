@@ -305,6 +305,9 @@ func (rv *sduiResolver) cleanModuleItem(mod string, it sdui.Item, yields []strin
 		it.Scope = mod
 	}
 	it.Trailing = clip(it.Trailing, 40)
+	if it.Link != "" && !(sdui.ValidRoute(it.Link) || sdui.ValidURL(it.Link)) {
+		it.Link = ""
+	}
 	it.Action = rv.cleanModuleAction(mod, it.Action)
 	var acts []sdui.ItemAction
 	for _, a := range it.Actions {
@@ -719,7 +722,10 @@ func (s *Server) handleSettingsSlot(w http.ResponseWriter, r *http.Request) {
 		ID     string `json:"id"`
 		Title  string `json:"title"`
 		Icon   string `json:"icon,omitempty"`
-		URL    string `json:"url"`
+		URL    string `json:"url,omitempty"`
+		// Route is a module PAGE in the slot (opened through the SDUI renderer, as a layer or a screen): for
+		// people.profile it ends with ?item={profile}, which the hand-built Settings fills with the profile's id.
+		Route string `json:"route,omitempty"`
 	}
 	out := []entry{}
 	if !adminOnly || userFrom(r).IsAdmin {
@@ -728,6 +734,15 @@ func (s *Server) handleSettingsSlot(w http.ResponseWriter, r *http.Request) {
 			for _, p := range v.Pages {
 				if p.Slot == slot {
 					out = append(out, entry{Module: ui.Module, Label: v.Label, ID: p.ID, Title: p.Title, Icon: p.Icon, URL: "/api/v1/sdui/modules/" + ui.Module + "/settings"})
+				}
+			}
+			for _, p := range ui.Pages {
+				if p.Slot == slot {
+					route := "/page/" + p.ID
+					if slot == "people.profile" {
+						route += "?item={profile}"
+					}
+					out = append(out, entry{Module: ui.Module, Label: v.Label, ID: p.ID, Title: p.Title, Icon: p.Icon, Route: route})
 				}
 			}
 		}

@@ -84,8 +84,8 @@ func TestWittyPlayCommands(t *testing.T) {
 		"wittyplay.room.create": "POST /api/play/{item}/room", "wittyplay.room.join": "POST /api/play/join",
 		"wittyplay.room.invite": "POST /api/play/{item}/invite", "wittyplay.state.save": "POST /api/play/{item}/action",
 		"wittyplay.state.load": "POST /api/play/{item}/action", "wittyplay.state.delete": "DELETE /api/games/{item}/saves/{slot}",
-		"wittyplay.controller.assign": "PUT /api/play/{item}/seats/{user}",
-		"rewind.open":                 " ", "controller.remap": " ",
+		"wittyplay.controller.assign": "PUT /api/play/{item}/seats/{user}", "wittyplay.room.leave": "DELETE /api/play/{item}/seats/{user}",
+		"rewind.open": " ", "controller.remap": " ",
 	}
 	for _, cmd := range Catalog().Commands {
 		if w, ok := want[cmd.Op]; ok {

@@ -234,7 +234,8 @@ func TestPlayOnlineSources(t *testing.T) {
 		t.Fatal(err)
 	}
 	room = onlineItems(t, a.ts.Server, a.alex, srcPlayRoom)
-	if len(room) != 3 || room[0].Tagline != "" || room[2].Title != "alex" || len(room[0].Actions) != 0 {
+	if len(room) != 3 || room[0].Tagline != "" || room[0].Link != "" || room[2].Title != "alex" || len(room[0].Actions) != 1 ||
+		room[0].Actions[0].Action.Op != "wittyplay.room.leave" || room[0].Actions[0].Glyph != "b" || room[0].Actions[0].Action.Params["user"] != itoa64(a.alex.ID) {
 		t.Errorf("alex's view of the room, with no code: %+v", room)
 	}
 	pads := onlineItems(t, a.ts.Server, a.alex, srcPlayControllers)

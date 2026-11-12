@@ -607,7 +607,7 @@ func specParam(s *SourceSpec, name string) *PropSpec {
 // The ones after "tag" are the rest of a client's own filters and saved views (the same as
 // GET /browse takes); a FilterBar offers only the first ones.
 var filterKeys = []string{"sort", "desc", "genre", "decade", "year", "content", "resolution", "watched", "studio", "network", "tag", "service",
-	"series", "kind", "disc", "minRating", "audio", "subtitle", "format", "edition", "search", "seed"}
+	"series", "kind", "disc", "minRating", "audio", "subtitle", "format", "reading", "edition", "search", "seed"}
 
 func (r *renderer) filter(src Source) map[string]string {
 	if !src.Bool("filterable") {
@@ -806,6 +806,27 @@ func (r *renderer) build(in instance, depth int) ([]Node, bool) {
 		copyProps(n.Props, p, "inset")
 	case "Spacer":
 		n.Props["size"] = propStr(p, "size", "m")
+	case "QR":
+		value, label := r.fill(propStr(p, "value", ""), in.each, nil), r.fill(propStr(p, "label", ""), in.each, nil)
+		if s.Source.Type() != "" {
+			res, _, err := r.ask(s.Source, in.each, 0, 1)
+			if errors.Is(err, ErrNotFound) {
+				r.err = err
+			}
+			value = ""
+			if err == nil && len(res.Items) > 0 {
+				value = res.Items[0].Link
+				label = firstNonEmpty(label, res.Items[0].Title)
+			}
+		}
+		ok = ValidRoute(value) || ValidURL(value)
+		if ok {
+			n.Props["value"], n.Props["isRoute"] = value, strings.HasPrefix(value, "/")
+			n.Props["size"] = propStr(p, "size", "m")
+			if label != "" {
+				n.Props["label"] = label
+			}
+		}
 	case "Form":
 		if t := r.fill(propStr(p, "title", ""), in.each, nil); t != "" {
 			n.Props["title"] = t

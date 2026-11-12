@@ -291,3 +291,8 @@ body:has(.audio-bar:not(.full)) .ctv-page, body:has(.audio-bar:not(.full)) .tvm-
 /* A card whose action is a command is a button: it takes the card's face, not the browser's. */
 button.card, button.sdui-tile, button.lib-tile, button.sdui-person, button.sdui-image-link { appearance: none; -webkit-appearance: none; background: none; border: 0; padding: 0; margin: 0; font: inherit; color: inherit; text-align: start; cursor: pointer; }
 button.card { display: block; }
+
+.sdui-qr { margin: 0; display: grid; justify-items: center; gap: var(--space-s); }
+.sdui-qr .qr { inline-size: var(--qr-size, 160px); block-size: var(--qr-size, 160px); }
+.sdui-qr figcaption { color: var(--fg-2); font-size: var(--text-sm); }
+.sdui-qr-address { overflow-wrap: anywhere; user-select: all; font-size: var(--text-xs); color: var(--fg-2); }

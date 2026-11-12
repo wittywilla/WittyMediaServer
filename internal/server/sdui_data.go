@@ -753,6 +753,12 @@ func (rv *sduiResolver) Items(req sdui.SourceRequest) (sdui.SourceResult, error)
 		if lib == nil {
 			return sdui.SourceResult{}, nil
 		}
+		// A year or a score chosen on the page narrows a film or show library's results by the library's own filters.
+		if (req.Filter["year"] != "" || req.Filter["minRating"] != "") && (lib.Type == "movies" || lib.Type == "shows" || lib.Type == "anime") {
+			f := filterOf(sdui.Source{"year": req.Filter["year"], "minRating": req.Filter["minRating"], "sort": "title"}, nil)
+			f.Search, f.Library = term, lib.ID
+			return rv.browse(f, req, "")
+		}
 		return rv.libraryRows(lib, "title", false, req, term), nil
 	}
 	return sdui.SourceResult{}, nil
@@ -1100,6 +1106,9 @@ func (rv *sduiResolver) Seasons(show string) ([]sdui.Item, error) {
 
 // Facets gives a library's filter choices, from the library page's own facets.
 func (rv *sduiResolver) Facets(lib string, fields []string) ([]sdui.Facet, error) {
+	if lib == "" {
+		return rv.pageFacets(fields), nil
+	}
 	l, ok := rv.library(lib)
 	if !ok {
 		return nil, nil
@@ -1143,6 +1152,14 @@ func (rv *sduiResolver) Facets(lib string, fields []string) ([]sdui.Facet, error
 			out = append(out, sdui.Facet{ID: field, Label: "Network", Options: options(f.Networks, 60)})
 		case "tag":
 			out = append(out, sdui.Facet{ID: field, Label: "Tag", Options: options(f.Tags, 60)})
+		case "reading":
+			if l.Type == "books" {
+				out = append(out, sdui.Facet{ID: field, Label: "Reading", Options: []sdui.EnumOption{{Value: "reading", Label: "Reading"}, {Value: "finished", Label: "Finished"}, {Value: "unread", Label: "Not started"}}})
+			}
+		case "format":
+			if l.Type == "books" {
+				out = append(out, sdui.Facet{ID: field, Label: "Format", Options: []sdui.EnumOption{{Value: "epub", Label: "Books"}, {Value: "pdf", Label: "PDFs"}, {Value: "cbz", Label: "Comics"}}})
+			}
 		case "watched":
 			out = append(out, sdui.Facet{ID: field, Label: "Watched", Options: []sdui.EnumOption{{Value: "no", Label: "Unwatched"}, {Value: "yes", Label: "Watched"}}})
 		case "service":
@@ -1195,4 +1212,23 @@ func firstNonZero(v ...int64) int64 {
 		}
 	}
 	return 0
+}
+
+// pageFacets are the filters of a page that isn't about one library (search): a year and a score, the same
+// choices for every library.
+func (rv *sduiResolver) pageFacets(fields []string) []sdui.Facet {
+	var out []sdui.Facet
+	for _, f := range fields {
+		switch f {
+		case "year":
+			var opts []sdui.EnumOption
+			for y := rv.now.Year(); y >= rv.now.Year()-40; y-- {
+				opts = append(opts, sdui.EnumOption{Value: strconv.Itoa(y), Label: strconv.Itoa(y)})
+			}
+			out = append(out, sdui.Facet{ID: f, Label: "Year", Options: opts})
+		case "minRating":
+			out = append(out, sdui.Facet{ID: f, Label: "Score", Options: []sdui.EnumOption{{Value: "9", Label: "9 and up"}, {Value: "8", Label: "8 and up"}, {Value: "7", Label: "7 and up"}, {Value: "6", Label: "6 and up"}}})
+		}
+	}
+	return out
 }

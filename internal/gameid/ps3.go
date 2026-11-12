@@ -5,6 +5,7 @@ package gameid
 
 import (
 	"encoding/binary"
+	"io"
 	"regexp"
 )
 
@@ -41,4 +42,21 @@ func applyPS3SFO(f *Finding, b []byte) {
 		f.Serial = normalPSP(id)
 		f.Region = serialRegion(f.Serial)
 	}
+}
+
+// A disc's own title id, as PS3_DISC.SFB holds it among its fields: BLUS30443 or BLUS-30443.
+var sfbIDRe = regexp.MustCompile(`[A-Z]{4}-?[0-9]{5}`)
+
+// sniffSFB reads PS3_DISC.SFB, the file every PlayStation 3 disc has in its top folder, which
+// stands for a disc kept as a folder (library: dumpGame). It's small and in the clear.
+func sniffSFB(r io.ReaderAt, size int64) Finding {
+	head := make([]byte, min(size, 0x800))
+	n, _ := r.ReadAt(head, 0)
+	head = head[:n]
+	f := Finding{Console: PS3, Kind: KindGame, Proof: "It's the PS3_DISC.SFB of a PlayStation 3 disc kept as a folder."}
+	if m := sfbIDRe.Find(head); m != nil {
+		f.Serial = normalPSP(string(m))
+		f.Region = serialRegion(f.Serial)
+	}
+	return f
 }

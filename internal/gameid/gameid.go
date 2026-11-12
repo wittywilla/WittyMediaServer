@@ -239,6 +239,8 @@ func sniffNewer(r io.ReaderAt, size int64, head []byte) (Finding, bool) {
 		return sniffPFS0(r, size)
 	case bytes.HasPrefix(head, []byte("\x7fPKG")):
 		return sniffPKG(head)
+	case bytes.HasPrefix(head, []byte(".SFB")) && size <= 64<<10:
+		return sniffSFB(r, size), true
 	}
 	if f, ok := sniffWiiU(head); ok {
 		return f, true

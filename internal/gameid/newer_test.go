@@ -4,6 +4,7 @@
 package gameid_test
 
 import (
+	"bytes"
 	"io"
 	"math/rand"
 	"strings"
@@ -172,5 +173,21 @@ func TestMangledNewerFilesDoNotPanic(t *testing.T) {
 			_ = sniff(b)
 			_ = gameid.Sniff(sparse{size: 1 << 40, parts: map[int][]byte{0: b}}, 1<<40)
 		}
+	}
+}
+
+func TestPS3DiscFolderFile(t *testing.T) {
+	b := make([]byte, 0x400)
+	copy(b, ".SFB")
+	copy(b[0x220:], "BLUS30443")
+	f := gameid.Sniff(bytes.NewReader(b), int64(len(b)))
+	if f.Console != gameid.PS3 || f.Kind != gameid.KindGame || f.Serial != "BLUS-30443" {
+		t.Errorf("%+v", f)
+	}
+	// Only a small file is one: anything larger starting so is something else.
+	big := make([]byte, 128<<10)
+	copy(big, ".SFB")
+	if f := gameid.Sniff(bytes.NewReader(big), int64(len(big))); f.Console == gameid.PS3 {
+		t.Errorf("a large file was taken for PS3_DISC.SFB: %+v", f)
 	}
 }

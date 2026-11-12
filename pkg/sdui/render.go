@@ -103,11 +103,7 @@ type RenderContext struct {
 	Now      time.Time
 	// Profile is the device profile. nil is the web profile.
 	Profile *Layout
-	// Catalog is the catalogue revision the client knows (0: the current
-	// one). Components, when not nil, lists the optional components it
-	// draws; NativeViews the views it has for NativeView.
-	Catalog     int
-	Components  []string
+	// NativeViews are the views the client has for NativeView.
 	NativeViews []string
 	// Vars are what the page was opened with: library, libraryKind,
 	// libraryName, item, show, season, collection, artist, album, query.
@@ -138,20 +134,6 @@ type RenderContext struct {
 	ConfigRevision int64
 }
 
-func (ctx *RenderContext) supports(t string) bool {
-	spec, ok := Component(t)
-	if !ok {
-		return false
-	}
-	if spec.Required {
-		return true
-	}
-	if ctx.Catalog > 0 && spec.Since > ctx.Catalog {
-		return false
-	}
-	return ctx.Components == nil || contains(ctx.Components, t)
-}
-
 // renderer carries one render's state.
 type renderer struct {
 	ctx    *RenderContext
@@ -176,8 +158,7 @@ type instance struct {
 // Render draws page for ctx. It chooses the variant, drops the sections whose
 // conditions don't hold, makes the copies of repeated sections, applies the
 // profile's own arrangement, asks the Resolver for each section's items
-// within the device's budget, swaps components the client can't draw for
-// their fallbacks, and stamps focus and the ETag.
+// within the device's budget, and stamps focus and the ETag.
 //
 // The page should have passed ValidatePage; Render never panics on one that
 // hasn't, but leaves out what it can't make sense of.
@@ -227,9 +208,6 @@ func Render(page Page, ctx *RenderContext) (Document, error) {
 	doc := Document{Version: SchemaVersion, Catalog: CatalogRevision, Layout: r.l, Root: root, Personal: info,
 		Page: PageInfo{ID: page.ID, Kind: page.Kind, Title: r.fill(page.Title, nil, nil), Icon: page.Icon, Route: r.route(), Variant: variant, Params: r.pageParams()},
 		Meta: Meta{Source: ctx.Source, ConfigRevision: ctx.ConfigRevision, TTLSeconds: r.ttl()}}
-	if ctx.Catalog > 0 && ctx.Catalog < CatalogRevision {
-		doc.Catalog = ctx.Catalog
-	}
 	if page.Scope != "" {
 		doc.Theme = &ThemeScope{Scope: page.Scope, Tokens: copyTokens(ctx.Scopes[page.Scope])}
 	}
@@ -720,8 +698,8 @@ func (r *renderer) build(in instance, depth int) ([]Node, bool) {
 	if depth > MaxDepth {
 		return nil, false
 	}
-	if !r.ctx.supports(s.Component) {
-		return r.fallback(in, depth)
+	if _, ok := Component(s.Component); !ok {
+		return nil, false
 	}
 	n := Node{Type: s.Component, ID: r.uniqueID(in.id), Props: map[string]any{}}
 	r.scope(&n, s.Scope)
@@ -809,7 +787,12 @@ func (r *renderer) build(in instance, depth int) ([]Node, bool) {
 	case "NativeView":
 		view := propStr(p, "view", "")
 		if !contains(r.ctx.NativeViews, view) {
-			return r.fallback(in, depth)
+			// The client has no view of its own for it: the page's own sections stand in.
+			n.Type = "Stack"
+			n.Props = map[string]any{}
+			n.Children = r.children(in, depth)
+			ok = len(n.Children) > 0
+			break
 		}
 		n.Props["view"] = view
 		if lib := r.resolveVar(propAny(p, "library"), in.each); lib != "" {
@@ -1775,7 +1758,7 @@ func (r *renderer) fillDock(d *Node, bar *Node) bool {
 			hasLegend = hasLegend || c.Type == "KeyLegend"
 		}
 		// A phone's dock is a sheet: no keys to show.
-		if !hasLegend && r.l.Dock.Placement == "bottom" && buttons > 0 && r.ctx.supports("KeyLegend") {
+		if !hasLegend && r.l.Dock.Placement == "bottom" && buttons > 0 {
 			legend := Node{Type: "KeyLegend", ID: r.uniqueID(d.ID + ":keys"), Props: map[string]any{}}
 			if r.keyLegend(&legend, instance{sec: &Section{ID: legend.ID, Component: "KeyLegend"}, id: legend.ID}) {
 				d.Children = append(d.Children, legend)

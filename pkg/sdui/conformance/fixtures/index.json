@@ -1,7 +1,7 @@
 {
  "kit": 1,
  "schemaVersion": 1,
- "catalogRevision": 3,
+ "catalogRevision": 4,
  "cases": [
   {
    "id": "home-tv-hd",
@@ -86,18 +86,6 @@
    "file": "home-density-card-size.json",
    "title": "A profile's density and card sizes",
    "formFactor": "desktop"
-  },
-  {
-   "id": "home-required-components-only",
-   "file": "home-required-components-only.json",
-   "title": "Home for a client that draws only the required components",
-   "formFactor": "phone"
-  },
-  {
-   "id": "home-old-catalogue",
-   "file": "home-old-catalogue.json",
-   "title": "Home for a client built against catalogue revision 1",
-   "formFactor": "tv"
   },
   {
    "id": "home-source-fails",
@@ -208,12 +196,6 @@
    "formFactor": "tv"
   },
   {
-   "id": "library-music-no-tabs",
-   "file": "library-music-no-tabs.json",
-   "title": "A music library for a client without Tabs",
-   "formFactor": "phone"
-  },
-  {
    "id": "library-photos-native",
    "file": "library-photos-native.json",
    "title": "A photo library on a client with its own timeline",
@@ -274,22 +256,10 @@
    "formFactor": "tv"
   },
   {
-   "id": "detail-show-fallbacks",
-   "file": "detail-show-fallbacks.json",
-   "title": "A show's page for a client with neither DetailHeader nor SeasonList",
-   "formFactor": "phone"
-  },
-  {
    "id": "detail-album",
    "file": "detail-album.json",
    "title": "An album's page",
    "formFactor": "desktop"
-  },
-  {
-   "id": "detail-album-fallback",
-   "file": "detail-album-fallback.json",
-   "title": "An album's page for a client without TrackList",
-   "formFactor": "tv"
   },
   {
    "id": "detail-artist",

@@ -41,7 +41,7 @@ every picture sized for the device, focus numbered, and an ETag.
 | `catalog.go`, `catalog_data.go` | The catalogue: components, card styles, sources, conditions, page kinds, routes. |
 | `profile.go` | Device profiles: sizes, budgets, text limits, picture widths, grid columns. |
 | `validate.go` | ValidatePage, ValidateNavigation, ValidatePersonal: issues with fixes. |
-| `render.go`, `cards.go`, `fallback.go`, `focus.go` | Render and RenderSection. |
+| `render.go`, `cards.go`, `focus.go` | Render and RenderSection. |
 | `nav.go` | RenderNavigation. |
 | `stock.go`, `presets.go` | The built-in pages and navigation; the preset gallery. |
 | `diff.go` | Diff, Apply, Canonical, ETag. |
@@ -59,5 +59,4 @@ go test ./pkg/sdui/conformance -update     # the fixtures
 git diff pkg/sdui/conformance/fixtures     # read what changed for renderers
 ```
 
-A new component gets a `Since` of the next `CatalogRevision` and, unless
-every renderer must draw it, a fallback in `fallback.go`.
+A new component gets a `Since` of the next `CatalogRevision`; every renderer must draw it.

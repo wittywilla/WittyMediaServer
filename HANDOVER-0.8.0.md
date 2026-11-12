@@ -8,4 +8,4 @@ Open / not verified:
 - The web renderer's conformance test (`web/src/sdui/model.test.mjs`) and the Apple and Android renderers must learn Dock, KeyLegend, `peek`, `seeAllCard`, `layout.dock`; until then they fail on the new fixtures (W2 to W4).
 - `control.open` jump: the client pages the grid until a title with the letter arrives (at most 20 pages); there is no server-side letter index.
 - Focus ring vs accent fills: the ring is checked against surfaces and neutral raised fills; an accent-filled control is separated from its ring by the focus gap, not by 3:1 colour contrast (gold on gold cannot pass).
-- Existing component fallbacks (Hero, SeasonList, ...) are kept as the model's general mechanism; only the new components have none.
+- Fallbacks, `catalog`/`components` negotiation and the first-format `ui_config.json` conversion are removed (catalogue revision 4): every renderer draws every component. Modules declaring `catalog` below 4 in their ui.json are still accepted by the module validator (1 to 4).

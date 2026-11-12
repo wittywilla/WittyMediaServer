@@ -82,16 +82,10 @@ func CatalogueMarkdown() string {
 	}
 
 	w("### Components\n\n")
-	w("%d components. **Required** ones are drawn by every renderer; the others may be left out by a renderer, which then names the ones it has (`components=`), and is sent the fallback instead.\n\n", len(c.Components))
-	w("| Component | Label | Category | Required | Takes a source | Focus | Fallback |\n|---|---|---|---|---|---|---|\n")
+	w("%d components. Every renderer draws all of them.\n\n", len(c.Components))
+	w("| Component | Label | Category | Takes a source | Focus |\n|---|---|---|---|---|\n")
 	for _, comp := range c.Components {
-		req, fb := "", comp.Fallback
-		if comp.Required {
-			req = "yes"
-		} else if fb == "" {
-			fb = "left out"
-		}
-		w("| [`%s`](#%s) | %s | %s | %s | %s | %s | %s |\n", comp.Type, strings.ToLower(comp.Type), comp.Label, comp.Category, req, comp.Data, comp.Focus, fb)
+		w("| [`%s`](#%s) | %s | %s | %s | %s |\n", comp.Type, strings.ToLower(comp.Type), comp.Label, comp.Category, comp.Data, comp.Focus)
 	}
 	w("\n")
 	for _, comp := range c.Components {
@@ -132,9 +126,6 @@ func CatalogueMarkdown() string {
 		}
 		w("Focus: %s. ", map[string]string{"none": "takes none", "item": "the node takes focus when it can be acted on", "group": "its children take focus, and it is their group", "stop": "one stop in the page's focus order; it moves focus among its own parts"}[comp.Focus])
 		w("Accessibility: %s\n\n", comp.A11y)
-		if !comp.Required {
-			w("Fallback: %s\n\n", comp.FallbackNote)
-		}
 		if comp.Example != nil {
 			w("```json\n%s\n```\n\n", pretty(comp.Example))
 		}

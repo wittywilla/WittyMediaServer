@@ -220,8 +220,6 @@ func home(ff string, change func(in *Input)) Input {
 	return in
 }
 
-var no = false
-
 func subject(it sdui.Item) *sdui.Item { return &it }
 
 func libraryData() Data {
@@ -432,10 +430,6 @@ func cases() []kase {
 		{id: "home-density-card-size", title: "A profile's density and card sizes", in: home("desktop", func(in *Input) {
 			in.Request.Personal = &sdui.Personal{Density: "compact", CardSize: map[string]string{"jump": "l", "recent-1": "s"}}
 		}), checks: []string{"compact density: spacing three quarters of the profile's", "a section's card size is the profile's choice"}},
-		{id: "home-required-components-only", title: "Home for a client that draws only the required components", in: home("phone", func(in *Input) { in.Request.AllOptional = &no }),
-			checks: []string{"Hero becomes a Shelf of large landscape cards", "Banner becomes a Notice", "nothing optional is in the tree"}},
-		{id: "home-old-catalogue", title: "Home for a client built against catalogue revision 1", in: home("tv", func(in *Input) { in.Request.Catalog = 1 }),
-			checks: []string{"document.catalog is the client's revision", "every component newer than it is sent as its fallback"}},
 		{id: "home-source-fails", title: "A row whose source fails", in: home("desktop", func(in *Input) {
 			in.Data.Sources = append([]CannedSource{{Match: map[string]any{"type": "recommended"}, Fails: true}}, in.Data.Sources...)
 		}), checks: []string{"the row stays with state error and a URL to try again", "the rest of the page is unaffected"}},
@@ -491,9 +485,6 @@ func cases() []kase {
 		{id: "library-music-default-tab", title: "A profile whose music library opens on Artists", in: library("library-music", "tv", "3", "music", "Music", func(in *Input) {
 			in.Request.Personal = &sdui.Personal{DefaultTab: map[string]string{"views": "artists"}}
 		}), checks: []string{"the profile's default tab wins over the page's"}},
-		{id: "library-music-no-tabs", title: "A music library for a client without Tabs", in: library("library-music", "phone", "3", "music", "Music", func(in *Input) {
-			in.Request.Components = []string{"Hero", "Banner"}
-		}), checks: []string{"Tabs becomes a Stack holding the selected tab's content"}},
 		{id: "library-photos-native", title: "A photo library on a client with its own timeline", in: library("library-photos", "phone", "4", "photos", "Photos", func(in *Input) { in.Request.NativeViews = []string{"photoTimeline"} }),
 			checks: []string{"a NativeView node with the library, and none of its children"}},
 		{id: "library-photos-grid", title: "A photo library on a client without one", in: library("library-photos", "desktop", "4", "photos", "Photos", nil),
@@ -521,12 +512,8 @@ func cases() []kase {
 			checks: []string{"the season the source chose is selected", "each season has a URL of its own", "episode cards: \"<n>. <title>\", running time, synopsis", "Play starts the next episode (nextId)"},
 			more:   []SectionAnswer{{Section: "episodes", Cursor: 0, Season: "1"}, {Section: "episodes", Cursor: 50, Season: "2"}}},
 		{id: "detail-show-tv", title: "A show's page on a television", in: detail("detail-show", "tv", map[string]string{"show": "1"}, showData(), nil), checks: []string{"thirty episodes in the first page, the rest by cursor"}},
-		{id: "detail-show-fallbacks", title: "A show's page for a client with neither DetailHeader nor SeasonList", in: detail("detail-show", "phone", map[string]string{"show": "1"}, showData(), func(in *Input) { in.Request.AllOptional = &no }),
-			checks: []string{"the header as Image, Text and a row of Buttons", "the episodes as a Shelf of landscape cards"}},
 		{id: "detail-album", title: "An album's page", in: detail("detail-album", "desktop", albumVars, albumData(), nil),
 			checks: []string{"the header uses the square cover", "tracks numbered, with lengths", "a track's label: Track 1, Song 1, 3 minutes"}},
-		{id: "detail-album-fallback", title: "An album's page for a client without TrackList", in: detail("detail-album", "tv", albumVars, albumData(), func(in *Input) { in.Request.Components = []string{"DetailHeader"} }),
-			checks: []string{"the tracks as a List of ListItems that play"}},
 		{id: "detail-artist", title: "An artist's page", in: detail("detail-artist", "phone", artistVars, artistData(), nil),
 			checks: []string{"the route is /artist/3?name=The+Examples", "a poster header with the square picture, the album count and Play", "the artist's albums as album cards", "every song as a TrackList without track numbers"}},
 		{id: "detail-artist-tv", title: "An artist's page on a television", in: detail("detail-artist", "tv", artistVars, artistData(), nil),

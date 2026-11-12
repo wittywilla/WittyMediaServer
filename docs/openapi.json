@@ -11244,12 +11244,6 @@
           "expands": {
             "type": "string"
           },
-          "fallback": {
-            "type": "string"
-          },
-          "fallbackNote": {
-            "type": "string"
-          },
           "focus": {
             "type": "string"
           },
@@ -11295,9 +11289,6 @@
             },
             "type": "object"
           },
-          "required": {
-            "type": "boolean"
-          },
           "since": {
             "type": "integer"
           },
@@ -11330,7 +11321,6 @@
           "focus",
           "icon",
           "label",
-          "required",
           "since",
           "type"
         ],
@@ -11569,15 +11559,6 @@
               {
                 "type": "null"
               }
-            ]
-          },
-          "notes": {
-            "items": {
-              "type": "string"
-            },
-            "type": [
-              "array",
-              "null"
             ]
           },
           "pages": {
@@ -44353,24 +44334,6 @@
             }
           },
           {
-            "description": "The catalogue revision the client was built against; components newer than it are sent as their fallbacks. Also X-WMS-SDUI-Catalog.",
-            "in": "query",
-            "name": "catalog",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "The optional components the client draws, comma-separated (or none); the rest are sent as their fallbacks. Left out: all of its revision. Also X-WMS-SDUI-Components.",
-            "in": "query",
-            "name": "components",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
             "description": "The native views the client has for NativeView (guide, photoTimeline, photoMap, coverFlow). Also X-WMS-SDUI-Views.",
             "in": "query",
             "name": "views",
@@ -44597,24 +44560,6 @@
             "description": "hd (default) or 4k, for a television. Also X-WMS-Device-Class.",
             "in": "query",
             "name": "deviceClass",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "The catalogue revision the client was built against; components newer than it are sent as their fallbacks. Also X-WMS-SDUI-Catalog.",
-            "in": "query",
-            "name": "catalog",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "The optional components the client draws, comma-separated (or none); the rest are sent as their fallbacks. Left out: all of its revision. Also X-WMS-SDUI-Components.",
-            "in": "query",
-            "name": "components",
             "required": false,
             "schema": {
               "type": "string"
@@ -44865,24 +44810,6 @@
             "description": "hd (default) or 4k, for a television. Also X-WMS-Device-Class.",
             "in": "query",
             "name": "deviceClass",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "The catalogue revision the client was built against; components newer than it are sent as their fallbacks. Also X-WMS-SDUI-Catalog.",
-            "in": "query",
-            "name": "catalog",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "The optional components the client draws, comma-separated (or none); the rest are sent as their fallbacks. Left out: all of its revision. Also X-WMS-SDUI-Components.",
-            "in": "query",
-            "name": "components",
             "required": false,
             "schema": {
               "type": "string"
@@ -45283,24 +45210,6 @@
             "description": "hd (default) or 4k, for a television. Also X-WMS-Device-Class.",
             "in": "query",
             "name": "deviceClass",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "The catalogue revision the client was built against; components newer than it are sent as their fallbacks. Also X-WMS-SDUI-Catalog.",
-            "in": "query",
-            "name": "catalog",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "The optional components the client draws, comma-separated (or none); the rest are sent as their fallbacks. Left out: all of its revision. Also X-WMS-SDUI-Components.",
-            "in": "query",
-            "name": "components",
             "required": false,
             "schema": {
               "type": "string"

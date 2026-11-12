@@ -28,63 +28,6 @@ Settings entry.
 
 ## Design
 
-### What was wrong with the first schema
-
-The first schema (catalogue revision 1, never released) was a general UI
-toolkit: 23 node types (`Screen`, `Stack`, `Grid`, `Shelf`, `PosterRow`,
-`Card`, `Text`, `Button`, `Toolbar`, `Modal`, `Video`, ...), each with a
-`style` of CSS-like fields, `bindings` from props to JSONPath-like data paths,
-and a table of named actions. Looked at against this application, page by
-page, it had six problems.
-
-1. **It was a layout language, and this is a media library.** To put
-   "Continue watching" on Home an administrator had to know that it is a
-   `PosterRow` whose `items` prop is bound to `$.home.continueWatching` with
-   `cardShape: "wide"` and an `itemAction` naming an entry in `actions` whose
-   target is `$route`. Nothing in that says "continue watching". The things a
-   media app is made of (a spotlight, a row of posters, a title's header, a
-   show's seasons, an album's tracks, a filter bar over a grid) had no names;
-   each had to be assembled from stacks and cards, and nothing assembled that
-   way looks right on a television, because a television's row is not a
-   horizontal stack of boxes.
-
-2. **Data was whatever the server happened to put in `Data`.** A row could
-   only show what the server pre-computed for that screen under a path
-   somebody had to know (`$.home.sections`, `$.library.items`). There was no
-   way to ask for a genre, a collection, a saved view, the top rated, a random
-   pick; no paging, so a library page was the first 60 to 200 items and then
-   nothing; and the server ran every query for a screen whether or not the
-   page used the result.
-
-3. **It could not express what the real pages do.** The app's own library
-   pages filter and sort; its show pages switch season; its music library has
-   tabs; Home's rows can be re-ordered and hidden by each profile; detail
-   pages offer different buttons to a profile that may not download. None of
-   that was expressible. `Tabs` existed but sent every tab's content at once;
-   `player` and `settings` were "screens" that no app could honestly draw
-   from a tree.
-
-4. **Renderers would have diverged.** `style` carried pixels, CSS padding
-   strings, `class` hooks and literal colours; a SwiftUI renderer and a
-   Compose renderer would each have invented what `"padding": "8px 16px"`
-   means on a television. Card sizes were per device but text truncation,
-   loading and empty states, accessibility labels, focus movement between
-   rows and what to do with an unknown card were left to each renderer.
-   Literal colours also defeated the theme engine.
-
-5. **It was hard to use.** There was no description of the catalogue a tool
-   could read: an editor would have hard-coded every component and prop.
-   Validation said `/root/children/2/props/title: required` and nothing about
-   what to do. There were no presets, no draft, no preview, no way to reset
-   one page, and the configuration held a full copy of every stock screen, so
-   a server upgrade could never improve a page.
-
-6. **One screen for everyone.** Conditions could hide a node by role or
-   platform, but there was no notion of a page per library or per kind of
-   title, of a variant for Kids profiles, or of a profile's own arrangement;
-   and the navigation itself (which tabs, in what order, on which device) was
-   outside the model.
-
 ### What it is now
 
 - **Semantic components.** A page is a list of *sections*, each one a
@@ -252,7 +195,6 @@ the result of the one before.
 8. **Each section's source is asked**, through the profile's limits. A
    section with nothing in it is left out, unless it says `"empty":
    "message"`.
-9. **What the client can't draw is replaced by its fallback.**
 
 ## What a client sends
 
@@ -263,8 +205,6 @@ With every SDUI request, as query parameters or headers (the query wins):
 | `platform` | `X-WMS-Platform` | `web` (default), `tvos`, `ios`, `android`, `androidtv`, `desktop`. |
 | `formFactor` | `X-WMS-Form-Factor` | `tv`, `phone`, `tablet`, `desktop`, `web`. Left out, it follows from the platform (tvos and androidtv: tv; ios and android: phone). |
 | `deviceClass` | `X-WMS-Device-Class` | `hd` (default) or `4k`, for a television. |
-| `catalog` | `X-WMS-SDUI-Catalog` | The catalogue revision the client was built against. Send it always. |
-| `components` | `X-WMS-SDUI-Components` | The *optional* components the client draws, comma-separated, or `none`. Left out: every optional component of its revision. |
 | `views` | `X-WMS-SDUI-Views` | The native views it has for `NativeView`: `guide`, `photoTimeline`, `photoMap`, `coverFlow`. |
 | `viewport` | `X-WMS-Viewport` | The window in points: `1440x900`. Send it on anything that isn't a television, and ask again when the breakpoint changes. |
 | `locale` | `X-WMS-Locale` | A language tag; else the first of `Accept-Language`. |
@@ -285,7 +225,7 @@ Go types are `sdui.Document`, `sdui.Node`, `sdui.Action`, `sdui.Focus`.
 | Field | Type | Notes |
 |---|---|---|
 | `version` | int | `1`. A client refuses any other. |
-| `catalog` | int | The catalogue revision the tree was written for: the client's own when that is older than the server's. |
+| `catalog` | int | The catalogue revision the tree was written for (4). A client built for another revision refuses it. |
 | `page` | PageInfo | `{id, kind, title, icon, route, variant, params}`. `route` is the page's place in the app; `params` what it was opened with, to send again with a refresh. |
 | `layout` | Layout | The [device profile](#device-profiles) the page was fitted to: lay out with these numbers. |
 | `theme` | ThemeScope, *omit* | `{scope, tokens}`: the page's theme scope and the colour tokens it overrides. |
@@ -505,21 +445,14 @@ Every component's role and label derivation is in its entry under
   tall.
 - Markdown is read as plain text: links by their text.
 
-### Capability negotiation
+### Components
 
-Fifteen components are **required**: `Page`, `Shelf`, `Grid`, `Card`,
-`Text`, `Notice`, `Divider`, `Spacer`, `Stack`, `Button`, `Image`, `List`,
-`ListItem`, `Dock`, `KeyLegend`. A renderer that draws those can show every page. The rest are
-optional: a client that doesn't send `components` is taken to draw all of
-its catalogue revision; one that does is sent only the optional components
-it names, and each of the others as its **fallback**, which is made of
-required components and built by the server from the same data
-([Components](#components) says what each becomes). So an app released
-today still shows a page written with a component added next year.
-
-A client must send `catalog`. One built against a revision older than a
-component's `since` is sent that component's fallback without having to
-name anything.
+Every component in the catalogue is drawn by every renderer: there is no
+negotiation, no optional component and no fallback. The server never sends a
+tree in place of another; a client built for a catalogue revision other than the
+document's `catalog` refuses the document. The only thing a client chooses is
+which native views it has for `NativeView` (`views=`); where it has none, the
+section's own children are sent in a `Stack`.
 
 ### The conformance kit
 
@@ -1006,14 +939,6 @@ In the data folder. It holds only what an administrator changed:
   the next read it is validated and saved as a new revision (`updatedBy:
   "file on disk"`). One that doesn't validate is kept as
   `ui_config.json.bad` and the last good configuration stays in force.
-- **From the first format.** A file with `"version": 1` and `"screens"` is
-  converted when it is first read, and the original kept beside it as
-  `ui_config.v1.json`. A screen that was still exactly the stock screen of
-  that format is dropped, so the built-in page takes over; one that was
-  changed, or added, is converted node by node ([migration
-  guide](#migrating-from-catalogue-revision-1)); what has no place in this
-  model is named in the page's `description` and in the configuration's
-  `notes`, and logged. Its theme section is carried over untouched.
 
 ## How the web client uses it
 
@@ -1028,7 +953,7 @@ own window, is one of the three renderers.
   from `GET /sdui/navigation`, in the shell the app always had. Without
   those features (an older server) it keeps the pages and menu it worked
   out itself.
-- **What it says it is.** `catalog=3`, `platform` `web` (or `desktop`
+- **What it says it is.** `platform` `web` (or `desktop`
   inside the desktop app), and a form factor from the window: TV mode is
   `tv` (`deviceClass` by the screen), a window under 600 points is `phone`,
   a touch screen under 1200 is `tablet`, anything else `web` or `desktop`.
@@ -1225,50 +1150,13 @@ and without `meta.generatedAt` and `meta.etag`; `ETag(doc)` is `W/"sha256-`
 
 - `version` (1) changes only for something a client built for it can't
   survive. Clients refuse a version they don't know.
-- The **catalogue revision** (3) counts additions: a component, a property,
-  a card style, a source, a condition, an action type. Each has a `since`.
-  A client sends the revision it was built against and is sent nothing
-  newer in its place; fallbacks cover components, the shape covers card
-  styles, and unknown props and actions are ignored. Additions never bump
-  `version`.
-- `ui_config.json` has its own `version` (2), converted forward when read.
+- The **catalogue revision** (4) counts changes to the catalogue: a component,
+  a property, a card style, a source, a condition, an action type. Client and
+  server must be built for the same revision. Unknown props and actions are
+  ignored, an unknown card style is drawn as its shape.
+- `ui_config.json` has its own `version` (2).
 - The conformance kit has a `kit` number; a change to a fixture's expected
   output is a change to the contract and is called out in the changelog.
-
-## Migrating from catalogue revision 1
-
-For renderer authors who started against the first schema.
-
-| Revision 1 | Now |
-|---|---|
-| `GET /sdui/screens/{screen}`, `/diff` | `GET /sdui/pages/{page}`, `/diff`. |
-| `document.screen` | `document.page` (`{id, kind, title, route, ...}`). |
-| `document.actions` and `node.action` naming an entry | `node.action` is the action itself: `{type, to, item, url, op, params}`. No `$route` substitution: the server has filled everything in. |
-| `document.theme` (`id`, `moduleOverrides`) | `document.theme` is `{scope, tokens}`; nodes carry `scope` and `tokens`. |
-| `node.style` (direction, gap, padding, colours, `class`, `tokens`, `module`) | Gone. Layout comes from the component and `layout`; `Stack` has `direction`, `gap` (a spacing step), `align`; colours are theme tokens only. |
-| `node.visibility`, `node.bindings` | Never sent (they never were); authored as `when` and `source`. |
-| `focus.focusable`, `focus.up/down/left/right` | `focus` is `{order, group, default}` and present only on focusable nodes. No guides: movement follows `order` and groups. |
-| `Screen` | `Page`. |
-| `PosterRow`, `Carousel` | `Shelf` (with `cardStyle`), `Hero`. |
-| `HeroBanner` | `Hero` (items) or `Banner` (one static block). |
-| `Card` props `imageUrl`, `route`, `shape`, child `Badge`/`ProgressBar` nodes | `Card` props `image`, `style`, `shape`, `badges`, `progress`; `action` holds the route. Cards have no children. |
-| `Toolbar`, `SearchBar` | App chrome is the app's own, driven by [Navigation](#navigation); `SearchBox` is the field. |
-| `Modal`, `Video`, the `player` and `settings` screens | Gone: dialogs, players and Settings are the app's own. |
-| `Badge`, `ProgressBar` | Props of `Card`. |
-| `Tabs` with every tab's content | Only the selected `Tab` has children; `selectTab` asks for the page with `tab=<id>`. |
-| `props.items`, `props.sections` | Never sent; children are always nodes. |
-| `props.more: true`, `total` | `props.more.url` to GET for the next page; `total`. |
-| `layout.maxSections`, `maxItems`, `maxGridItems`, `gridColumns`, `images` | `layout.budget`, `layout.cards`, `layout.imageWidths`, and `props.card` / `props.columns` on each section. |
-| `catalog` parameter | Still there; plus `components` and `views`. Send `catalog=2`. |
-| Flags `formFactor:<ff>`, `Condition.role`, `.flag`, `.when` | Authoring only: `formFactor`, `profileKind`, `admin`, `capability`, `flag`. |
-| `ui_config.json` `screens` | `pages` and `navigation`; converted automatically. |
-
-New things a renderer must do: lay out from `layout` and `props.card`
-rather than its own numbers; fetch `more.url` for paging and for `deferred`
-sections; apply `tokens` scopes; draw `empty` and `error` states; follow
-`focus.order` and groups; send `catalog`, `viewport` and, if it lacks
-optional components, `components`; build its menu from `navigation`; offer
-"Customise" from `document.personal`; and pass the conformance fixtures.
 
 ## Reference
 
@@ -1278,37 +1166,37 @@ what the server does.
 <!-- catalogue:begin (written by go test ./pkg/sdui -update; edit pkg/sdui/catalog_data.go) -->
 ### Components
 
-27 components. **Required** ones are drawn by every renderer; the others may be left out by a renderer, which then names the ones it has (`components=`), and is sent the fallback instead.
+27 components. Every renderer draws all of them.
 
-| Component | Label | Category | Required | Takes a source | Focus | Fallback |
-|---|---|---|---|---|---|---|
-| [`Page`](#page) | Page | structure | yes | none | none |  |
-| [`Hero`](#hero) | Spotlight | media |  | required | stop | Shelf |
-| [`Shelf`](#shelf) | Row | media | yes | required | group |  |
-| [`Grid`](#grid) | Grid | media | yes | required | group |  |
-| [`Card`](#card) | Card | media | yes | none | item |  |
-| [`Tabs`](#tabs) | Tabs | navigation |  | none | group | Stack |
-| [`Tab`](#tab) | Tab | navigation |  | none | item | Stack |
-| [`FilterBar`](#filterbar) | Filter and sort | navigation |  | none | stop | left out |
-| [`Dock`](#dock) | Dock | navigation | yes | none | group |  |
-| [`KeyLegend`](#keylegend) | Key legend | text | yes | none | none |  |
-| [`DetailHeader`](#detailheader) | Title header | detail |  | none | stop | Stack |
-| [`SeasonList`](#seasonlist) | Seasons and episodes | detail |  | required | group | Shelf |
-| [`TrackList`](#tracklist) | Track list | detail |  | required | group | List |
-| [`Track`](#track) | Track | detail |  | none | item | ListItem |
-| [`Banner`](#banner) | Banner | media |  | optional | item | Notice |
-| [`Text`](#text) | Text | text | yes | none | none |  |
-| [`Notice`](#notice) | Notice | text | yes | none | item |  |
-| [`Divider`](#divider) | Divider | layout | yes | none | none |  |
-| [`Spacer`](#spacer) | Space | layout | yes | none | none |  |
-| [`Stack`](#stack) | Stack | layout | yes | none | none |  |
-| [`Split`](#split) | Two columns | layout |  | none | none | Stack |
-| [`Button`](#button) | Button | navigation | yes | none | item |  |
-| [`Image`](#image) | Picture | text | yes | none | none |  |
-| [`SearchBox`](#searchbox) | Search box | navigation |  | none | item | Button |
-| [`List`](#list) | List | media | yes | optional | group |  |
-| [`ListItem`](#listitem) | List row | media | yes | none | item |  |
-| [`NativeView`](#nativeview) | The app's own view | structure |  | none | stop | Stack |
+| Component | Label | Category | Takes a source | Focus |
+|---|---|---|---|---|
+| [`Page`](#page) | Page | structure | none | none |
+| [`Hero`](#hero) | Spotlight | media | required | stop |
+| [`Shelf`](#shelf) | Row | media | required | group |
+| [`Grid`](#grid) | Grid | media | required | group |
+| [`Card`](#card) | Card | media | none | item |
+| [`Tabs`](#tabs) | Tabs | navigation | none | group |
+| [`Tab`](#tab) | Tab | navigation | none | item |
+| [`FilterBar`](#filterbar) | Filter and sort | navigation | none | stop |
+| [`Dock`](#dock) | Dock | navigation | none | group |
+| [`KeyLegend`](#keylegend) | Key legend | text | none | none |
+| [`DetailHeader`](#detailheader) | Title header | detail | none | stop |
+| [`SeasonList`](#seasonlist) | Seasons and episodes | detail | required | group |
+| [`TrackList`](#tracklist) | Track list | detail | required | group |
+| [`Track`](#track) | Track | detail | none | item |
+| [`Banner`](#banner) | Banner | media | optional | item |
+| [`Text`](#text) | Text | text | none | none |
+| [`Notice`](#notice) | Notice | text | none | item |
+| [`Divider`](#divider) | Divider | layout | none | none |
+| [`Spacer`](#spacer) | Space | layout | none | none |
+| [`Stack`](#stack) | Stack | layout | none | none |
+| [`Split`](#split) | Two columns | layout | none | none |
+| [`Button`](#button) | Button | navigation | none | item |
+| [`Image`](#image) | Picture | text | none | none |
+| [`SearchBox`](#searchbox) | Search box | navigation | none | item |
+| [`List`](#list) | List | media | optional | group |
+| [`ListItem`](#listitem) | List row | media | none | item |
+| [`NativeView`](#nativeview) | The app's own view | structure | none | stop |
 
 #### Page
 
@@ -1336,7 +1224,7 @@ Focus: takes none. Accessibility: Role: main. Label: the title.
 
 | Property | Type | Default | What it is |
 |---|---|---|---|
-| `title` | text, at most 120 |  | Title. Named to assistive technology and used by the fallback; not drawn. |
+| `title` | text, at most 120 |  | Title. Named to assistive technology; not drawn. |
 | `style` | enum: billboard, banner | `billboard` | Style. A full billboard, or a shorter banner. |
 | `autoAdvanceSec` | int 0 to 60 | `8` | Seconds per title. How long each title stays before the next one. 0 never moves by itself. |
 | `showSynopsis` | bool | `true` | Show the synopsis. Two or three lines about the title. |
@@ -1359,8 +1247,6 @@ States:
 - **loading.** A grey block of the hero's size.
 
 Focus: one stop in the page's focus order; it moves focus among its own parts. Accessibility: Role: region, labelled by the title prop or "Featured". Each slide is a group labelled "<title>, <facts joined by comma>", announced politely when it changes. With reduced motion it does not advance by itself and cross-fades are cuts.
-
-Fallback: A Shelf of landscape cards of the same items, titled with the hero's title or "Featured".
 
 ```json
 {
@@ -1532,8 +1418,6 @@ How it is drawn:
 
 Focus: its children take focus, and it is their group. Accessibility: Role: tablist; each Tab is a tab with selected state; the content is its tabpanel.
 
-Fallback: The selected tab's content alone, in a column.
-
 ```json
 {
   "id": "views",
@@ -1591,8 +1475,6 @@ Holds: any component.
 
 Focus: the node takes focus when it can be acted on. Accessibility: Role: tab. Label: the label.
 
-Fallback: Its content in a column.
-
 #### FilterBar
 
 *Filter and sort.* The controls that filter and sort a Grid on the same page. The server fills in each filter's choices from what the library holds; a change asks for the page again with the choice as a query parameter.
@@ -1611,8 +1493,6 @@ How it is drawn:
 - **Desktop and web.** A row of drop-downs with the count at the far end and a Clear button when anything is chosen.
 
 Focus: one stop in the page's focus order; it moves focus among its own parts. Accessibility: Role: toolbar, labelled "Filter and sort". Each field is a pop-up button labelled "<label>: <current choice or Any>".
-
-Fallback: Left out: the grid shows everything in its default order.
 
 ```json
 {
@@ -1725,8 +1605,6 @@ States:
 
 Focus: one stop in the page's focus order; it moves focus among its own parts. Accessibility: Role: region labelled by the title. The title is a level-1 heading. Each button's label is its label, the primary button's "Resume from <time>" when it resumes.
 
-Fallback: A column: the backdrop as an Image, the title and overview as Text, and the actions as Buttons in a row.
-
 ```json
 {
   "id": "header",
@@ -1762,8 +1640,6 @@ States:
 - **loading.** Its heading, and as many grey placeholder cards of the card's size as fit, pulsing unless the device asks for reduced motion.
 
 Focus: its children take focus, and it is their group. Accessibility: Role: region labelled "Episodes". The season picker is a pop-up button "Season <n>"; each episode's label is "Episode <n>, <title>, <runtime>, <n> percent watched".
-
-Fallback: A Shelf of the selected season's episodes as landscape cards, titled with the season's name.
 
 ```json
 {
@@ -1803,8 +1679,6 @@ States:
 
 Focus: its children take focus, and it is their group. Accessibility: Role: list. Each track: "Track <n>, <title>, <artist>, <minutes> minutes <seconds> seconds".
 
-Fallback: A List of ListItems: the track's title, artist as subtitle and length as trailing text.
-
 ```json
 {
   "id": "tracks",
@@ -1832,8 +1706,6 @@ Fallback: A List of ListItems: the track's title, artist as subtitle and length 
 | `progress` | number |  | Progress. 0 to 1. |
 
 Focus: the node takes focus when it can be acted on. Accessibility: Role: button. Label as TrackList says.
-
-Fallback: title, subtitle (the artist) and trailing (the length).
 
 #### Banner
 
@@ -1864,8 +1736,6 @@ States:
 - **loading.** A grey block.
 
 Focus: the node takes focus when it can be acted on. Accessibility: Role: button (link on the web). Label: "<title>, <text>, <button label>".
-
-Fallback: A Notice with the banner's title, text and button.
 
 ```json
 {
@@ -2058,8 +1928,6 @@ How it is drawn:
 
 Focus: takes none. Accessibility: No role of its own.
 
-Fallback: Its two children in a column.
-
 ```json
 {
   "id": "two",
@@ -2166,8 +2034,6 @@ How it is drawn:
 
 Focus: the node takes focus when it can be acted on. Accessibility: Role: searchbox labelled "Search".
 
-Fallback: A Button labelled "Search" that opens /search.
-
 ```json
 {
   "id": "q",
@@ -2250,8 +2116,6 @@ How it is drawn:
 - **Everywhere.** The app's own view fills the rest of the page; nothing may follow a NativeView in a page.
 
 Focus: one stop in the page's focus order; it moves focus among its own parts. Accessibility: Whatever the app's own view provides.
-
-Fallback: Its children in a column: what to show where the app has no such view.
 
 ```json
 {

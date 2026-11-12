@@ -869,7 +869,7 @@ func (s *Server) handleSDUIExport(w http.ResponseWriter, r *http.Request) {
 		out.Kind, out.Page, name = "page", &p, "wittymedia-page-"+p.ID+".json"
 	} else {
 		c := cfg.Clone()
-		c.Revision, c.ETag, c.UpdatedBy, c.Notes, c.BaseRevision = 0, "", "", nil, 0
+		c.Revision, c.ETag, c.UpdatedBy, c.BaseRevision = 0, "", "", 0
 		out.Kind, out.Config = "config", c
 	}
 	w.Header().Set("Content-Disposition", `attachment; filename="`+name+`"`)

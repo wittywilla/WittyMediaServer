@@ -7,7 +7,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
   auditRows, auditWords, friction, itemReleaseStatus, needsOverrideOf, overrideLines, overrideRequest, passesExtra, readFilters,
-  reasonFor, refusalKind, releaseStatus, severityOf, statusWarns, stillNeeded, toDate, uiLines, uploadView, withFilter,
+  reasonFor, refusalKind, warningAddsSomething, releaseStatus, severityOf, statusWarns, stillNeeded, toDate, uiLines, uploadView, withFilter,
 } from './overrides.ts'
 
 const answers = (o = {}) => ({ accepted: [], password: '', code: '', typed: '', grants: [], ...o })
@@ -130,4 +130,12 @@ test('the audit, newest first', () => {
   assert.equal(auditRows(null).length, 0)
   assert.equal(auditWords('module-override-removed'), 'Removed an override')
   assert.equal(auditWords('something_new'), 'Something new')
+})
+
+test('the overall warning is shown only when it says more than the reasons', () => {
+  const lines = [{ reason: 'Not signed.' }, { reason: 'From a file.' }]
+  assert.equal(warningAddsSomething('Not signed. From a file.', lines), false)
+  assert.equal(warningAddsSomething('Think twice. Not signed.', lines), true)
+  assert.equal(warningAddsSomething('', lines), false)
+  assert.equal(warningAddsSomething('Anything', [{ reason: '' }]), true)
 })

@@ -77,6 +77,15 @@ export function severityOf(o: Pick<NeedsOverride, 'kinds' | 'severity'>): number
   return Math.max(1, ...(o.kinds || []).map((k) => OVERRIDE_KINDS[k]?.severity ?? 3))
 }
 
+// The server's overall warning is shown only when it says more than the reasons listed under it,
+// so a dialog doesn't read the same words twice.
+export function warningAddsSomething(warning: string | undefined, lines: { reason: string }[]): boolean {
+  const w = (warning || '').trim()
+  if (!w) return false
+  const reasons = lines.map((l) => l.reason.trim()).filter(Boolean)
+  return !reasons.length || !reasons.every((r) => w.includes(r))
+}
+
 // ------------------------------------------------------------------ friction
 
 // How hard it is to say yes grows with how much is being bypassed. Every override asks for each
@@ -258,7 +267,7 @@ export function toDate(at?: number | string | null): Date | null {
 }
 
 const AUDIT_WORDS: Record<string, string> = {
-  'module-override': 'Installed with an override', 'module-override-removed': 'Removed an override', 'module-upload': 'Installed from a file',
+  'module-override': 'Installed with an override', 'module-override-removed': 'Removed an override', 'module-upload': 'Uploaded a file to install',
   'module-older': 'Went back to an older version', 'module-rollback': 'Took a version out of use', 'module-source': 'Changed where it comes from',
   'module-undo': 'Undid an update', 'fork-refused': 'Refused a fork', 'password-refused': 'Password refused',
   'store-added': 'Added a store', 'store-removed': 'Removed a store',

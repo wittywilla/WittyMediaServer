@@ -24,6 +24,7 @@ import { scopeStyle, Sections } from './render/components'
 import { setPageMove } from '../tv'
 import type { Action, Document, Node } from './types'
 import { useDevice } from './useSdui'
+import { ask } from '../ui/Overlay'
 import { setPageRegions } from './regions'
 import './sdui.css'
 import './play.css'
@@ -347,6 +348,12 @@ export default function SduiPage({ page, params, fallback }: { page: string; par
   }, [audio, libraries, nav, opener])
 
   const act = useCallback((a: Action | undefined, from?: View) => {
+    // A command that asks first: the question in the app's own dialog, the command's label as the yes.
+    if (a?.confirm) {
+      const { confirm, ...rest } = a
+      void ask({ title: confirm, confirm: 'Yes', cancel: 'Cancel', danger: /delete|remove|forget/i.test(confirm) }).then((yes) => { if (yes) act(rest, from) })
+      return
+    }
     const step = plan(a, { externalLinks: drawn.current?.layout.externalLinks })
     switch (step.do) {
       case 'go': nav(step.to); break

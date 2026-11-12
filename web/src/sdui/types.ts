@@ -17,6 +17,8 @@ export type Action = {
   params?: Record<string, unknown>
   // navigate: "layer" shows the page over this one (a quick menu, a sheet) instead of going to it.
   as?: string
+  // A command asks this first ("Delete this memory?") and runs only on a yes.
+  confirm?: string
 }
 
 export type Focus = { order: number; group?: string; default?: boolean }

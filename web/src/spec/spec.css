@@ -73,3 +73,4 @@ html[data-experience="classicSatellite"] :is(.spec-row, .spec-card, .spec-chip, 
 html[data-experience="retro"] :is(.spec-row, .spec-card, .spec-chip, .spec-switch, .spec-note.tone) { border-radius: 0; border-width: 2px; }
 html[data-experience="retro"] .spec-eyebrow, html[data-experience="classicCable"] .spec-eyebrow { letter-spacing: .12em; }
 @media (prefers-reduced-transparency: reduce) { html[data-fx-glass] :is(.spec-row, .spec-card, .spec-switch) { background-image: none; box-shadow: none; } }
+.spec-page.embedded .spec-dock { background: transparent; border: 0; padding-inline: 0; justify-content: flex-start; }

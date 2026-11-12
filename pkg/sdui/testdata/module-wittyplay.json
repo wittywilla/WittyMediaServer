@@ -63,7 +63,7 @@
                     "cardSize": "l",
                     "detail": true,
                     "empty": "message",
-                    "emptyText": "Games you play show up here.",
+                    "emptyText": "Nothing played yet. Pick a game from Classics.",
                     "focusGrow": true,
                     "seeAll": "never",
                     "title": ""
@@ -87,6 +87,8 @@
                   "id": "eras",
                   "component": "Grid",
                   "props": {
+                    "empty": "message",
+                    "emptyText": "No games in your libraries yet.",
                     "title": "Classics by era"
                   },
                   "source": {
@@ -116,7 +118,7 @@
                       "component": "List",
                       "props": {
                         "empty": "message",
-                        "emptyText": "No friends to show yet.",
+                        "emptyText": "No friends are online right now.",
                         "focusable": true,
                         "title": "Friends"
                       },
@@ -135,6 +137,8 @@
                           "id": "room",
                           "component": "List",
                           "props": {
+                            "empty": "message",
+                            "emptyText": "Start a game, then open your room to friends.",
                             "focusable": true,
                             "title": "Your room"
                           },
@@ -174,7 +178,7 @@
                   "component": "Grid",
                   "props": {
                     "empty": "message",
-                    "emptyText": "Save states and screenshots you keep show up here.",
+                    "emptyText": "Saves and screenshots you keep appear here.",
                     "title": "This week"
                   },
                   "source": {
@@ -196,6 +200,8 @@
                   "id": "consoles-row",
                   "component": "Shelf",
                   "props": {
+                    "empty": "message",
+                    "emptyText": "No console plays here yet. An administrator sets them up in Settings.",
                     "title": "What this server plays"
                   },
                   "source": {

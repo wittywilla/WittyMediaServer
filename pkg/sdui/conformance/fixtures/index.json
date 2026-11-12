@@ -424,6 +424,12 @@
    "formFactor": "phone"
   },
   {
+   "id": "wittyplay-online-empty-tv",
+   "file": "wittyplay-online-empty-tv.json",
+   "title": "WittyPlay Online's home with nothing played and nobody online, on a television",
+   "formFactor": "tv"
+  },
+  {
    "id": "wittyplay-online-home-tv",
    "file": "wittyplay-online-home-tv.json",
    "title": "WittyPlay Online's home page, as WittyPlay defines it, on a television",

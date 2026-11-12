@@ -124,6 +124,9 @@ export type GameConsole = {
   totalGames?: number
   // Ready, with the processor drawing its games: no graphics card here. notice is the speed caveat.
   software?: boolean; notice?: string
+  // Why the processor draws (no-card: none here; card-fault: its core draws wrongly on this system's card),
+  // the core Play starts its games on unless a game has its own, and the BIOS file that core lacks.
+  softwareWhy?: 'no-card' | 'card-fault'; playsOn?: string; biosMissing?: string
   // Where each core on offer runs, how it draws there, and here: see pages/games/platforms.tsx.
   coreSupport?: Record<string, CoreSupport>
   // What each core on offer is good at beside the console's others (docs/GAMING-API.md, Choosing a core).

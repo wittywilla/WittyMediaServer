@@ -18,13 +18,20 @@ import (
 //     table of contents. When it's encrypted, the program inside doesn't start with
 //     "NCCH" where it should, because those bytes are scrambled too. Bytes count for
 //     more than the mark: "NCCH" where it belongs can't happen by accident.
-//   - A program marks itself as unencrypted with its NoCrypto flag.
+//   - A program marks itself as unencrypted with its NoCrypto flag. Some tools decrypt a
+//     program without setting that flag; its extended header then reads plainly, and its
+//     jump id matches the program's own id, which is how 3DS emulators tell (Citra's
+//     "marked as encrypted but with decrypted exheader"). That counts as unencrypted too.
 
 const (
 	ncchMagicAt = 0x100
 	ncchFlagsAt = 0x188
 	ncchNoCrypt = 0x04
 	ncchNew3DS  = 0x02 // platform byte, flags[4]
+	ncchExhSize = 0x180
+	ncchProgID  = 0x118
+	ncchExhAt   = 0x200
+	exhJumpID   = 0x1C8 // in the extended header's system info
 	mediaUnit   = 0x200
 )
 
@@ -92,12 +99,31 @@ func sniffNCCH(r io.ReaderAt, off int64) Finding {
 	f.Serial = clean(b[0x50:0x60])
 	f.NewOnly = flags[4]&ncchNew3DS != 0
 	f.Encrypted = flags[7]&ncchNoCrypt == 0
+	if f.Encrypted && plainExheader(r, off) {
+		f.Encrypted = false
+		f.Proof = "Its program has no NoCrypto flag, but its extended header reads plainly (its jump id is the program's own id), so it was decrypted without the flag being set."
+		return f
+	}
 	if f.Encrypted {
 		f.Proof = fmt.Sprintf("Its program doesn't have the NoCrypto flag (flags byte 7 is %#02x), so it's encrypted.", flags[7])
 	} else {
 		f.Proof = "Its program has the NoCrypto flag, so it isn't encrypted."
 	}
 	return f
+}
+
+// plainExheader says a program's extended header is readable as it stands: its jump id
+// matches the program id (the low half, as emulators allow for merged updates). Encrypted
+// bytes match by chance one time in four billion; a zero id never counts.
+func plainExheader(r io.ReaderAt, off int64) bool {
+	size := at(r, off+ncchExhSize, 4)
+	prog := at(r, off+ncchProgID, 8)
+	jump := at(r, off+ncchExhAt+exhJumpID, 8)
+	if size == nil || prog == nil || jump == nil || binary.LittleEndian.Uint32(size) == 0 {
+		return false
+	}
+	p := binary.LittleEndian.Uint32(prog)
+	return p != 0 && p == binary.LittleEndian.Uint32(jump)
 }
 
 func align64(n int64) int64 { return (n + 63) &^ 63 }

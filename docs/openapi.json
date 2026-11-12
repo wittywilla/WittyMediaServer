@@ -51374,6 +51374,7 @@
     },
     "/modules/wittyplay/docker/emulators/{id}/manual": {
       "get": {
+        "operationId": "getModulesWittyplayDockerEmulatorsIdManual",
         "summary": "What's found of an emulator added by hand",
         "tags": [
           "Games"
@@ -51411,6 +51412,7 @@
         }
       },
       "post": {
+        "operationId": "postModulesWittyplayDockerEmulatorsIdManual",
         "summary": "Add an emulator the administrator installed",
         "tags": [
           "Games"
@@ -51460,6 +51462,7 @@
     },
     "/modules/wittyplay/docker/own": {
       "get": {
+        "operationId": "getModulesWittyplayDockerOwn",
         "summary": "The administrator's own emulator programs",
         "tags": [
           "Games"
@@ -51488,6 +51491,7 @@
         }
       },
       "put": {
+        "operationId": "putModulesWittyplayDockerOwn",
         "summary": "Replace the administrator's own emulator programs",
         "tags": [
           "Games"

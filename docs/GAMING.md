@@ -126,6 +126,7 @@ The runner's answer to "which card would you draw with?" (`stream.ProbeGPU`, ask
 | ParaLLEl N64 | `parallel-n64-gfxplugin=angrylion`, `parallel-n64-rspplugin=cxd4` | The same games: full speed, under one core. What libdragon homebrew already used |
 | PPSSPP | `ppsspp_backend=none` (its own software renderer; never asks for a context) | God of War: Ghost of Sparta: 58 frames a second on average, with dips to the 30s and 40s, on three to five cores |
 | LRPS2 | `pcsx2_renderer=Software (SW)` (hands frames over without a context) | Crash Bandicoot: The Wrath of Cortex, with the owner's SCPH-39001 BIOS: its 3D intro mostly at 60 frames a second, down to 6 to 20 in stretches; streamed to a browser at 60 |
+| Azahar | `citra_graphics_api=Software` | A 3DS game, on an Apple M3 Pro: 60 frames a second, about three cores. On a Mac it always draws this way: there it asks for Vulkan, which the runner can't offer |
 
 Measured in the runner alone, with no sandbox or encoder. Mupen64Plus-Next and PPSSPP were then streamed end to end from a Mac server to a browser, at normal speed, with libx264 taking 3 to 7 ms a frame. angrylion is the accurate Nintendo 64 renderer, so it draws at the console's own resolution and the internal resolution setting doesn't apply; PPSSPP's software renderer is forced to 1x the same way.
 

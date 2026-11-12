@@ -335,6 +335,13 @@ type consoleView struct {
 	// says what that means for how they run.
 	Software bool   `json:"software,omitempty"`
 	Notice   string `json:"notice,omitempty"`
+	// SoftwareWhy, with Software: no-card (this server has none games can use) or card-fault (it
+	// has one, and the core draws wrongly on it on this system).
+	SoftwareWhy string `json:"softwareWhy,omitempty"`
+	// PlaysOn is the core Play starts its games on, unless a game has its own; BIOSMissing, with
+	// none, is the BIOS file the core it wants is missing.
+	PlaysOn     string `json:"playsOn,omitempty"`
+	BIOSMissing string `json:"biosMissing,omitempty"`
 	// CoreSupport is, for each core on offer, the server platforms it runs on and how it draws
 	// on each, and here. Every device plays what any of them runs: the server streams it.
 	CoreSupport map[string]coreSupport `json:"coreSupport,omitempty"`
@@ -443,7 +450,7 @@ func (s *Server) consoleViews(ctx context.Context) []consoleView {
 				// A card, but the core it would start on draws wrongly on it on this system, and
 				// no other installed core draws right on it (see pickCore).
 				if v.Ready && len(v.Installed) > 0 && drawsWrongHere(v.Installed[0]) != "" && cpuOptions(v.Installed[0]) != nil &&
-					(v.DefaultCore != "" || rightOnTheCard(v.Installed, v.Installed[0], s.coreDrawsOnGPU) == nil) {
+					(v.DefaultCore != "" || keepsOnCPU[v.Installed[0].ID] || rightOnTheCard(v.Installed, v.Installed[0], s.coreDrawsOnGPU) == nil) {
 					v.Software, v.Notice = true, cardFaultNotice()
 				}
 			case s.canDrawOnCPU(&v):
@@ -452,6 +459,24 @@ func (s *Server) consoleViews(ctx context.Context) []consoleView {
 				}
 			default:
 				v.Ready, v.Reason, v.Message, v.GPUMissing = false, "gpu", gpuMessage(c.Name, *gpuWhy), *gpuWhy
+			}
+		}
+		switch v.Notice {
+		case cardFaultNotice():
+			v.SoftwareWhy = "card-fault"
+		case softwareNotice:
+			v.SoftwareWhy = "no-card"
+		}
+		// The core Play starts a game on, where the game has no core of its own, and the BIOS file
+		// that core is missing, if any: what "What this server plays" says, rather than the
+		// first core installed.
+		if v.Ready && len(v.Installed) > 0 && c.ID != wittyplay.TestConsole {
+			pick := s.pickCore(ctx, &c, 0, s.games().systemDir())
+			switch {
+			case pick.core != nil:
+				v.PlaysOn = pick.core.ID
+			case pick.blocked != nil:
+				v.BIOSMissing = wittyplay.MissingBIOS(pick.blocked.ID, s.games().systemDir())
 			}
 		}
 		if v.Ready || len(c.Cores) == 0 || len(offers[c.ID]) > 0 {
@@ -1061,7 +1086,9 @@ func (g *gameService) prepare3DS(rom string, cleanup func(), console *wittyplay.
 	if info.Encrypted {
 		return fail(wittyplay.ErrEncrypted3DS)
 	}
-	if !info.Package {
+	// A core can't open a package, and Azahar calls a program decrypted without its NoCrypto
+	// flag encrypted: each plays from its program, copied out (with the flag set).
+	if !info.Package && !info.Unflagged {
 		return rom, cleanup, info.NewOnly, nil
 	}
 	out, err := g.packageProgram(rom, info)
@@ -1071,7 +1098,8 @@ func (g *gameService) prepare3DS(rom string, cleanup func(), console *wittyplay.
 	return out, cleanup, info.NewOnly, nil
 }
 
-// packageProgram gives the program out of a 3DS package as a file of its own. A big game's
+// packageProgram gives the program out of a 3DS package, or out of a file decrypted without
+// its NoCrypto flag, as a file of its own. A big game's
 // copy takes a long while and as much room as the game, so it stays for next time rather than
 // being made at every start. Only the last one stays, unless a game is running that may still
 // be using another. The folder is emptied when the server starts.

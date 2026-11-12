@@ -35,6 +35,11 @@ var Wire func(*modules.Manager)
 // EnvCatalog names the folder.
 const EnvCatalog = "WMS_TEST_CATALOG"
 
+// ServerVersion is the server the modules are told they run on: this one, as
+// cmd/wittymediaserver says (a test there keeps the two the same). An older version here
+// has every module that needs this server refuse to be added, failing each test that uses it.
+const ServerVersion = "0.8.0-alpha"
+
 var (
 	mu      sync.Mutex
 	manager *modules.Manager
@@ -61,7 +66,7 @@ func start(catalog string) (*modules.Manager, error) {
 	if err != nil {
 		return nil, err
 	}
-	manager = modules.New(modules.Config{Dir: dir, Server: "0.6.0-alpha", Starter: abs, Keys: []ed25519.PublicKey{ed25519.PublicKey(key)},
+	manager = modules.New(modules.Config{Dir: dir, Server: ServerVersion, Starter: abs, Keys: []ed25519.PublicKey{ed25519.PublicKey(key)},
 		Log: slog.New(slog.DiscardHandler), WriteFolders: func(string) []string { return []string{os.TempDir()} }})
 	manager.UseServices()
 	cd.Open = modules.CDs{M: manager}.Open

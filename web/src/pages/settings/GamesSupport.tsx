@@ -34,10 +34,15 @@ function how(c: GameConsole): string {
     const e = c.standaloneEmulators?.find((x) => x.id === c.standalone)
     return `In ${e?.name || 'a standalone emulator'}${e?.version ? ` ${e.version}` : ''}, on this server.`
   }
-  const core = c.installed[0]
+  // The core Play would start on, not merely the first installed: on a Mac a PlayStation 2 game
+  // plays on Play!, though LRPS2 comes first.
+  const core = c.installed.find((x) => x.id === c.playsOn) || c.installed[0]
   if (!core) return c.message || ''
   const here = c.coreSupport?.[core.id]?.here
-  const draws = c.software ? 'drawn by the processor, as there’s no graphics card games can use' : here ? drawsWords[here.draws] : ''
+  const why = c.softwareWhy === 'card-fault'
+    ? 'drawn by the processor, as its emulator doesn’t draw right on this server’s graphics card'
+    : 'drawn by the processor, as there’s no graphics card games can use'
+  const draws = c.software ? why : here ? drawsWords[here.draws] : ''
   const more = (c.standaloneEmulators || []).filter((e) => e.ready).map((e) => e.name)
   return `On ${core.name}${draws ? `, ${draws}` : ''}.${more.length ? ` Also in ${more.join(' or ')}.` : ''}`
 }
@@ -71,7 +76,7 @@ export default function GamesSupport() {
                   <span>
                     <b>{c.name}{c.totalGames ? <small className="muted"> · {c.totalGames} {c.totalGames === 1 ? 'game' : 'games'}</small> : null}</b>
                     <small>{g === 'ready' ? how(c) : c.message || ''}{c.notice && g === 'ready' ? ` ${c.notice}` : ''}</small>
-                    {g === 'ready' && c.bios?.some((b) => b.required) && <small>Needs a BIOS of your own: {c.bios.filter((b) => b.required).map((b) => b.file).join(', ')}.</small>}
+                    {c.biosMissing && <small>Needs a BIOS of your own: {c.biosMissing}.</small>}
                   </span>
                 </li>
               ))}

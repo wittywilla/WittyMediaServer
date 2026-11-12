@@ -282,6 +282,16 @@ func NCCH(plain, newOnly bool, size int) []byte {
 	return b
 }
 
+// NCCHUnflagged is a program decrypted by a tool that left its NoCrypto flag unset: its
+// extended header is plain, so its jump id is the program id.
+func NCCHUnflagged(size int) []byte {
+	b := NCCH(false, false, size)
+	binary.LittleEndian.PutUint32(b[0x180:], 0x400)
+	binary.LittleEndian.PutUint64(b[0x118:], 0x000400000012AB00)
+	binary.LittleEndian.PutUint64(b[0x200+0x1C8:], 0x000400000012AB00)
+	return b
+}
+
 // Scrambled stands for a program under a package's own encryption: it has no mark.
 func Scrambled(size int) []byte {
 	b := make([]byte, size)

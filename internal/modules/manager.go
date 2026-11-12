@@ -29,6 +29,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/tasks"
 	"github.com/wittywilla/wittymediaserver/internal/update"
+	"github.com/wittywilla/wittymediaserver/pkg/sdui"
 	"github.com/wittywilla/wittymodule"
 )
 
@@ -207,6 +208,7 @@ type entry struct {
 	dir      string                // its folder; "" with no version in use
 	proc     *proc                 // for a helper; nil otherwise
 	web      *webFiles             // for a bundle; nil otherwise
+	ui       *sdui.ModuleUI        // its SDUI (sdui.json), checked; nil when it has none
 	notice   string
 	fails    int
 	failedAt time.Time
@@ -256,6 +258,11 @@ type Config struct {
 	Launcher string
 	// LogEnv is how the owner wants a module logged, as environment for its helper.
 	LogEnv func(id string) []string
+	// UIChecks are the theme engine's checks a module's sdui.json is held to.
+	UIChecks sdui.ModuleChecks
+	// SettingsEnv gives a module's settings (docs/SDUI-MODULES.md), as environment for its
+	// helper.
+	SettingsEnv func(id string) []string
 	// WriteFolders are folders of the server's that a module allowed to write may write to,
 	// beside its own: a game's saves stay where a server keeps them.
 	WriteFolders func(id string) []string
@@ -274,6 +281,7 @@ type Manager struct {
 
 	mu        sync.Mutex
 	mods      map[string]*entry
+	uiGen     uint64 // changes whenever the versions in use, and so their SDUI, may have
 	order     []string
 	checked   time.Time
 	checkErr  string
@@ -500,6 +508,9 @@ func (m *Manager) usable(id string, e *entry, ver string) (*wittymodule.Manifest
 	if r := dataRefusal(e.builtin.Name, man, e.state.DataHigh); r != "" {
 		return nil, "", errors.New(r)
 	}
+	if _, err := readUI(dir, man, m.cfg.UIChecks); err != nil {
+		return nil, "", err
+	}
 	return man, dir, nil
 }
 
@@ -552,9 +563,14 @@ func (m *Manager) resolve(id string, e *entry) {
 		logging.Go("module close", func() { defer m.retiring.Done(); p.Close() }, "cat", "modules")
 		e.proc = nil
 	}
-	e.fails, e.web, e.dir = 0, nil, ""
+	e.fails, e.web, e.dir, e.ui = 0, nil, "", nil
+	m.uiGen++
 	if pick != nil {
 		e.man, e.dir = pick, pickDir
+		// usable has just checked it.
+		if ui, err := readUI(pickDir, pick, m.cfg.UIChecks); err == nil {
+			e.ui = ui
+		}
 		if pick.Delivery == wittymodule.DeliveryHelper {
 			e.proc = m.newProcFor(id, e, pick, pickDir)
 		}
@@ -618,6 +634,16 @@ func (m *Manager) newProcFor(id string, e *entry, man *wittymodule.Manifest, dir
 		p.launch = helperLauncher(goos(), id, p.launch)
 	}
 	p.logEnv = m.cfg.LogEnv
+	if se := m.cfg.SettingsEnv; se != nil {
+		le := p.logEnv
+		p.logEnv = func(id string) []string {
+			var env []string
+			if le != nil {
+				env = le(id)
+			}
+			return append(env, se(id)...)
+		}
+	}
 	return p
 }
 
@@ -724,7 +750,7 @@ func (e *entry) status(id string) Status {
 func (m *Manager) Report() Report {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	r := Report{Server: m.cfg.Server, API: wittymodule.API, MinAPI: wittymodule.MinAPI, CheckError: m.checkErr, Modules: []Status{}}
+	r := Report{Server: m.cfg.Server, API: API, MinAPI: MinAPI, CheckError: m.checkErr, Modules: []Status{}}
 	if !m.checked.IsZero() {
 		r.CheckedAt = m.checked.UnixMilli()
 	}

@@ -108,7 +108,7 @@ The top level:
 | `format` | string | yes | Always `wittymodule-sdui`. |
 | `formatVersion` | int | yes | Always `1`. |
 | `module` | string | yes | The module's ID, the same as `id` in `module.json`. |
-| `catalog` | int | yes | The [catalogue revision](SDUI.md#versioning) the file was written against, from 1 to the server's. A server refuses a file newer than its own catalogue. Today the catalogue is at revision 2. |
+| `catalog` | int | yes | The [catalogue revision](SDUI.md#versioning) the file was written against, from 1 to the server's. A server refuses a file newer than its own catalogue. Today the catalogue is at revision 7. A change to what an existing component or card style shows or does bumps it; only new components, card styles, sources, commands and optional properties are additive ([SDUI](SDUI.md#versioning)). Revision 7 changed what the `person` card style shows (badges), which is why a module that yields `person` items writes `catalog: 7`. |
 | `theme` | object | yes | The module's [theme scope](#theme). |
 | `sources` | list | no | [Data sources](#sources) the module answers through its helper. |
 | `components` | list | no | Named sections of the module's own: [components](#components). |

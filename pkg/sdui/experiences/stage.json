@@ -1,0 +1,52 @@
+{
+  "id": "stage",
+  "order": 3,
+  "name": "Stage",
+  "tagline": "Streaming",
+  "icon": "tv",
+  "description": "A see-through menu over a full-bleed spotlight, then rows of wide cards that overlap the art.",
+  "theme": "midnight",
+  "tvTheme": "bigpicture",
+  "overlay": true,
+  "nav": {
+    "web": "topTabs",
+    "desktop": "topTabs",
+    "tablet": "topTabs",
+    "phone": "bottomTabs",
+    "tv": "tvTopMenu",
+    "headset": "ornamentTabs"
+  },
+  "pages": {
+    "hero": "billboard",
+    "cardStyle": "landscape",
+    "seeAllCard": true,
+    "density": "comfortable"
+  },
+  "effects": {
+    "glass": "none",
+    "gloss": "none",
+    "glow": "subtle",
+    "texture": "none",
+    "bevel": "none"
+  },
+  "shape": {
+    "radiusMultiple": 1.2,
+    "cardSet": "landscape"
+  },
+  "type": "system",
+  "density": "comfortable",
+  "motion": {
+    "focus": "ring-lift",
+    "screen": "fade"
+  },
+  "home": {
+    "hero": "billboard",
+    "rows": "overlap"
+  },
+  "preview": {
+    "bg": "#0b1120",
+    "surface": "#18233b",
+    "accent": "#2f6fed"
+  },
+  "navExpand": ""
+}

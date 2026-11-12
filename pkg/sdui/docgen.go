@@ -285,7 +285,7 @@ func CatalogueMarkdown() string {
 
 	w("### Layout options\n\nThe menu's style on each form factor, and what the server changes about every page for the layout. Menu styles: `%s`.\n\n", strings.Join(c.NavStyles, "`, `"))
 	w("| Layout | What it is | TV | Phone | Tablet | Desktop | Web | Pages |\n|---|---|---|---|---|---|---|---|\n")
-	for _, l := range c.Layouts {
+	for _, l := range c.Experiences {
 		var pages []string
 		if l.Pages.GridsAsRows {
 			pages = append(pages, "grids as rows")
@@ -299,8 +299,11 @@ func CatalogueMarkdown() string {
 		if l.Pages.CardSize != "" {
 			pages = append(pages, "cards "+l.Pages.CardSize)
 		}
-		if l.Pages.LandscapeCards {
-			pages = append(pages, "wide cards for films and shows")
+		if l.Pages.CardStyle != "" {
+			pages = append(pages, l.Pages.CardStyle+" cards for films and shows")
+		}
+		if l.Pages.SectionStyle != "" {
+			pages = append(pages, l.Pages.SectionStyle+" headings")
 		}
 		if l.Pages.Density != "" {
 			pages = append(pages, l.Pages.Density)
@@ -311,7 +314,7 @@ func CatalogueMarkdown() string {
 		if len(pages) == 0 {
 			pages = []string{"as written"}
 		}
-		w("| `%s` | **%s.** %s | %s | %s | %s | %s | %s | %s |\n", l.ID, l.Label, cell(l.Description), l.Nav[FormTV], l.Nav[FormPhone], l.Nav[FormTablet], l.Nav[FormDesktop], l.Nav[FormWeb], strings.Join(pages, ", "))
+		w("| `%s` | **%s.** %s | %s | %s | %s | %s | %s | %s |\n", l.ID, l.Name, cell(l.Description), l.Nav[FormTV], l.Nav[FormPhone], l.Nav[FormTablet], l.Nav[FormDesktop], l.Nav[FormWeb], strings.Join(pages, ", "))
 	}
 	w("\n")
 

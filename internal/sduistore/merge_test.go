@@ -40,7 +40,7 @@ func TestPublishMergesWithWhatWasPublishedSince(t *testing.T) {
 	}
 	personal := func(off bool) edit { return func(c *Config) { c.Personalisation.Disabled = off } }
 	setLayout := func(phone string) edit {
-		return func(c *Config) { c.Layouts = &sdui.LayoutPolicy{Default: map[string]string{"phone": phone}} }
+		return func(c *Config) { c.Experiences = &sdui.ExperiencePolicy{Default: map[string]string{"phone": phone}} }
 	}
 
 	cases := []struct {
@@ -158,8 +158,8 @@ func TestPublishMergesWithWhatWasPublishedSince(t *testing.T) {
 				t.Errorf("navigation %+v", pub.Navigation)
 			}
 			got := ""
-			if pub.Layouts != nil {
-				got = pub.Layouts.Default["phone"]
+			if pub.Experiences != nil {
+				got = pub.Experiences.Default["phone"]
 			}
 			if got != tc.wantLayout && !(tc.wantLayout == "" && got == "sidebar") {
 				t.Errorf("phone layout %q", got)

@@ -3024,15 +3024,24 @@ A menu entry (`type: native`) may open the screens marked *menu*; the others nee
 
 ### Layout options
 
-The menu's style on each form factor, and what the server changes about every page for the layout. Menu styles: `sidebar`, `rail`, `bottomTabs`, `topTabs`, `tvTopMenu`, `tvSideMenu`.
+The menu's style on each form factor, and what the server changes about every page for the layout. Menu styles: `sidebar`, `rail`, `railDrawer`, `bottomTabs`, `topTabs`, `floatingGlassBar`, `cableBar`, `bevelBar`, `teleKeys`, `crossbar`, `ornamentTabs`, `tvTopMenu`, `tvSideMenu`.
 
 | Layout | What it is | TV | Phone | Tablet | Desktop | Web | Pages |
 |---|---|---|---|---|---|---|---|
-| `sidebar` | **Sidebar.** The menu down the side where there is room, a tab bar on a phone and the top menu on a television. Pages as they are written. | tvTopMenu | bottomTabs | sidebar | sidebar | sidebar | as written |
-| `topTabs` | **Top tabs.** The menu as a row of tabs across the top on every device, leaving the whole width to the page. | tvTopMenu | topTabs | topTabs | topTabs | topTabs | as written |
-| `tvRows` | **TV rows.** Everything in rows of large cards, as on a television: grids become rows, and the menu is a narrow rail. | tvTopMenu | bottomTabs | rail | rail | rail | grids as rows, spotlight: billboard, cards l |
-| `compactList` | **Compact list.** A line per title instead of rows of pictures: the most on the screen at once, for small screens and long libraries. | tvSideMenu | bottomTabs | rail | rail | rail | rows and grids as lists, spotlight: row, compact |
-| `streaming` | **Streaming style.** A big spotlight under a see-through menu, then rows of wide cards, like a streaming service. | tvTopMenu | bottomTabs | topTabs | topTabs | topTabs | spotlight: billboard, wide cards for films and shows, comfortable, menu over the page |
+| `lumen` | **Lumen.** Top pills, a billboard spotlight and rows that peek at the next card. The default. | tvTopMenu | bottomTabs | topTabs | topTabs | topTabs | spotlight: billboard |
+| `rail` | **Rail.** An icon rail that opens into a full menu and a drawer for each library, with title-on-art cards. | tvSideMenu | bottomTabs | railDrawer | railDrawer | railDrawer | spotlight: banner, plate cards for films and shows |
+| `stage` | **Stage.** A see-through menu over a full-bleed spotlight, then rows of wide cards that overlap the art. | tvTopMenu | bottomTabs | topTabs | topTabs | topTabs | spotlight: billboard, landscape cards for films and shows, comfortable, menu over the page |
+| `aero` | **Aero.** Glossy glass bars, bevelled pills, sky and leaf gradients and rounded corners. Gloss and gradients, no heavy blur. | tvTopMenu | bottomTabs | floatingGlassBar | floatingGlassBar | floatingGlassBar | spotlight: billboard |
+| `classic` | **Classic.** The menu down the side, a tab bar on a phone and the top menu on a television. Today's design, polished. | tvTopMenu | bottomTabs | sidebar | sidebar | sidebar | spotlight: billboard |
+| `classicCable` | **Classic Cable.** Flat blue rows, yellow highlights and coloured band headings, like a cable guide. | cableBar | bottomTabs | cableBar | cableBar | cableBar | rows and grids as lists, spotlight: row, landscape cards for films and shows, band headings |
+| `classicSatellite` | **Classic Satellite.** Silver bevelled bars, orange highlights and logo tiles for channels. | bevelBar | bottomTabs | bevelBar | bevelBar | bevelBar | spotlight: billboard, underline headings |
+| `compact` | **Compact.** A rail and a line per title: the most on the screen at once, for power users and long libraries. | tvSideMenu | bottomTabs | rail | rail | rail | rows and grids as lists, spotlight: row, compact |
+| `paper` | **Paper.** Top tabs, big serif type and generous space, on warm paper. | tvTopMenu | topTabs | topTabs | topTabs | topTabs | spotlight: banner, underline headings |
+| `marquee` | **Marquee.** One big title at a time in a centred carousel of posters. | tvTopMenu | bottomTabs | topTabs | topTabs | topTabs | spotlight: carousel, cards l |
+| `crossbar` | **Crossbar.** A horizontal bar of categories with a vertical list under the chosen one. Games and music first. | crossbar | bottomTabs | crossbar | crossbar | crossbar | spotlight: row |
+| `bigpicture` | **Big picture.** Huge tiles, few choices and the strongest focus, with larger type and targets. | tvTopMenu | bottomTabs | topTabs | topTabs | topTabs | grids as rows, spotlight: billboard, cards l, tile cards for films and shows |
+| `dashboard` | **Dashboard.** A tile grid of widgets: continue watching, on TV now, statistics, server status, a clock. Every tile movable. | tvSideMenu | bottomTabs | rail | rail | rail | spotlight: row |
+| `retro` | **Retro.** Teletext and CRT: block type, eight colours and colour-coded keys. Scanlines are off until turned on. | teleKeys | bottomTabs | teleKeys | teleKeys | teleKeys | rows and grids as lists, spotlight: row, block cards for films and shows, band headings |
 
 ### Icons
 

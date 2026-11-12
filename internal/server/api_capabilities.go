@@ -52,7 +52,7 @@ const (
 	//     /sdui/modules/{module}/images/{name}, /sdui/modules/settings and
 	//     /sdui/modules/{module}/settings[/personal] (sdui-modules, module-settings);
 	//   - layout options: document.layout.shell, the navigation's shell and layouts,
-	//     /sdui/layout and /sdui/config/layouts (sdui-layouts); a ListItem from a source
+	//     /sdui/experience and /sdui/config/experience (sdui-experiences); a ListItem from a source
 	//     carries image, progress and badges; library rows take their kind's card style
 	//     and a phone's libraries are chips; a title's page on a phone or TV has no
 	//     personal;
@@ -147,8 +147,8 @@ var serverFeatures = []string{
 	// component is drawn with, GET /api/v1/theme has shape, type and brand, overrides carry
 	// derived colours; a profile sets its own colours with /api/v1/theme/personal.
 	"theme-shape-type", "sdui-tokens", "theme-derived", "theme-personal",
-	// Layout options: document.layout.shell, the navigation's shell and layouts, /sdui/layout.
-	"sdui-layouts",
+	// Layout options: document.layout.shell, the navigation's shell and layouts, /sdui/experience.
+	"sdui-experiences",
 	// More data sources (docs/SDUI.md "Books, statistics and likes"): a books library's shelf with
 	// rows for its series and authors, statistics from the play log, what a profile liked; module
 	// sources on Top Shelf; a books library's series and authors from /music/albums and /artists.

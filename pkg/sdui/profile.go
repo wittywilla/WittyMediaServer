@@ -114,7 +114,7 @@ type Layout struct {
 	// Truncated is set when sections were left out to fit MaxSections.
 	Truncated bool `json:"truncated,omitempty"`
 	// Shell is the layout option the page was made for and how the app's frame is
-	// drawn with it: see Layouts.
+	// drawn with it: see Experiences.
 	Shell *Shell `json:"shell,omitempty"`
 }
 
@@ -137,6 +137,7 @@ var baseWidths = map[string]map[string]int{
 	FormTV:      {"poster": 250, "landscape": 420, "square": 300, "circle": 200, "chip": 0}, // themes/tokens.json tv.card
 	FormPhone:   {"poster": 120, "landscape": 224, "square": 144, "circle": 96, "chip": 0},
 	FormTablet:  {"poster": 160, "landscape": 288, "square": 180, "circle": 120, "chip": 0},
+	FormHeadset: {"poster": 190, "landscape": 340, "square": 210, "circle": 150, "chip": 0},
 	FormDesktop: {"poster": 180, "landscape": 320, "square": 200, "circle": 140, "chip": 0},
 }
 
@@ -197,6 +198,17 @@ func ProfileFor(formFactor, class string) *Layout {
 		l.Hero = Viewport{Width: 430, Height: 242}
 		l.Budget = Budget{MaxSections: 16, EagerSections: 5, ShelfItems: 12, GridItems: 30, ListItems: 30, PageSize: 30, HeroItems: 5, Repeats: 10}
 		l.TextLimits = TextLimits{Title: 80, Subtitle: 80, Synopsis: 140, Overview: 400}
+	case FormHeadset:
+		// A floating window in a room: tablet-sized type, 60-point targets, nothing at the edges.
+		l.Scale, l.Breakpoint, l.Canvas = 2, "large", Viewport{Width: 1280, Height: 720}
+		l.FocusEngine, l.ExternalLinks = true, true
+		l.Spacing = map[string]int{"none": 0, "xs": 6, "s": 12, "m": 24, "l": 36, "xl": 56}
+		l.Text = map[string]int{"display": 40, "pageTitle": 34, "heading": 26, "title": 21, "body": 18, "caption": 15, "badge": 13}
+		l.Hero = Viewport{Width: 1280, Height: 520}
+		l.Peek, l.Dock = 0.12, DockMetrics{Placement: "bottom", Height: 72, HintSize: 15}
+		l.SafeArea = Insets{Top: 32, Right: 48, Bottom: 32, Left: 48}
+		l.Budget = Budget{MaxSections: 16, EagerSections: 5, ShelfItems: 14, GridItems: 36, ListItems: 36, PageSize: 30, HeroItems: 5, Repeats: 10}
+		l.TextLimits = TextLimits{Title: 100, Subtitle: 100, Synopsis: 200, Overview: 600}
 	case FormTablet:
 		l.Breakpoint = "expanded"
 		l.Spacing = map[string]int{"none": 0, "xs": 4, "s": 8, "m": 16, "l": 24, "xl": 48}

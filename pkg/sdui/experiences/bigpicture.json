@@ -1,0 +1,52 @@
+{
+  "id": "bigpicture",
+  "order": 12,
+  "name": "Big picture",
+  "tagline": "Easy to see",
+  "icon": "tv",
+  "description": "Huge tiles, few choices and the strongest focus, with larger type and targets.",
+  "theme": "contrast",
+  "tvTheme": "bigpicture",
+  "nav": {
+    "web": "topTabs",
+    "desktop": "topTabs",
+    "tablet": "topTabs",
+    "phone": "bottomTabs",
+    "tv": "tvTopMenu",
+    "headset": "ornamentTabs"
+  },
+  "pages": {
+    "hero": "billboard",
+    "gridsAsRows": true,
+    "cardSize": "l",
+    "cardStyle": "tile",
+    "seeAllCard": true
+  },
+  "effects": {
+    "glass": "none",
+    "gloss": "none",
+    "glow": "none",
+    "texture": "none",
+    "bevel": "none"
+  },
+  "shape": {
+    "radiusMultiple": 2.4,
+    "cardSet": "tile"
+  },
+  "type": "system",
+  "density": "spacious",
+  "motion": {
+    "focus": "ring-lift",
+    "screen": "fade"
+  },
+  "home": {
+    "hero": "billboard",
+    "rows": "tiles"
+  },
+  "preview": {
+    "bg": "#000000",
+    "surface": "#1a1a1a",
+    "accent": "#ffd84a"
+  },
+  "navExpand": ""
+}

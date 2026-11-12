@@ -1,0 +1,48 @@
+{
+  "id": "classic",
+  "order": 5,
+  "name": "Classic",
+  "tagline": "Sidebar",
+  "icon": "list",
+  "description": "The menu down the side, a tab bar on a phone and the top menu on a television. Today's design, polished.",
+  "theme": "default",
+  "tvTheme": "modern",
+  "nav": {
+    "web": "sidebar",
+    "desktop": "sidebar",
+    "tablet": "sidebar",
+    "phone": "bottomTabs",
+    "tv": "tvTopMenu",
+    "headset": "ornamentTabs"
+  },
+  "pages": {
+    "hero": "billboard"
+  },
+  "effects": {
+    "glass": "none",
+    "gloss": "none",
+    "glow": "none",
+    "texture": "none",
+    "bevel": "none"
+  },
+  "shape": {
+    "radiusMultiple": 1.0,
+    "cardSet": "poster"
+  },
+  "type": "system",
+  "density": "comfortable",
+  "motion": {
+    "focus": "ring",
+    "screen": "fade"
+  },
+  "home": {
+    "hero": "billboard",
+    "rows": "default"
+  },
+  "preview": {
+    "bg": "#0f1115",
+    "surface": "#1f232c",
+    "accent": "#7955ff"
+  },
+  "navExpand": ""
+}

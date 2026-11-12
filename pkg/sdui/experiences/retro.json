@@ -1,0 +1,51 @@
+{
+  "id": "retro",
+  "order": 14,
+  "name": "Retro",
+  "tagline": "Teletext",
+  "icon": "tv",
+  "description": "Teletext and CRT: block type, eight colours and colour-coded keys. Scanlines are off until turned on.",
+  "theme": "teletext",
+  "tvTheme": "teletext",
+  "nav": {
+    "web": "teleKeys",
+    "desktop": "teleKeys",
+    "tablet": "teleKeys",
+    "phone": "bottomTabs",
+    "tv": "teleKeys",
+    "headset": "ornamentTabs"
+  },
+  "pages": {
+    "hero": "row",
+    "cardStyle": "block",
+    "rowsAsLists": true,
+    "sectionStyle": "band"
+  },
+  "effects": {
+    "glass": "none",
+    "gloss": "none",
+    "glow": "none",
+    "texture": "none",
+    "bevel": "none"
+  },
+  "shape": {
+    "radiusMultiple": 0,
+    "cardSet": "block"
+  },
+  "type": "mono",
+  "density": "compact",
+  "motion": {
+    "focus": "fill",
+    "screen": "cut"
+  },
+  "home": {
+    "hero": "row",
+    "rows": "list"
+  },
+  "preview": {
+    "bg": "#000000",
+    "surface": "#0000a8",
+    "accent": "#ffff00"
+  },
+  "navExpand": ""
+}

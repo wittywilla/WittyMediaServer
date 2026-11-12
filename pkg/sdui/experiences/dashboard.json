@@ -1,0 +1,49 @@
+{
+  "id": "dashboard",
+  "order": 13,
+  "name": "Dashboard",
+  "tagline": "Widgets",
+  "icon": "chart",
+  "description": "A tile grid of widgets: continue watching, on TV now, statistics, server status, a clock. Every tile movable.",
+  "theme": "midnight",
+  "tvTheme": "outline",
+  "nav": {
+    "web": "rail",
+    "desktop": "rail",
+    "tablet": "rail",
+    "phone": "bottomTabs",
+    "tv": "tvSideMenu",
+    "headset": "ornamentTabs"
+  },
+  "pages": {
+    "hero": "row",
+    "widgets": true
+  },
+  "effects": {
+    "glass": "none",
+    "gloss": "none",
+    "glow": "none",
+    "texture": "none",
+    "bevel": "none"
+  },
+  "shape": {
+    "radiusMultiple": 1.4,
+    "cardSet": "tile"
+  },
+  "type": "system",
+  "density": "comfortable",
+  "motion": {
+    "focus": "ring",
+    "screen": "fade"
+  },
+  "home": {
+    "hero": "row",
+    "rows": "widgets"
+  },
+  "preview": {
+    "bg": "#0d1117",
+    "surface": "#1b2430",
+    "accent": "#22c3b8"
+  },
+  "navExpand": ""
+}

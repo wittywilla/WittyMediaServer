@@ -1,0 +1,49 @@
+{
+  "id": "rail",
+  "order": 2,
+  "name": "Rail",
+  "tagline": "Library first",
+  "icon": "library",
+  "description": "An icon rail that opens into a full menu and a drawer for each library, with title-on-art cards.",
+  "theme": "cinema",
+  "tvTheme": "classic",
+  "nav": {
+    "web": "railDrawer",
+    "desktop": "railDrawer",
+    "tablet": "railDrawer",
+    "phone": "bottomTabs",
+    "tv": "tvSideMenu",
+    "headset": "ornamentTabs"
+  },
+  "navExpand": "drawer",
+  "pages": {
+    "hero": "banner",
+    "cardStyle": "plate"
+  },
+  "effects": {
+    "glass": "none",
+    "gloss": "none",
+    "glow": "none",
+    "texture": "none",
+    "bevel": "none"
+  },
+  "shape": {
+    "radiusMultiple": 1.4,
+    "cardSet": "plate"
+  },
+  "type": "system",
+  "density": "comfortable",
+  "motion": {
+    "focus": "ring-lift",
+    "screen": "slide"
+  },
+  "home": {
+    "hero": "banner",
+    "rows": "library"
+  },
+  "preview": {
+    "bg": "#120e0a",
+    "surface": "#261d14",
+    "accent": "#d98a1c"
+  }
+}

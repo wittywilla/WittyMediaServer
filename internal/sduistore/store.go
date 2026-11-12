@@ -78,10 +78,10 @@ type Config struct {
 	Pages map[string]sdui.Page `json:"pages"`
 	// Personalisation says whether profiles may arrange pages for themselves.
 	Personalisation Personalisation `json:"personalisation,omitzero"`
-	// Layouts are the layout options each form factor starts with and the ones
+	// Experiences are the layout options each form factor starts with and the ones
 	// profiles may choose (docs/SDUI.md, "Layout options"); nil: the defaults, all
 	// allowed.
-	Layouts *sdui.LayoutPolicy `json:"layouts,omitempty"`
+	Experiences *sdui.ExperiencePolicy `json:"experiences,omitempty"`
 	// BaseRevision is set on the draft only: the published revision it was
 	// begun from. Publishing applies what the draft changed since that
 	// revision on top of what is published now (see Merge). Ignored, and
@@ -671,7 +671,7 @@ func (s *Store) Check(c *Config) []sdui.Issue {
 		}
 		checkTokens("/theme/modules/"+mod, c.Theme.Modules[mod])
 	}
-	for _, is := range sdui.ValidateLayoutPolicy(c.Layouts) {
+	for _, is := range sdui.ValidateExperiencePolicy(c.Experiences) {
 		is.Path = "/layouts" + is.Path
 		ve.Issues = append(ve.Issues, is)
 	}
@@ -997,8 +997,8 @@ func Merge(base, draft, published *Config, prefer string) (*Config, []string) {
 	if pick("/theme", base.Theme, draft.Theme, published.Theme) {
 		out.Theme = draft.Clone().Theme
 	}
-	if pick("/layouts", base.Layouts, draft.Layouts, published.Layouts) {
-		out.Layouts = draft.Clone().Layouts
+	if pick("/layouts", base.Experiences, draft.Experiences, published.Experiences) {
+		out.Experiences = draft.Clone().Experiences
 	}
 	return out, conflicts
 }

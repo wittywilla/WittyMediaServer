@@ -418,76 +418,274 @@
    "formFactor": "phone"
   },
   {
-   "id": "layout-sidebar-desktop",
-   "file": "layout-sidebar-desktop.json",
-   "title": "Layout: sidebar, Home in a desktop window",
+   "id": "exp-lumen-desktop",
+   "file": "exp-lumen-desktop.json",
+   "title": "Experience Lumen: Home in a desktop window",
    "formFactor": "desktop"
   },
   {
-   "id": "layout-sidebar-phone",
-   "file": "layout-sidebar-phone.json",
-   "title": "Layout: sidebar, Home on a phone",
-   "formFactor": "phone"
-  },
-  {
-   "id": "layout-toptabs-phone",
-   "file": "layout-toptabs-phone.json",
-   "title": "Layout: top tabs, Home on a phone",
-   "formFactor": "phone"
-  },
-  {
-   "id": "layout-toptabs-tablet",
-   "file": "layout-toptabs-tablet.json",
-   "title": "Layout: top tabs, Home on a tablet",
-   "formFactor": "tablet"
-  },
-  {
-   "id": "layout-tvrows-tv",
-   "file": "layout-tvrows-tv.json",
-   "title": "Layout: TV rows, a film library on a television",
+   "id": "exp-lumen-tv",
+   "file": "exp-lumen-tv.json",
+   "title": "Experience Lumen: Home on a television",
    "formFactor": "tv"
   },
   {
-   "id": "layout-tvrows-tablet",
-   "file": "layout-tvrows-tablet.json",
-   "title": "Layout: TV rows, a music library on a tablet",
-   "formFactor": "tablet"
+   "id": "exp-lumen-phone",
+   "file": "exp-lumen-phone.json",
+   "title": "Experience Lumen: Home on a phone",
+   "formFactor": "phone"
   },
   {
-   "id": "layout-tvrows-desktop",
-   "file": "layout-tvrows-desktop.json",
-   "title": "Layout: TV rows, Home in a desktop window",
+   "id": "exp-rail-desktop",
+   "file": "exp-rail-desktop.json",
+   "title": "Experience Rail: Home in a desktop window",
    "formFactor": "desktop"
   },
   {
-   "id": "layout-compactlist-phone",
-   "file": "layout-compactlist-phone.json",
-   "title": "Layout: compact list, Home on a phone",
-   "formFactor": "phone"
-  },
-  {
-   "id": "layout-compactlist-tv",
-   "file": "layout-compactlist-tv.json",
-   "title": "Layout: compact list, Home on a television",
+   "id": "exp-rail-tv",
+   "file": "exp-rail-tv.json",
+   "title": "Experience Rail: Home on a television",
    "formFactor": "tv"
   },
   {
-   "id": "layout-streaming-web",
-   "file": "layout-streaming-web.json",
-   "title": "Layout: streaming style, Home in a browser",
-   "formFactor": "web"
-  },
-  {
-   "id": "layout-streaming-phone",
-   "file": "layout-streaming-phone.json",
-   "title": "Layout: streaming style, Home on a phone",
+   "id": "exp-rail-phone",
+   "file": "exp-rail-phone.json",
+   "title": "Experience Rail: Home on a phone",
    "formFactor": "phone"
   },
   {
-   "id": "layout-streaming-tv",
-   "file": "layout-streaming-tv.json",
-   "title": "Layout: streaming style, Home on a television",
+   "id": "exp-stage-desktop",
+   "file": "exp-stage-desktop.json",
+   "title": "Experience Stage: Home in a desktop window",
+   "formFactor": "desktop"
+  },
+  {
+   "id": "exp-stage-tv",
+   "file": "exp-stage-tv.json",
+   "title": "Experience Stage: Home on a television",
    "formFactor": "tv"
+  },
+  {
+   "id": "exp-stage-phone",
+   "file": "exp-stage-phone.json",
+   "title": "Experience Stage: Home on a phone",
+   "formFactor": "phone"
+  },
+  {
+   "id": "exp-aero-desktop",
+   "file": "exp-aero-desktop.json",
+   "title": "Experience Aero: Home in a desktop window",
+   "formFactor": "desktop"
+  },
+  {
+   "id": "exp-aero-tv",
+   "file": "exp-aero-tv.json",
+   "title": "Experience Aero: Home on a television",
+   "formFactor": "tv"
+  },
+  {
+   "id": "exp-aero-phone",
+   "file": "exp-aero-phone.json",
+   "title": "Experience Aero: Home on a phone",
+   "formFactor": "phone"
+  },
+  {
+   "id": "exp-classic-desktop",
+   "file": "exp-classic-desktop.json",
+   "title": "Experience Classic: Home in a desktop window",
+   "formFactor": "desktop"
+  },
+  {
+   "id": "exp-classic-tv",
+   "file": "exp-classic-tv.json",
+   "title": "Experience Classic: Home on a television",
+   "formFactor": "tv"
+  },
+  {
+   "id": "exp-classic-phone",
+   "file": "exp-classic-phone.json",
+   "title": "Experience Classic: Home on a phone",
+   "formFactor": "phone"
+  },
+  {
+   "id": "exp-classicCable-desktop",
+   "file": "exp-classicCable-desktop.json",
+   "title": "Experience Classic Cable: Home in a desktop window",
+   "formFactor": "desktop"
+  },
+  {
+   "id": "exp-classicCable-tv",
+   "file": "exp-classicCable-tv.json",
+   "title": "Experience Classic Cable: Home on a television",
+   "formFactor": "tv"
+  },
+  {
+   "id": "exp-classicCable-phone",
+   "file": "exp-classicCable-phone.json",
+   "title": "Experience Classic Cable: Home on a phone",
+   "formFactor": "phone"
+  },
+  {
+   "id": "exp-classicSatellite-desktop",
+   "file": "exp-classicSatellite-desktop.json",
+   "title": "Experience Classic Satellite: Home in a desktop window",
+   "formFactor": "desktop"
+  },
+  {
+   "id": "exp-classicSatellite-tv",
+   "file": "exp-classicSatellite-tv.json",
+   "title": "Experience Classic Satellite: Home on a television",
+   "formFactor": "tv"
+  },
+  {
+   "id": "exp-classicSatellite-phone",
+   "file": "exp-classicSatellite-phone.json",
+   "title": "Experience Classic Satellite: Home on a phone",
+   "formFactor": "phone"
+  },
+  {
+   "id": "exp-compact-desktop",
+   "file": "exp-compact-desktop.json",
+   "title": "Experience Compact: Home in a desktop window",
+   "formFactor": "desktop"
+  },
+  {
+   "id": "exp-compact-tv",
+   "file": "exp-compact-tv.json",
+   "title": "Experience Compact: Home on a television",
+   "formFactor": "tv"
+  },
+  {
+   "id": "exp-compact-phone",
+   "file": "exp-compact-phone.json",
+   "title": "Experience Compact: Home on a phone",
+   "formFactor": "phone"
+  },
+  {
+   "id": "exp-paper-desktop",
+   "file": "exp-paper-desktop.json",
+   "title": "Experience Paper: Home in a desktop window",
+   "formFactor": "desktop"
+  },
+  {
+   "id": "exp-paper-tv",
+   "file": "exp-paper-tv.json",
+   "title": "Experience Paper: Home on a television",
+   "formFactor": "tv"
+  },
+  {
+   "id": "exp-paper-phone",
+   "file": "exp-paper-phone.json",
+   "title": "Experience Paper: Home on a phone",
+   "formFactor": "phone"
+  },
+  {
+   "id": "exp-marquee-desktop",
+   "file": "exp-marquee-desktop.json",
+   "title": "Experience Marquee: Home in a desktop window",
+   "formFactor": "desktop"
+  },
+  {
+   "id": "exp-marquee-tv",
+   "file": "exp-marquee-tv.json",
+   "title": "Experience Marquee: Home on a television",
+   "formFactor": "tv"
+  },
+  {
+   "id": "exp-marquee-phone",
+   "file": "exp-marquee-phone.json",
+   "title": "Experience Marquee: Home on a phone",
+   "formFactor": "phone"
+  },
+  {
+   "id": "exp-crossbar-desktop",
+   "file": "exp-crossbar-desktop.json",
+   "title": "Experience Crossbar: Home in a desktop window",
+   "formFactor": "desktop"
+  },
+  {
+   "id": "exp-crossbar-tv",
+   "file": "exp-crossbar-tv.json",
+   "title": "Experience Crossbar: Home on a television",
+   "formFactor": "tv"
+  },
+  {
+   "id": "exp-crossbar-phone",
+   "file": "exp-crossbar-phone.json",
+   "title": "Experience Crossbar: Home on a phone",
+   "formFactor": "phone"
+  },
+  {
+   "id": "exp-bigpicture-desktop",
+   "file": "exp-bigpicture-desktop.json",
+   "title": "Experience Big picture: Home in a desktop window",
+   "formFactor": "desktop"
+  },
+  {
+   "id": "exp-bigpicture-tv",
+   "file": "exp-bigpicture-tv.json",
+   "title": "Experience Big picture: Home on a television",
+   "formFactor": "tv"
+  },
+  {
+   "id": "exp-bigpicture-phone",
+   "file": "exp-bigpicture-phone.json",
+   "title": "Experience Big picture: Home on a phone",
+   "formFactor": "phone"
+  },
+  {
+   "id": "exp-dashboard-desktop",
+   "file": "exp-dashboard-desktop.json",
+   "title": "Experience Dashboard: Home in a desktop window",
+   "formFactor": "desktop"
+  },
+  {
+   "id": "exp-dashboard-tv",
+   "file": "exp-dashboard-tv.json",
+   "title": "Experience Dashboard: Home on a television",
+   "formFactor": "tv"
+  },
+  {
+   "id": "exp-dashboard-phone",
+   "file": "exp-dashboard-phone.json",
+   "title": "Experience Dashboard: Home on a phone",
+   "formFactor": "phone"
+  },
+  {
+   "id": "exp-retro-desktop",
+   "file": "exp-retro-desktop.json",
+   "title": "Experience Retro: Home in a desktop window",
+   "formFactor": "desktop"
+  },
+  {
+   "id": "exp-retro-tv",
+   "file": "exp-retro-tv.json",
+   "title": "Experience Retro: Home on a television",
+   "formFactor": "tv"
+  },
+  {
+   "id": "exp-retro-phone",
+   "file": "exp-retro-phone.json",
+   "title": "Experience Retro: Home on a phone",
+   "formFactor": "phone"
+  },
+  {
+   "id": "exp-bigpicture-library-tv",
+   "file": "exp-bigpicture-library-tv.json",
+   "title": "Experience Big picture: a film library on a television",
+   "formFactor": "tv"
+  },
+  {
+   "id": "exp-bigpicture-library-tablet",
+   "file": "exp-bigpicture-library-tablet.json",
+   "title": "Experience Big picture: a music library on a tablet",
+   "formFactor": "tablet"
+  },
+  {
+   "id": "exp-rail-headset",
+   "file": "exp-rail-headset.json",
+   "title": "Experience Rail on a headset",
+   "formFactor": "headset"
   },
   {
    "id": "library-books-tv",

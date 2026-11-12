@@ -161,6 +161,15 @@ var componentTokens = map[string]TokenRoles{
 	"Tabs": {Colors: join(focusRing, map[string]string{"text": "fg2", "selectedText": "fg", "accent": "accent", "border": "border",
 		"selected": "accentSoft", "surface": "bg3", "hover": "hover"}),
 		Type: map[string]string{"label": "title"}, Shape: join(focusShape, map[string]string{"segment": "chip"})},
+	"CrossBar": {Colors: join(focusRing, map[string]string{"text": "fg2", "selectedText": "fg", "accent": "accent", "border": "border", "selected": "accentSoft", "surface": "bg3", "hover": "hover", "icon": "fg2"}),
+		Type: map[string]string{"label": "title", "item": "heading"}, Shape: join(focusShape, map[string]string{"segment": "chip", "row": "row"})},
+	"Carousel": {Colors: join(focusRing, map[string]string{"text": "fg", "secondaryText": "fg2", "link": "accentText", "surface": "bg3", "accent": "accent", "onAccent": "accentFg"}),
+		Type: map[string]string{"title": "heading", "subtitle": "caption", "focused": "display"}, Shape: join(focusShape, map[string]string{"scrollButton": "pill", "button": "button"})},
+	"WidgetGrid": {Colors: map[string]string{"background": "bg", "text": "fg"}},
+	"Widget": {Colors: join(focusRing, map[string]string{"background": "bg2", "surface": "bg3", "border": "border", "text": "fg", "secondaryText": "fg2", "hintText": "fg3", "link": "accentText", "progress": "accent", "progressTrack": "bg4"}),
+		Type: map[string]string{"title": "heading", "figure": "display", "text": "body", "caption": "caption"}, Shape: join(focusShape, map[string]string{"corner": "card"})},
+	"NumberedRow": {Colors: join(focusRing, map[string]string{"text": "fg", "secondaryText": "fg2", "hintText": "fg3", "playing": "accentText", "border": "border", "hover": "hover", "selected": "accentSoft", "surface": "bg3"}),
+		Type: map[string]string{"title": "heading", "row": "body", "subtitle": "caption", "number": "title"}, Shape: join(focusShape, map[string]string{"row": "row", "art": "thumb"})},
 	"Tab": {Colors: join(focusRing, map[string]string{"text": "fg2", "selectedText": "fg", "accent": "accent", "selected": "accentSoft", "hover": "hover"}),
 		Type: map[string]string{"label": "title"}, Shape: join(focusShape, map[string]string{"segment": "chip"})},
 	"FilterBar": {Colors: join(focusRing, map[string]string{"surface": "bg3", "text": "fg", "secondaryText": "fg2", "hintText": "fg3",
@@ -239,7 +248,12 @@ func cardStyleTokens(style, shape string) TokenRoles {
 		// The name sits over the picture, or over a plain tile with an icon.
 		t.Colors = join(t.Colors, overImage, map[string]string{"text": "onImage", "icon": "fg2"})
 		t.Type["title"] = "heading"
-	case "channel":
+	case "plate":
+		// The title sits over the picture, on a scrim.
+		t.Colors = join(t.Colors, overImage, map[string]string{"text": "onImage"})
+	case "block":
+		t.Type = map[string]string{"title": "title", "subtitle": "caption"}
+	case "logo", "channel":
 		t.Colors = join(t.Colors, map[string]string{"hintText": "fg2", "surface": "bg3"})
 		t.Type["number"], t.Type["now"], t.Type["next"] = "caption", "caption", "caption"
 	case "episode":

@@ -1,0 +1,49 @@
+{
+  "id": "marquee",
+  "order": 10,
+  "name": "Marquee",
+  "tagline": "Poster carousel",
+  "icon": "movie",
+  "description": "One big title at a time in a centred carousel of posters.",
+  "theme": "cinema",
+  "tvTheme": "bigpicture",
+  "nav": {
+    "web": "topTabs",
+    "desktop": "topTabs",
+    "tablet": "topTabs",
+    "phone": "bottomTabs",
+    "tv": "tvTopMenu",
+    "headset": "ornamentTabs"
+  },
+  "pages": {
+    "hero": "carousel",
+    "cardSize": "l"
+  },
+  "effects": {
+    "glass": "none",
+    "gloss": "none",
+    "glow": "subtle",
+    "texture": "none",
+    "bevel": "none"
+  },
+  "shape": {
+    "radiusMultiple": 1.0,
+    "cardSet": "carousel"
+  },
+  "type": "system",
+  "density": "comfortable",
+  "motion": {
+    "focus": "ring-lift",
+    "screen": "fade"
+  },
+  "home": {
+    "hero": "carousel",
+    "rows": "carousel"
+  },
+  "preview": {
+    "bg": "#140d0d",
+    "surface": "#2a1a1a",
+    "accent": "#e0a030"
+  },
+  "navExpand": ""
+}

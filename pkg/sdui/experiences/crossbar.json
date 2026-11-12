@@ -1,0 +1,49 @@
+{
+  "id": "crossbar",
+  "order": 11,
+  "name": "Crossbar",
+  "tagline": "Console style",
+  "icon": "game",
+  "description": "A horizontal bar of categories with a vertical list under the chosen one. Games and music first.",
+  "theme": "evergreen",
+  "tvTheme": "satellite",
+  "nav": {
+    "web": "crossbar",
+    "desktop": "crossbar",
+    "tablet": "crossbar",
+    "phone": "bottomTabs",
+    "tv": "crossbar",
+    "headset": "ornamentTabs"
+  },
+  "pages": {
+    "hero": "row",
+    "crossbar": true
+  },
+  "effects": {
+    "glass": "none",
+    "gloss": "none",
+    "glow": "subtle",
+    "texture": "none",
+    "bevel": "none"
+  },
+  "shape": {
+    "radiusMultiple": 1.6,
+    "cardSet": "tile"
+  },
+  "type": "system",
+  "density": "comfortable",
+  "motion": {
+    "focus": "glow",
+    "screen": "slide"
+  },
+  "home": {
+    "hero": "row",
+    "rows": "crossbar"
+  },
+  "preview": {
+    "bg": "#07140f",
+    "surface": "#153027",
+    "accent": "#3ddc84"
+  },
+  "navExpand": ""
+}

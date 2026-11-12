@@ -1,0 +1,49 @@
+{
+  "id": "classicSatellite",
+  "order": 7,
+  "name": "Classic Satellite",
+  "tagline": "Silver bars",
+  "icon": "live",
+  "description": "Silver bevelled bars, orange highlights and logo tiles for channels.",
+  "theme": "satellite",
+  "tvTheme": "satellite",
+  "nav": {
+    "web": "bevelBar",
+    "desktop": "bevelBar",
+    "tablet": "bevelBar",
+    "phone": "bottomTabs",
+    "tv": "bevelBar",
+    "headset": "ornamentTabs"
+  },
+  "pages": {
+    "hero": "billboard",
+    "sectionStyle": "underline"
+  },
+  "effects": {
+    "glass": "none",
+    "gloss": "subtle",
+    "glow": "none",
+    "texture": "none",
+    "bevel": "full"
+  },
+  "shape": {
+    "radiusMultiple": 0.6,
+    "cardSet": "poster"
+  },
+  "type": "system",
+  "density": "comfortable",
+  "motion": {
+    "focus": "ring-lift",
+    "screen": "fade"
+  },
+  "home": {
+    "hero": "billboard",
+    "rows": "default"
+  },
+  "preview": {
+    "bg": "#0c1418",
+    "surface": "#1f3540",
+    "accent": "#ff8a1f"
+  },
+  "navExpand": ""
+}

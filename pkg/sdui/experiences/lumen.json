@@ -1,0 +1,48 @@
+{
+  "id": "lumen",
+  "order": 1,
+  "name": "Lumen",
+  "tagline": "Quiet cinema",
+  "icon": "play",
+  "description": "Top pills, a billboard spotlight and rows that peek at the next card. The default.",
+  "theme": "default",
+  "tvTheme": "modern",
+  "nav": {
+    "web": "topTabs",
+    "desktop": "topTabs",
+    "tablet": "topTabs",
+    "phone": "bottomTabs",
+    "tv": "tvTopMenu",
+    "headset": "ornamentTabs"
+  },
+  "pages": {
+    "hero": "billboard"
+  },
+  "effects": {
+    "glass": "none",
+    "gloss": "none",
+    "glow": "none",
+    "texture": "none",
+    "bevel": "none"
+  },
+  "shape": {
+    "radiusMultiple": 1.4,
+    "cardSet": "poster"
+  },
+  "type": "system",
+  "density": "comfortable",
+  "motion": {
+    "focus": "ring-lift",
+    "screen": "fade"
+  },
+  "home": {
+    "hero": "billboard",
+    "rows": "default"
+  },
+  "preview": {
+    "bg": "#0f1115",
+    "surface": "#1f232c",
+    "accent": "#7955ff"
+  },
+  "navExpand": ""
+}

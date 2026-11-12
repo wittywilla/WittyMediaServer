@@ -45,7 +45,12 @@ func stampFocus(root *Node) {
 	var first, content, header, search *Node
 	var walk func(n *Node, group string, inHero bool)
 	var stamp func(n *Node, group string, inHero bool)
+	inDock := false // the Dock's buttons are controls, not content: focus doesn't start there
 	walk = func(n *Node, group string, inHero bool) {
+		if n.Type == "Dock" {
+			inDock = true
+			defer func() { inDock = false }()
+		}
 		if n.Type != "Tab" { // a Tab was stamped with its strip
 			stamp(n, group, inHero)
 		}
@@ -89,7 +94,7 @@ func stampFocus(root *Node) {
 				}
 				fallthrough
 			default:
-				if content == nil {
+				if content == nil && !inDock {
 					content = n
 				}
 			}

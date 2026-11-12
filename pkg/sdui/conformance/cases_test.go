@@ -467,7 +467,19 @@ func cases() []kase {
 			checks: []string{"the filter bar's choices come from the server", "its count is the grid's total", "the grid has as many columns as fit: floor((1408 + 16) / (180 + 16)) = 7", "the grid pages: more.url"},
 			more:   []SectionAnswer{{Section: "all", Cursor: 60}}},
 		{id: "library-films-tv", title: "A film library on a television", in: library("library-movies", "tv", "1", "movies", "Films", nil),
-			checks: []string{"six columns of posters", "36 cards in the first page", "focus starts in the grid, not on the filter bar"}},
+			checks: []string{"six columns of posters", "36 cards in the first page", "focus starts in the grid, not on the filter bar",
+				"the server adds a locked Dock at the end: Sort, Filter, View and, as the sort is the title, Jump to a letter, then the key legend", "the Dock is 112 points tall at the foot of the screen"}},
+		{id: "library-films-dock-desktop", title: "A film library with a Dock written into the page", in: library("library-movies", "desktop", "1", "movies", "Films", func(in *Input) { addDock(in) }),
+			checks: []string{"a Dock's generated controls come from the filter bar that drives its target", "the legend closes the row", "the Dock is last in the focus order and never the default", "it is 64 points tall"}},
+		{id: "library-films-dock-phone", title: "The same Dock on a phone", in: library("library-movies", "phone", "1", "movies", "Films", func(in *Input) { addDock(in) }),
+			checks: []string{"placement is sheet, no height, no key legend"}},
+		{id: "home-hero-peek-phone", title: "A spotlight that shows the next title's edge", in: home("phone", func(in *Input) {
+			for i := range in.Page.Sections {
+				if in.Page.Sections[i].Component == "Hero" {
+					in.Page.Sections[i].Props = map[string]any{"peek": true}
+				}
+			}
+		}), checks: []string{"the Hero carries peek and the layout's 12 percent", "rows keep their own peek"}},
 		{id: "library-films-phone", title: "A film library on a phone", in: library("library-movies", "phone", "1", "movies", "Films", nil), checks: []string{"three columns of 120-point posters"}},
 		{id: "library-films-filtered", title: "A film library filtered and sorted", in: library("library-movies", "desktop", "1", "movies", "Films", func(in *Input) {
 			in.Request.Params = map[string]string{"genre": "Family", "sort": "rating"}
@@ -777,4 +789,10 @@ func sourceCases() []kase {
 			checks: []string{"rows past the first screen arrive deferred, as on any page", "an administrator's row of everyone's record, fetched by its cursor, says how many people"},
 			more:   []SectionAnswer{{Section: "everyone", Cursor: 0}}},
 	}
+}
+
+// addDock writes a Dock at the end of a library page, driving its grid.
+func addDock(in *Input) {
+	in.Page.Sections = append(in.Page.Sections, sdui.Section{ID: "dock", Component: "Dock",
+		Props: map[string]any{"target": "all", "controls": []any{"sort", "filter", "view", "jump"}}})
 }

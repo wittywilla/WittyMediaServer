@@ -140,7 +140,7 @@ Overlays render into `<body>` through a portal, so nothing around them can clip 
 ### Roles, elevation, density (Design 2)
 
 [plans/DESIGN-2.md](plans/DESIGN-2.md) section 2 is the contract; `themes/tokens.json` is the data, generated from
-`web/src/styles.css` by `scripts/design-tokens.py`. Everything below is additive: the older names keep their values.
+`web/src/styles.css` by `scripts/design-tokens.py`.
 
 - **Type roles** (`--role-<name>-size|weight|leading|tracking`): `display`, `pageTitle`, `heading`, `title`, `body`,
   `caption`, `label`, at the 1x device. Apps read the role, not the numeric scale. Television sizes are `tv.type`.
@@ -414,7 +414,7 @@ and radii are multiples of the theme's `radius`.
 **The ten-foot rules**, on any client:
 
 - **Everything can be reached and used with a D-pad.** No action needs a pointer.
-- **Focus is always obvious** (changed in Design 2: the ring is `--tv-ring-color`, 4 TV units with a 4-unit gap, and a poster grows by 6%; it was a 3px `--fg` ring): a ring concentric with the corner and a slightly larger poster. Exactly one thing has
+- **Focus is always obvious**: a ring in `--tv-ring-color`, 4 TV units wide with a 4-unit gap, and a poster that grows by 6%: a ring concentric with the corner and a slightly larger poster. Exactly one thing has
   it, and moving it never scrolls it out of sight or clips it.
 - **Large targets**: at least 48, spaced so focus moves predictably.
 - **Readable from the sofa**: base text grows by a quarter, and no text below `--text-2xs` at that

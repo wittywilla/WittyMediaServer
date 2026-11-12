@@ -70,6 +70,12 @@ var Icons = []string{
 
 func ip(n int) *int { return &n }
 
+// rev3 marks a property as added in catalogue revision 3 (Design 2).
+func rev3(p PropSpec) PropSpec {
+	p.Since = 3
+	return p
+}
+
 // opts turns "value|Label" strings into options; a bare "value" is its own label, capitalised.
 func opts(list ...string) []EnumOption {
 	out := make([]EnumOption, 0, len(list))
@@ -168,7 +174,7 @@ func buildComponents() []ComponentSpec {
 			Description: "The root of every rendered page. It scrolls down; nothing inside it scrolls down by itself.",
 			Props:       []PropSpec{pStr("title", "Title", "The page's heading.", 120), pEnum("density", "Density", "How tightly the page is packed.", "comfortable", "compact", "comfortable", "spacious")},
 			Renders: map[string]string{
-				"tv":      "A full-screen column inside the safe area (60 points top and bottom, 80 at the sides), sections 40 points apart. The title isn't drawn: the top menu says where you are.",
+				"tv":      "A full-screen column inside the safe area (60 points top and bottom, 90 at the sides), sections 40 points apart. The title isn't drawn: the top menu says where you are.",
 				"phone":   "A scrolling column under a large title that collapses into the navigation bar; sections 24 points apart, rows bleed to the screen's edges.",
 				"tablet":  "As a phone, with 16-point side margins (the m spacing, as on every form factor but the television).",
 				"desktop": "A scrolling column beside the sidebar, the title as a heading, content at most 1600 points wide.",
@@ -186,10 +192,11 @@ func buildComponents() []ComponentSpec {
 				pBool("showLogo", "Use the title's logo", "The title's logo art in place of its name, when it has one.", true),
 				pList("actions", "Buttons", "The buttons on each title, in order.", []string{"play", "details"}, "play|Play", "details|More info", "watchLater|Watch later"),
 				pInt("maxItems", "Most titles", "How many titles it rotates through.", 5, 1, 8),
+				rev3(pBool("peek", "Show the next title's edge", "A sliver of the next title (layout.peek of the slide's width) shows at the trailing edge of the spotlight on a phone or tablet, so it is clear there is more to swipe to. A television's buttons row and a desktop's arrows say it already.", false)),
 			},
 			Renders: map[string]string{
 				"tv":      "The top 620 points of the screen: backdrop full width behind a left-to-right scrim, the logo or title at the heading size bottom-left, facts, at most three lines of synopsis, then the buttons in a row. Left and right on the buttons' row past its ends change title; it never advances while one of its buttons has focus.",
-				"phone":   "A 16/9 backdrop the width of the screen (2/3 with style billboard), title and facts over a bottom scrim, buttons below; swipe sideways to change title, page dots under it.",
+				"phone":   "A 16/9 backdrop the width of the screen (2/3 with style billboard), title and facts over a bottom scrim, buttons below; swipe sideways to change title, page dots under it. With peek, the slide is narrowed by layout.peek of its width so the next one's edge shows.",
 				"tablet":  "A 21/9 backdrop with the text block at the bottom-left third.",
 				"desktop": "A 21/9 backdrop at most 620 points tall, text block bottom-left, arrows at the edges on hover, page dots bottom-right.",
 			},
@@ -204,10 +211,12 @@ func buildComponents() []ComponentSpec {
 				pEnum("seeAll", "See all", "A link to everything the row is drawn from, when the source has such a place.", "auto", "auto|When there is more", "always|Always", "never|Never"),
 				pBool("numbered", "Number the cards", "Large rank numbers beside the cards, for a top ten.", false),
 				pInt("maxItems", "Most cards at first", "How many cards are sent before the row asks for more. 0 uses the device's own limit.", 0, 0, 60),
+				rev3(pBool("peek", "Show the next card's edge", "layout.peek of the next card's width stays visible at the row's trailing edge, so it is clear the row scrolls on. Off cuts the row at a whole card.", true)),
+				rev3(pEnum("seeAllCard", "See all as a card", "See all as the last card of the row, in the shape of the row's cards, in place of the link beside the heading. Automatic: on a television and in the layouts that ask for it (TV rows, Streaming style).", "auto", "auto|Where the layout says", "always|Always", "never|Never")),
 				propEmpty, propEmptyText,
 			},
 			Renders: map[string]string{
-				"tv":      "A heading at the title size, then one row of cards 40 points apart that scrolls sideways under focus, the focused card kept a safe-area's width from the left edge and raised with the system's focus effect. The row is one focus section and remembers its last card. \"See all\" is a final card of the row's shape.",
+				"tv":      "A heading at the title size, then one row of cards that scrolls sideways under focus (cards layout.spacing.m apart, the next card peeking in by layout.peek of its width), the focused card kept a safe-area's width from the left edge and raised with the system's focus effect. The row is one focus section and remembers its last card. With props.seeAllCard, \"See all\" is a final card of the row's shape (its label in the title style, an arrow icon, the same corner), reached by moving past the last title; otherwise it is a link beside the heading.",
 				"phone":   "A heading with a chevron when there is a See all, then a row that scrolls by touch and bleeds off both edges; cards 12 points apart.",
 				"tablet":  "As a phone with 16-point gaps.",
 				"desktop": "A heading with a \"See all\" link at its end, a row that scrolls by wheel, drag or the arrow buttons that appear at its ends on hover; arrow keys move focus card to card.",
@@ -295,6 +304,38 @@ func buildComponents() []ComponentSpec {
 			A11y:    "Role: toolbar, labelled \"Filter and sort\". Each field is a pop-up button labelled \"<label>: <current choice or Any>\".",
 			Example: example(`{"id":"filters","component":"FilterBar","props":{"target":"all","fields":["genre","decade","watched"]}}`)},
 
+		{Type: "Dock", Label: "Dock", Icon: "more", Category: "navigation", Since: 3, Required: true, Authored: true, Data: "none", Container: true, Children: []string{"Button", "KeyLegend"}, Focus: "group",
+			Description: "The persistent controls of one screen, in one row that never moves: for a grid, its sort, filters, view and jump to a letter. It is where the screen's options key leads, and it carries the key legend. Put it last on the page.",
+			Props: []PropSpec{
+				rev3(pText("title", "Name", "Named to assistive technology: \"Options\" when left empty.", 40)),
+				rev3(pOf(PropSection, "target", "Controls", "The Grid its generated controls act on, which a FilterBar on the page filters. Without one only its own Buttons are drawn.")),
+				rev3(pList("controls", "Controls", "Generated buttons, in order: sort and filters (when a filter bar drives the target), the view (grid or list) and jump to a letter. One that has nothing to offer is left out.", []string{}, "sort|Sort", "filter|Filter", "view|View", "jump|Jump to a letter")),
+				rev3(pBool("legend", "Key legend", "A KeyLegend at the end, for the keys of the device in use.", true)),
+			},
+			Renders: map[string]string{
+				"tv":      "A bar layout.dock.height points tall across the bottom of the screen, inside the safe area, outside the page's scroll: one row of buttons at the title size with the key legend at the trailing end. It never moves and never wraps. It takes focus with Down from the last row of the page, with the options key from anywhere, or with Start; Up returns to the same place. Left and right wrap inside it, the only place that does.",
+				"tablet":  "The same bar, layout.dock.height points tall, above the bottom bar.",
+				"desktop": "The same bar across the bottom of the content, layout.dock.height points tall, below the page's scroll; the options key (a period) or Shift+F10 moves focus to it.",
+				"phone":   "No bar: layout.dock.placement is sheet. The controls are one \"Options\" button at the end of the page's header that opens them as a bottom sheet, in the same order; the legend is left out.",
+			},
+			A11y:    "Role: toolbar, labelled by its name. Each control is a button labelled as written (\"Sort: Title\"). The legend is hidden from assistive technology: its keys are in every control's hint.",
+			Example: example(`{"id":"dock","component":"Dock","props":{"target":"all","controls":["sort","filter","view","jump"]}}`)},
+
+		{Type: "KeyLegend", Label: "Key legend", Icon: "info", Category: "text", Since: 3, Required: true, Authored: true, Data: "none", Focus: "none",
+			Description: "A line of key hints (\"OK Select\", \"Menu Options\") in glyphs matched to the input in use: a keyboard's key caps, a game pad's buttons, a remote's. Hidden when only touch or a mouse is in use. Normally the last thing in a Dock.",
+			Props: []PropSpec{
+				rev3(pList("actions", "Hints", "Which actions are shown, in order. The glyphs come from the input table in themes/tokens.json for the device in use.", []string{"select", "back", "options"},
+					"select|Select", "back|Back", "options|Options", "search|Search", "tabs|Previous and next tab", "page|Page up and down", "top|Jump to top", "dock|Open the dock", "help|Help for the keys")),
+			},
+			Renders: map[string]string{
+				"tv":      "One row of hints at tv.dock.hintSize (25 units), the glyph then its label in the caption style, in token fg2, at the trailing end of the Dock. Always drawn: a remote is always in use.",
+				"desktop": "The same row at the caption size, shown only while the last input was a key or a game pad; a mouse or touch hides it, the first key brings it back. Glyphs are key caps (the key, or its name).",
+				"tablet":  "As the desktop's, shown only with a keyboard or pad.",
+				"phone":   "Not drawn unless a keyboard or pad is in use; touch alone never shows it.",
+			},
+			A11y:    "Role: none (hidden). The keys are announced as each control's hint instead.",
+			Example: example(`{"id":"keys","component":"KeyLegend","props":{"actions":["select","back","options","search"]}}`)},
+
 		{Type: "DetailHeader", Label: "Title header", Icon: "info", Category: "detail", Since: 2, Authored: true, Data: "none", Focus: "stop",
 			Fallback: "Stack", FallbackNote: "A column: the backdrop as an Image, the title and overview as Text, and the actions as Buttons in a row.",
 			Description: "The top of a title's page: its art, name, facts, score, synopsis and the buttons that play it and act on it. It shows the title the page was opened for.",
@@ -369,7 +410,7 @@ func buildComponents() []ComponentSpec {
 				propTo, propNative,
 			},
 			Renders: map[string]string{
-				"tv":      "A 1760 by 300 point block: the picture behind a scrim, the title at the heading size and text at the left, one button. The block is one focus stop.",
+				"tv":      "A 1740 by 300 point block: the picture behind a scrim, the title at the heading size and text at the left, one button. The block is one focus stop.",
 				"phone":   "A full-width 16/9 card (promo) or a 96-point row with a square picture (compact); the whole banner is the button.",
 				"desktop": "A block at most 360 points tall, picture behind a left-to-right scrim, text and button bottom-left.",
 			},
@@ -382,7 +423,7 @@ func buildComponents() []ComponentSpec {
 			Props: []PropSpec{
 				req(pOf(PropMarkdown, "text", "Text", "Placeholders such as {user}, {greeting}, {server} and {library} are filled in.")),
 				pEnum("format", "Format", "", "plain", "plain|Plain", "markdown|Markdown"),
-				pEnum("role", "Size", "Sizes come from the device, not from numbers.", "body", "pageTitle|Page title", "heading|Heading", "title|Title", "body|Body", "caption|Caption"),
+				pEnum("role", "Size", "Sizes come from the device, not from numbers.", "body", "display|Display", "pageTitle|Page title", "heading|Heading", "title|Title", "body|Body", "caption|Caption"),
 				pEnum("align", "Align", "", "start", "start|Start", "center|Centre", "end|End"),
 				pInt("maxLines", "Most lines", "Cut with an ellipsis after this many lines. 0 doesn't cut.", 0, 0, 20),
 			},
@@ -770,6 +811,7 @@ func buildCatalogue() *Catalogue {
 			{Op: "watched.set", Label: "Mark watched", Description: "Marks the title watched; for a show, every episode.", Method: "POST", Path: "/api/v1/items/{item}/progress", Body: `{"watched":true}`},
 			{Op: "watched.clear", Label: "Mark unwatched", Description: "Forgets the profile's progress in the title; for a show, in every episode.", Method: "DELETE", Path: "/api/v1/items/{item}/progress"},
 			{Op: "selectTab", Label: "Choose a tab", Description: "Asks for the page again with tab=<params.tab>, or shows the tab's content when the client already has it.", Method: "GET", Path: ""},
+			{Op: "control.open", Label: "Open a control", Description: "Client-handled, from a Dock: params.control is sort, filter, view or jump and params.target the Grid. sort and filter open the page's FilterBar choices for the target; view switches it between its grid and a list and remembers it for the profile on the device; jump opens a letter picker (A to Z and #) and brings the grid to the first title starting with the letter by asking its more.url until one has arrived, at most 20 pages.", Method: "GET", Path: ""},
 			{Op: "refresh", Label: "Refresh", Description: "Asks for the page again.", Method: "GET", Path: ""},
 		},
 		NativeScreens: append([]NativeScreenSpec(nil), nativeScreenSpecs...),

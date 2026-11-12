@@ -80,6 +80,10 @@ type Element struct {
 	// route its "See all" opens.
 	HasMore bool   `json:"hasMore,omitempty"`
 	SeeAll  string `json:"seeAll,omitempty"`
+	// SeeAllCard: See all is the row's last card. Peek is the fraction of the next card
+	// (or slide) that shows at the trailing edge.
+	SeeAllCard bool    `json:"seeAllCard,omitempty"`
+	Peek       float64 `json:"peek,omitempty"`
 	// Image is the picture it asks for: its kind and width in pixels.
 	Image string `json:"image,omitempty"`
 	// Shows lists the parts of a card that are drawn, in reading order.
@@ -396,6 +400,10 @@ func (n *normaliser) element(x *sdui.Node, depth int, parent *sdui.Node) Element
 		e.HasMore = obj(p, "more") != nil && x.State != "deferred" && x.State != "error"
 		if sa := obj(p, "seeAll"); sa != nil {
 			e.SeeAll = str(sa, "route")
+			e.SeeAllCard = p["seeAllCard"] == true
+		}
+		if x.Type == "Shelf" && p["peek"] != false {
+			e.Peek = n.l.Peek
 		}
 		text("title", str(p, "title"))
 		text("subtitle", str(p, "subtitle"))
@@ -431,6 +439,9 @@ func (n *normaliser) element(x *sdui.Node, depth int, parent *sdui.Node) Element
 			h, _ := num(size, "height")
 			e.CardWidth, e.CardHeight = int(w), int(h)
 		}
+		if p["peek"] == true {
+			e.Peek = n.l.Peek
+		}
 		if adv, ok := num(p, "autoAdvanceSec"); ok {
 			text("autoAdvance", strconv.Itoa(int(adv))+" s")
 		}
@@ -456,6 +467,20 @@ func (n *normaliser) element(x *sdui.Node, depth int, parent *sdui.Node) Element
 		if c, ok := num(p, "count"); ok {
 			text("count", strconv.Itoa(int(c))+" titles")
 		}
+	case "Dock":
+		e.Role, e.Label = "toolbar", firstNonEmpty(str(p, "title"), "Options")
+		e.Cards = intp(len(x.Children))
+		e.Buttons = n.dockButtons(x)
+		e.CardHeight = n.l.Dock.Height
+		text("placement", str(p, "placement"))
+	case "KeyLegend":
+		var keys []string
+		for _, en := range list(p, "entries") {
+			m, _ := en.(map[string]any)
+			keys = append(keys, str(m, "label"))
+		}
+		text("keys", strings.Join(keys, " · "))
+		e.TextSize = n.l.Dock.HintSize
 	case "DetailHeader":
 		e.Role, e.Label = "region", str(p, "title")
 		text("title", str(p, "title"))
@@ -720,4 +745,15 @@ func (n *normaliser) card(e *Element, x *sdui.Node, parent *sdui.Node) {
 	if len(e.Lines) == 0 {
 		e.Lines = nil
 	}
+}
+
+// dockButtons are a Dock's button labels in order.
+func (n *normaliser) dockButtons(x *sdui.Node) []string {
+	var out []string
+	for _, c := range x.Children {
+		if c.Type == "Button" {
+			out = append(out, str(c.Props, "label"))
+		}
+	}
+	return out
 }

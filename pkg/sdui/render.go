@@ -182,7 +182,7 @@ type instance struct {
 // The page should have passed ValidatePage; Render never panics on one that
 // hasn't, but leaves out what it can't make sense of.
 func Render(page Page, ctx *RenderContext) (Document, error) {
-	page = styled(ctx.UI.ExpandPage(page), ctx.Layout)
+	page = zoned(styled(ctx.UI.ExpandPage(page), ctx.Layout), ctx.deviceFormFactor())
 	r := newRenderer(&page, ctx)
 	sections, variant := r.sections()
 	top := r.expand(sections, true)
@@ -214,6 +214,7 @@ func Render(page Page, ctx *RenderContext) (Document, error) {
 		}
 	}
 	r.finishFilters(&root)
+	r.finishDocks(&root)
 	stampFocus(&root)
 	if info != nil {
 		for i := range info.Sections {
@@ -756,6 +757,10 @@ func (r *renderer) build(in instance, depth int) ([]Node, bool) {
 		ok = r.tabs(&n, in, depth)
 	case "FilterBar":
 		ok = r.filterBar(&n, in)
+	case "Dock":
+		ok = r.dock(&n, in, depth)
+	case "KeyLegend":
+		ok = r.keyLegend(&n, in)
 	case "Text":
 		n.Props["text"] = r.fill(propStr(p, "text", ""), in.each, nil)
 		copyProps(n.Props, p, "format", "role", "align", "maxLines")
@@ -1076,6 +1081,12 @@ func (r *renderer) collectionPage(n *Node, in instance, offset, limit int, allow
 	if s.Component == "Shelf" {
 		if all := r.seeAll(spec, rs, propStr(p, "seeAll", "auto"), res.More); all != "" {
 			n.Props["seeAll"] = map[string]any{"route": all, "label": "See all"}
+			if r.seeAllCard(p) {
+				n.Props["seeAllCard"] = true
+			}
+		}
+		if !propBool(p, "peek", true) {
+			n.Props["peek"] = false
 		}
 	}
 	return true
@@ -1168,6 +1179,11 @@ func (r *renderer) hero(n *Node, in instance) bool {
 		n.Props["autoAdvanceSec"] = adv
 	}
 	n.Props["size"] = map[string]any{"width": r.l.Hero.Width, "height": r.l.Hero.Height}
+	// The next slide's edge shows on a phone or a tablet, where the spotlight is swiped; a
+	// television's buttons and a desktop's arrows say there is more already.
+	if propBool(p, "peek", false) && (r.l.FormFactor == FormPhone || r.l.FormFactor == FormTablet) {
+		n.Props["peek"] = true
+	}
 	actions := propList(p, "actions", defaultList("Hero", "actions"))
 	for i := range res.Items {
 		it := &res.Items[i]
@@ -1619,6 +1635,188 @@ func (r *renderer) filterBar(n *Node, in instance) bool {
 	return len(out) > 0 || len(sorts) > 1
 }
 
+// seeAllCard says whether a row's See all is its last card: the section's own choice, else
+// on a television and in the layouts that ask for it (TV rows, Streaming style).
+func (r *renderer) seeAllCard(p map[string]any) bool {
+	switch propStr(p, "seeAllCard", "auto") {
+	case "always":
+		return true
+	case "never":
+		return false
+	}
+	return r.l.FormFactor == FormTV || (r.ctx.Layout != nil && r.ctx.Layout.Pages.SeeAllCard)
+}
+
+// keyHints are the labels of a KeyLegend's actions.
+var keyHints = []EnumOption{{"select", "Select"}, {"back", "Back"}, {"options", "Options"}, {"search", "Search"},
+	{"tabs", "Tabs"}, {"page", "Page"}, {"top", "Top"}, {"dock", "Dock"}, {"help", "Keys"}}
+
+func (r *renderer) keyLegend(n *Node, in instance) bool {
+	actions := propList(in.sec.Props, "actions", defaultList("KeyLegend", "actions"))
+	var entries []any
+	for _, a := range actions {
+		for _, h := range keyHints {
+			if h.Value == a {
+				entries = append(entries, map[string]any{"action": h.Value, "label": h.Label})
+			}
+		}
+	}
+	if len(entries) == 0 {
+		return false
+	}
+	n.Props["entries"] = entries
+	return true
+}
+
+// dock draws a Dock's own children; its generated controls are added once the page's
+// filter bars are made (finishDocks).
+func (r *renderer) dock(n *Node, in instance, depth int) bool {
+	p := in.sec.Props
+	n.Props["title"] = firstNonEmpty(r.fill(propStr(p, "title", ""), in.each, nil), "Options")
+	n.Props["placement"] = r.l.Dock.Placement
+	if t := propStr(p, "target", ""); t != "" {
+		n.Props["target"] = t
+	}
+	if c := propList(p, "controls", nil); len(c) > 0 {
+		n.Props["controls"] = anyList(c)
+	}
+	if propBool(p, "legend", true) {
+		n.Props["legend"] = true
+	}
+	n.Children = r.children(in, depth)
+	return true
+}
+
+func anyList(in []string) []any {
+	out := make([]any, len(in))
+	for i, s := range in {
+		out[i] = s
+	}
+	return out
+}
+
+// finishDocks makes each Dock's generated controls from the filter bar that drives its
+// target, adds its key legend, and takes away a Dock with nothing in it. Sort and filters
+// are the filter bar's; view and jump are the Grid's.
+func (r *renderer) finishDocks(root *Node) {
+	var bar *Node
+	var find func(n *Node)
+	find = func(n *Node) {
+		if n.Type == "FilterBar" && bar == nil {
+			bar = n
+		}
+		for i := range n.Children {
+			find(&n.Children[i])
+		}
+	}
+	find(root)
+	var walk func(n *Node)
+	walk = func(n *Node) {
+		kept := n.Children[:0]
+		for i := range n.Children {
+			c := &n.Children[i]
+			if c.Type == "Dock" {
+				if !r.fillDock(c, bar) {
+					delete(r.ids, c.ID)
+					continue
+				}
+			} else {
+				walk(c)
+			}
+			kept = append(kept, *c)
+		}
+		n.Children = kept
+	}
+	walk(root)
+}
+
+// fillDock reports whether the Dock has anything to show.
+func (r *renderer) fillDock(d *Node, bar *Node) bool {
+	target := propStr(d.Props, "target", "")
+	controls, _ := d.Props["controls"].([]any)
+	delete(d.Props, "controls")
+	var made []Node
+	add := func(key, label, icon string) {
+		made = append(made, Node{Type: "Button", ID: r.uniqueID(d.ID + ":" + key), Props: map[string]any{"label": label, "icon": icon, "variant": "secondary"},
+			Action: &Action{Type: ActCommand, Op: "control.open", Params: map[string]any{"control": key, "target": target}}})
+	}
+	if target != "" && bar != nil && propStr(bar.Props, "target", "") == target {
+		for _, c := range controls {
+			switch c {
+			case "sort":
+				if s := obj(bar.Props, "sort"); s != nil {
+					add("sort", "Sort: "+optionName(s, propStr(s, "value", "")), "sort")
+				}
+			case "filter":
+				if fs, _ := bar.Props["fields"].([]any); len(fs) > 0 {
+					label := "Filter"
+					if n := activeFilters(fs); n > 0 {
+						label += ": " + strconv.Itoa(n)
+					}
+					add("filter", label, "filter")
+				}
+			case "view":
+				add("view", "View", "grid")
+			case "jump":
+				if s := obj(bar.Props, "sort"); s != nil && propStr(s, "value", "") == "title" {
+					add("jump", "Jump to a letter", "list")
+				}
+			}
+		}
+	}
+	buttons := len(d.Children)
+	// Authored buttons keep their place after the generated controls.
+	d.Children = append(made, d.Children...)
+	buttons += len(made)
+	if d.Props["legend"] == true {
+		delete(d.Props, "legend")
+		hasLegend := false
+		for _, c := range d.Children {
+			hasLegend = hasLegend || c.Type == "KeyLegend"
+		}
+		// A phone's dock is a sheet: no keys to show.
+		if !hasLegend && r.l.Dock.Placement == "bottom" && buttons > 0 && r.ctx.supports("KeyLegend") {
+			legend := Node{Type: "KeyLegend", ID: r.uniqueID(d.ID + ":keys"), Props: map[string]any{}}
+			if r.keyLegend(&legend, instance{sec: &Section{ID: legend.ID, Component: "KeyLegend"}, id: legend.ID}) {
+				d.Children = append(d.Children, legend)
+			}
+		}
+	} else {
+		delete(d.Props, "legend")
+	}
+	return buttons > 0
+}
+
+func activeFilters(fields []any) int {
+	n := 0
+	for _, f := range fields {
+		if m, _ := f.(map[string]any); m != nil && propStr(m, "value", "") != "" {
+			n++
+		}
+	}
+	return n
+}
+
+// optionName is the label of a choice among options ([]EnumOption or the maps a filter
+// bar holds).
+func optionName(m map[string]any, value string) string {
+	switch opts := m["options"].(type) {
+	case []EnumOption:
+		for _, o := range opts {
+			if o.Value == value {
+				return o.Label
+			}
+		}
+	case []any:
+		for _, o := range opts {
+			if om, _ := o.(map[string]any); om != nil && propStr(om, "value", "") == value {
+				return propStr(om, "label", "")
+			}
+		}
+	}
+	return value
+}
+
 // finishFilters gives each FilterBar the count of what its Grid found.
 func (r *renderer) finishFilters(root *Node) {
 	var walk func(n *Node)
@@ -1798,4 +1996,18 @@ func (r *renderer) sourceSpec(t string) (*SourceSpec, bool) {
 		return s, true
 	}
 	return SourceType(t)
+}
+
+// obj is a map-valued prop, nil when it isn't one.
+func obj(m map[string]any, k string) map[string]any {
+	v, _ := m[k].(map[string]any)
+	return v
+}
+
+// deviceFormFactor is the form factor of the device asking.
+func (ctx *RenderContext) deviceFormFactor() string {
+	if ctx.Profile == nil {
+		return FormWeb
+	}
+	return ctx.Profile.FormFactor
 }

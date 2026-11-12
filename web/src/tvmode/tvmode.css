@@ -7,30 +7,43 @@
 
 html.tv-mode {
   --tvu: max(.5px, min(calc(100vw / 1920), calc(100vh / 1080)));
-  /* Type, from APP-DESIGN's TV column. */
-  --tv-display: calc(var(--tvu) * 48);
+  /* Type: the `tv.type` roles of docs/plans/DESIGN-2.md section 2 (display 76, page title 57, heading 48, title 38,
+     body 29, caption and label 25). The older names stay for the rules below and map onto the roles. */
+  --tv-display: calc(var(--tvu) * 76);
+  --tv-pagetitle: calc(var(--tvu) * 57);
+  --tv-heading: calc(var(--tvu) * 48);
   --tv-title: calc(var(--tvu) * 38);
-  --tv-headline: calc(var(--tvu) * 30);
-  --tv-section: calc(var(--tvu) * 26);
-  --tv-body: calc(var(--tvu) * 24);
-  --tv-secondary: calc(var(--tvu) * 20);
-  --tv-caption: calc(var(--tvu) * 18);
+  --tv-body: calc(var(--tvu) * 29);
+  --tv-caption: calc(var(--tvu) * 25);
+  --tv-label: calc(var(--tvu) * 25);
+  --tv-headline: var(--tv-heading);
+  --tv-section: var(--tv-title);
+  --tv-secondary: var(--tv-caption);
   /* Space, size and shape. */
-  --tv-gutter: calc(var(--tvu) * 90);
+  --tv-gutter: calc(var(--tvu) * 90);          /* tv.safe x, and tv.gutter */
+  --tv-safe-y: calc(var(--tvu) * 60);
+  --tv-bar-h: calc(var(--tvu) * 88);           /* tv.topBar */
+  --tv-bar-top: calc(var(--tvu) * 24);
+  --tv-bar-pill: calc(var(--tvu) * 56);
+  --tv-bar-gap: calc(var(--tvu) * 16);
+  --tv-card-gap: calc(var(--tvu) * 24);        /* tv.shelf */
+  --tv-row-gap: calc(var(--tvu) * 56);
+  --tv-dock-h: calc(var(--tvu) * 112);         /* tv.dock */
+  --tv-lift: calc(var(--tvu) * 6);             /* tv.focus lift */
   --tv-pill-h: calc(var(--tvu) * 66);
   --tv-quiet-h: calc(var(--tvu) * 56);
   --tv-ring: calc(var(--tvu) * 4);
-  --tv-room: calc(var(--tvu) * 32);
+  --tv-room: calc(var(--tvu) * 24);            /* tv.shelf padTop and padBottom */
   --tv-r-key: calc(var(--tvu) * 14);
   --tv-r-tile: calc(var(--tvu) * 14);
   /* The rest of the website, at the same scale: a quarter larger than a desktop at 1080p. */
   font-size: calc(var(--tvu) * 20);
   --gutter: var(--tv-gutter);
-  --card-w: calc(var(--tvu) * 200);
-  --card-wide-w: calc(var(--tvu) * 340);
-  --section-gap: calc(var(--tvu) * 40);
+  --card-w: calc(var(--tvu) * 250);            /* tv.card poster 250x375, wide 420x236 */
+  --card-wide-w: calc(var(--tvu) * 420);
+  --section-gap: var(--tv-row-gap);
   --display: var(--tv-display);
-  --page-title: var(--tv-title);
+  --page-title: var(--tv-pagetitle);
   /* There's no website top bar in TV mode: what measures from it starts at the top. */
   --topbar-h: 0px;
   /* Focus: a 4-wide ring in text, 4 out, concentric (an outline follows the corners it surrounds), and 1.06. */
@@ -61,9 +74,9 @@ html.tv-mode body { background: var(--bg); }
 .tvm-main .legal-foot { margin-top: calc(var(--tvu) * 48); font-size: var(--tv-caption); }
 
 /* The bar: five pills on the left, You pinned to the right end of the same row. */
-.tvm-bar { padding: calc(var(--tvu) * 24) var(--tv-gutter) calc(var(--tvu) * 16); }
-.tvm-tabs { display: flex; align-items: center; gap: calc(var(--tvu) * 16); }
-.tvm-pill { display: inline-flex; align-items: center; gap: calc(var(--tvu) * 12); height: var(--tv-pill-h); padding: 0 calc(var(--tvu) * 24); border-radius: var(--r-full); color: var(--fg-2); font-size: var(--tv-body); font-weight: 500; white-space: nowrap; }
+.tvm-bar { min-height: var(--tv-bar-h); padding: var(--tv-bar-top) var(--tv-gutter) calc(var(--tv-bar-h) - var(--tv-bar-top) - var(--tv-bar-pill)); }
+.tvm-tabs { display: flex; align-items: center; gap: var(--tv-bar-gap); }
+.tvm-pill { display: inline-flex; align-items: center; gap: calc(var(--tvu) * 12); height: var(--tv-bar-pill); padding: 0 calc(var(--tvu) * 24); border-radius: var(--r-full); color: var(--fg-2); font-size: var(--tv-body); font-weight: 500; white-space: nowrap; }
 .tvm-pill svg { width: calc(var(--tvu) * 30); height: calc(var(--tvu) * 30); }
 .tvm-pill:hover { color: var(--fg); background: var(--hover); }
 .tvm-pill[aria-current="page"] { background: var(--accent-soft); color: var(--accent-text); }
@@ -80,14 +93,14 @@ html.tv-mode body { background: var(--bg); }
 }
 
 /* A tab's heading. */
-.tvm-title { margin: calc(var(--tvu) * 16) 0 calc(var(--tvu) * 24); font-size: var(--tv-title); font-weight: 600; letter-spacing: var(--tracking-display); }
+.tvm-title { margin: calc(var(--tvu) * 16) 0 calc(var(--tvu) * 24); font-size: var(--tv-pagetitle); font-weight: 600; letter-spacing: var(--tracking-display); }
 .tvm-page .empty { padding-top: calc(var(--tvu) * 64); }
 html.tv-mode .empty-title { font-size: var(--tv-headline); }
 html.tv-mode .empty p { font-size: var(--tv-body); color: var(--fg-2); }
 html.tv-mode .empty-ic svg { width: calc(var(--tvu) * 64); height: calc(var(--tvu) * 64); }
 
 /* ---- Home: the hero and the rows */
-html.tv-mode .hero { height: calc(var(--tvu) * 620); min-height: 0; max-height: none; margin: 0 calc(-1 * var(--tv-gutter)) var(--section-gap); }
+html.tv-mode .hero { height: calc(var(--tvu) * 620); /* the Hero's 1920x620 */ min-height: 0; max-height: none; margin: 0 calc(-1 * var(--tv-gutter)) var(--section-gap); }
 html.tv-mode .hero .info { left: var(--tv-gutter); bottom: calc(var(--tvu) * 56); width: min(50vw, calc(100% - 2 * var(--tv-gutter))); }
 /* A long title wraps, to three lines at most, and is never cut off mid-word. */
 html.tv-mode .hero h1 { font-size: var(--tv-display); font-weight: 700; line-height: 1.12; margin: 0 0 calc(var(--tvu) * 12); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: normal; text-wrap: balance; }
@@ -99,7 +112,7 @@ html.tv-mode .hub-head { margin-bottom: 0; }
 html.tv-mode .hub-head h2 { font-size: var(--tv-section); font-weight: 600; }
 html.tv-mode .hub-head a:not(.btn) { font-size: var(--tv-secondary); min-height: var(--tv-quiet-h); padding: 0 calc(var(--tvu) * 16); border-radius: var(--r-full); }
 /* Rows leave room above and below for a focused card's ring. */
-html.tv-mode .row { gap: calc(var(--tvu) * 24); padding: var(--tv-room) var(--tv-gutter); scroll-padding-inline: var(--tv-gutter); }
+html.tv-mode .row { gap: var(--tv-card-gap); padding: var(--tv-room) var(--tv-gutter); scroll-padding-inline: var(--tv-gutter) calc(var(--tv-gutter) + var(--card-w) * .18); } /* the next card always peeks: tv.shelf peek .18 */
 /* A focused card's ring is round its picture only, as the TV apps have it. */
 html.tv-mode .card:focus { outline: none; }
 html.tv-mode .card .title { font-size: var(--tv-secondary); margin-top: calc(var(--tvu) * 24); }
@@ -216,3 +229,11 @@ html.tv-mode .player .time, html.tv-mode .player .title { font-size: var(--tv-bo
 .tvm-side:focus-within .tvm-pill > span { opacity: 1; visibility: visible; transition: opacity var(--dur-2) var(--dur-2); }
 .tvm-side .tvm-you { margin-top: auto; }
 @media (prefers-reduced-motion: reduce) { .tvm-bar.tvm-side, .tvm-side .tvm-pill > span { transition: none; } }
+
+/* ---- the Dock on a television: 112 high, hints at 25 */
+html.tv-mode .dock { min-height: var(--tv-dock-h); padding-inline: var(--tv-gutter); }
+html.tv-mode .dock .key-legend { font-size: var(--tv-label); }
+html.tv-mode .dock .key-legend kbd { font-size: var(--tv-label); padding: 0 calc(var(--tvu) * 12); }
+html.tv-mode .dock:not(.ctv-dock) .dock-btn { min-height: var(--tv-pill-h); font-size: var(--tv-body); padding: 0 calc(var(--tvu) * 32); gap: calc(var(--tvu) * 12); }
+/* A card lifts as it takes focus (tv.focus lift 6), on top of the 1.06 scale. */
+@media (prefers-reduced-motion: no-preference) { html.tv-mode .card:focus-visible .poster { translate: 0 calc(-1 * var(--tv-lift)); } }

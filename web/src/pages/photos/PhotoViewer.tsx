@@ -9,6 +9,9 @@ import InlinePlayer from '../../player/InlinePlayer'
 import { toast, useApp } from '../../state'
 import { usePhotoRemote } from '../../remote/pageTargets'
 import { PlayOnButton } from '../../remote/PlayOnButton'
+import SpecPage from '../../spec/SpecPage'
+import { handledIds } from '../../spec/model'
+import { photoDetailsSpec } from '../../spec/specs/media'
 
 // One picture filling the screen: step through the list, zoom, slideshow, its
 // details and its place on the map. With a remote: Left and Right step, Enter
@@ -144,18 +147,15 @@ export default function PhotoViewer({ id, list, lib, onOpen, onClose, onChanged 
 function InfoPanel({ d, onClose }: { d: PhotoDetail; onClose: () => void }) {
   const camera = [d.make && d.model?.startsWith(d.make) ? '' : d.make, d.model].filter(Boolean).join(' ')
   const exposure = [d.fNumber ? `f/${d.fNumber.toFixed(1)}` : '', d.exposure ? `${d.exposure} s` : '', d.iso ? `ISO ${d.iso}` : '', d.focalMm ? `${Math.round(d.focalMm)} mm` : ''].filter(Boolean).join(' · ')
+  const page = photoDetailsSpec({
+    taken: `${takenDate(d.takenAt)}, ${takenTime(d.takenAt)}`, fileName: d.fileName, width: d.width, height: d.height, size: fmtSize(d.sizeBytes), folder: d.folder,
+    camera, lens: d.lens, exposure, place: d.lat != null && d.lon != null ? `${d.lat.toFixed(5)}, ${d.lon.toFixed(5)}` : undefined, altitude: d.alt ? `${Math.round(d.alt)} m above sea level` : undefined,
+  })
+  const save = () => { const a = document.createElement('a'); a.href = mediaUrl(`/api/items/${d.id}/original`); a.download = ''; a.click() }
   return (
     <aside className="gal-info" aria-label="Details">
       <div className="gal-info-head"><h2>Details</h2><button className="ibtn" onClick={onClose} aria-label="Close details"><IconClose /></button></div>
-      <dl>
-        <dt>Taken</dt><dd>{takenDate(d.takenAt)}, {takenTime(d.takenAt)}</dd>
-        <dt>File</dt><dd>{d.fileName}<br /><span className="muted">{[d.width && d.height ? `${d.width} × ${d.height}` : '', fmtSize(d.sizeBytes)].filter(Boolean).join(' · ')}</span></dd>
-        {d.folder && <><dt>Folder</dt><dd>{d.folder}</dd></>}
-        {camera && <><dt>Camera</dt><dd>{camera}{d.lens && <><br /><span className="muted">{d.lens}</span></>}</dd></>}
-        {exposure && <><dt>Exposure</dt><dd>{exposure}</dd></>}
-        {d.lat != null && d.lon != null && <><dt>Place</dt><dd>{d.lat.toFixed(5)}, {d.lon.toFixed(5)}{d.alt ? <><br /><span className="muted">{Math.round(d.alt)} m above sea level</span></> : null}</dd></>}
-      </dl>
-      <a className="btn sm" href={mediaUrl(`/api/items/${d.id}/original`)} download>Download the original</a>
+      <SpecPage page={page} embedded handled={handledIds(page)} onAction={save} />
     </aside>
   )
 }

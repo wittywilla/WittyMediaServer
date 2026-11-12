@@ -446,6 +446,8 @@ func (r *renderer) route() string {
 			return "/collections/" + v["collection"]
 		case v["album"] != "":
 			return "/album/" + v["library"] + "?artist=" + url.QueryEscape(v["artist"]) + "&album=" + url.QueryEscape(v["album"])
+		case v["artist"] != "" && v["item"] == "" && v["show"] == "":
+			return "/artist/" + v["library"] + "?name=" + url.QueryEscape(v["artist"])
 		case v["item"] != "":
 			return "/item/" + v["item"]
 		case v["show"] != "":

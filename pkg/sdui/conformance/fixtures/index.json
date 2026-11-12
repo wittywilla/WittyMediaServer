@@ -262,6 +262,18 @@
    "formFactor": "tv"
   },
   {
+   "id": "detail-artist",
+   "file": "detail-artist.json",
+   "title": "An artist's page",
+   "formFactor": "phone"
+  },
+  {
+   "id": "detail-artist-tv",
+   "file": "detail-artist-tv.json",
+   "title": "An artist's page on a television",
+   "formFactor": "tv"
+  },
+  {
    "id": "detail-collection",
    "file": "detail-collection.json",
    "title": "A collection's page",

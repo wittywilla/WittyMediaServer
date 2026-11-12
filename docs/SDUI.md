@@ -2417,13 +2417,13 @@ Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 48
 
 #### tracks
 
-*Tracks.* An album's songs or a book's chapters, in order.
+*Tracks.* An album's songs or a book's chapters, in order; without an album, every song by the artist, by title.
 
 | Property | Type | Default | What it is |
 |---|---|---|---|
 | `library` (required) | library |  | Library. One library; leave empty for every library the profile can open. $library on a library page, $each in a row repeated over libraries. |
-| `album` (required) | string, at most 300 |  | Album. $album on an album's page. |
-| `artist` | string, at most 300 |  | Album artist. $artist on an album's page. |
+| `album` | string, at most 300 |  | Album. $album on an album's page. Left out: every album's (an artist's page). |
+| `artist` | string, at most 300 |  | Album artist. $artist on an album's or an artist's page. |
 | `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
 
 ```json
@@ -2492,7 +2492,7 @@ Every source also takes `map`: `{"subtitle": "studio"}` puts another field of th
 | `home` | The first page of the app. | `/` | tab |  |  |
 | `libraries` | Every library the profile can open. | `/libraries` | tab |  |  |
 | `library` | One library's own page. | `/library/{library}` | library, tab, sort, desc, genre, decade, year, content, resolution, watched, studio, network, tag | $library | library, libraryKind |
-| `detail` | The page of one film, show, episode, album, book, game or collection. | `/item/{item}` | item, show, season, collection, library, artist, album, tab | $item, $show, $season, $collection, $library, $artist, $album | mediaKind, library, libraryKind |
+| `detail` | The page of one film, show, episode, album, artist, book, game or collection. | `/item/{item}` | item, show, season, collection, library, artist, album, tab | $item, $show, $season, $collection, $library, $artist, $album | mediaKind, library, libraryKind |
 | `search` | Search across everything. | `/search` | q, tab | $query |  |
 | `livetv` | Channels and the guide. | `/tv` | tab |  |  |
 | `music` | Every music library together. | `/music` | tab |  |  |
@@ -2514,6 +2514,7 @@ What shows each place in the app: an SDUI page, asked for with the parameters gi
 | `/item/{item}` | page `detail` | item={item} |
 | `/show/{show}` | page `detail` | show={show} |
 | `/album/{library}` | page `detail` | album=?album, artist=?artist, library={library} |
+| `/artist/{library}` | page `detail` | artist=?name, library={library} |
 | `/collections/{collection}` | page `detail` | collection={collection} |
 | `/collections` | page `collections` |  |
 | `/search` | page `search` | q=?q |
@@ -2623,6 +2624,7 @@ A menu entry (`type: native`) may open the screens marked *menu*; the others nee
 | `detail-show` | detail | show | `header` (DetailHeader), `episodes` (SeasonList of episodes), `similar` (Shelf of similar) |
 | `detail-episode` | detail | episode | `header` (DetailHeader), `season` (Shelf of episodes) |
 | `detail-album` | detail | album | `header` (DetailHeader), `tracks` (TrackList of tracks), `more` (Shelf of albums) |
+| `detail-artist` | detail | artist | `header` (DetailHeader), `albums` (Shelf of albums), `tracks` (TrackList of tracks) |
 | `detail-collection` | detail | collection | `header` (DetailHeader), `all` (Grid of collection) |
 | `search` | search | every search page | `q` (SearchBox), `idle` (Text), `found` (Shelf of search, per librarie), `channels` (Shelf of search) |
 | `livetv` | livetv | every livetv page | `guide` (NativeView), `favourites` (Shelf of liveNow), `recordings` (Shelf of recordings), `channels` (Grid of liveNow) |

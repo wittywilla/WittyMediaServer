@@ -32,7 +32,7 @@ var (
 	// LibraryKinds are the kinds of library a page or repeat can name.
 	LibraryKinds = []string{"movies", "discs", "shows", "anime", "videos", "shorts", "channels", "musicvideos", "commercials", "music", "audiobooks", "podcasts", "radio", "books", "photos", "games"}
 	// MediaKinds are the kinds of title a detail page can match.
-	MediaKinds = []string{"movie", "show", "episode", "video", "disc", "album", "track", "book", "audiobook", "podcast", "game", "photo", "collection"}
+	MediaKinds = []string{"movie", "show", "episode", "video", "disc", "album", "artist", "track", "book", "audiobook", "podcast", "game", "photo", "collection"}
 	// SpacingSteps are the abstract distances a layout component may use; a
 	// device profile says how many points each is.
 	SpacingSteps = []string{"none", "xs", "s", "m", "l", "xl"}
@@ -641,8 +641,8 @@ func buildSources() []SourceSpec {
 			Params:      []PropSpec{req(pOf(PropRef, "show", "Show", "$show on a show's or an episode's page.")), pOf(PropRef, "season", "Season", "A season number, or $season; empty picks one."), paramLimit},
 			Yields:      []string{"episode"}, Example: example(`{"type":"episodes","show":"$show"}`)},
 		{Type: "tracks", Label: "Tracks", Icon: "music", Category: "context", Since: 2, CardStyle: "square", PageKinds: []string{"detail"}, Title: "Tracks",
-			Description: "An album's songs or a book's chapters, in order.",
-			Params:      []PropSpec{req(paramLibrary), req(pStr("album", "Album", "$album on an album's page.", 300)), pStr("artist", "Album artist", "$artist on an album's page.", 300), paramLimit},
+			Description: "An album's songs or a book's chapters, in order; without an album, every song by the artist, by title.",
+			Params:      []PropSpec{req(paramLibrary), pStr("album", "Album", "$album on an album's page. Left out: every album's (an artist's page).", 300), pStr("artist", "Album artist", "$artist on an album's or an artist's page.", 300), paramLimit},
 			Yields:      []string{"track"}, Example: example(`{"type":"tracks","library":"$library","artist":"$artist","album":"$album"}`)},
 		{Type: "similar", Label: "More like this", Icon: "sparkles", Category: "context", Since: 2, CardStyle: "poster", PageKinds: []string{"detail"}, Title: "More like this",
 			Description: "Titles in the same library sharing the title's first genre, best scored first, without the title itself.",
@@ -689,7 +689,7 @@ func buildPageKinds() []PageKindSpec {
 		{Kind: "library", Label: "A library", Route: "/library/{library}", Description: "One library's own page.",
 			Params:    []string{"library", "tab", "sort", "desc", "genre", "decade", "year", "content", "resolution", "watched", "studio", "network", "tag"},
 			Variables: []string{"$library"}, Match: []string{"library", "libraryKind"}},
-		{Kind: "detail", Label: "A title", Route: "/item/{item}", Description: "The page of one film, show, episode, album, book, game or collection.",
+		{Kind: "detail", Label: "A title", Route: "/item/{item}", Description: "The page of one film, show, episode, album, artist, book, game or collection.",
 			Params:    []string{"item", "show", "season", "collection", "library", "artist", "album", "tab"},
 			Variables: []string{"$item", "$show", "$season", "$collection", "$library", "$artist", "$album"}, Match: []string{"mediaKind", "library", "libraryKind"}},
 		{Kind: "search", Label: "Search", Route: "/search", Description: "Search across everything.", Params: []string{"q", "tab"}, Variables: []string{"$query"}},
@@ -711,6 +711,7 @@ func buildRoutes() []RouteSpec {
 		{Pattern: "/item/{item}", Page: "detail", Params: map[string]string{"item": "{item}"}},
 		{Pattern: "/show/{show}", Page: "detail", Params: map[string]string{"show": "{show}"}},
 		{Pattern: "/album/{library}", Page: "detail", Params: map[string]string{"library": "{library}", "artist": "?artist", "album": "?album"}},
+		{Pattern: "/artist/{library}", Page: "detail", Params: map[string]string{"library": "{library}", "artist": "?name"}},
 		{Pattern: "/collections/{collection}", Page: "detail", Params: map[string]string{"collection": "{collection}"}},
 		{Pattern: "/collections", Page: "collections"},
 		{Pattern: "/search", Page: "search", Params: map[string]string{"q": "?q"}},

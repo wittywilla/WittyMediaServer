@@ -107,7 +107,7 @@ func (s *Server) versioned(next http.Handler) http.Handler {
 var serverFeatures = []string{
 	"profiles", "pairing", "pair-invite", "pair-totp", "pair-qr", "server-identity", "lan-discovery", "stream-tokens",
 	"direct-play", "hls", "hls-remux", "hls-fmp4", "transcode", "playback-profiles", "subtitles-webvtt", "subtitles-burn-in",
-	"dvd", "dvd-menus", "bluray", "bluray-menus", "audio-cd",
+	"dvd", "dvd-menus", "bluray", "bluray-menus", "audio-cd", "disc-ranking",
 	"shows", "next-up", "recommendations", "skip-intro",
 	"music", "audiobooks", "podcasts", "books", "annotations", "radio", "radio-directory",
 	"themes", "theme-tokens", "modules", "game-metadata", "system-tasks", "system-metrics", "module-pages",

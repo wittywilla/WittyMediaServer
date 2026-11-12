@@ -1464,6 +1464,10 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /dvd/{sid}/sub/{name}` | user, `st` | One sub-picture as a PNG. |
 | `GET /items/{id}/disc` | user | The disc page: the feature, extras and menus to jump into. |
 | `PUT /items/{id}/disc/labels` | admin | Name a disc's titles and chapters. |
+| `GET /items/{id}/disc/analysis` | user | Which title (DVD) or playlist (Blu-ray) is the film and why: `main` (what Play plays), `engineMain`, `chosen`, `rank` (confidence 0–1, `level`, `why`, `reasons`, `candidates`, `versions`, `episodes`, `feature`, `repairs`, `issues`, `paddedSectors`, `secondOpinion`), `canChoose`, `protected`. `pending: true` on a low-power server while it is worked out: ask again. `ranked: false` with a module from before rankings. |
+| `POST /items/{id}/disc/analysis` | admin | Work the ranking out again. `{"secondOpinion": true}` also asks a libbluray on this machine (Blu-ray only, when the setting `blurayLibbluray` is on and one is installed; never for an encrypted disc). |
+| `PUT /items/{id}/disc/choice` | admin | `{"ttn": n}`: remember this title or playlist as the disc's film, for everyone. It beats the engine's pick for Play, the disc page, the item's length and languages, and survives rescans while the disc has that title. |
+| `DELETE /items/{id}/disc/choice` | admin | Forget the choice: the engine's pick is the film again. |
 | `GET /items/{id}/disc/thumb/{ttn}/{n}` | user, `st` | A picture of a title (n = 0) or chapter; the first request makes it. |
 
 ### Audio CDs
@@ -2146,6 +2150,7 @@ See [LIBRARY-TRANSCODING.md](LIBRARY-TRANSCODING.md).
 | `GET /dvd/{sid}/bdj` | user | BDJ poll. |
 | `GET /dvd/{sid}/bdj/frame/{n}` | user | BDJ frame. |
 | `GET /bdj/status` | admin | BDJ status. |
+| `GET /bluray/capabilities` | admin | What optional help WittyBluray has here: `libbluray` (`enabled`, `available`, `version`, `reason`) and `libblurayPath`. |
 
 
 ## Backup

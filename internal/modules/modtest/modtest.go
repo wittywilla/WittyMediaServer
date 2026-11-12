@@ -66,6 +66,7 @@ func start(catalog string) (*modules.Manager, error) {
 	manager.UseServices()
 	cd.Open = modules.CDs{M: manager}.Open
 	dvdsession.SetEngine(dvdremote.Opener{M: manager, Log: slog.New(slog.DiscardHandler)}.Open)
+	dvdsession.SetAnalyzer(dvdremote.Opener{M: manager, Log: slog.New(slog.DiscardHandler)}.Analyze)
 	bdremote.Use(manager)
 	if Wire != nil {
 		Wire(manager)

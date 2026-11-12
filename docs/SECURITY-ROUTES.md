@@ -138,6 +138,10 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/items/{id}/recommend` | Signed-in | limits, on the item and on what is suggested |
 | `GET /api/items/{id}/disc` | Signed-in | limits. Item is a disc |
 | `PUT /api/items/{id}/disc/labels` | Admin | Labels trimmed |
+| `GET /api/items/{id}/disc/analysis` | Signed-in | limits. Item is a disc. Who chose is named to admins only |
+| `POST /api/items/{id}/disc/analysis` | Admin | Item is a disc. A second opinion only for an unencrypted Blu-ray, with the setting on and a libbluray found |
+| `PUT /api/items/{id}/disc/choice` | Admin | Item is a disc. Title exists on it |
+| `DELETE /api/items/{id}/disc/choice` | Admin | Item is a disc |
 | `GET /api/items/{id}/disc/thumb/{ttn}/{n}` | Signed-in; ticket; address token | limits. Item is a disc and not scrambled. Title and chapter exist |
 | `GET /api/artwork/preview` | Admin; address token | Web address, cache name, or a picture inside a library |
 | `GET /api/prefs` | Signed-in | Nothing: server-wide playback defaults |
@@ -227,6 +231,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/dvd/{sid}/bdj` | Signed-in | Blu-ray session exists. An account with limits is checked against what it plays |
 | `GET /api/dvd/{sid}/bdj/frame/{n}` | Signed-in | Blu-ray session exists. An account with limits is checked against what it plays |
 | `GET /api/bdj/status` | Admin | Nothing further |
+| `GET /api/bluray/capabilities` | Admin | Nothing further: names a library's path, so admins only |
 | `GET /api/dvd/{sid}/still/{name}` | Signed-in; ticket; address token | Session exists, and for a ticket is of the ticket's item. Still is one the session made. An account with limits is checked against what it plays |
 | `GET /api/dvd/{sid}/subs` | Signed-in; address token | Session exists. Time window of at most 600 seconds. An account with limits is checked against what it plays |
 | `GET /api/dvd/{sid}/sub/{name}` | Signed-in; ticket; address token | Session exists, and for a ticket is of the ticket's item. Picture exists. An account with limits is checked against what it plays |

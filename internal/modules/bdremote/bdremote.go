@@ -56,6 +56,7 @@ func Use(m *modules.Manager) {
 		}
 		return open(a, path, o, log, func(reason string) { _ = m.ReportFailure(moduleID, a.Version(), reason) })
 	}
+	useAnalysis(m)
 	bdsession.JavaProbe = func(path string) (version, where string, err error) {
 		a := m.Attach(moduleID, javaProbeLimit)
 		if a == nil {
@@ -106,8 +107,12 @@ type engine struct {
 	clips     map[string]*bluray.Clip
 	extents   map[string][]bluray.FileExtent
 	main      *int
-	sounds    *bluray.Sounds
-	hasSounds bool
+	// chapters are each playlist's, as the engine maps them. noChapters: this helper is
+	// from before the call.
+	chapters   map[int][]bluray.Chapter
+	noChapters bool
+	sounds     *bluray.Sounds
+	hasSounds  bool
 }
 
 // badAnswer is a helper saying something that can't be right. The protocol can't have

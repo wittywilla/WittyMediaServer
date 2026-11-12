@@ -7,6 +7,8 @@ import { IconPlus } from '../icons'
 import { ACCEPT_GALLERY } from '../mediaTypes.generated'
 import { toast } from '../state'
 import { Dialog } from '../ui/Overlay'
+import SpecPage from '../spec/SpecPage'
+import { uploadErrorsSpec } from '../spec/specs/upload'
 import '../gallery.css'
 
 // Upload, for Photos and Vertical videos libraries. Nothing shows for a library with no folder
@@ -46,8 +48,8 @@ export function UploadButton({ lib, onDone }: { lib: Library; onDone: () => void
       <button className="btn sm" disabled={!!state} onClick={() => input.current?.click()}><IconPlus /> {state ? `Uploading ${state.n}/${state.of} (${Math.round(state.pct * 100)}%)` : 'Upload'}</button>
       {state && <span className="sr-only" role="status">Uploading {state.name}</span>}
       {errors.length > 0 && (
-        <Dialog title={<>{errors.length} {errors.length === 1 ? 'file' : 'files'} not added</>} onClose={() => setErrors([])} actions={<><button className="btn primary" onClick={() => setErrors([])}>Close</button></>}>
-            <ul className="gal-errs">{errors.map((x, i) => <li key={i}><b>{x.name}</b>: {x.error}</li>)}</ul>
+        <Dialog title={<>{errors.length} {errors.length === 1 ? 'file' : 'files'} not added</>} onClose={() => setErrors([])}>
+          <SpecPage page={uploadErrorsSpec(errors)} embedded handled={new Set(['close'])} onAction={() => setErrors([])} />
         </Dialog>
       )}
     </>

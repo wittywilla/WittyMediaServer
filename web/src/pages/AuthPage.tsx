@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, ApiError, isNativeShell, profileName, setToken, type User } from '../api'
 import ConnectServer from '../components/ConnectServer'
 import { PairDevice } from '../components/PairDevice'
 import { Brand, BrandMark, VersionTag } from '../components/common'
-import { IconBack } from '../icons'
+import SpecPage from '../spec/SpecPage'
+import { handledIds } from '../spec/model'
+import { codeSpec, signInSpec } from '../spec/specs/auth'
+import { isSubmitKey } from '../spec/specs/submit'
 import { useApp } from '../state'
 import { avatarColor } from '../ui/avatarColor'
 import { AvatarShape, parseAvatar } from '../ui/avatars'
@@ -95,9 +98,7 @@ function PasswordForm({ profile, onBack }: { profile: Profile | null; onBack?: (
   // The password was right and this account also wants a code.
   const [needCode, setNeedCode] = useState(false)
   const [code, setCode] = useState('')
-  const pwRef = useRef<HTMLInputElement | null>(null)
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const submit = async () => {
     setErr('')
     setBusy(true)
     try {
@@ -115,44 +116,26 @@ function PasswordForm({ profile, onBack }: { profile: Profile | null; onBack?: (
       setNeedCode(false)
       setCode('')
       setPassword('')
-      pwRef.current?.focus()
+      setTimeout(() => document.querySelector<HTMLElement>('[data-field="password"]')?.focus())
     } finally { setBusy(false) }
   }
-  if (needCode) {
-    return (
-      <form className="auth-card" onSubmit={submit}>
-        <button type="button" className="ibtn auth-back" onClick={() => { setNeedCode(false); setErr(''); setPassword('') }} aria-label="Back to the password"><IconBack /></button>
-        <div className="brand"><BrandMark /><Brand name={brandName} /></div>
-        <p>Enter the 6-digit code from your authenticator app.</p>
-        <div className="form">
-          <label><span className="sr-only">Code</span>
-            <input className="input" autoFocus inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} />
-          </label>
-          <small className="muted">Lost your phone? Enter one of your recovery codes instead.</small>
-          {err && <div className="error" role="alert">{err}</div>}
-          <button className="btn primary" disabled={busy || !code.trim()} style={{ justifyContent: 'center' }}>{busy ? 'Checking…' : 'Sign in'}</button>
-        </div>
-      </form>
-    )
+  const logo = <div className="brand"><BrandMark /><Brand name={brandName} /></div>
+  const head = profile
+    ? <div className="auth-profile"><Avatar name={profileName(profile)} avatar={profile.avatar} big />{tv && profileName(profile) !== profile.name && <span className="who-user">@{profile.name}</span>}</div>
+    : logo
+  const act = (id: string) => {
+    if (id === 'back') { if (needCode) { setNeedCode(false); setErr(''); setPassword('') } else onBack?.() }
+    else if (!busy) submit()
   }
+  const field = (id: string, v: string | number | boolean | File) => { const t = String(v); if (id === 'name') setName(t); else if (id === 'password') setPassword(t); else if (id === 'code') setCode(t) }
+  const page = needCode
+    ? codeSpec(brandName, code, busy, err)
+    : signInSpec({ brand: brandName, profile: profile ? profileName(profile) : null, kind: profile?.kind, name, password, busy, error: err, plain: plainConnection, hasBack: !!onBack })
   return (
-    <form className="auth-card" onSubmit={submit}>
-      {onBack && <button type="button" className="ibtn auth-back" onClick={onBack} aria-label="Back to profiles"><IconBack /></button>}
-      {profile
-        ? <div className="auth-profile"><Avatar name={profileName(profile)} avatar={profile.avatar} big /><h2>{profileName(profile)}</h2>{tv && profileName(profile) !== profile.name && <span className="who-user">@{profile.name}</span>}</div>
-        : <div className="brand"><BrandMark /><Brand name={brandName} /></div>}
-      <p>{profile ? 'Enter your password or PIN.' : 'Sign in to your media server.'}</p>
-      {plainConnection && <p className="auth-plain" role="alert"><b>This connection isn’t encrypted.</b> Your password can be read or changed by anyone between this device and the server. The owner allowed this. Sign in only on a network you trust.</p>}
-      <div className="form">
-        {!profile && <label>Username<input className="input" autoFocus value={name} onChange={(e) => setName(e.target.value)} autoComplete="username" /></label>}
-        <label>{profile ? <span className="sr-only">Password</span> : 'Password'}
-          <input ref={pwRef} className="input" type="password" autoFocus={!!profile} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
-        </label>
-        {err && <div className="error" role="alert">{err}</div>}
-        <button className="btn primary" disabled={busy || !name || !password}>{busy ? 'Signing in…' : 'Sign in'}</button>
-        <small className="muted"><Link to="/help/accounts#if-you-forget-your-password">Forgot your password?</Link></small>
-      </div>
-    </form>
+    <div className="auth-spec" onKeyDown={(e) => { if (isSubmitKey(e)) { e.preventDefault(); if (!busy) submit() } }}>
+      {head}
+      <SpecPage page={page} handled={handledIds(page)} onAction={act} onField={field} />
+    </div>
   )
 }
 

@@ -33,6 +33,11 @@ func creditGroup(c library.Credit) string {
 func creditItem(c library.Credit, group string) sdui.Item {
 	id := itoa(c.PersonID)
 	it := sdui.Item{ID: "person-" + id + "-" + group, Kind: "person", Title: c.Name, Group: group, Route: "/person/" + id, Images: map[string]string{}}
+	if c.PersonID == 0 {
+		// Someone only a TV guide names (a programme's credits) is no one this server keeps: the
+		// card has no page to open, and is told apart from the others by name.
+		it.ID, it.Route, c.HasPhoto = "name-"+strings.Join(strings.Fields(library.PersonKey(c.Name)), "-")+"-"+group, "", false
+	}
 	switch {
 	case c.Role == library.RoleCrew:
 		it.Subtitle = c.Job
@@ -53,7 +58,12 @@ func (rv *sduiResolver) credits(src sdui.Source, req sdui.SourceRequest) (sdui.S
 	s := rv.s
 	var c *library.Credits
 	var err error
-	if ref := src.Str("item"); ref != "" && !strings.HasPrefix(ref, "show-") {
+	if ref := src.Str("programme"); ref != "" {
+		// A WittyTV programme's: see programmeCredits (api_tvprogramme.go).
+		if c, err = s.programmeCredits(rv.r, ref); err != nil {
+			return sdui.SourceResult{}, nil
+		}
+	} else if ref := src.Str("item"); ref != "" && !strings.HasPrefix(ref, "show-") {
 		id, perr := strconv.ParseInt(ref, 10, 64)
 		if perr != nil {
 			return sdui.SourceResult{}, nil

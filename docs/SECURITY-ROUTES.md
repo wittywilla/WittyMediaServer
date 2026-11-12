@@ -562,10 +562,19 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/play/{sid}/stats` | Signed-in | Session started by this account |
 | `GET /api/play/{sid}/screenshot` | Signed-in; address token | Session started by this account |
 | `GET /api/games/playing` | Signed-in | own: the game this account is playing |
-| `POST /api/play/join` | Signed-in | A live code for a running game; wrong codes limited per account; the game visible to this profile |
+| `POST /api/play/join` | Signed-in | A live code for a running game, or an open room whose host is a friend (not for a Kids or guest profile); wrong codes limited per account; the game visible to this profile |
 | `POST /api/play/{sid}/invite` | Signed-in | Session started by this account |
 | `GET /api/play/{sid}/seats` | Signed-in | Session started by this account, or joined with its code; the code only for the host |
 | `DELETE /api/play/{sid}/seats/{user}` | Signed-in | The host, or the person leaving |
+| `POST /api/play/{sid}/room` | Signed-in | Session started by this account; not a Kids or guest profile to open it |
+| `PUT /api/play/{sid}/seats/{user}` | Signed-in | Session started by this account; the person is in it |
+| `POST /api/play/{sid}/screenshot` | Signed-in | Session started by this account; keeps a PNG the game gave in this profile's own folder, at most 200 a game |
+| `GET /api/games/{id}/shots/{name}` | Signed-in | own: a screenshot this profile kept, of a game visible to it; the name checked against a fixed pattern |
+| `DELETE /api/games/{id}/shots/{name}` | Signed-in | own: a screenshot this profile kept, of a game visible to it |
+| `GET /api/games/online/me` | Signed-in | own |
+| `PUT /api/games/online/me` | Signed-in | own; not a guest |
+| `GET /api/games/online/kids/{user}` | Admin | A Kids profile |
+| `PUT /api/games/online/kids/{user}` | Admin | A Kids profile; every friend an existing profile that isn't a guest |
 | `GET /api/game-controllers` | Signed-in | Nothing: known controllers |
 | `GET /api/game-profiles` | Signed-in | own |
 | `POST /api/game-profiles` | Signed-in | own. Size, fields cleaned. Game: limits, and on that console |
@@ -693,6 +702,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `PUT /api/tv-sets/{id}` | Signed-in | own; a shared set, an administrator. New channels must be ones the account may watch. Sharing needs an administrator |
 | `POST /api/tv-sets/{id}/channels` | Signed-in | own; a shared set, an administrator. Added channels must be ones the account may watch |
 | `DELETE /api/tv-sets/{id}` | Signed-in | own; a shared set, an administrator |
+| `GET /api/tv/{key}/programme` | Signed-in | Channel key. Channel visible to the account and enabled; for a library channel, limits on what is on then. Credits, trailers and schedule only from what the profile may see |
 | `GET /api/tv/{key}/catchup` | Signed-in | Tuner channel key. Tuner channels allowed for the profile; channel visible, enabled and not encrypted; a start within the source's archive |
 | `GET /api/tv/{key}/catchup/{start}/playlist.m3u8` | Signed-in | As GET /api/tv/{key}/catchup. A stream token for that channel |
 | `GET /api/tv/{key}/catchup/{start}/seg/{name}` | Signed-in | As GET /api/tv/{key}/catchup. Only segment names FFmpeg wrote |

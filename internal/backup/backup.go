@@ -163,6 +163,7 @@ var tableParts = map[string]string{
 
 	"wittyplay_backgrounds": PartSaves, "wittyplay_bezels": PartSaves, "wittyplay_controls": PartSaves, "wittyplay_core_options": PartSaves,
 	"wittyplay_game_meta": PartSaves, "wittyplay_patches": PartSaves, "wittyplay_profiles": PartSaves, "wittyplay_settings": PartSaves,
+	"wittyplay_presence": PartSaves, "wittyplay_kids_friends": PartSaves,
 }
 
 // isCoreCache: what a core worked out for itself beside a save, such as compiled shaders. It's made

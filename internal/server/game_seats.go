@@ -52,6 +52,18 @@ type seatTable struct {
 	code        string
 	codeExpires time.Time
 	holders     []seatHolder
+	game        seatGame
+	// open: the host lets the friends who may see it join with no code (WittyPlay Online's
+	// open rooms). Never for a Kids profile's game, and never joined by one.
+	open bool
+}
+
+// seatGame is the game a table plays.
+type seatGame struct {
+	Item    int64
+	Title   string
+	Console string
+	Players int // how many players the console takes
 }
 
 // seatBook keeps the hosts, codes and holders of the games running now. It forgets a game when the
@@ -78,11 +90,54 @@ func (b *seatBook) init() {
 }
 
 // started notes a new game, its host and the device that started it.
-func (b *seatBook) started(sid string, host int64, hostName, device string) {
+func (b *seatBook) started(sid string, host int64, hostName, device string, game seatGame) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	b.init()
-	b.tables[sid] = &seatTable{host: host, hostName: hostName, device: device, started: b.clock()}
+	if game.Players == 0 {
+		game.Players = consoleTraitsTable[game.Console].Caps.Input.Ports
+	}
+	b.tables[sid] = &seatTable{host: host, hostName: hostName, device: device, started: b.clock(), game: game}
+}
+
+// setOpen opens a host's game to its friends, or closes it. Only its host may.
+func (b *seatBook) setOpen(sid string, host int64, open bool) bool {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	t := b.tables[sid]
+	if t == nil || t.host != host {
+		return false
+	}
+	t.open = open
+	return true
+}
+
+// seatTableView is one game as presence and the rooms list see it.
+type seatTableView struct {
+	Session  string
+	Host     int64
+	HostName string
+	Game     seatGame
+	Open     bool
+	Holders  []seatHolder
+	Started  time.Time
+}
+
+// tablesNow is every game being played now, oldest first.
+func (b *seatBook) tablesNow() []seatTableView {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	out := make([]seatTableView, 0, len(b.tables))
+	for sid, t := range b.tables {
+		out = append(out, seatTableView{Session: sid, Host: t.host, HostName: t.hostName, Game: t.game, Open: t.open, Holders: slices.Clone(t.holders), Started: t.started})
+	}
+	slices.SortFunc(out, func(a, b seatTableView) int {
+		if c := a.Started.Compare(b.Started); c != 0 {
+			return c
+		}
+		return strings.Compare(a.Session, b.Session)
+	})
+	return out
 }
 
 // ended forgets a game and its code.
@@ -139,8 +194,12 @@ type seatErr string
 func (e seatErr) Error() string { return string(e) }
 
 const (
-	errSeatCode  = seatErr("That code isn’t right, or it has run out. Ask for a new one.")
-	errSeatTries = seatErr("Too many wrong codes. Wait a few minutes, then ask for a new one.")
+	errSeatCode    = seatErr("That code isn’t right, or it has run out. Ask for a new one.")
+	errSeatTries   = seatErr("Too many wrong codes. Wait a few minutes, then ask for a new one.")
+	errRoomClosed  = seatErr("That game isn’t open to join any more.")
+	errSeatNotHost = seatErr("Only the person who started the game can move players.")
+	errSeatNumber  = seatErr("Players are 1 to 7, or -1 to watch.")
+	errSeatNobody  = seatErr("That person isn’t in this game.")
 )
 
 // join takes a code from someone signed in and gives them a seat in its game: the lowest one
@@ -161,12 +220,32 @@ func (b *seatBook) join(code string, user int64, name string) (seatJoin, error) 
 		b.tries[user] = append(recent, now)
 		return seatJoin{}, errSeatCode
 	}
+	return b.seatLocked(sid, t, user, name), nil
+}
+
+// joinOpen gives someone a seat in an open room, with no code. Whether they may (friends, Kids,
+// the game's rating) is the caller's to say.
+func (b *seatBook) joinOpen(sid string, user int64, name string) (seatJoin, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.init()
+	t := b.tables[sid]
+	if t == nil || !t.open {
+		return seatJoin{}, errRoomClosed
+	}
+	return b.seatLocked(sid, t, user, name), nil
+}
+
+// seatLocked seats someone at a table: the host as itself, someone already there where they are,
+// anyone else in the lowest seat free, or watching when every seat is taken.
+func (b *seatBook) seatLocked(sid string, t *seatTable, user int64, name string) seatJoin {
+	now := b.clock()
 	if t.host == user {
-		return seatJoin{Session: sid, Seat: 0, Host: true}, nil
+		return seatJoin{Session: sid, Seat: 0, Host: true}
 	}
 	for _, h := range t.holders {
 		if h.UserID == user {
-			return seatJoin{Session: sid, Seat: h.Seat}, nil
+			return seatJoin{Session: sid, Seat: h.Seat}
 		}
 	}
 	seat := -1
@@ -177,7 +256,32 @@ func (b *seatBook) join(code string, user int64, name string) (seatJoin, error) 
 		}
 	}
 	t.holders = append(t.holders, seatHolder{UserID: user, Name: name, Seat: seat, Since: now.Unix()})
-	return seatJoin{Session: sid, Seat: seat}, nil
+	return seatJoin{Session: sid, Seat: seat}
+}
+
+// assign moves someone who joined to another player, from 1, or to watching (-1). Only the host
+// may, and a seat someone else holds is swapped with theirs.
+func (b *seatBook) assign(sid string, host, user int64, seat int) error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	t := b.tables[sid]
+	if t == nil || t.host != host {
+		return errSeatNotHost
+	}
+	if seat == 0 || seat < -1 || seat >= seatsMax {
+		return errSeatNumber
+	}
+	at := slices.IndexFunc(t.holders, func(h seatHolder) bool { return h.UserID == user })
+	if at < 0 {
+		return errSeatNobody
+	}
+	if seat > 0 {
+		if other := slices.IndexFunc(t.holders, func(h seatHolder) bool { return h.Seat == seat }); other >= 0 && other != at {
+			t.holders[other].Seat = t.holders[at].Seat
+		}
+	}
+	t.holders[at].Seat = seat
+	return nil
 }
 
 // holds says whether someone joined a game with its code.
@@ -281,9 +385,9 @@ func (s *Server) seatRoutes(m routes) {
 }
 
 // noteGameStarted keeps who started a game and on what, and forgets it when the game ends.
-func (s *Server) noteGameStarted(sess *stream.Session, host int64, hostName, device string) {
+func (s *Server) noteGameStarted(sess *stream.Session, host int64, hostName, device string, game seatGame) {
 	g := s.games()
-	g.seats.started(sess.ID(), host, hostName, device)
+	g.seats.started(sess.ID(), host, hostName, device, game)
 	sid, done := sess.ID(), sess.Done()
 	logging.Go("game seats", func() { <-done; g.seats.ended(sid) }, "cat", "games", "session", sid)
 }
@@ -341,6 +445,9 @@ func (s *Server) handlePlayInvite(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handlePlayJoin(w http.ResponseWriter, r *http.Request) {
 	var b struct {
 		Code string `json:"code"`
+		// Room: an open room's session (WittyPlay Online), joined with no code by a friend of its
+		// host who may.
+		Room string `json:"room"`
 	}
 	if err := readJSON(r, &b); err != nil {
 		writeErr(w, 400, err.Error())
@@ -351,11 +458,24 @@ func (s *Server) handlePlayJoin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	u := userFrom(r)
-	name := u.DisplayName
-	if name == "" {
-		name = u.Name
+	name := profileName(u)
+	var j seatJoin
+	var err error
+	if b.Room != "" {
+		host := int64(-1)
+		for _, t := range s.gameSvc.seats.tablesNow() {
+			if t.Session == b.Room && t.Open {
+				host = t.Host
+			}
+		}
+		if host < 0 || (host != u.ID && !s.mayJoinRoom(r.Context(), u, host)) {
+			writeErr(w, 404, errRoomClosed.Error())
+			return
+		}
+		j, err = s.gameSvc.seats.joinOpen(b.Room, u.ID, name)
+	} else {
+		j, err = s.gameSvc.seats.join(b.Code, u.ID, name)
 	}
-	j, err := s.gameSvc.seats.join(b.Code, u.ID, name)
 	if err == errSeatTries {
 		w.Header().Set("Retry-After", "600")
 		writeErr(w, 429, err.Error())

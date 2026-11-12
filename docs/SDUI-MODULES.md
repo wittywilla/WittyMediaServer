@@ -779,9 +779,9 @@ The tasks for each app:
 
 ## Conformance fixtures
 
-Four fixtures in [`pkg/sdui/conformance/fixtures`](../pkg/sdui/conformance/fixtures/index.json)
-cover modules. They are made from the worked example (`moduleCases` in
-`pkg/sdui/conformance/cases_test.go`). Each has `input.moduleUI`, the module's file, for
+Five fixtures in [`pkg/sdui/conformance/fixtures`](../pkg/sdui/conformance/fixtures/index.json)
+cover modules. The first four are made from the worked example (`moduleCases` in
+`pkg/sdui/conformance/cases_test.go`), the fifth from WittyPlay's (`playOnlineCases`). Each has `input.moduleUI`, the module's file, for
 reference; a renderer reads only `expected.document`, as with every fixture
 ([The conformance kit](SDUI.md#the-conformance-kit)).
 
@@ -791,6 +791,7 @@ reference; a renderer reads only `expected.document`, as with every fixture
 | `module-page-web` | The same page in a browser that sent `views=wittyboardgames.scoreboard`: the `NativeView` itself is sent. |
 | `module-home-insert` | Home on a phone on a Friday evening: the inserted `wittyboardgames-tonight` row sits after `jump`, in the module's scope, shown because its `weekday` condition holds. |
 | `module-not-installed` | An administrator's page using the module's component and source with no module installed: both are left out, and the rest of the page is drawn. |
+| `wittyplay-online-tv` | WittyPlay Online's rows on a television, from WittyPlay's own `sdui.json` (a copy in `pkg/sdui/testdata`): recent games with their era and detail line, eras with counts, friends with presence, open rooms. Every card is in WittyPlay's scope. |
 
 ## Writing the file
 

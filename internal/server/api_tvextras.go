@@ -44,6 +44,7 @@ func (s *Server) tvExtraRoutes(m *http.ServeMux) {
 	m.Handle("GET /api/channels/discs", ad(s.handleChannelDiscs))
 	m.Handle("POST /api/channels/clip-preview", ad(s.handleClipPreview))
 	s.tvSetRoutes(m)
+	s.tvProgrammeRoutes(m)
 	s.tvCatchupRoutes(m)
 	s.tvAdminRoutes(m)
 }

@@ -664,7 +664,7 @@ func cases() []kase {
 			sec("none", "Banner", map[string]any{"title": "Never shown"}, sdui.Source{"type": "watchLater", "limit": 1})), Request: request("tablet"),
 			Data: Data{Sources: []CannedSource{src(map[string]any{"type": "random"}, films(1), 0)}}},
 			checks: []string{"a banner written by hand opens a native screen", "a banner from a source takes its title, text, picture and destination from the first item", "a banner whose source is empty is left out"}},
-	}, append(moduleCases(), append(experienceCases(), sourceCases()...)...)...)
+	}, append(append(moduleCases(), playOnlineCases()...), append(experienceCases(), sourceCases()...)...)...)
 }
 
 // The modules' cases (docs/SDUI-MODULES.md): the worked example module's page,
@@ -737,6 +737,68 @@ func moduleCases() []kase {
 			checks: []string{"a module's insert sits where it asked to (after jump)", "an inserted section carries the module's scope and colours", "its condition is the module's, combined with the section's"}},
 		{id: "module-not-installed", title: "A page that uses a module that isn't installed", in: Input{Page: missing, Request: request("phone"), Data: moduleData()},
 			checks: []string{"a module's component or source with no module behind it is left out, never sent", "the rest of the page is drawn"}},
+	}
+}
+
+// WittyPlay Online's sources (docs/GAMING-API.md, Playing together): WittyPlay's own sdui.json
+// (a copy in testdata) declares them and the server answers them, so their cards come as a
+// module's do, in WittyPlay's scope. The items are as the server gives them: an era badge, the
+// home row's detail line, presence as a badge and a line, a room's players.
+func wittyPlayUI() sdui.ModuleUI {
+	b, err := os.ReadFile(filepath.Join("..", "testdata", "module-wittyplay.json"))
+	if err != nil {
+		panic(err)
+	}
+	ui, err := sdui.ParseModuleUI(b)
+	if err != nil {
+		panic(err)
+	}
+	return *ui
+}
+
+func playOnlineData() Data {
+	game := func(id, title, era, line string, played float64) sdui.Item {
+		return sdui.Item{ID: id, Kind: "game", Title: title, Subtitle: line, Badges: []string{era}, RuntimeSec: played,
+			Images: map[string]string{"poster": "/api/items/" + id + "/poster"}, Route: "/game/" + id, PlayID: id, Scope: "wittyplay"}
+	}
+	friend := func(id, name, state, line string) sdui.Item {
+		return sdui.Item{ID: "profile-" + id, Kind: "view", Title: name, Subtitle: line, Badges: []string{state}, Icon: "user", Scope: "wittyplay"}
+	}
+	return Data{Sources: []CannedSource{
+		src(map[string]any{"type": "wittyplay.recent"}, []sdui.Item{
+			game("7101", "Star Tide", "16-bit", "16-bit classics · 1 to 2 players · Played 3 hr 12 min · Save state 3 ready", 11520),
+			game("7102", "Pixel Orchard", "8-bit", "8-bit classics · 1 to 2 players · Played 48 min", 2880),
+			game("7103", "Lantern Keep", "Handheld", "Handheld classics · 1 player", 0),
+		}, 0),
+		src(map[string]any{"type": "wittyplay.collections"}, []sdui.Item{
+			{ID: "era-8-bit", Kind: "collection", Title: "8-bit classics", Subtitle: "24 games", Count: 24, Badges: []string{"8-bit"}, Icon: "game", Route: "/games?era=8-bit", Scope: "wittyplay"},
+			{ID: "era-16-bit", Kind: "collection", Title: "16-bit classics", Subtitle: "31 games", Count: 31, Badges: []string{"16-bit"}, Icon: "game", Route: "/games?era=16-bit", Scope: "wittyplay"},
+			{ID: "era-pocket", Kind: "collection", Title: "Handheld classics", Subtitle: "12 games", Count: 12, Badges: []string{"Handheld"}, Icon: "game", Route: "/games?era=pocket", Scope: "wittyplay"},
+		}, 0),
+		src(map[string]any{"type": "wittyplay.friends"}, []sdui.Item{
+			friend("2", "Pip", "Playing", "Playing Star Tide"), friend("3", "Sam", "Online", "Online"),
+			friend("4", "Tom", "Away", "Away"), friend("5", "Lee", "Offline", "Offline"),
+		}, 0),
+		src(map[string]any{"type": "wittyplay.rooms"}, []sdui.Item{
+			{ID: "s-moth", Kind: "view", Title: "Moth Racer · 3 of 4", Subtitle: "Shared · Sam", Count: 3, Badges: []string{"Shared"}, Icon: "users", Scope: "wittyplay"},
+			{ID: "s-tennis", Kind: "view", Title: "Tin Roof Tennis · 1 of 2", Subtitle: "Shared · Ines", Count: 1, Badges: []string{"Shared"}, Icon: "users", Scope: "wittyplay"},
+		}, 0),
+	}}
+}
+
+func playOnlineCases() []kase {
+	ui := wittyPlayUI()
+	pg := page("play", "custom",
+		sec("recent", "Shelf", map[string]any{"title": "Recent"}, sdui.Source{"type": "wittyplay.recent"}),
+		sec("classics", "Shelf", map[string]any{"title": "Classics"}, sdui.Source{"type": "wittyplay.collections"}),
+		sec("friends", "Shelf", map[string]any{"title": "Friends"}, sdui.Source{"type": "wittyplay.friends"}),
+		sec("rooms", "Shelf", map[string]any{"title": "Open rooms"}, sdui.Source{"type": "wittyplay.rooms"}))
+	tv := request("tv")
+	tv.Modules = []string{"wittyplay"}
+	tv.Scopes = map[string]map[string]string{"wittyplay": {"accent": "#7F46B8"}}
+	return []kase{
+		{id: "wittyplay-online-tv", title: "WittyPlay Online's rows on a television", in: Input{Page: pg, Request: tv, Data: playOnlineData(), ModuleUI: []sdui.ModuleUI{ui}},
+			checks: []string{"recent games carry their era as a badge and the home row's detail line as the subtitle", "collections are eras with their counts", "friends carry their presence as a badge and a line", "rooms carry how many have joined and their host", "every card is in WittyPlay's scope"}},
 	}
 }
 

@@ -263,6 +263,62 @@ the host frees it, its holder leaves (`DELETE /play/{sid}/seats/{user}`) or the 
 
 Playing with someone on another server is reserved and not built: clients show **Multiplayer** greyed out.
 
+## Playing together
+
+WittyPlay Online's data (Design 2, `docs/plans/DESIGN-2-SDUI-GAPS.md` section 6). Its native views and shell
+(`gamesHome`, `quickMenu`, `lobby`, `controllers`, `memories`, the status bar and the system dock) are drawn by the
+apps from these sources; nothing here is a page of its own.
+
+**Friends** are the other profiles of this server. A profile makes two choices (`GET` and `PUT /games/online/me`;
+yes to both until it says otherwise): whether friends see what it plays (`sharePlaying`; off, it's shown online with no
+game) and whether it appears online at all (`appearOnline`; off, it's offline to everyone, playing or not). A **Kids**
+profile sees, and is seen by, only the profiles an administrator chose for it (`GET` and
+`PUT /games/online/kids/{user}`, `{friends}`; the `GET` also lists every profile that could be one, as `candidates`
+with `approved`), and gets no open rooms. A **guest** has no friends and is
+nobody's. Presence is `playing` (in a game on this server, as its host or in a seat), `online` (used this server in
+the last five minutes), `away` (in the last hour) or `offline`; the game is named only to someone whose limits would
+let them open it.
+
+A **room** is a game being played on this server with seats for others ([Seats](#seats)): rooms are shared on this
+server, not across servers, so a room's mode is "Shared". The host opens it to the friends who may see it
+(`POST /play/{sid}/room`, `{open}`), who then join with no code (`POST /play/join` with `{room: sid}`); it answers the
+host's code, which a phone's QR join link carries (`/games?join=CODE`). The host moves players
+(`PUT /play/{sid}/seats/{user}`, `{seat}`; a held seat is swapped). Kids and guest profiles can't open their games or
+join an open room; they still join with a code.
+
+**Memories** are a profile's own save states and the screenshots it kept (`POST /play/{sid}/screenshot`, at most 200 a
+game; `GET` and `DELETE /games/{id}/shots/{name}`). There are no clips and no voice chat.
+
+### Its sources
+
+WittyPlay declares them in its `sdui.json` and the server answers them, through the profile's limits, age ratings and
+hidden libraries, and cleans them as any module's items. Nothing is given when games are off for the profile.
+
+| Source | Gives | Each item |
+|---|---|---|
+| `wittyplay.recent` | The games this profile played, newest first | `game`: its era as a badge ("16-bit"), the home row's line as `subtitle` ("16-bit classics · 1 to 2 players · Played 3 hr 12 min · Save state 3 ready"), seconds played as `runtimeSec` |
+| `wittyplay.collections` | Without `era`, the eras with games, in order; with `era` (`first`, `8-bit`, `16-bit`, `early-3d`, `disc`, `pocket`), that era's games by title | `collection` (`era-<era>`, `count`, route `/games?era=<era>`), or `game` |
+| `wittyplay.friends` | The profile's friends, playing first, then online, away, offline | `view` (`profile-<id>`): name, presence as the badge ("Playing", "Online", "Away", "Offline") and the line ("Playing Star Tide") |
+| `wittyplay.rooms` | Friends' open rooms with a seat free, of games this profile may play; none for Kids or guests | `view` (the session): "Moth Racer · 3 of 4", "Shared · Sam", `count` players |
+| `wittyplay.room` | The room this profile is in: the room, then each player | The room (`view`: game, host, the code as `tagline` and the join route for the host only, badge "Open" when open), then a `view` per player: name or "Waiting…" (badge "Free"), "Player n", badge "Pn" |
+| `wittyplay.saveStates` | One game's saves (`item`, required), the profile's own first, newest first | `view` `slot-<n>`: "Save state 3", when, its picture as `backdrop` |
+| `wittyplay.memories` | Saves and kept screenshots of every game, newest first | `view` (badge "Save") or `photo` (badge "Shot"): the game's title, what and when, picture as `backdrop` |
+| `wittyplay.controllers` | Each player of the game this profile is in | `view` `player-<n>`: "Player n", who (and the host's device), or "No controller" (badge "Free"). Battery and the controller's kind are the device's own (the Gamepad API): the server never sees them |
+
+### Its commands
+
+`rewind.open` and `controller.remap` open the player's own panels and need no server. The rest are the catalogue's
+`wittyplay.` commands, each one of these routes:
+
+| Command | Route |
+|---|---|
+| `wittyplay.room.create` | `POST /play/{sid}/room` `{open: true}` |
+| `wittyplay.room.join` | `POST /play/join` `{room}`, or `{code}` |
+| `wittyplay.room.invite` | `POST /play/{sid}/invite` |
+| `wittyplay.state.save`, `wittyplay.state.load` | `POST /play/{sid}/action` `{type: "save" or "load", slot}` |
+| `wittyplay.state.delete` | `DELETE /games/{id}/saves/{slot}` |
+| `wittyplay.controller.assign` | `PUT /play/{sid}/seats/{user}` `{seat}` |
+
 ## Modes
 
 `GET /games/modes?client=native` answers `{client, modes}`, and the session's `modes` is the same list: what you can use, best first. Use the first one

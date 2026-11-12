@@ -226,3 +226,14 @@ func TestCreditGroupsMatchTheLibrary(t *testing.T) {
 		}
 	}
 }
+
+// Someone only a TV guide names has a card with no page to open, never /person/0.
+func TestCreditCardOfSomeoneTheServerDoesNotKeep(t *testing.T) {
+	it := creditItem(library.Credit{Name: "Zoë Example", Role: library.RoleCast, Character: "Host", HasPhoto: true}, "cast")
+	if it.Route != "" || it.ID != "name-zoe-example-cast" || it.Images["square"] != "" || it.Subtitle != "Host" {
+		t.Errorf("%+v", it)
+	}
+	if kept := creditItem(library.Credit{PersonID: 7, Name: "Ana Lima", Role: library.RoleCast}, "cast"); kept.Route != "/person/7" {
+		t.Errorf("%+v", kept)
+	}
+}

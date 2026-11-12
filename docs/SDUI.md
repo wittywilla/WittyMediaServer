@@ -456,6 +456,16 @@ own props as they are now. Never ask for the same cursor twice at once.
   it; `document.theme.tokens` does so for the whole page. That is how a
   module's colours, or a page's own accent, reach a renderer: see
   [Theme scopes](#theme-scopes).
+- Each component and card style says in the catalogue which tokens it is
+  drawn with (`tokens`: colours by part, text roles, shape tokens), and
+  `GET /api/v1/theme` has the values: colours (with the profile's own and
+  the colours derived from each override), `shape` (corner radii and the
+  focus ring, in points) and `type` (typefaces and weights). A renderer
+  draws from those and has no colour, corner or typeface of its own: see
+  [THEMES.md](THEMES.md#sdui-tokens) and the [table](#theme-tokens). A
+  node's `tokens` are what its scope's palette has that the account's
+  `tokens` don't; with the automatic theme they are its dark look's, so a
+  client following the device takes `variants[scheme].modules[scope]`.
 
 ### Motion
 

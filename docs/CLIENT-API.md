@@ -884,6 +884,22 @@ automatic theme says which in `variant`.
 }
 ```
 
+**Layers, shape, type and the profile's own colours.** The order, lowest first, is the theme, the
+administrator's global colours, a module scope's own, the administrator's for the scope, the
+profile's own (`personal`), and the profile's own for the scope (`modules.<scope>.personal`); each
+layer brings the colours worked out from it (`theme-derived`: an accent alone also sets `accentHover`,
+`accentFg`, `accentText`, `focus`, `brandAccent`, `accentSoft` and `accentLine`). With
+`theme-shape-type`, the answer and each of `variants` have `shape` (corner radii and the focus ring, in
+points: `card`, `button`, `field`, `row`, `thumb`, `chip`, `badge`, `image`, `sheet`, `dialog`, `pill`,
+`focusWidth`, `focusOffset`, `focusScale`) and `type` (`display`, `body` and `mono` families, best
+first, and `weights`), and `brand` is the server's name (`parts`, as `brandParts`) with `color`, the
+`brandAccent` token resolved. With `theme-personal`, `GET`, `PUT` and `DELETE /theme/personal` read
+and set the signed-in profile's own colours: `{"tokens": {...}, "modules": {"<scope>": {...}}}`. A
+`PUT` that would put text under 4.5:1 on the theme the profile sees is refused (400) with the pairs in
+`contrast`. With `sdui-tokens`, every component and card style in `GET /sdui/catalog` has `tokens`:
+which colour token each part is drawn in, which text role each text takes, which `shape` token rounds
+each part ([Themes](THEMES.md#sdui-tokens)).
+
 `GET /themes` lists the themes, with four preview colours and `scheme` (`dark` or `light`), and which
 is the server's `default`. `GET /themes/{id}/tokens.json` is a theme as data, read from its CSS
 variables, so theme authors write one file and the apps get the same colours:

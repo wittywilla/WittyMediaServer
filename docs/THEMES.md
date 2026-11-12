@@ -383,19 +383,90 @@ The built-in stylesheet switches to the mobile layout at `max-width: 900px` (the
 
 ## For developers
 
-`python scripts/theme-contrast.py` checks the built-in themes against the contrast rules, and `--fix` adjusts them. `scripts/design-tokens.py` writes `colors` and `radius` in `theme.json` for the built-ins, which are written out as ZIPs at start-up when their `version` changes.
+`python scripts/theme-contrast.py` checks the built-in themes against the contrast rules, and `--fix` adjusts them. `scripts/design-tokens.py` writes `colors`, `radius`, `shape` and `type` in `theme.json` for the built-ins, from their CSS and the stylesheet's defaults, which are written out as ZIPs at start-up when their `version` changes.
 
 Theme files need no sign-in: `GET /api/themes`, `GET /api/themes/<id>/theme.css`, `GET /api/themes/<id>/<file>`, `GET /api/themes/<id>/tokens.json` and `GET /api/themes/<id>/download`. Making a theme on the server is `POST /api/themes/custom` (administrators), which accepts only plain `#rrggbb` colours. See [Client API](CLIENT-API.md#themes-and-design-data).
 
 ### The theme engine
 
-On top of the themes, the server keeps colour overrides and resolves, for each account, the one set of colours it sees. `GET /api/theme` (any signed-in account; also `/api/v1/theme`) answers with it, in three layers, later winning:
+On top of the themes, the server keeps colour overrides and resolves, for each account, the one set of colours it sees. `GET /api/theme` (any signed-in account; also `/api/v1/theme`) answers with it.
 
-1. **The server's theme**, the same `theme` setting `/api/themes` reports as `default`, with the administrator's **global overrides**.
-2. **The account's own choice**: `theme` in `/api/me/ui`, when it names a theme that's installed. It replaces the server's theme and, with it, the global overrides, which were chosen for that theme.
-3. **Module overrides**: colours for the parts of the interface that belong to one module, such as `wittyplay`'s shelves, layered over either. They are under `modules` in the answer, and server-driven pages get them too: a page or section that names the module as its `scope` receives them as `tokens` (see [SDUI](SDUI.md#theme-scopes)). A scope needn't be a module: `PUT /api/v1/theme/modules/family` gives a page of your own, with `"scope": "family"`, its own accent.
+#### Precedence
 
-The answer is `{id, source, scheme, tokens, overrides, modules: {<module>: {tokens, overrides}}, variants, warnings, etag, revision}`, with an `ETag` header; send it back as `If-None-Match` for a 304.
+Six layers, each over the ones before it (later wins):
+
+1. **The theme pack**: the server's theme, the same `theme` setting `/api/themes` reports as `default`; or **the account's own choice**, `theme` in `/api/me/ui`, when it names a theme that's installed.
+2. **The administrator's global overrides**. Left out when the account chose its own theme: they were chosen for the server's.
+3. **A module scope's own colours**: what a module's `sdui.json` gives its theme scope ([SDUI for modules](SDUI-MODULES.md)).
+4. **The administrator's overrides for the scope** (`PUT /api/v1/theme/modules/{scope}`), token by token over the module's own.
+5. **The profile's own colours** (`PUT /api/v1/theme/personal`), everywhere: they beat the module's colours too, so someone who needs a stronger text colour gets it on every page.
+6. **The profile's own colours for the scope**, over all of the above, in that scope only.
+
+Layers 1, 2 and 5 make `tokens`; every scope with colours of its own (3, 4 or 6) has its whole palette under `modules`. Server-driven pages get the scopes too: a page or section that names a scope receives, as `tokens`, what that scope's palette has that the account's `tokens` don't (see [SDUI](SDUI.md#theme-scopes)). A scope needn't be a module: `PUT /api/v1/theme/modules/family` gives a page of your own, with `"scope": "family"`, its own accent.
+
+The answer is `{id, source, scheme, tokens, overrides, personal, modules: {<scope>: {tokens, overrides, personal}}, shape, type, brand, variants, warnings, etag, revision}`, with an `ETag` header; send it back as `If-None-Match` for a 304. The ETag changes with anything in it: the theme, any layer, the server's name.
+
+#### Derived colours
+
+A theme sets a handful of colours and works the rest out from them (`web/src/styles.css`, `scripts/theme-contrast.py`). Every layer does the same: an override that sets only `accent` also gets, unless it sets them itself,
+
+| Token | Worked out as |
+|---|---|
+| `accentHover` | the accent, 12% towards black |
+| `accentFg` | white when it reads on the accent (4.5:1), else the dark ink `#0E1013`, else whichever reads better |
+| `accentText` | the accent, lightened (dark themes) or darkened (light themes), keeping its hue, until it reads on `bg`, `bg2` and `bg3`: as `theme-contrast.py` does it |
+| `focus`, `brandAccent` | `accentText` (also when a layer sets `accentText` itself) |
+| `accentSoft`, `accentLine` | the accent at 14% and 45% |
+| `border`, `borderStrong`, `hover`, `pressed` | from `fg`, at 10%, 20%, 7% and 12%, or as see-through as the theme makes them (the high contrast theme's hairlines are stronger) |
+| `okSoft`, `warnSoft`, `dangerSoft` | from `ok`, `warn` and `danger`, at 13%, 13% and 11% |
+| `controlLine` | from `bg`, `bg2` or `bg3`: the raised surface moved until it reaches 3:1 on all three |
+
+A token set to the value it already has derives nothing. So a module scope with only an accent looks whole: its hover, selected rows, focus ring and links follow its accent. Contrast is checked on the result.
+
+#### Shape and type
+
+`shape` is the theme's corners and focus ring in points: `radius` (the theme's `--radius`), and the corner of each part, worked out from it the way the stylesheet does (`--r-xs` … `--r-xl` are 0.4, 0.6, 1, 1.4 and 2 times it): `card`, `button`, `field` and `row` (1×), `thumb` (0.6×), `badge` (0.4×), `image` and `sheet` (1.4×), `dialog` (2×), `chip` and `pill` (999: fully round), and `focusWidth`, `focusOffset` and `focusScale`. `themes/tokens.json` `shape.roles` has the same table. On a television use `tenFoot.focus` from `themes/tokens.json` instead of the three focus values.
+
+`type` is its typefaces and weights: `display` (page titles and headings), `body` and `mono`, each a list of families best first, and `weights` (`body` 400, `medium` 500, `strong` 600, `heading` 650). Sizes aren't the theme's: they are the device's, in a server-driven page's `layout.text`. The built-in themes carry both in `theme.json`; a theme uploaded without them gets them from its CSS (`--radius`, `--focus-width`, `--focus-offset`, `--font`, `--font-mono`, `--weight-heading`), else the stylesheet's. Each look in `variants` has its own `shape` and `type`.
+
+#### The server's name
+
+`brand` is the server's name ready to draw, `parts` exactly as `brandParts` in `/api/status` and `/api/themes` ([Client API](CLIENT-API.md#themes-and-design-data)), with `token` (`brandAccent`) and `color`, that token resolved through every layer: parts with `accent` are drawn in it, the rest in `fg`. An override of the accent moves the name's colour with it (through the derived `accentText`); an override of `brandAccent` itself sets it directly; the profile's own wins over the administrator's. In a look of `variants`, take `tokens.brandAccent` of that look. `brandAccent` is checked for contrast like the other text colours.
+
+#### SDUI tokens
+
+Server-driven components have no colour, type or corner of their own. The catalogue (`GET /api/v1/sdui/catalog`) gives every component and card style `tokens`:
+
+```json
+"tokens": {
+  "colors": { "surface": "bg3", "text": "fg", "secondaryText": "fg2", "focus": "focus", "progress": "accent", "progressTrack": "bg4", "badge": "scrim", "badgeText": "onImage" },
+  "type":   { "title": "title", "subtitle": "caption", "badge": "badge" },
+  "shape":  { "corner": "card", "badge": "badge", "focus": "focusWidth", "focusGap": "focusOffset" }
+}
+```
+
+- `colors` maps each coloured part to a colour token. The part names (background, surface, text, link, accent, onAccent, focus, onImage, scrim, badge, progress, …) are listed with what they mean in the catalogue's `theme.colorRoles`.
+- `type` maps each piece of text to a text role: its size is the page's `layout.text[role]`, and its family and weight are `theme.typeRoles[role]` (for example `heading`: the `display` family, `heading` weight) looked up in the resolved theme's `type`.
+- `shape` maps each rounded part to a name in the resolved theme's `shape`, whose value is the corner radius in points.
+
+The full table is in the [SDUI reference](SDUI.md#theme-tokens). A component a module adds takes the tokens of the component it expands into.
+
+**What each app does.** With `sdui-tokens` and `theme-shape-type` in `/capabilities` features:
+
+1. Fetch `GET /api/v1/theme` when a profile signs in or switches, and again with `If-None-Match` when the app comes back to the foreground; pick `variants[scheme]` when following the device's light or dark setting.
+2. Draw every SDUI node from its component's `tokens` (or its card style's): colour = the resolved theme's `tokens[token]`, with the node's own `tokens` (its scope's) and the document's `theme.tokens` laid over them for that node and everything in it; corner = `shape[token]`; text = `layout.text[role]` points in `type[typeRoles[role].family]` at `type.weights[typeRoles[role].weight]`. No literal colours, radii or font names in the renderer.
+3. Draw the server's name from `brand`.
+4. Offer the profile's own colours in the app's Settings (with `theme-personal`), writing `PUT /api/v1/theme/personal`, and show a refusal's `contrast` pairs.
+
+Against a server without these features, apps keep what they draw today.
+
+#### A profile's own colours
+
+`GET /api/v1/theme/personal` gives the signed-in profile's own overrides, `{tokens, modules: {<scope>: tokens}, warnings, etag}`; `PUT` replaces them with `{"tokens": {...}, "modules": {"<scope>": {...}}}` and `DELETE` takes them away. Only a profile's own: the routes name no profile. Token names and colours are checked as below; scopes are module ids by form, at most 16; the body is strict JSON of at most 32 KB. They are kept with the profile's other interface choices (`themePersonal` in `/api/me/ui`), so they follow it to every device and go when it does.
+
+Unlike the administrator's overrides, which are saved with a warning, a profile's own are **refused** (400) when any text would fall below WCAG AA on the theme it sees, in either look of the automatic theme; the answer lists the failing pairs in `contrast`. Colours saved for one theme can become hard to read after the theme changes: they still apply, and `warnings` (scope `personal`, or `personal:<scope>`) says so.
+
+#### Looks, the web app and the routes
 
 **Light and dark.** `scheme` says which the theme is. The automatic theme (`auto`) is two looks, the dark one (the `default` theme) and the light one (`light`), and `scheme` is then `auto`. `variants` has each look resolved the same way, as `{id, tokens, modules}` under `dark` and `light`; an ordinary theme has the one. `tokens` and `modules` at the top are the dark look's, for apps that know nothing of variants. The same overrides go over both looks, so a colour that reads well on one may not on the other: each look gets its own warnings, and a warning says which in `variant`.
 
@@ -412,7 +483,7 @@ Administrators change the overrides with:
 
 **Token names** are the colour names in `theme.json` `colors`: `bg`, `bg2`, `bg3`, `bg4`, `fg`, `fg2`, `fg3`, `accent`, `accentHover`, `accentFg`, `accentText`, `brandAccent`, `danger`, `ok`, `warn`, `border`, `borderStrong`, `controlLine`, `hover`, `pressed`, `accentSoft`, `accentLine`, `okSoft`, `warnSoft`, `dangerSoft`, `focus`, `onImage`, `scrim` and `overlay`. **Colours** are `#rgb`, `#rrggbb`, `#rrggbbaa`, `rgb()` or `rgba()`, and come back as `#RRGGBB` or `#RRGGBBAA`. Anything else, or an unknown name, is refused with 400, so nothing but a colour reaches a stylesheet.
 
-**Readability.** Every answer lists in `warnings` the text colours an override leaves below WCAG AA (4.5:1), with the same pairs and formula as `scripts/theme-contrast.py`: `fg`, `fg2`, `fg3`, `accentText`, `danger`, `ok` and `warn` on `bg`, `bg2` and `bg3`, and `accentFg` on `accent`. Only pairs the override touches are reported, and translucent colours are skipped. A warning doesn't stop the change; it's there for the settings page to show.
+**Readability.** Every answer lists in `warnings` the text colours an override leaves below WCAG AA (4.5:1), with the same pairs and formula as `scripts/theme-contrast.py`: `fg`, `fg2`, `fg3`, `accentText`, `brandAccent`, `danger`, `ok` and `warn` on `bg`, `bg2` and `bg3`, and `accentFg` on `accent`. Only pairs the override touches, or the colours derived from it, are reported, and translucent colours are skipped. For the administrator a warning doesn't stop the change; it's there for the settings page to show. A profile's own colours are refused instead (above).
 
 The overrides live in the `theme` section of `ui_config.json` in the data folder, with the server-driven pages, so they have its revisions, `If-Match` (412 when someone changed them in between) and rollback: see [SDUI](SDUI.md#ui_configjson). `/api/themes` and `/api/themes/<id>/tokens.json` are unchanged, and still give a theme's own colours.
 

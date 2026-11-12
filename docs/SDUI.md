@@ -1098,7 +1098,7 @@ How it is drawn:
 
 - **Television.** A full-screen column inside the safe area (60 points top and bottom, 80 at the sides), sections 40 points apart. The title isn't drawn: the top menu says where you are.
 - **Phone.** A scrolling column under a large title that collapses into the navigation bar; sections 24 points apart, rows bleed to the screen's edges.
-- **Tablet.** As a phone, with 24-point side margins.
+- **Tablet.** As a phone, with 16-point side margins (the m spacing, as on every form factor but the television).
 - **Desktop and web.** A scrolling column beside the sidebar, the title as a heading, content at most 1600 points wide.
 
 Focus: takes none. Accessibility: Role: main. Label: the title.
@@ -2028,6 +2028,7 @@ The width of a medium (`m`) card in points; small is 80% and large 125%, rounded
 | Canvas | 1920×1080 | 1920×1080 | the window | the window | the window | the window |
 | Breakpoint when the window isn't known | large | large | compact | expanded | large | large |
 | Safe area (top, right, bottom, left) | 60, 80, 60, 80 | 60, 80, 60, 80 | the system's | the system's | the system's | the system's |
+| Side margins | 80 | 80 | 16 | 16 | 16 | 16 |
 | Focus is the only pointer | yes | yes | no | no | no | no |
 | Opens web links | no | no | yes | yes | yes | yes |
 | Spacing xs, s, m, l, xl | 10, 20, 40, 60, 100 | 10, 20, 40, 60, 100 | 4, 8, 16, 24, 40 | 4, 8, 16, 24, 48 | 4, 8, 16, 24, 48 | 4, 8, 16, 24, 48 |
@@ -2536,32 +2537,34 @@ What shows each place in the app: an SDUI page, asked for with the parameters gi
 
 ### Native screens
 
-| Screen | What it is | Route |
-|---|---|---|
-| `settings` | The app's own Settings. Always in the navigation; never an SDUI page. | `/settings` |
-| `guide` | The guide's grid of channels and times. | `/tv/guide` |
-| `profiles` | The profile's own page and the profile switcher. | `/you` |
-| `downloads` | What is kept on this device. | `/downloads` |
-| `remote` | Remote control of another device. | `/remote` |
-| `nowPlaying` | The music player. | `/now-playing` |
-| `pair` | Sign another device in. | `/pair` |
-| `collections` | The app's own collections manager, where it has one; else the collections page. | `/collections` |
-| `player` | The video player. | `/watch/{item}` |
-| `livePlayer` | A channel, playing. | `/tv/watch/{key}` |
-| `reader` | The book and comic reader. | `/read/{item}` |
-| `game` | A game's page and player. | `/game/{item}` |
-| `download` | Keep a copy of a title on this device (action params: item). | `` |
-| `share` | The share sheet for a title (action params: item). | `` |
-| `playOn` | The device picker for a title (action params: item). | `` |
-| `watchParty` | Start a watch party for a title (action params: item). | `` |
+A menu entry (`type: native`) may open the screens marked *menu*; the others need a title or a channel and are opened by actions.
+
+| Screen | What it is | Route | Menu |
+|---|---|---|---|
+| `settings` | The app's own Settings. Always in the navigation; never an SDUI page. | `/settings` | menu |
+| `guide` | The guide's grid of channels and times. | `/tv/guide` | menu |
+| `profiles` | The profile's own page and the profile switcher. | `/you` | menu |
+| `downloads` | What is kept on this device. | `/downloads` | menu |
+| `remote` | Remote control of another device. | `/remote` | menu |
+| `nowPlaying` | The music player. | `/now-playing` | menu |
+| `pair` | Sign another device in. | `/pair` | menu |
+| `collections` | The app's own collections manager, where it has one; else the collections page. | `/collections` | menu |
+| `player` | The video player. | `/watch/{item}` | no |
+| `livePlayer` | A channel, playing. | `/tv/watch/{key}` | no |
+| `reader` | The book and comic reader. | `/read/{item}` | no |
+| `game` | A game's page and player. | `/game/{item}` | no |
+| `download` | Keep a copy of a title on this device (action params: item). | `` | no |
+| `share` | The share sheet for a title (action params: item). | `` | no |
+| `playOn` | The device picker for a title (action params: item). | `` | no |
+| `watchParty` | Start a watch party for a title (action params: item). | `` | no |
 
 ### Commands
 
 | `op` | What it does | Request |
 |---|---|---|
-| `watchLater.add` | Adds the title to the profile's Watch later list. | `POST /api/v1/collections/watch-later/items` with `{"items":[{item}]}` |
-| `watched.set` | Marks the title watched. | `POST /api/v1/items/{item}/progress` with `{"watched":true}` |
-| `watched.clear` | Forgets the profile's progress in the title. | `DELETE /api/v1/items/{item}/progress` |
+| `watchLater.add` | Adds the title to the profile's Watch later list. | `POST /api/v1/collections/watch-later/items` with `{"items":["{item}"]}` |
+| `watched.set` | Marks the title watched; for a show, every episode. | `POST /api/v1/items/{item}/progress` with `{"watched":true}` |
+| `watched.clear` | Forgets the profile's progress in the title; for a show, in every episode. | `DELETE /api/v1/items/{item}/progress` |
 | `selectTab` | Asks for the page again with tab=<params.tab>, or shows the tab's content when the client already has it. |  |
 | `refresh` | Asks for the page again. |  |
 

@@ -375,7 +375,17 @@ func (l *Layout) ContentWidth() int {
 	if l.SafeArea.Left+l.SafeArea.Right > 0 {
 		return width - l.SafeArea.Left - l.SafeArea.Right
 	}
-	return width - 2*l.Spacing["m"]
+	return width - 2*l.SideMargin()
+}
+
+// SideMargin is the margin at each side of a page's content, in points: the
+// safe area's left inset on a television, the m spacing on every other form
+// factor (16 points on a phone, a tablet, a desktop and the web).
+func (l *Layout) SideMargin() int {
+	if l.SafeArea.Left+l.SafeArea.Right > 0 {
+		return l.SafeArea.Left
+	}
+	return l.Spacing["m"]
 }
 
 // Placeholders is how many grey placeholder cards a row of cards this wide

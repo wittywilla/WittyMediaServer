@@ -170,7 +170,7 @@ func buildComponents() []ComponentSpec {
 			Renders: map[string]string{
 				"tv":      "A full-screen column inside the safe area (60 points top and bottom, 80 at the sides), sections 40 points apart. The title isn't drawn: the top menu says where you are.",
 				"phone":   "A scrolling column under a large title that collapses into the navigation bar; sections 24 points apart, rows bleed to the screen's edges.",
-				"tablet":  "As a phone, with 24-point side margins.",
+				"tablet":  "As a phone, with 16-point side margins (the m spacing, as on every form factor but the television).",
 				"desktop": "A scrolling column beside the sidebar, the title as a heading, content at most 1600 points wide.",
 			},
 			A11y: "Role: main. Label: the title."},

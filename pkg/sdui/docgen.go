@@ -185,6 +185,7 @@ func CatalogueMarkdown() string {
 		}
 		return fmt.Sprintf("%d, %d, %d, %d", l.SafeArea.Top, l.SafeArea.Right, l.SafeArea.Bottom, l.SafeArea.Left)
 	})
+	row("Side margins", func(l *Layout) string { return num(l.SideMargin()) })
 	row("Focus is the only pointer", func(l *Layout) string { return map[bool]string{true: "yes", false: "no"}[l.FocusEngine] })
 	row("Opens web links", func(l *Layout) string { return map[bool]string{true: "yes", false: "no"}[l.ExternalLinks] })
 	row("Spacing xs, s, m, l, xl", func(l *Layout) string {

@@ -265,6 +265,13 @@ func (rv *sduiResolver) discVersions(it *library.Item) []sdui.Item {
 	return out
 }
 
+// classWords say what the engine took a title for, as the board writes it.
+var classWords = map[string]string{
+	"main": "The film", "part": "Part of the film", "alternate": "Another cut", "featurette": "A featurette", "trailer": "A trailer",
+	"intro": "An intro", "episode": "An episode", "playAll": "Plays every episode", "duplicate": "A copy of another title", "menu": "A menu's background",
+	"extra": "An extra", "short": "A short", "stub": "Too short to matter",
+}
+
 var levelWords = map[string]string{"high": "High", "medium": "Medium", "low": "Low"}
 
 // discWhy: why this title is the film, how sure the engine is, and the other candidates,
@@ -310,7 +317,7 @@ func (rv *sduiResolver) discWhy(it *library.Item) []sdui.Item {
 				badge = "Chosen"
 			}
 		case c.TTN == rk.Main:
-			badge = "Engine's pick"
+			badge = "Pick"
 		case c.Class == "part":
 			badge = "Part"
 		case c.Class == "alternate" || isVersion(rk, c.TTN):
@@ -318,12 +325,16 @@ func (rv *sduiResolver) discWhy(it *library.Item) []sdui.Item {
 		case c.Class == "duplicate":
 			badge = "Copy"
 		}
+		chapters := ""
+		if c.Chapters > 0 {
+			chapters = fmt.Sprintf("%d chapters", c.Chapters)
+		}
 		row := sdui.Item{ID: fmt.Sprintf("candidate-%d", c.TTN), Kind: "view", Title: joinWords(titleName(it, labels, c.TTN), lengthWords(c.DurationSec)),
-			Subtitle: strings.Join(c.Reasons, "; "), Badges: []string{badge}}
+			Subtitle: joinWords(classWords[c.Class], chapters), Badges: []string{badge}}
 		switch {
 		case admin && c.TTN != d.MainTitle && !d.Scrambled:
 			// An administrator makes it the film, for everyone; others play it once.
-			row.Subtitle = joinWords(row.Subtitle, "Choose to make it the film")
+			row.Subtitle = joinWords("Choose to make it the film", row.Subtitle)
 			row.Action = &sdui.Action{Type: sdui.ActCommand, Op: "disc.choose", Item: strconv.FormatInt(it.ID, 10), Params: map[string]any{"ttn": c.TTN}}
 		case !d.Scrambled && !rv.noPlay:
 			row.Route = playRoute(it, fmt.Sprintf("title&ttn=%d", c.TTN))

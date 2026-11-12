@@ -27,6 +27,14 @@ func (r *renderer) fallback(in instance, depth int) ([]Node, bool) {
 		alt.Props["cardStyle"] = "landscape"
 	case "TrackList":
 		alt.Component = "List"
+	case "Credits":
+		// The same people as one row of portraits, the part or job under each name.
+		alt.Component = "Shelf"
+		alt.Props["title"] = propStr(s.Props, "title", "Cast and crew")
+		alt.Props["cardStyle"], alt.Props["seeAll"] = "person", "never"
+		if size := propStr(s.Props, "cardSize", ""); size != "" {
+			alt.Props["cardSize"] = size
+		}
 	case "Banner":
 		n := Node{Type: "Banner", ID: in.id, Props: map[string]any{}}
 		if !r.banner(&n, in) {

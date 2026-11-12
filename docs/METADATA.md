@@ -15,6 +15,7 @@ Nearly all of this is set under **Settings → Metadata agents**. If something c
 - [Streaming listings](#streaming-listings)
 - [The logo service](#the-logo-service)
 - [Video games](#video-games)
+- [Cast and crew](#cast-and-crew)
 - [Lyrics and artist information](#lyrics-and-artist-information)
 - [Coming from another media server](#coming-from-another-media-server)
 - [For developers](#for-developers)
@@ -300,6 +301,67 @@ ESRB, PEGI, CERO, USK, ACB, GRAC, ClassInd and ELSPA ratings all become a minimu
 ### What's kept, and what's saved beside your games
 
 Answers go in the server's database and pictures in its image cache. With saving on, a game gets `<name>.nfo`, `<name>-poster.jpg` and `<name>-fanart.jpg` beside it, and a scan reads them back. With it off, nothing is ever written next to your games. Your own files always win: a picture or NFO beside a game, and anything typed under **Edit**, stays as it is.
+
+## Cast and crew
+
+Every film, show and episode can list who is in it and who made it: the cast
+with the part each played, guest stars on episodes, and the crew by
+department (Directing, Writing, Production, Camera, Lighting, Editing,
+Sound, Art with production design, art direction and set decoration,
+Costume & Make-Up, Visual Effects, and the rest of the crew). Each person has
+a page of their own with their picture, dates, birthplace and biography, and
+every title of theirs in this library. Search finds people by name, and a
+library can be filtered to one person's titles (`person=` on `GET /browse`,
+and in saved views).
+
+**Where the names come from.** Each source's list is kept on its own, and a
+page takes each part (the cast, the guest stars, each department) from the
+best source that has that part, in this order:
+
+| # | Source | What it gives |
+|---|---|---|
+| 1 | The NFO beside the file (`movie.nfo`, `<name>.nfo`, `tvshow.nfo`, an episode's `.nfo`) | `<actor>` with `<name>`, `<role>`, `<order>`, `<thumb>` and the person's `<tmdbid>`/`<imdbid>`; `<director>`, `<credits>` (writers), `<producer>`, and the other crew tags media servers write; an episode's `<actor>` are its guest stars |
+| 2 | TMDB (with a key) | A film's whole cast and crew; a show's cast and crew and each episode's guest stars and crew; each person's picture, dates, birthplace and biography |
+| 3 | TheTVDB (with the owner's key) | A show's people by type: actors, guest stars on their episodes, directors, writers, producers, creators |
+| 4 | TVmaze | A show's cast and crew |
+| 5 | The file's own tags | A video's `DIRECTOR`, `WRITTEN_BY`, `PRODUCER`, `COMPOSER`, `ACTOR` tags (Matroska) and the like |
+
+So an NFO that names the actors but not the crew gets its cast from the NFO
+and its crew from TMDB. Reading a source again replaces only what that source
+said. **Refresh metadata** reads them all again; a new or changed file is
+read when it is scanned; titles matched before credits existed get theirs by
+themselves after the next scan, a few at a time.
+
+**One person, many titles.** People are kept once: by their number at TMDB,
+IMDb, TheTVDB or TVmaze when a source gives one, else by their name (ignoring
+case, accents and punctuation). Two people with the same name but different
+numbers at a source stay two people. Someone no title names any more is
+forgotten at the end of a scan.
+
+**Pictures.** A person's picture is a picture beside the media in an
+`.actors` folder, as media centres keep them (`.actors/Ana_Lima.jpg`), the NFO's `<thumb>`, or
+TMDB's. It is fetched once into the image cache and made smaller for each
+size asked for, as posters are (`GET /api/v1/people/{id}/photo?w=`). A
+picture of the owner's own beside the media is kept over one from the web.
+
+**Biographies** come from TMDB, for people TMDB knows, when their page is
+first opened and then at most once a month; a paced background pass after a
+scan fills in the most credited people first. Nothing is asked for a person
+without a TMDB number, and nothing at all without a key.
+
+**What a profile sees.** Credits are read only for a title the profile may
+see. A person's page lists only their titles the profile may see; someone
+credited only on titles it may not see has no page and isn't found by
+search, so nothing about a hidden title shows through its people.
+
+**Saving beside the media.** With **Save information beside the media** on,
+the NFO the server writes holds the cast (`<actor>` with name, role, order,
+thumb and the TMDB number) and the crew (`<director>`, `<credits>`,
+`<producer>` and the others), so another media server reads the same names.
+It is never written while the setting is off.
+
+For apps: [People](CLIENT-API.md#people) and the `Credits` component
+([SDUI.md](SDUI.md#cast-and-crew)).
 
 ## Lyrics and artist information
 

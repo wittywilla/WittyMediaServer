@@ -107,7 +107,8 @@ type Section struct {
 // Repeat makes a section once per thing.
 type Repeat struct {
 	// Over is "libraries", "pinnedViews", "collections", or the series or authors of
-	// the page's books library: "bookSeries", "bookAuthors".
+	// the page's books library: "bookSeries", "bookAuthors"; or the parts of a person's work on
+	// their page: "personParts".
 	Over string `json:"over"`
 	// Kinds keeps only libraries of these kinds (Over "libraries").
 	Kinds []string `json:"kinds,omitempty"`
@@ -484,6 +485,14 @@ type Item struct {
 	Can []string `json:"can,omitempty"`
 	// NextID is the item Play should start for a show: its next episode.
 	NextID string `json:"nextId,omitempty"`
+	// Group is the part of a title's credits a person card is in: cast, guests, or a crew
+	// department (CreditGroups). The card's subtitle is the part played or the job.
+	Group string `json:"group,omitempty"`
+	// Born, Died and KnownFor are a person's, as their page's facts say them: "3 February
+	// 1970, Lisbon", "2021", "Acting".
+	Born     string `json:"born,omitempty"`
+	Died     string `json:"died,omitempty"`
+	KnownFor string `json:"knownFor,omitempty"`
 }
 
 // Programme is something on a channel.

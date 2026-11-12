@@ -4,12 +4,12 @@ Three renderers draw WittyMediaServer's pages: React on the web, SwiftUI on
 Apple devices, Compose on Android. This kit is how each proves it draws them
 the same way, without comparing pixels.
 
-`fixtures/` holds one JSON file per case (81 today; `fixtures/index.json`
+`fixtures/` holds one JSON file per case (88 today; `fixtures/index.json`
 lists them). Every file has the same shape:
 
 ```
 {
-  "kit": 1, "schemaVersion": 1, "catalogRevision": 2,
+  "kit": 1, "schemaVersion": 1, "catalogRevision": 3,
   "id": "home-tv-hd",
   "title": "The built-in Home on an Apple TV HD",
   "checks": ["…what this case is there to pin down…"],

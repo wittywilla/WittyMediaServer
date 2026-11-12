@@ -758,6 +758,9 @@
           },
           "type": "array"
         },
+        "born": {
+          "type": "string"
+        },
         "can": {
           "items": {
             "type": "string"
@@ -770,6 +773,9 @@
         "count": {
           "type": "integer"
         },
+        "died": {
+          "type": "string"
+        },
         "episode": {
           "type": "integer"
         },
@@ -778,6 +784,9 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "group": {
+          "type": "string"
         },
         "icon": {
           "type": "string"
@@ -792,6 +801,9 @@
           "type": "object"
         },
         "kind": {
+          "type": "string"
+        },
+        "knownFor": {
           "type": "string"
         },
         "next": {
@@ -2163,7 +2175,7 @@
     "tile",
     "chip"
   ],
-  "x-catalogRevision": 2,
+  "x-catalogRevision": 3,
   "x-components": [
     "Page",
     "Hero",
@@ -2176,6 +2188,7 @@
     "DetailHeader",
     "SeasonList",
     "TrackList",
+    "Credits",
     "Track",
     "Banner",
     "Text",
@@ -2285,6 +2298,8 @@
     "albums",
     "artists",
     "continuePlaying",
+    "credits",
+    "filmography",
     "episodes",
     "tracks",
     "similar",

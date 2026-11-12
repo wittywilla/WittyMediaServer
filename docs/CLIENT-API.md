@@ -1118,6 +1118,34 @@ A game with no `poster` should use art made from its title and console, as the w
 The first pass over a large collection takes a while, on purpose: each source is asked no faster than its
 rules allow. `GET /gamemeta/status` says how it's going, for administrators.
 
+## People
+
+Gate on the feature `credits` (and `sdui-credits` for the SDUI side). A title's people come in three
+parts: `GET /items/{id}/credits` for a film or an episode, `GET /shows/{id}/credits` for a show (with
+`season=<n>` for a season's page) answer `{cast, guests, crew}`:
+
+- `cast` and `guests`: `{personId, name, hasPhoto, role, character, order, episodes, source}`, in billing
+  order (a season's guests: most episodes first, `episodes` saying how many). `character` may hold two
+  parts joined by " / ".
+- `crew`: one entry per department that has someone, in this order: `directing`, `writing`,
+  `production`, `camera`, `lighting`, `editing`, `sound`, `art`, `costume`, `effects`, `crew`; each
+  `{department, label, people}`, where each person has a `job` (two joined by ", ").
+- An episode's `cast` is its show's regulars; its `guests` and `crew` are its own (the show's crew for
+  a department the episode names nobody in).
+
+A person's picture is `GET /people/{personId}/photo?w=<pixels>` when `hasPhoto` is true; otherwise draw
+their initials. Open a person with `GET /people/{id}`: `person` (`name`, `sortName`, `birthday` and
+`deathday` as `YYYY-MM-DD`, `YYYY-MM` or `YYYY`, `birthplace`, `biography`, `knownFor`: `acting` or a
+department, `ids`) and `filmography.groups`: `{key, label, titles}` with `acting` first, then each
+department; a title is `{target, id, title, year, character, job, episodes, guest}`, `target` `item`
+(open `/items/{id}`, poster `/items/{id}/poster`) or `show` (`/shows/{id}`, `/shows/{id}/art/poster`).
+`GET /people?search=` finds people by name. A library filtered to one person is `GET /browse?person=<id>`.
+
+Everything follows the profile's limits: a hidden title's credits answer 404, a person's filmography
+names only titles the profile may see, and a person credited on nothing it may see answers 404 and
+isn't found, so an app needs no checks of its own. The first time a person is opened the server may
+look them up at TMDB for a few seconds; show what arrives.
+
 ## Legal notices
 
 Every client shows the same short notices beside third-party and local content, so a person gets the

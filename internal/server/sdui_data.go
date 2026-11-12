@@ -715,6 +715,10 @@ func (rv *sduiResolver) Items(req sdui.SourceRequest) (sdui.SourceResult, error)
 		return page(rv.items(items), req), nil
 	case "similar":
 		return rv.similar(src, req)
+	case "credits":
+		return rv.credits(src, req)
+	case "filmography":
+		return rv.filmography(src, req)
 	case "search":
 		term := strings.TrimSpace(src.Str("query"))
 		if len(term) > 100 {
@@ -725,6 +729,9 @@ func (rv *sduiResolver) Items(req sdui.SourceRequest) (sdui.SourceResult, error)
 		}
 		if src.Str("in") == "channels" {
 			return page(rv.channels(false, term, req.Offset+req.Limit+1, false), req), nil
+		}
+		if src.Str("in") == "people" {
+			return rv.searchPeople(term, req)
 		}
 		if lib == nil {
 			return sdui.SourceResult{}, nil
@@ -899,6 +906,12 @@ func (rv *sduiResolver) Each(over string, kinds []string, limit int) ([]sdui.Eac
 				out = append(out, sdui.Each{Key: itoa(c.ID), Label: c.Name})
 			}
 		}
+	case "personParts":
+		list, err := rv.personParts()
+		if err != nil {
+			return nil, err
+		}
+		out = list
 	case "bookSeries", "bookAuthors":
 		by := "series"
 		if over == "bookAuthors" {
@@ -936,6 +949,8 @@ func (rv *sduiResolver) Subject() (*sdui.Item, error) {
 	rv.gotSubj = true
 	s, v := rv.s, rv.vars
 	switch {
+	case v["person"] != "":
+		rv.subject = rv.personSubject(v["person"])
 	case v["collection"] != "":
 		id, _ := strconv.ParseInt(v["collection"], 10, 64)
 		c, err := s.Store.CollectionByID(rv.ctx, id, rv.u.ID, rv.u.IsAdmin)

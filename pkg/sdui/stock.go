@@ -116,20 +116,24 @@ func buildStockPages() []Page {
 		}}
 
 	detail := Page{ID: "detail", Kind: "detail", Title: "{title}", Icon: "info",
-		Description: "A film, a video, a book, a game: its header and more like it.",
+		Description: "A film, a video, a book, a game: its header, its cast and crew, and more like it.",
 		Sections: []Section{
 			sec("header", "DetailHeader", nil, nil),
+			sec("credits", "Credits", nil, Source{"type": "credits", "item": "$item"}),
 			sec("similar", "Shelf", props{"title": "More like this"}, Source{"type": "similar", "item": "$item", "limit": 12}),
 		}}
 	detailShow := Page{ID: "detail-show", Kind: "detail", Title: "{title}", Icon: "show", Match: &Match{MediaKind: "show"},
 		Sections: []Section{
 			sec("header", "DetailHeader", props{"facts": []string{"year", "contentRating", "rating", "genres", "count"}, "actions": []string{"play", "watchLater", "share"}}, nil),
+			// Opened with ?season= (a season's page), the season's guest stars come too.
+			sec("credits", "Credits", nil, Source{"type": "credits", "show": "$show", "season": "$season"}),
 			sec("episodes", "SeasonList", nil, Source{"type": "episodes", "show": "$show"}),
 			sec("similar", "Shelf", props{"title": "More like this"}, Source{"type": "similar", "item": "$show", "limit": 12}),
 		}}
 	detailEpisode := Page{ID: "detail-episode", Kind: "detail", Title: "{title}", Icon: "show", Match: &Match{MediaKind: "episode"},
 		Sections: []Section{
 			sec("header", "DetailHeader", props{"facts": []string{"season", "runtime", "contentRating", "year"}, "actions": []string{"play", "restart", "watched", "download", "share", "playOn", "watchParty"}}, nil),
+			sec("credits", "Credits", nil, Source{"type": "credits", "item": "$item"}),
 			sec("season", "Shelf", props{"title": "More from this season", "cardStyle": "episode", "seeAll": "never"}, Source{"type": "episodes", "show": "$show", "season": "$season"}),
 		}}
 	detailAlbum := Page{ID: "detail-album", Kind: "detail", Title: "{title}", Icon: "album", Match: &Match{MediaKind: "album"}, Scope: "wittymusic",
@@ -152,11 +156,19 @@ func buildStockPages() []Page {
 			sec("all", "Grid", props{"empty": "message", "emptyText": "Nothing in this collection yet."}, Source{"type": "collection", "collection": "$collection"}),
 		}}
 
+	detailPerson := Page{ID: "detail-person", Kind: "detail", Title: "{title}", Icon: "user", Match: &Match{MediaKind: "person"},
+		Description: "Someone in a title's cast or crew: their picture, dates and biography, then their titles here, a row for each part of their work.",
+		Sections: []Section{
+			sec("header", "DetailHeader", props{"layout": "poster", "facts": []string{"knownFor", "born", "died"}, "actions": []string{}}, nil),
+			repeated(sec("titles", "Shelf", props{"title": "{each}", "seeAll": "never"}, Source{"type": "filmography", "person": "$person", "part": "$each"}), "personParts"),
+		}}
+
 	search := Page{ID: "search", Kind: "search", Title: "Search", Icon: "search",
 		Sections: []Section{
-			sec("q", "SearchBox", props{"placeholder": "Films, shows, music, books, channels", "autofocus": true}, nil),
+			sec("q", "SearchBox", props{"placeholder": "Films, shows, people, music, books, channels", "autofocus": true}, nil),
 			when(sec("idle", "Text", props{"text": "Type at least two letters to search every library you can open.", "role": "caption"}, nil), Condition{Not: &Condition{Flag: "hasQuery"}}),
 			repeated(sec("found", "Shelf", props{"title": "{each}", "seeAll": "never"}, Source{"type": "search", "query": "$query", "library": "$each"}), "libraries"),
+			sec("people", "Shelf", props{"title": "People", "seeAll": "never"}, Source{"type": "search", "query": "$query", "in": "people"}),
 			when(scoped(sec("channels", "Shelf", props{"title": "Channels", "seeAll": "never"}, Source{"type": "search", "query": "$query", "in": "channels"}), "wittytv"), Condition{Can: "liveTv"}),
 		}}
 
@@ -196,7 +208,7 @@ func buildStockPages() []Page {
 	out = append(out, videoLibs...)
 	out = append(out, musicLib)
 	out = append(out, spokenLibs...)
-	out = append(out, photosLib, booksLib, gamesLib, detail, detailShow, detailEpisode, detailAlbum, detailArtist, detailCollection, search, livetv, music, photos, books, games, collections)
+	out = append(out, photosLib, booksLib, gamesLib, detail, detailShow, detailEpisode, detailAlbum, detailArtist, detailCollection, detailPerson, search, livetv, music, photos, books, games, collections)
 	return out
 }
 

@@ -11,8 +11,9 @@ import (
 // CatalogRevision counts changes to the catalogue within one SchemaVersion.
 // Revision 1 was the first, unreleased, catalogue of low-level nodes; 2 is the
 // media components described here. A client sends the revision it was built
-// against and is never sent a component newer than that.
-const CatalogRevision = 2
+// against and is never sent a component newer than that. 3 added cast and crew: the Credits
+// component, the credits and filmography sources, people in search, the person page.
+const CatalogRevision = 3
 
 // Property types, as an editor needs them to build a form.
 const (

@@ -78,3 +78,16 @@ server and the web client; the Apple and Android apps draw it from the same cont
   If the canvas's separate page is wanted, it needs a route and page of its own (not built).
 - Fixed on the way: a film folder with an NFO this server wrote earlier (no people) beside a media centre's
   movie.nfo now takes the people from movie.nfo; the title header's poster no longer hides under its placeholder.
+
+### Design 2 (W1), second round
+
+Landed: the five layout options are gone; **experiences** (14, `pkg/sdui/experiences/*.json`) replace them, with their routes (`/sdui/experiences`, `/sdui/experience`, `/sdui/config/experience`, `experience=` on pages, navigation, theme and the preview) and a headset form factor. UI and theme are separate: 15 built-in themes with `finish` and `scene`, `look` in `GET /theme`, required look and theme (everyone, kids, one profile) with who set it, theme import (admin; per profile when allowed, `POST /themes/mine`), and themes are variables only (a ZIP with class rules is refused, naming the rule). First run: `setup_required` gate (503), `/setup/state`, `/setup/complete`, `/sdui/preview`. Brand: per-part colours (fg, accent, token, static, gradient), `brandSpans`, `brandMark`, contrast warnings. Catalogue revision 6: `Carousel`, `CrossBar`, `WidgetGrid`, `Widget`, `NumberedRow`, card styles `plate`, `block`, `logo`, `headingStyle`, nav styles, `serverStatus` source, rail library drawers, placements (regions, locked menu and You), WittyTV looks, WittyRemote keys and music/karaoke/visualizer controls as catalogue data.
+
+Not done or not verified:
+- WittyPlay Online sources (`consoles`, `friends`, `presence`, `rooms`, `saveStates`, `memories`, `controllers`) and commands (`room.*`, `state.*`, `controller.*`): the engine, rooms and presence are S5's; nothing is registered here because nothing backs them yet.
+- More info data for any programme (overview, ratings, cast, where to watch, trailers) depends on S12's credits and S6's guide; not built here.
+- Logo for the name: the existing `PUT /branding/logo` (PNG or JPEG, 2 MB) is the mark's image; SVG and WebP are not accepted (no decoder).
+- Theme ids are lower case (`aeroday`, ...), and Witty, True black and High contrast keep their ids `default`, `oled`, `contrast`.
+- The layout editor's undo, redo, presets and per-form-factor preview are the apps' own over the existing revisions and `personal`; no new routes beyond placements.
+- The setup gate keeps `/capabilities` and `/identity` open (`setupRequired`, `setupURL`); the OOBE's 14 steps are the web's to draw. FIRST-TIME-SETUP.md describes the new flow in its introduction; its page-by-page pictures are the old twelve.
+- Full `go test ./...` and the web, Apple and Android checks were not run here.

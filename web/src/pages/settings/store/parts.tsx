@@ -14,6 +14,8 @@ import {
 } from './storeApi'
 import '../modules.css'
 import './store.css'
+import { OverrideTags } from './overrideParts'
+import { itemReleaseStatus } from './overrides'
 
 // ------------------------------------------------------------------- staying up to date
 
@@ -98,6 +100,8 @@ export function StateTags({ item }: { item: StoreItem }) {
       {!m?.installed && item.kind !== 'in-development' && item.kind !== 'refused' && !item.fit.ok && <FitTag kind={item.fit.kind} />}
       {m?.pin && <Tag>Pinned</Tag>}
       {item.official && m?.source && <Tag tone="warn" icon={<IconShield size={12} />}>Other publisher</Tag>}
+      {m?.pending && <Tag tone="warn">Needs your go-ahead</Tag>}
+      <OverrideTags override={item.override || m?.override} status={itemReleaseStatus(item)} />
     </span>
   )
 }

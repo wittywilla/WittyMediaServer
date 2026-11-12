@@ -106,8 +106,8 @@ WittyCouch Host has no build for FreeBSD, so WittyCouch and WittyRigs say so the
 *The module store, from a local test catalogue.*
 1. Open **Settings → Modules**, and press **Browse the store**.
 2. Type in the search box, or use the category buttons. Every word you type has to match the name, description, category or publisher, so "blu ray" finds Blu-ray.
-3. Narrow it down if you want: **Installed**, **Updates available**, **Publisher** and **Platform**. These stay in the page's address, so Back returns you to the same results.
-4. Open a module to read its page: what it does, what's new, what it asks for, its licence, which servers it fits, and what an update can change.
+3. Narrow it down if you want: **Installed**, **Updates available**, **Publisher**, **Platform**, **Kind** (helper, web bundle, program or library) and **Status** (stable, beta, experimental or incomplete). These stay in the page's address, so Back returns you to the same results.
+4. Open a module to read its page: what it does, what it adds to the app (its pages, its menu entries and whether it has settings of its own), what's new, what it asks for, its licence, which servers it fits, and what an update can change.
 5. Press **Install**.
 
 If the module is built on others, a dialog lists them in order and asks first: press **Install 2 modules**, or however many it says. You'll see **Downloading**, **Checking the signature** and **Installing**, and then it's ready. If something it's built on fails, the module isn't attempted.
@@ -133,7 +133,12 @@ Opening the store doesn't look for new versions. It shows what the last check fo
 | **Built for an older server** | It can't run here, and its page says what to do |
 | **Needs a newer server** | Update this server first |
 | **Withdrawn** | Its publisher took this version back |
-| **In development** | A new kind of module, which can't be installed yet |
+| **In development** | A module this server doesn't know. It can only be installed from a file (see [Installing from a file](#installing-from-a-file)) |
+| **Beta** | Its publisher says it's nearly finished |
+| **Experimental** | Its publisher says it may change a lot or break. Its page shows the publisher's note. Installing it needs an override |
+| **Incomplete** | Its publisher says parts are missing. Its page shows what. Installing it needs an override |
+| **Overridden** | It was installed past a rule that would normally stop it. Its page and its row in **Settings → Modules** say which rules, who accepted them and when |
+| **Needs your go-ahead** | A version was downloaded and checked, and then turned out to need an override. Nothing changed until you say yes |
 
 ## Turning off and removing
 
@@ -359,7 +364,43 @@ If you run the machine and someone else administers the server, start the server
 
 ### Custom modules
 
-Wholly new kinds of module, rather than replacements for ones the server knows, can't be installed yet. They're marked **In development** wherever they're shown.
+A wholly new module, rather than a replacement for one the server knows, is installed from its file: see [Installing from a file](#installing-from-a-file). In a store it's marked **In development**, and its page has **Install from a file…**.
+
+## Installing past a rule
+
+Some modules can't be installed the usual way: one that isn't finished, one made for other server versions, one from a file, one this server doesn't know, one signed by a key it doesn't trust, one that would be less boxed in on this system, or one that isn't signed at all. When you try, a dialog opens instead of the install. This is an **override**: you install it anyway, knowing what you're bypassing.
+
+The dialog names each rule being bypassed, with the server's reason, and you tick each one. It asks for your password again (and the code from your authenticator app, if you use one). The more serious it is, the more it asks:
+
+| Severity | Rules | What it asks |
+|---|---|---|
+| 1 | Not finished (experimental or incomplete, or its pages failed to check) | Tick it, and your password |
+| 2 | Not made for this server's version; installed from a file | The same, in a stronger warning |
+| 3 | A module this server doesn't know; signed by a key this server doesn't trust; less boxed in on this system | Also type the module's ID |
+| 4 | Not signed | The same, marked as the riskiest kind of install |
+
+A module that's unsigned, signed by an untrusted key, new to this server or less boxed in gets **no permissions** and the strictest sandbox, except the permissions you tick in the dialog. None are ticked to start with: give only what you're sure it needs.
+
+Some things can never be overridden, such as a module API this server doesn't speak, a version withdrawn for security reasons, a system with no sandbox for other publishers' modules, or a server started with `WMS_NO_MODULE_FORKS=1`. Those are refused with the reason.
+
+After an override, the module is labelled **Overridden**. Its page, and its row in **Settings → Modules**, list each rule, who accepted it and when, the version, the key's fingerprint and the permissions given. It stays on that version: **Update this module by itself** is off and can't be turned on until the override goes. Choosing a version that needs no override clears it; one that needs an override asks again.
+
+**Remove override** goes back to the last version on this server that needed none, or, if there isn't one, takes the module off the server. Your files and history stay as they are.
+
+A version can also turn out to need an override only once it's downloaded, for example when its own files say it's experimental. It's then held, labelled **Needs your go-ahead**: press **Review…** to see the dialog, or **Drop it** to throw it away. The version in use keeps running meanwhile.
+
+Every override, upload, removed override and refused password is written to the **Module audit log** at the bottom of **Settings → Modules**, newest first.
+
+## Installing from a file
+
+**Settings → Modules → Custom modules → Install from a file…** installs a module from its release archive, for example one you built with `wittymodule`, or one its publisher sent you.
+
+1. Choose the archive (at most 512 MB). If you have them, also choose the checksum list (usually `SHA256SUMS`) and its signature (`.sig`), and paste the publisher's public key.
+2. Press **Upload and check**. A bar shows how far the upload has got.
+3. The server says what it found: the module's name, ID, version, kind and status, whether it's signed and whether this server trusts the key (with the key's fingerprint), what it asks for, and anything wrong with it. If it can't be installed at all, it says why.
+4. Press **Install…**. A file always needs an override (severity 2 at least, 4 if it isn't signed), so the override dialog opens. Tick, type and enter your password as it asks.
+
+The upload is kept for 30 minutes, for you alone. **Discard**, or closing the dialog, throws it away. An unsigned file is fingerprinted when it's installed and signed with this server's own key, so a file changed afterwards is refused.
 
 ## For developers
 

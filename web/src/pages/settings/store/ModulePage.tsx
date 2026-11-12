@@ -11,6 +11,10 @@ import { ask, Button, Dialog, Notice, Spinner } from '../../../ui'
 import { ConfirmOwner, type OwnerAsk } from '../ConfirmOwner'
 import { actionFor, ActionButton, InPlaceProgress, useInstall } from './ItemCard'
 import { ChangeNotes, FailureDialog, FailureNotice, itemPath, ModuleIcon, ModuleLogDialog, PolicyNote, StateTags, Tag, usePicture } from './parts'
+import { OverrideRecordBox, PendingNotice, StatusNotice, useOverrideDialog, WhatItAdds } from './overrideParts'
+import { itemModuleKind, moduleKindTitle, needsOverrideOf, overrideLines, type NeedsOverride } from './overrides'
+import { InstallFromFile } from './InstallFromFile'
+import { OverrideDialog } from './OverrideDialog'
 import { categoryTitle, dayOf, failureOf, isBusy, itemDetail, mb, platformName, useFork, type Failure, type ItemDetail } from './storeApi'
 
 // A module's own page: everything needed to decide, and everything that can be done to it.
@@ -78,13 +82,25 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
     if (!await ask({ title: 'Go back to the official version?', body: `What came from this store is deleted, and ${it.name} isn’t on this server until you install the official one, which is one press from its page.`, confirm: 'Go back' })) return
     await call(() => api.del<ModuleReport>(`/modules/${it.id}/source`), `${it.name} is back to the official version`)
   }
+  const over = useOverrideDialog()
+  const permissionWords = Object.fromEntries(d.permissions.map((p) => [p.name, p.words]))
+  // A version the usual rules refuse, with an override: the same request again, confirmed.
+  const overrideVersion = (version: string, need: NeedsOverride) => over.open({
+    id: it.id, name: `${it.name} ${version}`, need: { ...need, version: need.version || version }, permissionWords,
+    send: async (body) => { await api.post<ModuleReport>(`/modules/${it.id}/install`, { version, confirm: true, ...body }); toast(`${it.name} ${version} is being installed`); reload() },
+  })
+  const goAhead = () => { if (m?.pending) overrideVersion(m.pending.version, { ...m.pending.needsOverride, version: m.pending.version, pending: true }) }
   const chooseVersion = async (v: VersionInfo) => {
     const install = (confirm: boolean, secrets?: { password: string; code: string }) => api.post<ModuleReport>(`/modules/${it.id}/install`, { version: v.version, confirm, ...secrets })
     try { await install(false); reload() } catch (e) {
+      const need = needsOverrideOf(e)
+      if (need) { overrideVersion(v.version, need); return }
       if (e instanceof ApiError && e.data?.code === 'confirm') {
         if (!await ask({ title: `Use ${it.name} ${v.version}?`, body: e.data.warning, confirm: 'Install anyway' })) return
         try { await install(true); reload() } catch (x) {
-          if (x instanceof ApiError && x.data?.code === 'password-needed') setOwnerAsk({
+          const n = needsOverrideOf(x)
+          if (n) overrideVersion(v.version, n)
+          else if (x instanceof ApiError && x.data?.code === 'password-needed') setOwnerAsk({
             title: `Go back to ${it.name} ${v.version}?`, action: 'Go back',
             body: <p>An older version may lack security fixes, so this asks for your password.</p>,
             run: async (password, code) => { await install(true, { password, code }); reload() },
@@ -114,6 +130,11 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
 
       <InPlaceProgress it={it} />
       {dialogs}
+      {over.dialog}
+
+      {m && <PendingNotice m={m} onGo={goAhead} onDropped={reload} />}
+      <StatusNotice status={it.releaseStatus || m?.releaseStatus} note={it.statusNote || m?.statusNote} name={it.name} installed={installedHere} />
+      {(it.override || m?.override) && <OverrideRecordBox id={it.id} name={it.name} record={(it.override || m?.override)!} disabled={working} onRemoved={reload} />}
 
       {third && (
         <Notice tone="warn" title={`Third-party: from ${it.storeName} (${it.storeHost})`}>
@@ -122,7 +143,7 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
         </Notice>
       )}
       {it.lookalike && <Notice tone="danger" title="This uses the name of another module">It calls itself {it.name}, the name of a module from this project, and it isn’t that module. Don’t assume it does what that one does.</Notice>}
-      {it.kind === 'in-development' && <Notice title="Custom modules are in development">{it.why}</Notice>}
+      {it.kind === 'in-development' && <Notice title="A module this server doesn’t know" action={<InstallFromFile onInstalled={reload} />}>{it.why} If you have its release archive and trust whoever made it, it can be installed from the file, with an override.</Notice>}
       {it.kind === 'refused' && <Notice tone="danger" title="This can’t be used">{it.why}</Notice>}
       {!it.fit.ok && it.kind !== 'in-development' && it.kind !== 'refused' && <Notice tone={it.fit.kind === 'library' ? undefined : 'warn'} title={it.fit.kind === 'too-old' ? 'Built for an older server' : it.fit.kind === 'too-new' ? 'Needs a newer server' : it.fit.kind === 'library' ? 'Comes with other modules' : 'Can’t be installed here'}>{it.fit.why}</Notice>}
       {it.failure && <FailureNotice failure={it.failure} name={it.name} moduleId={it.id} repairRoute={repair} onRetry={act ? press : undefined} />}
@@ -138,6 +159,8 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
           </div>
         </section>
       )}
+
+      <WhatItAdds ui={it.ui || m?.uiAdds} name={it.name} />
 
       <section className="st-mod-sec" aria-labelledby="st-new">
         <h2 id="st-new">What’s new{(m?.latest?.version || it.version) ? <span className="ms-ver"> {m?.latest?.version || it.version}</span> : null}</h2>
@@ -160,6 +183,7 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
           {installedHere && m!.latest && <div><dt>Newest</dt><dd>{m!.latest.version}</dd></div>}
           {!!it.size && <div><dt>Download</dt><dd>{mb(it.size)}</dd></div>}
           <div><dt>Publisher</dt><dd>{it.publisher?.name || 'This server'}</dd></div>
+          {moduleKindTitle(itemModuleKind(it)) && <div><dt>Kind</dt><dd>{moduleKindTitle(itemModuleKind(it))}</dd></div>}
           {(it.license || m?.license) && <div><dt>Licence</dt><dd>{it.license || m?.license}</dd></div>}
           {it.released && <div><dt>Released</dt><dd>{dayOf(it.released)}</dd></div>}
           {it.minServer && <div className="wide"><dt>Fits servers</dt><dd>{it.minServer} to {it.maxServer}{it.fit.ok ? ', which includes this server' : ''}</dd></div>}
@@ -207,10 +231,11 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
                           {v.withdrawn && <Tag tone="bad" icon={<IconInfo size={12} />}>Withdrawn</Tag>}
                         </span>
                       </div>
-                      {!v.inUse && installedHere && (!third || usingThisFork) && <Button size="sm" disabled={!v.allowed || working} aria-label={`Use version ${v.version}`} onClick={() => chooseVersion(v)}>{v.installed ? 'Switch to this' : 'Install'}</Button>}
+                      {!v.inUse && installedHere && (!third || usingThisFork) && <Button size="sm" disabled={!(v.allowed || v.override) || working} aria-label={`Use version ${v.version}${!v.allowed && v.override ? ', with an override' : ''}`} onClick={() => chooseVersion(v)}>{!v.allowed && v.override ? 'Install anyway…' : v.installed ? 'Switch to this' : 'Install'}</Button>}
                     </div>
                     <div className="muted ms-ver-fit">Fits servers {v.minServer} to {v.maxServer}{v.size ? ` · ${mb(v.size)}` : ''}</div>
-                    {v.refused && <p className="ms-why">{v.refused}</p>}
+                    {v.override && !v.allowed && <p className="ms-why">Needs an override: {overrideLines(v.override).map((l) => l.reason || l.title).join(' ')}</p>}
+                    {v.refused && !v.override && <p className="ms-why">{v.refused}</p>}
                     <ChangeNotes text={v.notes} />
                   </li>
                 ))}
@@ -269,10 +294,22 @@ function ForkDialog({ d, onClose, onDone }: { d: ItemDetail; onClose: () => void
   const it = d.item
   const [trust, setTrust] = useState(false)
   const [owner, setOwner] = useState(false)
+  // On some systems a fork needs an override too (on macOS, a weaker sandbox): the same request,
+  // with the override beside the password.
+  const [need, setNeed] = useState<NeedsOverride | null>(null)
+  const done = () => { toast(`Installing ${it.name} from ${it.storeName}`); onDone(); onClose() }
+  if (need) return <OverrideDialog id={it.id} name={it.name} need={need} permissionWords={Object.fromEntries(d.permissions.map((p) => [p.name, p.words]))} onClose={onClose}
+    onSubmit={async (body) => { await useFork(it.store, it.id, true, d.fingerprint, body); done() }} />
   if (owner) return <ConfirmOwner onClose={() => setOwner(false)} ask={{
     title: `Replace ${it.name}?`, action: `Replace ${it.name}`,
     body: <p>This changes which code runs on this server, so it asks for your password. The official version is deleted first, so if this one won’t install, {it.name} is off until you try again or go back to the official version.</p>,
-    run: async (password, code) => { await useFork(it.store, it.id, true, d.fingerprint, { password, code }); toast(`Installing ${it.name} from ${it.storeName}`); onDone(); onClose() },
+    run: async (password, code) => {
+      try { await useFork(it.store, it.id, true, d.fingerprint, { password, code }); done() } catch (e) {
+        const n = needsOverrideOf(e)
+        if (!n) throw e
+        setOwner(false); setNeed(n)
+      }
+    },
   }} />
   return (
     <Dialog title={`Replace ${it.name} with this store’s version?`} onClose={onClose} size="md" alert

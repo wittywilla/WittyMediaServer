@@ -47,11 +47,11 @@ type BrowseFilter struct {
 	// Person: only titles this person is credited on (a show: on the show or one of its
 	// episodes).
 	Person int64
-	Sort               string // title | added | newest | oldest | rating | quality | shuffle
-	Desc               bool
-	Seed               int
-	Limit              int
-	Offset             int
+	Sort   string // title | added | newest | oldest | rating | quality | shuffle
+	Desc   bool
+	Seed   int
+	Limit  int
+	Offset int
 }
 
 // ParseBrowseFilter reads a filter from a request's query or a saved view.

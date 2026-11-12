@@ -33,7 +33,7 @@
   --np-dark-chip-2: rgb(0 0 0 / .72);
   --np-bright-2: rgb(255 255 255 / .9);
   --np-bright-3: rgb(255 255 255 / .85);
-  --fg: var(--np-fg); --fg-2: var(--np-fg-2); --fg-3: var(--np-fg-3); --bg-2: #15151a; --bg-3: #24242c; --bg-4: #30303a; --border: var(--np-line); --border-strong: rgb(255 255 255 / .26);
+  --bg: var(--np-black); --fg: var(--np-fg); --fg-2: var(--np-fg-2); --fg-3: var(--np-fg-3); --bg-2: #15151a; --bg-3: #24242c; --bg-4: #30303a; --border: var(--np-line); --border-strong: rgb(255 255 255 / .26);
   --hover: rgb(255 255 255 / .1); --focus: #fff; --control-line: rgb(255 255 255 / .4);
   --accent: #fff; --accent-2: #e8e8ee; --accent-fg: #000; --accent-text: #fff; --accent-soft: rgb(255 255 255 / .16); --accent-line: rgb(255 255 255 / .4);
   color: var(--np-fg);
@@ -349,3 +349,28 @@ button.np-artist:hover { color: var(--np-fg); text-decoration: underline; text-u
 }
 .np-video { margin-top: 10px; min-height: 40px; font-size: var(--text-sm); }
 .np-video:focus-visible { outline: 3px solid var(--np-white); outline-offset: 2px; }
+
+/* Behind the words and the Follow along / Read choice (karaoke and lyrics) */
+.kar-art { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: .22; }
+.kar-bg ~ .np-canvas, .kar-bg ~ .np-shader, .kar-bg ~ .np-loop { position: absolute; inset: 0; z-index: 0; }
+.kar-choice { position: relative; z-index: 1; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; padding: 8px clamp(16px, 3vw, 40px) 0; }
+.kar-choice-l { font-size: var(--text-sm); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--np-fg-2); }
+.kar-top .seg { margin-right: 4px; }
+.kar-read { margin: 0; max-width: min(900px, 100%); max-height: 100%; overflow-y: auto; font: inherit; font-size: clamp(1.15rem, 2.8vh, 2rem); font-weight: 600; line-height: 1.5; white-space: pre-wrap; text-align: left; color: var(--np-fg); }
+.np-modes { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 0 18px 8px; }
+.np-note-inline { font-size: var(--text-sm); color: var(--np-fg-2); }
+
+/* Visualizer mode: the effect fills the stage and the cover steps aside (board MU_*: effect chips, Intensity). */
+.np.viz-on:not(.has-panel) .np-artbox { display: none; }
+.np.viz-on .np-stage { justify-content: flex-end; }
+.np-effects { flex: 1 0 100%; display: grid; gap: 10px; justify-items: center; order: 2; }
+.np-effect-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; max-width: 920px; }
+.np-effect-chips button { display: inline-grid; gap: 0; min-height: 44px; padding: 4px 14px; border: 0; border-radius: var(--r-md); background: var(--np-chip); color: var(--np-fg); font: inherit; font-size: var(--text-sm); font-weight: 600; cursor: pointer; text-align: left; }
+.np-effect-chips button small { font-size: var(--text-xs, .75rem); font-weight: 500; color: var(--np-fg-2); }
+.np-effect-chips button.on { background: var(--np-white); color: var(--np-black); }
+.np-effect-chips button.on small { color: var(--np-black); }
+.np-effect-chips button[disabled] { opacity: .4; cursor: default; }
+.np-effect-opts { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 14px; }
+.np-range { display: inline-flex; align-items: center; gap: 8px; font-size: var(--text-sm); font-weight: 600; }
+.np-range input { width: min(220px, 40vw); accent-color: var(--np-white); min-height: 44px; }
+.np-range output { min-width: 3.2em; font-variant-numeric: tabular-nums; color: var(--np-fg-2); }

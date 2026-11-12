@@ -24,11 +24,14 @@ import { scopeStyle, Sections } from './render/components'
 import { setPageMove } from '../tv'
 import type { Action, Document, Node } from './types'
 import { useDevice } from './useSdui'
+import { setPageRegions } from './regions'
 import './sdui.css'
+import './play.css'
 
 const Customise = lazy(() => import('./Customise'))
 const CardMenu = lazy(() => import('./render/CardMenu'))
 const ScreenHost = lazy(() => import('./render/ScreenHost'))
+const LayerHost = lazy(() => import('./render/LayerHost'))
 const PageTools = lazy(() => import('./extras/PageTools'))
 
 // ---------------------------------------------------------------- the tree, changed without changing it
@@ -110,6 +113,9 @@ export function PageView({ doc, device, handlers, width, children }: { doc: Docu
     act: h.act, more: h.more, busy: h.busy, failed: h.failed, setQuery: h.setQuery, menu: h.menu,
     columns: (id, n) => { cols.current[id] = n },
   }), [doc, l, device, tv, reducedMotion, pt, inert, h.act, h.more, h.busy, h.failed, h.setQuery, h.menu])
+
+  // The shell's optional regions (status bar, system dock) show what this page gives them, while it shows.
+  useEffect(() => { if (inert) return; setPageRegions(doc.regions); return () => setPageRegions(undefined) }, [doc.regions, inert])
 
   // The arrows of a remote, a game pad or the keyboard follow the page's order.
   const left = useRef<Record<string, string>>({})
@@ -249,6 +255,8 @@ export default function SduiPage({ page, params, fallback }: { page: string; par
   const [customising, setCustomising] = useState(false)
   const [menu, setMenu] = useState<{ card: View; x: number; y: number } | null>(null)
   const [screen, setScreen] = useState<{ screen: string; item: string; title: string } | null>(null)
+  // A page shown over this one (navigate with as "layer"): the game's quick menu.
+  const [layer, setLayer] = useState('')
   const [tick, setTick] = useState(0)
   const drawn = useRef<Document | null>(doc)
   drawn.current = doc
@@ -342,6 +350,7 @@ export default function SduiPage({ page, params, fallback }: { page: string; par
     const step = plan(a, { externalLinks: drawn.current?.layout.externalLinks })
     switch (step.do) {
       case 'go': nav(step.to); break
+      case 'layer': setLayer(step.to); break
       case 'back': nav(-1); break
       case 'play': play(step.item, step.resume); break
       case 'open': window.open(step.url, '_blank', 'noopener,noreferrer'); break
@@ -382,6 +391,14 @@ export default function SduiPage({ page, params, fallback }: { page: string; par
   // One of the app's own screens stands in for this page (native.ts says when).
   if (fallback && nativeInstead(doc, libraries)) return <>{fallback}</>
 
+  // A page for a kind of library, with no such library yet: say so and offer the next step (canvas 'empty').
+  const wantsLibrary = ({ photos: ['photos'], books: ['books', 'audiobooks'], music: ['music'] } as Record<string, string[]>)[doc.page.kind]
+  if (wantsLibrary && !libraries.some((l) => wantsLibrary.includes(l.type))) {
+    const noun = doc.page.kind === 'photos' ? 'photos' : doc.page.kind === 'books' ? 'books' : 'music'
+    return <><h1 className="sr-only">{doc.page.title || noun}</h1><EmptyState icon={<IconInfo />} title={`No ${noun} yet`}
+      text={user?.isAdmin ? `Add a library of ${noun} and it appears here.` : `Ask whoever runs this server to add a library of ${noun}.`}
+      action={user?.isAdmin ? <LinkButton variant="primary" to="/settings/libraries">Add a library</LinkButton> : undefined} /></>
+  }
   const personal = doc.personal
   const canCustomise = !!personal?.editable && (personal.allow || []).length > 0 && (personal.sections || []).length > 0
   const st = doc.screenTime
@@ -406,6 +423,7 @@ export default function SduiPage({ page, params, fallback }: { page: string; par
         {customising && personal && <Customise doc={doc} onClose={() => setCustomising(false)} />}
         {menu && <CardMenu card={menu.card} x={menu.x} y={menu.y} act={act} onClose={() => setMenu(null)} />}
         {screen && <ScreenHost {...screen} onClose={() => setScreen(null)} />}
+        {layer && <LayerHost to={layer} onClose={() => setLayer('')} />}
       </Suspense>
     </>
   )

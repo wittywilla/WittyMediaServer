@@ -8,6 +8,9 @@ import { IconRefresh } from '../../icons'
 import { toast } from '../../state'
 import { ask } from '../../ui'
 import { PageHead, Section } from '../settings/ui'
+import SpecPage from '../../spec/SpecPage'
+import { handledIds } from '../../spec/model'
+import { duplicatesSpec } from '../../spec/specs/duplicates'
 import { forgetLineup, type BulkAction, type DuplicateGroup, type HealthRun, type TunerChannel } from './tvApi'
 
 // Settings → Channels & tuners, for a provider's playlist of thousands: whether each channel
@@ -120,35 +123,16 @@ export function Duplicates() {
       setGroups((l) => l?.filter((x) => x !== g) || null)
     } catch (e) { toast((e as Error).message) } finally { setBusy(-1) }
   }
+  const page = duplicatesSpec(groups, main, busy, err)
   return (
     <>
       <PageHead title="Duplicate channels" desc="The same channel from more than one tuner or playlist. Make each into one: the one you keep stays in the guide, and the others become its backups, tried in turn when it fails to open." actions={<Link className="btn" to="..">Back</Link>} />
       <Section title="Found" actions={<button className="btn sm" onClick={() => void load()}><IconRefresh /> Look again</button>}>
-        {err && <p className="tvs-error" role="alert">{err}</p>}
-        {!groups && !err && <p className="muted" role="status">Looking…</p>}
-        {groups && groups.length === 0 && <p className="muted">No duplicates: every channel is listed once.</p>}
-        {groups && groups.length > 0 && (
-          <ul className="tvs-list" aria-label="Duplicate channels">
-            {groups.map((g, i) => {
-              const keep = main[i] ?? g.suggested
-              return (
-                <li key={g.channels.map((c) => c.id).join('-')} className="tvs-item tvs-dupe">
-                  <fieldset className="tvs-item-text">
-                    <legend><b>{g.channels[0]?.name}</b> <span className="tvs-dim">{g.reason === 'same guide id' ? 'Same guide id' : g.reason === 'same name' ? 'Same name' : g.reason}</span></legend>
-                    {g.channels.map((c) => (
-                      <label key={c.id} className="tvs-dupe-row">
-                        <input type="radio" name={`keep-${i}`} checked={keep === c.id} onChange={() => setMain((m) => ({ ...m, [i]: c.id }))} />
-                        <span>{c.number} {c.name} <span className="tvs-dim">· {c.tuner}{c.health === 'failing' ? ' · failing' : c.health === 'ok' ? ' · opens' : ''}</span></span>
-                        {keep === c.id && <span className="tvs-dim">Keep in the guide</span>}
-                      </label>
-                    ))}
-                  </fieldset>
-                  <button className="btn sm primary" disabled={busy === i} onClick={() => void merge(g, i)}>{busy === i ? 'Making into one…' : 'Make into one'}</button>
-                </li>
-              )
-            })}
-          </ul>
-        )}
+        <SpecPage embedded bare page={page} handled={handledIds(page)} onAction={(id) => {
+          const [what, a1, a2] = id.split(':')
+          if (what === 'keep') setMain((m) => ({ ...m, [Number(a1)]: Number(a2) }))
+          else if (what === 'merge' && groups) void merge(groups[Number(a1)], Number(a1))
+        }} />
       </Section>
     </>
   )

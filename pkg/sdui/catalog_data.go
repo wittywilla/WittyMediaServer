@@ -428,7 +428,7 @@ func buildComponents() []ComponentSpec {
 				pList("actions", "Buttons", "The buttons offered, in order. One the title or the profile can't use is left out.", []string{"play", "restart", "watchLater", "watched", "download", "share"},
 					"play|Play or Resume", "restart|Play from the start", "watchLater|Watch later", "watched|Mark watched", "download|Download", "share|Share", "playOn|Play on another device", "watchParty|Watch party"),
 				pList("facts", "Facts", "The line of facts under the title, in order.", []string{"year", "runtime", "contentRating", "rating", "genres"},
-					"year|Year", "runtime|Running time", "contentRating|Certificate", "rating|Score", "genres|Genres", "studio|Studio", "count|How many it holds", "season|Season and episode",
+					"year|Year", "runtime|Running time", "contentRating|Certificate", "rating|Score", "genres|Genres", "studio|Studio", "artist|Artist (an album or song)", "count|How many it holds", "season|Season and episode",
 					"knownFor|Known for (a person)", "born|Born (a person)", "died|Died (a person)"),
 				pBool("showOverview", "Show the synopsis", "", true),
 				pBool("showTagline", "Show the tagline", "", true),
@@ -785,7 +785,7 @@ func buildSources() []SourceSpec {
 			Description: "The channels the profile may watch, with what is on now and next.",
 			Params:      []PropSpec{pBool("favourites", "Favourite channels only", "", false), paramLimit}, Yields: []string{"channel"}, Example: example(`{"type":"liveNow","favourites":true}`)},
 		{Type: "recordings", Label: "Recordings", Icon: "record", Category: "live", Since: 2, CardStyle: "landscape", SeeAll: "/tv/recordings", Title: "Recordings",
-			Description: "The profile's finished Live TV recordings, newest first.",
+			Description: "The profile's finished Live TV recordings, newest first. Each card carries channel and programme, for opening its More info, when the profile may still watch that channel.",
 			Params:      []PropSpec{paramLimit}, Yields: []string{"recording"}, Example: example(`{"type":"recordings"}`)},
 
 		{Type: "books", Label: "Books", Icon: "book", Category: "library", Since: 2, CardStyle: "book", Paged: true, Title: "Books",

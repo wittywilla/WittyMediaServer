@@ -2,7 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { api, serverBase } from './api'
 import type { StyledPart } from './brandStyle.ts'
-import { overrideDeclarations, type ResolvedTheme } from './themeOverrides'
+import { overrideDeclarations, safeColour, type ResolvedTheme, type SceneLayer } from './themeOverrides'
 import { themeDeclarations } from './ui/themeMaker'
 
 // Themes are ZIPs on the server (see docs/THEMES.md). The server default can
@@ -58,12 +58,45 @@ let overrideProps: string[] = []
 // The experience's finish on <html>, for design2.css to answer: which experience, its type set, its effects (glass,
 // gloss, glow, texture, bevel: none, subtle or full) and its density, until this device chooses its own.
 const EFFECTS = ['glass', 'gloss', 'glow', 'texture', 'bevel']
+// What the theme's finish and the experience's shape set on <html>: the glass and gloss recipes, the shape multiple.
+let lookProps: string[] = []
+const GLOSS = ['hi', 'up', 'lo', 'glow', 'edge']
+// Scene: the layers behind the page (docs/THEMES.md "A scene"); components/Scene.tsx draws them.
+let scene: SceneLayer[] = []
+const sceneListeners = new Set<() => void>()
+export const sceneLayers = () => scene
+export const subscribeScene = (l: () => void) => { sceneListeners.add(l); return () => { sceneListeners.delete(l) } }
+function setScene(layers: SceneLayer[]) {
+  if (layers.length === scene.length && JSON.stringify(layers) === JSON.stringify(scene)) return
+  scene = layers
+  sceneListeners.forEach((l) => l())
+}
 function applyLook(look: ResolvedTheme['look']) {
   const d = document.documentElement.dataset
-  if (!look) { delete d.experience; delete d.type; for (const e of EFFECTS) delete d['fx' + e[0].toUpperCase() + e.slice(1)]; return }
+  const root = document.documentElement.style
+  for (const p of lookProps) root.removeProperty(p)
+  lookProps = []
+  const put = (name: string, value: string | number) => { root.setProperty(name, String(value)); lookProps.push(name) }
+  if (!look) {
+    delete d.experience; delete d.type; delete d.cardSet; delete d.focusStyle; delete d.screen; delete d.scene
+    for (const e of EFFECTS) delete d['fx' + e[0].toUpperCase() + e.slice(1)]
+    setScene([])
+    return
+  }
   d.experience = look.experience
   d.type = look.type || 'system'
+  d.cardSet = look.shape?.cardSet || 'poster'
+  d.focusStyle = look.motion?.focus as string || 'ring'
+  d.screen = look.motion?.screen as string || 'fade'
   for (const e of EFFECTS) d['fx' + e[0].toUpperCase() + e.slice(1)] = look.effects?.[e] || 'none'
+  const mult = look.shape?.radiusMultiple
+  if (typeof mult === 'number' && mult >= 0 && mult <= 4) put('--shape-mult', mult)
+  const g = look.finish?.glass
+  if (g) for (const [k, v] of [['hi', g.hi], ['lo', g.lo], ['edge', g.edge], ['shadow', g.shadow]]) { const c = safeColour(v); if (c) put('--glass-' + k, c) }
+  look.finish?.gloss?.slice(0, 5).forEach((c, i) => { const ok = safeColour(c); if (ok) put('--gloss-' + GLOSS[i], ok) })
+  const layers = look.scene?.layers || []
+  if (layers.length) d.scene = ''; else delete d.scene
+  setScene(layers)
   if (look.density && !localStorage.getItem('wms.density')) { if (look.density === 'comfortable') delete d.density; else d.density = look.density }
 }
 // A look being tried, as first run offers them: only its finish, type and density, on top of what is showing.

@@ -269,7 +269,9 @@ export function focusFirst(): boolean {
 function focus(el: HTMLElement) {
   el.focus({ preventScroll: true })
   const r = el.getBoundingClientRect(), h = window.innerHeight
-  const block = r.top < h * 0.15 || r.bottom > h * 0.85 ? 'center' : 'nearest'
+  // Under a sticky bar (a settings page's list of sections) counts as off the top, however near the middle that is.
+  const stuck = document.querySelector('.set-toc')?.getBoundingClientRect().bottom ?? 0
+  const block = r.top < Math.max(h * 0.15, stuck + 96) || r.bottom > h * 0.85 ? 'center' : 'nearest'
   el.scrollIntoView({ block, inline: 'nearest', behavior: reducedMotion() ? 'auto' : 'smooth' })
 }
 

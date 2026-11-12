@@ -110,6 +110,8 @@ export type TunerCheck = { ok: true; result: { detail?: string; maxStreams?: num
 export type TunerTest = { ok: boolean; channel?: { id: number; number: string; name: string }; problem?: TunerProblem; seconds: number; video?: string; audio?: string; clear?: boolean }
 export type EPGSource = { id: number; name: string; url: string; lastFetch: number | null; lastError: string; programmes: number; tunerId?: number }
 export type Recording = {
+  // The channel's key and the programme ("key@start"), for More info; absent when this profile may no longer watch the channel.
+  channelKey?: string; programme?: string
   id: number; channelId: number; channel: string; number: string; title: string; sub?: string; start: number; stop: number; status: 'scheduled' | 'recording' | 'done' | 'failed' | 'cancelled'; error?: string; path?: string; sizeBytes?: number; ruleId?: number
   // tv-dvr-rules-2: no tuner would be free at its start; the series it belongs to; its padding in minutes.
   conflict?: boolean; ruleTitle?: string; padBefore?: number; padAfter?: number

@@ -98,7 +98,7 @@ button.lib-tile, button.sdui-row, button.sdui-banner { font: inherit; cursor: po
 .sdui-detail-progress i { display: block; height: 100%; background: var(--accent); }
 .sdui-overview .overview { margin-bottom: var(--sp-2); }
 .sdui-overview { margin-bottom: var(--sp-5); }
-.sdui-extras { display: grid; gap: var(--sp-3); }
+.sdui-extras { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-3); }
 @media (max-width: 760px) {
   .sdui-detail .detail { grid-template-columns: minmax(0, 1fr); }
   .sdui-detail .detail > :first-child:not(:last-child) { width: clamp(120px, 34vw, 170px); }

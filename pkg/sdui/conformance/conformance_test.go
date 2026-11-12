@@ -264,3 +264,64 @@ func TestPlainText(t *testing.T) {
 		}
 	}
 }
+
+// card-style-table.json (beside the fixtures, not in them) is the catalogue's card styles as a renderer that keeps a table of its
+// own must have them: a renderer's test compares its table with this one (README, "Requirement").
+func TestCardStyleTableIsCurrent(t *testing.T) {
+	type style struct {
+		Style         string   `json:"style"`
+		Shape         string   `json:"shape"`
+		Aspect        string   `json:"aspect"`
+		Image         []string `json:"image"`
+		Shows         []string `json:"shows"`
+		TitleLines    int      `json:"titleLines"`
+		SubtitleLines int      `json:"subtitleLines"`
+	}
+	table := struct {
+		Kit     int     `json:"kit"`
+		Catalog int     `json:"catalogRevision"`
+		Styles  []style `json:"cardStyles"`
+	}{Kit: KitVersion, Catalog: sdui.CatalogRevision}
+	for _, c := range sdui.Catalog().CardStyles {
+		table.Styles = append(table.Styles, style{c.Style, c.Shape, c.Aspect, c.Image, c.Shows, c.TitleLines, c.SubtitleLines})
+	}
+	want := encodeIndent(t, table, " ")
+	path := "card-style-table.json"
+	if *update {
+		if err := os.WriteFile(path, want, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return
+	}
+	if got, err := os.ReadFile(path); err != nil || !bytes.Equal(got, want) {
+		t.Errorf("%s is not the catalogue's card styles (run go test ./pkg/sdui/conformance -update): %v", path, err)
+	}
+}
+
+// experience-wire-table.json (beside the fixtures) is every look's wire, per form factor, as the
+// pickers draw it (docs/SDUI.md, Experiences): an app that keeps its own table compares it with this.
+func TestExperienceWireTableIsCurrent(t *testing.T) {
+	type row struct {
+		ID   string               `json:"id"`
+		Wire map[string]sdui.Wire `json:"wire"`
+	}
+	table := struct {
+		Kit         int   `json:"kit"`
+		Catalog     int   `json:"catalogRevision"`
+		Experiences []row `json:"experiences"`
+	}{Kit: KitVersion, Catalog: sdui.CatalogRevision}
+	for _, e := range sdui.Experiences {
+		table.Experiences = append(table.Experiences, row{e.ID, e.Wire})
+	}
+	want := encodeIndent(t, table, " ")
+	path := "experience-wire-table.json"
+	if *update {
+		if err := os.WriteFile(path, want, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return
+	}
+	if got, err := os.ReadFile(path); err != nil || !bytes.Equal(got, want) {
+		t.Errorf("%s is not the experiences' wires (run go test ./pkg/sdui/conformance -update): %v", path, err)
+	}
+}

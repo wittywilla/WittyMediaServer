@@ -8,7 +8,10 @@ import legal from '../../../../internal/legal/legal.json'
 import { api } from '../../api'
 import { Brand, BrandMark, LoadError } from '../../components/common'
 import { useApp } from '../../state'
-import { PageHead, Row, SaveBar, Section, useServerSettings } from './ui'
+import SpecPage from '../../spec/SpecPage'
+import { NOTICE_HELP, ownerFormSpec, ownerNoticeSpec } from '../../spec/specs/legal'
+import { Field, Textarea } from '../../ui'
+import { PageHead, SaveBar, Section, useServerSettings } from './ui'
 import { WebLink } from '../../components/WebLink'
 import './settings.css'
 
@@ -82,15 +85,8 @@ function useOwner() {
 }
 
 function OwnerNotice({ owner }: { owner: Owner | null }) {
-  if (!owner?.notice && !owner?.contact) return null
-  return (
-    <Section id="this-server" title="From this server’s owner" desc="Written by whoever runs this server, not by the WittyMediaServer project.">
-      <div className="set-prose">
-        {owner.notice && <p className="legal-owner">{owner.notice}</p>}
-        {owner.contact && <p><b>Contact:</b> <span className="legal-owner">{owner.contact}</span></p>}
-      </div>
-    </Section>
-  )
+  const page = ownerNoticeSpec(owner)
+  return page ? <SpecPage embedded page={page} /> : null
 }
 
 function Doc({ signedIn }: { signedIn: boolean }) {
@@ -127,15 +123,15 @@ function OwnerForm() {
   const { s, set } = st
   if (!s) return st.failed ? <LoadError what="This page" onRetry={st.retry} /> : null
   return (
-    <Section id="owner-form" title="Your notice for people using this server" desc="Only you see this form. What you write appears at the top of this page for everyone, including people who aren’t signed in, so don’t write anything you want kept private. It’s shown as plain text.">
-      <Row label="Your notice" desc="For example, house rules, who may use this server, or how to reach you about something on it. Rules that apply to you depend on where you live." stack>
-        <textarea className="input legal-owner-input" rows={4} maxLength={4000} value={s.legalOwnerNotice || ''} onChange={(e) => set('legalOwnerNotice', e.target.value)} />
-      </Row>
-      <Row label="Contact" desc="An address or other way to reach you. Optional." stack>
-        <input className="input legal-owner-input" maxLength={300} autoComplete="off" value={s.legalOwnerContact || ''} onChange={(e) => set('legalOwnerContact', e.target.value)} />
-      </Row>
+    <>
+      <SpecPage embedded page={ownerFormSpec(s.legalOwnerContact || '')} handled={new Set(['contact'])} onField={(id, v) => { if (id === 'contact') set('legalOwnerContact', String(v)) }}
+        after={{ 0: (
+          <Field label="Your notice" hint={NOTICE_HELP}>
+            <Textarea rows={4} maxLength={4000} value={s.legalOwnerNotice || ''} onChange={(e) => set('legalOwnerNotice', e.target.value)} />
+          </Field>
+        ) }} />
       <SaveBar {...st} />
-    </Section>
+    </>
   )
 }
 

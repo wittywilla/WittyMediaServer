@@ -15,9 +15,12 @@ import { LinkButton } from './ui'
 import { AudioProvider } from './audio/player'
 import ConnectServer from './components/ConnectServer'
 import AuthPage from './pages/AuthPage'
+import { usePageRegions } from './sdui/regions'
+import { StatusBar, SystemDock } from './shell/PlayChrome'
 import { PlayerDock } from './player/PlayerPage'
 import { Announcer, useDialogs } from './a11y'
 import LegalNote, { legalAckText } from './components/LegalNote'
+import AwayPage from './pages/AwayPage'
 import { KeyHelp } from './ui/KeyHelp'
 import { ShellEditorHost } from './pages/ShellEditor'
 import { AskHost } from './ui/Overlay'
@@ -27,6 +30,7 @@ import { syncTilt } from './ui/tilt'
 import { Sidebar } from './shell/Sidebar'
 import { TabBar } from './shell/TabBar'
 import { TopBar } from './shell/TopBar'
+import { Scene } from './ui/Scene'
 import { frameFor } from './shell/navModel'
 import { useMedia, useMenu, useNavMigration, useNavPrefs } from './shell/useNav'
 import { useTvMode } from './tvmode/mode'
@@ -38,6 +42,7 @@ const HomePage = lazy(() => import('./pages/HomePage'))
 const PairPage = lazy(() => import('./pages/PairPage'))
 const SharedPage = lazy(() => import('./pages/SharedPage'))
 const DesignPage = lazy(() => import('./pages/DesignPage'))
+const DesignPlay = lazy(() => import('./pages/DesignPlay'))
 const GapsReview = lazy(() => import('./spec/GapsReview'))
 const HelpPage = lazy(() => import('./pages/HelpPage'))
 const HelpPublicPage = lazy(() => import('./pages/HelpPage').then((m) => ({ default: m.HelpPublicPage })))
@@ -47,7 +52,6 @@ const CouchMode = lazy(() => import('./pages/games/Couch'))
 const RadioStationPage = lazy(() => import('./pages/RadioLibrary').then((m) => ({ default: m.RadioStationPage })))
 const ControllersScreen = lazy(() => import('./pages/Games').then((m) => ({ default: m.ControllersScreen })))
 const WatchPage = lazy(() => import('./pages/creators/WatchPage'))
-const CollectionsPage = lazy(() => import('./pages/CollectionsPage'))
 const FixMatches = lazy(() => import('./pages/FixMatches'))
 const BrandPage = lazy(() => import('./pages/library/BrandPage'))
 const CouchPage = lazy(() => import('./pages/Couch'))
@@ -115,6 +119,8 @@ function Shell() {
   // Help, for anyone: stuck at the sign-in page or partway through setup is when it's needed most.
   const isHelp = loc.pathname === '/help' || loc.pathname.startsWith('/help/')
   if (isHelp && (needServer || (!loading && (!user || (onboarding && user.isAdmin))))) return <Suspense fallback={<Spinner />}><Routes><Route path="/help" element={<HelpPublicPage />} /><Route path="/help/:guide" element={<HelpPublicPage />} /></Routes></Suspense>
+  // From away, for anyone: how a device away from home joins (the parts that make an invite wait for a sign-in).
+  if (loc.pathname === '/away' && !loading && !user && !needServer && !setupRequired) return <div className="center-page"><AwayPage /></div>
   if (loading) return <div className="center"><div className="spinner" /></div>
   if (needServer) return <ConnectServer />
   if (!user) return setupRequired ? <Suspense fallback={<Spinner />}><SetupWizard /></Suspense> : <AuthPage />
@@ -130,6 +136,7 @@ function Shell() {
   const isStream = /^\/couch\/\d+\/play\//.test(loc.pathname) || loc.pathname.startsWith('/couch-rig/')
   return (
     <AudioProvider>
+      {!isTvPlayer && !isReader && !isStream && !isGame && !isPlayer && <Scene />}
       {isTvPlayer ? <Suspense fallback={tvFallback}><Routes><Route path="/tv/watch/:key" element={<TvPlayer />} /></Routes></Suspense>
         : isReader ? <Suspense fallback={<Spinner />}><Routes><Route path="/read/:id" element={<ReaderPage />} /></Routes></Suspense>
         : isCouchMode ? <Suspense fallback={<Spinner />}><Routes><Route path="/big/*" element={<CouchMode />} /></Routes></Suspense>
@@ -157,6 +164,7 @@ function regionAttrs(p: Record<string, { position?: string; visible?: boolean }>
 function AppFrame() {
   // The server says how the frame is drawn: the experience's nav style (docs/SDUI.md, "Experiences").
   const menu = useMenu()
+  const regions = usePageRegions()
   const frame = frameFor(menu.shell)
   const style = frame.style
   const side = style !== 'top'
@@ -189,6 +197,7 @@ function AppFrame() {
       <Sidebar open={open} rail={rail} drawer={!wide} onClose={() => setDrawer(false)} withDrawer={frame.drawer} />
       <div className="main">
         <TopBar onMenu={toggle} showMenu={side || !wide} topNav={style !== 'side'} menuOpen={open} wide={wide} allTabs={!frame.tabBar} />
+        {regions?.statusBar && <StatusBar parts={regions.statusBar} />}
         <LegalAckBar />
         <PlainAwayBar />
         <main className="content" id="main" data-nav-zone="stage" tabIndex={-1}>
@@ -196,6 +205,7 @@ function AppFrame() {
           <LegalNote kind="general" className="legal-foot" />
           <footer className="page-foot"><VersionTag version={version} /></footer>
         </main>
+        {regions?.systemDock && <SystemDock entries={regions.systemDock} />}
       </div>
       <TabBar onMenu={() => setDrawer(true)} />
     </div>
@@ -221,7 +231,7 @@ export function PageRoutes() {
       <Route path="/cd/:id" element={<CdPlayer />} />
       <Route path="/couch" element={<Suspense fallback={<Spinner />}><CouchPage /></Suspense>} />
       <Route path="/couch/:id" element={<Suspense fallback={<Spinner />}><CouchHostPage /></Suspense>} />
-      <Route path="/collections" element={<SduiRoute fallback={<Suspense fallback={<Spinner />}><CollectionsPage /></Suspense>} />} />
+      <Route path="/collections" element={<SduiRoute fallback={<NotFound />} />} />
       <Route path="/collections/:id" element={<SduiRoute fallback={<Suspense fallback={<Spinner />}><CollectionPage /></Suspense>} />} />
       <Route path="/person/:id" element={<SduiRoute fallback={<NotFound />} loading={<RouteSkeleton />} />} />
       <Route path="/review" element={<Suspense fallback={<Spinner />}><ReviewPage /></Suspense>} />
@@ -232,6 +242,7 @@ export function PageRoutes() {
       <Route path="/fix-matches" element={<Suspense fallback={<Spinner />}><FixMatches /></Suspense>} />
       <Route path="/brand/:kind/:name" element={<Suspense fallback={<Spinner />}><BrandPage /></Suspense>} />
       <Route path="/pair" element={<PairPage />} />
+      <Route path="/away" element={<AwayPage />} />
       <Route path="/tv" element={<SduiRoute fallback={<Suspense fallback={tvFallback}><GuidePage /></Suspense>} loading={tvFallback} />} />
       {/* Places only a server with server-driven pages has: every library together, a kind of library together, a page of the owner's own. */}
       <Route path="/libraries" element={<SduiRoute fallback={<NotFound />} />} />
@@ -250,6 +261,7 @@ export function PageRoutes() {
       <Route path="/help" element={<Suspense fallback={<Spinner />}><HelpPage /></Suspense>} />
       <Route path="/help/:guide" element={<Suspense fallback={<Spinner />}><HelpPage /></Suspense>} />
       <Route path="/design" element={<DesignPage />} />
+      <Route path="/design/play" element={<Suspense fallback={<Spinner />}><DesignPlay /></Suspense>} />
       <Route path="/design/gaps" element={<Suspense fallback={<Spinner />}><GapsReview /></Suspense>} />
       <Route path="/design/gaps/:key" element={<Suspense fallback={<Spinner />}><GapsReview /></Suspense>} />
       <Route path="*" element={<NotFound />} />

@@ -27,6 +27,8 @@ import { setTvMode, useTvMode } from '../tvmode/mode'
 import { useUserPref } from '../ui/userPrefs'
 import { jumpTo } from './settings/jump'
 import { LAYOUT_EVENT } from './ShellEditor'
+import { LayoutThumb } from '../ui/LayoutThumb'
+import type { WireMap } from '../ui/layoutSpecs'
 import { Row, Section } from './settings/ui'
 import AutoSkipSection from './settings/AutoSkip'
 
@@ -115,7 +117,7 @@ export default function AppearanceSettings() {
   // A profile's own colours, where the server keeps them (feature theme-personal).
   const personalColours = !!useFeatures()?.has('theme-personal')
   const fallback = currentThemeId(serverTheme)
-  const active = mine || fallback
+  const active = currentLook()?.requiredTheme?.value || mine || fallback
   // An administrator can require a theme: it shows locked and nothing here changes it.
   const required = currentLook()?.requiredTheme
   const useHere = (id: string) => { if (required) return; setDeviceTheme(id); setMine(id); applyTheme(id || serverTheme) }
@@ -163,7 +165,7 @@ export default function AppearanceSettings() {
 
   return (
     <>
-      <Section id="theme" title="Theme" desc={required ? <><IconLock /> {lockText(required)}. It can’t be changed here.</> : mine
+      <Section id="theme" title="Theme" desc={required ? <><IconLock /> {lockText(required)}. It can’t be changed here: an administrator changes it in <Link to="/settings/pages/layouts">Pages &amp; menu, Looks</Link>.</> : mine
         ? <>This device has its own theme. <button type="button" className="linkish" onClick={() => useHere('')}>Follow the server’s</button></>
         : 'This device follows the server’s theme. Choosing one here changes this device only.'}>
         <div className="theme-stage">
@@ -172,7 +174,7 @@ export default function AppearanceSettings() {
             : shown === CUSTOM_THEME && customMade
               ? <ThemeScene colors={themeColors(customMade)} radius={customMade.radius} big />
               : <ThemeScene colors={shownTheme?.colors} radius={shownTheme?.radius} preview={shownTheme?.preview} big />}
-          {shownName && <p className="theme-stage-caption"><b>{shownName}</b> <span className="muted">{peeking ? 'Preview. Choose it to use it.' : 'In use on this device'}</span></p>}
+          {shownName && <p className="theme-stage-caption"><b>{shownName}</b> <span className="muted">{peeking ? 'Preview. Choose it to use it.' : required ? 'Required, so this is what this device wears' : 'In use on this device'}</span></p>}
         </div>
         <div className="theme-grid" role="radiogroup" aria-label="Themes" onMouseLeave={() => setPeek(null)}
           onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setPeek(null) }}>
@@ -247,8 +249,7 @@ export default function AppearanceSettings() {
 // The experiences a server offers (docs/SDUI.md, "Experiences"): one for this profile on this device, kept by the
 // server; "As the server sets it" follows the administrator's choice. An administrator can require one, and it then
 // shows locked with who set it.
-type ExperienceCard = { id: string; name: string; tagline?: string; theme?: string; preview?: { bg: string; surface: string; accent: string }; nav: Record<string, string> }
-const NAV_PIC: Record<string, string> = { sidebar: 'side', rail: 'rail', railDrawer: 'rail', bottomTabs: 'top', topTabs: 'top', floatingGlassBar: 'top', cableBar: 'top', bevelBar: 'top', teleKeys: 'top', crossbar: 'stream', ornamentTabs: 'top', tvTopMenu: 'top', tvSideMenu: 'rail' }
+type ExperienceCard = { id: string; name: string; tagline?: string; theme?: string; preview?: { bg: string; surface: string; accent: string }; nav: Record<string, string>; wire?: WireMap }
 const lockText = (r: { by?: string; scope: string }) => `Required by ${r.by || 'an administrator'}${r.scope === 'everyone' ? ' for everyone' : r.scope === 'kids' ? ' for kids profiles' : ''}`
 
 function ServerLookRows({ choice }: { choice: NonNullable<ReturnType<typeof useMenu>['experiences']> }) {
@@ -274,14 +275,14 @@ function ServerLookRows({ choice }: { choice: NonNullable<ReturnType<typeof useM
   const options = locked ? [{ value: choice.required!.value, label: cards.find((c) => c.id === choice.required!.value)?.name || choice.required!.value }] : choice.options
   return (
     <>
-      {locked && <p className="small-note" role="status"><IconLock /> {lockText(choice.required!)}.</p>}
+      {locked && <p className="small-note" role="status"><IconLock /> {lockText(choice.required!)}. An administrator changes it in <Link to="/settings/pages/layouts">Pages &amp; menu, Looks</Link>.</p>}
       <div className="layout-opts look-opts" role="radiogroup" aria-label="Look on this device">
         {options.map((o) => {
           const c = cards.find((x) => x.id === o.value)
           const on = choice.current === o.value
           return (
             <button key={o.value} type="button" role="radio" aria-checked={on} disabled={!!busy || locked} className={'layout-opt' + (on ? ' on' : '')} onClick={() => void choose(o.value)}>
-              <span className={'layout-pic pic-' + (NAV_PIC[c?.nav.desktop || ''] || 'side')} aria-hidden="true" style={c?.preview ? { background: c.preview.bg, ['--pic-surface' as string]: c.preview.surface, ['--pic-accent' as string]: c.preview.accent } : undefined}><i className="s" /><i className="t" /><i className="c" /></span>
+              <LayoutThumb wire={c?.wire} colours={c?.preview} />
               <b>{o.label}</b><span className="muted">{c?.tagline || ''}</span>
             </button>
           )

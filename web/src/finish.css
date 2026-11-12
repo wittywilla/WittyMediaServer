@@ -1,0 +1,147 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
+/* Design 2, finishes: what a look (experience) brings to surfaces and controls, drawn from the theme engine's `look`
+   block (theme.ts puts it on <html>): data-fx-glass, -gloss, -glow, -texture and -bevel (none, subtle, full), data-type,
+   data-card-set, data-focus-style, data-screen, --shape-mult, the theme's finish recipes (--glass-*, --gloss-*) and its
+   scene (ui/Scene.tsx). Nothing here names an experience: a look that asks for glass gets glass. Every colour is a token
+   or a mix of tokens, and nothing blurs what scrolls. Loaded after design2.css. */
+
+/* ---- the type sets: bundled open fonts (SIL OFL, web/public/fonts), so a look never depends on what is installed ---- */
+@font-face { font-family: "Nunito"; font-style: normal; font-weight: 200 1000; font-display: swap; src: url("/fonts/nunito-latin-wght-normal.woff2") format("woff2"); }
+@font-face { font-family: "Source Sans 3"; font-style: normal; font-weight: 200 900; font-display: swap; src: url("/fonts/source-sans-3-latin-wght-normal.woff2") format("woff2"); }
+@font-face { font-family: "Source Serif 4"; font-style: normal; font-weight: 200 900; font-display: swap; src: url("/fonts/source-serif-4-latin-wght-normal.woff2") format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-style: normal; font-weight: 100 800; font-display: swap; src: url("/fonts/jetbrains-mono-latin-wght-normal.woff2") format("woff2"); }
+html[data-type="humanist"] { --font: "Source Sans 3", Seravek, "Gill Sans Nova", Ubuntu, Calibri, "Segoe UI", sans-serif; }
+html[data-type="rounded"] { --font: "Nunito", ui-rounded, "Hiragino Maru Gothic ProN", Quicksand, "Segoe UI", sans-serif; }
+html[data-type="serif"] { --font: "Source Serif 4", "Iowan Old Style", Charter, Georgia, serif; }
+html[data-type="mono"] { --font: "JetBrains Mono", var(--font-mono); --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", SFMono-Regular, Menlo, Consolas, monospace; }
+html[data-type="mono"] body { letter-spacing: 0; }
+
+/* ---- the shape the look wears: the theme's radius times the look's multiple (data, from look.shape) ---- */
+:root {
+  --r-xs: calc(var(--radius) * var(--shape-mult, 1) * .4);
+  --r-sm: calc(var(--radius) * var(--shape-mult, 1) * .6);
+  --r-md: calc(var(--radius) * var(--shape-mult, 1));
+  --r-lg: calc(var(--radius) * var(--shape-mult, 1) * 1.4);
+  --r-xl: calc(var(--radius) * var(--shape-mult, 1) * 2);
+}
+
+/* ---- the theme's finish recipes; a theme with none gets them worked out from its colours ---- */
+:root {
+  --glass-hi: color-mix(in srgb, var(--on-image) 12%, transparent);
+  --glass-lo: color-mix(in srgb, var(--on-image) 4%, transparent);
+  --glass-edge: color-mix(in srgb, var(--on-image) 22%, transparent);
+  --glass-shadow: color-mix(in srgb, var(--picture-bg) 32%, transparent);
+  --gloss-hi: color-mix(in srgb, var(--accent) 55%, var(--on-image));
+  --gloss-up: var(--accent);
+  --gloss-lo: color-mix(in srgb, var(--accent) 86%, var(--picture-bg));
+  --gloss-glow: color-mix(in srgb, var(--accent) 78%, var(--on-image));
+  --gloss-edge: color-mix(in srgb, var(--accent) 68%, var(--picture-bg));
+  /* The recipe as paint: highlight to upper body over the top half, lower body to glow under it. */
+  /* The recipe as paint: highlight to upper body over the top half, lower body to glow under it. The theme's own colours are chosen so the label reads 4.5:1 or better across 30% to 70% (scripts/theme-contrast.py). */
+  --gloss-paint: linear-gradient(180deg, var(--gloss-hi) 0%, var(--gloss-up) 48%, var(--gloss-lo) 52%, var(--gloss-glow) 100%);
+  --glass-paint: linear-gradient(180deg, var(--glass-hi), var(--glass-lo));
+}
+
+/* ---- the scene: sky, light sweep, bubbles, hill (ui/Scene.tsx), fixed behind the page and under the menu ---- */
+.scene { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; contain: strict; }
+.scene-layer { position: absolute; }
+.scene-sky, .scene-light, .scene-image { inset: 0; inline-size: 100%; block-size: 100%; }
+.scene-image { object-fit: cover; }
+.scene-bubble { translate: -50% -50%; border-radius: var(--r-full); background: radial-gradient(circle at 32% 28%, var(--on-image) 0, transparent 14%), radial-gradient(circle at 50% 50%, transparent 58%, var(--c) 100%), var(--c); background-blend-mode: soft-light, normal, normal; box-shadow: inset 0 0 0 1px var(--c); animation: scene-float 14s ease-in-out infinite alternate; }
+.scene-hill { translate: -50% -50%; border-radius: 50%; box-shadow: inset 0 2px 0 color-mix(in srgb, var(--on-image) 40%, transparent); }
+.scene-light { animation: scene-sweep 26s ease-in-out infinite alternate; }
+@keyframes scene-float { from { transform: translateY(0); } to { transform: translateY(-1.6vmin); } }
+@keyframes scene-sweep { from { transform: translateX(-2%); } to { transform: translateX(3%); } }
+@media (prefers-reduced-motion: reduce) { .scene-bubble, .scene-light { animation: none; } }
+/* With a scene, the frame lets it show: the page and the bars stop painting a flat page colour of their own. */
+html[data-scene] :is(.app, .main, .content) { background: transparent; }
+html[data-scene] .topbar { background: transparent; }
+
+/* ---- glass: the bars, menus, dialogs, panels and the Dock take the theme's recipe ---- */
+html[data-fx-glass="subtle"] :is(.sidebar, .topbar, .tabbar, .dock:not(.ctv-dock), .modal, [role=menu], .ui-menu, .popover, .sdui-widget, .ui-card) { background-image: linear-gradient(180deg, color-mix(in srgb, var(--glass-hi) 45%, transparent), transparent 70%); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--glass-edge) 60%, transparent); }
+html[data-fx-glass="full"] :is(.sidebar, .topbar, .tabbar, .dock:not(.ctv-dock), .modal, [role=menu], .ui-menu, .popover, .sdui-widget, .ui-card, .spec-rows, .spec-card) { background: var(--glass-paint); border-color: var(--glass-edge); box-shadow: 0 8px 22px var(--glass-shadow), inset 0 1px 0 var(--glass-edge); }
+html[data-fx-glass="full"] .topbar { box-shadow: 0 4px 14px var(--glass-shadow), inset 0 1px 0 var(--glass-edge); }
+html[data-fx-glass="full"] .sidebar { border-inline-end-color: var(--glass-edge); }
+/* Glossy rows: a row is a pane of glass, and the one under the pointer or focus lights up. */
+html[data-fx-glass="full"] :is(.sdui-row, .spec-row, .nav-link) { background: var(--glass-paint); box-shadow: inset 0 1px 0 var(--glass-edge); border-radius: var(--r-lg); }
+html[data-fx-glass="full"] :is(.sdui-row, .spec-row, .nav-link):is(:hover, :focus-visible, .active, [aria-current]) { background: var(--gloss-paint); color: var(--accent-fg); border-color: var(--gloss-edge); text-shadow: 0 1px 1px var(--gloss-edge); }
+html[data-fx-glass="full"] :is(.sdui-row, .spec-row):is(:hover, :focus-visible) :is(.muted, .spec-row-sub, .spec-row-value) { color: inherit; }
+html[data-fx-glass="full"] .spec-rows, html[data-fx-glass="full"] .sdui-list { gap: var(--space-xs); }
+html[data-fx-glass="full"] .sdui-list li + li { box-shadow: none; }
+@media (prefers-reduced-transparency: reduce) {
+  html[data-fx-glass] :is(.sidebar, .topbar, .tabbar, .dock, .modal, [role=menu], .ui-menu, .popover, .sdui-widget, .ui-card, .spec-rows, .spec-card, .sdui-row, .spec-row, .nav-link) { background: var(--elev-1-fill); background-image: none; box-shadow: none; }
+}
+
+/* ---- gloss: a button is a drop of glass in the theme's five colours ---- */
+html[data-fx-gloss="subtle"] :is(.btn.primary, .dock-btn.primary) { background-image: linear-gradient(180deg, color-mix(in srgb, var(--gloss-hi) 40%, transparent), transparent 52%); }
+html[data-fx-gloss="full"] :is(.btn.primary, .dock-btn.primary, .btn.icon:not(.ghost)) { background: var(--gloss-paint); border: 1px solid var(--gloss-edge); color: var(--accent-fg); text-shadow: 0 1px 1px var(--gloss-edge); box-shadow: 0 3px 10px color-mix(in srgb, var(--gloss-lo) 45%, transparent), inset 0 1px 0 var(--gloss-hi), inset 0 -1px 0 color-mix(in srgb, var(--gloss-glow) 50%, transparent); }
+html[data-fx-gloss="full"] :is(.btn.primary, .dock-btn.primary):hover:not([disabled]) { filter: brightness(1.06); }
+html[data-fx-gloss="full"] .btn:not(.primary, .ghost, .danger, .icon, [disabled]) { background: var(--glass-paint); border-color: var(--glass-edge); box-shadow: 0 2px 6px var(--glass-shadow), inset 0 1px 0 var(--glass-edge); }
+html[data-fx-gloss="full"] :is(.btn, .dock-btn, .chip, .spec-chip) { border-radius: var(--r-full); }
+/* Gloss on the player's own controls: the play button is the drop of colour. */
+html[data-fx-gloss="full"] :is(.player .ibtn.play, .skip-intro, .cbtn.on, .cbtn[aria-pressed="true"]) { background: var(--gloss-paint); border: 1px solid var(--gloss-edge); color: var(--accent-fg); box-shadow: 0 2px 8px color-mix(in srgb, var(--gloss-lo) 50%, transparent), inset 0 1px 0 var(--gloss-hi); }
+html[data-fx-gloss="subtle"] :is(.player .ibtn.play, .skip-intro) { background-image: linear-gradient(180deg, color-mix(in srgb, var(--gloss-hi) 40%, transparent), transparent 55%); }
+
+/* ---- bevel: a lit top edge and a shaded bottom edge, on what can be pressed and on cards ---- */
+html[data-fx-bevel="subtle"] :is(.btn:not(.ghost), .dock-btn, .ui-card, .spec-card, .sdui-widget) { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--on-image) 14%, transparent); }
+html[data-fx-bevel="full"] :is(.btn:not(.ghost), .dock-btn, .ui-card, .spec-card, .sdui-widget, .spec-row, .sdui-row, .topnav-link, .nav-link, .tab, [role=tab], .chip, .spec-chip) { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--on-image) 30%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--picture-bg) 26%, transparent); }
+html[data-fx-bevel="full"] :is(.btn, .dock-btn):active:not([disabled]) { box-shadow: inset 0 1px 3px color-mix(in srgb, var(--picture-bg) 40%, transparent); }
+html[data-fx-bevel="full"] :is(.card, .poster) { box-shadow: 0 0 0 1px color-mix(in srgb, var(--on-image) 18%, transparent), var(--e-1); }
+
+/* ---- glow: focus, the selected item and the primary button give off light in the accent ---- */
+html[data-fx-glow="subtle"] :is(.btn.primary, .dock-btn.primary) { box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 38%, transparent); }
+html[data-fx-glow="subtle"] :is(.card, .sdui-item):is(:hover, :focus-within) .poster { box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 32%, transparent), var(--e-2); }
+html[data-fx-glow="full"] :is(.btn.primary, .dock-btn.primary, .topnav-link.active, .nav-link.active) { box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 55%, transparent); }
+html[data-fx-glow="full"] :is(.card, .sdui-item):is(:hover, :focus-within) .poster { box-shadow: 0 0 26px color-mix(in srgb, var(--accent) 50%, transparent), var(--e-2); }
+html[data-fx-glow="subtle"] :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible { box-shadow: 0 0 8px color-mix(in srgb, var(--focus) 60%, transparent); }
+html[data-focus-style="glow"] .card:focus-visible .poster { outline-color: var(--focus); box-shadow: 0 0 22px color-mix(in srgb, var(--focus) 60%, transparent); }
+
+/* ---- texture: paper grain (subtle) and scanlines (full), a film over the page that never takes a click ---- */
+html[data-fx-texture="subtle"] body::after, html[data-fx-texture="full"] body::after { content: ""; position: fixed; inset: 0; z-index: var(--z-scrim); pointer-events: none; }
+html[data-fx-texture="subtle"] body::after { background-image: radial-gradient(color-mix(in srgb, var(--fg) 7%, transparent) 0.6px, transparent 0.9px); background-size: 4px 4px; opacity: .5; }
+html[data-fx-texture="full"] body::after { background-image: repeating-linear-gradient(180deg, transparent 0 2px, color-mix(in srgb, var(--picture-bg) 18%, transparent) 2px 3px); }
+@media (prefers-reduced-motion: reduce), (prefers-reduced-transparency: reduce) { html[data-fx-texture="full"] body::after { opacity: .4; } }
+
+/* ---- focus by look: ring (the default), ring-lift (the ring and a small rise), fill (the thing is the highlight) ---- */
+html[data-focus-style="fill"] :is(.btn, .dock-btn, .nav-link, .topnav-link, .sdui-row, .spec-row, [role=tab], [role=menuitem], .tab):focus-visible { background: var(--accent); color: var(--accent-fg); outline: none; box-shadow: none; }
+html[data-focus-style="fill"] :is(.sdui-row, .spec-row):focus-visible :is(.muted, .spec-row-sub, .spec-row-value, .sdui-row-go) { color: inherit; }
+html[data-focus-style="fill"] .card:focus-visible .poster { outline-width: calc(var(--focus-width) + 1px); }
+html[data-focus-style="ring-lift"] :is(.card, .sdui-item):focus-visible .poster { transform: translateY(-4px) scale(var(--focus-scale)); }
+
+/* ---- screens: how a page arrives (look.motion.screen), cut being no motion ---- */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-screen="slide"] .content > * { animation: finish-slide var(--dur-screen) var(--ease-out) both; }
+  html[data-screen="fade"] .content > * { animation: finish-fade var(--dur-screen) var(--ease-out) both; }
+}
+@keyframes finish-slide { from { opacity: 0; transform: translateX(2rem); } }
+@keyframes finish-fade { from { opacity: 0; } }
+
+/* ---- what a look is known by (canvas All_<look>), for what the data tables cannot say ---- */
+/* Rail: title-on-art cards, the one under focus carrying the accent bar. */
+html[data-card-set="plate"] .card { display: grid; }
+html[data-card-set="plate"] .card > .poster, html[data-card-set="plate"] .card > .title { grid-area: 1 / 1; }
+html[data-card-set="plate"] .card > .sub { display: none; }
+html[data-card-set="plate"] .card > .title { align-self: end; margin: 0; padding: var(--space-xl) var(--space-s) var(--space-s); z-index: 1; color: var(--on-image); background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--picture-bg) 78%, transparent)); border-radius: 0 0 var(--r-md) var(--r-md); font-size: var(--text-sm); text-shadow: 0 1px 2px var(--picture-bg); }
+html[data-card-set="plate"] .card:is(:hover, :focus-visible) > .title { background: var(--accent); color: var(--accent-fg); text-shadow: none; }
+/* Big picture: huge type, huge tiles, the strongest focus. */
+html[data-experience="bigpicture"] { font-size: 125%; /* design-ok: the look's own type scale, the same as the ten-foot rule in styles.css */ --focus-width: 4px; --focus-offset: 4px; }
+html[data-experience="bigpicture"] :is(.btn, .nav-link, .topnav-link) { min-block-size: 3.25rem; font-size: var(--text-lg); font-weight: 700; }
+html[data-experience="bigpicture"] :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline-color: var(--accent); }
+html[data-card-set="tile"] .card > .title { font-size: var(--role-title-size); font-weight: 700; }
+/* Classic Satellite: brushed-silver bevelled bars with dark words and an orange highlight. */
+.app[data-nav-style="bevelBar"] .topbar { background: linear-gradient(180deg, color-mix(in srgb, var(--on-image) 90%, var(--fg-3)), color-mix(in srgb, var(--on-image) 62%, var(--fg-3))); color: var(--picture-bg); border-block-end: 1px solid var(--border-strong); }
+.app[data-nav-style="bevelBar"] .topbar :is(.brand, .brand-name, .topnav-link) { color: var(--picture-bg); }
+.app[data-nav-style="bevelBar"] .topnav-link { background: linear-gradient(180deg, var(--on-image), color-mix(in srgb, var(--on-image) 70%, var(--fg-3))); border: 1px solid color-mix(in srgb, var(--picture-bg) 40%, transparent); }
+.app[data-nav-style="bevelBar"] .topnav-link.active { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.app[data-nav-style="bevelBar"] .topbar .brand-name b { color: var(--accent-fg); text-shadow: 0 0 1px var(--picture-bg); }
+/* Retro (teletext): flat blocks of colour, capitals, hard edges. */
+html[data-card-set="block"] .card > .title { text-transform: uppercase; letter-spacing: var(--tracking-label); }
+html[data-card-set="block"] :is(.btn, .card .poster) { border: 2px solid var(--fg); box-shadow: none; }
+/* Paper: hairlines in place of shadows. */
+html[data-experience="paper"] :is(.card .poster, .sdui-widget, .modal, [role=menu]) { box-shadow: none; border: 1px solid var(--border-strong); }
+.app[data-nav-style="bevelBar"] .topbar { --fg: var(--picture-bg); --fg-2: color-mix(in srgb, var(--picture-bg) 80%, var(--on-image)); --fg-3: color-mix(in srgb, var(--picture-bg) 65%, var(--on-image)); --brand-accent: color-mix(in srgb, var(--accent) 55%, var(--picture-bg)); --accent-text: color-mix(in srgb, var(--accent) 55%, var(--picture-bg)); }
+.app[data-nav-style="bevelBar"] .topbar :is(input, .search) { background: var(--on-image); color: var(--picture-bg); border-color: color-mix(in srgb, var(--picture-bg) 40%, transparent); }
+.app[data-nav-style="bevelBar"] .topbar .search { background: var(--on-image); border-radius: var(--r-md); }
+.app[data-nav-style="bevelBar"] .topbar .search :is(input, svg) { background: transparent; color: var(--picture-bg); }
+.app[data-nav-style="bevelBar"] .topbar .brand-badge { background: var(--on-image); color: var(--picture-bg); }

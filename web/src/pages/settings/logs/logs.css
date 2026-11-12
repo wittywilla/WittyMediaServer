@@ -5,7 +5,6 @@
 /* ---------------------------------------------------------------- banners */
 .lg-banner { display: grid; gap: var(--sp-3); margin: 0 0 var(--sp-4); padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md); border: 1px solid var(--border-strong); background: var(--bg-2); font-size: var(--text-md); line-height: var(--leading-body); }
 .lg-banner.bad { background: var(--danger-soft); border-color: color-mix(in srgb, var(--danger) 50%, transparent); }
-.lg-banner.warn { background: var(--warn-soft); border-color: color-mix(in srgb, var(--warn) 50%, transparent); }
 .lg-banner-text { min-width: 0; overflow-wrap: anywhere; }
 .lg-banner-text p { margin: var(--sp-1) 0 0; }
 .lg-banner-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
@@ -129,14 +128,12 @@
 .lg-changed summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-size: var(--text-sm); font-weight: 600; }
 .lg-changed-one { margin-top: var(--sp-3); }
 .lg-changed-one .lg-pre { max-height: 160px; }
-.lg-dl-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2) var(--sp-3); margin: 0 0 var(--sp-3); font-size: var(--text-sm); color: var(--fg-2); }
-.lg-dl-row .btn { min-height: 44px; }
 
 /* ---------------------------------------------------------------- phones */
 @media (max-width: 600px) {
   .lg-head { grid-template-columns: auto auto minmax(0, 1fr); gap: var(--sp-1) var(--sp-2); }
   .lg-msg { grid-column: 1 / -1; }
-  .lg-banner-actions .btn, .lg-go .btn, .lg-dl-row .btn { flex: 1 1 auto; min-height: 44px; }
+  .lg-banner-actions .btn, .lg-go .btn { flex: 1 1 auto; min-height: 44px; }
   .lg-go-toggle { flex: 1 1 100%; }
   .set-row .seg button { min-height: 44px; }
   .lg-files li { flex-wrap: wrap; }

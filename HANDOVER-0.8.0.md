@@ -96,3 +96,22 @@ Not done or not verified:
 - Where to watch: the route gives `ids`; streaming providers come from the existing `GET /discover/where-to-watch?tmdb=&type=`, which the app calls itself. The guide's ids are only there when the XMLTV source gives them.
 - Library titles are matched by name (shows) or name and year (films); a guide title spelt differently from the library's falls back to the guide's own data.
 - No SDUI page or conformance fixture uses the `programme` parameter yet: the More info screen has no catalogue page (W1's call).
+
+## W13 (web design finish)
+
+Built: look finishes from the theme `look` block (scene layers, glass, gloss, bevel, glow, texture, focus style, shape multiple, `web/src/finish.css`, `ui/Scene.tsx`); bundled OFL type sets (Nunito, Source Sans 3, Source Serif 4, JetBrains Mono); one player control bar (timeline with scrub and preview, Prev, -10, Play, +30, Next, Audio, Subtitles, picture chip, speed, Chapters, WittyRemote, More, Full screen) and an error state with Try again; WittyRemote labels, heading, rule, bar permission and sheet pages from the catalogue `remote` table, sheet on TV; WidgetGrid placed by x, y, w, h with a live clock; Carousel driven by scroll, CrossBar circles with preview, NumberedRow numbers, band and underline headings, listing rows; WittyTV Look page redesign; QA D2, D4, D5, D10, D15 fixes.
+
+Known issues / not verified:
+- Nothing was run against a real server: both heavy slots were held throughout. Checked with tsc, build, design-check, contrast, 548 node tests, and CSS in static pages in a browser tab (Aero glass, gloss, scene, player bar at desktop and phone; Cable listing and band; carousel; crossbar). Not checked: the React player with a real stream, TV widths, WittyTV Look page in a browser, Dashboard with real data.
+- Aero gloss text (accent-fg over the recipe's upper body) is about 3:1 at the mid line; the recipe is the theme's, so a contrast fix belongs in the theme's gloss colours.
+- QA D16 (rail marks Settings current on Home in Compact and Dashboard) not reproduced in code: NavLink "/settings" cannot match "/". Needs a look in a browser. Search order on the TV bar (D4) comes from the server menu, not changed.
+- Server name in a fixed colour that fails contrast against its bar still needs the theme engine's warning (server side).
+- Seek preview pictures exist only where `chapterThumb` is given (discs); plain files show time and chapter name. The "mini player" and next-episode card keep their earlier layout.
+
+### W13 round 2
+Built (no live server, light slots were all taken for 15+ minutes): player errors classified (`player/errors.ts`: network, decode, unsupported, ended, subtitles) with a way forward and "Play it converted"; next-episode card (8 s bar, Play now, Watch the credits; appears only in the last 15% of a short file, D12); Viewing settings grouped with pills; mini player progress line; look marks for Rail (title-on-art), Big picture (type, focus), Satellite (silver bars), Retro, Paper; gloss paint kept at the recipe's stops with W7's darker gloss colours carrying contrast.
+Still not verified in a browser against a real server: everything listed under round 1 "Not verified", plus D16 (Settings marked current on Home in Compact and Dashboard: code shows no cause; reproduce in a browser) and the 17-look side-by-side comparison.
+
+### W13 round 3 (checked on a real scratch server, generated media, one tab)
+Seen working: the React player with a real stream (bar, chips, skip, solid WittyRemote with dashed dimmed keys; phone sheet solid), TV mode with the server's name, Aero scene and glass, Cable listing, Rail, Retro, Stage, Paper on a phone (serif, hairlines, 44 px Customise, ALPHA badge), Satellite silver bar, Dashboard with real data (widgets packed, figures), Crossbar, the WittyTV Look in Settings, arrows reaching Legal in TV mode (not reproduced). Fixed on the way: Dashboard row gaps, crossbar panel width, phone server name, 44 px sheet keys, Satellite search and badge colours.
+Not verified: the music bar over the film mini player and a pinned rail (no audio media; W2 landed a similar fix, both kept), D16 (Settings current on Home: not reproduced in Compact or Dashboard), 3+ looks against every canvas image and TV widths of the Look page, the next-episode card live (D12 only by code).

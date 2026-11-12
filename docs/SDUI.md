@@ -225,7 +225,7 @@ Go types are `sdui.Document`, `sdui.Node`, `sdui.Action`, `sdui.Focus`.
 | Field | Type | Notes |
 |---|---|---|
 | `version` | int | `1`. A client refuses any other. |
-| `catalog` | int | The catalogue revision the tree was written for (4). A client built for another revision refuses it. |
+| `catalog` | int | The catalogue revision the tree was written for (7). A client built for another revision refuses it. |
 | `page` | PageInfo | `{id, kind, title, icon, route, variant, params}`. `route` is the page's place in the app; `params` what it was opened with, to send again with a refresh. |
 | `layout` | Layout | The [device profile](#device-profiles) the page was fitted to: lay out with these numbers. |
 | `theme` | ThemeScope, *omit* | `{scope, tokens}`: the page's theme scope and the colour tokens it overrides. |
@@ -743,6 +743,30 @@ app: `lumen` (the default), `rail`, `stage`, `aero`, `classic`, `classicCable`,
 [Experiences](#experiences-1) below is written from the same files,
 `pkg/sdui/experiences/*.json`).
 
+**`wire`: the layout a chooser draws.** Each experience in `GET /sdui/experiences` has `wire`, a map from form
+factor (`tv`, `phone`, `tablet`, `desktop`, `web`, `headset`) to the layout in a few words, so a picker shows the
+layout a person is choosing and not only its colours (the existing `preview` is the colour swatch). It is worked
+out from the experience's own data (its menu on that form factor, its page changes, its effects), never written
+in its file, and it is what the design canvas's wire thumbnails draw. An optional, additive property: no
+revision change. Each is `{nav, open?, style, home, cards, dock?, brand, finish}`:
+
+| Field | Values and where they come from |
+|---|---|
+| `nav` | `top` (topTabs, floatingGlassBar, cableBar, bevelBar, teleKeys, tvTopMenu), `side` (sidebar, tvSideMenu), `rail` (rail, railDrawer), `bottom` (bottomTabs, ornamentTabs), `none` (crossbar: the categories are part of the page) |
+| `open` | true when the menu is drawn open all the time (a sidebar) |
+| `style` | how the entries are drawn: `pill`; `gloss` (floatingGlassBar), `cable`, `bevel`, `tele`, `crossbar`; `under` (a top bar whose headings are underlined, Paper's) |
+| `home` | `cross` (pages.crossbar), `widgets`, `list` (rowsAsLists), `tiles` (Home rows tiles), `banner`, `carousel`, else `hero` |
+| `cards` | `poster`, `landscape`, `plate`, `block` or `logo`: the page's cardStyle, else the shape's cardSet (a tile is drawn as landscape) |
+| `dock` | a dock of keys: on a television and in a headset |
+| `brand` | where the server's name sits: `left` of a top bar, `top` of a side menu, rail or tab bar, `centre` for a crossbar |
+| `finish` | `crt` (teleKeys), else `gloss`, `bevel` or `glass` when that effect is full, else `flat` |
+
+On a desktop window the fourteen are: Lumen top/hero, Rail rail/banner, Stage top/hero, Aero top (gloss)/hero,
+Classic side (open)/hero, Classic Cable top (cable)/list, Classic Satellite top (bevel)/hero, Compact rail/list,
+Paper top (under)/banner, Marquee top/carousel, Crossbar none/cross, Big picture top/tiles, Dashboard
+rail/widgets, Retro top (tele)/list. Compact and Dashboard are a side menu on a television. Conformance:
+`pkg/sdui/conformance/experience-wire-table.json` lists every wire.
+
 **An experience is not a theme.** Colour belongs to the theme (see
 [THEMES.md](THEMES.md)); each experience only names the theme it wears unless one is
 required or chosen, and the WittyTV look it suggests. Any experience can wear any
@@ -1193,13 +1217,32 @@ and without `meta.generatedAt` and `meta.etag`; `ETag(doc)` is `W/"sha256-`
 
 - `version` (1) changes only for something a client built for it can't
   survive. Clients refuse a version they don't know.
-- The **catalogue revision** (5) counts changes to the catalogue: a component,
-  a property, a card style, a source, a condition, an action type. Client and
-  server must be built for the same revision. Unknown props and actions are
-  ignored, an unknown card style is drawn as its shape.
+- The **catalogue revision** (7) counts changes to the catalogue. **The rule:
+  any change to what an existing component or card style shows or does bumps
+  the revision** (a card style that gains badges, a property that changes
+  meaning, a component that draws something else). Only a new component, card
+  style, source, command, condition, action type or optional property is
+  additive, and keeps the revision it came in. Client and server must be built
+  for the same revision. Unknown props and actions are ignored, an unknown
+  card style is drawn as its shape.
+- **Where a client gets the card styles.** From `GET /api/sdui/catalog`, which it
+  fetches at sign-in and when the revision changes (the web app does). A table of
+  them built into the app is only for offline tests, and a conformance test must
+  check it against the catalogue the server serves (see the
+  [conformance kit](../pkg/sdui/conformance/README.md)), so a change to what a
+  style shows can't be missed.
 - `ui_config.json` has its own `version` (2).
 - The conformance kit has a `kit` number; a change to a fixture's expected
   output is a change to the contract and is called out in the changelog.
+
+### The music table
+
+`GET /api/sdui/catalog` carries `music` (`pkg/sdui/data/music.json`): the mini player's controls and the visualizer's.
+`music.visualizer.presets` are the effects the effects picker offers, the same as WittyVisualizer's `effects/*.glsl`
+(the 17 classics and Aurora Rings, in the order of its README): `{id, name, motion, calm, cost}`. `motion` is
+`gentle` or `lively`, `calm` is true when calm mode keeps the effect (the gentle ones; it is on by default when the
+system asks for reduced motion), `cost` is how hard it works the graphics card (1 to 3). The `preset` control's
+default is `skyline`. A new effect in WittyVisualizer is a new entry here.
 
 ## Reference
 
@@ -1840,7 +1883,7 @@ Focus: takes none. Accessibility: Role: none (hidden). The keys are announced as
 |---|---|---|---|
 | `layout` | enum: backdrop, poster, compact | `backdrop` | Layout. Backdrop behind the text, poster beside it, or a compact strip. |
 | `actions` | enumList: play, restart, watchLater, watched, download, share, playOn, watchParty | `play, restart, watchLater, watched, download, share` | Buttons. The buttons offered, in order. One the title or the profile can't use is left out. |
-| `facts` | enumList: year, runtime, contentRating, rating, genres, studio, count, season, knownFor, born, died | `year, runtime, contentRating, rating, genres` | Facts. The line of facts under the title, in order. |
+| `facts` | enumList: year, runtime, contentRating, rating, genres, studio, artist, count, season, knownFor, born, died | `year, runtime, contentRating, rating, genres` | Facts. The line of facts under the title, in order. |
 | `showOverview` | bool | `true` | Show the synopsis |
 | `showTagline` | bool | `true` | Show the tagline |
 
@@ -2979,7 +3022,7 @@ Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 48
 
 #### recordings
 
-*Recordings.* The profile's finished Live TV recordings, newest first. See all opens `/tv/recordings`.
+*Recordings.* The profile's finished Live TV recordings, newest first. Each card carries channel and programme, for opening its More info, when the profile may still watch that channel. See all opens `/tv/recordings`.
 
 | Property | Type | Default | What it is |
 |---|---|---|---|

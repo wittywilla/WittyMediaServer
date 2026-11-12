@@ -122,15 +122,11 @@ html.ten-foot .gm-page { --gm-cell: 210px; --gm-jump-gap: 140px; }
 .gm-sorts::-webkit-scrollbar { display: none; }
 .gm-sorts > * { flex: none; }
 .gm-filter-btn { gap: var(--sp-1); }
-.gm-filter-group { display: grid; gap: var(--sp-2); margin: 0 0 var(--sp-4); padding: 0; border: 0; }
-.gm-filter-group legend { padding: 0 0 var(--sp-2); font-weight: 600; font-size: var(--text-sm); color: var(--fg-2); }
-.gm-letters { display: grid; grid-template-columns: repeat(auto-fill, minmax(3rem, 1fr)); gap: var(--sp-2); }
-.gm-letter { justify-content: center; padding: 0; }
 .gm-skipped { margin-bottom: var(--sp-4); }
 
 /* The prompts along the bottom, when something other than a mouse is in use. */
 .gm-prompts { position: fixed; z-index: var(--z-sticky); right: 0; left: 0; bottom: var(--dock-space, 0); padding: var(--sp-2) var(--gutter); background: var(--bg-2); border-top: 1px solid var(--border); }
-.gm-page:has(> .gm-prompts) { padding-bottom: var(--sp-16); }
+.gm-page:has(> .gm-prompts) { padding-bottom: calc(var(--sp-16) + var(--sp-10)); }
 @media (max-width: 700px) { .gm-prompts { display: none; } }
 
 /* ---------------------------------------------------------------- a game's page */

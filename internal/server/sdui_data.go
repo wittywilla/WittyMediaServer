@@ -636,8 +636,9 @@ func (rv *sduiResolver) Items(req sdui.SourceRequest) (sdui.SourceResult, error)
 			if x.Status != "done" || (!rv.u.IsAdmin && x.UserID != rv.u.ID) {
 				continue
 			}
+			s.recordingRefs(rv.r, x)
 			all = append(all, sdui.Item{ID: "recording-" + itoa(x.ID), Kind: "recording", Title: x.Title, Subtitle: firstNonEmpty(x.Sub, x.Channel), RuntimeSec: float64(x.Stop - x.Start), Icon: "record",
-				Route: "/tv/recordings", Scope: "wittytv"})
+				Route: "/tv/recordings", Scope: "wittytv", Channel: x.ChannelKey, Programme: x.Programme})
 		}
 		sort.SliceStable(all, func(i, j int) bool { return all[i].ID > all[j].ID })
 		return page(all, req), nil
@@ -645,7 +646,7 @@ func (rv *sduiResolver) Items(req sdui.SourceRequest) (sdui.SourceResult, error)
 		if lib == nil {
 			return sdui.SourceResult{}, nil
 		}
-		albums, err := s.Store.AlbumsFiltered(rv.ctx, lib.ID, library.AlbumFilter{Sort: firstNonEmpty(src.Str("sort"), "added"), Artist: src.Str("artist"), Genre: src.Str("genre"), UserID: rv.u.ID, Limit: req.Offset + req.Limit + 1}, rv.acc)
+		albums, err := s.Store.AlbumsFiltered(rv.ctx, lib.ID, library.AlbumFilter{Sort: firstNonEmpty(src.Str("sort"), "added"), Artist: src.Str("artist"), Genre: src.Str("genre"), UserID: rv.u.ID, PlayedOnly: true, Limit: req.Offset + req.Limit + 1}, rv.acc)
 		if err != nil {
 			return sdui.SourceResult{}, err
 		}

@@ -2,10 +2,13 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { useCallback, useEffect, useState } from 'react'
 import { api, ApiError } from '../../api'
-import { IconCheck, IconInfo, IconTrash } from '../../icons'
+import { IconCheck, IconInfo } from '../../icons'
 import { toast } from '../../state'
 import QrCode from './QrCode'
-import { Row, Section, Switch } from './ui'
+import { Row, Section } from './ui'
+import SpecPage from '../../spec/SpecPage'
+import { handledIds } from '../../spec/model'
+import { devicesSpec, optionsSpec } from '../../spec/specs/peerToPeer'
 import { ConfirmOwner, type OwnerAsk } from './ConfirmOwner'
 import { HelpLink } from '../../components/HelpLink'
 import { ask } from '../../ui/Overlay'
@@ -24,14 +27,6 @@ type View = {
   thirdParties: { layer: keyof Layers; who: string; sees: string }[]; devices: Device[]
 }
 
-const LAYERS: { id: keyof Layers; label: string; desc: string }[] = [
-  { id: 'portMap', label: 'Ask my router for a port', desc: 'Asks the router at home to forward one port to this computer (UPnP, NAT-PMP or PCP), renews it, and removes it when this is turned off. Nothing leaves your home for it.' },
-  { id: 'ipv6', label: 'Ask my router to let IPv6 in', desc: 'Where your connection has IPv6, asks the router to let connections reach this computer on that one port.' },
-  { id: 'dht', label: 'Public address book', desc: 'Announces where this server is on the public IPFS network, so apps find it by its ID. Off, apps can only use addresses they already know, which stops working when your address changes.' },
-  { id: 'relay', label: 'Relays', desc: 'Lets a relay introduce an app to this server, and carry the connection when nothing else works. A relay sees addresses and amounts, never what is sent.' },
-  { id: 'holePunch', label: 'Hole punching', desc: 'Has the app and this server connect to each other at the same moment, so both routers let the connection through. Needs relays.' },
-]
-
 const ago = (t?: number) => {
   if (!t) return 'never'
   const s = Math.max(0, Math.floor(Date.now() / 1000) - t)
@@ -40,8 +35,6 @@ const ago = (t?: number) => {
   if (s < 129600) return `${Math.round(s / 3600)} hours ago`
   return `${Math.round(s / 86400)} days ago`
 }
-
-const pathLabel: Record<string, string> = { direct: 'Connected directly', relayed: 'Connected through a relay' }
 
 function Steps({ steps }: { steps: Step[] }) {
   return (
@@ -154,6 +147,9 @@ export default function PeerToPeer() {
     run: async (password, code) => { setV(await api.post<View>('/p2p/rotate', { password, code })); toast('This server has a new connection ID') },
   })
 
+  const devicesPage = devicesSpec(v.devices, ago)
+  const devicesHandled = handledIds(devicesPage)
+  const optionsPage = optionsSpec({ devicesOnly: s.devicesOnly, layers: s.layers, relayKbps: s.relayKbps, relayForOthers: s.relayForOthers })
   return (
     <Section id="p2p" title="Peer-to-peer connections" desc={<>On. Apps on paired devices reach this server from away without anything set up on your router. <HelpLink to="remote#peer-to-peer-connections">How it works</HelpLink></>}
       actions={<button type="button" className="btn sm" disabled={busy} onClick={() => save({ enabled: false }, 'Peer-to-peer connections are off')}>Turn off</button>}>
@@ -168,24 +164,7 @@ export default function PeerToPeer() {
       </>}
 
       <h4 className="p2p-head">Devices that may connect</h4>
-      {v.devices.length === 0 && <p className="muted">None yet. Open the app on a phone, TV or computer while it’s at home and signed in: it adds itself. Or invite a device that isn’t at home.</p>}
-      {v.devices.length > 0 && (
-        <ul className="rem-sessions">
-          {v.devices.map((d) => (
-            <li key={d.id}>
-              <div>
-                <b>{d.name}</b>{d.user ? ` · ${d.user}` : ''}
-                {d.connected && <span className="set-pill live">{pathLabel[d.path || 'direct']}</span>}
-                <small>{d.platform || 'app'} · added {ago(d.created)} {d.how === 'invite' ? 'by invite' : 'while signed in'} · last connected {ago(d.lastSeen)} · ID ending {d.id.slice(-8)}</small>
-              </div>
-              <button type="button" className="btn sm ghost danger-hover" onClick={() => remove(d)} aria-label={`Remove ${d.name}`}><IconTrash /> Remove</button>
-            </li>
-          ))}
-        </ul>
-      )}
-      <div className="rem-actions p2p-gap">
-        <button type="button" className="btn sm" onClick={makeInvite}>Invite a device that isn’t at home</button>
-      </div>
+      <SpecPage embedded bare page={devicesPage} handled={devicesHandled} onAction={(id) => { if (id === 'invite') void makeInvite(); else { const d = v.devices.find((x) => x.id === id.slice(7)); if (d) void remove(d) } }} />
       {invite && (
         <div className="rem-test">
           <QrCode text={invite.link} label="QR code holding the invite" size={200} />
@@ -208,27 +187,13 @@ export default function PeerToPeer() {
         </Row>
       )}
 
-      <h4 className="p2p-head">Who may try</h4>
-      <Row label="Only paired devices" desc="A device that isn’t on the list above gets no answer at all, not even the sign-in page. Leave this on unless you have a reason.">
-        <Switch label="Only paired devices" checked={s.devicesOnly} disabled={busy} onChange={anyDevice} />
-      </Row>
-
-      <h4 className="p2p-head">Ways of connecting</h4>
-      <p className="muted">Each is tried by itself, best first. Turn off the ones you’d rather not use.</p>
-      {LAYERS.map((l) => (
-        <Row key={l.id} label={l.label} desc={l.desc} dim={l.id === 'holePunch' && !s.layers.relay}>
-          <Switch label={l.label} checked={s.layers[l.id]} disabled={busy || (l.id === 'holePunch' && !s.layers.relay)} onChange={(on) => save({ layers: { ...s.layers, [l.id]: on } })} />
-        </Row>
-      ))}
-      <Row label="Limit through a relay" desc="A relay is someone else’s internet connection. This is the most this server sends through one; the quality limits further down this page apply as well.">
-        <select className="select" value={s.relayKbps} disabled={busy} onChange={(e) => save({ relayKbps: Number(e.target.value) })} aria-label="Limit through a relay">
-          {[1000, 2000, 4000, 8000, 20000].map((k) => <option key={k} value={k}>{k / 1000} Mbit/s</option>)}
-          <option value={0}>No limit</option>
-        </select>
-      </Row>
-      <Row label="Help other servers" desc="While this server can be reached from outside, lets up to 16 other WittyMediaServer owners’ connections pass through it when theirs can’t connect directly. It uses your internet connection (at most 2 GiB per connection), and you see none of what passes: it is encrypted between their devices and their servers.">
-        <Switch label="Help other servers" checked={s.relayForOthers} disabled={busy} onChange={(on) => save({ relayForOthers: on }, on ? 'This server offers itself as a relay' : undefined)} />
-      </Row>
+      <SpecPage embedded bare page={optionsPage} onField={(id, val) => {
+        if (busy) return
+        if (id === 'devicesOnly') void anyDevice(!!val)
+        else if (id.startsWith('layer:')) { const l = id.slice(6) as keyof Layers; void save({ layers: { ...s.layers, [l]: !!val } }) }
+        else if (id === 'relayKbps') void save({ relayKbps: Number(val) })
+        else if (id === 'relayForOthers') void save({ relayForOthers: !!val }, val ? 'This server offers itself as a relay' : undefined)
+      }} />
 
       <details className="p2p-more">
         <summary>More</summary>

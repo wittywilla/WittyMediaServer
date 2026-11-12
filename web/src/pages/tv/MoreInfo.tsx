@@ -35,8 +35,11 @@ export default function MoreInfo({ channelKey, at, onClose }: { channelKey: stri
   const reminders = useReminders()
   const [a, setA] = useState<Answer | null>(null)
   const [err, setErr] = useState('')
-  const load = () => { setErr(''); api.get<Answer>(`/tv/${encodeURIComponent(channelKey)}/programme?start=${Math.floor(at)}`).then(setA).catch((e) => setErr((e as Error).message)) }
+  const [gone, setGone] = useState(false)
+  const load = () => { setErr(''); api.get<Answer>(`/tv/${encodeURIComponent(channelKey)}/programme?start=${Math.floor(at)}`).then(setA).catch((e) => { if ((e as { status?: number }).status === 404) setGone(true); else setErr((e as Error).message) }) }
   useEffect(load, [channelKey, at]) // eslint-disable-line react-hooks/exhaustive-deps
+  // The guide keeps about a month of the past: an older programme is no longer there to ask about.
+  if (gone) return <Dialog title="More info" onClose={onClose}><p>Details are no longer available.</p></Dialog>
   if (err) return <Dialog title="More info" onClose={onClose}><LoadError what="This programme" onRetry={load} /></Dialog>
   if (!a) return <Dialog title="More info" onClose={onClose}><Spinner /></Dialog>
   const p = a.programme, ch = a.channel
@@ -56,7 +59,7 @@ export default function MoreInfo({ channelKey, at, onClose }: { channelKey: stri
         {a.actions.fromStart && <Button onClick={() => { onClose(); nav(`/tv/watch/${ch.key}?from=${Math.floor(p.start)}&to=${Math.floor(p.end)}`, { state: { fromGuide: true } }) }}>Watch from the start</Button>}
         {a.actions.record && <Button onClick={() => void run(() => api.post('/recordings', { channel: ch.key, title: p.title, sub: p.sub, start: p.start, stop: p.end }), `Recording ${p.title}`)}>Record</Button>}
         {a.actions.remind && <Button aria-pressed={reminders.has(ch.key, p.start)} onClick={() => void reminders.toggle(ch.key, programme)}>{reminders.has(ch.key, p.start) ? '✓ Reminder set' : 'Remind me'}</Button>}
-        {a.actions.watchLater && a.library && <Button disabled={a.actions.inList} onClick={() => void run(() => api.post('/collections/watch-later/items', a.library!.showId ? { shows: [a.library!.showId] } : { items: [a.library!.itemId] }), 'Added to your Watchlist')}>{a.actions.inList ? '✓ In your Watchlist' : 'Watchlist'}</Button>}
+        {a.actions.watchLater && <Button disabled={a.actions.inList || !a.library} onClick={() => void run(() => api.post('/collections/watch-later/items', a.library?.showId ? { shows: [a.library.showId] } : { items: [a.library?.itemId] }), 'Added to your Watchlist')}>{a.actions.inList ? '✓ In your Watchlist' : 'Watchlist'}</Button>}
         {a.actions.open && a.library && <Link className="btn" to={a.library.showId ? `/show/${a.library.showId}` : `/item/${a.library.itemId}`} onClick={onClose}>Open item page</Link>}
         <Button variant="ghost" onClick={onClose}>Close</Button>
       </>}>

@@ -15,6 +15,8 @@ import { toast, useApp } from '../state'
 import { loadThemeOverrides } from '../theme'
 import { Button, Segmented, Select, Switch, ask } from '../ui'
 import { Dialog } from '../ui/Overlay'
+import { LayoutThumb } from '../ui/LayoutThumb'
+import type { WireMap } from '../ui/layoutSpecs'
 import { ranked } from '../ui/spatial'
 import BrandDialog from '../components/BrandDialog'
 import { applyPreset, DEVICES, deviceOf, LAYOUT_PRESETS, merged, zoneOf, type DeviceId, type Placement, type Placements, type Region, type Zone } from './layoutModel.ts'
@@ -46,6 +48,9 @@ export function ShellEditor({ onClose }: { onClose: () => void }) {
   const device = useMemo(() => deviceFor(own, on), [own, on])
   const [got, setGot] = useState<Answer | null>(null)
   const [looks, setLooks] = useState<Record<string, string>>({})
+  // How each look draws its menu on each kind of device, so the picture shows the phone's bottom bar and not a side menu.
+  const [navs, setNavs] = useState<Record<string, Record<string, string>>>({})
+  const [wires, setWires] = useState<Record<string, WireMap | undefined>>({})
   const [edit, setEditNow] = useState<Placements>({})
   // Undo and redo: every change is a step.
   const [past, setPast] = useState<Placements[]>([])
@@ -74,7 +79,7 @@ export function ShellEditor({ onClose }: { onClose: () => void }) {
     }
   }
   useEffect(() => { void load().catch((e) => toast((e as Error).message, { tone: 'danger' })) }, [scope, on]) // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { void api.get<{ experiences: { id: string; name: string }[] }>('/sdui/experiences').then((r) => setLooks(Object.fromEntries(r.experiences.map((x) => [x.id, x.name])))).catch(() => {}) }, [])
+  useEffect(() => { void api.get<{ experiences: { id: string; name: string; nav?: Record<string, string>; wire?: WireMap }[] }>('/sdui/experiences').then((r) => { setWires(Object.fromEntries(r.experiences.map((x) => [x.id, x.wire]))); setLooks(Object.fromEntries(r.experiences.map((x) => [x.id, x.name]))); setNavs(Object.fromEntries(r.experiences.map((x) => [x.id, x.nav || {}]))) }).catch(() => {}) }, [])
 
   const stage = useRef<HTMLDivElement | null>(null)
   if (!got) return <Dialog title="Edit layout" size="wide" className="layout-editor" onClose={onClose}><p className="muted">Loading…</p></Dialog>
@@ -82,7 +87,16 @@ export function ShellEditor({ onClose }: { onClose: () => void }) {
   const look = looks[got.experience] || got.experience
   const now = (r: Region): Placement => merged(got.placements, edit, r.id)
   const region = (id: string) => got.regions.find((r) => r.id === id)!
-  const place = (r: Region) => now(r).position || r.positions?.[0]
+  // The menu's place when nothing has been chosen is the look's own for this device (the server's placements name only a default).
+  const navStyle = navs[got.experience]?.[on === 'desktop' && !navs[got.experience]?.desktop ? 'web' : on]
+  const navDefault = !navStyle ? undefined : ['sidebar', 'rail', 'railDrawer', 'tvSideMenu', 'ornamentTabs'].includes(navStyle) ? 'start' : navStyle === 'bottomTabs' ? 'bottom' : 'top'
+  const place = (r: Region): string | undefined => {
+    const own = merged({}, edit, r.id).position
+    if (own) return own
+    if (r.id === 'nav' && navDefault) return navDefault
+    if (r.id === 'brand' && navDefault && navDefault !== 'start' && (got.placements.brand?.position || 'start') === 'start') return 'top'
+    return got.placements[r.id]?.position || r.positions?.[0]
+  }
   const setP = (r: Region, patch: Placement, say: string) => { setEdit((e) => ({ ...e, [r.id]: { ...(e[r.id] || {}), ...patch } })); announce(`${r.label}: ${say}`) }
   const navAt = place(region('nav')), dockAt = got.regions.some((r) => r.id === 'dock') ? place(region('dock')) : undefined
   const zone = (r: Region, position = place(r)): Zone => zoneOf(r.id, position, navAt, dockAt)
@@ -227,7 +241,7 @@ export function ShellEditor({ onClose }: { onClose: () => void }) {
             <span className="le-note">Moves are announced to screen readers. Drag works with a pointer or touch.</span>
           </div>
           <div className="le-devices" role="group" aria-label="Preview for">
-            {DEVICES.map((d) => <button key={d.id} type="button" className={'le-device d-' + d.id + (d.id === on ? ' on' : '')} aria-pressed={d.id === on} onClick={() => void switchDevice(d.id)}>{d.label}</button>)}
+            {DEVICES.map((d) => <button key={d.id} type="button" className={'le-device d-' + d.id + (d.id === on ? ' on' : '')} aria-pressed={d.id === on} onClick={() => void switchDevice(d.id)}><LayoutThumb wire={wires[got.experience]} formFactor={d.id} className="le-thumb" /><span>{d.label}</span></button>)}
           </div>
           <div className="le-presets" role="group" aria-label="Presets">
             <span>Presets</span>

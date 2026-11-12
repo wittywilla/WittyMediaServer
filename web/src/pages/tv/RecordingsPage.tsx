@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../../api'
 import { toast, useApp } from '../../state'
-import { ask, Button, Dialog } from '../../ui'
+import { ask } from '../../ui'
+import MoreInfo from './MoreInfo'
 import { themeRoot, useLook } from './look'
 import { fmtClock, fmtDay, type Recording, type RecordingRule } from './tvApi'
 import { useFeatures } from '../../sdui/useSdui'
@@ -82,7 +83,7 @@ export default function RecordingsPage() {
                 {r.conflict && r.status === 'scheduled' && <span className="ctv-rec-err">No tuner will be free when this starts: another recording or a viewer has them all.</span>}
               </div>
               <span className="ctv-rec-status">{STATUS[r.status] || r.status}</span>
-              <button className="ctv-btn sm" onClick={() => setInfo(r)} aria-haspopup="dialog" aria-label={`More info about ${r.title}`}>More info</button>
+              {r.channelKey && <button className="ctv-btn sm" onClick={() => setInfo(r)} aria-haspopup="dialog" aria-label={`More info about ${r.title}`}>More info</button>}
               <button className="ctv-btn sm" onClick={() => void remove(r, false)}>{r.status === 'done' || r.status === 'failed' ? 'Remove' : 'Cancel'}</button>
               {user?.isAdmin && r.path && r.status !== 'recording' && r.status !== 'scheduled' && <button className="ctv-btn sm" onClick={() => void remove(r, true)}>Delete file</button>}
             </li>
@@ -104,19 +105,7 @@ export default function RecordingsPage() {
         </section>
       )}
       {editing && <RecordOptions rule={editing} onClose={() => setEditing(null)} onSaved={load} />}
-      {info && (
-        <Dialog title={info.title} onClose={() => setInfo(null)} actions={<Button variant="ghost" onClick={() => setInfo(null)}>Close</Button>}>
-          {info.sub && <p>{info.sub}</p>}
-          <dl className="ctv-info-list">
-            <div><dt>When</dt><dd>{fmtDay(info.start)}, {fmtClock(info.start)} to {fmtClock(info.stop)}</dd></div>
-            <div><dt>Channel</dt><dd>{info.number} {info.channel}</dd></div>
-            <div><dt>Status</dt><dd>{STATUS[info.status] || info.status}</dd></div>
-            {info.sizeBytes ? <div><dt>Size</dt><dd>{fmtSize(info.sizeBytes)}</dd></div> : null}
-            {info.ruleTitle ? <div><dt>Series</dt><dd>{info.ruleTitle}</dd></div> : null}
-            {info.error ? <div><dt>Problem</dt><dd>{info.error}</dd></div> : null}
-          </dl>
-        </Dialog>
-      )}
+      {info && info.channelKey && <MoreInfo channelKey={info.channelKey} at={info.start} onClose={() => setInfo(null)} />}
       <p className="ctv-list-note">Recordings are of Live TV channels only. Library channels play what is already in your library. Protected broadcasts are never recorded.</p>
     </div>
   )

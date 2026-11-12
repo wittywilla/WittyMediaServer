@@ -29,6 +29,7 @@ text. That list is made from what's really compiled in (`internal/licenses`), an
 | Component | Licence | Notes |
 |---|---|---|
 | **Inter** 4.1 (`web/public/fonts`, `internal/brandart/fonts`) | SIL Open Font License 1.1 (`web/public/fonts/Inter-OFL.txt`) | The web client's font, served by the server, and the outlines `scripts/genicon` draws the brand name and other words in pictures with. Copyright (c) 2016 The Inter Project Authors. <https://github.com/rsms/inter> |
+| **Nunito**, **Source Sans 3**, **Source Serif 4**, **JetBrains Mono** (variable, Latin subset, `web/public/fonts`) | SIL Open Font License 1.1 (`Nunito-OFL.txt`, `SourceSans3-OFL.txt`, `SourceSerif4-OFL.txt`, `JetBrainsMono-OFL.txt` beside the fonts) | The type sets of the looks (rounded, humanist, serif, mono), served by the server so a look never depends on a font being installed. Taken from the Fontsource packages of each project. Copyright the Nunito Project Authors, Adobe (Source Sans and Source Serif), and the JetBrains Mono Project Authors. |
 
 ## Go modules (statically linked)
 

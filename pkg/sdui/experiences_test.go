@@ -59,3 +59,41 @@ func TestExperienceFilesAreWhole(t *testing.T) {
 		t.Errorf("the rail on a television: %+v", sh)
 	}
 }
+
+// The layout a picker draws (Wire) is what the design canvas's wire thumbnails show for each look
+// on a desktop window: where the menu is, the shape of Home, the cards, the surface.
+func TestExperienceWireMatchesTheCanvas(t *testing.T) {
+	want := map[string]Wire{
+		"lumen":            {Nav: "top", Style: "pill", Home: "hero", Cards: "poster", Brand: "left", Finish: "flat"},
+		"rail":             {Nav: "rail", Style: "pill", Home: "banner", Cards: "plate", Brand: "top", Finish: "flat"},
+		"stage":            {Nav: "top", Style: "pill", Home: "hero", Cards: "landscape", Brand: "left", Finish: "flat"},
+		"aero":             {Nav: "top", Style: "gloss", Home: "hero", Cards: "poster", Brand: "left", Finish: "gloss"},
+		"classic":          {Nav: "side", Open: true, Style: "pill", Home: "hero", Cards: "poster", Brand: "top", Finish: "flat"},
+		"classicCable":     {Nav: "top", Style: "cable", Home: "list", Cards: "landscape", Brand: "left", Finish: "flat"},
+		"classicSatellite": {Nav: "top", Style: "bevel", Home: "hero", Cards: "poster", Brand: "left", Finish: "bevel"},
+		"paper":            {Nav: "top", Style: "under", Home: "banner", Cards: "poster", Brand: "left", Finish: "flat"},
+		"marquee":          {Nav: "top", Style: "pill", Home: "carousel", Cards: "poster", Brand: "left", Finish: "flat"},
+		"crossbar":         {Nav: "none", Style: "crossbar", Home: "cross", Cards: "landscape", Brand: "centre", Finish: "flat"},
+		"bigpicture":       {Nav: "top", Style: "pill", Home: "tiles", Cards: "landscape", Brand: "left", Finish: "flat"},
+		"retro":            {Nav: "top", Style: "tele", Home: "list", Cards: "block", Brand: "left", Finish: "crt"},
+		// Compact and Dashboard: a rail on a desktop window, the side menu on a television.
+		"compact":   {Nav: "rail", Style: "pill", Home: "list", Cards: "poster", Brand: "top", Finish: "flat"},
+		"dashboard": {Nav: "rail", Style: "pill", Home: "widgets", Cards: "landscape", Brand: "top", Finish: "flat"},
+	}
+	for _, e := range Experiences {
+		w, ok := want[e.ID]
+		if !ok {
+			t.Errorf("%s: no wire expected", e.ID)
+			continue
+		}
+		if got := e.Wire[FormDesktop]; got != w {
+			t.Errorf("%s on a desktop: %+v, want %+v", e.ID, got, w)
+		}
+		if len(e.Wire) != len(FormFactors) {
+			t.Errorf("%s: wire for %d form factors", e.ID, len(e.Wire))
+		}
+	}
+	if w := ExperienceByID("compact").Wire[FormTV]; w.Nav != "side" || !w.Dock {
+		t.Errorf("compact on a television: %+v", w)
+	}
+}

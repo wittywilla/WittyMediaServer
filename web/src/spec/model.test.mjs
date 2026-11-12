@@ -4,7 +4,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
-import { A1, A2, Cc, R, current, mk, problems, reachable, secC, secN, secP, secR, sectionId, withIds } from './model.ts'
+import { A1, A2, Cc, R, current, mk, problems, reachable, secC, secF, secN, secP, secR, sectionId, withIds } from './model.ts'
 
 const gaps = JSON.parse(readFileSync(new URL('./gaps.json', import.meta.url), 'utf8'))
 
@@ -65,4 +65,15 @@ test('the catalogue holds all 124 canvas pages, each drawable', () => {
 
 test('gaps.json is what the canvas gives (scripts/spec-from-canvas.mjs --check)', () => {
   execFileSync(process.execPath, [new URL('../../scripts/spec-from-canvas.mjs', import.meta.url).pathname, '--check'], { stdio: 'pipe' })
+})
+
+test('fields: ids, validation and reach', () => {
+  const p = withIds(mk('f', 'e', 't', '', [secF('Account', [
+    { kind: 'text', label: 'Name' }, { kind: 'pin', label: 'PIN', length: 4 }, { kind: 'select', label: 'Kind', options: [{ value: 'a', label: 'A' }] },
+    { kind: 'slider', label: 'Size', min: 0, max: 10 }, { kind: 'qr', label: 'Scan', text: 'x' }, { kind: 'code', label: 'Code', value: '123456' }, { kind: 'switch', label: 'On' },
+  ])]))
+  assert.deepEqual(problems(p), [])
+  assert.deepEqual(reachable(p, new Set()), ['f.0.0', 'f.0.1', 'f.0.2', 'f.0.3', 'f.0.6'])
+  const bad = problems(withIds(mk('g', 'e', 't', '', [secF('', [{ kind: 'pin', label: 'P' }, { kind: 'select', label: 'S' }, { kind: 'slider', label: 'L' }, { kind: 'qr', label: 'Q' }, { kind: 'text', label: ' ' }])])))
+  assert.equal(bad.length, 5)
 })

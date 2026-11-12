@@ -2,7 +2,7 @@
 /* Copyright (C) 2026 WittyWilla and contributors */
 /* Auto-hide: the class sits on .player itself (fullscreen or not). */
 .player.controls-hidden .top, .player.controls-hidden .bottom, .player.controls-hidden .popover { opacity: 0; pointer-events: none; }
-.player.controls-hidden .remote { opacity: .45; }
+.player.controls-hidden .remote { opacity: 1; } /* WittyRemote stays solid: a graphite body, never see-through */
 .player.controls-hidden .remote:hover, .player.controls-hidden .remote:focus-within { opacity: 1; }
 .player.controls-hidden .remote.remote-sheet { opacity: 1; } /* a sheet someone opened stays as it is */
 .player .top .grow { flex: 1; min-width: 0; }
@@ -143,6 +143,7 @@
 /* Everything is sized in cqw (1% of the drive's width) so the scene scales
    from phones to TVs; the drive itself is limited by width and height. */
 .insert-disc { position: absolute; inset: 0; z-index: 8; background: radial-gradient(ellipse at 50% 55%, #1b1e27, #000 72%); display: grid; place-items: center; align-content: center; gap: 4vh; cursor: pointer; animation: ins-fade 3s ease forwards; }
+.insert-disc .insert-skip { position: absolute; right: var(--sp-5); bottom: var(--sp-5); }
 .insert-disc .drive { position: relative; width: min(86vw, 105vh, 640px); aspect-ratio: 16 / 12.6; container-type: inline-size; }
 /* Lid: the top of the player seen from slightly above. It hides the closed tray. */
 .insert-disc .lid { position: absolute; left: 4cqw; right: 4cqw; top: 6cqw; height: 34cqw; z-index: 3;
@@ -284,11 +285,6 @@
 .hw-fix { font-size: var(--text-xs); color: var(--fg-2); margin-top: 2px; }
 .seg.big { align-items: center; }
 .seg.big button { min-height: calc(var(--control-h) - 8px); padding: 0 var(--sp-4); }
-.profiles { display: grid; gap: 8px; }
-.profile { display: flex !important; flex-direction: row !important; gap: 12px; align-items: flex-start; padding: 12px; border-radius: var(--r-md); background: var(--bg-3); border: 2px solid transparent; cursor: pointer; }
-.profile.active { border-color: var(--accent); }
-.profile .muted { font-size: var(--text-sm); }
-.profile .best { font-size: var(--text-xs); color: var(--fg-2); margin-top: 4px; }
 .input.mono { font-family: var(--font-mono); font-size: var(--text-sm); }
 
 /* ---------------------------------------------------------------- appearance */
@@ -316,7 +312,7 @@
 
 /* ---------------------------------------------------------------- version tag */
 .version-tag { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 2px 6px; }
-.version-tag .stage { font-size: var(--text-2xs); line-height: 1.4; letter-spacing: .05em; padding: 0 6px; border-radius: var(--r-xs); background: var(--accent-soft); color: color-mix(in srgb, var(--accent-text) 80%, var(--fg)); font-weight: 700; }
+.version-tag .stage { font-size: var(--text-2xs); line-height: 1.4; letter-spacing: .05em; padding: 0 6px; border-radius: var(--r-xs); background: var(--accent-soft); color: var(--fg); font-weight: 700; }
 .auth-version { text-align: center; color: var(--fg-3); font-size: var(--text-xs); }
 
 .episode-table td.thumb-cell { width: 84px; padding-right: 0; }

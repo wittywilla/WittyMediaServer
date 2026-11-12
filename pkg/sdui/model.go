@@ -465,6 +465,10 @@ type Item struct {
 	Artist string `json:"artist,omitempty"`
 	Track  int    `json:"track,omitempty"`
 	Count  int    `json:"count,omitempty"`
+	// Channel and Programme open WittyTV's More info (GET /api/tv/{key}/programme) from a
+	// recording: its channel's key and "<key>@<start>". Empty when the profile may not watch it.
+	Channel   string `json:"channel,omitempty"`
+	Programme string `json:"programme,omitempty"`
 	// Number is a channel's number. Now and Next are what is on it.
 	Number string     `json:"number,omitempty"`
 	Now    *Programme `json:"now,omitempty"`

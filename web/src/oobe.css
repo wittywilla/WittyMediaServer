@@ -71,8 +71,6 @@
 .who-name { font-size: var(--text-lg); font-weight: 600; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .avatar-tile { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; color: #fff; font-weight: 700; font-size: var(--text-lg); flex: none; }
 .avatar-tile.big { width: clamp(88px, 18vw, 140px); height: clamp(88px, 18vw, 140px); border-radius: 22%; font-size: clamp(36px, 7vw, 60px); }
-.auth-back { position: absolute; left: var(--sp-2); top: var(--sp-2); color: var(--fg); }
-.auth-back:hover { background: var(--hover); }
 .auth-profile { display: grid; justify-items: center; gap: 10px; margin-bottom: 6px; }
 .auth-profile h2 { margin: 0; font-size: var(--text-xl); }
 

@@ -199,3 +199,18 @@ html.ten-foot .su-ack a, html.using-controller .su-ack a, html.ten-foot .op-head
 .lp-row { display: flex; gap: var(--sp-2); }
 .lp-row i { flex: 1; aspect-ratio: 2 / 3; max-block-size: 5rem; border-radius: var(--r-sm); background: linear-gradient(160deg, var(--lp-accent), var(--lp-surface)); }
 .oobe-step.missing > span { opacity: .6; } .oobe-step small { font-size: var(--text-2xs); color: var(--fg-3); }
+.su-twostep { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--sp-5); align-items: start; }
+.su-twostep .ui-field { grid-column: 1 / -1; max-inline-size: 16rem; }
+.su-twostep ol { margin: 0; padding-inline-start: var(--sp-5); display: grid; gap: var(--sp-2); font-size: var(--text-md); }
+.su-twostep code, .rem-recovery code { font-family: var(--font-mono, monospace); }
+.rem-recovery ul { columns: 2; list-style: none; padding: 0; margin: var(--sp-3) 0; }
+@media (max-width: 700px) { .su-twostep { grid-template-columns: 1fr; } }
+.su-net { display: grid; gap: var(--sp-3); max-inline-size: 38rem; }
+.su-https { margin: 0; font-size: var(--text-md); color: var(--fg-2); }
+.su-https b { color: var(--fg); }
+
+/* The looks to choose from: each at least 160 px wide, two across on a phone, the chosen one ringed. */
+.su-look .su-cards.small { grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); }
+@media (max-width: 600px) { .su-look .su-cards.small { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.su-look .su-card.on { box-shadow: 0 0 0 3px var(--accent); }
+.su-look .su-card .lt { inline-size: 100%; block-size: auto; border-radius: var(--r-md); }

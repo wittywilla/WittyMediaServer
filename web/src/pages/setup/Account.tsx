@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useRef, useState } from 'react'
-import { api, type User } from '../../api'
+import { api, setToken, type User } from '../../api'
 import { legalAckText, useLegalPath } from '../../components/LegalNote'
 import { Button, Field, Input } from '../../ui'
+import { TwoStep } from './TwoStep'
 import { StepActions, StepHead, TickRow, WhereIsTheCode } from './parts'
 
 // Everything is checked when Create account is pressed, with the reason beside the field, rather
@@ -22,6 +23,8 @@ function problemsWith(name: string, pw: string, pw2: string, needCode: boolean, 
 
 export function Account({ back, onDone }: { back: () => void; onDone: (u: User, token: string) => void }) {
   const [name, setName] = useState('')
+  // What people at home call this profile: optional, and the sign-in name when empty.
+  const [shown, setShown] = useState('')
   const [pw, setPw] = useState('')
   const [pw2, setPw2] = useState('')
   const [show, setShow] = useState(false)
@@ -32,6 +35,9 @@ export function Account({ back, onDone }: { back: () => void; onDone: (u: User, 
   const [problems, setProblems] = useState<Problems>({})
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
+  // Two-step sign-in wanted: it is set up as soon as the account exists, before setup goes on.
+  const [two, setTwo] = useState(false)
+  const [made, setMade] = useState<{ user: User; token: string } | null>(null)
   const form = useRef<HTMLFormElement>(null)
   const legal = useLegalPath('your-content')
   useEffect(() => { api.get<{ setupCodeRequired?: boolean }>('/status').then((s) => setNeedCode(!!s.setupCodeRequired)).catch(() => {}) }, [])
@@ -48,19 +54,23 @@ export function Account({ back, onDone }: { back: () => void; onDone: (u: User, 
     setBusy(true)
     try {
       const r = await api.post<{ token: string; user: User }>('/setup', { name: name.trim(), password: pw, setupCode: code.trim(), acknowledgedLegal: ack, device: navigator.userAgent.slice(0, 80) })
-      onDone(r.user, r.token)
+      if (shown.trim()) { setToken(r.token); await api.put(`/users/${r.user.id}/profile`, { displayName: shown.trim() }).catch(() => { /* it can be set in Settings, Profiles */ }) }
+      if (two) { setToken(r.token); setMade({ user: r.user, token: r.token }); setBusy(false) } else onDone(r.user, r.token)
     } catch (e: any) { setErr(e.message); setBusy(false) }
   }
+  if (made) return <TwoStep password={pw} onDone={() => onDone(made.user, made.token)} />
   return (
     <form ref={form} onSubmit={submit} noValidate>
       <StepHead title="Create your account" lead="This account looks after the server: its libraries, people and settings. You can add a profile for everyone else later." />
       <div className="oobe-form su-form">
         <Field label="Name to sign in with" error={problems.name}><Input autoFocus value={name} onChange={(e) => setName(e.target.value)} autoComplete="username" autoCapitalize="off" spellCheck={false} /></Field>
+        <Field label="Name people see" hint="Optional. What this profile is called around the app; the name above is only for signing in."><Input value={shown} onChange={(e) => setShown(e.target.value)} maxLength={40} autoComplete="nickname" /></Field>
         <Field label="Password" hint={<span className={'oobe-strength l' + level}><i /><i /><i /><span>{['At least 8 characters', '', 'Good', 'Strong'][level]}</span></span>} error={problems.pw}>
           <Input type={show ? 'text' : 'password'} value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="new-password" />
         </Field>
         <Field label="Type it again" error={problems.pw2}><Input type={show ? 'text' : 'password'} value={pw2} onChange={(e) => setPw2(e.target.value)} autoComplete="new-password" /></Field>
         <TickRow checked={show} onChange={setShow} title="Show what I’m typing" />
+        <TickRow checked={two} onChange={setTwo} title="Two-step sign-in (recommended)" text="Ask for a code from an authenticator app when signing in. You set it up on the next page, right after the account is made, and can skip it there." />
         {needCode && (
           <>
             <Field label="Setup code" error={problems.code}><Input className="mono" value={code} onChange={(e) => setCode(e.target.value)} autoComplete="off" autoCapitalize="characters" spellCheck={false} /></Field>

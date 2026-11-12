@@ -799,6 +799,12 @@
         },
         "type": {
           "type": "string"
+        },
+        "wire": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Wire"
+          },
+          "type": "object"
         }
       },
       "required": [
@@ -818,7 +824,8 @@
         "type",
         "density",
         "motion",
-        "home"
+        "home",
+        "wire"
       ],
       "type": "object"
     },
@@ -1003,6 +1010,9 @@
           },
           "type": "array"
         },
+        "channel": {
+          "type": "string"
+        },
         "contentRating": {
           "type": "string"
         },
@@ -1061,6 +1071,9 @@
           "type": "string"
         },
         "playId": {
+          "type": "string"
+        },
+        "programme": {
           "type": "string"
         },
         "progress": {
@@ -2445,6 +2458,43 @@
         "height"
       ],
       "type": "object"
+    },
+    "Wire": {
+      "properties": {
+        "brand": {
+          "type": "string"
+        },
+        "cards": {
+          "type": "string"
+        },
+        "dock": {
+          "type": "boolean"
+        },
+        "finish": {
+          "type": "string"
+        },
+        "home": {
+          "type": "string"
+        },
+        "nav": {
+          "type": "string"
+        },
+        "open": {
+          "type": "boolean"
+        },
+        "style": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "nav",
+        "style",
+        "home",
+        "cards",
+        "brand",
+        "finish"
+      ],
+      "type": "object"
     }
   },
   "$id": "urn:wittymediaserver:sdui:schema:1",
@@ -2496,7 +2546,7 @@
     "logo",
     "chip"
   ],
-  "x-catalogRevision": 6,
+  "x-catalogRevision": 7,
   "x-components": [
     "Page",
     "Hero",

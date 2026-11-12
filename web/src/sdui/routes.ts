@@ -93,6 +93,7 @@ export const NATIVE_ROUTES: Record<string, string> = {
 // What an action comes to in this app. Pure, so it can be tested: the page carries it out.
 export type Step =
   | { do: 'go'; to: string }
+  | { do: 'layer'; to: string }
   | { do: 'back' }
   | { do: 'play'; item: string; resume: boolean }
   | { do: 'open'; url: string }
@@ -139,7 +140,7 @@ export function commandRequest(spec: CommandSpec, a: Action): Step {
 export function plan(a: Action | undefined, opts: { externalLinks?: boolean } = {}): Step {
   if (!a) return { do: 'nothing' }
   switch (a.type) {
-    case 'navigate': return a.to && safeRoute(a.to) ? { do: 'go', to: a.to } : { do: 'nothing' }
+    case 'navigate': return a.to && safeRoute(a.to) ? { do: a.as === 'layer' ? 'layer' : 'go', to: a.to } : { do: 'nothing' }
     case 'back': return { do: 'back' }
     case 'play': return a.item ? { do: 'play', item: a.item, resume: a.params?.resume !== false } : { do: 'nothing' }
     case 'external': return a.url && /^https?:\/\//i.test(a.url) && opts.externalLinks !== false ? { do: 'open', url: a.url } : { do: 'nothing' }

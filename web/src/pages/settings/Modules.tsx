@@ -9,6 +9,8 @@ import { Spinner } from '../../components/common'
 import { IconCheck, IconDown, IconInfo, IconPlug, IconPlus, IconRefresh, IconShield, IconTv, libIcon } from '../../icons'
 import { shelves, type LibraryKind, type ModuleEvent, type ModuleReport, type ModuleStatus, type VersionInfo, type VersionList } from '../../moduleStore'
 import { toast, useApp } from '../../state'
+import SpecPage from '../../spec/SpecPage'
+import { modulesTopSpec } from '../../spec/specs/modules'
 import { PageHead, Row, Section, Switch } from './ui'
 import './modules.css'
 import LegalNote from '../../components/LegalNote'
@@ -247,28 +249,20 @@ export default function ModulesSettings() {
 
       {store.view && <WhatsNew view={store.view} />}
 
-      <Section title="Updates" desc="Some modules can update without a new server. Each update is signed, this server installs only what it can verify, and it takes effect straight away, with no restart."
-        actions={<button className="btn ghost sm" onClick={check} aria-busy={checking}><IconRefresh /> {checking ? 'Checking…' : 'Check now'}</button>}>
-        {store.view && <UpdateAllPanel view={store.view} onChanged={() => { void store.reload(); api.get<ModuleReport>('/modules').then(setR).catch(() => {}) }} />}
-        <Row label="Look for updates automatically" desc={`Looks online twice a day. When this is off, the server only looks when you press Check now.${r.checkedAt ? ` Last checked ${when(r.checkedAt)}.` : ' It hasn’t looked yet.'}`}>
-          <Switch label="Look for updates automatically" checked={autoCheck} disabled={!settings} onChange={(v) => save('moduleUpdateCheck', v)} />
-        </Row>
-        <Row label="Install updates automatically" desc="Installs what the check finds, if it works with this server. A version that fails is taken back out by itself. Pinned modules and forks are left alone." dim={!autoCheck}>
-          <Switch label="Install updates automatically" checked={settings?.moduleAutoInstall === '1'} disabled={!settings || !autoCheck} onChange={(v) => save('moduleAutoInstall', v)} />
-        </Row>
-        {!!held && <p className="upd-msg">GitHub asked this network to wait, so the server won’t ask again until {when(held)}. Everything keeps working as it is.</p>}
-        {r.checkError && <p className="upd-msg warn">The last check didn’t work: {r.checkError} Everything keeps working as it is.</p>}
-        <p className="ms-note">This server is version {r.server} and has module API {r.minApi === r.api ? r.api : `${r.minApi} to ${r.api}`}.</p>
-        {store.view && <PolicyNote view={store.view} />}
-      </Section>
-      <SandboxNote sandbox={r.sandbox} />
-
-      <div className="chips ms-filter" role="group" aria-label="Show">
-        {FILTERS.map((f) => {
-          const n = r.modules.filter(f.test).length
-          return <button key={f.id} className={'chip' + (filter === f.id ? ' active' : '')} aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>{f.label}{f.id !== 'all' && ` · ${n}`}</button>
-        })}
-      </div>
+      <SpecPage embedded page={modulesTopSpec({
+        autoCheck, autoInstall: settings?.moduleAutoInstall === '1', loaded: !!settings, checkedAt: r.checkedAt ? when(r.checkedAt) : '', held: held ? when(held) : '', checkError: r.checkError || '', checking,
+        server: r.server, api: String(r.minApi === r.api ? r.api : `${r.minApi} to ${r.api}`),
+        filters: FILTERS.map((f) => ({ id: f.id, label: f.label, count: r.modules.filter(f.test).length })), filter,
+      })} handled={new Set(['check', ...FILTERS.map((f) => 'filter:' + f.id)])}
+        onAction={(id) => { if (id === 'check') void check(); else if (id.startsWith('filter:')) setFilter(id.slice(7) as Filter) }}
+        onField={(id, v) => { if (id === 'autoCheck') save('moduleUpdateCheck', !!v); else if (id === 'autoInstall') save('moduleAutoInstall', !!v) }}
+        after={{ 1: (
+          <>
+            {store.view && <UpdateAllPanel view={store.view} onChanged={() => { void store.reload(); api.get<ModuleReport>('/modules').then(setR).catch(() => {}) }} />}
+            {store.view && <PolicyNote view={store.view} />}
+            <SandboxNote sandbox={r.sandbox} />
+          </>
+        ) }} />
 
       {shown.length === 0 && (
         <div className="set-card set-empty">

@@ -2,7 +2,6 @@
 /* Copyright (C) 2026 WittyWilla and contributors */
 /* The module store. A row to scan for each module, with the rest when it is opened:
    thirteen or more of these on a phone mustn't be a wall. */
-.ms-filter { margin: 0 0 var(--sp-4); }
 .ms-note { margin: var(--sp-2) 0; color: var(--fg-2); font-size: var(--text-sm); line-height: var(--leading-body); max-width: 62ch; }
 .set-card-body > .ms-note:last-child { margin-bottom: var(--sp-3); }
 
@@ -105,7 +104,7 @@
 /* Fingers and remotes: every control a comfortable target. */
 .ms-page .set-switch::after { content: ''; position: absolute; inset: -9px 0; }
 @media (max-width: 600px), (pointer: coarse) {
-  .ms-page .btn.sm, .ms-versions .btn.sm, .ms-filter .chip, .ms-more summary { min-height: 2.75rem; }
+  .ms-page .btn.sm, .ms-versions .btn.sm, .ms-more summary { min-height: 2.75rem; }
   .ms-versions .btn.square { width: 2.75rem; }
 }
 @media (max-width: 600px) {
@@ -118,8 +117,8 @@
   .ms-facts { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 }
 /* At ten feet the root size is 20px, so 2.4rem is the 48 the rules ask for. */
-.using-controller .ms-filter .chip, .using-controller .ms-page .btn, .using-controller .ms-versions .btn, .using-controller .ms-more summary { min-height: 2.4rem; }
-@media (pointer: none) { .ms-filter .chip, .ms-page .btn, .ms-versions .btn, .ms-more summary { min-height: 2.4rem; } }
+.using-controller .using-controller .ms-page .btn, .using-controller .ms-versions .btn, .using-controller .ms-more summary { min-height: 2.4rem; }
+@media (pointer: none) { .ms-page .btn, .ms-versions .btn, .ms-more summary { min-height: 2.4rem; } }
 
 .ms-kind + .ms-kind { margin-top: var(--sp-2); }
 .ms-kind .ms-note { margin: var(--sp-1) 0 0; }

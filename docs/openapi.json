@@ -25888,17 +25888,11 @@
                       },
                       "type": "array"
                     },
-                    "layout": {
-                      "type": "string"
-                    },
                     "now": {
                       "type": "integer"
                     },
                     "offset": {
                       "type": "integer"
-                    },
-                    "skin": {
-                      "type": "string"
                     },
                     "theme": {
                       "type": "string"

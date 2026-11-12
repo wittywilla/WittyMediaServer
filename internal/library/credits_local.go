@@ -34,12 +34,7 @@ func (s *Scanner) nfoCredits(ctx context.Context, t *Title) []CreditIn {
 		if it.Kind == "dvd-folder" || it.Kind == "bluray-folder" {
 			dir, base = it.Path, discFolderName(it.Path)
 		}
-		for _, nfo := range filmNFOs(it.Path, dir, base) {
-			if applyNFO(&scratch, nfo) {
-				break
-			}
-		}
-		return scratch.credits[CreditsNFO]
+		return filmNFOPeople(filmNFOs(it.Path, dir, base))
 	case t.Show != nil:
 		applyShowNFO(&show, filepath.Join(t.Show.Path, "tvshow.nfo"))
 		return show.credits[CreditsNFO]

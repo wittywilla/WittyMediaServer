@@ -78,21 +78,38 @@ No retail BD-J disc, UHD disc or real MVC disc has been available for testing ye
 
 ### Finding the feature among decoys
 
-Some discs carry hundreds of playlists built to defeat "longest wins". WittyBluray scores every playlist instead, in minutes of distinct video, and adds or takes away points for what it finds. The diagnose report gives each playlist's score with the reasons for it.
+Some discs carry hundreds or thousands of playlists built to defeat "longest wins". WittyBluray scores every playlist, in minutes of distinct video, and adds or takes away points for what it finds. Each answer comes with its reasons, a confidence (high, medium or low) and the sentences behind it; the diagnose report and `wittybluray rank` show them.
 
-- **Distinct video.** Each stretch of a clip counts once, however often a playlist repeats it, so a playlist padded with repeats gains nothing and loses points for the time it spends replaying.
-- **Shuffled and duplicate copies.** Playlists that hold the same stretches are compared by how naturally they run: whether each piece starts where the last one ended, in time or on the disc. The most natural one stands, and copies in a scrambled order count as decoys. An exact copy in the same order is the same film, so it only loses a tie.
-- **Missing clips.** A playlist that names a clip that isn't on the disc, or an empty one, or times past a clip's end, is a decoy and is never chosen ahead of one that plays.
-- **Segment spam.** A playlist made mostly of tiny pieces, under a second or a few seconds each, is a decoy.
-- **The disc's own program.** WittyBluray reads the disc's first-play and Title 1 instructions without running them, and follows where they lead. A playlist the disc plays first by itself gains points, and short playlists passed on the way are taken as intros. Playlists any title plays gain a little too.
-- **Java (BD-J) discs.** The program of a disc whose first play or Title 1 is a Java application isn't read for this, so the choice comes from the structure alone, plus a small hint when the application lists only a few playlists. The report says so.
-- **Smaller signals.** Even chapter lengths, more soundtracks and subtitles, and more data on the disc each add a little. A 3D twin gives way to its 2D playlist, as 3D plays here as 2D.
-
-TV discs are found the same way: several clean playlists of similar length become episodes, in the order a play-all playlist gives, if there is one.
+| Pattern | What a disc does | What WittyBluray does | Tested |
+|---|---|---|---|
+| Permuted decoys | Hundreds or thousands of playlists of the film's clips in other orders, all the same length | Playlists with the same segments form a cluster. Each join between two clips is weighed: the clock carrying on, the clip's packet map, where the clips lie on an image, and last the clip numbers. The best order stands; the rest are decoys | Unit (1,000 decoys, each kind of evidence alone) |
+| Nothing tells the orders apart | The same clips in orders that follow on equally well, and no program that can be read | Says so: the playlists are marked ambiguous, the lowest-numbered is picked, the confidence is low and the report warns | Unit |
+| The real order only in the HDMV program | First play computes a number into a register; a title compares it against every playlist number | The program is read without running it: registers are followed as sets of constants through arithmetic, comparisons, jumps and calls. The playlist the register selects is the one found | Unit |
+| The real order only in a Java program | A BD-J title picks the playlist | Nothing is run. The JAR files' class constants are read for playlist locators, five-digit names and numbers. A program that computes or scrambles them shows nothing, and the structure decides with lower confidence | Unit |
+| Repeated clips | A decoy plays clips again to run longer than the film | Each stretch of a clip counts once | Unit |
+| Fake short clips | Clips of a fraction of a second between the real ones | A copy padded this way is a scrambled copy by playing time; a playlist mostly of such pieces is segment spam | Unit |
+| Shuffled subsets | Some of the film's clips, out of order | Decoys: they go back on the disc and mostly play another playlist's video | Unit |
+| Missing or empty clips | A playlist names a clip with no information or no stream file, or times past a clip's end | Never chosen ahead of one that plays | Unit |
+| Two cuts of a film | Theatrical and extended cuts share most clips (seamless branching) | Each cut is listed as an edition with its length and what only it has. The one the disc's program plays is the main one; without a program, the longer | Unit |
+| A cut that is only a subset | A playlist of some of the film's clips in order | Cannot be told from a shorter cut by structure: listed as an edition, never picked over the full film unless the program plays it | Unit |
+| Multi-angle | A play item with several clips | The first angle is scored; the count is reported | Unit |
+| TV discs | A playlist per episode, often numbered out of order, and one that plays them all | Episodes are the largest run of clean playlists of similar length; their order is where each starts in the play-all playlist, which is split at those points | Unit |
+| TV disc with only a play-all | One playlist of several whole clips of even length | Its parts are offered as a guess, with a warning | Unit |
+| Forced trailers | First play runs trailers before the film | Short playlists passed on the way are intros; the first long one reached is the feature | Unit |
+| 3D twin | The same film as a 2D and a 3D playlist | The 2D one is preferred, as 3D plays here as 2D. The 3D stream table and the extra sub-paths in the playlist's extension data are read | Unit |
+| Ultra HD | HEVC, HDR10, HDR10+, a Dolby Vision layer; clips of tens of gigabytes | Reported per playlist; sizes do not wrap | Unit |
 
 None of this decrypts anything. It reads only the parts of a disc that are never encrypted, and a disc protected with AACS or BD+ is still refused, whatever its playlists score.
 
-The ranking reads structure, never pictures, so a disc whose program chooses the film in ways only a running player can see may still pick wrongly. Choosing a title from the disc's own menu, or from **Bonus Features**, avoids the guess.
+What is not read for ranking: the commands of menu buttons (they are in the stream files), and BD-J programs as they run. A film that only a menu button starts is found by title programs and structure.
+
+### Chapters
+
+| Feature | What WittyBluray does | Tested |
+|---|---|---|
+| Marks across play items | A mark names a play item and a time in its clip. A chapter's start is the play items before it plus how far into its own item it lies | Unit |
+| Marks out of order, twice at one instant, outside their item, or naming an item that isn't there | Sorted; counted once; moved to the item's nearer end; left out | Unit |
+| Link points | Not chapters. Commands can still reach them | Unit |
 
 ## Clips and time
 
@@ -219,6 +236,18 @@ This is a strong barrier, not a guarantee. Disc code still runs inside a real JV
 | BDAV recordings | Clips are listed and played. Recordings' own playlists aren't read | Unit |
 | Names in any case | Copied folders work on case-sensitive file systems | Unit |
 
+| Feature | What WittyBluray does | Tested |
+|---|---|---|
+| A structure that parses but is wrong | A playlist naming a clip that isn't there, or an index naming movie objects that aren't there, is taken from `BACKUP` when the backup doesn't have the fault. The report says which files came from where | Unit |
+| A backup that differs | Remarked on. The first copy is used when it reads well | Unit |
+| A file damaged part of the way | A stream table, mark table, sub-path, extension block, program table or entry-point map that is cut off or runs past its length is left out and named; the rest of the file is kept | Unit, fuzzed |
+| Movie-only copies | A folder with playlists, clip information and streams but no `index.bdmv` or `MovieObject.bdmv` plays from its playlists, and isn't called damaged | Unit |
+| A copy cut short | A stream file shorter than its clip information counts is flagged, with how much of the clip the bytes there can play | Unit |
+| Hostile sizes | No count or length from a file is trusted: an entry-point map that claims billions of entries, or a movie object file that claims gigabytes of commands, reads what the file holds. A disc has a budget of what it may keep in memory | Unit, fuzzed |
+| UDF 2.50 images | Metadata partition and its mirror, extended file entries, files in many extents past 4 GB, chained descriptors, images of Ultra HD size, small files kept inside their entry | Unit (images written by the tests) |
+| Burned and rewritable discs | WittyDisc reads sparable partitions (BD-RE) through their sparing table and virtual partitions (BD-R written in sessions) through their allocation table, and a rewritten file's newest entry. Parts of a file the disc doesn't record read as zeros and are never streamed | Unit (images written by WittyDisc's tests) |
+| A folder of only `.m2ts` files | Not opened as a disc: there is no clip information to tell lengths by | None |
+
 ## Copy protection
 
 | Feature | What WittyBluray and the server do | Tested |
@@ -226,6 +255,14 @@ This is a strong barrier, not a guarantee. Disc code still runs inside a real JV
 | AACS | Never decrypted. Encrypted discs are refused, detected by what the stream holds: an aligned unit with its copy-permission bits set and no sync bytes after its first packet. It samples the start and middle of several clips, so a clear intro can't hide an encrypted film. The server checks for itself, whatever a helper says | Unit |
 | Folder names | A folder named AACS decides nothing, and an encrypted disc without one is refused | Unit |
 | BD+ | Never run. Its folder is reported, since the picture can be damaged by design | Unit |
+
+## libbluray as a second opinion
+
+| Feature | What WittyBluray does | Tested |
+|---|---|---|
+| A libbluray the user installed | Loaded at run time when asked (never needed, never shipped, no cgo). Its playlists, lengths, chapters, angles and choice of feature are compared with WittyBluray's; differences are listed and lower the confidence, and WittyBluray's answer stands | Unit, with a stand-in library. Not run against a real libbluray |
+| Encrypted discs | Never handed to it: a disc must read as clear and have no AACS and no BD+ folder. No key file is passed, and it cannot be asked to read streams | Unit |
+| Where | 64-bit macOS and Windows. On Linux only in a build with the `libbluray` tag, because the released Linux program is a static binary | Unit (macOS) |
 
 ## Not handled
 

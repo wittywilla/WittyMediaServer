@@ -48,6 +48,9 @@ func (s *Session) Subtitles(ttn, n int, from, to float64) ([]SubEvent, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	ts := s.title(ttn)
+	if pl := s.playing; pl != nil && pl.titles != nil && pl.ts.Number == ttn {
+		ts = pl.ts // the feature's own timeline
+	}
 	if ts == nil || n < 0 || n > 31 {
 		return nil, fmt.Errorf("no such title or stream")
 	}

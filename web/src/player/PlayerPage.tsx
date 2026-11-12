@@ -74,7 +74,9 @@ function PlayerPage({ id, search }: { id: string; search: string }) {
     const chapter = params.get('chapter') ? Number(params.get('chapter')) : undefined
     const menu = params.get('menu') || undefined
     const menuVts = params.get('menuVts') ? Number(params.get('menuVts')) : undefined
-    return <Suspense fallback={loading}><DvdPlayer item={item} mode={mode} ttn={ttn} chapter={chapter} startAt={startAt} insert={params.get('insert') === '1'} menu={menu} menuVts={menuVts} /></Suspense>
+    const episode = params.get('episode') ? Number(params.get('episode')) : undefined
+    const angle = params.get('angle') ? Number(params.get('angle')) : undefined
+    return <Suspense fallback={loading}><DvdPlayer item={item} mode={mode} ttn={ttn} chapter={chapter} startAt={startAt} insert={params.get('insert') === '1'} menu={menu} menuVts={menuVts} episode={episode} angle={angle} /></Suspense>
   }
   return <Suspense fallback={loading}><VideoPlayer item={item} startAt={startAt} /></Suspense>
 }

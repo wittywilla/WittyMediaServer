@@ -124,7 +124,10 @@ func checkWith(ctx context.Context, j *Job, id, name string, src *discSource, o 
 		To    float64 `json:"to,omitempty"`
 		BDJ   bool    `json:"bdj,omitempty"`
 		Java  string  `json:"java,omitempty"`
-	}{src.Path, o.Crawl, from, to, j.env.setting("bdjEnabled", "0") == "1", j.env.JavaPath}, &r)
+		// SecondOpinion: the owner turned on comparing with a libbluray on this machine.
+		// WittyBluray alone reads it, and never for an encrypted disc.
+		SecondOpinion bool `json:"secondOpinion,omitempty"`
+	}{src.Path, o.Crawl, from, to, j.env.setting("bdjEnabled", "0") == "1", j.env.JavaPath, j.env.setting("blurayLibbluray", "0") == "1"}, &r)
 	if err != nil {
 		if ctx.Err() != nil {
 			return

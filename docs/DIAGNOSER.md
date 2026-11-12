@@ -33,6 +33,8 @@ You can leave the page while it runs. **Cancel** stops it, and keeps what it fou
 | **What's on it** | Titles or playlists with lengths, chapters, angles and tracks, the main title, region, first play and top menu, 3D, 4K and HDR |
 | **Files it needs** | Video files the index names that aren't there, titles that run past the end, and clips shorter than they should be |
 | **BD-J** | Blu-ray Java menus: what's there, what they need that the server's runtime lacks, and whether Java is found and BD-J is on |
+| **Which title is the film** | How the disc module ranks every title or playlist: the pick, how sure it is (high, medium or low, with a percentage), the reasons for and against, decoys, other versions, episodes and a play-all split. With WittyDVD or WittyBluray 0.4.0 and later |
+| **What was mended** | Index tables taken from the backup copy or mended from another table, where a Blu-ray's playlists, clip information and streams disagree, and sectors read as blank while ranking. When **Ask libbluray for a second opinion** is on in Settings, a Blu-ray is also compared with a libbluray installed on the server (never an encrypted one) |
 
 Two switches take longer:
 

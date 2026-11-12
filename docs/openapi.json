@@ -2053,6 +2053,497 @@
         ],
         "type": "object"
       },
+      "DiscAnalysis": {
+        "properties": {
+          "canChoose": {
+            "type": "boolean"
+          },
+          "chosen": {
+            "anyOf": [
+              {
+                "properties": {
+                  "at": {
+                    "type": "integer"
+                  },
+                  "by": {
+                    "type": "integer"
+                  },
+                  "ttn": {
+                    "type": "integer"
+                  },
+                  "was": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "at",
+                  "by",
+                  "ttn",
+                  "was"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "chosenBy": {
+            "type": "string"
+          },
+          "engineMain": {
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "main": {
+            "type": "integer"
+          },
+          "pending": {
+            "type": "boolean"
+          },
+          "protected": {
+            "type": "boolean"
+          },
+          "rank": {
+            "anyOf": [
+              {
+                "properties": {
+                  "against": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "at": {
+                    "type": "integer"
+                  },
+                  "candidates": {
+                    "items": {
+                      "properties": {
+                        "chapters": {
+                          "type": "integer"
+                        },
+                        "class": {
+                          "type": "string"
+                        },
+                        "decoy": {
+                          "type": "boolean"
+                        },
+                        "durationSec": {
+                          "type": "number"
+                        },
+                        "reasons": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": [
+                            "array",
+                            "null"
+                          ]
+                        },
+                        "score": {
+                          "type": "number"
+                        },
+                        "ttn": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "chapters",
+                        "class",
+                        "durationSec",
+                        "score",
+                        "ttn"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "confidence": {
+                    "type": "number"
+                  },
+                  "decoys": {
+                    "type": "integer"
+                  },
+                  "engine": {
+                    "type": "string"
+                  },
+                  "episodes": {
+                    "items": {
+                      "properties": {
+                        "chapter": {
+                          "type": "integer"
+                        },
+                        "durationSec": {
+                          "type": "number"
+                        },
+                        "index": {
+                          "type": "integer"
+                        },
+                        "item": {
+                          "type": "integer"
+                        },
+                        "part": {
+                          "type": "boolean"
+                        },
+                        "startSec": {
+                          "type": "number"
+                        },
+                        "ttn": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "durationSec",
+                        "index",
+                        "startSec",
+                        "ttn"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "feature": {
+                    "anyOf": [
+                      {
+                        "properties": {
+                          "assembled": {
+                            "type": "boolean"
+                          },
+                          "durationSec": {
+                            "type": "number"
+                          },
+                          "segments": {
+                            "items": {
+                              "properties": {
+                                "durationSec": {
+                                  "type": "number"
+                                },
+                                "firstCell": {
+                                  "type": "integer"
+                                },
+                                "firstSector": {
+                                  "type": "integer"
+                                },
+                                "lastCell": {
+                                  "type": "integer"
+                                },
+                                "lastSector": {
+                                  "type": "integer"
+                                },
+                                "pgc": {
+                                  "type": "integer"
+                                },
+                                "startSec": {
+                                  "type": "number"
+                                },
+                                "title": {
+                                  "type": "integer"
+                                },
+                                "vts": {
+                                  "type": "integer"
+                                }
+                              },
+                              "required": [
+                                "durationSec",
+                                "firstCell",
+                                "firstSector",
+                                "lastCell",
+                                "lastSector",
+                                "pgc",
+                                "startSec",
+                                "title",
+                                "vts"
+                              ],
+                              "type": "object"
+                            },
+                            "type": [
+                              "array",
+                              "null"
+                            ]
+                          },
+                          "source": {
+                            "type": "string"
+                          },
+                          "titles": {
+                            "items": {
+                              "type": "integer"
+                            },
+                            "type": [
+                              "array",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "assembled",
+                          "durationSec",
+                          "source",
+                          "titles"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "hidden": {
+                    "type": "integer"
+                  },
+                  "issueCount": {
+                    "type": "integer"
+                  },
+                  "issues": {
+                    "items": {
+                      "properties": {
+                        "kind": {
+                          "type": "string"
+                        },
+                        "severity": {
+                          "type": "string"
+                        },
+                        "ttn": {
+                          "type": "integer"
+                        },
+                        "what": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "severity",
+                        "ttn",
+                        "what"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "level": {
+                    "type": "string"
+                  },
+                  "main": {
+                    "type": "integer"
+                  },
+                  "paddedSectors": {
+                    "type": "integer"
+                  },
+                  "playAll": {
+                    "type": "integer"
+                  },
+                  "protected": {
+                    "type": "boolean"
+                  },
+                  "readRetries": {
+                    "type": "integer"
+                  },
+                  "reasons": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "repairCount": {
+                    "type": "integer"
+                  },
+                  "repairs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "runnerUp": {
+                    "type": "integer"
+                  },
+                  "secondOpinion": {
+                    "anyOf": [
+                      {
+                        "properties": {
+                          "agrees": {
+                            "type": "boolean"
+                          },
+                          "differences": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": [
+                              "array",
+                              "null"
+                            ]
+                          },
+                          "main": {
+                            "type": "integer"
+                          },
+                          "more": {
+                            "type": "integer"
+                          },
+                          "note": {
+                            "type": "string"
+                          },
+                          "source": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "agrees",
+                          "main",
+                          "source"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "versions": {
+                    "items": {
+                      "properties": {
+                        "angle": {
+                          "type": "integer"
+                        },
+                        "durationSec": {
+                          "type": "number"
+                        },
+                        "kind": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string"
+                        },
+                        "main": {
+                          "type": "boolean"
+                        },
+                        "parentalLevels": {
+                          "items": {
+                            "type": "integer"
+                          },
+                          "type": [
+                            "array",
+                            "null"
+                          ]
+                        },
+                        "ttn": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "durationSec",
+                        "kind",
+                        "label",
+                        "ttn"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "warnings": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "why": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "at",
+                  "candidates",
+                  "confidence",
+                  "decoys",
+                  "engine",
+                  "hidden",
+                  "issueCount",
+                  "level",
+                  "main",
+                  "paddedSectors",
+                  "playAll",
+                  "readRetries",
+                  "reasons",
+                  "repairCount",
+                  "runnerUp",
+                  "why"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ranked": {
+            "type": "boolean"
+          },
+          "secondOpinion": {
+            "anyOf": [
+              {
+                "properties": {
+                  "available": {
+                    "type": "boolean"
+                  },
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "reason": {
+                    "type": "string"
+                  },
+                  "version": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "available",
+                  "enabled"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "canChoose",
+          "chosen",
+          "engineMain",
+          "kind",
+          "main",
+          "pending",
+          "protected",
+          "rank",
+          "ranked"
+        ],
+        "type": "object"
+      },
       "DiscButton": {
         "properties": {
           "auto": {
@@ -2209,6 +2700,36 @@
               }
             ]
           },
+          "chosen": {
+            "anyOf": [
+              {
+                "properties": {
+                  "at": {
+                    "type": "integer"
+                  },
+                  "by": {
+                    "type": "integer"
+                  },
+                  "ttn": {
+                    "type": "integer"
+                  },
+                  "was": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "at",
+                  "by",
+                  "ttn",
+                  "was"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "content": {
             "type": "string"
           },
@@ -2226,6 +2747,399 @@
           },
           "mainTitle": {
             "type": "integer"
+          },
+          "rank": {
+            "anyOf": [
+              {
+                "properties": {
+                  "against": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "at": {
+                    "type": "integer"
+                  },
+                  "candidates": {
+                    "items": {
+                      "properties": {
+                        "chapters": {
+                          "type": "integer"
+                        },
+                        "class": {
+                          "type": "string"
+                        },
+                        "decoy": {
+                          "type": "boolean"
+                        },
+                        "durationSec": {
+                          "type": "number"
+                        },
+                        "reasons": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": [
+                            "array",
+                            "null"
+                          ]
+                        },
+                        "score": {
+                          "type": "number"
+                        },
+                        "ttn": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "chapters",
+                        "class",
+                        "durationSec",
+                        "score",
+                        "ttn"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "confidence": {
+                    "type": "number"
+                  },
+                  "decoys": {
+                    "type": "integer"
+                  },
+                  "engine": {
+                    "type": "string"
+                  },
+                  "episodes": {
+                    "items": {
+                      "properties": {
+                        "chapter": {
+                          "type": "integer"
+                        },
+                        "durationSec": {
+                          "type": "number"
+                        },
+                        "index": {
+                          "type": "integer"
+                        },
+                        "item": {
+                          "type": "integer"
+                        },
+                        "part": {
+                          "type": "boolean"
+                        },
+                        "startSec": {
+                          "type": "number"
+                        },
+                        "ttn": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "durationSec",
+                        "index",
+                        "startSec",
+                        "ttn"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "feature": {
+                    "anyOf": [
+                      {
+                        "properties": {
+                          "assembled": {
+                            "type": "boolean"
+                          },
+                          "durationSec": {
+                            "type": "number"
+                          },
+                          "segments": {
+                            "items": {
+                              "properties": {
+                                "durationSec": {
+                                  "type": "number"
+                                },
+                                "firstCell": {
+                                  "type": "integer"
+                                },
+                                "firstSector": {
+                                  "type": "integer"
+                                },
+                                "lastCell": {
+                                  "type": "integer"
+                                },
+                                "lastSector": {
+                                  "type": "integer"
+                                },
+                                "pgc": {
+                                  "type": "integer"
+                                },
+                                "startSec": {
+                                  "type": "number"
+                                },
+                                "title": {
+                                  "type": "integer"
+                                },
+                                "vts": {
+                                  "type": "integer"
+                                }
+                              },
+                              "required": [
+                                "durationSec",
+                                "firstCell",
+                                "firstSector",
+                                "lastCell",
+                                "lastSector",
+                                "pgc",
+                                "startSec",
+                                "title",
+                                "vts"
+                              ],
+                              "type": "object"
+                            },
+                            "type": [
+                              "array",
+                              "null"
+                            ]
+                          },
+                          "source": {
+                            "type": "string"
+                          },
+                          "titles": {
+                            "items": {
+                              "type": "integer"
+                            },
+                            "type": [
+                              "array",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "assembled",
+                          "durationSec",
+                          "source",
+                          "titles"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "hidden": {
+                    "type": "integer"
+                  },
+                  "issueCount": {
+                    "type": "integer"
+                  },
+                  "issues": {
+                    "items": {
+                      "properties": {
+                        "kind": {
+                          "type": "string"
+                        },
+                        "severity": {
+                          "type": "string"
+                        },
+                        "ttn": {
+                          "type": "integer"
+                        },
+                        "what": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "severity",
+                        "ttn",
+                        "what"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "level": {
+                    "type": "string"
+                  },
+                  "main": {
+                    "type": "integer"
+                  },
+                  "paddedSectors": {
+                    "type": "integer"
+                  },
+                  "playAll": {
+                    "type": "integer"
+                  },
+                  "protected": {
+                    "type": "boolean"
+                  },
+                  "readRetries": {
+                    "type": "integer"
+                  },
+                  "reasons": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "repairCount": {
+                    "type": "integer"
+                  },
+                  "repairs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "runnerUp": {
+                    "type": "integer"
+                  },
+                  "secondOpinion": {
+                    "anyOf": [
+                      {
+                        "properties": {
+                          "agrees": {
+                            "type": "boolean"
+                          },
+                          "differences": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": [
+                              "array",
+                              "null"
+                            ]
+                          },
+                          "main": {
+                            "type": "integer"
+                          },
+                          "more": {
+                            "type": "integer"
+                          },
+                          "note": {
+                            "type": "string"
+                          },
+                          "source": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "agrees",
+                          "main",
+                          "source"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "versions": {
+                    "items": {
+                      "properties": {
+                        "angle": {
+                          "type": "integer"
+                        },
+                        "durationSec": {
+                          "type": "number"
+                        },
+                        "kind": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string"
+                        },
+                        "main": {
+                          "type": "boolean"
+                        },
+                        "parentalLevels": {
+                          "items": {
+                            "type": "integer"
+                          },
+                          "type": [
+                            "array",
+                            "null"
+                          ]
+                        },
+                        "ttn": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "durationSec",
+                        "kind",
+                        "label",
+                        "ttn"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "warnings": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "why": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "at",
+                  "candidates",
+                  "confidence",
+                  "decoys",
+                  "engine",
+                  "hidden",
+                  "issueCount",
+                  "level",
+                  "main",
+                  "paddedSectors",
+                  "playAll",
+                  "readRetries",
+                  "reasons",
+                  "repairCount",
+                  "runnerUp",
+                  "why"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "scrambled": {
             "type": "boolean"
@@ -15123,6 +16037,36 @@
         "x-wms-auth": "admin"
       }
     },
+    "/bluray/capabilities": {
+      "get": {
+        "operationId": "getBlurayCapabilities",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What optional help WittyBluray has on this machine: whether a libbluray can give a second opinion.",
+        "tags": [
+          "Discs"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/branding/logo": {
       "delete": {
         "operationId": "deleteBrandingLogo",
@@ -24198,6 +25142,195 @@
           "Discs"
         ],
         "x-wms-auth": "user"
+      }
+    },
+    "/items/{id}/disc/analysis": {
+      "get": {
+        "operationId": "getItemsDiscAnalysis",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscAnalysis"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Which title or playlist is the disc's film, why, and how sure the engine is: candidates, versions, episodes, repairs. Works the ranking out first when the kept one is from another engine version.",
+        "tags": [
+          "Discs"
+        ],
+        "x-wms-auth": "user"
+      },
+      "post": {
+        "operationId": "postItemsDiscAnalysis",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "secondOpinion": {
+                    "type": "boolean"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscAnalysis"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Work the ranking out again; with secondOpinion, also ask a libbluray on this machine (Blu-ray, setting on).",
+        "tags": [
+          "Discs"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/items/{id}/disc/choice": {
+      "delete": {
+        "operationId": "deleteItemsDiscChoice",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscAnalysis"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Forget the chosen film: the engine's pick plays again.",
+        "tags": [
+          "Discs"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putItemsDiscChoice",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "ttn": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "ttn"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscAnalysis"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remember a title (DVD) or playlist (Blu-ray) as this disc's film, for everyone; it beats the engine's pick.",
+        "tags": [
+          "Discs"
+        ],
+        "x-wms-auth": "admin"
       }
     },
     "/items/{id}/disc/labels": {

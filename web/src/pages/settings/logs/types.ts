@@ -20,12 +20,14 @@ export type Health = {
 }
 export type EntriesPage = { entries: LogRecord[]; last: number; more: boolean; partial: boolean; health?: Health }
 export type Category = { id: string; label: string; description: string; default: string }
+// A kind of work whose lines share one ID on the server, in modules and in the apps.
+export type SessionKind = { id: string; label: string; prefix: string; cats?: string[] }
 export type LogFile = { name: string; size: number; modified: string }
 export type Crash = { id: string; kind: string; time: string; summary: string; version?: string; size: number; seen: boolean; parts?: string[] }
 export type LogsView = {
   dir: string; level: string; categories: Category[]; levels: Record<string, string>; on: string[]
   files: LogFile[]; canOpen: boolean; health: Health; crashes: Crash[]; modules: LogModule[]; recordingUntil?: string
-  flight: boolean; trace: boolean
+  flight: boolean; trace: boolean; kinds?: SessionKind[]
 }
 export type BundlePart = { name: string; description: string; size: number }
 export type BundlePreview = {

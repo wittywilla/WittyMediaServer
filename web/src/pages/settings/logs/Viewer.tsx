@@ -8,7 +8,7 @@ import { EmptyState, Spinner } from '../../../components/common'
 import { IconClose, IconFile, IconPause, IconPlay, IconRefresh } from '../../../icons'
 import { toast } from '../../../state'
 import { Section } from '../ui'
-import { copyText, LEVEL_WORDS, scrollKeys, type Category, type EntriesPage, type Health, type LogModule, type LogRecord } from './types'
+import { copyText, LEVEL_WORDS, scrollKeys, type Category, type EntriesPage, type Health, type LogModule, type LogRecord, type SessionKind } from './types'
 
 // The live log: newest at the top, so new lines don't push the page around and
 // "Load older" is where you'd look for it. Log text is shown as text, always.
@@ -132,10 +132,11 @@ const LogRow = memo(function LogRow({ r, catLabel, modLabel, onSession }: { r: R
   )
 })
 
-export default function Viewer({ categories, modules, onHealth }: { categories: Category[]; modules: LogModule[]; onHealth: (h: Health) => void }) {
+export default function Viewer({ categories, modules, kinds, onHealth }: { categories: Category[]; modules: LogModule[]; kinds: SessionKind[]; onHealth: (h: Health) => void }) {
   const [params, setParams] = useSearchParams()
   const session = VALID_SESSION.test(params.get('session') || '') ? params.get('session')! : ''
   const moduleId = VALID_SESSION.test(params.get('module') || '') ? params.get('module')!.toLowerCase() : ''
+  const kind = kinds.some((k) => k.id === params.get('kind')) ? params.get('kind')! : ''
   const [level, setLevel] = useState('')
   const [cats, setCats] = useState<string[]>([])
   const [text, setText] = useState('')
@@ -164,10 +165,11 @@ export default function Viewer({ categories, modules, onHealth }: { categories: 
     if (cats.length) p.set('cat', cats.join(','))
     if (session) p.set('session', session)
     if (moduleId) p.set('module', moduleId)
+    if (kind && !session) p.set('kind', kind)
     if (q) p.set('q', q)
     const s = p.toString()
     return s ? '&' + s : ''
-  }, [level, cats, session, moduleId, q])
+  }, [level, cats, session, moduleId, kind, q])
 
   const load = useCallback(async () => {
     const g = ++generation.current
@@ -274,8 +276,19 @@ export default function Viewer({ categories, modules, onHealth }: { categories: 
 
   const toggleCat = (id: string) => setCats((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id]))
   const setModule = (id: string) => setParams((p) => { const n = new URLSearchParams(p); if (id) n.set('module', id); else n.delete('module'); return n }, { replace: true })
-  const clearFilters = () => { setLevel(''); setCats([]); setText(''); setQ(''); setModule('') }
-  const filtered = !!(level || cats.length || text.trim() || moduleId)
+  const setKind = (id: string) => setParams((p) => { const n = new URLSearchParams(p); if (id) n.set('kind', id); else n.delete('kind'); return n }, { replace: true })
+  const clearFilters = () => { setLevel(''); setCats([]); setText(''); setQ(''); setParams((p) => { const n = new URLSearchParams(p); n.delete('module'); n.delete('kind'); return n }, { replace: true }) }
+  const filtered = !!(level || cats.length || text.trim() || moduleId || kind)
+  // The sessions of the chosen kind seen in what is shown, newest first, to follow one end to end.
+  const kindSessions = useMemo(() => {
+    if (!kind || kind === 'audit' || !rows) return []
+    const seen: string[] = []
+    for (let i = rows.length - 1; i >= 0 && seen.length < 12; i--) {
+      const id = rows[i].session
+      if (id && !seen.includes(id)) seen.push(id)
+    }
+    return seen
+  }, [kind, rows])
   const labels = useMemo(() => new Map(categories.map((c) => [c.id, c.label])), [categories])
   const modNames = useMemo(() => new Map(modules.map((m) => [m.id, m.name])), [modules])
 
@@ -305,6 +318,14 @@ export default function Viewer({ categories, modules, onHealth }: { categories: 
             {moduleId && !modNames.has(moduleId) && <option value={moduleId}>{moduleId}</option>}
           </select>
         </label>
+        {kinds.length > 0 && (
+          <label className="lg-field">Follow
+            <select className="select" value={kind} onChange={(e) => setKind(e.target.value)} aria-describedby="lg-follow-help">
+              <option value="">Anything</option>
+              {kinds.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
+            </select>
+          </label>
+        )}
         <label className="lg-field grow">Search
           <input className="input" type="search" value={text} placeholder="Words anywhere in a line" onChange={(e) => setText(e.target.value)} />
         </label>
@@ -322,6 +343,18 @@ export default function Viewer({ categories, modules, onHealth }: { categories: 
         </div>
       </details>
       {filtered && <button type="button" className="btn sm ghost lg-clear" onClick={clearFilters}><IconClose /> Clear filters</button>}
+      {kind && !session && (
+        <div className="lg-follow" id="lg-follow-help">
+          {kind === 'audit'
+            ? <span>Audit lines: changes that are always recorded, with who made them, whatever the levels say.</span>
+            : <span>{kindSessions.length ? 'Choose one to see it from start to end, on the server, in modules and in the apps:' : 'Lines from this kind of work will appear here. Choose one to follow it from start to end.'}</span>}
+          {kindSessions.length > 0 && (
+            <div className="chips">
+              {kindSessions.map((id) => <button key={id} type="button" className="chip" onClick={() => goSession(id)}><code>{id}</code></button>)}
+            </div>
+          )}
+        </div>
+      )}
 
       {session && (
         <div className="lg-session">

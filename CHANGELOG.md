@@ -5,6 +5,8 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- Saving the server's name answers `brandWarnings`: where a fixed colour of it is under 4.5:1 on the top bar, side menu or bevelled bars in the server's theme (ratio, surface, variant), for the name editor's "Check:" notes. The Aero themes' gloss recipes (day, sunset, meadow; aurora already passed) are darkened so button labels read at 4.5:1 over the middle of the gloss, and `scripts/theme-contrast.py` checks it.
+
 - First run: the setup wizard's own calls pass the setup gate. The gate keys on the administrator's session cookie, not on the absence of an `Authorization` header (the web app sends its token that way on every call, so Add Movies, the look and the logos steps all answered `setup_required`). A token with no cookie, or a header token that is not the cookie's, is an app and is still refused until setup is complete.
 - A look brings its default theme. The server's theme is the look's own until the administrator chooses a different one; saving the theme the server already wears no longer pins it, and `/api/status` and `/api/settings` report the theme the server really wears (they said `default` whatever the look).
 

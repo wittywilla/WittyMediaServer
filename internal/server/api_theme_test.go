@@ -288,3 +288,37 @@ func TestLookBringsItsDefaultTheme(t *testing.T) {
 		t.Errorf("following the look again: %q", themeOf())
 	}
 }
+
+// Saving the server's name says where a fixed colour of it can't be read: the PUT answer's
+// brandWarnings, empty when it reads on every surface.
+func TestSavingTheNameWarnsAboutFixedColours(t *testing.T) {
+	ts, admin, _, _ := sduiAccounts(t)
+	if err := ts.Themes.Install(builtin.Builtin); err != nil {
+		t.Fatal(err)
+	}
+	put := func(body map[string]string) map[string]json.RawMessage {
+		t.Helper()
+		w := ts.do(t, "PUT", "/api/settings", admin, body)
+		if w.Code != 200 {
+			t.Fatalf("settings: %d %s", w.Code, w.Body)
+		}
+		var out map[string]json.RawMessage
+		_ = json.Unmarshal(w.Body.Bytes(), &out)
+		return out
+	}
+	if out := put(map[string]string{"updateCheck": "1"}); out["brandWarnings"] != nil {
+		t.Error("brandWarnings on a change that isn't the name")
+	}
+	dark := `[{"from":0,"to":5,"color":{"kind":"static","hex":"#101418"}}]`
+	out := put(map[string]string{"brandName": "Witty", "brandSpans": dark})
+	var warn []BrandWarning
+	_ = json.Unmarshal(out["brandWarnings"], &warn)
+	if len(warn) == 0 || warn[0].Text != "Witty" || warn[0].Ratio >= 4.5 || warn[0].Need != 4.5 || warn[0].Surface == "" || warn[0].Where == "" {
+		t.Fatalf("a dark name on a dark theme: %s", out["brandWarnings"])
+	}
+	light := `[{"from":0,"to":5,"color":{"kind":"static","hex":"#ffffff"}}]`
+	out = put(map[string]string{"brandSpans": light})
+	if string(out["brandWarnings"]) != "[]" {
+		t.Errorf("a white name on a dark theme: %s", out["brandWarnings"])
+	}
+}

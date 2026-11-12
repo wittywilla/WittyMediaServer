@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Every module in one look</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap">
+</head>
+<body>
+<x-dc>
+<helmet><style>body{margin:0}</style></helmet>
+<div style="width:2000px;height:1500px;box-sizing:border-box;padding:32px 40px;background:#e8e8ee;font-family:Inter,system-ui,sans-serif;color:#1b1b22">
+  <div style="font-size:40px;font-weight:800;letter-spacing:-1px">{{title}} · every module wears the look</div>
+  <div style="font-size:18px;color:#4a4a58;margin-top:4px;max-width:1700px">A module's pages use the same tokens, finish and type as the rest of the app, so nothing looks borrowed. Settings pages for modules stay hand-built.</div>
+  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;margin-top:20px">
+    <sc-for list="{{items}}" as="i" hint-placeholder-count="12"><div><div style="zoom:.31"><dc-import name="Exp" exp="{{exp}}" plat="desktop" screen="{{i.s}}" hint-size="1440px,900px"></dc-import></div><div style="font-size:15px;font-weight:700;margin-top:4px">{{i.t}}</div><div style="font-size:12px;color:#4a4a58">{{i.m}}</div></div></sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"exp":{"editor":"text","default":"lumen"},"title":{"editor":"text","default":"Lumen"},"$preview":{"width":2000,"height":1500}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const d = [['reader', 'Books', 'WittyEbook, WittyInk highlights and notes, WittyReader'], ['pdf', 'PDFs', 'WittyPDF with page thumbnails and notes'], ['comics', 'Comics and manga', 'WittyComics'], ['photos', 'Photos', 'WittyPhotos timeline, map, albums'], ['stats', 'Statistics', 'WittyStats'], ['viz', 'Visualizer', 'WittyVisualizer'], ['files', 'Folder browser', 'WittyIntegratedFileBrowser'], ['disc', 'DVD and Blu-ray menu', 'WittyDVD, WittyBluray, WittyDisc'], ['cd', 'Audio CD', 'WittyCD'], ['couch', 'Play on…', 'WittyCouch, WittyRigs'], ['games', 'Games', 'WittyPlay'], ['guide', 'Live TV guide', 'WittyTuner, WittyTV'], ['nowplaying', 'Music', 'Music library, lyrics, karaoke']];
+    return { exp: this.props.exp || 'lumen', title: this.props.title || 'Lumen', items: d.map((a) => ({ s: a[0], t: a[1], m: a[2] })) };
+  }
+}
+</script>
+</body>
+</html>

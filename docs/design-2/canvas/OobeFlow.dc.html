@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>First run, every step in one look</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap">
+</head>
+<body>
+<x-dc>
+<helmet><style>body{margin:0}</style></helmet>
+<div style="width:2400px;height:1500px;box-sizing:border-box;padding:32px 40px;background:#e8e8ee;font-family:Inter,system-ui,sans-serif;color:#1b1b22">
+  <div style="font-size:40px;font-weight:800;letter-spacing:-1px">{{title}} · first run, all 14 steps</div>
+  <div style="font-size:18px;color:#4a4a58;margin-top:4px;max-width:1900px">First run is done in a web browser only. The server can't be reached by apps until it is finished: they show how to reach this page. The setup wears the look being tried, and every step is complete by keyboard, touch, remote and controller.</div>
+  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;margin-top:20px">
+    <sc-for list="{{steps}}" as="s" hint-placeholder-count="14"><div><div style="zoom:.3"><dc-import name="Exp" exp="{{exp}}" plat="desktop" screen="setup" step="{{s.n}}" hint-size="1440px,900px"></dc-import></div></div></sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"exp":{"editor":"text","default":"lumen"},"title":{"editor":"text","default":"Lumen"},"$preview":{"width":2400,"height":1500}}'>
+class Component extends DCLogic {
+  renderVals() { return { exp: this.props.exp || 'lumen', title: this.props.title || 'Lumen', steps: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map((n) => ({ n: String(n) })) }; }
+}
+</script>
+</body>
+</html>

@@ -968,10 +968,13 @@ export function Draw({ view, depth }: { view: View; depth: number }): ReactNode 
   const page = usePage()
   switch (view.type) {
     case 'Hero': return <HeroView view={view} />
-    case 'Shelf': return <ShelfView view={view} depth={depth} />
+    case 'Shelf': case 'Carousel': return <ShelfView view={view} depth={depth} />
     case 'Grid': return <GridView view={view} depth={depth} />
     case 'Card': return <CardView view={view} showTitles />
-    case 'Tabs': return <TabsView view={view} depth={depth} />
+    case 'Tabs': case 'CrossBar': return <TabsView view={view} depth={depth} />
+    case 'NumberedRow': return <ListView view={view} depth={depth} />
+    case 'WidgetGrid': return <div className="sdui-widgets" style={{ gridTemplateColumns: `repeat(${Math.max(1, num(view.node.props, 'columns') || 4)}, minmax(0, 1fr))` }} data-nav-group>{view.children.map((c) => <Draw key={c.id} view={c} depth={depth + 1} />)}</div>
+    case 'Widget': return <section className="sdui-widget elev-1" style={{ gridColumn: `span ${Math.max(1, num(view.node.props, 'w') || 1)}`, gridRow: `span ${Math.max(1, num(view.node.props, 'h') || 1)}` }} aria-label={view.label}>{view.text?.title && <h3>{view.text.title}</h3>}{view.children.map((c) => <Draw key={c.id} view={c} depth={depth + 1} />)}</section>
     case 'Tab': return <div className="sdui-stack">{view.children.map((c) => <Draw key={c.id} view={c} depth={depth + 1} />)}</div>
     case 'FilterBar': return <FilterBarView view={view} />
     case 'DetailHeader': return <DetailHeaderView view={view} />

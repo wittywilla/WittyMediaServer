@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lumen on every platform</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap">
+</head>
+<body>
+<x-dc>
+<helmet><style>body{margin:0}</style></helmet>
+<div style="width:4100px;height:820px;box-sizing:border-box;padding:36px 40px;background:#e9e7f2;font-family:Inter,system-ui,sans-serif;color:#1b1a26">
+  <div style="display:flex;align-items:baseline;gap:24px"><div style="font-size:44px;font-weight:800;letter-spacing:-1px">1 · Lumen</div><div style="font-size:22px;color:#4a4860">Quiet cinema. Top pills, billboard hero. Server name: theme accent on "Media".</div></div>
+  <div style="display:flex;gap:40px;align-items:flex-start;margin-top:24px">
+    <div><div style="zoom:.6"><dc-import name="Exp" exp="lumen" plat="tv" hint-size="1920px,1080px"></dc-import></div><div style="font-size:18px;margin-top:8px">Apple TV · Android TV · web TV mode</div></div>
+    <div><div style="zoom:.6"><dc-import name="Exp" exp="lumen" plat="desktop" hint-size="1440px,900px"></dc-import></div><div style="font-size:18px;margin-top:8px">Mac · Windows · Linux · web</div></div>
+    <div><div style="zoom:.6"><dc-import name="Exp" exp="lumen" plat="tablet" hint-size="1024px,768px"></dc-import></div><div style="font-size:18px;margin-top:8px">iPad · Android tablet</div></div>
+    <div><div style="zoom:.6"><dc-import name="Exp" exp="lumen" plat="phone" hint-size="390px,844px"></dc-import></div><div style="font-size:18px;margin-top:8px">iPhone · Android</div></div>
+    <div><div style="zoom:.6"><dc-import name="Exp" exp="lumen" plat="vr" hint-size="1600px,900px"></dc-import></div><div style="font-size:18px;margin-top:8px">Apple Vision Pro · Quest</div></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":4100,"height":820}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>

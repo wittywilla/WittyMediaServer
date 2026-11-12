@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Stage phone Home</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+.root{position:relative;width:390px;height:844px;overflow:hidden;background:#0b1120;color:#e6ecf7;font-family:Inter,system-ui,sans-serif}
+.tab{flex:none;font-size:15px;font-weight:600;color:#c3cde0;padding:8px 2px;position:relative}
+.tab.on{color:#fff}
+.tab.on:after{content:"";position:absolute;left:0;right:0;bottom:-2px;height:3px;border-radius:2px;background:#6ea4ff}
+</style>
+</helmet>
+<div class="root">
+  <div style="position:absolute;inset:0;background:radial-gradient(360px 320px at 70% 22%,#2a5fd0,transparent 62%),linear-gradient(180deg,#14224a,#0b1120 60%)"></div>
+  <div style="position:absolute;right:40px;top:120px;width:190px;height:190px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#dff0ff,#6ea4ff 45%,#16306a);opacity:.85"></div>
+  <div style="position:absolute;inset:0;background:linear-gradient(0deg,#0b1120 22%,rgba(11,17,32,.7) 50%,rgba(11,17,32,0) 75%)"></div>
+  <div style="position:absolute;left:16px;right:0;top:56px;display:flex;gap:20px;overflow:hidden;align-items:center">
+    <sc-for list="{{tabs}}" as="t" hint-placeholder-count="6"><div class="tab {{t.cls}}">{{t.label}}</div></sc-for>
+  </div>
+  <div style="position:absolute;left:16px;right:16px;top:400px">
+    <div style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#6ea4ff">Featured</div>
+    <div style="font-size:44px;font-weight:800;letter-spacing:-1.4px;line-height:1;margin-top:8px">Orbit of Glass</div>
+    <div style="font-size:13px;color:#c3cde0;margin-top:10px">2025 · Sci-fi · 2 hr 6 min · 4K HDR</div>
+    <div style="display:flex;gap:10px;margin-top:18px"><div style="height:48px;padding:0 28px;border-radius:24px;background:#fff;color:#0b1120;font-size:15px;font-weight:700;display:flex;align-items:center">Play</div><div style="height:48px;padding:0 20px;border-radius:24px;background:rgba(230,236,247,.16);font-size:15px;font-weight:600;display:flex;align-items:center">+ Watchlist</div></div>
+  </div>
+  <div style="position:absolute;left:16px;top:600px;right:0">
+    <div style="font-size:17px;font-weight:700;margin-bottom:12px">Trending on your server</div>
+    <div style="display:flex;gap:12px">
+      <sc-for list="{{cards}}" as="c" hint-placeholder-count="3"><div style="flex:none;width:200px"><div style="width:200px;height:112px;border-radius:10px;background:{{c.bg}}"></div><div style="font-size:13px;font-weight:600;margin-top:8px">{{c.t}}</div></div></sc-for>
+    </div>
+  </div>
+  <div style="position:absolute;left:0;right:0;bottom:0;height:84px;background:rgba(11,17,32,.96);box-shadow:0 -1px 0 rgba(230,236,247,.12);display:flex;justify-content:space-around;padding-top:14px;box-sizing:border-box;font-size:11px;font-weight:600;color:#c3cde0">
+    <span style="color:#6ea4ff">Home</span><span>Live TV</span><span>Search</span><span>Library</span><span>You</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const tabs = ['Home', 'Movies', 'Shows', 'Music', 'Games'].map((l, i) => ({ label: l, cls: i === 0 ? 'on' : '' }));
+    const cards = [
+      { t: 'Orbit of Glass', bg: 'linear-gradient(135deg,#2f6fed,#14224a)' },
+      { t: 'Harbour Lights', bg: 'linear-gradient(135deg,#1c5d7a,#241a52)' },
+      { t: 'Signal Fire', bg: 'linear-gradient(135deg,#2f6f4f,#12202a)' }
+    ];
+    return { tabs, cards };
+  }
+}
+</script>
+</body>
+</html>

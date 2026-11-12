@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>WittyTV Big picture, Stage</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+.root{position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b1120;color:#e6ecf7;font-family:Inter,system-ui,sans-serif}
+.tab{font-size:29px;font-weight:600;color:#c3cde0;padding:12px 4px;position:relative}
+.tab.on{color:#fff}
+.tab.on:after{content:"";position:absolute;left:0;right:0;bottom:-4px;height:5px;border-radius:3px;background:#6ea4ff}
+.key{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:34px;padding:0 8px;border-radius:17px;background:rgba(230,236,247,.2);color:#fff;font-size:20px;font-weight:700;box-sizing:border-box}
+.db{display:flex;align-items:center;gap:12px;height:64px;padding:0 26px 0 16px;border-radius:999px;font-size:25px;font-weight:600;color:#fff;box-sizing:border-box}
+</style>
+</helmet>
+<div class="root">
+  <div style="position:absolute;left:0;top:0;width:1920px;height:640px;background:radial-gradient(800px 500px at 72% 40%,#2a5fd0,transparent 60%),radial-gradient(600px 500px at 100% 80%,#0f8a8a,transparent 60%),linear-gradient(180deg,#14224a,#0b1120)"></div>
+  <div style="position:absolute;right:200px;top:110px;width:420px;height:420px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#dff0ff,#6ea4ff 45%,#16306a);opacity:.85"></div>
+  <div style="position:absolute;left:0;top:0;width:1920px;height:720px;background:linear-gradient(90deg,rgba(11,17,32,.94),rgba(11,17,32,.55) 45%,rgba(11,17,32,0) 70%),linear-gradient(0deg,#0b1120,rgba(11,17,32,0) 45%)"></div>
+
+  <div style="position:absolute;left:90px;right:90px;top:30px;height:64px;display:flex;align-items:center;gap:44px">
+    <div style="font-size:31px;font-weight:800;letter-spacing:-.4px;margin-right:16px;color:#fff">Witty<span style="color:#6ea4ff">Media</span></div>
+    <sc-for list="{{tabs}}" as="t" hint-placeholder-count="6"><div class="tab {{t.cls}}">{{t.label}}</div></sc-for>
+    <div style="flex:1"></div>
+    <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#2f6fed,#3ad29f)"></div>
+  </div>
+
+  <div style="position:absolute;left:90px;top:150px;width:900px">
+    <div style="display:flex;align-items:center;gap:14px"><span style="height:34px;padding:0 12px;border-radius:6px;background:#ff5c6c;color:#14090b;font-size:20px;font-weight:800;display:flex;align-items:center">LIVE</span><span style="font-size:25px;font-weight:600;color:#c3cde0">Ch 5 · Orchard Movies</span></div>
+    <div style="font-size:96px;font-weight:800;letter-spacing:-3px;line-height:1;margin-top:20px">Harbour Lights</div>
+    <div style="font-size:25px;color:#c3cde0;margin-top:20px">8:00 – 9:52 PM · Drama · PG-13 · Up next: Late Edition</div>
+    <div style="font-size:29px;line-height:1.5;margin-top:20px;max-width:760px">A night-shift ferry pilot finds a locked lantern room in the harbour she has crossed for twenty years.</div>
+  </div>
+
+  <div style="position:absolute;left:90px;top:668px;width:1740px">
+    <div style="display:flex;height:44px;align-items:center">
+      <div style="width:300px;flex:none;font-size:25px;color:#8592aa;font-weight:600">Thu Nov 12</div>
+      <div style="position:relative;flex:1;height:44px"><sc-for list="{{times}}" as="m" hint-placeholder-count="4"><div style="position:absolute;left:{{m.x}}px;top:4px;font-size:25px;font-weight:600;color:#a8b4ca">{{m.t}}</div></sc-for></div>
+    </div>
+    <div style="position:relative">
+      <sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+        <div style="display:flex;height:84px;margin-bottom:8px">
+          <div style="flex:none;width:300px;display:flex;align-items:center;gap:16px;font-size:25px;font-weight:700"><span style="color:#8592aa;width:42px">{{r.n}}</span>{{r.name}}</div>
+          <div style="position:relative;flex:1;overflow:hidden">
+            <sc-for list="{{r.cells}}" as="c" hint-placeholder-count="3"><div style="position:absolute;top:0;height:84px;left:{{c.x}}px;width:{{c.w}}px;box-sizing:border-box;padding:0 24px;display:flex;align-items:center;border-radius:14px;font-size:25px;font-weight:600;white-space:nowrap;overflow:hidden;{{c.st}}">{{c.t}}</div></sc-for>
+          </div>
+        </div>
+      </sc-for>
+      <div style="position:absolute;left:{{nowX}}px;top:-6px;bottom:0;width:3px;background:#ff5c6c"></div>
+    </div>
+  </div>
+
+  <div style="position:absolute;left:50%;margin-left:-720px;width:1440px;top:984px;height:80px;border-radius:999px;background:rgba(17,26,46,.96);box-shadow:0 0 0 1px rgba(230,236,247,.14);display:flex;align-items:center;justify-content:center;gap:10px">
+    <sc-for list="{{dock}}" as="d" hint-placeholder-count="6"><div class="db" style="{{d.st}}"><span class="key">{{d.k}}</span>{{d.t}}</div></sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const tabs = [
+      { label: 'Home', cls: '' }, { label: 'Movies', cls: '' }, { label: 'Shows', cls: '' },
+      { label: 'Music', cls: '' }, { label: 'Games', cls: '' }, { label: 'Live TV', cls: 'on' }, { label: 'Search', cls: '' }
+    ];
+    const W = 1440, ppm = W / 120;
+    const times = [['8:00', 0], ['8:30', 30], ['9:00', 60], ['9:30', 90]].map((a) => ({ t: a[0], x: a[1] * ppm }));
+    const chans = [
+      ['4', 'Harbour Network', [[0, 60, 'The Quiet Orchard'], [60, 120, 'Weather and Tides']]],
+      ['5', 'Orchard Movies', [[0, 112, 'Harbour Lights', 'focus'], [112, 120, 'Ad']]],
+      ['7', 'Kids Cove', [[0, 35, 'Paper Planets'], [35, 120, 'Low Tide Tales']]],
+      ['9', 'Signal Docs', [[0, 55, 'Signal Fire'], [55, 120, 'Night Market: A Year']]]
+    ];
+    const rows = chans.map((c) => ({
+      n: c[0], name: c[1],
+      cells: c[2].map((p) => {
+        const x = p[0] * ppm + 4, w = (p[1] - p[0]) * ppm - 8;
+        let st = 'background:#18233b;color:#e6ecf7;';
+        if (p[3] === 'focus') st = 'background:#2f6fed;color:#fff;box-shadow:0 0 0 4px #0b1120,0 0 0 8px #fff;z-index:2;';
+        return { x, w, st, t: p[2] };
+      })
+    }));
+    const dock = [
+      { k: 'X', t: 'Look', st: '' }, { k: 'Y', t: 'Day', st: '' }, { k: 'LB', t: 'Channels', st: '' },
+      { k: 'RB', t: 'Filter', st: '' }, { k: 'Menu', t: 'Recordings', st: '' }, { k: '●', t: 'Record', st: 'background:#2f6fed' }
+    ];
+    return { tabs, times, rows, nowX: 300 + 42 * ppm, dock };
+  }
+}
+</script>
+</body>
+</html>

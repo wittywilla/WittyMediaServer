@@ -23,6 +23,9 @@ export const CARD_STYLES: Record<string, CardStyle> = {
   photo: style('square', '1/1', '', 0, 0),
   channel: style('landscape', '16/9', 'number title now next progress', 1, 2),
   tile: style('landscape', '16/9', 'title count', 1, 0),
+  plate: style('poster', '2/3', 'title subtitle badges', 2, 1),
+  block: style('landscape', '16/9', 'title subtitle', 2, 1),
+  logo: style('landscape', '16/9', 'number title', 1, 0),
   chip: style('chip', '', 'title', 1, 0),
 }
 

@@ -11,7 +11,7 @@ import { PageHead, Row, Section, Switch } from '../settings/ui'
 import TunerLogo from './TunerLogo'
 import { LogoConsentHint } from '../../components/edit/LogoChooser'
 import { forgetOwnerLook } from './look'
-import { fromLegacy, THEMES } from './tvThemes'
+import { THEMES } from './tvThemes'
 import { forgetLineup, type Channel, type Driver, type EPGSource, type Found, type ScanState, type Tuner, type TunerChannel } from './tvApi'
 import { useFeatures } from '../../sdui/useSdui'
 import { BulkBar, ChannelHealth, CheckAll, Duplicates, Merged } from './TunerTools'
@@ -330,12 +330,11 @@ function GuideSources() {
 // What a new viewer starts with. Someone's own choice comes first, then what their app theme
 // suggests, and then this, so that's what it says.
 function OwnerTheme({ s, set }: { s: Record<string, string>; set: (k: string, v: string) => Promise<void> }) {
-  const earlier = fromLegacy(s.tvLayout, s.tvSkin)
-  const current = s.tvTheme || (earlier.theme === 'custom' || earlier.themeColours ? '' : earlier.theme!)
+  const current = s.tvTheme || ''
   return (
     <Row label="WittyTV theme for new viewers" desc={<>What someone starts with until they choose. Their own choice in <Link to="/settings/appearance#wittytv">Settings, Appearance</Link> or the guide's Look panel comes first, then what their app theme suggests, and then this. Custom is each viewer's own, so it isn't offered here.</>}>
       <select className="select" value={current} onChange={(e) => { void set('tvTheme', e.target.value).then(forgetOwnerLook) }}>
-        {!current && <option value="">As set earlier</option>}
+        {!current && <option value="">Classic</option>}
         {THEMES.filter((t) => t.id !== 'custom').map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
       </select>
     </Row>

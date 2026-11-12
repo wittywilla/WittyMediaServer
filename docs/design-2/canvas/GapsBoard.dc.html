@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Connect, profiles, remote, WittyTV states and credits</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap">
+</head>
+<body>
+<x-dc>
+<helmet><style>body{margin:0}</style></helmet>
+<div style="width:2500px;height:2000px;box-sizing:border-box;padding:32px 40px;background:#e8e8ee;font-family:Inter,system-ui,sans-serif;color:#1b1b22">
+  <div style="font-size:40px;font-weight:800;letter-spacing:-1px">{{title}} · the screens the apps already have</div>
+  <div style="font-size:18px;color:#4a4a58;margin-top:4px;max-width:2000px">Connect and away, profiles and rules, remote and watch party, disc ranking, skip, WittyTV viewer states (sheets, find, search, sets, record, reminders, failures) and credits. Each is the same screen on TV, tablet and phone: one column on a phone, the same sections and the same words.</div>
+  <div style="display:flex;flex-wrap:wrap;gap:18px 20px;margin-top:20px;align-items:flex-start">
+    <sc-for list="{{items}}" as="i" hint-placeholder-count="24"><div><div style="zoom:{{i.z}}"><dc-import name="Exp" exp="{{exp}}" plat="{{i.p}}" screen="{{i.s}}" hint-size="{{i.hs}}"></dc-import></div><div style="font-size:14px;font-weight:700;margin-top:4px">{{i.t}}</div></div></sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"exp":{"editor":"text","default":"lumen"},"title":{"editor":"text","default":"Lumen"},"$preview":{"width":2500,"height":2000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const d = [['connect', 'Choose your server (saved first)'], ['away', 'You, From away, join from away'], ['mismatch', 'This isn’t the server you used before'], ['pairing', 'Sign in a TV, approve with a code'], ['profiles', 'Profile and parental limits'], ['screentime', 'Screen time is over'], ['askparent', 'Ask a parent'], ['colours', 'Your colours and contrast refusals'], ['skipset', 'Skip buttons'], ['remotepick', 'Play on…'], ['party', 'Watch party'], ['whytitle', 'Disc: why this title'], ['tvchannels', 'WittyTV: Channels sheet and pager'], ['tvday', 'WittyTV: Day sheet'], ['tvfind', 'WittyTV: find and dial'], ['tvsearch', 'WittyTV: schedule search'], ['tvsetedit', 'WittyTV: set editor'], ['tvrecopts', 'WittyTV: record options'], ['tvremind', 'WittyTV: reminders'], ['tvfail', 'WittyTV: when it can’t play, catch-up'], ['credits', 'Cast and crew by department'], ['person', 'Person page']];
+    const items = d.map((a) => ({ s: a[0], t: a[1], p: 'desktop', z: .27, hs: '1440px,900px' })).concat([{ s: 'connect', t: 'Phone: choose your server', p: 'phone', z: .4, hs: '390px,844px' }, { s: 'profiles', t: 'Phone: profile', p: 'phone', z: .4, hs: '390px,844px' }, { s: 'tvchannels', t: 'Phone: Channels sheet', p: 'phone', z: .4, hs: '390px,844px' }, { s: 'screentime', t: 'TV: screen time', p: 'tv', z: .2, hs: '1920px,1080px' }]);
+    return { exp: this.props.exp || 'lumen', title: this.props.title || 'Lumen', items };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>WittyTV screens in one look</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap">
+</head>
+<body>
+<x-dc>
+<helmet><style>body{margin:0}</style></helmet>
+<div style="width:2000px;height:1180px;box-sizing:border-box;padding:32px 40px;background:#e8e8ee;font-family:Inter,system-ui,sans-serif;color:#1b1b22">
+  <div style="font-size:40px;font-weight:800;letter-spacing:-1px">{{title}} · WittyTV screens</div>
+  <div style="font-size:18px;color:#4a4a58;margin-top:4px;max-width:1700px">Every WittyTV screen shows what's on (logo, title, times, description) and a More info button (ⓘ, key I). It opens a pop-up over the guide or the picture: overview, cast and crew, where to watch, trailers, schedule. Nothing leaves the TV.</div>
+  <div style="display:flex;flex-wrap:wrap;gap:20px 24px;margin-top:20px;align-items:flex-start">
+    <div><div style="zoom:.3"><dc-import name="Exp" exp="{{exp}}" plat="tv" screen="guide" hint-size="1920px,1080px"></dc-import></div><div style="font-size:14px;margin-top:4px">TV · guide with description and More info</div></div>
+    <div><div style="zoom:.3"><dc-import name="Exp" exp="{{exp}}" plat="tv" screen="tvinfo" hint-size="1920px,1080px"></dc-import></div><div style="font-size:14px;margin-top:4px">TV · More info pop-up</div></div>
+    <div><div style="zoom:.3"><dc-import name="Exp" exp="{{exp}}" plat="tv" screen="tvwatch" hint-size="1920px,1080px"></dc-import></div><div style="font-size:14px;margin-top:4px">TV · watching: banner, description, mini guide</div></div>
+    <div><div style="zoom:.4"><dc-import name="Exp" exp="{{exp}}" plat="desktop" screen="guide" hint-size="1440px,900px"></dc-import></div><div style="font-size:14px;margin-top:4px">Desktop · guide</div></div>
+    <div><div style="zoom:.4"><dc-import name="Exp" exp="{{exp}}" plat="desktop" screen="tvinfo" hint-size="1440px,900px"></dc-import></div><div style="font-size:14px;margin-top:4px">Desktop · More info</div></div>
+    <div><div style="zoom:.5"><dc-import name="Exp" exp="{{exp}}" plat="phone" screen="guide" hint-size="390px,844px"></dc-import></div><div style="font-size:14px;margin-top:4px">Phone · guide</div></div>
+    <div><div style="zoom:.5"><dc-import name="Exp" exp="{{exp}}" plat="phone" screen="tvinfo" hint-size="390px,844px"></dc-import></div><div style="font-size:14px;margin-top:4px">Phone · More info sheet</div></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"exp":{"editor":"text","default":"lumen"},"title":{"editor":"text","default":"Lumen"},"$preview":{"width":2000,"height":1180}}'>
+class Component extends DCLogic { renderVals() { return { exp: this.props.exp || 'lumen', title: this.props.title || 'Lumen' }; } }
+</script>
+</body>
+</html>

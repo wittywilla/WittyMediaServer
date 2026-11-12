@@ -53,9 +53,7 @@ const DAY_NAMES = 15
 // drawn as one, which says how many.
 const TINY_PX = 14
 
-type Filter = { kind: '' | 'library' | 'tuner'; group: string; favourites: boolean }
 type Focus = { row: number; at: number }
-const NO_FILTER: Filter = { kind: '', group: '', favourites: false }
 
 // The cells of a row for the window on screen; gaps are cells too, so every
 // moment of every channel can be reached with the keyboard.
@@ -106,8 +104,6 @@ function jumps(now: number): { label: string; at: number }[] {
   return [tonight > now + 1800 ? { label: 'Tonight 8 PM', at: tonight } : { label: 'Tomorrow 8 PM', at: at(1, 20) }, { label: 'Tomorrow morning', at: at(1, 8) }]
 }
 
-const matches = (c: GuideChannel, f: Filter) => (!f.kind || c.kind === f.kind) && (!f.group || c.group === f.group || !!c.categories?.includes(f.group)) && (!f.favourites || !!c.favourite)
-const filterQuery = (f: Filter) => `&kind=${f.kind}&group=${encodeURIComponent(f.group)}${f.favourites ? '&favourites=1' : ''}`
 
 export default function GuidePage() {
   const { user } = useApp()
@@ -115,15 +111,11 @@ export default function GuidePage() {
   const nav = useNavigate()
   const now = useClock(30000)
   const features = useFeatures()
-  const hasSets = !!features?.has('tv-sets')
-  const hasPaging = !!features?.has('tv-guide-paging')
   const hasCatchup = !!features?.has('tv-catchup')
   const hasRules2 = !!features?.has('tv-dvr-rules-2')
   const [prefs, setPrefs] = useGuidePrefs()
   const pageSize: PageSize = prefs.pageSize
   const [from, setFrom] = useState(() => floorSlot(Date.now() / 1000))
-  // The filters of a server without sets.
-  const [filter, setFilter] = useState<Filter>(NO_FILTER)
   const [sets, setSets] = useState<SetList | null>(null)
   const [setsFailed, setSetsFailed] = useState(false)
   // Finding a channel: what's typed, and what the rows are asked for, a moment later.
@@ -135,7 +127,6 @@ export default function GuidePage() {
   const [, setRowsVer] = useState(0)
   const bumpRows = () => setRowsVer((v) => v + 1)
   const [total, setTotal] = useState<number | null>(null)
-  const [groups, setGroups] = useState<string[]>([])
   const look = useLook()
   const [lookOpen, setLookOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -181,21 +172,20 @@ export default function GuidePage() {
   const reminders = useReminders()
 
   // Which set: the one this device chose while the server has it, else all channels.
-  const setId = hasSets && sets ? chooseSet(prefs.set, sets.sets) : ALL_SET
+  const setId = sets ? chooseSet(prefs.set, sets.sets) : ALL_SET
   const curSet = sets?.sets.find((s) => s.id === setId)
-  const q = hasPaging ? query.trim() : ''
-  const viewQuery = (hasSets ? `&set=${encodeURIComponent(setId)}` : filterQuery(filter)) + (q ? `&q=${encodeURIComponent(q)}` : '')
+  const q = query.trim()
+  const viewQuery = `&set=${encodeURIComponent(setId)}` + (q ? `&q=${encodeURIComponent(q)}` : '')
   // Until the server has said what it can do, and which sets there are, nothing is asked for.
-  const ready = features !== null && (!hasSets || sets !== null || setsFailed)
+  const ready = features !== null && (sets !== null || setsFailed)
   const filterKey = ready ? viewQuery : ''
   const filterKeyRef = useRef(filterKey)
   filterKeyRef.current = filterKey
-  const noFilter = !q && (hasSets ? setId === ALL_SET : !filter.kind && !filter.group && !filter.favourites)
+  const noFilter = !q && setId === ALL_SET
 
   const loadSets = useCallback(() => {
-    if (!hasSets) return
     getSets().then((s) => { setSets(s); setSetsFailed(false) }).catch((e) => { setSetsFailed(true); setErr((e as Error).message) })
-  }, [hasSets])
+  }, [])
   useEffect(loadSets, [loadSets])
   const pickSet = (id: string) => {
     setPrefs({ set: id })
@@ -276,15 +266,14 @@ export default function GuidePage() {
       // An answer about what was shown before is no use now.
       if (filterKeyRef.current !== fk || loaded.current !== mark) return
       setTotal(g.total)
-      if (!hasSets) setGroups((was) => (filter.group || filter.favourites || filter.kind ? [...new Set([...was, ...(g.groups || [])])] : g.groups || []))
-      setOwnerLook({ theme: g.theme, layout: g.layout, skin: g.skin })
+      setOwnerLook({ theme: g.theme })
       noteBackgroundDefault(g.backgroundPlay)
       const m = rowsRef.current
       ;(g.channels || []).forEach((c, i) => { m.set(g.offset + i, c) })
       bumpRows()
       setErr('')
     } catch (e) { mark.delete(key); if (filterKeyRef.current === fk) setErr((e as Error).message) }
-  }, [fetchFrom, hasSets, filter.group, filter.favourites, filter.kind])
+  }, [fetchFrom])
   useEffect(() => {
     if (!ready) return
     if (pageSize) { void loadRows(pageStart, pageSize); return }
@@ -302,22 +291,15 @@ export default function GuidePage() {
     setTick((n) => n + 1)
   }
 
-  // Where a channel (its key or number) is among the rows shown: -1 when it isn't there. A server
-  // with tv-guide-paging finds it in the set itself; before that, the list of every channel does.
+  // Where a channel (its key or number) is among the rows shown: -1 when it isn't there. The server finds it in the set.
   const locate = useCallback(async (what: string, wide = false): Promise<number> => {
-    if (hasPaging) {
-      const scope = wide ? (hasSets ? `&set=${ALL_SET}` : '') : filterKeyRef.current
-      const g = await api.get<Page>(`/guide?list=1&lite=1&limit=1${scope}&locate=${encodeURIComponent(what)}`)
-      return g.located ?? -1
-    }
-    const list = await getLineup()
-    const shown = wide ? list : hasSets ? (setId === ALL_SET ? list : []) : list.filter((c) => matches(c, filter))
-    return shown.findIndex((c) => c.key === what || c.number === what)
-  }, [hasPaging, hasSets, setId, filter])
+    const scope = wide ? `&set=${ALL_SET}` : filterKeyRef.current
+    const g = await api.get<Page>(`/guide?list=1&lite=1&limit=1${scope}&locate=${encodeURIComponent(what)}`)
+    return g.located ?? -1
+  }, [])
   // Everything shown again, at that row of all channels.
   const showAllAt = (row: number, at?: number) => {
-    if (hasSets) setPrefs({ set: ALL_SET })
-    else setFilter(NO_FILTER)
+    setPrefs({ set: ALL_SET })
     setFind(''); setQuery('')
     setGoRow({ row, at, centre: true })
   }
@@ -413,14 +395,12 @@ export default function GuidePage() {
   const dialTo = async (n: string) => {
     try {
       const here = await locate(n)
-      // Against a server without sets, a filter narrows what's shown as a set would.
-      const narrowedBy = hasSets ? setId : filter.kind || filter.group || filter.favourites ? 'filter' : ALL_SET
-      const wider = widerLookup(narrowedBy, q, here)
+      const wider = widerLookup(setId, q, here)
       const all = wider ? await locate(n, true) : null
       const out = dialOutcome(here, all)
       if (out.kind === 'here') { moveRow(out.row); announce(`Channel ${n}`) }
       else if (out.kind === 'elsewhere') {
-        const where = hasSets ? curSet?.name || 'this set' : 'these channels'
+        const where = curSet?.name || 'this set'
         announce(`Channel ${n} isn't in ${where}`)
         toast(`Channel ${n} isn't in ${where}.`, { action: { label: 'Show all channels', run: () => showAllAt(out.row) } })
       } else { announce(`No channel ${n}`); toast(`No channel ${n}`) }
@@ -452,7 +432,7 @@ export default function GuidePage() {
     try {
       await setFavourite(ch.key, on)
       forgetLineup(); void refreshLineup()
-      if (hasSets) { loadSets(); if (setId === 'fav') refreshView(true) }
+      loadSets(); if (setId === 'fav') refreshView(true)
     } catch (e) { toast((e as Error).message) }
   }
   const jumpToLast = async () => {
@@ -462,10 +442,9 @@ export default function GuidePage() {
     const i = await locate(key).catch(() => -1)
     if (i >= 0) { moveRow(i); announce(`Channel ${c.number}, ${c.name}`) } else watch(key)
   }
-  const cycleKind = () => setFilter((f) => ({ ...f, kind: f.kind === '' ? 'library' : f.kind === 'library' ? 'tuner' : '' }))
   const nextSet = (dir: 1 | -1) => { if (sets) pickSet(stepSet(sets.sets, setId, dir)) }
-  const cycle = () => (hasSets ? nextSet(1) : cycleKind())
-  const openPicker = () => { if (hasSets && sets) setPickerOpen(true) }
+  const cycle = () => nextSet(1)
+  const openPicker = () => { if (sets) setPickerOpen(true) }
   const offerRecord = (ch: GuideChannel, p: Programme, series: boolean) => {
     if (hasRules2) setRecordFor({ ch, p, series })
     else if (!series) void record(ch, p)
@@ -520,10 +499,10 @@ export default function GuidePage() {
       case 'a': case 'A': case 'ColorF0Red': shiftTime(-86400); break
       case 'b': case 'B': case 'ColorF1Green': shiftTime(86400); break
       case 'c': case 'C': case 'ColorF2Yellow': cycle(); break
-      case 'ColorF3Blue': if (hasSets) openPicker(); else handled = false; break
-      case '[': if (hasSets) nextSet(-1); else handled = false; break
-      case ']': if (hasSets) nextSet(1); else handled = false; break
-      case 't': case 'T': if (hasSets && cur) setAddTo(cur); else handled = false; break
+      case 'ColorF3Blue': openPicker(); break
+      case '[': nextSet(-1); break
+      case ']': nextSet(1); break
+      case 't': case 'T': if (cur) setAddTo(cur); else handled = false; break
       default:
         if (/^[0-9.]$/.test(e.key)) pressDigit(e.key)
         else handled = false
@@ -585,12 +564,6 @@ export default function GuidePage() {
     const c = cur?.key === previewKey ? cur : lineup.find((x) => x.key === previewKey)
     return c ? `${c.number} ${c.name}` : ''
   }, [previewKey, cur, lineup])
-  // Read once per list, not on every key: a playlist can have thousands.
-  const { hasBoth, anyFav } = useMemo(() => ({
-    hasBoth: lineup.some((c) => c.kind === 'tuner') && lineup.some((c) => c.kind === 'library'),
-    anyFav: lineup.some((c) => c.favourite),
-  }), [lineup])
-
   // The most the preview may take, and what it starts at until someone chooses a size.
   const narrow = pageSizeBox.w < 760
   const previewMax = previewLimit(pageSizeBox.w, pageSizeBox.h, narrow)
@@ -616,29 +589,21 @@ export default function GuidePage() {
   const dayOffset = Math.round((dayStart(from) - today) / 86400)
   const goDay = (n: number) => shiftTime(n === 0 ? floorSlot(now) - from : (n - dayOffset) * 86400)
   const emptyWords = q ? 'No channel has that number or name here.'
-    : hasSets ? (setId === 'fav' ? 'No favourites yet: press the star on a channel.' : 'There are no channels in this set that you can watch.')
-    : filter.favourites ? 'No favourites yet: press the star on a channel.' : 'No channels match that.'
+    : setId === 'fav' ? 'No favourites yet: press the star on a channel.' : 'There are no channels in this set that you can watch.'
   const lastPage = total != null && pageSize ? pageStart + pageSize >= total : true
   // The Dock under the grid: six buttons that never move, whatever the look (docs/plans/DESIGN-2.md section 4).
   const hasFav = !!sets?.sets.some((x) => x.id === 'fav')
-  const filterItems: MenuEntry[] = hasSets ? [
-    { key: 'find', label: 'Find a channel', onSelect: () => document.querySelector<HTMLInputElement>('.ctv-find input')?.focus(), disabled: !hasPaging },
+  const filterItems: MenuEntry[] = [
+    { key: 'find', label: 'Find a channel', onSelect: () => document.querySelector<HTMLInputElement>('.ctv-find input')?.focus() },
     { key: 'all', label: 'All channels', current: setId === ALL_SET, onSelect: () => pickSet(ALL_SET) },
     ...(hasFav ? [{ key: 'fav', label: 'Favourites', current: setId === 'fav', onSelect: () => pickSet('fav') }] : []),
     { kind: 'separator', key: 'sep' },
     { key: 'togglefav', label: cur?.favourite ? 'Remove this channel from favourites' : 'Add this channel to favourites', disabled: !cur, onSelect: () => { if (cur) void toggleFav(cur) } },
     { key: 'addset', label: 'Add this channel to a set…', disabled: !cur, onSelect: () => { if (cur) setAddTo(cur) } },
-  ] : [
-    { key: 'all', label: 'All channels', current: noFilter, onSelect: () => setFilter(NO_FILTER) },
-    ...((anyFav || filter.favourites) ? [{ key: 'fav', label: 'Favourites', current: filter.favourites, onSelect: () => setFilter({ kind: '', group: '', favourites: !filter.favourites }) }] : []),
-    ...groups.map((g) => ({ key: 'g' + g, label: g, current: filter.group === g, onSelect: () => setFilter({ kind: '', favourites: false, group: filter.group === g ? '' : g }) })),
-    ...(hasBoth ? [
-      { key: 'lib', label: 'My library', current: filter.kind === 'library', onSelect: () => setFilter({ group: '', favourites: false, kind: filter.kind === 'library' ? '' : 'library' }) },
-      { key: 'tun', label: 'Live TV', current: filter.kind === 'tuner', onSelect: () => setFilter({ group: '', favourites: false, kind: filter.kind === 'tuner' ? '' : 'tuner' }) },
-    ] : []),
   ]
   const channelItems: MenuEntry[] = [
-    ...(hasSets ? [{ key: 'sets', label: 'Choose channels…', hint: 'C', onSelect: openPicker }, { kind: 'separator', key: 'sep' } as MenuEntry] : []),
+    { key: 'sets', label: 'Choose channels…', hint: 'C', onSelect: openPicker },
+    { kind: 'separator', key: 'sep' },
     { kind: 'heading', key: 'head', label: 'Channels per page' },
     ...PAGE_SIZES.map((n) => ({ key: 'n' + n, label: n ? `${n} per page` : 'All, scrolling', checked: pageSize === n, onSelect: () => setPrefs({ pageSize: n }) })),
     ...(pageSize ? [
@@ -657,7 +622,7 @@ export default function GuidePage() {
   const dockActions: DockAction[] = [
     { id: 'look', label: 'Look', hint: 'V', onClick: () => setLookOpen(true) },
     { id: 'day', label: 'Day', hint: 'A B', items: dayItems },
-    { id: 'channels', label: 'Channels', hint: 'C', items: channelItems, detail: hasSets && curSet ? curSet.name : undefined },
+    { id: 'channels', label: 'Channels', hint: 'C', items: channelItems, detail: curSet?.name },
     { id: 'filter', label: 'Filter', items: filterItems },
     { id: 'info', label: 'More info', hint: 'I', disabled: !cur || !curCell, onClick: () => { if (cur && curCell) setDetails({ ch: cur, p: curCell }) } },
     { id: 'recordings', label: 'Recordings', to: '/tv/recordings' },
@@ -679,26 +644,14 @@ export default function GuidePage() {
       <div className="ctv-bar">
         <div className="ctv-bar-group">
           <h2 className="ctv-bar-title">Guide</h2>
-          {hasSets ? (
-            sets && <SetButton set={curSet} onOpen={openPicker} />
-          ) : (
-            <div className="ctv-chips" role="group" aria-label="Which channels" data-nav-group>
-              <button className={'ctv-chip' + (!filter.group && !filter.favourites && !filter.kind ? ' on' : '')} aria-pressed={!filter.group && !filter.favourites && !filter.kind} onClick={() => setFilter(NO_FILTER)}>All</button>
-              {(anyFav || filter.favourites) && <button className={'ctv-chip' + (filter.favourites ? ' on' : '')} aria-pressed={filter.favourites} onClick={() => setFilter({ kind: '', group: '', favourites: !filter.favourites })}><IconStar size={14} /> Favourites</button>}
-              {groups.map((g) => <button key={g} className={'ctv-chip' + (filter.group === g ? ' on' : '')} aria-pressed={filter.group === g} onClick={() => setFilter({ kind: '', favourites: false, group: filter.group === g ? '' : g })}>{g}</button>)}
-              {hasBoth && <button className={'ctv-chip' + (filter.kind === 'library' ? ' on' : '')} aria-pressed={filter.kind === 'library'} onClick={() => setFilter({ group: '', favourites: false, kind: filter.kind === 'library' ? '' : 'library' })}>My library</button>}
-              {hasBoth && <button className={'ctv-chip' + (filter.kind === 'tuner' ? ' on' : '')} aria-pressed={filter.kind === 'tuner'} onClick={() => setFilter({ group: '', favourites: false, kind: filter.kind === 'tuner' ? '' : 'tuner' })}>Live TV</button>}
-            </div>
-          )}
-          {hasPaging && (
-            <label className="ctv-field ctv-find"><span className="sr-only">Find a channel</span>
+          {sets && <SetButton set={curSet} onOpen={openPicker} />}
+          <label className="ctv-field ctv-find"><span className="sr-only">Find a channel</span>
               <input type="search" value={find} placeholder="Find a channel" aria-label="Find a channel, by number or name" onChange={(e) => setFind(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') { e.preventDefault(); setQuery(find); wantFocus.current = true; setFocus((f) => ({ ...f, row: 0 })) }
                   if (e.key === 'Escape' && find) { e.preventDefault(); e.stopPropagation(); setFind(''); setQuery('') }
                 }} />
-            </label>
-          )}
+          </label>
         </div>
         <div className="ctv-bar-group ctv-bar-time" role="group" aria-label="Time" data-nav-group>
           <button className="ctv-btn sm icon" onClick={() => shiftTime(-SLOT)} aria-label="Half an hour earlier"><IconLeft size={16} /></button>
@@ -712,7 +665,7 @@ export default function GuidePage() {
       {err && <div className="ctv-err" role="alert">{err}</div>}
       {dial && <div className="ctv-dial" role="status">CH {dial}<span className="ctv-blink">_</span></div>}
 
-      <div className="ctv-grid" ref={grid} role="grid" aria-label={`TV guide, ${fmtDay(from)}${hasSets && curSet ? `, ${curSet.name}` : ''}`} aria-rowcount={totalRows + 1} aria-colcount={slots + 1} onKeyDown={onKey}
+      <div className="ctv-grid" ref={grid} role="grid" aria-label={`TV guide, ${fmtDay(from)}${curSet ? `, ${curSet.name}` : ''}`} aria-rowcount={totalRows + 1} aria-colcount={slots + 1} onKeyDown={onKey}
         onFocus={() => { gridHadFocus.current = true }} onBlur={(e) => { if (e.relatedTarget) gridHadFocus.current = false }}
         style={{ '--ctv-row': rowH + 'px', '--ctv-gutter': gutter + 'px' } as React.CSSProperties}>
         <div className="ctv-times" role="row" aria-rowindex={1}>
@@ -750,7 +703,7 @@ export default function GuidePage() {
         onRecord={() => { void record(details.ch, details.p); setDetails(null) }}
         onRecordOptions={hasRules2 ? (series) => { const d = details; setDetails(null); offerRecord(d.ch, d.p, series) } : undefined}
         onFromStart={hasCatchup ? () => watchFromStart(details.ch, details.p) : undefined}
-        onAddToSet={hasSets ? () => { const ch = details.ch; setDetails(null); setAddTo(ch) } : undefined}
+        onAddToSet={() => { const ch = details.ch; setDetails(null); setAddTo(ch) }}
         onReset={() => { void refreshLineup(); refreshView() }} />}
       {lookOpen && <LookPanel look={look} onClose={() => setLookOpen(false)} />}
       {pickerOpen && sets && <SetPicker sets={sets.sets} current={setId} onPick={pickSet} onClose={() => { setPickerOpen(false); wantFocus.current = true }} />}

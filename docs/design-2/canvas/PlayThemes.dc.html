@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>WittyPlay Online wearing other themes</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap">
+</head>
+<body>
+<x-dc>
+<helmet><style>body{margin:0}</style></helmet>
+<div style="width:2000px;height:1200px;box-sizing:border-box;padding:32px 40px;background:#e8e8ee;font-family:Inter,system-ui,sans-serif;color:#1b1b22">
+  <div style="font-size:40px;font-weight:800;letter-spacing:-1px">WittyPlay Online is its own UI, and it still wears your theme</div>
+  <div style="font-size:18px;color:#4a4a58;margin-top:4px;max-width:1700px">People can switch WittyPlay Online on or off separately from the app's look (Settings, Appearance, Games). Switched off, Games uses the app's look. Switched on, it takes the app's theme so nothing clashes. Its own indigo, coral and teal is its default.</div>
+  <div style="display:flex;flex-wrap:wrap;gap:20px 24px;margin-top:20px">
+    <div><div style="zoom:.24"><dc-import name="Play" screen="home" hint-size="1920px,1080px"></dc-import></div><div style="font-size:15px;font-weight:700;margin-top:4px">WittyPlay default</div></div>
+    <div><div style="zoom:.24"><dc-import name="PlayP_Lumen" screen="home" hint-size="1920px,1080px"></dc-import></div><div style="font-size:15px;font-weight:700;margin-top:4px">Witty theme</div></div>
+    <div><div style="zoom:.24"><dc-import name="PlayP_Cinema" screen="home" hint-size="1920px,1080px"></dc-import></div><div style="font-size:15px;font-weight:700;margin-top:4px">Cinema theme</div></div>
+    <div><div style="zoom:.24"><dc-import name="PlayP_Evergreen" screen="home" hint-size="1920px,1080px"></dc-import></div><div style="font-size:15px;font-weight:700;margin-top:4px">Evergreen theme</div></div>
+    <div><div style="zoom:.24"><dc-import name="PlayP_Midnight" screen="home" hint-size="1920px,1080px"></dc-import></div><div style="font-size:15px;font-weight:700;margin-top:4px">Midnight theme</div></div>
+    <div><div style="zoom:.24"><dc-import name="PlayP_Cinema" screen="quick" hint-size="1920px,1080px"></dc-import></div><div style="font-size:15px;font-weight:700;margin-top:4px">In-game menu, Cinema</div></div>
+    <div><div style="zoom:.24"><dc-import name="PlayP_Evergreen" screen="online" hint-size="1920px,1080px"></dc-import></div><div style="font-size:15px;font-weight:700;margin-top:4px">Play together, Evergreen</div></div>
+    <div><div style="zoom:.24"><dc-import name="Exp" exp="lumen" plat="tv" screen="games" hint-size="1920px,1080px"></dc-import></div><div style="font-size:15px;font-weight:700;margin-top:4px">WittyPlay Online off: Games in the Lumen look</div></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":2000,"height":1200}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>

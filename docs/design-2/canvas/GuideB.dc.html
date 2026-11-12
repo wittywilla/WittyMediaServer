@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>WittyTV Classic, Rail</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=Inter:wght@500;600;700;800&display=swap">
+<style>
+body{margin:0}
+.root{position:relative;width:1920px;height:1080px;overflow:hidden;background:linear-gradient(180deg,#0b1a8a,#08125e);color:#fff;font-family:"IBM Plex Mono",ui-monospace,monospace}
+.rail{position:absolute;left:0;top:0;bottom:0;width:120px;background:#060b3a;display:flex;flex-direction:column;align-items:center;padding:40px 0;box-sizing:border-box;gap:16px;font-family:Inter,sans-serif}
+.ri{width:72px;height:72px;border-radius:18px;display:flex;align-items:center;justify-content:center;color:#b8c2f0}
+.ri.on{background:#d98a1c;color:#1a1208}
+.ri svg{width:36px;height:36px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.key{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:34px;padding:0 8px;background:#ffd84a;color:#08125e;font-size:20px;font-weight:700;box-sizing:border-box}
+.db{display:flex;align-items:center;gap:12px;height:64px;padding:0 22px;background:#0f2bb8;border:2px solid #7f95ff;font-size:25px;font-weight:600;color:#fff;box-sizing:border-box}
+</style>
+</helmet>
+<div class="root">
+  <div class="rail">
+    <div style="width:72px;height:72px;border-radius:18px;background:#261d14;display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:800;color:#f0b44a;margin-bottom:24px">W</div>
+    <sc-for list="{{nav}}" as="n" hint-placeholder-count="5"><div class="ri {{n.cls}}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="{{n.d}}"></path></svg></div></sc-for>
+    <div style="flex:1"></div>
+    <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#d98a1c,#8a2f5e)"></div>
+  </div>
+
+  <div style="position:absolute;left:160px;top:40px;width:1670px;height:64px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #7f95ff;font-size:29px;font-weight:700">
+    <div style="color:#ffd84a">WITTYTV GUIDE</div><div>THU NOV 12 · 7:42 PM</div>
+  </div>
+
+  <div style="position:absolute;left:160px;top:124px;width:1670px;height:316px;display:flex;gap:40px">
+    <div style="flex:1;border:3px solid #7f95ff;background:#0a1670;padding:24px 32px;box-sizing:border-box">
+      <div style="font-size:25px;color:#ffd84a;font-weight:700">CH 4  HARBOUR NETWORK</div>
+      <div style="font-size:48px;font-weight:700;line-height:1.1;margin-top:12px">THE QUIET ORCHARD</div>
+      <div style="font-size:25px;margin-top:12px;color:#d6defc">S2 E4  7:30-8:30 PM  TV-PG</div>
+      <div style="font-size:25px;line-height:1.5;margin-top:14px;color:#fff;max-width:900px">The orchard's last tenant must decide before the frost. Her neighbours would rather she didn't.</div>
+    </div>
+    <div style="flex:none;width:562px;height:316px;border:3px solid #ffd84a;background:linear-gradient(135deg,#1c5d7a,#241a52 70%);position:relative">
+      <div style="position:absolute;right:50px;top:60px;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#f3c98b,#c8672f 60%,#5b2234)"></div>
+      <div style="position:absolute;left:12px;top:12px;padding:2px 10px;background:#c0102a;font-size:20px;font-weight:700">LIVE</div>
+    </div>
+  </div>
+
+  <div style="position:absolute;left:160px;top:464px;width:1670px">
+    <div style="display:flex;height:48px;align-items:center;background:#060b3a">
+      <div style="width:260px;flex:none;font-size:25px;color:#ffd84a;font-weight:700;padding-left:14px">CHANNEL</div>
+      <div style="position:relative;flex:1;height:48px"><sc-for list="{{times}}" as="m" hint-placeholder-count="4"><div style="position:absolute;left:{{m.x}}px;top:8px;font-size:25px;font-weight:700">{{m.t}}</div></sc-for></div>
+    </div>
+    <div style="position:relative;margin-top:6px">
+      <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+        <div style="display:flex;height:72px;margin-bottom:4px">
+          <div style="flex:none;width:260px;box-sizing:border-box;background:#060b3a;display:flex;align-items:center;gap:14px;padding-left:14px;font-size:25px;font-weight:700"><span style="color:#ffd84a;width:44px">{{r.n}}</span><span>{{r.name}}</span></div>
+          <div style="position:relative;flex:1;overflow:hidden">
+            <sc-for list="{{r.cells}}" as="c" hint-placeholder-count="3">
+              <div style="position:absolute;top:0;height:72px;left:{{c.x}}px;width:{{c.w}}px;box-sizing:border-box;padding:0 16px;display:flex;align-items:center;font-size:25px;font-weight:600;white-space:nowrap;overflow:hidden;{{c.st}}">{{c.t}}</div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+      <div style="position:absolute;left:{{nowX}}px;top:-6px;bottom:0;width:4px;background:#ffd84a"></div>
+    </div>
+  </div>
+
+  <div style="position:absolute;left:160px;right:90px;top:966px;height:92px;display:flex;align-items:center;gap:12px">
+    <sc-for list="{{dock}}" as="d" hint-placeholder-count="6"><div class="db" style="{{d.st}}"><span class="key">{{d.k}}</span>{{d.t}}</div></sc-for>
+    <div style="flex:1"></div>
+    <div style="display:flex;gap:22px;font-size:20px;align-items:center;color:#d6defc"><span><span class="key">OK</span> WATCH</span><span><span class="key">◀▶</span> TIME</span><span><span class="key">▲▼</span> CH</span></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const nav = [
+      { cls: '', d: 'M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10' },
+      { cls: '', d: 'M4 4h4v16H4zM10 4h4v16h-4zM16 6l4 1-3 13-4-1z' },
+      { cls: '', d: 'M6 9h12a4 4 0 014 4v2a3 3 0 01-5 2l-1-2H8l-1 2a3 3 0 01-5-2v-2a4 4 0 014-4zM8 12v3M6.5 13.5h3' },
+      { cls: 'on', d: 'M3 6h18v12H3zM8 21h8M12 18v3' },
+      { cls: '', d: 'M11 4a7 7 0 100 14 7 7 0 000-14zM21 21l-5-5' }
+    ];
+    const W = 1410, ppm = W / 120;
+    const times = [['7:00', 0], ['7:30', 30], ['8:00', 60], ['8:30', 90]].map((a) => ({ t: a[0], x: a[1] * ppm + 6 }));
+    const chans = [
+      ['2', 'HARBOUR 2', [[0, 45, 'EVENING NEWS'], [45, 75, 'SALT ROAD'], [75, 120, 'LATE EDITION']]],
+      ['4', 'HARBOUR NET', [[0, 30, 'COOKING OUT'], [30, 90, 'THE QUIET ORCHARD', 'focus'], [90, 120, 'WEATHER']]],
+      ['5', 'ORCHARD MOV', [[0, 120, 'HARBOUR LIGHTS (2024)']]],
+      ['7', 'KIDS COVE', [[0, 25, 'MOTH CLUB'], [25, 60, 'PAPER PLANETS'], [60, 120, 'LOW TIDE TALES']]],
+      ['9', 'SIGNAL DOCS', [[0, 55, 'SIGNAL FIRE'], [55, 120, 'NIGHT MARKET: A YEAR']]],
+      ['11', 'MUSIC WHARF', [[0, 40, 'LIVE AT THE GLASSHOUSE'], [40, 120, 'EMBER & ASH SESSIONS']]]
+    ];
+    const rows = chans.map((c) => ({
+      n: c[0], name: c[1],
+      cells: c[2].map((p) => {
+        const x = p[0] * ppm + 2, w = (p[1] - p[0]) * ppm - 4;
+        const now = p[0] <= 42 && p[1] > 42;
+        let st = 'background:#102aa8;color:#fff;border:2px solid #4a62d8;';
+        if (now) st = 'background:#1a3ad0;color:#fff;border:2px solid #7f95ff;';
+        if (p[3] === 'focus') st = 'background:#ffd84a;color:#08125e;border:4px solid #fff;z-index:2;';
+        return { x, w, st, t: p[2] };
+      })
+    }));
+    const dock = [
+      { k: 'X', t: 'LOOK', st: '' }, { k: 'Y', t: 'DAY', st: '' }, { k: 'LB', t: 'CH 50', st: '' },
+      { k: 'RB', t: 'FILTER', st: '' }, { k: 'MENU', t: 'RECORDINGS', st: '' }, { k: '●', t: 'RECORD', st: 'background:#c0102a;border-color:#ff8a98' }
+    ];
+    return { nav, times, rows, nowX: 260 + 42 * ppm, dock };
+  }
+}
+</script>
+</body>
+</html>

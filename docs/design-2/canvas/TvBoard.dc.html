@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>WittyTV looks inside one UI look</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap">
+</head>
+<body>
+<x-dc>
+<helmet><style>body{margin:0}</style></helmet>
+<div style="width:2400px;height:820px;box-sizing:border-box;padding:32px 40px;background:#e6e6ec;font-family:Inter,system-ui,sans-serif;color:#1b1b22">
+  <div style="font-size:40px;font-weight:800;letter-spacing:-1px">{{title}} · WittyTV looks inside this UI</div>
+  <div style="font-size:18px;color:#4a4a58;margin-top:4px;max-width:1900px">The app's frame (bar, rail, name, buttons) stays the same. Only the guide inside changes. Each UI look suggests a WittyTV look; a person can pick any other under Look without touching anything else.</div>
+  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px;margin-top:20px">
+    <sc-for list="{{items}}" as="i" hint-placeholder-count="8"><div><div style="zoom:.28"><dc-import name="Exp" exp="{{exp}}" plat="tv" screen="guide" tv="{{i.id}}" hint-size="1920px,1080px"></dc-import></div><div style="font-size:15px;font-weight:700;margin-top:4px">{{i.name}}</div></div></sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"exp":{"editor":"text","default":"lumen"},"title":{"editor":"text","default":"Lumen"},"$preview":{"width":2400,"height":820}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const t = [['modern', 'Modern'], ['classic', 'Classic'], ['satellite', 'Satellite'], ['teletext', 'Teletext'], ['listings', 'Newspaper'], ['bigpicture', 'Big picture'], ['outline', 'Outline'], ['compact', 'Compact']];
+    return { exp: this.props.exp || 'lumen', title: this.props.title || 'Lumen', items: t.map((a) => ({ id: a[0], name: a[1] })) };
+  }
+}
+</script>
+</body>
+</html>

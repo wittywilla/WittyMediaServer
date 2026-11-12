@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>WittyTV Modern, Lumen</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+.root{position:relative;width:1920px;height:1080px;overflow:hidden;background:#0f1115;color:#e8eaf0;font-family:Inter,system-ui,sans-serif}
+.pill{display:flex;align-items:center;height:56px;padding:0 24px;border-radius:999px;font-size:25px;font-weight:500;color:#a9afbd}
+.pill.on{background:rgba(121,85,255,.14);color:#9174ff}
+.key{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:34px;padding:0 8px;border-radius:8px;background:#2a2f3a;color:#e8eaf0;font-size:20px;font-weight:700;box-sizing:border-box}
+.db{display:flex;align-items:center;gap:12px;height:64px;padding:0 22px;border-radius:14px;background:#1f232c;font-size:25px;font-weight:600;color:#e8eaf0;box-sizing:border-box}
+</style>
+</helmet>
+<div class="root">
+  <div style="position:absolute;left:90px;right:90px;top:24px;height:56px;display:flex;align-items:center;gap:16px">
+    <div style="font-size:31px;font-weight:700;letter-spacing:-.4px;margin-right:24px">Witty<span style="color:#9174ff">Media</span></div>
+    <sc-for list="{{tabs}}" as="t" hint-placeholder-count="5"><div class="pill {{t.cls}}">{{t.label}}</div></sc-for>
+    <div style="flex:1"></div>
+    <div class="pill" style="color:#e8eaf0"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#7955ff,#3ad29f);margin-right:12px"></div>Willow</div>
+  </div>
+
+  <div style="position:absolute;left:90px;top:112px;width:1740px;height:336px;display:flex;gap:40px">
+    <div style="flex:none;width:597px;height:336px;border-radius:18px;overflow:hidden;position:relative;background:linear-gradient(135deg,#1c5d7a,#241a52 70%);box-shadow:0 0 0 1px rgba(232,234,240,.1)">
+      <div style="position:absolute;right:60px;top:50px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#f3c98b,#c8672f 60%,#5b2234)"></div>
+      <div style="position:absolute;left:16px;top:16px;height:32px;padding:0 12px;border-radius:6px;background:rgba(0,0,0,.68);color:#fff;font-size:20px;font-weight:700;display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:5px;background:#ff5c6c"></span>LIVE</div>
+    </div>
+    <div style="flex:1;padding-top:6px">
+      <div style="font-size:25px;color:#9174ff;font-weight:600">Ch 4 · Harbour Network</div>
+      <div style="font-size:57px;font-weight:700;letter-spacing:-1.2px;line-height:1.1;margin-top:10px">The Quiet Orchard</div>
+      <div style="font-size:25px;color:#a9afbd;margin-top:14px">S2 E4 · 7:30 – 8:30 PM · TV-PG · Drama</div>
+      <div style="font-size:29px;line-height:1.5;margin-top:18px;color:#e8eaf0;max-width:940px">The orchard's last tenant has a decision to make before the frost, and the neighbours would rather she didn't.</div>
+      <div style="height:8px;border-radius:4px;background:#2a2f3a;margin-top:28px;width:520px"><div style="height:8px;width:42%;border-radius:4px;background:#7955ff"></div></div>
+    </div>
+  </div>
+
+  <div style="position:absolute;left:90px;top:466px;width:1740px">
+    <div style="display:flex;height:48px;align-items:center">
+      <div style="width:280px;flex:none;font-size:25px;color:#848b99;font-weight:600">Today · Thu</div>
+      <div style="position:relative;flex:1;height:48px">
+        <sc-for list="{{times}}" as="m" hint-placeholder-count="4"><div style="position:absolute;left:{{m.x}}px;top:6px;font-size:25px;color:#a9afbd;font-weight:600">{{m.t}}</div></sc-for>
+      </div>
+    </div>
+    <div style="position:relative">
+      <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+        <div style="display:flex;height:72px;margin-bottom:6px;align-items:stretch">
+          <div style="flex:none;width:280px;box-sizing:border-box;padding-right:12px;display:flex;align-items:center;gap:16px;font-size:25px;font-weight:600"><span style="color:#848b99;width:42px">{{r.n}}</span><span>{{r.name}}</span></div>
+          <div style="position:relative;flex:1;overflow:hidden">
+            <sc-for list="{{r.cells}}" as="c" hint-placeholder-count="3">
+              <div style="position:absolute;top:0;height:72px;left:{{c.x}}px;width:{{c.w}}px;box-sizing:border-box;padding:0 20px;display:flex;align-items:center;border-radius:12px;font-size:25px;font-weight:600;white-space:nowrap;overflow:hidden;{{c.st}}">{{c.t}}</div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+      <div style="position:absolute;left:{{nowX}}px;top:-8px;bottom:0;width:3px;background:#ff5c6c"></div>
+      <div style="position:absolute;left:{{nowLabelX}}px;top:-40px;padding:2px 10px;border-radius:6px;background:#ff5c6c;color:#14090b;font-size:20px;font-weight:700">7:42</div>
+    </div>
+  </div>
+
+  <div style="position:absolute;left:90px;right:90px;top:966px;height:92px;display:flex;align-items:center;gap:16px">
+    <sc-for list="{{dock}}" as="d" hint-placeholder-count="6"><div class="db" style="{{d.st}}"><span class="key">{{d.k}}</span>{{d.t}}</div></sc-for>
+    <div style="flex:1"></div>
+    <div style="display:flex;gap:26px;font-size:20px;color:#a9afbd;align-items:center"><span><span class="key">OK</span> Watch</span><span><span class="key">◀ ▶</span> Time</span><span><span class="key">▲ ▼</span> Channels</span><span><span class="key">LT RT</span> Page</span></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const tabs = [
+      { label: 'Home', cls: '' }, { label: 'Libraries', cls: '' }, { label: 'Games', cls: '' },
+      { label: 'Live TV', cls: 'on' }, { label: 'Search', cls: '' }
+    ];
+    const ppm = 1460 / 120; // pixels per minute, a two hour window from 7:00
+    const times = [['7:00', 0], ['7:30', 30], ['8:00', 60], ['8:30', 90]].map((a) => ({ t: a[0], x: a[1] * ppm }));
+    const chans = [
+      ['2', 'Harbour 2', [[0, 45, 'Evening News'], [45, 75, 'Salt Road'], [75, 120, 'Late Edition']]],
+      ['4', 'Harbour Network', [[0, 30, 'Cooking Out'], [30, 90, 'The Quiet Orchard', 'focus'], [90, 120, 'Weather']]],
+      ['5', 'Orchard Movies', [[0, 120, 'Harbour Lights (2024)']]],
+      ['7', 'Kids Cove', [[0, 25, 'Moth Club'], [25, 60, 'Paper Planets'], [60, 120, 'Low Tide Tales']]],
+      ['9', 'Signal Docs', [[0, 55, 'Signal Fire'], [55, 120, 'Night Market: A Year']]],
+      ['11', 'Music Wharf', [[0, 40, 'Live at the Glasshouse'], [40, 120, 'Ember & Ash Sessions']]]
+    ];
+    const rows = chans.map((c) => ({
+      n: c[0], name: c[1],
+      cells: c[2].map((p) => {
+        const x = p[0] * ppm + 3, w = (p[1] - p[0]) * ppm - 6;
+        const now = p[0] <= 42 && p[1] > 42;
+        let st = 'background:#1f232c;color:#e8eaf0;';
+        if (now) st = 'background:#2a2f3a;color:#fff;';
+        if (p[3] === 'focus') st = 'background:#7955ff;color:#fff;box-shadow:0 0 0 4px #0f1115,0 0 0 8px #e8eaf0;z-index:2;';
+        return { x, w, st, t: p[2] };
+      })
+    }));
+    const nowX = 280 + 42 * ppm;
+    const dock = [
+      { k: 'X', t: 'Look', st: '' }, { k: 'Y', t: 'Day', st: '' }, { k: 'LB', t: 'Channels 50', st: '' },
+      { k: 'RB', t: 'Filter', st: '' }, { k: 'Menu', t: 'Recordings', st: '' }, { k: '●', t: 'Record', st: 'background:#7955ff;color:#fff' }
+    ];
+    return { tabs, times, rows, nowX, nowLabelX: nowX - 28, dock };
+  }
+}
+</script>
+</body>
+</html>

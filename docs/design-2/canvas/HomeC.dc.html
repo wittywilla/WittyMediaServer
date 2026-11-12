@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Stage Home on a TV</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+.root{position:relative;width:1920px;height:1080px;overflow:hidden;background:#0b1120;color:#e6ecf7;font-family:Inter,system-ui,sans-serif}
+.tab{font-size:29px;font-weight:600;color:#c3cde0;padding:12px 4px;position:relative;box-sizing:border-box}
+.tab.on{color:#fff}
+.tab.on:after{content:"";position:absolute;left:0;right:0;bottom:-4px;height:5px;border-radius:3px;background:#6ea4ff}
+.c{flex:none;width:340px;position:relative}
+.im{width:340px;height:191px;border-radius:12px;position:relative;overflow:hidden}
+</style>
+</helmet>
+<div class="root">
+  <div style="position:absolute;inset:0;background:radial-gradient(900px 700px at 70% 25%,#2a5fd0 0%,transparent 60%),radial-gradient(700px 600px at 100% 70%,#0f8a8a 0%,transparent 60%),linear-gradient(180deg,#14224a,#0b1120)"></div>
+  <div style="position:absolute;right:220px;top:120px;width:640px;height:640px;border-radius:50%;border:2px solid rgba(255,255,255,.16)"></div>
+  <div style="position:absolute;right:300px;top:200px;width:480px;height:480px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#dff0ff,#6ea4ff 45%,#16306a 100%);opacity:.85"></div>
+  <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(11,17,32,.95) 0%,rgba(11,17,32,.6) 38%,rgba(11,17,32,0) 62%),linear-gradient(0deg,#0b1120 0%,rgba(11,17,32,.85) 24%,rgba(11,17,32,0) 52%)"></div>
+
+  <div style="position:absolute;left:90px;right:90px;top:30px;height:64px;display:flex;align-items:center;gap:44px">
+    <div style="font-size:31px;font-weight:800;letter-spacing:-.4px;margin-right:16px;color:#fff">Witty<span style="color:#6ea4ff">Media</span></div>
+    <sc-for list="{{tabs}}" as="t" hint-placeholder-count="6">
+      <div class="tab {{t.cls}}">{{t.label}}</div>
+    </sc-for>
+    <div style="flex:1"></div>
+    <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#2f6fed,#3ad29f);border:3px solid #0b1120;box-shadow:0 0 0 2px #e6ecf7"></div>
+  </div>
+
+  <div style="position:absolute;left:90px;top:210px;width:860px">
+    <div style="font-size:25px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#6ea4ff">Featured</div>
+    <div style="font-size:96px;font-weight:800;letter-spacing:-3px;line-height:1;margin-top:18px">Orbit of Glass</div>
+    <div style="display:flex;gap:18px;margin-top:26px;font-size:25px;color:#c3cde0"><span>2025</span><span>·</span><span>Sci-fi</span><span>·</span><span>2 hr 6 min</span><span>·</span><span style="border:2px solid #c3cde0;border-radius:6px;padding:0 10px">4K HDR</span></div>
+    <div style="font-size:29px;line-height:1.5;margin-top:22px;max-width:720px;color:#e6ecf7">Three engineers keep a failing station alive long enough for the last ship home.</div>
+    <div style="display:flex;gap:20px;margin-top:38px;align-items:center">
+      <div style="height:72px;padding:0 40px;border-radius:999px;background:#fff;color:#0b1120;font-size:29px;font-weight:700;display:flex;align-items:center;gap:12px;transform:scale(1.06);transform-origin:left center;box-shadow:0 12px 36px rgba(110,164,255,.4)"><svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d="M7 4l13 8-13 8z" fill="#0b1120"></path></svg>Play</div>
+      <div style="height:72px;padding:0 34px;border-radius:999px;background:rgba(230,236,247,.16);font-size:29px;font-weight:600;display:flex;align-items:center;margin-left:10px">+ Watchlist</div>
+      <div style="height:72px;padding:0 34px;border-radius:999px;background:rgba(230,236,247,.16);font-size:29px;font-weight:600;display:flex;align-items:center">Trailer</div>
+    </div>
+  </div>
+
+  <div style="position:absolute;left:90px;top:716px;right:0">
+    <div style="font-size:38px;font-weight:700;letter-spacing:-.5px;margin-bottom:22px">Trending on your server</div>
+    <div style="display:flex;gap:24px;align-items:flex-start">
+      <sc-for list="{{cards}}" as="c" hint-placeholder-count="6">
+        <div class="c" style="{{c.lift}}">
+          <div class="im" style="background:{{c.bg}};{{c.ring}}"></div>
+          <div style="font-size:25px;font-weight:600;margin-top:14px;color:#e6ecf7">{{c.t}}</div>
+          <div style="height:5px;width:{{c.w}}px;border-radius:3px;background:#6ea4ff;margin-top:10px;opacity:{{c.o}}"></div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const tabs = [
+      { label: 'Home', cls: 'on' }, { label: 'Movies', cls: '' }, { label: 'Shows', cls: '' },
+      { label: 'Music', cls: '' }, { label: 'Games', cls: '' }, { label: 'Live TV', cls: '' }, { label: 'Search', cls: '' }
+    ];
+    const data = [
+      ['Orbit of Glass', 'linear-gradient(135deg,#2f6fed,#14224a)'],
+      ['Harbour Lights', 'linear-gradient(135deg,#1c5d7a,#241a52)'],
+      ['Signal Fire', 'linear-gradient(135deg,#2f6f4f,#12202a)'],
+      ['Paper Planets', 'linear-gradient(135deg,#8a2f5e,#1f1b3a)'],
+      ['Low Tide', 'linear-gradient(135deg,#4a5f8a,#171a21)'],
+      ['Moth Light', 'linear-gradient(135deg,#6a4df0,#1a1230)']
+    ];
+    const cards = data.map((d, i) => {
+      const f = i === 0;
+      return {
+        t: d[0], bg: d[1],
+        lift: f ? 'transform:scale(1.08);transform-origin:left top;z-index:2' : '',
+        ring: f ? 'box-shadow:0 0 0 4px #fff,0 20px 50px rgba(0,0,0,.6)' : '',
+        w: f ? 340 : 0, o: f ? 1 : 0
+      };
+    });
+    return { tabs, cards };
+  }
+}
+</script>
+</body>
+</html>

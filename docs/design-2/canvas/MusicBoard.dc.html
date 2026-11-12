@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Songs, karaoke and visualizer in one look</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap">
+</head>
+<body>
+<x-dc>
+<helmet><style>body{margin:0}</style></helmet>
+<div style="width:2400px;height:2150px;box-sizing:border-box;padding:32px 40px;background:#e8e8ee;font-family:Inter,system-ui,sans-serif;color:#1b1b22">
+  <div style="font-size:40px;font-weight:800;letter-spacing:-1px">{{title}} · songs, karaoke and visualizers</div>
+  <div style="font-size:18px;color:#4a4a58;margin-top:4px;max-width:1900px">Songs, now playing with the canvas, karaoke (synced lyrics, a vocals level that is honest about being approximate, key and mic) and the visualizer (presets, intensity, speed, colour from the theme) share one mini player and one control bar on every platform.</div>
+  <div style="display:flex;flex-wrap:wrap;gap:20px 24px;margin-top:20px;align-items:flex-start">
+    <div><div style="zoom:.3"><dc-import name="Exp" exp="{{exp}}" plat="tv" screen="songs" hint-size="1920px,1080px"></dc-import></div><div style="font-size:14px;margin-top:4px">TV · songs</div></div>
+    <div><div style="zoom:.3"><dc-import name="Exp" exp="{{exp}}" plat="tv" screen="karaoke" hint-size="1920px,1080px"></dc-import></div><div style="font-size:14px;margin-top:4px">TV · karaoke</div></div>
+    <div><div style="zoom:.3"><dc-import name="Exp" exp="{{exp}}" plat="tv" screen="vizfull" hint-size="1920px,1080px"></dc-import></div><div style="font-size:14px;margin-top:4px">TV · visualizer</div></div>
+    <div><div style="zoom:.3"><dc-import name="Exp" exp="{{exp}}" plat="tv" screen="nowplaying" hint-size="1920px,1080px"></dc-import></div><div style="font-size:14px;margin-top:4px">TV · now playing</div></div>
+    <div><div style="zoom:.4"><dc-import name="Exp" exp="{{exp}}" plat="desktop" screen="songs" hint-size="1440px,900px"></dc-import></div><div style="font-size:14px;margin-top:4px">Desktop · songs</div></div>
+    <div><div style="zoom:.4"><dc-import name="Exp" exp="{{exp}}" plat="desktop" screen="karaoke" hint-size="1440px,900px"></dc-import></div><div style="font-size:14px;margin-top:4px">Desktop · karaoke</div></div>
+    <div><div style="zoom:.4"><dc-import name="Exp" exp="{{exp}}" plat="desktop" screen="vizfull" hint-size="1440px,900px"></dc-import></div><div style="font-size:14px;margin-top:4px">Desktop · visualizer</div></div>
+    <div><div style="zoom:.45"><dc-import name="Exp" exp="{{exp}}" plat="phone" screen="songs" hint-size="390px,844px"></dc-import></div><div style="font-size:14px;margin-top:4px">Phone · songs</div></div>
+    <div><div style="zoom:.45"><dc-import name="Exp" exp="{{exp}}" plat="phone" screen="karaoke" hint-size="390px,844px"></dc-import></div><div style="font-size:14px;margin-top:4px">Phone · karaoke</div></div>
+    <div><div style="zoom:.45"><dc-import name="Exp" exp="{{exp}}" plat="phone" screen="vizfull" hint-size="390px,844px"></dc-import></div><div style="font-size:14px;margin-top:4px">Phone · visualizer</div></div>
+    <div><div style="zoom:.4"><dc-import name="Exp" exp="{{exp}}" plat="desktop" screen="nowplaying" vis="canvas" hint-size="1440px,900px"></dc-import></div><div style="font-size:14px;margin-top:4px">Now playing · Canvas video (looping, silent)</div></div>
+    <div><div style="zoom:.4"><dc-import name="Exp" exp="{{exp}}" plat="desktop" screen="nowplaying" vis="viz" hint-size="1440px,900px"></dc-import></div><div style="font-size:14px;margin-top:4px">Now playing · Visualizer in place of the art</div></div>
+    <div><div style="zoom:.4"><dc-import name="Exp" exp="{{exp}}" plat="desktop" screen="lyrics" vis="art" mode="follow" hint-size="1440px,900px"></dc-import></div><div style="font-size:14px;margin-top:4px">Lyrics · Follow along (timed, press a line to jump, Sooner and Later)</div></div>
+    <div><div style="zoom:.4"><dc-import name="Exp" exp="{{exp}}" plat="desktop" screen="lyrics" vis="art" mode="read" hint-size="1440px,900px"></dc-import></div><div style="font-size:14px;margin-top:4px">Lyrics · Read (plain text at your own pace)</div></div>
+    <div><div style="zoom:.4"><dc-import name="Exp" exp="{{exp}}" plat="desktop" screen="karaoke" vis="canvas" mode="follow" hint-size="1440px,900px"></dc-import></div><div style="font-size:14px;margin-top:4px">Karaoke · Canvas behind the words, follow along</div></div>
+    <div><div style="zoom:.4"><dc-import name="Exp" exp="{{exp}}" plat="desktop" screen="karaoke" vis="art" mode="read" hint-size="1440px,900px"></dc-import></div><div style="font-size:14px;margin-top:4px">Karaoke · Album art, Read mode</div></div>
+    <div><div style="zoom:.4"><dc-import name="Exp" exp="{{exp}}" plat="desktop" screen="vizpick" hint-size="1440px,900px"></dc-import></div><div style="font-size:14px;margin-top:4px">Visualizer · all 18 effects kept: the classics and the new Aurora Rings</div></div>
+    <div><div style="zoom:.45"><dc-import name="Exp" exp="{{exp}}" plat="phone" screen="lyrics" vis="art" mode="read" hint-size="390px,844px"></dc-import></div><div style="font-size:14px;margin-top:4px">Phone · Lyrics, Read</div></div>
+    <div><div style="zoom:.45"><dc-import name="Exp" exp="{{exp}}" plat="phone" screen="karaoke" vis="canvas" mode="follow" hint-size="390px,844px"></dc-import></div><div style="font-size:14px;margin-top:4px">Phone · Karaoke with Canvas</div></div>
+    <div><div style="zoom:.3"><dc-import name="Exp" exp="{{exp}}" plat="tv" screen="lyrics" vis="canvas" mode="follow" hint-size="1920px,1080px"></dc-import></div><div style="font-size:14px;margin-top:4px">TV · Lyrics with Canvas</div></div>
+    <div><div style="zoom:.3"><dc-import name="Exp" exp="{{exp}}" plat="vr" screen="karaoke" hint-size="1600px,900px"></dc-import></div><div style="font-size:14px;margin-top:4px">Headset · karaoke</div></div>
+    <div><div style="zoom:.3"><dc-import name="Exp" exp="{{exp}}" plat="vr" screen="vizfull" hint-size="1600px,900px"></dc-import></div><div style="font-size:14px;margin-top:4px">Headset · visualizer</div></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"exp":{"editor":"text","default":"lumen"},"title":{"editor":"text","default":"Lumen"},"$preview":{"width":2400,"height":2150}}'>
+class Component extends DCLogic { renderVals() { return { exp: this.props.exp || 'lumen', title: this.props.title || 'Lumen' }; } }
+</script>
+</body>
+</html>

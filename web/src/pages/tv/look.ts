@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../../api'
 import { useApp } from '../../state'
-import { chooseTheme, contrast, FALLBACK_APP, FONT_STACKS, isHex, legacyOf, readableOn, SHAPES, themeById, themeTokens, upgradeSaved, type AppColours, type Colours, type Font, type OwnerLook, type Saved, type Shape, type Slot, type Suggestion, type ThemeId, type Tokens } from './tvThemes'
+import { chooseTheme, contrast, FALLBACK_APP, FONT_STACKS, isHex, readableOn, SHAPES, themeById, themeTokens, upgradeSaved, type AppColours, type Colours, type Font, type OwnerLook, type Saved, type Shape, type Slot, type Suggestion, type ThemeId, type Tokens } from './tvThemes'
 
 // How WittyTV looks for this viewer, on every TV screen. It's their own, kept with their account
 // so it follows them from device to device. What they haven't chosen comes from the app theme's
@@ -65,7 +65,7 @@ let owner: OwnerLook = savedOwner()
 let ownerAsked = false
 
 export function setOwnerLook(o: OwnerLook) {
-  if (owner.theme === o.theme && owner.layout === o.layout && owner.skin === o.skin) return
+  if (owner.theme === o.theme) return
   owner = o
   try { localStorage.setItem(OWNER_KEY, JSON.stringify(o)) } catch { /* it's asked for again next time */ }
   window.dispatchEvent(new Event(EVENT))
@@ -75,7 +75,7 @@ export function setOwnerLook(o: OwnerLook) {
 function askOwner() {
   if (ownerAsked) return
   ownerAsked = true
-  api.get<OwnerLook>('/guide?list=1&limit=1').then((g) => setOwnerLook({ theme: g.theme, layout: g.layout, skin: g.skin })).catch(() => { ownerAsked = false })
+  api.get<OwnerLook>('/guide?list=1&limit=1').then((g) => setOwnerLook({ theme: g.theme })).catch(() => { ownerAsked = false })
 }
 export const forgetOwnerLook = () => { ownerAsked = false; askOwner() }
 
@@ -84,7 +84,7 @@ export const forgetOwnerLook = () => { ownerAsked = false; askOwner() }
 function read(): Saved {
   let raw: Record<string, unknown> = {}
   try { raw = JSON.parse(localStorage.getItem(userKey) || localStorage.getItem(OLD_KEY) || '{}') } catch { /* nothing usable */ }
-  return upgradeSaved(raw, owner)
+  return upgradeSaved(raw)
 }
 
 let saveTimer: ReturnType<typeof setTimeout> | undefined
@@ -94,11 +94,8 @@ function saveToAccount(saved: Saved) {
   clearTimeout(saveTimer)
   if (!saving) saving = 1
   saveTimer = setTimeout(() => {
-    // Beside the theme, what it comes to in the two looks an older app knows about.
-    const shape = saved.theme === 'custom' ? saved.custom?.shape || 'modern' : saved.theme ? themeById(saved.theme)!.shape : undefined
-    const full = saved.theme && shape ? { ...saved, ...legacyOf(saved.theme, shape) } : saved
     // The server keeps an account's interface choices whole, and others have some there too.
-    api.get<Record<string, unknown>>('/me/ui').then((u) => api.put('/me/ui', { ...u, tvLook: full })).catch(() => { /* still saved on this device */ }).finally(() => { saving = 0 })
+    api.get<Record<string, unknown>>('/me/ui').then((u) => api.put('/me/ui', { ...u, tvLook: saved })).catch(() => { /* still saved on this device */ }).finally(() => { saving = 0 })
   }, 800)
 }
 
@@ -163,11 +160,11 @@ export function clearThemeColours(id: ThemeId) {
 
 // ------------------------------------------------------------ reading the page
 
-// What the current app theme suggests, set in its CSS: --tv-theme, or the older pair.
+// What the current app theme suggests, set in its CSS: --tv-theme.
 export function themeSuggestion(): Suggestion {
   const css = getComputedStyle(document.documentElement)
   const one = (name: string) => css.getPropertyValue(name).trim() || undefined
-  return { theme: one('--tv-theme'), layout: one('--tv-layout'), colours: one('--tv-colours') }
+  return { theme: one('--tv-theme') }
 }
 
 const toHex = (raw: string, fallback: string): string => {
@@ -222,7 +219,7 @@ export function useLook(): Look {
     if (!user) return
     let on = true
     askOwner()
-    api.get<{ tvLook?: Record<string, unknown> }>('/me/ui').then((u) => { if (on && u.tvLook && !saving) store(upgradeSaved(u.tvLook, owner)) }).catch(() => { /* this device's copy will do */ })
+    api.get<{ tvLook?: Record<string, unknown> }>('/me/ui').then((u) => { if (on && u.tvLook && !saving) store(upgradeSaved(u.tvLook)) }).catch(() => { /* this device's copy will do */ })
     return () => { on = false }
   }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
   // Read on each drawing, and cheap: the look only changes identity when one of these really has.

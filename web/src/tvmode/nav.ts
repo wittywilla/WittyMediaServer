@@ -7,17 +7,6 @@
 export type TabId = string
 export type TvTab = { id: TabId; path: string; label: string; icon?: string; screen?: string }
 
-// The top bar as TV mode has it against a server that doesn't describe its own menu: five on the left, You
-// pinned to the right end of the same row. A server with server-driven pages sends the bar (tabsFromMenu).
-export const TV_TABS: TvTab[] = [
-  { id: 'home', path: '/', label: 'Home', icon: 'home' },
-  { id: 'libraries', path: '/libraries', label: 'Libraries', icon: 'library' },
-  { id: 'games', path: '/games', label: 'Games', icon: 'game' },
-  { id: 'live', path: '/tv', label: 'Live TV', icon: 'tv' },
-  { id: 'search', path: '/search', label: 'Search', icon: 'search' },
-  { id: 'you', path: '/you', label: 'You', screen: 'profiles' },
-]
-
 // tabsFromMenu: the bar from a server's menu for a television (GET /sdui/navigation): its primary entries in
 // order, then More when the menu places anything there (moreTabs lists them on its own screen), then the ones
 // placed at the end. Settings is reached from You on a television, as it always was, unless the menu has no You
@@ -45,18 +34,18 @@ function usableEntries(items: MenuEntry[]): MenuEntry[] {
 
 // tabRootOf: the tab whose first screen this is, or null for a screen opened from a tab, which has the
 // whole screen and no bar.
-export function tabRootOf(pathname: string, tabs: TvTab[] = TV_TABS): TabId | null {
+export function tabRootOf(pathname: string, tabs: TvTab[]): TabId | null {
   const path = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
   return tabs.find((t) => t.path === path)?.id ?? null
 }
 
 // stepTab: the tab beside this one, for LB and RB; null at either end, which doesn't wrap round.
-export function stepTab(from: TabId, step: -1 | 1, tabs: TvTab[] = TV_TABS): TabId | null {
+export function stepTab(from: TabId, step: -1 | 1, tabs: TvTab[]): TabId | null {
   const i = tabs.findIndex((t) => t.id === from)
   return i < 0 ? null : tabs[i + step]?.id ?? null
 }
 
-export const tabPath = (id: TabId, tabs: TvTab[] = TV_TABS) => (tabs.find((t) => t.id === id) || tabs[0]).path
+export const tabPath = (id: TabId, tabs: TvTab[]) => (tabs.find((t) => t.id === id) || tabs[0]).path
 
 // What Back does:
 //   history  a screen opened from a tab: back to where it was opened

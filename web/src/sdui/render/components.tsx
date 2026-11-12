@@ -850,7 +850,7 @@ export function Draw({ view, depth }: { view: View; depth: number }): ReactNode 
     case 'ListItem': return <ListItemView view={view} />
     case 'NativeView': return (
       <Suspense fallback={<div className="loading-box" role="status" aria-label="Loading"><div className="spinner" /></div>}>
-        <NativeViewHost view={str(view.node.props, 'view')} library={str(view.node.props, 'library')} inert={!!page.inert} props={view.node.props || {}} tokens={view.node.tokens} tv={page.tv} reducedMotion={page.reducedMotion}>
+        <NativeViewHost view={str(view.node.props, 'view')} library={str(view.node.props, 'library')} inert={!!page.inert} props={view.node.props || {}}>
           {view.children.map((c) => <Draw key={c.id} view={c} depth={depth + 1} />)}
         </NativeViewHost>
       </Suspense>

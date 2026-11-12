@@ -546,7 +546,7 @@ func cases() []kase {
 			sec("none", "Banner", map[string]any{"title": "Never shown"}, sdui.Source{"type": "watchLater", "limit": 1})), Request: request("tablet"),
 			Data: Data{Sources: []CannedSource{src(map[string]any{"type": "random"}, films(1), 0)}}},
 			checks: []string{"a banner written by hand opens a native screen", "a banner from a source takes its title, text, picture and destination from the first item", "a banner whose source is empty is left out"}},
-	}, moduleCases()...)
+	}, append(moduleCases(), layoutCases()...)...)
 }
 
 // The modules' cases (docs/SDUI-MODULES.md): the worked example module's page,
@@ -619,5 +619,45 @@ func moduleCases() []kase {
 			checks: []string{"a module's insert sits where it asked to (after jump)", "an inserted section carries the module's scope and colours", "its condition is the module's, combined with the section's"}},
 		{id: "module-not-installed", title: "A page that uses a module that isn't installed", in: Input{Page: missing, Request: request("phone"), Data: moduleData()},
 			checks: []string{"a module's component or source with no module behind it is left out, never sent", "the rest of the page is drawn"}},
+	}
+}
+
+// The layout options' cases (docs/SDUI.md, "Layout options"): one or more for each, on the
+// device it suits best. The shell is in document.layout.shell, and what the layout changes
+// about pages reaches a renderer as the catalogue's own components.
+func layoutCases() []kase {
+	with := func(in Input, layout string, change func(in *Input)) Input {
+		in.Request.Layout = layout
+		if change != nil {
+			change(&in)
+		}
+		return in
+	}
+	wide := func(in *Input) { in.Request.Viewport = "1440x900" }
+	return []kase{
+		{id: "layout-sidebar-desktop", title: "Layout: sidebar, Home in a desktop window", in: with(home("desktop", wide), sdui.LayoutSidebar, nil),
+			checks: []string{"the shell is a 240-point sidebar", "the page is as written"}},
+		{id: "layout-sidebar-phone", title: "Layout: sidebar, Home on a phone", in: with(home("phone", nil), sdui.LayoutSidebar, nil),
+			checks: []string{"on a phone the sidebar layout is a 56-point tab bar at the bottom"}},
+		{id: "layout-toptabs-phone", title: "Layout: top tabs, Home on a phone", in: with(home("phone", nil), sdui.LayoutTopTabs, nil),
+			checks: []string{"the menu is a 48-point row of tabs across the top", "the page is as written"}},
+		{id: "layout-toptabs-tablet", title: "Layout: top tabs, Home on a tablet", in: with(home("tablet", nil), sdui.LayoutTopTabs, nil),
+			checks: []string{"the menu is a 56-point row of tabs across the top of a tablet"}},
+		{id: "layout-tvrows-tv", title: "Layout: TV rows, a film library on a television", in: with(library("library-movies", "tv", "1", "movies", "Films", nil), sdui.LayoutTVRows, nil),
+			checks: []string{"a grid that a filter bar drives stays a grid", "the menu is the television's top menu"}},
+		{id: "layout-tvrows-tablet", title: "Layout: TV rows, a music library on a tablet", in: with(library("library-music", "tablet", "3", "music", "Music", nil), sdui.LayoutTVRows, nil),
+			checks: []string{"grids become rows of large cards, with See all", "the menu is a 72-point rail"}},
+		{id: "layout-tvrows-desktop", title: "Layout: TV rows, Home in a desktop window", in: with(home("desktop", wide), sdui.LayoutTVRows, nil),
+			checks: []string{"rows whose section doesn't say take large cards", "the spotlight is a billboard", "the menu is an 80-point rail"}},
+		{id: "layout-compactlist-phone", title: "Layout: compact list, Home on a phone", in: with(home("phone", nil), sdui.LayoutCompactList, nil),
+			checks: []string{"rows and grids are dense lists, a line per title", "the spotlight is a list too", "compact spacing"}},
+		{id: "layout-compactlist-tv", title: "Layout: compact list, Home on a television", in: with(home("tv", nil), sdui.LayoutCompactList, nil),
+			checks: []string{"a television's menu down the side, 120 points closed and 400 open"}},
+		{id: "layout-streaming-web", title: "Layout: streaming style, Home in a browser", in: with(home("web", wide), sdui.LayoutStreaming, nil),
+			checks: []string{"the menu is a see-through row of tabs over the page", "the spotlight is a billboard", "films' and shows' rows take wide cards"}},
+		{id: "layout-streaming-phone", title: "Layout: streaming style, Home on a phone", in: with(home("phone", nil), sdui.LayoutStreaming, nil),
+			checks: []string{"on a phone the menu is the tab bar, over the page"}},
+		{id: "layout-streaming-tv", title: "Layout: streaming style, Home on a television", in: with(home("tv", nil), sdui.LayoutStreaming, nil),
+			checks: []string{"a television's menu is never drawn over the page"}},
 	}
 }

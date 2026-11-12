@@ -146,6 +146,8 @@ Ordering is semantic versioning, so a pre-release comes before its release.
 
 `maxServer` is required, and `x` alone isn't allowed: every module states a real maximum.
 
+**Before 1.0, a series is read as the whole 0.x line.** The table is how `wittymodule` reads a range. A server reads a `maxServer` such as `0.6.x` or `0.8.x` as `0.x` (`internal/modules/widen.go`), because before 1.0 the module API number is what decides whether a version fits: a module released beside 0.6 with module API 3 runs on 0.8.0-alpha, which takes API 3 and 4, and a store offers it there. So on a server, the row for 0.9.0-alpha above works too. An exact maximum (`0.8.0`) is kept as written, and a 1.x server is another line.
+
 Pre-release *modules* are offered only to a server that's itself a pre-release, or that already runs that module's pre-release. A stable server never gets one by surprise, but keeps one it already has, and an admin may still choose one from the list of versions, after a warning.
 
 A server whose version can't be read (a build from a commit with no tag) can't be compared, so it installs nothing and says so.

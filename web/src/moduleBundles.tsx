@@ -208,18 +208,9 @@ export function useModulePages(): ModulePage[] {
 
 // A module's own view (docs/SDUI-MODULES.md, "Views"): the bundle exports `views`, a
 // component for each view ID, and the app says it can draw them (views= with its own), so
-// a page sends the NativeView itself rather than its fallback. Each is drawn with `host`
-// (what it may use of the app: ModuleViewHost) and the NativeView's props.
-export type ModuleViewHost = {
-  api: { get: <T>(path: string) => Promise<T>; post: <T>(path: string, body?: unknown) => Promise<T>; put: <T>(path: string, body?: unknown) => Promise<T>; del: <T>(path: string, body?: unknown) => Promise<T> }
-  mediaUrl: (path: string) => string
-  navigate: (to: string) => void
-  // The module's colours, as the theme engine resolves them (GET /theme, modules.<module>.tokens).
-  tokens: Record<string, string>
-  tv: boolean
-  reducedMotion: boolean
-}
-export type ModuleViewProps = { host: ModuleViewHost; props: Record<string, unknown> }
+// a page sends the NativeView itself rather than its fallback. Each is mounted with
+// `{host, view, library?, ...the node's other props}`, `host` being what a module's page gets.
+export type ModuleViewProps = { host: unknown; view: string; library?: string } & Record<string, unknown>
 
 let bundlesKnown: Bundle[] = []
 let viewIds: string[] = []

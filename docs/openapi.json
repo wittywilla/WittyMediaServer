@@ -9274,6 +9274,69 @@
               "null"
             ]
           },
+          "layouts": {
+            "items": {
+              "properties": {
+                "description": {
+                  "type": "string"
+                },
+                "icon": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "nav": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object"
+                },
+                "overlay": {
+                  "type": "boolean"
+                },
+                "pages": {
+                  "properties": {
+                    "cardSize": {
+                      "type": "string"
+                    },
+                    "density": {
+                      "type": "string"
+                    },
+                    "gridsAsRows": {
+                      "type": "boolean"
+                    },
+                    "hero": {
+                      "type": "string"
+                    },
+                    "landscapeCards": {
+                      "type": "boolean"
+                    },
+                    "rowsAsLists": {
+                      "type": "boolean"
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              "required": [
+                "description",
+                "icon",
+                "id",
+                "label",
+                "nav",
+                "pages"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "libraryKinds": {
             "items": {
               "type": "string"
@@ -9310,6 +9373,15 @@
           "nativeViews": {
             "items": {
               "$ref": "#/components/schemas/SDUIEnumOption"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "navStyles": {
+            "items": {
+              "type": "string"
             },
             "type": [
               "array",
@@ -9470,6 +9542,38 @@
                     "scale": {
                       "type": "integer"
                     },
+                    "shell": {
+                      "anyOf": [
+                        {
+                          "properties": {
+                            "layout": {
+                              "type": "string"
+                            },
+                            "nav": {
+                              "type": "string"
+                            },
+                            "open": {
+                              "type": "integer"
+                            },
+                            "overlay": {
+                              "type": "boolean"
+                            },
+                            "size": {
+                              "type": "integer"
+                            }
+                          },
+                          "required": [
+                            "layout",
+                            "nav",
+                            "size"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "spacing": {
                       "additionalProperties": {
                         "type": "integer"
@@ -9564,11 +9668,13 @@
           "conditions",
           "formFactors",
           "icons",
+          "layouts",
           "libraryKinds",
           "limits",
           "mediaKinds",
           "nativeScreens",
           "nativeViews",
+          "navStyles",
           "pageKinds",
           "personalKinds",
           "placeholders",
@@ -9996,6 +10102,33 @@
           "etag": {
             "type": "string"
           },
+          "layouts": {
+            "anyOf": [
+              {
+                "properties": {
+                  "allowed": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "default": {
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "navigation": {
             "anyOf": [
               {
@@ -10185,6 +10318,38 @@
                   },
                   "scale": {
                     "type": "integer"
+                  },
+                  "shell": {
+                    "anyOf": [
+                      {
+                        "properties": {
+                          "layout": {
+                            "type": "string"
+                          },
+                          "nav": {
+                            "type": "string"
+                          },
+                          "open": {
+                            "type": "integer"
+                          },
+                          "overlay": {
+                            "type": "boolean"
+                          },
+                          "size": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "layout",
+                          "nav",
+                          "size"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   },
                   "spacing": {
                     "additionalProperties": {
@@ -10579,10 +10744,77 @@
               "null"
             ]
           },
+          "layouts": {
+            "anyOf": [
+              {
+                "properties": {
+                  "chosen": {
+                    "type": "string"
+                  },
+                  "current": {
+                    "type": "string"
+                  },
+                  "options": {
+                    "items": {
+                      "$ref": "#/components/schemas/SDUIEnumOption"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "url": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "current",
+                  "options",
+                  "url"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "personal": {
             "anyOf": [
               {
                 "$ref": "#/components/schemas/SDUIPersonalInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "shell": {
+            "anyOf": [
+              {
+                "properties": {
+                  "layout": {
+                    "type": "string"
+                  },
+                  "nav": {
+                    "type": "string"
+                  },
+                  "open": {
+                    "type": "integer"
+                  },
+                  "overlay": {
+                    "type": "boolean"
+                  },
+                  "size": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "layout",
+                  "nav",
+                  "size"
+                ],
+                "type": "object"
               },
               {
                 "type": "null"
@@ -40327,6 +40559,78 @@
         "x-wms-auth": "admin"
       }
     },
+    "/sdui/config/layouts": {
+      "get": {
+        "operationId": "getSduiConfigLayouts",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The server's layout options: {etag, layouts: {default, allowed}, options, builtin}.",
+        "tags": [
+          "Server-driven UI"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putSduiConfigLayouts",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            }
+          },
+          "description": "{default, allowed}",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Saves which layout each form factor starts with and which profiles may choose: {default: {formFactor: layout}, allowed: [layout]}. If-Match as for the configuration, or target=draft.",
+        "tags": [
+          "Server-driven UI"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/sdui/config/navigation": {
       "delete": {
         "operationId": "deleteSduiConfigNavigation",
@@ -41134,6 +41438,107 @@
           "Server-driven UI"
         ],
         "x-wms-auth": "admin"
+      }
+    },
+    "/sdui/layout": {
+      "delete": {
+        "operationId": "deleteSduiLayout",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "This device follows the server's layout again.",
+        "tags": [
+          "Server-driven UI"
+        ],
+        "x-wms-auth": "user"
+      },
+      "get": {
+        "operationId": "getSduiLayout",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The layout option in force on this device and what this profile may choose: {layout, shell, choice, editable}. device= (or X-WMS-Device) names the app's own device; without it the form factor.",
+        "tags": [
+          "Server-driven UI"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putSduiLayout",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            }
+          },
+          "description": "{layout}",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "This profile's layout on this device: {layout}. 403 when it may not rearrange, or when the server doesn't offer that layout.",
+        "tags": [
+          "Server-driven UI"
+        ],
+        "x-wms-auth": "user"
       }
     },
     "/sdui/modules": {

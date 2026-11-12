@@ -42,6 +42,9 @@ type NormalisedPage struct {
 	SectionGap int `json:"sectionGap"`
 	// Scope is the page's theme scope, "" for none.
 	Scope string `json:"scope,omitempty"`
+	// Shell is the frame the app draws around the page: the layout option, the
+	// menu's style and breadth (document.layout.shell). Absent: none was sent.
+	Shell *sdui.Shell `json:"shell,omitempty"`
 }
 
 // Element is one drawn component.
@@ -146,7 +149,7 @@ func Normalise(doc sdui.Document) Normalised {
 		gap = l.Spacing["m"]
 	}
 	out := Normalised{Kit: KitVersion, Visible: []Element{},
-		Page:  NormalisedPage{Title: doc.Page.Title, FormFactor: l.FormFactor, Breakpoint: l.Breakpoint, Density: l.Density, ContentWidth: l.ContentWidth(), SectionGap: gap},
+		Page:  NormalisedPage{Title: doc.Page.Title, FormFactor: l.FormFactor, Breakpoint: l.Breakpoint, Density: l.Density, ContentWidth: l.ContentWidth(), SectionGap: gap, Shell: l.Shell},
 		Focus: NormalisedFocus{Order: []string{}}}
 	if doc.Theme != nil {
 		out.Page.Scope = doc.Theme.Scope

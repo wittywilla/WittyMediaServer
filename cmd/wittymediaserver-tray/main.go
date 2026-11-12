@@ -249,9 +249,13 @@ func (l *launcher) onExit() {
 }
 
 func (l *launcher) setIcon(running bool) {
-	if runtime.GOOS == "windows" {
+	switch runtime.GOOS {
+	case "windows":
 		systray.SetIcon(trayicon.ICO(!running))
-	} else {
+	case "darwin":
+		// A template: macOS draws it in the menu bar's own colour, light or dark.
+		systray.SetTemplateIcon(trayicon.Template(44, !running), trayicon.PNG(64, !running))
+	default:
 		systray.SetIcon(trayicon.PNG(64, !running))
 	}
 }

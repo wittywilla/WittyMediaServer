@@ -5,6 +5,8 @@
     <options customize="allow" require-scripts="false" hostArchitectures="arm64,x86_64"/>
     <domains enable_anywhere="false" enable_currentUserHome="false" enable_localSystem="true"/>
     <os-version min="11.0"/>
+    <background file="background.png" alignment="bottomleft" scaling="proportional"/>
+    <background-darkAqua file="background.png" alignment="bottomleft" scaling="proportional"/>
     <welcome mime-type="text/plain"><![CDATA[WittyMediaServer is your own media server. This installs the app in Applications, and sets it to run in the background.
 
 Your library, accounts and settings stay in your Library folder, and are kept when you update.

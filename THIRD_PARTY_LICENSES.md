@@ -24,6 +24,12 @@ text. That list is made from what's really compiled in (`internal/licenses`), an
 |---|---|---|
 | **Tdarr** (server and nodes) | Proprietary: [Tdarr's EULA](https://github.com/HaveAGitGat/Tdarr/blob/master/LICENSE.md) | Not bundled, downloaded or run by this project. Library transcoding can connect to a copy someone installs themselves, over its HTTP API, if they turn that on. Whoever installs it agrees to its terms. No Tdarr code or plugin (its plugins are GPL-3.0) is included. See [docs/LIBRARY-TRANSCODING.md](docs/LIBRARY-TRANSCODING.md). |
 
+## Fonts
+
+| Component | Licence | Notes |
+|---|---|---|
+| **Inter** 4.1 (`web/public/fonts`, `internal/brandart/fonts`) | SIL Open Font License 1.1 (`web/public/fonts/Inter-OFL.txt`) | The web client's font, served by the server, and the outlines `scripts/genicon` draws the brand name and other words in pictures with. Copyright (c) 2016 The Inter Project Authors. <https://github.com/rsms/inter> |
+
 ## Go modules (statically linked)
 
 | Module | Licence |

@@ -43,8 +43,12 @@ pkgbuild --nopayload --identifier com.wittywilla.wittymediaserver.service --vers
   --scripts packaging/macos/scripts/service "$work/service.pkg"
 
 sed -e "s|@VERSION@|$NUMERIC|g" -e "s|@DISPLAY_VERSION@|$VERSION|g" packaging/macos/distribution.xml > "$work/distribution.xml"
+# The installer window's background, from the brand drawings (docs/BRAND.md).
+mkdir -p "$work/resources"
+go run ./scripts/genicon -target server-package -o "$work/brand" >/dev/null
+cp "$work/brand/pkg-background.png" "$work/resources/background.png"
 target="$OUT/wittymediaserver-$VERSION-macos-$ARCH.pkg"
-productbuild --distribution "$work/distribution.xml" --package-path "$work" \
+productbuild --distribution "$work/distribution.xml" --package-path "$work" --resources "$work/resources" \
   ${APPLE_INSTALLER_IDENTITY:+--sign "$APPLE_INSTALLER_IDENTITY"} "$target"
 
 if [ -n "${APPLE_NOTARY_PROFILE:-}" ]; then

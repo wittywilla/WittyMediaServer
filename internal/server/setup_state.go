@@ -68,7 +68,7 @@ func setupAddress(r *http.Request) string {
 func setupOpenPath(p string) bool {
 	switch {
 	case p == "/api/status", p == "/api/health", p == "/api/setup", strings.HasPrefix(p, "/api/setup/"),
-		strings.HasPrefix(p, "/api/backup/restore"), p == "/api/login", p == "/api/logout", p == "/api/sdui/preview", p == "/api/themes", strings.HasPrefix(p, "/api/themes/"), p == "/api/sdui/experiences":
+		strings.HasPrefix(p, "/api/backup"), strings.HasPrefix(p, "/api/legal"), p == "/api/identity", p == "/api/capabilities", p == "/api/login", p == "/api/logout", p == "/api/sdui/preview", p == "/api/themes", strings.HasPrefix(p, "/api/themes/"), p == "/api/sdui/experiences":
 		return true
 	}
 	return false
@@ -77,7 +77,11 @@ func setupOpenPath(p string) bool {
 // setupGate answers 503 setup_required to everything an app uses while first run goes on.
 func (s *Server) setupGate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !strings.HasPrefix(r.URL.Path, "/api/") || setupOpenPath(r.URL.Path) || s.setupComplete(r.Context()) {
+		p := r.URL.Path
+		if rest, ok := strings.CutPrefix(p, apiPrefix); ok {
+			p = "/api/" + rest
+		}
+		if !strings.HasPrefix(p, "/api/") || setupOpenPath(p) || s.setupComplete(r.Context()) {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -246,7 +250,7 @@ func (s *Server) handleSDUIExperiencePreview(w http.ResponseWriter, r *http.Requ
 		writeErr(w, 500, err.Error())
 		return
 	}
-	libs := []sdui.NavLibrary{{ID: 1, Name: "Films", Kind: "movies"}, {ID: 2, Name: "Shows", Kind: "shows"}, {ID: 3, Name: "Music", Kind: "music"}}
+	libs := []sdui.NavLibrary{{ID: 1, Name: "Films", Kind: "movies", Count: 12}, {ID: 2, Name: "Shows", Kind: "shows", Count: 8}, {ID: 3, Name: "Music", Kind: "music", Count: 40}}
 	nav := sdui.RenderNavigation(sdui.StockNavigation(), func(id string) (sdui.Page, bool) { return sdui.StockPage(id) }, libs, ctx)
 	nav.Shell = sdui.ShellFor(exp.ID, ff)
 	shape, typ := s.Themes.Look(themeID)

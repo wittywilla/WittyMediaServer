@@ -60,12 +60,7 @@ func TestParseTokens(t *testing.T) {
 	if len(tk.Fonts) != 3 || tk.Fonts[0] != "Inter" || tk.Fonts[2] != "Segoe UI" {
 		t.Errorf("fonts: %v", tk.Fonts)
 	}
-	if tk.WebOnly {
-		t.Error("variables alone are not web-only")
-	}
-	if !parseTokens(`:root{--bg:#000} .card{border:0}`).WebOnly {
-		t.Error("own selectors are web-only")
-	}
+
 }
 
 // A native app must be able to rely on these in every theme the server ships.

@@ -70,6 +70,11 @@ tps://evil.example/a") }`,
 		if outsideURL([]byte(css)) {
 			t.Errorf("refused an ordinary stylesheet: %s", css)
 		}
+		// Rules for the interface's classes are refused on their own account (design_test.go);
+		// what is left is held to the same rules as before.
+		if checkVariablesOnly("theme.css", []byte(css)) != nil {
+			continue
+		}
 		if err := CheckZip(zipOf(t, map[string]string{"theme.json": `{"name":"x"}`, "theme.css": css})); err != nil {
 			t.Errorf("refused an ordinary theme: %v", err)
 		}
@@ -89,11 +94,11 @@ func TestThemeJSONColoursCantReachOutside(t *testing.T) {
 		`{"name":"x","preview":{"bg":"url(https://evil.example/)"}}`,
 		`{"name":"x","colors":{"bg":"url(//evil.example/)"}}`,
 	} {
-		if CheckZip(zipOf(t, map[string]string{"theme.json": j, "theme.css": "a{}"})) == nil {
+		if CheckZip(zipOf(t, map[string]string{"theme.json": j, "theme.css": ":root{}"})) == nil {
 			t.Errorf("accepted: %s", j)
 		}
 	}
-	if err := CheckZip(zipOf(t, map[string]string{"theme.json": `{"name":"x","homepage":"https://example.org","preview":{"bg":"#102030"},"colors":{"bg":"rgb(1 2 3)"}}`, "theme.css": "a{}"})); err != nil {
+	if err := CheckZip(zipOf(t, map[string]string{"theme.json": `{"name":"x","homepage":"https://example.org","preview":{"bg":"#102030"},"colors":{"bg":"rgb(1 2 3)"}}`, "theme.css": ":root{}"})); err != nil {
 		t.Errorf("an ordinary theme.json: %v", err)
 	}
 }

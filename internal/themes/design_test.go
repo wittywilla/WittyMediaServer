@@ -6,6 +6,7 @@ package themes
 import (
 	"encoding/json"
 	"io/fs"
+	"strings"
 	"testing"
 
 	builtin "github.com/wittywilla/wittymediaserver/themes"
@@ -76,5 +77,38 @@ func TestElevationAndDensityTables(t *testing.T) {
 	var tv map[string]any
 	if err := json.Unmarshal(TVFor(nil, pal, pal).Units, &tv); err != nil || tv["safe"] == nil || tv["dock"] == nil {
 		t.Errorf("units: %v %v", tv, err)
+	}
+}
+
+// A theme is variables, a scene and assets: a stylesheet with rules for the interface's own
+// classes is refused, with a message that says what to do.
+func TestThemeStylesheetsHoldVariablesOnly(t *testing.T) {
+	for name, css := range map[string]string{
+		"a class rule":    ":root{--bg:#000}\n.hero h1{color:red}",
+		"an element rule": "body{background:#000}",
+		"a property":      ":root{--bg:#000;font-size:20px}",
+		"a media query":   "@media (min-width:600px){:root{--bg:#000}}",
+	} {
+		if err := checkVariablesOnly("theme.css", []byte(css)); err == nil {
+			t.Errorf("%s was accepted", name)
+		}
+	}
+	err := checkVariablesOnly("theme.css", []byte(".hero h1 { color: red }"))
+	if err == nil || !strings.Contains(err.Error(), ".hero h1") || !strings.Contains(err.Error(), "variables") {
+		t.Errorf("the message: %v", err)
+	}
+	for name, css := range map[string]string{
+		"variables":  "/* c */ :root { color-scheme: dark; --bg: #000; --font: \"X\", sans-serif; }",
+		"font faces": ":root{--bg:#000}\n@font-face { font-family: X; src: url(x.woff2); }",
+	} {
+		if err := checkVariablesOnly("theme.css", []byte(css)); err != nil {
+			t.Errorf("%s refused: %v", name, err)
+		}
+	}
+	for _, d := range []string{"cinema", "light", "paper", "aeroday", "teletext"} {
+		css, _ := fs.ReadFile(builtin.Builtin, d+"/theme.css")
+		if err := checkVariablesOnly(d, css); err != nil {
+			t.Errorf("built-in %s: %v", d, err)
+		}
 	}
 }

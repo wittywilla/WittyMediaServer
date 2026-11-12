@@ -19,13 +19,13 @@ func TestFirstRunGatesEveryAppRoute(t *testing.T) {
 	if err := ts.Themes.Install(builtin.Builtin); err != nil {
 		t.Fatal(err)
 	}
-	for _, path := range []string{"/api/sdui/pages/home", "/api/sdui/navigation", "/api/theme", "/api/libraries", "/api/capabilities"} {
+	for _, path := range []string{"/api/sdui/pages/home", "/api/sdui/navigation", "/api/theme", "/api/libraries"} {
 		w := ts.do(t, "GET", path, "", nil)
 		if w.Code != 503 || !strings.Contains(w.Body.String(), `"setup_required"`) || !strings.Contains(w.Body.String(), "/setup") {
 			t.Errorf("%s before setup: %d %s", path, w.Code, w.Body)
 		}
 	}
-	for _, path := range []string{"/api/status", "/api/health", "/api/setup/state", "/api/themes", "/api/sdui/experiences", "/"} {
+	for _, path := range []string{"/api/status", "/api/health", "/api/capabilities", "/api/setup/state", "/api/themes", "/api/sdui/experiences", "/"} {
 		if w := ts.do(t, "GET", path, "", nil); w.Code == 503 {
 			t.Errorf("%s answers 503 during setup", path)
 		}

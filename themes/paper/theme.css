@@ -52,7 +52,3 @@
   --tv-text: #1f1a14;
   --hero-scrim: 0.76;
 }
-
-/* Light themes: soften the text shadow used on artwork. */
-.hero h1, .detail h1 { text-shadow: 0 1px 6px rgba(255, 255, 255, 0.6); }
-.detail-hero .bg, .hero .bg { filter: saturate(1.05) brightness(1.02); }

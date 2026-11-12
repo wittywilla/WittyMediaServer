@@ -8,6 +8,9 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/wittywilla/wittymediaserver/internal/brandname"
@@ -49,8 +52,19 @@ func (s *Server) brandMark(ctx context.Context) brandname.Mark {
 func (s *Server) handleThemes(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	name, colouring, parts := s.brand(ctx)
+	// A theme a profile imported is offered to that profile only.
+	var uid int64
+	if u, _ := s.signedIn(r); u != nil {
+		uid = u.ID
+	}
+	list := []themes.Meta{}
+	for _, m := range s.Themes.List() {
+		if s.themeVisibleTo(m.ID, uid) {
+			list = append(list, m)
+		}
+	}
 	writeJSON(w, 200, map[string]any{
-		"themes":         s.Themes.List(),
+		"themes":         list,
 		"default":        s.serverTheme(ctx),
 		"brandName":      name,
 		"brandColouring": colouring,
@@ -163,4 +177,85 @@ func (s *Server) handleThemeDelete(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	writeJSON(w, 200, map[string]any{"ok": true})
+}
+
+// A profile's own imported themes (the experience policy's profileThemes): installed like any
+// theme, but offered only to the profile that imported them. Who owns a theme is a small file
+// beside it, <id>.owner, holding the account's ID.
+
+// maxProfileThemes bounds the themes one profile may import.
+const maxProfileThemes = 5
+
+func (s *Server) themeOwnerPath(id string) string {
+	return filepath.Join(s.Themes.Dir, id+".owner")
+}
+
+// themeOwner is the account that imported a theme, 0 for a theme the server owns.
+func (s *Server) themeOwner(id string) int64 {
+	b, err := os.ReadFile(s.themeOwnerPath(id))
+	if err != nil {
+		return 0
+	}
+	n, _ := strconv.ParseInt(strings.TrimSpace(string(b)), 10, 64)
+	return n
+}
+
+// themeVisibleTo says whether an account may be offered a theme.
+func (s *Server) themeVisibleTo(id string, uid int64) bool {
+	o := s.themeOwner(id)
+	return o == 0 || o == uid
+}
+
+// POST /api/themes/mine: a theme ZIP imported by the signed-in profile, when the
+// administrator lets profiles import their own (administrators always may; theirs is the
+// server's, as POST /api/themes makes it).
+func (s *Server) handleThemeImportMine(w http.ResponseWriter, r *http.Request) {
+	u := userFrom(r)
+	st, err := s.uiStore()
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	if !u.IsAdmin && !(st.Current().Experiences != nil && st.Current().Experiences.ProfileThemes) {
+		writeErr(w, 403, "This server doesn't let profiles import themes. An administrator can allow it.")
+		return
+	}
+	data, err := io.ReadAll(io.LimitReader(r.Body, 26<<20))
+	if err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	id, err := themes.IDOf(data, r.URL.Query().Get("name"))
+	if err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	if !u.IsAdmin {
+		if o := s.themeOwner(id); (o != 0 && o != u.ID) || (o == 0 && s.Themes.Has(id)) {
+			writeErr(w, 409, "A theme with that id is already here. Change the id in theme.json.")
+			return
+		}
+		count := 0
+		if files, _ := filepath.Glob(filepath.Join(s.Themes.Dir, "*.owner")); len(files) > 0 {
+			for _, f := range files {
+				if s.themeOwner(strings.TrimSuffix(filepath.Base(f), ".owner")) == u.ID {
+					count++
+				}
+			}
+		}
+		if count >= maxProfileThemes && s.themeOwner(id) != u.ID {
+			writeErr(w, 409, "You have imported "+strconv.Itoa(maxProfileThemes)+" themes already. Remove one first.")
+			return
+		}
+	}
+	meta, err := s.Themes.Add(data, r.URL.Query().Get("name"))
+	if err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	if !u.IsAdmin {
+		_ = os.WriteFile(s.themeOwnerPath(meta.ID), []byte(strconv.FormatInt(u.ID, 10)), 0o644)
+	}
+	s.Log.InfoContext(r.Context(), "theme imported", "cat", "sdui", "by", adminName(r), "theme", meta.ID, "own", !u.IsAdmin)
+	writeJSON(w, 201, meta)
 }

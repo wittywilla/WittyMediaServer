@@ -30,7 +30,7 @@ func publicBody(p string) bool {
 		p = "/api/" + rest
 	}
 	switch p {
-	case "/api/setup", "/api/login", "/api/logout", "/api/identity", "/api/pair/start", "/api/pair/poll", "/api/pair/redeem", "/api/auth/pair":
+	case "/api/setup", "/api/setup/state", "/api/login", "/api/logout", "/api/identity", "/api/pair/start", "/api/pair/poll", "/api/pair/redeem", "/api/auth/pair":
 		return true
 	}
 	return false

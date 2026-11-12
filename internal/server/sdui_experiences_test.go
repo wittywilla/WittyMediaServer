@@ -4,6 +4,8 @@
 package server
 
 import (
+	"archive/zip"
+	"bytes"
 	"encoding/json"
 	"strings"
 	"testing"
@@ -163,5 +165,87 @@ func TestRequiredLookIsResolvedAndLocked(t *testing.T) {
 	th = getTheme(t, ts, adult)
 	if th.Source != "server" || th.Look.RequiredTheme != nil || th.Look.Experience != "lumen" {
 		t.Errorf("after clearing: %q %+v", th.Source, th.Look)
+	}
+}
+
+// A profile may import a theme of its own when the administrator allows it; it is offered to
+// that profile only, and a stylesheet with rules for the interface's classes is refused.
+func TestProfileThemeImport(t *testing.T) {
+	ts, admin, adult, kid := sduiAccounts(t)
+	if err := ts.Themes.Install(builtin.Builtin); err != nil {
+		t.Fatal(err)
+	}
+	zipOf := func(css string) []byte {
+		var b bytes.Buffer
+		zw := zip.NewWriter(&b)
+		for n, body := range map[string]string{"theme.json": `{"name":"Mine","id":"mine"}`, "theme.css": css} {
+			w, _ := zw.Create(n)
+			_, _ = w.Write([]byte(body))
+		}
+		zw.Close()
+		return b.Bytes()
+	}
+	good := zipOf(":root { color-scheme: dark; --bg: #101820; --fg: #f0f0f0; --accent: #66ccff; }")
+	if w := ts.do(t, "POST", "/api/themes/mine", adult, good); w.Code != 403 {
+		t.Errorf("before the administrator allows it: %d", w.Code)
+	}
+	var cur struct{ ETag string }
+	_ = json.Unmarshal(ts.do(t, "GET", "/api/sdui/config/experience", admin, nil).Body.Bytes(), &cur)
+	if w := ts.do(t, "PUT", "/api/sdui/config/experience", admin, map[string]any{"profileThemes": true}, "If-Match", cur.ETag); w.Code != 200 {
+		t.Fatalf("allowing it: %d %s", w.Code, w.Body)
+	}
+	if w := ts.do(t, "POST", "/api/themes/mine", adult, zipOf(".hero h1 { color: red }")); w.Code != 400 || !strings.Contains(w.Body.String(), "variables") {
+		t.Errorf("a stylesheet with class rules: %d %s", w.Code, w.Body)
+	}
+	if w := ts.do(t, "POST", "/api/themes/mine", adult, good); w.Code != 201 {
+		t.Fatalf("importing: %d %s", w.Code, w.Body)
+	}
+	listed := func(token string) bool {
+		var l struct{ Themes []struct{ ID string } }
+		_ = json.Unmarshal(ts.do(t, "GET", "/api/themes", token, nil).Body.Bytes(), &l)
+		for _, m := range l.Themes {
+			if m.ID == "mine" {
+				return true
+			}
+		}
+		return false
+	}
+	if !listed(adult) || listed(kid) || listed(admin) {
+		t.Errorf("offered to: adult %v kid %v admin %v", listed(adult), listed(kid), listed(admin))
+	}
+	if w := ts.do(t, "POST", "/api/themes/mine", kid, good); w.Code != 409 {
+		t.Errorf("another profile taking the id: %d", w.Code)
+	}
+}
+
+// The rail opens a drawer for each library, headed by its name, with its views.
+func TestRailNavigationCarriesLibraryDrawers(t *testing.T) {
+	f := newSDUIFixture(t)
+	ts, adult := f.ts, f.admin
+	get := func(exp string) sdui.NavDocument {
+		var nav sdui.NavDocument
+		_ = json.Unmarshal(ts.do(t, "GET", "/api/v1/sdui/navigation?formFactor=desktop&experience="+exp, adult, nil).Body.Bytes(), &nav)
+		return nav
+	}
+	rail := get("rail")
+	if rail.Shell == nil || rail.Shell.Nav != "railDrawer" || rail.Shell.Open != 240 || rail.Shell.Drawer != 360 {
+		t.Fatalf("shell: %+v", rail.Shell)
+	}
+	found := 0
+	for _, e := range rail.Items {
+		if strings.HasPrefix(e.ID, "lib-") {
+			found++
+			if e.Drawer == nil || e.Drawer.Title != e.Label || len(e.Drawer.Views) < 2 || e.Drawer.Views[0].Params["library"] == "" {
+				t.Errorf("%s has no drawer: %+v", e.ID, e.Drawer)
+			}
+		}
+	}
+	if found == 0 {
+		t.Error("no library entries to open a drawer from")
+	}
+	for _, e := range get("classic").Items {
+		if e.Drawer != nil {
+			t.Errorf("%s has a drawer in an experience that has none", e.ID)
+		}
 	}
 }

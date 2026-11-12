@@ -231,18 +231,24 @@ type Catalogue struct {
 	Commands      []CommandSpec      `json:"commands"`
 	NativeScreens []NativeScreenSpec `json:"nativeScreens"`
 	NativeViews   []EnumOption       `json:"nativeViews"`
-	Icons         []string           `json:"icons"`
-	Placeholders  []EnumOption       `json:"placeholders"`
-	Repeats       []EnumOption       `json:"repeats"`
-	FormFactors   []string           `json:"formFactors"`
-	Platforms     []string           `json:"platforms"`
-	ProfileKinds  []string           `json:"profileKinds"`
-	LibraryKinds  []string           `json:"libraryKinds"`
-	MediaKinds    []string           `json:"mediaKinds"`
-	PersonalKinds []EnumOption       `json:"personalKinds"`
-	Placements    []EnumOption       `json:"placements"`
-	Spacing       []string           `json:"spacing"`
-	Limits        map[string]int     `json:"limits"`
+	// TVThemes are the WittyTV looks as data, Remote the WittyRemote's keys and which stay
+	// dimmed for each kind of disc, and Music the mini player, visualizer and karaoke controls
+	// (data/*.json): every client draws them from these tables.
+	TVThemes      json.RawMessage `json:"tvThemes"`
+	Remote        json.RawMessage `json:"remote"`
+	Music         json.RawMessage `json:"music"`
+	Icons         []string        `json:"icons"`
+	Placeholders  []EnumOption    `json:"placeholders"`
+	Repeats       []EnumOption    `json:"repeats"`
+	FormFactors   []string        `json:"formFactors"`
+	Platforms     []string        `json:"platforms"`
+	ProfileKinds  []string        `json:"profileKinds"`
+	LibraryKinds  []string        `json:"libraryKinds"`
+	MediaKinds    []string        `json:"mediaKinds"`
+	PersonalKinds []EnumOption    `json:"personalKinds"`
+	Placements    []EnumOption    `json:"placements"`
+	Spacing       []string        `json:"spacing"`
+	Limits        map[string]int  `json:"limits"`
 	// Profiles are the device profiles, so an editor can preview a page's
 	// budgets and a renderer can lay out a lazily loaded page of cards.
 	Profiles map[string]*Layout `json:"profiles"`

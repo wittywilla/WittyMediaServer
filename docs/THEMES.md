@@ -2,6 +2,12 @@
 
 A theme changes how WittyMediaServer looks: its colours, its corners, even its font. This guide helps you pick one, or make your own in a few lines with no code.
 
+## A look is an experience and a theme
+
+Two separate choices make a look. The **experience** is the layout, shape, finish, type and motion (fourteen ship: [Experiences](SDUI.md#experiences)); the **theme** is colour and scene. Each experience wears a default theme (Lumen: Witty, Rail: Cinema, Stage: Midnight, Aero: Aero Day, Classic Cable: Cable blue, Retro: Teletext, and so on), and any experience can wear any theme, built in or imported. The order for each part: what an administrator **requires** (for everyone, for kids or for one profile; shown locked with who set it), then the person's own choice, then the server's, then, for the theme, the experience's own default. The server works it out and sends it finished: `look` in `GET /theme`.
+
+**Import a theme** is under **Settings → Appearance** and in the first run's Theme step: an administrator can install a ZIP (`POST /themes`), and when the administrator allows it (`profileThemes` in the experience policy) each profile can import its own. Imported themes work in every experience. A ZIP whose `theme.css` holds anything but variables is refused with the offending rule named. There are fifteen built-in themes: Witty, Midnight, Cinema, Evergreen, True black, Light, Paper, High contrast, Aero Day, Aero Aurora, Aero Meadow, Aero Sunset, Cable blue, Satellite and Teletext.
+
 ## Changing your theme
 
 
@@ -123,7 +129,7 @@ WittyTV has themes of its own, and an app theme can suggest one, with one more s
 
 Modern, Big picture, Outline and Compact take their colours from your theme's tokens, so they look like part of it. The others have their own.
 
-It's only a suggestion. What a viewer picks comes first, then the app theme's suggestion, then what the server's owner chose for new viewers, and **Look** on the guide says which is showing. Custom can't be suggested, because it's each viewer's own. The built-in Midnight theme suggests Modern this way. A theme from before there were TV themes may set `--tv-layout` and `--tv-colours` instead, and those still work. See [Channels and live TV](CHANNELS.md#the-look).
+It's only a suggestion. What a viewer picks comes first, then the app theme's suggestion, then what the server's owner chose for new viewers, and **Look** on the guide says which is showing. Custom can't be suggested, because it's each viewer's own. The built-in Midnight theme suggests Modern this way. See [Channels and live TV](CHANNELS.md#the-look).
 
 ### The TV pass
 
@@ -170,17 +176,17 @@ You can also copy the ZIP into the server's `themes` folder and reload the page.
 - **Ids** are letters, digits, `.`, `-` and `_`, up to 64 characters. A built-in theme's id is taken, so give your copy a new one. A built-in theme can't be removed.
 - **Who can install.** Only administrators can install or remove themes on the server. Anyone can make a theme under **Colours** for their own device.
 - **Theme files are public,** because the sign-in page is themed too, so don't put anything private in one.
-- **Apps use the colours.** The native apps read a theme's settings, not its own CSS rules or pictures, so a theme that has those looks plainer there.
+- **A theme is variables, a scene and assets.** `theme.css` holds `:root` variables (and `color-scheme`) and `@font-face` for the theme's own fonts, nothing else. Rules for the interface's classes, other selectors and other stylesheets are refused when the ZIP is installed, with the first offending rule in the message. Every app draws from the same variables, so a theme looks the same everywhere.
 
 Viewers using a theme that has been removed go back to the server's theme after a reload. Check that the licence of any font or image lets you share it.
 
 ## Going further
 
-Every colour, corner and shadow goes through the settings above, so most themes need nothing else. For more, here's what you can do.
+Every colour, corner and shadow goes through the settings below, so most themes need nothing else. For more, a theme can have a scene, a finish and its own fonts and pictures.
 
 ### Pictures and fonts
 
-Put them in the ZIP and use relative addresses:
+Put them in the ZIP and use relative addresses in variables:
 
 ```
 my-theme.zip
@@ -197,8 +203,22 @@ my-theme.zip
   font-display: swap;
 }
 :root { --font: "MyFont", Georgia, serif; }
-body { background: var(--bg) url("assets/backdrop.webp") center / cover fixed; }
 ```
+
+### A scene
+
+`theme.json` may have a `scene`: ordered layers drawn behind the page and under the menu, bottom first, positions in percent of the window. A layer is a `gradient` (`angle`, `stops: [{at, color}]`), a `radial` light (`x`, `y`, `w`, `h`, `color`, `fade`), a `shape` (`kind` `circle` or `hill`, `x`, `y`, `size`, `color` or `stops`) or an `image` (`file`, a picture of the theme). On modest hardware and with reduced transparency or motion an app draws only the first layer. Without a `scene` the page is its `bg` colour.
+
+```json
+"scene": { "layers": [
+  { "type": "gradient", "angle": 180, "stops": [{ "at": 0, "color": "#6fcfff" }, { "at": 100, "color": "#e1f8d6" }] },
+  { "type": "shape", "kind": "circle", "x": 12, "y": 22, "size": 9, "color": "rgba(255,255,255,.3)" }
+] }
+```
+
+### A finish
+
+`theme.json` may have a `finish`: `glass` (`hi` and `lo` fills, an `edge` and a `shadow` colour: the recipe for a glass panel) and `gloss` (five colours for a glossy button: highlight, upper body, lower body, glow, edge). The experience says how much to use (`effects`: none, subtle or full). Left out, both are worked out from the colours.
 
 ### Recipes
 
@@ -218,37 +238,6 @@ body { background: var(--bg) url("assets/backdrop.webp") center / cover fixed; }
 
 ```css
 :root { --card-w: 200px; }
-```
-
-**Softer titles on a light theme,** since titles over artwork carry a text shadow:
-
-```css
-.hero h1, .detail h1 { text-shadow: 0 1px 6px rgba(255, 255, 255, .6); }
-```
-
-**Your own logo:**
-
-```css
-.brand img { content: url("assets/logo.svg"); width: 36px; height: 36px; }
-```
-
-**Only the logo, no name:**
-
-```css
-.brand span, .brand .brand-name { display: none; }
-```
-
-**A different accent in the player only:**
-
-```css
-.player { --accent: #ffcc00; --accent-rgb: 255 204 0; }
-```
-
-**Glassy panels over a wallpaper.** These look good, but a blur repaints on every frame of scrolling, so expect them to stutter on TVs and old phones:
-
-```css
-body { background: #000 url("assets/wallpaper.webp") center / cover fixed; }
-.panel, .sidebar, .topbar, .modal { background: rgb(20 22 30 / .72); backdrop-filter: blur(14px); }
 ```
 
 The name in the corner isn't part of a theme. To change it, use **Name and logo** on **Settings → Appearance**. The license notice in **Settings → About** always remains.
@@ -299,102 +288,10 @@ Set these in `:root`. Hover, selected and tinted shades are worked out from them
 | `scheme` | No | `dark` (the default) or `light` |
 | `description`, `author`, `version` | No | Shown in the picker, or for your records |
 | `colors`, `radius` | No | The colours as data, which draws the picker's preview exactly |
+| `scene`, `finish` | No | The background scene and the glass and gloss recipes (see "Going further"). Worked out from the colours when left out |
 | `tv` | No | `{ringColor, heroScrim, tvText}`: the ten-foot pass (see "The TV pass"). A theme that leaves it out gets them worked out |
 | `preview` | No | Four colours for the preview if `colors` isn't there: `bg`, `surface`, `text`, `accent` |
 | `builtin` | | Reserved: a ZIP with this is refused |
-
-## Every class
-
-The interface is built from these classes. Combine them with the settings above. The built-in stylesheet loads first, then your `theme.css`, so anything you set wins, and `<html>` has `data-theme="<id>"` if you want to scope a rule. The video player is always dark, so that video looks right with light themes, and you can still restyle it under `.player`.
-
-### Layout
-
-| Selector | Element |
-|---|---|
-| `.app`, `.app.nav-open` | the whole signed-in interface; `nav-open` while the sidebar shows |
-| `.sidebar` | left navigation column |
-| `.brand`, `.brand img`, `.brand span`, `.brand span b`, `.brand .brand-name` | logo and name in the top-left corner |
-| `.nav-section` | "Libraries" / "Manage" headings |
-| `.nav-link`, `.nav-link.active`, `.nav-link svg` | sidebar links |
-| `.sidebar-footer` | version line |
-| `.main` | everything right of the sidebar |
-| `.topbar`, `.topbar .search`, `.avatar` | top bar, search box, user circle |
-| `.content` | the scrolling page area |
-| `.toolbar`, `.toolbar h1`, `.toolbar .count` | page title row (library, settings, search) |
-| `.backdrop-dim` | dimmer behind the mobile sidebar |
-
-### Home, libraries and cards
-
-| Selector | Element |
-|---|---|
-| `.hero`, `.hero .bg`, `.hero .shade`, `.hero .info`, `.hero h1`, `.hero .meta`, `.hero .dots` | the rotating featured banner |
-| `.hub`, `.hub-head` | a home row and its title |
-| `.row` | horizontally scrolling row of cards |
-| `.grid` | library grid |
-| `.card`, `.card.wide` | poster card (`wide` = 16:9 episode card) |
-| `.card .poster`, `.card .poster.generated`, `.card .poster img`, `.card .poster .ph` | artwork box, generated-thumbnail variant, image, placeholder text |
-| `.card .play`, `.card .badge`, `.card .badge.disc`, `.card .badge.count`, `.card .progress i` | hover play button, badges (DVD, unwatched count, ✓), resume bar |
-| `.card .title`, `.card .sub` | caption lines |
-| `.chips`, `.chip`, `.chip.active` | genre filters |
-| `.empty` | empty-state message |
-
-### Detail pages
-
-| Selector | Element |
-|---|---|
-| `.detail-hero`, `.detail-hero .bg`, `.detail-hero .shade` | backdrop at the top |
-| `.detail`, `.detail .poster`, `.detail h1`, `.detail .tagline`, `.detail .meta`, `.pill` | layout, poster, title, tagline, meta line, rating pill |
-| `.detail .actions`, `.disc-actions`, `.disc-actions .insert`, `.disc-hint` | button row; DVD variant with *Insert DVD* |
-| `.overview`, `.facts`, `.fact .k`, `.fact .v` | overview text and the facts grid |
-| `.crumbs` | Show › Season › Episode breadcrumb |
-| `.section-title` | sub-headings |
-| `.titles-table`, `.titles-table .main-row` | disc title list; main feature row |
-| `.chapters` | chapter buttons |
-| `.season-tabs`, `.season-tab`, `.season-tab.active`, `.season-poster` | season picker |
-| `.view-toggle`, `.seg`, `.seg button.active` | Cards / Playlist toggle (and other segmented controls) |
-| `.episodes`, `.episode`, `.episode .thumb`, `.episode .num` | episode cards |
-| `.episode-table` | compact playlist layout |
-
-### Controls and forms
-
-| Selector | Element |
-|---|---|
-| `.btn`, `.btn.primary`, `.btn.ghost`, `.btn.danger`, `.btn.sm`, `.btn.icon` | buttons |
-| `.input`, `.select`, `textarea.input` | form fields |
-| `.form`, `.row2`, `.field-row` | form layouts |
-| `.panel` | settings card |
-| `.tabs`, `.tabs a.active` | settings tabs |
-| `.list`, `.list-item` | settings lists (libraries, users) |
-| `.modal-backdrop`, `.modal`, `.modal.wide` | dialogs |
-| `.tip`, `.tip-body` | "?" tooltips |
-| `.toast` | notifications |
-| `.error`, `.ok`, `.muted` | message and text helpers |
-| `.spinner` | loading indicator |
-| `.art-picker`, `.ap-grid`, `.ap-choice`, `.ap-preview` | artwork picker |
-| `.theme-grid`, `.theme-card`, `.theme-card.active` | theme picker |
-| `.hw-list`, `.hw-item`, `.profile` | transcoding settings |
-| `.auth-card` | sign-in / first-run card |
-
-### Player
-
-| Selector | Element |
-|---|---|
-| `.player`, `.player.controls-hidden` | full-screen player; `controls-hidden` after inactivity |
-| `.player .stage`, `.player video` | video area |
-| `.player .top`, `.player .bottom` | top bar and control bar (fade out when idle) |
-| `.seek`, `.seek .fill`, `.seek .buf`, `.seek .knob`, `.seek .chap` | timeline, played part, buffered part, handle, chapter ticks |
-| `.ibtn` | round icon buttons |
-| `.popover` | audio / subtitle / chapter menus |
-| `.remote`, `.remote .rk`, `.remote-dpad`, `.remote-dpad .enter`, `.remote-digits` | on-screen DVD remote |
-| `.dvd-layer`, `.dvd-layer .hit.selected.fallback` | DVD menu buttons; the outline used when a disc has no highlight artwork |
-| `.sub-layer` | DVD subtitles |
-| `.skip-intro`, `.watch-next` | Skip intro button, Watch next card |
-| `.insert-disc`, `.insert-disc .disc`, `.insert-disc .tray` | *Insert DVD* animation |
-| `.big-play`, `.center-spinner`, `.overlay-msg` | click-to-play button, buffering spinner, messages |
-
-### Breakpoints
-
-The built-in stylesheet switches to the mobile layout at `max-width: 900px` (the side menu becomes a drawer) and tightens the player and episode list at `max-width: 700px`. Use the same widths in your `@media` rules.
 
 ## For developers
 
@@ -419,7 +316,7 @@ Six layers, each over the ones before it (later wins):
 
 Layers 1, 2 and 5 make `tokens`; every scope with colours of its own (3, 4 or 6) has its whole palette under `modules`. Server-driven pages get the scopes too: a page or section that names a scope receives, as `tokens`, what that scope's palette has that the account's `tokens` don't (see [SDUI](SDUI.md#theme-scopes)). A scope needn't be a module: `PUT /api/v1/theme/modules/family` gives a page of your own, with `"scope": "family"`, its own accent.
 
-The answer is `{id, source, scheme, tokens, overrides, personal, modules: {<scope>: {tokens, overrides, personal}}, shape, type, tv, elevation, density, brand, variants, warnings, etag, revision}`, with an `ETag` header; send it back as `If-None-Match` for a 304. The ETag changes with anything in it: the theme, any layer, the server's name.
+The answer is `{id, source, scheme, tokens, overrides, personal, modules: {<scope>: {tokens, overrides, personal}}, shape, type, tv, elevation, density, look, brand, variants, warnings, etag, revision}`, with an `ETag` header; send it back as `If-None-Match` for a 304. The ETag changes with anything in it: the theme, any layer, the server's name.
 
 #### Derived colours
 
@@ -447,6 +344,10 @@ A token set to the value it already has derives nothing. So a module scope with 
 #### Design 2: tv, elevation, density
 
 `tv` is `{ringColor, heroScrim, tvText, units}`: the theme's ten-foot colours (derived again when a profile's override changes `fg`, so the ring and text stay legible) and `units`, the `tv` block of `themes/tokens.json` in TV units. `elevation` has `"0"` to `"3"`, each `{fillToken, fill, lineToken, line, shadow}` with the colours resolved in this look, so a client draws the page, a panel, a lifted card and an overlay without its own table. `density` is `{default, tvDefault, steps: {compact|comfortable|spacious: {space, control}}}`. Each look in `variants` has its own `tv` and `elevation`.
+
+#### The look
+
+`look` is the finished look: `experience` and `theme` in force, `requiredExperience` and `requiredTheme` (`{value, by, at, scope}`) when an administrator requires them, `tvTheme` (the WittyTV look the experience suggests), `effects`, `shape` (radius multiple and card set), `type` (the type set: system, humanist, rounded, mono or serif), `density`, `motion`, and the theme's `finish` and `scene` (recipes in "Going further"). `GET /theme` takes `experience=` and `theme=` to answer for a look being tried (a requirement wins), and `source` says where the theme came from: `required`, `trial`, `user`, or `server`.
 
 #### The server's name
 

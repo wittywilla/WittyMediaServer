@@ -1,0 +1,12 @@
+{
+  "miniPlayer": ["previous","play","next","lyrics","karaoke","visualizer","queue"],
+  "visualizer": {
+    "presets": [{"id":"bars","name":"Bars"},{"id":"waves","name":"Waves"},{"id":"rings","name":"Rings"},{"id":"particles","name":"Particles"},{"id":"aurora","name":"Aurora"},{"id":"spectrum","name":"Spectrum"}],
+    "controls": [{"id":"preset","type":"enum"},{"id":"intensity","type":"int","min":0,"max":100,"default":60},{"id":"speed","type":"number","min":0.5,"max":2,"default":1},{"id":"colour","type":"enum","options":["theme","album"],"default":"theme"},{"id":"canvas","type":"bool","default":true},{"id":"fullscreen","type":"bool","default":false}],
+    "defaultOn": false
+  },
+  "karaoke": {
+    "controls": [{"id":"vocals","type":"int","min":0,"max":100,"default":100,"note":"approximate: the parts are separated on the server"},{"id":"instruments","type":"int","min":0,"max":100,"default":100,"note":"approximate"},{"id":"backingVocals","type":"bool","default":true},{"id":"keyShift","type":"int","min":-6,"max":6,"default":0,"unit":"semitones"},{"id":"microphone","type":"bool","default":false},{"id":"micLevel","type":"int","min":0,"max":100,"default":70}],
+    "choices": "me/ui: karaoke {levels, keyShift, backingVocals, microphone, micLevel}, visualizer {preset, intensity, speed, colour, canvas}"
+  }
+}

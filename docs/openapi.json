@@ -11380,6 +11380,15 @@
               "null"
             ]
           },
+          "music": {
+            "items": {
+              "type": "integer"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "nativeScreens": {
             "items": {
               "$ref": "#/components/schemas/SDUINativeScreenSpec"
@@ -11664,6 +11673,15 @@
             },
             "type": "object"
           },
+          "remote": {
+            "items": {
+              "type": "integer"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "repeats": {
             "items": {
               "$ref": "#/components/schemas/SDUIEnumOption"
@@ -11715,6 +11733,15 @@
                 "type": "null"
               }
             ]
+          },
+          "tvThemes": {
+            "items": {
+              "type": "integer"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
           }
         },
         "required": [
@@ -11728,6 +11755,7 @@
           "libraryKinds",
           "limits",
           "mediaKinds",
+          "music",
           "nativeScreens",
           "nativeViews",
           "navStyles",
@@ -11738,12 +11766,14 @@
           "platforms",
           "profileKinds",
           "profiles",
+          "remote",
           "repeats",
           "revision",
           "routes",
           "schemaVersion",
           "sources",
-          "spacing"
+          "spacing",
+          "tvThemes"
         ],
         "type": "object"
       },
@@ -13032,6 +13062,67 @@
       },
       "SDUINavEntry": {
         "properties": {
+          "drawer": {
+            "anyOf": [
+              {
+                "properties": {
+                  "count": {
+                    "type": "integer"
+                  },
+                  "icon": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "views": {
+                    "items": {
+                      "properties": {
+                        "icon": {
+                          "type": "string"
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string"
+                        },
+                        "params": {
+                          "additionalProperties": {
+                            "type": "string"
+                          },
+                          "type": "object"
+                        },
+                        "route": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "icon",
+                        "id",
+                        "label",
+                        "route"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "icon",
+                  "title",
+                  "views"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "icon": {
             "type": "string"
           },
@@ -15728,9 +15819,6 @@
           },
           "scheme": {
             "type": "string"
-          },
-          "webOnly": {
-            "type": "boolean"
           }
         },
         "required": [
@@ -15740,8 +15828,7 @@
           "lengths",
           "name",
           "other",
-          "scheme",
-          "webOnly"
+          "scheme"
         ],
         "type": "object"
       },
@@ -50208,6 +50295,37 @@
           "Themes"
         ],
         "x-wms-auth": "admin"
+      }
+    },
+    "/themes/mine": {
+      "post": {
+        "operationId": "postThemesMine",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Import a theme of the signed-in profile's own",
+        "tags": [
+          "Themes"
+        ],
+        "x-wms-auth": "user"
       }
     },
     "/themes/{id}": {

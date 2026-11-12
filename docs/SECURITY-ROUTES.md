@@ -154,6 +154,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/items/{id}/disc/thumb/{ttn}/{n}` | Signed-in; ticket; address token | limits. Item is a disc and not scrambled. Title and chapter exist |
 | `GET /api/artwork/preview` | Admin; address token | Web address, cache name, or a picture inside a library |
 | `GET /api/prefs` | Signed-in | Nothing: server-wide playback defaults |
+| `POST /api/themes/mine` | Signed-in | own theme only. Profiles may import only when the administrator allows it (403). Same ZIP rules as POST /api/themes, plus variables only; at most five each; never over another's id (409) |
 | `POST /api/themes` | Admin | ZIP of at most 26 MB, checked by the theme manager |
 | `DELETE /api/themes/{id}` | Admin | Theme exists and may be removed |
 | `GET /api/shows` | Signed-in | limits, in the query. Paths for admins only |

@@ -216,6 +216,14 @@ func TestPlayOnlineSources(t *testing.T) {
 	if len(room) != 3 || room[0].Kind != "view" || room[0].Title != "Star Tide" || room[0].Tagline != code {
 		t.Fatalf("sam's room: %+v", room)
 	}
+	ids := []string{}
+	for _, a := range room[0].Actions {
+		ids = append(ids, a.ID+"/"+a.Glyph+"/"+a.Action.Op)
+	}
+	// Opened earlier in this test, so the third button closes it.
+	if want := []string{"play/a/", "invite/x/wittyplay.room.invite", "close/y/wittyplay.room.close"}; !slices.Equal(ids, want) {
+		t.Errorf("the host's buttons: %v, want %v", ids, want)
+	}
 	if p := room[1]; p.Kind != "person" || p.Title != "sam" || p.Subtitle != "Host" || p.Badges[0] != "P1" || p.Route != "" {
 		t.Errorf("the host: %+v", p)
 	}
@@ -226,7 +234,7 @@ func TestPlayOnlineSources(t *testing.T) {
 		t.Fatal(err)
 	}
 	room = onlineItems(t, a.ts.Server, a.alex, srcPlayRoom)
-	if len(room) != 3 || room[0].Tagline != "" || room[2].Title != "alex" {
+	if len(room) != 3 || room[0].Tagline != "" || room[2].Title != "alex" || len(room[0].Actions) != 0 {
 		t.Errorf("alex's view of the room, with no code: %+v", room)
 	}
 	pads := onlineItems(t, a.ts.Server, a.alex, srcPlayControllers)
@@ -402,6 +410,13 @@ func TestPlayOnlineWithAGame(t *testing.T) {
 	rooms := onlineItems(t, s, other, srcPlayRooms)
 	if len(rooms) != 1 || rooms[0].ID != "room1" || rooms[0].Title != game.Title+" · 1 of 2" {
 		t.Fatalf("rooms: %+v", rooms)
+	}
+	if a := rooms[0].Actions; len(a) != 1 || a[0].Glyph != "a" || a[0].Action.Op != "wittyplay.room.join" || a[0].Action.Item != "room1" {
+		t.Errorf("an open room's button: %+v", a)
+	}
+	if cleaned, err := resolverAs(s, other).moduleItems(wittyPlayID, sdui.SourceRequest{Source: sdui.Source{"type": srcPlayRooms}, Limit: 20}); err != nil ||
+		len(cleaned.Items) != 1 || len(cleaned.Items[0].Actions) != 1 || cleaned.Items[0].Actions[0].Action.Op != "wittyplay.room.join" {
+		t.Errorf("an open room, cleaned: %+v %v", cleaned, err)
 	}
 	if got := onlineItems(t, s, admin, srcPlayRooms); len(got) != 0 {
 		t.Errorf("the host was offered its own room: %+v", got)

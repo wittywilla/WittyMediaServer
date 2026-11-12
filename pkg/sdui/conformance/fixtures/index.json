@@ -344,6 +344,30 @@
    "file": "banners.json",
    "title": "Banners written by hand and from a source",
    "formFactor": "tablet"
+  },
+  {
+   "id": "module-page-tv",
+   "file": "module-page-tv.json",
+   "title": "A module's own page on an Apple TV",
+   "formFactor": "tv"
+  },
+  {
+   "id": "module-page-web",
+   "file": "module-page-web.json",
+   "title": "A module's own page in a browser that has the module's view",
+   "formFactor": "web"
+  },
+  {
+   "id": "module-home-insert",
+   "file": "module-home-insert.json",
+   "title": "A module's row on Home, on a Friday, on a phone",
+   "formFactor": "phone"
+  },
+  {
+   "id": "module-not-installed",
+   "file": "module-not-installed.json",
+   "title": "A page that uses a module that isn't installed",
+   "formFactor": "phone"
   }
  ]
 }

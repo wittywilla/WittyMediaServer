@@ -377,16 +377,24 @@ type sduiPageEntry struct {
 	Icon        string      `json:"icon,omitempty"`
 	Description string      `json:"description,omitempty"`
 	Match       *sdui.Match `json:"match,omitempty"`
-	// Source is "builtin" (as shipped), "changed" (a built-in page the configuration
-	// replaces; deleting it resets it) or "custom" (the configuration's own).
-	Source   string `json:"source"`
+	// Source is "builtin" (as shipped), "module" (a module's, as it ships), "changed" (a
+	// built-in or module page the configuration replaces; deleting it resets it) or
+	// "custom" (the configuration's own).
+	Source string `json:"source"`
+	// Module is the module whose page it is, or which the page it replaces came from.
+	Module   string `json:"module,omitempty"`
 	Sections int    `json:"sections"`
 	Variants int    `json:"variants,omitempty"`
 }
 
-func pageSource(cfg *sduistore.Config, id string) string {
+func pageSource(cfg *sduistore.Config, id string, set *sdui.ModuleSet) string {
 	_, builtin := sdui.StockPage(id)
+	_, module := set.Page(id)
+	builtin = builtin || module
 	_, mine := cfg.Pages[id]
+	if module && !mine {
+		return "module"
+	}
 	switch {
 	case mine && builtin:
 		return "changed"
@@ -409,8 +417,9 @@ func (s *Server) handleSDUIConfigPages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	out := []sduiPageEntry{}
-	for _, p := range effectivePages(cfg) {
-		out = append(out, sduiPageEntry{ID: p.ID, Kind: p.Kind, Title: p.Title, Icon: p.Icon, Description: p.Description, Match: p.Match, Source: pageSource(cfg, p.ID),
+	set := s.moduleSet(nil)
+	for _, p := range effectivePages(cfg, set) {
+		out = append(out, sduiPageEntry{ID: p.ID, Kind: p.Kind, Title: p.Title, Icon: p.Icon, Description: p.Description, Match: p.Match, Source: pageSource(cfg, p.ID, set), Module: set.PageModule(p.ID),
 			Sections: len(p.Sections), Variants: len(p.Variants)})
 	}
 	sort.SliceStable(out, func(i, j int) bool { return out[i].ID < out[j].ID })
@@ -431,13 +440,16 @@ func (s *Server) handleSDUIConfigPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id := r.PathValue("page")
-	p, ok := effectivePage(cfg, id)
+	set := s.moduleSet(nil)
+	p, ok := effectivePage(cfg, id, set)
 	if !ok {
 		writeErr(w, 404, "no such page")
 		return
 	}
-	out := map[string]any{"etag": cfg.ETag, "page": p, "source": pageSource(cfg, id), "issues": issuesOrEmpty(sdui.ValidatePage(&p))}
+	out := map[string]any{"etag": cfg.ETag, "page": p, "source": pageSource(cfg, id, set), "issues": issuesOrEmpty(sdui.ValidatePageWith(&p, set))}
 	if b, ok := sdui.StockPage(id); ok {
+		out["builtin"] = set.WithInserts(b)
+	} else if b, ok := set.Page(id); ok {
 		out["builtin"] = b
 	}
 	writeJSON(w, 200, out)
@@ -573,14 +585,15 @@ func (s *Server) handleSDUIValidate(w http.ResponseWriter, r *http.Request) {
 		if p, err := sdui.DecodePage(body.Page); err != nil {
 			decodeIssue(err)
 		} else {
-			issues = sdui.ValidatePage(&p)
+			issues = sdui.ValidatePageWith(&p, s.moduleSet(nil))
 		}
 	case body.Navigation != nil:
 		if n, err := sdui.DecodeNavigation(body.Navigation); err != nil {
 			decodeIssue(err)
 		} else {
 			cur := st.Current()
-			issues = sdui.ValidateNavigation(&n, func(id string) bool { _, ok := effectivePage(cur, id); return ok })
+			set := s.moduleSet(nil)
+			issues = sdui.ValidateNavigation(&n, func(id string) bool { _, ok := effectivePage(cur, id, set); return ok })
 		}
 	case body.Config != nil:
 		if c, err := sduistore.Parse(body.Config); err != nil {
@@ -598,7 +611,7 @@ func (s *Server) handleSDUIValidate(w http.ResponseWriter, r *http.Request) {
 
 // GET /api/sdui/presets: the gallery of ready-made pages and sections.
 func (s *Server) handleSDUIPresets(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, 200, map[string]any{"presets": sdui.Presets()})
+	writeJSON(w, 200, map[string]any{"presets": append(sdui.Presets(), s.moduleSet(nil).Presets()...)})
 }
 
 // POST /api/sdui/presets/{id}/apply[?target=draft]: put a page preset in the configuration,
@@ -777,7 +790,7 @@ func (s *Server) handleSDUIExport(w http.ResponseWriter, r *http.Request) {
 	out := sduiExport{Format: sduiExportFormat, FormatVersion: sduistore.FormatVersion, ExportedAt: time.Now().UTC().Format(time.RFC3339)}
 	name := "wittymedia-ui.json"
 	if id := r.URL.Query().Get("page"); id != "" {
-		p, ok := effectivePage(cfg, id)
+		p, ok := effectivePage(cfg, id, s.moduleSet(nil))
 		if !ok {
 			writeErr(w, 404, "no such page")
 			return

@@ -103,6 +103,13 @@ type ComponentSpec struct {
 	A11y string `json:"a11y,omitempty"`
 	// Example is a section using the component.
 	Example json.RawMessage `json:"example,omitempty"`
+	// Module is the module a component comes from (docs/SDUI-MODULES.md):
+	// the server expands it into the catalogue component Expands, so no
+	// client is ever sent it. PageKinds are the kinds of page it may be used
+	// on; empty: any.
+	Module    string   `json:"module,omitempty"`
+	Expands   string   `json:"expands,omitempty"`
+	PageKinds []string `json:"pageKinds,omitempty"`
 }
 
 // CardStyleSpec describes one way a Card is drawn.
@@ -151,6 +158,8 @@ type SourceSpec struct {
 	Title   string          `json:"title,omitempty"`
 	Since   int             `json:"since"`
 	Example json.RawMessage `json:"example,omitempty"`
+	// Module is the module that answers the source; "" for the server.
+	Module string `json:"module,omitempty"`
 }
 
 // ConditionSpec describes one field of Condition.

@@ -19,6 +19,8 @@ type Preset struct {
 	PageKinds []string `json:"pageKinds,omitempty"`
 	Page      *Page    `json:"page,omitempty"`
 	Section   *Section `json:"section,omitempty"`
+	// Module is the module that offers the preset; "" for the server's own.
+	Module string `json:"module,omitempty"`
 }
 
 func pagePreset(id, label, icon, description string, p Page) Preset {

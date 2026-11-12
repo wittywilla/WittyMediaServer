@@ -17,10 +17,12 @@ import { IconCheck, IconDown, IconLeft, IconPause, IconPlay, IconRight, IconSear
 import { tokenVar } from '../../themeOverrides'
 import { Segmented, Tabs as TabStrip } from '../../ui/Choice'
 import { Select } from '../../ui/Field'
+import { Dock, type DockAction } from '../../ui/Dock'
+import { KeyLegend } from '../../ui/KeyLegend'
 import { safeLink as safeHref } from '../../safeLink'
 import { buttonsOf, cardGap, factsOf, fieldOf, gridColumns, type ButtonSpec, type View } from '../model'
 import { plan } from '../routes'
-import type { Node, Props } from '../types'
+import type { Action, Node, Props } from '../types'
 import { px, usePage } from './context'
 import { kindIcon, sduiIcon } from './icons'
 import { chooseEpisodeView, useEpisodeView } from '../extras/episodeView'
@@ -196,6 +198,15 @@ function StateLine({ view }: { view: View }) {
 
 const loading = (view: View, busy: boolean) => view.state === 'deferred' || (busy && view.children.length === 0)
 
+// The card that ends a shelf: the same size as its cards, so the row keeps its rhythm, and a link to the whole list.
+function SeeAllCard({ to, label, title, wide }: { to: string; label: string; title?: string; wide?: boolean }) {
+  return (
+    <Link to={to} className={'card sdui-seeall' + (wide ? ' wide' : '')} aria-label={`${label}: ${title || ''}`.trim()}>
+      <div className="poster"><span className="sdui-seeall-in"><IconRight size={28} /><b>{label}</b></span></div>
+    </Link>
+  )
+}
+
 function ShelfView({ view, depth }: { view: View; depth: number }) {
   const page = usePage()
   const row = useRef<HTMLDivElement | null>(null)
@@ -224,6 +235,10 @@ function ShelfView({ view, depth }: { view: View; depth: number }) {
   const showTitles = view.node.props?.showTitles !== false
   const tiles = view.cardStyle === 'tile' && !view.children.some((c) => obj(c.node.props, 'image'))
   const chips = view.cardStyle === 'chip'
+  // See all is the last card of the row (as well as its heading's link): the end of the row says there is more.
+  const seeAllCard = !!view.seeAll && view.seeAll.startsWith('/') && view.children.length > 0 && !chips
+  const seeAllLabel = str(obj(view.node.props, 'seeAll'), 'label') || 'See all'
+  const wideCards = view.cardStyle === 'landscape' || view.children[0]?.node.props?.shape === 'landscape'
   return (
     <section className={'hub sdui-shelf' + (view.node.props?.numbered ? ' numbered' : '')} style={{ ...cardVars(view, page.pt), ...scopeStyle(view.node) }} data-scope={view.scope} data-sdui-section={depth === 1 ? view.id : undefined} aria-busy={waiting || undefined}>
       <Heading view={view} id={id} />
@@ -240,6 +255,7 @@ function ShelfView({ view, depth }: { view: View; depth: number }) {
             {waiting ? <Placeholders view={view} /> : view.children.map((c) => <div role="listitem" key={c.id} className="sdui-item"><CardView view={c} showTitles={showTitles} /></div>)}
             {view.hasMore && !waiting && <Near horizontal root={row} onNear={() => page.more(view.id)} />}
             {page.busy(view.id) && !waiting && <Placeholders view={{ ...view, placeholders: 2 }} />}
+            {seeAllCard && !waiting && !view.hasMore && <div role="listitem" className="sdui-item"><SeeAllCard to={view.seeAll!} label={seeAllLabel} title={view.text?.title} wide={wideCards} /></div>}
           </div>
           <button ref={next} type="button" className="row-arrow next" tabIndex={-1} aria-hidden="true" onClick={() => by(1)} hidden><IconRight /></button>
         </div>
@@ -293,6 +309,17 @@ function GridView({ view, depth }: { view: View; depth: number }) {
 }
 
 // ---------------------------------------------------------------- spotlight
+
+// A Dock from the server: one row of buttons, each running its action, with the key legend beside them.
+function DockView({ view }: { view: View }) {
+  const page = usePage()
+  const raw = Array.isArray(view.node.props?.actions) ? (view.node.props!.actions as Props[]) : []
+  const actions: DockAction[] = raw.filter((a) => str(a, 'label')).map((a, i) => ({
+    id: str(a, 'id') || String(i), label: str(a, 'label'), icon: a.icon ? sduiIcon(a.icon) : undefined, primary: a.primary === true,
+    hint: str(a, 'hint') || undefined, onClick: () => page.act(a.action as Action | undefined, view),
+  }))
+  return <Dock label={view.label || 'Controls'} actions={actions} legend={view.node.props?.legend !== false} sticky />
+}
 
 function ActionButtons({ buttons, view, className }: { buttons: ButtonSpec[]; view: View; className?: string }) {
   const page = usePage()
@@ -853,6 +880,10 @@ export function Draw({ view, depth }: { view: View; depth: number }): ReactNode 
     case 'Banner': return <BannerView view={view} />
     case 'Text': return <TextView view={view} />
     case 'Notice': return <NoticeView view={view} />
+    // Two components the design adds (docs/plans/DESIGN-2.md): a screen's Dock and the key legend. A server whose
+    // catalogue lacks them never sends them, and the page draws its own legend (SduiPage).
+    case 'Dock': return <DockView view={view} />
+    case 'KeyLegend': return <KeyLegend />
     case 'Divider': return <hr className={'sdui-divider' + (view.node.props?.inset === true ? ' inset' : '')} />
     case 'Spacer': {
       const size = page.layout.spacing[str(view.node.props, 'size') || 'm'] ?? 16

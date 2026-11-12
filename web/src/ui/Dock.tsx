@@ -2,6 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { useRef, type KeyboardEvent, type ReactNode } from 'react'
 import { KeyLegend } from './KeyLegend'
+import { useInput } from './inputKind'
 
 export type DockAction = { id: string; label: string; icon?: ReactNode; onClick: () => void; primary?: boolean; pressed?: boolean; hint?: string; disabled?: boolean; menu?: boolean }
 
@@ -10,6 +11,9 @@ export type DockAction = { id: string; label: string; icon?: ReactNode; onClick:
 // (docs/plans/DESIGN-2.md section 3). Each button may show the key that reaches it directly.
 export function Dock({ label, actions, legend = true, scope, className, sticky }: { label: string; actions: DockAction[]; legend?: boolean; scope?: 'screen' | 'list'; className?: string; sticky?: boolean }) {
   const row = useRef<HTMLDivElement | null>(null)
+  const { kind } = useInput()
+  // Nothing to press and no input to show a legend for: nothing to draw.
+  if (!actions.length && (!legend || kind === 'touch')) return null
   const wrap = (e: KeyboardEvent) => {
     if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
     const btns = Array.from(row.current?.querySelectorAll<HTMLButtonElement>('button:not([disabled])') || [])

@@ -21,6 +21,7 @@ import { hasTools, nativeInstead } from './native'
 import { plan, withQuery } from './routes'
 import { Ctx, px, type PageCtx } from './render/context'
 import { scopeStyle, Sections } from './render/components'
+import { Dock } from '../ui/Dock'
 import { setPageMove } from '../tv'
 import type { Action, Document, Node } from './types'
 import { useDevice } from './useSdui'
@@ -141,6 +142,8 @@ export function PageView({ doc, device, handlers, width, children }: { doc: Docu
         {title && <h1 className={tv || ownHeading ? 'sr-only' : 'sdui-page-title'}>{title}</h1>}
         {children}
         <Sections views={model.root.children} />
+        {/* A server whose catalogue has no Dock leaves the key legend to this page. */}
+        {!inert && !hasDock(model.root) && <KeyLegendDock />}
       </div>
     </Ctx.Provider>
   )
@@ -422,4 +425,14 @@ export function PageLoading({ device }: { device: Device }) {
       ))}
     </div>
   )
+}
+
+// Does the page carry its own Dock (a server whose catalogue has the component)?
+function hasDock(v: { type: string; children: { type: string; children: unknown[] }[] }): boolean {
+  return v.type === 'Dock' || v.children.some((c) => hasDock(c as never))
+}
+
+// The fallback Dock: no buttons of its own, just the key legend for the input in use, along the bottom of the page.
+function KeyLegendDock() {
+  return <Dock label="Keys" actions={[]} sticky className="legend-only" />
 }

@@ -71,7 +71,7 @@ const CatDefault = "server"
 
 // Records from older code, and old settings, may use these names.
 var catAliases = map[string]string{"dvd": "discs", "bluray": "discs", "ffmpeg": "transcode", "signin": "auth", "client": "clients", "game": "games",
-	"themes": "sdui", "layouts": "sdui", "store": "modules-store", "emulator": "emulators", "peer": "p2p", "syncplay": "remotectl", "party": "remotectl",
+	"ui": "sdui", "themes": "sdui", "layouts": "sdui", "gaming": "games", "store": "modules-store", "emulator": "emulators", "peer": "p2p", "syncplay": "remotectl", "party": "remotectl",
 	"parental": "profiles", "profile": "profiles", "karaoke": "extras", "separator": "extras", "stems": "extras"}
 
 // NormalizeCat turns any name into a known category.

@@ -82,6 +82,6 @@ func (s *Server) handleP2PJoin(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
-	s.Log.InfoContext(r.Context(), "a device's code was typed in, to join peer to peer", "cat", "auth", "by", me.Name, "for", target.Name)
+	logging.Audit(r.Context(), s.Log, "a device's code was typed in, to join peer to peer", "cat", "p2p", "by", me.Name, "for", target.Name)
 	writeJSON(w, 200, map[string]any{"ok": true, "expiresInSec": int(p2p.JoinTTL.Seconds()), "user": target})
 }

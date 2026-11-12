@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
+import SpecPage from '../../spec/SpecPage'
+import { handledIds, withIds } from '../../spec/model'
+import { gameFiltersSpec, letterSpec, splitFilterId } from '../../spec/specs/gameLibrary'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { PromptBar, type Prompt } from './prompts'
@@ -124,38 +127,31 @@ function Hero({ items: list, consoles, resumable, title, place }: { items: Item[
 }
 
 function FiltersSheet({ facets, params, set, onClose }: { facets: GameFacets | null; params: URLSearchParams; set: (k: string, v: string) => void; onClose: () => void }) {
-  const Group = ({ title, name, options }: { title: string; name: string; options: { value: string; label: string }[] }) => {
-    if (options.length === 0) return null
-    const now = params.get(name) || ''
-    return (
-      <fieldset className="gm-filter-group">
-        <legend>{title}</legend>
-        <div className="chips">{options.map((o) => <Chip key={o.value} selected={now === o.value} onClick={() => set(name, now === o.value ? '' : o.value)}>{o.label}</Chip>)}</div>
-      </fieldset>
-    )
-  }
+  const groups = [
+    { name: 'genre', title: 'Genre', options: (facets?.genres || []).slice(0, 40).map((g) => ({ value: g.value, label: `${g.value} (${g.count.toLocaleString()})` })) },
+    { name: 'series', title: 'Series', options: (facets?.series || []).slice(0, 40).map((g) => ({ value: g.value, label: `${g.value} (${g.count.toLocaleString()})` })) },
+    { name: 'decade', title: 'Decade', options: (facets?.decades || []).map((g) => ({ value: g.value, label: `${g.value}s (${g.count.toLocaleString()})` })) },
+    { name: 'players', title: 'Players', options: [...new Set((facets?.players || []).map((g) => Number(g.value)).filter((n) => n > 1))].map((n) => ({ value: String(n), label: `${n} or more` })) },
+    ...(facets?.rated ? [{ name: 'score', title: 'Rating', options: [9, 8, 7, 6].map((n) => ({ value: String(n), label: `${n} and up` })) }] : []),
+  ]
   const sort = params.get('sort') || DEFAULT_SORT
+  const spec = gameFiltersSpec(sort, [...SORTS, ...MORE_SORTS], groups, Object.fromEntries(groups.map((g) => [g.name, params.get(g.name) || ''])))
   return (
     <Sheet title="Filter and sort" onClose={onClose} actions={<button type="button" className="btn primary" onClick={onClose}>Done</button>}>
-      <fieldset className="gm-filter-group">
-        <legend>Sort</legend>
-        <div className="chips">{[...SORTS, ...MORE_SORTS].map((s) => <Chip key={s.id} selected={sort === s.id} onClick={() => set('sort', s.id === DEFAULT_SORT ? '' : s.id)}>{s.label}</Chip>)}</div>
-      </fieldset>
-      <Group title="Genre" name="genre" options={(facets?.genres || []).slice(0, 40).map((g) => ({ value: g.value, label: `${g.value} (${g.count.toLocaleString()})` }))} />
-      <Group title="Series" name="series" options={(facets?.series || []).slice(0, 40).map((g) => ({ value: g.value, label: `${g.value} (${g.count.toLocaleString()})` }))} />
-      <Group title="Decade" name="decade" options={(facets?.decades || []).map((g) => ({ value: g.value, label: `${g.value}s (${g.count.toLocaleString()})` }))} />
-      <Group title="Players" name="players" options={[...new Set((facets?.players || []).map((g) => Number(g.value)).filter((n) => n > 1))].map((n) => ({ value: String(n), label: `${n} or more` }))} />
-      {!!facets?.rated && <Group title="Rating" name="score" options={[9, 8, 7, 6].map((n) => ({ value: String(n), label: `${n} and up` }))} />}
+      <SpecPage embedded page={spec} handled={handledIds(withIds(spec))} onAction={(id) => {
+        const [k, v] = splitFilterId(id)
+        if (k === 'sort') set('sort', v === DEFAULT_SORT ? '' : v)
+        else set(k, (params.get(k) || '') === v ? '' : v)
+      }} />
     </Sheet>
   )
 }
 
 function LetterSheet({ letters, onJump, onClose }: { letters: { label: string; offset: number; count: number }[]; onJump: (offset: number) => void; onClose: () => void }) {
+  const spec = letterSpec(letters)
   return (
     <Sheet title="Jump to a letter" onClose={onClose}>
-      <div className="gm-letters">
-        {letters.map((l) => <button key={l.label} type="button" className="btn gm-letter" aria-label={`${l.label}: ${l.count.toLocaleString()} games`} onClick={() => { onJump(l.offset); onClose() }}>{l.label}</button>)}
-      </div>
+      <SpecPage embedded page={spec} handled={handledIds(withIds(spec))} onAction={(id) => { onJump(Number(id.slice(7))); onClose() }} />
     </Sheet>
   )
 }

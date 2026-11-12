@@ -274,7 +274,7 @@ function ServerLookRows({ choice }: { choice: NonNullable<ReturnType<typeof useM
   const options = locked ? [{ value: choice.required!.value, label: cards.find((c) => c.id === choice.required!.value)?.name || choice.required!.value }] : choice.options
   return (
     <>
-      {locked && <p className="small-note" role="status"><IconLock /> {lockText(choice.required!)}.</p>}
+      {locked && <p className="small-note" role="status"><IconLock /> {lockText(choice.required!)}. An administrator changes it in <Link to="/settings/pages/layouts">Pages &amp; menu, Looks</Link>.</p>}
       <div className="layout-opts look-opts" role="radiogroup" aria-label="Look on this device">
         {options.map((o) => {
           const c = cards.find((x) => x.id === o.value)

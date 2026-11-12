@@ -164,7 +164,7 @@ export function DraftBar({ route }: { route?: string }) {
   }
   return (
     <div className="pe-draftbar">
-    <Notice tone="warn" title={lines.length ? `A draft is waiting with ${lines.length === 1 ? '1 change' : lines.length + ' changes'}` : 'A draft is waiting, the same as what is published'}
+    <Notice tone="warn" title={lines.length ? `A draft is waiting with ${lines.length === 1 ? '1 change' : lines.length + ' changes'}` : 'A draft is waiting'}
       action={<span className="pe-draft-actions">
         {previewing
           ? <Button size="sm" variant="ghost" onClick={() => { setPreview(''); toast('The app shows what is published again') }}>Stop showing the draft</Button>

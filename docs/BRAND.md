@@ -176,7 +176,7 @@ way round from the shape around it, so one non-zero fill rule gives every hole, 
 | Format | How |
 |---|---|
 | **SVG** | Each layer becomes one `<path>` with its fill: a colour, or a `linearGradient`/`radialGradient` in the drawing's own units (`render.go`). |
-| **Android vector drawable** | The same path data; gradients as `aapt:attr` fills, which need Android 7, so the adaptive icon's background lives in `drawable-v26`. |
+| **Android vector drawable** | The same path data; gradients as `aapt:attr` fills, which need Android 7, so the layers with gradients (the adaptive icon, the Android 12 splash) live in `drawable-v26` and the older launch screen uses PNG marks. |
 | **Kotlin** | `ImageVector.Builder` with `addPathNodes` and `Brush` gradients (`codegen.go`), in `ui/BrandArt.kt`. |
 | **Swift** | A function per mark that fills SwiftUI `Path`s with `GraphicsContext` shadings, in `App/BrandArt.swift`. |
 | **PNG** | Rasterised with exact-coverage anti-aliasing (`golang.org/x/image/vector`); gradients worked out per covered pixel. Opaque where a store demands it (App Store, Play, tvOS back layers). |

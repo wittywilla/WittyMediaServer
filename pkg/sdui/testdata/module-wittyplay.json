@@ -2,7 +2,7 @@
   "format": "wittymodule-sdui",
   "formatVersion": 1,
   "module": "wittyplay",
-  "catalog": 6,
+  "catalog": 8,
   "theme": {
     "scope": "wittyplay",
     "label": "Games",
@@ -28,6 +28,580 @@
             "limit": 60,
             "only": "all",
             "type": "wittyplay.consoles"
+          }
+        }
+      ]
+    },
+    {
+      "id": "wittyplay-online",
+      "kind": "custom",
+      "title": "WittyPlay Online",
+      "icon": "game",
+      "description": "WittyPlay Online: recent games, classics by era, friends and rooms, memories.",
+      "scope": "wittyplay",
+      "sections": [
+        {
+          "id": "tabs",
+          "component": "Tabs",
+          "props": {
+            "default": "recent",
+            "style": "tabs"
+          },
+          "children": [
+            {
+              "id": "recent",
+              "component": "Tab",
+              "props": {
+                "icon": "history",
+                "label": "Recent"
+              },
+              "children": [
+                {
+                  "id": "recent-row",
+                  "component": "Shelf",
+                  "props": {
+                    "cardSize": "l",
+                    "detail": true,
+                    "empty": "message",
+                    "emptyText": "Games you play show up here.",
+                    "focusGrow": true,
+                    "seeAll": "never",
+                    "title": ""
+                  },
+                  "source": {
+                    "limit": 20,
+                    "type": "wittyplay.recent"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "classics",
+              "component": "Tab",
+              "props": {
+                "icon": "game",
+                "label": "Classics"
+              },
+              "children": [
+                {
+                  "id": "eras",
+                  "component": "Grid",
+                  "props": {
+                    "title": "Classics by era"
+                  },
+                  "source": {
+                    "type": "wittyplay.collections"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "together",
+              "component": "Tab",
+              "props": {
+                "icon": "users",
+                "label": "Together"
+              },
+              "children": [
+                {
+                  "id": "lobby",
+                  "component": "Split",
+                  "props": {
+                    "ratio": "1:2",
+                    "stackBelow": "expanded"
+                  },
+                  "children": [
+                    {
+                      "id": "friends",
+                      "component": "List",
+                      "props": {
+                        "empty": "message",
+                        "emptyText": "No friends to show yet.",
+                        "focusable": true,
+                        "title": "Friends"
+                      },
+                      "source": {
+                        "type": "wittyplay.friends"
+                      }
+                    },
+                    {
+                      "id": "rooms-side",
+                      "component": "Stack",
+                      "props": {
+                        "gap": "l"
+                      },
+                      "children": [
+                        {
+                          "id": "room",
+                          "component": "List",
+                          "props": {
+                            "focusable": true,
+                            "title": "Your room"
+                          },
+                          "source": {
+                            "type": "wittyplay.room"
+                          }
+                        },
+                        {
+                          "id": "rooms",
+                          "component": "Grid",
+                          "props": {
+                            "empty": "message",
+                            "emptyText": "No friend has a room open.",
+                            "focusable": true,
+                            "title": "Open rooms"
+                          },
+                          "source": {
+                            "type": "wittyplay.rooms"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "memories",
+              "component": "Tab",
+              "props": {
+                "icon": "photo",
+                "label": "Memories"
+              },
+              "children": [
+                {
+                  "id": "memories-grid",
+                  "component": "Grid",
+                  "props": {
+                    "empty": "message",
+                    "emptyText": "Save states and screenshots you keep show up here.",
+                    "title": "This week"
+                  },
+                  "source": {
+                    "limit": 60,
+                    "type": "wittyplay.memories"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "discover",
+              "component": "Tab",
+              "props": {
+                "icon": "sparkles",
+                "label": "Discover"
+              },
+              "children": [
+                {
+                  "id": "consoles-row",
+                  "component": "Shelf",
+                  "props": {
+                    "title": "What this server plays"
+                  },
+                  "source": {
+                    "limit": 40,
+                    "only": "ready",
+                    "type": "wittyplay.consoles"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "dock",
+          "component": "Dock",
+          "props": {
+            "legend": true
+          }
+        }
+      ],
+      "regions": {
+        "statusBar": [
+          {
+            "id": "me",
+            "kind": "profile",
+            "text": "WittyPlay Online"
+          },
+          {
+            "id": "server",
+            "kind": "server"
+          }
+        ],
+        "systemDock": [
+          {
+            "id": "search",
+            "label": "Search",
+            "icon": "search",
+            "route": "/search"
+          },
+          {
+            "id": "together",
+            "label": "Together",
+            "icon": "users",
+            "route": "/page/wittyplay-online?tab=together"
+          },
+          {
+            "id": "controllers",
+            "label": "Controllers",
+            "icon": "devices",
+            "route": "/page/wittyplay-controllers",
+            "as": "layer"
+          },
+          {
+            "id": "memories",
+            "label": "Memories",
+            "icon": "photo",
+            "route": "/page/wittyplay-online?tab=memories"
+          },
+          {
+            "id": "settings",
+            "label": "Settings",
+            "icon": "settings",
+            "route": "/page/wittyplay-privacy",
+            "as": "layer"
+          }
+        ]
+      }
+    },
+    {
+      "id": "wittyplay-controllers",
+      "kind": "custom",
+      "title": "Controllers",
+      "icon": "devices",
+      "scope": "wittyplay",
+      "sections": [
+        {
+          "id": "players",
+          "component": "List",
+          "props": {
+            "focusable": true,
+            "title": "Players"
+          },
+          "source": {
+            "type": "wittyplay.controllers"
+          }
+        },
+        {
+          "id": "phone",
+          "component": "Notice",
+          "props": {
+            "text": "Use a phone as a controller: open your room's join link on it, or scan its code from Your room.",
+            "tone": "info"
+          }
+        },
+        {
+          "id": "dock",
+          "component": "Dock",
+          "props": {
+            "legend": true
+          }
+        }
+      ],
+      "regions": {
+        "statusBar": [
+          {
+            "id": "me",
+            "kind": "profile",
+            "text": "WittyPlay Online"
+          },
+          {
+            "id": "server",
+            "kind": "server"
+          }
+        ],
+        "systemDock": [
+          {
+            "id": "search",
+            "label": "Search",
+            "icon": "search",
+            "route": "/search"
+          },
+          {
+            "id": "together",
+            "label": "Together",
+            "icon": "users",
+            "route": "/page/wittyplay-online?tab=together"
+          },
+          {
+            "id": "controllers",
+            "label": "Controllers",
+            "icon": "devices",
+            "route": "/page/wittyplay-controllers",
+            "as": "layer"
+          },
+          {
+            "id": "memories",
+            "label": "Memories",
+            "icon": "photo",
+            "route": "/page/wittyplay-online?tab=memories"
+          },
+          {
+            "id": "settings",
+            "label": "Settings",
+            "icon": "settings",
+            "route": "/page/wittyplay-privacy",
+            "as": "layer"
+          }
+        ]
+      }
+    },
+    {
+      "id": "wittyplay-quick",
+      "kind": "custom",
+      "title": "Menu",
+      "icon": "game",
+      "scope": "wittyplay",
+      "sections": [
+        {
+          "id": "items",
+          "component": "List",
+          "props": {
+            "title": ""
+          },
+          "children": [
+            {
+              "id": "resume",
+              "component": "ListItem",
+              "props": {
+                "back": true,
+                "icon": "play",
+                "title": "Resume"
+              }
+            },
+            {
+              "id": "room",
+              "component": "ListItem",
+              "props": {
+                "icon": "users",
+                "subtitle": "Your room, its code and its players",
+                "title": "Invite a friend",
+                "to": "/page/wittyplay-room"
+              }
+            },
+            {
+              "id": "pads",
+              "component": "ListItem",
+              "props": {
+                "icon": "devices",
+                "title": "Controllers",
+                "to": "/page/wittyplay-controllers"
+              }
+            },
+            {
+              "id": "memories",
+              "component": "ListItem",
+              "props": {
+                "icon": "photo",
+                "subtitle": "Save states and screenshots",
+                "title": "Memories",
+                "to": "/page/wittyplay-online?tab=memories"
+              }
+            }
+          ]
+        },
+        {
+          "id": "dock",
+          "component": "Dock",
+          "props": {
+            "legend": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "wittyplay-room",
+      "kind": "custom",
+      "title": "Your room",
+      "icon": "users",
+      "scope": "wittyplay",
+      "sections": [
+        {
+          "id": "room",
+          "component": "List",
+          "props": {
+            "empty": "message",
+            "emptyText": "You're not in a game with others. Start a game, then open your room from here.",
+            "focusable": true,
+            "title": "Room"
+          },
+          "source": {
+            "type": "wittyplay.room"
+          }
+        },
+        {
+          "id": "join",
+          "component": "Notice",
+          "props": {
+            "text": "A phone joins a seat from your room's join link and becomes a controller.",
+            "tone": "info"
+          }
+        },
+        {
+          "id": "dock",
+          "component": "Dock",
+          "props": {
+            "legend": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "wittyplay-memory",
+      "kind": "custom",
+      "title": "Memory",
+      "icon": "photo",
+      "scope": "wittyplay",
+      "sections": [
+        {
+          "id": "actions",
+          "component": "List",
+          "props": {
+            "title": "{title}"
+          },
+          "children": [
+            {
+              "id": "delete",
+              "component": "ListItem",
+              "props": {
+                "confirm": "Delete this memory?",
+                "icon": "warning",
+                "item": "$item",
+                "op": "wittyplay.memory.delete",
+                "params": {
+                  "name": "$name"
+                },
+                "title": "Delete this memory"
+              }
+            }
+          ]
+        },
+        {
+          "id": "dock",
+          "component": "Dock",
+          "props": {
+            "legend": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "wittyplay-keep",
+      "kind": "custom",
+      "title": "Keep this screenshot",
+      "icon": "photo",
+      "scope": "wittyplay",
+      "sections": [
+        {
+          "id": "choice",
+          "component": "List",
+          "props": {
+            "title": ""
+          },
+          "children": [
+            {
+              "id": "keep",
+              "component": "ListItem",
+              "props": {
+                "icon": "check",
+                "item": "$item",
+                "op": "wittyplay.screenshot.keep",
+                "subtitle": "Saved to Memories with the game and the time.",
+                "title": "Keep"
+              }
+            },
+            {
+              "id": "not-now",
+              "component": "ListItem",
+              "props": {
+                "back": true,
+                "title": "Not now"
+              }
+            }
+          ]
+        },
+        {
+          "id": "memories",
+          "component": "Shelf",
+          "props": {
+            "title": "In Memories"
+          },
+          "source": {
+            "limit": 8,
+            "type": "wittyplay.memories"
+          }
+        },
+        {
+          "id": "dock",
+          "component": "Dock",
+          "props": {
+            "legend": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "wittyplay-privacy",
+      "kind": "custom",
+      "title": "Friends and what you play",
+      "icon": "users",
+      "scope": "wittyplay",
+      "sections": [
+        {
+          "id": "privacy",
+          "component": "Form",
+          "props": {
+            "op": "wittyplay.online.set",
+            "submitLabel": "Save",
+            "title": "Privacy"
+          },
+          "children": [
+            {
+              "id": "rows",
+              "component": "List",
+              "props": {
+                "title": ""
+              },
+              "source": {
+                "type": "wittyplay.privacy"
+              }
+            },
+            {
+              "id": "kids",
+              "component": "Notice",
+              "props": {
+                "text": "Friends are other profiles on this server. A Kids profile only sees friends an administrator has approved, and is only seen by them.",
+                "tone": "info"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wittyplay-kids",
+      "kind": "custom",
+      "title": "Friends",
+      "icon": "kids",
+      "scope": "wittyplay",
+      "sections": [
+        {
+          "id": "approved",
+          "component": "List",
+          "props": {
+            "title": "Approved"
+          },
+          "source": {
+            "type": "wittyplay.kidsFriends",
+            "user": "$item"
+          }
+        },
+        {
+          "id": "rooms",
+          "component": "Notice",
+          "props": {
+            "text": "A Kids profile gets no rooms. Friends here are the only people it sees in WittyPlay Online.",
+            "tone": "info"
           }
         }
       ]
@@ -112,7 +686,7 @@
       "paged": false,
       "seeAll": "/page/wittyplay",
       "title": "What this server plays",
-      "since": 6
+      "since": 8
     },
     {
       "type": "wittyplay.recent",
@@ -137,7 +711,7 @@
       "cardStyle": "game",
       "paged": false,
       "title": "Recent",
-      "since": 6
+      "since": 8
     },
     {
       "type": "wittyplay.collections",
@@ -200,7 +774,7 @@
       "cardStyle": "tile",
       "paged": true,
       "title": "Classics",
-      "since": 6
+      "since": 8
     },
     {
       "type": "wittyplay.friends",
@@ -225,7 +799,7 @@
       "cardStyle": "person",
       "paged": false,
       "title": "Friends",
-      "since": 6
+      "since": 8
     },
     {
       "type": "wittyplay.rooms",
@@ -250,12 +824,12 @@
       "cardStyle": "landscape",
       "paged": false,
       "title": "Open rooms",
-      "since": 6
+      "since": 8
     },
     {
       "type": "wittyplay.room",
       "label": "Your room",
-      "description": "The game this profile is playing with others: the room first (a view: its code for the host), then each player as a person, or Waiting\u2026 for a free seat.",
+      "description": "The game this profile is playing with others: the room first (a view: its code for the host), then each player as a person, or Waiting… for a free seat.",
       "icon": "users",
       "category": "",
       "params": [
@@ -276,7 +850,7 @@
       "cardStyle": "person",
       "paged": false,
       "title": "Your room",
-      "since": 6
+      "since": 8
     },
     {
       "type": "wittyplay.saveStates",
@@ -312,7 +886,7 @@
       ],
       "paged": false,
       "title": "Save states",
-      "since": 6
+      "since": 8
     },
     {
       "type": "wittyplay.memories",
@@ -338,7 +912,45 @@
       "cardStyle": "landscape",
       "paged": true,
       "title": "Memories",
-      "since": 6
+      "since": 8
+    },
+    {
+      "type": "wittyplay.privacy",
+      "label": "Friends and privacy",
+      "description": "The two choices a profile makes about what its friends know, as switches: whether friends see what it plays, and whether it appears online at all.",
+      "icon": "users",
+      "category": "",
+      "yields": [
+        "view"
+      ],
+      "cardStyle": "tile",
+      "paged": false,
+      "title": "Friends and what you play",
+      "since": 8
+    },
+    {
+      "type": "wittyplay.kidsFriends",
+      "label": "A Kids profile's friends",
+      "description": "For an administrator: every profile that could be a Kids profile's friend, each a switch that approves or removes it. Nothing for anyone else.",
+      "icon": "kids",
+      "category": "",
+      "params": [
+        {
+          "name": "user",
+          "type": "ref",
+          "label": "Kids profile",
+          "help": "The profile's ID, $item on a page opened about it.",
+          "required": true,
+          "since": 0
+        }
+      ],
+      "yields": [
+        "view"
+      ],
+      "cardStyle": "tile",
+      "paged": false,
+      "title": "Approved friends",
+      "since": 8
     },
     {
       "type": "wittyplay.controllers",
@@ -363,45 +975,23 @@
       "cardStyle": "landscape",
       "paged": false,
       "title": "Controllers",
-      "since": 6
-    },
+      "since": 8
+    }
+  ],
+  "navigation": [
     {
-      "type": "wittyplay.privacy",
-      "label": "Friends and privacy",
-      "description": "The two choices a profile makes about what its friends know, as switches: whether friends see what it plays, and whether it appears online at all.",
-      "icon": "users",
-      "category": "",
-      "yields": [
-        "view"
-      ],
-      "cardStyle": "tile",
-      "paged": false,
-      "title": "Friends and what you play",
-      "since": 7
-    },
-    {
-      "type": "wittyplay.kidsFriends",
-      "label": "A Kids profile's friends",
-      "description": "For an administrator: every profile that could be a Kids profile's friend, each a switch that approves or removes it. Nothing for anyone else.",
-      "icon": "kids",
-      "category": "",
-      "params": [
-        {
-          "name": "user",
-          "type": "ref",
-          "label": "Kids profile",
-          "help": "The profile's ID, $item on a page opened about it.",
-          "required": true,
-          "since": 0
-        }
-      ],
-      "yields": [
-        "view"
-      ],
-      "cardStyle": "tile",
-      "paged": false,
-      "title": "Approved friends",
-      "since": 7
+      "id": "wittyplay-online",
+      "label": "WittyPlay Online",
+      "icon": "game",
+      "type": "page",
+      "page": "wittyplay-online",
+      "placement": {
+        "desktop": "more",
+        "headset": "more",
+        "phone": "more",
+        "tablet": "more",
+        "web": "more"
+      }
     }
   ],
   "settings": [

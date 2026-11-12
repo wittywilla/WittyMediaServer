@@ -114,7 +114,7 @@
 /* A long page's sections, in a strip that stays under the top bar. */
 .set-toc { position: sticky; top: var(--topbar-h); z-index: var(--z-sticky); display: flex; align-items: center; gap: var(--sp-3); margin: calc(-1 * var(--sp-2)) 0 var(--sp-4); padding: var(--sp-2) 0; background: var(--bg); border-bottom: 1px solid var(--border); }
 .set-toc-label { flex: none; font-size: var(--text-2xs); font-weight: 600; letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--fg-3); }
-.set-toc ul { display: flex; gap: var(--sp-1); margin: 0; padding: 2px; list-style: none; overflow-x: auto; scrollbar-width: none; }
+.set-toc ul { flex: 1; min-width: 0; display: flex; gap: var(--sp-1); margin: 0; padding: 2px; list-style: none; overflow-x: auto; scrollbar-width: none; }
 .set-toc a { display: inline-flex; align-items: center; min-height: var(--control-h-sm); padding: 0 var(--sp-3); border-radius: var(--r-full); color: var(--fg-2); font-size: var(--text-sm); font-weight: 500; white-space: nowrap; transition: background var(--dur-2), color var(--dur-2); }
 .set-toc a:hover { background: var(--hover); color: var(--fg); }
 .set-toc a[aria-current] { background: var(--accent-soft); color: var(--fg); font-weight: 600; }

@@ -3,9 +3,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { HelpLink } from '../../../components/HelpLink'
 import { Link, useSearchParams } from 'react-router-dom'
-import { IconRefresh, IconSearch, IconShield } from '../../../icons'
+import { IconSearch, IconShield } from '../../../icons'
 import { toast } from '../../../state'
-import { Button, Chip, Chips, EmptyState, Input, LinkButton, Notice, Select, Spinner } from '../../../ui'
+import { Button, EmptyState, LinkButton, Notice, Spinner } from '../../../ui'
+import SpecPage from '../../../spec/SpecPage'
+import { handledIds } from '../../../spec/model'
+import { storeSearchSpec } from '../../../spec/specs/store'
 import { PageHead } from '../ui'
 import { ItemCard } from './ItemCard'
 import { FailureDialog, FailureNotice, SandboxNote, UpdateAllPanel, useStoreView } from './parts'
@@ -93,47 +96,22 @@ export default function ModuleStore() {
   const count = `${shown.length} ${shown.length === 1 ? 'module' : 'modules'}`
   const clear = () => { setQ(''); setParams({}, { replace: true }) }
   const broken = view.stores.filter((s) => s.problem)
+  const searchPage = storeSearchSpec({
+    q, cats: categories.map((c) => ({ id: c.id, title: c.title, n: c.n })), cat, show, updates: view.updates,
+    publishers, publisher, platforms: platforms.map((p) => ({ value: p, label: p === view.platform ? `${platformName(p)} (this server)` : platformName(p) })), platform,
+    kinds: features?.has('module-store-kinds') || kindsHere.length > 0 ? MODULE_KINDS.map((k) => ({ value: k, label: MODULE_KIND_WORDS[k] })) : [],
+    moduleKind, statuses: STATUSES.map((st) => ({ value: st, label: STATUS_WORDS[st].title })), status, checking,
+  })
+  const searchHandled = handledIds(searchPage)
 
   return (
     <div className="ms-page st-page">
       {head}
       <SandboxNote sandbox={view.sandbox} />
 
-      <section className="st-search" role="search" aria-label="Find a module">
-        <div className="st-search-box">
-          <IconSearch />
-          <Input type="search" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search modules by name, description or category" placeholder="Search modules" autoComplete="off" spellCheck={false} />
-        </div>
-        <Chips label="Category" className="st-cats">
-          <Chip selected={!cat} onClick={() => set('cat', '')}>All</Chip>
-          {categories.map((c) => <Chip key={c.id} selected={cat === c.id} onClick={() => set('cat', cat === c.id ? '' : c.id)}>{c.title} <span className="st-chip-n">{c.n}</span></Chip>)}
-        </Chips>
-        <div className="st-filters">
-          <Chips label="Show">
-            <Chip selected={show === 'installed'} onClick={() => set('show', show === 'installed' ? '' : 'installed')}>Installed</Chip>
-            <Chip selected={show === 'updates'} onClick={() => set('show', show === 'updates' ? '' : 'updates')}>Updates available{view.updates ? ` · ${view.updates}` : ''}</Chip>
-          </Chips>
-          <label className="st-filter">
-            <span>Publisher</span>
-            <Select inputSize="sm" value={publisher} onChange={(e) => set('publisher', e.target.value)} options={[{ value: '', label: 'Anyone' }, ...publishers.map((p) => ({ value: p, label: p }))]} />
-          </label>
-          <label className="st-filter">
-            <span>Platform</span>
-            <Select inputSize="sm" value={platform} onChange={(e) => set('platform', e.target.value)} options={[{ value: '', label: 'Any' }, ...platforms.map((p) => ({ value: p, label: p === view.platform ? `${platformName(p)} (this server)` : platformName(p) }))]} />
-          </label>
-          {(features?.has('module-store-kinds') || kindsHere.length > 0) && (
-            <label className="st-filter">
-              <span>Kind</span>
-              <Select inputSize="sm" value={moduleKind} onChange={(e) => set('moduleKind', e.target.value)} options={[{ value: '', label: 'Any' }, ...MODULE_KINDS.map((k) => ({ value: k, label: MODULE_KIND_WORDS[k] }))]} />
-            </label>
-          )}
-          <label className="st-filter">
-            <span>Status</span>
-            <Select inputSize="sm" value={status} onChange={(e) => set('status', e.target.value)} options={[{ value: '', label: 'Any' }, ...STATUSES.map((st) => ({ value: st, label: STATUS_WORDS[st].title }))]} />
-          </label>
-          <Button size="sm" variant="ghost" className="st-check" icon={<IconRefresh />} aria-busy={checking} aria-label="Check for updates now" onClick={check}>{checking ? 'Checking…' : 'Check now'}</Button>
-        </div>
-      </section>
+      <SpecPage embedded handled={searchHandled} page={searchPage}
+        onAction={(id) => { if (id === 'check') void check(); else if (id.startsWith('cat:')) { const c = id.slice(4); set('cat', cat === c ? '' : c) } else if (id.startsWith('show:')) { const v = id.slice(5); set('show', show === v ? '' : v) } }}
+        onField={(id, v) => { const x = String(v); if (id === 'q') setQ(x); else if (id === 'publisher') set('publisher', x); else if (id === 'platform') set('platform', x); else if (id === 'kind') set('moduleKind', x); else if (id === 'status') set('status', x) }} />
 
       {broken.map((s) => s.official
         ? <FailureNotice key={s.id} failure={s.problem!} name="The list of modules" repairRoute={view.repairRoute} onRetry={check} />

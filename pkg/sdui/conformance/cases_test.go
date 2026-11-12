@@ -877,7 +877,11 @@ func playOnlineCases() []kase {
 	phone.Modules = []string{"wittyplay"}
 	phone.Scopes = tv.Scopes
 	phone.Vars = map[string]string{"item": "7", "name": "1731.png"}
+	// WittyPlay Online's own home page, as WittyPlay's sdui.json defines it.
+	online, _ := sdui.NewModuleSet([]sdui.ModuleUI{ui}).Page("wittyplay-online")
 	return []kase{
+		{id: "wittyplay-online-home-tv", title: "WittyPlay Online's home page, as WittyPlay defines it, on a television", in: Input{Page: online, Request: tv, Data: playOnlineData(), ModuleUI: []sdui.ModuleUI{ui}},
+			checks: []string{"the page is WittyPlay's own, in its scope", "Recent is a row whose focused tile grows, with its details under the row", "the page puts the profile and the server in the status bar and five destinations in the round dock, Controllers and Settings as layers", "Classics, Together, Memories and Discover are tabs"}},
 		{id: "forms-wittyplay-privacy-phone", title: "A Form of switches, a list of switches that save at once, and a command button that asks first, on a phone", in: Input{Page: formPg, Request: phone, Data: formData, ModuleUI: []sdui.ModuleUI{ui}},
 			checks: []string{"the Form is one node whose action is its command, holding the list of rows", "a row's control is in its props (type, name, value, disabled and why); the Form's controls carry no action of their own", "a switch row's action is the command with the new list already in its params", "a button that runs a command carries its item, params with the page's variables filled in, and confirm"}},
 		{id: "wittyplay-online-focus-tv", title: "WittyPlay Online home: focused tile grows, detail panel, regions, on a television", in: Input{Page: focusPg, Request: tv, Data: focusData, ModuleUI: []sdui.ModuleUI{ui}},

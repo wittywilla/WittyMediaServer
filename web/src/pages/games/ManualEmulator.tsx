@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react'
 import { Spinner } from '../../components/common'
 import { WebLink } from '../../components/WebLink'
 import { toast } from '../../state'
-import { Dialog, Input, Notice } from '../../ui'
+import { Dialog, Notice } from '../../ui'
+import SpecPage from '../../spec/SpecPage'
+import { manualSpec } from '../../spec/specs/manualEmulator'
 import { emulatorsApi } from './emulatorsApi'
 import type { CatalogueEntry, ManualView } from './emulatorsLogic'
 import './emulators.css'
@@ -46,20 +48,8 @@ export default function ManualEmulatorDialog({ emulator, onClose, onAdded }: { e
         {failed ? <Notice tone="danger">{failed}</Notice> : !view ? <Spinner /> : (
           <>
             <p>WittyPlay never downloads {emulator.name}. Install it yourself from its own project: <WebLink href={view.download}>{view.download}</WebLink>. Then add it here. The server checks it really is {emulator.name} before using it.</p>
-            {view.notes && <p className="muted">{view.notes}</p>}
-            {view.detected
-              ? <Notice tone="info" title="Found">{view.detected.program}{view.detected.version ? `, version ${view.detected.version}` : ''}. Leave the path empty to add this one.</Notice>
-              : <p className="muted">Nothing was found where it’s usually installed{view.dropFolder ? <> or in <code>{view.dropFolder}</code></> : null}.</p>}
-            <label className="oobe-field">Or its program, by its full path on the server
-              <Input value={program} onChange={(e) => setProgram(e.target.value)} spellCheck={false} autoComplete="off"
-                placeholder={view.programs?.[0] ? `…/${view.programs[0]}` : ''} aria-describedby="emu-manual-help" />
-            </label>
-            <p id="emu-manual-help" className="muted">
-              It runs on {view.system === 'linux' ? 'Linux' : view.system === 'darwin' ? 'macOS' : view.system === 'windows' ? 'Windows' : view.system}, as {(view.programs || []).join(' or ')}.
-              {view.dropFolder && <> A server in a container sees only its own volumes: put the Linux build (its AppImage, or the unpacked folder) in <code>{view.dropFolder}</code>, which is on the server’s /config volume, and it’s found by itself.</>}
-              {view.file && <> Without this page, name it in <code>{view.file}</code> as <code>{`{"${emulator.id}": "/path/to/it"}`}</code>, and start the server again.</>}
-            </p>
-            {error && <Notice tone="danger">{error}</Notice>}
+            <SpecPage embedded page={manualSpec({ name: emulator.name, id: emulator.id, detected: view.detected || undefined, dropFolder: view.dropFolder, notes: view.notes, programHint: view.programs?.[0] ? `…/${view.programs[0]}` : '', system: view.system, programs: view.programs || [], file: view.file }, program, error)}
+              onField={(_id, v) => setProgram(String(v))} />
           </>
         )}
       </div>

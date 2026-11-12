@@ -153,15 +153,15 @@ type Session struct {
 	disc   *engineDisc
 	nav    Navigator
 
-	mu        sync.Mutex
-	last      time.Time
-	current   *Presentation
-	serial    int
-	step      *bluray.Step
+	mu      sync.Mutex
+	last    time.Time
+	current *Presentation
+	serial  int
+	step    *bluray.Step
 	// direct is the playlist the viewer asked for by itself (its number + 1; 0 for none):
 	// "Play" of the film, an episode, an extra. It plays as a title even when no title of
 	// the disc's program names it, which is how an obfuscated disc hides its film.
-	direct int
+	direct    int
 	playlist  *playing // what a title presentation streams
 	menu      *menuState
 	menus     map[int]*menuArt

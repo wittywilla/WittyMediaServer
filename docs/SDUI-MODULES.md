@@ -77,7 +77,7 @@ Which versions must carry the file:
 
 | `api` in module.json | `delivery` | `sdui.json` |
 |---|---|---|
-| 4 or more | `helper`, `program`, `web` | **Required.** A version without one is refused. |
+| 4 or more | `helper`, `program`, `web` | **Required.** A version without one is refused, unless an administrator overrides that (kind `incomplete`); it then runs without its SDUI. |
 | 4 or more | `library`, `builtin` | Not read. A library reaches the server inside other modules. |
 | 3 | any | Optional. API 3 modules keep working until they are upgraded. One that carries `sdui.json` anyway has it checked and used. |
 
@@ -655,7 +655,7 @@ don't refuse it.
 
 | When | What happens to a file that fails |
 |---|---|
-| **Install** (step 4b of [What a server does with a release](MODULES.md#what-a-server-does-with-a-release)) | The install fails, and the module stays on the version it had. |
+| **Install** (after step 4 of [What a server does with a release](MODULES.md#what-a-server-does-with-a-release), once every file has been checked) | The version is held for an administrator's go-ahead ([kind `incomplete`](MODULES.md#overrides-custom-modules-and-installing-from-a-file)), and the module stays on the version it had. With the go-ahead it runs without its SDUI. |
 | **Every time a version is picked for use**: at start, on a switch, when a module is turned on | That version isn't used. The one before takes over, or the module goes without, and the reason is shown on the Modules page. |
 
 The refusal says what is wrong, in one of these forms:

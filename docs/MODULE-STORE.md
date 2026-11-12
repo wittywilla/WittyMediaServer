@@ -238,7 +238,7 @@ The server starts each module's program with these limits:
 
 Settings, Modules and the store say what your system does, wherever it's short of a full sandbox.
 
-**On a Mac** that's Apple's own sandbox. It's checked before it's relied on, and if a helper won't start in it, it starts without it and the page says so. This hasn't been run on a real Mac yet. WittyPlay's helper runs outside it: a Mac can't start one sandbox inside another, and WittyPlay puts each game in a stricter sandbox of its own, with no network, no other programs and nothing to write but its saves.
+**On a Mac** that's Apple's own sandbox. It's checked before it's relied on, and if an official module's helper won't start in it, it starts without it and the page says so. A module from another publisher never starts without it. It was tried on a real Mac (macOS 27) in November 2026. WittyPlay's helper runs outside it: a Mac can't start one sandbox inside another, and WittyPlay puts each game in a stricter sandbox of its own, with no network, no other programs and nothing to write but its saves.
 
 **On FreeBSD these are limits, not a sandbox.** FreeBSD can only really box a program in with an administrator's help. They were tried from inside a helper in a FreeBSD 15.1 virtual machine. If the server runs as root, a helper also goes in a jail, with no network and no sight of other programs, but being root it can change any file, so run it as an ordinary account if you can.
 
@@ -345,12 +345,13 @@ What the server holds a fork to:
 | Permissions | Those it may have | None |
 | Linux | The limits above | No network at all and no changing files. If the system can't apply those, it doesn't run (kernel 6.2 or newer, 64-bit) |
 | Windows | The limits above | Can't change the server's files or start programs. **It keeps its network**, so it could send what it reads over the internet |
-| macOS, FreeBSD | The limits above | Refused, from **Advanced** and from any store. See below |
+| macOS | The limits above | Only in Apple's sandbox, never without it, and only with an override: it **can still read** what the server's account can. See below |
+| FreeBSD | The limits above | Refused, from **Advanced** and from any store |
 | Encrypted media | Refused | Refused: the server checks for itself |
 
 **WittyTuner can't be replaced.** It's what refuses encrypted channels, and it handles live streams with network access, so the server couldn't tell whether a fork still did.
 
-**On macOS and FreeBSD** nothing can box in a fork, so **Advanced** refuses them. A store's **Use this fork…** isn't refused there, and its warning says this system can't limit the fork at all. Don't use one on those systems.
+**On a Mac** a fork runs only inside Apple's sandbox, with no network, no other programs and nothing to write, and only after an override of the kind **less boxed in on this system**: that sandbox is deprecated by Apple and doesn't stop the fork reading your media or this server's database. If the sandbox won't start on your Mac, forks are refused. **On FreeBSD** nothing can box in a fork, so forks are refused, from **Advanced** and from any store.
 
 ### Keeping forks off a server
 

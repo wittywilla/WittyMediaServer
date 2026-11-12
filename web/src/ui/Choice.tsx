@@ -45,9 +45,11 @@ export type TabItem<T extends string> = { value: T; label: ReactNode; to?: strin
 export function Tabs<T extends string>({ value, onChange, items, label, panelId, className }: { value: T; onChange?: (v: T) => void; items: TabItem<T>[]; label: string; panelId?: string; className?: string }) {
   const box = useRef<HTMLDivElement | null>(null)
   const at = Math.max(0, items.findIndex((t) => t.value === value))
-  const go = (i: number) => { const t = items[i]; if (!t.to) onChange?.(t.value); box.current?.querySelectorAll<HTMLElement>('[role=tab]')[i]?.focus() }
+  // Manual activation: the arrows move along the tabs and Enter or Space chooses one, so a remote or a pad can pass over a
+  // tab without changing the page under it (and the arrows reach every tab).
+  const go = (i: number) => { box.current?.querySelectorAll<HTMLElement>('[role=tab]')[i]?.focus() }
   return (
-    <div ref={box} className={'tabs' + (className ? ' ' + className : '')} role="tablist" aria-label={label} onKeyDown={(e) => moveAlong(e, items.length, at, go)}>
+    <div ref={box} className={'tabs' + (className ? ' ' + className : '')} role="tablist" aria-label={label} onKeyDown={(e) => { const tabs = Array.from(box.current?.querySelectorAll<HTMLElement>('[role=tab]') || []); const here = tabs.indexOf(document.activeElement as HTMLElement); moveAlong(e, items.length, here >= 0 ? here : at, go) }}>
       {items.map((t) => {
         const on = t.value === value
         const props = { role: 'tab', 'aria-selected': on, 'aria-controls': on ? panelId : undefined, tabIndex: on ? 0 : -1, className: on ? 'active' : '' }

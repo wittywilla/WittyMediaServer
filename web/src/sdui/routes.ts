@@ -99,10 +99,42 @@ export type Step =
   | { do: 'screen'; screen: string; item?: string }
   | { do: 'tab'; tabs: string; tab: string }
   | { do: 'refresh' }
-  | { do: 'request'; method: 'POST' | 'DELETE'; path: string; body?: unknown }
+  | { do: 'request'; method: 'POST' | 'PUT' | 'DELETE'; path: string; body?: unknown }
+  // A command this app answers itself, with its params: the game player's rewind and remap panels.
+  | { do: 'client'; op: string; params: Record<string, unknown> }
   | { do: 'nothing' }
 
 const safeRoute = (to: string) => to.startsWith('/') && !to.startsWith('//')
+
+// The catalogue's commands (GET /sdui/catalog `commands`): the request each op carries out and the values besides {item}
+// it needs (docs/SDUI.md, "Commands"). Set when the catalogue has been read.
+export type CommandSpec = { op: string; method: string; path: string; body?: string; params?: { name: string; type: 'string' | 'int'; required?: boolean }[] }
+let commandSpecs = new Map<string, CommandSpec>()
+export const setCommandSpecs = (list: CommandSpec[]) => { commandSpecs = new Map(list.map((c) => [c.op, c])) }
+// The ops the app answers with a panel of its own, with no request.
+const CLIENT_OPS = new Set(['rewind.open', 'controller.remap'])
+
+const inJSON = (v: string) => JSON.stringify(v).slice(1, -1)
+
+// commandRequest: a catalogue command as a request. {item} is the action's item as it is; each parameter goes in place
+// of {name}, from the action's params: URL-escaped in the path, escaped as a JSON string in the body, and for an int
+// parameter the quoted token is replaced by the number. A parameter not given is an empty string.
+export function commandRequest(spec: CommandSpec, a: Action): Step {
+  const given = (n: string) => { const v = a.params?.[n]; return v === undefined || v === null ? '' : String(v) }
+  const item = a.item ?? ''
+  if (spec.params?.some((p) => p.required && given(p.name) === '')) return { do: 'nothing' }
+  let path = spec.path.replace(/^\/api(\/v1)?/, '').replaceAll('{item}', encodeURIComponent(item))
+  let body = spec.body
+  for (const p of spec.params || []) {
+    path = path.replaceAll(`{${p.name}}`, encodeURIComponent(given(p.name)))
+    if (body) body = p.type === 'int' ? body.replaceAll(`"{${p.name}}"`, String(Number(given(p.name)) || 0)) : body.replaceAll(`{${p.name}}`, inJSON(given(p.name)))
+  }
+  if (body) body = body.replaceAll('{item}', inJSON(item))
+  const method = spec.method === 'PUT' ? 'PUT' : spec.method === 'DELETE' ? 'DELETE' : 'POST'
+  let parsed: unknown
+  if (body) { try { parsed = JSON.parse(body) } catch { return { do: 'nothing' } } }
+  return { do: 'request', method, path, body: parsed }
+}
 
 export function plan(a: Action | undefined, opts: { externalLinks?: boolean } = {}): Step {
   if (!a) return { do: 'nothing' }
@@ -127,6 +159,8 @@ export function plan(a: Action | undefined, opts: { externalLinks?: boolean } = 
         case 'selectTab': return typeof a.params?.tab === 'string' ? { do: 'tab', tabs: typeof a.params?.tabs === 'string' ? a.params.tabs : '', tab: a.params.tab } : { do: 'nothing' }
         case 'refresh': return { do: 'refresh' }
       }
+      if (a.op && CLIENT_OPS.has(a.op)) return { do: 'client', op: a.op, params: a.params || {} }
+      { const spec = a.op ? commandSpecs.get(a.op) : undefined; if (spec && spec.method !== 'GET') return commandRequest(spec, a) }
       return { do: 'nothing' }
   }
   // An action type this app doesn't know does nothing.

@@ -276,3 +276,11 @@ The owner has decided that Design 2 replaces the previous design completely. The
 - *Modules:* a module's old UI hooks that bypass SDUI (each module ships its SDUI definitions per the module contract).
 
 **How work is checked:** a change that adds code for the old design, or keeps it alive beside the new one, is rejected. A feature that has no drawn element goes to the design lead first (`docs/plans/DESIGN-2-FEATURE-GAPS.md`), is drawn on the canvas, then built. Merge `v0.8.0-alpha` and `wip/design` into your branch before starting.
+
+## 13. Visualizers, canvas and lyrics modes (added 2026-11-12)
+
+**Every visualizer effect is kept.** The seventeen that exist (Skyline, Phosphor Trace, Lantern Knots, Molten Glass, Wormhole, Warp Field, Ink Drift, Prism Wheel, Ember Fountain, Sun Dial, Lava Lamp, Hearth, Horizon Run, Cascade, Fractal Bloom, Northern Veil, Ripple Tank) stay exactly as they are, with their eight colour families, their changes (fade, dissolve, iris, sweep), Calm mode, the frame-rate rules and the web-only custom effect. The one new effect shown on the canvas, Aurora Rings, is added beside them. Nothing is removed or renamed; WittyVisualizer's own repository keeps its effects and they draw inside every look.
+
+**Album art, Canvas video or Visualizer, on every music view.** Now playing, Lyrics, Karaoke, the Visualizer and the mini player all offer the same three-way choice, remembered per device: the album art, the looping silent Canvas video (when the song or album has one; otherwise it is dimmed with a note, never hidden), or the visualizer. The Canvas stops with Low Power Mode, Reduce Motion, Data Saver or a metered connection, exactly as today.
+
+**Lyrics keep their two modes.** **Follow along** (timed lyrics): the line being sung in the middle, press any line to jump, a manual scroll holds the view still for a few seconds, **Sooner**, **Later** and **Reset** for timing. **Read** shows the same words as plain text to read at your own pace. Lyrics without times read as plain text and Follow along is dimmed with a note. Karaoke has both modes as well: words fill in as they are sung, or the full words to read. This matches how the player works today.

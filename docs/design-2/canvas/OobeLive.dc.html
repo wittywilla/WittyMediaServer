@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>First run: try a look and the setup becomes it</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Nunito:wght@500;700;800&family=Source+Serif+4:wght@500;700&family=IBM+Plex+Mono:wght@500;700&display=swap">
+</head>
+<body>
+<x-dc>
+<helmet><style>body{margin:0}button{font-family:inherit;cursor:pointer;border:0;padding:0;background:none;color:inherit}</style></helmet>
+<div style="position:relative;width:1440px;height:960px;overflow:hidden;box-sizing:border-box;padding:40px 56px;font-family:{{t.font}};color:{{t.fg}};{{t.page}}">
+  <div style="display:flex;align-items:center;gap:20px">
+    <div style="font-size:26px;font-weight:800;letter-spacing:-.5px"><sc-for list="{{t.brand}}" as="p" hint-placeholder-count="3"><span style="{{p.st}}">{{p.t}}</span></sc-for></div>
+    <div style="flex:1"></div>
+    <sc-for list="{{steps}}" as="s" hint-placeholder-count="6"><div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;{{s.st}}"><span style="width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;{{s.dot}}">{{s.n}}</span>{{s.t}}</div></sc-for>
+  </div>
+
+  <div style="display:flex;gap:40px;margin-top:28px">
+    <div style="width:560px;flex:none">
+      <div style="font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:{{t.accT}}">Step 9 of 11</div>
+      <div style="font-size:40px;font-weight:800;letter-spacing:-1px;margin-top:6px;font-family:{{t.titleFont}}">Try a look</div>
+      <div style="font-size:16px;line-height:1.5;color:{{t.fg2}};margin-top:8px">Choose one and this setup changes to match it, so you can feel it before you keep it. It works the same on TVs, phones, tablets, computers and headsets. You and everyone else can change it later.</div>
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:20px">
+        <sc-for list="{{looks}}" as="l" hint-placeholder-count="17">
+          <button type="button" aria-label="{{l.name}}" aria-pressed="{{l.on}}" onClick="{{l.pick}}" style="text-align:left;padding:10px;box-sizing:border-box;{{l.st}}">
+            <div style="display:flex;gap:4px;height:34px"><div style="flex:2;border-radius:6px;background:{{l.bg}}"></div><div style="flex:1;border-radius:6px;background:{{l.s2}}"></div><div style="width:18px;border-radius:6px;background:{{l.acc}}"></div></div>
+            <div style="font-size:14px;font-weight:700;margin-top:8px">{{l.name}}</div>
+            <div style="font-size:11px;opacity:.75">{{l.tag}}</div>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="flex:1;min-width:0">
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <sc-for list="{{plats}}" as="p" hint-placeholder-count="3"><button type="button" aria-pressed="{{p.on}}" onClick="{{p.pick}}" style="height:38px;padding:0 18px;font-size:14px;font-weight:700;{{p.st}}">{{p.t}}</button></sc-for>
+      </div>
+      <div style="height:560px;display:flex;align-items:flex-start;justify-content:center;overflow:hidden;{{t.card}};padding:12px;box-sizing:border-box">
+        <sc-if value="{{isTv}}" hint-placeholder-val="{{false}}"><div style="zoom:.4"><dc-import name="Exp" exp="{{pick}}" plat="tv" hint-size="1920px,1080px"></dc-import></div></sc-if>
+        <sc-if value="{{isDesk}}" hint-placeholder-val="{{true}}"><div style="zoom:.55"><dc-import name="Exp" exp="{{pick}}" plat="desktop" hint-size="1440px,900px"></dc-import></div></sc-if>
+        <sc-if value="{{isPhone}}" hint-placeholder-val="{{false}}"><div style="zoom:.62"><dc-import name="Exp" exp="{{pick}}" plat="phone" hint-size="390px,844px"></dc-import></div></sc-if>
+        <sc-if value="{{isVr}}" hint-placeholder-val="{{false}}"><div style="zoom:.42"><dc-import name="Exp" exp="{{pick}}" plat="vr" hint-size="1600px,900px"></dc-import></div></sc-if>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:14px">
+        <div style="flex:1;padding:12px 14px;font-size:13px;line-height:1.5;{{t.card}}"><b>WittyTV look</b><br>Suggested: {{t.tv}}. Change it any time under Look in the guide.</div>
+        <div style="flex:1;padding:12px 14px;font-size:13px;line-height:1.5;{{t.card}}"><b>Server name</b><br>Drawn in this look's colours. Edit under Name and logo.</div>
+        <div style="flex:1;padding:12px 14px;font-size:13px;line-height:1.5;{{t.card}}"><b>Edit layout</b><br>Move anything later, for everyone or just for you.</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="position:absolute;left:56px;right:56px;bottom:32px;display:flex;align-items:center;gap:12px">
+    <div style="height:48px;padding:0 24px;display:flex;align-items:center;font-size:15px;font-weight:600;{{t.ghost}}">Back</div>
+    <div style="height:48px;padding:0 28px;display:flex;align-items:center;font-size:15px;font-weight:700;{{t.btn}}">Use {{t.name}}</div>
+    <div style="font-size:13px;color:{{t.fg2}};margin-left:8px">Arrows move, OK chooses. Under Settings, Appearance you can change this any time.</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":960}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { pick: 'lumen', plat: 'desktop' }; }
+  hexA(h, a) { const n = parseInt(h.slice(1), 16); return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')'; }
+  table() {
+    const gl = (hi, lo, bd, sh) => 'background:linear-gradient(180deg,' + hi + ',' + lo + ');border:1px solid ' + bd + ';box-shadow:inset 0 1px 0 ' + bd + ',0 4px 14px ' + sh + ';border-radius:18px;';
+    const gb = (a) => 'color:#fff;border-radius:999px;background:linear-gradient(180deg,' + a[0] + ' 0%,' + a[1] + ' 50%,' + a[2] + ' 51%,' + a[3] + ' 100%);border:1px solid ' + a[4] + ';box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 3px 8px ' + this.hexA(a[4], .4) + ';text-shadow:0 1px 1px rgba(0,40,80,.5);';
+    const day = ['rgba(255,255,255,.9)', 'rgba(255,255,255,.5)', '#fff', 'rgba(20,120,200,.25)'], night = ['rgba(255,255,255,.22)', 'rgba(255,255,255,.08)', 'rgba(255,255,255,.38)', 'rgba(0,0,0,.4)'];
+    const flat = (bg2, rad, line) => 'background:' + bg2 + ';border-radius:' + rad + 'px;box-shadow:0 0 0 1px ' + line + ';';
+    const sol = (acc, fg, rad) => 'background:' + acc + ';color:' + fg + ';border-radius:' + rad + 'px;';
+    const ghost = (bg, fg, rad) => 'background:' + bg + ';color:' + fg + ';border-radius:' + rad + 'px;';
+    const B = (a) => a.map((p) => ({ t: p[0], st: p[1].indexOf('grad:') === 0 ? 'background:linear-gradient(90deg,' + p[1].slice(5) + ');-webkit-background-clip:text;background-clip:text;color:transparent;' : 'color:' + p[1] + ';' }));
+    const lum = '#0f1115';
+    return {
+      lumen: { name: 'Lumen', tag: 'Quiet cinema', tv: 'Modern', bg: lum, s2: '#1f232c', acc: '#7955ff', fg: '#e8eaf0', fg2: '#a9afbd', accT: '#9174ff', font: 'Inter,sans-serif', titleFont: 'Inter,sans-serif', page: 'background:radial-gradient(900px 500px at 80% 0%,#2a1f5a,' + lum + ');', card: flat('#171a21', 14, 'rgba(232,234,240,.12)'), btn: sol('#7955ff', '#fff', 14), ghost: ghost('#1f232c', '#e8eaf0', 14), brand: B([['Witty', '#e8eaf0'], ['Media', '#9174ff'], ['Server', '#e8eaf0']]), cardR: 12 },
+      rail: { name: 'Rail', tag: 'Library first', tv: 'Classic', bg: '#120e0a', s2: '#261d14', acc: '#d98a1c', fg: '#f3ebe0', fg2: '#c2b4a0', accT: '#f0b44a', font: 'Inter,sans-serif', titleFont: 'Inter,sans-serif', page: 'background:#120e0a;', card: flat('#1b150f', 14, 'rgba(243,235,224,.12)'), btn: sol('#d98a1c', '#1a1208', 14), ghost: ghost('#261d14', '#f3ebe0', 14), brand: B([['Witty', '#f3ebe0'], ['Media', '#f0b44a'], ['Server', '#f3ebe0']]) },
+      stage: { name: 'Stage', tag: 'Streaming', tv: 'Big picture', bg: '#0b1120', s2: '#18233b', acc: '#2f6fed', fg: '#e6ecf7', fg2: '#a8b4ca', accT: '#6ea4ff', font: 'Inter,sans-serif', titleFont: 'Inter,sans-serif', page: 'background:radial-gradient(900px 500px at 70% 0%,#1d3f8a,#0b1120);', card: flat('#111a2e', 12, 'rgba(230,236,247,.12)'), btn: sol('#fff', '#0b1120', 999), ghost: ghost('rgba(230,236,247,.16)', '#e6ecf7', 999), brand: B([['Witty', '#ffffff'], ['Media', '#6ea4ff'], ['Server', '#ffffff']]) },
+      aero: { name: 'Aero', tag: 'Glossy glass', tv: 'Modern', bg: '#bfeaff', s2: '#e7f6ff', acc: '#1e9be0', fg: '#0b3a5a', fg2: '#2f6a8c', accT: '#0a6aa8', font: 'Nunito,sans-serif', titleFont: 'Nunito,sans-serif', page: 'background:linear-gradient(180deg,#6fcfff 0%,#bfeaff 48%,#e1f8d6 100%);', card: gl(day[0], day[1], day[2], day[3]), btn: gb(['#7fd8ff', '#1e9be0', '#0c7fc4', '#39b5f0', '#0a6aa8']), ghost: 'color:#0b3a5a;border-radius:999px;background:linear-gradient(180deg,#fff,#d7efff);border:1px solid #9fd2ee;box-shadow:inset 0 1px 0 #fff;', brand: B([['WittyMediaServer', 'grad:#0a6aa8,#1e9be0,#3aa84a']]) },
+      aeroNight: { name: 'Aero Aurora', tag: 'Night glass', tv: 'Satellite', bg: '#0b2a4a', s2: '#194a74', acc: '#38c6f4', fg: '#eaf6ff', fg2: '#a8cfe6', accT: '#7fdcff', font: 'Nunito,sans-serif', titleFont: 'Nunito,sans-serif', page: 'background:linear-gradient(180deg,#0a1f3d 0%,#0d3b66 55%,#0e6b7e 100%);', card: gl(night[0], night[1], night[2], night[3]), btn: gb(['#9aeaff', '#38c6f4', '#1a9fd0', '#5fd6ff', '#0f7ea6']).replace('color:#fff', 'color:#00243a').replace('text-shadow:0 1px 1px rgba(0,40,80,.5);', ''), ghost: 'color:#eaf6ff;border-radius:999px;background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,.08));border:1px solid rgba(255,255,255,.38);', brand: B([['WittyMediaServer', 'grad:#7fdcff,#38c6f4,#9affd8']]) },
+      aeroMeadow: { name: 'Aero Meadow', tag: 'Spring green', tv: 'Outline', bg: '#d9f5cc', s2: '#ecfae4', acc: '#2fae4d', fg: '#0d3a22', fg2: '#2f6b47', accT: '#146b2e', font: 'Nunito,sans-serif', titleFont: 'Nunito,sans-serif', page: 'background:linear-gradient(180deg,#bfeaff 0%,#d9f5cc 45%,#8fe0a0 100%);', card: gl(day[0], day[1], day[2], 'rgba(20,140,80,.25)'), btn: gb(['#9be8a0', '#2fae4d', '#1f8a3a', '#4fcf6a', '#146b2e']), ghost: 'color:#0d3a22;border-radius:999px;background:linear-gradient(180deg,#fff,#dff5d6);border:1px solid #a6d8a0;box-shadow:inset 0 1px 0 #fff;', brand: B([['Witty', '#0d3a22'], ['Media', 'grad:#2fae4d,#9be04a'], ['Server', '#0d3a22']]) },
+      aeroSunset: { name: 'Aero Sunset', tag: 'Golden hour', tv: 'Big picture', bg: '#ffd9b8', s2: '#ffe9d6', acc: '#ff7a3d', fg: '#4a1b3a', fg2: '#7a3d62', accT: '#b3410f', font: 'Nunito,sans-serif', titleFont: 'Nunito,sans-serif', page: 'background:linear-gradient(180deg,#ffd9a8 0%,#ffa06a 50%,#d46bb8 100%);', card: gl(day[0], day[1], day[2], 'rgba(160,60,120,.25)'), btn: gb(['#ffc08a', '#ff7a3d', '#e0561a', '#ff9a5a', '#b3410f']), ghost: 'color:#4a1b3a;border-radius:999px;background:linear-gradient(180deg,#fff,#ffe3d0);border:1px solid #f0b090;box-shadow:inset 0 1px 0 #fff;', brand: B([['WittyMediaServer', 'grad:#ff7a3d,#d6409f,#7a3dd0']]) },
+      classic: { name: 'Classic', tag: 'Sidebar', tv: 'Modern', bg: lum, s2: '#1f232c', acc: '#7955ff', fg: '#e8eaf0', fg2: '#a9afbd', accT: '#9174ff', font: 'Inter,sans-serif', titleFont: 'Inter,sans-serif', page: 'background:' + lum + ';', card: flat('#171a21', 10, 'rgba(232,234,240,.12)'), btn: sol('#7955ff', '#fff', 10), ghost: ghost('#1f232c', '#e8eaf0', 10), brand: B([['Witty', '#e8eaf0'], ['Media', '#9174ff'], ['Server', '#e8eaf0']]) },
+      classicCable: { name: 'Classic Cable', tag: 'Blue guide', tv: 'Classic', bg: '#08125e', s2: '#0f2bb8', acc: '#ffd84a', fg: '#ffffff', fg2: '#d6defc', accT: '#ffd84a', font: '"IBM Plex Mono",monospace', titleFont: '"IBM Plex Mono",monospace', page: 'background:linear-gradient(180deg,#0b1a8a,#08125e);', card: 'background:#0b1a8a;border:2px solid #7f95ff;', btn: 'background:#ffd84a;color:#08125e;border:2px solid #fff;', ghost: 'background:#0f2bb8;color:#fff;border:2px solid #7f95ff;', brand: B([['WITTY', '#ffd84a'], ['MEDIA', '#ffffff'], ['SERVER', '#ffd84a']]) },
+      classicSatellite: { name: 'Classic Satellite', tag: 'Silver bars', tv: 'Satellite', bg: '#0c1418', s2: '#1f3540', acc: '#ff8a1f', fg: '#eef3f6', fg2: '#aebdc6', accT: '#ffa84d', font: 'Inter,sans-serif', titleFont: 'Inter,sans-serif', page: 'background:radial-gradient(900px 500px at 70% 0%,#1d6a7a,#0c1418);', card: 'background:#16262e;border:1px solid #4d7080;border-radius:6px;', btn: 'background:linear-gradient(180deg,#ffa84d,#ff8a1f);color:#1a0e00;border:1px solid #b35a00;border-radius:4px;', ghost: 'background:linear-gradient(180deg,#e9eef2,#aab4bc);color:#0c1418;border:1px solid #6f7d86;border-radius:4px;', brand: B([['Witty', '#eef3f6'], ['Media', '#ff8a1f'], ['Server', '#eef3f6']]) },
+      compact: { name: 'Compact', tag: 'Dense lists', tv: 'Compact', bg: '#000', s2: '#151515', acc: '#4da3ff', fg: '#f2f2f2', fg2: '#b5b5b5', accT: '#7dbcff', font: 'Inter,sans-serif', titleFont: 'Inter,sans-serif', page: 'background:#000;', card: flat('#0a0a0a', 8, 'rgba(255,255,255,.14)'), btn: sol('#4da3ff', '#001428', 8), ghost: ghost('#151515', '#f2f2f2', 8), brand: B([['Witty', '#f2f2f2'], ['MediaServer', '#7dbcff']]) },
+      paper: { name: 'Paper', tag: 'Editorial', tv: 'Newspaper', bg: '#f6f0e6', s2: '#e6dccb', acc: '#b4491f', fg: '#2a1f17', fg2: '#5d4c3d', accT: '#9a3b15', font: 'Inter,sans-serif', titleFont: '"Source Serif 4",Georgia,serif', page: 'background:#f6f0e6;', card: flat('#efe7d9', 4, 'rgba(42,31,23,.18)'), btn: sol('#b4491f', '#fff', 4), ghost: ghost('#e6dccb', '#2a1f17', 4), brand: B([['Witty', '#2a1f17'], ['Media', '#b4491f'], ['Server', '#2a1f17']]) },
+      marquee: { name: 'Marquee', tag: 'Poster carousel', tv: 'Big picture', bg: '#140d0d', s2: '#2a1a1a', acc: '#e0a030', fg: '#f6ece4', fg2: '#c9b3a5', accT: '#f0b84a', font: 'Inter,sans-serif', titleFont: 'Inter,sans-serif', page: 'background:radial-gradient(800px 500px at 50% 0%,#4a2a1a,#140d0d);', card: flat('#1e1313', 10, 'rgba(246,236,228,.12)'), btn: sol('#e0a030', '#1a1004', 999), ghost: ghost('#2a1a1a', '#f6ece4', 999), brand: B([['WittyMediaServer', '#f0b84a']]) },
+      crossbar: { name: 'Crossbar', tag: 'Console style', tv: 'Satellite', bg: '#07140f', s2: '#153027', acc: '#3ddc84', fg: '#e4f3ea', fg2: '#9fc2ad', accT: '#6ee8a0', font: 'Inter,sans-serif', titleFont: 'Inter,sans-serif', page: 'background:radial-gradient(900px 500px at 30% 0%,#14543a,#07140f);', card: flat('#0e211a', 16, 'rgba(228,243,234,.12)'), btn: sol('#3ddc84', '#04140b', 16), ghost: ghost('#153027', '#e4f3ea', 16), brand: B([['Witty', '#e4f3ea'], ['Media', '#6ee8a0'], ['Server', '#e4f3ea']]) },
+      bigpicture: { name: 'Big picture', tag: 'Easy to see', tv: 'Big picture', bg: '#000', s2: '#1a1a1a', acc: '#ffd84a', fg: '#ffffff', fg2: '#e0e0e0', accT: '#ffd84a', font: 'Inter,sans-serif', titleFont: 'Inter,sans-serif', page: 'background:#000;', card: flat('#0d0d0d', 24, 'rgba(255,255,255,.35)'), btn: sol('#ffd84a', '#000', 24), ghost: 'background:#1a1a1a;color:#fff;border-radius:24px;box-shadow:0 0 0 2px #fff;', brand: B([['Witty', '#ffffff'], ['Media', '#ffd84a'], ['Server', '#ffffff']]) },
+      dashboard: { name: 'Dashboard', tag: 'Widgets', tv: 'Outline', bg: '#0d1117', s2: '#1b2430', acc: '#22c3b8', fg: '#e8f0f6', fg2: '#9fb0c0', accT: '#4fd9cf', font: 'Inter,sans-serif', titleFont: 'Inter,sans-serif', page: 'background:#0d1117;', card: flat('#141b24', 14, 'rgba(232,240,246,.12)'), btn: sol('#22c3b8', '#04201d', 14), ghost: ghost('#1b2430', '#e8f0f6', 14), brand: B([['Witty', '#e8f0f6'], ['Media', '#4fd9cf'], ['Server', '#e8f0f6']]) },
+      retro: { name: 'Retro', tag: 'Teletext', tv: 'Teletext', bg: '#000', s2: '#0000a8', acc: '#ffff00', fg: '#ffffff', fg2: '#00ffff', accT: '#ffff00', font: '"IBM Plex Mono",monospace', titleFont: '"IBM Plex Mono",monospace', page: 'background:#000;', card: 'background:#0000a8;', btn: 'background:#ffff00;color:#000;', ghost: 'background:#0000a8;color:#fff;', brand: B([['W', '#ff4040'], ['i', '#ffff00'], ['t', '#00ff00'], ['t', '#00ffff'], ['y', '#ff00ff'], ['Media', '#ffffff'], ['Server', '#00ffff']]) }
+    };
+  }
+  renderVals() {
+    const S = this.state || {};
+    const T = this.table(), pick = S.pick || 'lumen', plat = S.plat || 'desktop', t = T[pick];
+    const looks = Object.keys(T).map((id) => {
+      const l = T[id], on = id === pick;
+      return { name: l.name, tag: l.tag, bg: l.bg, s2: l.s2, acc: l.acc, on: on ? 'true' : 'false', pick: () => this.setState({ pick: id }), st: (on ? 'box-shadow:0 0 0 3px ' + t.bg + ',0 0 0 6px ' + t.fg + ';' : '') + 'background:' + (t.card.indexOf('background:') >= 0 ? 'rgba(128,128,128,.16)' : 'rgba(128,128,128,.16)') + ';color:' + t.fg + ';border-radius:12px;' };
+    });
+    const plats = [['tv', 'TV'], ['desktop', 'Desktop'], ['phone', 'Phone'], ['vr', 'Headset']].map((p) => ({ t: p[1], on: p[0] === plat ? 'true' : 'false', pick: () => this.setState({ plat: p[0] }), st: p[0] === plat ? t.btn : t.ghost }));
+    const steps = ['Account', 'Media', 'Details', 'Live TV', 'Look', 'Ready'].map((s, i) => ({ t: s, n: i + 1, st: 'color:' + (i === 4 ? t.accT : t.fg2) + ';', dot: i === 4 ? t.btn.replace('border-radius:999px', 'border-radius:50%') : 'background:rgba(128,128,128,.3);border-radius:50%;' }));
+    return { t, looks, plats, steps, pick, isTv: plat === 'tv', isDesk: plat === 'desktop', isPhone: plat === 'phone', isVr: plat === 'vr' };
+  }
+}
+</script>
+</body>
+</html>

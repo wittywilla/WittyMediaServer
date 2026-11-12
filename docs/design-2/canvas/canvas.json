@@ -1,0 +1,1216 @@
+{
+ "v": 3,
+ "attachments": {},
+ "boards": {
+  "All_aero.dc.html": {
+   "h": 820,
+   "page": "looks",
+   "title": "4 \u00b7 Aero \u00b7 TV, desktop, tablet, phone, headset",
+   "w": 4100,
+   "x": 0,
+   "y": 6420
+  },
+  "All_aeroMeadow.dc.html": {
+   "h": 820,
+   "page": "looks",
+   "title": "4c \u00b7 Aero Meadow \u00b7 TV, desktop, tablet, phone, headset",
+   "w": 4100,
+   "x": 0,
+   "y": 8300
+  },
+  "All_aeroNight.dc.html": {
+   "h": 820,
+   "page": "looks",
+   "title": "4b \u00b7 Aero Aurora \u00b7 TV, desktop, tablet, phone, headset",
+   "w": 4100,
+   "x": 0,
+   "y": 7360
+  },
+  "All_aeroSunset.dc.html": {
+   "h": 820,
+   "page": "looks",
+   "title": "4d \u00b7 Aero Sunset \u00b7 TV, desktop, tablet, phone, headset",
+   "w": 4100,
+   "x": 0,
+   "y": 9240
+  },
+  "All_bigpicture.dc.html": {
+   "h": 820,
+   "page": "looks",
+   "title": "10 \u00b7 Big picture \u00b7 TV, desktop, tablet, phone, headset",
+   "w": 4100,
+   "x": 0,
+   "y": 16760
+  },
+  "All_classic.dc.html": {
+   "h": 820,
+   "page": "looks",
+   "title": "5 \u00b7 Classic \u00b7 TV, desktop, tablet, phone, headset",
+   "w": 4100,
+   "x": 0,
+   "y": 10180
+  },
+  "All_classicCable.dc.html": {
+   "h": 820,
+   "page": "looks",
+   "title": "5b \u00b7 Classic Cable \u00b7 TV, desktop, tablet, phone, headset",
+   "w": 4100,
+   "x": 0,
+   "y": 11120
+  },
+  "All_classicSatellite.dc.html": {
+   "h": 820,
+   "page": "looks",
+   "title": "5c \u00b7 Classic Satellite \u00b7 TV, desktop, tablet, phone, headset",
+   "w": 4100,
+   "x": 0,
+   "y": 12060
+  },
+  "All_compact.dc.html": {
+   "h": 820,
+   "page": "looks",
+   "title": "6 \u00b7 Compact \u00b7 TV, desktop, tablet, phone, headset",
+   "w": 4100,
+   "x": 0,
+   "y": 13000
+  },
+  "All_crossbar.dc.html": {
+   "h": 820,
+   "page": "looks",
+   "title": "9 \u00b7 Crossbar \u00b7 TV, desktop, tablet, phone, headset",
+   "w": 4100,
+   "x": 0,
+   "y": 15820
+  },
+  "All_dashboard.dc.html": {
+   "h": 820,
+   "page": "looks",
+   "title": "11 \u00b7 Dashboard \u00b7 TV, desktop, tablet, phone, headset",
+   "w": 4100,
+   "x": 0,
+   "y": 17700
+  },
+  "All_lumen.dc.html": {
+   "h": 820,
+   "page": "looks",
+   "title": "1 \u00b7 Lumen \u00b7 TV, desktop, tablet, phone, headset",
+   "w": 4100,
+   "x": 0,
+   "y": 3600
+  },
+  "All_marquee.dc.html": {
+   "h": 820,
+   "page": "looks",
+   "title": "8 \u00b7 Marquee \u00b7 TV, desktop, tablet, phone, headset",
+   "w": 4100,
+   "x": 0,
+   "y": 14880
+  },
+  "All_paper.dc.html": {
+   "h": 820,
+   "page": "looks",
+   "title": "7 \u00b7 Paper \u00b7 TV, desktop, tablet, phone, headset",
+   "w": 4100,
+   "x": 0,
+   "y": 13940
+  },
+  "All_rail.dc.html": {
+   "h": 820,
+   "page": "looks",
+   "title": "2 \u00b7 Rail \u00b7 TV, desktop, tablet, phone, headset",
+   "w": 4100,
+   "x": 0,
+   "y": 4540
+  },
+  "All_retro.dc.html": {
+   "h": 820,
+   "page": "looks",
+   "title": "12 \u00b7 Retro \u00b7 TV, desktop, tablet, phone, headset",
+   "w": 4100,
+   "x": 0,
+   "y": 18640
+  },
+  "All_stage.dc.html": {
+   "h": 820,
+   "page": "looks",
+   "title": "3 \u00b7 Stage \u00b7 TV, desktop, tablet, phone, headset",
+   "w": 4100,
+   "x": 0,
+   "y": 5480
+  },
+  "BrandEditor.dc.html": {
+   "h": 900,
+   "page": "firstrun",
+   "title": "Server name editor",
+   "w": 1440,
+   "x": 1520,
+   "y": 1300
+  },
+  "BuildList.dc.html": {
+   "h": 1200,
+   "page": "build",
+   "title": "What SDUI needs that it doesn't have yet",
+   "w": 1600,
+   "x": 0,
+   "y": 0
+  },
+  "Exp.dc.html": {
+   "h": 1080,
+   "page": "build",
+   "title": "Shared renderer: look, platform, screen, WittyTV look",
+   "w": 1920,
+   "x": 1700,
+   "y": 0
+  },
+  "GuideA.dc.html": {
+   "h": 1080,
+   "page": "looks",
+   "title": "A \u00b7 Lumen \u00b7 WittyTV Modern",
+   "w": 1920,
+   "x": 0,
+   "y": 1200
+  },
+  "GuideB.dc.html": {
+   "h": 1080,
+   "page": "looks",
+   "title": "B \u00b7 Rail \u00b7 WittyTV Classic",
+   "w": 1920,
+   "x": 2000,
+   "y": 1200
+  },
+  "GuideC.dc.html": {
+   "h": 1080,
+   "page": "looks",
+   "title": "C \u00b7 Stage \u00b7 WittyTV Big picture",
+   "w": 1920,
+   "x": 4000,
+   "y": 1200
+  },
+  "HomeB.dc.html": {
+   "h": 1080,
+   "page": "looks",
+   "title": "B \u00b7 Rail \u00b7 TV Home",
+   "w": 1920,
+   "x": 2000,
+   "y": 0
+  },
+  "HomeC.dc.html": {
+   "h": 1080,
+   "page": "looks",
+   "title": "C \u00b7 Stage \u00b7 TV Home",
+   "w": 1920,
+   "x": 4000,
+   "y": 0
+  },
+  "LayoutEditor.dc.html": {
+   "h": 900,
+   "page": "firstrun",
+   "title": "Layout editor",
+   "w": 1440,
+   "x": 0,
+   "y": 1300
+  },
+  "M_aero.dc.html": {
+   "h": 1500,
+   "page": "modules",
+   "title": "Aero \u00b7 every module",
+   "w": 2000,
+   "x": 2100,
+   "y": 0
+  },
+  "M_classicCable.dc.html": {
+   "h": 1500,
+   "page": "modules",
+   "title": "Classic Cable \u00b7 every module",
+   "w": 2000,
+   "x": 0,
+   "y": 1300
+  },
+  "M_lumen.dc.html": {
+   "h": 1500,
+   "page": "modules",
+   "title": "Lumen \u00b7 every module",
+   "w": 2000,
+   "x": 0,
+   "y": 0
+  },
+  "Main.dc.html": {
+   "h": 1080,
+   "page": "looks",
+   "title": "A \u00b7 Lumen \u00b7 TV Home",
+   "w": 1920,
+   "x": 0,
+   "y": 0
+  },
+  "ModuleMatrix.dc.html": {
+   "h": 1500,
+   "page": "modules",
+   "title": "Every module, every function",
+   "w": 2000,
+   "x": 2100,
+   "y": 1700
+  },
+  "ModulesBoard.dc.html": {
+   "h": 1500,
+   "page": "build",
+   "title": "Shared: modules board",
+   "w": 2000,
+   "x": 2100,
+   "y": 3000
+  },
+  "Oobe.dc.html": {
+   "h": 1100,
+   "page": "firstrun",
+   "title": "First run: choose your look (static)",
+   "w": 1440,
+   "x": 1520,
+   "y": 0
+  },
+  "OobeLive.dc.html": {
+   "h": 960,
+   "is_interactive": true,
+   "page": "firstrun",
+   "title": "First run: try a look and the setup becomes it (interactive)",
+   "w": 1440,
+   "x": 0,
+   "y": 0
+  },
+  "PB_aero.dc.html": {
+   "h": 1560,
+   "page": "player",
+   "title": "Aero \u00b7 player and WittyRemote",
+   "w": 2000,
+   "x": 2100,
+   "y": 0
+  },
+  "PB_classicCable.dc.html": {
+   "h": 1560,
+   "page": "player",
+   "title": "Classic Cable \u00b7 player and WittyRemote",
+   "w": 2000,
+   "x": 0,
+   "y": 1700
+  },
+  "PB_lumen.dc.html": {
+   "h": 1560,
+   "page": "player",
+   "title": "Lumen \u00b7 player and WittyRemote",
+   "w": 2000,
+   "x": 0,
+   "y": 0
+  },
+  "PB_retro.dc.html": {
+   "h": 1560,
+   "page": "player",
+   "title": "Retro \u00b7 player and WittyRemote",
+   "w": 2000,
+   "x": 2100,
+   "y": 1700
+  },
+  "P_classics.dc.html": {
+   "h": 1080,
+   "page": "play",
+   "title": "WittyPlay Online \u00b7 Classics",
+   "w": 1920,
+   "x": 2000,
+   "y": 0
+  },
+  "P_detail.dc.html": {
+   "h": 1080,
+   "page": "play",
+   "title": "WittyPlay Online \u00b7 Game page",
+   "w": 1920,
+   "x": 4000,
+   "y": 0
+  },
+  "P_discover.dc.html": {
+   "h": 1080,
+   "page": "play",
+   "title": "WittyPlay Online \u00b7 Discover",
+   "w": 1920,
+   "x": 2000,
+   "y": 2400
+  },
+  "P_home.dc.html": {
+   "h": 1080,
+   "page": "play",
+   "title": "WittyPlay Online \u00b7 Home",
+   "w": 1920,
+   "x": 0,
+   "y": 0
+  },
+  "P_memories.dc.html": {
+   "h": 1080,
+   "page": "play",
+   "title": "WittyPlay Online \u00b7 Memories",
+   "w": 1920,
+   "x": 0,
+   "y": 2400
+  },
+  "P_online.dc.html": {
+   "h": 1080,
+   "page": "play",
+   "title": "WittyPlay Online \u00b7 Play together",
+   "w": 1920,
+   "x": 2000,
+   "y": 1200
+  },
+  "P_pads.dc.html": {
+   "h": 1080,
+   "page": "play",
+   "title": "WittyPlay Online \u00b7 Controllers",
+   "w": 1920,
+   "x": 4000,
+   "y": 1200
+  },
+  "P_phone.dc.html": {
+   "h": 844,
+   "page": "play",
+   "title": "WittyPlay \u00b7 phone",
+   "w": 390,
+   "x": 0,
+   "y": 3700
+  },
+  "P_phonepad.dc.html": {
+   "h": 844,
+   "page": "play",
+   "title": "WittyPlay \u00b7 phone as controller",
+   "w": 390,
+   "x": 480,
+   "y": 3700
+  },
+  "P_quick.dc.html": {
+   "h": 1080,
+   "page": "play",
+   "title": "WittyPlay Online \u00b7 In-game menu",
+   "w": 1920,
+   "x": 0,
+   "y": 1200
+  },
+  "PhoneA.dc.html": {
+   "h": 844,
+   "page": "looks",
+   "title": "A \u00b7 phone",
+   "w": 390,
+   "x": 0,
+   "y": 2400
+  },
+  "PhoneB.dc.html": {
+   "h": 844,
+   "page": "looks",
+   "title": "B \u00b7 phone",
+   "w": 390,
+   "x": 2000,
+   "y": 2400
+  },
+  "PhoneC.dc.html": {
+   "h": 844,
+   "page": "looks",
+   "title": "C \u00b7 phone",
+   "w": 390,
+   "x": 4000,
+   "y": 2400
+  },
+  "Play.dc.html": {
+   "h": 1080,
+   "page": "build",
+   "title": "Shared: WittyPlay renderer",
+   "w": 1920,
+   "x": 2500,
+   "y": 2500
+  },
+  "PlayerBoard.dc.html": {
+   "h": 1560,
+   "page": "build",
+   "title": "Shared: player board",
+   "w": 2000,
+   "x": 0,
+   "y": 3000
+  },
+  "RailStates.dc.html": {
+   "h": 800,
+   "page": "looks",
+   "title": "Rail states: open and library drawer",
+   "w": 3300,
+   "x": 0,
+   "y": 19700
+  },
+  "S_aero.dc.html": {
+   "h": 900,
+   "page": "screens",
+   "title": "4 \u00b7 Aero \u00b7 every screen and menu",
+   "w": 3400,
+   "x": 0,
+   "y": 3060
+  },
+  "S_aeroMeadow.dc.html": {
+   "h": 900,
+   "page": "screens",
+   "title": "4c \u00b7 Aero Meadow \u00b7 every screen and menu",
+   "w": 3400,
+   "x": 0,
+   "y": 5100
+  },
+  "S_aeroNight.dc.html": {
+   "h": 900,
+   "page": "screens",
+   "title": "4b \u00b7 Aero Aurora \u00b7 every screen and menu",
+   "w": 3400,
+   "x": 0,
+   "y": 4080
+  },
+  "S_aeroSunset.dc.html": {
+   "h": 900,
+   "page": "screens",
+   "title": "4d \u00b7 Aero Sunset \u00b7 every screen and menu",
+   "w": 3400,
+   "x": 0,
+   "y": 6120
+  },
+  "S_bigpicture.dc.html": {
+   "h": 900,
+   "page": "screens",
+   "title": "10 \u00b7 Big picture \u00b7 every screen and menu",
+   "w": 3400,
+   "x": 0,
+   "y": 14280
+  },
+  "S_classic.dc.html": {
+   "h": 900,
+   "page": "screens",
+   "title": "5 \u00b7 Classic \u00b7 every screen and menu",
+   "w": 3400,
+   "x": 0,
+   "y": 7140
+  },
+  "S_classicCable.dc.html": {
+   "h": 900,
+   "page": "screens",
+   "title": "5b \u00b7 Classic Cable \u00b7 every screen and menu",
+   "w": 3400,
+   "x": 0,
+   "y": 8160
+  },
+  "S_classicSatellite.dc.html": {
+   "h": 900,
+   "page": "screens",
+   "title": "5c \u00b7 Classic Satellite \u00b7 every screen and menu",
+   "w": 3400,
+   "x": 0,
+   "y": 9180
+  },
+  "S_compact.dc.html": {
+   "h": 900,
+   "page": "screens",
+   "title": "6 \u00b7 Compact \u00b7 every screen and menu",
+   "w": 3400,
+   "x": 0,
+   "y": 10200
+  },
+  "S_crossbar.dc.html": {
+   "h": 900,
+   "page": "screens",
+   "title": "9 \u00b7 Crossbar \u00b7 every screen and menu",
+   "w": 3400,
+   "x": 0,
+   "y": 13260
+  },
+  "S_dashboard.dc.html": {
+   "h": 900,
+   "page": "screens",
+   "title": "11 \u00b7 Dashboard \u00b7 every screen and menu",
+   "w": 3400,
+   "x": 0,
+   "y": 15300
+  },
+  "S_lumen.dc.html": {
+   "h": 900,
+   "page": "screens",
+   "title": "1 \u00b7 Lumen \u00b7 every screen and menu",
+   "w": 3400,
+   "x": 0,
+   "y": 0
+  },
+  "S_marquee.dc.html": {
+   "h": 900,
+   "page": "screens",
+   "title": "8 \u00b7 Marquee \u00b7 every screen and menu",
+   "w": 3400,
+   "x": 0,
+   "y": 12240
+  },
+  "S_paper.dc.html": {
+   "h": 900,
+   "page": "screens",
+   "title": "7 \u00b7 Paper \u00b7 every screen and menu",
+   "w": 3400,
+   "x": 0,
+   "y": 11220
+  },
+  "S_rail.dc.html": {
+   "h": 900,
+   "page": "screens",
+   "title": "2 \u00b7 Rail \u00b7 every screen and menu",
+   "w": 3400,
+   "x": 0,
+   "y": 1020
+  },
+  "S_retro.dc.html": {
+   "h": 900,
+   "page": "screens",
+   "title": "12 \u00b7 Retro \u00b7 every screen and menu",
+   "w": 3400,
+   "x": 0,
+   "y": 16320
+  },
+  "S_stage.dc.html": {
+   "h": 900,
+   "page": "screens",
+   "title": "3 \u00b7 Stage \u00b7 every screen and menu",
+   "w": 3400,
+   "x": 0,
+   "y": 2040
+  },
+  "ScreensBoard.dc.html": {
+   "h": 900,
+   "page": "build",
+   "title": "Shared: screens board",
+   "w": 3400,
+   "x": 0,
+   "y": 1400
+  },
+  "TS_aero.dc.html": {
+   "h": 1180,
+   "page": "wittytv",
+   "title": "Aero \u00b7 WittyTV screens",
+   "w": 2000,
+   "x": 2100,
+   "y": 4380
+  },
+  "TS_classicCable.dc.html": {
+   "h": 1180,
+   "page": "wittytv",
+   "title": "Classic Cable \u00b7 WittyTV screens",
+   "w": 2000,
+   "x": 0,
+   "y": 5680
+  },
+  "TS_lumen.dc.html": {
+   "h": 1180,
+   "page": "wittytv",
+   "title": "Lumen \u00b7 WittyTV screens",
+   "w": 2000,
+   "x": 0,
+   "y": 4380
+  },
+  "TS_rail.dc.html": {
+   "h": 1180,
+   "page": "wittytv",
+   "title": "Rail \u00b7 WittyTV screens",
+   "w": 2000,
+   "x": 0,
+   "y": 6980
+  },
+  "TS_retro.dc.html": {
+   "h": 1180,
+   "page": "wittytv",
+   "title": "Retro \u00b7 WittyTV screens",
+   "w": 2000,
+   "x": 2100,
+   "y": 5680
+  },
+  "T_aero.dc.html": {
+   "h": 820,
+   "page": "wittytv",
+   "title": "WittyTV looks inside aero",
+   "w": 2400,
+   "x": 0,
+   "y": 2140
+  },
+  "T_classicCable.dc.html": {
+   "h": 820,
+   "page": "wittytv",
+   "title": "WittyTV looks inside classicCable",
+   "w": 2400,
+   "x": 0,
+   "y": 4020
+  },
+  "T_lumen.dc.html": {
+   "h": 820,
+   "page": "wittytv",
+   "title": "WittyTV looks inside lumen",
+   "w": 2400,
+   "x": 0,
+   "y": 1200
+  },
+  "T_rail.dc.html": {
+   "h": 820,
+   "page": "wittytv",
+   "title": "WittyTV looks inside rail",
+   "w": 2400,
+   "x": 0,
+   "y": 3080
+  },
+  "TvBoard.dc.html": {
+   "h": 820,
+   "page": "build",
+   "title": "Shared: WittyTV board",
+   "w": 2400,
+   "x": 0,
+   "y": 2500
+  },
+  "TvDefaults.dc.html": {
+   "h": 1040,
+   "page": "wittytv",
+   "title": "Each UI look suggests a WittyTV look",
+   "w": 2700,
+   "x": 0,
+   "y": 0
+  },
+  "TvScreensBoard.dc.html": {
+   "h": 1180,
+   "page": "build",
+   "title": "Shared: WittyTV screens board",
+   "w": 2000,
+   "x": 4300,
+   "y": 0
+  },
+  "UiTheme.dc.html": {
+   "h": 1240,
+   "page": "themes",
+   "title": "UI and theme are separate",
+   "w": 2000,
+   "x": 0,
+   "y": 0
+  },
+  "OF_lumen.dc.html": {
+   "x": 0,
+   "y": 2400,
+   "w": 2400,
+   "h": 1500,
+   "title": "Lumen \u00b7 first run, 14 steps",
+   "page": "firstrun"
+  },
+  "OF_aero.dc.html": {
+   "x": 2500,
+   "y": 2400,
+   "w": 2400,
+   "h": 1500,
+   "title": "Aero \u00b7 first run, 14 steps",
+   "page": "firstrun"
+  },
+  "OF_rail.dc.html": {
+   "x": 0,
+   "y": 4000,
+   "w": 2400,
+   "h": 1500,
+   "title": "Rail \u00b7 first run, 14 steps",
+   "page": "firstrun"
+  },
+  "OF_classicCable.dc.html": {
+   "x": 2500,
+   "y": 4000,
+   "w": 2400,
+   "h": 1500,
+   "title": "Classic Cable \u00b7 first run, 14 steps",
+   "page": "firstrun"
+  },
+  "SB_lumen.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 2400,
+   "h": 1260,
+   "title": "lumen \u00b7 Settings, policy, first use",
+   "page": "settings"
+  },
+  "SB_aero.dc.html": {
+   "x": 2500,
+   "y": 0,
+   "w": 2400,
+   "h": 1260,
+   "title": "aero \u00b7 Settings, policy, first use",
+   "page": "settings"
+  },
+  "MU_lumen.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 2400,
+   "h": 2150,
+   "title": "Lumen \u00b7 songs, karaoke, visualizer",
+   "page": "music"
+  },
+  "MU_aero.dc.html": {
+   "x": 2500,
+   "y": 0,
+   "w": 2400,
+   "h": 2150,
+   "title": "Aero \u00b7 songs, karaoke, visualizer",
+   "page": "music"
+  },
+  "MU_classicCable.dc.html": {
+   "x": 0,
+   "y": 1400,
+   "w": 2400,
+   "h": 2150,
+   "title": "Classic Cable \u00b7 songs, karaoke, visualizer",
+   "page": "music"
+  },
+  "MU_retro.dc.html": {
+   "x": 2500,
+   "y": 1400,
+   "w": 2400,
+   "h": 2150,
+   "title": "Retro \u00b7 songs, karaoke, visualizer",
+   "page": "music"
+  },
+  "MU_rail.dc.html": {
+   "x": 0,
+   "y": 2800,
+   "w": 2400,
+   "h": 2150,
+   "title": "Rail \u00b7 songs, karaoke, visualizer",
+   "page": "music"
+  },
+  "TM_lumen.dc.html": {
+   "x": 0,
+   "y": 8280,
+   "w": 2000,
+   "h": 900,
+   "title": "lumen \u00b7 WittyTV recordings, sets, Look",
+   "page": "wittytv"
+  },
+  "TM_aero.dc.html": {
+   "x": 2100,
+   "y": 8280,
+   "w": 2000,
+   "h": 900,
+   "title": "aero \u00b7 WittyTV recordings, sets, Look",
+   "page": "wittytv"
+  },
+  "PlayThemes.dc.html": {
+   "x": 4300,
+   "y": 3700,
+   "w": 2000,
+   "h": 1200,
+   "title": "WittyPlay Online wearing other themes",
+   "page": "play"
+  },
+  "PlayP_Lumen.dc.html": {
+   "x": 4300,
+   "y": 0,
+   "w": 1920,
+   "h": 1080,
+   "title": "Shared: WittyPlay in Lumen",
+   "page": "build"
+  },
+  "PlayP_Cinema.dc.html": {
+   "x": 6300,
+   "y": 0,
+   "w": 1920,
+   "h": 1080,
+   "title": "Shared: WittyPlay in Cinema",
+   "page": "build"
+  },
+  "PlayP_Evergreen.dc.html": {
+   "x": 8300,
+   "y": 0,
+   "w": 1920,
+   "h": 1080,
+   "title": "Shared: WittyPlay in Evergreen",
+   "page": "build"
+  },
+  "PlayP_Midnight.dc.html": {
+   "x": 10300,
+   "y": 0,
+   "w": 1920,
+   "h": 1080,
+   "title": "Shared: WittyPlay in Midnight",
+   "page": "build"
+  },
+  "OobeFlow.dc.html": {
+   "x": 0,
+   "y": 3000,
+   "w": 2400,
+   "h": 1500,
+   "title": "Shared: first-run board",
+   "page": "build"
+  },
+  "SettingsBoard.dc.html": {
+   "x": 2500,
+   "y": 3000,
+   "w": 2400,
+   "h": 1260,
+   "title": "Shared: settings board",
+   "page": "build"
+  },
+  "MusicBoard.dc.html": {
+   "x": 5000,
+   "y": 3000,
+   "w": 2400,
+   "h": 2150,
+   "title": "Shared: music board",
+   "page": "build"
+  },
+  "TvMoreBoard.dc.html": {
+   "x": 0,
+   "y": 4600,
+   "w": 2000,
+   "h": 900,
+   "title": "Shared: WittyTV extras board",
+   "page": "build"
+  },
+  "GB_lumen.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 2500,
+   "h": 2000,
+   "title": "Lumen \u00b7 connect, profiles, remote, WittyTV states, credits",
+   "page": "appscreens"
+  },
+  "GB_aero.dc.html": {
+   "x": 2600,
+   "y": 0,
+   "w": 2500,
+   "h": 2000,
+   "title": "Aero \u00b7 connect, profiles, remote, WittyTV states, credits",
+   "page": "appscreens"
+  },
+  "GapsBoard.dc.html": {
+   "x": 5200,
+   "y": 0,
+   "w": 2500,
+   "h": 2000,
+   "title": "Shared: app screens board",
+   "page": "build"
+  }
+ },
+ "createdOnFiles": {
+  "at": "2026-11-12T15:00:00Z",
+  "v": 1
+ },
+ "designSystems": [],
+ "launch": {
+  "view": "canvas"
+ },
+ "noteOrder": [
+  "t",
+  "a",
+  "b",
+  "c",
+  "t2",
+  "s1",
+  "w1",
+  "f1",
+  "p1",
+  "b1",
+  "pl1",
+  "th1",
+  "md1",
+  "mu1",
+  "st1",
+  "as1"
+ ],
+ "notes": {
+  "a": {
+   "fill": "purple",
+   "page": "looks",
+   "text": "A \u00b7 Lumen. Quiet cinema. Top pill bar, billboard hero, peeking shelves.",
+   "w": 520,
+   "x": 500,
+   "y": 2420
+  },
+  "b": {
+   "fill": "orange",
+   "page": "looks",
+   "text": "B \u00b7 Rail. Slim rail that opens, title-on-art cards. Cinema amber.",
+   "w": 520,
+   "x": 2500,
+   "y": 2420
+  },
+  "b1": {
+   "kind": "title1",
+   "maxW": 3600,
+   "page": "build",
+   "text": "What to build, and the shared renderers",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "c": {
+   "fill": "blue",
+   "page": "looks",
+   "text": "C \u00b7 Stage. Streaming style, full-bleed backdrop, see-through tabs.",
+   "w": 520,
+   "x": 4500,
+   "y": 2420
+  },
+  "f1": {
+   "kind": "title1",
+   "maxW": 3000,
+   "page": "firstrun",
+   "text": "First run, layout editor and name editor",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "md1": {
+   "kind": "title1",
+   "maxW": 4100,
+   "page": "modules",
+   "text": "Every module, in three looks",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "p1": {
+   "kind": "title1",
+   "maxW": 5840,
+   "page": "play",
+   "text": "WittyPlay Online",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "pl1": {
+   "kind": "title1",
+   "maxW": 4100,
+   "page": "player",
+   "text": "Player and WittyRemote, in four looks",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "s1": {
+   "kind": "title1",
+   "maxW": 3400,
+   "page": "screens",
+   "text": "Every screen and menu in each look",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "t": {
+   "kind": "title1",
+   "maxW": 5840,
+   "page": "looks",
+   "text": "First concepts: Lumen, Rail, Stage at full size",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "t2": {
+   "kind": "title1",
+   "maxW": 4100,
+   "page": "looks",
+   "text": "All 17 looks on TV, desktop, tablet, phone and headset",
+   "w": 240,
+   "x": 0,
+   "y": 3300
+  },
+  "th1": {
+   "kind": "title1",
+   "maxW": 2000,
+   "page": "themes",
+   "text": "UI and theme, chosen separately",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "w1": {
+   "kind": "title1",
+   "maxW": 2700,
+   "page": "wittytv",
+   "text": "WittyTV: its own looks, inside any UI look",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "mu1": {
+   "x": 0,
+   "y": -300,
+   "text": "Songs, karaoke and visualizers in five looks",
+   "kind": "title1",
+   "maxW": 4900,
+   "page": "music"
+  },
+  "st1": {
+   "x": 0,
+   "y": -300,
+   "text": "Settings, required looks and first use",
+   "kind": "title1",
+   "maxW": 4900,
+   "page": "settings"
+  },
+  "as1": {
+   "x": 0,
+   "y": -300,
+   "text": "The screens the apps already have",
+   "kind": "title1",
+   "maxW": 5100,
+   "page": "appscreens"
+  }
+ },
+ "order": [
+  "Main.dc.html",
+  "HomeB.dc.html",
+  "HomeC.dc.html",
+  "GuideA.dc.html",
+  "GuideB.dc.html",
+  "GuideC.dc.html",
+  "PhoneA.dc.html",
+  "PhoneB.dc.html",
+  "PhoneC.dc.html",
+  "All_lumen.dc.html",
+  "S_lumen.dc.html",
+  "All_rail.dc.html",
+  "S_rail.dc.html",
+  "All_stage.dc.html",
+  "S_stage.dc.html",
+  "All_aero.dc.html",
+  "S_aero.dc.html",
+  "All_aeroNight.dc.html",
+  "S_aeroNight.dc.html",
+  "All_aeroMeadow.dc.html",
+  "S_aeroMeadow.dc.html",
+  "All_aeroSunset.dc.html",
+  "S_aeroSunset.dc.html",
+  "All_classic.dc.html",
+  "S_classic.dc.html",
+  "All_classicCable.dc.html",
+  "S_classicCable.dc.html",
+  "All_classicSatellite.dc.html",
+  "S_classicSatellite.dc.html",
+  "All_compact.dc.html",
+  "S_compact.dc.html",
+  "All_paper.dc.html",
+  "S_paper.dc.html",
+  "All_marquee.dc.html",
+  "S_marquee.dc.html",
+  "All_crossbar.dc.html",
+  "S_crossbar.dc.html",
+  "All_bigpicture.dc.html",
+  "S_bigpicture.dc.html",
+  "All_dashboard.dc.html",
+  "S_dashboard.dc.html",
+  "All_retro.dc.html",
+  "S_retro.dc.html",
+  "RailStates.dc.html",
+  "TvDefaults.dc.html",
+  "T_lumen.dc.html",
+  "T_aero.dc.html",
+  "T_rail.dc.html",
+  "T_classicCable.dc.html",
+  "OobeLive.dc.html",
+  "Oobe.dc.html",
+  "LayoutEditor.dc.html",
+  "BrandEditor.dc.html",
+  "P_home.dc.html",
+  "P_classics.dc.html",
+  "P_detail.dc.html",
+  "P_quick.dc.html",
+  "P_online.dc.html",
+  "P_pads.dc.html",
+  "P_memories.dc.html",
+  "P_discover.dc.html",
+  "P_phone.dc.html",
+  "P_phonepad.dc.html",
+  "BuildList.dc.html",
+  "Exp.dc.html",
+  "ScreensBoard.dc.html",
+  "TvBoard.dc.html",
+  "Play.dc.html",
+  "PB_lumen.dc.html",
+  "PB_aero.dc.html",
+  "PB_classicCable.dc.html",
+  "PB_retro.dc.html",
+  "UiTheme.dc.html",
+  "M_lumen.dc.html",
+  "M_aero.dc.html",
+  "M_classicCable.dc.html",
+  "ModuleMatrix.dc.html",
+  "PlayerBoard.dc.html",
+  "ModulesBoard.dc.html",
+  "TS_lumen.dc.html",
+  "TS_aero.dc.html",
+  "TS_classicCable.dc.html",
+  "TS_retro.dc.html",
+  "TS_rail.dc.html",
+  "TvScreensBoard.dc.html",
+  "OF_lumen.dc.html",
+  "OF_aero.dc.html",
+  "OF_rail.dc.html",
+  "OF_classicCable.dc.html",
+  "SB_lumen.dc.html",
+  "SB_aero.dc.html",
+  "MU_lumen.dc.html",
+  "MU_aero.dc.html",
+  "MU_classicCable.dc.html",
+  "MU_retro.dc.html",
+  "MU_rail.dc.html",
+  "TM_lumen.dc.html",
+  "TM_aero.dc.html",
+  "PlayThemes.dc.html",
+  "PlayP_Lumen.dc.html",
+  "PlayP_Cinema.dc.html",
+  "PlayP_Evergreen.dc.html",
+  "PlayP_Midnight.dc.html",
+  "OobeFlow.dc.html",
+  "SettingsBoard.dc.html",
+  "MusicBoard.dc.html",
+  "TvMoreBoard.dc.html",
+  "GB_lumen.dc.html",
+  "GB_aero.dc.html",
+  "GapsBoard.dc.html"
+ ],
+ "pages": [
+  {
+   "id": "looks",
+   "name": "Looks on every platform"
+  },
+  {
+   "id": "screens",
+   "name": "All screens and menus"
+  },
+  {
+   "id": "wittytv",
+   "name": "WittyTV inside every look"
+  },
+  {
+   "id": "firstrun",
+   "name": "First run and editors"
+  },
+  {
+   "id": "play",
+   "name": "WittyPlay Online"
+  },
+  {
+   "id": "build",
+   "name": "What to build"
+  },
+  {
+   "id": "player",
+   "name": "Player and WittyRemote"
+  },
+  {
+   "id": "themes",
+   "name": "UI and themes"
+  },
+  {
+   "id": "modules",
+   "name": "Modules"
+  },
+  {
+   "id": "music",
+   "name": "Songs, karaoke, visualizers"
+  },
+  {
+   "id": "settings",
+   "name": "Settings, policy, first use"
+  },
+  {
+   "id": "appscreens",
+   "name": "App screens: connect, profiles, remote, WittyTV states"
+  }
+ ],
+ "title": "Witty Design 2 Concepts"
+}

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Server name editor</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.lab{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#a9afbd;margin:22px 0 8px}
+.sw{width:36px;height:36px;border-radius:50%;box-sizing:border-box}
+.btn{height:40px;padding:0 16px;border-radius:10px;background:#1f232c;color:#e8eaf0;display:flex;align-items:center;font-size:14px;font-weight:600;box-sizing:border-box}
+.fr{border-radius:12px;box-shadow:0 0 0 1px rgba(232,234,240,.14);overflow:hidden;position:relative}
+</style>
+</helmet>
+<div style="width:1440px;height:900px;box-sizing:border-box;padding:40px 48px;background:#0f1115;color:#e8eaf0;font-family:Inter,system-ui,sans-serif;display:flex;gap:40px">
+  <div style="width:620px;flex:none">
+    <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9174ff">Settings · Appearance · Name and logo</div>
+    <div style="font-size:30px;font-weight:800;letter-spacing:-.8px;margin-top:6px">Your server's name</div>
+    <div class="lab">Name</div>
+    <div style="height:48px;border-radius:10px;background:#171a21;box-shadow:inset 0 0 0 1px #848b99;display:flex;align-items:center;padding:0 14px;font-size:17px;font-weight:600">WittyMediaServer</div>
+    <div class="lab">Choose letters or words to colour</div>
+    <div style="display:flex;gap:4px;flex-wrap:wrap">
+      <sc-for list="{{letters}}" as="l" hint-placeholder-count="16"><div style="width:30px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;{{l.st}}">{{l.c}}</div></sc-for>
+    </div>
+    <div style="font-size:13px;color:#a9afbd;margin-top:8px">Arrows and Space select a range. Words: Witty · Media · Server.</div>
+    <div class="lab">Colour for the selection</div>
+    <div style="font-size:13px;font-weight:600;margin-bottom:8px">Follows the theme (changes with the theme)</div>
+    <div style="display:flex;gap:10px"><div class="sw" style="background:#e8eaf0" aria-label="Text"></div><div class="sw" style="background:#9174ff;box-shadow:0 0 0 3px #0f1115,0 0 0 6px #e8eaf0" aria-label="Accent"></div><div class="sw" style="background:#3ad29f" aria-label="Success"></div><div class="sw" style="background:#e0a030" aria-label="Warning"></div><div class="sw" style="background:#ff5c6c" aria-label="Danger"></div></div>
+    <div style="font-size:13px;font-weight:600;margin:16px 0 8px">Fixed colour (stays the same in every theme)</div>
+    <div style="display:flex;gap:10px;align-items:center"><div class="sw" style="background:#b4491f"></div><div class="sw" style="background:#1e9be0"></div><div class="sw" style="background:#3ddc84"></div><div class="sw" style="background:#ffd84a"></div><div class="sw" style="background:#ff4fa3"></div><div class="btn" style="margin-left:8px">Any colour…</div><div class="btn">#B4491F</div></div>
+    <div style="font-size:13px;font-weight:600;margin:16px 0 8px">Gradient</div>
+    <div style="display:flex;gap:10px;align-items:center"><div style="width:120px;height:36px;border-radius:18px;background:linear-gradient(90deg,#0a6aa8,#1e9be0,#3aa84a)"></div><div style="width:120px;height:36px;border-radius:18px;background:linear-gradient(90deg,#ff4fa3,#ffd84a)"></div><div class="btn">Edit stops…</div></div>
+    <div class="lab">Presets</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><div class="btn" style="background:#7955ff;color:#fff">Accent on "Media"</div><div class="btn">Two-tone</div><div class="btn">One colour</div><div class="btn">Plain</div><div class="btn">Rainbow letters</div><div class="btn">Gradient</div></div>
+    <div class="lab">Mark for the rail and small spaces</div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div style="width:52px;height:52px;border-radius:14px;background:#171a21;box-shadow:0 0 0 1px rgba(232,234,240,.18);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:#9174ff;line-height:1">W</div><div class="btn" style="background:#7955ff;color:#fff">Letter · W</div><div class="btn">Initials · WMS</div><div class="btn">Your own · 1 to 2 characters</div><div class="btn">Upload a logo…</div></div>
+    <div style="font-size:13px;color:#a9afbd;margin-top:8px;line-height:1.5">The mark is always centred in a square badge. A logo is square (PNG, SVG or WebP, up to 1 MB), shown fitted inside the badge, and falls back to the letter on a server it can't load from. It follows the name's colours unless you choose fixed ones.</div>
+    <div style="margin-top:20px;padding:12px 14px;border-radius:10px;background:rgba(224,160,48,.13);font-size:13px;line-height:1.5"><b style="color:#e0a030">Check:</b> the fixed rust on "Media" is 3.1 to 1 on the Midnight theme's side menu. Words should be at least 4.5 to 1. Use a lighter rust or follow the theme.</div>
+    <div style="display:flex;gap:10px;margin-top:20px"><div class="btn" style="background:#7955ff;color:#fff;font-weight:700">Save</div><div class="btn">Reset to default</div></div>
+  </div>
+
+  <div style="flex:1;display:flex;flex-direction:column;gap:20px">
+    <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#a9afbd">Live preview, everywhere the name appears</div>
+    <div class="fr" style="height:80px;background:#171a21;display:flex;align-items:center;padding:0 20px;font-size:26px;font-weight:800;letter-spacing:-.4px"><span style="font-size:12px;font-weight:600;color:#848b99;position:absolute;right:12px;top:8px;letter-spacing:0">Side menu</span><span style="color:#e8eaf0">Witty</span><span style="color:#b4491f">Media</span><span style="color:#e8eaf0">Server</span></div>
+    <div class="fr" style="height:80px;background:#0f1115;display:flex;align-items:center;padding:0 20px;gap:24px"><span style="font-size:12px;font-weight:600;color:#848b99;position:absolute;right:12px;top:8px">Top bar and TV bar</span><span style="font-size:26px;font-weight:800;letter-spacing:-.4px"><span style="color:#e8eaf0">Witty</span><span style="color:#b4491f">Media</span><span style="color:#e8eaf0">Server</span></span><span style="font-size:15px;color:#9174ff;background:rgba(121,85,255,.16);padding:8px 16px;border-radius:999px">Home</span><span style="font-size:15px;color:#a9afbd">Libraries</span><span style="font-size:15px;color:#a9afbd">Live TV</span></div>
+    <div class="fr" style="height:80px;background:#171a21;display:flex;align-items:center;padding:0 20px"><span style="font-size:12px;font-weight:600;color:#848b99;position:absolute;right:12px;top:8px">Rail header, when open</span><div style="width:48px;height:48px;border-radius:12px;background:#261d14;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#b4491f;margin-right:14px">W</div><span style="font-size:20px;font-weight:800"><span style="color:#e8eaf0">Witty</span><span style="color:#b4491f">Media</span><span style="color:#e8eaf0">Server</span></span></div>
+    <div class="fr" style="height:220px;background:radial-gradient(500px 300px at 50% 0%,#2a1f5a,#0f1115);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px"><span style="font-size:12px;font-weight:600;color:#848b99;position:absolute;right:12px;top:8px">Sign-in</span><div style="font-size:44px;font-weight:800;letter-spacing:-1px"><span style="color:#e8eaf0">Witty</span><span style="color:#b4491f">Media</span><span style="color:#e8eaf0">Server</span></div><div style="height:44px;width:260px;border-radius:10px;background:#7955ff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700">Sign in</div></div>
+    <div style="display:flex;gap:14px">
+      <div class="fr" style="flex:1;height:130px;background:linear-gradient(180deg,#bfeaff,#e1f8d6);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800"><span style="font-size:12px;font-weight:600;color:#2f6a8c;position:absolute;right:12px;top:8px">Aero · gradient</span><span style="background:linear-gradient(90deg,#0a6aa8,#1e9be0 50%,#3aa84a);-webkit-background-clip:text;background-clip:text;color:transparent">WittyMediaServer</span></div>
+      <div class="fr" style="flex:1;height:130px;background:#000;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800"><span style="font-size:12px;font-weight:600;color:#00ffff;position:absolute;right:12px;top:8px">Retro · per letter</span><span style="color:#ff4040">W</span><span style="color:#ffff00">i</span><span style="color:#00ff00">t</span><span style="color:#00ffff">t</span><span style="color:#ff00ff">y</span><span style="color:#fff">Media</span><span style="color:#00ffff">Server</span></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const name = 'WittyMediaServer';
+    const letters = name.split('').map((c, i) => {
+      const media = i >= 5 && i < 10;
+      return { c, st: media ? 'background:rgba(121,85,255,.25);color:#e8eaf0;box-shadow:inset 0 0 0 2px #9174ff;' : 'background:#171a21;color:#e8eaf0;' };
+    });
+    return { letters };
+  }
+}
+</script>
+</body>
+</html>

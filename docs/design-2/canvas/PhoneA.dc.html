@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lumen phone Home</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+body{margin:0}
+.root{position:relative;width:390px;height:844px;overflow:hidden;background:#0f1115;color:#e8eaf0;font-family:Inter,system-ui,sans-serif}
+.bar{position:absolute;left:16px;right:16px;bottom:20px;height:64px;border-radius:32px;background:#171a21;box-shadow:0 0 0 1px rgba(232,234,240,.1);display:flex;align-items:center;justify-content:space-around}
+.bi{width:48px;height:48px;border-radius:24px;display:flex;align-items:center;justify-content:center;color:#a9afbd}
+.bi.on{background:rgba(121,85,255,.14);color:#9174ff}
+.bi svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+</style>
+</helmet>
+<div class="root">
+  <div style="position:absolute;left:0;top:0;width:390px;height:430px;background:radial-gradient(300px 260px at 75% 30%,#3a2a8a,transparent 65%),linear-gradient(160deg,#241a52,#0f1115 85%)"></div>
+  <div style="position:absolute;right:30px;top:90px;width:170px;height:170px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#f3c98b,#c8672f 55%,#5b2234);opacity:.9"></div>
+  <div style="position:absolute;left:0;top:0;width:390px;height:470px;background:linear-gradient(0deg,#0f1115 6%,rgba(15,17,21,0) 70%)"></div>
+  <div style="position:absolute;left:16px;right:16px;top:56px;display:flex;justify-content:space-between;align-items:center"><div style="font-size:20px;font-weight:700;letter-spacing:-.3px">Witty<span style="color:#9174ff">Media</span></div><div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#7955ff,#3ad29f)"></div></div>
+  <div style="position:absolute;left:16px;right:16px;top:300px">
+    <div style="font-size:12px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#9174ff">Continue watching</div>
+    <div style="font-size:34px;font-weight:700;letter-spacing:-.8px;line-height:1.1;margin-top:6px">Harbour Lights</div>
+    <div style="font-size:13px;color:#a9afbd;margin-top:8px">2024 · 1 hr 52 min · 42 min left</div>
+    <div style="display:flex;gap:10px;margin-top:16px"><div style="height:48px;padding:0 24px;border-radius:12px;background:#7955ff;color:#fff;font-size:15px;font-weight:600;display:flex;align-items:center">Resume</div><div style="height:48px;width:48px;border-radius:12px;background:#1f232c;display:flex;align-items:center;justify-content:center;font-size:20px;color:#e8eaf0" aria-label="More">⋯</div></div>
+  </div>
+  <div style="position:absolute;left:16px;top:540px;right:0">
+    <div style="font-size:17px;font-weight:600;margin-bottom:12px">Jump back in</div>
+    <div style="display:flex;gap:12px">
+      <sc-for list="{{wide}}" as="w" hint-placeholder-count="3"><div style="flex:none;width:236px"><div style="width:236px;height:133px;border-radius:10px;background:{{w.bg}};position:relative;overflow:hidden"><div style="position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(255,255,255,.2)"><div style="height:4px;width:{{w.p}}%;background:#7955ff"></div></div></div><div style="font-size:13px;font-weight:600;margin-top:8px">{{w.t}}</div></div></sc-for>
+    </div>
+  </div>
+  <div class="bar">
+    <sc-for list="{{nav}}" as="n" hint-placeholder-count="5"><div class="bi {{n.cls}}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="{{n.d}}"></path></svg></div></sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const nav = [
+      { cls: 'on', d: 'M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10' },
+      { cls: '', d: 'M3 6h18v12H3zM8 21h8M12 18v3' },
+      { cls: '', d: 'M11 4a7 7 0 100 14 7 7 0 000-14zM21 21l-5-5' },
+      { cls: '', d: 'M4 6h16M4 12h16M4 18h16' },
+      { cls: '', d: 'M12 4a4 4 0 100 8 4 4 0 000-8zM4 21a8 8 0 0116 0' }
+    ];
+    const wide = [
+      { t: 'Harbour Lights', p: 58, bg: 'linear-gradient(135deg,#1c5d7a,#241a52)' },
+      { t: 'The Quiet Orchard · S2 E4', p: 22, bg: 'linear-gradient(135deg,#7a3b1c,#2a1830)' },
+      { t: 'Signal Fire', p: 81, bg: 'linear-gradient(135deg,#2f6f4f,#12202a)' }
+    ];
+    return { nav, wide };
+  }
+}
+</script>
+</body>
+</html>

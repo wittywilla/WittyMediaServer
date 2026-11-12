@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>What SDUI needs to build</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+</head>
+<body>
+<x-dc>
+<helmet><style>body{margin:0}</style></helmet>
+<div style="width:1600px;box-sizing:border-box;padding:48px 56px;background:#f4f4f8;font-family:Inter,system-ui,sans-serif;color:#1b1b22">
+  <div style="font-size:40px;font-weight:800;letter-spacing:-1px">What SDUI needs that it doesn't have yet</div>
+  <div style="font-size:18px;color:#4a4a58;margin-top:6px;max-width:1100px">Catalogue revision 4 already draws pages, shelves, grids, heroes, docks and layouts. These are the additions the looks, WittyTV independence, the headset and WittyPlay Online need. The full write-up is docs/plans/DESIGN-2-SDUI-GAPS.md.</div>
+  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;margin-top:28px">
+    <sc-for list="{{cards}}" as="c" hint-placeholder-count="6">
+      <div style="background:#fff;border-radius:14px;padding:22px;box-shadow:0 0 0 1px rgba(0,0,0,.08)">
+        <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#6a4df0">{{c.k}}</div>
+        <div style="font-size:22px;font-weight:800;letter-spacing:-.4px;margin:4px 0 10px">{{c.t}}</div>
+        <ul style="margin:0;padding-left:18px;font-size:14px;line-height:1.55;color:#2a2a36">
+          <sc-for list="{{c.items}}" as="i" hint-placeholder-count="5"><li>{{i}}</li></sc-for>
+        </ul>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1600,"height":1200}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { cards: [
+      { k: 'Looks', t: 'Experiences, finish and scenes', items: ['Experience model, routes, per-profile choice, experience= override', 'Finish tokens: flat, gloss, bevel, glass', 'Scene layers: gradient, bubbles, hill, light sweep', 'Type sets and bundled open fonts', 'Nav styles: cableBar, bevelBar, teleKeys, crossbar, railDrawer, floatingGlassBar, ornamentTabs'] },
+      { k: 'Components', t: 'New pieces', items: ['Carousel (marquee)', 'CrossBar (crossbar)', 'Widget and WidgetGrid (dashboard)', 'NumberedRow and band headings (cable, teletext)', 'Card styles: plate, block, tile, logo'] },
+      { k: 'Customising', t: 'Placements and editors', items: ['Regions and placements merged with the existing precedence', 'Layout editor routes: undo, redo, preview per device, presets', 'Native editors: pick up, move, drop with OK and arrows', 'Rail drawer data: each library’s views', 'Server name colour kinds: theme, static, gradient, per letter'] },
+      { k: 'WittyTV', t: 'Independent looks', items: ['Look precedence: person, the UI look’s suggestion, owner default', 'The eight looks plus custom become catalogue data', 'NativeView guide takes tvTheme', 'Guide Dock wears the UI look’s finish'] },
+      { k: 'First run', t: 'Try a look', items: ['Pre-sign-in preview document from generated demo data', 'experience= on theme and navigation so setup restyles itself', 'Choice saved as the server default'] },
+      { k: 'WittyPlay Online', t: 'Switch-Online style', items: ['Focused tile grows (Shelf focusGrow and info slot)', 'Native views: gamesHome, quickMenu, lobby, controllers, memories', 'Data: consoles, friends, presence, rooms, saveStates, memories, controllers', 'Commands: room.*, state.*, rewind.open, controller.*', 'Engine: rooms, presence, friend graph, rollback netplay, cloud saves, phone as controller'] }
+    ] };
+  }
+}
+</script>
+</body>
+</html>

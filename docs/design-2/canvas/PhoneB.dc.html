@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Rail phone Home</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+.root{position:relative;width:390px;height:844px;overflow:hidden;background:#120e0a;color:#f3ebe0;font-family:Inter,system-ui,sans-serif}
+.tabs{position:absolute;left:0;right:0;bottom:0;height:84px;background:#1b150f;display:flex;justify-content:space-around;padding-top:10px;box-sizing:border-box}
+.t{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-weight:600;color:#c2b4a0;width:64px}
+.t.on{color:#f0b44a}
+.t svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+</style>
+</helmet>
+<div class="root">
+  <div style="position:absolute;left:16px;right:16px;top:56px;display:flex;justify-content:space-between;align-items:baseline"><div style="font-size:30px;font-weight:800;letter-spacing:-.8px">Home</div><div style="font-size:13px;color:#c2b4a0"><b style="color:#f3ebe0">Witty</b><b style="color:#f0b44a">Media</b></div></div>
+  <div style="position:absolute;left:16px;right:16px;top:116px;height:170px;border-radius:16px;overflow:hidden;background:linear-gradient(120deg,#5b2234,#a85a1c 55%,#e0a030)">
+    <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(18,14,10,.92),rgba(18,14,10,.3))"></div>
+    <div style="position:absolute;left:16px;top:18px;right:16px"><div style="font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#f0b44a">New this week</div><div style="font-size:26px;font-weight:800;letter-spacing:-.6px;margin-top:4px">Amber Season</div><div style="height:44px;width:130px;border-radius:12px;background:#d98a1c;color:#1a1208;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:14px">Play S1 E1</div></div>
+  </div>
+  <div style="position:absolute;left:16px;right:16px;top:310px">
+    <div style="font-size:17px;font-weight:700;margin-bottom:12px">Recently added</div>
+    <sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+      <div style="display:flex;gap:14px;align-items:center;height:72px;margin-bottom:6px;padding:6px 8px;border-radius:14px;box-sizing:border-box;background:{{r.bg}}"><div style="flex:none;width:44px;height:60px;border-radius:8px;background:{{r.art}}"></div><div style="flex:1"><div style="font-size:15px;font-weight:600">{{r.t}}</div><div style="font-size:12px;color:#c2b4a0;margin-top:2px">{{r.s}}</div></div></div>
+    </sc-for>
+  </div>
+  <div class="tabs">
+    <sc-for list="{{nav}}" as="n" hint-placeholder-count="5"><div class="t {{n.cls}}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="{{n.d}}"></path></svg>{{n.l}}</div></sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const nav = [
+      { cls: 'on', l: 'Home', d: 'M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10' },
+      { cls: '', l: 'Library', d: 'M4 4h4v16H4zM10 4h4v16h-4zM16 6l4 1-3 13-4-1z' },
+      { cls: '', l: 'Live TV', d: 'M3 6h18v12H3zM8 21h8M12 18v3' },
+      { cls: '', l: 'Search', d: 'M11 4a7 7 0 100 14 7 7 0 000-14zM21 21l-5-5' },
+      { cls: '', l: 'You', d: 'M12 4a4 4 0 100 8 4 4 0 000-8zM4 21a8 8 0 0116 0' }
+    ];
+    const items = [
+      ['Salt Road', 'Film · 2024 · Drama', 'linear-gradient(160deg,#2f6f4f,#12202a)'],
+      ['Night Market', 'Series · 3 seasons', 'linear-gradient(160deg,#8a2f5e,#1f1b3a)'],
+      ['The Glasshouse', 'Film · 2023 · Thriller', 'linear-gradient(160deg,#1c5d7a,#0f1d2a)'],
+      ['Ember & Ash', 'Series · 1 season', 'linear-gradient(160deg,#a85a1c,#2a1208)'],
+      ['Long Division', 'Film · 2022 · Comedy', 'linear-gradient(160deg,#4a5f8a,#171a21)']
+    ];
+    const rows = items.map((a, i) => ({ t: a[0], s: a[1], art: a[2], bg: i === 1 ? '#261d14' : 'transparent' }));
+    return { nav, rows };
+  }
+}
+</script>
+</body>
+</html>

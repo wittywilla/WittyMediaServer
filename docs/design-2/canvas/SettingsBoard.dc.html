@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Settings, policy and first use on a phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap">
+</head>
+<body>
+<x-dc>
+<helmet><style>body{margin:0}</style></helmet>
+<div style="width:2400px;height:1260px;box-sizing:border-box;padding:32px 40px;background:#e8e8ee;font-family:Inter,system-ui,sans-serif;color:#1b1b22">
+  <div style="font-size:40px;font-weight:800;letter-spacing:-1px">{{title}} · Appearance, policy and first use</div>
+  <div style="font-size:18px;color:#4a4a58;margin-top:4px;max-width:1900px">Settings stays hand-built in every app, in the same structure; it takes the look's colours and type. Look and theme are separate rows with Import a theme. An administrator can require a look, a theme or both for a profile or for everyone, and the apps offer the choice the first time they connect.</div>
+  <div style="display:flex;flex-wrap:wrap;gap:20px 24px;margin-top:20px;align-items:flex-start">
+    <div><div style="zoom:.45"><dc-import name="Exp" exp="{{exp}}" plat="desktop" screen="settingsLook" hint-size="1440px,900px"></dc-import></div><div style="font-size:14px;margin-top:4px">Settings, Appearance: look, theme, import</div></div>
+    <div><div style="zoom:.45"><dc-import name="Exp" exp="{{exp}}" plat="desktop" screen="settingsLook" state="locked" hint-size="1440px,900px"></dc-import></div><div style="font-size:14px;margin-top:4px">Same page when an administrator requires a look and theme</div></div>
+    <div><div style="zoom:.45"><dc-import name="Exp" exp="{{exp}}" plat="desktop" screen="policy" hint-size="1440px,900px"></dc-import></div><div style="font-size:14px;margin-top:4px">Administrator: who must use what</div></div>
+    <div><div style="zoom:.45"><dc-import name="Exp" exp="{{exp}}" plat="phone" screen="chooselook" hint-size="390px,844px"></dc-import></div><div style="font-size:14px;margin-top:4px">Phone, first connect: choose</div></div>
+    <div><div style="zoom:.45"><dc-import name="Exp" exp="{{exp}}" plat="phone" screen="chooselook" state="locked" hint-size="390px,844px"></dc-import></div><div style="font-size:14px;margin-top:4px">Phone: required by the administrator</div></div>
+    <div><div style="zoom:.45"><dc-import name="Exp" exp="{{exp}}" plat="phone" screen="setupblock" hint-size="390px,844px"></dc-import></div><div style="font-size:14px;margin-top:4px">Phone: server not set up yet</div></div>
+    <div><div style="zoom:.3"><dc-import name="Exp" exp="{{exp}}" plat="tv" screen="setupblock" hint-size="1920px,1080px"></dc-import></div><div style="font-size:14px;margin-top:4px">TV: server not set up yet</div></div>
+    <div><div style="zoom:.3"><dc-import name="Exp" exp="{{exp}}" plat="tv" screen="chooselook" hint-size="1920px,1080px"></dc-import></div><div style="font-size:14px;margin-top:4px">TV, first connect: choose</div></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"exp":{"editor":"text","default":"lumen"},"title":{"editor":"text","default":"Lumen"},"$preview":{"width":2400,"height":1260}}'>
+class Component extends DCLogic { renderVals() { return { exp: this.props.exp || 'lumen', title: this.props.title || 'Lumen' }; } }
+</script>
+</body>
+</html>

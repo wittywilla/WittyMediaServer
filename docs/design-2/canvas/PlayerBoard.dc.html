@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Player and WittyRemote in one look</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap">
+</head>
+<body>
+<x-dc>
+<helmet><style>body{margin:0}</style></helmet>
+<div style="width:2000px;height:1560px;box-sizing:border-box;padding:32px 40px;background:#e8e8ee;font-family:Inter,system-ui,sans-serif;color:#1b1b22">
+  <div style="font-size:40px;font-weight:800;letter-spacing:-1px">{{title}} · player and WittyRemote</div>
+  <div style="font-size:18px;color:#4a4a58;margin-top:4px;max-width:1700px">The player has one control bar everywhere. The alternative look adds the disc remote above or below the timeline; buttons a disc or video doesn't have are dimmed with a dashed outline, never hidden. WittyRemote is a panel on TV, desktop and headset, and a full page on phones and tablets.</div>
+  <div style="display:flex;flex-wrap:wrap;gap:20px 24px;margin-top:20px;align-items:flex-start">
+    <div><div style="zoom:.24"><dc-import name="Exp" exp="{{exp}}" plat="tv" screen="player" hint-size="1920px,1080px"></dc-import></div><div style="font-size:14px;margin-top:4px">TV · standard</div></div>
+    <div><div style="zoom:.24"><dc-import name="Exp" exp="{{exp}}" plat="tv" screen="playerRemote" hint-size="1920px,1080px"></dc-import></div><div style="font-size:14px;margin-top:4px">TV · remote strip on top (video: disc buttons dimmed)</div></div>
+    <div><div style="zoom:.24"><dc-import name="Exp" exp="{{exp}}" plat="tv" screen="playerDvd" hint-size="1920px,1080px"></dc-import></div><div style="font-size:14px;margin-top:4px">TV · DVD (pop-up and colour keys dimmed)</div></div>
+    <div><div style="zoom:.24"><dc-import name="Exp" exp="{{exp}}" plat="tv" screen="playerBd" hint-size="1920px,1080px"></dc-import></div><div style="font-size:14px;margin-top:4px">TV · Blu-ray (angle dimmed)</div></div>
+    <div><div style="zoom:.24"><dc-import name="Exp" exp="{{exp}}" plat="tv" screen="remote" hint-size="1920px,1080px"></dc-import></div><div style="font-size:14px;margin-top:4px">TV · WittyRemote sheet, page 1 (large keys, focus ring)</div></div>
+    <div><div style="zoom:.24"><dc-import name="Exp" exp="{{exp}}" plat="tv" screen="remote" state="page2" hint-size="1920px,1080px"></dc-import></div><div style="font-size:14px;margin-top:4px">TV · WittyRemote sheet, page 2 (digits and colours)</div></div>
+    <div><div style="zoom:.32"><dc-import name="Exp" exp="{{exp}}" plat="desktop" screen="player" hint-size="1440px,900px"></dc-import></div><div style="font-size:14px;margin-top:4px">Desktop · standard</div></div>
+    <div><div style="zoom:.32"><dc-import name="Exp" exp="{{exp}}" plat="desktop" screen="playerBd" state="bottom" hint-size="1440px,900px"></dc-import></div><div style="font-size:14px;margin-top:4px">Desktop · Blu-ray, remote strip above the timeline</div></div>
+    <div><div style="zoom:.32"><dc-import name="Exp" exp="{{exp}}" plat="desktop" screen="remote" hint-size="1440px,900px"></dc-import></div><div style="font-size:14px;margin-top:4px">Desktop · WittyRemote, the familiar floating remote (Blu-ray)</div></div>
+    <div><div style="zoom:.32"><dc-import name="Exp" exp="{{exp}}" plat="desktop" screen="remoteDvd" hint-size="1440px,900px"></dc-import></div><div style="font-size:14px;margin-top:4px">Desktop · WittyRemote for a DVD (colour keys dimmed)</div></div>
+    <div><div style="zoom:.42"><dc-import name="Exp" exp="{{exp}}" plat="phone" screen="player" hint-size="390px,844px"></dc-import></div><div style="font-size:14px;margin-top:4px">Phone · player</div></div>
+    <div><div style="zoom:.42"><dc-import name="Exp" exp="{{exp}}" plat="phone" screen="playerDvd" hint-size="390px,844px"></dc-import></div><div style="font-size:14px;margin-top:4px">Phone · DVD</div></div>
+    <div><div style="zoom:.42"><dc-import name="Exp" exp="{{exp}}" plat="phone" screen="remote" hint-size="390px,844px"></dc-import></div><div style="font-size:14px;margin-top:4px">Phone · WittyRemote</div></div>
+    <div><div style="zoom:.28"><dc-import name="Exp" exp="{{exp}}" plat="vr" screen="playerBd" hint-size="1600px,900px"></dc-import></div><div style="font-size:14px;margin-top:4px">Headset · Blu-ray</div></div>
+    <div><div style="zoom:.28"><dc-import name="Exp" exp="{{exp}}" plat="vr" screen="remote" hint-size="1600px,900px"></dc-import></div><div style="font-size:14px;margin-top:4px">Headset · WittyRemote</div></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"exp":{"editor":"text","default":"lumen"},"title":{"editor":"text","default":"Lumen"},"$preview":{"width":2000,"height":1560}}'>
+class Component extends DCLogic { renderVals() { return { exp: this.props.exp || 'lumen', title: this.props.title || 'Lumen' }; } }
+</script>
+</body>
+</html>

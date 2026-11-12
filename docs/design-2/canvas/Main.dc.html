@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lumen Home on a TV</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+body{margin:0}
+.root{position:relative;width:1920px;height:1080px;overflow:hidden;background:#0f1115;color:#e8eaf0;font-family:Inter,system-ui,sans-serif}
+.pill{display:flex;align-items:center;gap:12px;height:56px;padding:0 24px;border-radius:999px;font-size:25px;font-weight:500;color:#a9afbd;box-sizing:border-box}
+.pill.on{background:rgba(121,85,255,.14);color:#9174ff}
+.pill svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.btn{display:flex;align-items:center;gap:14px;height:72px;padding:0 36px;border-radius:14px;font-size:29px;font-weight:600;box-sizing:border-box}
+.card{flex:none;border-radius:14px;position:relative;overflow:hidden}
+.cap{font-size:25px;color:#a9afbd;margin-top:14px}
+.ttl{font-size:29px;font-weight:600;margin-top:14px;color:#e8eaf0}
+</style>
+</helmet>
+<div class="root">
+  <div style="position:absolute;left:0;top:0;width:1920px;height:700px;background:radial-gradient(1100px 600px at 78% 30%,#3a2a8a 0%,transparent 62%),radial-gradient(700px 500px at 95% 80%,#1c5d7a 0%,transparent 65%),linear-gradient(160deg,#241a52,#0f1115 80%)"></div>
+  <div style="position:absolute;right:140px;top:150px;width:520px;height:520px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#f3c98b,#c8672f 55%,#5b2234 100%);opacity:.9"></div>
+  <div style="position:absolute;left:0;top:0;width:1920px;height:760px;background:linear-gradient(90deg,#0f1115 0%,rgba(15,17,21,.86) 32%,rgba(15,17,21,0) 66%),linear-gradient(0deg,#0f1115 0%,rgba(15,17,21,0) 38%)"></div>
+
+  <div style="position:absolute;left:90px;right:90px;top:24px;height:56px;display:flex;align-items:center;gap:16px">
+    <div style="font-size:31px;font-weight:700;letter-spacing:-.4px;margin-right:24px">Witty<span style="color:#9174ff">Media</span></div>
+    <sc-for list="{{tabs}}" as="t" hint-placeholder-count="5">
+      <div class="pill {{t.cls}}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="{{t.d}}"></path></svg>{{t.label}}</div>
+    </sc-for>
+    <div style="flex:1"></div>
+    <div class="pill" style="color:#e8eaf0"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#7955ff,#3ad29f)"></div>Willow</div>
+  </div>
+
+  <div style="position:absolute;left:90px;top:150px;width:900px">
+    <div style="font-size:25px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#9174ff">Continue watching</div>
+    <div style="font-size:76px;font-weight:700;line-height:1.08;letter-spacing:-1.6px;margin-top:14px">Harbour Lights</div>
+    <div style="display:flex;gap:16px;align-items:center;margin-top:22px;font-size:25px;color:#a9afbd"><span style="border:2px solid #a9afbd;border-radius:6px;padding:0 10px">PG-13</span><span>2024</span><span>1 hr 52 min</span><span>Drama · Mystery</span><span style="color:#3ad29f">42 min left</span></div>
+    <div style="font-size:29px;line-height:1.5;margin-top:22px;color:#e8eaf0;max-width:780px">A night-shift ferry pilot finds a locked lantern room in the harbour she has crossed for twenty years.</div>
+    <div style="display:flex;gap:24px;margin-top:40px;align-items:center">
+      <div style="padding:8px;border-radius:22px;border:4px solid #e8eaf0;box-shadow:0 0 0 4px #0f1115;transform:scale(1.06);transform-origin:left center"><div class="btn" style="background:#7955ff;color:#fff"><svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d="M7 4l13 8-13 8z" fill="#fff"></path></svg>Resume</div></div>
+      <div class="btn" style="background:#1f232c;color:#e8eaf0;margin-left:8px">Watchlist</div>
+      <div class="btn" style="background:#1f232c;color:#e8eaf0;padding:0 28px">More</div>
+    </div>
+  </div>
+  <div style="position:absolute;right:90px;top:640px;display:flex;gap:10px">
+    <div style="width:36px;height:8px;border-radius:4px;background:#e8eaf0"></div><div style="width:8px;height:8px;border-radius:4px;background:#a9afbd"></div><div style="width:8px;height:8px;border-radius:4px;background:#a9afbd"></div><div style="width:8px;height:8px;border-radius:4px;background:#a9afbd"></div>
+  </div>
+
+  <div style="position:absolute;left:90px;top:736px;right:0">
+    <div style="font-size:38px;font-weight:600;letter-spacing:-.4px;margin-bottom:24px">Jump back in</div>
+    <div style="display:flex;gap:24px;padding-left:0">
+      <sc-for list="{{wide}}" as="w" hint-placeholder-count="4">
+        <div style="flex:none;width:420px">
+          <div class="card" style="width:420px;height:236px;background:{{w.bg}}">
+            <div style="position:absolute;left:0;right:0;bottom:0;height:8px;background:rgba(255,255,255,.2)"><div style="height:8px;width:{{w.p}}%;background:#7955ff"></div></div>
+          </div>
+          <div class="ttl" style="font-size:25px;margin-top:12px">{{w.t}}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  <div style="position:absolute;left:0;bottom:0;width:1920px;height:56px;background:linear-gradient(0deg,#0f1115,rgba(15,17,21,0))"></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const tabs = [
+      { label: 'Home', cls: 'on', d: 'M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10' },
+      { label: 'Libraries', cls: '', d: 'M4 4h4v16H4zM10 4h4v16h-4zM16 6l4 1-3 13-4-1z' },
+      { label: 'Games', cls: '', d: 'M6 9h12a4 4 0 014 4v2a3 3 0 01-5 2l-1-2H8l-1 2a3 3 0 01-5-2v-2a4 4 0 014-4zM8 12v3M6.5 13.5h3' },
+      { label: 'Live TV', cls: '', d: 'M3 6h18v12H3zM8 21h8M12 18v3' },
+      { label: 'Search', cls: '', d: 'M11 4a7 7 0 100 14 7 7 0 000-14zM21 21l-5-5' }
+    ];
+    const wide = [
+      { t: 'Harbour Lights', p: 58, bg: 'linear-gradient(135deg,#1c5d7a,#241a52)' },
+      { t: 'The Quiet Orchard · S2 E4', p: 22, bg: 'linear-gradient(135deg,#7a3b1c,#2a1830)' },
+      { t: 'Signal Fire', p: 81, bg: 'linear-gradient(135deg,#2f6f4f,#12202a)' },
+      { t: 'Paper Planets · S1 E9', p: 35, bg: 'linear-gradient(135deg,#8a2f5e,#1f1b3a)' },
+      { t: 'Low Tide', p: 12, bg: 'linear-gradient(135deg,#4a5f8a,#171a21)' }
+    ];
+    return { tabs, wide };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>UI and theme are separate</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap">
+</head>
+<body>
+<x-dc>
+<helmet><style>body{margin:0}</style></helmet>
+<div style="width:2000px;height:1240px;box-sizing:border-box;padding:32px 40px;background:#e8e8ee;font-family:Inter,system-ui,sans-serif;color:#1b1b22">
+  <div style="font-size:40px;font-weight:800;letter-spacing:-1px">A UI is the layout, shapes and finish. A theme is colour. They are chosen separately.</div>
+  <div style="font-size:18px;color:#4a4a58;margin-top:4px;max-width:1700px">Each UI ships with a default theme, the same one every time (Lumen: Witty, Rail: Cinema, Stage: Midnight, Aero: Aero Day, Classic Cable: Cable blue). Any UI can wear any theme. Imported themes work in every UI, and an administrator can require one.</div>
+  <sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+    <div style="margin-top:18px"><div style="font-size:20px;font-weight:800;margin-bottom:6px">{{r.name}} <span style="font-weight:500;font-size:15px;color:#4a4a58">default theme: {{r.def}}</span></div>
+      <div style="display:flex;gap:14px"><sc-for list="{{r.cells}}" as="c" hint-placeholder-count="6"><div><div style="zoom:.19"><dc-import name="Exp" exp="{{r.id}}" plat="desktop" theme="{{c.id}}" hint-size="1440px,900px"></dc-import></div><div style="font-size:13px;font-weight:700;margin-top:3px">{{c.name}}</div></div></sc-for></div>
+    </div>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":2000,"height":1240}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const th = [['witty', 'Witty'], ['midnight', 'Midnight'], ['cinema', 'Cinema'], ['evergreen', 'Evergreen'], ['light', 'Light'], ['aeroDay', 'Aero Day'], ['aeroAurora', 'Aero Aurora'], ['highcontrast', 'High contrast']];
+    const ui = [['lumen', 'Lumen UI', 'Witty'], ['rail', 'Rail UI', 'Cinema'], ['aero', 'Aero UI (glass)', 'Aero Day'], ['classicCable', 'Classic Cable UI', 'Cable blue']];
+    return { rows: ui.map((u) => ({ id: u[0], name: u[1], def: u[2], cells: th.map((t) => ({ id: t[0], name: t[1] })) })) };
+  }
+}
+</script>
+</body>
+</html>

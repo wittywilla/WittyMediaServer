@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>WittyTV Recordings, sets and Look</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap">
+</head>
+<body>
+<x-dc>
+<helmet><style>body{margin:0}</style></helmet>
+<div style="width:2000px;height:900px;box-sizing:border-box;padding:32px 40px;background:#e8e8ee;font-family:Inter,system-ui,sans-serif;color:#1b1b22">
+  <div style="font-size:40px;font-weight:800;letter-spacing:-1px">{{title}} · WittyTV recordings, sets and Look</div>
+  <div style="display:flex;flex-wrap:wrap;gap:20px 24px;margin-top:20px;align-items:flex-start">
+    <div><div style="zoom:.3"><dc-import name="Exp" exp="{{exp}}" plat="tv" screen="tvrec" hint-size="1920px,1080px"></dc-import></div><div style="font-size:14px;margin-top:4px">TV · Recordings</div></div>
+    <div><div style="zoom:.3"><dc-import name="Exp" exp="{{exp}}" plat="tv" screen="tvsets" hint-size="1920px,1080px"></dc-import></div><div style="font-size:14px;margin-top:4px">TV · Channel sets</div></div>
+    <div><div style="zoom:.3"><dc-import name="Exp" exp="{{exp}}" plat="tv" screen="tvlook" hint-size="1920px,1080px"></dc-import></div><div style="font-size:14px;margin-top:4px">TV · WittyTV Look (independent of the UI look)</div></div>
+    <div><div style="zoom:.45"><dc-import name="Exp" exp="{{exp}}" plat="phone" screen="tvlook" hint-size="390px,844px"></dc-import></div><div style="font-size:14px;margin-top:4px">Phone · Look</div></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"exp":{"editor":"text","default":"lumen"},"title":{"editor":"text","default":"Lumen"},"$preview":{"width":2000,"height":900}}'>
+class Component extends DCLogic { renderVals() { return { exp: this.props.exp || 'lumen', title: this.props.title || 'Lumen' }; } }
+</script>
+</body>
+</html>

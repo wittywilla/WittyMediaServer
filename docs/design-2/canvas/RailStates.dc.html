@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Rail states: closed, open, library drawer</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap">
+</head>
+<body>
+<x-dc>
+<helmet><style>body{margin:0}</style></helmet>
+<div style="width:3300px;height:800px;box-sizing:border-box;padding:36px 40px;background:#f0e8dc;font-family:Inter,system-ui,sans-serif;color:#2a1f17">
+  <div style="display:flex;align-items:baseline;gap:24px"><div style="font-size:44px;font-weight:800;letter-spacing:-1px">Rail: three states</div><div style="font-size:22px;color:#5d4c3d">Closed shows icons. Open (focus, hover, pin or the options key) shows names. Choosing a library opens a drawer headed by the library's name and its views. Back closes the drawer, then the rail.</div></div>
+  <div style="display:flex;gap:40px;align-items:flex-start;margin-top:24px">
+    <div><div style="zoom:.6"><dc-import name="Exp" exp="rail" plat="desktop" state="open" hint-size="1440px,900px"></dc-import></div><div style="font-size:18px;margin-top:8px">Open · desktop, 240 wide</div></div>
+    <div><div style="zoom:.6"><dc-import name="Exp" exp="rail" plat="desktop" state="drawer" hint-size="1440px,900px"></dc-import></div><div style="font-size:18px;margin-top:8px">Library drawer · "Movies" with its views</div></div>
+    <div><div style="zoom:.6"><dc-import name="Exp" exp="rail" plat="tv" state="drawer" hint-size="1920px,1080px"></dc-import></div><div style="font-size:18px;margin-top:8px">Library drawer · TV, 400 plus 480 units</div></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":3300,"height":800}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>

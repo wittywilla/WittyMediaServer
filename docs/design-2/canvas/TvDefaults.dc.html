@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>WittyTV default look for every UI look</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap">
+</head>
+<body>
+<x-dc>
+<helmet><style>body{margin:0}</style></helmet>
+<div style="width:2700px;height:1040px;box-sizing:border-box;padding:32px 40px;background:#e6e6ec;font-family:Inter,system-ui,sans-serif;color:#1b1b22">
+  <div style="font-size:40px;font-weight:800;letter-spacing:-1px">Each UI look suggests a WittyTV look</div>
+  <div style="font-size:18px;color:#4a4a58;margin-top:4px;max-width:1900px">The choice order is: what a person picked, then the look's suggestion, then the owner's default for new viewers. WittyTV also has its own Custom look, which no UI look can set.</div>
+  <div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:18px;margin-top:20px">
+    <sc-for list="{{items}}" as="i" hint-placeholder-count="17"><div><div style="zoom:.2"><dc-import name="Exp" exp="{{i.id}}" plat="tv" screen="guide" hint-size="1920px,1080px"></dc-import></div><div style="font-size:15px;font-weight:700;margin-top:4px">{{i.name}}</div><div style="font-size:13px;color:#4a4a58">WittyTV: {{i.tv}}</div></div></sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":2700,"height":1040}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const d = [['lumen', 'Lumen', 'Modern'], ['rail', 'Rail', 'Classic'], ['stage', 'Stage', 'Big picture'], ['aero', 'Aero', 'Modern'], ['aeroNight', 'Aero Aurora', 'Satellite'], ['aeroMeadow', 'Aero Meadow', 'Outline'], ['aeroSunset', 'Aero Sunset', 'Big picture'], ['classic', 'Classic', 'Modern'], ['classicCable', 'Classic Cable', 'Classic'], ['classicSatellite', 'Classic Satellite', 'Satellite'], ['compact', 'Compact', 'Compact'], ['paper', 'Paper', 'Newspaper'], ['marquee', 'Marquee', 'Big picture'], ['crossbar', 'Crossbar', 'Satellite'], ['bigpicture', 'Big picture', 'Big picture'], ['dashboard', 'Dashboard', 'Outline'], ['retro', 'Retro', 'Teletext']];
+    return { items: d.map((a) => ({ id: a[0], name: a[1], tv: a[2] })) };
+  }
+}
+</script>
+</body>
+</html>

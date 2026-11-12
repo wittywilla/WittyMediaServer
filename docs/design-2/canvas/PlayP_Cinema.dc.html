@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>WittyPlay Online in Cinema</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800;900&display=swap">
+<style>
+body{margin:0}
+.abs{position:absolute}
+.ic{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+</style>
+</helmet>
+<div style="position:relative;width:{{W}}px;height:{{H}}px;overflow:hidden;font-family:Nunito,system-ui,sans-serif;color:#f3ebe0;background:{{bg}}">
+  <div class="abs" style="left:-10%;top:-30%;width:70%;height:90%;border-radius:50%;background:radial-gradient(circle,{{glowA}},transparent 65%)"></div>
+  <div class="abs" style="right:-10%;bottom:-30%;width:70%;height:90%;border-radius:50%;background:radial-gradient(circle,{{glowB}},transparent 65%)"></div>
+
+  <sc-if value="{{showTop}}" hint-placeholder-val="{{true}}">
+    <div class="abs" style="left:{{pad}}px;right:{{pad}}px;top:{{topY}}px;height:{{topH}}px;display:flex;align-items:center;gap:{{g}}px">
+      <div style="width:{{topH}}px;height:{{topH}}px;border-radius:50%;background:linear-gradient(135deg,#d9482f,#f0b44a);box-shadow:0 0 0 3px rgba(255,255,255,.9)"></div>
+      <div><div style="font-size:{{s1}}px;font-weight:800">Willow</div><div style="font-size:{{s0}}px;color:#c2b4a0">WittyPlay Online · 4 friends online</div></div>
+      <div style="flex:1"></div>
+      <div style="font-size:{{s0}}px;font-weight:800;letter-spacing:-.2px;margin-right:{{g}}px"><span style="color:#f3ebe0">Witty</span><span style="color:#f0b44a">Media</span><span style="color:#f3ebe0">Server</span></div>
+      <sc-for list="{{batt}}" as="b" hint-placeholder-count="4"><div style="display:flex;align-items:center;gap:6px;font-size:{{s00}}px;color:#c2b4a0"><span style="width:{{bw}}px;height:{{bh}}px;border-radius:3px;border:2px solid {{b.c}};position:relative"><i style="position:absolute;left:1px;top:1px;bottom:1px;width:{{b.w}}%;background:{{b.c}};border-radius:1px"></i></span>P{{b.n}}</div></sc-for>
+      <div style="font-size:{{s1}}px;font-weight:800">7:42 PM</div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{sHome}}" hint-placeholder-val="{{true}}">
+    <div class="abs" style="left:{{pad}}px;top:{{tabY}}px;display:flex;gap:{{g2}}px;font-size:{{s1}}px;font-weight:800">
+      <sc-for list="{{tabs}}" as="t" hint-placeholder-count="5"><div style="padding-bottom:6px;{{t.st}}">{{t.t}}</div></sc-for>
+    </div>
+    <div class="abs" style="left:{{pad}}px;top:{{rowY}}px;display:flex;gap:{{g2}}px;align-items:flex-start">
+      <sc-for list="{{tiles}}" as="t" hint-placeholder-count="6">
+        <div style="flex:none;width:{{t.w}}px;margin-top:{{t.mt}}px">
+          <div style="position:relative;width:{{t.w}}px;height:{{t.w}}px;border-radius:{{tr}}px;background:{{t.bg}};overflow:hidden;{{t.ring}}">
+            <div style="position:absolute;left:0;right:0;top:0;height:45%;background:linear-gradient(180deg,rgba(255,255,255,.28),rgba(255,255,255,0))"></div>
+            <div style="position:absolute;left:{{g}}px;top:{{g}}px;height:{{bd}}px;padding:0 10px;border-radius:999px;background:{{t.cc}};color:#120e0a;font-size:{{s00}}px;font-weight:900;display:flex;align-items:center">{{t.con}}</div>
+            <div style="position:absolute;left:{{g}}px;bottom:{{g}}px;right:{{g}}px;font-size:{{t.fs}}px;font-weight:900;line-height:1.05;letter-spacing:-.02em;text-shadow:0 2px 8px rgba(0,0,0,.5)">{{t.t}}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    <div class="abs" style="left:{{pad}}px;top:{{infoY}}px;width:{{infoW}}px">
+      <div style="font-size:{{s3}}px;font-weight:900;letter-spacing:-.03em">Star Tide</div>
+      <div style="font-size:{{s1}}px;color:#c2b4a0;margin-top:6px">16-bit Classics · 1 to 2 players · Played 3 hr 12 min · Save state 3 ready</div>
+      <div style="display:flex;gap:{{g}}px;margin-top:{{g}}px;align-items:center">
+        <div style="height:{{btnH}}px;padding:0 {{g2}}px;border-radius:999px;background:linear-gradient(180deg,#ffcf8a,#d98a1c);color:#1a1208;font-size:{{s1}}px;font-weight:900;display:flex;align-items:center;gap:10px;box-shadow:0 0 0 3px #120e0a,0 0 0 6px #fff"><span style="width:{{kb}}px;height:{{kb}}px;border-radius:50%;background:#1a1208;color:#ffcf8a;display:flex;align-items:center;justify-content:center;font-size:{{s00}}px">A</span>Resume</div>
+        <div style="height:{{btnH}}px;padding:0 {{g2}}px;border-radius:999px;background:rgba(255,255,255,.14);font-size:{{s1}}px;font-weight:800;display:flex;align-items:center;gap:10px"><span style="width:{{kb}}px;height:{{kb}}px;border-radius:50%;background:rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:{{s00}}px">X</span>Play online</div>
+        <div style="height:{{btnH}}px;padding:0 {{g2}}px;border-radius:999px;background:rgba(255,255,255,.14);font-size:{{s1}}px;font-weight:800;display:flex;align-items:center;gap:10px"><span style="width:{{kb}}px;height:{{kb}}px;border-radius:50%;background:rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:{{s00}}px">Y</span>Options</div>
+      </div>
+    </div>
+    <div class="abs" style="left:0;right:0;bottom:{{dockY}}px;display:flex;justify-content:center;gap:{{g2}}px">
+      <sc-for list="{{dock}}" as="d" hint-placeholder-count="6"><div style="text-align:center"><div style="width:{{dockS}}px;height:{{dockS}}px;border-radius:50%;display:flex;align-items:center;justify-content:center;{{d.st}}"><svg class="ic" viewBox="0 0 24 24" width="{{dockI}}" height="{{dockI}}" aria-hidden="true"><path d="{{d.d}}"></path></svg></div><div style="font-size:{{s00}}px;font-weight:800;margin-top:6px;opacity:{{d.o}}">{{d.t}}</div></div></sc-for>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{sClassics}}" hint-placeholder-val="{{false}}">
+    <div class="abs" style="left:{{pad}}px;top:{{tabY}}px;font-size:{{s3}}px;font-weight:900;letter-spacing:-.03em">Classics</div>
+    <div class="abs" style="left:{{pad}}px;top:{{rowY}}px;width:{{leftW}}px">
+      <sc-for list="{{cons}}" as="c" hint-placeholder-count="6"><div style="display:flex;align-items:center;gap:{{g}}px;height:{{conH}}px;padding:0 {{g}}px;margin-bottom:8px;border-radius:{{tr}}px;{{c.st}}"><span style="width:{{conI}}px;height:{{conI}}px;border-radius:10px;background:{{c.col}}"></span><span style="flex:1;font-size:{{s1}}px;font-weight:900">{{c.t}}</span><span style="font-size:{{s0}}px;opacity:.8">{{c.n}}</span></div></sc-for>
+    </div>
+    <div class="abs" style="left:{{rightX}}px;top:{{rowY}}px;right:{{pad}}px">
+      <div style="display:flex;gap:10px;margin-bottom:{{g}}px"><sc-for list="{{chips}}" as="c" hint-placeholder-count="5"><div style="height:{{chipH}}px;padding:0 {{g}}px;border-radius:999px;display:flex;align-items:center;font-size:{{s0}}px;font-weight:800;{{c.st}}">{{c.t}}</div></sc-for></div>
+      <div style="display:flex;flex-wrap:wrap;gap:{{g}}px"><sc-for list="{{covers}}" as="c" hint-placeholder-count="10"><div style="width:{{cvW}}px"><div style="width:{{cvW}}px;height:{{cvW}}px;border-radius:{{tr}}px;background:{{c.bg}};position:relative;overflow:hidden;{{c.ring}}"><div style="position:absolute;right:8px;top:8px;display:flex;gap:4px">{{c.badges}}</div></div><div style="font-size:{{s0}}px;font-weight:800;margin-top:8px">{{c.t}}</div></div></sc-for></div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{sDetail}}" hint-placeholder-val="{{false}}">
+    <div class="abs" style="left:{{pad}}px;top:{{rowY}}px;width:{{artW}}px;height:{{artW}}px;border-radius:{{tr}}px;background:linear-gradient(135deg,#6a4df0,#14224a);overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.55)"><div style="position:absolute;left:0;right:0;top:0;height:45%;background:linear-gradient(180deg,rgba(255,255,255,.28),rgba(255,255,255,0))"></div><div style="position:absolute;left:{{g2}}px;bottom:{{g2}}px;font-size:{{s4}}px;font-weight:900;line-height:1;letter-spacing:-.03em">Star Tide</div></div>
+    <div class="abs" style="left:{{detX}}px;top:{{rowY}}px;right:{{pad}}px">
+      <div style="display:flex;gap:10px;align-items:center"><span style="height:{{bd}}px;padding:0 12px;border-radius:999px;background:#ffd84a;color:#120e0a;font-size:{{s00}}px;font-weight:900;display:flex;align-items:center">16-BIT CLASSICS</span><span style="font-size:{{s0}}px;color:#c2b4a0">1993 · Space shooter · 1 to 2 players</span></div>
+      <div style="font-size:{{s4}}px;font-weight:900;letter-spacing:-.03em;margin-top:{{g}}px">Star Tide</div>
+      <div style="font-size:{{s1}}px;line-height:1.5;color:#d6dbff;margin-top:{{g}}px;max-width:{{descW}}px">Chart a path through a tide of drifting stations. Pick up from any save state, or rewind a mistake.</div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:{{g2}}px"><sc-for list="{{feat}}" as="f" hint-placeholder-count="6"><div style="height:{{chipH}}px;padding:0 {{g}}px;border-radius:999px;display:flex;align-items:center;gap:8px;font-size:{{s0}}px;font-weight:800;background:rgba(255,255,255,.12)"><span style="width:10px;height:10px;border-radius:50%;background:{{f.c}}"></span>{{f.t}}</div></sc-for></div>
+      <div style="display:flex;gap:{{g}}px;margin-top:{{g2}}px;align-items:center">
+        <div style="height:{{btnH}}px;padding:0 {{g2}}px;border-radius:999px;background:linear-gradient(180deg,#ffcf8a,#d98a1c);color:#1a1208;font-size:{{s2}}px;font-weight:900;display:flex;align-items:center;box-shadow:0 0 0 3px #120e0a,0 0 0 6px #fff">Resume</div>
+        <div style="height:{{btnH}}px;padding:0 {{g2}}px;border-radius:999px;background:linear-gradient(180deg,#ff8aa3,#d9482f);color:#2a0612;font-size:{{s2}}px;font-weight:900;display:flex;align-items:center">Play online</div>
+        <div style="height:{{btnH}}px;padding:0 {{g2}}px;border-radius:999px;background:rgba(255,255,255,.14);font-size:{{s2}}px;font-weight:800;display:flex;align-items:center">Save states · 3</div>
+        <div style="height:{{btnH}}px;padding:0 {{g2}}px;border-radius:999px;background:rgba(255,255,255,.14);font-size:{{s2}}px;font-weight:800;display:flex;align-items:center">⋯</div>
+      </div>
+      <div style="font-size:{{s1}}px;font-weight:800;margin-top:{{g2}}px">Friends who play this</div>
+      <div style="display:flex;gap:{{g}}px;margin-top:10px"><sc-for list="{{friends3}}" as="f" hint-placeholder-count="3"><div style="display:flex;align-items:center;gap:10px;padding:8px 14px 8px 8px;border-radius:999px;background:rgba(255,255,255,.1);font-size:{{s0}}px;font-weight:800"><span style="width:{{av}}px;height:{{av}}px;border-radius:50%;background:{{f.bg}}"></span>{{f.t}}</div></sc-for></div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{sQuick}}" hint-placeholder-val="{{false}}">
+    <div class="abs" style="left:0;top:0;right:0;bottom:0;background:linear-gradient(135deg,#1a2a6a,#4a1a5a 60%,#120e0a)"></div>
+    <div class="abs" style="left:30%;top:20%;width:40%;height:50%;border-radius:50%;background:radial-gradient(circle,rgba(95,240,214,.5),transparent 65%)"></div>
+    <div class="abs" style="left:0;top:0;right:0;bottom:0;background:rgba(6,9,30,.62)"></div>
+    <div class="abs" style="left:{{pad}}px;top:{{topY}}px;font-size:{{s1}}px;font-weight:800;color:#c2b4a0">Paused · Star Tide · 00:14:08</div>
+    <div class="abs" style="left:{{pad}}px;top:{{rowY}}px;width:{{leftW}}px">
+      <sc-for list="{{qm}}" as="q" hint-placeholder-count="8"><div style="display:flex;align-items:center;gap:{{g}}px;height:{{conH}}px;padding:0 {{g}}px;margin-bottom:8px;border-radius:{{tr}}px;font-size:{{s1}}px;font-weight:900;{{q.st}}"><span style="flex:1">{{q.t}}</span><span style="font-size:{{s0}}px;opacity:.8">{{q.k}}</span></div></sc-for>
+    </div>
+    <div class="abs" style="left:{{rightX}}px;top:{{rowY}}px;right:{{pad}}px;padding:{{g2}}px;border-radius:{{tr}}px;background:rgba(255,255,255,.1);box-shadow:0 0 0 1px rgba(255,255,255,.2)">
+      <div style="font-size:{{s2}}px;font-weight:900">Save state</div>
+      <div style="font-size:{{s0}}px;color:#c2b4a0;margin-top:4px">Pick a slot. Saves are kept on the server and follow you to every device.</div>
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:{{g}}px;margin-top:{{g}}px"><sc-for list="{{slots}}" as="s" hint-placeholder-count="6"><div><div style="height:{{slotH}}px;border-radius:{{tr}}px;background:{{s.bg}};position:relative;overflow:hidden;{{s.ring}}"><div style="position:absolute;left:8px;top:8px;font-size:{{s00}}px;font-weight:900;padding:2px 8px;border-radius:999px;background:rgba(0,0,0,.6)">{{s.n}}</div></div><div style="font-size:{{s0}}px;font-weight:800;margin-top:6px">{{s.t}}</div></div></sc-for></div>
+      <div style="font-size:{{s2}}px;font-weight:900;margin-top:{{g2}}px">Rewind</div>
+      <div style="position:relative;height:{{rwH}}px;border-radius:{{rwH}}px;background:rgba(255,255,255,.2);margin-top:10px"><div style="height:{{rwH}}px;width:72%;border-radius:{{rwH}}px;background:linear-gradient(90deg,#f0b44a,#d9482f)"></div><div style="position:absolute;left:72%;top:50%;width:{{kb}}px;height:{{kb}}px;margin:-{{kb2}}px 0 0 -{{kb2}}px;border-radius:50%;background:#fff"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:{{s0}}px;color:#c2b4a0;margin-top:8px"><span>Back 30 seconds</span><span>Now</span></div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{sOnline}}" hint-placeholder-val="{{false}}">
+    <div class="abs" style="left:{{pad}}px;top:{{tabY}}px;font-size:{{s3}}px;font-weight:900;letter-spacing:-.03em">Play together</div>
+    <div class="abs" style="left:{{pad}}px;top:{{rowY}}px;width:{{colW}}px">
+      <div style="font-size:{{s1}}px;font-weight:900;margin-bottom:{{g}}px">Friends</div>
+      <sc-for list="{{friends}}" as="f" hint-placeholder-count="5"><div style="display:flex;align-items:center;gap:{{g}}px;height:{{conH}}px;padding:0 {{g}}px;margin-bottom:8px;border-radius:{{tr}}px;{{f.st}}"><span style="position:relative;width:{{av}}px;height:{{av}}px;border-radius:50%;background:{{f.bg}}"><i style="position:absolute;right:-2px;bottom:-2px;width:14px;height:14px;border-radius:50%;background:{{f.dot}};box-shadow:0 0 0 3px #1b150f"></i></span><span style="flex:1"><span style="display:block;font-size:{{s0}}px;font-weight:900">{{f.t}}</span><span style="display:block;font-size:{{s00}}px;opacity:.8">{{f.s}}</span></span></div></sc-for>
+    </div>
+    <div class="abs" style="left:{{midX}}px;top:{{rowY}}px;width:{{colW}}px;padding:{{g2}}px;box-sizing:border-box;border-radius:{{tr}}px;background:rgba(255,255,255,.1);box-shadow:0 0 0 1px rgba(255,255,255,.2)">
+      <div style="font-size:{{s0}}px;font-weight:800;color:#c2b4a0;letter-spacing:.08em;text-transform:uppercase">Your room</div>
+      <div style="font-size:{{s4}}px;font-weight:900;letter-spacing:.04em;margin-top:4px">TIDE-4821</div>
+      <div style="font-size:{{s0}}px;color:#c2b4a0;margin-top:4px">Star Tide · rollback netplay · 12 ms</div>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:{{g}}px;margin-top:{{g}}px"><sc-for list="{{seats}}" as="s" hint-placeholder-count="4"><div style="height:{{seatH}}px;border-radius:{{tr}}px;display:flex;align-items:center;gap:10px;padding:0 {{g}}px;font-size:{{s0}}px;font-weight:900;{{s.st}}"><span style="width:{{pn}}px;height:{{pn}}px;border-radius:50%;background:{{s.c}};color:#120e0a;display:flex;align-items:center;justify-content:center;font-size:{{s00}}px">{{s.n}}</span>{{s.t}}</div></sc-for></div>
+      <div style="display:flex;gap:{{g}}px;margin-top:{{g2}}px"><div style="height:{{btnH}}px;padding:0 {{g2}}px;border-radius:999px;background:linear-gradient(180deg,#ffcf8a,#d98a1c);color:#1a1208;font-size:{{s1}}px;font-weight:900;display:flex;align-items:center;box-shadow:0 0 0 3px #1b150f,0 0 0 6px #fff">Start game</div><div style="height:{{btnH}}px;padding:0 {{g2}}px;border-radius:999px;background:rgba(255,255,255,.14);font-size:{{s1}}px;font-weight:800;display:flex;align-items:center">Invite</div></div>
+    </div>
+    <div class="abs" style="left:{{rightX2}}px;top:{{rowY}}px;right:{{pad}}px">
+      <div style="font-size:{{s1}}px;font-weight:900;margin-bottom:{{g}}px">Open rooms</div>
+      <sc-for list="{{rooms}}" as="r" hint-placeholder-count="4"><div style="display:flex;align-items:center;gap:{{g}}px;height:{{conH}}px;padding:0 {{g}}px;margin-bottom:8px;border-radius:{{tr}}px;background:rgba(255,255,255,.1)"><span style="width:{{conI}}px;height:{{conI}}px;border-radius:10px;background:{{r.bg}}"></span><span style="flex:1"><span style="display:block;font-size:{{s0}}px;font-weight:900">{{r.t}}</span><span style="display:block;font-size:{{s00}}px;opacity:.8">{{r.s}}</span></span><span style="font-size:{{s00}}px;font-weight:800;color:#ffcf8a">{{r.p}}</span></div></sc-for>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{sPads}}" hint-placeholder-val="{{false}}">
+    <div class="abs" style="left:{{pad}}px;top:{{tabY}}px;font-size:{{s3}}px;font-weight:900;letter-spacing:-.03em">Controllers</div>
+    <div class="abs" style="left:{{pad}}px;top:{{rowY}}px;right:{{pad}}px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:{{g2}}px">
+      <sc-for list="{{pads}}" as="p" hint-placeholder-count="4"><div style="height:{{padH}}px;border-radius:{{tr}}px;padding:{{g}}px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;{{p.st}}">
+        <div style="font-size:{{s1}}px;font-weight:900;align-self:flex-start">Player {{p.n}}</div>
+        <div style="position:relative;width:{{ctW}}px;height:{{ctH}}px;border-radius:{{ctR}}px;background:{{p.col}};margin-top:{{g}}px;opacity:{{p.o}}"><i style="position:absolute;left:18%;top:32%;width:20%;height:30%;border-radius:50%;background:rgba(0,0,0,.4)"></i><i style="position:absolute;right:16%;top:26%;width:11%;height:17%;border-radius:50%;background:rgba(255,255,255,.6)"></i><i style="position:absolute;right:28%;top:44%;width:11%;height:17%;border-radius:50%;background:rgba(255,255,255,.6)"></i></div>
+        <div style="font-size:{{s0}}px;font-weight:800;margin-top:{{g}}px;text-align:center">{{p.t}}</div>
+        <div style="font-size:{{s00}}px;opacity:.8;margin-top:4px">{{p.s}}</div>
+      </div></sc-for>
+    </div>
+    <div class="abs" style="left:{{pad}}px;top:{{padFoot}}px;right:{{pad}}px;display:flex;gap:{{g2}}px;align-items:center;padding:{{g}}px {{g2}}px;border-radius:{{tr}}px;background:rgba(255,255,255,.1)">
+      <div style="width:{{qr}}px;height:{{qr}}px;border-radius:8px;background:repeating-conic-gradient(#fff 0 25%,#120e0a 0 50%) 0 0/16px 16px"></div>
+      <div style="flex:1"><div style="font-size:{{s2}}px;font-weight:900">Use your phone as a controller</div><div style="font-size:{{s0}}px;color:#c2b4a0;margin-top:4px">Scan to join as the next player. Touch buttons, tilt and rumble work.</div></div>
+      <div style="height:{{btnH}}px;padding:0 {{g2}}px;border-radius:999px;background:rgba(255,255,255,.14);font-size:{{s1}}px;font-weight:800;display:flex;align-items:center">Remap buttons</div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{sMem}}" hint-placeholder-val="{{false}}">
+    <div class="abs" style="left:{{pad}}px;top:{{tabY}}px;font-size:{{s3}}px;font-weight:900;letter-spacing:-.03em">Memories</div>
+    <div class="abs" style="left:{{pad}}px;top:{{rowY}}px;right:{{pad}}px">
+      <div style="font-size:{{s1}}px;font-weight:900;margin-bottom:{{g}}px">This week</div>
+      <div style="display:grid;grid-template-columns:repeat({{memCols}},minmax(0,1fr));gap:{{g}}px"><sc-for list="{{mem}}" as="m" hint-placeholder-count="8"><div><div style="aspect-ratio:16/9;border-radius:{{tr}}px;background:{{m.bg}};position:relative;overflow:hidden;{{m.ring}}"><div style="position:absolute;left:8px;top:8px;font-size:{{s00}}px;font-weight:900;padding:2px 8px;border-radius:999px;background:rgba(0,0,0,.6)">{{m.k}}</div></div><div style="font-size:{{s0}}px;font-weight:800;margin-top:6px">{{m.t}}</div></div></sc-for></div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{sDiscover}}" hint-placeholder-val="{{false}}">
+    <div class="abs" style="left:{{pad}}px;top:{{tabY}}px;font-size:{{s3}}px;font-weight:900;letter-spacing:-.03em">Discover</div>
+    <div class="abs" style="left:{{pad}}px;top:{{rowY}}px;right:{{pad}}px;height:{{heroH}}px;border-radius:{{tr}}px;overflow:hidden;background:linear-gradient(120deg,#d9482f,#6a4df0 55%,#f0b44a)"><div style="position:absolute;left:0;right:0;top:0;height:45%;background:linear-gradient(180deg,rgba(255,255,255,.28),rgba(255,255,255,0))"></div><div style="position:absolute;left:{{g2}}px;bottom:{{g2}}px"><div style="font-size:{{s0}}px;font-weight:900;letter-spacing:.08em;text-transform:uppercase">New this week</div><div style="font-size:{{s4}}px;font-weight:900;letter-spacing:-.03em">Arcade Classics join the library</div><div style="display:inline-flex;height:{{btnH}}px;padding:0 {{g2}}px;border-radius:999px;background:#fff;color:#120e0a;font-size:{{s1}}px;font-weight:900;align-items:center;margin-top:{{g}}px">See what's new</div></div></div>
+    <div class="abs" style="left:{{pad}}px;top:{{shelfY}}px;right:0">
+      <div style="font-size:{{s1}}px;font-weight:900;margin-bottom:{{g}}px">Free to try for an hour</div>
+      <div style="display:flex;gap:{{g}}px"><sc-for list="{{covers}}" as="c" hint-placeholder-count="8"><div style="flex:none;width:{{cvW}}px"><div style="width:{{cvW}}px;height:{{cvW}}px;border-radius:{{tr}}px;background:{{c.bg}}"></div><div style="font-size:{{s0}}px;font-weight:800;margin-top:6px">{{c.t}}</div></div></sc-for></div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{sPhone}}" hint-placeholder-val="{{false}}">
+    <div class="abs" style="left:16px;right:16px;top:56px;display:flex;align-items:center;gap:12px"><div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#d9482f,#f0b44a)"></div><div style="flex:1;font-size:22px;font-weight:900">WittyPlay</div><div style="font-size:12px;font-weight:800;color:#f0b44a">Witty<span style="color:#f3ebe0">MediaServer</span></div></div>
+    <div class="abs" style="left:16px;right:16px;top:120px;height:210px;border-radius:22px;background:linear-gradient(135deg,#6a4df0,#14224a);overflow:hidden"><div style="position:absolute;left:0;right:0;top:0;height:45%;background:linear-gradient(180deg,rgba(255,255,255,.28),rgba(255,255,255,0))"></div><div style="position:absolute;left:16px;bottom:16px"><div style="font-size:12px;font-weight:900;color:#ffd84a">CONTINUE · 16-BIT</div><div style="font-size:30px;font-weight:900;letter-spacing:-.03em">Star Tide</div><div style="display:inline-flex;height:42px;padding:0 20px;border-radius:999px;background:linear-gradient(180deg,#ffcf8a,#d98a1c);color:#1a1208;font-size:14px;font-weight:900;align-items:center;margin-top:8px">Resume</div></div></div>
+    <div class="abs" style="left:16px;top:350px;font-size:17px;font-weight:900">Play with friends</div>
+    <div class="abs" style="left:16px;right:16px;top:384px;display:flex;gap:10px"><sc-for list="{{friends3}}" as="f" hint-placeholder-count="3"><div style="flex:1;padding:10px;border-radius:16px;background:rgba(255,255,255,.1);text-align:center;font-size:12px;font-weight:800"><div style="width:44px;height:44px;border-radius:50%;background:{{f.bg}};margin:0 auto 6px"></div>{{f.t}}</div></sc-for></div>
+    <div class="abs" style="left:16px;top:490px;font-size:17px;font-weight:900">Classics</div>
+    <div class="abs" style="left:16px;right:0;top:524px;display:flex;gap:12px;overflow:hidden"><sc-for list="{{covers}}" as="c" hint-placeholder-count="4"><div style="flex:none;width:110px"><div style="width:110px;height:110px;border-radius:16px;background:{{c.bg}}"></div><div style="font-size:12px;font-weight:800;margin-top:6px">{{c.t}}</div></div></sc-for></div>
+    <div class="abs" style="left:16px;right:16px;bottom:20px;height:64px;border-radius:32px;background:rgba(255,255,255,.12);box-shadow:0 0 0 1px rgba(255,255,255,.2);display:flex;align-items:center;justify-content:space-around;font-size:11px;font-weight:800"><span style="color:#f0b44a">Play</span><span>Classics</span><span>Together</span><span>Controller</span><span>You</span></div>
+  </sc-if>
+
+  <sc-if value="{{sPhonePad}}" hint-placeholder-val="{{false}}">
+    <div class="abs" style="left:16px;right:16px;top:56px;display:flex;align-items:center;gap:12px"><div style="font-size:15px;font-weight:900;padding:6px 14px;border-radius:999px;background:#f0b44a;color:#1a1208">Player 2</div><div style="flex:1;font-size:13px;color:#c2b4a0;text-align:center">Star Tide · TIDE-4821 · 12 ms</div><div style="font-size:20px">⋯</div></div>
+    <div class="abs" style="left:0;right:0;top:110px;height:230px;margin:0 16px;border-radius:22px;background:linear-gradient(135deg,#1a2a6a,#4a1a5a);box-shadow:0 0 0 1px rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:13px;color:#c2b4a0">Game plays on the TV</div>
+    <div class="abs" style="left:34px;top:420px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.1);box-shadow:0 0 0 2px rgba(255,255,255,.25)"><i style="position:absolute;left:55px;top:12px;width:40px;height:126px;border-radius:12px;background:rgba(255,255,255,.2)"></i><i style="position:absolute;left:12px;top:55px;width:126px;height:40px;border-radius:12px;background:rgba(255,255,255,.2)"></i></div>
+    <div class="abs" style="right:30px;top:410px;width:170px;height:170px"><i style="position:absolute;left:62px;top:0;width:54px;height:54px;border-radius:50%;background:#ffd84a;color:#120e0a;display:flex;align-items:center;justify-content:center;font-weight:900">X</i><i style="position:absolute;left:0;top:58px;width:54px;height:54px;border-radius:50%;background:#f0b44a;color:#120e0a;display:flex;align-items:center;justify-content:center;font-weight:900">Y</i><i style="position:absolute;left:116px;top:58px;width:54px;height:54px;border-radius:50%;background:#d9482f;color:#120e0a;display:flex;align-items:center;justify-content:center;font-weight:900">A</i><i style="position:absolute;left:62px;top:116px;width:54px;height:54px;border-radius:50%;background:#6a4df0;display:flex;align-items:center;justify-content:center;font-weight:900">B</i></div>
+    <div class="abs" style="left:16px;right:16px;top:640px;display:flex;gap:12px;justify-content:center"><sc-for list="{{pbtn}}" as="b" hint-placeholder-count="4"><div style="height:44px;padding:0 20px;border-radius:999px;background:rgba(255,255,255,.14);font-size:13px;font-weight:900;display:flex;align-items:center">{{b}}</div></sc-for></div>
+    <div class="abs" style="left:16px;right:16px;bottom:30px;text-align:center;font-size:12px;color:#c2b4a0">Haptics on · tilt off · Hold Menu to leave</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"screen":{"editor":"enum","options":["home","classics","detail","quick","online","pads","memories","discover","phone","phonepad"],"default":"home"},"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const scr = this.props.screen || 'home';
+    const phone = scr === 'phone' || scr === 'phonepad';
+    const W = phone ? 390 : 1920, H = phone ? 844 : 1080;
+    const u = 1; // TV units
+    const pad = 90, topY = 36, topH = 56, g = 16, g2 = 32;
+    const ring = 'box-shadow:0 0 0 6px #120e0a,0 0 0 12px #fff,0 0 50px rgba(95,240,214,.55);';
+    const tileArts = [['Star Tide', 'linear-gradient(135deg,#6a4df0,#14224a)', '16-BIT', '#ffd84a'], ['Pixel Orchard', 'linear-gradient(135deg,#2f6f4f,#12202a)', '8-BIT', '#ffcf8a'], ['Moth Racer', 'linear-gradient(135deg,#a85a1c,#2a1208)', 'ARCADE', '#ff8aa3'], ['Lantern Keep', 'linear-gradient(135deg,#1c5d7a,#0f1d2a)', 'HANDHELD', '#9aeaff'], ['Tin Roof Tennis', 'linear-gradient(135deg,#8a2f5e,#1f1b3a)', '32-BIT', '#c9b0ff'], ['Salt Road Kart', 'linear-gradient(135deg,#7a6a2f,#1f1a0a)', '3D ERA', '#ffc08a']];
+    const tiles = tileArts.map((a, i) => ({ t: a[0], bg: a[1], con: a[2], cc: a[3], w: i === 0 ? 380 : 300, mt: i === 0 ? 0 : 40, fs: i === 0 ? 40 : 30, ring: i === 0 ? ring : '' }));
+    const tabs = ['Recent', 'Classics', 'Together', 'Memories', 'Discover'].map((t, i) => ({ t, st: i === 0 ? 'color:#fff;box-shadow:inset 0 -5px 0 #f0b44a;' : 'color:#c2b4a0;' }));
+    const dockDefs = [['Discover', 'M11 4a7 7 0 100 14 7 7 0 000-14zM21 21l-5-5'], ['Together', 'M16 11a4 4 0 100-8 4 4 0 000 8zM4 21a6 6 0 0112 0M18 14a5 5 0 014 5'], ['Controllers', 'M6 9h12a4 4 0 014 4v2a3 3 0 01-5 2l-1-2H8l-1 2a3 3 0 01-5-2v-2a4 4 0 014-4zM8 12v3M6.5 13.5h3'], ['Memories', 'M4 5h16v14H4zM4 15l5-5 4 4 3-3 4 4'], ['Settings', 'M12 8a4 4 0 100 8 4 4 0 000-8zM12 2v3M12 19v3M2 12h3M19 12h3']];
+    const dock = dockDefs.map((d, i) => ({ t: d[0], d: d[1], o: i === 2 ? 1 : 0, st: i === 2 ? 'background:linear-gradient(180deg,#ffcf8a,#d98a1c);color:#1a1208;box-shadow:0 0 0 4px #120e0a,0 0 0 8px #fff;transform:scale(1.12);' : 'background:rgba(255,255,255,.14);color:#f3ebe0;' }));
+    const cons = [['8-bit Classics', '#ffcf8a', '64 games'], ['16-bit Classics', '#ffd84a', '112 games'], ['Handheld Classics', '#9aeaff', '78 games'], ['Arcade Classics', '#ff8aa3', '46 games'], ['32-bit Classics', '#c9b0ff', '38 games'], ['3D Era', '#ffc08a', '24 games']].map((c, i) => ({ t: c[0], col: c[1], n: c[2], st: i === 1 ? 'background:linear-gradient(180deg,#ffffff,#d9defa);color:#120e0a;box-shadow:0 0 0 4px #120e0a,0 0 0 8px #fff;' : 'background:rgba(255,255,255,.1);' }));
+    const chips = ['All', 'Online play', 'Co-op', 'Save states', 'New'].map((t, i) => ({ t, st: i === 1 ? 'background:#f0b44a;color:#1a1208;' : 'background:rgba(255,255,255,.12);' }));
+    const covers = tileArts.concat([['Glass Reef', 'linear-gradient(135deg,#2f6fed,#14224a)'], ['Night Courier', 'linear-gradient(135deg,#8a2f5e,#1f1b3a)'], ['Ash Valley', 'linear-gradient(135deg,#a85a1c,#5b2234)'], ['Orbit Run', 'linear-gradient(135deg,#4a5f8a,#171a21)']]).map((a, i) => ({ t: a[0], bg: a[1], badges: i % 3 === 0 ? 'ON' : (i % 3 === 1 ? '2P' : 'SAVE'), ring: i === 1 ? 'box-shadow:0 0 0 5px #120e0a,0 0 0 10px #fff;' : '' }));
+    const feat = [['1 to 2 players', '#ffcf8a'], ['Rollback netplay', '#ff8aa3'], ['Save states', '#ffd84a'], ['Rewind', '#9aeaff'], ['Gamepad or touch', '#c9b0ff'], ['Play on any screen', '#ffc08a']].map((f) => ({ t: f[0], c: f[1] }));
+    const friends3 = [['Pip', 'linear-gradient(135deg,#ff7aa8,#ffd84a)'], ['Sam', 'linear-gradient(135deg,#2f6fed,#f0b44a)'], ['Ines', 'linear-gradient(135deg,#a85a1c,#d9482f)']].map((f) => ({ t: f[0], bg: f[1] }));
+    const qm = [['Resume', 'A'], ['Save state', 'X'], ['Load state', 'Y'], ['Rewind', 'LT'], ['Screen and sound', ''], ['Controls', ''], ['Invite friends', ''], ['Quit to library', 'B']].map((q, i) => ({ t: q[0], k: q[1], st: i === 1 ? 'background:linear-gradient(180deg,#ffffff,#d9defa);color:#120e0a;box-shadow:0 0 0 4px #120e0a,0 0 0 8px #fff;' : 'background:rgba(255,255,255,.1);' }));
+    const slots = [['Slot 1', '14:08 · Stage 3', 'linear-gradient(135deg,#6a4df0,#14224a)', 1], ['Slot 2', 'Yesterday · Stage 2', 'linear-gradient(135deg,#1c5d7a,#241a52)', 2], ['Slot 3', 'Mon · Boss', 'linear-gradient(135deg,#8a2f5e,#1f1b3a)', 3], ['Slot 4', 'Empty', 'rgba(255,255,255,.08)', 4], ['Auto', '14:03 · Stage 3', 'linear-gradient(135deg,#2f6f4f,#12202a)', 'A'], ['Cloud', 'On the server', 'linear-gradient(135deg,#4a5f8a,#171a21)', '☁']].map((s, i) => ({ t: s[1], bg: s[2], n: s[3], ring: i === 0 ? 'box-shadow:0 0 0 4px #120e0a,0 0 0 8px #f0b44a;' : '' }));
+    const friends = [['Pip', 'Playing Star Tide', 'linear-gradient(135deg,#ff7aa8,#ffd84a)', '#f0b44a'], ['Sam', 'Online', 'linear-gradient(135deg,#2f6fed,#f0b44a)', '#f0b44a'], ['Ines', 'Playing Moth Racer', 'linear-gradient(135deg,#a85a1c,#d9482f)', '#f0b44a'], ['Tom', 'Away', 'linear-gradient(135deg,#4a5f8a,#171a21)', '#ffd84a'], ['Lee', 'Offline', 'linear-gradient(135deg,#6a4df0,#14224a)', '#6b73a8']].map((f, i) => ({ t: f[0], s: f[1], bg: f[2], dot: f[3], st: i === 0 ? 'background:linear-gradient(180deg,#ffffff,#d9defa);color:#120e0a;box-shadow:0 0 0 4px #120e0a,0 0 0 8px #fff;' : 'background:rgba(255,255,255,.1);' }));
+    const seats = [['P1', 'Willow', '#d9482f', 'background:rgba(255,255,255,.14);'], ['P2', 'Pip', '#f0b44a', 'background:rgba(255,255,255,.14);'], ['P3', 'Waiting…', '#6b73a8', 'background:rgba(255,255,255,.06);border:2px dashed rgba(255,255,255,.3);'], ['P4', 'Waiting…', '#6b73a8', 'background:rgba(255,255,255,.06);border:2px dashed rgba(255,255,255,.3);']].map((s) => ({ n: s[0], t: s[1], c: s[2], st: s[3] }));
+    const rooms = [['Moth Racer · 3 of 4', 'Rollback · Sam', 'linear-gradient(135deg,#a85a1c,#2a1208)', '9 ms'], ['Tin Roof Tennis · 1 of 2', 'Open · Ines', 'linear-gradient(135deg,#8a2f5e,#1f1b3a)', '14 ms'], ['Salt Road Kart · 2 of 4', 'Open · Tom', 'linear-gradient(135deg,#7a6a2f,#1f1a0a)', '22 ms'], ['Orbit Run · 1 of 2', 'Open · Lee', 'linear-gradient(135deg,#4a5f8a,#171a21)', '31 ms']].map((r) => ({ t: r[0], s: r[1], bg: r[2], p: r[3] }));
+    const pads = [['1', 'Wireless gamepad', '86% battery', '#d9482f', 1, 'background:linear-gradient(180deg,#ffffff22,#ffffff0d);box-shadow:0 0 0 4px #120e0a,0 0 0 8px #fff;'], ['2', 'Phone: Pip', 'Touch · rumble', '#f0b44a', 1, 'background:rgba(255,255,255,.1);'], ['3', 'USB gamepad', 'Wired', '#ffd84a', 1, 'background:rgba(255,255,255,.1);'], ['4', 'No controller', 'Press any button to join', '#6b73a8', .35, 'background:rgba(255,255,255,.05);border:2px dashed rgba(255,255,255,.3);']].map((p) => ({ n: p[0], t: p[1], s: p[2], col: p[3], o: p[4], st: p[5] }));
+    const mem = [['Star Tide', 'SAVE', 'linear-gradient(135deg,#6a4df0,#14224a)'], ['Moth Racer', 'SHOT', 'linear-gradient(135deg,#a85a1c,#2a1208)'], ['Pixel Orchard', 'CLIP', 'linear-gradient(135deg,#2f6f4f,#12202a)'], ['Lantern Keep', 'SAVE', 'linear-gradient(135deg,#1c5d7a,#0f1d2a)'], ['Tin Roof Tennis', 'SHOT', 'linear-gradient(135deg,#8a2f5e,#1f1b3a)'], ['Salt Road Kart', 'CLIP', 'linear-gradient(135deg,#7a6a2f,#1f1a0a)'], ['Orbit Run', 'SAVE', 'linear-gradient(135deg,#4a5f8a,#171a21)'], ['Glass Reef', 'SHOT', 'linear-gradient(135deg,#2f6fed,#14224a)']].map((m, i) => ({ t: m[0], k: m[1], bg: m[2], ring: i === 0 ? 'box-shadow:0 0 0 5px #120e0a,0 0 0 10px #fff;' : '' }));
+    return {
+      W, H, bg: 'linear-gradient(160deg,#120e0a 0%,#2a1608 55%,#120e0a 100%)', glowA: 'rgba(217,72,47,.3)', glowB: 'rgba(240,180,74,.3)',
+      showTop: !phone, pad, topY, topH, g, g2, s00: 18, s0: 22, s1: 28, s2: 32, s3: 48, s4: 64, bw: 30, bh: 14,
+      batt: [{ n: 1, w: 86, c: '#f0b44a' }, { n: 2, w: 60, c: '#f0b44a' }, { n: 3, w: 25, c: '#ffd84a' }],
+      sHome: scr === 'home', sClassics: scr === 'classics', sDetail: scr === 'detail', sQuick: scr === 'quick', sOnline: scr === 'online', sPads: scr === 'pads', sMem: scr === 'memories', sDiscover: scr === 'discover', sPhone: scr === 'phone', sPhonePad: scr === 'phonepad',
+      tabY: 130, rowY: scr === 'home' ? 230 : 210, tabs, tiles, tr: 24, bd: 30, infoY: 640, infoW: 1200, btnH: 64, kb: 34, dockY: 36, dockS: 84, dockI: 36, dock,
+      leftW: 520, conH: 80, conI: 40, cons, rightX: 90 + 520 + 48, chips, chipH: 44, covers, cvW: 200,
+      artW: 620, detX: 90 + 620 + 56, descW: 900, feat, friends3, av: 44, descW2: 800,
+      qm, slots, slotH: 150, rwH: 14, kb2: 17, colW: 520, midX: 90 + 520 + 40, rightX2: 90 + 520 + 40 + 520 + 40, friends, seats, seatH: 72, pn: 34, rooms,
+      pads, padH: 480, ctW: 200, ctH: 110, ctR: 40, padFoot: 740, qr: 120,
+      mem, memCols: 4, heroH: 340, shelfY: 620, pbtn: ['Start', 'Select', 'Menu', 'Save']
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Layout editor</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.reg{position:absolute;border:2px dashed #9174ff;border-radius:10px;background:rgba(121,85,255,.08);box-sizing:border-box;padding:8px 10px;font-size:13px;font-weight:700;color:#c9bcff;display:flex;align-items:flex-start;justify-content:space-between}
+.hd{width:26px;height:26px;border-radius:8px;background:#7955ff;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800}
+.btn{height:40px;padding:0 16px;border-radius:10px;background:#1f232c;color:#e8eaf0;display:flex;align-items:center;font-size:14px;font-weight:600;box-sizing:border-box}
+.row{display:flex;align-items:center;gap:10px;height:44px;padding:0 12px;border-radius:10px;font-size:14px;font-weight:600;background:#171a21;margin-bottom:6px;box-sizing:border-box}
+</style>
+</helmet>
+<div style="position:relative;width:1440px;height:900px;overflow:hidden;background:#0f1115;color:#e8eaf0;font-family:Inter,system-ui,sans-serif">
+  <div style="position:absolute;left:0;right:0;top:0;height:60px;background:#171a21;display:flex;align-items:center;gap:12px;padding:0 24px;box-sizing:border-box">
+    <div style="font-size:18px;font-weight:800">Edit layout</div>
+    <div style="display:flex;background:#0f1115;border-radius:10px;padding:3px;margin-left:16px"><div style="padding:7px 14px;border-radius:8px;background:#e8eaf0;color:#0f1115;font-size:13px;font-weight:700">For everyone</div><div style="padding:7px 14px;font-size:13px;font-weight:600;color:#a9afbd">For me</div></div>
+    <div style="flex:1"></div>
+    <div class="btn">Undo</div><div class="btn">Redo</div><div class="btn">Reset to Lumen</div>
+    <div class="btn" style="background:#7955ff;color:#fff;font-weight:700">Save for everyone</div>
+  </div>
+
+  <div style="position:absolute;left:24px;top:84px;width:1000px;height:640px;border-radius:14px;background:#0b0d11;box-shadow:0 0 0 1px rgba(232,234,240,.12);overflow:hidden">
+    <div class="reg" style="left:16px;top:16px;width:180px;height:44px"><span>Brand</span><span class="hd">⠿</span></div>
+    <div class="reg" style="left:212px;top:16px;width:560px;height:44px"><span>Navigation · top</span><span class="hd">⠿</span></div>
+    <div class="reg" style="left:788px;top:16px;width:196px;height:44px"><span>Search, You</span><span class="hd">⠿</span></div>
+    <div class="reg" style="left:16px;top:76px;width:968px;height:230px;background:rgba(121,85,255,.16)"><span>Hero · billboard</span><span class="hd">⠿</span></div>
+    <div class="reg" style="left:16px;top:322px;width:968px;height:130px"><span>Shelf · Jump back in · 5 cards</span><span class="hd">⠿</span></div>
+    <div class="reg" style="left:16px;top:468px;width:968px;height:130px;border-style:solid;border-color:#e8eaf0;background:rgba(232,234,240,.1);transform:translateY(-10px);box-shadow:0 18px 40px rgba(0,0,0,.6)"><span>Shelf · On TV now · picked up</span><span class="hd" style="background:#e8eaf0;color:#0f1115">⠿</span></div>
+    <div class="reg" style="left:16px;top:590px;width:968px;height:40px;border-color:#3ad29f;background:rgba(58,210,159,.08);color:#8fe8c8"><span>Drop here · after Jump back in</span></div>
+    <div style="position:absolute;left:16px;bottom:-8px;font-size:13px"></div>
+  </div>
+  <div style="position:absolute;left:24px;top:740px;width:1000px;display:flex;gap:12px;align-items:center;font-size:14px;color:#a9afbd">
+    <span class="btn" style="font-weight:700">OK</span> pick up
+    <span class="btn" style="font-weight:700">▲ ▼ ◀ ▶</span> move
+    <span class="btn" style="font-weight:700">OK</span> drop
+    <span class="btn" style="font-weight:700">Back</span> cancel
+    <span style="margin-left:12px">Moves are announced to screen readers. Drag works with a pointer or touch.</span>
+  </div>
+  <div style="position:absolute;left:24px;top:800px;width:1000px;display:flex;gap:16px">
+    <sc-for list="{{frames}}" as="f" hint-placeholder-count="4"><div style="flex:none;width:{{f.w}}px;height:70px;border-radius:8px;background:#171a21;box-shadow:0 0 0 1px rgba(232,234,240,.14);display:flex;align-items:center;justify-content:center;font-size:12px;color:#a9afbd">{{f.t}}</div></sc-for>
+  </div>
+
+  <div style="position:absolute;right:24px;top:84px;width:360px;bottom:24px;border-radius:14px;background:#171a21;padding:16px;box-sizing:border-box;overflow:hidden">
+    <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9174ff">Selected</div>
+    <div style="font-size:20px;font-weight:800;margin:6px 0 14px">Shelf · On TV now</div>
+    <div class="row"><span style="flex:1">Show</span><span style="color:#3ad29f">On</span></div>
+    <div class="row"><span style="flex:1">Row style</span><span style="color:#a9afbd">Wide cards</span></div>
+    <div class="row"><span style="flex:1">Cards shown</span><span style="color:#a9afbd">8</span></div>
+    <div class="row"><span style="flex:1">Card size</span><span style="color:#a9afbd">Medium</span></div>
+    <div class="row"><span style="flex:1">Pin to top</span><span style="color:#a9afbd">Off</span></div>
+    <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#a9afbd;margin:18px 0 8px">Shell</div>
+    <div class="row"><span style="flex:1">Navigation</span><span style="color:#a9afbd">Top · Left · Bottom · Hidden</span></div>
+    <div class="row"><span style="flex:1">Search</span><span style="color:#a9afbd">In the bar</span></div>
+    <div class="row"><span style="flex:1">Server name</span><span style="color:#9174ff">Edit name…</span></div>
+    <div class="row"><span style="flex:1">Controls row (Dock)</span><span style="color:#a9afbd">Bottom</span></div>
+    <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#a9afbd;margin:18px 0 8px">Add</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px"><div class="btn">+ Widget</div><div class="btn">+ Shelf</div><div class="btn">+ Banner</div><div class="btn">+ Library tile</div></div>
+    <div style="font-size:12px;color:#848b99;margin-top:18px;line-height:1.5">Settings and You can't be hidden. Reset puts everything back to the Lumen look.</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { frames: [{ t: 'TV', w: 124 }, { t: 'Desktop', w: 110 }, { t: 'Tablet', w: 90 }, { t: 'Phone', w: 50 }, { t: 'Headset', w: 124 }] };
+  }
+}
+</script>
+</body>
+</html>

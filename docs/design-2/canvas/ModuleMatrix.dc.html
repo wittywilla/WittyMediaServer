@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Module coverage</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap">
+</head>
+<body>
+<x-dc>
+<helmet><style>body{margin:0}</style></helmet>
+<div style="width:2000px;box-sizing:border-box;padding:40px 48px;background:#f4f4f8;font-family:Inter,system-ui,sans-serif;color:#1b1b22">
+  <div style="font-size:38px;font-weight:800;letter-spacing:-1px">Every module, every function, where it is drawn</div>
+  <div style="font-size:17px;color:#4a4a58;margin-top:6px;max-width:1500px">A look is complete for a module when each function below has a place in it. "Native" means the app draws it itself and only takes the look's tokens. Module settings pages stay hand-built.</div>
+  <div style="margin-top:22px;border-radius:12px;overflow:hidden;box-shadow:0 0 0 1px rgba(0,0,0,.1);background:#fff">
+    <div style="display:grid;grid-template-columns:230px 1fr 380px;font-size:13px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;background:#e6e6f0;padding:12px 18px"><span>Module</span><span>Functions that need a place in the UI</span><span>Where it is drawn</span></div>
+    <sc-for list="{{rows}}" as="r" hint-placeholder-count="14">
+      <div style="display:grid;grid-template-columns:230px 1fr 380px;font-size:14px;line-height:1.45;padding:12px 18px;border-top:1px solid rgba(0,0,0,.08);{{r.st}}"><b>{{r.m}}</b><span>{{r.f}}</span><span style="color:#2a2a3a">{{r.w}}</span></div>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":2000,"height":1500}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const r = [
+      ['WittyPlay', 'Games library and shelves, game page, consoles and cores, controllers, save states and rewind, netplay rooms, touch controls, per-profile game settings', 'Games screen, WittyPlay Online page (all screens), phone controller, Settings pages (hand-built)'],
+      ['WittyCouch, WittyCouchHost, WittyRigs', 'Game PCs list, PIN pairing, wake a PC, list and start or quit a PC game, stream in the page or hand off to Moonlight, host a PC game from the server', 'Play on… screen, Games screen (PC games shelf), Settings, Game PCs (hand-built)'],
+      ['WittyDVD', 'Disc menus with highlighted buttons, titles, chapters, angles, audio and subtitles, stills, resume points, parental blocks, on-screen remote, "Why this title"', 'Player (DVD look), disc menu screen, WittyRemote, item page disc actions'],
+      ['WittyBluray', 'Pop-up and interactive menus, chapters, 4K, HDR10, Dolby Vision, 3D flags, encrypted-disc message', 'Player (Blu-ray look), disc menu screen, WittyRemote, plain refusal message'],
+      ['WittyDisc', 'Reads disc images (no UI of its own); disc shelves with ranking of the main feature', 'Library shelves of discs, item page'],
+      ['WittyCD', 'Gapless audio CD playback, tracks, indexes, CD-TEXT, CD+G, import to library, eject', 'Audio CD screen, now playing, disc shelf'],
+      ['WittyTuner and WittyTV', 'Guide, sets, favourites, reminders, record and series record, recordings, watch banner, mini guide, audio and subtitles, pause buffer, channel logos and colours, tuner and IPTV sources, channel editor', 'WittyTV guide and its looks, player, recordings, sets editor, Home On TV now row, Settings, Channels and tuners (hand-built)'],
+      ['WittyEbook, WittyPDF, WittyComics', 'Page, spread and scroll, fit modes, contents, thumbnails, search, typography, night modes, resume, reading aloud, manga direction', 'Reader screen, comics screen, library shelves'],
+      ['WittyInk', 'Highlights in named colours, notes panel, citations, Markdown export, pen with pressure, undo and redo', 'Reader toolbars and side panel'],
+      ['WittyReader (app)', 'Own library, add books, continue reading, search, filters, no server', 'Same reader screens inside the app; the look and theme apply the same way'],
+      ['WittyPhotos', 'Timeline, map, albums, viewer, EXIF facts, sharing', 'Photos screen, viewer, Sharing settings (hand-built)'],
+      ['WittyStats', 'Arrangeable machine, playing now, library and history widgets as charts or tables', 'Statistics screen with the dashboard widgets'],
+      ['WittyVisualizer', 'Effects behind the music player, full screen, presets', 'Visualizer screen, now playing'],
+      ['WittyIntegratedFileBrowser', 'Places, path bar, filter, multi-select, disc folders marked, container permission help', 'Folder browser screen (first run and Libraries)'],
+      ['WittyMediaPlayer (app)', 'Desktop player for files, DVD and Blu-ray with real menus, "Why this title", no server', 'Player and WittyRemote, the same on every platform it ships on'],
+      ['WittyMediaRemoteMedia', 'Not started on purpose: a design, no program, no UI', 'Nothing to draw yet']
+    ].map((a, i) => ({ m: a[0], f: a[1], w: a[2], st: i === 15 ? 'background:#f6efe0;' : (i % 2 ? 'background:#fafafe;' : '') }));
+    return { rows: r };
+  }
+}
+</script>
+</body>
+</html>

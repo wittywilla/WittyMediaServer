@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { HelpLink } from '../../components/HelpLink'
 import { Link } from 'react-router-dom'
 import { api, type Session } from '../../api'
-import { IconCheck, IconClose, IconInfo, IconRefresh, IconShield, IconTrash } from '../../icons'
+import { IconCheck, IconClose, IconInfo, IconRefresh, IconShield } from '../../icons'
 import { toast } from '../../state'
 import QrCode from './QrCode'
 import { LoadError } from '../../components/common'
@@ -16,6 +16,9 @@ import LegalNote from '../../components/LegalNote'
 import { ask } from '../../ui/Overlay'
 import { Segmented } from '../../ui/Choice'
 import PeerToPeer from './PeerToPeer'
+import SpecPage from '../../spec/SpecPage'
+import { handledIds } from '../../spec/model'
+import { advancedSpec, chooserSpec, limitsSpec, outsideSpec, protectionSpec, type Choice } from '../../spec/specs/remoteAccess'
 
 // Settings → Remote Access: who can use the server, and from where. It says
 // plainly whether that works, from where and how; guides the owner through one
@@ -48,7 +51,6 @@ type Step = { name: string; state: 'ok' | 'warn' | 'fail'; detail: string }
 type Save = (c: Partial<Settings>, d?: string) => Promise<boolean>
 
 const whereLabel: Record<string, string> = { machine: 'on this computer', home: 'on your home network', vpn: 'through your VPN', internet: 'from the internet' }
-const shortWhere: Record<string, string> = { machine: 'This computer', home: 'At home', vpn: 'VPN', internet: 'Internet' }
 
 function viaLabel(where: string, via: string) {
   if (via === 'p2p') return 'peer to peer, encrypted to this server'
@@ -82,7 +84,6 @@ function Badge({ state }: { state: string }) {
 }
 
 // Who each choice lets in. The rest of the page follows the one chosen.
-type Choice = 'home' | 'private' | 'internet'
 const PRIVATE: Settings['method'][] = ['tailscale', 'netbird']
 const INTERNET: Settings['method'][] = ['router', 'proxy', 'vps']
 
@@ -94,11 +95,6 @@ function choiceOf(st: Status): Choice {
   return s.httpsMode !== 'off' || s.publicUrl || s.trustedProxies ? 'internet' : 'private'
 }
 
-const CHOICES: { id: Choice; name: string; tag?: string; who: string }[] = [
-  { id: 'home', name: 'Home network only', tag: 'Safest', who: 'Only devices on your Wi-Fi or cable at home. A phone on mobile data can’t connect.' },
-  { id: 'private', name: 'Home and away, through a private network', tag: 'Recommended', who: 'Devices at home, and your own devices anywhere once they’ve joined your private network with Tailscale or NetBird. Nothing is opened on your router, so the internet can’t see this server.' },
-  { id: 'internet', name: 'Home and away, through the internet', who: 'Devices at home, and anyone anywhere who has the address: they reach the sign-in page. Through a port on your router, a reverse proxy you already run, or a rented server, always encrypted with HTTPS.' },
-]
 
 export default function RemoteAccess() {
   const [st, setSt] = useState<Status | null>(null)
@@ -205,12 +201,13 @@ function StatusCard({ st, save, busy }: { st: Status; save: Save; busy: boolean 
 
 // ------------------------------------------------------------------ choosing who can connect
 
-// Cards that choose with a click, Enter or the space bar, never just by passing
-// over them: arrowing through to reach what's below mustn't let the internet in.
+// Rows that choose with a click, Enter or the space bar, never just by passing over them: arrowing through to
+// reach what's below mustn't let the internet in.
 function Chooser({ st, choice, save, busy }: { st: Status; choice: Choice; save: Save; busy: boolean }) {
   const s = st.settings
-  const box = useRef<HTMLDivElement | null>(null)
   const away = !['machine', 'home'].includes(st.you.where)
+  const page = useMemo(() => chooserSpec(choice, st.forced, busy), [choice, st.forced, busy])
+  const handled = useMemo(() => handledIds(page), [page])
   const choose = async (c: Choice) => {
     if (c === choice || busy) return
     if (c === 'home') {
@@ -227,33 +224,11 @@ function Chooser({ st, choice, save, busy }: { st: Status; choice: Choice; save:
     if (choice === 'home' && !await ask({ title: 'Let devices away from home in, through the internet?', body: 'This takes effect at once: as soon as a way in is set up below, anyone with the address can reach the sign-in page. Before you set one up, give every adult account a long, unique password and turn on two-factor sign-in.', confirm: 'Choose it' })) return
     save({ enabled: true, method: INTERNET.includes(s.method) ? s.method : 'router' }, 'Home and away, through the internet')
   }
-  const cards = () => Array.from(box.current?.querySelectorAll<HTMLButtonElement>('button[role=radio]:not(:disabled)') || [])
-  const onKey = (e: KeyboardEvent) => {
-    const all = cards()
-    const at = all.indexOf(document.activeElement as HTMLButtonElement)
-    const to = ({ ArrowDown: at + 1, ArrowRight: at + 1, ArrowUp: at - 1, ArrowLeft: at - 1, Home: 0, End: all.length - 1 } as Record<string, number>)[e.key]
-    if (at < 0 || to === undefined || !all[to]) return
-    e.preventDefault()
-    all[to].focus()
-  }
   return (
     <Section title="Who can connect" desc="Choose one. You can change your mind at any time, and only what your choice needs is shown below it.">
-      <div ref={box} className="rem-methods" role="radiogroup" aria-label="Who can connect" onKeyDown={onKey}>
-        {CHOICES.map((c) => {
-          const locked = c.id === 'home' && st.forced
-          return (
-            <button key={c.id} type="button" role="radio" aria-checked={choice === c.id} tabIndex={choice === c.id ? 0 : -1} disabled={locked}
-              className={'rem-method' + (choice === c.id ? ' on' : '') + (locked ? ' disabled' : '')} onClick={() => choose(c.id)}>
-              <span className="rem-mark" aria-hidden="true">{choice === c.id && <IconCheck size={14} />}</span>
-              <span><b>{c.name}{c.tag && <span className="set-badge">{c.tag}</span>}</b><small>{c.who}</small>
-                {locked && <small><b>Can’t be chosen here:</b> the server’s configuration (the remoteAccess or publicUrl setting) lets devices away from home in.</small>}</span>
-            </button>
-          )
-        })}
-        <div className="rem-method disabled" role="radio" aria-checked={false} aria-disabled="true">
-          <span className="rem-mark" aria-hidden="true" />
-          <span><b>Home and away, through WittyRelay<span className="set-badge">Coming later</span></b><small>A hosted relay that would connect you without any setup. It doesn’t exist yet: it’s planned as a free service, and nothing on this server uses it.</small></span>
-        </div>
+      <SpecPage embedded page={page} handled={handled} onAction={(id) => void choose(id.slice(7) as Choice)} />
+      <div className="rem-method disabled" role="note">
+        <span><b>Home and away, through WittyRelay<span className="set-badge">Coming later</span></b><small>A hosted relay that would connect you without any setup. It doesn’t exist yet: it’s planned as a free service, and nothing on this server uses it.</small></span>
       </div>
       {choice === 'home' && <HomeOnly />}
       {choice === 'private' && <PrivateSteps st={st} save={save} busy={busy} />}
@@ -591,20 +566,10 @@ function OutsideTest({ st, reload }: { st: Status; reload: () => Promise<void> }
 // ------------------------------------------------------------------ limits
 
 function Limits({ s, save, busy }: { s: Settings; save: Save; busy: boolean }) {
+  const page = useMemo(() => limitsSpec(s.maxHeight, s.maxBitrate), [s.maxHeight, s.maxBitrate])
   return (
     <Section title="Limits for viewers away from home" desc="Home internet connections are often slow when sending. These apply to each stream of anyone away from home, including over a VPN. Playback at home is never affected.">
-      <Row label="Highest resolution" desc="Larger files are converted first, which takes work from this computer.">
-        <select className="select" disabled={busy} value={s.maxHeight} onChange={(e) => save({ maxHeight: Number(e.target.value) }, 'Limit saved')}>
-          <option value={0}>No limit</option>
-          <option value={2160}>4K</option><option value={1080}>1080p</option><option value={720}>720p</option><option value={480}>480p</option><option value={360}>360p</option>
-        </select>
-      </Row>
-      <Row label="Most data per stream" desc="Video and sound together. Keep it below your connection's upload speed, divided by how many people may watch at once.">
-        <select className="select" disabled={busy} value={s.maxBitrate} onChange={(e) => save({ maxBitrate: e.target.value }, 'Limit saved')}>
-          <option value="">No limit</option>
-          {['20M', '12M', '8M', '6M', '4M', '3M', '2M', '1M'].map((r) => <option key={r} value={r}>{r.replace('M', '')} Mb/s</option>)}
-        </select>
-      </Row>
+      <SpecPage embedded page={page} onField={(id, v) => { if (!busy) save(id === 'maxHeight' ? { maxHeight: Number(v) } : { maxBitrate: String(v) }, 'Limit saved') }} />
     </Section>
   )
 }
@@ -624,25 +589,11 @@ function People() {
     if (!await ask({ title: `Sign ${v.userName} out on ${v.device || 'this device'}?`, body: 'They’d have to sign in again.', confirm: 'Sign out', danger: true })) return
     try { await api.del(`/sessions/${v.id}`); toast('Signed out'); load() } catch (e: any) { toast(e.message) }
   }
+  const page = useMemo(() => outsideSpec(away, viaLabel, ago), [away]) // eslint-disable-line react-hooks/exhaustive-deps
+  const handled = useMemo(() => handledIds(page), [page])
   return (
     <Section title="People connected from outside" desc={<>Devices that last used this server from outside your home. Your own devices and sign-ins are under <Link to="/settings/security">Sign-in &amp; security</Link>.</>}>
-      {list && away.length === 0 && <p className="muted">Nobody yet.</p>}
-      {away.length > 0 && (
-        <ul className="rem-sessions">
-          {away.map((v) => (
-            <li key={v.id}>
-              <div>
-                <b>{v.userName}</b> · {v.device || 'Unknown device'}
-                {v.streaming && <span className="set-pill live">Streaming</span>}
-                {v.current && <span className="set-badge">This device</span>}
-                {v.plainAway && <span className="set-badge rem-plain-badge">Signed in unencrypted</span>}
-                <small>{shortWhere[v.where]} · {viaLabel(v.where, v.via)} · {v.ip} · {ago(v.lastSeen)}</small>
-              </div>
-              {!v.current && <button type="button" className="btn sm ghost danger-hover" onClick={() => end(v)} aria-label={`Sign ${v.userName} out on ${v.device}`}><IconTrash /> Sign out</button>}
-            </li>
-          ))}
-        </ul>
-      )}
+      {list && <SpecPage embedded page={page} handled={handled} onAction={(id) => { const v = away.find((x) => x.id === id.slice(4)); if (v) void end(v) }} />}
     </Section>
   )
 }
@@ -653,31 +604,13 @@ function Protection({ st, reload }: { st: Status; reload: () => Promise<void> })
   const clear = async () => {
     try { await api.del('/remote/lockouts'); toast('Everyone may try again'); await reload() } catch (e: any) { toast(e.message) }
   }
-  const lockText = (l: Status['lockouts'][number]) => {
-    const until = new Date(l.until * 1000).toLocaleTimeString()
-    if (l.kind === 'address') return `The address ${l.addr} can't sign in until ${until}, after ${l.fails} wrong tries.`
-    if (l.kind === 'account') return `“${l.name}” can't sign in from outside your home until ${until}, after ${l.fails} wrong tries. It still works at home.`
-    return `“${l.name}” from ${l.addr} can't try again until ${until}.`
-  }
-  const weak = st.weakAccounts.filter((w) => !w.unknown)
-  const unknown = st.weakAccounts.filter((w) => w.unknown)
+  const page = protectionSpec({
+    failures: st.failures, lockouts: st.lockouts, weak: st.weakAccounts.filter((w) => !w.unknown).map((w) => w.name), unknown: st.weakAccounts.filter((w) => w.unknown).map((w) => w.name),
+    adminsWithout2fa: st.adminsWithout2fa, fmtTime: (t) => new Date(t * 1000).toLocaleTimeString(),
+  })
   return (
     <Section title="Sign-in protection" desc="Always on. Repeated wrong passwords make whoever is guessing wait longer and longer. Nobody on the internet can lock you out at home.">
-      <Row label="Wrong sign-ins in the last day"><span className="mod-ver">{st.failures}</span></Row>
-      {st.lockouts.length > 0 && (
-        <>
-          <ul className="rem-notices">{st.lockouts.map((l, i) => <li key={i} className="info"><span className="rem-notice-icon" aria-hidden="true"><IconShield size={18} /></span><span>{lockText(l)}</span></li>)}</ul>
-          <div className="rem-actions"><button type="button" className="btn sm" onClick={clear}>Let everyone try again</button></div>
-        </>
-      )}
-      <Row label="Passwords" desc="How strong they are is only known when someone signs in with them, and they are never stored.">
-        <span className={weak.length ? 'rem-text warn' : 'rem-text'}>
-          {weak.length > 0 ? `Weak: ${weak.map((w) => w.name).join(', ')}` : unknown.length > 0 ? `Not checked yet: ${unknown.map((w) => w.name).join(', ')}` : 'All fine'}
-        </span>
-      </Row>
-      <Row label="Two-factor sign-in" desc="A code from an app on your phone, on top of your password. Each adult turns it on for themselves.">
-        <Link className="btn sm" to="/settings/security">{st.adminsWithout2fa > 0 ? 'Set it up' : 'On for administrators'}</Link>
-      </Row>
+      <SpecPage embedded page={page} handled={handledIds(page)} onAction={(id) => { if (id === 'clear') void clear() }} />
     </Section>
   )
 }
@@ -690,20 +623,15 @@ function Advanced({ s, save, busy }: { s: Settings; save: Save; busy: boolean })
   const [away, setAway] = useState(s.awayNets)
   const [proxies, setProxies] = useState(s.trustedProxies)
   const dirty = url !== s.publicUrl || home !== s.homeNets || away !== s.awayNets || proxies !== s.trustedProxies
+  const page = advancedSpec({ publicUrl: url, trustedProxies: proxies, homeNets: home, awayNets: away }, dirty, busy)
   return (
     <details className="set-card rem-advanced">
       <summary><h2>Advanced</h2></summary>
-      <div className="set-form">
-        <label>Outside address<input className="input" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://media.example.com" autoCapitalize="none" spellCheck={false} />
-          <small>Where visitors from the internet are sent when they use the unencrypted port.</small></label>
-        <label>Trusted reverse proxies<input className="input mono" value={proxies} onChange={(e) => setProxies(e.target.value)} placeholder="127.0.0.1, 10.0.0.2" spellCheck={false} />
-          <small>Addresses or networks, separated by commas. X-Forwarded-For is believed from these only, and from nobody by default.</small></label>
-        <label>Also count as my home network<input className="input mono" value={home} onChange={(e) => setHome(e.target.value)} placeholder="203.0.113.0/24" spellCheck={false} />
-          <small>Private addresses already count. Devices here can see profile names and sign in without a password where allowed, so list only what you control.</small></label>
-        <label>Count as away from home<input className="input mono" value={away} onChange={(e) => setAway(e.target.value)} placeholder="10.8.0.0/24" spellCheck={false} />
-          <small>A VPN of your own that uses private addresses, for example WireGuard. Tailscale and NetBird are recognised by themselves.</small></label>
-        <div className="rem-actions"><button type="button" className="btn primary sm" disabled={busy || !dirty} onClick={() => save({ publicUrl: url, homeNets: home, awayNets: away, trustedProxies: proxies }, 'Saved')}>Save</button></div>
-      </div>
+      <form onSubmit={(e) => { e.preventDefault(); if (!busy && dirty) save({ publicUrl: url, homeNets: home, awayNets: away, trustedProxies: proxies }, 'Saved') }}>
+        <SpecPage embedded page={page} handled={handledIds(page)} onField={(id, v) => ({ publicUrl: setUrl, homeNets: setHome, awayNets: setAway, trustedProxies: setProxies } as Record<string, (x: string) => void>)[id]?.(String(v))}
+          onAction={() => save({ publicUrl: url, homeNets: home, awayNets: away, trustedProxies: proxies }, 'Saved')} />
+        <button type="submit" hidden tabIndex={-1} aria-hidden="true" />
+      </form>
     </details>
   )
 }

@@ -130,6 +130,9 @@ type Experience struct {
 	// Placements are the shell's regions as the experience has them; the administrator's
 	// and the profile's placements are laid over them (Placements).
 	Placements map[string]Placement `json:"placements,omitempty"`
+	// Wire is the layout as a picker draws it on each form factor (wire.go): worked out from the
+	// rest of the experience, never written in its file.
+	Wire map[string]Wire `json:"wire"`
 }
 
 // PageStyle is what an experience changes about pages. Renderers needn't know it: the
@@ -223,6 +226,10 @@ func loadExperiences() []Experience {
 		dec.DisallowUnknownFields()
 		if err := dec.Decode(&e); err != nil {
 			panic("sdui: experiences/" + f.Name() + ": " + err.Error())
+		}
+		e.Wire = map[string]Wire{}
+		for _, ff := range FormFactors {
+			e.Wire[ff] = WireFor(&e, ff)
 		}
 		out = append(out, e)
 	}

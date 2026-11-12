@@ -1,0 +1,20 @@
+{"id": 9, "name": "Harbour Watch", "first_air_date": "2010-01-01", "overview": "Two neighbours run a harbour.", "status": "Ended",
+ "genres": [{"id": 18, "name": "Drama"}], "networks": [{"id": 4, "name": "Coast TV"}],
+ "created_by": [{"id": 302, "credit_id": "cb1", "name": "Cleo Quill", "gender": 1, "profile_path": "/cleo.jpg"}],
+ "seasons": [{"season_number": 1, "poster_path": "/s1.jpg", "episode_count": 2}],
+ "aggregate_credits": {
+  "cast": [
+   {"adult": false, "gender": 1, "id": 101, "known_for_department": "Acting", "name": "Ana Lima", "profile_path": "/ana.jpg",
+    "roles": [{"credit_id": "r1", "character": "Harbourmaster", "episode_count": 2}], "total_episode_count": 2, "order": 0},
+   {"adult": false, "gender": 2, "id": 104, "known_for_department": "Acting", "name": "Jon Reef", "profile_path": null,
+    "roles": [{"credit_id": "r2", "character": "Diver", "episode_count": 2}, {"credit_id": "r3", "character": "Diver's Twin", "episode_count": 1}], "total_episode_count": 2, "order": 1}
+  ],
+  "crew": [
+   {"adult": false, "gender": 1, "id": 301, "name": "Bea Stern", "profile_path": null, "jobs": [{"credit_id": "j1", "job": "Director", "episode_count": 1}], "department": "Directing", "total_episode_count": 1}
+  ]},
+ "credits": {
+  "cast": [],
+  "crew": [
+   {"adult": false, "gender": 2, "id": 501, "known_for_department": "Production", "name": "Max Funds", "profile_path": null, "credit_id": "p1", "department": "Production", "job": "Executive Producer"}
+  ]}
+}

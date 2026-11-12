@@ -61,7 +61,9 @@ func RunSandboxed(args []string) int {
 		fmt.Fprintln(os.Stderr, "unreadable limits")
 		return 2
 	}
-	if mode&SandboxStrict != 0 {
+	// A module from another publisher (strict) runs here only through an administrator's
+	// weak-sandbox override, and only inside the profile: with no sandbox it doesn't start.
+	if mode&SandboxStrict != 0 && !profileWorks() {
 		fmt.Fprintln(os.Stderr, "this system can't box in a module from another publisher")
 		return 1
 	}
@@ -96,5 +98,9 @@ func confinement(launcher string) SandboxInfo {
 		return unconfined()
 	}
 	return SandboxInfo{Level: SandboxLimited, Title: "Modules run in Apple's sandbox here",
-		Words: "A module's helper can't change files outside its own folder, can't reach the network or start other programs unless it needs to, and can't signal programs outside its own sandbox. It can still read anything this server's account can read. WittyPlay's helper runs outside it, since a Mac can't start one sandbox inside another, and each game it runs gets a stricter sandbox of its own. Modules from other publishers are refused on a Mac for now."}
+		Words: "A module's helper can't change files outside its own folder, can't reach the network or start other programs unless it needs to, and can't signal programs outside its own sandbox. It can still read anything this server's account can read. WittyPlay's helper runs outside it, since a Mac can't start one sandbox inside another, and each game it runs gets a stricter sandbox of its own. A module from another publisher runs here only if an administrator overrides that, and only inside this sandbox: if it won't start in it, it doesn't start."}
 }
+
+// weakSandboxForOthers: Apple's sandbox works here, so another publisher's module may run inside
+// it, with an administrator's weak-sandbox override (override.go).
+func weakSandboxForOthers() bool { return profileWorks() }

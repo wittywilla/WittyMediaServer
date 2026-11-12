@@ -55,6 +55,16 @@ func writeStoreErr(w http.ResponseWriter, name string, err error) {
 		writeJSON(w, 409, map[string]any{"error": need.Warning, "code": "confirm", "warning": need.Warning})
 		return
 	}
+	var ov *modmgr.ErrNeedsOverride
+	if errors.As(err, &ov) {
+		writeJSON(w, 409, map[string]any{"error": ov.Error(), "code": "needs-override", "needsOverride": ov})
+		return
+	}
+	var bad *modmgr.ErrBadOverride
+	if errors.As(err, &bad) {
+		writeJSON(w, 400, map[string]any{"error": bad.Reason, "code": "bad-override", "needsOverride": bad.Needs})
+		return
+	}
 	var key *modmgr.NeedKey
 	if errors.As(err, &key) {
 		f := modmgr.Failure{Kind: modmgr.FailSignature, Title: "This store needs a key", Message: err.Error(), Try: []string{"Ask whoever runs the store for their public key, and paste it in."}}
@@ -399,8 +409,9 @@ func (s *Server) handleStoreFork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var b struct {
-		Confirm     bool   `json:"confirm"`
-		Fingerprint string `json:"fingerprint"` // of the key the admin was shown
+		Confirm     bool          `json:"confirm"`
+		Fingerprint string        `json:"fingerprint"` // of the key the admin was shown
+		Override    *overrideBody `json:"override"`    // the weak-sandbox go-ahead, on a Mac
 		moduleSecrets
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(&b); err != nil && !errors.Is(err, io.EOF) {
@@ -410,7 +421,7 @@ func (s *Server) handleStoreFork(w http.ResponseWriter, r *http.Request) {
 	if b.Confirm && !s.moduleGate(w, r, b.moduleSecrets, r.PathValue("module")) {
 		return
 	}
-	if err := s.ModuleStores.UseFork(r.PathValue("id"), r.PathValue("module"), userFrom(r).Name, b.Confirm, b.Fingerprint); err != nil {
+	if err := s.ModuleStores.UseFork(r.PathValue("id"), r.PathValue("module"), userFrom(r).Name, b.Confirm, b.Fingerprint, b.Override.accept(userFrom(r).Name)); err != nil {
 		writeStoreErr(w, "That module", err)
 		return
 	}

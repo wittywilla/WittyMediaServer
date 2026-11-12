@@ -16,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"time"
 
@@ -207,10 +208,28 @@ func (m *Manager) InstallVersion(id, ver string, confirm bool) error {
 	if e == nil {
 		return ErrUnknown
 	}
-	return m.installVersionLocked(id, e, ver, confirm)
+	return m.installVersionLocked(id, e, ver, confirm, nil)
 }
 
-func (m *Manager) installVersionLocked(id string, e *entry, ver string, confirm bool) error {
+// InstallVersionWith is InstallVersion with an administrator's go-ahead past what the server would
+// refuse (override.go). A download held for that go-ahead is installed from what was held.
+func (m *Manager) InstallVersionWith(id, ver string, confirm bool, accept *OverrideAccept) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	e := m.mods[id]
+	if e == nil {
+		return ErrUnknown
+	}
+	if h := m.held[e.pending]; h != nil && h.version == ver {
+		if accept == nil {
+			return h.needs
+		}
+		return m.installHeldLocked(h, accept)
+	}
+	return m.installVersionLocked(id, e, ver, confirm, accept)
+}
+
+func (m *Manager) installVersionLocked(id string, e *entry, ver string, confirm bool, accept *OverrideAccept) error {
 	switch {
 	case !updatable(e.builtin):
 		return errors.New(e.builtin.Name + " is built into the server and updates with it")
@@ -245,8 +264,23 @@ func (m *Manager) installVersionLocked(id string, e *entry, ver string, confirm 
 		return errors.New("that version isn't known; check for updates first")
 	}
 	refused, warning := m.judge(e, man)
+	var preNeeds []string
+	if refused != "" && rangeOnly(man, m.cfg.Server) {
+		// Outside its range with an API this server speaks: overridable, if nothing else stops it.
+		c := *man
+		c.MinServer, c.MaxServer = "0.0.0", "999.x"
+		if refused, warning = m.judge(e, &c); refused == "" {
+			preNeeds = []string{OverrideOutOfRange}
+		}
+	}
 	if refused != "" {
 		return errors.New(refused)
+	}
+	if len(preNeeds) > 0 && localErr != nil {
+		// Known before any download: asked for now.
+		if err := accept.covers(needsOverride(ver, preNeeds, man), id, man); err != nil {
+			return err
+		}
 	}
 	if warning != "" && !confirm {
 		return &ErrNeedsConfirm{Warning: warning}
@@ -269,11 +303,20 @@ func (m *Manager) installVersionLocked(id string, e *entry, ver string, confirm 
 	logging.Go("module install", func() {
 		ctx, cancel := context.WithTimeout(logging.WithSession(context.Background(), session), 30*time.Minute)
 		defer cancel()
-		err := m.install(ctx, id, e, &rel, older)
+		err := m.install(ctx, id, e, &rel, older, preNeeds, accept)
 		m.mu.Lock()
 		defer m.mu.Unlock()
 		e.busy = false
 		e.task = nil
+		var held *ErrNeedsOverride
+		if errors.As(err, &held) {
+			// Downloaded and checked, and held for an administrator's go-ahead: nothing failed.
+			task.Result(e.builtin.Name + " " + rel.version + " is downloaded, and needs your go-ahead to install.")
+			task.Finish(nil)
+			e.phase = PhaseNeedsOverride
+			log.Info("modules: held for an override", "kinds", strings.Join(held.Kinds, ","))
+			return
+		}
 		if err != nil {
 			task.Fail(sentence(err.Error()), "Nothing changed: the version in use is still in use. Settings, Modules has the details.", err)
 		} else {
@@ -309,7 +352,7 @@ var phaseWords = map[string]string{PhaseDownloading: "Downloading", PhaseVerifyi
 
 // install does the work. Until the state is saved, the version in use is
 // untouched, so a failure at any step, or the power going, changes nothing.
-func (m *Manager) install(ctx context.Context, id string, e *entry, r *release, older bool) error {
+func (m *Manager) install(ctx context.Context, id string, e *entry, r *release, older bool, preNeeds []string, accept *OverrideAccept) error {
 	// 1. The signed list and the manifest, fetched again rather than remembered.
 	m.setPhase(e, PhaseVerifying)
 	man, v, err := m.verifiedRelease(ctx, id, e, r)
@@ -317,7 +360,13 @@ func (m *Manager) install(ctx context.Context, id string, e *entry, r *release, 
 		return err
 	}
 	m.mu.Lock()
-	refused, _ := m.judge(e, man)
+	judged := man
+	if slices.Contains(preNeeds, OverrideOutOfRange) {
+		c := *man
+		c.MinServer, c.MaxServer = "0.0.0", "999.x"
+		judged = &c
+	}
+	refused, _ := m.judge(e, judged)
 	m.mu.Unlock()
 	if refused != "" {
 		return errors.New(refused)
@@ -373,13 +422,22 @@ func (m *Manager) install(ctx context.Context, id string, e *entry, r *release, 
 	if string(b) != string(v.manifest) {
 		return errors.New("the manifest in the package differs from the release's")
 	}
-	// 4b. Its SDUI fits this server's catalogue, and a version built for the API that
-	// makes SDUI part of a module has one.
-	m.mu.Lock()
-	checks := m.cfg.UIChecks
-	m.mu.Unlock()
-	if _, err := readUI(stage, man, checks); err != nil {
-		return err
+	// 4b. Its SDUI fits this server's catalogue, a version built for the API that makes SDUI
+	// part of a module has one, and it doesn't say it is unfinished; or an administrator says go
+	// ahead regardless. A version that needs that and hasn't got it is held, checked, for them.
+	needs := append(slices.Clone(preNeeds), m.stagedNeeds(stage, man, v.manifest)...)
+	var ov *Override
+	if len(needs) > 0 {
+		n := needsOverride(r.version, needs, man)
+		if accept.covers(n, id, man) != nil {
+			n.Pending = true
+			h := &held{token: newToken(), id: id, version: r.version, man: man, raw: v.manifest, needs: n, source: "catalogue", signed: true, older: older}
+			if err := m.holdStage(stage, h); err != nil {
+				return err
+			}
+			return n
+		}
+		ov = &Override{Kinds: n.Kinds, Version: r.version, By: accept.By, At: time.Now().Unix(), Source: "catalogue"}
 	}
 
 	// 5. It runs here, and it is what it says. A bundle runs in browsers, where the
@@ -428,7 +486,10 @@ func (m *Manager) install(ctx context.Context, id string, e *entry, r *release, 
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	prev := e.state.Override
+	e.state.Override = ov
 	if err := m.activate(id, e, man, older); err != nil {
+		e.state.Override = prev
 		_ = os.RemoveAll(dst)
 		return err
 	}
@@ -454,6 +515,14 @@ func (m *Manager) activate(id string, e *entry, man *wittymodule.Manifest, older
 		e.state.Previous = ""
 	}
 	e.state.Active, e.state.Blocked = man.Version, blocked
+	if o := e.state.Override; o != nil && o.Version != man.Version {
+		// A version that needed no go-ahead ends the override; one that did brought its own.
+		e.state.Override = nil
+	}
+	if e.state.Override != nil {
+		// Never updated by itself while overridden: kept on this version until someone chooses.
+		e.state.NoAuto, e.state.Pin = true, man.Version
+	}
 	e.state.Removed, e.state.Disabled = false, false
 	e.state.Chosen = wittymodule.Compare(man.Version, e.builtin.Version) <= 0 || older
 	if older {

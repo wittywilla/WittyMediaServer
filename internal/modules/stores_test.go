@@ -320,7 +320,7 @@ func TestChangingKeyIsARefusal(t *testing.T) {
 	if !strings.Contains(info.Problem.Detail, pinned) {
 		t.Fatalf("it should name the key that was agreed to: %q", info.Problem.Detail)
 	}
-	if err := w.s.UseFork(id, "wittydvd", "admin", true, ""); err == nil || !strings.Contains(err.Error(), "key") {
+	if err := w.s.UseFork(id, "wittydvd", "admin", true, "", forkAccept("wittydvd")); err == nil || !strings.Contains(err.Error(), "key") {
 		t.Fatalf("nothing should install from it now: %v", err)
 	}
 	// It stays refused however many times it looks, and survives a restart.
@@ -468,20 +468,20 @@ func TestForkRules(t *testing.T) {
 		t.Fatal(err)
 	}
 	id := w.s.List()[0].ID
-	if err := w.s.UseFork(id, "wittytuner", "admin", true, ""); err == nil || !strings.Contains(err.Error(), "encrypted") {
+	if err := w.s.UseFork(id, "wittytuner", "admin", true, "", forkAccept("wittytuner")); err == nil || !strings.Contains(err.Error(), "encrypted") {
 		t.Fatalf("WittyTuner can't be replaced: %v", err)
 	}
-	if err := w.s.UseFork(id, "bigclock", "admin", true, ""); err == nil || !strings.Contains(err.Error(), "development") {
+	if err := w.s.UseFork(id, "bigclock", "admin", true, "", forkAccept("bigclock")); err == nil || !strings.Contains(err.Error(), "development") {
 		t.Fatalf("a new module can't be installed: %v", err)
 	}
 	var need *ErrNeedsConfirm
-	if err := w.s.UseFork(id, "wittydvd", "admin", false, ""); !errors.As(err, &need) || !strings.Contains(need.Warning, "fingerprint") {
+	if err := w.s.UseFork(id, "wittydvd", "admin", false, "", forkAccept("wittydvd")); !errors.As(err, &need) || !strings.Contains(need.Warning, "fingerprint") {
 		t.Fatalf("a fork asks first: %v", err)
 	}
 	if s, _ := w.s.statusOf("wittydvd"); s.Source != nil {
 		t.Fatal("asking changed something")
 	}
-	if err := w.s.UseFork(id, "wittydvd", "admin", true, ""); err == nil {
+	if err := w.s.UseFork(id, "wittydvd", "admin", true, "", forkAccept("wittydvd")); err == nil {
 		t.Fatal("it has no version to use, so this should have said so")
 	}
 	if s, _ := w.s.statusOf("wittydvd"); s.Source != nil {
@@ -491,7 +491,7 @@ func TestForkRules(t *testing.T) {
 	if err := w.s.SetEnabled(id, false, "admin"); err != nil {
 		t.Fatal(err)
 	}
-	if err := w.s.UseFork(id, "wittydvd", "admin", true, ""); err == nil {
+	if err := w.s.UseFork(id, "wittydvd", "admin", true, "", forkAccept("wittydvd")); err == nil {
 		t.Fatal("a store that's off was used")
 	}
 	for _, it := range w.s.View().Items {
@@ -806,7 +806,7 @@ func TestAForkFromAStore(t *testing.T) {
 		t.Fatal("it never finished")
 		return Status{}
 	}
-	if err := w.s.UseFork(store, "wittycomics", "admin", true, ""); err != nil {
+	if err := w.s.UseFork(store, "wittycomics", "admin", true, "", forkAccept("wittycomics")); err != nil {
 		t.Fatal(err)
 	}
 	st := waitPhase()

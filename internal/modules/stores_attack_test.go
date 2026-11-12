@@ -65,7 +65,7 @@ func waitIdle(t *testing.T, w *storesWorld, id string) Status {
 func TestStoreForkObeysTheMachinesLock(t *testing.T) {
 	w, store, _, _ := aForkWorld(t)
 	t.Setenv(LockForks, "1")
-	err := w.s.UseFork(store, "wittycomics", "admin", true, "")
+	err := w.s.UseFork(store, "wittycomics", "admin", true, "", forkAccept("wittycomics"))
 	if err == nil || !strings.Contains(err.Error(), LockForks) {
 		t.Fatalf("a fork from a store past the machine's lock: %v", err)
 	}
@@ -83,7 +83,7 @@ func TestStoreForkObeysTheMachinesLock(t *testing.T) {
 func TestATurnedOffStoreInstallsNothingNew(t *testing.T) {
 	needForks(t)
 	w, store, publish, make1 := aForkWorld(t)
-	if err := w.s.UseFork(store, "wittycomics", "admin", true, ""); err != nil {
+	if err := w.s.UseFork(store, "wittycomics", "admin", true, "", forkAccept("wittycomics")); err != nil {
 		t.Fatal(err)
 	}
 	if st := waitIdle(t, w, "wittycomics"); st.Version != "0.9.0" {
@@ -252,13 +252,13 @@ func TestForkPinsTheKeyTheAdminSaw(t *testing.T) {
 		t.Fatalf("no fingerprint to show: %v", err)
 	}
 	seen := d.Fingerprint
-	if err := w.s.UseFork(store, "wittycomics", "admin", true, strings.Repeat("0", len(seen))); err == nil {
+	if err := w.s.UseFork(store, "wittycomics", "admin", true, strings.Repeat("0", len(seen)), forkAccept("wittycomics")); err == nil {
 		t.Fatal("a fork went ahead with a different key from the one the admin was shown")
 	}
 	if st, _ := w.s.statusOf("wittycomics"); st.Source != nil {
 		t.Fatalf("it took the store as a source: %+v", st.Source)
 	}
-	if err := w.s.UseFork(store, "wittycomics", "admin", true, seen); err != nil {
+	if err := w.s.UseFork(store, "wittycomics", "admin", true, seen, forkAccept("wittycomics")); err != nil {
 		t.Fatal(err)
 	}
 	waitIdle(t, w, "wittycomics")

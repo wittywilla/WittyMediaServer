@@ -480,6 +480,7 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("POST /api/update/installer", s.requireAdmin(s.handleUpdateInstaller))
 	m.Handle("GET /api/update/installer", s.requireAdmin(s.handleUpdateInstallerFile))
 	m.Handle("GET /api/modules", s.requireAdmin(s.handleModules))
+	s.moduleOverrideRoutes(m)
 	m.Handle("POST /api/modules/check", s.requireAdmin(s.handleModulesCheck))
 	m.Handle("POST /api/modules/{id}/install", s.requireAdmin(s.handleModuleInstall))
 	m.Handle("POST /api/modules/{id}/rollback", s.requireAdmin(s.handleModuleRollback))

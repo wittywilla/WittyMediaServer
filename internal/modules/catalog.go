@@ -297,7 +297,7 @@ func (m *Manager) AddModule(id string) error {
 	if e.rel == nil {
 		return &ErrNoVersion{Reason: m.whyNoVersion(e)}
 	}
-	return m.installVersionLocked(id, e, e.rel.version, true)
+	return m.installVersionLocked(id, e, e.rel.version, true, nil)
 }
 
 // whyNoVersion puts in words why there's nothing to install. Call with m.mu held.

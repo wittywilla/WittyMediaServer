@@ -5,8 +5,10 @@ package modules
 
 import (
 	"bytes"
+	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -37,32 +39,63 @@ func api4(ver string) []byte {
 	return manifestJSON(ver, "0.4.0", "0.5.x", SDUIAPI)
 }
 
-func TestAnAPI4ModuleWithoutSDUIIsRefused(t *testing.T) {
-	w := newWorld(t)
-	w.publish("0.4.0", api4("0.4.0"))
-	m := w.manager()
-	defer m.Close()
-	check(t, m)
-	s := installWait(t, m)
-	if s.Phase != PhaseFailed || !strings.Contains(s.Error, "sdui.json") {
-		t.Fatalf("installed without SDUI: %+v", s)
-	}
-	if uis, _ := m.UIs(); len(uis) != 0 {
-		t.Fatalf("UI from a refused version: %v", uis)
+// An API 4 version without its SDUI, or with one that doesn't fit, isn't installed by itself: it
+// is downloaded, checked and held for an administrator's "incomplete" override, which installs it
+// with nothing of its own in any app.
+func TestAnAPI4ModuleWithoutGoodSDUINeedsAnOverride(t *testing.T) {
+	bad := strings.Replace(photosUI, `"component":"Shelf"`, `"component":"Shelve"`, 1)
+	for name, extra := range map[string]map[string][]byte{"none": nil, "bad": {sdui.ModuleFile: []byte(bad)}} {
+		t.Run(name, func(t *testing.T) {
+			w := newWorld(t)
+			w.publishWith("0.4.0", api4("0.4.0"), extra)
+			m := w.manager()
+			defer m.Close()
+			check(t, m)
+			s := installWait(t, m)
+			if s.Phase != PhaseNeedsOverride || s.Pending == nil || s.Pending.Version != "0.4.0" || !slices.Equal(s.Pending.NeedsOverride.Kinds, []string{OverrideIncomplete}) {
+				t.Fatalf("not held for an override: %+v", s)
+			}
+			if s.Version == "0.4.0" {
+				t.Fatal("in use without a go-ahead")
+			}
+			// Without the go-ahead, or with the wrong one, nothing happens.
+			var need *ErrNeedsOverride
+			if err := m.InstallVersionWith("wittyphotos", "0.4.0", true, nil); !errors.As(err, &need) {
+				t.Fatalf("no go-ahead: %v", err)
+			}
+			if err := m.InstallVersionWith("wittyphotos", "0.4.0", true, &OverrideAccept{Accept: []string{OverrideUnsigned}, By: "owner"}); err == nil {
+				t.Fatal("a go-ahead for something else was taken")
+			}
+			if err := m.InstallVersionWith("wittyphotos", "0.4.0", true, &OverrideAccept{Accept: []string{OverrideIncomplete}, By: "owner"}); err != nil {
+				t.Fatal(err)
+			}
+			s = settled(t, m)
+			if s.Version != "0.4.0" || s.Override == nil || !slices.Equal(s.Override.Kinds, []string{OverrideIncomplete}) || s.Override.By != "owner" || s.Pin != "0.4.0" {
+				t.Fatalf("after the go-ahead: %+v", s)
+			}
+			if uis, _ := m.UIs(); len(uis) != 0 {
+				t.Fatalf("UI from a version whose SDUI didn't fit: %v", uis)
+			}
+			// It survives a restart, overridden.
+			m.Close()
+			m2 := w.manager()
+			defer m2.Close()
+			if s := one(t, m2); s.Version != "0.4.0" || s.Override == nil {
+				t.Fatalf("after a restart: %+v", s)
+			}
+		})
 	}
 }
 
-func TestAnAPI4ModuleWithBadSDUIIsRefused(t *testing.T) {
-	w := newWorld(t)
-	bad := strings.Replace(photosUI, `"component":"Shelf"`, `"component":"Shelve"`, 1)
-	w.publishWith("0.4.0", api4("0.4.0"), map[string][]byte{sdui.ModuleFile: []byte(bad)})
-	m := w.manager()
-	defer m.Close()
-	check(t, m)
-	s := installWait(t, m)
-	if s.Phase != PhaseFailed || !strings.Contains(s.Error, "catalogue") {
-		t.Fatalf("installed with a page that doesn't validate: %+v", s)
+func settled(t *testing.T, m *Manager) Status {
+	t.Helper()
+	for deadline := time.Now().Add(2 * time.Minute); time.Now().Before(deadline); time.Sleep(10 * time.Millisecond) {
+		if s := one(t, m); s.Phase == PhaseIdle || s.Phase == PhaseFailed {
+			return s
+		}
 	}
+	t.Fatal("never finished")
+	return Status{}
 }
 
 func TestAnAPI4ModuleWithSDUIIsUsedAndAnswersItsSources(t *testing.T) {

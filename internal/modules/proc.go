@@ -233,7 +233,7 @@ func (p *proc) startWithin(helloWait time.Duration) error {
 			return err
 		}
 	}
-	if p.strict && runtime.GOOS == "linux" && p.launch == "" {
+	if p.strict && (runtime.GOOS == "linux" || runtime.GOOS == "darwin") && p.launch == "" {
 		return errors.New("this server can't apply the limits a module from another publisher needs")
 	}
 	cmd := p.newCmd()

@@ -320,6 +320,13 @@ Go types are `sdui.Document`, `sdui.Node`, `sdui.Action`, `sdui.Focus`.
 
 Ignore an action type you don't know.
 
+A command's request is built from its catalogue entry: put the action's
+`item`, exactly as sent (`"5"`, `"show-5"`), in place of `{item}`,
+URL-escaped in the path and JSON-escaped in the body, where it always stands
+inside a string (`{"items":["{item}"]}`), so the body is JSON for any title.
+The routes take a show's `show-<n>` as they take a number: Watch later adds
+the show, `watched.set` and `watched.clear` mark every episode of it.
+
 ## Rules for renderers
 
 These are requirements. The conformance kit checks the ones that can be
@@ -436,7 +443,13 @@ own props as they are now. Never ask for the same cursor twice at once.
 - `props.image` is `{url, width, height, aspect, kind}`. Ask for `url` as it
   is: it already carries the width (`?w=`), chosen from
   `layout.imageWidths` as the smallest that covers the card at the device's
-  scale. Don't ask for another size.
+  scale. Don't ask for another size. A backdrop that spans the window (a
+  title's header, a hero's slide) is chosen for the window's width (the
+  `viewport` sent, else the breakpoint's usual window) at no more than two
+  pixels a point, whatever the device's scale: 960 on a 402-point phone.
+  Only a real backdrop is sent as one: a title that has only a poster gets
+  no `image` on a hero slide or banner and no `images.backdrop` in its
+  header, never its poster stretched to 16/9; draw it on the theme's colours.
 - Draw it in the card's aspect, cropped to fill (`cover`), except a channel's
   logo and a title's logo, which are fitted inside (`contain`) on a plain
   tile in token `bg3`.
@@ -456,6 +469,16 @@ own props as they are now. Never ask for the same cursor twice at once.
   it; `document.theme.tokens` does so for the whole page. That is how a
   module's colours, or a page's own accent, reach a renderer: see
   [Theme scopes](#theme-scopes).
+- Each component and card style says in the catalogue which tokens it is
+  drawn with (`tokens`: colours by part, text roles, shape tokens), and
+  `GET /api/v1/theme` has the values: colours (with the profile's own and
+  the colours derived from each override), `shape` (corner radii and the
+  focus ring, in points) and `type` (typefaces and weights). A renderer
+  draws from those and has no colour, corner or typeface of its own: see
+  [THEMES.md](THEMES.md#sdui-tokens) and the [table](#theme-tokens). A
+  node's `tokens` are what its scope's palette has that the account's
+  `tokens` don't; with the automatic theme they are its dark look's, so a
+  client following the device takes `variants[scheme].modules[scope]`.
 
 ### Motion
 
@@ -637,6 +660,81 @@ time left nothing in a page changes with the clock, so its ETag holds; ask
 
 The feature `sdui-limits` in `/capabilities` says a server does all this.
 
+## How a row chooses its cards
+
+A section whose `cardStyle` is `auto` (or left out) takes its source's usual
+style, with two refinements the server makes so every app gets them:
+
+- A source that gives whatever a library holds (`recentlyAdded`, `browse`,
+  `random`, `search`, ...) on a library of music, audiobooks or podcasts draws
+  `album` cards, on books `book`, on games `game`, on photos `photo`: the
+  library is the section's `$each` or the page's own `$library`. A cover is
+  never stretched into an upright poster.
+- On a phone, a row of the libraries (`libraries` source) drawn as `tile` is
+  sent as `chip`: each library's icon and name in a pill, a row a phone can
+  take in at a glance.
+
+A title's page (`detail`) on a phone or a television carries no `personal`:
+nothing there offers Customise. A profile's arrangement of the page, made on
+a bigger screen, still applies.
+
+## Layout options
+
+A layout option is a whole arrangement of an app: where its menu is and how
+it is drawn, and how pages look. There are five, the same on every app:
+
+| Layout | Menu | Pages |
+|---|---|---|
+| `sidebar` | A column down the side where there is room (240 points; 220 on a tablet), a tab bar on a phone, the top menu on a television. | As written. **The default everywhere**: the apps as they have always looked. |
+| `topTabs` | A row of tabs across the top on every device, leaving the whole width to the page. | As written. |
+| `tvRows` | A narrow rail of icons (80 points; 72 on a tablet), a phone's tab bar, a television's top menu. | Grids become rows of large cards with See all (except a grid a filter bar drives), the spotlight is a billboard, cards a section doesn't size are large. |
+| `compactList` | A rail; on a television a menu down the side, 120 points closed and 400 open. | Rows, grids and the spotlight become lists, a line per title with its picture in its own shape, progress and two badges; compact spacing. |
+| `streaming` | A see-through row of tabs over the top of the page, solid once it scrolls; a phone's tab bar; a television's top menu (never over the page). | A billboard spotlight, wide cards for films, shows and episodes, comfortable spacing. |
+
+**What decides it.** The administrator chooses which layout each form factor
+starts with and which layouts profiles may choose (`ui_config.json`
+`layouts: {default: {formFactor: layout}, allowed: [layout]}`; the editor's
+routes are `GET`/`PUT /sdui/config/layouts`). Each profile chooses its own for
+each of its devices (`PUT /sdui/layout {layout}`; `DELETE` to follow the
+server again). An app names itself with `device=` (or `X-WMS-Device`): a
+stable name of its own, letters, digits, `-` and `_`, never anything that
+identifies the hardware; an app that sends none shares one choice per form
+factor. A profile kept from rearranging pages, or a server with
+personalisation off, follows the administrator's choice. `layout=` (or
+`X-WMS-Layout`) on a page or the navigation draws that one request with
+another layout, so an app can show a layout before it is chosen. Precedence:
+`layout=`, the profile's choice for the device, its choice for the form
+factor, the administrator's default for the form factor, `sidebar`; a layout
+the administrator doesn't allow is passed over.
+
+**What a client is sent.** Every page carries `layout.shell` and the
+navigation carries `shell`: `{layout, nav, overlay, size, open}`. `nav` is
+the menu's style (`sidebar`, `rail`, `bottomTabs`, `topTabs`, `tvTopMenu`,
+`tvSideMenu`), `size` its breadth in points (a sidebar's or rail's width, a
+bar's height without the system's own inset), `overlay` that it lies over
+the top of the page, transparent until the page scrolls, and `open` how wide
+a television's side menu is while it has focus. An app draws its frame from
+the navigation's shell and lays the page out in what is left; it never picks
+a style of its own. The navigation also carries `layouts`: `{current,
+chosen, options, url}`, what the profile may choose on this device, for a
+**Layout** row in the app's own Settings (Settings is never SDUI; the row
+lives where the app's appearance settings are, reachable by keyboard, remote
+and controller, with the options read out by screen readers as a choice of
+five with the current one selected).
+
+**What the server does for the app.** A layout's changes to pages are made
+by the server in the document, with the catalogue's own components: a
+renderer that follows the document draws every layout with nothing more. A
+`ListItem` made from a source carries its picture in the item's own shape
+(a poster upright, a still wide, a cover square), and `progress` and up to
+two `badges` when the item has them. The conformance kit has a case for every
+layout on the device it suits best (`layout-*.json`), including a
+television's side menu and a grid a filter bar keeps.
+
+The reference table is [Layout options](#layout-options-1) in the catalogue
+below; `GET /sdui/catalog` has `layouts` and `navStyles`; `sdui-layouts` in
+`/capabilities` says a server has all of this.
+
 ## Modules
 
 Every module carries its part of the apps in its own release, as data: its
@@ -727,13 +825,13 @@ Everything an editor needs is data; it hard-codes nothing about components.
 | `GET /sdui/config/pages` | Every page in force with its `source`: `builtin`, `changed` or `custom`. `?target=draft` for the draft's. |
 | `GET /sdui/config/pages/{id}` | The page as authored, the built-in page it would reset to, and the validator's issues. |
 | `PUT /sdui/config/pages/{id}` | Save one page. |
-| `DELETE /sdui/config/pages/{id}` | Reset a built-in page to default, or delete one of your own. |
+| `DELETE /sdui/config/pages/{id}` | Reset a built-in page to default, or delete one of your own. 404 for a page that is in neither. |
 | `GET`, `PUT`, `DELETE /sdui/config/navigation` | The navigation; DELETE resets it. |
-| `POST /sdui/validate` | Check `{"page"}`, `{"navigation"}` or `{"config"}` without saving. |
+| `POST /sdui/validate` | Check `{"page"}`, `{"navigation"}` or `{"config"}` without saving. With `?target=draft` a navigation may name the draft's pages. |
 | `GET /sdui/presets`, `POST /sdui/presets/{id}/apply` | The gallery; apply a page preset. |
 | `GET`, `PUT`, `DELETE /sdui/draft`, `POST /sdui/draft/publish`, `POST /sdui/draft/preview` | The draft. |
 | `GET /sdui/export`, `POST /sdui/import` | A page or the whole configuration as a file. |
-| `GET`, `PUT /sdui/config`, `GET /sdui/config/history`, `GET /sdui/config/diff`, `POST /sdui/config/rollback/{rev}` | The whole file, its last 10 revisions, what differs between two, and going back. |
+| `GET`, `PUT /sdui/config`, `GET /sdui/config/history`, `GET /sdui/config/diff`, `POST /sdui/config/rollback/{rev}` | The whole file, its last 10 revisions, what differs between two (`{from, to, fromDraft, toDraft, changes}`; for the draft, the revision it was begun from with `toDraft: true`), and going back. |
 
 **Saving.** A change to the published configuration needs `If-Match` with
 the ETag it was made against: 428 without, 412 when someone saved in
@@ -766,8 +864,24 @@ administrator who asked and nobody else**. That administrator's apps send
 it as `preview=<token>` (or `X-WMS-SDUI-Preview`) with the page and
 navigation routes and are served the draft, with `meta.source: "draft"`, on
 a real phone or television. Anyone else sending it gets 403. `POST
-/sdui/draft/publish` makes the draft the configuration, as a new revision,
-and ends every preview; `DELETE /sdui/draft` throws it away.
+/sdui/draft/publish` applies the draft to the configuration, as a new
+revision, and ends every preview; `DELETE /sdui/draft` throws it away.
+
+**Publishing merges.** The draft remembers the published revision it was
+begun from (`baseRevision`). Publishing does not copy the draft over what is
+published: it takes what the draft changed since that revision, item by item
+(each page by ID, the navigation, the theme, the personalisation switch), and
+applies it on top of what is published now, so a change published after the
+draft was begun is kept. When the draft and what was published since changed
+the same item in different ways the answer is 409, nothing changes, and the
+body names them: `{"error", "conflicts": ["/pages/home", "/navigation"],
+"baseRevision", "currentRevision"}`. The editor reloads both, shows them, and
+publishes again with `?prefer=draft` (the draft's version of those items
+wins) or `?prefer=published` (what is published stays; the draft's other
+changes still go in), or edits the draft. When the revision the draft was
+begun from is no longer among the 10 kept, `conflicts` is `["/"]` and only
+`prefer=draft` publishes (the draft as it is). `If-Match` keeps its meaning:
+the draft's ETag.
 
 #### Presets, import and export
 
@@ -868,6 +982,23 @@ own window, is one of the three renderers.
   filter bar change the address's query, so Back undoes them.
 - **Native views.** `guide` is the guide's grid, `photoTimeline` and
   `photoMap` the photo library, `coverFlow` the music library's cover flow.
+  A module's view (`<module>.<name>`) is drawn by its web bundle, and the
+  app sends the views of the bundles in use with its own
+  ([Modules in server-driven UI](SDUI-MODULES.md#what-apps-need-to-do)).
+- **Layout options.** The frame follows the navigation's `shell`:
+  `sidebar` and `rail` are the side menu open or folded to icons (at the
+  sizes sent), `topTabs` the bar of tabs along the top (with no tab bar on a
+  phone), `bottomTabs` a phone's tab bar, and `overlay` lets the top bar lie
+  over the page until it scrolls. In TV mode `tvTopMenu` is the bar of
+  pills and `tvSideMenu` a column of icons that opens to show names while
+  it has focus. The app names itself with `device=`, a random name kept in
+  the browser. Settings, Appearance, Layout offers `layouts.options` and
+  "Use the server's"; Settings, Pages & menu, Layouts is the
+  administrator's `config/layouts`. Against a server without layouts the
+  device keeps its own choice of where the menu sits.
+- **Modules.** Their settings are under Settings, Module settings, drawn
+  with Settings' own rows; their pages of the app's own (`/m/...`) and their
+  views take the module's colours where its palette differs from everyone's.
 - **Where the app's own screens stand in.** A game's page, a book's front
   page, a photo, a radio station, a creator's channel and the short-video
   feed are not in the model. When the catch-all built-in `library` or
@@ -876,7 +1007,18 @@ own window, is one of the three renderers.
   for such a library or title is drawn as written. Under a title's header
   the app adds what the model has no component for: the credit a metadata
   source asks for, the file's technical facts, a disc's titles and extras,
-  and, for administrators, artwork, details and refresh.
+  and, for administrators, artwork, details and refresh (for a show also
+  "Find intros and credits"). Above a show's episodes is the Cards or
+  Playlist switch (an administrator's choice is kept for the show).
+- **The app's own tools.** Under the title of a library of films or shows:
+  Filters with every filter of the app's Filters panel (the page passes
+  them on: `series`, `kind`, `disc`, `minRating`, `audio`, `subtitle`,
+  `format`, `edition`, `search`, `seed` beside the filter bar's own),
+  saving a view and the saved views, and for administrators Select (to
+  edit titles together), Categories, Fix matches and Scan. A music library
+  has Play all, Songs and Playlists (those two open the app's own music
+  page on that tab) and Scan; Collections has New collection; a collection
+  has Play all, Edit, Remove titles and Delete (`extras/PageTools.tsx`).
 - **Customise and the editor.** `document.personal` drives "Customise this
   page"; the menu's `personal` drives "Arrange the menu" in Settings,
   Appearance. The administrator's editor is Settings, Pages & menu, built
@@ -1086,7 +1228,7 @@ How it is drawn:
 
 - **Television.** A full-screen column inside the safe area (60 points top and bottom, 80 at the sides), sections 40 points apart. The title isn't drawn: the top menu says where you are.
 - **Phone.** A scrolling column under a large title that collapses into the navigation bar; sections 24 points apart, rows bleed to the screen's edges.
-- **Tablet.** As a phone, with 24-point side margins.
+- **Tablet.** As a phone, with 16-point side margins (the m spacing, as on every form factor but the television).
 - **Desktop and web.** A scrolling column beside the sidebar, the title as a heading, content at most 1600 points wide.
 
 Focus: takes none. Accessibility: Role: main. Label: the title.
@@ -2008,6 +2150,110 @@ The width of a medium (`m`) card in points; small is 80% and large 125%, rounded
 | `channel` | 420 | 4 | 224 | 288 | 320 |
 | `tile` | 420 | 4 | 224 | 288 | 320 |
 
+### Theme tokens
+
+Every colour, typeface and corner comes from the theme: colours from `GET /api/v1/theme` `tokens` (with a node's scope `tokens` over them), corners from its `shape`, typefaces and weights from its `type`, sizes from `layout.text`. A renderer has none of its own. Each component and card style has `tokens` in the catalogue: which colour token each part is drawn in, which text role each piece of text takes, and which shape token rounds each part. [THEMES.md](THEMES.md#sdui-tokens) explains them.
+
+Text roles: `badge` (body family, strong weight), `body` (body family, body weight), `caption` (body family, body weight), `heading` (display family, heading weight), `pageTitle` (display family, heading weight), `title` (body family, strong weight).
+
+Colour roles:
+
+- `background`: What the component fills its own area with.
+- `surface`: A raised area inside it, and the place of a picture that hasn't loaded.
+- `text`: Its main text.
+- `secondaryText`: Subtitles, facts, inactive tabs.
+- `hintText`: Numbers, placeholders, hints.
+- `link`: Links and highlighted words: the accent as text.
+- `icon`: Icons beside text.
+- `accent`: Filled things that stand out: a primary button, a selected tab's underline.
+- `onAccent`: Text and icons on accent.
+- `accentHover`: accent while hovered or pressed.
+- `selected`: The tint behind a selected row or chip.
+- `selectedBorder`: The outline of a selected chip.
+- `selectedText`: The text of a selected tab, chip or row.
+- `hover`: The tint over a hovered row (pointer devices).
+- `pressed`: The tint over a pressed row.
+- `border`: Hairlines.
+- `outline`: Outlines of secondary buttons and chips.
+- `fieldOutline`: Outlines of text fields and other controls: 3:1 on every surface.
+- `focus`: The focus ring.
+- `onImage`: Text and icons over a picture.
+- `scrim`: The plate behind text over a picture.
+- `badge`: A badge's fill (over a picture).
+- `badgeText`: A badge's text.
+- `progress`: A progress bar's filled part.
+- `progressTrack`: A progress bar's empty part.
+- `watched`: The watched mark's fill.
+- `onWatched`: The watched mark's tick.
+- `playing`: The track or item playing now.
+- `info`: The information tone's bar and icon.
+- `success`: The good-news tone's bar and icon.
+- `warning`: The warning tone's bar and icon.
+- `danger`: The problem tone's bar, icon, and a destructive button.
+- `dangerTint`: The tint behind a hovered destructive button.
+- `brand`: The server's name, its coloured parts (brandParts with accent).
+
+Shape tokens:
+
+- `card`: Cards and their pictures.
+- `button`: Buttons.
+- `field`: Text fields, selects, search boxes.
+- `row`: List rows.
+- `thumb`: Small pictures in a row.
+- `chip`: Chips and filter pills.
+- `badge`: Badges and small labels.
+- `image`: Pictures and banners placed on a page; the spotlight on a television.
+- `sheet`: Menus, popovers and sheets.
+- `dialog`: Dialogs.
+- `pill`: Fully round whatever the size: a circle on a square picture.
+- `focusWidth`: The focus ring's width.
+- `focusOffset`: The gap between the focus ring and what it surrounds.
+
+| Component | Colours | Text | Shape |
+|---|---|---|---|
+| `Page` | background `bg`, brand `brandAccent`, secondaryText `fg2`, text `fg` | title `pageTitle` |  |
+| `Hero` | accent `accent`, accentHover `accentHover`, background `bg`, badge `scrim`, badgeText `onImage`, focus `focus`, onAccent `accentFg`, onImage `onImage`, outline `onImage`, scrim `scrim`, secondaryText `onImage`, surface `bg3`, text `onImage` | badge `badge`, button `body`, facts `caption`, synopsis `body`, title `pageTitle` | badge `badge`, button `button`, corner `image`, focus `focusWidth`, focusGap `focusOffset`, pageDots `pill` |
+| `Shelf` | focus `focus`, link `accentText`, secondaryText `fg2`, surface `bg3`, text `fg` | seeAll `body`, subtitle `caption`, title `heading` | focus `focusWidth`, focusGap `focusOffset`, scrollButton `pill` |
+| `Grid` | focus `focus`, link `accentText`, secondaryText `fg2`, surface `bg3`, text `fg` | seeAll `body`, subtitle `caption`, title `heading` | focus `focusWidth`, focusGap `focusOffset` |
+| `Card` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg3`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg`, watched `accent` | badge `badge`, subtitle `caption`, title `title` | badge `badge`, corner `card`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
+| `Tabs` | accent `accent`, border `border`, focus `focus`, hover `hover`, selected `accentSoft`, selectedText `fg`, surface `bg3`, text `fg2` | label `title` | focus `focusWidth`, focusGap `focusOffset`, segment `chip` |
+| `Tab` | accent `accent`, focus `focus`, hover `hover`, selected `accentSoft`, selectedText `fg`, text `fg2` | label `title` | focus `focusWidth`, focusGap `focusOffset`, segment `chip` |
+| `FilterBar` | fieldOutline `controlLine`, focus `focus`, hintText `fg3`, hover `hover`, outline `borderStrong`, secondaryText `fg2`, selected `accentSoft`, selectedBorder `accentLine`, selectedText `fg`, surface `bg3`, text `fg` | count `caption`, label `body` | chip `chip`, field `field`, focus `focusWidth`, focusGap `focusOffset`, menu `sheet` |
+| `DetailHeader` | accent `accent`, accentHover `accentHover`, background `bg`, badge `scrim`, badgeText `onImage`, border `borderStrong`, danger `danger`, dangerTint `dangerSoft`, focus `focus`, hover `hover`, link `accentText`, onAccent `accentFg`, onImage `onImage`, outline `borderStrong`, pressed `pressed`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg` | badge `badge`, button `body`, facts `caption`, synopsis `body`, title `pageTitle` | badge `badge`, button `button`, focus `focusWidth`, focusGap `focusOffset`, poster `card`, progress `pill` |
+| `SeasonList` | focus `focus`, hintText `fg3`, hover `hover`, onWatched `accentFg`, outline `borderStrong`, progress `accent`, progressTrack `bg4`, secondaryText `fg2`, selected `accentSoft`, selectedBorder `accentLine`, selectedText `fg`, surface `bg3`, text `fg`, watched `accent` | season `body`, synopsis `caption`, title `title` | focus `focusWidth`, focusGap `focusOffset`, row `row`, season `chip`, still `card` |
+| `TrackList` | border `border`, focus `focus`, hintText `fg3`, hover `hover`, playing `accentText`, pressed `pressed`, secondaryText `fg2`, selected `accentSoft`, text `fg` | artist `caption`, length `caption`, number `caption`, title `body` | focus `focusWidth`, focusGap `focusOffset`, row `row` |
+| `Track` | focus `focus`, hintText `fg3`, hover `hover`, playing `accentText`, pressed `pressed`, secondaryText `fg2`, selected `accentSoft`, text `fg` | artist `caption`, length `caption`, number `caption`, title `body` | focus `focusWidth`, focusGap `focusOffset`, row `row` |
+| `Banner` | accent `accent`, accentHover `accentHover`, background `bg3`, border `border`, danger `danger`, dangerTint `dangerSoft`, focus `focus`, hover `hover`, onAccent `accentFg`, onImage `onImage`, outline `borderStrong`, pressed `pressed`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg` | button `body`, text `body`, title `heading` | button `button`, corner `image`, focus `focusWidth`, focusGap `focusOffset`, thumb `card` |
+| `Text` | hintText `fg3`, link `accentText`, secondaryText `fg2`, surface `bg3`, text `fg` | body `body`, caption `caption`, heading `heading`, pageTitle `pageTitle`, title `title` | code `badge` |
+| `Notice` | accent `accent`, accentHover `accentHover`, background `bg2`, border `border`, danger `danger`, dangerTint `dangerSoft`, focus `focus`, hover `hover`, icon `fg2`, info `accentText`, onAccent `accentFg`, outline `borderStrong`, pressed `pressed`, secondaryText `fg2`, success `ok`, surface `bg3`, text `fg`, warning `warn` | button `body`, text `body`, title `title` | button `button`, corner `card`, focus `focusWidth`, focusGap `focusOffset` |
+| `Divider` | border `border` |  |  |
+| `Spacer` |  |  |  |
+| `Stack` | secondaryText `fg2`, text `fg` | title `heading` |  |
+| `Split` |  |  |  |
+| `Button` | accent `accent`, accentHover `accentHover`, danger `danger`, dangerTint `dangerSoft`, focus `focus`, hover `hover`, onAccent `accentFg`, outline `borderStrong`, pressed `pressed`, surface `bg3`, text `fg` | label `body` | corner `button`, focus `focusWidth`, focusGap `focusOffset`, iconOnly `pill` |
+| `Image` | focus `focus`, surface `bg3` |  | corner `image`, focus `focusWidth`, focusGap `focusOffset` |
+| `SearchBox` | fieldOutline `controlLine`, focus `focus`, hintText `fg3`, icon `fg2`, surface `bg3`, text `fg` | text `body` | corner `field`, focus `focusWidth`, focusGap `focusOffset` |
+| `List` | border `border`, focus `focus`, secondaryText `fg2`, text `fg` | title `heading` | focus `focusWidth`, focusGap `focusOffset` |
+| `ListItem` | focus `focus`, hintText `fg3`, hover `hover`, icon `fg2`, pressed `pressed`, secondaryText `fg2`, selected `accentSoft`, selectedText `fg`, surface `bg3`, text `fg` | subtitle `caption`, title `body`, trailing `caption` | art `thumb`, corner `row`, focus `focusWidth`, focusGap `focusOffset`, icon `row` |
+| `NativeView` | background `bg`, focus `focus`, outline `borderStrong`, secondaryText `fg2`, surface `bg2`, text `fg` | text `body` | corner `image`, focus `focusWidth`, focusGap `focusOffset` |
+
+| Card style | Colours | Text | Shape |
+|---|---|---|---|
+| `poster` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg3`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg`, watched `accent` | badge `badge`, subtitle `caption`, title `title` | badge `badge`, corner `card`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
+| `landscape` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg3`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg`, watched `accent` | badge `badge`, subtitle `caption`, title `title` | badge `badge`, corner `card`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
+| `progress` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg3`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg`, watched `accent` | badge `badge`, subtitle `caption`, title `title` | badge `badge`, corner `card`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
+| `episode` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg3`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg`, watched `accent` | badge `badge`, subtitle `caption`, synopsis `caption`, title `title` | badge `badge`, corner `card`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
+| `square` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg3`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg`, watched `accent` | badge `badge`, subtitle `caption`, title `title` | badge `badge`, corner `card`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
+| `album` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg3`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg`, watched `accent` | badge `badge`, subtitle `caption`, title `title` | badge `badge`, corner `card`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
+| `circle` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg3`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg`, watched `accent` | badge `badge`, subtitle `caption`, title `title` | badge `badge`, corner `pill`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
+| `person` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg3`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg`, watched `accent` | badge `badge`, subtitle `caption`, title `title` | badge `badge`, corner `pill`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
+| `book` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg3`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg`, watched `accent` | badge `badge`, subtitle `caption`, title `title` | badge `badge`, corner `card`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
+| `game` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg3`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg`, watched `accent` | badge `badge`, subtitle `caption`, title `title` | badge `badge`, corner `card`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
+| `photo` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg3`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg`, watched `accent` |  | badge `badge`, corner `card`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
+| `channel` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg2`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg`, watched `accent` | badge `badge`, next `caption`, now `caption`, number `caption`, subtitle `caption`, title `title` | badge `badge`, corner `card`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
+| `tile` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg3`, icon `fg2`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `onImage`, watched `accent` | badge `badge`, subtitle `caption`, title `heading` | badge `badge`, corner `card`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
+| `chip` | focus `focus`, hover `hover`, outline `borderStrong`, selected `accentSoft`, selectedBorder `accentLine`, selectedText `fg`, text `fg2` | title `body` | corner `chip`, focus `focusWidth`, focusGap `focusOffset` |
+
 ### Device profiles
 
 | | tv (hd) | tv (4k) | phone | tablet | desktop | web |
@@ -2016,6 +2262,7 @@ The width of a medium (`m`) card in points; small is 80% and large 125%, rounded
 | Canvas | 1920×1080 | 1920×1080 | the window | the window | the window | the window |
 | Breakpoint when the window isn't known | large | large | compact | expanded | large | large |
 | Safe area (top, right, bottom, left) | 60, 80, 60, 80 | 60, 80, 60, 80 | the system's | the system's | the system's | the system's |
+| Side margins | 80 | 80 | 16 | 16 | 16 | 16 |
 | Focus is the only pointer | yes | yes | no | no | no | no |
 | Opens web links | no | no | yes | yes | yes | yes |
 | Spacing xs, s, m, l, xl | 10, 20, 40, 60, 100 | 10, 20, 40, 60, 100 | 4, 8, 16, 24, 40 | 4, 8, 16, 24, 48 | 4, 8, 16, 24, 48 | 4, 8, 16, 24, 48 |
@@ -2404,13 +2651,13 @@ Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 48
 
 #### tracks
 
-*Tracks.* An album's songs or a book's chapters, in order.
+*Tracks.* An album's songs or a book's chapters, in order; without an album, every song by the artist, by title.
 
 | Property | Type | Default | What it is |
 |---|---|---|---|
 | `library` (required) | library |  | Library. One library; leave empty for every library the profile can open. $library on a library page, $each in a row repeated over libraries. |
-| `album` (required) | string, at most 300 |  | Album. $album on an album's page. |
-| `artist` | string, at most 300 |  | Album artist. $artist on an album's page. |
+| `album` | string, at most 300 |  | Album. $album on an album's page. Left out: every album's (an artist's page). |
+| `artist` | string, at most 300 |  | Album artist. $artist on an album's or an artist's page. |
 | `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
 
 ```json
@@ -2478,8 +2725,8 @@ Every source also takes `map`: `{"subtitle": "studio"}` puts another field of th
 |---|---|---|---|---|---|
 | `home` | The first page of the app. | `/` | tab |  |  |
 | `libraries` | Every library the profile can open. | `/libraries` | tab |  |  |
-| `library` | One library's own page. | `/library/{library}` | library, tab, sort, desc, genre, decade, year, content, resolution, watched, studio, network, tag | $library | library, libraryKind |
-| `detail` | The page of one film, show, episode, album, book, game or collection. | `/item/{item}` | item, show, season, collection, library, artist, album, tab | $item, $show, $season, $collection, $library, $artist, $album | mediaKind, library, libraryKind |
+| `library` | One library's own page. | `/library/{library}` | library, tab, sort, desc, genre, decade, year, content, resolution, watched, studio, network, tag, series, kind, disc, minRating, audio, subtitle, format, edition, search, seed | $library | library, libraryKind |
+| `detail` | The page of one film, show, episode, album, artist, book, game or collection. | `/item/{item}` | item, show, season, collection, library, artist, album, tab | $item, $show, $season, $collection, $library, $artist, $album | mediaKind, library, libraryKind |
 | `search` | Search across everything. | `/search` | q, tab | $query |  |
 | `livetv` | Channels and the guide. | `/tv` | tab |  |  |
 | `music` | Every music library together. | `/music` | tab |  |  |
@@ -2501,6 +2748,7 @@ What shows each place in the app: an SDUI page, asked for with the parameters gi
 | `/item/{item}` | page `detail` | item={item} |
 | `/show/{show}` | page `detail` | show={show} |
 | `/album/{library}` | page `detail` | album=?album, artist=?artist, library={library} |
+| `/artist/{library}` | page `detail` | artist=?name, library={library} |
 | `/collections/{collection}` | page `detail` | collection={collection} |
 | `/collections` | page `collections` |  |
 | `/search` | page `search` | q=?q |
@@ -2524,34 +2772,48 @@ What shows each place in the app: an SDUI page, asked for with the parameters gi
 
 ### Native screens
 
-| Screen | What it is | Route |
-|---|---|---|
-| `settings` | The app's own Settings. Always in the navigation; never an SDUI page. | `/settings` |
-| `guide` | The guide's grid of channels and times. | `/tv/guide` |
-| `profiles` | The profile's own page and the profile switcher. | `/you` |
-| `downloads` | What is kept on this device. | `/downloads` |
-| `remote` | Remote control of another device. | `/remote` |
-| `nowPlaying` | The music player. | `/now-playing` |
-| `pair` | Sign another device in. | `/pair` |
-| `collections` | The app's own collections manager, where it has one; else the collections page. | `/collections` |
-| `player` | The video player. | `/watch/{item}` |
-| `livePlayer` | A channel, playing. | `/tv/watch/{key}` |
-| `reader` | The book and comic reader. | `/read/{item}` |
-| `game` | A game's page and player. | `/game/{item}` |
-| `download` | Keep a copy of a title on this device (action params: item). | `` |
-| `share` | The share sheet for a title (action params: item). | `` |
-| `playOn` | The device picker for a title (action params: item). | `` |
-| `watchParty` | Start a watch party for a title (action params: item). | `` |
+A menu entry (`type: native`) may open the screens marked *menu*; the others need a title or a channel and are opened by actions.
+
+| Screen | What it is | Route | Menu |
+|---|---|---|---|
+| `settings` | The app's own Settings. Always in the navigation; never an SDUI page. | `/settings` | menu |
+| `guide` | The guide's grid of channels and times. | `/tv/guide` | menu |
+| `profiles` | The profile's own page and the profile switcher. | `/you` | menu |
+| `downloads` | What is kept on this device. | `/downloads` | menu |
+| `remote` | Remote control of another device. | `/remote` | menu |
+| `nowPlaying` | The music player. | `/now-playing` | menu |
+| `pair` | Sign another device in. | `/pair` | menu |
+| `collections` | The app's own collections manager, where it has one; else the collections page. | `/collections` | menu |
+| `player` | The video player. | `/watch/{item}` | no |
+| `livePlayer` | A channel, playing. | `/tv/watch/{key}` | no |
+| `reader` | The book and comic reader. | `/read/{item}` | no |
+| `game` | A game's page and player. | `/game/{item}` | no |
+| `download` | Keep a copy of a title on this device (action params: item). | `` | no |
+| `share` | The share sheet for a title (action params: item). | `` | no |
+| `playOn` | The device picker for a title (action params: item). | `` | no |
+| `watchParty` | Start a watch party for a title (action params: item). | `` | no |
 
 ### Commands
 
 | `op` | What it does | Request |
 |---|---|---|
-| `watchLater.add` | Adds the title to the profile's Watch later list. | `POST /api/v1/collections/watch-later/items` with `{"items":[{item}]}` |
-| `watched.set` | Marks the title watched. | `POST /api/v1/items/{item}/progress` with `{"watched":true}` |
-| `watched.clear` | Forgets the profile's progress in the title. | `DELETE /api/v1/items/{item}/progress` |
+| `watchLater.add` | Adds the title to the profile's Watch later list. | `POST /api/v1/collections/watch-later/items` with `{"items":["{item}"]}` |
+| `watched.set` | Marks the title watched; for a show, every episode. | `POST /api/v1/items/{item}/progress` with `{"watched":true}` |
+| `watched.clear` | Forgets the profile's progress in the title; for a show, in every episode. | `DELETE /api/v1/items/{item}/progress` |
 | `selectTab` | Asks for the page again with tab=<params.tab>, or shows the tab's content when the client already has it. |  |
 | `refresh` | Asks for the page again. |  |
+
+### Layout options
+
+The menu's style on each form factor, and what the server changes about every page for the layout. Menu styles: `sidebar`, `rail`, `bottomTabs`, `topTabs`, `tvTopMenu`, `tvSideMenu`.
+
+| Layout | What it is | TV | Phone | Tablet | Desktop | Web | Pages |
+|---|---|---|---|---|---|---|---|
+| `sidebar` | **Sidebar.** The menu down the side where there is room, a tab bar on a phone and the top menu on a television. Pages as they are written. | tvTopMenu | bottomTabs | sidebar | sidebar | sidebar | as written |
+| `topTabs` | **Top tabs.** The menu as a row of tabs across the top on every device, leaving the whole width to the page. | tvTopMenu | topTabs | topTabs | topTabs | topTabs | as written |
+| `tvRows` | **TV rows.** Everything in rows of large cards, as on a television: grids become rows, and the menu is a narrow rail. | tvTopMenu | bottomTabs | rail | rail | rail | grids as rows, spotlight: billboard, cards l |
+| `compactList` | **Compact list.** A line per title instead of rows of pictures: the most on the screen at once, for small screens and long libraries. | tvSideMenu | bottomTabs | rail | rail | rail | rows and grids as lists, spotlight: row, compact |
+| `streaming` | **Streaming style.** A big spotlight under a see-through menu, then rows of wide cards, like a streaming service. | tvTopMenu | bottomTabs | topTabs | topTabs | topTabs | spotlight: billboard, wide cards for films and shows, comfortable, menu over the page |
 
 ### Icons
 
@@ -2608,6 +2870,7 @@ What shows each place in the app: an SDUI page, asked for with the parameters gi
 | `detail-show` | detail | show | `header` (DetailHeader), `episodes` (SeasonList of episodes), `similar` (Shelf of similar) |
 | `detail-episode` | detail | episode | `header` (DetailHeader), `season` (Shelf of episodes) |
 | `detail-album` | detail | album | `header` (DetailHeader), `tracks` (TrackList of tracks), `more` (Shelf of albums) |
+| `detail-artist` | detail | artist | `header` (DetailHeader), `albums` (Shelf of albums), `tracks` (TrackList of tracks) |
 | `detail-collection` | detail | collection | `header` (DetailHeader), `all` (Grid of collection) |
 | `search` | search | every search page | `q` (SearchBox), `idle` (Text), `found` (Shelf of search, per librarie), `channels` (Shelf of search) |
 | `livetv` | livetv | every livetv page | `guide` (NativeView), `favourites` (Shelf of liveNow), `recordings` (Shelf of recordings), `channels` (Grid of liveNow) |

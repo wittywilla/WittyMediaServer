@@ -70,6 +70,19 @@ export async function getNavigation(draft = true): Promise<NavAnswer> {
   return r.data
 }
 
+// Layout options (docs/SDUI.md, "Layout options"): which one each form factor starts with
+// (`layouts.default`), which profiles may choose (`layouts.allowed`), the built-in starting
+// ones, and the options themselves.
+export type LayoutOption = { id: string; label: string; description?: string; icon?: string; nav: Record<string, string>; overlay?: boolean }
+export type LayoutPolicy = { default?: Record<string, string>; allowed?: string[] }
+export type LayoutsAnswer = { etag: string; layouts: LayoutPolicy; builtin: Record<string, string>; options: LayoutOption[] }
+export async function getLayouts(draft = true): Promise<LayoutsAnswer> {
+  const r = await sduiAsk<LayoutsAnswer>('GET', `${SDUI_BASE}/config/layouts${draft ? '?' + DRAFT : ''}`)
+  if (!r.data) throw new ApiError(0, 'The server sent no layouts.')
+  if (draft) keep(r.data.etag)
+  return r.data
+}
+
 export async function getPresets(): Promise<Preset[]> {
   return (await sduiAsk<{ presets: Preset[] }>('GET', `${SDUI_BASE}/presets`)).data?.presets || []
 }
@@ -121,6 +134,7 @@ export const savePage = (page: Page, onConflict?: () => Promise<boolean>) => toD
 // A built-in page goes back to how it ships; a page of the administrator's own is gone.
 export const removePage = (id: string, onConflict?: () => Promise<boolean>) => toDraft<Config>('DELETE', `${SDUI_BASE}/config/pages/${enc(id)}`, undefined, onConflict)
 export const saveNavigation = (nav: Navigation, onConflict?: () => Promise<boolean>) => toDraft<Config>('PUT', `${SDUI_BASE}/config/navigation`, nav, onConflict)
+export const saveLayouts = (policy: LayoutPolicy, onConflict?: () => Promise<boolean>) => toDraft<Config>('PUT', `${SDUI_BASE}/config/layouts`, policy, onConflict)
 export const resetNavigation = (onConflict?: () => Promise<boolean>) => toDraft<Config>('DELETE', `${SDUI_BASE}/config/navigation`, undefined, onConflict)
 // A page preset lands under the preset's own page ID.
 export const applyPreset = (id: string, onConflict?: () => Promise<boolean>) => toDraft<Config>('POST', `${SDUI_BASE}/presets/${enc(id)}/apply`, undefined, onConflict)

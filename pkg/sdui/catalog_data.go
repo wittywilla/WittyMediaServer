@@ -32,7 +32,7 @@ var (
 	// LibraryKinds are the kinds of library a page or repeat can name.
 	LibraryKinds = []string{"movies", "discs", "shows", "anime", "videos", "shorts", "channels", "musicvideos", "commercials", "music", "audiobooks", "podcasts", "radio", "books", "photos", "games"}
 	// MediaKinds are the kinds of title a detail page can match.
-	MediaKinds = []string{"movie", "show", "episode", "video", "disc", "album", "track", "book", "audiobook", "podcast", "game", "photo", "collection"}
+	MediaKinds = []string{"movie", "show", "episode", "video", "disc", "album", "artist", "track", "book", "audiobook", "podcast", "game", "photo", "collection"}
 	// SpacingSteps are the abstract distances a layout component may use; a
 	// device profile says how many points each is.
 	SpacingSteps = []string{"none", "xs", "s", "m", "l", "xl"}
@@ -170,7 +170,7 @@ func buildComponents() []ComponentSpec {
 			Renders: map[string]string{
 				"tv":      "A full-screen column inside the safe area (60 points top and bottom, 80 at the sides), sections 40 points apart. The title isn't drawn: the top menu says where you are.",
 				"phone":   "A scrolling column under a large title that collapses into the navigation bar; sections 24 points apart, rows bleed to the screen's edges.",
-				"tablet":  "As a phone, with 24-point side margins.",
+				"tablet":  "As a phone, with 16-point side margins (the m spacing, as on every form factor but the television).",
 				"desktop": "A scrolling column beside the sidebar, the title as a heading, content at most 1600 points wide.",
 			},
 			A11y: "Role: main. Label: the title."},
@@ -641,8 +641,8 @@ func buildSources() []SourceSpec {
 			Params:      []PropSpec{req(pOf(PropRef, "show", "Show", "$show on a show's or an episode's page.")), pOf(PropRef, "season", "Season", "A season number, or $season; empty picks one."), paramLimit},
 			Yields:      []string{"episode"}, Example: example(`{"type":"episodes","show":"$show"}`)},
 		{Type: "tracks", Label: "Tracks", Icon: "music", Category: "context", Since: 2, CardStyle: "square", PageKinds: []string{"detail"}, Title: "Tracks",
-			Description: "An album's songs or a book's chapters, in order.",
-			Params:      []PropSpec{req(paramLibrary), req(pStr("album", "Album", "$album on an album's page.", 300)), pStr("artist", "Album artist", "$artist on an album's page.", 300), paramLimit},
+			Description: "An album's songs or a book's chapters, in order; without an album, every song by the artist, by title.",
+			Params:      []PropSpec{req(paramLibrary), pStr("album", "Album", "$album on an album's page. Left out: every album's (an artist's page).", 300), pStr("artist", "Album artist", "$artist on an album's or an artist's page.", 300), paramLimit},
 			Yields:      []string{"track"}, Example: example(`{"type":"tracks","library":"$library","artist":"$artist","album":"$album"}`)},
 		{Type: "similar", Label: "More like this", Icon: "sparkles", Category: "context", Since: 2, CardStyle: "poster", PageKinds: []string{"detail"}, Title: "More like this",
 			Description: "Titles in the same library sharing the title's first genre, best scored first, without the title itself.",
@@ -687,9 +687,10 @@ func buildPageKinds() []PageKindSpec {
 		{Kind: "home", Label: "Home", Route: "/", Description: "The first page of the app.", Params: []string{"tab"}},
 		{Kind: "libraries", Label: "Libraries", Route: "/libraries", Description: "Every library the profile can open.", Params: []string{"tab"}},
 		{Kind: "library", Label: "A library", Route: "/library/{library}", Description: "One library's own page.",
-			Params:    []string{"library", "tab", "sort", "desc", "genre", "decade", "year", "content", "resolution", "watched", "studio", "network", "tag"},
+			Params: []string{"library", "tab", "sort", "desc", "genre", "decade", "year", "content", "resolution", "watched", "studio", "network", "tag",
+				"series", "kind", "disc", "minRating", "audio", "subtitle", "format", "edition", "search", "seed"},
 			Variables: []string{"$library"}, Match: []string{"library", "libraryKind"}},
-		{Kind: "detail", Label: "A title", Route: "/item/{item}", Description: "The page of one film, show, episode, album, book, game or collection.",
+		{Kind: "detail", Label: "A title", Route: "/item/{item}", Description: "The page of one film, show, episode, album, artist, book, game or collection.",
 			Params:    []string{"item", "show", "season", "collection", "library", "artist", "album", "tab"},
 			Variables: []string{"$item", "$show", "$season", "$collection", "$library", "$artist", "$album"}, Match: []string{"mediaKind", "library", "libraryKind"}},
 		{Kind: "search", Label: "Search", Route: "/search", Description: "Search across everything.", Params: []string{"q", "tab"}, Variables: []string{"$query"}},
@@ -711,6 +712,7 @@ func buildRoutes() []RouteSpec {
 		{Pattern: "/item/{item}", Page: "detail", Params: map[string]string{"item": "{item}"}},
 		{Pattern: "/show/{show}", Page: "detail", Params: map[string]string{"show": "{show}"}},
 		{Pattern: "/album/{library}", Page: "detail", Params: map[string]string{"library": "{library}", "artist": "?artist", "album": "?album"}},
+		{Pattern: "/artist/{library}", Page: "detail", Params: map[string]string{"library": "{library}", "artist": "?name"}},
 		{Pattern: "/collections/{collection}", Page: "detail", Params: map[string]string{"collection": "{collection}"}},
 		{Pattern: "/collections", Page: "collections"},
 		{Pattern: "/search", Page: "search", Params: map[string]string{"q": "?q"}},
@@ -740,32 +742,15 @@ func buildCatalogue() *Catalogue {
 		Components: buildComponents(), CardStyles: cardStylesOnce(), Sources: buildSources(), Conditions: buildConditions(),
 		PageKinds: buildPageKinds(), Routes: buildRoutes(),
 		Commands: []CommandSpec{
-			{Op: "watchLater.add", Label: "Watch later", Description: "Adds the title to the profile's Watch later list.", Method: "POST", Path: "/api/v1/collections/watch-later/items", Body: `{"items":[{item}]}`},
-			{Op: "watched.set", Label: "Mark watched", Description: "Marks the title watched.", Method: "POST", Path: "/api/v1/items/{item}/progress", Body: `{"watched":true}`},
-			{Op: "watched.clear", Label: "Mark unwatched", Description: "Forgets the profile's progress in the title.", Method: "DELETE", Path: "/api/v1/items/{item}/progress"},
+			{Op: "watchLater.add", Label: "Watch later", Description: "Adds the title to the profile's Watch later list.", Method: "POST", Path: "/api/v1/collections/watch-later/items", Body: `{"items":["{item}"]}`},
+			{Op: "watched.set", Label: "Mark watched", Description: "Marks the title watched; for a show, every episode.", Method: "POST", Path: "/api/v1/items/{item}/progress", Body: `{"watched":true}`},
+			{Op: "watched.clear", Label: "Mark unwatched", Description: "Forgets the profile's progress in the title; for a show, in every episode.", Method: "DELETE", Path: "/api/v1/items/{item}/progress"},
 			{Op: "selectTab", Label: "Choose a tab", Description: "Asks for the page again with tab=<params.tab>, or shows the tab's content when the client already has it.", Method: "GET", Path: ""},
 			{Op: "refresh", Label: "Refresh", Description: "Asks for the page again.", Method: "GET", Path: ""},
 		},
-		NativeScreens: []NativeScreenSpec{
-			{Screen: "settings", Label: "Settings", Route: "/settings", Icon: "settings", Description: "The app's own Settings. Always in the navigation; never an SDUI page."},
-			{Screen: "guide", Label: "TV guide", Route: "/tv/guide", Icon: "guide", Description: "The guide's grid of channels and times."},
-			{Screen: "profiles", Label: "Who's watching", Route: "/you", Icon: "user", Description: "The profile's own page and the profile switcher."},
-			{Screen: "downloads", Label: "Downloads", Route: "/downloads", Icon: "download", Description: "What is kept on this device."},
-			{Screen: "remote", Label: "Remote", Route: "/remote", Icon: "devices", Description: "Remote control of another device."},
-			{Screen: "nowPlaying", Label: "Now playing", Route: "/now-playing", Icon: "music", Description: "The music player."},
-			{Screen: "pair", Label: "Pair a device", Route: "/pair", Icon: "devices", Description: "Sign another device in."},
-			{Screen: "collections", Label: "Collections", Route: "/collections", Icon: "collection", Description: "The app's own collections manager, where it has one; else the collections page."},
-			{Screen: "player", Label: "Player", Route: "/watch/{item}", Icon: "play", Description: "The video player."},
-			{Screen: "livePlayer", Label: "Live TV player", Route: "/tv/watch/{key}", Icon: "live", Description: "A channel, playing."},
-			{Screen: "reader", Label: "Reader", Route: "/read/{item}", Icon: "book", Description: "The book and comic reader."},
-			{Screen: "game", Label: "Game", Route: "/game/{item}", Icon: "game", Description: "A game's page and player."},
-			{Screen: "download", Label: "Download", Route: "", Icon: "download", Description: "Keep a copy of a title on this device (action params: item)."},
-			{Screen: "share", Label: "Share", Route: "", Icon: "share", Description: "The share sheet for a title (action params: item)."},
-			{Screen: "playOn", Label: "Play on…", Route: "", Icon: "devices", Description: "The device picker for a title (action params: item)."},
-			{Screen: "watchParty", Label: "Watch party", Route: "", Icon: "users", Description: "Start a watch party for a title (action params: item)."},
-		},
-		NativeViews: opts("guide|TV guide grid", "photoTimeline|Photo timeline", "photoMap|Photo map", "coverFlow|Album cover flow"),
-		Icons:       append([]string(nil), Icons...),
+		NativeScreens: append([]NativeScreenSpec(nil), nativeScreenSpecs...),
+		NativeViews:   opts("guide|TV guide grid", "photoTimeline|Photo timeline", "photoMap|Photo map", "coverFlow|Album cover flow"),
+		Icons:         append([]string(nil), Icons...),
 		Placeholders: opts("{user}|The profile's name", "{server}|The server's name", "{greeting}|Good morning, afternoon or evening", "{library}|The page's library",
 			"{title}|The page's title, or a source's first item", "{query}|What was searched for", "{each}|What a repeated section is repeated over", "{count}|How many items a source gave",
 			"{genre}|The source's genre", "{studio}|The source's studio", "{tag}|The source's tag"),
@@ -776,11 +761,45 @@ func buildCatalogue() *Catalogue {
 		Spacing:       SpacingSteps,
 		Limits: map[string]int{"maxPageBytes": MaxPageBytes, "maxSections": MaxSections, "maxDepth": MaxDepth, "maxChildren": MaxChildren, "maxVariants": MaxVariants,
 			"maxNavItems": MaxNavItems, "maxPages": MaxPages, "maxIdLength": MaxIDLength, "maxPersonalBytes": MaxPersonalBytes, "maxSourceLimit": 500},
-		Profiles: map[string]*Layout{},
+		Profiles: map[string]*Layout{}, Layouts: Layouts, NavStyles: NavStyles,
 	}
 	for _, ff := range FormFactors {
 		c.Profiles[ff] = ProfileFor(ff, "")
 	}
 	c.Profiles["tv-4k"] = ProfileFor(FormTV, "4k")
 	return c
+}
+
+// nativeScreenSpecs are the native screens, in the catalogue's order. Menu marks
+// those a navigation entry may open: a place of its own that needs nothing filled
+// in. The player, the reader, a game, a channel and the per-title sheets need a
+// title (or a channel), so they are opened by actions, never from the menu.
+var nativeScreenSpecs = []NativeScreenSpec{
+	{Screen: "settings", Menu: true, Label: "Settings", Route: "/settings", Icon: "settings", Description: "The app's own Settings. Always in the navigation; never an SDUI page."},
+	{Screen: "guide", Menu: true, Label: "TV guide", Route: "/tv/guide", Icon: "guide", Description: "The guide's grid of channels and times."},
+	{Screen: "profiles", Menu: true, Label: "Who's watching", Route: "/you", Icon: "user", Description: "The profile's own page and the profile switcher."},
+	{Screen: "downloads", Menu: true, Label: "Downloads", Route: "/downloads", Icon: "download", Description: "What is kept on this device."},
+	{Screen: "remote", Menu: true, Label: "Remote", Route: "/remote", Icon: "devices", Description: "Remote control of another device."},
+	{Screen: "nowPlaying", Menu: true, Label: "Now playing", Route: "/now-playing", Icon: "music", Description: "The music player."},
+	{Screen: "pair", Menu: true, Label: "Pair a device", Route: "/pair", Icon: "devices", Description: "Sign another device in."},
+	{Screen: "collections", Menu: true, Label: "Collections", Route: "/collections", Icon: "collection", Description: "The app's own collections manager, where it has one; else the collections page."},
+	{Screen: "player", Label: "Player", Route: "/watch/{item}", Icon: "play", Description: "The video player."},
+	{Screen: "livePlayer", Label: "Live TV player", Route: "/tv/watch/{key}", Icon: "live", Description: "A channel, playing."},
+	{Screen: "reader", Label: "Reader", Route: "/read/{item}", Icon: "book", Description: "The book and comic reader."},
+	{Screen: "game", Label: "Game", Route: "/game/{item}", Icon: "game", Description: "A game's page and player."},
+	{Screen: "download", Label: "Download", Route: "", Icon: "download", Description: "Keep a copy of a title on this device (action params: item)."},
+	{Screen: "share", Label: "Share", Route: "", Icon: "share", Description: "The share sheet for a title (action params: item)."},
+	{Screen: "playOn", Label: "Play on…", Route: "", Icon: "devices", Description: "The device picker for a title (action params: item)."},
+	{Screen: "watchParty", Label: "Watch party", Route: "", Icon: "users", Description: "Start a watch party for a title (action params: item)."},
+}
+
+// menuScreens are the native screens a navigation entry may open.
+func menuScreens() []string {
+	var out []string
+	for _, n := range nativeScreenSpecs {
+		if n.Menu {
+			out = append(out, n.Screen)
+		}
+	}
+	return out
 }

@@ -33,7 +33,12 @@ export type Node = {
 
 export type CardMetrics = { shape?: string; aspect?: string; width?: Record<string, number>; columns?: number }
 
+// Shell is the layout option a page was made for and how the app's frame is drawn with
+// it (docs/SDUI.md, "Layout options").
+export type Shell = { layout: string; nav: string; overlay?: boolean; size: number; open?: number }
+
 export type Layout = {
+  shell?: Shell
   formFactor: string
   class?: string
   canvas?: { width: number; height: number }
@@ -110,7 +115,9 @@ export type NavItem = {
   placement: string // primary | more | end
 }
 
-export type Navigation = { version: number; formFactor: string; etag?: string; items: NavItem[]; personal?: PersonalInfo }
+// layouts: what this profile may choose on this device, for the Layout row in Settings (docs/SDUI.md, "Layout options").
+export type LayoutChoices = { current: string; chosen?: string; options: { value: string; label: string }[]; url: string }
+export type Navigation = { version: number; formFactor: string; etag?: string; items: NavItem[]; personal?: PersonalInfo; shell?: Shell; layouts?: LayoutChoices }
 
 // The spec's fallback profile, for a document that came without one: the web's.
 export const WEB_LAYOUT: Layout = {

@@ -9,6 +9,8 @@ import {
 } from '../icons'
 import { Avatar } from '../pages/AuthPage'
 import { useApp } from '../state'
+import { featureOff, useMyLimits } from '../myLimits'
+import { settingsPageHidden } from '../profileWords'
 import { AUTO_THEME, deviceTheme, type ThemeMeta } from '../theme'
 import { setTvMode } from './mode'
 import { useSwitchProfile } from '../shell/SwitchProfile'
@@ -37,6 +39,7 @@ export default function You() {
     if (id === AUTO_THEME) setThemeName('Automatic')
     else api.get<{ themes: ThemeMeta[] }>('/themes').then((r) => setThemeName(r.themes.find((t) => t.id === id)?.name || '')).catch(() => {})
   }, [grownUp, serverTheme])
+  const gamesOff = featureOff(useMyLimits(), 'games')
   if (!user) return null
 
   const admin = user.isAdmin
@@ -61,9 +64,10 @@ export default function You() {
     { key: 'yours', label: 'Yours', rows: [
       { key: 'year', label: 'Your year', icon: <IconStar />, tint: '#c9302f', to: '/review' },
       { key: 'collections', label: 'Collections and playlists', icon: <IconLibrary />, tint: '#0e7c6f', to: '/collections' },
-      { key: 'share', label: 'Share links', icon: <IconCopy />, tint: '#0a6fb8', to: '/settings/sharing' },
-      { key: 'activity', label: 'Activity', icon: <IconActivity />, tint: '#99690a', to: '/settings/activity' },
-      ...only(games, [
+      // A Kids or Guest profile makes no share links and has no activity button to set: no rows that lead nowhere.
+      ...only(!settingsPageHidden('sharing', user), [{ key: 'share', label: 'Share links', icon: <IconCopy />, tint: '#0a6fb8', to: '/settings/sharing' }]),
+      ...only(!settingsPageHidden('activity', user), [{ key: 'activity', label: 'Activity', icon: <IconActivity />, tint: '#99690a', to: '/settings/activity' }]),
+      ...only(games && !gamesOff, [
         { key: 'gamesettings', label: 'Game settings', icon: <IconGamepad />, tint: '#7f46b8', to: '/settings/games' },
         { key: 'controllers', label: 'Controllers', icon: <IconGamepad />, tint: '#3e5bd0', to: '/controllers' },
       ]),

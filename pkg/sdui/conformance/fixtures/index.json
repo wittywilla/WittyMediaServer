@@ -226,6 +226,18 @@
    "formFactor": "phone"
   },
   {
+   "id": "backdrops-iphone",
+   "file": "backdrops-iphone.json",
+   "title": "Backdrops on a 402-point iPhone, and titles without one",
+   "formFactor": "phone"
+  },
+  {
+   "id": "detail-film-phone-no-backdrop",
+   "file": "detail-film-phone-no-backdrop.json",
+   "title": "A film with no backdrop, on a 402-point iPhone",
+   "formFactor": "phone"
+  },
+  {
    "id": "detail-film-kids",
    "file": "detail-film-kids.json",
    "title": "A film's page for a profile without downloads or sharing",
@@ -259,6 +271,18 @@
    "id": "detail-album-fallback",
    "file": "detail-album-fallback.json",
    "title": "An album's page for a client without TrackList",
+   "formFactor": "tv"
+  },
+  {
+   "id": "detail-artist",
+   "file": "detail-artist.json",
+   "title": "An artist's page",
+   "formFactor": "phone"
+  },
+  {
+   "id": "detail-artist-tv",
+   "file": "detail-artist-tv.json",
+   "title": "An artist's page on a television",
    "formFactor": "tv"
   },
   {
@@ -368,6 +392,78 @@
    "file": "module-not-installed.json",
    "title": "A page that uses a module that isn't installed",
    "formFactor": "phone"
+  },
+  {
+   "id": "layout-sidebar-desktop",
+   "file": "layout-sidebar-desktop.json",
+   "title": "Layout: sidebar, Home in a desktop window",
+   "formFactor": "desktop"
+  },
+  {
+   "id": "layout-sidebar-phone",
+   "file": "layout-sidebar-phone.json",
+   "title": "Layout: sidebar, Home on a phone",
+   "formFactor": "phone"
+  },
+  {
+   "id": "layout-toptabs-phone",
+   "file": "layout-toptabs-phone.json",
+   "title": "Layout: top tabs, Home on a phone",
+   "formFactor": "phone"
+  },
+  {
+   "id": "layout-toptabs-tablet",
+   "file": "layout-toptabs-tablet.json",
+   "title": "Layout: top tabs, Home on a tablet",
+   "formFactor": "tablet"
+  },
+  {
+   "id": "layout-tvrows-tv",
+   "file": "layout-tvrows-tv.json",
+   "title": "Layout: TV rows, a film library on a television",
+   "formFactor": "tv"
+  },
+  {
+   "id": "layout-tvrows-tablet",
+   "file": "layout-tvrows-tablet.json",
+   "title": "Layout: TV rows, a music library on a tablet",
+   "formFactor": "tablet"
+  },
+  {
+   "id": "layout-tvrows-desktop",
+   "file": "layout-tvrows-desktop.json",
+   "title": "Layout: TV rows, Home in a desktop window",
+   "formFactor": "desktop"
+  },
+  {
+   "id": "layout-compactlist-phone",
+   "file": "layout-compactlist-phone.json",
+   "title": "Layout: compact list, Home on a phone",
+   "formFactor": "phone"
+  },
+  {
+   "id": "layout-compactlist-tv",
+   "file": "layout-compactlist-tv.json",
+   "title": "Layout: compact list, Home on a television",
+   "formFactor": "tv"
+  },
+  {
+   "id": "layout-streaming-web",
+   "file": "layout-streaming-web.json",
+   "title": "Layout: streaming style, Home in a browser",
+   "formFactor": "web"
+  },
+  {
+   "id": "layout-streaming-phone",
+   "file": "layout-streaming-phone.json",
+   "title": "Layout: streaming style, Home on a phone",
+   "formFactor": "phone"
+  },
+  {
+   "id": "layout-streaming-tv",
+   "file": "layout-streaming-tv.json",
+   "title": "Layout: streaming style, Home on a television",
+   "formFactor": "tv"
   }
  ]
 }

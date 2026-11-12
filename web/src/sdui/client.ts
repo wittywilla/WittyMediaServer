@@ -96,6 +96,12 @@ function keep(key: string, doc: Document, etag: string) {
 export async function fetchPage(page: string, device: Device, params: Record<string, string>, opts: { signal?: AbortSignal; diff?: boolean; preview?: string } = {}): Promise<Document> {
   const q = pageQuery(device, params, opts)
   const key = getToken() + ' ' + page + '?' + q
+  // Asked for already while the page's code was still arriving (prefetchPage): that answer.
+  const ahead = early.get(key)
+  if (ahead) {
+    early.delete(key)
+    try { return await ahead } catch (e) { if (e instanceof ApiError && e.status !== 0) throw e }
+  }
   const path = `${BASE}/pages/${encodeURIComponent(page)}`
   const had = pages.get(key)
   if (had?.etag && opts.diff !== false) {
@@ -116,6 +122,19 @@ export async function fetchPage(page: string, device: Device, params: Record<str
   if (r.status === 304 && had) { pages.set(key, had); had.at = Date.now(); return had.doc }
   if (!r.data) throw new ApiError(0, 'The server sent no page.')
   return keep(key, r.data, r.etag)
+}
+
+// prefetchPage: start asking for a page before the code that draws it has arrived, so the
+// two come down together on a first visit (a slow link, a small machine). The page then
+// takes this answer instead of asking again; one not taken within a minute is dropped.
+const early = new Map<string, Promise<Document>>()
+export function prefetchPage(page: string, device: Device, params: Record<string, string>) {
+  const key = getToken() + ' ' + page + '?' + pageQuery(device, params)
+  if (early.has(key) || pages.has(key)) return
+  const p = fetchPage(page, device, params)
+  p.catch(() => {})
+  early.set(key, p)
+  setTimeout(() => { if (early.get(key) === p) early.delete(key) }, 60_000)
 }
 
 // update: the page as the renderer has it now (more items arrived), kept for next time.

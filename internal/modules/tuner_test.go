@@ -23,7 +23,7 @@ import (
 
 func tunerManifest(ver string) []byte {
 	b, _ := json.Marshal(wittymodule.Manifest{ID: tunerID, Name: "WittyTuner", Version: ver, Repo: "wittywilla/WittyTuner", Delivery: wittymodule.DeliveryHelper,
-		Entry: "wittytuner-module", API: wittymodule.API, MinServer: "0.1.0", MaxServer: "0.x", Permissions: []string{wittymodule.PermissionNetwork}})
+		Entry: "wittytuner-module", API: MinAPI, MinServer: "0.1.0", MaxServer: "0.x", Permissions: []string{wittymodule.PermissionNetwork}})
 	return b
 }
 

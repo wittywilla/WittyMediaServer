@@ -314,3 +314,25 @@ html.tilt-on .card:not(.square) .poster.tilting { transition: transform 80ms lin
 .shuffle-info h3 { margin: 0; font-size: var(--text-xl); }
 .shuffle-info .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
 @media (max-width: 600px) { .shuffle { flex-direction: column; align-items: flex-start; } .shuffle-poster { width: 90px; } }
+
+/* ---------------------------------------------------------------- layout options (docs/SDUI.md) */
+/* A layout whose menu lies over the page (streaming): the bar runs over the top of every page,
+   see-through, and turns solid as the page scrolls, as it always has over a backdrop. */
+@supports (animation-timeline: scroll()) {
+  .app.nav-overlay .topbar { margin-bottom: calc(-1 * var(--topbar-h)); background: linear-gradient(rgb(var(--bg-rgb) / .9), rgb(var(--bg-rgb) / .8) 65%, rgb(var(--bg-rgb) / 0)); }
+  .app.nav-overlay .topbar::before { content: ''; position: absolute; inset: 0; z-index: -1; background: var(--bg); opacity: 0; animation: bar-solid linear both; animation-timeline: scroll(root); animation-range: var(--sp-4) calc(var(--topbar-h) * 3); }
+  .app.nav-overlay:has(.legal-ack-bar) .topbar, .app.nav-overlay:has(.home.editing) .topbar { margin-bottom: 0; background: var(--bg); }
+  .app.nav-overlay .content > :first-child:not(.sdui) { padding-top: var(--topbar-h); }
+  .app.nav-overlay .content > .sdui:first-child > :first-child:not(.hero):not(.sr-only), .app.nav-overlay .content > .sdui:first-child > .sr-only + :not(.hero) { margin-top: var(--topbar-h); }
+}
+/* Top tabs on a phone too: the tabs along the top are the menu, with no bar at the bottom. */
+@media (max-width: 900px) { .app.no-tabbar .tabbar { display: none; } .app.no-tabbar .content { padding-bottom: var(--sp-6); } }
+.pic-rail .s { width: 8%; }
+.pic-rail .t { display: none; }
+.pic-rail .c { left: 14%; top: 10%; bottom: 40%; }
+.pic-list .s { width: 8%; }
+.pic-list .t { display: none; }
+.pic-list .c { left: 14%; top: 10%; bottom: auto; height: 10%; box-shadow: 0 calc(var(--sp-2) * 2.5) 0 var(--bg-3), 0 calc(var(--sp-2) * 5) 0 var(--bg-3), 0 calc(var(--sp-2) * 7.5) 0 var(--bg-3); }
+.pic-stream .s { display: none; }
+.pic-stream .t { opacity: .35; }
+.pic-stream .c { left: 0; right: 0; top: 0; bottom: 45%; border-radius: 0; background: var(--bg-4); }

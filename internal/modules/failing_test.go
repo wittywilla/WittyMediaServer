@@ -25,7 +25,7 @@ func TestASlowStartGetsASecondGo(t *testing.T) {
 	helloTimeout = time.Second // the helper takes 1.5 s: too long once, in time with twice as long
 	defer func() { helloTimeout = old }()
 	w := newWorld(t)
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API, "slow-hello"))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", MinAPI, "slow-hello"))
 	m := w.manager()
 	defer m.Close()
 	check(t, m)
@@ -41,7 +41,7 @@ func TestFailuresTogetherCountOnce(t *testing.T) {
 	failSpacing = time.Hour
 	defer func() { failSpacing = old }()
 	w := newWorld(t)
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API, "crash"))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", MinAPI, "crash"))
 	m := w.manager()
 	defer m.Close()
 	check(t, m)
@@ -69,7 +69,7 @@ func TestTheOnlyVersionRestsRatherThanGoing(t *testing.T) {
 	restFor = time.Hour
 	defer func() { restFor = oldRest }()
 	w := newWorld(t)
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API, "crash"))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", MinAPI, "crash"))
 	m := w.manager()
 	check(t, m)
 	installWait(t, m)
@@ -117,7 +117,7 @@ func TestARestEnds(t *testing.T) {
 	restFor = time.Hour
 	defer func() { restFor = oldRest }()
 	w := newWorld(t)
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API, "crash"))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", MinAPI, "crash"))
 	m := w.manager()
 	defer m.Close()
 	check(t, m)
@@ -142,7 +142,7 @@ func TestARestEnds(t *testing.T) {
 // What an earlier run did to an only version, before this was fixed, is undone at the next start.
 func TestAnEarlierRunsGivingUpIsUndone(t *testing.T) {
 	w := newWorld(t)
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", MinAPI))
 	m := w.manager()
 	check(t, m)
 	installWait(t, m)

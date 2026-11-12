@@ -33,7 +33,7 @@ export type ConditionSpec = PropSpec & { field: string }
 
 export type PageKindSpec = { kind: string; label: string; description: string; route: string; params?: string[] | null; variables?: string[] | null; match?: string[] | null }
 
-export type NativeScreenSpec = { screen: string; label: string; description: string; route: string; icon: string }
+export type NativeScreenSpec = { screen: string; label: string; description: string; route: string; icon: string; menu?: boolean }
 
 export type Catalogue = {
   schemaVersion?: number; revision?: number
@@ -679,10 +679,13 @@ export const NAV_TYPES: { value: string; label: string; help: string }[] = [
   { value: 'route', label: 'A place in the app', help: 'Opens an address in the app, such as /library/3.' },
 ]
 
-// The app's own screens a menu entry can open: the ones with a place of their own that
-// needs nothing filled in (the player needs a title, so it isn't one).
+// The app's own screens a menu entry can open: the catalogue marks them `menu` (a server
+// from before that flag: the ones with a place of their own that needs nothing filled in;
+// the player needs a title, so it isn't one).
 export function navScreens(cat: Catalogue): NativeScreenSpec[] {
-  return (cat.nativeScreens || []).filter((s) => s.route && !s.route.includes('{'))
+  const list = cat.nativeScreens || []
+  if (list.some((s) => s.menu !== undefined)) return list.filter((s) => s.menu)
+  return list.filter((s) => s.route && !s.route.includes('{'))
 }
 
 export const isSettingsEntry = (it: NavItem) => it.type === 'native' && it.screen === 'settings'

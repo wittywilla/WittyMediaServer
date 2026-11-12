@@ -146,7 +146,7 @@ export function Preview({ page, saved, dirty, onSave, onParams }: {
         {doc && (
           <div className={'pe-frame ' + formFactor + (state === 'loading' ? ' stale' : '')} style={{ width: frame.width * scale, height: Math.max(frame.height, sheetHeight) * scale }}
             role="img" aria-label={`${pageName(cat, page)} as a ${formFactor === 'tv' ? 'television' : frame.label.toLowerCase()} would show it`}>
-            <div className="pe-frame-page" ref={sheet} inert style={{ '--gutter': `${pad.left}px`, width: frame.width, minHeight: frame.height, transform: `scale(${scale})`, paddingTop: pad.top, paddingRight: pad.right, paddingBottom: pad.bottom, paddingLeft: pad.left } as CSSProperties}>
+            <div className="pe-frame-page" ref={sheet} inert style={{ '--gutter': `${pad.left}px`, '--pe-vh': `${frame.height / 100}px`, width: frame.width, minHeight: frame.height, transform: `scale(${scale})`, paddingTop: pad.top, paddingRight: pad.right, paddingBottom: pad.bottom, paddingLeft: pad.left } as CSSProperties}>
               <PageView doc={doc} device={device} width={frame.width - pad.left - pad.right} />
             </div>
           </div>

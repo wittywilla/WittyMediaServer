@@ -144,6 +144,7 @@ func (s *Server) sduiRoutes(m *http.ServeMux) {
 	m.Handle("GET /api/sdui/topshelf", s.requireUser(s.handleSDUITopShelf))
 	s.sduiAdminRoutes(m)
 	s.sduiModuleRoutes(m)
+	s.sduiLayoutRoutes(m)
 }
 
 // writeJSONTagged is writeJSON for answers a client may keep: an ETag, and a cache that
@@ -368,7 +369,11 @@ type sduiRender struct {
 	cfg  *sduistore.Config
 }
 
-var sduiFilterParams = []string{"tab", "sort", "desc", "genre", "decade", "year", "content", "resolution", "watched", "studio", "network", "tag"}
+// The rest are the filters of the web app's own Filters panel and saved views (the same as
+// GET /browse takes), so a view saved there opens on a server-driven library page too.
+// All but platform, which names the device here.
+var sduiFilterParams = []string{"tab", "sort", "desc", "genre", "decade", "year", "content", "resolution", "watched", "studio", "network", "tag",
+	"series", "kind", "disc", "minRating", "audio", "subtitle", "format", "edition", "search", "seed"}
 
 // sduiPrepare works out which page a request is for and who is asking, on what. name is a
 // kind of page (home, library, detail, search, ...), chosen among the pages of that kind by
@@ -423,12 +428,15 @@ func (s *Server) sduiPrepare(r *http.Request, name string) (*sduiRender, int, er
 	}
 	rv := s.newSDUIResolver(r, vars)
 	ctx := &sdui.RenderContext{ProfileKind: u.Kind, Admin: u.IsAdmin, UserName: firstNonEmpty(u.DisplayName, u.Name), ServerName: s.ServerName(r.Context()),
-		Features: serverFeatures, Cannot: sduiCannot(acc), Flags: map[string]bool{}, Vars: vars, Params: map[string]string{}, Scopes: sduiScopes(cfg, set),
+		Features: serverFeatures, Cannot: sduiCannot(acc), Flags: map[string]bool{}, Vars: vars, Params: map[string]string{}, Scopes: s.sduiThemeScopes(r, cfg, set),
 		Resolver: rv, UI: set, BasePath: "/api/v1/sdui", Source: source, ConfigRevision: cfg.Revision}
 	if err := s.sduiDevice(r, ctx); err != nil {
 		return nil, 400, err
 	}
 	rv.formFactor, rv.platform, rv.locale = ctx.Profile.FormFactor, ctx.Platform, ctx.Locale
+	if ctx.Layout, err = s.sduiLayout(r, cfg, ctx.Profile.FormFactor); err != nil {
+		return nil, 400, err
+	}
 	// What this profile has been kept from isn't in the conditions, and with its screen
 	// time over nothing offers to play (sdui_limits.go); what it may not see isn't in the
 	// data. After the device's own parameters, so a client can't say otherwise.
@@ -446,7 +454,7 @@ func (s *Server) sduiPrepare(r *http.Request, name string) (*sduiRender, int, er
 	var libID int64
 	libKind, mediaKind := "", ""
 	pages := effectivePages(cfg, set)
-	if kind == "library" || (kind == "detail" && vars["album"] != "") {
+	if kind == "library" || (kind == "detail" && (vars["album"] != "" || isArtistPage(vars))) {
 		lib, ok := rv.library(vars["library"])
 		if !ok {
 			return nil, 404, errors.New("not found")
@@ -567,7 +575,7 @@ func (s *Server) renderPage(w http.ResponseWriter, r *http.Request) (sdui.Docume
 			h.Write([]byte(part))
 			h.Write([]byte{0})
 		}
-		for _, name := range []string{"X-WMS-Platform", "X-WMS-Form-Factor", "X-WMS-Device-Class", "X-WMS-SDUI-Catalog", "X-WMS-SDUI-Components", "X-WMS-SDUI-Views", "X-WMS-Capabilities", "X-WMS-Viewport", "X-WMS-Locale", "X-WMS-SDUI-Preview"} {
+		for _, name := range []string{"X-WMS-Platform", "X-WMS-Form-Factor", "X-WMS-Device-Class", "X-WMS-SDUI-Catalog", "X-WMS-SDUI-Components", "X-WMS-SDUI-Views", "X-WMS-Capabilities", "X-WMS-Viewport", "X-WMS-Locale", "X-WMS-SDUI-Preview", "X-WMS-Device", "X-WMS-Layout"} {
 			h.Write([]byte(r.Header.Get(name)))
 			h.Write([]byte{0})
 		}
@@ -751,7 +759,16 @@ func (s *Server) handleSDUINavigation(w http.ResponseWriter, r *http.Request) {
 	if ctx.CanPersonalise {
 		ctx.Personal = s.sduiPersonal(r, sduiNavKey)
 	}
+	layout, err := s.sduiLayout(r, cfg, ctx.Profile.FormFactor)
+	if err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
 	doc := sdui.RenderNavigation(nav, func(id string) (sdui.Page, bool) { return effectivePage(cfg, id, set) }, libs, ctx)
+	doc.Shell = sdui.ShellFor(layout.ID, ctx.Profile.FormFactor)
+	doc.Layouts = s.layoutChoice(r, cfg, ctx.Profile.FormFactor, layout.ID)
+	doc.ETag = ""
+	doc.ETag = hashETag("nav", doc)
 	if notModified(w, r, doc.ETag) {
 		return
 	}
@@ -878,6 +895,8 @@ const sduiNavKey = "@nav"
 type sduiPersonalStore struct {
 	Pages map[string]*sdui.Personal `json:"pages,omitempty"`
 	Nav   *sdui.Personal            `json:"nav,omitempty"`
+	// Layouts are the profile's layout per device (sdui_layouts.go).
+	Layouts map[string]string `json:"layouts,omitempty"`
 }
 
 func (s *Server) readPersonal(r *http.Request) (map[string]json.RawMessage, sduiPersonalStore) {

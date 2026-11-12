@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, ApiError } from '../api'
 import { useApp } from '../state'
 import { decodeLevels, defaultLevel, encodeLevels, gainsFor, levelOf, levelsKey, playable, pollDelay, qualityName, sliders, statusLine, type KaraokeAnswer, type Levels } from './stemMix'
-import { StemSet } from './stems'
+import { StemSet, type StemPlayer } from './stems'
 import type { PlayerView } from './types'
 
 // Karaoke from a song's separate parts. Opening karaoke asks the server once; it makes a
@@ -24,7 +24,7 @@ export function useKaraokeStems(p: PlayerView) {
   const [sing, setSing] = useState(false)
   const [active, setActive] = useState(false)
   const [lost, setLost] = useState('')
-  const set = useRef<StemSet | null>(null)
+  const set = useRef<StemPlayer | null>(null)
   const drop = useCallback(() => { set.current?.close(); set.current = null; setActive(false) }, [])
 
   // Ask once for this song, then as often as the server says while something is being made.
@@ -61,11 +61,10 @@ export function useKaraokeStems(p: PlayerView) {
   useEffect(() => {
     const el = p.media()
     if (!version || !playable(answer) || !el) { drop(); return }
-    if (!normalSpeed) { drop(); setLost('The song\'s separate parts only play at normal speed, so this is the normal track.'); return }
     setLost('')
     const stop = new AbortController()
     // The parts playing now carry on until the new ones are ready.
-    StemSet.open(el, answer.stems, stop.signal, (why) => { drop(); setLost(why) }).then((s) => {
+    StemSet.open(el, answer.stems, stop.signal).then((s) => {
       if (stop.signal.aborted) { s.close(); return }
       set.current?.close()
       set.current = s

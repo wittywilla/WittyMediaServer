@@ -51,6 +51,20 @@ Below those, **Feature Presentation** has **Play feature** and its **Scenes**, a
 
 To find the film, **Play movie** ranks every title rather than taking the longest. Titles that repeat or shuffle another's scenes, point at video that isn't there, or are made of tiny fragments count as decoys, and the title the disc itself starts gains ground. A disc of several episodes of similar length plays them in order. CSS-scrambled discs are still refused: the ranking reads only what is never encrypted. [DVD quirks](DVD-QUIRKS.md#finding-the-film-among-decoys) has the details, and the diagnose report shows why each title scored as it did.
 
+## Which title is the film
+
+WittyDVD 0.4.0 and later rank every title of a disc and explain their pick. The scan keeps that answer with the disc, so its length and languages in your library are the film's, and the disc's page shows it under the feature as **Why this title**: one sentence, how sure the engine is (high, medium or low, and a percentage), and under **How the engine decided** the reasons for and against, decoys left out, and what was wrong with the copy (tables mended from the backup copy, unreadable sectors passed over as blank).
+
+- **A film in pieces.** When the film runs through several titles in a row, or only the disc's own commands join its parts, **Play movie** plays the whole of it as one stream, with one timeline and its chapters counted along all of it.
+- **Episodes.** On a TV disc, **Episodes** lists them in viewing order. An episode with no title of its own (a disc with only a "play all" title) starts at its own place in that title.
+- **Other versions.** Camera angles, cuts chosen by the parental level and other cuts sharing the film's video are listed under **Other versions**, each to play.
+- **Choosing another title.** An administrator can pick another title under **Why this title** and **Make it the film**. The server remembers it for that disc, for everyone: **Play movie**, the page, the item's length and languages all follow it, and a rescan keeps it as long as the disc has that title. **Use the engine's pick** forgets it. Anyone can still play any title from the page once.
+- **Rank again** works it out afresh, for example after updating WittyDVD.
+- **Older modules.** With a WittyDVD from before rankings, everything still works with the older rule: the longest sensible title.
+- **Small machines.** In low-power mode, a disc whose ranking is missing or from another WittyDVD version is ranked in the background, one disc at a time, and its page updates by itself.
+
+Ranking reads only the disc's index files and menu buttons, never its video. An encrypted disc's structure can still be read to say what is on it, and it still won't play.
+
 ## Disc settings
 
 The **Disc settings** button on a DVD's page, for administrators, has:

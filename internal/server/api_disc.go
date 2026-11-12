@@ -86,16 +86,38 @@ func (s *Server) handleDisc(w http.ResponseWriter, r *http.Request) {
 		return t
 	}
 	out := map[string]any{"main": nil, "extras": []discTitle{}, "menus": []discMenu{}}
-	main := d.MainTitle()
+	// The film is the title an admin chose, or the engine's ranked pick laid out as the
+	// engine plays it, or with neither the older rule's guess.
+	main := library.DiscMainTitle(d, it.Disc)
 	seen := map[[2]int]bool{}
 	if main != nil {
 		out["main"] = view(main)
 		seen[[2]int{main.VTS, main.VTSTitle}] = true
 	}
+	// With a ranking, the extras are what the engine counts as something to watch: not
+	// its decoys, the copies of other titles, or the parts of the film itself.
+	var listed map[int]bool
+	if rk := rankOf(it); rk != nil {
+		listed = map[int]bool{}
+		for _, c := range rk.Candidates {
+			if c.Class != "duplicate" && c.Class != "stub" && c.Class != "part" {
+				listed[c.TTN] = true
+			}
+		}
+		if main != nil {
+			if f := it.Disc.FeaturePlays(main.Number); f != nil {
+				for _, n := range f.Titles {
+					delete(listed, n)
+				}
+			}
+		}
+		out["hidden"] = rk.Hidden + rk.Decoys
+	}
+	addRank(out, it)
 	var extras []discTitle
 	for _, ts := range d.Titles() {
 		k := [2]int{ts.VTS, ts.VTSTitle}
-		if seen[k] || ts.Duration < 10 {
+		if seen[k] || ts.Duration < 10 || (listed != nil && !listed[ts.Number]) {
 			continue // duplicates (several title numbers for one program) and tiny stubs
 		}
 		seen[k] = true
@@ -235,6 +257,12 @@ func (s *Server) makeDiscThumb(ctx context.Context, it *library.Item, ttn, n int
 	}
 	defer o.Close()
 	ts := o.Disc.Title(ttn)
+	if f := it.Disc.FeaturePlays(ttn); f != nil {
+		// The film's chapters are the engine's, along every title it runs through.
+		if ft, _, ok := o.Disc.FeatureTitle(f.Engine(), 1); ok {
+			ts = ft
+		}
+	}
 	if ts == nil || len(ts.Cells) == 0 {
 		return errNoPicture
 	}
@@ -296,3 +324,29 @@ var (
 	errNoPicture = errors.New("no picture in this title")
 	errNoTitle   = errors.New("no such title or chapter")
 )
+
+// rankOf is the kept ranking of an item's disc, or nil.
+func rankOf(it *library.Item) *library.DiscRank {
+	if it == nil || it.Disc == nil {
+		return nil
+	}
+	return it.Disc.Rank
+}
+
+// addRank adds what the engine's ranking says to a disc page's answer: why this title, a
+// TV disc's episodes and the film's other versions. The whole of it is at
+// /api/items/{id}/disc/analysis.
+func addRank(out map[string]any, it *library.Item) {
+	out["rank"] = nil
+	rk := rankOf(it)
+	if rk == nil {
+		return
+	}
+	out["rank"] = discWhy(it.Disc)
+	if len(rk.Episodes) > 0 {
+		out["episodes"] = rk.Episodes
+	}
+	if len(rk.Versions) > 0 {
+		out["versions"] = rk.Versions
+	}
+}

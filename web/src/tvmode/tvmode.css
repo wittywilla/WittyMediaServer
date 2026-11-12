@@ -202,3 +202,15 @@ html.tv-mode .player .bottom .ibtn, html.tv-mode .player .top .ibtn { width: var
 html.tv-mode .player .bottom .ibtn svg, html.tv-mode .player .top .ibtn svg { width: calc(var(--tvu) * 32); height: calc(var(--tvu) * 32); }
 html.tv-mode .player .bottom .big { width: calc(var(--tvu) * 84); height: calc(var(--tvu) * 84); }
 html.tv-mode .player .time, html.tv-mode .player .title { font-size: var(--tv-body); }
+
+/* A menu down the side (a layout's tvSideMenu): icons in a narrow column, which opens to show
+   their names while it has focus; the page sits beside it. Sizes are the layout's, in points. */
+.tvm.tvm-sidemenu.tvm-tab .tvm-main { margin-left: calc(var(--tvu) * 120); }
+.tvm-bar.tvm-side { position: fixed; top: 0; bottom: 0; left: 0; z-index: 5; width: calc(var(--tvu) * var(--tvm-side, 120)); padding: calc(var(--tvu) * 48) calc(var(--tvu) * 16); background: var(--bg-2); overflow: hidden; transition: width var(--dur-2) var(--ease-standard); }
+.tvm-bar.tvm-side:focus-within { width: calc(var(--tvu) * var(--tvm-side-open, 400)); box-shadow: var(--e-3); }
+.tvm-side .tvm-tabs { flex-direction: column; align-items: stretch; height: 100%; }
+.tvm-side .tvm-pill { justify-content: flex-start; }
+.tvm-side .tvm-pill > span { opacity: 0; transition: opacity var(--dur-2); }
+.tvm-side:focus-within .tvm-pill > span { opacity: 1; }
+.tvm-side .tvm-you { margin-top: auto; }
+@media (prefers-reduced-motion: reduce) { .tvm-bar.tvm-side, .tvm-side .tvm-pill > span { transition: none; } }

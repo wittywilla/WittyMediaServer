@@ -81,8 +81,17 @@ type Config struct {
 	Pages map[string]sdui.Page `json:"pages"`
 	// Personalisation says whether profiles may arrange pages for themselves.
 	Personalisation Personalisation `json:"personalisation,omitzero"`
+	// Layouts are the layout options each form factor starts with and the ones
+	// profiles may choose (docs/SDUI.md, "Layout options"); nil: the defaults, all
+	// allowed.
+	Layouts *sdui.LayoutPolicy `json:"layouts,omitempty"`
 	// Notes are left by a migration: what could not be carried over.
 	Notes []string `json:"notes,omitempty"`
+	// BaseRevision is set on the draft only: the published revision it was
+	// begun from. Publishing applies what the draft changed since that
+	// revision on top of what is published now (see Merge). Ignored, and
+	// never stored, in the published configuration.
+	BaseRevision int64 `json:"baseRevision,omitempty"`
 	// ETag identifies this revision; set by the store, never stored.
 	ETag string `json:"etag,omitempty"`
 }
@@ -122,6 +131,27 @@ var (
 	// ErrNoRevision: that revision isn't kept (any more).
 	ErrNoRevision = errors.New("no such revision is kept")
 )
+
+// MergeConflictError: publishing the draft would undo a change made to the
+// published configuration after the draft was begun, because the draft
+// changed the same items.
+type MergeConflictError struct {
+	// Base is the published revision the draft was begun from; Current the
+	// one published now.
+	Base, Current int64
+	// Items are the paths both sides changed differently: /pages/<id>,
+	// /navigation, /theme, /personalisation. "/" when the base revision is
+	// no longer kept, so nothing can be told apart.
+	Items []string
+}
+
+func (e *MergeConflictError) Error() string {
+	if len(e.Items) == 1 && e.Items[0] == "/" {
+		return fmt.Sprintf("the draft was begun from revision %d, which is no longer kept, and revision %d is published now: what each changed can't be told apart", e.Base, e.Current)
+	}
+	return fmt.Sprintf("since the draft was begun from revision %d, revision %d was published with other changes to %s, which the draft changes too",
+		e.Base, e.Current, strings.Join(e.Items, ", "))
+}
 
 // InvalidError lists everything wrong with a configuration.
 type InvalidError struct {
@@ -369,6 +399,7 @@ func (s *Store) History() ([]Revision, error) {
 // saveLocked validates next, numbers it and writes it. s.mu is held.
 func (s *Store) saveLocked(next *Config, by string) (*Config, error) {
 	next.Version = FormatVersion
+	next.BaseRevision = 0
 	if err := s.validate(next); err != nil {
 		return nil, err
 	}
@@ -671,9 +702,26 @@ func (s *Store) Check(c *Config) []sdui.Issue {
 			_, ok := sdui.StockPage(id)
 			return ok
 		}
-		for _, is := range sdui.ValidateNavigation(c.Navigation, exists) {
+		// A page that is neither the file's nor built in may be a module's: the store doesn't
+		// know which modules are in use, and a module turned off mustn't make a good file
+		// bad. The editor's routes check it against the modules in use when it is saved;
+		// here it is a warning, and the menu leaves the entry out while there is no page.
+		missing := map[string]bool{}
+		for _, it := range c.Navigation.Items {
+			if it.Type == "page" && sdui.ValidID(it.Page) && !exists(it.Page) {
+				missing[it.Page] = true
+			}
+		}
+		for _, is := range sdui.ValidateNavigation(c.Navigation, func(id string) bool { return exists(id) || missing[id] }) {
 			is.Path = "/navigation" + is.Path
 			ve.Issues = append(ve.Issues, is)
+		}
+		for i, it := range c.Navigation.Items {
+			if missing[it.Page] {
+				ve.Issues = append(ve.Issues, sdui.Issue{Path: fmt.Sprintf("/navigation/items/%d/page", i), Severity: "warning",
+					Message: fmt.Sprintf("there is no page called %q here, unless a module brings it; while there is none, the entry is left out", it.Page),
+					Fix:     "Turn on the module whose page it is, create the page, or remove the entry."})
+			}
 		}
 	}
 	checkTokens := func(p string, toks map[string]string) {
@@ -692,6 +740,10 @@ func (s *Store) Check(c *Config) []sdui.Issue {
 			ve.add("/theme/modules/"+mod, "invalid module id")
 		}
 		checkTokens("/theme/modules/"+mod, c.Theme.Modules[mod])
+	}
+	for _, is := range sdui.ValidateLayoutPolicy(c.Layouts) {
+		is.Path = "/layouts" + is.Path
+		ve.Issues = append(ve.Issues, is)
 	}
 	if len(c.Notes) > 200 {
 		ve.add("/notes", "too many notes")
@@ -834,6 +886,11 @@ func (s *Store) loadDraft() {
 		_ = os.Rename(s.draftPath(), s.draftPath()+".bad")
 		return
 	}
+	if c.BaseRevision <= 0 && s.cur != nil {
+		// A draft from before drafts remembered their base: it is taken to be
+		// made from what is published, as publishing it used to assume.
+		c.BaseRevision = s.cur.Revision
+	}
 	c.ETag = draftETag(c)
 	s.draft = c
 }
@@ -853,7 +910,9 @@ func (s *Store) Draft() *Config {
 // SaveDraft keeps c as the draft. ifMatch, when not empty, must be the
 // draft's ETag, or the current configuration's when there is no draft yet
 // (ErrConflict otherwise). The draft is validated like a configuration; its
-// Revision counts its own saves.
+// Revision counts its own saves. Its BaseRevision is the published revision
+// it was begun from: the current one for a new draft, kept as it was for a
+// draft saved again (c.BaseRevision is ignored).
 func (s *Store) SaveDraft(c *Config, ifMatch, by string) (*Config, error) {
 	if c == nil {
 		return nil, errors.New("no configuration")
@@ -861,9 +920,9 @@ func (s *Store) SaveDraft(c *Config, ifMatch, by string) (*Config, error) {
 	s.maybeReload()
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	base, n := s.cur.ETag, int64(0)
+	base, n, from := s.cur.ETag, int64(0), s.cur.Revision
 	if s.draft != nil {
-		base, n = s.draft.ETag, s.draft.Revision
+		base, n, from = s.draft.ETag, s.draft.Revision, s.draft.BaseRevision
 	}
 	if ifMatch != "" && !SameETag(ifMatch, base) {
 		return nil, ErrConflict
@@ -873,7 +932,7 @@ func (s *Store) SaveDraft(c *Config, ifMatch, by string) (*Config, error) {
 	if err := s.validate(next); err != nil {
 		return nil, err
 	}
-	next.Revision, next.UpdatedAt, next.UpdatedBy, next.ETag = n+1, s.now().UTC(), by, ""
+	next.Revision, next.UpdatedAt, next.UpdatedBy, next.ETag, next.BaseRevision = n+1, s.now().UTC(), by, "", from
 	b, err := encode(next)
 	if err != nil {
 		return nil, err
@@ -897,9 +956,30 @@ func (s *Store) DiscardDraft() error {
 	return nil
 }
 
-// Publish makes the draft the configuration, as a new revision, and forgets
-// the draft. ifMatch, when not empty, must be the draft's ETag.
+// Publish makes what the draft changed part of the configuration, as a new
+// revision, and forgets the draft. ifMatch, when not empty, must be the
+// draft's ETag.
+//
+// The draft is not simply copied over: what was published since the draft was
+// begun would be lost. Instead the draft is compared with the revision it was
+// begun from, and only what it changed (page by page, the navigation, the
+// theme, the personalisation switch) is applied on top of what is published
+// now (see Merge). When something the draft changed was also changed, the
+// other way, in what is published, the answer is a *MergeConflictError and
+// nothing changes, unless prefer says which side wins for those items:
+// "draft" or "published".
 func (s *Store) Publish(ifMatch, by string) (*Config, error) {
+	return s.PublishPreferring(ifMatch, by, "")
+}
+
+// PublishPreferring is Publish, with prefer ("", "draft" or "published")
+// settling the items both sides changed.
+func (s *Store) PublishPreferring(ifMatch, by, prefer string) (*Config, error) {
+	switch prefer {
+	case "", "draft", "published":
+	default:
+		return nil, errors.New("prefer: draft or published")
+	}
 	s.maybeReload()
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -909,7 +989,25 @@ func (s *Store) Publish(ifMatch, by string) (*Config, error) {
 	if ifMatch != "" && !SameETag(ifMatch, s.draft.ETag) {
 		return nil, ErrConflict
 	}
-	next := s.draft.Clone()
+	var next *Config
+	if s.draft.BaseRevision == s.cur.Revision {
+		next = s.draft.Clone() // nothing was published since it was begun
+	} else {
+		base, err := s.revisionLocked(s.draft.BaseRevision)
+		if err != nil {
+			if prefer != "draft" {
+				return nil, &MergeConflictError{Base: s.draft.BaseRevision, Current: s.cur.Revision, Items: []string{"/"}}
+			}
+			next = s.draft.Clone()
+		} else {
+			merged, conflicts := Merge(base, s.draft, s.cur, prefer)
+			if len(conflicts) > 0 && prefer == "" {
+				return nil, &MergeConflictError{Base: s.draft.BaseRevision, Current: s.cur.Revision, Items: conflicts}
+			}
+			next = merged
+		}
+	}
+	next.Notes = s.cur.Notes
 	saved, err := s.saveLocked(next, by)
 	if err != nil {
 		return nil, err
@@ -917,6 +1015,97 @@ func (s *Store) Publish(ifMatch, by string) (*Config, error) {
 	s.draft = nil
 	_ = os.Remove(s.draftPath())
 	return saved, nil
+}
+
+// Merge is a three-way merge of the configuration: base is what the draft was
+// begun from, draft what it is now, published what is published now. Each
+// item (every page by ID, the navigation, the theme, the personalisation
+// switch) the draft left as it was in base is taken from published; one the
+// draft changed is taken from the draft, unless published changed it too, to
+// something else: then it is a conflict, named by its path (/pages/<id>,
+// /navigation, /theme, /personalisation), and the result keeps what prefer
+// says ("draft", "published"; with "" the result is not to be used). A page
+// added or removed counts as changed. The result is a new configuration; none
+// of the three is modified.
+func Merge(base, draft, published *Config, prefer string) (*Config, []string) {
+	out := published.Clone()
+	out.ETag = ""
+	var conflicts []string
+	// pick says which side an item comes from: the draft's (true) or published's.
+	pick := func(path string, b, d, p any) bool {
+		if sameValue(b, d) {
+			return false
+		}
+		if sameValue(b, p) || sameValue(d, p) {
+			return true
+		}
+		conflicts = append(conflicts, path)
+		return prefer == "draft"
+	}
+	ids := map[string]bool{}
+	for _, c := range []*Config{base, draft, published} {
+		for id := range c.Pages {
+			ids[id] = true
+		}
+	}
+	if out.Pages == nil {
+		out.Pages = map[string]sdui.Page{}
+	}
+	for _, id := range sortedKeys(ids) {
+		b, d, p := pageOrNil(base, id), pageOrNil(draft, id), pageOrNil(published, id)
+		if !pick("/pages/"+id, b, d, p) {
+			continue
+		}
+		if d == nil {
+			delete(out.Pages, id)
+		} else {
+			out.Pages[id] = sdui.ClonePage(*d)
+		}
+	}
+	if pick("/navigation", base.Navigation, draft.Navigation, published.Navigation) {
+		out.Navigation = draft.Clone().Navigation
+	}
+	if pick("/personalisation", base.Personalisation, draft.Personalisation, published.Personalisation) {
+		out.Personalisation = draft.Personalisation
+	}
+	if pick("/theme", base.Theme, draft.Theme, published.Theme) {
+		out.Theme = draft.Clone().Theme
+	}
+	if pick("/layouts", base.Layouts, draft.Layouts, published.Layouts) {
+		out.Layouts = draft.Clone().Layouts
+	}
+	return out, conflicts
+}
+
+func pageOrNil(c *Config, id string) *sdui.Page {
+	if p, ok := c.Pages[id]; ok {
+		return &p
+	}
+	return nil
+}
+
+// sameValue compares two items of a configuration by what they encode to (an
+// absent item and an empty one are the same: both are as built in).
+func sameValue(a, b any) bool {
+	x, _ := json.Marshal(a)
+	y, _ := json.Marshal(b)
+	return bytes.Equal(normaliseEmpty(x), normaliseEmpty(y))
+}
+
+func normaliseEmpty(b []byte) []byte {
+	switch string(b) {
+	case "{}", "null":
+		return []byte("null")
+	}
+	return b
+}
+
+// revisionLocked reads a kept revision, or the current one. s.mu is held.
+func (s *Store) revisionLocked(rev int64) (*Config, error) {
+	if s.cur != nil && rev == s.cur.Revision {
+		return s.cur, nil
+	}
+	return s.RevisionConfig(rev)
 }
 
 // RevisionConfig reads one kept revision.

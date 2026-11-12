@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { getToken, serverBase } from '../api'
+import { getToken, mediaUrl, serverBase } from '../api'
 import { canRoute, openGraph, type SoundGraph } from './sound'
-import { drifted, MAX_SECONDS, startPlan, type Stem } from './stemMix'
+import { drifted, startPlan, streamedParts, streamStep, type Stem } from './stemMix'
+
+// What plays a song's parts, whichever way it does it.
+export interface StemPlayer { setGains(gains: Record<string, number>, volume: number): void; close(): void }
 
 // Plays a song's separate parts in place of the song. The song's own <audio> keeps
 // playing, unheard, and stays in charge: lyrics, seeking, pausing, the lock screen and
@@ -19,7 +22,7 @@ async function fetchSound(ctx: AudioContext, url: string, signal: AbortSignal): 
   return await ctx.decodeAudioData(await res.arrayBuffer())
 }
 
-export class StemSet {
+export class StemSet implements StemPlayer {
   private gains = new Map<string, GainNode>()
   private sources: AudioBufferSourceNode[] = []
   private out: GainNode
@@ -30,7 +33,7 @@ export class StemSet {
   private closed = false
   private onEvent = () => this.sync()
 
-  private constructor(private g: SoundGraph, private el: HTMLAudioElement, private buffers: Map<string, AudioBuffer>, private onLost: (why: string) => void) {
+  private constructor(private g: SoundGraph, private el: HTMLAudioElement, private buffers: Map<string, AudioBuffer>) {
     const ctx = g.ctx
     this.out = ctx.createGain()
     this.out.connect(g.stemIn)
@@ -46,17 +49,21 @@ export class StemSet {
     this.sync()
   }
 
-  // Fetches and decodes every part, and takes over from the song. Throws when any part
-  // can't be had: the caller keeps the normal track.
-  static async open(el: HTMLAudioElement, stems: Stem[], signal: AbortSignal, onLost: (why: string) => void): Promise<StemSet> {
+  // Takes over from the song with its parts: decoded whole at normal speed, streamed for a
+  // long song or another speed (StreamedStems). Throws when any part can't be had: the
+  // caller keeps the normal track.
+  static async open(el: HTMLAudioElement, stems: Stem[], signal: AbortSignal): Promise<StemPlayer> {
     if (!canRoute(el)) throw new Error('The parts can\'t be played here, as the server is on a different address from this page.')
-    if (Number.isFinite(el.duration) && el.duration > MAX_SECONDS) throw new Error('This song is too long to play from its parts here.')
     const g = await openGraph()
     if (!g) throw new Error('This browser wouldn\'t start its audio engine.')
+    if (streamedParts(el.playbackRate, el.duration)) {
+      if (!g.route(el)) throw new Error('This browser wouldn\'t start its audio engine.')
+      return StreamedStems.start(g, el, stems, signal)
+    }
     const list = await Promise.all(stems.map((s) => fetchSound(g.ctx, s.url, signal)))
     if (signal.aborted) throw new DOMException('gone', 'AbortError')
     if (!g.route(el)) throw new Error('This browser wouldn\'t start its audio engine.')
-    return new StemSet(g, el, new Map(stems.map((s, i) => [s.id, list[i]])), onLost)
+    return new StemSet(g, el, new Map(stems.map((s, i) => [s.id, list[i]])))
   }
 
   setGains(gains: Record<string, number>, volume: number) {
@@ -76,8 +83,9 @@ export class StemSet {
     if (this.closed) return
     this.stopSources()
     const el = this.el
-    // Parts can't keep their pitch at another speed the way the song's own player does.
-    if (el.playbackRate !== 1) { this.onLost('The song\'s separate parts only play at normal speed, so this is the normal track.'); return }
+    // Decoded parts can't keep their key at another speed; the page streams them instead
+    // (StemSet.open), and these stay quiet until that has taken over.
+    if (el.playbackRate !== 1) return
     if (el.paused || el.ended || el.seeking || el.readyState < 3) return
     const ctx = this.g.ctx
     const plan = startPlan(el.currentTime, ctx.currentTime)
@@ -108,6 +116,97 @@ export class StemSet {
     window.clearInterval(this.timer)
     for (const ev of ['play', 'playing', 'pause', 'seeking', 'seeked', 'waiting', 'ratechange', 'ended', 'emptied']) this.el.removeEventListener(ev, this.onEvent)
     this.stopSources()
+    this.out.disconnect()
+    this.g.hushDecks(false)
+  }
+}
+
+// StreamedStems: each part played by an <audio> of its own, streamed from the server as the
+// song is, so a song of any length and any speed can be sung to; the browser keeps each
+// part's key at another speed as it does the song's. The song stays in charge, and each part
+// is kept with it by playing a little faster or slower, or by a jump when it's far off.
+class StreamedStems implements StemPlayer {
+  private parts: { el: HTMLAudioElement; gain: GainNode; source: MediaElementAudioSourceNode }[] = []
+  private byId = new Map<string, GainNode>()
+  private out: GainNode
+  private timer = 0
+  private closed = false
+  private onEvent = () => this.sync()
+
+  private constructor(private g: SoundGraph, private song: HTMLAudioElement, stems: Stem[]) {
+    const ctx = g.ctx
+    this.out = ctx.createGain()
+    this.out.connect(g.stemIn)
+    for (const s of stems) {
+      const el = new Audio()
+      el.preload = 'auto'
+      el.crossOrigin = song.crossOrigin
+      el.preservesPitch = true
+      el.src = mediaUrl(s.url)
+      const source = ctx.createMediaElementSource(el)
+      const gain = ctx.createGain()
+      gain.gain.value = 0
+      source.connect(gain)
+      gain.connect(this.out)
+      this.parts.push({ el, gain, source })
+      this.byId.set(s.id, gain)
+    }
+    for (const ev of ['play', 'playing', 'pause', 'seeked', 'waiting', 'ratechange', 'ended', 'emptied']) song.addEventListener(ev, this.onEvent)
+    this.timer = window.setInterval(() => this.keepUp(), 400)
+  }
+
+  // Waits until every part can play, then takes the sound over from the song.
+  static async start(g: SoundGraph, song: HTMLAudioElement, stems: Stem[], signal: AbortSignal): Promise<StreamedStems> {
+    const set = new StreamedStems(g, song, stems)
+    try {
+      await Promise.all(set.parts.map(({ el }) => new Promise<void>((ok, fail) => {
+        if (el.readyState >= 3) { ok(); return }
+        const done = () => { el.removeEventListener('canplay', done); el.removeEventListener('error', bad); ok() }
+        const bad = () => { el.removeEventListener('canplay', done); el.removeEventListener('error', bad); fail(new Error('stem ' + (el.error?.code ?? 0))) }
+        el.addEventListener('canplay', done)
+        el.addEventListener('error', bad)
+        signal.addEventListener('abort', () => fail(new DOMException('gone', 'AbortError')), { once: true })
+      })))
+    } catch (e) { set.close(); throw e }
+    g.hushDecks(true)
+    set.sync()
+    return set
+  }
+
+  setGains(gains: Record<string, number>, volume: number) {
+    const now = this.g.ctx.currentTime
+    for (const [id, node] of this.byId) node.gain.setTargetAtTime(gains[id] ?? 0, now, 0.03)
+    this.out.gain.setTargetAtTime(volume, now, 0.03)
+  }
+
+  // The song paused, moved or changed speed: every part does the same.
+  private sync() {
+    if (this.closed) return
+    const song = this.song
+    const going = !song.paused && !song.ended && song.readyState >= 3
+    for (const { el } of this.parts) {
+      el.playbackRate = song.playbackRate
+      if (Math.abs(el.currentTime - song.currentTime) > 0.05) el.currentTime = song.currentTime
+      if (going) { if (el.paused) void el.play().catch(() => {}) } else if (!el.paused) el.pause()
+    }
+  }
+
+  private keepUp() {
+    if (this.closed || this.song.paused || this.song.ended) return
+    for (const { el } of this.parts) {
+      if (el.paused || el.seeking) continue
+      const step = streamStep(this.song.playbackRate, this.song.currentTime - el.currentTime)
+      if (step.seek) el.currentTime = this.song.currentTime
+      el.playbackRate = step.rate
+    }
+  }
+
+  close() {
+    if (this.closed) return
+    this.closed = true
+    window.clearInterval(this.timer)
+    for (const ev of ['play', 'playing', 'pause', 'seeked', 'waiting', 'ratechange', 'ended', 'emptied']) this.song.removeEventListener(ev, this.onEvent)
+    for (const { el, source, gain } of this.parts) { el.pause(); el.removeAttribute('src'); el.load(); source.disconnect(); gain.disconnect() }
     this.out.disconnect()
     this.g.hushDecks(false)
   }

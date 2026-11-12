@@ -45,20 +45,9 @@ func (s *Server) handleDiscBluray(w http.ResponseWriter, r *http.Request, it *li
 		t := discTitle{TTN: pl.Number, Label: labels.Titles[strconv.Itoa(pl.Number)], DurationSec: d.PlaylistDuration(pl), Angles: 1, Wide: true,
 			Chapters: []discChapter{}, Audio: []string{}, Subtitles: []string{}}
 		names := labels.Chapters[strconv.Itoa(pl.Number)]
-		var t0 float64
-		starts := map[int]float64{}
-		for i, pi := range pl.Items {
-			starts[i] = t0
-			t0 += pi.Duration()
-		}
-		n := 0
-		for _, m := range pl.Marks {
-			if m.Type != 1 || m.Item >= len(pl.Items) {
-				continue
-			}
-			n++
-			at := starts[m.Item] + float64(int64(m.Time)-int64(pl.Items[m.Item].In))/45000
-			t.Chapters = append(t.Chapters, discChapter{N: n, Start: at, Label: names[strconv.Itoa(n)]})
+		// Chapters as the engine maps them onto the playlist's playing time.
+		for i, ch := range bdsession.Chapters(d, pl) {
+			t.Chapters = append(t.Chapters, discChapter{N: i + 1, Start: ch.Start, Label: names[strconv.Itoa(i+1)]})
 		}
 		if len(pl.Items) > 0 {
 			it0 := pl.Items[0]
@@ -73,12 +62,31 @@ func (s *Server) handleDiscBluray(w http.ResponseWriter, r *http.Request, it *li
 		return t
 	}
 	out := map[string]any{"main": nil, "extras": []discTitle{}, "menus": []discMenu{}}
+	// The film is the playlist an admin chose, or the engine's ranked pick.
 	main := d.MainPlaylist()
+	if it.Disc != nil && (it.Disc.Chosen != nil || it.Disc.Rank != nil) && it.Disc.MainTitle >= 0 {
+		if pl := d.Playlist(it.Disc.MainTitle); pl != nil && len(pl.Items) > 0 {
+			main = pl
+		}
+	}
 	if main != nil {
 		out["main"] = view(main)
 	}
+	// With a ranking, the extras are what the engine sent as worth watching. A disc with
+	// a thousand decoy playlists then lists none of them, and asks for none of them.
+	playlists := od.Playlists
+	if rk := rankOf(it); rk != nil {
+		playlists = playlists[:0:0]
+		for _, c := range rk.Candidates {
+			if c.Class != "duplicate" && c.Class != "stub" {
+				playlists = append(playlists, c.TTN)
+			}
+		}
+		out["hidden"] = rk.Hidden + rk.Decoys
+	}
+	addRank(out, it)
 	var extras []discTitle
-	for _, n := range od.Playlists {
+	for _, n := range playlists {
 		pl := d.Playlist(n)
 		if pl == nil || pl == main || d.PlaylistDuration(pl) < 10 || len(pl.Items) == 0 || len(pl.Items[0].Video) == 0 {
 			continue
@@ -116,30 +124,16 @@ func (s *Server) makeBlurayThumb(ctx context.Context, it *library.Item, ttn, n i
 	if pl == nil || len(pl.Items) == 0 {
 		return errNoPicture
 	}
-	marks := 0
-	for _, m := range pl.Marks {
-		if m.Type == 1 {
-			marks++
-		}
-	}
-	// Only chapters that exist get a file: the address is the viewer's to choose.
-	if n < 0 || n > marks {
+	chapters := bdsession.Chapters(d, pl)
+	// Only chapters that exist get a file: the address is the viewer's to choose, and
+	// every other number would be one more picture on disk.
+	if n < 0 || n > len(chapters) {
 		return errNoPicture
 	}
 	// A few seconds into the chapter skips fades from black.
 	item, at := 0, pl.Items[0].In+uint32(min(90, d.PlaylistDuration(pl)*0.1)*45000)
-	chapters := 0
-	for _, m := range pl.Marks {
-		if m.Type != 1 {
-			continue
-		}
-		chapters++
-		if chapters == n {
-			item, at = m.Item, m.Time+6*45000
-		}
-	}
-	if n < 0 || n > chapters {
-		return errNoTitle // only real chapters: every other number would be one more picture on disk
+	if n >= 1 {
+		item, at = chapters[n-1].Item, chapters[n-1].ClipTime+6*45000
 	}
 	if item >= len(pl.Items) {
 		item = 0

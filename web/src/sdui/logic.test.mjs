@@ -174,3 +174,31 @@ test('device: what each kind of window says it is', () => {
   assert.equal(q.get('catalog'), '2'); assert.equal(q.get('viewport'), '1440x900'); assert.equal(q.get('library'), '3')
   assert.equal(q.get('views'), 'guide,photoTimeline,photoMap,coverFlow'); assert.ok(q.get('capabilities').includes('reducedMotion')); assert.equal(q.has('tab'), false)
 })
+
+test('the app\'s own tools: which pages get them, and which music tabs open the app\'s own page', async () => {
+  const { toolsFor, ownLibraryTab } = await import('./native.ts')
+  const libs = [{ id: 1, type: 'movies' }, { id: 2, type: 'music' }, { id: 3, type: 'photos' }]
+  const page = (kind, params, root = { type: 'Page', id: 'p', children: [] }) => ({ page: { id: kind, kind, params }, root })
+  assert.equal(toolsFor(page('library', { library: '1' }), libs), 'video')
+  assert.equal(toolsFor(page('library', { library: '2' }), libs), 'audio')
+  assert.equal(toolsFor(page('library', { library: '3' }), libs), null)
+  assert.equal(toolsFor(page('collections', {}), libs), 'collections')
+  assert.equal(toolsFor(page('detail', { collection: '4' }, { type: 'Page', id: 'p', children: [{ type: 'DetailHeader', id: 'h', props: { kind: 'collection' } }] }), libs), 'collection')
+  assert.equal(toolsFor(page('detail', { item: '4' }, { type: 'Page', id: 'p', children: [{ type: 'DetailHeader', id: 'h', props: { kind: 'movie' } }] }), libs), null)
+  assert.equal(ownLibraryTab({ library: '2', tab: 'songs' }, libs), true)
+  assert.equal(ownLibraryTab({ library: '2', tab: 'playlists' }, libs), true)
+  assert.equal(ownLibraryTab({ library: '2', tab: 'albums' }, libs), false)
+  assert.equal(ownLibraryTab({ library: '1', tab: 'songs' }, libs), false)
+})
+
+test('a browser names itself once, randomly, and the name goes with every request', async () => {
+  const { deviceName, describe, query } = await import('./device.ts')
+  const kept = new Map()
+  const store = { getItem: (k) => kept.get(k) ?? null, setItem: (k, v) => kept.set(k, v) }
+  const a = deviceName(false, store, () => 'ab12cd34ef')
+  assert.match(a, /^web-[a-z0-9]+$/)
+  assert.equal(deviceName(false, store, () => 'zzzz'), a, 'kept')
+  assert.match(deviceName(true, new Map() && { getItem: () => null, setItem: () => {} }, () => 'q1'), /^desktop-q1$/)
+  const d = describe({ width: 1280, height: 800, tvMode: false, desktopShell: false, touch: false, pointer: true, reducedMotion: false, hdr: false, locale: 'en', uhd: false }, [], a)
+  assert.equal(new URLSearchParams(query(d)).get('device'), a)
+})

@@ -8,7 +8,8 @@ import { api, backdropUrl, fmtDateTime, mediaUrl, uploadFile, type ArtCandidate,
 import ArtworkPicker, { ART_SOURCE } from '../../components/ArtworkPicker'
 import { Placeholder, Spinner } from '../../components/common'
 import LegalNote from '../../components/LegalNote'
-import { IconCheck, IconDownload, IconEdit, IconGamepad, IconImage, IconInfo, IconMore, IconPlay, IconRefresh, IconSettings, IconStar, IconTrash, IconTune, IconUsers } from '../../icons'
+import { openPlayOn } from '../../remote/RemoteHost'
+import { IconCheck, IconDevices, IconDownload, IconEdit, IconGamepad, IconImage, IconInfo, IconMore, IconPlay, IconRefresh, IconSettings, IconStar, IconTrash, IconTune, IconUsers } from '../../icons'
 import { toast, useApp } from '../../state'
 import { ask, Dialog, Menu, Sheet, useBackCloses, type MenuEntry } from '../../ui'
 import { GameCredits, GameMatchBar, GameRatings, GameShots } from '../GameMeta'
@@ -133,6 +134,7 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
     ...(ready ? [{ key: 'safe', label: 'Start with default settings', icon: <IconRefresh />, onSelect: () => nav(links.play(it.id, `safe=1${auto ? '&resume=1' : ''}`)) }] : []),
     { key: 'settings', label: 'Settings for this game', icon: <IconTune />, onSelect: () => setShowSettings(true) },
     { key: 'pads', label: 'Controllers', icon: <IconGamepad />, to: `/controllers?console=${encodeURIComponent(it.console || '')}` },
+    ...(ready ? [{ key: 'device', label: 'Play on another device', icon: <IconDevices />, onSelect: () => openPlayOn({ kind: 'item', itemId: it.id, itemKind: it.kind, title: it.title }) }] : []),
     ...(user?.isAdmin ? [
       { kind: 'separator' as const, key: 'sep' },
       { key: 'art', label: 'Change artwork', icon: <IconImage />, onSelect: () => setArt(true) },

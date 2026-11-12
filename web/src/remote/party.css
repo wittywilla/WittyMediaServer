@@ -1,0 +1,90 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
+/* Watch parties: the body shared by the dialog and the player's panel (PartyBody.tsx),
+   the panel itself (PartyPanel.tsx), the notes over the picture (PartyNote.tsx) and an
+   invitation (PartyInvites.tsx). The start and code blocks are in remote.css. */
+
+/* ---- the body ---- */
+.pp-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); width: 100%; min-height: 36px; }
+.pp-pair { display: flex; align-items: center; gap: var(--sp-1); flex: none; }
+.pp-small { margin: 0; font-size: var(--text-sm); }
+.pp-now { margin: 0; overflow-wrap: anywhere; }
+.pp-offer { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.pp-offer .btn { max-width: 100%; white-space: normal; text-align: left; overflow-wrap: anywhere; }
+.pp-view { align-content: start; }
+.pp-view .actions { justify-self: stretch; }
+.pp-member { flex-wrap: wrap; }
+.pp-more { display: flex; flex-wrap: wrap; gap: var(--sp-2); flex-basis: 100%; padding-top: var(--sp-2); border-top: 1px solid var(--border); }
+
+/* The queue: a number (or a play mark), the title, a note, and the buttons to move it. */
+.pp-queue-part { justify-items: stretch; }
+.pp-queue { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; width: 100%; }
+.pp-q { display: flex; align-items: center; gap: var(--sp-2); min-height: 44px; padding: var(--sp-1) var(--sp-2); border-radius: var(--r-sm); }
+.pp-q.now { background: var(--accent-soft); }
+.pp-q.hidden .pp-q-title { color: var(--fg-3); font-style: italic; }
+.pp-q-n { flex: none; width: 24px; text-align: center; color: var(--fg-3); font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
+.pp-q-n svg { width: 16px; height: 16px; vertical-align: middle; color: var(--accent-text); }
+.pp-q-title { flex: 1; min-width: 0; padding: var(--sp-2) 0; border: 0; background: none; color: var(--fg); font: inherit; font-size: var(--text-md); text-align: left; overflow-wrap: anywhere; }
+button.pp-q-title { cursor: pointer; border-radius: var(--r-xs); }
+button.pp-q-title:hover:not(:disabled) { text-decoration: underline; }
+.pp-q.now .pp-q-title { font-weight: 600; }
+.pp-q-note { flex: none; color: var(--fg-2); font-size: var(--text-xs); }
+.pp-q-btns { display: flex; flex: none; }
+
+/* Choosing whom to invite: a row is the whole checkbox. */
+.pp-people { justify-self: stretch; }
+.pp-person { width: 100%; color: var(--fg); font: inherit; text-align: left; cursor: pointer; }
+.pp-person:disabled { opacity: .6; cursor: default; }
+.pp-person.on { border-color: var(--accent-line); background: var(--accent-soft); }
+.pp-person .rc-what, .pp-person .rc-name, .pp-person .rc-state { display: block; }
+.pp-check { flex: none; display: grid; place-items: center; width: 22px; height: 22px; border: 2px solid var(--border-strong); border-radius: var(--r-xs); color: var(--accent-fg); }
+.pp-person[aria-checked="true"] .pp-check { background: var(--accent); border-color: var(--accent); }
+.pp-check svg { width: 16px; height: 16px; }
+
+/* ---- the panel in the player ---- */
+.party-panel { position: absolute; top: 0; right: 0; bottom: 0; z-index: 9; display: flex; flex-direction: column; width: min(400px, 100%); background: var(--bg-2); color: var(--fg); border-left: 1px solid var(--border); box-shadow: var(--e-3); cursor: auto; animation: party-in var(--dur-3) var(--ease-out); }
+.party-panel-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-4) var(--sp-4) var(--sp-3); border-bottom: 1px solid var(--border); }
+.party-panel-head h2 { margin: 0; font-size: var(--text-lg); overflow-wrap: anywhere; }
+.party-panel-body { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: var(--sp-4); padding: var(--sp-4); padding-bottom: calc(var(--sp-4) + env(safe-area-inset-bottom, 0px)); }
+.party-panel-body > p { margin: 0; }
+.party-panel-body .actions { margin-top: var(--sp-2); display: flex; flex-wrap: wrap; gap: var(--sp-2); justify-content: flex-end; }
+/* The player hides the pointer and its controls after a while; the panel stays. */
+.player.controls-hidden .party-panel { cursor: auto; }
+@keyframes party-in { from { opacity: 0; translate: 24px 0; } }
+
+/* A phone: a sheet from the bottom, the picture still showing above it. */
+@media (max-width: 720px) {
+  .party-panel { top: auto; left: 0; width: auto; max-height: 62%; border-left: 0; border-top: 1px solid var(--border); border-radius: var(--r-lg) var(--r-lg) 0 0; animation-name: party-up; }
+  .party-panel .btn, .party-panel .pp-q-title { min-height: 44px; }
+  .pp-q-btns .btn { min-width: 44px; }
+  @keyframes party-up { from { opacity: 0; translate: 0 24px; } }
+}
+/* Held upright, the picture sits in the middle of the screen, where the sheet would cover
+   it: while the sheet is open it moves up under the top bar. */
+@media (max-width: 720px) and (orientation: portrait) {
+  .player:has(.party-panel) .stage video { object-position: 50% 64px; }
+}
+/* A phone on its side: little height, so the panel goes back to the side. */
+@media (max-width: 960px) and (max-height: 480px) and (orientation: landscape) {
+  .party-panel { top: 0; left: auto; width: min(360px, 60%); max-height: none; border-radius: 0; border-top: 0; border-left: 1px solid var(--border); }
+}
+@media (prefers-reduced-motion: reduce) { .party-panel { animation: none; } }
+
+/* Across the room: the code is the thing read out loud. */
+.ten-foot .wp-code-value { font-size: var(--text-4xl); }
+.ten-foot .party-panel { width: min(520px, 100%); }
+
+/* ---- over the picture ---- */
+.player .wp-note.wp-note-big { display: grid; gap: var(--sp-1); top: 50%; translate: -50% -50%; padding: var(--sp-4) var(--sp-5); font-size: var(--text-md); }
+.player .wp-note.wp-note-big strong { font-size: var(--text-lg); }
+
+/* ---- an invitation ---- */
+.party-invite {
+  position: fixed; right: var(--sp-4); bottom: calc(var(--sp-5) + var(--dock-space) + var(--tabbar-space)); z-index: var(--z-toast); display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-3);
+  max-width: min(420px, calc(100vw - 32px)); padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md); background: var(--bg-3); color: var(--fg); box-shadow: var(--e-3); font-size: var(--text-sm);
+}
+.party-invite small { display: block; color: var(--fg-2); overflow-wrap: anywhere; }
+.party-invite-actions { display: flex; gap: var(--sp-2); margin-left: auto; }
+.party-invite-actions .btn { min-height: 36px; }
+.player .party-invite { position: absolute; top: 64px; bottom: auto; cursor: auto; }
+@media (max-width: 720px) { .party-invite-actions .btn { min-height: 44px; } }

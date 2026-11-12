@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -114,6 +115,10 @@ type RenderContext struct {
 	// UI are the modules in use: their components are expanded before the
 	// page is drawn, and their sources are asked like any other. nil: none.
 	UI *ModuleSet
+	// Layout is the layout option the page is drawn for (LayoutByID): its changes to
+	// pages are made here, and its shell is sent in document.layout.shell. nil: none,
+	// the page as written.
+	Layout *LayoutSpec
 	// BasePath is where the SDUI routes are: "/api/v1/sdui".
 	BasePath string
 	// Source and ConfigRevision are stamped into Meta.
@@ -165,11 +170,17 @@ type instance struct {
 // The page should have passed ValidatePage; Render never panics on one that
 // hasn't, but leaves out what it can't make sense of.
 func Render(page Page, ctx *RenderContext) (Document, error) {
-	page = ctx.UI.ExpandPage(page)
+	page = styled(ctx.UI.ExpandPage(page), ctx.Layout)
 	r := newRenderer(&page, ctx)
 	sections, variant := r.sections()
 	top := r.expand(sections, true)
 	top, info := r.personalise(top)
+	// A title's page on a phone or a television offers no Customise: there it is a row
+	// under the title nobody comes for. The profile's arrangement, if it has one, still
+	// applies.
+	if page.Kind == "detail" && (r.l.FormFactor == FormPhone || r.l.FormFactor == FormTV) {
+		info = nil
+	}
 
 	root := Node{Type: "Page", ID: "page", Props: map[string]any{"title": r.fill(page.Title, nil, nil)}}
 	if r.l.Density != "comfortable" {
@@ -226,8 +237,15 @@ func newRenderer(page *Page, ctx *RenderContext) *renderer {
 		ctx.BasePath = "/api/v1/sdui"
 	}
 	l := ctx.Profile.WithViewport(ctx.Viewport)
-	if ctx.Personal != nil && ctx.CanPersonalise && allows(page, "density") {
+	if d := layoutDensity(ctx.Layout); d != "" {
+		l = l.WithDensity(d)
+	}
+	if ctx.Personal != nil && ctx.CanPersonalise && allows(page, "density") && ctx.Personal.Density != "" {
 		l = l.WithDensity(ctx.Personal.Density)
+	}
+	if ctx.Layout != nil {
+		l = l.clone()
+		l.Shell = ShellFor(ctx.Layout.ID, l.FormFactor)
 	}
 	if contains(ctx.Capabilities, "reducedMotion") {
 		l = l.clone()
@@ -446,6 +464,8 @@ func (r *renderer) route() string {
 			return "/collections/" + v["collection"]
 		case v["album"] != "":
 			return "/album/" + v["library"] + "?artist=" + url.QueryEscape(v["artist"]) + "&album=" + url.QueryEscape(v["album"])
+		case v["artist"] != "" && v["item"] == "" && v["show"] == "":
+			return "/artist/" + v["library"] + "?name=" + url.QueryEscape(v["artist"])
 		case v["item"] != "":
 			return "/item/" + v["item"]
 		case v["show"] != "":
@@ -580,7 +600,10 @@ func specParam(s *SourceSpec, name string) *PropSpec {
 }
 
 // filterKeys are the page parameters a filterable source takes.
-var filterKeys = []string{"sort", "desc", "genre", "decade", "year", "content", "resolution", "watched", "studio", "network", "tag"}
+// The ones after "tag" are the rest of a client's own filters and saved views (the same as
+// GET /browse takes); a FilterBar offers only the first ones.
+var filterKeys = []string{"sort", "desc", "genre", "decade", "year", "content", "resolution", "watched", "studio", "network", "tag",
+	"series", "kind", "disc", "minRating", "audio", "subtitle", "format", "edition", "search", "seed"}
 
 func (r *renderer) filter(src Source) map[string]string {
 	if !src.Bool("filterable") {
@@ -832,7 +855,18 @@ func (r *renderer) picture(src string, points int, aspect, kind string) map[stri
 	if src == "" {
 		return nil
 	}
-	w := r.l.ImageWidth(points)
+	return r.pictureAt(src, r.l.ImageWidth(points), aspect, kind)
+}
+
+// backdrop is a 16/9 picture spanning a window this wide: never more than twice its width.
+func (r *renderer) backdrop(src string, points int) map[string]any {
+	if src == "" {
+		return nil
+	}
+	return r.pictureAt(src, r.l.BackdropWidth(points), "16/9", "backdrop")
+}
+
+func (r *renderer) pictureAt(src string, w int, aspect, kind string) map[string]any {
 	u := src
 	if strings.HasPrefix(src, "/api/") {
 		sep := "?"
@@ -899,16 +933,39 @@ func (r *renderer) ask(src Source, each *Each, offset, limit int) (SourceResult,
 
 // cardStyle is the style a section's cards are drawn in: its own choice, or
 // its source's usual style.
-func (r *renderer) cardStyleFor(p map[string]any, src Source) string {
+func (r *renderer) cardStyleFor(p map[string]any, src Source, each *Each) string {
 	style := propStr(p, "cardStyle", "auto")
 	if _, ok := CardStyle(style); ok {
 		return style
 	}
-	if spec, ok := r.sourceSpec(src.Type()); ok {
-		return spec.CardStyle
+	spec, ok := r.sourceSpec(src.Type())
+	if !ok {
+		return "poster"
 	}
-	return "poster"
+	// A source that gives whatever a library holds draws it in the style of what that
+	// library holds: an album's cover square, a book's cover, a game's box.
+	if spec.CardStyle == "poster" {
+		kind := ""
+		switch lib := src.Str("library"); {
+		case each != nil && lib == "$each":
+			kind = each.Kind
+		case lib == "$library":
+			kind = r.ctx.Vars["libraryKind"]
+		}
+		if s := libraryCardStyle[kind]; s != "" {
+			return s
+		}
+		// A layout with wide cards draws films' and shows' rows wide.
+		if r.ctx.Layout != nil && r.ctx.Layout.Pages.LandscapeCards && overlaps(spec.Yields, landscapeKinds) {
+			return "landscape"
+		}
+	}
+	return spec.CardStyle
 }
+
+// libraryCardStyle is the card style for what a kind of library holds, where it isn't a
+// poster.
+var libraryCardStyle = map[string]string{"music": "album", "audiobooks": "album", "podcasts": "album", "books": "book", "games": "game", "photos": "photo"}
 
 // collection fills a Shelf, Grid or List from its source.
 func (r *renderer) collection(n *Node, in instance) bool {
@@ -918,7 +975,12 @@ func (r *renderer) collection(n *Node, in instance) bool {
 
 func (r *renderer) collectionPage(n *Node, in instance, offset, limit int, allowDefer bool) bool {
 	s, p := in.sec, in.sec.Props
-	style := r.cardStyleFor(p, s.Source)
+	style := r.cardStyleFor(p, s.Source, in.each)
+	// A phone's row of libraries is a row of chips, each the library's icon and name: a
+	// wide tile with an icon in it takes a screen's width for four words.
+	if style == "tile" && s.Component == "Shelf" && s.Source.Type() == "libraries" && r.l.FormFactor == FormPhone {
+		style = "chip"
+	}
 	size := propStr(p, "cardSize", "m")
 	if r.ctx.Personal != nil && r.ctx.CanPersonalise && allows(r.page, "cardSize") {
 		if ps := r.ctx.Personal.CardSize[in.id]; contains(CardSizes, ps) {
@@ -1045,8 +1107,23 @@ func (r *renderer) listItem(parent string, it *Item) Node {
 	case it.Kind == "track" && it.RuntimeSec > 0:
 		n.Props["trailing"] = FormatRuntime(it.RuntimeSec)
 	}
-	if src := firstImage(it, []string{"square", "poster"}); src != "" {
-		n.Props["image"] = r.picture(src, 56, "1/1", "square")
+	// The picture keeps the item's own shape, at the row's height: a poster upright, a
+	// film still wide, a cover square.
+	switch {
+	case slices.Contains([]string{"episode", "video", "recording", "channel"}, it.Kind) && firstImage(it, []string{"backdrop"}) != "":
+		n.Props["image"] = r.picture(firstImage(it, []string{"backdrop"}), 100, "16/9", "backdrop")
+	case slices.Contains([]string{"movie", "show", "season", "book", "game"}, it.Kind) && firstImage(it, []string{"poster"}) != "":
+		n.Props["image"] = r.picture(firstImage(it, []string{"poster"}), 38, "2/3", "poster")
+	default:
+		if src := firstImage(it, []string{"square", "poster"}); src != "" {
+			n.Props["image"] = r.picture(src, 56, "1/1", "square")
+		}
+	}
+	if it.Progress > 0 && it.Progress < 1 {
+		n.Props["progress"] = round3(it.Progress)
+	}
+	if len(it.Badges) > 0 {
+		n.Props["badges"] = it.Badges[:min(len(it.Badges), 2)]
 	}
 	switch {
 	case it.Route != "":
@@ -1084,8 +1161,10 @@ func (r *renderer) hero(n *Node, in instance) bool {
 		it := &res.Items[i]
 		c := Node{Type: "Card", ID: r.uniqueID(n.ID + ":" + safeID(it.ID)), Props: map[string]any{
 			"style": "hero", "shape": "landscape", "title": Truncate(it.Title, r.l.TextLimits.Title), "itemId": it.ID, "kind": it.Kind}}
-		if src := firstImage(it, []string{"backdrop", "poster"}); src != "" {
-			c.Props["image"] = r.picture(src, r.l.Hero.Width, "16/9", "backdrop")
+		// Only a real backdrop: a poster stretched into a 16/9 slide is never sent. A slide
+		// without one has no image, and is drawn on the theme's colours.
+		if src := firstImage(it, []string{"backdrop"}); src != "" {
+			c.Props["image"] = r.backdrop(src, min(r.l.Hero.Width, r.l.WindowWidth()))
 		}
 		if logo := it.Images["logo"]; logo != "" && propBool(p, "showLogo", true) {
 			c.Props["logo"] = r.picture(logo, r.l.Hero.Width/3, "", "logo")
@@ -1252,7 +1331,7 @@ func (r *renderer) banner(n *Node, in instance) bool {
 		rep := strings.NewReplacer("{title}", it.Title, "{subtitle}", it.Subtitle, "{overview}", Truncate(it.Overview, r.l.TextLimits.Synopsis))
 		title, text = rep.Replace(firstNonEmpty(title, "{title}")), rep.Replace(text)
 		if image == "" {
-			image = firstImage(it, []string{"backdrop", "poster"})
+			image = firstImage(it, []string{"backdrop"}) // never a poster stretched to 16/9
 		}
 		n.Props["itemId"] = it.ID
 		if n.Action == nil {
@@ -1306,7 +1385,8 @@ func (r *renderer) header(n *Node, in instance) bool {
 	}
 	images := map[string]any{}
 	if b := firstImage(it, []string{"backdrop"}); b != "" {
-		images["backdrop"] = r.picture(b, max(r.l.Hero.Width, r.l.Canvas.Width), "16/9", "backdrop")
+		// A backdrop spans the window: chosen for its width, as every other picture is for its card's.
+		images["backdrop"] = r.backdrop(b, r.l.WindowWidth())
 	}
 	posterStyle := "poster"
 	if it.Kind == "album" || it.Kind == "track" || it.Kind == "artist" || it.Kind == "podcast" || it.Kind == "audiobook" {
@@ -1603,7 +1683,7 @@ type SectionItems struct {
 // section's ID, "-" and the key); offset is the cursor; season chooses a
 // SeasonList's season.
 func RenderSection(page Page, nodeID string, offset int, season string, ctx *RenderContext) (SectionItems, error) {
-	page = ctx.UI.ExpandPage(page)
+	page = styled(ctx.UI.ExpandPage(page), ctx.Layout)
 	r := newRenderer(&page, ctx)
 	sections, _ := r.sections()
 	in, ok := r.find(sections, nodeID)

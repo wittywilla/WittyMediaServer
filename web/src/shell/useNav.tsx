@@ -9,10 +9,11 @@ import { deletePersonal, fetchNavigation, getPersonal, keptNavigation, NAV_PERSO
 import type { Device } from '../sdui/device'
 import { fromOldNav } from '../sdui/personal'
 import { sduiIcon } from '../sdui/render/icons'
-import type { Navigation, Personal } from '../sdui/types'
+import type { LayoutChoices, Navigation, Personal, Shell } from '../sdui/types'
 import { useDevice, useFeatures } from '../sdui/useSdui'
 import { useApp } from '../state'
 import { getUserPref, setUserPref, useUserPref } from '../ui/userPrefs'
+import { featureOff, useMyLimits } from '../myLimits'
 import type { NavItem, NavPrefs } from './navModel'
 
 // The main menu. A server with server-driven pages says what is in it, in what order, for
@@ -45,10 +46,15 @@ const listeners = new Set<() => void>()
 const tell = () => listeners.forEach((l) => l())
 const subscribe = (l: () => void) => { listeners.add(l); return () => { listeners.delete(l) } }
 let loading = ''
+let loadedAt = 0
 
+// load: the menu asked for once however many parts of the shell want it (the side menu,
+// the top bar, a phone's bar all mount together); again when something changed, or when
+// it was last asked for more than a minute ago.
 function load(device: Device, key: string, again = false) {
-  if (loading === key && !again) return
+  if (loading === key && !again && Date.now() - loadedAt < 60_000) return
   loading = key
+  loadedAt = Date.now()
   fetchNavigation(device).then(async (nav) => {
     if (loading !== key) return
     kept = { key, nav, personal: kept.key === key ? kept.personal : null }
@@ -73,7 +79,7 @@ function useServerNav(): { on: boolean; nav: Navigation | null; personal: Person
   useEffect(() => {
     if (!key) return
     if (kept.key !== key) { const had = keptNavigation(device); kept = { key, nav: had, personal: null }; tell() }
-    load(device, key, true)
+    load(device, key)
     const again = () => load(device, key, true)
     const offChange = onChange(again), offPreview = onPreview(again)
     return () => { offChange(); offPreview() }
@@ -129,6 +135,10 @@ export type MenuState = {
   // The arrangement list: every entry the profile could have, hidden ones marked.
   rows: { id: string; title: string; hidden: boolean; fixed: boolean; item?: NavItem }[]
   editable: boolean
+  // How the server says to draw the app's frame on this device, and the layouts this profile
+  // may choose here (docs/SDUI.md, "Layout options"); absent against a server without them.
+  shell?: Shell
+  layouts?: LayoutChoices
   save: (order: string[], hidden: string[]) => Promise<void>
   reset: () => Promise<void>
 }
@@ -173,7 +183,7 @@ export function useMenu(): MenuState {
       rows.sort((a, b) => (pos.get(a.id) ?? order.length + base.get(a.id)!) - (pos.get(b.id) ?? order.length + base.get(b.id)!))
     }
     return {
-      server: true, all, rows,
+      server: true, all, rows, shell: srv.nav?.shell, layouts: srv.nav?.layouts,
       items: all.filter((it) => it.screen !== 'settings' && it.screen !== 'profiles' && it.id !== 'search' && it.to !== '/search'),
       editable: !!srv.nav?.personal?.editable,
       save: async (o, h) => { kept = { ...kept, personal: { order: o, hidden: h } }; await putPersonal(NAV_PERSONAL, { order: o, hidden: h.filter((id) => id !== 'settings') }) },
@@ -185,15 +195,17 @@ export function useMenu(): MenuState {
 // The menu as the web app worked it out before servers described it.
 function useLegacyItems(own: NavItem[]): NavItem[] {
   const { libraries } = useApp()
+  // Live TV turned off for this profile isn't offered (GET /me/limits).
+  const noTv = featureOff(useMyLimits(), 'liveTv')
   return useMemo(() => {
     const list: NavItem[] = [
       { id: 'home', label: 'Home', to: '/', end: true },
-      { id: 'tv', label: 'TV guide', to: '/tv' },
+      ...(noTv ? [] : [{ id: 'tv', label: 'TV guide', to: '/tv' }]),
       ...libraries.filter(inMainMenus).map((l) => ({ id: 'lib:' + l.id, label: l.name, to: `/library/${l.id}`, kind: l.type })),
     ]
     if (libraries.length > 0) list.push({ id: 'collections', label: 'Collections', to: '/collections' })
     return [...list, ...own]
-  }, [libraries, own])
+  }, [libraries, own, noTv])
 }
 
 // useNavItems: what the side menu and the top bar list, in order.

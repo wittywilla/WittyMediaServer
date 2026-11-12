@@ -17,7 +17,7 @@ TV remote or a controller: the options button, Start).
 
 - **Order.** Drag a section by its handle, press the up and down arrow keys
   on the handle, or use the Move buttons.
-- **Show or hide.** The switch on each row. A hidden section stays in the
+- **Show or hide.** The switch at the end of each row. A hidden section stays in the
   list, so it can be shown again. One marked "nothing in it now" is on the
   page as soon as it has something to show.
 - **Pin.** A pinned section sits above the rest.
@@ -34,7 +34,8 @@ The main menu is arranged the same way in **Settings → Appearance → Arrange
 the menu**. Settings can be moved but is always shown.
 
 **Not offered it?** Whoever manages your profile can turn rearranging off
-(**Profiles → Limits → What they can do → Rearranging pages**), an
+(**Settings → Profiles → Limits → What they can do → Rearrange pages for
+themselves**), an
 administrator can turn it off for a page, or for the whole server. What you
 had arranged is kept, and comes back if it is turned on again.
 
@@ -54,7 +55,10 @@ anyone until you publish it.
    collection); **Only when** limits it to some profiles, devices or times
    of day.
 4. Problems are listed as you go, each beside the field it is about, with
-   what to do; where the fix is mechanical, **Apply fix** does it.
+   what to do; where the fix is mechanical, a button beside it does it
+   (**Remove it**, **Move it to the end**, **Use the default** and the like).
+   Changes stay in the editor until **Save to draft**; **Undo** and **Redo**
+   step through them.
 5. **Preview** shows the page as a phone, a tablet, a desktop window and a
    television draw it. **Open the draft in the app** shows you, and only
    you, the whole app with your draft in place.
@@ -66,9 +70,10 @@ Also there:
 - **The menu**: which entries the main menu has, in what order, and where
   each sits on a phone, a tablet, a desktop and a television. Settings can
   be moved, never removed.
-- **A page for some people only**: a variant of a page with a condition (for
-  Kids profiles, for televisions) replaces the page's sections when the
-  condition holds.
+- **Variants**: a page for some people only. **Add a variant, starting from
+  the page's sections** (or **Add an empty variant**), give it a condition
+  (for Kids profiles, for televisions), and **Edit its sections**; it
+  replaces the page's sections when the condition holds.
 - **Reset to default** on a built-in page you changed brings the built-in
   one back, including whatever a later version of the server improves in it.
 - **History** keeps the last ten published versions, says what changed

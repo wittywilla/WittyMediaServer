@@ -18,6 +18,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/appcontrol"
@@ -364,13 +365,16 @@ func pipes(cmd *exec.Cmd) (io.WriteCloser, io.ReadCloser, io.ReadCloser, error) 
 
 // halt ends the helper, for the reason given. Closing stdin asks it to leave; it
 // has a moment before being killed. Call with p.mu held.
-func (p *proc) halt(why string) {
+func (p *proc) halt(why string) { p.haltErr(why) }
+
+// haltErr is halt, answering how the helper ended: nil when it left with status 0.
+func (p *proc) haltErr(why string) error {
 	if p.idle != nil {
 		p.idle.Stop()
 		p.idle = nil
 	}
 	if p.cmd == nil {
-		return
+		return nil
 	}
 	cmd := p.cmd
 	p.stdin.Close()
@@ -387,6 +391,7 @@ func (p *proc) halt(why string) {
 	p.endTasks(why)
 	p.release()
 	p.cmd, p.stdin, p.stdout, p.conn, p.release, p.stderr = nil, nil, nil, nil, nil, nil
+	return werr
 }
 
 // Call asks the helper one thing. A *wittymodule.CallError is a working helper
@@ -395,9 +400,23 @@ func (p *proc) halt(why string) {
 func (p *proc) Call(method string, params, out any) ([]byte, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
+	blob, err, left := p.callOnce(method, params, out)
+	if left {
+		// The helper had already ended, by itself and cleanly: one that answers one call
+		// and leaves, as a helper serving a stream does. That is no failure; a new one
+		// answers.
+		blob, err, _ = p.callOnce(method, params, out)
+	}
+	return blob, err
+}
+
+// callOnce makes one call, starting the helper first when none runs. left reports that
+// the call failed only because the helper had already ended with status 0 before it was
+// asked; the helper is then gone and nothing is counted against it.
+func (p *proc) callOnce(method string, params, out any) (blob []byte, err error, left bool) {
 	if p.cmd == nil {
 		if err := p.start(); err != nil {
-			return nil, err
+			return nil, err, false
 		}
 	}
 	cmd := p.cmd
@@ -406,9 +425,10 @@ func (p *proc) Call(method string, params, out any) ([]byte, error) {
 		limit = p.timeout
 	}
 	stdout := p.stdout
-	kill := time.AfterFunc(limit, func() { _ = cmd.Process.Kill(); _ = stdout.Close() })
+	var timedOut atomic.Bool
+	kill := time.AfterFunc(limit, func() { timedOut.Store(true); _ = cmd.Process.Kill(); _ = stdout.Close() })
 	began := time.Now()
-	blob, err := p.conn.Call(method, params, out)
+	blob, err = p.conn.Call(method, params, out)
 	kill.Stop()
 	if p.log.Enabled(context.Background(), slog.LevelDebug) {
 		p.log.Debug("module call", "topic", "calls", "method", method, "took", time.Since(began).String(), "err", err)
@@ -416,16 +436,29 @@ func (p *proc) Call(method string, params, out any) ([]byte, error) {
 	var ce *wittymodule.CallError
 	if err != nil && !errors.As(err, &ce) {
 		msg := p.stderr.Last(errStderr)
-		p.log.Warn("module call failed", "version", p.man.Version, "method", method, "err", err)
-		_ = cmd.Process.Kill()
-		p.halt("failed") // which logs how it ended
-		if msg != "" {
-			return nil, fmt.Errorf("%w (%s)", err, msg)
+		if !timedOut.Load() && pipeEnded(err) {
+			// Perhaps it left by itself: let it end, and see how.
+			if werr := p.haltErr("ended by itself"); werr == nil {
+				return nil, err, true
+			}
+		} else {
+			_ = cmd.Process.Kill()
+			p.halt("failed") // which logs how it ended
 		}
-		return nil, err
+		p.log.Warn("module call failed", "version", p.man.Version, "method", method, "err", err)
+		if msg != "" {
+			return nil, fmt.Errorf("%w (%s)", err, msg), false
+		}
+		return nil, err, false
 	}
 	p.touch()
-	return blob, err
+	return blob, err, false
+}
+
+// pipeEnded reports an error that says the helper's end of the pipes was gone.
+func pipeEnded(err error) bool {
+	return errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, io.ErrClosedPipe) || errors.Is(err, os.ErrClosed) ||
+		errors.Is(err, syscall.EPIPE) || strings.Contains(err.Error(), "broken pipe") || strings.Contains(err.Error(), "file already closed")
 }
 
 // Stream asks for a stream: one answer, and then the helper's output is the stream.

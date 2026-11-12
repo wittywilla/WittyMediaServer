@@ -1174,6 +1174,7 @@ func moduleComponentSpec(mc *ModuleComponent) ComponentSpec {
 		spec.Focus = base.Focus
 		spec.FormFactors = base.FormFactors
 		spec.Expands = base.Type
+		spec.Tokens = base.Tokens
 	}
 	if ex, err := json.Marshal(Section{ID: "example", Component: mc.Type, Props: exampleProps(requiredOnly(mc.Props))}); err == nil {
 		spec.Example = ex

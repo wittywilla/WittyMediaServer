@@ -43,7 +43,9 @@ export type Resolved =
   | { kind: 'native'; screen: string; vars: Record<string, string> }
 
 // The query parameters each kind of page takes, beside what its route gives it.
-const PASSED = ['tab', 'sort', 'desc', 'genre', 'decade', 'year', 'content', 'resolution', 'watched', 'studio', 'network', 'tag', 'season']
+const PASSED = ['tab', 'sort', 'desc', 'genre', 'decade', 'year', 'content', 'resolution', 'watched', 'studio', 'network', 'tag', 'season',
+  // The rest of the app's own Filters panel and saved views (pages/library/Filters.tsx).
+  'series', 'kind', 'disc', 'minRating', 'audio', 'subtitle', 'format', 'edition', 'search', 'seed']
 
 function matchRule(rule: RouteRule, path: string): Record<string, string> | null {
   const want = rule.route.split('/'), got = path.split('/')

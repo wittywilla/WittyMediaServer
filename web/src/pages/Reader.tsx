@@ -7,6 +7,7 @@ import type { Ann, EpubInfo, ReaderHost } from '@wittywilla/wittyink'
 import { ModuleMissing } from '../components/ModuleMissing'
 import { toast } from '../state'
 import { BundledReaderView, useBundledReader } from '../moduleBundles'
+import { useBookRemote } from '../remote/pageTargets'
 
 // Books libraries in WittyMediaServer: the WittyEbook, WittyPDF and
 // WittyComics readers, with a host that saves the place and notes per account
@@ -30,6 +31,8 @@ export default function ReaderPage() {
     api.get<BookInfo>(`/items/${id}/book`).then(setInfo).catch((e) => setErr(e.message))
   }, [id])
   const close = () => (window.history.state?.idx > 0 ? nav(-1) : nav(`/item/${id}`))
+  // Another device steering this one (docs/REMOTE-PROTOCOL.md): it is told the place each time the reader saves it.
+  const placeChanged = useBookRemote(it?.id || 0, it?.progress && !it.progress.watched ? it.progress.positionSec : 0, close)
 
   const host = useMemo((): ReaderHost | null => {
     if (!it || !info) return null
@@ -40,7 +43,7 @@ export default function ReaderPage() {
       format: info.reader === 'pdf' ? 'pdf' : info.reader === 'cbz' ? 'cbz' : 'epub',
       reading: info.reading,
       start: it.progress && !it.progress.watched ? it.progress.positionSec : 0,
-      saveProgress: (positionSec, durationSec) => { api.post(`${base}/progress`, { positionSec, durationSec }).catch(() => {}) },
+      saveProgress: (positionSec, durationSec) => { placeChanged(positionSec, durationSec); api.post(`${base}/progress`, { positionSec, durationSec }).catch(() => {}) },
       annotations: {
         list: () => api.get<Ann[]>(`${base}/annotations`),
         add: (a) => api.post<Ann>(`${base}/annotations`, a),

@@ -10,6 +10,8 @@ import { ChooseFolderButton } from '../components/FolderPicker'
 import { useModulePages } from '../moduleBundles'
 import { IconHelp, IconActivity, IconChannels, IconClose, IconContrast, IconDownload, IconDrive, IconEdit, IconFile, IconFilm, IconFolder, IconGamepad, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconNetwork, IconPalette, IconPlay, IconPlug, IconPlus, IconRefresh, IconRemote, IconRight, IconShield, IconSidebar, IconTag, IconTrash, IconTune, IconUsers, IconWrench, libIcon } from '../icons'
 import { toast, useApp } from '../state'
+import { settingsPageHidden } from '../profileWords'
+import { useMyLimits } from '../myLimits'
 import AppearanceSettings from './AppearanceSettings'
 import Profiles from './Profiles'
 import LicenseList from './settings/Licenses'
@@ -31,6 +33,7 @@ import { ask, Dialog } from '../ui/Overlay'
 import { Segmented } from '../ui/Choice'
 import { UpdateBanner } from '../components/UpdateBanner'
 import { Updates } from './settings/Updates'
+import { useFeatures } from '../sdui/useSdui'
 
 const ModulesSettings = lazy(() => import('./settings/Modules'))
 const ModuleStore = lazy(() => import('./settings/store/ModuleStore'))
@@ -50,6 +53,8 @@ const CouchSettings = lazy(() => import('./settings/Couch'))
 const EmulatorsSettings = lazy(() => import('./settings/Emulators'))
 const GamesSupport = lazy(() => import('./settings/GamesSupport'))
 const WittyRigsSettings = lazy(() => import('./settings/WittyRigs'))
+const ModuleSettingsList = lazy(() => import('./settings/ModuleSettings').then((m) => ({ default: m.ModuleSettingsList })))
+const ModuleSettingsPage = lazy(() => import('./settings/ModuleSettings').then((m) => ({ default: m.ModuleSettingsPage })))
 const Security = lazy(() => import('./settings/Security'))
 const TvSettings = lazy(() => import('./tv/TvSettings'))
 // The editor of server-driven pages is a program of its own: nothing of it loads until it is opened.
@@ -100,6 +105,7 @@ const GROUPS: { title: string; pages: Page[] }[] = [
     { to: 'games', label: 'My game settings', icon: <IconContrast />, hint: 'Picture, speed, shortcuts and more, for your games' },
     { to: 'activity', label: 'Activity', icon: <IconActivity />, hint: 'The button showing library scans and other background work' },
     { to: 'sharing', label: 'Sharing & photos', icon: <IconImage />, hint: 'Uploads, links, the photo map' },
+    { to: 'module-settings', label: 'Module settings', icon: <IconPlug />, hint: 'What the modules on this server let you set' },
   ] },
   { title: 'Advanced', pages: [
     { to: 'wittyrigs', label: 'WittyRigs', icon: <IconRemote />, admin: true, hint: 'Hosting demanding games on this server’s own hardware' },
@@ -120,7 +126,11 @@ export default function SettingsPage() {
   const { user, version } = useApp()
   const loc = useLocation()
   const modulePages = useModulePages().filter((p) => p.where === 'settings')
-  const groups = useMemo(() => GROUPS.map((g) => ({ ...g, pages: g.pages.filter((p) => !p.admin || user?.isAdmin) })).filter((g) => g.pages.length), [user?.isAdmin])
+  const features = useMyLimits()?.features
+  // Module settings are for a server that has them (feature module-settings).
+  const serverCan = useFeatures()
+  const moduleSettings = !!serverCan?.has('module-settings')
+  const groups = useMemo(() => GROUPS.map((g) => ({ ...g, pages: g.pages.filter((p) => (!p.admin || user?.isAdmin) && !settingsPageHidden(p.to, user, features) && (p.to !== 'module-settings' || moduleSettings)) })).filter((g) => g.pages.length), [user?.isAdmin, user?.kind, features, moduleSettings]) // eslint-disable-line react-hooks/exhaustive-deps
   const pages = useMemo(() => groups.flatMap((g) => g.pages), [groups])
   const moduleKey = modulePages.map((p) => `${p.module}/${p.id}/${p.title}`).join('|')
   const moduleResults = useMemo(() => modulePages.map((p) => ({ to: `/m/${p.module}/${p.id}`, title: p.title, where: 'From modules' })), [moduleKey])
@@ -224,6 +234,8 @@ export default function SettingsPage() {
           <Route path="repair" element={<Suspense fallback={null}><RepairSettings /></Suspense>} />
           <Route path="reset" element={<Suspense fallback={null}><ResetSettings /></Suspense>} />
           <Route path="modules" element={<Suspense fallback={null}><ModulesSettings /></Suspense>} />
+          <Route path="module-settings" element={<Suspense fallback={null}><ModuleSettingsList /></Suspense>} />
+          <Route path="module-settings/:module" element={<Suspense fallback={null}><ModuleSettingsPage /></Suspense>} />
           <Route path="modules/store" element={<Suspense fallback={null}><ModuleStore /></Suspense>} />
           <Route path="modules/store/:id" element={<Suspense fallback={null}><ModulePage /></Suspense>} />
           <Route path="modules/store/:store/:id" element={<Suspense fallback={null}><ModulePage /></Suspense>} />

@@ -320,6 +320,7 @@ func cmdServe(args []string) int {
 	library.EngineThere = modMgr.Installed
 	modMgr.UseServices()
 	dvdsession.SetEngine(dvdremote.Opener{M: modMgr, Log: log}.Open)
+	dvdsession.SetAnalyzer(dvdremote.Opener{M: modMgr, Log: log}.Analyze)
 	bdremote.Use(modMgr)
 
 	webFS := web.Dist()

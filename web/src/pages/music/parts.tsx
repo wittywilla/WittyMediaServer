@@ -8,6 +8,7 @@ import { IconAddList, IconHeart, IconHeartOn, IconMore, IconStation } from '../.
 import { useAudio } from '../../audio/player'
 import { Placeholder } from '../../components/common'
 import { IconPlay, IconPlus, IconRight } from '../../icons'
+import { PlayOnMenuItem } from '../../remote/PlayOnButton'
 import { toast, useApp } from '../../state'
 import { SongVideoItems, TieDialog } from './SongVideo'
 import './music.css'
@@ -96,6 +97,7 @@ export function TrackMenu({ t }: { t: Item }) {
           <button type="button" role="menuitem" onClick={() => { audio.toggleLike(t.id); close() }}>{liked ? <IconHeartOn size={18} /> : <IconHeart size={18} />} {liked ? 'Liked' : 'Like'}</button>
           <button type="button" role="menuitem" onClick={() => { audio.startRadio(t); close() }}><IconStation size={18} /> Start a station from this</button>
           <button type="button" role="menuitem" onClick={() => setAdding(true)}><IconAddList size={18} /> Add to a playlist…</button>
+          <PlayOnMenuItem source={{ kind: 'item', itemId: t.id, itemKind: t.kind, title: t.title }} onChosen={close} />
           <SongVideoItems t={t} close={close} onTie={() => setTying(true)} />
           {t.artist && <Link role="menuitem" className="mh-menu-link" to={artistLink(t.libraryId, t.albumArtist || t.artist)} onClick={close}>Go to artist</Link>}
           {t.album && <Link role="menuitem" className="mh-menu-link" to={albumLink(t.libraryId, { artist: t.albumArtist || t.artist || '', title: t.album })} onClick={close}>Go to album</Link>}

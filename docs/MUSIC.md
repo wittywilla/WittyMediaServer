@@ -160,7 +160,20 @@ Keep it short (3 to 8 seconds is usual), silent, and small: an upload can be up 
 
 **From the video itself.** For a film or an episode with no canvas, an administrator can have the server cut one: `POST /api/v1/media/{id}/canvas/generate`, with `startSec` and `durationSec` if the default (a quarter of the way in, 5 to 8 seconds) isn't wanted. It is a [task](TASKS.md) at low priority: FFmpeg takes a few seconds of the picture, drops the sound, makes it small (720 lines at most, 480 or 360 on a small machine), and fades its end into its start so the loop has no jump. It needs an FFmpeg with an H.264 encoder (`libx264`). A song has no picture to cut from, so a song's canvas is always one you supply.
 
-The web app doesn't show canvases yet; they're there for the apps.
+**In the web app.** A canvas plays behind the full-screen player while the music does, behind an album's page, and behind a film's, an episode's or a show's page in place of the still backdrop. It is silent, it loops, and it is decoration: it never takes the keyboard and a screen reader isn't told of it. The still artwork stays until the video is really playing, and whenever it can't.
+
+It gives way to everything else. It isn't fetched at all when:
+
+- the device is set to reduce motion, or the browser to save data;
+- the device was set to robust streaming, under **Settings → Playback**;
+- you're away from home and the owner [limits streams there](REMOTE.md#limits-for-viewers-away-from-home);
+- you turned off **Moving backgrounds**, under **Settings → Appearance → Motion and big screens**.
+
+It is only fetched while it would be seen, so one that's scrolled off the page isn't, and it stops while the tab is hidden or the music is paused.
+
+An administrator finds **Canvas** on a film's or an episode's page, and on an album's page for each of its songs: it shows what the title has, cuts one from the video with the progress of that task, uploads one, and removes one that was uploaded or cut. One beside the media is removed from its folder.
+
+A canvas beside the media isn't listed as a title of its own: the scan leaves out `Name.canvas.mp4` beside `Name`, and a `canvas.mp4` (up to 64 MB) in a folder that holds titles.
 
 ## Lyrics
 

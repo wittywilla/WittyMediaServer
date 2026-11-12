@@ -740,6 +740,15 @@ h3.section-title { font-size: var(--text-lg); margin-top: var(--sp-6); }
 .menu-tile { display: inline-flex; align-items: center; gap: var(--sp-2); min-height: var(--control-h); background: var(--bg-3); color: var(--fg); border: 1px solid var(--border); border-radius: var(--r-md); padding: 0 var(--sp-4); font-weight: 600; font-size: var(--text-md); transition: background var(--dur-2); }
 .menu-tile svg { width: 18px; height: 18px; opacity: .8; }
 .menu-tile:hover { background: var(--bg-4); }
+.disc-why { margin-top: var(--sp-4); background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-3) var(--sp-4); }
+.disc-why p { margin: var(--sp-2) 0; }
+.disc-why .why-level.high { border-color: var(--accent); color: var(--fg); }
+.disc-why .why-level.low { border-style: dashed; }
+.disc-why-more summary { cursor: pointer; color: var(--fg-2); font-weight: 600; }
+.disc-why-more h4 { margin: var(--sp-3) 0 var(--sp-1); font-size: var(--text-sm); }
+.disc-why-more ul { margin: 0; padding-left: var(--sp-5); }
+.disc-why-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; margin-top: var(--sp-3); }
+.disc-episodes, .disc-versions { list-style: none; padding: 0; display: grid; gap: var(--sp-2); }
 .all-titles { margin-top: var(--sp-6); }
 .all-titles summary { cursor: pointer; color: var(--fg-2); font-weight: 600; margin-bottom: var(--sp-3); font-size: var(--text-md); }
 .all-titles summary:hover { color: var(--fg); }

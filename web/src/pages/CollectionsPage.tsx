@@ -36,7 +36,7 @@ export default function CollectionsPage() {
         {canPost(user) && <button className="btn sm primary" onClick={() => setMaking(true)}><IconPlus /> New</button>}
       </div>
       {list.length === 0 ? (
-        <EmptyState icon={<IconLibrary />} title="No collections yet" text="Gather movies, shows, albums and more from any library, or save a rule, such as unwatched movies from the 90s, as a smart playlist that keeps itself up to date." />
+        <EmptyState icon={<IconLibrary />} title="No collections yet" text={canPost(user) ? 'Gather movies, shows, albums and more from any library, or save a rule, such as unwatched movies from the 90s, as a smart playlist that keeps itself up to date.' : 'There are no collections for your profile to see yet.'} />
       ) : (
         <div className="gal-album-grid">
           {list.map((c) => (
@@ -116,7 +116,7 @@ export function CollectionPage() {
 
 const TYPES: [string, string][] = [['movies', 'Movies'], ['shows', 'TV shows'], ['anime', 'Anime'], ['discs', 'Discs'], ['videos', 'Home videos'], ['music', 'Music'], ['musicvideos', 'Music videos'], ['audiobooks', 'Audiobooks'], ['podcasts', 'Podcasts'], ['books', 'Books'], ['channels', 'Creator videos'], ['shorts', 'Vertical videos'], ['photos', 'Photos']]
 
-function CollectionDialog({ collection, onClose, onSaved }: { collection?: Collection; onClose: () => void; onSaved: () => void }) {
+export function CollectionDialog({ collection, onClose, onSaved }: { collection?: Collection; onClose: () => void; onSaved: () => void }) {
   const [name, setName] = useState(collection?.name || '')
   const [desc, setDesc] = useState(collection?.description || '')
   const [shared, setShared] = useState(collection?.shared || false)

@@ -111,7 +111,9 @@ The player calls chapters **scenes**. They show as small marks on the timeline, 
 
 **Skip intro** appears while the intro is playing. Press it to jump to where the intro ends.
 
-The server works out where the intro is from the file's chapters. If it can't, an administrator can set it by hand: open the title's **Edit**, go to **Skip intro**, and type where it ends or choose **Pick in player**. Setting it on a show covers every episode with no intro of its own. See [Metadata](METADATA.md). Discs have their own menus, so they don't offer this.
+The server works out where the intro is from the file's chapters. If it can't, an administrator can set it by hand: open the title's **Edit**, go to **Skipping**, and type where it starts and ends or choose **Pick in player**. Setting it on a show covers every episode with no intro of its own. See [Fixing metadata](FIXING-METADATA.md#skipping).
+
+**Discs.** A DVD or Blu-ray played as a disc (**Insert**, its menus, its titles) never shows these buttons and is never skipped by itself: the disc's own program decides what plays and where its chapters are, each title has its own clock, and **Next** and **Previous** on the remote already step through its chapters. A film *copied* from a disc into a file is an ordinary video: it gets the skip buttons like any other, beside the disc remote.
 
 ### Recaps, credits and adverts
 
@@ -144,13 +146,26 @@ Each kind is taken from the most trusted source that has it, so an EDL's advert 
  "credits": {"start": 1290}, "commercials": [{"start": 600, "end": 780}]}
 ```
 
-A range that doesn't make sense (one that ends before it starts, or a file that can't be read) is ignored. Apps read them all from `GET /api/v1/media/{id}/markers`, and get them with the playback answer when something starts. The web player shows **Skip recap**, **Skip intro**, **Skip adverts** and **Skip credits** from the same list (credits that run to the very end are left to **Next episode**). An administrator sets them with `PUT` on the same address, and `{"reset": true}` goes back to what the files say. See [the client API](CLIENT-API.md#media-extras).
+A range that doesn't make sense (one that ends before it starts, or a file that can't be read) is ignored. Apps read them all from `GET /api/v1/media/{id}/markers`, and get them with the playback answer when something starts. The web player shows **Skip recap**, **Skip intro**, **Skip adverts** and **Skip credits** from the same list (credits that run to the very end are left to **Next episode**). An administrator sets them in the title's **Edit**, under **Skipping** (see [Fixing metadata](FIXING-METADATA.md#skipping)), or with `PUT` on the same address, and `{"reset": true}` goes back to what the files say. See [the client API](CLIENT-API.md#media-extras).
+
+### Skipping without pressing anything
+
+Each profile can have the player skip by itself: **Settings → Playback & discs → Skipping** for an administrator, **Settings → Appearance → Skipping** for everyone else. There are four switches, all off to begin with: **Skip intros**, **Skip recaps**, **Skip credits** and **Skip adverts**. The choice is kept with the account, so it follows you to your other devices.
+
+| | |
+|---|---|
+| **When it skips** | When playing runs into a part, or starts inside one. A short note says **Skipped intro** with **Undo**, and a screen reader reads it out |
+| **Once only** | Each part is skipped once. After **Undo** it plays, and it isn't skipped again while the video is open |
+| **Going back** | Seek back into a part and it plays: you asked to see it |
+| **Credits** | With an episode after this one, the note counts down five seconds and goes on to it; **Watch the credits** stops that. With no next episode, credits are skipped only when something comes after them |
+| **Watch parties** | Only someone who may control the party skips, and it skips for everyone, as any seek does. **Undo** takes everyone back. What plays next is left to the party |
+| **Discs** | Never: see above |
 
 ### Finding intros nothing marks
 
 Most files have no chapters and nothing beside them. For those, the server can find the intro by ear: the title music is the same in every episode of a season, so it compares the sound of each episode with the next and marks the stretch they share. It does the same at the end for the credits.
 
-An administrator starts it for a show, from the show's **More** menu (**Find intros and credits**) or with `POST /api/v1/shows/{id}/detect-intros` (`{"season": 2}` for one season). It runs as a [task](TASKS.md):
+An administrator starts it for a show with **Find intros and credits** on the show's page (under **More** on a phone), for every season or just one, or with `POST /api/v1/shows/{id}/detect-intros` (`{"season": 2}` for one season). It runs as a [task](TASKS.md). The window shows how many episodes have been listened to, can stop it, and says at the end how many episodes got an intro and how many got credits. Closing the window doesn't stop it. Only one show is done at a time; if one is under way, the window shows that one.
 
 | | |
 |---|---|
@@ -250,12 +265,42 @@ Music has a bar of its own along the bottom, which can fold away to a small pict
 
 Anything signed in to your server can be played on from anything else: choose a film on your phone and have it start on the browser by the sofa, or move what you're watching to another screen.
 
-- On a title's page, **Play on…** lists your other devices. Pick one and it starts there.
-- In the player, **Play on another device** in the top bar hands over what you're watching, at the same place with the same sound and subtitles, and stops it here.
+- **Play on…** is on every page something can be played from: a film's, a show's (the next episode, with the ones after it queued), a disc's, an album's (the whole album, as a queue), each song's menu, a station's, a book's (**Read on…**), a game's menu, and a picture's bar. It lists your other devices, and offers **Play here** on those that play that kind of thing. A device that doesn't says so.
+- In a player, **Play on another device** in the top bar hands over what you're playing, at the same place with the same sound and subtitles, and stops it here. The video player, the disc player and the full music player have it; music takes its queue along.
 - **Play on another device** in the menu under your name opens the same list from anywhere.
-- The list is also a small remote for each device that's playing: what's on, how far along, pause and play, back 10 seconds, forward 30, stop, and its volume.
 
-A browser tab shows in the list while the app is open and showing in it, or playing something. The web player can be played on with films, episodes and other videos; discs with menus and music don't answer yet. You see devices signed in as **your** account. An administrator can let an account control devices signed in as others, such as a TV on a Kids profile, under **Settings → Sharing & photos → Play on other devices**. Nobody's limits change: you can't play something on another device that its account, or yours, isn't allowed to see.
+### The remote
+
+**Remote** beside a device turns this one into its remote control. It's made for a phone held in one hand, and works the same with a keyboard, in TV mode and with a screen reader. It shows only what that device can do with what it's playing:
+
+- what's on, with its picture, and how far along it is. The line moves by itself between the device's reports;
+- a bar to drag to another place. It moves there when you let go;
+- previous, back 10 seconds, play or pause, forward 30 seconds, next, and stop;
+- volume and mute, speed, and the sound track and subtitles, from the device's own lists;
+- the queue: open it to see what's coming, and pick an entry to jump to it;
+- a D-pad with **OK**, **Back**, **Home**, **Menu** and play or pause, which press those keys in the device's own interface, as a TV remote would. So a phone can browse on the TV and start something without anyone touching the TV.
+
+If something can't be done, the remote says why in the device's or the server's own words: it isn't connected, it didn't answer, that kind of thing can't be paused.
+
+### What a browser answers to
+
+A browser tab shows in the list while the app is open and showing in it, or playing something. It says it plays only what this server can play: a server without the DVD module has no browser claiming DVDs. Each player answers to what it can really do:
+
+| Playing | Next and previous | Also |
+|---|---|---|
+| A film or episode | The queue it was sent, else the next episode. Previous goes back to the start first | Everything: seek, volume, speed, sound track, subtitles |
+| A DVD or Blu-ray | Chapters | Seek and speed in a title, where the disc allows it; sound track and subtitles from the disc's own. The D-pad works the disc's menus, and **Menu** opens them |
+| A CD | Tracks | Seek within the track, volume |
+| Music, an audiobook, a podcast | Its own queue | Seek, volume, speed |
+| A radio station | The stations queued | Volume. A station is live: no seeking and one speed |
+| Live TV | Channel up and down | Pause, back and forward within what's been kept, volume, sound track, subtitles. A channel can't be sent from another device, because channels aren't library items: tune it on the TV, or with the D-pad |
+| A book or comic | Page turns | Nothing else. It shows how far through you are |
+| A picture | The pictures either side | Play and pause are the slideshow's |
+| A game | | Only stop. The game has the keys |
+
+A queue is up to 200 things, all videos (discs count) or all music. The video player plays one after another with its usual countdown, and a disc in a queue stays up until you move on, as a disc never ends by itself. Whatever is on screen is what a remote steers; with only music playing underneath, it steers the music.
+
+You see devices signed in as **your** account. An administrator can let an account control devices signed in as others, such as a TV on a Kids profile, under **Settings → Sharing & photos → Play on other devices**. Nobody's limits change: you can't play something on another device that its account, or yours, isn't allowed to see, and a device playing something you can't see shows you only that it's playing.
 
 To turn it off for a browser, go to **Play on…** and switch off **Let other devices play here**. For how apps talk to each other, see [the Remote Protocol](REMOTE-PROTOCOL.md).
 

@@ -39,6 +39,7 @@ func (s *Scanner) probeBluray(ctx context.Context, it *Item) bool {
 		}
 		it.Container = "bluray"
 		it.Disc = &DiscInfo{Format: "bluray", Scrambled: true}
+		s.rankProtectedBluray(ctx, it)
 		return true
 	}
 	d := od.Disc
@@ -54,7 +55,7 @@ func (s *Scanner) probeBluray(ctx context.Context, it *Item) bool {
 	if od.Label != "" && it.Title == "" {
 		it.Title, _ = ParseName(od.Label)
 	}
-	main := d.MainPlaylist()
+	main := s.rankBluray(ctx, it.Path, d, info)
 	nums := append([]int(nil), od.Playlists...)
 	sort.Ints(nums)
 	for _, n := range nums {
@@ -68,16 +69,8 @@ func (s *Scanner) probeBluray(ctx context.Context, it *Item) bool {
 		}
 		it0 := pl.Items[0]
 		dt := DiscTitle{Number: n, DurationSec: dur, Angles: len(it0.Angles), Wide: true, Standard: standardName(it0.Video[0]), Chapters: []float64{}, Audio: []string{}, Subtitles: []string{}}
-		var t0 float64
-		starts := make([]float64, len(pl.Items))
-		for i, pi := range pl.Items {
-			starts[i] = t0
-			t0 += pi.Duration()
-		}
-		for _, m := range pl.Marks {
-			if m.Type == 1 && m.Item < len(pl.Items) {
-				dt.Chapters = append(dt.Chapters, starts[m.Item]+float64(int64(m.Time)-int64(pl.Items[m.Item].In))/45000)
-			}
+		for _, ch := range bdsession.Chapters(d, pl) {
+			dt.Chapters = append(dt.Chapters, ch.Start)
 		}
 		for _, a := range it0.Audio {
 			dt.Audio = append(dt.Audio, strings.TrimSpace(fmt.Sprintf("%s %s %dch", orUnd(a.Lang), a.CodingName(), channelsOf(a.Format))))
@@ -204,6 +197,12 @@ func (s *Scanner) blurayThumbInput(it *Item, h [20]byte) ([]string, float64, err
 	d := od.Disc
 	defer d.Close()
 	pl := d.MainPlaylist()
+	if it.Disc != nil && it.Disc.MainTitle >= 0 && !it.Disc.Scrambled {
+		// The film the item says it is: the engine's ranked pick, or someone's choice.
+		if chosen := d.Playlist(it.Disc.MainTitle); chosen != nil && len(chosen.Items) > 0 && (it.Disc.Rank != nil || it.Disc.Chosen != nil) {
+			pl = chosen
+		}
+	}
 	if pl == nil || len(pl.Items) == 0 {
 		return nil, 0, fmt.Errorf("no main playlist")
 	}

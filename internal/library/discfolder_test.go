@@ -137,3 +137,18 @@ func TestVideosCopiedFromADisc(t *testing.T) {
 		}
 	}
 }
+
+func TestMacSidecarsBesideDiscsAreNoVideos(t *testing.T) {
+	dir := t.TempDir()
+	// macOS writes "._" files beside what it copies to a drive it didn't format.
+	write(t, filepath.Join(dir, "._Film.ISO"), append([]byte("\x00\x05\x16\x07"), make([]byte, 4092)...))
+	write(t, filepath.Join(dir, "._Film.mkv"), mkvHead)
+	write(t, filepath.Join(dir, "Other", "VIDEO_TS", "VIDEO_TS.IFO"), []byte("DVDVIDEO-VMG"))
+	c, err := discoverVideos(dir, false, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(c) != 1 || c[0].kind != "dvd-folder" {
+		t.Errorf("found %+v, want only the DVD folder", c)
+	}
+}

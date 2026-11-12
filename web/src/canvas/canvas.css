@@ -1,0 +1,39 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
+/* A canvas: a silent video looping behind a title. It lies over the still artwork and is
+   invisible until it is really playing, so a slow or failed one leaves the page as it was. */
+.canvas-loop { position: absolute; inset: 0; overflow: hidden; pointer-events: none; opacity: 0; transition: opacity var(--dur-3) var(--ease-out); }
+.canvas-loop.on { opacity: 1; }
+.canvas-loop video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+/* Someone who asked for less motion never gets this far (canvas/rules.ts); this is the
+   belt to those braces, for a setting changed while the page is open. */
+@media (prefers-reduced-motion: reduce) { .canvas-loop { display: none; } }
+
+/* Behind a film's or a show's page: in the backdrop's place, under the same shade. */
+.detail-hero .canvas-loop.on { opacity: .9; }
+/* Behind an album's page: where its colour glows, faded out down the page like the glow. */
+/* The same box as the glow (music.css); named twice to win over that page's rule for its children. */
+.album-page > .canvas-loop.canvas-loop { position: absolute; z-index: 0; inset: -120px calc(var(--gutter) * -1) auto; height: min(720px, 90vh); -webkit-mask-image: linear-gradient(#000 25%, transparent); mask-image: linear-gradient(#000 25%, transparent); } /* design-ok: a mask only reads how solid it is */
+.album-page > .canvas-loop.canvas-loop.on { opacity: .36; }
+/* Behind the full-screen music player: under the visualizer and everything else, dimmed so
+   the words and the controls stay readable on any picture. */
+.np-loop.canvas-loop.on { opacity: 1; }
+.np-loop::after { content: ""; position: absolute; inset: 0; background: var(--np-veil); }
+
+/* The administrator's dialog. */
+.canvas-admin { display: grid; gap: var(--sp-4); }
+.canvas-admin p { margin: 0; }
+.canvas-admin-now { display: grid; grid-template-columns: minmax(0, 180px) minmax(0, 1fr); gap: var(--sp-4); align-items: start; }
+.canvas-admin-now video { width: 100%; max-height: 260px; border-radius: var(--r-md); background: var(--bg-3); }
+.canvas-admin-facts { display: grid; gap: var(--sp-2); }
+.canvas-admin section { display: grid; gap: var(--sp-3); padding-top: var(--sp-4); border-top: 1px solid var(--border); }
+.canvas-admin h3 { margin: 0; font-size: var(--text-md); }
+.canvas-admin-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); }
+.canvas-admin-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
+.canvas-admin .muted { font-size: var(--text-sm); }
+@media (max-width: 560px) {
+  .canvas-admin-now, .canvas-admin-fields { grid-template-columns: minmax(0, 1fr); }
+}
+/* A canvas can be bright anywhere, like a shader: controls get a dark ground, and words a shadow. */
+.np:has(.np-loop.on) { --np-chip: var(--np-dark-chip); --np-chip-2: var(--np-dark-chip-2); --np-fg-2: var(--np-bright-2); --np-fg-3: var(--np-bright-3); }
+.np:has(.np-loop.on) .np-title, .np:has(.np-loop.on) .np-where, .np:has(.np-loop.on) .np-times, .np:has(.np-loop.on) .np-hints { text-shadow: var(--np-text-shadow); }

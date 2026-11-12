@@ -223,6 +223,9 @@ var MenuTypes = map[string]int{"title": 2, "root": 3, "subpicture": 4, "audio": 
 type Disc struct {
 	VMG *VMG
 	VTS map[int]*VTS
+	// Repairs lists where the disc's tables disagreed with each other and what the engine
+	// mended from which table. A WittyDVD from before it cross-checked sends none.
+	Repairs []Repair
 }
 
 // MenuButton is a button in frame coordinates with its highlight artwork.

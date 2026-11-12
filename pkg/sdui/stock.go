@@ -130,6 +130,14 @@ func buildStockPages() []Page {
 			sec("tracks", "TrackList", nil, Source{"type": "tracks", "library": "$library", "artist": "$artist", "album": "$album"}),
 			sec("more", "Shelf", props{"title": "More by this artist"}, Source{"type": "albums", "library": "$library", "artist": "$artist", "sort": "year"}),
 		}}
+	detailArtist := Page{ID: "detail-artist", Kind: "detail", Title: "{title}", Icon: "artist", Match: &Match{MediaKind: "artist"}, Scope: "wittymusic",
+		Description: "A music artist: their albums, newest first, and every song of theirs.",
+		Sections: []Section{
+			sec("header", "DetailHeader", props{"layout": "poster", "facts": []string{"count"}, "actions": []string{"play"}}, nil),
+			sec("albums", "Shelf", props{"title": "Albums", "cardStyle": "album", "seeAll": "never"}, Source{"type": "albums", "library": "$library", "artist": "$artist", "sort": "year"}),
+			// Songs from every album, by title: an album's track numbers would repeat.
+			sec("tracks", "TrackList", props{"showNumbers": false}, Source{"type": "tracks", "library": "$library", "artist": "$artist"}),
+		}}
 	detailCollection := Page{ID: "detail-collection", Kind: "detail", Title: "{title}", Icon: "collection", Match: &Match{MediaKind: "collection"},
 		Sections: []Section{
 			sec("header", "DetailHeader", props{"layout": "compact", "facts": []string{"count"}, "actions": []string{"share"}}, nil),
@@ -180,7 +188,7 @@ func buildStockPages() []Page {
 	out = append(out, videoLibs...)
 	out = append(out, musicLib)
 	out = append(out, spokenLibs...)
-	out = append(out, photosLib, booksLib, gamesLib, detail, detailShow, detailEpisode, detailAlbum, detailCollection, search, livetv, music, photos, books, games, collections)
+	out = append(out, photosLib, booksLib, gamesLib, detail, detailShow, detailEpisode, detailAlbum, detailArtist, detailCollection, search, livetv, music, photos, books, games, collections)
 	return out
 }
 

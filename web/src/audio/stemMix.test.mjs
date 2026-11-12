@@ -3,7 +3,7 @@
 // The karaoke mixing and sync rules, with made-up answers and clocks.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { decodeLevels, defaultLevel, drifted, DRIFT, encodeLevels, gainsFor, LEAD, levelsKey, partsAt, playable, pollDelay, qualityName, sliders, startPlan, statusLine } from './stemMix.ts'
+import { decodeLevels, defaultLevel, drifted, DRIFT, encodeLevels, gainsFor, LEAD, levelsKey, partsAt, playable, pollDelay, qualityName, sliders, startPlan, statusLine, streamedParts, streamStep, MAX_SECONDS } from './stemMix.ts'
 
 const stem = (id, role, defaultGain = 1) => ({ id, role, label: id[0].toUpperCase() + id.slice(1), url: '/api/media/1/stems/' + id, defaultGain })
 const parts = { state: 'ready', quality: 'stems', mix: 'parts', version: 'a', improving: false, progress: -1, pollSec: 0, stems: [stem('vocals', 'vocals'), stem('drums', 'music'), stem('bass', 'music', 0.8), stem('other', 'music')] }
@@ -90,4 +90,25 @@ test('the parts stay with the song, and are restarted when they wander', () => {
   near(plan.offset, 30 + LEAD)
   assert.ok(!drifted(plan.offset, plan.when, 205, 30 + 5))
   assert.equal(startPlan(-1, 0).offset >= 0, true)
+})
+
+test('parts are streamed for another speed or a long song, decoded otherwise', () => {
+  assert.equal(streamedParts(1, 200), false)
+  assert.equal(streamedParts(1.25, 200), true)
+  assert.equal(streamedParts(0.8, 200), true)
+  assert.equal(streamedParts(1, MAX_SECONDS + 1), true)
+  // Not known yet: decoded, as a song usually is short.
+  assert.equal(streamedParts(1, NaN), false)
+})
+
+test('a streamed part is kept with the song by small changes of speed, and a jump when far off', () => {
+  assert.deepEqual(streamStep(1, 0.01), { seek: false, rate: 1 })
+  // The song is ahead: the part plays a little faster, never more than 5%.
+  const faster = streamStep(1.5, 0.1)
+  assert.equal(faster.seek, false)
+  assert.ok(faster.rate > 1.5 && faster.rate <= 1.5 * 1.05)
+  const slower = streamStep(1, -0.2)
+  assert.ok(slower.rate < 1 && slower.rate >= 0.95)
+  assert.equal(streamStep(1, 0.5).seek, true)
+  assert.equal(streamStep(1, NaN).seek, true)
 })

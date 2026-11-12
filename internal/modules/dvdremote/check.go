@@ -132,12 +132,23 @@ func checkUnits(us []dvd.LangUnit) error {
 
 // checkDisc checks a disc's structure, which the session's own code then walks: every
 // table it indexes must have the size that code expects, as a parser would make sure of.
+// maxRepairs is how many of an engine's notes on a disc's tables are kept.
+const maxRepairs = 512
+
 func checkDisc(d *dvd.Disc) error {
 	if d.VMG == nil {
 		return bad("the helper gave a disc with no structure")
 	}
 	if len(d.VMG.Titles) > maxTitles || len(d.VTS) > maxTitleSets {
 		return bad("the helper gave a disc of an impossible size")
+	}
+	// What was mended is only ever shown: a sensible number of notes of a sensible length.
+	if len(d.Repairs) > maxRepairs {
+		d.Repairs = d.Repairs[:maxRepairs]
+	}
+	for i := range d.Repairs {
+		r := &d.Repairs[i]
+		r.Table, r.From, r.Note = clipText(r.Table), clipText(r.From), clipText(r.Note)
 	}
 	if p := d.VMG.FirstPlay; p != nil {
 		if err := checkPGC(p); err != nil {

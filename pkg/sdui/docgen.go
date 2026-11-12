@@ -160,6 +160,7 @@ func CatalogueMarkdown() string {
 	}
 	w("\n")
 
+	b.WriteString(tokensMarkdown(c))
 	w("### Device profiles\n\n")
 	w("| | tv (hd) | tv (4k) | phone | tablet | desktop | web |\n|---|---|---|---|---|---|---|\n")
 	order := []string{"tv", "tv-4k", "phone", "tablet", "desktop", "web"}
@@ -185,6 +186,7 @@ func CatalogueMarkdown() string {
 		}
 		return fmt.Sprintf("%d, %d, %d, %d", l.SafeArea.Top, l.SafeArea.Right, l.SafeArea.Bottom, l.SafeArea.Left)
 	})
+	row("Side margins", func(l *Layout) string { return num(l.SideMargin()) })
 	row("Focus is the only pointer", func(l *Layout) string { return map[bool]string{true: "yes", false: "no"}[l.FocusEngine] })
 	row("Opens web links", func(l *Layout) string { return map[bool]string{true: "yes", false: "no"}[l.ExternalLinks] })
 	row("Spacing xs, s, m, l, xl", func(l *Layout) string {
@@ -265,9 +267,14 @@ func CatalogueMarkdown() string {
 	w("\n")
 
 	w("### Native screens\n\n")
-	w("| Screen | What it is | Route |\n|---|---|---|\n")
+	w("A menu entry (`type: native`) may open the screens marked *menu*; the others need a title or a channel and are opened by actions.\n\n")
+	w("| Screen | What it is | Route | Menu |\n|---|---|---|---|\n")
 	for _, n := range c.NativeScreens {
-		w("| `%s` | %s | %s |\n", n.Screen, cell(n.Description), def(n.Route))
+		menu := "no"
+		if n.Menu {
+			menu = "menu"
+		}
+		w("| `%s` | %s | %s | %s |\n", n.Screen, cell(n.Description), def(n.Route), menu)
 	}
 	w("\n")
 
@@ -282,6 +289,38 @@ func CatalogueMarkdown() string {
 			}
 		}
 		w("| `%s` | %s | %s |\n", cmd.Op, cell(cmd.Description), reqLine)
+	}
+	w("\n")
+
+	w("### Layout options\n\nThe menu's style on each form factor, and what the server changes about every page for the layout. Menu styles: `%s`.\n\n", strings.Join(c.NavStyles, "`, `"))
+	w("| Layout | What it is | TV | Phone | Tablet | Desktop | Web | Pages |\n|---|---|---|---|---|---|---|---|\n")
+	for _, l := range c.Layouts {
+		var pages []string
+		if l.Pages.GridsAsRows {
+			pages = append(pages, "grids as rows")
+		}
+		if l.Pages.RowsAsLists {
+			pages = append(pages, "rows and grids as lists")
+		}
+		if l.Pages.Hero != "" {
+			pages = append(pages, "spotlight: "+l.Pages.Hero)
+		}
+		if l.Pages.CardSize != "" {
+			pages = append(pages, "cards "+l.Pages.CardSize)
+		}
+		if l.Pages.LandscapeCards {
+			pages = append(pages, "wide cards for films and shows")
+		}
+		if l.Pages.Density != "" {
+			pages = append(pages, l.Pages.Density)
+		}
+		if l.Overlay {
+			pages = append(pages, "menu over the page")
+		}
+		if len(pages) == 0 {
+			pages = []string{"as written"}
+		}
+		w("| `%s` | **%s.** %s | %s | %s | %s | %s | %s | %s |\n", l.ID, l.Label, cell(l.Description), l.Nav[FormTV], l.Nav[FormPhone], l.Nav[FormTablet], l.Nav[FormDesktop], l.Nav[FormWeb], strings.Join(pages, ", "))
 	}
 	w("\n")
 

@@ -4,6 +4,7 @@
 export const settingsHelp: Record<string, string> = {
   libraries: 'libraries',
   pages: 'pages',
+  'module-settings': 'sdui-modules#settings',
   metadata: 'metadata',
   playback: 'settings#playback-and-discs',
   channels: 'channels',

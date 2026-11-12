@@ -839,8 +839,8 @@ func ValidateNavigation(n *Navigation, pageExists func(id string) bool) []Issue 
 				v.err(p+"/library", "Give the library's ID.", "the entry doesn't say which library it opens")
 			}
 		case "native":
-			if !contains(navScreens, it.Screen) {
-				v.err(p+"/screen", suggest(it.Screen, navScreens), "%q is not a screen an entry can open; the choices are %s", it.Screen, strings.Join(navScreens, ", "))
+			if menu := menuScreens(); !contains(menu, it.Screen) {
+				v.err(p+"/screen", suggest(it.Screen, menu), "%q is not a screen an entry can open; the choices are %s", it.Screen, strings.Join(menu, ", "))
 			}
 			if it.Screen == "settings" && it.When != nil {
 				v.err(p+"/when", "Remove the condition.", "Settings is always in the navigation; it can't have a condition")
@@ -874,9 +874,6 @@ func ValidateNavigation(n *Navigation, pageExists func(id string) bool) []Issue 
 	}
 	return v.issues
 }
-
-// navScreens are the native screens a navigation entry may open.
-var navScreens = []string{"settings", "guide", "profiles", "downloads", "remote", "nowPlaying", "pair", "collections"}
 
 // ValidatePersonal checks what a profile sent about its own arrangement.
 func ValidatePersonal(p *Personal) []Issue {

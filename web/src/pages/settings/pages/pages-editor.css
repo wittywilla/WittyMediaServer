@@ -220,3 +220,15 @@
   .pe-pane { padding: var(--sp-3); }
   .pe-toolbar-state { flex-basis: 100%; order: 5; }
 }
+
+/* The preview's spotlight and title header are as tall as on the device shown, not as the
+   window: the page's own rules measure them in vh, which here is the frame's (--pe-vh). */
+.pe-frame-page .hero { height: calc(var(--pe-vh) * 62); min-height: 400px; }
+.pe-frame-page .sdui-hero.banner { height: calc(var(--pe-vh) * 38); min-height: 260px; }
+.pe-frame-page .detail-hero { height: calc(var(--pe-vh) * 50); min-height: 320px; }
+.pe-frame-page .detail-hero.bare { height: clamp(160px, calc(var(--pe-vh) * 22), 240px); min-height: 0; }
+.pe-frame.phone .pe-frame-page .hero { height: auto; min-height: min(calc(var(--pe-vh) * 66), 520px); display: flex; flex-direction: column; justify-content: flex-end; padding-top: calc(var(--topbar-h) + var(--sp-12)); }
+.pe-frame.phone .pe-frame-page .hero .info { position: relative; left: auto; bottom: auto; margin: 0 var(--gutter) var(--sp-6); width: auto; }
+.pe-frame.phone .pe-frame-page .detail-hero:not(.bare) { height: calc(var(--pe-vh) * 38); min-height: 240px; }
+.pe-frame.tv .pe-frame-page .hero { height: auto; min-height: 0; }
+.pe-actions { display: flex; gap: var(--sp-2); margin-top: var(--sp-4); }

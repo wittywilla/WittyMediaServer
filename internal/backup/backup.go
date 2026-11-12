@@ -140,7 +140,7 @@ func DefaultParts() []string {
 // fails until someone chooses.
 var tableParts = map[string]string{
 	"libraries": PartLibrary, "library_paths": PartLibrary, "items": PartLibrary, "shows": PartLibrary, "seasons": PartLibrary,
-	"title_meta": PartLibrary, "meta_history": PartLibrary, "title_brands": PartLibrary, "logos": PartLibrary, "item_links": PartLibrary,
+	"title_meta": PartLibrary, "meta_history": PartLibrary, "title_brands": PartLibrary, "people": PartLibrary, "credits": PartLibrary, "logos": PartLibrary, "item_links": PartLibrary,
 	"library_moves": PartLibrary, "categories": PartLibrary, "match_rules": PartLibrary, "listing_titles": PartLibrary, "listings": PartLibrary,
 	"photo_meta": PartLibrary, "creators": PartLibrary, "video_meta": PartLibrary, "podcasts": PartLibrary, "radio_meta": PartLibrary,
 	"game_archives": PartLibrary, "game_meta": PartLibrary, "game_meta_sources": PartLibrary,

@@ -118,6 +118,34 @@ var metadataMigrations = []string{
 	// What comparing a season's episodes by ear found (internal/introdetect), kept apart
 	// from what a scan read and what someone set, so neither overwrites the other.
 	`ALTER TABLE media_markers ADD COLUMN detected TEXT NOT NULL DEFAULT '';`,
+	// 12: the people in titles and what each did (docs/METADATA.md, "Cast and crew"). A person
+	// is kept once however many titles name them: by an external id, else by their name (key).
+	// A credit says who, on what (an item: a film or an episode; or a show), in which role (cast,
+	// guest, crew), and which source said so: each source's credits are replaced only when that
+	// source is read again, and a page takes each part from the best source that has it.
+	`CREATE TABLE IF NOT EXISTS people (
+	   id INTEGER PRIMARY KEY, name TEXT NOT NULL, sort_name TEXT NOT NULL, key TEXT NOT NULL,
+	   photo TEXT NOT NULL DEFAULT '', birthday TEXT NOT NULL DEFAULT '', deathday TEXT NOT NULL DEFAULT '',
+	   birthplace TEXT NOT NULL DEFAULT '', biography TEXT NOT NULL DEFAULT '', known_for TEXT NOT NULL DEFAULT '',
+	   tmdb_id TEXT NOT NULL DEFAULT '', imdb_id TEXT NOT NULL DEFAULT '', tvdb_id TEXT NOT NULL DEFAULT '', tvmaze_id TEXT NOT NULL DEFAULT '',
+	   details_at INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL DEFAULT 0);
+	 CREATE INDEX IF NOT EXISTS people_key ON people(key);
+	 CREATE INDEX IF NOT EXISTS people_sort ON people(sort_name COLLATE NOCASE);
+	 CREATE INDEX IF NOT EXISTS people_tmdb ON people(tmdb_id) WHERE tmdb_id <> '';
+	 CREATE INDEX IF NOT EXISTS people_imdb ON people(imdb_id) WHERE imdb_id <> '';
+	 CREATE INDEX IF NOT EXISTS people_tvdb ON people(tvdb_id) WHERE tvdb_id <> '';
+	 CREATE INDEX IF NOT EXISTS people_tvmaze ON people(tvmaze_id) WHERE tvmaze_id <> '';
+	 CREATE TABLE IF NOT EXISTS credits (
+	   person_id INTEGER NOT NULL REFERENCES people(id) ON DELETE CASCADE,
+	   target TEXT NOT NULL, target_id INTEGER NOT NULL, source TEXT NOT NULL,
+	   role TEXT NOT NULL, department TEXT NOT NULL DEFAULT '', job TEXT NOT NULL DEFAULT '',
+	   character TEXT NOT NULL DEFAULT '', ord INTEGER NOT NULL DEFAULT 0);
+	 CREATE INDEX IF NOT EXISTS credits_target ON credits(target, target_id, source);
+	 CREATE INDEX IF NOT EXISTS credits_person ON credits(person_id, target, target_id);
+	 CREATE TRIGGER IF NOT EXISTS credits_item_gone AFTER DELETE ON items BEGIN
+	   DELETE FROM credits WHERE target = 'item' AND target_id = OLD.id; END;
+	 CREATE TRIGGER IF NOT EXISTS credits_show_gone AFTER DELETE ON shows BEGIN
+	   DELETE FROM credits WHERE target = 'show' AND target_id = OLD.id; END;`,
 }
 
 func (d *DB) migrateMetadata(ctx context.Context) error {

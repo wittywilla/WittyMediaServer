@@ -485,7 +485,8 @@ func (rv *sduiResolver) playFriends() ([]sdui.Item, error) {
 				sub = "Playing " + p.Game
 			}
 		}
-		out = append(out, sdui.Item{ID: "profile-" + strconv.FormatInt(f.ID, 10), Kind: "view", Title: profileName(&f), Subtitle: sub,
+		// A person card that opens nothing: there's no profile page to open.
+		out = append(out, sdui.Item{ID: "profile-" + strconv.FormatInt(f.ID, 10), Kind: "person", Title: profileName(&f), Subtitle: sub,
 			Badges: []string{presenceWords[p.State]}, Icon: "user"})
 	}
 	return out, nil
@@ -546,8 +547,8 @@ func (rv *sduiResolver) ownTable() (seatTableView, bool) {
 	return seatTableView{}, false
 }
 
-// playRoom: this profile's room, then a card for each player, "Waiting…" for a free seat. The
-// room's code, which lets anyone join, is the host's alone to see.
+// playRoom: this profile's room (a view), then each player as a person: the host, "Player n", or
+// "Waiting…" for a free seat. The room's code, which lets anyone join, is the host's alone to see.
 func (rv *sduiResolver) playRoom() []sdui.Item {
 	t, ok := rv.ownTable()
 	if !ok {
@@ -566,16 +567,16 @@ func (rv *sduiResolver) playRoom() []sdui.Item {
 	out := []sdui.Item{room}
 	players := max(t.Game.Players, 1)
 	for n := 0; n < players; n++ {
-		it := sdui.Item{ID: fmt.Sprintf("%s-p%d", t.Session, n+1), Kind: "view", Subtitle: fmt.Sprintf("Player %d", n+1), Badges: []string{fmt.Sprintf("P%d", n+1)}, Icon: "user"}
+		it := sdui.Item{ID: fmt.Sprintf("%s-p%d", t.Session, n+1), Kind: "person", Subtitle: fmt.Sprintf("Player %d", n+1), Badges: []string{fmt.Sprintf("P%d", n+1)}, Icon: "user"}
 		switch {
 		case n == 0:
-			it.Title = t.HostName
+			it.Title, it.Subtitle = t.HostName, "Host"
 		default:
 			at := slices.IndexFunc(t.Holders, func(h seatHolder) bool { return h.Seat == n })
 			if at >= 0 {
 				it.Title = t.Holders[at].Name
 			} else {
-				it.Title, it.Badges = "Waiting…", append(it.Badges, "Free")
+				it.Title, it.Subtitle, it.Badges = "Waiting…", "Free", []string{"Free"}
 			}
 		}
 		out = append(out, it)

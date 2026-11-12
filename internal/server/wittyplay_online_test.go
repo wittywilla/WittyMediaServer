@@ -187,7 +187,7 @@ func TestPlayOnlineSources(t *testing.T) {
 	g.seats.started("s1", a.sam.ID, "sam", "Living room", seatGame{Item: 7, Title: "Star Tide", Console: "snes", Players: 2})
 
 	friends := onlineItems(t, a.ts.Server, a.alex, srcPlayFriends)
-	if len(friends) != 3 || friends[0].Title != "sam" || friends[0].Badges[0] != "Playing" {
+	if len(friends) != 3 || friends[0].Kind != "person" || friends[0].Title != "sam" || friends[0].Badges[0] != "Playing" || friends[0].Route != "" {
 		t.Fatalf("alex's friends: %+v", friends)
 	}
 	// Alex may not open item 7 (there's no such game here), so the game isn't named.
@@ -213,8 +213,14 @@ func TestPlayOnlineSources(t *testing.T) {
 	// The host's room: the room, then a card for each player.
 	code, _, _ := g.seats.invite("s1", a.sam.ID)
 	room := onlineItems(t, a.ts.Server, a.sam, srcPlayRoom)
-	if len(room) != 3 || room[0].Title != "Star Tide" || room[0].Tagline != code || room[1].Title != "sam" || room[2].Title != "Waiting…" {
+	if len(room) != 3 || room[0].Kind != "view" || room[0].Title != "Star Tide" || room[0].Tagline != code {
 		t.Fatalf("sam's room: %+v", room)
+	}
+	if p := room[1]; p.Kind != "person" || p.Title != "sam" || p.Subtitle != "Host" || p.Badges[0] != "P1" || p.Route != "" {
+		t.Errorf("the host: %+v", p)
+	}
+	if p := room[2]; p.Kind != "person" || p.Title != "Waiting…" || p.Subtitle != "Free" || p.Badges[0] != "Free" {
+		t.Errorf("a free seat: %+v", p)
 	}
 	if _, err := g.seats.joinOpen("s1", a.alex.ID, "alex"); err != nil {
 		t.Fatal(err)

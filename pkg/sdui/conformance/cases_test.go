@@ -762,7 +762,7 @@ func playOnlineData() Data {
 			Images: map[string]string{"poster": "/api/items/" + id + "/poster"}, Route: "/game/" + id, PlayID: id, Scope: "wittyplay"}
 	}
 	friend := func(id, name, state, line string) sdui.Item {
-		return sdui.Item{ID: "profile-" + id, Kind: "view", Title: name, Subtitle: line, Badges: []string{state}, Icon: "user", Scope: "wittyplay"}
+		return sdui.Item{ID: "profile-" + id, Kind: "person", Title: name, Subtitle: line, Badges: []string{state}, Icon: "user", Scope: "wittyplay"}
 	}
 	return Data{Sources: []CannedSource{
 		src(map[string]any{"type": "wittyplay.recent"}, []sdui.Item{
@@ -796,7 +796,33 @@ func playOnlineCases() []kase {
 	tv := request("tv")
 	tv.Modules = []string{"wittyplay"}
 	tv.Scopes = map[string]map[string]string{"wittyplay": {"accent": "#7F46B8"}}
+	// People: friends and a room's players as person cards (a name, a line, presence or seat as the
+	// badge), as WittyPlay declares them. A player whose item has a route
+	// opens it; one without is a card that isn't a button.
+	people := ui // WittyPlay's sdui.json declares friends and a room's players as people
+	person := func(id, name, line, badge, route string, photo bool) sdui.Item {
+		it := sdui.Item{ID: id, Kind: "person", Title: name, Subtitle: line, Badges: []string{badge}, Route: route, Scope: "wittyplay"}
+		if photo {
+			it.Images = map[string]string{"square": "/api/profiles/" + id + "/avatar"}
+		}
+		return it
+	}
+	ppl := Data{Sources: []CannedSource{
+		src(map[string]any{"type": "wittyplay.friends"}, []sdui.Item{
+			person("profile-2", "Pip", "Playing Star Tide", "Playing", "/profile/2", true), person("profile-3", "Sam", "Online", "Online", "", false),
+			person("profile-4", "Tom", "Away", "Away", "", true),
+		}, 0),
+		src(map[string]any{"type": "wittyplay.room"}, []sdui.Item{
+			person("player-1", "Willow", "Host", "P1", "", true), person("player-2", "Pip", "Player 2", "P2", "/profile/2", false),
+			person("player-3", "Waiting\u2026", "Free", "Free", "", false),
+		}, 0),
+	}}
+	peoplePage := page("play", "custom",
+		sec("friends", "Shelf", map[string]any{"title": "Friends"}, sdui.Source{"type": "wittyplay.friends"}),
+		sec("room", "Shelf", map[string]any{"title": "Your room"}, sdui.Source{"type": "wittyplay.room"}))
 	return []kase{
+		{id: "wittyplay-people-tv", title: "Friends and a room's players as person cards on a television", in: Input{Page: peoplePage, Request: tv, Data: ppl, ModuleUI: []sdui.ModuleUI{people}},
+			checks: []string{"a person item is a person card: a round photo (initials when it has none), a name, a line and its badge", "a person with a route opens it; one without has no action and takes no focus", "every card is in WittyPlay's scope"}},
 		{id: "wittyplay-online-tv", title: "WittyPlay Online's rows on a television", in: Input{Page: pg, Request: tv, Data: playOnlineData(), ModuleUI: []sdui.ModuleUI{ui}},
 			checks: []string{"recent games carry their era as a badge and the home row's detail line as the subtitle", "collections are eras with their counts", "friends carry their presence as a badge and a line", "rooms carry how many have joined and their host", "every card is in WittyPlay's scope"}},
 	}

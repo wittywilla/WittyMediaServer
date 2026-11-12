@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/themes"
 	"github.com/wittywilla/wittymediaserver/pkg/sdui"
@@ -320,5 +321,27 @@ func TestSavingTheNameWarnsAboutFixedColours(t *testing.T) {
 	out = put(map[string]string{"brandSpans": light})
 	if string(out["brandWarnings"]) != "[]" {
 		t.Errorf("a white name on a dark theme: %s", out["brandWarnings"])
+	}
+}
+
+// The server's time zone: an IANA name, applied at once, going back to the computer's when empty.
+func TestTimeZoneSetting(t *testing.T) {
+	ts, admin, _, _ := sduiAccounts(t)
+	t.Cleanup(func() { time.Local = computerLoc })
+	put := func(v string) int {
+		return ts.do(t, "PUT", "/api/settings", admin, map[string]string{"timeZone": v}).Code
+	}
+	if put("Mars/Olympus") != 400 || put("Local") != 400 {
+		t.Error("a zone that isn't one was accepted")
+	}
+	if put("Asia/Tokyo") != 200 || time.Local.String() != "Asia/Tokyo" {
+		t.Errorf("zone not applied: %s", time.Local)
+	}
+	got := decode[map[string]string](t, ts.do(t, "GET", "/api/settings", admin, nil))
+	if got["timeZone"] != "Asia/Tokyo" || got["timeZoneNow"] != "Asia/Tokyo" || got["timeZoneComputer"] == "" {
+		t.Errorf("settings: %v", got)
+	}
+	if put("") != 200 || time.Local.String() != computerZone {
+		t.Errorf("not back to the computer's zone: %s", time.Local)
 	}
 }

@@ -1326,7 +1326,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in `openap
 | `DELETE /branding/logo` | admin | Go back to the app icon. |
 | `GET /system` | admin | Host, FFmpeg and hardware encoder details. |
 | `GET /settings` | admin | All server settings as strings; secrets are masked. |
-| `PUT /settings` | admin | Change settings; unknown keys are ignored. |
+| `PUT /settings` | admin | Change settings; unknown keys are ignored. `timeZone` is an IANA name (`Europe/London`) the server runs in from the moment it is saved, for the TV guide's days, schedules, recordings and the times in the logs; empty follows the computer (and the `TZ` variable). `GET /settings` adds `timeZoneNow` (the zone it runs in) and `timeZoneComputer`. `theme` follows the look until one is chosen (see [Themes](THEMES.md#precedence)). |
 | `GET /fs` | admin | Browse the server's folders, to choose library folders. |
 | `POST /fs/pick` | admin | Open the system folder picker on the server's own screen (only from that machine; 501 elsewhere). |
 | `POST /metadata/test` | admin | Check a metadata API key before saving it. |

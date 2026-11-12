@@ -194,6 +194,7 @@ func tokenFrom(r *http.Request) string {
 // StartMetadata wakes the services that follow scans, and brings in anything added
 // before they existed. The server's own start calls it once.
 func (s *Server) StartMetadata() {
+	s.applyTimeZone(context.Background())
 	logging.Go("statistics", func() { s.Metrics.Run(context.Background()) }, "cat", "server")
 	s.Scanner.OnScanned = func() {
 		s.logos().Kick()

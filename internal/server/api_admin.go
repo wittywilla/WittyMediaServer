@@ -28,7 +28,7 @@ import (
 var settingKeys = []string{"tmdbKey", "tvdbKey", "tvdbPin", "hwAccel", "maxHeight", "menuLanguage", "audioLanguage", "subtitleLanguage",
 	"serverName", "audioCodec", "lowPower", "bdjEnabled", "dvdRegion", "blurayRegion", "dvdParental", "blurayAge", "discCountry", "saveMetadata", "dvdStart", "insertFx", "episodeView",
 	"hwEncoders", "directPlay", "qualityMode", "qualityProfile", "x264Preset", "crf", "maxBitrate", "audioBitrate",
-	"ffmpegVideoArgs", "ffmpegOutputArgs", "theme", "brandName", "brandColouring", "brandSpans", "brandMark", "maxSpeed",
+	"ffmpegVideoArgs", "ffmpegOutputArgs", "timeZone", "theme", "brandName", "brandColouring", "brandSpans", "brandMark", "maxSpeed",
 	"loginStyle", "profilesRemote", "setupDone", "kidsManagedBy", "insertSound", "tvmaze", "wikidata", "musicbrainz", "animeIn", "animeTitles",
 	"libraryGrouping", "updateCheck", "moduleUpdateCheck", "moduleAutoInstall", "uploads", "uploadMaxMb", "uploadAccountMb", "shareLinks", "mapTiles", "mapOnline", "mapAttribution", "lanDiscovery", "radioDirectory", "radioChecks",
 	"legalOwnerNotice", "legalOwnerContact", "noPoster", "pairRequirePin", settingSecondOpinion}
@@ -63,6 +63,7 @@ var settingDefaults = map[string]string{"saveMetadata": "1", "noPoster": library
 // settingChecks: settings handed to FFmpeg or used as numbers. A wrong value
 // would otherwise only show up as every transcode failing.
 var settingChecks = map[string]func(string) bool{
+	"timeZone":          validTimeZone,
 	"crf":               intBetween(0, 51),
 	"maxHeight":         intBetween(0, 4320),
 	"maxSpeed":          floatBetween(1, 16),
@@ -125,6 +126,8 @@ func (s *Server) serverSettingsView(r *http.Request) (map[string]string, int) {
 		out[k] = v
 	}
 	out["theme"] = s.serverTheme(r.Context()) // the look's own until one is chosen
+	out["timeZoneNow"] = time.Local.String()  // the zone the server runs in, which is timeZone's, else the computer's
+	out["timeZoneComputer"] = computerZone
 	for _, k := range secretSettings {
 		if out[k] != "" {
 			out[k+"Set"] = "1"
@@ -192,6 +195,9 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 	}
 	if regions := s.DB.GetSetting(r.Context(), "gamingRegionOrder", ""); regions != regionsWere {
 		s.gameRegionsChanged(regions)
+	}
+	if _, ok := in["timeZone"]; ok {
+		s.applyTimeZone(r.Context())
 	}
 	s.protectSecrets(r.Context()) // a new API key is hidden from the log from now on
 	if s.Discovery != nil {

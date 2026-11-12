@@ -1,0 +1,54 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
+/*
+ * Aero Aurora - a WittyMediaServer theme.
+ * Night glass: deep blue to teal, with a cyan glow.
+ *
+ * Every variable below is explained in docs/THEMES.md. Copy this file into
+ * your own theme ZIP as a starting point.
+ */
+:root {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --bg: #0b2a4a;          /* page background */
+  --bg-2: #123a5e;        /* side menu, panels, dialogs */
+  --bg-3: #194a74;        /* fields, cards, hovered rows */
+  --bg-4: #2e5b82;        /* pressed buttons, scrollbars */
+  --bg-rgb: 11 42 74;   /* --bg as "R G B", for see-through shades */
+  --border: color-mix(in srgb, var(--fg) 10%, transparent); /* hairlines between panels */
+  --control-line: #4f9ad9;      /* outlines of fields and switches: 3:1 on every surface */
+
+  /* Text */
+  --fg: #eaf6ff;          /* main text */
+  --fg-2: #a8cfe6;        /* secondary text */
+  --fg-3: #9bbacf;        /* hints, captions */
+
+  /* Accent: buttons, highlights, progress bars, selected items */
+  --accent: #38c6f4;
+  --accent-2: #31aed7;      /* hovered or pressed accent */
+  --accent-fg: #00243a;     /* text on the accent */
+  --accent-text: #7fdcff;   /* the accent as text: links, highlighted words */
+  --accent-rgb: 56 198 244;
+  --brand-accent: var(--accent-text); /* the highlighted word of the name in the corner */
+
+  /* Status */
+  --danger: #ff99a2;
+  --ok: #3ad29f;
+  --warn: #e8ae3f;
+
+  /* Shape and depth */
+  --radius: 10px;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  --card-shadow: 0 10px 24px rgba(0, 0, 0, 0.5);
+  --overlay: rgba(0, 0, 0, 0.6);
+
+  /* Layout and type */
+  --sidebar: 240px;
+  --font: "Inter", "Segoe UI Variable Text", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  /* Ten feet away (docs/THEMES.md "The TV pass"): the focus ring, the scrim's strength behind hero text, body text a step stronger */
+  --tv-ring-color: #eaf6ff;
+  --tv-text: #ecf7ff;
+  --hero-scrim: .74;
+}

@@ -9,6 +9,8 @@ import (
 	"errors"
 	"net/http"
 	"regexp"
+	"strconv"
+	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/sduistore"
@@ -66,12 +68,35 @@ func (s *Server) sduiExperience(r *http.Request, cfg *sduistore.Config, formFact
 	if personal == "" && !cfg.Personalisation.Disabled && s.access(r).Can(library.FeatureEditLayout) {
 		personal = s.personalExperience(r, formFactor)
 	}
-	return sdui.ExperienceByID(sdui.ChooseExperience(personal, pol.Default[formFactor], pol.Allowed, formFactor)), nil
+	required, _ := s.requiredLook(r, cfg)
+	req := ""
+	if required != nil {
+		req = required.Value
+	}
+	return sdui.ExperienceByID(sdui.ChooseExperience(req, personal, pol.Default[formFactor], pol.Allowed, formFactor)), nil
+}
+
+// requiredLook is what an administrator requires of the profile asking: its experience and
+// its theme, nil for a part nobody requires. A required theme that isn't installed any more
+// is not required.
+func (s *Server) requiredLook(r *http.Request, cfg *sduistore.Config) (experience, theme *sdui.RequiredPart) {
+	u := userFrom(r)
+	if u == nil || cfg.Experiences == nil {
+		return nil, nil
+	}
+	experience, theme = cfg.Experiences.Required.Resolve(strconv.FormatInt(u.ID, 10), u.Kind == "kids")
+	if theme != nil && (s.Themes == nil || !s.Themes.Has(theme.Value)) {
+		theme = nil
+	}
+	return experience, theme
 }
 
 // experienceChoice is what the profile may choose on this device, for the navigation's
 // answer and the layout routes; nil for a profile kept from rearranging.
 func (s *Server) experienceChoice(r *http.Request, cfg *sduistore.Config, formFactor, current string) *sdui.ExperienceChoice {
+	if req, _ := s.requiredLook(r, cfg); req != nil {
+		return &sdui.ExperienceChoice{Current: current, Options: []sdui.EnumOption{}, URL: "/api/v1/sdui/experience", Required: req}
+	}
 	if cfg.Personalisation.Disabled || !s.access(r).Can(library.FeatureEditLayout) {
 		return nil
 	}
@@ -123,7 +148,7 @@ func (s *Server) handleSDUIExperienceGet(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	choice := s.experienceChoice(r, cfg, ff, l.ID)
-	writeJSON(w, 200, map[string]any{"experience": l.ID, "shell": sdui.ShellFor(l.ID, ff), "choice": choice, "editable": choice != nil})
+	writeJSON(w, 200, map[string]any{"experience": l.ID, "shell": sdui.ShellFor(l.ID, ff), "choice": choice, "editable": choice != nil && choice.Required == nil})
 }
 
 // PUT /api/sdui/experience {layout}: the profile's layout for this device (device=, else the
@@ -134,6 +159,10 @@ func (s *Server) handleSDUIExperiencePut(w http.ResponseWriter, r *http.Request)
 	}
 	cfg, ff, ok := s.experienceRequest(w, r)
 	if !ok {
+		return
+	}
+	if req, _ := s.requiredLook(r, cfg); req != nil {
+		writeErr(w, 403, "The look is required"+byAdmin(req)+".")
 		return
 	}
 	var body struct {
@@ -265,14 +294,72 @@ func (s *Server) handleSDUIConfigExperiencePut(w http.ResponseWriter, r *http.Re
 		writeErr(w, 400, `expected {"default": {"<form factor>": "<layout>"}, "allowed": ["<layout>", ...]}`)
 		return
 	}
-	s.sduiMutate(w, r, "layouts saved", func(c *sduistore.Config) error {
-		if len(pol.Default) == 0 && len(pol.Allowed) == 0 {
+	for _, id := range pol.Required.RequiredThemes() {
+		if s.Themes == nil || !s.Themes.Has(id) {
+			writeErr(w, 400, "required theme "+id+" isn't installed")
+			return
+		}
+	}
+	by := adminName(r)
+	s.sduiMutate(w, r, "experiences saved", func(c *sduistore.Config) error {
+		pol.Required = stampRequired(pol.Required, requiredOf(c), by, time.Now().UTC())
+		if len(pol.Default) == 0 && len(pol.Allowed) == 0 && pol.Required == nil && !pol.ProfileThemes {
 			c.Experiences = nil
 		} else {
 			c.Experiences = &pol
 		}
 		return nil
 	})
+}
+
+func requiredOf(c *sduistore.Config) *sdui.RequiredPolicy {
+	if c.Experiences == nil {
+		return nil
+	}
+	return c.Experiences.Required
+}
+
+// stampRequired says who required what and when: a requirement that is the same as the one
+// in force keeps its stamp; a new or changed one is stamped by the administrator saving it.
+func stampRequired(next, cur *sdui.RequiredPolicy, by string, now time.Time) *sdui.RequiredPolicy {
+	if next == nil || (next.Everyone == nil && next.Kids == nil && len(next.Profiles) == 0) {
+		return nil
+	}
+	stamp := func(n, c *sdui.Requirement) *sdui.Requirement {
+		if n == nil || (n.Experience == "" && n.Theme == "") {
+			return nil
+		}
+		out := *n
+		if c != nil && c.Experience == n.Experience && c.Theme == n.Theme {
+			out.By, out.At = c.By, c.At
+		} else {
+			out.By, out.At = by, now
+		}
+		return &out
+	}
+	var ce, ck *sdui.Requirement
+	var cp map[string]sdui.Requirement
+	if cur != nil {
+		ce, ck, cp = cur.Everyone, cur.Kids, cur.Profiles
+	}
+	out := &sdui.RequiredPolicy{Everyone: stamp(next.Everyone, ce), Kids: stamp(next.Kids, ck)}
+	for id, r := range next.Profiles {
+		var c *sdui.Requirement
+		if old, ok := cp[id]; ok {
+			c = &old
+		}
+		r := r
+		if st := stamp(&r, c); st != nil {
+			if out.Profiles == nil {
+				out.Profiles = map[string]sdui.Requirement{}
+			}
+			out.Profiles[id] = *st
+		}
+	}
+	if out.Everyone == nil && out.Kids == nil && len(out.Profiles) == 0 {
+		return nil
+	}
+	return out
 }
 
 func containsString(list []string, s string) bool {
@@ -282,4 +369,12 @@ func containsString(list []string, s string) bool {
 		}
 	}
 	return false
+}
+
+// byAdmin is " by <name>" for a requirement that says who set it.
+func byAdmin(p *sdui.RequiredPart) string {
+	if p == nil || p.By == "" {
+		return ""
+	}
+	return " by " + p.By
 }

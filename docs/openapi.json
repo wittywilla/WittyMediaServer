@@ -10479,6 +10479,222 @@
           "id": {
             "type": "string"
           },
+          "look": {
+            "properties": {
+              "density": {
+                "type": "string"
+              },
+              "effects": {
+                "properties": {
+                  "bevel": {
+                    "type": "string"
+                  },
+                  "glass": {
+                    "type": "string"
+                  },
+                  "gloss": {
+                    "type": "string"
+                  },
+                  "glow": {
+                    "type": "string"
+                  },
+                  "texture": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "bevel",
+                  "glass",
+                  "gloss",
+                  "glow",
+                  "texture"
+                ],
+                "type": "object"
+              },
+              "experience": {
+                "type": "string"
+              },
+              "finish": {
+                "properties": {
+                  "glass": {
+                    "anyOf": [
+                      {
+                        "properties": {
+                          "edge": {
+                            "type": "string"
+                          },
+                          "hi": {
+                            "type": "string"
+                          },
+                          "lo": {
+                            "type": "string"
+                          },
+                          "shadow": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "edge",
+                          "hi",
+                          "lo",
+                          "shadow"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "gloss": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  }
+                },
+                "type": "object"
+              },
+              "motion": {
+                "properties": {
+                  "focus": {
+                    "type": "string"
+                  },
+                  "overshoot": {
+                    "type": "boolean"
+                  },
+                  "screen": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "focus",
+                  "screen"
+                ],
+                "type": "object"
+              },
+              "profileThemes": {
+                "type": "boolean"
+              },
+              "requiredExperience": {
+                "anyOf": [
+                  {
+                    "properties": {
+                      "at": {
+                        "properties": {},
+                        "type": "object"
+                      },
+                      "by": {
+                        "type": "string"
+                      },
+                      "scope": {
+                        "type": "string"
+                      },
+                      "value": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "scope",
+                      "value"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "requiredTheme": {
+                "anyOf": [
+                  {
+                    "properties": {
+                      "at": {
+                        "properties": {},
+                        "type": "object"
+                      },
+                      "by": {
+                        "type": "string"
+                      },
+                      "scope": {
+                        "type": "string"
+                      },
+                      "value": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "scope",
+                      "value"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "scene": {
+                "properties": {
+                  "layers": {
+                    "items": {
+                      "additionalProperties": {},
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "layers"
+                ],
+                "type": "object"
+              },
+              "shape": {
+                "properties": {
+                  "cardSet": {
+                    "type": "string"
+                  },
+                  "radiusMultiple": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "cardSet",
+                  "radiusMultiple"
+                ],
+                "type": "object"
+              },
+              "theme": {
+                "type": "string"
+              },
+              "tvTheme": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "density",
+              "effects",
+              "experience",
+              "finish",
+              "motion",
+              "profileThemes",
+              "scene",
+              "shape",
+              "theme",
+              "tvTheme",
+              "type"
+            ],
+            "type": "object"
+          },
           "modules": {
             "additionalProperties": {
               "$ref": "#/components/schemas/ThemeModule"
@@ -10683,6 +10899,7 @@
           "elevation",
           "etag",
           "id",
+          "look",
           "modules",
           "overrides",
           "personal",
@@ -11962,6 +12179,92 @@
                       "type": "string"
                     },
                     "type": "object"
+                  },
+                  "profileThemes": {
+                    "type": "boolean"
+                  },
+                  "required": {
+                    "anyOf": [
+                      {
+                        "properties": {
+                          "everyone": {
+                            "anyOf": [
+                              {
+                                "properties": {
+                                  "at": {
+                                    "properties": {},
+                                    "type": "object"
+                                  },
+                                  "by": {
+                                    "type": "string"
+                                  },
+                                  "experience": {
+                                    "type": "string"
+                                  },
+                                  "theme": {
+                                    "type": "string"
+                                  }
+                                },
+                                "type": "object"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "kids": {
+                            "anyOf": [
+                              {
+                                "properties": {
+                                  "at": {
+                                    "properties": {},
+                                    "type": "object"
+                                  },
+                                  "by": {
+                                    "type": "string"
+                                  },
+                                  "experience": {
+                                    "type": "string"
+                                  },
+                                  "theme": {
+                                    "type": "string"
+                                  }
+                                },
+                                "type": "object"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "profiles": {
+                            "additionalProperties": {
+                              "properties": {
+                                "at": {
+                                  "properties": {},
+                                  "type": "object"
+                                },
+                                "by": {
+                                  "type": "string"
+                                },
+                                "experience": {
+                                  "type": "string"
+                                },
+                                "theme": {
+                                  "type": "string"
+                                }
+                              },
+                              "type": "object"
+                            },
+                            "type": "object"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 },
                 "type": "object"
@@ -12612,6 +12915,35 @@
                     "type": [
                       "array",
                       "null"
+                    ]
+                  },
+                  "required": {
+                    "anyOf": [
+                      {
+                        "properties": {
+                          "at": {
+                            "properties": {},
+                            "type": "object"
+                          },
+                          "by": {
+                            "type": "string"
+                          },
+                          "scope": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "scope",
+                          "value"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "type": "null"
+                      }
                     ]
                   },
                   "url": {
@@ -14933,6 +15265,57 @@
           "description": {
             "type": "string"
           },
+          "finish": {
+            "anyOf": [
+              {
+                "properties": {
+                  "glass": {
+                    "anyOf": [
+                      {
+                        "properties": {
+                          "edge": {
+                            "type": "string"
+                          },
+                          "hi": {
+                            "type": "string"
+                          },
+                          "lo": {
+                            "type": "string"
+                          },
+                          "shadow": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "edge",
+                          "hi",
+                          "lo",
+                          "shadow"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "gloss": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  }
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "id": {
             "type": "string"
           },
@@ -14961,6 +15344,31 @@
           },
           "radius": {
             "type": "number"
+          },
+          "scene": {
+            "anyOf": [
+              {
+                "properties": {
+                  "layers": {
+                    "items": {
+                      "additionalProperties": {},
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "layers"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "scheme": {
             "type": "string"

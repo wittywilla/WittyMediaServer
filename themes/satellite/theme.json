@@ -1,0 +1,125 @@
+{
+  "id": "satellite",
+  "name": "Satellite",
+  "description": "Silver bars on dark teal with orange highlights.",
+  "author": "WittyMediaServer",
+  "version": "2",
+  "scheme": "dark",
+  "builtin": true,
+  "preview": {
+    "bg": "#0c1418",
+    "surface": "#1f3540",
+    "text": "#eef3f6",
+    "accent": "#ff8a1f"
+  },
+  "scene": {
+    "layers": [
+      {
+        "type": "gradient",
+        "angle": 180,
+        "stops": [
+          {
+            "at": 0,
+            "color": "#10303a"
+          },
+          {
+            "at": 100,
+            "color": "#0c1418"
+          }
+        ]
+      }
+    ]
+  },
+  "colors": {
+    "bg": "#0c1418",
+    "bg2": "#16262e",
+    "bg3": "#1f3540",
+    "bg4": "#344852",
+    "fg": "#eef3f6",
+    "fg2": "#aebdc6",
+    "fg3": "#8e9ca3",
+    "accent": "#ff8a1f",
+    "accentHover": "#e0791b",
+    "accentFg": "#1a0e00",
+    "accentText": "#ffa84d",
+    "brandAccent": "#ffa84d",
+    "danger": "#ff6b78",
+    "ok": "#3ad29f",
+    "warn": "#e8ae3f",
+    "border": "#eef3f61a",
+    "borderStrong": "#eef3f633",
+    "controlLine": "#4c829d",
+    "hover": "#eef3f612",
+    "pressed": "#eef3f61f",
+    "accentSoft": "#ff8a1f24",
+    "accentLine": "#ff8a1f73",
+    "okSoft": "#3ad29f21",
+    "warnSoft": "#e8ae3f21",
+    "dangerSoft": "#ff6b781c",
+    "focus": "#ffa84d",
+    "onImage": "#ffffff",
+    "scrim": "#000000ad",
+    "overlay": "#00000099"
+  },
+  "radius": 10,
+  "shape": {
+    "radius": 10,
+    "card": 10,
+    "button": 10,
+    "field": 10,
+    "row": 10,
+    "thumb": 6,
+    "chip": 999,
+    "badge": 4,
+    "image": 14,
+    "sheet": 14,
+    "dialog": 20,
+    "pill": 999,
+    "focusWidth": 2,
+    "focusOffset": 2,
+    "focusScale": 1
+  },
+  "type": {
+    "display": [
+      "Inter",
+      "Segoe UI Variable Text",
+      "system-ui",
+      "-apple-system",
+      "Segoe UI",
+      "Roboto",
+      "Helvetica",
+      "Arial",
+      "sans-serif"
+    ],
+    "body": [
+      "Inter",
+      "Segoe UI Variable Text",
+      "system-ui",
+      "-apple-system",
+      "Segoe UI",
+      "Roboto",
+      "Helvetica",
+      "Arial",
+      "sans-serif"
+    ],
+    "mono": [
+      "ui-monospace",
+      "Cascadia Mono",
+      "SFMono-Regular",
+      "Menlo",
+      "Consolas",
+      "monospace"
+    ],
+    "weights": {
+      "body": 400,
+      "medium": 500,
+      "strong": 600,
+      "heading": 650
+    }
+  },
+  "tv": {
+    "ringColor": "#eef3f6",
+    "heroScrim": 0.74,
+    "tvText": "#f0f4f7"
+  }
+}

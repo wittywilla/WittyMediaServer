@@ -278,14 +278,16 @@ func ShellFor(id, formFactor string) *Shell {
 	return sh
 }
 
-// ChooseExperience picks the layout for a request: the profile's choice for the device, then
+// ChooseExperience picks the experience for a request: what is required of the profile, then the profile's choice for the device, then
 // the administrator's for the form factor, then the default; a choice the administrator
 // doesn't allow, or that isn't a layout, is passed over.
-func ChooseExperience(personal, server string, allowed []string, formFactor string) string {
+func ChooseExperience(required, personal, server string, allowed []string, formFactor string) string {
 	ok := func(id string) bool {
 		return id != "" && ExperienceByID(id) != nil && (len(allowed) == 0 || slices.Contains(allowed, id))
 	}
 	switch {
+	case required != "" && ExperienceByID(required) != nil:
+		return required
 	case ok(personal):
 		return personal
 	case ok(server):
@@ -473,6 +475,11 @@ type ExperiencePolicy struct {
 	Default map[string]string `json:"default,omitempty"`
 	// Allowed are the layouts profiles may choose; empty: every one.
 	Allowed []string `json:"allowed,omitempty"`
+	// Required is a look (an experience, a theme or both) the administrator requires of
+	// everyone, of kids profiles or of named profiles (look.go).
+	Required *RequiredPolicy `json:"required,omitempty"`
+	// ProfileThemes lets profiles import themes of their own.
+	ProfileThemes bool `json:"profileThemes,omitempty"`
 }
 
 // ValidateExperiencePolicy checks the administrator's layouts.
@@ -502,6 +509,7 @@ func ValidateExperiencePolicy(p *ExperiencePolicy) []Issue {
 		}
 		seen[id] = true
 	}
+	v.issues = append(v.issues, ValidateRequired(p.Required)...)
 	return v.issues
 }
 

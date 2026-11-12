@@ -1,0 +1,125 @@
+{
+  "id": "teletext",
+  "name": "Teletext",
+  "description": "Eight bright colours on black and blue, as teletext has.",
+  "author": "WittyMediaServer",
+  "version": "2",
+  "scheme": "dark",
+  "builtin": true,
+  "preview": {
+    "bg": "#000000",
+    "surface": "#00005a",
+    "text": "#ffffff",
+    "accent": "#ffff00"
+  },
+  "scene": {
+    "layers": [
+      {
+        "type": "gradient",
+        "angle": 180,
+        "stops": [
+          {
+            "at": 0,
+            "color": "#000000"
+          },
+          {
+            "at": 100,
+            "color": "#000000"
+          }
+        ]
+      }
+    ]
+  },
+  "colors": {
+    "bg": "#000000",
+    "bg2": "#0000a8",
+    "bg3": "#00005a",
+    "bg4": "#1a1a6a",
+    "fg": "#ffffff",
+    "fg2": "#00ffff",
+    "fg3": "#00c7c7",
+    "accent": "#ffff00",
+    "accentHover": "#e0e000",
+    "accentFg": "#000000",
+    "accentText": "#ffff00",
+    "brandAccent": "#ffff00",
+    "danger": "#ff6b78",
+    "ok": "#3ad29f",
+    "warn": "#e8ae3f",
+    "border": "#ffffff1a",
+    "borderStrong": "#ffffff33",
+    "controlLine": "#6262ff",
+    "hover": "#ffffff12",
+    "pressed": "#ffffff1f",
+    "accentSoft": "#ffff0024",
+    "accentLine": "#ffff0073",
+    "okSoft": "#3ad29f21",
+    "warnSoft": "#e8ae3f21",
+    "dangerSoft": "#ff6b781c",
+    "focus": "#ffff00",
+    "onImage": "#ffffff",
+    "scrim": "#000000ad",
+    "overlay": "#00000099"
+  },
+  "radius": 2,
+  "shape": {
+    "radius": 2,
+    "card": 2,
+    "button": 2,
+    "field": 2,
+    "row": 2,
+    "thumb": 1.2,
+    "chip": 999,
+    "badge": 0.8,
+    "image": 2.8,
+    "sheet": 2.8,
+    "dialog": 4,
+    "pill": 999,
+    "focusWidth": 2,
+    "focusOffset": 2,
+    "focusScale": 1
+  },
+  "type": {
+    "display": [
+      "Inter",
+      "Segoe UI Variable Text",
+      "system-ui",
+      "-apple-system",
+      "Segoe UI",
+      "Roboto",
+      "Helvetica",
+      "Arial",
+      "sans-serif"
+    ],
+    "body": [
+      "Inter",
+      "Segoe UI Variable Text",
+      "system-ui",
+      "-apple-system",
+      "Segoe UI",
+      "Roboto",
+      "Helvetica",
+      "Arial",
+      "sans-serif"
+    ],
+    "mono": [
+      "ui-monospace",
+      "Cascadia Mono",
+      "SFMono-Regular",
+      "Menlo",
+      "Consolas",
+      "monospace"
+    ],
+    "weights": {
+      "body": 400,
+      "medium": 500,
+      "strong": 600,
+      "heading": 650
+    }
+  },
+  "tv": {
+    "ringColor": "#ffffff",
+    "heroScrim": 0.74,
+    "tvText": "#ffffff"
+  }
+}

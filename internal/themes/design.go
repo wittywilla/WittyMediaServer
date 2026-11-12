@@ -6,6 +6,7 @@ package themes
 import (
 	"encoding/json"
 	"sort"
+	"strings"
 	"sync"
 
 	builtin "github.com/wittywilla/wittymediaserver/themes"
@@ -165,4 +166,63 @@ func (m *Manager) TVColorsOf(id string) *TVColors {
 		return meta.TV
 	}
 	return nil
+}
+
+// Finish is how a theme finishes surfaces and controls: the glass recipe (a top and a bottom
+// fill, an edge and a shadow colour) and the gloss recipe (five stops for a glossy button:
+// highlight, upper body, lower body, glow, edge). Renderers draw them at the level the
+// experience's effects say.
+type Finish struct {
+	Glass *Glass   `json:"glass,omitempty"`
+	Gloss []string `json:"gloss,omitempty"`
+}
+
+// Glass is one glass recipe.
+type Glass struct {
+	Hi     string `json:"hi"`
+	Lo     string `json:"lo"`
+	Edge   string `json:"edge"`
+	Shadow string `json:"shadow"`
+}
+
+// Scene is the background behind the page and under the menu: ordered layers drawn bottom
+// to top, positions in percent of the window. Kinds: gradient (angle in degrees, stops with
+// at in percent), radial (a soft light at x, y, w by h), shape (a circle or a hill at x, y
+// of size) and image (a file of the theme). On modest hardware and with reduced
+// transparency or motion a renderer draws only the first layer.
+type Scene struct {
+	Layers []map[string]any `json:"layers"`
+}
+
+// LookOf is a theme's finish and scene, worked out from its colours when it has none of its
+// own.
+func (m *Manager) LookOf(id string) (Finish, Scene) {
+	meta := m.meta(strings.ToLower(id))
+	var f Finish
+	var sc Scene
+	if meta != nil {
+		if meta.Finish != nil {
+			f = *meta.Finish
+		}
+		if meta.Scene != nil {
+			sc = *meta.Scene
+		}
+		c := meta.Colors
+		dark := meta.Scheme != "light"
+		if f.Glass == nil {
+			g := Glass{Hi: "rgba(255,255,255,.9)", Lo: "rgba(255,255,255,.5)", Edge: "#ffffff", Shadow: "rgba(20,120,200,.25)"}
+			if dark {
+				g = Glass{Hi: "rgba(255,255,255,.22)", Lo: "rgba(255,255,255,.08)", Edge: "rgba(255,255,255,.38)", Shadow: "rgba(0,0,0,.4)"}
+			}
+			f.Glass = &g
+		}
+		if len(f.Gloss) == 0 && c["accent"] != "" {
+			a := c["accent"]
+			f.Gloss = []string{mixRGB(a, "#FFFFFF", .5), a, mixRGB(a, "#000000", .15), mixRGB(a, "#FFFFFF", .2), mixRGB(a, "#000000", .3)}
+		}
+		if len(sc.Layers) == 0 && c["bg"] != "" {
+			sc.Layers = []map[string]any{{"type": "gradient", "angle": 180, "stops": []map[string]any{{"at": 0, "color": c["bg"]}, {"at": 100, "color": c["bg2"]}}}}
+		}
+	}
+	return f, sc
 }

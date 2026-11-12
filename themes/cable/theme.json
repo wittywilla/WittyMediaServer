@@ -1,0 +1,125 @@
+{
+  "id": "cable",
+  "name": "Cable blue",
+  "description": "A cable guide: deep blue, white text and yellow highlights.",
+  "author": "WittyMediaServer",
+  "version": "2",
+  "scheme": "dark",
+  "builtin": true,
+  "preview": {
+    "bg": "#08125e",
+    "surface": "#0f2bb8",
+    "text": "#ffffff",
+    "accent": "#ffd84a"
+  },
+  "scene": {
+    "layers": [
+      {
+        "type": "gradient",
+        "angle": 180,
+        "stops": [
+          {
+            "at": 0,
+            "color": "#0b1a8a"
+          },
+          {
+            "at": 100,
+            "color": "#08125e"
+          }
+        ]
+      }
+    ]
+  },
+  "colors": {
+    "bg": "#08125e",
+    "bg2": "#0b1a8a",
+    "bg3": "#0f2bb8",
+    "bg4": "#2740bf",
+    "fg": "#ffffff",
+    "fg2": "#d6defc",
+    "fg3": "#a9b1d9",
+    "accent": "#ffd84a",
+    "accentHover": "#e0be41",
+    "accentFg": "#08125e",
+    "accentText": "#ffd84a",
+    "brandAccent": "#ffd84a",
+    "danger": "#ff8a94",
+    "ok": "#3ad29f",
+    "warn": "#e8ae3f",
+    "border": "#ffffff1a",
+    "borderStrong": "#ffffff33",
+    "controlLine": "#6d83f3",
+    "hover": "#ffffff12",
+    "pressed": "#ffffff1f",
+    "accentSoft": "#ffd84a24",
+    "accentLine": "#ffd84a73",
+    "okSoft": "#3ad29f21",
+    "warnSoft": "#e8ae3f21",
+    "dangerSoft": "#ff8a941c",
+    "focus": "#ffd84a",
+    "onImage": "#ffffff",
+    "scrim": "#000000ad",
+    "overlay": "#00000099"
+  },
+  "radius": 2,
+  "shape": {
+    "radius": 2,
+    "card": 2,
+    "button": 2,
+    "field": 2,
+    "row": 2,
+    "thumb": 1.2,
+    "chip": 999,
+    "badge": 0.8,
+    "image": 2.8,
+    "sheet": 2.8,
+    "dialog": 4,
+    "pill": 999,
+    "focusWidth": 2,
+    "focusOffset": 2,
+    "focusScale": 1
+  },
+  "type": {
+    "display": [
+      "Inter",
+      "Segoe UI Variable Text",
+      "system-ui",
+      "-apple-system",
+      "Segoe UI",
+      "Roboto",
+      "Helvetica",
+      "Arial",
+      "sans-serif"
+    ],
+    "body": [
+      "Inter",
+      "Segoe UI Variable Text",
+      "system-ui",
+      "-apple-system",
+      "Segoe UI",
+      "Roboto",
+      "Helvetica",
+      "Arial",
+      "sans-serif"
+    ],
+    "mono": [
+      "ui-monospace",
+      "Cascadia Mono",
+      "SFMono-Regular",
+      "Menlo",
+      "Consolas",
+      "monospace"
+    ],
+    "weights": {
+      "body": 400,
+      "medium": 500,
+      "strong": 600,
+      "heading": 650
+    }
+  },
+  "tv": {
+    "ringColor": "#ffffff",
+    "heroScrim": 0.74,
+    "tvText": "#ffffff"
+  }
+}

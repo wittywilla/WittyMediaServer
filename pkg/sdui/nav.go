@@ -33,7 +33,7 @@ type NavDocument struct {
 	// one in force marked, for an app's "Layout" setting. Left out for a profile kept
 	// from rearranging.
 	Experiences *ExperienceChoice `json:"experiences,omitempty"`
-	ETag    string        `json:"etag,omitempty"`
+	ETag        string            `json:"etag,omitempty"`
 }
 
 // ExperienceChoice is what a profile may choose for its layout on a device.
@@ -43,6 +43,9 @@ type ExperienceChoice struct {
 	Chosen  string       `json:"chosen,omitempty"`
 	Options []EnumOption `json:"options"`
 	URL     string       `json:"url"`
+	// Required says an administrator requires the experience: who, when and for whom. The
+	// person can't choose another; Options is then empty.
+	Required *RequiredPart `json:"required,omitempty"`
 }
 
 // NavEntry is one rendered entry of the main menu.

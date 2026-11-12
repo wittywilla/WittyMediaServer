@@ -1,0 +1,210 @@
+{
+  "id": "aeroSunset",
+  "name": "Aero Sunset",
+  "description": "Golden-hour glass, orange to pink to violet.",
+  "author": "WittyMediaServer",
+  "version": "2",
+  "scheme": "light",
+  "builtin": true,
+  "preview": {
+    "bg": "#ffd9b8",
+    "surface": "#ffe9d6",
+    "text": "#4a1b3a",
+    "accent": "#b23800"
+  },
+  "scene": {
+    "layers": [
+      {
+        "type": "gradient",
+        "angle": 180,
+        "stops": [
+          {
+            "at": 0,
+            "color": "#ffd9a8"
+          },
+          {
+            "at": 50,
+            "color": "#ffa06a"
+          },
+          {
+            "at": 100,
+            "color": "#d46bb8"
+          }
+        ]
+      },
+      {
+        "type": "radial",
+        "x": 78,
+        "y": 8,
+        "w": 60,
+        "h": 45,
+        "color": "rgba(255,255,255,.35)",
+        "fade": 100
+      },
+      {
+        "type": "shape",
+        "kind": "circle",
+        "x": 12,
+        "y": 22,
+        "size": 9,
+        "color": "rgba(255,255,255,0.3)"
+      },
+      {
+        "type": "shape",
+        "kind": "circle",
+        "x": 30,
+        "y": 12,
+        "size": 5,
+        "color": "rgba(255,255,255,0.22)"
+      },
+      {
+        "type": "shape",
+        "kind": "circle",
+        "x": 62,
+        "y": 30,
+        "size": 7,
+        "color": "rgba(255,255,255,0.26)"
+      },
+      {
+        "type": "shape",
+        "kind": "circle",
+        "x": 86,
+        "y": 18,
+        "size": 11,
+        "color": "rgba(255,255,255,0.2)"
+      },
+      {
+        "type": "shape",
+        "kind": "circle",
+        "x": 48,
+        "y": 55,
+        "size": 6,
+        "color": "rgba(255,255,255,0.18)"
+      },
+      {
+        "type": "shape",
+        "kind": "hill",
+        "x": 50,
+        "y": 100,
+        "size": 70,
+        "stops": [
+          {
+            "at": 0,
+            "color": "#e88acb"
+          },
+          {
+            "at": 100,
+            "color": "#a54fb8"
+          }
+        ]
+      }
+    ]
+  },
+  "finish": {
+    "glass": {
+      "hi": "rgba(255,255,255,.9)",
+      "lo": "rgba(255,255,255,.5)",
+      "edge": "#ffffff",
+      "shadow": "rgba(160,60,120,.25)"
+    },
+    "gloss": [
+      "#ffc08a",
+      "#ff7a3d",
+      "#e0561a",
+      "#ff9a5a",
+      "#b3410f"
+    ]
+  },
+  "colors": {
+    "bg": "#ffd9b8",
+    "bg2": "#fff6ee",
+    "bg3": "#ffe9d6",
+    "bg4": "#edd4c6",
+    "fg": "#4a1b3a",
+    "fg2": "#7a3d62",
+    "fg3": "#865468",
+    "accent": "#b23800",
+    "accentHover": "#e06b36",
+    "accentFg": "#ffffff",
+    "accentText": "#ae3f0f",
+    "brandAccent": "#ae3f0f",
+    "danger": "#b8222f",
+    "ok": "#116b45",
+    "warn": "#8a5300",
+    "border": "#4a1b3a1a",
+    "borderStrong": "#4a1b3a33",
+    "controlLine": "#99757d",
+    "hover": "#4a1b3a12",
+    "pressed": "#4a1b3a1f",
+    "accentSoft": "#b2380024",
+    "accentLine": "#b2380073",
+    "okSoft": "#116b4521",
+    "warnSoft": "#8a530021",
+    "dangerSoft": "#b8222f1c",
+    "focus": "#ae3f0f",
+    "onImage": "#ffffff",
+    "scrim": "#000000ad",
+    "overlay": "#14182073"
+  },
+  "radius": 10,
+  "shape": {
+    "radius": 10,
+    "card": 10,
+    "button": 10,
+    "field": 10,
+    "row": 10,
+    "thumb": 6,
+    "chip": 999,
+    "badge": 4,
+    "image": 14,
+    "sheet": 14,
+    "dialog": 20,
+    "pill": 999,
+    "focusWidth": 2,
+    "focusOffset": 2,
+    "focusScale": 1
+  },
+  "type": {
+    "display": [
+      "Inter",
+      "Segoe UI Variable Text",
+      "system-ui",
+      "-apple-system",
+      "Segoe UI",
+      "Roboto",
+      "Helvetica",
+      "Arial",
+      "sans-serif"
+    ],
+    "body": [
+      "Inter",
+      "Segoe UI Variable Text",
+      "system-ui",
+      "-apple-system",
+      "Segoe UI",
+      "Roboto",
+      "Helvetica",
+      "Arial",
+      "sans-serif"
+    ],
+    "mono": [
+      "ui-monospace",
+      "Cascadia Mono",
+      "SFMono-Regular",
+      "Menlo",
+      "Consolas",
+      "monospace"
+    ],
+    "weights": {
+      "body": 400,
+      "medium": 500,
+      "strong": 600,
+      "heading": 650
+    }
+  },
+  "tv": {
+    "ringColor": "#4a1b3a",
+    "heroScrim": 0.78,
+    "tvText": "#431834"
+  }
+}

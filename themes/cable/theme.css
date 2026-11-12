@@ -1,0 +1,54 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
+/*
+ * Cable blue - a WittyMediaServer theme.
+ * A cable guide: deep blue, white text and yellow highlights.
+ *
+ * Every variable below is explained in docs/THEMES.md. Copy this file into
+ * your own theme ZIP as a starting point.
+ */
+:root {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --bg: #08125e;          /* page background */
+  --bg-2: #0b1a8a;        /* side menu, panels, dialogs */
+  --bg-3: #0f2bb8;        /* fields, cards, hovered rows */
+  --bg-4: #2740bf;        /* pressed buttons, scrollbars */
+  --bg-rgb: 8 18 94;   /* --bg as "R G B", for see-through shades */
+  --border: color-mix(in srgb, var(--fg) 10%, transparent); /* hairlines between panels */
+  --control-line: #6d83f3;      /* outlines of fields and switches: 3:1 on every surface */
+
+  /* Text */
+  --fg: #ffffff;          /* main text */
+  --fg-2: #d6defc;        /* secondary text */
+  --fg-3: #a9b1d9;        /* hints, captions */
+
+  /* Accent: buttons, highlights, progress bars, selected items */
+  --accent: #ffd84a;
+  --accent-2: #e0be41;      /* hovered or pressed accent */
+  --accent-fg: #08125e;     /* text on the accent */
+  --accent-text: #ffd84a;   /* the accent as text: links, highlighted words */
+  --accent-rgb: 255 216 74;
+  --brand-accent: var(--accent-text); /* the highlighted word of the name in the corner */
+
+  /* Status */
+  --danger: #ff8a94;
+  --ok: #3ad29f;
+  --warn: #e8ae3f;
+
+  /* Shape and depth */
+  --radius: 2px;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  --card-shadow: 0 10px 24px rgba(0, 0, 0, 0.5);
+  --overlay: rgba(0, 0, 0, 0.6);
+
+  /* Layout and type */
+  --sidebar: 240px;
+  --font: "Inter", "Segoe UI Variable Text", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  /* Ten feet away (docs/THEMES.md "The TV pass"): the focus ring, the scrim's strength behind hero text, body text a step stronger */
+  --tv-ring-color: #ffffff;
+  --tv-text: #ffffff;
+  --hero-scrim: .74;
+}

@@ -121,3 +121,15 @@ html[data-fx-bevel="full"] .btn:not(.ghost) { box-shadow: inset 0 1px 0 color-mi
 .rail-drawer-ic svg { inline-size: 1.5rem; block-size: 1.5rem; }
 @media (min-width: 901px) { .app.nav-rail .rail-drawer ~ .main { margin-inline-start: var(--rail-drawer, 360px); } }
 @media (prefers-reduced-motion: reduce) { .app.nav-rail .sidebar { transition: none; } }
+
+/* ---- the layout editor ---- */
+.shell-regions { display: grid; gap: var(--space-s); margin-top: var(--space-m); }
+.shell-region { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-m); padding: var(--space-s) var(--space-m); border: 1px solid var(--elev-1-line); border-radius: var(--r-md); background: var(--elev-1-fill); }
+.shell-region > b { flex: 1 1 8rem; }
+.shell-region label { display: flex; align-items: center; gap: var(--space-s); color: var(--fg-2); font-size: var(--text-sm); }
+
+/* ---- regions placed by the layout editor (data-r-* on the frame) ---- */
+.app[data-r-search="hidden"] .topbar .search, .app[data-r-brand="hidden"] :is(.sidebar .brand, .top-brand), .app[data-r-hero="hidden"] .hero, .app[data-r-dock="hidden"] .dock, .app[data-r-legend="hidden"] .key-legend, .app[data-r-clock="hidden"] .clock { display: none; }
+@media (min-width: 901px) { .app[data-r-nav="end"] { flex-direction: row-reverse; } .app[data-r-nav="end"] .sidebar { border-inline-end: 0; border-inline-start: 1px solid var(--border); } }
+.app[data-r-search="floating"] .topbar .search { position: fixed; inset-block-end: var(--space-l); inset-inline-end: var(--space-l); z-index: var(--z-popover); max-inline-size: 22rem; box-shadow: var(--elev-3-shadow); }
+.app[data-r-brand="center"] .topbar .top-brand { margin-inline: auto; }

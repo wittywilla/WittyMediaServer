@@ -353,7 +353,7 @@ type sduiRender struct {
 // "service" is a streaming service: the library's "platform" filter, which a page's query
 // can't call "platform", the device's.
 var sduiFilterParams = []string{"tab", "sort", "desc", "genre", "decade", "year", "content", "resolution", "watched", "studio", "network", "tag", "service",
-	"series", "kind", "disc", "minRating", "audio", "subtitle", "format", "edition", "search", "seed"}
+	"series", "kind", "disc", "minRating", "audio", "subtitle", "format", "reading", "edition", "search", "seed"}
 
 // sduiPrepare works out which page a request is for and who is asking, on what. name is a
 // kind of page (home, library, detail, search, ...), chosen among the pages of that kind by

@@ -568,6 +568,7 @@ func (rv *sduiResolver) playRoom() []sdui.Item {
 		if v, ok := rv.s.gameSvc.seats.view(t.Session, true); ok && v.Code != "" {
 			room.Tagline = v.Code
 			room.Route = "/games?join=" + v.Code
+			room.Link = room.Route
 		}
 		if t.Open {
 			room.Badges = append(room.Badges, "Open")

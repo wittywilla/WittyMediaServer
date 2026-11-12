@@ -5,11 +5,14 @@ package server
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 	"github.com/wittywilla/wittymediaserver/pkg/sdui"
 )
 
@@ -37,6 +40,8 @@ func (rv *sduiResolver) pageSource(req sdui.SourceRequest) (sdui.SourceResult, b
 		all = rv.activityRows(req.Source.Str("part"))
 	case "notices":
 		all, err = rv.noticeRows()
+	case "formats":
+		all = rv.formatRows(req.Source.Str("item"))
 	case "newList":
 		all = []sdui.Item{{ID: "name", Kind: "view", Title: "Name", Icon: "plus", Control: &sdui.Control{Type: sdui.ControlField, Name: "name", Placeholder: "A name for the list", MaxLength: 60, Input: "text"}}}
 	default:
@@ -178,6 +183,35 @@ func (rv *sduiResolver) listsFor(id string) ([]sdui.Item, error) {
 			Control: &sdui.Control{Type: sdui.ControlSwitch, Value: on}})
 	}
 	return out, nil
+}
+
+// formatRows: the formats one book is in: the file that opens, then the others beside it with the same name (a
+// book downloaded as CBZ, EPUB and PDF is one book; the best is used). Only the format and the size are
+// said, never a path. Nothing for a title that isn't a book the profile may see.
+func (rv *sduiResolver) formatRows(id string) []sdui.Item {
+	it, _ := rv.subjectItem(id)
+	if it == nil || it.Kind != "book" {
+		return nil
+	}
+	stem := strings.TrimSuffix(filepath.Base(it.Path), filepath.Ext(it.Path))
+	out := []sdui.Item{{ID: "own", Kind: "view", Title: strings.ToUpper(it.Container), Subtitle: strings.Join(nonEmpty("Opens in the reader", sizeWords(it.SizeBytes)), " \u00b7 "), Icon: "book", Badges: []string{"Opens"}}}
+	entries, err := os.ReadDir(filepath.Dir(it.Path))
+	if err != nil {
+		return out
+	}
+	for _, e := range entries {
+		name := e.Name()
+		if e.IsDir() || name == filepath.Base(it.Path) || strings.TrimSuffix(name, filepath.Ext(name)) != stem || mediatypes.Find(name, mediatypes.Comic, mediatypes.Book) == nil {
+			continue
+		}
+		info, err := e.Info()
+		if err != nil {
+			continue
+		}
+		ext := strings.ToUpper(strings.TrimPrefix(filepath.Ext(name), "."))
+		out = append(out, sdui.Item{ID: "f-" + strings.ToLower(ext), Kind: "view", Title: ext, Subtitle: sizeWords(info.Size()), Icon: "book"})
+	}
+	return out
 }
 
 // devices: where this profile is signed in, the one in hand first, the others with when each was last

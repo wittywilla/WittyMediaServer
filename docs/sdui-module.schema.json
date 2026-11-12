@@ -487,6 +487,9 @@
           },
           "type": "array"
         },
+        "slot": {
+          "type": "string"
+        },
         "title": {
           "type": "string"
         },

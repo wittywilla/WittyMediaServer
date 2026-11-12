@@ -877,7 +877,17 @@ func playOnlineCases() []kase {
 	phone.Modules = []string{"wittyplay"}
 	phone.Scopes = tv.Scopes
 	phone.Vars = map[string]string{"item": "7", "name": "1731.png"}
+	// A QR code (revision 8): from a source item's link (the host's join route), and from a fixed address.
+	qrData := Data{Sources: []CannedSource{src(map[string]any{"type": "wittyplay.room"}, []sdui.Item{
+		{ID: "s-star", Kind: "view", Title: "Star Tide", Link: "/games?join=TIDE-4821", Scope: "wittyplay"}}, 0)}}
+	qrPg := page("room-open", "custom",
+		sec("join", "QR", map[string]any{"label": "Scan to join", "size": "l"}, sdui.Source{"type": "wittyplay.room", "limit": 1}),
+		sec("site", "QR", map[string]any{"value": "https://example.org/wittymedia", "label": "The website"}, nil),
+		sec("bad", "QR", map[string]any{"value": "not a link"}, nil))
+	qrPg.Scope = "wittyplay"
 	return []kase{
+		{id: "qr-room-phone", title: "QR codes from an item's link and from an address, on a phone", in: Input{Page: qrPg, Request: phone, Data: qrData, ModuleUI: []sdui.ModuleUI{ui}},
+			checks: []string{"a QR section with a source takes the first item's link as its value and its title as the caption", "a route says isRoute so the client makes it absolute with the server's address", "a value that is neither a route nor an https address leaves the section out"}},
 		{id: "forms-wittyplay-privacy-phone", title: "A Form of switches, a list of switches that save at once, and a command button that asks first, on a phone", in: Input{Page: formPg, Request: phone, Data: formData, ModuleUI: []sdui.ModuleUI{ui}},
 			checks: []string{"the Form is one node whose action is its command, holding the list of rows", "a row's control is in its props (type, name, value, disabled and why); the Form's controls carry no action of their own", "a switch row's action is the command with the new list already in its params", "a button that runs a command carries its item, params with the page's variables filled in, and confirm"}},
 		{id: "wittyplay-online-focus-tv", title: "WittyPlay Online home: focused tile grows, detail panel, regions, on a television", in: Input{Page: focusPg, Request: tv, Data: focusData, ModuleUI: []sdui.ModuleUI{ui}},

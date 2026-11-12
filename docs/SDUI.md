@@ -511,6 +511,14 @@ A page opened about something is a `custom` page that takes `item`, `name` and `
 
 **The key legend.** Every page rendered for a television or a headset ends with a Dock holding the key legend (Select, Back, Options), whether or not the page has controls to put in a Dock: a client draws no legend of its own and never needs to put the Dock back.
 
+### QR codes
+
+The `QR` component draws a QR code for a link, for a phone to scan (a room's join link, a pairing address). Its `value` is a route of the app (`/games?join=TIDE-4821`) or an https address; with a source, the first item's `link` is the value and its title the caption (a source whose item has no link gives nothing, and the section is left out: a room's link is the host's alone). The node's props are `value`, `isRoute`, `label` and `size` (s, m, l): when `isRoute` is true the client makes the address absolute with the server's own base address before it encodes it. Clients draw it black on white with a quiet zone of four modules and error correction M whatever the theme, because a scanner needs the contrast; the node takes no focus, and on a desktop the address is shown under it as selectable text.
+
+### Books and search filters
+
+A books library's Books tab has a FilterBar with two more filters: `reading` (Reading, Finished, Not started: what the profile has started, finished or never opened) and `format` (Books, PDFs, Comics), and the grid's `books` source follows them (`filterable`). A book's page can list its formats with the `formats` source (the format that opens and the other files of the same name beside it, with sizes; never paths). On the search page a FilterBar with no target (`narrow`) offers Year and Score; every filterable search section follows them, so a film, show or anime library's results are narrowed by the library's own filters.
+
 ### The conformance kit
 
 [`pkg/sdui/conformance/fixtures`](../pkg/sdui/conformance/fixtures/index.json) holds
@@ -1300,7 +1308,7 @@ what the server does.
 <!-- catalogue:begin (written by go test ./pkg/sdui -update; edit pkg/sdui/catalog_data.go) -->
 ### Components
 
-34 components. Every renderer draws all of them.
+35 components. Every renderer draws all of them.
 
 | Component | Label | Category | Takes a source | Focus |
 |---|---|---|---|---|
@@ -1337,6 +1345,7 @@ what the server does.
 | [`List`](#list) | List | media | optional | group |
 | [`ListItem`](#listitem) | List row | media | none | item |
 | [`Form`](#form) | Form | structure | none | group |
+| [`QR`](#qr) | QR code | text | optional | none |
 | [`NativeView`](#nativeview) | The app's own view | structure | none | stop |
 
 #### Page
@@ -1830,8 +1839,8 @@ Focus: its children take focus, and it is their group. Accessibility: Role: list
 
 | Property | Type | Default | What it is |
 |---|---|---|---|
-| `target` (required) | section |  | Filters. The Grid this bar filters. Its source must be filterable. |
-| `fields` | enumList: genre, decade, year, content, resolution, watched, studio, network, tag, service | `genre, decade, watched` | Filters. Which filters are offered, in order. One with no choices in this library is left out. |
+| `target` | section |  | Filters. The Grid this bar filters. Its source must be filterable. Left out (the search page), the bar filters the page's search by the page's own parameters: every filterable source on it follows them. |
+| `fields` | enumList: genre, decade, year, content, resolution, watched, studio, network, tag, service, reading, format, minRating | `genre, decade, watched` | Filters. Which filters are offered, in order. One with no choices in this library is left out. |
 | `sorts` | enumList: title, added, newest, oldest, rating, shuffle | `title, added, newest, rating` | Sort by. The orders offered; the first is the default. |
 | `showCount` | bool | `true` | Show how many. The number of titles found. |
 
@@ -2556,6 +2565,45 @@ Focus: its children take focus, and it is their group. Accessibility: Role: form
 }
 ```
 
+#### QR
+
+*QR code.* A QR code for a link, for a phone to scan: a room's join link, a pairing address. The value is a route of the app (/games?join=CODE) or an https address; with a source, the first item's link is the value and its title the label (a source with no link gives nothing, and the section is left out).
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `value` | text, at most 500 |  | Value. A route of the app or an https address. Left out when the section has a source. |
+| `label` | text, at most 80 |  | Caption. Under the code. |
+| `size` | enum: s, m, l | `m` | Size |
+
+How it is drawn:
+
+- **Television.** A square of 280 points (s 160, m 240, l 320) with its caption under it.
+- **Phone.** A square of 140 points (s), 200 (m) or 280 (l), centred.
+- **Desktop and web.** As a phone, with the address under the caption as selectable text.
+
+States:
+
+- **empty.** Left out.
+- **error.** Left out.
+- **loading.** A grey square.
+
+Focus: takes none. Accessibility: Role: img, labelled "<caption>: QR code for <address>". Not focusable.
+
+```json
+{
+  "id": "join",
+  "component": "QR",
+  "props": {
+    "label": "Scan to join"
+  },
+  "source": {
+    "type": "collection",
+    "collection": 1,
+    "limit": 1
+  }
+}
+```
+
 #### NativeView
 
 *The app's own view.* A place where the app draws one of its own rich views: the TV guide's grid, the photo timeline. An app that has the view says so; any other is sent the sections inside instead.
@@ -2740,6 +2788,7 @@ Shape tokens:
 | `List` | border `border`, focus `focus`, secondaryText `fg2`, text `fg` | title `heading` | focus `focusWidth`, focusGap `focusOffset` |
 | `ListItem` | accent `accent`, danger `danger`, fieldOutline `controlLine`, focus `focus`, hintText `fg3`, hover `hover`, icon `fg2`, onAccent `accentFg`, pressed `pressed`, progress `accent`, progressTrack `controlLine`, secondaryText `fg2`, selected `accentSoft`, selectedText `fg`, surface `bg3`, text `fg` | subtitle `caption`, title `body`, trailing `caption`, why `caption` | art `thumb`, corner `row`, field `field`, focus `focusWidth`, focusGap `focusOffset`, icon `row` |
 | `Form` | accent `accent`, accentHover `accentHover`, border `border`, danger `danger`, dangerTint `dangerSoft`, focus `focus`, hover `hover`, onAccent `accentFg`, outline `borderStrong`, pressed `pressed`, secondaryText `fg2`, surface `bg3`, text `fg` | button `body`, error `caption`, title `heading` | button `button`, focus `focusWidth`, focusGap `focusOffset` |
+| `QR` | secondaryText `fg2`, surface `bg2`, text `fg` | text `caption` |  |
 | `NativeView` | background `bg`, focus `focus`, outline `borderStrong`, secondaryText `fg2`, surface `bg2`, text `fg` | text `body` | corner `image`, focus `focusWidth`, focusGap `focusOffset` |
 
 | Card style | Colours | Text | Shape |
@@ -2816,6 +2865,7 @@ Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 48
 | [`liveNow`](#livenow) | On TV now | live | channel | channel |  | any |
 | [`recordings`](#recordings) | Recordings | live | recording | landscape |  | any |
 | [`books`](#books) | Books | library | book | book | yes | any |
+| [`formats`](#formats) | A book's formats | context | view | square |  | detail, custom |
 | [`albums`](#albums) | Albums | music | album | album | yes | any |
 | [`artists`](#artists) | Artists | music | artist | person | yes | any |
 | [`continuePlaying`](#continueplaying) | Continue playing | personal | game | game |  | any |
@@ -3168,11 +3218,26 @@ Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 48
 | `author` | string, at most 300 |  | Author. Only this author's books. $each in a row repeated over bookAuthors; ~none for books with no author. |
 | `format` | enum: all, epub, pdf, cbz | `all` | Format. Only what one reader opens. |
 | `sort` | enum: title, author, added, year, series |  | Order. Left empty: the series' order with a series, title otherwise. |
+| `reading` | enum: reading, finished, unread |  | Reading state. What the profile has started and not finished, finished, or never opened. |
+| `filterable` | bool | `false` | Follows the page's filters. The page's FilterBar (format, reading state, order) narrows and sorts this source. |
 | `desc` | bool | `false` | Reverse the order |
 | `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
 
 ```json
 {"type":"books","library":"$library","series":"$each"}
+```
+
+#### formats
+
+*A book's formats.* The formats one book is in: the one that opens, then the other files with the same name beside it, each with its size. A book kept in more than one format shows them all; the others are not opened by the server (the best is used: comics first, then EPUB, then PDF). Only formats and sizes, never paths.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `item` (required) | ref |  | Book. $item on a book's page. |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"formats","item":"$item"}
 ```
 
 #### albums
@@ -3384,6 +3449,7 @@ Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 48
 | `query` (required) | ref |  | Search. $query on the search page. |
 | `library` | library |  | Library. One library; leave empty for every library the profile can open. $library on a library page, $each in a row repeated over libraries. |
 | `in` | enum: library, channels, people | `library` | Look in |
+| `filterable` | bool | `false` | Follows the page's filters. The page's FilterBar (year, score) narrows what a library search finds. |
 | `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
 
 ```json
@@ -3423,16 +3489,16 @@ Every source also takes `map`: `{"subtitle": "studio"}` puts another field of th
 |---|---|---|---|---|---|
 | `home` | The first page of the app. | `/` | tab |  |  |
 | `libraries` | Every library the profile can open. | `/libraries` | tab |  |  |
-| `library` | One library's own page. | `/library/{library}` | library, tab, sort, desc, genre, decade, year, content, resolution, watched, studio, network, tag, service, series, kind, disc, minRating, audio, subtitle, format, edition, search, seed | $library | library, libraryKind |
+| `library` | One library's own page. | `/library/{library}` | library, tab, sort, desc, genre, decade, year, content, resolution, watched, studio, network, tag, service, series, kind, disc, minRating, audio, subtitle, format, reading, edition, search, seed | $library | library, libraryKind |
 | `detail` | The page of one film, show, episode, album, artist, book, game or collection, or of a person in the cast or crew. | `/item/{item}` | item, show, season, collection, library, artist, album, person, tab | $item, $show, $season, $collection, $library, $artist, $album, $person | mediaKind, library, libraryKind |
-| `search` | Search across everything. | `/search` | q, tab | $query |  |
+| `search` | Search across everything. | `/search` | q, tab, year, minRating | $query |  |
 | `livetv` | Channels and the guide. | `/tv` | tab |  |  |
 | `music` | Every music library together. | `/music` | tab |  |  |
 | `photos` | Every photo library together. | `/photos` | tab |  |  |
 | `books` | Books, comics and audiobooks together: the book libraries and the audiobook libraries. | `/books` | tab |  |  |
 | `games` | Every games library together. | `/games` | tab |  |  |
 | `collections` | The profile's collections and lists. | `/collections` | tab |  |  |
-| `custom` | Any other page: a family film night, a page for one collection. It may be opened about something: a title (item), a studio, network or category (name, with of), which its sources read as $item, $name and $of. | `/page/{id}` | tab, item, name, of | $item, $name, $of |  |
+| `custom` | Any other page: a family film night, a page for one collection. It may be opened about something: a title (item), a studio, network or category (name, with of), which its sources read as $item, $name and $of; a module page in a Settings slot of people.profile is opened about a profile (item), read as $item. | `/page/{id}` | tab, item, name, of | $item, $name, $of |  |
 
 ### Routes
 
@@ -3518,6 +3584,7 @@ A menu entry (`type: native`) may open the screens marked *menu*; the others nee
 | `wittyplay.state.load` | WittyPlay: loads params.slot into the game being played (item: its session). | `POST /api/play/{item}/action` with `{"type":"load","slot":"{slot}"}`; `slot` (int, required) |
 | `wittyplay.state.delete` | WittyPlay: deletes the profile's save in params.slot of the game (item: the game's ID, not a session). | `DELETE /api/games/{item}/saves/{slot}`; `slot` (int, required) |
 | `wittyplay.controller.assign` | WittyPlay Online: the host puts the profile params.user in seat params.seat of the game being played (item: its session); a held seat is swapped. | `PUT /api/play/{item}/seats/{user}` with `{"seat":"{seat}"}`; `user` (string, required); `seat` (int, required) |
+| `wittyplay.room.leave` | WittyPlay Online: frees seat params.user in the game being played (item: its session). The host may free anyone's seat; anyone may leave their own. | `DELETE /api/play/{item}/seats/{user}`; `user` (string, required) |
 | `wittyplay.room.close` | WittyPlay Online: closes the game being played (item: its session) to friends. The host's own seat and anyone already in stay. | `POST /api/play/{item}/room` with `{"open":false}` |
 | `wittyplay.online.set` | WittyPlay Online: what this profile lets friends know. params.sharePlaying (friends see the game) and params.appearOnline (appears online at all). | `PUT /api/games/online/me` with `{"sharePlaying":"{sharePlaying}","appearOnline":"{appearOnline}"}`; `sharePlaying` (bool, required); `appearOnline` (bool, required) |
 | `wittyplay.online.share` | WittyPlay Online: params.value, whether friends see the game this profile plays. | `PUT /api/games/online/me` with `{"sharePlaying":"{value}"}`; `value` (bool, required) |
@@ -3615,7 +3682,7 @@ The menu's style on each form factor, the theme and WittyTV look each wears by d
 | `library-audiobooks` | library | audiobooks | `listening` (Shelf of continueWatching), `all` (Grid of albums) |
 | `library-podcasts` | library | podcasts | `listening` (Shelf of continueWatching), `all` (Grid of albums) |
 | `library-photos` | library | photos | `timeline` (NativeView), `all` (Grid of recentlyAdded) |
-| `library-books` | library | books | `reading` (Shelf of continueWatching), `shelf` (Tabs), `books` (Tab), `all` (Grid of books), `series` (Tab), `in-series` (Shelf of books, per bookSerie), `authors` (Tab), `by-author` (Shelf of books, per bookAuthor) |
+| `library-books` | library | books | `reading` (Shelf of continueWatching), `shelf` (Tabs), `books` (Tab), `filters` (FilterBar), `all` (Grid of books), `series` (Tab), `in-series` (Shelf of books, per bookSerie), `authors` (Tab), `by-author` (Shelf of books, per bookAuthor) |
 | `library-games` | library | games | `playing` (Shelf of continuePlaying), `all` (Grid of recentlyAdded) |
 | `detail` | detail | every detail page | `header` (DetailHeader), `credits` (Credits of credits), `similar` (Shelf of similar) |
 | `detail-show` | detail | show | `header` (DetailHeader), `credits` (Credits of credits), `episodes` (SeasonList of episodes), `similar` (Shelf of similar) |
@@ -3624,7 +3691,7 @@ The menu's style on each form factor, the theme and WittyTV look each wears by d
 | `detail-artist` | detail | artist | `header` (DetailHeader), `albums` (Shelf of albums), `tracks` (TrackList of tracks) |
 | `detail-collection` | detail | collection | `header` (DetailHeader), `all` (Grid of collection) |
 | `detail-person` | detail | person | `header` (DetailHeader), `titles` (Shelf of filmography, per personPart) |
-| `search` | search | every search page | `q` (SearchBox), `idle` (Text), `scope` (Tabs), `all` (Tab), `found` (Shelf of search, per librarie), `people` (Shelf of search), `channels` (Shelf of search), `movies` (Tab), `found-movies` (Shelf of search, per librarie), `shows` (Tab), `found-shows` (Shelf of search, per librarie), `music` (Tab), `found-music` (Shelf of search, per librarie), `people-tab` (Tab), `people-only` (Shelf of search), `tv` (Tab), `channels-only` (Shelf of search) |
+| `search` | search | every search page | `q` (SearchBox), `idle` (Text), `narrow` (FilterBar), `scope` (Tabs), `all` (Tab), `found` (Shelf of search, per librarie), `people` (Shelf of search), `channels` (Shelf of search), `movies` (Tab), `found-movies` (Shelf of search, per librarie), `shows` (Tab), `found-shows` (Shelf of search, per librarie), `music` (Tab), `found-music` (Shelf of search, per librarie), `people-tab` (Tab), `people-only` (Shelf of search), `tv` (Tab), `channels-only` (Shelf of search) |
 | `livetv` | livetv | every livetv page | `guide` (NativeView), `favourites` (Shelf of liveNow), `recordings` (Shelf of recordings), `channels` (Grid of liveNow) |
 | `music` | music | every music page | `listening` (Shelf of continueWatching), `played` (Shelf of albums, per librarie), `added` (Shelf of albums, per librarie), `artists` (Shelf of artists, per librarie) |
 | `photos` | photos | every photos page | `recent` (Shelf of recentlyAdded, per librarie) |

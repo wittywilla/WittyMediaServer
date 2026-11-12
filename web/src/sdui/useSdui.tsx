@@ -5,11 +5,11 @@ import { useLocation } from 'react-router-dom'
 import { getToken, serverBase } from '../api'
 import { useApp } from '../state'
 import { getTvMode, useTvMode } from '../tvmode/mode'
-import { onPreview, serverFeatures } from './client'
+import { onPreview, prefetchPage, serverFeatures } from './client'
 import { describe, deviceKey, type Device } from './device'
 import { resolve } from './routes'
 
-const SduiPage = lazy(() => import('./SduiPage'))
+const SduiPage = lazy(() => SduiPageCode())
 
 function facts() {
   const mq = (q: string) => { try { return window.matchMedia(q).matches } catch { return false } }
@@ -78,12 +78,17 @@ export function usePreviewChanges() {
 
 // SduiRoute: the page at this address. Server-driven where the server has such pages and
 // the address is one of theirs; otherwise the page the app has always had (`fallback`).
+let pageCode = false
+const SduiPageCode = () => import('./SduiPage').then((m) => { pageCode = true; return m })
+
 export function SduiRoute({ fallback, loading }: { fallback: ReactNode; loading?: ReactNode }) {
   const features = useFeatures()
+  const device = useDevice()
   const loc = useLocation()
   usePreviewChanges()
   if (features === null) return <>{loading ?? <div className="loading-box" role="status" aria-label="Loading"><div className="spinner" /></div>}</>
   const at = resolve(loc.pathname, loc.search)
   if (!features.has('sdui-pages') || !at || at.kind !== 'page' || !at.page) return <>{fallback}</>
+  if (!pageCode) prefetchPage(at.page, device, at.params)
   return <Suspense fallback={loading ?? <div className="loading-box" role="status" aria-label="Loading"><div className="spinner" /></div>}><SduiPage page={at.page} params={at.params} fallback={fallback} /></Suspense>
 }

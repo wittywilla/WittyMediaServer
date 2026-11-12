@@ -13,6 +13,7 @@ import { useApp } from '../state'
 import { SduiRoute } from '../sdui/useSdui'
 import { focusFirst, OWN_BACK, typing } from '../tv'
 import Libraries from './Libraries'
+import More from './More'
 import { backStep, stepTab, tabPath, tabRootOf, tabsFromMenu, tvKey, TV_TABS, type TabId, type TvTab } from './nav'
 import Search from './Search'
 import You from './You'
@@ -165,6 +166,7 @@ export default function TvFrame({ pages }: { pages: ReactNode }) {
             <Route path="/games/game/:id" element={<GameScreen />} />
             <Route path="/search" element={<SduiRoute fallback={<Search />} />} />
             <Route path="/you" element={<You />} />
+            <Route path="/more" element={<More />} />
             <Route path="*" element={pages} />
           </Routes>
         </Suspense>

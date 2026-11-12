@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { countWords } from '../libraryNouns'
 import { Link, useNavigate } from 'react-router-dom'
 import { HelpLink } from '../components/HelpLink'
 import { profileName, albumsOnce, api, ApiError, backdropUrl, discName, fitWidth, fmtRuntime, isDisc, posterUrl, sized, type Home, type Hub, type Show, type Item, inMainMenus } from '../api'
@@ -214,15 +215,9 @@ function HubRow({ hub }: { hub: Hub }) {
 }
 
 // LibraryTiles: a way into every library, with an Add tile for admins.
-const NOUNS: Record<string, [string, string]> = {
-  movies: ['title', 'titles'], discs: ['disc', 'discs'], videos: ['video', 'videos'], commercials: ['commercial', 'commercials'], shows: ['episode', 'episodes'], anime: ['episode', 'episodes'],
-  games: ['game', 'games'], music: ['track', 'tracks'], audiobooks: ['file', 'files'], podcasts: ['episode', 'episodes'], books: ['book', 'books'],
-  photos: ['picture', 'pictures'], shorts: ['video', 'videos'], channels: ['video', 'videos'], musicvideos: ['video', 'videos'], radio: ['station', 'stations'],
-}
 // countOf: how much a library holds, in its own words ("1,204 titles"), or that it's being scanned.
 export function countOf(l: { type: string; itemCount: number; scanning?: boolean }) {
-  const [one, many] = NOUNS[l.type] || ['item', 'items']
-  return l.scanning ? 'Scanning…' : `${l.itemCount.toLocaleString()} ${l.itemCount === 1 ? one : many}`
+  return l.scanning ? 'Scanning…' : countWords(l.type, l.itemCount)
 }
 function LibraryTiles() {
   const { libraries: allLibraries, user } = useApp()

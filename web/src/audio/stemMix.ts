@@ -118,5 +118,24 @@ export function startPlan(songAt: number, ctxNow: number, rate = 1) {
   return { when: ctxNow + LEAD, offset: Math.max(0, songAt + LEAD * rate) }
 }
 
-// The most sound held decoded at once: longer songs keep the normal track.
+// The most sound held decoded at once. A longer song, or one played faster or slower, has
+// its parts streamed instead (streamedParts), each by a player of its own kept with the song.
 export const MAX_SECONDS = 15 * 60
+
+// Whether the parts are streamed rather than decoded whole: decoded parts start on the same
+// sample but can't change speed without changing key, and hold the whole song in memory.
+export function streamedParts(rate: number, durationSec: number): boolean {
+  return rate !== 1 || (Number.isFinite(durationSec) && durationSec > MAX_SECONDS)
+}
+
+// Keeping a streamed part with the song: the song is `ahead` seconds in front of the part
+// (behind when negative). Close enough is left alone; a little way off is caught up by
+// playing up to 5% faster or slower, which no one hears; further off is a jump.
+export const STREAM_CLOSE = 0.03
+export const STREAM_JUMP = 0.3
+export function streamStep(rate: number, ahead: number): { seek: boolean; rate: number } {
+  if (!Number.isFinite(ahead) || Math.abs(ahead) > STREAM_JUMP) return { seek: true, rate }
+  if (Math.abs(ahead) <= STREAM_CLOSE) return { seek: false, rate }
+  const nudge = Math.max(-0.05, Math.min(0.05, ahead * 0.5))
+  return { seek: false, rate: rate * (1 + nudge) }
+}

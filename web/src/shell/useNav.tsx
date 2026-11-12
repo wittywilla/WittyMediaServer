@@ -45,10 +45,15 @@ const listeners = new Set<() => void>()
 const tell = () => listeners.forEach((l) => l())
 const subscribe = (l: () => void) => { listeners.add(l); return () => { listeners.delete(l) } }
 let loading = ''
+let loadedAt = 0
 
+// load: the menu asked for once however many parts of the shell want it (the side menu,
+// the top bar, a phone's bar all mount together); again when something changed, or when
+// it was last asked for more than a minute ago.
 function load(device: Device, key: string, again = false) {
-  if (loading === key && !again) return
+  if (loading === key && !again && Date.now() - loadedAt < 60_000) return
   loading = key
+  loadedAt = Date.now()
   fetchNavigation(device).then(async (nav) => {
     if (loading !== key) return
     kept = { key, nav, personal: kept.key === key ? kept.personal : null }
@@ -73,7 +78,7 @@ function useServerNav(): { on: boolean; nav: Navigation | null; personal: Person
   useEffect(() => {
     if (!key) return
     if (kept.key !== key) { const had = keptNavigation(device); kept = { key, nav: had, personal: null }; tell() }
-    load(device, key, true)
+    load(device, key)
     const again = () => load(device, key, true)
     const offChange = onChange(again), offPreview = onPreview(again)
     return () => { offChange(); offPreview() }

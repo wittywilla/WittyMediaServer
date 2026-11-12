@@ -9,6 +9,9 @@
 import { Fragment, lazy, memo, Suspense, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { mediaUrl } from '../../api'
+import { Placeholder } from '../../components/common'
+import { countWords } from '../../libraryNouns'
+import { useApp } from '../../state'
 import { useAudio } from '../../audio/player'
 import { IconCheck, IconDown, IconLeft, IconPause, IconPlay, IconRight, IconSearch, IconStar } from '../../icons'
 import { tokenVar } from '../../themeOverrides'
@@ -50,11 +53,13 @@ const clampClass = (lines: number | undefined) => (lines && lines > 0 ? ' sdui-c
 // The picture a card or block asks for: the address as the server wrote it.
 const picture = (image: Props | undefined) => (image && typeof image.url === 'string' && image.url.startsWith('/api/') ? mediaUrl(image.url) : '')
 
-function Picture({ image, kind, icon, contain }: { image: Props | undefined; kind?: unknown; icon?: unknown; contain?: boolean }) {
+// Without a picture, a titled thing gets the colour of its own the app's other pages give
+// it (Placeholder); a thing with an icon, or no title, gets that icon on a plain ground.
+function Picture({ image, kind, icon, contain, title }: { image: Props | undefined; kind?: unknown; icon?: unknown; contain?: boolean; title?: string }) {
   const src = picture(image)
   const [failed, setFailed] = useState(false)
   useEffect(() => setFailed(false), [src])
-  const fill = <span className="sdui-noart" aria-hidden="true">{icon ? sduiIcon(icon) : kindIcon(kind)}</span>
+  const fill = title && !icon ? <Placeholder title={title} /> : <span className="sdui-noart" aria-hidden="true">{icon ? sduiIcon(icon) : kindIcon(kind)}</span>
   if (!src || failed) return fill
   return <>{fill}<img className={contain ? 'sdui-contain' : undefined} src={src} alt="" loading="lazy" decoding="async" onError={() => setFailed(true)} /></>
 }
@@ -86,6 +91,7 @@ const SHAPE_CLASS: Record<string, string> = { poster: '', landscape: ' wide', sq
 
 export const CardView = memo(function CardView({ view, showTitles }: { view: View; showTitles: boolean }) {
   const p = view.node.props || {}
+  const { libraries } = useApp()
   const style = str(p, 'style'), shape = str(p, 'shape') || 'poster'
   const shows = view.shows || []
   const text = view.text || {}
@@ -95,10 +101,12 @@ export const CardView = memo(function CardView({ view, showTitles }: { view: Vie
   if (style === 'tile') {
     // A library, a collection: its name over the picture, or beside an icon on a plain tile.
     const image = obj(p, 'image')
+    const libId = /^lib(\d+)$/.exec(str(p, 'itemId'))?.[1]
+    const libraryType = libId ? libraries.find((l) => String(l.id) === libId)?.type : undefined
     return (
       <Pressable view={view} className={'lib-tile sdui-tile' + (image ? ' pictured' : '')}>
         {image ? <span className="sdui-tile-art"><Picture image={image} kind={p.kind} /></span> : <span className="lib-tile-ic" aria-hidden="true">{sduiIcon(p.icon) || kindIcon(p.kind)}</span>}
-        <span className="lib-tile-txt"><b>{text.title}</b>{text.count !== undefined && <span className="muted">{Number(text.count).toLocaleString()} {text.count === '1' ? 'item' : 'items'}</span>}</span>
+        <span className="lib-tile-txt"><b>{text.title}</b>{text.count !== undefined && <span className="muted">{countWords(libraryType, Number(text.count))}</span>}</span>
       </Pressable>
     )
   }
@@ -108,7 +116,7 @@ export const CardView = memo(function CardView({ view, showTitles }: { view: Vie
     <Pressable view={view} className={'card' + (SHAPE_CLASS[shape] ?? '') + (style === 'game' ? ' sdui-game' : '') + (channel ? ' sdui-channel' : '')} title={str(p, 'title') || undefined}>
       {text.rank && <span className="sdui-rank" aria-hidden="true">{text.rank}</span>}
       <div className="poster">
-        <Picture image={obj(p, 'image')} kind={p.kind} icon={p.icon} contain={channel || str(obj(p, 'image'), 'kind') === 'logo'} />
+        <Picture image={obj(p, 'image')} kind={p.kind} icon={p.icon} contain={channel || str(obj(p, 'image'), 'kind') === 'logo'} title={channel ? undefined : text.title || str(p, 'title') || undefined} />
         {shows.includes('badges') && <span className="sdui-badges">{(text.badges || '').split(' ').map((b) => <span key={b} className="badge">{b}</span>)}</span>}
         {shows.includes('unwatched') && <span className="badge count" aria-hidden="true">{text.unwatched}</span>}
         {shows.includes('watched') && <span className="badge seen" aria-hidden="true"><IconCheck /></span>}
@@ -390,7 +398,7 @@ function DetailHeaderView({ view }: { view: View }) {
   return (
     <div className={'sdui-detail layout-' + layout} role="region" aria-label={view.label} style={scopeStyle(view.node)} data-sdui-stop={view.id} data-sdui-focus={view.node.focus ? view.id : undefined} data-sdui-section={view.id}>
       {layout !== 'compact' && (
-        <div className="detail-hero">
+        <div className={'detail-hero' + (backdrop ? '' : ' bare')}>
           <div className="bg" style={backdrop ? { backgroundImage: `url("${backdrop}")` } : undefined} />
           <div className="shade" />
         </div>

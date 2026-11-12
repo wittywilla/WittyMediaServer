@@ -159,7 +159,7 @@ With Demucs, for example, `demucs -n htdemucs "01 Song.flac"` writes `separated/
 
 An administrator can also upload a part for a song, which is kept in the server's own folder and never beside your music. Apps see what a song has in `GET /api/v1/media/{id}/stems`, and get the list with the playback answer when a song starts. See [the client API](CLIENT-API.md#media-extras).
 
-The web app, the desktop app and the phone and TV apps all play them, with the **Vocals** slider [above](#karaoke-versions-made-for-you). With only an instrumental beside the song, the slider blends it against the song itself.
+The web app, the desktop app and the phone and TV apps all play them, with the **Vocals** slider [above](#karaoke-versions-made-for-you). With only an instrumental beside the song, the slider blends it against the song itself. In the web and desktop apps the parts play at any speed and for a song of any length: at normal speed and up to 15 minutes they are loaded whole and start on the same sample; faster, slower or longer, each part is streamed like the song and kept within a few hundredths of a second of it.
 
 ### Making stems
 

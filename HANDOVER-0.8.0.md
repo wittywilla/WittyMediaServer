@@ -96,13 +96,17 @@ Not done or not verified:
 
 ## Session 6: WittyTV More info
 
-Landed: `GET /api/v1/tv/{key}/programme?start=<unix>` (feature `tv-programme-info`) backs the Design 2 More info screen (`Exp.dc.html` `tvinfo`). It answers `channel`, `programme` (the facts line: rating, year, SxEy, length, genres, scores, CC/AD/audio/HD, languages, country, studio), `actions` (watch, record, remind/reminded, fromStart, watchLater/inList, open), `library` (item or show the profile may see), `credits` (S12's `library.Credits`: the library's, else the guide's XMLTV credits with `source: "guide"` and no person id), `trailers` (the library item's extras), `schedule` (other airings in 14 days on channels the profile may watch) and `ids` (imdb, tmdb). The XMLTV reader keeps credits, star ratings, languages, subtitles, sound, picture, new/repeat and ids (WittyTV migration 8, `epg_programmes.extra`, bounded; programme pictures are not kept). The SDUI `credits` source takes `programme: "<key>@<start>"`. Docs: CLIENT-API "More info", CHANNELS "For developers".
+Landed: `GET /api/v1/tv/{key}/programme?start=<unix>` (feature `tv-programme-info`) backs the Design 2 More info screen (`Exp.dc.html` `tvinfo`). It answers `channel`, `programme` (the facts line: rating, year, SxEy, length, genres, scores, CC/AD/audio/HD, languages, country, studio), `actions` (watch, record, remind/reminded, fromStart, watchLater/inList, open), `library` (item or show the profile may see), `credits` (S12's `library.Credits`: the library's, else the guide's XMLTV credits with `source: "guide"` and no person id), `trailers` (the library item's extras), `schedule` (other airings in 14 days on channels the profile may watch) and `ids` (imdb, tmdb). The XMLTV reader keeps credits, star ratings, languages, subtitles, sound, picture, new/repeat and ids (WittyTV migration 8, `epg_programmes.extra`, bounded; programme pictures are not kept). The SDUI `credits` source takes `programme: "<key>@<start>"`. Recordings (`GET`/`POST /recordings`) carry `channelKey` and `programme`, and SDUI `recordings` cards `channel` and `programme` (feature `tv-recording-refs`), only where the profile may watch that channel. Merged at ce29d9f8. Docs: CLIENT-API "More info", CHANNELS "For developers". Server tests: XMLTV details and bounds, `ProgrammeAt`/`Airings`, the route (guide-only, library match, refusals), the credits source, recording refs.
 
-Not done or not verified:
-- Clients (W2–W4) haven't wired the screen to it yet.
-- Where to watch: the route gives `ids`; streaming providers come from the existing `GET /discover/where-to-watch?tmdb=&type=`, which the app calls itself. The guide's ids are only there when the XMLTV source gives them.
-- Library titles are matched by name (shows) or name and year (films); a guide title spelt differently from the library's falls back to the guide's own data.
-- No SDUI page or conformance fixture uses the `programme` parameter yet: the More info screen has no catalogue page (W1's call).
+Release gate status (WittyTV guide and More info): the server side is done and tested. The screens are the client agents' (W6 reported Apple More info from the guide, the channel dock, the mini guide and recordings); S6 has not seen them running.
+
+Issue candidates (not filed; for the owner to approve):
+- More info "Advisory" line in the More section has no data source; critics' scores appear only when the guide or library gives one.
+- Library matching is by title (shows) and title plus year (films): a guide title spelt differently from the library's falls back to the guide's own data. A match on the guide's IMDb/TMDB ids against the library's would be firmer.
+- Where to watch on More info relies on the guide giving a TMDB id; guides without ids show only "On this server".
+- No SDUI catalogue page or conformance fixture uses the `credits` source's `programme` parameter (revision 8 is final; the screens are native).
+- More info for a recording older than the guide's kept past (about a month) answers 404.
+- The guide grid itself was last profiled on Apple TV and Android TV before Design 2's Dock redesign; a fresh pass at 10,000 channels on each TV client is worth doing.
 
 ## W13 (web design finish)
 

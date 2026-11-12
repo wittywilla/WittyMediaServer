@@ -1450,6 +1450,118 @@
         ],
         "type": "object"
       },
+      "Credit": {
+        "properties": {
+          "character": {
+            "description": "Cast and guests: who they played, several joined by \" / \".",
+            "type": "string"
+          },
+          "department": {
+            "description": "Crew: a department's key (directing, writing, production, camera, lighting, editing, sound, art, costume, effects, crew).",
+            "type": "string"
+          },
+          "episodes": {
+            "description": "A season's guests: in how many of its episodes.",
+            "type": "integer"
+          },
+          "hasPhoto": {
+            "description": "The picture is at /people/{personId}/photo.",
+            "type": "boolean"
+          },
+          "job": {
+            "description": "Crew: what they did, several joined by \", \".",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "order": {
+            "description": "Billing order, 0 first.",
+            "type": "integer"
+          },
+          "personId": {
+            "type": "integer"
+          },
+          "role": {
+            "enum": [
+              "cast",
+              "guest",
+              "crew"
+            ],
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "nfo",
+              "tmdb",
+              "tvdb",
+              "tvmaze",
+              "tags"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "hasPhoto",
+          "name",
+          "order",
+          "personId",
+          "role",
+          "source"
+        ],
+        "type": "object"
+      },
+      "Credits": {
+        "properties": {
+          "cast": {
+            "items": {
+              "$ref": "#/components/schemas/Credit"
+            },
+            "type": "array"
+          },
+          "crew": {
+            "description": "Departments in order, each only when someone is in it.",
+            "items": {
+              "$ref": "#/components/schemas/CrewGroup"
+            },
+            "type": "array"
+          },
+          "guests": {
+            "items": {
+              "$ref": "#/components/schemas/Credit"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "cast",
+          "crew",
+          "guests"
+        ],
+        "type": "object"
+      },
+      "CrewGroup": {
+        "properties": {
+          "department": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "people": {
+            "items": {
+              "$ref": "#/components/schemas/Credit"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "department",
+          "label",
+          "people"
+        ],
+        "type": "object"
+      },
       "CustomConsoleView": {
         "properties": {
           "aliases": {
@@ -3577,6 +3689,94 @@
         },
         "required": [
           "error"
+        ],
+        "type": "object"
+      },
+      "FilmGroup": {
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "titles": {
+            "items": {
+              "$ref": "#/components/schemas/FilmTitle"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "titles"
+        ],
+        "type": "object"
+      },
+      "FilmTitle": {
+        "properties": {
+          "character": {
+            "type": "string"
+          },
+          "episodes": {
+            "description": "A show: how many episodes they are in or worked on.",
+            "type": "integer"
+          },
+          "guest": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "job": {
+            "type": "string"
+          },
+          "target": {
+            "enum": [
+              "item",
+              "show"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "year": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "target",
+          "title"
+        ],
+        "type": "object"
+      },
+      "FoundPerson": {
+        "properties": {
+          "hasPhoto": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "knownFor": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "titles": {
+            "description": "How many of their titles the account may see.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "hasPhoto",
+          "id",
+          "name",
+          "titles"
         ],
         "type": "object"
       },
@@ -8359,6 +8559,67 @@
           "profiles",
           "needsPin"
         ],
+        "type": "object"
+      },
+      "Person": {
+        "properties": {
+          "biography": {
+            "type": "string"
+          },
+          "birthday": {
+            "description": "YYYY-MM-DD, YYYY-MM or YYYY.",
+            "type": "string"
+          },
+          "birthplace": {
+            "type": "string"
+          },
+          "deathday": {
+            "type": "string"
+          },
+          "hasPhoto": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "ids": {
+            "$ref": "#/components/schemas/PersonIDs"
+          },
+          "knownFor": {
+            "description": "acting, or a department's key.",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sortName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "hasPhoto",
+          "id",
+          "ids",
+          "name",
+          "sortName"
+        ],
+        "type": "object"
+      },
+      "PersonIDs": {
+        "properties": {
+          "imdb": {
+            "type": "string"
+          },
+          "tmdb": {
+            "type": "string"
+          },
+          "tvdb": {
+            "type": "string"
+          },
+          "tvmaze": {
+            "type": "string"
+          }
+        },
         "type": "object"
       },
       "PlacedCoreFile": {
@@ -25700,6 +25961,46 @@
         "x-wms-auth": "user"
       }
     },
+    "/items/{id}/credits": {
+      "get": {
+        "operationId": "getItemsCredits",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Credits"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A film's or an episode's cast, guest stars and crew by department. An episode has its show's regular cast, its own guest stars, and its own crew where it names a department (the show's otherwise).",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/items/{id}/disc": {
       "get": {
         "operationId": "getItemsDisc",
@@ -38402,6 +38703,177 @@
         "x-wms-auth": "user"
       }
     },
+    "/people": {
+      "get": {
+        "operationId": "getPeople",
+        "parameters": [
+          {
+            "description": "At least two letters of a name (q is the same).",
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "1 to 100, 20 if left out.",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "people": {
+                      "items": {
+                        "$ref": "#/components/schemas/FoundPerson"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "people"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "People credited on titles the account may see, by name, the most titles first.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/people/{id}": {
+      "get": {
+        "operationId": "getPeopleById",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "filmography": {
+                      "properties": {
+                        "groups": {
+                          "items": {
+                            "$ref": "#/components/schemas/FilmGroup"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "required": [
+                        "groups"
+                      ],
+                      "type": "object"
+                    },
+                    "person": {
+                      "$ref": "#/components/schemas/Person"
+                    }
+                  },
+                  "required": [
+                    "person",
+                    "filmography"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A person and their titles in this library that the account may see, grouped by what they did: acting first, then each department. 404 for someone credited only on titles the account may not see.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/people/{id}/photo": {
+      "get": {
+        "operationId": "getPeoplePhoto",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Width in pixels.",
+            "in": "query",
+            "name": "w",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/*": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The content."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A person's picture; `w` asks for a smaller copy.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/photos/ai": {
       "get": {
         "operationId": "getPhotosAi",
@@ -46501,6 +46973,54 @@
           "Browsing"
         ],
         "x-wms-auth": "admin"
+      }
+    },
+    "/shows/{id}/credits": {
+      "get": {
+        "operationId": "getShowsCredits",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A season's number: add its guest stars.",
+            "in": "query",
+            "name": "season",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Credits"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A show's cast and crew; with `season`, that season's guest stars too, most episodes first.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user"
       }
     },
     "/shows/{id}/detect-intros": {

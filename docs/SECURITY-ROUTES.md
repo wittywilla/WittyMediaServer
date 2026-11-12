@@ -136,6 +136,11 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/items/{id}/poster` | Signed-in; ticket; address token | limits. Pictures only, from the cache, the internet or inside a library |
 | `GET /api/items/{id}/artwork` | Admin | Item exists |
 | `GET /api/items/{id}/recommend` | Signed-in | limits, on the item and on what is suggested |
+| `GET /api/items/{id}/credits` | Signed-in | limits, on the item; an episode's season guests only from episodes it may see |
+| `GET /api/shows/{id}/credits` | Signed-in | limits, on the show and on each episode a season's guests come from |
+| `GET /api/people` | Signed-in | limits: only people credited on a title the account may see, counting only those titles |
+| `GET /api/people/{id}` | Signed-in | limits: 404 unless credited on a title the account may see; the filmography names only those |
+| `GET /api/people/{id}/photo` | Signed-in; ticket; address token | limits, as the person. Pictures only, from the cache, the internet or inside a library |
 | `GET /api/items/{id}/disc` | Signed-in | limits. Item is a disc |
 | `PUT /api/items/{id}/disc/labels` | Admin | Labels trimmed |
 | `GET /api/items/{id}/disc/analysis` | Signed-in | limits. Item is a disc. Who chose is named to admins only |

@@ -1410,6 +1410,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /artwork/credits` | Signed in | Each poster or backdrop from Wikimedia Commons on a title the account may see: its page, licence and author, as the licences ask. |
 | `GET /artwork/preview` | admin | One artwork candidate as an image. |
 | `GET /items/{id}/recommend` | user | What to watch when this ends and there is no next episode: an `item`, with its `show` for a series. |
+| `GET /items/{id}/credits` | user | A film's or an episode's cast, guest stars and crew by department (`cast`, `guests`, `crew`); see [People](#people). |
 | `GET /shows` | user | List and filter shows. |
 | `GET /shows/genres` | user | Genres among shows. |
 | `GET /shows/networks` | user | TV networks with their shows and genres. |
@@ -1418,6 +1419,10 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `PUT /shows/{id}/view` | admin | A show's episode layout: `cards`, `list`, or empty for the default. |
 | `GET /shows/{id}/artwork` | admin | Artwork to choose from. |
 | `GET /shows/{id}/art/{kind}` | user | A show's picture: `poster`, `backdrop` or `season` (with `n`). |
+| `GET /shows/{id}/credits` | user | A show's cast and crew; `season=<n>` adds that season's guest stars, most episodes first. |
+| `GET /people` | user | People credited on titles the account may see: `search` (two letters or more), `limit`. Each with `titles`, how many of theirs the account may see. |
+| `GET /people/{id}` | user | A `person` (name, dates, birthplace, biography, ids) and their `filmography` here, grouped by what they did. 404 for someone credited only on titles the account may not see. |
+| `GET /people/{id}/photo` | user, `st` | A person's picture; `w` asks for a smaller copy. |
 | `POST /items/{id}/progress` | user | Save the viewer's position. Past 92% counts as watched. Discs send `discTitle` too. `{id}` `show-<n>` with `{"watched": true}` marks every episode of the show this profile may see watched. |
 | `DELETE /items/{id}/progress` | user | Forget the position (mark as not started). `{id}` `show-<n>`: in every episode of the show. |
 

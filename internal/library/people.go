@@ -750,13 +750,14 @@ type FilmTitle struct {
 func (s *Store) PersonVisible(ctx context.Context, id int64, access *Access) bool {
 	q, args := visibleCreditsQuery("SELECT 1", access)
 	var one int
-	return s.DB.QueryRowContext(ctx, q+" LIMIT 1", append([]any{id, id, id}, args...)...).Scan(&one) == nil
+	return s.DB.QueryRowContext(ctx, q+" LIMIT 1", args(id)...).Scan(&one) == nil
 }
 
 // visibleCreditsQuery selects a person's credits on titles the account may see: films (not
-// episodes, not attached extras), shows, and episodes (named by their show). The three ? first
-// are the person's ID, then the clauses' own arguments.
-func visibleCreditsQuery(sel string, access *Access) (string, []any) {
+// episodes, not attached extras), shows, and episodes (named by their show). It returns the
+// query and what makes its arguments for one person: the person's ID stands before each part's
+// own limits.
+func visibleCreditsQuery(sel string, access *Access) (string, func(int64) []any) {
 	ic, ia := access.ItemClause()
 	sc, sa := access.ShowClause()
 	q := sel + ` FROM (
@@ -772,11 +773,12 @@ func visibleCreditsQuery(sel string, access *Access) (string, []any) {
 		  FROM credits c JOIN items i ON i.id = c.target_id JOIN shows s ON s.id = i.show_id
 		  WHERE c.person_id = ? AND c.target = 'item' AND i.missing = 0 AND s.missing = 0 AND ` + ic + ` AND ` + sc + `
 	) AS v`
-	args := append([]any{}, ia...)
-	args = append(args, sa...)
-	args = append(args, ia...)
-	args = append(args, sa...)
-	return q, args
+	return q, func(person int64) []any {
+		args := append([]any{person}, ia...)
+		args = append(append(args, person), sa...)
+		args = append(append(args, person), ia...)
+		return append(args, sa...)
+	}
 }
 
 // Filmography lists a person's titles that the account may see. Each title is named once per
@@ -785,7 +787,7 @@ func (s *Store) Filmography(ctx context.Context, personID int64, access *Access)
 	q, args := visibleCreditsQuery("SELECT v.role, v.department, v.job, v.character, v.ord, v.target, v.tid, v.title, v.sort_title, v.year, v.ep", access)
 	// The sources' order isn't layered here: a person's part in a title is named if any source
 	// names it, which is what a filmography is for.
-	rows, err := s.DB.QueryContext(ctx, q, append([]any{personID, personID, personID}, args...)...)
+	rows, err := s.DB.QueryContext(ctx, q, args(personID)...)
 	if err != nil {
 		return nil, err
 	}
@@ -900,7 +902,7 @@ func (s *Store) SearchPeople(ctx context.Context, text string, limit int, access
 	q, args := visibleCreditsQuery("SELECT COUNT(DISTINCT v.target || v.tid)", access)
 	out := []FoundPerson{}
 	for _, p := range cands {
-		if err := s.DB.QueryRowContext(ctx, q, append([]any{p.ID, p.ID, p.ID}, args...)...).Scan(&p.Titles); err != nil {
+		if err := s.DB.QueryRowContext(ctx, q, args(p.ID)...).Scan(&p.Titles); err != nil {
 			return nil, err
 		}
 		if p.Titles > 0 {

@@ -39,7 +39,7 @@ func newPeopleFixture(t *testing.T) *peopleFixture {
 	}
 	f.films, f.tv = films.ID, tv.ID
 	year := 1999
-	f.film = &Item{LibraryID: films.ID, Kind: "video", Path: "/m/heist.mkv", Title: "The Heist", SortTitle: "Heist", Year: &year, ContentRating: "R"}
+	f.film = &Item{LibraryID: films.ID, Kind: "video", Path: "/m/heist.mkv", Title: "The Heist", SortTitle: "Heist", Year: &year, ContentRating: "R", Genres: []string{"Crime"}}
 	f.kids = &Item{LibraryID: films.ID, Kind: "video", Path: "/m/robot.mkv", Title: "Robot Friend", SortTitle: "Robot Friend", ContentRating: "G"}
 	for _, it := range []*Item{f.film, f.kids} {
 		if err := f.st.upsertItem(ctx, it); err != nil {
@@ -314,6 +314,14 @@ func TestFilmographyHonoursLimits(t *testing.T) {
 	}
 	if st.PersonVisible(ctx, grown, kids) {
 		t.Error("a person only in a hidden film exists for a kids profile")
+	}
+	// A limit that carries arguments of its own (a genre) must not shift the person's.
+	noCrime := &Access{MaxAge: NoAgeLimit, BlockGenres: []string{"Crime"}}
+	if st.PersonVisible(ctx, grown, noCrime) {
+		t.Error("a person only in a blocked genre's film exists for that profile")
+	}
+	if fc, _ := st.Filmography(ctx, ana, noCrime); len(fc.Groups) != 1 || len(fc.Groups[0].Titles) != 2 {
+		t.Errorf("filmography without crime films: %+v", fc.Groups)
 	}
 	found, err := st.SearchPeople(ctx, "grown", 10, kids)
 	must(err)

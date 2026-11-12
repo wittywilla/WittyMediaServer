@@ -4,7 +4,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api'
 import { Spinner } from '../components/common'
-import { IconDownload, IconRefresh } from '../icons'
+import { IconRefresh } from '../icons'
+import SpecPage from '../spec/SpecPage'
+import { logsSpec } from '../spec/specs/logs'
 import { toast } from '../state'
 import Bundle from './settings/logs/Bundle'
 import Crashes, { CrashBanner } from './settings/logs/Crashes'
@@ -92,38 +94,13 @@ export default function LogSettings() {
   return (
     <>
       <CrashBanner crashes={view.crashes} onSeen={markSeen} />
-      {view.recordingUntil && (
-        <div className="lg-banner" role="status">
-          <div className="lg-banner-text">
-            <b>Recording everything until {new Date(view.recordingUntil).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</b>
-            <p>Try to make the problem happen now. Logging goes back to your usual settings by itself.</p>
-          </div>
-          <div className="lg-banner-actions"><button type="button" className="btn sm" onClick={stopRecording}>Stop now</button></div>
-        </div>
-      )}
-      {problems.length > 0 && (
-        <div className="lg-banner warn" role="status">
-          <div className="lg-banner-text">
-            <b>Logging has a problem</b>
-            {problems.map((p) => <p key={p}>{p}</p>)}
-          </div>
-        </div>
-      )}
+      <SpecPage embedded page={logsSpec({ recordingUntil: view.recordingUntil ? new Date(view.recordingUntil).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '', problems, flight: !!view.flight, showDownload: tab !== 'bundle', saving })}
+        handled={new Set(['stop', 'save'])} onAction={(id) => { if (id === 'stop') stopRecording(); else void saveNow() }} />
       <nav className="tabs lg-tabs" aria-label="WittyLog">
         {TABS.map((t) => (
           <Link key={t.id} to={t.id === 'viewer' ? '?' : `?tab=${t.id}`} className={tab === t.id ? 'active' : ''} aria-current={tab === t.id ? 'page' : undefined}>{t.label}</Link>
         ))}
       </nav>
-      {tab !== 'bundle' && (
-        <p className="lg-dl-row">
-          <span>Someone helping you? Send them the logs, sanitized for sharing.</span>
-          <Link className="btn sm" to="?tab=bundle"><IconDownload /> Download logs as ZIP</Link>
-        </p>
-      )}
-      <p className="lg-dl-row">
-        <span>{view.flight ? 'Something just went wrong? Keep the last 10 minutes, in full detail, before they’re gone.' : 'Something just went wrong? Keep what every part of the server is doing right now.'}</span>
-        <button type="button" className="btn sm" disabled={saving} onClick={() => void saveNow()}>{saving ? 'Saving…' : 'Save what just happened'}</button>
-      </p>
       {tab === 'viewer' && <Viewer categories={view.categories} modules={view.modules} kinds={view.kinds || []} onHealth={onHealth} />}
       {tab === 'levels' && <WhatToLog view={view} onView={onView} />}
       {tab === 'modules' && <LogModules view={view} onView={onView} />}

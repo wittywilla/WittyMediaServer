@@ -448,7 +448,7 @@ html.ten-foot .ctv-page[data-shape="outline"] { --ctv-grid-edge: var(--ctv-edge)
 .ctv-themecard:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .ctv-themecard b { display: flex; align-items: center; gap: var(--sp-1); font-weight: 700; }
 .ctv-themecard small { color: var(--fg-2); font-size: var(--text-xs); line-height: 1.3; }
-.ctv-themecard .ctv-pic-tag { color: var(--accent-text); font-size: var(--text-2xs); font-weight: 600; }
+.ctv-themecard .ctv-pic-tag { color: var(--fg-2); font-size: var(--text-2xs); font-weight: 600; }
 .ctv-themecard-check { position: absolute; right: var(--sp-3); top: var(--sp-3); display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: var(--accent-fg); }
 .ctv-editor { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-5); min-width: 0; }
 .ctv-editor > section { min-width: 0; }

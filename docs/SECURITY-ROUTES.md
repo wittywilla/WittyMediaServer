@@ -368,7 +368,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/p2p/devices` | Signed-in | own. Everyone's with 'all=1', for an admin |
 | `POST /api/p2p/devices` | Signed-in | A session token, not a stream token. A well-formed Ed25519 device ID that isn't the server's own. A key listed for another account is refused. At most 32 per account, 512 in all |
 | `DELETE /api/p2p/devices/{id}` | Signed-in | own. Any account's for an admin. Someone else's answers as if there were none |
-| `POST /api/p2p/invite` | Adult | Target is the caller or a profile the caller manages. Peer-to-peer connections are on. Limit on open invites |
+| `POST /api/p2p/invite` | Adult | Target is the caller or a profile the caller manages. An administrator's own password (and code) again to sign a device in as an administrator. Peer-to-peer connections are on. Limit on open invites |
 | `POST /api/p2p/join` | Adult | Target is the caller or a profile the caller manages. An administrator's own password (and code) again to sign a device in as an administrator. Peer-to-peer connections and their address book are on. A well-formed code. Limit on codes waiting |
 | `GET /api/p2p/settings` | Admin | Nothing further |
 | `PUT /api/p2p/settings` | Admin | Port, layers, relay limit, own relays (each a multiaddr ending in a valid ID). Turning it on, or letting unlisted devices in, also needs `accept` |

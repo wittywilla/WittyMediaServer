@@ -35132,6 +35132,14 @@
                 "properties": {
                   "userId": {
                     "type": "integer"
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "The caller's own password, when the invite signs a device in as an administrator."
+                  },
+                  "otp": {
+                    "type": "string",
+                    "description": "The caller's two-factor code, with the password, when they have two-factor sign-in."
                   }
                 },
                 "type": "object"
@@ -35171,7 +35179,7 @@
             "bearer": []
           }
         ],
-        "summary": "An invite link (`wittymedia://p2p/...`) that puts one device on the list and signs it in, for this account or a Kids or Guest profile it manages. Adults only. Works once, for 15 minutes.",
+        "summary": "`{userId, password, otp}`: an invite link (`wittymedia://p2p/...`) that puts one device on the list and signs it in, for this account or a Kids or Guest profile it manages. Adults only; an invite that signs a device in as an administrator takes the administrator's password again (403 with `reason: \"password-required\"` without it), as `/pair/approve` and `/p2p/join` do. Works once, for 15 minutes.",
         "tags": [
           "Remote access and signed-in devices"
         ],

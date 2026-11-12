@@ -94,6 +94,14 @@ func (rv *sduiResolver) can(what string) []string {
 	if rv.acc.Can(library.FeatureSharing) {
 		out = append(out, "share")
 	}
+	// What plays can be sent to another device and watched together, unless the profile
+	// has those turned off (the server's own switches are the dialogs' to explain).
+	if what == "play" && rv.acc.Can(library.FeatureRemoteControl) {
+		out = append(out, "playOn")
+	}
+	if what == "play" && rv.acc.Can(library.FeatureSyncplay) {
+		out = append(out, "watchParty")
+	}
 	return out
 }
 

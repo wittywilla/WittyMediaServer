@@ -4,7 +4,7 @@
 // window, always 1920 x 1080 unless a script says otherwise. See shots-setup.mjs and shots.mjs.
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-const { launch } = await import(new URL((process.env.WITTYVISUALIZER || '../../../WittyVisualizer') + '/tests/cdp.mjs', import.meta.url))
+const { launch } = await import(process.env.WITTYVISUALIZER ? new URL(process.env.WITTYVISUALIZER + '/tests/cdp.mjs', import.meta.url).href : './cdp.mjs')
 
 export const wait = (ms) => new Promise((d) => setTimeout(d, ms))
 

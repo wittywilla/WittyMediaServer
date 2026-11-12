@@ -31,7 +31,7 @@ if (mode !== 'browser') {
   process.exit(r.status === 0 ? 0 : 1)
 }
 
-const { launch } = await import(new URL((process.env.WITTYVISUALIZER || '../../../WittyVisualizer') + '/tests/cdp.mjs', import.meta.url))
+const { launch } = await import(process.env.WITTYVISUALIZER ? new URL(process.env.WITTYVISUALIZER + '/tests/cdp.mjs', import.meta.url).href : './cdp.mjs')
 const server = process.env.WMS_SERVER || 'http://127.0.0.1:9811'
 const HOLDS = [16, 33, 50, 80] // ms; 33 is a very quick tap, 16 is shorter than a person manages
 const TRIES = 24

@@ -15,7 +15,7 @@
 // times slower the processor is made (4 is a low-end phone or TV). WMS_RUNS=3 loads per page.
 // WMS_ONLY=pages, scroll or browse runs that part alone.
 import { writeFileSync } from 'node:fs'
-const { launch } = await import(new URL((process.env.WITTYVISUALIZER || '../../../WittyVisualizer') + '/tests/cdp.mjs', import.meta.url))
+const { launch } = await import(process.env.WITTYVISUALIZER ? new URL(process.env.WITTYVISUALIZER + '/tests/cdp.mjs', import.meta.url).href : './cdp.mjs')
 
 const server = process.env.WMS_SERVER || 'http://perf.localhost:19790'
 const slow = Number(process.env.WMS_SLOW || 4)

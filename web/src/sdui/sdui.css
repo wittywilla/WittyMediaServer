@@ -231,3 +231,4 @@ a.sdui-row:hover, button.sdui-row:hover { background: var(--hover); }
 .sdui.ff-tv .sdui-row-art.poster { width: calc(var(--sdui-pt) * 60px); height: calc(var(--sdui-pt) * 90px); }
 .sdui.ff-tv .sdui-row-art.wide { width: calc(var(--sdui-pt) * 160px); height: calc(var(--sdui-pt) * 90px); }
 .sdui.ff-tv .sdui-row-art.square { width: calc(var(--sdui-pt) * 90px); height: calc(var(--sdui-pt) * 90px); }
+.sdui.ff-tv .sdui-episode-view { display: none; } /* a television keeps the page's own layout of episodes */

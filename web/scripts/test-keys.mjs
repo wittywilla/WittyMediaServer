@@ -21,7 +21,7 @@
 // A report is written to out-folder/keys.txt, with a picture of each page that has a fault.
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-const { launch } = await import(new URL((process.env.WITTYVISUALIZER || '../../../WittyVisualizer') + '/tests/cdp.mjs', import.meta.url))
+const { launch } = await import(process.env.WITTYVISUALIZER ? new URL(process.env.WITTYVISUALIZER + '/tests/cdp.mjs', import.meta.url).href : './cdp.mjs')
 
 const server = process.env.WMS_SERVER || 'http://keys.localhost:9811'
 const [out = '.'] = process.argv.slice(2)
@@ -263,8 +263,10 @@ async function arrowWalk(where) {
   }
   if (reached.size < MAX_ARROW_NODES && Date.now() < ends) {
     const now = new Set(await tagAll())
-    // The skip link is for Tab: across the room the arrows have no need of it.
-    const tabOnly = new Set(await page.eval(`[...document.querySelectorAll('.skip-link[data-k]')].map((e) => e.dataset.k)`))
+    // The skip link is for Tab: across the room the arrows have no need of it. Nor what the app
+    // marks for the arrows to pass over (data-nav-skip): TV mode's Back button is the remote's
+    // own Back key, a spotlight's dots are its left and right.
+    const tabOnly = new Set(await page.eval(`[...document.querySelectorAll('.skip-link[data-k], [data-nav-skip][data-k]')].map((e) => e.dataset.k)`))
     const missed = all.filter((k) => now.has(k) && !reached.has(k) && !tabOnly.has(k))
     for (const k of missed.slice(0, 12)) fault(where, `big screen: the arrows can't reach ${await nameOf(k)}`)
     if (missed.length > 12) fault(where, `big screen: and ${missed.length - 12} more the arrows can't reach`)

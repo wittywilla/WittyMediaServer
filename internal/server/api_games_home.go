@@ -278,6 +278,18 @@ func (s *Server) gameCheck(ctx context.Context, it *library.Item, console *witty
 		}
 	}
 	pick := s.pickCore(ctx, console, it.ID, systemDir)
+	if pick.core == nil {
+		// No core plays it here: a standalone emulator may (games_standalone.go).
+		offers := s.consoleOffers(ctx)[console.ID]
+		if e := readyEmulator(offers); e != nil {
+			out["ready"], out["emulator"] = true, map[string]any{"id": e.ID, "name": e.Name, "version": e.Version}
+			return out
+		}
+		if len(console.Cores) == 0 {
+			out["ready"], out["reason"], out["message"] = false, "emulator", standaloneWords(console, offers)
+			return out
+		}
+	}
 	switch {
 	case pick.core != nil:
 		out["ready"], out["core"] = true, map[string]any{"id": pick.core.ID, "name": pick.core.Name, "license": pick.core.License}

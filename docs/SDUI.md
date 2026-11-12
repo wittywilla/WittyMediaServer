@@ -868,6 +868,12 @@ own window, is one of the three renderers.
   filter bar change the address's query, so Back undoes them.
 - **Native views.** `guide` is the guide's grid, `photoTimeline` and
   `photoMap` the photo library, `coverFlow` the music library's cover flow.
+  A module's view (`<module>.<name>`) is drawn by its web bundle, and the
+  app sends the views of the bundles in use with its own
+  ([Modules in server-driven UI](SDUI-MODULES.md#what-apps-need-to-do)).
+- **Modules.** Their settings are under Settings, Module settings, drawn
+  with Settings' own rows; their pages of the app's own (`/m/...`) and their
+  views take the module's colours where its palette differs from everyone's.
 - **Where the app's own screens stand in.** A game's page, a book's front
   page, a photo, a radio station, a creator's channel and the short-video
   feed are not in the model. When the catch-all built-in `library` or

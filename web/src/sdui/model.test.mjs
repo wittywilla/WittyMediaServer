@@ -38,7 +38,7 @@ function find(node, id) {
 test('the kit is the one this renderer was written against', () => {
   const index = JSON.parse(readFileSync(dir + 'index.json', 'utf8'))
   assert.equal(index.kit, 1)
-  assert.equal(files.length, 57)
+  assert.equal(files.length, 61) // 57, and the four of modules (docs/SDUI-MODULES.md)
 })
 
 for (const file of files) {

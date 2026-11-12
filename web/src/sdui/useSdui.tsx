@@ -7,6 +7,7 @@ import { useApp } from '../state'
 import { getTvMode, useTvMode } from '../tvmode/mode'
 import { onPreview, prefetchPage, serverFeatures } from './client'
 import { describe, deviceKey, type Device } from './device'
+import { useModuleViews } from '../moduleBundles'
 import { resolve } from './routes'
 import { ownLibraryTab } from './native'
 
@@ -28,11 +29,12 @@ function facts() {
 // on every pixel of a resize.
 export function useDevice(): Device {
   const tv = useTvMode()
-  const [device, setDevice] = useState<Device>(() => describe(facts()))
+  const views = useModuleViews()
+  const [device, setDevice] = useState<Device>(() => describe(facts(), views))
   useEffect(() => {
     let timer = 0
     const check = () => {
-      const next = describe(facts())
+      const next = describe(facts(), views)
       setDevice((was) => (deviceKey(was, Number(was.viewport?.split('x')[0]) || 0) === deviceKey(next, window.innerWidth) ? was : next))
     }
     check()
@@ -41,7 +43,7 @@ export function useDevice(): Device {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
     mq.addEventListener('change', check)
     return () => { window.clearTimeout(timer); window.removeEventListener('resize', later); mq.removeEventListener('change', check) }
-  }, [tv])
+  }, [tv, views])
   return device
 }
 

@@ -52,3 +52,15 @@ test('nothing but a plain colour reaches the page', () => {
   assert.deepEqual(overrideDeclarations(bad, '', true), [['--ok', '#12345678']])
   assert.deepEqual(overrideDeclarations(null, 'wittytv', true), [])
 })
+
+test('a module\'s own colours (where its palette differs) apply on its pages, under the administrator\'s', () => {
+  const t = {
+    id: 'x', source: 'server', overrides: {}, tokens: { accent: '#111111', bg: '#000000', fg: '#ffffff' },
+    modules: { wittyboardgames: { overrides: { fg: '#eeeeee' }, tokens: { accent: '#ff8800', bg: '#000000', fg: '#eeeeee' } } },
+  }
+  const got = Object.fromEntries(overrideDeclarations(t, 'wittyboardgames', true))
+  assert.equal(got['--accent'], '#ff8800')
+  assert.equal(got['--fg'], '#eeeeee')
+  assert.equal(got['--bg'], undefined, 'the same as everyone\'s is left to the theme on screen')
+  assert.deepEqual(overrideDeclarations(t, '', true), [])
+})

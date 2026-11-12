@@ -19,10 +19,11 @@ export function breakpoint(width: number): string {
 // TV mode is a television whatever the window; a narrow window is a phone and a touch
 // screen of middling width a tablet, so each gets the sizes made for it; the rest is the
 // web (or the desktop app around it).
-export function describe(f: DeviceFacts): Device {
+// moduleViews are the views of loaded module bundles (moduleBundles.tsx); the server takes 16 names at most.
+export function describe(f: DeviceFacts, moduleViews: string[] = []): Device {
   const platform = f.desktopShell ? 'desktop' : 'web'
   const capabilities = [f.touch && 'touch', f.pointer && 'pointer', 'keyboard', f.hdr && 'hdr', f.reducedMotion && 'reducedMotion'].filter(Boolean) as string[]
-  const base = { platform, capabilities, locale: f.locale, views: VIEWS }
+  const base = { platform, capabilities, locale: f.locale, views: [...VIEWS, ...moduleViews].slice(0, 16) }
   if (f.tvMode) return { ...base, formFactor: 'tv', deviceClass: f.uhd ? '4k' : 'hd' }
   const viewport = `${Math.max(1, Math.round(f.width))}x${Math.max(1, Math.round(f.height))}`
   const formFactor = f.width < 600 ? 'phone' : f.touch && !f.pointer && f.width < 1200 ? 'tablet' : f.desktopShell ? 'desktop' : 'web'
@@ -30,7 +31,7 @@ export function describe(f: DeviceFacts): Device {
 }
 
 // The part of the device a rendered page depends on: when it changes, ask again.
-export const deviceKey = (d: Device, width: number) => [d.platform, d.formFactor, d.deviceClass || '', d.formFactor === 'tv' ? '' : breakpoint(width), d.capabilities.includes('reducedMotion') ? 'rm' : ''].join('|')
+export const deviceKey = (d: Device, width: number) => [d.platform, d.formFactor, d.deviceClass || '', d.formFactor === 'tv' ? '' : breakpoint(width), d.capabilities.includes('reducedMotion') ? 'rm' : '', d.views.join(',')].join('|')
 
 export function query(d: Device, extra: Record<string, string | undefined> = {}): string {
   const q = new URLSearchParams()

@@ -6733,6 +6733,15 @@
           },
           "version": {
             "type": "string"
+          },
+          "views": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
           }
         },
         "required": [

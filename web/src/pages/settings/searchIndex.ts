@@ -79,6 +79,7 @@ export const ENTRIES: Entry[] = [
   { page: 'security', title: 'Two-factor sign-in', section: 'Two-factor sign-in', words: '2fa authenticator code' },
   { page: 'security', title: 'Your devices', section: 'Your devices', words: 'signed in sessions sign out' },
   { page: 'activity', title: 'History', section: 'History', words: 'statistics keep clear' },
+  { page: 'module-settings', title: 'Module settings', words: 'module modules plugin options preferences' },
   { page: 'sharing', title: 'Uploads', section: 'Uploads', words: 'upload size room storage' },
   { page: 'sharing', title: 'Links for people without an account', section: 'Links for people without an account', words: 'share link guest' },
   { page: 'sharing', title: 'Photo map', section: 'Photo map', words: 'map tiles address places' },

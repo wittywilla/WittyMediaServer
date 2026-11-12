@@ -10,7 +10,11 @@ export type ResolvedTheme = {
   id: string
   source: 'server' | 'user'
   overrides: Record<string, string>
-  modules: Record<string, { overrides: Record<string, string> }>
+  // The whole palette (a server that has modules' own colours sends it).
+  tokens?: Record<string, string>
+  // A module's: the administrator's overrides alone, and (docs/SDUI-MODULES.md, "Theme") the
+  // whole palette with the module's own colours and those overrides over it.
+  modules: Record<string, { overrides: Record<string, string>; tokens?: Record<string, string> }>
   // Text an override left hard to read, for the settings page: scope is "global" or
   // "module:<id>", variant the look ("dark" or "light") when the theme has two.
   warnings?: { scope: string; variant?: string; text: string; surface: string; ratio: number; need: number }[]
@@ -44,7 +48,12 @@ export function overrideDeclarations(t: ResolvedTheme | null, module: string, gl
   if (!t) return []
   const merged: Record<string, string> = {}
   if (globalApplies) Object.assign(merged, t.overrides || {})
-  if (module) Object.assign(merged, t.modules?.[module]?.overrides || {})
+  if (module) {
+    // The colours the module itself would like: where its palette differs from everyone's.
+    const own = t.modules?.[module]?.tokens || {}
+    for (const [name, value] of Object.entries(own)) if (t.tokens && t.tokens[name] !== value) merged[name] = value
+    Object.assign(merged, t.modules?.[module]?.overrides || {})
+  }
   const out: [string, string][] = []
   for (const [name, value] of Object.entries(merged)) {
     if (!/^[a-z][A-Za-z0-9]*$/.test(name) || !COLOUR.test(value)) continue

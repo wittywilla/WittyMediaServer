@@ -735,7 +735,15 @@ The tasks for each app:
    draws a module's view with the module's web bundle: it sends the IDs of the views of
    every bundle it has loaded, and when the page holds a `NativeView` of one, mounts the
    bundle's component for it in that place. A bundle exports `views`, components by view
-   ID, as it exports `pages`; each is given `host` and the `NativeView`'s props. A native
+   ID, as it exports `pages`; each is given `host` and the `NativeView`'s props. In the
+   web app a view is a component drawn as `<View host={host} props={props} />`, where
+   `props` is the `NativeView`'s props and `host` is `{api: {get, post, put, del},
+   mediaUrl, navigate, tokens, tv, reducedMotion}`: the server's API with the person's
+   sign-in, an address for a picture or a stream, a way to another place in the app, the
+   module's colours as the node carries them, and whether it is on a television or should
+   keep still. `GET /api/v1/modules/web` names each bundle's views (`views`), so the app
+   knows them without loading the bundle; a view that won't load, or fails while drawing,
+   gives way to the `NativeView`'s children. A native
    app sends a module's view only if it really draws it; usually it sends none, and its
    users see the fallback.
 2. **Draw module settings in Settings → Modules**, as in [Drawing them in an app](#drawing-them-in-an-app),

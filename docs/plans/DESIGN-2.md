@@ -127,3 +127,138 @@ into `v0.8.0-alpha` under `/tmp/witty-merge.lock` per ORCHESTRATION.md, never pu
 **No legacy.** Older servers and clients are "as is" alphas. There are no fallbacks, compatibility shims, capability
 gates for the new parts, or old code paths kept beside the new ones. The new catalogue revision requires `Dock` and
 `KeyLegend`; the token schema is the new one only; what the design replaces is deleted.
+
+## 7. Experiences, the layout editor and the server's name (added 2026-11-12)
+
+The owner wants many complete looks to choose from at first run, and everything movable by admins and people. So the
+unit of choice is an **Experience**, and every client renders all of them.
+
+### 7.1 An Experience
+
+An experience is data, shipped with the server (`internal/sduistore/experiences/*.json` or `pkg/sdui`), validated against
+the catalogue, and listed by `GET /api/v1/sdui/experiences`. Fields:
+
+`id`, `name`, `tagline`, `preview` (the swatch for the chooser), `shell` per form factor (`layout`, `nav` style and
+position, `navExpand`), `theme` (a default theme id; theme stays separately choosable), `effects`
+`{glass, gloss, glow, texture, bevel}` each `none|subtle|full`, `shape` (radius multiple, card style set), `type`
+(`system|humanist|rounded|mono|serif`), `density`, `motion` (focus style, screen transition), `home` (hero style, row
+order preset), `tvTheme` (WittyTV look it suggests), `brand` (default name styling), `placements` (7.3).
+
+Choice order of precedence is the layout option's: the person's own per device, else the admin's default per form
+factor, else `lumen`. The admin also chooses which experiences people may pick. **The first-run (OOBE) step "Look"
+offers all of them as live previews** (at least 12), then the admin's choice becomes the server default and can be
+changed any time under Settings, Appearance (one hand-built row, same structure as today; Settings is not SDUI).
+The OOBE step is keyboard, remote, controller and touch complete.
+
+### 7.2 The twelve
+
+| id | Feel | Shell | Theme default | Notes |
+|---|---|---|---|---|
+| `lumen` | quiet cinema | top pills, billboard hero, peeking shelves | Witty | concept A; the default |
+| `rail` | library-first | icon rail that expands (7.4), title-on-art cards | Cinema | concept B |
+| `stage` | streaming | see-through top tabs over a full-bleed backdrop, shelves overlap art | Midnight | concept C |
+| `aero` | Frutiger Aero | glossy glass bars, bevelled buttons, sky and leaf gradients, rounded 16 to 22 radii, soft bubbles and light rays | Aero (new, light and dark) | the older, optimistic look: gloss and gradients, no heavy blur; glass uses gradient plus a highlight edge so it is cheap; `effects` degrade to `subtle` on modest hardware and with reduced transparency |
+| `classic` | today's design, polished | sidebar | Witty | the familiar layout |
+| `compact` | dense and fast | rail plus list rows | True black | compactList layout, power users |
+| `paper` | editorial | top tabs, big type, light | Paper | serif display type, generous whitespace |
+| `marquee` | poster-first | centred carousel, coverflow rows | Cinema | one big title at a time |
+| `crossbar` | console | horizontal category bar with a vertical item list (XMB style) | Evergreen | games and music first |
+| `bigpicture` | accessibility and kiosk | huge tiles, few choices, strongest focus | High contrast | 1.25x type, 72 targets |
+| `dashboard` | widgets | tile grid home of widgets (continue watching, on TV now, stats, server status, clock) | Midnight | every tile movable |
+| `retro` | teletext and CRT | block type, scanline texture off by default, 8 colours | Witty with the Teletext look | fun, tasteful, optional |
+
+A new experience needs only a JSON file and (if it adds a shell shape) a `navStyles` entry; renderers draw all
+shells from the catalogue's `navStyles`/`layouts`, never by experience id.
+
+### 7.3 Placement: everything movable, by data
+
+The shell and pages are made of **regions**. Each region has a `position` and `visible`, set by the experience and
+overridden by the admin (for everyone) and the person (own device): `brand`, `nav` (start, end, top, bottom,
+hidden), `search` (in nav, top end, floating, hidden), `profile`, `clock`, `dock` (top, bottom, side, hidden),
+`legend` (shown, hidden), `hero` (style, hidden), and each page section (order, hide, pin, size, row style, count).
+Dashboard widgets are sections with a grid cell `{x, y, w, h}`. Stored in `ui_config.json` `experience.placements`
+(admin) and the profile's `personal` (own), merged by the server with the existing precedence, so every client gets
+the finished document and only draws it. Nothing may be hidden that is needed to reach Settings or Back out: the
+server keeps `locked` regions (Settings entry, You) and a Reset.
+
+### 7.4 The rail, expanded
+
+The rail has three states, the same on every platform (data in the catalogue's `navStyles.rail`):
+1. **Closed**: icons only (76 on desktop, 120 on TV units), the current item marked.
+2. **Open**: icons and names (240 desktop, 400 TV) when focused, hovered, pinned, or the options key is pressed.
+3. **Library drawer**: choosing a library item expands a second column (360 desktop, 480 TV) headed by **the library's
+   name** (large, with its icon and item count), listing that library's views (Recently added, Genres, Collections,
+   Continue, All, plus its module's own). Back closes the drawer, then the rail. Pinning keeps either open.
+
+### 7.5 The layout editor
+
+One editor, two scopes: **For everyone** (administrators) and **For me** (everyone, on this device or all devices).
+Entry points: Settings, Appearance, "Edit layout" (hand-built row); the options key on any page; `Ctrl+Shift+L`; Start
+on a pad. While editing, the real page is shown with handles and a side panel (a bottom sheet on a phone):
+- Move: drag (pointer, touch), or **pick up with OK, arrows to move, OK to drop, Back to cancel** (remote, pad,
+  keyboard: same on all platforms). Resize with the size control or `+`/`-`.
+- Hide, show, pin, rename (nav entries), choose a row's style, card size, count, density.
+- Pick the shell: nav position, brand position, hero style, dock position, widgets (add from a list).
+- Live preview across form factors for administrators (phone, tablet, TV, desktop frames).
+- Undo and redo, **Reset to the experience**, **Reset everything**, revisions and rollback (exist already), export and
+  import presets, name and share a preset.
+- Accessible: every handle is a button with a name; moves are announced; nothing needs a pointer.
+It is native in each client but drives the same SDUI routes (`personal`, `config`, `placements`).
+
+### 7.6 The server's name
+
+The server's name is `WittyMediaServer` until changed (administrators, Settings, Appearance, Name and logo; already
+exists). The name is drawn by every client from the theme engine's `brand`. Extend `brandname`:
+- **Parts** carry `color`: `{kind: "fg"|"accent"|"token"|"static"|"gradient", token?, hex?, stops?}`.
+  `accent` follows the theme, so it changes with the theme; `token` is any theme token (`ok`, `warn`, `accentText`..);
+  `static` is a fixed `#rrggbb` that does not change with themes; `gradient` is two to four stops, with a direction.
+- **Picking**: the existing modes `auto`, `one` and `pick:` stay as the quick choices; the editor adds per-letter and
+  per-word selection (tap or arrows and Space to select a range), a colour picker (theme colours first, then any
+  colour), gradient, bold weight, and live previews in every frame the name appears (sidebar, rail header, top bar,
+  TV bar, sign-in, About), and presets (Two-tone, Rainbow, Gradient, Plain, "Accent on Media").
+- **Contrast**: the editor warns when a static colour fails 4.5:1 on the surfaces it sits on, in each theme and each
+  experience, and the server states `warnings`. Administrators can still save it (as for theme overrides).
+- The default is unchanged: "Witty" in `fg`, "Media" in the accent, "Server" in `fg`.
+Every experience draws the name through `brand` and never hard-codes it.
+
+### 7.7 Aero in detail (so it is built right)
+
+Surfaces: top-lit vertical gradients (a light to a slightly darker stop), a 1 px inner highlight and a 1 px darker
+outer edge, a soft coloured shadow; buttons are glossy pills with a gloss overlay in the upper half; the focus ring is
+a glowing outline; page backgrounds are sky blue to leaf green gradients with a few soft bokeh circles and a light
+sweep, set by the theme (`aero-day`, `aero-night`); icons sit on glass tiles; titles use a rounded humanist face;
+motion is a gentle ease with a small overshoot (never on modest hardware). Glass uses gradients and highlights, not
+`backdrop-filter`, except on non-scrolling chrome where the device is not modest. Light and dark variants both pass
+contrast. New theme packs `aero-day` and `aero-night` ship built in.
+
+## 8. UI and theme are separate; first run; policy; WittyRemote (added 2026-11-12)
+
+**A UI is not a theme.** A **UI** (experience) is layout, shell, shape, finish, type set and component styles. A **theme** is colour (and scene). Each UI ships with one default theme, the same every time; any UI can wear any theme, built-in or imported. WittyTV's look is a third, independent choice (person, then the UI's suggestion, then the owner's default). WittyPlay's UI (WittyPlay Online) is a module-scope UI the person can switch on or off independently of the app's UI.
+
+**Theme import.** Settings, Appearance and the first-run Look step both have **Import a theme…** (a ZIP or a theme file, validated as in THEMES.md) and **Make your own**. Imported themes work in every UI. On phones and TVs the choice is offered the first time the app connects to a server (after choosing a profile), unless an administrator has required one.
+
+**Policy.** Administrators can require, per profile or for everyone: a UI, a theme, or both. A required value is shown locked with who set it; a profile with nothing required chooses freely. The server resolves it (required, else the person's choice, else the server default) and sends the finished result, so every client behaves the same. Kids profiles can be given their own required UI and theme.
+
+**First run (OOBE) happens in a web browser only.** The server is not reachable by client apps until it is complete: every client route answers `setup_required` (503) with the address to finish at, and the apps show "This server isn't set up yet. Finish setup in a web browser at <address>" with a QR code. Only `/setup`, the status route and the web app's assets answer. The OOBE wears the UI and theme being tried (see the trial board), is complete by keyboard, touch, remote and controller, and its steps are: Welcome, Account, Name and address, Look (UI), Theme (with import), Modules, Libraries, Details and artwork, Live TV, Games, Discs, People and rules (profiles, kids limits, required UI and theme), Remote access and apps (pairing, P2P), Ready.
+
+**WittyRemote** is one remote on every platform, drawn as the existing disc remote is (graphite body, raised keys, red eject, accent ENTER; TOP MENU, MENU, RETURN, ANGLE, AUDIO, SUBTITLE; transport; digits; colour keys), as: the floating, draggable, resizable remote on desktop; a two-page sheet (keys, then digits and colours) with large keys and a focus ring on TVs and phones; a floating body in headsets. A second look puts the same keys in a bar above or below the timeline. Keys a disc or video does not use stay in place, dimmed with a dashed outline, never hidden: DVDs dim the colour keys, a one-angle Blu-ray dims ANGLE, a plain video dims every disc key.
+
+**WittyTV logos.** A channel's logo (contain-fit on a tile, never cropped) appears in the guide's channel column, the highlighted programme's details and the watch banner, sized from the tokens per platform; a channel without a logo shows its initials on a tile. Programme titles in the guide wrap to two lines and only then truncate.
+
+## 9. Rail mark, expanding side menu, More info (added 2026-11-12)
+
+**The rail's mark.** The rail header is a square badge with its content centred, never a bare letter. Under **Name and logo** an administrator chooses what it holds: the first letter (default), initials, one or two characters of their own, or an uploaded square logo (PNG, SVG or WebP, up to 1 MB, fitted inside the badge; the letter shows if it can't load). It takes the name's colours unless fixed ones are chosen. Stored with the server's name (`brand.mark`: `{kind: letter|initials|text|image, text?, imageUrl?}`) and sent in the theme engine's `brand`, so every client draws the same badge in the rail, the tab bar header and the sign-in.
+
+**The rail expands into a proper side menu.** Closed: centred icons and the mark. Open (focus, hover, the options key, or pinned): the full name in its colours, every item with its full label, a Libraries section listing each library with its item count, **Keep menu open** (a pin and a switch, remembered per device), and the profile with their role. Pinned, it behaves as the sidebar layout. The library drawer (7.4) opens beside it.
+
+**More info on every WittyTV screen.** The guide, the watch banner and Recordings all show the programme's logo, title, times and a two-line description with a **More info** button (ⓘ, key I, in the Dock). It opens a pop-up over the current screen, without leaving it: overview and ratings, cast and crew, where to watch (this server's channels and times, the library, and streaming providers with rent, buy or free), trailers and clips, schedule and also-on, with Watch now, Record, Remind me, Watchlist and Open item page. Back closes it. The cast, crew and trailers come from the same data as the item page (S12's credits).
+
+**Readers in every UI and theme.** The book and PDF readers (contents or page thumbnails, search, typography, highlight colours, notes and Markdown export, resume) use the look's tokens and finish; reading pages keep their own light or dark paper so text stays readable in any theme.
+
+## 10. Songs, karaoke and visualizers (added 2026-11-12)
+
+One mini player and one control bar serve songs, now playing, karaoke and the visualizer on every platform and in every look. **Songs**: a sortable list with art, artist, album, plays, favourite and length, and a mini player (prev, play, next, lyrics, karaoke, visualizer, queue). **Now playing**: art or canvas, lyrics line, queue. **Karaoke**: synced lyrics with the sung part in the accent, a vocals level and an instruments level (labelled approximate, since the parts are separated on the server), backing vocals, key shift and microphone; on a TV every control is reachable by D-pad. **Visualizer**: presets, intensity, speed, colour from the theme, canvas on or off, full screen; it runs on the device and is off until turned on. Karaoke and the visualizer are full-bleed over the look's own scene and keep the look's finish on their buttons.
+
+## 11. Build order for the first-run and settings screens (added 2026-11-12)
+
+First run (14 steps, browser only), Settings, Appearance (look, theme, import), the administrator's required looks and themes, the first-use choice on phones and TVs, and the "server isn't set up yet" screen in apps are drawn on the canvas ("First run and editors", "Settings, policy, first use"). The server work they need: a setup-state gate on every client route (`setup_required`), the experience and theme resolution with `required` fields per profile and for everyone, theme import routes for administrators (and per profile when allowed), and the pre-sign-in preview document.

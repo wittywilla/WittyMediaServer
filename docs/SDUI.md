@@ -267,6 +267,15 @@ inside a string (`{"items":["{item}"]}`), so the body is JSON for any title.
 The routes take a show's `show-<n>` as they take a number: Watch later adds
 the show, `watched.set` and `watched.clear` mark every episode of it.
 
+A command may take more values: its catalogue entry lists them as `params`
+(`name`, `type` of `string` or `int`, `required`). The action's `params` give
+them by name, and each goes in place of `{name}` the same way: URL-escaped in
+the path, JSON-escaped inside the body's string. For an `int` parameter the
+string and its quotes are replaced by the number (`{"type":"save","slot":"{slot}"}`
+becomes `{"type":"save","slot":3}`), so the template is JSON either way. A
+parameter that wasn't given is an empty string. `rewind.open` and `controller.remap` have no request:
+the game player opens its own panels.
+
 ## Rules for renderers
 
 These are requirements. The conformance kit checks the ones that can be
@@ -2441,7 +2450,7 @@ A `Card` has a `style` and a `shape`. A renderer that doesn't know a style draws
 | `square` | square | 1/1 | square, poster | title, subtitle | 1 | 1 | A square picture with a title and subtitle. |
 | `album` | square | 1/1 | square, poster | title, subtitle | 1 | 1 | An album cover with the album and artist under it. |
 | `circle` | circle | 1/1 | square, poster | title | 2 | 0 | A round picture with a centred name. |
-| `person` | circle | 1/1 | square, poster | title, subtitle | 1 | 1 | A round portrait with a name and a line under it: an artist, an author, someone in a title's cast or crew (the line is the part they played or their job). |
+| `person` | circle | 1/1 | square, poster | title, subtitle, badges | 1 | 1 | A round portrait with a name and a line under it: an artist, an author, someone in a title's cast or crew (the line is the part they played or their job), a friend (the line is where they are and the badge their presence). A person's initials stand in for a missing photo. The card opens something only when the item has a route; without one it is not a button and takes no focus. |
 | `book` | poster | 2/3 | poster | title, subtitle, progress | 2 | 1 | A book or comic cover with the title and author, and how far it has been read. |
 | `game` | poster | 3/4 | poster | title, subtitle, badges | 1 | 1 | Box art with the game's name and console. |
 | `photo` | square | 1/1 | poster, square |  | 0 | 0 | The picture alone, cropped square; its name is only read out. |
@@ -3240,6 +3249,15 @@ A menu entry (`type: native`) may open the screens marked *menu*; the others nee
 | `watched.clear` | Forgets the profile's progress in the title; for a show, in every episode. | `DELETE /api/v1/items/{item}/progress` |
 | `selectTab` | Asks for the page again with tab=<params.tab>, or shows the tab's content when the client already has it. |  |
 | `control.open` | Client-handled, from a Dock: params.control is sort, filter, view or jump and params.target the Grid. sort and filter open the page's FilterBar choices for the target; view switches it between its grid and a list and remembers it for the profile on the device; jump opens a letter picker (A to Z and #) and brings the grid to the first title starting with the letter by asking its more.url until one has arrived, at most 20 pages. |  |
+| `wittyplay.room.create` | WittyPlay Online: opens the game being played (item: its session) to the friends who may see it, so they join with no code. Answers the host's code. | `POST /api/play/{item}/room` with `{"open":true}` |
+| `wittyplay.room.join` | WittyPlay Online: takes a seat in an open room (item: its session) or, with params.code, the room that code belongs to (no item). | `POST /api/play/join` with `{"room":"{item}","code":"{code}"}`; `code` (string) |
+| `wittyplay.room.invite` | WittyPlay Online: a join code for the game being played (item: its session), good for a short while, which a phone's QR join link carries. Answers {code, expiresAt}. | `POST /api/play/{item}/invite` |
+| `wittyplay.state.save` | WittyPlay: saves the game being played (item: its session) into params.slot. | `POST /api/play/{item}/action` with `{"type":"save","slot":"{slot}"}`; `slot` (int, required) |
+| `wittyplay.state.load` | WittyPlay: loads params.slot into the game being played (item: its session). | `POST /api/play/{item}/action` with `{"type":"load","slot":"{slot}"}`; `slot` (int, required) |
+| `wittyplay.state.delete` | WittyPlay: deletes the profile's save in params.slot of the game (item: the game's ID, not a session). | `DELETE /api/games/{item}/saves/{slot}`; `slot` (int, required) |
+| `wittyplay.controller.assign` | WittyPlay Online: the host puts the profile params.user in seat params.seat of the game being played (item: its session); a held seat is swapped. | `PUT /api/play/{item}/seats/{user}` with `{"seat":"{seat}"}`; `user` (string, required); `seat` (int, required) |
+| `rewind.open` | Client-handled, in the game player: opens the player's rewind panel. No request. |  |
+| `controller.remap` | Client-handled, in the game player: opens the player's own controller-mapping panel. No request. |  |
 | `refresh` | Asks for the page again. |  |
 
 ### Experiences

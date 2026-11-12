@@ -3,6 +3,7 @@
 // The parts of the catalogue (GET /sdui/catalog) that are data for the player: WittyRemote's keys, groups, pages and
 // which keys each kind of disc dims, and the music player's controls and visualizer presets. Read once per sign-in.
 import { api } from '../api'
+import { setCommandSpecs, type CommandSpec } from './routes'
 import { setRemoteCatalogue, type RemoteCatalogue } from '../player/remoteKeys'
 
 export type MusicCatalogue = {
@@ -18,8 +19,9 @@ export const subscribeCatalogue = (l: () => void) => { listeners.add(l); return 
 
 export async function loadCatalogue() {
   try {
-    const c = await api.get<{ remote?: RemoteCatalogue; music?: MusicCatalogue }>('/sdui/catalog')
+    const c = await api.get<{ remote?: RemoteCatalogue; music?: MusicCatalogue; commands?: CommandSpec[] }>('/sdui/catalog')
     if (c.remote) setRemoteCatalogue(c.remote)
+    if (c.commands) setCommandSpecs(c.commands)
     music = c.music || null
     listeners.forEach((l) => l())
   } catch { /* the keys then follow the player's own state alone */ }

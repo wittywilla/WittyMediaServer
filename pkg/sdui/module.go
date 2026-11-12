@@ -45,7 +45,7 @@ const (
 )
 
 // ItemKinds are the kinds of item a data source may give.
-var ItemKinds = []string{"movie", "episode", "show", "season", "video", "disc", "album", "artist", "track", "book", "audiobook", "podcast", "game", "photo", "channel", "recording", "collection", "library", "genre", "view"}
+var ItemKinds = []string{"movie", "episode", "show", "season", "video", "disc", "album", "artist", "track", "book", "audiobook", "podcast", "game", "photo", "channel", "recording", "collection", "library", "genre", "view", "person"}
 
 // ModuleUI is one module's SDUI file.
 type ModuleUI struct {

@@ -298,9 +298,9 @@ hidden libraries, and cleans them as any module's items. Nothing is given when g
 |---|---|---|
 | `wittyplay.recent` | The games this profile played, newest first | `game`: its era as a badge ("16-bit"), the home row's line as `subtitle` ("16-bit classics · 1 to 2 players · Played 3 hr 12 min · Save state 3 ready"), seconds played as `runtimeSec` |
 | `wittyplay.collections` | Without `era`, the eras with games, in order; with `era` (`first`, `8-bit`, `16-bit`, `early-3d`, `disc`, `pocket`), that era's games by title | `collection` (`era-<era>`, `count`, route `/games?era=<era>`), or `game` |
-| `wittyplay.friends` | The profile's friends, playing first, then online, away, offline | `view` (`profile-<id>`): name, presence as the badge ("Playing", "Online", "Away", "Offline") and the line ("Playing Star Tide") |
+| `wittyplay.friends` | The profile's friends, playing first, then online, away, offline | `person` (`profile-<id>`), a person card: name, presence as the badge ("Playing", "Online", "Away", "Offline") and the line ("Playing Star Tide"); icon `user` (the app draws the profile's avatar or initials); no route, so not a button |
 | `wittyplay.rooms` | Friends' open rooms with a seat free, of games this profile may play; none for Kids or guests | `view` (the session): "Moth Racer · 3 of 4", "Shared · Sam", `count` players |
-| `wittyplay.room` | The room this profile is in: the room, then each player | The room (`view`: game, host, the code as `tagline` and the join route for the host only, badge "Open" when open), then a `view` per player: name or "Waiting…" (badge "Free"), "Player n", badge "Pn" |
+| `wittyplay.room` | The room this profile is in: the room, then each player | The room (`view`: game, host, the code as `tagline` and the join route for the host only, badge "Open" when open), then a `person` per player: the host ("Host", badge "P1"), a player ("Player n", badge "Pn") or a free seat ("Waiting…", "Free", badge "Free"); no route |
 | `wittyplay.saveStates` | One game's saves (`item`, required), the profile's own first, newest first | `view` `slot-<n>`: "Save state 3", when, its picture as `backdrop` |
 | `wittyplay.memories` | Saves and kept screenshots of every game, newest first | `view` (badge "Save") or `photo` (badge "Shot"): the game's title, what and when, picture as `backdrop` |
 | `wittyplay.controllers` | Each player of the game this profile is in | `view` `player-<n>`: "Player n", who (and the host's device), or "No controller" (badge "Free"). Battery and the controller's kind are the device's own (the Gamepad API): the server never sees them |
@@ -318,6 +318,10 @@ hidden libraries, and cleans them as any module's items. Nothing is given when g
 | `wittyplay.state.save`, `wittyplay.state.load` | `POST /play/{sid}/action` `{type: "save" or "load", slot}` |
 | `wittyplay.state.delete` | `DELETE /games/{id}/saves/{slot}` |
 | `wittyplay.controller.assign` | `PUT /play/{sid}/seats/{user}` `{seat}` |
+
+The action's `item` is the session (`{sid}`), or the game's ID for `wittyplay.state.delete`; the rest come in the
+action's `params` (`slot`, `user`, `seat` and, for `wittyplay.room.join`, `code`). [SDUI](SDUI.md#action) says how a
+client fills them.
 
 ## Modes
 

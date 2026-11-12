@@ -1,0 +1,15 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
+/* The readers (WittyEbook, WittyPDF, WittyComics, through WittyInk) draw their own full-screen frame with colours of their
+   own. Here that frame, its top bar and its foot take the look's tokens, so a book wears the same finish and theme as the rest
+   of the app (docs/design-2/images/modules: Books, PDFs, Comics). The page being read keeps its own white, sepia or black:
+   that is the reader's setting, not the theme's. `html` in front lifts these over the module's own rules whichever sheet loads
+   last. Only tokens: a theme that changes colours changes the reader with it. */
+html .reader {
+  --rd-glass: var(--elev-2-fill); --rd-glass-2: var(--elev-3-fill); --rd-line: var(--border);
+  --rd-fg: var(--fg); --rd-fg-2: var(--fg-2); --rd-hover: var(--hover); --rd-on: color-mix(in srgb, var(--accent) 24%, transparent);
+  background: var(--bg); color: var(--fg);
+}
+html .reader .reader-bar .ibtn.on { color: var(--fg); }
+html .reader .reader-bar .seg { background: var(--bg-3); }
+html .reader .reader-bar .seg button.active { background: var(--fg); color: var(--bg); }

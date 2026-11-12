@@ -5,7 +5,7 @@ import { fmtTime, getPrefs } from '../api'
 import { Thumb } from '../pages/DiscSections'
 import { announce } from '../a11y'
 import { SPEEDS, setSpeed } from './speed'
-import { IconAngle, IconAudio, IconChapters, IconClose, IconFull, IconMute, IconNext, IconPause, IconPlay, IconPrev, IconRemote, IconSettings, IconSubs, IconVolume } from '../icons'
+import { IconAngle, IconAudio, IconChapters, IconClose, IconFull, IconMute, IconInfo, IconMore, IconNext, IconPause, IconPlay, IconPrev, IconRemote, IconSettings, IconSubs, IconVolume } from '../icons'
 
 export type TrackOpt = { id: number; label: string; active: boolean }
 
@@ -37,6 +37,9 @@ type Props = {
   disc?: boolean // the keyboard help lists the disc keys
   copy?: boolean // a copy of a disc's film: N and P step through its chapters
   offset?: number // media time -> displayed time offset
+  // The chip beside the pickers ("4K", "720p"): what the picture is, and a press says how it is playing.
+  quality?: string
+  onQuality?: () => void
 }
 
 export { SPEEDS, setSpeed }
@@ -68,9 +71,11 @@ export function useVideoState(video: React.RefObject<HTMLVideoElement | null>) {
 }
 
 export function Controls({ video, duration, chapters = [], chapterNames, chapterThumb, onSeek, onPrev, onNext, audio, subtitles, onAudio, onSubtitle, onPick, angles = 1,
-  onFullscreen, onSettings, remoteOn, onRemote, showSeek = true, showChapterMarks = true, extra, offset = 0, disc = false, copy = false }: Props) {
+  onFullscreen, onSettings, remoteOn, onRemote, showSeek = true, showChapterMarks = true, extra, offset = 0, disc = false, copy = false, quality, onQuality }: Props) {
   const st = useVideoState(video)
-  const [pop, setPop] = useState<'audio' | 'subs' | 'chapters' | 'speed' | null>(null)
+  const [pop, setPop] = useState<'audio' | 'subs' | 'chapters' | 'speed' | 'more' | null>(null)
+  // Where the pointer is on the timeline, or being dragged to (0 to 1): the time and scene there are shown above it.
+  const [aim, setAim] = useState<{ f: number; drag: boolean } | null>(null)
   const [maxSpeed, setMaxSpeed] = useState(4)
   const [rate, setRate] = useState(() => video.current?.playbackRate || 1)
   useEffect(() => { getPrefs().then((p) => setMaxSpeed(p.maxSpeed || 4)).catch(() => {}) }, [])
@@ -126,9 +131,20 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
   const pct = duration > 0 ? Math.min(100, (t / duration) * 100) : 0
   const bpct = duration > 0 ? Math.min(100, ((st.buffered + offset) / duration) * 100) : 0
   const toggle = () => { const v = video.current; if (!v) return; v.paused ? v.play().catch(() => {}) : v.pause() }
-  const seekAt = (e: React.MouseEvent) => {
+  const fracAt = (e: React.PointerEvent | React.MouseEvent) => {
     const r = seekRef.current!.getBoundingClientRect()
-    const f = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width))
+    return Math.min(1, Math.max(0, (e.clientX - r.left) / r.width))
+  }
+  // Pressing and dragging scrubs: the knob follows, and the place is asked for once, on release.
+  const seekDown = (e: React.PointerEvent) => {
+    if (e.button !== 0) return
+    e.currentTarget.setPointerCapture(e.pointerId)
+    setAim({ f: fracAt(e), drag: true })
+  }
+  const seekMove = (e: React.PointerEvent) => setAim((a) => ({ f: fracAt(e), drag: !!a?.drag }))
+  const seekUp = (e: React.PointerEvent) => {
+    const f = fracAt(e)
+    setAim(e.pointerType === 'mouse' ? { f, drag: false } : null)
     onSeek(f * duration)
   }
   // Keyboard/remote seeking while the timeline has focus.
@@ -144,42 +160,57 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
   return (
     <div className="bottom" onClick={(e) => e.stopPropagation()}>
       {showSeek && (
-        <div className="seek" ref={seekRef} onClick={seekAt} tabIndex={0} role="slider" aria-label="Position" aria-valuemin={0}
+        <div className={'seek' + (aim?.drag ? ' scrubbing' : '')} ref={seekRef} onPointerDown={seekDown} onPointerMove={seekMove} onPointerUp={seekUp} onPointerLeave={() => setAim((a) => (a?.drag ? a : null))} onPointerCancel={() => setAim(null)} tabIndex={0} role="slider" aria-label="Position" aria-valuemin={0}
           aria-valuemax={Math.round(duration)} aria-valuenow={Math.round(t)} aria-valuetext={`${fmtTime(t)} of ${fmtTime(duration)}`} onKeyDown={seekKey}>
           <div className="track" />
           <div className="buf" style={{ width: bpct + '%' }} />
-          <div className="fill" style={{ width: pct + '%' }} />
+          <div className="fill" style={{ width: (aim?.drag ? aim.f * 100 : pct) + '%' }} />
           {showChapterMarks && duration > 0 && chapters.slice(1).map((c, i) => <div key={i} className="chap" style={{ left: (c / duration) * 100 + '%' }} title={chapName(i + 1)} />)}
-          <div className="knob" style={{ left: pct + '%' }} />
+          <div className="knob" style={{ left: (aim?.drag ? aim.f * 100 : pct) + '%' }} />
+          {aim && duration > 0 && <SeekTip f={aim.f} duration={duration} chapters={chapters} name={chapName} thumb={chapterThumb} />}
         </div>
       )}
       <div className="ctl">
-        {onPrev && <button className="ibtn chap-step" onClick={onPrev} title="Previous scene"><IconPrev /></button>}
-        <button className="ibtn big" onClick={toggle} title={st.playing ? 'Pause (Space)' : 'Play (Space)'} aria-label={st.playing ? 'Pause' : 'Play'}>{st.playing ? <IconPause /> : <IconPlay />}</button>
-        {onNext && <button className="ibtn chap-step" onClick={onNext} title="Next scene"><IconNext /></button>}
-        <button className="ibtn hide-narrow" onClick={() => { const v = video.current; if (v) v.muted = !v.muted }} title="Mute (M)" aria-label="Mute" aria-pressed={st.muted}>{st.muted || st.volume === 0 ? <IconMute /> : <IconVolume />}</button>
-        <input className="range vol hide-narrow" type="range" min={0} max={1} step={0.02} value={st.muted ? 0 : st.volume} aria-label="Volume" aria-valuetext={st.muted ? 'Muted' : `${Math.round(st.volume * 100)}%`}
-          onChange={(e) => { const v = video.current; if (v) { v.volume = Number(e.target.value); v.muted = false } }} style={{ '--pct': (st.muted ? 0 : st.volume * 100) + '%' } as React.CSSProperties} />
-        <span className="time" aria-hidden="true">
-          {fmtTime(t)}{showSeek ? ` / ${fmtTime(duration)}` : ''}
-          {!showSeek && chapters.length > 1 ? ` · ${chapName(Math.max(0, curChapter - 1))}` : ''}
-        </span>
-        <div className="spacer" />
-        {extra}
-        <button className="btn sm speed-btn" title="Playback speed (< and >)" aria-label={`Playback speed ${rate} times`} onClick={() => setPop(pop === 'speed' ? null : 'speed')}>{rate}×</button>
-        {chapters.length > 1 && <button className={'ibtn' + (pop === 'chapters' ? ' on' : '')} title="Scenes" aria-expanded={pop === 'chapters'} onClick={() => setPop(pop === 'chapters' ? null : 'chapters')}><IconChapters /></button>}
-        {audio && audio.length > 1 && <button className="ibtn" title="Audio & language" onClick={() => (onPick ? onPick('audio') : setPop(pop === 'audio' ? null : 'audio'))}><IconAudio /></button>}
-        {subtitles && subtitles.length > 0 && <button className="ibtn" title="Subtitles" onClick={() => (onPick ? onPick('subtitle') : setPop(pop === 'subs' ? null : 'subs'))}><IconSubs /></button>}
-        {onPick && angles > 1 && <button className="ibtn" title="Video version (camera angle)" onClick={() => onPick('angle')}><IconAngle /></button>}
-        {onRemote && (
-          <button className={'btn sm remote-toggle' + (remoteOn ? ' primary' : '')} onClick={onRemote} aria-pressed={remoteOn} title="Show or hide the on-screen remote (r)">
-            <IconRemote /> <span>Remote</span>
-          </button>
-        )}
-        {onSettings && <button className="ibtn" title="Viewing settings" onClick={onSettings}><IconSettings /></button>}
-        <button className="ibtn hide-narrow kbd-help" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts" aria-haspopup="dialog" onClick={() => setHelp(true)}>?</button>
-        <button className="ibtn" title="Fullscreen (F)" aria-label="Fullscreen" onClick={onFullscreen}><IconFull /></button>
+        <div className="ctl-left">
+          <span className="time" aria-hidden="true">
+            {fmtTime(t)}{showSeek ? ` / ${fmtTime(duration)}` : ''}
+            {!showSeek && chapters.length > 1 ? ` · ${chapName(Math.max(0, curChapter - 1))}` : ''}
+          </span>
+          <button className="ibtn hide-narrow" onClick={() => { const v = video.current; if (v) v.muted = !v.muted }} title="Mute (M)" aria-label="Mute" aria-pressed={st.muted}>{st.muted || st.volume === 0 ? <IconMute /> : <IconVolume />}</button>
+          <input className="range vol hide-narrow" type="range" min={0} max={1} step={0.02} value={st.muted ? 0 : st.volume} aria-label="Volume" aria-valuetext={st.muted ? 'Muted' : `${Math.round(st.volume * 100)}%`}
+            onChange={(e) => { const v = video.current; if (v) { v.volume = Number(e.target.value); v.muted = false } }} style={{ '--pct': (st.muted ? 0 : st.volume * 100) + '%' } as React.CSSProperties} />
+        </div>
+        <div className="ctl-mid" role="group" aria-label="Playback">
+          {onPrev && <button className="cbtn chap-step" onClick={onPrev} title="Previous chapter, or the start" aria-label="Previous"><IconPrev /><span className="lbl">Prev</span></button>}
+          <button className="cbtn step" onClick={() => onSeek(Math.max(0, t - 10))} title="Back 10 seconds (←)" aria-label="Back 10 seconds"><span className="lbl">−10</span></button>
+          <button className="ibtn big play" onClick={toggle} title={st.playing ? 'Pause (Space)' : 'Play (Space)'} aria-label={st.playing ? 'Pause' : 'Play'}>{st.playing ? <IconPause /> : <IconPlay />}</button>
+          <button className="cbtn step" onClick={() => onSeek(Math.min(duration || t + 30, t + 30))} title="Forward 30 seconds" aria-label="Forward 30 seconds"><span className="lbl">+30</span></button>
+          {onNext && <button className="cbtn chap-step" onClick={onNext} title="Next chapter, or the next one" aria-label="Next"><span className="lbl">Next</span><IconNext /></button>}
+        </div>
+        <div className="ctl-right">
+          {extra}
+          {audio && audio.length > 1 && <button className="cbtn" title="Audio & language" aria-label="Audio and language" onClick={() => (onPick ? onPick('audio') : setPop(pop === 'audio' ? null : 'audio'))}><IconAudio /><span className="lbl">Audio</span></button>}
+          {subtitles && subtitles.length > 0 && <button className="cbtn" title="Subtitles" aria-label="Subtitles" onClick={() => (onPick ? onPick('subtitle') : setPop(pop === 'subs' ? null : 'subs'))}><IconSubs /><span className="lbl">Subtitles</span></button>}
+          {onPick && angles > 1 && <button className="cbtn" title="Video version (camera angle)" aria-label="Video version" onClick={() => onPick('angle')}><IconAngle /><span className="lbl">Angle</span></button>}
+          {quality && <button className="cbtn chip-q" title="How this is playing (I)" aria-label={`Picture ${quality}. How this is playing`} onClick={onQuality} disabled={!onQuality}><span className="lbl always">{quality}</span></button>}
+          <button className="cbtn chip-s" title="Playback speed (< and >)" aria-label={`Playback speed ${rate} times`} aria-expanded={pop === 'speed'} onClick={() => setPop(pop === 'speed' ? null : 'speed')}><span className="lbl always">{rate}×</span></button>
+          {chapters.length > 1 && <button className={'cbtn' + (pop === 'chapters' ? ' on' : '')} title="Scenes" aria-label="Chapters" aria-expanded={pop === 'chapters'} onClick={() => setPop(pop === 'chapters' ? null : 'chapters')}><IconChapters /><span className="lbl">Chapters</span></button>}
+          {onRemote && (
+            <button className={'cbtn remote-toggle' + (remoteOn ? ' on' : '')} onClick={onRemote} aria-pressed={remoteOn} title="Show or hide WittyRemote (R)">
+              <IconRemote /><span className="lbl">WittyRemote</span>
+            </button>
+          )}
+          <button className={'cbtn more' + (pop === 'more' ? ' on' : '')} title="More" aria-label="More" aria-haspopup="menu" aria-expanded={pop === 'more'} onClick={() => setPop(pop === 'more' ? null : 'more')}><IconMore /></button>
+          <button className="ibtn" title="Full screen (F)" aria-label="Full screen" onClick={onFullscreen}><IconFull /></button>
+        </div>
       </div>
+      {pop === 'more' && (
+        <div className="popover more-pop" role="menu" aria-label="More">
+          {onSettings && <button role="menuitem" onClick={() => { setPop(null); onSettings() }}><IconSettings /> Viewing settings</button>}
+          {onQuality && <button role="menuitem" onClick={() => { setPop(null); onQuality() }}><IconInfo /> How this is playing</button>}
+          <button role="menuitem" onClick={() => { setPop(null); setHelp(true) }}><span className="kbd-help" aria-hidden="true">?</span> Keyboard shortcuts</button>
+        </div>
+      )}
       {pop === 'audio' && audio && (
         <div className="popover"><h4>Audio</h4>{audio.map((a) => <button key={a.id} className={a.active ? 'active' : ''} onClick={() => { onAudio?.(a.id); setPop(null) }}>{a.label}</button>)}</div>
       )}
@@ -199,6 +230,19 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
         <ScenePanel chapters={chapters} name={chapName} thumb={chapterThumb} current={curChapter - 1}
           onPick={(c) => { onSeek(c); setPop(null) }} onClose={() => setPop(null)} />
       )}
+    </div>
+  )
+}
+
+// SeekTip: the time under the pointer on the timeline, and the scene it falls in, with its picture when there are pictures.
+function SeekTip({ f, duration, chapters, name, thumb }: { f: number; duration: number; chapters: number[]; name: (i: number) => string; thumb?: (i: number) => string }) {
+  const at = f * duration
+  const cur = chapters.length > 1 ? Math.max(0, chapters.filter((c) => c <= at + 0.5).length - 1) : -1
+  return (
+    <div className="seek-tip" style={{ left: `clamp(4.5rem, ${f * 100}%, calc(100% - 4.5rem))` }} aria-hidden="true">
+      {cur >= 0 && thumb && <span className="seek-tip-pic"><Thumb src={thumb(cur)} /></span>}
+      <span className="seek-tip-time">{fmtTime(at)}</span>
+      {cur >= 0 && <span className="seek-tip-chap">{name(cur)}</span>}
     </div>
   )
 }

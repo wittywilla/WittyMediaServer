@@ -181,8 +181,19 @@ function CustomParts({ look }: { look: Look }) {
   )
 }
 
+// One thing to show or hide: the whole row is the switch, its state said in words at the end (never by colour alone).
+function SwitchRow({ label, hint, on, onChange }: { label: string; hint?: string; on: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button type="button" role="switch" aria-checked={on} className={'ctv-switch-row' + (on ? ' on' : '')} onClick={() => onChange(!on)}>
+      <span className="ctv-switch-text"><b>{label}</b>{hint && <small>{hint}</small>}</span>
+      <span className="ctv-switch-state">{on ? 'On' : 'Off'}</span>
+    </button>
+  )
+}
+
 const ThemePick = ({ look }: { look: Look }) => (
-  <section aria-label="Theme">
+  <section aria-labelledby="ctv-theme-h">
+    <h3 id="ctv-theme-h">WittyTV look</h3>
     <ThemeCards look={look} />
     <WhoChose look={look} />
   </section>
@@ -219,16 +230,16 @@ export function LookEditor({ look, inSettings }: { look: Look; inSettings?: bool
         <Choice<PageSize> label="Channels at a time" value={guidePrefs.pageSize} onChange={(v) => setGuidePrefs({ pageSize: v })} options={PAGE_SIZES.map((n) => ({ v: n, label: pageSizeName(n) }))}
           hint="A number shows that many channels, with Previous and Next, Page Up and Page Down. All scrolls through every channel. Kept on this device." />
         <Choice label="Hours across the screen" value={look.hours} onChange={(v) => setLook({ hours: v })} options={[{ v: 0, label: 'What fits' }, { v: 1.5, label: '1½' }, { v: 2, label: '2' }, { v: 3, label: '3' }, { v: 4, label: '4' }]} />
-        <fieldset className="ctv-choice">
-          <legend>Show</legend>
-          <div className="ctv-choice-checks">
-            <label><input type="checkbox" checked={look.nowLine} onChange={(e) => setLook({ nowLine: e.target.checked })} /> A line at the current time, down all channels</label>
-            <label><input type="checkbox" checked={look.progress} onChange={(e) => setLook({ progress: e.target.checked })} /> How far into each programme it is</label>
-            <label><input type="checkbox" checked={look.subtitles} onChange={(e) => setLook({ subtitles: e.target.checked })} /> Episode names and details in the rows</label>
-            <label><input type="checkbox" checked={look.logos} onChange={(e) => setLook({ logos: e.target.checked })} /> Channel logos</label>
-            <label><input type="checkbox" checked={look.art} onChange={(e) => setLook({ art: e.target.checked })} /> The programme's picture at the top, in the themes that have one</label>
+        <section className="ctv-show" aria-labelledby="ctv-show-h">
+          <h3 id="ctv-show-h">Show</h3>
+          <div className="ctv-switch-rows" role="group" aria-label="Show" data-nav-group>
+            <SwitchRow label="A line at the current time" hint="Down all channels" on={look.nowLine} onChange={(v) => setLook({ nowLine: v })} />
+            <SwitchRow label="How far into each programme" hint="On the cells that are on now" on={look.progress} onChange={(v) => setLook({ progress: v })} />
+            <SwitchRow label="Episode names and details" hint="In the rows" on={look.subtitles} onChange={(v) => setLook({ subtitles: v })} />
+            <SwitchRow label="Channel logos" hint="Contain-fit, never cropped" on={look.logos} onChange={(v) => setLook({ logos: v })} />
+            <SwitchRow label="The programme's picture at the top" hint="In the themes that have one" on={look.art} onChange={(v) => setLook({ art: v })} />
           </div>
-        </fieldset>
+        </section>
         <BackgroundPlayChoice />
         {inSettings ? <p className="ctv-colour-note"><Link to="/tv">See it on the guide</Link></p> : <p className="ctv-colour-note">This is also in <Link to="/settings/appearance#wittytv">Settings, Appearance</Link>.</p>}
       </section>
@@ -238,9 +249,10 @@ export function LookEditor({ look, inSettings }: { look: Look; inSettings?: bool
 
 export default function LookPanel({ look, onClose }: { look: Look; onClose: () => void }) {
   return (
-    <Sheet className="ctv-look" title="Look of WittyTV" onClose={onClose}
+    <Sheet className="ctv-look" title="How the guide looks" onClose={onClose}
       actions={<><Button variant="ghost" onClick={resetLook}>Back to how it started</Button><Button variant="primary" onClick={onClose}>Done</Button></>}>
-      <p className="muted">Changes show straight away, and follow you to your other devices.</p>
+      <p className="ctv-eyebrow">WittyTV · Look</p>
+      <p className="muted">This changes only WittyTV. Everything else keeps the look and theme you chose. Changes show straight away, and follow you to your other devices.</p>
       <LookEditor look={look} />
     </Sheet>
   )

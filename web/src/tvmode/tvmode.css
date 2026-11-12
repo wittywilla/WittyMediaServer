@@ -238,3 +238,8 @@ html.tv-mode .dock .key-legend kbd { font-size: var(--tvm-label); padding: 0 cal
 html.tv-mode .dock:not(.ctv-dock) .dock-btn { min-height: var(--tvm-pill-h); font-size: var(--tvm-body); padding: 0 calc(var(--tvu) * 32); gap: calc(var(--tvu) * 12); }
 /* A card lifts as it takes focus (tv.focus lift 6), on top of the 1.06 scale. */
 @media (prefers-reduced-motion: no-preference) { html.tv-mode .card:focus-visible .poster { translate: 0 calc(-1 * var(--tvm-lift)); } }
+
+/* The server's name, left of the pills (a side menu keeps only its mark). */
+.tvm-bar:not(.tvm-side) { display: flex; align-items: center; gap: calc(var(--tvu) * 32); }
+.tvm-brand { display: inline-flex; align-items: center; gap: calc(var(--tvu) * 12); flex: none; font-size: calc(var(--tvu) * 30); font-weight: 700; }
+.tvm-side .tvm-brand { justify-content: center; margin-bottom: calc(var(--tvu) * 24); }

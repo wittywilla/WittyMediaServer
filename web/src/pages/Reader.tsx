@@ -9,6 +9,7 @@ import { toast } from '../state'
 import { reportClient } from '../errorReport'
 import { BundledReaderView, useBundledReader } from '../moduleBundles'
 import { useBookRemote } from '../remote/pageTargets'
+import './reader.css'
 
 // Books libraries in WittyMediaServer: the WittyEbook, WittyPDF and
 // WittyComics readers, with a host that saves the place and notes per account

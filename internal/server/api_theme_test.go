@@ -4,6 +4,7 @@
 package server
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -228,5 +229,62 @@ func TestThemeVariants(t *testing.T) {
 	}
 	if onLight == 0 || onDark != 0 {
 		t.Errorf("near-white text should be warned about on the light look only: %+v", th.Warnings)
+	}
+}
+
+// A look brings its default theme until the administrator picks a different one: the first-run
+// steps save the theme of the look just chosen (and the Theme step the one on show) and that
+// must not pin it, or the next look would keep the colours of the first.
+func TestLookBringsItsDefaultTheme(t *testing.T) {
+	ts, admin, adult, _ := sduiAccounts(t)
+	if err := ts.Themes.Install(builtin.Builtin); err != nil {
+		t.Fatal(err)
+	}
+	status := func() string {
+		var st struct{ Theme string }
+		if err := json.Unmarshal(ts.do(t, "GET", "/api/status", "", nil).Body.Bytes(), &st); err != nil {
+			t.Fatal(err)
+		}
+		return st.Theme
+	}
+	setLook := func(id string) {
+		t.Helper()
+		pol := map[string]any{"default": map[string]string{"web": id, "desktop": id, "tablet": id, "phone": id, "tv": id}}
+		w := ts.do(t, "GET", "/api/sdui/config/experience", admin, nil)
+		var cur struct{ ETag string }
+		_ = json.Unmarshal(w.Body.Bytes(), &cur)
+		etag := cur.ETag
+		if w := ts.do(t, "PUT", "/api/sdui/config/experience", admin, pol, "If-Match", etag); w.Code != 200 {
+			t.Fatalf("look %s: %d %s", id, w.Code, w.Body)
+		}
+	}
+	themeOf := func() string { return decode[ResolvedTheme](t, ts.do(t, "GET", "/api/theme", adult, nil)).ID }
+	setLook("paper")
+	if status() != "paper" || themeOf() != "paper" {
+		t.Fatalf("paper brings its theme: status %q, theme %q", status(), themeOf())
+	}
+	// The wizard saves the look's theme, and the Theme step the one on show: neither pins it.
+	for _, th := range []string{"paper", status()} {
+		if w := ts.do(t, "PUT", "/api/settings", admin, map[string]string{"theme": th}); w.Code != 200 {
+			t.Fatalf("settings: %d %s", w.Code, w.Body)
+		}
+	}
+	setLook("classicCable")
+	if themeOf() != "cable" || status() != "cable" {
+		t.Errorf("the next look keeps the first's colours: %q", themeOf())
+	}
+	// A different theme is a choice, and stays through looks; "" goes back to following the look.
+	if w := ts.do(t, "PUT", "/api/settings", admin, map[string]string{"theme": "midnight"}); w.Code != 200 {
+		t.Fatalf("settings: %d %s", w.Code, w.Body)
+	}
+	setLook("rail")
+	if themeOf() != "midnight" {
+		t.Errorf("a chosen theme: %q", themeOf())
+	}
+	if w := ts.do(t, "PUT", "/api/settings", admin, map[string]string{"theme": ""}); w.Code != 200 {
+		t.Fatalf("settings: %d %s", w.Code, w.Body)
+	}
+	if themeOf() != "cinema" {
+		t.Errorf("following the look again: %q", themeOf())
 	}
 }

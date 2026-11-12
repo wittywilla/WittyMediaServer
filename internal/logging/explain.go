@@ -33,7 +33,7 @@ var explainRules = sync.OnceValue(func() []explainRule {
 			"Emulators run on this Mac need Accessibility permission to receive key presses and controller input, and macOS hasn't given it.",
 			"Open System Settings, Privacy & Security, Accessibility, turn it on for the program that runs the server, then start the server again."}},
 		{regexp.MustCompile(`(?i)no stem separator|stem separator.*(missing|not found)`), Explanation{"separator-missing", "No vocal separator is installed",
-			"Karaoke needs Demucs or Spleeter to separate a song's vocals, and neither was found.",
+			"Karaoke needs Demucs, Spleeter or audio-separator to separate a song's vocals, and none was found.",
 			"Install Demucs (pip install demucs) or Spleeter for the account that runs the server. Until then songs get an approximate instrumental."}},
 		{regexp.MustCompile(`(?i)peer-to-peer test step.*state=fail|no relay holds a place|peer-to-peer.*(couldn't|could not) (start|reach)`), Explanation{"p2p-unreachable", "Devices away from home can't reach this server peer to peer",
 			"Computers outside your network couldn't connect directly, and no relay is carrying the connection.",

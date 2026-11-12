@@ -245,8 +245,8 @@ func checkSeparator(ctx context.Context, e *DoctorEnv) []Issue {
 		return nil
 	}
 	return []Issue{{Key: "separator", Severity: SevWarn, Safety: SafetyManual, Title: "Karaoke can't separate vocals: no separator was found",
-		What:  fmt.Sprintf("Neither Demucs nor Spleeter was found in the %d places the server looks. Songs get an approximate instrumental, made by cancelling the centre of the mix, instead.", s.Looked),
-		Steps: []string{"Install Demucs (pip install demucs) or Spleeter for the account that runs the server.", "Start the server again, or open Settings, Music, Karaoke, so it looks again."}}}
+		What:  fmt.Sprintf("None of Demucs, Spleeter or audio-separator was found in the %d places the server looks. Songs get an approximate instrumental, made by cancelling the centre of the mix, instead.", s.Looked),
+		Steps: []string{"Install Demucs (pip install demucs), Spleeter or audio-separator for the account that runs the server.", "Start the server again, or open Settings, Music, Karaoke, so it looks again."}}}
 }
 
 func checkChannels(ctx context.Context, e *DoctorEnv) []Issue {

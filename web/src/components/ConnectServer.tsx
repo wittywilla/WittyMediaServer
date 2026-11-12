@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { useState } from 'react'
-import { HelpLink } from './HelpLink'
 import { api, normalizeServer, serverBase, setServerBase } from '../api'
 import { Brand, BrandMark } from './common'
 import LegalNote from './LegalNote'
+import SpecPage from '../spec/SpecPage'
+import { handledIds } from '../spec/model'
+import { connectSpec } from '../spec/specs/connect'
+import { isSubmitKey } from '../spec/specs/submit'
 
 // The apps' choice of server: the web pages come with the app, so it has to
 // be told where the server is, at home or outside. In a browser this is never
@@ -20,8 +23,7 @@ export default function ConnectServer({ onCancel }: { onCancel?: () => void }) {
   const url = normalizeServer(addr)
   let insecure = false
   try { const u = new URL(url); insecure = u.protocol === 'http:' && !privateHost(u) } catch { /* not an address yet */ }
-  const connect = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const connect = async () => {
     setErr('')
     setBusy(true)
     const before = serverBase()
@@ -36,23 +38,16 @@ export default function ConnectServer({ onCancel }: { onCancel?: () => void }) {
       setBusy(false)
     }
   }
+  const page = connectSpec({ address: addr, busy, error: err, insecure, hasCancel: !!onCancel })
+  const act = (id: string) => { if (id === 'cancel') onCancel?.(); else if (!busy && addr.trim()) void connect() }
+  const field = (_id: string, v: string | number | boolean | File) => setAddr(String(v))
   return (
     <div className="center">
-      <form className="auth-card" onSubmit={connect}>
+      <div className="auth-spec" onKeyDown={(e) => { if (isSubmitKey(e)) { e.preventDefault(); act('connect') } }}>
         <div className="brand"><BrandMark /><Brand name="" /></div>
-        <p>Enter your server's address. <HelpLink to="apps">Where to find it</HelpLink></p>
-        <div className="form">
-          <label>Server address
-            <input className="input" autoFocus inputMode="url" autoCapitalize="none" spellCheck={false} placeholder="https://media.example.com" value={addr} onChange={(e) => setAddr(e.target.value)} />
-          </label>
-          <small className="muted">At home, that's the address shown in the server's settings, such as http://192.168.1.10:9797. Away from home, it's the address from Settings → Remote Access.</small>
-          {insecure && <div className="error" role="alert">This address isn't encrypted. Don't use it over the internet: your password could be read on the way. Use an https:// address or a VPN.</div>}
-          {err && <div className="error" role="alert">{err}</div>}
-          <button className="btn primary" disabled={busy || !addr.trim()} style={{ justifyContent: 'center' }}>{busy ? 'Connecting…' : 'Connect'}</button>
-          {onCancel && <button type="button" className="btn ghost" onClick={onCancel} style={{ justifyContent: 'center' }}>Cancel</button>}
-          <LegalNote kind="connect" />
-        </div>
-      </form>
+        <SpecPage page={page} handled={handledIds(page)} onAction={act} onField={field} />
+        <LegalNote kind="connect" />
+      </div>
     </div>
   )
 }

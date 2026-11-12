@@ -107,3 +107,7 @@ Known issues / not verified:
 - QA D16 (rail marks Settings current on Home in Compact and Dashboard) not reproduced in code: NavLink "/settings" cannot match "/". Needs a look in a browser. Search order on the TV bar (D4) comes from the server menu, not changed.
 - Server name in a fixed colour that fails contrast against its bar still needs the theme engine's warning (server side).
 - Seek preview pictures exist only where `chapterThumb` is given (discs); plain files show time and chapter name. The "mini player" and next-episode card keep their earlier layout.
+
+### W13 round 2
+Built (no live server, light slots were all taken for 15+ minutes): player errors classified (`player/errors.ts`: network, decode, unsupported, ended, subtitles) with a way forward and "Play it converted"; next-episode card (8 s bar, Play now, Watch the credits; appears only in the last 15% of a short file, D12); Viewing settings grouped with pills; mini player progress line; look marks for Rail (title-on-art), Big picture (type, focus), Satellite (silver bars), Retro, Paper; gloss paint kept at the recipe's stops with W7's darker gloss colours carrying contrast.
+Still not verified in a browser against a real server: everything listed under round 1 "Not verified", plus D16 (Settings marked current on Home in Compact and Dashboard: code shows no cause; reproduce in a browser) and the 17-look side-by-side comparison.

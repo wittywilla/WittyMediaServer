@@ -66,7 +66,6 @@
 .rd-status, .rd-about { margin: 0; }
 .rd-about { max-width: 70ch; color: var(--fg-2); line-height: var(--leading-body); overflow-wrap: anywhere; }
 .rd-page .chips { margin-bottom: 0; }
-.rd-address { margin: 0 0 var(--sp-3); font-family: var(--font-mono); font-size: var(--text-xs); color: var(--fg-2); overflow-wrap: anywhere; }
 
 @media (max-width: 600px) {
   .rd-head { flex-direction: column; gap: var(--sp-4); }

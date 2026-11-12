@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* The layout editor (ShellEditor.tsx). */
 .modal.ui-dialog.layout-editor { width: min(1280px, calc(100vw - 32px)); max-width: none; max-height: calc(100vh - 32px); overflow-y: auto; }
 .le-top { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-4); }

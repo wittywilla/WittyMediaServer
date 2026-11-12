@@ -1,49 +1,14 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 /* Copyright (C) 2026 WittyWilla and contributors */
-/* Signing a TV in: the two ways round, side by side when there's room. */
-.pair-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: var(--sp-4); max-width: 900px; align-items: start; }
-.pair-ask { max-width: 560px; }
-.pair-code { margin: var(--sp-2) 0; font-size: var(--text-5xl); font-weight: var(--weight-heading); letter-spacing: .12em; font-variant-numeric: tabular-nums; }
-.pair-print { margin-top: var(--sp-5); font-size: var(--text-sm); }
-.pair-pin { max-width: 12ch; font-size: var(--text-2xl); letter-spacing: .3em; font-variant-numeric: tabular-nums; }
-/* Fields that come and go under a panel's text (who to sign in as, the password again) keep their distance. */
-.pair-grid .panel > .form, .pair-grid .panel > .error { margin-top: var(--sp-3); }
-/* This device asking to be signed in: the QR code, the PIN beside or under it, and how long the PIN has left. */
-.auth-card.pair-device { max-width: 440px; text-align: center; }
-.auth-card.pair-device.ended { max-width: 380px; }
-.pair-device h2 { margin: 0 0 var(--sp-4); }
-.pair-device p { margin: 0; }
-.pair-device.ended p { margin-bottom: var(--sp-5); }
-.pair-device .panel-actions { justify-content: center; }
-.pair-device-body { display: grid; gap: var(--sp-4); justify-items: center; }
-.pair-qr { display: grid; gap: var(--sp-2); justify-items: center; min-width: 0; }
-.pair-address { font-size: var(--text-sm); overflow-wrap: anywhere; }
-.pair-address b { color: var(--fg); }
-.pair-how { display: grid; gap: var(--sp-2); justify-items: center; min-width: 0; }
-.pair-steps { margin: 0 0 var(--sp-2); padding-left: var(--sp-5); text-align: left; }
-.pair-steps li + li { margin-top: var(--sp-1); }
-.pair-inline { font-variant-numeric: tabular-nums; letter-spacing: .08em; white-space: nowrap; }
-.pair-device p.pair-code { margin: 0; color: var(--fg); line-height: 1.1; }
+/* Signing a TV in. The pages are drawn from specs (spec/specs/pair.ts); this is what they add: the countdown, and
+   a code and PIN as big as a TV needs. */
 .qr { width: min(60vw, 240px); height: auto; border-radius: var(--r-sm); }
 .qr-paper { fill: #ffffff; } /* design-ok: a QR code is dark on light whatever the theme, as cameras read nothing else */
 .qr-ink { fill: #000000; } /* design-ok: as above */
-.pair-countdown { width: min(60vw, 240px); height: 6px; accent-color: var(--accent); }
-/* With room beside it (a computer's screen), the code on the left and what to do on the right. */
-@media (min-width: 860px) and (min-height: 520px) {
-  .auth-card.pair-device:not(.ended) { max-width: 760px; }
-  .pair-device-body { grid-template-columns: auto minmax(0, 1fr); gap: var(--sp-8); align-items: center; }
-  .pair-how { justify-items: start; text-align: left; }
-  .qr { width: 280px; }
-}
-/* On a TV the code is read by a phone's camera from the sofa and the PIN by eye: both as big
-   as the screen allows, and nothing here needs more than OK or Back on the remote. */
-html.tv-mode .auth-card.pair-device:not(.ended) { width: min(94vw, calc(var(--tvu) * 1560)); max-width: none; padding: 0; }
-html.tv-mode .auth-card.pair-device .btn.primary { width: auto; }
-html.tv-mode .pair-device h2 { font-size: var(--tvm-headline); margin-bottom: calc(var(--tvu) * 36); }
-html.tv-mode .pair-device-body { grid-template-columns: auto minmax(0, 1fr); gap: calc(var(--tvu) * 72); align-items: center; }
-html.tv-mode .pair-how { justify-items: start; text-align: left; gap: calc(var(--tvu) * 16); }
-html.tv-mode .qr { width: min(58vh, 42vw); border-radius: var(--r-md); }
-html.tv-mode .pair-steps, html.tv-mode .pair-device .panel-note, html.tv-mode .pair-address { font-size: var(--tvm-body); }
-html.tv-mode .pair-device p.pair-code { color: var(--fg); font-size: calc(var(--tvu) * 112); letter-spacing: .14em; white-space: nowrap; }
+.pair-countdown { display: block; width: min(60vw, 240px); height: 6px; margin: var(--sp-3) auto 0; accent-color: var(--accent); }
+.pair-help { text-align: center; }
+/* On a TV the code is read by a phone's camera from the sofa and the PIN by eye: both as big as the screen
+   allows, and nothing here needs more than OK or Back on the remote. */
+html.tv-mode .pair-device .qr { width: min(58vh, 42vw); border-radius: var(--r-md); }
+html.tv-mode .pair-device .spec-code-chars b { font-size: calc(var(--tvu) * 112); }
 html.tv-mode .pair-countdown { width: min(100%, calc(var(--tvu) * 520)); height: calc(var(--tvu) * 10); }
-html.tv-mode .pair-device .panel-actions { margin-top: calc(var(--tvu) * 40); }

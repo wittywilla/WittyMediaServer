@@ -26,6 +26,7 @@ import { currentParty, usePartySync } from '../remote/party'
 import PartyNote from '../remote/PartyNote'
 import { useRemoteAllowed } from '../remote/allowed'
 import { setSpeed } from './speed'
+import { classifyPlayError } from './errors'
 
 // Opened from the player's top bar, and not before.
 const PlayOn = lazy(() => import('../remote/PlayOn'))
@@ -83,6 +84,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   const burn = want.burn
   const flat3d = !!want.flat3d
   const [err, setErr] = useState('')
+  const errCode = useRef<number | undefined>(undefined)
   const [needClick, setNeedClick] = useState(false)
   const pendingSeek = useRef<number | null>(startAt ?? item.progress?.resumeSec ?? 0)
   const st = useVideoState(video)
@@ -105,7 +107,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
 
   // "Watch next": the next episode of this show, or (end of a show / a
   // movie) a recommendation, loaded once the credits are near.
-  const nearEnd = (info?.durationSec || item.runtimeSec || 0) > 0 && now >= (info?.durationSec || item.runtimeSec) - 30
+  const nearEnd = (info?.durationSec || item.runtimeSec || 0) > 0 && now >= (info?.durationSec || item.runtimeSec) - Math.min(30, (info?.durationSec || item.runtimeSec) * 0.15)
   useEffect(() => {
     if ((!nearEnd && !ended) || next) return
     if (item.nextId) api.get<Item>(`/items/${item.nextId}`).then((it) => setNext({ item: it, recommended: false })).catch(() => {})
@@ -296,7 +298,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
     if (!v) return
     const onFail = () => {
       if (robust && v.error?.code === MediaError.MEDIA_ERR_NETWORK) return // asked for again at the same place (useSource)
-      if (v.error && !convertInstead()) setErr(v.error.message || 'This file can’t be played here.')
+      if (v.error && !convertInstead()) { errCode.current = v.error.code; setErr(v.error.message || 'This file can’t be played here.') }
     }
     v.addEventListener('error', onFail)
     return () => v.removeEventListener('error', onFail)
@@ -474,23 +476,29 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
       {needClick && <div className="big-play"><button onClick={(e) => { e.stopPropagation(); setNeedClick(false); video.current?.play() }}><IconPlay /></button></div>}
       <PartyNote itemId={item.id} video={video} close={chrome.close} quiet={mini} />
       {partyOpen && !mini && <Suspense fallback={null}><PartyPanel onClose={() => setPartyOpen(false)} item={{ id: item.id, title: item.title, kind: item.kind, showId: item.showId, positionSec: () => (video.current?.currentTime || 0) + offset }} /></Suspense>}
-      {err && (
-        <div className="overlay-msg" role="alert">
-          <div className="box play-error" onClick={(e) => e.stopPropagation()}>
-            <h2>This can’t play right now</h2>
-            <p>{err}</p>
-            <div className="play-error-actions">
-              <button className="btn primary" onClick={() => { setErr(''); ask({ reopen: (want.reopen || 0) + 1 }) }}>Try again</button>
-              {info && <button className="btn" onClick={() => setInfoOpen(true)}>How this is playing</button>}
-              <button className="btn ghost" onClick={chrome.close}>Back</button>
+      {err && (() => {
+        const pe = classifyPlayError(err, errCode.current)
+        return (
+          <div className={'overlay-msg kind-' + pe.kind} role="alert">
+            <div className="box play-error" onClick={(e) => e.stopPropagation()}>
+              <h2>{pe.title}</h2>
+              <p>{pe.text}</p>
+              {pe.kind !== 'other' && err !== pe.text && <details><summary>What the player said</summary><p>{err}</p></details>}
+              <div className="play-error-actions">
+                {pe.again && <button className="btn primary" onClick={() => { setErr(''); errCode.current = undefined; ask(pe.convert && info?.decision !== 'transcode' ? { convert: true } : { reopen: (want.reopen || 0) + 1 }) }}>{pe.convert ? 'Play it converted' : 'Try again'}</button>}
+                {!pe.again && <button className="btn primary" onClick={() => { setErr(''); setPicker('subtitle') }}>Choose subtitles</button>}
+                {info && <button className="btn" onClick={() => setInfoOpen(true)}>How this is playing</button>}
+                <button className="btn ghost" onClick={chrome.close}>Back</button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
       <AutoSkip itemId={item.id} video={video} markers={markers || ownIntro} now={now} duration={item.runtimeSec || 0} live={!!info && st.playing && !st.waiting && !pickIntro} mini={mini}
         party={party.active ? (party.room?.canControl ? 'control' : 'follow') : 'none'} seek={seek} nextHref={item.nextId ? nextHref : null} />
       {mini ? (
         <div className="mini-bar" onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
+          {duration > 0 && <div className="mini-progress" role="progressbar" aria-label="Position" aria-valuemin={0} aria-valuemax={Math.round(duration)} aria-valuenow={Math.round(now)}><i style={{ width: Math.min(100, (now / duration) * 100) + '%' }} /></div>}
           <div className="mini-info" onClick={chrome.expand}>
             <div className="mini-title">{item.showTitle || item.title}</div>
             <div className="mini-sub">{item.showTitle ? [episodeLabel(item), item.title].filter(Boolean).join(' · ') : item.year}</div>
@@ -523,20 +531,21 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
           {skip && <button className="btn skip-intro" onClick={(e) => { e.stopPropagation(); seek(skip.to) }}>{skip.label} ›</button>}
           {pickIntro && <PickIntroBar item={item} time={now} mode={pickIntro} />}
           {next && (nearEnd || ended) && !nextDismissed && !party.active && (
-            <div className="watch-next" onClick={(e) => e.stopPropagation()}>
+            <div className="watch-next" role="region" aria-label={upNext != null ? 'Up next' : 'Watch next'} onClick={(e) => e.stopPropagation()}>
               <div className="wn-head">{next.recommended
                 ? (next.show ? `Because you watched ${item.showTitle || item.title}` : 'You might also like')
-                : upNext != null ? `${next.item.showId != null ? 'Next episode' : 'Up next'} in ${upNext}s` : 'Watch next'}</div>
+                : next.item.showId != null ? 'Next episode' : 'Up next'}</div>
               <div className="wn-body" onClick={() => nav(`/play/${next.item.id}`, { replace: true })}>
                 <div className={'wn-thumb' + (next.item.showId != null ? ' wide' : '')}>{next.item.poster && <img src={sized(posterUrl(next.item), fitWidth(240))} alt="" />}</div>
                 <div>
                   <div className="wn-title">{next.show ? next.show.title : next.item.showTitle || next.item.title}</div>
                   <div className="muted" style={{ fontSize: 12 }}>{next.item.showId != null ? [episodeLabel(next.item), next.item.title].filter(Boolean).join(' · ') : next.item.year}</div>
+                  {upNext != null && <div className="wn-count" role="timer" aria-live="off">Plays in {upNext} s<i style={{ '--left': upNext / 8 } as React.CSSProperties} aria-hidden="true" /></div>}
                 </div>
               </div>
               <div className="wn-actions">
-                <button className="btn sm primary" onClick={() => nav(`/play/${next.item.id}`, { replace: true })}><IconPlay /> Play</button>
-                <button className="btn sm ghost" onClick={() => { setNextDismissed(true); setUpNext(null) }}>Dismiss</button>
+                <button className="btn sm primary" onClick={() => nav(`/play/${next.item.id}`, { replace: true })}><IconPlay /> Play now</button>
+                <button className="btn sm ghost" onClick={() => { setNextDismissed(true); setUpNext(null) }}>{upNext != null ? 'Watch the credits' : 'Dismiss'}</button>
               </div>
             </div>
           )}

@@ -9,11 +9,8 @@
 .bk-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); margin-top: var(--sp-3); }
 .bk-actions .btn, .bk-file-actions .btn, .bk-pw .btn, .bk-choose .btn { min-height: max(var(--control-h), 44px); }
 .bk-actions .bk-quiet { display: inline-flex; align-items: center; gap: var(--sp-1); }
-.bk-save { margin-bottom: var(--sp-6); }
 .bk-progress { display: grid; gap: var(--sp-2); padding: var(--sp-2) 0; min-width: 0; }
 .bk-fields { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); padding-top: var(--sp-2); align-items: start; }
-.bk-total { margin: var(--sp-3) 0 0; font-size: var(--text-md); }
-.bk-keep { width: 7rem; }
 
 /* A row of what can be included. The whole row is the target. */
 .bk-parts { margin: 0; padding: 0; border: 0; display: grid; gap: var(--sp-1); min-width: 0; }

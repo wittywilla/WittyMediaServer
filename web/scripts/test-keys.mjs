@@ -183,7 +183,9 @@ async function pageChecks(where) {
 // ---------------------------------------- Tab from the top to the end
 async function tabWalk(where) {
   const all = await tagAll()
-  await page.eval(`document.activeElement?.blur(); window.scrollTo(0, 0)`)
+  // Blurring keeps the browser's place for Tab at the control that had focus, so a page that focuses its own first
+  // field as it opens (the pairing code) would be walked from the middle: the start is put back at the top.
+  await page.eval(`document.activeElement?.blur(); getSelection()?.setPosition(document.body, 0); window.scrollTo(0, 0)`)
   const order = []
   const limit = all.length * 2 + 40
   // A page can put focus on its own content as it opens, so Tab goes on past the end of the page and
@@ -217,11 +219,14 @@ async function tabWalk(where) {
   const outOfOrder = new Set(await page.eval(`[...document.querySelectorAll('[data-k][tabindex="-1"], input[type=radio][data-k]:not(:checked)')].filter((e) => e.type !== 'radio' || document.querySelector('input[type=radio][name="' + e.name + '"]:checked')).map((e) => e.dataset.k)`))
   for (const k of all) if (now.has(k) && !visited.has(k) && !outOfOrder.has(k)) fault(where, `Tab never reaches ${await nameOf(k)}`)
   // Shift+Tab goes back the way it came.
-  if (order.length > 3) {
-    await page.eval(`document.querySelector('[data-k="${order[3]}"]')?.focus()`)
+  // From the middle of the walk: a page that focuses its own field as it opens starts Tab part way round, so the
+  // first controls of the walk can be the last of the page, whose way back is the page's own start.
+  const mid = order.length > 8 ? Math.floor(order.length / 2) : 3
+  if (order.length > mid) {
+    await page.eval(`document.querySelector('[data-k="${order[mid]}"]')?.focus()`)
     await press('Tab', true); await wait(25)
     const back = (await focusNow()).k
-    if (back !== order[2]) fault(where, `Shift+Tab from ${await nameOf(order[3])} goes to ${back ? await nameOf(back) : 'nothing'}, not back to ${await nameOf(order[2])}`)
+    if (back !== order[mid - 1]) fault(where, `Shift+Tab from ${await nameOf(order[mid])} goes to ${back ? await nameOf(back) : 'nothing'}, not back to ${await nameOf(order[mid - 1])}`)
   }
   return order.length
 }

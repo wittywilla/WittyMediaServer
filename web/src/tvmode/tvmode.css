@@ -201,15 +201,10 @@ html.tv-mode .who > .btn { margin-top: calc(var(--tvu) * 8); }
 html.tv-mode .auth-version { font-size: var(--tvm-caption); }
 
 /* The password screen: one centred column. */
-html.tv-mode .auth-card { width: min(calc(var(--tvu) * 640), 100%); max-width: none; background: none; border: 0; box-shadow: none; text-align: center; }
-html.tv-mode .auth-card p { font-size: var(--tvm-body); color: var(--fg-2); }
 html.tv-mode .auth-profile { gap: calc(var(--tvu) * 12); margin-bottom: calc(var(--tvu) * 8); }
 html.tv-mode .auth-profile .avatar-tile.big { width: calc(var(--tvu) * 200); height: calc(var(--tvu) * 200); font-size: calc(var(--tvu) * 86); }
 html.tv-mode .auth-profile h2 { font-size: var(--tvm-title); font-weight: 600; }
 html.tv-mode .auth-profile .who-user { margin-top: calc(var(--tvu) * -8); }
-html.tv-mode .auth-card .form { gap: calc(var(--tvu) * 20); margin-top: calc(var(--tvu) * 32); }
-html.tv-mode .auth-card .btn.primary { width: 100%; }
-html.tv-mode .auth-card small { font-size: var(--tvm-secondary); }
 
 /* ---- the player: TV-size controls */
 html.tv-mode .player .bottom .ibtn, html.tv-mode .player .top .ibtn { width: var(--tvm-pill-h); height: var(--tvm-pill-h); border-radius: 50%; }

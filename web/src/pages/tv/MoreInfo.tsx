@@ -59,7 +59,7 @@ export default function MoreInfo({ channelKey, at, onClose }: { channelKey: stri
         {a.actions.fromStart && <Button onClick={() => { onClose(); nav(`/tv/watch/${ch.key}?from=${Math.floor(p.start)}&to=${Math.floor(p.end)}`, { state: { fromGuide: true } }) }}>Watch from the start</Button>}
         {a.actions.record && <Button onClick={() => void run(() => api.post('/recordings', { channel: ch.key, title: p.title, sub: p.sub, start: p.start, stop: p.end }), `Recording ${p.title}`)}>Record</Button>}
         {a.actions.remind && <Button aria-pressed={reminders.has(ch.key, p.start)} onClick={() => void reminders.toggle(ch.key, programme)}>{reminders.has(ch.key, p.start) ? '✓ Reminder set' : 'Remind me'}</Button>}
-        {a.actions.watchLater && a.library && <Button disabled={a.actions.inList} onClick={() => void run(() => api.post('/collections/watch-later/items', a.library!.showId ? { shows: [a.library!.showId] } : { items: [a.library!.itemId] }), 'Added to your Watchlist')}>{a.actions.inList ? '✓ In your Watchlist' : 'Watchlist'}</Button>}
+        {a.actions.watchLater && <Button disabled={a.actions.inList || !a.library} onClick={() => void run(() => api.post('/collections/watch-later/items', a.library?.showId ? { shows: [a.library.showId] } : { items: [a.library?.itemId] }), 'Added to your Watchlist')}>{a.actions.inList ? '✓ In your Watchlist' : 'Watchlist'}</Button>}
         {a.actions.open && a.library && <Link className="btn" to={a.library.showId ? `/show/${a.library.showId}` : `/item/${a.library.itemId}`} onClick={onClose}>Open item page</Link>}
         <Button variant="ghost" onClick={onClose}>Close</Button>
       </>}>

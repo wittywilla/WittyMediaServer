@@ -296,3 +296,27 @@ button.card { display: block; }
 .sdui-qr .qr { inline-size: var(--qr-size, 160px); block-size: var(--qr-size, 160px); }
 .sdui-qr figcaption { color: var(--fg-2); font-size: var(--text-sm); }
 .sdui-qr-address { overflow-wrap: anywhere; user-select: all; font-size: var(--text-xs); color: var(--fg-2); }
+
+/* ---- Dashboard polish: a greeting, tiles with a picture for what they are, depth, and room to breathe ---- */
+.sdui-greet { margin: 0 0 var(--space-m); font-size: var(--role-heading-size); font-weight: var(--weight-heading); letter-spacing: var(--tracking-heading); color: var(--fg); }
+.sdui-widget { background: linear-gradient(180deg, color-mix(in srgb, var(--elev-1-fill) 92%, var(--on-image)), var(--elev-1-fill)); box-shadow: var(--e-1); padding: var(--space-l); gap: var(--space-m); }
+.sdui-widget-title { display: flex; align-items: center; gap: var(--space-s); }
+.sdui-widget-ic { display: inline-grid; place-items: center; inline-size: 1.75rem; block-size: 1.75rem; border-radius: var(--r-full); background: var(--accent-soft); color: var(--accent-text); }
+.sdui-widget-ic svg { inline-size: 1rem; block-size: 1rem; }
+.sdui-widget-ic:empty { display: none; }
+.sdui-widget.kind-clock .sdui-widget-body { align-items: flex-end; }
+.sdui-widget.kind-clock .sdui-clock-time { font-size: calc(var(--role-display-size) * 1.15); }
+.sdui-widget.kind-serverStatus .sdui-row { border-block-end: 1px solid var(--border); border-radius: 0; padding-inline: 0; }
+.sdui-widget:has(.sdui-widget-body:empty) { display: none; }
+/* ---- Compact (card set "row"): dense rows, a quiet accent heading, hairlines between ---- */
+html[data-card-set="row"] .hub-head :is(h2, h3) { color: var(--accent-text); font-size: var(--text-md); text-transform: none; letter-spacing: 0; }
+html[data-card-set="row"] .sdui-list { gap: 0; }
+html[data-card-set="row"] .sdui-row { min-block-size: 3rem; padding-block: var(--space-xs); border-radius: var(--r-sm); border-block-end: 1px solid var(--border); }
+html[data-card-set="row"] .sdui-row-art.wide { inline-size: 4rem; block-size: 2.25rem; }
+html[data-card-set="row"] .sdui-row:is(:hover, :focus-visible) { background: var(--accent); color: var(--accent-fg); outline: none; }
+html[data-card-set="row"] .sdui-row:is(:hover, :focus-visible) :is(.muted, .sdui-row-go) { color: inherit; }
+/* ---- Marquee (carousel): the heading centred, large posters, names under the middle one ---- */
+.sdui-carousel .hub-head { justify-content: center; text-align: center; }
+.sdui-carousel .hub-head :is(h2, h3) { font-size: var(--role-title-size); letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--fg-2); }
+.sdui-carousel .card { --card-w: clamp(10rem, 19vw, 16rem); }
+.sdui-carousel .sdui-item .card .poster { box-shadow: var(--elev-3-shadow); }

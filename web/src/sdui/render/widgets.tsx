@@ -2,6 +2,9 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { useMedia } from '../../shell/useNav'
+import { useApp } from '../../state'
+import { profileName } from '../../api'
+import { sduiIcon } from './icons'
 import type { View } from '../model'
 import type { Props } from '../types'
 
@@ -15,16 +18,25 @@ const int = (p: Props | undefined, k: string, d: number, lo: number, hi: number)
   return typeof v === 'number' && isFinite(v) ? Math.min(hi, Math.max(lo, Math.trunc(v))) : d
 }
 
+// What each kind of tile is called by its picture.
+const KIND_ICON: Record<string, string> = { continue: 'play', liveNow: 'live', recordings: 'record', stats: 'chart', serverStatus: 'devices', clock: 'clock' }
+const greeting = (h: number) => (h < 5 ? 'Good night' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening')
+
 export function WidgetGridView({ view, draw }: { view: View; draw: (child: View) => ReactNode }) {
   const phone = useMedia('(max-width: 700px)')
   const columns = phone ? 2 : int(view.node.props, 'columns', 4, 1, 12)
   // Rows with nothing in them take no room: the rows tiles ask for are counted off in order (a tile hidden for this
   // profile, or one with nothing to show, leaves no gap).
   const rows = [...new Set(view.children.map((c) => int(c.node.props, 'y', 0, 0, 40)))].sort((a, b) => a - b)
+  const { user } = useApp()
+  const who = user ? profileName(user) : ''
   return (
+    <>
+    <p className="sdui-greet">{greeting(new Date().getHours())}{who ? `, ${who}` : ''}</p>
     <div className="sdui-widgets" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, '--widget-cols': columns } as CSSProperties} data-nav-group data-columns={columns}>
       {view.children.map((c) => <WidgetCell key={c.id} view={c} columns={columns} phone={phone} draw={draw} rows={rows} />)}
     </div>
+    </>
   )
 }
 
@@ -43,7 +55,7 @@ function WidgetCell({ view, columns, phone, draw, rows }: { view: View; columns:
   const title = view.text?.title
   return (
     <section className={'sdui-widget elev-1 kind-' + kind} style={place} aria-label={view.label || title} data-w={w} data-h={h}>
-      {title && <h3 className="sdui-widget-title">{title}</h3>}
+      {title && <h3 className="sdui-widget-title"><span className="sdui-widget-ic" aria-hidden="true">{sduiIcon(KIND_ICON[kind])}</span>{title}</h3>}
       <div className="sdui-widget-body">
         {kind === 'clock' ? <LiveClock /> : view.children.map((c) => <div key={c.id} className="sdui-widget-item">{draw(c)}</div>)}
       </div>

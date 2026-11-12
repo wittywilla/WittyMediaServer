@@ -6,7 +6,7 @@ import { useApp } from '../../../state'
 import { Button, Dialog } from '../../../ui'
 import { HelpLink } from '../../../components/HelpLink'
 import './overrides.css'
-import { friction, needsOverrideOf, refusalStatus, overrideLines, overrideRequest, refusalKind, severityOf, stillNeeded, type NeedsOverride, type OverrideAnswers } from './overrides'
+import { friction, needsOverrideOf, refusalStatus, warningAddsSomething, overrideLines, overrideRequest, refusalKind, severityOf, stillNeeded, type NeedsOverride, type OverrideAnswers } from './overrides'
 
 // The override: installing something the usual rules refuse, knowingly. It names every rule being
 // bypassed with the server's own words, has each one ticked, offers the permissions the module asks
@@ -80,7 +80,7 @@ export function OverrideDialog({ id, name, need: first, permissionWords, onSubmi
           <IconShield size={f.level >= 3 ? 28 : 22} />
           <div>
             <strong>{f.heading}</strong>
-            {need.warning && !lines.some((l) => l.reason === need.warning) && <p>{need.warning}</p>}
+            {warningAddsSomething(need.warning, lines) && <p>{need.warning}</p>}
             {need.version && <p className="ov-small">Version {need.version}{need.pending ? ', already downloaded and checked, waiting for your go-ahead' : ''}.</p>}
           </div>
         </div>

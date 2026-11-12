@@ -110,7 +110,6 @@ Licences were read from each work's source on the day it was fetched. This is a 
 | `setup-14-logos.webp` | Off unless you say yes. Nothing else changes if you say no. |
 | `setup-15-music.webp` | Both are free, with no account and no key, and both stay off unless you turn them on. |
 | `setup-16-listings.webp` | Off unless you choose it. |
-| `setup-17-look.webp` | It changes right away, and each person can pick their own later. |
 | `setup-18-done.webp` | The last page says what you chose, as the server has it now. |
 | `shorts.webp` | Clips cropped from open films, credited in [the list](CREDITS.md). |
 | `stats.webp` | WittyStats. |

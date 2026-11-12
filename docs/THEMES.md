@@ -111,9 +111,9 @@ A colour like `#d4a017` is a code. Search the web for "colour picker", choose a 
 
 To change a theme that's nearly right, press the download button on its card in **Settings → Appearance**. Unzip it into a new folder. Then, in `theme.json`, change `id` and `name`, and delete the `"builtin": true,` line, as a ZIP with that line is refused. `theme.css` has a note beside each setting.
 
-## TV looks
+## WittyTV themes
 
-WittyTV has themes of its own, and an app theme can suggest one, with one more setting in `:root`:
+WittyTV, the TV guide, has eight themes of its own, separate from the app's theme and from the looks above. An app theme can suggest one, with one more setting in `:root`:
 
 ![The TV guide in the Teletext look](images/wittytv-teletext.webp)
 *The Teletext look, playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
@@ -130,6 +130,8 @@ WittyTV has themes of its own, and an app theme can suggest one, with one more s
 Modern, Big picture, Outline and Compact take their colours from your theme's tokens, so they look like part of it. The others have their own.
 
 It's only a suggestion. What a viewer picks comes first, then the app theme's suggestion, then what the server's owner chose for new viewers, and **Look** on the guide says which is showing. Custom can't be suggested, because it's each viewer's own. The built-in Midnight theme suggests Modern this way. See [Channels and live TV](CHANNELS.md#the-look).
+
+Each look (experience) also names a WittyTV theme, sent to the apps as `tvTheme` in the finished look (`look` in `GET /theme`). The guide doesn't follow that one yet, in the web or the apps: the order above is what decides.
 
 ### The TV pass
 
@@ -275,7 +277,7 @@ Set these in `:root`. Hover, selected and tinted shades are worked out from them
 | `--sidebar` | `240px` | Side menu width |
 | `--card-w` | `148px` | Poster card width |
 | `--font` | `"Inter", "Segoe UI Variable Text", system-ui, …` | Every piece of text |
-| `--tv-theme` | not set | See [TV looks](#tv-looks) |
+| `--tv-theme` | not set | See [WittyTV themes](#wittytv-themes) |
 
 `color-scheme` (`dark` or `light`) in `:root` tells the browser how to draw its own controls.
 

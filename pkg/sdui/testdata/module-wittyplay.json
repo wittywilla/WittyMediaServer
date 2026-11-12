@@ -255,7 +255,7 @@
     {
       "type": "wittyplay.room",
       "label": "Your room",
-      "description": "The game this profile is playing with others: the room first (a view: its code for the host), then each player as a person, or Waiting… for a free seat.",
+      "description": "The game this profile is playing with others: the room first (a view: its code for the host), then each player as a person, or Waiting\u2026 for a free seat.",
       "icon": "users",
       "category": "",
       "params": [
@@ -364,6 +364,44 @@
       "paged": false,
       "title": "Controllers",
       "since": 6
+    },
+    {
+      "type": "wittyplay.privacy",
+      "label": "Friends and privacy",
+      "description": "The two choices a profile makes about what its friends know, as switches: whether friends see what it plays, and whether it appears online at all.",
+      "icon": "users",
+      "category": "",
+      "yields": [
+        "view"
+      ],
+      "cardStyle": "tile",
+      "paged": false,
+      "title": "Friends and what you play",
+      "since": 7
+    },
+    {
+      "type": "wittyplay.kidsFriends",
+      "label": "A Kids profile's friends",
+      "description": "For an administrator: every profile that could be a Kids profile's friend, each a switch that approves or removes it. Nothing for anyone else.",
+      "icon": "kids",
+      "category": "",
+      "params": [
+        {
+          "name": "user",
+          "type": "ref",
+          "label": "Kids profile",
+          "help": "The profile's ID, $item on a page opened about it.",
+          "required": true,
+          "since": 0
+        }
+      ],
+      "yields": [
+        "view"
+      ],
+      "cardStyle": "tile",
+      "paged": false,
+      "title": "Approved friends",
+      "since": 7
     }
   ],
   "settings": [

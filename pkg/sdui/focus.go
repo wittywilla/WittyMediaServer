@@ -19,6 +19,13 @@ func Focusable(n *Node, inHero bool) bool {
 		return !inHero
 	case "Tab", "Track", "SearchBox", "FilterBar":
 		return true
+	case "Form":
+		return false // its controls are the stops; Save and Cancel are its own
+	case "ListItem":
+		if c, ok := n.Props["control"].(*Control); ok && c != nil {
+			return !c.Disabled || n.Action != nil
+		}
+		return n.Action != nil
 	case "Hero":
 		return len(n.Children) > 0
 	case "DetailHeader":

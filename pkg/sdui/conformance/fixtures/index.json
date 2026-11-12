@@ -418,6 +418,12 @@
    "formFactor": "phone"
   },
   {
+   "id": "forms-wittyplay-privacy-phone",
+   "file": "forms-wittyplay-privacy-phone.json",
+   "title": "A Form of switches, a list of switches that save at once, and a command button that asks first, on a phone",
+   "formFactor": "phone"
+  },
+  {
    "id": "wittyplay-online-focus-tv",
    "file": "wittyplay-online-focus-tv.json",
    "title": "WittyPlay Online home: focused tile grows, detail panel, regions, on a television",

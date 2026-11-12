@@ -13,6 +13,7 @@ import { IconInfo, IconTune } from '../icons'
 import { useOpenItem } from '../openItem'
 import { toast, useApp } from '../state'
 import { LinkButton } from '../ui/Button'
+import { ask } from '../ui/Overlay'
 import { fetchItems, fetchPage, kept, onChange, remember, bump } from './client'
 import { deviceKey, type Device } from './device'
 import { focusMap, next as nextFocus, type Dir } from './focus'
@@ -346,7 +347,7 @@ export default function SduiPage({ page, params, fallback }: { page: string; par
     } catch (e) { toast((e as Error).message, { tone: 'danger' }) }
   }, [audio, libraries, nav, opener])
 
-  const act = useCallback((a: Action | undefined, from?: View) => {
+  const actNow = useCallback((a: Action | undefined, from?: View) => {
     const step = plan(a, { externalLinks: drawn.current?.layout.externalLinks })
     switch (step.do) {
       case 'go': nav(step.to); break
@@ -373,6 +374,11 @@ export default function SduiPage({ page, params, fallback }: { page: string; par
         break
     }
   }, [nav, play, setQuery])
+  // A command with a question asks it first, with Cancel beside, and runs only on a yes.
+  const act = useCallback((a: Action | undefined, from?: View) => {
+    if (a?.confirm) { void ask({ title: a.confirm, confirm: String(from?.text?.title || from?.label || 'Yes') }).then((yes) => { if (yes) actNow({ ...a, confirm: undefined }, from) }); return }
+    actNow(a, from)
+  }, [actNow])
 
   const handlers = useMemo<Handlers>(() => ({
     act, more, setQuery,

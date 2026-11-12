@@ -1056,7 +1056,10 @@ uses** with **503** and
 
 and a `Retry-After`. Only `/status`, `/health`, the setup routes (`/setup`, `/setup/state`,
 `/setup/complete`), the themes and `/sdui/experiences`, `/sdui/preview`, a restore of a backup and the web
-app's own files answer; the administrator's browser session also carries on for the setup's own calls.
+app's own files answer. The administrator's browser session also carries on for the setup's own calls: a request
+that has the administrator's session cookie (`wms_token`) passes, whether or not it also sends that same token as
+`Authorization: Bearer`, which the web app does on every call. A token with no cookie, or a header token that is not the
+cookie's, is an app and is refused until setup is complete.
 An app shows "This server isn't set up yet" with `setupURL` and a QR code of it, offers Check again and
 Choose another server, and never tries to sign in. `GET /sdui/preview?experience=<id>&theme=<id>` answers a
 sample Home and menu from generated demo data with the resolved theme before anyone has signed in, so the

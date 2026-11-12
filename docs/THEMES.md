@@ -311,12 +311,14 @@ On top of the themes, the server keeps colour overrides and resolves, for each a
 
 Six layers, each over the ones before it (later wins):
 
-1. **The theme pack**: the server's theme, the same `theme` setting `/api/themes` reports as `default`; or **the account's own choice**, `theme` in `/api/me/ui`, when it names a theme that's installed.
+1. **The theme pack**: the server's theme, which is the `theme` setting when the administrator chose one, else **the default theme of the look the server starts people in** (Paper is cream, Rail amber, Classic Cable deep blue: `theme` in each experience), the same `/api/status` and `/api/themes` report as `theme` and `default`; or **the account's own choice**, `theme` in `/api/me/ui`, when it names a theme that's installed.
 2. **The administrator's global overrides**. Left out when the account chose its own theme: they were chosen for the server's.
 3. **A module scope's own colours**: what a module's `sdui.json` gives its theme scope ([SDUI for modules](SDUI-MODULES.md)).
 4. **The administrator's overrides for the scope** (`PUT /api/v1/theme/modules/{scope}`), token by token over the module's own.
 5. **The profile's own colours** (`PUT /api/v1/theme/personal`), everywhere: they beat the module's colours too, so someone who needs a stronger text colour gets it on every page.
 6. **The profile's own colours for the scope**, over all of the above, in that scope only.
+
+A look brings its default theme until a different one is chosen. Choosing the theme the server already wears (what the first-run Look and Theme steps do when nothing changes) does not pin it: `PUT /api/settings {theme}` with the theme the server wears right now stores nothing, so the next look brings its own. Any other theme is a choice and stays through looks; `{theme: ""}` goes back to following the look, and `PUT /api/theme/global {id}` pins any theme, the look's own included.
 
 Layers 1, 2 and 5 make `tokens`; every scope with colours of its own (3, 4 or 6) has its whole palette under `modules`. Server-driven pages get the scopes too: a page or section that names a scope receives, as `tokens`, what that scope's palette has that the account's `tokens` don't (see [SDUI](SDUI.md#theme-scopes)). A scope needn't be a module: `PUT /api/v1/theme/modules/family` gives a page of your own, with `"scope": "family"`, its own accent.
 

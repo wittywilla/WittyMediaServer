@@ -1,0 +1,62 @@
+/* The server's name editor (NameEditor.tsx): the form on the left, the name drawn everywhere on the right. */
+.ne { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(24rem, 100%), 1fr)); gap: var(--sp-8); text-align: left; }
+@media (max-width: 900px) { .ne { grid-template-columns: 1fr; gap: var(--sp-5); } }
+.ne-lab { margin: var(--sp-5) 0 var(--sp-2); font-size: var(--text-xs); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--fg-2); }
+.ne-form > .ne-lab:first-child { margin-top: 0; }
+.ne-sub { margin: var(--sp-3) 0 var(--sp-2); font-size: var(--text-sm); font-weight: 600; }
+.ne-hint { display: block; margin: var(--sp-2) 0 0; font-size: var(--text-sm); color: var(--fg-2); line-height: var(--leading-snug); }
+.ne-name { width: 100%; font-size: var(--text-lg); font-weight: 600; min-height: 48px; }
+.ne-chips { display: flex; flex-wrap: wrap; gap: var(--sp-1); }
+.ne-chip { inline-size: 32px; min-block-size: 44px; padding: 0; border-radius: var(--r-sm); border: 0; background: var(--bg-2); color: var(--chip, var(--fg)); font: inherit; font-size: var(--text-xl); font-weight: 800; cursor: pointer; }
+.ne-chip.on { background: var(--accent-soft); box-shadow: inset 0 0 0 2px var(--focus); }
+.ne-chip:focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: var(--focus-offset); }
+.ne-word { all: unset; cursor: pointer; text-decoration: underline; color: var(--fg); border-radius: var(--r-xs); }
+.ne-word:focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: 2px; }
+.ne-row { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
+.ne-row.wrap { gap: var(--sp-2); margin-bottom: var(--sp-2); }
+.ne-sw { inline-size: 44px; block-size: 44px; border-radius: 50%; border: 0; padding: 0; background: var(--sw); cursor: pointer; box-shadow: inset 0 0 0 1px var(--border-strong); }
+.ne-sw.grad { inline-size: 120px; border-radius: var(--r-full); }
+.ne-sw.on { box-shadow: 0 0 0 3px var(--bg), 0 0 0 6px var(--fg); }
+.ne-sw:focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: 3px; }
+.ne-hidden { position: absolute; opacity: 0; pointer-events: none; inline-size: 1px; block-size: 1px; }
+.ne-hex { inline-size: 110px; }
+.ne-own { inline-size: 160px; }
+.ne-stops { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); margin-top: var(--sp-3); padding: var(--sp-3); border-radius: var(--r-md); background: var(--bg-2); }
+.ne-stop { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.ne-stop input[type=color] { inline-size: 44px; block-size: 44px; padding: 0; border: 0; background: none; cursor: pointer; }
+.ne-angle { display: inline-flex; align-items: center; gap: var(--sp-2); font-size: var(--text-sm); }
+.ne-angle .input { inline-size: 80px; }
+.ne-grad-show { flex: 1 1 100%; block-size: 12px; border-radius: var(--r-full); }
+.ne-badge { display: inline-grid; place-items: center; flex: none; inline-size: 48px; block-size: 48px; border-radius: var(--r-md); background: var(--bg-2); box-shadow: inset 0 0 0 1px var(--border-strong); color: var(--brand-accent); font-weight: 800; font-size: var(--text-xl); line-height: 1; overflow: hidden; }
+.ne-badge.big { inline-size: 52px; block-size: 52px; }
+.ne-badge img { inline-size: 100%; block-size: 100%; object-fit: contain; padding: 4px; box-sizing: border-box; }
+.ne-note { margin-top: var(--sp-5); padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md); background: var(--warn-soft); font-size: var(--text-sm); line-height: var(--leading-snug); }
+.ne-note b { color: var(--warn); }
+.ne-note.bad { background: var(--danger-soft); }
+.ne-note.bad b { color: var(--danger); }
+.ne-preview { display: flex; flex-direction: column; gap: var(--sp-4); min-width: 0; }
+.ne-preview > .ne-lab { margin: 0; color: var(--fg-2); }
+.ne-place { position: relative; display: flex; align-items: center; gap: var(--sp-4); min-block-size: 80px; padding: var(--sp-5) var(--sp-5) var(--sp-3); border-radius: var(--r-lg); box-shadow: 0 0 0 1px var(--border-strong); overflow: hidden; font-size: var(--page-title); font-weight: 800; letter-spacing: -.02em; background: var(--bg-2); }
+.ne-place .brand { margin: 0; padding: 0; min-height: 0; font-size: inherit; font-weight: inherit; letter-spacing: inherit; }
+.ne-place .brand { flex: none; max-inline-size: 100%; }
+.ne-place .brand-name, .ne-place .brand-name * { white-space: nowrap; overflow-wrap: normal; display: inline; }
+.ne-place-label { position: absolute; inset-block-start: 8px; inset-inline-end: 12px; font-size: var(--text-xs); font-weight: 600; letter-spacing: 0; color: var(--fg-3); }
+.ne-place.bar { background: var(--bg); }
+.ne-place.rail { font-size: var(--text-xl); }
+.ne-place.sign { background: radial-gradient(500px 300px at 50% 0%, var(--accent-soft), var(--bg)); justify-content: center; min-block-size: 200px; font-size: var(--display); }
+.ne-sign { display: flex; flex-direction: column; align-items: center; gap: var(--sp-4); }
+.ne-btn { display: inline-flex; align-items: center; justify-content: center; inline-size: 240px; block-size: 44px; border-radius: var(--r-md); background: var(--accent); color: var(--accent-fg); font-size: var(--text-base); font-weight: 700; letter-spacing: 0; }
+.ne-pill { font-size: var(--text-base); font-weight: 500; letter-spacing: 0; color: var(--fg-2); padding: 8px 16px; border-radius: var(--r-full); }
+.ne-pill.on { color: var(--accent-text); background: var(--accent-soft); }
+.ne-two { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4); }
+.ne-two .ne-place { justify-content: center; min-block-size: 120px; }
+/* A light look and a black one: the name in the colours they would give it, whatever the theme in use. */
+.ne-place.light { background: linear-gradient(180deg, #bfeaff, #e1f8d6); --fg: #0b2a3d; --brand-accent: #0a5c8f; --ok: #1b6e32; --warn: #8a5a00; --danger: #b00020; } /* design-ok: a fixed sample of a light look */
+.ne-place.dark { background: #000; --fg: #fff; --brand-accent: #00ffff; --ok: #3ddc84; --warn: #ffd84a; --danger: #ff5c6c; } /* design-ok: a fixed sample of a black look */
+.ne-place.light .ne-place-label { color: #2f6a8c; } /* design-ok */
+.ne-place.dark .ne-place-label { color: #00ffff; } /* design-ok */
+.ne-place .brand-name b { color: var(--brand-accent); }
+.ne-place.light .brand-name, .ne-place.dark .brand-name { color: var(--fg); }
+@media (max-width: 600px) { .ne-place { font-size: var(--text-xl); } .ne-place.sign { font-size: var(--page-title); } .ne-two { grid-template-columns: 1fr; } }
+.modal.ui-dialog.brand-dialog { width: min(1180px, calc(100vw - 32px)); max-width: none; max-height: calc(100vh - 32px); overflow-y: auto; }
+.brand-dialog > .muted { margin: 0 0 var(--sp-4); font-size: var(--text-sm); }

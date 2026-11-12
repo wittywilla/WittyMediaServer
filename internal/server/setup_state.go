@@ -96,14 +96,29 @@ func (s *Server) setupGate(next http.Handler) http.Handler {
 	})
 }
 
-// setupAdminBrowser: the request is the administrator's own browser session (the cookie,
-// not a token an app holds), which the setup's steps need for their calls.
+// setupAdminBrowser: the request is the administrator's own browser session, which the setup's
+// steps need for their calls. The rule keys on the session cookie, not on the absence of a
+// header: the web app signs every call with the same token it holds as the cookie
+// (Authorization: Bearer), and that is still one browser session. An app that holds a token but
+// no cookie is refused until first run is over, and so is a request whose header carries some
+// other token than the cookie's (an app's token beside a browser's cookie).
 func (s *Server) setupAdminBrowser(r *http.Request) bool {
-	if r.Header.Get("Authorization") != "" || r.Header.Get("X-WMS-Token") != "" {
-		return false
+	headers := []string{strings.TrimSpace(r.Header.Get("X-WMS-Token"))}
+	if h := r.Header.Get("Authorization"); h != "" {
+		if len(h) < 7 || !strings.EqualFold(h[:7], "bearer ") {
+			return false
+		}
+		headers = append(headers, strings.TrimSpace(h[7:]))
 	}
 	for _, c := range r.Cookies() {
 		if c.Name != auth.CookieName || c.Value == "" {
+			continue
+		}
+		same := true
+		for _, h := range headers {
+			same = same && (h == "" || h == c.Value)
+		}
+		if !same {
 			continue
 		}
 		if u, err := s.Auth.Resolve(r.Context(), c.Value); err == nil && u != nil && u.IsAdmin {

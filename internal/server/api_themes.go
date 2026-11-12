@@ -15,6 +15,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/brandname"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
+	"github.com/wittywilla/wittymediaserver/pkg/sdui"
 )
 
 // brand is the server's own name ("" for the default), how it is coloured,
@@ -72,12 +73,38 @@ func (s *Server) handleThemes(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// serverTheme is the theme new viewers start with. One that isn't here (saved by another build, or
-// its file removed by hand) would leave the app on its built-in colours, so they get the default.
+// serverTheme is the theme new viewers start with: the one the administrator chose, else the
+// default theme of the look the server starts people in (docs/THEMES.md "Precedence"). One that
+// isn't here (saved by another build, or its file removed by hand) would leave the app on its
+// built-in colours, so they get the default.
 func (s *Server) serverTheme(ctx context.Context) string {
-	id := s.DB.GetSetting(ctx, "theme", "default")
+	id := s.DB.GetSetting(ctx, "theme", "")
+	if id == "" {
+		return s.lookDefaultTheme()
+	}
 	if id == "auto" || s.Themes == nil || s.Themes.Has(id) {
 		return id
+	}
+	return "default"
+}
+
+// themeChosen: the administrator picked the server's theme, so it stays when the look changes.
+func (s *Server) themeChosen(ctx context.Context) bool {
+	return s.DB.GetSetting(ctx, "theme", "") != ""
+}
+
+// lookDefaultTheme is the default theme of the experience the server starts people in on the
+// web: what the server wears until its administrator chooses a theme.
+func (s *Server) lookDefaultTheme() string {
+	ff := sdui.FormWeb
+	var pol sdui.ExperiencePolicy
+	if st, err := s.uiStore(); err == nil {
+		if cfg := st.Current(); cfg != nil && cfg.Experiences != nil {
+			pol = *cfg.Experiences
+		}
+	}
+	if e := sdui.ExperienceByID(sdui.ChooseExperience("", "", pol.Default[ff], pol.Allowed, ff)); e != nil && e.Theme != "" && (s.Themes == nil || s.Themes.Has(e.Theme)) {
+		return e.Theme
 	}
 	return "default"
 }

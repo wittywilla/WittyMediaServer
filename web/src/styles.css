@@ -854,40 +854,8 @@ main.content:focus { outline: none; }
 .brand img.brand-mark, .brand .brand-mark { object-fit: contain; border-radius: var(--r-sm); }
 .brand-now { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); flex-wrap: wrap; padding: var(--sp-3) var(--sp-4); border-radius: var(--r-lg); background: var(--bg-3); margin: var(--sp-1) 0 var(--sp-2); }
 .brand-now .brand { padding: 0; margin: 0; }
-.brand-dialog { width: min(520px, calc(100vw - 32px)); text-align: left; }
-.brand-dialog h2 { margin: 0 0 var(--sp-1); }
-.brand-dialog > .muted { margin: 0 0 var(--sp-4); font-size: var(--text-sm); }
-.brand-preview { position: relative; display: grid; gap: 10px; padding: var(--sp-6) var(--sp-3) var(--sp-3); border-radius: var(--r-lg); background: var(--bg); border: 1px solid var(--border); margin-bottom: var(--sp-5); }
-.brand-preview-label { position: absolute; top: var(--sp-2); left: var(--sp-3); font-size: var(--text-2xs); font-weight: 600; letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--fg-3); }
-.brand-preview-bar { display: flex; align-items: center; gap: var(--sp-3); padding: 10px var(--sp-3); border-radius: var(--r-md); background: var(--bg-2); min-width: 0; }
-.brand-preview-bar .brand, .brand-preview-card .brand { padding: 0; margin: 0; min-height: 0; font-size: var(--text-base); min-width: 0; overflow: hidden; white-space: nowrap; }
-.brand-preview-bar .brand img, .brand-preview-card .brand img { width: 26px; height: 26px; flex: none; }
-.brand-preview-search { flex: 1; height: 26px; border-radius: var(--r-full); background: var(--bg-3); min-width: 30px; }
-.brand-preview-avatar { width: 26px; height: 26px; border-radius: 50%; background: var(--accent); flex: none; }
-.brand-preview-card { display: grid; justify-items: center; gap: var(--sp-1); padding: var(--sp-3); border-radius: var(--r-md); background: var(--bg-2); }
-.brand-preview-card .muted { font-size: var(--text-xs); }
-.brand-field { display: grid; gap: 6px; font-weight: 600; font-size: var(--text-md); margin-bottom: var(--sp-4); }
-.brand-field .muted { font-weight: 400; font-size: var(--text-xs); }
-.brand-logo-row { display: flex; align-items: center; gap: var(--sp-3); }
-.brand-logo-big { width: 64px; height: 64px; object-fit: contain; border-radius: var(--r-md); background: var(--bg-3); padding: 6px; flex: none; }
-.brand-logo-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
-.brand-logo-actions .muted { flex-basis: 100%; }
 /* Colouring: the words as buttons, or the gaps between letters as buttons. */
-.brand-colouring .seg { justify-self: start; max-width: 100%; }
-.brand-pick { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1); padding: var(--sp-2); border-radius: var(--r-md); background: var(--bg); border: 1px solid var(--border); font-size: var(--text-lg); letter-spacing: var(--tracking-heading); }
-.brand-pick-word { min-height: 44px; padding: 0 var(--sp-2); border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--bg-2); color: var(--fg); font: inherit; font-weight: 700; cursor: pointer; }
-.brand-pick-word:hover { background: var(--bg-3); }
-.brand-pick-word.on { color: var(--brand-accent); border-color: currentColor; }
 /* The second half of a word split in two touches the first. */
-.brand-pick-word.brand-pick-joined { margin-left: calc(-1 * var(--sp-1) - 1px); border-left-style: dashed; }
-.brand-pick-letters { gap: 0; font-weight: 700; }
-.brand-pick-letter { display: inline-flex; align-items: center; min-height: 44px; white-space: pre; }
-.brand-pick-letter.on { color: var(--brand-accent); }
-.brand-pick-letter.space { min-width: var(--sp-5); }
-.brand-pick-gap { display: inline-flex; align-items: center; justify-content: center; width: 24px; min-height: 44px; padding: 0; border: 0; border-radius: var(--r-sm); background: transparent; cursor: pointer; }
-.brand-pick-gap i { width: 2px; height: 1.1em; border-radius: var(--r-full); background: var(--border); }
-.brand-pick-gap:hover i, .brand-pick-gap:focus-visible i { background: var(--fg-3); }
-.brand-pick-gap.on i { width: 4px; background: var(--accent); }
 
 /* A newer version can be installed (admins): a dot beside Settings. */
 .upd-dot { display: inline-block; width: 8px; height: 8px; margin-left: auto; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px rgb(var(--accent-rgb) / .25); flex: none; }

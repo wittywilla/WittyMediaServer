@@ -3,7 +3,7 @@
 // What the server sends for a server-driven page (docs/SDUI.md, catalogue revision 2).
 // Plain data: nothing here touches the page.
 
-export const CATALOG = 2
+export const CATALOG = 3
 export const VERSION = 1
 
 export type Props = Record<string, unknown>
@@ -46,6 +46,8 @@ export type Layout = {
   breakpoint: string
   safeArea?: { top: number; right: number; bottom: number; left: number }
   focusEngine?: boolean
+  peek?: number
+  dock?: { placement: string; height: number; hintSize: number }
   density?: string
   spacing: Record<string, number>
   text: Record<string, number>
@@ -124,7 +126,7 @@ export const WEB_LAYOUT: Layout = {
   formFactor: 'web', breakpoint: 'large', scale: 2, density: 'comfortable',
   safeArea: { top: 0, right: 0, bottom: 0, left: 0 },
   spacing: { none: 0, xs: 4, s: 8, m: 16, l: 24, xl: 48 },
-  text: { pageTitle: 28, heading: 20, title: 16, body: 14, caption: 12, badge: 11 },
+  text: { display: 28, pageTitle: 28, heading: 20, title: 16, body: 14, caption: 12, badge: 11 },
   budget: { maxSections: 30, eagerSections: 8, shelfItems: 20, gridItems: 60, listItems: 50, pageSize: 48, heroItems: 6, repeats: 16 },
   imageWidths: [120, 160, 240, 320, 480, 640, 960, 1280, 1920, 2560, 3840],
   externalLinks: true,

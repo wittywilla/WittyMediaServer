@@ -58,7 +58,7 @@ html[data-input="pad"] .key-legend kbd, html[data-input="remote"] .key-legend kb
 .key-help-list dd { color: var(--fg-2); }
 
 /* ---- a shelf: the next card peeks so the row says it goes on, and See all ends it ---- */
-.sdui-shelf .row { scroll-padding-inline: var(--gutter) calc(var(--card-w) * .18 + var(--space-m)); }
+.sdui-shelf .row { scroll-padding-inline: var(--gutter) calc(var(--card-w) * var(--peek, 0) + var(--space-m)); } /* layout.peek of the next card stays in view */
 .sdui-seeall { text-decoration: none; color: var(--fg); }
 .sdui-seeall .poster { display: grid; place-items: center; background: var(--elev-1-fill); border: 1px dashed var(--border-strong); box-shadow: none; }
 .sdui-seeall-in { display: grid; justify-items: center; gap: var(--space-s); font-size: var(--text-md); color: var(--fg-2); }
@@ -68,3 +68,12 @@ html[data-input="pad"] .key-legend kbd, html[data-input="remote"] .key-legend kb
 /* ---- type roles on the page's own headings ---- */
 .sdui-page-title { font-size: var(--role-page-title-size); letter-spacing: var(--tracking-heading); font-weight: var(--weight-heading); }
 .sdui .hub-head h2 { font-size: var(--role-heading-size); letter-spacing: var(--tracking-heading); font-weight: var(--weight-heading); }
+
+/* ---- a grid drawn as a list (the Dock's View) and the letter picker ---- */
+.sdui-grid.as-list { grid-template-columns: minmax(0, 1fr); row-gap: var(--space-s); }
+.sdui-grid.as-list .sdui-item .card { width: 100%; display: grid; grid-template-columns: 3.5rem 1fr; align-items: center; gap: var(--space-m); }
+.sdui-grid.as-list .sdui-item .card .poster { width: 3.5rem; }
+.sdui-grid.as-list .sdui-item .card .title { margin: 0; }
+.sdui-letters { display: grid; grid-template-columns: repeat(auto-fill, minmax(3rem, 1fr)); gap: var(--space-s); }
+.sdui-dock-sheet { display: flex; justify-content: flex-end; padding: var(--space-m) var(--gutter); }
+.sdui-dock-sheet-list { display: grid; gap: var(--space-s); }

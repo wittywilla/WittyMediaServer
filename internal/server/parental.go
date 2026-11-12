@@ -120,7 +120,7 @@ func classify(pattern string) routeClass {
 	case path == "/api/items/{id}/progress" && method == "POST", path == "/api/items/{id}/playback", path == "/api/items/{id}/view":
 		c.time = timeTick
 	case method == "GET" && under("/api/items/{id}/stream", "/api/items/{id}/file", "/api/items/{id}/play", "/api/cd/{id}/audio",
-		"/api/radio/{id}/stream", "/api/radio/{id}/hls", "/api/tv/{key}/live", "/api/tv/{key}/tune", "/api/media/{id}/canvas/file",
+		"/api/radio/{id}/stream", "/api/radio/{id}/hls", "/api/tv/{key}/live", "/api/tv/{key}/tune", "/api/tv/{key}/catchup", "/api/media/{id}/canvas/file",
 		"/api/media/{id}/stems/{stem}", "/api/music/extras/{id}/file"):
 		c.time = timePlay
 	case method == "POST" && under("/api/items/{id}/dvd", "/api/items/{id}/stream-token"):

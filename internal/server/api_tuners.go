@@ -72,6 +72,7 @@ func (s *Server) tunerRoutes(m *http.ServeMux) {
 	m.Handle("DELETE /api/recordings/{id}", a(s.handleCancelRecording))
 	m.Handle("GET /api/recording-rules", a(s.handleRecordingRules))
 	m.Handle("POST /api/recording-rules", a(s.handleAddRecordingRule))
+	m.Handle("PUT /api/recording-rules/{id}", a(s.handleUpdateRecordingRule))
 	m.Handle("DELETE /api/recording-rules/{id}", a(s.handleDeleteRecordingRule))
 }
 
@@ -508,25 +509,49 @@ func (s *Server) handleEPGIDs(w http.ResponseWriter, r *http.Request) {
 // ---------------------------------------------------------------------------
 
 func (s *Server) tunerRows(ctx context.Context, r *http.Request) []guideChannel {
-	if !s.access(r).CanWatchChannels("tuner") {
-		return nil
+	rows, list := s.tunerIndex(ctx, r)
+	s.decorateTunerRows(r, rows, list)
+	return rows
+}
+
+// tunerIndex is the guide's tuner channels with only what finding, sorting and counting them
+// needs, and the full list for decorateTunerRows. A playlist can hold tens of thousands of
+// channels, and the guide shows a page of them, so only that page is dressed.
+func (s *Server) tunerIndex(ctx context.Context, r *http.Request) ([]guideChannel, []*livetv.Channel) {
+	if s.TV == nil || !s.access(r).CanWatchChannels("tuner") {
+		return nil, nil
 	}
 	list, err := s.TV.GuideChannels(ctx)
 	if err != nil {
 		s.Log.WarnContext(ctx, "could not read the guide's channels", "cat", "tv", "err", err)
-		return nil
+		return nil, nil
 	}
-	alts := livetv.Alternatives(list, s.silentChannel)
-	byID := channelsByID(list)
 	out := make([]guideChannel, 0, len(list))
 	for _, c := range list {
 		logo, brand := tunerLogo(c)
-		row := guideChannel{Key: "tun-" + strconv.FormatInt(c.ID, 10), Kind: "tuner", ID: c.ID, Number: c.Number, Name: c.Name, Group: c.Group, Logo: logo, Brand: brand, HD: c.HD, Radio: c.Radio,
-			Encrypted: c.Encrypted, CanRecord: s.canRecord(r, c), NoRecord: c.NoRecord, ATSC3: c.ATSC3, Security: securityOf(c), Alternative: s.withRecord(r, alts[c.ID], byID), Notices: s.channelNotices(c)}
-		out = append(out, row)
+		out = append(out, guideChannel{Key: "tun-" + strconv.FormatInt(c.ID, 10), Kind: "tuner", ID: c.ID, Number: c.Number, Name: c.Name, Group: c.Group,
+			Logo: logo, Brand: brand, HD: c.HD, Radio: c.Radio, Encrypted: c.Encrypted, CatchupDays: c.CatchupDays, Health: c.Health, tc: c})
 	}
 	s.noteTunerLogos(list)
-	return out
+	return out, list
+}
+
+// decorateTunerRows adds what a viewer needs to know about each tuner row: whether it can be
+// recorded, how secure it is, a clear version of the station, and how it will play.
+func (s *Server) decorateTunerRows(r *http.Request, rows []guideChannel, list []*livetv.Channel) {
+	var alts map[int64]*livetv.Alternative
+	var byID map[int64]*livetv.Channel
+	for i := range rows {
+		c := rows[i].tc
+		if c == nil {
+			continue
+		}
+		if alts == nil {
+			alts, byID = livetv.Alternatives(list, s.silentChannel), channelsByID(list)
+		}
+		rows[i].CanRecord, rows[i].NoRecord, rows[i].ATSC3 = s.canRecord(r, c), c.NoRecord, c.ATSC3
+		rows[i].Security, rows[i].Alternative, rows[i].Notices = securityOf(c), s.withRecord(r, alts[c.ID], byID), s.channelNotices(c)
+	}
 }
 
 func broadcast(p livetv.Programme) guideProgramme {
@@ -1059,6 +1084,9 @@ func (s *Server) handleSchedule(w http.ResponseWriter, r *http.Request) {
 		Sub     string `json:"sub"`
 		Start   int64  `json:"start"`
 		Stop    int64  `json:"stop"`
+		// Minutes more than the usual either side.
+		PadBefore int `json:"padBefore"`
+		PadAfter  int `json:"padAfter"`
 	}
 	if err := readJSON(r, &b); err != nil {
 		writeErr(w, 400, err.Error())
@@ -1074,7 +1102,7 @@ func (s *Server) handleSchedule(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	rec, err := s.TV.Schedule(r.Context(), id, userFrom(r).ID, b.Title, b.Sub, b.Start, b.Stop)
+	rec, err := s.TV.SchedulePadded(r.Context(), id, userFrom(r).ID, b.Title, b.Sub, b.Start, b.Stop, b.PadBefore, b.PadAfter)
 	if err != nil {
 		s.tunerError(w, r, err)
 		return
@@ -1137,6 +1165,7 @@ func (s *Server) handleAddRecordingRule(w http.ResponseWriter, r *http.Request) 
 	var b struct {
 		Channel string `json:"channel"`
 		Title   string `json:"title"`
+		livetv.RuleOptions
 	}
 	if err := readJSON(r, &b); err != nil {
 		writeErr(w, 400, err.Error())
@@ -1152,12 +1181,41 @@ func (s *Server) handleAddRecordingRule(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 	}
-	rule, err := s.TV.AddRule(r.Context(), id, userFrom(r).ID, b.Title)
+	rule, err := s.TV.AddRuleWith(r.Context(), id, userFrom(r).ID, b.Title, b.RuleOptions)
 	if err != nil {
 		s.tunerError(w, r, err)
 		return
 	}
 	writeJSON(w, 200, rule)
+}
+
+// PUT /api/recording-rules/{id}: how a series recording goes about it. Its own maker or an administrator.
+func (s *Server) handleUpdateRecordingRule(w http.ResponseWriter, r *http.Request) {
+	if !s.mayRecord(r) {
+		writeErr(w, 403, "this profile cannot use recordings")
+		return
+	}
+	id, ok := pathInt(r, "id")
+	if !ok {
+		writeErr(w, 400, "bad id")
+		return
+	}
+	if u := userFrom(r); !u.IsAdmin {
+		if owner, err := s.TV.RuleOwner(r.Context(), id); err != nil || owner != u.ID {
+			writeErr(w, 404, "not found")
+			return
+		}
+	}
+	var o livetv.RuleOptions
+	if err := readJSON(r, &o); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	if err := s.TV.UpdateRule(r.Context(), id, o); err != nil {
+		s.tunerError(w, r, err)
+		return
+	}
+	writeJSON(w, 200, map[string]any{"ok": true})
 }
 
 func (s *Server) handleDeleteRecordingRule(w http.ResponseWriter, r *http.Request) {

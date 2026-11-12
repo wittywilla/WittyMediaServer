@@ -44,7 +44,9 @@ The top of the guide says everything about the highlighted programme: channel, t
 
 Above the grid:
 
-- **Filters:** All, Favourites, and categories. A channel's categories are the ones you gave it, or else worked out, such as Movies and Kids. Tuner channels use their playlist's group. Library and Live TV appear when you have both.
+- **Which channels:** a button with the name of the set shown, such as **All channels**. Press it for every set, with a search box: **All channels** and **Favourites**; **Your sets** and **Shared sets** (see [Sets of channels](#sets-of-channels)); one for each **source** (your library and each tuner or playlist), when there is more than one; and every **group**, which are a channel's categories, or a playlist's groups. A playlist can have hundreds of groups, so they're in this list rather than across the bar. **C** goes to the next set, and **[** and **]** to the one before and after; on a remote, the yellow button is the next set and the blue one opens the list. Each device remembers the set it last showed, for each account and server, and shows all channels again if that set has gone. Against an older server, the guide has the filters it had before: All, Favourites, categories, and Library and Live TV.
+- **Find a channel:** type a number or part of a name, and only those channels are shown. It's in the set shown. Clear it, or press Escape in it, for all of them again.
+- **Channels at a time:** 25, 50, 75, 100 or All, beside the time buttons and in **Look**. With a number, that many channels are shown, with **Previous** and **Next** under them and where you are, such as *Channels 51–100 of 10,423*; Page Up and Page Down (and Channel Up and Down on a remote) go a page at a time, and moving down past the last row or up past the first goes to the next or previous page. **All** scrolls through every channel, drawing only those on screen, which stays quick with ten thousand. Each device remembers its choice.
 - **Time:** earlier, **Now**, later, Tonight or Tomorrow 8 PM, Tomorrow morning, and any day of the next two weeks.
 - **Search** covers every channel you can see, up to two weeks ahead.
 - **Look** changes how the guide looks, and **Recordings** lists what you've recorded.
@@ -53,8 +55,9 @@ Above the grid:
 |---|---|
 | Arrows, Page Up, Page Down | Move around |
 | OK or Enter | Watch, or details for something later |
-| 0 to 9 | Dial a channel |
+| 0 to 9 | Dial a channel. One that isn't in the set shown is offered with **Show all channels** |
 | F | Make the channel a favourite |
+| T | Add the channel to one of your sets |
 | M | Remind me |
 | R | Record, on a channel that can be recorded |
 | D | The whole day on this channel |
@@ -63,11 +66,26 @@ Above the grid:
 | I | More about this programme |
 | N or Home | Back to now |
 | + and - | Fewer or more hours across the screen |
-| A, B, C | A day back, a day on, or library and live TV |
+| A, B | A day back, a day on (the red and green buttons) |
+| C, [ and ] | The next set of channels, the one before, the one after (C is the yellow button) |
+
+**Watch from the start.** A tuner channel whose provider keeps an archive of what it showed (a playlist that says so, or an Xtream Codes-style provider) offers **Watch from the start** on a programme that has started, at the top of the guide and in its details, as far back as the provider keeps (its details say how many days). It plays that programme from its beginning, as your own stream, which you can pause and rewind; the banner says **From the start**, and **Back to live** (or L) goes to the channel as it is now.
 
 **Favourites and reminders** belong to your account. A reminder appears on any page a minute before the programme starts, with a button to watch it. **Home** has an **On TV now** row, which can be moved or hidden like any other.
 
 Up from the top row and Left from the first cell hand the arrows back, so a remote can reach everything above the grid. Every cell is read out to screen readers with its channel, title and times.
+
+## Sets of channels
+
+A set is a list of channels in an order of your own, such as Kids or Sport, to show in the guide on its own. Anyone signed in can make their own; they're kept with the account.
+
+- **Making one.** In the guide, open the set list and press **New set…**, or highlight a channel and press **T** (or **Add to set…** in its details) and then **New set with this channel…**. Give it a name, then tick channels in the list of every channel on the right: it finds them by number, name or group, and **Select all shown** puts in everything found. A set can hold up to 5,000 channels, and you can have 50.
+- **Its order.** The channels in the set are listed on the left in the order the guide shows them. Drag one, use its arrows, or press Shift and Up or Down on it.
+- **Changing and deleting.** **Edit sets…** in the set list goes to **Sets of channels**, which lists your sets in the order the guide offers them (drag them, or use the arrows), with **Change** and delete. Deleting a set asks first; the channels themselves stay.
+- **Adding from the guide.** **T**, or **Add to set…**, ticks the sets the channel is in. A tick puts it in or takes it out at once.
+- **Shared sets.** An administrator can share a set with the household. Everyone signed in sees it under **Shared sets**, each person only with the channels they may watch, and only an administrator changes it.
+
+Sets need a server with this version; an app or a server from before shows the filters instead.
 
 ## The look
 
@@ -303,7 +321,7 @@ These need the **WittyTuner** module. No channel lists or stream addresses come 
 
 1. Go to **Settings → Channels & tuners → Tuners and IPTV**. Without WittyTuner, it says so and offers to add it.
 2. Press **Add live TV**. It goes a step at a time:
-   1. **What you have**, in plain words: a playlist from a TV provider, one stream address, a tuner box on your network, a SAT>IP box, a TV card or capture device in this computer, or something else.
+   1. **What you have**, in plain words: a playlist from a TV provider, an Xtream Codes-style provider (a server address, a username and a password, which brings its channels, groups as groups, logos, guide and catch-up), one stream address, a tuner box on your network, a SAT>IP box, a TV card or capture device in this computer, or something else.
    2. **Its details.** For a device, **Search for it** looks on your network and this computer; whatever it doesn't find, type in by hand, such as a tuner box's address. A playlist or stream is an address, or a file on the server. **Check it** asks for its channels without saving anything, and says what it found: the model and how many tuners it has, how many channels, and how many are marked as encrypted. When it doesn't work it says which way: nothing answered at that address, something answered but isn't that kind of device, or the playlist couldn't be read (a web page about a playlist isn't the playlist). The server checks the details again when you press **Add and read its channels**.
    3. **Its channels.** They're read straight away, with how many are clear and how many encrypted. A tuner that scans offers **Scan for channels**, with its progress.
    4. **Try a channel** tunes one for a few seconds, as watching it would, and says what came: the picture and sound, and whether the server saw it's clear. An encrypted channel is refused here as it is everywhere else. **Skip** if you'd rather not.
@@ -311,6 +329,9 @@ These need the **WittyTuner** module. No channel lists or stream addresses come 
 On a new server with WittyTuner, first-time setup has a **Live TV** step that opens the same steps, which you can skip.
 3. **Search for tuners** lists devices it finds; **Set up** on one opens the same steps with its details filled in. **What WittyTuner can use** lists every kind with how far it's been tried, and **Add by hand** on any of them starts at its details.
 4. Press **Channels** on a tuner to choose which channels show in the guide, renumber them, or set a guide id. **Read the list** and **Scan for channels** are there too.
+5. **Many channels at once.** Tick channels in the list (or the box at the top for every one shown), and a bar offers **Show in guide**, **Hide from guide**, **Renumber** from a number upward in the order shown, **Make into one**, **Separate** and **Check health**.
+6. **Health.** **Check all channels** opens each channel of the tuner shown in the guide for a moment, a few at a time, with its progress, and the list says which open and which are failing, and why. A channel's **Catch-up** days, when its source keeps an archive, are under its name.
+7. **Duplicates.** The same channel from two playlists or tuners can be made into one: the one you keep stays in the guide, and the others become its backups, hidden from the guide and tried in turn when it fails to open. **Duplicates**, beside **Search for tuners**, lists every channel listed more than once (the same guide id, or the same name), with the one suggested to keep; **Make into one** does each group in one press.
 
 **Streams at once** limits how many channels can be open on a tuner. Your changes stay when the list is read again.
 
@@ -361,6 +382,13 @@ ATSC huffman-compressed guide text isn't read, so those events are skipped.
 ## Recordings
 
 Highlight a show on a tuner channel, and press **R** or **Record**. **Record every airing**, under more about a programme, follows a title on that channel.
+
+**Recording choices.** In more about a programme, **Record this…** and **Record every airing…** ask first:
+
+- **Start early** and **Keep going after it ends**, up to an hour each, for programmes that don't keep to the guide's times.
+- For every airing: **New episodes only** skips an episode this series has already recorded (by its season and episode, or else its episode name); **On any channel** records it wherever it's on, not only on this channel; **Keep** keeps only the newest few recordings this series made and deletes older ones when a newer one has finished.
+
+On **Recordings**, **Change** on a series changes these, and a recording waiting to happen says so when no tuner will be free when it starts.
 
 ![The recordings page](images/wittytv-recordings.webp)
 *Recordings, on a server with none yet.*

@@ -199,7 +199,7 @@ function start(key: string) {
       if (a.signal.aborted) return
       noteBackgroundDefault(i.backgroundPlay)
       setLive({ info: i })
-      const u = i.url + '?viewer=' + viewer
+      const u = i.url + (i.url.includes('?') ? '&' : '?') + 'viewer=' + viewer
       await preflight(u, a.signal)
       if (!a.signal.aborted) setLive({ url: u })
     })

@@ -80,10 +80,23 @@ type Channel struct {
 	EPGSet    string `json:"epgSet,omitempty"`
 	// LogoSet is what a person chose for its logo: "" to find it by name, "none", or
 	// "kind|name" in the logo service.
-	LogoSet    string `json:"logoSet,omitempty"`
-	locator    string
-	sourceName string
-	driver     string
+	LogoSet string `json:"logoSet,omitempty"`
+	// CatchupDays: the source keeps this many days of what the channel showed, to be
+	// watched from the start. catchup and catchupSource say how to ask for it.
+	CatchupDays int `json:"catchupDays,omitempty"`
+	// Health is what the last check or tune found: HealthOK, HealthFailing, or "" for not yet.
+	Health    string `json:"health,omitempty"`
+	HealthAt  int64  `json:"healthAt,omitempty"`
+	HealthMsg string `json:"healthMsg,omitempty"`
+	// MergedInto: this channel is a backup of that one, hidden from the guide and tried
+	// when that one won't open. Backups counts a channel's own backups (settings only).
+	MergedInto    int64 `json:"mergedInto,omitempty"`
+	Backups       int   `json:"backups,omitempty"`
+	catchup       string
+	catchupSource string
+	locator       string
+	sourceName    string
+	driver        string
 }
 
 // Engine is WittyTuner, as the server reaches it.
@@ -151,6 +164,7 @@ type Manager struct {
 	inUse            map[int64]int
 	viewers          map[int64]func() // live sessions by channel, for stopping one when a recording needs its tuner
 	recordingCancels map[int64]context.CancelFunc
+	health           map[int64]*HealthState // channel checks, by tuner
 	dvrOnce          sync.Once
 	epgOnce          sync.Once
 	// Stop ends everything at shutdown.
@@ -403,6 +417,7 @@ func (m *Manager) Delete(ctx context.Context, id int64) error {
 	}
 	_, _ = m.DB.ExecContext(ctx, `DELETE FROM epg_sources WHERE tuner_id = ?`, id)
 	m.forget(id)
+	m.unorphanBackups(ctx)
 	return nil
 }
 
@@ -493,13 +508,14 @@ func (m *Manager) saveChannels(ctx context.Context, id int64, list []tuner.Chann
 			continue
 		}
 		keep[c.ID] = true
-		_, err := tx.ExecContext(ctx, `INSERT INTO tuner_channels(tuner_id, source_id, number, name, grp, callsign, locator, logo, hd, radio, encrypted, encrypted_why, program, epg_id, checked, atsc3, video_codec, audio_codec, no_record)
-			VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+		_, err := tx.ExecContext(ctx, `INSERT INTO tuner_channels(tuner_id, source_id, number, name, grp, callsign, locator, logo, hd, radio, encrypted, encrypted_why, program, epg_id, checked, atsc3, video_codec, audio_codec, no_record, catchup_days, catchup, catchup_source)
+			VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
 			ON CONFLICT(tuner_id, source_id) DO UPDATE SET number=excluded.number, name=excluded.name, grp=excluded.grp, callsign=excluded.callsign, locator=excluded.locator,
 			logo=excluded.logo, hd=excluded.hd, radio=excluded.radio, encrypted=excluded.encrypted, encrypted_why=excluded.encrypted_why, program=excluded.program, epg_id=excluded.epg_id,
-			checked=excluded.checked, atsc3=excluded.atsc3, video_codec=excluded.video_codec, audio_codec=excluded.audio_codec, no_record=excluded.no_record`,
+			checked=excluded.checked, atsc3=excluded.atsc3, video_codec=excluded.video_codec, audio_codec=excluded.audio_codec, no_record=excluded.no_record,
+			catchup_days=excluded.catchup_days, catchup=excluded.catchup, catchup_source=excluded.catchup_source`,
 			id, c.ID, c.Number, c.Name, c.Group, c.CallSign, c.Locator, c.Logo, boolInt(c.HD), boolInt(c.Radio), boolInt(c.Encrypted != ""), c.Encrypted, c.Program, c.EPGID,
-			boolInt(c.Checked), boolInt(c.ATSC3), c.VideoCodec, c.AudioCodec, c.NoRecord)
+			boolInt(c.Checked), boolInt(c.ATSC3), c.VideoCodec, c.AudioCodec, c.NoRecord, max(c.CatchupDays, 0), c.Catchup, c.CatchupSource)
 		if err != nil {
 			return 0, err
 		}
@@ -529,7 +545,13 @@ func (m *Manager) saveChannels(ctx context.Context, id int64, list []tuner.Chann
 	}
 	var after int
 	_ = tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM tuner_channels WHERE tuner_id = ?`, id).Scan(&after)
-	return after - before + len(gone), tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return 0, err
+	}
+	if len(gone) > 0 {
+		m.unorphanBackups(ctx)
+	}
+	return after - before + len(gone), nil
 }
 
 func boolInt(b bool) int {
@@ -645,7 +667,8 @@ func (m *Manager) ScanProgress(id int64) ScanState {
 // --------------------------------------------------------------------------
 
 const channelCols = `c.id, c.tuner_id, c.source_id, c.number, c.name, c.grp, c.callsign, c.locator, c.logo, c.hd, c.radio, c.encrypted, c.encrypted_why, c.program, c.enabled,
-	c.number_set, c.name_set, c.epg_id, c.epg_set, t.name, t.driver, c.encrypted_seen, c.checked, c.seen_clear, c.atsc3, c.video_codec, c.audio_codec, c.no_record, c.no_record_set, c.logo_set`
+	c.number_set, c.name_set, c.epg_id, c.epg_set, t.name, t.driver, c.encrypted_seen, c.checked, c.seen_clear, c.atsc3, c.video_codec, c.audio_codec, c.no_record, c.no_record_set, c.logo_set,
+	c.catchup_days, c.catchup, c.catchup_source, c.health, c.health_at, c.health_msg, c.merged_into`
 
 // What is known about a channel's protection.
 const (
@@ -658,11 +681,14 @@ func scanChannel(sc interface{ Scan(...any) error }) (*Channel, error) {
 	var c Channel
 	var hd, radio, enc, enabled, checked, seenClear, atsc3, noRecordSet int
 	var why, seen, noRecord string
+	var merged sql.NullInt64
 	if err := sc.Scan(&c.ID, &c.TunerID, &c.SourceID, &c.Number, &c.Name, &c.Group, &c.CallSign, &c.locator, &c.Logo, &hd, &radio, &enc, &why, &c.Program, &enabled,
-		&c.NumberSet, &c.NameSet, &c.EPGID, &c.EPGSet, &c.sourceName, &c.driver, &seen, &checked, &seenClear, &atsc3, &c.VideoCodec, &c.AudioCodec, &noRecord, &noRecordSet, &c.LogoSet); err != nil {
+		&c.NumberSet, &c.NameSet, &c.EPGID, &c.EPGSet, &c.sourceName, &c.driver, &seen, &checked, &seenClear, &atsc3, &c.VideoCodec, &c.AudioCodec, &noRecord, &noRecordSet, &c.LogoSet,
+		&c.CatchupDays, &c.catchup, &c.catchupSource, &c.Health, &c.HealthAt, &c.HealthMsg, &merged); err != nil {
 		return nil, err
 	}
 	c.HD, c.Radio, c.Enabled, c.ATSC3 = hd != 0, radio != 0, enabled != 0, atsc3 != 0
+	c.MergedInto = merged.Int64
 	switch {
 	case enc != 0:
 		c.Encrypted = firstNonEmpty(why, "it is marked as encrypted")
@@ -717,8 +743,17 @@ func (m *Manager) Channels(ctx context.Context, tunerID int64) ([]*Channel, erro
 		}
 		out = append(out, c)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	rows.Close()
+	if counts, err := m.backupCounts(ctx); err == nil {
+		for _, c := range out {
+			c.Backups = counts[c.ID]
+		}
+	}
 	sortChannels(out)
-	return out, rows.Err()
+	return out, nil
 }
 
 func sortChannels(l []*Channel) {
@@ -740,7 +775,7 @@ func sortChannels(l []*Channel) {
 // GuideChannels lists every channel that can appear in the guide, across
 // enabled tuners. Encrypted channels stay, so people can see why they do not play.
 func (m *Manager) GuideChannels(ctx context.Context) ([]*Channel, error) {
-	rows, err := m.DB.QueryContext(ctx, `SELECT `+channelCols+` FROM tuner_channels c JOIN tuners t ON t.id = c.tuner_id WHERE c.enabled = 1 AND t.enabled = 1`)
+	rows, err := m.DB.QueryContext(ctx, `SELECT `+channelCols+` FROM tuner_channels c JOIN tuners t ON t.id = c.tuner_id WHERE c.enabled = 1 AND t.enabled = 1 AND c.merged_into IS NULL`)
 	if err != nil {
 		return nil, err
 	}
@@ -935,8 +970,55 @@ func (o *Opened) Release() {
 }
 
 // Open starts a channel, within the tuner's limit. Guide data found in the
-// stream is stored as it goes by.
+// stream is stored as it goes by. When the channel won't open and has backups (the same
+// station from other sources, see Merge), they're tried in turn, the ones that worked last
+// time first; if none opens, the channel's own error is the answer.
 func (m *Manager) Open(ctx context.Context, channelID int64) (*Opened, error) {
+	o, err := m.openOne(ctx, channelID)
+	if !worthFailingOver(ctx, err) {
+		return o, err
+	}
+	backups, berr := m.backupsOf(ctx, channelID)
+	if berr != nil {
+		m.Log.WarnContext(ctx, "could not list a channel's backups", "cat", "tv", "channel", channelID, "err", berr)
+	}
+	for _, b := range backups {
+		bo, berr := m.openOne(ctx, b)
+		if berr == nil {
+			m.tunerLog().InfoContext(ctx, "a channel didn't open, so its backup is playing", "topic", "tuner", "channel", channelID, "backup", b, "why", err)
+			return bo, nil
+		}
+		if ctx.Err() != nil {
+			break
+		}
+	}
+	return nil, err
+}
+
+// openOne opens one channel, with no backups.
+func (m *Manager) openOne(ctx context.Context, channelID int64) (*Opened, error) {
+	return m.openWith(ctx, channelID, 0, 0)
+}
+
+// ErrNoArchive: what was asked for isn't in the source's archive.
+var ErrNoArchive = errors.New("that isn't in this channel's archive")
+
+// OpenArchive plays a stretch of what a channel showed, from its source's archive (catch-up),
+// within the same limits and checks as watching it live. Backups aren't tried: another
+// source's archive needn't hold the same programme at the same time.
+func (m *Manager) OpenArchive(ctx context.Context, channelID, start, end int64) (*Opened, error) {
+	c, err := m.Channel(ctx, channelID)
+	if err != nil {
+		return nil, err
+	}
+	now := time.Now().Unix()
+	if c.CatchupDays <= 0 || start <= 0 || start > now || start < now-int64(c.CatchupDays)*86400 || (end != 0 && end <= start) {
+		return nil, ErrNoArchive
+	}
+	return m.openWith(ctx, channelID, start, end)
+}
+
+func (m *Manager) openWith(ctx context.Context, channelID, archiveStart, archiveEnd int64) (*Opened, error) {
 	c, err := m.Channel(ctx, channelID)
 	if err != nil {
 		return nil, err
@@ -972,10 +1054,14 @@ func (m *Manager) Open(ctx context.Context, channelID int64) (*Opened, error) {
 		m.inUse[c.TunerID]--
 		m.mu.Unlock()
 	}
-	st, err := s.Open(ctx, tuner.Channel{ID: c.SourceID, Number: c.Number, Name: c.Name, Locator: c.locator, Program: c.Program})
+	st, err := s.Open(ctx, tuner.Channel{ID: c.SourceID, Number: c.Number, Name: c.Name, Locator: c.locator, Program: c.Program,
+		CatchupDays: c.CatchupDays, Catchup: c.catchup, CatchupSource: c.catchupSource, ArchiveStart: archiveStart, ArchiveEnd: archiveEnd})
 	if err != nil {
 		release()
 		m.noteOpenFailure(ctx, c, err)
+		if archiveStart == 0 {
+			m.noteHealth(c.ID, err)
+		}
 		var enc *tuner.EncryptedError
 		if errors.As(err, &enc) && enc.Why != "" {
 			m.noteStream(c.ID, enc.Why)
@@ -984,6 +1070,9 @@ func (m *Manager) Open(ctx context.Context, channelID int64) (*Opened, error) {
 	}
 	if st.Guard != nil {
 		st.Guard.OnEvent = m.broadcastEvents(c)
+	}
+	if c.Health != HealthOK && archiveStart == 0 {
+		m.noteHealth(c.ID, nil)
 	}
 	m.Log.DebugContext(ctx, "channel opened", "module", "wittytuner", "topic", "tuner", "tuner", c.TunerID, "channel", c.Name)
 	note := func(why string) { m.noteStream(c.ID, why) }

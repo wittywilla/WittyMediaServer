@@ -107,6 +107,9 @@ func CheckProblem(driver string, err error) Problem {
 		if addressed(driver) {
 			return Problem{Kind: "unreachable", Message: "Nothing answered at that address.", Hint: "Check the address, that the device is switched on, and that it's on the same network as this server."}
 		}
+		if driver == "xtream" {
+			return Problem{Kind: "unreachable", Message: "The provider's server didn't answer.", Hint: "Check the server address, including its port, and that this server can reach the internet."}
+		}
 		if driver == "iptv" {
 			return Problem{Kind: "unreachable", Message: "The playlist's address didn't answer.", Hint: "Check the address, and that this server can reach the internet or the machine it's on."}
 		}
@@ -114,6 +117,8 @@ func CheckProblem(driver string, err error) Problem {
 	case addressed(driver):
 		return Problem{Kind: "not-a-tuner", Message: "Something answered at that address, but not as this kind of device: " + text + ".",
 			Hint: "Check the address is the device's own, and that you chose the right kind of device. A router or a computer's web page answers too, but isn't a tuner."}
+	case driver == "xtream":
+		return Problem{Kind: "unreadable", Message: sentence(text), Hint: "Check the server address, user name and password your provider gave you."}
 	case driver == "iptv" || driver == "stream":
 		return Problem{Kind: "unreadable", Message: sentence(text), Hint: "Check the address or the file. A playlist is an M3U or M3U8 file: a web page about one isn't the playlist itself."}
 	}

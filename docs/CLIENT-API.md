@@ -662,6 +662,41 @@ Everything about a channel's ticket works as in [Stream tokens](#stream-tokens),
 that the account may watch that channel. An encrypted broadcast is refused with `security` saying why; this
 server never decrypts one.
 
+### Channel sets
+
+A **set** is which channels the guide shows, and in what order. `GET /tv-sets` lists every set this profile can
+choose, each with `id`, `kind` (`all`, `favourites`, `custom`, `source`, `group`), `name` and `count` (channels this
+profile may watch), and `canShare` for an administrator. Show them in that order. Pass the chosen `id` as
+`GET /guide?set=<id>`: a custom set (`set:7`) lists its channels in the order its owner gave, every other set by
+number. Remember the choice on the device, per server and account, and fall back to `all` when the guide answers
+404 for a set that has gone. Feature `tv-sets`.
+
+A custom set is a person's own (`POST /tv-sets` with `name` and `channels`, the channel keys in order;
+`PUT /tv-sets/{id}` to rename, share or replace them; `POST /tv-sets/{id}/channels` with `add` and `remove`;
+`DELETE /tv-sets/{id}`; `PUT /tv-sets/order` with `ids` for this account's order). An administrator can make one
+`shared`: everyone then sees it, and only an administrator changes it (`editable` says whether the caller may).
+Channels a profile may not watch stay in a set and are never shown to that profile.
+
+**Paging and finding channels** (feature `tv-guide-paging`). Ask for a page of rows with `offset` and `limit`
+(25, 50, 75 or 100 suit a remote; `limit` is at most 200 with programmes). `q` keeps the channels whose number
+starts with it or whose name contains it. `locate=<number or key>` finds a channel in the set: the answer's
+`located` is its place (`-1` when it isn't there) and `offset` moves to the start of the page that holds it. For a
+channel picker or dialling, `list=1&lite=1` (with `limit` up to 20000) gives only `key`, `kind`, `id`, `number`,
+`name`, `group`, `logo`, `brand`, `favourite` and `encrypted` per channel: about a tenth of the full rows.
+
+### Catch-up
+
+A tuner channel whose source keeps what it showed has `catchupDays` in the guide (feature `tv-catchup`). A programme
+that has started, within that many days, can be watched from its start: `GET /tv/{key}/catchup?start=<the
+programme's start>&end=<its end>&viewer=<name>` answers like `/tune`, with `url` for its own stream and `now` for the
+programme. It plays from the start at the speed it aired, and can be paused and rewound within `bufferSec`, like a
+live channel. Leave with `POST /tv/{key}/leave?viewer=<name>&start=<the same start>`. A 404 means the programme
+isn't in the archive. Offer **Watch from the start** only where `catchupDays` covers the programme's start.
+
+Tuner rows also carry `health` (`ok` or `failing`) from the last check or tune, for showing a channel that has
+stopped working. A channel can have backups, the same station from other sources, which the server tries by itself
+when it won't open; they don't appear in the guide.
+
 ### Recording
 
 **`canRecord` is the only signal for offering Record.** Show **Record**, **Record every airing** (a series), and any
@@ -689,8 +724,10 @@ The server always sends `canRecord`, `true` or `false`, wherever it describes a 
 For one programme, offer Record when its channel's `canRecord` is `true`, the programme's `kind` is `broadcast`, and
 its `end` is still to come.
 
-`POST /recordings` (body: `channel`, `title`, `sub`, `start`, `stop`) and `POST /recording-rules` (body: `channel`,
-`title`) use the same rule, so they take what `canRecord` offered and refuse anything else, with `{"error": "…"}` in
+`POST /recordings` (body: `channel`, `title`, `sub`, `start`, `stop`, and with feature `tv-dvr-rules-2`
+`padBefore` and `padAfter`, minutes more either side) and `POST /recording-rules` (body: `channel`, `title`, and with
+that feature `anyChannel`, `newOnly`, `keep` and the two paddings, which `PUT /recording-rules/{id}` changes) use the
+same rule, so they take what `canRecord` offered and refuse anything else, with `{"error": "…"}` in
 words to show as they are:
 
 | Status | When |
@@ -1678,6 +1715,16 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `GET /tv/favourites` | user | This account's favourite channels, as channel keys. The guide marks them too. |
 | `PUT /tv/favourites/{key}` | user | Star a channel. |
 | `DELETE /tv/favourites/{key}` | user | Unstar a channel. |
+| `GET /tv-sets` | user | Every channel set this profile can choose: all, favourites, its own and shared sets, each source, each group, with counts. See "Channel sets". |
+| `POST /tv-sets` | user | Make a custom set: `name`, `channels` (keys, in order), `shared` (administrators). |
+| `PUT /tv-sets/order` | user | This account's order of the custom sets it sees: `ids`. |
+| `GET /tv-sets/{id}` | user | One custom set with its channels in order. |
+| `PUT /tv-sets/{id}` | user | Rename, share or replace the channels of a set. |
+| `POST /tv-sets/{id}/channels` | user | Add and remove channels: `add`, `remove`. |
+| `DELETE /tv-sets/{id}` | user | Delete a set. |
+| `GET /tv/{key}/catchup` | user | Watch a programme from its start, from the source's archive: `start`, `end`, `viewer`. Answers like `/tune`. See "Catch-up". |
+| `GET /tv/{key}/catchup/{start}/playlist.m3u8` | user | The catch-up stream. |
+| `GET /tv/{key}/catchup/{start}/seg/{name}` | user | A segment of the catch-up stream. |
 | `GET /tv/reminders` | user | This account's reminders still to come, each with its channel's `canRecord`. |
 | `POST /tv/reminders` | user | Body: channel, title, sub, start, end. The same programme twice is one reminder. |
 | `DELETE /tv/reminders/{id}` | user | One of this account's reminders. |
@@ -2127,7 +2174,13 @@ See [LIBRARY-TRANSCODING.md](LIBRARY-TRANSCODING.md).
 | `DELETE /users/{id}/2fa` | admin | User two factor reset. |
 | `GET /recording-rules` | user | This account's recording rules, and an administrator's sees everyone's. |
 | `POST /recording-rules` | user | Record every airing of a title. Only a channel whose `canRecord` is true, refused as `POST /recordings` is; 409 at 20 (not for an administrator). See "Recording". |
+| `PUT /recording-rules/{id}` | user | Change how a recording rule records: `anyChannel`, `newOnly`, `keep`, `padBefore`, `padAfter`. |
 | `DELETE /recording-rules/{id}` | user | Delete a recording rule of this account's; an administrator, anyone's. |
+| `POST /tuner-channels/bulk` | admin | Many tuner channels at once: `ids`, `action` (enable, disable, renumber with `start`, merge with `into`, unmerge, check). |
+| `GET /tuners/duplicates` | admin | Channels across every tuner that look like the same station, in groups. |
+| `POST /tuners/{id}/health` | admin | Check every enabled channel of a tuner, in the background. |
+| `GET /tuners/{id}/health` | admin | How a tuner's channel check is going. |
+| `DELETE /tuners/{id}/health` | admin | Stop a tuner's channel check. |
 | `GET /dvd/{sid}/menu/{serial}/effect/{n}` | user | DVD effect. |
 | `GET /dvd/{sid}/sound/{n}` | user | DVD sound. |
 | `GET /dvd/{sid}/bdj` | user | BDJ poll. |

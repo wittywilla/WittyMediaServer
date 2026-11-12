@@ -6,6 +6,7 @@ import { useSource } from '../../player/hooks'
 import { clockOffset, syncStep, type ClockSample } from '../../player/sync'
 import { lendHls, liveNow, liveVideo, liveViewer, setLive, useLiveState } from './live'
 import { preflight, type TuneInfo } from './tvApi'
+import { parseCatchupKey } from './guideLogic'
 
 // The TV section's one stream (see live.ts). It's mounted beside the pages rather than in one,
 // so the guide, the watch view and full screen all play the same one without starting again.
@@ -41,7 +42,8 @@ export default function TvHost() {
   const part = info?.partEnd, programme = info?.now?.end
   const end = part && programme && part < programme ? part : programme
   useEffect(() => {
-    if (!key || !end) return
+    // A programme watched from its start stays that programme: there's nothing to move on to.
+    if (!key || !end || parseCatchupKey(key)) return
     // An answer that came after the moment it ends (a slow server, or a page in the
     // background whose timers wait) asks again shortly, rather than never.
     const wait = Math.max(end * 1000 - Date.now() + 1500, 5000)
@@ -57,7 +59,8 @@ export default function TvHost() {
   // hand, with no requests beyond a few for the clock. A pause or going back leaves it be (away),
   // except a pause too short to mean it: a double-click for full screen is two clicks.
   useEffect(() => {
-    if (!url || !ready) return
+    // A programme from its start is the viewer's own stream: nobody to keep up with.
+    if (!url || !ready || parseCatchupKey(key)) return
     const v = liveVideo()
     let on = true, nudging = false, pausedAt = 0
     // A silent video paused while the page is hidden was paused by the browser, not the viewer:
@@ -107,7 +110,7 @@ export default function TvHost() {
       v.playbackRate = 1
       delete v.dataset.behind
     }
-  }, [url, ready, hls])
+  }, [url, ready, hls, key])
   return null
 }
 

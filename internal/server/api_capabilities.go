@@ -107,6 +107,9 @@ var serverFeatures = []string{
 	"p2p",
 	// A device away from home shows a code, and someone signed in types it in: POST /api/v1/p2p/join.
 	"p2p-join",
+	// Live TV for long playlists: channel sets, paging and finding channels in the guide, catch-up,
+	// channel health and backups, and fuller series recording.
+	"tv-sets", "tv-guide-paging", "tv-catchup", "tv-channel-health", "tv-duplicates", "tv-dvr-rules-2",
 }
 
 // minClientVersions names the oldest version of each app this server still works with, by

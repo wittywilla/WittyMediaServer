@@ -165,7 +165,8 @@ func (s *Server) streamRoutes(pattern string) func(*http.Request, *streamGrant) 
 		return item
 	case "GET /api/hls/{id}/playlist.m3u8", "GET /api/hls/{id}/master.m3u8", "GET /api/hls/{id}/seg/{n}", "GET /api/hls/{id}/subs/{file}":
 		return stream
-	case "GET /api/tv/{key}/live/playlist.m3u8", "GET /api/tv/{key}/live/seg/{name}":
+	case "GET /api/tv/{key}/live/playlist.m3u8", "GET /api/tv/{key}/live/seg/{name}",
+		"GET /api/tv/{key}/catchup/{start}/playlist.m3u8", "GET /api/tv/{key}/catchup/{start}/seg/{name}":
 		return live // both check the channel against the account themselves, on every request
 	case "GET /api/dvd/{sid}/menu/{serial}/overlay.png", "GET /api/dvd/{sid}/menu/{serial}/highlight/{n}", "GET /api/dvd/{sid}/still/{name}", "GET /api/dvd/{sid}/sub/{name}":
 		return disc

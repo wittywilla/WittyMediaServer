@@ -2,6 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import type { LogoKind } from '../../components/BrandLogo'
 import { api, ApiError, mediaUrl, serverBase, getToken } from '../../api'
+import { parseCatchupKey, type TvSet } from './guideLogic'
 
 // What the TV pages talk to the server about. See docs/CHANNELS.md.
 
@@ -26,6 +27,8 @@ export type GuideChannel = {
   hd?: boolean; radio?: boolean; encrypted?: string; noRecord?: string; atsc3?: boolean
   security?: Security; alternative?: Alternative; notices?: string[]; programmes: Programme[]
   description?: string; categories?: string[]; accent?: string; favourite?: boolean; brand?: ChannelBrand
+  // A tuner channel whose source keeps an archive: how many days back a programme can be watched from its start.
+  catchupDays?: number; health?: '' | 'ok' | 'failing'
 }
 // The name a channel's logo goes by in the logo service.
 export type ChannelBrand = { kind: 'network' | 'studio'; name: string }
@@ -36,6 +39,8 @@ export type EncryptedHelpPage = {
 }
 export type GuidePage = {
   now: number; from: number; to: number; total: number; offset: number; channels: GuideChannel[]; groups: string[]; skin: Skin; layout: 'classic' | 'streaming'; theme?: string
+  // Which set it is of (tv-sets), and where the channel asked for with locate= is in it, -1 when it isn't.
+  set?: string; located?: number
   // What a device that hasn't chosen does with "Keep playing when this tab is in the background".
   backgroundPlay?: boolean
 }
@@ -90,7 +95,14 @@ export type Reminder = { id: number; channel: string; title: string; sub?: strin
 export type DriverField = { key: string; label: string; kind: 'text' | 'url' | 'path' | 'password' | 'select' | 'number' | 'textarea' | 'toggle'; help?: string; default?: string; required?: boolean; options?: string[] }
 export type Driver = { id: string; name: string; description: string; status: 'tested' | 'mock' | 'untested' | 'planned'; platforms?: string[]; fields: DriverField[]; scans: boolean; planned?: boolean; available: boolean; note?: string }
 export type Tuner = { id: number; driver: string; name: string; options: Record<string, string>; enabled: boolean; maxStreams: number; lastScan: number | null; lastError: string; detail: string; channels: number; encrypted: number; clear: number; inUse: number }
-export type TunerChannel = { logoSet?: string; logoUrl?: string; brand?: { kind: LogoKind; name: string }; id: number; tunerId: number; sourceId: string; number: string; name: string; group?: string; hd?: boolean; radio?: boolean; encrypted?: string; security: Security['state']; atsc3?: boolean; videoCodec?: string; audioCodec?: string; noRecord?: string; enabled: boolean; epgId?: string; numberSet?: string; nameSet?: string; epgSet?: string }
+export type TunerChannel = {
+  logoSet?: string; logoUrl?: string; brand?: { kind: LogoKind; name: string }; id: number; tunerId: number; sourceId: string; number: string; name: string; group?: string; hd?: boolean; radio?: boolean; encrypted?: string; security: Security['state']; atsc3?: boolean; videoCodec?: string; audioCodec?: string; noRecord?: string; enabled: boolean; epgId?: string; numberSet?: string; nameSet?: string; epgSet?: string
+  // Whether it last opened (tv-channel-health), and the channel it is a backup of, or how many backups it has.
+  health?: '' | 'ok' | 'failing'; healthAt?: number; healthMsg?: string; mergedInto?: number; backups?: number; catchupDays?: number
+}
+export type HealthRun = { running: boolean; done: number; total: number; ok: number; failing: number }
+export type DuplicateGroup = { reason: string; channels: { id: number; tunerId: number; tuner: string; number: string; name: string; health?: string }[]; suggested: number }
+export type BulkAction = 'enable' | 'disable' | 'renumber' | 'merge' | 'unmerge' | 'check'
 export type ScanState = { running: boolean; percent: number; found: number; message?: string; error?: string; added: number; clear: number; encrypted: number; unknown: number }
 export type Found = { driver: string; name: string; detail?: string; options: Record<string, string> }
 // The guided setup's questions: what a source says before it's saved, and what one channel did when tried.
@@ -98,8 +110,15 @@ export type TunerProblem = { kind: 'settings' | 'unreachable' | 'not-a-tuner' | 
 export type TunerCheck = { ok: true; result: { detail?: string; maxStreams?: number; channels: number; encrypted: number; sample?: string[]; ownGuide?: boolean } } | { ok: false; problem: TunerProblem }
 export type TunerTest = { ok: boolean; channel?: { id: number; number: string; name: string }; problem?: TunerProblem; seconds: number; video?: string; audio?: string; clear?: boolean }
 export type EPGSource = { id: number; name: string; url: string; lastFetch: number | null; lastError: string; programmes: number; tunerId?: number }
-export type Recording = { id: number; channelId: number; channel: string; number: string; title: string; sub?: string; start: number; stop: number; status: 'scheduled' | 'recording' | 'done' | 'failed' | 'cancelled'; error?: string; path?: string; sizeBytes?: number; ruleId?: number }
-export type RecordingRule = { id: number; channelId: number; channel: string; title: string }
+export type Recording = {
+  id: number; channelId: number; channel: string; number: string; title: string; sub?: string; start: number; stop: number; status: 'scheduled' | 'recording' | 'done' | 'failed' | 'cancelled'; error?: string; path?: string; sizeBytes?: number; ruleId?: number
+  // tv-dvr-rules-2: no tuner would be free at its start; the series it belongs to; its padding in minutes.
+  conflict?: boolean; ruleTitle?: string; padBefore?: number; padAfter?: number
+}
+export type RecordingRule = { id: number; channelId: number; channel: string; title: string; anyChannel?: boolean; newOnly?: boolean; keep?: number; padBefore?: number; padAfter?: number }
+// Channel sets (tv-sets): GET /api/tv-sets, and one custom set with its channels.
+export type SetList = { sets: TvSet[]; canShare: boolean }
+export type SetDetail = { id: string; name: string; shared: boolean; editable: boolean; channels: string[] }
 
 // Whose logo a channel wears when nobody chose: the one network or studio it plays.
 export function brandOf(def: Definition, look?: ChannelLook): ChannelBrand | undefined {
@@ -132,12 +151,14 @@ export async function preflight(url: string, signal: AbortSignal): Promise<void>
 // A name for one player, so the server can tell when it has gone.
 export const makeViewer = () => Math.random().toString(36).slice(2, 12)
 
-// Tunes a channel. A tuner that another player has just let go of can still be
-// busy for a moment, so "busy" is tried again before it is believed.
+// Tunes a channel, or a programme of it from its start (a key from catchupKey). A tuner
+// that another player has just let go of can still be busy for a moment, so "busy" is
+// tried again before it is believed.
 export async function tune(key: string, viewer: string, signal: AbortSignal): Promise<TuneInfo> {
   for (let i = 0; ; i++) {
     try {
-      return await api.get<TuneInfo>(`/tv/${key}/tune?viewer=${viewer}`)
+      const cu = parseCatchupKey(key)
+      return await api.get<TuneInfo>(cu ? `/tv/${cu.key}/catchup?start=${cu.start}&end=${cu.end}&viewer=${viewer}` : `/tv/${key}/tune?viewer=${viewer}`)
     } catch (e) {
       if (!(e instanceof ApiError) || e.status !== 503 || i >= 3 || signal.aborted) throw e
       await new Promise((r) => setTimeout(r, 1500))
@@ -150,7 +171,7 @@ export function leaveChannel(key: string, viewer: string) {
   const headers: Record<string, string> = {}
   const tok = getToken()
   if (tok) headers.Authorization = 'Bearer ' + tok
-  fetch(serverBase() + `/api/tv/${key}/leave?viewer=${viewer}`, { method: 'POST', headers, credentials: 'same-origin', keepalive: true }).catch(() => {})
+  fetch(serverBase() + `/api/tv/${parseCatchupKey(key)?.key ?? key}/leave?viewer=${viewer}`, { method: 'POST', headers, credentials: 'same-origin', keepalive: true }).catch(() => {})
 }
 
 export async function uploadLogo(id: number, file: File): Promise<{ logo: string }> {
@@ -164,11 +185,12 @@ export async function uploadLogo(id: number, file: File): Promise<{ logo: string
 }
 
 // Every channel's number, for dialling and CH+/CH-. Kept for a minute: the
-// list hardly ever changes, and it can be long with IPTV.
+// list hardly ever changes, and it can be long with IPTV. lite=1 asks for only what
+// a list of channels needs (a server without it sends the lot, which does as well).
 let lineup: { at: number; list: Promise<GuideChannel[]> } | null = null
 export function getLineup(): Promise<GuideChannel[]> {
   if (!lineup || Date.now() - lineup.at > 60000) {
-    lineup = { at: Date.now(), list: api.get<GuidePage>('/guide?list=1&limit=20000').then((g) => g.channels) }
+    lineup = { at: Date.now(), list: api.get<GuidePage>('/guide?list=1&lite=1&limit=20000').then((g) => g.channels) }
     lineup.list.catch(() => { lineup = null })
   }
   return lineup.list
@@ -185,6 +207,11 @@ export async function uploadBumper(file: File): Promise<{ itemId: number; title:
   if (!res.ok) throw new Error(data.error || res.statusText)
   return data
 }
+
+// Channel sets (tv-sets). The list is asked for whenever a page needs it: it is short.
+export const getSets = () => api.get<SetList>('/tv-sets')
+// Added to or taken out of a custom set, from the guide.
+export const changeSet = (id: string, add: string[], remove: string[]) => api.post(`/tv-sets/${id.replace(/^set:/, '')}/channels`, { add, remove })
 
 export const setFavourite = (key: string, on: boolean) => (on ? api.put(`/tv/favourites/${key}`, {}) : api.del(`/tv/favourites/${key}`))
 

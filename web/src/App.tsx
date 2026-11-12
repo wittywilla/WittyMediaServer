@@ -70,6 +70,7 @@ const SetupWizard = lazy(() => import('./pages/SetupWizard'))
 // TV is its own part of the app, loaded when someone goes there.
 const GuidePage = lazy(() => import('./pages/tv/GuidePage'))
 const RecordingsPage = lazy(() => import('./pages/tv/RecordingsPage'))
+const SetsPage = lazy(() => import('./pages/tv/SetsPage'))
 const ChannelsPage = lazy(() => import('./pages/tv/ChannelsPage'))
 const EncryptedHelp = lazy(() => import('./pages/tv/EncryptedHelp'))
 const TvPlayer = lazy(() => import('./pages/tv/TvPlayer'))
@@ -214,6 +215,7 @@ export function PageRoutes() {
       <Route path="/page/:id" element={<SduiRoute fallback={<NotFound />} />} />
       <Route path="/tv/recordings" element={<Suspense fallback={tvFallback}><RecordingsPage /></Suspense>} />
       <Route path="/tv/channels/*" element={<Suspense fallback={tvFallback}><ChannelsPage /></Suspense>} />
+      <Route path="/tv/sets/*" element={<Suspense fallback={tvFallback}><SetsPage /></Suspense>} />
       <Route path="/tv/encrypted" element={<Suspense fallback={tvFallback}><EncryptedHelp /></Suspense>} />
       <Route path="/controllers" element={<Suspense fallback={<Spinner />}><ControllersScreen /></Suspense>} />
       <Route path="/settings/*" element={<SettingsPage />} />

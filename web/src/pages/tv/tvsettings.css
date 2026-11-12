@@ -117,3 +117,13 @@
 .tvw-answer a, .tvw-problem a, .tvs-note a { color: var(--accent-text); text-decoration: underline; }
 .tvw-notes { margin: 0; padding-left: 1.2em; }
 .tvw-pick { display: grid; gap: 4px; max-width: 28rem; font-weight: 600; }
+
+/* Many channels at once, whether each still opens, and the same channel listed twice. */
+.tvs-bulk { padding: 8px 10px; border-radius: var(--r-md); background: var(--bg-3); }
+.tvs-bulk-renumber { display: inline-flex; align-items: center; gap: 4px; }
+.tvs-bulk-renumber .input.tvs-num-in { flex: none; min-width: 0; width: 5.5rem; }
+.tvs-grow { flex: 1; min-width: 200px; margin-bottom: 0; }
+.tvs-table tr.tvs-backup td { opacity: .75; }
+.tvs-dupe fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
+.tvs-dupe legend { padding: 0; margin-bottom: 4px; }
+.tvs-dupe-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-height: 32px; font-size: var(--text-sm); }

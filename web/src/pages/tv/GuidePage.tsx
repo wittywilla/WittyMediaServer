@@ -8,6 +8,7 @@ import { announce } from '../../a11y'
 import { IconLeft, IconRight, IconSearch, IconSettings, IconStar, IconTv } from '../../icons'
 import { toast, useApp } from '../../state'
 import { lookupLogo } from '../../components/BrandLogo'
+import { useFeatures } from '../../sdui/useSdui'
 import LookPanel from './LookPanel'
 import { channelVars, forgetJustWatched, justWatched, lastChannel, previousChannel, setLook, setOwnerLook, surfaceOf, themeRoot, useLook, type Look } from './look'
 import { previewAuto, previewLimit, rowHeight, SHAPES } from './tvThemes'
@@ -15,19 +16,31 @@ import { ChannelMark } from './ChannelLogo'
 import DetailsDialog from './Details'
 import Hero from './Hero'
 import SearchPanel from './SearchPanel'
+import SetPicker, { SetButton } from './SetPicker'
+import AddToSet from './AddToSet'
+import RecordOptions from './RecordOptions'
 import { useReminders } from './reminders'
 import { liveNow, noteBackgroundDefault } from './live'
-import { canOfferRecord, dayWord, fmtClock, fmtDay, fmtSpan, getLineup, forgetLineup, setFavourite, type GuideChannel, type GuidePage as Page, type Programme } from './tvApi'
+import { useGuidePrefs } from './guidePrefs'
+import { ALL_SET, catchupKey, channelOf, chooseSet, dialOutcome, pageLabel, pageStartOf, PAGE_SIZES, readPageSize, rowsOnPage, stepPage, stepSet, widerLookup, type PageSize } from './guideLogic'
+import { canOfferRecord, dayWord, fmtClock, fmtDay, fmtSpan, getLineup, getSets, forgetLineup, setFavourite, type GuideChannel, type GuidePage as Page, type Programme, type SetList } from './tvApi'
 import './tv.css'
 import './tvthemes.css'
+import './tvsets.css'
 import LegalNote from '../../components/LegalNote'
 
 // The programme guide. A real ARIA grid under any of WittyTV's themes (tvThemes.ts). At the
 // top, the highlighted channel: its programme, what's next, what can be done with it and a
 // live preview. Below, the rows. The look is each viewer's own (see look.ts). Only the rows
 // on screen are loaded and drawn, so a playlist of thousands of channels stays quick.
+//
+// Which channels it shows is a set (a server with tv-sets: all, favourites, the viewer's own
+// and shared ones, each source, each group), chosen and remembered on this device; against an
+// older server, the filters it always had. The rows come a page at a time (25 to 100, with
+// Previous and Next), or all of them scrolled through, as this device chose.
 
 const SLOT = 1800
+// Rows asked for at a time while scrolling through all of them.
 const PAGE = 30
 const FETCH_SPAN = 3 * 3600
 const FETCH_HOURS = 8
@@ -39,6 +52,7 @@ const TINY_PX = 14
 
 type Filter = { kind: '' | 'library' | 'tuner'; group: string; favourites: boolean }
 type Focus = { row: number; at: number }
+const NO_FILTER: Filter = { kind: '', group: '', favourites: false }
 
 // The cells of a row for the window on screen; gaps are cells too, so every
 // moment of every channel can be reached with the keyboard.
@@ -47,7 +61,7 @@ function cellsFor(ch: GuideChannel | undefined, from: number, to: number, pxPerS
   const out: Programme[] = []
   let t = from
   const none = (start: number, end: number): Programme => ({ start, end, kind: 'none', title: ch.kind === 'library' ? 'Off air' : 'No guide data' })
-  for (const p of ch.programmes) {
+  for (const p of ch.programmes || []) {
     if (p.end <= from || p.start >= to) continue
     if (p.start > t) out.push(none(t, p.start))
     out.push(p)
@@ -90,32 +104,56 @@ function jumps(now: number): { label: string; at: number }[] {
 }
 
 const matches = (c: GuideChannel, f: Filter) => (!f.kind || c.kind === f.kind) && (!f.group || c.group === f.group || !!c.categories?.includes(f.group)) && (!f.favourites || !!c.favourite)
+const filterQuery = (f: Filter) => `&kind=${f.kind}&group=${encodeURIComponent(f.group)}${f.favourites ? '&favourites=1' : ''}`
 
 export default function GuidePage() {
   const { user } = useApp()
   const nav = useNavigate()
   const now = useClock(30000)
+  const features = useFeatures()
+  const hasSets = !!features?.has('tv-sets')
+  const hasPaging = !!features?.has('tv-guide-paging')
+  const hasCatchup = !!features?.has('tv-catchup')
+  const hasRules2 = !!features?.has('tv-dvr-rules-2')
+  const [prefs, setPrefs] = useGuidePrefs()
+  const pageSize: PageSize = prefs.pageSize
   const [from, setFrom] = useState(() => floorSlot(Date.now() / 1000))
-  const [filter, setFilter] = useState<Filter>({ kind: '', group: '', favourites: false })
-  const [rows, setRows] = useState<Record<number, GuideChannel>>({})
+  // The filters of a server without sets.
+  const [filter, setFilter] = useState<Filter>(NO_FILTER)
+  const [sets, setSets] = useState<SetList | null>(null)
+  const [setsFailed, setSetsFailed] = useState(false)
+  // Finding a channel: what's typed, and what the rows are asked for, a moment later.
+  const [find, setFind] = useState('')
+  const [query, setQuery] = useState('')
+  // The rows by their place in the whole list. Kept outside React's state, so that a page more
+  // of thousands of channels doesn't copy the ones already here; `rowsVer` draws them again.
+  const rowsRef = useRef(new Map<number, GuideChannel>())
+  const [, setRowsVer] = useState(0)
+  const bumpRows = () => setRowsVer((v) => v + 1)
   const [total, setTotal] = useState<number | null>(null)
   const [groups, setGroups] = useState<string[]>([])
   const look = useLook()
   const [lookOpen, setLookOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [addTo, setAddTo] = useState<GuideChannel | null>(null)
+  const [recordFor, setRecordFor] = useState<{ ch: GuideChannel; p: Programme; series: boolean } | null>(null)
   const [err, setErr] = useState('')
   const [focus, setFocus] = useState<Focus>(() => ({ row: 0, at: Date.now() / 1000 }))
   // Back from a channel, by any way out of it: that channel is highlighted once the rows come.
   const [back, setBack] = useState(justWatched)
+  // A row to go to once the rows of what's shown have come (after changing what's shown).
+  const [goRow, setGoRow] = useState<{ row: number; at?: number; centre?: boolean } | null>(null)
   const [details, setDetails] = useState<{ ch: GuideChannel; p: Programme; day?: boolean } | null>(null)
   const [dial, setDial] = useState('')
   const [width, setWidth] = useState(() => window.innerWidth)
-  const [pageSize, setPageSize] = useState({ w: window.innerWidth, h: window.innerHeight })
+  const [pageSizeBox, setPageSizeBox] = useState({ w: window.innerWidth, h: window.innerHeight })
   const [scrollTop, setScrollTop] = useState(0)
   const [viewH, setViewH] = useState(400)
   const [gutter, setGutter] = useState(0)
   const [trackW, setTrackW] = useState(0)
   const [lineup, setLineup] = useState<GuideChannel[]>([])
+  const [tick, setTick] = useState(0)
   const page = useRef<HTMLDivElement | null>(null)
   const scroller = useRef<HTMLDivElement | null>(null)
   const grid = useRef<HTMLDivElement | null>(null)
@@ -135,9 +173,51 @@ export default function GuidePage() {
   const rowH = rowHeight(look.shape, width, look.density)
   const to = from + slots * SLOT
   const fetchFrom = Math.floor(from / FETCH_SPAN) * FETCH_SPAN
-  const filterKey = filter.kind + '|' + filter.group + '|' + filter.favourites
   const pxPerSec = trackW ? trackW / (to - from) : 0
   const reminders = useReminders()
+
+  // Which set: the one this device chose while the server has it, else all channels.
+  const setId = hasSets && sets ? chooseSet(prefs.set, sets.sets) : ALL_SET
+  const curSet = sets?.sets.find((s) => s.id === setId)
+  const q = hasPaging ? query.trim() : ''
+  const viewQuery = (hasSets ? `&set=${encodeURIComponent(setId)}` : filterQuery(filter)) + (q ? `&q=${encodeURIComponent(q)}` : '')
+  // Until the server has said what it can do, and which sets there are, nothing is asked for.
+  const ready = features !== null && (!hasSets || sets !== null || setsFailed)
+  const filterKey = ready ? viewQuery : ''
+  const filterKeyRef = useRef(filterKey)
+  filterKeyRef.current = filterKey
+  const noFilter = !q && (hasSets ? setId === ALL_SET : !filter.kind && !filter.group && !filter.favourites)
+
+  const loadSets = useCallback(() => {
+    if (!hasSets) return
+    getSets().then((s) => { setSets(s); setSetsFailed(false) }).catch((e) => { setSetsFailed(true); setErr((e as Error).message) })
+  }, [hasSets])
+  useEffect(loadSets, [loadSets])
+  const pickSet = (id: string) => {
+    setPrefs({ set: id })
+    const s = sets?.sets.find((x) => x.id === id)
+    if (s) announce(`${s.name}, ${s.count} ${s.count === 1 ? 'channel' : 'channels'}`)
+  }
+
+  // What's typed in Find a channel is asked for once the typing stops.
+  useEffect(() => {
+    const t = setTimeout(() => setQuery(find), 300)
+    return () => clearTimeout(t)
+  }, [find])
+
+  // A changed set, filter or search starts the rows afresh, there and then, so nothing drawn
+  // or worked out in between belongs to what was shown before.
+  const [viewKey, setViewKey] = useState(filterKey)
+  if (viewKey !== filterKey) {
+    setViewKey(filterKey)
+    setTotal(null)
+    setFocus((f) => ({ ...f, row: 0 }))
+    rowsRef.current = new Map()
+    loaded.current = new Set()
+  }
+  useLayoutEffect(() => { if (scroller.current) scroller.current.scrollTop = 0; setScrollTop(0) }, [filterKey])
+  // A new stretch of hours keeps the rows until the new ones come, so the highlight has somewhere to be meanwhile.
+  useEffect(() => { loaded.current.clear() }, [fetchFrom])
 
   useEffect(() => {
     const onResize = () => setWidth(window.innerWidth)
@@ -148,7 +228,7 @@ export default function GuidePage() {
   const pageEl = page.current
   useEffect(() => {
     if (!pageEl) return
-    const ro = new ResizeObserver(() => setPageSize({ w: pageEl.clientWidth, h: pageEl.clientHeight }))
+    const ro = new ResizeObserver(() => setPageSizeBox({ w: pageEl.clientWidth, h: pageEl.clientHeight }))
     ro.observe(pageEl)
     return () => ro.disconnect()
   }, [pageEl])
@@ -162,73 +242,81 @@ export default function GuidePage() {
     if (track) setTrackW(track.clientWidth)
   })
 
-  // A changed filter starts the rows afresh. A new stretch of hours keeps them until
-  // the new ones come, so the highlight has somewhere to be meanwhile.
-  useEffect(() => { loaded.current.clear(); setRows({}) }, [filterKey])
-  useEffect(() => { loaded.current.clear() }, [fetchFrom])
-  useEffect(() => { setTotal(null); setFocus((f) => ({ ...f, row: 0 })); if (scroller.current) scroller.current.scrollTop = 0 }, [filterKey])
-  useEffect(() => { getLineup().then(setLineup).catch(() => {}) }, [])
+  const refreshLineup = () => getLineup().then(setLineup).catch(() => {})
+  useEffect(() => { void refreshLineup() }, [])
   // The rights notice goes with the logos: it's there only when one is on the screen.
   const [logosShown, setLogosShown] = useState(false)
   useEffect(() => {
-    const brands = lineup.flatMap((c) => (c.brand && !c.logo ? [c.brand] : []))
     if (!look.logos) { setLogosShown(false); return }
     if (lineup.some((c) => c.logo)) { setLogosShown(true); return }
+    const brands = lineup.flatMap((c) => (c.brand && !c.logo ? [c.brand] : []))
     if (!brands.length) { setLogosShown(false); return }
     let on = true
     Promise.all(brands.slice(0, 200).map((b) => lookupLogo(b.kind, b.name))).then((l) => { if (on) setLogosShown(l.some((x) => x.has)) })
     return () => { on = false }
   }, [lineup, look.logos])
 
-  const firstRow = Math.max(0, Math.floor(scrollTop / rowH) - 3)
-  const lastRow = Math.ceil((scrollTop + viewH) / rowH) + 3
-  const loadPage = useCallback(async (p: number) => {
-    const key = `${fetchFrom}|${filterKey}|${p}`
+  // Which page is shown follows the highlight: moving past its last row is the next page.
+  const pageStart = pageStartOf(focus.row, pageSize)
+  const pageRows = pageSize ? rowsOnPage(pageStart, pageSize, total ?? 0) : total ?? 0
+  const firstRow = pageStart + Math.max(0, Math.floor(scrollTop / rowH) - 3)
+  const lastRow = total == null ? pageStart + (pageSize || PAGE) - 1 : Math.min(pageStart + pageRows - 1, pageStart + Math.ceil((scrollTop + viewH) / rowH) + 3)
+  const loadRows = useCallback(async (offset: number, limit: number) => {
+    const fk = filterKeyRef.current
+    const key = `${fetchFrom}|${fk}|${offset}|${limit}`
     if (loaded.current.has(key)) return
-    loaded.current.add(key)
+    const mark = loaded.current
+    mark.add(key)
     try {
-      const g = await api.get<Page>(`/guide?from=${fetchFrom}&hours=${FETCH_HOURS}&offset=${p * PAGE}&limit=${PAGE}&kind=${filter.kind}&group=${encodeURIComponent(filter.group)}${filter.favourites ? '&favourites=1' : ''}`)
+      const g = await api.get<Page>(`/guide?from=${fetchFrom}&hours=${FETCH_HOURS}&offset=${offset}&limit=${limit}${fk}`)
+      // An answer about what was shown before is no use now.
+      if (filterKeyRef.current !== fk || loaded.current !== mark) return
       setTotal(g.total)
-      setGroups((was) => (filter.group || filter.favourites || filter.kind ? [...new Set([...was, ...g.groups])] : g.groups))
+      if (!hasSets) setGroups((was) => (filter.group || filter.favourites || filter.kind ? [...new Set([...was, ...(g.groups || [])])] : g.groups || []))
       setOwnerLook({ theme: g.theme, layout: g.layout, skin: g.skin })
       noteBackgroundDefault(g.backgroundPlay)
-      setRows((r) => { const n = { ...r }; (g.channels || []).forEach((c, i) => { n[g.offset + i] = c }); return n })
+      const m = rowsRef.current
+      ;(g.channels || []).forEach((c, i) => { m.set(g.offset + i, c) })
+      bumpRows()
       setErr('')
-    } catch (e) { loaded.current.delete(key); setErr((e as Error).message) }
-  }, [fetchFrom, filterKey, filter.kind, filter.group, filter.favourites])
+    } catch (e) { mark.delete(key); if (filterKeyRef.current === fk) setErr((e as Error).message) }
+  }, [fetchFrom, hasSets, filter.group, filter.favourites, filter.kind])
   useEffect(() => {
-    for (let p = Math.floor(firstRow / PAGE); p <= Math.floor(lastRow / PAGE); p++) void loadPage(p)
-  }, [firstRow, lastRow, loadPage])
+    if (!ready) return
+    if (pageSize) { void loadRows(pageStart, pageSize); return }
+    for (let p = Math.floor(firstRow / PAGE); p <= Math.floor(lastRow / PAGE); p++) void loadRows(p * PAGE, PAGE)
+  }, [ready, filterKey, pageSize, pageStart, firstRow, lastRow, loadRows, tick])
   // Keep the guide current while it is left open.
   useEffect(() => {
-    const t = setInterval(() => { loaded.current.clear(); setScrollTop((s) => s + 0.001) }, 5 * 60000)
+    const t = setInterval(() => { loaded.current.clear(); setTick((n) => n + 1) }, 5 * 60000)
     return () => clearInterval(t)
   }, [])
+  // Asks for what's shown again; `afresh` when rows may have come or gone (a favourite less).
+  const refreshView = (afresh = false) => {
+    if (afresh) { rowsRef.current = new Map(); bumpRows() }
+    loaded.current = new Set()
+    setTick((n) => n + 1)
+  }
 
-  // The channel just left, in the middle of the rows, at now, with the keyboard on it.
-  useEffect(() => {
-    if (!back || total == null || !lineup.length) return
-    setBack('')
-    forgetJustWatched()
-    const i = lineup.findIndex((c) => c.key === back)
-    if (i < 0) return
-    const el = scroller.current
-    if (el) el.scrollTop = Math.max(0, i * rowH - (el.clientHeight - rowH) / 2)
-    wantFocus.current = true
-    setFocus({ row: i, at: Date.now() / 1000 })
-  }, [back, total, lineup, rowH])
-
-  const cur = rows[focus.row]
-  const cells = useMemo(() => cellsFor(cur, from, to, pxPerSec), [cur, from, to, pxPerSec])
-  const curCell = cells.find((c) => c.start <= focus.at && c.end > focus.at) || cells[0]
-  // What the top of the page is about: the highlighted programme, and what follows it.
-  const panelCell = details ? (details.p.kind === 'group' ? curCell : details.p) : curCell
-  // A run of very short programmes is one cell, but the top of the page says which one.
-  const panel = panelCell?.group ? panelCell.group.find((c) => c.start <= focus.at && c.end > focus.at) || panelCell.group[0] : panelCell
-  const nextShow = useMemo(() => {
-    if (!cur || !panel) return undefined
-    return cur.programmes.find((p) => p.start >= panel.end && p.kind !== 'slate' && p.kind !== 'none')
-  }, [cur, panel])
+  // Where a channel (its key or number) is among the rows shown: -1 when it isn't there. A server
+  // with tv-guide-paging finds it in the set itself; before that, the list of every channel does.
+  const locate = useCallback(async (what: string, wide = false): Promise<number> => {
+    if (hasPaging) {
+      const scope = wide ? (hasSets ? `&set=${ALL_SET}` : '') : filterKeyRef.current
+      const g = await api.get<Page>(`/guide?list=1&lite=1&limit=1${scope}&locate=${encodeURIComponent(what)}`)
+      return g.located ?? -1
+    }
+    const list = await getLineup()
+    const shown = wide ? list : hasSets ? (setId === ALL_SET ? list : []) : list.filter((c) => matches(c, filter))
+    return shown.findIndex((c) => c.key === what || c.number === what)
+  }, [hasPaging, hasSets, setId, filter])
+  // Everything shown again, at that row of all channels.
+  const showAllAt = (row: number, at?: number) => {
+    if (hasSets) setPrefs({ set: ALL_SET })
+    else setFilter(NO_FILTER)
+    setFind(''); setQuery('')
+    setGoRow({ row, at, centre: true })
+  }
 
   const moveRow = useCallback((row: number) => {
     setTotal((tot) => {
@@ -237,13 +325,58 @@ export default function GuidePage() {
       setFocus((f) => ({ ...f, row: r }))
       const el = scroller.current
       if (el) {
-        const top = r * rowH
+        const top = (r - pageStartOf(r, pageSize)) * rowH
         if (top < el.scrollTop) el.scrollTop = top
         else if (top + rowH > el.scrollTop + el.clientHeight) el.scrollTop = top + rowH - el.clientHeight
       }
       return tot
     })
-  }, [rowH])
+  }, [rowH, pageSize])
+  // A new page: the highlighted row on screen, once the page is drawn at its own height.
+  useLayoutEffect(() => {
+    const el = scroller.current
+    if (!el || !pageSize) return
+    const top = (focus.row - pageStart) * rowH
+    if (top < el.scrollTop) el.scrollTop = top
+    else if (top + rowH > el.scrollTop + el.clientHeight) el.scrollTop = top + rowH - el.clientHeight
+    setScrollTop(el.scrollTop)
+  }, [pageStart, pageSize]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // A row asked for before the rows came: there, in the middle, once they have.
+  useEffect(() => {
+    if (!goRow || total == null) return
+    setGoRow(null)
+    const r = Math.max(0, Math.min(total - 1, goRow.row))
+    const el = scroller.current
+    if (el && goRow.centre) el.scrollTop = Math.max(0, (r - pageStartOf(r, pageSize)) * rowH - (el.clientHeight - rowH) / 2)
+    wantFocus.current = true
+    if (goRow.at != null) setFrom(floorSlot(goRow.at))
+    setFocus((f) => ({ row: r, at: goRow.at ?? f.at }))
+    if (!goRow.centre) moveRow(r)
+  }, [goRow, total, rowH, pageSize, moveRow])
+
+  // The channel just left, in the middle of the rows, at now, with the keyboard on it.
+  useEffect(() => {
+    if (!back || total == null) return
+    setBack('')
+    forgetJustWatched()
+    let on = true
+    locate(back).then((i) => { if (on && i >= 0) setGoRow({ row: i, at: Date.now() / 1000, centre: true }) }).catch(() => {})
+    return () => { on = false }
+  }, [back, total, locate])
+
+  const cur = rowsRef.current.get(focus.row)
+  const cells = useMemo(() => cellsFor(cur, from, to, pxPerSec), [cur, from, to, pxPerSec])
+  const curCell = cells.find((c) => c.start <= focus.at && c.end > focus.at) || cells[0]
+  // What the top of the page is about: the highlighted programme, and what follows it.
+  const panelCell = details ? (details.p.kind === 'group' ? curCell : details.p) : curCell
+  // A run of very short programmes is one cell, but the top of the page says which one.
+  const panel = panelCell?.group ? panelCell.group.find((c) => c.start <= focus.at && c.end > focus.at) || panelCell.group[0] : panelCell
+  const nextShow = useMemo(() => {
+    if (!cur || !panel) return undefined
+    return (cur.programmes || []).find((p) => p.start >= panel.end && p.kind !== 'slate' && p.kind !== 'none')
+  }, [cur, panel])
+
   const shiftTime = (dt: number, at?: number) => {
     const minFrom = floorSlot(now) - 2 * 3600
     const maxFrom = floorSlot(now) + 14 * 86400
@@ -259,8 +392,10 @@ export default function GuidePage() {
     if (row != null) moveRow(row)
   }
   const goNow = () => goAt(Date.now() / 1000)
+  const goPage = (dir: 1 | -1) => { if (total) moveRow(stepPage(focus.row, pageSize, total, dir)) }
 
   const watch = (key: string) => nav(`/tv/watch/${key}`, { state: { fromGuide: true } })
+  const watchFromStart = (ch: GuideChannel, p: Programme) => nav(`/tv/watch/${ch.key}?from=${Math.floor(p.start)}&to=${Math.floor(p.end)}`, { state: { fromGuide: true, catchup: catchupKey(ch.key, p.start, p.end) } })
   const activate = (ch: GuideChannel, p: Programme) => {
     if (ch.encrypted || p.kind === 'group') { setDetails({ ch, p }); return }
     const live = p.kind === 'none' ? p.start <= now + 60 : p.start <= now && p.end > now
@@ -268,26 +403,29 @@ export default function GuidePage() {
     else setDetails({ ch, p })
   }
 
+  // Dialling: the number among the rows shown, or among all channels with the offer to show them.
+  const dialTo = async (n: string) => {
+    try {
+      const here = await locate(n)
+      // Against a server without sets, a filter narrows what's shown as a set would.
+      const narrowedBy = hasSets ? setId : filter.kind || filter.group || filter.favourites ? 'filter' : ALL_SET
+      const wider = widerLookup(narrowedBy, q, here)
+      const all = wider ? await locate(n, true) : null
+      const out = dialOutcome(here, all)
+      if (out.kind === 'here') { moveRow(out.row); announce(`Channel ${n}`) }
+      else if (out.kind === 'elsewhere') {
+        const where = hasSets ? curSet?.name || 'this set' : 'these channels'
+        announce(`Channel ${n} isn't in ${where}`)
+        toast(`Channel ${n} isn't in ${where}.`, { action: { label: 'Show all channels', run: () => showAllAt(out.row) } })
+      } else { announce(`No channel ${n}`); toast(`No channel ${n}`) }
+    } catch (e) { toast((e as Error).message) }
+  }
   const dialTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const pressDigit = (d: string) => {
     const next = (dial + d).slice(0, 8)
     setDial(next)
     clearTimeout(dialTimer.current)
-    dialTimer.current = setTimeout(async () => {
-      setDial('')
-      const list = await getLineup().catch(() => [] as GuideChannel[])
-      const shown = list.filter((c) => matches(c, filter))
-      let i = shown.findIndex((c) => c.number === next)
-      // On another filter: leave it, to get there.
-      if (i < 0 && list.some((c) => c.number === next)) {
-        setFilter({ kind: '', group: '', favourites: false })
-        i = list.findIndex((c) => c.number === next)
-        setTimeout(() => moveRow(i), 0)
-        announce(`Channel ${list[i].number}, ${list[i].name}`)
-        return
-      }
-      if (i >= 0) { moveRow(i); announce(`Channel ${shown[i].number}, ${shown[i].name}`) } else { announce(`No channel ${next}`); toast(`No channel ${next}`) }
-    }, 1200)
+    dialTimer.current = setTimeout(() => { setDial(''); void dialTo(next) }, 1200)
   }
   useEffect(() => () => clearTimeout(dialTimer.current), [])
 
@@ -301,23 +439,37 @@ export default function GuidePage() {
   }
   const toggleFav = async (ch: GuideChannel) => {
     const on = !ch.favourite
-    setRows((r) => { const n = { ...r }; for (const k of Object.keys(n)) if (n[Number(k)]?.key === ch.key) n[Number(k)] = { ...n[Number(k)], favourite: on }; return n })
+    const m = rowsRef.current
+    for (const [i, c] of m) if (c.key === ch.key) m.set(i, { ...c, favourite: on })
+    bumpRows()
     announce(on ? `${ch.name} added to favourites` : `${ch.name} removed from favourites`)
-    try { await setFavourite(ch.key, on); forgetLineup(); getLineup().then(setLineup).catch(() => {}) } catch (e) { toast((e as Error).message) }
+    try {
+      await setFavourite(ch.key, on)
+      forgetLineup(); void refreshLineup()
+      if (hasSets) { loadSets(); if (setId === 'fav') refreshView(true) }
+    } catch (e) { toast((e as Error).message) }
   }
-  const jumpToLast = () => {
+  const jumpToLast = async () => {
     const key = cur && lastChannel() === cur.key ? previousChannel() : lastChannel()
     const c = lineup.find((x) => x.key === key)
     if (!c) { toast('No other channel watched yet'); return }
-    const i = lineup.filter((x) => matches(x, filter)).findIndex((x) => x.key === key)
+    const i = await locate(key).catch(() => -1)
     if (i >= 0) { moveRow(i); announce(`Channel ${c.number}, ${c.name}`) } else watch(key)
   }
   const cycleKind = () => setFilter((f) => ({ ...f, kind: f.kind === '' ? 'library' : f.kind === 'library' ? 'tuner' : '' }))
+  const nextSet = (dir: 1 | -1) => { if (sets) pickSet(stepSet(sets.sets, setId, dir)) }
+  const cycle = () => (hasSets ? nextSet(1) : cycleKind())
+  const openPicker = () => { if (hasSets && sets) setPickerOpen(true) }
+  const offerRecord = (ch: GuideChannel, p: Programme, series: boolean) => {
+    if (hasRules2) setRecordFor({ ch, p, series })
+    else if (!series) void record(ch, p)
+  }
 
   const onKey = (e: React.KeyboardEvent) => {
     if (e.altKey || e.ctrlKey || e.metaKey) return
     const row = focus.row
     const idx = cells.findIndex((c) => c === curCell)
+    const rowsPerScreen = Math.max(1, Math.floor(viewH / rowH) - 1)
     let handled = true
     switch (e.key) {
       case 'ArrowUp':
@@ -328,8 +480,8 @@ export default function GuidePage() {
         // The same at the bottom, for what is under the guide.
         if (total != null && row >= total - 1) return
         moveRow(row + 1); break
-      case 'PageUp': case 'ChannelUp': moveRow(row - Math.max(1, Math.floor(viewH / rowH) - 1)); break
-      case 'PageDown': case 'ChannelDown': moveRow(row + Math.max(1, Math.floor(viewH / rowH) - 1)); break
+      case 'PageUp': case 'ChannelUp': moveRow(pageSize && total ? stepPage(row, pageSize, total, -1) : row - rowsPerScreen); break
+      case 'PageDown': case 'ChannelDown': moveRow(pageSize && total ? stepPage(row, pageSize, total, 1) : row + rowsPerScreen); break
       case 'Home': goNow(); break
       case 'ArrowRight': {
         const next = cells[idx + 1]
@@ -350,14 +502,18 @@ export default function GuidePage() {
       case 'f': case 'F': if (cur) void toggleFav(cur); break
       case 'd': case 'D': if (cur && curCell) setDetails({ ch: cur, p: curCell, day: true }); break
       case 'm': case 'M': if (cur && curCell && curCell.start > now) void reminders.toggle(cur.key, curCell); break
-      case 'l': case 'L': jumpToLast(); break
+      case 'l': case 'L': void jumpToLast(); break
       case 's': case 'S': case '/': openSearch(); break
       case 'n': case 'N': goNow(); break
       case '+': case '=': setLook({ hours: Math.max(1.5, (look.hours || slots / 2) - 0.5) as Look['hours'] }); break
       case '-': setLook({ hours: Math.min(4, (look.hours || slots / 2) + 0.5) as Look['hours'] }); break
-      case 'a': case 'A': shiftTime(-86400); break
-      case 'b': case 'B': shiftTime(86400); break
-      case 'c': case 'C': cycleKind(); break
+      case 'a': case 'A': case 'ColorF0Red': shiftTime(-86400); break
+      case 'b': case 'B': case 'ColorF1Green': shiftTime(86400); break
+      case 'c': case 'C': case 'ColorF2Yellow': cycle(); break
+      case 'ColorF3Blue': if (hasSets) openPicker(); else handled = false; break
+      case '[': if (hasSets) nextSet(-1); else handled = false; break
+      case ']': if (hasSets) nextSet(1); else handled = false; break
+      case 't': case 'T': if (hasSets && cur) setAddTo(cur); else handled = false; break
       default:
         if (/^[0-9.]$/.test(e.key)) pressDigit(e.key)
         else handled = false
@@ -369,7 +525,7 @@ export default function GuidePage() {
   // the page, where the next arrow would start from nowhere: it goes back to the cell.
   useLayoutEffect(() => {
     if (gridHadFocus.current && document.activeElement === document.body) wantFocus.current = true
-  }, [rows, from])
+  })
 
   // Roving focus: the highlighted cell holds the keyboard after each move, before the
   // next key can arrive.
@@ -384,29 +540,35 @@ export default function GuidePage() {
   // The rows near what's on screen, and always the highlighted one: it's where the
   // arrows come back to, however far away the rows have been scrolled.
   const rowCount = total ?? 0
-  const drawnRows = Array.from({ length: Math.max(0, Math.min(lastRow, rowCount - 1) - firstRow + 1) }, (_, i) => firstRow + i)
+  const drawnRows: number[] = []
+  for (let r = firstRow; r <= Math.min(lastRow, rowCount - 1); r++) drawnRows.push(r)
   if (focus.row < rowCount && !drawnRows.includes(focus.row)) drawnRows.push(focus.row)
   const timeHeads = useMemo(() => Array.from({ length: slots }, (_, i) => from + i * SLOT), [from, slots])
   const pct = (u: number) => ((u - from) / (to - from)) * 100
   const totalRows = total ?? 0
   // What the little TV shows: settled on by the preview itself. Until the rows come, it keeps
   // what was already playing, or the channel just left, so coming back doesn't stop it.
-  const previewKey = look.preview === 'off' ? '' : look.preview === 'last' ? (lastChannel() || (cur && !cur.encrypted ? cur.key : '')) : back || (cur ? (cur.encrypted ? '' : cur.key) : liveNow().key)
+  const previewKey = look.preview === 'off' ? '' : look.preview === 'last' ? (lastChannel() || (cur && !cur.encrypted ? cur.key : '')) : back || (cur ? (cur.encrypted ? '' : cur.key) : channelOf(liveNow().key))
   const previewName = useMemo(() => {
     if (!previewKey) return ''
     const c = cur?.key === previewKey ? cur : lineup.find((x) => x.key === previewKey)
     return c ? `${c.number} ${c.name}` : ''
   }, [previewKey, cur, lineup])
+  // Read once per list, not on every key: a playlist can have thousands.
+  const { hasBoth, anyFav } = useMemo(() => ({
+    hasBoth: lineup.some((c) => c.kind === 'tuner') && lineup.some((c) => c.kind === 'library'),
+    anyFav: lineup.some((c) => c.favourite),
+  }), [lineup])
 
   // The most the preview may take, and what it starts at until someone chooses a size.
-  const narrow = pageSize.w < 760
-  const previewMax = previewLimit(pageSize.w, pageSize.h, narrow)
-  const previewStart = previewAuto(look.shape, pageSize.w, pageSize.h, narrow)
+  const narrow = pageSizeBox.w < 760
+  const previewMax = previewLimit(pageSizeBox.w, pageSizeBox.h, narrow)
+  const previewStart = previewAuto(look.shape, pageSizeBox.w, pageSizeBox.h, narrow)
 
   const shell = (children: React.ReactNode) => (
     <div ref={page} className={'ctv ctv-page' + (narrow ? ' narrow' : '')} {...themeRoot(look)}>{children}</div>
   )
-  if (total === 0 && !filter.kind && !filter.group && !filter.favourites) {
+  if (total === 0 && noFilter) {
     // Nothing to show yet, so the guide's own colours have nothing to dress up.
     return (
       <>
@@ -422,26 +584,42 @@ export default function GuidePage() {
   const today = dayStart(now)
   const dayOffset = Math.round((dayStart(from) - today) / 86400)
   const goDay = (n: number) => shiftTime(n === 0 ? floorSlot(now) - from : (n - dayOffset) * 86400)
-  const hasBoth = lineup.some((c) => c.kind === 'tuner') && lineup.some((c) => c.kind === 'library')
-  const anyFav = lineup.some((c) => c.favourite)
+  const emptyWords = q ? 'No channel has that number or name here.'
+    : hasSets ? (setId === 'fav' ? 'No favourites yet: press the star on a channel.' : 'There are no channels in this set that you can watch.')
+    : filter.favourites ? 'No favourites yet: press the star on a channel.' : 'No channels match that.'
+  const lastPage = total != null && pageSize ? pageStart + pageSize >= total : true
   return shell(
     <>
       <h1 className="sr-only">TV guide</h1>
       <Hero ch={cur} p={panel} next={nextShow} look={look} now={now} previewKey={previewKey} previewName={previewName} previewMax={previewMax} previewStart={previewStart}
         onWatch={watch} onDetails={() => { if (cur && curCell) setDetails({ ch: cur, p: curCell }) }} onDay={() => { if (cur && curCell) setDetails({ ch: cur, p: curCell, day: true }) }}
-        onFav={() => { if (cur) void toggleFav(cur) }} onUp={() => moveRow(focus.row + 1)} onDown={() => moveRow(focus.row - 1)} onRecord={() => { if (cur && panel) void record(cur, panel) }} />
+        onFav={() => { if (cur) void toggleFav(cur) }} onUp={() => moveRow(focus.row + 1)} onDown={() => moveRow(focus.row - 1)} onRecord={() => { if (cur && panel) void record(cur, panel) }}
+        onFromStart={hasCatchup ? (ch, p) => watchFromStart(ch, p) : undefined} />
 
       <div className="ctv-bar">
         <div className="ctv-bar-group">
           <h2 className="ctv-bar-title">Guide</h2>
           <Link className="ctv-btn sm only-narrow" to="/tv/recordings">Recordings</Link>
-          <div className="ctv-chips" role="group" aria-label="Which channels" data-nav-group>
-            <button className={'ctv-chip' + (!filter.group && !filter.favourites && !filter.kind ? ' on' : '')} aria-pressed={!filter.group && !filter.favourites && !filter.kind} onClick={() => setFilter({ kind: '', group: '', favourites: false })}>All</button>
-            {(anyFav || filter.favourites) && <button className={'ctv-chip' + (filter.favourites ? ' on' : '')} aria-pressed={filter.favourites} onClick={() => setFilter({ kind: '', group: '', favourites: !filter.favourites })}><IconStar size={14} /> Favourites</button>}
-            {groups.map((g) => <button key={g} className={'ctv-chip' + (filter.group === g ? ' on' : '')} aria-pressed={filter.group === g} onClick={() => setFilter({ kind: '', favourites: false, group: filter.group === g ? '' : g })}>{g}</button>)}
-            {hasBoth && <button className={'ctv-chip' + (filter.kind === 'library' ? ' on' : '')} aria-pressed={filter.kind === 'library'} onClick={() => setFilter({ group: '', favourites: false, kind: filter.kind === 'library' ? '' : 'library' })}>My library</button>}
-            {hasBoth && <button className={'ctv-chip' + (filter.kind === 'tuner' ? ' on' : '')} aria-pressed={filter.kind === 'tuner'} onClick={() => setFilter({ group: '', favourites: false, kind: filter.kind === 'tuner' ? '' : 'tuner' })}>Live TV</button>}
-          </div>
+          {hasSets ? (
+            sets && <SetButton set={curSet} onOpen={openPicker} />
+          ) : (
+            <div className="ctv-chips" role="group" aria-label="Which channels" data-nav-group>
+              <button className={'ctv-chip' + (!filter.group && !filter.favourites && !filter.kind ? ' on' : '')} aria-pressed={!filter.group && !filter.favourites && !filter.kind} onClick={() => setFilter(NO_FILTER)}>All</button>
+              {(anyFav || filter.favourites) && <button className={'ctv-chip' + (filter.favourites ? ' on' : '')} aria-pressed={filter.favourites} onClick={() => setFilter({ kind: '', group: '', favourites: !filter.favourites })}><IconStar size={14} /> Favourites</button>}
+              {groups.map((g) => <button key={g} className={'ctv-chip' + (filter.group === g ? ' on' : '')} aria-pressed={filter.group === g} onClick={() => setFilter({ kind: '', favourites: false, group: filter.group === g ? '' : g })}>{g}</button>)}
+              {hasBoth && <button className={'ctv-chip' + (filter.kind === 'library' ? ' on' : '')} aria-pressed={filter.kind === 'library'} onClick={() => setFilter({ group: '', favourites: false, kind: filter.kind === 'library' ? '' : 'library' })}>My library</button>}
+              {hasBoth && <button className={'ctv-chip' + (filter.kind === 'tuner' ? ' on' : '')} aria-pressed={filter.kind === 'tuner'} onClick={() => setFilter({ group: '', favourites: false, kind: filter.kind === 'tuner' ? '' : 'tuner' })}>Live TV</button>}
+            </div>
+          )}
+          {hasPaging && (
+            <label className="ctv-field ctv-find"><span className="sr-only">Find a channel</span>
+              <input type="search" value={find} placeholder="Find a channel" aria-label="Find a channel, by number or name" onChange={(e) => setFind(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') { e.preventDefault(); setQuery(find); wantFocus.current = true; setFocus((f) => ({ ...f, row: 0 })) }
+                  if (e.key === 'Escape' && find) { e.preventDefault(); e.stopPropagation(); setFind(''); setQuery('') }
+                }} />
+            </label>
+          )}
         </div>
         <div className="ctv-bar-group ctv-bar-time" role="group" aria-label="Time" data-nav-group>
           <button className="ctv-btn sm icon" onClick={() => shiftTime(-SLOT)} aria-label="Half an hour earlier"><IconLeft size={16} /></button>
@@ -454,6 +632,11 @@ export default function GuidePage() {
               {Array.from({ length: DAY_NAMES }, (_, i) => <option key={i} value={i}>{i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : fmtDay(today + i * 86400 + 3600)}</option>)}
             </select>
           </label>
+          <label className="ctv-field" title="Channels on each page"><span className="sr-only">Channels per page</span>
+            <select value={pageSize} onChange={(e) => setPrefs({ pageSize: readPageSize(e.target.value) })}>
+              {PAGE_SIZES.map((n) => <option key={n} value={n}>{n ? `${n} per page` : 'All, scrolling'}</option>)}
+            </select>
+          </label>
           <button className="ctv-btn sm icon" onClick={openSearch} aria-haspopup="dialog" aria-label="Search the schedule" title="Search the schedule (S)"><IconSearch size={16} /></button>
           <button className="ctv-btn sm" onClick={() => setLookOpen(true)} aria-haspopup="dialog" data-tv-options>Look</button>
           <Link className="ctv-btn sm hide-narrow" to="/tv/recordings">Recordings</Link>
@@ -464,7 +647,7 @@ export default function GuidePage() {
       {err && <div className="ctv-err" role="alert">{err}</div>}
       {dial && <div className="ctv-dial" role="status">CH {dial}<span className="ctv-blink">_</span></div>}
 
-      <div className="ctv-grid" ref={grid} role="grid" aria-label={`TV guide, ${fmtDay(from)}`} aria-rowcount={totalRows + 1} aria-colcount={slots + 1} onKeyDown={onKey}
+      <div className="ctv-grid" ref={grid} role="grid" aria-label={`TV guide, ${fmtDay(from)}${hasSets && curSet ? `, ${curSet.name}` : ''}`} aria-rowcount={totalRows + 1} aria-colcount={slots + 1} onKeyDown={onKey}
         onFocus={() => { gridHadFocus.current = true }} onBlur={(e) => { if (e.relatedTarget) gridHadFocus.current = false }}
         style={{ '--ctv-row': rowH + 'px', '--ctv-gutter': gutter + 'px' } as React.CSSProperties}>
         <div className="ctv-times" role="row" aria-rowindex={1}>
@@ -475,34 +658,52 @@ export default function GuidePage() {
         </div>
         {look.nowLine && <NowLine from={from} to={to} />}
         <div className="ctv-rows" ref={scroller} onScroll={(e) => setScrollTop((e.target as HTMLElement).scrollTop)} role="presentation">
-          <div style={{ height: totalRows * rowH, position: 'relative' }} role="presentation">
+          <div style={{ height: pageRows * rowH, position: 'relative' }} role="presentation">
             {drawnRows.map((r) => (
-              <GuideRow key={r} r={r} ch={rows[r]} top={r * rowH} rowH={rowH} from={from} to={to} pxPerSec={pxPerSec} now={now} focusAt={r === focus.row ? focus.at : null} look={look}
+              <GuideRow key={r} r={r} ch={rowsRef.current.get(r)} top={(r - pageStart) * rowH} rowH={rowH} from={from} to={to} pxPerSec={pxPerSec} now={now} focusAt={r === focus.row ? focus.at : null} look={look}
                 onFocus={(row, at) => setFocus({ row, at })} onActivate={activate} wantFocus={wantFocus} />
             ))}
           </div>
         </div>
       </div>
-      {total === 0 && <div className="ctv-err">{filter.favourites ? 'No favourites yet: press the star on a channel.' : 'No channels match that.'}</div>}
+      {total === 0 && <div className="ctv-err">{emptyWords}</div>}
+      {pageSize > 0 && total != null && total > 0 && (
+        <div className="ctv-pager" role="group" aria-label="Pages of channels" data-nav-group>
+          <button className="ctv-btn sm" disabled={pageStart === 0} onClick={() => goPage(-1)} title="Previous page (Page Up)"><IconLeft size={16} /> Previous</button>
+          <span className="ctv-pager-at" role="status">{pageLabel(pageStart, pageSize, total)}</span>
+          <button className="ctv-btn sm" disabled={lastPage} onClick={() => goPage(1)} title="Next page (Page Down)">Next <IconRight size={16} /></button>
+        </div>
+      )}
 
       <footer className="ctv-help" aria-label="Keys" data-nav-group>
         <button className="ctv-key a" onClick={() => shiftTime(-86400)}><b>A</b> Day −</button>
         <button className="ctv-key b" onClick={() => shiftTime(86400)}><b>B</b> Day +</button>
-        <button className="ctv-key c" onClick={cycleKind}><b>C</b> {filter.kind === '' ? 'All' : filter.kind === 'library' ? 'Library' : 'Live TV'}</button>
-        <span className="ctv-hint hide-narrow">▲▼ Channel · ◄► Time · OK Watch · 0–9 Dial · F Favourite · M Remind · D Day · S Search · L Last · I Info</span>
+        <button className="ctv-key c" onClick={cycle}><b>C</b> {hasSets ? (curSet?.name || 'All channels') : filter.kind === '' ? 'All' : filter.kind === 'library' ? 'Library' : 'Live TV'}</button>
+        <span className="ctv-hint hide-narrow">▲▼ Channel · ◄► Time · OK Watch · 0–9 Dial · F Favourite · M Remind · D Day · S Search · L Last · I Info{hasSets ? ' · [ ] Set · T Add to set' : ''}{pageSize ? ' · Page Up/Down Page' : ''}</span>
       </footer>
       <div className="ctv-legals">
         <LegalNote kind="tv" className="ctv-legal" />
         {logosShown && <LegalNote kind="logos" className="ctv-legal" />}
       </div>
 
-      {details && <DetailsDialog ch={details.ch} p={details.p} now={now} startDay={details.day} look={look} onClose={() => setDetails(null)} onWatch={() => watch(details.ch.key)} onRecord={() => { void record(details.ch, details.p); setDetails(null) }} onReset={() => { getLineup().then(setLineup).catch(() => {}); loaded.current.clear(); setScrollTop((s) => s + 0.001) }} />}
+      {details && <DetailsDialog ch={details.ch} p={details.p} now={now} startDay={details.day} look={look} onClose={() => setDetails(null)} onWatch={() => watch(details.ch.key)}
+        onRecord={() => { void record(details.ch, details.p); setDetails(null) }}
+        onRecordOptions={hasRules2 ? (series) => { const d = details; setDetails(null); offerRecord(d.ch, d.p, series) } : undefined}
+        onFromStart={hasCatchup ? () => watchFromStart(details.ch, details.p) : undefined}
+        onAddToSet={hasSets ? () => { const ch = details.ch; setDetails(null); setAddTo(ch) } : undefined}
+        onReset={() => { void refreshLineup(); refreshView() }} />}
       {lookOpen && <LookPanel look={look} onClose={() => setLookOpen(false)} />}
+      {pickerOpen && sets && <SetPicker sets={sets.sets} current={setId} onPick={pickSet} onClose={() => { setPickerOpen(false); wantFocus.current = true }} />}
+      {addTo && sets && <AddToSet ch={addTo} sets={sets.sets} onClose={() => { setAddTo(null); wantFocus.current = true }} onChanged={(id) => { loadSets(); if (id === setId) refreshView(true) }} />}
+      {recordFor && <RecordOptions ch={recordFor.ch} p={recordFor.p} series={recordFor.series} onClose={() => { setRecordFor(null); wantFocus.current = true }} />}
       {searchOpen && <SearchPanel onClose={closeSearch} onGo={(hit) => {
         setSearchOpen(false)
-        const i = lineup.filter((x) => matches(x, filter)).findIndex((x) => x.key === hit.channel)
-        if (i >= 0) goAt(hit.start, i)
-        else { setFilter({ kind: '', group: '', favourites: false }); const k = lineup.findIndex((x) => x.key === hit.channel); setTimeout(() => goAt(hit.start, Math.max(0, k)), 0) }
+        void (async () => {
+          const i = await locate(hit.channel).catch(() => -1)
+          if (i >= 0) { goAt(hit.start, i); return }
+          const k = await locate(hit.channel, true).catch(() => -1)
+          showAllAt(Math.max(0, k), hit.start)
+        })()
       }} />}
     </>
   )

@@ -318,10 +318,11 @@ export default function GuidePage() {
     setGoRow({ row, at, centre: true })
   }
 
-  const moveRow = useCallback((row: number) => {
+  // keepFocus: the keyboard stays where it is (on Previous or Next), rather than going to the row.
+  const moveRow = useCallback((row: number, keepFocus = false) => {
     setTotal((tot) => {
       const r = Math.max(0, Math.min((tot ?? 1) - 1, row))
-      wantFocus.current = true
+      wantFocus.current = !keepFocus
       setFocus((f) => ({ ...f, row: r }))
       const el = scroller.current
       if (el) {
@@ -356,13 +357,14 @@ export default function GuidePage() {
   }, [goRow, total, rowH, pageSize, moveRow])
 
   // The channel just left, in the middle of the rows, at now, with the keyboard on it.
+  // It's found in what is shown now (a set, a search), and only an answer about that is used:
+  // clearing `back` itself mustn't throw the answer away.
   useEffect(() => {
     if (!back || total == null) return
     setBack('')
     forgetJustWatched()
-    let on = true
-    locate(back).then((i) => { if (on && i >= 0) setGoRow({ row: i, at: Date.now() / 1000, centre: true }) }).catch(() => {})
-    return () => { on = false }
+    const fk = filterKeyRef.current
+    locate(back).then((i) => { if (filterKeyRef.current === fk && i >= 0) setGoRow({ row: i, at: Date.now() / 1000, centre: true }) }).catch(() => {})
   }, [back, total, locate])
 
   const cur = rowsRef.current.get(focus.row)
@@ -392,7 +394,7 @@ export default function GuidePage() {
     if (row != null) moveRow(row)
   }
   const goNow = () => goAt(Date.now() / 1000)
-  const goPage = (dir: 1 | -1) => { if (total) moveRow(stepPage(focus.row, pageSize, total, dir)) }
+  const goPage = (dir: 1 | -1, keepFocus = false) => { if (total) moveRow(stepPage(focus.row, pageSize, total, dir), keepFocus) }
 
   const watch = (key: string) => nav(`/tv/watch/${key}`, { state: { fromGuide: true } })
   const watchFromStart = (ch: GuideChannel, p: Programme) => nav(`/tv/watch/${ch.key}?from=${Math.floor(p.start)}&to=${Math.floor(p.end)}`, { state: { fromGuide: true, catchup: catchupKey(ch.key, p.start, p.end) } })
@@ -479,6 +481,13 @@ export default function GuidePage() {
       case 'ArrowDown':
         // The same at the bottom, for what is under the guide.
         if (total != null && row >= total - 1) return
+        // With a remote or a controller, the last row of a page hands Down on too, to Previous and
+        // Next under it; Channel Up and Down turn the page from anywhere. A keyboard pages on.
+        if (pageSize && row === pageStart + pageRows - 1 && document.documentElement.matches('.ten-foot, .using-controller')) {
+          const to = [...(page.current?.querySelectorAll<HTMLButtonElement>('.ctv-pager button') || [])].reverse().find((b) => !b.disabled)
+          if (to) { to.focus(); break }
+          return
+        }
         moveRow(row + 1); break
       case 'PageUp': case 'ChannelUp': moveRow(pageSize && total ? stepPage(row, pageSize, total, -1) : row - rowsPerScreen); break
       case 'PageDown': case 'ChannelDown': moveRow(pageSize && total ? stepPage(row, pageSize, total, 1) : row + rowsPerScreen); break
@@ -520,6 +529,27 @@ export default function GuidePage() {
     }
     if (handled) { e.preventDefault(); e.stopPropagation() }
   }
+
+  // Dialling and Channel Up and Down work wherever the keyboard is on the guide's page, not only in
+  // the grid: on a button above it, or on nothing at all just after coming back from a channel.
+  // Typing in a field, and a dialog that's open, keep their keys; the grid has handled its own.
+  useEffect(() => {
+    const onWindowKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return
+      const t = e.target as HTMLElement | null
+      if (t?.closest?.('input, textarea, select, [contenteditable="true"], .modal, .ctv-grid')) return
+      if (document.querySelector('.modal-backdrop')) return
+      if (t && t !== document.body && !page.current?.contains(t)) return
+      const row = focus.row
+      if (/^[0-9]$/.test(e.key)) pressDigit(e.key)
+      else if (e.key === 'ChannelUp') moveRow(pageSize && total ? stepPage(row, pageSize, total, -1) : row - 1)
+      else if (e.key === 'ChannelDown') moveRow(pageSize && total ? stepPage(row, pageSize, total, 1) : row + 1)
+      else return
+      e.preventDefault()
+    }
+    window.addEventListener('keydown', onWindowKey)
+    return () => window.removeEventListener('keydown', onWindowKey)
+  })
 
   // New data can replace the cell that has the keyboard. The browser then drops it on
   // the page, where the next arrow would start from nowhere: it goes back to the cell.
@@ -669,9 +699,9 @@ export default function GuidePage() {
       {total === 0 && <div className="ctv-err">{emptyWords}</div>}
       {pageSize > 0 && total != null && total > 0 && (
         <div className="ctv-pager" role="group" aria-label="Pages of channels" data-nav-group>
-          <button className="ctv-btn sm" disabled={pageStart === 0} onClick={() => goPage(-1)} title="Previous page (Page Up)"><IconLeft size={16} /> Previous</button>
+          <button className="ctv-btn sm" disabled={pageStart === 0} onClick={() => goPage(-1, true)} title="Previous page (Page Up)"><IconLeft size={16} /> Previous</button>
           <span className="ctv-pager-at" role="status">{pageLabel(pageStart, pageSize, total)}</span>
-          <button className="ctv-btn sm" disabled={lastPage} onClick={() => goPage(1)} title="Next page (Page Down)">Next <IconRight size={16} /></button>
+          <button className="ctv-btn sm" disabled={lastPage} onClick={() => goPage(1, true)} title="Next page (Page Down)">Next <IconRight size={16} /></button>
         </div>
       )}
 

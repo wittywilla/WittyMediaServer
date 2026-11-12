@@ -182,7 +182,7 @@ function SliderControl({ f, dis, set }: { f: SpecField; dis: boolean; set: (v: n
   const v = Number(f.value ?? f.min ?? 0)
   return (
     <span className="spec-slider">
-      <input type="range" min={f.min} max={f.max} step={f.step ?? 1} value={v} disabled={dis} aria-valuetext={v + (f.unit || '')} onChange={(e) => set(Number(e.target.value))} />
+      <input type="range" aria-label={f.label} min={f.min} max={f.max} step={f.step ?? 1} value={v} disabled={dis} aria-valuetext={v + (f.unit || '')} onChange={(e) => set(Number(e.target.value))} />
       <output>{v}{f.unit}</output>
     </span>
   )

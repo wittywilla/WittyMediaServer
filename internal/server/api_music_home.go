@@ -55,7 +55,7 @@ func (s *Server) handleMusicHome(w http.ResponseWriter, r *http.Request) {
 		return false
 	}
 	// Last played first, then newest: the front of the shelf is what you came back for.
-	if out.Hero, err = s.Store.AlbumsFiltered(ctx, lib, library.AlbumFilter{Sort: "played", UserID: u.ID, PlayedOnly: true, Limit: 15}, acc); fail(err) {
+	if out.Hero, err = s.Store.AlbumsFiltered(ctx, lib, library.AlbumFilter{Sort: "played", UserID: u.ID, Limit: 15}, acc); fail(err) {
 		return
 	}
 	if out.Albums, err = s.Store.AlbumsFiltered(ctx, lib, library.AlbumFilter{Sort: "added", Limit: 30}, acc); fail(err) {

@@ -1330,7 +1330,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 
 | Route | Who | What |
 |---|---|---|
-| `GET /modulestore` | admin | Every module from every store that's on, with what this server makes of it (`kind`, `fit`, `status`, `failure`), the stores, the compatibility `policy`, how many `updates` Update All would make, and the current or last `run`. |
+| `GET /modulestore` | admin | Every module from every store that's on, with what this server makes of it (`kind`, `fit`, `status`, `failure`), what kind of module it is (`moduleKind`: `helper`, `web`, `program`, `library`, or `builtin`), how finished the offered version says it is (`releaseStatus`, `statusNote`), the SDUI it adds (`ui`: `{pages: [{id, title}], navigation, settings, sources, inserts}`) and any `override` it was installed with; `moduleKind=web,helper` keeps only those kinds (feature `module-store-kinds`). The stores, the compatibility `policy`, how many `updates` Update All would make, and the current or last `run`. |
 | `POST /modulestore/check` | admin | Look at every store now. Answers with the same as `GET /modulestore`. |
 | `GET /modulestore/item/{store}/{id}` | admin | A module's page: `item`, `versions`, `plan` (what installing it would bring), `permissions` in words, `builtOn`, and for a store's version `forkWarning` and `fingerprint`. `{store}` is `official` for this project's. |
 | `POST /modulestore/install` | admin | Install a module and what it's built on: `{"id": "...", "confirm": true}`. If it would bring anything else it answers 409 with `"code": "plan"` and the `plan` until confirmed. 202, with the run. |

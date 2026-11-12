@@ -35266,6 +35266,17 @@
     "/modulestore": {
       "get": {
         "operationId": "getModulestore",
+        "parameters": [
+          {
+            "description": "Only modules of these kinds, separated by commas: helper, web, program, library, builtin.",
+            "in": "query",
+            "name": "moduleKind",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {

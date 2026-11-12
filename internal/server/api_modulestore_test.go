@@ -4,6 +4,7 @@
 package server
 
 import (
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"path/filepath"
@@ -121,5 +122,50 @@ func TestModuleStorePictureTakesNoTokenInTheAddress(t *testing.T) {
 	}
 	if w := ts.do(t, "GET", path, admin, nil); w.Code != 404 {
 		t.Errorf("with a header, a picture no catalogue lists: %d", w.Code)
+	}
+}
+
+// The store can be narrowed to kinds of module, and every item says which kind it is.
+func TestModuleStoreFiltersByKind(t *testing.T) {
+	ts := newTestServer(t)
+	_, admin := ts.user(t, "admin", "adult", true, "")
+	dir := filepath.Join(t.TempDir(), "modules")
+	m := modmgr.New(modmgr.Config{Dir: dir, Server: "0.6.0-alpha", Builtins: modmgr.ServerManifests(), Known: true, Log: slog.New(slog.DiscardHandler)})
+	t.Cleanup(m.Close)
+	ts.Modules = m
+	ts.ModuleStores = modmgr.NewStores(modmgr.StoresConfig{Manager: m, Dir: dir, Log: slog.New(slog.DiscardHandler)})
+	view := func(q string) modmgr.StoreView {
+		t.Helper()
+		w := ts.do(t, "GET", "/api/modulestore"+q, admin, nil)
+		var v modmgr.StoreView
+		if err := json.Unmarshal(w.Body.Bytes(), &v); err != nil || w.Code != 200 {
+			t.Fatalf("%s: %d %s", q, w.Code, w.Body)
+		}
+		return v
+	}
+	all := view("")
+	kinds := map[string]int{}
+	for _, it := range all.Items {
+		if it.ModuleKind == "" {
+			t.Errorf("%s says no kind", it.ID)
+		}
+		kinds[it.ModuleKind]++
+	}
+	if len(kinds) < 2 {
+		t.Fatalf("too few kinds to filter: %v", kinds)
+	}
+	for k, n := range kinds {
+		got := view("?moduleKind=" + k).Items
+		if len(got) != n {
+			t.Errorf("%s: %d of %d", k, len(got), n)
+		}
+		for _, it := range got {
+			if it.ModuleKind != k {
+				t.Errorf("%s let through %s (%s)", k, it.ID, it.ModuleKind)
+			}
+		}
+	}
+	if got := view("?moduleKind=nothing").Items; len(got) != 0 {
+		t.Errorf("an unknown kind: %d items", len(got))
 	}
 }

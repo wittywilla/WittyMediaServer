@@ -83,7 +83,17 @@ func (s *Server) handleStoreView(w http.ResponseWriter, r *http.Request) {
 	if s.noStore(w) {
 		return
 	}
-	writeJSON(w, 200, s.ModuleStores.View())
+	v := s.ModuleStores.View()
+	if kinds := r.URL.Query().Get("moduleKind"); kinds != "" {
+		items := v.Items[:0]
+		for _, it := range v.Items {
+			if it.MatchesKinds(kinds) {
+				items = append(items, it)
+			}
+		}
+		v.Items = items
+	}
+	writeJSON(w, 200, v)
 }
 
 // POST /api/modulestore/check: look at every store now, because an admin asked. Answers younger

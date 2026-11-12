@@ -36,8 +36,8 @@ func (f *fakeHelper) Close() { f.closed = true }
 func twoTitleDisc(t *testing.T) []byte {
 	t.Helper()
 	d := dvd.Disc{
-		VMG: &dvd.VMG{Titles: []dvd.TitleSearch{{Number: 1, VTS: 1, VTSTitle: 1, Angles: 1}, {Number: 2, VTS: 1, VTSTitle: 2, Angles: 1}}},
-		VTS: map[int]*dvd.VTS{1: {}},
+		VMG:     &dvd.VMG{Titles: []dvd.TitleSearch{{Number: 1, VTS: 1, VTSTitle: 1, Angles: 1}, {Number: 2, VTS: 1, VTSTitle: 2, Angles: 1}}},
+		VTS:     map[int]*dvd.VTS{1: {}},
 		Repairs: []dvd.Repair{{VTS: 1, Table: "VTS_PTT_SRPT", From: "BUP", Fixed: true, Note: "the chapter table was read from the backup"}},
 	}
 	var b bytes.Buffer

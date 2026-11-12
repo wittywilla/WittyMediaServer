@@ -168,13 +168,13 @@ html.tv-mode .sdui-widgets { gap: var(--space-l); }
   .sdui-carousel .sdui-item:is(:hover, :focus-within) { animation-play-state: paused; }
 }
 @keyframes carousel-scale { 0% { transform: scale(.72); opacity: .5; } 50% { transform: scale(1.12); opacity: 1; } 100% { transform: scale(.72); opacity: .5; } }
-@keyframes carousel-name { 0%, 38%, 62%, 100% { opacity: 0; } 50% { opacity: 1; } }
+@keyframes carousel-name { 0%, 30%, 70%, 100% { opacity: 0; } 50% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .sdui-carousel .sdui-item { transition: none; } @supports (animation-timeline: view(inline)) { .sdui-carousel .sdui-item, .sdui-carousel .sdui-item .card > :not(.poster) { animation: none; opacity: 1; transform: none; } } }
 
 /* ---- CrossBar (Crossbar): categories across as circles with their names, the chosen one larger and filled; its rows listed
         down under it, and the row under focus shown large beside the list ---- */
 .sdui-crossbar [data-sdui-tabs] { display: flex; justify-content: center; margin-block-end: var(--space-l); }
-.sdui-crossbar [role=tablist] { gap: var(--space-xl); border: 0; align-items: flex-start; }
+.sdui-crossbar [role=tablist] { gap: var(--space-xl); border: 0; align-items: flex-start; padding: var(--space-s) var(--space-xl) var(--space-m); }
 .sdui-crossbar [role=tab] { display: inline-flex; flex-direction: column; align-items: center; gap: var(--space-xs); min-block-size: 0; padding: 0; border: 0; background: none; border-radius: var(--r-md); font-size: var(--text-sm); color: var(--fg-2); }
 .sdui-crossbar [role=tab] svg { box-sizing: content-box; inline-size: 1.5rem; block-size: 1.5rem; padding: var(--space-m); border-radius: var(--r-full); background: var(--elev-2-fill); color: var(--fg); border: 1px solid var(--elev-2-line); transition: transform var(--dur-focus) var(--ease-out), background var(--dur-focus); }
 .sdui-crossbar [role=tab].active { color: var(--fg); font-weight: 700; font-size: var(--text-md); }

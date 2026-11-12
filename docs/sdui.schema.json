@@ -799,6 +799,12 @@
         },
         "type": {
           "type": "string"
+        },
+        "wire": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Wire"
+          },
+          "type": "object"
         }
       },
       "required": [
@@ -818,7 +824,8 @@
         "type",
         "density",
         "motion",
-        "home"
+        "home",
+        "wire"
       ],
       "type": "object"
     },
@@ -2449,6 +2456,43 @@
       "required": [
         "width",
         "height"
+      ],
+      "type": "object"
+    },
+    "Wire": {
+      "properties": {
+        "brand": {
+          "type": "string"
+        },
+        "cards": {
+          "type": "string"
+        },
+        "dock": {
+          "type": "boolean"
+        },
+        "finish": {
+          "type": "string"
+        },
+        "home": {
+          "type": "string"
+        },
+        "nav": {
+          "type": "string"
+        },
+        "open": {
+          "type": "boolean"
+        },
+        "style": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "nav",
+        "style",
+        "home",
+        "cards",
+        "brand",
+        "finish"
       ],
       "type": "object"
     }

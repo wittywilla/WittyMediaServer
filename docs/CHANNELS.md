@@ -472,9 +472,11 @@ A channel is treated as ATSC 3.0 when its source names HEVC or AC-4. The server 
 
 **Run end to end on a real server with real FFmpeg:** one-click network channels, rule channels, hand timetables, tuning in mid-show, the guide and its themes, the preview and its resizing, commercials, bumper rules, commercials cut short, DVD and Blu-ray main features and scenes on a channel, IPTV playlists and streams against a local server, a stand-in network tuner, refusal of encrypted channels, XMLTV guide data, recording from a stand-in tuner, and profile limits.
 
-**Not tried:** every physical tuner, because none was available, real logo downloads, real phones and Safari.
+**Run against a generated provider:** a playlist of 10,000 channels with a 160,000-programme guide, paged, searched and dialled in the guide; channel checks, a backup playing for a dead channel, and catch-up in the `shift` form.
 
-**Not built:** Windows digital tuning (BDA), dish switches on Linux DVB, ATSC 3.0 sound, ATSC huffman-compressed guide text, a viewer and a recording sharing one tuner, automatic clean-up of old recordings, and live TV and the guide in the native apps. The web app works in any browser.
+**Not tried:** every physical tuner, because none was available, real logo downloads, real phones and Safari, a real IPTV or Xtream provider, catch-up in any form but `shift`, and the Apple TV and Android TV guides on a device or simulator.
+
+**Not built:** Windows digital tuning (BDA), dish switches on Linux DVB, ATSC 3.0 sound, ATSC huffman-compressed guide text, and a viewer and a recording sharing one tuner. The Apple TV and Android TV apps have guides of their own; on phones and tablets the apps show this guide. Old recordings are cleaned up only by a series recording's **Keep the newest**.
 
 ## For developers
 

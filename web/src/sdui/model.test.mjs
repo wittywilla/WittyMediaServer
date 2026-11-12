@@ -103,3 +103,13 @@ test('a Credits section names its parts in order, with what was sent of each', (
   assert.deepEqual(creditGroups(p).map((g) => [g.id, g.role, g.shown, g.total]), [['cast', 'cast', 20, 26], ['art', 'crew', 6, 8]])
 })
 
+
+test('the built-in card styles match the conformance kit\'s table', async () => {
+  const { CARD_STYLES } = await import('./cardStyles.ts')
+  const table = JSON.parse(readFileSync(fileURLToPath(new URL('../../../pkg/sdui/conformance/card-style-table.json', import.meta.url)), 'utf8'))
+  for (const want of table.cardStyles) {
+    const got = CARD_STYLES[want.style]
+    assert.ok(got, `style ${want.style}`)
+    assert.deepEqual([got.shape, got.aspect, got.shows, got.titleLines, got.subtitleLines], [want.shape, want.aspect, want.shows, want.titleLines, want.subtitleLines], want.style)
+  }
+})

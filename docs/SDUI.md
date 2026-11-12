@@ -225,7 +225,7 @@ Go types are `sdui.Document`, `sdui.Node`, `sdui.Action`, `sdui.Focus`.
 | Field | Type | Notes |
 |---|---|---|
 | `version` | int | `1`. A client refuses any other. |
-| `catalog` | int | The catalogue revision the tree was written for (4). A client built for another revision refuses it. |
+| `catalog` | int | The catalogue revision the tree was written for (7). A client built for another revision refuses it. |
 | `page` | PageInfo | `{id, kind, title, icon, route, variant, params}`. `route` is the page's place in the app; `params` what it was opened with, to send again with a refresh. |
 | `layout` | Layout | The [device profile](#device-profiles) the page was fitted to: lay out with these numbers. |
 | `theme` | ThemeScope, *omit* | `{scope, tokens}`: the page's theme scope and the colour tokens it overrides. |
@@ -1221,13 +1221,32 @@ and without `meta.generatedAt` and `meta.etag`; `ETag(doc)` is `W/"sha256-`
 
 - `version` (1) changes only for something a client built for it can't
   survive. Clients refuse a version they don't know.
-- The **catalogue revision** (5) counts changes to the catalogue: a component,
-  a property, a card style, a source, a condition, an action type. Client and
-  server must be built for the same revision. Unknown props and actions are
-  ignored, an unknown card style is drawn as its shape.
+- The **catalogue revision** (7) counts changes to the catalogue. **The rule:
+  any change to what an existing component or card style shows or does bumps
+  the revision** (a card style that gains badges, a property that changes
+  meaning, a component that draws something else). Only a new component, card
+  style, source, command, condition, action type or optional property is
+  additive, and keeps the revision it came in. Client and server must be built
+  for the same revision. Unknown props and actions are ignored, an unknown
+  card style is drawn as its shape.
+- **Where a client gets the card styles.** From `GET /api/sdui/catalog`, which it
+  fetches at sign-in and when the revision changes (the web app does). A table of
+  them built into the app is only for offline tests, and a conformance test must
+  check it against the catalogue the server serves (see the
+  [conformance kit](../pkg/sdui/conformance/README.md)), so a change to what a
+  style shows can't be missed.
 - `ui_config.json` has its own `version` (2).
 - The conformance kit has a `kit` number; a change to a fixture's expected
   output is a change to the contract and is called out in the changelog.
+
+### The music table
+
+`GET /api/sdui/catalog` carries `music` (`pkg/sdui/data/music.json`): the mini player's controls and the visualizer's.
+`music.visualizer.presets` are the effects the effects picker offers, the same as WittyVisualizer's `effects/*.glsl`
+(the 17 classics and Aurora Rings, in the order of its README): `{id, name, motion, calm, cost}`. `motion` is
+`gentle` or `lively`, `calm` is true when calm mode keeps the effect (the gentle ones; it is on by default when the
+system asks for reduced motion), `cost` is how hard it works the graphics card (1 to 3). The `preset` control's
+default is `skyline`. A new effect in WittyVisualizer is a new entry here.
 
 ## Reference
 

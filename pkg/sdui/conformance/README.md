@@ -9,7 +9,7 @@ lists them). Every file has the same shape:
 
 ```
 {
-  "kit": 1, "schemaVersion": 1, "catalogRevision": 4,
+  "kit": 1, "schemaVersion": 1, "catalogRevision": 7,
   "id": "home-tv-hd",
   "title": "The built-in Home on an Apple TV HD",
   "checks": ["…what this case is there to pin down…"],
@@ -69,6 +69,14 @@ The point of step 2 is that the description comes from your views. A
 normaliser that reads the JSON and never touches your renderer proves
 nothing; use the reference implementation (`normalise.go`) to understand a
 rule, not as something to port line by line.
+
+**Requirement: a renderer that keeps its own table of card styles** (what each style shows, in which
+order, its shape and aspect) **checks it against the catalogue**. Its test reads
+`card-style-table.json` beside `fixtures/` (the catalogue's card styles of this revision: `style`, `shape`, `aspect`, `image`,
+`shows`, `titleLines`, `subtitleLines`) and fails when the app's table differs in any style's `shows`, `shape`, `aspect`, `titleLines`, `subtitleLines`, or
+in the styles it has. A change to what a style shows bumps the catalogue revision (docs/SDUI.md, Versioning),
+and this test is how an app notices it. Apps that read the styles from the served catalogue at sign-in
+need nothing built in beyond what their offline tests use.
 
 ## The normalised layout
 

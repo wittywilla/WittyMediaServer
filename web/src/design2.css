@@ -224,3 +224,11 @@ html[data-card-set="list"] .sdui-row-text b { text-transform: uppercase; letter-
 
 /* One thing at a time at the foot: a film's mini player sits above the music bar, never across it. */
 .player.mini { inset-block-end: calc(20px + var(--dock-space, 0px)); }
+
+/* The drawer's views read from the start (the rail's own rule centres its icons); the music bar clears a pinned rail; a film's
+   mini player sits clear of the music bar, controls and all. */
+.app.nav-rail .rail-drawer .nav-link { justify-content: flex-start; padding-inline: var(--sp-3); min-height: var(--control-h); }
+@media (min-width: 901px) {
+  .app.nav-rail:has(.sidebar.keep-open) ~ .audio-bar { left: calc(50% + var(--rail-open, 240px) / 2); width: min(1320px, calc(100% - var(--rail-open, 240px) - 48px)); }
+}
+body:has(.audio-bar:not(.full)) .player.mini { inset-block-end: 108px; }

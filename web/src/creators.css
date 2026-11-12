@@ -113,11 +113,6 @@
 .ch-tabs { flex-wrap: wrap; }
 .ch-search { display: flex; gap: 6px; }
 .ch-search .input { width: 220px; max-width: 45vw; }
-.ch-tags { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 14px; scrollbar-width: none; }
-.ch-tag { flex: none; padding: 5px 12px; font-size: var(--text-sm); font-weight: 600; border: 0; border-radius: var(--r-sm); background: var(--bg-3); color: var(--fg-2); }
-.ch-tag:hover { color: var(--fg); background: var(--bg-4); }
-.ch-tag.on { background: var(--accent); color: var(--accent-fg); }
-.ch-tag:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
 .ch-shelf { margin: 6px 0 24px; padding: 14px 0; border-block: 1px solid var(--bg-3); }
 .ch-shelf h2 { margin: 0 0 10px; font-size: var(--text-lg); }
 .ch-shelf-row { display: flex; gap: 10px; overflow-x: auto; padding: 3px; scrollbar-width: thin; }

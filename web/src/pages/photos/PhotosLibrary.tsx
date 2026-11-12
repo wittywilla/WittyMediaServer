@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
+import SpecPage from '../../spec/SpecPage'
+import { handledIds, withIds } from '../../spec/model'
+import { addToAlbumSpec, albumSpec } from '../../spec/specs/albums'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { api, type Library } from '../../api'
@@ -252,10 +255,8 @@ function AlbumDialog({ lib, album, onClose, onSaved }: { lib: Library; album?: P
     <Dialog title={album ? 'Album details' : 'New album'} onClose={onClose}
       actions={<><Button type="button" variant="ghost" onClick={onClose}>Cancel</Button><Button variant="primary" form="album-form">{album ? 'Save' : 'Make album'}</Button></>}>
       <form id="album-form" className="ui-dialog-form" onSubmit={save}>
-        <label className="oobe-field">Name<input className="input" autoFocus required maxLength={200} value={name} onChange={(e) => setName(e.target.value)} /></label>
-        <label className="oobe-field">Description<textarea className="input" maxLength={4000} rows={3} value={desc} onChange={(e) => setDesc(e.target.value)} /></label>
-        <label className="share-check"><input type="checkbox" checked={shared} onChange={(e) => setShared(e.target.checked)} /> Share with other profiles who can open this library</label>
-        {err && <div className="error" role="alert">{err}</div>}
+        <SpecPage embedded page={albumSpec({ name, shared }, err)} handled={new Set()} onField={(id, v) => { if (id === 'name') setName(String(v).slice(0, 200)); else if (id === 'shared') setShared(!!v) }}
+          after={{ 0: <label className="oobe-field">Description<textarea className="input" maxLength={4000} rows={3} value={desc} onChange={(e) => setDesc(e.target.value)} /></label> }} />
       </form>
     </Dialog>
   )
@@ -297,14 +298,11 @@ function AddToAlbum({ lib, ids, onClose, onDone }: { lib: Library; ids: number[]
     toast(`${r.added} added to ${a.name}`)
     onDone()
   }
+  const mine = (albums || []).filter((a) => a.ownerId === user?.id || user?.isAdmin)
+  const pick = addToAlbumSpec(mine, ids.length)
   return (
     <Dialog title="Add to album" onClose={onClose}>
-        {!albums ? <Spinner /> : (
-          <div className="gal-pick">
-            <button className="btn" onClick={() => setMaking(true)}><IconPlus /> New album</button>
-            {albums.filter((a) => a.ownerId === user?.id || user?.isAdmin).map((a) => <button key={a.id} className="btn ghost" onClick={() => add(a)}>{a.name} <span className="muted">{a.count}</span></button>)}
-          </div>
-        )}
+        {!albums ? <Spinner /> : <SpecPage embedded page={pick} handled={handledIds(withIds(pick))} onAction={(id) => { if (id === 'new') setMaking(true); else { const a = mine.find((x) => 'album:' + x.id === id); if (a) void add(a) } }} />}
         <div className="actions"><button className="btn ghost" onClick={onClose}>Cancel</button></div>
         {making && <AlbumDialog lib={lib} onClose={() => setMaking(false)} onSaved={(a) => { setMaking(false); if (a) add(a) }} />}
     </Dialog>

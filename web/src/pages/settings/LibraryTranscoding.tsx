@@ -10,6 +10,9 @@ import { Button, Chip, Chips, EmptyState, Field, Input, LoadError, Notice, Progr
 import { PageHead, Row, SaveBar, Section, Switch } from './ui'
 import './librarytranscoding.css'
 import TdarrSection from './TdarrSection'
+import SpecPage from '../../spec/SpecPage'
+import { handledIds } from '../../spec/model'
+import { runPatch, runSettingsSpec } from '../../spec/specs/libtranscode'
 import type { Library, Options, Policy, Run, Settings, Step, FileRow, Preview, Sample } from './libraryTranscodingTypes'
 
 // Library transcoding: converting a library's files ahead of time. Everything that could
@@ -106,52 +109,15 @@ function RunSettings({ settings, options, onChange }: { settings: Settings; opti
     { value: String(cores), label: `All of it: ${cores} threads (people watching will notice)` },
   ].filter((o, i, list) => list.findIndex((x) => x.value === o.value) === i)
   if (!threadChoices.some((o) => o.value === String(draft.threads))) threadChoices.push({ value: String(draft.threads), label: `${draft.threads} threads` })
+  const runPage = runSettingsSpec(draft, threadChoices)
   return (
     <Section title="How it runs on this server" desc="Converting competes with people watching. These keep it out of their way." actions={<Button variant="ghost" size="sm" onClick={off}>Turn off</Button>}>
-      <Row label="Pause while people are streaming" desc="Conversions hold still, using no processor, whenever anyone is playing something or a game, and carry on where they were afterwards. A library may take much longer to finish.">
-        <Switch label="Pause while people are streaming" checked={draft.pauseWhileStreaming} onChange={(v) => set({ pauseWhileStreaming: v })} />
-      </Row>
-      <Row label="Low priority" desc="Everything else on this machine gets the processor first.">
-        <Switch label="Low priority" checked={draft.lowPriority} onChange={(v) => set({ lowPriority: v })} />
-      </Row>
-      <Row label="Only at certain hours" desc="Outside these hours it holds still. Hours are on this server’s clock, and can run past midnight.">
-        <Switch label="Only at certain hours" checked={draft.hoursOn} onChange={(v) => set({ hoursOn: v })} />
-      </Row>
-      {draft.hoursOn && (
-        <Row label="From and until" dim={!draft.hoursOn}>
-          <HourSelect label="From" value={draft.hoursFrom} onChange={(v) => set({ hoursFrom: v })} />
-          <HourSelect label="Until" value={draft.hoursTo} onChange={(v) => set({ hoursTo: v })} />
-        </Row>
-      )}
-      <Row label="Wait for new files to settle" desc="For libraries that convert new files by themselves: how long a file has to stay the same size before it’s touched, so one still being copied or downloaded is left to finish.">
-        <Select value={String(draft.settleSeconds)} options={[...new Set([60, 120, 300, 900, 3600, draft.settleSeconds])].sort((a, b) => a - b).map((n) => ({ value: String(n), label: n < 3600 ? `${Math.round(n / 60)} min` : `${Math.round(n / 3600)} hour` }))} onChange={(e) => set({ settleSeconds: Number(e.target.value) })} />
-      </Row>
-      <Row label="How much of the processor" desc="For each file being converted.">
-        <Select value={String(draft.threads)} options={threadChoices} onChange={(e) => set({ threads: Number(e.target.value) })} />
-      </Row>
-      <Row label="Files at once" desc="More finishes sooner and leaves less for everything else. One is right for most machines.">
-        <Select value={String(draft.maxJobs)} options={[1, 2, 3, 4].map((n) => ({ value: String(n), label: String(n) }))} onChange={(e) => set({ maxJobs: Number(e.target.value) })} />
-      </Row>
-      <Row label="Use hardware encoders" desc={<>Much faster and easier on the processor, for slightly larger files. It uses the ones ticked under <Link to="/settings/transcoding">Live transcoding</Link>, for ordinary 8-bit pictures. HDR and 10-bit pictures always use the slower software encoder, which can be trusted to keep them right. {options.capabilities.hardware.length ? `Working here: ${options.capabilities.hardware.join(', ')}.` : 'None is available or ticked here.'}</>}>
-        <Switch label="Use hardware encoders" checked={draft.useHardware} onChange={(v) => set({ useHardware: v })} />
-      </Row>
-      <Row label="Keep this much free on each drive" desc="Conversions stop short of this, and a file that wouldn’t fit waits.">
-        <Select value={String(draft.minFreeGb)} options={[...new Set([1, 5, 10, 25, 50, 100, draft.minFreeGb])].sort((a, b) => a - b).map((n) => ({ value: String(n), label: `${n} GB` }))} onChange={(e) => set({ minFreeGb: Number(e.target.value) })} />
-      </Row>
+      <SpecPage embedded bare page={runPage} handled={handledIds(runPage)} onField={(id, v) => { const patch = v instanceof File ? null : runPatch(id, v); if (patch) set(patch) }} />
       <SaveBar dirty={dirty} busy={busy} save={save} discard={() => setDraft(settings)} />
     </Section>
   )
 }
 
-function HourSelect({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
-  return (
-    <label className="ltc-inline">{label}
-      <Select value={String(value)} onChange={(e) => onChange(Number(e.target.value))} options={Array.from({ length: 24 }, (_, h) => ({ value: String(h), label: `${String(h).padStart(2, '0')}:00` }))} />
-    </label>
-  )
-}
-
-// A library: its recipe, what that would do, and running it.
 function Libraries({ libs, setLibs, options, settings }: { libs: Library[]; setLibs: (l: Library[]) => void; options: Options; settings: Settings }) {
   const [id, setId] = useState(libs[0].id)
   const lib = libs.find((l) => l.id === id) ?? libs[0]

@@ -404,6 +404,19 @@ func TestPlayOnlineWithAGame(t *testing.T) {
 		t.Errorf("collections, cleaned: %+v", cleaned)
 	}
 
+	// WittyPlay's two pages in Settings' slots: privacy in You, Games for anyone; a Kids profile's
+	// friends in People, for administrators, opened about the profile.
+	slot := func(tok, which string) string { return g.do("GET", "/api/sdui/slots/"+which, tok, nil).Body.String() }
+	if b := slot(g.other, "you.games"); !strings.Contains(b, `"route":"/page/wittyplay-privacy"`) {
+		t.Errorf("you.games: %s", b)
+	}
+	if b := slot(g.admin, "people.profile"); !strings.Contains(b, `"route":"/page/wittyplay-kids?item={profile}"`) {
+		t.Errorf("people.profile: %s", b)
+	}
+	if b := slot(g.other, "people.profile"); strings.Contains(b, "wittyplay-kids") {
+		t.Errorf("people.profile for someone who isn't an administrator: %s", b)
+	}
+
 	// An open room of it, for the other adult to join with no code.
 	seats := &s.games().seats
 	seats.started("room1", admin.ID, "admin", "TV", seatGame{Item: game.ID, Title: game.Title, Console: "snes"})

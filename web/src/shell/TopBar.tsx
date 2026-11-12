@@ -111,7 +111,8 @@ function SectionRow({ list }: { list: NavItem[] }) {
   const row = useRef<HTMLElement | null>(null)
   useEffect(() => {
     const el = row.current, on = el?.querySelector<HTMLElement>('.active')
-    if (el && on) el.scrollLeft = on.offsetLeft - (el.clientWidth - on.offsetWidth) / 2
+    // The current section starts at the left edge, after the fade, so no word is ever cut at the start.
+    if (el && on) el.scrollLeft = Math.max(0, on.offsetLeft - parseFloat(getComputedStyle(el).paddingLeft))
   }, [path, list])
   if (list.length === 0) return <Link to="/" className="brand section-row-brand"><BrandMark /><Brand name={brandName} /></Link>
   return (

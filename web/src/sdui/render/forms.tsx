@@ -32,7 +32,7 @@ export function ControlView({ control, label, action }: { control: Control; labe
   switch (control.type) {
     case 'switch': return <span className="sdui-control">{why}<Switch label={label} checked={value === true} disabled={off} onChange={(v) => change(v, true)} /></span>
     case 'select': return <span className="sdui-control">{why}<Select inputSize="sm" aria-label={label} aria-describedby={described} disabled={off} value={String(value ?? '')} options={control.options || []} onChange={(e) => change(e.target.value, true)} /></span>
-    case 'field': return <span className="sdui-control">{why}<Input inputSize="sm" aria-label={label} aria-describedby={described} disabled={off} type={control.input === 'number' ? 'number' : control.input === 'url' ? 'url' : control.input === 'search' ? 'search' : 'text'}
+    case 'field': return <span className="sdui-control">{why}<Input inputSize="sm" aria-label={label} aria-describedby={described} disabled={off} type={control.input === 'number' ? 'number' : control.input === 'url' ? 'url' : control.input === 'search' ? 'search' : control.input === 'password' ? 'password' : 'text'}
       placeholder={control.placeholder} maxLength={control.maxLength} value={String(value ?? '')} onChange={(e) => change(e.target.value, false)}
       onBlur={() => { if (!form && !page.inert) page.act(withValue(action, control, value)) }} onKeyDown={(e) => { if (e.key === 'Enter' && !form) page.act(withValue(action, control, value)) }} /></span>
     case 'slider': return <span className="sdui-control">{why}<input type="range" className="sdui-slider" aria-label={label} aria-describedby={described} disabled={off} min={control.min ?? 0} max={control.max ?? 100} step={control.step ?? 1} value={Number(value ?? control.min ?? 0)}

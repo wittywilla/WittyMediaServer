@@ -58,6 +58,7 @@ export default function PlaybackSettings() {
           <Switch label="Low-power mode for discs" checked={s.lowPower === '1'} onChange={(v) => set('lowPower', v ? '1' : '0')} />
         </Row>
         <BDJRows s={s} set={set} dirty={st.dirty} />
+        <SecondOpinionRow s={s} set={set} dirty={st.dirty} />
         <Row label="DVD region" desc="1 to 8. Empty plays each disc as its own region.">
           <input className="input" inputMode="numeric" aria-label="DVD region" value={s.dvdRegion || ''} onChange={(e) => set('dvdRegion', e.target.value)} />
         </Row>
@@ -112,5 +113,20 @@ function BDJRows({ s, set, dirty }: { s: Record<string, string>; set: (k: string
         <div className="input mono" role="status">{status?.path || 'None found'}</div>
       </Row>
     </>
+  )
+}
+
+// A second opinion on which playlist is a Blu-ray's film, from a libbluray the server's
+// owner installed. WittyBluray's own reading decides; libbluray only compares, on request,
+// for unencrypted discs. It is a library from outside the project reading a disc's files, so
+// it starts off, and the row says whether one was found.
+function SecondOpinionRow({ s, set, dirty }: { s: Record<string, string>; set: (k: string, v: string) => void; dirty: boolean }) {
+  const [cap, setCap] = useState<{ libbluray?: { available: boolean; version?: string; reason?: string }; libblurayPath?: string } | null>(null)
+  useEffect(() => { if (!dirty) api.get<typeof cap>('/bluray/capabilities').then(setCap).catch(() => setCap(null)) }, [dirty])
+  const lb = cap?.libbluray
+  return (
+    <Row label="Ask libbluray for a second opinion" desc={<>On a Blu-ray’s page, an admin can have a libbluray installed on this server compare its reading of the disc with WittyBluray’s pick of the film (<HelpLink to="bluray#a-second-opinion-from-libbluray">more about this</HelpLink>). It isn’t included, nothing is decrypted, and encrypted discs are never handed to it.{cap && <><br />{lb?.available ? `libbluray ${lb.version || ''} found${cap.libblurayPath ? `: ${cap.libblurayPath}` : ''}` : `No libbluray to ask: ${lb?.reason || 'none was found on this server'}`}</>}</>}>
+      <Switch label="Ask libbluray for a second opinion" checked={s.blurayLibbluray === '1'} onChange={(v) => set('blurayLibbluray', v ? '1' : '0')} />
+    </Row>
   )
 }

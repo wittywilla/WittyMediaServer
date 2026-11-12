@@ -22,14 +22,14 @@ import (
 
 // gpuPlatformReason is why a runner can't draw on a graphics card on this operating
 // system: WittyPlay's runner makes an OpenGL context on Windows and Linux only.
-const gpuPlatformReason = "hardware-rendered games run on Windows and Linux servers"
+const gpuPlatformReason = "hardware-rendered games run on Windows, Linux and macOS servers"
 
 // gpuAskAgain is how long a graphics card check that got no answer is left before
 // something about to start a game asks again. Settings asks whenever it's opened.
 const gpuAskAgain = 5 * time.Minute
 
 // gpuOS says whether the runner can draw on a graphics card on this operating system at all.
-func gpuOS(goos string) bool { return goos == "windows" || goos == "linux" }
+func gpuOS(goos string) bool { return goos == "windows" || goos == "linux" || goos == "darwin" }
 
 // gpuMissingFrom says why a game drawn on a graphics card can't run here, or "" when it
 // can or nothing says otherwise. A final answer from the runner counts. Until there is one,

@@ -51,7 +51,7 @@ func ICNS(draw func(px int) Art) []byte {
 	entries := []struct {
 		kind string
 		px   int
-	}{{"icp4", 16}, {"icp5", 32}, {"icp6", 64}, {"ic07", 128}, {"ic08", 256}, {"ic09", 512}, {"ic10", 1024}, {"ic11", 32}, {"ic12", 64}, {"ic13", 256}, {"ic14", 512}}
+	}{{"icp4", 16}, {"icp5", 32}, {"icp6", 48}, {"ic07", 128}, {"ic08", 256}, {"ic09", 512}, {"ic10", 1024}, {"ic11", 32}, {"ic12", 64}, {"ic13", 256}, {"ic14", 512}}
 	cache := map[int][]byte{}
 	var body bytes.Buffer
 	for _, e := range entries {

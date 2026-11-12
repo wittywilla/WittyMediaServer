@@ -59,8 +59,9 @@ fields, new values in lists. Ignore what you don't recognise; never assume a lis
 complete. Removing or changing anything means a new version, with v1 kept alongside. `apiRevision`
 in `/capabilities` counts additions, and `features` names them: look for a feature rather than
 comparing server version numbers. Server 0.8.0-alpha is revision 16 (0.7 was 10): revision 15 for
-the release's first part and 16 for its second (modules' own SDUI, layout options, the editor's
-merging publish, the artist page and the fixes listed under revision 16 in `api_capabilities.go`),
+the release's first part and 16 for its second (modules' own SDUI, layout options, the theme on
+server-driven pages with each profile's own colours, the editor's merging publish, the artist page
+and the fixes listed under revision 16 in `api_capabilities.go`),
 each part with its own feature name. `/api/...` without a version is the same thing, for the web
 interface that ships with each server. Every API answer carries `X-WMS-API-Version`. A version this
 server doesn't have answers 404 with `apiVersions`.

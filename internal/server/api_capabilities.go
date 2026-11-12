@@ -65,7 +65,12 @@ const (
 	//     /sdui/validate?target=draft, 404 for deleting a page that isn't there;
 	//   - stems/approximate follows the karaoke setting (403 with reason, 429);
 	//     p2p/invite asks an administrator's password for an administrator (403
-	//     password-required).
+	//     password-required);
+	//   - the theme on SDUI: the catalogue's tokens for every component and card style
+	//     (sdui-tokens), shape, type and brand in /theme (theme-shape-type), derived
+	//     colours for every layer of overrides (theme-derived), and a profile's own colours
+	//     at /theme/personal, refused below AA contrast (theme-personal); PUT /me/ui keeps
+	//     the keys the server owns.
 	apiRevision = 16
 	apiPrefix   = "/api/v1/"
 )

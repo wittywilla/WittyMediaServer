@@ -50,10 +50,6 @@
 .st-mod-sec a { color: var(--accent-text); text-decoration: underline; }
 .st-shots { display: flex; gap: var(--sp-3); overflow-x: auto; padding-bottom: var(--sp-2); scroll-snap-type: x proximity; border-radius: var(--r-md); }
 .st-shots img { flex: none; height: 15rem; max-width: 90%; border-radius: var(--r-md); border: 1px solid var(--border); object-fit: contain; background: var(--bg-3); scroll-snap-align: start; }
-.st-perms { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-2); }
-.st-perms li { display: flex; gap: var(--sp-2); font-size: var(--text-sm); color: var(--fg-2); line-height: var(--leading-snug); }
-.st-perms svg { flex: none; margin-top: 1px; color: var(--fg-3); }
-.st-perms b { color: var(--fg); }
 .st-vers { margin-top: var(--sp-2); }
 
 /* What's new. */

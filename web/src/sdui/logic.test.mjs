@@ -202,3 +202,11 @@ test('a browser names itself once, randomly, and the name goes with every reques
   const d = describe({ width: 1280, height: 800, tvMode: false, desktopShell: false, touch: false, pointer: true, reducedMotion: false, hdr: false, locale: 'en', uhd: false }, [], a)
   assert.equal(new URLSearchParams(query(d)).get('device'), a)
 })
+
+test('a streaming-service filter goes to a page as service, never as the device\'s platform', () => {
+  const r = resolve('/library/3', '?platform=netflix&genre=Drama')
+  assert.equal(r.params.service, 'netflix')
+  assert.equal(r.params.platform, undefined)
+  assert.equal(r.params.genre, 'Drama')
+  assert.equal(resolve('/library/3', '?service=hulu').params.service, 'hulu')
+})

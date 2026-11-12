@@ -43,6 +43,24 @@ func TestFirstRunGatesEveryAppRoute(t *testing.T) {
 	if w := ts.do(t, "GET", "/api/sdui/pages/home", tok, nil); w.Code != 503 {
 		t.Errorf("an app's token during setup: %d", w.Code)
 	}
+	// The setup wizard's own browser holds the same token as its cookie and signs every call with it
+	// as well: that is one browser session and passes. An app's token with no cookie, or beside
+	// another token's cookie, doesn't.
+	cookie := "wms_token=" + tok
+	for _, path := range []string{"/api/libraries", "/api/me/ui", "/api/settings"} {
+		if w := ts.do(t, "GET", path, tok, nil, "Cookie", cookie); w.Code == 503 {
+			t.Errorf("the setup browser's %s (cookie and the same bearer): %d %s", path, w.Code, w.Body)
+		}
+		if w := ts.do(t, "GET", path, "", nil, "Cookie", cookie); w.Code == 503 {
+			t.Errorf("the setup browser's %s (cookie only): %d", path, w.Code)
+		}
+	}
+	if w := ts.do(t, "GET", "/api/libraries", "another-token", nil, "Cookie", cookie); w.Code != 503 {
+		t.Errorf("another token beside the browser's cookie: %d", w.Code)
+	}
+	if w := ts.do(t, "GET", "/api/libraries", tok, nil, "Cookie", "wms_token=another-token"); w.Code != 503 {
+		t.Errorf("an app's token beside a cookie that isn't its own: %d", w.Code)
+	}
 	if w := ts.do(t, "PUT", "/api/setup/state", tok, map[string]any{"step": "look", "done": []string{"welcome", "account", "name"}}); w.Code != 200 {
 		t.Fatalf("saving the step: %d %s", w.Code, w.Body)
 	}

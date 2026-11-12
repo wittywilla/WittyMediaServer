@@ -114,6 +114,7 @@ func (s *Server) handleGetSettings(w http.ResponseWriter, r *http.Request) {
 		}
 		out[k] = v
 	}
+	out["theme"] = s.serverTheme(r.Context()) // the look's own until one is chosen
 	for _, k := range secretSettings {
 		if out[k] != "" {
 			out[k+"Set"] = "1"
@@ -152,6 +153,12 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
+	}
+	// Choosing the theme the server already wears (the look's own) doesn't pin it: the server's
+	// theme follows the look until the administrator picks a different one. "" goes back to
+	// following the look. PUT /api/theme/global {id} pins any theme, this one included.
+	if v, ok := in["theme"]; ok && !s.themeChosen(r.Context()) && strings.TrimSpace(v) == s.serverTheme(r.Context()) {
+		delete(in, "theme")
 	}
 	for _, k := range settingKeys {
 		v, ok := in[k]

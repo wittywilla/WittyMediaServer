@@ -5,6 +5,9 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- First run: the setup wizard's own calls pass the setup gate. The gate keys on the administrator's session cookie, not on the absence of an `Authorization` header (the web app sends its token that way on every call, so Add Movies, the look and the logos steps all answered `setup_required`). A token with no cookie, or a header token that is not the cookie's, is an app and is still refused until setup is complete.
+- A look brings its default theme. The server's theme is the look's own until the administrator chooses a different one; saving the theme the server already wears no longer pins it, and `/api/status` and `/api/settings` report the theme the server really wears (they said `default` whatever the look).
+
 - SDUI catalogue: a data source may yield `person` items (a photo or initials, a name, a line, badges such as presence or a seat; it opens something only with a route), and the `wittyplay.` commands for WittyPlay Online (`room.create`, `room.join`, `room.invite`, `state.save`, `state.load`, `state.delete`, `controller.assign`) with `rewind.open` and `controller.remap` for the player's own panels. A command lists the values it takes beside the item as `params`. Additive: the catalogue stays at revision 6; a conformance fixture, `wittyplay-people-tv`, pins the people cards. More info for a programme stays a native screen, with the `credits` source's `programme` parameter for a page that wants its cast and crew.
 
 ## 0.8.0-alpha

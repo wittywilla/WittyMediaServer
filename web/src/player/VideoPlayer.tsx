@@ -329,8 +329,8 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
       if (e.key.startsWith('Arrow') && (e.target as HTMLElement)?.closest?.('.bottom, .top, .remote, .watch-next')) return
       switch (e.key) {
         case ' ': case 'k': case 'MediaPlayPause': e.preventDefault(); v.paused ? v.play() : v.pause(); break
-        case 'ArrowRight': seek(v.currentTime + offset + 10); break
-        case 'ArrowLeft': seek(v.currentTime + offset - 10); break
+        case 'ArrowRight': case 'l': seek(v.currentTime + offset + 10); break
+        case 'ArrowLeft': case 'j': seek(v.currentTime + offset - 10); break
         case 'ArrowUp': v.volume = Math.min(1, v.volume + 0.1); break
         case 'ArrowDown': v.volume = Math.max(0, v.volume - 0.1); break
         case 'f': toggleFullscreen(root.current); break

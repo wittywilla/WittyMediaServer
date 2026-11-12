@@ -458,7 +458,7 @@ A core is the usual way to play, and the only one most servers need. Some consol
 
 | Console | Plays on | Notes |
 |---|---|---|
-| GameCube, Wii | The Dolphin core, or Dolphin | Disc images, Dolphin's compressed images (RVZ, WIA, GCZ, CISO, WBFS) and homebrew |
+| GameCube, Wii | Dolphin, or the Dolphin core | Disc images, Dolphin's compressed images (RVZ, WIA, GCZ, CISO, WBFS) and homebrew. On a Mac the core stalls after its first frame for now: play them in Dolphin |
 | Wii U | Cemu | `.wud` and `.wux` images need your games' disc keys in the BIOS folder |
 | PlayStation 3 | RPCS3 | Disc images and folder dumps; RPCS3 installs the system software (`PS3UPDAT.PUP`) from the BIOS folder |
 | Xbox | xemu | Needs the boot ROM, BIOS and hard disk image of an Xbox you own |

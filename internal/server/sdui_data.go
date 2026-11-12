@@ -207,6 +207,27 @@ func (rv *sduiResolver) show(sh *library.Show) sdui.Item {
 	return out
 }
 
+// isArtistPage: a detail page opened for an artist (/artist/{library}?name=), not for
+// one of their albums or a title.
+func isArtistPage(v map[string]string) bool {
+	return v["artist"] != "" && v["album"] == "" && v["item"] == "" && v["show"] == "" && v["collection"] == ""
+}
+
+// artist is a music artist as a card and as an artist page's subject. i is the artist's
+// place in the library's list, which names it among that library's artists.
+func (rv *sduiResolver) artist(lib int64, i int, a library.Artist) sdui.Item {
+	it := sdui.Item{ID: "artist-" + strconv.Itoa(i), Kind: "artist", Title: a.Name, Artist: a.Name, Count: a.Albums, Route: "/artist/" + itoa(lib) + "?name=" + url.QueryEscape(a.Name), Images: map[string]string{}}
+	noun := "albums"
+	if a.Albums == 1 {
+		noun = "album"
+	}
+	it.Subtitle = strconv.Itoa(a.Albums) + " " + noun
+	if a.CoverItem != 0 {
+		it.Images["square"] = "/api/items/" + itoa(a.CoverItem) + "/poster"
+	}
+	return it
+}
+
 func (rv *sduiResolver) album(lib int64, a library.Album) sdui.Item {
 	out := sdui.Item{ID: fmt.Sprintf("album-%d-%d", lib, a.CoverItem), Kind: "album", Title: a.Title, Subtitle: a.Artist, Artist: a.Artist, Count: a.Tracks, RuntimeSec: a.DurationSec,
 		Route: "/album/" + itoa(lib) + "?artist=" + url.QueryEscape(a.Artist) + "&album=" + url.QueryEscape(a.Title), Images: map[string]string{}}
@@ -611,16 +632,7 @@ func (rv *sduiResolver) Items(req sdui.SourceRequest) (sdui.SourceResult, error)
 			if i >= req.Offset+req.Limit+1 {
 				break
 			}
-			it := sdui.Item{ID: "artist-" + strconv.Itoa(i), Kind: "artist", Title: a.Name, Count: a.Albums, Route: "/artist/" + itoa(lib.ID) + "?name=" + url.QueryEscape(a.Name), Images: map[string]string{}}
-			noun := "albums"
-			if a.Albums == 1 {
-				noun = "album"
-			}
-			it.Subtitle = strconv.Itoa(a.Albums) + " " + noun
-			if a.CoverItem != 0 {
-				it.Images["square"] = "/api/items/" + itoa(a.CoverItem) + "/poster"
-			}
-			all = append(all, it)
+			all = append(all, rv.artist(lib.ID, i, a))
 		}
 		res := page(all, req)
 		res.Total = len(artists)
@@ -652,6 +664,16 @@ func (rv *sduiResolver) Items(req sdui.SourceRequest) (sdui.SourceResult, error)
 		q := library.ItemQuery{LibraryID: lib.ID, Kind: "audio", Sort: "track", Access: rv.acc, Brief: true, Album: &album, NoTotal: true}
 		if artist != "" {
 			q.AlbumArtist = &artist
+		}
+		if _, one := src["album"]; !one {
+			// An artist's page: every album's songs, by title, a page at a time.
+			q.Album, q.Sort, q.NoTotal, q.Offset, q.Limit = nil, "", false, req.Offset, req.Limit
+			items, total, err := s.Store.Items(rv.ctx, q)
+			if err != nil {
+				return sdui.SourceResult{}, err
+			}
+			_ = s.Store.AttachProgress(rv.ctx, rv.u.ID, items)
+			return sdui.SourceResult{Items: rv.items(items), More: req.Offset+len(items) < total, Total: total}, nil
 		}
 		if lib.Type == "podcasts" {
 			q.Sort, q.Desc = "aired", true
@@ -911,6 +933,29 @@ func (rv *sduiResolver) Subject() (*sdui.Item, error) {
 				break
 			}
 		}
+	case isArtistPage(v):
+		lib, ok := rv.library(v["library"])
+		if !ok {
+			return nil, sdui.ErrNotFound
+		}
+		artists, err := s.Store.Artists(rv.ctx, lib.ID, rv.acc)
+		if err != nil {
+			return nil, sdui.ErrNotFound
+		}
+		for i, a := range artists {
+			if a.Name == v["artist"] {
+				it := rv.artist(lib.ID, i, a)
+				if a.CoverItem != 0 {
+					// Play starts with one of the artist's songs, as an album's does with its first.
+					it.PlayID, it.Can = itoa(a.CoverItem), []string{"play"}
+				}
+				if rv.noPlay {
+					rv.unplayable(&it)
+				}
+				rv.subject = &it
+				break
+			}
+		}
 	case v["show"] != "" && v["item"] == "":
 		id, _ := strconv.ParseInt(v["show"], 10, 64)
 		sh, err := s.visibleShow(rv.r, id)
@@ -918,7 +963,9 @@ func (rv *sduiResolver) Subject() (*sdui.Item, error) {
 			return nil, sdui.ErrNotFound
 		}
 		it := rv.show(sh)
-		it.Can = []string{"watchLater"}
+		// watched.set and watched.clear take the show's ID too (show_watched.go).
+		it.Can = []string{"watchLater", "watched"}
+		it.Watched = sh.EpisodeCount > 0 && sh.Unwatched == 0
 		if rv.acc.Can(library.FeatureSharing) {
 			it.Can = append(it.Can, "share")
 		}

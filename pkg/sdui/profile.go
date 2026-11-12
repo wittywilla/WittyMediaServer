@@ -278,7 +278,18 @@ func (l *Layout) clone() *Layout {
 // ImageWidth is the picture width a card of this width in points asks for:
 // the smallest bucket that covers it at the device's scale, or the largest.
 func (l *Layout) ImageWidth(points int) int {
-	want := points * max(l.Scale, 1)
+	return l.imageWidthAt(points, l.Scale)
+}
+
+// BackdropWidth is the picture width for a backdrop that spans a window this wide in
+// points: at most twice the width, whatever the device's scale. A backdrop sits behind
+// text, under a scrim, so a phone's third pixel per point is never worth its bytes.
+func (l *Layout) BackdropWidth(points int) int {
+	return l.imageWidthAt(points, min(l.Scale, 2))
+}
+
+func (l *Layout) imageWidthAt(points, scale int) int {
+	want := points * max(scale, 1)
 	for _, w := range l.ImageWidths {
 		if w >= want {
 			return w
@@ -359,19 +370,36 @@ func Truncate(s string, limit int) string {
 	return strings.TrimRight(string(r[:cut]), " ,.;:-–—") + "…"
 }
 
+// WindowWidth is the window's width in points: the canvas the client sent (a
+// television's fixed one), else the breakpoint's usual window. A picture that
+// spans the window, such as a title's backdrop, is chosen for this width.
+func (l *Layout) WindowWidth() int {
+	if l.Canvas.Width > 0 {
+		return l.Canvas.Width
+	}
+	return map[string]int{"compact": 390, "medium": 720, "expanded": 1024, "large": 1440}[l.Breakpoint]
+}
+
 // ContentWidth is the width a page's sections have to themselves, in points:
 // the canvas (or the breakpoint's usual window when the client didn't say)
 // less the side margins: the safe area on a television, the m spacing
 // elsewhere.
 func (l *Layout) ContentWidth() int {
-	width := l.Canvas.Width
-	if width <= 0 {
-		width = map[string]int{"compact": 390, "medium": 720, "expanded": 1024, "large": 1440}[l.Breakpoint]
-	}
+	width := l.WindowWidth()
 	if l.SafeArea.Left+l.SafeArea.Right > 0 {
 		return width - l.SafeArea.Left - l.SafeArea.Right
 	}
-	return width - 2*l.Spacing["m"]
+	return width - 2*l.SideMargin()
+}
+
+// SideMargin is the margin at each side of a page's content, in points: the
+// safe area's left inset on a television, the m spacing on every other form
+// factor (16 points on a phone, a tablet, a desktop and the web).
+func (l *Layout) SideMargin() int {
+	if l.SafeArea.Left+l.SafeArea.Right > 0 {
+		return l.SafeArea.Left
+	}
+	return l.Spacing["m"]
 }
 
 // Placeholders is how many grey placeholder cards a row of cards this wide

@@ -58,8 +58,10 @@ The same contract is in machine-readable form in `openapi.json` (OpenAPI 3.1), b
 fields, new values in lists. Ignore what you don't recognise; never assume a list of values is
 complete. Removing or changing anything means a new version, with v1 kept alongside. `apiRevision`
 in `/capabilities` counts additions, and `features` names them: look for a feature rather than
-comparing server version numbers. Server 0.8.0-alpha is revision 15 (0.7 was 10): one step for
-everything that release adds, each part with its own feature name. `/api/...` without a version is the same thing, for the web
+comparing server version numbers. Server 0.8.0-alpha is revision 16 (0.7 was 10): revision 15 for
+the release's first part and 16 for its second (modules' own SDUI, layout options, the editor's
+merging publish, the artist page and the fixes listed under revision 16 in `api_capabilities.go`),
+each part with its own feature name. `/api/...` without a version is the same thing, for the web
 interface that ships with each server. Every API answer carries `X-WMS-API-Version`. A version this
 server doesn't have answers 404 with `apiVersions`.
 
@@ -1371,8 +1373,8 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `PUT /shows/{id}/view` | admin | A show's episode layout: `cards`, `list`, or empty for the default. |
 | `GET /shows/{id}/artwork` | admin | Artwork to choose from. |
 | `GET /shows/{id}/art/{kind}` | user | A show's picture: `poster`, `backdrop` or `season` (with `n`). |
-| `POST /items/{id}/progress` | user | Save the viewer's position. Past 92% counts as watched. Discs send `discTitle` too. |
-| `DELETE /items/{id}/progress` | user | Forget the position (mark as not started). |
+| `POST /items/{id}/progress` | user | Save the viewer's position. Past 92% counts as watched. Discs send `discTitle` too. `{id}` `show-<n>` with `{"watched": true}` marks every episode of the show this profile may see watched. |
+| `DELETE /items/{id}/progress` | user | Forget the position (mark as not started). `{id}` `show-<n>`: in every episode of the show. |
 
 ### Metadata, matches and browsing
 
@@ -1553,7 +1555,7 @@ asks for in one call. `{id}` is an item, as in
 | `GET /media/{id}/stems/{stem}` | user, `st` | One part, with byte ranges. `accompaniment` is another name for `instrumental`. |
 | `PUT /media/{id}/stems/{stem}` | admin | Upload a part: FLAC, WAV, Ogg, M4A, AAC, MP3 or WebM of at most 200 MB as the body (`multitrack`: an MP4). The server doesn't separate songs itself. |
 | `DELETE /media/{id}/stems/{stem}` | admin | Forget an uploaded part. |
-| `POST /media/{id}/stems/approximate` | user | Make an approximate `instrumental` with FFmpeg alone (what the two channels share is cancelled). 202 `{task}`; 200 `{exists: true}` when there is an instrumental already. It is listed with `approximate: true` and gives way to a real one. Say so to the person: the voice is quieter, not gone, and the music is mono. Mono songs fail. 503 without FFmpeg. |
+| `POST /media/{id}/stems/approximate` | user | Make an approximate `instrumental` with FFmpeg alone (what the two channels share is cancelled). 202 `{task}`; 200 `{exists: true}` when there is an instrumental already. It is listed with `approximate: true` and gives way to a real one. Say so to the person: the voice is quieter, not gone, and the music is mono. Mono songs fail. 503 without FFmpeg. 403 `{reason: "admin-only" | "off"}` for anyone but an administrator when the server's karaoke switch is "Only when an admin asks" or "Never"; 429 `{reason: "rate-limited"}` past 40 an hour for one account. |
 | `POST /media/{id}/stems/separate` | admin | Run the separator the owner installed on the song. 202 `{task}`; 409 when none is set up (`separation.external.reason` is `not-configured`). The parts it writes are listed with `source: "separated"`. |
 | `GET /media/{id}/karaoke` | user | Feature `karaoke-auto`. The one answer an app needs to play karaoke: `{state, quality, mix, stems: [{id, label, role, url, mime, defaultGain}], version, improving, progress, canImprove, reason?, message?, pollSec}`. See [Karaoke that sets itself up](#karaoke-that-sets-itself-up). Starts nothing. |
 | `POST /media/{id}/karaoke/prepare` | user | The same answer, after starting what is missing: the quick version, and behind it the real one if the server has a separator. No body. Idempotent: call it once when someone opens karaoke on a song. |
@@ -1651,16 +1653,16 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `GET /sdui/config` | admin | All of ui_config.json: the pages and navigation an administrator changed, the theme overrides, with its ETag. |
 | `PUT /sdui/config` | admin | Replace ui_config.json. ?target=draft writes to the draft; otherwise If-Match is required (428 without, 412 when stale). Everything is validated; 400 lists the issues, each with a path, a message and a fix. |
 | `GET /sdui/config/history` | admin | The last 10 revisions, newest first. |
-| `GET /sdui/config/diff` | admin | What differs between two revisions (?from= and ?to=: a revision number, current or draft): pages added, removed and changed, and inside a changed page the sections added, removed, changed and whether they were reordered. |
+| `GET /sdui/config/diff` | admin | What differs between two revisions (?from= and ?to=: a revision number, current or draft): pages added, removed and changed, and inside a changed page the sections added, removed, changed and whether they were reordered. `{from, to, fromDraft, toDraft, changes}`: for the draft, the revision it was begun from, with fromDraft/toDraft true. |
 | `POST /sdui/config/rollback/{rev}` | admin | Make a kept revision current again, as a new revision. |
 | `GET /sdui/config/pages` | admin | Every page in force, built-in ones included: id, kind, title, icon, match, and whether it is builtin, changed or custom. |
 | `GET /sdui/config/pages/{page}` | admin | One page as authored, where it comes from, the built-in page it would reset to, and what the validator says of it. |
 | `PUT /sdui/config/pages/{page}` | admin | Save one page. ?target=draft writes to the draft; otherwise If-Match is required (428 without, 412 when stale). 400 lists the issues. |
-| `DELETE /sdui/config/pages/{page}` | admin | Remove the configuration's page: a built-in page goes back to how it ships (reset to default), a page of the administrator's own is gone. ?target=draft writes to the draft; otherwise If-Match is required (428 without, 412 when stale). |
+| `DELETE /sdui/config/pages/{page}` | admin | Remove the configuration's page: a built-in page goes back to how it ships (reset to default), a page of the administrator's own is gone; 404 for a page that is in neither. ?target=draft writes to the draft; otherwise If-Match is required (428 without, 412 when stale). |
 | `GET /sdui/config/navigation` | admin | The navigation as authored, and the built-in one. |
 | `PUT /sdui/config/navigation` | admin | Save the navigation. ?target=draft writes to the draft; otherwise If-Match is required (428 without, 412 when stale). Settings can be moved but not hidden or given a condition. |
 | `DELETE /sdui/config/navigation` | admin | Back to the built-in navigation. ?target=draft writes to the draft; otherwise If-Match is required (428 without, 412 when stale). |
-| `POST /sdui/validate` | admin | Check {"page": ...}, {"navigation": ...} or {"config": ...} without saving: {ok, issues: [{path, severity, message, fix}]}. |
+| `POST /sdui/validate` | admin | Check {"page": ...}, {"navigation": ...} or {"config": ...} without saving: {ok, issues: [{path, severity, message, fix}]}. ?target=draft: a navigation may name the draft's pages. |
 | `GET /sdui/presets` | admin | The gallery of ready-made pages and sections: {presets: [{id, label, description, icon, kind, pageKinds, page or section}]}. |
 | `GET /sdui/config/layouts` | admin | The server's layouts: `{etag, layouts: {default, allowed}, options, builtin}`. |
 | `PUT /sdui/config/layouts` | admin | Saves `{default: {formFactor: layout}, allowed: [layout]}`; If-Match, or `target=draft`. |
@@ -1670,7 +1672,7 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `GET /sdui/draft` | admin | The unpublished draft; 404 when there is none. |
 | `PUT /sdui/draft` | admin | Keep a whole configuration as the draft. If-Match, when sent, is the draft's ETag (the published configuration's when there is no draft yet). |
 | `DELETE /sdui/draft` | admin | Forget the draft and every preview of it. |
-| `POST /sdui/draft/publish` | admin | Make the draft the configuration everyone gets, as a new revision. If-Match, when sent, is the draft's ETag. |
+| `POST /sdui/draft/publish` | admin | Apply what the draft changed since the revision it was begun from to the configuration everyone gets, as a new revision; what was published meanwhile is kept. 409 {conflicts, baseRevision, currentRevision} when both changed the same page, navigation, theme or personalisation; ?prefer=draft or ?prefer=published settles them. If-Match, when sent, is the draft's ETag. |
 | `POST /sdui/draft/preview` | admin | A token that shows the draft to this administrator alone, on any device they are signed in on, for two hours: {token, expiresAt}. Sent as preview=<token> or X-WMS-SDUI-Preview with the page and navigation routes. |
 | `GET /sdui/export` | admin | One page (?page=<id>) or the whole configuration as a file: {format: "wittymedia-ui", formatVersion, kind, page or config}. |
 | `POST /sdui/import` | admin | Bring in a file made by export: a page (saved under its own ID) or a configuration (its pages and navigation replace the target's; its theme colours too with theme=1). Into the draft unless target=published, which needs If-Match. dryRun=1 only reports the issues and the changes. |
@@ -1947,7 +1949,7 @@ one of these games answers 409 with `"rig": true`.
 | `POST /collections` | user | Create collection. |
 | `POST /collections/preview` | user | Preview rule. |
 | `GET /collections/holding` | user | Collections holding. |
-| `POST /collections/watch-later/items` | user | Watch later add. |
+| `POST /collections/watch-later/items` | user | Watch later add. `{items, shows}`: each a number, or a string `"5"` or `"show-5"` (a show, wherever it is listed). |
 | `GET /collections/{id}` | user | Collection. |
 | `PUT /collections/{id}` | user | Update collection. |
 | `DELETE /collections/{id}` | user | Delete collection. |
@@ -2010,7 +2012,7 @@ Favourites use `PUT /items/{id}/reaction` with `{"value": 1}`, as for anything e
 | `GET /p2p/devices` | user | The devices that may connect peer to peer: yours, or everyone's with `?all=1` for an admin. Each has `id`, `name`, `platform`, `lastSeen`, and `connected` with its `path` (direct or relayed). |
 | `POST /p2p/devices` | user | Put this device's key on the list, under your account: `{id, name, platform}`. An app does this once, while it reaches the server some other way. |
 | `DELETE /p2p/devices/{id}` | user | Take a device off the list. Its open connections close at once. |
-| `POST /p2p/invite` | user | An invite link (`wittymedia://p2p/...`) that puts one device on the list and signs it in, for this account or a Kids or Guest profile it manages. Adults only. Works once, for 15 minutes. |
+| `POST /p2p/invite` | user | `{userId, password, otp}`: an invite link (`wittymedia://p2p/...`) that puts one device on the list and signs it in, for this account or a Kids or Guest profile it manages. Adults only; an invite that signs a device in as an administrator takes the administrator's password again (403 with `reason: "password-required"` without it), as `/pair/approve` and `/p2p/join` do. Works once, for 15 minutes. |
 | `POST /p2p/join` | user | `{code, userId, password, otp}`: the code a device away from home is showing, typed in by someone signed in. The device finds the server by it, is put on the list and signed in. Adults only; signing a device in as an administrator takes the administrator's password again (403 with `reason: "password-required"` without it). Works once, for 15 minutes. 409 when peer-to-peer connections or their address book are off. Feature `p2p-join`. |
 | `GET /p2p/settings` | admin | The owner's choices, how every layer is doing in plain words (`steps`), who is contacted (`thirdParties`) and every device. |
 | `PUT /p2p/settings` | admin | Change them. Turning the feature on needs `accept: true`. |

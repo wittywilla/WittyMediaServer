@@ -4,7 +4,10 @@
 package server
 
 import (
+	"encoding/json"
+	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -177,6 +180,57 @@ func (s *Server) handleDeleteCollection(w http.ResponseWriter, r *http.Request) 
 type collectionItemsBody struct {
 	Items []int64 `json:"items"`
 	Shows []int64 `json:"shows"`
+}
+
+// UnmarshalJSON takes each entry as a number or as an ID the server-driven UI uses, so
+// a command template's body works for any title: "items" may hold 5, "5" or "show-5"
+// (a show, moved to Shows), "shows" 5, "5" or "show-5".
+func (b *collectionItemsBody) UnmarshalJSON(data []byte) error {
+	var raw struct {
+		Items []json.RawMessage `json:"items"`
+		Shows []json.RawMessage `json:"shows"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if len(raw.Items)+len(raw.Shows) > maxAlbumBatch {
+		return errors.New("too many")
+	}
+	b.Items, b.Shows = nil, nil
+	for _, list := range []struct {
+		raw   []json.RawMessage
+		shows bool
+	}{{raw.Items, false}, {raw.Shows, true}} {
+		for _, m := range list.raw {
+			id, show, err := parseTitleRef(m)
+			if err != nil {
+				return err
+			}
+			if show || list.shows {
+				b.Shows = append(b.Shows, id)
+			} else {
+				b.Items = append(b.Items, id)
+			}
+		}
+	}
+	return nil
+}
+
+// parseTitleRef reads one title: a number, or a string holding a number or "show-<n>".
+func parseTitleRef(m json.RawMessage) (id int64, show bool, err error) {
+	var n int64
+	if json.Unmarshal(m, &n) == nil {
+		return n, false, nil
+	}
+	var s string
+	if err := json.Unmarshal(m, &s); err != nil {
+		return 0, false, errors.New("a title is a number or a string such as \"5\" or \"show-5\"")
+	}
+	s, show = strings.CutPrefix(s, "show-")
+	if n, err = strconv.ParseInt(s, 10, 64); err != nil || n <= 0 {
+		return 0, false, errors.New("a title is a number or a string such as \"5\" or \"show-5\"")
+	}
+	return n, show, nil
 }
 
 func (b *collectionItemsBody) valid() bool {

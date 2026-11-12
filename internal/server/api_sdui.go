@@ -450,7 +450,7 @@ func (s *Server) sduiPrepare(r *http.Request, name string) (*sduiRender, int, er
 	var libID int64
 	libKind, mediaKind := "", ""
 	pages := effectivePages(cfg, set)
-	if kind == "library" || (kind == "detail" && vars["album"] != "") {
+	if kind == "library" || (kind == "detail" && (vars["album"] != "" || isArtistPage(vars))) {
 		lib, ok := rv.library(vars["library"])
 		if !ok {
 			return nil, 404, errors.New("not found")

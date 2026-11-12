@@ -912,6 +912,10 @@ const maxRemoteImage = 20 << 20
 // ---------------------------------------------------------------------------
 
 func (s *Server) handleProgress(w http.ResponseWriter, r *http.Request) {
+	if show, ok := showRef(r); ok {
+		s.handleShowWatched(w, r, show, true)
+		return
+	}
 	id, ok := pathInt(r, "id")
 	if !ok {
 		writeErr(w, 400, "bad id")
@@ -935,6 +939,10 @@ func (s *Server) handleProgress(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleClearProgress(w http.ResponseWriter, r *http.Request) {
+	if show, ok := showRef(r); ok {
+		s.handleShowWatched(w, r, show, false)
+		return
+	}
 	id, _ := pathInt(r, "id")
 	_ = s.Store.ClearProgress(r.Context(), userFrom(r).ID, id)
 	writeJSON(w, 200, map[string]any{"ok": true})

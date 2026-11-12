@@ -464,6 +464,8 @@ func (r *renderer) route() string {
 			return "/collections/" + v["collection"]
 		case v["album"] != "":
 			return "/album/" + v["library"] + "?artist=" + url.QueryEscape(v["artist"]) + "&album=" + url.QueryEscape(v["album"])
+		case v["artist"] != "" && v["item"] == "" && v["show"] == "":
+			return "/artist/" + v["library"] + "?name=" + url.QueryEscape(v["artist"])
 		case v["item"] != "":
 			return "/item/" + v["item"]
 		case v["show"] != "":
@@ -850,7 +852,18 @@ func (r *renderer) picture(src string, points int, aspect, kind string) map[stri
 	if src == "" {
 		return nil
 	}
-	w := r.l.ImageWidth(points)
+	return r.pictureAt(src, r.l.ImageWidth(points), aspect, kind)
+}
+
+// backdrop is a 16/9 picture spanning a window this wide: never more than twice its width.
+func (r *renderer) backdrop(src string, points int) map[string]any {
+	if src == "" {
+		return nil
+	}
+	return r.pictureAt(src, r.l.BackdropWidth(points), "16/9", "backdrop")
+}
+
+func (r *renderer) pictureAt(src string, w int, aspect, kind string) map[string]any {
 	u := src
 	if strings.HasPrefix(src, "/api/") {
 		sep := "?"
@@ -1145,8 +1158,10 @@ func (r *renderer) hero(n *Node, in instance) bool {
 		it := &res.Items[i]
 		c := Node{Type: "Card", ID: r.uniqueID(n.ID + ":" + safeID(it.ID)), Props: map[string]any{
 			"style": "hero", "shape": "landscape", "title": Truncate(it.Title, r.l.TextLimits.Title), "itemId": it.ID, "kind": it.Kind}}
-		if src := firstImage(it, []string{"backdrop", "poster"}); src != "" {
-			c.Props["image"] = r.picture(src, r.l.Hero.Width, "16/9", "backdrop")
+		// Only a real backdrop: a poster stretched into a 16/9 slide is never sent. A slide
+		// without one has no image, and is drawn on the theme's colours.
+		if src := firstImage(it, []string{"backdrop"}); src != "" {
+			c.Props["image"] = r.backdrop(src, min(r.l.Hero.Width, r.l.WindowWidth()))
 		}
 		if logo := it.Images["logo"]; logo != "" && propBool(p, "showLogo", true) {
 			c.Props["logo"] = r.picture(logo, r.l.Hero.Width/3, "", "logo")
@@ -1313,7 +1328,7 @@ func (r *renderer) banner(n *Node, in instance) bool {
 		rep := strings.NewReplacer("{title}", it.Title, "{subtitle}", it.Subtitle, "{overview}", Truncate(it.Overview, r.l.TextLimits.Synopsis))
 		title, text = rep.Replace(firstNonEmpty(title, "{title}")), rep.Replace(text)
 		if image == "" {
-			image = firstImage(it, []string{"backdrop", "poster"})
+			image = firstImage(it, []string{"backdrop"}) // never a poster stretched to 16/9
 		}
 		n.Props["itemId"] = it.ID
 		if n.Action == nil {
@@ -1367,7 +1382,8 @@ func (r *renderer) header(n *Node, in instance) bool {
 	}
 	images := map[string]any{}
 	if b := firstImage(it, []string{"backdrop"}); b != "" {
-		images["backdrop"] = r.picture(b, max(r.l.Hero.Width, r.l.Canvas.Width), "16/9", "backdrop")
+		// A backdrop spans the window: chosen for its width, as every other picture is for its card's.
+		images["backdrop"] = r.backdrop(b, r.l.WindowWidth())
 	}
 	posterStyle := "poster"
 	if it.Kind == "album" || it.Kind == "track" || it.Kind == "artist" || it.Kind == "podcast" || it.Kind == "audiobook" {

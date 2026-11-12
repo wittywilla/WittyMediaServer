@@ -33,8 +33,8 @@ import (
 // other profiles. Each goes through the profile's limits like any source, and a module's items
 // are cleaned the same way (cleanModuleItem).
 //
-// Friends are the other profiles of this server. A profile chooses whether they see what it plays
-// and whether it's here. A Kids profile sees, and is seen by, only the profiles an administrator
+// Friends are the other profiles of this server. A profile chooses whether they see what it plays,
+// and whether it appears online at all. A Kids profile sees, and is seen by, only the profiles an administrator
 // chose for it, and gets no open rooms. A guest has no friends. A room is a game being played on
 // this server with seats for others (game_seats.go): its host may open it to friends, who then
 // join with no code.
@@ -187,12 +187,17 @@ func (s *Server) playPresence(ctx context.Context, users []auth.User) map[int64]
 	}
 	now := time.Now()
 	for _, u := range users {
-		if !s.Store.PresenceShared(ctx, u.ID, u.Kind) {
+		choice := s.Store.PresenceOf(ctx, u.ID, u.Kind)
+		if !choice.Online {
 			out[u.ID] = presence{State: "offline"}
 			continue
 		}
 		if t, ok := playing[u.ID]; ok && t.Game.Title != "" {
-			out[u.ID] = presence{State: "playing", Game: t.Game.Title, Item: t.Game.Item}
+			if choice.Playing {
+				out[u.ID] = presence{State: "playing", Game: t.Game.Title, Item: t.Game.Item}
+			} else {
+				out[u.ID] = presence{State: "online"} // here, and not saying what it plays
+			}
 			continue
 		}
 		ago := now.Sub(time.Unix(seen[u.ID], 0))
@@ -858,18 +863,23 @@ func (s *Server) handleGameShotDelete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// GET /api/games/online/me: whether this profile lets its friends see what it plays.
+// GET /api/games/online/me: what this profile lets its friends know: what it plays
+// (sharePlaying; off, it's shown online with no game) and whether it appears online at all
+// (appearOnline; off, it's offline to everyone).
 func (s *Server) handlePlayOnlineMe(w http.ResponseWriter, r *http.Request) {
 	u := userFrom(r)
-	writeJSON(w, 200, map[string]any{"sharePlaying": s.Store.PresenceShared(r.Context(), u.ID, u.Kind), "canShare": u.Kind != auth.KindGuest})
+	p := s.Store.PresenceOf(r.Context(), u.ID, u.Kind)
+	writeJSON(w, 200, map[string]any{"sharePlaying": p.Playing, "appearOnline": p.Online, "canShare": u.Kind != auth.KindGuest})
 }
 
+// PUT /api/games/online/me: either choice, or both.
 func (s *Server) handlePlayOnlineMePut(w http.ResponseWriter, r *http.Request) {
 	var b struct {
 		SharePlaying *bool `json:"sharePlaying"`
+		AppearOnline *bool `json:"appearOnline"`
 	}
-	if err := readJSON(r, &b); err != nil || b.SharePlaying == nil {
-		writeErr(w, 400, "Say sharePlaying: true or false.")
+	if err := readJSON(r, &b); err != nil || (b.SharePlaying == nil && b.AppearOnline == nil) {
+		writeErr(w, 400, "Say sharePlaying or appearOnline: true or false.")
 		return
 	}
 	u := userFrom(r)
@@ -877,7 +887,14 @@ func (s *Server) handlePlayOnlineMePut(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 403, "A guest has no friends to share with.")
 		return
 	}
-	if err := s.Store.SetPresenceShared(r.Context(), u.ID, *b.SharePlaying); err != nil {
+	p := s.Store.PresenceOf(r.Context(), u.ID, u.Kind)
+	if b.SharePlaying != nil {
+		p.Playing = *b.SharePlaying
+	}
+	if b.AppearOnline != nil {
+		p.Online = *b.AppearOnline
+	}
+	if err := s.Store.SetPresence(r.Context(), u.ID, p); err != nil {
 		writeErr(w, 500, err.Error())
 		return
 	}
@@ -903,7 +920,16 @@ func (s *Server) kidsProfile(w http.ResponseWriter, r *http.Request) (*auth.User
 	return u, true
 }
 
-// GET /api/games/online/kids/{user}: the friends a Kids profile may see and be seen by.
+// kidsCandidate is a profile that could be a Kids profile's friend, and whether it is.
+type kidsCandidate struct {
+	ID       int64  `json:"id"`
+	Name     string `json:"name"`
+	Kind     string `json:"kind"`
+	Approved bool   `json:"approved"`
+}
+
+// GET /api/games/online/kids/{user}: the friends a Kids profile may see and be seen by, and every
+// profile that could be one (any but itself and guests), for the page that chooses them.
 func (s *Server) handlePlayKidsFriends(w http.ResponseWriter, r *http.Request) {
 	u, ok := s.kidsProfile(w, r)
 	if !ok {
@@ -914,7 +940,19 @@ func (s *Server) handlePlayKidsFriends(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
-	writeJSON(w, 200, map[string]any{"user": u.ID, "friends": ids})
+	all, err := s.Auth.Users(r.Context())
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	candidates := []kidsCandidate{}
+	for _, o := range all {
+		if o.ID == u.ID || o.Kind == auth.KindGuest {
+			continue
+		}
+		candidates = append(candidates, kidsCandidate{ID: o.ID, Name: profileName(&o), Kind: o.Kind, Approved: slices.Contains(ids, o.ID)})
+	}
+	writeJSON(w, 200, map[string]any{"user": u.ID, "name": profileName(u), "friends": ids, "candidates": candidates})
 }
 
 func (s *Server) handlePlayKidsFriendsPut(w http.ResponseWriter, r *http.Request) {

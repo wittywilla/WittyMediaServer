@@ -17287,7 +17287,7 @@
           }
         },
         "security": [],
-        "summary": "Secure pairing (v2): start a session to show as a QR code and a rotating 6-digit PIN (TOTP, 30 s). `qr` is `wms://pair?v=1&s=<serverId>&u=<base url>&c=<sessionId>&k=<check>`; `approveUrl` opens the web approve page. Lasts 5 minutes. Rate limited per address (429), with /pair/start.",
+        "summary": "Secure pairing (v2): start a session to show as a QR code and a rotating 6-digit PIN (TOTP, 30 s). `qr` is `wms://pair?v=1\u0026s=\u003cserverId\u003e\u0026u=\u003cbase url\u003e\u0026c=\u003csessionId\u003e\u0026k=\u003ccheck\u003e`; `approveUrl` opens the web approve page. Lasts 5 minutes. Rate limited per address (429), with /pair/start.",
         "tags": [
           "Sign-in and accounts"
         ],
@@ -23293,11 +23293,34 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "candidates": {
+                      "items": {
+                        "properties": {
+                          "approved": {
+                            "type": "boolean"
+                          },
+                          "id": {
+                            "type": "integer"
+                          },
+                          "kind": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
                     "friends": {
                       "items": {
                         "type": "integer"
                       },
                       "type": "array"
+                    },
+                    "name": {
+                      "type": "string"
                     },
                     "user": {
                       "type": "integer"
@@ -23360,11 +23383,34 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "candidates": {
+                      "items": {
+                        "properties": {
+                          "approved": {
+                            "type": "boolean"
+                          },
+                          "id": {
+                            "type": "integer"
+                          },
+                          "kind": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
                     "friends": {
                       "items": {
                         "type": "integer"
                       },
                       "type": "array"
+                    },
+                    "name": {
+                      "type": "string"
                     },
                     "user": {
                       "type": "integer"
@@ -23402,6 +23448,9 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "appearOnline": {
+                      "type": "boolean"
+                    },
                     "canShare": {
                       "type": "boolean"
                     },
@@ -23424,7 +23473,7 @@
             "bearer": []
           }
         ],
-        "summary": "Whether this profile lets its friends see what it plays and whether it's here.",
+        "summary": "What this profile lets its friends know: what it plays, and whether it appears online.",
         "tags": [
           "Server"
         ],
@@ -23438,6 +23487,9 @@
             "application/json": {
               "schema": {
                 "properties": {
+                  "appearOnline": {
+                    "type": "boolean"
+                  },
                   "sharePlaying": {
                     "type": "boolean"
                   }
@@ -23454,6 +23506,9 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "appearOnline": {
+                      "type": "boolean"
+                    },
                     "canShare": {
                       "type": "boolean"
                     },
@@ -23476,7 +23531,7 @@
             "bearer": []
           }
         ],
-        "summary": "Sets whether this profile lets its friends see what it plays. A guest has no friends to share with.",
+        "summary": "Sets whether friends see what this profile plays, whether it appears online, or both. A guest has no friends to share with.",
         "tags": [
           "Server"
         ],
@@ -28415,7 +28470,7 @@
             "bearer": []
           }
         ],
-        "summary": "Forget the position (mark as not started). {id} show-<n>: in every episode of the show.",
+        "summary": "Forget the position (mark as not started). {id} show-\u003cn\u003e: in every episode of the show.",
         "tags": [
           "Browsing"
         ],
@@ -28482,7 +28537,7 @@
             "bearer": []
           }
         ],
-        "summary": "Save the viewer's position. Past 92% counts as watched. Discs send `discTitle` too. {id} show-<n> with {\"watched\": true} marks every episode of the show this profile may see watched.",
+        "summary": "Save the viewer's position. Past 92% counts as watched. Discs send `discTitle` too. {id} show-\u003cn\u003e with {\"watched\": true} marks every episode of the show this profile may see watched.",
         "tags": [
           "Browsing"
         ],
@@ -39174,7 +39229,7 @@
             "bearer": []
           }
         ],
-        "summary": "Whether peer-to-peer connections are on, and what an app needs for them: `serverId` (what to dial), `addrs` (where the server was last reachable, to keep as hints), `devicesOnly`, `layers`. `?device=<id>` adds `enrolled`. See P2P.md.",
+        "summary": "Whether peer-to-peer connections are on, and what an app needs for them: `serverId` (what to dial), `addrs` (where the server was last reachable, to keep as hints), `devicesOnly`, `layers`. `?device=\u003cid\u003e` adds `enrolled`. See P2P.md.",
         "tags": [
           "Remote access and signed-in devices"
         ],
@@ -41465,7 +41520,7 @@
             "bearer": []
           }
         ],
-        "summary": "Bytes that don\u2019t compress, for timing this connection before asking for a robust stream.",
+        "summary": "Bytes that don’t compress, for timing this connection before asking for a robust stream.",
         "tags": [
           "Playback"
         ],
@@ -42655,7 +42710,7 @@
               "schema": {
                 "properties": {
                   "channel": {
-                    "description": "A channel key from the guide, such as tun-12. A library channel (lib-\u2026) is refused.",
+                    "description": "A channel key from the guide, such as tun-12. A library channel (lib-…) is refused.",
                     "type": "string"
                   },
                   "title": {
@@ -42817,7 +42872,7 @@
               "schema": {
                 "properties": {
                   "channel": {
-                    "description": "A channel key from the guide, such as tun-12. A library channel (lib-\u2026) is refused.",
+                    "description": "A channel key from the guide, such as tun-12. A library channel (lib-…) is refused.",
                     "type": "string"
                   },
                   "start": {
@@ -43576,7 +43631,7 @@
                 }
               }
             },
-            "description": "How remote access stands, in the words Settings \u2192 Remote Access uses. `level` is good (working as chosen, green), waiting (asked for, not working yet, amber) or fault (red). `subject` names what it's about with the short answer, such as \"Home network only\" or \"Reachable from away: yes\"; `summary` is the whole answer. Show them as they are: never a bare on or off."
+            "description": "How remote access stands, in the words Settings → Remote Access uses. `level` is good (working as chosen, green), waiting (asked for, not working yet, amber) or fault (red). `subject` names what it's about with the short answer, such as \"Home network only\" or \"Reachable from away: yes\"; `summary` is the whole answer. Show them as they are: never a bare on or off."
           },
           "401": {
             "$ref": "#/components/responses/Error"
@@ -45530,7 +45585,7 @@
             "bearer": []
           }
         ],
-        "summary": "A token that shows the draft to this administrator alone, on any device they are signed in on, for two hours: {token, expiresAt}. Sent as preview=<token> or X-WMS-SDUI-Preview with the page and navigation routes.",
+        "summary": "A token that shows the draft to this administrator alone, on any device they are signed in on, for two hours: {token, expiresAt}. Sent as preview=\u003ctoken\u003e or X-WMS-SDUI-Preview with the page and navigation routes.",
         "tags": [
           "Server-driven UI"
         ],
@@ -45801,7 +45856,7 @@
             "bearer": []
           }
         ],
-        "summary": "One page (?page=<id>) or the whole configuration as a file: {format: \"wittymedia-ui\", formatVersion, kind, page or config}.",
+        "summary": "One page (?page=\u003cid\u003e) or the whole configuration as a file: {format: \"wittymedia-ui\", formatVersion, kind, page or config}.",
         "tags": [
           "Server-driven UI"
         ],
@@ -45949,7 +46004,7 @@
             "bearer": []
           }
         ],
-        "summary": "The modules in use with settings this profile sees, for the list under Settings \u2192 Modules: {modules: [{module, label, icon, url}]}.",
+        "summary": "The modules in use with settings this profile sees, for the list under Settings → Modules: {modules: [{module, label, icon, url}]}.",
         "tags": [
           "Server-driven UI"
         ],
@@ -46612,7 +46667,7 @@
             "bearer": []
           }
         ],
-        "summary": "A page, rendered for this account and device: an SDUI document (docs/SDUI.md, docs/sdui.schema.json). {page} is a kind of page (home, libraries, library?library=, detail?item= or ?show= or ?collection= or ?library=&artist=&album=, search?q=, livetv, music, photos, books, games, collections), chosen among the pages of that kind by what the request names, or one page's ID. Filled with what the account may see, cut to the device's budget, with components the client can't draw replaced by their fallbacks. 304 with If-None-Match.",
+        "summary": "A page, rendered for this account and device: an SDUI document (docs/SDUI.md, docs/sdui.schema.json). {page} is a kind of page (home, libraries, library?library=, detail?item= or ?show= or ?collection= or ?library=\u0026artist=\u0026album=, search?q=, livetv, music, photos, books, games, collections), chosen among the pages of that kind by what the request names, or one page's ID. Filled with what the account may see, cut to the device's budget, with components the client can't draw replaced by their fallbacks. 304 with If-None-Match.",
         "tags": [
           "Server-driven UI"
         ],
@@ -46862,7 +46917,7 @@
             "bearer": []
           }
         ],
-        "summary": "?since=<etag>: patches from the render the client has, or the whole document when the server no longer has it. 304 when nothing changed.",
+        "summary": "?since=\u003cetag\u003e: patches from the render the client has, or the whole document when the server no longer has it. 304 when nothing changed.",
         "tags": [
           "Server-driven UI"
         ],

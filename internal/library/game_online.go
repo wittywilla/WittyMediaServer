@@ -14,26 +14,36 @@ import (
 // and the friends an administrator lets a Kids profile have. Friends are the other profiles of this server: there is no list of them beyond
 // these rules (docs/GAMING-API.md, Playing together).
 
-// PresenceShared says whether a profile lets others see what it plays and whether it's here.
-// With no choice of its own the answer is yes, except for a guest: a Kids profile is seen only
-// by the friends an administrator chose anyway.
-func (s *Store) PresenceShared(ctx context.Context, userID int64, kind string) bool {
-	var share int
-	err := s.DB.QueryRowContext(ctx, `SELECT share FROM wittyplay_presence WHERE user_id = ?`, userID).Scan(&share)
-	if errors.Is(err, sql.ErrNoRows) || err != nil {
-		return kind != "guest"
-	}
-	return share != 0
+// Presence is what a profile lets its friends know: what it plays (Playing), and whether it's
+// here at all (Online). Someone who isn't online is offline to everyone, playing or not; someone
+// who doesn't share what they play is shown online, with no game.
+type Presence struct {
+	Playing bool `json:"sharePlaying"`
+	Online  bool `json:"appearOnline"`
 }
 
-// SetPresenceShared keeps a profile's choice.
-func (s *Store) SetPresenceShared(ctx context.Context, userID int64, share bool) error {
-	v := 0
-	if share {
-		v = 1
+// PresenceOf is a profile's choices. With none of its own the answer is yes to both, except for a
+// guest: a Kids profile is seen only by the friends an administrator chose anyway.
+func (s *Store) PresenceOf(ctx context.Context, userID int64, kind string) Presence {
+	var share, online int
+	err := s.DB.QueryRowContext(ctx, `SELECT share, online FROM wittyplay_presence WHERE user_id = ?`, userID).Scan(&share, &online)
+	if errors.Is(err, sql.ErrNoRows) || err != nil {
+		yes := kind != "guest"
+		return Presence{Playing: yes, Online: yes}
 	}
-	_, err := s.DB.ExecContext(ctx, `INSERT INTO wittyplay_presence(user_id, share) VALUES(?, ?)
-		ON CONFLICT(user_id) DO UPDATE SET share = excluded.share`, userID, v)
+	return Presence{Playing: share != 0, Online: online != 0}
+}
+
+// SetPresence keeps a profile's choices.
+func (s *Store) SetPresence(ctx context.Context, userID int64, p Presence) error {
+	b := func(v bool) int {
+		if v {
+			return 1
+		}
+		return 0
+	}
+	_, err := s.DB.ExecContext(ctx, `INSERT INTO wittyplay_presence(user_id, share, online) VALUES(?, ?, ?)
+		ON CONFLICT(user_id) DO UPDATE SET share = excluded.share, online = excluded.online`, userID, b(p.Playing), b(p.Online))
 	return err
 }
 

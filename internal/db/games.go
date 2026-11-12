@@ -53,6 +53,9 @@ var gameMigrations = []string{
 	   kid_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 	   friend_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 	   PRIMARY KEY(kid_id, friend_id)) WITHOUT ROWID;`,
+	// 4: a profile chooses two things: whether friends see what it plays (share), and whether
+	// it appears online at all (online). No row: yes to both, except for a guest.
+	`ALTER TABLE wittyplay_presence ADD COLUMN online INTEGER NOT NULL DEFAULT 1;`,
 }
 
 func (d *DB) migrateGames(ctx context.Context) error {

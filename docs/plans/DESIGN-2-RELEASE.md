@@ -16,6 +16,15 @@ worked from there.
 
 ## The release gates (must work, seen running)
 
+0. **Parity first.** The release has the same features as the previous release (server v0.7.2-alpha; each client's last
+   tag) and then some, under the new design. Auditors (W21 web and server, W22 Apple, W23 Android) write
+   `DESIGN-2-PARITY-*.md`; every missing or regressed core feature is a gate bug. Core means: playing, libraries, search,
+   profiles, settings, admin, WittyTV, music, readers, photos, games, downloads, sharing, remote access, backup.
+0b. **Peer to peer is vital.** Connect from anywhere (invite by link, code or QR; From away; remote access) works end to
+   end on the web, iOS, Apple TV, Android and Android TV, with the native library built and bundled by default.
+0c. **The apps look and work as intended**, proven by simulator or emulator screenshots against the design pictures in
+   `docs/design-2/images`, not only by builds and unit tests.
+
 1. **Server:** first-run gate (`setup_required`) and the 14-step browser setup; 14 experiences with per-device choice and
    admin policy; 15 themes with import; server name colours and mark; catalogue revision 8 and the server pages;
    conformance fixtures pass; `go test ./...` passes.

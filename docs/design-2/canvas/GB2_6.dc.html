@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Modules, admin, apps and creators · every feature, drawn</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap">
+</head>
+<body>
+<x-dc>
+<helmet><style>body{margin:0}</style></helmet>
+<div style="width:2500px;height:2000px;box-sizing:border-box;padding:32px 40px;background:#e8e8ee;font-family:Inter,system-ui,sans-serif;color:#1b1b22">
+  <div style="font-size:40px;font-weight:800;letter-spacing:-1px">{{title}} · Modules, admin, apps and creators</div>
+  <div style="font-size:18px;color:#4a4a58;margin-top:4px;max-width:2000px">Every feature the server and modules define, drawn as one screen. Same sections and words on TV, tablet and phone; one column on a phone.</div>
+  <div style="display:flex;flex-wrap:wrap;gap:18px 20px;margin-top:20px;align-items:flex-start">
+    <sc-for list="{{items}}" as="i" hint-placeholder-count="24"><div><div style="zoom:{{i.z}}"><dc-import name="Exp" exp="{{exp}}" plat="{{i.p}}" screen="{{i.s}}" hint-size="{{i.hs}}"></dc-import></div><div style="font-size:14px;font-weight:700;margin-top:4px">{{i.t}}</div></div></sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"exp":{"editor":"text","default":"lumen"},"title":{"editor":"text","default":"Lumen"},"$preview":{"width":2500,"height":2000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const d = [["diag", "Settings · Diagnoser · Diagnoser report"], ["logs", "Settings · Logs · Logs"], ["tdarr", "Settings · Transcoding · Tdarr"], ["transcode", "Settings · Transcoding · Live and library transcoding"], ["legal", "Settings · Legal · Legal, licences and about"], ["help", "Help · Guides"], ["folderbrowser", "Folder browser · Choose a folder"], ["unreachable", "Every app · Can’t reach the server"], ["offline", "Downloads · Keep for offline"], ["notices", "Notifications · Notifications"], ["shorts", "Vertical videos · For You"], ["creators", "Creator videos · Creators"], ["videopage", "Creator video · Low Tide, explained"], ["comments", "Comments · Comments"], ["concerts", "Music · Concerts · Harbour Live"], ["recommend", "Home · Recommended for you"], ["searchscope", "Search · Search scope"], ["managesrv", "Welcome · Servers · Saved servers"], ["dockopts", "WittyTV · Dock · Dock options"], ["letterpick", "Library · Letter · Jump to a letter"], ["topshelf", "Platform · Apple TV, Android TV · Top Shelf and Watch Next"], ["peopleRow", "Search · People · People"], ["importtheme", "Settings · Themes · Import a theme"], ["playlight", "WittyPlay Online · Light themes"]];
+    const items = d.map((a) => ({ s: a[0], t: a[1], p: 'desktop', z: .27, hs: '1440px,900px' })); 
+    return { exp: this.props.exp || 'lumen', title: this.props.title || 'Lumen', items };
+  }
+}
+</script>
+</body>
+</html>

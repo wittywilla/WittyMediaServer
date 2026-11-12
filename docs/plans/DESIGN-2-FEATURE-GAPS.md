@@ -4,6 +4,8 @@ Date: 2026-11-12. Branch: wip/design.
 
 Owner requirement: every feature the WittyMediaServer server and its modules offer must have a UI element in the Design 2 concept canvas ("Witty Design 2 Concepts"). This list names the features that do not, so a designer can draw them.
 
+> **Status, 2026-11-12:** every row below now has a drawn screen on the canvas page "Every feature, drawn" (`docs/design-2/canvas/GB2_1` to `GB2_6`, pictures in `docs/design-2/images/gaps/`). The renderer's `gp` table in `Exp.dc.html` holds them, keyed by screen name. They draw the structure and wording of each screen in the shared page format; the finish of each look is applied by the renderer.
+
 ## How this was made
 
 1. The canvas was read from its downloaded files: `canvas.json` (11 pages, about 100 boards), `Exp.dc.html` (the shared renderer, whose `screen` enum is the list of drawn screens: home, library, detail, player, search, settings, menu, dialog, signin, nowplaying, games, you, guide, tvinfo, tvwatch, reader, pdf, comics, photos, stats, viz, files, disc, cd, couch, songs, karaoke, vizfull, setup, setupblock, settingsLook, policy, chooselook, tvrec, tvsets, tvlook, remote, remoteDvd, remoteVideo), the WittyPlay Online boards (`Play.dc.html`, `P_*`), the music, player, WittyTV, settings and first-run boards, the layout editor and the server name editor. The text in every board was extracted and searched.

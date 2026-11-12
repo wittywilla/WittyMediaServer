@@ -54,8 +54,9 @@ func (s *Server) handleModuleInstall(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var b struct {
-		Version string `json:"version"`
-		Confirm bool   `json:"confirm"`
+		Version  string        `json:"version"`
+		Confirm  bool          `json:"confirm"`
+		Override *overrideBody `json:"override"`
 		moduleSecrets
 	}
 	if r.ContentLength != 0 && r.Body != nil {
@@ -63,6 +64,24 @@ func (s *Server) handleModuleInstall(w http.ResponseWriter, r *http.Request) {
 			writeErr(w, 400, "unreadable request")
 			return
 		}
+	}
+	if b.Override != nil {
+		// Past what the server would refuse: the password again, a version named, and a record.
+		if b.Version == "" {
+			writeErr(w, 400, "name the version the go-ahead is for")
+			return
+		}
+		if !s.moduleGate(w, r, b.moduleSecrets, r.PathValue("id")) {
+			return
+		}
+		id := r.PathValue("id")
+		if err := s.Modules.InstallVersionWith(id, b.Version, true, b.Override.accept(userFrom(r).Name)); err != nil {
+			writeModuleErr(w, err)
+			return
+		}
+		s.auditModule(r, "module-override", id, "version "+b.Version+", overriding "+strings.Join(b.Override.Accept, ", "))
+		writeJSON(w, 202, s.Modules.Report())
+		return
 	}
 	// Going back can bring back a hole that was fixed. The warning comes first, and needs nothing.
 	id := r.PathValue("id")
@@ -198,9 +217,10 @@ func (s *Server) handleModuleSource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var b struct {
-		Repo    string `json:"repo"`
-		Key     string `json:"key"`
-		Confirm bool   `json:"confirm"`
+		Repo     string        `json:"repo"`
+		Key      string        `json:"key"`
+		Confirm  bool          `json:"confirm"`
+		Override *overrideBody `json:"override"`
 		moduleSecrets
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(&b); err != nil {
@@ -215,7 +235,7 @@ func (s *Server) handleModuleSource(w http.ResponseWriter, r *http.Request) {
 	if b.Confirm && !s.moduleGate(w, r, b.moduleSecrets, r.PathValue("id")) {
 		return
 	}
-	if err := s.Modules.SetSource(r.PathValue("id"), b.Repo, b.Key, userFrom(r).Name, b.Confirm); err != nil {
+	if err := s.Modules.SetSource(r.PathValue("id"), b.Repo, b.Key, userFrom(r).Name, b.Confirm, b.Override.accept(userFrom(r).Name)); err != nil {
 		writeModuleErr(w, err)
 		return
 	}
@@ -463,6 +483,20 @@ func writeModuleErr(w http.ResponseWriter, err error) {
 	var need *modmgr.ErrNeedsConfirm
 	if errors.As(err, &need) {
 		writeJSON(w, 409, map[string]any{"error": need.Warning, "code": "confirm", "warning": need.Warning})
+		return
+	}
+	var ov *modmgr.ErrNeedsOverride
+	if errors.As(err, &ov) {
+		writeJSON(w, 409, map[string]any{"error": ov.Error(), "code": "needs-override", "needsOverride": ov})
+		return
+	}
+	var bad *modmgr.ErrBadOverride
+	if errors.As(err, &bad) {
+		writeJSON(w, 400, map[string]any{"error": bad.Reason, "code": "bad-override", "needsOverride": bad.Needs})
+		return
+	}
+	if errors.Is(err, modmgr.ErrUnknownUpload) {
+		writeErr(w, 404, err.Error())
 		return
 	}
 	writeErr(w, 409, err.Error())

@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -83,6 +84,16 @@ func TestModuleForkAsksForThePasswordAndCanBeLocked(t *testing.T) {
 		}
 	}
 	t.Setenv(modmgr.LockForks, "")
+	if runtime.GOOS == "darwin" {
+		// On a Mac another publisher's code runs only in Apple's weaker sandbox, with its own go-ahead.
+		w := ts.do(t, "PUT", route, admin, body)
+		out = map[string]any{}
+		_ = json.Unmarshal(w.Body.Bytes(), &out)
+		if w.Code != 409 || out["code"] != "needs-override" {
+			t.Fatalf("a Mac without the weak-sandbox go-ahead: %d %s", w.Code, w.Body)
+		}
+		body["override"] = map[string]any{"accept": []string{modmgr.OverrideWeakSandbox}, "typed": "wittyphotos"}
+	}
 	if w := ts.do(t, "PUT", route, admin, body); w.Code != 200 {
 		t.Fatalf("right password: %d %s", w.Code, w.Body)
 	}

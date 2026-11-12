@@ -145,6 +145,10 @@ var serverFeatures = []string{
 	"theme-shape-type", "sdui-tokens", "theme-derived", "theme-personal",
 	// Layout options: document.layout.shell, the navigation's shell and layouts, /sdui/layout.
 	"sdui-layouts",
+	// The module store's overrides (docs/MODULE-STORE.md "Overriding a refusal"): installing what
+	// would be refused with a named go-ahead, from a file, and the module audit log; store items
+	// say what kind of module each is, its release status and the pages it adds.
+	"module-overrides", "module-upload", "module-audit", "module-store-kinds",
 }
 
 // minClientVersions names the oldest version of each app this server still works with, by

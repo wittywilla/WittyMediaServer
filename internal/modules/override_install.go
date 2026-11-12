@@ -424,6 +424,17 @@ func (m *Manager) InstallUpload(token string, by int64, accept *OverrideAccept) 
 	return m.installHeldLocked(h, accept)
 }
 
+// UploadOf names the module and version an administrator's held upload would install, for the
+// audit log; empty once it has gone.
+func (m *Manager) UploadOf(token string, by int64) (id, version string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if h := m.held[token]; h != nil && h.source == "upload" && h.by == by {
+		return h.id, h.version
+	}
+	return "", ""
+}
+
 // DiscardUpload forgets an upload.
 func (m *Manager) DiscardUpload(token string, by int64) error {
 	m.mu.Lock()

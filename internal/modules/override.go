@@ -195,27 +195,37 @@ type OverrideAccept struct {
 
 // covers checks a go-ahead against what is needed: exactly the kinds needed, the name typed
 // when the severity asks for it, and only grants the module asks for, for a fork-like one.
+// ErrBadOverride is a go-ahead that doesn't fit what installing needs: kinds that aren't exactly
+// those needed, the name not typed, a permission that can't be granted. Needs says what would.
+type ErrBadOverride struct {
+	Reason string
+	Needs  *ErrNeedsOverride
+}
+
+func (e *ErrBadOverride) Error() string { return e.Reason }
+
 func (a *OverrideAccept) covers(n *ErrNeedsOverride, id string, man *wittymodule.Manifest) error {
 	if a == nil {
 		return n
 	}
+	bad := func(why string) error { return &ErrBadOverride{Reason: why, Needs: n} }
 	got, want := sortedKinds(a.Accept), n.Kinds
 	if !slices.Equal(got, want) {
-		return fmt.Errorf("the go-ahead names %s, and installing it needs exactly %s", strings.Join(got, ", "), strings.Join(want, ", "))
+		return bad(fmt.Sprintf("the go-ahead names %s, and installing it needs exactly %s", strings.Join(got, ", "), strings.Join(want, ", ")))
 	}
 	if n.Severity >= 3 && !strings.EqualFold(strings.TrimSpace(a.Typed), id) {
-		return fmt.Errorf("type the module's name, %s, to go ahead", id)
+		return bad(fmt.Sprintf("type the module's name, %s, to go ahead", id))
 	}
 	ov := &Override{Kinds: want}
 	for _, g := range a.Grants {
 		if !ov.forkLike() {
-			return errors.New("permissions are granted only to a module from another publisher; this one keeps the official rules")
+			return bad("permissions are granted only to a module from another publisher; this one keeps the official rules")
 		}
 		if man == nil || !man.Asks(g) {
-			return fmt.Errorf("it doesn't ask for %q", g)
+			return bad(fmt.Sprintf("it doesn't ask for %q", g))
 		}
 		if os.Getenv(LockForks) == "1" {
-			return errors.New("whoever runs this machine keeps modules from other publishers without permissions (" + LockForks + ")")
+			return bad("whoever runs this machine keeps modules from other publishers without permissions (" + LockForks + ")")
 		}
 	}
 	return nil

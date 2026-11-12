@@ -7347,6 +7347,148 @@
           "notice": {
             "type": "string"
           },
+          "override": {
+            "anyOf": [
+              {
+                "properties": {
+                  "at": {
+                    "type": "integer"
+                  },
+                  "by": {
+                    "type": "string"
+                  },
+                  "fingerprint": {
+                    "type": "string"
+                  },
+                  "grants": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "kinds": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "reasons": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "source": {
+                    "type": "string"
+                  },
+                  "version": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "at",
+                  "kinds",
+                  "reasons",
+                  "source",
+                  "version"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pending": {
+            "anyOf": [
+              {
+                "properties": {
+                  "expires": {
+                    "type": "integer"
+                  },
+                  "needsOverride": {
+                    "anyOf": [
+                      {
+                        "properties": {
+                          "kinds": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": [
+                              "array",
+                              "null"
+                            ]
+                          },
+                          "pending": {
+                            "type": "boolean"
+                          },
+                          "permissions": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": [
+                              "array",
+                              "null"
+                            ]
+                          },
+                          "reasons": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": [
+                              "array",
+                              "null"
+                            ]
+                          },
+                          "severity": {
+                            "type": "integer"
+                          },
+                          "version": {
+                            "type": "string"
+                          },
+                          "warning": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "kinds",
+                          "reasons",
+                          "severity",
+                          "version",
+                          "warning"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "version": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "expires",
+                  "needsOverride",
+                  "version"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "phase": {
             "type": "string"
           },
@@ -7379,6 +7521,9 @@
                 "type": "null"
               }
             ]
+          },
+          "releaseStatus": {
+            "type": "string"
           },
           "repo": {
             "type": "string"
@@ -7414,6 +7559,9 @@
           "state": {
             "type": "string"
           },
+          "statusNote": {
+            "type": "string"
+          },
           "stays": {
             "type": "string"
           },
@@ -7435,6 +7583,56 @@
           },
           "total": {
             "type": "integer"
+          },
+          "uiAdds": {
+            "anyOf": [
+              {
+                "properties": {
+                  "navigation": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "pages": {
+                    "items": {
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "title": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "title"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "settings": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "navigation",
+                  "pages",
+                  "settings"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "unavailable": {
             "type": "string"
@@ -33164,6 +33362,137 @@
         "x-wms-auth": "user"
       }
     },
+    "/module-uploads": {
+      "post": {
+        "operationId": "postModuleUploads",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            }
+          },
+          "description": "archive, and sums, sig and key when they came with it",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Install a module from a file: multipart `archive` (a release's .tar.gz or .zip, at most 512 MiB), with `sums`, `sig` and `key` when it came with them. Answers what it is and what installing it needs: `{token, expiresAt, id, name, version, delivery, api, releaseStatus, statusNote, signed, trusted, fingerprint, permissions, problems: [{kind, text}], needsOverride: {kinds, reasons, severity, warning, permissions}, refusal, known}`. A `refusal` can't be overridden, and nothing is kept. Feature `module-upload`.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/module-uploads/{token}": {
+      "delete": {
+        "operationId": "deleteModuleUpload",
+        "parameters": [
+          {
+            "description": "The upload's token.",
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Forget a held upload. 204.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/module-uploads/{token}/install": {
+      "post": {
+        "operationId": "postModuleUploadInstall",
+        "parameters": [
+          {
+            "description": "The upload's token.",
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            }
+          },
+          "description": "{password, code, override}",
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Install a held upload: `{password, code, override: {accept: [kinds], typed, grants: [permissions]}}`. 409 `needs-override` when the go-ahead isn't enough, 403 `password-needed` without the password, 404 once it has gone. 202; follow it with `GET /modules`.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/modules": {
       "get": {
         "operationId": "getModules",
@@ -33188,6 +33517,37 @@
           }
         ],
         "summary": "Every module: version in use, supported range, status and what is available (404 in builds that can't update them).",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/modules/audit": {
+      "get": {
+        "operationId": "getModulesAudit",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What was done to which modules, newest first: `[{at, user, action, module, detail}]`; `limit` up to 1000. Feature `module-audit`.",
         "tags": [
           "Server"
         ],
@@ -34471,6 +34831,90 @@
           "Server"
         ],
         "x-wms-auth": "user"
+      }
+    },
+    "/modules/{id}/override": {
+      "delete": {
+        "operationId": "deleteModuleOverride",
+        "parameters": [
+          {
+            "description": "The module's ID.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Take an override back, with `password` (and `code`): the module goes back to the version before when that needed none, or off this server; a module this server doesn't know goes altogether.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/modules/{id}/pending": {
+      "delete": {
+        "operationId": "deleteModulePending",
+        "parameters": [
+          {
+            "description": "The module's ID.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Forget a download held for a go-ahead (a module's `pending`).",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
       }
     },
     "/modules/{id}/pin": {

@@ -319,6 +319,12 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/modules` | Admin | Nothing further |
 | `POST /api/modules/check` | Admin | Answers younger than a minute are reused |
 | `POST /api/modules/{id}/install` | Admin | Known module. Signed version. Confirmation for a version with a warning, with own password and a code with two-factor sign-in for one older than what is in use |
+| `POST /api/module-uploads` | Admin | A multipart release archive of at most 512 MiB, a checksum list of 1 MiB, a signature of 4 KiB and a key of 256 bytes. Unpacked under the size limit with no paths out of its folder, checked, and held for 30 minutes for the administrator who sent it. Nothing runs |
+| `POST /api/module-uploads/{token}/install` | Admin | Own password and a code with two-factor sign-in. The upload is this administrator's and still held. The go-ahead names exactly the overrides needed, the module's name typed at severity 3 and above, and only permissions it asks for, for someone else's code, never with WMS_NO_MODULE_FORKS. Audited |
+| `DELETE /api/module-uploads/{token}` | Admin | The upload is this administrator's |
+| `DELETE /api/modules/{id}/pending` | Admin | Known module with a download held |
+| `DELETE /api/modules/{id}/override` | Admin | Own password and a code with two-factor sign-in. Known module with an override. Audited |
+| `GET /api/modules/audit` | Admin | Nothing: what was done to modules, at most 1000 rows |
 | `POST /api/modules/{id}/rollback` | Admin | Known module. Own password, and a code with two-factor sign-in, once confirmed |
 | `GET /api/modules/{id}/versions` | Admin | Known module |
 | `POST /api/modules/{id}/pin` | Admin | Known module |

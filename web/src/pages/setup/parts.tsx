@@ -95,7 +95,7 @@ export function TickRow({ checked, onChange, title, text, icon, kind = 'checkbox
   checked: boolean; onChange?: (v: boolean) => void; title: ReactNode; text?: ReactNode; icon?: ReactNode; kind?: 'checkbox' | 'switch'; disabled?: boolean; note?: ReactNode
 }) {
   return (
-    <button type="button" role={kind} aria-checked={checked} aria-disabled={disabled || undefined} className={'su-tick' + (checked ? ' on' : '') + (disabled ? ' off' : '')}
+    <button type="button" role={kind} aria-checked={checked} aria-label={typeof title === 'string' ? title : undefined} aria-disabled={disabled || undefined} className={'su-tick' + (checked ? ' on' : '') + (disabled ? ' off' : '')}
       onClick={disabled ? undefined : () => onChange?.(!checked)}>
       {kind === 'checkbox'
         ? <span className="su-tick-box" aria-hidden="true">{checked && <IconCheck size={16} />}</span>

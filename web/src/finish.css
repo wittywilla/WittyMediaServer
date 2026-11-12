@@ -140,3 +140,8 @@ html[data-card-set="block"] .card > .title { text-transform: uppercase; letter-s
 html[data-card-set="block"] :is(.btn, .card .poster) { border: 2px solid var(--fg); box-shadow: none; }
 /* Paper: hairlines in place of shadows. */
 html[data-experience="paper"] :is(.card .poster, .sdui-widget, .modal, [role=menu]) { box-shadow: none; border: 1px solid var(--border-strong); }
+.app[data-nav-style="bevelBar"] .topbar { --fg: var(--picture-bg); --fg-2: color-mix(in srgb, var(--picture-bg) 80%, var(--on-image)); --fg-3: color-mix(in srgb, var(--picture-bg) 65%, var(--on-image)); --brand-accent: color-mix(in srgb, var(--accent) 55%, var(--picture-bg)); --accent-text: color-mix(in srgb, var(--accent) 55%, var(--picture-bg)); }
+.app[data-nav-style="bevelBar"] .topbar :is(input, .search) { background: var(--on-image); color: var(--picture-bg); border-color: color-mix(in srgb, var(--picture-bg) 40%, transparent); }
+.app[data-nav-style="bevelBar"] .topbar .search { background: var(--on-image); border-radius: var(--r-md); }
+.app[data-nav-style="bevelBar"] .topbar .search :is(input, svg) { background: transparent; color: var(--picture-bg); }
+.app[data-nav-style="bevelBar"] .topbar .brand-badge { background: var(--on-image); color: var(--picture-bg); }

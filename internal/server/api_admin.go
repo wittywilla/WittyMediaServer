@@ -28,7 +28,7 @@ import (
 var settingKeys = []string{"tmdbKey", "tvdbKey", "tvdbPin", "hwAccel", "maxHeight", "menuLanguage", "audioLanguage", "subtitleLanguage",
 	"serverName", "audioCodec", "lowPower", "bdjEnabled", "dvdRegion", "blurayRegion", "dvdParental", "blurayAge", "discCountry", "saveMetadata", "dvdStart", "insertFx", "episodeView",
 	"hwEncoders", "directPlay", "qualityMode", "qualityProfile", "x264Preset", "crf", "maxBitrate", "audioBitrate",
-	"ffmpegVideoArgs", "ffmpegOutputArgs", "theme", "brandName", "brandColouring", "brandSpans", "brandMark", "maxSpeed",
+	"ffmpegVideoArgs", "ffmpegOutputArgs", "timeZone", "theme", "brandName", "brandColouring", "brandSpans", "brandMark", "maxSpeed",
 	"loginStyle", "profilesRemote", "setupDone", "kidsManagedBy", "insertSound", "tvmaze", "wikidata", "musicbrainz", "animeIn", "animeTitles",
 	"libraryGrouping", "updateCheck", "moduleUpdateCheck", "moduleAutoInstall", "uploads", "uploadMaxMb", "uploadAccountMb", "shareLinks", "mapTiles", "mapOnline", "mapAttribution", "lanDiscovery", "radioDirectory", "radioChecks",
 	"legalOwnerNotice", "legalOwnerContact", "noPoster", "pairRequirePin", settingSecondOpinion}
@@ -63,6 +63,7 @@ var settingDefaults = map[string]string{"saveMetadata": "1", "noPoster": library
 // settingChecks: settings handed to FFmpeg or used as numbers. A wrong value
 // would otherwise only show up as every transcode failing.
 var settingChecks = map[string]func(string) bool{
+	"timeZone":          validTimeZone,
 	"crf":               intBetween(0, 51),
 	"maxHeight":         intBetween(0, 4320),
 	"maxSpeed":          floatBetween(1, 16),
@@ -101,10 +102,20 @@ func oneOf(list ...string) func(string) bool {
 var secretSettings = []string{"tmdbKey", "tvdbKey", "tvdbPin"}
 
 func (s *Server) handleGetSettings(w http.ResponseWriter, r *http.Request) {
+	out, status := s.serverSettingsView(r)
+	if status != 0 {
+		writeErr(w, status, "could not read the settings")
+		return
+	}
+	writeJSON(w, 200, out)
+}
+
+// serverSettingsView is every setting, saved or default, with secrets masked; status is non-zero when
+// the settings can't be read.
+func (s *Server) serverSettingsView(r *http.Request) (map[string]string, int) {
 	saved, err := s.DB.Settings(r.Context()) // one statement, not one for each of the hundred
 	if err != nil {
-		writeErr(w, 500, err.Error())
-		return
+		return nil, 500
 	}
 	out := make(map[string]string, len(settingKeys))
 	for _, k := range settingKeys {
@@ -115,13 +126,15 @@ func (s *Server) handleGetSettings(w http.ResponseWriter, r *http.Request) {
 		out[k] = v
 	}
 	out["theme"] = s.serverTheme(r.Context()) // the look's own until one is chosen
+	out["timeZoneNow"] = time.Local.String()  // the zone the server runs in, which is timeZone's, else the computer's
+	out["timeZoneComputer"] = computerZone
 	for _, k := range secretSettings {
 		if out[k] != "" {
 			out[k+"Set"] = "1"
 			out[k] = strings.Repeat("•", 8)
 		}
 	}
-	writeJSON(w, 200, out)
+	return out, 0
 }
 
 func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
@@ -183,11 +196,51 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 	if regions := s.DB.GetSetting(r.Context(), "gamingRegionOrder", ""); regions != regionsWere {
 		s.gameRegionsChanged(regions)
 	}
+	if _, ok := in["timeZone"]; ok {
+		s.applyTimeZone(r.Context())
+	}
 	s.protectSecrets(r.Context()) // a new API key is hidden from the log from now on
 	if s.Discovery != nil {
 		s.Discovery.Refresh() // it may have been switched off, or the server renamed
 	}
-	s.handleGetSettings(w, r)
+	s.writeSettings(w, r, brandChanged(in))
+}
+
+// brandChanged: the request set the server's name, how it is coloured or its badge.
+func brandChanged(in map[string]string) bool {
+	for _, k := range []string{"brandName", "brandColouring", "brandSpans", "brandMark"} {
+		if _, ok := in[k]; ok {
+			return true
+		}
+	}
+	return false
+}
+
+// writeSettings answers a settings change. After a change to the server's name it also says
+// where a fixed colour of the name is under 4.5:1 on the surfaces it sits on, in the server's
+// theme: brandWarnings is [{text, surface, where, ratio, need, variant?}], empty when it reads
+// everywhere, for the name editor and apps to show as "Check:" notes.
+func (s *Server) writeSettings(w http.ResponseWriter, r *http.Request, brand bool) {
+	if !brand {
+		s.handleGetSettings(w, r)
+		return
+	}
+	out, status := s.serverSettingsView(r)
+	if status != 0 {
+		writeErr(w, status, "could not read the settings")
+		return
+	}
+	res := map[string]any{}
+	for k, v := range out {
+		res[k] = v
+	}
+	warn := []BrandWarning{}
+	if st, err := s.uiStore(); err == nil {
+		t := s.resolveThemeWith(r, st.Current(), s.moduleSet(nil), themeChoices{})
+		warn = t.Brand.Warnings
+	}
+	res["brandWarnings"] = warn
+	writeJSON(w, 200, res)
 }
 
 // validMapTiles: empty (no online map), or an https address of map squares.

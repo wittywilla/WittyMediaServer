@@ -11875,6 +11875,34 @@
           "op": {
             "type": "string"
           },
+          "params": {
+            "items": {
+              "properties": {
+                "label": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "required": {
+                  "type": "boolean"
+                },
+                "type": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "label",
+                "name",
+                "type"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "path": {
             "type": "string"
           }
@@ -15507,13 +15535,20 @@
                 },
                 "text": {
                   "type": "string"
+                },
+                "variant": {
+                  "type": "string"
+                },
+                "where": {
+                  "type": "string"
                 }
               },
               "required": [
                 "need",
                 "ratio",
                 "surface",
-                "text"
+                "text",
+                "where"
               ],
               "type": "object"
             },
@@ -42834,6 +42869,7 @@
     },
     "/recordings": {
       "get": {
+        "description": "channelKey and programme are there only when the profile may watch that channel; pass them to GET /tv/{key}/programme?start=\u003cstart\u003e. POST /recordings answers the scheduled recording with the same fields.",
         "operationId": "getRecordings",
         "parameters": [],
         "responses": {
@@ -42856,7 +42892,7 @@
             "bearer": []
           }
         ],
-        "summary": "Recordings.",
+        "summary": "Recordings: each with `channelId`, `channel` (its name), `start`, `stop`, `status`, and `channelKey` and `programme` (`\u003ckey\u003e@\u003cstart\u003e`) for opening More info",
         "tags": [
           "Channels and live TV"
         ],

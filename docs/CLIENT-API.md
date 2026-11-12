@@ -721,6 +721,12 @@ The Design 2 **More info** screen for a programme in the guide (feature `tv-prog
   the one asked about.
 - `ids`: `imdb` and `tmdb`, when the guide gives them, for `GET /discover/where-to-watch`.
 
+To open More info from a recording, use its `channelKey` and `start` (`GET /recordings` and `POST /recordings`, feature
+`tv-recording-refs`); `programme` is the same as `<channelKey>@<start>`, for the SDUI `credits` source. A `recordings`
+SDUI card carries them as `channel` and `programme`. They're left out when the profile may no longer watch that
+channel: then don't offer More info. The guide keeps about a month of the past, so an older recording's More info
+answers 404.
+
 A 404 means the channel or the programme isn't there for this profile. A 403 means a library channel is showing
 something the profile may not see. In SDUI, the `credits` source takes `programme: "<key>@<start>"` and draws the same
 cast and crew.
@@ -1029,7 +1035,7 @@ with `shown` centred in it (or the logo at `imageUrl`, fitted inside; the letter
 in the rail's header, the tab bar's and the sign-in; `warnings` list the parts in a fixed colour that fall
 under 4.5:1 on a surface of this theme. The owner's colouring is `brandColouring` (the quick modes below) or
 `brandSpans`, the editor's `[{from, to, color, bold}]` over code points (at most 40, in order, not
-overlapping), which wins when set; the mark is `brandMark`, both in `PUT /settings`.
+overlapping), which wins when set; the mark is `brandMark`, both in `PUT /settings`. A `PUT /settings` that changes any of the name's keys also answers `brandWarnings`: `[{text, surface, where, ratio, need, variant?}]`, the fixed-colour parts under 4.5:1 on a surface of the server's theme (empty when none), to show as "Check:" notes; the save still happens.
 
 `brandColouring` is how the owner chose it, kept with the name in `PUT /settings`:
 
@@ -1326,7 +1332,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in `openap
 | `DELETE /branding/logo` | admin | Go back to the app icon. |
 | `GET /system` | admin | Host, FFmpeg and hardware encoder details. |
 | `GET /settings` | admin | All server settings as strings; secrets are masked. |
-| `PUT /settings` | admin | Change settings; unknown keys are ignored. |
+| `PUT /settings` | admin | Change settings; unknown keys are ignored. `timeZone` is an IANA name (`Europe/London`) the server runs in from the moment it is saved, for the TV guide's days, schedules, recordings and the times in the logs; empty follows the computer (and the `TZ` variable). `GET /settings` adds `timeZoneNow` (the zone it runs in) and `timeZoneComputer`. `theme` follows the look until one is chosen (see [Themes](THEMES.md#precedence)). |
 | `GET /fs` | admin | Browse the server's folders, to choose library folders. |
 | `POST /fs/pick` | admin | Open the system folder picker on the server's own screen (only from that machine; 501 elsewhere). |
 | `POST /metadata/test` | admin | Check a metadata API key before saving it. |

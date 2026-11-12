@@ -38,6 +38,7 @@ const HomePage = lazy(() => import('./pages/HomePage'))
 const PairPage = lazy(() => import('./pages/PairPage'))
 const SharedPage = lazy(() => import('./pages/SharedPage'))
 const DesignPage = lazy(() => import('./pages/DesignPage'))
+const GapsReview = lazy(() => import('./spec/GapsReview'))
 const HelpPage = lazy(() => import('./pages/HelpPage'))
 const HelpPublicPage = lazy(() => import('./pages/HelpPage').then((m) => ({ default: m.HelpPublicPage })))
 const LegalPublicPage = lazy(() => import('./pages/settings/Legal').then((m) => ({ default: m.LegalPublicPage })))
@@ -247,6 +248,8 @@ export function PageRoutes() {
       <Route path="/help" element={<Suspense fallback={<Spinner />}><HelpPage /></Suspense>} />
       <Route path="/help/:guide" element={<Suspense fallback={<Spinner />}><HelpPage /></Suspense>} />
       <Route path="/design" element={<DesignPage />} />
+      <Route path="/design/gaps" element={<Suspense fallback={<Spinner />}><GapsReview /></Suspense>} />
+      <Route path="/design/gaps/:key" element={<Suspense fallback={<Spinner />}><GapsReview /></Suspense>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   )

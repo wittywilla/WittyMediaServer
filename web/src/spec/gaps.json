@@ -1,0 +1,6463 @@
+[
+ {
+  "key": "playinfo",
+  "eyebrow": "Player · How this is playing",
+  "title": "Direct play",
+  "lead": "Nothing is being converted. The server is only sending the file.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Now",
+    "items": [
+     {
+      "title": "Playing as",
+      "value": "Direct play",
+      "sub": "Your device can play this file as it is",
+      "on": true
+     },
+     {
+      "title": "Work for the server",
+      "value": "None",
+      "on": false
+     },
+     {
+      "title": "Video",
+      "value": "HEVC · 3840×2160 · HDR10",
+      "on": false
+     },
+     {
+      "title": "Audio",
+      "value": "English · TrueHD 7.1 → Dolby Atmos",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "If it were converted",
+    "items": [
+     {
+      "title": "Rewrapped",
+      "value": "Only the container changes",
+      "on": false
+     },
+     {
+      "title": "Transcoding",
+      "value": "Picture or sound is re-made; uses the server",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Show it in 2D",
+      "on": false
+     },
+     {
+      "title": "Video streams · 1",
+      "on": false
+     },
+     {
+      "title": "Close",
+      "on": true
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": "Press I in the player to open this."
+ },
+ {
+  "key": "nextup",
+  "eyebrow": "Player · Last 30 seconds",
+  "title": "Up next · Harbour Lights S1 E4",
+  "lead": "Plays in 8 seconds.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Next",
+    "items": [
+     {
+      "title": "S1 E4 · Low Tide",
+      "value": "42 min",
+      "sub": "The tide goes out and the village learns what it hid.",
+      "on": true
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Play now",
+      "on": true
+     },
+     {
+      "title": "Dismiss",
+      "on": false
+     },
+     {
+      "title": "Watch the credits",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "After a film",
+    "items": [
+     {
+      "title": "Something else to watch",
+      "value": "Because you watched Harbour Lights",
+      "on": false
+     },
+     {
+      "title": "More from Ana Ruiz",
+      "value": "3 titles",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": "Dismiss and it stays dismissed for this episode."
+ },
+ {
+  "key": "skipauto",
+  "eyebrow": "Player · Skipping",
+  "title": "Skipped intro",
+  "lead": "The server found the intro and skipped it for you.",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "Over the picture",
+    "items": [
+     {
+      "title": "Undo",
+      "on": true
+     },
+     {
+      "title": "Skip recap",
+      "on": false
+     },
+     {
+      "title": "Skip credits",
+      "on": false
+     },
+     {
+      "title": "Skip adverts",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Credits",
+    "items": [
+     {
+      "title": "Next episode in",
+      "value": "8 s",
+      "on": true
+     },
+     {
+      "title": "Watch the credits",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "note",
+    "h": "",
+    "text": "Skip buttons appear over the picture and take focus when they do. Each can be set to Ask, Skip by itself, or Off in You, Playing.",
+    "tone": false
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "viewset",
+  "eyebrow": "Player · Viewing settings",
+  "title": "Picture and controls",
+  "lead": "Apply to this video or to everything.",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "Apply to",
+    "items": [
+     {
+      "title": "This video",
+      "on": true
+     },
+     {
+      "title": "Everything",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Controls",
+    "items": [
+     {
+      "title": "Hide controls after",
+      "value": "4 s",
+      "on": true
+     },
+     {
+      "title": "Fit or Fill",
+      "value": "Fit",
+      "on": false
+     },
+     {
+      "title": "Seek bar and chapter marks",
+      "value": "On",
+      "on": true
+     },
+     {
+      "title": "3D",
+      "value": "Side by side",
+      "on": false
+     },
+     {
+      "title": "Streaming",
+      "value": "Server’s choice",
+      "sub": "Server’s choice · Standard · Robust",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "Streaming",
+    "items": [
+     {
+      "title": "Server’s choice",
+      "on": true
+     },
+     {
+      "title": "Standard",
+      "on": false
+     },
+     {
+      "title": "Robust",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [
+   {
+    "title": "Done",
+    "kind": "primary"
+   }
+  ],
+  "foot": ""
+ },
+ {
+  "key": "playerr",
+  "eyebrow": "Player · When something goes wrong",
+  "title": "Plain messages, with a way forward",
+  "lead": "Playback failed, the stream ended, subtitles could not load, buffering, a lowered picture, a lost connection.",
+  "sections": [
+   {
+    "kind": "cards",
+    "h": "States",
+    "items": [
+     {
+      "title": "Playback failed",
+      "sub": "Reason shown · Try again · Back",
+      "bg": "#7a1f2a",
+      "bg2": "#2a1830",
+      "on": true
+     },
+     {
+      "title": "Stream ended",
+      "sub": "The stream has ended on the server",
+      "bg": "#7a3b1c",
+      "bg2": "#2a1830",
+      "on": false
+     },
+     {
+      "title": "Subtitles",
+      "sub": "Could not load · Play without",
+      "bg": "#1c5d7a",
+      "bg2": "#0f2a5a",
+      "on": false
+     },
+     {
+      "title": "Buffering",
+      "sub": "Ring on the picture, then Robust is offered",
+      "bg": "#4a1f6a",
+      "bg2": "#1a1230",
+      "on": false
+     },
+     {
+      "title": "Picture lowered",
+      "sub": "Lowered to 480p to keep playing",
+      "bg": "#1f5a3a",
+      "bg2": "#0f2a1a",
+      "on": false
+     },
+     {
+      "title": "Reconnected",
+      "sub": "Reconnected after 12 s",
+      "bg": "#3a3a5a",
+      "bg2": "#15152a",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "miniplayer",
+  "eyebrow": "Any page · Mini player",
+  "title": "Playing in the corner",
+  "lead": "Keeps playing while you browse.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Mini player",
+    "items": [
+     {
+      "title": "Harbour Lights · S1 E3",
+      "value": "12:40 / 42:00",
+      "sub": "Back 10 s · Play · Next · Remote · Full player · Stop",
+      "on": true
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "⟲10",
+      "on": false
+     },
+     {
+      "title": "Pause",
+      "on": true
+     },
+     {
+      "title": "Next",
+      "on": false
+     },
+     {
+      "title": "Remote",
+      "on": false
+     },
+     {
+      "title": "Full player",
+      "on": false
+     },
+     {
+      "title": "Stop",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": "It sits above the Dock and never covers a focused card."
+ },
+ {
+  "key": "subpick",
+  "eyebrow": "Player · Audio and subtitles",
+  "title": "Audio & language",
+  "lead": "Choose a sound track. Subtitles are next to it.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Audio",
+    "items": [
+     {
+      "title": "English",
+      "value": "Dolby TrueHD · 7.1",
+      "on": true
+     },
+     {
+      "title": "English · Commentary",
+      "value": "AC3 · 2.0",
+      "on": false
+     },
+     {
+      "title": "French",
+      "value": "AC3 · 5.1",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Subtitles",
+    "items": [
+     {
+      "title": "Off",
+      "on": false
+     },
+     {
+      "title": "English",
+      "value": "SRT · With its styling",
+      "on": true
+     },
+     {
+      "title": "English (SDH)",
+      "value": "PGS · Drawn into the picture",
+      "on": false
+     },
+     {
+      "title": "French",
+      "value": "SRT",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "Style",
+    "items": [
+     {
+      "title": "Smaller",
+      "on": false
+     },
+     {
+      "title": "Normal",
+      "on": true
+     },
+     {
+      "title": "Larger",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [
+   {
+    "title": "Done",
+    "kind": "primary"
+   }
+  ],
+  "foot": ""
+ },
+ {
+  "key": "discset",
+  "eyebrow": "Player · Disc settings",
+  "title": "Disc",
+  "lead": "Remembered for this disc.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Settings",
+    "items": [
+     {
+      "title": "Forced captions",
+      "value": "On",
+      "on": true
+     },
+     {
+      "title": "Disc restrictions",
+      "value": "Region 1",
+      "on": false
+     },
+     {
+      "title": "Subtitle size",
+      "value": "Normal",
+      "on": false
+     },
+     {
+      "title": "Sound language",
+      "value": "English",
+      "on": true
+     },
+     {
+      "title": "Subtitle language",
+      "value": "English",
+      "on": false
+     },
+     {
+      "title": "Angle",
+      "value": "1 of 1",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "note",
+    "h": "",
+    "text": "Colour keys are dimmed on a DVD. ANGLE is dimmed when the disc has one video version.",
+    "tone": false
+   }
+  ],
+  "actions": [
+   {
+    "title": "Done",
+    "kind": "primary"
+   }
+  ],
+  "foot": ""
+ },
+ {
+  "key": "discpage",
+  "eyebrow": "Disc · Item page",
+  "title": "Harbour Lights (Blu-ray)",
+  "lead": "Feature presentation, bonus material and the disc’s own menus.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Feature Presentation",
+    "items": [
+     {
+      "title": "Play the film",
+      "value": "1 hr 52 min",
+      "on": true
+     },
+     {
+      "title": "Scenes",
+      "value": "28 chapters",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Bonus material",
+    "items": [
+     {
+      "title": "Making of",
+      "value": "14 min",
+      "on": false
+     },
+     {
+      "title": "Deleted scenes",
+      "value": "6 min",
+      "on": false
+     },
+     {
+      "title": "Commentary",
+      "value": "Ana Ruiz",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "Disc menus",
+    "items": [
+     {
+      "title": "Top menu",
+      "on": false
+     },
+     {
+      "title": "Pop-up menu",
+      "on": false
+     },
+     {
+      "title": "Audio",
+      "on": false
+     },
+     {
+      "title": "Subtitles",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Admin",
+    "items": [
+     {
+      "title": "Name titles and scenes",
+      "value": "Edit…",
+      "on": false
+     },
+     {
+      "title": "Why this title",
+      "value": "96% sure",
+      "on": false
+     },
+     {
+      "title": "Check this disc",
+      "value": "Diagnose…",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [
+   {
+    "title": "Play",
+    "kind": "primary"
+   }
+  ],
+  "foot": "Encrypted or copy-protected discs are refused with a plain message; BD-J menus show their own state."
+ },
+ {
+  "key": "discrefuse",
+  "eyebrow": "Disc · Can’t play",
+  "title": "This disc can’t be played",
+  "lead": "It is copy-protected. Nothing was changed and nothing was copied.",
+  "sections": [
+   {
+    "kind": "note",
+    "h": "",
+    "text": "Plain refusal: what happened, why, and what you can do. Java (BD-J) menus show their own state while they load.",
+    "tone": true
+   },
+   {
+    "kind": "rows",
+    "h": "Diagnosis",
+    "items": [
+     {
+      "title": "Disc",
+      "value": "Harbour Lights",
+      "on": false
+     },
+     {
+      "title": "Result",
+      "value": "Encrypted",
+      "on": true
+     },
+     {
+      "title": "Sound",
+      "value": "OK",
+      "on": false
+     },
+     {
+      "title": "Reading",
+      "value": "OK",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [
+   {
+    "title": "Back",
+    "kind": "primary"
+   }
+  ],
+  "foot": ""
+ },
+ {
+  "key": "wmp",
+  "eyebrow": "WittyMediaPlayer",
+  "title": "Open something",
+  "lead": "The desktop player for files, folders, drives and images.",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "Open",
+    "items": [
+     {
+      "title": "A file…",
+      "on": true
+     },
+     {
+      "title": "A folder…",
+      "on": false
+     },
+     {
+      "title": "A drive…",
+      "on": false
+     },
+     {
+      "title": "A disc image…",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Recent",
+    "items": [
+     {
+      "title": "Harbour Lights.mkv",
+      "value": "Yesterday",
+      "on": true
+     },
+     {
+      "title": "Disc · BLURAY_01",
+      "value": "2 days ago",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "File settings",
+    "items": [
+     {
+      "title": "VLC libraries",
+      "value": "Use the system’s",
+      "on": false
+     },
+     {
+      "title": "Module updates",
+      "value": "Look for updates",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "Disc menu",
+    "items": [
+     {
+      "title": "Cuts",
+      "on": false
+     },
+     {
+      "title": "Play main feature",
+      "on": true
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "cdrip",
+  "eyebrow": "WittyMediaPlayer · Audio CD",
+  "title": "Copy tracks",
+  "lead": "Copy to your library in the format you choose.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Tracks",
+    "items": [
+     {
+      "title": "1 · Opening",
+      "value": "3:40",
+      "on": true
+     },
+     {
+      "title": "2 · Tide Table",
+      "value": "4:05",
+      "on": true
+     },
+     {
+      "title": "3 · Hidden",
+      "value": "1:12",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "Format",
+    "items": [
+     {
+      "title": "FLAC",
+      "on": true
+     },
+     {
+      "title": "ALAC",
+      "on": false
+     },
+     {
+      "title": "WAV",
+      "on": false
+     },
+     {
+      "title": "MP3",
+      "on": false
+     },
+     {
+      "title": "AAC",
+      "on": false
+     },
+     {
+      "title": "Opus",
+      "on": false
+     },
+     {
+      "title": "Ogg",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Look up names",
+      "on": true
+     },
+     {
+      "title": "Make a disc image",
+      "on": false
+     },
+     {
+      "title": "Copy",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "filters",
+  "eyebrow": "Library · Filters",
+  "title": "Narrow this library",
+  "lead": "Pick any. Chosen filters appear as chips above the grid.",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "Chosen",
+    "items": [
+     {
+      "title": "Drama ✕",
+      "on": true
+     },
+     {
+      "title": "2020s ✕",
+      "on": true
+     },
+     {
+      "title": "Unwatched ✕",
+      "on": true
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Filters",
+    "items": [
+     {
+      "title": "Category",
+      "value": "Drama",
+      "on": true
+     },
+     {
+      "title": "Studio",
+      "value": "Any",
+      "on": false
+     },
+     {
+      "title": "Network",
+      "value": "Any",
+      "on": false
+     },
+     {
+      "title": "Decade",
+      "value": "2020s",
+      "on": true
+     },
+     {
+      "title": "Age rating",
+      "value": "Any",
+      "on": false
+     },
+     {
+      "title": "Score",
+      "value": "7 and up",
+      "on": false
+     },
+     {
+      "title": "Audio language",
+      "value": "English",
+      "on": false
+     },
+     {
+      "title": "Watched",
+      "value": "Unwatched",
+      "on": true
+     },
+     {
+      "title": "Collection",
+      "value": "Any",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "Saved views",
+    "items": [
+     {
+      "title": "Save this view",
+      "on": true
+     },
+     {
+      "title": "Friday night",
+      "on": false
+     },
+     {
+      "title": "Short films",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [
+   {
+    "title": "Show 84 titles",
+    "kind": "primary"
+   },
+   {
+    "title": "Clear",
+    "kind": "secondary"
+   }
+  ],
+  "foot": ""
+ },
+ {
+  "key": "brand",
+  "eyebrow": "Studio · Harbour Pictures",
+  "title": "Harbour Pictures",
+  "lead": "Everything from this studio, across your libraries.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Movies (6)",
+    "items": [
+     {
+      "title": "Harbour Lights",
+      "value": "2024",
+      "on": true
+     },
+     {
+      "title": "Low Tide",
+      "value": "2019",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Shows (2)",
+    "items": [
+     {
+      "title": "The Quiet Orchard",
+      "value": "3 seasons",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "Kind",
+    "items": [
+     {
+      "title": "Studio",
+      "on": true
+     },
+     {
+      "title": "Network",
+      "on": false
+     },
+     {
+      "title": "Category",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "show",
+  "eyebrow": "Show · The Quiet Orchard",
+  "title": "The Quiet Orchard",
+  "lead": "Season 2 · 8 episodes · Continue with S2 E3.",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "Seasons",
+    "items": [
+     {
+      "title": "Specials",
+      "on": false
+     },
+     {
+      "title": "Season 1",
+      "on": false
+     },
+     {
+      "title": "Season 2",
+      "on": true
+     },
+     {
+      "title": "Season 3",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "Layout",
+    "items": [
+     {
+      "title": "Cards",
+      "on": true
+     },
+     {
+      "title": "Playlist",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Episodes",
+    "items": [
+     {
+      "title": "S2 E3 · Frost",
+      "value": "42 min · 18 min left",
+      "sub": "Resume",
+      "on": true
+     },
+     {
+      "title": "S2 E4 · The Tenant",
+      "value": "41 min",
+      "on": false
+     },
+     {
+      "title": "S2 E5 · Hollow",
+      "value": "44 min",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [
+   {
+    "title": "Play S2 E3",
+    "kind": "primary"
+   },
+   {
+    "title": "More info",
+    "kind": "secondary"
+   }
+  ],
+  "foot": ""
+ },
+ {
+  "key": "versions",
+  "eyebrow": "Item page · Versions",
+  "title": "Choose which file plays",
+  "lead": "The same title in more than one file.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Versions",
+    "items": [
+     {
+      "title": "Theatrical · 4K HDR",
+      "value": "1 hr 52 min · 22 GB",
+      "on": true
+     },
+     {
+      "title": "Director’s cut · 1080p",
+      "value": "2 hr 05 min · 9 GB",
+      "on": false
+     },
+     {
+      "title": "Extended · 1080p",
+      "value": "2 hr 14 min · 11 GB",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Where to watch",
+    "items": [
+     {
+      "title": "Here",
+      "value": "In your library",
+      "on": true
+     },
+     {
+      "title": "Streaming",
+      "value": "Harbour+ · Region: United Kingdom",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Bonus",
+    "items": [
+     {
+      "title": "Trailer",
+      "value": "2 min",
+      "on": false
+     },
+     {
+      "title": "Featurette",
+      "value": "8 min",
+      "on": false
+     },
+     {
+      "title": "Deleted scenes",
+      "value": "6 min",
+      "on": false
+     },
+     {
+      "title": "Interviews",
+      "value": "14 min",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [
+   {
+    "title": "Play",
+    "kind": "primary"
+   },
+   {
+    "title": "Download a copy",
+    "kind": "secondary"
+   }
+  ],
+  "foot": "Download follows the profile’s Downloads switch."
+ },
+ {
+  "key": "download",
+  "eyebrow": "Item page · Download",
+  "title": "Download a copy",
+  "lead": "Saved on this device.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Choose",
+    "items": [
+     {
+      "title": "Original file",
+      "value": "22 GB",
+      "on": true
+     },
+     {
+      "title": "Smaller copy",
+      "value": "1080p · 4 GB",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "note",
+    "h": "",
+    "text": "Pip’s profile can’t download. Ask a parent.",
+    "tone": true
+   }
+  ],
+  "actions": [
+   {
+    "title": "Download",
+    "kind": "primary"
+   },
+   {
+    "title": "Cancel",
+    "kind": "secondary"
+   }
+  ],
+  "foot": ""
+ },
+ {
+  "key": "savelist",
+  "eyebrow": "Save to a list",
+  "title": "Harbour Lights",
+  "lead": "Tick the lists it should be in.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Lists",
+    "items": [
+     {
+      "title": "Watch later",
+      "value": "✓",
+      "on": true
+     },
+     {
+      "title": "Friday night",
+      "on": false
+     },
+     {
+      "title": "Films with sea in them",
+      "value": "✓",
+      "on": true
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "New list…",
+      "on": true
+     },
+     {
+      "title": "Done",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "collections",
+  "eyebrow": "Collections",
+  "title": "Your lists",
+  "lead": "Lists you fill, and smart playlists that fill themselves.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Lists",
+    "items": [
+     {
+      "title": "Watch later",
+      "value": "14 titles",
+      "on": true
+     },
+     {
+      "title": "Friday night",
+      "value": "6 titles",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Smart playlists",
+    "items": [
+     {
+      "title": "Short films from the 2020s",
+      "value": "23 match",
+      "on": false
+     },
+     {
+      "title": "Unwatched and well scored",
+      "value": "41 match",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Play all",
+      "on": true
+     },
+     {
+      "title": "Edit",
+      "on": false
+     },
+     {
+      "title": "Share with others",
+      "on": false
+     },
+     {
+      "title": "Delete",
+      "on": false
+     },
+     {
+      "title": "New smart playlist…",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "smartlist",
+  "eyebrow": "Collections · Smart playlist",
+  "title": "Short films from the 2020s",
+  "lead": "Live preview of what matches.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Rules",
+    "items": [
+     {
+      "title": "Libraries",
+      "value": "Movies",
+      "on": true
+     },
+     {
+      "title": "Genres",
+      "value": "Drama · Short",
+      "on": false
+     },
+     {
+      "title": "Words",
+      "value": "sea",
+      "on": false
+     },
+     {
+      "title": "Years",
+      "value": "2020 to 2025",
+      "on": true
+     },
+     {
+      "title": "Rating",
+      "value": "7 and up",
+      "on": false
+     },
+     {
+      "title": "Added in",
+      "value": "Any time",
+      "on": false
+     },
+     {
+      "title": "Watched",
+      "value": "Unwatched",
+      "on": false
+     },
+     {
+      "title": "Sort",
+      "value": "Newest",
+      "on": false
+     },
+     {
+      "title": "At most",
+      "value": "50",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "note",
+    "h": "",
+    "text": "23 titles match right now.",
+    "tone": false
+   }
+  ],
+  "actions": [
+   {
+    "title": "Save",
+    "kind": "primary"
+   },
+   {
+    "title": "Cancel",
+    "kind": "secondary"
+   }
+  ],
+  "foot": ""
+ },
+ {
+  "key": "empty",
+  "eyebrow": "Empty states",
+  "title": "Nothing here yet",
+  "lead": "Each says what’s missing and what to do.",
+  "sections": [
+   {
+    "kind": "cards",
+    "h": "States",
+    "items": [
+     {
+      "title": "Empty library",
+      "sub": "Add a folder in Settings",
+      "bg": "#1c5d7a",
+      "bg2": "#0f2a5a",
+      "on": true
+     },
+     {
+      "title": "No results",
+      "sub": "Try fewer words or clear filters",
+      "bg": "#4a1f6a",
+      "bg2": "#1a1230",
+      "on": false
+     },
+     {
+      "title": "Nothing allowed",
+      "sub": "This library has nothing you may see",
+      "bg": "#7a3b1c",
+      "bg2": "#2a1830",
+      "on": false
+     },
+     {
+      "title": "Nothing to continue",
+      "sub": "Start something and it appears here",
+      "bg": "#1f5a3a",
+      "bg2": "#0f2a1a",
+      "on": false
+     },
+     {
+      "title": "No recordings",
+      "sub": "Press Record on a programme",
+      "bg": "#3a3a5a",
+      "bg2": "#15152a",
+      "on": false
+     },
+     {
+      "title": "Recommended",
+      "sub": "Recommended for you row on Home",
+      "bg": "#6a3a5a",
+      "bg2": "#2a1230",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "editmatch",
+  "eyebrow": "Edit · Harbour Lights",
+  "title": "Match",
+  "lead": "Choose the right match. Other tabs: Details, Artwork, Skipping, Organise, Logos, Delete.",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "Tabs",
+    "items": [
+     {
+      "title": "Match",
+      "on": true
+     },
+     {
+      "title": "Details",
+      "on": false
+     },
+     {
+      "title": "Artwork",
+      "on": false
+     },
+     {
+      "title": "Skipping",
+      "on": false
+     },
+     {
+      "title": "Organise",
+      "on": false
+     },
+     {
+      "title": "Logos",
+      "on": false
+     },
+     {
+      "title": "Delete",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Search",
+    "items": [
+     {
+      "title": "Name or id",
+      "value": "Harbour Lights 2024",
+      "on": true
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Results",
+    "items": [
+     {
+      "title": "Harbour Lights (2024)",
+      "value": "98 · Why?",
+      "sub": "Title, year and length agree",
+      "on": true
+     },
+     {
+      "title": "Harbour Light (1998)",
+      "value": "41 · Why?",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Use this match",
+      "on": true
+     },
+     {
+      "title": "Remove this match",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "fixmatches",
+  "eyebrow": "Library · Review",
+  "title": "Fix matches",
+  "lead": "Titles the server wasn’t sure about.",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "Tabs",
+    "items": [
+     {
+      "title": "Needs review 14",
+      "on": true
+     },
+     {
+      "title": "No match 3",
+      "on": false
+     },
+     {
+      "title": "Accepted",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "To review",
+    "items": [
+     {
+      "title": "harbour_lights_2024.mkv",
+      "value": "98 · Accept",
+      "on": true
+     },
+     {
+      "title": "Orchard S02E05.mkv",
+      "value": "63 · Why?",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Find suggestions for all",
+      "on": true
+     },
+     {
+      "title": "Accept all above 90",
+      "on": false
+     },
+     {
+      "title": "Keys: A accept · N no match · ? help",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "bulkedit",
+  "eyebrow": "Library · Select mode",
+  "title": "Edit 6 titles together",
+  "lead": "Rename, renumber, apply naming rules and undo.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Together",
+    "items": [
+     {
+      "title": "Set category",
+      "value": "Drama",
+      "on": true
+     },
+     {
+      "title": "Renumber episodes",
+      "value": "From 1",
+      "on": false
+     },
+     {
+      "title": "Naming rules",
+      "value": "Show · S00E00",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "History",
+    "items": [
+     {
+      "title": "Yesterday 6:40 PM",
+      "value": "Renumbered 8 episodes · Undo",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [
+   {
+    "title": "Apply",
+    "kind": "primary"
+   },
+   {
+    "title": "Cancel",
+    "kind": "secondary"
+   }
+  ],
+  "foot": ""
+ },
+ {
+  "key": "markers",
+  "eyebrow": "Show · Skipping markers",
+  "title": "Pick the intro in the player",
+  "lead": "Find intros and credits runs across the show.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Markers",
+    "items": [
+     {
+      "title": "Intro",
+      "value": "0:42 to 1:35",
+      "on": true
+     },
+     {
+      "title": "Recap",
+      "value": "None",
+      "on": false
+     },
+     {
+      "title": "Credits",
+      "value": "41:05",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Pick in player",
+      "on": true
+     },
+     {
+      "title": "Find intros and credits",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Progress",
+    "items": [
+     {
+      "title": "Find intros and credits",
+      "value": "5 of 8 episodes",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "libmanage",
+  "eyebrow": "Libraries · Manage",
+  "title": "Libraries",
+  "lead": "Add, scan and set who can see each one.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Libraries",
+    "items": [
+     {
+      "title": "Movies",
+      "value": "1,204 titles · scanned today",
+      "on": true
+     },
+     {
+      "title": "Shows",
+      "value": "86 shows · scanning 42%",
+      "on": false
+     },
+     {
+      "title": "Games",
+      "value": "Read-only",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Add a library",
+      "on": true
+     },
+     {
+      "title": "Scan now",
+      "on": false
+     },
+     {
+      "title": "Library settings",
+      "on": false
+     },
+     {
+      "title": "Hide from profiles",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "Kinds",
+    "items": [
+     {
+      "title": "Movies",
+      "on": false
+     },
+     {
+      "title": "Shows",
+      "on": false
+     },
+     {
+      "title": "Music",
+      "on": false
+     },
+     {
+      "title": "Books",
+      "on": false
+     },
+     {
+      "title": "Photos",
+      "on": false
+     },
+     {
+      "title": "Games",
+      "on": false
+     },
+     {
+      "title": "Discs",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": "Network shares and read-only folders are labelled."
+ },
+ {
+  "key": "canvasvideo",
+  "eyebrow": "Canvas",
+  "title": "Looping silent video behind a page",
+  "lead": "Shows behind an item page, an album page and the full player.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Where it plays",
+    "items": [
+     {
+      "title": "Item pages",
+      "value": "On",
+      "on": true
+     },
+     {
+      "title": "Album pages",
+      "value": "On",
+      "on": true
+     },
+     {
+      "title": "Full player",
+      "value": "On",
+      "on": true
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Admin",
+    "items": [
+     {
+      "title": "Upload a canvas",
+      "value": "MP4 · up to 20 s",
+      "on": false
+     },
+     {
+      "title": "Cut from the film",
+      "value": "Task running 40%",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "musichome",
+  "eyebrow": "Music",
+  "title": "Your music",
+  "lead": "Cover flip, then tabs.",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "Tabs",
+    "items": [
+     {
+      "title": "Home",
+      "on": true
+     },
+     {
+      "title": "Artists",
+      "on": false
+     },
+     {
+      "title": "Albums",
+      "on": false
+     },
+     {
+      "title": "Playlists",
+      "on": false
+     },
+     {
+      "title": "Videos",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "Sort and genre",
+    "items": [
+     {
+      "title": "Recently added",
+      "on": true
+     },
+     {
+      "title": "A to Z",
+      "on": false
+     },
+     {
+      "title": "All genres",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "cards",
+    "h": "Albums",
+    "items": [
+     {
+      "title": "Harbour",
+      "sub": "Mara Voss",
+      "bg": "#14224a",
+      "bg2": "#7955ff",
+      "on": true
+     },
+     {
+      "title": "Low Tide",
+      "sub": "Mara Voss",
+      "bg": "#2a1230",
+      "bg2": "#2de2c4",
+      "on": false
+     },
+     {
+      "title": "Signal",
+      "sub": "Mara Voss",
+      "bg": "#0d2a3a",
+      "bg2": "#ffb347",
+      "on": false
+     },
+     {
+      "title": "Orchard",
+      "sub": "Mara Voss",
+      "bg": "#1a0d0d",
+      "bg2": "#ff5a7a",
+      "on": false
+     },
+     {
+      "title": "Salt Road",
+      "sub": "Mara Voss",
+      "bg": "#071428",
+      "bg2": "#6ea4ff",
+      "on": false
+     },
+     {
+      "title": "Moth",
+      "sub": "Mara Voss",
+      "bg": "#2a1f5a",
+      "bg2": "#9affd8",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "album",
+  "eyebrow": "Album · Harbour",
+  "title": "Harbour",
+  "lead": "Mara Voss · 2024 · 12 songs · 46 min",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Play",
+      "on": true
+     },
+     {
+      "title": "Shuffle",
+      "on": false
+     },
+     {
+      "title": "Station",
+      "on": false
+     },
+     {
+      "title": "Play next",
+      "on": false
+     },
+     {
+      "title": "Add to queue",
+      "on": false
+     },
+     {
+      "title": "Like all",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Disc 1",
+    "items": [
+     {
+      "title": "1 · Opening",
+      "value": "3:40",
+      "on": true
+     },
+     {
+      "title": "2 · Tide Table",
+      "value": "4:05",
+      "on": false
+     },
+     {
+      "title": "3 · Low Water",
+      "value": "3:12",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Other versions",
+    "items": [
+     {
+      "title": "Harbour (Deluxe)",
+      "value": "18 songs",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Artist · Discography",
+    "items": [
+     {
+      "title": "Singles and EPs",
+      "value": "4",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "songmenu",
+  "eyebrow": "Song menu",
+  "title": "Tide Table",
+  "lead": "Mara Voss · Harbour",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Actions",
+    "items": [
+     {
+      "title": "Play next",
+      "on": true
+     },
+     {
+      "title": "Add to queue",
+      "on": false
+     },
+     {
+      "title": "Like",
+      "on": false
+     },
+     {
+      "title": "Start a station",
+      "on": false
+     },
+     {
+      "title": "Add to a playlist",
+      "on": false
+     },
+     {
+      "title": "Go to artist",
+      "on": false
+     },
+     {
+      "title": "Go to album",
+      "on": false
+     },
+     {
+      "title": "Watch the video",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "queue",
+  "eyebrow": "Now playing · Queue",
+  "title": "Up next",
+  "lead": "Drag to reorder, press to jump.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Queue",
+    "items": [
+     {
+      "title": "Tide Table",
+      "value": "Now",
+      "on": true
+     },
+     {
+      "title": "Low Water",
+      "value": "3:12",
+      "on": false
+     },
+     {
+      "title": "Salt Road",
+      "value": "4:20",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Save the queue as a playlist",
+      "on": true
+     },
+     {
+      "title": "Clear what’s to come",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "sleep",
+  "eyebrow": "Sleep timer",
+  "title": "Stop playing after",
+  "lead": "Music, audiobooks, podcasts and radio.",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "15 min",
+      "on": false
+     },
+     {
+      "title": "30 min",
+      "on": true
+     },
+     {
+      "title": "45 min",
+      "on": false
+     },
+     {
+      "title": "60 min",
+      "on": false
+     },
+     {
+      "title": "90 min",
+      "on": false
+     },
+     {
+      "title": "After this song",
+      "on": false
+     },
+     {
+      "title": "End of chapter",
+      "on": false
+     },
+     {
+      "title": "Off",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "note",
+    "h": "",
+    "text": "The volume fades over the last 20 seconds.",
+    "tone": false
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "soundpanel",
+  "eyebrow": "Now playing · Sound",
+  "title": "Sound",
+  "lead": "Per device.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Playback",
+    "items": [
+     {
+      "title": "No gaps",
+      "value": "On",
+      "on": true
+     },
+     {
+      "title": "Crossfade",
+      "value": "4 s",
+      "on": false
+     },
+     {
+      "title": "ReplayGain",
+      "value": "Album",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Equaliser",
+    "items": [
+     {
+      "title": "60 Hz",
+      "value": "+2",
+      "on": false
+     },
+     {
+      "title": "250 Hz",
+      "value": "0",
+      "on": false
+     },
+     {
+      "title": "1 kHz",
+      "value": "−1",
+      "on": false
+     },
+     {
+      "title": "4 kHz",
+      "value": "+1",
+      "on": false
+     },
+     {
+      "title": "16 kHz",
+      "value": "+3",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [
+   {
+    "title": "Done",
+    "kind": "primary"
+   },
+   {
+    "title": "Reset",
+    "kind": "secondary"
+   }
+  ],
+  "foot": "Ten bands; five shown."
+ },
+ {
+  "key": "readbook",
+  "eyebrow": "Now playing · Read",
+  "title": "Booklet",
+  "lead": "Booklets and text files that came with the album.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Files",
+    "items": [
+     {
+      "title": "Booklet.pdf",
+      "value": "12 pages",
+      "on": true
+     },
+     {
+      "title": "Credits.txt",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "musicvideos",
+  "eyebrow": "Music · Videos",
+  "title": "Music videos and concerts",
+  "lead": "Tie a song and a video together.",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "Tabs",
+    "items": [
+     {
+      "title": "Videos",
+      "on": true
+     },
+     {
+      "title": "Concerts",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Videos",
+    "items": [
+     {
+      "title": "Tide Table · Mara Voss",
+      "value": "4:11",
+      "on": true
+     },
+     {
+      "title": "Low Water (live)",
+      "value": "5:02",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Concert",
+    "items": [
+     {
+      "title": "Harbour Live",
+      "value": "Setlist from chapters · 14 songs",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Watch the video",
+      "on": true
+     },
+     {
+      "title": "Play the song",
+      "on": false
+     },
+     {
+      "title": "Tie or untie (admin)",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "lyricsmissing",
+  "eyebrow": "Lyrics",
+  "title": "No lyrics found",
+  "lead": "Add your own, or fix what’s wrong.",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Add your own",
+      "on": true
+     },
+     {
+      "title": "Fix wrong lyrics",
+      "on": false
+     },
+     {
+      "title": "Search online",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "note",
+    "h": "",
+    "text": "Online lyrics come from a service you agree to once. Nothing is sent without that.",
+    "tone": true
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "karaokeprep",
+  "eyebrow": "Karaoke",
+  "title": "Preparing karaoke…",
+  "lead": "The server separates the voice from the music.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Quality",
+    "items": [
+     {
+      "title": "Quick version",
+      "value": "Ready",
+      "on": true
+     },
+     {
+      "title": "Separated",
+      "value": "Preparing a better version… 40%",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Use the quick version",
+      "on": true
+     },
+     {
+      "title": "Wait for the better one",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "note",
+    "h": "",
+    "text": "If the module isn’t installed or the song can’t be separated, this says so in plain words and offers the quick version.",
+    "tone": false
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "stems",
+  "eyebrow": "Karaoke · Phone",
+  "title": "Mix",
+  "lead": "Sing with the music, or turn the voice back up.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Stems",
+    "items": [
+     {
+      "title": "Voice",
+      "value": "20%",
+      "on": true
+     },
+     {
+      "title": "Drums",
+      "value": "100%",
+      "on": false
+     },
+     {
+      "title": "Bass",
+      "value": "100%",
+      "on": false
+     },
+     {
+      "title": "Other",
+      "value": "100%",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Voice off",
+      "on": false
+     },
+     {
+      "title": "Guide voice",
+      "on": true
+     },
+     {
+      "title": "Reset",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": "Four sliders on a phone; the same controls on TV."
+ },
+ {
+  "key": "vizsettings",
+  "eyebrow": "Visualizer",
+  "title": "Effect settings",
+  "lead": "Calm mode, flashing and your own effects.",
+  "sections": [
+   {
+    "kind": "note",
+    "h": "",
+    "text": "This effect flashes. Calm mode leaves out the lively ones and keeps everything else.",
+    "tone": true
+   },
+   {
+    "kind": "rows",
+    "h": "Timer",
+    "items": [
+     {
+      "title": "Auto-change",
+      "value": "Every 30 s",
+      "on": true
+     },
+     {
+      "title": "More effects",
+      "value": "Browse…",
+      "on": false
+     },
+     {
+      "title": "Effect settings",
+      "value": "Speed · Density · Colour",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [
+   {
+    "title": "Use calm mode",
+    "kind": "primary"
+   },
+   {
+    "title": "Keep it",
+    "kind": "secondary"
+   }
+  ],
+  "foot": ""
+ },
+ {
+  "key": "audiobooks",
+  "eyebrow": "Audiobooks",
+  "title": "Audiobooks",
+  "lead": "Home, Books, Authors.",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "Tabs",
+    "items": [
+     {
+      "title": "Home",
+      "on": true
+     },
+     {
+      "title": "Books",
+      "on": false
+     },
+     {
+      "title": "Authors",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Continue",
+    "items": [
+     {
+      "title": "The Salt Road · ch 7",
+      "value": "3 hr 20 min left",
+      "on": true
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Back 15",
+      "on": false
+     },
+     {
+      "title": "Play",
+      "on": true
+     },
+     {
+      "title": "Forward 30",
+      "on": false
+     },
+     {
+      "title": "Speed 1×",
+      "on": false
+     },
+     {
+      "title": "Sleep timer",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "Speed",
+    "items": [
+     {
+      "title": "0.75",
+      "on": false
+     },
+     {
+      "title": "1",
+      "on": true
+     },
+     {
+      "title": "1.25",
+      "on": false
+     },
+     {
+      "title": "1.5",
+      "on": false
+     },
+     {
+      "title": "2",
+      "on": false
+     },
+     {
+      "title": "3",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "podcasts",
+  "eyebrow": "Podcasts",
+  "title": "Podcasts",
+  "lead": "Follow a show by search or by an RSS address.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Following",
+    "items": [
+     {
+      "title": "The Long Tide",
+      "value": "3 new",
+      "on": true
+     },
+     {
+      "title": "Orchard Notes",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Search the directory",
+      "on": true
+     },
+     {
+      "title": "Paste an RSS address",
+      "on": false
+     },
+     {
+      "title": "Check for new episodes",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Episodes",
+    "items": [
+     {
+      "title": "Ep 42 · Frost",
+      "value": "38 min · Keep downloaded",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "radio",
+  "eyebrow": "Internet radio",
+  "title": "Stations",
+  "lead": "Add by search, a stream address or a playlist.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Stations",
+    "items": [
+     {
+      "title": "Harbour FM",
+      "value": "On now · Morning Tide",
+      "on": true
+     },
+     {
+      "title": "Late Jazz",
+      "value": "Off the air · Try it now",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Add stations",
+      "on": true
+     },
+     {
+      "title": "Sleep timer",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "party2",
+  "eyebrow": "Now playing",
+  "title": "Listening party",
+  "lead": "Listen together with the code.",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Start a listening party",
+      "on": true
+     },
+     {
+      "title": "Join with a code",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "cdplayer",
+  "eyebrow": "Audio CD",
+  "title": "Harbour (CD)",
+  "lead": "Program order, hidden track, index.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Disc",
+    "items": [
+     {
+      "title": "Program order",
+      "value": "Off",
+      "on": false
+     },
+     {
+      "title": "Hidden track",
+      "value": "Track 0",
+      "on": false
+     },
+     {
+      "title": "Index",
+      "value": "1",
+      "on": false
+     },
+     {
+      "title": "Time display",
+      "value": "Elapsed",
+      "on": true
+     },
+     {
+      "title": "CD+G pictures",
+      "value": "On",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "About this disc",
+      "on": true
+     },
+     {
+      "title": "Find this album",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "About this disc",
+    "items": [
+     {
+      "title": "Sound quality",
+      "value": "16-bit · 44.1 kHz",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "tvrecprob",
+  "eyebrow": "WittyTV · Recording problems",
+  "title": "It can’t record right now",
+  "lead": "Plain reasons, always with a way forward.",
+  "sections": [
+   {
+    "kind": "cards",
+    "h": "States",
+    "items": [
+     {
+      "title": "No tuner free",
+      "sub": "Another recording uses it · Stop it · Record later",
+      "bg": "#7a3b1c",
+      "bg2": "#2a1830",
+      "on": true
+     },
+     {
+      "title": "A viewer stopped",
+      "sub": "A live viewer was stopped for a recording",
+      "bg": "#7a1f2a",
+      "bg2": "#2a1830",
+      "on": false
+     },
+     {
+      "title": "Disk almost full",
+      "sub": "Free space · Delete old recordings",
+      "bg": "#4a1f6a",
+      "bg2": "#1a1230",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "tvback",
+  "eyebrow": "WittyTV",
+  "title": "We’ll be right back",
+  "lead": "Nothing is scheduled. The channel name and what’s coming up.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Coming up",
+    "items": [
+     {
+      "title": "Late Edition",
+      "value": "10:00 PM",
+      "on": true
+     },
+     {
+      "title": "Salt Road",
+      "value": "11:00 PM",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Next channel",
+      "on": true
+     },
+     {
+      "title": "Back to the guide",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "tvenc",
+  "eyebrow": "WittyTV · Encrypted channels",
+  "title": "Why some channels can’t play",
+  "lead": "Encrypted channels need a card or a service we can’t use.",
+  "sections": [
+   {
+    "kind": "note",
+    "h": "",
+    "text": "Hide encrypted channels in Which channels, or use a set.",
+    "tone": false
+   },
+   {
+    "kind": "rows",
+    "h": "What can I do?",
+    "items": [
+     {
+      "title": "Hide them",
+      "on": true
+     },
+     {
+      "title": "Use a different tuner",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [
+   {
+    "title": "Hide encrypted channels",
+    "kind": "primary"
+   }
+  ],
+  "foot": ""
+ },
+ {
+  "key": "tvbg",
+  "eyebrow": "WittyTV · Playing",
+  "title": "Keep playing in the background",
+  "lead": "Choose what happens when you leave the player.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Choice",
+    "items": [
+     {
+      "title": "Keep playing in the background",
+      "value": "On",
+      "on": true
+     },
+     {
+      "title": "Pause buffer",
+      "value": "30 min",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Stop",
+      "on": false
+     },
+     {
+      "title": "Keep playing",
+      "on": true
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "channeled",
+  "eyebrow": "Settings · Channels",
+  "title": "Channel editor",
+  "lead": "Your own channels, bumpers and commercials.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Channels",
+    "items": [
+     {
+      "title": "Harbour Classics",
+      "value": "Own channel · 12 films",
+      "on": true
+     },
+     {
+      "title": "Kids Cove",
+      "value": "Own channel",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Options",
+    "items": [
+     {
+      "title": "Bumpers",
+      "value": "Between programmes",
+      "on": false
+     },
+     {
+      "title": "Commercials",
+      "value": "Off",
+      "on": false
+     },
+     {
+      "title": "Discs on a channel",
+      "value": "Harbour Lights (BD)",
+      "on": false
+     },
+     {
+      "title": "Who sees it",
+      "value": "Everyone",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [
+   {
+    "title": "Save",
+    "kind": "primary"
+   }
+  ],
+  "foot": ""
+ },
+ {
+  "key": "tuner",
+  "eyebrow": "Settings · Channels and tuners",
+  "title": "Tuners and IPTV",
+  "lead": "Setup, guide data and tools.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Tuners",
+    "items": [
+     {
+      "title": "HDHomeRun · 2 tuners",
+      "value": "Free",
+      "on": true
+     },
+     {
+      "title": "IPTV list",
+      "value": "10,423 channels",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Guide data",
+    "items": [
+     {
+      "title": "Source",
+      "value": "XMLTV",
+      "on": false
+     },
+     {
+      "title": "Updated",
+      "value": "Today 3:00 AM",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "Tools",
+    "items": [
+     {
+      "title": "Scan",
+      "on": false
+     },
+     {
+      "title": "Refresh guide",
+      "on": true
+     },
+     {
+      "title": "Check a tuner",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "gamepcs",
+  "eyebrow": "Game PCs",
+  "title": "Your game PCs",
+  "lead": "Stream from a PC you own.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "PCs",
+    "items": [
+     {
+      "title": "Den PC",
+      "value": "Online · Running: Harbour Racer",
+      "sub": "Pick up where it is",
+      "on": true
+     },
+     {
+      "title": "Study PC",
+      "value": "Asleep · Wake it up",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Add and pair with a PIN",
+      "on": true
+     },
+     {
+      "title": "Wake it up",
+      "on": false
+     },
+     {
+      "title": "Start a game",
+      "on": false
+     },
+     {
+      "title": "Quit a game",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Sharing",
+    "items": [
+     {
+      "title": "Share a PC with everyone",
+      "value": "Off",
+      "on": false
+     },
+     {
+      "title": "Host games from this server",
+      "value": "WittyRigs",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "pcstream",
+  "eyebrow": "Game PC · Stream",
+  "title": "Stream options",
+  "lead": "Picture, frames a second, quality.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Stream",
+    "items": [
+     {
+      "title": "Picture",
+      "value": "1080p",
+      "on": true
+     },
+     {
+      "title": "Frames a second",
+      "value": "60",
+      "on": false
+     },
+     {
+      "title": "Quality",
+      "value": "Balanced",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "In the stream",
+    "items": [
+     {
+      "title": "Back to the game",
+      "on": true
+     },
+     {
+      "title": "On-screen controller",
+      "on": false
+     },
+     {
+      "title": "Leave it running",
+      "on": false
+     },
+     {
+      "title": "Close the game",
+      "on": false
+     },
+     {
+      "title": "Show the PC’s desktop",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "gamemenu",
+  "eyebrow": "Game · Menu",
+  "title": "Settings",
+  "lead": "Per game.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Menu",
+    "items": [
+     {
+      "title": "Picture",
+      "value": "Integer scale",
+      "on": true
+     },
+     {
+      "title": "Sound",
+      "value": "On",
+      "on": false
+     },
+     {
+      "title": "Speed and rewind",
+      "value": "1× · Rewind on",
+      "on": false
+     },
+     {
+      "title": "Saves",
+      "value": "3 slots",
+      "on": false
+     },
+     {
+      "title": "Cheats",
+      "value": "Off",
+      "on": false
+     },
+     {
+      "title": "Shortcuts",
+      "on": false
+     },
+     {
+      "title": "On-screen numbers",
+      "value": "Off",
+      "on": false
+     },
+     {
+      "title": "Core options",
+      "on": false
+     },
+     {
+      "title": "Patches",
+      "on": false
+     },
+     {
+      "title": "Settings file",
+      "on": false
+     },
+     {
+      "title": "Start with default settings",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "resumegame",
+  "eyebrow": "Game",
+  "title": "Pick up where you left off",
+  "lead": "Resume, or start over.",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Resume",
+      "on": true
+     },
+     {
+      "title": "Start over",
+      "on": false
+     },
+     {
+      "title": "Quick save",
+      "on": false
+     },
+     {
+      "title": "Quick load",
+      "on": false
+     },
+     {
+      "title": "Undo load",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "note",
+    "h": "",
+    "text": "Starting over keeps a copy: “Before starting over”.",
+    "tone": false
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "controllers",
+  "eyebrow": "Controllers",
+  "title": "Controller setup",
+  "lead": "Buttons, players and sticks.",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "Profile",
+    "items": [
+     {
+      "title": "Copy",
+      "on": false
+     },
+     {
+      "title": "Reset",
+      "on": false
+     },
+     {
+      "title": "Export",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Players and ports",
+    "items": [
+     {
+      "title": "Player 1",
+      "value": "Pro Controller",
+      "on": true
+     },
+     {
+      "title": "Player 2",
+      "value": "Phone",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Sticks",
+    "items": [
+     {
+      "title": "Dead zone",
+      "value": "12%",
+      "on": false
+     },
+     {
+      "title": "Calibrate sticks",
+      "on": false
+     },
+     {
+      "title": "Rumble test",
+      "on": false
+     },
+     {
+      "title": "Turbo",
+      "value": "Off",
+      "on": false
+     },
+     {
+      "title": "Work in the background",
+      "value": "Off",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "touchlayout",
+  "eyebrow": "Phone controller",
+  "title": "Arrange touch controls",
+  "lead": "Move, resize and fade. Portrait and landscape are kept apart.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Controls",
+    "items": [
+     {
+      "title": "D-pad",
+      "value": "Move · Resize",
+      "on": true
+     },
+     {
+      "title": "Buttons",
+      "value": "Move · Resize",
+      "on": false
+     },
+     {
+      "title": "Fade",
+      "value": "70%",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "Orientation",
+    "items": [
+     {
+      "title": "Portrait",
+      "on": true
+     },
+     {
+      "title": "Landscape",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [
+   {
+    "title": "Done",
+    "kind": "primary"
+   },
+   {
+    "title": "Reset",
+    "kind": "secondary"
+   }
+  ],
+  "foot": ""
+ },
+ {
+  "key": "fixgame",
+  "eyebrow": "Game · Fix this game",
+  "title": "Fix this game",
+  "lead": "Match, files and settings.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Options",
+    "items": [
+     {
+      "title": "Fix match",
+      "on": true
+     },
+     {
+      "title": "Files and advanced",
+      "on": false
+     },
+     {
+      "title": "Download a battery save",
+      "on": false
+     },
+     {
+      "title": "Import a battery save",
+      "on": false
+     },
+     {
+      "title": "Settings for this game",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "gameattn",
+  "eyebrow": "Game · Needs attention",
+  "title": "This game needs something",
+  "lead": "Every message says what to do.",
+  "sections": [
+   {
+    "kind": "cards",
+    "h": "States",
+    "items": [
+     {
+      "title": "Missing BIOS",
+      "sub": "Add the file in Consoles",
+      "bg": "#7a3b1c",
+      "bg2": "#2a1830",
+      "on": true
+     },
+     {
+      "title": "Encrypted",
+      "sub": "Can’t be played",
+      "bg": "#7a1f2a",
+      "bg2": "#2a1830",
+      "on": false
+     },
+     {
+      "title": "Won’t start",
+      "sub": "If a game won’t start…",
+      "bg": "#4a1f6a",
+      "bg2": "#1a1230",
+      "on": false
+     },
+     {
+      "title": "Plain http",
+      "sub": "Controllers are hidden on plain http",
+      "bg": "#1c5d7a",
+      "bg2": "#0f2a5a",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "emustand",
+  "eyebrow": "Game · Standalone",
+  "title": "Switch and 3DS games",
+  "lead": "Launched on the machine that has the emulator.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "State",
+    "items": [
+     {
+      "title": "Launch on the machine",
+      "value": "Ready",
+      "on": true
+     },
+     {
+      "title": "Running",
+      "value": "Playing on Den PC",
+      "on": false
+     },
+     {
+      "title": "Screen time",
+      "value": "Ended by screen time",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [
+   {
+    "title": "Launch",
+    "kind": "primary"
+   }
+  ],
+  "foot": ""
+ },
+ {
+  "key": "streamstats",
+  "eyebrow": "Game · Overlay",
+  "title": "Stream stats",
+  "lead": "Delay and frame rate.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Stats",
+    "items": [
+     {
+      "title": "Frame rate",
+      "value": "60 fps",
+      "on": true
+     },
+     {
+      "title": "Encoding time",
+      "value": "4 ms",
+      "on": false
+     },
+     {
+      "title": "Network",
+      "value": "18 ms",
+      "on": false
+     },
+     {
+      "title": "Delay",
+      "value": "32 ms",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "consoles",
+  "eyebrow": "Games · Consoles",
+  "title": "Consoles and cores",
+  "lead": "What this server plays.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Consoles",
+    "items": [
+     {
+      "title": "NES",
+      "value": "Ready · mesen",
+      "on": true
+     },
+     {
+      "title": "SNES",
+      "value": "Ready",
+      "on": false
+     },
+     {
+      "title": "PS1",
+      "value": "Needs BIOS",
+      "on": false
+     },
+     {
+      "title": "Switch",
+      "value": "Standalone",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Core picker",
+      "on": false
+     },
+     {
+      "title": "Add BIOS",
+      "on": true
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "gamereview",
+  "eyebrow": "Games · Review",
+  "title": "Needs a look",
+  "lead": "Uncertain matches (admin).",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Review",
+    "items": [
+     {
+      "title": "Salt Racer.sfc",
+      "value": "64 · Accept",
+      "on": true
+     },
+     {
+      "title": "Unknown.nes",
+      "value": "No match",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [
+   {
+    "title": "Accept all above 90",
+    "kind": "primary"
+   }
+  ],
+  "foot": ""
+ },
+ {
+  "key": "books",
+  "eyebrow": "Books",
+  "title": "Books",
+  "lead": "Covers with progress.",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "Filters",
+    "items": [
+     {
+      "title": "All",
+      "on": true
+     },
+     {
+      "title": "Reading",
+      "on": false
+     },
+     {
+      "title": "Finished",
+      "on": false
+     },
+     {
+      "title": "Comics",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Continue reading",
+    "items": [
+     {
+      "title": "The Salt Road",
+      "value": "Page 120 of 320",
+      "on": true
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "bookpage",
+  "eyebrow": "Book · The Salt Road",
+  "title": "The Salt Road",
+  "lead": "Lee Park · 320 pages",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Continue reading",
+      "on": true
+     },
+     {
+      "title": "Read again",
+      "on": false
+     },
+     {
+      "title": "Download",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Formats",
+    "items": [
+     {
+      "title": "EPUB",
+      "on": true
+     },
+     {
+      "title": "PDF",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "note",
+    "h": "",
+    "text": "Copy-protected, password-protected or very large books are refused here, with a reason.",
+    "tone": false
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "readertext",
+  "eyebrow": "Reader · Text and display",
+  "title": "Text and display",
+  "lead": "Layout, colour and type.",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "Layout",
+    "items": [
+     {
+      "title": "Auto",
+      "on": true
+     },
+     {
+      "title": "One page",
+      "on": false
+     },
+     {
+      "title": "Book view",
+      "on": false
+     },
+     {
+      "title": "Scroll",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "Page colour",
+    "items": [
+     {
+      "title": "White",
+      "on": false
+     },
+     {
+      "title": "Sepia",
+      "on": true
+     },
+     {
+      "title": "Night",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Type",
+    "items": [
+     {
+      "title": "Font",
+      "value": "Literata",
+      "on": true
+     },
+     {
+      "title": "Text size",
+      "value": "110%",
+      "on": false
+     },
+     {
+      "title": "Line spacing",
+      "value": "1.5",
+      "on": false
+     },
+     {
+      "title": "Margins",
+      "value": "Medium",
+      "on": false
+     },
+     {
+      "title": "Warmth",
+      "value": "30%",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "contents",
+  "eyebrow": "Reader · Contents",
+  "title": "Contents",
+  "lead": "Jump anywhere. Footnotes open in a pop-up.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Chapters",
+    "items": [
+     {
+      "title": "1 · Low Tide",
+      "value": "1",
+      "on": true
+     },
+     {
+      "title": "2 · The Road",
+      "value": "24",
+      "on": false
+     },
+     {
+      "title": "3 · Salt",
+      "value": "51",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "note",
+    "h": "",
+    "text": "¹ A footnote opens in place and closes with Back.",
+    "tone": false
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "selecttb",
+  "eyebrow": "Reader · Select text",
+  "title": "Selection toolbar",
+  "lead": "Highlight, note, look up.",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Yellow",
+      "on": true
+     },
+     {
+      "title": "Green",
+      "on": false
+     },
+     {
+      "title": "Blue",
+      "on": false
+     },
+     {
+      "title": "Pink",
+      "on": false
+     },
+     {
+      "title": "Note",
+      "on": false
+     },
+     {
+      "title": "Define",
+      "on": false
+     },
+     {
+      "title": "Copy",
+      "on": false
+     },
+     {
+      "title": "Cite",
+      "on": false
+     },
+     {
+      "title": "Search",
+      "on": false
+     },
+     {
+      "title": "Read aloud",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "note",
+    "h": "",
+    "text": "Define uses an online dictionary only after you agree once.",
+    "tone": true
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "handwrite",
+  "eyebrow": "Reader · Pen",
+  "title": "Handwriting",
+  "lead": "Pen, pencil, highlighter, eraser.",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "Tools",
+    "items": [
+     {
+      "title": "Pen",
+      "on": true
+     },
+     {
+      "title": "Pencil",
+      "on": false
+     },
+     {
+      "title": "Highlighter",
+      "on": false
+     },
+     {
+      "title": "Eraser",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Options",
+    "items": [
+     {
+      "title": "Pressure",
+      "value": "On",
+      "on": true
+     },
+     {
+      "title": "Undo and redo",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "readaloud",
+  "eyebrow": "Reader · Read aloud",
+  "title": "Read aloud",
+  "lead": "Starts from where you are.",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Play",
+      "on": true
+     },
+     {
+      "title": "Back 15",
+      "on": false
+     },
+     {
+      "title": "Forward 30",
+      "on": false
+     },
+     {
+      "title": "Speed 1×",
+      "on": false
+     },
+     {
+      "title": "Voice",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "pdfctl",
+  "eyebrow": "PDF · Controls",
+  "title": "PDF",
+  "lead": "Zoom, pages, colour and search.",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "Zoom",
+    "items": [
+     {
+      "title": "Fit width",
+      "on": true
+     },
+     {
+      "title": "Fit page",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "View",
+    "items": [
+     {
+      "title": "Pages across",
+      "value": "1",
+      "on": false
+     },
+     {
+      "title": "Page colour",
+      "value": "White",
+      "on": false
+     },
+     {
+      "title": "Outline and thumbnails",
+      "value": "On",
+      "on": true
+     },
+     {
+      "title": "Go to page",
+      "value": "12",
+      "on": false
+     },
+     {
+      "title": "Search",
+      "value": "harbour",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "comicsset",
+  "eyebrow": "Comics · Settings",
+  "title": "Comics",
+  "lead": "Page, spread or scroll.",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "Layout",
+    "items": [
+     {
+      "title": "Page",
+      "on": false
+     },
+     {
+      "title": "Spread",
+      "on": true
+     },
+     {
+      "title": "Scroll",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "Direction",
+    "items": [
+     {
+      "title": "Left to right",
+      "on": true
+     },
+     {
+      "title": "Manga",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "Fit",
+    "items": [
+     {
+      "title": "Height",
+      "on": true
+     },
+     {
+      "title": "Width",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "bookrefuse",
+  "eyebrow": "Reader · Can’t open",
+  "title": "This book can’t be opened",
+  "lead": "Copy-protected, password-protected, or too large.",
+  "sections": [
+   {
+    "kind": "note",
+    "h": "",
+    "text": "A plain reason and what you can do.",
+    "tone": true
+   }
+  ],
+  "actions": [
+   {
+    "title": "Back",
+    "kind": "primary"
+   }
+  ],
+  "foot": ""
+ },
+ {
+  "key": "wreader",
+  "eyebrow": "WittyReader",
+  "title": "Your library",
+  "lead": "The reading app has its own library.",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Add books",
+      "on": true
+     },
+     {
+      "title": "Continue reading",
+      "on": false
+     },
+     {
+      "title": "Import notes",
+      "on": false
+     },
+     {
+      "title": "Export notes",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Options",
+    "items": [
+     {
+      "title": "Define",
+      "value": "On",
+      "on": true
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "photoview",
+  "eyebrow": "Photos · Viewer",
+  "title": "Harbour at dawn",
+  "lead": "12 Nov 2026 · Lisbon",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Zoom",
+      "on": false
+     },
+     {
+      "title": "Details",
+      "on": true
+     },
+     {
+      "title": "Download the original",
+      "on": false
+     },
+     {
+      "title": "Favourite",
+      "on": false
+     },
+     {
+      "title": "Slideshow",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Details",
+    "items": [
+     {
+      "title": "Camera",
+      "value": "X-T5 · 35 mm",
+      "on": false
+     },
+     {
+      "title": "Place",
+      "value": "Lisbon",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Slideshow",
+    "items": [
+     {
+      "title": "Timing",
+      "value": "5 s",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "photomap",
+  "eyebrow": "Photos · Map",
+  "title": "Map",
+  "lead": "Clusters and places.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Places",
+    "items": [
+     {
+      "title": "Lisbon",
+      "value": "218",
+      "on": true
+     },
+     {
+      "title": "Porto",
+      "value": "64",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Home",
+      "on": true
+     },
+     {
+      "title": "List of places",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "note",
+    "h": "",
+    "text": "The online map is used only after you agree once.",
+    "tone": true
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "photoalbums",
+  "eyebrow": "Photos · Albums",
+  "title": "Albums",
+  "lead": "Create, select many, share.",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "Tabs",
+    "items": [
+     {
+      "title": "Albums",
+      "on": true
+     },
+     {
+      "title": "Favorites",
+      "on": false
+     },
+     {
+      "title": "Folders",
+      "on": false
+     },
+     {
+      "title": "People and places",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "New album",
+      "on": true
+     },
+     {
+      "title": "Select many",
+      "on": false
+     },
+     {
+      "title": "Share with profiles",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "note",
+    "h": "",
+    "text": "People and places are planned.",
+    "tone": false
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "upload",
+  "eyebrow": "Upload",
+  "title": "Upload to a library",
+  "lead": "Drop files here.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Upload",
+    "items": [
+     {
+      "title": "harbour.jpg",
+      "value": "Added",
+      "on": true
+     },
+     {
+      "title": "notes.exe",
+      "value": "Refused · not a photo",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Quota",
+    "items": [
+     {
+      "title": "Used",
+      "value": "12 GB of 50 GB",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "pinentry",
+  "eyebrow": "Who’s watching",
+  "title": "Enter your PIN",
+  "lead": "Pip’s profile asks for a PIN.",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "1",
+      "on": false
+     },
+     {
+      "title": "2",
+      "on": false
+     },
+     {
+      "title": "3",
+      "on": false
+     },
+     {
+      "title": "4",
+      "on": false
+     },
+     {
+      "title": "Delete",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "note",
+    "h": "",
+    "text": "Wrong too many times, wait 30 seconds.",
+    "tone": true
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Sign in with another account",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "twofactor",
+  "eyebrow": "Sign in",
+  "title": "Enter your code",
+  "lead": "From your authenticator.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Code",
+    "items": [
+     {
+      "title": "6 digits",
+      "value": "482 106",
+      "on": true
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Use a recovery code",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [
+   {
+    "title": "Continue",
+    "kind": "primary"
+   }
+  ],
+  "foot": ""
+ },
+ {
+  "key": "phonesign",
+  "eyebrow": "Sign in with your phone",
+  "title": "Scan this",
+  "lead": "A code or a QR with a PIN that changes every 30 seconds.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "TV shows",
+    "items": [
+     {
+      "title": "Code",
+      "value": "4 8 1 • 2 0 6",
+      "on": true
+     },
+     {
+      "title": "PIN",
+      "value": "317 044 · 12 s",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Phone approves",
+    "items": [
+     {
+      "title": "Who is asking",
+      "value": "Living room TV",
+      "on": false
+     },
+     {
+      "title": "Where from",
+      "value": "Home network",
+      "on": false
+     },
+     {
+      "title": "Sign it in as",
+      "value": "Pip",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Approve",
+      "on": true
+     },
+     {
+      "title": "Refuse",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "devices",
+  "eyebrow": "You · Devices",
+  "title": "Your devices",
+  "lead": "Last used and sign out.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Devices",
+    "items": [
+     {
+      "title": "Living room TV",
+      "value": "This device · now",
+      "on": true
+     },
+     {
+      "title": "iPhone",
+      "value": "2 hours ago",
+      "on": false
+     },
+     {
+      "title": "Laptop",
+      "value": "Yesterday",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Sign out",
+      "on": false
+     },
+     {
+      "title": "Sign out the others",
+      "on": true
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "kidsexp",
+  "eyebrow": "Kids · Home",
+  "title": "Pip’s home",
+  "lead": "Reduced menus, no pages Pip can’t use.",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "Menu",
+    "items": [
+     {
+      "title": "Home",
+      "on": true
+     },
+     {
+      "title": "Movies",
+      "on": false
+     },
+     {
+      "title": "Shows",
+      "on": false
+     },
+     {
+      "title": "Games",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Switched off for this profile",
+    "items": [
+     {
+      "title": "Settings pages",
+      "value": "Hidden",
+      "on": false
+     },
+     {
+      "title": "Sign in a TV",
+      "value": "Hidden",
+      "on": false
+     },
+     {
+      "title": "Downloads, links, comments, watch parties",
+      "value": "Off",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "note",
+    "h": "",
+    "text": "Kids and Guest see a smaller menu. Anything off is gone, not greyed.",
+    "tone": false
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "signedout",
+  "eyebrow": "Sign in",
+  "title": "You were signed out",
+  "lead": "This profile can’t be used away from home.",
+  "sections": [
+   {
+    "kind": "note",
+    "h": "",
+    "text": "Sign in on your home network, or ask an administrator.",
+    "tone": true
+   }
+  ],
+  "actions": [
+   {
+    "title": "Sign in",
+    "kind": "primary"
+   }
+  ],
+  "foot": ""
+ },
+ {
+  "key": "year",
+  "eyebrow": "You · Your year",
+  "title": "Your year",
+  "lead": "Totals, streak, biggest day, months and top titles.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Totals",
+    "items": [
+     {
+      "title": "Watched",
+      "value": "412 hr",
+      "on": true
+     },
+     {
+      "title": "Streak",
+      "value": "18 days",
+      "on": false
+     },
+     {
+      "title": "Biggest day",
+      "value": "9 hr · 4 Jan",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Top titles",
+    "items": [
+     {
+      "title": "Harbour Lights",
+      "value": "6 times",
+      "on": false
+     },
+     {
+      "title": "The Quiet Orchard",
+      "value": "24 episodes",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Clear my history",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "motion",
+  "eyebrow": "Settings · Appearance",
+  "title": "Motion and big screens",
+  "lead": "Skipping too.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Motion",
+    "items": [
+     {
+      "title": "Moving posters",
+      "value": "On",
+      "on": true
+     },
+     {
+      "title": "Moving backgrounds",
+      "value": "On",
+      "on": true
+     },
+     {
+      "title": "TV mode",
+      "value": "Auto",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Skipping",
+    "items": [
+     {
+      "title": "Skip intros",
+      "value": "Ask",
+      "on": false
+     },
+     {
+      "title": "Skip recaps",
+      "value": "Ask",
+      "on": false
+     },
+     {
+      "title": "Skip credits",
+      "value": "Ask",
+      "on": false
+     },
+     {
+      "title": "Skip adverts",
+      "value": "Off",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "share",
+  "eyebrow": "Share",
+  "title": "Share Harbour at dawn",
+  "lead": "With other profiles, or a link.",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "With other profiles",
+      "on": true
+     },
+     {
+      "title": "Make a link",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Link",
+    "items": [
+     {
+      "title": "Ends",
+      "value": "30 Nov",
+      "on": false
+     },
+     {
+      "title": "Allow downloading originals",
+      "value": "Off",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "note",
+    "h": "",
+    "text": "The link is shown once.",
+    "tone": true
+   }
+  ],
+  "actions": [
+   {
+    "title": "Share",
+    "kind": "primary"
+   }
+  ],
+  "foot": ""
+ },
+ {
+  "key": "shared",
+  "eyebrow": "Shared page",
+  "title": "Harbour at dawn",
+  "lead": "Shared by Willow. No menus.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Page",
+    "items": [
+     {
+      "title": "Photo",
+      "on": true
+     },
+     {
+      "title": "Download",
+      "value": "Allowed",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "partyinvite",
+  "eyebrow": "Watch party",
+  "title": "Willow invited you",
+  "lead": "Harbour Lights · code HARB-2210",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Accept",
+      "on": true
+     },
+     {
+      "title": "Decline",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "note",
+    "h": "",
+    "text": "No such watch party · Too many tries · Only the host controls.",
+    "tone": false
+   },
+   {
+    "kind": "rows",
+    "h": "Panel",
+    "items": [
+     {
+      "title": "Willow (host)",
+      "value": "Ready",
+      "on": true
+     },
+     {
+      "title": "Sam",
+      "value": "Buffering",
+      "on": false
+     },
+     {
+      "title": "Pip",
+      "value": "Can’t watch this one",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "Host",
+    "items": [
+     {
+      "title": "Wait for everyone",
+      "on": false
+     },
+     {
+      "title": "Make host",
+      "on": false
+     },
+     {
+      "title": "Remove",
+      "on": false
+     },
+     {
+      "title": "Leave",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "remoteaccess",
+  "eyebrow": "Settings · Remote access",
+  "title": "Remote access",
+  "lead": "Reachable from outside?",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "State",
+    "items": [
+     {
+      "title": "Reachable",
+      "value": "Yes",
+      "on": true
+     },
+     {
+      "title": "Test from outside",
+      "value": "Run",
+      "on": false
+     },
+     {
+      "title": "Peer to peer devices",
+      "value": "3",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Take one off",
+      "on": false
+     },
+     {
+      "title": "Let other devices play here",
+      "on": true
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "parentreport",
+  "eyebrow": "Settings · Profiles",
+  "title": "Pip’s report",
+  "lead": "For parents.",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Today",
+      "on": true
+     },
+     {
+      "title": "What they watched",
+      "on": false
+     },
+     {
+      "title": "Refused and extra time",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Today",
+    "items": [
+     {
+      "title": "Watched",
+      "value": "24 min of 30",
+      "on": true
+     },
+     {
+      "title": "Extra time",
+      "value": "Give time…",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Give time",
+      "on": true
+     },
+     {
+      "title": "Clear",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "screennote",
+  "eyebrow": "Any page · Screen time",
+  "title": "10 minutes left",
+  "lead": "At the foot of the page. Outside allowed hours or at bedtime, a plain message.",
+  "sections": [
+   {
+    "kind": "note",
+    "h": "",
+    "text": "Time is up at 8:00 PM. Ask a parent for more.",
+    "tone": true
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Ask a parent",
+      "on": true
+     },
+     {
+      "title": "Switch profile",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "modstore",
+  "eyebrow": "Settings · Modules",
+  "title": "Module store",
+  "lead": "Browse, install and turn off.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Store",
+    "items": [
+     {
+      "title": "Karaoke",
+      "value": "Installed · v2.1",
+      "on": true
+     },
+     {
+      "title": "Game streaming",
+      "value": "Install · asks for network and storage",
+      "on": false
+     },
+     {
+      "title": "Podcasts",
+      "value": "Turn off",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Install",
+      "on": true
+     },
+     {
+      "title": "Turn off",
+      "on": false
+     },
+     {
+      "title": "Remove",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": "Each says what it asks for before it’s installed."
+ },
+ {
+  "key": "modupdates",
+  "eyebrow": "Modules · Updates",
+  "title": "Updates",
+  "lead": "Choose a version and pin it.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Available",
+    "items": [
+     {
+      "title": "Karaoke 2.2",
+      "value": "Update available",
+      "sub": "A version taken back out is marked",
+      "on": true
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Options",
+    "items": [
+     {
+      "title": "Automatic updates",
+      "value": "On",
+      "on": true
+     },
+     {
+      "title": "Choose a version",
+      "value": "2.1",
+      "on": false
+     },
+     {
+      "title": "Pin",
+      "value": "Off",
+      "on": false
+     },
+     {
+      "title": "Go back",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "modfile",
+  "eyebrow": "Modules · Other stores",
+  "title": "Install from a file or another store",
+  "lead": "Keys and fork warnings.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Sources",
+    "items": [
+     {
+      "title": "Another store",
+      "value": "store.example.test",
+      "on": false
+     },
+     {
+      "title": "A file",
+      "value": "Choose…",
+      "on": true
+     }
+    ]
+   },
+   {
+    "kind": "note",
+    "h": "",
+    "text": "This module is a fork of another. Check the key before you install.",
+    "tone": true
+   }
+  ],
+  "actions": [
+   {
+    "title": "Install",
+    "kind": "primary"
+   }
+  ],
+  "foot": ""
+ },
+ {
+  "key": "modmissing",
+  "eyebrow": "Module missing",
+  "title": "This needs a module",
+  "lead": "Karaoke isn’t installed.",
+  "sections": [
+   {
+    "kind": "note",
+    "h": "",
+    "text": "Install the Karaoke module to use this.",
+    "tone": true
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Open the store",
+      "on": true
+     },
+     {
+      "title": "Not now",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "modpage",
+  "eyebrow": "Module page",
+  "title": "A module’s own screen",
+  "lead": "Drawn from the module’s own definition.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Content",
+    "items": [
+     {
+      "title": "Section",
+      "value": "Rows, cards and actions as the module defines them",
+      "on": true
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "activity",
+  "eyebrow": "Top bar · Activity",
+  "title": "Activity",
+  "lead": "Progress ring and count.",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "Tabs",
+    "items": [
+     {
+      "title": "Now",
+      "on": true
+     },
+     {
+      "title": "History",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Now",
+    "items": [
+     {
+      "title": "Scanning Shows",
+      "value": "42%",
+      "on": true
+     },
+     {
+      "title": "Making karaoke",
+      "value": "18%",
+      "on": false
+     },
+     {
+      "title": "Backing up",
+      "value": "Problem !",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Pause",
+      "on": false
+     },
+     {
+      "title": "Resume",
+      "on": false
+     },
+     {
+      "title": "Cancel",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "updatebanner",
+  "eyebrow": "Home · Update",
+  "title": "An update is ready",
+  "lead": "Version 0.8.1",
+  "sections": [
+   {
+    "kind": "note",
+    "h": "",
+    "text": "Release notes… Update now or later.",
+    "tone": true
+   }
+  ],
+  "actions": [
+   {
+    "title": "Update now",
+    "kind": "primary"
+   },
+   {
+    "title": "Later",
+    "kind": "secondary"
+   }
+  ],
+  "foot": ""
+ },
+ {
+  "key": "backup",
+  "eyebrow": "Settings · Backup",
+  "title": "Backup and restore",
+  "lead": "Also offered in first-time setup.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Backup",
+    "items": [
+     {
+      "title": "Make a backup",
+      "value": "Now",
+      "on": true
+     },
+     {
+      "title": "Password",
+      "value": "Set",
+      "on": false
+     },
+     {
+      "title": "Schedule",
+      "value": "Weekly",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Restore",
+    "items": [
+     {
+      "title": "Restore from a backup",
+      "value": "Choose…",
+      "on": false
+     },
+     {
+      "title": "Undo restore",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "repair",
+  "eyebrow": "Settings · Repair",
+  "title": "Repair and reset",
+  "lead": "Diagnosing from Settings.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Tools",
+    "items": [
+     {
+      "title": "Repair",
+      "value": "Run",
+      "on": true
+     },
+     {
+      "title": "Reset",
+      "value": "Choose what to clear",
+      "on": false
+     },
+     {
+      "title": "Diagnose",
+      "value": "Run",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "diag",
+  "eyebrow": "Settings · Diagnoser",
+  "title": "Diagnoser report",
+  "lead": "Discs and storage.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Report",
+    "items": [
+     {
+      "title": "Disc BLURAY_01",
+      "value": "OK",
+      "on": true
+     },
+     {
+      "title": "Storage",
+      "value": "82% used",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [
+   {
+    "title": "Run again",
+    "kind": "primary"
+   }
+  ],
+  "foot": ""
+ },
+ {
+  "key": "logs",
+  "eyebrow": "Settings · Logs",
+  "title": "Logs",
+  "lead": "Read, choose how much, download.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Logs",
+    "items": [
+     {
+      "title": "How much is recorded",
+      "value": "Normal",
+      "on": true
+     },
+     {
+      "title": "Download logs to share",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "tdarr",
+  "eyebrow": "Settings · Transcoding",
+  "title": "Tdarr",
+  "lead": "Connection and nodes.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Tdarr",
+    "items": [
+     {
+      "title": "Connection",
+      "value": "Connected",
+      "on": true
+     },
+     {
+      "title": "Nodes",
+      "value": "2",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "note",
+    "h": "",
+    "text": "What it does shows in the activity panel.",
+    "tone": false
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "transcode",
+  "eyebrow": "Settings · Transcoding",
+  "title": "Live and library transcoding",
+  "lead": "Quality and hardware.",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "Quality",
+    "items": [
+     {
+      "title": "Auto",
+      "on": true
+     },
+     {
+      "title": "High",
+      "on": false
+     },
+     {
+      "title": "Smaller",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Encoder",
+    "items": [
+     {
+      "title": "Hardware encoder",
+      "value": "VideoToolbox",
+      "on": true
+     },
+     {
+      "title": "Presets",
+      "value": "Balanced",
+      "on": false
+     },
+     {
+      "title": "Progress",
+      "value": "3 of 12",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "legal",
+  "eyebrow": "Settings · Legal",
+  "title": "Legal, licences and about",
+  "lead": "Notices next to web results and logos, and the acknowledgement.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "About",
+    "items": [
+     {
+      "title": "Version",
+      "value": "0.8.0-alpha",
+      "on": true
+     },
+     {
+      "title": "Licences",
+      "value": "Open",
+      "on": false
+     },
+     {
+      "title": "Notices",
+      "value": "Open",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "note",
+    "h": "",
+    "text": "Acknowledge to continue. The bar sits at the foot in every look.",
+    "tone": true
+   }
+  ],
+  "actions": [
+   {
+    "title": "I understand",
+    "kind": "primary"
+   }
+  ],
+  "foot": ""
+ },
+ {
+  "key": "help",
+  "eyebrow": "Help",
+  "title": "Guides",
+  "lead": "Built into the app.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Guides",
+    "items": [
+     {
+      "title": "Playing",
+      "on": true
+     },
+     {
+      "title": "Libraries",
+      "on": false
+     },
+     {
+      "title": "Games",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "folderbrowser",
+  "eyebrow": "Folder browser",
+  "title": "Choose a folder",
+  "lead": "Places, filter and multi-select.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Places",
+    "items": [
+     {
+      "title": "Media",
+      "on": true
+     },
+     {
+      "title": "Network",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Folders",
+    "items": [
+     {
+      "title": "Movies",
+      "on": false
+     },
+     {
+      "title": "Disc folders",
+      "value": "Marked",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "note",
+    "h": "",
+    "text": "A folder the server can’t read explains why and how to fix it.",
+    "tone": false
+   }
+  ],
+  "actions": [
+   {
+    "title": "Choose",
+    "kind": "primary"
+   }
+  ],
+  "foot": ""
+ },
+ {
+  "key": "unreachable",
+  "eyebrow": "Every app",
+  "title": "Can’t reach the server",
+  "lead": "Reconnecting.",
+  "sections": [
+   {
+    "kind": "cards",
+    "h": "States",
+    "items": [
+     {
+      "title": "Unreachable",
+      "sub": "Retrying · Choose another server",
+      "bg": "#7a1f2a",
+      "bg2": "#2a1830",
+      "on": true
+     },
+     {
+      "title": "Reconnecting",
+      "sub": "A ring and what’s happening",
+      "bg": "#1c5d7a",
+      "bg2": "#0f2a5a",
+      "on": false
+     },
+     {
+      "title": "Signed out",
+      "sub": "Stream token or sign-in expired",
+      "bg": "#7a3b1c",
+      "bg2": "#2a1830",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "offline",
+  "eyebrow": "Downloads",
+  "title": "Keep for offline",
+  "lead": "On phone and TV apps.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Downloads",
+    "items": [
+     {
+      "title": "Harbour Lights",
+      "value": "Downloaded · 4 GB",
+      "on": true
+     },
+     {
+      "title": "The Quiet Orchard S2 E3",
+      "value": "Downloading 60%",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Keep for offline",
+      "on": true
+     },
+     {
+      "title": "Remove",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "note",
+    "h": "",
+    "text": "Follows the Downloads switch for this profile.",
+    "tone": false
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "notices",
+  "eyebrow": "Notifications",
+  "title": "Notifications",
+  "lead": "Reminders, invitations, task results and updates.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Recent",
+    "items": [
+     {
+      "title": "The Quiet Orchard in a minute",
+      "value": "Watch",
+      "on": true
+     },
+     {
+      "title": "Willow invited you to a watch party",
+      "value": "Accept",
+      "on": false
+     },
+     {
+      "title": "Backup finished",
+      "on": false
+     },
+     {
+      "title": "Update 0.8.1",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [
+   {
+    "title": "Clear all",
+    "kind": "primary"
+   }
+  ],
+  "foot": ""
+ },
+ {
+  "key": "shorts",
+  "eyebrow": "Vertical videos",
+  "title": "For You",
+  "lead": "Following, Liked, Creators.",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "Tabs",
+    "items": [
+     {
+      "title": "For You",
+      "on": true
+     },
+     {
+      "title": "Following",
+      "on": false
+     },
+     {
+      "title": "Liked",
+      "on": false
+     },
+     {
+      "title": "Creators",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Like",
+      "on": false
+     },
+     {
+      "title": "Comments",
+      "on": true
+     },
+     {
+      "title": "Share",
+      "on": false
+     },
+     {
+      "title": "Speed",
+      "on": false
+     },
+     {
+      "title": "About",
+      "on": false
+     },
+     {
+      "title": "Edit",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "note",
+    "h": "",
+    "text": "Why this video is here.",
+    "tone": false
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "creators",
+  "eyebrow": "Creator videos",
+  "title": "Creators",
+  "lead": "Home, Latest, Subscriptions.",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "Tabs",
+    "items": [
+     {
+      "title": "Home",
+      "on": true
+     },
+     {
+      "title": "Latest",
+      "on": false
+     },
+     {
+      "title": "Subscriptions",
+      "on": false
+     },
+     {
+      "title": "Channels",
+      "on": false
+     },
+     {
+      "title": "History",
+      "on": false
+     },
+     {
+      "title": "Liked",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Channel",
+    "items": [
+     {
+      "title": "The Long Tide",
+      "value": "Videos · Vertical · Playlists · About",
+      "on": true
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "videopage",
+  "eyebrow": "Creator video",
+  "title": "Low Tide, explained",
+  "lead": "The Long Tide",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Wide view",
+      "on": false
+     },
+     {
+      "title": "Like",
+      "on": true
+     },
+     {
+      "title": "See less",
+      "on": false
+     },
+     {
+      "title": "Share",
+      "on": false
+     },
+     {
+      "title": "Save",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Up next",
+    "items": [
+     {
+      "title": "Autoplay",
+      "value": "On",
+      "on": true
+     },
+     {
+      "title": "Frost",
+      "value": "12 min",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Chapters",
+    "items": [
+     {
+      "title": "0:00",
+      "value": "Intro",
+      "on": false
+     },
+     {
+      "title": "3:12",
+      "value": "The harbour",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "comments",
+  "eyebrow": "Comments",
+  "title": "Comments",
+  "lead": "Replies up to 2,000 characters. Read-only for Kids and Guest.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Comments",
+    "items": [
+     {
+      "title": "Mara",
+      "value": "Lovely.",
+      "on": true
+     },
+     {
+      "title": "Sam",
+      "value": "Reply",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Write a comment",
+      "on": true
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "concerts",
+  "eyebrow": "Music · Concerts",
+  "title": "Harbour Live",
+  "lead": "Setlist from chapters; the artist as a channel.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Setlist",
+    "items": [
+     {
+      "title": "1 · Opening",
+      "value": "0:00",
+      "on": true
+     },
+     {
+      "title": "2 · Tide Table",
+      "value": "4:10",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [
+   {
+    "title": "Play",
+    "kind": "primary"
+   }
+  ],
+  "foot": ""
+ },
+ {
+  "key": "recommend",
+  "eyebrow": "Home",
+  "title": "Recommended for you",
+  "lead": "A row on Home.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Because you watched Harbour Lights",
+    "items": [
+     {
+      "title": "Low Tide",
+      "value": "2019",
+      "on": true
+     },
+     {
+      "title": "Signal Fire",
+      "value": "2023",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "searchscope",
+  "eyebrow": "Search",
+  "title": "Search scope",
+  "lead": "Filters and the empty result.",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "Scope",
+    "items": [
+     {
+      "title": "Everything",
+      "on": true
+     },
+     {
+      "title": "Movies",
+      "on": false
+     },
+     {
+      "title": "Shows",
+      "on": false
+     },
+     {
+      "title": "Music",
+      "on": false
+     },
+     {
+      "title": "People",
+      "on": false
+     },
+     {
+      "title": "Live TV",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "Filters",
+    "items": [
+     {
+      "title": "Year",
+      "on": false
+     },
+     {
+      "title": "Rating",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "note",
+    "h": "",
+    "text": "No results for “xyzzy”. Try fewer words.",
+    "tone": false
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Schedule search",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "managesrv",
+  "eyebrow": "Welcome · Servers",
+  "title": "Saved servers",
+  "lead": "Forget one.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Saved",
+    "items": [
+     {
+      "title": "WittyMediaServer",
+      "value": "Living room",
+      "on": true
+     },
+     {
+      "title": "Gran’s server",
+      "value": "From away",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Forget this server",
+      "on": true
+     },
+     {
+      "title": "Choose another server",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "note",
+    "h": "",
+    "text": "Forgetting removes the sign-in and downloads from this device.",
+    "tone": true
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "dockopts",
+  "eyebrow": "WittyTV · Dock",
+  "title": "Dock options",
+  "lead": "Phone sheet.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Options",
+    "items": [
+     {
+      "title": "Preview",
+      "value": "Right",
+      "on": true
+     },
+     {
+      "title": "Channels at a time",
+      "value": "50",
+      "on": false
+     },
+     {
+      "title": "Sets",
+      "value": "Favourites",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "chips",
+    "h": "",
+    "items": [
+     {
+      "title": "Letter picker",
+      "on": true
+     },
+     {
+      "title": "Close",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "letterpick",
+  "eyebrow": "Library · Letter",
+  "title": "Jump to a letter",
+  "lead": "Phone and TV.",
+  "sections": [
+   {
+    "kind": "chips",
+    "h": "A to Z",
+    "items": [
+     {
+      "title": "A",
+      "on": false
+     },
+     {
+      "title": "B",
+      "on": false
+     },
+     {
+      "title": "C",
+      "on": false
+     },
+     {
+      "title": "D",
+      "on": false
+     },
+     {
+      "title": "E",
+      "on": false
+     },
+     {
+      "title": "F",
+      "on": false
+     },
+     {
+      "title": "G",
+      "on": false
+     },
+     {
+      "title": "H",
+      "on": true
+     },
+     {
+      "title": "I",
+      "on": false
+     },
+     {
+      "title": "J",
+      "on": false
+     },
+     {
+      "title": "K",
+      "on": false
+     },
+     {
+      "title": "L",
+      "on": false
+     },
+     {
+      "title": "M",
+      "on": false
+     },
+     {
+      "title": "N",
+      "on": false
+     },
+     {
+      "title": "O",
+      "on": false
+     },
+     {
+      "title": "P",
+      "on": false
+     },
+     {
+      "title": "Q",
+      "on": false
+     },
+     {
+      "title": "R",
+      "on": false
+     },
+     {
+      "title": "S",
+      "on": false
+     },
+     {
+      "title": "T",
+      "on": false
+     },
+     {
+      "title": "U",
+      "on": false
+     },
+     {
+      "title": "V",
+      "on": false
+     },
+     {
+      "title": "W",
+      "on": false
+     },
+     {
+      "title": "X",
+      "on": false
+     },
+     {
+      "title": "Y",
+      "on": false
+     },
+     {
+      "title": "Z",
+      "on": false
+     },
+     {
+      "title": "#",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "topshelf",
+  "eyebrow": "Platform · Apple TV, Android TV",
+  "title": "Top Shelf and Watch Next",
+  "lead": "Rows outside the app.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Top Shelf",
+    "items": [
+     {
+      "title": "Continue watching",
+      "value": "Harbour Lights",
+      "on": true
+     },
+     {
+      "title": "Recently added",
+      "value": "Low Tide",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "rows",
+    "h": "Watch Next",
+    "items": [
+     {
+      "title": "The Quiet Orchard S2 E3",
+      "value": "18 min left",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": "Honours Kids and Guest limits."
+ },
+ {
+  "key": "peopleRow",
+  "eyebrow": "Search · People",
+  "title": "People",
+  "lead": "A People row in results.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "People",
+    "items": [
+     {
+      "title": "Mara Voss",
+      "value": "Actor",
+      "on": true
+     },
+     {
+      "title": "Ana Ruiz",
+      "value": "Director",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ },
+ {
+  "key": "importtheme",
+  "eyebrow": "Settings · Themes",
+  "title": "Import a theme",
+  "lead": "Variables and fonts only.",
+  "sections": [
+   {
+    "kind": "rows",
+    "h": "Pack",
+    "items": [
+     {
+      "title": "File",
+      "value": "Choose a ZIP…",
+      "on": true
+     },
+     {
+      "title": "Name",
+      "value": "Harbour Night",
+      "on": false
+     }
+    ]
+   },
+   {
+    "kind": "note",
+    "h": "",
+    "text": "A theme with any other rules is refused, and the first bad rule is named.",
+    "tone": true
+   }
+  ],
+  "actions": [
+   {
+    "title": "Import",
+    "kind": "primary"
+   },
+   {
+    "title": "Cancel",
+    "kind": "secondary"
+   }
+  ],
+  "foot": ""
+ },
+ {
+  "key": "playlight",
+  "eyebrow": "WittyPlay Online",
+  "title": "Light themes",
+  "lead": "Switch-Online-style home in light colours.",
+  "sections": [
+   {
+    "kind": "cards",
+    "h": "Themes",
+    "items": [
+     {
+      "title": "Daylight",
+      "sub": "Light",
+      "bg": "#f2f4fa",
+      "bg2": "#ffffff",
+      "on": true
+     },
+     {
+      "title": "Mint",
+      "sub": "Light",
+      "bg": "#e8f6ee",
+      "bg2": "#ffffff",
+      "on": false
+     },
+     {
+      "title": "Paper",
+      "sub": "Light",
+      "bg": "#faf6ee",
+      "bg2": "#ffffff",
+      "on": false
+     },
+     {
+      "title": "Sand",
+      "sub": "Light",
+      "bg": "#f4ead8",
+      "bg2": "#ffffff",
+      "on": false
+     }
+    ]
+   }
+  ],
+  "actions": [],
+  "foot": ""
+ }
+]

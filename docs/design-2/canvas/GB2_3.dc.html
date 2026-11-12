@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Music, audiobooks, podcasts · every feature, drawn</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap">
+</head>
+<body>
+<x-dc>
+<helmet><style>body{margin:0}</style></helmet>
+<div style="width:2500px;height:2000px;box-sizing:border-box;padding:32px 40px;background:#e8e8ee;font-family:Inter,system-ui,sans-serif;color:#1b1b22">
+  <div style="font-size:40px;font-weight:800;letter-spacing:-1px">{{title}} · Music, audiobooks, podcasts</div>
+  <div style="font-size:18px;color:#4a4a58;margin-top:4px;max-width:2000px">Every feature the server and modules define, drawn as one screen. Same sections and words on TV, tablet and phone; one column on a phone.</div>
+  <div style="display:flex;flex-wrap:wrap;gap:18px 20px;margin-top:20px;align-items:flex-start">
+    <sc-for list="{{items}}" as="i" hint-placeholder-count="24"><div><div style="zoom:{{i.z}}"><dc-import name="Exp" exp="{{exp}}" plat="{{i.p}}" screen="{{i.s}}" hint-size="{{i.hs}}"></dc-import></div><div style="font-size:14px;font-weight:700;margin-top:4px">{{i.t}}</div></div></sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"exp":{"editor":"text","default":"lumen"},"title":{"editor":"text","default":"Lumen"},"$preview":{"width":2500,"height":2000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const d = [["readbook", "Now playing · Read · Booklet"], ["musicvideos", "Music · Videos · Music videos and concerts"], ["lyricsmissing", "Lyrics · No lyrics found"], ["karaokeprep", "Karaoke · Preparing karaoke…"], ["stems", "Karaoke · Phone · Mix"], ["vizsettings", "Visualizer · Effect settings"], ["audiobooks", "Audiobooks · Audiobooks"], ["podcasts", "Podcasts · Podcasts"], ["radio", "Internet radio · Stations"], ["party2", "Now playing · Listening party"], ["cdplayer", "Audio CD · Harbour (CD)"], ["tvrecprob", "WittyTV · Recording problems · It can’t record right now"], ["tvback", "WittyTV · We’ll be right back"], ["tvenc", "WittyTV · Encrypted channels · Why some channels can’t play"], ["tvbg", "WittyTV · Playing · Keep playing in the background"], ["channeled", "Settings · Channels · Channel editor"], ["tuner", "Settings · Channels and tuners · Tuners and IPTV"], ["gamepcs", "Game PCs · Your game PCs"], ["pcstream", "Game PC · Stream · Stream options"], ["gamemenu", "Game · Menu · Settings"], ["resumegame", "Game · Pick up where you left off"], ["controllers", "Controllers · Controller setup"]];
+    const items = d.map((a) => ({ s: a[0], t: a[1], p: 'desktop', z: .27, hs: '1440px,900px' })); 
+    return { exp: this.props.exp || 'lumen', title: this.props.title || 'Lumen', items };
+  }
+}
+</script>
+</body>
+</html>

@@ -16,7 +16,7 @@ export type ViewPrefs = {
   subtitleSize: number     // DVD subtitle scale, 0.75 - 1.5
   picture: 'fit' | 'fill'  // fit = black bars, fill = zoom to fill the screen
   remote: boolean          // show the DVD remote
-  remoteStyle: 'floating' | 'bar' // a movable remote, or its buttons in a strip above the seek bar
+  remoteStyle: 'floating' | 'bar' | 'barBelow' // a movable remote, or its buttons in a strip above the seek bar
   stereo: 'off' | 'sbs' | 'ou'    // the video is 3D: two views side by side, or one over the other
   stereoOut: '2d' | 'anaglyph'    // how to show 3D video: one eye's view flat, or red/cyan for anaglyph glasses
   forcedSubs: boolean      // discs: show forced captions (signs, foreign-language lines) while subtitles are off

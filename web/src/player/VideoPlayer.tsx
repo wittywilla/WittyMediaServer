@@ -502,8 +502,8 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
           </div>
           {remoteOn && (sheetLayout
             ? <RemoteSheet onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemoteOn(false)} label={label} note={keysNote} />
-            : prefs.remoteStyle === 'bar'
-              ? <RemoteBar onKey={onRemote} enabled={remoteEnabled} disc={copy} note={keysNote} />
+            : prefs.remoteStyle === 'bar' || prefs.remoteStyle === 'barBelow'
+              ? <RemoteBar below={prefs.remoteStyle === 'barBelow'} onKey={onRemote} enabled={remoteEnabled} disc={copy} note={keysNote} />
               : <Remote onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemoteOn(false)} label={label} note={keysNote} />)}
           {skip && <button className="btn skip-intro" onClick={(e) => { e.stopPropagation(); seek(skip.to) }}>{skip.label} ›</button>}
           {pickIntro && <PickIntroBar item={item} time={now} mode={pickIntro} />}

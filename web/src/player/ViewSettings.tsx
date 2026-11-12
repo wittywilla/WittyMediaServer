@@ -54,7 +54,7 @@ export default function ViewSettings({ prefs, scope, onChange, onScope, onClose,
       <Row label="Seek bar"><Toggle k="seekBar" label="Seek bar" {...p} /></Row>
       <Row label="Chapter marks"><Toggle k="chapterMarks" label="Chapter marks" {...p} /></Row>
       <Row label={isDisc ? 'Disc remote' : 'Remote'}><Toggle k="remote" label="Remote" {...p} /></Row>
-      <Row label="Remote style"><Seg k="remoteStyle" label="Remote style" opts={[['floating', 'Floating'], ['bar', 'In control bar']]} {...p} /></Row>
+      <Row label="Remote style"><Seg k="remoteStyle" label="Remote style" opts={[['floating', 'Floating'], ['bar', 'Above the timeline'], ['barBelow', 'Below the timeline']]} {...p} /></Row>
       <Row label="Hide controls after"><Seg k="hideAfter" label="Hide controls after" opts={[[2, '2 s'], [3.5, '3.5 s'], [6, '6 s'], [0, 'Never']]} {...p} /></Row>
       <Row label="Picture"><Seg k="picture" label="Picture" opts={[['fit', 'Fit'], ['fill', 'Fill screen']]} {...p} /></Row>
       {isDisc && <Row label="Forced captions"><Toggle k="forcedSubs" label="Forced captions: signs and foreign-language lines the disc shows even with subtitles off" {...p} /></Row>}

@@ -1,44 +1,23 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { PageHelp } from '../components/HelpLink'
-import { useNavigate, useParams } from 'react-router-dom'
 import SpecPage from '../spec/SpecPage'
 import { handledIds, withIds } from '../spec/model'
-import { collectionsSpec } from '../spec/specs/collections'
+import { applyRuleField, collectionSpec, genresOf, toggleType } from '../spec/specs/smartlist'
+import { useNavigate, useParams } from 'react-router-dom'
 import { api, fitWidth, posterUrl, sized, type Item, type Show } from '../api'
 import { useAudio } from '../audio/player'
-import { BackLink, EmptyState, LoadError, ItemCard, ShowCard, Spinner } from '../components/common'
-import { canPost, type Collection, type CollectionRule } from '../gallery'
+import { BackLink, EmptyState, ItemCard, ShowCard, Spinner } from '../components/common'
+import { type Collection, type CollectionRule } from '../gallery'
 import { IconClose, IconEdit, IconLibrary, IconPlay, IconTrash } from '../icons'
 import { toast, useApp } from '../state'
 import '../gallery.css'
 import { Dialog, ask } from '../ui/Overlay'
 import { Button } from '../ui/Button'
-import { Segmented } from '../ui/Choice'
 
 // Collections and smart playlists, across every library. A smart playlist is a
 // saved rule the server works out each time (docs/COLLECTIONS.md); this page
 // lists them and builds the rule.
-
-export default function CollectionsPage() {
-  const { user } = useApp()
-  const [list, setList] = useState<Collection[] | null>(null)
-  const [making, setMaking] = useState(false)
-  const [failed, setFailed] = useState(false)
-  const load = useCallback(() => { setFailed(false); api.get<Collection[]>('/collections').then(setList).catch(() => setFailed(true)) }, [])
-  useEffect(load, [load])
-  const page = useMemo(() => (list ? collectionsSpec(list, user?.id, canPost(user)) : null), [list, user])
-  if (failed && !list) return <LoadError what="Your collections" onRetry={load} />
-  if (!list || !page) return <Spinner />
-  return (
-    <>
-      <div className="spec-page-help"><PageHelp to="collections" /></div>
-      <SpecPage page={page} handled={handledIds(withIds(page))} onAction={(id) => { if (id === 'new') setMaking(true) }} />
-      {making && <CollectionDialog onClose={() => setMaking(false)} onSaved={() => { setMaking(false); load() }} />}
-    </>
-  )
-}
 
 export function CollectionPage() {
   const { id } = useParams()
@@ -98,79 +77,55 @@ export function CollectionPage() {
   )
 }
 
-const TYPES: [string, string][] = [['movies', 'Movies'], ['shows', 'TV shows'], ['anime', 'Anime'], ['discs', 'Discs'], ['videos', 'Home videos'], ['music', 'Music'], ['musicvideos', 'Music videos'], ['audiobooks', 'Audiobooks'], ['podcasts', 'Podcasts'], ['books', 'Books'], ['channels', 'Creator videos'], ['shorts', 'Vertical videos'], ['photos', 'Photos']]
-
 export function CollectionDialog({ collection, onClose, onSaved }: { collection?: Collection; onClose: () => void; onSaved: () => void }) {
   const [name, setName] = useState(collection?.name || '')
   const [desc, setDesc] = useState(collection?.description || '')
   const [shared, setShared] = useState(collection?.shared || false)
   const [kind, setKind] = useState<'manual' | 'smart'>(collection?.kind === 'smart' ? 'smart' : 'manual')
   const [rule, setRule] = useState<CollectionRule>(collection?.rule || { sort: 'added', desc: true, limit: 100 })
+  const [genresText, setGenresText] = useState(collection?.rule?.genres?.join(', ') || '')
   const [preview, setPreview] = useState<{ count: number; items: Item[] } | null>(null)
   const [err, setErr] = useState('')
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-  const up = (p: Partial<CollectionRule>) => setRule((r) => ({ ...r, ...p }))
+  const ruleOut = useMemo(() => ({ ...rule, genres: genresOf(genresText) }), [rule, genresText])
   useEffect(() => {
     if (kind !== 'smart') return
     clearTimeout(timer.current)
     timer.current = setTimeout(() => {
-      api.post<{ count: number; items: Item[] }>('/collections/preview', { rule }).then(setPreview).catch(() => setPreview(null))
+      api.post<{ count: number; items: Item[] }>('/collections/preview', { rule: ruleOut }).then(setPreview).catch(() => setPreview(null))
     }, 300)
     return () => clearTimeout(timer.current)
-  }, [rule, kind])
+  }, [ruleOut, kind])
   const save = async (e: React.FormEvent) => {
     e.preventDefault(); setErr('')
-    const body = { name, description: desc, kind, shared, rule: kind === 'smart' ? rule : undefined }
+    if (!name.trim()) { setErr('Give it a name.'); return }
+    const body = { name, description: desc, kind, shared, rule: kind === 'smart' ? ruleOut : undefined }
     try {
       if (collection) await api.put(`/collections/${collection.id}`, body)
       else await api.post('/collections', body)
       onSaved()
     } catch (x: any) { setErr(x.message) }
   }
-  const num = (v: string) => (v === '' ? undefined : Number(v))
+  const spec = useMemo(() => collectionSpec({ name, desc, kind, canChooseKind: !collection, rule, genresText, shared, canShare: !collection?.system, preview, error: err }), [name, desc, kind, collection, rule, genresText, shared, preview, err])
+  const handled = useMemo(() => handledIds(withIds(spec)), [spec])
+  const onField = (id: string, v: string | number | boolean | File) => {
+    if (id === 'name') setName(String(v))
+    else if (id === 'desc') setDesc(String(v))
+    else if (id === 'shared') setShared(!!v)
+    else if (id === 'genres') setGenresText(String(v))
+    else setRule((r) => applyRuleField(r, id, v as string | number | boolean))
+  }
+  const onAction = (id: string) => {
+    if (id === 'kind:manual') setKind('manual')
+    else if (id === 'kind:smart') setKind('smart')
+    else if (id.startsWith('type:')) setRule((r) => toggleType(r, id.slice(5)))
+  }
+  const matchIndex = spec.sections.findIndex((x) => x.kind === 'note' && x.text.includes('match'))
   return (
     <Dialog title={collection ? 'Edit collection' : 'New collection'} size="wide" className="col-dialog" onClose={onClose}
       actions={<><Button type="button" variant="ghost" onClick={onClose}>Cancel</Button><Button variant="primary" form="col-form">{collection ? 'Save' : 'Make it'}</Button></>}>
       <form id="col-form" className="ui-dialog-form" onSubmit={save}>
-        <label className="oobe-field">Name<input className="input" autoFocus required maxLength={200} value={name} onChange={(e) => setName(e.target.value)} /></label>
-        <label className="oobe-field">Description<input className="input" maxLength={4000} value={desc} onChange={(e) => setDesc(e.target.value)} /></label>
-        {!collection && (
-          <Segmented label="Kind" value={kind} onChange={setKind} options={[{ value: 'manual', label: 'A list you fill' }, { value: 'smart', label: 'Smart playlist' }]} />
-        )}
-        {kind === 'smart' && (
-          <fieldset className="col-rule">
-            <legend>Everything that matches</legend>
-            <div className="col-types" role="group" aria-label="From these kinds of library (none means all)">
-              {TYPES.map(([k, l]) => {
-                const on = rule.libraryTypes?.includes(k)
-                return <button key={k} type="button" className={'ch-tag' + (on ? ' on' : '')} aria-pressed={!!on} onClick={() => up({ libraryTypes: on ? rule.libraryTypes?.filter((x) => x !== k) : [...(rule.libraryTypes || []), k] })}>{l}</button>
-              })}
-            </div>
-            <div className="col-fields">
-              <label>Genres (any)<input className="input" placeholder="Comedy, Drama" defaultValue={rule.genres?.join(', ')} onChange={(e) => up({ genres: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })} /></label>
-              <label>Words in the title<input className="input" value={rule.search || ''} onChange={(e) => up({ search: e.target.value })} /></label>
-              <label>Artist or creator<input className="input" value={rule.artist || ''} onChange={(e) => up({ artist: e.target.value })} /></label>
-              <label>From year<input className="input" type="number" min={1800} max={3000} value={rule.yearFrom ?? ''} onChange={(e) => up({ yearFrom: num(e.target.value) })} /></label>
-              <label>To year<input className="input" type="number" min={1800} max={3000} value={rule.yearTo ?? ''} onChange={(e) => up({ yearTo: num(e.target.value) })} /></label>
-              <label>Rating at least<input className="input" type="number" min={0} max={10} step={0.5} value={rule.ratingMin ?? ''} onChange={(e) => up({ ratingMin: num(e.target.value) })} /></label>
-              <label>Added in the last (days)<input className="input" type="number" min={0} value={rule.addedWithinDays ?? ''} onChange={(e) => up({ addedWithinDays: num(e.target.value) })} /></label>
-              <label>Watched<select className="select" value={rule.watched || ''} onChange={(e) => up({ watched: e.target.value as CollectionRule['watched'] })}><option value="">Either</option><option value="no">Not watched</option><option value="started">Started</option><option value="yes">Watched</option></select></label>
-              <label>Sort by<select className="select" value={rule.sort || 'added'} onChange={(e) => up({ sort: e.target.value as CollectionRule['sort'] })}><option value="added">Date added</option><option value="title">Title</option><option value="year">Year</option><option value="rating">Rating</option><option value="runtime">Length</option><option value="played">Most played</option><option value="random">Shuffle</option></select></label>
-              <label>Order<select className="select" value={rule.desc ? 'd' : 'a'} onChange={(e) => up({ desc: e.target.value === 'd' })}><option value="d">Highest or newest first</option><option value="a">Lowest or oldest first</option></select></label>
-              <label>At most<input className="input" type="number" min={1} max={500} value={rule.limit ?? 100} onChange={(e) => up({ limit: num(e.target.value) })} /></label>
-            </div>
-            <div className="col-checks">
-              <label className="share-check"><input type="checkbox" checked={!!rule.liked} onChange={(e) => up({ liked: e.target.checked })} /> Only what I liked</label>
-              <label className="share-check"><input type="checkbox" checked={!!rule.episodes} onChange={(e) => up({ episodes: e.target.checked })} /> Include TV episodes</label>
-            </div>
-            <div className="col-preview" aria-live="polite">
-              {preview && <b>{preview.count} {preview.count === 1 ? 'match' : 'matches'}</b>}
-              <div className="col-preview-row">{preview?.items.filter((it) => it.poster).slice(0, 8).map((it) => <img key={it.id} src={sized(posterUrl(it), fitWidth(96))} alt={it.title} title={it.title} loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />)}</div>
-            </div>
-          </fieldset>
-        )}
-        {!collection?.system && <label className="share-check"><input type="checkbox" checked={shared} onChange={(e) => setShared(e.target.checked)} /> Share with the other profiles; each sees what their own limits allow</label>}
-        {err && <div className="error" role="alert">{err}</div>}
+        <SpecPage embedded page={spec} handled={handled} onAction={onAction} onField={onField} after={matchIndex >= 0 ? { [matchIndex]: <div className="col-preview-row">{preview?.items.filter((it) => it.poster).slice(0, 8).map((it) => <img key={it.id} src={sized(posterUrl(it), fitWidth(96))} alt={it.title} title={it.title} loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />)}</div> } : undefined} />
       </form>
     </Dialog>
   )

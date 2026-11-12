@@ -6,8 +6,9 @@ import { api, type MyLimits, type ScreenTime } from '../api'
 import { useApp } from '../state'
 import { publishLimits } from '../myLimits'
 import { Button } from '../ui/Button'
-import { Segmented } from '../ui/Choice'
-import { Field, Input } from '../ui/Field'
+import SpecPage from '../spec/SpecPage'
+import { handledIds } from '../spec/model'
+import { askParentSpec } from '../spec/specs/screentime'
 import { Dialog } from '../ui/Overlay'
 import { useSwitchProfile } from './SwitchProfile'
 import './switchprofile.css'
@@ -139,19 +140,16 @@ function TimeUp({ st, pin, onClose, onMore }: { st: ScreenTime; pin: boolean; on
       onMore(await api.post<ScreenTime>('/me/screen-time/extra', body))
     } catch (e) { setErr((e as Error).message); setCode(''); setPassword('') } finally { setBusy(false) }
   }
+  const page = askParentSpec({ more, byPassword, hasPin: pin, name, password, code, error: err })
+  const handled = handledIds(page)
   const ready = byPassword ? !!name.trim() && !!password : code.length >= 4
   if (asking) {
     return (
       <Dialog title="Ask a parent" size="sm" onClose={onClose}
         actions={<><Button variant="ghost" onClick={() => { setAsking(false); setErr('') }}>Back</Button><Button variant="primary" busy={busy} disabled={!ready} onClick={give}>Give more time</Button></>}>
-        <form className="form full st-ask" onSubmit={(e) => { e.preventDefault(); if (ready && !busy) give() }}>
-          <p className="st-when">A parent can give this profile more time today.</p>
-          <Segmented label="How much more" value={more} onChange={setMore} options={[{ value: '15', label: '15 minutes' }, { value: '30', label: '30 minutes' }, { value: '60', label: '1 hour' }]} />
-          {byPassword ? <>
-            <Field label="A parent’s username"><Input autoFocus={!pin} autoComplete="off" value={name} onChange={(e) => setName(e.target.value)} /></Field>
-            <Field label="Their password" error={err || undefined}><Input type="password" autoComplete="off" value={password} onChange={(e) => setPassword(e.target.value)} /></Field>
-          </> : <Field label="The parents’ PIN" error={err || undefined}><Input autoFocus type="password" inputMode="numeric" autoComplete="off" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 12))} /></Field>}
-          {pin && <Button variant="ghost" size="sm" onClick={() => { setByPassword(!byPassword); setErr('') }}>{byPassword ? 'Use the parents’ PIN instead' : 'Use a parent’s password instead'}</Button>}
+        <form className="st-ask" onSubmit={(e) => { e.preventDefault(); if (ready && !busy) give() }}>
+          <SpecPage embedded page={page} handled={handled} onAction={(id) => { if (id.startsWith('more:')) setMore(id.slice(5)); else if (id === 'switch') { setByPassword(!byPassword); setErr('') } }}
+            onField={(id, v) => { if (id === 'code') setCode(String(v).replace(/\D/g, '').slice(0, 12)); else if (id === 'name') setName(String(v)); else if (id === 'password') setPassword(String(v)) }} />
           <button type="submit" hidden aria-hidden="true" tabIndex={-1} />
         </form>
       </Dialog>

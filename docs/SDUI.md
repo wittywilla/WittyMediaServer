@@ -2979,7 +2979,7 @@ Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 48
 
 #### recordings
 
-*Recordings.* The profile's finished Live TV recordings, newest first. See all opens `/tv/recordings`.
+*Recordings.* The profile's finished Live TV recordings, newest first. Each card carries channel and programme, for opening its More info, when the profile may still watch that channel. See all opens `/tv/recordings`.
 
 | Property | Type | Default | What it is |
 |---|---|---|---|

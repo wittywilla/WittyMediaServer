@@ -8,10 +8,11 @@ import { WebLink } from '../../components/WebLink'
 import { copyText, GuideBody } from '../../help/GuideBody'
 import { parse, type Block } from '../../help/markdown'
 import '../../help/help.css'
-import { IconCopy, IconDownload, IconRefresh } from '../../icons'
+import { IconCopy, IconDownload } from '../../icons'
 import { toast, useApp } from '../../state'
 import { ask } from '../../ui/Overlay'
-import { Row, Section, Switch } from './ui'
+import SpecPage from '../../spec/SpecPage'
+import { NEWEST, updatesSpec, type UpdatesView } from '../../spec/specs/updates'
 
 // Updates: what is installed, what GitHub has, what changed since, and the one way this copy
 // updates. A copy that can replace its own files does it with one click: the server verifies the
@@ -99,50 +100,44 @@ export function Updates() {
   const l = st?.latest
   // The download this copy needs: the package it replaces itself from, or its installer.
   const size = st?.method === 'installer' ? st.installer?.size : st?.method === 'apply' ? l?.size : 0
+  const view: UpdatesView = {
+    current: st?.current || '', checkedAt: st?.checkedAt ? fmtDateTime(st.checkedAt) : '', withdrawn: st?.withdrawn || '', checkError: st?.checkError || '',
+    upToDate: !!st && !l && !st.checkError && !!st.checkedAt,
+    latest: l ? { title: l.title || '', version: l.version, meta: `Version ${l.version}${l.prerelease ? ' · pre-release' : ''}${l.published ? ` · ${new Date(l.published).toLocaleDateString()}` : ''}${size ? ` · ${mb(size)} MB` : ''}` } : null,
+    method: st?.method || '', hasInstallerPhase: !!st?.installer?.phase, active, checking, auto,
+  }
+  const page = updatesSpec(view)
+  const newAt = page.sections.findIndex((x) => x.h === NEWEST)
+  const onAction = (id: string) => { if (id === 'check') check(); else if (id === 'apply') apply(); else if (id === 'installer') fetchInstaller() }
+  const onField = (id: string, v: string | number | boolean | File) => { if (id === 'auto') setAutoCheck(!!v) }
+  const progress = st && st.phase !== 'idle' && (
+    <div className={'upd-progress' + (st.phase === 'failed' ? ' failed' : '')} role="status" aria-live="polite">
+      {st.phase === 'downloading' && <>
+        <span>Downloading… {mb(st.done)}{st.total ? ` of ${mb(st.total)}` : ''} MB</span>
+        <progress max={st.total || undefined} value={st.total ? st.done || 0 : undefined} />
+      </>}
+      {st.phase === 'verifying' && <span>Checking the signature and checksum…</span>}
+      {st.phase === 'installing' && <span>Installing the new files…</span>}
+      {st.phase === 'restarting' && <span>{slow
+        ? 'The server hasn’t come back yet. If it doesn’t, start WittyMediaServer again (tray icon or Start menu); the new version is installed.'
+        : 'Restarting… this page reloads by itself when the new version is running.'}</span>}
+      {st.phase === 'failed' && <span>The update didn’t install, and the server keeps running the version it has: {st.error}</span>}
+    </div>
+  )
   return (
-    <Section id="updates" title="Updates" desc="New versions of WittyMediaServer are published on GitHub. Each one is signed, and this server installs only releases whose signature and checksum it can verify."
-      actions={<button className="btn ghost sm" onClick={check} disabled={checking || active}><IconRefresh /> {checking ? 'Checking…' : 'Check now'}</button>}>
-      <Row label="Installed version" desc={st?.checkedAt ? `Last checked ${fmtDateTime(st.checkedAt)}` : 'Not checked yet'}>
-        <span className="mod-ver">{st?.current || '…'}</span>
-      </Row>
-      {st?.withdrawn && <p className="upd-msg warn" role="alert">This version was withdrawn by the project: {st.withdrawn}. Update as soon as a newer one is offered.</p>}
-      {st?.checkError && <p className="upd-msg warn">The last check didn’t work: {st.checkError}</p>}
-      {st && !l && !st.checkError && !!st.checkedAt && <p className="upd-msg">You have the newest version.</p>}
-      {st && l && (
-        <div className="upd-new">
-          <div className="upd-head">
-            <div>
-              <b>{l.title || `Version ${l.version}`}</b>
-              <span className="muted">Version {l.version}{l.prerelease && ' · pre-release'}{l.published ? ` · ${new Date(l.published).toLocaleDateString()}` : ''}{size ? ` · ${mb(size)} MB` : ''}</span>
-            </div>
-            {st.method === 'apply' && !active && <button className="btn primary sm" onClick={apply}>Update now</button>}
-            {st.method === 'installer' && !st.installer?.phase && <button className="btn primary sm" onClick={fetchInstaller}><IconDownload /> Download the installer</button>}
+    <SpecPage embedded page={page} handled={new Set(['check', 'apply', 'installer'])} onAction={onAction} onField={onField}
+      after={{
+        0: progress || undefined,
+        ...(newAt >= 0 && st && l ? { [newAt]: (
+          <div className="upd-new">
+            {st.method !== 'apply' && st.reason && <p className="upd-msg">{st.reason}</p>}
+            {st.method === 'installer' && st.installer && <InstallerSteps st={st} installer={st.installer} retry={fetchInstaller} />}
+            {st.method === 'docker' && <DockerSteps image={st.image || 'ghcr.io/wittywilla/wittymediaserver:alpha'} />}
+            <WhatsNew info={l} />
+            <WebLink href={l.url || st.page}>Release page on GitHub ›</WebLink>
           </div>
-          {st.method !== 'apply' && st.reason && <p className="upd-msg">{st.reason}</p>}
-          {st.method === 'installer' && st.installer && <InstallerSteps st={st} installer={st.installer} retry={fetchInstaller} />}
-          {st.method === 'docker' && <DockerSteps image={st.image || 'ghcr.io/wittywilla/wittymediaserver:alpha'} />}
-          <WhatsNew info={l} />
-          <WebLink href={l.url || st.page}>Release page on GitHub ›</WebLink>
-        </div>
-      )}
-      {st && st.phase !== 'idle' && (
-        <div className={'upd-progress' + (st.phase === 'failed' ? ' failed' : '')} role="status" aria-live="polite">
-          {st.phase === 'downloading' && <>
-            <span>Downloading… {mb(st.done)}{st.total ? ` of ${mb(st.total)}` : ''} MB</span>
-            <progress max={st.total || undefined} value={st.total ? st.done || 0 : undefined} />
-          </>}
-          {st.phase === 'verifying' && <span>Checking the signature and checksum…</span>}
-          {st.phase === 'installing' && <span>Installing the new files…</span>}
-          {st.phase === 'restarting' && <span>{slow
-            ? 'The server hasn’t come back yet. If it doesn’t, start WittyMediaServer again (tray icon or Start menu); the new version is installed.'
-            : 'Restarting… this page reloads by itself when the new version is running.'}</span>}
-          {st.phase === 'failed' && <span>The update didn’t install, and the server keeps running the version it has: {st.error}</span>}
-        </div>
-      )}
-      <Row label="Check for updates automatically" desc="Twice a day the server asks GitHub for its list of releases and shows a dot on Settings when there is a newer one. Nothing about you or your library is sent, and nothing installs without you.">
-        <Switch checked={auto} onChange={setAutoCheck} label="Check for updates automatically" />
-      </Row>
-    </Section>
+        ) } : {}),
+      }} />
   )
 }
 

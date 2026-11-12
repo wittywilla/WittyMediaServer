@@ -201,15 +201,10 @@ html.tv-mode .who > .btn { margin-top: calc(var(--tvu) * 8); }
 html.tv-mode .auth-version { font-size: var(--tvm-caption); }
 
 /* The password screen: one centred column. */
-html.tv-mode .auth-card { width: min(calc(var(--tvu) * 640), 100%); max-width: none; background: none; border: 0; box-shadow: none; text-align: center; }
-html.tv-mode .auth-card p { font-size: var(--tvm-body); color: var(--fg-2); }
 html.tv-mode .auth-profile { gap: calc(var(--tvu) * 12); margin-bottom: calc(var(--tvu) * 8); }
 html.tv-mode .auth-profile .avatar-tile.big { width: calc(var(--tvu) * 200); height: calc(var(--tvu) * 200); font-size: calc(var(--tvu) * 86); }
 html.tv-mode .auth-profile h2 { font-size: var(--tvm-title); font-weight: 600; }
 html.tv-mode .auth-profile .who-user { margin-top: calc(var(--tvu) * -8); }
-html.tv-mode .auth-card .form { gap: calc(var(--tvu) * 20); margin-top: calc(var(--tvu) * 32); }
-html.tv-mode .auth-card .btn.primary { width: 100%; }
-html.tv-mode .auth-card small { font-size: var(--tvm-secondary); }
 
 /* ---- the player: TV-size controls */
 html.tv-mode .player .bottom .ibtn, html.tv-mode .player .top .ibtn { width: var(--tvm-pill-h); height: var(--tvm-pill-h); border-radius: 50%; }
@@ -238,3 +233,8 @@ html.tv-mode .dock .key-legend kbd { font-size: var(--tvm-label); padding: 0 cal
 html.tv-mode .dock:not(.ctv-dock) .dock-btn { min-height: var(--tvm-pill-h); font-size: var(--tvm-body); padding: 0 calc(var(--tvu) * 32); gap: calc(var(--tvu) * 12); }
 /* A card lifts as it takes focus (tv.focus lift 6), on top of the 1.06 scale. */
 @media (prefers-reduced-motion: no-preference) { html.tv-mode .card:focus-visible .poster { translate: 0 calc(-1 * var(--tvm-lift)); } }
+
+/* The server's name, left of the pills (a side menu keeps only its mark). */
+.tvm-bar:not(.tvm-side) { display: flex; align-items: center; gap: calc(var(--tvu) * 32); }
+.tvm-brand { display: inline-flex; align-items: center; gap: calc(var(--tvu) * 12); flex: none; font-size: calc(var(--tvu) * 30); font-weight: 700; }
+.tvm-side .tvm-brand { justify-content: center; margin-bottom: calc(var(--tvu) * 24); }

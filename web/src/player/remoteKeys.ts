@@ -47,7 +47,15 @@ export type RemoteState = {
 
 // WittyRemote's table from the catalogue (`remote` in GET /sdui/catalog): which keys each kind of disc or video dims. A
 // dimmed key stays on the remote, with a dashed outline, and does nothing.
-export type RemoteCatalogue = { kinds?: Record<string, { dimmed?: string[]; dimmedWhen?: Record<string, string[]> }> }
+export type RemoteCatalogue = {
+  kinds?: Record<string, { label?: string; dimmed?: string[]; dimmedWhen?: Record<string, string[]> }>
+  keys?: { id: string; label: string; group: string }[]
+  groups?: string[]
+  pages?: string[][]
+  rule?: string
+  // How the remote may be placed: "body" (a floating remote, or a sheet) and "bar" (a strip above or below the timeline).
+  looks?: string[]
+}
 let catalogue: RemoteCatalogue = {}
 export const setRemoteCatalogue = (c: RemoteCatalogue) => { catalogue = c }
 // The catalogue's key names for ours.
@@ -59,6 +67,20 @@ export function catalogueDims(form: RemoteForm, k: RemoteKey, s: RemoteState = {
   const has = (ids?: string[]) => !!ids?.some((id) => (CATALOGUE_KEY[id] || id) === k)
   return has(kind.dimmed) || (s.angles != null && s.angles <= 1 && has(kind.dimmedWhen?.oneAngle))
 }
+
+// The catalogue's word for a key (TOP MENU, SUBTITLE, Back 10), or ours when the server sent none.
+export function keyLabel(k: RemoteKey, fallback: string): string {
+  const id = Object.entries(CATALOGUE_KEY).find(([, v]) => v === k)?.[0] || (k.startsWith('digit') ? k.slice(5) : k)
+  return catalogue.keys?.find((x) => x.id === id)?.label || fallback
+}
+// What the remote is called for what is playing ("DVD", "Blu-ray", "A video file"), for the strip's heading.
+export const kindLabel = (form: RemoteForm): string => catalogue.kinds?.[KIND_OF[form]]?.label || ''
+// The catalogue's rule about dimmed keys, in words, for the line under the remote.
+export const remoteRule = (): string => catalogue.rule || ''
+// Which placements the catalogue allows: the strip above or below the timeline only if it lists "bar".
+export const barAllowed = (): boolean => !catalogue.looks || catalogue.looks.includes('bar')
+// The keys on the sheet's pages, by group (menus, options, pad, transport / digits, colours).
+export const sheetPages = (): string[][] => catalogue.pages?.length ? catalogue.pages : [['menus', 'options', 'pad', 'transport'], ['digits', 'colours']]
 
 const digitOf = (k: RemoteKey) => (k.startsWith('digit') ? Number(k.slice(5)) : -1)
 

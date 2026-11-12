@@ -2,7 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { moduleForPath, overrideDeclarations, tokenVar } from './themeOverrides.ts'
+import { moduleForPath, overrideDeclarations, safeColour, tokenVar } from './themeOverrides.ts'
 
 test('a colour name becomes the CSS variable themes use', () => {
   assert.equal(tokenVar('accentFg'), '--accent-fg')
@@ -77,4 +77,9 @@ test('the profile\'s own colours go over everything, and its colours for a scope
   const other = Object.fromEntries(overrideDeclarations(t, '', false))
   assert.equal(other['--fg'], '#fafafa')
   assert.equal(other['--accent'], undefined)
+})
+
+test('a finish colour from a theme file is a plain colour and nothing that could fetch or break out', () => {
+  for (const ok of ['#fff', '#7fd8ff', '#0a6aa8cc', 'rgba(255,255,255,.9)', 'rgb(20 140 80 / 25%)', 'hsl(200, 80%, 50%)', ' #123456 ']) assert.equal(safeColour(ok), ok.trim(), ok)
+  for (const bad of ['url(https://x/y.png)', 'red; background: url(x)', 'var(--accent)', 'rgba(1,2,3) }', 'expression(1)', '', 42, null, undefined]) assert.equal(safeColour(bad), '', String(bad))
 })

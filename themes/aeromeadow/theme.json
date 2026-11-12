@@ -3,7 +3,7 @@
   "name": "Aero Meadow",
   "description": "Spring green glass over a bright meadow.",
   "author": "WittyMediaServer",
-  "version": "2",
+  "version": "3",
   "scheme": "light",
   "builtin": true,
   "preview": {
@@ -108,10 +108,10 @@
       "shadow": "rgba(20,140,80,.25)"
     },
     "gloss": [
-      "#9be8a0",
-      "#2fae4d",
-      "#1f8a3a",
-      "#4fcf6a",
+      "#59855c",
+      "#24843b",
+      "#1e8438",
+      "#348946",
       "#146b2e"
     ]
   },

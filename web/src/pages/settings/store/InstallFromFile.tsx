@@ -2,9 +2,11 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useId, useRef, useState } from 'react'
 import { api, ApiError, fmtDateTime, getToken, serverBase } from '../../../api'
-import { IconCheck, IconInfo, IconShield, IconFile } from '../../../icons'
+import { IconFile } from '../../../icons'
 import { toast } from '../../../state'
 import { Button, Dialog, Progress } from '../../../ui'
+import SpecPage from '../../../spec/SpecPage'
+import { installChoose, installFound } from '../../../spec/specs/installFile'
 import { ConfirmOwner } from '../ConfirmOwner'
 import { OverrideDialog, type OverrideBody } from './OverrideDialog'
 import { toDate, uploadView, type UploadResult } from './overrides'
@@ -150,58 +152,24 @@ function UploadDialog({ onClose, onInstalled }: { onClose: () => void; onInstall
       </>}>
       {stage.at !== 'found' && (
         <form id={uid + 'f'} className="up-form" onSubmit={send}>
-          <p className="ms-note">The server reads the file and says what it is before anything is installed. A module is someone’s code running on your server, so only install one from someone you trust.</p>
-          <label className="up-file">The module’s release archive
-            <input type="file" accept=".zip,.tar.gz,.tgz,application/zip,application/gzip" disabled={stage.at === 'uploading'}
-              onChange={(e) => { setP((x) => ({ ...x, archive: e.target.files?.[0] || null })); setErr('') }} aria-describedby={uid + 'ah'} />
-            <span className="up-hint" id={uid + 'ah'}>As the module’s publisher released it, at most 512 MB.</span>
-          </label>
-          <fieldset className="up-optional" disabled={stage.at === 'uploading'}>
-            <legend>If you have them</legend>
-            <label className="up-file">Checksum list
-              <input type="file" onChange={(e) => setP((x) => ({ ...x, sums: e.target.files?.[0] || null }))} aria-describedby={uid + 'sh'} />
-              <span className="up-hint" id={uid + 'sh'}>Usually SHA256SUMS, from the same release.</span>
-            </label>
-            <label className="up-file">Signature
-              <input type="file" onChange={(e) => setP((x) => ({ ...x, sig: e.target.files?.[0] || null }))} aria-describedby={uid + 'gh'} />
-              <span className="up-hint" id={uid + 'gh'}>The .sig file that signs the checksum list.</span>
-            </label>
-            <label className="set-field">The publisher’s public key
-              <input className="input mono" value={p.key} onChange={(e) => setP((x) => ({ ...x, key: e.target.value }))} placeholder="44 characters, from wittymodule keygen" spellCheck={false} autoComplete="off" autoCapitalize="off" />
-            </label>
-          </fieldset>
-          {stage.at === 'uploading' && (
-            <div className="up-progress">
-              <span role="status" aria-live="polite">{pct < 100 ? `Uploading ${p.archive?.name}: ${pct}%` : 'Uploaded. The server is checking it…'}</span>
-              <Progress label={`Uploading ${p.archive?.name}`} value={pct < 100 ? stage.sent : undefined} max={stage.total} />
-            </div>
-          )}
-          {err && <p className="error" role="alert">{err}</p>}
+          <SpecPage embedded page={installChoose({
+            archive: p.archive?.name || '', sums: p.sums?.name || '', sig: p.sig?.name || '', key: p.key, error: err,
+            uploading: stage.at === 'uploading' ? (pct < 100 ? `Uploading ${p.archive?.name}: ${pct}%` : 'Uploaded. The server is checking it…') : '',
+          })} onField={(id, val) => {
+            if (id === 'key') setP((x) => ({ ...x, key: String(val) }))
+            else if (val instanceof File) { setP((x) => ({ ...x, [id]: val })); if (id === 'archive') setErr('') }
+          }} />
+          {stage.at === 'uploading' && <Progress label={`Uploading ${p.archive?.name}`} value={pct < 100 ? stage.sent : undefined} max={stage.total} />}
         </form>
       )}
 
       {v && r && (
         <div className="up-found">
-          <h3 ref={found} tabIndex={-1} className="up-title">{v.title}</h3>
-          {r.refusal && <p className="error" role="alert">{r.refusal}</p>}
-          <dl className="ms-facts">
-            {v.facts.map((f) => <div key={f.label}><dt>{f.label}</dt><dd>{f.value}</dd></div>)}
-          </dl>
-          <p className={'up-sig ' + v.signature.tone}>{v.signature.tone === 'ok' ? <IconCheck size={16} /> : <IconShield size={16} />}<span>{v.signature.words}</span></p>
-          {r.fingerprint && <p className="st-print up-print">Key fingerprint <code>{r.fingerprint}</code></p>}
-          {r.statusNote && !v.problems.some((x) => x.text.includes(r.statusNote!)) && <p className="warn-box">{r.statusNote}</p>}
-          <div>
-            <b>What it asks for</b>
-            {v.permissions.length ? <ul className="up-problems">{v.permissions.map((x) => <li key={x}>{x}</li>)}</ul> : <p className="ms-note">No special permissions.</p>}
-          </div>
-          {v.problems.length > 0 && (
-            <div>
-              <b><IconInfo size={14} /> What’s wrong with it</b>
-              <ul className="up-problems">{v.problems.map((x, i) => <li key={i}>{x.text}</li>)}</ul>
-            </div>
-          )}
-          {v.state === 'override' && <p className="ms-note">Installing it needs an override: the next step names each rule it bypasses.</p>}
-          {expires && v.state !== 'refused' && <p className="ms-note">Kept until {fmtDateTime(expires.getTime())}, then discarded if it isn’t installed.</p>}
+          <SpecPage embedded page={installFound({
+            title: v.title, refusal: r.refusal, facts: v.facts, signature: v.signature, fingerprint: r.fingerprint, statusNote: r.statusNote,
+            permissions: v.permissions, problems: v.problems.map((x) => x.text), overrideNote: v.state === 'override',
+            keptUntil: expires && v.state !== 'refused' ? fmtDateTime(expires.getTime()) : undefined,
+          })} before={<h3 ref={found} tabIndex={-1} className="up-title">{v.title}</h3>} />
         </div>
       )}
     </Dialog>

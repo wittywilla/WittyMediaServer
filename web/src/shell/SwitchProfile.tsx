@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, ApiError, profileName, setToken, type HouseholdProfile, type User } from '../api'
 import { IconLock } from '../icons'
 import { Avatar } from '../pages/AuthPage'
 import { useApp } from '../state'
 import { Button } from '../ui/Button'
-import { Field, Input } from '../ui/Field'
+import SpecPage from '../spec/SpecPage'
+import { switchSpec } from '../spec/specs/auth'
+import { isSubmitKey } from '../spec/specs/submit'
 import { Dialog } from '../ui/Overlay'
 import './switchprofile.css'
 
@@ -41,7 +43,6 @@ function SwitchProfile({ onClose, onSignOut }: { onClose: () => void; onSignOut:
   const [needCode, setNeedCode] = useState(false)
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
-  const pwRef = useRef<HTMLInputElement | null>(null)
   useEffect(() => {
     api.get<{ profiles: HouseholdProfile[] }>('/profiles/household').then((r) => setProfiles(r.profiles)).catch((e) => { setProfiles([]); setErr((e as Error).message) })
   }, [])
@@ -64,7 +65,7 @@ function SwitchProfile({ onClose, onSignOut }: { onClose: () => void; onSignOut:
       } else {
         setErr((e as Error).message || 'That didn’t work.')
         setPassword(''); setNeedCode(false); setCode('')
-        pwRef.current?.focus()
+        setTimeout(() => document.querySelector<HTMLElement>('[data-field="password"]')?.focus())
       }
     } finally { setBusy(false) }
   }
@@ -79,13 +80,10 @@ function SwitchProfile({ onClose, onSignOut }: { onClose: () => void; onSignOut:
     return (
       <Dialog title={`Switch to ${name}`} size="sm" onClose={onClose}
         actions={<><Button variant="ghost" onClick={() => { setChosen(null); setErr('') }}>Back</Button><Button variant="primary" busy={busy} disabled={needCode ? !code.trim() : !password} onClick={() => go(chosen, password)}>Switch</Button></>}>
-        <form className="form full" onSubmit={(e) => { e.preventDefault(); if (!busy && (needCode ? code.trim() : password)) go(chosen, password) }}>
+        <div onKeyDown={(e) => { if (isSubmitKey(e)) { e.preventDefault(); if (!busy && (needCode ? code.trim() : password)) go(chosen, password) } }}>
           <div className="sw-chosen"><Avatar name={name} avatar={chosen.avatar} /> <b>{name}</b></div>
-          {needCode
-            ? <Field label="Code from the authenticator app" error={err || undefined}><Input autoFocus inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} /></Field>
-            : <Field label={chosen.kind === 'adult' ? 'Password' : 'Password or PIN'} error={err || undefined}><Input ref={pwRef} autoFocus type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} /></Field>}
-          <button type="submit" hidden aria-hidden="true" tabIndex={-1} />
-        </form>
+          <SpecPage page={switchSpec(chosen.kind, needCode, password, code, err)} embedded onField={(id, v) => { if (id === 'code') setCode(String(v)); else setPassword(String(v)) }} />
+        </div>
       </Dialog>
     )
   }

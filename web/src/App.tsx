@@ -27,6 +27,7 @@ import { syncTilt } from './ui/tilt'
 import { Sidebar } from './shell/Sidebar'
 import { TabBar } from './shell/TabBar'
 import { TopBar } from './shell/TopBar'
+import { Scene } from './ui/Scene'
 import { frameFor } from './shell/navModel'
 import { useMedia, useMenu, useNavMigration, useNavPrefs } from './shell/useNav'
 import { useTvMode } from './tvmode/mode'
@@ -47,7 +48,6 @@ const CouchMode = lazy(() => import('./pages/games/Couch'))
 const RadioStationPage = lazy(() => import('./pages/RadioLibrary').then((m) => ({ default: m.RadioStationPage })))
 const ControllersScreen = lazy(() => import('./pages/Games').then((m) => ({ default: m.ControllersScreen })))
 const WatchPage = lazy(() => import('./pages/creators/WatchPage'))
-const CollectionsPage = lazy(() => import('./pages/CollectionsPage'))
 const FixMatches = lazy(() => import('./pages/FixMatches'))
 const BrandPage = lazy(() => import('./pages/library/BrandPage'))
 const CouchPage = lazy(() => import('./pages/Couch'))
@@ -130,6 +130,7 @@ function Shell() {
   const isStream = /^\/couch\/\d+\/play\//.test(loc.pathname) || loc.pathname.startsWith('/couch-rig/')
   return (
     <AudioProvider>
+      {!isTvPlayer && !isReader && !isStream && !isGame && !isPlayer && <Scene />}
       {isTvPlayer ? <Suspense fallback={tvFallback}><Routes><Route path="/tv/watch/:key" element={<TvPlayer />} /></Routes></Suspense>
         : isReader ? <Suspense fallback={<Spinner />}><Routes><Route path="/read/:id" element={<ReaderPage />} /></Routes></Suspense>
         : isCouchMode ? <Suspense fallback={<Spinner />}><Routes><Route path="/big/*" element={<CouchMode />} /></Routes></Suspense>
@@ -221,7 +222,7 @@ export function PageRoutes() {
       <Route path="/cd/:id" element={<CdPlayer />} />
       <Route path="/couch" element={<Suspense fallback={<Spinner />}><CouchPage /></Suspense>} />
       <Route path="/couch/:id" element={<Suspense fallback={<Spinner />}><CouchHostPage /></Suspense>} />
-      <Route path="/collections" element={<SduiRoute fallback={<Suspense fallback={<Spinner />}><CollectionsPage /></Suspense>} />} />
+      <Route path="/collections" element={<SduiRoute fallback={<NotFound />} />} />
       <Route path="/collections/:id" element={<SduiRoute fallback={<Suspense fallback={<Spinner />}><CollectionPage /></Suspense>} />} />
       <Route path="/person/:id" element={<SduiRoute fallback={<NotFound />} loading={<RouteSkeleton />} />} />
       <Route path="/review" element={<Suspense fallback={<Spinner />}><ReviewPage /></Suspense>} />

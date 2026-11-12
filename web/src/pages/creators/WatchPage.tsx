@@ -2,7 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { api, fmtTime, type PlayInfo } from '../../api'
+import { api, type PlayInfo } from '../../api'
 import { EmptyState, Spinner } from '../../components/common'
 import ShareDialog from '../../components/ShareDialog'
 import { SaveButton } from '../../components/SaveToCollection'
@@ -14,6 +14,9 @@ import { Avatar, Comments, EditVideoDialog, LikeButtons, SubscribeButton, viewsO
 import '../../creators.css'
 import LegalNote from '../../components/LegalNote'
 import { WebLink } from '../../components/WebLink'
+import SpecPage from '../../spec/SpecPage'
+import { handledIds } from '../../spec/model'
+import { autoplaySpec, chaptersSpec } from '../../spec/specs/media'
 import { VideoSongPanel } from '../music/SongVideo'
 import { VideoLyrics } from '../music/VideoLyrics'
 
@@ -21,6 +24,7 @@ import { VideoLyrics } from '../music/VideoLyrics'
 // watch next beside it.
 
 const AUTONEXT = 'wms.channels.autoNext'
+const AUTO_IDS = handledIds(autoplaySpec(true))
 
 export default function WatchPage() {
   const { id } = useParams()
@@ -91,12 +95,10 @@ export default function WatchPage() {
                 <dl className="ch-custom">{Object.entries(d.custom).map(([k, x]) => <div key={k}><dt>{k}</dt><dd>{String(x)}</dd></div>)}</dl>
               )}
             </div>
-            {chapters.length > 1 && (
-              <section className="ch-chapters" aria-label="Chapters">
-                <h2>{d.durationSec >= 1200 ? 'Setlist' : 'Chapters'}</h2>
-                <ol>{chapters.map((c, i) => <li key={i}><button onClick={() => setSeekTo({ at: c.start })}><span className="muted">{fmtTime(c.start)}</span> {c.title || `Part ${i + 1}`}</button></li>)}</ol>
-              </section>
-            )}
+            {chapters.length > 1 && (() => {
+              const page = chaptersSpec(chapters, d.durationSec >= 1200)
+              return <SpecPage page={page} embedded handled={handledIds(page)} onAction={(id) => setSeekTo({ at: chapters[Number(id.slice(3))].start })} />
+            })()}
             <Comments key={d.id} itemId={d.id} count={d.comments} />
           </>
         )}
@@ -104,10 +106,8 @@ export default function WatchPage() {
         {d && <LegalNote kind="creators" />}
       </div>
       <aside className="ch-next" aria-label="Up next">
-        <div className="ch-next-head">
-          <h2>Up next</h2>
-          <label className="share-check"><input type="checkbox" checked={auto} onChange={(e) => setAutoNext(e.target.checked)} /> Autoplay</label>
-        </div>
+        <h2 className="sr-only">Up next</h2>
+        <SpecPage page={autoplaySpec(auto)} embedded handled={AUTO_IDS} onAction={() => setAutoNext(!auto)} />
         {next.map((v) => (
           <Link key={v.id} to={`/watch/${v.id}`} className="ch-next-item">
             <span className={'ch-next-thumb' + (v.vertical ? ' tall' : '')}><img src={videoThumb(v.id, 320, v.updatedAt)} alt="" loading="lazy" /></span>

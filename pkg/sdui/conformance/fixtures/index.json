@@ -464,6 +464,30 @@
    "file": "layout-streaming-tv.json",
    "title": "Layout: streaming style, Home on a television",
    "formFactor": "tv"
+  },
+  {
+   "id": "library-books-tv",
+   "file": "library-books-tv.json",
+   "title": "A books library on a television, on its Series tab",
+   "formFactor": "tv"
+  },
+  {
+   "id": "library-books-phone",
+   "file": "library-books-phone.json",
+   "title": "A books library on a phone, on its first tab",
+   "formFactor": "phone"
+  },
+  {
+   "id": "statistics-phone",
+   "file": "statistics-phone.json",
+   "title": "Statistics and likes on a phone, for a profile that isn't an administrator",
+   "formFactor": "phone"
+  },
+  {
+   "id": "statistics-tv-admin",
+   "file": "statistics-tv-admin.json",
+   "title": "Statistics on a television, for an administrator",
+   "formFactor": "tv"
   }
  ]
 }

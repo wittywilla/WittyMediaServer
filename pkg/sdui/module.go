@@ -355,6 +355,16 @@ func ValidateModuleUI(ui *ModuleUI, module string, checks ModuleChecks) []Issue 
 			v.err(p+"/seeAll", "Use a place in the app such as /page/"+mod+".", "%q is not a place in the app", s.SeeAll)
 		}
 		v.paramSpecs(s.Params, p+"/params")
+		if s.TopShelf {
+			for j := range s.Params {
+				if s.Params[j].Required {
+					v.err(fmt.Sprintf("%s/params/%d", p, j), "Give it a default, or leave topShelf out.", "a source offered on Top Shelf is asked without parameters, so none can be required")
+				}
+			}
+			if len(s.PageKinds) > 0 {
+				v.err(p+"/topShelf", "Leave topShelf out, or pageKinds.", "Top Shelf is no page, so a source that needs one can't be offered there")
+			}
+		}
 	}
 	for i := range ui.Components {
 		c := &ui.Components[i]
@@ -783,6 +793,23 @@ func (s *ModuleSet) Source(t string) *SourceSpec {
 		return nil
 	}
 	return s.sources[t]
+}
+
+// TopShelfSources are the sources the modules offer for Top Shelf, by module and then in
+// each file's order.
+func (s *ModuleSet) TopShelfSources() []SourceSpec {
+	if s == nil {
+		return nil
+	}
+	var out []SourceSpec
+	for i := range s.uis {
+		for _, src := range s.uis[i].Sources {
+			if q := s.sources[src.Type]; q != nil && q.TopShelf && ModuleOf(src.Type) == s.uis[i].Module {
+				out = append(out, *q)
+			}
+		}
+	}
+	return out
 }
 
 // View reports whether a module in the set has the view.

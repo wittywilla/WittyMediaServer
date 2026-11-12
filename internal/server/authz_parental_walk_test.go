@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/pkg/sdui"
 )
 
 // The walk: a library where every title a limited profile must not see has one made-up word in its
@@ -81,6 +82,11 @@ type walkFixture struct {
 	creator    int64
 	tv         string    // the owner's TV, playing what is hidden
 	room       partyRoom // the owner's watch party, watching it
+
+	// sourceTargets are a page of the data sources that answer from someone's own past and a
+	// books library's shelf (statistics, liked, books), its sections, and the built-in books
+	// library pages with a row for each series and author.
+	sourceTargets []string
 }
 
 func newWalkFixture(t *testing.T) *walkFixture {
@@ -139,7 +145,7 @@ func newWalkFixture(t *testing.T) *walkFixture {
 				it.Poster = write(filepath.Join(side.dir, "poster.png"), picture)
 				it.Backdrop = it.Poster
 			}
-			if k.kind == "audio" {
+			if k.kind == "audio" || k.kind == "book" {
 				it.Artist, it.Album, it.AlbumArtist = side.word+" artist", side.word+" album", side.word+" artist"
 			}
 			if k.typ == "shows" {
@@ -212,7 +218,46 @@ func newWalkFixture(t *testing.T) *walkFixture {
 			t.Fatalf("%d %s", w.Code, w.Body)
 		}
 	}
+	f.sourcesPage(t)
 	return f
+}
+
+// sourcesPage is a page of every source that answers from someone's own past (what they
+// watched, liked) or from a books library's shelf, asked every way that could name a title:
+// statistics of each kind, everyone's too, and each books library by series and author.
+func (f *walkFixture) sourcesPage(t *testing.T) {
+	t.Helper()
+	page := sdui.Page{ID: "walk-sources", Kind: "custom", Title: "Sources"}
+	add := func(id string, src sdui.Source) {
+		page.Sections = append(page.Sections, sdui.Section{ID: id, Component: "Shelf", Source: src})
+	}
+	for _, stat := range []string{"titles", "shows", "libraries"} {
+		for _, who := range []string{"me", "everyone"} {
+			add("stats-"+stat+"-"+who, sdui.Source{"type": "statistics", "stat": stat, "who": who, "period": "all"})
+		}
+	}
+	add("liked", sdui.Source{"type": "liked"})
+	for _, lib := range append(append([]int64{}, f.fineLibs...), f.hiddenLibs...) {
+		l, err := f.ts.Store.Library(context.Background(), lib)
+		if err != nil || l.Type != "books" {
+			continue
+		}
+		id := fmt.Sprint("books-", lib)
+		add(id, sdui.Source{"type": "books", "library": lib})
+		add(id+"-series", sdui.Source{"type": "books", "library": lib, "series": hiddenWord + " album"})
+		add(id+"-author", sdui.Source{"type": "books", "library": lib, "author": hiddenWord + " artist", "sort": "author"})
+		for _, tab := range []string{"series", "authors"} {
+			f.sourceTargets = append(f.sourceTargets, fmt.Sprintf("/api/sdui/pages/library-books?library=%d&tab=%s&formFactor=desktop", lib, tab))
+		}
+	}
+	etag := f.ts.do(t, "GET", "/api/sdui/config", f.admin, nil).Header().Get("ETag")
+	if w := f.ts.do(t, "PUT", "/api/sdui/config/pages/walk-sources", f.admin, page, "If-Match", etag); w.Code != 200 {
+		t.Fatalf("saving the page of sources: %d %s", w.Code, w.Body)
+	}
+	f.sourceTargets = append(f.sourceTargets, "/api/sdui/pages/walk-sources?formFactor=desktop")
+	for _, sec := range page.Sections {
+		f.sourceTargets = append(f.sourceTargets, "/api/sdui/pages/walk-sources/sections/"+sec.ID+"/items?cursor=0")
+	}
 }
 
 // watchedBefore gives a profile a past with everything hidden: half-watched, played, liked and
@@ -425,6 +470,19 @@ func TestLimitedProfilesNeverSeeHiddenTitles(t *testing.T) {
 			t.Errorf("the walk can't find the hidden titles through %s even for an adult with no limits, so it would miss a leak there", must)
 		}
 	}
+	// The same for the page of sources: what an adult with no limits watched and liked, and
+	// the hidden books' series and author, are there to be found.
+	for _, want := range []string{"stats-titles-me", "stats-shows-me", "liked", "-series", "-author"} {
+		hit := false
+		for _, target := range f.sourceTargets {
+			if strings.Contains(target, want) && leaks(f.call("GET", target, free, nil).Body.String()) {
+				hit = true
+			}
+		}
+		if !hit {
+			t.Errorf("the walk can't find the hidden titles through the source %s even for an adult with no limits", want)
+		}
+	}
 	if len(found) < 30 {
 		t.Errorf("an adult with no limits found the hidden titles through only %d routes", len(found))
 	}
@@ -507,6 +565,11 @@ func TestLimitedProfilesNeverSeeHiddenTitles(t *testing.T) {
 		} {
 			if w := f.call(c.method, c.target, tok, c.body); leaks(w.Body.String()) {
 				t.Errorf("%s: %s %s names what is hidden: %.300s", p.name, c.method, c.target, w.Body.String())
+			}
+		}
+		for _, target := range f.sourceTargets {
+			if w := f.call("GET", target, tok, nil); leaks(w.Body.String()) {
+				t.Errorf("%s: GET %s names what is hidden: %.300s", p.name, target, w.Body.String())
 			}
 		}
 		for _, lib := range f.hiddenLibs {

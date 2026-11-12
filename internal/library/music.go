@@ -51,6 +51,15 @@ func (s *Store) audioWhere(libraryID int64, access *Access) ([]string, []any) {
 	return where, args
 }
 
+// groupWhere is audioWhere for albums and artists, which a books library has too: its
+// series (album) and authors (album artist, else artist). A library holds one kind of
+// thing, so this changes nothing for music, audiobooks or podcasts.
+func (s *Store) groupWhere(libraryID int64, access *Access) ([]string, []any) {
+	where, args := s.audioWhere(libraryID, access)
+	where[0] = "i.kind IN ('audio', 'book')"
+	return where, args
+}
+
 // AlbumFilter narrows and orders a list of albums. Sort: title | artist | year |
 // added | played (this person's own plays, which needs UserID).
 type AlbumFilter struct {
@@ -59,14 +68,14 @@ type AlbumFilter struct {
 	Limit                       int
 }
 
-// Albums lists a library's albums (or books). sort: title | artist | year | added.
+// Albums lists a library's albums (an audiobook library's books, a books library's series). sort: title | artist | year | added.
 func (s *Store) Albums(ctx context.Context, libraryID int64, artist, search, sort string, access *Access) ([]Album, error) {
 	return s.AlbumsFiltered(ctx, libraryID, AlbumFilter{Artist: artist, Search: search, Sort: sort}, access)
 }
 
 // AlbumsFiltered is Albums with the rest of what a library's page can ask for.
 func (s *Store) AlbumsFiltered(ctx context.Context, libraryID int64, f AlbumFilter, access *Access) ([]Album, error) {
-	where, args := s.audioWhere(libraryID, access)
+	where, args := s.groupWhere(libraryID, access)
 	if f.Artist != "" {
 		where = append(where, albumArtist+" = ?")
 		args = append(args, f.Artist)
@@ -130,9 +139,9 @@ func (s *Store) AlbumsFiltered(ctx context.Context, libraryID int64, f AlbumFilt
 	return out, rows.Err()
 }
 
-// Artists lists the album artists (or authors) of a library.
+// Artists lists the album artists of a library, or the authors of an audiobook or books library.
 func (s *Store) Artists(ctx context.Context, libraryID int64, access *Access) ([]Artist, error) {
-	where, args := s.audioWhere(libraryID, access)
+	where, args := s.groupWhere(libraryID, access)
 	rows, err := s.DB.QueryContext(ctx, `SELECT `+albumArtist+` AS a, COUNT(DISTINCT IFNULL(i.album, '')), COUNT(*),
 		MIN(CASE WHEN IFNULL(i.poster, '') <> '' THEN i.id END)
 		FROM items i WHERE `+strings.Join(where, " AND ")+` GROUP BY a ORDER BY a COLLATE NOCASE LIMIT 5000`, args...)

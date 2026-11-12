@@ -164,6 +164,9 @@ type SourceSpec struct {
 	Example json.RawMessage `json:"example,omitempty"`
 	// Module is the module that answers the source; "" for the server.
 	Module string `json:"module,omitempty"`
+	// TopShelf: a module's source that its module offers for tvOS Top Shelf, as a row of
+	// its own (GET /sdui/topshelf). The server's own rows there are fixed.
+	TopShelf bool `json:"topShelf,omitempty"`
 }
 
 // ConditionSpec describes one field of Condition.

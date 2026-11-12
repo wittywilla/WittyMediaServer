@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate, Route, Routes, useParams } from 'react-router-dom'
 import { fmtDateTime, api } from '../../api'
 import { ChooseFolderButton } from '../../components/FolderPicker'
-import { IconEdit, IconPlus, IconRefresh, IconTrash, IconTv } from '../../icons'
+import { IconEdit, IconPlus, IconRefresh, IconTv } from '../../icons'
 import { toast, useApp } from '../../state'
 import { ask } from '../../ui'
 import { PageHead, Row, Section, Switch } from '../settings/ui'
@@ -16,6 +16,8 @@ import { forgetLineup, type Channel, type Driver, type EPGSource, type Found, ty
 import { useFeatures } from '../../sdui/useSdui'
 import { BulkBar, ChannelHealth, CheckAll, Duplicates, Merged } from './TunerTools'
 import { Field, STATUS } from './tunerFields'
+import SpecPage from '../../spec/SpecPage'
+import { guideSourcesSpec, tunersSpec } from '../../spec/specs/tuners'
 import TunerSetup from './TunerSetup'
 import { ModuleMissing } from '../../components/ModuleMissing'
 import './tvsettings.css'
@@ -118,33 +120,7 @@ function Tuners() {
       </>}>
       {!drivers && !driversErr && <p className="muted" role="status">Getting WittyTuner ready…</p>}
       {driversErr && <p className="tvs-error" role="alert">WittyTuner didn't answer: {driversErr} <button className="btn sm" onClick={() => void loadDrivers()}><IconRefresh /> Try again</button></p>}
-      {found && found.length === 0 && <p className="muted" role="status">No new tuners found on your network or this machine, or the search didn't finish. Press <b>Add live TV</b> to add one by its address.</p>}
-      {found && found.length > 0 && (
-        <ul className="tvs-list" aria-label="Found on your network">
-          {found.map((f, i) => (
-            <li key={i} className="tvs-item">
-              <div className="tvs-item-text"><b>{f.name}</b><span>{f.detail || drivers?.find((x) => x.id === f.driver)?.name}</span></div>
-              {drivers?.some((x) => x.id === f.driver) && <button className="btn sm primary" onClick={() => setSetup({ start: f })} aria-label={`Set up ${f.name}`}><IconPlus /> Set up</button>}
-            </li>
-          ))}
-        </ul>
-      )}
-      {list && list.length === 0 && !found && <p className="muted">None yet. <b>Add live TV</b> walks you through it: a provider's playlist, one stream, a tuner box on your network, SAT&gt;IP or a TV card in this computer, found for you or typed in by hand.</p>}
-      {list && list.length > 0 && (
-        <ul className="tvs-list" aria-label="Your tuners">
-          {list.map((t) => (
-            <li key={t.id} className="tvs-item">
-              <div className="tvs-item-text">
-                <b>{t.name}</b>
-                <span>{drivers?.find((d) => d.id === t.driver)?.name || t.driver} · {t.channels} {t.channels === 1 ? 'channel' : 'channels'}{t.clear > 0 ? ` · ${t.clear} clear` : ''}{t.encrypted > 0 ? ` · ${t.encrypted} encrypted` : ''}{t.inUse > 0 ? ` · ${t.inUse} in use` : ''}</span>
-                {t.lastError && <span className="tvs-error" role="alert">{t.lastError}</span>}
-              </div>
-              <Link className="btn sm ghost" to={`tuner/${t.id}`} aria-label={`Channels of ${t.name}`}><IconEdit /> Channels</Link>
-              <button className="btn sm ghost" onClick={() => void remove(t)} aria-label={`Remove ${t.name}`}><IconTrash /></button>
-            </li>
-          ))}
-        </ul>
-      )}
+      {drivers && (list || found) && <TunersList list={list} found={found} drivers={drivers} onSetup={(f) => setSetup({ start: f })} onRemove={(t) => void remove(t)} />}
       {drivers && drivers.length > 0 && (
         <details className="tvs-details">
           <summary>What WittyTuner can use, and how well each has been tried</summary>
@@ -163,6 +139,18 @@ function Tuners() {
       {setup && drivers && <TunerSetup drivers={drivers} start={setup.start} onClose={() => setSetup(null)} onAdded={() => { setFound(null); void load() }} />}
     </Section>
   )
+}
+
+// The tuners found and the tuners added, as rows.
+function TunersList({ list, found, drivers, onSetup, onRemove }: { list: Tuner[] | null; found: Found[] | null; drivers: Driver[]; onSetup: (f: Found) => void; onRemove: (t: Tuner) => void }) {
+  const page = tunersSpec(list && list.map((t) => ({ id: t.id, name: t.name, driverName: drivers.find((d) => d.id === t.driver)?.name || t.driver, channels: t.channels, clear: t.clear, encrypted: t.encrypted, lastError: t.lastError })),
+    found && found.map((f) => ({ name: f.name, detail: f.detail || drivers.find((x) => x.id === f.driver)?.name || '', canSetUp: drivers.some((x) => x.id === f.driver) })))
+  const handled = new Set<string>()
+  for (const s of page.sections) if (s.kind === 'rows') for (const r of s.items) for (const a of r.actions || []) if (a.id) handled.add(a.id)
+  const onAction = (id: string) => {
+    if (id.startsWith('set:')) { const f = found?.[Number(id.slice(4))]; if (f) onSetup(f) } else if (id.startsWith('remove:')) { const t = list?.find((x) => x.id === Number(id.slice(7))); if (t) onRemove(t) }
+  }
+  return <SpecPage page={page} embedded bare handled={handled} onAction={onAction} />
 }
 
 function TunerChannels() {
@@ -302,24 +290,16 @@ function GuideSources() {
   const refresh = async (s: EPGSource) => { try { await api.post(`/epg/sources/${s.id}/refresh`); toast('Reading the guide…'); setTimeout(() => void load(), 2500) } catch (e: any) { toast(e.message) } }
   return (
     <Section title="Guide data" desc="Listings for tuner and IPTV channels, in XMLTV format, refreshed by themselves. Broadcasts also carry their own, read while a channel is on. Library channels make their own schedule. Matched by guide id, then by name.">
-      {list && list.length > 0 && (
-        <ul className="tvs-list">
-          {list.map((s) => (
-            <li key={s.id} className="tvs-item">
-              <div className="tvs-item-text">
-                <b>{s.name}</b>
-                <span>{s.lastFetch ? `${s.programmes} listings · read ${fmtDateTime(s.lastFetch * 1000)}` : 'Not read yet'}</span>
-                {s.lastError && <span className="tvs-error" role="alert">{s.lastError}</span>}
-              </div>
-              <button className="btn sm ghost" onClick={() => void refresh(s)} aria-label={`Read ${s.name} again`}><IconRefresh /></button>
-              <button className="btn sm ghost" onClick={() => void remove(s)} aria-label={`Remove ${s.name}`}><IconTrash /></button>
-            </li>
-          ))}
-        </ul>
-      )}
-      <form className="tvs-toolbar" onSubmit={(e) => { e.preventDefault(); void add() }}>
-        <input className="input" aria-label="XMLTV address or file on the server" placeholder="XMLTV address, or a file on the server" value={url} onChange={(e) => setUrl(e.target.value)} />
-        <button className="btn sm" disabled={!url.trim()}><IconPlus /> Add</button>
+      <form onSubmit={(e) => { e.preventDefault(); if (url.trim()) void add() }}>
+      <SpecPage embedded bare page={guideSourcesSpec(list && list.map((s) => ({ id: s.id, name: s.name, programmes: s.programmes, read: s.lastFetch ? fmtDateTime(s.lastFetch * 1000) : '', lastError: s.lastError })), url)}
+        handled={new Set([...(list || []).flatMap((s) => ['again:' + s.id, 'drop:' + s.id]), 'add'])}
+        onField={(id, v) => { if (id === 'url') setUrl(String(v)) }}
+        onAction={(id) => {
+          if (id === 'add') void add()
+          else if (id.startsWith('again:')) { const s = list?.find((x) => x.id === Number(id.slice(6))); if (s) void refresh(s) }
+          else if (id.startsWith('drop:')) { const s = list?.find((x) => x.id === Number(id.slice(5))); if (s) void remove(s) }
+        }} />
+      <button type="submit" hidden />
       </form>
     </Section>
   )

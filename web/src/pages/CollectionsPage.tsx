@@ -1,81 +1,18 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import SpecPage from '../spec/SpecPage'
 import { handledIds, withIds } from '../spec/model'
 import { applyRuleField, collectionSpec, genresOf, toggleType } from '../spec/specs/smartlist'
-import { useNavigate, useParams } from 'react-router-dom'
-import { api, fitWidth, posterUrl, sized, type Item, type Show } from '../api'
-import { useAudio } from '../audio/player'
-import { BackLink, EmptyState, ItemCard, ShowCard, Spinner } from '../components/common'
+import { api, fitWidth, posterUrl, sized, type Item } from '../api'
 import { type Collection, type CollectionRule } from '../gallery'
-import { IconClose, IconEdit, IconLibrary, IconPlay, IconTrash } from '../icons'
-import { toast, useApp } from '../state'
 import '../gallery.css'
-import { Dialog, ask } from '../ui/Overlay'
+import { Dialog } from '../ui/Overlay'
 import { Button } from '../ui/Button'
 
 // Collections and smart playlists, across every library. A smart playlist is a
 // saved rule the server works out each time (docs/COLLECTIONS.md); this page
 // lists them and builds the rule.
-
-export function CollectionPage() {
-  const { id } = useParams()
-  const { user } = useApp()
-  const nav = useNavigate()
-  const audio = useAudio()
-  const [c, setC] = useState<Collection | null>(null)
-  const [items, setItems] = useState<Item[] | null>(null)
-  const [shows, setShows] = useState<Show[]>([])
-  const [err, setErr] = useState('')
-  const [edit, setEdit] = useState(false)
-  const load = useCallback(() => {
-    api.get<{ collection: Collection; items: Item[]; shows: Show[] }>(`/collections/${id}`).then((r) => { setC(r.collection); setItems(r.items); setShows(r.shows || []) }).catch((e) => setErr(e.message))
-  }, [id])
-  useEffect(load, [load])
-  if (err) return <EmptyState title="Collection not found" text={err} />
-  if (!c || !items) return <Spinner />
-  const own = c.ownerId === user?.id || user?.isAdmin
-  const playAll = () => {
-    const songs = items.filter((x) => x.kind === 'audio')
-    if (songs.length && songs.length === items.length) { audio.play(songs); return }
-    const first = items.find((x) => x.kind === 'video' || x.kind.startsWith('dvd') || x.kind.startsWith('bluray'))
-    if (first) nav(`/play/${first.id}?collection=${c.id}`)
-  }
-  const remove = async () => {
-    if (!await ask({ title: `Delete “${c.name}”?`, body: 'What’s in it stays in its library.', confirm: 'Delete', danger: true })) return
-    await api.del(`/collections/${c.id}`)
-    nav('/collections', { replace: true })
-  }
-  const take = async (body: { items?: number[]; shows?: number[] }) => {
-    try {
-      const res = await fetch(`/api/collections/${c.id}/items`, { method: 'DELETE', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', ...(localStorage.getItem('wms.token') ? { Authorization: 'Bearer ' + localStorage.getItem('wms.token') } : {}) }, body: JSON.stringify(body) })
-      if (!res.ok) throw new Error()
-      load()
-    } catch { toast("Couldn't change this collection") }
-  }
-  return (
-    <>
-      <BackLink to="/collections" label="Collections" />
-      <div className="toolbar">
-        <h1>{c.name}</h1>
-        <span className="count">{c.count} {c.count === 1 ? 'item' : 'items'}{c.kind === 'smart' ? ' · smart' : ''}</span>
-        <div style={{ flex: 1 }} />
-        {items.length > 0 && <button className="btn sm primary" onClick={playAll}><IconPlay /> Play all</button>}
-        {own && <button className="btn sm ghost" onClick={() => setEdit(true)}><IconEdit /> Edit</button>}
-        {own && !c.system && <button className="btn sm ghost" onClick={remove}><IconTrash /> Delete</button>}
-      </div>
-      {c.description && <p className="muted" style={{ marginTop: -6 }}>{c.description}</p>}
-      {items.length + shows.length === 0 ? <EmptyState icon={<IconLibrary />} title="Nothing here yet" text={c.kind === 'smart' ? 'Nothing matches this rule at the moment.' : 'Use Save on a movie, show or video to add it.'} /> : (
-        <div className="grid">
-          {shows.map((s) => <div key={'s' + s.id} className="col-cell"><ShowCard show={s} />{own && c.kind !== 'smart' && <button className="btn sm ghost col-x" aria-label={`Remove ${s.title}`} onClick={() => take({ shows: [s.id] })}><IconClose /></button>}</div>)}
-          {items.map((it) => <div key={it.id} className="col-cell"><ItemCard item={it} />{own && c.kind !== 'smart' && <button className="btn sm ghost col-x" aria-label={`Remove ${it.title}`} onClick={() => take({ items: [it.id] })}><IconClose /></button>}</div>)}
-        </div>
-      )}
-      {edit && <CollectionDialog collection={c} onClose={() => setEdit(false)} onSaved={() => { setEdit(false); load() }} />}
-    </>
-  )
-}
 
 export function CollectionDialog({ collection, onClose, onSaved }: { collection?: Collection; onClose: () => void; onSaved: () => void }) {
   const [name, setName] = useState(collection?.name || '')

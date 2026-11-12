@@ -34,6 +34,9 @@ type AppState = {
   pickerLocal: boolean
   // The mobile app has no server yet, or can't reach it.
   needServer: boolean
+  // A browser's first look at its own server failed: the server can't be reached (components/Unreachable.tsx).
+  unreachable: boolean
+  retryStatus: () => void
   // A newer version found by the server's update check (admins only; '' = none).
   update: string
   setUpdate: (v: string) => void
@@ -69,6 +72,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [legalAck, setLegalAck] = useState(true)
   const [plainConnection, setPlainConnection] = useState(false)
   const [needServer, setNeedServer] = useState(isNativeShell() && !serverBase())
+  const [unreachable, setUnreachable] = useState(false)
   const setBrandName = (n: string, colouring = 'auto') => { setBrand(n); setBrandColouring(colouring); applyBrand(n) }
   const setServerTheme = (id: string) => { setServerThemeState(id); if (!deviceTheme()) applyTheme(id); loadThemeOverrides() }
   // The colours an administrator changed, for whoever is signed in.
@@ -78,9 +82,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try { setLibraries(await api.get<Library[]>('/libraries')) } catch { setLibraries([]) }
   }, [])
 
-  useEffect(() => {
-    if (needServer) { setLoading(false); return }
+  const loadStatus = useCallback(() => {
     api.get<Status>('/status').then(async (s) => {
+      setUnreachable(false)
       setSetup(s.setupRequired)
       setOnboarding(!!s.onboarding)
       setPickerLocal(!!s.pickerLocal)
@@ -96,8 +100,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       applyTheme(deviceTheme() || s.theme || 'default')
       setUserState(s.user)
       if (s.user) await refreshLibraries()
-    }).catch(() => { if (isNativeShell()) setNeedServer(true) }).finally(() => setLoading(false))
+    }).catch(() => { if (isNativeShell()) setNeedServer(true); else setUnreachable(true) }).finally(() => setLoading(false))
   }, [refreshLibraries])
+  useEffect(() => {
+    if (needServer) { setLoading(false); return }
+    loadStatus()
+  }, [loadStatus]) // eslint-disable-line react-hooks/exhaustive-deps
+  const retryStatus = useCallback(() => { setLoading(true); loadStatus() }, [loadStatus])
 
   const setUser = (u: User | null) => {
     setUserState(u)
@@ -105,7 +114,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (u) { setSetup(false); refreshLibraries() } else setLibraries([])
   }
 
-  return <Ctx.Provider value={{ user, setupRequired, libraries, version, refreshLibraries, setUser, loading, brandName, brandColouring, brandLogo, setBrandLogo, serverTheme, setBrandName, setServerTheme, onboarding, setOnboarding, pickerLocal, needServer, update, setUpdate, legalAck, setLegalAck, plainConnection }}>{children}</Ctx.Provider>
+  return <Ctx.Provider value={{ user, setupRequired, libraries, version, refreshLibraries, setUser, loading, brandName, brandColouring, brandLogo, setBrandLogo, serverTheme, setBrandName, setServerTheme, onboarding, setOnboarding, pickerLocal, needServer, unreachable, retryStatus, update, setUpdate, legalAck, setLegalAck, plainConnection }}>{children}</Ctx.Provider>
 }
 
 // Toasts live with the other shared parts; every page imports them from here.

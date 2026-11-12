@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { cloneElement, isValidElement, useEffect, useId, useRef, useState, type ReactElement, type ReactNode } from 'react'
+import { cloneElement, isValidElement, useEffect, useId, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { api, getPrefs } from '../../api'
 import { toast } from '../../state'
 import { Input, Select, Textarea } from '../../ui'
 import { jumpTo } from './jump'
+import { applyPageTitle } from '../../theme'
 import { sectionId } from './searchIndex'
 
 // The building blocks of every settings page: a page header, section cards,
@@ -13,6 +14,8 @@ import { sectionId } from './searchIndex'
 // switches, and a save bar that appears only when something has changed.
 
 export function PageHead({ title, desc, actions }: { title: string; desc?: ReactNode; actions?: ReactNode }) {
+  // The window's title names the page at once, not a moment after it arrives.
+  useLayoutEffect(() => { applyPageTitle(title) }, [title])
   return (
     <>
       <header className="set-head">

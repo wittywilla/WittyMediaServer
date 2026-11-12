@@ -414,7 +414,7 @@ func (n *normaliser) element(x *sdui.Node, depth int, parent *sdui.Node) Element
 	switch x.Type {
 	case "Page":
 		e.Role, e.Label = "main", str(p, "title")
-	case "Shelf":
+	case "Shelf", "Carousel":
 		collection()
 		e.Role, e.Label = "list", str(p, "title")
 	case "Grid":
@@ -445,9 +445,32 @@ func (n *normaliser) element(x *sdui.Node, depth int, parent *sdui.Node) Element
 		if adv, ok := num(p, "autoAdvanceSec"); ok {
 			text("autoAdvance", strconv.Itoa(int(adv))+" s")
 		}
-	case "Tabs":
+	case "Tabs", "CrossBar":
 		e.Role, e.Label = "tablist", ""
 		e.Cards = intp(len(x.Children))
+	case "WidgetGrid":
+		e.Role, e.Label = "group", n.page
+		e.Columns = int(numOr(p, "columns", 4))
+		e.Cards = intp(len(x.Children))
+	case "Widget":
+		e.Role, e.Label = "region", str(p, "title")
+		text("title", str(p, "title"))
+		text("kind", str(p, "kind"))
+		w, _ := num(p, "w")
+		h, _ := num(p, "h")
+		e.Columns, e.CardHeight = int(w), int(h)
+		e.Cards = intp(len(x.Children))
+	case "NumberedRow":
+		e.Cards = intp(len(x.Children))
+		e.Role, e.Label = "list", str(p, "title")
+		text("title", str(p, "title"))
+		text("empty", str(p, "emptyText"))
+		e.HasMore = obj(p, "more") != nil
+		var nums []string
+		for _, c := range x.Children {
+			nums = append(nums, str(c.Props, "number"))
+		}
+		text("numbers", strings.Join(nums, " "))
 	case "Tab":
 		e.Role, e.Label = "tab", str(p, "label")
 		if p["selected"] == true {
@@ -787,4 +810,11 @@ func (n *normaliser) dockButtons(x *sdui.Node) []string {
 		}
 	}
 	return out
+}
+
+func numOr(m map[string]any, k string, def float64) float64 {
+	if v, ok := num(m, k); ok {
+		return v
+	}
+	return def
 }

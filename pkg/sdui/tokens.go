@@ -165,7 +165,7 @@ var componentTokens = map[string]TokenRoles{
 		Type: map[string]string{"label": "title", "item": "heading"}, Shape: join(focusShape, map[string]string{"segment": "chip", "row": "row"})},
 	"Carousel": {Colors: join(focusRing, map[string]string{"text": "fg", "secondaryText": "fg2", "link": "accentText", "surface": "bg3", "accent": "accent", "onAccent": "accentFg"}),
 		Type: map[string]string{"title": "heading", "subtitle": "caption", "focused": "display"}, Shape: join(focusShape, map[string]string{"scrollButton": "pill", "button": "button"})},
-	"WidgetGrid": {Colors: map[string]string{"background": "bg", "text": "fg"}},
+	"WidgetGrid": {Colors: join(focusRing, map[string]string{"background": "bg", "text": "fg"}), Shape: focusShape},
 	"Widget": {Colors: join(focusRing, map[string]string{"background": "bg2", "surface": "bg3", "border": "border", "text": "fg", "secondaryText": "fg2", "hintText": "fg3", "link": "accentText", "progress": "accent", "progressTrack": "bg4"}),
 		Type: map[string]string{"title": "heading", "figure": "display", "text": "body", "caption": "caption"}, Shape: join(focusShape, map[string]string{"corner": "card"})},
 	"NumberedRow": {Colors: join(focusRing, map[string]string{"text": "fg", "secondaryText": "fg2", "hintText": "fg3", "playing": "accentText", "border": "border", "hover": "hover", "selected": "accentSoft", "surface": "bg3"}),

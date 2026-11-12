@@ -54,7 +54,7 @@ func stampFocus(root *Node) {
 		if n.Type != "Tab" { // a Tab was stamped with its strip
 			stamp(n, group, inHero)
 		}
-		if n.Type == "Tabs" {
+		if n.Type == "Tabs" || n.Type == "CrossBar" {
 			// The strip first, whole, then the chosen tab's content: its
 			// tabs are neighbours in the order, not split by what they hold.
 			for i := range n.Children {

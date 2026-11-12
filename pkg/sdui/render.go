@@ -725,6 +725,9 @@ func (r *renderer) build(in instance, depth int) ([]Node, bool) {
 			if t := r.fill(propStr(p, "title", ""), in.each, nil); t != "" {
 				n.Props["title"] = t
 			}
+			if hs := propStr(p, "headingStyle", "plain"); hs != "plain" {
+				n.Props["headingStyle"] = hs
+			}
 			n.Children = r.children(in, depth)
 			ok = len(n.Children) > 0
 		}
@@ -1005,6 +1008,9 @@ func (r *renderer) collectionPage(n *Node, in instance, offset, limit int, allow
 	}
 	if st := r.fill(propStr(p, "subtitle", ""), in.each, s.Source); st != "" {
 		n.Props["subtitle"] = st
+	}
+	if hs := propStr(p, "headingStyle", "plain"); hs != "plain" {
+		n.Props["headingStyle"] = hs
 	}
 	if !listLike(s.Component) {
 		m := r.l.Cards[style]
@@ -2158,4 +2164,60 @@ func (ctx *RenderContext) deviceFormFactor() string {
 		return FormWeb
 	}
 	return ctx.Profile.FormFactor
+}
+
+// widgetSources are the sources a widget kind takes its items from when the section names
+// none, and the card style they are drawn in.
+var widgetSources = map[string]struct {
+	source Source
+	style  string
+}{
+	"continue":     {Source{"type": "continueWatching", "media": "watch"}, "progress"},
+	"liveNow":      {Source{"type": "liveNow"}, "channel"},
+	"recordings":   {Source{"type": "recordings"}, "landscape"},
+	"stats":        {Source{"type": "statistics", "stat": "titles", "period": "month"}, "poster"},
+	"serverStatus": {Source{"type": "serverStatus"}, "tile"},
+}
+
+// widget fills a Widget: its place in the grid, its heading, and the cards of its kind's
+// source. A clock has no data; a widget whose source has nothing is left out.
+func (r *renderer) widget(n *Node, in instance) bool {
+	p := in.sec.Props
+	kind := propStr(p, "kind", "continue")
+	n.Props["kind"] = kind
+	for _, k := range []string{"x", "y"} {
+		n.Props[k] = propInt(p, k, 0)
+	}
+	for _, k := range []string{"w", "h"} {
+		n.Props[k] = max(1, propInt(p, k, 1))
+	}
+	titles := map[string]string{"continue": "Continue watching", "liveNow": "On TV now", "recordings": "Recordings", "stats": "Most watched", "serverStatus": "Server", "clock": "Clock"}
+	n.Props["title"] = firstNonEmpty(r.fill(propStr(p, "title", ""), in.each, nil), titles[kind])
+	if kind == "clock" {
+		return true
+	}
+	w, ok := widgetSources[kind]
+	if !ok {
+		return false
+	}
+	src := in.sec.Source
+	if src.Type() == "" {
+		src = w.source
+	}
+	limit := min(r.l.Budget.ShelfItems, 4+2*propInt(p, "w", 1))
+	res, _, err := r.ask(src, in.each, 0, limit)
+	if err != nil || len(res.Items) == 0 {
+		return false
+	}
+	r.eager++
+	n.Props["cardStyle"] = w.style
+	for i := range res.Items {
+		it := &res.Items[i]
+		if kind == "serverStatus" {
+			n.Children = append(n.Children, r.listItem(n.ID, it))
+			continue
+		}
+		n.Children = append(n.Children, r.card(n.ID, w.style, "m", it, src))
+	}
+	return true
 }

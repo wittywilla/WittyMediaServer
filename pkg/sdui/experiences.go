@@ -307,11 +307,57 @@ func styled(p Page, l *Experience) Page {
 	}
 	p = ClonePage(p)
 	st := l.Pages
-	p.Sections = styleList(p.Sections, st, filterTargets(p.Sections))
+	p.Sections = styleList(restructure(p.Sections, p.Kind, st), st, filterTargets(p.Sections))
 	for i := range p.Variants {
-		p.Variants[i].Sections = styleList(p.Variants[i].Sections, st, filterTargets(p.Variants[i].Sections))
+		p.Variants[i].Sections = styleList(restructure(p.Variants[i].Sections, p.Kind, st), st, filterTargets(p.Variants[i].Sections))
 	}
 	return p
+}
+
+// restructure turns a Home page into the experience's own arrangement of it: a CrossBar
+// with a category for each row, or a grid of widgets. Other pages are left as they are.
+func restructure(list []Section, kind string, st PageStyle) []Section {
+	if kind != "home" || (!st.Crossbar && !st.Widgets) {
+		return list
+	}
+	var keep []Section // notices and banners stay on top
+	for _, s := range list {
+		if s.Component == "Notice" || s.Component == "Banner" {
+			keep = append(keep, s)
+		}
+	}
+	if st.Widgets {
+		admin := true
+		w := func(id, kind string, x, y, wd, h int, when *Condition) Section {
+			return Section{ID: "widget-" + id, Component: "Widget", When: when, Props: map[string]any{"kind": kind, "x": x, "y": y, "w": wd, "h": h}}
+		}
+		grid := Section{ID: "widgets", Component: "WidgetGrid", Props: map[string]any{"columns": 4}, Children: []Section{
+			w("continue", "continue", 0, 0, 2, 1, nil),
+			w("livenow", "liveNow", 2, 0, 2, 1, &Condition{Can: "liveTv", Feature: "live-tv"}),
+			w("stats", "stats", 0, 1, 2, 1, nil),
+			w("status", "serverStatus", 2, 1, 1, 1, &Condition{Admin: &admin}),
+			w("clock", "clock", 3, 1, 1, 1, nil),
+			w("recordings", "recordings", 0, 2, 2, 1, &Condition{Can: "recordings"}),
+		}}
+		return append(keep, grid)
+	}
+	bar := Section{ID: "crossbar", Component: "CrossBar"}
+	for _, s := range list {
+		if len(bar.Children) >= 8 || (s.Component != "Shelf" && s.Component != "Grid" && s.Component != "Hero") || s.Source.Type() == "" {
+			continue
+		}
+		label := propStr(s.Props, "title", "")
+		if label == "" {
+			label = "Featured"
+		}
+		row := s
+		row.Component, row.Props = "List", map[string]any{"dense": true}
+		bar.Children = append(bar.Children, Section{ID: s.ID + "-tab", Component: "Tab", When: s.When, Props: map[string]any{"label": label, "icon": "list"}, Children: []Section{row}})
+	}
+	if len(bar.Children) == 0 {
+		return list
+	}
+	return append(keep, bar)
 }
 
 // filterTargets are the grids a filter bar drives: they stay grids.
@@ -360,6 +406,9 @@ func styleList(list []Section, st PageStyle, keep map[string]bool) []Section {
 			switch st.Hero {
 			case "billboard", "banner":
 				s.Props["style"] = st.Hero
+			case "carousel":
+				s.Component = "Carousel"
+				s.Props = map[string]any{"title": propStr(s.Props, "title", "Featured"), "cardSize": "l"}
 			case "row":
 				s.Component = "Shelf"
 				title := propStr(s.Props, "title", "Featured")
@@ -369,9 +418,15 @@ func styleList(list []Section, st PageStyle, keep map[string]bool) []Section {
 				}
 			}
 		}
-		if s.Component == "Shelf" || s.Component == "Grid" {
+		if s.Component == "Shelf" || s.Component == "Grid" || s.Component == "Carousel" {
 			if _, set := s.Props["cardSize"]; !set && st.CardSize != "" {
 				s.Props["cardSize"] = st.CardSize
+			}
+		}
+		switch s.Component {
+		case "Shelf", "Grid", "List", "Carousel", "NumberedRow":
+			if _, set := s.Props["headingStyle"]; !set && st.SectionStyle != "" {
+				s.Props["headingStyle"] = st.SectionStyle
 			}
 		}
 		if len(s.Props) == 0 {

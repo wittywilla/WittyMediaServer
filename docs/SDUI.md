@@ -1218,7 +1218,7 @@ what the server does.
 <!-- catalogue:begin (written by go test ./pkg/sdui -update; edit pkg/sdui/catalog_data.go) -->
 ### Components
 
-28 components. Every renderer draws all of them.
+33 components. Every renderer draws all of them.
 
 | Component | Label | Category | Takes a source | Focus |
 |---|---|---|---|---|
@@ -1229,6 +1229,11 @@ what the server does.
 | [`Card`](#card) | Card | media | none | item |
 | [`Tabs`](#tabs) | Tabs | navigation | none | group |
 | [`Tab`](#tab) | Tab | navigation | none | item |
+| [`Carousel`](#carousel) | Carousel | media | required | group |
+| [`CrossBar`](#crossbar) | Cross bar | navigation | none | group |
+| [`WidgetGrid`](#widgetgrid) | Widgets | layout | none | group |
+| [`Widget`](#widget) | Widget | layout | optional | group |
+| [`NumberedRow`](#numberedrow) | Numbered rows | media | required | group |
 | [`FilterBar`](#filterbar) | Filter and sort | navigation | none | stop |
 | [`Dock`](#dock) | Dock | navigation | none | group |
 | [`KeyLegend`](#keylegend) | Key legend | text | none | none |
@@ -1323,7 +1328,8 @@ Focus: one stop in the page's focus order; it moves focus among its own parts. A
 |---|---|---|---|
 | `title` | text, at most 120 |  | Title. The heading above the items. Placeholders such as {library} and {each} are filled in. |
 | `subtitle` | text, at most 160 |  | Subtitle. A smaller line under the title. |
-| `cardStyle` | enum: auto, poster, landscape, progress, episode, square, circle, album, person, book, game, photo, channel, tile, chip | `auto` | Card style. How each item is drawn. Auto uses the style that suits the source. |
+| `headingStyle` | enum: plain, band, underline | `plain` | Heading style. How the title is drawn: plain, a coloured band across the row, or underlined. Left plain, the experience chooses. |
+| `cardStyle` | enum | `auto` | Card style. How each item is drawn. Auto uses the style that suits the source. |
 | `cardSize` | enum: s, m, l | `m` | Card size. Small, medium or large cards. A profile may choose its own. |
 | `showTitles` | bool | `true` | Show titles under cards. Off draws the pictures alone; the titles are still read out. |
 | `seeAll` | enum: auto, always, never | `auto` | See all. A link to everything the row is drawn from, when the source has such a place. |
@@ -1374,7 +1380,8 @@ Focus: its children take focus, and it is their group. Accessibility: Role: list
 | Property | Type | Default | What it is |
 |---|---|---|---|
 | `title` | text, at most 120 |  | Title. The heading above the items. Placeholders such as {library} and {each} are filled in. |
-| `cardStyle` | enum: auto, poster, landscape, progress, episode, square, circle, album, person, book, game, photo, channel, tile, chip | `auto` | Card style. How each item is drawn. Auto uses the style that suits the source. |
+| `headingStyle` | enum: plain, band, underline | `plain` | Heading style. How the title is drawn: plain, a coloured band across the row, or underlined. Left plain, the experience chooses. |
+| `cardStyle` | enum | `auto` | Card style. How each item is drawn. Auto uses the style that suits the source. |
 | `cardSize` | enum: s, m, l | `m` | Card size. Small, medium or large cards. A profile may choose its own. |
 | `showTitles` | bool | `true` | Show titles under cards. Off draws the pictures alone. |
 | `maxItems` | int 0 to 200 |  | Most cards at first. How many cards the first page holds. 0 uses the device's own limit. |
@@ -1527,6 +1534,208 @@ Holds: any component.
 | `icon` | icon |  | Icon. One of the built-in icons. |
 
 Focus: the node takes focus when it can be acted on. Accessibility: Role: tab. Label: the label.
+
+#### Carousel
+
+*Carousel.* A centred carousel of posters with the focused one large and its neighbours smaller: one big title at a time.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `title` | text, at most 120 |  | Title. The heading above the items. Placeholders such as {library} and {each} are filled in. |
+| `headingStyle` | enum: plain, band, underline | `plain` | Heading style. How the title is drawn: plain, a coloured band across the row, or underlined. Left plain, the experience chooses. |
+| `cardStyle` | enum | `auto` | Card style. How each item is drawn. Auto uses the style that suits the source. |
+| `cardSize` | enum: s, m, l | `m` | Card size. Small, medium or large cards. A profile may choose its own. |
+| `showTitles` | bool | `true` | Show the focused title. The focused card's title and facts under it. |
+| `maxItems` | int 0 to 40 |  | Most cards at first. How many cards are sent before the row asks for more. 0 uses the device's own limit. |
+| `empty` | enum: hide, message | `hide` | When there is nothing to show. Leave the section out, or keep it with a message. |
+| `emptyText` | text, at most 200 |  | Message when empty. Shown in place of the items when there are none. |
+
+How it is drawn:
+
+- **Television.** A row of cards centred on the focused one, which is drawn at 1.25 times the others with the focus ring; left and right move the row so the focused card stays in the middle; its title, facts and a Play button are under it. The row is one focus section.
+- **Phone.** The same, swiped: the card in the middle is large, the next and previous peek in by layout.peek.
+- **Desktop and web.** The same, with arrow buttons at both edges on hover and the arrow keys moving the focused card.
+
+States:
+
+- **deferred.** Drawn as loading until the client has asked props.more.url, which it does when the section is within one screen of being seen.
+- **empty.** Left out of the page; with empty "message", the heading and emptyText in the caption style where the items would be.
+- **error.** The heading and one line, "Couldn't load this", with a Retry button that asks props.more.url again.
+- **loading.** Its heading, and as many grey placeholder cards of the card's size as fit, pulsing unless the device asks for reduced motion.
+
+Focus: its children take focus, and it is their group. Accessibility: Role: list, labelled by the title. The focused card is announced with its position, "<title>, <n> of <total>".
+
+```json
+{
+  "id": "marquee",
+  "component": "Carousel",
+  "props": {
+    "title": "Tonight"
+  },
+  "source": {
+    "type": "featured",
+    "limit": 8
+  }
+}
+```
+
+#### CrossBar
+
+*Cross bar.* A horizontal bar of categories with a vertical list under the chosen one, as a game console has. Only the selected category's content is sent; choosing another asks for the page again with tab=<id>.
+
+Holds: `Tab`.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `default` | section |  | Opens on. The category shown first. A profile may choose its own. |
+
+How it is drawn:
+
+- **Television.** Icons with names along a bar a third of the way down the screen; left and right move the bar, the chosen category's list opens below it in the title size, up and down move through it, OK opens an entry.
+- **Phone.** A scrolling row of icons and names under the title; the list under it is the page.
+- **Desktop and web.** The same as the television's, with the pointer choosing a category.
+
+Focus: its children take focus, and it is their group. Accessibility: Role: tablist; each Tab is a tab with selected state; the list under it is its tabpanel.
+
+```json
+{
+  "id": "cross",
+  "component": "CrossBar",
+  "children": [
+    {
+      "id": "films",
+      "component": "Tab",
+      "props": {
+        "label": "Films",
+        "icon": "movie"
+      },
+      "children": [
+        {
+          "id": "films-list",
+          "component": "List",
+          "props": {
+            "dense": true
+          },
+          "source": {
+            "type": "recentlyAdded",
+            "library": "$library"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+#### WidgetGrid
+
+*Widgets.* A grid of widgets, each in its own cell: continue watching, what is on TV now, statistics, the server's status, a clock. Every cell can be moved and resized by the administrator and by the profile.
+
+Holds: `Widget`.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `columns` | int 1 to 12 | `4` | Columns. How many columns the grid has on a wide screen; narrower windows use fewer. |
+
+How it is drawn:
+
+- **Television.** layout.dock aside, the safe area's width divided into the columns, cells layout.spacing.m apart; focus moves cell to cell by direction, and a cell with items is a row inside it.
+- **Phone.** Two columns at most; a widget wider than that takes the full width.
+- **Desktop and web.** The columns the grid says, widgets keeping their cells.
+
+Focus: its children take focus, and it is their group. Accessibility: Role: group, labelled by the page's title. Each widget is a region labelled by its title.
+
+```json
+{
+  "id": "widgets",
+  "component": "WidgetGrid",
+  "children": [
+    {
+      "id": "clock",
+      "component": "Widget",
+      "props": {
+        "kind": "clock",
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 1
+      }
+    }
+  ]
+}
+```
+
+#### Widget
+
+*Widget.* One cell of a widget grid. Its kind says what it shows; kinds that list titles take their items from their kind's source, or from the section's own.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `kind` | enum: continue, liveNow, stats, serverStatus, clock, recordings | `continue` | Kind. What the widget shows. |
+| `title` | text, at most 60 |  | Title. The widget's heading; left empty it is the kind's own. |
+| `x` | int 0 to 11 |  | Column. The cell's column, from 0. |
+| `y` | int 0 to 40 |  | Row. The cell's row, from 0. |
+| `w` | int 1 to 12 | `1` | Width. Columns the cell spans. |
+| `h` | int 1 to 8 | `1` | Height. Rows the cell spans. |
+
+How it is drawn:
+
+- **Everywhere.** A panel at elevation 1 with its title in the heading size. continue, liveNow and recordings hold a row of cards (or a list when the cell is narrow); stats holds the statistics source as a figure or a short list; serverStatus holds a line per figure (libraries, playing now, free space); clock draws the time and date in the device's own format and needs no data.
+
+Focus: its children take focus, and it is their group. Accessibility: Role: region, labelled by the title.
+
+```json
+{
+  "id": "now",
+  "component": "Widget",
+  "props": {
+    "kind": "liveNow",
+    "w": 2,
+    "h": 1
+  }
+}
+```
+
+#### NumberedRow
+
+*Numbered rows.* Listing rows with a number column: a channel's number, or the place in the list. A guide's channel list, a top ten.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `title` | text, at most 120 |  | Title. The heading above the items. Placeholders such as {library} and {each} are filled in. |
+| `headingStyle` | enum: plain, band, underline | `plain` | Heading style. How the title is drawn: plain, a coloured band across the row, or underlined. Left plain, the experience chooses. |
+| `numbers` | enum: auto, index | `auto` | Numbers. Channel numbers where the items are channels, else their place in the list. |
+| `maxItems` | int 0 to 100 |  | Most rows at first. How many rows are sent before the list asks for more. 0 uses the device's own limit. |
+| `empty` | enum: hide, message | `hide` | When there is nothing to show. Leave the section out, or keep it with a message. |
+| `emptyText` | text, at most 200 |  | Message when empty. Shown in place of the items when there are none. |
+
+How it is drawn:
+
+- **Television.** A row per item at layout.text.title: the number in a fixed column at the start (as wide as the longest), the logo or picture, then the title and subtitle; the focused row is filled.
+- **Phone.** Full-width rows 56 points tall with the number at the start.
+- **Desktop and web.** A table: number, title, subtitle; double-click opens.
+
+States:
+
+- **deferred.** Drawn as loading until the client has asked props.more.url, which it does when the section is within one screen of being seen.
+- **empty.** Left out of the page; with empty "message", the heading and emptyText in the caption style where the items would be.
+- **error.** The heading and one line, "Couldn't load this", with a Retry button that asks props.more.url again.
+- **loading.** Its heading, and as many grey placeholder cards of the card's size as fit, pulsing unless the device asks for reduced motion.
+
+Focus: its children take focus, and it is their group. Accessibility: Role: list, labelled by the title. Each row: "<number>, <title>, <subtitle>".
+
+```json
+{
+  "id": "channels",
+  "component": "NumberedRow",
+  "props": {
+    "title": "Channels"
+  },
+  "source": {
+    "type": "liveNow"
+  }
+}
+```
 
 #### FilterBar
 
@@ -2149,6 +2358,7 @@ Holds: `ListItem`.
 | Property | Type | Default | What it is |
 |---|---|---|---|
 | `title` | text, at most 120 |  | Title. The heading above the items. Placeholders such as {library} and {each} are filled in. |
+| `headingStyle` | enum: plain, band, underline | `plain` | Heading style. How the title is drawn: plain, a coloured band across the row, or underlined. Left plain, the experience chooses. |
 | `dense` | bool | `false` | Compact rows |
 | `empty` | enum: hide, message | `hide` | When there is nothing to show. Leave the section out, or keep it with a message. |
 | `emptyText` | text, at most 200 |  | Message when empty. Shown in place of the items when there are none. |
@@ -2255,6 +2465,9 @@ A `Card` has a `style` and a `shape`. A renderer that doesn't know a style draws
 | `photo` | square | 1/1 | poster, square |  | 0 | 0 | The picture alone, cropped square; its name is only read out. |
 | `channel` | landscape | 16/9 | logo | number, title, now, next, progress | 1 | 2 | A channel's logo on a plain tile, its number and name, what is on now with how far through it is, and what is next. |
 | `tile` | landscape | 16/9 | backdrop, poster | title, count | 1 | 0 | A wide tile with its name over the picture, or over a plain tile with an icon: a library, a collection. |
+| `plate` | poster | 2/3 | poster, backdrop | title, subtitle, badges | 2 | 1 | Upright art with the title over it on a scrim along its foot: the Rail look's card. |
+| `block` | landscape | 16/9 | backdrop, poster | title, subtitle | 2 | 1 | A flat block of colour with the title in it, no picture unless there is room: teletext's cell. |
+| `logo` | landscape | 16/9 | logo | number, title | 1 | 0 | A channel's logo, contain-fitted on a plain tile, with its number: a satellite box's channel list. |
 | `chip` | chip |  |  | title | 1 | 0 | A pill with a name alone: a genre. |
 
 The hero's slides are cards of style `hero`: shape landscape, a 16/9 backdrop the hero's width, with `facts`, `synopsis`, `logo` and `actions`.
@@ -2278,6 +2491,9 @@ The width of a medium (`m`) card in points; small is 80% and large 125%, rounded
 | `photo` | 300 | 6 | 144 | 180 | 200 |
 | `channel` | 420 | 4 | 224 | 288 | 320 |
 | `tile` | 420 | 4 | 224 | 288 | 320 |
+| `plate` | 250 | 6 | 120 | 160 | 180 |
+| `block` | 420 | 4 | 224 | 288 | 320 |
+| `logo` | 420 | 4 | 224 | 288 | 320 |
 
 ### Theme tokens
 
@@ -2347,6 +2563,11 @@ Shape tokens:
 | `Card` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg3`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg`, watched `accent` | badge `badge`, subtitle `caption`, title `title` | badge `badge`, corner `card`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
 | `Tabs` | accent `accent`, border `border`, focus `focus`, hover `hover`, selected `accentSoft`, selectedText `fg`, surface `bg3`, text `fg2` | label `title` | focus `focusWidth`, focusGap `focusOffset`, segment `chip` |
 | `Tab` | accent `accent`, focus `focus`, hover `hover`, selected `accentSoft`, selectedText `fg`, text `fg2` | label `title` | focus `focusWidth`, focusGap `focusOffset`, segment `chip` |
+| `Carousel` | accent `accent`, focus `focus`, link `accentText`, onAccent `accentFg`, secondaryText `fg2`, surface `bg3`, text `fg` | focused `display`, subtitle `caption`, title `heading` | button `button`, focus `focusWidth`, focusGap `focusOffset`, scrollButton `pill` |
+| `CrossBar` | accent `accent`, border `border`, focus `focus`, hover `hover`, icon `fg2`, selected `accentSoft`, selectedText `fg`, surface `bg3`, text `fg2` | item `heading`, label `title` | focus `focusWidth`, focusGap `focusOffset`, row `row`, segment `chip` |
+| `WidgetGrid` | background `bg`, focus `focus`, text `fg` |  | focus `focusWidth`, focusGap `focusOffset` |
+| `Widget` | background `bg2`, border `border`, focus `focus`, hintText `fg3`, link `accentText`, progress `accent`, progressTrack `bg4`, secondaryText `fg2`, surface `bg3`, text `fg` | caption `caption`, figure `display`, text `body`, title `heading` | corner `card`, focus `focusWidth`, focusGap `focusOffset` |
+| `NumberedRow` | border `border`, focus `focus`, hintText `fg3`, hover `hover`, playing `accentText`, secondaryText `fg2`, selected `accentSoft`, surface `bg3`, text `fg` | number `title`, row `body`, subtitle `caption`, title `heading` | art `thumb`, focus `focusWidth`, focusGap `focusOffset`, row `row` |
 | `FilterBar` | fieldOutline `controlLine`, focus `focus`, hintText `fg3`, hover `hover`, outline `borderStrong`, secondaryText `fg2`, selected `accentSoft`, selectedBorder `accentLine`, selectedText `fg`, surface `bg3`, text `fg` | count `caption`, label `body` | chip `chip`, field `field`, focus `focusWidth`, focusGap `focusOffset`, menu `sheet` |
 | `Dock` | accent `accent`, accentHover `accentHover`, background `bg2`, border `border`, danger `danger`, dangerTint `dangerSoft`, focus `focus`, hover `hover`, onAccent `accentFg`, outline `borderStrong`, pressed `pressed`, secondaryText `fg2`, selected `accentSoft`, selectedText `fg`, surface `bg3`, text `fg` | label `body` | button `button`, focus `focusWidth`, focusGap `focusOffset` |
 | `KeyLegend` | outline `borderStrong`, surface `bg3`, text `fg2` | label `caption` | keycap `badge` |
@@ -2384,6 +2605,9 @@ Shape tokens:
 | `photo` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg3`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg`, watched `accent` |  | badge `badge`, corner `card`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
 | `channel` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg2`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg`, watched `accent` | badge `badge`, next `caption`, now `caption`, number `caption`, subtitle `caption`, title `title` | badge `badge`, corner `card`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
 | `tile` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg3`, icon `fg2`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `onImage`, watched `accent` | badge `badge`, subtitle `caption`, title `heading` | badge `badge`, corner `card`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
+| `plate` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg3`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `onImage`, watched `accent` | badge `badge`, subtitle `caption`, title `title` | badge `badge`, corner `card`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
+| `block` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg3`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg`, watched `accent` | subtitle `caption`, title `title` | badge `badge`, corner `card`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
+| `logo` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg2`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg`, watched `accent` | badge `badge`, next `caption`, now `caption`, number `caption`, subtitle `caption`, title `title` | badge `badge`, corner `card`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
 | `chip` | focus `focus`, hover `hover`, outline `borderStrong`, selected `accentSoft`, selectedBorder `accentLine`, selectedText `fg`, text `fg2` | title `body` | corner `chip`, focus `focusWidth`, focusGap `focusOffset` |
 
 ### Device profiles
@@ -2422,6 +2646,7 @@ Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 48
 | [`watchLater`](#watchlater) | Watch later | personal | movie, show, episode, video | poster | yes | any |
 | [`liked`](#liked) | Liked | personal | movie, episode, video, disc, track, book, game | poster | yes | any |
 | [`statistics`](#statistics) | Statistics | personal | movie, episode, video, disc, show, track, book, game, library | poster |  | any |
+| [`serverStatus`](#serverstatus) | Server status | structure | status | tile |  | any |
 | [`savedView`](#savedview) | A saved view | personal | movie, show | poster | yes | any |
 | [`recentlyAdded`](#recentlyadded) | Recently added | library | movie, show, album, book, game, photo, video, podcast, audiobook | poster | yes | any |
 | [`recentlyReleased`](#recentlyreleased) | Recently released | library | movie, show | poster | yes | any |
@@ -2526,6 +2751,18 @@ Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 48
 
 ```json
 {"type":"statistics","stat":"shows","period":"year","limit":10}
+```
+
+#### serverStatus
+
+*Server status.* A few figures about the server: libraries, what is playing now, how long it has been up. Answered for administrators only; empty for anyone else.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"serverStatus"}
 ```
 
 #### savedView

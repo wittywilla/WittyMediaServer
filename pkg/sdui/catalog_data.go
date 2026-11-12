@@ -162,13 +162,14 @@ func example(v string) json.RawMessage {
 var cardStyleOptions = []string{
 	"auto|The source's usual style", "poster|Poster", "landscape|Landscape", "progress|Landscape with progress", "episode|Episode",
 	"square|Square", "circle|Circle", "album|Album", "person|Person", "book|Book cover", "game|Game box", "photo|Photo",
-	"channel|Channel", "tile|Tile", "chip|Chip",
+	"channel|Channel", "tile|Tile", "chip|Chip", "plate|Plate", "block|Block", "logo|Logo tile",
 }
 
 var (
 	propTitle     = pText("title", "Title", "The heading above the items. Placeholders such as {library} and {each} are filled in.", 120)
 	propSubtitle  = pText("subtitle", "Subtitle", "A smaller line under the title.", 160)
 	propCardStyle = pEnum("cardStyle", "Card style", "How each item is drawn. Auto uses the style that suits the source.", "auto", cardStyleOptions...)
+	propHeading   = rev6(pEnum("headingStyle", "Heading style", "How the title is drawn: plain, a coloured band across the row, or underlined. Left plain, the experience chooses.", "plain", "plain|Plain", "band|Band", "underline|Underline"))
 	propCardSize  = pEnum("cardSize", "Card size", "Small, medium or large cards. A profile may choose its own.", "m", "s|Small", "m|Medium", "l|Large")
 	propEmpty     = pEnum("empty", "When there is nothing to show", "Leave the section out, or keep it with a message.", "hide", "hide|Leave it out", "message|Show a message")
 	propEmptyText = pText("emptyText", "Message when empty", "Shown in place of the items when there are none.", 200)
@@ -223,7 +224,7 @@ func buildComponents() []ComponentSpec {
 
 		{Type: "Shelf", Label: "Row", Icon: "list", Category: "media", Since: 2, Authored: true, Data: "required", Focus: "group",
 			Description: "A titled row of cards that scrolls sideways. The workhorse of a home page.",
-			Props: []PropSpec{propTitle, propSubtitle, propCardStyle, propCardSize,
+			Props: []PropSpec{propTitle, propSubtitle, propHeading, propCardStyle, propCardSize,
 				pBool("showTitles", "Show titles under cards", "Off draws the pictures alone; the titles are still read out.", true),
 				pEnum("seeAll", "See all", "A link to everything the row is drawn from, when the source has such a place.", "auto", "auto|When there is more", "always|Always", "never|Never"),
 				pBool("numbered", "Number the cards", "Large rank numbers beside the cards, for a top ten.", false),
@@ -244,7 +245,7 @@ func buildComponents() []ComponentSpec {
 
 		{Type: "Grid", Label: "Grid", Icon: "grid", Category: "media", Since: 2, Authored: true, Data: "required", Focus: "group",
 			Description: "Cards in rows and columns, as many columns as fit. It pages as the person scrolls: the body of a library.",
-			Props: []PropSpec{propTitle, propCardStyle, propCardSize,
+			Props: []PropSpec{propTitle, propHeading, propCardStyle, propCardSize,
 				pBool("showTitles", "Show titles under cards", "Off draws the pictures alone.", true),
 				pInt("maxItems", "Most cards at first", "How many cards the first page holds. 0 uses the device's own limit.", 0, 0, 200),
 				propEmpty, propEmptyText,
@@ -302,7 +303,7 @@ func buildComponents() []ComponentSpec {
 
 		{Type: "Carousel", Label: "Carousel", Icon: "movie", Category: "media", Since: 6, Authored: true, Data: "required", Focus: "group",
 			Description: "A centred carousel of posters with the focused one large and its neighbours smaller: one big title at a time.",
-			Props: []PropSpec{propTitle, propCardStyle, propCardSize,
+			Props: []PropSpec{propTitle, propHeading, propCardStyle, propCardSize,
 				rev6(pBool("showTitles", "Show the focused title", "The focused card's title and facts under it.", true)),
 				rev6(pInt("maxItems", "Most cards at first", "How many cards are sent before the row asks for more. 0 uses the device's own limit.", 0, 0, 40)),
 				propEmpty, propEmptyText,
@@ -354,7 +355,7 @@ func buildComponents() []ComponentSpec {
 
 		{Type: "NumberedRow", Label: "Numbered rows", Icon: "list", Category: "media", Since: 6, Authored: true, Data: "required", Focus: "group",
 			Description: "Listing rows with a number column: a channel's number, or the place in the list. A guide's channel list, a top ten.",
-			Props: []PropSpec{propTitle,
+			Props: []PropSpec{propTitle, propHeading,
 				rev6(pEnum("numbers", "Numbers", "Channel numbers where the items are channels, else their place in the list.", "auto", "auto|Channel or place", "index|Place in the list")),
 				rev6(pInt("maxItems", "Most rows at first", "How many rows are sent before the list asks for more. 0 uses the device's own limit.", 0, 0, 100)),
 				propEmpty, propEmptyText,
@@ -611,7 +612,7 @@ func buildComponents() []ComponentSpec {
 
 		{Type: "List", Label: "List", Icon: "list", Category: "media", Since: 2, Authored: true, Data: "optional", Container: true, Children: []string{"ListItem"}, Focus: "group",
 			Description: "Rows of text with an icon or small picture, written by hand or drawn from a source.",
-			Props:       []PropSpec{propTitle, pBool("dense", "Compact rows", "", false), propEmpty, propEmptyText},
+			Props:       []PropSpec{propTitle, propHeading, pBool("dense", "Compact rows", "", false), propEmpty, propEmptyText},
 			Renders:     map[string]string{"all": "Full-width rows (56 points, 44 dense, 90 on a television): picture or icon, title over subtitle, trailing text, and a chevron when the row opens something."},
 			States:      statesData,
 			A11y:        "Role: list labelled by the title.",
@@ -715,6 +716,9 @@ func buildSources() []SourceSpec {
 				pEnum("who", "Whose", "Everyone's is answered for administrators only.", "me", "me|The profile's own", "everyone|Everyone on the server"),
 				pEnum("period", "Over", "", "month", "week|The last 7 days", "month|The last 30 days", "year|The last 365 days", "all|All time"), paramLibrary, paramLimit},
 			Yields: []string{"movie", "episode", "video", "disc", "show", "track", "book", "game", "library"}, Example: example(`{"type":"statistics","stat":"shows","period":"year","limit":10}`)},
+		{Type: "serverStatus", Label: "Server status", Icon: "plug", Category: "structure", Since: 6, CardStyle: "tile", Title: "Server",
+			Description: "A few figures about the server: libraries, what is playing now, how long it has been up. Answered for administrators only; empty for anyone else.",
+			Params:      []PropSpec{paramLimit}, Yields: []string{"status"}, Example: example(`{"type":"serverStatus"}`)},
 		{Type: "savedView", Label: "A saved view", Icon: "filter", Category: "personal", Since: 2, CardStyle: "poster", Paged: true, Title: "{each}",
 			Description: "What one of the profile's saved library views finds now. With a row repeated over pinned views, $each is each view.",
 			Params:      []PropSpec{req(pOf(PropRef, "view", "View", "The saved view's ID, or $each.")), paramLimit}, Yields: []string{"movie", "show"},

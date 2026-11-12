@@ -26,8 +26,10 @@ import (
 // two ways are and why neither is built in; docs/LYRICS-KARAOKE.md says it for people.
 //
 //   - POST .../stems/approximate: FFmpeg takes one channel from the other. Anyone who may
-//     play the song may ask, because it costs about what playing it does; the result is
-//     kept and labelled "approximate".
+//     play the song may ask while making karaoke versions is left to the server
+//     (karaokeAuto "auto"), because it costs about what playing it does, within the same
+//     hourly limit per account as karaoke's own; with "admin" or "never" only an
+//     administrator may (approxRefusal). The result is kept and labelled "approximate".
 //   - POST .../stems/separate: the owner's separator, when one is named on the machine
 //     (config.StemSeparator). Administrators only: it can hold a processor for minutes.
 //
@@ -52,7 +54,8 @@ type separationInfo struct {
 
 type separationWay struct {
 	Available bool `json:"available"`
-	// Reason says why not: not-a-song, not-a-file, no-ffmpeg, not-configured, admin-only.
+	// Reason says why not: not-a-song, not-a-file, no-ffmpeg, not-configured, admin-only,
+	// off (karaoke versions are turned off for everyone but administrators).
 	Reason string `json:"reason,omitempty"`
 	// Task is the task making it now, when one is.
 	Task string `json:"task,omitempty"`
@@ -95,7 +98,9 @@ func (s *Server) separationFor(r *http.Request, it *library.Item) separationInfo
 	out.Approximate = separationWay{Reason: base, Note: approxNote, Task: s.mediaJobTask(fmt.Sprintf("stems-approx:%d", it.ID))}
 	out.Approximate.Error = approxFailure(s.mediaJobError(fmt.Sprintf("stems-approx:%d", it.ID)))
 	if base == "" {
-		if s.Tools == nil || s.Tools.FFmpeg == "" {
+		if why := s.approxRefusal(r); why != "" {
+			out.Approximate.Reason = why // the route refuses before it looks for FFmpeg
+		} else if s.Tools == nil || s.Tools.FFmpeg == "" {
 			out.Approximate.Reason = "no-ffmpeg"
 		} else {
 			out.Approximate.Available = true
@@ -163,6 +168,10 @@ func (s *Server) handleStemsApproximate(w http.ResponseWriter, r *http.Request) 
 	if it == nil {
 		return
 	}
+	if why := s.approxRefusal(r); why != "" {
+		writeJSON(w, 403, map[string]any{"error": karaokeMessages[why], "reason": why})
+		return
+	}
 	if s.Tools == nil || s.Tools.FFmpeg == "" {
 		writeErr(w, 503, "FFmpeg isn't available, and it is what makes this")
 		return
@@ -173,15 +182,39 @@ func (s *Server) handleStemsApproximate(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 	}
+	who := userFrom(r)
+	if !who.IsAdmin && !s.karaoke.allow("approx", who.ID, karaokeApproxPerHour) {
+		w.Header().Set("Retry-After", "600")
+		writeJSON(w, 429, map[string]any{"error": karaokeMessages["rate-limited"], "reason": "rate-limited"})
+		return
+	}
 	dir := filepath.Join(s.extrasRoot(), mediaextras.Key(it.ID, it.Path), mediaextras.ApproxDir)
 	item := *it
-	id, err := s.startMediaJob(fmt.Sprintf("stems-approx:%d", it.ID), userFrom(r),
+	id, err := s.startMediaJob(fmt.Sprintf("stems-approx:%d", it.ID), who,
 		tasks.Spec{Type: tasks.TypeOther, Title: "Making an approximate instrumental", Private: true},
 		func(ctx context.Context, task *tasks.Handle) error {
 			task.Item(item.Title, "")
 			return s.makeApproxInstrumental(ctx, &item, dir)
 		})
 	jobAnswer(w, id, err)
+}
+
+// approxRefusal is why this account may not ask for an approximate instrumental, "" when
+// it may: the owner's karaoke switch (Settings: Make karaoke versions) decides, as it does
+// for karaoke's own requests. "Only when an admin asks" and "Never" both leave it to
+// administrators, who may always make one song's version on purpose, as they may run the
+// separator.
+func (s *Server) approxRefusal(r *http.Request) string {
+	if userFrom(r).IsAdmin {
+		return ""
+	}
+	switch s.DB.GetSetting(r.Context(), "karaokeAuto", settingDefaults["karaokeAuto"]) {
+	case "never":
+		return "off"
+	case "admin":
+		return "admin-only"
+	}
+	return ""
 }
 
 // errNotStereo: there is no "difference between the channels" of a mono song.

@@ -320,6 +320,13 @@ Go types are `sdui.Document`, `sdui.Node`, `sdui.Action`, `sdui.Focus`.
 
 Ignore an action type you don't know.
 
+A command's request is built from its catalogue entry: put the action's
+`item`, exactly as sent (`"5"`, `"show-5"`), in place of `{item}`,
+URL-escaped in the path and JSON-escaped in the body, where it always stands
+inside a string (`{"items":["{item}"]}`), so the body is JSON for any title.
+The routes take a show's `show-<n>` as they take a number: Watch later adds
+the show, `watched.set` and `watched.clear` mark every episode of it.
+
 ## Rules for renderers
 
 These are requirements. The conformance kit checks the ones that can be
@@ -436,7 +443,13 @@ own props as they are now. Never ask for the same cursor twice at once.
 - `props.image` is `{url, width, height, aspect, kind}`. Ask for `url` as it
   is: it already carries the width (`?w=`), chosen from
   `layout.imageWidths` as the smallest that covers the card at the device's
-  scale. Don't ask for another size.
+  scale. Don't ask for another size. A backdrop that spans the window (a
+  title's header, a hero's slide) is chosen for the window's width (the
+  `viewport` sent, else the breakpoint's usual window) at no more than two
+  pixels a point, whatever the device's scale: 960 on a 402-point phone.
+  Only a real backdrop is sent as one: a title that has only a poster gets
+  no `image` on a hero slide or banner and no `images.backdrop` in its
+  header, never its poster stretched to 16/9; draw it on the theme's colours.
 - Draw it in the card's aspect, cropped to fill (`cover`), except a channel's
   logo and a title's logo, which are fitted inside (`contain`) on a plain
   tile in token `bg3`.
@@ -802,13 +815,13 @@ Everything an editor needs is data; it hard-codes nothing about components.
 | `GET /sdui/config/pages` | Every page in force with its `source`: `builtin`, `changed` or `custom`. `?target=draft` for the draft's. |
 | `GET /sdui/config/pages/{id}` | The page as authored, the built-in page it would reset to, and the validator's issues. |
 | `PUT /sdui/config/pages/{id}` | Save one page. |
-| `DELETE /sdui/config/pages/{id}` | Reset a built-in page to default, or delete one of your own. |
+| `DELETE /sdui/config/pages/{id}` | Reset a built-in page to default, or delete one of your own. 404 for a page that is in neither. |
 | `GET`, `PUT`, `DELETE /sdui/config/navigation` | The navigation; DELETE resets it. |
-| `POST /sdui/validate` | Check `{"page"}`, `{"navigation"}` or `{"config"}` without saving. |
+| `POST /sdui/validate` | Check `{"page"}`, `{"navigation"}` or `{"config"}` without saving. With `?target=draft` a navigation may name the draft's pages. |
 | `GET /sdui/presets`, `POST /sdui/presets/{id}/apply` | The gallery; apply a page preset. |
 | `GET`, `PUT`, `DELETE /sdui/draft`, `POST /sdui/draft/publish`, `POST /sdui/draft/preview` | The draft. |
 | `GET /sdui/export`, `POST /sdui/import` | A page or the whole configuration as a file. |
-| `GET`, `PUT /sdui/config`, `GET /sdui/config/history`, `GET /sdui/config/diff`, `POST /sdui/config/rollback/{rev}` | The whole file, its last 10 revisions, what differs between two, and going back. |
+| `GET`, `PUT /sdui/config`, `GET /sdui/config/history`, `GET /sdui/config/diff`, `POST /sdui/config/rollback/{rev}` | The whole file, its last 10 revisions, what differs between two (`{from, to, fromDraft, toDraft, changes}`; for the draft, the revision it was begun from with `toDraft: true`), and going back. |
 
 **Saving.** A change to the published configuration needs `If-Match` with
 the ETag it was made against: 428 without, 412 when someone saved in
@@ -841,8 +854,24 @@ administrator who asked and nobody else**. That administrator's apps send
 it as `preview=<token>` (or `X-WMS-SDUI-Preview`) with the page and
 navigation routes and are served the draft, with `meta.source: "draft"`, on
 a real phone or television. Anyone else sending it gets 403. `POST
-/sdui/draft/publish` makes the draft the configuration, as a new revision,
-and ends every preview; `DELETE /sdui/draft` throws it away.
+/sdui/draft/publish` applies the draft to the configuration, as a new
+revision, and ends every preview; `DELETE /sdui/draft` throws it away.
+
+**Publishing merges.** The draft remembers the published revision it was
+begun from (`baseRevision`). Publishing does not copy the draft over what is
+published: it takes what the draft changed since that revision, item by item
+(each page by ID, the navigation, the theme, the personalisation switch), and
+applies it on top of what is published now, so a change published after the
+draft was begun is kept. When the draft and what was published since changed
+the same item in different ways the answer is 409, nothing changes, and the
+body names them: `{"error", "conflicts": ["/pages/home", "/navigation"],
+"baseRevision", "currentRevision"}`. The editor reloads both, shows them, and
+publishes again with `?prefer=draft` (the draft's version of those items
+wins) or `?prefer=published` (what is published stays; the draft's other
+changes still go in), or edits the draft. When the revision the draft was
+begun from is no longer among the 10 kept, `conflicts` is `["/"]` and only
+`prefer=draft` publishes (the draft as it is). `If-Match` keeps its meaning:
+the draft's ETag.
 
 #### Presets, import and export
 
@@ -1189,7 +1218,7 @@ How it is drawn:
 
 - **Television.** A full-screen column inside the safe area (60 points top and bottom, 80 at the sides), sections 40 points apart. The title isn't drawn: the top menu says where you are.
 - **Phone.** A scrolling column under a large title that collapses into the navigation bar; sections 24 points apart, rows bleed to the screen's edges.
-- **Tablet.** As a phone, with 24-point side margins.
+- **Tablet.** As a phone, with 16-point side margins (the m spacing, as on every form factor but the television).
 - **Desktop and web.** A scrolling column beside the sidebar, the title as a heading, content at most 1600 points wide.
 
 Focus: takes none. Accessibility: Role: main. Label: the title.
@@ -2119,6 +2148,7 @@ The width of a medium (`m`) card in points; small is 80% and large 125%, rounded
 | Canvas | 1920×1080 | 1920×1080 | the window | the window | the window | the window |
 | Breakpoint when the window isn't known | large | large | compact | expanded | large | large |
 | Safe area (top, right, bottom, left) | 60, 80, 60, 80 | 60, 80, 60, 80 | the system's | the system's | the system's | the system's |
+| Side margins | 80 | 80 | 16 | 16 | 16 | 16 |
 | Focus is the only pointer | yes | yes | no | no | no | no |
 | Opens web links | no | no | yes | yes | yes | yes |
 | Spacing xs, s, m, l, xl | 10, 20, 40, 60, 100 | 10, 20, 40, 60, 100 | 4, 8, 16, 24, 40 | 4, 8, 16, 24, 48 | 4, 8, 16, 24, 48 | 4, 8, 16, 24, 48 |
@@ -2507,13 +2537,13 @@ Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 48
 
 #### tracks
 
-*Tracks.* An album's songs or a book's chapters, in order.
+*Tracks.* An album's songs or a book's chapters, in order; without an album, every song by the artist, by title.
 
 | Property | Type | Default | What it is |
 |---|---|---|---|
 | `library` (required) | library |  | Library. One library; leave empty for every library the profile can open. $library on a library page, $each in a row repeated over libraries. |
-| `album` (required) | string, at most 300 |  | Album. $album on an album's page. |
-| `artist` | string, at most 300 |  | Album artist. $artist on an album's page. |
+| `album` | string, at most 300 |  | Album. $album on an album's page. Left out: every album's (an artist's page). |
+| `artist` | string, at most 300 |  | Album artist. $artist on an album's or an artist's page. |
 | `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
 
 ```json
@@ -2582,7 +2612,7 @@ Every source also takes `map`: `{"subtitle": "studio"}` puts another field of th
 | `home` | The first page of the app. | `/` | tab |  |  |
 | `libraries` | Every library the profile can open. | `/libraries` | tab |  |  |
 | `library` | One library's own page. | `/library/{library}` | library, tab, sort, desc, genre, decade, year, content, resolution, watched, studio, network, tag, series, kind, disc, minRating, audio, subtitle, format, edition, search, seed | $library | library, libraryKind |
-| `detail` | The page of one film, show, episode, album, book, game or collection. | `/item/{item}` | item, show, season, collection, library, artist, album, tab | $item, $show, $season, $collection, $library, $artist, $album | mediaKind, library, libraryKind |
+| `detail` | The page of one film, show, episode, album, artist, book, game or collection. | `/item/{item}` | item, show, season, collection, library, artist, album, tab | $item, $show, $season, $collection, $library, $artist, $album | mediaKind, library, libraryKind |
 | `search` | Search across everything. | `/search` | q, tab | $query |  |
 | `livetv` | Channels and the guide. | `/tv` | tab |  |  |
 | `music` | Every music library together. | `/music` | tab |  |  |
@@ -2604,6 +2634,7 @@ What shows each place in the app: an SDUI page, asked for with the parameters gi
 | `/item/{item}` | page `detail` | item={item} |
 | `/show/{show}` | page `detail` | show={show} |
 | `/album/{library}` | page `detail` | album=?album, artist=?artist, library={library} |
+| `/artist/{library}` | page `detail` | artist=?name, library={library} |
 | `/collections/{collection}` | page `detail` | collection={collection} |
 | `/collections` | page `collections` |  |
 | `/search` | page `search` | q=?q |
@@ -2627,32 +2658,34 @@ What shows each place in the app: an SDUI page, asked for with the parameters gi
 
 ### Native screens
 
-| Screen | What it is | Route |
-|---|---|---|
-| `settings` | The app's own Settings. Always in the navigation; never an SDUI page. | `/settings` |
-| `guide` | The guide's grid of channels and times. | `/tv/guide` |
-| `profiles` | The profile's own page and the profile switcher. | `/you` |
-| `downloads` | What is kept on this device. | `/downloads` |
-| `remote` | Remote control of another device. | `/remote` |
-| `nowPlaying` | The music player. | `/now-playing` |
-| `pair` | Sign another device in. | `/pair` |
-| `collections` | The app's own collections manager, where it has one; else the collections page. | `/collections` |
-| `player` | The video player. | `/watch/{item}` |
-| `livePlayer` | A channel, playing. | `/tv/watch/{key}` |
-| `reader` | The book and comic reader. | `/read/{item}` |
-| `game` | A game's page and player. | `/game/{item}` |
-| `download` | Keep a copy of a title on this device (action params: item). | `` |
-| `share` | The share sheet for a title (action params: item). | `` |
-| `playOn` | The device picker for a title (action params: item). | `` |
-| `watchParty` | Start a watch party for a title (action params: item). | `` |
+A menu entry (`type: native`) may open the screens marked *menu*; the others need a title or a channel and are opened by actions.
+
+| Screen | What it is | Route | Menu |
+|---|---|---|---|
+| `settings` | The app's own Settings. Always in the navigation; never an SDUI page. | `/settings` | menu |
+| `guide` | The guide's grid of channels and times. | `/tv/guide` | menu |
+| `profiles` | The profile's own page and the profile switcher. | `/you` | menu |
+| `downloads` | What is kept on this device. | `/downloads` | menu |
+| `remote` | Remote control of another device. | `/remote` | menu |
+| `nowPlaying` | The music player. | `/now-playing` | menu |
+| `pair` | Sign another device in. | `/pair` | menu |
+| `collections` | The app's own collections manager, where it has one; else the collections page. | `/collections` | menu |
+| `player` | The video player. | `/watch/{item}` | no |
+| `livePlayer` | A channel, playing. | `/tv/watch/{key}` | no |
+| `reader` | The book and comic reader. | `/read/{item}` | no |
+| `game` | A game's page and player. | `/game/{item}` | no |
+| `download` | Keep a copy of a title on this device (action params: item). | `` | no |
+| `share` | The share sheet for a title (action params: item). | `` | no |
+| `playOn` | The device picker for a title (action params: item). | `` | no |
+| `watchParty` | Start a watch party for a title (action params: item). | `` | no |
 
 ### Commands
 
 | `op` | What it does | Request |
 |---|---|---|
-| `watchLater.add` | Adds the title to the profile's Watch later list. | `POST /api/v1/collections/watch-later/items` with `{"items":[{item}]}` |
-| `watched.set` | Marks the title watched. | `POST /api/v1/items/{item}/progress` with `{"watched":true}` |
-| `watched.clear` | Forgets the profile's progress in the title. | `DELETE /api/v1/items/{item}/progress` |
+| `watchLater.add` | Adds the title to the profile's Watch later list. | `POST /api/v1/collections/watch-later/items` with `{"items":["{item}"]}` |
+| `watched.set` | Marks the title watched; for a show, every episode. | `POST /api/v1/items/{item}/progress` with `{"watched":true}` |
+| `watched.clear` | Forgets the profile's progress in the title; for a show, in every episode. | `DELETE /api/v1/items/{item}/progress` |
 | `selectTab` | Asks for the page again with tab=<params.tab>, or shows the tab's content when the client already has it. |  |
 | `refresh` | Asks for the page again. |  |
 
@@ -2723,6 +2756,7 @@ The menu's style on each form factor, and what the server changes about every pa
 | `detail-show` | detail | show | `header` (DetailHeader), `episodes` (SeasonList of episodes), `similar` (Shelf of similar) |
 | `detail-episode` | detail | episode | `header` (DetailHeader), `season` (Shelf of episodes) |
 | `detail-album` | detail | album | `header` (DetailHeader), `tracks` (TrackList of tracks), `more` (Shelf of albums) |
+| `detail-artist` | detail | artist | `header` (DetailHeader), `albums` (Shelf of albums), `tracks` (TrackList of tracks) |
 | `detail-collection` | detail | collection | `header` (DetailHeader), `all` (Grid of collection) |
 | `search` | search | every search page | `q` (SearchBox), `idle` (Text), `found` (Shelf of search, per librarie), `channels` (Shelf of search) |
 | `livetv` | livetv | every livetv page | `guide` (NativeView), `favourites` (Shelf of liveNow), `recordings` (Shelf of recordings), `channels` (Grid of liveNow) |

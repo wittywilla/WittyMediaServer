@@ -45,7 +45,28 @@ const (
 	//   - the streams of remote control and watch parties end the moment their sign-in
 	//     does, with "bye" or "closed" and a reason: "signed-out" or "feature-off"
 	//     (session-end-streams).
-	apiRevision = 15
+	//
+	// 16 is phase 2 of 0.8.0-alpha, counted once:
+	//   - modules carry their own SDUI (module API 4): their pages, rows, components,
+	//     sources, views, menu entries and colours are merged in; GET /sdui/modules,
+	//     /sdui/modules/{module}/images/{name}, /sdui/modules/settings and
+	//     /sdui/modules/{module}/settings[/personal] (sdui-modules, module-settings);
+	//   - layout options: document.layout.shell, the navigation's shell and layouts,
+	//     /sdui/layout and /sdui/config/layouts (sdui-layouts); a ListItem from a source
+	//     carries image, progress and badges; library rows take their kind's card style
+	//     and a phone's libraries are chips; a title's page on a phone or TV has no
+	//     personal;
+	//   - catalog.nativeScreens[].menu; command bodies hold {item} in a JSON string, and
+	//     collections and /items/show-<n>/progress take show IDs; the artist page
+	//     (/artist/{library}?name=, page detail-artist, media kind artist); the tracks
+	//     source's album is optional; backdrops at most 2x the window, never a poster;
+	//   - the editor: a draft's baseRevision, publish that merges and answers 409 with
+	//     conflicts (?prefer=draft|published), fromDraft/toDraft in diffs,
+	//     /sdui/validate?target=draft, 404 for deleting a page that isn't there;
+	//   - stems/approximate follows the karaoke setting (403 with reason, 429);
+	//     p2p/invite asks an administrator's password for an administrator (403
+	//     password-required).
+	apiRevision = 16
 	apiPrefix   = "/api/v1/"
 )
 

@@ -132,7 +132,9 @@ Under the same heading in Settings, **Make karaoke versions automatically** has 
 |---|---|
 | **Automatically** | Anyone who can play a song gets a karaoke version of it when they open karaoke. This is how it starts out |
 | **Only when an admin asks** | Versions are made when an admin opens karaoke on a song. Everyone can sing the ones already made |
-| **Never** | Nothing is made. Stems beside your songs still play |
+| **Never** | Nothing is made by itself. Stems beside your songs still play |
+
+With either of the last two, only an administrator can ask for one song's quick version or separation on purpose (`POST /api/v1/media/{id}/stems/approximate`, `…/stems/separate`); anyone else is told no (403, `reason` `admin-only` or `off`), and a song's listing says so in `separation.approximate.reason`.
 
 The server keeps this in hand by itself: one is made at a time, at low priority; sixteen can wait; one account can start 6 separations and 40 quick versions an hour; and a song whose separation failed isn't tried again for six hours. Each one shows in [Tasks](TASKS.md) and can be stopped there.
 

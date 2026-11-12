@@ -11013,6 +11013,9 @@
       },
       "SDUIConfig": {
         "properties": {
+          "baseRevision": {
+            "type": "integer"
+          },
           "etag": {
             "type": "string"
           },
@@ -11624,6 +11627,9 @@
           },
           "label": {
             "type": "string"
+          },
+          "menu": {
+            "type": "boolean"
           },
           "route": {
             "type": "string"
@@ -14863,7 +14869,7 @@
       "url": "https://www.gnu.org/licenses/agpl-3.0.html"
     },
     "title": "WittyMediaServer client API",
-    "version": "1.15.0"
+    "version": "1.16.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -17680,7 +17686,7 @@
             "bearer": []
           }
         ],
-        "summary": "Watch later add.",
+        "summary": "Watch later add. {items, shows}: each a number, or a string \"5\" or \"show-5\" (a show, wherever it is listed).",
         "tags": [
           "Collections and your year"
         ],
@@ -26063,7 +26069,7 @@
             "bearer": []
           }
         ],
-        "summary": "Forget the position (mark as not started).",
+        "summary": "Forget the position (mark as not started). {id} show-\u003cn\u003e: in every episode of the show.",
         "tags": [
           "Browsing"
         ],
@@ -26130,7 +26136,7 @@
             "bearer": []
           }
         ],
-        "summary": "Save the viewer's position. Past 92% counts as watched. Discs send `discTitle` too.",
+        "summary": "Save the viewer's position. Past 92% counts as watched. Discs send `discTitle` too. {id} show-\u003cn\u003e with {\"watched\": true} marks every episode of the show this profile may see watched.",
         "tags": [
           "Browsing"
         ],
@@ -30927,7 +30933,7 @@
             "bearer": []
           }
         ],
-        "summary": "Make an approximate instrumental with FFmpeg, by cancelling what the left and right channels share, and keep it. Not a real stem: it is listed with approximate: true. 202 with a task; 200 when an instrumental already exists. Stereo songs that are files in a library only.",
+        "summary": "Make an approximate instrumental with FFmpeg, by cancelling what the left and right channels share, and keep it. Not a real stem: it is listed with approximate: true. 202 with a task; 200 when an instrumental already exists. Stereo songs that are files in a library only. Anyone who may play the song while the karaoke switch (karaokeAuto) is auto; administrators only with admin or never (403 with reason admin-only or off). 429 past 40 an hour for one account.",
         "tags": [
           "Media extras"
         ],
@@ -36545,6 +36551,14 @@
             "application/json": {
               "schema": {
                 "properties": {
+                  "otp": {
+                    "description": "The caller's two-factor code, with the password, when they have two-factor sign-in.",
+                    "type": "string"
+                  },
+                  "password": {
+                    "description": "The caller's own password, when the invite signs a device in as an administrator.",
+                    "type": "string"
+                  },
                   "userId": {
                     "type": "integer"
                   }
@@ -36586,7 +36600,7 @@
             "bearer": []
           }
         ],
-        "summary": "An invite link (`wittymedia://p2p/...`) that puts one device on the list and signs it in, for this account or a Kids or Guest profile it manages. Adults only. Works once, for 15 minutes.",
+        "summary": "`{userId, password, otp}`: an invite link (`wittymedia://p2p/...`) that puts one device on the list and signs it in, for this account or a Kids or Guest profile it manages. Adults only; an invite that signs a device in as an administrator takes the administrator's password again (403 with `reason: \"password-required\"` without it), as `/pair/approve` and `/p2p/join` do. Works once, for 15 minutes.",
         "tags": [
           "Remote access and signed-in devices"
         ],
@@ -41654,7 +41668,7 @@
             "bearer": []
           }
         ],
-        "summary": "What differs between two revisions (?from= and ?to=: a revision number, current or draft): pages added, removed and changed, and inside a changed page the sections added, removed, changed and whether they were reordered.",
+        "summary": "What differs between two revisions (?from= and ?to=: a revision number, current or draft): pages added, removed and changed, and inside a changed page the sections added, removed, changed and whether they were reordered. {from, to, fromDraft, toDraft, changes}: for the draft, the revision it was begun from, with fromDraft/toDraft true.",
         "tags": [
           "Server-driven UI"
         ],
@@ -42030,7 +42044,7 @@
             "bearer": []
           }
         ],
-        "summary": "Remove the configuration's page: a built-in page goes back to how it ships (reset to default), a page of the administrator's own is gone. ?target=draft writes to the draft; otherwise If-Match is required (428 without, 412 when stale).",
+        "summary": "Remove the configuration's page: a built-in page goes back to how it ships (reset to default), a page of the administrator's own is gone; 404 for a page that is in neither. ?target=draft writes to the draft; otherwise If-Match is required (428 without, 412 when stale).",
         "tags": [
           "Server-driven UI"
         ],
@@ -42400,6 +42414,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "Which side wins for items the draft and what was published since both changed: draft or published. Without it such items answer 409.",
+            "in": "query",
+            "name": "prefer",
+            "required": false,
+            "schema": {
+              "enum": [
+                "draft",
+                "published"
+              ],
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -42421,6 +42448,33 @@
               }
             }
           },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "baseRevision": {
+                      "type": "integer"
+                    },
+                    "conflicts": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "currentRevision": {
+                      "type": "integer"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The draft and what was published since it was begun changed the same items."
+          },
           "default": {
             "$ref": "#/components/responses/Error"
           }
@@ -42430,7 +42484,7 @@
             "bearer": []
           }
         ],
-        "summary": "Make the draft the configuration everyone gets, as a new revision. If-Match, when sent, is the draft's ETag.",
+        "summary": "Apply what the draft changed since the revision it was begun from to the configuration everyone gets, as a new revision; what was published meanwhile is kept. 409 {conflicts, baseRevision, currentRevision} when both changed the same page, navigation, theme or personalisation; ?prefer=draft or ?prefer=published settles them. If-Match, when sent, is the draft's ETag.",
         "tags": [
           "Server-driven UI"
         ],
@@ -44274,6 +44328,17 @@
     "/sdui/validate": {
       "post": {
         "operationId": "postSduiValidate",
+        "parameters": [
+          {
+            "description": "draft: a navigation may name the draft's pages (the published configuration's while there is no draft).",
+            "in": "query",
+            "name": "target",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -44306,7 +44371,7 @@
             "bearer": []
           }
         ],
-        "summary": "Check {\"page\": ...}, {\"navigation\": ...} or {\"config\": ...} without saving: {ok, issues: [{path, severity, message, fix}]}.",
+        "summary": "Check {\"page\": ...}, {\"navigation\": ...} or {\"config\": ...} without saving: {ok, issues: [{path, severity, message, fix}]}. ?target=draft: a navigation may name the draft's pages.",
         "tags": [
           "Server-driven UI"
         ],

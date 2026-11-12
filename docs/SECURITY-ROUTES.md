@@ -156,8 +156,8 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/shows/{id}/artwork` | Admin | Show exists |
 | `GET /api/shows/{id}/art/{kind}` | Signed-in; address token | limits. Pictures only |
 | `GET /api/items/{id}/backdrop` | Signed-in; ticket; address token | limits. Pictures only |
-| `POST /api/items/{id}/progress` | Signed-in | limits. own |
-| `DELETE /api/items/{id}/progress` | Signed-in | own |
+| `POST /api/items/{id}/progress` | Signed-in | limits. own. show-<n>: the show within limits, each episode the profile may see |
+| `DELETE /api/items/{id}/progress` | Signed-in | own. show-<n>: the show within limits, each episode the profile may see |
 | `POST /api/pair/info` | Adult | Code, with a limit on wrong codes |
 | `GET /api/auth/pair/{session}/info` | Adult | Session is waiting. A wrong QR check is refused. Limit on wrong codes. Never says the PIN or the device's secret |
 | `POST /api/auth/pair/{session}/approve` | Adult | The PIN shown now or the one before it, used once. Five wrong PINs end the session. Limit on wrong codes. The device signs in as the caller or a profile the caller manages; as an administrator only with that administrator's password again |
@@ -373,7 +373,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/p2p/devices` | Signed-in | own. Everyone's with 'all=1', for an admin |
 | `POST /api/p2p/devices` | Signed-in | A session token, not a stream token. A well-formed Ed25519 device ID that isn't the server's own. A key listed for another account is refused. At most 32 per account, 512 in all |
 | `DELETE /api/p2p/devices/{id}` | Signed-in | own. Any account's for an admin. Someone else's answers as if there were none |
-| `POST /api/p2p/invite` | Adult | Target is the caller or a profile the caller manages. Peer-to-peer connections are on. Limit on open invites |
+| `POST /api/p2p/invite` | Adult | Target is the caller or a profile the caller manages. An administrator's own password (and code) again to sign a device in as an administrator. Peer-to-peer connections are on. Limit on open invites |
 | `POST /api/p2p/join` | Adult | Target is the caller or a profile the caller manages. An administrator's own password (and code) again to sign a device in as an administrator. Peer-to-peer connections and their address book are on. A well-formed code. Limit on codes waiting |
 | `GET /api/p2p/settings` | Admin | Nothing further |
 | `PUT /api/p2p/settings` | Admin | Port, layers, relay limit, own relays (each a multiaddr ending in a valid ID). Turning it on, or letting unlisted devices in, also needs `accept` |
@@ -767,11 +767,11 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/sdui/config/pages` | Admin | target by form |
 | `GET /api/sdui/config/pages/{page}` | Admin | Page exists. target by form |
 | `PUT /api/sdui/config/pages/{page}` | Admin | If-Match as for the configuration, or target=draft. 256 KB, strict JSON, the page's ID is the one in the address, and the page through the SDUI validator |
-| `DELETE /api/sdui/config/pages/{page}` | Admin | If-Match as for the configuration, or target=draft. The page is the configuration's, or a built-in page (which is left as it ships) |
+| `DELETE /api/sdui/config/pages/{page}` | Admin | If-Match as for the configuration, or target=draft. The page is the configuration's, or a built-in or module page (which is left as it ships); 404 otherwise |
 | `GET /api/sdui/config/navigation` | Admin | target by form |
 | `PUT /api/sdui/config/navigation` | Admin | If-Match as for the configuration, or target=draft. 256 KB, strict JSON. Every entry names a page that exists, a library, a native screen from the fixed list or a route on this server; Settings can't be hidden or given a condition |
 | `DELETE /api/sdui/config/navigation` | Admin | If-Match as for the configuration, or target=draft |
-| `POST /api/sdui/validate` | Admin | 16 MB body. Saves nothing |
+| `POST /api/sdui/validate` | Admin | 16 MB body. target by form. Saves nothing |
 | `GET /api/sdui/presets` | Admin | Nothing |
 | `GET /api/sdui/config/layouts` | Admin | Nothing |
 | `PUT /api/sdui/config/layouts` | Admin | Strict JSON, 16 KB; every layout and form factor checked; a default must be allowed. If-Match as for the configuration, or target=draft |
@@ -781,7 +781,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/sdui/draft` | Admin | Nothing |
 | `PUT /api/sdui/draft` | Admin | If-Match, when sent, must be the draft's ETag (the configuration's when there is no draft). Validated as the configuration is |
 | `DELETE /api/sdui/draft` | Admin | Nothing further. Ends every preview |
-| `POST /api/sdui/draft/publish` | Admin | A draft exists. If-Match, when sent, must be the draft's ETag. Validated again. Ends every preview |
+| `POST /api/sdui/draft/publish` | Admin | A draft exists. If-Match, when sent, must be the draft's ETag. prefer: draft or published. Merged onto what is published (409 on conflicting items) and validated again. Ends every preview |
 | `POST /api/sdui/draft/preview` | Admin | A draft exists. The token is random, for this administrator alone, for two hours, at most 16 at once, kept in memory |
 | `GET /api/sdui/export` | Admin | Page exists when one is named. target by form |
 | `POST /api/sdui/import` | Admin | 16 MB body. The file says it is a wittymedia-ui export. Into the draft unless target=published, which needs If-Match. Validated as the configuration is; dryRun changes nothing |
@@ -802,7 +802,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/media/{id}/stems/{stem}` | Signed-in; ticket; address token | limits. Stem is one of a fixed list of names, never used as a path. Only a file the listing would name, or for `full` the song itself opened through the library. Type from its name. Inert content policy. Limit for viewers away from home |
 | `PUT /api/media/{id}/stems/{stem}` | Admin | A song. Stem is one of a fixed list of names. At most 200 MB, audio by its first bytes (an MP4 for multitrack). Written whole into the server's images folder, never beside the media; links on the way refused |
 | `DELETE /api/media/{id}/stems/{stem}` | Admin | Stem is one of a fixed list of names. Removes only an upload, a plain file in the server's own folder |
-| `POST /api/media/{id}/stems/approximate` | Signed-in | limits. A song that is a file inside a library. Queues one FFmpeg job at low priority, 16 waiting at most on the whole server, one per song; the result is kept in the server's own folder |
+| `POST /api/media/{id}/stems/approximate` | Signed-in | limits. Administrators only unless karaokeAuto is auto; 40 an hour per account. A song that is a file inside a library. Queues one FFmpeg job at low priority, 16 waiting at most on the whole server, one per song; the result is kept in the server's own folder |
 | `POST /api/media/{id}/stems/separate` | Admin | A song that is a file inside a library. Runs only the program named in the server's own configuration (never one named in a request or a setting), without a shell, the song's path as one argument, at low priority, 45 minutes at most. Keeps only plain audio files, by their first bytes, named for a fixed list of parts, at most 200 MB each |
 | `GET /api/media/{id}/karaoke` | Signed-in | limits. A song. Lists only stems the stems listing would, and the song itself; starts nothing |
 | `POST /api/media/{id}/karaoke/prepare` | Signed-in | limits. A song that is a file inside a library. Follows the owner's switch (anyone, administrators only, never). Queues at most one FFmpeg job and one run of the separator found on or named on the machine (never one named in a request or a setting) per song, 16 waiting at most on the whole server; so many an hour per account; no separator on a tiny machine or a busy small one. Results kept in the server's own folder under a size cap |

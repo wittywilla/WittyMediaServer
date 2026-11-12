@@ -41,6 +41,18 @@ func film(i int) sdui.Item {
 		Can: []string{"play", "watchLater", "watched", "download", "share", "playOn", "watchParty"}}
 }
 
+// posterOnlyFirst takes the first title's backdrop away: it has a poster and nothing wider.
+func posterOnlyFirst(items []sdui.Item) []sdui.Item {
+	img := map[string]string{}
+	for k, v := range items[0].Images {
+		if k != "backdrop" {
+			img[k] = v
+		}
+	}
+	items[0].Images = img
+	return items
+}
+
 func films(n int) []sdui.Item {
 	out := make([]sdui.Item, n)
 	for i := range out {
@@ -284,6 +296,19 @@ func albumData() Data {
 
 var albumVars = map[string]string{"library": "3", "libraryKind": "music", "libraryName": "Music", "artist": "The Examples", "album": "Album 2"}
 
+// artistData is the page an artist card opens (/artist/3?name=The+Examples): the artist,
+// their albums and every song of theirs, more than one page of it.
+func artistData() Data {
+	a := sdui.Item{ID: "artist-0", Kind: "artist", Title: "The Examples", Artist: "The Examples", Subtitle: "4 albums", Count: 4,
+		Images: map[string]string{"square": "/api/items/5001/poster"}, Route: "/artist/3?name=The+Examples", PlayID: "5001", Can: []string{"play"}}
+	return Data{Subject: &a, Sources: []CannedSource{
+		src(map[string]any{"type": "albums", "artist": "The Examples"}, albums(4), 0),
+		src(map[string]any{"type": "tracks", "artist": "The Examples"}, tracks(40), 0),
+	}}
+}
+
+var artistVars = map[string]string{"library": "3", "libraryKind": "music", "libraryName": "Music", "artist": "The Examples"}
+
 func custom() sdui.Page {
 	return sdui.Page{ID: "family-night", Kind: "custom", Title: "Family film night", Icon: "star", Scope: "family", Sections: []sdui.Section{
 		sec("intro", "Text", map[string]any{"text": "## Friday, 7 o'clock\nPick **one** each. The [full list](/collections/12) is longer.", "format": "markdown"}, nil),
@@ -467,6 +492,15 @@ func cases() []kase {
 		{id: "detail-film-tv", title: "A film's page on a television", in: detail("detail", "tv", map[string]string{"item": "103"}, movieData(), nil),
 			checks: []string{"the header's facts, buttons and pictures", "Resume is primary; Play from the start follows it", "focus starts on the header"}},
 		{id: "detail-film-phone", title: "A film's page on a phone", in: detail("detail", "phone", map[string]string{"item": "103"}, movieData(), nil), checks: []string{"the overview is cut to the phone's limit"}},
+		{id: "backdrops-iphone", title: "Backdrops on a 402-point iPhone, and titles without one", in: Input{Page: sdui.Page{ID: "spotlight", Kind: "custom", Title: "Spotlight", Sections: []sdui.Section{
+			sec("hero", "Hero", nil, sdui.Source{"type": "featured"}),
+		}}, Request: func() Request { r := request("phone"); r.Viewport = "402x874"; return r }(), Data: Data{Sources: []CannedSource{src(map[string]any{"type": "featured"}, posterOnlyFirst(films(3)), 0)}}},
+			checks: []string{"a slide's backdrop is asked for at twice the window's width, bucketed: 960", "a title with a poster and no backdrop has no image, never the poster in a 16/9 slot"}},
+		{id: "detail-film-phone-no-backdrop", title: "A film with no backdrop, on a 402-point iPhone", in: detail("detail", "phone", map[string]string{"item": "103"}, func() Data {
+			d := movieData()
+			delete(d.Subject.Images, "backdrop")
+			return d
+		}(), func(in *Input) { in.Request.Viewport = "402x874" }), checks: []string{"no backdrop is sent; the poster stays the poster"}},
 		{id: "detail-film-kids", title: "A film's page for a profile without downloads or sharing", in: detail("detail", "tablet", map[string]string{"item": "103"}, movieData(), func(in *Input) {
 			in.Data.Subject.Can = []string{"play", "watched"}
 			in.Data.Subject.Progress, in.Data.Subject.ResumeSec = 0, 0
@@ -481,6 +515,10 @@ func cases() []kase {
 			checks: []string{"the header uses the square cover", "tracks numbered, with lengths", "a track's label: Track 1, Song 1, 3 minutes"}},
 		{id: "detail-album-fallback", title: "An album's page for a client without TrackList", in: detail("detail-album", "tv", albumVars, albumData(), func(in *Input) { in.Request.Components = []string{"DetailHeader"} }),
 			checks: []string{"the tracks as a List of ListItems that play"}},
+		{id: "detail-artist", title: "An artist's page", in: detail("detail-artist", "phone", artistVars, artistData(), nil),
+			checks: []string{"the route is /artist/3?name=The+Examples", "a poster header with the square picture, the album count and Play", "the artist's albums as album cards", "every song as a TrackList without track numbers"}},
+		{id: "detail-artist-tv", title: "An artist's page on a television", in: detail("detail-artist", "tv", artistVars, artistData(), nil),
+			checks: []string{"the same sections, sized for the television", "Play is focused first"}},
 		{id: "detail-collection", title: "A collection's page", in: detail("detail-collection", "tablet", map[string]string{"collection": "12"},
 			Data{Subject: subject(sdui.Item{ID: "collection-12", Kind: "collection", Title: "Family film night", Overview: "Picked by everyone, vetoed by no one.", Count: 4, Can: []string{"share"}}),
 				Sources: []CannedSource{src(map[string]any{"type": "collection", "collection": "12"}, films(4), 0)}}, nil), checks: []string{"a compact header with a count", "the grid of what it holds"}},

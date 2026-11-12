@@ -198,7 +198,8 @@ type CommandSpec struct {
 	Label       string `json:"label"`
 	Description string `json:"description"`
 	// Method and Path are the request that carries it out; {item} is the
-	// action's item.
+	// action's item, as it is ("5", "show-5"): URL-escaped in Path, and in Body
+	// always inside a JSON string, escaped as one, so the body is JSON for any ID.
 	Method string `json:"method"`
 	Path   string `json:"path"`
 	Body   string `json:"body,omitempty"`
@@ -211,6 +212,9 @@ type NativeScreenSpec struct {
 	Description string `json:"description"`
 	Route       string `json:"route"`
 	Icon        string `json:"icon"`
+	// Menu: a navigation entry may open it (type native). Screens that need a
+	// title or a channel are opened by actions only.
+	Menu bool `json:"menu,omitempty"`
 }
 
 // Catalogue is everything an editor or a renderer needs to know about the

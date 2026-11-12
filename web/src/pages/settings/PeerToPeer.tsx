@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { useCallback, useEffect, useState } from 'react'
-import { api } from '../../api'
+import { api, ApiError } from '../../api'
 import { IconCheck, IconInfo, IconTrash } from '../../icons'
 import { toast } from '../../state'
 import QrCode from './QrCode'
@@ -104,11 +104,24 @@ export default function PeerToPeer() {
     setTesting(true); setTest(null)
     try { setTest((await api.post<{ steps: Step[] }>('/p2p/test')).steps); load() } catch (e: any) { toast(e.message) } finally { setTesting(false) }
   }
+  // An invite signs the device in as you; for an administrator that takes your password
+  // again, as approving a TV at home does (the server answers password-required).
+  const invited = (r: { link: string; expiresInSec: number }) => setInvite({ link: r.link, until: Date.now() + r.expiresInSec * 1000 })
   const makeInvite = async () => {
     try {
-      const r = await api.post<{ link: string; expiresInSec: number }>('/p2p/invite', {})
-      setInvite({ link: r.link, until: Date.now() + r.expiresInSec * 1000 })
-    } catch (e: any) { toast(e.message) }
+      invited(await api.post<{ link: string; expiresInSec: number }>('/p2p/invite', {}))
+    } catch (e: any) {
+      if (e instanceof ApiError && e.status === 403 && e.data?.reason === 'password-required') {
+        setOwner({
+          title: 'Invite a device as you?',
+          body: <p>The invite signs a device in as you, an administrator, wherever it is. Only send it to a device of your own.</p>,
+          action: 'Make the invite',
+          run: async (password, code) => { invited(await api.post<{ link: string; expiresInSec: number }>('/p2p/invite', { password, otp: code })) },
+        })
+        return
+      }
+      toast(e.message)
+    }
   }
   // A TV away from home can't take a link in, so it shows a short code instead, and that is typed here.
   // It signs the TV in as the owner, which takes the owner's password again, as approving a TV at home does.

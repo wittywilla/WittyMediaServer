@@ -1060,6 +1060,9 @@
         "label": {
           "type": "string"
         },
+        "menu": {
+          "type": "boolean"
+        },
         "route": {
           "type": "string"
         },

@@ -1,0 +1,87 @@
+{
+  "format": "wittymodule-sdui",
+  "formatVersion": 1,
+  "module": "wittyboardgames",
+  "catalog": 2,
+  "theme": { "scope": "wittyboardgames", "label": "Board games", "tokens": { "accent": "#2E7D32" } },
+  "sources": [
+    {
+      "type": "wittyboardgames.shelf",
+      "label": "Board games on the shelf",
+      "description": "The household's board games, from the module's own list.",
+      "icon": "game",
+      "params": [
+        { "name": "players", "type": "int", "label": "Players", "help": "Only games for this many players; 0 for any.", "min": 0, "max": 12, "since": 2 },
+        { "name": "sort", "type": "enum", "label": "Order", "default": "name", "options": [ { "value": "name", "label": "By name" }, { "value": "played", "label": "Last played first" }, { "value": "shuffle", "label": "Shuffled" } ], "since": 2 },
+        { "name": "limit", "type": "int", "label": "At most", "min": 1, "max": 100, "since": 2 }
+      ],
+      "yields": ["game"],
+      "cardStyle": "square",
+      "paged": true,
+      "seeAll": "/page/wittyboardgames",
+      "title": "Board games",
+      "since": 2
+    }
+  ],
+  "components": [
+    {
+      "type": "wittyboardgames.GameNight",
+      "label": "Game night",
+      "description": "A row of games picked for tonight's players, shuffled every time.",
+      "icon": "game",
+      "props": [
+        { "name": "title", "type": "text", "label": "Title", "default": "Game night", "since": 2 },
+        { "name": "players", "type": "int", "label": "Players", "default": 4, "min": 1, "max": 12, "since": 2 }
+      ],
+      "section": {
+        "id": "night",
+        "component": "Shelf",
+        "props": { "title": "{{title}} for {{players}}", "cardSize": "l", "seeAll": "always" },
+        "source": { "type": "wittyboardgames.shelf", "players": "{{players}}", "sort": "shuffle", "limit": 12 }
+      }
+    }
+  ],
+  "views": [
+    { "id": "wittyboardgames.scoreboard", "label": "Scoreboard", "description": "The module's live scoreboard, drawn by its web bundle.", "platforms": ["web", "desktop"] }
+  ],
+  "pages": [
+    {
+      "id": "wittyboardgames",
+      "kind": "custom",
+      "title": "Board games",
+      "icon": "game",
+      "sections": [
+        { "id": "night", "component": "wittyboardgames.GameNight", "props": { "players": 4 } },
+        { "id": "all", "component": "Shelf", "props": { "title": "Every game", "cardStyle": "square", "seeAll": "never" }, "source": { "type": "wittyboardgames.shelf", "sort": "name" } },
+        { "id": "scores", "component": "NativeView", "props": { "view": "wittyboardgames.scoreboard" },
+          "children": [ { "id": "scores-note", "component": "Notice", "props": { "tone": "info", "text": "The scoreboard is on the web app." } } ] }
+      ]
+    }
+  ],
+  "inserts": [
+    { "page": "home", "after": "jump", "section": { "id": "wittyboardgames-tonight", "component": "wittyboardgames.GameNight", "when": { "weekday": ["fri", "sat"] } } }
+  ],
+  "presets": [
+    { "id": "wittyboardgames-recent", "label": "Board games played lately", "section": { "id": "boardgames", "component": "Shelf", "props": { "title": "Played lately" }, "source": { "type": "wittyboardgames.shelf", "sort": "played", "limit": 20 } } }
+  ],
+  "navigation": [
+    { "id": "wittyboardgames", "type": "page", "page": "wittyboardgames", "placement": { "phone": "more", "tv": "more" } }
+  ],
+  "settings": [
+    {
+      "id": "wittyboardgames",
+      "title": "Board games",
+      "icon": "game",
+      "groups": [
+        { "title": "The shelf", "rows": [
+          { "key": "listUrl", "kind": "string", "label": "Where the list is", "help": "A web address of a BoardGameGeek collection, or empty for the list kept here.", "maxLength": 300 },
+          { "key": "apiKey", "kind": "secret", "label": "API key" },
+          { "key": "household", "kind": "int", "label": "Players in the house", "default": 4, "min": 1, "max": 12 }
+        ] },
+        { "title": "For you", "footer": "Each profile chooses its own.", "rows": [
+          { "key": "ages", "kind": "enum", "scope": "profile", "label": "Games for", "default": "all", "options": [ { "value": "all", "label": "Everyone" }, { "value": "kids", "label": "Children" } ] }
+        ] }
+      ]
+    }
+  ]
+}

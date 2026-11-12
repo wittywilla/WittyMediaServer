@@ -49,6 +49,10 @@ type Input struct {
 	Page    sdui.Page `json:"page"`
 	Request Request   `json:"request"`
 	Data    Data      `json:"data"`
+	// ModuleUI are the SDUI files of the modules in use (docs/SDUI-MODULES.md):
+	// their components are expanded and their sources asked like any other.
+	// A renderer never sees them; they are here for the server's half.
+	ModuleUI []sdui.ModuleUI `json:"moduleUI,omitempty"`
 }
 
 // Request is who asks and on what. Its fields are the query parameters of
@@ -239,6 +243,9 @@ func (in *Input) Context() *sdui.RenderContext {
 		Flags: r.Flags, Locale: r.Locale, Now: now, Profile: sdui.ProfileFor(r.FormFactor, r.DeviceClass),
 		Catalog: r.Catalog, Components: r.Components, NativeViews: r.NativeViews, Vars: r.Vars, Params: r.Params, Scopes: r.Scopes,
 		Personal: r.Personal, CanPersonalise: r.CanPersonalise, Resolver: canned{&in.Data}, BasePath: "/api/v1/sdui", Source: "builtin",
+	}
+	if len(in.ModuleUI) > 0 {
+		ctx.UI = sdui.NewModuleSet(in.ModuleUI)
 	}
 	if r.AllOptional != nil && !*r.AllOptional && ctx.Components == nil {
 		ctx.Components = []string{}

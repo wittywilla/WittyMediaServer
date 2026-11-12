@@ -110,6 +110,50 @@ type validator struct {
 	issues []Issue
 	page   *Page
 	count  int
+	// ui are the modules in use, whose components, sources and views a page
+	// may use. nil: none.
+	ui *ModuleSet
+	// own is set while a module's own file is checked: then another module's
+	// component or source is an error, since a module must work alone.
+	own bool
+}
+
+// missingModule reports a component or source of a module that isn't in use.
+func (v *validator) missingModule(path, fix, what, name, mod string) {
+	if v.own {
+		v.err(path, "Use the catalogue's, or this module's own.", "%q is another module's %s: a module uses only its own, so it works wherever it is installed", name, what)
+		return
+	}
+	v.warn(path, fix, "%q is a %s of the %s module, which isn't in use: the section is left out until it is", name, what, mod)
+}
+
+// component is a component's spec: the catalogue's, or a module's as the
+// editor sees it. NativeView's views include the modules'.
+func (v *validator) component(t string) (*ComponentSpec, bool) {
+	if mc := v.ui.Component(t); mc != nil {
+		spec := moduleComponentSpec(mc)
+		return &spec, true
+	}
+	spec, ok := Component(t)
+	if ok && t == "NativeView" && v.ui != nil && len(v.ui.views) > 0 {
+		c := *spec
+		c.Props = append([]PropSpec(nil), spec.Props...)
+		for i := range c.Props {
+			if c.Props[i].Name == "view" {
+				c.Props[i].Options = append(append([]EnumOption(nil), c.Props[i].Options...), v.ui.viewOptions()...)
+			}
+		}
+		return &c, true
+	}
+	return spec, ok
+}
+
+// sourceSpec is a data source's spec: the catalogue's or a module's.
+func (v *validator) sourceSpec(t string) (*SourceSpec, bool) {
+	if s := v.ui.Source(t); s != nil {
+		return s, true
+	}
+	return SourceType(t)
 }
 
 func (v *validator) err(path, fix, format string, args ...any) {
@@ -122,8 +166,17 @@ func (v *validator) warn(path, fix, format string, args ...any) {
 
 // ValidatePage checks a page against the catalogue and answers everything
 // wrong with it: errors, which keep it from being saved, and warnings.
-func ValidatePage(p *Page) []Issue {
-	v := &validator{page: p}
+func ValidatePage(p *Page) []Issue { return ValidatePageWith(p, nil) }
+
+// ValidatePageWith checks a page that may use the components, sources and
+// views of the modules in ui. A section of a module that isn't in use is a
+// warning, not an error: it is left out until the module is back.
+func ValidatePageWith(p *Page, ui *ModuleSet) []Issue {
+	return validatePage(p, ui, false)
+}
+
+func validatePage(p *Page, ui *ModuleSet, own bool) []Issue {
+	v := &validator{page: p, ui: ui, own: own}
 	if !ValidID(p.ID) {
 		v.err("/id", "Use a short name such as family-night.", "a page's ID is lower-case letters, digits, - and _, starting with a letter, at most %d long", MaxIDLength)
 	}
@@ -281,7 +334,32 @@ func (v *validator) sections(list []Section, path string, depth int, parent stri
 			v.err(sp+"/id", "Give each section its own ID.", "the ID %q is already used at %s", s.ID, prev)
 		}
 		ids[s.ID] = sp
-		spec, ok := Component(s.Component)
+		if mod := ModuleOf(s.Component); mod != "" && v.ui.Component(s.Component) == nil {
+			v.missingModule(sp+"/component", "Install or turn on the "+mod+" module, or remove the section.", "component", s.Component, mod)
+			continue
+		}
+		if mc := v.ui.Component(s.Component); mc != nil {
+			spec, _ := v.component(s.Component)
+			v.props(spec.Props, s.Props, sp+"/props", spec.Label)
+			if len(s.Children) > 0 {
+				v.err(sp+"/children", "Remove them: the component brings its own.", "a %s can't hold other sections", spec.Label)
+			}
+			if len(s.Source) > 0 {
+				v.err(sp+"/source", "Remove the source: the component brings its own.", "a %s doesn't take a data source", spec.Label)
+			}
+			if len(mc.PageKinds) > 0 && !contains(mc.PageKinds, v.page.Kind) {
+				v.err(sp+"/component", "Use it on a "+strings.Join(mc.PageKinds, " or ")+" page.", "a %s only works on a %s page", spec.Label, strings.Join(mc.PageKinds, " or "))
+			}
+			// What it stands for is checked as if written out, on its own.
+			ev := &validator{page: v.page, ui: v.ui, own: v.own}
+			ev.sections([]Section{expandComponent(mc, *s)}, sp, depth, parent, map[string]string{}, map[string]*Section{})
+			for _, is := range ev.issues {
+				is.Message = spec.Label + ": " + is.Message
+				v.issues = append(v.issues, is)
+			}
+			continue
+		}
+		spec, ok := v.component(s.Component)
 		if !ok || !spec.Authored {
 			v.err(sp+"/component", orFix(suggest(s.Component, authoredComponents()), "Choose a component from the catalogue: "+strings.Join(authoredComponents(), ", ")+"."), "%q is not a component", s.Component)
 			continue
@@ -612,7 +690,11 @@ func (v *validator) source(s *Section, spec *ComponentSpec, sp string, nested bo
 	case t == "":
 		return
 	}
-	src, ok := SourceType(t)
+	if mod := ModuleOf(t); mod != "" && v.ui.Source(t) == nil {
+		v.missingModule(sp+"/source/type", "Install or turn on the "+mod+" module, or choose another source.", "source", t, mod)
+		return
+	}
+	src, ok := v.sourceSpec(t)
 	if !ok {
 		var names []string
 		for _, x := range Catalog().Sources {

@@ -376,6 +376,9 @@
           "type": "string"
         },
         "example": {},
+        "expands": {
+          "type": "string"
+        },
         "fallback": {
           "type": "string"
         },
@@ -396,6 +399,15 @@
         },
         "label": {
           "type": "string"
+        },
+        "module": {
+          "type": "string"
+        },
+        "pageKinds": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
         },
         "props": {
           "items": {
@@ -1427,6 +1439,9 @@
         "label": {
           "type": "string"
         },
+        "module": {
+          "type": "string"
+        },
         "page": {
           "$ref": "#/$defs/Page"
         },
@@ -1669,6 +1684,9 @@
           "type": "string"
         },
         "label": {
+          "type": "string"
+        },
+        "module": {
           "type": "string"
         },
         "pageKinds": {

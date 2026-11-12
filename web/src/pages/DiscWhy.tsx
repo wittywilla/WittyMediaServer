@@ -26,7 +26,7 @@ export type DiscRank = {
 export type DiscAnalysis = {
   kind: 'dvd' | 'bluray'; ranked: boolean; pending: boolean; main: number; engineMain: number
   chosen: { ttn: number; by: number; at: number } | null; chosenBy?: string; rank: DiscRank | null
-  canChoose: boolean; protected: boolean
+  canChoose: boolean; protected: boolean; rankError?: string
   secondOpinion?: { enabled: boolean; available: boolean; version?: string; reason?: string }
 }
 
@@ -75,7 +75,10 @@ export default function DiscWhy({ item, analysis, setAnalysis, unit }: {
   if (!a.ranked || !rk) {
     return (
       <div className="disc-why">
-        <p className="muted">The disc module in use is from before ranking, so the film is the longest sensible {unit.toLowerCase()}. Updating the module explains its pick.</p>
+        {a.rankError
+          ? <Notice tone="warn" title={`The disc module couldn’t say which ${unit.toLowerCase()} is the film`}>{a.rankError} The film is the longest sensible {unit.toLowerCase()} until then. It’s tried again in a while{a.canChoose ? ', or now with Rank again' : ''}.</Notice>
+          : <p className="muted">The disc module in use is from before ranking, so the film is the longest sensible {unit.toLowerCase()}. Updating the module explains its pick.</p>}
+        {a.canChoose && a.rankError && <div className="disc-why-actions"><Button size="sm" variant="ghost" busy={busy === 'again'} onClick={() => again(false)}>Rank again</Button></div>}
         {a.chosen && <ChosenLine a={a} name={name} busy={busy} clear={clear} />}
       </div>
     )

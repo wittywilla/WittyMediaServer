@@ -2499,6 +2499,9 @@
               }
             ]
           },
+          "rankError": {
+            "type": "string"
+          },
           "ranked": {
             "type": "boolean"
           },
@@ -33991,6 +33994,94 @@
         "x-wms-auth": "admin"
       }
     },
+    "/modules/wittyplay/docker/emulators/{id}/manual": {
+      "get": {
+        "operationId": "getModulesWittyplayDockerEmulatorsIdManual",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What's found of an emulator added by hand",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "post": {
+        "operationId": "postModulesWittyplayDockerEmulatorsIdManual",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add an emulator the administrator installed",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/modules/wittyplay/docker/emulators/{id}/settings": {
       "get": {
         "operationId": "getModulesWittyplayDockerEmulatorsIdSettings",
@@ -34093,6 +34184,76 @@
           }
         ],
         "summary": "The standalone emulators installed.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/modules/wittyplay/docker/own": {
+      "get": {
+        "operationId": "getModulesWittyplayDockerOwn",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The administrator's own emulator programs",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putModulesWittyplayDockerOwn",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Replace the administrator's own emulator programs",
         "tags": [
           "Games"
         ],
@@ -51370,164 +51531,6 @@
           "Game PCs"
         ],
         "x-wms-auth": "admin"
-      }
-    },
-    "/modules/wittyplay/docker/emulators/{id}/manual": {
-      "get": {
-        "operationId": "getModulesWittyplayDockerEmulatorsIdManual",
-        "summary": "What's found of an emulator added by hand",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "admin",
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      },
-      "post": {
-        "operationId": "postModulesWittyplayDockerEmulatorsIdManual",
-        "summary": "Add an emulator the administrator installed",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "admin",
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object"
-              }
-            }
-          }
-        }
-      }
-    },
-    "/modules/wittyplay/docker/own": {
-      "get": {
-        "operationId": "getModulesWittyplayDockerOwn",
-        "summary": "The administrator's own emulator programs",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "admin",
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      },
-      "put": {
-        "operationId": "putModulesWittyplayDockerOwn",
-        "summary": "Replace the administrator's own emulator programs",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "admin",
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "array"
-              }
-            }
-          }
-        }
       }
     }
   },

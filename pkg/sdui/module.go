@@ -49,6 +49,9 @@ var ItemKinds = []string{"movie", "episode", "show", "season", "video", "disc", 
 
 // ModuleUI is one module's SDUI file.
 type ModuleUI struct {
+	// Schema may name the JSON Schema an editor checks the file with
+	// (docs/sdui-module.schema.json); the server ignores it.
+	Schema string `json:"$schema,omitempty"`
 	// Format is ModuleFormat, FormatVersion ModuleFormatVersion.
 	Format        string `json:"format"`
 	FormatVersion int    `json:"formatVersion"`
@@ -277,6 +280,9 @@ func ValidateModuleUI(ui *ModuleUI, module string, checks ModuleChecks) []Issue 
 		v.err("/module", "Use the module's ID from module.json.", "%q is not a module ID", ui.Module)
 	} else if module != "" && ui.Module != module {
 		v.err("/module", "Use the module's ID from module.json.", "the file is for %q, and the module is %q", ui.Module, module)
+	}
+	if len(ui.Schema) > 500 {
+		v.err("/$schema", "Shorten it, or leave it out.", "$schema is at most 500 characters")
 	}
 	mod := ui.Module
 	if ui.Catalog < 1 || ui.Catalog > CatalogRevision {

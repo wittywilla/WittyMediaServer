@@ -127,3 +127,106 @@ into `v0.8.0-alpha` under `/tmp/witty-merge.lock` per ORCHESTRATION.md, never pu
 **No legacy.** Older servers and clients are "as is" alphas. There are no fallbacks, compatibility shims, capability
 gates for the new parts, or old code paths kept beside the new ones. The new catalogue revision requires `Dock` and
 `KeyLegend`; the token schema is the new one only; what the design replaces is deleted.
+
+## 7. Experiences, the layout editor and the server's name (added 2026-11-12)
+
+The owner wants many complete looks to choose from at first run, and everything movable by admins and people. So the
+unit of choice is an **Experience**, and every client renders all of them.
+
+### 7.1 An Experience
+
+An experience is data, shipped with the server (`internal/sduistore/experiences/*.json` or `pkg/sdui`), validated against
+the catalogue, and listed by `GET /api/v1/sdui/experiences`. Fields:
+
+`id`, `name`, `tagline`, `preview` (the swatch for the chooser), `shell` per form factor (`layout`, `nav` style and
+position, `navExpand`), `theme` (a default theme id; theme stays separately choosable), `effects`
+`{glass, gloss, glow, texture, bevel}` each `none|subtle|full`, `shape` (radius multiple, card style set), `type`
+(`system|humanist|rounded|mono|serif`), `density`, `motion` (focus style, screen transition), `home` (hero style, row
+order preset), `tvTheme` (WittyTV look it suggests), `brand` (default name styling), `placements` (7.3).
+
+Choice order of precedence is the layout option's: the person's own per device, else the admin's default per form
+factor, else `lumen`. The admin also chooses which experiences people may pick. **The first-run (OOBE) step "Look"
+offers all of them as live previews** (at least 12), then the admin's choice becomes the server default and can be
+changed any time under Settings, Appearance (one hand-built row, same structure as today; Settings is not SDUI).
+The OOBE step is keyboard, remote, controller and touch complete.
+
+### 7.2 The twelve
+
+| id | Feel | Shell | Theme default | Notes |
+|---|---|---|---|---|
+| `lumen` | quiet cinema | top pills, billboard hero, peeking shelves | Witty | concept A; the default |
+| `rail` | library-first | icon rail that expands (7.4), title-on-art cards | Cinema | concept B |
+| `stage` | streaming | see-through top tabs over a full-bleed backdrop, shelves overlap art | Midnight | concept C |
+| `aero` | Frutiger Aero | glossy glass bars, bevelled buttons, sky and leaf gradients, rounded 16 to 22 radii, soft bubbles and light rays | Aero (new, light and dark) | the older, optimistic look: gloss and gradients, no heavy blur; glass uses gradient plus a highlight edge so it is cheap; `effects` degrade to `subtle` on modest hardware and with reduced transparency |
+| `classic` | today's design, polished | sidebar | Witty | the familiar layout |
+| `compact` | dense and fast | rail plus list rows | True black | compactList layout, power users |
+| `paper` | editorial | top tabs, big type, light | Paper | serif display type, generous whitespace |
+| `marquee` | poster-first | centred carousel, coverflow rows | Cinema | one big title at a time |
+| `crossbar` | console | horizontal category bar with a vertical item list (XMB style) | Evergreen | games and music first |
+| `bigpicture` | accessibility and kiosk | huge tiles, few choices, strongest focus | High contrast | 1.25x type, 72 targets |
+| `dashboard` | widgets | tile grid home of widgets (continue watching, on TV now, stats, server status, clock) | Midnight | every tile movable |
+| `retro` | teletext and CRT | block type, scanline texture off by default, 8 colours | Witty with the Teletext look | fun, tasteful, optional |
+
+A new experience needs only a JSON file and (if it adds a shell shape) a `navStyles` entry; renderers draw all
+shells from the catalogue's `navStyles`/`layouts`, never by experience id.
+
+### 7.3 Placement: everything movable, by data
+
+The shell and pages are made of **regions**. Each region has a `position` and `visible`, set by the experience and
+overridden by the admin (for everyone) and the person (own device): `brand`, `nav` (start, end, top, bottom,
+hidden), `search` (in nav, top end, floating, hidden), `profile`, `clock`, `dock` (top, bottom, side, hidden),
+`legend` (shown, hidden), `hero` (style, hidden), and each page section (order, hide, pin, size, row style, count).
+Dashboard widgets are sections with a grid cell `{x, y, w, h}`. Stored in `ui_config.json` `experience.placements`
+(admin) and the profile's `personal` (own), merged by the server with the existing precedence, so every client gets
+the finished document and only draws it. Nothing may be hidden that is needed to reach Settings or Back out: the
+server keeps `locked` regions (Settings entry, You) and a Reset.
+
+### 7.4 The rail, expanded
+
+The rail has three states, the same on every platform (data in the catalogue's `navStyles.rail`):
+1. **Closed**: icons only (76 on desktop, 120 on TV units), the current item marked.
+2. **Open**: icons and names (240 desktop, 400 TV) when focused, hovered, pinned, or the options key is pressed.
+3. **Library drawer**: choosing a library item expands a second column (360 desktop, 480 TV) headed by **the library's
+   name** (large, with its icon and item count), listing that library's views (Recently added, Genres, Collections,
+   Continue, All, plus its module's own). Back closes the drawer, then the rail. Pinning keeps either open.
+
+### 7.5 The layout editor
+
+One editor, two scopes: **For everyone** (administrators) and **For me** (everyone, on this device or all devices).
+Entry points: Settings, Appearance, "Edit layout" (hand-built row); the options key on any page; `Ctrl+Shift+L`; Start
+on a pad. While editing, the real page is shown with handles and a side panel (a bottom sheet on a phone):
+- Move: drag (pointer, touch), or **pick up with OK, arrows to move, OK to drop, Back to cancel** (remote, pad,
+  keyboard: same on all platforms). Resize with the size control or `+`/`-`.
+- Hide, show, pin, rename (nav entries), choose a row's style, card size, count, density.
+- Pick the shell: nav position, brand position, hero style, dock position, widgets (add from a list).
+- Live preview across form factors for administrators (phone, tablet, TV, desktop frames).
+- Undo and redo, **Reset to the experience**, **Reset everything**, revisions and rollback (exist already), export and
+  import presets, name and share a preset.
+- Accessible: every handle is a button with a name; moves are announced; nothing needs a pointer.
+It is native in each client but drives the same SDUI routes (`personal`, `config`, `placements`).
+
+### 7.6 The server's name
+
+The server's name is `WittyMediaServer` until changed (administrators, Settings, Appearance, Name and logo; already
+exists). The name is drawn by every client from the theme engine's `brand`. Extend `brandname`:
+- **Parts** carry `color`: `{kind: "fg"|"accent"|"token"|"static"|"gradient", token?, hex?, stops?}`.
+  `accent` follows the theme, so it changes with the theme; `token` is any theme token (`ok`, `warn`, `accentText`..);
+  `static` is a fixed `#rrggbb` that does not change with themes; `gradient` is two to four stops, with a direction.
+- **Picking**: the existing modes `auto`, `one` and `pick:` stay as the quick choices; the editor adds per-letter and
+  per-word selection (tap or arrows and Space to select a range), a colour picker (theme colours first, then any
+  colour), gradient, bold weight, and live previews in every frame the name appears (sidebar, rail header, top bar,
+  TV bar, sign-in, About), and presets (Two-tone, Rainbow, Gradient, Plain, "Accent on Media").
+- **Contrast**: the editor warns when a static colour fails 4.5:1 on the surfaces it sits on, in each theme and each
+  experience, and the server states `warnings`. Administrators can still save it (as for theme overrides).
+- The default is unchanged: "Witty" in `fg`, "Media" in the accent, "Server" in `fg`.
+Every experience draws the name through `brand` and never hard-codes it.
+
+### 7.7 Aero in detail (so it is built right)
+
+Surfaces: top-lit vertical gradients (a light to a slightly darker stop), a 1 px inner highlight and a 1 px darker
+outer edge, a soft coloured shadow; buttons are glossy pills with a gloss overlay in the upper half; the focus ring is
+a glowing outline; page backgrounds are sky blue to leaf green gradients with a few soft bokeh circles and a light
+sweep, set by the theme (`aero-day`, `aero-night`); icons sit on glass tiles; titles use a rounded humanist face;
+motion is a gentle ease with a small overshoot (never on modest hardware). Glass uses gradients and highlights, not
+`backdrop-filter`, except on non-scrolling chrome where the device is not modest. Light and dark variants both pass
+contrast. New theme packs `aero-day` and `aero-night` ship built in.

@@ -49,7 +49,7 @@ The names of the boards use short look ids: `lumen`, `rail`, `stage`, `aero`, `a
 5. **Zones, not a maze.** Every screen has the bar (top menu or rail), the page, the Dock (the screen's controls, always in the same place) and layers (dialogs, menus, the player).
 6. **The same screen on every platform.** A TV, tablet, desktop, phone and headset show the same sections and the same words; a phone is one column. The headset's menu uses the same item style as the desktop's.
 7. **Everything can be moved.** Administrators and people can rearrange the shell and pages with the layout editor (pick up with OK, arrows to move, OK to drop, Back to cancel), for everyone or just for themselves.
-8. **The server's name is a feature.** It is drawn from the theme engine's `brand` in every frame, with colours that follow the theme, fixed colours, gradients or per letter; the rail shows a centred mark (letter, initials or a square logo) that can be changed.
+8. **The server's name is a feature.** It is drawn from the theme engine's `brand` in every frame, with colours that follow the theme, fixed colours, gradients or per letter; the rail shows a centred mark (letter, initials, your own one or two characters, or a square PNG or JPEG logo up to 2 MB) that can be changed.
 9. **The rail is a real side menu.** Closed it shows icons and the mark; open it shows the full name, every item with its full label, the libraries with counts and **Keep menu open**; choosing a library opens a drawer headed by its name.
 10. **WittyRemote is the existing disc remote, everywhere.** Graphite body, raised keys, red eject, accent ENTER (TOP MENU, MENU, RETURN, ANGLE, AUDIO, SUBTITLE, transport, digits, colour keys). Keys a disc or video doesn't use stay in place, dimmed with a dashed outline, never hidden. Floating on desktop and headsets, a two-page sheet on TVs and phones, or a bar above or below the timeline.
 11. **WittyTV is drawn on four fixed places** (preview, grid, Dock, banner and mini guide). Every WittyTV screen shows the programme's logo, title, times, a description and a **More info** pop-up (overview, cast and crew, where to watch, trailers, also on). Channel logos are contain-fit tiles, never cropped; titles wrap to two lines before they are cut.
@@ -76,3 +76,9 @@ On Windows, use `py -3`, and pass `--chrome "C:\Program Files\Google\Chrome\Appl
 ## Testing on Windows and Linux with these designs
 
 Use the pictures as the reference: the same screen, at the same size, in the same look. For each look and platform check: focus is visible and moves as in the board; the Dock and legend are where the board puts them; the server's name is drawn in the colours chosen; the rail opens and its drawer shows the library's name; WittyTV titles are not cut and logos fit; the player and the WittyRemote match the player boards (dimmed keys stay in place); music views offer the art and Canvas toggle and both lyrics modes; first run only runs in a browser. Anything that differs from a picture is a bug, or a drawing that needs updating: say which.
+
+## Decisions recorded
+
+- Theme ids are lower case. Witty, True black and High contrast keep their older ids (`default`, `oled`, `contrast`); the new ones are `aeroday`, `aeroaurora`, `aeromeadow`, `aerosunset`, `cable`, `satellite` and `teletext`.
+- During first run `/capabilities` stays open so apps can read `setupRequired` and show where to finish setup.
+- The server's name logo is PNG or JPEG for now.

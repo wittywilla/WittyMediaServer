@@ -100,8 +100,8 @@ type ModuleInsert struct {
 	// Page is the built-in page's ID: home, music, games, ...
 	Page string `json:"page"`
 	// After or Before name a section of that page; neither: at the end.
-	After  string  `json:"after,omitempty"`
-	Before string  `json:"before,omitempty"`
+	After   string  `json:"after,omitempty"`
+	Before  string  `json:"before,omitempty"`
 	Section Section `json:"section"`
 }
 
@@ -300,8 +300,8 @@ func ValidateModuleUI(ui *ModuleUI, module string, checks ModuleChecks) []Issue 
 	}
 	// Limits.
 	for _, l := range []struct {
-		path      string
-		n, most   int
+		path    string
+		n, most int
 	}{{"/pages", len(ui.Pages), maxModulePages}, {"/sources", len(ui.Sources), maxModuleSources}, {"/components", len(ui.Components), maxModuleComponents},
 		{"/navigation", len(ui.Navigation), maxModuleNav}, {"/settings", len(ui.Settings), maxModuleSettings}, {"/views", len(ui.Views), maxModuleViews},
 		{"/inserts", len(ui.Inserts), maxModuleInserts}, {"/presets", len(ui.Presets), maxModulePresets}} {

@@ -568,7 +568,7 @@ func boardGamesUI() sdui.ModuleUI {
 func boardGame(i int) sdui.Item {
 	id := "bg-" + strconv.Itoa(i)
 	names := []string{"Harbour Lights", "Seven Lanterns", "Paper Rivers", "The Quiet Orchard", "Copper Kites", "Moss and Stone", "Night Market", "Tidewater"}
-	return sdui.Item{ID: id, Kind: "game", Title: names[(i-1)%len(names)], Subtitle: strconv.Itoa(2 + i%4) + "–" + strconv.Itoa(4+i%3) + " players",
+	return sdui.Item{ID: id, Kind: "game", Title: names[(i-1)%len(names)], Subtitle: strconv.Itoa(2+i%4) + "–" + strconv.Itoa(4+i%3) + " players",
 		Images: map[string]string{"square": "/api/v1/sdui/modules/wittyboardgames/images/" + id + ".png"}, Route: "/page/wittyboardgames", Scope: "wittyboardgames"}
 }
 

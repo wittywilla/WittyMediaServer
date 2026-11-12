@@ -1,7 +1,7 @@
 {
  "kit": 1,
  "schemaVersion": 1,
- "catalogRevision": 3,
+ "catalogRevision": 5,
  "cases": [
   {
    "id": "home-tv-hd",
@@ -88,18 +88,6 @@
    "formFactor": "desktop"
   },
   {
-   "id": "home-required-components-only",
-   "file": "home-required-components-only.json",
-   "title": "Home for a client that draws only the required components",
-   "formFactor": "phone"
-  },
-  {
-   "id": "home-old-catalogue",
-   "file": "home-old-catalogue.json",
-   "title": "Home for a client built against catalogue revision 1",
-   "formFactor": "tv"
-  },
-  {
    "id": "home-source-fails",
    "file": "home-source-fails.json",
    "title": "A row whose source fails",
@@ -160,6 +148,24 @@
    "formFactor": "tv"
   },
   {
+   "id": "library-films-dock-desktop",
+   "file": "library-films-dock-desktop.json",
+   "title": "A film library with a Dock written into the page",
+   "formFactor": "desktop"
+  },
+  {
+   "id": "library-films-dock-phone",
+   "file": "library-films-dock-phone.json",
+   "title": "The same Dock on a phone",
+   "formFactor": "phone"
+  },
+  {
+   "id": "home-hero-peek-phone",
+   "file": "home-hero-peek-phone.json",
+   "title": "A spotlight that shows the next title's edge",
+   "formFactor": "phone"
+  },
+  {
    "id": "library-films-phone",
    "file": "library-films-phone.json",
    "title": "A film library on a phone",
@@ -188,12 +194,6 @@
    "file": "library-music-default-tab.json",
    "title": "A profile whose music library opens on Artists",
    "formFactor": "tv"
-  },
-  {
-   "id": "library-music-no-tabs",
-   "file": "library-music-no-tabs.json",
-   "title": "A music library for a client without Tabs",
-   "formFactor": "phone"
   },
   {
    "id": "library-photos-native",
@@ -256,22 +256,10 @@
    "formFactor": "tv"
   },
   {
-   "id": "detail-show-fallbacks",
-   "file": "detail-show-fallbacks.json",
-   "title": "A show's page for a client with neither DetailHeader nor SeasonList",
-   "formFactor": "phone"
-  },
-  {
    "id": "detail-album",
    "file": "detail-album.json",
    "title": "An album's page",
    "formFactor": "desktop"
-  },
-  {
-   "id": "detail-album-fallback",
-   "file": "detail-album-fallback.json",
-   "title": "An album's page for a client without TrackList",
-   "formFactor": "tv"
   },
   {
    "id": "detail-artist",
@@ -296,12 +284,6 @@
    "file": "detail-film-credits.json",
    "title": "A film's cast and crew, more than fit at first",
    "formFactor": "desktop"
-  },
-  {
-   "id": "detail-credits-old-catalogue",
-   "file": "detail-credits-old-catalogue.json",
-   "title": "A film's cast and crew for a client built against catalogue revision 2",
-   "formFactor": "phone"
   },
   {
    "id": "detail-show-season",

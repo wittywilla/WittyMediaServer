@@ -160,7 +160,7 @@ func TestPersonPhoto(t *testing.T) {
 func TestSDUICredits(t *testing.T) {
 	f := newCreditsFixture(t)
 	ts := f.ts
-	doc := sduiDoc(t, ts.do(t, "GET", fmt.Sprintf("/api/v1/sdui/pages/detail?catalog=3&formFactor=web&viewport=1440x900&item=%d", f.film.ID), f.kid, nil))
+	doc := sduiDoc(t, ts.do(t, "GET", fmt.Sprintf("/api/v1/sdui/pages/detail?catalog=5&formFactor=web&viewport=1440x900&item=%d", f.film.ID), f.kid, nil))
 	if len(doc.Root.Children) < 2 || doc.Root.Children[1].Type != "Credits" {
 		t.Fatalf("the credits come right after the header: %+v", doc.Root.Children)
 	}
@@ -176,18 +176,13 @@ func TestSDUICredits(t *testing.T) {
 	if img, _ := first.Props["image"].(map[string]any); img == nil || !strings.HasPrefix(img["url"].(string), fmt.Sprintf("/api/people/%d/photo?w=", f.ana)) {
 		t.Errorf("the photo is the server's own address: %+v", first.Props["image"])
 	}
-	// A client of catalogue revision 2 gets a row of person cards.
-	old := sduiDoc(t, ts.do(t, "GET", fmt.Sprintf("/api/v1/sdui/pages/detail?catalog=2&formFactor=phone&item=%d", f.film.ID), f.kid, nil))
-	if n := findNode(&old.Root, "credits"); n == nil || n.Type != "Shelf" || len(n.Children) != 4 || n.Props["cardStyle"] != "person" {
-		t.Errorf("catalogue 2: %+v", n)
-	}
 	// A show's page opened for a season has its guests.
-	sh := sduiDoc(t, ts.do(t, "GET", fmt.Sprintf("/api/v1/sdui/pages/detail?catalog=3&formFactor=tv&show=%d&season=2", f.show.ID), f.adult, nil))
+	sh := sduiDoc(t, ts.do(t, "GET", fmt.Sprintf("/api/v1/sdui/pages/detail?catalog=5&formFactor=tv&show=%d&season=2", f.show.ID), f.adult, nil))
 	if n := findNode(&sh.Root, "credits"); n == nil || len(n.Children) != 2 || n.Children[1].Props["group"] != "guests" {
 		t.Errorf("season credits: %+v", n)
 	}
 	// The person's page: the header, then a row per part of their work.
-	pp := sduiDoc(t, ts.do(t, "GET", fmt.Sprintf("/api/v1/sdui/pages/detail?catalog=3&formFactor=desktop&person=%d", f.ana), f.adult, nil))
+	pp := sduiDoc(t, ts.do(t, "GET", fmt.Sprintf("/api/v1/sdui/pages/detail?catalog=5&formFactor=desktop&person=%d", f.ana), f.adult, nil))
 	if pp.Page.ID != "detail-person" || pp.Page.Route != fmt.Sprintf("/person/%d", f.ana) {
 		t.Fatalf("page: %+v", pp.Page)
 	}
@@ -198,15 +193,15 @@ func TestSDUICredits(t *testing.T) {
 	if acting.Children[0].Props["subtitle"] != "2010 · as The Boss" {
 		t.Errorf("newest first, with the part: %+v", acting.Children[0].Props)
 	}
-	kidPage := sduiDoc(t, ts.do(t, "GET", fmt.Sprintf("/api/v1/sdui/pages/detail?catalog=3&formFactor=desktop&person=%d", f.ana), f.kid, nil))
+	kidPage := sduiDoc(t, ts.do(t, "GET", fmt.Sprintf("/api/v1/sdui/pages/detail?catalog=5&formFactor=desktop&person=%d", f.ana), f.kid, nil))
 	if n := findNode(&kidPage.Root, "titles-acting"); n == nil || len(n.Children) != 1 {
 		t.Errorf("a kid's view of Ana: %+v", n)
 	}
-	if w := ts.do(t, "GET", fmt.Sprintf("/api/v1/sdui/pages/detail?catalog=3&person=%d", f.grown), f.kid, nil); w.Code != 404 {
+	if w := ts.do(t, "GET", fmt.Sprintf("/api/v1/sdui/pages/detail?catalog=5&person=%d", f.grown), f.kid, nil); w.Code != 404 {
 		t.Errorf("a person only in hidden titles, for a kid: %d", w.Code)
 	}
 	// Search finds people.
-	sr := sduiDoc(t, ts.do(t, "GET", "/api/v1/sdui/pages/search?catalog=3&formFactor=desktop&q=lima", f.adult, nil))
+	sr := sduiDoc(t, ts.do(t, "GET", "/api/v1/sdui/pages/search?catalog=5&formFactor=desktop&q=lima", f.adult, nil))
 	if n := findNode(&sr.Root, "people"); n == nil || len(n.Children) != 1 || n.Children[0].Props["subtitle"] != "2 titles" {
 		t.Errorf("people in search: %+v", n)
 	}

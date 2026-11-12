@@ -3,7 +3,7 @@
   "name": "Cinema",
   "description": "Warm near-black and amber, for a dim room.",
   "author": "WittyMediaServer",
-  "version": "3",
+  "version": "4",
   "scheme": "dark",
   "builtin": true,
   "preview": {
@@ -98,5 +98,10 @@
       "strong": 600,
       "heading": 650
     }
+  },
+  "tv": {
+    "ringColor": "#f2ece4",
+    "heroScrim": 0.78,
+    "tvText": "#f3eee7"
   }
 }

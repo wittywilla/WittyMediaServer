@@ -1193,7 +1193,7 @@ func CatalogWith(s *ModuleSet) *Catalogue {
 func moduleComponentSpec(mc *ModuleComponent) ComponentSpec {
 	base, _ := Component(mc.Section.Component)
 	spec := ComponentSpec{Type: mc.Type, Label: mc.Label, Description: mc.Description, Icon: mc.Icon, Category: "module",
-		Module: ModuleOf(mc.Type), Since: CatalogRevision, Authored: true, Required: true, Data: "none", Focus: "none", Props: mc.Props, PageKinds: mc.PageKinds}
+		Module: ModuleOf(mc.Type), Since: CatalogRevision, Authored: true, Data: "none", Focus: "none", Props: mc.Props, PageKinds: mc.PageKinds}
 	if spec.Icon == "" {
 		spec.Icon = "plug"
 	}

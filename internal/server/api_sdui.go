@@ -260,29 +260,7 @@ func (s *Server) sduiDevice(r *http.Request, ctx *sdui.RenderContext) error {
 		return errors.New("deviceClass: hd or 4k")
 	}
 	ctx.Profile = sdui.ProfileFor(ff, class)
-	// The catalogue revision the client was built against, the optional components it
-	// draws and the views of its own it has: what it can't draw reaches it as a fallback.
-	if v := sduiPick(r, "catalog", "X-WMS-SDUI-Catalog"); v != "" {
-		n, err := strconv.Atoi(v)
-		if err != nil || n < 1 || n > 1_000_000 {
-			return errors.New("catalog: the catalogue revision the client knows, a whole number from 1")
-		}
-		if n < sdui.CatalogRevision {
-			ctx.Catalog = n
-		}
-	}
-	if v := sduiPick(r, "components", "X-WMS-SDUI-Components"); v != "" {
-		list, err := sduiList(v, "components", 64)
-		if err != nil {
-			return err
-		}
-		ctx.Components = []string{}
-		for _, c := range list {
-			if c != "none" {
-				ctx.Components = append(ctx.Components, c)
-			}
-		}
-	}
+	// The views of its own the client has.
 	var err error
 	if ctx.NativeViews, err = sduiList(sduiPick(r, "views", "X-WMS-SDUI-Views"), "views", 16); err != nil {
 		return err

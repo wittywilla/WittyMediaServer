@@ -15,8 +15,7 @@
 // administrator can go back to any of them. A file that can't be read or
 // doesn't validate is set aside as ui_config.json.bad and the last good
 // configuration is used instead: the newest valid revision in the history, or
-// the built-in pages. A file in the first format (version 1, "screens") is
-// converted when it is read, and the original kept as ui_config.v1.json. Someone may edit the file by hand while the server runs:
+// the built-in pages. Someone may edit the file by hand while the server runs:
 // it is read again when its modification time or size changes, checked on
 // every read (no file watcher).
 package sduistore
@@ -51,8 +50,6 @@ const (
 	MaxHistory = 10
 	// DraftName is the unpublished draft's name in the data folder.
 	DraftName = "ui_config.draft.json"
-	// LegacyBackup is the copy kept of a file in the first format.
-	LegacyBackup = "ui_config.v1.json"
 	// FormatVersion is the version of the file's own layout. Version 1 held
 	// "screens": trees of low-level nodes.
 	FormatVersion = 2
@@ -85,8 +82,6 @@ type Config struct {
 	// profiles may choose (docs/SDUI.md, "Layout options"); nil: the defaults, all
 	// allowed.
 	Layouts *sdui.LayoutPolicy `json:"layouts,omitempty"`
-	// Notes are left by a migration: what could not be carried over.
-	Notes []string `json:"notes,omitempty"`
 	// BaseRevision is set on the draft only: the published revision it was
 	// begun from. Publishing applies what the draft changed since that
 	// revision on top of what is published now (see Merge). Ignored, and
@@ -203,8 +198,7 @@ type Store struct {
 }
 
 // Open loads dir/ui_config.json, creating an empty one (every page the
-// built-in one) on the first run, converting one in the first format, or
-// recovering as the package documentation describes.
+// built-in one) on the first run, or recovering as the package documentation describes.
 func Open(dir string, opt Options) (*Store, error) {
 	if dir == "" {
 		return nil, errors.New("sduistore: no data folder")
@@ -241,25 +235,6 @@ func Open(dir string, opt Options) (*Store, error) {
 		return nil, err
 	}
 	c, perr := s.parseAndValidate(raw)
-	if perr == nil && IsLegacy(raw) {
-		// The first format: keep the original, and save what it became.
-		if _, err := os.Stat(filepath.Join(s.dir, LegacyBackup)); err != nil {
-			if err := writeFileAtomic(filepath.Join(s.dir, LegacyBackup), raw); err != nil {
-				return nil, fmt.Errorf("could not keep a copy of the old ui_config.json: %w", err)
-			}
-		}
-		s.cur = &Config{Revision: c.Revision}
-		c.Revision = s.nextRevision()
-		c.UpdatedAt, c.UpdatedBy = s.now().UTC(), "converted from the earlier format"
-		s.log.Info("ui_config.json was in the earlier format: converted, the original kept", "cat", "sdui", "file", LegacyBackup, "pages", len(c.Pages))
-		if len(c.Notes) > 0 {
-			s.log.Warn("some of the earlier ui_config.json could not be carried over", "cat", "sdui", "dropped", len(c.Notes), "notes", c.Notes)
-		}
-		if err := s.write(c); err != nil {
-			return nil, err
-		}
-		return s, nil
-	}
 	if perr == nil {
 		s.cur = c
 		s.cur.ETag = ETag(c)
@@ -579,26 +554,11 @@ func (s *Store) newestGoodRevision() *Config {
 
 // ---- parsing and validation ----
 
-// IsLegacy reports whether b is a configuration in the first format: version
-// 1, with "screens".
-func IsLegacy(b []byte) bool {
-	var probe struct {
-		Version int             `json:"version"`
-		Screens json.RawMessage `json:"screens"`
-		Pages   json.RawMessage `json:"pages"`
-	}
-	return json.Unmarshal(b, &probe) == nil && probe.Pages == nil && (probe.Version == 1 || probe.Screens != nil)
-}
-
 // Parse decodes a configuration strictly: no unknown fields, no trailing
-// data. One in the first format is converted (see sdui.MigrateLegacyScreen),
-// with what couldn't be carried over in Notes. It does not validate.
+// data. It does not validate.
 func Parse(b []byte) (*Config, error) {
 	if len(b) > MaxBytes {
 		return nil, fmt.Errorf("the UI configuration is larger than %d bytes", MaxBytes)
-	}
-	if IsLegacy(b) {
-		return parseLegacy(b)
 	}
 	c := &Config{}
 	dec := json.NewDecoder(bytes.NewReader(b))
@@ -613,39 +573,6 @@ func Parse(b []byte) (*Config, error) {
 		c.Pages = map[string]sdui.Page{}
 	}
 	c.ETag = ""
-	return c, nil
-}
-
-// parseLegacy converts a configuration in the first format. Its theme section
-// is carried over as it is; each screen becomes a page, or nothing when it
-// was still the stock screen.
-func parseLegacy(b []byte) (*Config, error) {
-	var raw struct {
-		Version   int                        `json:"version"`
-		Revision  int64                      `json:"revision"`
-		UpdatedAt time.Time                  `json:"updatedAt"`
-		UpdatedBy string                     `json:"updatedBy"`
-		Theme     Theme                      `json:"theme"`
-		Screens   map[string]json.RawMessage `json:"screens"`
-		ETag      string                     `json:"etag"`
-	}
-	if err := json.Unmarshal(b, &raw); err != nil {
-		return nil, fmt.Errorf("the UI configuration isn't valid JSON: %w", err)
-	}
-	c := &Config{Version: FormatVersion, Revision: raw.Revision, UpdatedAt: raw.UpdatedAt, UpdatedBy: raw.UpdatedBy, Theme: raw.Theme, Pages: map[string]sdui.Page{}}
-	for _, name := range sortedKeys(raw.Screens) {
-		res := sdui.MigrateLegacyScreen(name, raw.Screens[name])
-		switch {
-		case res.Stock:
-		case res.Page == nil:
-			c.Notes = append(c.Notes, "screen "+name+" was not carried over: "+res.Dropped)
-		default:
-			c.Pages[res.Page.ID] = *res.Page
-			for _, n := range res.Notes {
-				c.Notes = append(c.Notes, "screen "+name+": not carried over: "+n)
-			}
-		}
-	}
 	return c, nil
 }
 
@@ -747,9 +674,6 @@ func (s *Store) Check(c *Config) []sdui.Issue {
 	for _, is := range sdui.ValidateLayoutPolicy(c.Layouts) {
 		is.Path = "/layouts" + is.Path
 		ve.Issues = append(ve.Issues, is)
-	}
-	if len(c.Notes) > 200 {
-		ve.add("/notes", "too many notes")
 	}
 	if s.checkTheme != nil {
 		for _, is := range s.checkTheme(c.Theme) {
@@ -1010,7 +934,6 @@ func (s *Store) PublishPreferring(ifMatch, by, prefer string) (*Config, error) {
 			next = merged
 		}
 	}
-	next.Notes = s.cur.Notes
 	saved, err := s.saveLocked(next, by)
 	if err != nil {
 		return nil, err

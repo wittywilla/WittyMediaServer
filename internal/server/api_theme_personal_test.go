@@ -224,6 +224,38 @@ func TestThemeShapeAndType(t *testing.T) {
 	}
 }
 
+// Design 2: the theme carries its ten-foot colours and units, the elevation table in its own
+// colours and the density steps, in every look, and the brand is untouched.
+func TestThemeCarriesDesign2Tokens(t *testing.T) {
+	ts, admin, adult, _ := sduiAccounts(t)
+	if err := ts.Themes.Install(builtin.Builtin); err != nil {
+		t.Fatal(err)
+	}
+	ts.do(t, "PUT", "/api/theme/global", admin, map[string]any{"id": "auto"})
+	th := getTheme(t, ts, adult)
+	if th.TV.RingColor == "" || th.TV.TVText == "" || th.TV.HeroScrim <= 0 || len(th.TV.Units) == 0 {
+		t.Errorf("tv: %+v", th.TV)
+	}
+	if th.Elevation["1"].Fill != th.Tokens["bg2"] || th.Elevation["3"].Line != th.Tokens["borderStrong"] || th.Density.Default != "comfortable" {
+		t.Errorf("elevation %+v density %+v", th.Elevation, th.Density)
+	}
+	dark, light := th.Variants["dark"], th.Variants["light"]
+	if dark.Elevation["0"].Fill == light.Elevation["0"].Fill || dark.TV.TVText == light.TV.TVText {
+		t.Errorf("each look has its own: %+v / %+v", dark.TV, light.TV)
+	}
+	if th.Brand.Token != "brandAccent" || th.Brand.Color == "" {
+		t.Errorf("brand: %+v", th.Brand)
+	}
+	// A profile's text colour re-derives the ten-foot colours instead of keeping the theme's.
+	ts.do(t, "PUT", "/api/theme/global", admin, map[string]any{"id": "default"})
+	if w := ts.do(t, "PUT", "/api/theme/personal", adult, map[string]any{"tokens": map[string]string{"fg": "#FFCC00"}}); w.Code != 200 {
+		t.Fatalf("personal: %d %s", w.Code, w.Body)
+	}
+	if got := getTheme(t, ts, adult); got.TV.RingColor != "#FFCC00" {
+		t.Errorf("ring after a text override: %+v", got.TV)
+	}
+}
+
 // The server's name keeps its colouring through every layer: the parts are the settings'
 // and the coloured ones take brandAccent, resolved with the other colours.
 func TestBrandColouringSurvivesTheThemeEngine(t *testing.T) {

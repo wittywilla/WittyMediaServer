@@ -46,4 +46,9 @@
   /* Layout and type */
   --sidebar: 240px;
   --font: "Inter", "Segoe UI Variable Text", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  /* Ten feet away (docs/THEMES.md "The TV pass"): the focus ring, the scrim's strength behind hero text, body text a step stronger */
+  --tv-ring-color: #f2ece4;
+  --tv-text: #f3eee7;
+  --hero-scrim: 0.78;
 }

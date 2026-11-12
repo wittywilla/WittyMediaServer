@@ -79,9 +79,12 @@ jobs:
       # Transcodes, disc sessions and scans run concurrently; only this finds data races.
       - name: Race detector
         run: CGO_ENABLED=1 go test -race -count=1 -timeout 45m ./internal/...
-      # Fails only on a vulnerability this code can reach. A release goes out with none.
+      # Fails on every vulnerability this code can reach, except the few scripts/vulncheck
+      # accepts by name and module, each with its reason, and only while no fix exists.
       - name: Known vulnerabilities in Go code
-        run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./internal/... ./cmd/...
+        run: |
+          set -o pipefail
+          go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 -format json ./internal/... ./cmd/... | go run ./scripts/vulncheck
       - name: Known vulnerabilities in web packages
         run: cd web && npm audit --audit-level=high
       - name: Downloaded modules are what go.sum says
@@ -253,6 +256,15 @@ jobs:
             git clone -q --depth 1 "https://github.com/wittywilla/$r" "$RUNNER_TEMP/repos/$r"
           done
           scripts/make-test-catalog.sh "$RUNNER_TEMP/catalog" "$RUNNER_TEMP/repos"
+      # The server's stubs for WittyPlay and WittyCouch (internal/play, internal/couch) and each
+      # module's call handlers are written by kit/facade from the module's facade.json. Both
+      # sides have to be what it writes now, or a call reaches a method the other side lacks.
+      - name: The modules' facades are as kit/facade writes them
+        run: |
+          for m in WittyPlay WittyCouch; do
+            (cd "$RUNNER_TEMP/repos/WittyModule" && GOWORK=off go run ./kit/facade -check \
+              -config "$RUNNER_TEMP/repos/$m/facade.json" -module "$RUNNER_TEMP/repos/$m" -server "$GITHUB_WORKSPACE")
+          done
       - name: Tests, with them
         env:
           WMS_TEST_CATALOG: ${{ runner.temp }}/catalog

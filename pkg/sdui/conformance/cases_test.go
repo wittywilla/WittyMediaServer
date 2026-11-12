@@ -220,8 +220,6 @@ func home(ff string, change func(in *Input)) Input {
 	return in
 }
 
-var no = false
-
 func subject(it sdui.Item) *sdui.Item { return &it }
 
 func libraryData() Data {
@@ -484,10 +482,6 @@ func cases() []kase {
 		{id: "home-density-card-size", title: "A profile's density and card sizes", in: home("desktop", func(in *Input) {
 			in.Request.Personal = &sdui.Personal{Density: "compact", CardSize: map[string]string{"jump": "l", "recent-1": "s"}}
 		}), checks: []string{"compact density: spacing three quarters of the profile's", "a section's card size is the profile's choice"}},
-		{id: "home-required-components-only", title: "Home for a client that draws only the required components", in: home("phone", func(in *Input) { in.Request.AllOptional = &no }),
-			checks: []string{"Hero becomes a Shelf of large landscape cards", "Banner becomes a Notice", "nothing optional is in the tree"}},
-		{id: "home-old-catalogue", title: "Home for a client built against catalogue revision 1", in: home("tv", func(in *Input) { in.Request.Catalog = 1 }),
-			checks: []string{"document.catalog is the client's revision", "every component newer than it is sent as its fallback"}},
 		{id: "home-source-fails", title: "A row whose source fails", in: home("desktop", func(in *Input) {
 			in.Data.Sources = append([]CannedSource{{Match: map[string]any{"type": "recommended"}, Fails: true}}, in.Data.Sources...)
 		}), checks: []string{"the row stays with state error and a URL to try again", "the rest of the page is unaffected"}},
@@ -519,7 +513,19 @@ func cases() []kase {
 			checks: []string{"the filter bar's choices come from the server", "its count is the grid's total", "the grid has as many columns as fit: floor((1408 + 16) / (180 + 16)) = 7", "the grid pages: more.url"},
 			more:   []SectionAnswer{{Section: "all", Cursor: 60}}},
 		{id: "library-films-tv", title: "A film library on a television", in: library("library-movies", "tv", "1", "movies", "Films", nil),
-			checks: []string{"six columns of posters", "36 cards in the first page", "focus starts in the grid, not on the filter bar"}},
+			checks: []string{"six columns of posters", "36 cards in the first page", "focus starts in the grid, not on the filter bar",
+				"the server adds a locked Dock at the end: Sort, Filter, View and, as the sort is the title, Jump to a letter, then the key legend", "the Dock is 112 points tall at the foot of the screen"}},
+		{id: "library-films-dock-desktop", title: "A film library with a Dock written into the page", in: library("library-movies", "desktop", "1", "movies", "Films", func(in *Input) { addDock(in) }),
+			checks: []string{"a Dock's generated controls come from the filter bar that drives its target", "the legend closes the row", "the Dock is last in the focus order and never the default", "it is 64 points tall"}},
+		{id: "library-films-dock-phone", title: "The same Dock on a phone", in: library("library-movies", "phone", "1", "movies", "Films", func(in *Input) { addDock(in) }),
+			checks: []string{"placement is sheet, no height, no key legend"}},
+		{id: "home-hero-peek-phone", title: "A spotlight that shows the next title's edge", in: home("phone", func(in *Input) {
+			for i := range in.Page.Sections {
+				if in.Page.Sections[i].Component == "Hero" {
+					in.Page.Sections[i].Props = map[string]any{"peek": true}
+				}
+			}
+		}), checks: []string{"the Hero carries peek and the layout's 12 percent", "rows keep their own peek"}},
 		{id: "library-films-phone", title: "A film library on a phone", in: library("library-movies", "phone", "1", "movies", "Films", nil), checks: []string{"three columns of 120-point posters"}},
 		{id: "library-films-filtered", title: "A film library filtered and sorted", in: library("library-movies", "desktop", "1", "movies", "Films", func(in *Input) {
 			in.Request.Params = map[string]string{"genre": "Family", "sort": "rating"}
@@ -531,9 +537,6 @@ func cases() []kase {
 		{id: "library-music-default-tab", title: "A profile whose music library opens on Artists", in: library("library-music", "tv", "3", "music", "Music", func(in *Input) {
 			in.Request.Personal = &sdui.Personal{DefaultTab: map[string]string{"views": "artists"}}
 		}), checks: []string{"the profile's default tab wins over the page's"}},
-		{id: "library-music-no-tabs", title: "A music library for a client without Tabs", in: library("library-music", "phone", "3", "music", "Music", func(in *Input) {
-			in.Request.Components = []string{"Hero", "Banner"}
-		}), checks: []string{"Tabs becomes a Stack holding the selected tab's content"}},
 		{id: "library-photos-native", title: "A photo library on a client with its own timeline", in: library("library-photos", "phone", "4", "photos", "Photos", func(in *Input) { in.Request.NativeViews = []string{"photoTimeline"} }),
 			checks: []string{"a NativeView node with the library, and none of its children"}},
 		{id: "library-photos-grid", title: "A photo library on a client without one", in: library("library-photos", "desktop", "4", "photos", "Photos", nil),
@@ -561,12 +564,8 @@ func cases() []kase {
 			checks: []string{"the season the source chose is selected", "each season has a URL of its own", "episode cards: \"<n>. <title>\", running time, synopsis", "Play starts the next episode (nextId)"},
 			more:   []SectionAnswer{{Section: "episodes", Cursor: 0, Season: "1"}, {Section: "episodes", Cursor: 50, Season: "2"}}},
 		{id: "detail-show-tv", title: "A show's page on a television", in: detail("detail-show", "tv", map[string]string{"show": "1"}, showData(), nil), checks: []string{"thirty episodes in the first page, the rest by cursor"}},
-		{id: "detail-show-fallbacks", title: "A show's page for a client with neither DetailHeader nor SeasonList", in: detail("detail-show", "phone", map[string]string{"show": "1"}, showData(), func(in *Input) { in.Request.AllOptional = &no }),
-			checks: []string{"the header as Image, Text and a row of Buttons", "the episodes as a Shelf of landscape cards"}},
 		{id: "detail-album", title: "An album's page", in: detail("detail-album", "desktop", albumVars, albumData(), nil),
 			checks: []string{"the header uses the square cover", "tracks numbered, with lengths", "a track's label: Track 1, Song 1, 3 minutes"}},
-		{id: "detail-album-fallback", title: "An album's page for a client without TrackList", in: detail("detail-album", "tv", albumVars, albumData(), func(in *Input) { in.Request.Components = []string{"DetailHeader"} }),
-			checks: []string{"the tracks as a List of ListItems that play"}},
 		{id: "detail-artist", title: "An artist's page", in: detail("detail-artist", "phone", artistVars, artistData(), nil),
 			checks: []string{"the route is /artist/3?name=The+Examples", "a poster header with the square picture, the album count and Play", "the artist's albums as album cards", "every song as a TrackList without track numbers"}},
 		{id: "detail-artist-tv", title: "An artist's page on a television", in: detail("detail-artist", "tv", artistVars, artistData(), nil),
@@ -582,8 +581,6 @@ func cases() []kase {
 			checks: []string{"the Credits section comes right after the header", "twenty of the cast, then each department up to six people, in the catalogue's order",
 				"props.groups says each part's total and how many were sent", "a person without a picture has no image: draw their initials", "Show all asks props.more.url, which answers everyone in place (replace)"},
 			more: []SectionAnswer{{Section: "credits", Cursor: 0}}},
-		{id: "detail-credits-old-catalogue", title: "A film's cast and crew for a client built against catalogue revision 2", in: detail("detail", "phone", map[string]string{"item": "103"}, movieData(), func(in *Input) { in.Request.Catalog = 2 }),
-			checks: []string{"Credits arrives as a Shelf of person cards (its fallback), the part or job as each card's subtitle", "document.catalog is the client's own revision"}},
 		{id: "detail-show-season", title: "A show's page opened for one season, with that season's guest stars", in: detail("detail-show", "tablet", map[string]string{"show": "1", "season": "2"}, showData(), nil),
 			checks: []string{"the credits source is asked with the season", "guest stars follow the cast as a group of their own"}},
 		{id: "detail-episode-tv", title: "An episode's page on a television", in: detail("detail-episode", "tv", map[string]string{"item": "1205", "show": "1", "season": "2"}, func() Data {
@@ -860,4 +857,10 @@ func sourceCases() []kase {
 			checks: []string{"rows past the first screen arrive deferred, as on any page", "an administrator's row of everyone's record, fetched by its cursor, says how many people"},
 			more:   []SectionAnswer{{Section: "everyone", Cursor: 0}}},
 	}
+}
+
+// addDock writes a Dock at the end of a library page, driving its grid.
+func addDock(in *Input) {
+	in.Page.Sections = append(in.Page.Sections, sdui.Section{ID: "dock", Component: "Dock",
+		Props: map[string]any{"target": "all", "controls": []any{"sort", "filter", "view", "jump"}}})
 }

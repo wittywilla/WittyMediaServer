@@ -399,12 +399,6 @@
         "expands": {
           "type": "string"
         },
-        "fallback": {
-          "type": "string"
-        },
-        "fallbackNote": {
-          "type": "string"
-        },
         "focus": {
           "type": "string"
         },
@@ -441,9 +435,6 @@
           },
           "type": "object"
         },
-        "required": {
-          "type": "boolean"
-        },
         "since": {
           "type": "integer"
         },
@@ -467,7 +458,6 @@
         "icon",
         "category",
         "since",
-        "required",
         "authored",
         "data",
         "container",
@@ -606,6 +596,25 @@
       },
       "required": [
         "field"
+      ],
+      "type": "object"
+    },
+    "DockMetrics": {
+      "properties": {
+        "height": {
+          "type": "integer"
+        },
+        "hintSize": {
+          "type": "integer"
+        },
+        "placement": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "placement",
+        "height",
+        "hintSize"
       ],
       "type": "object"
     },
@@ -800,6 +809,9 @@
           },
           "type": "object"
         },
+        "inWatchLater": {
+          "type": "boolean"
+        },
         "kind": {
           "type": "string"
         },
@@ -906,6 +918,9 @@
         "density": {
           "type": "string"
         },
+        "dock": {
+          "$ref": "#/$defs/DockMetrics"
+        },
         "externalLinks": {
           "type": "boolean"
         },
@@ -923,6 +938,9 @@
             "type": "integer"
           },
           "type": "array"
+        },
+        "peek": {
+          "type": "number"
         },
         "reducedMotion": {
           "type": "boolean"
@@ -966,6 +984,8 @@
         "text",
         "cards",
         "hero",
+        "peek",
+        "dock",
         "imageWidths",
         "budget",
         "textLimits",
@@ -1419,6 +1439,9 @@
           "type": "boolean"
         },
         "rowsAsLists": {
+          "type": "boolean"
+        },
+        "seeAllCard": {
           "type": "boolean"
         }
       },
@@ -2175,7 +2198,7 @@
     "tile",
     "chip"
   ],
-  "x-catalogRevision": 3,
+  "x-catalogRevision": 5,
   "x-components": [
     "Page",
     "Hero",
@@ -2185,6 +2208,8 @@
     "Tabs",
     "Tab",
     "FilterBar",
+    "Dock",
+    "KeyLegend",
     "DetailHeader",
     "SeasonList",
     "TrackList",

@@ -3,7 +3,7 @@
   "name": "High contrast",
   "description": "Black and white with bright yellow, for the clearest reading.",
   "author": "WittyMediaServer",
-  "version": "3",
+  "version": "4",
   "scheme": "dark",
   "builtin": true,
   "preview": {
@@ -98,5 +98,10 @@
       "strong": 600,
       "heading": 650
     }
+  },
+  "tv": {
+    "ringColor": "#ffffff",
+    "heroScrim": 0.88,
+    "tvText": "#ffffff"
   }
 }

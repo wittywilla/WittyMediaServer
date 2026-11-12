@@ -440,6 +440,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/collections/preview` | Signed-in | Rule fields. limits |
 | `GET /api/collections/holding` | Signed-in | own |
 | `POST /api/collections/watch-later/items` | Signed-in, not Guest | limits on each title. 1 to 2000 |
+| `DELETE /api/collections/watch-later/items` | Signed-in, not Guest | Own list only. 1 to 2000 |
 | `GET /api/collections/{id}` | Signed-in | Own or shared, or an admin. limits on what it holds. Paths for admins only |
 | `PUT /api/collections/{id}` | Signed-in | Collection's owner or an admin. Sizes. Rule fields |
 | `DELETE /api/collections/{id}` | Signed-in | Collection's owner or an admin. Not a system list |

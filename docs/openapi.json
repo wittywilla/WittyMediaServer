@@ -10398,6 +10398,81 @@
           "brand": {
             "$ref": "#/components/schemas/ThemeBrand"
           },
+          "density": {
+            "properties": {
+              "default": {
+                "type": "string"
+              },
+              "steps": {
+                "additionalProperties": {
+                  "additionalProperties": {
+                    "type": "number"
+                  },
+                  "type": "object"
+                },
+                "type": "object"
+              },
+              "tvDefault": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "default",
+              "steps",
+              "tvDefault"
+            ],
+            "type": "object"
+          },
+          "elevation": {
+            "additionalProperties": {
+              "properties": {
+                "fill": {
+                  "type": "string"
+                },
+                "fillToken": {
+                  "type": "string"
+                },
+                "line": {
+                  "type": "string"
+                },
+                "lineToken": {
+                  "type": "string"
+                },
+                "shadow": {
+                  "items": {
+                    "properties": {
+                      "blur": {
+                        "type": "number"
+                      },
+                      "opacity": {
+                        "type": "number"
+                      },
+                      "y": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "blur",
+                      "opacity",
+                      "y"
+                    ],
+                    "type": "object"
+                  },
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "fill",
+                "fillToken",
+                "shadow"
+              ],
+              "type": "object"
+            },
+            "type": "object"
+          },
           "etag": {
             "type": "string"
           },
@@ -10440,12 +10515,91 @@
             },
             "type": "object"
           },
+          "tv": {
+            "properties": {
+              "heroScrim": {
+                "type": "number"
+              },
+              "ringColor": {
+                "type": "string"
+              },
+              "tvText": {
+                "type": "string"
+              },
+              "units": {
+                "items": {
+                  "type": "integer"
+                },
+                "type": [
+                  "array",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "heroScrim",
+              "ringColor",
+              "tvText",
+              "units"
+            ],
+            "type": "object"
+          },
           "type": {
             "$ref": "#/components/schemas/ThemeType"
           },
           "variants": {
             "additionalProperties": {
               "properties": {
+                "elevation": {
+                  "additionalProperties": {
+                    "properties": {
+                      "fill": {
+                        "type": "string"
+                      },
+                      "fillToken": {
+                        "type": "string"
+                      },
+                      "line": {
+                        "type": "string"
+                      },
+                      "lineToken": {
+                        "type": "string"
+                      },
+                      "shadow": {
+                        "items": {
+                          "properties": {
+                            "blur": {
+                              "type": "number"
+                            },
+                            "opacity": {
+                              "type": "number"
+                            },
+                            "y": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "blur",
+                            "opacity",
+                            "y"
+                          ],
+                          "type": "object"
+                        },
+                        "type": [
+                          "array",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "fill",
+                      "fillToken",
+                      "shadow"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "object"
+                },
                 "id": {
                   "type": "string"
                 },
@@ -10467,15 +10621,46 @@
                   },
                   "type": "object"
                 },
+                "tv": {
+                  "properties": {
+                    "heroScrim": {
+                      "type": "number"
+                    },
+                    "ringColor": {
+                      "type": "string"
+                    },
+                    "tvText": {
+                      "type": "string"
+                    },
+                    "units": {
+                      "items": {
+                        "type": "integer"
+                      },
+                      "type": [
+                        "array",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "heroScrim",
+                    "ringColor",
+                    "tvText",
+                    "units"
+                  ],
+                  "type": "object"
+                },
                 "type": {
                   "$ref": "#/components/schemas/ThemeType"
                 }
               },
               "required": [
+                "elevation",
                 "id",
                 "modules",
                 "shape",
                 "tokens",
+                "tv",
                 "type"
               ],
               "type": "object"
@@ -10494,6 +10679,8 @@
         },
         "required": [
           "brand",
+          "density",
+          "elevation",
           "etag",
           "id",
           "modules",
@@ -10504,6 +10691,7 @@
           "shape",
           "source",
           "tokens",
+          "tv",
           "type",
           "variants",
           "warnings"
@@ -10772,6 +10960,9 @@
                     },
                     "rowsAsLists": {
                       "type": "boolean"
+                    },
+                    "seeAllCard": {
+                      "type": "boolean"
                     }
                   },
                   "type": "object"
@@ -10935,6 +11126,25 @@
                     "density": {
                       "type": "string"
                     },
+                    "dock": {
+                      "properties": {
+                        "height": {
+                          "type": "integer"
+                        },
+                        "hintSize": {
+                          "type": "integer"
+                        },
+                        "placement": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "height",
+                        "hintSize",
+                        "placement"
+                      ],
+                      "type": "object"
+                    },
                     "externalLinks": {
                       "type": "boolean"
                     },
@@ -10967,6 +11177,9 @@
                         "array",
                         "null"
                       ]
+                    },
+                    "peek": {
+                      "type": "number"
                     },
                     "reducedMotion": {
                       "type": "boolean"
@@ -11053,11 +11266,13 @@
                     "budget",
                     "cards",
                     "density",
+                    "dock",
                     "externalLinks",
                     "focusEngine",
                     "formFactor",
                     "hero",
                     "imageWidths",
+                    "peek",
                     "safeArea",
                     "scale",
                     "spacing",
@@ -11290,12 +11505,6 @@
           "expands": {
             "type": "string"
           },
-          "fallback": {
-            "type": "string"
-          },
-          "fallbackNote": {
-            "type": "string"
-          },
           "focus": {
             "type": "string"
           },
@@ -11341,9 +11550,6 @@
             },
             "type": "object"
           },
-          "required": {
-            "type": "boolean"
-          },
           "since": {
             "type": "integer"
           },
@@ -11376,7 +11582,6 @@
           "focus",
           "icon",
           "label",
-          "required",
           "since",
           "type"
         ],
@@ -11617,15 +11822,6 @@
               }
             ]
           },
-          "notes": {
-            "items": {
-              "type": "string"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
           "pages": {
             "additionalProperties": {
               "$ref": "#/components/schemas/SDUIPage"
@@ -11735,6 +11931,25 @@
                   "density": {
                     "type": "string"
                   },
+                  "dock": {
+                    "properties": {
+                      "height": {
+                        "type": "integer"
+                      },
+                      "hintSize": {
+                        "type": "integer"
+                      },
+                      "placement": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "height",
+                      "hintSize",
+                      "placement"
+                    ],
+                    "type": "object"
+                  },
                   "externalLinks": {
                     "type": "boolean"
                   },
@@ -11767,6 +11982,9 @@
                       "array",
                       "null"
                     ]
+                  },
+                  "peek": {
+                    "type": "number"
                   },
                   "reducedMotion": {
                     "type": "boolean"
@@ -11853,11 +12071,13 @@
                   "budget",
                   "cards",
                   "density",
+                  "dock",
                   "externalLinks",
                   "focusEngine",
                   "formFactor",
                   "hero",
                   "imageWidths",
+                  "peek",
                   "safeArea",
                   "scale",
                   "spacing",
@@ -14592,6 +14812,32 @@
           },
           "size": {
             "type": "integer"
+          },
+          "tv": {
+            "anyOf": [
+              {
+                "properties": {
+                  "heroScrim": {
+                    "type": "number"
+                  },
+                  "ringColor": {
+                    "type": "string"
+                  },
+                  "tvText": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "heroScrim",
+                  "ringColor",
+                  "tvText"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "type": {
             "anyOf": [
@@ -18538,6 +18784,47 @@
       }
     },
     "/collections/watch-later/items": {
+      "delete": {
+        "operationId": "deleteCollectionsWatchLaterItems",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            }
+          },
+          "description": "{items, shows}",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Watch later remove: take titles off this account's Watch later list. {items, shows} as for adding; titles that weren't on it are no error.",
+        "tags": [
+          "Collections and your year"
+        ],
+        "x-wms-auth": "user"
+      },
       "post": {
         "operationId": "postCollectionsWatchLaterItems",
         "parameters": [],
@@ -44560,24 +44847,6 @@
             }
           },
           {
-            "description": "The catalogue revision the client was built against; components newer than it are sent as their fallbacks. Also X-WMS-SDUI-Catalog.",
-            "in": "query",
-            "name": "catalog",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "The optional components the client draws, comma-separated (or none); the rest are sent as their fallbacks. Left out: all of its revision. Also X-WMS-SDUI-Components.",
-            "in": "query",
-            "name": "components",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
             "description": "The native views the client has for NativeView (guide, photoTimeline, photoMap, coverFlow). Also X-WMS-SDUI-Views.",
             "in": "query",
             "name": "views",
@@ -44804,24 +45073,6 @@
             "description": "hd (default) or 4k, for a television. Also X-WMS-Device-Class.",
             "in": "query",
             "name": "deviceClass",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "The catalogue revision the client was built against; components newer than it are sent as their fallbacks. Also X-WMS-SDUI-Catalog.",
-            "in": "query",
-            "name": "catalog",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "The optional components the client draws, comma-separated (or none); the rest are sent as their fallbacks. Left out: all of its revision. Also X-WMS-SDUI-Components.",
-            "in": "query",
-            "name": "components",
             "required": false,
             "schema": {
               "type": "string"
@@ -45072,24 +45323,6 @@
             "description": "hd (default) or 4k, for a television. Also X-WMS-Device-Class.",
             "in": "query",
             "name": "deviceClass",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "The catalogue revision the client was built against; components newer than it are sent as their fallbacks. Also X-WMS-SDUI-Catalog.",
-            "in": "query",
-            "name": "catalog",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "The optional components the client draws, comma-separated (or none); the rest are sent as their fallbacks. Left out: all of its revision. Also X-WMS-SDUI-Components.",
-            "in": "query",
-            "name": "components",
             "required": false,
             "schema": {
               "type": "string"
@@ -45490,24 +45723,6 @@
             "description": "hd (default) or 4k, for a television. Also X-WMS-Device-Class.",
             "in": "query",
             "name": "deviceClass",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "The catalogue revision the client was built against; components newer than it are sent as their fallbacks. Also X-WMS-SDUI-Catalog.",
-            "in": "query",
-            "name": "catalog",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "The optional components the client draws, comma-separated (or none); the rest are sent as their fallbacks. Left out: all of its revision. Also X-WMS-SDUI-Components.",
-            "in": "query",
-            "name": "components",
             "required": false,
             "schema": {
               "type": "string"

@@ -46,8 +46,10 @@ type Meta struct {
 	Radius float64           `json:"radius,omitempty"`
 	// Shape and Type are its corners, focus ring, typefaces and weights (shape.go), also
 	// written by scripts/design-tokens.py. Uploaded themes may leave them out.
-	Shape   *Shape      `json:"shape,omitempty"`
-	Type    *TypeTokens `json:"type,omitempty"`
+	Shape *Shape      `json:"shape,omitempty"`
+	Type  *TypeTokens `json:"type,omitempty"`
+	// TV is the theme's ten-foot colours (design.go), also written by scripts/design-tokens.py.
+	TV      *TVColors `json:"tv,omitempty"`
 	Preview struct {
 		BG      string `json:"bg,omitempty"`
 		Surface string `json:"surface,omitempty"`

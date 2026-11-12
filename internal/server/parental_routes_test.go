@@ -222,6 +222,7 @@ var plainRoutes = []string{
 	"DELETE /api/annotations/{aid}",
 	"DELETE /api/backup/restore/request",
 	"DELETE /api/collections/{id}",
+	"DELETE /api/collections/watch-later/items",
 	"DELETE /api/collections/{id}/items",
 	"DELETE /api/dvd/{sid}",
 	"DELETE /api/hls/{id}",

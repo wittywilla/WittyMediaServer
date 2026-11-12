@@ -68,6 +68,8 @@ type PageStyle struct {
 	// LandscapeCards draws films', shows' and episodes' cards wide where a section leaves
 	// the style to its source.
 	LandscapeCards bool `json:"landscapeCards,omitempty"`
+	// SeeAllCard makes See all the last card of a row where a section leaves it to the layout.
+	SeeAllCard bool `json:"seeAllCard,omitempty"`
 	// Density is the page's spacing where the profile chose none; "" the device's.
 	Density string `json:"density,omitempty"`
 }
@@ -92,7 +94,7 @@ var navSizes = map[string]map[string]int{
 	NavRail:       {FormWeb: 80, FormDesktop: 80, FormTablet: 72, FormPhone: 72, FormTV: 120},
 	NavBottomTabs: {FormWeb: 56, FormDesktop: 56, FormTablet: 64, FormPhone: 56, FormTV: 100},
 	NavTopTabs:    {FormWeb: 64, FormDesktop: 64, FormTablet: 56, FormPhone: 48, FormTV: 100},
-	NavTVTopMenu:  {FormTV: 100},
+	NavTVTopMenu:  {FormTV: 88}, // themes/tokens.json tv.topBar.height
 	NavTVSideMenu: {FormTV: 120},
 }
 
@@ -107,7 +109,7 @@ var Layouts = []LayoutSpec{
 	{ID: LayoutTVRows, Label: "TV rows", Icon: "tv",
 		Description: "Everything in rows of large cards, as on a television: grids become rows, and the menu is a narrow rail.",
 		Nav:         map[string]string{FormWeb: NavRail, FormDesktop: NavRail, FormTablet: NavRail, FormPhone: NavBottomTabs, FormTV: NavTVTopMenu},
-		Pages:       PageStyle{GridsAsRows: true, CardSize: "l", Hero: "billboard"}},
+		Pages:       PageStyle{GridsAsRows: true, CardSize: "l", Hero: "billboard", SeeAllCard: true}},
 	{ID: LayoutCompactList, Label: "Compact list", Icon: "list",
 		Description: "A line per title instead of rows of pictures: the most on the screen at once, for small screens and long libraries.",
 		Nav:         map[string]string{FormWeb: NavRail, FormDesktop: NavRail, FormTablet: NavRail, FormPhone: NavBottomTabs, FormTV: NavTVSideMenu},
@@ -115,7 +117,7 @@ var Layouts = []LayoutSpec{
 	{ID: LayoutStreaming, Label: "Streaming style", Icon: "play",
 		Description: "A big spotlight under a see-through menu, then rows of wide cards, like a streaming service.",
 		Nav:         map[string]string{FormWeb: NavTopTabs, FormDesktop: NavTopTabs, FormTablet: NavTopTabs, FormPhone: NavBottomTabs, FormTV: NavTVTopMenu},
-		Overlay:     true, Pages: PageStyle{Hero: "billboard", LandscapeCards: true, Density: "comfortable"}},
+		Overlay:     true, Pages: PageStyle{Hero: "billboard", LandscapeCards: true, Density: "comfortable", SeeAllCard: true}},
 }
 
 // LayoutIDs are the layout options' IDs.
@@ -340,6 +342,68 @@ func LayoutOptions(p *LayoutPolicy) []EnumOption {
 		if p == nil || len(p.Allowed) == 0 || slices.Contains(p.Allowed, l.ID) {
 			out = append(out, EnumOption{Value: l.ID, Label: l.Label})
 		}
+	}
+	return out
+}
+
+// zoned gives a television's page its Dock (docs/plans/DESIGN-2.md section 4): a page
+// with a filter bar over a grid gets the sort, filters, view and jump-to-letter in one
+// row at the foot of the screen, unless the page already has a Dock. The Dock is locked,
+// so a profile's arrangement can't move or hide it.
+func zoned(p Page, formFactor string) Page {
+	if formFactor != FormTV {
+		return p
+	}
+	p = ClonePage(p)
+	p.Sections = withDock(p.Sections)
+	for i := range p.Variants {
+		p.Variants[i].Sections = withDock(p.Variants[i].Sections)
+	}
+	return p
+}
+
+func withDock(list []Section) []Section {
+	var target string
+	var hasDock bool
+	var walk func(list []Section)
+	walk = func(list []Section) {
+		for _, s := range list {
+			switch s.Component {
+			case "Dock":
+				hasDock = true
+			case "FilterBar":
+				if target == "" {
+					target = propStr(s.Props, "target", "")
+				}
+			}
+			walk(s.Children)
+		}
+	}
+	walk(list)
+	if hasDock || target == "" || (len(list) > 0 && list[len(list)-1].Component == "NativeView") {
+		return list
+	}
+	id := "dock"
+	for taken := true; taken; {
+		taken = false
+		for _, s := range flatten(list) {
+			if s.ID == id {
+				id += "-zone"
+				taken = true
+				break
+			}
+		}
+	}
+	return append(list, Section{ID: id, Component: "Dock", Locked: true,
+		Props: map[string]any{"target": target, "controls": []any{"sort", "filter", "view", "jump"}}})
+}
+
+// flatten lists every section of a tree, containers included.
+func flatten(list []Section) []Section {
+	var out []Section
+	for _, s := range list {
+		out = append(out, s)
+		out = append(out, flatten(s.Children)...)
 	}
 	return out
 }

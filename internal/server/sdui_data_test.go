@@ -156,7 +156,7 @@ func TestSDUIBuiltInPagesFromALibrary(t *testing.T) {
 	f := newSDUIFixture(t)
 	ts := f.ts
 	tv := sduiDoc(t, ts.do(t, "GET", "/api/sdui/pages/home", f.admin, nil, "X-WMS-Platform", "tvos"))
-	if tv.Layout.SafeArea.Left != 80 || tv.Layout.Budget.ShelfItems != 12 || tv.Layout.Text["body"] != 29 {
+	if tv.Layout.SafeArea.Left != 90 || tv.Layout.Budget.ShelfItems != 12 || tv.Layout.Text["body"] != 29 {
 		t.Errorf("the tv profile: %+v", tv.Layout)
 	}
 	row := findNode(&tv.Root, fmt.Sprintf("recent-%d", f.open))
@@ -390,9 +390,8 @@ func TestSDUIPersonalisation(t *testing.T) {
 	}
 }
 
-// A client that draws less is sent less: fallbacks by catalogue revision and by the
-// components it names.
-func TestSDUICapabilityNegotiation(t *testing.T) {
+// Every client is sent every component.
+func TestSDUIEveryComponentIsSent(t *testing.T) {
 	f := newSDUIFixture(t)
 	ts := f.ts
 	types := func(query string) string {
@@ -407,19 +406,14 @@ func TestSDUICapabilityNegotiation(t *testing.T) {
 	if got := types(""); !strings.HasPrefix(got, "Hero:hero") || !strings.HasSuffix(got, "Banner:shuffle") {
 		t.Errorf("everything: %s", got)
 	}
-	for _, q := range []string{"components=none", "catalog=1"} {
-		if got := types(q); !strings.HasPrefix(got, "Shelf:hero") || !strings.HasSuffix(got, "Notice:shuffle") {
+	// There is no negotiation: what a client says about components or revisions changes nothing.
+	for _, q := range []string{"components=none", "catalog=1", "catalog=99"} {
+		if got := types(q); !strings.HasPrefix(got, "Hero:hero") || !strings.HasSuffix(got, "Banner:shuffle") {
 			t.Errorf("%s: %s", q, got)
 		}
 	}
-	if got := types("components=Hero"); !strings.HasPrefix(got, "Hero:hero") || !strings.HasSuffix(got, "Notice:shuffle") {
-		t.Errorf("only Hero: %s", got)
-	}
-	if doc := sduiDoc(t, ts.do(t, "GET", "/api/sdui/pages/home?catalog=1", f.admin, nil)); doc.Catalog != 1 {
-		t.Errorf("document.catalog for an older client: %d", doc.Catalog)
-	}
-	if doc := sduiDoc(t, ts.do(t, "GET", "/api/sdui/pages/home?catalog=99", f.admin, nil)); doc.Catalog != sdui.CatalogRevision {
-		t.Errorf("document.catalog for a newer client: %d", doc.Catalog)
+	if doc := sduiDoc(t, ts.do(t, "GET", "/api/sdui/pages/home?catalog=1", f.admin, nil)); doc.Catalog != sdui.CatalogRevision {
+		t.Errorf("document.catalog: %d", doc.Catalog)
 	}
 }
 

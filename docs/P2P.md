@@ -104,6 +104,8 @@ This is remote access to someone's home. The rules, each with the test that hold
 
 What it doesn't defend against: a stolen device (remove it from the list, and sign it out); an attacker who is on the list and has a password; traffic analysis by a relay (it sees sizes and times); the IP address of the home being learnt by anyone who has the ID; bugs in libp2p, quic-go or this code, none of which has had an independent audit.
 
+**Hiding a server in the address book (GO-2024-3218, CVE-2023-26248).** A public Kademlia DHT can be made to hide a record: whoever runs enough DHT servers with IDs close to a key can answer every lookup for it with nothing ([the paper](https://arxiv.org/abs/2307.12212)). It is how such a DHT works, so the advisory lists every version of go-libp2p-kad-dht and no fix exists. Here the DHT only finds things, so this is the worst it can do: someone who knows a server's connection ID could stop apps finding the server through the address book, or hide community relays. It can't give a device the wrong server (every connection is proved against the server's key), and it doesn't stop an app that tries the addresses it remembers or an invite carried, which it does first. A join code's key comes from the code through Argon2id, so it can't be targeted before the code is typed in. The address book layer has its own switch (`dht`). `govulncheck` reports the advisory on any program that uses the module; CI accepts this one advisory, in this one module, only while no fix exists (`scripts/vulncheck`), and fails on anything else.
+
 ## On the wire
 
 Protocol IDs, all under `/wittymedia/`:

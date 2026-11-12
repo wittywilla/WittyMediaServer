@@ -18,8 +18,8 @@ func TestSideMarginsAgreeEverywhere(t *testing.T) {
 		margin      int
 		contentWide int
 	}{
-		{FormTV, "", 0, 80, 1760},
-		{FormTV, "4k", 0, 80, 1760},
+		{FormTV, "", 0, 90, 1740},
+		{FormTV, "4k", 0, 90, 1740},
 		{FormPhone, "", 390, 16, 358},
 		{FormTablet, "", 1024, 16, 992},
 		{FormTablet, "", 820, 16, 788},

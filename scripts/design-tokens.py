@@ -72,6 +72,138 @@ def media(css, query):
     return {k: v.strip() for k, v in re.findall(r'--([\w-]+):\s*([^;]+);', m.group(1))}
 
 
+def resolve(t, v):
+    """A value with its var(--x) references followed."""
+    for _ in range(8):
+        m = re.fullmatch(r'var\(--([\w-]+)\)', v.strip())
+        if not m:
+            break
+        v = t[m.group(1)]
+    return v.strip()
+
+
+def type_roles(t):
+    """pageTitle, heading, title, body, caption, label, display: size, weight, leading, tracking (em)."""
+    out = {}
+    for css, name in (('page-title', 'pageTitle'), ('heading', 'heading'), ('title', 'title'), ('body', 'body'),
+                      ('caption', 'caption'), ('label', 'label'), ('display', 'display')):
+        g = lambda part: resolve(t, t[f'role-{css}-{part}'])
+        out[name] = {'size': px(g('size')), 'weight': int(g('weight')), 'leading': float(g('leading')),
+                     'tracking': float(g('tracking').removesuffix('em'))}
+    return out
+
+
+def space(t):
+    """The 4px grid by number, and the SDUI steps by name."""
+    out = {k.removeprefix('sp-'): px(v) for k, v in t.items() if k.startswith('sp-')}
+    for name in ('none', 'xs', 's', 'm', 'l', 'xl'):
+        out[name] = px(resolve(t, t['space-' + name]))
+    return out
+
+
+def breakpoints(t):
+    c, m, e = (px(t['bp-' + n]) for n in ('compact', 'medium', 'expanded'))
+    return {'compact': {'max': c}, 'medium': {'min': c, 'max': m}, 'expanded': {'min': m, 'max': e}, 'large': {'min': e}}
+
+
+def color_name(t, v):
+    """A colour variable (var(--bg-2)) by its name in theme.json: bg2."""
+    m = re.fullmatch(r'var\(--([\w-]+)\)', v.strip())
+    if not m:
+        return None
+    for name, var in COLORS.items():
+        if var == m.group(1):
+            return name
+    raise SystemExit(f'not a theme colour: {v}')
+
+
+def elevation(t):
+    out = {}
+    for n in range(4):
+        line = t[f'elev-{n}-line'].strip()
+        sh = resolve(t, t[f'elev-{n}-shadow'])
+        out[str(n)] = {'fill': color_name(t, t[f'elev-{n}-fill']), 'line': None if line == 'none' else color_name(t, line),
+                       'shadow': [] if sh == 'none' else shadow(sh)}
+    return out
+
+
+def density(t):
+    return {'default': 'comfortable', 'tvDefault': 'comfortable',
+            'steps': {n: {'space': float(t[f'density-{n}-space']), 'control': float(t[f'density-{n}-control'])}
+                      for n in ('compact', 'comfortable', 'spacious')}}
+
+
+def tv(t):
+    """Ten-foot units: 1 per pt on Apple TV (1920x1080), 0.5 dp on Android TV (960x540)."""
+    n = lambda k: px(t['tv-' + k])
+    f = lambda k: float(t['tv-' + k])
+    return {
+        'unit': {'appleTv': 1, 'androidTv': 0.5},
+        'safe': {'x': n('safe-x'), 'y': n('safe-y')},
+        'gutter': n('gutter'),
+        'topBar': {'height': n('topbar-height'), 'top': n('topbar-top'), 'pill': n('topbar-pill'), 'gap': n('topbar-gap')},
+        'rail': {'closed': n('rail-closed'), 'open': n('rail-open')},
+        'type': {'display': n('type-display'), 'pageTitle': n('type-page-title'), 'heading': n('type-heading'), 'title': n('type-title'),
+                 'body': n('type-body'), 'caption': n('type-caption'), 'label': n('type-label')},
+        'target': {'min': n('target-min')},
+        'focus': {'ring': n('focus-ring'), 'gap': n('focus-gap'), 'scale': f('focus-scale'), 'lift': n('focus-lift'), 'concentric': True},
+        'shelf': {'rowGap': n('shelf-row-gap'), 'cardGap': n('shelf-card-gap'), 'peek': f('shelf-peek'), 'padTop': n('shelf-pad-top'), 'padBottom': n('shelf-pad-bottom')},
+        'card': {'poster': {'w': n('card-poster-w'), 'h': n('card-poster-h')}, 'wide': {'w': n('card-wide-w'), 'h': n('card-wide-h')},
+                 'square': {'w': n('card-square-w'), 'h': n('card-square-h')}, 'circle': n('card-circle'),
+                 'channel': {'w': n('card-channel-w'), 'h': n('card-channel-h')}},
+        'dock': {'height': n('dock-height'), 'hintSize': n('dock-hint')},
+    }
+
+
+# Not CSS: tables the clients read as data (docs/plans/DESIGN-2.md sections 2 and 3).
+FOCUS_STYLE = {'media': 'ring-lift', 'control': 'fill', 'field': 'ring'}
+# Which animations become cuts when the person asks for reduced motion.
+MOTION_REDUCED = {'focusMove': 'cut', 'screen': 'cut', 'hero': 'cut', 'lift': 'off', 'tilt': 'off', 'marquee': 'off',
+                  'press': 'keep', 'progress': 'keep'}
+INPUT = {
+    'actions': ['move', 'select', 'back', 'options', 'search', 'tabPrev', 'tabNext', 'pageUp', 'pageDown', 'top', 'playPause', 'seek', 'dock', 'help'],
+    'keyboard': {
+        'move': ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'], 'select': ['Enter', 'Space'],
+        'back': ['Escape', 'Backspace', 'Alt+ArrowLeft'], 'options': ['Period', 'Shift+F10', 'ContextMenu'],
+        'search': ['Slash', 'Ctrl+K'], 'tabPrev': ['Ctrl+BracketLeft', 'PageUp'], 'tabNext': ['Ctrl+BracketRight', 'PageDown'],
+        'pageUp': ['PageUp'], 'pageDown': ['PageDown'], 'top': ['Home'], 'playPause': ['Space', 'KeyK'],
+        'seek': ['ArrowLeft', 'ArrowRight', 'KeyJ', 'KeyL'], 'dock': ['Tab'], 'help': ['Shift+Slash'],
+    },
+    'gamepad': {
+        'move': ['DPad', 'LeftStick'], 'select': ['A'], 'back': ['B'], 'options': ['X', 'HoldA'], 'search': ['Y'],
+        'tabPrev': ['LB'], 'tabNext': ['RB'], 'pageUp': ['LT'], 'pageDown': ['RT'], 'top': ['RightStickClick'],
+        'playPause': ['A'], 'seek': ['LB', 'RB'], 'dock': ['Start'], 'help': ['Back+Start'],
+    },
+    'remote': {
+        'move': ['DPad'], 'select': ['OK'], 'back': ['Back'], 'options': ['LongOK', 'Menu', 'Options'], 'search': ['Search'],
+        'tabPrev': ['ChannelUp'], 'tabNext': ['ChannelDown'], 'pageUp': ['ChannelUp'], 'pageDown': ['ChannelDown'],
+        'top': ['DoubleUp'], 'playPause': ['PlayPause'], 'seek': ['MediaRewind', 'MediaFastForward'], 'dock': ['Menu'], 'help': ['HoldMenu'],
+    },
+    # Glyph names a legend draws per input family.
+    'glyphs': {'keyboard': 'key caps', 'gamepad': 'A B X Y LB RB LT RT Start', 'remote': 'OK Back Menu'},
+}
+# The scoring of web/src/ui/spatial.ts, as data so the Swift and Kotlin ports cannot drift: check() below compares them.
+NAV = {
+    'zones': ['bar', 'stage', 'dock', 'layer'],
+    'backLadder': ['layer', 'dock', 'stage', 'bar', 'home', 'exit'],
+    'bumpers': {'prev': 'LB', 'next': 'RB'},
+    'wrap': False, 'rememberPerGroup': True, 'enterFromOutside': 'last-or-first',
+    'weights': {'offLine': {'left': 4, 'right': 4, 'up': 1.2, 'down': 1.2},
+                'offCentre': {'left': 0.1, 'right': 0.1, 'up': 0.3, 'down': 0.3},
+                'leavesLine': {'left': 4000, 'right': 4000, 'up': 0, 'down': 0}},
+}
+
+
+def spatial_matches():
+    """NAV weights must equal the constants in web/src/ui/spatial.ts (the web is where they are tuned)."""
+    src = pathlib.Path('web/src/ui/spatial.ts').read_text(encoding='utf-8')
+    for const, key in (('OFF_LINE', 'offLine'), ('OFF_CENTRE', 'offCentre'), ('LEAVES_LINE', 'leavesLine')):
+        m = re.search(const + r'[^=]*=\s*\{([^}]*)\}', src)
+        got = {k: float(v) for k, v in re.findall(r'(\w+):\s*([\d.]+)', m.group(1))} if m else {}
+        if got != {k: float(v) for k, v in NAV['weights'][key].items()}:
+            raise SystemExit(f'spatial.ts {const} {got} does not match nav.weights.{key} in scripts/design-tokens.py')
+
+
 def tokens():
     css = STYLES.read_text(encoding='utf-8')
     t = block(css, ':root')
@@ -89,9 +221,13 @@ def tokens():
             'leading': {'tight': float(t['leading-tight']), 'snug': float(t['leading-snug']), 'body': float(t['leading-body'])},
             'tracking': {'display': float(t['tracking-display'].removesuffix('em')), 'heading': float(t['tracking-heading'].removesuffix('em')), 'label': float(t['tracking-label'].removesuffix('em'))},
             'weight': {'body': 400, 'medium': 500, 'strong': 600, 'heading': int(t['weight-heading'])},
+            'role': type_roles(t),
         },
-        'space': {k.removeprefix('sp-'): px(v) for k, v in t.items() if k.startswith('sp-')},
-        'layout': {'gutter': clamp(t['gutter']), 'sectionGap': clamp(t['section-gap']), 'topBar': px(t['topbar-h']), 'sidebar': px(t['sidebar']), 'rail': px(t['rail']), 'tabBar': px(t['tabbar-h'])},
+        'space': space(t),
+        'layout': {'gutter': clamp(t['gutter']), 'sectionGap': clamp(t['section-gap']), 'topBar': px(t['topbar-h']), 'sidebar': px(t['sidebar']), 'rail': px(t['rail']), 'tabBar': px(t['tabbar-h']),
+                   'breakpoints': breakpoints(t)},
+        'elevation': elevation(t),
+        'density': density(t),
         'layers': {k.removeprefix('z-'): int(v) for k, v in t.items() if k.startswith('z-')},
         'shape': {
             'radiusMultiple': {k.removeprefix('r-'): float(re.search(r'\*\s*([\d.]+)', v).group(1)) if '*' in v else 1 for k, v in t.items() if k in ('r-xs', 'r-sm', 'r-md', 'r-lg', 'r-xl')},
@@ -103,6 +239,8 @@ def tokens():
         'motion': {
             'duration': {'press': ms(t['dur-1']), 'hoverFocus': ms(t['dur-2']), 'appear': ms(t['dur-3']), 'backdrop': ms(t['dur-4'])},
             'easing': {'out': bezier(t['ease-out']), 'standard': bezier(t['ease-standard'])},
+            'focusMove': ms(t['dur-focus']), 'screen': ms(t['dur-screen']), 'hero': ms(t['dur-hero']),
+            'reduced': MOTION_REDUCED,
         },
         'control': {
             'height': {'default': px(t['control-h']), 'small': px(t['control-h-sm']), 'large': px(t['control-h-lg'])},
@@ -110,7 +248,14 @@ def tokens():
             'minTarget': 24,
         },
         'card': {'width': px(t['card-w']), 'wideWidth': px(t['card-wide-w']), 'posterRatio': [2, 3], 'wideRatio': [16, 9], 'albumRatio': [1, 1]},
-        'focus': {'width': px(t['focus-width']), 'offset': px(t['focus-offset']), 'scale': float(t['focus-scale'])},
+        'focus': {'width': px(t['focus-width']), 'offset': px(t['focus-offset']), 'scale': float(t['focus-scale']),
+                  'style': FOCUS_STYLE,
+                  'input': {'pointer': {'width': px(t['focus-width']), 'offset': px(t['focus-offset']), 'scale': float(t['focus-scale'])},
+                            'keys': {'width': px(t['focus-width-keys']), 'offset': px(t['focus-offset-keys']), 'scale': float(t['focus-scale-keys'])},
+                            'tv': {'width': px(t['tv-focus-ring']), 'offset': px(t['tv-focus-gap']), 'scale': float(t['tv-focus-scale'])}}},
+        'input': INPUT,
+        'nav': NAV,
+        'tv': tv(t),
         'posterTilt': {'maxDegrees': float(t['tilt-max']), 'scale': float(t['tilt-scale'])},
         'tenFoot': {
             'textScale': round(float(root_scale.group(1)) / 100, 4),
@@ -204,6 +349,14 @@ def theme_colors(css_file, defaults):
     return {name: hexa(rgba(vars_[var], vars_)) for name, var in COLORS.items()}, px(vars_['radius']), theme_shape(vars_), theme_type(vars_)
 
 
+def theme_tv(css_file, defaults):
+    """A theme's ten-foot colours: ringColor, heroScrim (0 to 1), tvText."""
+    vars_ = dict(defaults)
+    vars_.update(block(css_file.read_text(encoding='utf-8'), ':root'))
+    return {'ringColor': hexa(rgba(vars_['tv-ring-color'], vars_)), 'heroScrim': float(vars_['hero-scrim']),
+            'tvText': hexa(rgba(vars_['tv-text'], vars_))}
+
+
 def write(path, data, stale):
     text = json.dumps(data, indent=2, ensure_ascii=False) + '\n'
     old = path.read_text(encoding='utf-8').replace('\r\n', '\n') if path.exists() else ''
@@ -211,10 +364,11 @@ def write(path, data, stale):
         return
     stale.append(str(path))
     if not CHECK:
-        path.write_text(text, encoding='utf-8', newline='\n')
+        path.write_bytes(text.encode('utf-8'))
 
 
 def main():
+    spatial_matches()
     stale = []
     write(pathlib.Path('themes/tokens.json'), tokens(), stale)
     defaults = block(STYLES.read_text(encoding='utf-8'), ':root')
@@ -222,6 +376,7 @@ def main():
         meta_file = css_file.parent / 'theme.json'
         meta = json.loads(meta_file.read_text(encoding='utf-8'))
         meta['colors'], meta['radius'], meta['shape'], meta['type'] = theme_colors(css_file, defaults)
+        meta['tv'] = theme_tv(css_file, defaults)
         write(meta_file, meta, stale)
     if CHECK and stale:
         print('Out of date, run python scripts/design-tokens.py:\n  ' + '\n  '.join(stale))

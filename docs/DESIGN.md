@@ -137,6 +137,32 @@ One stacking order. Use these names, never a number above 9:
 
 Overlays render into `<body>` through a portal, so nothing around them can clip or cover them.
 
+### Roles, elevation, density (Design 2)
+
+[plans/DESIGN-2.md](plans/DESIGN-2.md) section 2 is the contract; `themes/tokens.json` is the data, generated from
+`web/src/styles.css` by `scripts/design-tokens.py`.
+
+- **Type roles** (`--role-<name>-size|weight|leading|tracking`): `display`, `pageTitle`, `heading`, `title`, `body`,
+  `caption`, `label`, at the 1x device. Apps read the role, not the numeric scale. Television sizes are `tv.type`.
+- **Space steps** (`--space-none|xs|s|m|l|xl`): 0, 4, 8, 16, 24, 40, the SDUI spacing steps.
+- **Elevation** (`--elev-0` to `--elev-3`, classes `.elev-0` to `.elev-3`): 0 is the page, 1 a panel (a hairline, no
+  shadow), 2 a lifted card, 3 something over the page. Each names its fill (a surface token), its line and its shadow.
+  Surfaces step by tone, never by shadow on the page.
+- **Focus by input**: `focus.style` says what is drawn (`ring-lift` on media, `fill` on controls, `ring` on fields);
+  `focus.input` has the pointer, keys (3 px, a keyboard in use) and tv values.
+- **Breakpoints** (`--bp-compact|medium|expanded`): 600, 840 and 1200, as in SDUI.
+- **Density** (`html[data-density=compact|spacious]`): `--density-space` and `--density-control` multiply spacing and
+  control height. Chosen per profile per device; the default is comfortable (1 and 1).
+- **Motion**: `--dur-focus` 120 ms, `--dur-screen` 240 ms, `--dur-hero` 600 ms, and `motion.reduced`, which names
+  what becomes a cut (focus moves, screens, the hero), what turns off (lift, tilt, marquee) and what stays (press,
+  progress).
+- **Input and nav tables**: `input` (keyboard, game pad and remote actions to keys, from the plan's section 3) and `nav`
+  (zones, the back ladder, the scoring weights `ui/spatial.ts` uses). `design-tokens.py` fails if `nav.weights` and
+  `ui/spatial.ts` disagree, so the Swift and Kotlin ports cannot drift from the web.
+- **The `tv` block** is in TV units (1 unit is 1 pt on Apple TV at 1920x1080 and 0.5 dp on Android TV at 960x540): safe
+  area, gutter, top bar, rail, type, targets (66), focus (ring 4, gap 4, scale 1.06, lift 6), shelf spacing and peek,
+  card sizes, the Dock. It is in `--tv-*` in the stylesheet, unitless.
+
 ### Motion
 
 | Token | Time | For |
@@ -365,8 +391,8 @@ The Apple TV and Android TV apps use this design. `python scripts/design-tokens.
 
 | File | Holds |
 |---|---|
-| `themes/tokens.json` | type, space, shape, depth, layers, motion, control and card sizes, focus, poster tilt, the ten-foot rules |
-| `themes/<id>/theme.json` | `colors`: every colour of that theme as `#rrggbb` or `#rrggbbaa`; `radius` |
+| `themes/tokens.json` | type (with roles), space (with named steps), shape, depth, elevation, layers, motion, control and card sizes, focus, density, breakpoints, input, nav, `tv` units, poster tilt, the ten-foot rules |
+| `themes/<id>/theme.json` | `colors`: every colour of that theme as `#rrggbb` or `#rrggbbaa`; `radius`, `shape`, `type`, and `tv` (the ten-foot colours: `ringColor`, `heroScrim`, `tvText`) |
 
 Sizes are CSS pixels at normal scale: use them as dp or pt. Times are milliseconds, tracking is in em,
 and radii are multiples of the theme's `radius`.
@@ -388,7 +414,7 @@ and radii are multiples of the theme's `radius`.
 **The ten-foot rules**, on any client:
 
 - **Everything can be reached and used with a D-pad.** No action needs a pointer.
-- **Focus is always obvious**: a 3px ring in `--fg` and a slightly larger poster. Exactly one thing has
+- **Focus is always obvious**: a ring in `--tv-ring-color`, 4 TV units wide with a 4-unit gap, and a poster that grows by 6%: a ring concentric with the corner and a slightly larger poster. Exactly one thing has
   it, and moving it never scrolls it out of sight or clips it.
 - **Large targets**: at least 48, spaced so focus moves predictably.
 - **Readable from the sofa**: base text grows by a quarter, and no text below `--text-2xs` at that

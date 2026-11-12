@@ -18,7 +18,9 @@ import (
 // next, so what matters here is that looking ends soon.
 func FuzzSniff(f *testing.F) {
 	for _, seed := range [][]byte{fixture.PS1("SLUS_123.45"), fixture.PSP("Made Up", "ULUS10000"), fixture.CSO(fixture.PS2("SLUS_543.21")),
-		fixture.CIA(fixture.NCCH(true, false, 1<<14), 0, 0x00040000), fixture.SFO([2]string{"TITLE", "x"}), []byte("CISO"), []byte("NCSD")} {
+		fixture.CIA(fixture.NCCH(true, false, 1<<14), 0, 0x00040000), fixture.SFO([2]string{"TITLE", "x"}), []byte("CISO"), []byte("NCSD"),
+		fixture.GCZ(fixture.NintendoDisc("GXXE01", "x", false)), fixture.WIA(nil, 2, true), fixture.WUX("AXXE"), fixture.XBE("x", 1),
+		fixture.NSP("a.nca"), fixture.NRO("x"), fixture.PKG(1, "UP0000-BLUS00000_00-X")} {
 		if len(seed) > 1<<16 {
 			seed = seed[:1<<16]
 		}

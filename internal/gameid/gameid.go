@@ -19,6 +19,7 @@ package gameid
 
 import (
 	"bytes"
+	"encoding/binary"
 	"io"
 	"strings"
 	"unicode/utf8"
@@ -56,7 +57,10 @@ const (
 	Saturn   = "saturn"
 	GameCube = "gc"
 	Wii      = "wii"
+	WiiU     = "wiiu"
+	PS3      = "ps3"
 	Xbox     = "xbox"
+	Switch   = "switch"
 	ThreeDO  = "3do"
 	PCFX     = "pcfx"
 	NeoGeoCD = "neogeocd"
@@ -72,9 +76,13 @@ type Finding struct {
 	Proof string
 	// Title and Serial are what the file calls itself, Region where it says it's from.
 	Title, Serial, Region string
-	// Encrypted: this 3DS file's headers say it's encrypted, or its contents can't be
-	// read the way they would be if they weren't.
+	// Encrypted: this file's headers say it's encrypted, or its contents can't be read
+	// the way they would be if they weren't. 3DS, Switch and Wii U files can be.
 	Encrypted bool
+	// NeedsKeys: it's encrypted, and that's how it's meant to be played. A standalone
+	// emulator decrypts it with keys the owner copied from their own console, so it's a
+	// game to list, not one that can't play. Only set along with Encrypted.
+	NeedsKeys bool
 	// NewOnly: a 3DS game that only runs on a New 3DS.
 	NewOnly bool
 	// Text: this is a text file, whatever it's called.
@@ -167,12 +175,21 @@ func Sniff(r io.ReaderAt, size int64) Finding {
 	}
 	// Containers first: what's inside them decides.
 	switch {
-	case bytes.HasPrefix(head, []byte("CISO")), bytes.HasPrefix(head, []byte("ZISO")):
+	case bytes.HasPrefix(head, []byte("CISO")):
+		// Dolphin's .ciso and the PSP's .cso share a mark, and differ in what follows it.
+		if f, ok := sniffDolphinCISO(r, size); ok {
+			return f
+		}
+		return sniffCompressedISO(r, size)
+	case bytes.HasPrefix(head, []byte("ZISO")):
 		return sniffCompressedISO(r, size)
 	case bytes.HasPrefix(head, []byte("\x00PBP")):
 		return sniffPBP(r, size)
 	case bytes.HasPrefix(head, []byte("MComprHD")):
 		return sniffCHD(r, size)
+	}
+	if f, ok := sniffNewer(r, size, head); ok {
+		return f
 	}
 	if f, ok := sniff3DS(r, size); ok {
 		return f
@@ -189,6 +206,9 @@ func Sniff(r io.ReaderAt, size int64) Finding {
 	if f, ok := sniffBIOS(r, size); ok {
 		return f
 	}
+	if f, ok := sniffDOL(r, size); ok {
+		return f
+	}
 	sample := make([]byte, min(size, 4096))
 	n, _ := r.ReadAt(sample, 0)
 	if looksLikeText(sample[:n]) {
@@ -198,6 +218,41 @@ func Sniff(r io.ReaderAt, size int64) Finding {
 		return f
 	}
 	return Finding{}
+}
+
+// sniffNewer recognises the files of consoles from the GameCube on: compressed and
+// packed disc images, install packages and programs. Each has a mark at a fixed place,
+// so this costs a read or two of a few hundred bytes.
+func sniffNewer(r io.ReaderAt, size int64, head []byte) (Finding, bool) {
+	switch {
+	case bytes.HasPrefix(head, []byte("WIA\x01")), bytes.HasPrefix(head, []byte("RVZ\x01")):
+		return sniffWIA(r, head), true
+	case len(head) >= 4 && binary.LittleEndian.Uint32(head) == gczMagic:
+		return sniffGCZ(r, size), true
+	case bytes.HasPrefix(head, []byte("WBFS")):
+		return sniffWBFS(r), true
+	case bytes.HasPrefix(head, []byte("WUX0")) && len(head) >= 8 && binary.LittleEndian.Uint32(head[4:]) == wuxMagic:
+		return sniffWUX(r, size), true
+	case bytes.HasPrefix(head, []byte("XBEH")):
+		return sniffXBE(r, size), true
+	case bytes.HasPrefix(head, []byte("PFS0")):
+		return sniffPFS0(r, size)
+	case bytes.HasPrefix(head, []byte("\x7fPKG")):
+		return sniffPKG(head)
+	}
+	if f, ok := sniffWiiU(head); ok {
+		return f, true
+	}
+	if f, ok := sniffWAD(r, size, head); ok {
+		return f, true
+	}
+	if f, ok := sniffSwitchHead(r, size, head); ok {
+		return f, true
+	}
+	if f, ok := sniffWUA(r, size); ok {
+		return f, true
+	}
+	return Finding{}, false
 }
 
 // SniffHead is Sniff for the first bytes of a file that can't be read at will, such as

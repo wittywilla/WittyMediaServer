@@ -1233,3 +1233,26 @@ func TestCleanNameTidiesWhatListsLeaveIn(t *testing.T) {
 		t.Errorf("%q", got)
 	}
 }
+
+// The newer consoles' product codes, as the scan reads them from a file, find the record
+// libretro's lists write them as. A disc's code is believed whatever the file is called.
+func TestNewerConsolesMatchBySerial(t *testing.T) {
+	for _, c := range []struct{ console, list, ours string }{
+		{"ps3", "BLUS30000", "BLUS-30000"},
+		{"xbox", "MS-004", "MS-004"},
+		{"wiiu", "AXXE", "AXXE"},
+		{"gc", "GXXE01", "GXXE01"},
+	} {
+		d := &libDB{byCRC: map[uint32]int32{}, bySerial: map[string]int32{}, byKey: map[string][]int32{}, byWord: map[string][]int32{}}
+		d.add(&rdbRecord{Name: "Made Up Game (USA)", Serial: c.list}, 0)
+		s := &Libretro{db: d, console: c.console}
+		s.init()
+		_, i, method, _, err := s.find(context.Background(), Query{Console: c.console, Title: "game", Serial: c.ours})
+		if err != nil || method != MethodSerial || d.recs[i].Name != "Made Up Game (USA)" {
+			t.Errorf("%s %s: %v %q", c.console, c.ours, err, method)
+		}
+		if !PlatformKnown(c.console) {
+			t.Errorf("%s has no platform numbers", c.console)
+		}
+	}
+}

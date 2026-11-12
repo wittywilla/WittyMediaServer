@@ -317,6 +317,14 @@ func discSerial(p, console string) string {
 		return umdSerial(f)
 	case "gc", "wii":
 		return gameCubeSerial(f)
+	case "wiiu", "ps3", "xbox":
+		// Their product codes are read where the scan reads them, in the same form the
+		// libretro lists use: AXXE, BLUS-30443 (BLUS30443 there), MS-004.
+		if st, err := f.Stat(); err == nil {
+			if id := gameid.Sniff(f, st.Size()); id.Console == console {
+				return id.Serial
+			}
+		}
 	case "saturn":
 		return segaSerial(f, "SEGA SEGASATURN")
 	case "dc":

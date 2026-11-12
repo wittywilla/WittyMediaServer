@@ -35,3 +35,4 @@ a.spec-card, button.spec-card { cursor: pointer; }
 .spec-dock { margin-inline: calc(var(--gutter) * -1); }
 html.tv-mode .spec-row, html.ten-foot .spec-row { min-height: 66px; }
 @media (max-width: 640px) { .spec-row-value { max-width: 45%; } }
+.spec-page.bare { max-width: none; margin-inline: 0; padding-block: 0; gap: var(--sp-4); }

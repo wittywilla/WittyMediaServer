@@ -21,9 +21,11 @@ export interface SpecPageProps {
   // Extra content under a section's items (a page's own control that has no place in the spec), by section index.
   after?: Record<number, ReactNode>
   className?: string
+  // Part of a page that has its own heading: no eyebrow, title or lead of its own, and sections are h3.
+  bare?: boolean
 }
 
-export default function SpecPage({ page: raw, onAction, handled, after, className }: SpecPageProps) {
+export default function SpecPage({ page: raw, onAction, handled, after, className, bare }: SpecPageProps) {
   const page = useMemo(() => withIds(raw), [raw])
   const live = (it: { id?: string; to?: string; disabled?: boolean }) => !it.disabled && (!!it.to || (!!it.id && !!handled?.has(it.id) && !!onAction))
   const dock: DockAction[] = page.actions.map((a) => ({
@@ -31,14 +33,16 @@ export default function SpecPage({ page: raw, onAction, handled, after, classNam
     onClick: a.to ? undefined : () => a.id && onAction?.(a.id),
   }))
   return (
-    <article className={'spec-page' + (className ? ' ' + className : '')} data-spec={page.key}>
-      <header className="spec-head">
-        <p className="spec-eyebrow">{page.eyebrow}</p>
-        <h1>{page.title}</h1>
-        {page.lead && <p className="spec-lead">{page.lead}</p>}
-      </header>
+    <article className={'spec-page' + (bare ? ' bare' : '') + (className ? ' ' + className : '')} data-spec={page.key}>
+      {!bare && (
+        <header className="spec-head">
+          <p className="spec-eyebrow">{page.eyebrow}</p>
+          <h1>{page.title}</h1>
+          {page.lead && <p className="spec-lead">{page.lead}</p>}
+        </header>
+      )}
       {page.sections.map((s, i) => (
-        <Section key={i} s={s} hid={sectionId(page.key, i)} live={live} onAction={onAction}>{after?.[i]}</Section>
+        <Section key={i} s={s} bare={!!bare} hid={sectionId(page.key, i)} live={live} onAction={onAction}>{after?.[i]}</Section>
       ))}
       {page.foot && <p className="spec-foot">{page.foot}</p>}
       {dock.length > 0 && <Dock label={page.title} actions={dock} legend={false} className="spec-dock" />}
@@ -48,8 +52,9 @@ export default function SpecPage({ page: raw, onAction, handled, after, classNam
 
 type Live = (it: { id?: string; to?: string; disabled?: boolean }) => boolean
 
-function Section({ s, hid, live, onAction, children }: { s: SpecSection; hid: string; live: Live; onAction?: (id: string) => void; children?: ReactNode }) {
-  const h = s.h ? <h2 id={hid} className="spec-h">{s.h}</h2> : null
+function Section({ s, hid, live, onAction, bare, children }: { s: SpecSection; bare: boolean; hid: string; live: Live; onAction?: (id: string) => void; children?: ReactNode }) {
+  const H = bare ? 'h3' : 'h2'
+  const h = s.h ? <H id={hid} className="spec-h">{s.h}</H> : null
   const label = s.h ? { 'aria-labelledby': hid } : {}
   if (s.kind === 'note') {
     return <section className="spec-sec" {...label}>{h}<p className={'spec-note' + (s.tone ? ' tone' : '')}>{s.text}</p>{children}</section>

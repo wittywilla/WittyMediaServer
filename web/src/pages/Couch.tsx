@@ -7,6 +7,9 @@ import { api, mediaUrl, type Item } from '../api'
 import { BackLink, EmptyState, LoadError, Placeholder, Spinner } from '../components/common'
 import LegalNote from '../components/LegalNote'
 import { IconGamepad, IconPlay } from '../icons'
+import SpecPage from '../spec/SpecPage'
+import { couchHostsSpec } from '../spec/specs/couch'
+import { rigSpec } from '../spec/specs/rigs'
 import { PromptBar } from './games/prompts'
 import { toast, useApp } from '../state'
 import type { CouchHost } from '@wittywilla/wittycouch'
@@ -42,6 +45,8 @@ function NotReady({ st }: { st: Status }) {
   )
 }
 
+const hostHandled: ReadonlySet<string> = new Set(['wake', 'quit'])
+
 // The list of PCs.
 export default function CouchPage() {
   const st = useCouchStatus()
@@ -72,17 +77,7 @@ export default function CouchPage() {
       <p className="muted">Play the games on any PC running Sunshine, here in your browser. It might be yours, or a friend’s. Each PC pairs once, with a PIN typed on that PC, and your pairings are yours alone.</p>
       {st && <NotReady st={st} />}
       {!hosts ? <Spinner /> : hosts.length > 0 && (
-        <ul className="gm-pcs" data-gm-section>
-          {hosts.map((h) => (
-            <li key={h.id}>
-              <Link to={`/couch/${h.id}`} className="gm-pc ml-hosts">
-                <span className={'rig-dot' + (h.state === 'online' || h.state === 'busy' || h.state === 'not-paired' ? ' on' : '')} aria-hidden="true" />
-                <b>{h.name}</b>
-                <small>{h.state === 'busy' && h.currentGame ? `Running ${h.currentGame}` : h.paired ? h.message : 'Needs pairing'}</small>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <div data-gm-section><SpecPage bare page={couchHostsSpec(hosts)} /></div>
       )}
       <section className="rig-method" aria-label="Add a PC">
         <h2>Add a PC</h2>
@@ -156,6 +151,7 @@ export function CouchHostPage() {
   useEffect(() => { if (host && host.state !== 'asleep') setWaking('') }, [host?.state]) // eslint-disable-line react-hooks/exhaustive-deps
   const quit = async () => { try { await api.post(`/couch/hosts/${id}/quit`); load() } catch (e: any) { toast(e.message) } }
   if (!host) return <Spinner />
+  const hostSpec = rigSpec({ name: host.name, state: host.state, message: host.message, currentGame: host.currentGame, paired: host.paired, canWake: host.canWake && waking !== 'waiting', canQuit: host.state === 'busy', hasMac: true }, { isAdmin: false, wakeLabel: waking === 'late' ? 'Try again' : undefined })
   const list = (apps || []).filter((a) => showAll || !a.isDesktop)
   const hidden = (apps || []).length - list.length
   return (
@@ -168,12 +164,7 @@ export function CouchHostPage() {
           <div className="rig-row-actions"><button className="btn sm" onClick={remove}>Remove it</button><button className="btn sm ghost" onClick={() => setSure(false)}>Keep it</button></div>
         </div>
       )}
-      <div className={'rig-status' + (host.state === 'online' ? ' ok' : '')} role="status">
-        <span className="rig-dot" aria-hidden="true" />
-        <div className="grow">{host.state === 'busy' && host.currentGame ? `Running ${host.currentGame}.` : host.message}</div>
-        {host.canWake && waking !== 'waiting' && <button className="btn sm" onClick={wake}>{waking === 'late' ? 'Try again' : 'Wake it up'}</button>}
-        {host.state === 'busy' && <button className="btn sm ghost" onClick={quit}>Close what’s running</button>}
-      </div>
+      <SpecPage bare page={hostSpec} handled={hostHandled} onAction={(a) => { if (a === 'wake') void wake(); else if (a === 'quit') void quit() }} />
       {waking === 'waiting' && <p className="muted" role="status">A wake-up signal was sent. Waiting for it to answer, which usually takes under a minute.</p>}
       {waking === 'late' && <p className="rig-warn" role="status">It hasn’t answered after two minutes. Wake-on-LAN has to be on in that PC’s BIOS and network adapter, it usually needs a wired connection, and Sunshine has to start with the PC.</p>}
       {st && <NotReady st={st} />}

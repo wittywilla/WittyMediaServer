@@ -145,8 +145,6 @@ a.album-artist:hover { text-decoration: underline; text-underline-offset: 3px; }
 .track-list li > button { flex: 1; min-width: 0; }
 .tl-x { flex: none; }
 .dl-done { font-size: var(--text-xs); padding: 0 8px; }
-.podcast-admin { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 8px; }
-.podcast-admin label { display: flex; align-items: center; gap: 6px; font-size: var(--text-sm); }
 .podcast-hits { display: grid; gap: 6px; margin-top: 12px; max-height: 50vh; overflow: auto; }
 .podcast-hit { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-2); border-radius: var(--r-md); background: var(--bg-3); }
 .podcast-hit img { width: 52px; height: 52px; border-radius: var(--r-md); object-fit: cover; flex: none; }

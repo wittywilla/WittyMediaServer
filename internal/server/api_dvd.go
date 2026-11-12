@@ -50,12 +50,18 @@ func (s *Server) handleDVDOpen(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var b struct {
-		Mode             string `json:"mode"` // menu | title
-		Menu             string `json:"menu"` // with mode=menu: open this menu directly (root, chapter, audio, subpicture, angle, title)
-		MenuVTS          int    `json:"menuVts"`
-		Angle            int    `json:"angle"` // remembered camera angle
-		TTN              int    `json:"ttn"`
-		Chapter          int    `json:"chapter"`
+		Mode    string `json:"mode"` // menu | title
+		Menu    string `json:"menu"` // with mode=menu: open this menu directly (root, chapter, audio, subpicture, angle, title)
+		MenuVTS int    `json:"menuVts"`
+		Angle   int    `json:"angle"` // remembered camera angle
+		TTN     int    `json:"ttn"`
+		Chapter int    `json:"chapter"`
+		// Episode, with mode=title: play this episode of a TV disc, by its place in
+		// viewing order (1-based), as the disc's analysis lists them.
+		Episode int `json:"episode"`
+		// Exact: ttn is meant as it stands, even 0, which is a real playlist on a Blu-ray.
+		// Without it, 0 means the disc's film.
+		Exact            bool   `json:"exact"`
 		Wide             *bool  `json:"wide"`
 		MenuLanguage     string `json:"menuLanguage"`
 		AudioLanguage    string `json:"audioLanguage"`
@@ -83,9 +89,27 @@ func (s *Server) handleDVDOpen(w http.ResponseWriter, r *http.Request) {
 	if b.Wide != nil {
 		prefs.Wide = *b.Wide
 	}
+	// With no title named, Play plays the disc's film: the title an admin chose, or else
+	// the engine's ranked pick. A Blu-ray's playlists start at 0, so there "none named" is
+	// only told from "playlist 0" by what the disc's film is.
 	ttn := b.TTN
-	if ttn == 0 && it.Disc != nil {
+	if ttn == 0 && it.Disc != nil && !b.Exact {
 		ttn = it.Disc.MainTitle
+	}
+	var episode *library.DiscEpisode
+	if b.Mode == "title" && b.Episode > 0 {
+		if episode = discEpisode(it.Disc, b.Episode); episode == nil {
+			writeErr(w, 400, "This disc has no such episode.")
+			return
+		}
+		ttn = episode.TTN
+	}
+	if it.Disc != nil && it.Disc.Rank != nil && !isBluray(it) {
+		// The film as the engine lays it out, for when a cell of it plays: by Play
+		// here, or by the disc's own menu.
+		if f := it.Disc.FeaturePlays(it.Disc.Rank.Main); f != nil {
+			prefs.Feature = f.Engine()
+		}
 	}
 	if isBluray(it) {
 		sess, err := s.BD.Open(it.ID, it.Path, prefs)
@@ -98,6 +122,8 @@ func (s *Server) handleDVDOpen(w http.ResponseWriter, r *http.Request) {
 		}
 		var p *dvdsession.Presentation
 		switch {
+		case episode != nil && episode.Part:
+			p = sess.PlayItem(r.Context(), ttn, episode.Item)
 		case b.Mode == "title":
 			p = sess.PlayTitle(r.Context(), ttn, b.Chapter)
 		case b.Menu != "":
@@ -126,7 +152,11 @@ func (s *Server) handleDVDOpen(w http.ResponseWriter, r *http.Request) {
 		if ttn == 0 {
 			ttn = 1
 		}
-		p = sess.PlayTitle(r.Context(), ttn, b.Chapter)
+		if episode != nil && episode.Part {
+			p = sess.PlayFrom(r.Context(), ttn, episode.Chapter, episode.StartSec)
+		} else {
+			p = sess.PlayTitle(r.Context(), ttn, b.Chapter)
+		}
 	} else if b.Menu != "" {
 		p = sess.OpenMenu(r.Context(), b.Menu, b.MenuVTS)
 	} else {

@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { api, fmtRuntime, fmtTime, langName, mediaUrl, type DiscLabels, type DiscTitleView, type DiscView, type Item } from '../api'
 import { IconEdit, IconMenu, IconPlay } from '../icons'
 import { toast } from '../state'
+import DiscWhy, { DiscChoices, useDiscAnalysis } from './DiscWhy'
 
 // The disc page below the facts: the feature first ("Feature Presentation"
 // with its scenes), then the bonus material, then shortcuts into the disc's
@@ -15,6 +16,8 @@ export default function DiscSections({ item, admin, playable }: { item: Item; ad
   const [view, setView] = useState<DiscView | null>(null)
   const [editing, setEditing] = useState(false)
   const [labels, setLabels] = useState<DiscLabels>({ titles: {}, chapters: {} })
+  const [analysis, setAnalysis] = useDiscAnalysis(item.id)
+  const unit = item.disc?.format === 'bluray' ? 'Playlist' : 'Title'
   useEffect(() => {
     api.get<DiscView>(`/items/${item.id}/disc`).then((v) => {
       setView(v)
@@ -26,7 +29,7 @@ export default function DiscSections({ item, admin, playable }: { item: Item; ad
       }
       setLabels(l)
     }).catch(() => setView({ main: null, extras: [], menus: [] }))
-  }, [item.id])
+  }, [item.id, analysis?.main])
   if (!view) return null
   const play = (ttn: number, chapter?: number) => nav(`/play/${item.id}?mode=title&ttn=${ttn}${chapter ? `&chapter=${chapter}` : '&start=0'}`)
   const thumb = (ttn: number, n: number) => mediaUrl(`/api/items/${item.id}/disc/thumb/${ttn}/${n}`)
@@ -71,6 +74,7 @@ export default function DiscSections({ item, admin, playable }: { item: Item; ad
               <button className="btn primary" disabled={!playable} onClick={() => play(main.ttn)}><IconPlay /> Play feature</button>
             </div>
           </div>
+          {analysis && <DiscWhy item={item} analysis={analysis} setAnalysis={setAnalysis} unit={unit} />}
           {main.chapters.length > 1 && (
             <>
               <h3 className="section-title">Scenes</h3>
@@ -94,6 +98,8 @@ export default function DiscSections({ item, admin, playable }: { item: Item; ad
           )}
         </section>
       )}
+
+      {analysis?.rank && <DiscChoices item={item} rank={analysis.rank} playable={playable} unit={unit} />}
 
       {view.extras.length > 0 && (
         <section aria-labelledby="extras-h">

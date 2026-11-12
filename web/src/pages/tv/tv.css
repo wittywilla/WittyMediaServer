@@ -205,7 +205,6 @@ html.ten-foot .ctv-page .ctv-btn.icon, html.using-controller .ctv-page .ctv-btn.
   .ctv-hero-meta { flex-wrap: nowrap; margin-top: 2px; font-size: var(--text-sm) !important; }
   .ctv-hero-meta > :not(.ctv-hero-sub) { flex: none; }
   .ctv-hero-when { margin-top: 2px; font-size: var(--text-sm); }
-  .ctv-key { min-height: 44px; }
   .ctv-chip, .ctv-btn, .ctv-link-btn { min-width: 44px; }
   .ctv-grid { --ctv-chw: 96px; flex-basis: 280px; min-height: 280px; }
   .ctv-hero { gap: var(--sp-3); }
@@ -234,7 +233,6 @@ html.ten-foot .ctv-page .ctv-btn.icon, html.using-controller .ctv-page .ctv-btn.
   .ctv-hero-num { font-size: var(--text-3xl); }
   .ctv-hero-chtext { font-size: var(--text-xl); }
   .ctv-hero-chtext span, .ctv-hero-meta, .ctv-hero-when, .ctv-hero-next, .ctv-info-desc { font-size: var(--text-xl); }
-  .ctv-hint { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
   .ctv-clock b { font-size: var(--text-4xl); }
   .ctv-time, .ctv-corner { font-size: var(--text-xl); padding: 8px 10px; }
   .ctv-cell b { font-size: var(--text-xl); }

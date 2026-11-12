@@ -384,7 +384,13 @@ func filterOf(src sdui.Source, page map[string]string) library.BrowseFilter {
 	if src.Bool("desc") {
 		q.Set("desc", "1")
 	}
+	if v := src.Str("service"); v != "" {
+		q.Set("platform", v)
+	}
 	for k, v := range page { // the page's filter bar wins over the source's own
+		if k == "service" {
+			k = "platform" // the library's name for a streaming service
+		}
 		q.Set(k, v)
 	}
 	f := library.ParseBrowseFilter(q)
@@ -1087,6 +1093,21 @@ func (rv *sduiResolver) Facets(lib string, fields []string) ([]sdui.Facet, error
 			out = append(out, sdui.Facet{ID: field, Label: "Tag", Options: options(f.Tags, 60)})
 		case "watched":
 			out = append(out, sdui.Facet{ID: field, Label: "Watched", Options: []sdui.EnumOption{{Value: "no", Label: "Unwatched"}, {Value: "yes", Label: "Watched"}}})
+		case "service":
+			// The streaming services that list titles of this library this profile may see,
+			// most first; none while listings are off, and then the filter is left out.
+			ps, err := rv.s.Store.ListingPlatforms(rv.ctx, l.ID, rv.acc)
+			if err != nil || len(ps) == 0 {
+				continue
+			}
+			var opts []sdui.EnumOption
+			for i, p := range ps {
+				if i >= 30 {
+					break
+				}
+				opts = append(opts, sdui.EnumOption{Value: p.Key, Label: firstNonEmpty(p.Name, p.Key)})
+			}
+			out = append(out, sdui.Facet{ID: field, Label: "Streaming on", Options: opts})
 		}
 	}
 	return out, nil

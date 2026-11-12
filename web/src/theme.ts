@@ -79,11 +79,19 @@ function applyOverrides() {
   const globalApplies = !!resolved && resolved.source === 'server' && !deviceTheme()
   for (const [name, value] of overrideDeclarations(resolved, moduleNow, globalApplies)) { root.setProperty(name, value); overrideProps.push(name) }
 }
+// The badge the server's name has for small spaces (docs/CLIENT-API.md): kept for BrandMark to draw.
+const markListeners = new Set<() => void>()
+export const brandMark = () => resolved?.brand?.mark
+export const subscribeMark = (l: () => void) => { markListeners.add(l); return () => { markListeners.delete(l) } }
 // loadThemeOverrides asks the server for the signed-in account's resolved theme, puts its
 // colours on the page and hands it back (null when the server couldn't be asked).
 export async function loadThemeOverrides() {
-  try { resolved = await api.get<ResolvedTheme>('/theme') } catch { resolved = null }
+  // For this device's own look: the server keeps the choice under the name the browser gave itself (sdui/device.ts).
+  let device = ''
+  try { device = localStorage.getItem('wms.sdui.device') || '' } catch { /* the form factor's */ }
+  try { resolved = await api.get<ResolvedTheme>('/theme' + (device ? '?device=' + encodeURIComponent(device) : '')) } catch { resolved = null }
   applyOverrides()
+  markListeners.forEach((l) => l())
   return resolved
 }
 // The finished look the server sent: what is required of this profile shows locked in Settings.

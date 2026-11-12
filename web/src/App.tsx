@@ -7,7 +7,7 @@ import { ReminderWatcher } from './pages/tv/reminders'
 import { api } from './api'
 import { setThemeModule } from './theme'
 import { moduleForPath } from './themeOverrides'
-import { getNavCollapsed, setNavCollapsed, useNavStyle } from './navPrefs'
+import { getNavCollapsed, setNavCollapsed } from './navPrefs'
 import { SduiRoute } from './sdui/useSdui'
 import { EmptyState, PageSkeleton, Spinner, VersionTag } from './components/common'
 import { shapeFor } from './ui/Surface'
@@ -144,18 +144,18 @@ function Shell() {
 // The page's frame. On wide screens the side menu sits beside the page and can fold
 // to a rail or away, which this device remembers; narrower, it's a drawer over the page.
 function AppFrame() {
-  const own = useNavStyle()
-  // A server with layout options says how the frame is drawn (docs/SDUI.md, "Layout options");
-  // an older one leaves it to this device's own choice.
+  // The server says how the frame is drawn: the experience's nav style (docs/SDUI.md, "Experiences").
   const menu = useMenu()
-  const frame = frameFor(menu.server ? menu.shell : undefined, own)
-  const style = menu.shell ? frame.style : own
+  const frame = frameFor(menu.shell)
+  const style = frame.style
   const side = style !== 'top'
   useEffect(() => {
     const root = document.documentElement.style
     if (frame.sidebar) root.setProperty('--sidebar', frame.sidebar + 'px'); else root.removeProperty('--sidebar')
     if (frame.railWidth) root.setProperty('--rail', frame.railWidth + 'px'); else root.removeProperty('--rail')
-  }, [frame.sidebar, frame.railWidth])
+    if (frame.open) root.setProperty('--rail-open', frame.open + 'px'); else root.removeProperty('--rail-open')
+    if (frame.drawerWidth) root.setProperty('--rail-drawer', frame.drawerWidth + 'px'); else root.removeProperty('--rail-drawer')
+  }, [frame.sidebar, frame.railWidth, frame.open, frame.drawerWidth])
   const { version } = useApp()
   const { prefs } = useNavPrefs()
   const loc = useLocation()
@@ -171,9 +171,9 @@ function AppFrame() {
     if (wide) { setNavCollapsed(!folded); setFolded(!folded) } else setDrawer((o) => !o)
   }
   return (
-    <div className={'app nav-' + style + (open ? ' nav-open' : '') + (rail ? ' nav-rail' : '') + (frame.overlay ? ' nav-overlay' : '') + (frame.tabBar ? '' : ' no-tabbar')} data-layout={menu.shell?.layout || undefined}>
+    <div className={'app nav-' + style + (open ? ' nav-open' : '') + (rail ? ' nav-rail' : '') + (frame.overlay ? ' nav-overlay' : '') + (frame.tabBar ? '' : ' no-tabbar')} data-nav-style={frame.nav} data-experience={menu.shell?.experience || undefined}>
       <a className="skip-link" data-nav-skip href="#main">Skip to content</a>
-      <Sidebar open={open} rail={rail} drawer={!wide} onClose={() => setDrawer(false)} />
+      <Sidebar open={open} rail={rail} drawer={!wide} onClose={() => setDrawer(false)} withDrawer={frame.drawer} />
       <div className="main">
         <TopBar onMenu={toggle} showMenu={side || !wide} topNav={style !== 'side'} menuOpen={open} wide={wide} allTabs={!frame.tabBar} />
         <LegalAckBar />

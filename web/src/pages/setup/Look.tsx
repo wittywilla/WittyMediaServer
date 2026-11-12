@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react'
 import { api, getToken, serverBase } from '../../api'
 import { getLooks } from '../settings/pages/api'
 import { sduiAsk, SDUI_BASE } from '../../sdui/client'
-import { setNavStyle, useNavStyle, type NavStyle } from '../../navPrefs'
 import { toast, useApp } from '../../state'
 import { applyTheme, trialLook, type ThemeMeta } from '../../theme'
 import { Button } from '../../ui'
@@ -28,7 +27,6 @@ export function Look({ info, next, back }: StepProps) {
   const [cards, setCards] = useState<Card[]>([])
   const [pick, setPick] = useState('lumen')
   const tv = useTvMode()
-  const nav = useNavStyle()
   useEffect(() => { api.get<{ experiences: Card[]; default: string }>('/sdui/experiences').then((r) => { setCards(r.experiences); setPick(r.default) }).catch(() => {}) }, [])
   const choose = (id: string) => {
     setPick(id)
@@ -54,12 +52,6 @@ export function Look({ info, next, back }: StepProps) {
       {cards.length > 0 && (
         <ChoiceCards label="Look" value={pick} onChange={choose} small cards={cards.map((c) => ({ value: c.id, title: c.name, text: c.tagline, pic: swatch(c) }))} />
       )}
-      <h2 className="oobe-sub">Menus on this device</h2>
-      <ChoiceCards<NavStyle> label="Menus on this device" value={nav} onChange={setNavStyle} small cards={[
-        { value: 'top', title: 'Top bar', text: 'Libraries along the top', pic: <span className="layout-pic pic-top" aria-hidden="true"><i className="s" /><i className="t" /><i className="c" /></span> },
-        { value: 'side', title: 'Side menu', text: 'Libraries in a menu on the left', pic: <span className="layout-pic pic-side" aria-hidden="true"><i className="s" /><i className="t" /><i className="c" /></span> },
-        { value: 'both', title: 'Both', text: 'The top bar and the side menu', pic: <span className="layout-pic pic-both" aria-hidden="true"><i className="s" /><i className="t" /><i className="c" /></span> },
-      ]} />
       <div className="su-gap">
         <TickRow kind="switch" checked={tv} onChange={setTvMode} title="TV mode" text="Laid out and driven like the Apple TV and Android TV apps, with a remote or a controller, for a screen across the room. Only on this device." />
       </div>

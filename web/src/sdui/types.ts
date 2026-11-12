@@ -35,7 +35,7 @@ export type CardMetrics = { shape?: string; aspect?: string; width?: Record<stri
 
 // Shell is the layout option a page was made for and how the app's frame is drawn with
 // it (docs/SDUI.md, "Layout options").
-export type Shell = { layout: string; nav: string; overlay?: boolean; size: number; open?: number }
+export type Shell = { experience: string; nav: string; overlay?: boolean; size: number; open?: number; drawer?: number; placements?: Record<string, { position?: string; visible?: boolean; style?: string }> }
 
 export type Layout = {
   shell?: Shell
@@ -115,7 +115,10 @@ export type NavItem = {
   params?: Record<string, string>
   route: string
   placement: string // primary | more | end
+  // A library's second column beside a rail with a drawer: its name, icon and count, and its views.
+  drawer?: NavDrawer
 }
+export type NavDrawer = { title: string; icon: string; count?: number; views: { id: string; label: string; icon: string; route: string }[] }
 
 // experiences: what this profile may choose on this device, for the Look row in Settings (docs/SDUI.md, "Experiences").
 export type Required = { value: string; by?: string; at?: string; scope: string }

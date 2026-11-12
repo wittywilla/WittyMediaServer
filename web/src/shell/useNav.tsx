@@ -186,7 +186,7 @@ export function useMenu(): MenuState {
       }
     }
     const kindOf = (id: string) => { const m = /^lib-(\d+)$/.exec(id); return m ? libraries.find((l) => String(l.id) === m[1])?.type : undefined }
-    const fromServer: NavItem[] = (srv.nav?.items || []).map((e) => ({ id: e.id, label: e.label, to: e.route, end: e.route === '/', kind: kindOf(e.id), icon: e.icon, placement: e.placement, screen: e.screen }))
+    const fromServer: NavItem[] = (srv.nav?.items || []).map((e) => ({ id: e.id, label: e.label, to: e.route, end: e.route === '/', kind: kindOf(e.id), icon: e.icon, placement: e.placement, screen: e.screen, drawer: e.drawer }))
     const all = placeOwn(fromServer, own, srv.personal)
     const sections = srv.nav?.personal?.sections || []
     const ownHidden = new Set(srv.personal?.hidden || [])

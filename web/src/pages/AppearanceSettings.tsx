@@ -7,8 +7,7 @@ import { api, getToken, mediaUrl, serverBase } from '../api'
 import BrandDialog, { uploadLogo } from '../components/BrandDialog'
 import { Brand, BrandMark, logoUrl } from '../components/common'
 import { toast, useApp } from '../state'
-import { applyTheme, AUTO_THEME, currentLook, currentThemeId, CUSTOM_THEME, deviceTheme, setCustomThemeCss, setDeviceTheme, type ThemeMeta } from '../theme'
-import { setNavStyle, useNavStyle, type NavStyle } from '../navPrefs'
+import { applyTheme, AUTO_THEME, currentLook, loadThemeOverrides, currentThemeId, CUSTOM_THEME, deviceTheme, setCustomThemeCss, setDeviceTheme, type ThemeMeta } from '../theme'
 import NavCustomize from '../shell/NavCustomize'
 import { useMenu } from '../shell/useNav'
 import { bump } from '../sdui/client'
@@ -243,10 +242,36 @@ export default function AppearanceSettings() {
             <div className="brand"><BrandMark /><Brand name={brandName} /></div>
             <Button onClick={() => setNaming(true)}>Rename…</Button>
           </div>
+          <MarkRow />
           {naming && <BrandDialog name={brandName} colouring={brandColouring} logo={brandLogo ? logoUrl(brandLogo) : ''} onClose={() => setNaming(false)} onSave={saveBrand} />}
         </Section>
       )}
     </>
+  )
+}
+
+// The server's mark: the badge the side rail's header, the phone's tab bar and sign-in draw. A letter by default.
+function MarkRow() {
+  const [kind, setKind] = useState('letter')
+  const [text, setText] = useState('')
+  const [busy, setBusy] = useState(false)
+  useEffect(() => { api.get<Record<string, string>>('/settings').then((s) => { try { const m = JSON.parse(s.brandMark || '{}'); if (m.kind) { setKind(m.kind); setText(m.text || '') } } catch { /* the first letter */ } }).catch(() => {}) }, [])
+  const save = async (k: string, t: string) => {
+    setBusy(true)
+    try {
+      await api.put('/settings', { brandMark: k === 'letter' ? '' : JSON.stringify(k === 'text' ? { kind: k, text: t.trim() } : { kind: k }) })
+      await loadThemeOverrides()
+      toast('Saved', { tone: 'ok' })
+    } catch (e) { toast((e as Error).message, { tone: 'danger' }) } finally { setBusy(false) }
+  }
+  return (
+    <Row label="Mark" desc="The square badge for small spaces: the side rail, the phone’s bar and sign-in. A logo you’ve uploaded is fitted inside it; the letter shows if it can’t load.">
+      <Segmented label="Mark" value={kind} onChange={(k) => { setKind(k); if (k !== 'text') void save(k, text) }} options={[{ value: 'letter', label: 'Letter' }, { value: 'initials', label: 'Initials' }, { value: 'text', label: 'Your own' }, { value: 'image', label: 'Logo' }]} />
+      {kind === 'text' && <>
+        <Input aria-label="Your own one or two characters" maxLength={2} value={text} onChange={(e) => setText(e.target.value)} />
+        <Button size="sm" disabled={busy || !text.trim()} onClick={() => void save('text', text)}>Save</Button>
+      </>}
+    </Row>
   )
 }
 
@@ -270,6 +295,7 @@ function ServerLookRows({ choice }: { choice: NonNullable<ReturnType<typeof useM
       if (value) await api.put(path, { experience: value })
       else await api.del(path)
       bump()
+      void loadThemeOverrides()
       announce(value ? `Look: ${choice.options.find((o) => o.value === value)?.label || value}` : 'Look: as the server sets it')
     } catch (e) { toast((e as Error).message, { tone: 'danger' }) } finally { setBusy('') }
   }
@@ -304,36 +330,9 @@ function ServerLookRows({ choice }: { choice: NonNullable<ReturnType<typeof useM
 // Where the navigation sits on this device, and what's in it.
 function LayoutSection() {
   const menu = useMenu()
-  if (menu.experiences) {
-    return (
-      <Section title="Layout" desc={<>How the app is laid out on this device: where the menu is and how pages look. Kept for you on this device; your other devices keep their own. Rearrange a page with <b>Customise this page</b> at its foot.</>}>
-        <ServerLookRows choice={menu.experiences} />
-        <NavCustomize />
-        <DensityRow />
-      </Section>
-    )
-  }
-  return <OwnLayoutSection />
-}
-
-// Against a server without layout options: this device's own choice of where the menu sits.
-function OwnLayoutSection() {
-  const style = useNavStyle()
-  const opts: [NavStyle, string, string][] = [
-    ['side', 'Side menu', 'Libraries in a menu on the left'],
-    ['top', 'Top bar', 'Libraries along the top, more room for posters'],
-    ['both', 'Both', 'Top bar plus the side menu'],
-  ]
   return (
-    <Section title="Layout" desc={<>Where the navigation sits on this device. Phones always have the bar at the bottom instead. Rearrange the home page with <b>Customize home</b> at the foot of the home page.</>}>
-      <div className="layout-opts" role="radiogroup" aria-label="Navigation">
-        {opts.map(([v, label, hint]) => (
-          <button key={v} type="button" role="radio" aria-checked={style === v} className={'layout-opt' + (style === v ? ' on' : '')} onClick={() => setNavStyle(v)}>
-            <span className={'layout-pic pic-' + v} aria-hidden="true"><i className="s" /><i className="t" /><i className="c" /></span>
-            <b>{label}</b><span className="muted">{hint}</span>
-          </button>
-        ))}
-      </div>
+    <Section title="Look" desc={<>How the app looks and is laid out on this device: where the menu is, how pages are drawn, its finish and type. Colours are the theme, above. Kept for you on this device; your other devices keep their own. Rearrange a page with <b>Customise this page</b> at its foot.</>}>
+      {menu.experiences && <ServerLookRows choice={menu.experiences} />}
       <NavCustomize />
       <DensityRow />
     </Section>

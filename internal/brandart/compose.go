@@ -128,25 +128,31 @@ func (k Kit) Lockup(p Product, x, y, h float64, text, accent Colour) ([]Layer, f
 	return append(tile.Layers, words...), h*1.22 + w
 }
 
-// Scene is a backdrop of the family's world: night, a violet glow, a scatter of sparks in the
-// apps' colours. Wide pictures (Top Shelf, banners, installers, the website, the TV's connect
-// screen) all start from it. seed changes where the sparks fall; no spark falls inside a clear
-// box (where words or icons go).
+// Scene is a backdrop of the family's world, kept quiet so it never competes with what is in
+// front of it: the deep night of the house theme, one soft violet light, a few thin orbits like
+// the logo's ring (each open at a gap with its small dot in it, in the apps' dot colours), and a
+// sparse field of tiny, dim stars. Wide pictures (Top Shelf, banners, installers, the website,
+// the TV's connect screen) all start from it. seed turns the orbits and places the stars; no
+// star or dot falls inside a clear box (where words or icons go).
 func (k Kit) Scene(w, h float64, seed int, light bool, clear ...Box) Art {
 	pal := k.Pal
 	a := Art{W: w, H: h}
-	bg1, bg2 := pal.Raised, pal.Night
+	unit, far := math.Min(w, h), math.Max(w, h)
+	bg1, bg2 := Mix(pal.Night, pal.Raised, 0.35), pal.Night
+	ring, glow := pal.AccentLite.WithAlpha(0.10), pal.Accent.WithAlpha(0.30)
+	starC := pal.Text
 	if light {
 		bg1, bg2 = Mix(pal.Paper, Hex("#ffffff"), 0.6), pal.Paper
+		ring, glow = pal.Accent.WithAlpha(0.12), pal.Accent.WithAlpha(0.10)
+		starC = pal.Accent
 	}
 	rect := Rect(0, 0, w, h, 0)
+	// The orbits' centre sits right of middle, so the left (where screens put words) stays calmest.
+	c := Pt{w * 0.74, h * 0.56}
 	a.Layers = append(a.Layers,
 		Layer{rect, Linear(Pt{0, 0}, Pt{0, h}, bg1, bg2)},
-		Layer{rect, Glow(w*0.72, h*0.35, math.Max(w, h)*0.55, pal.Accent.WithAlpha(0.55))},
-		Layer{rect, Glow(w*0.12, h*1.05, math.Max(w, h)*0.45, pal.Coral.WithAlpha(0.20))},
-		Layer{rect, Glow(w*0.95, h*1.0, math.Max(w, h)*0.35, pal.Mint.WithAlpha(0.16))},
+		Layer{rect, Glow(c.X, c.Y, far*0.5, glow)},
 	)
-	colours := []Colour{pal.Amber, pal.Mint, pal.Coral, pal.Sky, pal.AccentLite}
 	r := uint32(seed*2654435761 + 12345)
 	next := func() float64 {
 		r ^= r << 13
@@ -154,29 +160,45 @@ func (k Kit) Scene(w, h float64, seed int, light bool, clear ...Box) Art {
 		r ^= r << 5
 		return float64(r%10000) / 10000
 	}
-	unit := math.Min(w, h)
-	for i := 0; i < 18; i++ {
-		x, y := next()*w, next()*h
-		s := unit * (0.012 + next()*0.03)
-		hit := false
+	free := func(x, y, s float64) bool {
 		for _, b := range clear {
 			if x+s > b.X0 && x-s < b.X1 && y+s > b.Y0 && y-s < b.Y1 {
-				hit = true
+				return false
 			}
 		}
-		if hit {
+		return true
+	}
+	dots := []Colour{pal.Amber, pal.Mint, pal.Sky, pal.Coral}
+	turn := next() * 2 * math.Pi
+	for i, rr := range []float64{0.30, 0.52, 0.78, 1.08} {
+		rad := unit * rr
+		width := math.Max(unit*0.0035, 1.2)
+		gap := 0.32 - float64(i)*0.05 // radians each side of the dot
+		at := turn + float64(i)*2.1
+		a.Layers = append(a.Layers, Layer{StrokeArc(c.X, c.Y, rad, width, at+gap, at+2*math.Pi-gap).Solid(), Fill(ring)})
+		d := polar(c, rad, at)
+		ds := math.Max(unit*0.009, 1.5)
+		if free(d.X, d.Y, ds) {
+			alpha := 0.55
+			if light {
+				alpha = 0.7
+			}
+			a.Layers = append(a.Layers, Layer{Circle(d.X, d.Y, ds).Solid(), Fill(dots[i%len(dots)].WithAlpha(alpha))})
+		}
+	}
+	// Stars: few, tiny, dim, never twinkling shapes.
+	for i := 0; i < int(math.Min(40, w*h/40000)); i++ {
+		x, y := next()*w, next()*h
+		s := math.Max(unit*(0.0012+next()*0.0018), 0.6)
+		if !free(x, y, s*4) {
 			continue
 		}
-		c := colours[i%len(colours)].WithAlpha(0.35 + next()*0.45)
-		if light {
-			c = colours[i%len(colours)].WithAlpha(0.55 + next()*0.35)
-		}
-		a.Layers = append(a.Layers, Layer{Spark(x, y, s, 0.6).Solid(), Fill(c)})
+		a.Layers = append(a.Layers, Layer{Circle(x, y, s).Solid(), Fill(starC.WithAlpha(0.10 + next()*0.18))})
 	}
 	return a
 }
 
-// Box is a rectangle kept clear of sparks.
+// Box is a rectangle kept clear of the scene's stars and dots.
 type Box struct{ X0, Y0, X1, Y1 float64 }
 
 // Draw paints src's pixels onto dst at (x, y).

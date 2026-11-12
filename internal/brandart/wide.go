@@ -100,16 +100,16 @@ func shift(l Layer, dx, dy float64) Layer {
 }
 
 // Backdrop is a full-screen scene with nothing written on it, for behind a sign-in or connect
-// screen on a TV (1920×1080) or a phone. The mark sits large and faint toward the right, so
-// whatever the app draws on the left stays readable.
+// screen on a TV (1920×1080) or a phone. At the centre of the scene's orbits sits the family's
+// W in its ring, faint, so whatever the app draws on the left stays readable.
 func (k Kit) Backdrop(p Product, w, h float64, light bool) Art {
 	a := k.Scene(w, h, 3, light)
-	m := k.Mark(p, 0)
-	ghost := k.Pal.AccentLite.WithAlpha(0.06)
+	m := k.Mark(Server, 0)
+	ghost := k.Pal.AccentLite.WithAlpha(0.07)
 	if light {
-		ghost = k.Pal.Accent.WithAlpha(0.06)
+		ghost = k.Pal.Accent.WithAlpha(0.07)
 	}
-	return a.With(placeGlyph([]Layer{{m.MonoPath(), Fill(ghost)}}, Pt{w * 0.78, h * 0.52}, h*0.9)...)
+	return a.With(placeGlyph([]Layer{{m.MonoPath(), Fill(ghost)}}, Pt{w * 0.74, h * 0.56}, math.Min(w, h)*0.42)...)
 }
 
 // Splash is a launch picture: the mark alone, centred, size s, on nothing (the platform paints

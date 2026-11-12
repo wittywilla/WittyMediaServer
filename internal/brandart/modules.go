@@ -11,7 +11,7 @@ import (
 )
 
 // Module icons: each module's own white mark on the family's tile, in its category's colour,
-// with the family's spark in the corner. The marks are signed-distance shapes (a function of x,
+// with the server's amber dot in the corner. The marks are signed-distance shapes (a function of x,
 // y that is negative inside), measured on a 128 grid, as they were in WittyModuleCatalog's old
 // scripts/make-icons.mjs. Each is an original drawing: never a brand's, console's, disc
 // format's, service's or studio's logo, or anything like one.

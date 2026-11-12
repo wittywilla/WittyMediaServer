@@ -70,6 +70,7 @@ func TestEveryTargetInEveryConcept(t *testing.T) {
 		"android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png":    {192, 192},
 		"android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png": {48, 48},
 		"android/app/src/main/res/drawable-xhdpi/banner.png":         {640, 360},
+		"android/app/src/main/res/drawable-mdpi/banner.png":          {320, 180},
 		"apple/Brand/iOS.xcassets/AppIcon.appiconset/AppIcon.png":    {1024, 1024},
 		"apple/Brand/tvOS.xcassets/App Icon & Top Shelf Image.brandassets/App Icon.imagestack/Back.imagestacklayer/Content.imageset/Back@1x.png":                 {400, 240},
 		"apple/Brand/tvOS.xcassets/App Icon & Top Shelf Image.brandassets/App Icon.imagestack/Front.imagestacklayer/Content.imageset/Front@2x.png":               {800, 480},
@@ -228,9 +229,16 @@ func TestICOAndICNS(t *testing.T) {
 	if string(icns[:4]) != "icns" || int(binary.BigEndian.Uint32(icns[4:])) != len(icns) {
 		t.Fatal("bad icns header")
 	}
+	// Each type holds the size Apple's iconutil reads it as.
+	want := map[string]int{"icp4": 16, "icp5": 32, "icp6": 48, "ic07": 128, "ic08": 256, "ic09": 512, "ic10": 1024, "ic11": 32, "ic12": 64, "ic13": 256, "ic14": 512}
 	n := 0
 	for at := 8; at < len(icns); n++ {
-		at += int(binary.BigEndian.Uint32(icns[at+4:]))
+		l := int(binary.BigEndian.Uint32(icns[at+4:]))
+		kind := string(icns[at : at+4])
+		if img := decode(t, kind, icns[at+8:at+l]); img.Bounds().Dx() != want[kind] {
+			t.Errorf("icns %s is %d wide, want %d", kind, img.Bounds().Dx(), want[kind])
+		}
+		at += l
 	}
 	if n != 11 {
 		t.Errorf("icns has %d pictures, want 11", n)

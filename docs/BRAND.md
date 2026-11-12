@@ -6,12 +6,6 @@ hand and no picture is edited after it is made: change a drawing, then run `scri
 
 The logo is called **orbitw**: the W in its orbit.
 
-<p>
-  <img src="brand/orbitw/server/icon/server-icon-256.png" width="112" alt="WittyMediaServer">
-  <img src="brand/orbitw/client/icon/client-icon-256.png" width="112" alt="WittyMediaClient">
-  <img src="brand/orbitw/player/icon/player-icon-256.png" width="112" alt="WittyMediaPlayer">
-  <img src="brand/orbitw/reader/icon/reader-icon-256.png" width="112" alt="WittyReader">
-</p>
 
 **Every form of every logo, rendered** (SVG, PNG at 16 to 1024 pixels, JPEG; colour, black and white on transparency;
 icons and name lockups): [brand/orbitw/README.md](brand/orbitw/README.md).
@@ -109,12 +103,6 @@ picture) are Inter Regular.
 | `lockup-black` | Mark and name in black on transparency | SVG; PNG 64–512 high; JPEG on light and white |
 | `lockup-white` | Mark and name in white on transparency | SVG; PNG 64–512 high; JPEG on dark and black |
 
-<p>
-  <img src="brand/orbitw/server/mark-colour/server-mark-colour-128.png" width="64" alt="">
-  <img src="brand/orbitw/server/mark-black/server-mark-black-128.png" width="64" alt="">
-  <img src="brand/orbitw/server/mark-white/server-mark-white-128.png" width="64" alt="">
-  <img src="brand/orbitw/server/lockup-dark/server-lockup-dark-128.png" height="64" alt="">
-</p>
 
 SVG is for anything that scales (print, the web, slides). PNG is for screens at a fixed size, with transparency. JPEG
 has no transparency, so it always comes on a stated background; use it only where PNG isn't accepted.
@@ -176,7 +164,7 @@ way round from the shape around it, so one non-zero fill rule gives every hole, 
 | Format | How |
 |---|---|
 | **SVG** | Each layer becomes one `<path>` with its fill: a colour, or a `linearGradient`/`radialGradient` in the drawing's own units (`render.go`). |
-| **Android vector drawable** | The same path data; gradients as `aapt:attr` fills, which need Android 7, so the adaptive icon's background lives in `drawable-v26`. |
+| **Android vector drawable** | The same path data; gradients as `aapt:attr` fills, which need Android 7, so the layers with gradients (the adaptive icon, the Android 12 splash) live in `drawable-v26` and the older launch screen uses PNG marks. |
 | **Kotlin** | `ImageVector.Builder` with `addPathNodes` and `Brush` gradients (`codegen.go`), in `ui/BrandArt.kt`. |
 | **Swift** | A function per mark that fills SwiftUI `Path`s with `GraphicsContext` shadings, in `App/BrandArt.swift`. |
 | **PNG** | Rasterised with exact-coverage anti-aliasing (`golang.org/x/image/vector`); gradients worked out per covered pixel. Opaque where a store demands it (App Store, Play, tvOS back layers). |
@@ -190,10 +178,13 @@ Words are glyph outlines from Inter (see [The name](#the-name)). Module marks ar
 (`modules.go`), each an original drawing, never a console's, disc format's, service's or studio's logo, so their icons
 are PNG only.
 
-Backgrounds start from one scene (`compose.go`, `wide.go`): the house theme's dark lit by soft glows of violet, coral
-and mint, with a scatter of small sparks in the apps' colours that never fall where words or icons go. The Top Shelf,
-TV banners, the TV sign-in backdrop, the installers, the disk image, the macOS installer and the website's hero and
-social picture are all that scene with the right mark or name on it.
+Backgrounds start from one quiet scene (`compose.go`, `wide.go`), made to sit behind words without pulling the eye:
+the house theme's night (or the Light theme's paper), one soft violet light right of centre, four thin, faint orbits
+around it, each open at a gap like the logo's ring with a small dot in the apps' dot colours, and a sparse field of
+tiny, dim stars. Nothing sparkles or moves. Stars and dots never fall where words or icons go, and the left side,
+where screens put their text, stays the calmest. On full-screen backdrops the W in its ring sits faintly at the
+orbits' centre. The Top Shelf, TV banners, the TV sign-in backdrop, the installers, the disk image, the macOS
+installer and the website's hero and social picture are all that scene with the right mark or name on it.
 
 ## Other designs
 
@@ -232,3 +223,7 @@ platform asks for, that store and home-screen icons are opaque and parallax laye
 inside the launcher's safe circle, that the server and client marks differ, that cuts show as holes in the
 one-colour form, that ICO and ICNS files are well formed, that Inter's kerning is applied, and that the web client's
 icons in the repository are what the generator draws now.
+
+---
+
+<sub>WittyMediaServer documentation</sub>

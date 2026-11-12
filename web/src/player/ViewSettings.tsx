@@ -42,7 +42,7 @@ export default function ViewSettings({ prefs, scope, onChange, onScope, onClose,
     <div className="view-settings" onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()} role="dialog" aria-label="Viewing settings"
       onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose() } }}>
       <div className="vs-head">
-        <h4>Viewing settings</h4>
+        <h4>Picture and controls</h4>
         <button type="button" className="ibtn" onClick={onClose} aria-label="Close viewing settings">✕</button>
       </div>
       <Row label="Apply to">
@@ -51,11 +51,13 @@ export default function ViewSettings({ prefs, scope, onChange, onScope, onClose,
           <button type="button" role="radio" aria-checked={scope === 'global'} className={scope === 'global' ? 'active' : ''} onClick={() => onScope('global')}>Everything</button>
         </div>
       </Row>
+      <h5 className="vs-sub">Controls</h5>
       <Row label="Seek bar"><Toggle k="seekBar" label="Seek bar" {...p} /></Row>
       <Row label="Chapter marks"><Toggle k="chapterMarks" label="Chapter marks" {...p} /></Row>
       <Row label={isDisc ? 'Disc remote' : 'Remote'}><Toggle k="remote" label="Remote" {...p} /></Row>
       <Row label="Remote style"><Seg k="remoteStyle" label="Remote style" opts={[['floating', 'Floating'], ['bar', 'Above the timeline'], ['barBelow', 'Below the timeline']]} {...p} /></Row>
       <Row label="Hide controls after"><Seg k="hideAfter" label="Hide controls after" opts={[[2, '2 s'], [3.5, '3.5 s'], [6, '6 s'], [0, 'Never']]} {...p} /></Row>
+      <h5 className="vs-sub">Picture</h5>
       <Row label="Picture"><Seg k="picture" label="Picture" opts={[['fit', 'Fit'], ['fill', 'Fill screen']]} {...p} /></Row>
       {isDisc && <Row label="Forced captions"><Toggle k="forcedSubs" label="Forced captions: signs and foreign-language lines the disc shows even with subtitles off" {...p} /></Row>}
       {isDisc && <Row label="Disc restrictions"><Toggle k="discLocks" label="Disc restrictions: obey a disc's bans on seeking and skipping, as a disc player does" {...p} /></Row>}
@@ -67,13 +69,13 @@ export default function ViewSettings({ prefs, scope, onChange, onScope, onClose,
         {prefs.stereo !== 'off' && <Row label="Show 3D as"><Seg k="stereoOut" label="Show 3D as" opts={[['2d', '2D (one eye)'], ['anaglyph', 'Red/cyan glasses']]} {...p} /></Row>}
       </>}
       {streaming && onStreaming && (
-        <Row label="Streaming">
+        <><h5 className="vs-sub">Streaming</h5><Row label="Streaming on this device">
           <div className="seg" role="radiogroup" aria-label="Streaming on this device">
             {([['auto', 'Server’s choice'], ['standard', 'Standard'], ['robust', 'Robust']] as [DeviceStreaming, string][]).map(([v, l]) => (
               <button type="button" key={v} role="radio" aria-checked={streaming === v} className={streaming === v ? 'active' : ''} onClick={() => onStreaming(v)}>{l}</button>
             ))}
           </div>
-        </Row>
+        </Row></>
       )}
       <p className="vs-note">{scope === 'item' ? `Seek bar, remote and picture: saved for ${one} on this device.` : 'Seek bar, remote and picture: saved for all videos on this device.'}{show3D ? ` 3D: saved for ${one}.` : ''}</p>
     </div>

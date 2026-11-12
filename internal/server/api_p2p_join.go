@@ -71,6 +71,7 @@ func (s *Server) handleP2PJoin(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		// The invite behind the code never leaves the server, and still has no place in a log.
 		logging.AddSecret(secret)
+		logging.AddSecret(code) // a way in until the device takes it
 		err = node.OfferJoin(code, secret)
 	}
 	switch {

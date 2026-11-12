@@ -89,3 +89,31 @@ func TestFollowKinds(t *testing.T) {
 		}
 	}
 }
+
+func TestRedactNewShapes(t *testing.T) {
+	for in, want := range map[string]string{
+		`{"code":"K7QM-2XHD"}`:       `{"code":"[hidden]"}`,
+		`{"joinCode":"K7QM2XHD"}`:    `{"joinCode":"[hidden]"}`,
+		`{"roomCode":"ABC234"}`:      `{"roomCode":"[hidden]"}`,
+		`{"code":"timeout"}`:         `{"code":"timeout"}`, // an error's code is what a reader is after
+		`{"code":"not-found"}`:       `{"code":"not-found"}`,
+		"see ?k=1&kind=game":         "see ?k=1&kind=game", // k= only hidden in pairing addresses
+		"/api/logs/entries?kind=p2p": "/api/logs/entries?kind=p2p",
+	} {
+		if got := Redact(in); got != want {
+			t.Errorf("Redact(%s) = %s, want %s", in, got, want)
+		}
+	}
+}
+
+// The server's own key stays hidden however many invites push newer secrets in.
+func TestKeepSecretOutlastsTheRing(t *testing.T) {
+	const seed = "PLANTED0p2pseed0value"
+	KeepSecret(seed)
+	for i := 0; i < 200; i++ {
+		AddSecret(strings.Repeat("x", 6) + string(rune('a'+i%26)) + strings.Repeat("y", i%7) + "z" + string(rune('A'+i/26)))
+	}
+	if got := Redact("key " + seed + " in a line"); strings.Contains(got, seed) {
+		t.Fatalf("the kept secret was pushed out: %s", got)
+	}
+}

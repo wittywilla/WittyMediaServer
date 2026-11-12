@@ -26,6 +26,24 @@ type explainRule struct {
 // first. Keep them short: this is what someone reads when something is broken.
 var explainRules = sync.OnceValue(func() []explainRule {
 	return []explainRule{
+		{regexp.MustCompile(`(?i)permission[= ]"?screen-recording|record the screen|screen ?capture.*(denied|permission|not permitted)|CGPreflightScreenCaptureAccess`), Explanation{"mac-screen-recording", "macOS hasn't let the server record the screen",
+			"Emulators run on this Mac need Screen Recording permission to show their picture, and macOS hasn't given it.",
+			"Open System Settings, Privacy & Security, Screen & System Audio Recording, turn it on for the program that runs the server, then start the server again."}},
+		{regexp.MustCompile(`(?i)permission[= ]"?accessibility|send key presses|CGPreflightPostEventAccess|accessibility permission`), Explanation{"mac-accessibility", "macOS hasn't let the server send input",
+			"Emulators run on this Mac need Accessibility permission to receive key presses and controller input, and macOS hasn't given it.",
+			"Open System Settings, Privacy & Security, Accessibility, turn it on for the program that runs the server, then start the server again."}},
+		{regexp.MustCompile(`(?i)no stem separator|stem separator.*(missing|not found)`), Explanation{"separator-missing", "No vocal separator is installed",
+			"Karaoke needs Demucs or Spleeter to separate a song's vocals, and neither was found.",
+			"Install Demucs (pip install demucs) or Spleeter for the account that runs the server. Until then songs get an approximate instrumental."}},
+		{regexp.MustCompile(`(?i)peer-to-peer test step.*state=fail|no relay holds a place|peer-to-peer.*(couldn't|could not) (start|reach)`), Explanation{"p2p-unreachable", "Devices away from home can't reach this server peer to peer",
+			"Computers outside your network couldn't connect directly, and no relay is carrying the connection.",
+			"Turn on Relays in Settings, Remote Access, Peer to peer, or let your router map a port (UPnP or NAT-PMP). Repair's Features checks say which layer is stuck."}},
+		{regexp.MustCompile(`(?i)with an override|under (a manual )?override|override (set|installed)`), Explanation{"module-override", "A module is running under a manual override",
+			"An administrator chose to skip a check this module would normally have to pass, such as its signature or the server version it needs.",
+			"That's allowed, and recorded with who did it. Remove the override in Settings, Modules when a version that passes the checks is out."}},
+		{regexp.MustCompile(`(?i)every backup (of a channel )?failed|channels? failed (its|their) health check`), Explanation{"channel-failing", "A channel source isn't answering",
+			"The playlist or tuner didn't give a working stream for these channels.",
+			"Check the source's address and login in Live TV, Sources, or whether the subscription has ended."}},
 		{regexp.MustCompile(`(?i)CSS[- ]scrambled|\bAACS\b|\bBD\+|encrypted|copy protect`), Explanation{"encrypted", "This disc is copy-protected",
 			"The image or folder is still encrypted. WittyMediaServer never decrypts anything, so it can't play it.",
 			"Encrypted media isn't supported, and nothing here can change that. A disc or file without copy protection will play."}},
@@ -112,6 +130,8 @@ func Explain(rec *Record) *Explanation {
 				v = v[len(v)-8<<10:]
 			}
 			b.WriteString(v)
+		case "permission", "state": // which macOS permission is missing; how a test step went
+			b.WriteString(" " + rec.Attrs[i].K + "=" + rec.Attrs[i].V)
 		}
 	}
 	text := b.String()

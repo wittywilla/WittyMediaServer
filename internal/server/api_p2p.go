@@ -173,7 +173,7 @@ func (s *Server) p2pNode() *p2p.Node {
 func (s *Server) p2pSeed(ctx context.Context) ([]byte, error) {
 	raw := s.DB.GetSetting(ctx, p2pSeedKey, "")
 	if seed, err := p2p.DecodeSeed(raw); err == nil {
-		logging.AddSecret(raw)
+		logging.KeepSecret(raw)
 		return seed, nil
 	}
 	seed, err := p2p.NewSeed()
@@ -181,7 +181,7 @@ func (s *Server) p2pSeed(ctx context.Context) ([]byte, error) {
 		return nil, err
 	}
 	enc := p2p.EncodeSeed(seed)
-	logging.AddSecret(enc)
+	logging.KeepSecret(enc)
 	if err := s.DB.SetSetting(ctx, p2pSeedKey, enc); err != nil {
 		return nil, fmt.Errorf("saving the connection key: %w", err)
 	}
@@ -953,7 +953,7 @@ func (s *Server) handleP2PRotate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	enc := p2p.EncodeSeed(seed)
-	logging.AddSecret(enc)
+	logging.KeepSecret(enc)
 	if err := s.DB.SetSetting(r.Context(), p2pSeedKey, enc); err != nil {
 		writeErr(w, 500, err.Error())
 		return

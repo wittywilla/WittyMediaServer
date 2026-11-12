@@ -70,7 +70,11 @@ const (
 	//     (sdui-tokens), shape, type and brand in /theme (theme-shape-type), derived
 	//     colours for every layer of overrides (theme-derived), and a profile's own colours
 	//     at /theme/personal, refused below AA contrast (theme-personal); PUT /me/ui keeps
-	//     the keys the server owns.
+	//     the keys the server owns;
+	//   - data sources for a books library's shelf, rows repeated over its series and authors
+	//     (sdui-book-rows), statistics (sdui-statistics) and likes (sdui-liked); module sources
+	//     offered on Top Shelf (sdui-topshelf-modules); /music/albums and /music/artists answer
+	//     a books library's series and authors (books-series).
 	apiRevision = 16
 	apiPrefix   = "/api/v1/"
 )
@@ -145,6 +149,10 @@ var serverFeatures = []string{
 	"theme-shape-type", "sdui-tokens", "theme-derived", "theme-personal",
 	// Layout options: document.layout.shell, the navigation's shell and layouts, /sdui/layout.
 	"sdui-layouts",
+	// More data sources (docs/SDUI.md "Books, statistics and likes"): a books library's shelf with
+	// rows for its series and authors, statistics from the play log, what a profile liked; module
+	// sources on Top Shelf; a books library's series and authors from /music/albums and /artists.
+	"sdui-book-rows", "sdui-statistics", "sdui-liked", "sdui-topshelf-modules", "books-series",
 	// The module store's overrides (docs/MODULE-STORE.md "Overriding a refusal"): installing what
 	// would be refused with a named go-ahead, from a file, and the module audit log; store items
 	// say what kind of module each is, its release status and the pages it adds.

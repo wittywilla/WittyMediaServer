@@ -106,7 +106,8 @@ type Section struct {
 
 // Repeat makes a section once per thing.
 type Repeat struct {
-	// Over is "libraries", "pinnedViews" or "collections".
+	// Over is "libraries", "pinnedViews", "collections", or the series or authors of
+	// the page's books library: "bookSeries", "bookAuthors".
 	Over string `json:"over"`
 	// Kinds keeps only libraries of these kinds (Over "libraries").
 	Kinds []string `json:"kinds,omitempty"`

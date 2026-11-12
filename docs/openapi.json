@@ -12939,6 +12939,9 @@
           "title": {
             "type": "string"
           },
+          "topShelf": {
+            "type": "boolean"
+          },
           "type": {
             "type": "string"
           },
@@ -36049,7 +36052,7 @@
             "bearer": []
           }
         ],
-        "summary": "Albums or books of a library.",
+        "summary": "Albums of a library; an audiobook library's books, a books library's series.",
         "tags": [
           "Music, audiobooks and podcasts"
         ],
@@ -36183,7 +36186,7 @@
             "bearer": []
           }
         ],
-        "summary": "Artists or authors.",
+        "summary": "Artists; an audiobook or books library's authors.",
         "tags": [
           "Music, audiobooks and podcasts"
         ],
@@ -45346,7 +45349,7 @@
             "bearer": []
           }
         ],
-        "summary": "Content for a tvOS Top Shelf extension: what this account was watching and what is new, within its limits, at most 4 sections of 10 pictures, each sized for the device. 304 with If-None-Match when unchanged.",
+        "summary": "Content for a tvOS Top Shelf extension: what this account was watching, up to two rows its modules offer, and what is new, within its limits, at most 4 sections of 10 pictures, each sized for the device. 304 with If-None-Match when unchanged.",
         "tags": [
           "Server-driven UI"
         ],

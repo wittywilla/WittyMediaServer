@@ -129,6 +129,8 @@ type CannedEach struct {
 	Key   string `json:"key"`
 	Label string `json:"label"`
 	Kind  string `json:"kind,omitempty"`
+	// ID ends the copy's ID in place of Key (a series' name is no ID).
+	ID string `json:"id,omitempty"`
 }
 
 // Expected is the two halves of a case's answer.
@@ -209,7 +211,7 @@ func (c canned) Each(over string, kinds []string, limit int) ([]sdui.Each, error
 		if len(kinds) > 0 && !has(kinds, e.Kind) {
 			continue
 		}
-		out = append(out, sdui.Each{Key: e.Key, Label: e.Label, Kind: e.Kind})
+		out = append(out, sdui.Each{Key: e.Key, Label: e.Label, Kind: e.Kind, ID: e.ID})
 	}
 	return out, nil
 }

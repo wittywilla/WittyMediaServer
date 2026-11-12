@@ -244,6 +244,9 @@
         "title": {
           "type": "string"
         },
+        "topShelf": {
+          "type": "boolean"
+        },
         "type": {
           "type": "string"
         },
@@ -745,6 +748,9 @@
         },
         "title": {
           "type": "string"
+        },
+        "topShelf": {
+          "type": "boolean"
         },
         "type": {
           "type": "string"

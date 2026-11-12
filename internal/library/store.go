@@ -549,6 +549,8 @@ type ItemQuery struct {
 	// IncludeAttached also lists extras and other versions, which appear only on
 	// their parent's page. Asking for particular IDs always gets them.
 	IncludeAttached bool
+	// Containers: only files of these formats (books: what one reader opens).
+	Containers []string
 }
 
 // BackfillAges fills min_age for items and shows saved before parental
@@ -680,9 +682,32 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 		where = append(where, albumArtist+" = ?")
 		args = append(args, *q.AlbumArtist)
 	}
+	if q.Containers != nil {
+		marks := strings.TrimSuffix(strings.Repeat("?,", len(q.Containers)), ",")
+		if marks == "" {
+			marks = "NULL"
+		}
+		where = append(where, "LOWER(IFNULL(i.container, '')) IN ("+marks+")")
+		for _, c := range q.Containers {
+			args = append(args, c)
+		}
+	}
 	order := "i.sort_title COLLATE NOCASE"
 	from := "items i"
+	// whole: the order already says which way each of its keys goes.
+	whole := false
+	dir := ""
+	if q.Desc {
+		dir = " DESC"
+	}
 	switch q.Sort {
+	case "author":
+		// Books by author (album artist, else artist), then title; those with none go last
+		// whichever way round.
+		order, whole = albumArtist+" = '', "+albumArtist+" COLLATE NOCASE"+dir+", i.sort_title COLLATE NOCASE"+dir+", i.id"+dir, true
+	case "series":
+		// Books by series, then their place in it, then title; those in none go last.
+		order, whole = "IFNULL(i.album, '') = '', IFNULL(i.album, '') COLLATE NOCASE"+dir+", IFNULL(i.track, 999999)"+dir+", i.sort_title COLLATE NOCASE"+dir+", i.id"+dir, true
 	case "popular":
 		// Games: how often anyone on this server played it, then how well it's rated.
 		// A join, so a large library doesn't look through the plays once per game.
@@ -712,12 +737,13 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 	case "episode":
 		order = "IFNULL(i.season, 0), IFNULL(i.episode, 0)"
 	}
-	if q.Desc {
-		order += " DESC"
-	}
-	if q.Desc && (q.Sort == "added" || q.Sort == "updated") {
-		order += ", i.id DESC" // the way an index on dates reads backwards, so nothing has to be sorted
-	} else {
+	switch {
+	case whole:
+	case q.Desc && (q.Sort == "added" || q.Sort == "updated"):
+		order += " DESC, i.id DESC" // the way an index on dates reads backwards, so nothing has to be sorted
+	case q.Desc:
+		order += " DESC, i.id"
+	default:
 		order += ", i.id"
 	}
 	w := strings.Join(where, " AND ")

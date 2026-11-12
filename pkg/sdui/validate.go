@@ -387,7 +387,7 @@ func (v *validator) sections(list []Section, path string, depth int, parent stri
 			v.err(sp+"/scope", "Use a module's ID such as wittytv, or a name of your own in lower case.", "%q is not a theme scope", s.Scope)
 		}
 		if s.Repeat != nil {
-			v.repeat(s, sp, depth)
+			v.repeat(s, sp, depth, parent)
 		}
 		// Things that open something name exactly one place.
 		if contains([]string{"Button", "ListItem", "Notice", "Banner", "Image"}, s.Component) {
@@ -458,7 +458,7 @@ func authoredComponents() []string {
 	return out
 }
 
-func (v *validator) repeat(s *Section, sp string, depth int) {
+func (v *validator) repeat(s *Section, sp string, depth int, parent string) {
 	rp := s.Repeat
 	if !contains(RepeatKinds, rp.Over) {
 		v.err(sp+"/repeat/over", suggest(rp.Over, RepeatKinds), "%q is not something a section can be repeated over", rp.Over)
@@ -466,7 +466,7 @@ func (v *validator) repeat(s *Section, sp string, depth int) {
 	if s.Source.Type() == "" || len(s.Children) > 0 {
 		v.err(sp+"/repeat", "Repeat a Row, Grid or Banner that has a source.", "only a section with a data source can be repeated")
 	}
-	if depth > 2 {
+	if depth > 2 && parent != "Tab" {
 		v.err(sp+"/repeat", "Move it to the top of the page or directly inside a Tab.", "a repeated section sits at the top of a page or directly inside a Tab")
 	}
 	for i, k := range rp.Kinds {
@@ -477,6 +477,9 @@ func (v *validator) repeat(s *Section, sp string, depth int) {
 	if len(rp.Kinds) > 0 && rp.Over != "libraries" {
 		v.err(sp+"/repeat/kinds", "Remove kinds.", "kinds only applies when repeating over libraries")
 	}
+	if (rp.Over == "bookSeries" || rp.Over == "bookAuthors") && v.page != nil && v.page.Kind != "library" {
+		v.err(sp+"/repeat/over", "Use it on a library page, or repeat over libraries.", "%s goes over the page's books library, so it works only on a library page", rp.Over)
+	}
 	if rp.Limit < 0 || rp.Limit > 50 {
 		v.err(sp+"/repeat/limit", "", "a repeat's limit is between 0 and 50")
 	}
@@ -485,7 +488,7 @@ func (v *validator) repeat(s *Section, sp string, depth int) {
 		uses = uses || val == "$each"
 	}
 	if !uses {
-		v.warn(sp+"/source", "Use \"$each\" for the library, view or collection.", "the section is repeated but its source never uses $each, so every copy would be the same")
+		v.warn(sp+"/source", "Use \"$each\" for the library, view, collection, series or author.", "the section is repeated but its source never uses $each, so every copy would be the same")
 	}
 }
 

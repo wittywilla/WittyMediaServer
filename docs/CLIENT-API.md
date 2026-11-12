@@ -1546,8 +1546,8 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 
 | Route | Sign-in | What it does |
 |---|---|---|
-| `GET /music/albums` | user | Albums or books of a library. |
-| `GET /music/artists` | user | Artists or authors. |
+| `GET /music/albums` | user | Albums of a library; an audiobook library's books, a books library's series. |
+| `GET /music/artists` | user | Artists; an audiobook or books library's authors. |
 | `GET /music/tracks` | user | Tracks of one album, or all songs; an empty `album` or `artist` means none or unknown. |
 | `GET /music/home` | user | A music library's front page in one request: `library`. |
 | `GET /music/songs` | user | Songs: `library`, `view` (`liked`, `played`, `recent`, `added`), `artist`, `genre`, `search`, `sort`, `desc`, `limit`, `offset`. |
@@ -1687,7 +1687,7 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `GET /sdui/pages/{page}/personal` | user | This profile's own arrangement of a page (order, hidden, pinned, density, cardSize, defaultTab), and whether it may change it. |
 | `PUT /sdui/pages/{page}/personal` | user | Replace this profile's arrangement of a page. Only its own. 403 when the profile may not rearrange pages (the editLayout switch) or the server has it off; 400 lists what is wrong. |
 | `DELETE /sdui/pages/{page}/personal` | user | Back to the page as everyone has it. |
-| `GET /sdui/topshelf` | user | Content for a tvOS Top Shelf extension: what this account was watching and what is new, within its limits, at most 4 sections of 10 pictures, each sized for the device. 304 with If-None-Match when unchanged. |
+| `GET /sdui/topshelf` | user | Content for a tvOS Top Shelf extension: what this account was watching, up to two rows its modules offer, and what is new, within its limits, at most 4 sections of 10 pictures, each sized for the device. 304 with If-None-Match when unchanged. |
 | `GET /sdui/layout` | user | The layout option in force on this device (`device=` names the app's own device, else the form factor): `{layout, shell, choice: {current, chosen, options, url}, editable}`. |
 | `PUT /sdui/layout` | user | This profile's layout on this device: `{layout}`. 403 when the profile may not rearrange or the server doesn't offer that layout. |
 | `DELETE /sdui/layout` | user | This device follows the server's layout again. |

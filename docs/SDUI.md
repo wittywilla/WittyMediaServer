@@ -150,7 +150,7 @@ built around its rules and every other device gets them for free.
 | **Component** | A type from the catalogue, with properties. |
 | **Source** | Where a section's items come from: a type and its parameters, written flat. |
 | **Condition** (`when`) | When a section, variant or navigation entry is shown. |
-| **Repeat** | One copy of a section per library, pinned saved view or collection. |
+| **Repeat** | One copy of a section per library, pinned saved view or collection, or per series or author of the page's books library. |
 | **Variant** | Another list of sections for the same page, used when its condition holds. |
 | **Match** | Narrows a library page to one library or kind of library, a detail page to a kind of title. |
 | **Scope** | The theme scope (a module's ID, or a name of one's own) whose colour overrides a page or section takes. |
@@ -678,6 +678,66 @@ A title's page (`detail`) on a phone or a television carries no `personal`:
 nothing there offers Customise. A profile's arrangement of the page, made on
 a bigger screen, still applies.
 
+## Books, statistics and likes
+
+Three sources fill pages that otherwise only the web app had, so a television
+or a phone draws them with the same Shelf, Grid and cards as everything else.
+No renderer needs to know them.
+
+**A books library's shelf.** `books` is the bookshelf WittyInk draws on the
+web: a books library's books, narrowed to a `series`, an `author` or a
+`format` (`epub`, `pdf` or `cbz`: what each reader opens), by `title`,
+`author` (the books with none last), `added` (newest first), `year` (latest
+first) or `series` (each series in its own order, the books in none last);
+`desc` turns any of them round. With a series and no order, the series' own
+order. A book's series is its `album` and its place in it its `track`; its
+author is its album artist, else its artist, as the scanner reads them from
+the book. To give the shelf rows, repeat a section over `bookSeries` or
+`bookAuthors`: one copy per series or author of the page's books library (so
+only on a library page), by name, with `$each` its name and `{each}` the
+title. The books in no series, or with no author, come last, as
+`"~none"` (`$each` then stands for it, and a source may name it outright),
+titled "No series" or "No author". There are as many copies as the device's
+budget for copies allows ([Device profiles](#device-profiles)), the first by name. The built-in books library page has tabs
+for all three: every book, each series, each author.
+
+A series' name is free text, and two can be the same once cut down to what a
+node ID may hold, so each copy's ID ends with a hash of the name rather than
+the name itself (`in-series-1f0c4a7d2b9e3c11`). Only the server uses it, to
+find the copy again for its next page.
+
+`GET /music/albums` and `GET /music/artists` answer a books library too: its
+series (each with its author and how many books) and its authors. They used
+to answer nothing for one.
+
+**Statistics.** `statistics` adds up the play log, most time first: the
+titles (`stat: titles`), the shows with their episodes together (`shows`) or
+each library (`libraries`, as tiles with how many titles), over the last
+`week`, `month` (the default), `year` or `all` time, in one `library` or
+all. Each card's subtitle says how long, `3 h 20 min`. A profile is shown its
+own record. `"who": "everyone"` is the whole server's, with how many people
+watched each title, and is answered for administrators only: for anyone else
+it is empty, so the section is left out. It names and counts only what the
+profile may open now: a title it has since been kept from is neither shown
+nor added to a library's time. Nothing leaves the server.
+
+**Likes.** `liked` is what the profile gave a thumbs up (the like button on
+songs, videos and any title), most recently liked first, narrowed by
+`media` like `continueWatching`. It is the server's favourites; a TV
+channel's favourites are `liveNow`'s `favourites`.
+
+**What there is no source for.**
+
+- *Playlists* are collections: a list someone made or a rule (the server's
+  smart playlists). `collection` gives one, `collections` all of them, and a
+  row can be repeated over them. There is no separate playlist store.
+- *Cast and crew.* The library keeps no people: a film's metadata keeps its
+  director as one line of text (in `title_meta`), and nothing of its cast.
+  The metadata lookups read the credits only to find that director. A
+  `people` source (an item's cast, the titles with someone in them) needs
+  people stored with each title, and every title looked up again to fill
+  them, so it isn't offered rather than made up from one line of text.
+
 ## Layout options
 
 A layout option is a whole arrangement of an app: where its menu is and how
@@ -1050,6 +1110,15 @@ memory. `shape` is `poster`, `wide` or `square`, the three tvOS has, and
 `deviceClass=4k`). Build a `TVTopShelfSectionedContent` from it, with
 `displayRoute` and `playRoute` wrapped in the app's own URL scheme. It has
 an `ETag`; ask again after `expiresInSec`.
+
+Between those, a module may have rows of its own: a source it declares with
+`"topShelf": true` ([SDUI-MODULES.md](SDUI-MODULES.md#top-shelf)) is asked
+for 10 items, with no parameters, and becomes a row titled with the source's
+`title` (its `label` when the title has a placeholder). At most two such rows,
+in the order of the modules and their files; a source that fails or has
+nothing gives none, and a module the profile is kept from gives nothing. The
+items are checked as on any page. The extension draws them like the rest:
+nothing new for it to know.
 
 ## Patch protocol
 
@@ -2288,6 +2357,8 @@ Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 48
 | [`nextUp`](#nextup) | Next up | personal | episode | episode |  | any |
 | [`recommended`](#recommended) | Recommended for you | personal | movie, show | poster |  | any |
 | [`watchLater`](#watchlater) | Watch later | personal | movie, show, episode, video | poster | yes | any |
+| [`liked`](#liked) | Liked | personal | movie, episode, video, disc, track, book, game | poster | yes | any |
+| [`statistics`](#statistics) | Statistics | personal | movie, episode, video, disc, show, track, book, game, library | poster |  | any |
 | [`savedView`](#savedview) | A saved view | personal | movie, show | poster | yes | any |
 | [`recentlyAdded`](#recentlyadded) | Recently added | library | movie, show, album, book, game, photo, video, podcast, audiobook | poster | yes | any |
 | [`recentlyReleased`](#recentlyreleased) | Recently released | library | movie, show | poster | yes | any |
@@ -2304,6 +2375,7 @@ Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 48
 | [`genres`](#genres) | Genres | structure | genre | chip |  | any |
 | [`liveNow`](#livenow) | On TV now | live | channel | channel |  | any |
 | [`recordings`](#recordings) | Recordings | live | recording | landscape |  | any |
+| [`books`](#books) | Books | library | book | book | yes | any |
 | [`albums`](#albums) | Albums | music | album | album | yes | any |
 | [`artists`](#artists) | Artists | music | artist | person | yes | any |
 | [`continuePlaying`](#continueplaying) | Continue playing | personal | game | game |  | any |
@@ -2359,6 +2431,36 @@ Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 48
 
 ```json
 {"type":"watchLater"}
+```
+
+#### liked
+
+*Liked.* What the profile gave a thumbs up, most recently liked first: songs, films, videos, books, games.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `library` | library |  | Library. One library; leave empty for every library the profile can open. $library on a library page, $each in a row repeated over libraries. |
+| `media` | enum: all, watch, read, listen | `all` | What |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"liked","media":"listen"}
+```
+
+#### statistics
+
+*Statistics.* What has had the most time from the play log, most first, each card saying how long: titles, shows, or each library. A profile sees its own record; everyone's is for administrators only, and is empty for anyone else. Only titles the profile may open are named or counted.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `stat` | enum: titles, shows, libraries | `titles` | Show |
+| `who` | enum: me, everyone | `me` | Whose. Everyone's is answered for administrators only. |
+| `period` | enum: week, month, year, all | `month` | Over |
+| `library` | library |  | Library. One library; leave empty for every library the profile can open. $library on a library page, $each in a row repeated over libraries. |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"statistics","stat":"shows","period":"year","limit":10}
 ```
 
 #### savedView
@@ -2592,6 +2694,24 @@ Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 48
 
 ```json
 {"type":"recordings"}
+```
+
+#### books
+
+*Books.* A books library's books, as its bookshelf has them: narrowed to a series, an author or a format, in an order. A series is in its own order unless another is chosen. With a row repeated over the library's series or authors, $each is each one; ~none is the books with none.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `library` (required) | library |  | Library. One library; leave empty for every library the profile can open. $library on a library page, $each in a row repeated over libraries. |
+| `series` | string, at most 300 |  | Series. Only this series. $each in a row repeated over bookSeries; ~none for books in no series. |
+| `author` | string, at most 300 |  | Author. Only this author's books. $each in a row repeated over bookAuthors; ~none for books with no author. |
+| `format` | enum: all, epub, pdf, cbz | `all` | Format. Only what one reader opens. |
+| `sort` | enum: title, author, added, year, series |  | Order. Left empty: the series' order with a series, title otherwise. |
+| `desc` | bool | `false` | Reverse the order |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"books","library":"$library","series":"$each"}
 ```
 
 #### albums
@@ -2865,7 +2985,7 @@ The menu's style on each form factor, and what the server changes about every pa
 | `library-audiobooks` | library | audiobooks | `listening` (Shelf of continueWatching), `all` (Grid of albums) |
 | `library-podcasts` | library | podcasts | `listening` (Shelf of continueWatching), `all` (Grid of albums) |
 | `library-photos` | library | photos | `timeline` (NativeView), `all` (Grid of recentlyAdded) |
-| `library-books` | library | books | `reading` (Shelf of continueWatching), `all` (Grid of recentlyAdded) |
+| `library-books` | library | books | `reading` (Shelf of continueWatching), `shelf` (Tabs), `books` (Tab), `all` (Grid of books), `series` (Tab), `in-series` (Shelf of books, per bookSerie), `authors` (Tab), `by-author` (Shelf of books, per bookAuthor) |
 | `library-games` | library | games | `playing` (Shelf of continuePlaying), `all` (Grid of recentlyAdded) |
 | `detail` | detail | every detail page | `header` (DetailHeader), `similar` (Shelf of similar) |
 | `detail-show` | detail | show | `header` (DetailHeader), `episodes` (SeasonList of episodes), `similar` (Shelf of similar) |

@@ -584,7 +584,7 @@ func cases() []kase {
 			sec("none", "Banner", map[string]any{"title": "Never shown"}, sdui.Source{"type": "watchLater", "limit": 1})), Request: request("tablet"),
 			Data: Data{Sources: []CannedSource{src(map[string]any{"type": "random"}, films(1), 0)}}},
 			checks: []string{"a banner written by hand opens a native screen", "a banner from a source takes its title, text, picture and destination from the first item", "a banner whose source is empty is left out"}},
-	}, append(moduleCases(), layoutCases()...)...)
+	}, append(moduleCases(), append(layoutCases(), sourceCases()...)...)...)
 }
 
 // The modules' cases (docs/SDUI-MODULES.md): the worked example module's page,
@@ -697,5 +697,84 @@ func layoutCases() []kase {
 			checks: []string{"on a phone the menu is the tab bar, over the page"}},
 		{id: "layout-streaming-tv", title: "Layout: streaming style, Home on a television", in: with(home("tv", nil), sdui.LayoutStreaming, nil),
 			checks: []string{"a television's menu is never drawn over the page"}},
+	}
+}
+
+// The sources a books library's shelf, statistics and likes are drawn from (docs/SDUI.md,
+// "Data sources"): the cards are the same cards as anywhere, so no renderer needs to know
+// these sources; what they pin down is what such a page sends.
+func sourceCases() []kase {
+	book := func(i int, series string, n int) sdui.Item {
+		id := strconv.Itoa(8100 + i)
+		it := sdui.Item{ID: id, Kind: "book", Title: "Book " + strconv.Itoa(i), Subtitle: "A. Writer", Images: map[string]string{"poster": "/api/items/" + id + "/poster"}, Route: "/item/" + id}
+		if series != "" {
+			it.Title = series + " " + strconv.Itoa(n)
+		}
+		return it
+	}
+	booksData := func() Data {
+		return Data{
+			Each: map[string][]CannedEach{
+				"bookSeries":  {{Key: "Moon Hollow", Label: "Moon Hollow", ID: "1f0c4a7d2b9e3c11"}, {Key: "Ōoku", Label: "Ōoku", ID: "6d2e9b0a4c7f8e22"}, {Key: sdui.BooksNone, Label: "No series", ID: "9a8b7c6d5e4f3a33"}},
+				"bookAuthors": {{Key: "A. Writer", Label: "A. Writer", ID: "0b1c2d3e4f5a6b44"}},
+			},
+			Sources: []CannedSource{
+				src(map[string]any{"type": "continueWatching", "media": "read"}, inProgress()[2:], 0),
+				src(map[string]any{"type": "books", "series": "Moon Hollow"}, []sdui.Item{book(1, "Moon Hollow", 1), book(2, "Moon Hollow", 2), book(3, "Moon Hollow", 3)}, 0),
+				src(map[string]any{"type": "books", "series": "Ōoku"}, []sdui.Item{book(4, "Ōoku", 1), book(5, "Ōoku", 2)}, 0),
+				src(map[string]any{"type": "books", "series": sdui.BooksNone}, []sdui.Item{book(6, "", 0)}, 0),
+				src(map[string]any{"type": "books", "author": "A. Writer"}, []sdui.Item{book(1, "Moon Hollow", 1), book(4, "Ōoku", 1), book(6, "", 0)}, 0),
+				src(map[string]any{"type": "books"}, []sdui.Item{book(1, "Moon Hollow", 1), book(4, "Ōoku", 1), book(6, "", 0), book(2, "Moon Hollow", 2), book(5, "Ōoku", 2), book(3, "Moon Hollow", 3)}, 0),
+			},
+		}
+	}
+	books := func(ff, tab string) Input {
+		in := Input{Page: stock("library-books"), Request: request(ff), Data: booksData()}
+		in.Request.Vars = map[string]string{"library": "6", "libraryKind": "books", "libraryName": "Books"}
+		in.Request.LibraryKinds = append(in.Request.LibraryKinds, "books")
+		if tab != "" {
+			in.Request.Params = map[string]string{"tab": tab}
+		}
+		return in
+	}
+	watched := func(it sdui.Item, note string) sdui.Item {
+		it.Subtitle = note
+		return it
+	}
+	stats := sdui.Page{ID: "my-year", Kind: "custom", Title: "Your viewing", Icon: "chart", Sections: []sdui.Section{
+		sec("titles", "Shelf", map[string]any{"title": "Most watched this month"}, sdui.Source{"type": "statistics"}),
+		sec("shows", "Shelf", map[string]any{"title": "Shows this year"}, sdui.Source{"type": "statistics", "stat": "shows", "period": "year"}),
+		sec("libraries", "Grid", map[string]any{"title": "Time in each library"}, sdui.Source{"type": "statistics", "stat": "libraries", "period": "all"}),
+		sec("liked", "Shelf", map[string]any{"title": "Liked"}, sdui.Source{"type": "liked"}),
+		sec("everyone", "Shelf", map[string]any{"title": "Most watched on the server"}, sdui.Source{"type": "statistics", "who": "everyone"}),
+	}}
+	statsData := func(admin bool) Data {
+		d := Data{Sources: []CannedSource{
+			src(map[string]any{"type": "statistics", "stat": "shows"}, []sdui.Item{watched(show(1), "14 h 5 min"), watched(show(2), "3 h")}, 0),
+			src(map[string]any{"type": "statistics", "stat": "libraries"}, []sdui.Item{
+				{ID: "lib2", Kind: "library", Title: "Shows", Subtitle: "40 h 12 min", Icon: "show", Count: 31, RuntimeSec: 144720, Route: "/library/2"},
+				{ID: "lib1", Kind: "library", Title: "Films", Subtitle: "12 h 40 min", Icon: "movie", Count: 6, RuntimeSec: 45600, Route: "/library/1"}}, 0),
+			src(map[string]any{"type": "liked"}, []sdui.Item{film(4), film(2)}, 0),
+		}}
+		if admin {
+			d.Sources = append(d.Sources, src(map[string]any{"type": "statistics", "who": "everyone"}, []sdui.Item{watched(film(1), "20 h · 4 people"), watched(film(5), "9 h 30 min · 2 people")}, 0))
+		} else {
+			d.Sources = append(d.Sources, src(map[string]any{"type": "statistics", "who": "everyone"}, nil, 0))
+		}
+		d.Sources = append(d.Sources, src(map[string]any{"type": "statistics"}, []sdui.Item{watched(film(2), "4 h 2 min"), watched(episode(1, 2, 4), "Show 1 · 48 min")}, 0))
+		return d
+	}
+	admin := request("tv")
+	admin.Admin = true
+	return []kase{
+		{id: "library-books-tv", title: "A books library on a television, on its Series tab", in: books("tv", "series"),
+			checks: []string{"a row for each series of the library (repeat over bookSeries), titled with its name, the books with none last", "each copy's ID ends with the Each's id, so two names that are the same once cut to an ID still give two rows", "book cards, in the series' own order"}},
+		{id: "library-books-phone", title: "A books library on a phone, on its first tab", in: books("phone", ""),
+			checks: []string{"Continue reading, then the bookshelf's tabs: Books, Series, Authors", "the Books tab is a grid of every book"}},
+		{id: "statistics-phone", title: "Statistics and likes on a phone, for a profile that isn't an administrator", in: Input{Page: stats, Request: request("phone"), Data: statsData(false)},
+			checks: []string{"statistics are cards like any other, the time in the subtitle", "a library's time is a tile", "everyone's record is empty for anyone but an administrator, so its row is left out"}},
+		{id: "statistics-tv-admin", title: "Statistics on a television, for an administrator", in: Input{Page: stats, Request: admin, Data: statsData(true)},
+			checks: []string{"rows past the first screen arrive deferred, as on any page", "an administrator's row of everyone's record, fetched by its cursor, says how many people"},
+			more:   []SectionAnswer{{Section: "everyone", Cursor: 0}}},
 	}
 }

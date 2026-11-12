@@ -95,11 +95,19 @@ func buildStockPages() []Page {
 	photosLib := Page{ID: "library-photos", Kind: "library", Title: "{library}", Icon: "photo", Match: &Match{LibraryKind: "photos"},
 		Sections: []Section{with(sec("timeline", "NativeView", props{"view": "photoTimeline", "library": "$library"}, nil),
 			sec("all", "Grid", props{"cardStyle": "photo", "showTitles": false, "empty": "message", "emptyText": "No photos yet."}, Source{"type": "recentlyAdded", "library": "$library"}))}}
+	// The bookshelf as WittyInk's has it: every book by title, then a row for each series in
+	// its own order, and for each author by series.
 	booksLib := Page{ID: "library-books", Kind: "library", Title: "{library}", Icon: "book", Match: &Match{LibraryKind: "books"},
-		Description: "Books and comics: what you were reading, then every cover.",
+		Description: "Books and comics: what you were reading, then the bookshelf: every book, each series and each author.",
 		Sections: []Section{
 			sec("reading", "Shelf", props{"title": "Continue reading", "cardStyle": "book"}, Source{"type": "continueWatching", "media": "read"}),
-			sec("all", "Grid", props{"cardStyle": "book", "empty": "message", "emptyText": "No books yet."}, Source{"type": "recentlyAdded", "library": "$library"}),
+			with(sec("shelf", "Tabs", props{"style": "segments"}, nil),
+				with(sec("books", "Tab", props{"label": "Books", "icon": "book"}, nil),
+					sec("all", "Grid", props{"cardStyle": "book", "empty": "message", "emptyText": "No books yet."}, Source{"type": "books", "library": "$library"})),
+				with(sec("series", "Tab", props{"label": "Series", "icon": "list"}, nil),
+					repeated(sec("in-series", "Shelf", props{"title": "{each}", "cardStyle": "book"}, Source{"type": "books", "library": "$library", "series": "$each"}), "bookSeries")),
+				with(sec("authors", "Tab", props{"label": "Authors", "icon": "user"}, nil),
+					repeated(sec("by-author", "Shelf", props{"title": "{each}", "cardStyle": "book"}, Source{"type": "books", "library": "$library", "author": "$each", "sort": "series"}), "bookAuthors"))),
 		}}
 	gamesLib := Page{ID: "library-games", Kind: "library", Title: "{library}", Icon: "game", Match: &Match{LibraryKind: "games"}, Scope: "wittyplay",
 		Sections: []Section{

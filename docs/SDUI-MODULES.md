@@ -104,6 +104,7 @@ The top level:
 
 | Field | Type | Required | What it is |
 |---|---|---|---|
+| `$schema` | string | no | The JSON Schema an editor checks the file with, such as `./sdui/kit/sdui-module.schema.json`. The server ignores it. |
 | `format` | string | yes | Always `wittymodule-sdui`. |
 | `formatVersion` | int | yes | Always `1`. |
 | `module` | string | yes | The module's ID, the same as `id` in `module.json`. |

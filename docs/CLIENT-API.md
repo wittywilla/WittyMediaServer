@@ -721,6 +721,12 @@ The Design 2 **More info** screen for a programme in the guide (feature `tv-prog
   the one asked about.
 - `ids`: `imdb` and `tmdb`, when the guide gives them, for `GET /discover/where-to-watch`.
 
+To open More info from a recording, use its `channelKey` and `start` (`GET /recordings` and `POST /recordings`, feature
+`tv-recording-refs`); `programme` is the same as `<channelKey>@<start>`, for the SDUI `credits` source. A `recordings`
+SDUI card carries them as `channel` and `programme`. They're left out when the profile may no longer watch that
+channel: then don't offer More info. The guide keeps about a month of the past, so an older recording's More info
+answers 404.
+
 A 404 means the channel or the programme isn't there for this profile. A 403 means a library channel is showing
 something the profile may not see. In SDUI, the `credits` source takes `programme: "<key>@<start>"` and draws the same
 cast and crew.

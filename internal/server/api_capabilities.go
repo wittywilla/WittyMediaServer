@@ -139,7 +139,7 @@ var serverFeatures = []string{
 	"p2p-join",
 	// Live TV for long playlists: channel sets, paging and finding channels in the guide, catch-up,
 	// channel health and backups, and fuller series recording.
-	"tv-sets", "tv-guide-paging", "tv-catchup", "tv-channel-health", "tv-duplicates", "tv-dvr-rules-2", "tv-programme-info",
+	"tv-sets", "tv-guide-paging", "tv-catchup", "tv-channel-health", "tv-duplicates", "tv-dvr-rules-2", "tv-programme-info", "tv-recording-refs",
 	// Modules carry their own SDUI (docs/SDUI-MODULES.md): their pages, rows, menu entries,
 	// sources and colours are merged in; their pictures and settings have routes of their own.
 	"sdui-modules", "module-settings",

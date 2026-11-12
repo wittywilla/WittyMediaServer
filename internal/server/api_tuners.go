@@ -1064,7 +1064,26 @@ func (s *Server) handleRecordings(w http.ResponseWriter, r *http.Request) {
 		}
 		list = mine
 	}
+	s.recordingRefs(r, list...)
 	writeJSON(w, 200, list)
+}
+
+// recordingRefs fills in what opens a recording's More info (GET /api/tv/{key}/programme), for
+// the recordings on channels this profile may watch; on any other, they stay empty.
+func (s *Server) recordingRefs(r *http.Request, list ...*livetv.Recording) {
+	may := map[int64]bool{}
+	for _, x := range list {
+		ok, seen := may[x.ChannelID]
+		if !seen {
+			ok = x.ChannelID > 0 && s.canWatchTuner(r, x.ChannelID)
+			may[x.ChannelID] = ok
+		}
+		x.ChannelKey, x.Programme = "", ""
+		if ok {
+			x.ChannelKey = "tun-" + strconv.FormatInt(x.ChannelID, 10)
+			x.Programme = x.ChannelKey + "@" + strconv.FormatInt(x.Start, 10)
+		}
+	}
 }
 
 // Limits on what one account can line up. An administrator has none.
@@ -1107,6 +1126,7 @@ func (s *Server) handleSchedule(w http.ResponseWriter, r *http.Request) {
 		s.tunerError(w, r, err)
 		return
 	}
+	s.recordingRefs(r, rec)
 	writeJSON(w, 200, rec)
 }
 

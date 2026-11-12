@@ -785,7 +785,7 @@ func buildSources() []SourceSpec {
 			Description: "The channels the profile may watch, with what is on now and next.",
 			Params:      []PropSpec{pBool("favourites", "Favourite channels only", "", false), paramLimit}, Yields: []string{"channel"}, Example: example(`{"type":"liveNow","favourites":true}`)},
 		{Type: "recordings", Label: "Recordings", Icon: "record", Category: "live", Since: 2, CardStyle: "landscape", SeeAll: "/tv/recordings", Title: "Recordings",
-			Description: "The profile's finished Live TV recordings, newest first.",
+			Description: "The profile's finished Live TV recordings, newest first. Each card carries channel and programme, for opening its More info, when the profile may still watch that channel.",
 			Params:      []PropSpec{paramLimit}, Yields: []string{"recording"}, Example: example(`{"type":"recordings"}`)},
 
 		{Type: "books", Label: "Books", Icon: "book", Category: "library", Since: 2, CardStyle: "book", Paged: true, Title: "Books",

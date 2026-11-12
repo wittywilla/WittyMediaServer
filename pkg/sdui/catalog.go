@@ -110,6 +110,8 @@ type ComponentSpec struct {
 	Module    string   `json:"module,omitempty"`
 	Expands   string   `json:"expands,omitempty"`
 	PageKinds []string `json:"pageKinds,omitempty"`
+	// Tokens are the theme tokens it is drawn with (tokens.go).
+	Tokens *TokenRoles `json:"tokens,omitempty"`
 }
 
 // CardStyleSpec describes one way a Card is drawn.
@@ -132,6 +134,8 @@ type CardStyleSpec struct {
 	SubtitleLines int `json:"subtitleLines"`
 	// Kinds are the item kinds the style is the natural one for.
 	Kinds []string `json:"kinds,omitempty"`
+	// Tokens are the theme tokens it is drawn with (tokens.go).
+	Tokens *TokenRoles `json:"tokens,omitempty"`
 }
 
 // SourceSpec describes one data source.
@@ -242,9 +246,11 @@ type Catalogue struct {
 	// Profiles are the device profiles, so an editor can preview a page's
 	// budgets and a renderer can lay out a lazily loaded page of cards.
 	Profiles map[string]*Layout `json:"profiles"`
+	// Theme is the vocabulary of the components' tokens (tokens.go).
+	Theme *ThemeRoles `json:"theme,omitempty"`
 }
 
-var catalogueOnce = sync.OnceValue(buildCatalogue)
+var catalogueOnce = sync.OnceValue(func() *Catalogue { return withTokens(buildCatalogue()) })
 
 // Catalog returns the catalogue. It is shared: don't change it.
 func Catalog() *Catalogue { return catalogueOnce() }

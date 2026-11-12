@@ -130,6 +130,9 @@
         },
         "titleLines": {
           "type": "integer"
+        },
+        "tokens": {
+          "$ref": "#/$defs/TokenRoles"
         }
       },
       "required": [
@@ -283,6 +286,9 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "theme": {
+          "$ref": "#/$defs/ThemeRoles"
         }
       },
       "required": [
@@ -432,6 +438,9 @@
             "type": "string"
           },
           "type": "object"
+        },
+        "tokens": {
+          "$ref": "#/$defs/TokenRoles"
         },
         "type": {
           "type": "string"
@@ -1759,6 +1768,41 @@
       ],
       "type": "object"
     },
+    "ThemeRoles": {
+      "properties": {
+        "colorRoles": {
+          "items": {
+            "$ref": "#/$defs/EnumOption"
+          },
+          "type": "array"
+        },
+        "colorTokens": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "shapeTokens": {
+          "items": {
+            "$ref": "#/$defs/EnumOption"
+          },
+          "type": "array"
+        },
+        "typeRoles": {
+          "additionalProperties": {
+            "$ref": "#/$defs/TypeRole"
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "colorRoles",
+        "colorTokens",
+        "shapeTokens",
+        "typeRoles"
+      ],
+      "type": "object"
+    },
     "ThemeScope": {
       "properties": {
         "scope": {
@@ -1773,6 +1817,32 @@
       },
       "required": [
         "scope"
+      ],
+      "type": "object"
+    },
+    "TokenRoles": {
+      "properties": {
+        "colors": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "shape": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "type": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "colors"
       ],
       "type": "object"
     },
@@ -1849,6 +1919,21 @@
       "required": [
         "title",
         "items"
+      ],
+      "type": "object"
+    },
+    "TypeRole": {
+      "properties": {
+        "family": {
+          "type": "string"
+        },
+        "weight": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "family",
+        "weight"
       ],
       "type": "object"
     },

@@ -160,6 +160,7 @@ func CatalogueMarkdown() string {
 	}
 	w("\n")
 
+	b.WriteString(tokensMarkdown(c))
 	w("### Device profiles\n\n")
 	w("| | tv (hd) | tv (4k) | phone | tablet | desktop | web |\n|---|---|---|---|---|---|---|\n")
 	order := []string{"tv", "tv-4k", "phone", "tablet", "desktop", "web"}

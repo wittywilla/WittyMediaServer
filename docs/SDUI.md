@@ -2008,6 +2008,110 @@ The width of a medium (`m`) card in points; small is 80% and large 125%, rounded
 | `channel` | 420 | 4 | 224 | 288 | 320 |
 | `tile` | 420 | 4 | 224 | 288 | 320 |
 
+### Theme tokens
+
+Every colour, typeface and corner comes from the theme: colours from `GET /api/v1/theme` `tokens` (with a node's scope `tokens` over them), corners from its `shape`, typefaces and weights from its `type`, sizes from `layout.text`. A renderer has none of its own. Each component and card style has `tokens` in the catalogue: which colour token each part is drawn in, which text role each piece of text takes, and which shape token rounds each part. [THEMES.md](THEMES.md#sdui-tokens) explains them.
+
+Text roles: `badge` (body family, strong weight), `body` (body family, body weight), `caption` (body family, body weight), `heading` (display family, heading weight), `pageTitle` (display family, heading weight), `title` (body family, strong weight).
+
+Colour roles:
+
+- `background`: What the component fills its own area with.
+- `surface`: A raised area inside it, and the place of a picture that hasn't loaded.
+- `text`: Its main text.
+- `secondaryText`: Subtitles, facts, inactive tabs.
+- `hintText`: Numbers, placeholders, hints.
+- `link`: Links and highlighted words: the accent as text.
+- `icon`: Icons beside text.
+- `accent`: Filled things that stand out: a primary button, a selected tab's underline.
+- `onAccent`: Text and icons on accent.
+- `accentHover`: accent while hovered or pressed.
+- `selected`: The tint behind a selected row or chip.
+- `selectedBorder`: The outline of a selected chip.
+- `selectedText`: The text of a selected tab, chip or row.
+- `hover`: The tint over a hovered row (pointer devices).
+- `pressed`: The tint over a pressed row.
+- `border`: Hairlines.
+- `outline`: Outlines of secondary buttons and chips.
+- `fieldOutline`: Outlines of text fields and other controls: 3:1 on every surface.
+- `focus`: The focus ring.
+- `onImage`: Text and icons over a picture.
+- `scrim`: The plate behind text over a picture.
+- `badge`: A badge's fill (over a picture).
+- `badgeText`: A badge's text.
+- `progress`: A progress bar's filled part.
+- `progressTrack`: A progress bar's empty part.
+- `watched`: The watched mark's fill.
+- `onWatched`: The watched mark's tick.
+- `playing`: The track or item playing now.
+- `info`: The information tone's bar and icon.
+- `success`: The good-news tone's bar and icon.
+- `warning`: The warning tone's bar and icon.
+- `danger`: The problem tone's bar, icon, and a destructive button.
+- `dangerTint`: The tint behind a hovered destructive button.
+- `brand`: The server's name, its coloured parts (brandParts with accent).
+
+Shape tokens:
+
+- `card`: Cards and their pictures.
+- `button`: Buttons.
+- `field`: Text fields, selects, search boxes.
+- `row`: List rows.
+- `thumb`: Small pictures in a row.
+- `chip`: Chips and filter pills.
+- `badge`: Badges and small labels.
+- `image`: Pictures and banners placed on a page; the spotlight on a television.
+- `sheet`: Menus, popovers and sheets.
+- `dialog`: Dialogs.
+- `pill`: Fully round whatever the size: a circle on a square picture.
+- `focusWidth`: The focus ring's width.
+- `focusOffset`: The gap between the focus ring and what it surrounds.
+
+| Component | Colours | Text | Shape |
+|---|---|---|---|
+| `Page` | background `bg`, brand `brandAccent`, secondaryText `fg2`, text `fg` | title `pageTitle` |  |
+| `Hero` | accent `accent`, accentHover `accentHover`, background `bg`, badge `scrim`, badgeText `onImage`, focus `focus`, onAccent `accentFg`, onImage `onImage`, outline `onImage`, scrim `scrim`, secondaryText `onImage`, surface `bg3`, text `onImage` | badge `badge`, button `body`, facts `caption`, synopsis `body`, title `pageTitle` | badge `badge`, button `button`, corner `image`, focus `focusWidth`, focusGap `focusOffset`, pageDots `pill` |
+| `Shelf` | focus `focus`, link `accentText`, secondaryText `fg2`, surface `bg3`, text `fg` | seeAll `body`, subtitle `caption`, title `heading` | focus `focusWidth`, focusGap `focusOffset`, scrollButton `pill` |
+| `Grid` | focus `focus`, link `accentText`, secondaryText `fg2`, surface `bg3`, text `fg` | seeAll `body`, subtitle `caption`, title `heading` | focus `focusWidth`, focusGap `focusOffset` |
+| `Card` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg3`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg`, watched `accent` | badge `badge`, subtitle `caption`, title `title` | badge `badge`, corner `card`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
+| `Tabs` | accent `accent`, border `border`, focus `focus`, hover `hover`, selected `accentSoft`, selectedText `fg`, surface `bg3`, text `fg2` | label `title` | focus `focusWidth`, focusGap `focusOffset`, segment `chip` |
+| `Tab` | accent `accent`, focus `focus`, hover `hover`, selected `accentSoft`, selectedText `fg`, text `fg2` | label `title` | focus `focusWidth`, focusGap `focusOffset`, segment `chip` |
+| `FilterBar` | fieldOutline `controlLine`, focus `focus`, hintText `fg3`, hover `hover`, outline `borderStrong`, secondaryText `fg2`, selected `accentSoft`, selectedBorder `accentLine`, selectedText `fg`, surface `bg3`, text `fg` | count `caption`, label `body` | chip `chip`, field `field`, focus `focusWidth`, focusGap `focusOffset`, menu `sheet` |
+| `DetailHeader` | accent `accent`, accentHover `accentHover`, background `bg`, badge `scrim`, badgeText `onImage`, border `borderStrong`, danger `danger`, dangerTint `dangerSoft`, focus `focus`, hover `hover`, link `accentText`, onAccent `accentFg`, onImage `onImage`, outline `borderStrong`, pressed `pressed`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg` | badge `badge`, button `body`, facts `caption`, synopsis `body`, title `pageTitle` | badge `badge`, button `button`, focus `focusWidth`, focusGap `focusOffset`, poster `card`, progress `pill` |
+| `SeasonList` | focus `focus`, hintText `fg3`, hover `hover`, onWatched `accentFg`, outline `borderStrong`, progress `accent`, progressTrack `bg4`, secondaryText `fg2`, selected `accentSoft`, selectedBorder `accentLine`, selectedText `fg`, surface `bg3`, text `fg`, watched `accent` | season `body`, synopsis `caption`, title `title` | focus `focusWidth`, focusGap `focusOffset`, row `row`, season `chip`, still `card` |
+| `TrackList` | border `border`, focus `focus`, hintText `fg3`, hover `hover`, playing `accentText`, pressed `pressed`, secondaryText `fg2`, selected `accentSoft`, text `fg` | artist `caption`, length `caption`, number `caption`, title `body` | focus `focusWidth`, focusGap `focusOffset`, row `row` |
+| `Track` | focus `focus`, hintText `fg3`, hover `hover`, playing `accentText`, pressed `pressed`, secondaryText `fg2`, selected `accentSoft`, text `fg` | artist `caption`, length `caption`, number `caption`, title `body` | focus `focusWidth`, focusGap `focusOffset`, row `row` |
+| `Banner` | accent `accent`, accentHover `accentHover`, background `bg3`, border `border`, danger `danger`, dangerTint `dangerSoft`, focus `focus`, hover `hover`, onAccent `accentFg`, onImage `onImage`, outline `borderStrong`, pressed `pressed`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg` | button `body`, text `body`, title `heading` | button `button`, corner `image`, focus `focusWidth`, focusGap `focusOffset`, thumb `card` |
+| `Text` | hintText `fg3`, link `accentText`, secondaryText `fg2`, surface `bg3`, text `fg` | body `body`, caption `caption`, heading `heading`, pageTitle `pageTitle`, title `title` | code `badge` |
+| `Notice` | accent `accent`, accentHover `accentHover`, background `bg2`, border `border`, danger `danger`, dangerTint `dangerSoft`, focus `focus`, hover `hover`, icon `fg2`, info `accentText`, onAccent `accentFg`, outline `borderStrong`, pressed `pressed`, secondaryText `fg2`, success `ok`, surface `bg3`, text `fg`, warning `warn` | button `body`, text `body`, title `title` | button `button`, corner `card`, focus `focusWidth`, focusGap `focusOffset` |
+| `Divider` | border `border` |  |  |
+| `Spacer` |  |  |  |
+| `Stack` | secondaryText `fg2`, text `fg` | title `heading` |  |
+| `Split` |  |  |  |
+| `Button` | accent `accent`, accentHover `accentHover`, danger `danger`, dangerTint `dangerSoft`, focus `focus`, hover `hover`, onAccent `accentFg`, outline `borderStrong`, pressed `pressed`, surface `bg3`, text `fg` | label `body` | corner `button`, focus `focusWidth`, focusGap `focusOffset`, iconOnly `pill` |
+| `Image` | focus `focus`, surface `bg3` |  | corner `image`, focus `focusWidth`, focusGap `focusOffset` |
+| `SearchBox` | fieldOutline `controlLine`, focus `focus`, hintText `fg3`, icon `fg2`, surface `bg3`, text `fg` | text `body` | corner `field`, focus `focusWidth`, focusGap `focusOffset` |
+| `List` | border `border`, focus `focus`, secondaryText `fg2`, text `fg` | title `heading` | focus `focusWidth`, focusGap `focusOffset` |
+| `ListItem` | focus `focus`, hintText `fg3`, hover `hover`, icon `fg2`, pressed `pressed`, secondaryText `fg2`, selected `accentSoft`, selectedText `fg`, surface `bg3`, text `fg` | subtitle `caption`, title `body`, trailing `caption` | art `thumb`, corner `row`, focus `focusWidth`, focusGap `focusOffset`, icon `row` |
+| `NativeView` | background `bg`, focus `focus`, outline `borderStrong`, secondaryText `fg2`, surface `bg2`, text `fg` | text `body` | corner `image`, focus `focusWidth`, focusGap `focusOffset` |
+
+| Card style | Colours | Text | Shape |
+|---|---|---|---|
+| `poster` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg3`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg`, watched `accent` | badge `badge`, subtitle `caption`, title `title` | badge `badge`, corner `card`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
+| `landscape` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg3`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg`, watched `accent` | badge `badge`, subtitle `caption`, title `title` | badge `badge`, corner `card`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
+| `progress` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg3`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg`, watched `accent` | badge `badge`, subtitle `caption`, title `title` | badge `badge`, corner `card`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
+| `episode` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg3`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg`, watched `accent` | badge `badge`, subtitle `caption`, synopsis `caption`, title `title` | badge `badge`, corner `card`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
+| `square` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg3`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg`, watched `accent` | badge `badge`, subtitle `caption`, title `title` | badge `badge`, corner `card`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
+| `album` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg3`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg`, watched `accent` | badge `badge`, subtitle `caption`, title `title` | badge `badge`, corner `card`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
+| `circle` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg3`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg`, watched `accent` | badge `badge`, subtitle `caption`, title `title` | badge `badge`, corner `pill`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
+| `person` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg3`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg`, watched `accent` | badge `badge`, subtitle `caption`, title `title` | badge `badge`, corner `pill`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
+| `book` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg3`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg`, watched `accent` | badge `badge`, subtitle `caption`, title `title` | badge `badge`, corner `card`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
+| `game` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg3`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg`, watched `accent` | badge `badge`, subtitle `caption`, title `title` | badge `badge`, corner `card`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
+| `photo` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg3`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg`, watched `accent` |  | badge `badge`, corner `card`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
+| `channel` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg2`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `fg`, watched `accent` | badge `badge`, next `caption`, now `caption`, number `caption`, subtitle `caption`, title `title` | badge `badge`, corner `card`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
+| `tile` | badge `scrim`, badgeText `onImage`, border `border`, focus `focus`, hintText `fg3`, icon `fg2`, onImage `onImage`, onWatched `accentFg`, progress `accent`, progressTrack `bg4`, scrim `scrim`, secondaryText `fg2`, surface `bg3`, text `onImage`, watched `accent` | badge `badge`, subtitle `caption`, title `heading` | badge `badge`, corner `card`, focus `focusWidth`, focusGap `focusOffset`, progress `pill` |
+| `chip` | focus `focus`, hover `hover`, outline `borderStrong`, selected `accentSoft`, selectedBorder `accentLine`, selectedText `fg`, text `fg2` | title `body` | corner `chip`, focus `focusWidth`, focusGap `focusOffset` |
+
 ### Device profiles
 
 | | tv (hd) | tv (4k) | phone | tablet | desktop | web |

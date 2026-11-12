@@ -76,3 +76,7 @@ export function overrideDeclarations(t: ResolvedTheme | null, module: string, gl
   }
   return out
 }
+
+// A finish colour from a theme file (an imported one included): #hex or a plain rgb/rgba/hsl/hsla, nothing that could fetch or break out.
+const FINISH_COLOUR = /^(#[0-9a-f]{3,8}|(?:rgb|hsl)a?\(\s*[\d.]+%?(?:\s*[,/]?\s*[\d.]+%?){2,3}\s*\))$/i
+export const safeColour = (c: unknown): string => (typeof c === 'string' && FINISH_COLOUR.test(c.trim()) ? c.trim() : '')

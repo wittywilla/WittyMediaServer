@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { useSyncExternalStore } from 'react'
-import { currentLook, safeColour, sceneLayers, subscribeScene } from '../theme'
+import { currentLook, sceneLayers, subscribeScene } from '../theme'
 import { serverBase } from '../api'
-import type { SceneLayer } from '../themeOverrides'
+import { safeColour, type SceneLayer } from '../themeOverrides'
 
 // The theme's scene (docs/THEMES.md, "A scene"): ordered layers drawn behind the page and under the menu, bottom first,
 // positions in percent of the window: a gradient (the sky), a radial light (the light sweep), shapes (bubbles, bokeh,

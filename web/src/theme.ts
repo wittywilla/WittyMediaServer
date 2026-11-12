@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { api, serverBase } from './api'
-import { overrideDeclarations, type ResolvedTheme, type SceneLayer } from './themeOverrides'
+import { overrideDeclarations, safeColour, type ResolvedTheme, type SceneLayer } from './themeOverrides'
 import { themeDeclarations } from './ui/themeMaker'
 
 // Themes are ZIPs on the server (see docs/THEMES.md). The server default can
@@ -70,9 +70,6 @@ function setScene(layers: SceneLayer[]) {
   scene = layers
   sceneListeners.forEach((l) => l())
 }
-// A finish colour from a theme file (an imported one included): #hex or a plain rgb/rgba/hsl/hsla, nothing that could fetch or break out.
-const FINISH_COLOUR = /^(#[0-9a-f]{3,8}|(?:rgb|hsl)a?\(\s*[\d.]+%?(?:\s*[,/]?\s*[\d.]+%?){2,3}\s*\))$/i
-export const safeColour = (c: unknown): string => (typeof c === 'string' && FINISH_COLOUR.test(c.trim()) ? c.trim() : '')
 function applyLook(look: ResolvedTheme['look']) {
   const d = document.documentElement.dataset
   const root = document.documentElement.style

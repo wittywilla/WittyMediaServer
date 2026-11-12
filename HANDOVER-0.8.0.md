@@ -55,24 +55,31 @@ server and the web client; the Apple and Android apps draw it from the same cont
 - **Web**: `CreditsView` (cast and guest rows of round portraits, initials when there is no picture, crew in
   columns of departments, Show all), the person page, catalogue 3; TV mode styles.
 
-### Known issues / not verified
-- Seen on a scratch server against the owner's test media (saveMetadata off): a film's cast and crew from its
-  movie.nfo, a show's from TVmaze with photos, a person page. No TMDB key there, so no biographies were seen;
-  TMDB, TheTVDB and TVmaze parsing is verified against hand-written JSON fixtures only
-  (`internal/library/credits_sources_test.go`).
-- `RefreshShow` and the scan-time TheTVDB/TVmaze show lookups are not tested end to end (the scanner has no
-  base-address hook for those two services); their parsing and storage are.
-- File tags (`©dir` in MP4) are unit-tested only: the tests have no ffprobe.
-- TVmaze gives no per-episode guest stars (one request per episode); TMDB and TheTVDB do.
-- A film's or episode's NFO edited without the media file changing is read on Refresh metadata only (as every
-  NFO field already was); show NFOs are read every scan.
-- Apple and Android fail the six new fixtures until they draw `Credits` (S3/S4, W3/W4). The web's conformance
-  test also fails on upstream's `peek` (Design 2, W2's work), not on credits.
-- The design lead's canvas draws the crew as "Role · Name" chips and a separate "Cast and crew by department"
-  page; the server sends the crew as person cards grouped by department in one `Credits` node with Show all.
-  If the canvas's separate page is wanted, it needs a route and page of its own (not built).
-- Fixed on the way: a film folder with an NFO this server wrote earlier (no people) beside a media centre's
-  movie.nfo now takes the people from movie.nfo; the title header's poster no longer hides under its placeholder.
+### Seen and verified
+Seen on a scratch server against the owner's test media (saveMetadata off, nothing written to the drive): a film's
+cast and crew from its movie.nfo, a show's from TVmaze with photos, a person page. Fixed on the way: a film folder
+with an NFO this server wrote earlier (no people) beside a media centre's movie.nfo now takes the people from
+movie.nfo; the title header's poster no longer hides under its placeholder; a person only a TV guide names (S6's
+programme credits) gets a card with no page instead of `/person/0`.
+
+### Issue candidates (for the owner to approve; nothing filed)
+1. **Credits from TMDB and TheTVDB not seen against the live services** (WittyMediaServer). Parsing and storage are
+   tested against hand-written answers only; no key was set on the test server, so no biographies or online credits
+   were seen running. Look in `internal/library/credits_online.go`, `people_details.go`, `credits_sources_test.go`.
+   Check: set a TMDB key, refresh a film, open a person.
+2. **Show refresh and scan-time TheTVDB/TVmaze lookups untested end to end** (WittyMediaServer). The scanner has no
+   base-address hook for TheTVDB or TVmaze, so `RefreshShow` and the scan's show lookup are only tested for their
+   parsing. Look in `internal/library/tvscan.go`, `tvdb.go`, `tvmaze.go`.
+3. **People from MP4 and Matroska tags unverified with real ffprobe** (WittyMediaServer). The mapping (DIRECTOR,
+   WRITTEN_BY, ©dir...) is unit-tested; whether ffprobe hands MP4's `©dir` over at all is unknown. Look in
+   `internal/library/credits_local.go` (`tagCredits`).
+4. **No per-episode guest stars from TVmaze** (WittyMediaServer). It would take one request per episode; TMDB and
+   TheTVDB give them. Look in `internal/library/tvmaze.go`.
+5. **An edited film or episode NFO is read again only on Refresh metadata** (WittyMediaServer). As every NFO field
+   already was; show NFOs are read every scan. Look in `internal/library/scan.go` (`filmNFOPeople`, `filmNFOs`).
+6. **Apple and Android draw `Credits`** (WittyMediaClient). They fail the six credits conformance fixtures
+   (`detail-film-credits`, `detail-show-season`, `detail-episode-tv`, `detail-person*`) until they do; rules in
+   docs/SDUI.md "Cast and crew". A person card with no action (guide-only people) opens nothing.
 
 ### Design 2 (W1), second round
 

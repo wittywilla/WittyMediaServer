@@ -107,7 +107,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
 
   // "Watch next": the next episode of this show, or (end of a show / a
   // movie) a recommendation, loaded once the credits are near.
-  const nearEnd = (info?.durationSec || item.runtimeSec || 0) > 0 && now >= (info?.durationSec || item.runtimeSec) - 30
+  const nearEnd = (info?.durationSec || item.runtimeSec || 0) > 0 && now >= (info?.durationSec || item.runtimeSec) - Math.min(30, (info?.durationSec || item.runtimeSec) * 0.15)
   useEffect(() => {
     if ((!nearEnd && !ended) || next) return
     if (item.nextId) api.get<Item>(`/items/${item.nextId}`).then((it) => setNext({ item: it, recommended: false })).catch(() => {})
@@ -498,6 +498,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
         party={party.active ? (party.room?.canControl ? 'control' : 'follow') : 'none'} seek={seek} nextHref={item.nextId ? nextHref : null} />
       {mini ? (
         <div className="mini-bar" onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
+          {duration > 0 && <div className="mini-progress" role="progressbar" aria-label="Position" aria-valuemin={0} aria-valuemax={Math.round(duration)} aria-valuenow={Math.round(now)}><i style={{ width: Math.min(100, (now / duration) * 100) + '%' }} /></div>}
           <div className="mini-info" onClick={chrome.expand}>
             <div className="mini-title">{item.showTitle || item.title}</div>
             <div className="mini-sub">{item.showTitle ? [episodeLabel(item), item.title].filter(Boolean).join(' · ') : item.year}</div>
@@ -530,20 +531,21 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
           {skip && <button className="btn skip-intro" onClick={(e) => { e.stopPropagation(); seek(skip.to) }}>{skip.label} ›</button>}
           {pickIntro && <PickIntroBar item={item} time={now} mode={pickIntro} />}
           {next && (nearEnd || ended) && !nextDismissed && !party.active && (
-            <div className="watch-next" onClick={(e) => e.stopPropagation()}>
+            <div className="watch-next" role="region" aria-label={upNext != null ? 'Up next' : 'Watch next'} onClick={(e) => e.stopPropagation()}>
               <div className="wn-head">{next.recommended
                 ? (next.show ? `Because you watched ${item.showTitle || item.title}` : 'You might also like')
-                : upNext != null ? `${next.item.showId != null ? 'Next episode' : 'Up next'} in ${upNext}s` : 'Watch next'}</div>
+                : next.item.showId != null ? 'Next episode' : 'Up next'}</div>
               <div className="wn-body" onClick={() => nav(`/play/${next.item.id}`, { replace: true })}>
                 <div className={'wn-thumb' + (next.item.showId != null ? ' wide' : '')}>{next.item.poster && <img src={sized(posterUrl(next.item), fitWidth(240))} alt="" />}</div>
                 <div>
                   <div className="wn-title">{next.show ? next.show.title : next.item.showTitle || next.item.title}</div>
                   <div className="muted" style={{ fontSize: 12 }}>{next.item.showId != null ? [episodeLabel(next.item), next.item.title].filter(Boolean).join(' · ') : next.item.year}</div>
+                  {upNext != null && <div className="wn-count" role="timer" aria-live="off">Plays in {upNext} s<i style={{ '--left': upNext / 8 } as React.CSSProperties} aria-hidden="true" /></div>}
                 </div>
               </div>
               <div className="wn-actions">
-                <button className="btn sm primary" onClick={() => nav(`/play/${next.item.id}`, { replace: true })}><IconPlay /> Play</button>
-                <button className="btn sm ghost" onClick={() => { setNextDismissed(true); setUpNext(null) }}>Dismiss</button>
+                <button className="btn sm primary" onClick={() => nav(`/play/${next.item.id}`, { replace: true })}><IconPlay /> Play now</button>
+                <button className="btn sm ghost" onClick={() => { setNextDismissed(true); setUpNext(null) }}>{upNext != null ? 'Watch the credits' : 'Dismiss'}</button>
               </div>
             </div>
           )}

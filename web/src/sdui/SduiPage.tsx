@@ -115,6 +115,18 @@ export function PageView({ doc, device, handlers, width, children }: { doc: Docu
     columns: (id, n) => { cols.current[id] = n },
   }), [doc, l, device, tv, reducedMotion, pt, inert, h.act, h.more, h.busy, h.failed, h.setQuery, h.menu])
 
+  // A page whose sections have all taken themselves off (each had nothing to show) says so, instead of a title over a blank page.
+  const [blank, setBlank] = useState(false)
+  useEffect(() => {
+    const el = box.current
+    if (!el || inert) return
+    const look = () => setBlank(!Array.from(el.querySelectorAll('section, .hub, a, button, img, canvas, video, input, select, [role], [aria-busy=true], .sdui-draft, .sdui-screentime, .ui-notice')).some((x) => !x.closest('.sdui-nothing')))
+    const t = window.setTimeout(look, 1500)
+    const mo = new MutationObserver(() => { window.clearTimeout(t); window.setTimeout(look, 600) })
+    mo.observe(el, { childList: true, subtree: true })
+    return () => { window.clearTimeout(t); mo.disconnect() }
+  }, [doc, inert])
+
   // The shell's optional regions (status bar, system dock) show what this page gives them, while it shows.
   useEffect(() => { if (inert) return; setPageRegions(doc.regions); return () => setPageRegions(undefined) }, [doc.regions, inert])
 
@@ -148,6 +160,7 @@ export function PageView({ doc, device, handlers, width, children }: { doc: Docu
         {title && <h1 className={tv || ownHeading ? 'sr-only' : 'sdui-page-title'}>{title}</h1>}
         {children}
         <Sections views={model.root.children} />
+        {blank && <div className="sdui-nothing"><EmptyState icon={<IconInfo />} title="Nothing here yet" text="When there is something for this page, it will appear here. Check back after you add media or turn a module on." /></div>}
       </div>
     </Ctx.Provider>
   )

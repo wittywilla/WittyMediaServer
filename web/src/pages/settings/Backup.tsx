@@ -4,10 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ApiError, fmtDateTime, getToken, serverBase, setToken } from '../../api'
 import { Spinner } from '../../components/common'
-import { IconDownload, IconLock, IconTrash } from '../../icons'
+import { IconDownload, IconTrash } from '../../icons'
 import { toast } from '../../state'
-import { Button, Field, Input, Notice, Progress, Segmented, Select, Tabs } from '../../ui'
-import { PageHead, Row, Section, Switch } from './ui'
+import { Button, Field, Input, Notice, Progress, Select, Tabs } from '../../ui'
+import SpecPage from '../../spec/SpecPage'
+import { flipPart, makeBackupSpec, MAKE, scheduleSpec } from '../../spec/specs/backup'
+import { PageHead, Section } from './ui'
 import './backup.css'
 
 // Settings, Backup: a ZIP of the server's data and metadata, and bringing one back. The
@@ -31,7 +33,6 @@ type View = {
 
 const POLL_MS = 1000
 const size = (n = 0) => (n >= 1 << 30 ? `${(n / (1 << 30)).toFixed(1)} GB` : n >= 1 << 20 ? `${(n / (1 << 20)).toFixed(n < 10 << 20 ? 1 : 0)} MB` : n >= 1024 ? `${Math.round(n / 1024)} KB` : `${n} bytes`)
-const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 // The requests of this page. In first-time setup there's no sign-in, and from another
@@ -158,21 +159,6 @@ function PartChecks({ parts, chosen, setChosen, legend, sizes, inside }: { parts
   )
 }
 
-function Passwords({ password, again, setPassword, setAgain, min = 8 }: { password: string; again: string; setPassword: (s: string) => void; setAgain: (s: string) => void; min?: number }) {
-  const short = password !== '' && password.length < min
-  const differs = again !== '' && again !== password
-  return (
-    <div className="bk-fields">
-      <Field label="Password" hint={`At least ${min} characters. If you lose it, nobody can open the backup.`} error={short ? 'That’s too short.' : undefined}>
-        <Input type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />
-      </Field>
-      <Field label="The same again" error={differs ? 'These aren’t the same.' : undefined}>
-        <Input type="password" autoComplete="new-password" value={again} onChange={(e) => setAgain(e.target.value)} />
-      </Field>
-    </div>
-  )
-}
-
 // ---------------------------------------------------------------- making one
 
 function MakeBackup({ view, reload, call }: { view: View; reload: () => void; call: ReturnType<typeof client> }) {
@@ -189,7 +175,6 @@ function MakeBackup({ view, reload, call }: { view: View; reload: () => void; ca
     }).catch(() => {})
     return () => { gone = true }
   }, [call])
-  const total = sizes ? [...chosen].reduce((n, id) => n + (sizes[id] || 0), 0) : null
   const job = view.job
   const busy = job.running
   const answer = useRef<HTMLDivElement>(null)
@@ -207,39 +192,28 @@ function MakeBackup({ view, reload, call }: { view: View; reload: () => void; ca
     } catch (e) { setErr(message(e)) }
   }
   const cancel = () => { call('POST', '/backup/cancel').then(reload).catch((e) => toast(message(e))) }
+  const page = makeBackupSpec({ parts: view.parts, chosen, sizes, protect, password, again, ready, busy })
+  const onField = (id: string, v: string | number | boolean | File) => {
+    if (id.startsWith('part:')) setChosen(flipPart(view.parts, chosen, id.slice(5), !!v))
+    else if (id === 'protect') setProtect(!!v)
+    else if (id === 'password') setPassword(String(v))
+    else if (id === 'again') setAgain(String(v))
+  }
   return (
-    <>
-      <Section title="What to include" desc="Your media files are never in a backup, however large or small it is. Neither are modules, game cores, BIOS files, logs or sign-ins.">
-        <PartChecks parts={view.parts} chosen={chosen} setChosen={setChosen} legend="What to include" sizes={sizes || undefined} />
-        <p className="bk-total" aria-live="polite">{total === null ? 'Working out how large this is…' : <>About <b>{size(total)}</b> before compression.</>}</p>
-      </Section>
-      <Section title="Protect it with a password" desc="Real encryption: AES-256, with the key made from your password. It also proves nobody has changed the backup.">
-        <Row label="Protect with a password" desc={protect ? 'Everything comes back: API keys, two-factor sign-in, share links and this server’s identity.' : undefined}>
-          <Switch checked={protect} onChange={setProtect} label="Protect with a password" />
-        </Row>
-        {protect ? <Passwords password={password} again={again} setPassword={setPassword} setAgain={setAgain} /> : (
-          <Notice tone="warn" title="Without a password, secrets are left out">
-            API keys, two-factor secrets, share links and logins in addresses aren’t in the file, so you add them again after a restore. Account passwords are in it as hashes, and titles and file names can be read: keep it private. Anything can be changed in a file with no password, so a restore also leaves out settings holding web addresses.
-          </Notice>
-        )}
-      </Section>
-      <Section title="Make the backup">
-        {busy && job.kind === 'create' ? <JobProgress job={job} onCancel={cancel} /> : (
-          <div ref={answer} tabIndex={-1} className="bk-answer">
-            {job.kind === 'create' && job.result && (
-              <Notice tone={job.problems?.length ? 'warn' : 'ok'} title={job.result}>
-                {job.file && <p>It’s below, as <code>{job.file}</code>. A copy on another drive is what saves you if this one fails, so download it.</p>}
-                {!!job.problems?.length && <ul className="bk-list">{job.problems.slice(0, 20).map((p) => <li key={p}>{p}</li>)}</ul>}
-              </Notice>
-            )}
-            {job.kind === 'create' && job.error && <Notice tone="danger" title="No backup was made">{job.error}</Notice>}
-            {err && <div role="alert"><Notice tone="danger">{err}</Notice></div>}
-            {busy && <p className="bk-quiet" role="status">Something else is running. This can start when it’s finished.</p>}
-            <div className="bk-actions"><Button variant="primary" disabled={!ready} onClick={start}>Make a backup now</Button></div>
-          </div>
-        )}
-      </Section>
-    </>
+    <SpecPage embedded page={page} handled={new Set(['make'])} onAction={(id) => { if (id === 'make') void start() }} onField={onField}
+      after={{ [page.sections.findIndex((x) => x.h === MAKE)]: busy && job.kind === 'create' ? <JobProgress job={job} onCancel={cancel} /> : (
+        <div ref={answer} tabIndex={-1} className="bk-answer">
+          {job.kind === 'create' && job.result && (
+            <Notice tone={job.problems?.length ? 'warn' : 'ok'} title={job.result}>
+              {job.file && <p>It’s below, as <code>{job.file}</code>. A copy on another drive is what saves you if this one fails, so download it.</p>}
+              {!!job.problems?.length && <ul className="bk-list">{job.problems.slice(0, 20).map((p) => <li key={p}>{p}</li>)}</ul>}
+            </Notice>
+          )}
+          {job.kind === 'create' && job.error && <Notice tone="danger" title="No backup was made">{job.error}</Notice>}
+          {err && <div role="alert"><Notice tone="danger">{err}</Notice></div>}
+          {busy && <p className="bk-quiet" role="status">Something else is running. This can start when it’s finished.</p>}
+        </div>
+      ) }} />
   )
 }
 
@@ -319,7 +293,6 @@ function ScheduleForm({ view, reload, call }: { view: View; reload: () => void; 
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
-  const on = s.frequency !== 'off'
   const fewer = s.keep < view.schedule.keep // that removes backups, and asks for your password
   const badPw = (changePw || !s.protected) && password !== '' && (password.length < 8 || password !== again)
   const save = async () => {
@@ -332,54 +305,28 @@ function ScheduleForm({ view, reload, call }: { view: View; reload: () => void; 
   const clearPw = async () => {
     try { await call('PUT', '/backup/schedule', { ...s, parts: [...chosen], clearPassword: true }); setS({ ...s, protected: false }); toast('Scheduled backups no longer have a password'); reload() } catch (e) { setErr(message(e)) }
   }
-  return (
-    <>
-      <Section title="Back up by itself" desc="The backup is made in the background at the time you choose. If the server was off, it’s made soon after it next starts.">
-        <Row label="How often">
-          <Segmented<Schedule['frequency']> label="How often" value={s.frequency} onChange={(v) => setS({ ...s, frequency: v })} options={[{ value: 'off', label: 'Off' }, { value: 'daily', label: 'Every day' }, { value: 'weekly', label: 'Every week' }]} />
-        </Row>
-        {on && (
-          <>
-            {s.frequency === 'weekly' && (
-              <Row label="On"><Select aria-label="On which day" value={String(s.weekday)} onChange={(e) => setS({ ...s, weekday: Number(e.target.value) })} options={WEEKDAYS.map((d, i) => ({ value: String(i), label: d }))} /></Row>
-            )}
-            <Row label="At"><Select aria-label="At what time" value={String(s.hour)} onChange={(e) => setS({ ...s, hour: Number(e.target.value) })} options={Array.from({ length: 24 }, (_, h) => ({ value: String(h), label: `${String(h).padStart(2, '0')}:00` }))} /></Row>
-            <Row label="Keep the newest" desc="Older scheduled backups are deleted. Ones you make yourself never are.">
-              <Input className="bk-keep" type="number" inputMode="numeric" min={1} max={365} aria-label="How many to keep" value={s.keep} onChange={(e) => setS({ ...s, keep: Math.max(1, Math.min(365, Number(e.target.value) || 1)) })} />
-            </Row>
-            {fewer && (
-              <div className="bk-pw">
-                <p className="bk-quiet">Keeping fewer deletes backups at the next run, so this asks for your password.</p>
-                <Field label="Your password"><Input type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} /></Field>
-                {view.twoFactor && <Field label="Code from your authenticator app"><Input inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} /></Field>}
-              </div>
-            )}
-          </>
-        )}
-        {view.lastAuto ? <p className="bk-quiet">Last made {fmtDateTime(view.lastAuto * 1000)}.</p> : null}
-        {view.lastError && <Notice tone="danger" title="The last scheduled backup failed">{view.lastError}</Notice>}
-      </Section>
-      {on && (
-        <>
-          <Section title="What to include">
-            <PartChecks parts={view.parts} chosen={chosen} setChosen={setChosen} legend="What each scheduled backup includes" />
-          </Section>
-          <Section title="Password" desc="This server keeps a key made from the password, not the password itself. It opens these backups, as anyone who has this server’s database could anyway.">
-            {s.protected && !changePw ? (
-              <div className="bk-actions">
-                <span className="bk-quiet"><IconLock size={16} /> Scheduled backups are protected.</span>
-                <Button onClick={() => setChangePw(true)}>Change the password</Button>
-                <Button variant="ghost" onClick={() => void clearPw()}>Remove it</Button>
-              </div>
-            ) : <Passwords password={password} again={again} setPassword={setPassword} setAgain={setAgain} />}
-            {!s.protected && !changePw && password === '' && <p className="bk-quiet">With no password, secrets are left out of these backups.</p>}
-          </Section>
-        </>
-      )}
-      {err && <div role="alert"><Notice tone="danger">{err}</Notice></div>}
-      <div className="bk-actions bk-save"><Button variant="primary" busy={busy} disabled={busy || badPw || (on && chosen.size === 0)} onClick={save}>Save</Button></div>
-    </>
-  )
+  const page = scheduleSpec({
+    parts: view.parts, chosen, frequency: s.frequency, weekday: s.weekday, hour: s.hour, keep: s.keep, fewer, twoFactor: view.twoFactor, current, code,
+    protectedNow: s.protected, changePw, password, again, lastMade: view.lastAuto ? fmtDateTime(view.lastAuto * 1000) : '', lastError: view.lastError || '', busy, badPw,
+  })
+  const onField = (id: string, v: string | number | boolean | File) => {
+    if (id.startsWith('part:')) setChosen(flipPart(view.parts, chosen, id.slice(5), !!v))
+    else if (id === 'weekday') setS({ ...s, weekday: Number(v) })
+    else if (id === 'hour') setS({ ...s, hour: Number(v) })
+    else if (id === 'keep') setS({ ...s, keep: Math.max(1, Math.min(365, Number(v) || 1)) })
+    else if (id === 'current') setCurrent(String(v))
+    else if (id === 'code') setCode(String(v))
+    else if (id === 'password') setPassword(String(v))
+    else if (id === 'again') setAgain(String(v))
+  }
+  const onAction = (id: string) => {
+    if (id.startsWith('freq:')) setS({ ...s, frequency: id.slice(5) as Schedule['frequency'] })
+    else if (id === 'changepw') setChangePw(true)
+    else if (id === 'clearpw') void clearPw()
+    else if (id === 'save') void save()
+  }
+  const handled = new Set(['freq:off', 'freq:daily', 'freq:weekly', 'changepw', 'clearpw', 'save'])
+  return <SpecPage embedded page={page} handled={handled} onAction={onAction} onField={onField} after={{ [page.sections.length - 1]: err ? <div role="alert"><Notice tone="danger">{err}</Notice></div> : undefined }} />
 }
 
 // ---------------------------------------------------------------- bringing one back

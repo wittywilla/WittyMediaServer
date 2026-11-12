@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
 /* The server's name editor (NameEditor.tsx): the form on the left, the name drawn everywhere on the right. */
 .ne { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(24rem, 100%), 1fr)); gap: var(--sp-8); text-align: left; }
 @media (max-width: 900px) { .ne { grid-template-columns: 1fr; gap: var(--sp-5); } }

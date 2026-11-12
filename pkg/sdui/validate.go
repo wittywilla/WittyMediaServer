@@ -229,6 +229,14 @@ func validatePage(p *Page, ui *ModuleSet, own bool) []Issue {
 		}
 	}
 	v.regions(p.Regions)
+	if p.Slot != "" {
+		if _, ok := SettingsSlots[p.Slot]; !ok {
+			v.err("/slot", "Use you.games or people.profile.", "%q is not a place settings pages can go", p.Slot)
+		}
+		if p.Kind != "custom" {
+			v.err("/slot", "Use a custom page.", "only a custom page can go into Settings")
+		}
+	}
 	if len(p.Sections) == 0 && len(p.Variants) == 0 {
 		v.warn("/sections", "Add a section, or apply a preset.", "the page has no sections, so it will be empty")
 	}

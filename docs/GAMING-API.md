@@ -300,10 +300,23 @@ hidden libraries, and cleans them as any module's items. Nothing is given when g
 | `wittyplay.collections` | Without `era`, the eras with games, in order; with `era` (`first`, `8-bit`, `16-bit`, `early-3d`, `disc`, `pocket`), that era's games by title | `collection` (`era-<era>`, `count`, route `/games?era=<era>`), or `game` |
 | `wittyplay.friends` | The profile's friends, playing first, then online, away, offline | `person` (`profile-<id>`), a person card: name, presence as the badge ("Playing", "Online", "Away", "Offline") and the line ("Playing Star Tide"); icon `user` (the app draws the profile's avatar or initials); no route, so not a button |
 | `wittyplay.rooms` | Friends' open rooms with a seat free, of games this profile may play; none for Kids or guests | `view` (the session): "Moth Racer · 3 of 4", "Shared · Sam", `count` players; its action and its one button (A, Join) are `wittyplay.room.join` |
-| `wittyplay.room` | The room this profile is in: the room, then each player | The room (`view`: game, host, the code as `tagline` and the join route for the host only, badge "Open" when open; for the host, `actions`: A Play (rejoins the running game), X Invite, Y Open to friends or Close the room, the last not for Kids or guests), then a `person` per player: the host ("Host", badge "P1"), a player ("Player n", badge "Pn") or a free seat ("Waiting…", "Free", badge "Free"); no route |
+| `wittyplay.room` | The room this profile is in: the room, then each player | The room (`view`: game, host, the code as `tagline` and the join route for the host only, badge "Open" when open; for the host, `link` (the join route, for a QR code) and `actions`: A Play (rejoins the running game), X Invite, Y Open to friends or Close the room, the last not for Kids or guests; for someone who joined, B Leave, `wittyplay.room.leave`, asking first), then a `person` per player: the host ("Host", badge "P1"), a player ("Player n", badge "Pn") or a free seat ("Waiting…", "Free", badge "Free"); no route |
 | `wittyplay.saveStates` | One game's saves (`item`, required), the profile's own first, newest first | `view` `slot-<n>`: "Save state 3", when, its picture as `backdrop` |
 | `wittyplay.memories` | Saves and kept screenshots of every game, newest first | `view` (badge "Save") or `photo` (badge "Shot"): the game's title, what and when, picture as `backdrop` |
 | `wittyplay.controllers` | Each player of the game this profile is in | `view` `player-<n>`: "Player n", who (and the host's device), or "No controller" (badge "Free"). Battery and the controller's kind are the device's own (the Gamepad API): the server never sees them |
+
+### Its pages
+
+WittyPlay's `sdui.json` defines them from the catalogue's own components (revision 8), so every app draws them:
+`wittyplay-online` (tabs Recent, Classics, Together, Memories, Discover; Recent's focused tile grows with its details;
+the page puts the profile and the server into the status bar and Search, Together, Controllers, Memories and Settings
+into the round dock), `wittyplay-controllers`, the in-game menu `wittyplay-quick` (shown as a layer),
+`wittyplay-room` (the room and its buttons, then its players, and for the host its join link as a QR code), `wittyplay-memory` (opened about a game, `item`, and a
+kept screenshot, `name`: Delete this memory, asking first), `wittyplay-keep` (opened about the session: Keep or Not
+now), `wittyplay-privacy` (a Form of the two choices, `wittyplay.online.set`; in the `you.games` slot, You > Games) and
+`wittyplay-kids` (an administrator's switches; in the `people.profile` slot, opened as
+`/page/wittyplay-kids?item={profile}`). Rewind, the screen and sound panel, a controller's battery and "press
+any button" are each app's own.
 
 ### Its commands
 
@@ -318,6 +331,8 @@ hidden libraries, and cleans them as any module's items. Nothing is given when g
 | `wittyplay.state.save`, `wittyplay.state.load` | `POST /play/{sid}/action` `{type: "save" or "load", slot}` |
 | `wittyplay.state.delete` | `DELETE /games/{id}/saves/{slot}` |
 | `wittyplay.controller.assign` | `PUT /play/{sid}/seats/{user}` `{seat}` |
+| `wittyplay.room.close` | `POST /play/{sid}/room` `{open: false}` |
+| `wittyplay.room.leave` | `DELETE /play/{sid}/seats/{user}` (the host frees anyone's seat; anyone leaves their own) |
 
 The action's `item` is the session (`{sid}`), or the game's ID for `wittyplay.state.delete`; the rest come in the
 action's `params` (`slot`, `user`, `seat` and, for `wittyplay.room.join`, `code`). [SDUI](SDUI.md#action) says how a

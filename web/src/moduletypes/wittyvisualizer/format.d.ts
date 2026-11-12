@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-// Copyright (C) 2026 WittyWilla and contributors
 export declare const FORMAT_VERSION = 1;
 export declare const MAX_USER_BYTES: number;
 export type EffectInfo = {

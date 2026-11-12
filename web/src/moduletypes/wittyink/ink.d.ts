@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-// Copyright (C) 2026 WittyWilla and contributors
+import type { ReaderHost } from './host';
 export type Tool = 'pen' | 'pencil' | 'marker' | 'eraser';
 export type DrawTool = Exclude<Tool, 'eraser'>;
 export type Stroke = {
@@ -23,18 +22,18 @@ export type InkPrefs = {
     recent: string[];
 };
 export declare const INK_DEF: InkPrefs;
-export declare function loadInk(): InkPrefs;
-export declare function saveInk(p: InkPrefs): void;
+export declare function loadInk(host?: Pick<ReaderHost, 'settings'>): InkPrefs;
+export declare function saveInk(p: InkPrefs, host?: Pick<ReaderHost, 'settings'>): void;
 export declare function pointPressure(e: PointerEvent, tool: DrawTool, usePressure: boolean): number;
 export declare function centerline(pts: number[]): string;
 export declare function outline(pts: number[], w: number, varying: boolean): string;
 export declare function hits(pts: number[], w: number, x: number, y: number, tol: number): boolean;
-export declare const InkStroke: import("react").NamedExoticComponent<{
+export declare const InkStroke: import("react").MemoExoticComponent<({ s, color, blend, grain }: {
     s: Stroke;
     color: string;
     blend: boolean;
     grain?: string;
-}>;
+}) => import("react").JSX.Element>;
 export declare const InkDefs: ({ id, freq }: {
     id?: string;
     freq?: number;

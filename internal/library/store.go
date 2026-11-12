@@ -552,6 +552,10 @@ type ItemQuery struct {
 	IncludeAttached bool
 	// Containers: only files of these formats (books: what one reader opens).
 	Containers []string
+	// Reading narrows to what UserID has started and not finished ("reading"), finished ("finished") or never
+	// opened ("unread"): a book's progress, as the bookshelf's tabs have it.
+	Reading string
+	UserID  int64
 }
 
 // BackfillAges fills min_age for items and shows saved before parental
@@ -626,6 +630,17 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 	if q.DiscContent != "" {
 		where = append(where, "json_extract(i.disc_json, '$.content') = ?")
 		args = append(args, q.DiscContent)
+	}
+	switch q.Reading {
+	case "reading":
+		where = append(where, "EXISTS (SELECT 1 FROM progress p WHERE p.item_id = i.id AND p.user_id = ? AND p.watched = 0 AND p.position_sec > 0)")
+		args = append(args, q.UserID)
+	case "finished":
+		where = append(where, "EXISTS (SELECT 1 FROM progress p WHERE p.item_id = i.id AND p.user_id = ? AND p.watched = 1)")
+		args = append(args, q.UserID)
+	case "unread":
+		where = append(where, "NOT EXISTS (SELECT 1 FROM progress p WHERE p.item_id = i.id AND p.user_id = ? AND (p.watched = 1 OR p.position_sec > 0))")
+		args = append(args, q.UserID)
 	}
 	if q.NoEpisodes {
 		if q.Sort == "added" {

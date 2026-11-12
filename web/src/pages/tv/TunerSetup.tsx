@@ -4,11 +4,13 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../../api'
 import { announce } from '../../a11y'
-import { IconRefresh } from '../../icons'
 import { toast } from '../../state'
 import { Button, Dialog, LinkButton } from '../../ui'
-import { Field, STATUS } from './tunerFields'
-import { forgetLineup, type Driver, type Found, type ScanState, type Tuner, type TunerChannel, type TunerCheck, type TunerProblem, type TunerTest } from './tvApi'
+import { STATUS } from './tunerFields'
+import SpecPage from '../../spec/SpecPage'
+import { handledIds } from '../../spec/model'
+import { channelsSpec, detailsSpec, guideSpec, kindSpec, trySpec } from '../../spec/specs/tunerSetup'
+import { forgetLineup, type Driver, type Found, type ScanState, type Tuner, type TunerChannel, type TunerCheck, type TunerTest } from './tvApi'
 
 // Adding live TV, a step at a time: what someone has, in their words; its details,
 // typed in or found on the network, and checked before saving if they like; then its
@@ -36,17 +38,6 @@ const STEPS: Step[] = ['kind', 'details', 'channels', 'try', 'guide']
 const STEP_NAMES: Record<Step, string> = { kind: 'What you have', details: 'Its details', channels: 'Its channels', try: 'Try a channel', guide: 'Guide data', done: 'Done' }
 
 const plural = (n: number, one: string) => `${n} ${n === 1 ? one : one + 's'}`
-
-// Why a check or a try didn't work, as the server words it. An encrypted channel isn't a fault.
-function Problem({ p, title }: { p: TunerProblem; title: string }) {
-  return (
-    <div className={p.kind === 'encrypted' || p.kind === 'busy' ? 'tvs-note' : 'tvw-problem'} role="alert">
-      <b>{title}</b>
-      <p>{p.message}</p>
-      {p.kind === 'encrypted' ? <p><Link to="/tv/encrypted">What can I do about encrypted channels?</Link></p> : p.hint && <p>{p.hint}</p>}
-    </div>
-  )
-}
 
 // inSetup: opened from first-time setup, which carries on afterwards, so the last step doesn't lead away from it.
 export default function TunerSetup({ drivers, start, onClose, onAdded, inSetup }: { drivers: Driver[]; start?: Found; onClose: () => void; onAdded: () => void; inSetup?: boolean }) {
@@ -179,16 +170,18 @@ export default function TunerSetup({ drivers, start, onClose, onAdded, inSetup }
   // A playlist that names its own guide, or anything that isn't a playlist or stream, needs nothing more.
   // Only playlists and streams can be matched to XMLTV listings by channel.
   const ownGuide = !!(opts.guide || '').trim() || !['iptv', 'stream'].includes(driver?.id || '')
-  // Arrow keys move between the kinds and choose, as in any group of radio buttons.
-  const radioKeys = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    const by = ({ ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 } as Record<string, number>)[e.key]
-    if (!by) return
-    const all = [...e.currentTarget.querySelectorAll<HTMLButtonElement>('[role=radio]:not([disabled])')]
-    const i = all.indexOf(document.activeElement as HTMLButtonElement)
-    const next = all[(i + by + all.length) % all.length]
-    if (!next) return
-    e.preventDefault(); e.stopPropagation()
-    next.focus(); next.click()
+  // The spec's answers: rows and chips by id, fields by id.
+  const lineOf = (d: Driver) => ({ id: d.id, name: d.name, available: d.available, planned: d.planned, note: d.note, description: d.description, statusNote: d.status !== 'tested' ? STATUS[d.status]?.desc : undefined })
+  const onAction = (id: string) => {
+    if (id.startsWith('kind:')) { const k = KINDS.find((x) => 'kind:' + x.id === id); if (k) pickKind(k) } else if (id === 'search') void search()
+    else if (id.startsWith('use:')) { const f = found?.[Number(id.slice(4))]; if (f) pickFound(f) } else if (id === 'change') void changeDetails()
+    else if (id === 'scan') void startScan(); else if (id === 'again') void readAgain()
+  }
+  const onField = (id: string, v: string | number | boolean | File) => {
+    const val = String(v)
+    if (id === 'name') setName(val); else if (id === 'guide') setGuideURL(val); else if (id === 'pick') { setPick(val); setTried(null) }
+    else if (id === 'driver') { setDriver(choices.find((d) => d.id === val) || null); setOpts({}) }
+    else if (id.startsWith('f:')) setOpts((o) => ({ ...o, [id.slice(2)]: typeof v === 'boolean' ? (v ? '1' : '0') : val }))
   }
   const at = STEPS.indexOf(step)
   const title = step === 'done' ? `${tuner?.name || 'Live TV'} is ready` : 'Add live TV'
@@ -216,129 +209,44 @@ export default function TunerSetup({ drivers, start, onClose, onAdded, inSetup }
       )}
       <h3 className="tvw-h" ref={heading} tabIndex={-1}>{step === 'done' ? 'All set' : `Step ${at + 1} of ${STEPS.length}: ${STEP_NAMES[step]}`}</h3>
 
-      {step === 'kind' && (
-        <div className="tvw-kinds" role="radiogroup" aria-label="What do you have?" onKeyDown={radioKeys}>
-          {KINDS.map((k) => {
-            const ds = driversOf(k, drivers)
-            const usable = ds.filter((d) => d.available && !d.planned)
-            if (ds.length === 0) return null
-            const on = kind?.id === k.id
-            return (
-              <button key={k.id} type="button" role="radio" aria-checked={on} disabled={usable.length === 0} className={'tvs-level tvw-kind' + (on ? ' on' : '')} onClick={() => pickKind(k)}>
-                <b>{k.label}</b><span>{k.hint}</span>
-                {usable.length === 0 && <span className="tvs-dim">{ds.find((d) => d.note)?.note || 'Not on this kind of computer'}</span>}
-              </button>
-            )
-          })}
-        </div>
-      )}
+      {step === 'kind' && <Spec page={kindSpec(KINDS.map((k) => { const ds = driversOf(k, drivers); const usable = ds.filter((d) => d.available && !d.planned); return { id: k.id, label: k.label, hint: k.hint, usable: usable.length > 0, dim: ds.find((d) => d.note)?.note, n: ds.length } }).filter((k) => k.n > 0), kind?.id || null)} onAction={onAction} onField={onField} />}
 
       {step === 'details' && (
-        <form className="form" style={{ maxWidth: 'none' }} onSubmit={(e) => { e.preventDefault(); if (!missing.length) void save() }}>
-          {choices.length > 1 && (
-            <label>Which one
-              <select className="select" value={driver?.id || ''} onChange={(e) => { setDriver(choices.find((d) => d.id === e.target.value) || null); setOpts({}) }}>
-                <option value="">Choose…</option>
-                {choices.map((d) => <option key={d.id} value={d.id} disabled={!d.available || d.planned}>{d.name}{d.planned ? ' (not built yet)' : !d.available ? ' (not on this computer)' : ''}</option>)}
-              </select>
-            </label>
-          )}
-          {choices.some((d) => (!d.available || d.planned) && d.note) && (
-            <ul className="tvs-dim tvw-notes">{choices.filter((d) => (!d.available || d.planned) && d.note).map((d) => <li key={d.id}><b>{d.name}:</b> {d.note}</li>)}</ul>
-          )}
-          {driver && (
-            <>
-              <p className="muted">{driver.description}</p>
-              {driver.status !== 'tested' && <p className="tvs-note">{STATUS[driver.status]?.desc}</p>}
-              {driver.note && <p className="tvs-dim">{driver.note}</p>}
-              {['network', 'satip', 'card'].includes(kind?.id || '') && (
-                <div className="tvw-find">
-                  <Button size="sm" icon={<IconRefresh />} busy={searching} disabled={searching} onClick={() => void search()}>{searching ? 'Searching…' : 'Search for it'}</Button>
-                  <span className="tvs-dim">Or type its details below: anything the search doesn't find can be added by hand.</span>
-                </div>
-              )}
-              {found && found.length > 0 && (
-                <ul className="tvs-list" aria-label="Found">
-                  {found.map((f, i) => (
-                    <li key={i} className="tvs-item">
-                      <div className="tvs-item-text"><b>{f.name}</b><span>{f.detail || drivers.find((d) => d.id === f.driver)?.name}</span></div>
-                      <Button size="sm" onClick={() => pickFound(f)}>Use this one</Button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {found && found.length === 0 && <p className="tvs-note" role="status">Nothing found on your network or this computer, or the search didn't finish. Type its details below.</p>}
-              <label>Name<input className="input" value={name} onChange={(e) => setName(e.target.value)} maxLength={200} placeholder={driver.name} autoFocus /></label>
-              {driver.fields.map((f) => <Field key={f.key} f={f} value={opts[f.key] || ''} onChange={(v) => setOpts({ ...opts, [f.key]: v })} />)}
-              {missing.length > 0 && <p className="tvs-dim">Still needed: {missing.join(', ')}.</p>}
-              <p className="tvs-dim">No channel lists or stream addresses come with the server: bring your own.</p>
-            </>
-          )}
-          {!driver && choices.length > 1 && <p className="muted">Choose which one you have.</p>}
-          {driver && <p className="tvs-dim">Check it asks for its channels without saving anything, to see that the details are right.</p>}
-          <div aria-live="polite">
-            {check?.ok && (
-              <div className="tvw-answer" role="status">
-                <b>It answered</b>
-                <p>{check.result.detail ? `${check.result.detail}. ` : ''}{check.result.channels > 0 ? `${plural(check.result.channels, 'channel')} listed` : driver?.scans ? 'No channels listed yet: this kind finds them with a scan, after it’s added' : 'No channels listed'}{check.result.encrypted > 0 ? `, ${check.result.encrypted} of them marked as encrypted` : ''}.{check.result.maxStreams ? ` It can play ${plural(check.result.maxStreams, 'channel')} at once.` : ''}</p>
-                {check.result.sample && check.result.sample.length > 0 && <p className="tvs-dim">Such as {check.result.sample.join(', ')}.</p>}
-              </div>
-            )}
-            {check && !check.ok && <Problem p={check.problem} title="That didn’t work yet" />}
-          </div>
-          {err && <p className="tvs-error" role="alert">{err}</p>}
+        <form onSubmit={(e) => { e.preventDefault(); if (!missing.length) void save() }}>
+          <Spec page={detailsSpec({
+            choices: choices.map(lineOf), driver: driver ? lineOf(driver) : null, fields: driver?.fields || [], name, opts,
+            canSearch: ['network', 'satip', 'card'].includes(kind?.id || ''), searching, found: found ? found.map((f) => ({ name: f.name, detail: f.detail || drivers.find((d) => d.id === f.driver)?.name || '' })) : null,
+            missing, err,
+            check: check ? (check.ok ? { ok: true, text: `${check.result.detail ? `${check.result.detail}. ` : ''}${check.result.channels > 0 ? `${plural(check.result.channels, 'channel')} listed` : driver?.scans ? 'No channels listed yet: this kind finds them with a scan after it is added' : 'No channels listed yet'}.`, sample: check.result.sample?.join(', ') } : { ok: false, problem: check.problem }) : null,
+          })} onAction={onAction} onField={onField} />
           <button type="submit" hidden />
         </form>
       )}
 
       {step === 'channels' && tuner && (
-        <div className="tvw-result" aria-live="polite">
-          {tuner.lastError
-            ? <p className="tvs-error" role="alert">It was added, but its channels couldn't be read: {tuner.lastError}</p>
-            : <p><b>{tuner.channels} {tuner.channels === 1 ? 'channel' : 'channels'}</b> found{tuner.clear ? `, ${tuner.clear} clear` : ''}{tuner.encrypted ? `, ${tuner.encrypted} encrypted` : ''}. They're in the guide now.</p>}
-          {tuner.encrypted > 0 && <p className="tvs-note">Encrypted channels can't be played here, which isn't a fault in your setup. <Link to="/tv/encrypted">What can I do?</Link></p>}
-          {driver?.scans && <p className="muted">{tuner.channels === 0 ? 'A tuner usually needs a scan to find its channels.' : 'A scan looks for channels the device doesn’t list by itself.'} It can take a few minutes.</p>}
-          <div className="tvs-toolbar">
-            {tuner.lastError && <Button disabled={busy || !!scan?.running} onClick={() => void changeDetails()}>Remove it and change the details</Button>}
-            {driver?.scans && <Button variant={tuner.channels === 0 ? 'primary' : 'default'} disabled={!!scan?.running} onClick={() => void startScan()}>{scan?.running ? `Scanning… ${scan.percent}%` : 'Scan for channels'}</Button>}
-            <Button disabled={busy || !!scan?.running} icon={<IconRefresh />} onClick={() => void readAgain()}>Read the list again</Button>
-          </div>
-          {scan?.running && <div className="tvs-progress" role="progressbar" aria-valuenow={scan.percent} aria-valuemin={0} aria-valuemax={100} aria-label="Scan progress"><i style={{ width: scan.percent + '%' }} /><span>{scan.found} found{scan.message ? ` · ${scan.message}` : ''}</span></div>}
-          {scan?.error && <p className="tvs-error" role="alert">{scan.error}</p>}
-          {scan && !scan.running && !scan.error && <p className="tvs-note" role="status">The scan found {scan.clear} clear and {scan.encrypted} encrypted {scan.clear + scan.encrypted === 1 ? 'channel' : 'channels'}{scan.unknown ? `, and ${scan.unknown} not checked yet` : ''}.</p>}
-        </div>
+        <Spec page={channelsSpec({
+          error: tuner.lastError, hasError: !!tuner.lastError, busy, zero: tuner.channels === 0, scanning: !!scan?.running, percent: scan?.percent || 0, canScan: !!driver?.scans,
+          found: `${tuner.channels} ${tuner.channels === 1 ? 'channel' : 'channels'} found${tuner.clear ? `, ${tuner.clear} clear` : ''}${tuner.encrypted ? `, ${tuner.encrypted} encrypted` : ''}. They’re in the guide now.`,
+          encrypted: tuner.encrypted > 0,
+          scanNote: driver?.scans ? `${tuner.channels === 0 ? 'A tuner usually needs a scan to find its channels.' : 'A scan looks for channels the device doesn’t list by itself.'} It can take a few minutes.` : '',
+          scanText: scan?.error ? scan.error : scan?.running ? `Found ${scan.found} so far` : scan ? `The scan found ${scan.clear} clear and ${scan.encrypted} encrypted ${scan.clear + scan.encrypted === 1 ? 'channel' : 'channels'}${scan.unknown ? `, and ${scan.unknown} it could not tell` : ''}.` : '',
+        })} onAction={onAction} onField={onField} after={<>
+          {tuner.encrypted > 0 && <p className="tvs-note"><Link to="/tv/encrypted">What can I do about encrypted channels?</Link></p>}
+          {scan?.running && <div className="tvs-progress" role="progressbar" aria-valuenow={scan.percent} aria-valuemin={0} aria-valuemax={100} aria-label="Scan progress"><i style={{ width: scan.percent + '%' }} /></div>}
+        </>} />
       )}
 
       {step === 'try' && tuner && (
-        <div className="tvw-result">
-          <p className="muted">This tunes one channel for a few seconds, as watching it would, to show that it plays. Nothing is recorded. It uses one of the device’s tuners while it runs, and can take up to a minute.</p>
-          {channels && tryable.length > 0 && (
-            <label className="tvw-pick">Channel
-              <select className="select" value={pick} onChange={(e) => { setPick(e.target.value); setTried(null) }}>
-                <option value="">Let it choose</option>
-                {tryable.map((c) => <option key={c.id} value={c.id}>{c.number ? `${c.number} ` : ''}{c.name}</option>)}
-              </select>
-            </label>
-          )}
-          <div aria-live="polite">
-            {trying && <p className="muted" role="status">Tuning in…</p>}
-            {tried?.ok && (
-              <div className="tvw-answer" role="status">
-                <b>{triedName} played</b>
-                <p>{[tried.video && `Picture: ${tried.video}`, tried.audio && `Sound: ${tried.audio}`].filter(Boolean).join('. ')}{tried.video || tried.audio ? '. ' : ''}It started in {tried.seconds.toFixed(1)} seconds.</p>
-                {tried.clear && <p>The server watched the stream, and it isn’t encrypted.</p>}
-              </div>
-            )}
-            {tried && !tried.ok && tried.problem && <Problem p={tried.problem} title={triedName ? `${triedName} didn’t play` : 'Nothing could be tried'} />}
-          </div>
-        </div>
+        <Spec page={trySpec({
+          options: channels ? tryable.map((c) => ({ value: String(c.id), label: `${c.number ? `${c.number} ` : ''}${c.name}` })) : null, pick, trying,
+          answer: tried?.ok ? { ok: true, title: `${triedName} played`, text: `${[tried.video && `Picture: ${tried.video}`, tried.audio && `Sound: ${tried.audio}`].filter(Boolean).join('. ')}${tried.video || tried.audio ? '. ' : ''}It started in ${tried.seconds.toFixed(1)} seconds.${tried.clear ? ' The server watched the stream, and it isn’t encrypted.' : ''}` }
+            : tried && tried.problem ? { ok: false, title: triedName ? `${triedName} didn’t play` : 'Nothing could be tried', problem: tried.problem } : null,
+        })} onAction={onAction} onField={onField} after={tried?.problem?.kind === 'encrypted' ? <p className="tvs-note"><Link to="/tv/encrypted">What can I do about encrypted channels?</Link></p> : undefined} />
       )}
 
       {step === 'guide' && (
-        <form className="form" style={{ maxWidth: 'none' }} onSubmit={(e) => { e.preventDefault(); if (guideURL.trim()) void addGuide() }}>
-          <p className="muted">Listings for these channels come from an XMLTV guide, which many providers offer beside their playlist. Without one, the guide shows the channels with no programmes. You can add one later under Guide data.</p>
-          <label>XMLTV address, or a file on the server<input className="input" value={guideURL} onChange={(e) => setGuideURL(e.target.value)} autoFocus /></label>
-          {err && <p className="tvs-error" role="alert">{err}</p>}
+        <form onSubmit={(e) => { e.preventDefault(); if (guideURL.trim()) void addGuide() }}>
+          <Spec page={guideSpec(guideURL, err)} onAction={onAction} onField={onField} />
           <button type="submit" hidden />
         </form>
       )}
@@ -348,4 +256,11 @@ export default function TunerSetup({ drivers, start, onClose, onAdded, inSetup }
       )}
     </Dialog>
   )
+}
+
+// The setup's body for one step: a page of its own inside the dialog. Every item with no address is answered here.
+function Spec({ page, onAction, onField, after }: { page: import('../../spec/types').SpecPageData; onAction: (id: string) => void; onField: (id: string, v: string | number | boolean | File) => void; after?: React.ReactNode }) {
+  const handled = new Set(handledIds(page))
+  for (const sec of page.sections) if (sec.kind === 'rows') for (const r of sec.items) for (const a of r.actions || []) if (a.id && !a.disabled) handled.add(a.id)
+  return <SpecPage page={page} embedded handled={handled} onAction={onAction} onField={onField} after={after ? { [page.sections.length - 1]: after } : undefined} />
 }

@@ -11,6 +11,8 @@ import BrandLogo from '../../components/BrandLogo'
 import { ChangeLogoButton, LogoConsentHint } from '../../components/edit/LogoChooser'
 import LegalNote from '../../components/LegalNote'
 import { BumperSection } from './BumperEditor'
+import SpecPage from '../../spec/SpecPage'
+import { audienceSpec, basicsSpec, moreSpec } from '../../spec/specs/channelEditor'
 import DiscScenes from './DiscScenes'
 import { resetChannel } from './resetChannel'
 import './tveditor.css'
@@ -177,24 +179,14 @@ export default function ChannelEditor() {
       {restored && <p className="tvs-note" role="status">Your unsaved changes from last time are back. <button className="btn sm ghost" onClick={discard}>Discard them</button></p>}
 
       <Section title="The channel">
-        <div className="form" style={{ maxWidth: 'none' }}>
-          <div className="tvs-two">
-            <label>Name<input className="input" value={draft.name} maxLength={200} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Saturday Morning" /></label>
-            <label>Number<input className="input tvs-short" value={draft.number} maxLength={12} onChange={(e) => setDraft({ ...draft, number: e.target.value })} placeholder="Next free" /></label>
-          </div>
-          <label>Description<input className="input" value={draft.description} maxLength={2000} onChange={(e) => setDraft({ ...draft, description: e.target.value })} /></label>
-          <div className="tvs-two">
-            <label>Categories in the guide
-              <input className="input" value={categories} placeholder="Movies, Kids, Late night" onChange={(e) => setCategories(e.target.value)} onBlur={() => setDraft({ ...draft, categories: categories.split(',').map((x) => x.trim()).filter(Boolean) })} />
-              <small className="tvs-help">Separated by commas. Leave it empty and the guide works some out, such as Movies and Kids.</small>
-            </label>
+        <SpecPage embedded bare page={basicsSpec({ name: draft.name, number: draft.number, description: draft.description, categories })} handled={new Set()}
+          onField={(f, v) => { const x = String(v); if (f === 'name') setDraft({ ...draft, name: x.slice(0, 200) }); else if (f === 'number') setDraft({ ...draft, number: x.slice(0, 12) }); else if (f === 'description') setDraft({ ...draft, description: x.slice(0, 2000) }); else if (f === 'categories') { setCategories(x); setDraft({ ...draft, categories: x.split(',').map((y) => y.trim()).filter(Boolean) }) } }}
+          after={{ 0: (
             <div className="tve-accent">
               <label>The channel's own colour<input type="color" value={draft.look.accent || '#3478f6'} onChange={(e) => setDraft({ ...draft, look: { ...draft.look, accent: e.target.value } })} /></label>
               {draft.look.accent && <button type="button" className="btn sm ghost" onClick={() => setDraft({ ...draft, look: { ...draft.look, accent: undefined } })}>Use the guide's colours</button>}
-            </div>
-          </div>
-          {opts && <LogoChoice look={draft.look} def={def} opts={opts} ownLogo={!!logo} set={(l) => setDraft({ ...draft, look: { ...draft.look, ...l } })} />}
-        </div>
+            </div>) }} />
+        {opts && <LogoChoice look={draft.look} def={def} opts={opts} ownLogo={!!logo} set={(l) => setDraft({ ...draft, look: { ...draft.look, ...l } })} />}
       </Section>
 
       <nav className="tve-jump" aria-label="Parts of this channel">
@@ -232,31 +224,12 @@ export default function ChannelEditor() {
 
       {id && (
         <Section title="More">
-          <div className="tvs-toolbar">
-            {logo && <img className="tvs-logo" src={mediaUrl(`/api/channels/${id}/logo?v=${logo}`)} alt="Current logo" />}
-            <label className="btn sm">Upload your own logo<input className="sr-only" type="file" accept="image/png,image/jpeg" onChange={(e) => void onLogo(e.target.files?.[0])} /></label>
-            {logo && <button className="btn sm ghost" onClick={() => void removeLogo()}>Remove the logo</button>}
-            <button className="btn sm ghost" onClick={() => void reshuffle()}>Make a new schedule</button>
-          </div>
-          <div className="tvs-toolbar">
-            <button className="btn sm danger" disabled={dirty} aria-describedby="ch-reset-h" onClick={() => void resetChannel(Number(id), saved?.name || draft.name)}>Reset channel</button>
-            <small className="tvs-help" id="ch-reset-h">{dirty ? 'Save your changes first: a reset uses the saved settings.' : 'Rebuilds the schedule now, from these settings and the files that match them, instead of after what’s on now.'}</small>
-          </div>
-          <p className="muted" style={{ fontSize: 13 }}>No logos come with the server. Use only pictures you have the right to use.</p>
+          {logo && <img className="tvs-logo" src={mediaUrl(`/api/channels/${id}/logo?v=${logo}`)} alt="Current logo" />}
+          <SpecPage embedded bare page={moreSpec({ hasLogo: !!logo, dirty, history: history.map((h) => ({ id: h.id, name: h.name, when: fmtDateTime(h.savedAt * 1000) })) })}
+            handled={new Set(['removeLogo', 'reshuffle', 'reset', ...history.map((h) => 'restore:' + h.id)])}
+            onField={(f, v) => { if (f === 'logo' && v instanceof File) void onLogo(v) }}
+            onAction={(a) => { if (a === 'removeLogo') void removeLogo(); else if (a === 'reshuffle') void reshuffle(); else if (a === 'reset') void resetChannel(Number(id), saved?.name || draft.name); else if (a.startsWith('restore:')) void restore(Number(a.slice(8))) }} />
           <LegalNote kind="logos" className="set-legal" />
-          {history.length > 0 && (
-            <details className="tvs-details">
-              <summary>Earlier versions ({history.length})</summary>
-              <ul className="tvs-list">
-                {history.map((h) => (
-                  <li key={h.id} className="tvs-item">
-                    <div className="tvs-item-text"><b>{h.name}</b><span>{fmtDateTime(h.savedAt * 1000)}</span></div>
-                    <button className="btn sm ghost" onClick={() => void restore(h.id)}>Go back to this</button>
-                  </li>
-                ))}
-              </ul>
-            </details>
-          )}
         </Section>
       )}
 
@@ -765,16 +738,9 @@ function Audience({ draft, setDraft }: { draft: Draft; setDraft: (d: Draft) => v
   useEffect(() => { api.get<UserView[]>('/users').then(setUsers).catch(() => {}) }, [])
   const v = draft.visibility
   return (
-    <div className="form" style={{ maxWidth: 'none' }}>
-      <label>Shown to
-        <select className="select" value={v.mode} onChange={(e) => setDraft({ ...draft, visibility: { ...v, mode: e.target.value as Visibility['mode'] } })}>
-          <option value="">Everyone</option><option value="adults">Adults only</option><option value="only">Chosen profiles</option>
-        </select>
-        <small className="tvs-help">A profile's own limits always apply. Everyone on a channel shares one stream, so a channel with anything a Kids profile may not see is hidden from that profile, not filtered.</small>
-      </label>
-      {v.mode === 'only' && <Multi label="Profiles" options={users.map((u) => ({ v: String(u.id), label: u.name }))} value={strs(v.users)} onChange={(x) => setDraft({ ...draft, visibility: { ...v, users: x.map(Number) } })} />}
-      <label className="check-row"><input type="checkbox" checked={draft.countProgress} onChange={(e) => setDraft({ ...draft, countProgress: e.target.checked })} /> Count towards “watched” and Continue Watching</label>
-    </div>
+    <SpecPage embedded bare page={audienceSpec({ mode: v.mode, countProgress: draft.countProgress })}
+      onField={(f, x) => { if (f === 'mode') setDraft({ ...draft, visibility: { ...v, mode: x as Visibility['mode'] } }); else if (f === 'count') setDraft({ ...draft, countProgress: !!x }) }}
+      after={v.mode === 'only' ? { 0: <Multi label="Profiles" options={users.map((u) => ({ v: String(u.id), label: u.name }))} value={strs(v.users)} onChange={(x) => setDraft({ ...draft, visibility: { ...v, users: x.map(Number) } })} /> } : undefined} />
   )
 }
 

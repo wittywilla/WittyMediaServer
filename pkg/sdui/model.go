@@ -52,6 +52,10 @@ type Page struct {
 	// TTLSeconds suggests how long a client may show the page before asking
 	// again. 0: the default for the page's kind.
 	TTLSeconds int `json:"ttlSeconds,omitempty"`
+	// Slot puts a module's page into a place of the hand-built Settings, as a settings page can (SettingsPage.Slot):
+	// "you.games" or "people.profile" (administrators only, opened about one profile: the route carries
+	// ?item=<its id>, which the page's sources read as $item). Only a module's page may have one.
+	Slot string `json:"slot,omitempty"`
 	// Regions are what the page puts into the shell's own regions while it, or its theme scope, is
 	// showing: the status bar's items and the system dock's actions (docs/SDUI.md, "Shell regions").
 	Regions *PageRegions `json:"regions,omitempty"`
@@ -557,6 +561,9 @@ type Item struct {
 	// Actions are the buttons a Shelf's detail panel shows for the item while it has focus (Resume,
 	// Play online, Options), first the A action. An item with none has its route as its A action.
 	Actions []ItemAction `json:"actions,omitempty"`
+	// Link is what a QR code stands for: a route of the app (/games?join=CODE) or an https address. Only
+	// the QR component reads it.
+	Link string `json:"link,omitempty"`
 }
 
 // ItemAction is one button of an item's detail panel.

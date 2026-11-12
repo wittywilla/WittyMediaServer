@@ -570,11 +570,18 @@ func (rv *sduiResolver) playRoom() []sdui.Item {
 		if v, ok := rv.s.gameSvc.seats.view(t.Session, true); ok && v.Code != "" {
 			room.Tagline = v.Code
 			room.Route = "/games?join=" + v.Code
+			room.Link = room.Route
 		}
 		if t.Open {
 			room.Badges = append(room.Badges, "Open")
 		}
 		room.Actions = rv.roomActions(t)
+	} else {
+		// Someone who joined may leave; getting back into the game is their player's own.
+		room.Actions = []sdui.ItemAction{
+			{ID: "leave", Label: "Leave", Glyph: "b", Action: &sdui.Action{Type: sdui.ActCommand, Op: "wittyplay.room.leave", Item: t.Session,
+				Params: map[string]any{"user": strconv.FormatInt(rv.u.ID, 10)}, Confirm: "Leave this game?"}},
+		}
 	}
 	out := []sdui.Item{room}
 	players := max(t.Game.Players, 1)
@@ -701,7 +708,7 @@ func (rv *sduiResolver) playMemories() []sdui.Item {
 		for _, sh := range listShots(rv.s.games().shotsDir(rv.u.ID, id)) {
 			all = append(all, memory{sdui.Item{ID: fmt.Sprintf("shot-%d-%s", id, strings.TrimSuffix(sh.Name, ".png")), Kind: "photo", Title: li.Title,
 				Subtitle: "Screenshot · " + savedWords(sh.Taken), Badges: []string{"Shot"},
-				Action: &sdui.Action{Type: sdui.ActNavigate, To: fmt.Sprintf("/page/online-memory?item=%d&name=%s", id, url.QueryEscape(sh.Name)), As: sdui.PresentLayer},
+				Action: &sdui.Action{Type: sdui.ActNavigate, To: fmt.Sprintf("/page/wittyplay-memory?item=%d&name=%s", id, url.QueryEscape(sh.Name)), As: sdui.PresentLayer},
 				Images: map[string]string{"backdrop": fmt.Sprintf("/api/games/%d/shots/%s", id, sh.Name)}}, sh.Taken})
 		}
 	}

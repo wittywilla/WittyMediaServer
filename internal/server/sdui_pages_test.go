@@ -5,7 +5,9 @@ package server
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
@@ -120,5 +122,52 @@ func TestUtilityPages(t *testing.T) {
 		if !pageHasType(&d.Root, "KeyLegend") {
 			t.Errorf("%s on a television has no key legend", page)
 		}
+	}
+}
+
+// A book in more than one format lists the others beside it, with sizes and never paths; the bookshelf's
+// reading filter keeps what has been started.
+func TestBookFormatsAndReadingFilter(t *testing.T) {
+	f := newCreditsFixture(t)
+	ts := f.ts
+	root := t.TempDir()
+	lib := ts.library(t, "books", root)
+	write := func(name string, n int) string {
+		p := filepath.Join(root, name)
+		if err := os.WriteFile(p, make([]byte, n), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	a := ts.item(t, &library.Item{LibraryID: lib, Kind: "book", Path: write("Tide.epub", 2048), Title: "Tide", Container: "epub"})
+	write("Tide.pdf", 4096)
+	ts.item(t, &library.Item{LibraryID: lib, Kind: "book", Path: write("Orchard.epub", 1024), Title: "Orchard", Container: "epub"})
+	_, admin := ts.user(t, "shelf-admin", "adult", true, "")
+	etag := ts.do(t, "GET", "/api/sdui/config", admin, nil).Header().Get("ETag")
+	pg := sdui.Page{ID: "book-formats", Kind: "custom", Title: "{title}", Sections: []sdui.Section{{ID: "fmt", Component: "List", Source: sdui.Source{"type": "formats", "item": "$item"}}}}
+	if w := ts.do(t, "PUT", "/api/sdui/config/pages/book-formats", admin, pg, "If-Match", etag); w.Code != 200 {
+		t.Fatal(w.Body)
+	}
+	d := sduiDoc(t, ts.do(t, "GET", fmt.Sprintf("/api/sdui/pages/book-formats?item=%d", a.ID), f.adult, nil))
+	rows := pageNode(&d.Root, "fmt")
+	if rows == nil || len(rows.Children) != 2 || rows.Children[0].Props["title"] != "EPUB" || rows.Children[1].Props["title"] != "PDF" {
+		t.Fatalf("a book's formats: %+v", rows)
+	}
+	if strings.Contains(fmt.Sprint(rows.Children[0].Props, rows.Children[1].Props), root) {
+		t.Errorf("a path leaked into the formats")
+	}
+	// The bookshelf's filters: nothing is being read, so Reading is empty and Not started holds both books.
+	shelf := func(q string) *sdui.Node {
+		d := sduiDoc(t, ts.do(t, "GET", fmt.Sprintf("/api/sdui/pages/library?library=%d&%s", lib, q), f.adult, nil))
+		return pageNode(&d.Root, "all")
+	}
+	if g := shelf("reading=unread"); g == nil || len(g.Children) != 2 {
+		t.Errorf("not started: %+v", g)
+	}
+	if g := shelf("reading=reading"); g != nil && len(g.Children) != 0 {
+		t.Errorf("reading: %+v", g)
+	}
+	if g := shelf("format=pdf"); g != nil && len(g.Children) != 0 {
+		t.Errorf("pdf: %+v", g)
 	}
 }

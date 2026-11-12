@@ -1087,7 +1087,7 @@ export function Draw({ view, depth }: { view: View; depth: number }): ReactNode 
       return <div className="sdui-spacer" aria-hidden="true" style={{ height: px(size, page.pt), width: px(size, page.pt) }} />
     }
     case 'Split': return <SplitView view={view} depth={depth} />
-    case 'Form': return <FormView title={view.text?.title} submitLabel={str(view.node.props, 'submitLabel')} cancelLabel={str(view.node.props, 'cancelLabel')} action={view.node.action}>{view.children.map((c) => <Draw key={c.id} view={c} depth={depth + 1} />)}</FormView>
+    case 'Form': return <FormView title={view.text?.title} submitLabel={str(view.node.props, 'submitLabel')} cancelLabel={str(view.node.props, 'cancelLabel')} action={view.node.action} nodes={view.node.children}>{view.children.map((c) => <Draw key={c.id} view={c} depth={depth + 1} />)}</FormView>
     case 'Button': return <ButtonView view={view} />
     case 'Image': return <ImageView view={view} />
     case 'SearchBox': return <SearchBoxView view={view} />

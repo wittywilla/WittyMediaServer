@@ -7,7 +7,8 @@ import { createContext, useContext, useState, type ReactNode } from 'react'
 import { Button } from '../../ui/Button'
 import { Input, Select, Switch } from '../../ui/Field'
 import type { Action } from '../types'
-import { saveAction, withValue, type Control } from '../formsModel'
+import { formValues, saveAction, withValue, type Control } from '../formsModel'
+import type { Node } from '../types'
 import { usePage } from './context'
 
 // What a Form is holding: values by control name, and whether it is in one.
@@ -41,14 +42,14 @@ export function ControlView({ control, label, action }: { control: Control; labe
 }
 
 // The Form: its children (Lists, Text, Notices), then Save and Cancel. Save is off until something has changed.
-export function FormView({ title, submitLabel, cancelLabel, action, children }: { title?: string; submitLabel?: string; cancelLabel?: string; action: Action | undefined; children: ReactNode }) {
+export function FormView({ title, submitLabel, cancelLabel, action, nodes, children }: { title?: string; submitLabel?: string; cancelLabel?: string; action: Action | undefined; nodes?: Node[]; children: ReactNode }) {
   const page = usePage()
   const [values, setValues] = useState<Record<string, unknown>>({})
   const [busy, setBusy] = useState(false)
   const changed = Object.keys(values).length > 0
   return (
     <FormCtx.Provider value={{ values, set: (n, v) => setValues((x) => ({ ...x, [n]: v })) }}>
-      <form className="sdui-form" onSubmit={(e) => { e.preventDefault(); if (!changed || page.inert) return; setBusy(true); page.act(saveAction(action, values)); window.setTimeout(() => { setBusy(false); setValues({}) }, 600) }}>
+      <form className="sdui-form" onSubmit={(e) => { e.preventDefault(); if (!changed || page.inert) return; setBusy(true); page.act(saveAction(action, formValues(nodes, values))); window.setTimeout(() => { setBusy(false); setValues({}) }, 600) }}>
         {title && <h2 className="sdui-form-title">{title}</h2>}
         {children}
         <div className="sdui-form-actions">

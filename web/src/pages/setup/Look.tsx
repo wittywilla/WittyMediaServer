@@ -17,7 +17,7 @@ import { ChoiceCards, LaterNote, StepActions, StepHead, TickRow, type StepProps 
 
 type Card = { id: string; name: string; tagline?: string; theme?: string; type?: string; density?: string; effects?: Record<string, string>; preview?: { bg: string; surface: string; accent: string }; nav: Record<string, string>; wire?: WireMap }
 const FORM_FACTORS = ['phone', 'tablet', 'desktop', 'web', 'tv', 'headset']
-const swatch = (c: Card) => <LayoutThumb wire={c.wire} colours={c.preview} />
+const swatch = (c: Card, device: Device) => <LayoutThumb wire={c.wire} formFactor={device} colours={c.preview} />
 
 type Device = 'tv' | 'desktop' | 'phone' | 'headset'
 const SIDE = new Set(['sidebar', 'rail', 'railDrawer', 'tvSideMenu', 'ornamentTabs'])
@@ -73,7 +73,7 @@ export function Look({ info, next, back }: StepProps) {
       <StepHead title="Choose a look" lead="Fourteen looks, each a layout, finish and type of its own. Pick one for everyone: it is tried here as you choose. Colours are the next step, and people can pick their own look later." />
       {cards.length > 0 && (
         <div className="su-look">
-          <ChoiceCards label="Look" value={pick} onChange={choose} small cards={cards.map((c) => ({ value: c.id, title: c.name, text: c.tagline, pic: swatch(c) }))} />
+          <ChoiceCards label="Look" value={pick} onChange={choose} small cards={cards.map((c) => ({ value: c.id, title: c.name, text: c.tagline, pic: swatch(c, device) }))} />
           <div className="su-look-view">
             <Segmented<Device> label="Preview on" value={device} onChange={setDevice} options={[{ value: 'tv', label: 'TV' }, { value: 'desktop', label: 'Desktop' }, { value: 'phone', label: 'Phone' }, { value: 'headset', label: 'Headset' }]} />
             {cards.find((c) => c.id === pick) && <LookPreview card={cards.find((c) => c.id === pick)!} device={device} />}

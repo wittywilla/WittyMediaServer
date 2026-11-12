@@ -230,3 +230,17 @@ sweep, set by the theme (`aero-day`, `aero-night`); icons sit on glass tiles; ti
 motion is a gentle ease with a small overshoot (never on modest hardware). Glass uses gradients and highlights, not
 `backdrop-filter`, except on non-scrolling chrome where the device is not modest. Light and dark variants both pass
 contrast. New theme packs `aero-day` and `aero-night` ship built in.
+
+## 8. UI and theme are separate; first run; policy; WittyRemote (added 2026-11-12)
+
+**A UI is not a theme.** A **UI** (experience) is layout, shell, shape, finish, type set and component styles. A **theme** is colour (and scene). Each UI ships with one default theme, the same every time; any UI can wear any theme, built-in or imported. WittyTV's look is a third, independent choice (person, then the UI's suggestion, then the owner's default). WittyPlay's UI (WittyPlay Online) is a module-scope UI the person can switch on or off independently of the app's UI.
+
+**Theme import.** Settings, Appearance and the first-run Look step both have **Import a theme…** (a ZIP or a theme file, validated as in THEMES.md) and **Make your own**. Imported themes work in every UI. On phones and TVs the choice is offered the first time the app connects to a server (after choosing a profile), unless an administrator has required one.
+
+**Policy.** Administrators can require, per profile or for everyone: a UI, a theme, or both. A required value is shown locked with who set it; a profile with nothing required chooses freely. The server resolves it (required, else the person's choice, else the server default) and sends the finished result, so every client behaves the same. Kids profiles can be given their own required UI and theme.
+
+**First run (OOBE) happens in a web browser only.** The server is not reachable by client apps until it is complete: every client route answers `setup_required` (503) with the address to finish at, and the apps show "This server isn't set up yet. Finish setup in a web browser at <address>" with a QR code. Only `/setup`, the status route and the web app's assets answer. The OOBE wears the UI and theme being tried (see the trial board), is complete by keyboard, touch, remote and controller, and its steps are: Welcome, Account, Name and address, Look (UI), Theme (with import), Modules, Libraries, Details and artwork, Live TV, Games, Discs, People and rules (profiles, kids limits, required UI and theme), Remote access and apps (pairing, P2P), Ready.
+
+**WittyRemote** is one remote on every platform, drawn as the existing disc remote is (graphite body, raised keys, red eject, accent ENTER; TOP MENU, MENU, RETURN, ANGLE, AUDIO, SUBTITLE; transport; digits; colour keys), as: the floating, draggable, resizable remote on desktop; a two-page sheet (keys, then digits and colours) with large keys and a focus ring on TVs and phones; a floating body in headsets. A second look puts the same keys in a bar above or below the timeline. Keys a disc or video does not use stay in place, dimmed with a dashed outline, never hidden: DVDs dim the colour keys, a one-angle Blu-ray dims ANGLE, a plain video dims every disc key.
+
+**WittyTV logos.** A channel's logo (contain-fit on a tile, never cropped) appears in the guide's channel column, the highlighted programme's details and the watch banner, sized from the tokens per platform; a channel without a logo shows its initials on a tile. Programme titles in the guide wrap to two lines and only then truncate.

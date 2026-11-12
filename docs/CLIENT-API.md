@@ -2298,9 +2298,9 @@ See [LIBRARY-TRANSCODING.md](LIBRARY-TRANSCODING.md).
 | `POST /play/{sid}/screenshot` | user | Keeps the current picture in the host's memories. Answers `{name, itemId, url}`. |
 | `GET /games/{id}/shots/{name}` | user | One kept screenshot, as a PNG. |
 | `DELETE /games/{id}/shots/{name}` | user | Deletes a kept screenshot. |
-| `GET /games/online/me` | user | Whether this profile lets its friends see what it plays and whether it's here: `{sharePlaying, canShare}`. |
-| `PUT /games/online/me` | user | Sets it: `{sharePlaying}`. A guest has no friends to share with. |
-| `GET /games/online/kids/{user}` | admin | The profiles a Kids profile may see, and be seen by, as friends: `{user, friends}`. |
+| `GET /games/online/me` | user | What this profile lets its friends know: `{sharePlaying, appearOnline, canShare}`. Not sharing what it plays shows it online with no game; not appearing online shows it offline. |
+| `PUT /games/online/me` | user | Sets either or both: `{sharePlaying, appearOnline}`. A guest has no friends to share with. |
+| `GET /games/online/kids/{user}` | admin | The profiles a Kids profile may see, and be seen by, as friends: `{user, name, friends, candidates: [{id, name, kind, approved}]}`, every profile that could be one. |
 | `PUT /games/online/kids/{user}` | admin | Sets them: `{friends: [id…]}`. |
 | `POST /play/{sid}/action` | user | Play action. |
 | `GET /play/{sid}/stats` | user | A running game's numbers: frame rates, encode time, bitrate, drops. |

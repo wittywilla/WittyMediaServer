@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
+import MoreInfo from './MoreInfo'
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../../api'
 import { announce } from '../../a11y'
@@ -53,6 +54,7 @@ export default function MiniGuide({ channel, onTune, onClose, onFull }: { channe
   }
   useEffect(() => { list.current?.querySelector<HTMLElement>('[aria-current="true"]')?.focus({ preventScroll: true }) }, [at, rows])
   const cur = rows?.[at]
+  const [more, setMore] = useState<{ key: string; at: number } | null>(null)
   useEffect(() => { if (cur) announce(`Channel ${cur.number}, ${cur.name}`) }, [cur?.key]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const onKey = (e: React.KeyboardEvent) => {
@@ -63,6 +65,7 @@ export default function MiniGuide({ channel, onTune, onClose, onFull }: { channe
       case 'PageUp': page(offset - ROWS, at); break
       case 'PageDown': page(offset + ROWS, at); break
       case 'Enter': if (cur && !cur.encrypted) onTune(cur.key); break
+      case 'i': case 'I': if (cur) { const on = cur.programmes.find((p) => p.start <= now && p.end > now); setMore({ key: cur.key, at: on ? now : cur.programmes[0]?.start ?? now }) } break
       case 'Escape': case 'GoBack': case 'BrowserBack': case 'g': case 'G': case 'ContextMenu': onClose(); break
       default: done = false
     }
@@ -70,7 +73,8 @@ export default function MiniGuide({ channel, onTune, onClose, onFull }: { channe
   }
   return (
     <div className="ctv-mini" role="region" aria-label="Mini guide" onClick={(e) => e.stopPropagation()} onKeyDown={onKey}>
-      <div className="ctv-mini-head"><b>Now and next</b><button type="button" className="ctv-btn sm" onClick={onFull}>Full guide</button><button type="button" className="ctv-btn sm" onClick={onClose}>Close</button></div>
+      {more && <MoreInfo channelKey={more.key} at={more.at} onClose={() => setMore(null)} />}
+      <div className="ctv-mini-head"><b>Now and next</b><button type="button" className="ctv-btn sm" onClick={() => { if (cur) { const on = cur.programmes.find((p) => p.start <= now && p.end > now); setMore({ key: cur.key, at: on ? now : cur.programmes[0]?.start ?? now }) } }} disabled={!cur}>More info <kbd aria-hidden="true">I</kbd></button><button type="button" className="ctv-btn sm" onClick={onFull}>Full guide</button><button type="button" className="ctv-btn sm" onClick={onClose}>Close</button></div>
       {err && <div className="ctv-err" role="alert">{err}</div>}
       {!rows && !err && <div className="ctv-mini-wait">Loading…</div>}
       <ul ref={list}>

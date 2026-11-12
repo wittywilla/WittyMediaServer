@@ -140,7 +140,7 @@ export function ControllersScreen() {
   const consoles = useConsoles()
   const consoleId = params.get('console') || consoles.find((c) => c.ready)?.id || consoles[0]?.id || ''
   const controls = useMemo(() => (id: string, device: string) => api.get<ControlsData>(`/consoles/${encodeURIComponent(id)}/controls?device=${encodeURIComponent(device)}`), [])
-  if (!consoleId) return <Spinner />
+  if (!consoleId) return <><h1 className="sr-only">Controllers</h1><Spinner /></>
   return (
     <Suspense fallback={<Spinner />}>
       <h1 className="sr-only">Controllers</h1>

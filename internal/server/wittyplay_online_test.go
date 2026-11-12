@@ -85,7 +85,7 @@ func TestPresenceSharesOnlyWhatAProfileAllows(t *testing.T) {
 	if p[a.alex.ID].State != "online" || p[a.sam.ID].State != "online" {
 		t.Fatalf("signed in just now: %+v", p)
 	}
-	if err := a.ts.Store.SetPresenceShared(ctx, a.sam.ID, false); err != nil {
+	if err := a.ts.Store.SetPresence(ctx, a.sam.ID, library.Presence{Playing: false, Online: false}); err != nil {
 		t.Fatal(err)
 	}
 	g := a.ts.games()
@@ -96,7 +96,14 @@ func TestPresenceSharesOnlyWhatAProfileAllows(t *testing.T) {
 		t.Errorf("alex: %+v", p[a.alex.ID])
 	}
 	if p[a.sam.ID].State != "offline" || p[a.sam.ID].Game != "" {
-		t.Errorf("sam doesn't share, and showed %+v", p[a.sam.ID])
+		t.Errorf("sam doesn't appear online, and showed %+v", p[a.sam.ID])
+	}
+	// Online, but not saying what it plays: online, with no game.
+	if err := a.ts.Store.SetPresence(ctx, a.sam.ID, library.Presence{Playing: false, Online: true}); err != nil {
+		t.Fatal(err)
+	}
+	if p := a.ts.playPresence(ctx, []auth.User{*a.sam}); p[a.sam.ID].State != "online" || p[a.sam.ID].Game != "" {
+		t.Errorf("sam appears online without its game, and showed %+v", p[a.sam.ID])
 	}
 }
 
@@ -251,13 +258,18 @@ func TestPlayOnlineRoutes(t *testing.T) {
 	ts := a.ts
 	var me struct {
 		SharePlaying bool `json:"sharePlaying"`
+		AppearOnline bool `json:"appearOnline"`
 	}
 	w := ts.do(t, "GET", "/api/games/online/me", a.alexT, nil)
-	if json.Unmarshal(w.Body.Bytes(), &me) != nil || !me.SharePlaying {
+	if json.Unmarshal(w.Body.Bytes(), &me) != nil || !me.SharePlaying || !me.AppearOnline {
 		t.Fatalf("%d %s", w.Code, w.Body.String())
 	}
 	w = ts.do(t, "PUT", "/api/games/online/me", a.alexT, map[string]any{"sharePlaying": false})
-	if json.Unmarshal(w.Body.Bytes(), &me) != nil || me.SharePlaying {
+	if json.Unmarshal(w.Body.Bytes(), &me) != nil || me.SharePlaying || !me.AppearOnline {
+		t.Fatalf("one choice changes only that one: %d %s", w.Code, w.Body.String())
+	}
+	w = ts.do(t, "PUT", "/api/games/online/me", a.alexT, map[string]any{"appearOnline": false})
+	if json.Unmarshal(w.Body.Bytes(), &me) != nil || me.SharePlaying || me.AppearOnline {
 		t.Fatalf("%d %s", w.Code, w.Body.String())
 	}
 	if w := ts.do(t, "PUT", "/api/games/online/me", a.gusT, map[string]any{"sharePlaying": true}); w.Code != 403 {
@@ -280,6 +292,20 @@ func TestPlayOnlineRoutes(t *testing.T) {
 	}
 	if w := ts.do(t, "GET", "/api/games/online/kids/"+itoa64(a.alex.ID), a.ownerT, nil); w.Code != 400 {
 		t.Errorf("an adult's chosen friends: %d", w.Code)
+	}
+	var page struct {
+		Candidates []kidsCandidate `json:"candidates"`
+	}
+	if err := json.Unmarshal(ts.do(t, "GET", kids, a.ownerT, nil).Body.Bytes(), &page); err != nil {
+		t.Fatal(err)
+	}
+	approved := map[string]bool{}
+	for _, c := range page.Candidates {
+		approved[c.Name] = c.Approved
+	}
+	// Every profile but kit itself and the guest, approved or not.
+	if len(page.Candidates) != 4 || !approved["alex"] || !approved["sam"] || approved["owner"] || approved["kira"] {
+		t.Errorf("candidates: %+v", page.Candidates)
 	}
 	if got := friendNames(t, ts.Server, a.kit); !slices.Equal(got, []string{"alex", "sam"}) {
 		t.Errorf("kit's friends now: %v", got)

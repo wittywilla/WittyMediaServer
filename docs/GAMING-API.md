@@ -269,10 +269,12 @@ WittyPlay Online's data (Design 2, `docs/plans/DESIGN-2-SDUI-GAPS.md` section 6)
 (`gamesHome`, `quickMenu`, `lobby`, `controllers`, `memories`, the status bar and the system dock) are drawn by the
 apps from these sources; nothing here is a page of its own.
 
-**Friends** are the other profiles of this server. A profile chooses whether they see what it plays and whether it's
-here (`GET` and `PUT /games/online/me`, `{sharePlaying}`; yes until it says otherwise). Someone who doesn't share is
-offline to everyone. A **Kids** profile sees, and is seen by, only the profiles an administrator chose for it
-(`GET` and `PUT /games/online/kids/{user}`, `{friends}`), and gets no open rooms. A **guest** has no friends and is
+**Friends** are the other profiles of this server. A profile makes two choices (`GET` and `PUT /games/online/me`;
+yes to both until it says otherwise): whether friends see what it plays (`sharePlaying`; off, it's shown online with no
+game) and whether it appears online at all (`appearOnline`; off, it's offline to everyone, playing or not). A **Kids**
+profile sees, and is seen by, only the profiles an administrator chose for it (`GET` and
+`PUT /games/online/kids/{user}`, `{friends}`; the `GET` also lists every profile that could be one, as `candidates`
+with `approved`), and gets no open rooms. A **guest** has no friends and is
 nobody's. Presence is `playing` (in a game on this server, as its host or in a seat), `online` (used this server in
 the last five minutes), `away` (in the last hour) or `offline`; the game is named only to someone whose limits would
 let them open it.

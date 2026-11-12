@@ -2,7 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, NavLink, useLocation, useParams, useSearchParams } from 'react-router-dom'
-import { BackLink, Spinner, VersionTag } from '../components/common'
+import { BackLink, Spinner } from '../components/common'
 import { allGuides, GROUPS, guideBySlug, loadGuide, slugOf, type Guide } from '../help/guides'
 import { GuideBody } from '../help/GuideBody'
 import { parse, plain, type Block } from '../help/markdown'
@@ -10,6 +10,8 @@ import { search, type Hit } from '../help/search'
 import { IconRight, IconSearch } from '../icons'
 import { useApp } from '../state'
 import { applyPageTitle } from '../theme'
+import SpecPage from '../spec/SpecPage'
+import { helpSpec } from '../spec/specs/help'
 import '../help/help.css'
 
 // Help: the guides from docs/, built into the web app, so it all works with no internet and
@@ -73,31 +75,8 @@ function SearchBox({ q, onChange }: { q: string; onChange: (v: string) => void }
 }
 
 function Index({ version }: { version: string }) {
-  return (
-    <>
-      <header className="set-head help-head">
-        <div>
-          <h1>Help</h1>
-          <p>Everything about this server, built in. It works with no internet connection, and it matches the version you’re running: <VersionTag version={version} /></p>
-        </div>
-      </header>
-      <ul className="help-quick">
-        <li><Link to="/help/getting-started"><b>New here?</b><span>Start with Getting started.</span></Link></li>
-        <li><Link to="/help/troubleshooting"><b>Something’s wrong?</b><span>Look it up by what you’re seeing.</span></Link></li>
-        <li><Link to="/help/settings"><b>Looking for a setting?</b><span>Every settings page, one by one.</span></Link></li>
-      </ul>
-      {GROUPS.map((g) => (
-        <section key={g.title} className="help-group" aria-label={g.title}>
-          <h2>{g.title}</h2>
-          <ul>
-            {g.guides.map((it) => (
-              <li key={it.file}><Link to={`/help/${slugOf(it.file)}`} className="help-row"><b>{it.title}</b><span>{it.about}</span></Link></li>
-            ))}
-          </ul>
-        </section>
-      ))}
-    </>
-  )
+  const page = useMemo(() => helpSpec(GROUPS, version, slugOf), [version])
+  return <SpecPage page={page} />
 }
 
 function Results({ q }: { q: string }) {

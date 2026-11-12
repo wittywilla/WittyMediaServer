@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
+import { viewerAlbumSpec } from '../../spec/specs/albums'
 import { useEffect, useRef, useState } from 'react'
 import { api, mediaUrl, type Library } from '../../api'
 import ShareDialog from '../../components/ShareDialog'
@@ -10,7 +11,7 @@ import { toast, useApp } from '../../state'
 import { usePhotoRemote } from '../../remote/pageTargets'
 import { PlayOnButton } from '../../remote/PlayOnButton'
 import SpecPage from '../../spec/SpecPage'
-import { handledIds } from '../../spec/model'
+import { handledIds, withIds } from '../../spec/model'
 import { photoDetailsSpec } from '../../spec/specs/media'
 
 // One picture filling the screen: step through the list, zoom, slideshow, its
@@ -165,13 +166,14 @@ function QuickAlbum({ d, lib, onClose, onChanged }: { d: PhotoDetail; lib: Libra
   const [albums, setAlbums] = useState<PhotoAlbum[] | null>(null)
   useEffect(() => { api.get<PhotoAlbum[]>(`/photos/albums?library=${lib.id}`).then(setAlbums).catch(() => setAlbums([])) }, [lib.id])
   const mine = (albums || []).filter((a) => a.ownerId === user?.id || user?.isAdmin)
+  const pick = viewerAlbumSpec(mine, d.albums)
   const add = async (a: PhotoAlbum) => { await api.post(`/photos/albums/${a.id}/items`, { ids: [d.id] }); toast(`Added to ${a.name}`); onChanged(); onClose() }
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal" role="dialog" aria-modal="true" aria-labelledby="qa-h" onClick={(e) => e.stopPropagation()}>
         <h2 id="qa-h">Add to album</h2>
         {albums && !mine.length && <p className="muted">You have no albums yet. Make one under Albums.</p>}
-        <div className="gal-pick">{mine.map((a) => <button key={a.id} className="btn ghost" disabled={d.albums.includes(a.id)} onClick={() => add(a)}>{a.name}{d.albums.includes(a.id) && <span className="muted"> · already in it</span>}</button>)}</div>
+        <SpecPage bare page={pick} handled={handledIds(withIds(pick))} onAction={(id) => { const a = mine.find((x) => 'album:' + x.id === id); if (a) void add(a) }} />
         <div className="actions"><button className="btn ghost" onClick={onClose}>Cancel</button></div>
       </div>
     </div>

@@ -20,3 +20,11 @@ test('add to album: New album first, then albums with their counts', () => {
   assert.equal(addToAlbumSpec([], 1).sections.length, 1)
   assert.equal(addToAlbumSpec([], 1).lead, '1 picture chosen.')
 })
+
+test('viewer: an album that already holds the picture is not offered', async () => {
+  const { viewerAlbumSpec } = await import('./albums.ts')
+  const p = viewerAlbumSpec([{ id: 1, name: 'A', count: 1 }, { id: 2, name: 'B', count: 4 }], [1])
+  assert.deepEqual(p.sections[0].items.map((r) => [r.id, r.disabled, r.value]), [['album:1', true, 'Already in it'], ['album:2', false, undefined]])
+  assert.deepEqual([...handledIds(withIds(p))], ['album:2'])
+  assert.equal(viewerAlbumSpec([], []).sections.length, 0)
+})

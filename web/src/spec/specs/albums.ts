@@ -25,3 +25,9 @@ export function addToAlbumSpec(albums: AlbumLine[], count: number): SpecPageData
     ...(rows.length ? [secR('Albums', rows)] : []),
   ])
 }
+
+// The same from the picture viewer: one picture; an album that already has it is shown but not offered. Ids: album:<id>.
+export function viewerAlbumSpec(albums: AlbumLine[], holding: readonly number[]): SpecPageData {
+  const rows: SpecRow[] = albums.map((a) => ({ ...R(a.name, holding.includes(a.id) ? 'Already in it' : '', holding.includes(a.id)), id: 'album:' + a.id, disabled: holding.includes(a.id) }))
+  return mk('photoview', 'Photos · Viewer', 'Add to album', '', rows.length ? [secR('', rows)] : [])
+}

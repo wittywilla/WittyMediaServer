@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
-import { canMake, canSkip, currentStep, drawnNumber, drawnSteps, describeOutcome, GAMES_LINE, neighbours, offerable, onAnotherMachine, pathOf, planSteps, RECOMMENDED, STEPS, stepFromPath, stepNumber, updateChoiceFrom, updateSettings } from './plan.ts'
+import { ALL_DRAWN, canMake, canSkip, currentStep, drawnNumber, describeOutcome, GAMES_LINE, neighbours, offerable, onAnotherMachine, pathOf, planSteps, RECOMMENDED, STEPS, stepFromPath, stepNumber, updateChoiceFrom, updateSettings } from './plan.ts'
 
 const facts = (over = {}) => ({ signedIn: true, store: true, modules: [], kinds: [], ...over })
 const ids = (f) => planSteps(f).map((s) => s.id)
@@ -155,19 +155,18 @@ test('the games line is word for word what was asked for', () => {
   assert.equal(GAMES_LINE.replace(/’/g, "'"), "Point it at your games folder and leave it. Anything it can't prove is listed for you to look at.")
 })
 
-test('there are fourteen drawn steps, and the pages of Details and artwork share one number', () => {
-  const all = facts({ signedIn: false, kinds: null, modules: ['wittyplay', 'wittydvd', 'wittytuner'] })
-  const steps = planSteps({ ...all, signedIn: true, kinds: [] })
-  assert.equal(drawnSteps(steps).length + 2, 14)
-  assert.deepEqual(drawnNumber(steps, 'details', true), { at: 8, of: 14, page: { at: 1, of: 4 } })
-  assert.deepEqual(drawnNumber(steps, 'listings', true), { at: 8, of: 14, page: { at: 4, of: 4 } })
-  assert.deepEqual(drawnNumber(steps, 'tv', true), { at: 9, of: 14 })
-  assert.deepEqual(drawnNumber(steps, 'done', true), { at: 14, of: 14 })
+test('there are always fourteen drawn steps, and the pages of Details and artwork share one number', () => {
+  const steps = planSteps(facts({ modules: ['wittyplay', 'wittydvd', 'wittytuner'] }))
+  assert.equal(ALL_DRAWN.length, 14)
+  assert.deepEqual(drawnNumber(steps, 'details'), { at: 8, of: 14, page: { at: 1, of: 4 } })
+  assert.deepEqual(drawnNumber(steps, 'listings'), { at: 8, of: 14, page: { at: 4, of: 4 } })
+  assert.deepEqual(drawnNumber(steps, 'tv'), { at: 9, of: 14 })
+  assert.deepEqual(drawnNumber(steps, 'done'), { at: 14, of: 14 })
+  assert.deepEqual(drawnNumber(planSteps(facts()), 'done'), { at: 14, of: 14 }, 'the total doesn\'t change with the modules')
 })
 
-test('the name, look and theme are asked, the rest can be passed', () => {
+test('every step that says where to change it later can be passed, the last cannot', () => {
   const byId = Object.fromEntries(STEPS.map((s) => [s.id, s]))
-  assert.ok(!canSkip(byId.look) && !canSkip(byId.theme) && !canSkip(byId.name))
-  assert.ok(canSkip(byId.media) && canSkip(byId.people))
-  assert.ok(!canSkip(byId.done))
+  assert.ok(canSkip(byId.look) && canSkip(byId.theme) && canSkip(byId.name) && canSkip(byId.media))
+  assert.ok(!canSkip(byId.done) && !canSkip(byId.welcome))
 })

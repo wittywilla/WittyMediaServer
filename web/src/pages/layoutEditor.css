@@ -4,8 +4,11 @@
 .le-top .muted { margin: 0; font-size: var(--text-sm); flex: 1 1 280px; }
 .le-body { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: var(--sp-5); margin-top: var(--sp-4); }
 @media (max-width: 900px) { .le-body { grid-template-columns: 1fr; } }
-.le-stage { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-rows: auto minmax(0, 1fr) auto; grid-template-areas: "top top top" "start main end" "bottom bottom bottom"; gap: var(--sp-2); padding: var(--sp-3); border-radius: var(--r-lg); background: var(--bg); box-shadow: 0 0 0 1px var(--border-strong); max-height: 56vh; margin-inline: auto; inline-size: 100%; }
-.le-stage.dev-phone { inline-size: auto; block-size: 56vh; max-width: 100%; }
+.le-stage { display: grid;  grid-template-rows: auto minmax(0, 1fr) auto; grid-template-areas: "top top top" "start main end" "bottom bottom bottom"; gap: var(--sp-2); padding: var(--sp-3); border-radius: var(--r-lg); background: var(--bg); box-shadow: 0 0 0 1px var(--border-strong); min-block-size: 24rem; margin-inline: auto; inline-size: 100%; }
+.le-stage.dev-desktop { max-inline-size: 56rem; }
+.le-stage.dev-tablet { max-inline-size: 40rem; }
+.le-stage.dev-tv, .le-stage.dev-headset { max-inline-size: 60rem; }
+.le-stage.dev-phone { max-inline-size: 22rem; min-block-size: 30rem; }
 .le-stage.dev-headset { border-radius: var(--r-xl); }
 .le-zone { display: flex; gap: var(--sp-2); min-width: 0; min-height: 0; }
 .z-top { grid-area: top; flex-wrap: wrap; }
@@ -13,16 +16,17 @@
 .z-start { grid-area: start; flex-direction: column; }
 .z-end { grid-area: end; flex-direction: column; }
 .z-main { grid-area: main; flex-direction: column; }
+.z-main .le-drop { flex: 0 0 auto; }
 .le-tile { position: relative; flex: 0 1 auto; display: flex; border-radius: var(--r-md); border: 2px dashed var(--accent-line); background: var(--accent-soft); min-width: 0; }
-.z-main .le-tile, .z-main .le-tile.hero { flex: 1; }
+.z-main .le-tile, .z-main .le-tile.le-hero { flex: 1; }
 .z-start .le-tile, .z-end .le-tile { flex: 0 0 auto; min-inline-size: 96px; }
 .le-tile.sel { border-color: var(--fg); }
 .le-tile.held { border-style: solid; border-color: var(--fg); background: var(--pressed); box-shadow: var(--e-3); transform: translateY(-4px); }
-.le-tile-main { flex: 1; min-height: 44px; padding: var(--sp-2) 40px var(--sp-2) var(--sp-3); border: 0; background: none; color: var(--accent-text); font: inherit; font-size: var(--text-sm); font-weight: 700; text-align: start; cursor: pointer; border-radius: inherit; }
+.le-tile-main { flex: 1; white-space: nowrap; min-height: 44px; padding: var(--sp-2) 40px var(--sp-2) var(--sp-3); border: 0; background: none; color: var(--accent-text); font: inherit; font-size: var(--text-sm); font-weight: 700; text-align: start; cursor: pointer; border-radius: inherit; }
 .le-tile-main:focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: 2px; }
 .le-grip { position: absolute; inset-block-start: 6px; inset-inline-end: 6px; display: grid; place-items: center; inline-size: 28px; block-size: 28px; border-radius: var(--r-sm); background: var(--accent); color: var(--accent-fg); font-size: var(--text-md); cursor: grab; touch-action: none; }
 .le-tile.held .le-grip { background: var(--fg); color: var(--bg); cursor: grabbing; }
-.le-drop { flex: 1 1 auto; font: inherit; text-align: start; cursor: pointer; display: flex; align-items: center; min-height: 44px; padding: var(--sp-2) var(--sp-3); border-radius: var(--r-md); border: 2px dashed var(--ok); background: var(--ok-soft); color: var(--ok); font-size: var(--text-sm); font-weight: 700; }
+.le-drop { flex: 0 0 auto; font: inherit; text-align: start; cursor: pointer; display: flex; align-items: center; min-height: 44px; padding: var(--sp-2) var(--sp-3); border-radius: var(--r-md); border: 2px dashed var(--ok); background: var(--ok-soft); color: var(--ok); font-size: var(--text-sm); font-weight: 700; }
 .le-drop.over { border-style: solid; background: color-mix(in srgb, var(--ok) 24%, transparent); }
 .le-hidden, .le-presets { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin-top: var(--sp-3); }
 .le-hidden > span, .le-presets > span { font-size: var(--text-xs); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--fg-2); margin-inline-end: var(--sp-2); }
@@ -45,3 +49,5 @@
 .le-rows { display: grid; gap: var(--sp-2); }
 .le-row { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); min-block-size: 44px; padding: 0 var(--sp-3); border-radius: var(--r-md); background: var(--bg-3); font-size: var(--text-md); font-weight: 600; }
 .le-foot { margin: var(--sp-4) 0 0; font-size: var(--text-xs); line-height: var(--leading-body); }
+.le-tile.le-hero { min-block-size: 9rem; }
+.z-start .le-tile-main, .z-end .le-tile-main, .z-start .le-drop, .z-end .le-drop { white-space: normal; }

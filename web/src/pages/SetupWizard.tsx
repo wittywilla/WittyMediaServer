@@ -24,7 +24,7 @@ import { Media } from './setup/Media'
 import { Modules } from './setup/Modules'
 import { Music } from './setup/Music'
 import type { StepProps } from './setup/parts'
-import { canSkip, currentStep, drawnId, drawnNumber, drawnSteps, neighbours, pathOf, planSteps, stepFromPath, type Facts, type StepId } from './setup/plan'
+import { ALL_DRAWN, canSkip, currentStep, drawnId, drawnNumber, neighbours, pathOf, planSteps, stepFromPath, type Facts, type StepId } from './setup/plan'
 import { Name } from './setup/Name'
 import { Welcome } from './setup/Welcome'
 import { doneBefore, SERVER_STEP } from './setup/serverSteps'
@@ -72,8 +72,9 @@ export default function SetupWizard() {
   if (!facts || !step) return <div className="oobe"><div className="center"><Spinner /></div></div>
 
   const { back, next } = neighbours(steps, step.id)
-  const number = drawnNumber(steps, step.id, signedIn)
-  const stepper = [...(signedIn ? [{ id: 'welcome', label: 'Welcome' }, { id: 'account', label: 'Account' }] : []), ...drawnSteps(steps)]
+  const number = drawnNumber(steps, step.id)
+  const present = new Set(steps.map((x) => drawnId(x.id)))
+  const stepper = ALL_DRAWN.map((x) => ({ id: x.id, label: x.label, missing: !present.has(x.id) && x.id !== 'welcome' && x.id !== 'account' }))
   const nowAt = stepper.findIndex((x) => x.id === drawnId(step.id))
   const go = (id: StepId) => navigate(pathOf(id))
   const props: StepProps = { info: step, facts, refresh, next: () => { if (next) go(next.id) }, back: back ? () => go(back.id) : undefined }
@@ -94,7 +95,7 @@ export default function SetupWizard() {
           <div className="brand"><BrandMark /><Brand name={tryName?.name ?? brandName} parts={tryName?.parts} /></div>
           <div className="su-progress">
             <div className="su-progress-line">
-              <p className="su-progress-words" id="su-where">Step {number.at} of {number.of}<span className="su-where-name"> · {drawnSteps(steps).find((x) => x.id === drawnId(step.id))?.label || step.label}</span>{number.page && <span className="su-where-page"> · part {number.page.at} of {number.page.of}: {step.label}</span>}</p>
+              <p className="su-progress-words" id="su-where">Step {number.at} of {number.of}<span className="su-where-name"> · {ALL_DRAWN.find((x) => x.id === drawnId(step.id))?.label || step.label}</span>{number.page && <span className="su-where-page"> · part {number.page.at} of {number.page.of}: {step.label}</span>}</p>
               <HelpLink to="getting-started#what-first-time-setup-asks" newTab>Help with setup</HelpLink>
             </div>
             <Progress label="How far through setup" value={number.at} max={number.of} />
@@ -106,12 +107,12 @@ export default function SetupWizard() {
             <ol>
               {stepper.map((x, i) => {
                 const state = i < nowAt ? 'done' : i === nowAt ? 'now' : 'todo'
-                const goBack = signedIn && i < nowAt && x.id !== 'welcome' && x.id !== 'account'
+                const goBack = signedIn && i < nowAt && !x.missing && x.id !== 'welcome' && x.id !== 'account'
                 return (
-                  <li key={x.id} className={'oobe-step ' + state} aria-current={state === 'now' ? 'step' : undefined}>
+                  <li key={x.id} className={'oobe-step ' + state + (x.missing ? ' missing' : '')} aria-current={state === 'now' ? 'step' : undefined}>
                     {goBack
                       ? <button type="button" onClick={() => go(x.id as StepId)}><i aria-hidden="true">{state === 'done' ? '✓' : i + 1}</i>{x.label}<span className="sr-only"> (done)</span></button>
-                      : <span><i aria-hidden="true">{state === 'done' ? '✓' : i + 1}</i>{x.label}{state === 'done' && <span className="sr-only"> (done)</span>}</span>}
+                      : <span><i aria-hidden="true">{state === 'done' ? '✓' : i + 1}</i>{x.label}{x.missing && <small> · module not added</small>}{state === 'done' && <span className="sr-only"> (done)</span>}</span>}
                   </li>
                 )
               })}

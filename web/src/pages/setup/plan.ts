@@ -56,15 +56,17 @@ export const STEPS: StepInfo[] = [
 const PAGE_OF: Partial<Record<StepId, StepId>> = { logos: 'details', music: 'details', listings: 'details' }
 export const drawnId = (id: StepId): StepId => PAGE_OF[id] || id
 export const drawnSteps = (steps: StepInfo[]) => steps.filter((s) => !PAGE_OF[s.id])
+// The fourteen drawn steps, always, so the total never changes under someone: a step whose module isn't on this server is
+// still counted (and shown dimmed in the list, saying so), and passed over.
+export const ALL_DRAWN = STEPS.filter((s) => !PAGE_OF[s.id])
 // The drawn step a page is on, as "Step 8 of 14", and which page of its step it is.
-export function drawnNumber(steps: StepInfo[], id: StepId, signedIn: boolean): { at: number; of: number; page?: { at: number; of: number } } {
-  const list = drawnSteps(steps)
-  const n = stepNumber(Math.max(0, list.findIndex((s) => s.id === drawnId(id))), list.length, signedIn)
+export function drawnNumber(steps: StepInfo[], id: StepId): { at: number; of: number; page?: { at: number; of: number } } {
+  const n = { at: Math.max(0, ALL_DRAWN.findIndex((s) => s.id === drawnId(id))) + 1, of: ALL_DRAWN.length }
   const pages = steps.filter((s) => drawnId(s.id) === drawnId(id))
   return pages.length > 1 ? { ...n, page: { at: pages.findIndex((s) => s.id === id) + 1, of: pages.length } } : n
 }
 // Steps with nothing to lose by passing: a step that says where to change it later.
-export const canSkip = (s: StepInfo) => !!s.later && s.id !== 'name' && s.id !== 'look' && s.id !== 'theme'
+export const canSkip = (s: StepInfo) => !!s.later
 
 const belongs = (s: StepInfo, f: Facts) => s.needs === 'server' || s.needs.some((id) => f.modules.includes(id))
 

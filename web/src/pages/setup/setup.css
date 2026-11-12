@@ -147,11 +147,11 @@ html.ten-foot .su-ack a, html.using-controller .su-ack a, html.ten-foot .op-head
 .oobe-next-card .port-setting { justify-self: stretch; }
 
 /* ---- the fourteen steps (docs/design-2, OF_*): a list of steps beside the page, which wears the look and theme being tried ---- */
-.oobe-shell { width: min(78rem, 100%); }
-.oobe-head { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-3) var(--sp-6); }
-.oobe-head .brand { font-size: var(--page-title); font-weight: 800; letter-spacing: var(--tracking-display); }
-.oobe-head .brand .brand-badge, .oobe-head .brand img.brand-mark { inline-size: 40px; block-size: 40px; }
-.oobe-head .su-progress { flex: 1 1 20rem; max-width: 32rem; }
+.oobe .oobe-shell { width: min(78rem, 100%); }
+.oobe .oobe-head { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-3) var(--sp-6); }
+.oobe .oobe-head .brand { font-size: var(--page-title); font-weight: 800; letter-spacing: var(--tracking-display); }
+.oobe .oobe-head .brand .brand-badge, .oobe-head .brand img.brand-mark { inline-size: 40px; block-size: 40px; }
+.oobe .oobe-head .su-progress { flex: 1 1 20rem; max-width: 32rem; }
 .su-progress-words { text-transform: uppercase; letter-spacing: .08em; font-size: var(--text-xs); color: var(--accent-text); }
 .su-where-name, .su-where-page { color: var(--fg-2); }
 .oobe-body { display: grid; grid-template-columns: 13rem minmax(0, 1fr); gap: var(--sp-6); align-items: start; }
@@ -198,3 +198,4 @@ html.ten-foot .su-ack a, html.using-controller .su-ack a, html.ten-foot .op-head
 .lp-hero em { justify-self: start; font-style: normal; font-weight: 700; padding: 2px 10px; border-radius: var(--r-full); background: var(--lp-accent); color: var(--accent-fg); }
 .lp-row { display: flex; gap: var(--sp-2); }
 .lp-row i { flex: 1; aspect-ratio: 2 / 3; max-block-size: 5rem; border-radius: var(--r-sm); background: linear-gradient(160deg, var(--lp-accent), var(--lp-surface)); }
+.oobe-step.missing > span { opacity: .6; } .oobe-step small { font-size: var(--text-2xs); color: var(--fg-3); }

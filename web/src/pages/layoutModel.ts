@@ -9,11 +9,11 @@ export type Placements = Record<string, Placement>
 export type Zone = 'top' | 'start' | 'end' | 'bottom' | 'main'
 
 export const DEVICES = [
-  { id: 'tv', label: 'TV', ratio: '16 / 9' },
-  { id: 'desktop', label: 'Desktop', ratio: '16 / 10' },
-  { id: 'tablet', label: 'Tablet', ratio: '4 / 3' },
-  { id: 'phone', label: 'Phone', ratio: '9 / 16' },
-  { id: 'headset', label: 'Headset', ratio: '16 / 9' },
+  { id: 'tv', label: 'TV' },
+  { id: 'desktop', label: 'Desktop' },
+  { id: 'tablet', label: 'Tablet' },
+  { id: 'phone', label: 'Phone' },
+  { id: 'headset', label: 'Headset' },
 ] as const
 export type DeviceId = typeof DEVICES[number]['id']
 

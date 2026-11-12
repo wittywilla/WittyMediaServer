@@ -89,6 +89,9 @@ export function ShellEditor({ onClose }: { onClose: () => void }) {
   const shown = got.regions.filter((r) => now(r).visible !== false)
   const hidden = got.regions.filter((r) => now(r).visible === false)
   const dirty = past.length > 0
+  const heldRegionNow = held ? region(held.id) : null
+  // A side column is there when something is in it, or something could be dropped in it.
+  const used = (z: Zone) => shown.some((r) => zone(r) === z) || !!heldRegionNow?.positions?.some((p) => zone(heldRegionNow, p) === z)
 
   // Picking up, moving between the places a region may go, and dropping.
   const targets = () => Array.from(stage.current?.querySelectorAll<HTMLElement>('[data-drop]') || [])
@@ -163,7 +166,6 @@ export function ShellEditor({ onClose }: { onClose: () => void }) {
   const selected = region(sel) || got.regions[0]
   const sp = now(selected)
   const tileName = (r: Region) => { const p = now(r); return r.styles?.length ? `${r.label} · ${word(p.style || r.styles[0])}` : r.positions?.length ? `${r.label} · ${word(place(r) || '')}` : r.label }
-  const ratio = DEVICES.find((d) => d.id === on)?.ratio || '16 / 10'
   const heldRegion = held ? region(held.id) : null
 
   return (
@@ -183,7 +185,8 @@ export function ShellEditor({ onClose }: { onClose: () => void }) {
 
       <div className="le-body">
         <div className="le-left">
-          <div ref={stage} className={'le-stage dev-' + on + (held ? ' holding' : '')} style={{ aspectRatio: ratio }} role="group" aria-label={`Layout of the ${look} look on a ${DEVICES.find((d) => d.id === on)?.label}`}
+          <div ref={stage} className={'le-stage dev-' + on + (held ? ' holding' : '')} role="group" aria-label={`Layout of the ${look} look on a ${DEVICES.find((d) => d.id === on)?.label}`}
+            style={{ gridTemplateColumns: `${used('start') ? '14rem' : '0'} minmax(0, 1fr) ${used('end') ? '14rem' : '0'}` }}
             onPointerMove={move} onPointerUp={up} onPointerCancel={() => setHeld(null)}>
             {ZONES.map((z) => {
               const here = shown.filter((r) => zone(r) === z)
@@ -194,11 +197,11 @@ export function ShellEditor({ onClose }: { onClose: () => void }) {
                     const isHeld = held?.id === r.id
                     const movable = !!r.positions?.length
                     return (
-                      <div key={r.id} className={'le-tile' + (sel === r.id ? ' sel' : '') + (isHeld ? ' held' : '') + (r.id === 'hero' ? ' hero' : '')}>
+                      <div key={r.id} className={'le-tile' + (sel === r.id ? ' sel' : '') + (isHeld ? ' held' : '') + (r.id === 'hero' ? ' le-hero' : '')}>
                         <button type="button" data-tile={r.id} className="le-tile-main" aria-pressed={isHeld} aria-describedby="le-help"
                           aria-roledescription={movable ? 'movable region' : undefined}
                           onFocus={() => { if (!held) setSel(r.id) }} onClick={() => setSel(r.id)} onKeyDown={(e) => onTileKey(e, r)}>
-                          {tileName(r)}{isHeld && ' · picked up'}
+                          {tileName(r)}{isHeld && <span className="sr-only"> (picked up)</span>}
                         </button>
                         {movable && <span className="le-grip" aria-hidden="true" onPointerDown={(e) => down(e, r)}>⠿</span>}
                       </div>

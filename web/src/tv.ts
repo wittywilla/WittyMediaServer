@@ -19,7 +19,8 @@
 import { padKeys } from './ui/gamepad'
 import { noteInput, trackInput } from './ui/inputKind'
 import { installShortcuts, runAction } from './ui/shortcuts'
-import { isBackKey, nearest, ranked, type Dir } from './ui/spatial'
+import { nav as designNav } from '../../themes/tokens.json'
+import { isBackKey, nearest, ranked, setWeights, type Dir } from './ui/spatial'
 
 const FOCUSABLE = 'a[href], button:not([disabled]), summary, input:not([disabled]):not([type=hidden]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 // Inside the player only these areas take part in spatial navigation.
@@ -474,6 +475,8 @@ export function installTVInput() {
   // A TV app around this page answers Back itself when the page has nothing to close, and asks here.
   document.documentElement.dataset.ownBack = OWN_BACK
   window.addEventListener('keydown', onKey)
+  // The scoring of where an arrow goes is a design token, the same for every app.
+  setWeights(designNav)
   installShortcuts()
   trackInput()
   window.addEventListener('focusin', (e) => {

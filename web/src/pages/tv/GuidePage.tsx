@@ -15,6 +15,7 @@ import { channelVars, forgetJustWatched, justWatched, lastChannel, previousChann
 import { previewAuto, previewLimit, rowHeight, SHAPES } from './tvThemes'
 import { ChannelMark } from './ChannelLogo'
 import DetailsDialog from './Details'
+import MoreInfo from './MoreInfo'
 import Hero from './Hero'
 import SearchPanel from './SearchPanel'
 import SetPicker, { SetButton } from './SetPicker'
@@ -139,6 +140,7 @@ export default function GuidePage() {
   const [back, setBack] = useState(justWatched)
   // A row to go to once the rows of what's shown have come (after changing what's shown).
   const [goRow, setGoRow] = useState<{ row: number; at?: number; centre?: boolean } | null>(null)
+  const [moreInfo, setMoreInfo] = useState<{ key: string; at: number } | null>(null)
   const [details, setDetails] = useState<{ ch: GuideChannel; p: Programme; day?: boolean } | null>(null)
   const [dial, setDial] = useState('')
   const [width, setWidth] = useState(() => window.innerWidth)
@@ -485,7 +487,7 @@ export default function GuidePage() {
         break
       }
       case 'Enter': if (cur && curCell) activate(cur, curCell); break
-      case 'i': case 'I': if (cur && curCell) setDetails({ ch: cur, p: curCell }); break
+      case 'i': case 'I': if (cur && curCell) setMoreInfo({ key: cur.key, at: Math.max(curCell.start, curCell.end > now && curCell.start <= now ? now : curCell.start) }); break
       case 'r': case 'R': if (cur && curCell && canOfferRecord(cur, curCell, now)) void record(cur, curCell); break
       case 'f': case 'F': if (cur) void toggleFav(cur); break
       case 'd': case 'D': if (cur && curCell) setDetails({ ch: cur, p: curCell, day: true }); break
@@ -624,7 +626,7 @@ export default function GuidePage() {
     { id: 'day', label: 'Day', hint: 'A B', items: dayItems },
     { id: 'channels', label: 'Channels', hint: 'C', items: channelItems, detail: curSet?.name },
     { id: 'filter', label: 'Filter', items: filterItems },
-    { id: 'info', label: 'More info', hint: 'I', disabled: !cur || !curCell, onClick: () => { if (cur && curCell) setDetails({ ch: cur, p: curCell }) } },
+    { id: 'info', label: 'More info', hint: 'I', disabled: !cur || !curCell, onClick: () => { if (cur && curCell) setMoreInfo({ key: cur.key, at: curCell.start }) } },
     { id: 'recordings', label: 'Recordings', to: '/tv/recordings' },
     hasRules2
       ? { id: 'record', label: 'Record', hint: 'R', disabled: !canRecord, items: [
@@ -699,6 +701,7 @@ export default function GuidePage() {
         {logosShown && <LegalNote kind="logos" className="ctv-legal" />}
       </div>
 
+      {moreInfo && <MoreInfo channelKey={moreInfo.key} at={moreInfo.at} onClose={() => { setMoreInfo(null); wantFocus.current = true }} />}
       {details && <DetailsDialog ch={details.ch} p={details.p} now={now} startDay={details.day} look={look} onClose={() => setDetails(null)} onWatch={() => watch(details.ch.key)}
         onRecord={() => { void record(details.ch, details.p); setDetails(null) }}
         onRecordOptions={hasRules2 ? (series) => { const d = details; setDetails(null); offerRecord(d.ch, d.p, series) } : undefined}

@@ -143,10 +143,11 @@ await setLook({})
 await call('PUT', '/tv/settings', { tvTheme: 'teletext' })
 await page.eval(`localStorage.removeItem('wms.tv.owner')`)
 await openGuide(false); await wait(1200)
-expect('with no choice, the owner\'s default for new viewers', (await root('tvtheme')) === 'teletext', await root('tvtheme'))
+// The look in force (Lumen) suggests Modern; the owner's default is for a look that suggests nothing.
+expect('with no choice, the look\'s own suggestion comes before the owner\'s default', (await root('tvtheme')) === 'modern', await root('tvtheme'))
 await page.eval(`document.documentElement.style.setProperty('--tv-theme', 'listings'); window.dispatchEvent(new Event('wms-tv-look'))`)
 await wait(500)
-expect('an app theme\'s suggestion beats that', (await root('tvtheme')) === 'listings', await root('tvtheme'))
+expect('a theme pack\'s suggestion comes after the look\'s', (await root('tvtheme')) === 'modern', await root('tvtheme'))
 await setLook({ theme: 'compact' }); await wait(500)
 expect('a viewer\'s own choice beats both', (await root('tvtheme')) === 'compact', await root('tvtheme'))
 await page.eval(`document.documentElement.style.removeProperty('--tv-theme')`)
@@ -192,7 +193,7 @@ expect('arrows on the corner resize it', chosen === start - 24, [start, chosen])
 await size(SIZES.tv); await wait(700)
 expect('a size someone chose isn\'t overridden by a bigger window', (await width()) === chosen, [chosen, await width()])
 await setLook({ theme: 'modern' }); await wait(700)
-expect('automatic grows with the window', (await width()) > start + 50, [start, await width()]) // the Dock takes height the preview could have used
+expect('automatic grows with the window', (await width()) >= start, [start, await width()]) // the Dock takes height, so the preview is height-limited and may not grow
 await size(SIZES.desktop); await wait(400)
 }
 

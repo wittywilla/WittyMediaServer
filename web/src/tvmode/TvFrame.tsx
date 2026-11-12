@@ -39,7 +39,7 @@ function TopBar({ tab, tabs, side }: { tab: TabId; tabs: TvTab[]; side?: { size:
   const shown = user ? profileName(user) : ''
   const style = side ? { '--tvm-side': String(side.size || 120), '--tvm-side-open': String(side.open || 400) } as React.CSSProperties : undefined
   return (
-    <header className={'tvm-bar' + (side ? ' tvm-side' : '')} data-keep-focus style={style}>
+    <header className={'tvm-bar' + (side ? ' tvm-side' : '')} data-nav-zone="bar" data-keep-focus style={style}>
       <nav className="tvm-tabs" aria-label="TV mode" aria-orientation={side ? 'vertical' : undefined} data-nav-group data-nav-entry=".tvm-pill[aria-current=page]">
         {tabs.map((t) => {
           const you = t.screen === 'profiles'
@@ -125,14 +125,9 @@ export default function TvFrame({ pages }: { pages: ReactNode }) {
       if (e.key === 'ArrowDown' && inBar) { if (intoTab()) stop(e); return }
       const key = tvKey(e, typing(target))
       if (!key) return
-      if (key === 'options') {
-        // Start: the screen's options, where it has some.
-        const options = Array.from(document.querySelectorAll<HTMLElement>('[data-tv-options]')).find((el) => el.getClientRects().length)
-        if (options) { stop(e); options.click() }
-        return
-      }
+      // Page keys switch tabs while the bar has focus; in the page they page its list (LT and RT, ui/shortcuts.ts).
       if (key === 'prevTab' || key === 'nextTab') {
-        if (!here) return
+        if (!here || !inBar) return
         stop(e)
         const to = stepTab(here, key === 'prevTab' ? -1 : 1, tabsNow.current)
         if (to) choose(to)
@@ -162,7 +157,7 @@ export default function TvFrame({ pages }: { pages: ReactNode }) {
       {tab
         ? <TopBar tab={tab} tabs={tabs} side={sideMenu ? { size: menu.shell!.size, open: menu.shell!.open || 400 } : undefined} />
         : <button type="button" className="tvm-back" data-nav-skip onClick={goBack} aria-label="Back"><IconBack /></button>}
-      <main className="content tvm-main" id="main" tabIndex={-1}>
+      <main className="content tvm-main" id="main" data-nav-zone="stage" tabIndex={-1}>
         <Suspense fallback={<Spinner />}>
           <Routes>
             <Route path="/libraries" element={<SduiRoute fallback={<Libraries />} />} />

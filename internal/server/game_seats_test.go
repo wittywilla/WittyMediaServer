@@ -12,7 +12,7 @@ import (
 func TestSeatCodes(t *testing.T) {
 	now := time.Unix(1_800_000_000, 0)
 	b := &seatBook{now: func() time.Time { return now }}
-	b.started("s1", 1, "Willow", "Living room TV")
+	b.started("s1", 1, "Willow", "Living room TV", seatGame{})
 
 	if _, _, ok := b.invite("s1", 2); ok {
 		t.Fatal("someone other than the host made a code")
@@ -91,7 +91,7 @@ func TestSeatCodes(t *testing.T) {
 func TestSeatCodesCantBeGuessed(t *testing.T) {
 	now := time.Unix(1_800_000_000, 0)
 	b := &seatBook{now: func() time.Time { return now }}
-	b.started("s1", 1, "Willow", "")
+	b.started("s1", 1, "Willow", "", seatGame{})
 	code, _, _ := b.invite("s1", 1)
 	wrong := "BBBB"
 	if wrong == code {
@@ -119,7 +119,7 @@ func TestSeatCodesCantBeGuessed(t *testing.T) {
 // Every seat taken: the next person can still watch.
 func TestAFullGameCanStillBeWatched(t *testing.T) {
 	b := &seatBook{}
-	b.started("s1", 1, "Willow", "")
+	b.started("s1", 1, "Willow", "", seatGame{})
 	code, _, _ := b.invite("s1", 1)
 	for u := int64(2); u < 2+seatsMax-1; u++ {
 		if j, _ := b.join(code, u, "P"); j.Seat < 1 {
@@ -135,7 +135,7 @@ func TestAFullGameCanStillBeWatched(t *testing.T) {
 // watcher drives none, whatever their hello asked for.
 func TestJoinedSeatsOverStreamVersion2(t *testing.T) {
 	b := &seatBook{}
-	b.started("s1", 1, "Willow", "")
+	b.started("s1", 1, "Willow", "", seatGame{})
 	code, _, _ := b.invite("s1", 1)
 	j, _ := b.join(code, 2, "Pat")
 	if seat, ok := b.seatOf("s1", 2); !ok || seat != j.Seat || seat != 1 {

@@ -418,6 +418,12 @@
    "formFactor": "phone"
   },
   {
+   "id": "wittyplay-online-tv",
+   "file": "wittyplay-online-tv.json",
+   "title": "WittyPlay Online's rows on a television",
+   "formFactor": "tv"
+  },
+  {
    "id": "exp-lumen-desktop",
    "file": "exp-lumen-desktop.json",
    "title": "Experience Lumen: Home in a desktop window",

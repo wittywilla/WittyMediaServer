@@ -71,6 +71,7 @@ func (s *Server) gameRoutes(m routes) {
 	m.Handle("GET /api/play/{sid}/stream", a(s.handlePlayStreamWS))
 	m.Handle("POST /api/play/{sid}/action", a(s.handlePlayAction))
 	s.seatRoutes(m)
+	s.playOnlineRoutes(m)
 	s.gameProfileRoutes(m)
 	m.Handle("GET /api/gaming", s.requireAdmin(s.handleGaming))
 	m.Handle("POST /api/gaming/cores/{id}/install", s.requireAdmin(s.handleCoreInstall))
@@ -1018,7 +1019,7 @@ func (s *Server) handleGamePlay(w http.ResponseWriter, r *http.Request) {
 	if hostName == "" {
 		hostName = host.Name
 	}
-	s.noteGameStarted(sess, userID, hostName, deviceName(b.Device, r))
+	s.noteGameStarted(sess, userID, hostName, deviceName(b.Device, r), seatGame{Item: it.ID, Title: it.Title, Console: console.ID})
 	if err := s.Store.NoteGamePlayed(ctx, userID, it.ID); err != nil {
 		s.Log.WarnContext(ctx, "recording a play", "cat", "games", "session", sess.ID(), "err", err)
 	}
@@ -1481,29 +1482,8 @@ func (s *Server) handleGameSaves(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "not found")
 		return
 	}
-	dir := s.games().saveDir(userFrom(r).ID, it.ID)
 	// One look at the folder, rather than asking after every slot there could be.
-	found := map[string]os.FileInfo{}
-	if entries, err := os.ReadDir(dir); err == nil {
-		for _, e := range entries {
-			if info, err := e.Info(); err == nil && !e.IsDir() {
-				found[e.Name()] = info
-			}
-		}
-	}
-	out := []saveSlot{}
-	for slot := 0; slot <= stream.SlotPrevAuto; slot++ {
-		name, err := stream.SlotName(slot)
-		if err != nil {
-			continue
-		}
-		st, ok := found[name+".state"]
-		if !ok {
-			continue
-		}
-		_, thumb := found[name+".png"]
-		out = append(out, saveSlot{Slot: slot, UpdatedAt: st.ModTime().Unix(), Size: st.Size(), HasThumb: thumb, Core: slotCore(dir, name)})
-	}
+	out := listSaves(s.games().saveDir(userFrom(r).ID, it.ID))
 	writeJSON(w, 200, out)
 }
 

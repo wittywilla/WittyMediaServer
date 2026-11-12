@@ -2257,10 +2257,19 @@ See [LIBRARY-TRANSCODING.md](LIBRARY-TRANSCODING.md).
 | `GET /play/{sid}/ws` | user | Play WS. |
 | `POST /play/{sid}/stream` | user | Connects a device over WebRTC, version 2: `{hello, sdp}` in, `{stream, sdp}` out. See [the stream](GAMING-STREAM.md). |
 | `GET /play/{sid}/stream` | user | Version 2's WebSocket: the same messages as over WebRTC, the hello first. |
-| `POST /play/join` | user | Join someone's game with their code: `{code}` answers `{sid, seat, itemId, title, console, host}`. Wrong codes are limited. |
+| `POST /play/join` | user | Join someone's game with their code, `{code}`, or a friend's open room with none, `{room: sid}` (not for a Kids or guest profile). Answers `{sid, seat, itemId, title, console, host}`. Wrong codes are limited. |
 | `POST /play/{sid}/invite` | user | The host makes a four-letter code others can join with, for ten minutes. |
 | `GET /play/{sid}/seats` | user | The host and everyone who joined; the host also sees the code. |
 | `DELETE /play/{sid}/seats/{user}` | user | Frees a seat: the host frees anyone's, and anyone may leave. |
+| `POST /play/{sid}/room` | user | The host opens its game to the friends who may see it, so they join with no code (`{open}`, default true), or closes it. Answers `{sid, open, code, expiresAt}`: the code is for a phone's QR join link. Kids and guest profiles can't open a game. |
+| `PUT /play/{sid}/seats/{user}` | user | The host moves someone who joined to another player, `{seat}` from 1, or -1 to watch; a seat someone else holds is swapped. Answers the seats. |
+| `POST /play/{sid}/screenshot` | user | Keeps the current picture in the host's memories. Answers `{name, itemId, url}`. |
+| `GET /games/{id}/shots/{name}` | user | One kept screenshot, as a PNG. |
+| `DELETE /games/{id}/shots/{name}` | user | Deletes a kept screenshot. |
+| `GET /games/online/me` | user | Whether this profile lets its friends see what it plays and whether it's here: `{sharePlaying, canShare}`. |
+| `PUT /games/online/me` | user | Sets it: `{sharePlaying}`. A guest has no friends to share with. |
+| `GET /games/online/kids/{user}` | admin | The profiles a Kids profile may see, and be seen by, as friends: `{user, friends}`. |
+| `PUT /games/online/kids/{user}` | admin | Sets them: `{friends: [id…]}`. |
 | `POST /play/{sid}/action` | user | Play action. |
 | `GET /play/{sid}/stats` | user | A running game's numbers: frame rates, encode time, bitrate, drops. |
 | `GET /play/{sid}/screenshot` | user | The current picture as a PNG. |

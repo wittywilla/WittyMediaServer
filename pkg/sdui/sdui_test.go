@@ -33,15 +33,6 @@ func TestCatalogueIsConsistent(t *testing.T) {
 		if !contains(Icons, comp.Icon) {
 			t.Errorf("%s: icon %q isn't in the icon set", comp.Type, comp.Icon)
 		}
-		if !comp.Required {
-			if comp.Fallback != "" {
-				if fb, ok := Component(comp.Fallback); !ok || (!fb.Required && fb.Fallback == "") {
-					t.Errorf("%s falls back to %s, which no client is sure to draw", comp.Type, comp.Fallback)
-				}
-			}
-		} else if comp.Fallback != "" {
-			t.Errorf("%s is required and has a fallback", comp.Type)
-		}
 		for _, ch := range comp.Children {
 			if _, ok := Component(ch); !ok {
 				t.Errorf("%s allows a child %s that isn't a component", comp.Type, ch)

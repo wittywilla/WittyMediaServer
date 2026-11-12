@@ -114,7 +114,7 @@ func TestSDUIPageRendersFor304AndContext(t *testing.T) {
 	if got := sduiDoc(t, ts.do(t, "GET", "/api/sdui/pages/home", admin, nil)); len(got.Root.Children) != 2 || got.Root.Children[0].ID != "setup" {
 		t.Errorf("home for an administrator mid-setup: %+v", got.Root.Children)
 	}
-	for _, bad := range []string{"platform=Windows!", "formFactor=watch", "deviceClass=8k", "catalog=0", "catalog=x", "viewport=wide", "locale=!!", "capabilities=a%20b", "components=%3Cx%3E", "views=" + strings.Repeat("a,", 20)} {
+	for _, bad := range []string{"platform=Windows!", "formFactor=watch", "deviceClass=8k", "viewport=wide", "locale=!!", "capabilities=a%20b", "views=" + strings.Repeat("a,", 20)} {
 		if w := ts.do(t, "GET", "/api/sdui/pages/home?"+bad, adult, nil); w.Code != 400 {
 			t.Errorf("%s: %d", bad, w.Code)
 		}
@@ -193,9 +193,6 @@ func TestSDUICatalogDescribesItself(t *testing.T) {
 	for _, comp := range c.Components {
 		if comp.Label == "" || comp.Description == "" || comp.Icon == "" || comp.Category == "" || comp.A11y == "" {
 			t.Errorf("%s isn't fully described", comp.Type)
-		}
-		if !comp.Required && comp.FallbackNote == "" {
-			t.Errorf("%s is optional but says nothing of its fallback", comp.Type)
 		}
 		for _, p := range comp.Props {
 			if p.Label == "" || p.Type == "" {

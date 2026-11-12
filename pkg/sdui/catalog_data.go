@@ -170,7 +170,7 @@ var statesData = map[string]string{
 
 func buildComponents() []ComponentSpec {
 	return []ComponentSpec{
-		{Type: "Page", Label: "Page", Icon: "grid", Category: "structure", Since: 2, Required: true, Data: "none", Container: true, Focus: "none",
+		{Type: "Page", Label: "Page", Icon: "grid", Category: "structure", Since: 2, Data: "none", Container: true, Focus: "none",
 			Description: "The root of every rendered page. It scrolls down; nothing inside it scrolls down by itself.",
 			Props:       []PropSpec{pStr("title", "Title", "The page's heading.", 120), pEnum("density", "Density", "How tightly the page is packed.", "comfortable", "compact", "comfortable", "spacious")},
 			Renders: map[string]string{
@@ -182,10 +182,9 @@ func buildComponents() []ComponentSpec {
 			A11y: "Role: main. Label: the title."},
 
 		{Type: "Hero", Label: "Spotlight", Icon: "sparkles", Category: "media", Since: 2, Authored: true, Data: "required", Focus: "stop",
-			Fallback: "Shelf", FallbackNote: "A Shelf of landscape cards of the same items, titled with the hero's title or \"Featured\".",
 			Description: "A large rotating spotlight of a few titles: backdrop, title or logo, a line of facts, a synopsis and buttons.",
 			Props: []PropSpec{
-				pText("title", "Title", "Named to assistive technology and used by the fallback; not drawn.", 120),
+				pText("title", "Title", "Named to assistive technology; not drawn.", 120),
 				pEnum("style", "Style", "A full billboard, or a shorter banner.", "billboard", "billboard|Billboard", "banner|Banner"),
 				pInt("autoAdvanceSec", "Seconds per title", "How long each title stays before the next one. 0 never moves by itself.", 8, 0, 60),
 				pBool("showSynopsis", "Show the synopsis", "Two or three lines about the title.", true),
@@ -204,7 +203,7 @@ func buildComponents() []ComponentSpec {
 			A11y:    "Role: region, labelled by the title prop or \"Featured\". Each slide is a group labelled \"<title>, <facts joined by comma>\", announced politely when it changes. With reduced motion it does not advance by itself and cross-fades are cuts.",
 			Example: example(`{"id":"hero","component":"Hero","source":{"type":"featured","limit":5},"props":{"style":"billboard"}}`)},
 
-		{Type: "Shelf", Label: "Row", Icon: "list", Category: "media", Since: 2, Required: true, Authored: true, Data: "required", Focus: "group",
+		{Type: "Shelf", Label: "Row", Icon: "list", Category: "media", Since: 2, Authored: true, Data: "required", Focus: "group",
 			Description: "A titled row of cards that scrolls sideways. The workhorse of a home page.",
 			Props: []PropSpec{propTitle, propSubtitle, propCardStyle, propCardSize,
 				pBool("showTitles", "Show titles under cards", "Off draws the pictures alone; the titles are still read out.", true),
@@ -225,7 +224,7 @@ func buildComponents() []ComponentSpec {
 			A11y:    "Role: list, labelled by the title. Each card is a list item. When numbered, a card's label starts with \"Number <n>\".",
 			Example: example(`{"id":"recent","component":"Shelf","props":{"title":"Recently added in {each}"},"repeat":{"over":"libraries"},"source":{"type":"recentlyAdded","library":"$each"}}`)},
 
-		{Type: "Grid", Label: "Grid", Icon: "grid", Category: "media", Since: 2, Required: true, Authored: true, Data: "required", Focus: "group",
+		{Type: "Grid", Label: "Grid", Icon: "grid", Category: "media", Since: 2, Authored: true, Data: "required", Focus: "group",
 			Description: "Cards in rows and columns, as many columns as fit. It pages as the person scrolls: the body of a library.",
 			Props: []PropSpec{propTitle, propCardStyle, propCardSize,
 				pBool("showTitles", "Show titles under cards", "Off draws the pictures alone.", true),
@@ -242,7 +241,7 @@ func buildComponents() []ComponentSpec {
 			A11y:    "Role: grid (list on touch devices), labelled by the title or the page's title.",
 			Example: example(`{"id":"all","component":"Grid","source":{"type":"browse","library":"$library","filterable":true}}`)},
 
-		{Type: "Card", Label: "Card", Icon: "photo", Category: "media", Since: 2, Required: true, Data: "none", Focus: "item",
+		{Type: "Card", Label: "Card", Icon: "photo", Category: "media", Since: 2, Data: "none", Focus: "item",
 			Description: "One item in a Shelf, Grid, Hero or SeasonList. Made by the server from the source's items; see the card styles for what each style shows.",
 			Props: []PropSpec{
 				pOf(PropString, "style", "Style", "The card style."), pOf(PropString, "shape", "Shape", "poster, landscape, square, circle or chip: what a renderer that doesn't know the style draws."),
@@ -265,7 +264,6 @@ func buildComponents() []ComponentSpec {
 			A11y:   "Role: button (link on the web). Label: the props its style shows, in the style's order, joined by \", \": progress as \"<n> percent watched\", watched as \"Watched\", unwatched as \"<n> unwatched\", badges as written, a channel as \"Channel <number>, <title>, now <now.title>, next <next.title>\"."},
 
 		{Type: "Tabs", Label: "Tabs", Icon: "more", Category: "navigation", Since: 2, Authored: true, Data: "none", Container: true, Children: []string{"Tab"}, Focus: "group",
-			Fallback: "Stack", FallbackNote: "The selected tab's content alone, in a column.",
 			Description: "A strip of tabs, each with its own sections. Only the selected tab's content is sent; choosing another asks for the page again with tab=<id>.",
 			Props: []PropSpec{
 				pEnum("style", "Style", "Tabs for sections of a page, segments for views of the same thing.", "tabs", "tabs|Tabs", "segments|Segments"),
@@ -280,13 +278,11 @@ func buildComponents() []ComponentSpec {
 			Example: example(`{"id":"views","component":"Tabs","children":[{"id":"albums","component":"Tab","props":{"label":"Albums"},"children":[{"id":"albums-grid","component":"Grid","source":{"type":"albums","library":"$library","sort":"title"}}]},{"id":"artists","component":"Tab","props":{"label":"Artists"},"children":[{"id":"artists-grid","component":"Grid","source":{"type":"artists","library":"$library"}}]}]}`)},
 
 		{Type: "Tab", Label: "Tab", Icon: "more", Category: "navigation", Since: 2, Authored: true, Data: "none", Container: true, Focus: "item",
-			Fallback: "Stack", FallbackNote: "Its content in a column.",
 			Description: "One tab of a Tabs section: a label and the sections shown when it is chosen.",
 			Props:       []PropSpec{req(pText("label", "Label", "The tab's name.", 40)), propIcon},
 			A11y:        "Role: tab. Label: the label."},
 
 		{Type: "FilterBar", Label: "Filter and sort", Icon: "filter", Category: "navigation", Since: 2, Authored: true, Data: "none", Focus: "stop",
-			Fallback: "", FallbackNote: "Left out: the grid shows everything in its default order.",
 			Description: "The controls that filter and sort a Grid on the same page. The server fills in each filter's choices from what the library holds; a change asks for the page again with the choice as a query parameter.",
 			Props: []PropSpec{
 				req(pOf(PropSection, "target", "Filters", "The Grid this bar filters. Its source must be filterable.")),
@@ -304,7 +300,7 @@ func buildComponents() []ComponentSpec {
 			A11y:    "Role: toolbar, labelled \"Filter and sort\". Each field is a pop-up button labelled \"<label>: <current choice or Any>\".",
 			Example: example(`{"id":"filters","component":"FilterBar","props":{"target":"all","fields":["genre","decade","watched"]}}`)},
 
-		{Type: "Dock", Label: "Dock", Icon: "more", Category: "navigation", Since: 3, Required: true, Authored: true, Data: "none", Container: true, Children: []string{"Button", "KeyLegend"}, Focus: "group",
+		{Type: "Dock", Label: "Dock", Icon: "more", Category: "navigation", Since: 3, Authored: true, Data: "none", Container: true, Children: []string{"Button", "KeyLegend"}, Focus: "group",
 			Description: "The persistent controls of one screen, in one row that never moves: for a grid, its sort, filters, view and jump to a letter. It is where the screen's options key leads, and it carries the key legend. Put it last on the page.",
 			Props: []PropSpec{
 				rev3(pText("title", "Name", "Named to assistive technology: \"Options\" when left empty.", 40)),
@@ -321,7 +317,7 @@ func buildComponents() []ComponentSpec {
 			A11y:    "Role: toolbar, labelled by its name. Each control is a button labelled as written (\"Sort: Title\"). The legend is hidden from assistive technology: its keys are in every control's hint.",
 			Example: example(`{"id":"dock","component":"Dock","props":{"target":"all","controls":["sort","filter","view","jump"]}}`)},
 
-		{Type: "KeyLegend", Label: "Key legend", Icon: "info", Category: "text", Since: 3, Required: true, Authored: true, Data: "none", Focus: "none",
+		{Type: "KeyLegend", Label: "Key legend", Icon: "info", Category: "text", Since: 3, Authored: true, Data: "none", Focus: "none",
 			Description: "A line of key hints (\"OK Select\", \"Menu Options\") in glyphs matched to the input in use: a keyboard's key caps, a game pad's buttons, a remote's. Hidden when only touch or a mouse is in use. Normally the last thing in a Dock.",
 			Props: []PropSpec{
 				rev3(pList("actions", "Hints", "Which actions are shown, in order. The glyphs come from the input table in themes/tokens.json for the device in use.", []string{"select", "back", "options"},
@@ -337,7 +333,6 @@ func buildComponents() []ComponentSpec {
 			Example: example(`{"id":"keys","component":"KeyLegend","props":{"actions":["select","back","options","search"]}}`)},
 
 		{Type: "DetailHeader", Label: "Title header", Icon: "info", Category: "detail", Since: 2, Authored: true, Data: "none", Focus: "stop",
-			Fallback: "Stack", FallbackNote: "A column: the backdrop as an Image, the title and overview as Text, and the actions as Buttons in a row.",
 			Description: "The top of a title's page: its art, name, facts, score, synopsis and the buttons that play it and act on it. It shows the title the page was opened for.",
 			Props: []PropSpec{
 				pEnum("layout", "Layout", "Backdrop behind the text, poster beside it, or a compact strip.", "backdrop", "backdrop|Backdrop", "poster|Poster beside", "compact|Compact"),
@@ -359,7 +354,6 @@ func buildComponents() []ComponentSpec {
 			Example: example(`{"id":"header","component":"DetailHeader","props":{"layout":"backdrop"}}`)},
 
 		{Type: "SeasonList", Label: "Seasons and episodes", Icon: "show", Category: "detail", Since: 2, Authored: true, Data: "required", Accepts: []string{"episodes"}, Focus: "group",
-			Fallback: "Shelf", FallbackNote: "A Shelf of the selected season's episodes as landscape cards, titled with the season's name.",
 			Description: "A show's seasons with the chosen season's episodes. Choosing a season asks for its episodes through the season's own URL.",
 			Props: []PropSpec{
 				pEnum("style", "Episodes as", "Cards with a still and synopsis, or a compact list.", "cards", "cards|Cards", "list|List"),
@@ -375,7 +369,6 @@ func buildComponents() []ComponentSpec {
 			Example: example(`{"id":"episodes","component":"SeasonList","source":{"type":"episodes","show":"$show"}}`)},
 
 		{Type: "TrackList", Label: "Track list", Icon: "music", Category: "detail", Since: 2, Authored: true, Data: "required", Accepts: []string{"tracks"}, Focus: "group",
-			Fallback: "List", FallbackNote: "A List of ListItems: the track's title, artist as subtitle and length as trailing text.",
 			Description: "An album's songs, an audiobook's chapters or a podcast's episodes, numbered, with their lengths.",
 			Props: []PropSpec{
 				pBool("showNumbers", "Show track numbers", "", true),
@@ -392,14 +385,12 @@ func buildComponents() []ComponentSpec {
 			Example: example(`{"id":"tracks","component":"TrackList","source":{"type":"tracks","library":"$library","artist":"$artist","album":"$album"}}`)},
 
 		{Type: "Track", Label: "Track", Icon: "music", Category: "detail", Since: 2, Data: "none", Focus: "item",
-			Fallback: "ListItem", FallbackNote: "title, subtitle (the artist) and trailing (the length).",
 			Description: "One row of a TrackList. Made by the server.",
 			Props: []PropSpec{pOf(PropString, "title", "Title", ""), pOf(PropString, "artist", "Artist", ""), pOf(PropInt, "number", "Number", ""), pOf(PropInt, "durationSec", "Length in seconds", ""),
 				pOf(PropString, "itemId", "Item", ""), pOf(PropNumber, "progress", "Progress", "0 to 1.")},
 			A11y: "Role: button. Label as TrackList says."},
 
 		{Type: "Banner", Label: "Banner", Icon: "star", Category: "media", Since: 2, Authored: true, Data: "optional", Focus: "item",
-			Fallback: "Notice", FallbackNote: "A Notice with the banner's title, text and button.",
 			Description: "One wide promotional block: a picture, a title, a line of text and one button. Written by hand (a collection's banner, a way into the TV guide), or drawn from the first item of a source (a random pick).",
 			Props: []PropSpec{
 				pText("title", "Title", "With a source, {title} is the item's title.", 120), pText("text", "Text", "With a source, {title}, {subtitle} and {overview} are the item's.", 300),
@@ -418,7 +409,7 @@ func buildComponents() []ComponentSpec {
 			A11y:    "Role: button (link on the web). Label: \"<title>, <text>, <button label>\".",
 			Example: example(`{"id":"shuffle","component":"Banner","props":{"title":"Can't decide?","text":"{title}","buttonLabel":"Play something","action":"play"},"source":{"type":"random","limit":1}}`)},
 
-		{Type: "Text", Label: "Text", Icon: "info", Category: "text", Since: 2, Required: true, Authored: true, Data: "none", Focus: "none",
+		{Type: "Text", Label: "Text", Icon: "info", Category: "text", Since: 2, Authored: true, Data: "none", Focus: "none",
 			Description: "A heading or a block of text, plain or in the small Markdown subset (bold, italic, links to places in the app, lists, headings).",
 			Props: []PropSpec{
 				req(pOf(PropMarkdown, "text", "Text", "Placeholders such as {user}, {greeting}, {server} and {library} are filled in.")),
@@ -431,7 +422,7 @@ func buildComponents() []ComponentSpec {
 			A11y:    "Role: heading for pageTitle (level 1), heading (2) and title (3); otherwise text.",
 			Example: example(`{"id":"hello","component":"Text","props":{"text":"{greeting}, {user}","role":"pageTitle"}}`)},
 
-		{Type: "Notice", Label: "Notice", Icon: "info", Category: "text", Since: 2, Required: true, Authored: true, Data: "none", Focus: "item",
+		{Type: "Notice", Label: "Notice", Icon: "info", Category: "text", Since: 2, Authored: true, Data: "none", Focus: "item",
 			Description: "A message that stands out: something to know, a warning, or a nudge with one button.",
 			Props: []PropSpec{
 				pEnum("tone", "Tone", "", "info", "info|Information", "success|Good news", "warning|Warning", "danger|Problem"),
@@ -442,21 +433,21 @@ func buildComponents() []ComponentSpec {
 			A11y:    "Role: status (alert for warning and danger). Label: \"<title>. <text>\".",
 			Example: example(`{"id":"setup","component":"Notice","when":{"admin":true,"flag":"setupIncomplete"},"props":{"tone":"info","title":"Finish setting up","text":"A few things are left to choose.","buttonLabel":"Open settings","native":"settings"}}`)},
 
-		{Type: "Divider", Label: "Divider", Icon: "more", Category: "layout", Since: 2, Required: true, Authored: true, Data: "none", Focus: "none",
+		{Type: "Divider", Label: "Divider", Icon: "more", Category: "layout", Since: 2, Authored: true, Data: "none", Focus: "none",
 			Description: "A hairline between sections.",
 			Props:       []PropSpec{pBool("inset", "Inset", "Start the line at the content's edge rather than the screen's.", false)},
 			Renders:     map[string]string{"all": "A 1-point line in token border across the content width."},
 			A11y:        "Role: separator; not announced.",
 			Example:     example(`{"id":"rule","component":"Divider"}`)},
 
-		{Type: "Spacer", Label: "Space", Icon: "more", Category: "layout", Since: 2, Required: true, Authored: true, Data: "none", Focus: "none",
+		{Type: "Spacer", Label: "Space", Icon: "more", Category: "layout", Since: 2, Authored: true, Data: "none", Focus: "none",
 			Description: "Empty space between sections.",
 			Props:       []PropSpec{pEnum("size", "Size", "", "m", "xs|Extra small", "s|Small", "m|Medium", "l|Large", "xl|Extra large")},
 			Renders:     map[string]string{"all": "layout.spacing[size] points of nothing, in the direction of its container."},
 			A11y:        "Hidden from assistive technology.",
 			Example:     example(`{"id":"gap","component":"Spacer","props":{"size":"l"}}`)},
 
-		{Type: "Stack", Label: "Stack", Icon: "list", Category: "layout", Since: 2, Required: true, Authored: true, Data: "none", Container: true, Focus: "none",
+		{Type: "Stack", Label: "Stack", Icon: "list", Category: "layout", Since: 2, Authored: true, Data: "none", Container: true, Focus: "none",
 			Description: "Sections one after another, down or across. The plain container for a custom page.",
 			Props: []PropSpec{
 				pEnum("direction", "Direction", "", "column", "column|Down", "row|Across"), propGap,
@@ -468,7 +459,6 @@ func buildComponents() []ComponentSpec {
 			Example: example(`{"id":"links","component":"Stack","props":{"direction":"row","gap":"s"},"children":[{"id":"guide","component":"Button","props":{"label":"TV guide","icon":"guide","native":"guide"}}]}`)},
 
 		{Type: "Split", Label: "Two columns", Icon: "grid", Category: "layout", Since: 2, Authored: true, Data: "none", Container: true, Focus: "none",
-			Fallback: "Stack", FallbackNote: "Its two children in a column.",
 			Description: "Two sections side by side on a wide screen, one above the other on a narrow one.",
 			Props: []PropSpec{
 				pEnum("ratio", "Widths", "", "1:1", "1:1|Equal", "1:2|Narrow then wide", "2:1|Wide then narrow"), propGap,
@@ -478,7 +468,7 @@ func buildComponents() []ComponentSpec {
 			A11y:    "No role of its own.",
 			Example: example(`{"id":"two","component":"Split","props":{"ratio":"2:1"},"children":[{"id":"left","component":"Text","props":{"text":"About this server"}},{"id":"right","component":"Button","props":{"label":"Settings","native":"settings"}}]}`)},
 
-		{Type: "Button", Label: "Button", Icon: "plus", Category: "navigation", Since: 2, Required: true, Authored: true, Data: "none", Focus: "item",
+		{Type: "Button", Label: "Button", Icon: "plus", Category: "navigation", Since: 2, Authored: true, Data: "none", Focus: "item",
 			Description: "A button that opens a place in the app, one of the app's own screens, or a web page.",
 			Props: []PropSpec{
 				req(pText("label", "Label", "", 60)), propIcon,
@@ -489,7 +479,7 @@ func buildComponents() []ComponentSpec {
 			A11y:    "Role: button (link on the web when it navigates). Label: the label.",
 			Example: example(`{"id":"open-settings","component":"Button","props":{"label":"Settings","icon":"settings","native":"settings"}}`)},
 
-		{Type: "Image", Label: "Picture", Icon: "photo", Category: "text", Since: 2, Required: true, Authored: true, Data: "none", Focus: "none",
+		{Type: "Image", Label: "Picture", Icon: "photo", Category: "text", Since: 2, Authored: true, Data: "none", Focus: "none",
 			Description: "A picture from this server, optionally a link.",
 			Props: []PropSpec{
 				req(pOf(PropImage, "src", "Picture", "A path on this server beginning /api/.")), pText("alt", "Description", "For people who can't see the picture. Leave empty when it is decoration.", 200),
@@ -502,7 +492,6 @@ func buildComponents() []ComponentSpec {
 			Example: example(`{"id":"pic","component":"Image","props":{"src":"/api/collections/4/cover","alt":"Family films","aspect":"21/9"}}`)},
 
 		{Type: "SearchBox", Label: "Search box", Icon: "search", Category: "navigation", Since: 2, Authored: true, Data: "none", Focus: "item",
-			Fallback: "Button", FallbackNote: "A Button labelled \"Search\" that opens /search.",
 			Description: "The field people type a search into. On the search page it holds the current search; anywhere else it opens the search page.",
 			Props:       []PropSpec{pText("placeholder", "Prompt", "", 80), pBool("autofocus", "Start here", "Focus starts in the field.", false)},
 			Renders: map[string]string{
@@ -513,7 +502,7 @@ func buildComponents() []ComponentSpec {
 			A11y:    "Role: searchbox labelled \"Search\".",
 			Example: example(`{"id":"q","component":"SearchBox","props":{"placeholder":"Films, shows, music…","autofocus":true}}`)},
 
-		{Type: "List", Label: "List", Icon: "list", Category: "media", Since: 2, Required: true, Authored: true, Data: "optional", Container: true, Children: []string{"ListItem"}, Focus: "group",
+		{Type: "List", Label: "List", Icon: "list", Category: "media", Since: 2, Authored: true, Data: "optional", Container: true, Children: []string{"ListItem"}, Focus: "group",
 			Description: "Rows of text with an icon or small picture, written by hand or drawn from a source.",
 			Props:       []PropSpec{propTitle, pBool("dense", "Compact rows", "", false), propEmpty, propEmptyText},
 			Renders:     map[string]string{"all": "Full-width rows (56 points, 44 dense, 90 on a television): picture or icon, title over subtitle, trailing text, and a chevron when the row opens something."},
@@ -521,13 +510,12 @@ func buildComponents() []ComponentSpec {
 			A11y:        "Role: list labelled by the title.",
 			Example:     example(`{"id":"lists","component":"List","props":{"title":"Your collections"},"source":{"type":"collections"}}`)},
 
-		{Type: "ListItem", Label: "List row", Icon: "list", Category: "media", Since: 2, Required: true, Authored: true, Data: "none", Focus: "item",
+		{Type: "ListItem", Label: "List row", Icon: "list", Category: "media", Since: 2, Authored: true, Data: "none", Focus: "item",
 			Description: "One row of a List.",
 			Props:       []PropSpec{req(pText("title", "Title", "", 120)), pText("subtitle", "Subtitle", "", 160), propIcon, pText("trailing", "Text at the end", "", 40), propTo, propNative, propURL},
 			A11y:        "Role: button when it opens something, else text. Label: \"<title>, <subtitle>, <trailing>\"."},
 
 		{Type: "NativeView", Label: "The app's own view", Icon: "plug", Category: "structure", Since: 2, Authored: true, Data: "none", Container: true, Focus: "stop",
-			Fallback: "Stack", FallbackNote: "Its children in a column: what to show where the app has no such view.",
 			Description: "A place where the app draws one of its own rich views: the TV guide's grid, the photo timeline. An app that has the view says so; any other is sent the sections inside instead.",
 			Props: []PropSpec{
 				req(pEnum("view", "View", "", "", "guide|TV guide grid", "photoTimeline|Photo timeline", "photoMap|Photo map", "coverFlow|Album cover flow")),

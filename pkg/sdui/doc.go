@@ -31,7 +31,6 @@
 //
 // SchemaVersion is the wire version of what a client is sent; it changes only
 // for something a client built for it could not survive. CatalogRevision
-// counts additions within it. Every component has a Since and, unless every
-// renderer must draw it, a fallback made of components every renderer does
-// draw, so a client is never sent something it can't show.
+// counts changes to the catalogue within it. Every renderer draws every component
+// of the revision: there is no negotiation and no fallback.
 package sdui

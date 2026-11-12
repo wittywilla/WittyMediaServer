@@ -399,12 +399,6 @@
         "expands": {
           "type": "string"
         },
-        "fallback": {
-          "type": "string"
-        },
-        "fallbackNote": {
-          "type": "string"
-        },
         "focus": {
           "type": "string"
         },
@@ -441,9 +435,6 @@
           },
           "type": "object"
         },
-        "required": {
-          "type": "boolean"
-        },
         "since": {
           "type": "integer"
         },
@@ -467,7 +458,6 @@
         "icon",
         "category",
         "since",
-        "required",
         "authored",
         "data",
         "container",
@@ -2193,7 +2183,7 @@
     "tile",
     "chip"
   ],
-  "x-catalogRevision": 3,
+  "x-catalogRevision": 4,
   "x-components": [
     "Page",
     "Hero",

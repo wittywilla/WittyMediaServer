@@ -4,18 +4,18 @@ Three renderers draw WittyMediaServer's pages: React on the web, SwiftUI on
 Apple devices, Compose on Android. This kit is how each proves it draws them
 the same way, without comparing pixels.
 
-`fixtures/` holds one JSON file per case (85 today; `fixtures/index.json`
+`fixtures/` holds one JSON file per case (79 today; `fixtures/index.json`
 lists them). Every file has the same shape:
 
 ```
 {
-  "kit": 1, "schemaVersion": 1, "catalogRevision": 3,
+  "kit": 1, "schemaVersion": 1, "catalogRevision": 4,
   "id": "home-tv-hd",
   "title": "The built-in Home on an Apple TV HD",
   "checks": ["…what this case is there to pin down…"],
   "input": {
     "page":    { …the authored page… },
-    "request": { …who asks, on what device, knowing which components… },
+    "request": { …who asks, on what device, knowing which native views… },
     "data":    { …canned answers for the page's data sources… }
   },
   "expected": {
@@ -155,11 +155,10 @@ each file's `checks` says what the case is there to pin down. They cover the
 built-in pages on a television (HD and 4K), a phone, a tablet, a desktop
 window and a narrow browser; an empty server; variants; a profile's own
 order, hidden, pinned and locked sections, density and card sizes; a profile
-that may not rearrange; a client that draws only the required components,
-and one built against an older catalogue; a source that fails; conditions on
+that may not rearrange; a source that fails; conditions on
 the time of day, feature switches and flags; reduced motion; theme scopes;
 libraries with filters, tabs and native views; a film's, a show's, an
-album's and a collection's page, their fallbacks, and a title that isn't
+album's and a collection's page, and a title that isn't
 there; search; Live TV; a hand-made page of layout components; every card
 style; long text; a field mapped into a subtitle; awkward item IDs; banners;
 a books library's shelf with a row per series, statistics and likes. None of

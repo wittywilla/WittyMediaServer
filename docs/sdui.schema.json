@@ -2672,7 +2672,7 @@
     "logo",
     "chip"
   ],
-  "x-catalogRevision": 7,
+  "x-catalogRevision": 8,
   "x-components": [
     "Page",
     "Hero",

@@ -90,9 +90,9 @@ func rev6(p PropSpec) PropSpec {
 	return p
 }
 
-// rev7 marks a property as added in catalogue revision 7 (WittyPlay Online, forms).
-func rev7(p PropSpec) PropSpec {
-	p.Since = 7
+// rev8 marks a property as added in catalogue revision 8 (WittyPlay Online, forms, utility pages).
+func rev8(p PropSpec) PropSpec {
+	p.Since = 8
 	return p
 }
 
@@ -179,7 +179,7 @@ var (
 	propCardStyle = pEnum("cardStyle", "Card style", "How each item is drawn. Auto uses the style that suits the source.", "auto", cardStyleOptions...)
 	propHeading   = rev6(pEnum("headingStyle", "Heading style", "How the title is drawn: plain, a coloured band across the row, or underlined. Left plain, the experience chooses.", "plain", "plain|Plain", "band|Band", "underline|Underline"))
 	propCardSize  = pEnum("cardSize", "Card size", "Small, medium or large cards. A profile may choose its own.", "m", "s|Small", "m|Medium", "l|Large")
-	propFocusable = rev7(pBool("focusable", "Cards without a route take focus", "A card with no route (a friend) is still a stop for focus, and OK on it is the page's to use. Off: it is not a button and takes no focus.", false))
+	propFocusable = rev8(pBool("focusable", "Cards without a route take focus", "A card with no route (a friend) is still a stop for focus, and OK on it is the page's to use. Off: it is not a button and takes no focus.", false))
 	propEmpty     = pEnum("empty", "When there is nothing to show", "Leave the section out, or keep it with a message.", "hide", "hide|Leave it out", "message|Show a message")
 	propEmptyText = pText("emptyText", "Message when empty", "Shown in place of the items when there are none.", 200)
 	propTo        = pOf(PropRoute, "to", "Opens", "A place in the app, such as /library/3 or /page/family-night.")
@@ -188,11 +188,11 @@ var (
 	// The command a button, notice or row runs (rev 7): op names one of the catalogue's commands, item is
 	// its item ($item on a page opened about a title), params its other values ($name and the like are
 	// filled in), confirm a question to ask first; back goes back instead.
-	propOp      = rev7(pEnum("op", "Runs a command", "One of the catalogue's commands; the page is asked for again after it.", "", commandOps()...))
-	propOpItem  = rev7(pOf(PropRef, "item", "Command's item", "The item the command acts on, such as $item."))
-	propOpArgs  = rev7(pOf(PropObject, "params", "Command's values", "The command's other values by name, each a text or a $variable."))
-	propConfirm = rev7(pText("confirm", "Ask first", "A question the app asks before the command runs, such as Delete this memory?", 120))
-	propBack    = rev7(pBool("back", "Goes back", "Closes the page: Back.", false))
+	propOp      = rev8(pEnum("op", "Runs a command", "One of the catalogue's commands; the page is asked for again after it.", "", commandOps()...))
+	propOpItem  = rev8(pOf(PropRef, "item", "Command's item", "The item the command acts on, such as $item."))
+	propOpArgs  = rev8(pOf(PropObject, "params", "Command's values", "The command's other values by name, each a text or a $variable."))
+	propConfirm = rev8(pText("confirm", "Ask first", "A question the app asks before the command runs, such as Delete this memory?", 120))
+	propBack    = rev8(pBool("back", "Goes back", "Closes the page: Back.", false))
 	propIcon    = pOf(PropIcon, "icon", "Icon", "One of the built-in icons.")
 	propGap     = pEnum("gap", "Space between", "The distance between the things inside.", "m", "none|None", "xs|Extra small", "s|Small", "m|Medium", "l|Large", "xl|Extra large")
 )
@@ -248,8 +248,8 @@ func buildComponents() []ComponentSpec {
 				pInt("maxItems", "Most cards at first", "How many cards are sent before the row asks for more. 0 uses the device's own limit.", 0, 0, 60),
 				rev3(pBool("peek", "Show the next card's edge", "layout.peek of the next card's width stays visible at the row's trailing edge, so it is clear the row scrolls on. Off cuts the row at a whole card.", true)),
 				rev3(pEnum("seeAllCard", "See all as a card", "See all as the last card of the row, in the shape of the row's cards, in place of the link beside the heading. Automatic: on a television and in the experiences that ask for it (Stage, Big picture).", "auto", "auto|Where the layout says", "always|Always", "never|Never")),
-				rev7(pBool("focusGrow", "The focused card grows", "The card with focus scales up (1.45 times on a television, 1.25 on a tablet or desktop, not at all on a phone, where the first card is simply larger) and the cards after it step aside; the others stay small. With reduced motion the card does not animate: it gets a ring.", false)),
-				rev7(pBool("detail", "Detail panel under the row", "A panel under the row shows the focused card's item (the first until focus moves): its title large, its subtitle as one line, and its actions as buttons carrying their key glyphs. An item with no actions has its route as the one A action.", false)),
+				rev8(pBool("focusGrow", "The focused card grows", "The card with focus scales up (1.45 times on a television, 1.25 on a tablet or desktop, not at all on a phone, where the first card is simply larger) and the cards after it step aside; the others stay small. With reduced motion the card does not animate: it gets a ring.", false)),
+				rev8(pBool("detail", "Detail panel under the row", "A panel under the row shows the focused card's item (the first until focus moves): its title large, its subtitle as one line, and its actions as buttons carrying their key glyphs. An item with no actions has its route as the one A action.", false)),
 				propFocusable, propEmpty, propEmptyText,
 			},
 			Renders: map[string]string{
@@ -642,7 +642,7 @@ func buildComponents() []ComponentSpec {
 			Props:       []PropSpec{req(pText("title", "Title", "", 120)), pText("subtitle", "Subtitle", "", 160), propIcon, pText("trailing", "Text at the end", "", 40), propTo, propNative, propURL, propOp, propOpItem, propOpArgs, propConfirm, propBack},
 			A11y:        "Role: button when it opens something, else text. Label: \"<title>, <subtitle>, <trailing>\"."},
 
-		{Type: "Form", Label: "Form", Icon: "list", Category: "structure", Since: 7, Authored: true, Data: "none", Container: true, Children: []string{"List", "Text", "Notice", "Divider", "Spacer"}, Focus: "group",
+		{Type: "Form", Label: "Form", Icon: "list", Category: "structure", Since: 8, Authored: true, Data: "none", Container: true, Children: []string{"List", "Text", "Notice", "Divider", "Spacer"}, Focus: "group",
 			Description: "A group of rows with controls (switches, choices, fields, sliders) saved together: Save runs one command with every named control's value, Cancel goes back. Settings itself stays hand-built; a Form is for a page the server or a module serves.",
 			Props: []PropSpec{
 				propTitle,
@@ -867,26 +867,26 @@ func buildSources() []SourceSpec {
 			Description: "Titles in the same library sharing the title's first genre, best scored first, without the title itself.",
 			Params:      []PropSpec{req(pOf(PropRef, "item", "Title", "$item on a film's page, $show on a show's.")), paramLimit}, Yields: []string{"movie", "show"},
 			Example: example(`{"type":"similar","item":"$item","limit":12}`)},
-		{Type: "versions", Label: "Versions of a title", Icon: "video", Category: "context", Since: 7, CardStyle: "square", PageKinds: []string{"custom"}, Title: "Versions",
+		{Type: "versions", Label: "Versions of a title", Icon: "video", Category: "context", Since: 8, CardStyle: "square", PageKinds: []string{"custom"}, Title: "Versions",
 			Description: "The files one title plays from, its own and the versions attached to it, each a row that plays that file with its label and quality, its length and size.",
 			Params:      []PropSpec{req(pOf(PropRef, "item", "Title", "$item on a page opened about a title.")), paramLimit}, Yields: []string{"video"}, Example: example(`{"type":"versions","item":"$item"}`)},
-		{Type: "listsFor", Label: "Lists a title can be in", Icon: "collection", Category: "context", Since: 7, CardStyle: "tile", PageKinds: []string{"custom"}, Title: "Lists",
+		{Type: "listsFor", Label: "Lists a title can be in", Icon: "collection", Category: "context", Since: 8, CardStyle: "tile", PageKinds: []string{"custom"}, Title: "Lists",
 			Description: "The profile's own lists (Watch later and the lists it made), each a switch row: on when the title is in it, and flipping it adds or takes the title out.",
 			Params:      []PropSpec{req(pOf(PropRef, "item", "Title", "$item on a page opened about a title.")), paramLimit}, Yields: []string{"collection"}, Example: example(`{"type":"listsFor","item":"$item"}`)},
-		{Type: "newList", Label: "A new list's name", Icon: "plus", Category: "context", Since: 7, CardStyle: "tile", PageKinds: []string{"custom"}, Title: "A new list",
+		{Type: "newList", Label: "A new list's name", Icon: "plus", Category: "context", Since: 8, CardStyle: "tile", PageKinds: []string{"custom"}, Title: "A new list",
 			Description: "One row holding a field for the name of a new list, for a Form whose command is collection.create.",
 			Yields:      []string{"view"}, Example: example(`{"type":"newList"}`)},
-		{Type: "devices", Label: "Signed-in devices", Icon: "devices", Category: "personal", Since: 7, CardStyle: "tile", Title: "Your devices",
+		{Type: "devices", Label: "Signed-in devices", Icon: "devices", Category: "personal", Since: 8, CardStyle: "tile", Title: "Your devices",
 			Description: "Where the profile is signed in: this device first, then the others with when each was last used, a row that signs it out after asking.",
 			Params:      []PropSpec{paramLimit}, Yields: []string{"view"}, Example: example(`{"type":"devices"}`)},
-		{Type: "year", Label: "Your year", Icon: "chart", Category: "personal", Since: 7, CardStyle: "tile", Title: "Your year",
+		{Type: "year", Label: "Your year", Icon: "chart", Category: "personal", Since: 8, CardStyle: "tile", Title: "Your year",
 			Description: "The profile's year from its own play log: the totals, or the top titles, shows, artists or genres, or the months.",
 			Params: []PropSpec{pEnum("part", "Part", "", "totals", "totals|Totals", "months|Months", "titles|Top titles", "shows|Top shows", "artists|Top artists", "genres|Top genres"),
 				pInt("year", "Year", "0 is this year.", 0, 0, 3000), paramLimit}, Yields: []string{"view"}, Example: example(`{"type":"year","part":"titles","limit":10}`)},
-		{Type: "activity", Label: "What the server is doing", Icon: "plug", Category: "structure", Since: 7, CardStyle: "tile", Title: "Activity",
+		{Type: "activity", Label: "What the server is doing", Icon: "plug", Category: "structure", Since: 8, CardStyle: "tile", Title: "Activity",
 			Description: "The tasks running now, with how far each has got, or those just finished. What the profile may see of them follows its limits.",
 			Params:      []PropSpec{pEnum("part", "Part", "", "now", "now|Running", "history|Finished"), paramLimit}, Yields: []string{"view"}, Example: example(`{"type":"activity","part":"now"}`)},
-		{Type: "notices", Label: "Notifications", Icon: "info", Category: "personal", Since: 7, CardStyle: "tile", Title: "Notifications",
+		{Type: "notices", Label: "Notifications", Icon: "info", Category: "personal", Since: 8, CardStyle: "tile", Title: "Notifications",
 			Description: "What the profile may want to know: a reminder that a programme is on, and for an administrator that a new version of the server is ready.",
 			Params:      []PropSpec{paramLimit}, Yields: []string{"view"}, Example: example(`{"type":"notices"}`)},
 		{Type: "search", Label: "Search results", Icon: "search", Category: "context", Since: 2, CardStyle: "poster", PageKinds: []string{"search"}, Title: "{each}",

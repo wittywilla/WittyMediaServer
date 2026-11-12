@@ -12,19 +12,25 @@ import (
 // draws every component of the current revision: there is no negotiation and no fallback.
 // 5 added cast and crew: the Credits component, the credits and filmography sources, people
 // in search, the person page. 6 added the Design 2 components and looks. 7 changed what the
-// person card style shows (its badges: a friend's presence, a seat, now drawn as a presence dot by
-// the style's badgeTones, and a person card with no action takes no focus unless its list says
-// focusable), so a renderer that copied the card-style table needs the new one; it also brought a
-// source's person items, the WittyPlay commands with their params, and what WittyPlay Online needs,
-// all additive: Shelf focusGrow and detail, an item's actions (the detail panel's buttons), the shell
-// regions statusBar and systemDock with a page's regions field, navigate actions shown as a layer,
-// confirm on a command, the controls a list row can carry (switch, select, field, slider) with the
-// Form component, and the commands a button, notice or row can run.
+// person card style shows (its badges: a friend's presence, a seat), so a renderer that
+// copied the card-style table needs the new one; it also brought a source's person items, and
+// the WittyPlay commands with their params. 8 changed what the person card style does: a
+// presence badge is drawn as a dot by the style's badgeTones, and a person card with no action
+// takes no focus unless its list says focusable (the card-style table, conformance/card-style-table.json,
+// has both); it also brought, all additive, what WittyPlay Online and the server's own pages need:
+// Shelf focusGrow and detail, an item's actions (the detail panel's buttons), item action, trailing
+// and control, the shell regions statusBar and systemDock with a page's regions field, navigate
+// actions shown as a layer, confirm on a command, the controls a list row can carry (switch, select,
+// field, slider) with the Form component, the commands a button, notice or row can run, command
+// params of type bool and ints, the sources versions, listsFor, newList, devices, year, activity and
+// notices, custom pages opened about something (item, name, of), the routes of the pages the server
+// serves for every app, the always-present key legend Dock on a television and a headset, and the
+// settings slots route.
 //
 // The rule: a change to what an existing component or card style shows or does bumps the
 // revision. Only new components, card styles, sources, commands and optional properties are
 // additive and stay in the revision they came in.
-const CatalogRevision = 7
+const CatalogRevision = 8
 
 // Property types, as an editor needs them to build a form.
 const (

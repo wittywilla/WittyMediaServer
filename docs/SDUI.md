@@ -225,7 +225,7 @@ Go types are `sdui.Document`, `sdui.Node`, `sdui.Action`, `sdui.Focus`.
 | Field | Type | Notes |
 |---|---|---|
 | `version` | int | `1`. A client refuses any other. |
-| `catalog` | int | The catalogue revision the tree was written for (7). A client built for another revision refuses it. |
+| `catalog` | int | The catalogue revision the tree was written for (8). A client built for another revision refuses it. |
 | `page` | PageInfo | `{id, kind, title, icon, route, variant, params}`. `route` is the page's place in the app; `params` what it was opened with, to send again with a refresh. |
 | `layout` | Layout | The [device profile](#device-profiles) the page was fitted to: lay out with these numbers. |
 | `theme` | ThemeScope, *omit* | `{scope, tokens}`: the page's theme scope and the colour tokens it overrides. |
@@ -1241,7 +1241,7 @@ and without `meta.generatedAt` and `meta.etag`; `ETag(doc)` is `W/"sha256-`
 
 - `version` (1) changes only for something a client built for it can't
   survive. Clients refuse a version they don't know.
-- The **catalogue revision** (7) counts changes to the catalogue. **The rule:
+- The **catalogue revision** (8) counts changes to the catalogue. **The rule:
   any change to what an existing component or card style shows or does bumps
   the revision** (a card style that gains badges, a property that changes
   meaning, a component that draws something else). Only a new component, card

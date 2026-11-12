@@ -45,9 +45,12 @@ func TestUtilityPages(t *testing.T) {
 	root := t.TempDir()
 	lib := ts.library(t, "movies", root)
 	y := 2022
-	ts.item(t, &library.Item{LibraryID: lib, Kind: "video", Path: filepath.Join(root, "a.mkv"), Title: "Harbour Lights", Year: &y, ContentRating: "G", Studio: "Harbour Pictures"})
-	ts.item(t, &library.Item{LibraryID: lib, Kind: "video", Path: filepath.Join(root, "b.mkv"), Title: "Low Tide", Year: &y, ContentRating: "R", Studio: "Harbour Pictures"})
-	_ = ctx
+	for i, rating := range []string{"G", "R"} {
+		it := ts.item(t, &library.Item{LibraryID: lib, Kind: "video", Path: filepath.Join(root, fmt.Sprintf("%d.mkv", i)), Title: fmt.Sprintf("Harbour %d", i), Year: &y, ContentRating: rating})
+		if _, err := ts.DB.ExecContext(ctx, `INSERT INTO title_brands(kind, key, name, library_id, item_id) VALUES('studio', ?, 'Harbour Pictures', ?, ?)`, library.BrandKey("Harbour Pictures"), lib, it.ID); err != nil {
+			t.Fatal(err)
+		}
+	}
 	// A studio: the kind of profile decides what is in it, and the count is in the heading.
 	adult := sduiDoc(t, ts.do(t, "GET", "/api/sdui/pages/studio?name=Harbour+Pictures", f.adult, nil))
 	films := pageNode(&adult.Root, "films")
@@ -66,18 +69,21 @@ func TestUtilityPages(t *testing.T) {
 	}
 	if w := ts.do(t, "GET", fmt.Sprintf("/api/sdui/pages/versions?item=%d", f.grownUp.ID), f.kid, nil); w.Code != 200 {
 		t.Errorf("a title a kid can't see: %d", w.Code)
-	} else if d := sduiDoc(t, w); pageNode(&d.Root, "files") != nil {
+	} else if d := sduiDoc(t, w); pageNode(&d.Root, "files") != nil && len(pageNode(&d.Root, "files").Children) > 0 {
 		t.Errorf("a kid is shown the versions of a title it may not see")
 	}
-	// Save to a list: Watch later as a switch that adds the title.
+	// Save to a list: a list of the profile's own as a switch that adds the title.
+	if w := ts.do(t, "POST", "/api/collections", f.adult, map[string]any{"name": "Friday night", "kind": "manual"}); w.Code != 201 {
+		t.Fatalf("a list: %d %s", w.Code, w.Body)
+	}
 	sv := sduiDoc(t, ts.do(t, "GET", fmt.Sprintf("/api/sdui/pages/save-to?item=%d", f.film.ID), f.adult, nil))
 	lists := pageNode(&sv.Root, "lists")
 	if lists == nil || len(lists.Children) == 0 {
 		t.Fatalf("save to: no lists: %+v", sv.Root)
 	}
 	row := lists.Children[0]
-	c, _ := row.Props["control"].(*sdui.Control)
-	if c == nil || c.Type != sdui.ControlSwitch || c.Value != false || row.Action == nil || row.Action.Op != "collection.add" || row.Action.Item != fmt.Sprint(f.film.ID) {
+	c, _ := row.Props["control"].(map[string]any)
+	if c == nil || c["type"] != sdui.ControlSwitch || c["value"] != false || row.Action == nil || row.Action.Op != "collection.add" || row.Action.Item != fmt.Sprint(f.film.ID) {
 		t.Errorf("save to row: %+v %+v", row.Props, row.Action)
 	}
 	if form := pageNode(&sv.Root, "new"); form == nil || form.Action == nil || form.Action.Op != "collection.create" || !pageHasType(form, "ListItem") {

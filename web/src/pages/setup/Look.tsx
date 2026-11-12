@@ -65,8 +65,7 @@ export function Look({ info, next, back }: StepProps) {
       const got = await getLooks(false)
       const policy = { ...(got.experiences || {}), default: Object.fromEntries(FORM_FACTORS.map((f) => [f, pick])) }
       await sduiAsk('PUT', `${SDUI_BASE}/config/experience`, { body: policy, headers: { 'If-Match': got.etag } })
-      const c = cards.find((x) => x.id === pick)
-      if (c?.theme) { try { await api.put('/settings', { theme: c.theme }) } catch { /* the next step can set it */ } }
+      // The theme is not written here: the server follows the look's own theme until someone chooses another (Theme step).
     } catch { toast('The look couldn’t be saved. You can choose it later in Settings, Appearance.', { tone: 'danger' }) }
     next()
   }
@@ -101,10 +100,12 @@ export function Theme({ info, next, back }: StepProps) {
   const { serverTheme, setServerTheme } = useApp()
   const [themes, setThemes] = useState<ThemeMeta[]>([])
   const [pick, setPick] = useState(serverTheme)
+  // Only an explicit choice pins a theme; carrying on with what the look wears stores nothing.
+  const [chosen, setChosen] = useState(false)
   const file = useRef<HTMLInputElement | null>(null)
   const load = () => api.get<{ themes: ThemeMeta[] }>('/themes').then((r) => setThemes(r.themes)).catch(() => {})
   useEffect(() => { void load() }, [])
-  const choose = (id: string) => { setPick(id); applyTheme(id) }
+  const choose = (id: string) => { setPick(id); setChosen(true); applyTheme(id) }
   const importZip = async (f: File) => {
     const headers: Record<string, string> = { 'Content-Type': 'application/zip' }
     const tok = getToken()
@@ -117,7 +118,7 @@ export function Theme({ info, next, back }: StepProps) {
     if (data.id) choose(data.id)
   }
   const save = async () => {
-    try { await api.put('/settings', { theme: pick }); setServerTheme(pick) } catch { /* can be changed later */ }
+    if (chosen) { try { await api.put('/settings', { theme: pick }); setServerTheme(pick) } catch { /* can be changed later */ } }
     next()
   }
   return (

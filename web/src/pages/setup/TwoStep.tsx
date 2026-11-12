@@ -18,7 +18,7 @@ export function TwoStep({ password, onDone }: { password: string; onDone: () => 
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
   useEffect(() => { api.post<{ secret: string; uri: string }>('/me/2fa/setup', { password }).then(setSetup).catch((e: Error) => setErr(e.message)) }, []) // eslint-disable-line react-hooks/exhaustive-deps
-  const confirm = async () => {
+  const turnOn = async () => {
     setBusy(true); setErr('')
     try { setRecovery((await api.post<{ recovery: string[] }>('/me/2fa/confirm', { code: twoStepCode(code) })).recovery) } catch (e) { setErr((e as Error).message) } finally { setBusy(false) }
   }
@@ -37,7 +37,7 @@ export function TwoStep({ password, onDone }: { password: string; onDone: () => 
     )
   }
   return (
-    <form onSubmit={(e) => { e.preventDefault(); void confirm() }}>
+    <form onSubmit={(e) => { e.preventDefault(); void turnOn() }}>
       <h1>Set up two-step sign-in</h1>
       <p className="lead">Signing in also asks for a 6-digit code from an app on your phone, so a stolen password isn’t enough. Any authenticator app works.</p>
       {setup ? (

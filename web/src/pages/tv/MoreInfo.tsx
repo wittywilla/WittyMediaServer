@@ -35,8 +35,11 @@ export default function MoreInfo({ channelKey, at, onClose }: { channelKey: stri
   const reminders = useReminders()
   const [a, setA] = useState<Answer | null>(null)
   const [err, setErr] = useState('')
-  const load = () => { setErr(''); api.get<Answer>(`/tv/${encodeURIComponent(channelKey)}/programme?start=${Math.floor(at)}`).then(setA).catch((e) => setErr((e as Error).message)) }
+  const [gone, setGone] = useState(false)
+  const load = () => { setErr(''); api.get<Answer>(`/tv/${encodeURIComponent(channelKey)}/programme?start=${Math.floor(at)}`).then(setA).catch((e) => { if ((e as { status?: number }).status === 404) setGone(true); else setErr((e as Error).message) }) }
   useEffect(load, [channelKey, at]) // eslint-disable-line react-hooks/exhaustive-deps
+  // The guide keeps about a month of the past: an older programme is no longer there to ask about.
+  if (gone) return <Dialog title="More info" onClose={onClose}><p>Details are no longer available.</p></Dialog>
   if (err) return <Dialog title="More info" onClose={onClose}><LoadError what="This programme" onRetry={load} /></Dialog>
   if (!a) return <Dialog title="More info" onClose={onClose}><Spinner /></Dialog>
   const p = a.programme, ch = a.channel

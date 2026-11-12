@@ -6,6 +6,7 @@ package server
 import (
 	"context"
 	"net/http/httptest"
+	"strings"
 
 	"encoding/json"
 	"fmt"
@@ -158,5 +159,64 @@ func TestSDUICreditsOfAProgramme(t *testing.T) {
 	child, _ := ts.user(t, "child", "kids", false, "")
 	if got := ask(child); len(got) != 0 {
 		t.Errorf("a profile without tuner channels: %+v", got)
+	}
+}
+
+// A recording carries what opens its More info, for someone who may watch its channel.
+func TestRecordingsOpenMoreInfo(t *testing.T) {
+	call, _, alice, _, s := recordingServer(t)
+	start := time.Now().Add(-2 * time.Hour).Truncate(time.Minute).Unix()
+	if code, body := call("POST", "/api/recordings", alice, schedule("tun-1", time.Now().Add(6*time.Hour).Unix(), "Later")); code != 200 ||
+		!strings.Contains(body, `"channelKey":"tun-1"`) || !strings.Contains(body, `"programme":"tun-1@`) {
+		t.Fatalf("scheduling: %d %s", code, body)
+	}
+	var uid int64
+	if err := s.DB.QueryRow(`SELECT user_id FROM recordings LIMIT 1`).Scan(&uid); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.DB.Exec(`INSERT INTO recordings(user_id, channel_id, title, start, stop, status, created_at) VALUES(?, 1, 'Done', ?, ?, 'done', 1)`, uid, start, start+1800); err != nil {
+		t.Fatal(err)
+	}
+	list := func() []map[string]any {
+		code, body := call("GET", "/api/recordings", alice, "")
+		var out []map[string]any
+		if code != 200 || json.Unmarshal([]byte(body), &out) != nil || len(out) != 2 {
+			t.Fatalf("%d %s", code, body)
+		}
+		return out
+	}
+	for _, x := range list() {
+		if x["channelKey"] != "tun-1" || x["programme"] != fmt.Sprintf("tun-1@%d", int64(x["start"].(float64))) {
+			t.Errorf("%+v", x)
+		}
+	}
+	u, err := s.Auth.User(t.Context(), uid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cards := func() []sdui.Item {
+		r := httptest.NewRequest("GET", "/", nil)
+		r = r.WithContext(context.WithValue(r.Context(), userKey, u))
+		src := sdui.Source{"type": "recordings"}
+		res, err := s.newSDUIResolver(r, nil).Items(sdui.SourceRequest{Source: src, Limit: 10})
+		if err != nil || len(res.Items) != 1 {
+			t.Fatalf("%v %+v", err, res.Items)
+		}
+		return res.Items
+	}
+	if c := cards()[0]; c.Channel != "tun-1" || c.Programme != fmt.Sprintf("tun-1@%d", start) {
+		t.Errorf("the card: %+v", c)
+	}
+	// A channel turned off is one nobody may watch now: nothing points at it.
+	if _, err := s.DB.Exec(`UPDATE tuner_channels SET enabled = 0 WHERE id = 1`); err != nil {
+		t.Fatal(err)
+	}
+	for _, x := range list() {
+		if _, ok := x["channelKey"]; ok || x["programme"] != nil {
+			t.Errorf("a channel they can't watch: %+v", x)
+		}
+	}
+	if c := cards()[0]; c.Channel != "" || c.Programme != "" {
+		t.Errorf("the card, for a channel they can't watch: %+v", c)
 	}
 }

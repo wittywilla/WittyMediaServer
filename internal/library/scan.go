@@ -511,6 +511,11 @@ func discoverVideos(root string, skipSamples bool, step walkStep) ([]candidate, 
 			}
 			return nil
 		}
+		// "._" files are macOS's record of another file's extra attributes, left beside it
+		// on drives it doesn't format itself: "._Film.iso" is a few kilobytes, never a film.
+		if strings.HasPrefix(name, "._") {
+			return nil
+		}
 		st, err := d.Info()
 		if err != nil || !mediaEntry(root, p, d) || IsConvertedCopy(name) {
 			return nil

@@ -38,10 +38,8 @@ html[data-type="mono"] body { letter-spacing: 0; }
   --gloss-glow: color-mix(in srgb, var(--accent) 78%, var(--on-image));
   --gloss-edge: color-mix(in srgb, var(--accent) 68%, var(--picture-bg));
   /* The recipe as paint: highlight to upper body over the top half, lower body to glow under it. */
-  /* The light is kept to the top third and the bottom edge, so the words, which sit across the middle, are on the deeper body
-     colour (white on Aero's body reads 4.5:1 or better; the recipe's own upper body alone gave about 3:1). */
-  --gloss-mid: color-mix(in srgb, var(--gloss-lo) 55%, var(--gloss-edge));
-  --gloss-paint: linear-gradient(180deg, var(--gloss-hi) 0%, color-mix(in srgb, var(--gloss-up) 55%, var(--gloss-mid)) 24%, var(--gloss-mid) 42%, var(--gloss-mid) 66%, var(--gloss-lo) 84%, var(--gloss-glow) 100%);
+  /* The recipe as paint: highlight to upper body over the top half, lower body to glow under it. The theme's own colours are chosen so the label reads 4.5:1 or better across 30% to 70% (scripts/theme-contrast.py). */
+  --gloss-paint: linear-gradient(180deg, var(--gloss-hi) 0%, var(--gloss-up) 48%, var(--gloss-lo) 52%, var(--gloss-glow) 100%);
   --glass-paint: linear-gradient(180deg, var(--glass-hi), var(--glass-lo));
 }
 
@@ -127,7 +125,7 @@ html[data-card-set="plate"] .card > .sub { display: none; }
 html[data-card-set="plate"] .card > .title { align-self: end; margin: 0; padding: var(--space-xl) var(--space-s) var(--space-s); z-index: 1; color: var(--on-image); background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--picture-bg) 78%, transparent)); border-radius: 0 0 var(--r-md) var(--r-md); font-size: var(--text-sm); text-shadow: 0 1px 2px var(--picture-bg); }
 html[data-card-set="plate"] .card:is(:hover, :focus-visible) > .title { background: var(--accent); color: var(--accent-fg); text-shadow: none; }
 /* Big picture: huge type, huge tiles, the strongest focus. */
-html[data-experience="bigpicture"] { font-size: 125%; --focus-width: 4px; --focus-offset: 4px; }
+html[data-experience="bigpicture"] { font-size: 125%; /* design-ok: the look's own type scale, the same as the ten-foot rule in styles.css */ --focus-width: 4px; --focus-offset: 4px; }
 html[data-experience="bigpicture"] :is(.btn, .nav-link, .topnav-link) { min-block-size: 3.25rem; font-size: var(--text-lg); font-weight: 700; }
 html[data-experience="bigpicture"] :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline-color: var(--accent); }
 html[data-card-set="tile"] .card > .title { font-size: var(--role-title-size); font-weight: 700; }

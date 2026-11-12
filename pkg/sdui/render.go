@@ -1223,11 +1223,8 @@ func (r *renderer) hero(n *Node, in instance) bool {
 		for _, a := range actions {
 			switch {
 			case a == "play" && it.PlayID != "" && contains(it.Can, "play"):
-				label := "Play"
-				if it.ResumeSec > 0 {
-					label = "Resume"
-				}
-				acts = append(acts, button("play", label, "play", true, &Action{Type: ActPlay, Item: it.PlayID, Params: map[string]any{"resume": true}}))
+				label, icon := playLabel(it)
+				acts = append(acts, button("play", label, icon, true, &Action{Type: ActPlay, Item: it.PlayID, Params: map[string]any{"resume": true}}))
 			case a == "details" && it.Route != "":
 				acts = append(acts, button("details", "More info", "info", false, &Action{Type: ActNavigate, To: it.Route}))
 			case a == "watchLater" && contains(it.Can, "watchLater"):
@@ -1467,6 +1464,24 @@ func (r *renderer) header(n *Node, in instance) bool {
 
 // headerActions are the buttons a DetailHeader offers for an item, in the
 // order asked for: only those the item can do. The first is the primary one.
+// playLabel is what the main button says: a book is read, not played (Design 2's book page:
+// Read, Continue reading, Read again), and anything else is played or resumed.
+func playLabel(it *Item) (label, icon string) {
+	if it.Kind == "book" {
+		switch {
+		case it.ResumeSec > 0:
+			return "Continue reading", "book"
+		case it.Watched:
+			return "Read again", "book"
+		}
+		return "Read", "book"
+	}
+	if it.ResumeSec > 0 {
+		return "Resume", "play"
+	}
+	return "Play", "play"
+}
+
 func headerActions(it *Item, want []string) []any {
 	var out []any
 	play := firstNonEmpty(it.NextID, it.PlayID)
@@ -1482,14 +1497,15 @@ func headerActions(it *Item, want []string) []any {
 			if play == "" {
 				continue
 			}
-			label := "Play"
-			if it.ResumeSec > 0 {
-				label = "Resume"
-			}
-			out = append(out, button("play", label, "play", false, &Action{Type: ActPlay, Item: play, Params: map[string]any{"resume": true}}))
+			label, icon := playLabel(it)
+			out = append(out, button("play", label, icon, false, &Action{Type: ActPlay, Item: play, Params: map[string]any{"resume": true}}))
 		case "restart":
 			if it.ResumeSec > 0 && play != "" {
-				out = append(out, button("restart", "Play from the start", "play", false, &Action{Type: ActPlay, Item: play, Params: map[string]any{"resume": false}}))
+				label := "Play from the start"
+				if it.Kind == "book" {
+					label = "Read from the start"
+				}
+				out = append(out, button("restart", label, "play", false, &Action{Type: ActPlay, Item: play, Params: map[string]any{"resume": false}}))
 			}
 		case "watchLater":
 			out = append(out, watchLaterButton(it))

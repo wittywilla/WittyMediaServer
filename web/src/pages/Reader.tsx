@@ -28,16 +28,22 @@ export default function ReaderPage() {
   const [it, setIt] = useState<Item | null>(null)
   const [info, setInfo] = useState<BookInfo | null>(null)
   const [err, setErr] = useState('')
+  // The profile's settings of WittyInk and the readers (their sdui.json), drawn in Settings under
+  // Modules: a book opens with them, and choices made while reading are saved to them.
+  const [prefs, setPrefs] = useState<Record<string, Record<string, unknown>> | null>(null)
   useEffect(() => {
     api.get<Item>(`/items/${id}`).then(setIt).catch((e) => setErr(e.message))
     api.get<BookInfo>(`/items/${id}/book`).then(setInfo).catch((e) => setErr(e.message))
+    const mods = ['wittyink', ...Object.values(READER_MODULE)]
+    Promise.all(mods.map((m) => api.get<{ values?: Record<string, unknown> }>(`/sdui/modules/${m}/settings`).then((r) => r.values ?? {}).catch(() => ({}))))
+      .then((vals) => setPrefs(Object.fromEntries(mods.map((m, i) => [m, vals[i]]))))
   }, [id])
   const close = () => (window.history.state?.idx > 0 ? nav(-1) : nav(`/item/${id}`))
   // Another device steering this one (docs/REMOTE-PROTOCOL.md): it is told the place each time the reader saves it.
   const placeChanged = useBookRemote(it?.id || 0, it?.progress && !it.progress.watched ? it.progress.positionSec : 0, close)
 
   const host = useMemo((): ReaderHost | null => {
-    if (!it || !info) return null
+    if (!it || !info || !prefs) return null
     const base = `/items/${it.id}`
     const format = info.reader === 'pdf' ? 'pdf' : info.reader === 'cbz' ? 'cbz' : 'epub'
     return {
@@ -61,6 +67,13 @@ export default function ReaderPage() {
         search: (q) => api.get(`${base}/search?q=${encodeURIComponent(q)}`),
       },
       define: (word) => api.get(`/dictionary?word=${encodeURIComponent(word)}`),
+      settings: {
+        get: (m) => prefs[m] ?? {},
+        save: (m, values) => {
+          prefs[m] = { ...(prefs[m] ?? {}), ...values }
+          api.put(`/sdui/modules/${m}/settings/personal`, { values }).catch(() => { /* kept on this device; the next change tries again */ })
+        },
+      },
       toast,
       close,
       // What goes wrong in the reader, for this server's log. The reader sends
@@ -69,7 +82,7 @@ export default function ReaderPage() {
         level, kind: 'reader', module: READER_MODULE[format], message, stack: [detail?.page && `page ${detail.page}`, detail?.stack].filter(Boolean).join('\n') || undefined,
       }),
     }
-  }, [it, info]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [it, info, prefs]) // eslint-disable-line react-hooks/exhaustive-deps
   // A newer reader from its own release, when one is in use; otherwise null and the copies above.
   const bundled = useBundledReader(host?.format)
 

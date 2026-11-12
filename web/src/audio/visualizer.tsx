@@ -18,15 +18,26 @@ import { soundGraph } from './sound'
 // They don't any more, so a timer saved from those days (and nobody chose that) is dropped
 // once. From then on what's saved is someone's own choice.
 let saving = Promise.resolve()
+const MODULE_SETTINGS = '/sdui/modules/wittyvisualizer/settings'
+// The choices also shown in Settings, under Modules (WittyVisualizer's sdui.json), kept by the
+// server with the profile's module settings: what was chosen there wins over the copy here.
+type ToModule = (s: unknown) => Record<string, unknown>
 export const visualizerHost: VisualizerHost = {
-  loadSettings: () => api.get<{ visualizer?: Record<string, unknown>; visualizerStays?: boolean }>('/me/ui').then((u) => {
-    const v = u.visualizer ?? {}
+  loadSettings: () => Promise.all([
+    api.get<{ visualizer?: Record<string, unknown>; visualizerStays?: boolean }>('/me/ui'),
+    api.get<{ values?: Record<string, unknown> }>(MODULE_SETTINGS).then((r) => r.values ?? {}).catch(() => ({})),
+  ]).then(([u, chosen]) => {
+    const v = { ...(u.visualizer ?? {}), ...chosen }
     return u.visualizerStays ? v : { ...v, cycleSec: 0 }
   }),
   saveSettings: (settings) => {
     saving = saving.then(async () => {
       const ui = await api.get<Record<string, unknown>>('/me/ui')
       await api.put('/me/ui', { ...ui, visualizer: settings, visualizerStays: true })
+      const toModule = (plugin as unknown as { moduleSettingValues?: ToModule; normalizeSettings?: (v: unknown) => unknown } | null)
+      if (toModule?.moduleSettingValues && toModule.normalizeSettings) {
+        await api.put(MODULE_SETTINGS + '/personal', { values: toModule.moduleSettingValues(toModule.normalizeSettings(settings)) })
+      }
     }).catch(() => { /* the next change tries again */ })
   },
 }

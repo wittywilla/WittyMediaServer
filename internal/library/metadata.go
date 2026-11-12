@@ -176,7 +176,8 @@ type nfoMovie struct {
 		Type string `xml:"type,attr"`
 		ID   string `xml:",chardata"`
 	} `xml:"uniqueid"`
-	TMDBID  string `xml:"tmdbid"`
+	TMDBID string `xml:"tmdbid"`
+	nfoPeople
 	Ratings struct {
 		Rating []struct {
 			Name  string  `xml:"name,attr"`
@@ -256,6 +257,8 @@ func applyNFO(it *Item, path string) bool {
 			it.Backdrop = u
 		}
 	}
+	// Read, so what it says of people stands, even when that's nobody.
+	it.credits.set(CreditsNFO, m.people(false, newActorPhotos(filepath.Dir(path))))
 	return true
 }
 
@@ -505,23 +508,15 @@ func (t *TMDB) Enrich(ctx context.Context, it *Item) error {
 	}
 	var m tmdbMovie
 	var extra struct {
-		Credits struct {
-			Crew []struct {
-				Name string `json:"name"`
-				Job  string `json:"job"`
-			} `json:"crew"`
-		} `json:"credits"`
+		Credits tmdbCredits `json:"credits"`
 	}
 	if err := t.getBoth(ctx, "/movie/"+id, url.Values{"append_to_response": {"release_dates,credits"}}, &m, &extra); err != nil {
 		return err
 	}
-	var directors []string
-	for _, c := range extra.Credits.Crew {
-		if c.Job == "Director" {
-			directors = append(directors, c.Name)
-		}
-	}
-	it.director = strings.Join(directors, ", ")
+	it.director = extra.Credits.directorNames()
+	// The whole cast and crew, kept as TMDB's: a film this finds is matched to TMDB.
+	it.credits.matched("tmdb")
+	it.credits.set(CreditsTMDB, extra.Credits.list(RoleCast))
 	if m.Collection != nil {
 		it.series = m.Collection.Name
 	}

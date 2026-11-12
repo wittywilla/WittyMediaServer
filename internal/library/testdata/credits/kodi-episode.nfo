@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<!-- A Kodi episode .nfo: the regulars and the guest stars are all <actor>; the people are made up. -->
+<episodedetails>
+    <title>Low Tide</title>
+    <season>1</season>
+    <episode>1</episode>
+    <plot>The water goes out.</plot>
+    <credits>Cleo Quill</credits>
+    <director>Bea Stern</director>
+    <actor>
+        <name>Ana Lima</name>
+        <role>Harbourmaster</role>
+        <order>0</order>
+    </actor>
+    <actor>
+        <name>Gus Visitor</name>
+        <role>Smuggler</role>
+        <order>1</order>
+        <type>GuestStar</type>
+    </actor>
+    <actor>
+        <name>Nell Passing</name>
+        <role>Tourist</role>
+    </actor>
+</episodedetails>

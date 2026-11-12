@@ -392,7 +392,7 @@ func (s *Server) sduiPrepare(r *http.Request, name string) (*sduiRender, int, er
 		}
 	}
 	vars := map[string]string{}
-	for _, k := range []string{"library", "item", "show", "season", "collection", "artist", "album"} {
+	for _, k := range []string{"library", "item", "show", "season", "collection", "artist", "album", "person"} {
 		if v := q.Get(k); v != "" && takes[k] {
 			if len(v) > 300 {
 				return nil, 400, errors.New(k + ": too long")

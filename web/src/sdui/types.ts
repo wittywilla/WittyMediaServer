@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-// What the server sends for a server-driven page (docs/SDUI.md, catalogue revision 2).
+// What the server sends for a server-driven page (docs/SDUI.md, catalogue revision 5).
 // Plain data: nothing here touches the page.
 
-export const CATALOG = 2
+export const CATALOG = 5
 export const VERSION = 1
 
 export type Props = Record<string, unknown>

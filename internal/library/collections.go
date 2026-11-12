@@ -346,6 +346,16 @@ func (s *Store) WatchLater(ctx context.Context, userID int64) (*Collection, erro
 	return s.CollectionByID(ctx, id, userID, true)
 }
 
+// InWatchLater says whether a title (an item, or a show) is on an account's Watch later list,
+// without making the list.
+func (s *Store) InWatchLater(ctx context.Context, userID, itemID, showID int64) (bool, error) {
+	var in bool
+	err := s.DB.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM collections c WHERE c.owner_id = ? AND c.system = 'watchlater' AND (
+		EXISTS(SELECT 1 FROM collection_items x WHERE x.collection_id = c.id AND x.item_id = ?) OR
+		EXISTS(SELECT 1 FROM collection_shows x WHERE x.collection_id = c.id AND x.show_id = ?)))`, userID, itemID, showID).Scan(&in)
+	return in, err
+}
+
 // CollectionItems is one page of what a collection holds, for an account.
 func (s *Store) CollectionItems(ctx context.Context, c *Collection, userID int64, access *Access, limit, offset int) ([]*Item, []*Show, error) {
 	if limit <= 0 || limit > 200 {

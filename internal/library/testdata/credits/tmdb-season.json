@@ -1,0 +1,14 @@
+{"_id": "s1", "air_date": "2010-01-01", "name": "Season 1", "id": 901, "season_number": 1,
+ "episodes": [
+  {"air_date": "2010-01-01", "episode_number": 1, "id": 9101, "name": "Low Tide", "overview": "The water goes out.", "runtime": 44, "season_number": 1, "still_path": "/e1.jpg",
+   "crew": [
+    {"department": "Directing", "job": "Director", "credit_id": "x1", "adult": false, "gender": 1, "id": 301, "known_for_department": "Directing", "name": "Bea Stern", "profile_path": null},
+    {"department": "Writing", "job": "Teleplay", "credit_id": "x2", "adult": false, "gender": 1, "id": 302, "known_for_department": "Writing", "name": "Cleo Quill", "profile_path": "/cleo.jpg"}
+   ],
+   "guest_stars": [
+    {"character": "Smuggler", "credit_id": "g1", "order": 500, "adult": false, "gender": 2, "id": 401, "known_for_department": "Acting", "name": "Gus Visitor", "profile_path": "/gus.jpg"},
+    {"character": "Harbourmaster", "credit_id": "g2", "order": 501, "adult": false, "gender": 1, "id": 101, "known_for_department": "Acting", "name": "Ana Lima", "profile_path": "/ana.jpg"}
+   ]},
+  {"air_date": "2010-01-08", "episode_number": 2, "id": 9102, "name": "High Water", "overview": "It comes back.", "runtime": 44, "season_number": 1, "still_path": null,
+   "crew": [], "guest_stars": []}
+ ]}

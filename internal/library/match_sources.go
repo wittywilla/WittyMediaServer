@@ -19,7 +19,8 @@ import (
 func seriesDetails(source string, m *SeriesMeta) *MatchDetails {
 	d := &MatchDetails{Source: source, ID: m.ID, Kind: "show", URL: SourceURL(source, m.ID), Title: m.Title, Year: m.Year, Overview: m.Overview, Genres: m.Genres, Rating: m.Rating,
 		ContentRating: m.ContentRating, Network: m.Network, Status: m.Status, Poster: m.Poster, Backdrop: m.Backdrop, Posters: m.Posters, Backdrops: m.Backdrops,
-		SeasonPosters: m.SeasonPosters, AirDays: m.AirDays, AirTime: m.AirTime, Banners: m.Banners, Logos: m.Logos}
+		SeasonPosters: m.SeasonPosters, AirDays: m.AirDays, AirTime: m.AirTime, Banners: m.Banners, Logos: m.Logos,
+		Credits: m.Credits, CreditsRead: m.CreditsRead, EpisodeCredits: m.EpisodeCredits}
 	if len(d.Banners) > 0 {
 		d.Banner = d.Banners[0]
 	}
@@ -187,13 +188,8 @@ func (d *MatchDetails) addTMDBImages(im tmdbImages) {
 func (t *tmdbMovies) Details(ctx context.Context, id string) (*MatchDetails, error) {
 	var m struct {
 		tmdbMovie
-		Credits struct {
-			Crew []struct {
-				Name string `json:"name"`
-				Job  string `json:"job"`
-			} `json:"crew"`
-		} `json:"credits"`
-		Images tmdbImages `json:"images"`
+		Credits tmdbCredits `json:"credits"`
+		Images  tmdbImages  `json:"images"`
 	}
 	if err := t.get(ctx, "/movie/"+url.PathEscape(id), url.Values{"append_to_response": {"release_dates,credits,images"}, "include_image_language": {"en,null"}}, &m); err != nil {
 		return nil, err
@@ -209,13 +205,8 @@ func (t *tmdbMovies) Details(ctx context.Context, id string) (*MatchDetails, err
 	for _, c := range m.ProductionCompanies {
 		d.Studios = append(d.Studios, c.Name)
 	}
-	var directors []string
-	for _, c := range m.Credits.Crew {
-		if c.Job == "Director" {
-			directors = append(directors, c.Name)
-		}
-	}
-	d.Director = strings.Join(directors, ", ")
+	d.Director = m.Credits.directorNames()
+	d.Credits, d.CreditsRead = m.Credits.list(RoleCast), true
 	if m.Collection != nil {
 		d.Series = m.Collection.Name
 	}
@@ -279,10 +270,10 @@ func (t *tmdbShows) Details(ctx context.Context, id string) (*MatchDetails, erro
 		ProductionCompanies []struct {
 			Name string `json:"name"`
 		} `json:"production_companies"`
-		CreatedBy []struct {
-			Name string `json:"name"`
-		} `json:"created_by"`
-		ContentRatings struct {
+		CreatedBy        []tmdbCreator `json:"created_by"`
+		AggregateCredits tmdbCredits   `json:"aggregate_credits"`
+		Credits          tmdbCredits   `json:"credits"`
+		ContentRatings   struct {
 			Results []struct {
 				ISO    string `json:"iso_3166_1"`
 				Rating string `json:"rating"`
@@ -294,7 +285,7 @@ func (t *tmdbShows) Details(ctx context.Context, id string) (*MatchDetails, erro
 		} `json:"seasons"`
 		Images tmdbImages `json:"images"`
 	}
-	if err := t.get(ctx, "/tv/"+url.PathEscape(id), url.Values{"append_to_response": {"content_ratings,images"}, "include_image_language": {"en,null"}}, &m); err != nil {
+	if err := t.get(ctx, "/tv/"+url.PathEscape(id), url.Values{"append_to_response": {"content_ratings,images,aggregate_credits,credits"}, "include_image_language": {"en,null"}}, &m); err != nil {
 		return nil, err
 	}
 	d := &MatchDetails{Source: "tmdb-tv", ID: strconv.Itoa(m.ID), Kind: "show", URL: SourceURL("tmdb-tv", id), Title: m.Name, Year: yearOf(m.FirstAirDate), Overview: m.Overview, Tagline: m.Tagline,
@@ -322,6 +313,7 @@ func (t *tmdbShows) Details(ctx context.Context, id string) (*MatchDetails, erro
 		names = append(names, c.Name)
 	}
 	d.Director = strings.Join(names, ", ")
+	d.Credits, d.CreditsRead = tmdbShowCredits(m.AggregateCredits, m.Credits, m.CreatedBy), true
 	for _, r := range m.ContentRatings.Results {
 		if r.ISO == "US" {
 			d.ContentRating = r.Rating
@@ -360,13 +352,17 @@ func (t *tmdbShows) Episodes(ctx context.Context, id string) (map[[2]int]Episode
 				Number   int    `json:"episode_number"`
 				Runtime  int    `json:"runtime"`
 				Still    string `json:"still_path"`
+				// Who is in it and who made it: the season's answer has both.
+				GuestStars []tmdbPersonCredit `json:"guest_stars"`
+				Crew       []tmdbPersonCredit `json:"crew"`
 			} `json:"episodes"`
 		}
 		if err := t.get(ctx, "/tv/"+url.PathEscape(id)+"/season/"+strconv.Itoa(s.Number), url.Values{}, &sn); err != nil {
 			return nil, err
 		}
 		for _, e := range sn.Episodes {
-			em := EpisodeMeta{ID: strconv.Itoa(e.ID), Season: s.Number, Number: e.Number, Title: e.Name, Overview: e.Overview, Aired: e.AirDate, RuntimeMin: e.Runtime}
+			em := EpisodeMeta{ID: strconv.Itoa(e.ID), Season: s.Number, Number: e.Number, Title: e.Name, Overview: e.Overview, Aired: e.AirDate, RuntimeMin: e.Runtime,
+				Credits: (&tmdbCredits{GuestStars: e.GuestStars, Crew: e.Crew}).list(RoleGuest), CreditsRead: true}
 			if e.Still != "" {
 				em.Image = tmdbImage + "w500" + e.Still
 			}

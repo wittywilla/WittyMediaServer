@@ -157,6 +157,10 @@ var serverFeatures = []string{
 	// would be refused with a named go-ahead, from a file, and the module audit log; store items
 	// say what kind of module each is, its release status and the pages it adds.
 	"module-overrides", "module-upload", "module-audit", "module-store-kinds",
+	// Cast and crew (docs/METADATA.md "Cast and crew"): a title's credits, a person and their titles
+	// here, people in search and a library filtered by person; the SDUI Credits component, the
+	// credits and filmography sources and the person page (catalogue revision 3).
+	"credits", "people", "sdui-credits",
 }
 
 // minClientVersions names the oldest version of each app this server still works with, by

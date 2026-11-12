@@ -17,6 +17,7 @@ export const ROUTES: RouteRule[] = [
   { route: '/show/{show}', page: 'detail', params: { show: '{show}' } },
   { route: '/album/{library}', page: 'detail', params: { album: '?album', artist: '?artist', library: '{library}' } },
   { route: '/collections/{collection}', page: 'detail', params: { collection: '{collection}' } },
+  { route: '/person/{person}', page: 'detail', params: { person: '{person}' } },
   { route: '/collections', page: 'collections' },
   { route: '/search', page: 'search', params: { q: '?q' } },
   { route: '/tv', page: 'livetv' },

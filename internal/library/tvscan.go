@@ -19,10 +19,12 @@ import (
 type tvScan struct {
 	shows    map[string]*Show
 	episodes map[int64]map[[2]int]EpisodeMeta
+	// What a show's service said of its episodes' people with the show, for shows read this scan.
+	episodeCredits map[int64]map[string][]CreditIn
 }
 
 func newTVScan() *tvScan {
-	return &tvScan{shows: map[string]*Show{}, episodes: map[int64]map[[2]int]EpisodeMeta{}}
+	return &tvScan{shows: map[string]*Show{}, episodes: map[int64]map[[2]int]EpisodeMeta{}, episodeCredits: map[int64]map[string][]CreditIn{}}
 }
 
 // SeriesSource is an online TV metadata service.
@@ -171,6 +173,11 @@ func (s *Scanner) indexEpisode(ctx context.Context, lib *Library, c candidate, t
 	base := strings.TrimSuffix(filepath.Base(c.path), filepath.Ext(c.path))
 	it.Poster = findArt(dir, base+"-thumb", base)
 	fromNFO := applyEpisodeNFO(it, filepath.Join(dir, base+".nfo"))
+	if list, read := it.credits[CreditsNFO]; read {
+		addActorPhotos(list, newActorPhotos(sh.Path))
+	} else {
+		it.credits.set(CreditsNFO, nil) // no NFO (any more): it names nobody
+	}
 	for _, sc := range []string{c.path + ".metadata.json", filepath.Join(dir, base+".metadata.json")} {
 		if applySidecarJSON(it, sc) {
 			fromNFO = true
@@ -252,6 +259,10 @@ func applyEpisodeMeta(it *Item, provider string, eps map[[2]int]EpisodeMeta, kee
 		return
 	}
 	it.Provider, it.ProviderID = provider, e.ID
+	it.credits.matched(provider)
+	if e.CreditsRead {
+		it.credits.set(creditSourceOf(provider), e.Credits)
+	}
 	if !keepText || it.Title == "" {
 		it.Title = e.Title
 		if it.EpisodeEnd != nil {
@@ -273,6 +284,20 @@ func applyEpisodeMeta(it *Item, provider string, eps map[[2]int]EpisodeMeta, kee
 	}
 	if it.RuntimeSec == 0 && e.RuntimeMin > 0 {
 		it.RuntimeSec = float64(e.RuntimeMin) * 60
+	}
+}
+
+// withEpisodeCredits gives each episode what its show's service said of its people with the
+// show (TheTVDB names guest stars there, by episode). by is nil when that wasn't read.
+func withEpisodeCredits(eps map[[2]int]EpisodeMeta, by map[string][]CreditIn) {
+	if by == nil {
+		return
+	}
+	for k, e := range eps {
+		if !e.CreditsRead {
+			e.Credits, e.CreditsRead = by[e.ID], true
+			eps[k] = e
+		}
 	}
 }
 
@@ -316,6 +341,9 @@ func (s *Scanner) tvShow(ctx context.Context, lib *Library, ref EpisodeRef, tv *
 		sh.Backdrop = b
 	}
 	fromNFO := applyShowNFO(sh, filepath.Join(ref.ShowDir, "tvshow.nfo"))
+	if _, read := sh.credits[CreditsNFO]; !read {
+		sh.credits.set(CreditsNFO, nil) // no tvshow.nfo (any more): it names nobody
+	}
 	// A person's decision about the match stands: nothing is looked up against it.
 	t := s.sourceFor(lib)
 	if hasHint && meta.MatchState == MatchAuto && sh.Provider != hint.Source {
@@ -347,6 +375,9 @@ func (s *Scanner) tvShow(ctx context.Context, lib *Library, ref EpisodeRef, tv *
 			for n, p := range found.SeasonPosters {
 				_ = s.Store.SetSeasonPoster(ctx, sh.ID, n, p, false)
 			}
+			if found.EpisodeCredits != nil {
+				tv.episodeCredits[sh.ID] = found.EpisodeCredits
+			}
 		}
 	} else {
 		if before.ID != 0 {
@@ -355,6 +386,10 @@ func (s *Scanner) tvShow(ctx context.Context, lib *Library, ref EpisodeRef, tv *
 		if err := s.saveShow(ctx, sh, &before); err != nil {
 			return nil, err
 		}
+	}
+	// A show whose facts didn't change isn't saved, but what was read of its people is.
+	if err := s.Store.savePending(ctx, TargetShow, sh.ID, &sh.credits); err != nil {
+		return nil, err
 	}
 	s.saveShowOnScan(ctx, sh)
 	tv.shows[ref.ShowDir] = sh
@@ -393,6 +428,7 @@ func (s *Scanner) tvEpisodes(ctx context.Context, sh *Show, tv *tvScan) map[[2]i
 			s.minorFailure(ctx, "metadata lookup failed", err, "source", t.Name(), "show", sh.Title)
 		}
 	}
+	withEpisodeCredits(eps, tv.episodeCredits[sh.ID])
 	tv.episodes[sh.ID] = eps
 	return eps
 }
@@ -401,6 +437,10 @@ func (s *Scanner) tvEpisodes(ctx context.Context, sh *Show, tv *tvScan) map[[2]i
 // remote artwork (a manual refresh); local files are never replaced.
 func applySeriesMeta(sh *Show, provider string, m *SeriesMeta, keepText, force bool) {
 	sh.Provider, sh.ProviderID = provider, m.ID
+	sh.credits.matched(provider)
+	if m.CreditsRead {
+		sh.credits.set(creditSourceOf(provider), m.Credits)
+	}
 	if (!keepText || force) && m.Title != "" {
 		sh.Title, sh.SortTitle = m.Title, SortTitle(m.Title)
 	}
@@ -460,6 +500,7 @@ func (s *Scanner) RefreshShow(ctx context.Context, showID int64, tvdbID string) 
 	before := *sh
 	state := s.Store.TitleMeta(ctx, TargetShow, sh.ID)
 	applySeriesMeta(sh, t.Name(), meta, false, true)
+	sh.credits.set(CreditsNFO, s.nfoCredits(ctx, &Title{Target: TargetShow, ID: sh.ID, Show: sh}))
 	keepLockedShow(sh, &before, state)
 	if err := s.Store.UpsertShow(ctx, sh); err != nil {
 		return nil, err
@@ -471,6 +512,7 @@ func (s *Scanner) RefreshShow(ctx context.Context, showID int64, tvdbID string) 
 	if err != nil {
 		return sh, err
 	}
+	withEpisodeCredits(eps, meta.EpisodeCredits)
 	items, err := s.Store.Episodes(ctx, sh.ID, nil)
 	if err != nil {
 		return sh, err
@@ -481,6 +523,7 @@ func (s *Scanner) RefreshShow(ctx context.Context, showID int64, tvdbID string) 
 		}
 		prev := *it
 		applyEpisodeMeta(it, t.Name(), eps, false)
+		it.credits.set(CreditsNFO, s.nfoCredits(ctx, &Title{Target: TargetItem, ID: it.ID, Item: it}))
 		if it.Year == nil {
 			it.Year = yearOf(it.Aired)
 		}
@@ -511,6 +554,7 @@ type nfoShow struct {
 		Type string `xml:"type,attr"`
 		ID   string `xml:",chardata"`
 	} `xml:"uniqueid"`
+	nfoPeople
 }
 
 func applyShowNFO(sh *Show, path string) bool {
@@ -556,6 +600,7 @@ func applyShowNFO(sh *Show, path string) bool {
 	if id != "" && sh.Provider == "" {
 		sh.Provider, sh.ProviderID = "tvdb", id
 	}
+	sh.credits.set(CreditsNFO, m.people(false, newActorPhotos(filepath.Dir(path))))
 	return m.Title != ""
 }
 
@@ -568,6 +613,7 @@ type nfoEpisode struct {
 	Episode *int     `xml:"episode"`
 	Rating  float64  `xml:"rating"`
 	Thumb   []string `xml:"thumb"`
+	nfoPeople
 }
 
 func applyEpisodeNFO(it *Item, path string) bool {
@@ -598,5 +644,7 @@ func applyEpisodeNFO(it *Item, path string) bool {
 			it.Poster = u
 		}
 	}
+	// Pictures in .actors are the show's, so the scan adds them, knowing where the show is.
+	it.credits.set(CreditsNFO, m.people(true, nil))
 	return m.Title != "" || m.Plot != ""
 }

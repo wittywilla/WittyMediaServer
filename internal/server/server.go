@@ -558,6 +558,7 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("POST /api/collections/preview", a(s.handlePreviewRule))
 	m.Handle("GET /api/collections/holding", a(s.handleCollectionsHolding))
 	m.Handle("POST /api/collections/watch-later/items", a(s.handleWatchLaterAdd))
+	m.Handle("DELETE /api/collections/watch-later/items", a(s.handleWatchLaterRemove))
 	m.Handle("GET /api/collections/{id}", a(s.handleCollection))
 	m.Handle("PUT /api/collections/{id}", a(s.handleUpdateCollection))
 	m.Handle("DELETE /api/collections/{id}", a(s.handleDeleteCollection))
@@ -617,6 +618,7 @@ func (s *Server) Handler() http.Handler {
 	s.sduiRoutes(m)
 	s.themeRoutes(m)
 	s.mediaExtrasRoutes(m)
+	s.peopleRoutes(m)
 	s.karaokeRoutes(m)
 	s.remoteControlRoutes(m)
 	s.syncplayRoutes(m)
@@ -1020,7 +1022,18 @@ func (s *Server) requireUser(h http.HandlerFunc) http.Handler {
 		// the next person to ask for that address. Handlers that say more replace this.
 		w.Header().Set("Cache-Control", "private")
 		ctx := context.WithValue(context.WithValue(r.Context(), userKey, u), tokenKey, tok)
+		// A page this account was given in the last few seconds is reused for the same request
+		// (api_sdui.go, recentRenderFor); a change it makes, such as Watch later or Mark watched,
+		// is something the next page must show. Forgotten before, and again after, so a page put
+		// together while the change was being made isn't kept either.
+		changes := r.Method != http.MethodGet && r.Method != http.MethodHead && r.Method != http.MethodOptions
+		if changes {
+			s.forgetRecent(u.ID)
+		}
 		h(w, r.WithContext(ctx))
+		if changes {
+			s.forgetRecent(u.ID)
+		}
 	})
 }
 

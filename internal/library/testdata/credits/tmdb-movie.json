@@ -1,0 +1,26 @@
+{"id": 7, "title": "Lantern Bay", "release_date": "2011-03-04", "overview": "A lighthouse keeper and a ferryman.",
+ "poster_path": "/lb.jpg", "vote_average": 7.1, "runtime": 101,
+ "genres": [{"id": 18, "name": "Drama"}],
+ "production_companies": [{"id": 1, "name": "Lantern Works"}],
+ "release_dates": {"results": [{"iso_3166_1": "US", "release_dates": [{"certification": "PG-13"}]}]},
+ "credits": {
+  "cast": [
+   {"adult": false, "gender": 1, "id": 101, "known_for_department": "Acting", "name": "Ana Lima", "original_name": "Ana Lima", "popularity": 12.3, "profile_path": "/ana.jpg", "cast_id": 3, "character": "Keeper", "credit_id": "c1", "order": 0},
+   {"adult": false, "gender": 2, "id": 102, "known_for_department": "Acting", "name": "Tomas Reyes", "original_name": "Tomas Reyes", "popularity": 4.2, "profile_path": null, "cast_id": 4, "character": "Ferryman", "credit_id": "c2", "order": 1},
+   {"adult": false, "gender": 1, "id": 103, "known_for_department": "Acting", "name": "Mei Okafor", "original_name": "Mei Okafor", "popularity": 2.0, "profile_path": "/mei.jpg", "cast_id": 5, "character": "Mayor", "credit_id": "c3", "order": 2}
+  ],
+  "crew": [
+   {"adult": false, "gender": 1, "id": 201, "known_for_department": "Directing", "name": "Dee Rector", "profile_path": "/dee.jpg", "credit_id": "d1", "department": "Directing", "job": "Director"},
+   {"adult": false, "gender": 1, "id": 201, "known_for_department": "Directing", "name": "Dee Rector", "profile_path": "/dee.jpg", "credit_id": "d2", "department": "Writing", "job": "Screenplay"},
+   {"adult": false, "gender": 2, "id": 202, "known_for_department": "Writing", "name": "Wren Scribe", "profile_path": null, "credit_id": "d3", "department": "Writing", "job": "Novel"},
+   {"adult": false, "gender": 2, "id": 203, "known_for_department": "Production", "name": "Pat Money", "profile_path": null, "credit_id": "d4", "department": "Production", "job": "Producer"},
+   {"adult": false, "gender": 1, "id": 204, "known_for_department": "Art", "name": "Sol Decor", "profile_path": null, "credit_id": "d5", "department": "Art", "job": "Set Decoration"},
+   {"adult": false, "gender": 1, "id": 205, "known_for_department": "Art", "name": "Ida Plans", "profile_path": null, "credit_id": "d6", "department": "Art", "job": "Production Design"},
+   {"adult": false, "gender": 1, "id": 206, "known_for_department": "Costume & Make-Up", "name": "Ines Seam", "profile_path": null, "credit_id": "d7", "department": "Costume & Make-Up", "job": "Costume Design"},
+   {"adult": false, "gender": 2, "id": 207, "known_for_department": "Costume & Make-Up", "name": "Hal Powder", "profile_path": null, "credit_id": "d8", "department": "Costume & Make-Up", "job": "Makeup Artist"},
+   {"adult": false, "gender": 2, "id": 208, "known_for_department": "Camera", "name": "Bo Lens", "profile_path": null, "credit_id": "d9", "department": "Camera", "job": "Director of Photography"},
+   {"adult": false, "gender": 1, "id": 209, "known_for_department": "Sound", "name": "Pia Score", "profile_path": null, "credit_id": "d10", "department": "Sound", "job": "Original Music Composer"},
+   {"adult": false, "gender": 2, "id": 210, "known_for_department": "Visual Effects", "name": "Vic Pixel", "profile_path": null, "credit_id": "d11", "department": "Visual Effects", "job": "Visual Effects Supervisor"}
+  ]
+ }
+}

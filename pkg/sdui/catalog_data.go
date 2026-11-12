@@ -32,7 +32,7 @@ var (
 	// LibraryKinds are the kinds of library a page or repeat can name.
 	LibraryKinds = []string{"movies", "discs", "shows", "anime", "videos", "shorts", "channels", "musicvideos", "commercials", "music", "audiobooks", "podcasts", "radio", "books", "photos", "games"}
 	// MediaKinds are the kinds of title a detail page can match.
-	MediaKinds = []string{"movie", "show", "episode", "video", "disc", "album", "artist", "track", "book", "audiobook", "podcast", "game", "photo", "collection"}
+	MediaKinds = []string{"movie", "show", "episode", "video", "disc", "album", "artist", "track", "book", "audiobook", "podcast", "game", "photo", "collection", "person"}
 	// SpacingSteps are the abstract distances a layout component may use; a
 	// device profile says how many points each is.
 	SpacingSteps = []string{"none", "xs", "s", "m", "l", "xl"}
@@ -52,7 +52,17 @@ var (
 	// NativeViews are parts of a page an app may draw itself (NativeView).
 	NativeViews = []string{"guide", "photoTimeline", "photoMap", "coverFlow"}
 	// RepeatKinds are what a section can be repeated over.
-	RepeatKinds = []string{"libraries", "pinnedViews", "collections", "bookSeries", "bookAuthors"}
+	RepeatKinds = []string{"libraries", "pinnedViews", "collections", "bookSeries", "bookAuthors", "personParts"}
+	// CreditGroups are the parts of a title's credits, in the order a page lists them: the
+	// cast, the guest stars, then each crew department. The keys are the API's
+	// (GET /items/{id}/credits).
+	CreditGroups     = opts(creditGroupSpecs...)
+	creditGroupSpecs = []string{"cast|Cast", "guests|Guest stars", "directing|Directing", "writing|Writing", "production|Production", "camera|Camera",
+		"lighting|Lighting", "editing|Editing", "sound|Sound", "art|Art", "costume|Costume & Make-Up", "effects|Visual Effects", "crew|Crew"}
+	// PersonParts are what a person did, as their page groups their titles: acting, then the
+	// departments.
+	PersonParts     = opts(personPartSpecs...)
+	personPartSpecs = append([]string{"acting|Acting"}, creditGroupSpecs[2:]...)
 	// Weekdays as a condition names them, Sunday first as time.Weekday counts.
 	Weekdays = []string{"sun", "mon", "tue", "wed", "thu", "fri", "sat"}
 	// Placements are where a navigation entry can sit.
@@ -283,7 +293,7 @@ func buildComponents() []ComponentSpec {
 			A11y:        "Role: tab. Label: the label."},
 
 		{Type: "FilterBar", Label: "Filter and sort", Icon: "filter", Category: "navigation", Since: 2, Authored: true, Data: "none", Focus: "stop",
-			Description: "The controls that filter and sort a Grid on the same page. The server fills in each filter's choices from what the library holds; a change asks for the page again with the choice as a query parameter.",
+			Description: "The controls that filter and sort a Grid on the same page. The server fills in each filter's choices from what the library holds; a change asks for the page again with the choice as a query parameter. With showCount, the server sends count (a number) and countText, the words to show (\"1 title\", \"12 titles\").",
 			Props: []PropSpec{
 				req(pOf(PropSection, "target", "Filters", "The Grid this bar filters. Its source must be filterable.")),
 				pList("fields", "Filters", "Which filters are offered, in order. One with no choices in this library is left out.", []string{"genre", "decade", "watched"},
@@ -333,13 +343,14 @@ func buildComponents() []ComponentSpec {
 			Example: example(`{"id":"keys","component":"KeyLegend","props":{"actions":["select","back","options","search"]}}`)},
 
 		{Type: "DetailHeader", Label: "Title header", Icon: "info", Category: "detail", Since: 2, Authored: true, Data: "none", Focus: "stop",
-			Description: "The top of a title's page: its art, name, facts, score, synopsis and the buttons that play it and act on it. It shows the title the page was opened for.",
+			Description: "The top of a title's page: its art, name, facts, score, synopsis and the buttons that play it and act on it. It shows the title the page was opened for. A button that is a toggle (Watch later) has pressed true or false: draw it as on or off and say so to a screen reader; its label and command already match the state.",
 			Props: []PropSpec{
 				pEnum("layout", "Layout", "Backdrop behind the text, poster beside it, or a compact strip.", "backdrop", "backdrop|Backdrop", "poster|Poster beside", "compact|Compact"),
 				pList("actions", "Buttons", "The buttons offered, in order. One the title or the profile can't use is left out.", []string{"play", "restart", "watchLater", "watched", "download", "share"},
 					"play|Play or Resume", "restart|Play from the start", "watchLater|Watch later", "watched|Mark watched", "download|Download", "share|Share", "playOn|Play on another device", "watchParty|Watch party"),
 				pList("facts", "Facts", "The line of facts under the title, in order.", []string{"year", "runtime", "contentRating", "rating", "genres"},
-					"year|Year", "runtime|Running time", "contentRating|Certificate", "rating|Score", "genres|Genres", "studio|Studio", "count|How many it holds", "season|Season and episode"),
+					"year|Year", "runtime|Running time", "contentRating|Certificate", "rating|Score", "genres|Genres", "studio|Studio", "count|How many it holds", "season|Season and episode",
+					"knownFor|Known for (a person)", "born|Born (a person)", "died|Died (a person)"),
 				pBool("showOverview", "Show the synopsis", "", true),
 				pBool("showTagline", "Show the tagline", "", true),
 			},
@@ -383,6 +394,26 @@ func buildComponents() []ComponentSpec {
 			States:  statesData,
 			A11y:    "Role: list. Each track: \"Track <n>, <title>, <artist>, <minutes> minutes <seconds> seconds\".",
 			Example: example(`{"id":"tracks","component":"TrackList","source":{"type":"tracks","library":"$library","artist":"$artist","album":"$album"}}`)},
+
+		{Type: "Credits", Label: "Cast and crew", Icon: "users", Category: "detail", Since: 5, Authored: true, Data: "required", Accepts: []string{"credits"}, Focus: "group",
+			Description: "Who is in a title and who made it: the cast as a row of portraits with the part each played, then the crew by department (Directing, Writing, Production, Camera, Editing, Sound, Art, Costume & Make-Up, Visual Effects ...), with Show all when there are more. Each person opens their own page.",
+			Props: []PropSpec{
+				pText("title", "Title", "The heading above the cast.", 120),
+				pList("parts", "Shows", "Which parts are shown, in this order.", []string{"cast", "guests", "crew"}, "cast|The cast", "guests|Guest stars", "crew|The crew"),
+				pInt("castLimit", "Cast at first", "How many of the cast (and of the guest stars) are sent before Show all. 0 sends the device's row of cards.", 20, 0, 100),
+				pInt("crewLimit", "Crew at first", "How many people of each department are sent before Show all.", 6, 0, 50),
+				pList("departments", "Departments", "Which crew departments are listed, in order.", values(CreditGroups[2:]), creditGroupSpecs[2:]...),
+				propCardSize,
+			},
+			Renders: map[string]string{
+				"tv":      "The title at the heading size, then the cast as one row of round portraits 40 points apart that scrolls sideways under focus, name under each and the part played under that; then the guest stars the same way; then each department as a heading and a row of focusable name-and-job chips. Show all is a final card of the cast row and asks props.more.url.",
+				"phone":   "The title with a Show all chevron, the cast as a row of round portraits that bleeds off both edges, then each department as a caption-sized heading and a wrapping list of \"<name>, <job>\" lines, each one a link.",
+				"tablet":  "As a phone with 16-point gaps.",
+				"desktop": "The title and a Show all button at its end; the cast row with arrow buttons on hover; the crew in columns of departments (as many as fit, at least 220 points each), each a heading and its people, name in body and job in caption.",
+			},
+			States:  statesData,
+			A11y:    "Role: region labelled by the title. The cast row is a list labelled \"Cast\"; each card's label is \"<name>, <part>\". Each department is a list labelled by its name; each person's label is \"<name>, <job>\". A person without a photo shows their initials on token bg3, hidden from assistive technology.",
+			Example: example(`{"id":"credits","component":"Credits","source":{"type":"credits","item":"$item"}}`)},
 
 		{Type: "Track", Label: "Track", Icon: "music", Category: "detail", Since: 2, Data: "none", Focus: "item",
 			Description: "One row of a TrackList. Made by the server.",
@@ -548,7 +579,7 @@ func buildCardStyles() []CardStyleSpec {
 		{Style: "circle", Label: "Circle", Shape: "circle", Aspect: "1/1", Image: []string{"square", "poster"}, Shows: []string{"title"}, TitleLines: 2, SubtitleLines: 0,
 			Description: "A round picture with a centred name."},
 		{Style: "person", Label: "Person", Shape: "circle", Aspect: "1/1", Image: []string{"square", "poster"}, Shows: []string{"title", "subtitle"}, TitleLines: 1, SubtitleLines: 1,
-			Description: "A round portrait with a name and a line under it: an artist, an author.", Kinds: []string{"artist"}},
+			Description: "A round portrait with a name and a line under it: an artist, an author, someone in a title's cast or crew (the line is the part they played or their job).", Kinds: []string{"artist", "person"}},
 		{Style: "book", Label: "Book cover", Shape: "poster", Aspect: "2/3", Image: []string{"poster"}, Shows: []string{"title", "subtitle", "progress"}, TitleLines: 2, SubtitleLines: 1,
 			Description: "A book or comic cover with the title and author, and how far it has been read.", Kinds: []string{"book"}},
 		{Style: "game", Label: "Game box", Shape: "poster", Aspect: "3/4", Image: []string{"poster"}, Shows: []string{"title", "subtitle", "badges"}, TitleLines: 1, SubtitleLines: 1,
@@ -689,6 +720,17 @@ func buildSources() []SourceSpec {
 			Description: "Games the profile has played, most recent first.",
 			Params:      []PropSpec{paramLibrary, paramLimit}, Yields: []string{"game"}, Example: example(`{"type":"continuePlaying"}`)},
 
+		{Type: "credits", Label: "Cast and crew", Icon: "users", Category: "context", Since: 5, CardStyle: "person", PageKinds: []string{"detail"}, Title: "Cast and crew",
+			Description: "A title's people: the cast in billing order, the guest stars (an episode's, or a season's with the most episodes first), then the crew by department, from the best source that names each part. Each card's subtitle is the part played or the job; its group is the part (cast, guests or a department).",
+			Params: []PropSpec{pOf(PropRef, "item", "Title", "$item on a film's or an episode's page."), pOf(PropRef, "show", "Show", "$show on a show's page (when there is no item)."),
+				pOf(PropRef, "season", "Season", "$season: a season's guest stars on a show's page opened with ?season=."),
+				pEnum("part", "Part", "", "all", append([]string{"all|Everyone"}, creditGroupSpecs...)...), paramLimit},
+			Yields: []string{"person"}, Example: example(`{"type":"credits","item":"$item"}`)},
+		{Type: "filmography", Label: "A person's titles", Icon: "user", Category: "context", Since: 5, CardStyle: "poster", PageKinds: []string{"detail"}, Paged: true, Title: "{each}",
+			Description: "The films and shows in this library a person is in or worked on, newest first, that the profile may see; one part of them (their acting, or one department's work), or all. Each card's subtitle is the year and the part or job; a show's says how many episodes.",
+			Params: []PropSpec{req(pOf(PropRef, "person", "Person", "$person on a person's page.")),
+				pStr("part", "Part", "all (the default), acting, or a department: directing, writing, production, camera, lighting, editing, sound, art, costume, effects, crew; $each in a row repeated over personParts.", 40), paramLimit},
+			Yields: []string{"movie", "show"}, Example: example(`{"type":"filmography","person":"$person","part":"$each"}`)},
 		{Type: "episodes", Label: "Episodes", Icon: "show", Category: "context", Since: 2, CardStyle: "episode", PageKinds: []string{"detail"}, Paged: true, Title: "Episodes",
 			Description: "One season of a show. Left to itself it picks the season of the next episode to watch.",
 			Params:      []PropSpec{req(pOf(PropRef, "show", "Show", "$show on a show's or an episode's page.")), pOf(PropRef, "season", "Season", "A season number, or $season; empty picks one."), paramLimit},
@@ -702,10 +744,10 @@ func buildSources() []SourceSpec {
 			Params:      []PropSpec{req(pOf(PropRef, "item", "Title", "$item on a film's page, $show on a show's.")), paramLimit}, Yields: []string{"movie", "show"},
 			Example: example(`{"type":"similar","item":"$item","limit":12}`)},
 		{Type: "search", Label: "Search results", Icon: "search", Category: "context", Since: 2, CardStyle: "poster", PageKinds: []string{"search"}, Title: "{each}",
-			Description: "What a search finds in one library, or among the channels. Nothing under two characters.",
+			Description: "What a search finds in one library, among the channels, or among the people credited on titles the profile may see. Nothing under two characters.",
 			Params: []PropSpec{req(pOf(PropRef, "query", "Search", "$query on the search page.")), paramLibrary,
-				pEnum("in", "Look in", "", "library", "library|A library", "channels|TV channels"), paramLimit},
-			Yields: []string{"movie", "show", "album", "book", "game", "channel"}, Example: example(`{"type":"search","query":"$query","library":"$each"}`)},
+				pEnum("in", "Look in", "", "library", "library|A library", "channels|TV channels", "people|People in the cast and crew"), paramLimit},
+			Yields: []string{"movie", "show", "album", "book", "game", "channel", "person"}, Example: example(`{"type":"search","query":"$query","library":"$each"}`)},
 	}
 }
 
@@ -743,9 +785,9 @@ func buildPageKinds() []PageKindSpec {
 			Params: []string{"library", "tab", "sort", "desc", "genre", "decade", "year", "content", "resolution", "watched", "studio", "network", "tag", "service",
 				"series", "kind", "disc", "minRating", "audio", "subtitle", "format", "edition", "search", "seed"},
 			Variables: []string{"$library"}, Match: []string{"library", "libraryKind"}},
-		{Kind: "detail", Label: "A title", Route: "/item/{item}", Description: "The page of one film, show, episode, album, artist, book, game or collection.",
-			Params:    []string{"item", "show", "season", "collection", "library", "artist", "album", "tab"},
-			Variables: []string{"$item", "$show", "$season", "$collection", "$library", "$artist", "$album"}, Match: []string{"mediaKind", "library", "libraryKind"}},
+		{Kind: "detail", Label: "A title", Route: "/item/{item}", Description: "The page of one film, show, episode, album, artist, book, game or collection, or of a person in the cast or crew.",
+			Params:    []string{"item", "show", "season", "collection", "library", "artist", "album", "person", "tab"},
+			Variables: []string{"$item", "$show", "$season", "$collection", "$library", "$artist", "$album", "$person"}, Match: []string{"mediaKind", "library", "libraryKind"}},
 		{Kind: "search", Label: "Search", Route: "/search", Description: "Search across everything.", Params: []string{"q", "tab"}, Variables: []string{"$query"}},
 		{Kind: "livetv", Label: "Live TV", Route: "/tv", Description: "Channels and the guide.", Params: []string{"tab"}},
 		{Kind: "music", Label: "Music", Route: "/music", Description: "Every music library together.", Params: []string{"tab"}},
@@ -767,6 +809,7 @@ func buildRoutes() []RouteSpec {
 		{Pattern: "/album/{library}", Page: "detail", Params: map[string]string{"library": "{library}", "artist": "?artist", "album": "?album"}},
 		{Pattern: "/artist/{library}", Page: "detail", Params: map[string]string{"library": "{library}", "artist": "?name"}},
 		{Pattern: "/collections/{collection}", Page: "detail", Params: map[string]string{"collection": "{collection}"}},
+		{Pattern: "/person/{person}", Page: "detail", Params: map[string]string{"person": "{person}"}},
 		{Pattern: "/collections", Page: "collections"},
 		{Pattern: "/search", Page: "search", Params: map[string]string{"q": "?q"}},
 		{Pattern: "/tv", Page: "livetv"},
@@ -796,6 +839,7 @@ func buildCatalogue() *Catalogue {
 		PageKinds: buildPageKinds(), Routes: buildRoutes(),
 		Commands: []CommandSpec{
 			{Op: "watchLater.add", Label: "Watch later", Description: "Adds the title to the profile's Watch later list.", Method: "POST", Path: "/api/v1/collections/watch-later/items", Body: `{"items":["{item}"]}`},
+			{Op: "watchLater.remove", Label: "Remove from Watch later", Description: "Takes the title off the profile's Watch later list.", Method: "DELETE", Path: "/api/v1/collections/watch-later/items", Body: `{"items":["{item}"]}`},
 			{Op: "watched.set", Label: "Mark watched", Description: "Marks the title watched; for a show, every episode.", Method: "POST", Path: "/api/v1/items/{item}/progress", Body: `{"watched":true}`},
 			{Op: "watched.clear", Label: "Mark unwatched", Description: "Forgets the profile's progress in the title; for a show, in every episode.", Method: "DELETE", Path: "/api/v1/items/{item}/progress"},
 			{Op: "selectTab", Label: "Choose a tab", Description: "Asks for the page again with tab=<params.tab>, or shows the tab's content when the client already has it.", Method: "GET", Path: ""},
@@ -809,7 +853,8 @@ func buildCatalogue() *Catalogue {
 			"{title}|The page's title, or a source's first item", "{query}|What was searched for", "{each}|What a repeated section is repeated over", "{count}|How many items a source gave",
 			"{genre}|The source's genre", "{studio}|The source's studio", "{tag}|The source's tag"),
 		Repeats: opts("libraries|Each library", "pinnedViews|Each saved view pinned to Home", "collections|Each collection",
-			"bookSeries|Each series of the page's books library", "bookAuthors|Each author of the page's books library"),
+			"bookSeries|Each series of the page's books library", "bookAuthors|Each author of the page's books library",
+			"personParts|Each part of a person's work (acting, each department) on their page"),
 		FormFactors: FormFactors, Platforms: Platforms, ProfileKinds: ProfileKinds, LibraryKinds: LibraryKinds, MediaKinds: MediaKinds,
 		PersonalKinds: opts("reorder|Move sections", "hide|Hide sections", "pin|Pin sections to the top", "density|Choose a density", "cardSize|Choose card sizes", "defaultTab|Choose the opening tab"),
 		Placements:    opts("primary|In the bar", "more|Under More", "end|At the far end", "hidden|Not shown"),

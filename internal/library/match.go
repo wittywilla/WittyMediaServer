@@ -65,6 +65,11 @@ type MatchDetails struct {
 	SeasonPosters                      map[int]string
 	AirDays                            []string
 	AirTime                            string
+
+	// People: see SeriesMeta. A source that gives none leaves CreditsRead false.
+	Credits        []CreditIn
+	CreditsRead    bool
+	EpisodeCredits map[string][]CreditIn
 }
 
 // MatchSource is a service titles can be searched for on.
@@ -939,6 +944,14 @@ func applyDetails(t *Title, d *MatchDetails, only map[string]bool) error {
 		delete(t.Meta.Baseline, c.Field)
 	}
 	t.setProvider(d.Source, d.ID)
+	// The people go with the match: what another service said of this title was said of
+	// another match, and what this one says replaces what it said before.
+	if credits := t.pendingCredits(); credits != nil {
+		credits.matched(d.Source)
+		if d.CreditsRead {
+			credits.set(creditSourceOf(d.Source), d.Credits)
+		}
+	}
 	if t.Item != nil && t.Item.RuntimeSec == 0 && d.RuntimeMin > 0 && d.RuntimeMin < 10000 {
 		t.Item.RuntimeSec = float64(d.RuntimeMin) * 60
 	}
@@ -1061,7 +1074,7 @@ func (s *Scanner) ApplyMatch(ctx context.Context, t *Title, source, id string, o
 		for n, p := range d.SeasonPosters {
 			_ = s.Store.SetSeasonPoster(ctx, t.ID, n, p, false)
 		}
-		if err := s.applyEpisodes(ctx, t.Show, source, d.ID, batch, user); err != nil {
+		if err := s.applyEpisodes(ctx, t.Show, source, d.ID, d.EpisodeCredits, batch, user); err != nil {
 			s.Log.WarnContext(ctx, "could not read a show's episodes", "show", t.Show.Title, "err", err)
 		}
 	}
@@ -1076,7 +1089,7 @@ func (s *Scanner) ApplyMatch(ctx context.Context, t *Title, source, id string, o
 
 // applyEpisodes fills a show's episodes from a source. Fields locked on an episode
 // stay, and an episode's own numbers are never changed by this.
-func (s *Scanner) applyEpisodes(ctx context.Context, sh *Show, source, id, batch, user string) error {
+func (s *Scanner) applyEpisodes(ctx context.Context, sh *Show, source, id string, people map[string][]CreditIn, batch, user string) error {
 	src, ok := s.matchSourceNamed(source).(SeriesLister)
 	if !ok {
 		return nil
@@ -1085,6 +1098,7 @@ func (s *Scanner) applyEpisodes(ctx context.Context, sh *Show, source, id, batch
 	if err != nil {
 		return err
 	}
+	withEpisodeCredits(eps, people)
 	items, err := s.Store.Episodes(ctx, sh.ID, nil)
 	if err != nil {
 		return err
@@ -1104,6 +1118,7 @@ func (s *Scanner) applyEpisodes(ctx context.Context, sh *Show, source, id, batch
 		}
 		prev := *t.Item
 		applyEpisodeMeta(t.Item, source, eps, false)
+		t.Item.credits.set(CreditsNFO, s.nfoCredits(ctx, t))
 		if t.Item.Year == nil {
 			t.Item.Year = yearOf(t.Item.Aired)
 		}
@@ -1168,6 +1183,9 @@ func (s *Scanner) RemoveMatch(ctx context.Context, t *Title, user string) (strin
 		}
 	}
 	t.setProvider("", "")
+	if c := t.pendingCredits(); c != nil {
+		c.matched("") // what the services said goes with the match
+	}
 	t.Meta.MatchState = MatchNone
 	t.Meta.Suggestions, t.Meta.SuggestedAt = nil, 0
 	if t.Item != nil && t.Item.Poster == "" {
@@ -1239,8 +1257,10 @@ func (s *Scanner) RefreshTitle(ctx context.Context, t *Title, only map[string]bo
 	if err := applyDetails(t, d, only); err != nil {
 		return "", err
 	}
+	// A refresh reads everything that names the title's people again, not only the service.
+	s.rereadLocalCredits(ctx, t)
 	if t.Show != nil {
-		if err := s.applyEpisodes(ctx, t.Show, source, d.ID, batch, user); err != nil {
+		if err := s.applyEpisodes(ctx, t.Show, source, d.ID, d.EpisodeCredits, batch, user); err != nil {
 			s.Log.WarnContext(ctx, "could not read a show's episodes", "show", t.Show.Title, "err", err)
 		}
 	}

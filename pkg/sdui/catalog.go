@@ -248,6 +248,11 @@ type Catalogue struct {
 	Profiles map[string]*Layout `json:"profiles"`
 	// Theme is the vocabulary of the components' tokens (tokens.go).
 	Theme *ThemeRoles `json:"theme,omitempty"`
+	// Layouts are the layout options: the menu's style on each form factor and what each
+	// changes about pages.
+	Layouts []LayoutSpec `json:"layouts"`
+	// NavStyles are the ways an app draws its menu.
+	NavStyles []string `json:"navStyles"`
 }
 
 var catalogueOnce = sync.OnceValue(func() *Catalogue { return withTokens(buildCatalogue()) })

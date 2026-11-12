@@ -286,6 +286,38 @@ func CatalogueMarkdown() string {
 	}
 	w("\n")
 
+	w("### Layout options\n\nThe menu's style on each form factor, and what the server changes about every page for the layout. Menu styles: `%s`.\n\n", strings.Join(c.NavStyles, "`, `"))
+	w("| Layout | What it is | TV | Phone | Tablet | Desktop | Web | Pages |\n|---|---|---|---|---|---|---|---|\n")
+	for _, l := range c.Layouts {
+		var pages []string
+		if l.Pages.GridsAsRows {
+			pages = append(pages, "grids as rows")
+		}
+		if l.Pages.RowsAsLists {
+			pages = append(pages, "rows and grids as lists")
+		}
+		if l.Pages.Hero != "" {
+			pages = append(pages, "spotlight: "+l.Pages.Hero)
+		}
+		if l.Pages.CardSize != "" {
+			pages = append(pages, "cards "+l.Pages.CardSize)
+		}
+		if l.Pages.LandscapeCards {
+			pages = append(pages, "wide cards for films and shows")
+		}
+		if l.Pages.Density != "" {
+			pages = append(pages, l.Pages.Density)
+		}
+		if l.Overlay {
+			pages = append(pages, "menu over the page")
+		}
+		if len(pages) == 0 {
+			pages = []string{"as written"}
+		}
+		w("| `%s` | **%s.** %s | %s | %s | %s | %s | %s | %s |\n", l.ID, l.Label, cell(l.Description), l.Nav[FormTV], l.Nav[FormPhone], l.Nav[FormTablet], l.Nav[FormDesktop], l.Nav[FormWeb], strings.Join(pages, ", "))
+	}
+	w("\n")
+
 	w("### Icons\n\n%s\n\n", "`"+strings.Join(c.Icons, "`, `")+"`")
 
 	w("### Placeholders\n\n| Placeholder | Becomes |\n|---|---|\n")

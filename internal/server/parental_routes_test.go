@@ -197,8 +197,10 @@ var plainRoutes = []string{
 	"GET /api/remote-control",
 	"GET /api/remote-control/devices/{id}/channel",
 	"GET /api/sdui/topshelf",
+	// A profile's own layout: like its page arrangements, kept from it by editLayout in the handler.
+	"GET /api/sdui/layout", "PUT /api/sdui/layout", "DELETE /api/sdui/layout",
 	// A module's pictures and settings: a module the profile is kept from is 404 in the handler.
-	"GET /api/sdui/modules/{module}/images/{name}", "GET /api/sdui/modules/{module}/settings", "PUT /api/sdui/modules/{module}/settings/personal",
+	"GET /api/sdui/modules/{module}/images/{name}", "GET /api/sdui/modules/settings", "GET /api/sdui/modules/{module}/settings", "PUT /api/sdui/modules/{module}/settings/personal",
 	"GET /api/syncplay",
 	"POST /api/media/{id}/stems/approximate",
 	"POST /api/media/{id}/karaoke/prepare",
@@ -254,6 +256,7 @@ var plainRoutes = []string{
 	"GET /api/items/{id}/book",
 	"GET /api/items/{id}/canvas",
 	"GET /api/items/{id}/disc",
+	"GET /api/items/{id}/disc/analysis",
 	"GET /api/items/{id}/disc/thumb/{ttn}/{n}",
 	"GET /api/items/{id}/epub/{file...}",
 	"GET /api/items/{id}/image",

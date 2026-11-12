@@ -1478,6 +1478,10 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /dvd/{sid}/sub/{name}` | user, `st` | One sub-picture as a PNG. |
 | `GET /items/{id}/disc` | user | The disc page: the feature, extras and menus to jump into. |
 | `PUT /items/{id}/disc/labels` | admin | Name a disc's titles and chapters. |
+| `GET /items/{id}/disc/analysis` | user | Which title (DVD) or playlist (Blu-ray) is the film and why: `main` (what Play plays), `engineMain`, `chosen`, `rank` (confidence 0–1, `level`, `why`, `reasons`, `candidates`, `versions`, `episodes`, `feature`, `repairs`, `issues`, `paddedSectors`, `secondOpinion`), `canChoose`, `protected`. `pending: true` on a low-power server while it is worked out: ask again. `ranked: false` with a module from before rankings. |
+| `POST /items/{id}/disc/analysis` | admin | Work the ranking out again. `{"secondOpinion": true}` also asks a libbluray on this machine (Blu-ray only, when the setting `blurayLibbluray` is on and one is installed; never for an encrypted disc). |
+| `PUT /items/{id}/disc/choice` | admin | `{"ttn": n}`: remember this title or playlist as the disc's film, for everyone. It beats the engine's pick for Play, the disc page, the item's length and languages, and survives rescans while the disc has that title. |
+| `DELETE /items/{id}/disc/choice` | admin | Forget the choice: the engine's pick is the film again. |
 | `GET /items/{id}/disc/thumb/{ttn}/{n}` | user, `st` | A picture of a title (n = 0) or chapter; the first request makes it. |
 
 ### Audio CDs
@@ -1637,6 +1641,10 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `PUT /sdui/pages/{page}/personal` | user | Replace this profile's arrangement of a page. Only its own. 403 when the profile may not rearrange pages (the editLayout switch) or the server has it off; 400 lists what is wrong. |
 | `DELETE /sdui/pages/{page}/personal` | user | Back to the page as everyone has it. |
 | `GET /sdui/topshelf` | user | Content for a tvOS Top Shelf extension: what this account was watching and what is new, within its limits, at most 4 sections of 10 pictures, each sized for the device. 304 with If-None-Match when unchanged. |
+| `GET /sdui/layout` | user | The layout option in force on this device (`device=` names the app's own device, else the form factor): `{layout, shell, choice: {current, chosen, options, url}, editable}`. |
+| `PUT /sdui/layout` | user | This profile's layout on this device: `{layout}`. 403 when the profile may not rearrange or the server doesn't offer that layout. |
+| `DELETE /sdui/layout` | user | This device follows the server's layout again. |
+| `GET /sdui/modules/settings` | user | The modules with settings this profile sees: `{modules: [{module, label, icon, url}]}`, for the list under Settings → Modules. |
 | `GET /sdui/modules/{module}/images/{name}` | user | A picture a module's cards show (module sources put these addresses in `images`). PNG, JPEG, WebP or GIF. |
 | `GET /sdui/modules/{module}/settings` | user | A module's settings, described and with their values, for the app's own Settings to draw under Settings → Modules ([SDUI-MODULES.md](SDUI-MODULES.md#settings)). |
 | `PUT /sdui/modules/{module}/settings/personal` | user | This profile's own values of a module's settings: `{values}`. |
@@ -1654,6 +1662,8 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `DELETE /sdui/config/navigation` | admin | Back to the built-in navigation. ?target=draft writes to the draft; otherwise If-Match is required (428 without, 412 when stale). |
 | `POST /sdui/validate` | admin | Check {"page": ...}, {"navigation": ...} or {"config": ...} without saving: {ok, issues: [{path, severity, message, fix}]}. |
 | `GET /sdui/presets` | admin | The gallery of ready-made pages and sections: {presets: [{id, label, description, icon, kind, pageKinds, page or section}]}. |
+| `GET /sdui/config/layouts` | admin | The server's layouts: `{etag, layouts: {default, allowed}, options, builtin}`. |
+| `PUT /sdui/config/layouts` | admin | Saves `{default: {formFactor: layout}, allowed: [layout]}`; If-Match, or `target=draft`. |
 | `GET /sdui/modules` | admin | Every module in use with its SDUI file: `{modules: [ModuleUI]}`. |
 | `PUT /sdui/modules/{module}/settings` | admin | The server's values of a module's settings: `{values}`; null resets one. |
 | `POST /sdui/presets/{id}/apply` | admin | Put a page preset in the configuration under the preset's own page ID. ?target=draft writes to the draft; otherwise If-Match is required (428 without, 412 when stale). |
@@ -2157,6 +2167,7 @@ See [LIBRARY-TRANSCODING.md](LIBRARY-TRANSCODING.md).
 | `GET /dvd/{sid}/bdj` | user | BDJ poll. |
 | `GET /dvd/{sid}/bdj/frame/{n}` | user | BDJ frame. |
 | `GET /bdj/status` | admin | BDJ status. |
+| `GET /bluray/capabilities` | admin | What optional help WittyBluray has here: `libbluray` (`enabled`, `available`, `version`, `reason`) and `libblurayPath`. |
 
 
 ## Backup

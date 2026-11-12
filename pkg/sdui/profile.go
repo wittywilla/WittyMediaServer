@@ -107,6 +107,9 @@ type Layout struct {
 	ReducedMotion bool `json:"reducedMotion,omitempty"`
 	// Truncated is set when sections were left out to fit MaxSections.
 	Truncated bool `json:"truncated,omitempty"`
+	// Shell is the layout option the page was made for and how the app's frame is
+	// drawn with it: see Layouts.
+	Shell *Shell `json:"shell,omitempty"`
 }
 
 // imageWidths are the buckets every device chooses pictures from, so the

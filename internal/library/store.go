@@ -142,6 +142,11 @@ type DiscInfo struct {
 	ContentManual bool   `json:"contentManual,omitempty"`
 	// CD: an audio CD image's own facts (kind cd-image), left out of lists.
 	CD *CDInfo `json:"cd,omitempty"`
+	// Rank is what the disc's engine made of it: which title is the film, why, and what
+	// else there is to choose. nil for a disc scanned with an engine from before rankings.
+	Rank *DiscRank `json:"rank,omitempty"`
+	// Chosen is the title someone chose as the film instead. MainTitle is then that title.
+	Chosen *DiscChoice `json:"chosen,omitempty"`
 }
 
 // IsDiscKind: a DVD or Blu-ray image or folder.

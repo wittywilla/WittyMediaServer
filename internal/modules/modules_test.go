@@ -427,7 +427,7 @@ func TestOlderCompatibleReleaseIsOfferedUnderATooNewOne(t *testing.T) {
 	w := newWorld(t)
 	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.4.x", wittymodule.API))
 	w.publish("0.3.0", manifestJSON("0.3.0", "0.5.0", "0.5.x", wittymodule.API))
-	w.publish("0.3.1", manifestJSON("0.3.1", "0.4.0", "0.5.x", wittymodule.API+1)) // a newer module API
+	w.publish("0.3.1", manifestJSON("0.3.1", "0.4.0", "0.5.x", API+1)) // a newer module API than this server takes
 	m := w.manager()
 	defer m.Close()
 	s := check(t, m)

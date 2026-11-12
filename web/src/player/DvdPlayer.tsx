@@ -24,6 +24,8 @@ haveHls(Hls)
 type Props = {
   item: Item; mode: 'menu' | 'title'; ttn?: number; chapter?: number; startAt: number | null; insert?: boolean
   menu?: string; menuVts?: number // open this disc menu directly (from the disc page)
+  episode?: number // a TV disc's episode, by its place in viewing order (the disc's analysis)
+  angle?: number // a camera angle chosen on the disc page, over the remembered one
 }
 
 type Rect = { left: number; top: number; width: number; height: number }
@@ -33,7 +35,7 @@ type PickKind = 'audio' | 'subtitle' | 'angle'
 // shown for discs.
 const legacyRemote = () => { try { return localStorage.getItem('wms.remote.dvd') === '1' } catch { return false } }
 
-export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, menu: openMenu, menuVts }: Props) {
+export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, menu: openMenu, menuVts, episode, angle }: Props) {
   const chrome = usePlayerChrome()
   const mini = chrome.mini
   const view = useViewPrefs(item.id, legacyRemote())
@@ -99,14 +101,15 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
     let cancelled = false
     const mem = discMemory(item.id)
     api.post<{ sessionId: string; presentation: Presentation }>(`/items/${item.id}/dvd`, {
-      mode, ttn, chapter, wide: true, menu: mode === 'menu' ? openMenu : undefined, menuVts,
-      audioLanguage: mem.audioLanguage, subtitleLanguage: mem.subtitlesOff ? undefined : mem.subtitleLanguage, angle: mem.angle,
+      // A title named is meant as it stands: a Blu-ray's playlist 0 is a playlist, not "the film".
+      mode, ttn, exact: ttn !== undefined, chapter, episode, wide: true, menu: mode === 'menu' ? openMenu : undefined, menuVts,
+      audioLanguage: mem.audioLanguage, subtitleLanguage: mem.subtitlesOff ? undefined : mem.subtitleLanguage, angle: angle ?? mem.angle,
     })
       .then((r) => { if (cancelled) return; sidRef.current = r.sessionId; setSid(r.sessionId); apply(r.presentation) })
       .catch((e) => setErr(e.message))
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [item.id, mode, ttn, chapter, openMenu, menuVts])
+  }, [item.id, mode, ttn, chapter, openMenu, menuVts, episode, angle])
 
   useEffect(() => () => { if (sid) api.del(`/dvd/${sid}`).catch(() => {}) }, [sid])
   useEffect(() => { setLogSession(sid); return () => setLogSession(null) }, [sid])
@@ -753,7 +756,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
         <div className="overlay-msg"><div className="box">
           <div style={{ marginBottom: 10 }}>{pres.reason || 'Playback stopped.'}</div>
           <button className="btn" onClick={(e) => { e.stopPropagation(); titleMenu() }}>Title menu</button>{' '}
-          <button className="btn" onClick={(e) => { e.stopPropagation(); act({ type: 'title', ttn: item.disc?.mainTitle || 1 }) }}>Play movie</button>{' '}
+          <button className="btn" onClick={(e) => { e.stopPropagation(); act({ type: 'title', ttn: filmTitle(item) }) }}>Play movie</button>{' '}
           <button className="btn ghost" onClick={() => chrome.close()}>Back</button>
         </div></div>
       )}
@@ -804,7 +807,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
                 <span className="muted hide-narrow" style={{ fontSize: 13 }}>{inMenu ? 'Arrows / mouse to choose · Enter to select' : menu?.buttonsFromSec ? 'Waiting for the menu…' : ''}</span>
                 <div className="spacer" />
                 <button className="btn sm" onClick={() => act({ type: 'resume' })}>Resume</button>
-                <button className="btn sm primary" onClick={() => act({ type: 'title', ttn: item.disc?.mainTitle || 1 })}><IconPlay /> Play movie</button>
+                <button className="btn sm primary" onClick={() => act({ type: 'title', ttn: filmTitle(item) })}><IconPlay /> Play movie</button>
                 {!bdjOn && pres?.media?.type === 'hls' && !pres.media.loop && pres.media.stillSec !== 0 && <button className="btn sm ghost" onClick={() => act({ type: 'ended' })}>Skip</button>}
                 {!bdjOn && pres?.media?.type === 'hls' && (pres.media.loop || pres.media.stillSec === 0) && buttons.length === 0 && <button className="btn sm ghost" onClick={() => act({ type: 'ended' })}>Skip</button>}
                 {/* A picture held until the viewer acts, with nothing to press: a player's Play key goes on. */}
@@ -970,4 +973,10 @@ function StereoLayer({ video, rect, mode, out }: { video: React.RefObject<HTMLVi
       <canvas ref={canvas} className="stereo" style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }} aria-hidden="true" />
     </>
   )
+}
+
+// filmTitle is the title Play movie plays: the disc's film, which on a Blu-ray may be playlist 0.
+function filmTitle(item: Item): number {
+  const m = item.disc?.mainTitle
+  return m != null && m >= 0 ? m : 1
 }

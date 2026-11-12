@@ -5,8 +5,11 @@ package modules
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/wittywilla/wittymediaserver/pkg/sdui"
 	"github.com/wittywilla/wittymodule"
@@ -110,5 +113,43 @@ func TestAnAPI3ModuleNeedsNoSDUI(t *testing.T) {
 	}
 	if uis, _ := m.UIs(); len(uis) != 0 {
 		t.Fatalf("UIs %v", uis)
+	}
+}
+
+func TestOnlyAHelperMayDeclareSources(t *testing.T) {
+	dir := t.TempDir()
+	ui := strings.ReplaceAll(photosUI, "wittyphotos", "wittycomics")
+	if err := os.WriteFile(filepath.Join(dir, sdui.ModuleFile), []byte(ui), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	web := &wittymodule.Manifest{ID: "wittycomics", Delivery: wittymodule.DeliveryWeb, API: SDUIAPI}
+	if _, err := readUI(dir, web, sdui.ModuleChecks{}); err == nil || !strings.Contains(err.Error(), "only a helper") {
+		t.Fatalf("a web bundle with sources: %v", err)
+	}
+	helper := &wittymodule.Manifest{ID: "wittycomics", Delivery: wittymodule.DeliveryHelper, API: SDUIAPI}
+	if _, err := readUI(dir, helper, sdui.ModuleChecks{}); err != nil {
+		t.Fatalf("a helper with sources: %v", err)
+	}
+}
+
+// A helper that answers one call and leaves isn't failing: the next call starts a new one
+// and nothing is counted against the version.
+func TestAHelperThatLeavesAfterACallIsStartedAgain(t *testing.T) {
+	w := newWorld(t)
+	w.publishWith("0.4.0", manifestJSON("0.4.0", "0.4.0", "0.5.x", SDUIAPI, "one-call"), map[string][]byte{sdui.ModuleFile: []byte(photosUI)})
+	m := w.manager()
+	defer m.Close()
+	check(t, m)
+	if s := installWait(t, m); s.Version != "0.4.0" {
+		t.Fatalf("%+v", s)
+	}
+	for i := range 4 {
+		if _, err := m.UIImage("wittyphotos", "g.png"); err != nil {
+			t.Fatalf("call %d: %v", i, err)
+		}
+		time.Sleep(300 * time.Millisecond) // it has left by now
+	}
+	if s := one(t, m); s.LastFail != "" || s.Version != "0.4.0" {
+		t.Fatalf("counted as failing: %+v", s)
 	}
 }

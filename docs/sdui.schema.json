@@ -185,6 +185,12 @@
           },
           "type": "array"
         },
+        "layouts": {
+          "items": {
+            "$ref": "#/$defs/LayoutSpec"
+          },
+          "type": "array"
+        },
         "libraryKinds": {
           "items": {
             "type": "string"
@@ -212,6 +218,12 @@
         "nativeViews": {
           "items": {
             "$ref": "#/$defs/EnumOption"
+          },
+          "type": "array"
+        },
+        "navStyles": {
+          "items": {
+            "type": "string"
           },
           "type": "array"
         },
@@ -315,7 +327,9 @@
         "placements",
         "spacing",
         "limits",
-        "profiles"
+        "profiles",
+        "layouts",
+        "navStyles"
       ],
       "type": "object"
     },
@@ -907,6 +921,9 @@
         "scale": {
           "type": "integer"
         },
+        "shell": {
+          "$ref": "#/$defs/Shell"
+        },
         "spacing": {
           "additionalProperties": {
             "type": "integer"
@@ -941,6 +958,68 @@
         "budget",
         "textLimits",
         "externalLinks"
+      ],
+      "type": "object"
+    },
+    "LayoutChoice": {
+      "properties": {
+        "chosen": {
+          "type": "string"
+        },
+        "current": {
+          "type": "string"
+        },
+        "options": {
+          "items": {
+            "$ref": "#/$defs/EnumOption"
+          },
+          "type": "array"
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "current",
+        "options",
+        "url"
+      ],
+      "type": "object"
+    },
+    "LayoutSpec": {
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "nav": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "overlay": {
+          "type": "boolean"
+        },
+        "pages": {
+          "$ref": "#/$defs/PageStyle"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "description",
+        "icon",
+        "nav",
+        "pages"
       ],
       "type": "object"
     },
@@ -1020,8 +1099,14 @@
           },
           "type": "array"
         },
+        "layouts": {
+          "$ref": "#/$defs/LayoutChoice"
+        },
         "personal": {
           "$ref": "#/$defs/PersonalInfo"
+        },
+        "shell": {
+          "$ref": "#/$defs/Shell"
         },
         "version": {
           "type": "integer"
@@ -1299,6 +1384,29 @@
         "description",
         "route"
       ],
+      "type": "object"
+    },
+    "PageStyle": {
+      "properties": {
+        "cardSize": {
+          "type": "string"
+        },
+        "density": {
+          "type": "string"
+        },
+        "gridsAsRows": {
+          "type": "boolean"
+        },
+        "hero": {
+          "type": "string"
+        },
+        "landscapeCards": {
+          "type": "boolean"
+        },
+        "rowsAsLists": {
+          "type": "boolean"
+        }
+      },
       "type": "object"
     },
     "Patch": {
@@ -1674,6 +1782,31 @@
         "version",
         "section",
         "items"
+      ],
+      "type": "object"
+    },
+    "Shell": {
+      "properties": {
+        "layout": {
+          "type": "string"
+        },
+        "nav": {
+          "type": "string"
+        },
+        "open": {
+          "type": "integer"
+        },
+        "overlay": {
+          "type": "boolean"
+        },
+        "size": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "layout",
+        "nav",
+        "size"
       ],
       "type": "object"
     },

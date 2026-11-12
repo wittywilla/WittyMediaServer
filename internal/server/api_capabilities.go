@@ -86,7 +86,7 @@ func (s *Server) versioned(next http.Handler) http.Handler {
 var serverFeatures = []string{
 	"profiles", "pairing", "pair-invite", "pair-totp", "pair-qr", "server-identity", "lan-discovery", "stream-tokens",
 	"direct-play", "hls", "hls-remux", "hls-fmp4", "transcode", "playback-profiles", "subtitles-webvtt", "subtitles-burn-in",
-	"dvd", "dvd-menus", "bluray", "bluray-menus", "audio-cd",
+	"dvd", "dvd-menus", "bluray", "bluray-menus", "audio-cd", "disc-ranking",
 	"shows", "next-up", "recommendations", "skip-intro",
 	"music", "audiobooks", "podcasts", "books", "annotations", "radio", "radio-directory",
 	"themes", "theme-tokens", "modules", "game-metadata", "system-tasks", "system-metrics", "module-pages",
@@ -114,6 +114,8 @@ var serverFeatures = []string{
 	// component is drawn with, GET /api/v1/theme has shape, type and brand, overrides carry
 	// derived colours; a profile sets its own colours with /api/v1/theme/personal.
 	"theme-shape-type", "sdui-tokens", "theme-derived", "theme-personal",
+	// Layout options: document.layout.shell, the navigation's shell and layouts, /sdui/layout.
+	"sdui-layouts",
 }
 
 // minClientVersions names the oldest version of each app this server still works with, by

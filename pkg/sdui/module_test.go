@@ -69,6 +69,9 @@ func TestModuleUIRefusals(t *testing.T) {
 		{"a source without what it yields", "/sources/0/yields", func(ui *ModuleUI) { ui.Sources[0].Yields = nil }},
 		{"a component not named after it", "/components/0/type", func(ui *ModuleUI) { ui.Components[0].Type = "wittyother.Thing" }},
 		{"a template placeholder with no property", "/components/0/section", func(ui *ModuleUI) { ui.Components[0].Section.Props["subtitle"] = "{{nothing}}" }},
+		{"a component inside a component's template", "/components/0/section/children/0/component", func(ui *ModuleUI) {
+			ui.Components[0].Section = Section{ID: "s", Component: "Stack", Children: []Section{{ID: "in", Component: "wittyboardgames.GameNight"}}}
+		}},
 		{"a page not named after it", "/pages/0/id", func(ui *ModuleUI) { ui.Pages[0].ID = "games" }},
 		{"a home page", "/pages/0/kind", func(ui *ModuleUI) { ui.Pages[0].Kind = "home" }},
 		{"a library page for every library", "/pages/0/match", func(ui *ModuleUI) { ui.Pages[0].Kind = "library" }},
@@ -78,7 +81,7 @@ func TestModuleUIRefusals(t *testing.T) {
 		{"an entry for Settings", "/navigation/0/screen", func(ui *ModuleUI) {
 			ui.Navigation[0] = NavItem{ID: "wittyboardgames", Type: "native", Screen: "settings"}
 		}},
-		{"an entry for a page that isn't there", "/items/0/page", func(ui *ModuleUI) { ui.Navigation[0].Page = "wittyboardgames-nothing" }},
+		{"an entry for a page that isn't there", "/navigation/0/page", func(ui *ModuleUI) { ui.Navigation[0].Page = "wittyboardgames-nothing" }},
 		{"a setting kind that isn't one", "/settings/0/groups/0/rows/0/kind", func(ui *ModuleUI) { ui.Settings[0].Groups[0].Rows[0].Kind = "colour" }},
 		{"a default out of range", "/settings/0/groups/0/rows/2/default", func(ui *ModuleUI) { ui.Settings[0].Groups[0].Rows[2].Default = 40 }},
 		{"a secret for a profile", "/settings/0/groups/0/rows/1/scope", func(ui *ModuleUI) { ui.Settings[0].Groups[0].Rows[1].Scope = "profile" }},

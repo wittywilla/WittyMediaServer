@@ -396,7 +396,7 @@ func schemaTypes() map[string]reflect.Type {
 		"Library": ty(library.Library{}), "Item": ty(library.Item{}), "Progress": ty(library.Progress{}), "Show": ty(library.Show{}), "Season": ty(library.Season{}),
 		"CDView": ty(cdView{}), "CDMatch": ty(library.CDMatch{}), "DiscInfo": ty(library.DiscInfo{}), "DiscLabels": ty(library.DiscLabels{}), "Album": ty(library.Album{}), "Artist": ty(library.Artist{}), "MusicLinks": ty(MusicLinks{}), "MusicLinkView": ty(MusicLinkView{}), "MusicLinkSide": ty(MusicLinkSide{}), "MusicVideoCard": ty(MusicVideoCard{}), "MusicLink": ty(music.Link{}), "MusicMatchResult": ty(music.Result{}), "Network": ty(library.Network{}),
 		"Podcast": ty(library.Podcast{}), "Annotation": ty(library.Annotation{}), "SearchHit": ty(library.SearchHit{}), "Agent": ty(library.Agent{}), "AgentResult": ty(library.AgentResult{}),
-		"ArtCandidate": ty(artCandidate{}), "DiscTitleView": ty(discTitle{}), "DiscChapterView": ty(discChapter{}), "DiscMenuView": ty(discMenu{}),
+		"ArtCandidate": ty(artCandidate{}), "DiscTitleView": ty(discTitle{}), "DiscChapterView": ty(discChapter{}), "DiscMenuView": ty(discMenu{}), "DiscAnalysis": ty(discAnalysisView{}),
 		"PlayInfo": ty(playInfo{}), "Track": ty(trackInfo{}), "RemoteStanding": ty(remoteStanding{}),
 		"GameProfile": ty(wittyplay.Profile{}), "GameBackground": ty(library.GameBackground{}), "ControllerData": ty(wittyplay.ControllerData{}),
 		"Presentation": ty(dvdsession.Presentation{}), "PresentationMedia": ty(dvdsession.Media{}), "DiscMenu": ty(dvdsession.Menu{}), "DiscButton": ty(dvdsession.ButtonView{}),

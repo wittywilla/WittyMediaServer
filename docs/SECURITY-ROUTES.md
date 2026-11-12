@@ -138,6 +138,10 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/items/{id}/recommend` | Signed-in | limits, on the item and on what is suggested |
 | `GET /api/items/{id}/disc` | Signed-in | limits. Item is a disc |
 | `PUT /api/items/{id}/disc/labels` | Admin | Labels trimmed |
+| `GET /api/items/{id}/disc/analysis` | Signed-in | limits. Item is a disc. Who chose is named to admins only |
+| `POST /api/items/{id}/disc/analysis` | Admin | Item is a disc. A second opinion only for an unencrypted Blu-ray, with the setting on and a libbluray found |
+| `PUT /api/items/{id}/disc/choice` | Admin | Item is a disc. Title exists on it |
+| `DELETE /api/items/{id}/disc/choice` | Admin | Item is a disc |
 | `GET /api/items/{id}/disc/thumb/{ttn}/{n}` | Signed-in; ticket; address token | limits. Item is a disc and not scrambled. Title and chapter exist |
 | `GET /api/artwork/preview` | Admin; address token | Web address, cache name, or a picture inside a library |
 | `GET /api/prefs` | Signed-in | Nothing: server-wide playback defaults |
@@ -227,6 +231,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/dvd/{sid}/bdj` | Signed-in | Blu-ray session exists. An account with limits is checked against what it plays |
 | `GET /api/dvd/{sid}/bdj/frame/{n}` | Signed-in | Blu-ray session exists. An account with limits is checked against what it plays |
 | `GET /api/bdj/status` | Admin | Nothing further |
+| `GET /api/bluray/capabilities` | Admin | Nothing further: names a library's path, so admins only |
 | `GET /api/dvd/{sid}/still/{name}` | Signed-in; ticket; address token | Session exists, and for a ticket is of the ticket's item. Still is one the session made. An account with limits is checked against what it plays |
 | `GET /api/dvd/{sid}/subs` | Signed-in; address token | Session exists. Time window of at most 600 seconds. An account with limits is checked against what it plays |
 | `GET /api/dvd/{sid}/sub/{name}` | Signed-in; ticket; address token | Session exists, and for a ticket is of the ticket's item. Picture exists. An account with limits is checked against what it plays |
@@ -747,6 +752,10 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `PUT /api/sdui/pages/{page}/personal` | Signed-in | own arrangement only. Page exists. The profile's editLayout switch and the server's personalisation switch (403). 8 KB, strict JSON, IDs by form, at most 64 pages a profile |
 | `DELETE /api/sdui/pages/{page}/personal` | Signed-in | own arrangement only. Page exists. The same switches as saving |
 | `GET /api/sdui/topshelf` | Signed-in | limits. The account's own continue-watching and what is new in libraries it may open, at most 4 rows of 10. Device class by form. No games with games turned off for the profile |
+| `GET /api/sdui/layout` | Signed-in | own choice only. The layout in force on this device, the profile's own choice and what it may choose from |
+| `PUT /api/sdui/layout` | Signed-in | own choice only, for this device (device by form, else the form factor). The profile's editLayout switch and the server's personalisation switch (403). Only a layout the server allows (403). 1 KB, strict JSON, at most 32 devices a profile |
+| `DELETE /api/sdui/layout` | Signed-in | own choice only. The same switches as saving |
+| `GET /api/sdui/modules/settings` | Signed-in | the modules in use that the profile isn't kept from, with a settings page it may see; nothing else |
 | `GET /api/sdui/modules/{module}/images/{name}` | Signed-in | the module is in use and the profile isn't kept from it (404). Name by form. Only pictures, as sniffed, with nosniff and a sandboxing CSP |
 | `GET /api/sdui/modules/{module}/settings` | Signed-in | the module is in use and the profile isn't kept from it (404). Admin pages and values only for administrators; secrets never sent |
 | `PUT /api/sdui/modules/{module}/settings/personal` | Signed-in | own values only; profile rows only; each value checked against its row. 64 KB, strict JSON |
@@ -764,6 +773,8 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `DELETE /api/sdui/config/navigation` | Admin | If-Match as for the configuration, or target=draft |
 | `POST /api/sdui/validate` | Admin | 16 MB body. Saves nothing |
 | `GET /api/sdui/presets` | Admin | Nothing |
+| `GET /api/sdui/config/layouts` | Admin | Nothing |
+| `PUT /api/sdui/config/layouts` | Admin | Strict JSON, 16 KB; every layout and form factor checked; a default must be allowed. If-Match as for the configuration, or target=draft |
 | `GET /api/sdui/modules` | Admin | Nothing |
 | `PUT /api/sdui/modules/{module}/settings` | Admin | The module is in use. Server rows only; every value checked against its row. 64 KB, strict JSON |
 | `POST /api/sdui/presets/{id}/apply` | Admin | Preset exists and is a page. If-Match as for the configuration, or target=draft |

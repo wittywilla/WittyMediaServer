@@ -53,6 +53,25 @@ Menu buttons make the disc's own sounds, pages play their transitions, and menus
 
 A disc can forbid seeking or skipping at some points, as on a disc player. To ignore that, turn off **Disc restrictions** in the player's viewing settings.
 
+## Which playlist is the film
+
+WittyBluray 0.4.0 and later rank every playlist of a disc and explain their pick, so a disc with hundreds of decoy playlists plays its film. The scan keeps the answer, and the disc's page shows **Why this playlist** under the feature: one sentence, how sure the engine is, and under **How the engine decided** the reasons, the decoys left out, files read from the disc's backup copy, and where the copy's playlists, clip information and streams disagree. The page lists only playlists worth watching as bonus features.
+
+- **Chapters** come from the engine, which puts a chapter mark that lies outside its play item back where it belongs.
+- **Editions.** Two or three cuts of the same film are listed under **Other versions**.
+- **Episodes.** A TV disc's episodes are listed in viewing order. With only a "play all" playlist, or a film made of episode-length parts, each episode starts at its own place in it.
+- **Choosing another playlist**, **Use the engine's pick** and **Rank again** work as for [DVDs](DVD.md#which-title-is-the-film): an administrator's choice is remembered for the disc, for everyone, and survives rescans.
+- **A playlist no title names.** Obfuscated discs often reach their film only through the program's registers. **Play movie** plays the ranked playlist as a title anyway, with its chapters, sound, subtitles and progress.
+- **Older modules.** With a WittyBluray from before rankings, the older rule picks the film.
+
+## A second opinion from libbluray
+
+If a libbluray is installed on the server, WittyBluray can compare its reading of a disc with libbluray's. It is off until an administrator turns on **Settings → Playback & discs → Ask libbluray for a second opinion**, and the row says whether a libbluray was found. Then **Compare with libbluray** on a disc's page asks once, and the answer appears under **How the engine decided**. WittyBluray's own pick still decides what plays.
+
+- libbluray isn't shipped. On macOS and Windows WittyBluray loads it at run time if one is installed (`libbluray.2.dylib`, `libbluray-2.dll`). On Linux the module is a static program and asks libbluray only when built with `-tags libbluray`.
+- It is a library from outside the project reading the disc's files, in the module's helper process, which is why it starts off.
+- Encrypted discs are never handed to it, and nothing is decrypted: no AACS or BD+ library is loaded.
+
 ## The remote
 
 Press **Remote**, or **R**, for the WittyBluray remote. Its button is in the player's controls and in the mini player, at every screen size, and on a phone it opens as a sheet along the bottom. Its keys work as on the [DVD remote](DVD.md#the-remote), whose guide lists which keys work on which kind of copy, and why. On a Blu-ray:

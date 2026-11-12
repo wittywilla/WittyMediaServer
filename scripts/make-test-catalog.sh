@@ -90,4 +90,20 @@ for repo in "${mods[@]}"; do
   "$tool" catalog-add -catalog "$out/catalog.json" -base "$id" -pub "$pub" -changelog "$dir/CHANGELOG.md" -publisher "Test" "$rel"
 done
 "$tool" catalog-sign -key "$key" "$out/catalog.json" >/dev/null
+
+# Synthetic discs for the tests of what the server does with a real disc module. The disc
+# modules write them, with the right answer for each, from their own test generators: the
+# server has none of their code. They go in <output folder>/synth/<module>, beside a list.
+for repo in "${mods[@]}"; do
+  dir="$repos/$repo"
+  id=$(tr 'A-Z' 'a-z' <<<"$repo")
+  [ -f "$dir/export_synth_test.go" ] || continue
+  var="$(tr 'a-z' 'A-Z' <<<"$id")_SYNTH_OUT"
+  rm -rf "$out/synth/$id"
+  if (cd -P "$dir" && env "$var=$out/synth/$id" go test -run '^TestExportSyntheticDiscs$' -count=1 . >/dev/null); then
+    echo "synthetic discs for $id"
+  else
+    echo "no synthetic discs for $id: its export test failed" >&2
+  fi
+done
 "$tool" catalog-check -pub "$pub" "$out/catalog.json"

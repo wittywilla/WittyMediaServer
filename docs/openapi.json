@@ -10137,6 +10137,81 @@
           "brand": {
             "$ref": "#/components/schemas/ThemeBrand"
           },
+          "density": {
+            "properties": {
+              "default": {
+                "type": "string"
+              },
+              "steps": {
+                "additionalProperties": {
+                  "additionalProperties": {
+                    "type": "number"
+                  },
+                  "type": "object"
+                },
+                "type": "object"
+              },
+              "tvDefault": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "default",
+              "steps",
+              "tvDefault"
+            ],
+            "type": "object"
+          },
+          "elevation": {
+            "additionalProperties": {
+              "properties": {
+                "fill": {
+                  "type": "string"
+                },
+                "fillToken": {
+                  "type": "string"
+                },
+                "line": {
+                  "type": "string"
+                },
+                "lineToken": {
+                  "type": "string"
+                },
+                "shadow": {
+                  "items": {
+                    "properties": {
+                      "blur": {
+                        "type": "number"
+                      },
+                      "opacity": {
+                        "type": "number"
+                      },
+                      "y": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "blur",
+                      "opacity",
+                      "y"
+                    ],
+                    "type": "object"
+                  },
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "fill",
+                "fillToken",
+                "shadow"
+              ],
+              "type": "object"
+            },
+            "type": "object"
+          },
           "etag": {
             "type": "string"
           },
@@ -10179,12 +10254,91 @@
             },
             "type": "object"
           },
+          "tv": {
+            "properties": {
+              "heroScrim": {
+                "type": "number"
+              },
+              "ringColor": {
+                "type": "string"
+              },
+              "tvText": {
+                "type": "string"
+              },
+              "units": {
+                "items": {
+                  "type": "integer"
+                },
+                "type": [
+                  "array",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "heroScrim",
+              "ringColor",
+              "tvText",
+              "units"
+            ],
+            "type": "object"
+          },
           "type": {
             "$ref": "#/components/schemas/ThemeType"
           },
           "variants": {
             "additionalProperties": {
               "properties": {
+                "elevation": {
+                  "additionalProperties": {
+                    "properties": {
+                      "fill": {
+                        "type": "string"
+                      },
+                      "fillToken": {
+                        "type": "string"
+                      },
+                      "line": {
+                        "type": "string"
+                      },
+                      "lineToken": {
+                        "type": "string"
+                      },
+                      "shadow": {
+                        "items": {
+                          "properties": {
+                            "blur": {
+                              "type": "number"
+                            },
+                            "opacity": {
+                              "type": "number"
+                            },
+                            "y": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "blur",
+                            "opacity",
+                            "y"
+                          ],
+                          "type": "object"
+                        },
+                        "type": [
+                          "array",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "fill",
+                      "fillToken",
+                      "shadow"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "object"
+                },
                 "id": {
                   "type": "string"
                 },
@@ -10206,15 +10360,46 @@
                   },
                   "type": "object"
                 },
+                "tv": {
+                  "properties": {
+                    "heroScrim": {
+                      "type": "number"
+                    },
+                    "ringColor": {
+                      "type": "string"
+                    },
+                    "tvText": {
+                      "type": "string"
+                    },
+                    "units": {
+                      "items": {
+                        "type": "integer"
+                      },
+                      "type": [
+                        "array",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "heroScrim",
+                    "ringColor",
+                    "tvText",
+                    "units"
+                  ],
+                  "type": "object"
+                },
                 "type": {
                   "$ref": "#/components/schemas/ThemeType"
                 }
               },
               "required": [
+                "elevation",
                 "id",
                 "modules",
                 "shape",
                 "tokens",
+                "tv",
                 "type"
               ],
               "type": "object"
@@ -10233,6 +10418,8 @@
         },
         "required": [
           "brand",
+          "density",
+          "elevation",
           "etag",
           "id",
           "modules",
@@ -10243,6 +10430,7 @@
           "shape",
           "source",
           "tokens",
+          "tv",
           "type",
           "variants",
           "warnings"
@@ -14331,6 +14519,32 @@
           },
           "size": {
             "type": "integer"
+          },
+          "tv": {
+            "anyOf": [
+              {
+                "properties": {
+                  "heroScrim": {
+                    "type": "number"
+                  },
+                  "ringColor": {
+                    "type": "string"
+                  },
+                  "tvText": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "heroScrim",
+                  "ringColor",
+                  "tvText"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "type": {
             "anyOf": [

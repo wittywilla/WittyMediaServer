@@ -61,3 +61,8 @@ test('controllers are told apart by their ids', () => {
   assert.equal(padFamily('Pro Controller (STANDARD GAMEPAD Vendor: 057e Product: 2009)'), 'nintendo')
   assert.equal(padFamily('Some Pad'), 'generic')
 })
+
+test('Ctrl+Shift+L opens the layout editor', () => {
+  assert.equal(shortcut({ key: 'L', ctrlKey: true, shiftKey: true }, false), 'layout')
+  assert.equal(shortcut({ key: 'l', ctrlKey: true }, false), null)
+})

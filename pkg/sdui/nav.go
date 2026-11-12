@@ -26,7 +26,23 @@ type NavDocument struct {
 	// Settings is listed like the rest and is never marked hidden. Left out
 	// for a profile that may not rearrange.
 	Personal *PersonalInfo `json:"personal,omitempty"`
-	ETag     string        `json:"etag,omitempty"`
+	// Shell is how the app draws its frame with the layout option in force: the menu's
+	// style on this device, and whether it lies over the page.
+	Shell *Shell `json:"shell,omitempty"`
+	// Layouts are the layout options this profile may choose from on this device, the
+	// one in force marked, for an app's "Layout" setting. Left out for a profile kept
+	// from rearranging.
+	Layouts *LayoutChoice `json:"layouts,omitempty"`
+	ETag    string        `json:"etag,omitempty"`
+}
+
+// LayoutChoice is what a profile may choose for its layout on a device.
+type LayoutChoice struct {
+	Current string `json:"current"`
+	// Chosen is the profile's own choice for the device, "" when it follows the server.
+	Chosen  string       `json:"chosen,omitempty"`
+	Options []EnumOption `json:"options"`
+	URL     string       `json:"url"`
 }
 
 // NavEntry is one rendered entry of the main menu.

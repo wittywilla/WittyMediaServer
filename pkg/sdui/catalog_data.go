@@ -776,7 +776,7 @@ func buildCatalogue() *Catalogue {
 		Spacing:       SpacingSteps,
 		Limits: map[string]int{"maxPageBytes": MaxPageBytes, "maxSections": MaxSections, "maxDepth": MaxDepth, "maxChildren": MaxChildren, "maxVariants": MaxVariants,
 			"maxNavItems": MaxNavItems, "maxPages": MaxPages, "maxIdLength": MaxIDLength, "maxPersonalBytes": MaxPersonalBytes, "maxSourceLimit": 500},
-		Profiles: map[string]*Layout{},
+		Profiles: map[string]*Layout{}, Layouts: Layouts, NavStyles: NavStyles,
 	}
 	for _, ff := range FormFactors {
 		c.Profiles[ff] = ProfileFor(ff, "")

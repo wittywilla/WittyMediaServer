@@ -81,6 +81,10 @@ type Config struct {
 	Pages map[string]sdui.Page `json:"pages"`
 	// Personalisation says whether profiles may arrange pages for themselves.
 	Personalisation Personalisation `json:"personalisation,omitzero"`
+	// Layouts are the layout options each form factor starts with and the ones
+	// profiles may choose (docs/SDUI.md, "Layout options"); nil: the defaults, all
+	// allowed.
+	Layouts *sdui.LayoutPolicy `json:"layouts,omitempty"`
 	// Notes are left by a migration: what could not be carried over.
 	Notes []string `json:"notes,omitempty"`
 	// ETag identifies this revision; set by the store, never stored.
@@ -692,6 +696,10 @@ func (s *Store) Check(c *Config) []sdui.Issue {
 			ve.add("/theme/modules/"+mod, "invalid module id")
 		}
 		checkTokens("/theme/modules/"+mod, c.Theme.Modules[mod])
+	}
+	for _, is := range sdui.ValidateLayoutPolicy(c.Layouts) {
+		is.Path = "/layouts" + is.Path
+		ve.Issues = append(ve.Issues, is)
 	}
 	if len(c.Notes) > 200 {
 		ve.add("/notes", "too many notes")

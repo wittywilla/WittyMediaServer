@@ -114,6 +114,10 @@ type RenderContext struct {
 	// UI are the modules in use: their components are expanded before the
 	// page is drawn, and their sources are asked like any other. nil: none.
 	UI *ModuleSet
+	// Layout is the layout option the page is drawn for (LayoutByID): its changes to
+	// pages are made here, and its shell is sent in document.layout.shell. nil: none,
+	// the page as written.
+	Layout *LayoutSpec
 	// BasePath is where the SDUI routes are: "/api/v1/sdui".
 	BasePath string
 	// Source and ConfigRevision are stamped into Meta.
@@ -165,7 +169,7 @@ type instance struct {
 // The page should have passed ValidatePage; Render never panics on one that
 // hasn't, but leaves out what it can't make sense of.
 func Render(page Page, ctx *RenderContext) (Document, error) {
-	page = ctx.UI.ExpandPage(page)
+	page = styled(ctx.UI.ExpandPage(page), ctx.Layout)
 	r := newRenderer(&page, ctx)
 	sections, variant := r.sections()
 	top := r.expand(sections, true)
@@ -226,8 +230,15 @@ func newRenderer(page *Page, ctx *RenderContext) *renderer {
 		ctx.BasePath = "/api/v1/sdui"
 	}
 	l := ctx.Profile.WithViewport(ctx.Viewport)
-	if ctx.Personal != nil && ctx.CanPersonalise && allows(page, "density") {
+	if d := layoutDensity(ctx.Layout); d != "" {
+		l = l.WithDensity(d)
+	}
+	if ctx.Personal != nil && ctx.CanPersonalise && allows(page, "density") && ctx.Personal.Density != "" {
 		l = l.WithDensity(ctx.Personal.Density)
+	}
+	if ctx.Layout != nil {
+		l = l.clone()
+		l.Shell = ShellFor(ctx.Layout.ID, l.FormFactor)
 	}
 	if contains(ctx.Capabilities, "reducedMotion") {
 		l = l.clone()
@@ -1603,7 +1614,7 @@ type SectionItems struct {
 // section's ID, "-" and the key); offset is the cursor; season chooses a
 // SeasonList's season.
 func RenderSection(page Page, nodeID string, offset int, season string, ctx *RenderContext) (SectionItems, error) {
-	page = ctx.UI.ExpandPage(page)
+	page = styled(ctx.UI.ExpandPage(page), ctx.Layout)
 	r := newRenderer(&page, ctx)
 	sections, _ := r.sections()
 	in, ok := r.find(sections, nodeID)

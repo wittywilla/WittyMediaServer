@@ -2553,6 +2553,18 @@ What shows each place in the app: an SDUI page, asked for with the parameters gi
 | `selectTab` | Asks for the page again with tab=<params.tab>, or shows the tab's content when the client already has it. |  |
 | `refresh` | Asks for the page again. |  |
 
+### Layout options
+
+The menu's style on each form factor, and what the server changes about every page for the layout. Menu styles: `sidebar`, `rail`, `bottomTabs`, `topTabs`, `tvTopMenu`, `tvSideMenu`.
+
+| Layout | What it is | TV | Phone | Tablet | Desktop | Web | Pages |
+|---|---|---|---|---|---|---|---|
+| `sidebar` | **Sidebar.** The menu down the side where there is room, a tab bar on a phone and the top menu on a television. Pages as they are written. | tvTopMenu | bottomTabs | sidebar | sidebar | sidebar | as written |
+| `topTabs` | **Top tabs.** The menu as a row of tabs across the top on every device, leaving the whole width to the page. | tvTopMenu | topTabs | topTabs | topTabs | topTabs | as written |
+| `tvRows` | **TV rows.** Everything in rows of large cards, as on a television: grids become rows, and the menu is a narrow rail. | tvTopMenu | bottomTabs | rail | rail | rail | grids as rows, spotlight: billboard, cards l |
+| `compactList` | **Compact list.** A line per title instead of rows of pictures: the most on the screen at once, for small screens and long libraries. | tvSideMenu | bottomTabs | rail | rail | rail | rows and grids as lists, spotlight: row, compact |
+| `streaming` | **Streaming style.** A big spotlight under a see-through menu, then rows of wide cards, like a streaming service. | tvTopMenu | bottomTabs | topTabs | topTabs | topTabs | spotlight: billboard, wide cards for films and shows, comfortable, menu over the page |
+
 ### Icons
 
 `home`, `library`, `movie`, `show`, `tv`, `live`, `guide`, `record`, `music`, `album`, `artist`, `mic`, `radio`, `podcast`, `book`, `audiobook`, `comic`, `photo`, `video`, `disc`, `game`, `collection`, `list`, `folder`, `search`, `settings`, `user`, `users`, `kids`, `star`, `heart`, `clock`, `history`, `calendar`, `sparkles`, `fire`, `shuffle`, `play`, `download`, `share`, `globe`, `info`, `warning`, `check`, `plus`, `grid`, `filter`, `sort`, `plug`, `chart`, `devices`, `more`

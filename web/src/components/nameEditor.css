@@ -62,3 +62,5 @@
 @media (max-width: 600px) { .ne-place { font-size: var(--text-xl); } .ne-place.sign { font-size: var(--page-title); } .ne-two { grid-template-columns: 1fr; } }
 .modal.ui-dialog.brand-dialog { width: min(1180px, calc(100vw - 32px)); max-width: none; max-height: calc(100vh - 32px); overflow-y: auto; }
 .brand-dialog > .muted { margin: 0 0 var(--sp-4); font-size: var(--text-sm); }
+.modal.ui-dialog.brand-dialog > .actions { position: sticky; inset-block-end: calc(-1 * var(--sp-4)); z-index: var(--z-sticky); padding-block: var(--sp-3); background: var(--bg-2); }
+.ne-chips { max-inline-size: 100%; }

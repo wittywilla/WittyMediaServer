@@ -6,12 +6,6 @@ hand and no picture is edited after it is made: change a drawing, then run `scri
 
 The logo is called **orbitw**: the W in its orbit.
 
-<p>
-  <img src="brand/orbitw/server/icon/server-icon-256.png" width="112" alt="WittyMediaServer">
-  <img src="brand/orbitw/client/icon/client-icon-256.png" width="112" alt="WittyMediaClient">
-  <img src="brand/orbitw/player/icon/player-icon-256.png" width="112" alt="WittyMediaPlayer">
-  <img src="brand/orbitw/reader/icon/reader-icon-256.png" width="112" alt="WittyReader">
-</p>
 
 **Every form of every logo, rendered** (SVG, PNG at 16 to 1024 pixels, JPEG; colour, black and white on transparency;
 icons and name lockups): [brand/orbitw/README.md](brand/orbitw/README.md).
@@ -109,12 +103,6 @@ picture) are Inter Regular.
 | `lockup-black` | Mark and name in black on transparency | SVG; PNG 64–512 high; JPEG on light and white |
 | `lockup-white` | Mark and name in white on transparency | SVG; PNG 64–512 high; JPEG on dark and black |
 
-<p>
-  <img src="brand/orbitw/server/mark-colour/server-mark-colour-128.png" width="64" alt="">
-  <img src="brand/orbitw/server/mark-black/server-mark-black-128.png" width="64" alt="">
-  <img src="brand/orbitw/server/mark-white/server-mark-white-128.png" width="64" alt="">
-  <img src="brand/orbitw/server/lockup-dark/server-lockup-dark-128.png" height="64" alt="">
-</p>
 
 SVG is for anything that scales (print, the web, slides). PNG is for screens at a fixed size, with transparency. JPEG
 has no transparency, so it always comes on a stated background; use it only where PNG isn't accepted.
@@ -235,3 +223,7 @@ platform asks for, that store and home-screen icons are opaque and parallax laye
 inside the launcher's safe circle, that the server and client marks differ, that cuts show as holes in the
 one-colour form, that ICO and ICNS files are well formed, that Inter's kerning is applied, and that the web client's
 icons in the repository are what the generator draws now.
+
+---
+
+<sub>WittyMediaServer documentation</sub>

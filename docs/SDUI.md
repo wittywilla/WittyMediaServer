@@ -1290,7 +1290,7 @@ and without `meta.generatedAt` and `meta.etag`; `ETag(doc)` is `W/"sha256-`
 (the 17 classics and Aurora Rings, in the order of its README): `{id, name, motion, calm, cost}`. `motion` is
 `gentle` or `lively`, `calm` is true when calm mode keeps the effect (the gentle ones; it is on by default when the
 system asks for reduced motion), `cost` is how hard it works the graphics card (1 to 3). The `preset` control's
-default is `skyline`. A new effect in WittyVisualizer is a new entry here.
+default is `skyline`. Every effect takes both of the other two controls, so show them for every effect: `speedPct` (an int, 50 to 200 %, default 100; it multiplies the animation clock) and `colour` (`effect`, the default: each effect's own colour families, or `theme`: a family built from the theme's accent). There is no album-art colour source. They are also the module's settings keys, `speedPct` and `colour`. A new effect in WittyVisualizer is a new entry here.
 
 ## Reference
 

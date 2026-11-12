@@ -329,10 +329,18 @@ func (rv *sduiResolver) discWhy(it *library.Item) []sdui.Item {
 		if c.Chapters > 0 {
 			chapters = fmt.Sprintf("%d chapters", c.Chapters)
 		}
-		row := sdui.Item{ID: fmt.Sprintf("candidate-%d", c.TTN), Kind: "view", Title: joinWords(titleName(it, labels, c.TTN), lengthWords(c.DurationSec)),
+		length := c.DurationSec
+		if f := d.FeaturePlays(c.TTN); f != nil && f.DurationSec > 0 {
+			length = f.DurationSec // the film as it plays, through every title it runs through
+		}
+		row := sdui.Item{ID: fmt.Sprintf("candidate-%d", c.TTN), Kind: "view", Title: joinWords(titleName(it, labels, c.TTN), lengthWords(length)),
 			Subtitle: joinWords(classWords[c.Class], chapters), Badges: []string{badge}}
+		if c.TTN == rk.Main && c.TTN != d.MainTitle {
+			row.Subtitle = joinWords("The engine's pick", chapters)
+		}
 		switch {
-		case admin && c.TTN != d.MainTitle && !d.Scrambled:
+		case admin && c.TTN != d.MainTitle && !d.Scrambled && badge != "Part":
+			// A part of the film is no film to choose.
 			// An administrator makes it the film, for everyone; others play it once.
 			row.Subtitle = joinWords("Choose to make it the film", row.Subtitle)
 			row.Action = &sdui.Action{Type: sdui.ActCommand, Op: "disc.choose", Item: strconv.FormatInt(it.ID, 10), Params: map[string]any{"ttn": c.TTN}}

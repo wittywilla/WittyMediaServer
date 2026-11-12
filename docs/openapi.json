@@ -11325,6 +11325,46 @@
                 },
                 "type": {
                   "type": "string"
+                },
+                "wire": {
+                  "additionalProperties": {
+                    "properties": {
+                      "brand": {
+                        "type": "string"
+                      },
+                      "cards": {
+                        "type": "string"
+                      },
+                      "dock": {
+                        "type": "boolean"
+                      },
+                      "finish": {
+                        "type": "string"
+                      },
+                      "home": {
+                        "type": "string"
+                      },
+                      "nav": {
+                        "type": "string"
+                      },
+                      "open": {
+                        "type": "boolean"
+                      },
+                      "style": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "brand",
+                      "cards",
+                      "finish",
+                      "home",
+                      "nav",
+                      "style"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "object"
                 }
               },
               "required": [
@@ -11344,7 +11384,8 @@
                 "tagline",
                 "theme",
                 "tvTheme",
-                "type"
+                "type",
+                "wire"
               ],
               "type": "object"
             },

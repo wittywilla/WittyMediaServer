@@ -278,7 +278,7 @@ func TestAManifestCantNameAProgramOutsideItsFolder(t *testing.T) {
 			case `"webEntry"`:
 				extra = `,"webEntry":` + value
 			}
-			raw := `{"id":"wittycomics","name":"X","version":"0.9.0","repo":"a/b","delivery":"helper",` + entry + `,"api":` + fmt.Sprint(wittymodule.API) + `,"minServer":"0.6.0-alpha","maxServer":"0.6.x","license":"MIT"` + extra + `}`
+			raw := `{"id":"wittycomics","name":"X","version":"0.9.0","repo":"a/b","delivery":"helper",` + entry + `,"api":` + fmt.Sprint(MinAPI) + `,"minServer":"0.6.0-alpha","maxServer":"0.6.x","license":"MIT"` + extra + `}`
 			if _, err := wittymodule.ParseManifest([]byte(raw)); err == nil {
 				t.Errorf("%s of %q was taken", field, bad)
 			}

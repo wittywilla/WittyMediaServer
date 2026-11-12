@@ -129,7 +129,7 @@ func TestLiftNestedSandboxBlocks(t *testing.T) {
 func TestStartPutsBackWhatTheMacSandboxTookOutOfUse(t *testing.T) {
 	dir := t.TempDir()
 	builtin, err := json.Marshal(wittymodule.Manifest{ID: "wittyplay", Name: "WittyPlay", Version: "0.1.0", Repo: "wittywilla/WittyPlay",
-		Delivery: wittymodule.DeliveryHelper, Entry: "wittyplay-module", API: wittymodule.API, MinServer: "0.1.0", MaxServer: "0.x"})
+		Delivery: wittymodule.DeliveryHelper, Entry: "wittyplay-module", API: MinAPI, MinServer: "0.1.0", MaxServer: "0.x"})
 	if err != nil {
 		t.Fatal(err)
 	}

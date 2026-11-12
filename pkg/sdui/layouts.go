@@ -256,11 +256,6 @@ func styleList(list []Section, st PageStyle, keep map[string]bool) []Section {
 			if _, set := s.Props["cardSize"]; !set && st.CardSize != "" {
 				s.Props["cardSize"] = st.CardSize
 			}
-			if st.LandscapeCards && propStr(s.Props, "cardStyle", "auto") == "auto" {
-				if spec, ok := SourceType(s.Source.Type()); ok && spec.CardStyle == "poster" && overlaps(spec.Yields, landscapeKinds) {
-					s.Props["cardStyle"] = "landscape"
-				}
-			}
 		}
 		if len(s.Props) == 0 {
 			s.Props = nil

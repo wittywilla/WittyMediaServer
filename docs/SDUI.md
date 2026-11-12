@@ -637,6 +637,24 @@ time left nothing in a page changes with the clock, so its ETag holds; ask
 
 The feature `sdui-limits` in `/capabilities` says a server does all this.
 
+## How a row chooses its cards
+
+A section whose `cardStyle` is `auto` (or left out) takes its source's usual
+style, with two refinements the server makes so every app gets them:
+
+- A source that gives whatever a library holds (`recentlyAdded`, `browse`,
+  `random`, `search`, ...) on a library of music, audiobooks or podcasts draws
+  `album` cards, on books `book`, on games `game`, on photos `photo`: the
+  library is the section's `$each` or the page's own `$library`. A cover is
+  never stretched into an upright poster.
+- On a phone, a row of the libraries (`libraries` source) drawn as `tile` is
+  sent as `chip`: each library's icon and name in a pill, a row a phone can
+  take in at a glance.
+
+A title's page (`detail`) on a phone or a television carries no `personal`:
+nothing there offers Customise. A profile's arrangement of the page, made on
+a bigger screen, still applies.
+
 ## Layout options
 
 A layout option is a whole arrangement of an app: where its menu is and how

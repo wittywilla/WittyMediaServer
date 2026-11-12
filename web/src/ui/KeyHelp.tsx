@@ -11,7 +11,7 @@ import { useInput } from './useInput'
 
 const KEYBOARD_EXTRA: [string, string][] = [
   ['/ or Ctrl+K', 'Search'], ['Ctrl+[ and Ctrl+]', 'Previous and next tab'], ['.  or Shift+F10', 'Options for the thing in focus'],
-  ['F6', 'Next area: page, controls, menu'], ['Page Up and Page Down', 'Page through a long list'], ['Home', 'Jump to the top'], ['Esc or Backspace', 'Back'],
+  ['Ctrl+Shift+L', 'Edit the layout'], ['F6', 'Next area: page, controls, menu'], ['Page Up and Page Down', 'Page through a long list'], ['Home', 'Jump to the top'], ['Esc or Backspace', 'Back'],
 ]
 
 export function KeyHelp() {

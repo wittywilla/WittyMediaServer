@@ -65,6 +65,7 @@ function top() {
 export function runAction(a: Action, e: KeyboardEvent): boolean {
   switch (a) {
     case 'search': return search()
+    case 'layout': window.dispatchEvent(new Event('wms:layout-editor')); return true
     case 'help': window.dispatchEvent(new Event(HELP_EVENT)); return true
     case 'tabPrev': return stepBar(-1)
     case 'tabNext': return stepBar(1)

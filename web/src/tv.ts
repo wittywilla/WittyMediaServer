@@ -377,6 +377,8 @@ function onKey(e: KeyboardEvent) {
 // A key name with a modifier ('Ctrl+[') is that key held with Ctrl: how a pad's shoulder buttons reach the keyboard shortcuts.
 export function press(name: string, from?: 'pad', padId?: string) {
   const target = (document.activeElement as HTMLElement | null) || document.body
+  // A on the picture is play and pause; on a control, or while a disc's menu is showing, it is Enter.
+  if (from === 'pad' && name === 'Enter' && target.matches?.('.player:not(.mini):not(.inline)') && !target.querySelector('.dvd-layer .hit, .bdj-layer')) name = ' '
   const ctrl = name.startsWith('Ctrl+')
   const key = ctrl ? name.slice(5) : name
   if (from === 'pad') noteInput('pad', { key: name, padId })

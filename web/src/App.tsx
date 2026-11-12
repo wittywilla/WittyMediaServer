@@ -19,6 +19,7 @@ import { PlayerDock } from './player/PlayerPage'
 import { Announcer, useDialogs } from './a11y'
 import LegalNote, { legalAckText } from './components/LegalNote'
 import { KeyHelp } from './ui/KeyHelp'
+import { ShellEditorHost } from './pages/ShellEditor'
 import { AskHost } from './ui/Overlay'
 import ScreenTimeWatch from './shell/ScreenTime'
 import { loadUserPrefs, useUserPref } from './ui/userPrefs'
@@ -91,6 +92,7 @@ export default function App() {
       <ScreenTimeWatch />
       <AskHost />
       <KeyHelp />
+      <ShellEditorHost />
       <Announcer />
     </AppProvider>
   )

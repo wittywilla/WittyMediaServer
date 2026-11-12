@@ -163,3 +163,8 @@ html[data-fx-bevel="full"] .btn:not(.ghost) { box-shadow: inset 0 1px 0 color-mi
 .sdui-crossbar [role=tablist] { gap: var(--space-xl); border: 0; }
 .sdui-crossbar [role=tab] { font-size: var(--role-title-size); padding-block: var(--space-m); }
 .sdui-crossbar [role=tabpanel] { max-inline-size: 70rem; margin-inline: auto; }
+
+.ctv-info-list { display: grid; gap: var(--space-s); margin: 0; }
+.ctv-info-list > div { display: grid; grid-template-columns: 7rem 1fr; gap: var(--space-m); }
+.ctv-info-list dt { color: var(--fg-2); }
+.ctv-info-list dd { margin: 0; }

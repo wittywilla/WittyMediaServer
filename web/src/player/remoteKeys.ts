@@ -45,11 +45,27 @@ export type RemoteState = {
   chapters?: number   // chapters of what's playing
 }
 
+// WittyRemote's table from the catalogue (`remote` in GET /sdui/catalog): which keys each kind of disc or video dims. A
+// dimmed key stays on the remote, with a dashed outline, and does nothing.
+export type RemoteCatalogue = { kinds?: Record<string, { dimmed?: string[]; dimmedWhen?: Record<string, string[]> }> }
+let catalogue: RemoteCatalogue = {}
+export const setRemoteCatalogue = (c: RemoteCatalogue) => { catalogue = c }
+// The catalogue's key names for ours.
+const CATALOGUE_KEY: Record<string, RemoteKey> = { topMenu: 'topmenu', back: 'rew', forward: 'ff', previous: 'prev' }
+const KIND_OF: Record<RemoteForm, string> = { dvd: 'dvd', 'dvd-copy': 'video', bluray: 'bluray', 'bluray-copy': 'video', video: 'video' }
+export function catalogueDims(form: RemoteForm, k: RemoteKey, s: RemoteState = {}): boolean {
+  const kind = catalogue.kinds?.[KIND_OF[form]]
+  if (!kind) return false
+  const has = (ids?: string[]) => !!ids?.some((id) => (CATALOGUE_KEY[id] || id) === k)
+  return has(kind.dimmed) || (s.angles != null && s.angles <= 1 && has(kind.dimmedWhen?.oneAngle))
+}
+
 const digitOf = (k: RemoteKey) => (k.startsWith('digit') ? Number(k.slice(5)) : -1)
 
 // keyWorks says whether a key does anything for this form, in this state.
 export function keyWorks(form: RemoteForm, k: RemoteKey, s: RemoteState = {}): boolean {
   if (k === 'eject') return true
+  if (catalogueDims(form, k, s)) return false
   if (k === 'audio') return (s.audio || 0) > 1
   if (k === 'subtitle') return (s.subtitles || 0) > 0
   const disc = form === 'dvd' || form === 'bluray'

@@ -30,7 +30,13 @@ export function ShellEditor({ onClose }: { onClose: () => void }) {
   const admin = !!user?.isAdmin
   const [scope, setScope] = useState<'me' | 'everyone'>('me')
   const [got, setGot] = useState<Answer | null>(null)
-  const [edit, setEdit] = useState<Record<string, Placement>>({})
+  const [edit, setEditNow] = useState<Record<string, Placement>>({})
+  // Undo and redo: every change is a step.
+  const [past, setPast] = useState<Record<string, Placement>[]>([])
+  const [future, setFuture] = useState<Record<string, Placement>[]>([])
+  const setEdit = (next: Record<string, Placement> | ((e: Record<string, Placement>) => Record<string, Placement>)) => setEditNow((e) => { const n = typeof next === 'function' ? next(e) : next; setPast((p) => [...p, e]); setFuture([]); return n })
+  const undo = () => setPast((p) => { if (!p.length) return p; setFuture((f) => [edit, ...f]); setEditNow(p[p.length - 1]); announce('Undone'); return p.slice(0, -1) })
+  const redo = () => setFuture((f) => { if (!f.length) return f; setPast((p) => [...p, edit]); setEditNow(f[0]); announce('Redone'); return f.slice(1) })
   const [busy, setBusy] = useState(false)
   const [etag, setEtag] = useState('')
   const [policy, setPolicy] = useState<Policy>({})
@@ -38,11 +44,12 @@ export function ShellEditor({ onClose }: { onClose: () => void }) {
   const load = async () => {
     const a = await api.get<Answer>('/sdui/placements?' + q)
     setGot(a)
-    if (scope === 'me') setEdit(a.own || {})
+    setPast([]); setFuture([])
+    if (scope === 'me') setEditNow(a.own || {})
     else {
       const p = await api.get<{ etag: string; experiences: Policy }>('/sdui/config/experience')
       setEtag(p.etag); setPolicy(p.experiences || {})
-      setEdit(p.experiences?.placements?.[a.experience] || {})
+      setEditNow(p.experiences?.placements?.[a.experience] || {})
     }
   }
   useEffect(() => { void load().catch((e) => toast((e as Error).message, { tone: 'danger' })) }, [scope]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -72,6 +79,8 @@ export function ShellEditor({ onClose }: { onClose: () => void }) {
     <Dialog title="Edit layout" size="wide" onClose={onClose}
       actions={<>
         <Button variant="primary" busy={busy} onClick={() => void save()}>Save</Button>
+        <Button variant="ghost" disabled={!past.length} onClick={undo}>Undo</Button>
+        <Button variant="ghost" disabled={!future.length} onClick={redo}>Redo</Button>
         <Button variant="ghost" disabled={busy} onClick={() => void reset()}>Reset to the look</Button>
         <Button variant="ghost" onClick={onClose}>Cancel</Button>
       </>}>
@@ -105,4 +114,16 @@ export function ShellEditor({ onClose }: { onClose: () => void }) {
       </div>
     </Dialog>
   )
+}
+
+// The editor wherever it is asked for (Settings, Appearance, or Ctrl+Shift+L): one host in the app.
+export const LAYOUT_EVENT = 'wms:layout-editor'
+export function ShellEditorHost() {
+  const [open, setOpen] = useState(false)
+  useEffect(() => {
+    const on = () => setOpen(true)
+    window.addEventListener(LAYOUT_EVENT, on)
+    return () => window.removeEventListener(LAYOUT_EVENT, on)
+  }, [])
+  return open ? <ShellEditor onClose={() => setOpen(false)} /> : null
 }

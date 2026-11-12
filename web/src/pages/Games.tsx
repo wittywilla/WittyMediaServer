@@ -143,6 +143,7 @@ export function ControllersScreen() {
   if (!consoleId) return <Spinner />
   return (
     <Suspense fallback={<Spinner />}>
+      <h1 className="sr-only">Controllers</h1>
       <Controllers profiles={profileHost} controls={controls} controllers={getControllers} consoles={consoles} consoleId={consoleId}
         onConsole={(id: string) => setParams({ console: id }, { replace: true })} saveControl={async (id: string, s: unknown) => { await api.put(`/consoles/${id}/controls`, s) }} onClose={() => nav(-1)} />
     </Suspense>

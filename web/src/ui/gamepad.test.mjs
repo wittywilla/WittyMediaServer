@@ -23,17 +23,17 @@ test('a standard pad: A chooses, B goes back, the D-pad moves', () => {
   assert.deepEqual(keys([pad(XBOX, 'standard', [15])]), ['ArrowRight'])
 })
 
-test('the bumpers switch tabs and Start opens options', () => {
-  assert.deepEqual(keys([pad(XBOX, 'standard', [4])]), ['PageUp'])
-  assert.deepEqual(keys([pad(XBOX, 'standard', [5])]), ['PageDown'])
-  assert.deepEqual(keys([pad(XBOX, 'standard', [9])]), ['ContextMenu'])
-})
-
-test('the other buttons keep their player meanings', () => {
-  assert.deepEqual(keys([pad(XBOX, 'standard', [2, 3])]), [' ', 'm'])
-  assert.deepEqual(keys([pad(XBOX, 'standard', [6, 7])]), ['MediaFastForward', 'MediaRewind'])
-  assert.deepEqual(keys([pad(XBOX, 'standard', [8])]), ['t'])
-  // The guide button and the touchpad mean nothing here.
+test('in the player the buttons are the shared model in the player\'s words', () => {
+  const p = (held) => keys([pad(XBOX, 'standard', held)])
+  assert.deepEqual(p([0]), ['Enter']) // A: select, and play or pause on the picture (tv.ts)
+  assert.deepEqual(p([1]), ['Escape']) // B: the Back ladder
+  assert.deepEqual(p([2]), ['ContextMenu']) // X: options, or the disc's menu
+  assert.deepEqual(p([3]), ['i']) // Y: info
+  assert.deepEqual(p([4]), ['j']) // LB, RB: seek
+  assert.deepEqual(p([5]), ['l'])
+  assert.deepEqual(p([6, 7]), ['PageDown', 'PageUp']) // LT, RT: chapters
+  assert.deepEqual(p([8]), ['t'])
+  assert.deepEqual(p([9]), ['ContextMenu'])
   assert.deepEqual(keys([pad(XBOX, 'standard', [16])]), [])
 })
 
@@ -65,7 +65,7 @@ test('combined Joy-Cons, which have no standard layout, are laid out by name', (
   const id = 'Nintendo Co., Ltd. Combined Joy-Cons (Vendor: 057e Product: 2008)'
   assert.deepEqual(keys([pad(id, '', [14], [0, 0, 0, 0], 18)]), ['ArrowUp'])
   assert.deepEqual(keys([pad(id, '', [17], [0, 0, 0, 0], 18)]), ['ArrowRight'])
-  assert.deepEqual(keys([pad(id, '', [5], [0, 0, 0, 0], 18)]), ['PageUp'])
+  assert.deepEqual(keys([pad(id, '', [5], [0, 0, 0, 0], 18)]), ['j']) // the left bumper
 })
 
 test('Android lays every pad out the standard way, whatever it says', () => {

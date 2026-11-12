@@ -41,19 +41,22 @@ var platforms = map[string]platformIDs{
 	"ps3":    {[]int{9}, []int{16}, []int{12}, []int{59}, []string{"Q10683"}},
 	"xbox":   {[]int{11}, []int{80}, []int{14}, []int{32}, []string{"Q132020"}},
 	"switch": {[]int{130}, []int{7}, []int{4971}, []int{225}, []string{"Q19610114"}},
-	"pce":    {[]int{86, 150}, nil, []int{34, 4955}, []int{31, 114}, []string{"Q1057377", "Q10854461"}},
-	"a2600":  {[]int{59}, []int{23}, []int{22}, []int{26}, []string{"Q206261"}},
-	"a5200":  {[]int{66}, []int{31}, []int{26}, []int{40}, []string{"Q743222"}},
-	"a7800":  {[]int{60}, []int{28}, []int{27}, []int{41}, []string{"Q753600"}},
-	"lynx":   {[]int{61}, []int{46}, []int{4924}, []int{28}, []string{"Q753657"}},
-	"jaguar": {[]int{62}, []int{112}, []int{28}, []int{27}, []string{"Q650601"}},
-	"ws":     {[]int{57, 123}, nil, []int{4925, 4926}, []int{45, 46}, []string{"Q1065792", "Q1048035"}},
-	"ngp":    {[]int{119, 120}, nil, []int{4922, 4923}, []int{25, 82}, []string{"Q939881", "Q1977455"}},
-	"vb":     {[]int{87}, nil, []int{4918}, []int{11}, []string{"Q164651"}},
-	"neogeo": {[]int{80}, []int{12}, []int{24}, []int{142}, []string{"Q1054350", "Q64428080", "Q3338058"}},
-	"arcade": {[]int{52}, nil, []int{23}, []int{75}, []string{"Q192851"}},
-	"pc":     {[]int{6, 13}, []int{4}, []int{1}, []int{138, 135}, nil},
-	"rig":    {[]int{6, 13}, []int{4}, []int{1}, []int{138, 135}, nil}, // a game on a gaming PC
+	// Only Wikidata's id was checked (2026-11-11); the other sources' ids for the Switch 2 are
+	// left out until someone checks them.
+	"switch2": {nil, nil, nil, nil, []string{"Q122761124"}},
+	"pce":     {[]int{86, 150}, nil, []int{34, 4955}, []int{31, 114}, []string{"Q1057377", "Q10854461"}},
+	"a2600":   {[]int{59}, []int{23}, []int{22}, []int{26}, []string{"Q206261"}},
+	"a5200":   {[]int{66}, []int{31}, []int{26}, []int{40}, []string{"Q743222"}},
+	"a7800":   {[]int{60}, []int{28}, []int{27}, []int{41}, []string{"Q753600"}},
+	"lynx":    {[]int{61}, []int{46}, []int{4924}, []int{28}, []string{"Q753657"}},
+	"jaguar":  {[]int{62}, []int{112}, []int{28}, []int{27}, []string{"Q650601"}},
+	"ws":      {[]int{57, 123}, nil, []int{4925, 4926}, []int{45, 46}, []string{"Q1065792", "Q1048035"}},
+	"ngp":     {[]int{119, 120}, nil, []int{4922, 4923}, []int{25, 82}, []string{"Q939881", "Q1977455"}},
+	"vb":      {[]int{87}, nil, []int{4918}, []int{11}, []string{"Q164651"}},
+	"neogeo":  {[]int{80}, []int{12}, []int{24}, []int{142}, []string{"Q1054350", "Q64428080", "Q3338058"}},
+	"arcade":  {[]int{52}, nil, []int{23}, []int{75}, []string{"Q192851"}},
+	"pc":      {[]int{6, 13}, []int{4}, []int{1}, []int{138, 135}, nil},
+	"rig":     {[]int{6, 13}, []int{4}, []int{1}, []int{138, 135}, nil}, // a game on a gaming PC
 }
 
 // PlatformKnown says whether we can name this console to sources.

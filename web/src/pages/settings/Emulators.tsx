@@ -16,6 +16,7 @@ import '../games/games-ui.css'
 import '../games/emulators.css'
 
 const EmulatorSettingsDialog = lazy(() => import('../games/EmulatorSettings'))
+const ManualEmulatorDialog = lazy(() => import('../games/ManualEmulator'))
 
 // Settings, Standalone emulators. Some consoles have no core, only an emulator that is a whole
 // program of its own. WittyPlay can run those in a container (or, on Linux, a sandbox without
@@ -200,6 +201,7 @@ function BackendForm({ onSaved }: { onSaved: () => Promise<unknown> }) {
 function Catalogue({ list, error, reload, setList, page }: { list: CatalogueEntry[] | null; error: string; reload: () => Promise<unknown>; setList: (f: (l: CatalogueEntry[] | null) => CatalogueEntry[] | null) => void; page: RefObject<HTMLElement | null> }) {
   const consoles = useConsoles()
   const [confirm, setConfirm] = useState<CatalogueEntry | null>(null)
+  const [manual, setManual] = useState<CatalogueEntry | null>(null)
   const [settings, setSettings] = useState<CatalogueEntry | null>(null)
   const [busy, setBusy] = useState('')
   const [problems, setProblems] = useState<Record<string, string>>({})
@@ -235,10 +237,13 @@ function Catalogue({ list, error, reload, setList, page }: { list: CatalogueEntr
     try { await emulatorsApi.cancelInstall(e.id); await reload() } catch (err: any) { problem(e.id, err?.message || 'That couldn’t be cancelled.') } finally { setBusy('') }
   }
   const remove = async (e: CatalogueEntry) => {
-    if (!await ask({ title: `Remove ${e.name}?`, body: 'The emulator is taken off this server. Your games, saves and BIOS files stay where they are, and it can be installed again.', confirm: 'Remove', danger: true })) return
+    const ok = e.manual
+      ? await ask({ title: `Forget ${e.name}?`, body: 'This server stops using it. The program stays where you installed it, and so do your games, saves and keys. You can add it again.', confirm: 'Forget' })
+      : await ask({ title: `Remove ${e.name}?`, body: 'The emulator is taken off this server. Your games, saves and BIOS files stay where they are, and it can be installed again.', confirm: 'Remove', danger: true })
+    if (!ok) return
     setBusy(e.id)
     problem(e.id, '')
-    try { await emulatorsApi.remove(e.id); toast(`${e.name} removed`); await reload() } catch (err: any) { problem(e.id, err?.message || 'It couldn’t be removed.') } finally { setBusy('') }
+    try { await emulatorsApi.remove(e.id); toast(e.manual ? `${e.name} forgotten` : `${e.name} removed`); await reload() } catch (err: any) { problem(e.id, err?.message || 'It couldn’t be removed.') } finally { setBusy('') }
   }
   const short = (id: string) => consoles.find((c) => c.id === id)?.short || id.toUpperCase()
 
@@ -277,7 +282,9 @@ function Catalogue({ list, error, reload, setList, page }: { list: CatalogueEntr
                   {e.installed && <span>Installed: version {e.installed.version}{e.installed.installedAt ? `, ${fmtDateTime(e.installed.installedAt * 1000)}` : ''}</span>}
                   <span>{e.stream === 'kasmvnc' ? 'Shown through its own desktop' : 'Streamed like any other game'}</span>
                 </div>
-                {!e.installable && e.why && <p className="emu-hold" role="note">{e.why}</p>}
+                {e.manual
+                  ? <p className="emu-hold" role="note">Never downloaded: install it yourself from <WebLink href={e.manual.download}>its own project</WebLink>, then add it here.{e.manual.notes ? ` ${e.manual.notes}` : ''}</p>
+                  : !e.installable && e.why && <p className="emu-hold" role="note">{e.why}</p>}
                 {e.installed && !e.runnable && e.whyNot && <p className="emu-hold" role="note">{e.whyNot}</p>}
                 {job && progress && (
                   <div className="emu-job" role="group" aria-label={`Installing ${e.name}`}>
@@ -303,10 +310,11 @@ function Catalogue({ list, error, reload, setList, page }: { list: CatalogueEntr
                 )}
                 {!job && (
                   <div className="emu-card-actions">
+                    {e.manual && <button type="button" className="btn sm primary" disabled={working} onClick={() => setManual(e)} aria-label={`Add ${e.name} you installed yourself`}>{e.installed ? 'Change where it is' : 'Add it'}</button>}
                     {!e.installed && e.installable && <button type="button" className="btn sm primary" disabled={working} onClick={() => setConfirm(e)} aria-label={`Install ${e.name}`}>Install</button>}
                     {e.installed && e.updateAvailable && e.installable && <button type="button" className="btn sm primary" disabled={working} onClick={() => setConfirm(e)} aria-label={`Update ${e.name}`}>Update</button>}
                     {e.installed && <button type="button" className="btn sm" disabled={working} onClick={() => setSettings(e)} aria-label={`${e.name} settings`}>Settings</button>}
-                    {e.installed && <button type="button" className="btn sm ghost" disabled={working} onClick={() => { void remove(e) }} aria-label={`Remove ${e.name}`}>{working ? 'Working…' : 'Remove'}</button>}
+                    {e.installed && <button type="button" className="btn sm ghost" disabled={working} onClick={() => { void remove(e) }} aria-label={e.manual ? `Forget ${e.name}` : `Remove ${e.name}`}>{working ? 'Working…' : e.manual ? 'Forget' : 'Remove'}</button>}
                   </div>
                 )}
               </article>
@@ -328,6 +336,7 @@ function Catalogue({ list, error, reload, setList, page }: { list: CatalogueEntr
           {confirm.experimental && <p className="muted">It’s marked experimental here: expect rough edges.</p>}
         </Dialog>
       )}
+      {manual && <Suspense fallback={null}><ManualEmulatorDialog emulator={manual} onClose={() => setManual(null)} onAdded={() => { void reload() }} /></Suspense>}
       {settings && <Suspense fallback={null}><EmulatorSettingsDialog emulator={{ id: settings.id, name: settings.name }} adminOnly onClose={() => setSettings(null)} /></Suspense>}
     </Section>
   )

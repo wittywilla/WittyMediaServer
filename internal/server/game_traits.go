@@ -249,6 +249,9 @@ var consoleTraitsTable = map[string]consoleTraits{
 	"switch": {Era: eraDisc, Launched: 2017, Media: mediaCart, Caps: with(caps(1, lookClean, "16:9", false), rumble, func(c *ConsoleCapabilities) {
 		c.Input.Sticks, c.Input.Touch, c.Input.Motion = 2, true, true
 	})},
+	"switch2": {Era: eraDisc, Launched: 2025, Media: mediaCart, Caps: with(caps(1, lookClean, "16:9", false), rumble, func(c *ConsoleCapabilities) {
+		c.Input.Sticks, c.Input.Touch, c.Input.Motion = 2, true, true
+	})},
 }
 
 func with(c ConsoleCapabilities, more ...func(*ConsoleCapabilities)) ConsoleCapabilities {
@@ -362,33 +365,34 @@ type ShelfShape struct {
 // Case kinds: box (cardboard), clamshell (plastic, cartridge era), jewel (CD), keep (DVD-style).
 // Cartridge kinds: cart, card (HuCard, DS and 3DS cards), disc.
 var shelfLooks = map[string]ShelfLook{
-	"a2600":  {Case: ShelfShape{"box", 0.72, 1}, Cart: ShelfShape{"cart", 0.85, 0.75}},
-	"a7800":  {Case: ShelfShape{"box", 0.72, 1}, Cart: ShelfShape{"cart", 0.85, 0.75}},
-	"nes":    {Case: ShelfShape{"box", 0.71, 1}, Cart: ShelfShape{"cart", 0.89, 1}},
-	"sms":    {Case: ShelfShape{"clamshell", 0.71, 1}, Cart: ShelfShape{"cart", 0.8, 0.85}},
-	"snes":   {Case: ShelfShape{"box", 1.39, 0.68}, Cart: ShelfShape{"cart", 1.18, 0.82}},
-	"md":     {Case: ShelfShape{"clamshell", 0.71, 1}, Cart: ShelfShape{"cart", 0.83, 0.88}},
-	"pce":    {Case: ShelfShape{"jewel", 1, 0.66}, Cart: ShelfShape{"card", 1.58, 0.45}},
-	"gb":     {Case: ShelfShape{"box", 0.96, 0.6}, Cart: ShelfShape{"cart", 0.88, 0.5}},
-	"gba":    {Case: ShelfShape{"box", 0.96, 0.6}, Cart: ShelfShape{"cart", 1.6, 0.45}},
-	"gg":     {Case: ShelfShape{"clamshell", 0.75, 0.75}, Cart: ShelfShape{"cart", 1.28, 0.5}},
-	"lynx":   {Case: ShelfShape{"box", 0.96, 0.6}, Cart: ShelfShape{"card", 1.4, 0.45}},
-	"ws":     {Case: ShelfShape{"box", 0.96, 0.6}, Cart: ShelfShape{"cart", 1.4, 0.45}},
-	"ngp":    {Case: ShelfShape{"box", 0.96, 0.6}, Cart: ShelfShape{"cart", 1.3, 0.45}},
-	"vb":     {Case: ShelfShape{"box", 1.39, 0.68}, Cart: ShelfShape{"cart", 0.9, 0.7}},
-	"n64":    {Case: ShelfShape{"box", 1.39, 0.68}, Cart: ShelfShape{"cart", 1.12, 0.78}},
-	"ps1":    {Case: ShelfShape{"jewel", 1, 0.66}, Cart: ShelfShape{"disc", 1, 0.66}},
-	"dc":     {Case: ShelfShape{"jewel", 1, 0.66}, Cart: ShelfShape{"disc", 1, 0.66}},
-	"ps2":    {Case: ShelfShape{"keep", 0.71, 1}, Cart: ShelfShape{"disc", 1, 0.66}},
-	"psp":    {Case: ShelfShape{"keep", 0.58, 0.95}, Cart: ShelfShape{"disc", 1, 0.45}},
-	"nds":    {Case: ShelfShape{"keep", 0.91, 0.72}, Cart: ShelfShape{"card", 0.94, 0.45}},
-	"3ds":    {Case: ShelfShape{"keep", 0.91, 0.72}, Cart: ShelfShape{"card", 0.94, 0.45}},
-	"gc":     {Case: ShelfShape{"keep", 0.72, 0.95}, Cart: ShelfShape{"disc", 1, 0.45}},
-	"wii":    {Case: ShelfShape{"keep", 0.71, 1}, Cart: ShelfShape{"disc", 1, 0.66}},
-	"wiiu":   {Case: ShelfShape{"keep", 0.71, 1}, Cart: ShelfShape{"disc", 1, 0.66}},
-	"ps3":    {Case: ShelfShape{"keep", 0.87, 0.9}, Cart: ShelfShape{"disc", 1, 0.66}},
-	"xbox":   {Case: ShelfShape{"keep", 0.71, 1}, Cart: ShelfShape{"disc", 1, 0.66}},
-	"switch": {Case: ShelfShape{"keep", 0.62, 0.9}, Cart: ShelfShape{"card", 0.72, 0.4}},
+	"a2600":   {Case: ShelfShape{"box", 0.72, 1}, Cart: ShelfShape{"cart", 0.85, 0.75}},
+	"a7800":   {Case: ShelfShape{"box", 0.72, 1}, Cart: ShelfShape{"cart", 0.85, 0.75}},
+	"nes":     {Case: ShelfShape{"box", 0.71, 1}, Cart: ShelfShape{"cart", 0.89, 1}},
+	"sms":     {Case: ShelfShape{"clamshell", 0.71, 1}, Cart: ShelfShape{"cart", 0.8, 0.85}},
+	"snes":    {Case: ShelfShape{"box", 1.39, 0.68}, Cart: ShelfShape{"cart", 1.18, 0.82}},
+	"md":      {Case: ShelfShape{"clamshell", 0.71, 1}, Cart: ShelfShape{"cart", 0.83, 0.88}},
+	"pce":     {Case: ShelfShape{"jewel", 1, 0.66}, Cart: ShelfShape{"card", 1.58, 0.45}},
+	"gb":      {Case: ShelfShape{"box", 0.96, 0.6}, Cart: ShelfShape{"cart", 0.88, 0.5}},
+	"gba":     {Case: ShelfShape{"box", 0.96, 0.6}, Cart: ShelfShape{"cart", 1.6, 0.45}},
+	"gg":      {Case: ShelfShape{"clamshell", 0.75, 0.75}, Cart: ShelfShape{"cart", 1.28, 0.5}},
+	"lynx":    {Case: ShelfShape{"box", 0.96, 0.6}, Cart: ShelfShape{"card", 1.4, 0.45}},
+	"ws":      {Case: ShelfShape{"box", 0.96, 0.6}, Cart: ShelfShape{"cart", 1.4, 0.45}},
+	"ngp":     {Case: ShelfShape{"box", 0.96, 0.6}, Cart: ShelfShape{"cart", 1.3, 0.45}},
+	"vb":      {Case: ShelfShape{"box", 1.39, 0.68}, Cart: ShelfShape{"cart", 0.9, 0.7}},
+	"n64":     {Case: ShelfShape{"box", 1.39, 0.68}, Cart: ShelfShape{"cart", 1.12, 0.78}},
+	"ps1":     {Case: ShelfShape{"jewel", 1, 0.66}, Cart: ShelfShape{"disc", 1, 0.66}},
+	"dc":      {Case: ShelfShape{"jewel", 1, 0.66}, Cart: ShelfShape{"disc", 1, 0.66}},
+	"ps2":     {Case: ShelfShape{"keep", 0.71, 1}, Cart: ShelfShape{"disc", 1, 0.66}},
+	"psp":     {Case: ShelfShape{"keep", 0.58, 0.95}, Cart: ShelfShape{"disc", 1, 0.45}},
+	"nds":     {Case: ShelfShape{"keep", 0.91, 0.72}, Cart: ShelfShape{"card", 0.94, 0.45}},
+	"3ds":     {Case: ShelfShape{"keep", 0.91, 0.72}, Cart: ShelfShape{"card", 0.94, 0.45}},
+	"gc":      {Case: ShelfShape{"keep", 0.72, 0.95}, Cart: ShelfShape{"disc", 1, 0.45}},
+	"wii":     {Case: ShelfShape{"keep", 0.71, 1}, Cart: ShelfShape{"disc", 1, 0.66}},
+	"wiiu":    {Case: ShelfShape{"keep", 0.71, 1}, Cart: ShelfShape{"disc", 1, 0.66}},
+	"ps3":     {Case: ShelfShape{"keep", 0.87, 0.9}, Cart: ShelfShape{"disc", 1, 0.66}},
+	"xbox":    {Case: ShelfShape{"keep", 0.71, 1}, Cart: ShelfShape{"disc", 1, 0.66}},
+	"switch":  {Case: ShelfShape{"keep", 0.62, 0.9}, Cart: ShelfShape{"card", 0.72, 0.4}},
+	"switch2": {Case: ShelfShape{"keep", 0.62, 0.9}, Cart: ShelfShape{"card", 0.72, 0.4}},
 }
 
 func shelfLookFor(c wittyplay.Console) *ShelfLook {

@@ -67,7 +67,10 @@ func standaloneWords(c *wittyplay.Console, offers []emulatorOffer) string {
 		}
 	}
 	if len(c.Emulators) == 0 {
-		return c.Name + " games play in an emulator program you install yourself: WittyPlay offers none. An administrator can add one in Settings, Standalone emulators, Your own emulator programs."
+		return c.Name + " games play in an emulator program you install yourself. An administrator can add one in Settings, Standalone emulators, Your own emulator programs."
+	}
+	if c.ID == "switch" || c.ID == "switch2" {
+		return c.Name + " games play in an emulator this server never downloads: an administrator installs it from its own project and adds it in Settings, Standalone emulators, with keys and firmware from their own console."
 	}
 	return c.Name + " games play in a standalone emulator. An administrator can install one in Settings, Standalone emulators."
 }

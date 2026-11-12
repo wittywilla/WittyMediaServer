@@ -5,7 +5,7 @@
 // server's own. What comes back is described in emulatorsLogic.ts.
 import { api, ApiError, serverBase } from '../../api'
 import type { Connected, EmulatorHost, EmulatorSession, Hello } from '@wittywilla/wittyplay'
-import { apiPath, type BackendSettings, type OwnProgram, type CatalogueEntry, type Diagnostics, type DockerStatus, type EmulatorSettingsView, type GameEmulator, type InstallJob, type RunningSession, type SettingsScope, type Values } from './emulatorsLogic'
+import { apiPath, type BackendSettings, type ManualView, type OwnProgram, type CatalogueEntry, type Diagnostics, type DockerStatus, type EmulatorSettingsView, type GameEmulator, type InstallJob, type RunningSession, type SettingsScope, type Values } from './emulatorsLogic'
 
 const M = '/v1/modules/wittyplay/docker'
 const id = encodeURIComponent
@@ -32,6 +32,10 @@ export const emulatorsApi = {
   // values holds only what changed; null clears a key.
   saveEmulatorSettings: (emulator: string, scope: SettingsScope, values: Record<string, unknown>, game?: number) =>
     api.put<EmulatorSettingsView>(`${M}/emulators/${id(emulator)}/settings`, { scope, ...(scope === 'game' ? { game } : {}), values }),
+
+  // An emulator never downloaded, which the administrator installed: what's found, and adding it.
+  manual: (emulator: string) => api.get<ManualView>(`${M}/emulators/${id(emulator)}/manual`),
+  addManual: (emulator: string, program: string) => api.post<ManualView>(`${M}/emulators/${id(emulator)}/manual`, { program }),
 
   // An administrator's own emulator programs, installed on this server by them. Replaced whole.
   own: () => api.get<{ own: OwnProgram[] | null; max: number }>(`${M}/own`),

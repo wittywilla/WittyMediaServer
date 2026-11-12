@@ -175,7 +175,7 @@ func hintNames(folder string) []string {
 
 // mustHaveHeader lists the consoles whose every game has a header their cores rely on.
 // A file for one of them without it won't play, whatever it's called.
-var mustHaveHeader = map[string]bool{"gb": true, "gba": true, "n64": true, "nds": true, "ngp": true, "ps1": true, "ps2": true, "psp": true, "3ds": true,
+var mustHaveHeader = map[string]bool{"switch2": true, "gb": true, "gba": true, "n64": true, "nds": true, "ngp": true, "ps1": true, "ps2": true, "psp": true, "3ds": true,
 	gameid.GameCube: true, gameid.Wii: true, gameid.WiiU: true, gameid.PS3: true, gameid.Xbox: true, gameid.Switch: true}
 
 // opaqueExts are formats a header can't be read from here: compressed in a way that would
@@ -340,6 +340,11 @@ func decide(f gameid.Finding, ext, stem, hint, library string, size int64, fits 
 		return leftOut(gameid.KindData, "This is one track of a disc, with no cue sheet to say which game it belongs to.", hint)
 	}
 	if f.Proven() {
+		// A Switch 2 game's file looks like a Switch game's: the folder or library says which.
+		if f.Console == "switch" && hint == "switch2" {
+			f.Console = "switch2"
+			f.Proof += " Its folder or library says it's for the Switch 2, which its file can't."
+		}
 		v := proven(f, hint)
 		switch {
 		case library != "" && library != wittyplay.Auto && v.Console != "" && v.Console != library:

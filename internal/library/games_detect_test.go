@@ -18,6 +18,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/gameid/fixture"
 	"github.com/wittywilla/wittymediaserver/internal/gameregion"
 	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
+	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 )
 
 func discardLog() *slog.Logger { return slog.New(slog.NewTextHandler(io.Discard, nil)) }
@@ -552,5 +553,31 @@ func TestFilesThatNeedTheOwnersKeysAreGames(t *testing.T) {
 	}
 	if v := proven(gameid.Finding{Console: "3ds", Kind: gameid.KindGame, Encrypted: true, NeedsKeys: true}, ""); v.Problem != "" {
 		t.Fatalf("a file that needs the owner's keys: %+v", v)
+	}
+}
+
+// A Switch game's file in a Switch 2 folder or library is a Switch 2 game: the file can't say,
+// so the folder does, and it isn't sent to Needs a look as a game for another console.
+func TestSwitch2ByFolder(t *testing.T) {
+	modtest.Need(t, "wittyplay")
+	root := t.TempDir()
+	nsp := fixture.NSP("0100000000010000.nca", "0100000000010000.tik")
+	for _, rel := range []string{"Switch 2/game.nsp", "Switch/game.nsp"} {
+		p := filepath.Join(root, filepath.FromSlash(rel))
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, nsp, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if v := judgeFile(filepath.Join(root, "Switch 2", "game.nsp"), "Switch 2/game.nsp", wittyplay.Auto, int64(len(nsp))); v.Console != "switch2" || v.Left != "" {
+		t.Errorf("in a Switch 2 folder: %+v", v)
+	}
+	if v := judgeFile(filepath.Join(root, "Switch 2", "game.nsp"), "Switch 2/game.nsp", "switch2", int64(len(nsp))); v.Console != "switch2" || v.Left != "" {
+		t.Errorf("in a Switch 2 library: %+v", v)
+	}
+	if v := judgeFile(filepath.Join(root, "Switch", "game.nsp"), "Switch/game.nsp", wittyplay.Auto, int64(len(nsp))); v.Console != "switch" {
+		t.Errorf("in a Switch folder: %+v", v)
 	}
 }

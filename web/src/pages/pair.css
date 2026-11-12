@@ -39,11 +39,11 @@
    as the screen allows, and nothing here needs more than OK or Back on the remote. */
 html.tv-mode .auth-card.pair-device:not(.ended) { width: min(94vw, calc(var(--tvu) * 1560)); max-width: none; padding: 0; }
 html.tv-mode .auth-card.pair-device .btn.primary { width: auto; }
-html.tv-mode .pair-device h2 { font-size: var(--tv-headline); margin-bottom: calc(var(--tvu) * 36); }
+html.tv-mode .pair-device h2 { font-size: var(--tvm-headline); margin-bottom: calc(var(--tvu) * 36); }
 html.tv-mode .pair-device-body { grid-template-columns: auto minmax(0, 1fr); gap: calc(var(--tvu) * 72); align-items: center; }
 html.tv-mode .pair-how { justify-items: start; text-align: left; gap: calc(var(--tvu) * 16); }
 html.tv-mode .qr { width: min(58vh, 42vw); border-radius: var(--r-md); }
-html.tv-mode .pair-steps, html.tv-mode .pair-device .panel-note, html.tv-mode .pair-address { font-size: var(--tv-body); }
+html.tv-mode .pair-steps, html.tv-mode .pair-device .panel-note, html.tv-mode .pair-address { font-size: var(--tvm-body); }
 html.tv-mode .pair-device p.pair-code { color: var(--fg); font-size: calc(var(--tvu) * 112); letter-spacing: .14em; white-space: nowrap; }
 html.tv-mode .pair-countdown { width: min(100%, calc(var(--tvu) * 520)); height: calc(var(--tvu) * 10); }
 html.tv-mode .pair-device .panel-actions { margin-top: calc(var(--tvu) * 40); }

@@ -5,48 +5,30 @@
    colours; every value falls back, so it works against a theme that knows none of them. */
 
 :root {
-  /* ---- elevation: the page is flat, a panel is one tone up with a hairline, a lifted card is two, an overlay three ---- */
-  --elev-0-fill: var(--bg);
-  --elev-1-fill: var(--bg-2);   --elev-1-line: var(--border);
-  --elev-2-fill: var(--bg-3);   --elev-2-line: var(--border);
-  --elev-3-fill: var(--bg-3);   --elev-3-line: var(--border-strong);
-  --elev-3-shadow: var(--e-3);
-
-  /* ---- type roles: the apps read roles, not the numeric scale ---- */
-  --role-display: var(--display);
-  --role-pageTitle: var(--page-title);
-  --role-heading: var(--text-xl);
-  --role-title: var(--text-lg);
-  --role-body: var(--text-base);
-  --role-caption: var(--text-sm);
-  --role-label: var(--text-2xs);
-
-  /* ---- density: a multiple of spacing and control height (comfortable is 1) ---- */
-  --density: 1;
-  --space-none: 0px; --space-xs: calc(4px * var(--density)); --space-s: calc(8px * var(--density)); --space-m: calc(16px * var(--density)); --space-l: calc(24px * var(--density)); --space-xl: calc(40px * var(--density));
-
-  /* ---- motion ---- */
-  --focus-move: 120ms;
-  --screen-dur: 240ms;
-  --hero-dur: 600ms;
+  /* The tokens themselves (elevation, type roles, space steps, density, focus per input, motion) are in styles.css,
+     from themes/tokens.json. This file applies them. */
+  --focus-move: var(--dur-focus);
 }
-html[data-density="compact"] { --density: .8; --control-h: 2.125rem; --control-h-sm: 1.75rem; --control-h-lg: 2.5rem; --section-gap: clamp(20px, 2.4vw, 32px); }
-html[data-density="spacious"] { --density: 1.25; --control-h: 2.875rem; --control-h-sm: 2.25rem; --control-h-lg: 3.25rem; --section-gap: clamp(36px, 4.4vw, 56px); }
+/* ---- density: spacing and control height take the multiples of the density tokens ---- */
+html[data-density="compact"], html[data-density="spacious"] {
+  --control-h: calc(2.5rem * var(--density-control)); --control-h-sm: calc(2rem * var(--density-control)); --control-h-lg: calc(2.875rem * var(--density-control));
+  --section-gap: calc(clamp(28px, 3.4vw, 44px) * var(--density-space));
+}
 /* Fingers keep their targets whatever the density. */
 @media (pointer: coarse) { html[data-density="compact"] { --control-h: 2.75rem; --control-h-sm: 2.75rem; --control-h-lg: 3.125rem; } }
 
 /* ---- the focus language, by the input in use: the same ring, thicker the further you are from the screen ---- */
-html[data-input="keys"] { --focus-width: 3px; --focus-offset: 3px; }
+html[data-input="keys"] { --focus-width: var(--focus-width-keys); --focus-offset: var(--focus-offset-keys); --focus-scale: var(--focus-scale-keys); }
 html[data-input="pad"] { --focus-width: 3px; --focus-offset: 3px; --focus-scale: 1.04; }
-html.tv-mode, html[data-input="remote"].ten-foot { --focus-width: 4px; --focus-offset: 4px; --focus-scale: 1.06; --focus: var(--fg); }
+html.tv-mode, html[data-input="remote"].ten-foot { --focus-width: calc(var(--tv-focus-ring) * 1px); --focus-offset: calc(var(--tv-focus-gap) * 1px); --focus-scale: var(--tv-focus-scale); --focus: var(--tv-ring-color); }
 /* A control takes a fill, not a ring, in the dock and bar: the thing is the highlight. */
 .dock:not(.ctv-dock) .dock-btn:focus-visible, .tvm-pill:focus-visible { outline: none; background: var(--fg); color: var(--bg); }
 .dock:not(.ctv-dock) .dock-btn:focus-visible kbd { background: rgb(var(--bg-rgb) / .12); color: inherit; border-color: currentColor; }
-@media (prefers-reduced-motion: reduce) { :root { --focus-move: 0ms; --screen-dur: 0ms; --hero-dur: 0ms; } }
+@media (prefers-reduced-motion: reduce) { :root { --focus-move: 0ms; } }
 
 /* ---- surfaces step by tone: dialogs and menus are the top step ---- */
 .modal, [role=menu], .ui-menu { background: var(--elev-3-fill); border: 1px solid var(--elev-3-line); box-shadow: var(--elev-3-shadow); }
-.ui-card { background: var(--elev-1-fill); border-color: var(--elev-1-line); box-shadow: none; }
+.ui-card { background: var(--elev-1-fill); border-color: var(--elev-1-line); box-shadow: var(--elev-1-shadow); }
 
 /* ---- the Dock: a screen's own controls, in one row that never moves ---- */
 .dock { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-s) var(--space-l); padding: var(--space-s) var(--gutter); background: var(--elev-1-fill); border-top: 1px solid var(--elev-1-line); }
@@ -84,5 +66,5 @@ html[data-input="pad"] .key-legend kbd, html[data-input="remote"] .key-legend kb
 .sdui-seeall .poster::after { display: none; }
 
 /* ---- type roles on the page's own headings ---- */
-.sdui-page-title { font-size: var(--role-pageTitle); letter-spacing: var(--tracking-heading); font-weight: var(--weight-heading); }
-.sdui .hub-head h2 { font-size: var(--role-heading); letter-spacing: var(--tracking-heading); font-weight: var(--weight-heading); }
+.sdui-page-title { font-size: var(--role-page-title-size); letter-spacing: var(--tracking-heading); font-weight: var(--weight-heading); }
+.sdui .hub-head h2 { font-size: var(--role-heading-size); letter-spacing: var(--tracking-heading); font-weight: var(--weight-heading); }

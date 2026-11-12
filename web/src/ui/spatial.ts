@@ -14,11 +14,11 @@ export type Box = { left: number; top: number; right: number; bottom: number }
 // The numbers are design tokens (`nav.weights` in themes/tokens.json) so the Swift and Kotlin ports
 // score the same way; these are the defaults, and setWeights() takes the server's.
 export type Weights = { offLine: Record<Dir, number>; offCentre: Record<Dir, number>; leavesLine: Record<Dir, number> }
-export const DEFAULT_WEIGHTS: Weights = {
-  offLine: { left: 4, right: 4, up: 1.2, down: 1.2 },
-  offCentre: { left: 0.1, right: 0.1, up: 0.3, down: 0.3 },
-  leavesLine: { left: 4000, right: 4000, up: 0, down: 0 },
-}
+// Kept as these three constants: scripts/design-tokens.py --check compares them with `nav.weights` in the tokens.
+const OFF_LINE: Record<Dir, number> = { left: 4, right: 4, up: 1.2, down: 1.2 }
+const OFF_CENTRE: Record<Dir, number> = { left: 0.1, right: 0.1, up: 0.3, down: 0.3 }
+const LEAVES_LINE: Record<Dir, number> = { left: 4000, right: 4000, up: 0, down: 0 }
+export const DEFAULT_WEIGHTS: Weights = { offLine: OFF_LINE, offCentre: OFF_CENTRE, leavesLine: LEAVES_LINE }
 let W: Weights = DEFAULT_WEIGHTS
 
 // weightsFrom: the weights out of a tokens document's `nav` block. Anything missing or not a finite

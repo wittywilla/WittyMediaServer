@@ -230,7 +230,7 @@ function Editor({ answer, reload }: { answer: PageAnswer; reload: () => void }) 
   return (
     <div className="pe-wide">
       <BackLink to="/settings/pages" label="Pages" />
-      <PageHead title={name} desc={<><span className={'pe-source ' + source} title={SOURCE_HELP[source]}>{SOURCE_WORDS[source] || source}</span> {matchText(cat, entry, libraries)}</>} />
+      <PageHead title={`Edit ${name}`} desc={<><span className={'pe-source ' + source} title={SOURCE_HELP[source]}>{SOURCE_WORDS[source] || source}</span> {matchText(cat, entry, libraries)}</>} />
       <DraftBar route={pageRoute(cat, page, previewWith.current) || '/'} />
 
       <div className="pe-toolbar" role="toolbar" aria-label="This page">

@@ -232,3 +232,6 @@
 .pe-frame.phone .pe-frame-page .detail-hero:not(.bare) { height: calc(var(--pe-vh) * 38); min-height: 240px; }
 .pe-frame.tv .pe-frame-page .hero { height: auto; min-height: 0; }
 .pe-actions { display: flex; gap: var(--sp-2); margin-top: var(--sp-4); }
+
+/* A focused control is never left under the page editor's own sticky toolbar. */
+html:has(.pe-toolbar) { scroll-padding-block-start: calc(var(--topbar-h) + 8rem); }

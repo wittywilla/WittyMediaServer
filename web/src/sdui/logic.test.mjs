@@ -210,3 +210,21 @@ test('a streaming-service filter goes to a page as service, never as the device\
   assert.equal(r.params.genre, 'Drama')
   assert.equal(resolve('/library/3', '?service=hulu').params.service, 'hulu')
 })
+
+test('catalogue commands: {item} and the parameters fill the path and the body', async () => {
+  const { commandRequest, plan, setCommandSpecs } = await import('./routes.ts')
+  const join = { op: 'wittyplay.room.join', method: 'POST', path: '/api/play/join', body: '{"room":"{item}","code":"{code}"}', params: [{ name: 'code', type: 'string' }] }
+  assert.deepEqual(commandRequest(join, { type: 'command', op: join.op, item: 'abc' + '"', params: { code: 'K 9"' } }), { do: 'request', method: 'POST', path: '/play/join', body: { room: 'abc"', code: 'K 9"' } })
+  // Not given: an empty string.
+  assert.deepEqual(commandRequest(join, { type: 'command', op: join.op, item: 's1' }).body, { room: 's1', code: '' })
+  const assign = { op: 'wittyplay.controller.assign', method: 'PUT', path: '/api/play/{item}/seat/{user}', body: '{"user":"{user}","seat":"{seat}"}', params: [{ name: 'user', type: 'string', required: true }, { name: 'seat', type: 'int', required: true }] }
+  const step = commandRequest(assign, { type: 'command', op: assign.op, item: 'a/b', params: { user: 'x y', seat: 2 } })
+  assert.deepEqual(step, { do: 'request', method: 'PUT', path: '/play/a%2Fb/seat/x%20y', body: { user: 'x y', seat: 2 } }, 'an int parameter is a number, a path value is escaped')
+  assert.deepEqual(commandRequest(assign, { type: 'command', op: assign.op, item: 'a', params: { user: 'x' } }), { do: 'nothing' }, 'a required parameter that is missing')
+  // Through plan, once the catalogue is known; the two client-handled ops need none.
+  setCommandSpecs([join])
+  assert.equal(plan({ type: 'command', op: join.op, item: 's', params: { code: 'z' } }).do, 'request')
+  assert.deepEqual(plan({ type: 'command', op: 'rewind.open' }), { do: 'client', op: 'rewind.open', params: {} })
+  assert.deepEqual(plan({ type: 'command', op: 'nothing.here' }), { do: 'nothing' })
+  setCommandSpecs([])
+})

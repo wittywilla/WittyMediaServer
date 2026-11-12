@@ -295,8 +295,10 @@ try {
         await page.eval(`localStorage.setItem('wms.tenfoot', '0')`)
         await go(p)
         const title = await pageChecks(p)
-        if (titles.has(title) && title) fault(p, `same page title as ${titles.get(title)}: "${title}"`)
-        else titles.set(title, p)
+        // An address that redirects (Settings to its first page) is the page it lands on, not another page with the same title.
+        const landed = await page.eval(`location.pathname + location.search`)
+        if (titles.has(title) && title && titles.get(title).landed !== landed) fault(p, `same page title as ${titles.get(title).p}: "${title}"`)
+        else titles.set(title, { p, landed })
         line.push(`tab ${await tabWalk(p)}`)
       }
       if (only !== 'tab') {

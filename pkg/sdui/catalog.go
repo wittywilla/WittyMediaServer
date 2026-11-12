@@ -203,6 +203,21 @@ type CommandSpec struct {
 	Method string `json:"method"`
 	Path   string `json:"path"`
 	Body   string `json:"body,omitempty"`
+	// Params are the values besides {item} the command needs, from the action's params, by
+	// name. A client puts each one in place of {name} the way {item} goes: URL-escaped in
+	// Path; in Body inside a JSON string, escaped as one, except that for an int parameter the
+	// string and its quotes are replaced by the number. A parameter that wasn't given is an
+	// empty string (an int one is required, so it is always given). Body stays JSON whatever
+	// the values.
+	Params []CommandParam `json:"params,omitempty"`
+}
+
+// CommandParam is one value a command takes besides the action's item.
+type CommandParam struct {
+	Name     string `json:"name"`
+	Type     string `json:"type"` // string or int
+	Label    string `json:"label"`
+	Required bool   `json:"required,omitempty"`
 }
 
 // NativeScreenSpec describes a screen every app draws itself.

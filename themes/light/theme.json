@@ -3,7 +3,7 @@
   "name": "Light",
   "description": "Clean, bright grey with a violet accent.",
   "author": "WittyMediaServer",
-  "version": "7",
+  "version": "8",
   "scheme": "light",
   "builtin": true,
   "preview": {
@@ -98,5 +98,10 @@
       "strong": 600,
       "heading": 650
     }
+  },
+  "tv": {
+    "ringColor": "#15171c",
+    "heroScrim": 0.76,
+    "tvText": "#131519"
   }
 }

@@ -53,6 +53,9 @@
   --focus-scale: 1;
   --on-image: #fff;                                         /* text and icons over artwork */
   --scrim: rgb(0 0 0 / .68);                                /* the plate behind them */
+  --tv-ring-color: var(--fg);                               /* the focus ring across the room */
+  --tv-text: var(--fg);                                     /* body text across the room: themes set it a step stronger */
+  --hero-scrim: .72;                                        /* strength of the scrim behind hero text, 0 to 1 */
   --picture-bg: #000;                                       /* behind video and photos: never themed */
 
   /* ---- type: one scale; sizes in rem so they follow the reader's setting ---- */
@@ -138,7 +141,61 @@
   --control-h-lg: 2.875rem;
   --card-w: 148px;
   --card-wide-w: 260px;
+
+  /* ---- Design 2 (docs/plans/DESIGN-2.md section 2): named roles and steps, read by every app via themes/tokens.json ---- */
+  /* type roles at the 1x device: size, weight, leading, tracking. TV sizes are --tv-type-*. */
+  --role-display-size: 3rem;      --role-display-weight: var(--weight-heading); --role-display-leading: var(--leading-tight); --role-display-tracking: var(--tracking-display);
+  --role-page-title-size: 1.875rem; --role-page-title-weight: var(--weight-heading); --role-page-title-leading: var(--leading-tight); --role-page-title-tracking: var(--tracking-heading);
+  --role-heading-size: 1.25rem;   --role-heading-weight: var(--weight-heading); --role-heading-leading: var(--leading-snug); --role-heading-tracking: var(--tracking-heading);
+  --role-title-size: 1.0625rem;   --role-title-weight: 600; --role-title-leading: var(--leading-snug); --role-title-tracking: 0em;
+  --role-body-size: .9375rem;     --role-body-weight: 400; --role-body-leading: var(--leading-body); --role-body-tracking: 0em;
+  --role-caption-size: .75rem;    --role-caption-weight: 400; --role-caption-leading: var(--leading-snug); --role-caption-tracking: 0em;
+  --role-label-size: .6875rem;    --role-label-weight: 600; --role-label-leading: var(--leading-snug); --role-label-tracking: var(--tracking-label);
+
+  /* the SDUI spacing steps, on the same 4px grid */
+  --space-none: 0px; --space-xs: var(--sp-1); --space-s: var(--sp-2); --space-m: var(--sp-4); --space-l: var(--sp-6); --space-xl: var(--sp-10);
+
+  /* elevation: surfaces step by tone, a hairline for panels, a shadow only for what floats */
+  --elev-0-fill: var(--bg);   --elev-0-line: none;                 --elev-0-shadow: none;
+  --elev-1-fill: var(--bg-2); --elev-1-line: var(--border);        --elev-1-shadow: none;
+  --elev-2-fill: var(--bg-3); --elev-2-line: var(--border);        --elev-2-shadow: var(--e-2);
+  --elev-3-fill: var(--bg-3); --elev-3-line: var(--border-strong); --elev-3-shadow: var(--e-3);
+
+  /* focus by input: pointer is the default above, keys (a keyboard in use) a step stronger, tv is --tv-focus-* */
+  --focus-width-keys: 3px; --focus-offset-keys: 3px; --focus-scale-keys: 1;
+
+  /* layout breakpoints: compact under 600, medium under 840, expanded under 1200, large from there (as SDUI) */
+  --bp-compact: 600px; --bp-medium: 840px; --bp-expanded: 1200px;
+
+  /* density: multiples of spacing and of control height, chosen per profile per device */
+  --density-space: 1; --density-control: 1;
+  --density-compact-space: .75; --density-compact-control: .875;
+  --density-comfortable-space: 1; --density-comfortable-control: 1;
+  --density-spacious-space: 1.25; --density-spacious-control: 1.125;
+
+  /* more motion: moving focus, changing screen, the hero's crossfade */
+  --dur-focus: 120ms; --dur-screen: 240ms; --dur-hero: 600ms;
+
+  /* ten-foot units (--tv-*): 1 unit = 1 pt on Apple TV (1920x1080), 0.5 dp on Android TV (960x540). Unitless on purpose. */
+  --tv-safe-x: 90; --tv-safe-y: 60; --tv-gutter: 90;
+  --tv-topbar-height: 88; --tv-topbar-top: 24; --tv-topbar-pill: 56; --tv-topbar-gap: 16;
+  --tv-rail-closed: 120; --tv-rail-open: 400;
+  --tv-type-display: 76; --tv-type-page-title: 57; --tv-type-heading: 48; --tv-type-title: 38; --tv-type-body: 29; --tv-type-caption: 25; --tv-type-label: 25;
+  --tv-target-min: 66;
+  --tv-focus-ring: 4; --tv-focus-gap: 4; --tv-focus-scale: 1.06; --tv-focus-lift: 6;
+  --tv-shelf-row-gap: 56; --tv-shelf-card-gap: 24; --tv-shelf-peek: .18; --tv-shelf-pad-top: 24; --tv-shelf-pad-bottom: 24;
+  --tv-card-poster-w: 250; --tv-card-poster-h: 375; --tv-card-wide-w: 420; --tv-card-wide-h: 236;
+  --tv-card-square-w: 300; --tv-card-square-h: 300; --tv-card-circle: 200; --tv-card-channel-w: 280; --tv-card-channel-h: 158;
+  --tv-dock-height: 112; --tv-dock-hint: 25;
 }
+/* Density, chosen per profile per device (docs/DESIGN.md "Density"). */
+html[data-density="compact"] { --density-space: var(--density-compact-space); --density-control: var(--density-compact-control); }
+html[data-density="spacious"] { --density-space: var(--density-spacious-space); --density-control: var(--density-spacious-control); }
+/* Elevation: step 0 is the page, 1 a panel, 2 a lifted card, 3 something over the page. */
+.elev-0 { background: var(--elev-0-fill); }
+.elev-1 { background: var(--elev-1-fill); border: 1px solid var(--elev-1-line); }
+.elev-2 { background: var(--elev-2-fill); border: 1px solid var(--elev-2-line); box-shadow: var(--elev-2-shadow); }
+.elev-3 { background: var(--elev-3-fill); border: 1px solid var(--elev-3-line); box-shadow: var(--elev-3-shadow); }
 /* Fingers: bigger controls everywhere, from one place. */
 @media (pointer: coarse) { :root { --control-h: 2.75rem; --control-h-sm: 2.75rem; --control-h-lg: 3.125rem; } }
 /* About a seventh of the window, however wide it is. */
@@ -157,8 +214,10 @@ html.using-controller { font-size: 125%; --focus-width: 3px; --focus-offset: 3px
 @media (pointer: none) { :root { font-size: 125%; --focus-width: 3px; --focus-offset: 3px; --focus-scale: 1.04; --card-w: 200px; --card-wide-w: 340px; --gutter: max(48px, 4vw); } }
 /* The same again for "Big screen mode" in Settings, Appearance. */
 /* Across the room the outline has to be the strongest thing on the screen, on any surface. */
-html.using-controller, html.ten-foot { --focus: var(--fg); }
-@media (pointer: none) { :root { --focus: var(--fg); } }
+html.using-controller, html.ten-foot { --focus: var(--tv-ring-color); }
+@media (pointer: none) { :root { --focus: var(--tv-ring-color); } }
+html.using-controller body, html.ten-foot body { color: var(--tv-text); }
+@media (pointer: none) { body { color: var(--tv-text); } }
 html.ten-foot { font-size: 125%; --focus-width: 3px; --focus-offset: 3px; --focus-scale: 1.04; --card-w: 200px; --card-wide-w: 340px; --gutter: max(48px, 4vw); }
 /* The frame grows with the type, or the name in the side menu gets cut off and the bar is too short for what's in it.
    The menu grows at every width: below 901px it's the drawer, which has the same type. */

@@ -8,6 +8,14 @@ meet WCAG 2.2 AA contrast (4.5:1 for normal text):
   --accent-fg on --accent (button labels)
   --accent-text, the accent as text (links, highlighted words), on all three
 
+and Design 2's focus and ten-foot pairs (never adjusted, only reported, since they follow the
+text colour; docs/THEMES.md "The TV pass"):
+
+  --focus on all three surfaces: 4.5:1, and 3:1 against the raised fills it sits on (--bg-4)
+  --tv-ring-color the same two, and --tv-text 7:1 on all three surfaces (across a room)
+  --fg on --bg and the other way round: the "fill" focus style fills with --fg and sets the label in --bg
+  --hero-scrim at least strong enough that white text over the brightest possible picture reads (4.5:1)
+
 A failing colour is moved the shortest way that passes: lighter on dark
 themes, darker on light ones, keeping its hue. Light accents (gold to teal)
 on dark themes keep their colour and get dark labels instead. Run from the repository root:
@@ -112,6 +120,29 @@ for f in FILES:
                 notes.append(f'--control-line {v["control-line"]} -> {new["control-line"]} ({min(ratio(new["control-line"], s) for s in surfaces):.2f})')
             else:
                 del new['control-line']
+    # Design 2: focus and the ten-foot pairs. Reported, not moved.
+    final = {**new}
+    for k, val in re.findall(r'--(tv-ring-color|tv-text|focus):\s*(#[0-9a-fA-F]{3,6})\b', root):
+        final[k] = val
+    scrim = re.search(r'--hero-scrim:\s*([\d.]+)', root)
+    raised = [v['bg-4']] if 'bg-4' in v else []
+    tvnotes = []
+    pairs = [('focus', 4.5, surfaces), ('focus', 3, raised), ('tv-ring-color', 4.5, surfaces), ('tv-ring-color', 3, raised), ('tv-text', 7, surfaces)]
+    for name, need, against in pairs:
+        # The app's own default and a theme that doesn't set it follow --fg (ten feet) or --accent-text (the desk).
+        col = final.get(name) or (final['fg'] if name != 'focus' else final.get('accent-text', final['accent']))
+        worst = min((ratio(col, x) for x in against), default=99)
+        if worst < need:
+            tvnotes.append(f'--{name} {col} is {worst:.2f}:1, needs {need}:1 on {"the raised fill" if against is raised else "every surface"}')
+    if ratio(final['fg'], final['bg']) < 4.5:
+        tvnotes.append(f'the fill focus style (--bg label on --fg) is {ratio(final["fg"], final["bg"]):.2f}:1, needs 4.5:1')
+    if scrim:
+        s_ = float(scrim.group(1))
+        # The brightest picture there is, white, under the scrim: black at s_ over white is a grey of 1-s_.
+        grey = hexs((1 - s_,) * 3)
+        if ratio(v.get('on-image', '#ffffff') if v.get('on-image', '#ffffff').startswith('#') else '#ffffff', grey) < 4.5:
+            tvnotes.append(f'--hero-scrim {s_} leaves white text under {ratio("#ffffff", grey):.2f}:1 over a white picture, needs 4.5:1')
+    notes += tvnotes
     print(f'{f}: ' + ('; '.join(notes) if notes else 'passes'))
     if notes:
         failed += 1

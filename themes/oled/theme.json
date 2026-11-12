@@ -3,7 +3,7 @@
   "name": "True black",
   "description": "Pure black, kind to OLED screens at night.",
   "author": "WittyMediaServer",
-  "version": "8",
+  "version": "9",
   "scheme": "dark",
   "builtin": true,
   "preview": {
@@ -98,5 +98,10 @@
       "strong": 600,
       "heading": 650
     }
+  },
+  "tv": {
+    "ringColor": "#f2f2f5",
+    "heroScrim": 0.7,
+    "tvText": "#f3f3f6"
   }
 }

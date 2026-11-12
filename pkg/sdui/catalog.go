@@ -8,11 +8,9 @@ import (
 	"sync"
 )
 
-// CatalogRevision counts changes to the catalogue within one SchemaVersion.
-// Revision 1 was the first, unreleased, catalogue of low-level nodes; 2 is the
-// media components described here. A client sends the revision it was built
-// against and is never sent a component newer than that.
-const CatalogRevision = 2
+// CatalogRevision counts changes to the catalogue within one SchemaVersion. Every renderer
+// draws every component of the current revision: there is no negotiation and no fallback.
+const CatalogRevision = 4
 
 // Property types, as an editor needs them to build a form.
 const (
@@ -70,13 +68,6 @@ type ComponentSpec struct {
 	Category string `json:"category"`
 	// Since is the catalogue revision the component appeared in.
 	Since int `json:"since"`
-	// Required components are drawn by every renderer. The others may be left
-	// out by a renderer, which then says so, and is sent Fallback instead.
-	Required bool `json:"required"`
-	// Fallback names what a client that can't draw the component is sent, and
-	// FallbackNote says how it is made from the component.
-	Fallback     string `json:"fallback,omitempty"`
-	FallbackNote string `json:"fallbackNote,omitempty"`
 	// Authored is false for components only the server makes (Page, Card,
 	// Track): they aren't in an editor's palette.
 	Authored bool `json:"authored"`

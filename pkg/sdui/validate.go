@@ -313,6 +313,18 @@ func (v *validator) sectionList(list []Section, path string) {
 					v.err(sp+"/props/target", "Set \"filterable\": true on the grid's source (the browse source has it).", "the grid %q doesn't follow filters", t)
 				}
 			}
+			if s.Component == "Dock" {
+				t := propStr(s.Props, "target", "")
+				if t != "" && grids[t] == nil {
+					v.err(sp+"/props/target", "Set target to the ID of a Grid section on this page.", "the dock's target %q is not a Grid on this page", t)
+				}
+				if t == "" && len(propList(s.Props, "controls", nil)) > 0 {
+					v.err(sp+"/props/target", "Name the Grid the controls act on, or remove the controls.", "a dock's generated controls need a target")
+				}
+				if i != len(list)-1 {
+					v.warn(sp, "Move the dock to the end of the page: it is drawn at the foot of the screen.", "a Dock is the last thing on a page")
+				}
+			}
 			bars(s.Children, sp+"/children")
 		}
 	}
@@ -443,6 +455,13 @@ func (v *validator) sections(list []Section, path string, depth int, parent stri
 		child := s.Component
 		if s.Component == "Stack" && propStr(s.Props, "direction", "column") == "row" {
 			child = "Stack:row"
+		}
+		if len(spec.Children) > 0 {
+			for j, c := range s.Children {
+				if !contains(spec.Children, c.Component) {
+					v.err(sp+"/children/"+strconv.Itoa(j)+"/component", "Use "+strings.Join(spec.Children, " or ")+".", "a %s holds only %s, not %s", spec.Label, strings.Join(spec.Children, " and "), c.Component)
+				}
+			}
 		}
 		v.sections(s.Children, sp+"/children", depth+1, child, ids, grids)
 	}

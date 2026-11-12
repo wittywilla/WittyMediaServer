@@ -151,7 +151,7 @@ func TestSDUIScreensFollowEveryKindOfLimit(t *testing.T) {
 	gamesItems := fmt.Sprintf("/api/sdui/pages/library/sections/all/items?library=%d", w.games)
 	gamesRow := fmt.Sprintf("/api/sdui/pages/home/sections/recent-%d/items", w.games)
 	pages := []string{
-		"/api/sdui/pages/home", "/api/sdui/pages/home?formFactor=tv", "/api/sdui/pages/home?formFactor=phone", "/api/sdui/pages/home?components=none&catalog=1",
+		"/api/sdui/pages/home", "/api/sdui/pages/home?formFactor=tv", "/api/sdui/pages/home?formFactor=phone", "/api/sdui/pages/home?views=guide",
 		"/api/sdui/pages/libraries", "/api/sdui/pages/search?q=Zebra", fmt.Sprintf("/api/sdui/pages/library?library=%d", w.films), gamesPage,
 		fmt.Sprintf("/api/sdui/pages/library?library=%d&sort=title&formFactor=tv", w.films),
 		"/api/sdui/pages/livetv", "/api/sdui/pages/music", "/api/sdui/pages/photos", "/api/sdui/pages/books", "/api/sdui/pages/games", "/api/sdui/pages/collections",

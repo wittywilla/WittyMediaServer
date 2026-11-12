@@ -63,9 +63,6 @@ type Request struct {
 	Platform    string   `json:"platform,omitempty"`
 	Viewport    string   `json:"viewport,omitempty"` // "1440x900"
 	Locale      string   `json:"locale,omitempty"`
-	Catalog     int      `json:"catalog,omitempty"`
-	Components  []string `json:"components,omitempty"`
-	AllOptional *bool    `json:"allOptionalComponents,omitempty"` // false: only what Components lists
 	NativeViews []string `json:"nativeViews,omitempty"`
 	// Capabilities are the client's (reducedMotion, touch, hdr).
 	Capabilities []string `json:"capabilities,omitempty"`
@@ -246,7 +243,7 @@ func (in *Input) Context() *sdui.RenderContext {
 		Platform: r.Platform, ProfileKind: r.ProfileKind, Admin: r.Admin, UserName: r.UserName, ServerName: r.ServerName,
 		Features: r.Features, Modules: r.Modules, Cannot: r.Cannot, LibraryKinds: r.LibraryKinds, Capabilities: r.Capabilities,
 		Flags: r.Flags, Locale: r.Locale, Now: now, Profile: sdui.ProfileFor(r.FormFactor, r.DeviceClass),
-		Catalog: r.Catalog, Components: r.Components, NativeViews: r.NativeViews, Vars: r.Vars, Params: r.Params, Scopes: r.Scopes,
+		NativeViews: r.NativeViews, Vars: r.Vars, Params: r.Params, Scopes: r.Scopes,
 		Personal: r.Personal, CanPersonalise: r.CanPersonalise, Resolver: canned{&in.Data}, BasePath: "/api/v1/sdui", Source: "builtin",
 	}
 	if r.Layout != "" {
@@ -254,9 +251,6 @@ func (in *Input) Context() *sdui.RenderContext {
 	}
 	if len(in.ModuleUI) > 0 {
 		ctx.UI = sdui.NewModuleSet(in.ModuleUI)
-	}
-	if r.AllOptional != nil && !*r.AllOptional && ctx.Components == nil {
-		ctx.Components = []string{}
 	}
 	if ctx.Flags == nil {
 		ctx.Flags = map[string]bool{}

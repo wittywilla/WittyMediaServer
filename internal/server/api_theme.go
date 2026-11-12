@@ -79,6 +79,12 @@ type ResolvedTheme struct {
 	// weights: what SDUI components' tokens.shape and tokens.type name.
 	Shape themes.Shape      `json:"shape"`
 	Type  themes.TypeTokens `json:"type"`
+	// TV, Elevation and Density are Design 2's additions (docs/plans/DESIGN-2.md section 2):
+	// the ten-foot colours and units, the surface each elevation step fills with, and the
+	// spacing steps. Clients that don't know them ignore them.
+	TV        themes.TV                       `json:"tv"`
+	Elevation map[string]themes.ElevationStep `json:"elevation"`
+	Density   themes.Density                  `json:"density"`
 	// Brand is the server's name ready to draw, and the colour token its coloured parts
 	// take, resolved like every other colour.
 	Brand ThemeBrand `json:"brand"`
@@ -110,6 +116,9 @@ type ThemeVariant struct {
 	Modules map[string]map[string]string `json:"modules"`
 	Shape   themes.Shape                 `json:"shape"`
 	Type    themes.TypeTokens            `json:"type"`
+	// The same Design 2 additions, in this look's colours.
+	TV        themes.TV                       `json:"tv"`
+	Elevation map[string]themes.ElevationStep `json:"elevation"`
 }
 
 // The built-in themes the automatic theme is, by the device's setting.
@@ -288,7 +297,8 @@ func (s *Server) resolveThemeWith(r *http.Request, cfg *sduistore.Config, set *s
 		if len(t.Personal) > 0 {
 			warn("personal", tokens, p)
 		}
-		v := ThemeVariant{ID: look.id, Tokens: tokens, Modules: map[string]map[string]string{}, Shape: shape, Type: typ}
+		v := ThemeVariant{ID: look.id, Tokens: tokens, Modules: map[string]map[string]string{}, Shape: shape, Type: typ,
+			TV: themes.TVFor(s.Themes.TVColorsOf(look.id), s.baseColors(look.id), tokens), Elevation: themes.ElevationFor(tokens)}
 		for _, mod := range sortedStringKeys(names) {
 			// The scope's colours over the administrator's palette, warned about as
 			// before; then the profile's own, and its own for the scope, over those.
@@ -309,6 +319,7 @@ func (s *Server) resolveThemeWith(r *http.Request, cfg *sduistore.Config, set *s
 		t.Variants[look.scheme] = v
 		if i == 0 {
 			t.Tokens, t.Shape, t.Type = v.Tokens, shape, typ
+			t.TV, t.Elevation, t.Density = v.TV, v.Elevation, themes.DensityTable()
 		}
 	}
 	t.Warnings = dedupeWarnings(t.Warnings)

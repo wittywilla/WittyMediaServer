@@ -3,7 +3,7 @@
   "name": "Witty",
   "description": "The house look: deep slate with a violet accent.",
   "author": "WittyMediaServer",
-  "version": "6",
+  "version": "7",
   "scheme": "dark",
   "builtin": true,
   "preview": {
@@ -98,5 +98,10 @@
       "strong": 600,
       "heading": 650
     }
+  },
+  "tv": {
+    "ringColor": "#e8eaf0",
+    "heroScrim": 0.72,
+    "tvText": "#eaecf2"
   }
 }

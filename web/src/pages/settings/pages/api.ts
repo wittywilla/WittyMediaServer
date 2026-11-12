@@ -27,6 +27,8 @@ let draftTag = ''
 const keep = (etag: string | undefined | null) => { if (etag) draftTag = etag }
 
 // conflict: someone saved in between (412). issuesOf: what a refused save says is wrong (400).
+// mergeConflicts: what both the draft and a later publish changed, from a 409 answer to publishing.
+export const mergeConflicts = (e: unknown): string[] | null => (e instanceof ApiError && e.status === 409 && Array.isArray(e.data?.conflicts) ? e.data.conflicts as string[] : null)
 export const isConflict = (e: unknown) => e instanceof ApiError && e.status === 412
 export const issuesOf = (e: unknown): Issue[] | null => (e instanceof ApiError && e.status === 400 && Array.isArray(e.data?.issues) ? e.data.issues as Issue[] : null)
 export const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
@@ -151,8 +153,10 @@ export async function previewToken(): Promise<string> {
 }
 
 // Publishing sends the draft's own ETag, so a draft someone else changed since it was looked at isn't published unseen.
-export async function publishDraft(): Promise<Config> {
-  const r = await sduiAsk<Config>('POST', `${SDUI_BASE}/draft/publish`, { headers: draftTag ? { 'If-Match': draftTag } : undefined })
+// prefer settles items the draft and what was published since both changed (409 with
+// `conflicts`): the draft's version, or what is published (docs/SDUI.md, "Publishing merges").
+export async function publishDraft(prefer?: 'draft' | 'published'): Promise<Config> {
+  const r = await sduiAsk<Config>('POST', `${SDUI_BASE}/draft/publish${prefer ? '?prefer=' + prefer : ''}`, { headers: draftTag ? { 'If-Match': draftTag } : undefined })
   draftTag = r.etag || ''
   return r.data as Config
 }

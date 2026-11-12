@@ -14,7 +14,10 @@ export type ResolvedTheme = {
   tokens?: Record<string, string>
   // A module's: the administrator's overrides alone, and (docs/SDUI-MODULES.md, "Theme") the
   // whole palette with the module's own colours and those overrides over it.
-  modules: Record<string, { overrides: Record<string, string>; tokens?: Record<string, string> }>
+  modules: Record<string, { overrides: Record<string, string>; tokens?: Record<string, string>; personal?: Record<string, string> }>
+  // The profile's own colours (PUT /theme/personal): over everything, everywhere, whatever
+  // theme this device shows (docs/THEMES.md, "A profile's own colours").
+  personal?: Record<string, string>
   // Text an override left hard to read, for the settings page: scope is "global" or
   // "module:<id>", variant the look ("dark" or "light") when the theme has two.
   warnings?: { scope: string; variant?: string; text: string; surface: string; ratio: number; need: number }[]
@@ -54,6 +57,8 @@ export function overrideDeclarations(t: ResolvedTheme | null, module: string, gl
     for (const [name, value] of Object.entries(own)) if (t.tokens && t.tokens[name] !== value) merged[name] = value
     Object.assign(merged, t.modules?.[module]?.overrides || {})
   }
+  Object.assign(merged, t.personal || {})
+  if (module) Object.assign(merged, t.modules?.[module]?.personal || {})
   const out: [string, string][] = []
   for (const [name, value] of Object.entries(merged)) {
     if (!/^[a-z][A-Za-z0-9]*$/.test(name) || !COLOUR.test(value)) continue

@@ -778,13 +778,29 @@ function ListView({ view, depth }: { view: View; depth: number }) {
   )
 }
 
+// A line of a list. A title's picture keeps its own shape at the row's height (a poster
+// upright, a still wide, a cover square), with how far it was watched under it, and the
+// title's badges (two at most) after its words (docs/SDUI.md, "Layout options").
+const shapeOf = (image: Props | undefined): string => {
+  const a = str(image, 'aspect')
+  return a === '2/3' ? 'poster' : a === '16/9' ? 'wide' : a === '1/1' ? 'square' : str(image, 'kind') === 'poster' ? 'poster' : ''
+}
+
 function ListItemView({ view }: { view: View }) {
   const p = view.node.props || {}
   const image = obj(p, 'image')
+  const progress = typeof p.progress === 'number' && p.progress > 0 ? Math.min(1, p.progress) : 0
+  const badges = (Array.isArray(p.badges) ? p.badges : []).filter((b): b is string => typeof b === 'string').slice(0, 2)
   return (
     <Pressable view={view} className="sdui-row">
-      {image ? <span className="sdui-row-art"><Picture image={image} kind={p.kind} /></span> : p.icon ? <span className="sdui-row-ic" aria-hidden="true">{sduiIcon(p.icon)}</span> : null}
+      {image ? (
+        <span className={'sdui-row-art' + (shapeOf(image) ? ' ' + shapeOf(image) : '')}>
+          <Picture image={image} kind={p.kind} title={view.text?.title} />
+          {progress > 0 && <span className="sdui-row-progress" aria-hidden="true"><i style={{ width: Math.round(progress * 100) + '%' }} /></span>}
+        </span>
+      ) : p.icon ? <span className="sdui-row-ic" aria-hidden="true">{sduiIcon(p.icon)}</span> : null}
       <span className="sdui-row-text"><b className="sdui-clamp" style={clamp(view.lines?.title)}>{view.text?.title}</b>{view.text?.subtitle && <span className="muted sdui-clamp" style={clamp(view.lines?.subtitle)}>{view.text.subtitle}</span>}</span>
+      {badges.length > 0 && <span className="sdui-row-badges">{badges.map((b) => <span key={b} className="badge">{b}</span>)}</span>}
       {view.text?.trailing && <span className="muted sdui-row-end">{view.text.trailing}</span>}
       {view.node.action && <span className="sdui-row-go" aria-hidden="true"><IconRight /></span>}
     </Pressable>

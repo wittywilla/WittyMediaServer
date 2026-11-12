@@ -219,3 +219,15 @@ a.sdui-row:hover, button.sdui-row:hover { background: var(--hover); }
 .sdui-pick-list { list-style: none; margin: 0; padding: 0; max-height: min(60vh, 520px); overflow: auto; }
 .sdui-pick-list li { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-2) var(--sp-1); box-shadow: 0 1px var(--border); }
 .sdui-pick-list label { display: flex; align-items: center; gap: var(--sp-2); flex: 1; min-width: 0; cursor: pointer; }
+
+/* A list line's picture in the title's own shape, at the row's height, with its progress. */
+.sdui-row-art.poster { width: 40px; height: 60px; }
+.sdui-row-art.wide { width: 96px; height: 54px; }
+.sdui-row-art.square { width: 54px; height: 54px; }
+.sdui-row-art .art-ph b { font-size: var(--text-2xs); }
+.sdui-row-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgb(var(--bg-rgb) / .6); }
+.sdui-row-progress i { display: block; height: 100%; background: var(--accent); }
+.sdui-row-badges { display: flex; gap: var(--sp-1); flex: none; }
+.sdui.ff-tv .sdui-row-art.poster { width: calc(var(--sdui-pt) * 60px); height: calc(var(--sdui-pt) * 90px); }
+.sdui.ff-tv .sdui-row-art.wide { width: calc(var(--sdui-pt) * 160px); height: calc(var(--sdui-pt) * 90px); }
+.sdui.ff-tv .sdui-row-art.square { width: calc(var(--sdui-pt) * 90px); height: calc(var(--sdui-pt) * 90px); }

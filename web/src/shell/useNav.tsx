@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react'
-import { api, forgetMissingModule, getToken, inMainMenus, serverBase } from '../api'
+import { api, ApiError, forgetMissingModule, getToken, inMainMenus, serverBase } from '../api'
 import { IconChart, IconGamepad, IconHome, IconLibrary, IconPlug, IconTv, libIcon } from '../icons'
 import { useModulePages } from '../moduleBundles'
 import { setOwnerNavStyle } from '../navPrefs'
@@ -22,6 +22,19 @@ import type { NavItem, NavPrefs } from './navModel'
 // the side menu, the bar along the top, a phone's bar at the bottom, a TV's top menu.
 // An older server has no such answer, and the menu is worked out here as before.
 
+// A server without WittyCouch answers 424, which a browser logs as an error on every page
+// load: having been told so, this device doesn't ask that server again for an hour.
+const NO_COUCH = 'wms.noCouch.'
+function askCouch(): Promise<boolean> {
+  const key = NO_COUCH + serverBase()
+  try { if (Number(localStorage.getItem(key) || 0) > Date.now()) return Promise.resolve(false) } catch { /* ask, then */ }
+  return api.get<{ allowed: boolean }>('/couch').then((r) => r.allowed).catch((e) => {
+    forgetMissingModule()
+    if (e instanceof ApiError && e.status === 424) { try { localStorage.setItem(key, String(Date.now() + 3600_000)) } catch { /* ask again next time */ } }
+    return false
+  })
+}
+
 // Whether to offer Game PCs. It's asked for once per person, however many menus want
 // to know, as the answer rarely changes.
 let couchAsked: { user: number; answer: Promise<boolean> } | null = null
@@ -30,7 +43,7 @@ function useCanUseCouch() {
   const [can, setCan] = useState(false)
   useEffect(() => {
     if (!user) return
-    if (couchAsked?.user !== user.id) couchAsked = { user: user.id, answer: api.get<{ allowed: boolean }>('/couch').then((r) => r.allowed).catch(() => { forgetMissingModule(); return false }) }
+    if (couchAsked?.user !== user.id) couchAsked = { user: user.id, answer: askCouch() }
     let live = true
     couchAsked.answer.then((a) => { if (live) setCan(a) })
     return () => { live = false }

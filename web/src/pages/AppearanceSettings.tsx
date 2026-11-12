@@ -13,7 +13,7 @@ import NavCustomize from '../shell/NavCustomize'
 import { useMenu } from '../shell/useNav'
 import { bump } from '../sdui/client'
 import { query } from '../sdui/device'
-import { useDevice } from '../sdui/useSdui'
+import { useDevice, useFeatures } from '../sdui/useSdui'
 import { announce } from '../a11y'
 import { globalView, setGlobalView, type ViewPrefs } from '../player/viewPrefs'
 import { Button } from '../ui/Button'
@@ -31,6 +31,7 @@ import AutoSkipSection from './settings/AutoSkip'
 
 const TvLookSettings = lazy(() => import('./tv/TvLookSettings'))
 const EngineColours = lazy(() => import('./settings/EngineColours'))
+const PersonalColours = lazy(() => import('./settings/EngineColours').then((m) => ({ default: m.PersonalColours })))
 
 // Appearance: the app's theme first, then colours of your own, where the menus sit and how
 // things move, then the look of the parts of the app that have one of their own, and the
@@ -110,6 +111,8 @@ export default function AppearanceSettings() {
   useEffect(() => { load() }, [])
 
   const admin = !!user?.isAdmin
+  // A profile's own colours, where the server keeps them (feature theme-personal).
+  const personalColours = !!useFeatures()?.has('theme-personal')
   const fallback = currentThemeId(serverTheme)
   const active = mine || fallback
   const useHere = (id: string) => { setDeviceTheme(id); setMine(id); applyTheme(id || serverTheme) }
@@ -227,6 +230,7 @@ export default function AppearanceSettings() {
       <MotionSection />
       <Suspense fallback={null}><TvLookSettings /></Suspense>
       {admin && <Suspense fallback={null}><EngineColours /></Suspense>}
+      {personalColours && <Suspense fallback={null}><PersonalColours /></Suspense>}
       <PlayerSection />
       {/* A profile's own choice. An administrator has it under Playback & discs, a page the others don't get. */}
       {!admin && <AutoSkipSection />}

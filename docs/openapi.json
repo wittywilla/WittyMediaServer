@@ -334,11 +334,11 @@
           "coverItem": {
             "type": "integer"
           },
-          "firstItem": {
-            "type": "integer"
-          },
           "durationSec": {
             "type": "number"
+          },
+          "firstItem": {
+            "type": "integer"
           },
           "genre": {
             "type": "string"
@@ -853,11 +853,20 @@
           "available": {
             "type": "boolean"
           },
+          "canGenerate": {
+            "type": "boolean"
+          },
           "durationMs": {
             "type": "integer"
           },
+          "error": {
+            "type": "string"
+          },
           "height": {
             "type": "integer"
+          },
+          "limited": {
+            "type": "boolean"
           },
           "loop": {
             "type": "boolean"
@@ -865,7 +874,13 @@
           "mime": {
             "type": "string"
           },
+          "reason": {
+            "type": "string"
+          },
           "source": {
+            "type": "string"
+          },
+          "task": {
             "type": "string"
           },
           "url": {
@@ -873,21 +888,6 @@
           },
           "width": {
             "type": "integer"
-          },
-          "canGenerate": {
-            "type": "boolean"
-          },
-          "error": {
-            "type": "string"
-          },
-          "limited": {
-            "type": "boolean"
-          },
-          "reason": {
-            "type": "string"
-          },
-          "task": {
-            "type": "string"
           }
         },
         "required": [
@@ -31111,19 +31111,12 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
                   "properties": {
-                    "stems": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/StemView"
-                      }
-                    },
                     "names": {
-                      "type": "array",
                       "items": {
                         "type": "string"
-                      }
+                      },
+                      "type": "array"
                     },
                     "separation": {
                       "properties": {
@@ -31183,12 +31176,19 @@
                         "external"
                       ],
                       "type": "object"
+                    },
+                    "stems": {
+                      "items": {
+                        "$ref": "#/components/schemas/StemView"
+                      },
+                      "type": "array"
                     }
                   },
                   "required": [
                     "stems",
                     "names"
-                  ]
+                  ],
+                  "type": "object"
                 }
               }
             },

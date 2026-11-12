@@ -73,7 +73,7 @@ export function backStep(at: { tab: TabId | null; inBar: boolean; first?: TabId 
 }
 
 // The keys TV mode answers to, beside the arrows and OK that the page's own navigation has.
-export type TvKey = 'back' | 'prevTab' | 'nextTab' | 'options' | null
+export type TvKey = 'back' | 'prevTab' | 'nextTab' | null
 
 // The Back button, as each kind of remote reports it (webOS and Tizen send a key code with no name), Escape,
 // which Plasma Bigscreen and HDMI-CEC remotes send for Back, and Backspace outside a text field.
@@ -83,6 +83,5 @@ export function tvKey(e: { key: string; keyCode?: number }, typing: boolean): Tv
   if (typing) return null
   if (e.key === 'PageUp') return 'prevTab'
   if (e.key === 'PageDown') return 'nextTab'
-  if (e.key === 'ContextMenu') return 'options'
   return null
 }

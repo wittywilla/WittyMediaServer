@@ -13,3 +13,6 @@ export { Card, CardRow, EmptyState, LoadError, Notice, PageSkeleton, PosterCard,
 export { RowSheet, Rows, SheetRow } from './RowSheet'
 export { DataTable, type Column } from './DataTable'
 export { useUserPref, setUserPref, getUserPref } from './userPrefs'
+export { Dock, type DockAction } from './Dock'
+export { KeyLegend } from './KeyLegend'
+export { KeyHelp } from './KeyHelp'

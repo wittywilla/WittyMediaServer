@@ -303,20 +303,20 @@ export default function GamesLibrary({ lib }: { lib: Library }) {
       if (e.defaultPrevented || e.ctrlKey || e.altKey || e.metaKey || typingIn(e.target) || document.querySelector('.modal')) return
       const pad = !e.isTrusted
       const itemOf = () => Number((document.activeElement as HTMLElement | null)?.closest?.('[data-gm-item]')?.getAttribute('data-gm-item') || (document.activeElement as HTMLElement | null)?.getAttribute?.('data-gm-flow') || 0)
-      if (e.key === 'PageUp' || e.key === 'PageDown') { e.preventDefault(); sectionJump(e.key === 'PageUp' ? -1 : 1) }
-      else if (pad && e.key === ' ') { e.preventDefault(); search.current?.focus(); if (links.couch) nav(links.search || '/big/search') }
-      else if ((pad && e.key === 'm') || (!pad && e.key === 'f')) { const id = itemOf(); if (id) { e.preventDefault(); void toggleFav(id) } }
-      else if (pad && e.key === 't') { e.preventDefault(); cycleSort() }
-      else if (pad && e.key === 'ContextMenu' && !links.couch) { e.preventDefault(); setCouchOn(true); nav('/big') }
-      else if (!pad && e.key === '/') { e.preventDefault(); (window.matchMedia('(max-width: 600px)').matches ? document.querySelector<HTMLElement>('.at-list input') : search.current)?.focus() }
-      else if (pad && (e.key === 'MediaRewind' || e.key === 'MediaFastForward')) {
-        if (!letters.length) { sectionJump(e.key === 'MediaRewind' ? -1 : 1); return }
+      // The one input model: LT and RT (Page Up, Page Down) go by letter, or by section when there are none; X (options)
+      // favourites what has the focus; Start (F6) turns the big-screen couch view on; Y or / searches.
+      if (e.key === 'PageUp' || e.key === 'PageDown') {
+        e.preventDefault()
+        if (!letters.length) { sectionJump(e.key === 'PageUp' ? -1 : 1); return }
         const focusedAt = Number((document.activeElement as HTMLElement | null)?.closest?.('[data-gm-at]')?.getAttribute('data-gm-at') ?? -1)
         const i = letters.reduce((best, l, n) => (l.offset <= focusedAt ? n : best), 0)
-        const to = letters[Math.max(0, Math.min(letters.length - 1, i + (e.key === 'MediaRewind' ? -1 : 1)))]
+        const to = letters[Math.max(0, Math.min(letters.length - 1, i + (e.key === 'PageUp' ? -1 : 1)))]
         grid.current?.jumpTo(to.offset)
         toast(to.label)
-      }
+      } else if (e.key === 'ContextMenu' || (!pad && e.key === 'f')) { const id = itemOf(); if (id) { e.preventDefault(); void toggleFav(id) } }
+      else if (e.key === 'F6' && !links.couch) { e.preventDefault(); setCouchOn(true); nav('/big') }
+      else if (!pad && e.key === 't') { e.preventDefault(); cycleSort() }
+      else if (e.key === '/') { e.preventDefault(); if (links.couch) nav(links.search || '/big/search'); else (window.matchMedia('(max-width: 600px)').matches ? document.querySelector<HTMLElement>('.at-list input') : search.current)?.focus() }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)

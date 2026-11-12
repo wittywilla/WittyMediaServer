@@ -7,121 +7,135 @@
 
 html.tv-mode {
   --tvu: max(.5px, min(calc(100vw / 1920), calc(100vh / 1080)));
-  /* Type, from APP-DESIGN's TV column. */
-  --tv-display: calc(var(--tvu) * 48);
-  --tv-title: calc(var(--tvu) * 38);
-  --tv-headline: calc(var(--tvu) * 30);
-  --tv-section: calc(var(--tvu) * 26);
-  --tv-body: calc(var(--tvu) * 24);
-  --tv-secondary: calc(var(--tvu) * 20);
-  --tv-caption: calc(var(--tvu) * 18);
+  /* The tokens (themes/tokens.json `tv`, as --tv-* unitless numbers in styles.css) in lengths at this window's scale.
+     Type roles: display 76, page title 57, heading 48, title 38, body 29, caption and label 25. The shorter names
+     the rules below use map onto the roles. */
+  --tvm-display: calc(var(--tvu) * var(--tv-type-display));
+  --tvm-pagetitle: calc(var(--tvu) * var(--tv-type-page-title));
+  --tvm-heading: calc(var(--tvu) * var(--tv-type-heading));
+  --tvm-title: calc(var(--tvu) * var(--tv-type-title));
+  --tvm-body: calc(var(--tvu) * var(--tv-type-body));
+  --tvm-caption: calc(var(--tvu) * var(--tv-type-caption));
+  --tvm-label: calc(var(--tvu) * var(--tv-type-label));
+  --tvm-headline: var(--tvm-heading);
+  --tvm-section: var(--tvm-title);
+  --tvm-secondary: var(--tvm-caption);
   /* Space, size and shape. */
-  --tv-gutter: calc(var(--tvu) * 90);
-  --tv-pill-h: calc(var(--tvu) * 66);
-  --tv-quiet-h: calc(var(--tvu) * 56);
-  --tv-ring: calc(var(--tvu) * 4);
-  --tv-room: calc(var(--tvu) * 32);
-  --tv-r-key: calc(var(--tvu) * 14);
-  --tv-r-tile: calc(var(--tvu) * 14);
+  --tvm-gutter: calc(var(--tvu) * var(--tv-gutter));
+  --tvm-safe-y: calc(var(--tvu) * var(--tv-safe-y));
+  --tvm-bar-h: calc(var(--tvu) * var(--tv-topbar-height));
+  --tvm-bar-top: calc(var(--tvu) * var(--tv-topbar-top));
+  --tvm-bar-pill: calc(var(--tvu) * var(--tv-topbar-pill));
+  --tvm-bar-gap: calc(var(--tvu) * var(--tv-topbar-gap));
+  --tvm-card-gap: calc(var(--tvu) * var(--tv-shelf-card-gap));
+  --tvm-row-gap: calc(var(--tvu) * var(--tv-shelf-row-gap));
+  --tvm-dock-h: calc(var(--tvu) * var(--tv-dock-height));
+  --tvm-lift: calc(var(--tvu) * var(--tv-focus-lift));
+  --tvm-pill-h: calc(var(--tvu) * var(--tv-target-min));
+  --tvm-quiet-h: calc(var(--tvu) * var(--tv-topbar-pill));
+  --tvm-ring: calc(var(--tvu) * var(--tv-focus-ring));
+  --tvm-room: calc(var(--tvu) * var(--tv-shelf-pad-top));
+  --tvm-r-key: calc(var(--tvu) * 14);
+  --tvm-r-tile: calc(var(--tvu) * 14);
   /* The rest of the website, at the same scale: a quarter larger than a desktop at 1080p. */
   font-size: calc(var(--tvu) * 20);
-  --gutter: var(--tv-gutter);
-  --card-w: calc(var(--tvu) * 200);
-  --card-wide-w: calc(var(--tvu) * 340);
-  --section-gap: calc(var(--tvu) * 40);
-  --display: var(--tv-display);
-  --page-title: var(--tv-title);
+  --gutter: var(--tvm-gutter);
+  --card-w: calc(var(--tvu) * var(--tv-card-poster-w));
+  --card-wide-w: calc(var(--tvu) * var(--tv-card-wide-w));
+  --section-gap: var(--tvm-row-gap);
+  --display: var(--tvm-display);
+  --page-title: var(--tvm-pagetitle);
   /* There's no website top bar in TV mode: what measures from it starts at the top. */
   --topbar-h: 0px;
   /* Focus: a 4-wide ring in text, 4 out, concentric (an outline follows the corners it surrounds), and 1.06. */
-  --focus: var(--fg);
-  --focus-width: var(--tv-ring);
-  --focus-offset: var(--tv-ring);
-  --focus-scale: 1.06;
+  --focus: var(--tv-ring-color);
+  --focus-width: var(--tvm-ring);
+  --focus-offset: var(--tvm-ring);
+  --focus-scale: var(--tv-focus-scale);
   scroll-padding-block: calc(var(--tvu) * 140) calc(var(--tvu) * 80);
 }
 
 /* ---- every control is a pill */
-html.tv-mode .btn { min-height: var(--tv-pill-h); padding: 0 calc(var(--tvu) * 32); border-radius: var(--r-full); font-size: var(--tv-body); gap: calc(var(--tvu) * 12); }
+html.tv-mode .btn { min-height: var(--tvm-pill-h); padding: 0 calc(var(--tvu) * 32); border-radius: var(--r-full); font-size: var(--tvm-body); gap: calc(var(--tvu) * 12); }
 html.tv-mode .btn svg { width: calc(var(--tvu) * 28); height: calc(var(--tvu) * 28); }
-html.tv-mode .btn.sm { min-height: var(--tv-quiet-h); padding: 0 calc(var(--tvu) * 24); font-size: var(--tv-secondary); }
-html.tv-mode .btn.icon, html.tv-mode .btn.square { width: var(--tv-pill-h); padding: 0; }
-html.tv-mode .btn.sm.square, html.tv-mode .btn.sm.icon { width: var(--tv-quiet-h); }
-html.tv-mode .chip { min-height: var(--tv-quiet-h); padding: 0 calc(var(--tvu) * 24); border-radius: var(--r-full); font-size: var(--tv-secondary); }
+html.tv-mode .btn.sm { min-height: var(--tvm-quiet-h); padding: 0 calc(var(--tvu) * 24); font-size: var(--tvm-secondary); }
+html.tv-mode .btn.icon, html.tv-mode .btn.square { width: var(--tvm-pill-h); padding: 0; }
+html.tv-mode .btn.sm.square, html.tv-mode .btn.sm.icon { width: var(--tvm-quiet-h); }
+html.tv-mode .chip { min-height: var(--tvm-quiet-h); padding: 0 calc(var(--tvu) * 24); border-radius: var(--r-full); font-size: var(--tvm-secondary); }
 html.tv-mode :where(.btn, .chip, .tvm-pill, .tvm-lib, .tvm-row, .tvm-key):focus { transform: scale(var(--focus-scale)); }
 html.tv-mode :where(.btn, .chip, .tvm-pill, .tvm-lib, .tvm-row, .tvm-key) { transition: transform var(--dur-2) var(--ease-out), background var(--dur-2), color var(--dur-2); }
-html.tv-mode .input { min-height: var(--tv-pill-h); font-size: var(--tv-body); border-radius: var(--tv-r-key); }
+html.tv-mode .input { min-height: var(--tvm-pill-h); font-size: var(--tvm-body); border-radius: var(--tvm-r-key); }
 /* A focused field shows only the ring, never its own accent outline as well. */
 html.tv-mode :where(.input, input, select, textarea):focus { border-color: var(--control-line); box-shadow: none; outline: var(--focus-width) solid var(--focus); outline-offset: var(--focus-offset); }
 
 /* ---- the frame */
 html.tv-mode body { background: var(--bg); }
 .tvm { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
-.tvm-main { flex: 1; padding: 0 var(--tv-gutter) calc(var(--tvu) * 64); }
-.tvm-main .legal-foot { margin-top: calc(var(--tvu) * 48); font-size: var(--tv-caption); }
+.tvm-main { flex: 1; padding: 0 var(--tvm-gutter) calc(var(--tvu) * 64); }
+.tvm-main .legal-foot { margin-top: calc(var(--tvu) * 48); font-size: var(--tvm-caption); }
 
 /* The bar: five pills on the left, You pinned to the right end of the same row. */
-.tvm-bar { padding: calc(var(--tvu) * 24) var(--tv-gutter) calc(var(--tvu) * 16); }
-.tvm-tabs { display: flex; align-items: center; gap: calc(var(--tvu) * 16); }
-.tvm-pill { display: inline-flex; align-items: center; gap: calc(var(--tvu) * 12); height: var(--tv-pill-h); padding: 0 calc(var(--tvu) * 24); border-radius: var(--r-full); color: var(--fg-2); font-size: var(--tv-body); font-weight: 500; white-space: nowrap; }
+.tvm-bar { min-height: var(--tvm-bar-h); padding: var(--tvm-bar-top) var(--tvm-gutter) calc(var(--tvm-bar-h) - var(--tvm-bar-top) - var(--tvm-bar-pill)); }
+.tvm-tabs { display: flex; align-items: center; gap: var(--tvm-bar-gap); }
+.tvm-pill { display: inline-flex; align-items: center; gap: calc(var(--tvu) * 12); height: var(--tvm-bar-pill); padding: 0 calc(var(--tvu) * 24); border-radius: var(--r-full); color: var(--fg-2); font-size: var(--tvm-body); font-weight: 500; white-space: nowrap; }
 .tvm-pill svg { width: calc(var(--tvu) * 30); height: calc(var(--tvu) * 30); }
 .tvm-pill:hover { color: var(--fg); background: var(--hover); }
 .tvm-pill[aria-current="page"] { background: var(--accent-soft); color: var(--accent-text); }
 .tvm-you { margin-left: auto; }
-.tvm-you .avatar-tile { width: calc(var(--tvu) * 28); height: calc(var(--tvu) * 28); border-radius: 50%; font-size: var(--tv-caption); }
+.tvm-you .avatar-tile { width: calc(var(--tvu) * 28); height: calc(var(--tvu) * 28); border-radius: 50%; font-size: var(--tvm-caption); }
 
 /* A screen opened from a tab has the whole screen. For a mouse or a finger, a round Back at the top left,
    which the arrows pass over; with no pointer at all it isn't there. */
 .tvm-back { display: none; }
 @media (any-pointer: fine), (any-pointer: coarse) {
-  .tvm-back { display: grid; place-items: center; position: fixed; z-index: var(--z-topbar); top: calc(var(--tvu) * 24); left: calc(var(--tv-gutter) - var(--tvu) * 66); width: var(--tv-quiet-h); height: var(--tv-quiet-h); border: 0; border-radius: 50%; background: rgb(var(--bg-rgb) / .7); color: var(--fg); }
+  .tvm-back { display: grid; place-items: center; position: fixed; z-index: var(--z-topbar); top: calc(var(--tvu) * 24); left: calc(var(--tvm-gutter) - var(--tvu) * 66); width: var(--tvm-quiet-h); height: var(--tvm-quiet-h); border: 0; border-radius: 50%; background: rgb(var(--bg-rgb) / .7); color: var(--fg); }
   .tvm-back svg { width: calc(var(--tvu) * 30); height: calc(var(--tvu) * 30); }
   .tvm-back:hover { background: var(--bg-3); }
 }
 
 /* A tab's heading. */
-.tvm-title { margin: calc(var(--tvu) * 16) 0 calc(var(--tvu) * 24); font-size: var(--tv-title); font-weight: 600; letter-spacing: var(--tracking-display); }
+.tvm-title { margin: calc(var(--tvu) * 16) 0 calc(var(--tvu) * 24); font-size: var(--tvm-pagetitle); font-weight: 600; letter-spacing: var(--tracking-display); }
 .tvm-page .empty { padding-top: calc(var(--tvu) * 64); }
-html.tv-mode .empty-title { font-size: var(--tv-headline); }
-html.tv-mode .empty p { font-size: var(--tv-body); color: var(--fg-2); }
+html.tv-mode .empty-title { font-size: var(--tvm-headline); }
+html.tv-mode .empty p { font-size: var(--tvm-body); color: var(--fg-2); }
 html.tv-mode .empty-ic svg { width: calc(var(--tvu) * 64); height: calc(var(--tvu) * 64); }
 
 /* ---- Home: the hero and the rows */
-html.tv-mode .hero { height: calc(var(--tvu) * 620); min-height: 0; max-height: none; margin: 0 calc(-1 * var(--tv-gutter)) var(--section-gap); }
-html.tv-mode .hero .info { left: var(--tv-gutter); bottom: calc(var(--tvu) * 56); width: min(50vw, calc(100% - 2 * var(--tv-gutter))); }
+html.tv-mode .hero { height: calc(var(--tvu) * 620); /* the Hero's 1920x620 */ min-height: 0; max-height: none; margin: 0 calc(-1 * var(--tvm-gutter)) var(--section-gap); }
+html.tv-mode .hero .info { left: var(--tvm-gutter); bottom: calc(var(--tvu) * 56); width: min(50vw, calc(100% - 2 * var(--tvm-gutter))); }
 /* A long title wraps, to three lines at most, and is never cut off mid-word. */
-html.tv-mode .hero h1 { font-size: var(--tv-display); font-weight: 700; line-height: 1.12; margin: 0 0 calc(var(--tvu) * 12); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: normal; text-wrap: balance; }
-html.tv-mode .hero .meta { font-size: var(--tv-secondary); color: var(--fg-2); margin-bottom: calc(var(--tvu) * 12); }
-html.tv-mode .hero p { font-size: var(--tv-body); -webkit-line-clamp: 2; color: var(--fg-2); opacity: 1; max-width: none; margin: 0 0 calc(var(--tvu) * 24); }
+html.tv-mode .hero h1 { font-size: var(--tvm-display); font-weight: 700; line-height: 1.12; margin: 0 0 calc(var(--tvu) * 12); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: normal; text-wrap: balance; }
+html.tv-mode .hero .meta { font-size: var(--tvm-secondary); color: var(--fg-2); margin-bottom: calc(var(--tvu) * 12); }
+html.tv-mode .hero p { font-size: var(--tvm-body); -webkit-line-clamp: 2; color: var(--fg-2); opacity: 1; max-width: none; margin: 0 0 calc(var(--tvu) * 24); }
 html.tv-mode .hero .actions { gap: calc(var(--tvu) * 16); }
-html.tv-mode .hero .dots { right: var(--tv-gutter); bottom: calc(var(--tvu) * 56); }
+html.tv-mode .hero .dots { right: var(--tvm-gutter); bottom: calc(var(--tvu) * 56); }
 html.tv-mode .hub-head { margin-bottom: 0; }
-html.tv-mode .hub-head h2 { font-size: var(--tv-section); font-weight: 600; }
-html.tv-mode .hub-head a:not(.btn) { font-size: var(--tv-secondary); min-height: var(--tv-quiet-h); padding: 0 calc(var(--tvu) * 16); border-radius: var(--r-full); }
+html.tv-mode .hub-head h2 { font-size: var(--tvm-section); font-weight: 600; }
+html.tv-mode .hub-head a:not(.btn) { font-size: var(--tvm-secondary); min-height: var(--tvm-quiet-h); padding: 0 calc(var(--tvu) * 16); border-radius: var(--r-full); }
 /* Rows leave room above and below for a focused card's ring. */
-html.tv-mode .row { gap: calc(var(--tvu) * 24); padding: var(--tv-room) var(--tv-gutter); scroll-padding-inline: var(--tv-gutter); }
+html.tv-mode .row { gap: var(--tvm-card-gap); padding: var(--tvm-room) var(--tvm-gutter); scroll-padding-inline: var(--tvm-gutter) calc(var(--tvm-gutter) + var(--card-w) * var(--tv-shelf-peek)); } /* the next card always peeks: tv.shelf peek .18 */
 /* A focused card's ring is round its picture only, as the TV apps have it. */
 html.tv-mode .card:focus { outline: none; }
-html.tv-mode .card .title { font-size: var(--tv-secondary); margin-top: calc(var(--tvu) * 24); }
-html.tv-mode .card .sub { font-size: var(--tv-caption); }
-html.tv-mode .home-greet h1 { font-size: var(--tv-display); }
-html.tv-mode .lib-tiles { grid-template-columns: repeat(auto-fill, minmax(calc(var(--tvu) * 340), 1fr)); gap: calc(var(--tvu) * 24); padding: calc(var(--tvu) * 8) 0 var(--tv-room); }
+html.tv-mode .card .title { font-size: var(--tvm-secondary); margin-top: calc(var(--tvu) * 24); }
+html.tv-mode .card .sub { font-size: var(--tvm-caption); }
+html.tv-mode .home-greet h1 { font-size: var(--tvm-display); }
+html.tv-mode .lib-tiles { grid-template-columns: repeat(auto-fill, minmax(calc(var(--tvu) * 340), 1fr)); gap: calc(var(--tvu) * 24); padding: calc(var(--tvu) * 8) 0 var(--tvm-room); }
 html.tv-mode .lib-tile { padding: calc(var(--tvu) * 16); gap: calc(var(--tvu) * 16); }
 html.tv-mode .lib-tile-ic { width: calc(var(--tvu) * 56); height: calc(var(--tvu) * 56); }
 html.tv-mode .lib-tile-ic svg { width: calc(var(--tvu) * 30); height: calc(var(--tvu) * 30); }
-html.tv-mode .lib-tile-txt b { font-size: var(--tv-body); }
-html.tv-mode .lib-tile-txt .muted { font-size: var(--tv-caption); }
+html.tv-mode .lib-tile-txt b { font-size: var(--tvm-body); }
+html.tv-mode .lib-tile-txt .muted { font-size: var(--tvm-caption); }
 html.tv-mode .home-foot { margin-top: calc(var(--tvu) * 24); }
 
 /* ---- Libraries */
-.tvm-lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(var(--tvu) * 400), 1fr)); gap: calc(var(--tvu) * 32); padding: calc(var(--tvu) * 8) 0 var(--tv-room); }
-.tvm-lib { display: flex; align-items: center; gap: calc(var(--tvu) * 20); min-width: 0; padding: calc(var(--tvu) * 20); border-radius: var(--tv-r-tile); background: var(--bg-2); border: 1px solid var(--border); color: var(--fg); }
+.tvm-lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(var(--tvu) * 400), 1fr)); gap: calc(var(--tvu) * 32); padding: calc(var(--tvu) * 8) 0 var(--tvm-room); }
+.tvm-lib { display: flex; align-items: center; gap: calc(var(--tvu) * 20); min-width: 0; padding: calc(var(--tvu) * 20); border-radius: var(--tvm-r-tile); background: var(--bg-2); border: 1px solid var(--border); color: var(--fg); }
 .tvm-lib:hover { background: var(--bg-3); }
-.tvm-lib-ic { display: grid; place-items: center; flex: none; width: calc(var(--tvu) * 72); height: calc(var(--tvu) * 72); border-radius: var(--tv-r-tile); background: var(--accent-soft); color: var(--accent-text); }
+.tvm-lib-ic { display: grid; place-items: center; flex: none; width: calc(var(--tvu) * 72); height: calc(var(--tvu) * 72); border-radius: var(--tvm-r-tile); background: var(--accent-soft); color: var(--accent-text); }
 .tvm-lib-ic svg { width: calc(var(--tvu) * 38); height: calc(var(--tvu) * 38); }
 .tvm-lib-txt { display: grid; gap: calc(var(--tvu) * 4); min-width: 0; }
-.tvm-lib-txt b { font-size: var(--tv-body); font-weight: 600; overflow-wrap: anywhere; }
-.tvm-lib-txt span { font-size: var(--tv-secondary); color: var(--fg-3); }
+.tvm-lib-txt b { font-size: var(--tvm-body); font-weight: 600; overflow-wrap: anywhere; }
+.tvm-lib-txt span { font-size: var(--tvm-secondary); color: var(--fg-3); }
 
 /* ---- Games: a shelf for each games library */
 .tvm-shelf .hub-head { justify-content: flex-start; gap: calc(var(--tvu) * 24); }
@@ -136,13 +150,13 @@ html.tv-mode .gm-couch-frame, html.tv-mode .gm-page { --gm-cell: calc(var(--tvu)
 .tvm-search-field .input { flex: 1; min-width: 0; }
 .tvm-keys { display: grid; grid-template-columns: repeat(6, 1fr); gap: calc(var(--tvu) * 16); }
 /* Keys stay rounded squares, as the systems' keyboards have them; a focused one fills with text instead of a ring. */
-.tvm-key { min-height: calc(var(--tvu) * 72); border: 0; border-radius: var(--tv-r-key); background: var(--bg-3); color: var(--fg); font-size: var(--tv-body); font-weight: 600; }
-.tvm-key.wide { grid-column: span 2; font-size: var(--tv-secondary); }
+.tvm-key { min-height: calc(var(--tvu) * 72); border: 0; border-radius: var(--tvm-r-key); background: var(--bg-3); color: var(--fg); font-size: var(--tvm-body); font-weight: 600; }
+.tvm-key.wide { grid-column: span 2; font-size: var(--tvm-secondary); }
 .tvm-key:hover { background: var(--bg-4); }
 html.tv-mode .tvm-key:focus { outline: none; background: var(--fg); color: var(--bg); }
 .tvm-key:active { opacity: .85; }
 .tvm-search-results { min-width: 0; }
-.tvm-search-results .shelf-head { font-size: var(--tv-section); margin: 0 0 calc(var(--tvu) * 16); }
+.tvm-search-results .shelf-head { font-size: var(--tvm-section); margin: 0 0 calc(var(--tvu) * 16); }
 .tvm-search-results .grid { gap: calc(var(--tvu) * 32) calc(var(--tvu) * 24); padding-top: calc(var(--tvu) * 8); margin-bottom: calc(var(--tvu) * 32); }
 .tvm-search .empty { padding-top: calc(var(--tvu) * 48); }
 
@@ -150,58 +164,58 @@ html.tv-mode .tvm-key:focus { outline: none; background: var(--fg); color: var(-
 .tvm-you-page { display: grid; grid-template-columns: 1fr 2fr; gap: calc(var(--tvu) * 64); align-items: start; }
 .tvm-you-head { position: sticky; top: 0; min-height: calc(100vh - var(--tvu) * 200); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: calc(var(--tvu) * 8); }
 .tvm-you-head .avatar-tile.big { width: calc(var(--tvu) * 200); height: calc(var(--tvu) * 200); font-size: calc(var(--tvu) * 86); }
-.tvm-you-head h2 { margin: calc(var(--tvu) * 16) 0 0; font-size: var(--tv-title); font-weight: 600; overflow-wrap: anywhere; }
-.tvm-you-head p { margin: 0; font-size: var(--tv-secondary); color: var(--fg-2); }
+.tvm-you-head h2 { margin: calc(var(--tvu) * 16) 0 0; font-size: var(--tvm-title); font-weight: 600; overflow-wrap: anywhere; }
+.tvm-you-head p { margin: 0; font-size: var(--tvm-secondary); color: var(--fg-2); }
 .tvm-you-actions { display: grid; gap: calc(var(--tvu) * 16); margin-top: calc(var(--tvu) * 24); width: min(100%, calc(var(--tvu) * 420)); }
 .tvm-you-groups { display: grid; gap: calc(var(--tvu) * 32); padding: calc(var(--tvu) * 8) calc(var(--tvu) * 16) calc(var(--tvu) * 32); }
-.tvm-group h3 { margin: 0 0 calc(var(--tvu) * 12); font-size: var(--tv-caption); font-weight: 500; color: var(--fg-2); text-transform: uppercase; letter-spacing: .06em; }
+.tvm-group h3 { margin: 0 0 calc(var(--tvu) * 12); font-size: var(--tvm-caption); font-weight: 500; color: var(--fg-2); text-transform: uppercase; letter-spacing: .06em; }
 .tvm-rows { display: grid; gap: calc(var(--tvu) * 16); }
 /* Rows sit apart, so a focused row's ring never covers the next. */
-.tvm-row { display: flex; align-items: center; gap: calc(var(--tvu) * 20); min-height: calc(var(--tvu) * 72); padding: 0 calc(var(--tvu) * 20); border-radius: var(--tv-r-tile); background: var(--bg-2); color: var(--fg); font-size: var(--tv-body); }
+.tvm-row { display: flex; align-items: center; gap: calc(var(--tvu) * 20); min-height: calc(var(--tvu) * 72); padding: 0 calc(var(--tvu) * 20); border-radius: var(--tvm-r-tile); background: var(--bg-2); color: var(--fg); font-size: var(--tvm-body); }
 .tvm-row:hover { background: var(--bg-3); }
 .tvm-row-ic { display: grid; place-items: center; flex: none; width: calc(var(--tvu) * 32); height: calc(var(--tvu) * 32); border-radius: calc(var(--tvu) * 8); background: color-mix(in srgb, var(--tint) 22%, var(--bg-2)); color: color-mix(in srgb, var(--tint) 65%, var(--fg)); }
 .tvm-row-ic svg { width: calc(var(--tvu) * 20); height: calc(var(--tvu) * 20); }
 .tvm-row-name { flex: 1; min-width: 0; }
-.tvm-row-value { color: var(--fg-2); font-size: var(--tv-secondary); }
+.tvm-row-value { color: var(--fg-2); font-size: var(--tvm-secondary); }
 .tvm-row-go { flex: none; width: calc(var(--tvu) * 24); height: calc(var(--tvu) * 24); color: var(--fg-3); }
 .tvm-row.danger .tvm-row-name { color: var(--danger); }
 
 /* ---- Who's watching: 200 avatars in one centred row, focus on the avatar alone */
-html.tv-mode .who { gap: calc(var(--tvu) * 32); padding: calc(var(--tvu) * 60) var(--tv-gutter); }
-html.tv-mode .who-brand { font-size: var(--tv-headline); gap: calc(var(--tvu) * 16); }
+html.tv-mode .who { gap: calc(var(--tvu) * 32); padding: calc(var(--tvu) * 60) var(--tvm-gutter); }
+html.tv-mode .who-brand { font-size: var(--tvm-headline); gap: calc(var(--tvu) * 16); }
 html.tv-mode .who-brand img { width: calc(var(--tvu) * 56); height: calc(var(--tvu) * 56); }
-html.tv-mode .who h1 { font-size: var(--tv-display); font-weight: 700; }
+html.tv-mode .who h1 { font-size: var(--tvm-display); font-weight: 700; }
 html.tv-mode .who-grid { flex-wrap: nowrap; gap: calc(var(--tvu) * 48); max-width: none; padding-top: calc(var(--tvu) * 24); }
 html.tv-mode .who-tile { gap: 0; padding: calc(var(--tvu) * 12) calc(var(--tvu) * 8); color: var(--fg-2); }
 html.tv-mode .who-tile:focus { outline: none; transform: none; }
 html.tv-mode .who-tile .avatar-tile.big { width: calc(var(--tvu) * 200); height: calc(var(--tvu) * 200); font-size: calc(var(--tvu) * 86); border-radius: 22%; transition: transform var(--dur-2) var(--ease-out), box-shadow var(--dur-2); }
 /* The background band, then the text ring, both 4 wide and following the avatar's corners. */
-html.tv-mode .who-tile:focus .avatar-tile, html.tv-mode .who-tile:hover .avatar-tile { transform: translateY(calc(var(--tvu) * -6)) scale(1.06); box-shadow: 0 0 0 var(--tv-ring) var(--bg), 0 0 0 calc(var(--tv-ring) * 2) var(--fg); }
-html.tv-mode .who-name { margin-top: calc(var(--tvu) * 20); max-width: calc(var(--tvu) * 220); font-size: var(--tv-body); font-weight: 600; }
+html.tv-mode .who-tile:focus .avatar-tile, html.tv-mode .who-tile:hover .avatar-tile { transform: translateY(calc(var(--tvu) * -6)) scale(1.06); box-shadow: 0 0 0 var(--tvm-ring) var(--bg), 0 0 0 calc(var(--tvm-ring) * 2) var(--fg); }
+html.tv-mode .who-name { margin-top: calc(var(--tvu) * 20); max-width: calc(var(--tvu) * 220); font-size: var(--tvm-body); font-weight: 600; }
 html.tv-mode .who-tile:focus, html.tv-mode .who-tile:hover { color: var(--fg); }
-.who-user { font-size: var(--tv-secondary); color: var(--fg-3); max-width: calc(var(--tvu) * 220); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.who-user { font-size: var(--tvm-secondary); color: var(--fg-3); max-width: calc(var(--tvu) * 220); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Kids and Guest: a badge on the avatar's lower edge, centred, half over it, moving with it. */
-html.tv-mode .who-kind { top: calc(var(--tvu) * 12 + var(--tvu) * 200 - var(--tvu) * 18); right: auto; left: 50%; transform: translateX(-50%); padding: calc(var(--tvu) * 4) calc(var(--tvu) * 14); background: var(--bg); color: var(--fg); border: 1px solid var(--border-strong); font-size: var(--tv-caption); text-transform: none; letter-spacing: 0; transition: transform var(--dur-2) var(--ease-out); }
+html.tv-mode .who-kind { top: calc(var(--tvu) * 12 + var(--tvu) * 200 - var(--tvu) * 18); right: auto; left: 50%; transform: translateX(-50%); padding: calc(var(--tvu) * 4) calc(var(--tvu) * 14); background: var(--bg); color: var(--fg); border: 1px solid var(--border-strong); font-size: var(--tvm-caption); text-transform: none; letter-spacing: 0; transition: transform var(--dur-2) var(--ease-out); }
 html.tv-mode .who-tile:focus .who-kind, html.tv-mode .who-tile:hover .who-kind { transform: translate(-50%, calc(var(--tvu) * -6)); }
 html.tv-mode .who > .btn { margin-top: calc(var(--tvu) * 8); }
-html.tv-mode .auth-version { font-size: var(--tv-caption); }
+html.tv-mode .auth-version { font-size: var(--tvm-caption); }
 
 /* The password screen: one centred column. */
 html.tv-mode .auth-card { width: min(calc(var(--tvu) * 640), 100%); max-width: none; background: none; border: 0; box-shadow: none; text-align: center; }
-html.tv-mode .auth-card p { font-size: var(--tv-body); color: var(--fg-2); }
+html.tv-mode .auth-card p { font-size: var(--tvm-body); color: var(--fg-2); }
 html.tv-mode .auth-profile { gap: calc(var(--tvu) * 12); margin-bottom: calc(var(--tvu) * 8); }
 html.tv-mode .auth-profile .avatar-tile.big { width: calc(var(--tvu) * 200); height: calc(var(--tvu) * 200); font-size: calc(var(--tvu) * 86); }
-html.tv-mode .auth-profile h2 { font-size: var(--tv-title); font-weight: 600; }
+html.tv-mode .auth-profile h2 { font-size: var(--tvm-title); font-weight: 600; }
 html.tv-mode .auth-profile .who-user { margin-top: calc(var(--tvu) * -8); }
 html.tv-mode .auth-card .form { gap: calc(var(--tvu) * 20); margin-top: calc(var(--tvu) * 32); }
 html.tv-mode .auth-card .btn.primary { width: 100%; }
-html.tv-mode .auth-card small { font-size: var(--tv-secondary); }
+html.tv-mode .auth-card small { font-size: var(--tvm-secondary); }
 
 /* ---- the player: TV-size controls */
-html.tv-mode .player .bottom .ibtn, html.tv-mode .player .top .ibtn { width: var(--tv-pill-h); height: var(--tv-pill-h); border-radius: 50%; }
+html.tv-mode .player .bottom .ibtn, html.tv-mode .player .top .ibtn { width: var(--tvm-pill-h); height: var(--tvm-pill-h); border-radius: 50%; }
 html.tv-mode .player .bottom .ibtn svg, html.tv-mode .player .top .ibtn svg { width: calc(var(--tvu) * 32); height: calc(var(--tvu) * 32); }
 html.tv-mode .player .bottom .big { width: calc(var(--tvu) * 84); height: calc(var(--tvu) * 84); }
-html.tv-mode .player .time, html.tv-mode .player .title { font-size: var(--tv-body); }
+html.tv-mode .player .time, html.tv-mode .player .title { font-size: var(--tvm-body); }
 
 /* A menu down the side (a layout's tvSideMenu): icons in a narrow column, which opens to show
    their names while it has focus; the page sits beside it. Sizes are the layout's, in points. */
@@ -216,3 +230,11 @@ html.tv-mode .player .time, html.tv-mode .player .title { font-size: var(--tv-bo
 .tvm-side:focus-within .tvm-pill > span { opacity: 1; visibility: visible; transition: opacity var(--dur-2) var(--dur-2); }
 .tvm-side .tvm-you { margin-top: auto; }
 @media (prefers-reduced-motion: reduce) { .tvm-bar.tvm-side, .tvm-side .tvm-pill > span { transition: none; } }
+
+/* ---- the Dock on a television: 112 high, hints at 25 */
+html.tv-mode .dock { min-height: var(--tvm-dock-h); padding-inline: var(--tvm-gutter); }
+html.tv-mode .dock .key-legend { font-size: var(--tvm-label); }
+html.tv-mode .dock .key-legend kbd { font-size: var(--tvm-label); padding: 0 calc(var(--tvu) * 12); }
+html.tv-mode .dock:not(.ctv-dock) .dock-btn { min-height: var(--tvm-pill-h); font-size: var(--tvm-body); padding: 0 calc(var(--tvu) * 32); gap: calc(var(--tvu) * 12); }
+/* A card lifts as it takes focus (tv.focus lift 6), on top of the 1.06 scale. */
+@media (prefers-reduced-motion: no-preference) { html.tv-mode .card:focus-visible .poster { translate: 0 calc(-1 * var(--tvm-lift)); } }

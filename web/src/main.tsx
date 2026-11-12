@@ -26,6 +26,7 @@ import './pages/pair.css'
 import App from './App'
 import ErrorBoundary from './components/ErrorBoundary'
 import './styles.css'
+import './design2.css'
 import './player.css'
 import './oobe.css'
 import './shell.css'
@@ -34,10 +35,12 @@ import './audio.css'
 import './pages/settings/settings.css'
 import { installTVInput } from './tv'
 import { installTvMode } from './tvmode/mode'
+import { installDensity } from './ui/density'
 import './tvmode/tvmode.css'
 import { installErrorReporter } from './errorReport'
 
 installTVInput()
+installDensity()
 installTvMode()
 installErrorReporter()
 

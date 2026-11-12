@@ -171,7 +171,7 @@ test('device: what each kind of window says it is', () => {
   assert.notEqual(deviceKey(describe(facts), 1440), deviceKey(describe(facts), 1000))
   assert.equal(deviceKey(describe(facts), 1440), deviceKey(describe(facts), 1300))
   const q = new URLSearchParams(query(describe({ ...facts, reducedMotion: true }), { library: '3', tab: undefined }))
-  assert.equal(q.get('catalog'), '2'); assert.equal(q.get('viewport'), '1440x900'); assert.equal(q.get('library'), '3')
+  assert.equal(q.get('catalog'), '5'); assert.equal(q.get('viewport'), '1440x900'); assert.equal(q.get('library'), '3')
   assert.equal(q.get('views'), 'guide,photoTimeline,photoMap,coverFlow'); assert.ok(q.get('capabilities').includes('reducedMotion')); assert.equal(q.has('tab'), false)
 })
 

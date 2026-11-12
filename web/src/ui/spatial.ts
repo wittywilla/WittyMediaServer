@@ -11,9 +11,33 @@ export type Box = { left: number; top: number; right: number; bottom: number }
 // Moving along a line (left, right) staying on that line matters most: a card two
 // along on this row beats a nearer one on the next row. Moving up or down the eye
 // is happy to shift sideways, but still prefers what is straight ahead.
+// The numbers are design tokens (`nav.weights` in themes/tokens.json) so the Swift and Kotlin ports
+// score the same way; these are the defaults, and setWeights() takes the server's.
+export type Weights = { offLine: Record<Dir, number>; offCentre: Record<Dir, number>; leavesLine: Record<Dir, number> }
+// Kept as these three constants: scripts/design-tokens.py --check compares them with `nav.weights` in the tokens.
 const OFF_LINE: Record<Dir, number> = { left: 4, right: 4, up: 1.2, down: 1.2 }
 const OFF_CENTRE: Record<Dir, number> = { left: 0.1, right: 0.1, up: 0.3, down: 0.3 }
 const LEAVES_LINE: Record<Dir, number> = { left: 4000, right: 4000, up: 0, down: 0 }
+export const DEFAULT_WEIGHTS: Weights = { offLine: OFF_LINE, offCentre: OFF_CENTRE, leavesLine: LEAVES_LINE }
+let W: Weights = DEFAULT_WEIGHTS
+
+// weightsFrom: the weights out of a tokens document's `nav` block. Anything missing or not a finite
+// number keeps its default, and unknown keys are ignored, as every token reader must.
+export function weightsFrom(nav: unknown): Weights {
+  const src = (nav && typeof nav === 'object' ? (nav as { weights?: unknown }).weights : null) as Partial<Record<keyof Weights, Partial<Record<Dir, unknown>>>> | null
+  const out = {} as Weights
+  for (const k of Object.keys(DEFAULT_WEIGHTS) as (keyof Weights)[]) {
+    const row = {} as Record<Dir, number>
+    for (const d of ['left', 'right', 'up', 'down'] as Dir[]) {
+      const v = src?.[k]?.[d]
+      row[d] = typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : DEFAULT_WEIGHTS[k][d]
+    }
+    out[k] = row
+  }
+  return out
+}
+export function setWeights(nav?: unknown) { W = nav ? weightsFrom(nav) : DEFAULT_WEIGHTS }
+export const currentWeights = () => W
 
 // score: how far b is from a in that direction, smaller being better; null when b
 // isn't that way at all.
@@ -32,7 +56,7 @@ export function score(a: Box, b: Box, dir: Dir): number | null {
   }
   // How far off to the side it is: nothing if the two overlap across the direction of travel.
   const aside = Math.max(0, Math.max(near, bNear) - Math.min(far, bFar))
-  return Math.max(0, gap) + aside * OFF_LINE[dir] + (aside > 0 ? LEAVES_LINE[dir] : 0) + centre * OFF_CENTRE[dir]
+  return Math.max(0, gap) + aside * W.offLine[dir] + (aside > 0 ? W.leavesLine[dir] : 0) + centre * W.offCentre[dir]
 }
 
 // ranked: every candidate that way, best first.

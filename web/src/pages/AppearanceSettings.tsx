@@ -18,6 +18,7 @@ import { announce } from '../a11y'
 import { globalView, setGlobalView, type ViewPrefs } from '../player/viewPrefs'
 import { Button } from '../ui/Button'
 import { Segmented } from '../ui/Choice'
+import { DENSITIES, setDensity, useDensity, type Density } from '../ui/density'
 import { Field, Input, Switch } from '../ui/Field'
 import { ask } from '../ui/Overlay'
 import { Notice } from '../ui/Surface'
@@ -298,6 +299,7 @@ function LayoutSection() {
       <Section title="Layout" desc={<>How the app is laid out on this device: where the menu is and how pages look. Kept for you on this device; your other devices keep their own. Rearrange a page with <b>Customise this page</b> at its foot.</>}>
         <ServerLayouts layouts={menu.layouts} />
         <NavCustomize />
+        <DensityRow />
       </Section>
     )
   }
@@ -323,7 +325,19 @@ function OwnLayoutSection() {
         ))}
       </div>
       <NavCustomize />
+      <DensityRow />
     </Section>
+  )
+}
+
+// How closely things are spaced on this device.
+function DensityRow() {
+  const d = useDensity()
+  const names: Record<Density, string> = { comfortable: 'Comfortable', compact: 'Compact', spacious: 'Spacious' }
+  return (
+    <Row label="Spacing" desc="How closely things sit on this device. Compact fits more on the screen; spacious gives everything room. Touch screens keep their full-size buttons.">
+      <Segmented label="Spacing" value={d} onChange={(v) => setDensity(v as Density)} options={DENSITIES.map((v) => ({ value: v, label: names[v] }))} />
+    </Row>
   )
 }
 

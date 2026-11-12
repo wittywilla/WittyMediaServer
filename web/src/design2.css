@@ -1,0 +1,79 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
+/* Design 2 (docs/plans/DESIGN-2.md): elevation by tone, type roles, density, the focus language per input, and the
+   parts it adds (Dock, key legend, key help, See all card). Loaded after styles.css so the tokens here sit on its
+   colours; every value falls back, so it works against a theme that knows none of them. */
+
+:root {
+  /* The tokens themselves (elevation, type roles, space steps, density, focus per input, motion) are in styles.css,
+     from themes/tokens.json. This file applies them. */
+  --focus-move: var(--dur-focus);
+}
+/* ---- density: spacing and control height take the multiples of the density tokens ---- */
+html[data-density="compact"], html[data-density="spacious"] {
+  --control-h: calc(2.5rem * var(--density-control)); --control-h-sm: calc(2rem * var(--density-control)); --control-h-lg: calc(2.875rem * var(--density-control));
+  --section-gap: calc(clamp(28px, 3.4vw, 44px) * var(--density-space));
+}
+/* Fingers keep their targets whatever the density. */
+@media (pointer: coarse) { html[data-density="compact"] { --control-h: 2.75rem; --control-h-sm: 2.75rem; --control-h-lg: 3.125rem; } }
+
+/* ---- the focus language, by the input in use: the same ring, thicker the further you are from the screen ---- */
+html[data-input="keys"] { --focus-width: var(--focus-width-keys); --focus-offset: var(--focus-offset-keys); --focus-scale: var(--focus-scale-keys); }
+html[data-input="pad"] { --focus-width: 3px; --focus-offset: 3px; --focus-scale: 1.04; }
+html.tv-mode, html[data-input="remote"].ten-foot { --focus-width: calc(var(--tv-focus-ring) * 1px); --focus-offset: calc(var(--tv-focus-gap) * 1px); --focus-scale: var(--tv-focus-scale); --focus: var(--tv-ring-color); }
+/* A control takes a fill, not a ring, in the dock and bar: the thing is the highlight. */
+.dock:not(.ctv-dock) .dock-btn:focus-visible, .tvm-pill:focus-visible { outline: none; background: var(--fg); color: var(--bg); }
+.dock:not(.ctv-dock) .dock-btn:focus-visible kbd { background: rgb(var(--bg-rgb) / .12); color: inherit; border-color: currentColor; }
+@media (prefers-reduced-motion: reduce) { :root { --focus-move: 0ms; } }
+
+/* ---- surfaces step by tone: dialogs and menus are the top step ---- */
+.modal, [role=menu], .ui-menu { background: var(--elev-3-fill); border: 1px solid var(--elev-3-line); box-shadow: var(--elev-3-shadow); }
+.ui-card { background: var(--elev-1-fill); border-color: var(--elev-1-line); box-shadow: var(--elev-1-shadow); }
+
+/* ---- the Dock: a screen's own controls, in one row that never moves ---- */
+.dock { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-s) var(--space-l); padding: var(--space-s) var(--gutter); background: var(--elev-1-fill); border-top: 1px solid var(--elev-1-line); }
+.dock.sticky { position: sticky; bottom: calc(var(--dock-space) + var(--tabbar-space)); z-index: var(--z-sticky); }
+.dock.legend-only { justify-content: flex-end; background: transparent; border-top: 0; padding-block: var(--space-m); }
+.dock-row { display: flex; flex-wrap: wrap; gap: var(--space-s); }
+.dock:not(.ctv-dock) .dock-btn { display: inline-flex; align-items: center; gap: var(--space-s); min-height: var(--control-h); padding: 0 var(--space-m); border: 1px solid var(--elev-2-line); border-radius: var(--r-full); background: var(--elev-2-fill); color: var(--fg); font: inherit; font-size: var(--text-md); font-weight: 600; cursor: pointer; transition: background var(--focus-move), color var(--focus-move); }
+.dock:not(.ctv-dock) .dock-btn:hover { background: var(--bg-4); }
+.dock:not(.ctv-dock) .dock-btn.primary { background: var(--accent); border-color: transparent; color: var(--accent-fg); }
+.dock:not(.ctv-dock) .dock-btn[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent-line); }
+.dock:not(.ctv-dock) .dock-btn[disabled] { opacity: .5; cursor: default; }
+.dock-btn kbd, .key-legend kbd { min-width: 1.5em; text-align: center; }
+html.tv-mode .dock:not(.ctv-dock) .dock-btn { min-height: 66px; padding: 0 28px; font-size: var(--text-xl); }
+html.tv-mode .dock { padding-block: 24px; }
+
+/* ---- the key legend: glyphs for the input in use; the component draws nothing on touch ---- */
+.key-legend { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-xs) var(--space-m); margin: 0; padding: 0; list-style: none; color: var(--fg-2); font-size: var(--text-sm); }
+.key-legend li { display: inline-flex; align-items: center; gap: var(--space-s); }
+html.tv-mode .key-legend { font-size: var(--text-xl); }
+html.tv-mode .key-legend kbd { font-size: var(--text-lg); }
+html[data-input="pad"] .key-legend kbd, html[data-input="remote"] .key-legend kbd { border-radius: var(--r-full); padding-inline: var(--space-s); }
+
+/* ---- the key help ---- */
+.key-help-list { display: grid; gap: var(--space-s); margin: 0; }
+.key-help-list > div { display: grid; grid-template-columns: minmax(8rem, 12rem) 1fr; gap: var(--space-m); align-items: center; }
+.key-help-list dt, .key-help-list dd { margin: 0; }
+.key-help-list dd { color: var(--fg-2); }
+
+/* ---- a shelf: the next card peeks so the row says it goes on, and See all ends it ---- */
+.sdui-shelf .row { scroll-padding-inline: var(--gutter) calc(var(--card-w) * var(--peek, 0) + var(--space-m)); } /* layout.peek of the next card stays in view */
+.sdui-seeall { text-decoration: none; color: var(--fg); }
+.sdui-seeall .poster { display: grid; place-items: center; background: var(--elev-1-fill); border: 1px dashed var(--border-strong); box-shadow: none; }
+.sdui-seeall-in { display: grid; justify-items: center; gap: var(--space-s); font-size: var(--text-md); color: var(--fg-2); }
+.sdui-seeall:hover .sdui-seeall-in, .sdui-seeall:focus-visible .sdui-seeall-in { color: var(--fg); }
+.sdui-seeall .poster::after { display: none; }
+
+/* ---- type roles on the page's own headings ---- */
+.sdui-page-title { font-size: var(--role-page-title-size); letter-spacing: var(--tracking-heading); font-weight: var(--weight-heading); }
+.sdui .hub-head h2 { font-size: var(--role-heading-size); letter-spacing: var(--tracking-heading); font-weight: var(--weight-heading); }
+
+/* ---- a grid drawn as a list (the Dock's View) and the letter picker ---- */
+.sdui-grid.as-list { grid-template-columns: minmax(0, 1fr); row-gap: var(--space-s); }
+.sdui-grid.as-list .sdui-item .card { width: 100%; display: grid; grid-template-columns: 3.5rem 1fr; align-items: center; gap: var(--space-m); }
+.sdui-grid.as-list .sdui-item .card .poster { width: 3.5rem; }
+.sdui-grid.as-list .sdui-item .card .title { margin: 0; }
+.sdui-letters { display: grid; grid-template-columns: repeat(auto-fill, minmax(3rem, 1fr)); gap: var(--space-s); }
+.sdui-dock-sheet { display: flex; justify-content: flex-end; padding: var(--space-m) var(--gutter); }
+.sdui-dock-sheet-list { display: grid; gap: var(--space-s); }

@@ -21,9 +21,11 @@ import SetPicker, { SetButton } from './SetPicker'
 import AddToSet from './AddToSet'
 import RecordOptions from './RecordOptions'
 import { useReminders } from './reminders'
+import { Dock, type DockAction } from '../../ui/Dock'
+import type { MenuEntry } from '../../ui/Menu'
 import { liveNow, noteBackgroundDefault } from './live'
 import { useGuidePrefs } from './guidePrefs'
-import { ALL_SET, catchupKey, channelOf, chooseSet, dialOutcome, pageLabel, pageStartOf, PAGE_SIZES, readPageSize, rowsOnPage, stepPage, stepSet, widerLookup, type PageSize } from './guideLogic'
+import { ALL_SET, catchupKey, channelOf, chooseSet, dialOutcome, edgeLanding, pageLabel, pageStartOf, PAGE_SIZES, rowsOnPage, stepPage, stepSet, widerLookup, windowStepSlots, type PageSize } from './guideLogic'
 import { canOfferRecord, dayWord, fmtClock, fmtDay, fmtSpan, getLineup, getSets, forgetLineup, setFavourite, type GuideChannel, type GuidePage as Page, type Programme, type SetList } from './tvApi'
 import './tv.css'
 import './tvthemes.css'
@@ -483,13 +485,9 @@ export default function GuidePage() {
       case 'ArrowDown':
         // The same at the bottom, for what is under the guide.
         if (total != null && row >= total - 1) return
-        // With a remote or a controller, the last row of a page hands Down on too, to Previous and
-        // Next under it; Channel Up and Down turn the page from anywhere. A keyboard pages on.
-        if (pageSize && row === pageStart + pageRows - 1 && document.documentElement.matches('.ten-foot, .using-controller')) {
-          const to = [...(page.current?.querySelectorAll<HTMLButtonElement>('.ctv-pager button') || [])].reverse().find((b) => !b.disabled)
-          if (to) { to.focus(); break }
-          return
-        }
+        // The last row of a page hands Down on, to the Dock under the grid (the page itself turns with Page Up and
+        // Down, the shoulder triggers, Channel Up and Down, or the Dock's Channels).
+        if (pageSize && row === pageStart + pageRows - 1) return
         moveRow(row + 1); break
       case 'PageUp': case 'ChannelUp': moveRow(pageSize && total ? stepPage(row, pageSize, total, -1) : row - rowsPerScreen); break
       case 'PageDown': case 'ChannelDown': moveRow(pageSize && total ? stepPage(row, pageSize, total, 1) : row + rowsPerScreen); break
@@ -497,14 +495,14 @@ export default function GuidePage() {
       case 'ArrowRight': {
         const next = cells[idx + 1]
         if (next && next.start < to) { wantFocus.current = true; setFocus({ row, at: next.start }) }
-        else shiftTime(SLOT, curCell ? Math.max(curCell.end, to) : undefined)
+        else shiftTime(windowStepSlots(slots) * SLOT, edgeLanding(1, from, to, curCell?.end))
         break
       }
       case 'ArrowLeft': {
         const prev = cells[idx - 1]
         if (prev) { wantFocus.current = true; setFocus({ row, at: Math.max(prev.start, from) }) }
         else if (from <= floorSlot(now) - 2 * 3600) return
-        else shiftTime(-SLOT, from - SLOT)
+        else shiftTime(-windowStepSlots(slots) * SLOT, edgeLanding(-1, from, to))
         break
       }
       case 'Enter': if (cur && curCell) activate(cur, curCell); break
@@ -514,6 +512,7 @@ export default function GuidePage() {
       case 'd': case 'D': if (cur && curCell) setDetails({ ch: cur, p: curCell, day: true }); break
       case 'm': case 'M': if (cur && curCell && curCell.start > now) void reminders.toggle(cur.key, curCell); break
       case 'l': case 'L': void jumpToLast(); break
+      case 'v': case 'V': setLookOpen(true); break
       case 's': case 'S': case '/': openSearch(); break
       case 'n': case 'N': goNow(); break
       case '+': case '=': setLook({ hours: Math.max(1.5, (look.hours || slots / 2) - 0.5) as Look['hours'] }); break
@@ -620,6 +619,55 @@ export default function GuidePage() {
     : hasSets ? (setId === 'fav' ? 'No favourites yet: press the star on a channel.' : 'There are no channels in this set that you can watch.')
     : filter.favourites ? 'No favourites yet: press the star on a channel.' : 'No channels match that.'
   const lastPage = total != null && pageSize ? pageStart + pageSize >= total : true
+  // The Dock under the grid: six buttons that never move, whatever the look (docs/plans/DESIGN-2.md section 4).
+  const hasFav = !!sets?.sets.some((x) => x.id === 'fav')
+  const filterItems: MenuEntry[] = hasSets ? [
+    { key: 'find', label: 'Find a channel', onSelect: () => document.querySelector<HTMLInputElement>('.ctv-find input')?.focus(), disabled: !hasPaging },
+    { key: 'all', label: 'All channels', current: setId === ALL_SET, onSelect: () => pickSet(ALL_SET) },
+    ...(hasFav ? [{ key: 'fav', label: 'Favourites', current: setId === 'fav', onSelect: () => pickSet('fav') }] : []),
+    { kind: 'separator', key: 'sep' },
+    { key: 'togglefav', label: cur?.favourite ? 'Remove this channel from favourites' : 'Add this channel to favourites', disabled: !cur, onSelect: () => { if (cur) void toggleFav(cur) } },
+    { key: 'addset', label: 'Add this channel to a set…', disabled: !cur, onSelect: () => { if (cur) setAddTo(cur) } },
+  ] : [
+    { key: 'all', label: 'All channels', current: noFilter, onSelect: () => setFilter(NO_FILTER) },
+    ...((anyFav || filter.favourites) ? [{ key: 'fav', label: 'Favourites', current: filter.favourites, onSelect: () => setFilter({ kind: '', group: '', favourites: !filter.favourites }) }] : []),
+    ...groups.map((g) => ({ key: 'g' + g, label: g, current: filter.group === g, onSelect: () => setFilter({ kind: '', favourites: false, group: filter.group === g ? '' : g }) })),
+    ...(hasBoth ? [
+      { key: 'lib', label: 'My library', current: filter.kind === 'library', onSelect: () => setFilter({ group: '', favourites: false, kind: filter.kind === 'library' ? '' : 'library' }) },
+      { key: 'tun', label: 'Live TV', current: filter.kind === 'tuner', onSelect: () => setFilter({ group: '', favourites: false, kind: filter.kind === 'tuner' ? '' : 'tuner' }) },
+    ] : []),
+  ]
+  const channelItems: MenuEntry[] = [
+    ...(hasSets ? [{ key: 'sets', label: 'Choose channels…', hint: 'C', onSelect: openPicker }, { kind: 'separator', key: 'sep' } as MenuEntry] : []),
+    { kind: 'heading', key: 'head', label: 'Channels per page' },
+    ...PAGE_SIZES.map((n) => ({ key: 'n' + n, label: n ? `${n} per page` : 'All, scrolling', checked: pageSize === n, onSelect: () => setPrefs({ pageSize: n }) })),
+    ...(pageSize ? [
+      { kind: 'separator', key: 'sep2' } as MenuEntry,
+      { key: 'prev', label: 'Previous page', hint: 'Page Up', disabled: pageStart === 0, onSelect: () => goPage(-1) },
+      { key: 'next', label: 'Next page', hint: 'Page Down', disabled: lastPage, onSelect: () => goPage(1) },
+    ] : []),
+  ]
+  const dayItems: MenuEntry[] = [
+    { key: 'now', label: 'Now', hint: 'N', current: floorSlot(now) === from, onSelect: goNow },
+    ...jumps(now).map((j) => ({ key: j.label, label: j.label, onSelect: () => goAt(j.at) })),
+    { kind: 'separator', key: 'sep' },
+    ...Array.from({ length: DAY_NAMES }, (_, i) => ({ key: 'd' + i, label: i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : fmtDay(today + i * 86400 + 3600), current: dayOffset === i, onSelect: () => goDay(i) })),
+  ]
+  const canRecord = !!cur && !!panel && canOfferRecord(cur, panel, now)
+  const dockActions: DockAction[] = [
+    { id: 'look', label: 'Look', hint: 'V', onClick: () => setLookOpen(true) },
+    { id: 'day', label: 'Day', hint: 'A B', items: dayItems },
+    { id: 'channels', label: 'Channels', hint: 'C', items: channelItems, detail: hasSets && curSet ? curSet.name : undefined },
+    { id: 'filter', label: 'Filter', items: filterItems },
+    { id: 'info', label: 'More info', hint: 'I', disabled: !cur || !curCell, onClick: () => { if (cur && curCell) setDetails({ ch: cur, p: curCell }) } },
+    { id: 'recordings', label: 'Recordings', to: '/tv/recordings' },
+    hasRules2
+      ? { id: 'record', label: 'Record', hint: 'R', disabled: !canRecord, items: [
+        { key: 'one', label: 'Record this programme', onSelect: () => { if (cur && panel) offerRecord(cur, panel, false) } },
+        { key: 'series', label: 'Record the series', onSelect: () => { if (cur && panel) offerRecord(cur, panel, true) } },
+      ] }
+      : { id: 'record', label: 'Record', hint: 'R', disabled: !canRecord, onClick: () => { if (cur && panel) void record(cur, panel) } },
+  ]
   return shell(
     <>
       <h1 className="sr-only">TV guide</h1>
@@ -631,7 +679,6 @@ export default function GuidePage() {
       <div className="ctv-bar">
         <div className="ctv-bar-group">
           <h2 className="ctv-bar-title">Guide</h2>
-          <Link className="ctv-btn sm only-narrow" to="/tv/recordings">Recordings</Link>
           {hasSets ? (
             sets && <SetButton set={curSet} onOpen={openPicker} />
           ) : (
@@ -657,21 +704,7 @@ export default function GuidePage() {
           <button className="ctv-btn sm icon" onClick={() => shiftTime(-SLOT)} aria-label="Half an hour earlier"><IconLeft size={16} /></button>
           <button className={'ctv-btn sm' + (floorSlot(now) === from ? ' on' : '')} onClick={goNow}>Now</button>
           <button className="ctv-btn sm icon" onClick={() => shiftTime(SLOT)} aria-label="Half an hour later"><IconRight size={16} /></button>
-          {jumps(now).map((j) => <button key={j.label} className="ctv-link-btn" onClick={() => goAt(j.at)}>{j.label}</button>)}
-          <label className="ctv-field"><span className="sr-only">Day</span>
-            <select value={dayOffset} onChange={(e) => goDay(Number(e.target.value))}>
-              {dayOffset < 0 && <option value={dayOffset}>Yesterday</option>}
-              {Array.from({ length: DAY_NAMES }, (_, i) => <option key={i} value={i}>{i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : fmtDay(today + i * 86400 + 3600)}</option>)}
-            </select>
-          </label>
-          <label className="ctv-field" title="Channels on each page"><span className="sr-only">Channels per page</span>
-            <select value={pageSize} onChange={(e) => setPrefs({ pageSize: readPageSize(e.target.value) })}>
-              {PAGE_SIZES.map((n) => <option key={n} value={n}>{n ? `${n} per page` : 'All, scrolling'}</option>)}
-            </select>
-          </label>
           <button className="ctv-btn sm icon" onClick={openSearch} aria-haspopup="dialog" aria-label="Search the schedule" title="Search the schedule (S)"><IconSearch size={16} /></button>
-          <button className="ctv-btn sm" onClick={() => setLookOpen(true)} aria-haspopup="dialog" data-tv-options>Look</button>
-          <Link className="ctv-btn sm hide-narrow" to="/tv/recordings">Recordings</Link>
           {user?.isAdmin && <Link className="ctv-btn sm" to="/tv/channels" aria-label="Edit channels"><IconSettings size={16} /> <span className="hide-narrow">Edit channels</span></Link>}
         </div>
       </div>
@@ -701,18 +734,13 @@ export default function GuidePage() {
       {total === 0 && <div className="ctv-err">{emptyWords}</div>}
       {pageSize > 0 && total != null && total > 0 && (
         <div className="ctv-pager" role="group" aria-label="Pages of channels" data-nav-group>
-          <button className="ctv-btn sm" disabled={pageStart === 0} onClick={() => goPage(-1, true)} title="Previous page (Page Up)"><IconLeft size={16} /> Previous</button>
+          <button className="ctv-btn sm" data-nav-skip disabled={pageStart === 0} onClick={() => goPage(-1, true)} title="Previous page (Page Up)"><IconLeft size={16} /> Previous</button>
           <span className="ctv-pager-at" role="status">{pageLabel(pageStart, pageSize, total)}</span>
-          <button className="ctv-btn sm" disabled={lastPage} onClick={() => goPage(1, true)} title="Next page (Page Down)">Next <IconRight size={16} /></button>
+          <button className="ctv-btn sm" data-nav-skip disabled={lastPage} onClick={() => goPage(1, true)} title="Next page (Page Down)">Next <IconRight size={16} /></button>
         </div>
       )}
 
-      <footer className="ctv-help" aria-label="Keys" data-nav-group>
-        <button className="ctv-key a" onClick={() => shiftTime(-86400)}><b>A</b> Day −</button>
-        <button className="ctv-key b" onClick={() => shiftTime(86400)}><b>B</b> Day +</button>
-        <button className="ctv-key c" onClick={cycle}><b>C</b> {hasSets ? (curSet?.name || 'All channels') : filter.kind === '' ? 'All' : filter.kind === 'library' ? 'Library' : 'Live TV'}</button>
-        <span className="ctv-hint hide-narrow">▲▼ Channel · ◄► Time · OK Watch · 0–9 Dial · F Favourite · M Remind · D Day · S Search · L Last · I Info{hasSets ? ' · [ ] Set · T Add to set' : ''}{pageSize ? ' · Page Up/Down Page' : ''}</span>
-      </footer>
+      <Dock label="Guide controls" className="ctv-dock" btn="ctv-btn sm" scope="list" actions={dockActions} />
       <div className="ctv-legals">
         <LegalNote kind="tv" className="ctv-legal" />
         {logosShown && <LegalNote kind="logos" className="ctv-legal" />}

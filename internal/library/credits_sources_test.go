@@ -826,3 +826,30 @@ func TestCreditsBackfillShowEpisodes(t *testing.T) {
 		t.Errorf("an episode added later wasn't filled in: asked %d more times", fake.count("/tv/9/season/1")-asked)
 	}
 }
+
+// A film folder can hold the NFO the title is read from (here one this server wrote before it
+// kept people) and a media centre's movie.nfo with the whole cast: the people come from the one
+// that names them, at a scan and at a refresh.
+func TestNFOCreditsFromTheNFOThatNamesThem(t *testing.T) {
+	s, lib, root := creditsLibrary(t, "movies")
+	ctx := context.Background()
+	dir := filepath.Join(root, "Lantern Bay (2011)")
+	addFile(t, dir, "Lantern Bay (2011).mkv")
+	writeFile(t, filepath.Join(dir, "Lantern Bay (2011).nfo"), []byte("<?xml version=\"1.0\"?>\n<!-- written by WittyMediaServer -->\n<movie><title>Lantern Bay</title><year>2011</year></movie>\n"))
+	writeFile(t, filepath.Join(dir, "movie.nfo"), creditsFixture(t, "kodi-movie.nfo"))
+	if err := s.scan(ctx, lib.ID); err != nil {
+		t.Fatal(err)
+	}
+	it := oneItem(t, s, lib.ID)
+	c, err := s.Store.ItemCredits(ctx, it)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(c.Cast) != 3 || crewOf(c, "directing") == nil {
+		t.Fatalf("the cast and crew of movie.nfo: %+v", c)
+	}
+	// What a refresh reads.
+	if got := s.nfoCredits(ctx, title(t, s, TargetItem, it.ID)); len(got) == 0 {
+		t.Error("a refresh reads nobody from the film's NFOs")
+	}
+}

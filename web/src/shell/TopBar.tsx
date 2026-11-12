@@ -169,7 +169,7 @@ export function TopBar({ onMenu, showMenu, topNav, menuOpen, wide, allTabs }: { 
   useUnder(bar)
   const top = TAB_PAGES.includes(loc.pathname) || list.some((it) => pathOf(it.to) === loc.pathname)
   return (
-    <header className="topbar" ref={bar}>
+    <header className="topbar" data-nav-zone="bar" ref={bar}>
       {top ? <SectionRow list={list} /> : <TopBack />}
       {showMenu && (
         <button type="button" className="btn icon menu-toggle" onClick={onMenu} aria-expanded={menuOpen} aria-label={wide ? (menuOpen ? 'Fold the side menu' : 'Open the side menu') : 'Open the menu'}>

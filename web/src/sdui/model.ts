@@ -29,6 +29,8 @@ export type View = {
   columns?: number
   hasMore?: boolean
   seeAll?: string
+  seeAllCard?: boolean
+  peek?: number
   image?: string
   shows?: string[]
   progress?: number
@@ -237,7 +239,8 @@ function viewOf(x: Node, depth: number, parent: Node | undefined, l: Layout, pag
     if (cols !== undefined) e.columns = Math.trunc(cols)
     e.hasMore = !!obj(p, 'more') && x.state !== 'deferred' && x.state !== 'error'
     const sa = obj(p, 'seeAll')
-    if (sa) e.seeAll = str(sa, 'route') || undefined
+    if (sa) { e.seeAll = str(sa, 'route') || undefined; if (p.seeAllCard === true) e.seeAllCard = true }
+    if (x.type === 'Shelf' && p.peek !== false && l.peek) e.peek = l.peek
     text('title', str(p, 'title'))
     text('subtitle', str(p, 'subtitle'))
     text('empty', str(p, 'emptyText'))
@@ -262,10 +265,23 @@ function viewOf(x: Node, depth: number, parent: Node | undefined, l: Layout, pag
       e.role = 'region'; e.label = str(p, 'title') || 'Featured'; e.cards = kids
       const size = obj(p, 'size')
       if (size) { e.cardWidth = Math.trunc(num(size, 'width') || 0); e.cardHeight = Math.trunc(num(size, 'height') || 0) }
+      if (p.peek === true && l.peek) e.peek = l.peek
       const adv = num(p, 'autoAdvanceSec')
       if (adv !== undefined) text('autoAdvance', Math.trunc(adv) + ' s')
       break
     }
+    case 'Dock': {
+      e.role = 'toolbar'; e.label = str(p, 'title') || 'Options'
+      e.cards = kids
+      e.buttons = (x.children || []).filter((c) => c.type === 'Button').map((c) => str(c.props, 'label'))
+      e.cardHeight = l.dock?.height
+      text('placement', str(p, 'placement'))
+      break
+    }
+    case 'KeyLegend':
+      text('keys', list(p, 'entries').map((en) => str(en as Props, 'label')).join(' · '))
+      e.textSize = l.dock?.hintSize
+      break
     case 'Tabs': e.role = 'tablist'; e.cards = kids; break
     case 'Tab':
       e.role = 'tab'; e.label = str(p, 'label') + (p.selected === true ? ', selected' : '')

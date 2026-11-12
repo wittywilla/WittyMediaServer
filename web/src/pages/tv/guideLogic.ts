@@ -96,6 +96,18 @@ export function pageLabel(start: number, size: PageSize, total: number, fmt: (n:
   return `Channels ${fmt(start + 1)}–${fmt(last)} of ${fmt(total)}`
 }
 
+// ------------------------------------------------------------------ time
+
+// Left or right past the edge of the window pages the time by half the window (docs/plans/DESIGN-2.md section 4),
+// in whole slots and never less than one, so a three-slot window moves one slot and a six-slot window three.
+export const windowStepSlots = (slots: number) => Math.max(1, Math.floor(slots / 2))
+
+// Where the highlight goes when the window pages: the moment just past the edge it left (so it stays on what comes
+// next), which is inside the new window as long as the window moved by a slot or more.
+export function edgeLanding(dir: 1 | -1, from: number, to: number, curEnd?: number): number {
+  return dir === 1 ? Math.max(curEnd ?? to, to) : from - 1
+}
+
 // ------------------------------------------------------------------ dialling
 
 export type DialOutcome = { kind: 'here'; row: number } | { kind: 'elsewhere'; row: number } | { kind: 'none' }

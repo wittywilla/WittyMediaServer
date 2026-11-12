@@ -8,7 +8,7 @@ import { api, backdropUrl, fmtDateTime, mediaUrl, uploadFile, type ArtCandidate,
 import ArtworkPicker, { ART_SOURCE } from '../../components/ArtworkPicker'
 import { Placeholder, Spinner } from '../../components/common'
 import LegalNote from '../../components/LegalNote'
-import { IconCheck, IconDownload, IconEdit, IconGamepad, IconGlobe, IconImage, IconInfo, IconMore, IconPlay, IconRefresh, IconSettings, IconStar, IconTrash, IconTune, IconUsers } from '../../icons'
+import { IconCheck, IconDownload, IconEdit, IconGamepad, IconImage, IconInfo, IconMore, IconPlay, IconRefresh, IconSettings, IconStar, IconTrash, IconTune, IconUsers } from '../../icons'
 import { toast, useApp } from '../../state'
 import { ask, Dialog, Menu, Sheet, useBackCloses, type MenuEntry } from '../../ui'
 import { GameCredits, GameMatchBar, GameRatings, GameShots } from '../GameMeta'
@@ -187,10 +187,14 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
           )}
           {meta && <GameProblem d={meta} />}
           <div className="gm-game-actions">
-            {ready && resumes
-              ? <Link data-tv-first className="btn primary big gm-play" to={links.play(it.id, 'resume=1')}><IconPlay /> Resume</Link>
-              : ready && <Link data-tv-first className="btn primary big gm-play" to={links.play(it.id)}><IconPlay /> Play</Link>}
-            {ready && auto && <Link className="btn big" to={links.play(it.id)}>Start over</Link>}
+            {/* No core plays it here, a standalone emulator does: Play starts that one. */}
+            {ready && check?.emulator
+              ? <Link data-tv-first className="btn primary big gm-play" to={links.play(it.id, 'emulator=' + encodeURIComponent(check.emulator.id))}><IconPlay /> Play with {check.emulator.name}</Link>
+              : ready && resumes
+                ? <Link data-tv-first className="btn primary big gm-play" to={links.play(it.id, 'resume=1')}><IconPlay /> Resume</Link>
+                : ready && <Link data-tv-first className="btn primary big gm-play" to={links.play(it.id)}><IconPlay /> Play</Link>}
+            {ready && auto && !check?.emulator && <Link className="btn big" to={links.play(it.id)}>Start over</Link>}
+            {!ready && check?.reason === 'emulator' && user?.isAdmin && <Link className="btn primary big" to="/settings/emulators"><IconSettings size={16} /> Set up an emulator</Link>}
             {!ready && check?.reason === 'core' && !check.noBuild && user?.isAdmin && c && <button type="button" className="btn primary big" onClick={() => setPicker({ kind: 'console', consoleId: c.id, consoleShort: c.short })}><IconSettings size={16} /> Choose a core</button>}
             {!ready && check?.reason === 'bios' && user?.isAdmin && <Link className="btn primary big" to="/settings/gaming"><IconSettings size={16} /> Set up {c?.short}</Link>}
             {mine && (
@@ -308,8 +312,6 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
             ))}
             {c?.unavailable && <li className="no"><IconInfo size={16} /><span><b>Not playable here yet</b><small>{c.unavailable}</small></span></li>}
             {seats > 0 && <li className="info"><IconUsers size={16} /><span><b>Seats</b><small>{seats === 1 ? 'One player.' : `Up to ${seats} players on one screen${c?.capabilities?.input.multitap ? `, ${c.capabilities.input.multitap} with a multitap` : ''}.`}</small></span></li>}
-            {/* Reserved and not built: playing with someone on another server. Never an action. */}
-            <li className="info gm-reserved" aria-disabled="true"><IconGlobe size={16} /><span><b>Multiplayer</b><small>Play with someone on another server. Coming later.</small></span></li>
           </ul>
         </section>
         <section className="gm-panel" aria-labelledby="gm-controls-h">

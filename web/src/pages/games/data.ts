@@ -14,8 +14,10 @@ export type GameHome = {
   hero: Item[]; continue: GameContinue[]; recent: Item[]; favourites: Item[]; favouriteIds: number[]; mostPlayed: Item[]; shelves: GameShelf[]
 }
 export type GameCheck = {
-  ready: boolean; reason?: 'core' | 'bios' | 'gpu' | 'encrypted' | 'unavailable' | 'unknown'; message?: string; encrypted?: boolean; file?: string; console?: string; consoleName?: string
+  ready: boolean; reason?: 'core' | 'bios' | 'gpu' | 'encrypted' | 'unavailable' | 'emulator' | 'unknown'; message?: string; encrypted?: boolean; file?: string; console?: string; consoleName?: string
   core?: { id: string; name: string; license: string }; needsGpu?: boolean; gpuMissing?: string
+  // No core plays it here and this standalone emulator does: Play starts it (games_standalone.go).
+  emulator?: { id: string; name: string; version: string }
   // Plays, drawn by the server's processor as it has no graphics card games can use; notice is the speed caveat.
   software?: boolean; notice?: string
   // With reason gpu: where its games would play. With reason core: a core that would play it here.

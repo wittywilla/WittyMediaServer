@@ -16,13 +16,18 @@ export type Field = {
   choices?: FieldChoice[]
   scope: 'admin' | 'user'
   mapOf?: 'toggle' | 'choice' | 'text'; mapKeys?: FieldChoice[]
+  // A heading the setting goes under (the section of the emulator's own file), and whether it's
+  // one most people never need. A schema generated from an emulator's real settings has hundreds.
+  group?: string; advanced?: boolean
 }
 export type Values = Record<string, unknown>
 
 export type DockerStatus = {
-  enabled: boolean; runtime: 'docker' | 'local'
+  enabled: boolean; runtime: 'docker' | 'local' | 'host'
   available: boolean; host: string; apiVersion?: string; os?: string; arch?: string; rootless?: boolean; error?: string
   local: { available: boolean; why?: string }
+  // An emulator on this computer's own desktop: a Mac or Windows. Missing from an older WittyPlay.
+  desktop?: { available: boolean; why?: string }
   containers: number
 }
 export type DiagnosticCheck = { id: string; label: string; state: 'ok' | 'warn' | 'fail' | 'off'; detail: string }
@@ -202,4 +207,24 @@ export const scopeValues = (view: EmulatorSettingsView, scope: SettingsScope): V
 export function scopesFor(canAdmin: boolean, hasGame: boolean, adminOnly = false): SettingsScope[] {
   if (adminOnly) return canAdmin ? ['admin'] : []
   return [...(canAdmin ? ['admin' as const] : []), 'user' as const, ...(hasGame ? ['game' as const] : [])]
+}
+
+// Settings worth grouping, searching and hiding: a whole emulator's, rather than a handful.
+export const LARGE_SCHEMA = 24
+
+// The fields to show for a search and the advanced switch, in their groups, in the order the
+// schema gives them. Words match a setting's label, help, key, group or a choice's label.
+export function groupFields(schema: Field[], query: string, advanced: boolean): { group: string; fields: Field[] }[] {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean)
+  const hay = (f: Field) => [f.label, f.help || '', f.key, f.group || '', ...(f.choices || []).map((c) => c.label)].join(' ').toLowerCase()
+  const out: { group: string; fields: Field[] }[] = []
+  const at = new Map<string, number>()
+  for (const f of schema) {
+    if (f.advanced && !advanced && !words.length) continue
+    if (words.length && !words.every((w) => hay(f).includes(w))) continue
+    const g = f.group || 'General'
+    if (!at.has(g)) { at.set(g, out.length); out.push({ group: g, fields: [] }) }
+    out[at.get(g)!].fields.push(f)
+  }
+  return out
 }

@@ -88,8 +88,8 @@ export default function EmulatorsSettings() {
   if (!status) return <Spinner />
   return (
     <div ref={page}>
-      <PageHead title="Standalone emulators" desc="Some consoles are played by an emulator that is a whole program of its own, not a core. This server can run those too, each boxed in a container, and stream them like any other game. It’s off until you turn it on." />
-      <Section title="Docker and the sandbox" desc="Whether this computer can run emulators, and what would run them."
+      <PageHead title="Standalone emulators" desc="Some consoles are played by an emulator that is a whole program of its own, not a core: Xbox, PlayStation 3 and Wii U, and others where you’d rather. This server can run those too, boxed in on this computer or in a container, and stream them like any other game. It’s off until you turn it on." />
+      <Section title="Where emulators run" desc="Whether this computer can run emulators, and what would run them."
         actions={<button type="button" className="btn sm" disabled={refreshing} onClick={() => { void refresh() }}><IconRefresh size={16} /> {refreshing ? 'Checking…' : 'Refresh'}</button>}>
         <StatusFacts status={status} checks={checks} />
       </Section>
@@ -110,7 +110,7 @@ function StatusFacts({ status, checks }: { status: DockerStatus; checks: Diagnos
         <dt>Standalone emulators</dt>
         <dd><span className={'gm-pill ' + (status.enabled ? 'ok' : 'off')}>{status.enabled ? <IconCheck size={14} /> : <IconInfo size={14} />} {status.enabled ? 'On' : 'Off'}</span></dd>
         <dt>A game would run in</dt>
-        <dd>{status.runtime === 'docker' ? 'A Docker container' : 'The local sandbox, without Docker'}</dd>
+        <dd>{status.runtime === 'docker' ? 'A Docker container' : status.runtime === 'host' ? 'This computer’s own desktop, boxed in by its own sandbox' : 'The local sandbox, without Docker'}</dd>
         <dt>Docker</dt>
         <dd>
           {status.available ? <><b>Reachable</b>{docker && docker !== 'Reachable' ? ` · ${docker}` : ''}</> : <b>Can’t be reached</b>}
@@ -119,6 +119,8 @@ function StatusFacts({ status, checks }: { status: DockerStatus; checks: Diagnos
         </dd>
         <dt>Local sandbox</dt>
         <dd>{status.local.available ? 'Available' : 'Not available here'}{status.local.why && <small>{status.local.why}</small>}</dd>
+        {status.desktop && <><dt>On this computer’s desktop</dt>
+          <dd>{status.desktop.available ? 'Available' : 'Not available here'}{status.desktop.why && <small>{status.desktop.why}</small>}</dd></>}
         <dt>Containers running</dt>
         <dd>{status.containers}</dd>
         {checks && <><dt>This computer</dt><dd>{[[checks.host.os, checks.host.arch].filter(Boolean).join(' '), checks.host.cpus ? `${checks.host.cpus} processor ${checks.host.cpus === 1 ? 'thread' : 'threads'}` : '', checks.host.memoryMB ? `${checks.host.memoryMB >= 1024 ? `${+(checks.host.memoryMB / 1024).toFixed(1)} GB` : `${checks.host.memoryMB} MB`} of memory` : ''].filter(Boolean).join(' · ')}</dd></>}
@@ -168,20 +170,23 @@ function BackendForm({ onSaved }: { onSaved: () => Promise<unknown> }) {
   }
   // The switch that turns it all on comes first, with what turning it on means beside it.
   const first = data?.schema.filter((f) => f.key === 'docker.enabled') || []
-  const rest = data?.schema.filter((f) => f.key !== 'docker.enabled') || []
+  // A container's own settings mean nothing to an emulator on this computer, and are left out.
+  const runtime = now['docker.runtime'] ?? data?.schema.find((f) => f.key === 'docker.runtime')?.default
+  const containerOnly = ['docker.network', 'docker.internal', 'docker.publishLoopback', 'docker.gpu', 'docker.images']
+  const rest = data?.schema.filter((f) => f.key !== 'docker.enabled' && (runtime === 'docker' || !containerOnly.includes(f.key))) || []
   const form = (schema: BackendSettings['schema']) => <SchemaForm schema={schema} values={now} onChange={change} under={(f) => f.default} disabled={busy} />
   return (
-    <Section title="How emulators run" desc="What an emulator’s container may use, and how its picture reaches you.">
+    <Section title="How emulators run" desc="What an emulator may use, and how its picture reaches you.">
       {failed ? <Notice tone="danger" action={<button type="button" className="btn sm" onClick={() => { void load() }}>Try again</button>}>{failed}</Notice>
         : !data ? <Spinner />
         : (
           <>
             {first.length > 0 && form(first)}
-            <div className="emu-warning">
+            {runtime === 'docker' && <div className="emu-warning">
               <Notice tone="warn" title="Access to Docker is the same as root on this computer">
                 <p>Whoever can reach Docker’s socket can do anything on this computer that its administrator can. Turning this on gives this server that reach, so only turn it on for a server you run yourself. Rootless Docker, or Podman, is the safer way: the emulators then run without root at all. <WebLink href={DOCS}>How the Docker backend works, and how to set up rootless Docker</WebLink>.</p>
               </Notice>
-            </div>
+            </div>}
             {rest.length > 0 && form(rest)}
             {error && <div className="emu-form-error"><Notice tone="danger">{error}</Notice></div>}
             <SaveBar dirty={dirty} busy={busy} save={() => { void save() }} discard={() => { setDraft({}); setError('') }} />

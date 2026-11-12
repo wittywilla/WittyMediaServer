@@ -4,7 +4,7 @@
 //   node --experimental-strip-types --test web/src/pages/games/emulatorsLogic.test.mjs
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { apiPath, changedValues, fmtBytes, hostOf, inheritedValue, jobProgress, mayEdit, numberFrom, placeholderOf, requiresWords, scopesFor, sinceWords, wholeSettings, withMapEntry } from './emulatorsLogic.ts'
+import { apiPath, changedValues, fmtBytes, groupFields, hostOf, inheritedValue, jobProgress, mayEdit, numberFrom, placeholderOf, requiresWords, scopesFor, sinceWords, wholeSettings, withMapEntry } from './emulatorsLogic.ts'
 
 test('a session’s addresses lose /api, which the client adds itself', () => {
   assert.equal(apiPath('/api/v1/modules/wittyplay/docker/sessions/abc/connect'), '/v1/modules/wittyplay/docker/sessions/abc/connect')
@@ -165,4 +165,16 @@ test('the levels someone can open', () => {
   assert.deepEqual(scopesFor(true, true), ['admin', 'user', 'game'])
   assert.deepEqual(scopesFor(true, false, true), ['admin'])
   assert.deepEqual(scopesFor(false, false, true), [])
+})
+
+test('a whole emulator’s settings come in their sections, found by words, advanced ones on request', () => {
+  const f = (key, group, extra = {}) => ({ key, kind: 'toggle', label: key, default: false, scope: 'user', group, ...extra })
+  const schema = [f('widescreen', 'Graphics', { help: 'Draws 16:9' }), f('vsync', 'Graphics'), f('fastmem', 'Core', { advanced: true }), f('volume', 'Audio', { kind: 'choice', choices: [{ value: '1', label: 'Loud' }] }), f('loose')]
+  assert.deepEqual(groupFields(schema, '', false).map((g) => [g.group, g.fields.map((x) => x.key)]), [['Graphics', ['widescreen', 'vsync']], ['Audio', ['volume']], ['General', ['loose']]])
+  assert.deepEqual(groupFields(schema, '', true).map((g) => g.group), ['Graphics', 'Core', 'Audio', 'General'])
+  assert.deepEqual(groupFields(schema, '16:9', false).flatMap((g) => g.fields.map((x) => x.key)), ['widescreen'])
+  assert.deepEqual(groupFields(schema, 'loud', false).flatMap((g) => g.fields.map((x) => x.key)), ['volume'])
+  // A search finds advanced settings too: someone looking for one by name wants it.
+  assert.deepEqual(groupFields(schema, 'fastmem', false).flatMap((g) => g.fields.map((x) => x.key)), ['fastmem'])
+  assert.deepEqual(groupFields(schema, 'graphics vsync', false).flatMap((g) => g.fields.map((x) => x.key)), ['vsync'])
 })

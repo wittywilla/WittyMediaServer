@@ -146,8 +146,9 @@ func TestConsoleComesFromTheBytes(t *testing.T) {
 	put(t, root, "Mystery Raw PS1.bin", fixture.Raw(fixture.PS1("SLUS_200.00")))
 	put(t, root, "Mystery Dreamcast.iso", fixture.Boot("SEGA SEGAKATANA"))
 	put(t, root, "Mystery Mega Drive.bin", fixture.MegaDrive("MADE UP", "GM 00000000-00"))
-	// Consoles this server can't play get named, and left for a person.
+	// A console this server can't play gets named, and left for a person.
 	put(t, root, "Mystery Saturn.iso", fixture.Boot("SEGA SEGASATURN"))
+	// The GameCube is one it plays (the Dolphin core, or Dolphin), so its disc is a game.
 	put(t, root, "Mystery GameCube.iso", gcFixture())
 	// A disc with nothing to say, and a folder that's no help.
 	put(t, root, "Plain Disc.iso", fixture.ISO("LINUX"))
@@ -162,14 +163,14 @@ func TestConsoleComesFromTheBytes(t *testing.T) {
 
 	got, notes := discovered(t, root, "auto")
 	want := []string{
-		"Mystery Dreamcast.iso=dc", "Mystery Mega Drive.bin=md", "Mystery PS2.iso=ps2", "Mystery PSP.iso=psp", "Mystery Raw PS1.bin=ps1",
+		"Mystery Dreamcast.iso=dc", "Mystery GameCube.iso=gc", "Mystery Mega Drive.bin=md", "Mystery PS2.iso=ps2", "Mystery PSP.iso=psp", "Mystery Raw PS1.bin=ps1",
 		"NES/Plain Dump.nes=nes", "Playstation 2/Really a PSP Game.cso=psp", "Playstation Portable/Really a PS1 Game.iso=ps1", "Playstation/Really a PS2 Game.iso=ps2",
 		"Super Nintendo/Really an N64 Game.bin=n64",
 	}
 	if !equal(got, want) {
 		t.Fatalf("got %v, want %v", got, want)
 	}
-	for _, rel := range []string{"Mystery Saturn.iso", "Mystery GameCube.iso", "Plain Disc.iso", "Playstation 2/Not a Disc.iso", "NES/Not a Cartridge.nes"} {
+	for _, rel := range []string{"Mystery Saturn.iso", "Plain Disc.iso", "Playstation 2/Not a Disc.iso", "NES/Not a Cartridge.nes"} {
 		if n := notes[rel]; n.kind != reviewNeeds || n.reason == "" {
 			t.Errorf("%s: %+v", rel, n)
 		}

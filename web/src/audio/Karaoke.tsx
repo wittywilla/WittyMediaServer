@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Segmented } from '../ui/Choice'
 import { HelpLink } from '../components/HelpLink'
 import { IconClose, IconFull, IconNext, IconPause, IconPlay, IconPrev } from '../icons'
 import { lineAt, useLineIndex, wordTimes, type LyricLine, type useLyrics } from './lyrics'
@@ -19,7 +20,7 @@ const LONG_GAP_MS = 5000 // a break long enough to count back in from
 
 const NO_LINES: LyricLine[] = []
 
-export default function Karaoke({ p, ly, onClose }: { p: PlayerView; ly: ReturnType<typeof useLyrics>; onClose: () => void }) {
+export default function Karaoke({ p, ly, onClose, behind, choice }: { p: PlayerView; ly: ReturnType<typeof useLyrics>; onClose: () => void; behind?: ReactNode; choice?: ReactNode }) {
   const { lyrics, loading, setOffset } = ly
   const lines = lyrics?.synced ? lyrics.lines : NO_LINES
   const offset = lyrics?.offsetMs || 0
@@ -32,6 +33,9 @@ export default function Karaoke({ p, ly, onClose }: { p: PlayerView; ly: ReturnT
   const wordEls = useRef<(HTMLSpanElement | null)[]>([])
   const [count, setCount] = useState(0)
   const [mono, setMono] = useState(false)
+  // Words fill in as they are sung (Follow along), or the whole text to read at your own pace (Read).
+  const [mode, setMode] = useState<'follow' | 'read'>('follow')
+  const readWords = lyrics?.plain || lines.map((l) => l.text).join('\n')
   const stems = useKaraokeStems(p)
 
   useEffect(() => { root.current?.focus({ preventScroll: true }) }, [])
@@ -122,14 +126,18 @@ export default function Karaoke({ p, ly, onClose }: { p: PlayerView; ly: ReturnT
   return (
     <div className="kar" ref={root} tabIndex={-1} role="dialog" aria-modal="true" aria-label={`Karaoke: ${it.title}`} onClickCapture={(e) => { if (e.detail > 0) requestAnimationFrame(() => root.current?.focus({ preventScroll: true })) }}>
       <div className="kar-bg" aria-hidden="true" />
+      {behind}
       <header className="kar-top">
         <div className="kar-song"><b>{it.title}</b><span>{it.artist || it.albumArtist}</span></div>
+        <Segmented label="Words" value={lines.length ? mode : 'read'} onChange={setMode} options={[{ value: 'follow', label: 'Follow along', disabled: !lines.length }, { value: 'read', label: 'Read' }]} />
         <button type="button" className="mp-ibtn" onClick={fullscreen} aria-label="Fill the screen (F)" title="Fill the screen (F)"><IconFull /></button>
         <button type="button" className="mp-ibtn" onClick={onClose} aria-label="Leave karaoke (Esc)" title="Leave karaoke (Esc)"><IconClose /></button>
       </header>
+      {choice && <div className="kar-choice"><span className="kar-choice-l">Behind the words</span>{choice}</div>}
 
       <main className="kar-stage">
-        {!lyrics || loading ? <p className="kar-msg">Looking for the words…</p>
+        {mode === 'read' && readWords ? <pre className="kar-read" tabIndex={0}>{readWords}</pre>
+          : !lyrics || loading ? <p className="kar-msg">Looking for the words…</p>
           : lines.length === 0 ? (
             <div className="kar-msg">
               <p>{lyrics.plain ? 'These words have no times, so they can\'t follow the music yet.' : 'No words for this song.'}</p>

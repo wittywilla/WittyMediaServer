@@ -66,6 +66,8 @@ type AlbumFilter struct {
 	Artist, Search, Sort, Genre string
 	UserID                      int64
 	Limit                       int
+	// PlayedOnly keeps the albums this person has listened to (for a "recently played" shelf: an album never played isn't one).
+	PlayedOnly bool
 }
 
 // Albums lists a library's albums (an audiobook library's books, a books library's series). sort: title | artist | year | added.
@@ -108,10 +110,14 @@ func (s *Store) AlbumsFiltered(ctx context.Context, libraryID int64, f AlbumFilt
 		args = append([]any{f.UserID}, args...)
 		order = "plays DESC, added DESC"
 	}
+	having := ""
+	if f.PlayedOnly && f.Sort == "played" {
+		having = " HAVING plays > 0"
+	}
 	rows, err := s.DB.QueryContext(ctx, `SELECT `+albumArtist+` AS a, IFNULL(i.album, '') AS i2, MIN(i.year) AS y, COUNT(*), SUM(IFNULL(i.runtime_sec, 0)),
 		MIN(CASE WHEN IFNULL(i.poster, '') <> '' THEN i.id END), MAX(i.added_at) AS added, MAX(IFNULL(i.genres, '')), `+plays+` AS plays,
 		MIN(printf('%04d%06d%019d', IFNULL(i.disc_no, 1), IFNULL(i.track, 999999), i.id))
-		FROM items i WHERE `+strings.Join(where, " AND ")+` GROUP BY a, i2 ORDER BY `+order+` LIMIT ?`, append(args, limit)...)
+		FROM items i WHERE `+strings.Join(where, " AND ")+` GROUP BY a, i2`+having+` ORDER BY `+order+` LIMIT ?`, append(args, limit)...)
 	if err != nil {
 		return nil, err
 	}

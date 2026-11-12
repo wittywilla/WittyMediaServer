@@ -7,6 +7,7 @@ import { toast } from '../state'
 import { useLineIndex, type LyricLine, type useLyrics } from './lyrics'
 import type { PlayerView } from './types'
 import { WebLink } from '../components/WebLink'
+import { Segmented } from '../ui/Choice'
 
 // Lyrics that follow the music: the line being sung stays in the middle, and pressing any
 // line goes to it. Scrolling by hand holds the view still for a few seconds. Words without
@@ -23,6 +24,11 @@ export function LyricsPanel({ p, ly, onClose }: { p: PlayerView; ly: ReturnType<
   const box = useRef<HTMLOListElement>(null)
   const heldUntil = useRef(0)
   const [fixing, setFixing] = useState(false)
+  // Follow along: timed, the sung line in the middle. Read: the same words as plain text.
+  const [mode, setMode] = useState<'follow' | 'read'>('follow')
+  const timed = lines.length > 0
+  const reading = mode === 'read' || !timed
+  const readText = lyrics?.plain || lines.map((x) => x.text).join('\n')
   useEffect(() => {
     const list = box.current
     if (!list || index < 0 || performance.now() < heldUntil.current) return
@@ -41,11 +47,17 @@ export function LyricsPanel({ p, ly, onClose }: { p: PlayerView; ly: ReturnType<
         {lyrics?.sourceName && <span className="np-side-meta">{lyrics.creditUrl ? <WebLink href={lyrics.creditUrl}>{lyrics.sourceName}</WebLink> : lyrics.sourceName}</span>}
         <button type="button" className="mp-ibtn" onClick={onClose} aria-label="Close the lyrics"><IconClose /></button>
       </div>
+      {lyrics && !loading && !lyrics.instrumental && (lyrics.plain || timed) && (
+        <div className="np-modes">
+          <Segmented label="Lyrics mode" value={reading ? 'read' : 'follow'} onChange={setMode} options={[{ value: 'follow', label: 'Follow along', disabled: !timed }, { value: 'read', label: 'Read' }]} />
+          {!timed && <span className="np-hint">These words have no times, so they read as text.</span>}
+        </div>
+      )}
       {loading && <p className="np-hint">Looking for the words…</p>}
       {failed && <p className="np-note" role="alert">{failed}</p>}
       {lyrics?.instrumental && <p className="np-empty">This one has no words.</p>}
       {lyrics && !loading && !lyrics.instrumental && !lyrics.plain && <NoLyrics p={p} online={lyrics.online} canEdit={lyrics.canEdit} tried={lyrics.tried} failed={lyrics.failed} />}
-      {lines.length > 0 ? (
+      {timed && !reading ? (
         <ol className="np-lines" ref={box} onWheel={hold} onTouchMove={hold}>
           {lines.map((l, i) => (
             <li key={i} className={i === index ? 'now' : i < index ? 'past' : ''}>
@@ -56,10 +68,10 @@ export function LyricsPanel({ p, ly, onClose }: { p: PlayerView; ly: ReturnType<
             </li>
           ))}
         </ol>
-      ) : lyrics?.plain ? <pre className="np-read-text np-plain" tabIndex={0}>{lyrics.plain}</pre> : null}
+      ) : readText ? <pre className="np-read-text np-plain" tabIndex={0}>{readText}</pre> : null}
       {lyrics && (lyrics.plain || lyrics.canEdit) && (
         <div className="np-lyric-tools">
-          {lines.length > 0 && (
+          {timed && !reading && (
             <span className="np-nudge" role="group" aria-label="Timing">
               <button type="button" className="np-chip small" onClick={() => nudge(-250)} title="The words come sooner">Sooner</button>
               <span aria-live="polite" className="np-nudge-v">{offset === 0 ? 'On time' : `${offset > 0 ? '+' : ''}${(offset / 1000).toFixed(2)} s`}</span>

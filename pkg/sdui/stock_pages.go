@@ -68,6 +68,45 @@ func buildUtilityPages() []Page {
 		Sections: []Section{
 			sec("recent", "List", props{"title": "Recent", "empty": "message", "emptyText": "You are all caught up."}, Source{"type": "notices"}),
 		}}
-	return []Page{brand("studio", "studio", "studio", "globe"), brand("network", "network", "network", "tv"), brand("category", "category", "genre", "filter"),
+	creators := Page{ID: "creators", Kind: "custom", Title: "Creators", Icon: "users",
+		Description: "The creators of the libraries the profile can open, with a Subscribe switch. Opened at /creators.",
+		Sections: []Section{
+			with(sec("tabs", "Tabs", props{"style": "segments", "default": "all"}, nil),
+				with(sec("all", "Tab", props{"label": "Creators"}, nil), sec("everyone", "List", props{"empty": "message", "emptyText": "No creators yet."}, Source{"type": "creators"})),
+				with(sec("subscribed", "Tab", props{"label": "Subscriptions"}, nil), sec("mine", "List", props{"empty": "message", "emptyText": "You are not subscribed to anyone yet."}, Source{"type": "creators", "subscribed": true}))),
+		}}
+	creator := Page{ID: "creator", Kind: "custom", Title: "{title}", Icon: "user",
+		Description: "One creator: their row with Subscribe and what they say about themselves. Opened at /creator/{item}.",
+		Sections:    []Section{sec("who", "List", props{"empty": "message", "emptyText": "That creator isn't here."}, Source{"type": "creators", "item": "$item"})}}
+	comments := Page{ID: "comments", Kind: "custom", Title: "Comments", Icon: "info",
+		Description: "What people wrote about a title (opened with item); adults may write, everyone may read. Opened at /comments/{item}.",
+		Sections: []Section{
+			sec("all", "List", props{"empty": "message", "emptyText": "No comments yet."}, Source{"type": "comments", "item": "$item"}),
+			when(with(sec("write", "Form", props{"title": "Write a comment", "op": "comment.add", "item": "$item", "submitLabel": "Post"}, nil),
+				sec("text", "List", props{}, Source{"type": "formField", "name": "text", "label": "Comment", "placeholder": "Say something kind", "multiline": true, "maxLength": 2000})),
+				Condition{Can: "comments", Not: &Condition{ProfileKind: []string{"kids", "guest"}}}),
+			when(sec("readonly", "Text", props{"text": "Comments are read-only for this profile.", "role": "caption"}, nil), Condition{ProfileKind: []string{"kids", "guest"}}),
+		}}
+	markers := Page{ID: "markers", Kind: "custom", Title: "{title}", Icon: "play",
+		Description: "Where the intro, recap, credits and breaks of a title are (opened with item). Opened at /markers/{item}.",
+		Sections: []Section{
+			sec("lead", "Text", props{"text": "Skipping markers: what Skip uses while this plays.", "role": "caption"}, nil),
+			sec("marks", "List", props{"empty": "message", "emptyText": "Nothing is marked."}, Source{"type": "markers", "item": "$item"}),
+			sec("pick", "Button", props{"label": "Pick in player", "icon": "play", "native": "player", "item": "$item", "variant": "primary"}, nil),
+		}}
+	canvas := Page{ID: "canvas", Kind: "custom", Title: "{title}", Icon: "video",
+		Description: "Whether a title has a looping silent video behind its page (opened with item). Opened at /canvas/{item}.",
+		Sections: []Section{
+			sec("lead", "Text", props{"text": "It plays behind this title's page, and behind an album's page and the full player.", "role": "caption"}, nil),
+			sec("state", "List", props{"empty": "message", "emptyText": "Not available."}, Source{"type": "canvas", "item": "$item"}),
+		}}
+	smart := Page{ID: "smart-list", Kind: "custom", Title: "A smart playlist", Icon: "filter",
+		Description: "A playlist that fills itself from a rule: choose the rule and save it. Opened at /smart-list.",
+		Sections: []Section{
+			sec("lead", "Text", props{"text": "It finds what matches, whenever you open it.", "role": "caption"}, nil),
+			with(sec("rule", "Form", props{"title": "Rules", "op": "collection.createSmart", "submitLabel": "Save"}, nil),
+				sec("fields", "List", props{}, Source{"type": "smartRule"})),
+		}}
+	return []Page{creators, creator, comments, markers, canvas, smart, brand("studio", "studio", "studio", "globe"), brand("network", "network", "network", "tv"), brand("category", "category", "genre", "filter"),
 		versions, saveTo, devices, year, activity, notices}
 }

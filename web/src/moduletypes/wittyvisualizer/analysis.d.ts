@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-// Copyright (C) 2026 WittyWilla and contributors
 export declare const FFT_SIZE = 2048;
 export declare const SPECTRUM_BINS = 512;
 export declare const WAVE_POINTS = 512;

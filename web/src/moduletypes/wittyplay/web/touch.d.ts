@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-// Copyright (C) 2026 WittyWilla and contributors
 import { type Control, type ControlsData, type Layout, type Orientation } from './consoles';
 export declare function layoutFor(c: ControlsData, o: Orientation): Layout;
 export declare const clamp: (v: number, lo: number, hi: number) => number;

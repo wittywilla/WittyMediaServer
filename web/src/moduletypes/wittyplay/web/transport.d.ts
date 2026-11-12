@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-// Copyright (C) 2026 WittyWilla and contributors
 import { type LatencyMeter } from './latency';
 export type LatencyMode = 'auto' | 'fastest' | 'balanced' | 'steady';
 export type TransportKind = 'webrtc' | 'webrtc-direct' | 'ws-h264' | 'ws-jpeg';

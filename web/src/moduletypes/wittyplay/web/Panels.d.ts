@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-// Copyright (C) 2026 WittyWilla and contributors
 import { type Choice, type Level, type Preset, type Schema, type SettingsApi, type SettingsHost, type SettingsView } from './settings';
 export type LevelChoice = {
     level: Level;
@@ -54,7 +52,7 @@ export declare function SettingsPanel({ schema, api, view, groups, level, levels
     say: (t: string) => void;
     presets?: Preset[];
 }): import("react").JSX.Element;
-export declare function CorePanel({ host, itemId, api, view, level, levels, onLevel, consoleName, say, onJson }: {
+export declare function CorePanel({ host, itemId, api, view, level, levels, onLevel, consoleName, say, onJson, onRestart }: {
     host: SettingsHost;
     itemId: number;
     api: SettingsApi;
@@ -65,6 +63,7 @@ export declare function CorePanel({ host, itemId, api, view, level, levels, onLe
     consoleName: string;
     say: (t: string) => void;
     onJson: () => void;
+    onRestart?: () => void;
 }): import("react").JSX.Element;
 export declare function JsonEditor({ host, api, view, scope, level, levels, onLevel, consoleName, title, say, itemId, onDirty }: {
     host: SettingsHost;

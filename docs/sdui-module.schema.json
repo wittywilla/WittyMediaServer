@@ -1,0 +1,804 @@
+{
+  "$defs": {
+    "Condition": {
+      "additionalProperties": false,
+      "properties": {
+        "admin": {
+          "type": "boolean"
+        },
+        "all": {
+          "items": {
+            "$ref": "#/$defs/Condition"
+          },
+          "type": "array"
+        },
+        "any": {
+          "items": {
+            "$ref": "#/$defs/Condition"
+          },
+          "type": "array"
+        },
+        "can": {
+          "type": "string"
+        },
+        "capability": {
+          "type": "string"
+        },
+        "feature": {
+          "type": "string"
+        },
+        "flag": {
+          "type": "string"
+        },
+        "formFactor": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "hasLibrary": {
+          "type": "string"
+        },
+        "libraryKind": {
+          "type": "string"
+        },
+        "locale": {
+          "type": "string"
+        },
+        "maxWidth": {
+          "type": "integer"
+        },
+        "minWidth": {
+          "type": "integer"
+        },
+        "module": {
+          "type": "string"
+        },
+        "not": {
+          "$ref": "#/$defs/Condition"
+        },
+        "platform": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "profileKind": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "timeFrom": {
+          "type": "string"
+        },
+        "timeTo": {
+          "type": "string"
+        },
+        "weekday": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "EnumOption": {
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "value",
+        "label"
+      ],
+      "type": "object"
+    },
+    "Match": {
+      "additionalProperties": false,
+      "properties": {
+        "library": {
+          "type": "integer"
+        },
+        "libraryKind": {
+          "type": "string"
+        },
+        "mediaKind": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "ModuleComponent": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "pageKinds": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "props": {
+          "items": {
+            "$ref": "#/$defs/PropSpec"
+          },
+          "type": "array"
+        },
+        "section": {
+          "$ref": "#/$defs/Section"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "label",
+        "section"
+      ],
+      "type": "object"
+    },
+    "ModuleInsert": {
+      "additionalProperties": false,
+      "properties": {
+        "after": {
+          "type": "string"
+        },
+        "before": {
+          "type": "string"
+        },
+        "page": {
+          "type": "string"
+        },
+        "section": {
+          "$ref": "#/$defs/Section"
+        }
+      },
+      "required": [
+        "page",
+        "section"
+      ],
+      "type": "object"
+    },
+    "ModulePreset": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "section": {
+          "$ref": "#/$defs/Section"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "section"
+      ],
+      "type": "object"
+    },
+    "ModuleSource": {
+      "additionalProperties": false,
+      "properties": {
+        "cardStyle": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "example": {},
+        "icon": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "module": {
+          "type": "string"
+        },
+        "pageKinds": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "paged": {
+          "type": "boolean"
+        },
+        "params": {
+          "items": {
+            "$ref": "#/$defs/PropSpec"
+          },
+          "type": "array"
+        },
+        "seeAll": {
+          "type": "string"
+        },
+        "since": {
+          "type": "integer"
+        },
+        "title": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "yields": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "ModuleTheme": {
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "tokens": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "scope"
+      ],
+      "type": "object"
+    },
+    "ModuleUI": {
+      "additionalProperties": false,
+      "properties": {
+        "catalog": {
+          "type": "integer"
+        },
+        "components": {
+          "items": {
+            "$ref": "#/$defs/ModuleComponent"
+          },
+          "type": "array"
+        },
+        "format": {
+          "type": "string"
+        },
+        "formatVersion": {
+          "type": "integer"
+        },
+        "inserts": {
+          "items": {
+            "$ref": "#/$defs/ModuleInsert"
+          },
+          "type": "array"
+        },
+        "module": {
+          "type": "string"
+        },
+        "navigation": {
+          "items": {
+            "$ref": "#/$defs/NavItem"
+          },
+          "type": "array"
+        },
+        "pages": {
+          "items": {
+            "$ref": "#/$defs/Page"
+          },
+          "type": "array"
+        },
+        "presets": {
+          "items": {
+            "$ref": "#/$defs/ModulePreset"
+          },
+          "type": "array"
+        },
+        "settings": {
+          "items": {
+            "$ref": "#/$defs/SettingsPage"
+          },
+          "type": "array"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/ModuleSource"
+          },
+          "type": "array"
+        },
+        "theme": {
+          "$ref": "#/$defs/ModuleTheme"
+        },
+        "views": {
+          "items": {
+            "$ref": "#/$defs/ModuleView"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "format",
+        "formatVersion",
+        "module",
+        "catalog",
+        "theme"
+      ],
+      "type": "object"
+    },
+    "ModuleView": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "platforms": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "label"
+      ],
+      "type": "object"
+    },
+    "NavItem": {
+      "additionalProperties": false,
+      "properties": {
+        "icon": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "library": {
+          "type": "integer"
+        },
+        "page": {
+          "type": "string"
+        },
+        "placement": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "route": {
+          "type": "string"
+        },
+        "screen": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "when": {
+          "$ref": "#/$defs/Condition"
+        }
+      },
+      "required": [
+        "id",
+        "type"
+      ],
+      "type": "object"
+    },
+    "Page": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "match": {
+          "$ref": "#/$defs/Match"
+        },
+        "personal": {
+          "$ref": "#/$defs/PersonalPolicy"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "sections": {
+          "items": {
+            "$ref": "#/$defs/Section"
+          },
+          "type": "array"
+        },
+        "title": {
+          "type": "string"
+        },
+        "ttlSeconds": {
+          "type": "integer"
+        },
+        "variants": {
+          "items": {
+            "$ref": "#/$defs/Variant"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "title",
+        "sections"
+      ],
+      "type": "object"
+    },
+    "PersonalPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "allow": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "allow"
+      ],
+      "type": "object"
+    },
+    "PropSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "default": {},
+        "formFactors": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "help": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "max": {
+          "type": "integer"
+        },
+        "maxLength": {
+          "type": "integer"
+        },
+        "min": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "options": {
+          "items": {
+            "$ref": "#/$defs/EnumOption"
+          },
+          "type": "array"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "since": {
+          "type": "integer"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "type",
+        "label",
+        "since"
+      ],
+      "type": "object"
+    },
+    "Repeat": {
+      "additionalProperties": false,
+      "properties": {
+        "kinds": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "over": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "over"
+      ],
+      "type": "object"
+    },
+    "Section": {
+      "additionalProperties": false,
+      "properties": {
+        "children": {
+          "items": {
+            "$ref": "#/$defs/Section"
+          },
+          "type": "array"
+        },
+        "component": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "locked": {
+          "type": "boolean"
+        },
+        "props": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "repeat": {
+          "$ref": "#/$defs/Repeat"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "source": {
+          "additionalProperties": {},
+          "type": "object"
+        },
+        "when": {
+          "$ref": "#/$defs/Condition"
+        }
+      },
+      "required": [
+        "id",
+        "component"
+      ],
+      "type": "object"
+    },
+    "SettingRow": {
+      "additionalProperties": false,
+      "properties": {
+        "default": {},
+        "help": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "max": {
+          "type": "integer"
+        },
+        "maxLength": {
+          "type": "integer"
+        },
+        "min": {
+          "type": "integer"
+        },
+        "options": {
+          "items": {
+            "$ref": "#/$defs/EnumOption"
+          },
+          "type": "array"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "unit": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "key",
+        "kind",
+        "label"
+      ],
+      "type": "object"
+    },
+    "SettingsGroup": {
+      "additionalProperties": false,
+      "properties": {
+        "footer": {
+          "type": "string"
+        },
+        "rows": {
+          "items": {
+            "$ref": "#/$defs/SettingRow"
+          },
+          "type": "array"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "rows"
+      ],
+      "type": "object"
+    },
+    "SettingsPage": {
+      "additionalProperties": false,
+      "properties": {
+        "admin": {
+          "type": "boolean"
+        },
+        "groups": {
+          "items": {
+            "$ref": "#/$defs/SettingsGroup"
+          },
+          "type": "array"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "groups"
+      ],
+      "type": "object"
+    },
+    "SourceSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "cardStyle": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "example": {},
+        "icon": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "module": {
+          "type": "string"
+        },
+        "pageKinds": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "paged": {
+          "type": "boolean"
+        },
+        "params": {
+          "items": {
+            "$ref": "#/$defs/PropSpec"
+          },
+          "type": "array"
+        },
+        "seeAll": {
+          "type": "string"
+        },
+        "since": {
+          "type": "integer"
+        },
+        "title": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "yields": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "type",
+        "label",
+        "description",
+        "icon",
+        "category",
+        "yields",
+        "cardStyle",
+        "paged",
+        "since"
+      ],
+      "type": "object"
+    },
+    "Variant": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "sections": {
+          "items": {
+            "$ref": "#/$defs/Section"
+          },
+          "type": "array"
+        },
+        "when": {
+          "$ref": "#/$defs/Condition"
+        }
+      },
+      "required": [
+        "id",
+        "when",
+        "sections"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "urn:wittymediaserver:sdui:module:1",
+  "$ref": "#/$defs/ModuleUI",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "What a module adds to every app: pages, sections, components, data sources, views, menu entries, settings and its theme scope. Checked by the server against its catalogue (GET /api/v1/sdui/catalog) before the module is used. docs/SDUI-MODULES.md describes it.",
+  "title": "A WittyMediaServer module's SDUI file (sdui.json), format version 1",
+  "x-catalogRevision": 2,
+  "x-format": "wittymodule-sdui",
+  "x-formatVersion": 1
+}

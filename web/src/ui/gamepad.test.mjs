@@ -115,5 +115,5 @@ test('Back and Start together ask for help, and neither does its own job', () =>
 })
 
 test('a Nintendo pad still swaps A and B in the app, and the other buttons stay in place', () => {
-  assert.deepEqual(keys([pad(PRO, 'standard', [0, 1, 2, 3])], { context: 'ui' }), ['ContextMenu', 'Enter', 'Escape', '/'])
+  assert.deepEqual(keys([pad(PRO, 'standard', [0, 1, 2, 3])], { context: 'ui' }), ['/', 'ContextMenu', 'Enter', 'Escape'])
 })

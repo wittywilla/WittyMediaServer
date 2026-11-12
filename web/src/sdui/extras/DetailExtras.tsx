@@ -11,7 +11,7 @@ import { toast, useApp } from '../../state'
 import { onEpisodeViewChosen, setEpisodeView, useEpisodeView, type EpisodeView } from './episodeView'
 import TitleArtPicker, { appliedOnPage } from '../../components/edit/TitleArtPicker'
 import LegalNote from '../../components/LegalNote'
-import { IconDevices, IconEdit, IconImage, IconMore, IconPlay, IconRefresh, IconUsers } from '../../icons'
+import { IconDevices, IconEdit, IconFilm, IconImage, IconMore, IconPlay, IconRefresh, IconUsers } from '../../icons'
 import { useRemoteAllowed } from '../../remote/allowed'
 import { Menu, type MenuEntry } from '../../ui/Menu'
 import { bump } from '../client'
@@ -22,6 +22,8 @@ const RefreshDialog = lazy(() => import('../../components/edit/RefreshDialog'))
 const TitleExtras = lazy(() => import('../../components/edit/TitleExtras'))
 const DiscSections = lazy(() => import('../../pages/DiscSections'))
 const PlayOn = lazy(() => import('../../remote/PlayOn'))
+const CanvasManager = lazy(() => import('../../canvas/CanvasManager'))
+const AlbumCanvasManager = lazy(() => import('../../canvas/AlbumCanvasManager'))
 const WatchParty = lazy(() => import('../../remote/WatchParty'))
 
 type Target = { target: 'item'; id: number } | { target: 'show'; id: number } | null
@@ -66,7 +68,8 @@ export default function DetailExtras({ place, header, doc }: { place: 'tools' | 
   const { user } = useApp()
   const t = targetOf(header)
   const title = useTitle(t, doc.meta?.etag || '')
-  const [open, setOpen] = useState<'' | 'art' | 'edit' | 'refresh'>('')
+  const [open, setOpen] = useState<'' | 'art' | 'edit' | 'refresh' | 'canvas'>('')
+  if (place === 'tools' && header.props?.kind === 'album' && user?.isAdmin) return <AlbumCanvasTool doc={doc} />
   if (!t || !title) return null
   const item = t.target === 'item' ? title as Item : null
   const show = t.target === 'show' ? title as Show : null
@@ -78,6 +81,7 @@ export default function DetailExtras({ place, header, doc }: { place: 'tools' | 
     const entries: MenuEntry[] = [
       { key: 'art', label: 'Artwork', icon: <IconImage />, onSelect: () => setOpen('art') },
       { key: 'edit', label: 'Edit details', icon: <IconEdit />, onSelect: () => setOpen('edit') },
+      ...(item && (item.kind === 'video' || isDisc(item)) ? [{ key: 'canvas', label: 'Canvas', icon: <IconFilm />, onSelect: () => setOpen('canvas') } as MenuEntry] : []),
       ...(item?.showId == null ? [{ key: 'refresh', label: 'Check for new details', icon: <IconRefresh />, onSelect: () => setOpen('refresh') } as MenuEntry] : []),
     ]
     return (
@@ -88,6 +92,7 @@ export default function DetailExtras({ place, header, doc }: { place: 'tools' | 
           {open === 'art' && <TitleArtPicker target={t.target} id={t.id} onApplied={appliedOnPage(changed)} onClose={() => setOpen('')} />}
           {open === 'edit' && <EditDetails target={t.target} id={t.id} start="match" onClose={() => setOpen('')} onChanged={changed} />}
           {open === 'refresh' && <RefreshDialog target={t.target} id={t.id} onClose={() => setOpen('')} onChanged={changed} />}
+          {open === 'canvas' && item && <CanvasManager itemId={item.id} title={item.title} kind={isDisc(item) ? 'disc' : 'video'} runtimeSec={item.runtimeSec} onClose={() => { setOpen(''); changed() }} />}
         </Suspense>
       </>
     )
@@ -183,6 +188,25 @@ function SendTools({ item, header }: { item: Item; header: Node }) {
         {open === 'device' && <PlayOn source={{ kind: 'item', itemId: item.id, title: item.title }} onClose={() => setOpen('')} />}
         {open === 'party' && <WatchParty item={{ id: item.id, title: item.title, kind: item.kind, showId: item.showId ?? undefined }} onClose={() => setOpen('')} />}
       </Suspense>
+    </>
+  )
+}
+
+// An album's canvas, for an administrator: each song's own, chosen from the page's tracks.
+function AlbumCanvasTool({ doc }: { doc: Document }) {
+  const [open, setOpen] = useState(false)
+  const songs: { id: number; title: string; track?: number | null; runtimeSec: number }[] = []
+  const walk = (n: Node) => {
+    const id = typeof n.props?.itemId === 'string' ? n.props.itemId : ''
+    if (n.type === 'Track' && /^\d+$/.test(id)) songs.push({ id: Number(id), title: String(n.props?.title || ''), track: typeof n.props?.number === 'number' ? n.props.number : null, runtimeSec: typeof n.props?.durationSec === 'number' ? n.props.durationSec : 0 })
+    for (const c of n.children || []) walk(c)
+  }
+  walk(doc.root)
+  if (!songs.length) return null
+  return (
+    <>
+      <button type="button" className="btn ghost" aria-haspopup="dialog" onClick={() => setOpen(true)} title="The looping video behind these songs"><IconFilm /> Canvas</button>
+      {open && <Suspense fallback={null}><AlbumCanvasManager songs={songs} onClose={() => { setOpen(false); bump() }} /></Suspense>}
     </>
   )
 }

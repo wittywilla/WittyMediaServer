@@ -382,6 +382,31 @@ function HeroView({ view }: { view: View }) {
 
 // ---------------------------------------------------------------- a title's header
 
+// The looping video behind a title (canvas/): a film's or an episode's own, the one of
+// what a show plays next, or an album's from its songs. Drawn only where one exists.
+const TitleCanvas = lazy(() => import('../../canvas/CanvasVideo').then((m) => ({ default: m.TitleCanvas })))
+const AlbumCanvas = lazy(() => import('../../canvas/CanvasVideo').then((m) => ({ default: m.AlbumCanvas })))
+export function trackIdsOf(root: Node): number[] {
+  const out: number[] = []
+  const walk = (n: Node) => {
+    if (n.type === 'Track' && /^\d+$/.test(str(n.props, 'itemId'))) out.push(Number(str(n.props, 'itemId')))
+    for (const c of n.children || []) walk(c)
+  }
+  walk(root)
+  return out
+}
+function HeaderCanvas({ header, doc }: { header: Node; doc: { root: Node } }) {
+  const p = header.props || {}
+  if (str(p, 'kind') === 'album') {
+    const ids = trackIdsOf(doc.root)
+    return ids.length ? <Suspense fallback={null}><AlbumCanvas trackIds={ids} /></Suspense> : null
+  }
+  const own = str(p, 'itemId')
+  const plays = (buttonsOf(p).find((b) => b.action?.type === 'play')?.action?.item) || ''
+  const id = /^\d+$/.test(own) ? Number(own) : /^\d+$/.test(plays) ? Number(plays) : 0
+  return id ? <Suspense fallback={null}><TitleCanvas itemId={id} /></Suspense> : null
+}
+
 // Titles whose cover is square: what stands in for a missing one is square too.
 const SQUARE_KINDS = ['album', 'podcast', 'audiobook']
 
@@ -404,6 +429,7 @@ function DetailHeaderView({ view }: { view: View }) {
       {layout !== 'compact' && (
         <div className={'detail-hero' + (backdrop ? '' : ' bare')}>
           <div className="bg" style={backdrop ? { backgroundImage: `url("${backdrop}")` } : undefined} />
+          {!page.inert && <HeaderCanvas header={view.node} doc={page.doc} />}
           <div className="shade" />
         </div>
       )}

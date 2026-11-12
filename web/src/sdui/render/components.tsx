@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-// The twenty-five components of a server-driven page (docs/SDUI.md, "Components"), drawn
+// The twenty-six components of a server-driven page (docs/SDUI.md, "Components"), drawn
 // with this app's own widgets and classes, so a page looks like the rest of the app. Each
 // takes a view from the layout step (../model.ts) and draws what the view says: the text
 // parts, their line limits, the picture, the role and label. Nothing here works out what
@@ -18,7 +18,7 @@ import { tokenVar } from '../../themeOverrides'
 import { Segmented, Tabs as TabStrip } from '../../ui/Choice'
 import { Select } from '../../ui/Field'
 import { safeLink as safeHref } from '../../safeLink'
-import { buttonsOf, cardGap, factsOf, fieldOf, gridColumns, type ButtonSpec, type View } from '../model'
+import { buttonsOf, cardGap, creditGroups, factsOf, fieldOf, gridColumns, initials, type ButtonSpec, type View } from '../model'
 import { plan } from '../routes'
 import type { Node, Props } from '../types'
 import { px, usePage } from './context'
@@ -60,7 +60,8 @@ function Picture({ image, kind, icon, contain, title }: { image: Props | undefin
   const src = picture(image)
   const [failed, setFailed] = useState(false)
   useEffect(() => setFailed(false), [src])
-  const fill = title && !icon ? <Placeholder title={title} /> : <span className="sdui-noart" aria-hidden="true">{icon ? sduiIcon(icon) : kindIcon(kind)}</span>
+  // Someone with no picture is shown by their initials.
+  const fill = title && !icon ? <Placeholder title={title} label={kind === 'person' ? initials(title) : undefined} /> : <span className="sdui-noart" aria-hidden="true">{icon ? sduiIcon(icon) : kindIcon(kind)}</span>
   if (!src || failed) return fill
   return <>{fill}<img className={contain ? 'sdui-contain' : undefined} src={src} alt="" loading="lazy" decoding="async" onError={() => setFailed(true)} /></>
 }
@@ -469,6 +470,113 @@ function DetailHeaderView({ view }: { view: View }) {
   )
 }
 
+// ---------------------------------------------------------------- cast and crew
+
+// A row of portraits that scrolls sideways, with the arrows the app's other rows have.
+function PortraitRow({ views, label, labelledBy, reducedMotion }: { views: View[]; label: string; labelledBy?: string; reducedMotion: boolean }) {
+  const row = useRef<HTMLDivElement | null>(null)
+  const prev = useRef<HTMLButtonElement | null>(null)
+  const next = useRef<HTMLButtonElement | null>(null)
+  useEffect(() => {
+    const el = row.current
+    if (!el) return
+    let frame = 0
+    const update = () => {
+      frame = 0
+      if (prev.current) prev.current.hidden = el.scrollLeft < 8
+      if (next.current) next.current.hidden = el.scrollLeft + el.clientWidth >= el.scrollWidth - 8
+    }
+    const later = () => { if (!frame) frame = requestAnimationFrame(update) }
+    update()
+    el.addEventListener('scroll', later, { passive: true })
+    const size = new ResizeObserver(later)
+    size.observe(el)
+    return () => { el.removeEventListener('scroll', later); size.disconnect(); cancelAnimationFrame(frame) }
+  }, [views.length])
+  const by = (dir: number) => { const el = row.current; if (el) el.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: reducedMotion ? 'auto' : 'smooth' }) }
+  return (
+    <div className="row-wrap">
+      <button ref={prev} type="button" className="row-arrow prev" tabIndex={-1} aria-hidden="true" onClick={() => by(-1)} hidden><IconLeft /></button>
+      <div className="row sdui-portraits" ref={row} data-nav-group role="list" aria-labelledby={labelledBy} aria-label={labelledBy ? undefined : label}>
+        {views.map((c) => <div role="listitem" key={c.id} className="sdui-item"><CardView view={c} showTitles /></div>)}
+      </div>
+      <button ref={next} type="button" className="row-arrow next" tabIndex={-1} aria-hidden="true" onClick={() => by(1)} hidden><IconRight /></button>
+    </div>
+  )
+}
+
+// One department's people: each a link to their page, the name over the job.
+function CrewPerson({ view }: { view: View }) {
+  const text = view.text || {}
+  return (
+    <Pressable view={view} className="sdui-crew-person" label={[text.title, text.subtitle].filter(Boolean).join(', ')}>
+      <span className="sdui-crew-name">{text.title}</span>
+      {text.subtitle && <span className="sdui-crew-job">{text.subtitle}</span>}
+    </Pressable>
+  )
+}
+
+// Who is in a title and who made it (docs/SDUI.md, "Cast and crew"): the cast and the guest
+// stars as rows of portraits, then each department as a heading and its people; Show all asks
+// for everyone in place of the first few.
+function CreditsView({ view, depth }: { view: View; depth: number }) {
+  const page = usePage()
+  const p = view.node.props || {}
+  const id = 'sdui-h-' + view.id
+  const groups = creditGroups(p)
+  const byGroup = new Map<string, View[]>()
+  for (const c of view.children) {
+    const g = str(c.node.props, 'group')
+    byGroup.set(g, [...(byGroup.get(g) || []), c])
+  }
+  const busy = page.busy(view.id)
+  const failed = view.state === 'error' || page.failed(view.id)
+  const rows = groups.filter((g) => g.role !== 'crew' && byGroup.get(g.id)?.length)
+  const crew = groups.filter((g) => g.role === 'crew' && byGroup.get(g.id)?.length)
+  const more = view.hasMore && !failed
+  const title = view.text?.title
+  return (
+    <section className="hub sdui-credits" style={{ ...cardVars(view, page.pt), ...scopeStyle(view.node) }} data-scope={view.scope} data-sdui-section={depth === 1 ? view.id : undefined}
+      role="region" aria-labelledby={title ? id : undefined} aria-label={title ? undefined : 'Cast and crew'} aria-busy={busy || undefined}>
+      <div className="hub-head" data-sdui-head>
+        <div className="sdui-head-text">{title && <h2 id={id} className="sdui-clamp" style={clamp(view.lines?.title)}>{title}</h2>}</div>
+        {more && <button type="button" className="btn sm" onClick={() => page.more(view.id)} disabled={busy} aria-label={`Show all of ${title || 'the cast and crew'}`}>{view.buttons?.[0] || 'Show all'}</button>}
+      </div>
+      {failed ? <StateLine view={view} /> : (
+        <>
+          {rows.map((g) => {
+            const hid = `${id}-${g.id}`
+            // The cast needs no heading of its own under "Cast and crew"; guest stars do.
+            const own = g.id !== 'cast' || rows.length > 1
+            return (
+              <div key={g.id} className="sdui-credits-part">
+                {own && <h3 id={hid} className="sdui-credits-sub">{g.label}</h3>}
+                <PortraitRow views={byGroup.get(g.id) || []} label={g.label} labelledBy={own ? hid : undefined} reducedMotion={page.reducedMotion} />
+              </div>
+            )
+          })}
+          {crew.length > 0 && (
+            <div className="sdui-crew">
+              {crew.map((g) => {
+                const hid = `${id}-${g.id}`
+                return (
+                  <div key={g.id} className="sdui-dept">
+                    <h3 id={hid} className="sdui-credits-sub">{g.label}</h3>
+                    <ul className="sdui-dept-list" aria-labelledby={hid} data-nav-group>
+                      {(byGroup.get(g.id) || []).map((c) => <li key={c.id}><CrewPerson view={c} /></li>)}
+                    </ul>
+                    {g.total > g.shown && !busy && <span className="sdui-dept-more muted">{g.total - g.shown} more</span>}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </>
+      )}
+    </section>
+  )
+}
+
 // ---------------------------------------------------------------- seasons and tracks
 
 // The show a page is about, from its header ("show-5"), or ''.
@@ -849,6 +957,7 @@ export function Draw({ view, depth }: { view: View; depth: number }): ReactNode 
     case 'DetailHeader': return <DetailHeaderView view={view} />
     case 'SeasonList': return <SeasonListView view={view} />
     case 'TrackList': return <TrackListView view={view} />
+    case 'Credits': return <CreditsView view={view} depth={depth} />
     case 'Track': return null // drawn by its list
     case 'Banner': return <BannerView view={view} />
     case 'Text': return <TextView view={view} />

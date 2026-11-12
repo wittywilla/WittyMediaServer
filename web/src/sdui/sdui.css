@@ -237,3 +237,31 @@ a.sdui-row:hover, button.sdui-row:hover { background: var(--hover); }
    of picture above its words, just room for them under the top bar. */
 .sdui:not(.ff-tv) .hero.bare { height: auto; min-height: 0; max-height: none !important; padding-top: calc(var(--topbar-h) + var(--sp-6)); display: flex; flex-direction: column; justify-content: flex-end; }
 .sdui:not(.ff-tv) .hero.bare .info, .sdui:not(.ff-tv) .hero.bare .dots { position: relative; left: auto; right: auto; top: auto; bottom: auto; margin: 0 var(--gutter) var(--sp-4); width: auto; }
+
+/* Cast and crew (Credits): the cast and guest stars as rows of round portraits, then the crew in
+   columns of departments. A person with no picture shows their initials. */
+.sdui-credits { display: flex; flex-direction: column; gap: var(--sdui-s); min-width: 0; }
+.sdui-credits .hub-head { margin-bottom: 0; }
+.sdui-credits .hub-head .btn { flex: none; }
+.sdui-credits-part { min-width: 0; }
+.sdui-credits-sub { margin: 0 0 var(--sp-1); font-size: var(--text-md); font-weight: 600; color: var(--fg); }
+.sdui-portraits .card .sub { color: var(--fg-2); white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.sdui-portraits .card .ph b { font-size: calc(var(--card-w, 140px) * 0.3); letter-spacing: 0.02em; }
+.sdui-crew { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--sdui-m) var(--sdui-l); margin-top: var(--sdui-s); }
+.sdui.bp-compact .sdui-crew { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--sdui-m); }
+.sdui-dept { min-width: 0; }
+.sdui-dept-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.sdui-crew-person { display: flex; flex-direction: column; justify-content: center; min-height: 40px; padding: var(--sp-1) var(--sp-2); margin-inline: calc(-1 * var(--sp-2)); border-radius: var(--r-md); color: var(--fg); text-decoration: none; }
+.sdui-crew-person:hover { background: var(--hover); }
+.sdui-crew-person:active { background: var(--pressed); }
+.sdui-crew-person:focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: 0; }
+.sdui-crew-name { font-size: var(--text-base); overflow-wrap: anywhere; }
+.sdui-crew-job { font-size: var(--text-sm); color: var(--fg-3); overflow-wrap: anywhere; }
+.sdui-dept-more { display: block; margin-top: var(--sp-1); font-size: var(--text-sm); }
+@media (pointer: coarse) { .sdui-crew-person { min-height: 44px; } }
+html.tv-mode .sdui-credits-sub { font-size: var(--tv-body); }
+html.tv-mode .sdui-crew { grid-template-columns: repeat(auto-fill, minmax(calc(var(--tvu) * 360), 1fr)); gap: calc(var(--tvu) * 24) calc(var(--tvu) * 40); padding: 0 var(--tv-gutter); margin-inline: calc(-1 * var(--tv-gutter)); }
+html.tv-mode .sdui-crew-person { min-height: var(--tv-quiet-h); padding: calc(var(--tvu) * 8) calc(var(--tvu) * 16); border-radius: var(--tv-r-key); }
+html.tv-mode .sdui-crew-person:focus { outline: var(--tv-ring) solid var(--focus); background: var(--bg-3); }
+html.tv-mode .sdui-crew-name { font-size: var(--tv-secondary); }
+html.tv-mode .sdui-crew-job, html.tv-mode .sdui-dept-more { font-size: var(--tv-caption); }

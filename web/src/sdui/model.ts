@@ -379,6 +379,14 @@ function viewOf(x: Node, depth: number, parent: Node | undefined, l: Layout, pag
   return e
 }
 
+// initials: the first letters of a person's first and last names, "AL" for Ana Lima.
+export function initials(name: string): string {
+  const words = name.replace(/\(.*?\)/g, ' ').split(/[\s\-–]+/).filter((w) => /\p{L}|\p{N}/u.test(w))
+  if (!words.length) return name.slice(0, 1).toUpperCase()
+  const first = (w: string) => Array.from(w.replace(/^[^\p{L}\p{N}]+/u, ''))[0] || ''
+  return (first(words[0]) + (words.length > 1 ? first(words[words.length - 1]) : '')).toUpperCase()
+}
+
 export type CreditGroup = { id: string; label: string; role: string; total: number; shown: number }
 
 // creditGroups: a Credits section's parts in order: cast, guests, then each department.

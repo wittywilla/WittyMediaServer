@@ -7,7 +7,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readdirSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { applyItems, buildPage, gridColumns, normalise, plainText } from './model.ts'
+import { applyItems, buildPage, creditGroups, gridColumns, initials, normalise, plainText } from './model.ts'
 
 const dir = fileURLToPath(new URL('../../../pkg/sdui/conformance/fixtures/', import.meta.url))
 const files = readdirSync(dir).filter((f) => f.endsWith('.json') && f !== 'index.json').sort()
@@ -88,3 +88,18 @@ test('a grid recomputes its columns when the window changes inside a breakpoint'
 test('Markdown is read as plain text', () => {
   assert.equal(plainText('## Friday\nPick **one**. The [full list](/collections/12) is longer.'), 'Friday Pick one. The full list is longer.')
 })
+
+test('a person with no picture is shown by their initials', () => {
+  assert.equal(initials('Ana Lima'), 'AL')
+  assert.equal(initials('Zendaya'), 'Z')
+  assert.equal(initials('Bong Joon-ho'), 'BH')
+  assert.equal(initials('Robert Downey Jr.'), 'RJ')
+  assert.equal(initials('Ève (voice)'), 'È')
+  assert.equal(initials('渡辺 謙'), '渡謙')
+})
+
+test('a Credits section names its parts in order, with what was sent of each', () => {
+  const p = { groups: [{ id: 'cast', label: 'Cast', role: 'cast', total: 26, shown: 20 }, { id: 'art', label: 'Art', role: 'crew', total: 8, shown: 6 }, { label: 'no id' }] }
+  assert.deepEqual(creditGroups(p).map((g) => [g.id, g.role, g.shown, g.total]), [['cast', 'cast', 20, 26], ['art', 'crew', 6, 8]])
+})
+

@@ -1055,7 +1055,7 @@ own window, is one of the three renderers.
   from `GET /sdui/navigation`, in the shell the app always had. Without
   those features (an older server) it keeps the pages and menu it worked
   out itself.
-- **What it says it is.** `catalog=2`, `platform` `web` (or `desktop`
+- **What it says it is.** `catalog=3`, `platform` `web` (or `desktop`
   inside the desktop app), and a form factor from the window: TV mode is
   `tv` (`deviceClass` by the screen), a window under 600 points is `phone`,
   a touch screen under 1200 is `tablet`, anything else `web` or `desktop`.

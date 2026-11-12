@@ -267,7 +267,7 @@ function ShelfView({ view, depth }: { view: View; depth: number }) {
   const [focusId, setFocusId] = useState('')
   const focused = focusedOf(view.children, focusId)
   return (
-    <section className={'hub sdui-shelf' + (grow ? ' focus-grow' : '') + (view.type === 'Carousel' ? ' sdui-carousel' : '') + (view.node.props?.numbered ? ' numbered' : '')} style={{ ...cardVars(view, page.pt), '--peek': view.peek || 0, ...scopeStyle(view.node) } as CSSProperties} data-scope={view.scope} data-sdui-section={depth === 1 ? view.id : undefined} aria-busy={waiting || undefined}>
+    <section className={'hub sdui-shelf' + (grow ? ' focus-grow' : '') + (view.type === 'Carousel' ? ' sdui-carousel' : '') + (view.node.props?.focusGrow === true ? ' sdui-focusgrow' : '') + (view.node.props?.numbered ? ' numbered' : '')} style={{ ...cardVars(view, page.pt), '--peek': view.peek || 0, ...scopeStyle(view.node) } as CSSProperties} data-scope={view.scope} data-sdui-section={depth === 1 ? view.id : undefined} aria-busy={waiting || undefined}>
       <Heading view={view} id={id} />
       {view.state === 'deferred' && !failed && <Near onNear={() => page.more(view.id)} />}
       {failed || view.state === 'empty' ? <StateLine view={view} /> : tiles && !waiting ? (

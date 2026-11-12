@@ -278,3 +278,11 @@ body:has(.audio-bar:not(.full)) .ctv-page, body:has(.audio-bar:not(.full)) .tvm-
 .look-opts .layout-opt.on { outline: 3px solid var(--focus); outline-offset: 2px; }
 .look-opts .layout-opt .layout-thumb { inline-size: 100%; }
 .oobe .layout-thumb { min-inline-size: 10rem; }
+
+/* ---- focusGrow: the focused card grows (1.45 on a television, 1.25 on a tablet or desktop, none on a phone); reduced motion keeps the ring ---- */
+@media (min-width: 601px) and (prefers-reduced-motion: no-preference) {
+  .sdui-focusgrow .row { padding-inline: var(--space-xl); }
+  .sdui-focusgrow .sdui-item { transition: transform var(--dur-focus) var(--ease-out); transform-origin: 50% 60%; }
+  .sdui-focusgrow .sdui-item:focus-within { transform: scale(1.25); z-index: 2; margin-inline: 12%; }
+  html.tv-mode .sdui-focusgrow .sdui-item:focus-within { transform: scale(1.45); margin-inline: 22%; }
+}

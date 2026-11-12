@@ -3,7 +3,7 @@
 // What the server sends for a server-driven page (docs/SDUI.md, catalogue revision 5).
 // Plain data: nothing here touches the page.
 
-export const CATALOG = 7
+export const CATALOG = 8
 export const VERSION = 1
 
 export type Props = Record<string, unknown>
@@ -17,7 +17,7 @@ export type Action = {
   params?: Record<string, unknown>
   // navigate: "layer" shows the page over this one (a quick menu, a sheet) instead of going to it.
   as?: string
-  // A command asks this first ("Delete this memory?") and runs only on a yes.
+  // A command's question to ask first ("Delete this memory?"): it runs only on a yes.
   confirm?: string
 }
 

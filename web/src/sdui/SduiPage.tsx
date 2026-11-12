@@ -347,13 +347,7 @@ export default function SduiPage({ page, params, fallback }: { page: string; par
     } catch (e) { toast((e as Error).message, { tone: 'danger' }) }
   }, [audio, libraries, nav, opener])
 
-  const act = useCallback((a: Action | undefined, from?: View) => {
-    // A command that asks first: the question in the app's own dialog, the command's label as the yes.
-    if (a?.confirm) {
-      const { confirm, ...rest } = a
-      void ask({ title: confirm, confirm: 'Yes', cancel: 'Cancel', danger: /delete|remove|forget/i.test(confirm) }).then((yes) => { if (yes) act(rest, from) })
-      return
-    }
+  const actNow = useCallback((a: Action | undefined, from?: View) => {
     const step = plan(a, { externalLinks: drawn.current?.layout.externalLinks })
     switch (step.do) {
       case 'go': nav(step.to); break
@@ -380,6 +374,11 @@ export default function SduiPage({ page, params, fallback }: { page: string; par
         break
     }
   }, [nav, play, setQuery])
+  // A command with a question asks it first, with Cancel beside, and runs only on a yes.
+  const act = useCallback((a: Action | undefined, from?: View) => {
+    if (a?.confirm) { void ask({ title: a.confirm, confirm: String(from?.text?.title || from?.label || 'Yes') }).then((yes) => { if (yes) actNow({ ...a, confirm: undefined }, from) }); return }
+    actNow(a, from)
+  }, [actNow])
 
   const handlers = useMemo<Handlers>(() => ({
     act, more, setQuery,

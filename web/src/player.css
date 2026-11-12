@@ -2,7 +2,7 @@
 /* Copyright (C) 2026 WittyWilla and contributors */
 /* Auto-hide: the class sits on .player itself (fullscreen or not). */
 .player.controls-hidden .top, .player.controls-hidden .bottom, .player.controls-hidden .popover { opacity: 0; pointer-events: none; }
-.player.controls-hidden .remote { opacity: .45; }
+.player.controls-hidden .remote { opacity: 1; } /* WittyRemote stays solid: a graphite body, never see-through */
 .player.controls-hidden .remote:hover, .player.controls-hidden .remote:focus-within { opacity: 1; }
 .player.controls-hidden .remote.remote-sheet { opacity: 1; } /* a sheet someone opened stays as it is */
 .player .top .grow { flex: 1; min-width: 0; }

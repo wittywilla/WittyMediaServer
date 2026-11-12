@@ -138,9 +138,9 @@ html.tv-mode .sdui-widgets { gap: var(--space-l); }
 
 /* ---- finishes of the top-bar nav styles (data-nav-style on the frame), in the theme's own colours ---- */
 .app[data-nav-style="floatingGlassBar"] .topbar { margin: var(--space-s) var(--gutter) 0; border-radius: var(--r-full); background: color-mix(in srgb, var(--elev-2-fill) 86%, transparent); border: 1px solid var(--elev-2-line); box-shadow: var(--elev-3-shadow); background-image: linear-gradient(180deg, color-mix(in srgb, var(--on-image) 14%, transparent), transparent 60%); }
-.app[data-nav-style="cableBar"] .topbar { background: var(--accent); color: var(--accent-fg); border-radius: 0; }
-.app[data-nav-style="cableBar"] .topnav-link { color: var(--accent-fg); border-radius: 0; }
-.app[data-nav-style="cableBar"] .topnav-link.active { background: var(--accent-fg); color: var(--accent); }
+.app[data-nav-style="cableBar"] .topbar { background: var(--bg-2); color: var(--fg); border-radius: 0; border-block-end: 2px solid var(--accent); }
+.app[data-nav-style="cableBar"] .topnav-link { color: var(--fg); border-radius: 0; border: 1px solid var(--border-strong); }
+.app[data-nav-style="cableBar"] .topnav-link.active { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
 .app[data-nav-style="bevelBar"] .topbar { background: linear-gradient(180deg, var(--bg-4), var(--bg-3) 55%, var(--bg-2)); border-bottom: 1px solid var(--border-strong); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--on-image) 22%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--picture-bg) 30%, transparent); }
 .app[data-nav-style="bevelBar"] .topnav-link { border-radius: var(--r-sm); }
 .app[data-nav-style="teleKeys"] .topnav-link { border-radius: 0; border-bottom: 4px solid var(--fg-3); font-weight: 700; text-transform: uppercase; letter-spacing: var(--tracking-label); }

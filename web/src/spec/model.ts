@@ -73,7 +73,7 @@ export const sectionId = (key: string, i: number) => `spec-${key.replace(/[^a-z0
 // handled: the ids the page's onAction answers (SpecPage), or null for "every id".
 export function reachable(p: SpecPageData, handled: ReadonlySet<string> | null): string[] {
   const out: string[] = []
-  const ok = (it: { id?: string; to?: string; disabled?: boolean }) => !it.disabled && (!!it.to || (!!it.id && (!handled || handled.has(it.id))))
+  const ok = (it: { id?: string; to?: string; href?: string; disabled?: boolean }) => !it.disabled && (!!it.to || !!it.href || (!!it.id && (!handled || handled.has(it.id))))
   for (const s of p.sections) if (s.kind === 'fields') { for (const f of s.items) if (f.kind !== 'code' && f.kind !== 'qr' && !f.disabled) out.push(f.id || '') } else if (s.kind !== 'note') for (const it of s.items) { if (ok(it)) out.push(it.id || ''); if ('actions' in it) for (const a of it.actions || []) if (ok(a)) out.push(a.id || '') }
   for (const a of p.actions) if (ok(a)) out.push(a.id || '')
   return out

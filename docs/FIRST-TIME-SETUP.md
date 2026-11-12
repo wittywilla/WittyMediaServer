@@ -47,7 +47,7 @@ Install the server first: [Getting started](GETTING_STARTED.md#install-it-and-st
 ![The account page: a name, a password typed twice, and a tick to say you understand](images/setup-02-account.webp)
 *This account looks after the server: its libraries, people and settings.*
 
-Choose a **name to sign in with**, and a **password** of at least 8 characters, typed twice. **Show what I'm typing** helps on a TV. Tick the box to say that the files you add are your own responsibility, then press **Create account**. On another device, the setup code goes here too.
+Choose a **name to sign in with**, and optionally the **name people see** (what this profile is called around the app), and a **password** of at least 8 characters, typed twice. **Show what I'm typing** helps on a TV. Tick the box to say that the files you add are your own responsibility, then press **Create account**. On another device, the setup code goes here too.
 
 **Two-step sign-in (recommended)** is a tick under the password. If you tick it, the next page shows a QR code for an authenticator app (or a key to type), asks for the six digits it shows, then shows eight recovery codes, **once**: save them. Each works once in place of a code if you lose your phone. **Skip for now** leaves it off; it can be turned on later in **Settings → Security**. See [Accounts](ACCOUNTS.md).
 
@@ -102,9 +102,9 @@ Beside the choices, a picture of the look you're trying shows how its menu and H
 
 ## 5. Theme
 
-The colours. Any theme goes with any look, and the page changes as you choose. Fifteen come with the server, among them Witty, Midnight, Cinema, Evergreen, True black, Light, Paper, High contrast, the four Aero themes, Cable blue, Satellite and Teletext.
+The colours. Any theme goes with any look, and the page changes as you choose. Choosing none keeps each look's own theme. Fifteen come with the server, among them Witty, Midnight, Cinema, Evergreen, True black, Light, Paper, High contrast, the four Aero themes, Cable blue, Satellite and Teletext.
 
-**Import a theme…** installs one from a ZIP file, and you can make your own later in **Settings → Appearance**. See [Themes](THEMES.md).
+**How people use it** has three choices: **Start with the look's own theme** (on until you choose a theme above, which then stays for everyone), **Let people import their own themes**, and the **WittyTV look** the guide starts in ("Follows the look" by default). **Import a theme…** installs one from a ZIP file, and you can make your own later in **Settings → Appearance**. See [Themes](THEMES.md).
 
 ## 6. Modules
 

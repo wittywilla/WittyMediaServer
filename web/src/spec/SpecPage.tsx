@@ -3,7 +3,7 @@
 import { useId, useMemo, type CSSProperties, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Dock, type DockAction } from '../ui/Dock'
-import { Field, Input, Select, Switch } from '../ui/Field'
+import { Field, Input, Select, Switch, Textarea } from '../ui/Field'
 import { QrCode } from '../components/QrCode'
 import { sectionId, withIds } from './model'
 import type { SpecCard, SpecChip, SpecField, SpecPageData, SpecRow, SpecSection } from './types'
@@ -110,8 +110,8 @@ function Row({ r, live, onAction, choice }: { r: SpecRow; live: boolean; onActio
 
 function Chip({ c, live, onAction }: { c: SpecChip; live: boolean; onAction?: (id: string) => void }) {
   const cls = 'spec-chip' + (c.on ? ' on' : '')
-  if (live && c.to) return <Link to={c.to} className={cls} aria-current={c.on ? 'true' : undefined}>{c.title}</Link>
-  if (live) return <button type="button" className={cls} aria-pressed={!!c.on} onClick={() => c.id && onAction?.(c.id)}>{c.title}</button>
+  if (live && c.to) return <Link to={c.to} className={cls} aria-label={c.label} aria-current={c.on ? 'true' : undefined}>{c.title}</Link>
+  if (live) return <button type="button" className={cls} aria-label={c.label} aria-pressed={!!c.on} onClick={() => c.id && onAction?.(c.id)}>{c.title}</button>
   return <span className={cls} aria-current={c.on ? 'true' : undefined}>{c.title}</span>
 }
 
@@ -172,6 +172,7 @@ function FieldItem({ f, onField }: { f: SpecField; onField?: OnField }) {
     : f.kind === 'slider' ? <SliderControl f={f} dis={dis} set={set} />
     : f.kind === 'number' ? <Input {...common} type="number" inputMode="decimal" value={String(f.value ?? '')} min={f.min} max={f.max} step={f.step} onChange={(e) => set(e.target.value === '' ? '' : Number(e.target.value))} />
     : f.kind === 'pin' ? <Input {...common} className="spec-pin" type="password" inputMode="numeric" pattern="[0-9]*" autoComplete={f.autoComplete || 'one-time-code'} maxLength={f.length} value={String(f.value ?? '')} onChange={(e) => set(e.target.value.replace(/\D/g, '').slice(0, f.length))} />
+    : f.kind === 'textarea' ? <Textarea {...common} rows={4} value={String(f.value ?? '')} onChange={(e) => set(e.target.value)} />
     : f.kind === 'time' ? <Input {...common} type="time" value={String(f.value ?? '')} onChange={(e) => set(e.target.value)} />
     : f.kind === 'file' ? <input {...common} aria-label={f.label} className="spec-file" type="file" accept={f.accept} onChange={(e) => { const file = e.target.files?.[0]; if (file) set(file) }} />
     : <Input {...common} type={f.kind === 'password' ? 'password' : 'text'} value={String(f.value ?? '')} onChange={(e) => set(e.target.value)} />

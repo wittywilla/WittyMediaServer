@@ -8,12 +8,12 @@
 // accent and marked aria-current). It goes somewhere with `to`, or is handled by id (SpecPage's onAction).
 export interface SpecRow { id?: string; title: string; value?: string; sub?: string; on?: boolean; to?: string; disabled?: boolean }
 // A choice among a few: a toggle button, or a link with `to`.
-export interface SpecChip { id?: string; title: string; on?: boolean; to?: string; disabled?: boolean }
+export interface SpecChip { id?: string; title: string; label?: string; on?: boolean; to?: string; disabled?: boolean }
 // A tile: a title, a line under it, and either artwork (`art`, an address) or a tint pair taken from the theme.
 export interface SpecCard { id?: string; title: string; sub?: string; on?: boolean; to?: string; art?: string; bg?: string; bg2?: string; disabled?: boolean }
 // A form control. The page owns the value (it is in the spec, so a page that changes it builds the spec again) and
 // hears changes through SpecPage's onField(id, value). `code` and `qr` only show: a code to read out, a QR to scan.
-export type SpecFieldKind = 'time' | 'text' | 'password' | 'number' | 'pin' | 'switch' | 'select' | 'slider' | 'code' | 'qr' | 'file'
+export type SpecFieldKind = 'time' | 'textarea' | 'text' | 'password' | 'number' | 'pin' | 'switch' | 'select' | 'slider' | 'code' | 'qr' | 'file'
 export interface SpecField {
   id?: string
   kind: SpecFieldKind

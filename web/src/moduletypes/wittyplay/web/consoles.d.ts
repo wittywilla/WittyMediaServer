@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-// Copyright (C) 2026 WittyWilla and contributors
 import type { Binding, KeyMap, PadMap, Profile, ProfileOptions } from './mapping';
 export declare const SELECT = 2, START = 3, UP = 4, DOWN = 5, LEFT = 6, RIGHT = 7;
 export type Control = {

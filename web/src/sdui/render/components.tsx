@@ -8,8 +8,9 @@
 
 import { Fragment, lazy, memo, Suspense, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { mediaUrl } from '../../api'
+import { mediaUrl, serverBase } from '../../api'
 import { Placeholder } from '../../components/common'
+import { QrCode } from '../../components/QrCode'
 import { countWords } from '../../libraryNouns'
 import { useApp } from '../../state'
 import { useAudio } from '../../audio/player'
@@ -22,12 +23,14 @@ import { useList } from '../gridView'
 import { KeyLegend } from '../../ui/KeyLegend'
 import { safeLink as safeHref } from '../../safeLink'
 import { buttonsOf, cardGap, creditGroups, factsOf, fieldOf, gridColumns, initials, type ButtonSpec, type View } from '../model'
-import { focusedOf, presenceClass } from '../playModel'
+import { dotFor, focusedOf } from '../playModel'
 import { plan } from '../routes'
 import type { Node, Props } from '../types'
 import { px, usePage } from './context'
 import { kindIcon, sduiIcon } from './icons'
 import { chooseEpisodeView, useEpisodeView } from '../extras/episodeView'
+import { ControlView, FormView } from './forms'
+import { controlOf } from '../formsModel'
 import { Markdown } from './markdown'
 import { WidgetGridView } from './widgets'
 
@@ -127,7 +130,7 @@ export const CardView = memo(function CardView({ view, showTitles }: { view: Vie
     const label = [text.title, presence, text.subtitle && text.subtitle !== presence ? text.subtitle : ''].filter(Boolean).join(', ')
     return (
       <Pressable view={view} className="sdui-person" label={label}>
-        <span className="sdui-person-art"><Picture image={obj(p, 'image')} kind="person" title={text.title} /><i className={'sdui-dot ' + presenceClass(presence)} aria-hidden="true" /></span>
+        <span className="sdui-person-art"><Picture image={obj(p, 'image')} kind="person" title={text.title} /><i className={'sdui-dot ' + dotFor(presence, obj(p, 'badgeTones'))} aria-hidden="true" /></span>
         <span className="sdui-person-text"><b>{text.title}</b>{text.subtitle && <span>{text.subtitle}</span>}</span>
       </Pressable>
     )
@@ -265,7 +268,7 @@ function ShelfView({ view, depth }: { view: View; depth: number }) {
   const [focusId, setFocusId] = useState('')
   const focused = focusedOf(view.children, focusId)
   return (
-    <section className={'hub sdui-shelf' + (grow ? ' focus-grow' : '') + (view.type === 'Carousel' ? ' sdui-carousel' : '') + (view.node.props?.numbered ? ' numbered' : '')} style={{ ...cardVars(view, page.pt), '--peek': view.peek || 0, ...scopeStyle(view.node) } as CSSProperties} data-scope={view.scope} data-sdui-section={depth === 1 ? view.id : undefined} aria-busy={waiting || undefined}>
+    <section className={'hub sdui-shelf' + (grow ? ' focus-grow' : '') + (view.type === 'Carousel' ? ' sdui-carousel' : '') + (view.node.props?.focusGrow === true ? ' sdui-focusgrow' : '') + (view.node.props?.numbered ? ' numbered' : '')} style={{ ...cardVars(view, page.pt), '--peek': view.peek || 0, ...scopeStyle(view.node) } as CSSProperties} data-scope={view.scope} data-sdui-section={depth === 1 ? view.id : undefined} aria-busy={waiting || undefined}>
       <Heading view={view} id={id} />
       {view.state === 'deferred' && !failed && <Near onNear={() => page.more(view.id)} />}
       {failed || view.state === 'empty' ? <StateLine view={view} /> : tiles && !waiting ? (
@@ -288,6 +291,14 @@ function ShelfView({ view, depth }: { view: View; depth: number }) {
       {detail && focused && !waiting && !failed && <ShelfDetail view={focused} parent={view} />}
     </section>
   )
+}
+
+// An item's own actions (a room's Start game, Invite and Leave) as buttons under it, with their keys: beside the item, not inside it, so
+// a button is never inside a button. A Shelf with a detail panel shows them there instead.
+function ItemActions({ view }: { view: View }) {
+  const buttons = buttonsOf(view.node.props)
+  if (!buttons.length) return null
+  return <ActionButtons buttons={buttons} view={view} className="sdui-item-actions" />
 }
 
 // The panel under a row whose focused card is bound to it: its title large, its line, and its actions as buttons with their key.
@@ -340,7 +351,7 @@ function GridView({ view, depth }: { view: View; depth: number }) {
       {failed || view.state === 'empty' ? <StateLine view={view} /> : (
         <div ref={box} className={'grid sdui-grid' + (tiles ? ' sdui-tiles' : '') + (asList ? ' as-list' : '')} role={role} aria-labelledby={view.text?.title ? id : undefined} aria-label={view.text?.title ? undefined : view.label || undefined}
           data-nav-group data-cols={cols} style={{ gridTemplateColumns: asList ? undefined : `repeat(${Math.max(1, cols || 1)}, minmax(0, 1fr))`, columnGap: gap }}>
-          {waiting ? <Placeholders view={view} grid /> : view.children.map((c) => <div role="listitem" key={c.id} className="sdui-item"><CardView view={c} showTitles={showTitles} /></div>)}
+          {waiting ? <Placeholders view={view} grid /> : view.children.map((c) => <div role="listitem" key={c.id} className="sdui-item"><CardView view={c} showTitles={showTitles} /><ItemActions view={c} /></div>)}
           {page.busy(view.id) && !waiting && <Placeholders view={{ ...view, columns: cols }} grid />}
         </div>
       )}
@@ -350,6 +361,25 @@ function GridView({ view, depth }: { view: View; depth: number }) {
 }
 
 // ---------------------------------------------------------------- spotlight
+
+// A QR code for a link, for a phone to scan (docs/SDUI.md, "QR codes"): black on white whatever the theme, takes no focus, and on a
+// desktop the address is shown under it as text. A route is made absolute with the server's own address first.
+function QrView({ view }: { view: View }) {
+  const page = usePage()
+  const p = view.node.props || {}
+  const value = str(p, 'value')
+  if (!value) return null
+  const address = p.isRoute === true ? (serverBase() || window.location.origin).replace(/\/+$/, '') + value : value
+  const label = str(p, 'label') || view.text?.title || ''
+  const px = ({ s: 112, m: 160, l: 224 } as Record<string, number>)[str(p, 'size') || 'm'] || 160
+  return (
+    <figure className="sdui-qr" style={{ '--qr-size': px + 'px' } as CSSProperties}>
+      <QrCode text={address} label={`${label ? label + ': ' : ''}QR code for ${address}`} />
+      {label && <figcaption>{label}</figcaption>}
+      {!page.touch && !page.tv && <code className="sdui-qr-address">{address}</code>}
+    </figure>
+  )
+}
 
 function ActionButtons({ buttons, view, className }: { buttons: ButtonSpec[]; view: View; className?: string }) {
   const page = usePage()
@@ -947,7 +977,7 @@ function ListView({ view, depth }: { view: View; depth: number }) {
       <StateLine view={view} />
       {view.state !== 'empty' && (
         <ul className="sdui-list" aria-labelledby={view.text?.title ? id : undefined} aria-label={view.text?.title ? undefined : view.label || undefined} data-nav-group>
-          {waiting ? Array.from({ length: 4 }, (_, k) => <li key={k} className="sdui-ph" aria-hidden="true"><i className="skel" /></li>) : view.children.map((c, i) => <li key={c.id}><ListItemView view={c} number={view.type === 'NumberedRow' ? str(c.node.props, 'number') || String(i + 1) : undefined} /></li>)}
+          {waiting ? Array.from({ length: 4 }, (_, k) => <li key={k} className="sdui-ph" aria-hidden="true"><i className="skel" /></li>) : view.children.map((c, i) => <li key={c.id}><ListItemView view={c} number={view.type === 'NumberedRow' ? str(c.node.props, 'number') || String(i + 1) : undefined} /><ItemActions view={c} /></li>)}
         </ul>
       )}
       {view.hasMore && !waiting && <Near onNear={() => page.more(view.id)} />}
@@ -965,6 +995,18 @@ const shapeOf = (image: Props | undefined): string => {
 
 function ListItemView({ view, number }: { view: View; number?: string }) {
   const p = view.node.props || {}
+  const control = controlOf(p)
+  // A row with a control is a row of text beside the control (a control is never inside a button).
+  if (control) {
+    return (
+      <div className={'sdui-row sdui-control-row' + (control.disabled ? ' off' : '')}>
+        {p.icon ? <span className="sdui-row-ic" aria-hidden="true">{sduiIcon(p.icon)}</span> : null}
+        <span className="sdui-row-text"><b>{view.text?.title}</b>{view.text?.subtitle && <span className="muted">{view.text.subtitle}</span>}</span>
+        {view.text?.trailing && <span className="muted sdui-row-end">{view.text.trailing}</span>}
+        <ControlView control={control} label={view.text?.title || view.label || 'Setting'} action={view.node.action} />
+      </div>
+    )
+  }
   const image = obj(p, 'image')
   const progress = typeof p.progress === 'number' && p.progress > 0 ? Math.min(1, p.progress) : 0
   const badges = (Array.isArray(p.badges) ? p.badges : []).filter((b): b is string => typeof b === 'string').slice(0, 2)
@@ -1036,6 +1078,7 @@ export function Draw({ view, depth }: { view: View; depth: number }): ReactNode 
     case 'Text': return <TextView view={view} />
     case 'Notice': return <NoticeView view={view} />
     // Two components of the catalogue (docs/plans/DESIGN-2.md): a screen's Dock and the key legend.
+    case 'QR': return <QrView view={view} />
     case 'Dock': return <DockView view={view} />
     case 'KeyLegend': return <KeyLegend />
     case 'Divider': return <hr className={'sdui-divider' + (view.node.props?.inset === true ? ' inset' : '')} />
@@ -1044,6 +1087,7 @@ export function Draw({ view, depth }: { view: View; depth: number }): ReactNode 
       return <div className="sdui-spacer" aria-hidden="true" style={{ height: px(size, page.pt), width: px(size, page.pt) }} />
     }
     case 'Split': return <SplitView view={view} depth={depth} />
+    case 'Form': return <FormView title={view.text?.title} submitLabel={str(view.node.props, 'submitLabel')} cancelLabel={str(view.node.props, 'cancelLabel')} action={view.node.action}>{view.children.map((c) => <Draw key={c.id} view={c} depth={depth + 1} />)}</FormView>
     case 'Button': return <ButtonView view={view} />
     case 'Image': return <ImageView view={view} />
     case 'SearchBox': return <SearchBoxView view={view} />

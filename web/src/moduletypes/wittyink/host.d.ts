@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-// Copyright (C) 2026 WittyWilla and contributors
 export type BookMeta = {
     title: string;
     author?: string;
@@ -78,6 +76,10 @@ export interface ReaderHost {
         stack?: string;
         page?: string;
     }): void;
+    settings?: {
+        get(module: string): Record<string, unknown>;
+        save(module: string, values: Record<string, unknown>): void;
+    };
 }
 export declare const HostContext: import("react").Context<ReaderHost>;
 export declare function useHost(): ReaderHost;

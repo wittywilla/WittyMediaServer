@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-// Copyright (C) 2026 WittyWilla and contributors
 import type { VisualizerHost } from './host.ts';
 import { Session, type Place } from './session.ts';
 import './visualizer.css';

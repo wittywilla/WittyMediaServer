@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-// Copyright (C) 2026 WittyWilla and contributors
 export type Settings = {
     notice: boolean;
     on: boolean;
@@ -13,11 +11,14 @@ export type Settings = {
     calm: boolean | null;
     scale: number;
     stats: boolean;
+    speed: number;
+    colour: 'effect' | 'theme';
 };
 export declare const DEFAULT_SETTINGS: Settings;
 export declare const CYCLE_CHOICES: number[];
 export declare const SCALE_CHOICES: number[];
 export declare function normalizeSettings(v: unknown): Settings;
+export declare function moduleSettingValues(s: Settings): Record<string, unknown>;
 export type CycleItem = {
     id: string;
     motion: 'gentle' | 'lively';
@@ -58,6 +59,7 @@ export type PaletteDef = {
     c: number[];
     d: number[];
 };
+export declare function accentPalette(hex: string): PaletteDef | null;
 export declare class Palettes {
     private from;
     private to;

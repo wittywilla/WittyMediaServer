@@ -83,3 +83,7 @@ Use the pictures as the reference: the same screen, at the same size, in the sam
 - Theme ids are lower case. Witty, True black and High contrast keep their older ids (`default`, `oled`, `contrast`); the new ones are `aeroday`, `aeroaurora`, `aeromeadow`, `aerosunset`, `cable`, `satellite` and `teletext`.
 - During first run `/capabilities` stays open so apps can read `setupRequired` and show where to finish setup.
 - The server's name logo is PNG or JPEG for now.
+
+## Layout previews and the Connect screen
+
+Look pickers show a wireframe of each look's layout, not only colours (`wireFor`/`wireSpec` in `canvas/Exp.dc.html`; the server's `wire` descriptor is the same data). Peer to peer is a prominent "Connect from anywhere" panel on the Connect screen and on You, From away.

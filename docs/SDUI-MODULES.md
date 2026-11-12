@@ -108,7 +108,7 @@ The top level:
 | `format` | string | yes | Always `wittymodule-sdui`. |
 | `formatVersion` | int | yes | Always `1`. |
 | `module` | string | yes | The module's ID, the same as `id` in `module.json`. |
-| `catalog` | int | yes | The [catalogue revision](SDUI.md#versioning) the file was written against, from 1 to the server's. A server refuses a file newer than its own catalogue. Today the catalogue is at revision 7. A change to what an existing component or card style shows or does bumps it; only new components, card styles, sources, commands and optional properties are additive ([SDUI](SDUI.md#versioning)). Revision 7 changed what the `person` card style shows (badges), which is why a module that yields `person` items writes `catalog: 7`. |
+| `catalog` | int | yes | The [catalogue revision](SDUI.md#versioning) the file was written against, from 1 to the server's. A server refuses a file newer than its own catalogue. Today the catalogue is at revision 8. A change to what an existing component or card style shows or does bumps it; only new components, card styles, sources, commands and optional properties are additive ([SDUI](SDUI.md#versioning)). Revision 7 changed what the `person` card style shows (badges), which is why a module that yields `person` items writes `catalog: 7` at least; revision 8 changed what it does (presence dot, no focus without an action unless the list says focusable), and a module whose pages use focusGrow, detail, regions or controls writes `catalog: 8`. |
 | `theme` | object | yes | The module's [theme scope](#theme). |
 | `sources` | list | no | [Data sources](#sources) the module answers through its helper. |
 | `components` | list | no | Named sections of the module's own: [components](#components). |
@@ -283,13 +283,16 @@ only this (`cleanModuleItem` in `internal/server/sdui_modules.go`):
 | `images` | Only `poster`, `backdrop`, `square` and `logo`, and only paths on this server beginning `/api/`. Others are removed. The renderer adds the width to ask for. |
 | `playId`, `nextId` | Kept only when it is the ID of a library item this profile may see and play, and its screen time isn't over. Otherwise removed. A module can't make anything playable that isn't in a library. |
 | `can` | Only `play`, `download`, `share`, `watchLater`, `watched`, `playOn`, `watchParty`. Every one of them acts on a title of the library, so an item without a `playId` that survives the check above offers none. |
-| `action` | Always removed. An item's own action (a catalogue command, such as a disc row's `disc.choose`) is only ever set by sources the server answers itself. |
 | `badges` | At most 3, each cut to 12 characters. |
 | `icon` | Kept when it is one of the [icons](SDUI.md#icons). |
 | `scope` | Defaults to the module's ID. |
 | the rest | `year`, `rating`, `runtimeSec`, `studio`, `progress`, `watched`, `unwatched`, `resumeSec`, `season`, `episode`, `showTitle`, `showId`, `artist`, `track`, `count`, `number`, `now`, `next`: passed on as given. |
 
 Items past `limit` are cut off, and `more` is set.
+
+### Actions, controls and regions (catalogue revision 8)
+
+An item a module answers may carry, besides what it always could, `action` (what its row or card does instead of opening its route), `actions` (the buttons of a Shelf's detail panel: `{id, label, glyph, action}`, at most four), `trailing` (text at a row's end) and `control` (a switch, select, field or slider in a row: see SDUI.md, "Forms and controls"). The server holds them to what a client may run for a tap: a `navigate` action to a route of the app (`as: "layer"` shows the page over the screen), `play` of a title the profile may play, a `native` screen, `back`, or a `command` that is the module's own (the command's `module` in the catalogue is the module's ID, or its op begins with the ID and a dot), with only the params the command declares, as short strings, numbers or booleans. Anything else is dropped, and an item whose only action was dropped is an ordinary item. A module's page may also set `regions` (`statusBar` items and `systemDock` entries), which the server sends as `document.regions` while the page shows. A settings page may declare `slot` (`you.games` or `people.profile`, the latter admin only), and so may a module's `custom` page (a page whose rows are not module settings, such as a Form over the profile's own choices); the server lists both at `GET /sdui/slots/{slot}` as `{module, label, id, title, icon, url}` for a settings page and `{…, route}` for a page, for the hand-built Settings to draw with its generic settings-page renderer or the SDUI renderer. A page in `people.profile` has `?item={profile}` on its route: Settings fills in the profile's ID as `item`, and the page's sources read it as `$item`.
 
 ### Top Shelf
 

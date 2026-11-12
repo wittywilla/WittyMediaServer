@@ -820,7 +820,83 @@ func playOnlineCases() []kase {
 	peoplePage := page("play", "custom",
 		sec("friends", "Shelf", map[string]any{"title": "Friends"}, sdui.Source{"type": "wittyplay.friends"}),
 		sec("room", "Shelf", map[string]any{"title": "Your room"}, sdui.Source{"type": "wittyplay.room"}))
+	// WittyPlay Online's home (revision 7): a row whose focused card grows with a detail panel under it,
+	// a lobby of friends that take focus without a route, and the shell regions a page supplies.
+	focusData := playOnlineData()
+	for i := range focusData.Sources {
+		if focusData.Sources[i].Match["type"] != "wittyplay.recent" {
+			continue
+		}
+		for j := range focusData.Sources[i].Items {
+			g := &focusData.Sources[i].Items[j]
+			label := "Resume"
+			if g.RuntimeSec == 0 {
+				label = "Play"
+			}
+			g.Actions = []sdui.ItemAction{
+				{ID: "play", Label: label, Glyph: "a", Action: &sdui.Action{Type: sdui.ActPlay, Item: g.PlayID}},
+				{ID: "online", Label: "Play online", Glyph: "x", Action: &sdui.Action{Type: sdui.ActCommand, Op: "wittyplay.room.create", Item: g.ID}},
+				{ID: "options", Label: "Options", Glyph: "y", Action: &sdui.Action{Type: sdui.ActNavigate, To: "/page/online-options?item=" + g.ID, As: sdui.PresentLayer}},
+			}
+		}
+	}
+	focusPg := page("online", "custom",
+		sec("recent", "Shelf", map[string]any{"title": "Recent", "focusGrow": true, "detail": true}, sdui.Source{"type": "wittyplay.recent"}),
+		sec("friends", "Shelf", map[string]any{"title": "Friends", "focusable": true}, sdui.Source{"type": "wittyplay.friends"}))
+	focusPg.Scope = "wittyplay"
+	focusPg.Regions = &sdui.PageRegions{
+		StatusBar: []sdui.StatusItem{{ID: "who", Kind: "profile", Text: "Playing as {user}"}, {ID: "server", Kind: "server"}},
+		SystemDock: []sdui.DockEntry{{ID: "home", Label: "Home", Icon: "home", Route: "/page/online"}, {ID: "together", Label: "Together", Icon: "users", Route: "/page/online-together"},
+			{ID: "controllers", Label: "Controllers", Icon: "game", Route: "/page/online-controllers", As: sdui.PresentLayer}},
+	}
+	// Forms (revision 7): rows with controls, a Form that saves them together, switches that save at once
+	// with the flipped value in their action, and a button that runs a command after asking first.
+	formData := Data{Sources: []CannedSource{
+		src(map[string]any{"type": "wittyplay.privacy"}, []sdui.Item{
+			{ID: "sharePlaying", Kind: "view", Title: "Show friends what I\u2019m playing", Subtitle: "Friends see \u201cPlaying Star Tide\u201d.", Icon: "game", Scope: "wittyplay",
+				Control: &sdui.Control{Type: sdui.ControlSwitch, Name: "sharePlaying", Value: true}},
+			{ID: "appearOnline", Kind: "view", Title: "Appear online", Icon: "users", Scope: "wittyplay",
+				Control: &sdui.Control{Type: sdui.ControlSwitch, Name: "appearOnline", Value: false, Disabled: true, Why: "A guest has no friends to share with."}},
+		}, 0),
+		src(map[string]any{"type": "wittyplay.kidsFriends", "user": "7"}, []sdui.Item{
+			{ID: "profile-1", Kind: "view", Title: "Willow", Icon: "user", Trailing: "Approved", Control: &sdui.Control{Type: sdui.ControlSwitch, Value: true},
+				Action: &sdui.Action{Type: sdui.ActCommand, Op: "wittyplay.kids.friends", Item: "7", Params: map[string]any{"friends": []int{2}}}},
+			{ID: "profile-2", Kind: "view", Title: "Sam", Icon: "user", Trailing: "Approved", Control: &sdui.Control{Type: sdui.ControlSwitch, Value: true},
+				Action: &sdui.Action{Type: sdui.ActCommand, Op: "wittyplay.kids.friends", Item: "7", Params: map[string]any{"friends": []int{1}}}},
+			{ID: "profile-3", Kind: "view", Title: "Gran", Icon: "user", Trailing: "Not approved", Control: &sdui.Control{Type: sdui.ControlSwitch, Value: false},
+				Action: &sdui.Action{Type: sdui.ActCommand, Op: "wittyplay.kids.friends", Item: "7", Params: map[string]any{"friends": []int{1, 2, 3}}}},
+		}, 0),
+	}}
+	formPg := page("games-privacy", "custom",
+		sec("online", "Form", map[string]any{"title": "Friends and what you play", "op": "wittyplay.online.set", "submitLabel": "Save", "cancelLabel": "Cancel"}, nil),
+		sec("kids", "List", map[string]any{"title": "Approved friends"}, sdui.Source{"type": "wittyplay.kidsFriends", "user": "$item"}),
+		sec("memory", "Button", map[string]any{"label": "Delete this memory", "op": "wittyplay.memory.delete", "item": "$item", "params": map[string]any{"name": "$name"}, "confirm": "Delete this memory?", "variant": "ghost"}, nil))
+	formPg.Sections[0].Children = []sdui.Section{sec("rows", "List", map[string]any{}, sdui.Source{"type": "wittyplay.privacy"})}
+	formPg.Scope = "wittyplay"
+	phone := request("phone")
+	phone.Modules = []string{"wittyplay"}
+	phone.Scopes = tv.Scopes
+	phone.Vars = map[string]string{"item": "7", "name": "1731.png"}
+	// A QR code (revision 8): from a source item's link (the host's join route), and from a fixed address.
+	qrData := Data{Sources: []CannedSource{src(map[string]any{"type": "wittyplay.room"}, []sdui.Item{
+		{ID: "s-star", Kind: "view", Title: "Star Tide", Link: "/games?join=TIDE-4821", Scope: "wittyplay"}}, 0)}}
+	qrPg := page("room-open", "custom",
+		sec("join", "QR", map[string]any{"label": "Scan to join", "size": "l"}, sdui.Source{"type": "wittyplay.room", "limit": 1}),
+		sec("site", "QR", map[string]any{"value": "https://example.org/wittymedia", "label": "The website"}, nil),
+		sec("bad", "QR", map[string]any{"value": "not a link"}, nil))
+	qrPg.Scope = "wittyplay"
+	// WittyPlay Online's own home page, as WittyPlay's sdui.json defines it.
+	online, _ := sdui.NewModuleSet([]sdui.ModuleUI{ui}).Page("wittyplay-online")
 	return []kase{
+		{id: "qr-room-phone", title: "QR codes from an item's link and from an address, on a phone", in: Input{Page: qrPg, Request: phone, Data: qrData, ModuleUI: []sdui.ModuleUI{ui}},
+			checks: []string{"a QR section with a source takes the first item's link as its value and its title as the caption", "a route says isRoute so the client makes it absolute with the server's address", "a value that is neither a route nor an https address leaves the section out"}},
+
+		{id: "wittyplay-online-home-tv", title: "WittyPlay Online's home page, as WittyPlay defines it, on a television", in: Input{Page: online, Request: tv, Data: playOnlineData(), ModuleUI: []sdui.ModuleUI{ui}},
+			checks: []string{"the page is WittyPlay's own, in its scope", "Recent is a row whose focused tile grows, with its details under the row", "the page puts the profile and the server in the status bar and five destinations in the round dock, Controllers and Settings as layers", "Classics, Together, Memories and Discover are tabs"}},
+		{id: "forms-wittyplay-privacy-phone", title: "A Form of switches, a list of switches that save at once, and a command button that asks first, on a phone", in: Input{Page: formPg, Request: phone, Data: formData, ModuleUI: []sdui.ModuleUI{ui}},
+			checks: []string{"the Form is one node whose action is its command, holding the list of rows", "a row's control is in its props (type, name, value, disabled and why); the Form's controls carry no action of their own", "a switch row's action is the command with the new list already in its params", "a button that runs a command carries its item, params with the page's variables filled in, and confirm"}},
+		{id: "wittyplay-online-focus-tv", title: "WittyPlay Online home: focused tile grows, detail panel, regions, on a television", in: Input{Page: focusPg, Request: tv, Data: focusData, ModuleUI: []sdui.ModuleUI{ui}},
+			checks: []string{"a Shelf with focusGrow and detail says so, and every game card carries its actions (A, X, Y glyphs) with Options as a navigate action shown as a layer", "friends are person cards with presence badges and the row says focusable, so a card with no route is still a focus stop", "the page's regions (status bar items, system dock entries) are in document.regions with placeholders filled"}},
 		{id: "wittyplay-people-tv", title: "Friends and a room's players as person cards on a television", in: Input{Page: peoplePage, Request: tv, Data: ppl, ModuleUI: []sdui.ModuleUI{people}},
 			checks: []string{"a person item is a person card: a round photo (initials when it has none), a name, a line and its badge", "a person with a route opens it; one without has no action and takes no focus", "every card is in WittyPlay's scope"}},
 		{id: "wittyplay-online-tv", title: "WittyPlay Online's rows on a television", in: Input{Page: pg, Request: tv, Data: playOnlineData(), ModuleUI: []sdui.ModuleUI{ui}},

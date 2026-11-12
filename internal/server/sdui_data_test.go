@@ -275,8 +275,9 @@ func TestSDUISectionsPageByCursor(t *testing.T) {
 	if a, b := rows.Root.Children[3], rows.Root.Children[4]; a.State != "" || len(a.Children) != 12 || b.State != "deferred" || len(b.Children) != 0 {
 		t.Fatalf("rows 4 and 5 on an Apple TV HD: %q with %d cards, %q with %d", a.State, len(a.Children), b.State, len(b.Children))
 	}
-	if n := len(rows.Root.Children); n != 8 {
-		t.Errorf("%d rows", n)
+	// Eight rows, and on a television the key legend's Dock after them.
+	if n := len(rows.Root.Children); n != 9 || rows.Root.Children[8].Type != "Dock" {
+		t.Errorf("%d children, want 8 rows and the Dock", n)
 	}
 	first, _ := rows.Root.Children[4].Props["more"].(map[string]any)["url"].(string)
 	w = ts.do(t, "GET", first, f.oneLibrary, nil, "X-WMS-Platform", "tvos")

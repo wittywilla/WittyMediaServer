@@ -24,6 +24,8 @@ type Region struct {
 	Locked bool `json:"locked,omitempty"`
 	// Styles are the choices of a region with a style (the hero's).
 	Styles []string `json:"styles,omitempty"`
+	// Off regions are hidden until an experience, a module's page or a placement turns them on.
+	Off bool `json:"off,omitempty"`
 }
 
 // Regions are the regions of the shell, in the order an editor lists them.
@@ -36,6 +38,11 @@ var Regions = []Region{
 	{ID: "dock", Label: "Dock", Positions: []string{"top", "bottom", "side"}},
 	{ID: "legend", Label: "Key legend"},
 	{ID: "hero", Label: "Spotlight", Styles: []string{"billboard", "banner", "carousel", "row"}},
+	// The status bar (the profile, the server's name, the clock, the controllers' batteries) and the
+	// system dock (a round dock of the screen's destinations) are WittyPlay Online's: off in every
+	// other look, turned on by a page's regions (Page.Regions) or a placement.
+	{ID: "statusBar", Label: "Status bar", Positions: []string{"top"}, Off: true},
+	{ID: "systemDock", Label: "System dock", Positions: []string{"bottom", "side"}, Off: true},
 }
 
 // RegionByID is a region, nil for an ID that isn't one.
@@ -110,7 +117,7 @@ func MergePlacements(layers ...RegionPlacements) RegionPlacements {
 	}
 	for id, pl := range out {
 		if pl.Visible == nil {
-			t := true
+			t := !RegionByID(id).Off
 			pl.Visible = &t
 			out[id] = pl
 		}

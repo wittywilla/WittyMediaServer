@@ -67,7 +67,7 @@
 
 /* The stage: player in the middle, a panel beside it when one is open. */
 .np-stage { position: relative; z-index: 1; flex: 1 1 auto; min-height: 0; display: flex; gap: clamp(16px, 3vw, 40px); padding: 0 clamp(16px, 3vw, 40px); }
-.np-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(6px, 1.3vh, 16px); overflow-y: auto; overflow-x: hidden; padding: 4px 0; scrollbar-width: none; }
+.np-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: safe center; gap: clamp(6px, 1.3vh, 16px); overflow-y: auto; overflow-x: hidden; padding: 4px 0; scrollbar-width: none; }
 .np-main > * { flex: none; }
 
 /* Artwork, and the same picture again below it, flipped and fading: a plain second image,
@@ -359,3 +359,28 @@ button.np-artist:hover { color: var(--np-fg); text-decoration: underline; text-u
 .kar-read { margin: 0; max-width: min(900px, 100%); max-height: 100%; overflow-y: auto; font: inherit; font-size: clamp(1.15rem, 2.8vh, 2rem); font-weight: 600; line-height: 1.5; white-space: pre-wrap; text-align: left; color: var(--np-fg); }
 .np-modes { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 0 18px 8px; }
 .np-note-inline { font-size: var(--text-sm); color: var(--np-fg-2); }
+
+/* Visualizer mode: the effect fills the stage and the cover steps aside (board MU_*: effect chips, Intensity). */
+.np.viz-on .np-artbox { display: none; }
+.np.viz-on .np-main { overflow-y: auto; scrollbar-width: thin; }
+.np.viz-on .np-stage { justify-content: flex-end; }
+.np-effects { flex: 1 0 100%; display: grid; gap: 10px; justify-items: center; order: 2; }
+.np-effect-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; max-width: 920px; }
+.np-effect-chips button { display: inline-grid; gap: 0; min-height: 44px; padding: 4px 14px; border: 0; border-radius: var(--r-md); background: var(--np-chip); color: var(--np-fg); font: inherit; font-size: var(--text-sm); font-weight: 600; cursor: pointer; text-align: left; }
+.np-effect-chips button small { font-size: var(--text-xs, .75rem); font-weight: 500; color: var(--np-fg-2); }
+.np-effect-chips button.on { background: var(--np-white); color: var(--np-black); }
+.np-effect-chips button.on small { color: var(--np-black); }
+.np-effect-chips button[disabled] { opacity: .4; cursor: default; }
+.np-effect-opts { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 14px; }
+.np-range { display: inline-flex; align-items: center; gap: 8px; font-size: var(--text-sm); font-weight: 600; }
+.np-range input { width: min(220px, 40vw); accent-color: var(--np-white); min-height: 44px; }
+.np-range output { min-width: 3.2em; font-variant-numeric: tabular-nums; color: var(--np-fg-2); }
+
+/* The calm column of the side panels: a line under the title, values as pills, notes as callouts (boards: queue, sleep, soundpanel) */
+.np-lede { margin: 0 18px 8px; }
+.np-pills { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 18px 12px; }
+.np-side-actions.np-pills { padding: 8px 18px 12px; }
+.np-foot { flex: none; border-top: 1px solid var(--np-line); }
+.np-pill { display: inline-flex; align-items: center; min-height: 28px; padding: 0 12px; border-radius: var(--r-full); background: var(--np-chip); font-size: var(--text-sm); font-weight: 600; font-variant-numeric: tabular-nums; }
+.np-pill.now { background: var(--np-white); color: var(--np-black); }
+.np-callout { border-left: 3px solid var(--np-white); }

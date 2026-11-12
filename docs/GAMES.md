@@ -454,27 +454,38 @@ To keep them off whatever else is set, start the server with `WMS_GAMING_NO_CUST
 
 ## Standalone emulators
 
-A core is the usual way to play, and the only one most servers need. For a console no core plays well (PlayStation 2, say), an administrator can also install a **standalone emulator**: the same program you'd run on a desktop, such as PCSX2, PPSSPP, Flycast or melonDS. The server runs it in a locked-down container, one per game, and streams it to you like any other game. This is off until an administrator turns it on.
+A core is the usual way to play, and the only one most servers need. Some consoles have no core (Xbox, PlayStation 3, Wii U), and for others a whole emulator may play better (PlayStation 2, say), so an administrator can also install a **standalone emulator**: the same program you'd run on a desktop, such as PCSX2, Dolphin, RPCS3, xemu or Cemu. The server runs it boxed in, one per game, on its own desktop (a Mac or a Windows PC), in a sandbox of its own (Linux) or in a container, and streams it to you like any other game. This is off until an administrator turns it on.
+
+| Console | Plays on | Notes |
+|---|---|---|
+| GameCube, Wii | Dolphin, or the Dolphin core | Disc images, Dolphin's compressed images (RVZ, WIA, GCZ, CISO, WBFS) and homebrew. On a Mac the core stalls after its first frame for now: play them in Dolphin |
+| Wii U | Cemu | `.wud` and `.wux` images need your games' disc keys in the BIOS folder |
+| PlayStation 3 | RPCS3 | Disc images and folder dumps; RPCS3 installs the system software (`PS3UPDAT.PUP`) from the BIOS folder |
+| Xbox | xemu | Needs the boot ROM, BIOS and hard disk image of an Xbox you own |
+| Switch | Only an emulator you installed yourself | This server offers no Switch emulator; see WittyPlay's [Standalone emulators guide](https://github.com/wittywilla/WittyPlay/blob/master/docs/STANDALONE-EMULATORS.md#the-switch) |
+
+When a console has no core, its games' **Play** starts the emulator that's set up for it. **Settings → What this server plays** lists every console, whether it plays here, and how.
 
 **For everyone.** When one is set up for a game's console, the game's page shows **Play with PCSX2** (or whichever) under Play. If it's greyed out, the sentence beside it says why: firmware is missing, or this server is too small for it. **Emulator settings** beside it holds your own choices (resolution scale, widescreen, the most bitrate), for all your games or just this one. What's different from a core's game:
 
 - There are no save states, rewind, cheats or game menu. Save inside the game, the way the console did. Its memory cards and settings are kept on the server, yours alone.
-- Your controller's buttons are passed on as keys, so sticks work as four directions, not by degrees, and there's no rumble. Up to four players, where the emulator has been told their keys.
+- Your controller's buttons are passed on as keys, so sticks work as four directions, not by degrees, and there's no rumble. Each player's keys are written into the emulator's own controller settings before it starts, so up to four players' pads work with nothing to set up (as many as the emulator allows: four for PCSX2, Dolphin and Flycast, two for RPCS3, one for the rest).
 - **Pause** freezes the emulator; **Stop** ends it. Leaving the page without stopping leaves it running for two minutes, so a reload carries on where you were. One game at a time for each person.
 - A few emulators are shown as their own desktop inside the page rather than as a stream: click inside it to use the keyboard and mouse.
 - The game belongs to the profile, on the device, that started it. Signing out, or switching to another profile on that device, ends it. For a profile with [limits](PROFILES.md), the time it runs counts as screen time, and it's ended when the time is up or when games are turned off for the profile.
 
 **For administrators: Settings, Standalone emulators.**
 
-1. Read the warning beside the switch. Turning this on lets the server start containers, and a Docker daemon that runs as root can do anything on the machine: a rootless Docker, Podman, or "this machine's own sandbox" (Linux, no Docker needed) is the safer choice. **Docker and the sandbox** on that page says what it found, line by line.
+1. Choose **Where they run**. On a Mac or a Windows PC that's the server's own desktop by default: a Mac needs you to give the server **Screen & System Audio Recording** and **Accessibility** in System Settings, Privacy & Security, and a Windows server must run signed in, not as a service. With Docker, read the warning beside the switch: a Docker daemon that runs as root can do anything on the machine, so a rootless Docker, Podman, or "this machine's own sandbox" (Linux) is the safer choice. **Where emulators run** on that page says what it found, line by line.
 2. Turn it on, and install an emulator from the list. Each is someone else's program under its own licence, which is shown before anything is downloaded; the download comes from the emulator's own project and is checked before it's used. Nothing else comes with it: no games, and no BIOS.
 3. With Docker, an emulator also needs a container image, which this project hasn't published yet: the list says so beside each one, and WittyPlay's own guide says how to build it.
 4. Firmware goes where a core's does: see [BIOS files](#bios-files). The list shows which files each emulator looks for and whether they're there.
-5. **Settings** on an installed emulator sets it up for everyone: the graphics backend, the stream's size, and which key each controller button presses. **Running now** lists games in emulators, with Stop.
+5. **Settings** on an installed emulator sets it up for everyone: every one of its own settings, in its sections, with a search, plus the stream's size and which key each controller button presses. **Running now** lists games in emulators, with Stop.
+6. **Your own emulator programs** adds an emulator you installed yourself, by its path: how a FreeBSD server uses its packages, and the only way to play the Switch.
 
 A small server is told plainly what it can't run: on a Raspberry Pi 3 every emulator says it needs more memory than there is, and nothing is started. Cores are the way to play there.
 
-This is new, and has been tested against a stand-in for Docker rather than played on a real one: see [What hasn't been tried](#what-hasnt-been-tried).
+This is new: no game has yet been played in a standalone emulator on a real Docker host, a Windows PC or a Mac with those permissions given. See [What hasn't been tried](#what-hasnt-been-tried).
 
 ## Console icons
 

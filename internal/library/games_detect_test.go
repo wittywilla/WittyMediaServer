@@ -542,3 +542,15 @@ func TestTheOwnersRegionOrderDecidesWhatComesFirst(t *testing.T) {
 		t.Errorf("a game someone has named keeps its version: %+v", after)
 	}
 }
+
+// Encrypted 3DS files can't play here. Switch and Wii U games are encrypted as a rule,
+// and play in a standalone emulator with the owner's keys: they're games, not problems.
+func TestFilesThatNeedTheOwnersKeysAreGames(t *testing.T) {
+	modtest.Need(t, "wittyplay")
+	if v := proven(gameid.Finding{Console: "3ds", Kind: gameid.KindGame, Encrypted: true}, ""); v.Problem != "encrypted" {
+		t.Fatalf("an encrypted 3DS file: %+v", v)
+	}
+	if v := proven(gameid.Finding{Console: "3ds", Kind: gameid.KindGame, Encrypted: true, NeedsKeys: true}, ""); v.Problem != "" {
+		t.Fatalf("a file that needs the owner's keys: %+v", v)
+	}
+}

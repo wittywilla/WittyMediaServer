@@ -32,7 +32,7 @@ trip through the app switcher loses nothing.
 
 ## Playing with a standalone emulator
 
-A server whose `features` include `standalone-emulators` may offer a game in a standalone emulator as well as on a core.
+A server whose `features` include `standalone-emulators` may offer a game in a standalone emulator as well as on a core. For Xbox, PlayStation 3 and Wii U it's the only way: a game's `check` names the emulator, and each console in `GET /games/consoles` carries `standaloneEmulators` (as below) and `standalone`, the one Play starts.
 
 1. `GET /games/{id}/emulators` answers `{"emulators": [{"id", "name", "version", "stream", "ready", "why", "experimental", "needsBios"}]}`. The list is empty when nothing is set up for the game's console: offer nothing then. When `ready` is false, `why` is a sentence to show beside a disabled button.
 2. `POST /games/{id}/play/emulator` with `{"emulator": "<id>"}` starts it: `201` and
@@ -57,7 +57,7 @@ Each emulator's settings are data: `GET /modules/wittyplay/docker/emulators/{id}
 | Route | Sign-in | What it does |
 |---|---|---|
 | `GET /games/home?library=` | user | The games home screen in one answer: `hero`, `continue` (`{item, plays, lastPlayed, save}`), `recent`, `favourites`, `favouriteIds`, `mostPlayed`, and `shelves` (`{kind: "genre" or "series", name, count, items}`) |
-| `GET /games/{id}/check` | user | What a game needs and whether this server has it: `{ready, reason, message, core, needsGpu, gpuMissing, software, notice, encrypted, bios: [{file, for, required, found, using, from}]}`. For a BIOS a core takes under any name (PlayStation 2), `using` is the file this game starts with, and `from` is where the server found it by its checksum. `reason` is `core`, `bios`, `gpu` or `unavailable`, and `message` says it for people. See [Games this server can't draw](#games-this-server-cant-draw) |
+| `GET /games/{id}/check` | user | What a game needs and whether this server has it: `{ready, reason, message, core, emulator, needsGpu, gpuMissing, software, notice, encrypted, bios: [{file, for, required, found, using, from}]}`. For a BIOS a core takes under any name (PlayStation 2), `using` is the file this game starts with, and `from` is where the server found it by its checksum. `reason` is `core`, `bios`, `gpu`, `emulator` (no core plays it, and no standalone emulator is set up) or `unavailable`, and `message` says it for people. `emulator` (`{id, name, version}`), with `ready` true, means no core plays it here and that standalone emulator does: start it as [Playing with a standalone emulator](#playing-with-a-standalone-emulator) says. See [Games this server can't draw](#games-this-server-cant-draw) |
 | `GET /games/consoles` | user | Every console, with `pad`, `ready`, `unavailable`, `cores` and `installed`, and its `era`, years, `media`, `capabilities` and `shelf` ([below](#what-a-console-can-do)). When it isn't ready, `reason` (`unavailable`, `core` or `gpu`) and `message`. `gpuMissing`, `software` and `notice` as for a game's check. `coreSupport`: [which platforms each core runs on](#which-platforms-a-core-runs-on). With `?library=<id>`, also `count`: that library's games for it |
 | `GET /games/playing` | user | The game this account is playing now: `{id, itemId, title, console, device, startedAt, seats}`, or 204. What a device needs to offer "Continue here" |
 | `GET /games/modes?client=native` | user | What this server can stream, best first |

@@ -407,6 +407,11 @@ function EffectChips({ effects, current, onPick }: { effects: ShaderEffect[]; cu
   const s = shaderSession()
   const [calm, setCalm] = useState<boolean>(() => s?.calm ?? false)
   const [intensity, setIntensity] = useState<number>(() => s?.settings.intensity ?? 1)
+  // Speed (speedPct, 50 to 200) and Colour (effect or theme) are WittyVisualizer's own settings keys, saved through its module settings.
+  const extra = (s?.settings ?? {}) as unknown as { speedPct?: number; colour?: string }
+  const [speed, setSpeed] = useState<number>(extra.speedPct ?? 100)
+  const [colour, setColour] = useState<string>(extra.colour ?? 'effect')
+  const patch = (v: Record<string, unknown>) => shaderSession()?.update(v as never)
   const keeps = (e: ShaderEffect) => !calm || e.motion === 'gentle'
   return (
     <div className="np-effects" role="group" aria-label="Visualizer effects">
@@ -424,6 +429,12 @@ function EffectChips({ effects, current, onPick }: { effects: ShaderEffect[]; cu
             onChange={(e) => { const v = Number(e.target.value) / 100; setIntensity(v); shaderSession()?.update({ intensity: v }) }} />
           <output>{Math.round(intensity * 100)}%</output>
         </label>
+        <label className="np-range"><span>Speed</span>
+          <input type="range" min={50} max={200} step={5} value={speed} aria-valuetext={`${speed}%`} onChange={(e) => { const v = Number(e.target.value); setSpeed(v); patch({ speedPct: v }) }} />
+          <output>{speed}%</output>
+        </label>
+        <Segmented label="Colour" value={colour === 'theme' ? 'theme' : 'effect'} onChange={(v) => { setColour(v); patch({ colour: v }) }}
+          options={[{ value: 'effect', label: "Effect's own" }, { value: 'theme', label: 'Follows the theme' }]} />
       </div>
     </div>
   )

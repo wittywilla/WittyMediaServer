@@ -48,6 +48,7 @@ const RemoteAccess = lazy(() => import('./settings/RemoteAccess'))
 const NetworkSettings = lazy(() => import('./settings/Network'))
 const CouchSettings = lazy(() => import('./settings/Couch'))
 const EmulatorsSettings = lazy(() => import('./settings/Emulators'))
+const GamesSupport = lazy(() => import('./settings/GamesSupport'))
 const WittyRigsSettings = lazy(() => import('./settings/WittyRigs'))
 const Security = lazy(() => import('./settings/Security'))
 const TvSettings = lazy(() => import('./tv/TvSettings'))
@@ -84,6 +85,7 @@ const GROUPS: { title: string; pages: Page[] }[] = [
     { to: 'playback', label: 'Playback & discs', icon: <IconPlay />, admin: true, hint: 'Player, DVDs and Blu-rays' },
     { to: 'channels', label: 'Channels & tuners', icon: <IconChannels />, admin: true, hint: 'Tuners, IPTV, guide data and WittyTV options' },
     { to: 'gaming', label: 'Consoles & cores', icon: <IconGamepad />, admin: true, hint: 'Which consoles this server can play, their cores, and game streaming' },
+    { to: 'games-support', label: 'What this server plays', icon: <IconGamepad />, hint: 'Each console, whether its games play here, and how' },
     { to: 'emulators', label: 'Standalone emulators', icon: <IconGamepad />, admin: true, hint: 'PCSX2, Dolphin, RPCS3 and others: where they run, installs, firmware, controllers and every setting' },
     { to: 'couch', label: 'Game PCs', icon: <IconDrive />, admin: true, hint: 'Who can play on PCs running Sunshine, and which ones' },
     { to: 'transcoding', label: 'Live transcoding', icon: <IconFilm />, admin: true, hint: 'While someone watches: quality, hardware and formats' },
@@ -198,6 +200,7 @@ export default function SettingsPage() {
           <Route path="gaming" element={<GamingSettings />} />
           <Route path="games" element={<><PageHead title="My game settings" desc="How your games look, sound and behave. Set something for every game, for one console or, from a game’s own page, for one game. It follows you to every device." /><GameSettingsPage /></>} />
           <Route path="emulators" element={<Suspense fallback={null}><EmulatorsSettings /></Suspense>} />
+          <Route path="games-support" element={<Suspense fallback={null}><GamesSupport /></Suspense>} />
           <Route path="couch" element={<Suspense fallback={null}><CouchSettings /></Suspense>} />
           <Route path="wittyrigs" element={<Suspense fallback={null}><WittyRigsSettings /></Suspense>} />
           <Route path="server" element={<Navigate to="/settings/metadata" replace />} />

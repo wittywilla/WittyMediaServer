@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { api } from '../../api'
+import { api, ApiError } from '../../api'
 import { useModulePages } from '../../moduleBundles'
 import { toast } from '../../state'
 import { AUTO_THEME, currentThemeId, deviceTheme, loadThemeOverrides, type ThemeMeta } from '../../theme'
@@ -124,5 +124,60 @@ export default function EngineColours() {
         )}
       </Section>
     </>
+  )
+}
+
+// ---------------------------------------------------------------- the profile's own colours
+
+// A profile's own colours (PUT /theme/personal, docs/THEMES.md): over the theme it sees and
+// whatever an administrator changed, on every device it signs in on. The server refuses any
+// that would leave text hard to read, and says which pairs.
+type Personal = { tokens?: Colours; modules?: Record<string, Colours>; warnings?: (Warning & { scope?: string })[] }
+
+async function loadPersonal() {
+  const [list, theme, mine] = await Promise.all([
+    api.get<{ themes: ThemeMeta[]; default: string }>('/themes'), loadThemeOverrides(), api.get<Personal>('/theme/personal'),
+  ])
+  if (!theme) throw new Error('Your colours couldn’t be read.')
+  const id = currentThemeId(theme.id || list.default || 'default')
+  const scheme = list.themes.find((t) => t.id === id)?.scheme === 'light' ? 'light' : 'dark'
+  const under = theme.source === 'server' ? normalizedColours(theme.overrides || {}) : {}
+  const looks: Look[] = id === AUTO_THEME
+    ? [{ scheme: 'dark', base: overlay(await ownColours('default', list.themes), under), set: Object.keys(under) }, { scheme: 'light', base: overlay(await ownColours('light', list.themes), under), set: Object.keys(under) }]
+    : [{ scheme, base: overlay(await ownColours(id, list.themes).catch(() => ownColours('default', list.themes)), under), set: Object.keys(under) }]
+  const names = [...new Set(list.themes.filter((t) => t.builtin).flatMap((t) => Object.keys(t.colors || {})))]
+  return { looks, names, mine: normalizedColours(mine.tokens || {}), modules: mine.modules || {}, warnings: (mine.warnings || []).filter((w) => w.scope === 'personal') }
+}
+
+// A refusal, in words: the server's reason, then each pair that is too faint.
+function refusal(e: unknown): Error {
+  // The server's words usually name the pairs already; they are added only when they don't.
+  if (e instanceof ApiError && Array.isArray(e.data?.contrast) && e.data.contrast.length && !(e.data.contrast as Warning[]).every((w) => e.message.includes(`${w.text} on ${w.surface}`))) {
+    const pairs = (e.data.contrast as Warning[]).slice(0, 6).map((w) => `${w.text} on ${w.surface}${w.variant ? ` (${w.variant})` : ''}: ${w.ratio.toFixed(1)}:1, needs ${w.need}:1`)
+    return new Error(`${e.message} ${pairs.join('; ')}.`)
+  }
+  return e as Error
+}
+
+export function PersonalColours() {
+  const [got, setGot] = useState<Awaited<ReturnType<typeof loadPersonal>> | null>(null)
+  const [failed, setFailed] = useState('')
+  const load = useCallback(async () => { try { setGot(await loadPersonal()); setFailed('') } catch (e) { setFailed((e as Error).message) } }, [])
+  useEffect(() => { load() }, [load])
+  const put = async (tokens: Colours, said: string) => {
+    try { await api.put('/theme/personal', { tokens, modules: got?.modules || {} }) } catch (e) { throw refusal(e) }
+    await load(); toast(said, { tone: 'ok' })
+  }
+  return (
+    <Section title="Your own colours" desc="Change single colours for yourself, over the theme and anything an administrator changed. They follow you to every device. Colours that would make text hard to read aren’t saved.">
+      {failed ? <Notice tone="danger" action={<Button size="sm" onClick={load}>Try again</Button>}>{failed}</Notice>
+        : !got ? <p className="muted">Reading your colours…</p>
+          : (
+            <ColourOverrides looks={got.looks} names={got.names} saved={got.mine} checked={got.warnings}
+              hasOwn={Object.keys(got.mine).length > 0} clearLabel="Use the theme’s colours"
+              save={(tokens) => put(tokens, 'Your colours are saved.')}
+              clear={async () => { await api.del('/theme/personal'); await load(); toast('You have the theme’s colours again.', { tone: 'ok' }) }} />
+          )}
+    </Section>
   )
 }

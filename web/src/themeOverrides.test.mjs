@@ -64,3 +64,17 @@ test('a module\'s own colours (where its palette differs) apply on its pages, un
   assert.equal(got['--bg'], undefined, 'the same as everyone\'s is left to the theme on screen')
   assert.deepEqual(overrideDeclarations(t, '', true), [])
 })
+
+test('the profile\'s own colours go over everything, and its colours for a scope over those', () => {
+  const t = {
+    id: 'x', source: 'server', overrides: { accent: '#222222' }, tokens: { accent: '#222222', fg: '#ffffff' }, personal: { fg: '#fafafa' },
+    modules: { wittytv: { overrides: { fg: '#eeeeee' }, tokens: { accent: '#ff8800', fg: '#eeeeee' }, personal: { accent: '#00aa00' } } },
+  }
+  const on = Object.fromEntries(overrideDeclarations(t, 'wittytv', true))
+  assert.equal(on['--fg'], '#fafafa', 'over the scope\'s administrator colour')
+  assert.equal(on['--accent'], '#00aa00')
+  // A device showing its own theme still gets the profile's own colours.
+  const other = Object.fromEntries(overrideDeclarations(t, '', false))
+  assert.equal(other['--fg'], '#fafafa')
+  assert.equal(other['--accent'], undefined)
+})

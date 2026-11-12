@@ -148,7 +148,7 @@ html.tv-mode .sdui-widgets { gap: var(--space-l); }
 .app[data-nav-style="teleKeys"] .topnav-link:nth-child(4n+2) { border-bottom-color: var(--ok); }
 .app[data-nav-style="teleKeys"] .topnav-link:nth-child(4n+3) { border-bottom-color: var(--warn); }
 .app[data-nav-style="teleKeys"] .topnav-link:nth-child(4n) { border-bottom-color: var(--accent); }
-.app[data-nav-style="crossbar"] .topnav { gap: var(--space-l); justify-content: center; }
+.app[data-nav-style="crossbar"] .topnav { gap: var(--space-l); justify-content: center; min-inline-size: 0; flex-wrap: wrap; }
 .app[data-nav-style="crossbar"] .topnav-link { font-size: var(--role-title-size); background: none; border-radius: 0; border-bottom: 2px solid transparent; color: var(--fg-2); }
 .app[data-nav-style="crossbar"] .topnav-link.active { background: none; color: var(--fg); border-bottom-color: var(--accent); }
 .app[data-nav-style="ornamentTabs"] .topbar { margin: var(--space-m) auto 0; inline-size: fit-content; max-inline-size: calc(100% - 2 * var(--gutter)); border-radius: var(--r-full); background: var(--elev-2-fill); border: 1px solid var(--elev-2-line); box-shadow: var(--elev-3-shadow); }
@@ -174,7 +174,7 @@ html.tv-mode .sdui-widgets { gap: var(--space-l); }
 /* ---- CrossBar (Crossbar): categories across as circles with their names, the chosen one larger and filled; its rows listed
         down under it, and the row under focus shown large beside the list ---- */
 .sdui-crossbar [data-sdui-tabs] { display: flex; justify-content: center; margin-block-end: var(--space-l); }
-.sdui-crossbar [role=tablist] { gap: var(--space-xl); border: 0; align-items: flex-start; padding: var(--space-s) var(--space-xl) var(--space-m); }
+.sdui-crossbar [role=tablist] { gap: var(--space-xl); border: 0; align-items: flex-start; justify-content: center; flex-wrap: wrap; overflow: visible; row-gap: var(--space-m); padding: var(--space-s) var(--space-l) var(--space-m); }
 .sdui-crossbar [role=tab] { display: inline-flex; flex-direction: column; align-items: center; gap: var(--space-xs); min-block-size: 0; padding: 0; border: 0; background: none; border-radius: var(--r-md); font-size: var(--text-sm); color: var(--fg-2); }
 .sdui-crossbar [role=tab] svg { box-sizing: content-box; inline-size: 1.5rem; block-size: 1.5rem; padding: var(--space-m); border-radius: var(--r-full); background: var(--elev-2-fill); color: var(--fg); border: 1px solid var(--elev-2-line); transition: transform var(--dur-focus) var(--ease-out), background var(--dur-focus); }
 .sdui-crossbar [role=tab].active { color: var(--fg); font-weight: 700; font-size: var(--text-md); }

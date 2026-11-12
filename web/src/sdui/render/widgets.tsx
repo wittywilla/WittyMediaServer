@@ -39,7 +39,7 @@ function WidgetCell({ view, columns, phone, draw, rows }: { view: View; columns:
   const y = int(p, 'y', 0, 0, 40)
   const place: CSSProperties = phone
     ? { gridColumn: w >= 2 ? '1 / -1' : 'auto', gridRow: `span ${h}`, order: y * 12 + x }
-    : { gridColumn: `${x + 1} / span ${w}`, gridRow: `${Math.max(0, rows.indexOf(y)) + 1} / span ${h}` }
+    : { gridColumn: `span ${w}`, gridRow: `span ${h}`, order: Math.max(0, rows.indexOf(y)) * 12 + x }
   const title = view.text?.title
   return (
     <section className={'sdui-widget elev-1 kind-' + kind} style={place} aria-label={view.label || title} data-w={w} data-h={h}>

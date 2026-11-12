@@ -540,8 +540,10 @@ func (rv *sduiResolver) playRooms() ([]sdui.Item, error) {
 		if taken >= total {
 			continue
 		}
+		join := &sdui.Action{Type: sdui.ActCommand, Op: "wittyplay.room.join", Item: t.Session}
 		out = append(out, sdui.Item{ID: t.Session, Kind: "view", Title: fmt.Sprintf("%s · %d of %d", t.Game.Title, taken, total), Subtitle: roomWords(t.HostName),
-			Count: taken, Icon: "users", Badges: []string{"Shared"}})
+			Count: taken, Icon: "users", Badges: []string{"Shared"}, Action: join,
+			Actions: []sdui.ItemAction{{ID: "join", Label: "Join", Glyph: "a", Action: join}}})
 	}
 	return out, nil
 }
@@ -572,6 +574,7 @@ func (rv *sduiResolver) playRoom() []sdui.Item {
 		if t.Open {
 			room.Badges = append(room.Badges, "Open")
 		}
+		room.Actions = rv.roomActions(t)
 	}
 	out := []sdui.Item{room}
 	players := max(t.Game.Players, 1)
@@ -589,6 +592,24 @@ func (rv *sduiResolver) playRoom() []sdui.Item {
 			}
 		}
 		out = append(out, it)
+	}
+	return out
+}
+
+// roomActions are the host's buttons on its room: back into the game (playing it again rejoins the
+// session it has running), a code to invite someone with, and opening the room to friends or closing
+// it. A Kids or guest profile's room can't be opened, so it has no such button.
+func (rv *sduiResolver) roomActions(t seatTableView) []sdui.ItemAction {
+	out := []sdui.ItemAction{
+		{ID: "play", Label: "Play", Glyph: "a", Action: &sdui.Action{Type: sdui.ActPlay, Item: strconv.FormatInt(t.Game.Item, 10)}},
+		{ID: "invite", Label: "Invite", Glyph: "x", Action: &sdui.Action{Type: sdui.ActCommand, Op: "wittyplay.room.invite", Item: t.Session}},
+	}
+	switch {
+	case rv.u.Kind == auth.KindKids || rv.u.Kind == auth.KindGuest:
+	case t.Open:
+		out = append(out, sdui.ItemAction{ID: "close", Label: "Close the room", Glyph: "y", Action: &sdui.Action{Type: sdui.ActCommand, Op: "wittyplay.room.close", Item: t.Session}})
+	default:
+		out = append(out, sdui.ItemAction{ID: "open", Label: "Open to friends", Glyph: "y", Action: &sdui.Action{Type: sdui.ActCommand, Op: "wittyplay.room.create", Item: t.Session}})
 	}
 	return out
 }

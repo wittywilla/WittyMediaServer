@@ -375,3 +375,12 @@ button.np-artist:hover { color: var(--np-fg); text-decoration: underline; text-u
 .np-range { display: inline-flex; align-items: center; gap: 8px; font-size: var(--text-sm); font-weight: 600; }
 .np-range input { width: min(220px, 40vw); accent-color: var(--np-white); min-height: 44px; }
 .np-range output { min-width: 3.2em; font-variant-numeric: tabular-nums; color: var(--np-fg-2); }
+
+/* The calm column of the side panels: a line under the title, values as pills, notes as callouts (boards: queue, sleep, soundpanel) */
+.np-lede { margin: 0 18px 8px; }
+.np-pills { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 18px 12px; }
+.np-side-actions.np-pills { padding: 8px 18px 12px; }
+.np-foot { flex: none; border-top: 1px solid var(--np-line); }
+.np-pill { display: inline-flex; align-items: center; min-height: 28px; padding: 0 12px; border-radius: var(--r-full); background: var(--np-chip); font-size: var(--text-sm); font-weight: 600; font-variant-numeric: tabular-nums; }
+.np-pill.now { background: var(--np-white); color: var(--np-black); }
+.np-callout { border-left: 3px solid var(--np-white); }

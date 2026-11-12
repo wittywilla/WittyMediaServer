@@ -41,7 +41,7 @@ export type SoundSettings = {
   keyShift: number // semitones
 }
 
-const DEFAULTS: SoundSettings = { volume: 1, muted: false, eqOn: false, eqPreset: 'flat', eqGains: EQ_PRESETS[0].gains, preamp: 0, replayGain: 'off', gapless: true, crossfade: 0, crossfadeAlbums: false, vocalCut: 0, keyShift: 0 }
+export const DEFAULTS: SoundSettings = { volume: 1, muted: false, eqOn: false, eqPreset: 'flat', eqGains: EQ_PRESETS[0].gains, preamp: 0, replayGain: 'off', gapless: true, crossfade: 0, crossfadeAlbums: false, vocalCut: 0, keyShift: 0 }
 const KEY = 'wms.sound'
 
 const num = (v: unknown, lo: number, hi: number, d: number) => (typeof v === 'number' && Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d)

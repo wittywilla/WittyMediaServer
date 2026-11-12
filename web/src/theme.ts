@@ -65,6 +65,8 @@ function applyLook(look: ResolvedTheme['look']) {
   for (const e of EFFECTS) d['fx' + e[0].toUpperCase() + e.slice(1)] = look.effects?.[e] || 'none'
   if (look.density && !localStorage.getItem('wms.density')) { if (look.density === 'comfortable') delete d.density; else d.density = look.density }
 }
+// A look being tried, as first run offers them: only its finish, type and density, on top of what is showing.
+export function trialLook(look: ResolvedTheme['look']) { applyLook(look) }
 function applyOverrides() {
   applyLook(resolved?.look)
   const root = document.documentElement.style

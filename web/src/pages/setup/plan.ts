@@ -5,7 +5,7 @@
 // adding a step means adding one line here and one file beside this one. Nothing here touches the
 // page or the network, so it can be tested on its own (plan.test.mjs).
 
-export type StepId = 'welcome' | 'account' | 'modules' | 'media' | 'games' | 'discs' | 'details' | 'logos' | 'music' | 'listings' | 'tv' | 'look' | 'done'
+export type StepId = 'welcome' | 'account' | 'modules' | 'media' | 'games' | 'discs' | 'details' | 'logos' | 'music' | 'listings' | 'tv' | 'look' | 'theme' | 'done'
 
 // What the steps depend on. kinds is null until it's known, which it can't be before there's an
 // account to ask with. A kind that isn't listed needs no module, as the server has the last word.
@@ -32,6 +32,8 @@ export const canMake = (f: Facts, kind: string) => !f.kinds?.some((k) => k.type 
 export const STEPS: StepInfo[] = [
   { id: 'welcome', label: 'Welcome', needs: 'server', when: (f) => !f.signedIn },
   { id: 'account', label: 'Your account', needs: 'server', when: (f) => !f.signedIn },
+  { id: 'look', label: 'Look', needs: 'server', later: { where: 'Settings, Appearance', to: '/settings/appearance' } },
+  { id: 'theme', label: 'Theme', needs: 'server', later: { where: 'Settings, Appearance', to: '/settings/appearance#theme' } },
   { id: 'modules', label: 'Modules', needs: 'server', when: (f) => f.store, later: { where: 'Settings, Modules', to: '/settings/modules' } },
   { id: 'media', label: 'Your media', needs: 'server', later: { where: 'Settings, Libraries', to: '/settings/libraries' } },
   { id: 'games', label: 'Games', needs: ['wittyplay'], later: { where: 'Settings, Metadata agents', to: '/settings/metadata' } },
@@ -41,7 +43,6 @@ export const STEPS: StepInfo[] = [
   { id: 'music', label: 'Lyrics', needs: 'server', when: (f) => canMake(f, 'music'), later: { where: 'Settings, Metadata agents, under Lyrics', to: '/settings/metadata#lyrics' } },
   { id: 'listings', label: 'Streaming lists', needs: 'server', when: (f) => canMake(f, 'movies') || canMake(f, 'shows'), later: { where: 'Settings, Metadata agents, under Streaming listings', to: '/settings/metadata#listings' } },
   { id: 'tv', label: 'Live TV', needs: ['wittytuner'], later: { where: 'Settings, Channels & tuners', to: '/settings/channels' } },
-  { id: 'look', label: 'Look', needs: 'server', later: { where: 'Settings, Appearance', to: '/settings/appearance' } },
   { id: 'done', label: 'Ready', needs: 'server' },
 ]
 

@@ -19,7 +19,7 @@ test('someone with no account starts at the welcome page, then makes one', () =>
 test('once there is an account, the first two steps are gone', () => {
   const list = ids(facts())
   assert.ok(!list.includes('welcome') && !list.includes('account'))
-  assert.equal(list[0], 'modules')
+  assert.equal(list[0], 'look')
 })
 
 test('a module\'s step only appears when the module is on this server', () => {
@@ -86,14 +86,15 @@ test('an address picks its step, and one that can\'t be shown goes to the first'
   assert.equal(currentStep(out, 'look', false).id, 'welcome', 'nothing past the account without one')
   const inn = planSteps(facts())
   assert.equal(currentStep(inn, 'look', true).id, 'look')
-  assert.equal(currentStep(inn, 'account', true).id, 'modules', 'an account is only made once')
-  assert.equal(currentStep(inn, 'games', true).id, 'modules', 'a step for a module that isn\'t there')
+  assert.equal(currentStep(inn, 'account', true).id, 'look', 'an account is only made once')
+  assert.equal(currentStep(inn, 'games', true).id, 'look', 'a step for a module that isn\'t there')
 })
 
 test('Back goes to the step before, but never back to making an account', () => {
   const inn = planSteps(facts())
-  assert.equal(neighbours(inn, 'modules').back, undefined)
+  assert.equal(neighbours(inn, 'look').back, undefined)
   assert.equal(neighbours(inn, 'media').back.id, 'modules')
+  assert.deepEqual(ids(facts()).slice(0, 3), ['look', 'theme', 'modules'])
   assert.equal(neighbours(inn, 'media').next.id, inn[inn.findIndex((s) => s.id === 'media') + 1].id)
   const out = planSteps(facts({ signedIn: false, kinds: null }))
   assert.equal(neighbours(out, 'account').back.id, 'welcome')

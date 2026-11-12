@@ -29512,7 +29512,7 @@
             "bearer": []
           }
         ],
-        "summary": "Make an approximate instrumental with FFmpeg, by cancelling what the left and right channels share, and keep it. Not a real stem: it is listed with approximate: true. 202 with a task; 200 when an instrumental already exists. Stereo songs that are files in a library only.",
+        "summary": "Make an approximate instrumental with FFmpeg, by cancelling what the left and right channels share, and keep it. Not a real stem: it is listed with approximate: true. 202 with a task; 200 when an instrumental already exists. Stereo songs that are files in a library only. Anyone who may play the song while the karaoke switch (karaokeAuto) is auto; administrators only with admin or never (403 with reason admin-only or off). 429 past 40 an hour for one account.",
         "tags": [
           "Media extras"
         ],

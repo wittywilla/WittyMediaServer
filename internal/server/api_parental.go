@@ -11,6 +11,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/parental"
 )
 
@@ -221,6 +222,7 @@ func (s *Server) handleSwitchProfile(w http.ResponseWriter, r *http.Request) {
 	}
 	s.logins.passed(r, c.Name)
 	if !remoteAllowed(r, u) {
+		s.Log.InfoContext(r.Context(), "profile switch refused: that profile is kept to the home network", "cat", "profiles", "profile", me.Name, "to", u.Name, "from", clientFrom(r).IP.String())
 		s.Auth.Logout(r.Context(), tok)
 		writeErr(w, 403, featureRefusal[library.FeatureRemote])
 		return
@@ -228,7 +230,7 @@ func (s *Server) handleSwitchProfile(w http.ResponseWriter, r *http.Request) {
 	if old := tokenFrom(r); old != "" {
 		s.Auth.Logout(r.Context(), old)
 	}
-	s.Log.InfoContext(r.Context(), "switched profile", "cat", "auth", "from_name", me.Name, "name", u.Name, "from", clientFrom(r).IP.String(), "where", clientFrom(r).Where.String())
+	s.Log.InfoContext(r.Context(), "switched profile", "cat", "profiles", "profile", me.Name, "to", u.Name, "from", clientFrom(r).IP.String(), "where", clientFrom(r).Where.String())
 	s.setCookie(w, r, tok)
 	writeJSON(w, 200, map[string]any{"token": tok, "user": u})
 }
@@ -350,6 +352,7 @@ func (s *Server) handleAskParent(w http.ResponseWriter, r *http.Request) {
 		if !good {
 			s.logins.noteFailure()
 			s.logSignInFailure(r, b.Name)
+			s.Log.InfoContext(ctx, "extra time refused: not the password of someone who manages this profile", "cat", "profiles", "profile", me.Name, "from", clientFrom(r).IP.String())
 			writeErr(w, 403, "That name and password aren't those of someone who manages this profile.")
 			return
 		}
@@ -360,10 +363,11 @@ func (s *Server) handleAskParent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.grantExtra(ctx, me.ID, minutes, by); err != nil {
+		s.Log.ErrorContext(ctx, "could not give extra screen time", "cat", "profiles", "profile", me.Name, "err", err)
 		writeErr(w, 500, err.Error())
 		return
 	}
-	s.Log.InfoContext(ctx, "extra screen time given", "cat", "auth", "name", me.Name, "minutes", minutes, "by", by)
+	logging.Audit(ctx, s.Log, "extra screen time given", "cat", "profiles", "profile", me.Name, "minutes", minutes, "by", by)
 	writeJSON(w, 200, screenTimeView(s.myScreenTime(r, me, accessFor(me))))
 }
 
@@ -423,9 +427,11 @@ func (s *Server) handleGiveTime(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.grantExtra(r.Context(), target.ID, minutes, userFrom(r).Name); err != nil {
+		s.Log.ErrorContext(r.Context(), "could not give extra screen time", "cat", "profiles", "profile", target.Name, "err", err)
 		writeErr(w, 500, err.Error())
 		return
 	}
+	logging.Audit(r.Context(), s.Log, "extra screen time given", "cat", "profiles", "profile", target.Name, "minutes", minutes, "by", userFrom(r).Name)
 	writeJSON(w, 200, screenTimeView(s.myScreenTime(r, target, accessFor(target))))
 }
 
@@ -529,10 +535,12 @@ func (s *Server) handleClearProfileActivity(w http.ResponseWriter, r *http.Reque
 		{`DELETE FROM screen_time WHERE user_id = ? AND day <> ?`, []any{target.ID, today}},
 	} {
 		if _, err := s.DB.ExecContext(ctx, q.sql, q.args...); err != nil {
+			s.Log.ErrorContext(ctx, "could not clear a profile's activity", "cat", "profiles", "profile", target.Name, "by", userFrom(r).Name, "err", err)
 			writeErr(w, 500, err.Error())
 			return
 		}
 	}
+	logging.Audit(ctx, s.Log, "profile activity cleared", "cat", "profiles", "profile", target.Name, "by", userFrom(r).Name)
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
 

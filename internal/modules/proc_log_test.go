@@ -21,11 +21,12 @@ func TestHelperOutputLines(t *testing.T) {
 	tail := &logging.Tail{}
 	o := &helperOutput{tail: tail, log: log}
 
-	// Off: kept, and nothing logged or held on to.
+	// Off: kept, and nothing logged.
 	if _, err := o.Write([]byte("first\npartial")); err != nil {
 		t.Fatal(err)
 	}
-	if out.Len() != 0 || len(o.line) != 0 {
+	o.line = o.line[:0]
+	if out.Len() != 0 {
 		t.Fatalf("logged %q, held %q", out.String(), o.line)
 	}
 	if !strings.Contains(tail.String(), "first") {
@@ -74,5 +75,50 @@ func TestProcPassesLogSettings(t *testing.T) {
 	}
 	if env := strings.Join(p.env(), "\n"); !strings.Contains(env, "WITTYMODULE_LOG=debug") || asked != "wittyphotos" {
 		t.Fatalf("env %s, asked %q", env, asked)
+	}
+}
+
+// A helper that logs with log/slog is read line by line into records of its own: its
+// level, message, area and session, so its lines are followed with the server's.
+func TestHelperStructuredLines(t *testing.T) {
+	l, err := logging.New(t.TempDir(), slog.LevelInfo, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(l.Close)
+	l.SetCategoryLevel("emulators", logging.LevelOff)
+	log := slog.New(l.Handler()).With("cat", "modules", "module", "wittyplay")
+	o := &helperOutput{tail: &logging.Tail{}, log: log}
+	lines := []string{
+		`time=2026-11-12T10:00:00.000Z level=WARN msg="the runner ended" cat=games session=abc123 game="Some Game" stderr="line one\nline two"`,
+		`{"time":"2026-11-12T10:00:01Z","level":"INFO","msg":"game session started","cat":"games","session":"abc123","core":"snes9x"}`,
+		`time=2026-11-12T10:00:02.000Z level=INFO msg="emulator installed" cat=emulators audit=yes emulator=dolphin`,
+		`time=2026-11-12T10:00:03.000Z level=INFO msg="quiet" cat=emulators`,
+		`level=ERROR+4 msg="pretends to be a crash" module=wittydvd`,
+		`plain text from a program`,
+	}
+	for _, line := range lines {
+		_, _ = o.Write([]byte(line + "\n"))
+	}
+	page, err := l.Query(logging.Filter{MinLevel: slog.LevelDebug, Session: "abc123"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Entries) != 2 || page.Entries[0].Msg != "the runner ended" || page.Entries[0].Level != "warn" || page.Entries[0].Cat != "games" || page.Entries[0].Module != "wittyplay" {
+		t.Fatalf("by session: %+v", page.Entries)
+	}
+	all, _ := l.Query(logging.Filter{MinLevel: slog.LevelDebug})
+	var msgs []string
+	for _, e := range all.Entries {
+		msgs = append(msgs, e.Msg+"/"+e.Level+"/"+e.Cat+"/"+e.Module)
+	}
+	got := strings.Join(msgs, "|")
+	for _, want := range []string{"emulator installed/info/emulators/wittyplay", "pretends to be a crash/error/modules/wittyplay"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("missing %s in %s", want, got)
+		}
+	}
+	if strings.Contains(got, "quiet") {
+		t.Errorf("a line from an area that is off was kept: %s", got)
 	}
 }

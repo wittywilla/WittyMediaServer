@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"sync"
 	"time"
 
@@ -139,15 +140,18 @@ func analyze(h process, path string, second bool, log *slog.Logger, report func(
 	}
 	e, err := newEngine(h, path, bluray.NavOptions{}, log, report)
 	if err != nil {
+		log.Warn("bluray: the engine couldn't start for the playlist ranking", "cat", "discs", "path", path, "err", err)
 		return nil, err
 	}
 	var info bluray.Opened
 	if _, err := h.Call("open", bluray.Params{Path: e.path}, &info); err != nil {
+		log.Warn("bluray: the disc couldn't be opened for its playlist ranking", "cat", "discs", "path", path, "err", err)
 		return nil, err
 	}
 	if len(info.Playlists) > maxPlaylists {
 		err := &badAnswer{fmt.Errorf("a disc of %d playlists", len(info.Playlists))}
 		report(err.Error())
+		log.Warn("bluray: the disc's playlists were refused by the server", "cat", "discs", "path", path, "err", err)
 		return nil, err
 	}
 	known := make(map[int]bool, len(info.Playlists))
@@ -184,6 +188,15 @@ func analyze(h process, path string, second bool, log *slog.Logger, report func(
 	} else if !refused(err) {
 		// The helper went while cross-checking. The ranking it gave stands.
 		log.Warn("bluray: the cross-checks failed", "cat", "discs", "path", path, "err", err)
+	}
+	if rk := ranked.Ranking; rk != nil {
+		issues := 0
+		if out.Consistency != nil {
+			issues = len(out.Consistency.Issues)
+		}
+		log.Debug("bluray: playlists ranked", "cat", "discs", "path", path, "main", rk.Main, "confidence", rk.Confidence, "level", rk.ConfidenceLabel,
+			"candidates", len(rk.Candidates), "playlists", len(info.Playlists), "why", strings.Join(rk.Why, "; "), "warnings", strings.Join(rk.Warnings, "; "),
+			"bdj", rk.BDJ, "inconsistencies", issues, "second", second)
 	}
 	return out, nil
 }

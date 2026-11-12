@@ -91,6 +91,9 @@ func (o Options) dirs() []string {
 	return append(filepath.SplitList(os.Getenv("PATH")), UsualDirs()...)
 }
 
+// SearchDirs are the folders Discover looks in, in order, for the log when it finds nothing.
+func (o Options) SearchDirs() []string { return o.dirs() }
+
 // look finds an executable called name in dirs.
 func look(name string, dirs []string) string {
 	names := []string{name}

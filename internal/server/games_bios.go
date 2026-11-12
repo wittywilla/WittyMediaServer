@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
@@ -217,7 +218,7 @@ func (g *gameService) walkBIOS(ctx context.Context, table biosTable, dir string,
 		if !ok {
 			continue
 		}
-		if g.installBIOS(k, p) {
+		if g.installBIOS(ctx, k, p) {
 			*put++
 		}
 	}
@@ -226,7 +227,10 @@ func (g *gameService) walkBIOS(ctx context.Context, table biosTable, dir string,
 // installBIOS puts one recognised file where its core looks, unless the same firmware is there
 // already, under that name or another one in the same folder. A different file under that
 // name is left alone: it's someone's own, and wasn't put there by this.
-func (g *gameService) installBIOS(k knownBIOS, from string) bool {
+//
+// What goes wrong is logged with the file names, never what is in them. The server's own
+// logger is slog's default, and ctx brings the request or game it was for.
+func (g *gameService) installBIOS(ctx context.Context, k knownBIOS, from string) bool {
 	sys := g.systemDir()
 	dest := filepath.Join(sys, filepath.FromSlash(k.Dest))
 	record := func(file string) {
@@ -234,7 +238,9 @@ func (g *gameService) installBIOS(k knownBIOS, from string) bool {
 		if err != nil {
 			return
 		}
-		g.noteBIOS(biosRecord{File: filepath.ToSlash(rel), Console: k.Console, From: from, MD5: k.MD5, Region: k.Region, At: time.Now().Unix()})
+		if err := g.noteBIOS(biosRecord{File: filepath.ToSlash(rel), Console: k.Console, From: from, MD5: k.MD5, Region: k.Region, At: time.Now().Unix()}); err != nil {
+			slog.Default().WarnContext(ctx, "could not note where a BIOS came from", "cat", "games", "console", k.Console, "file", rel, "err", err)
+		}
 	}
 	if st, err := os.Stat(dest); err == nil {
 		if g.bios.hash(dest, st) == k.MD5 {
@@ -247,8 +253,10 @@ func (g *gameService) installBIOS(k knownBIOS, from string) bool {
 		return false
 	}
 	if err := copyFileAtomic(from, dest, biosMaxBytes); err != nil {
+		slog.Default().WarnContext(ctx, "could not put a BIOS where its core looks", "cat", "games", "console", k.Console, "from", from, "file", dest, "err", err)
 		return false
 	}
+	slog.Default().InfoContext(ctx, "a BIOS was put where its core looks", "cat", "games", "console", k.Console, "region", k.Region, "from", from, "file", dest)
 	record(dest)
 	return true
 }
@@ -313,22 +321,23 @@ func (g *gameService) readBIOSRecords() map[string]biosRecord {
 	return out
 }
 
-func (g *gameService) noteBIOS(r biosRecord) {
+func (g *gameService) noteBIOS(r biosRecord) error {
 	g.bios.mu.Lock()
 	defer g.bios.mu.Unlock()
 	all := g.readBIOSRecords()
 	if old, ok := all[r.File]; ok && old.From == r.From && old.MD5 == r.MD5 {
-		return
+		return nil
 	}
 	all[r.File] = r
 	b, err := json.MarshalIndent(all, "", "  ")
 	if err != nil {
-		return
+		return err
 	}
 	path := filepath.Join(g.systemDir(), biosRecordFile)
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err == nil {
-		_ = os.WriteFile(path, b, 0o644)
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
 	}
+	return os.WriteFile(path, b, 0o644)
 }
 
 // findBIOSNear looks beside a game, when it's checked or started.

@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"log/slog"
 	"os"
 	"path"
 	"path/filepath"
@@ -88,7 +89,17 @@ var retired = map[string]string{
 // Manager reads themes from a directory.
 type Manager struct {
 	Dir string
-	mu  sync.Mutex
+	// Log receives what was skipped or couldn't be read (slog.Default() when nil).
+	Log    *slog.Logger
+	mu     sync.Mutex
+	warned map[string]bool // ZIPs List already said it couldn't read, so it says so once
+}
+
+func (m *Manager) log() *slog.Logger {
+	if m.Log != nil {
+		return m.Log
+	}
+	return slog.Default()
 }
 
 // ErrNotFound is returned for unknown themes or files.
@@ -110,7 +121,11 @@ func (m *Manager) Install(src fs.FS) error {
 	for id := range retired {
 		p := filepath.Join(m.Dir, id+".zip")
 		if cur, err := m.readMeta(p); err == nil && cur.Builtin {
-			_ = os.Remove(p)
+			if err := os.Remove(p); err != nil {
+				m.log().Warn("could not remove a retired built-in theme", "cat", "sdui", "theme", id, "err", err)
+			} else {
+				m.log().Info("retired built-in theme removed", "cat", "sdui", "theme", id, "replacedBy", retired[id])
+			}
 		}
 	}
 	for _, d := range dirs {
@@ -120,14 +135,19 @@ func (m *Manager) Install(src fs.FS) error {
 		id := d.Name()
 		raw, err := fs.ReadFile(src, id+"/theme.json")
 		if err != nil {
+			m.log().Warn("built-in theme skipped: no theme.json", "cat", "sdui", "theme", id, "err", err)
 			continue
 		}
 		var meta Meta
-		if json.Unmarshal(raw, &meta) != nil {
+		if err := json.Unmarshal(raw, &meta); err != nil {
+			m.log().Warn("built-in theme skipped: theme.json can't be read", "cat", "sdui", "theme", id, "err", err)
 			continue
 		}
 		dst := filepath.Join(m.Dir, id+".zip")
 		if cur, err := m.readMeta(dst); err == nil && (!cur.Builtin || cur.Version == meta.Version) {
+			if !cur.Builtin {
+				m.log().Debug("built-in theme not installed: a theme of the same name was made here", "cat", "sdui", "theme", id)
+			}
 			continue
 		}
 		var buf bytes.Buffer
@@ -136,6 +156,7 @@ func (m *Manager) Install(src fs.FS) error {
 		for _, f := range files {
 			b, err := fs.ReadFile(src, id+"/"+f.Name())
 			if err != nil {
+				m.log().Warn("a built-in theme's file could not be read", "cat", "sdui", "theme", id, "file", f.Name(), "err", err)
 				continue
 			}
 			w, err := zw.Create(f.Name())
@@ -152,6 +173,7 @@ func (m *Manager) Install(src fs.FS) error {
 		if err := writeAtomic(dst, buf.Bytes()); err != nil {
 			return err
 		}
+		m.log().Debug("built-in theme installed", "cat", "sdui", "theme", id, "version", meta.Version)
 	}
 	return nil
 }
@@ -234,6 +256,13 @@ func (m *Manager) List() []Meta {
 		}
 		meta, err := m.readMeta(filepath.Join(m.Dir, name))
 		if err != nil {
+			if !m.warned[name] {
+				if m.warned == nil {
+					m.warned = map[string]bool{}
+				}
+				m.warned[name] = true
+				m.log().Warn("a theme ZIP could not be read: it is left out", "cat", "sdui", "file", name, "err", err)
+			}
 			continue
 		}
 		meta.ID = id

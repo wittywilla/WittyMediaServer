@@ -74,6 +74,10 @@ export interface ReaderHost {
     define?(word: string): Promise<Definition[]>;
     toast(message: string): void;
     close(): void;
+    report?(level: 'error' | 'warn', message: string, detail?: {
+        stack?: string;
+        page?: string;
+    }): void;
 }
 export declare const HostContext: import("react").Context<ReaderHost>;
 export declare function useHost(): ReaderHost;

@@ -306,6 +306,10 @@ func TestSummaryAndBundleHoldNoSecrets(t *testing.T) {
 	}
 	ts.LogStartup(ctx)
 	ts.Log.Warn("a metadata lookup failed", "err", "Get https://example.com/x/"+key+"/y: timeout")
+	// 0.8.0's secrets, as they might turn up in a line from anywhere.
+	ts.Log.Info("an invite was shown", "cat", "p2p", "link", "wittymedia://p2p/12D3KooWabc?s="+key+"&n=Home")
+	ts.Log.Info("override asked", "cat", "modules-store", "overridePassword", pin, "body", `{"code":"K7QM-2XHD"}`)
+	ts.Log.Info("pairing", "cat", "auth", "url", "/api/auth/pair/p1/info?k="+key, "header", "X-WMS-Pair-Secret: "+key)
 	for _, plain := range []bool{true, false} {
 		q := "?days=1"
 		if !plain {
@@ -328,11 +332,11 @@ func TestSummaryAndBundleHoldNoSecrets(t *testing.T) {
 			}
 			b, _ := io.ReadAll(rc)
 			rc.Close()
-			if bytes.Contains(b, []byte(key)) || bytes.Contains(b, []byte(pin)) {
+			if bytes.Contains(b, []byte(key)) || bytes.Contains(b, []byte(pin)) || bytes.Contains(b, []byte("K7QM-2XHD")) {
 				t.Errorf("%s holds a planted secret:\n%s", f.Name, b)
 			}
 		}
-		if !names["summary.json"] || !names["README.txt"] {
+		if !names["summary.json"] || !names["README.txt"] || !names["features.json"] {
 			t.Errorf("%v", names)
 		}
 	}

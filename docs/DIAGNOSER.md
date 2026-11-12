@@ -107,6 +107,22 @@ To report a disc problem, attach a report. Never attach the disc image.
 
 This has not been run on a real Mac or on FreeBSD yet.
 
+## Newer features: in Repair
+
+Problems with the server's newer features aren't about a disc or a drive, so they're under **Settings → Repair → Features**, with the same words (Problem, Warning, Note) and steps to take. A running server checks them; from the command line they're "not checked".
+
+| Finding | What it means |
+|---|---|
+| **Devices away from home can't reach this server peer to peer** | Outside computers couldn't connect, with the reason: a strict NAT, a port mapping the router refused, a shared outside address, relays off or none holding a place. When only a relay reaches it, a note says so |
+| **Peer-to-peer connections are on, but not running** | They couldn't start. The log's Peer to peer area says why |
+| **macOS hasn't let the server record the screen / send key presses** | WittyPlay's emulators on a Mac need Screen Recording and Accessibility permission. The steps say where to give it, and that the server must start again |
+| **WittyPlay's emulators can't run here now** | The chosen way of running them (Docker, the sandbox, this computer's desktop) isn't available, with WittyPlay's reason |
+| **A module runs under a manual override** | One per module, with what was skipped, who did it and when |
+| **Karaoke can't separate vocals** | No Demucs, Spleeter or audio-separator was found, so songs get the approximate instrumental |
+| **Channels failed their health check** | Some, or every, channel of a tuner or playlist failed its last health check |
+
+The same state is `features.json` in the [log download](LOGGING.md#downloading-logs-to-share). The code is `internal/diagnose/doctor_features.go`; the server fills `DoctorEnv.Features` in `internal/server/features_state.go`.
+
 ## For developers
 
 The code is `internal/diagnose`, using the exported API of WittyDVD, WittyBluray and WittyDisc, and no changes to them. File systems and drives are in `internal/sysinfo`. The routes are `/api/diagnose/...` ([API](CLIENT-API.md)), and each check's log lines carry its ID as the session.

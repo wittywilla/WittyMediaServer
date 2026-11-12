@@ -44,6 +44,7 @@ func (s *Server) handleBookInfo(w http.ResponseWriter, r *http.Request) {
 	case "epub":
 		book, err := s.Scanner.BookEPUB(it)
 		if err != nil {
+			s.logBookError(r, it, "could not open a book", err)
 			writeBookError(w, err)
 			return
 		}
@@ -53,6 +54,7 @@ func (s *Server) handleBookInfo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if err != nil {
+			s.logBookError(r, it, "could not read a book's contents", err)
 			writeErr(w, 422, s.viewerError(r, err))
 			return
 		}
@@ -77,6 +79,16 @@ func writeBookError(w http.ResponseWriter, err error) {
 	default:
 		writeErr(w, 422, "this book could not be read")
 	}
+}
+
+// logBookError says in the log why a book couldn't be opened. A book's own lock (DRM,
+// encryption) is the book, not a fault, and is said only at Debug.
+func (s *Server) logBookError(r *http.Request, it *library.Item, msg string, err error) {
+	if bookRefused(err) {
+		s.Log.DebugContext(r.Context(), msg, "cat", "library", "item", it.ID, "reason", "locked", "err", err)
+		return
+	}
+	s.Log.WarnContext(r.Context(), msg, "cat", "library", "item", it.ID, "file", it.Path, "err", err)
 }
 
 // bookRefused: the book's own locks are in the way, which is worth saying as it is.
@@ -135,6 +147,7 @@ func (s *Server) handleComicPage(w http.ResponseWriter, r *http.Request) {
 	case library.IsZipComic(it.Path):
 		zr, done, err := s.Store.OpenArchive(ctx, it.Path)
 		if err != nil {
+			s.Log.ErrorContext(ctx, "could not open a comic", "cat", "library", "item", it.ID, "file", it.Path, "err", err)
 			writeErr(w, 500, "cannot open this comic")
 			return
 		}
@@ -145,6 +158,7 @@ func (s *Server) handleComicPage(w http.ResponseWriter, r *http.Request) {
 		}
 		p, err := s.Scanner.ComicPageImage(ctx, it.Path, pages[n], func() (io.ReadCloser, error) { return zr.Open(pages[n]) })
 		if err != nil {
+			s.Log.WarnContext(ctx, "could not read a page", "cat", "library", "item", it.ID, "page", n, "err", err)
 			writeErr(w, 422, "this page can't be read")
 			return
 		}
@@ -158,6 +172,7 @@ func (s *Server) handleComicPage(w http.ResponseWriter, r *http.Request) {
 		}
 		if !library.ComicPageWeb(pages[n]) {
 			if p, err = s.Scanner.ComicPageImage(ctx, it.Path, pages[n], func() (io.ReadCloser, error) { return os.Open(p) }); err != nil {
+				s.Log.WarnContext(ctx, "could not read a page", "cat", "library", "item", it.ID, "page", n, "err", err)
 				writeErr(w, 422, "this page can't be read")
 				return
 			}
@@ -198,6 +213,7 @@ func (s *Server) handleEPUBFile(w http.ResponseWriter, r *http.Request) {
 	}
 	book, err := s.Scanner.BookEPUB(it)
 	if err != nil {
+		s.logBookError(r, it, "could not open a book", err)
 		writeBookError(w, err)
 		return
 	}
@@ -207,6 +223,7 @@ func (s *Server) handleEPUBFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
+		s.Log.ErrorContext(r.Context(), "could not open a book's contents", "cat", "library", "item", it.ID, "file", it.Path, "err", err)
 		writeErr(w, 500, "cannot open this book")
 		return
 	}

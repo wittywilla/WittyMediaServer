@@ -313,6 +313,7 @@ func (s *Server) handleGameSettingsPut(w http.ResponseWriter, r *http.Request) {
 	default:
 		cur, err := read()
 		if err != nil {
+			s.Log.WarnContext(ctx, "could not read game settings", "cat", "games", "level", b.Level, "console", console, "item", itemID, "by", u.Name, "err", err)
 			writeErr(w, 500, err.Error())
 			return
 		}
@@ -322,9 +323,19 @@ func (s *Server) handleGameSettingsPut(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if err := write(layer); err != nil {
+		s.Log.WarnContext(ctx, "could not save game settings", "cat", "games", "level", b.Level, "console", console, "item", itemID, "by", u.Name, "err", err)
 		writeErr(w, 500, err.Error())
 		return
 	}
+	how := "patch"
+	switch {
+	case b.Reset:
+		how = "reset"
+	case b.Document != nil:
+		how = "document"
+	}
+	s.Log.DebugContext(ctx, "game settings saved", "cat", "games", "kind", "settings", "level", b.Level, "console", console, "item", itemID,
+		"how", how, "ignored", len(ignored), "by", u.Name)
 	s.applyToRunningGame(ctx, u.ID, console, itemID)
 	view := s.settingsView(ctx, u.ID, console, itemID)
 	view["ignored"] = ignored

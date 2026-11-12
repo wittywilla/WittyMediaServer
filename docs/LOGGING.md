@@ -36,6 +36,7 @@ The **Viewer** tab shows lines as they're written. **Pause** holds them still.
 - **Show** chooses how serious a line must be: **Everything**, **Normal and above**, **Warnings and errors** or **Errors only**.
 - **Module** and **Areas** narrow it to one part of the server.
 - **Search** finds words anywhere in a line.
+- **Follow** picks one kind of work to follow from start to end: **A game**, **A watch party**, **A remote-control command**, **A peer-to-peer connection** or **A karaoke separation**. The lines of that kind are shown, with the IDs seen so far as buttons: choose one to see everything about it, from the server, its modules and your apps. **Audit records** shows only the [lines that are always kept](#audit-records).
 - **Session** takes a session or request ID.
 - **Load older** goes back through older files.
 
@@ -48,7 +49,11 @@ The **What to log** tab sets each part of the server to **Off**, **Errors only**
 ![The WittyLog page in Settings](images/settings-logs.webp)
 *Settings, WittyLog.*
 
-Playback, Discs, Sign-ins, App errors and Web requests start at **Warnings and errors**, because they name what you watch or who signs in. Everything else starts at **Normal**.
+Playback, Discs, Sign-ins, Profiles and parental controls, App errors and Web requests start at **Warnings and errors**, because they name what you watch or who signs in. Everything else starts at **Normal**.
+
+### Audit records
+
+Some changes are recorded whatever the levels say, even with their area **Off**, and are never thinned out when lines repeat: every manual override of a module (set, removed, an upload kept or discarded, a password asked for or refused), devices added to or removed from peer to peer, peer-to-peer invites and the server's key being replaced, emulators installed or removed and their licences accepted, pages published or rolled back in the page editor, and extra screen time given. Each says who did it (`by`), and is marked `audit=yes`. **Follow → Audit records** in the viewer lists them.
 
 The **Modules** tab does the same for each module. A module follows the level of its area unless you choose otherwise. **Advanced** turns on extra kinds of detail, for modules that have them, and **Show what this module logged** filters the viewer to it.
 
@@ -113,7 +118,7 @@ WARN stopping reason=tray-quit why="Quit was chosen in the tray icon" uptime=2h3
 4. Look through **What will be in it**. It counts what will be replaced, and **Compare some lines, before and after** shows examples. The "before" stays on this page and isn't in the ZIP.
 5. Press **Download logs as ZIP**.
 
-The ZIP holds recent logs, crash reports, a summary of this server, a short README, and the newest three [WittyDiagnoser](DIAGNOSER.md#reports) reports with names hidden. It's made on your server when you ask, and nothing is ever uploaded.
+The ZIP holds recent logs, crash reports, a summary of this server, how the newer features are doing (`features.json`: whether peer to peer is reachable and how, modules under an override, WittyPlay's emulators and macOS permissions, karaoke's separator, channels failing their checks, and the pages' revision, with no keys, invites, codes or device addresses), a short README, and the newest three [WittyDiagnoser](DIAGNOSER.md#reports) reports with names hidden. It's made on your server when you ask, and nothing is ever uploaded.
 
 The README ends by saying what the ZIP holds: the dates its logs cover, how many crash reports there are (with no reports, `crashes/none.txt` says so), and anything from before a reset. A reset that keeps a copy moves the old logs and crash reports into that copy (`before-reset-…` in the data folder); those from the days you chose go in too, in a folder of the copy's name, and the README says how many older ones were left there.
 
@@ -214,6 +219,13 @@ Every message belongs to a category. Pass `"cat", id` as an attribute, or `.With
 | `auth` | Sign-ins, lock-outs, sessions, pairing, two-factor |
 | `clients` | What clients report. Only `POST /api/logs/client` writes this |
 | `http` | Web requests. Only the `s.logging` middleware writes this |
+| `sdui` | Server-driven pages: the page editor (publish, roll back, drafts, what failed validation), pages that couldn't be shown, themes, layouts, each profile's own changes. Older code's `ui` means this |
+| `modules-store` | The module store: installs, updates and removals, uploads, and every manual override, as [audit records](#audit-records) |
+| `emulators` | WittyPlay's standalone emulators: installs, hash checks, licences, emulators added by hand, the sandbox, Docker or native host, capture and its stream, input and settings written, BIOS and keys present, crashes with their last output, macOS permissions |
+| `p2p` | Peer to peer: the node, NAT type, port mapping, relays, devices connecting and their path (direct or relayed), enrolments, revocations, connection tests |
+| `remotectl` | Remote Protocol (devices, commands, acknowledgements, drops) and SyncPlay watch parties (rooms, members, hosts, lag, gate waits that timed out) |
+| `profiles` | Profile switches, what parental controls refused, screen time used and extra time given. Names profiles |
+| `extras` | Media jobs: karaoke separation, canvases, intro detection |
 | `storage` | Folders and disks: free space, permissions, and WittyDiagnoser on storage |
 | `server` | Starting, stopping, the database, settings, anything else |
 
@@ -244,8 +256,16 @@ A session ID is what lets someone jump from an error to everything about that pl
 | A scan | `scan-…` | `library.Scanner` |
 | A module install or update | `mod-…`, `update-…` | `modules`, `update` |
 | A WittyDiagnoser job | The job's ID | `diagnose` |
+| A game in a standalone emulator | WittyPlay's session ID, the same in the server, the helper and the app | `api_games_emulators.go`, WittyPlay `rpc/docker.go` |
+| A watch party | `party-<room ID>` | `syncplay`, `api_syncplay.go`, the apps' `WatchParty` |
+| Remote control | `rc-<device ID>` of the device being controlled | `api_remote_control.go`, `wittyremote`, the apps' `RemoteDevice` |
+| A peer-to-peer connection | `p2p-<the device's short ID>` (`p2p.ConnSession`), which the device knows too; a connection test gets its own `p2p-…` | `internal/p2p/node.go`, `api_p2p.go`, the apps' P2P code |
+| A media job | `sep-…` for a karaoke separation, `canvas-…`, `intro-…`, `job-…` | `media_jobs.go` |
+| A channel health check | `tvcheck-…` | `livetv/health.go` |
 
-Add it with `.With("session", id)` when the work starts, or put it in a context with `logging.WithSession`. New long-running work gets its own: `id := logging.NewID("scan")`. The IDs are not secrets, as every route using one also needs a sign-in. Never use a token as a session ID.
+Add it with `.With("session", id)` when the work starts, or put it in a context with `logging.WithSession`. New long-running work gets its own: `id := logging.NewID("scan")`. The IDs are not secrets, as every route using one also needs a sign-in. Never use a token, or a hash of one, as a session ID (`sessionOf` in the remote-control code is one: don't log it).
+
+The viewer's **Follow** list is `logging.SessionKinds` in `internal/logging/audit.go`: each kind names the ID prefix it makes and the areas whose lines with a session belong to it. A new kind of work someone will want to follow end to end: give its IDs a prefix, add it there, and have the apps report under the same ID.
 
 Requests are tied to the media session automatically when the address has it in it (`sessionFromPath` in `internal/server/server.go`). Add new media routes there.
 
@@ -289,6 +309,8 @@ Every process the server starts leaves a record of how it ended, tied to its ses
 
 **Everything is redacted centrally** (`internal/logging/redact.go`), so a mistake at a call site is caught: attribute names like `token`, `password`, `*key`, `cookie` and `setupCode`; patterns in free text like `?token=`, `st=`, `Bearer …`, `Authorization: …`, `"password":"…"`, `user:pass@`, share links and long hex; and the exact values of secrets the server holds (`logging.AddSecret`).
 
+Since 0.8.0 these are caught too: a peer-to-peer invite link's `s=`, the server's peer-to-peer key (kept with `logging.KeepSecret`, which newer secrets never push out), codes typed to join peer to peer or a watch party (`"code":"K7QM-2XHD"`), a pairing QR code's `k=`, the `X-Witty-Connect` and `X-WMS-Pair-Secret` headers, a watch party's `member=` seat, override passwords, and IPTV catch-up logins (`/timeshift/user/password/`). `TestRedactPlantedSecrets` and `TestNoSecretLeavesInABundle` plant each of them.
+
 Still, **never log** passwords, tokens, API keys, cookies, recovery or setup codes, or **file contents**. If a secret has a new shape, add a pattern and a case to `TestRedactPlantedSecrets`. Anything printed for a person on purpose (the setup code) goes to the console directly, not the logger.
 
 Attacker-controlled text (file names, request paths, what a client reports, what a program prints) is safe to log as an attribute: values are quoted and escaped, so it can't start a new line or pass for a field, and control characters and text-direction tricks are shown as escapes. The viewer shows it as text only.
@@ -327,6 +349,17 @@ s.log = cfg.Log.With("session", id, "game", title) // the module
 
 In a module, use `defer func() { if p := recover(); p != nil { log.Error(..., "stack", string(debug.Stack())) } }()` for goroutines that might meet bad input.
 
+### Helpers that log with log/slog
+
+A helper's stderr is read line by line. A line written by `slog.NewTextHandler` or `slog.NewJSONHandler` becomes a record of its own: its `level`, `msg`, `cat`, `session` and `topic` are the record's, and the rest are attributes. So a helper logs as the server does, and its lines join the server's in **Follow** and **Show everything from this session**:
+
+```go
+log := slog.New(slog.NewTextHandler(os.Stderr, nil)).With("cat", "emulators")
+log.Info("emulator installed", "session", id, "emulator", "dolphin", "audit", "yes")
+```
+
+The module's ID is always the server's (a line can't claim another), a level above Error is written as Error, and `audit=yes` keeps a line whatever the levels say. Any other line is Debug `helper says`, as before. WittyPlay and WittyTuner do this.
+
 ### Module logging: levels and options per module
 
 Every module has its own controls under **Settings → WittyLog**: a level (or *Same as its area*) and advanced options called **topics**, each a kind of detail that can be turned on by itself. Nothing needs registering. The server compares the modules it has with the ones it has seen, every 30 seconds and whenever someone opens the page. A new one gets a line in the log, a **New** badge and its controls. A changed version and a module that went away are logged too.
@@ -355,9 +388,9 @@ Clients report to `POST /api/logs/client` ([Client API](CLIENT-API.md)), signed 
 |---|---|
 | `app`, `version`, `device` | What is reporting |
 | `events[].level` | `error`, `warn`, `info` |
-| `events[].kind` | `js`, `request`, `player`, `game`, `crash`, `network` |
+| `events[].kind` | `js`, `request`, `player`, `game`, `crash`, `network`, and since 0.8.0 `sdui` (a page that wouldn't load or show), `p2p` (a path change or failure), `karaoke` (stems that wouldn't play), `remote` and `party` |
 | `events[].message`, `stack`, `page` | What happened. No tokens, no file contents |
-| `events[].session` | **The stream, disc or game session in play** |
+| `events[].session` | **The stream, disc or game session in play**, or `party-…`, `rc-…`, `p2p-…` as [above](#sessions-tying-things-together) |
 | `events[].request` | The `X-Request-Id` of a failed request |
 
 - **The web app:** `reportClient(...)` and `setLogSession(id)` in `web/src/errorReport.ts`. Failed API requests, uncaught errors and React errors are already captured. A player calls `setLogSession` when a stream starts and reports its fatal errors.
@@ -410,6 +443,8 @@ These are handled in one place, with nothing to add at call sites:
 7. A new secret-shaped value: a redaction pattern, or `logging.AddSecret`, and a test case.
 8. A new setting that changes behaviour: `summarySettings`, if it isn't secret.
 9. A new module or engine: `"module", id` on its logger, and optional detail with `"topic", id`, listed in `engineTopics` or its manifest.
+10. A change someone may need to prove later (an override, a device let in or out, a licence accepted): `logging.Audit(ctx, log, "…", "cat", …, "by", who)`.
+11. Work someone will follow end to end across the server, a module and an app: one ID with a prefix, in `logging.SessionKinds`, reported by the apps under the same ID.
 
 ---
 

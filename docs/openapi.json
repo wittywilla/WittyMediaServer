@@ -6072,6 +6072,41 @@
             ],
             "type": "object"
           },
+          "kinds": {
+            "items": {
+              "properties": {
+                "cats": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                },
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "prefix": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "cats",
+                "id",
+                "label",
+                "prefix"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "level": {
             "type": "string"
           },
@@ -6122,6 +6157,7 @@
           "files",
           "flight",
           "health",
+          "kinds",
           "level",
           "levels",
           "modules",

@@ -6,9 +6,13 @@ package server
 import (
 	"context"
 	"errors"
+	"log/slog"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/pace"
 	"github.com/wittywilla/wittymediaserver/internal/tasks"
 )
@@ -42,9 +46,33 @@ type mediaJobs struct {
 // in no particular order: it is a courtesy, not a record (the task history is that).
 const maxJobFailures = 64
 
+// jobSessionKind is the kind of session id a job's key gets: "sep" for a karaoke
+// separation, "canvas", "intro", and "job" for anything else.
+func jobSessionKind(key string) string {
+	kind, _, _ := strings.Cut(key, ":")
+	switch kind {
+	case "stems-separate":
+		return "sep"
+	case "canvas", "intro":
+		return kind
+	}
+	return "job"
+}
+
+// jobLog is the logger for work a media job does: category extras, and the job's
+// session when ctx carries one.
+func (s *Server) jobLog(ctx context.Context) *slog.Logger {
+	log := s.Log.With("cat", "extras")
+	if id := logging.SessionFrom(ctx); id != "" {
+		log = log.With("session", id)
+	}
+	return log
+}
+
 // startMediaJob queues fn under key ("stems-approx:12"), unless that is already queued or
 // the queue is full. It answers the task's id. fn gets a context that ends when the task
-// is stopped or the server closes, marked as background work.
+// is stopped or the server closes, marked as background work, and carrying the job's
+// session id (jobSessionKind), so FFmpeg's and the job's own lines can be followed.
 func (s *Server) startMediaJob(key string, by *auth.User, spec tasks.Spec, fn func(ctx context.Context, task *tasks.Handle) error) (string, error) {
 	j := &s.mediaJobs
 	j.mu.Lock()
@@ -53,10 +81,12 @@ func (s *Server) startMediaJob(key string, by *auth.User, spec tasks.Spec, fn fu
 	}
 	if id, ok := j.queued[key]; ok {
 		j.mu.Unlock()
+		s.Log.Debug("a media job is already queued", "cat", "extras", "job", key, "task", id)
 		return id, errJobQueued
 	}
 	if len(j.queued) >= maxMediaJobs {
 		j.mu.Unlock()
+		s.Log.Debug("the media job queue is full", "cat", "extras", "job", key, "queued", maxMediaJobs)
 		return "", errJobsFull
 	}
 	delete(j.failed, key) // a new try: the old reason no longer stands
@@ -71,29 +101,47 @@ func (s *Server) startMediaJob(key string, by *auth.User, spec tasks.Spec, fn fu
 		delete(j.queued, key)
 		j.mu.Unlock()
 	}
+	sid := logging.NewID(jobSessionKind(key))
+	log := s.Log.With("cat", "extras", "session", sid, "job", key)
+	log.Debug("media job queued", "task", task.ID(), "by", spec.By)
 	started := s.background("media job", func(bg context.Context) {
 		defer forget()
-		ctx, cancel := context.WithCancel(pace.Background(bg))
+		ctx, cancel := context.WithCancel(pace.Background(logging.WithSession(bg, sid)))
 		defer cancel()
 		defer context.AfterFunc(stopped, cancel)()
 		select {
 		case j.turn <- struct{}{}:
 			defer func() { <-j.turn }()
 		case <-ctx.Done():
+			log.Debug("media job cancelled", "while", "waiting")
 			task.Finish(context.Canceled)
 			return
 		}
 		task.Begin()
 		if err := pace.Yield(ctx); err != nil {
+			log.Debug("media job cancelled", "while", "waiting")
 			task.Finish(context.Canceled)
 			return
 		}
+		begun := time.Now()
+		log.Info("media job started", "task", task.ID())
 		err := fn(ctx, task)
 		if err != nil && ctx.Err() != nil {
 			err = context.Canceled
 		}
+		took := time.Since(begun).Round(time.Millisecond).String()
+		switch {
+		case err == nil:
+			log.Debug("media job finished", "took", took)
+		case errors.Is(err, context.Canceled):
+			log.Debug("media job cancelled", "while", "running", "took", took)
+		case errors.Is(err, errNotStereo):
+			// About the song, not the server: nothing to fix.
+			log.Info("a media job could not be done", "reason", "mono", "took", took)
+		default:
+			log.Error("a media job failed", "err", err, "took", took)
+		}
 		if err != nil && !errors.Is(err, context.Canceled) {
-			s.Log.Error("a media job failed", "cat", "library", "job", key, "err", err)
 			j.mu.Lock()
 			if j.failed == nil {
 				j.failed = map[string]error{}
@@ -108,7 +156,7 @@ func (s *Server) startMediaJob(key string, by *auth.User, spec tasks.Spec, fn fu
 			j.mu.Unlock()
 		}
 		task.Finish(err)
-	}, "cat", "library")
+	}, "cat", "extras", "session", sid)
 	if !started {
 		forget()
 		task.Finish(context.Canceled)

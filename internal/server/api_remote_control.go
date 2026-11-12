@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"sync"
@@ -74,8 +75,20 @@ type remoteCtl struct {
 }
 
 func (s *Server) remoteHub() *wittyremote.Hub {
-	s.remoteCtl.once.Do(func() { s.remoteCtl.hub = wittyremote.New(wittyremote.DefaultLimits(), nil) })
+	s.remoteCtl.once.Do(func() {
+		hub := wittyremote.New(wittyremote.DefaultLimits(), nil)
+		hub.OnDrop = func(d wittyremote.Device, why string) {
+			s.rcLog(d.ID).Info("remote device forgotten", "why", why, "device", d.Name, "user", d.UserName)
+		}
+		s.remoteCtl.hub = hub
+	})
 	return s.remoteCtl.hub
+}
+
+// rcLog is the log of one controllable device: its records share the session
+// "rc-"+its id, so the viewer can follow it. Never the sign-in's: that is a token's hash.
+func (s *Server) rcLog(deviceID string) *slog.Logger {
+	return s.Log.With("cat", "remotectl", "session", "rc-"+deviceID)
 }
 
 func (s *Server) remoteControlRoutes(m *http.ServeMux) {
@@ -394,9 +407,11 @@ func (s *Server) handleRemoteAnnounce(w http.ResponseWriter, r *http.Request) {
 	hub := s.remoteHub()
 	d, err := hub.Announce(wittyremote.Announce{UserID: u.ID, UserName: displayName(u), SessionID: sess, DeviceID: b.DeviceID, V: b.V, Name: b.Name, Kind: b.Kind, Caps: b.Capabilities})
 	if err != nil {
+		s.Log.InfoContext(r.Context(), "remote device announce refused", "cat", "remotectl", "user", u.Name, "v", b.V, "err", err)
 		hubError(w, err)
 		return
 	}
+	s.rcLog(d.ID).InfoContext(r.Context(), "remote device announced", "device", d.Name, "kind", d.Kind, "user", u.Name, "v", d.V)
 	writeJSON(w, 200, map[string]any{
 		"v": d.V, "minV": wittyremote.MinVersion, "deviceId": d.ID, "name": d.Name, "kind": d.Kind, "capabilities": d.Caps,
 		"heartbeatSec": int(hub.Limits.HeartbeatEvery.Seconds()), "openWithinSec": int(hub.Limits.AnnounceGrace.Seconds()),
@@ -414,6 +429,7 @@ func (s *Server) handleRemoteForget(w http.ResponseWriter, r *http.Request) {
 		hubError(w, err)
 		return
 	}
+	s.rcLog(r.PathValue("id")).DebugContext(r.Context(), "remote device asked to be forgotten", "user", u.Name)
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
 
@@ -444,9 +460,14 @@ func (s *Server) handleRemoteChannel(w http.ResponseWriter, r *http.Request) {
 	hub, id := s.remoteHub(), r.PathValue("id")
 	conn, d, err := hub.Attach(id, u.ID, sess)
 	if err != nil {
+		s.rcLog(id).DebugContext(r.Context(), "remote device channel refused", "user", u.Name, "err", err)
 		hubError(w, err)
 		return
 	}
+	log := s.rcLog(id)
+	log.InfoContext(r.Context(), "remote device connected", "device", d.Name, "user", u.Name)
+	why := "the device closed it"
+	defer func() { log.Info("remote device disconnected", "why", why) }()
 	defer hub.Detach(id, conn)
 	open := s.open.add(openRemoteChannel, sess, u.ID)
 	defer s.open.remove(open)
@@ -461,27 +482,32 @@ func (s *Server) handleRemoteChannel(w http.ResponseWriter, r *http.Request) {
 		case <-r.Context().Done():
 			return
 		case <-s.streamsEnding():
-			es.send("bye", map[string]any{"reason": "server-stopping"})
+			why = "server-stopping"
+			es.send("bye", map[string]any{"reason": why})
 			return
 		case <-open.end:
 			// The sign-in ended (signed out, another profile, the account deleted): the
 			// device is gone with it, now rather than at the next keep-alive.
+			why = open.reason()
 			_ = hub.Remove(id, u.ID, sess)
-			es.send("bye", map[string]any{"reason": open.reason()})
+			es.send("bye", map[string]any{"reason": why})
 			return
 		case <-conn.Done():
-			es.send("bye", map[string]any{"reason": conn.Why()})
+			why = conn.Why()
+			es.send("bye", map[string]any{"reason": why})
 			return
 		case cmd := <-conn.C:
 			// A command that can't be written isn't lost quietly: the channel ends, and
 			// ending it fails everything still waiting for this device.
 			if !es.send("command", cmd) {
+				why = "a command could not be written to it"
 				return
 			}
 		case <-beat.C:
 			if !s.sessionStillGood(r, u) || !s.remoteControlOn(r.Context()) {
+				why = "signed-out"
 				_ = hub.Remove(id, u.ID, sess)
-				es.send("bye", map[string]any{"reason": "signed-out"})
+				es.send("bye", map[string]any{"reason": why})
 				return
 			}
 			hub.Sweep()
@@ -525,9 +551,11 @@ func (s *Server) handleRemoteAck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.remoteHub().Ack(r.PathValue("id"), u.ID, sess, b.ID, b.OK, b.Error); err != nil {
+		s.rcLog(r.PathValue("id")).DebugContext(r.Context(), "remote command answer not taken", "command", b.ID, "err", err)
 		hubError(w, err)
 		return
 	}
+	s.rcLog(r.PathValue("id")).DebugContext(r.Context(), "remote command answered", "command", b.ID, "ok", b.OK, "error", b.Error)
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
 
@@ -663,6 +691,7 @@ func (s *Server) handleRemoteCommand(w http.ResponseWriter, r *http.Request) {
 		// its own limits made), but they start playing, so screen time is asked about.
 		if status, code, msg := s.checkPlay(ctx, u, d, cmd.Items()); status != 0 {
 			if code == "screen-time" {
+				s.Log.InfoContext(ctx, "remote play refused: screen time", "cat", "profiles", "session", "rc-"+d.ID, "profile", u.Name, "command", cmd.Type)
 				// The caller's own time: the same answer as from a playback route, so an
 				// app shows the same notice.
 				v := accessFor(u).Time.Check(s.clock(), s.parentalInit().tracker.Usage(ctx, u.ID))
@@ -674,12 +703,16 @@ func (s *Server) handleRemoteCommand(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	cmd.Sender = &wittyremote.Sender{UserName: displayName(u)}
+	log := s.rcLog(d.ID)
+	log.DebugContext(ctx, "remote command sent", "command", cmd.Type, "by", u.Name)
 	if err := hub.Send(ctx, d.ID, d.UserID, cmd); err != nil {
 		var ce *wittyremote.CommandError
 		if errors.As(err, &ce) {
+			log.WarnContext(ctx, "remote command failed", "command", cmd.Type, "code", ce.Code, "by", u.Name)
 			remoteError(w, commandStatus(ce.Code), ce.Code, ce.Message)
 			return
 		}
+		log.ErrorContext(ctx, "remote command failed", "command", cmd.Type, "by", u.Name, "err", err)
 		writeErr(w, 500, err.Error())
 		return
 	}
@@ -689,6 +722,9 @@ func (s *Server) handleRemoteCommand(w http.ResponseWriter, r *http.Request) {
 		// happened, and the answer says the old one is still going.
 		err := hub.Send(ctx, source.ID, source.UserID, wittyremote.Command{Type: wittyremote.CmdStop, Sender: cmd.Sender})
 		out["sourceStopped"] = err == nil
+		if err != nil {
+			s.rcLog(source.ID).InfoContext(ctx, "remote hand-over: the old device didn't stop", "to", d.ID, "err", err)
+		}
 	}
 	writeJSON(w, 200, out)
 }
@@ -869,6 +905,6 @@ func (s *Server) handleRemoteAccountPut(w http.ResponseWriter, r *http.Request) 
 	}
 	// Whoever it is sees the difference now, not at their stream's next keep-alive.
 	s.open.nudge(func(o *openStream) bool { return o.kind == openRemoteEvents && o.user == target.ID })
-	s.Log.InfoContext(ctx, "remote control of other accounts' devices changed", "cat", "auth", "name", target.Name, "allowed", *b.ControlOthers, "user", userFrom(r).Name)
+	s.Log.InfoContext(ctx, "remote control of other accounts' devices changed", "cat", "remotectl", "user", target.Name, "allowed", *b.ControlOthers, "by", userFrom(r).Name)
 	writeJSON(w, 200, map[string]any{"ok": true, "controlOthers": *b.ControlOthers})
 }

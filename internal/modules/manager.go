@@ -295,6 +295,7 @@ type Manager struct {
 	keys  []ed25519.PublicKey
 	fetch *update.Fetcher
 	log   *slog.Logger
+	said  sync.Map // what logOnce has said already: resolve runs often, and says the same
 
 	mu        sync.Mutex
 	mods      map[string]*entry
@@ -528,8 +529,12 @@ func (m *Manager) usable(id string, e *entry, ver string) (*wittymodule.Manifest
 	if r := dataRefusal(e.builtin.Name, man, e.state.DataHigh); r != "" {
 		return nil, "", errors.New(r)
 	}
-	if _, err := readUI(dir, man, m.cfg.UIChecks); err != nil && !ov.has(OverrideIncomplete) {
-		return nil, "", err
+	if _, err := readUI(dir, man, m.cfg.UIChecks); err != nil {
+		if !ov.has(OverrideIncomplete) {
+			m.logOnce(slog.LevelWarn, "a module's pages were refused", "module", id, "version", ver, "err", err)
+			return nil, "", err
+		}
+		m.logOnce(slog.LevelWarn, "a module's pages were refused, and used anyway: a manual override", "cat", "modules-store", "module", id, "version", ver, "err", err)
 	}
 	if ov.forkLike() {
 		if r := overrideRefusal(); r != "" {
@@ -537,6 +542,16 @@ func (m *Manager) usable(id string, e *entry, ver string) (*wittymodule.Manifest
 		}
 	}
 	return man, dir, nil
+}
+
+// logOnce logs a message about a module's version the first time it is true, not at
+// every resolve. The same message, module, version and error say nothing new.
+func (m *Manager) logOnce(level slog.Level, msg string, args ...any) {
+	key := msg + "\x00" + fmt.Sprint(args...)
+	if _, seen := m.said.LoadOrStore(key, true); seen {
+		return
+	}
+	m.log.Log(context.Background(), level, msg, args...)
 }
 
 // resolve picks the version to use: the chosen one, then the one before it, and with
@@ -557,10 +572,12 @@ func (m *Manager) resolve(id string, e *entry) {
 			continue
 		}
 		if r := e.state.Blocked[ver]; r != "" {
+			m.log.Debug("modules: skipping a version taken out of use", "module", id, "version", ver, "why", r)
 			why = append(why, name+" "+ver+" is out of use: "+r)
 			continue
 		}
 		if w := e.state.Withdrawn.Find(ver); w != nil && w.Severity == wittymodule.SeveritySecurity {
+			m.log.Debug("modules: skipping a version withdrawn for security reasons", "module", id, "version", ver)
 			why = append(why, name+" "+ver+" was withdrawn for security reasons: "+sentence(w.Reason))
 			continue
 		}
@@ -571,7 +588,7 @@ func (m *Manager) resolve(id string, e *entry) {
 		}
 		man, dir, err := m.usable(id, e, ver)
 		if err != nil {
-			m.log.Warn("modules: not using an installed version", "module", id, "version", ver, "err", err)
+			m.logOnce(slog.LevelWarn, "modules: not using an installed version", "module", id, "version", ver, "err", err)
 			msg := sentence(err.Error())
 			if !strings.HasPrefix(msg, name+" "+ver) {
 				msg = name + " " + ver + " can't be used: " + msg
@@ -599,6 +616,8 @@ func (m *Manager) resolve(id string, e *entry) {
 		// usable has just checked it.
 		if ui, err := readUI(pickDir, pick, m.cfg.UIChecks); err == nil {
 			e.ui = ui
+		} else {
+			m.logOnce(slog.LevelWarn, "a module's pages could not be read: it has none", "module", id, "version", pick.Version, "err", err)
 		}
 		if pick.Delivery == wittymodule.DeliveryHelper {
 			e.proc = m.newProcFor(id, e, pick, pickDir)

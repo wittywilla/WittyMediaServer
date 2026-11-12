@@ -311,10 +311,11 @@ WittyPlay's `sdui.json` defines them from the catalogue's own components (revisi
 `wittyplay-online` (tabs Recent, Classics, Together, Memories, Discover; Recent's focused tile grows with its details;
 the page puts the profile and the server into the status bar and Search, Together, Controllers, Memories and Settings
 into the round dock), `wittyplay-controllers`, the in-game menu `wittyplay-quick` (shown as a layer),
-`wittyplay-room` (the room and its buttons, then its players), `wittyplay-memory` (opened about a game, `item`, and a
+`wittyplay-room` (the room and its buttons, then its players, and for the host its join link as a QR code), `wittyplay-memory` (opened about a game, `item`, and a
 kept screenshot, `name`: Delete this memory, asking first), `wittyplay-keep` (opened about the session: Keep or Not
-now), `wittyplay-privacy` (a Form of the two choices, `wittyplay.online.set`) and `wittyplay-kids` (opened about a
-Kids profile: an administrator's switches). Rewind, the screen and sound panel, a controller's battery and "press
+now), `wittyplay-privacy` (a Form of the two choices, `wittyplay.online.set`; in the `you.games` slot, You > Games) and
+`wittyplay-kids` (an administrator's switches; in the `people.profile` slot, opened as
+`/page/wittyplay-kids?item={profile}`). Rewind, the screen and sound panel, a controller's battery and "press
 any button" are each app's own.
 
 ### Its commands

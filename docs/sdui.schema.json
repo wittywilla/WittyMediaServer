@@ -1785,6 +1785,9 @@
         "position": {
           "type": "string"
         },
+        "style": {
+          "type": "string"
+        },
         "visible": {
           "type": "boolean"
         }
@@ -2094,6 +2097,12 @@
         },
         "overlay": {
           "type": "boolean"
+        },
+        "placements": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Placement"
+          },
+          "type": "object"
         },
         "size": {
           "type": "integer"

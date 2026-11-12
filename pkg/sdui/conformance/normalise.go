@@ -42,7 +42,7 @@ type NormalisedPage struct {
 	SectionGap int `json:"sectionGap"`
 	// Scope is the page's theme scope, "" for none.
 	Scope string `json:"scope,omitempty"`
-	// Shell is the frame the app draws around the page: the layout option, the
+	// Shell is the frame the app draws around the page: the experience, the
 	// menu's style and breadth (document.layout.shell). Absent: none was sent.
 	Shell *sdui.Shell `json:"shell,omitempty"`
 }

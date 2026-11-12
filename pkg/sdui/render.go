@@ -127,6 +127,9 @@ type RenderContext struct {
 	// pages are made here, and its shell is sent in document.layout.shell. nil: none,
 	// the page as written.
 	Experience *Experience
+	// Placements are the administrator's and the profile's changes to the experience's
+	// regions, laid over them in shell.placements.
+	Placements RegionPlacements
 	// BasePath is where the SDUI routes are: "/api/v1/sdui".
 	BasePath string
 	// Source and ConfigRevision are stamped into Meta.
@@ -237,6 +240,9 @@ func newRenderer(page *Page, ctx *RenderContext) *renderer {
 	if ctx.Experience != nil {
 		l = l.clone()
 		l.Shell = ShellFor(ctx.Experience.ID, l.FormFactor)
+		if ctx.Placements != nil {
+			l.Shell.Placements = MergePlacements(l.Shell.Placements, ctx.Placements)
+		}
 	}
 	if contains(ctx.Capabilities, "reducedMotion") {
 		l = l.clone()

@@ -11250,6 +11250,9 @@
                       "position": {
                         "type": "string"
                       },
+                      "style": {
+                        "type": "string"
+                      },
                       "visible": {
                         "anyOf": [
                           {
@@ -11610,6 +11613,30 @@
                             },
                             "overlay": {
                               "type": "boolean"
+                            },
+                            "placements": {
+                              "additionalProperties": {
+                                "properties": {
+                                  "position": {
+                                    "type": "string"
+                                  },
+                                  "style": {
+                                    "type": "string"
+                                  },
+                                  "visible": {
+                                    "anyOf": [
+                                      {
+                                        "type": "boolean"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "type": "object"
+                              },
+                              "type": "object"
                             },
                             "size": {
                               "type": "integer"
@@ -12210,6 +12237,33 @@
                     },
                     "type": "object"
                   },
+                  "placements": {
+                    "additionalProperties": {
+                      "additionalProperties": {
+                        "properties": {
+                          "position": {
+                            "type": "string"
+                          },
+                          "style": {
+                            "type": "string"
+                          },
+                          "visible": {
+                            "anyOf": [
+                              {
+                                "type": "boolean"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": "object"
+                    },
+                    "type": "object"
+                  },
                   "profileThemes": {
                     "type": "boolean"
                   },
@@ -12525,6 +12579,30 @@
                           },
                           "overlay": {
                             "type": "boolean"
+                          },
+                          "placements": {
+                            "additionalProperties": {
+                              "properties": {
+                                "position": {
+                                  "type": "string"
+                                },
+                                "style": {
+                                  "type": "string"
+                                },
+                                "visible": {
+                                  "anyOf": [
+                                    {
+                                      "type": "boolean"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                }
+                              },
+                              "type": "object"
+                            },
+                            "type": "object"
                           },
                           "size": {
                             "type": "integer"
@@ -13032,6 +13110,30 @@
                   },
                   "overlay": {
                     "type": "boolean"
+                  },
+                  "placements": {
+                    "additionalProperties": {
+                      "properties": {
+                        "position": {
+                          "type": "string"
+                        },
+                        "style": {
+                          "type": "string"
+                        },
+                        "visible": {
+                          "anyOf": [
+                            {
+                              "type": "boolean"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "type": "object"
                   },
                   "size": {
                     "type": "integer"
@@ -46692,6 +46794,95 @@
         "summary": "One page of a section's items: the next cards of a row or grid (cursor), a deferred row's first page, another season of a SeasonList (season). The address is given by the page itself (props.more.url, a season's url); send the same device parameters with it.",
         "tags": [
           "Server-driven UI"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/sdui/placements": {
+      "delete": {
+        "operationId": "deleteSDUIPlacements",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reset this profile's placements on this device",
+        "tags": [
+          "SDUI"
+        ],
+        "x-wms-auth": "user"
+      },
+      "get": {
+        "operationId": "getSDUIPlacements",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The shell's regions and where they are",
+        "tags": [
+          "SDUI"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putSDUIPlacements",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save this profile's placements for this device",
+        "tags": [
+          "SDUI"
         ],
         "x-wms-auth": "user"
       }

@@ -78,7 +78,7 @@ type Config struct {
 	Pages map[string]sdui.Page `json:"pages"`
 	// Personalisation says whether profiles may arrange pages for themselves.
 	Personalisation Personalisation `json:"personalisation,omitzero"`
-	// Experiences are the layout options each form factor starts with and the ones
+	// Experiences are the experiences each form factor starts with and the ones
 	// profiles may choose (docs/SDUI.md, "Layout options"); nil: the defaults, all
 	// allowed.
 	Experiences *sdui.ExperiencePolicy `json:"experiences,omitempty"`

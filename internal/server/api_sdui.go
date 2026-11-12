@@ -414,7 +414,10 @@ func (s *Server) sduiPrepare(r *http.Request, name string) (*sduiRender, int, er
 		return nil, 400, err
 	}
 	rv.formFactor, rv.platform, rv.locale = ctx.Profile.FormFactor, ctx.Platform, ctx.Locale
-	if ctx.Experience, err = s.sduiExperience(r, cfg, ctx.Profile.FormFactor); err != nil {
+	if ctx.Experience, err = s.sduiExperience(r, cfg, ctx.Profile.FormFactor); err == nil {
+		ctx.Placements = s.placementsFor(r, cfg, ctx.Experience, ctx.Profile.FormFactor)
+	}
+	if err != nil {
 		return nil, 400, err
 	}
 	// What this profile has been kept from isn't in the conditions, and with its screen
@@ -746,7 +749,7 @@ func (s *Server) handleSDUINavigation(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx.Experience = layout
 	doc := sdui.RenderNavigation(nav, func(id string) (sdui.Page, bool) { return effectivePage(cfg, id, set) }, libs, ctx)
-	doc.Shell = sdui.ShellFor(layout.ID, ctx.Profile.FormFactor)
+	doc.Shell = s.shellFor(r, cfg, layout, ctx.Profile.FormFactor)
 	doc.Experiences = s.experienceChoice(r, cfg, ctx.Profile.FormFactor, layout.ID)
 	doc.ETag = ""
 	doc.ETag = hashETag("nav", doc)
@@ -878,6 +881,9 @@ type sduiPersonalStore struct {
 	Nav   *sdui.Personal            `json:"nav,omitempty"`
 	// Experiences are the profile's layout per device (sdui_layouts.go).
 	Experiences map[string]string `json:"experiences,omitempty"`
+	// Placements are the profile's own placements of the shell's regions per device
+	// (sdui_placements.go).
+	Placements map[string]sdui.RegionPlacements `json:"placements,omitempty"`
 }
 
 func (s *Server) readPersonal(r *http.Request) (map[string]json.RawMessage, sduiPersonalStore) {

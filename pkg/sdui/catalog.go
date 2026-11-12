@@ -254,7 +254,7 @@ type Catalogue struct {
 	Profiles map[string]*Layout `json:"profiles"`
 	// Theme is the vocabulary of the components' tokens (tokens.go).
 	Theme *ThemeRoles `json:"theme,omitempty"`
-	// Experiences are the layout options: the menu's style on each form factor and what each
+	// Experiences are the looks: the menu's style on each form factor and what each
 	// changes about pages.
 	Experiences []Experience `json:"experiences"`
 	// NavStyles are the ways an app draws its menu.

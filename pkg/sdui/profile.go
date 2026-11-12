@@ -113,7 +113,7 @@ type Layout struct {
 	ReducedMotion bool `json:"reducedMotion,omitempty"`
 	// Truncated is set when sections were left out to fit MaxSections.
 	Truncated bool `json:"truncated,omitempty"`
-	// Shell is the layout option the page was made for and how the app's frame is
+	// Shell is the experience the page was made for and how the app's frame is
 	// drawn with it: see Experiences.
 	Shell *Shell `json:"shell,omitempty"`
 }

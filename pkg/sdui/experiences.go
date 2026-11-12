@@ -94,6 +94,8 @@ type Preview struct {
 type Placement struct {
 	Position string `json:"position,omitempty"`
 	Visible  *bool  `json:"visible,omitempty"`
+	// Style is the hero's: billboard, banner, carousel or row.
+	Style string `json:"style,omitempty"`
 }
 
 // Experience describes one look.
@@ -173,6 +175,9 @@ type Shell struct {
 	// drawer beside it; 0 for none.
 	Open   int `json:"open,omitempty"`
 	Drawer int `json:"drawer,omitempty"`
+	// Placements are where every region of the shell is: the experience's, with the
+	// administrator's and the profile's laid over it.
+	Placements RegionPlacements `json:"placements,omitempty"`
 }
 
 // navSizes are each menu style's breadth on each form factor, in points.
@@ -235,7 +240,7 @@ const (
 	ExpBigPicture = "bigpicture"
 )
 
-// ExperienceIDs are the layout options' IDs.
+// ExperienceIDs are the experiences' IDs.
 func ExperienceIDs() []string {
 	out := make([]string, len(Experiences))
 	for i, l := range Experiences {
@@ -244,7 +249,7 @@ func ExperienceIDs() []string {
 	return out
 }
 
-// ExperienceByID is a layout option, nil for an ID that isn't one.
+// ExperienceByID is an experience, nil for an ID that isn't one.
 func ExperienceByID(id string) *Experience {
 	for i := range Experiences {
 		if Experiences[i].ID == id {
@@ -271,6 +276,7 @@ func ShellFor(id, formFactor string) *Shell {
 	if sh.Size == 0 {
 		sh.Size = navSizes[nav][FormWeb]
 	}
+	sh.Placements = MergePlacements(l.Placements)
 	sh.Open = navOpen[nav][formFactor]
 	if l.NavExpand == "drawer" {
 		sh.Drawer = navDrawer[nav][formFactor]
@@ -473,6 +479,9 @@ type ExperiencePolicy struct {
 	// Default is the layout each form factor has unless a profile chose another; a form
 	// factor left out has DefaultExperience.
 	Default map[string]string `json:"default,omitempty"`
+	// Placements are the administrator's changes to an experience's regions, for everyone:
+	// by experience, then region.
+	Placements map[string]RegionPlacements `json:"placements,omitempty"`
 	// Allowed are the layouts profiles may choose; empty: every one.
 	Allowed []string `json:"allowed,omitempty"`
 	// Required is a look (an experience, a theme or both) the administrator requires of
@@ -510,6 +519,13 @@ func ValidateExperiencePolicy(p *ExperiencePolicy) []Issue {
 		seen[id] = true
 	}
 	v.issues = append(v.issues, ValidateRequired(p.Required)...)
+	for id, pl := range p.Placements {
+		if ExperienceByID(id) == nil {
+			v.err("/placements/"+id, suggest(id, ids), "%q is not an experience", id)
+			continue
+		}
+		v.issues = append(v.issues, pl.Validate("/placements/"+id)...)
+	}
 	return v.issues
 }
 

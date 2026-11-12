@@ -26,10 +26,10 @@ type NavDocument struct {
 	// Settings is listed like the rest and is never marked hidden. Left out
 	// for a profile that may not rearrange.
 	Personal *PersonalInfo `json:"personal,omitempty"`
-	// Shell is how the app draws its frame with the layout option in force: the menu's
+	// Shell is how the app draws its frame with the experience in force: the menu's
 	// style on this device, and whether it lies over the page.
 	Shell *Shell `json:"shell,omitempty"`
-	// Experiences are the layout options this profile may choose from on this device, the
+	// Experiences are the experiences this profile may choose from on this device, the
 	// one in force marked, for an app's "Layout" setting. Left out for a profile kept
 	// from rearranging.
 	Experiences *ExperienceChoice `json:"experiences,omitempty"`

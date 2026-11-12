@@ -249,3 +249,50 @@ func TestRailNavigationCarriesLibraryDrawers(t *testing.T) {
 		}
 	}
 }
+
+// Every region of the shell has a place: the experience's, the administrator's for everyone,
+// the profile's own for its device, merged by the server; the way to Settings and You stays.
+func TestPlacementsAreMergedAndLocked(t *testing.T) {
+	ts, admin, adult, _ := sduiAccounts(t)
+	shell := func(token string) *sdui.Shell {
+		return sduiDoc(t, ts.do(t, "GET", "/api/v1/sdui/pages/home?formFactor=desktop&experience=lumen&device=d1", token, nil)).Layout.Shell
+	}
+	if sh := shell(adult); len(sh.Placements) != len(sdui.Regions) || *sh.Placements["search"].Visible != true {
+		t.Fatalf("every region has a place: %+v", sh.Placements)
+	}
+	// The administrator moves the search for everyone.
+	var cur struct{ ETag string }
+	_ = json.Unmarshal(ts.do(t, "GET", "/api/sdui/config/experience", admin, nil).Body.Bytes(), &cur)
+	pol := map[string]any{"placements": map[string]any{"lumen": map[string]any{"search": map[string]string{"position": "floating"}}}}
+	if w := ts.do(t, "PUT", "/api/sdui/config/experience", admin, pol, "If-Match", cur.ETag); w.Code != 200 {
+		t.Fatalf("admin placements: %d %s", w.Code, w.Body)
+	}
+	if sh := shell(adult); sh.Placements["search"].Position != "floating" {
+		t.Errorf("for everyone: %+v", sh.Placements["search"])
+	}
+	// A profile's own, for its device only; what can't be hidden is refused.
+	url := "/api/v1/sdui/placements?formFactor=desktop&experience=lumen&device=d1"
+	if w := ts.do(t, "PUT", url, adult, map[string]any{"placements": map[string]any{"clock": map[string]any{"visible": false}, "dock": map[string]string{"position": "top"}}}); w.Code != 200 {
+		t.Fatalf("own placements: %d %s", w.Code, w.Body)
+	}
+	sh := shell(adult)
+	if sh.Placements["clock"].Visible == nil || *sh.Placements["clock"].Visible || sh.Placements["dock"].Position != "top" || sh.Placements["search"].Position != "floating" {
+		t.Errorf("merged: %+v", sh.Placements)
+	}
+	if other := sduiDoc(t, ts.do(t, "GET", "/api/v1/sdui/pages/home?formFactor=desktop&experience=lumen&device=d2", adult, nil)).Layout.Shell; *other.Placements["clock"].Visible != true {
+		t.Error("another device took the change")
+	}
+	for name, body := range map[string]any{
+		"the menu hidden":     map[string]any{"placements": map[string]any{"nav": map[string]any{"visible": false}}},
+		"You hidden":          map[string]any{"placements": map[string]any{"profile": map[string]any{"visible": false}}},
+		"a region that isn't": map[string]any{"placements": map[string]any{"sparkle": map[string]any{"visible": true}}},
+		"a place it can't be": map[string]any{"placements": map[string]any{"clock": map[string]any{"position": "start"}}},
+	} {
+		if w := ts.do(t, "PUT", url, adult, body); w.Code != 400 {
+			t.Errorf("%s: %d", name, w.Code)
+		}
+	}
+	if w := ts.do(t, "DELETE", url, adult, nil); w.Code != 200 || *shell(adult).Placements["clock"].Visible != true {
+		t.Errorf("reset: %d", w.Code)
+	}
+}

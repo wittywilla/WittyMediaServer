@@ -771,6 +771,16 @@ Settings (Settings is never SDUI). On a headset (`formFactor=headset`, `platform
 or `quest`) the form factor is `headset`: ornament tabs, 60-point targets, nothing at the
 edges.
 
+**Placements.** Everything in the shell is movable, by data. The shell is made of regions
+(`brand`, `nav`, `search`, `profile`, `clock`, `dock`, `legend`, `hero`), each with a
+`position` and `visible` (and the hero a `style`); the experience sets them, the
+administrator overrides them for everyone (`placements` in the policy, by experience) and a
+profile for its own device (`PUT /sdui/placements`), and the server sends the merged result in
+`layout.shell.placements`, so a renderer only draws it. The menu and You are locked: they can't
+be hidden, so Settings and the way out are always there. Page sections are arranged by the
+page's own personalisation (reorder, hide, pin, density, card size). The layout editor is each
+app's own and drives these routes and `personal`.
+
 **What the server does for the app.** An experience's changes to pages are made in the
 document with the catalogue's own components: a renderer that follows the document draws
 every experience with nothing more. Where it asks, a Hero becomes a `Carousel` (`marquee`),

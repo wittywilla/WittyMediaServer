@@ -59,7 +59,7 @@ fields, new values in lists. Ignore what you don't recognise; never assume a lis
 complete. Removing or changing anything means a new version, with v1 kept alongside. `apiRevision`
 in `/capabilities` counts additions, and `features` names them: look for a feature rather than
 comparing server version numbers. Server 0.8.0-alpha is revision 16 (0.7 was 10): revision 15 for
-the release's first part and 16 for its second (modules' own SDUI, layout options, the theme on
+the release's first part and 16 for its second (modules' own SDUI, experiences, the theme on
 server-driven pages with each profile's own colours, the editor's merging publish, the artist page
 and the fixes listed under revision 16 in `api_capabilities.go`),
 each part with its own feature name. `/api/...` without a version is the same thing, for the web
@@ -1754,9 +1754,12 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `POST /setup/complete` | admin | First run is over: apps may connect. |
 | `GET /sdui/preview` | none | `experience=<id>` (and `theme`, `platform`, `formFactor`, `viewport`): `{experience, document, navigation, theme}`, a sample Home and menu made from generated demo data with the resolved theme (tokens, shape, type, finish, scene, tv, elevation, brand), so the first-run chooser draws every look with the client's own renderer before anyone has signed in. Rate limited. |
 | `POST /themes/mine` | user | Import a theme ZIP (the body, at most 26 MB) for this profile when the administrator allows it (`profileThemes`; administrators always may, and theirs is the server's). 403 when not allowed, 400 with the offending rule named when `theme.css` holds anything but variables, 409 for an id someone else has or after five themes. A profile's theme is offered to that profile only. |
-| `GET /sdui/experience` | user | The layout option in force on this device (`device=` names the app's own device, else the form factor): `{layout, shell, choice: {current, chosen, options, url}, editable}`. |
-| `PUT /sdui/experience` | user | This profile's layout on this device: `{layout}`. 403 when the profile may not rearrange or the server doesn't offer that layout. |
-| `DELETE /sdui/experience` | user | This device follows the server's layout again. |
+| `GET /sdui/placements` | user | `{experience, regions, placements, own, editable}`: the shell's regions (brand, nav, search, profile, clock, dock, legend, hero; the menu and You are locked), where each is on this device (the experience's, the administrator's and the profile's merged: also `layout.shell.placements`), the profile's own and whether it may change them. `device=` as for `/sdui/experience`. |
+| `PUT /sdui/placements` | user | `{placements: {<region>: {position, visible, style}}}`, replacing the profile's earlier ones on this device. 400 for a region, position or style that isn't there and for hiding the menu or You; 403 when the profile may not rearrange. The administrator's are `placements` in `PUT /sdui/config/experience`. |
+| `DELETE /sdui/placements` | user | Back to the experience's and the administrator's. |
+| `GET /sdui/experience` | user | The experience in force on this device (`device=` names the app's own device, else the form factor): `{experience, shell, choice: {current, chosen, options, url, required}, editable}`. `required` (`{value, by, at, scope}`) is set when an administrator requires the look: `editable` is then false. |
+| `PUT /sdui/experience` | user | This profile's experience on this device: `{experience}`. 403 when the profile may not rearrange, the server doesn't offer it, or an administrator requires the look. |
+| `DELETE /sdui/experience` | user | This device follows the server's experience again. |
 | `GET /sdui/modules/settings` | user | The modules with settings this profile sees: `{modules: [{module, label, icon, url}]}`, for the list under Settings → Modules. |
 | `GET /sdui/modules/{module}/images/{name}` | user | A picture a module's cards show (module sources put these addresses in `images`). PNG, JPEG, WebP or GIF. |
 | `GET /sdui/modules/{module}/settings` | user | A module's settings, described and with their values, for the app's own Settings to draw under Settings → Modules ([SDUI-MODULES.md](SDUI-MODULES.md#settings)). |
@@ -1775,8 +1778,8 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `DELETE /sdui/config/navigation` | admin | Back to the built-in navigation. ?target=draft writes to the draft; otherwise If-Match is required (428 without, 412 when stale). |
 | `POST /sdui/validate` | admin | Check {"page": ...}, {"navigation": ...} or {"config": ...} without saving: {ok, issues: [{path, severity, message, fix}]}. ?target=draft: a navigation may name the draft's pages. |
 | `GET /sdui/presets` | admin | The gallery of ready-made pages and sections: {presets: [{id, label, description, icon, kind, pageKinds, page or section}]}. |
-| `GET /sdui/config/experience` | admin | The server's layouts: `{etag, layouts: {default, allowed}, options, builtin}`. |
-| `PUT /sdui/config/experience` | admin | Saves `{default: {formFactor: layout}, allowed: [layout]}`; If-Match, or `target=draft`. |
+| `GET /sdui/config/experience` | admin | The server's experience policy: `{etag, experiences: {default, allowed, required, profileThemes}, options, builtin}`. |
+| `PUT /sdui/config/experience` | admin | Saves `{default: {formFactor: experience}, allowed: [experience], required: {everyone, kids, profiles: {id: {experience, theme}}}, profileThemes}`; the server stamps each requirement with who set it and when (400 for an experience or theme that isn't there); If-Match, or `target=draft`. |
 | `GET /sdui/modules` | admin | Every module in use with its SDUI file: `{modules: [ModuleUI]}`. |
 | `PUT /sdui/modules/{module}/settings` | admin | The server's values of a module's settings: `{values}`; null resets one. |
 | `POST /sdui/presets/{id}/apply` | admin | Put a page preset in the configuration under the preset's own page ID. ?target=draft writes to the draft; otherwise If-Match is required (428 without, 412 when stale). |

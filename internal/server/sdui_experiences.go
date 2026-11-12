@@ -109,6 +109,7 @@ func (s *Server) experienceChoice(r *http.Request, cfg *sduistore.Config, formFa
 }
 
 func (s *Server) sduiExperienceRoutes(m *http.ServeMux) {
+	s.sduiPlacementRoutes(m)
 	m.Handle("GET /api/sdui/experiences", s.requireUser(s.handleSDUIExperiences))
 	m.Handle("GET /api/sdui/experience", s.requireUser(s.handleSDUIExperienceGet))
 	m.Handle("PUT /api/sdui/experience", s.requireUser(s.handleSDUIExperiencePut))
@@ -149,7 +150,7 @@ func (s *Server) handleSDUIExperienceGet(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	choice := s.experienceChoice(r, cfg, ff, l.ID)
-	writeJSON(w, 200, map[string]any{"experience": l.ID, "shell": sdui.ShellFor(l.ID, ff), "choice": choice, "editable": choice != nil && choice.Required == nil})
+	writeJSON(w, 200, map[string]any{"experience": l.ID, "shell": s.shellFor(r, cfg, l, ff), "choice": choice, "editable": choice != nil && choice.Required == nil})
 }
 
 // PUT /api/sdui/experience {layout}: the profile's layout for this device (device=, else the
@@ -277,7 +278,7 @@ func (s *Server) handleSDUIConfigExperience(w http.ResponseWriter, r *http.Reque
 	for _, ff := range sdui.FormFactors {
 		defaults[ff] = sdui.DefaultExperience(ff)
 	}
-	writeJSON(w, 200, map[string]any{"etag": cfg.ETag, "layouts": pol, "options": sdui.Experiences, "builtin": defaults})
+	writeJSON(w, 200, map[string]any{"etag": cfg.ETag, "experiences": pol, "options": sdui.Experiences, "builtin": defaults})
 }
 
 // PUT /api/sdui/config/experience[?target=draft] (administrators): save them. If-Match as for
@@ -304,7 +305,7 @@ func (s *Server) handleSDUIConfigExperiencePut(w http.ResponseWriter, r *http.Re
 	by := adminName(r)
 	s.sduiMutate(w, r, "experiences saved", func(c *sduistore.Config) error {
 		pol.Required = stampRequired(pol.Required, requiredOf(c), by, time.Now().UTC())
-		if len(pol.Default) == 0 && len(pol.Allowed) == 0 && pol.Required == nil && !pol.ProfileThemes {
+		if len(pol.Default) == 0 && len(pol.Allowed) == 0 && pol.Required == nil && !pol.ProfileThemes && len(pol.Placements) == 0 {
 			c.Experiences = nil
 		} else {
 			c.Experiences = &pol
@@ -393,3 +394,5 @@ func (s *Server) handleSDUIExperiences(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, 200, map[string]any{"experiences": sdui.Experiences, "navStyles": sdui.NavStyles, "themes": themeList, "default": sdui.ExpLumen})
 }
+
+var errTooManyDevices = errors.New("this profile has changed the layout on too many devices: reset one first")

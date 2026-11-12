@@ -119,3 +119,9 @@ html.tv-mode .remote-sheet .remote-dpad .right { right: 8px; left: auto; top: 87
 html.tv-mode .remote-sheet .remote-dpad .rk.enter { inline-size: 88px; block-size: 88px; left: 76px; top: 76px; }
 html.tv-mode .sheet-keys { grid-template-columns: 240px minmax(0, 1fr); }
 @container (min-width: 560px) { html.tv-mode .sheet-keys { grid-template-columns: minmax(0, 1fr) 240px minmax(0, 1fr) minmax(0, 1.4fr); } }
+
+/* The transport keys are 66 wide as well as high on a television; the Viewing settings panel is as tall as the picture allows and scrolls inside. */
+html.tv-mode .sheet-transport { grid-template-columns: repeat(auto-fill, minmax(66px, 1fr)); }
+html.tv-mode .sheet-transport .rk { min-inline-size: 66px; }
+@container (min-width: 560px) { html.tv-mode .sheet-transport { grid-template-columns: repeat(4, minmax(66px, 1fr)); } }
+.view-settings { max-block-size: calc(100% - 6.5rem); overflow-y: auto; overscroll-behavior: contain; }

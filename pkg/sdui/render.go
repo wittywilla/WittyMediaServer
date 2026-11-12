@@ -67,6 +67,18 @@ type Each struct {
 	Label string
 	// Kind is the library's kind, for Repeat.Kinds.
 	Kind string
+	// ID ends the copy's ID in place of Key, when Key is text (a series' name) that two
+	// copies could share once cut to what an ID may hold. "" uses Key.
+	ID string
+}
+
+// copyID is the ID of a repeated section's copy for e.
+func copyID(section string, e *Each) string {
+	k := e.Key
+	if e.ID != "" {
+		k = e.ID
+	}
+	return clipID(section + "-" + safeID(k))
 }
 
 // RenderContext is who a page is rendered for, on what, with what.
@@ -296,7 +308,7 @@ func (r *renderer) expand(sections []Section, repeats bool) []instance {
 				break
 			}
 			e := each[j]
-			out = append(out, instance{sec: s, id: clipID(s.ID + "-" + safeID(e.Key)), each: &e})
+			out = append(out, instance{sec: s, id: copyID(s.ID, &e), each: &e})
 		}
 	}
 	return out
@@ -1768,7 +1780,7 @@ func (r *renderer) find(sections []Section, nodeID string) (instance, bool) {
 		if s.Repeat != nil && strings.HasPrefix(nodeID, s.ID+"-") && r.ctx.Resolver != nil {
 			each, _ := r.ctx.Resolver.Each(s.Repeat.Over, s.Repeat.Kinds, r.l.Budget.Repeats)
 			for j := range each {
-				if clipID(s.ID+"-"+safeID(each[j].Key)) == nodeID {
+				if copyID(s.ID, &each[j]) == nodeID {
 					return instance{sec: s, id: nodeID, each: &each[j]}, true
 				}
 			}

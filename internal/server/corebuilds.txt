@@ -41,6 +41,7 @@ mupen64plus_next       y y y n y y
 parallel_n64           y y y n y y
 melonds                y y y n y y
 desmume                y y y n y y
+dolphin                y y y n y y
 azahar                 y y n n y y
 panda3ds               y y n n y y
 pcsx2                  y y y n y y

@@ -195,6 +195,7 @@ nothing could answer them. Sections use it like any catalogue source:
 | `title` | string | no | A good default title for a section using it. |
 | `since` | int | no | The catalogue revision it appeared in. 0: the server's revision. |
 | `example` | object | no | An example section, for the editor. |
+| `topShelf` | bool | no | Offer it on tvOS Top Shelf as a row of its own ([Top Shelf](#top-shelf)). |
 
 `category` and `module` may be written but are set by the server: in the catalogue a
 module's source has `"category": "module"` and `"module": "<module>"`.
@@ -288,6 +289,27 @@ only this (`cleanModuleItem` in `internal/server/sdui_modules.go`):
 | the rest | `year`, `rating`, `runtimeSec`, `studio`, `progress`, `watched`, `unwatched`, `resumeSec`, `season`, `episode`, `showTitle`, `showId`, `artist`, `track`, `count`, `number`, `now`, `next`: passed on as given. |
 
 Items past `limit` are cut off, and `more` is set.
+
+### Top Shelf
+
+A source marked `"topShelf": true` is offered on the Top Shelf of the Apple TV app
+([SDUI.md, Top Shelf](SDUI.md#top-shelf)): after what the profile was watching and before
+what is new in its libraries, the server asks it with `sdui.items` for 10 items, with
+`"source": {"type": "<module>.<name>"}` and nothing else, and makes a row of them titled
+with the source's `title` (its `label` when the title has a `{placeholder}`). Top Shelf has
+room for two such rows from every module together; they go in the order of the modules and
+of each file's sources, so a module offers the one it means, not all of them. A source that
+fails or gives nothing has no row, a profile kept from the module gets none, and the items
+are cleaned as on any page.
+
+Top Shelf is no page and its extension has seconds to answer, so a source offered there:
+
+- may not have a parameter that is `required` (it is asked with none);
+- may not have `pageKinds` (there is no page for `$item` or `$library` to come from);
+- should answer from what the helper keeps, quickly, and give items with pictures and a
+  `route`: an item with no route is left out of Top Shelf, as there'd be nowhere to go.
+
+The first two are checked at install.
 
 ### Pictures
 

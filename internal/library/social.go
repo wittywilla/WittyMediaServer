@@ -42,6 +42,60 @@ func (s *Store) SetReaction(ctx context.Context, userID, itemID int64, value int
 	return err
 }
 
+// LikedItems are the items an account liked, most recently liked first, a page at a time:
+// those it may still see and that are still on disk, in one library or (0) any. kinds
+// narrows them to these item kinds; nil is every kind.
+func (s *Store) LikedItems(ctx context.Context, userID, libraryID int64, kinds []string, offset, limit int, access *Access) ([]*Item, error) {
+	clause, cargs := access.ItemClause()
+	where := "r.user_id = ? AND r.value = 1 AND i.missing = 0 AND (? = 0 OR i.library_id = ?) AND " + clause
+	args := append([]any{userID, libraryID, libraryID}, cargs...)
+	if kinds != nil {
+		where += " AND i.kind IN (" + strings.TrimSuffix(strings.Repeat("?,", len(kinds)), ",") + ")"
+		for _, k := range kinds {
+			args = append(args, k)
+		}
+	}
+	rows, err := s.DB.QueryContext(ctx, `SELECT r.item_id FROM item_reactions r JOIN items i ON i.id = r.item_id WHERE `+where+`
+		ORDER BY r.created_at DESC, r.item_id DESC LIMIT ? OFFSET ?`, append(args, limit, offset)...)
+	if err != nil {
+		return nil, err
+	}
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil || len(ids) == 0 {
+		return nil, err
+	}
+	return s.ItemsInOrder(ctx, ids, access)
+}
+
+// ItemsInOrder reads these items, brief, in the order given, leaving out any the account
+// may not see.
+func (s *Store) ItemsInOrder(ctx context.Context, ids []int64, access *Access) ([]*Item, error) {
+	list, _, err := s.Items(ctx, ItemQuery{IDs: ids, Access: access, Brief: true, NoTotal: true, Limit: len(ids)})
+	if err != nil {
+		return nil, err
+	}
+	byID := make(map[int64]*Item, len(list))
+	for _, it := range list {
+		byID[it.ID] = it
+	}
+	out := make([]*Item, 0, len(list))
+	for _, id := range ids {
+		if it := byID[id]; it != nil {
+			out = append(out, it)
+		}
+	}
+	return out, nil
+}
+
 // ---------------------------------------------------------------------------
 // Comments
 // ---------------------------------------------------------------------------

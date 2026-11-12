@@ -290,3 +290,26 @@ func sleepBriefly() { time.Sleep(10 * time.Millisecond) }
 func forkAccept(id string) *OverrideAccept {
 	return &OverrideAccept{Accept: []string{OverrideWeakSandbox}, Typed: id, By: "admin"}
 }
+
+// An unfinished release says so in its publisher's words, as its own sentence, and needs the
+// incomplete override beside the others a file needs.
+func TestAnIncompleteModuleFromAFileSaysWhatIsMissing(t *testing.T) {
+	w := newWorld(t)
+	m := w.manager()
+	defer m.Close()
+	man, files := newBundle()
+	raw, _ := json.Marshal(man)
+	var doc map[string]any
+	_ = json.Unmarshal(raw, &doc)
+	doc["status"], doc["statusNote"] = StatusIncomplete, "  Search isn't written yet. "
+	files[wittymodule.ManifestFile], _ = json.Marshal(doc)
+	path, _, _ := archiveOf(t, t.TempDir(), man, files, nil)
+	info := stage(t, m, path, nil, nil, "")
+	if info.ReleaseStatus != StatusIncomplete || !slices.Contains(info.NeedsOverride.Kinds, OverrideIncomplete) {
+		t.Fatalf("staged: %+v %+v", info, info.NeedsOverride)
+	}
+	i := slices.IndexFunc(info.Problems, func(p UploadProblem) bool { return p.Kind == OverrideIncomplete })
+	if i < 0 || info.Problems[i].Text != "Its publisher marks it incomplete. Search isn't written yet." {
+		t.Errorf("the words: %+v", info.Problems)
+	}
+}

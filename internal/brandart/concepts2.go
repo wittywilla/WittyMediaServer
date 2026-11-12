@@ -56,7 +56,9 @@ func gapped(a, b Pt, g, w float64) Path {
 func orbitRing(c Pt, r, w float64) (ring, moon Path) {
 	ring = StrokeArc(c.X, c.Y, r, w, -math.Pi/4+0.42, 2*math.Pi-math.Pi/4-0.42)
 	m := polar(c, r, -math.Pi/4)
-	return ring, Circle(m.X, m.Y, w*0.86)
+	// As big as the ring is thick, but always clear of the ring's round ends.
+	dot := math.Min(w*0.86, r*0.42-w/2-w*0.15)
+	return ring, Circle(m.X, m.Y, dot)
 }
 
 // wave is the W as a smooth curve of half-width h through a box.
@@ -117,7 +119,7 @@ func moreConcepts(c Concept, prod Product, small bool) (body, ink, spark Path) {
 			// Too few pixels for the W inside: the ring and its moon carry it.
 			return screen(), ring, moon
 		}
-		return screen(), ring.Add(wPath(452, 455, 120, 80, 34*k)), moon
+		return screen(), ring.Add(wPath(450, 452, 124, 86, 27*k)), moon
 	case Nodes:
 		r, w := 58.0*k, 44.0*k
 		if server {

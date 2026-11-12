@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react'
-import { api, ApiError, forgetMissingModule, getToken, inMainMenus, serverBase } from '../api'
+import { api, ApiError, forgetMissingModule, MODULES_CHANGED, getToken, inMainMenus, serverBase } from '../api'
 import { IconChart, IconGamepad, IconHome, IconLibrary, IconPlug, IconTv, libIcon } from '../icons'
 import { useModulePages } from '../moduleBundles'
 import { setOwnerNavStyle } from '../navPrefs'
@@ -23,14 +23,19 @@ import type { NavItem, NavPrefs } from './navModel'
 // An older server has no such answer, and the menu is worked out here as before.
 
 // A server without WittyCouch answers 424, which a browser logs as an error on every page
-// load: having been told so, this device doesn't ask that server again for an hour.
+// load: having been told so, this device doesn't ask that server again for ten minutes, or
+// until modules are changed from here.
 const NO_COUCH = 'wms.noCouch.'
+if (typeof window !== 'undefined') window.addEventListener(MODULES_CHANGED, () => {
+  try { localStorage.removeItem(NO_COUCH + serverBase()) } catch { /* nothing kept */ }
+  couchAsked = null
+})
 function askCouch(): Promise<boolean> {
   const key = NO_COUCH + serverBase()
   try { if (Number(localStorage.getItem(key) || 0) > Date.now()) return Promise.resolve(false) } catch { /* ask, then */ }
   return api.get<{ allowed: boolean }>('/couch').then((r) => r.allowed).catch((e) => {
     forgetMissingModule()
-    if (e instanceof ApiError && e.status === 424) { try { localStorage.setItem(key, String(Date.now() + 3600_000)) } catch { /* ask again next time */ } }
+    if (e instanceof ApiError && e.status === 424) { try { localStorage.setItem(key, String(Date.now() + 600_000)) } catch { /* ask again next time */ } }
     return false
   })
 }
@@ -41,13 +46,15 @@ let couchAsked: { user: number; answer: Promise<boolean> } | null = null
 function useCanUseCouch() {
   const { user } = useApp()
   const [can, setCan] = useState(false)
+  const [changed, setChanged] = useState(0)
+  useEffect(() => { const on = () => setChanged((n) => n + 1); window.addEventListener(MODULES_CHANGED, on); return () => window.removeEventListener(MODULES_CHANGED, on) }, [])
   useEffect(() => {
     if (!user) return
     if (couchAsked?.user !== user.id) couchAsked = { user: user.id, answer: askCouch() }
     let live = true
     couchAsked.answer.then((a) => { if (live) setCan(a) })
     return () => { live = false }
-  }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user?.id, changed]) // eslint-disable-line react-hooks/exhaustive-deps
   return can
 }
 

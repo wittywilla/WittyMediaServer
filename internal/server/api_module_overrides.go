@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
 )
 
@@ -26,6 +27,28 @@ type overrideBody struct {
 	Accept []string `json:"accept"`
 	Typed  string   `json:"typed"`
 	Grants []string `json:"grants"`
+}
+
+// kinds are what the override goes past, for the log ("" when there is none).
+func (b *overrideBody) kinds() []string {
+	if b == nil {
+		return nil
+	}
+	return b.Accept
+}
+
+// overrideWords are the override's kinds for an audit row's detail.
+func (b *overrideBody) words() string {
+	if b == nil || len(b.Accept) == 0 {
+		return ""
+	}
+	return ", overriding " + strings.Join(b.Accept, ", ") + grantWords(b.Grants)
+}
+
+// auditOverride writes a log record about a manual module override that no level or
+// flood limit silences, beside the audit rows auditModule keeps.
+func (s *Server) auditOverride(r *http.Request, msg, id string, args ...any) {
+	logging.Audit(r.Context(), s.Log, msg, append([]any{"cat", "modules-store", "by", adminName(r), "module", id}, args...)...)
 }
 
 func (b *overrideBody) accept(by string) *modmgr.OverrideAccept {
@@ -132,6 +155,7 @@ func (s *Server) handleModuleUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	info, err := s.Modules.StageUpload(up)
 	if err != nil {
+		s.auditOverride(r, "module upload could not be checked", "", "file", up.ArchiveName, "err", err)
 		writeErr(w, 500, err.Error())
 		return
 	}
@@ -167,6 +191,7 @@ func (s *Server) handleModuleUploadInstall(w http.ResponseWriter, r *http.Reques
 	}
 	id, version := s.Modules.UploadOf(r.PathValue("token"), userFrom(r).ID)
 	if err := s.Modules.InstallUpload(r.PathValue("token"), userFrom(r).ID, b.Override.accept(userFrom(r).Name)); err != nil {
+		s.auditOverride(r, "module override install failed", id, "version", version, "from", "upload", "overrides", b.Override.kinds(), "grants", b.Override.Grants, "err", err)
 		writeModuleErr(w, err)
 		return
 	}
@@ -187,16 +212,18 @@ func (s *Server) handleModuleUploadDiscard(w http.ResponseWriter, r *http.Reques
 		writeErr(w, 404, "modules can't be updated in this build")
 		return
 	}
+	id, version := s.Modules.UploadOf(r.PathValue("token"), userFrom(r).ID)
 	if err := s.Modules.DiscardUpload(r.PathValue("token"), userFrom(r).ID); err != nil {
 		writeModuleErr(w, err)
 		return
 	}
+	s.auditOverride(r, "module upload discarded", id, "version", version)
 	w.WriteHeader(204)
 }
 
 // DELETE /api/modules/{id}/pending: forget a download held for a go-ahead.
 func (s *Server) handleModulePendingDrop(w http.ResponseWriter, r *http.Request) {
-	s.moduleAction(w, r, "a held module download dropped", 200, func(id string) error { return s.Modules.DropPending(id) })
+	s.moduleAction(w, r, "drop-pending", 200, func(id string) error { return s.Modules.DropPending(id) })
 }
 
 // DELETE /api/modules/{id}/override {password, code}: take an override back.
@@ -215,6 +242,7 @@ func (s *Server) handleModuleOverrideRemove(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	if err := s.Modules.RemoveOverride(id, libs); err != nil {
+		s.auditOverride(r, "module override could not be taken back", id, "err", err)
 		writeModuleErr(w, err)
 		return
 	}

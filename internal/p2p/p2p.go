@@ -116,6 +116,10 @@ func ShortID(id string) string {
 	return id
 }
 
+// ConnSession is the log session of a device's peer-to-peer connection: the same
+// on the server and in the device's own reports, as both know the device's ID.
+func ConnSession(id string) string { return "p2p-" + ShortID(id) }
+
 // ---------------------------------------------------------------- invites
 
 // InviteScheme starts an invite link, which the apps register to open.

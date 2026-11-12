@@ -26,6 +26,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/appcontrol"
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 	"github.com/wittywilla/wittymediaserver/internal/play/cores"
 	"github.com/wittywilla/wittymediaserver/internal/play/stream"
@@ -246,10 +247,22 @@ func (s *Server) writeAudit(ctx context.Context, u *auth.User, kind, action, cor
 	// Written with its own context: a request that has gone away still happened.
 	bg := context.WithoutCancel(ctx)
 	if _, err := s.DB.ExecContext(bg, `INSERT INTO game_core_audit(at, user_name, action, core, detail) VALUES(?,?,?,?,?)`, time.Now().Unix(), name, action, core, detail); err != nil {
-		s.Log.Warn("custom core audit", "err", err)
+		s.Log.WarnContext(bg, "could not write an audit row", "cat", auditCat(kind), "err", err)
 	}
-	_, _ = s.DB.ExecContext(bg, `DELETE FROM game_core_audit WHERE id <= (SELECT MAX(id) FROM game_core_audit) - ?`, maxAuditRows)
-	s.Log.Warn(kind+": "+action, "cat", "gaming", "user", name, "core", core, "detail", detail)
+	if _, err := s.DB.ExecContext(bg, `DELETE FROM game_core_audit WHERE id <= (SELECT MAX(id) FROM game_core_audit) - ?`, maxAuditRows); err != nil {
+		s.Log.DebugContext(bg, "could not trim the audit rows", "cat", auditCat(kind), "err", err)
+	}
+	// In the log too, whatever its levels say: an override or a custom core is what an
+	// owner may later need to show was done, and by whom.
+	logging.Audit(bg, s.Log, "audit record", "cat", auditCat(kind), "kind", kind, "action", action, "by", name, "core", core, "detail", detail)
+}
+
+// auditCat is the area an audit row's log line belongs to.
+func auditCat(kind string) string {
+	if kind == "module" {
+		return "modules-store"
+	}
+	return "games"
 }
 
 func (s *Server) coreAudit(ctx context.Context, limit int) []CoreAudit {

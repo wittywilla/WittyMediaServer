@@ -411,8 +411,10 @@ func (m *Manager) Open(itemID int64, path string, prefs Prefs) (*Session, error)
 	s.nav = o.NewNav(dvd.NavOptions{RegisterOptions: dvd.RegisterOptions{MenuLanguage: prefs.MenuLanguage, AudioLanguage: prefs.AudioLanguage, SubtitleLanguage: prefs.SubtitleLanguage, Angle: prefs.Angle, Region: prefs.DVDRegion, Parental: prefs.DVDParental, Country: prefs.Country}})
 	m.mu.Lock()
 	m.sessions[s.ID] = s
+	open := len(m.sessions)
 	m.sweepSoon()
 	m.mu.Unlock()
+	s.log.Info("disc session opened", "item", itemID, "file", path, "owner", prefs.Owner, "open", open, "region", prefs.DVDRegion)
 	return s, nil
 }
 

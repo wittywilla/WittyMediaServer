@@ -380,7 +380,11 @@ func (m *Manager) StageUpload(u Upload) (*UploadInfo, error) {
 	}
 	if st := status; st == StatusExperimental || st == StatusIncomplete {
 		kinds = append(kinds, OverrideIncomplete)
-		info.Problems = append(info.Problems, UploadProblem{Kind: OverrideIncomplete, Text: "Its publisher marks it " + st + "." + strings.TrimSpace(" "+note)})
+		text := "Its publisher marks it " + st + "."
+		if note = strings.TrimSpace(note); note != "" {
+			text += " " + note
+		}
+		info.Problems = append(info.Problems, UploadProblem{Kind: OverrideIncomplete, Text: text})
 	}
 	m.mu.Lock()
 	checks := m.cfg.UIChecks
@@ -483,6 +487,7 @@ func (m *Manager) RemoveOverride(id string, libraries map[string][]string) error
 		m.order = slices.DeleteFunc(m.order, func(x string) bool { return x == id })
 		_ = os.RemoveAll(m.modDir(id))
 		m.uiGen++
+		m.log.Info("module override taken back: the module is gone", "cat", "modules-store", "module", id, "version", ov.Version, "kinds", ov.Kinds)
 		return m.saveState()
 	}
 	if prev := e.state.Previous; prev != "" && prev != ov.Version {
@@ -497,10 +502,15 @@ func (m *Manager) RemoveOverride(id string, libraries map[string][]string) error
 			}
 			m.resolve(id, e)
 			m.prune(id, e)
+			m.log.Info("module override taken back: the version before is in use", "cat", "modules-store", "module", id, "version", ov.Version, "to", prev, "kinds", ov.Kinds)
 			return nil
 		}
 		e.state = old
 	}
 	e.state.Override = nil
-	return m.removeModule(id, libraries)
+	if err := m.removeModule(id, libraries); err != nil {
+		return err
+	}
+	m.log.Info("module override taken back: the module is off this server", "cat", "modules-store", "module", id, "version", ov.Version, "kinds", ov.Kinds)
+	return nil
 }

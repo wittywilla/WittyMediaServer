@@ -15,6 +15,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -120,7 +122,10 @@ const errStderr = 2048
 const maxOutputLine = 2048
 
 // helperOutput is where a helper's stderr goes: always the bounded Tail, and line
-// by line to the log only while someone has asked for that.
+// by line to the log. A line a helper wrote with log/slog (text or JSON) becomes a
+// record of its own, with its level, message, area ("cat"), session and topic, so a
+// game's lines in WittyPlay can be followed with the server's. Any other line is
+// Debug output, only while someone has asked for that.
 type helperOutput struct {
 	tail *logging.Tail
 	log  *slog.Logger
@@ -129,10 +134,6 @@ type helperOutput struct {
 
 func (o *helperOutput) Write(b []byte) (int, error) {
 	n, _ := o.tail.Write(b)
-	if !o.log.Enabled(context.Background(), slog.LevelDebug) {
-		o.line = o.line[:0]
-		return n, nil
-	}
 	for len(b) > 0 {
 		end := bytes.IndexByte(b, '\n')
 		part := b
@@ -153,10 +154,126 @@ func (o *helperOutput) Write(b []byte) (int, error) {
 }
 
 func (o *helperOutput) flush() {
-	if line := bytes.TrimRight(o.line, "\r"); len(line) > 0 {
+	line := bytes.TrimRight(o.line, "\r")
+	defer func() { o.line = o.line[:0] }()
+	if len(line) == 0 {
+		return
+	}
+	if r, audit, ok := parseHelperLine(line); ok {
+		h := o.log.Handler()
+		// An audit line is kept whatever the levels say, as logging.Audit does.
+		if audit || h.Enabled(context.Background(), r.Level) {
+			_ = h.Handle(context.Background(), r)
+		}
+		return
+	}
+	if o.log.Enabled(context.Background(), slog.LevelDebug) {
 		o.log.Debug("helper says", "topic", "output", "output", string(line))
 	}
-	o.line = o.line[:0]
+}
+
+// parseHelperLine reads one line written by slog's TextHandler or JSONHandler. It
+// needs a level and a message; anything else is not one of these.
+func parseHelperLine(line []byte) (r slog.Record, audit, ok bool) {
+	var fields [][2]string
+	if line[0] == '{' {
+		var m map[string]any
+		if json.Unmarshal(line, &m) != nil {
+			return r, false, false
+		}
+		for k, v := range m {
+			switch t := v.(type) {
+			case string:
+				fields = append(fields, [2]string{k, t})
+			default:
+				b, _ := json.Marshal(t)
+				fields = append(fields, [2]string{k, string(b)})
+			}
+		}
+		sort.Slice(fields, func(i, j int) bool { return fields[i][0] < fields[j][0] })
+	} else {
+		if !bytes.Contains(line, []byte("level=")) || !bytes.Contains(line, []byte("msg=")) {
+			return r, false, false
+		}
+		var good bool
+		if fields, good = splitTextFields(string(line)); !good {
+			return r, false, false
+		}
+	}
+	var lv slog.Level
+	var msg string
+	var haveLevel, haveMsg bool
+	attrs := make([]slog.Attr, 0, len(fields))
+	for _, f := range fields {
+		switch f[0] {
+		case "time", "source", "module": // the server knows which module this is
+		case "level":
+			haveLevel = lv.UnmarshalText([]byte(f[1])) == nil
+		case "msg":
+			msg, haveMsg = f[1], true
+		default:
+			if f[0] == logging.AuditKey && f[1] == "yes" {
+				audit = true
+			}
+			attrs = append(attrs, slog.String(f[0], f[1]))
+		}
+	}
+	if !haveLevel || !haveMsg {
+		return r, false, false
+	}
+	lv = min(lv, slog.LevelError) // a crash record is the server's to write
+	r = slog.NewRecord(time.Now(), lv, msg, 0)
+	r.AddAttrs(attrs...)
+	return r, audit, true
+}
+
+// splitTextFields reads key=value pairs as slog's TextHandler writes them: a value
+// is a bare word or a Go-quoted string.
+func splitTextFields(s string) ([][2]string, bool) {
+	var out [][2]string
+	for i := 0; i < len(s); {
+		for i < len(s) && s[i] == ' ' {
+			i++
+		}
+		if i >= len(s) {
+			break
+		}
+		eq := strings.IndexByte(s[i:], '=')
+		if eq <= 0 {
+			return nil, false
+		}
+		key := s[i : i+eq]
+		if strings.ContainsAny(key, " \"") {
+			return nil, false
+		}
+		i += eq + 1
+		var val string
+		if i < len(s) && s[i] == '"' {
+			end := i + 1
+			for end < len(s) && s[end] != '"' {
+				if s[end] == '\\' {
+					end++
+				}
+				end++
+			}
+			if end >= len(s) {
+				return nil, false
+			}
+			v, err := strconv.Unquote(s[i : end+1])
+			if err != nil {
+				return nil, false
+			}
+			val, i = v, end+1
+		} else {
+			end := strings.IndexByte(s[i:], ' ')
+			if end < 0 {
+				end = len(s) - i
+			}
+			val, i = s[i:i+end], i+end
+		}
+		out = append(out, [2]string{key, val})
+	}
+	return out, len(out) > 0
 }
 
 func (p *proc) env() []string {

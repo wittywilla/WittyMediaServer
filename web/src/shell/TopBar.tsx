@@ -154,7 +154,9 @@ function useUnder(bar: RefObject<HTMLElement | null>) {
   }, [bar])
 }
 
-export function TopBar({ onMenu, showMenu, topNav, menuOpen, wide }: { onMenu: () => void; showMenu: boolean; topNav: boolean; menuOpen: boolean; wide: boolean }) {
+// allTabs: a layout with tabs along the top and no bar at the bottom (topTabs on a phone): the
+// row holds Home and Live TV too, and the search and the profile stay in the bar.
+export function TopBar({ onMenu, showMenu, topNav, menuOpen, wide, allTabs }: { onMenu: () => void; showMenu: boolean; topNav: boolean; menuOpen: boolean; wide: boolean; allTabs?: boolean }) {
   const nav = useNavigate()
   const loc = useLocation()
   const [q, setQ] = useState('')
@@ -162,7 +164,7 @@ export function TopBar({ onMenu, showMenu, topNav, menuOpen, wide }: { onMenu: (
   const { brandName } = useApp()
   const items = useNavItems()
   const { prefs } = useNavPrefs()
-  const list = useMemo(() => arrange(items, prefs).filter((it) => it.id !== 'home' && it.id !== 'tv' && it.id !== 'livetv'), [items, prefs])
+  const list = useMemo(() => arrange(items, prefs).filter((it) => allTabs || (it.id !== 'home' && it.id !== 'tv' && it.id !== 'livetv')), [items, prefs, allTabs])
   const bar = useRef<HTMLElement | null>(null)
   useUnder(bar)
   const top = TAB_PAGES.includes(loc.pathname) || list.some((it) => pathOf(it.to) === loc.pathname)

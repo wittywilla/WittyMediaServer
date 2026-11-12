@@ -284,6 +284,7 @@ func (s *Server) handleAuthPairStart(w http.ResponseWriter, r *http.Request) {
 	if !pairStartOK(w, err) {
 		return
 	}
+	s.Log.InfoContext(r.Context(), "pairing started", "cat", "auth", "session", p.id, "device", p.device, "platform", platform, "from", ipOf(r), "v", 2)
 	pin, step, _, _ := s.pair.pinNow(p.id, secret)
 	writeJSON(w, 200, map[string]any{
 		"sessionId":    p.id,
@@ -350,7 +351,7 @@ func (s *Server) pinGate(w http.ResponseWriter, r *http.Request) (*auth.User, st
 	k := s.logins.key(r, "pair:"+me.Name)
 	if d := s.logins.wait(k); d > 0 {
 		w.Header().Set("Retry-After", strconv.Itoa(int(d.Seconds())+1))
-		s.Log.WarnContext(r.Context(), "pairing locked after repeated wrong codes", "cat", "auth", "from", ipOf(r))
+		s.Log.WarnContext(r.Context(), "pairing locked after repeated wrong codes", "cat", "auth", "user", me.Name, "from", ipOf(r))
 		writeErr(w, 429, "Too many wrong codes. Try again in a little while.")
 		return nil, "", false
 	}
@@ -367,12 +368,13 @@ func (s *Server) handleAuthPairInfo(w http.ResponseWriter, r *http.Request) {
 	p := s.pair.waitingByID(r.PathValue("session"))
 	if p == nil {
 		s.logins.fail(k)
-		s.Log.InfoContext(r.Context(), "pairing failed", "cat", "auth", "from", ipOf(r), "why", pinNotFound)
+		s.Log.InfoContext(r.Context(), "pairing failed", "cat", "auth", "session", r.PathValue("session"), "from", ipOf(r), "why", pinNotFound)
 		writeJSON(w, 404, map[string]any{"error": pinFailures[pinNotFound].msg, "reason": pinNotFound})
 		return
 	}
 	if check := r.URL.Query().Get("k"); check != "" && !hmac.Equal([]byte(check), []byte(p.qrCheck)) {
 		s.logins.fail(k)
+		s.Log.InfoContext(r.Context(), "pairing failed", "cat", "auth", "session", p.id, "user", me.Name, "from", ipOf(r), "why", pinBadCheck)
 		writeJSON(w, 400, map[string]any{"error": pinFailures[pinBadCheck].msg, "reason": pinBadCheck})
 		return
 	}
@@ -424,7 +426,7 @@ func (s *Server) confirmAdminGrant(w http.ResponseWriter, r *http.Request, targe
 		return false
 	}
 	if !s.confirmOwner(w, r, password, otp) {
-		s.Log.WarnContext(r.Context(), "pairing refused: the administrator's password wasn't confirmed", "cat", "auth", "user", target.Name, "from", ipOf(r))
+		s.Log.WarnContext(r.Context(), "pairing refused: the administrator's password wasn't confirmed", "cat", "auth", "session", r.PathValue("session"), "user", target.Name, "from", ipOf(r))
 		return false
 	}
 	return true
@@ -436,9 +438,14 @@ const pairNeedsPassword = "password-required"
 // approveByPIN approves a pairing that has a PIN, for v2 and for /api/pair/approve alike.
 func (s *Server) approveByPIN(w http.ResponseWriter, r *http.Request, me, target *auth.User, k, lookup string, byCode bool, pin, check string) {
 	p, reason, left := s.pair.approveWithPIN(lookup, byCode, pin, check, target.ID, me.ID, tokenFrom(r))
+	// The session is the pairing's public id; a code is never logged.
+	sess := ""
+	if !byCode {
+		sess = lookup
+	}
 	if reason == "" {
 		s.logins.ok(k)
-		s.Log.InfoContext(r.Context(), "pairing approved with a PIN", "cat", "auth", "device", p.device, "account", target.Name, "user", me.Name, "ip", p.ip)
+		s.Log.InfoContext(r.Context(), "pairing approved with a PIN", "cat", "auth", "session", p.id, "device", p.device, "account", target.Name, "user", me.Name, "from", p.ip)
 		writeJSON(w, 200, map[string]any{"ok": true, "device": p.device, "user": target})
 		return
 	}
@@ -446,7 +453,11 @@ func (s *Server) approveByPIN(w http.ResponseWriter, r *http.Request, me, target
 	case pinWrong, pinBadCheck, pinLocked, pinNotFound:
 		s.logins.fail(k)
 	}
-	s.Log.InfoContext(r.Context(), "pairing failed", "cat", "auth", "from", ipOf(r), "why", reason)
+	if reason == pinLocked {
+		s.Log.WarnContext(r.Context(), "pairing locked after repeated wrong PINs", "cat", "auth", "session", sess, "user", me.Name, "from", ipOf(r))
+	} else {
+		s.Log.InfoContext(r.Context(), "pairing failed", "cat", "auth", "session", sess, "user", me.Name, "from", ipOf(r), "why", reason, "triesLeft", left)
+	}
 	f := pinFailures[reason]
 	body := map[string]any{"error": f.msg, "reason": reason}
 	if reason == pinWrong || reason == pinBadCheck {
@@ -468,6 +479,6 @@ func (s *Server) handleAuthPairDeny(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.logins.ok(k)
-	s.Log.InfoContext(r.Context(), "pairing refused", "cat", "auth", "device", p.device, "user", userFrom(r).Name, "ip", p.ip)
+	s.Log.InfoContext(r.Context(), "pairing refused", "cat", "auth", "session", p.id, "device", p.device, "user", userFrom(r).Name, "from", p.ip)
 	writeJSON(w, 200, map[string]any{"ok": true})
 }

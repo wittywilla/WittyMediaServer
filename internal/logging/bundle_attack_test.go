@@ -91,13 +91,24 @@ func TestNoSecretLeavesInABundle(t *testing.T) {
 		`time=2026-11-01T10:00:00Z level=INFO msg="helper says" output="password: ` + s + `"`,
 		`time=2026-11-01T10:00:00Z level=INFO msg="helper says" output="token: ` + s + `"`,
 		`time=2026-11-01T10:00:00Z level=INFO msg="helper says" output="api key: ` + s + `"`,
+		// 0.8.0's new places: peer to peer, pairing, watch parties, module overrides, emulator helpers, IPTV catch-up.
+		`time=2026-11-01T10:00:00Z level=INFO msg="invite" link="wittymedia://p2p/12D3KooWxyz?s=` + s + `&n=Home"`,
+		`time=2026-11-01T10:00:00Z level=INFO msg="p2p" p2pKey=` + s,
+		`time=2026-11-01T10:00:00Z level=INFO msg="pair" path="/api/auth/pair/abc/info?k=` + s + `"`,
+		`time=2026-11-01T10:00:00Z level=INFO msg="request" header="X-Witty-Connect: ` + s + `"`,
+		`time=2026-11-01T10:00:00Z level=INFO msg="request" header="X-WMS-Pair-Secret: ` + s + `"`,
+		`time=2026-11-01T10:00:00Z level=INFO msg="request" path="/api/syncplay/rooms/r1/events?member=` + s + `"`,
+		`time=2026-11-01T10:00:00Z level=INFO msg="join" body="{\"code\":\"K7QM-2XHD\"}"`,
+		`time=2026-11-01T10:00:00Z level=INFO msg="override" body="{\"overridePassword\":\"` + s + `\"}"`,
+		`time=2026-11-01T10:00:00Z level=WARN msg="the runner ended" cat=emulators stderr="GET https://dl.example/a?X-Amz-Signature=` + s + `"`,
+		`time=2026-11-01T10:00:00Z level=WARN msg="catch-up failed" url="http://iptv.example/timeshift/me/` + s + `/60/x/5.ts"`,
 		`not a line of ours: password=` + s,
 		`not a line of ours: {"token":"` + s + `"}`,
 	}
 	for _, sanitize := range []bool{false, true} {
 		text := bundleText(t, lines, sanitize, Known{})
 		for _, line := range strings.Split(text, "\n") {
-			if strings.Contains(line, s) || strings.Contains(line, "190817") {
+			if strings.Contains(line, s) || strings.Contains(line, "190817") || strings.Contains(line, "K7QM-2XHD") {
 				t.Errorf("sanitize=%v: a secret left in: %s", sanitize, line)
 			}
 		}

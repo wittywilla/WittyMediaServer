@@ -137,3 +137,6 @@
 .ms-value { color: var(--fg-2); }
 .ms-num, .ms-secret { display: inline-flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
 .ms-num .input { width: 8rem; }
+/* A page with its sticky table of contents under the top bar: what gets focus is scrolled clear
+   of both (a remote or the keyboard never leaves it hidden under the contents row). */
+html:has(.set-toc) { scroll-padding-top: calc(var(--topbar-h) + var(--control-h-sm) + var(--sp-8)); }

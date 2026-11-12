@@ -297,7 +297,7 @@ func (s *Server) handleCanvasUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	s.removeOthers(rel, mediaextras.CanvasExts, dst)
 	_ = os.Remove(filepath.Join(filepath.Dir(dst), mediaextras.GeneratedMark))
-	s.Log.InfoContext(r.Context(), "canvas uploaded", "cat", "library", "item", it.ID, "bytes", size)
+	s.Log.InfoContext(r.Context(), "canvas uploaded", "cat", "extras", "item", it.ID, "bytes", size)
 	writeJSON(w, 200, map[string]any{"ok": true, "size": size, "mime": mediaextras.CanvasMIME(dst)})
 }
 
@@ -456,7 +456,7 @@ func (s *Server) handleStemUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	s.removeOthers(rel, exts, dst)
 	s.forgetSeparated(filepath.Dir(dst), name)
-	s.Log.InfoContext(r.Context(), "stem uploaded", "cat", "library", "item", it.ID, "stem", name, "bytes", size)
+	s.Log.InfoContext(r.Context(), "stem uploaded", "cat", "extras", "item", it.ID, "stem", name, "bytes", size)
 	writeJSON(w, 200, map[string]any{"ok": true, "name": name, "size": size, "mime": mediaextras.StemMIME(dst)})
 }
 
@@ -472,7 +472,9 @@ func (s *Server) forgetSeparated(stemsDir, name string) {
 	for k := range list {
 		names = append(names, k)
 	}
-	_ = os.WriteFile(filepath.Join(stemsDir, mediaextras.SeparatedList), []byte(strings.Join(names, "\n")+"\n"), 0o644)
+	if err := os.WriteFile(filepath.Join(stemsDir, mediaextras.SeparatedList), []byte(strings.Join(names, "\n")+"\n"), 0o644); err != nil {
+		s.Log.Warn("could not save the list of separated stems", "cat", "extras", "dir", stemsDir, "err", err)
+	}
 }
 
 // DELETE /api/media/{id}/stems/{stem}: forgets an uploaded stem.

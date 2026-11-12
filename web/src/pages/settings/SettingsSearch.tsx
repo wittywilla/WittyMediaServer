@@ -13,7 +13,7 @@ export function SettingsSearch({ value, onChange }: { value: string; onChange: (
   return (
     <div className="set-search" role="search">
       <IconSearch />
-      <input ref={input} type="search" className="input" placeholder="Search settings" aria-label="Search settings" aria-describedby="set-search-count"
+      <input ref={input} type="search" className="input" placeholder="Search settings" aria-label="Search settings" aria-describedby={value ? 'set-search-count' : undefined}
         value={value} onChange={(e) => onChange(e.target.value)} enterKeyHint="go"
         onKeyDown={(e) => {
           if (e.key === 'Escape' && value) { e.preventDefault(); e.stopPropagation(); onChange('') }

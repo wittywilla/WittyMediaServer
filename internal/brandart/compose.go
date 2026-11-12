@@ -153,7 +153,7 @@ func (k Kit) Scene(w, h float64, seed int, light bool, clear ...Box) Art {
 		Layer{rect, Linear(Pt{0, 0}, Pt{0, h}, bg1, bg2)},
 		Layer{rect, Glow(c.X, c.Y, far*0.5, glow)},
 	)
-	r := uint32(seed*2654435761 + 12345)
+	r := uint32(seed)*2654435761 + 12345 // wraps the same on 32-bit and 64-bit
 	next := func() float64 {
 		r ^= r << 13
 		r ^= r >> 17

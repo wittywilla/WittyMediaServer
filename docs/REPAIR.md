@@ -145,6 +145,16 @@ The name on each row is what `--only` takes.
 | `leftover-processes` | FFmpeg still converting for a server that stopped | Ends them. Only an FFmpeg whose command line names a stream's folder in this server's conversion folder |
 | `layout` | A data folder inside the program's folder, which a reinstall can remove | You move it, with steps |
 
+**Features** (`features`), only in a running server
+
+| Check | Finds | Its fix |
+|---|---|---|
+| `p2p-reach` | Peer to peer on but not running, or devices away from home unable to reach it, with why | You change a setting or the router, with steps |
+| `module-overrides` | Each module running under a manual override, with what was skipped and by whom | You remove the override when a good version is out |
+| `emulator-host` | A Mac's missing Screen Recording or Accessibility permission for WittyPlay's emulators, or their host not available | You give the permission, with steps |
+| `separator` | Karaoke allowed, but no vocal separator installed | You install one, with steps |
+| `channel-health` | Channels of a tuner or playlist that failed their last health check | You check the source, with steps |
+
 ## A module is broken
 
 Each module is checked on its own: whether it's whole, whether its signature is good, and whether it's right for this server.

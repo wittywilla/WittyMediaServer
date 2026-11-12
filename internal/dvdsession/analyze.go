@@ -32,6 +32,15 @@ var analyzer atomic.Pointer[func(path string) (*Analysis, error)]
 // SetAnalyzer says how discs are analysed, once at start.
 func SetAnalyzer(analyze func(path string) (*Analysis, error)) { analyzer.Store(&analyze) }
 
+// CurrentAnalyzer is what SetAnalyzer last set, or nil: for a test that stands in for it
+// and puts it back.
+func CurrentAnalyzer() func(path string) (*Analysis, error) {
+	if a := analyzer.Load(); a != nil {
+		return *a
+	}
+	return nil
+}
+
 // Analyze asks the WittyDVD in use about a disc. The answer is remembered for as long as
 // the disc on disk stays the same, so asking again is cheap.
 func Analyze(path string) (*Analysis, error) {

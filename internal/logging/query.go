@@ -20,6 +20,7 @@ type Filter struct {
 	Cats     map[string]bool // nil = all
 	Session  string          // the session or web request they belong to
 	Module   string          // only what this module logged
+	Kind     string          // only the sessions of one SessionKind, or audit records
 	Text     string          // anywhere in the record, ignoring case
 	After    uint64          // only records after this Seq: the live tail
 	Before   time.Time       // only records before this: going back in time
@@ -59,6 +60,11 @@ func (f *Filter) wants(rec *Record) bool {
 	}
 	if f.Module != "" && rec.Module != f.Module {
 		return false
+	}
+	if f.Kind != "" {
+		if k := sessionKind(f.Kind); k == nil || !k.belongs(rec) {
+			return false
+		}
 	}
 	if f.Text != "" && !rec.matches(f.Text) {
 		return false

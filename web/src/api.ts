@@ -311,7 +311,16 @@ function sendGet(path: string): Promise<{ text: string; data: any }> {
   return p
 }
 // A change: what was on its way before it may be out of date, so asking after it asks again.
-const req = <T>(method: string, path: string, body?: unknown) => { onTheWay.clear(); return send(method, path, body).then((r) => r.data as T) }
+// A change to the modules in use (installed, removed, rolled back) is told to whatever keeps
+// an answer about them (the Game PCs entry, shell/useNav.tsx).
+export const MODULES_CHANGED = 'wms-modules-changed'
+const req = <T>(method: string, path: string, body?: unknown) => {
+  onTheWay.clear()
+  return send(method, path, body).then((r) => {
+    if (method !== 'GET' && /^\/modules\/[a-z0-9-]+\/(add|remove|install|rollback|latest)$/.test(path)) { try { window.dispatchEvent(new Event(MODULES_CHANGED)) } catch { /* no window */ } }
+    return r.data as T
+  })
+}
 
 export const api = {
   // signal: a request that's no longer wanted is given up on, so it stops holding one of the few

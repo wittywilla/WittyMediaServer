@@ -23,7 +23,7 @@
 // and that the guide comes back to the channel left.
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-const { launch } = await import(new URL((process.env.WITTYVISUALIZER || '../../../WittyVisualizer') + '/tests/cdp.mjs', import.meta.url))
+const { launch } = await import(process.env.WITTYVISUALIZER ? new URL(process.env.WITTYVISUALIZER + '/tests/cdp.mjs', import.meta.url).href : './cdp.mjs')
 
 const server = process.env.WMS_SERVER || 'http://tv.localhost:9811'
 const [out = '.'] = process.argv.slice(2)

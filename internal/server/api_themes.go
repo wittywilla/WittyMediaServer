@@ -54,9 +54,11 @@ func (s *Server) handleThemeCustom(w http.ResponseWriter, r *http.Request) {
 	}
 	meta, err := s.Themes.AddCustom(c)
 	if err != nil {
+		s.Log.WarnContext(r.Context(), "custom theme refused", "cat", "sdui", "by", adminName(r), "err", err)
 		writeErr(w, 400, err.Error())
 		return
 	}
+	s.Log.InfoContext(r.Context(), "custom theme saved", "cat", "sdui", "by", adminName(r), "theme", meta.ID)
 	writeJSON(w, 201, meta)
 }
 
@@ -103,14 +105,17 @@ func (s *Server) handleThemeDownload(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleThemeUpload(w http.ResponseWriter, r *http.Request) {
 	data, err := io.ReadAll(io.LimitReader(r.Body, 26<<20))
 	if err != nil {
+		s.Log.WarnContext(r.Context(), "theme upload could not be read", "cat", "sdui", "by", adminName(r), "err", err)
 		writeErr(w, 400, err.Error())
 		return
 	}
 	meta, err := s.Themes.Add(data, r.URL.Query().Get("name"))
 	if err != nil {
+		s.Log.WarnContext(r.Context(), "theme upload refused", "cat", "sdui", "by", adminName(r), "bytes", len(data), "err", err)
 		writeErr(w, 400, err.Error())
 		return
 	}
+	s.Log.InfoContext(r.Context(), "theme uploaded", "cat", "sdui", "by", adminName(r), "theme", meta.ID, "version", meta.Version)
 	writeJSON(w, 201, meta)
 }
 
@@ -122,11 +127,17 @@ func (s *Server) handleThemeDelete(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, themes.ErrNotFound) {
 			code = 404
 		}
+		s.Log.InfoContext(r.Context(), "theme not deleted", "cat", "sdui", "by", adminName(r), "theme", id, "status", code, "err", err)
 		writeErr(w, code, err.Error())
 		return
 	}
+	s.Log.InfoContext(r.Context(), "theme deleted", "cat", "sdui", "by", adminName(r), "theme", id)
 	if s.DB.GetSetting(r.Context(), "theme", "default") == strings.ToLower(id) {
-		_ = s.DB.SetSetting(r.Context(), "theme", "default")
+		if err := s.DB.SetSetting(r.Context(), "theme", "default"); err != nil {
+			s.Log.WarnContext(r.Context(), "could not put the server theme back to the default", "cat", "sdui", "err", err)
+		} else {
+			s.Log.InfoContext(r.Context(), "server theme back to the default: its theme was deleted", "cat", "sdui", "theme", id)
+		}
 	}
 	writeJSON(w, 200, map[string]any{"ok": true})
 }

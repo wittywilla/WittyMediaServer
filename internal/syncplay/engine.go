@@ -18,6 +18,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"log/slog"
 	"math"
 	"slices"
 	"sort"
@@ -50,6 +51,11 @@ type Config struct {
 	// going on without them. WaitCooldown: how long a member the room stopped waiting for
 	// can't make it wait again.
 	WaitTimeout, WaitCooldown time.Duration
+	// Log receives what happens to rooms, each record with the session "party-"+room id.
+	// Nil: nothing is logged. Room codes and member ids are never logged: a member id is
+	// a seat, and a code lets anyone in.
+	Log *slog.Logger
+
 	// AwayAfter: a member not heard from for this long doesn't hold the room up.
 	// SeatGrace: after this long their seat is given up. EmptyClose: a room with nobody in
 	// it closes after this. MaxAge: and any room after this.
@@ -215,11 +221,28 @@ func New(cfg Config) *Engine {
 	pickD(&cfg.SeatGrace, d.SeatGrace)
 	pickD(&cfg.EmptyClose, d.EmptyClose)
 	pickD(&cfg.MaxAge, d.MaxAge)
+	if cfg.Log == nil {
+		cfg.Log = slog.New(slog.DiscardHandler)
+	}
 	return &Engine{cfg: cfg, rooms: map[string]*room{}, byCode: map[string]string{}}
 }
 
 // Config is the rules in force.
 func (e *Engine) Config() Config { return e.cfg }
+
+// log is a room's log: its records share the session "party-"+its id.
+func (e *Engine) log(r *room) *slog.Logger {
+	return e.cfg.Log.With("cat", "remotectl", "session", "party-"+r.id)
+}
+
+// names are the user names of members, for the log (never their member ids).
+func names(ms []*member) []string {
+	out := make([]string, 0, len(ms))
+	for _, m := range ms {
+		out = append(out, m.user.Name)
+	}
+	return out
+}
 
 func randomID() string {
 	var b [10]byte
@@ -572,6 +595,7 @@ func (e *Engine) Create(by User, o Options) (View, error) {
 	m := &member{id: e.cfg.NewID(), user: by, joined: now, seen: now, sees: sees}
 	r.members[m.id], r.host = m, m.id
 	e.rooms[r.id], e.byCode[r.code] = r, r.id
+	e.log(r).Info("watch party opened", "host", by.Name, "queue", len(r.queue), "policy", r.policy, "waitForAll", r.waitForAll)
 	return e.view(r, m, now), nil
 }
 
@@ -605,9 +629,11 @@ func (e *Engine) Join(by User, key string) (View, error) {
 	r := e.find(key)
 	if r == nil {
 		e.mu.Unlock()
+		e.cfg.Log.Info("watch party join refused", "cat", "remotectl", "user", by.Name, "err", ErrNoRoom)
 		return View{}, ErrNoRoom
 	}
 	if m := r.seat(by); m != nil {
+		e.log(r).Debug("watch party seat taken again", "user", by.Name)
 		m.seen, m.user.Name = now, by.Name
 		if m.away {
 			m.away = false
@@ -620,6 +646,7 @@ func (e *Engine) Join(by User, key string) (View, error) {
 	byCode := r.id != key
 	if !byCode && !r.invited[by.ID] {
 		e.mu.Unlock()
+		e.log(r).Info("watch party join refused: not invited", "user", by.Name)
 		return View{}, ErrNoRoom // an id alone opens nothing
 	}
 	queue, id := slices.Clone(r.queue), r.id
@@ -632,18 +659,21 @@ func (e *Engine) Join(by User, key string) (View, error) {
 	defer e.mu.Unlock()
 	r = e.rooms[id]
 	if r == nil {
+		e.cfg.Log.Info("watch party join refused", "cat", "remotectl", "session", "party-"+id, "user", by.Name, "err", ErrNoRoom)
 		return View{}, ErrNoRoom
 	}
 	if !slices.Equal(queue, r.queue) {
 		sees = e.seesAll(by.ID, r.queue) // the queue changed meanwhile; rare enough to ask under the lock
 	}
 	if r.index >= len(sees) || !sees[r.index] {
+		e.log(r).Info("watch party join refused", "user", by.Name, "err", ErrCantSee)
 		return View{}, ErrCantSee
 	}
 	if m := r.seat(by); m != nil { // two joins at once
 		return e.view(r, m, now), nil
 	}
 	if len(r.members) >= e.cfg.MaxMembers {
+		e.log(r).Info("watch party join refused", "user", by.Name, "err", ErrFull)
 		return View{}, ErrFull
 	}
 	m := &member{id: e.cfg.NewID(), user: by, joined: now, seen: now, sees: sees}
@@ -657,6 +687,7 @@ func (e *Engine) Join(by User, key string) (View, error) {
 	}
 	r.changed()
 	e.settle(r, now)
+	e.log(r).Info("watch party joined", "user", by.Name, "members", len(r.members), "invited", !byCode)
 	return e.view(r, m, now), nil
 }
 
@@ -716,6 +747,9 @@ func (e *Engine) removeMember(r *room, m *member, now time.Time) {
 				r.host = s[0].id
 			}
 		}
+		if h := r.members[r.host]; h != nil {
+			e.log(r).Info("watch party host handed on", "from", m.user.Name, "to", h.user.Name)
+		}
 	}
 	if len(r.members) == 0 {
 		r.emptySince = now
@@ -737,10 +771,12 @@ func (e *Engine) Leave(roomID, memberID string, userID int64) error {
 		return err
 	}
 	e.removeMember(r, m, now)
+	e.log(r).Info("watch party left", "user", m.user.Name, "members", len(r.members))
 	return nil
 }
 
 func (e *Engine) closeRoom(r *room, why string) {
+	e.log(r).Info("watch party closed", "why", why, "members", len(r.members), "open", e.cfg.Now().Sub(r.created).Round(time.Second))
 	r.closed = why
 	for _, m := range r.members {
 		if m.sub != nil {
@@ -791,6 +827,7 @@ func (e *Engine) Transfer(roomID, memberID string, userID int64, to string) erro
 	if r.host != to {
 		r.host = to
 		r.changed()
+		e.log(r).Info("watch party host changed", "from", m.user.Name, "to", r.members[to].user.Name)
 	}
 	return nil
 }
@@ -813,6 +850,7 @@ func (e *Engine) Kick(roomID, memberID string, userID int64, whom string) error 
 		return ErrNoMember
 	}
 	e.removeMember(r, t, now)
+	e.log(r).Info("watch party member removed by the host", "user", t.user.Name, "by", m.user.Name)
 	return nil
 }
 
@@ -869,10 +907,12 @@ func (e *Engine) Invite(roomID, memberID string, userID int64, users []int64) er
 			continue
 		}
 		if len(r.invited) >= e.cfg.MaxInvites {
+			e.log(r).Info("watch party invitations refused: too many", "by", m.user.Name, "invited", len(r.invited))
 			return ErrTooManyInvs
 		}
 		r.invited[u] = true
 	}
+	e.log(r).Info("watch party invitations sent", "by", m.user.Name, "accounts", len(users), "invited", len(r.invited))
 	return nil
 }
 
@@ -981,8 +1021,10 @@ func (e *Engine) Do(roomID, memberID string, userID int64, c Command) (View, err
 		return View{}, ErrNotAllowed
 	}
 	if c.IfSeq != nil && *c.IfSeq != r.seq {
+		e.log(r).Debug("watch party command was stale", "command", c.Type, "user", m.user.Name, "seq", r.seq, "ifSeq", *c.IfSeq)
 		return e.view(r, m, now), ErrStale
 	}
+	e.log(r).Debug("watch party command", "command", c.Type, "user", m.user.Name)
 	bad := func(f float64) bool { return math.IsNaN(f) || math.IsInf(f, 0) }
 	kept := false // a new queue that leaves what is playing as it is
 	// move goes to another place in the queue, from its start.
@@ -1086,7 +1128,7 @@ func (e *Engine) Report(roomID, memberID string, userID int64, what string, rev 
 		return err
 	}
 	e.heard(r, m, now)
-	was := m.state()
+	was, wasLagging := m.state(), m.lagging
 	switch what {
 	case ReportReady:
 		if rev < r.loadRev {
@@ -1100,6 +1142,9 @@ func (e *Engine) Report(roomID, memberID string, userID int64, what string, rev 
 		if now.Before(m.cooldown) {
 			m.lagging = true
 		}
+	}
+	if m.lagging && !wasLagging {
+		e.log(r).Info("watch party member is lagging", "user", m.user.Name, "rttMs", m.rttMs)
 	}
 	if m.state() != was {
 		r.changed()
@@ -1312,9 +1357,11 @@ func (e *Engine) Tick() {
 			switch {
 			case quiet > e.cfg.SeatGrace:
 				e.removeMember(r, m, now)
+				e.log(r).Info("watch party seat given up: not heard from", "user", m.user.Name, "quiet", quiet.Round(time.Second))
 			case quiet > e.cfg.AwayAfter && !m.away:
 				m.away = true
 				r.changed()
+				e.log(r).Debug("watch party member away", "user", m.user.Name)
 			}
 		}
 		if len(r.members) == 0 {
@@ -1323,10 +1370,15 @@ func (e *Engine) Tick() {
 		// A host who has gone away for good is replaced when their seat goes, above. One who
 		// is merely away keeps the room: they are probably walking between rooms.
 		if r.waiting && now.Sub(r.waitSince) >= e.cfg.WaitTimeout {
-			for _, m := range r.members {
+			var late []*member
+			for _, m := range r.sorted() {
 				if m.counts() && !m.ready {
 					m.lagging, m.cooldown = true, now.Add(e.cfg.WaitCooldown)
+					late = append(late, m)
 				}
+			}
+			if len(late) > 0 {
+				e.log(r).Warn("watch party stopped waiting for members still loading", "waited", now.Sub(r.waitSince).Round(time.Second), "lagging", names(late))
 			}
 			r.changed()
 		}

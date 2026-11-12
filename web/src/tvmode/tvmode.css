@@ -210,7 +210,9 @@ html.tv-mode .player .time, html.tv-mode .player .title { font-size: var(--tv-bo
 .tvm-bar.tvm-side:focus-within { width: calc(var(--tvu) * var(--tvm-side-open, 400)); box-shadow: var(--e-3); }
 .tvm-side .tvm-tabs { flex-direction: column; align-items: stretch; height: 100%; }
 .tvm-side .tvm-pill { justify-content: flex-start; }
-.tvm-side .tvm-pill > span { opacity: 0; transition: opacity var(--dur-2); }
-.tvm-side:focus-within .tvm-pill > span { opacity: 1; }
+/* Names go at once as the menu closes, and come once it has opened, so none shows clipped. */
+.tvm-side .tvm-pill { overflow: hidden; }
+.tvm-side .tvm-pill > span { opacity: 0; visibility: hidden; white-space: nowrap; transition: none; }
+.tvm-side:focus-within .tvm-pill > span { opacity: 1; visibility: visible; transition: opacity var(--dur-2) var(--dur-2); }
 .tvm-side .tvm-you { margin-top: auto; }
 @media (prefers-reduced-motion: reduce) { .tvm-bar.tvm-side, .tvm-side .tvm-pill > span { transition: none; } }

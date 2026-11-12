@@ -326,7 +326,18 @@ html.tilt-on .card:not(.square) .poster.tilting { transition: transform 80ms lin
   .app.nav-overlay .content > .sdui:first-child > :first-child:not(.hero):not(.sr-only), .app.nav-overlay .content > .sdui:first-child > .sr-only + :not(.hero) { margin-top: var(--topbar-h); }
 }
 /* Top tabs on a phone too: the tabs along the top are the menu, with no bar at the bottom. */
-@media (max-width: 900px) { .app.no-tabbar .tabbar { display: none; } .app.no-tabbar .content { padding-bottom: var(--sp-6); } }
+@media (max-width: 900px) { .app.no-tabbar .tabbar { display: none; } .app.no-tabbar .content { padding-bottom: var(--sp-6); } html:has(.app.no-tabbar) { --tabbar-space: 0px; } }
+/* With no bar at the bottom, the bar along the top keeps the search (a round button that opens
+   across it while in use) and the profile, beside a row that holds every tab. */
+@media (max-width: 700px) {
+  .app.no-tabbar .topbar .search { display: flex; flex: none; width: 40px; min-width: 40px; }
+  .app.no-tabbar .topbar .search input { height: 40px; padding: 0 0 0 40px; cursor: pointer; background: var(--bg-3); }
+  .app.no-tabbar .topbar .search input::placeholder { color: transparent; }
+  .app.no-tabbar .topbar .search:focus-within { position: absolute; left: var(--sp-4); right: var(--sp-4); width: auto; z-index: 3; }
+  .app.no-tabbar .topbar .search:focus-within input { padding-right: var(--sp-4); cursor: text; box-shadow: var(--e-3); }
+  .app.no-tabbar .topbar .search:focus-within input::placeholder { color: var(--fg-3); }
+  .app.no-tabbar .topbar .profile-menu { display: flex; margin-left: 0; }
+}
 .pic-rail .s { width: 8%; }
 .pic-rail .t { display: none; }
 .pic-rail .c { left: 14%; top: 10%; bottom: 40%; }

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"hash/fnv"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -98,10 +99,21 @@ func (s *Server) foundSeparator(ctx context.Context, again bool) *separator.Foun
 	k.mu.Lock()
 	defer k.mu.Unlock()
 	if again || k.looked.IsZero() || (k.found == nil && time.Since(k.looked) > karaokeLookAgain) {
+		first := k.looked.IsZero()
 		k.found = separatorDiscover(ctx)
 		k.looked = time.Now()
-		if k.found != nil && s.Log != nil {
-			s.Log.Info("a stem separator was found", "cat", "library", "name", k.found.Name, "version", k.found.Version, "path", k.found.Path)
+		switch {
+		case s.Log == nil:
+		case k.found != nil:
+			s.Log.Info("a stem separator was found", "cat", "extras", "name", k.found.Name, "version", k.found.Version, "path", k.found.Path)
+		default:
+			// Said once at Info (and when an administrator asks again), then at Debug every
+			// time it looks again: most servers have none, and that's fine.
+			lv := slog.LevelDebug
+			if first || again {
+				lv = slog.LevelInfo
+			}
+			s.Log.Log(ctx, lv, "no stem separator found", "cat", "extras", "dirs", strings.Join(separator.Options{}.SearchDirs(), string(filepath.ListSeparator)))
 		}
 	}
 	return k.found
@@ -464,7 +476,7 @@ func (s *Server) karaokeCap(ctx context.Context) int64 {
 func (s *Server) karaokeTidy(ctx context.Context, it *library.Item) {
 	n, freed := mediaextras.EvictKaraoke(s.extrasRoot(), s.karaokeCap(context.WithoutCancel(ctx)), mediaextras.Key(it.ID, it.Path))
 	if n > 0 {
-		s.Log.Info("old karaoke versions were cleared to make room", "cat", "library", "songs", n, "bytes", freed)
+		s.Log.Info("old karaoke versions were cleared to make room", "cat", "extras", "songs", n, "bytes", freed)
 	}
 }
 

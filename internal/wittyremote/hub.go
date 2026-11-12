@@ -207,6 +207,10 @@ func (s *Sub) Close() {
 // Hub is who is here. The zero value isn't usable: New makes one.
 type Hub struct {
 	Limits Limits
+	// OnDrop, when set, is told each device the hub forgets and why: "expired" (it never
+	// opened its channel), "idle" (it went quiet), "removed" or "signed-out". It is called
+	// with the hub's lock held, so it must not call the hub.
+	OnDrop func(d Device, why string)
 	now    func() time.Time
 	newID  func() string
 
@@ -262,6 +266,9 @@ func (h *Hub) drop(d *device, why string) {
 		d.conn = nil
 	}
 	h.failPending(d.ID, &CommandError{CodeOffline, "That device has gone."})
+	if h.OnDrop != nil {
+		h.OnDrop(d.Device, why)
+	}
 	delete(h.devices, d.ID)
 	if h.byUser[d.UserID]--; h.byUser[d.UserID] <= 0 {
 		delete(h.byUser, d.UserID)

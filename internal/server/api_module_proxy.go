@@ -203,7 +203,7 @@ func (s *Server) handleWittyPlayKasm(w http.ResponseWriter, r *http.Request) {
 	}
 	modmgr.ProxyToService(c, w, out, strings.TrimPrefix(r.URL.Path, wittyPlayBase), func(err error) {
 		// The error names the address it was for, and the address holds the ticket.
-		s.Log.Warn("modules: passing a desktop to WittyPlay", "err", redactPath(err.Error()))
+		s.Log.WarnContext(r.Context(), "could not pass a desktop to WittyPlay", "cat", "modules", "module", wittyPlayID, "err", redactPath(err.Error()))
 	}, func(resp *http.Response) error {
 		resp.Header.Del("Set-Cookie")
 		resp.Header.Del("Content-Security-Policy") // the one set above stands, alone
@@ -236,7 +236,7 @@ func (s *Server) passToWittyPlay(w http.ResponseWriter, r *http.Request, modify 
 	c, err := service.Dial(wittyPlayID)
 	if err != nil {
 		if !writeModuleMissing(w, err) {
-			s.Log.Warn("modules: reaching WittyPlay", "err", err)
+			s.Log.WarnContext(r.Context(), "could not reach WittyPlay", "cat", "modules", "module", wittyPlayID, "err", err)
 			writeErr(w, http.StatusBadGateway, "the module isn't answering")
 		}
 		return
@@ -260,7 +260,7 @@ func (s *Server) passToWittyPlay(w http.ResponseWriter, r *http.Request, modify 
 	w.Header().Del("Cache-Control")
 	path := strings.TrimPrefix(r.URL.Path, wittyPlayBase)
 	modmgr.ProxyToService(c, w, out, path, func(err error) {
-		s.Log.Warn("modules: passing a request to WittyPlay", "err", err)
+		s.Log.WarnContext(r.Context(), "could not pass a request to WittyPlay", "cat", "modules", "module", wittyPlayID, "err", err)
 	}, modify)
 }
 

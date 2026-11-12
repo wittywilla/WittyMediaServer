@@ -9,7 +9,7 @@
 //   WMS_SERVER=http://127.0.0.1:9869 WMS_NAME=... WMS_PASS=... node scripts/test-photo-map.mjs out-folder
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-const { launch } = await import(new URL((process.env.WITTYVISUALIZER || '../../../WittyVisualizer') + '/tests/cdp.mjs', import.meta.url))
+const { launch } = await import(process.env.WITTYVISUALIZER ? new URL(process.env.WITTYVISUALIZER + '/tests/cdp.mjs', import.meta.url).href : './cdp.mjs')
 
 const server = process.env.WMS_SERVER || 'http://127.0.0.1:9869'
 const [out = '.'] = process.argv.slice(2)

@@ -483,6 +483,12 @@ func (rv *sduiResolver) Items(req sdui.SourceRequest) (sdui.SourceResult, error)
 			all = append(all, rv.show(sh))
 		}
 		return page(all, req), nil
+	case "liked":
+		return rv.liked(src, req, lib)
+	case "statistics":
+		return rv.statistics(src, req, lib)
+	case "books":
+		return rv.books(src, req, lib)
 	case "savedView":
 		id, _ := strconv.ParseInt(src.Str("view"), 10, 64)
 		views, err := s.Store.SavedViews(rv.ctx, rv.u.ID)
@@ -893,6 +899,16 @@ func (rv *sduiResolver) Each(over string, kinds []string, limit int) ([]sdui.Eac
 				out = append(out, sdui.Each{Key: itoa(c.ID), Label: c.Name})
 			}
 		}
+	case "bookSeries", "bookAuthors":
+		by := "series"
+		if over == "bookAuthors" {
+			by = "author"
+		}
+		list, err := rv.bookGroups(by)
+		if err != nil {
+			return nil, err
+		}
+		out = list
 	}
 	if len(out) > limit && limit > 0 {
 		out = out[:limit]
@@ -1124,6 +1140,7 @@ func (s *Server) sduiTopShelfRows(r *http.Request) []sdui.TopShelfRow {
 	if res, _ := rv.Items(sdui.SourceRequest{Source: sdui.Source{"type": "continueWatching", "media": "watch"}, Limit: sdui.MaxTopShelfItems}); len(res.Items) > 0 {
 		rows = append(rows, sdui.TopShelfRow{Title: "Continue watching", Items: res.Items})
 	}
+	rows = append(rows, s.topShelfModuleRows(r, rv)...)
 	for _, lib := range rv.libraries() {
 		if len(rows) >= sdui.MaxTopShelfSections {
 			break

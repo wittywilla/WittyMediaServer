@@ -173,7 +173,7 @@ function AppFrame() {
       <a className="skip-link" data-nav-skip href="#main">Skip to content</a>
       <Sidebar open={open} rail={rail} drawer={!wide} onClose={() => setDrawer(false)} />
       <div className="main">
-        <TopBar onMenu={toggle} showMenu={side || !wide} topNav={style !== 'side'} menuOpen={open} wide={wide} />
+        <TopBar onMenu={toggle} showMenu={side || !wide} topNav={style !== 'side'} menuOpen={open} wide={wide} allTabs={!frame.tabBar} />
         <LegalAckBar />
         <PlainAwayBar />
         <main className="content" id="main" tabIndex={-1}>

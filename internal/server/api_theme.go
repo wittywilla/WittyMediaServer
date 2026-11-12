@@ -121,10 +121,8 @@ const (
 // themeScheme is "dark" or "light" for a theme, from its own theme.json.
 func (s *Server) themeScheme(id string) string {
 	if s.Themes != nil {
-		for _, m := range s.Themes.List() {
-			if m.ID == id && (m.Scheme == "light" || m.Scheme == "dark") {
-				return m.Scheme
-			}
+		if m, ok := s.Themes.One(id); ok {
+			return m.Scheme
 		}
 	}
 	if id == autoLight {
@@ -444,7 +442,7 @@ func (s *Server) handleThemeGlobalPut(w http.ResponseWriter, r *http.Request) {
 			}
 			return nil
 		}); err != nil {
-			writeUIStoreErr(w, err)
+			s.writeUIStoreErr(w, r, "server theme", err)
 			return
 		}
 	}
@@ -454,7 +452,7 @@ func (s *Server) handleThemeGlobalPut(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	s.Log.InfoContext(r.Context(), "server theme changed", "cat", "ui", "by", adminName(r))
+	s.Log.InfoContext(r.Context(), "server theme changed", "cat", "sdui", "by", adminName(r), "theme", id, "tokens", b.Tokens != nil)
 	s.answerTheme(w, r)
 }
 
@@ -559,10 +557,14 @@ func (s *Server) setModuleTokens(w http.ResponseWriter, r *http.Request, mod str
 		return nil
 	})
 	if err != nil {
-		writeUIStoreErr(w, err)
+		s.writeUIStoreErr(w, r, "module colours", err)
 		return
 	}
-	s.Log.InfoContext(r.Context(), "module colours changed", "cat", "ui", "module", mod, "by", adminName(r))
+	if len(toks) == 0 {
+		s.Log.InfoContext(r.Context(), "module colours reset", "cat", "sdui", "module", mod, "by", adminName(r))
+	} else {
+		s.Log.InfoContext(r.Context(), "module colours changed", "cat", "sdui", "module", mod, "by", adminName(r), "tokens", len(toks))
+	}
 	writeJSONTagged(w, 200, cfg.ETag, s.moduleView(r, mod, cfg))
 }
 

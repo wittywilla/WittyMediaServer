@@ -124,7 +124,7 @@ export default function LogSettings() {
         <span>{view.flight ? 'Something just went wrong? Keep the last 10 minutes, in full detail, before they’re gone.' : 'Something just went wrong? Keep what every part of the server is doing right now.'}</span>
         <button type="button" className="btn sm" disabled={saving} onClick={() => void saveNow()}>{saving ? 'Saving…' : 'Save what just happened'}</button>
       </p>
-      {tab === 'viewer' && <Viewer categories={view.categories} modules={view.modules} onHealth={onHealth} />}
+      {tab === 'viewer' && <Viewer categories={view.categories} modules={view.modules} kinds={view.kinds || []} onHealth={onHealth} />}
       {tab === 'levels' && <WhatToLog view={view} onView={onView} />}
       {tab === 'modules' && <LogModules view={view} onView={onView} />}
       {tab === 'files' && <Files view={view} onView={onView} reload={() => void load()} />}

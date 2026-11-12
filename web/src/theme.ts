@@ -54,7 +54,19 @@ let wanted = ''
 let resolved: ResolvedTheme | null = null
 let moduleNow = ''
 let overrideProps: string[] = []
+// The experience's finish on <html>, for design2.css to answer: which experience, its type set, its effects (glass,
+// gloss, glow, texture, bevel: none, subtle or full) and its density, until this device chooses its own.
+const EFFECTS = ['glass', 'gloss', 'glow', 'texture', 'bevel']
+function applyLook(look: ResolvedTheme['look']) {
+  const d = document.documentElement.dataset
+  if (!look) { delete d.experience; delete d.type; for (const e of EFFECTS) delete d['fx' + e[0].toUpperCase() + e.slice(1)]; return }
+  d.experience = look.experience
+  d.type = look.type || 'system'
+  for (const e of EFFECTS) d['fx' + e[0].toUpperCase() + e.slice(1)] = look.effects?.[e] || 'none'
+  if (look.density && !localStorage.getItem('wms.density')) { if (look.density === 'comfortable') delete d.density; else d.density = look.density }
+}
 function applyOverrides() {
+  applyLook(resolved?.look)
   const root = document.documentElement.style
   for (const p of overrideProps) root.removeProperty(p)
   overrideProps = []
@@ -72,6 +84,8 @@ export async function loadThemeOverrides() {
   applyOverrides()
   return resolved
 }
+// The finished look the server sent: what is required of this profile shows locked in Settings.
+export const currentLook = () => resolved?.look
 export function clearThemeOverrides() { resolved = null; applyOverrides() }
 // setThemeModule says which module's page is showing ("" for the server's own).
 export function setThemeModule(id: string) { if (id !== moduleNow) { moduleNow = id; applyOverrides() } }

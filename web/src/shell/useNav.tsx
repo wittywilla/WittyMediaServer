@@ -9,7 +9,7 @@ import { deletePersonal, fetchNavigation, getPersonal, keptNavigation, NAV_PERSO
 import type { Device } from '../sdui/device'
 import { fromOldNav } from '../sdui/personal'
 import { sduiIcon } from '../sdui/render/icons'
-import type { LayoutChoices, Navigation, Personal, Shell } from '../sdui/types'
+import type { ExperienceChoice, Navigation, Personal, Shell } from '../sdui/types'
 import { useDevice, useFeatures } from '../sdui/useSdui'
 import { useApp } from '../state'
 import { getUserPref, setUserPref, useUserPref } from '../ui/userPrefs'
@@ -158,7 +158,7 @@ export type MenuState = {
   // How the server says to draw the app's frame on this device, and the layouts this profile
   // may choose here (docs/SDUI.md, "Layout options"); absent against a server without them.
   shell?: Shell
-  layouts?: LayoutChoices
+  experiences?: ExperienceChoice
   save: (order: string[], hidden: string[]) => Promise<void>
   reset: () => Promise<void>
 }
@@ -203,7 +203,7 @@ export function useMenu(): MenuState {
       rows.sort((a, b) => (pos.get(a.id) ?? order.length + base.get(a.id)!) - (pos.get(b.id) ?? order.length + base.get(b.id)!))
     }
     return {
-      server: true, all, rows, shell: srv.nav?.shell, layouts: srv.nav?.layouts,
+      server: true, all, rows, shell: srv.nav?.shell, experiences: srv.nav?.experiences,
       items: all.filter((it) => it.screen !== 'settings' && it.screen !== 'profiles' && it.id !== 'search' && it.to !== '/search'),
       editable: !!srv.nav?.personal?.editable,
       save: async (o, h) => { kept = { ...kept, personal: { order: o, hidden: h } }; await putPersonal(NAV_PERSONAL, { order: o, hidden: h.filter((id) => id !== 'settings') }) },

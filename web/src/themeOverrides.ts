@@ -6,9 +6,13 @@
 // to one module. This is the part of it that needs no page: what to set, and where a page
 // belongs. theme.ts puts the result on <html>.
 
+export type RequiredValue = { value: string; by?: string; at?: string; scope: string }
+export type Look = { experience: string; theme: string; requiredExperience?: RequiredValue; requiredTheme?: RequiredValue; tvTheme?: string; effects?: Record<string, string>; shape?: { radius?: number; cardSet?: string }; type?: string; density?: string; motion?: Record<string, unknown> }
 export type ResolvedTheme = {
   id: string
-  source: 'server' | 'user'
+  source: 'server' | 'user' | 'required' | 'trial'
+  // The finished look: the experience and theme in force and what an administrator requires (docs/THEMES.md).
+  look?: Look
   overrides: Record<string, string>
   // The whole palette (a server that has modules' own colours sends it).
   tokens?: Record<string, string>

@@ -3,7 +3,7 @@
 // What the server sends for a server-driven page (docs/SDUI.md, catalogue revision 5).
 // Plain data: nothing here touches the page.
 
-export const CATALOG = 5
+export const CATALOG = 6
 export const VERSION = 1
 
 export type Props = Record<string, unknown>
@@ -117,9 +117,10 @@ export type NavItem = {
   placement: string // primary | more | end
 }
 
-// layouts: what this profile may choose on this device, for the Layout row in Settings (docs/SDUI.md, "Layout options").
-export type LayoutChoices = { current: string; chosen?: string; options: { value: string; label: string }[]; url: string }
-export type Navigation = { version: number; formFactor: string; etag?: string; items: NavItem[]; personal?: PersonalInfo; shell?: Shell; layouts?: LayoutChoices }
+// experiences: what this profile may choose on this device, for the Look row in Settings (docs/SDUI.md, "Experiences").
+export type Required = { value: string; by?: string; at?: string; scope: string }
+export type ExperienceChoice = { current: string; chosen?: string; options: { value: string; label: string }[]; url: string; required?: Required }
+export type Navigation = { version: number; formFactor: string; etag?: string; items: NavItem[]; personal?: PersonalInfo; shell?: Shell; experiences?: ExperienceChoice }
 
 // The spec's fallback profile, for a document that came without one: the web's.
 export const WEB_LAYOUT: Layout = {

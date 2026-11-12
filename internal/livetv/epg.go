@@ -342,8 +342,8 @@ func (m *Manager) fetch(ctx context.Context, id int64, place, auth string, clien
 		}
 		defer tx.Rollback()
 		for _, p := range batch {
-			if _, err := tx.ExecContext(ctx, `INSERT OR REPLACE INTO epg_programmes(channel, start, stop, title, sub, descr, category, rating, season, episode, source)
-				VALUES(?,?,?,?,?,?,?,?,?,?,?)`, p.Channel, p.Start.Unix(), p.Stop.Unix(), clip(p.Title, 300), clip(p.Sub, 300), clip(p.Desc, 2000), clip(p.Category, 80), clip(p.Rating, 30), p.Season, p.Episode, coming); err != nil {
+			if _, err := tx.ExecContext(ctx, `INSERT OR REPLACE INTO epg_programmes(channel, start, stop, title, sub, descr, category, rating, season, episode, source, extra)
+				VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`, p.Channel, p.Start.Unix(), p.Stop.Unix(), clip(p.Title, 300), clip(p.Sub, 300), clip(p.Desc, 2000), clip(p.Category, 80), clip(p.Rating, 30), p.Season, p.Episode, coming, detailsJSON(p.Details)); err != nil {
 				return err
 			}
 		}

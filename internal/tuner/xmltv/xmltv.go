@@ -35,7 +35,54 @@ type Programme struct {
 	Season   *int
 	Episode  *int
 	Year     int
+	// Details is the rest of what a guide says about a programme, for its More info.
+	Details Details
 }
+
+// Details is what a guide says about a programme beyond its line in the grid. Each part is
+// bounded, so a guide that says a great deal still costs little.
+type Details struct {
+	Year         int      `json:"year,omitempty"`
+	Categories   []string `json:"categories,omitempty"`
+	Credits      []Credit `json:"credits,omitempty"`
+	Stars        []Star   `json:"stars,omitempty"`
+	Language     string   `json:"language,omitempty"`
+	OrigLanguage string   `json:"origLanguage,omitempty"`
+	Country      string   `json:"country,omitempty"`
+	LengthMin    int      `json:"lengthMin,omitempty"`
+	Subtitles    []string `json:"subtitles,omitempty"` // languages, or the kind when none is named
+	SignLanguage bool     `json:"signLanguage,omitempty"`
+	Audio        string   `json:"audio,omitempty"` // mono, stereo, dolby, dolby digital, bilingual, surround
+	HD           bool     `json:"hd,omitempty"`
+	Premiere     bool     `json:"premiere,omitempty"`
+	New          bool     `json:"new,omitempty"`
+	Repeat       bool     `json:"repeat,omitempty"`
+	Keywords     []string `json:"keywords,omitempty"`
+	IMDb         string   `json:"imdb,omitempty"` // tt…
+	TMDb         string   `json:"tmdb,omitempty"` // movie/123 or tv/123
+}
+
+// Credit is one person a guide credits: Role is director, actor, writer, adapter, producer,
+// composer, editor, presenter, commentator or guest.
+type Credit struct {
+	Role      string `json:"role"`
+	Name      string `json:"name"`
+	Character string `json:"character,omitempty"`
+	Guest     bool   `json:"guest,omitempty"`
+}
+
+// Star is a score as the guide gives it, "8.1/10", with who gave it.
+type Star struct {
+	Value  string `json:"value"`
+	System string `json:"system,omitempty"`
+}
+
+// How much of a programme's details are kept.
+const (
+	maxCredits   = 40
+	maxListItems = 8
+	maxDetail    = 120
+)
 
 // MaxBytes bounds what Parse will read, even from a compressed file.
 const MaxBytes = 1 << 30
@@ -66,6 +113,39 @@ type xmlProgramme struct {
 	Rating   []struct {
 		Value string `xml:"value"`
 	} `xml:"rating"`
+	Credits *struct {
+		People []struct {
+			XMLName xml.Name
+			Role    string `xml:"role,attr"`
+			Guest   string `xml:"guest,attr"`
+			Name    string `xml:",chardata"`
+		} `xml:",any"`
+	} `xml:"credits"`
+	Stars []struct {
+		System string `xml:"system,attr"`
+		Value  string `xml:"value"`
+	} `xml:"star-rating"`
+	Language     []string `xml:"language"`
+	OrigLanguage []string `xml:"orig-language"`
+	Country      []string `xml:"country"`
+	Length       []struct {
+		Units string `xml:"units,attr"`
+		Value string `xml:",chardata"`
+	} `xml:"length"`
+	Subtitles []struct {
+		Type     string   `xml:"type,attr"`
+		Language []string `xml:"language"`
+	} `xml:"subtitles"`
+	Audio []struct {
+		Stereo string `xml:"stereo"`
+	} `xml:"audio"`
+	Video []struct {
+		Quality string `xml:"quality"`
+	} `xml:"video"`
+	Premiere *struct{} `xml:"premiere"`
+	New      *struct{} `xml:"new"`
+	Repeat   *struct{} `xml:"previously-shown"`
+	Keywords []string  `xml:"keyword"`
 }
 
 // Parse reads a guide, gzipped or not, calling back for each element. A
@@ -149,15 +229,129 @@ func convert(p xmlProgramme) (Programme, bool) {
 		out.Year, _ = strconv.Atoi(p.Date[:4])
 	}
 	for _, e := range p.Episodes {
-		if e.System == "xmltv_ns" {
+		switch e.System {
+		case "xmltv_ns":
 			out.Season, out.Episode = parseNS(e.Value)
-			break
-		}
-		if e.System == "onscreen" && out.Season == nil {
-			out.Season, out.Episode = parseOnscreen(e.Value)
+		case "onscreen":
+			if out.Season == nil {
+				out.Season, out.Episode = parseOnscreen(e.Value)
+			}
+		case "imdb.com":
+			out.Details.IMDb = imdbID(e.Value)
+		case "themoviedb.org":
+			out.Details.TMDb = tmdbID(e.Value)
 		}
 	}
+	out.Details = details(p, out.Details)
+	out.Details.Year = out.Year
 	return out, true
+}
+
+// details reads the rest of a programme, keeping each part short.
+func details(p xmlProgramme, d Details) Details {
+	for i, c := range p.Category {
+		if c = clip(c); i > 0 && c != "" && len(d.Categories) < maxListItems {
+			d.Categories = append(d.Categories, c)
+		}
+	}
+	if p.Credits != nil {
+		for _, c := range p.Credits.People {
+			name := clip(c.Name)
+			role := c.XMLName.Local
+			if name == "" || len(d.Credits) >= maxCredits || !creditRoles[role] {
+				continue
+			}
+			d.Credits = append(d.Credits, Credit{Role: role, Name: name, Character: clip(c.Role), Guest: c.Guest == "yes" || role == "guest"})
+		}
+	}
+	for _, st := range p.Stars {
+		if v := clip(st.Value); v != "" && len(d.Stars) < maxListItems {
+			d.Stars = append(d.Stars, Star{Value: v, System: clip(st.System)})
+		}
+	}
+	d.Language, d.OrigLanguage, d.Country = first(p.Language), first(p.OrigLanguage), first(p.Country)
+	if len(p.Length) > 0 {
+		n, _ := strconv.Atoi(strings.TrimSpace(p.Length[0].Value))
+		switch strings.TrimSpace(p.Length[0].Units) {
+		case "hours":
+			n *= 60
+		case "seconds":
+			n /= 60
+		}
+		if n > 0 && n < 24*60 {
+			d.LengthMin = n
+		}
+	}
+	for _, sub := range p.Subtitles {
+		if sub.Type == "deaf-signed" {
+			d.SignLanguage = true
+			continue
+		}
+		langs := sub.Language
+		if len(langs) == 0 {
+			langs = []string{sub.Type}
+		}
+		for _, l := range langs {
+			if l = clip(l); l != "" && len(d.Subtitles) < maxListItems {
+				d.Subtitles = append(d.Subtitles, l)
+			}
+		}
+	}
+	if len(p.Audio) > 0 {
+		d.Audio = clip(p.Audio[0].Stereo)
+	}
+	for _, v := range p.Video {
+		if q := strings.ToUpper(strings.TrimSpace(v.Quality)); q == "HDTV" || q == "UHD" || strings.Contains(q, "1080") || strings.Contains(q, "720") || strings.Contains(q, "2160") {
+			d.HD = true
+		}
+	}
+	d.Premiere, d.New, d.Repeat = p.Premiere != nil, p.New != nil, p.Repeat != nil
+	for _, k := range p.Keywords {
+		if k = clip(k); k != "" && len(d.Keywords) < maxListItems {
+			d.Keywords = append(d.Keywords, k)
+		}
+	}
+	return d
+}
+
+var creditRoles = map[string]bool{"director": true, "actor": true, "writer": true, "adapter": true, "producer": true,
+	"composer": true, "editor": true, "presenter": true, "commentator": true, "guest": true}
+
+func first(v []string) string {
+	if len(v) == 0 {
+		return ""
+	}
+	return clip(v[0])
+}
+
+func clip(s string) string {
+	s = strings.Join(strings.Fields(s), " ")
+	if r := []rune(s); len(r) > maxDetail {
+		s = string(r[:maxDetail])
+	}
+	return s
+}
+
+// imdbID keeps an IMDb title id ("tt0123456"), from an id or an address.
+func imdbID(v string) string {
+	for _, part := range strings.FieldsFunc(v, func(r rune) bool { return r == '/' || r == ' ' }) {
+		if len(part) > 2 && len(part) < 16 && strings.HasPrefix(part, "tt") && strings.Trim(part[2:], "0123456789") == "" {
+			return part
+		}
+	}
+	return ""
+}
+
+// tmdbID keeps "movie/123" or "tv/123", as TMDB names a title.
+func tmdbID(v string) string {
+	parts := strings.Split(strings.Trim(strings.TrimSpace(v), "/"), "/")
+	for i := 0; i+1 < len(parts); i++ {
+		kind, id := parts[i], parts[i+1]
+		if (kind == "movie" || kind == "tv") && id != "" && len(id) < 12 && strings.Trim(id, "0123456789") == "" {
+			return kind + "/" + id
+		}
+	}
+	return ""
 }
 
 // ParseTime reads "20061231235959 +0100"; every part after the date is

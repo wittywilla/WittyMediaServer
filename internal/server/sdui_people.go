@@ -53,7 +53,12 @@ func (rv *sduiResolver) credits(src sdui.Source, req sdui.SourceRequest) (sdui.S
 	s := rv.s
 	var c *library.Credits
 	var err error
-	if ref := src.Str("item"); ref != "" && !strings.HasPrefix(ref, "show-") {
+	if ref := src.Str("programme"); ref != "" {
+		// A WittyTV programme's: see programmeCredits (api_tvprogramme.go).
+		if c, err = s.programmeCredits(rv.r, ref); err != nil {
+			return sdui.SourceResult{}, nil
+		}
+	} else if ref := src.Str("item"); ref != "" && !strings.HasPrefix(ref, "show-") {
 		id, perr := strconv.ParseInt(ref, 10, 64)
 		if perr != nil {
 			return sdui.SourceResult{}, nil

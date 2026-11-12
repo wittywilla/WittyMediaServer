@@ -25,6 +25,7 @@ import { setPageMove } from '../tv'
 import type { Action, Document, Node } from './types'
 import { useDevice } from './useSdui'
 import './sdui.css'
+import './play.css'
 
 const Customise = lazy(() => import('./Customise'))
 const CardMenu = lazy(() => import('./render/CardMenu'))

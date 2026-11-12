@@ -15,6 +15,7 @@ import { LinkButton } from './ui'
 import { AudioProvider } from './audio/player'
 import ConnectServer from './components/ConnectServer'
 import AuthPage from './pages/AuthPage'
+import { regionOn, StatusBar, SystemDock } from './shell/PlayChrome'
 import { PlayerDock } from './player/PlayerPage'
 import { Announcer, useDialogs } from './a11y'
 import LegalNote, { legalAckText } from './components/LegalNote'
@@ -39,6 +40,7 @@ const HomePage = lazy(() => import('./pages/HomePage'))
 const PairPage = lazy(() => import('./pages/PairPage'))
 const SharedPage = lazy(() => import('./pages/SharedPage'))
 const DesignPage = lazy(() => import('./pages/DesignPage'))
+const DesignPlay = lazy(() => import('./pages/DesignPlay'))
 const GapsReview = lazy(() => import('./spec/GapsReview'))
 const HelpPage = lazy(() => import('./pages/HelpPage'))
 const HelpPublicPage = lazy(() => import('./pages/HelpPage').then((m) => ({ default: m.HelpPublicPage })))
@@ -190,6 +192,7 @@ function AppFrame() {
       <Sidebar open={open} rail={rail} drawer={!wide} onClose={() => setDrawer(false)} withDrawer={frame.drawer} />
       <div className="main">
         <TopBar onMenu={toggle} showMenu={side || !wide} topNav={style !== 'side'} menuOpen={open} wide={wide} allTabs={!frame.tabBar} />
+        {regionOn(menu.shell, 'statusBar') && <StatusBar line="WittyPlay Online" />}
         <LegalAckBar />
         <PlainAwayBar />
         <main className="content" id="main" data-nav-zone="stage" tabIndex={-1}>
@@ -197,6 +200,7 @@ function AppFrame() {
           <LegalNote kind="general" className="legal-foot" />
           <footer className="page-foot"><VersionTag version={version} /></footer>
         </main>
+        {regionOn(menu.shell, 'systemDock') && menu.shell?.systemDock && <SystemDock entries={menu.shell.systemDock} />}
       </div>
       <TabBar onMenu={() => setDrawer(true)} />
     </div>
@@ -251,6 +255,7 @@ export function PageRoutes() {
       <Route path="/help" element={<Suspense fallback={<Spinner />}><HelpPage /></Suspense>} />
       <Route path="/help/:guide" element={<Suspense fallback={<Spinner />}><HelpPage /></Suspense>} />
       <Route path="/design" element={<DesignPage />} />
+      <Route path="/design/play" element={<Suspense fallback={<Spinner />}><DesignPlay /></Suspense>} />
       <Route path="/design/gaps" element={<Suspense fallback={<Spinner />}><GapsReview /></Suspense>} />
       <Route path="/design/gaps/:key" element={<Suspense fallback={<Spinner />}><GapsReview /></Suspense>} />
       <Route path="*" element={<NotFound />} />

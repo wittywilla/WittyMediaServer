@@ -85,6 +85,17 @@ type StoreItem struct {
 	Changelog   string   `json:"changelog,omitempty"`
 	MinServer   string   `json:"minServer,omitempty"`
 	MaxServer   string   `json:"maxServer,omitempty"`
+	// What kind of module it is: its delivery (helper, web, program, library), or builtin for a
+	// part that updates with the server. Kind above says where it comes from.
+	ModuleKind string `json:"moduleKind,omitempty"`
+	// How finished the offered version says it is (stable, beta, experimental, incomplete), and
+	// what isn't done, as the catalogue copies them; the downloaded manifest decides.
+	ReleaseStatus string `json:"releaseStatus,omitempty"`
+	StatusNote    string `json:"statusNote,omitempty"`
+	// The SDUI the offered version adds to every app, as the catalogue sums it up.
+	UI *StoreUI `json:"ui,omitempty"`
+	// The override the version in use was installed with, when it was.
+	Override *OverrideInfo `json:"override,omitempty"`
 
 	Fit     Fit      `json:"fit"`
 	Status  *Status  `json:"status,omitempty"`
@@ -187,7 +198,7 @@ func platformsOf(v *wittymodule.CatalogVersion) []string {
 func mediaURL(store, sha string) string { return "/api/modulestore/media/" + store + "/" + sha }
 
 // fillListing copies what a catalogue says of a module, cleaning it when it's a third party's.
-func (s *Stores) fillListing(it *StoreItem, mod *wittymodule.CatalogModule, clean func(string) string) {
+func (s *Stores) fillListing(it *StoreItem, cat *wittymodule.Catalog, mod *wittymodule.CatalogModule, clean func(string) string) {
 	it.Name, it.Summary, it.Description = clean(mod.Name), clean(mod.Summary), clean(mod.Description)
 	it.Group, it.Repo, it.Libraries, it.Requires, it.Core = mod.Group, mod.Repo, mod.Libraries, mod.Requires, mod.Core
 	it.Updates, it.Stays = clean(mod.Updates), clean(mod.Stays)
@@ -213,6 +224,33 @@ func (s *Stores) fillListing(it *StoreItem, mod *wittymodule.CatalogModule, clea
 	if f := v.Platform(runtime.GOOS, runtime.GOARCH); f != nil {
 		it.Size = f.Size
 	}
+	it.ModuleKind = v.Delivery
+	x := extraOf(cat, mod.ID, v.Version)
+	it.ReleaseStatus, it.StatusNote, it.UI = x.Status, x.StatusNote, x.UI
+}
+
+// finishItem fills in what comes from the module's state on this server.
+func finishItem(it *StoreItem) {
+	if it.ModuleKind == "" {
+		it.ModuleKind = it.Delivery
+	}
+	if it.Status != nil && it.Status.Override != nil {
+		it.Override = it.Status.Override
+	}
+}
+
+// MatchesKinds says whether an item is of one of the kinds asked for: a comma-separated list
+// of moduleKind values, any of them; empty matches everything.
+func (it *StoreItem) MatchesKinds(kinds string) bool {
+	if strings.TrimSpace(kinds) == "" {
+		return true
+	}
+	for k := range strings.SplitSeq(kinds, ",") {
+		if strings.EqualFold(strings.TrimSpace(k), it.ModuleKind) {
+			return true
+		}
+	}
+	return false
 }
 
 // failureFor is what's wrong with a module now, if anything. A failed install comes first, then
@@ -253,7 +291,9 @@ func (s *Stores) View() StoreView {
 		st := &rep.Modules[i]
 		statuses[st.ID] = st
 		names[nameSkeleton(st.Name)] = st.ID
-		v.Items = append(v.Items, s.officialItem(st, cat))
+		it := s.officialItem(st, cat)
+		finishItem(&it)
+		v.Items = append(v.Items, it)
 	}
 
 	s.mu.Lock()
@@ -274,7 +314,9 @@ func (s *Stores) View() StoreView {
 			continue
 		}
 		for j := range e.cat.Modules {
-			v.Items = append(v.Items, s.thirdPartyItem(e, &e.cat.Modules[j], known, names, statuses))
+			it := s.thirdPartyItem(e, &e.cat.Modules[j], known, names, statuses)
+			finishItem(&it)
+			v.Items = append(v.Items, it)
 		}
 	}
 	return v
@@ -298,7 +340,7 @@ func (s *Stores) officialItem(st *Status, cat *wittymodule.Catalog) StoreItem {
 		if mod := cat.Find(st.ID); mod != nil {
 			pub, desc := it.Publisher, it.Description
 			was := it.Fit
-			s.fillListing(&it, mod, func(x string) string { return x })
+			s.fillListing(&it, cat, mod, func(x string) string { return x })
 			if pub != nil {
 				it.Publisher = pub
 			}
@@ -323,7 +365,7 @@ func (s *Stores) officialItem(st *Status, cat *wittymodule.Catalog) StoreItem {
 
 func (s *Stores) thirdPartyItem(e *storeEntry, mod *wittymodule.CatalogModule, known map[string]bool, names map[string]string, statuses map[string]*Status) StoreItem {
 	it := StoreItem{Key: e.ID + "/" + mod.ID, Store: e.ID, StoreName: cleanText(e.cat.Name), StoreHost: hostOf(e.URL), ID: mod.ID}
-	s.fillListing(&it, mod, cleanText)
+	s.fillListing(&it, e.cat, mod, cleanText)
 	it.Kind, it.Why = s.kindOf(mod.ID, known)
 	if it.Kind != KindFork {
 		it.Fit = Fit{Kind: it.Kind, Why: it.Why}

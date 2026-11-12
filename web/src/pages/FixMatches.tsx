@@ -6,15 +6,18 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { api, artPreviewUrl } from '../api'
 import { announce } from '../a11y'
 import EditDetails from '../components/edit/EditDetails'
-import { ConfidenceMeter, PreviewTable, ResultRow } from '../components/edit/MatchPanel'
+import { ConfidenceMeter, PreviewTable, sourceName } from '../components/edit/MatchPanel'
 import { EmptyState, LoadError, Spinner } from '../components/common'
 import LegalNote from '../components/LegalNote'
 import { IconCheck, IconPlus, IconTrash } from '../icons'
-import { Button, Card, Chip, Chips, Dialog, IconButton, Notice, Select, Tabs } from '../ui'
+import { Button, Card, Dialog, IconButton, Select, Tabs } from '../ui'
+import SpecPage from '../spec/SpecPage'
+import { handledIds } from '../spec/model'
+import { detailSpec, tabsSpec, toolsSpec } from '../spec/specs/fixMatches'
+
 import { undoBatch, type EpisodeMap, type EpisodeRow, type HistoryEntry, type MatchCandidate, type MatchPreview, type MatchRule, type QueueResult, type QueueRow, type RuleTry, type SearchResult, type Target } from '../metadata'
 import { toast, useApp } from '../state'
 import BulkEdit from './library/BulkEdit'
-import { WebLink } from '../components/WebLink'
 import './library/library.css'
 import './fixmatches.css'
 
@@ -152,21 +155,19 @@ function ReviewPage({ library, tab, setTab }: { library: number; tab: string; se
     } catch (e: any) { toast(e.message) }
   }
   const sure = rows.filter((r) => (r.suggestions?.[0]?.score ?? 0) >= 90)
+  const tabsPage = useMemo(() => tabsSpec(TABS, q?.counts, tab), [q, tab])
+  const toolsPage = useMemo(() => toolsSpec(search, job, sure.length), [search, job, sure.length])
   return (
     <>
-      <Chips label="Which titles" className="fm-tabs">
-        {TABS.map(([k, l]) => <Chip key={k} selected={tab === k} onClick={() => setTab(k)}>{l}{q && k !== 'removed' && q.counts[k] != null ? ` ${q.counts[k]}` : ''}</Chip>)}
-      </Chips>
+      <SpecPage embedded className="fm-tabs" page={tabsPage} handled={handledIds(tabsPage)} onAction={(id) => setTab(id.slice(4))} />
       {tab === 'removed' ? <RemovedList library={library} /> : (
         <>
-          <div className="fm-actions">
-            <input className="input fm-search" aria-label="Find a title in this list" placeholder="Find a title" value={search} onChange={(e) => setSearch(e.target.value)} />
-            {job?.running
-              ? <span className="fm-job" role="status">Finding suggestions: {job.done} of {job.total}{job.current ? `, ${job.current}` : ''}
-                  <Button size="sm" variant="ghost" onClick={() => api.del('/match/suggest-all').then(() => setJob(null))}>Stop</Button></span>
-              : <Button onClick={() => api.post<{ job: NonNullable<typeof job> }>('/match/suggest-all', { library }).then((r) => setJob(r.job)).catch((e) => toast(e.message))}>Find suggestions for all</Button>}
-            {sure.length > 1 && <Button onClick={() => { setChecked(new Set(sure.map(keyOf))) }}>Choose the {sure.length} that are 90% sure</Button>}
-          </div>
+          <SpecPage embedded className="fm-actions" page={toolsPage} handled={handledIds(toolsPage)} onField={(_, v) => setSearch(String(v))}
+            onAction={(id) => {
+              if (id === 'stop') api.del('/match/suggest-all').then(() => setJob(null))
+              else if (id === 'find') api.post<{ job: NonNullable<typeof job> }>('/match/suggest-all', { library }).then((r) => setJob(r.job)).catch((e) => toast(e.message))
+              else if (id === 'sure') setChecked(new Set(sure.map(keyOf)))
+            }} />
           {!q ? (failed ? <LoadError what="The list" onRetry={load} /> : <Spinner />) : rows.length === 0 ? (
             <EmptyState icon={<IconCheck />} title={tab === 'review' ? 'Nothing needs a look' : 'Nothing here'} text={tab === 'review' ? 'Everything here is matched, and matched well. A new scan may add more.' : undefined} />
           ) : (
@@ -276,6 +277,19 @@ function Detail({ r, ref_, topFor, setTopFor, onAccept, onLeave, onEdit, onRenum
     } catch (e: any) { setErr(e.message) }
   }
   const list = results?.results ?? known ?? []
+  const dpage = detailSpec({
+    state: r.state, target: r.target, reasons: r.reasons, matchedWith: r.provider ? r.sourceLabel : undefined, matchedUrl: r.provider ? r.url : undefined,
+    query, busy, err, warnings: results?.warnings ?? [], results: !!results,
+    list: list.map((c) => ({ title: c.title, year: c.year, kind: c.kind, rating: c.rating, score: c.score, source: c.source, sourceName: sourceName(c.source) })),
+  })
+  const press = (id: string) => {
+    if (id === 'edit') onEdit()
+    else if (id === 'renumber') onRenumber()
+    else if (id === 'leave') onLeave(r, r.state === 'low')
+    else if (id === 'go') search()
+    else if (id.startsWith('look:')) look(list[Number(id.slice(5))])
+    else if (id.startsWith('accept:')) onAccept(r, list[Number(id.slice(7))])
+  }
   return (
     <div className="fm-detail" ref={ref_} aria-label={`Fixing ${r.title}`} role="region">
       <header className="fm-detail-head">
@@ -283,40 +297,12 @@ function Detail({ r, ref_, topFor, setTopFor, onAccept, onLeave, onEdit, onRenum
           <h2>{r.title}{r.year ? ` (${r.year})` : ''}</h2>
           <p className="muted fm-file" title={r.file}>{r.file}</p>
         </div>
-        <div className="fm-detail-btns">
-          <Button onClick={onEdit}>Edit details</Button>
-          {r.target === 'show' && <Button onClick={onRenumber}>Renumber episodes</Button>}
-          {(r.state === 'unmatched' || r.state === 'low') && <Button variant="ghost" onClick={() => onLeave(r, r.state === 'low')}>{r.state === 'low' ? 'It\'s right: stop asking' : 'It has no match'}</Button>}
-        </div>
       </header>
-      <div className="fm-why">
-        {r.provider ? <span>Matched with {r.url ? <WebLink href={r.url}>{r.sourceLabel}</WebLink> : r.sourceLabel}.</span> : null}
-        <ul>{r.reasons.map((w) => <li key={w}>{w}</li>)}</ul>
+      <div onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).matches('input[type=text], input:not([type])')) { e.preventDefault(); search() } }}>
+        {!preview && <SpecPage bare className="fm-spec" page={dpage} handled={handledIds(dpage)} onField={(_, v) => setQuery(String(v))} onAction={press} />}
       </div>
-      <form className="field-row fm-find" onSubmit={(e) => { e.preventDefault(); search() }}>
-        <input className="input" aria-label="Search for the right title, or paste an id or address" placeholder="A name, or an id or address from TMDB, IMDb, TheTVDB, TVmaze or Wikidata" value={query} onChange={(e) => setQuery(e.target.value)} />
-        <Button type="submit" disabled={busy}>Search</Button>
-      </form>
-      {err && <div className="error" role="alert">{err}</div>}
-      {results?.warnings.map((w) => <Notice key={w} tone="warn">{w}</Notice>)}
       {busy && <Spinner />}
-      {preview ? (
-        <PreviewTable p={preview.p} picked={picked} setPicked={setPicked} onApply={apply} onBack={() => setPreview(null)} />
-      ) : (
-        <>
-          {list.length > 0 && <h3 className="fm-sugg-h">{results ? 'Results' : 'Suggestions'}</h3>}
-          <ol className="fm-sugg" data-nav-group>
-            {list.map((c, i) => (
-              <li key={c.source + c.id}>
-                <span className="fm-num" aria-hidden="true">{i < 6 ? i + 1 : ''}</span>
-                <ResultRow c={c} onChoose={() => look(c)} />
-                <Button size="sm" onClick={() => onAccept(r, c)} aria-label={`Accept ${c.title}`}>Accept</Button>
-              </li>
-            ))}
-          </ol>
-          {!busy && list.length === 0 && r.state !== 'manual' && r.state !== 'none' && <p className="muted">No source has anything by this name. Try another name, or an id, above.</p>}
-        </>
-      )}
+      {preview && <PreviewTable p={preview.p} picked={picked} setPicked={setPicked} onApply={apply} onBack={() => setPreview(null)} />}
     </div>
   )
 }

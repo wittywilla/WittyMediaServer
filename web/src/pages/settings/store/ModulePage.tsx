@@ -14,6 +14,9 @@ import { ChangeNotes, FailureDialog, FailureNotice, itemPath, ModuleIcon, Module
 import { OverrideRecordBox, PendingNotice, StatusNotice, useOverrideDialog, WhatItAdds } from './overrideParts'
 import { itemModuleKind, moduleKindTitle, needsOverrideOf, overrideLines, type NeedsOverride } from './overrides'
 import { InstallFromFile } from './InstallFromFile'
+import SpecPage from '../../../spec/SpecPage'
+import { handledIds } from '../../../spec/model'
+import { detailsSpec, manageSpec, permissionsSpec } from '../../../spec/specs/moduleDetail'
 import { OverrideDialog } from './OverrideDialog'
 import { categoryTitle, dayOf, failureOf, isBusy, itemDetail, mb, platformName, useFork, type Failure, type ItemDetail } from './storeApi'
 
@@ -111,6 +114,7 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
     }
   }
 
+  const managePage = manageSpec({ installed: installedHere, canRollback: !!m?.canRollback, previous: m?.previous || undefined, core: !!m?.core, enabled: m?.enabled !== false, builtin: m?.delivery === 'builtin', usingFork: usingThisFork, working })
   return (
     <div className="ms-page st-page st-module">
       <BackLink to="/settings/modules/store" label="Module store" />
@@ -170,28 +174,25 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
 
       <section className="st-mod-sec" aria-labelledby="st-asks">
         <h2 id="st-asks">What it asks for</h2>
-        {d.permissions.length ? (
-          <ul className="st-perms">{d.permissions.map((p) => <li key={p.name}><IconInfo size={16} /><span><b>{p.name}</b> {p.words}</span></li>)}</ul>
-        ) : <p>No special permissions.</p>}
+        <SpecPage bare page={permissionsSpec(d.permissions)} />
         <p className="muted">Whatever it asks for, a module can read what this server’s account can read, and the server’s own limits apply to it. See <Link to="/help/module-store#what-limits-a-module">what limits a module</Link>.</p>
       </section>
 
       <section className="st-mod-sec" aria-labelledby="st-facts">
         <h2 id="st-facts">Details</h2>
-        <dl className="ms-facts">
-          <div><dt>{installedHere ? 'In use' : 'Version'}</dt><dd>{installedHere ? m!.version : it.version || 'Not released yet'}</dd></div>
-          {installedHere && m!.latest && <div><dt>Newest</dt><dd>{m!.latest.version}</dd></div>}
-          {!!it.size && <div><dt>Download</dt><dd>{mb(it.size)}</dd></div>}
-          <div><dt>Publisher</dt><dd>{it.publisher?.name || 'This server'}</dd></div>
-          {moduleKindTitle(itemModuleKind(it)) && <div><dt>Kind</dt><dd>{moduleKindTitle(itemModuleKind(it))}</dd></div>}
-          {(it.license || m?.license) && <div><dt>Licence</dt><dd>{it.license || m?.license}</dd></div>}
-          {it.released && <div><dt>Released</dt><dd>{dayOf(it.released)}</dd></div>}
-          {it.minServer && <div className="wide"><dt>Fits servers</dt><dd>{it.minServer} to {it.maxServer}{it.fit.ok ? ', which includes this server' : ''}</dd></div>}
-          {!!it.platforms?.length && <div className="wide"><dt>Works on</dt><dd>{it.platforms.map(platformName).join(', ')}</dd></div>}
-          {d.builtOn.length > 0 && <div className="wide"><dt>Built on</dt><dd>{d.builtOn.map((r, i) => <span key={r.id}>{i > 0 && ', '}<Link to={itemPath({ official: true, store: 'official', id: r.id, kind: 'official' })}>{r.name}</Link>{r.installed ? ' (installed)' : ''}</span>)}</dd></div>}
-          {!!it.needs?.length && <div className="wide"><dt>What it needs</dt><dd>{it.needs.join(', ')}</dd></div>}
-          {it.repo && <div className="wide"><dt>Source</dt><dd><a href={`https://github.com/${it.repo}`} target="_blank" rel="noreferrer noopener">{it.repo}</a></dd></div>}
-        </dl>
+        <SpecPage bare page={detailsSpec([
+          { title: installedHere ? 'In use' : 'Version', value: installedHere ? m!.version : it.version || 'Not released yet' },
+          ...(installedHere && m!.latest ? [{ title: 'Newest', value: m!.latest.version }] : []),
+          ...(it.size ? [{ title: 'Download', value: mb(it.size) }] : []),
+          { title: 'Publisher', value: it.publisher?.name || 'This server' },
+          ...(moduleKindTitle(itemModuleKind(it)) ? [{ title: 'Kind', value: moduleKindTitle(itemModuleKind(it))! }] : []),
+          ...(it.license || m?.license ? [{ title: 'Licence', value: (it.license || m?.license)! }] : []),
+          ...(it.released ? [{ title: 'Released', value: dayOf(it.released) }] : []),
+          ...(it.minServer ? [{ title: 'Fits servers', value: `${it.minServer} to ${it.maxServer}${it.fit.ok ? ', which includes this server' : ''}` }] : []),
+          ...(it.platforms?.length ? [{ title: 'Works on', value: it.platforms.map(platformName).join(', ') }] : []),
+          ...(it.needs?.length ? [{ title: 'What it needs', value: it.needs.join(', ') }] : []),
+          ...(it.repo ? [{ title: 'Source', value: `github.com/${it.repo}` }] : []),
+        ], d.builtOn.map((r) => ({ id: r.id, name: r.installed ? `${r.name} (installed)` : r.name, to: itemPath({ official: true, store: 'official', id: r.id, kind: 'official' }) })))} />
         {(it.updates || it.stays) && (
           <div className="ms-how">
             <b>What an update changes</b>
@@ -205,15 +206,8 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
       {(installedHere || d.versions.length > 0) && (
         <section className="st-mod-sec" aria-labelledby="st-manage">
           <h2 id="st-manage">Manage</h2>
-          <div className="ms-actions">
-            {installedHere && m!.canRollback && <Button size="sm" disabled={working} onClick={rollback}>{m!.previous ? `Go back to version ${m!.previous}` : 'Stop using this version'}</Button>}
-            {installedHere && !m!.core && m!.enabled !== false && <Button size="sm" disabled={working} onClick={() => toggle(false)}>Turn off</Button>}
-            {installedHere && m!.enabled === false && <Button size="sm" disabled={working} onClick={() => toggle(true)}>Turn on</Button>}
-            {installedHere && !m!.core && m!.delivery !== 'builtin' && <Button size="sm" variant="ghost" className="danger-hover" disabled={working} onClick={remove}>Remove</Button>}
-            {usingThisFork && <Button size="sm" disabled={working} onClick={official}>Go back to the official version</Button>}
-            <Button size="sm" variant="ghost" onClick={() => setLogOpen(true)}>Show log</Button>
-            {installedHere && <NoticesButton id={it.id} name={it.name} />}
-          </div>
+          <SpecPage bare page={managePage} handled={handledIds(managePage)} after={{ 0: installedHere ? <NoticesButton id={it.id} name={it.name} /> : null }}
+            onAction={(id) => { if (id === 'rollback') rollback(); else if (id === 'off') void toggle(false); else if (id === 'on') void toggle(true); else if (id === 'remove') void remove(); else if (id === 'official') void official(); else if (id === 'log') setLogOpen(true) }} />
           {m?.core && <p className="muted">Other modules are built on this one, so it stays.</p>}
           {d.versions.length > 0 && (
             <details className="ms-more">

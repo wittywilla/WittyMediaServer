@@ -361,7 +361,8 @@ button.np-artist:hover { color: var(--np-fg); text-decoration: underline; text-u
 .np-note-inline { font-size: var(--text-sm); color: var(--np-fg-2); }
 
 /* Visualizer mode: the effect fills the stage and the cover steps aside (board MU_*: effect chips, Intensity). */
-.np.viz-on:not(.has-panel) .np-artbox { display: none; }
+.np.viz-on .np-artbox { display: none; }
+.np.viz-on .np-main { overflow-y: auto; scrollbar-width: thin; }
 .np.viz-on .np-stage { justify-content: flex-end; }
 .np-effects { flex: 1 0 100%; display: grid; gap: 10px; justify-items: center; order: 2; }
 .np-effect-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; max-width: 920px; }

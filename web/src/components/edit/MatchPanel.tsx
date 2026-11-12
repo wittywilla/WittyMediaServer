@@ -44,7 +44,7 @@ export function ResultRow({ c, onChoose, chosen }: { c: MatchCandidate; onChoose
   )
 }
 
-const sourceName = (s: string) => ({ tmdb: 'TMDB', 'tmdb-tv': 'TMDB', tvdb: 'TheTVDB', tvmaze: 'TVmaze', anilist: 'AniList', wikidata: 'Wikidata' } as Record<string, string>)[s] || (s.startsWith('agent:') ? 'Your agent' : s)
+export const sourceName = (s: string) => ({ tmdb: 'TMDB', 'tmdb-tv': 'TMDB', tvdb: 'TheTVDB', tvmaze: 'TVmaze', anilist: 'AniList', wikidata: 'Wikidata' } as Record<string, string>)[s] || (s.startsWith('agent:') ? 'Your agent' : s)
 
 export default function MatchPanel({ ed, target, id, onApplied, onError }: { ed: TitleEditor; target: Target; id: number; onApplied: (e: TitleEditor, batch?: string, what?: string) => void; onError: (s: string) => void }) {
   const [query, setQuery] = useState('')

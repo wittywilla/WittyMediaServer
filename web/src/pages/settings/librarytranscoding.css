@@ -9,7 +9,6 @@
 .ltc-path { overflow-wrap: anywhere; }
 .ltc-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin: var(--sp-3) 0; }
 .ltc-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.ltc-inline { display: inline-flex; align-items: center; gap: var(--sp-2); font-size: var(--text-sm); }
 
 .ltc-accept { display: flex; align-items: center; gap: var(--sp-3); margin: var(--sp-4) 0 0; min-height: 44px; }
 .ltc-accept input { width: 20px; height: 20px; flex: none; }

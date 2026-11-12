@@ -10,6 +10,7 @@ export const settingsHelp: Record<string, string> = {
   channels: 'channels',
   gaming: 'games',
   emulators: 'games#standalone-emulators',
+  'games-support': 'games#standalone-emulators',
   couch: 'game-rigs',
   transcoding: 'transcoding',
   'library-transcoding': 'library-transcoding',

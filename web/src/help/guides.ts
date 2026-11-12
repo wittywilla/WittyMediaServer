@@ -135,6 +135,7 @@ export const settingsPages: Record<string, string> = {
   Libraries: 'libraries',
   'Pages & menu': 'pages',
   'Module settings': 'module-settings',
+  'What this server plays': 'games-support',
   'Metadata agents': 'metadata',
   'Playback & discs': 'playback',
   'Channels & tuners': 'channels',

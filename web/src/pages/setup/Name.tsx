@@ -30,6 +30,7 @@ export function Name({ info, next, back, onTry }: StepProps & { onTry: (t: { nam
   const [find, setFind] = useState(true)
   const [https, setHttps] = useState<HttpsStatus | null>(null)
   const [warn, setWarn] = useState<BrandWarning[]>([])
+  const [readable, setReadable] = useState(true)
   useEffect(() => {
     api.get<Record<string, string>>('/settings').then((v) => { setZone(v.timeZone || ''); setZones({ computer: v.timeZoneComputer || '', now: v.timeZoneNow || '' }); setFind(v.lanDiscovery !== '0') }).catch(() => {})
     api.get<{ https?: HttpsStatus }>('/remote').then((r) => setHttps(r.https || null)).catch(() => {})
@@ -49,7 +50,7 @@ export function Name({ info, next, back, onTry }: StepProps & { onTry: (t: { nam
       await api.put('/settings', { timeZone: zone, lanDiscovery: find ? '1' : '0' })
       const r = await saveBrandDraft(draft)
       // The server checked the colours against the theme: say so once, and let them carry on.
-      if (r.warnings.length && !warn.length) { setWarn(r.warnings); setBusy(false); return }
+      if (r.warnings.length && readable && !warn.length) { setWarn(r.warnings); setBusy(false); return }
       const shown = draft.name.trim() || DEFAULT_NAME
       setBrandName(draft.name.trim(), 'auto')
       if (r.logo !== undefined) setBrandLogo(r.logo)
@@ -61,7 +62,7 @@ export function Name({ info, next, back, onTry }: StepProps & { onTry: (t: { nam
   return (
     <section>
       <StepHead title="Name your server" lead="The name appears in every app. Choose its colours, and what shows in small spaces." />
-      {draft ? <NameEditor draft={draft} onChange={change} logoUrl={preview} onLogoError={setErr} /> : <Spinner />}
+      {draft ? <NameEditor draft={draft} onChange={change} logoUrl={preview} onLogoError={setErr} onCheck={setReadable} /> : <Spinner />}
       {warn.length > 0 && <div className="ne-note" role="status"><b>Check:</b> {warn.slice(0, 3).map((w, i) => <span key={i}>{i > 0 && ' '}{warningWords(w)}.</span>)} Words should be at least 4.5 to 1. It is saved; change the colours, or press Continue again to keep them.</div>}
       <h2 className="oobe-sub">Network and time</h2>
       <div className="su-net">
@@ -76,7 +77,7 @@ export function Name({ info, next, back, onTry }: StepProps & { onTry: (t: { nam
         : <p className="muted">{net.failed ? 'The port couldn’t be read. It is under Settings, Network.' : 'Reading the port…'}</p>}
       {err && <div className="error su-gap" role="alert">{err}</div>}
       <LaterNote info={info} />
-      <StepActions back={back}><Button variant="primary" size="big" busy={busy} onClick={() => void save()}>Continue</Button></StepActions>
+      <StepActions back={back}><Button variant={readable ? 'primary' : 'default'} size="big" busy={busy} onClick={() => void save()}>{readable ? 'Continue' : 'Continue anyway'}</Button></StepActions>
     </section>
   )
 }

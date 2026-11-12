@@ -11,8 +11,15 @@ import (
 // CatalogRevision counts changes to the catalogue within one SchemaVersion. Every renderer
 // draws every component of the current revision: there is no negotiation and no fallback.
 // 5 added cast and crew: the Credits component, the credits and filmography sources, people
-// in search, the person page.
-const CatalogRevision = 6
+// in search, the person page. 6 added the Design 2 components and looks. 7 changed what the
+// person card style shows (its badges: a friend's presence, a seat), so a renderer that
+// copied the card-style table needs the new one; it also brought a source's person items, and
+// the WittyPlay commands with their params.
+//
+// The rule: a change to what an existing component or card style shows or does bumps the
+// revision. Only new components, card styles, sources, commands and optional properties are
+// additive and stay in the revision they came in.
+const CatalogRevision = 7
 
 // Property types, as an editor needs them to build a form.
 const (

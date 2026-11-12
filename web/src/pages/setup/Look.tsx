@@ -5,9 +5,11 @@ import { api, getToken, serverBase } from '../../api'
 import { getLooks } from '../settings/pages/api'
 import { sduiAsk, SDUI_BASE } from '../../sdui/client'
 import { toast, useApp } from '../../state'
-import { applyTheme, trialLook, type ThemeMeta } from '../../theme'
+import { applyTheme, currentLook, loadThemeOverrides, trialLook, type ThemeMeta } from '../../theme'
+import { bump } from '../../sdui/client'
+import { THEMES as TV_THEMES } from '../tv/tvThemes'
 import { Brand } from '../../components/common'
-import { Button, Segmented } from '../../ui'
+import { Button, Field, Segmented, Select } from '../../ui'
 import { setTvMode, useTvMode } from '../../tvmode/mode'
 import { ChoiceCards, LaterNote, StepActions, StepHead, TickRow, type StepProps } from './parts'
 
@@ -67,6 +69,7 @@ export function Look({ info, next, back }: StepProps) {
       await sduiAsk('PUT', `${SDUI_BASE}/config/experience`, { body: policy, headers: { 'If-Match': got.etag } })
       // The theme is not written here: the server follows the look's own theme until someone chooses another (Theme step).
     } catch { toast('The look couldn’t be saved. You can choose it later in Settings, Appearance.', { tone: 'danger' }) }
+    bump(); void loadThemeOverrides()
     next()
   }
   return (
@@ -99,13 +102,17 @@ export function Look({ info, next, back }: StepProps) {
 export function Theme({ info, next, back }: StepProps) {
   const { serverTheme, setServerTheme } = useApp()
   const [themes, setThemes] = useState<ThemeMeta[]>([])
-  const [pick, setPick] = useState(serverTheme)
-  // Only an explicit choice pins a theme; carrying on with what the look wears stores nothing.
+  // Nothing is chosen until someone does: then the theme stays the look's own, whichever look is picked later.
   const [chosen, setChosen] = useState(false)
+  const [pick, setPick] = useState(serverTheme)
+  const [own, setOwn] = useState(false)
+  const [tvLook, setTvLook] = useState('')
+  useEffect(() => { getLooks(false).then((l) => setOwn(!!l.experiences?.profileThemes)).catch(() => {}); api.get<Record<string, string>>('/tv/settings').then((v) => setTvLook(v.tvTheme || '')).catch(() => {}) }, [])
   const file = useRef<HTMLInputElement | null>(null)
   const load = () => api.get<{ themes: ThemeMeta[] }>('/themes').then((r) => setThemes(r.themes)).catch(() => {})
   useEffect(() => { void load() }, [])
-  const choose = (id: string) => { setPick(id); setChosen(true); applyTheme(id) }
+  const choose = (id: string) => { setChosen(true); setPick(id); applyTheme(id) }
+  const follow = () => { setChosen(false); const c = currentLook(); setPick(c?.theme || serverTheme); applyTheme(c?.theme || serverTheme) }
   const importZip = async (f: File) => {
     const headers: Record<string, string> = { 'Content-Type': 'application/zip' }
     const tok = getToken()
@@ -118,7 +125,14 @@ export function Theme({ info, next, back }: StepProps) {
     if (data.id) choose(data.id)
   }
   const save = async () => {
-    if (chosen) { try { await api.put('/settings', { theme: pick }); setServerTheme(pick) } catch { /* can be changed later */ } }
+    // Only an explicit choice pins a theme; carrying on with what the look wears stores nothing.
+    try { if (chosen) { await api.put('/settings', { theme: pick }); setServerTheme(pick) } } catch { /* can be changed later */ }
+    try { await api.put('/tv/settings', { tvTheme: tvLook }) } catch { /* can be changed later */ }
+    try {
+      const got = await getLooks(false)
+      if (!!got.experiences?.profileThemes !== own) await sduiAsk('PUT', `${SDUI_BASE}/config/experience`, { body: { ...(got.experiences || {}), profileThemes: own || undefined }, headers: { 'If-Match': got.etag } })
+    } catch { /* can be changed later */ }
+    bump(); void loadThemeOverrides()
     next()
   }
   return (
@@ -136,6 +150,12 @@ export function Theme({ info, next, back }: StepProps) {
           ),
         }))} />
       )}
+      <h2 className="oobe-sub">How people use it</h2>
+      <div className="su-gap su-how">
+        <TickRow kind="switch" checked={!chosen} onChange={(v) => { if (v) follow(); else setChosen(true) }} title="Start with the look’s own theme" text="Each look brings the theme it was made for. Choosing a theme above keeps that one for everyone, whichever look they use." />
+        <TickRow kind="switch" checked={own} onChange={setOwn} title="Let people import their own themes" text="Anyone can add a theme of their own from a ZIP. Requiring a look or a theme of someone is on the People step." />
+        <Field label="WittyTV look" hint="The guide’s own look for everyone who hasn’t chosen. “Follows the look” uses the one each look suggests."><Select value={tvLook} onChange={(e) => setTvLook(e.target.value)} options={[{ value: '', label: 'Follows the look' }, ...TV_THEMES.filter((x) => x.id !== 'custom').map((x) => ({ value: x.id, label: x.name }))]} /></Field>
+      </div>
       <div className="su-gap">
         <input ref={file} type="file" accept=".zip,application/zip" hidden aria-label="Theme ZIP" onChange={(e) => { const f = e.target.files?.[0]; if (f) void importZip(f); e.target.value = '' }} />
         <Button variant="ghost" onClick={() => file.current?.click()}>Import a theme…</Button>

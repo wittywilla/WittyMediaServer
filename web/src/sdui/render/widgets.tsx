@@ -18,14 +18,17 @@ const int = (p: Props | undefined, k: string, d: number, lo: number, hi: number)
 export function WidgetGridView({ view, draw }: { view: View; draw: (child: View) => ReactNode }) {
   const phone = useMedia('(max-width: 700px)')
   const columns = phone ? 2 : int(view.node.props, 'columns', 4, 1, 12)
+  // Rows with nothing in them take no room: the rows tiles ask for are counted off in order (a tile hidden for this
+  // profile, or one with nothing to show, leaves no gap).
+  const rows = [...new Set(view.children.map((c) => int(c.node.props, 'y', 0, 0, 40)))].sort((a, b) => a - b)
   return (
     <div className="sdui-widgets" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, '--widget-cols': columns } as CSSProperties} data-nav-group data-columns={columns}>
-      {view.children.map((c) => <WidgetCell key={c.id} view={c} columns={columns} phone={phone} draw={draw} />)}
+      {view.children.map((c) => <WidgetCell key={c.id} view={c} columns={columns} phone={phone} draw={draw} rows={rows} />)}
     </div>
   )
 }
 
-function WidgetCell({ view, columns, phone, draw }: { view: View; columns: number; phone: boolean; draw: (child: View) => ReactNode }) {
+function WidgetCell({ view, columns, phone, draw, rows }: { view: View; columns: number; phone: boolean; draw: (child: View) => ReactNode; rows: number[] }) {
   const p = view.node.props
   const w = Math.min(columns, int(p, 'w', 1, 1, 12))
   const h = int(p, 'h', 1, 1, 8)
@@ -36,7 +39,7 @@ function WidgetCell({ view, columns, phone, draw }: { view: View; columns: numbe
   const y = int(p, 'y', 0, 0, 40)
   const place: CSSProperties = phone
     ? { gridColumn: w >= 2 ? '1 / -1' : 'auto', gridRow: `span ${h}`, order: y * 12 + x }
-    : { gridColumn: `${x + 1} / span ${w}`, gridRow: `${y + 1} / span ${h}` }
+    : { gridColumn: `${x + 1} / span ${w}`, gridRow: `${Math.max(0, rows.indexOf(y)) + 1} / span ${h}` }
   const title = view.text?.title
   return (
     <section className={'sdui-widget elev-1 kind-' + kind} style={place} aria-label={view.label || title} data-w={w} data-h={h}>

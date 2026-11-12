@@ -2,7 +2,8 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useState } from 'react'
 import { api, profileName, type User } from '../../api'
-import { sduiAsk, SDUI_BASE } from '../../sdui/client'
+import { bump, sduiAsk, SDUI_BASE } from '../../sdui/client'
+import { loadThemeOverrides } from '../../theme'
 import { toast } from '../../state'
 import { Button } from '../../ui'
 import { AddProfile } from '../Profiles'
@@ -37,6 +38,8 @@ export function People({ info, next, back }: StepProps) {
         const required = { ...(req.everyone.experience || req.everyone.theme ? { everyone: clean(req.everyone) } : {}), ...(req.kids.experience || req.kids.theme ? { kids: clean(req.kids) } : {}), ...(Object.keys(profiles).length ? { profiles } : {}) }
         const policy = { ...(looks.experiences || {}), required: Object.keys(required).length ? required : undefined }
         await sduiAsk('PUT', `${SDUI_BASE}/config/experience`, { body: policy, headers: { 'If-Match': looks.etag } })
+        // A look or theme required of someone shows at once, in this very page, not after a reload.
+        bump(); void loadThemeOverrides()
       }
     } catch { toast('The required look couldn’t be saved. You can set it in Settings, Pages & menu, Looks.', { tone: 'danger' }) }
     next()

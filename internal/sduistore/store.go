@@ -81,6 +81,10 @@ type Config struct {
 	Pages map[string]sdui.Page `json:"pages"`
 	// Personalisation says whether profiles may arrange pages for themselves.
 	Personalisation Personalisation `json:"personalisation,omitzero"`
+	// Layouts are the layout options each form factor starts with and the ones
+	// profiles may choose (docs/SDUI.md, "Layout options"); nil: the defaults, all
+	// allowed.
+	Layouts *sdui.LayoutPolicy `json:"layouts,omitempty"`
 	// Notes are left by a migration: what could not be carried over.
 	Notes []string `json:"notes,omitempty"`
 	// BaseRevision is set on the draft only: the published revision it was
@@ -698,9 +702,26 @@ func (s *Store) Check(c *Config) []sdui.Issue {
 			_, ok := sdui.StockPage(id)
 			return ok
 		}
-		for _, is := range sdui.ValidateNavigation(c.Navigation, exists) {
+		// A page that is neither the file's nor built in may be a module's: the store doesn't
+		// know which modules are in use, and a module turned off mustn't make a good file
+		// bad. The editor's routes check it against the modules in use when it is saved;
+		// here it is a warning, and the menu leaves the entry out while there is no page.
+		missing := map[string]bool{}
+		for _, it := range c.Navigation.Items {
+			if it.Type == "page" && sdui.ValidID(it.Page) && !exists(it.Page) {
+				missing[it.Page] = true
+			}
+		}
+		for _, is := range sdui.ValidateNavigation(c.Navigation, func(id string) bool { return exists(id) || missing[id] }) {
 			is.Path = "/navigation" + is.Path
 			ve.Issues = append(ve.Issues, is)
+		}
+		for i, it := range c.Navigation.Items {
+			if missing[it.Page] {
+				ve.Issues = append(ve.Issues, sdui.Issue{Path: fmt.Sprintf("/navigation/items/%d/page", i), Severity: "warning",
+					Message: fmt.Sprintf("there is no page called %q here, unless a module brings it; while there is none, the entry is left out", it.Page),
+					Fix:     "Turn on the module whose page it is, create the page, or remove the entry."})
+			}
 		}
 	}
 	checkTokens := func(p string, toks map[string]string) {
@@ -719,6 +740,10 @@ func (s *Store) Check(c *Config) []sdui.Issue {
 			ve.add("/theme/modules/"+mod, "invalid module id")
 		}
 		checkTokens("/theme/modules/"+mod, c.Theme.Modules[mod])
+	}
+	for _, is := range sdui.ValidateLayoutPolicy(c.Layouts) {
+		is.Path = "/layouts" + is.Path
+		ve.Issues = append(ve.Issues, is)
 	}
 	if len(c.Notes) > 200 {
 		ve.add("/notes", "too many notes")
@@ -1045,6 +1070,9 @@ func Merge(base, draft, published *Config, prefer string) (*Config, []string) {
 	}
 	if pick("/theme", base.Theme, draft.Theme, published.Theme) {
 		out.Theme = draft.Clone().Theme
+	}
+	if pick("/layouts", base.Layouts, draft.Layouts, published.Layouts) {
+		out.Layouts = draft.Clone().Layouts
 	}
 	return out, conflicts
 }

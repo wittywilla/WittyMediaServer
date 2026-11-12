@@ -102,6 +102,19 @@ func TestModuleSDUIIsMergedEverywhere(t *testing.T) {
 	if w = ts.do(t, "GET", "/api/sdui/modules", adult, nil); w.Code != 403 {
 		t.Errorf("modules for a non-admin: %d", w.Code)
 	}
+	// A menu saved in the editor may open the module's page, and never a page that isn't there.
+	var navCfg struct{ ETag string }
+	_ = json.Unmarshal(ts.do(t, "GET", "/api/sdui/config/navigation", admin, nil).Body.Bytes(), &navCfg)
+	menu := func(page string) map[string]any {
+		return map[string]any{"items": []any{map[string]any{"id": "home", "type": "page", "page": "home"}, map[string]any{"id": "comics", "type": "page", "page": page},
+			map[string]any{"id": "settings", "type": "native", "screen": "settings"}}}
+	}
+	if w = ts.do(t, "PUT", "/api/sdui/config/navigation", admin, menu("nowhere"), "If-Match", navCfg.ETag); w.Code != 400 || !strings.Contains(w.Body.String(), "nowhere") {
+		t.Errorf("a menu entry for a page that isn't there: %d %s", w.Code, w.Body)
+	}
+	if w = ts.do(t, "PUT", "/api/sdui/config/navigation", admin, menu("wittycomics"), "If-Match", navCfg.ETag); w.Code != 200 {
+		t.Errorf("a menu entry for the module's page: %d %s", w.Code, w.Body)
+	}
 	// An administrator's page may use the module's view without a warning.
 	w = ts.do(t, "POST", "/api/sdui/validate", admin, map[string]any{"page": map[string]any{"id": "mine", "kind": "custom", "title": "Mine",
 		"sections": []any{map[string]any{"id": "v", "component": "NativeView", "props": map[string]any{"view": "wittycomics.shelf"}}}}})
@@ -148,6 +161,9 @@ func TestModuleSDUIIsMergedEverywhere(t *testing.T) {
 	}
 	if env := ts.ModuleSettingsEnv("wittycomics"); len(env) != 1 || !strings.Contains(env[0], `"pageCache":16`) || !strings.Contains(env[0], "s3cret") {
 		t.Errorf("the helper's settings %v", env)
+	}
+	if w = ts.do(t, "GET", "/api/v1/sdui/modules/settings", adult, nil); !strings.Contains(w.Body.String(), `{"module":"wittycomics","label":"Comics","url":"/api/v1/sdui/modules/wittycomics/settings"}`) {
+		t.Errorf("the list for Settings → Modules: %s", w.Body)
 	}
 	if w = ts.do(t, "GET", "/api/sdui/modules/wittynothing/settings", adult, nil); w.Code != 404 {
 		t.Errorf("a module that isn't there: %d", w.Code)

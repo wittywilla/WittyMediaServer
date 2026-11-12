@@ -570,7 +570,21 @@ func (s *Server) handleSDUIConfigNavPut(w http.ResponseWriter, r *http.Request) 
 		writeErr(w, 400, err.Error())
 		return
 	}
+	set := s.moduleSet(nil)
 	s.sduiMutate(w, r, "navigation saved", func(c *sduistore.Config) error {
+		// Every page it opens is there now: the configuration's, a module's in use, or a
+		// built-in one. (The file itself only warns, so a module turned off later doesn't
+		// make it bad.)
+		var errs []sdui.Issue
+		for _, is := range sdui.ValidateNavigation(&nav, func(id string) bool { _, ok := effectivePage(c, id, set); return ok }) {
+			if is.Severity == "error" {
+				is.Path = "/navigation" + is.Path
+				errs = append(errs, is)
+			}
+		}
+		if len(errs) > 0 {
+			return &sduistore.InvalidError{Issues: errs}
+		}
 		c.Navigation = &nav
 		return nil
 	})

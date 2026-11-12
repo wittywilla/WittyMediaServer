@@ -10,6 +10,7 @@ To add, update or remove modules on a server, see [Modules and the store](MODULE
 - [Version ranges, including the edges](#version-ranges-including-the-edges)
 - [Writing a helper](#writing-a-helper)
 - [The helper protocol (module API 3)](#the-helper-protocol-module-api-3)
+- [A module's SDUI (module API 4)](SDUI-MODULES.md)
 - [Writing a service](#writing-a-service)
 - [Writing a web part](#writing-a-web-part)
 - [What a module may ask for](#what-a-module-may-ask-for)
@@ -123,7 +124,7 @@ Every module has a `module.json`, shipped in its releases and covered by their s
 | `core` | One others can't do without, so it can't be taken off a server |
 | `pages` | Pages it adds to the app: see [Pages](#pages) |
 
-**The module API.** A server takes `wittymodule.MinAPI` to `wittymodule.API`, and both are 3. Adding to the API raises only the top. Breaking it raises the bottom too, which disables older modules, so that's done rarely. It's one number for the whole server, as the helper protocol and host interfaces are one contract. API 3 adds services, notifications, what a module may ask for, pages, and a part in the browser for a helper.
+**The module API.** A server takes API 3 to 4 (`MinAPI` and `API` in `internal/modules/sdui.go`: the server's own numbers, which the `wittymodule` it is built with must not get ahead of). API 4 makes a module's SDUI part of the module: a release carries `sdui.json`, checked against the catalogue at install and before every use, and a version built for API 4 without one is refused ([SDUI for modules](SDUI-MODULES.md)). Before API 4 the server took 3 to 3. Adding to the API raises only the top. Breaking it raises the bottom too, which disables older modules, so that's done rarely. It's one number for the whole server, as the helper protocol and host interfaces are one contract. API 3 adds services, notifications, what a module may ask for, pages, and a part in the browser for a helper.
 
 `wittymodule check` refuses a manifest with an API outside that range or a `minServer` below `0.6.0-alpha`, and a server refuses such a release with a message that says so.
 
@@ -144,6 +145,8 @@ Ordering is semantic versioning, so a pre-release comes before its release.
 | 0.8.1 | `0.7.0` / `0.8.0` | **Refused** | An exact maximum means exactly that |
 
 `maxServer` is required, and `x` alone isn't allowed: every module states a real maximum.
+
+**Before 1.0, a series is read as the whole 0.x line.** The table is how `wittymodule` reads a range. A server reads a `maxServer` such as `0.6.x` or `0.8.x` as `0.x` (`internal/modules/widen.go`), because before 1.0 the module API number is what decides whether a version fits: a module released beside 0.6 with module API 3 runs on 0.8.0-alpha, which takes API 3 and 4, and a store offers it there. So on a server, the row for 0.9.0-alpha above works too. An exact maximum (`0.8.0`) is kept as written, and a 1.x server is another line.
 
 Pre-release *modules* are offered only to a server that's itself a pre-release, or that already runs that module's pre-release. A stable server never gets one by surprise, but keeps one it already has, and an admin may still choose one from the list of versions, after a warning.
 

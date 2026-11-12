@@ -39,6 +39,9 @@ func TestPublishMergesWithWhatWasPublishedSince(t *testing.T) {
 		return func(c *Config) { c.Theme.Tokens = map[string]string{"accent": col} }
 	}
 	personal := func(off bool) edit { return func(c *Config) { c.Personalisation.Disabled = off } }
+	setLayout := func(phone string) edit {
+		return func(c *Config) { c.Layouts = &sdui.LayoutPolicy{Default: map[string]string{"phone": phone}} }
+	}
 
 	cases := []struct {
 		name       string
@@ -51,6 +54,7 @@ func TestPublishMergesWithWhatWasPublishedSince(t *testing.T) {
 		wantAccent string
 		wantNav    int // entries; 0: no navigation
 		wantOff    bool
+		wantLayout string // the phone's default layout; "" for none
 	}{
 		{name: "nothing published since: the draft as it is",
 			draft: []edit{setPage("a", "A")}, wantTitles: map[string]string{"a": "A"}},
@@ -75,6 +79,12 @@ func TestPublishMergesWithWhatWasPublishedSince(t *testing.T) {
 		{name: "a theme published since is kept beside the draft's navigation",
 			draft: []edit{setPage("x1", "X"), setNav("x1")}, published: []edit{setAccent("#00ff00"), personal(true)},
 			wantTitles: map[string]string{"x1": "X"}, wantAccent: "#00ff00", wantNav: 2, wantOff: true},
+		{name: "layouts published since are kept beside the draft's page",
+			draft: []edit{setPage("a", "A")}, published: []edit{setLayout("streaming")}, wantTitles: map[string]string{"a": "A"}, wantLayout: "streaming"},
+		{name: "the draft's layouts are published",
+			draft: []edit{setLayout("compactList")}, wantLayout: "compactList"},
+		{name: "layouts changed both ways conflict",
+			start: []edit{setLayout("sidebar")}, draft: []edit{setLayout("compactList")}, published: []edit{setLayout("streaming")}, conflicts: []string{"/layouts"}},
 		{name: "prefer draft settles a conflict the draft's way",
 			start: []edit{setPage("a", "A0")}, draft: []edit{setPage("a", "Mine")}, published: []edit{setPage("a", "Theirs"), setPage("b", "B")},
 			prefer: "draft", wantTitles: map[string]string{"a": "Mine", "b": "B"}},
@@ -146,6 +156,13 @@ func TestPublishMergesWithWhatWasPublishedSince(t *testing.T) {
 			}
 			if tc.wantNav > 0 && (pub.Navigation == nil || len(pub.Navigation.Items) != tc.wantNav) {
 				t.Errorf("navigation %+v", pub.Navigation)
+			}
+			got := ""
+			if pub.Layouts != nil {
+				got = pub.Layouts.Default["phone"]
+			}
+			if got != tc.wantLayout && !(tc.wantLayout == "" && got == "sidebar") {
+				t.Errorf("phone layout %q", got)
 			}
 			if pub.Personalisation.Disabled != tc.wantOff {
 				t.Errorf("personalisation off %v", pub.Personalisation.Disabled)

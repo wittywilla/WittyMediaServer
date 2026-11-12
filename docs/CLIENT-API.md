@@ -58,8 +58,10 @@ The same contract is in machine-readable form in `openapi.json` (OpenAPI 3.1), b
 fields, new values in lists. Ignore what you don't recognise; never assume a list of values is
 complete. Removing or changing anything means a new version, with v1 kept alongside. `apiRevision`
 in `/capabilities` counts additions, and `features` names them: look for a feature rather than
-comparing server version numbers. Server 0.8.0-alpha is revision 15 (0.7 was 10): one step for
-everything that release adds, each part with its own feature name. `/api/...` without a version is the same thing, for the web
+comparing server version numbers. Server 0.8.0-alpha is revision 16 (0.7 was 10): revision 15 for
+the release's first part and 16 for its second (modules' own SDUI, layout options, the editor's
+merging publish, the artist page and the fixes listed under revision 16 in `api_capabilities.go`),
+each part with its own feature name. `/api/...` without a version is the same thing, for the web
 interface that ships with each server. Every API answer carries `X-WMS-API-Version`. A version this
 server doesn't have answers 404 with `apiVersions`.
 
@@ -1618,6 +1620,10 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `PUT /sdui/pages/{page}/personal` | user | Replace this profile's arrangement of a page. Only its own. 403 when the profile may not rearrange pages (the editLayout switch) or the server has it off; 400 lists what is wrong. |
 | `DELETE /sdui/pages/{page}/personal` | user | Back to the page as everyone has it. |
 | `GET /sdui/topshelf` | user | Content for a tvOS Top Shelf extension: what this account was watching and what is new, within its limits, at most 4 sections of 10 pictures, each sized for the device. 304 with If-None-Match when unchanged. |
+| `GET /sdui/layout` | user | The layout option in force on this device (`device=` names the app's own device, else the form factor): `{layout, shell, choice: {current, chosen, options, url}, editable}`. |
+| `PUT /sdui/layout` | user | This profile's layout on this device: `{layout}`. 403 when the profile may not rearrange or the server doesn't offer that layout. |
+| `DELETE /sdui/layout` | user | This device follows the server's layout again. |
+| `GET /sdui/modules/settings` | user | The modules with settings this profile sees: `{modules: [{module, label, icon, url}]}`, for the list under Settings → Modules. |
 | `GET /sdui/modules/{module}/images/{name}` | user | A picture a module's cards show (module sources put these addresses in `images`). PNG, JPEG, WebP or GIF. |
 | `GET /sdui/modules/{module}/settings` | user | A module's settings, described and with their values, for the app's own Settings to draw under Settings → Modules ([SDUI-MODULES.md](SDUI-MODULES.md#settings)). |
 | `PUT /sdui/modules/{module}/settings/personal` | user | This profile's own values of a module's settings: `{values}`. |
@@ -1635,6 +1641,8 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `DELETE /sdui/config/navigation` | admin | Back to the built-in navigation. ?target=draft writes to the draft; otherwise If-Match is required (428 without, 412 when stale). |
 | `POST /sdui/validate` | admin | Check {"page": ...}, {"navigation": ...} or {"config": ...} without saving: {ok, issues: [{path, severity, message, fix}]}. ?target=draft: a navigation may name the draft's pages. |
 | `GET /sdui/presets` | admin | The gallery of ready-made pages and sections: {presets: [{id, label, description, icon, kind, pageKinds, page or section}]}. |
+| `GET /sdui/config/layouts` | admin | The server's layouts: `{etag, layouts: {default, allowed}, options, builtin}`. |
+| `PUT /sdui/config/layouts` | admin | Saves `{default: {formFactor: layout}, allowed: [layout]}`; If-Match, or `target=draft`. |
 | `GET /sdui/modules` | admin | Every module in use with its SDUI file: `{modules: [ModuleUI]}`. |
 | `PUT /sdui/modules/{module}/settings` | admin | The server's values of a module's settings: `{values}`; null resets one. |
 | `POST /sdui/presets/{id}/apply` | admin | Put a page preset in the configuration under the preset's own page ID. ?target=draft writes to the draft; otherwise If-Match is required (428 without, 412 when stale). |

@@ -13,7 +13,7 @@ Every one in this list is on GitHub under its final name, with its history, so n
 | Repository | What it's for |
 |---|---|
 | WittyMediaServer | The server |
-| WittyModule | The shared tools and manifest format modules are built with, and the kit that writes a module's workflows |
+| WittyModule | The shared tools and manifest format modules are built with, the kit that writes a module's workflows, and the SDUI kit (`sdui/` for Go, `kit/sdui/` for web bundles) that writes and checks the `sdui.json` every module API 4 version carries |
 | WittyModuleCatalog | The signed list of modules and versions that a server's store reads. Holds no module code |
 | WittyDisc | Reading disc images, used by the disc engines |
 | WittyDVD | The DVD engine, and in `wittydvdplayer/` its copy for WittyMediaPlayer |
@@ -35,7 +35,7 @@ Every one in this list is on GitHub under its final name, with its history, so n
 | WittyReader | The standalone reader app |
 | WittyMediaPlayer | The standalone desktop player |
 | WittyMediaClient | The client apps for desktop, Android, Apple and others |
-| WittyMediaRemoteMedia | Connecting libraries on a NAS through a native or Docker app. Only a README, and no local copy: work not started. The roadmap is the only thing that names it |
+| WittyMediaRemoteMedia | A small program for a NAS (native or Docker) that would give a server read-only access to its media folders. Not built, on purpose: the repository holds the decision and the design (README, docs/DESIGN.md), because the server must first read media through a file-system seam instead of local paths. It is not a module. Until then, mount the share (SMB/NFS) on the server's computer, or run the server on the NAS |
 
 ### To make
 

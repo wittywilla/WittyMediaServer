@@ -522,7 +522,7 @@ func TestFitSaysWhy(t *testing.T) {
 	check("from before the cut-off, claiming to fit", FitTooOld, func(v *wittymodule.CatalogVersion) { v.MinServer = "0.5.0-alpha" }, "built for an older server", "beta")
 	check("past its maximum", FitTooOld, func(v *wittymodule.CatalogVersion) { v.MinServer, v.MaxServer = "0.5.0-alpha", "0.5.x" }, "built for an older server")
 	check("needs a newer server", FitTooNew, func(v *wittymodule.CatalogVersion) { v.MinServer, v.MaxServer = "0.7.0", "0.7.x" }, "0.7.0")
-	check("needs a newer API", FitTooNew, func(v *wittymodule.CatalogVersion) { v.API = wittymodule.API + 1 }, "newer server")
+	check("needs a newer API", FitTooNew, func(v *wittymodule.CatalogVersion) { v.API = API + 1 }, "newer server")
 	check("an unknown permission", FitTooNew, func(v *wittymodule.CatalogVersion) { v.Permissions = []string{"everything"} }, "everything")
 	check("no build", FitNoBuild, func(v *wittymodule.CatalogVersion) {
 		v.Delivery = wittymodule.DeliveryHelper

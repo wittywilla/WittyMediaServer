@@ -246,6 +246,11 @@ type Catalogue struct {
 	// Profiles are the device profiles, so an editor can preview a page's
 	// budgets and a renderer can lay out a lazily loaded page of cards.
 	Profiles map[string]*Layout `json:"profiles"`
+	// Layouts are the layout options: the menu's style on each form factor and what each
+	// changes about pages.
+	Layouts []LayoutSpec `json:"layouts"`
+	// NavStyles are the ways an app draws its menu.
+	NavStyles []string `json:"navStyles"`
 }
 
 var catalogueOnce = sync.OnceValue(buildCatalogue)

@@ -9256,6 +9256,69 @@
               "null"
             ]
           },
+          "layouts": {
+            "items": {
+              "properties": {
+                "description": {
+                  "type": "string"
+                },
+                "icon": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "nav": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object"
+                },
+                "overlay": {
+                  "type": "boolean"
+                },
+                "pages": {
+                  "properties": {
+                    "cardSize": {
+                      "type": "string"
+                    },
+                    "density": {
+                      "type": "string"
+                    },
+                    "gridsAsRows": {
+                      "type": "boolean"
+                    },
+                    "hero": {
+                      "type": "string"
+                    },
+                    "landscapeCards": {
+                      "type": "boolean"
+                    },
+                    "rowsAsLists": {
+                      "type": "boolean"
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              "required": [
+                "description",
+                "icon",
+                "id",
+                "label",
+                "nav",
+                "pages"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "libraryKinds": {
             "items": {
               "type": "string"
@@ -9292,6 +9355,15 @@
           "nativeViews": {
             "items": {
               "$ref": "#/components/schemas/SDUIEnumOption"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "navStyles": {
+            "items": {
+              "type": "string"
             },
             "type": [
               "array",
@@ -9452,6 +9524,38 @@
                     "scale": {
                       "type": "integer"
                     },
+                    "shell": {
+                      "anyOf": [
+                        {
+                          "properties": {
+                            "layout": {
+                              "type": "string"
+                            },
+                            "nav": {
+                              "type": "string"
+                            },
+                            "open": {
+                              "type": "integer"
+                            },
+                            "overlay": {
+                              "type": "boolean"
+                            },
+                            "size": {
+                              "type": "integer"
+                            }
+                          },
+                          "required": [
+                            "layout",
+                            "nav",
+                            "size"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "spacing": {
                       "additionalProperties": {
                         "type": "integer"
@@ -9546,11 +9650,13 @@
           "conditions",
           "formFactors",
           "icons",
+          "layouts",
           "libraryKinds",
           "limits",
           "mediaKinds",
           "nativeScreens",
           "nativeViews",
+          "navStyles",
           "pageKinds",
           "personalKinds",
           "placeholders",
@@ -9981,6 +10087,33 @@
           "etag": {
             "type": "string"
           },
+          "layouts": {
+            "anyOf": [
+              {
+                "properties": {
+                  "allowed": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "default": {
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "navigation": {
             "anyOf": [
               {
@@ -10170,6 +10303,38 @@
                   },
                   "scale": {
                     "type": "integer"
+                  },
+                  "shell": {
+                    "anyOf": [
+                      {
+                        "properties": {
+                          "layout": {
+                            "type": "string"
+                          },
+                          "nav": {
+                            "type": "string"
+                          },
+                          "open": {
+                            "type": "integer"
+                          },
+                          "overlay": {
+                            "type": "boolean"
+                          },
+                          "size": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "layout",
+                          "nav",
+                          "size"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   },
                   "spacing": {
                     "additionalProperties": {
@@ -10567,10 +10732,77 @@
               "null"
             ]
           },
+          "layouts": {
+            "anyOf": [
+              {
+                "properties": {
+                  "chosen": {
+                    "type": "string"
+                  },
+                  "current": {
+                    "type": "string"
+                  },
+                  "options": {
+                    "items": {
+                      "$ref": "#/components/schemas/SDUIEnumOption"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "url": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "current",
+                  "options",
+                  "url"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "personal": {
             "anyOf": [
               {
                 "$ref": "#/components/schemas/SDUIPersonalInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "shell": {
+            "anyOf": [
+              {
+                "properties": {
+                  "layout": {
+                    "type": "string"
+                  },
+                  "nav": {
+                    "type": "string"
+                  },
+                  "open": {
+                    "type": "integer"
+                  },
+                  "overlay": {
+                    "type": "boolean"
+                  },
+                  "size": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "layout",
+                  "nav",
+                  "size"
+                ],
+                "type": "object"
               },
               {
                 "type": "null"
@@ -14149,7 +14381,7 @@
           }
         },
         "security": [],
-        "summary": "Secure pairing (v2): start a session to show as a QR code and a rotating 6-digit PIN (TOTP, 30 s). `qr` is `wms://pair?v=1&s=<serverId>&u=<base url>&c=<sessionId>&k=<check>`; `approveUrl` opens the web approve page. Lasts 5 minutes. Rate limited per address (429), with /pair/start.",
+        "summary": "Secure pairing (v2): start a session to show as a QR code and a rotating 6-digit PIN (TOTP, 30 s). `qr` is `wms://pair?v=1\u0026s=\u003cserverId\u003e\u0026u=\u003cbase url\u003e\u0026c=\u003csessionId\u003e\u0026k=\u003ccheck\u003e`; `approveUrl` opens the web approve page. Lasts 5 minutes. Rate limited per address (429), with /pair/start.",
         "tags": [
           "Sign-in and accounts"
         ],
@@ -24686,7 +24918,7 @@
             "bearer": []
           }
         ],
-        "summary": "Forget the position (mark as not started). {id} show-<n>: in every episode of the show.",
+        "summary": "Forget the position (mark as not started). {id} show-\u003cn\u003e: in every episode of the show.",
         "tags": [
           "Browsing"
         ],
@@ -24753,7 +24985,7 @@
             "bearer": []
           }
         ],
-        "summary": "Save the viewer's position. Past 92% counts as watched. Discs send `discTitle` too. {id} show-<n> with {\"watched\": true} marks every episode of the show this profile may see watched.",
+        "summary": "Save the viewer's position. Past 92% counts as watched. Discs send `discTitle` too. {id} show-\u003cn\u003e with {\"watched\": true} marks every episode of the show this profile may see watched.",
         "tags": [
           "Browsing"
         ],
@@ -35022,7 +35254,7 @@
             "bearer": []
           }
         ],
-        "summary": "Whether peer-to-peer connections are on, and what an app needs for them: `serverId` (what to dial), `addrs` (where the server was last reachable, to keep as hints), `devicesOnly`, `layers`. `?device=<id>` adds `enrolled`. See P2P.md.",
+        "summary": "Whether peer-to-peer connections are on, and what an app needs for them: `serverId` (what to dial), `addrs` (where the server was last reachable, to keep as hints), `devicesOnly`, `layers`. `?device=\u003cid\u003e` adds `enrolled`. See P2P.md.",
         "tags": [
           "Remote access and signed-in devices"
         ],
@@ -35160,16 +35392,16 @@
             "application/json": {
               "schema": {
                 "properties": {
-                  "userId": {
-                    "type": "integer"
+                  "otp": {
+                    "description": "The caller's two-factor code, with the password, when they have two-factor sign-in.",
+                    "type": "string"
                   },
                   "password": {
-                    "type": "string",
-                    "description": "The caller's own password, when the invite signs a device in as an administrator."
+                    "description": "The caller's own password, when the invite signs a device in as an administrator.",
+                    "type": "string"
                   },
-                  "otp": {
-                    "type": "string",
-                    "description": "The caller's two-factor code, with the password, when they have two-factor sign-in."
+                  "userId": {
+                    "type": "integer"
                   }
                 },
                 "type": "object"
@@ -35210,6 +35442,74 @@
           }
         ],
         "summary": "`{userId, password, otp}`: an invite link (`wittymedia://p2p/...`) that puts one device on the list and signs it in, for this account or a Kids or Guest profile it manages. Adults only; an invite that signs a device in as an administrator takes the administrator's password again (403 with `reason: \"password-required\"` without it), as `/pair/approve` and `/p2p/join` do. Works once, for 15 minutes.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/p2p/join": {
+      "post": {
+        "operationId": "postP2pJoin",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  },
+                  "otp": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "userId": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "code"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "expiresInSec": {
+                      "type": "integer"
+                    },
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/User"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The code a device away from home is showing (eight letters and digits), typed in by someone signed in: the device finds the server by it, is put on the list and signed in, as this account or a Kids or Guest profile it manages. Adults only; an administrator's password again to sign a device in as an administrator. Works once, for 15 minutes. Needs the address book layer.",
         "tags": [
           "Remote access and signed-in devices"
         ],
@@ -40247,6 +40547,78 @@
         "x-wms-auth": "admin"
       }
     },
+    "/sdui/config/layouts": {
+      "get": {
+        "operationId": "getSduiConfigLayouts",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The server's layout options: {etag, layouts: {default, allowed}, options, builtin}.",
+        "tags": [
+          "Server-driven UI"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putSduiConfigLayouts",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            }
+          },
+          "description": "{default, allowed}",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Saves which layout each form factor starts with and which profiles may choose: {default: {formFactor: layout}, allowed: [layout]}. If-Match as for the configuration, or target=draft.",
+        "tags": [
+          "Server-driven UI"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/sdui/config/navigation": {
       "delete": {
         "operationId": "deleteSduiConfigNavigation",
@@ -40864,7 +41236,7 @@
             "bearer": []
           }
         ],
-        "summary": "A token that shows the draft to this administrator alone, on any device they are signed in on, for two hours: {token, expiresAt}. Sent as preview=<token> or X-WMS-SDUI-Preview with the page and navigation routes.",
+        "summary": "A token that shows the draft to this administrator alone, on any device they are signed in on, for two hours: {token, expiresAt}. Sent as preview=\u003ctoken\u003e or X-WMS-SDUI-Preview with the page and navigation routes.",
         "tags": [
           "Server-driven UI"
         ],
@@ -40890,11 +41262,11 @@
             "name": "prefer",
             "required": false,
             "schema": {
-              "type": "string",
               "enum": [
                 "draft",
                 "published"
-              ]
+              ],
+              "type": "string"
             }
           }
         ],
@@ -40917,35 +41289,35 @@
               }
             }
           },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          },
           "409": {
-            "description": "The draft and what was published since it was begun changed the same items.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
                   "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "conflicts": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    },
                     "baseRevision": {
                       "type": "integer"
                     },
+                    "conflicts": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
                     "currentRevision": {
                       "type": "integer"
+                    },
+                    "error": {
+                      "type": "string"
                     }
-                  }
+                  },
+                  "type": "object"
                 }
               }
-            }
+            },
+            "description": "The draft and what was published since it was begun changed the same items."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
           }
         },
         "security": [
@@ -41003,7 +41375,7 @@
             "bearer": []
           }
         ],
-        "summary": "One page (?page=<id>) or the whole configuration as a file: {format: \"wittymedia-ui\", formatVersion, kind, page or config}.",
+        "summary": "One page (?page=\u003cid\u003e) or the whole configuration as a file: {format: \"wittymedia-ui\", formatVersion, kind, page or config}.",
         "tags": [
           "Server-driven UI"
         ],
@@ -41096,6 +41468,107 @@
         "x-wms-auth": "admin"
       }
     },
+    "/sdui/layout": {
+      "delete": {
+        "operationId": "deleteSduiLayout",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "This device follows the server's layout again.",
+        "tags": [
+          "Server-driven UI"
+        ],
+        "x-wms-auth": "user"
+      },
+      "get": {
+        "operationId": "getSduiLayout",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The layout option in force on this device and what this profile may choose: {layout, shell, choice, editable}. device= (or X-WMS-Device) names the app's own device; without it the form factor.",
+        "tags": [
+          "Server-driven UI"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putSduiLayout",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            }
+          },
+          "description": "{layout}",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "This profile's layout on this device: {layout}. 403 when it may not rearrange, or when the server doesn't offer that layout.",
+        "tags": [
+          "Server-driven UI"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/sdui/modules": {
       "get": {
         "operationId": "getSduiModules",
@@ -41125,6 +41598,37 @@
           "Server-driven UI"
         ],
         "x-wms-auth": "admin"
+      }
+    },
+    "/sdui/modules/settings": {
+      "get": {
+        "operationId": "getSduiModuleSettingsList",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The modules in use with settings this profile sees, for the list under Settings → Modules: {modules: [{module, label, icon, url}]}.",
+        "tags": [
+          "Server-driven UI"
+        ],
+        "x-wms-auth": "user"
       }
     },
     "/sdui/modules/{module}/images/{name}": {
@@ -41819,7 +42323,7 @@
             "bearer": []
           }
         ],
-        "summary": "A page, rendered for this account and device: an SDUI document (docs/SDUI.md, docs/sdui.schema.json). {page} is a kind of page (home, libraries, library?library=, detail?item= or ?show= or ?collection= or ?library=&artist=&album=, search?q=, livetv, music, photos, books, games, collections), chosen among the pages of that kind by what the request names, or one page's ID. Filled with what the account may see, cut to the device's budget, with components the client can't draw replaced by their fallbacks. 304 with If-None-Match.",
+        "summary": "A page, rendered for this account and device: an SDUI document (docs/SDUI.md, docs/sdui.schema.json). {page} is a kind of page (home, libraries, library?library=, detail?item= or ?show= or ?collection= or ?library=\u0026artist=\u0026album=, search?q=, livetv, music, photos, books, games, collections), chosen among the pages of that kind by what the request names, or one page's ID. Filled with what the account may see, cut to the device's budget, with components the client can't draw replaced by their fallbacks. 304 with If-None-Match.",
         "tags": [
           "Server-driven UI"
         ],
@@ -42087,7 +42591,7 @@
             "bearer": []
           }
         ],
-        "summary": "?since=<etag>: patches from the render the client has, or the whole document when the server no longer has it. 304 when nothing changed.",
+        "summary": "?since=\u003cetag\u003e: patches from the render the client has, or the whole document when the server no longer has it. 304 when nothing changed.",
         "tags": [
           "Server-driven UI"
         ],
@@ -42665,6 +43169,17 @@
     "/sdui/validate": {
       "post": {
         "operationId": "postSduiValidate",
+        "parameters": [
+          {
+            "description": "draft: a navigation may name the draft's pages (the published configuration's while there is no draft).",
+            "in": "query",
+            "name": "target",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -42701,18 +43216,7 @@
         "tags": [
           "Server-driven UI"
         ],
-        "x-wms-auth": "admin",
-        "parameters": [
-          {
-            "description": "draft: a navigation may name the draft's pages (the published configuration's while there is no draft).",
-            "in": "query",
-            "name": "target",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
+        "x-wms-auth": "admin"
       }
     },
     "/sessions": {
@@ -48107,74 +48611,6 @@
           "Game PCs"
         ],
         "x-wms-auth": "admin"
-      }
-    },
-    "/p2p/join": {
-      "post": {
-        "operationId": "postP2pJoin",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "ok": {
-                      "type": "boolean"
-                    },
-                    "expiresInSec": {
-                      "type": "integer"
-                    },
-                    "user": {
-                      "$ref": "#/components/schemas/User"
-                    }
-                  }
-                }
-              }
-            },
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "The code a device away from home is showing (eight letters and digits), typed in by someone signed in: the device finds the server by it, is put on the list and signed in, as this account or a Kids or Guest profile it manages. Adults only; an administrator's password again to sign a device in as an administrator. Works once, for 15 minutes. Needs the address book layer.",
-        "tags": [
-          "Remote access and signed-in devices"
-        ],
-        "x-wms-auth": "user",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "code": {
-                    "type": "string"
-                  },
-                  "userId": {
-                    "type": "integer"
-                  },
-                  "password": {
-                    "type": "string"
-                  },
-                  "otp": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "code"
-                ]
-              }
-            }
-          },
-          "required": true
-        }
       }
     }
   },

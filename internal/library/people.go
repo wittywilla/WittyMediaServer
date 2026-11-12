@@ -351,11 +351,26 @@ func (s *Store) SetCredits(ctx context.Context, target string, id int64, source 
 			return err
 		}
 	}
+	// Read, whether it named anyone or not: the background pass doesn't ask again.
+	if _, err := tx.ExecContext(ctx, `INSERT INTO credits_read(target, target_id, source, at) VALUES(?,?,?,?)
+		ON CONFLICT(target, target_id, source) DO UPDATE SET at = excluded.at`, target, id, source, db.Now()); err != nil {
+		return err
+	}
 	return tx.Commit()
 }
 
-// PrunePeople forgets people no title names any more.
+// CreditsRead says whether a source's credits were read for a title since credits existed.
+func (s *Store) CreditsRead(ctx context.Context, target string, id int64, source string) bool {
+	var one int
+	return s.DB.QueryRowContext(ctx, `SELECT 1 FROM credits_read WHERE target = ? AND target_id = ? AND source = ?`, target, id, source).Scan(&one) == nil
+}
+
+// PrunePeople forgets people no title names any more, and what was read for titles gone.
 func (s *Store) PrunePeople(ctx context.Context) error {
+	if _, err := s.DB.ExecContext(ctx, `DELETE FROM credits_read WHERE (target = 'item' AND NOT EXISTS (SELECT 1 FROM items i WHERE i.id = credits_read.target_id))
+		OR (target = 'show' AND NOT EXISTS (SELECT 1 FROM shows s WHERE s.id = credits_read.target_id))`); err != nil {
+		return err
+	}
 	_, err := s.DB.ExecContext(ctx, `DELETE FROM people WHERE NOT EXISTS (SELECT 1 FROM credits c WHERE c.person_id = people.id)`)
 	return err
 }

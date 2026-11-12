@@ -146,6 +146,12 @@ var metadataMigrations = []string{
 	   DELETE FROM credits WHERE target = 'item' AND target_id = OLD.id; END;
 	 CREATE TRIGGER IF NOT EXISTS credits_show_gone AFTER DELETE ON shows BEGIN
 	   DELETE FROM credits WHERE target = 'show' AND target_id = OLD.id; END;`,
+	// 13: when each source's credits were last read for a title, found or not, so titles
+	// scanned before credits existed are filled in once, and one a source names nobody in
+	// isn't asked about again on every scan. Rows of titles gone are swept with the people.
+	`CREATE TABLE IF NOT EXISTS credits_read (
+	   target TEXT NOT NULL, target_id INTEGER NOT NULL, source TEXT NOT NULL, at INTEGER NOT NULL DEFAULT 0,
+	   PRIMARY KEY(target, target_id, source)) WITHOUT ROWID;`,
 }
 
 func (d *DB) migrateMetadata(ctx context.Context) error {

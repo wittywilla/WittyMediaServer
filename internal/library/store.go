@@ -126,6 +126,7 @@ type Item struct {
 	audioFormat string
 	recIDs      *[2]string           // ISRC and MusicBrainz recording, when the file was read
 	markers     *mediaextras.Markers // skip markers its chapters name, when the file was read
+	credits     pendingCredits       // people each source named, for the sources read this time
 }
 
 // DiscInfo is the cached summary of a DVD.
@@ -840,6 +841,9 @@ func (s *Store) upsertItem(ctx context.Context, it *Item) error {
 		if err := s.SaveScannedMarkers(ctx, it.ID, it.markers); err != nil {
 			return err
 		}
+		if err := s.savePending(ctx, TargetItem, it.ID, &it.credits); err != nil {
+			return err
+		}
 		return s.saveScanBrands(ctx, it)
 	}
 	_, err := s.DB.ExecContext(ctx, `UPDATE items SET kind=?, title=?, sort_title=?, year=?, overview=?, tagline=?, genres=?, rating=?,
@@ -857,6 +861,9 @@ func (s *Store) upsertItem(ctx context.Context, it *Item) error {
 		return err
 	}
 	if err := s.SaveScannedMarkers(ctx, it.ID, it.markers); err != nil {
+		return err
+	}
+	if err := s.savePending(ctx, TargetItem, it.ID, &it.credits); err != nil {
 		return err
 	}
 	return s.saveScanBrands(ctx, it)

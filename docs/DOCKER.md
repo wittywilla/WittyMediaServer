@@ -116,7 +116,7 @@ Most settings are in the app. These are the ones a container sets with `environm
 | `WMS_TRUSTED_PROXIES` | | Your reverse proxy's address, as the server sees it. [Behind a reverse proxy](#behind-a-reverse-proxy) |
 | `WMS_SETUP_FROM_HOME` | | `1` lets anyone on your home network make the first account without the setup code |
 | `WMS_CACHE_DIR`, `WMS_METADATA_DIR`, `WMS_LOG_DIR` | | Move the cache, the artwork or the logs out of `/config` |
-| `TZ` | | Your time zone, such as `Europe/London`, for the times in logs and the TV guide |
+| `TZ` | | Your time zone, such as `Europe/London`, for the times in logs and the TV guide. Settings, Time zone, or the first-run Name step, overrides it |
 
 ## User and group IDs
 

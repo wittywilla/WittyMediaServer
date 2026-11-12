@@ -27,6 +27,7 @@ import { syncTilt } from './ui/tilt'
 import { Sidebar } from './shell/Sidebar'
 import { TabBar } from './shell/TabBar'
 import { TopBar } from './shell/TopBar'
+import { Scene } from './ui/Scene'
 import { frameFor } from './shell/navModel'
 import { useMedia, useMenu, useNavMigration, useNavPrefs } from './shell/useNav'
 import { useTvMode } from './tvmode/mode'
@@ -130,6 +131,7 @@ function Shell() {
   const isStream = /^\/couch\/\d+\/play\//.test(loc.pathname) || loc.pathname.startsWith('/couch-rig/')
   return (
     <AudioProvider>
+      {!isTvPlayer && !isReader && !isStream && !isGame && !isPlayer && <Scene />}
       {isTvPlayer ? <Suspense fallback={tvFallback}><Routes><Route path="/tv/watch/:key" element={<TvPlayer />} /></Routes></Suspense>
         : isReader ? <Suspense fallback={<Spinner />}><Routes><Route path="/read/:id" element={<ReaderPage />} /></Routes></Suspense>
         : isCouchMode ? <Suspense fallback={<Spinner />}><Routes><Route path="/big/*" element={<CouchMode />} /></Routes></Suspense>
@@ -179,6 +181,8 @@ function AppFrame() {
   const open = wide ? side && !folded && !frame.rail : drawer
   const rail = wide && side && (frame.rail || (folded && prefs.collapse !== 'hide'))
   const toggle = () => {
+    // A rail: the button keeps its full menu open, or lets it fold again.
+    if (wide && rail && frame.rail) { window.dispatchEvent(new Event('wms:rail-pin')); return }
     if (wide) { setNavCollapsed(!folded); setFolded(!folded) } else setDrawer((o) => !o)
   }
   return (

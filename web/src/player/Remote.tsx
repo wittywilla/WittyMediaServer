@@ -4,7 +4,8 @@ import { createContext, useCallback, useContext, useEffect, useLayoutEffect, use
 import { createPortal } from 'react-dom'
 import { IconClose, IconContrast, IconDown, IconEject, IconFf, IconLeft, IconNext, IconPause, IconPlay, IconPrev, IconRew, IconRight, IconStop, IconUp } from '../icons'
 import { useMedia } from '../shell/useNav'
-import { COLOUR_KEYS, type RemoteKey } from './remoteKeys'
+import { COLOUR_KEYS, keyLabel, kindLabel, remoteRule, type RemoteForm, type RemoteKey } from './remoteKeys'
+import { useTvMode } from '../tvmode/mode'
 
 // The on-screen remote of a disc player. Which keys work for what's playing is in remoteKeys.ts.
 export type { RemoteKey }
@@ -20,9 +21,9 @@ type Props = {
 const COLOUR_NAMES: Record<string, string> = { red: 'Red', green: 'Green', yellow: 'Yellow', blue: 'Blue' }
 const ejectTip = (label: string) => (label === 'WittyDVD' ? 'Eject the DVD' : label === 'WittyBluray' ? 'Eject the Blu-ray' : 'Stop and close')
 
-// The floating remote doesn't fit a phone, or a window as short as one on its side: there the
-// remote is a sheet along the bottom.
-export const useSheetLayout = () => useMedia('(max-width: 700px), (max-height: 560px)')
+// The floating remote doesn't fit a phone, or a window as short as one on its side, and a television is far from the
+// screen: there the remote is a sheet (large keys, a focus ring) along the bottom.
+export const useSheetLayout = () => { const small = useMedia('(max-width: 700px), (max-height: 560px)'); return useTvMode() || small }
 
 // Where the remote sits, how big and how see-through it is; remembered per
 // browser. x/y are pixels from the player's top-left corner (null = default
@@ -110,10 +111,10 @@ export default function Remote({ onKey, enabled, onClose, label = 'WittyDVD', no
         <button type="button" className="rk round ghost" data-tip="See-through" aria-label="Change how see-through the remote is" onClick={(e) => { e.stopPropagation(); cycleAlpha() }}><IconContrast size={14} /></button>
         <button type="button" className="rk round ghost" data-tip="Close the Remote" aria-label="Close the Remote (r)" onClick={(e) => { e.stopPropagation(); onClose() }}><IconClose size={14} /></button>
       </div>
-      {note && <div className="remote-note" role="note">{note}</div>}
+      {note ? <div className="remote-note" role="note">{note}</div> : <div className="remote-note faint" role="note">{remoteRule()}</div>}
       <div className="remote-row2">
-        <B k="topmenu" cls="pill" title="Top menu (disc title menu)">TOP MENU</B>
-        <B k="menu" cls="pill" title="Menu (the root menu, or a Blu-ray's pop-up menu)">MENU</B>
+        <B k="topmenu" cls="pill" title="Top menu (disc title menu)">{keyLabel('topmenu', 'TOP MENU')}</B>
+        <B k="menu" cls="pill" title="Menu (the root menu, or a Blu-ray's pop-up menu)">{keyLabel('menu', 'MENU')}</B>
       </div>
       <div className="remote-dpad">
         <B k="up" cls="d up" title="Up"><IconUp /></B>
@@ -123,12 +124,12 @@ export default function Remote({ onKey, enabled, onClose, label = 'WittyDVD', no
         <B k="down" cls="d down" title="Down"><IconDown /></B>
       </div>
       <div className="remote-row2">
-        <B k="return" cls="pill" title="Return (go back)">RETURN</B>
-        <B k="angle" cls="pill" title="Video version (camera angle)">ANGLE</B>
+        <B k="return" cls="pill" title="Return (go back)">{keyLabel('return', 'RETURN')}</B>
+        <B k="angle" cls="pill" title="Video version (camera angle)">{keyLabel('angle', 'ANGLE')}</B>
       </div>
       <div className="remote-row2">
-        <B k="audio" cls="pill" title="Audio & language">AUDIO</B>
-        <B k="subtitle" cls="pill" title="Subtitles">SUBTITLE</B>
+        <B k="audio" cls="pill" title="Audio & language">{keyLabel('audio', 'AUDIO')}</B>
+        <B k="subtitle" cls="pill" title="Subtitles">{keyLabel('subtitle', 'SUBTITLE')}</B>
       </div>
       <div className="remote-row4">
         <B k="prev" title="Previous chapter"><IconPrev size={16} /></B>
@@ -184,14 +185,16 @@ function Colours() {
 
 // RemoteBar is the same remote laid out as one strip above the seek bar, for
 // viewers who prefer it out of the picture.
-export function RemoteBar({ onKey, enabled, disc = true, note, below = false }: { onKey: (k: RemoteKey) => void; enabled: (k: RemoteKey) => boolean; disc?: boolean; note?: string; below?: boolean }) {
+export function RemoteBar({ onKey, enabled, disc = true, note, below = false, form }: { onKey: (k: RemoteKey) => void; enabled: (k: RemoteKey) => boolean; disc?: boolean; note?: string; below?: boolean; form?: RemoteForm }) {
+  const head = form ? kindLabel(form) : ''
   return (
     <KeyCtx.Provider value={{ enabled, press: onKey, pressed: null }}>
     <div className={'remote-bar' + (below ? ' below' : '')} role="toolbar" aria-label="Disc remote" onClick={(e) => e.stopPropagation()}>
+      {head && <span className="rb-title">{head} remote</span>}
       {note && <span className="rb-note" role="note">{note}</span>}
-      <BarKey k="topmenu" label="Top menu">TOP MENU</BarKey>
-      <BarKey k="menu" label="Menu">MENU</BarKey>
-      <BarKey k="return" label="Return">RETURN</BarKey>
+      <BarKey k="topmenu" label="Top menu">{keyLabel('topmenu', 'TOP MENU')}</BarKey>
+      <BarKey k="menu" label="Menu">{keyLabel('menu', 'MENU')}</BarKey>
+      <BarKey k="return" label="Return">{keyLabel('return', 'RETURN')}</BarKey>
       <span className="rb-sep" />
       <BarKey k="left" label="Left"><IconLeft size={16} /></BarKey>
       <BarKey k="up" label="Up"><IconUp size={16} /></BarKey>
@@ -199,9 +202,9 @@ export function RemoteBar({ onKey, enabled, disc = true, note, below = false }: 
       <BarKey k="down" label="Down"><IconDown size={16} /></BarKey>
       <BarKey k="right" label="Right"><IconRight size={16} /></BarKey>
       <span className="rb-sep" />
-      <BarKey k="audio" label="Audio & language">AUDIO</BarKey>
-      <BarKey k="subtitle" label="Subtitles">SUBTITLE</BarKey>
-      <BarKey k="angle" label="Video version (camera angle)">ANGLE</BarKey>
+      <BarKey k="audio" label="Audio & language">{keyLabel('audio', 'AUDIO')}</BarKey>
+      <BarKey k="subtitle" label="Subtitles">{keyLabel('subtitle', 'SUBTITLE')}</BarKey>
+      <BarKey k="angle" label="Video version (camera angle)">{keyLabel('angle', 'ANGLE')}</BarKey>
       <span className="rb-sep hide-narrow" />
       <span className="rb-digits hide-narrow">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map((d) => <BarKey key={d} k={`digit${d}` as RemoteKey} label={`Button or chapter ${d}`}>{d}</BarKey>)}
@@ -253,9 +256,9 @@ export function RemoteSheet({ onKey, enabled, onClose, label = 'WittyDVD', note,
       {page === 'keys' ? (
         <div className="sheet-keys">
           <div className="sheet-menus">
-            <B k="topmenu" cls="pill" title="Top menu (disc title menu)">TOP MENU</B>
-            <B k="menu" cls="pill" title="Menu (the root menu, or a Blu-ray's pop-up menu)">MENU</B>
-            <B k="return" cls="pill" title="Return (go back)">RETURN</B>
+            <B k="topmenu" cls="pill" title="Top menu (disc title menu)">{keyLabel('topmenu', 'TOP MENU')}</B>
+            <B k="menu" cls="pill" title="Menu (the root menu, or a Blu-ray's pop-up menu)">{keyLabel('menu', 'MENU')}</B>
+            <B k="return" cls="pill" title="Return (go back)">{keyLabel('return', 'RETURN')}</B>
           </div>
           <div className="remote-dpad">
             <B k="up" cls="d up" title="Up"><IconUp /></B>
@@ -265,9 +268,9 @@ export function RemoteSheet({ onKey, enabled, onClose, label = 'WittyDVD', note,
             <B k="down" cls="d down" title="Down"><IconDown /></B>
           </div>
           <div className="sheet-tracks">
-            <B k="audio" cls="pill" title="Audio & language">AUDIO</B>
-            <B k="subtitle" cls="pill" title="Subtitles">SUBTITLE</B>
-            <B k="angle" cls="pill" title="Video version (camera angle)">ANGLE</B>
+            <B k="audio" cls="pill" title="Audio & language">{keyLabel('audio', 'AUDIO')}</B>
+            <B k="subtitle" cls="pill" title="Subtitles">{keyLabel('subtitle', 'SUBTITLE')}</B>
+            <B k="angle" cls="pill" title="Video version (camera angle)">{keyLabel('angle', 'ANGLE')}</B>
           </div>
           <div className="sheet-transport">
             <B k="prev" title="Previous chapter"><IconPrev size={16} /></B>

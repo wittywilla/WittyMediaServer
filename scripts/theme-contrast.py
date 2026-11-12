@@ -16,6 +16,11 @@ text colour; docs/THEMES.md "The TV pass"):
   --fg on --bg and the other way round: the "fill" focus style fills with --fg and sets the label in --bg
   --hero-scrim at least strong enough that white text over the brightest possible picture reads (4.5:1)
 
+and the finish's gloss (theme.json finish.gloss, the "full" gloss paint of buttons and rows, whose label is --accent-fg):
+
+  the label against the paint's colour at every point across the middle of the button, 30% to 70% down it
+  (the paint is hi 0%, up 48%, lo 52%, glow 100%; web/src/finish.css --gloss-paint): 4.5:1 at each point. Only reported.
+
 A failing colour is moved the shortest way that passes: lighter on dark
 themes, darker on light ones, keeping its hue. Light accents (gold to teal)
 on dark themes keep their colour and get dark labels instead. Run from the repository root:
@@ -168,6 +173,29 @@ for f in FILES:
             if 'preview' in m and new['accent'] != v['accent'] and m['preview'].get('accent', '').lower() == v['accent'].lower():
                 m['preview']['accent'] = new['accent']
             meta.write_text(json.dumps(m, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+def gloss_worst(gloss, label):
+    """The lowest contrast of label over the gloss paint from 30% to 70% of the way down."""
+    def point(p):
+        stops = [(0, gloss[0]), (48, gloss[1]), (52, gloss[2]), (100, gloss[3])]
+        for (p0, c0), (p1, c1) in zip(stops, stops[1:]):
+            if p0 <= p <= p1:
+                t = (p - p0) / (p1 - p0)
+                return hexs(tuple(a + (b - a) * t for a, b in zip(rgb(c0), rgb(c1))))
+    return min(ratio(label, point(p)) for p in range(30, 71))
+
+
+for meta in sorted(pathlib.Path('themes').glob('*/theme.json')):
+    m = json.loads(meta.read_text(encoding='utf-8'))
+    gloss = (m.get('finish') or {}).get('gloss')
+    if not gloss or len(gloss) < 4:
+        continue
+    label = m['colors']['accentFg']
+    worst = gloss_worst(gloss, label)
+    print(f'{meta}: gloss label ' + ('passes' if worst >= 4.5 else f'is {worst:.2f}:1 over the middle of the gloss, needs 4.5:1'))
+    if worst < 4.5:
+        failed += 1
+
+
 if FIX:
     print(f'{changed} files changed')
 elif failed:

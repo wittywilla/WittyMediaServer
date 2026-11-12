@@ -28,6 +28,7 @@ import { px, usePage } from './context'
 import { kindIcon, sduiIcon } from './icons'
 import { chooseEpisodeView, useEpisodeView } from '../extras/episodeView'
 import { Markdown } from './markdown'
+import { WidgetGridView } from './widgets'
 
 const NativeViewHost = lazy(() => import('./NativeViewHost'))
 const DetailExtras = lazy(() => import('../extras/DetailExtras'))
@@ -182,8 +183,9 @@ function Heading({ view, level = 2, id }: { view: View; level?: 2 | 3; id: strin
   const sub = view.text?.subtitle
   const H = level === 2 ? 'h2' : 'h3'
   if (!title && !(view.seeAll && !view.seeAllCard)) return null
+  const style = str(view.node.props, 'headingStyle')
   return (
-    <div className="hub-head" data-sdui-head>
+    <div className="hub-head" data-sdui-head data-heading={style === 'band' || style === 'underline' ? style : undefined}>
       <div className="sdui-head-text">{title && <H id={id} className="sdui-clamp" style={clamp(view.lines?.title)}>{title}</H>}{sub && <p className="muted">{sub}</p>}</div>
       {view.seeAll && !view.seeAllCard && view.seeAll.startsWith('/') && <Link to={view.seeAll} aria-label={`See all: ${title || ''}`}>{str(obj(view.node.props, 'seeAll'), 'label') || 'See all'} <IconRight /></Link>}
     </div>
@@ -710,6 +712,17 @@ function TabsView({ view, depth }: { view: View; depth: number }) {
   const page = usePage()
   const tabs = view.children.filter((c) => c.type === 'Tab')
   const selected = tabs.find((t) => t.node.props?.selected === true) || tabs[0]
+  // A Crossbar shows the row under focus or the pointer large beside the list: what it says and its picture, copied from the
+  // row (an echo for the eye; the row itself is what a screen reader reaches).
+  const cross = view.type === 'CrossBar'
+  const [peek, setPeek] = useState<{ title: string; sub: string; art: string } | null>(null)
+  const aim = (e: React.SyntheticEvent) => {
+    const row = (e.target as HTMLElement).closest?.('.sdui-row')
+    if (!row) return
+    const text = row.querySelector('.sdui-row-text')
+    setPeek({ title: text?.children[0]?.textContent || '', sub: text?.children[1]?.textContent || '', art: row.querySelector<HTMLImageElement>('.sdui-row-art img')?.currentSrc || '' })
+  }
+  useEffect(() => { setPeek(null) }, [selected?.id])
   if (!selected) return null
   const choose = (id: string) => { const t = tabs.find((x) => x.id === id); if (t && t !== selected && !page.inert) page.act(t.node.action, t) }
   const label = 'Views'
@@ -722,8 +735,10 @@ function TabsView({ view, depth }: { view: View; depth: number }) {
           ? <Segmented label={label} value={selected.id} onChange={choose} options={tabs.map((t) => ({ value: t.id, label: t.text?.title || '', icon: icon(t) }))} />
           : <TabStrip label={label} value={selected.id} onChange={choose} panelId={panel} items={tabs.map((t) => ({ value: t.id, label: <>{icon(t)}{t.text?.title}</> }))} />}
       </div>
-      <div id={panel} role="tabpanel" aria-label={selected.text?.title} className="sdui-stack" aria-busy={page.busy('page') || undefined}>
+      <div id={panel} role="tabpanel" aria-label={selected.text?.title} className="sdui-stack" aria-busy={page.busy('page') || undefined}
+        onFocus={cross ? aim : undefined} onMouseOver={cross ? aim : undefined}>
         {selected.children.map((c) => <Draw key={c.id} view={c} depth={depth + 1} />)}
+        {cross && peek && <aside className="crossbar-preview" aria-hidden="true">{peek.art && <img src={peek.art} alt="" />}<b>{peek.title}</b>{peek.sub && <span>{peek.sub}</span>}</aside>}
       </div>
     </section>
   )
@@ -898,7 +913,7 @@ function ListView({ view, depth }: { view: View; depth: number }) {
       <StateLine view={view} />
       {view.state !== 'empty' && (
         <ul className="sdui-list" aria-labelledby={view.text?.title ? id : undefined} aria-label={view.text?.title ? undefined : view.label || undefined} data-nav-group>
-          {waiting ? Array.from({ length: 4 }, (_, k) => <li key={k} className="sdui-ph" aria-hidden="true"><i className="skel" /></li>) : view.children.map((c) => <li key={c.id}><ListItemView view={c} /></li>)}
+          {waiting ? Array.from({ length: 4 }, (_, k) => <li key={k} className="sdui-ph" aria-hidden="true"><i className="skel" /></li>) : view.children.map((c, i) => <li key={c.id}><ListItemView view={c} number={view.type === 'NumberedRow' ? str(c.node.props, 'number') || String(i + 1) : undefined} /></li>)}
         </ul>
       )}
       {view.hasMore && !waiting && <Near onNear={() => page.more(view.id)} />}
@@ -914,13 +929,14 @@ const shapeOf = (image: Props | undefined): string => {
   return a === '2/3' ? 'poster' : a === '16/9' ? 'wide' : a === '1/1' ? 'square' : str(image, 'kind') === 'poster' ? 'poster' : ''
 }
 
-function ListItemView({ view }: { view: View }) {
+function ListItemView({ view, number }: { view: View; number?: string }) {
   const p = view.node.props || {}
   const image = obj(p, 'image')
   const progress = typeof p.progress === 'number' && p.progress > 0 ? Math.min(1, p.progress) : 0
   const badges = (Array.isArray(p.badges) ? p.badges : []).filter((b): b is string => typeof b === 'string').slice(0, 2)
   return (
-    <Pressable view={view} className="sdui-row">
+    <Pressable view={view} className={'sdui-row' + (number ? ' numbered' : '')}>
+      {number && <span className="sdui-row-num">{number}</span>}
       {image ? (
         <span className={'sdui-row-art' + (shapeOf(image) ? ' ' + shapeOf(image) : '')}>
           <Picture image={image} kind={p.kind} title={view.text?.title} />
@@ -973,8 +989,8 @@ export function Draw({ view, depth }: { view: View; depth: number }): ReactNode 
     case 'Card': return <CardView view={view} showTitles />
     case 'Tabs': case 'CrossBar': return <TabsView view={view} depth={depth} />
     case 'NumberedRow': return <ListView view={view} depth={depth} />
-    case 'WidgetGrid': return <div className="sdui-widgets" style={{ gridTemplateColumns: `repeat(${Math.max(1, num(view.node.props, 'columns') || 4)}, minmax(0, 1fr))` }} data-nav-group>{view.children.map((c) => <Draw key={c.id} view={c} depth={depth + 1} />)}</div>
-    case 'Widget': return <section className="sdui-widget elev-1" style={{ gridColumn: `span ${Math.max(1, num(view.node.props, 'w') || 1)}`, gridRow: `span ${Math.max(1, num(view.node.props, 'h') || 1)}` }} aria-label={view.label}>{view.text?.title && <h3>{view.text.title}</h3>}{view.children.map((c) => <Draw key={c.id} view={c} depth={depth + 1} />)}</section>
+    case 'WidgetGrid': return <WidgetGridView view={view} draw={(c) => <Draw view={c} depth={depth + 1} />} />
+    case 'Widget': return <>{view.children.map((c) => <Draw key={c.id} view={c} depth={depth + 1} />)}</>
     case 'Tab': return <div className="sdui-stack">{view.children.map((c) => <Draw key={c.id} view={c} depth={depth + 1} />)}</div>
     case 'FilterBar': return <FilterBarView view={view} />
     case 'DetailHeader': return <DetailHeaderView view={view} />

@@ -1035,7 +1035,7 @@ with `shown` centred in it (or the logo at `imageUrl`, fitted inside; the letter
 in the rail's header, the tab bar's and the sign-in; `warnings` list the parts in a fixed colour that fall
 under 4.5:1 on a surface of this theme. The owner's colouring is `brandColouring` (the quick modes below) or
 `brandSpans`, the editor's `[{from, to, color, bold}]` over code points (at most 40, in order, not
-overlapping), which wins when set; the mark is `brandMark`, both in `PUT /settings`.
+overlapping), which wins when set; the mark is `brandMark`, both in `PUT /settings`. A `PUT /settings` that changes any of the name's keys also answers `brandWarnings`: `[{text, surface, where, ratio, need, variant?}]`, the fixed-colour parts under 4.5:1 on a surface of the server's theme (empty when none), to show as "Check:" notes; the save still happens.
 
 `brandColouring` is how the owner chose it, kept with the name in `PUT /settings`:
 
@@ -1062,7 +1062,10 @@ uses** with **503** and
 
 and a `Retry-After`. Only `/status`, `/health`, the setup routes (`/setup`, `/setup/state`,
 `/setup/complete`), the themes and `/sdui/experiences`, `/sdui/preview`, a restore of a backup and the web
-app's own files answer; the administrator's browser session also carries on for the setup's own calls.
+app's own files answer. The administrator's browser session also carries on for the setup's own calls: a request
+that has the administrator's session cookie (`wms_token`) passes, whether or not it also sends that same token as
+`Authorization: Bearer`, which the web app does on every call. A token with no cookie, or a header token that is not the
+cookie's, is an app and is refused until setup is complete.
 An app shows "This server isn't set up yet" with `setupURL` and a QR code of it, offers Check again and
 Choose another server, and never tries to sign in. `GET /sdui/preview?experience=<id>&theme=<id>` answers a
 sample Home and menu from generated demo data with the resolved theme before anyone has signed in, so the
@@ -1329,7 +1332,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in `openap
 | `DELETE /branding/logo` | admin | Go back to the app icon. |
 | `GET /system` | admin | Host, FFmpeg and hardware encoder details. |
 | `GET /settings` | admin | All server settings as strings; secrets are masked. |
-| `PUT /settings` | admin | Change settings; unknown keys are ignored. |
+| `PUT /settings` | admin | Change settings; unknown keys are ignored. `timeZone` is an IANA name (`Europe/London`) the server runs in from the moment it is saved, for the TV guide's days, schedules, recordings and the times in the logs; empty follows the computer (and the `TZ` variable). `GET /settings` adds `timeZoneNow` (the zone it runs in) and `timeZoneComputer`. `theme` follows the look until one is chosen (see [Themes](THEMES.md#precedence)). |
 | `GET /fs` | admin | Browse the server's folders, to choose library folders. |
 | `POST /fs/pick` | admin | Open the system folder picker on the server's own screen (only from that machine; 501 elsewhere). |
 | `POST /metadata/test` | admin | Check a metadata API key before saving it. |

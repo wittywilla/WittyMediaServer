@@ -3,7 +3,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-const { ALL_KEYS, MENU_ONLY, COLOUR_KEYS, ARROW_KEYS, discForm, videoForm, remoteLabel, keyWorks, remoteNote } = await import('./remoteKeys.ts')
+const { ALL_KEYS, MENU_ONLY, COLOUR_KEYS, ARROW_KEYS, discForm, videoForm, remoteLabel, keyWorks, remoteNote, setRemoteCatalogue, keyLabel, kindLabel, barAllowed, sheetPages, remoteRule } = await import('./remoteKeys.ts')
 
 const working = (form, state) => ALL_KEYS.filter((k) => keyWorks(form, k, state))
 const rich = { audio: 2, subtitles: 3, angles: 2, chapters: 12 }
@@ -93,4 +93,27 @@ test('the catalogue says which keys a kind dims, and a dimmed key does nothing',
     assert.equal(catalogueDims('video', 'topmenu'), true) // the catalogue's topMenu is this remote's topmenu
     assert.equal(keyWorks('dvd', 'red', { bdj: true }), false)
   } finally { setRemoteCatalogue({}) }
+})
+
+test('the catalogue gives the remote its words, headings, pages and placements, and a server with none leaves ours', () => {
+  setRemoteCatalogue({})
+  assert.equal(keyLabel('topmenu', 'TOP MENU'), 'TOP MENU')
+  assert.equal(kindLabel('dvd'), '')
+  assert.equal(barAllowed(), true)
+  assert.deepEqual(sheetPages(), [['menus', 'options', 'pad', 'transport'], ['digits', 'colours']])
+  setRemoteCatalogue({
+    keys: [{ id: 'topMenu', label: 'TITLE MENU', group: 'menus' }, { id: 'back', label: 'Back 10', group: 'transport' }, { id: '5', label: 'Five', group: 'digits' }],
+    kinds: { dvd: { label: 'DVD' }, bluray: { label: 'Blu-ray' }, video: { label: 'A video file' } },
+    pages: [['menus'], ['digits']], looks: ['body'], rule: 'Dimmed keys stay in place.',
+  })
+  assert.equal(keyLabel('topmenu', 'TOP MENU'), 'TITLE MENU')
+  assert.equal(keyLabel('rew', 'x'), 'Back 10')
+  assert.equal(keyLabel('digit5', '5'), 'Five')
+  assert.equal(keyLabel('menu', 'MENU'), 'MENU')
+  assert.equal(kindLabel('bluray-copy'), 'A video file')
+  assert.equal(kindLabel(discForm({ kind: 'bluray-iso' })), 'Blu-ray')
+  assert.equal(barAllowed(), false)
+  assert.deepEqual(sheetPages(), [['menus'], ['digits']])
+  assert.equal(remoteRule(), 'Dimmed keys stay in place.')
+  setRemoteCatalogue({})
 })

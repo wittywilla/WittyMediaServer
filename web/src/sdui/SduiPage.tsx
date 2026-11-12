@@ -24,6 +24,7 @@ import { scopeStyle, Sections } from './render/components'
 import { setPageMove } from '../tv'
 import type { Action, Document, Node } from './types'
 import { useDevice } from './useSdui'
+import { ask } from '../ui/Overlay'
 import { setPageRegions } from './regions'
 import './sdui.css'
 import './play.css'
@@ -346,7 +347,7 @@ export default function SduiPage({ page, params, fallback }: { page: string; par
     } catch (e) { toast((e as Error).message, { tone: 'danger' }) }
   }, [audio, libraries, nav, opener])
 
-  const act = useCallback((a: Action | undefined, from?: View) => {
+  const actNow = useCallback((a: Action | undefined, from?: View) => {
     const step = plan(a, { externalLinks: drawn.current?.layout.externalLinks })
     switch (step.do) {
       case 'go': nav(step.to); break
@@ -373,6 +374,11 @@ export default function SduiPage({ page, params, fallback }: { page: string; par
         break
     }
   }, [nav, play, setQuery])
+  // A command with a question asks it first, with Cancel beside, and runs only on a yes.
+  const act = useCallback((a: Action | undefined, from?: View) => {
+    if (a?.confirm) { void ask({ title: a.confirm, confirm: String(from?.text?.title || from?.label || 'Yes') }).then((yes) => { if (yes) actNow({ ...a, confirm: undefined }, from) }); return }
+    actNow(a, from)
+  }, [actNow])
 
   const handlers = useMemo<Handlers>(() => ({
     act, more, setQuery,
@@ -391,6 +397,14 @@ export default function SduiPage({ page, params, fallback }: { page: string; par
   // One of the app's own screens stands in for this page (native.ts says when).
   if (fallback && nativeInstead(doc, libraries)) return <>{fallback}</>
 
+  // A page for a kind of library, with no such library yet: say so and offer the next step (canvas 'empty').
+  const wantsLibrary = ({ photos: ['photos'], books: ['books', 'audiobooks'], music: ['music'] } as Record<string, string[]>)[doc.page.kind]
+  if (wantsLibrary && !libraries.some((l) => wantsLibrary.includes(l.type))) {
+    const noun = doc.page.kind === 'photos' ? 'photos' : doc.page.kind === 'books' ? 'books' : 'music'
+    return <><h1 className="sr-only">{doc.page.title || noun}</h1><EmptyState icon={<IconInfo />} title={`No ${noun} yet`}
+      text={user?.isAdmin ? `Add a library of ${noun} and it appears here.` : `Ask whoever runs this server to add a library of ${noun}.`}
+      action={user?.isAdmin ? <LinkButton variant="primary" to="/settings/libraries">Add a library</LinkButton> : undefined} /></>
+  }
   const personal = doc.personal
   const canCustomise = !!personal?.editable && (personal.allow || []).length > 0 && (personal.sections || []).length > 0
   const st = doc.screenTime

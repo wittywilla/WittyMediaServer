@@ -2,6 +2,12 @@
   "$defs": {
     "Action": {
       "properties": {
+        "as": {
+          "type": "string"
+        },
+        "confirm": {
+          "type": "string"
+        },
         "item": {
           "type": "string"
         },
@@ -94,6 +100,12 @@
       "properties": {
         "aspect": {
           "type": "string"
+        },
+        "badgeTones": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
         },
         "description": {
           "type": "string"
@@ -375,6 +387,9 @@
         "method": {
           "type": "string"
         },
+        "module": {
+          "type": "string"
+        },
         "op": {
           "type": "string"
         },
@@ -633,6 +648,83 @@
       ],
       "type": "object"
     },
+    "Control": {
+      "properties": {
+        "disabled": {
+          "type": "boolean"
+        },
+        "input": {
+          "type": "string"
+        },
+        "max": {
+          "type": "number"
+        },
+        "maxLength": {
+          "type": "integer"
+        },
+        "min": {
+          "type": "number"
+        },
+        "multiline": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "options": {
+          "items": {
+            "$ref": "#/$defs/EnumOption"
+          },
+          "type": "array"
+        },
+        "placeholder": {
+          "type": "string"
+        },
+        "step": {
+          "type": "number"
+        },
+        "type": {
+          "type": "string"
+        },
+        "unit": {
+          "type": "string"
+        },
+        "value": {},
+        "why": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object"
+    },
+    "DockEntry": {
+      "properties": {
+        "as": {
+          "type": "string"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "route": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "icon",
+        "route"
+      ],
+      "type": "object"
+    },
     "DockMetrics": {
       "properties": {
         "height": {
@@ -668,6 +760,9 @@
         },
         "personal": {
           "$ref": "#/$defs/PersonalInfo"
+        },
+        "regions": {
+          "$ref": "#/$defs/PageRegions"
         },
         "root": {
           "$ref": "#/$defs/Node"
@@ -799,6 +894,12 @@
         },
         "type": {
           "type": "string"
+        },
+        "wire": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Wire"
+          },
+          "type": "object"
         }
       },
       "required": [
@@ -818,7 +919,8 @@
         "type",
         "density",
         "motion",
-        "home"
+        "home",
+        "wire"
       ],
       "type": "object"
     },
@@ -985,6 +1087,15 @@
     },
     "Item": {
       "properties": {
+        "action": {
+          "$ref": "#/$defs/Action"
+        },
+        "actions": {
+          "items": {
+            "$ref": "#/$defs/ItemAction"
+          },
+          "type": "array"
+        },
         "artist": {
           "type": "string"
         },
@@ -1008,6 +1119,9 @@
         },
         "contentRating": {
           "type": "string"
+        },
+        "control": {
+          "$ref": "#/$defs/Control"
         },
         "count": {
           "type": "integer"
@@ -1111,6 +1225,9 @@
         "track": {
           "type": "integer"
         },
+        "trailing": {
+          "type": "string"
+        },
         "unwatched": {
           "type": "integer"
         },
@@ -1125,6 +1242,28 @@
         "id",
         "kind",
         "title"
+      ],
+      "type": "object"
+    },
+    "ItemAction": {
+      "properties": {
+        "action": {
+          "$ref": "#/$defs/Action"
+        },
+        "glyph": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "action"
       ],
       "type": "object"
     },
@@ -1544,6 +1683,9 @@
         "personal": {
           "$ref": "#/$defs/PersonalPolicy"
         },
+        "regions": {
+          "$ref": "#/$defs/PageRegions"
+        },
         "scope": {
           "type": "string"
         },
@@ -1647,6 +1789,23 @@
         "description",
         "route"
       ],
+      "type": "object"
+    },
+    "PageRegions": {
+      "properties": {
+        "statusBar": {
+          "items": {
+            "$ref": "#/$defs/StatusItem"
+          },
+          "type": "array"
+        },
+        "systemDock": {
+          "items": {
+            "$ref": "#/$defs/DockEntry"
+          },
+          "type": "array"
+        }
+      },
       "type": "object"
     },
     "PageStyle": {
@@ -2220,6 +2379,24 @@
       ],
       "type": "object"
     },
+    "StatusItem": {
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind"
+      ],
+      "type": "object"
+    },
     "TextLimits": {
       "properties": {
         "overview": {
@@ -2451,6 +2628,43 @@
         "height"
       ],
       "type": "object"
+    },
+    "Wire": {
+      "properties": {
+        "brand": {
+          "type": "string"
+        },
+        "cards": {
+          "type": "string"
+        },
+        "dock": {
+          "type": "boolean"
+        },
+        "finish": {
+          "type": "string"
+        },
+        "home": {
+          "type": "string"
+        },
+        "nav": {
+          "type": "string"
+        },
+        "open": {
+          "type": "boolean"
+        },
+        "style": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "nav",
+        "style",
+        "home",
+        "cards",
+        "brand",
+        "finish"
+      ],
+      "type": "object"
     }
   },
   "$id": "urn:wittymediaserver:sdui:schema:1",
@@ -2502,7 +2716,7 @@
     "logo",
     "chip"
   ],
-  "x-catalogRevision": 7,
+  "x-catalogRevision": 8,
   "x-components": [
     "Page",
     "Hero",
@@ -2536,6 +2750,7 @@
     "SearchBox",
     "List",
     "ListItem",
+    "Form",
     "NativeView"
   ],
   "x-icons": [
@@ -2638,6 +2853,13 @@
     "episodes",
     "tracks",
     "similar",
+    "versions",
+    "listsFor",
+    "newList",
+    "devices",
+    "year",
+    "activity",
+    "notices",
     "search"
   ]
 }

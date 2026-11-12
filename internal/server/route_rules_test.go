@@ -149,6 +149,7 @@ var routeRules = map[string]string{
 	"PUT /api/sdui/experience":                                  "Signed-in: own choice only, for this device (device by form, else the form factor). The profile's editLayout switch and the server's personalisation switch (403). Only a layout the server allows (403). 1 KB, strict JSON, at most 32 devices a profile",
 	"DELETE /api/sdui/experience":                               "Signed-in: own choice only. The same switches as saving",
 	"GET /api/sdui/modules/settings":                            "Signed-in: the modules in use that the profile isn't kept from, with a settings page it may see; nothing else",
+	"GET /api/sdui/slots/{slot}":                                "Signed-in: a slot the catalogue names; the modules in use that the profile isn't kept from, their pages in that slot it may see; an administrators' slot lists nothing for anyone else",
 	"GET /api/sdui/modules/{module}/images/{name}":              "Signed-in: the module is in use and the profile isn't kept from it (404). Name by form. Only pictures, as sniffed, with nosniff and a sandboxing CSP",
 	"GET /api/sdui/modules/{module}/settings":                   "Signed-in: the module is in use and the profile isn't kept from it (404). Admin pages and values only for administrators; secrets never sent",
 	"PUT /api/sdui/modules/{module}/settings/personal":          "Signed-in: own values only; profile rows only; each value checked against its row. 64 KB, strict JSON",

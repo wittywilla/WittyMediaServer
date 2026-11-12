@@ -84,6 +84,33 @@
       },
       "type": "object"
     },
+    "DockEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "as": {
+          "type": "string"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "route": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "icon",
+        "route"
+      ],
+      "type": "object"
+    },
     "EnumOption": {
       "additionalProperties": false,
       "properties": {
@@ -448,6 +475,9 @@
         "personal": {
           "$ref": "#/$defs/PersonalPolicy"
         },
+        "regions": {
+          "$ref": "#/$defs/PageRegions"
+        },
         "scope": {
           "type": "string"
         },
@@ -476,6 +506,24 @@
         "title",
         "sections"
       ],
+      "type": "object"
+    },
+    "PageRegions": {
+      "additionalProperties": false,
+      "properties": {
+        "statusBar": {
+          "items": {
+            "$ref": "#/$defs/StatusItem"
+          },
+          "type": "array"
+        },
+        "systemDock": {
+          "items": {
+            "$ref": "#/$defs/DockEntry"
+          },
+          "type": "array"
+        }
+      },
       "type": "object"
     },
     "PersonalPolicy": {
@@ -692,6 +740,9 @@
         "id": {
           "type": "string"
         },
+        "slot": {
+          "type": "string"
+        },
         "title": {
           "type": "string"
         }
@@ -775,6 +826,25 @@
       ],
       "type": "object"
     },
+    "StatusItem": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind"
+      ],
+      "type": "object"
+    },
     "Variant": {
       "additionalProperties": false,
       "properties": {
@@ -807,7 +877,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "description": "What a module adds to every app: pages, sections, components, data sources, views, menu entries, settings and its theme scope. Checked by the server against its catalogue (GET /api/v1/sdui/catalog) before the module is used. docs/SDUI-MODULES.md describes it.",
   "title": "A WittyMediaServer module's SDUI file (sdui.json), format version 1",
-  "x-catalogRevision": 7,
+  "x-catalogRevision": 8,
   "x-format": "wittymodule-sdui",
   "x-formatVersion": 1
 }

@@ -66,12 +66,14 @@ func TestCatalogueIsConsistent(t *testing.T) {
 				t.Errorf("%s: its example isn't a section: %v", comp.Type, err)
 				continue
 			}
-			kind := "custom"
+			kind, found := "custom", false
 			for _, k := range c.PageKinds {
 				b, _ := json.Marshal(s)
 				for _, v := range k.Variables {
-					if strings.Contains(string(b), `"`+v+`"`) {
-						kind = k.Kind
+					// A custom page takes some of the others' variables ($item) but is the kind of
+					// last resort: an example that names another kind's variable is that kind's.
+					if strings.Contains(string(b), `"`+v+`"`) && (k.Kind != "custom" || !found) {
+						kind, found = k.Kind, true
 					}
 				}
 			}

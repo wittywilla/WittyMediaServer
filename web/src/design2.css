@@ -242,3 +242,48 @@ body:has(.audio-bar:not(.full)) .player.mini { inset-block-end: 108px; }
 @media (max-width: 700px) { .tvm-tabs { flex-wrap: wrap; } .tvm-you { margin-left: 0; } }
 body:has(.audio-bar:not(.full)) .ctv-page, body:has(.audio-bar:not(.full)) .tvm-main { padding-bottom: calc(var(--dock-space, 0px) + var(--space-m)); }
 .app[data-nav-style="crossbar"] .topbar .search { flex: 0 1 11rem; min-inline-size: 8rem; }
+
+/* ---- a look's layout wireframe, in the colours of the theme it is drawn for ---- */
+.layout-thumb { display: block; inline-size: 100%; block-size: auto; border-radius: var(--r-sm); overflow: hidden; --lt-bg: var(--bg); --lt-surface: var(--bg-2); --lt-accent: var(--accent); }
+.layout-thumb .lt-bg { fill: var(--lt-bg); }
+.layout-thumb .lt-surface { fill: var(--lt-surface); }
+.layout-thumb .lt-surface2 { fill: color-mix(in srgb, var(--lt-surface) 70%, var(--fg-3)); }
+.layout-thumb .lt-accent { fill: var(--lt-accent); }
+.layout-thumb .lt-onaccent { fill: var(--accent-fg); }
+.layout-thumb .lt-fg { fill: var(--fg-2); }
+.layout-thumb .lt-mute { fill: var(--fg-3); }
+.layout-thumb .lt-scrim { fill: color-mix(in srgb, var(--picture-bg) 55%, transparent); }
+.layout-thumb .lt-red { fill: var(--danger); }
+.layout-thumb .lt-green { fill: var(--ok); }
+.layout-thumb .lt-yellow { fill: var(--warn); }
+
+/* ---- From away (peer to peer): three plain ways in ---- */
+.away { max-inline-size: 46rem; margin-inline: auto; padding-block: var(--space-l); display: grid; gap: var(--space-l); }
+.away h1 { margin: 0; font-size: var(--role-page-title-size); }
+.away-lead { color: var(--fg-2); margin: 0; }
+.away-card { padding: var(--space-l); border: 1px solid var(--elev-1-line); border-radius: var(--r-lg); background: var(--elev-1-fill); display: grid; gap: var(--space-m); }
+.away-card h2 { margin: 0; font-size: var(--role-heading-size); }
+.away-card p { margin: 0; }
+.away-steps { margin: 0; padding-inline-start: 1.25rem; display: grid; gap: var(--space-s); }
+.away-fields { display: grid; gap: var(--space-m); }
+.away-err { color: var(--danger); }
+.away-invite { display: grid; grid-template-columns: 11rem 1fr; gap: var(--space-l); align-items: start; }
+.away-invite .qr { inline-size: 11rem; block-size: 11rem; }
+.away-link-text { overflow-wrap: anywhere; font-size: var(--text-sm); }
+@media (max-width: 600px) { .away-invite { grid-template-columns: 1fr; } }
+
+/* The look picker: big readable cards, two to a row on a phone and never under 10rem, the chosen one ringed. */
+.look-opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); gap: var(--space-m); }
+@media (max-width: 600px) { .look-opts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.look-opts .layout-opt { display: grid; gap: var(--space-s); align-content: start; text-align: start; padding: var(--space-s); }
+.look-opts .layout-opt.on { outline: 3px solid var(--focus); outline-offset: 2px; }
+.look-opts .layout-opt .layout-thumb { inline-size: 100%; }
+.oobe .layout-thumb { min-inline-size: 10rem; }
+
+/* ---- focusGrow: the focused card grows (1.45 on a television, 1.25 on a tablet or desktop, none on a phone); reduced motion keeps the ring ---- */
+@media (min-width: 601px) and (prefers-reduced-motion: no-preference) {
+  .sdui-focusgrow .row { padding-inline: var(--space-xl); }
+  .sdui-focusgrow .sdui-item { transition: transform var(--dur-focus) var(--ease-out); transform-origin: 50% 60%; }
+  .sdui-focusgrow .sdui-item:focus-within { transform: scale(1.25); z-index: 2; margin-inline: 12%; }
+  html.tv-mode .sdui-focusgrow .sdui-item:focus-within { transform: scale(1.45); margin-inline: 22%; }
+}

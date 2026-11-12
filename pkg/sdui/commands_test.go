@@ -43,7 +43,7 @@ func TestCommandParamsFillToJSON(t *testing.T) {
 	for _, cmd := range Catalog().Commands {
 		declared := map[string]CommandParam{}
 		for _, p := range cmd.Params {
-			if p.Type != "string" && p.Type != "int" {
+			if p.Type != "string" && p.Type != "int" && p.Type != "bool" && p.Type != "ints" {
 				t.Errorf("%s: param %s has type %q", cmd.Op, p.Name, p.Type)
 			}
 			declared[p.Name] = p
@@ -60,9 +60,14 @@ func TestCommandParamsFillToJSON(t *testing.T) {
 		}
 		body := cmd.Body
 		for name, p := range declared {
-			if p.Type == "int" {
+			switch p.Type {
+			case "int":
 				body = strings.ReplaceAll(body, `"{`+name+`}"`, "3")
-			} else {
+			case "bool":
+				body = strings.ReplaceAll(body, `"{`+name+`}"`, "true")
+			case "ints":
+				body = strings.ReplaceAll(body, `"{`+name+`}"`, "[1,2]")
+			default:
 				body = strings.ReplaceAll(body, `"{`+name+`}"`, `"a\"b"`)
 			}
 		}

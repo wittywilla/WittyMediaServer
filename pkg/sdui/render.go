@@ -55,6 +55,9 @@ type SourceResult struct {
 	// all, -1 when that isn't known.
 	More  bool
 	Total int
+	// Reason says why these were chosen, in a line ("Because you watch Sci-Fi"): a row whose subtitle
+	// is "{reason}" shows it under its heading.
+	Reason string
 	// Selected is the season an "episodes" source chose when none was named.
 	Selected string
 }
@@ -199,6 +202,7 @@ func Render(page Page, ctx *RenderContext) (Document, error) {
 	}
 	r.finishFilters(&root)
 	r.finishDocks(&root)
+	r.ensureLegend(&root)
 	stampFocus(&root)
 	if info != nil {
 		for i := range info.Sections {
@@ -214,6 +218,7 @@ func Render(page Page, ctx *RenderContext) (Document, error) {
 	if page.Scope != "" {
 		doc.Theme = &ThemeScope{Scope: page.Scope, Tokens: copyTokens(ctx.Scopes[page.Scope])}
 	}
+	doc.Regions = r.regions(page.Regions)
 	doc.ScreenTime = ctx.ScreenTime
 	doc.Meta.GeneratedAt = ctx.Now.UTC()
 	doc.Meta.ETag = ETag(doc)
@@ -801,6 +806,17 @@ func (r *renderer) build(in instance, depth int) ([]Node, bool) {
 		copyProps(n.Props, p, "inset")
 	case "Spacer":
 		n.Props["size"] = propStr(p, "size", "m")
+	case "Form":
+		if t := r.fill(propStr(p, "title", ""), in.each, nil); t != "" {
+			n.Props["title"] = t
+		}
+		n.Props["submitLabel"] = propStr(p, "submitLabel", "Save")
+		if c := propStr(p, "cancelLabel", ""); c != "" {
+			n.Props["cancelLabel"] = c
+		}
+		n.Action = &Action{Type: ActCommand, Op: propStr(p, "op", ""), Item: r.resolveVar(propAny(p, "item"), in.each)}
+		n.Children = r.children(in, depth)
+		ok = len(n.Children) > 0 && n.Action.Op != ""
 	case "Stack", "Split", "Tab":
 		copyProps(n.Props, p, "direction", "gap", "align", "wrap", "ratio", "stackBelow")
 		n.Children = r.children(in, depth)
@@ -858,6 +874,22 @@ func (r *renderer) children(in instance, depth int) []Node {
 
 // link is the action of a button-like section: to, native or url.
 func (r *renderer) link(p map[string]any) *Action {
+	if op := propStr(p, "op", ""); op != "" {
+		a := &Action{Type: ActCommand, Op: op, Item: r.resolveVar(propAny(p, "item"), nil), Confirm: propStr(p, "confirm", "")}
+		if m, _ := p["params"].(map[string]any); len(m) > 0 {
+			a.Params = map[string]any{}
+			for k, v := range m {
+				if sv, ok := v.(string); ok {
+					v = r.resolveVar(sv, nil)
+				}
+				a.Params[k] = v
+			}
+		}
+		return a
+	}
+	if propBool(p, "back", false) {
+		return &Action{Type: ActBack}
+	}
 	if to := propStr(p, "to", ""); to != "" {
 		return &Action{Type: ActNavigate, To: to}
 	}
@@ -1012,7 +1044,7 @@ func (r *renderer) collectionPage(n *Node, in instance, offset, limit int, allow
 	if title != "" {
 		n.Props["title"] = Truncate(title, r.l.TextLimits.Title)
 	}
-	if st := r.fill(propStr(p, "subtitle", ""), in.each, s.Source); st != "" {
+	if st := r.fill(propStr(p, "subtitle", ""), in.each, s.Source); st != "" && !strings.Contains(st, "{reason}") {
 		n.Props["subtitle"] = st
 	}
 	if hs := propStr(p, "headingStyle", "plain"); hs != "plain" {
@@ -1035,6 +1067,15 @@ func (r *renderer) collectionPage(n *Node, in instance, offset, limit int, allow
 		if propBool(p, "numbered", false) {
 			n.Props["numbered"] = true
 		}
+		if s.Component == "Shelf" && propBool(p, "focusGrow", false) {
+			n.Props["focusGrow"] = true
+		}
+		if s.Component == "Shelf" && propBool(p, "detail", false) {
+			n.Props["detail"] = true
+		}
+	}
+	if propBool(p, "focusable", false) {
+		n.Props["focusable"] = true
 	}
 	spec, _ := r.sourceSpec(s.Source.Type())
 	// Past the device's budget of sections that arrive filled, a row is sent
@@ -1043,6 +1084,7 @@ func (r *renderer) collectionPage(n *Node, in instance, offset, limit int, allow
 	// in them must not cost a small server a query for every row.
 	if allowDefer && (r.eager >= r.l.Budget.EagerSections || r.asked >= 3*r.l.Budget.EagerSections) && !listLike(s.Component) {
 		n.State = "deferred"
+		dropCount(n)
 		n.Props["more"] = map[string]any{"url": r.moreURL(n.ID, 0)}
 		return true
 	}
@@ -1054,10 +1096,12 @@ func (r *renderer) collectionPage(n *Node, in instance, offset, limit int, allow
 	}
 	if err != nil {
 		n.State = "error"
+		dropCount(n)
 		n.Props["more"] = map[string]any{"url": r.moreURL(n.ID, offset)}
 		return true
 	}
 	if len(res.Items) == 0 && offset == 0 {
+		dropCount(n)
 		if propStr(p, "empty", "hide") != "message" {
 			return false
 		}
@@ -1066,6 +1110,19 @@ func (r *renderer) collectionPage(n *Node, in instance, offset, limit int, allow
 		return true
 	}
 	r.eager++
+	if t, _ := n.Props["title"].(string); strings.Contains(t, "{count}") {
+		count := res.Total
+		if count <= 0 {
+			count = len(res.Items)
+		}
+		n.Props["title"] = strings.TrimSpace(strings.ReplaceAll(t, "{count}", strconv.Itoa(count)))
+	}
+	// A row's subtitle of "{reason}" says why the source chose what it did, when it said.
+	if st := propStr(p, "subtitle", ""); strings.Contains(st, "{reason}") {
+		if line := strings.TrimSpace(strings.ReplaceAll(st, "{reason}", res.Reason)); res.Reason != "" && line != "" {
+			n.Props["subtitle"] = line
+		}
+	}
 	for i := range res.Items {
 		it := &res.Items[i]
 		if listLike(s.Component) {
@@ -1082,6 +1139,9 @@ func (r *renderer) collectionPage(n *Node, in instance, offset, limit int, allow
 			continue
 		}
 		c := r.card(n.ID, style, size, it, s.Source)
+		if propBool(p, "focusable", false) {
+			c.Props["focusable"] = true
+		}
 		if propBool(p, "numbered", false) {
 			c.Props["rank"] = offset + i + 1
 		}
@@ -1164,13 +1224,35 @@ func (r *renderer) listItem(parent string, it *Item) Node {
 	if len(it.Badges) > 0 {
 		n.Props["badges"] = it.Badges[:min(len(it.Badges), 2)]
 	}
+	if it.Trailing != "" {
+		n.Props["trailing"] = Truncate(it.Trailing, r.l.TextLimits.Subtitle)
+	}
+	if c := cleanControl(it.Control); c != nil {
+		n.Props["control"] = c
+	}
 	switch {
+	case it.Action != nil:
+		n.Action = it.Action
 	case it.Route != "":
 		n.Action = &Action{Type: ActNavigate, To: it.Route}
 	case it.PlayID != "":
 		n.Action = &Action{Type: ActPlay, Item: it.PlayID}
 	}
 	return n
+}
+
+// cleanControl is a control as it goes into a node: a type the catalogue knows, or nothing.
+func cleanControl(c *Control) *Control {
+	if c == nil || !contains([]string{ControlSwitch, ControlSelect, ControlField, ControlSlider}, c.Type) {
+		return nil
+	}
+	cc := *c
+	if cc.Type == ControlSwitch {
+		if _, ok := cc.Value.(bool); !ok {
+			cc.Value = false
+		}
+	}
+	return &cc
 }
 
 // hero fills a Hero: each title a Card of style "hero" holding its backdrop,
@@ -1739,6 +1821,34 @@ func (r *renderer) dock(n *Node, in instance, depth int) bool {
 	return true
 }
 
+// ensureLegend gives every page on a television or a headset a Dock with the key legend (Select,
+// Back, Options), whatever the page is: a remote or a pad is always in use there, and the keys
+// are what a person looks for. A page that has a Dock keeps its own; clients draw no legend of
+// their own.
+func (r *renderer) ensureLegend(root *Node) {
+	if r.l.FormFactor != FormTV && r.l.FormFactor != FormHeadset {
+		return
+	}
+	has := false
+	var find func(n *Node)
+	find = func(n *Node) {
+		has = has || n.Type == "Dock"
+		for i := range n.Children {
+			find(&n.Children[i])
+		}
+	}
+	find(root)
+	if has {
+		return
+	}
+	id := r.uniqueID("dock")
+	legend := Node{Type: "KeyLegend", ID: r.uniqueID(id + ":keys"), Props: map[string]any{}}
+	if !r.keyLegend(&legend, instance{sec: &Section{ID: legend.ID, Component: "KeyLegend"}, id: legend.ID}) {
+		return
+	}
+	root.Children = append(root.Children, Node{Type: "Dock", ID: id, Props: map[string]any{"title": "Options", "placement": r.l.Dock.Placement}, Children: []Node{legend}})
+}
+
 func anyList(in []string) []any {
 	out := make([]any, len(in))
 	for i, s := range in {
@@ -2228,4 +2338,37 @@ func (r *renderer) widget(n *Node, in instance) bool {
 		n.Children = append(n.Children, r.card(n.ID, w.style, "m", it, src))
 	}
 	return true
+}
+
+// regions is what a page puts into the shell, with placeholders filled in: nil when it puts nothing.
+func (r *renderer) regions(in *PageRegions) *PageRegions {
+	if in == nil {
+		return nil
+	}
+	out := &PageRegions{}
+	for _, it := range in.StatusItems() {
+		it.Text = r.fill(it.Text, nil, nil)
+		out.StatusBar = append(out.StatusBar, it)
+	}
+	for _, d := range in.SystemDock {
+		if d.As != "" && d.As != PresentLayer {
+			d.As = ""
+		}
+		out.SystemDock = append(out.SystemDock, d)
+	}
+	if len(out.StatusBar) == 0 && len(out.SystemDock) == 0 {
+		return nil
+	}
+	return out
+}
+
+// StatusItems are the status bar's items, in order.
+func (p *PageRegions) StatusItems() []StatusItem { return slices.Clone(p.StatusBar) }
+
+// dropCount takes "{count}" out of a title that has no count to show (the section hasn't been asked for yet,
+// or came to nothing): "Movies ({count})" is "Movies".
+func dropCount(n *Node) {
+	if t, _ := n.Props["title"].(string); strings.Contains(t, "{count}") {
+		n.Props["title"] = strings.TrimSpace(strings.NewReplacer(" ({count})", "", "{count}", "").Replace(t))
+	}
 }

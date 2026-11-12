@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"image/png"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -48,10 +49,14 @@ const (
 	srcPlaySaveStates  = "wittyplay.saveStates"
 	srcPlayMemories    = "wittyplay.memories"
 	srcPlayControllers = "wittyplay.controllers"
+	// The profile's own two choices as switches, and an administrator's choice of a Kids
+	// profile's friends (item: the profile's ID), each a row with a control.
+	srcPlayPrivacy     = "wittyplay.privacy"
+	srcPlayKidsFriends = "wittyplay.kidsFriends"
 )
 
 // wittyPlayOnlineSources are the sources the server answers for WittyPlay.
-var wittyPlayOnlineSources = []string{srcPlayRecent, srcPlayCollections, srcPlayFriends, srcPlayRooms, srcPlayRoom, srcPlaySaveStates, srcPlayMemories, srcPlayControllers}
+var wittyPlayOnlineSources = []string{srcPlayRecent, srcPlayCollections, srcPlayFriends, srcPlayRooms, srcPlayRoom, srcPlaySaveStates, srcPlayMemories, srcPlayControllers, srcPlayPrivacy, srcPlayKidsFriends}
 
 // Presence: how recently a profile was seen, from its sign-ins.
 const (
@@ -368,6 +373,10 @@ func (rv *sduiResolver) wittyPlayOnline(req sdui.SourceRequest) (sdui.SourceResu
 		all = rv.playMemories()
 	case srcPlayControllers:
 		all = rv.playControllers()
+	case srcPlayPrivacy:
+		all = rv.playPrivacy()
+	case srcPlayKidsFriends:
+		all, err = rv.playKidsFriends(req)
 	}
 	if err != nil {
 		return sdui.SourceResult{}, true, err
@@ -531,8 +540,10 @@ func (rv *sduiResolver) playRooms() ([]sdui.Item, error) {
 		if taken >= total {
 			continue
 		}
+		join := &sdui.Action{Type: sdui.ActCommand, Op: "wittyplay.room.join", Item: t.Session}
 		out = append(out, sdui.Item{ID: t.Session, Kind: "view", Title: fmt.Sprintf("%s · %d of %d", t.Game.Title, taken, total), Subtitle: roomWords(t.HostName),
-			Count: taken, Icon: "users", Badges: []string{"Shared"}})
+			Count: taken, Icon: "users", Badges: []string{"Shared"}, Action: join,
+			Actions: []sdui.ItemAction{{ID: "join", Label: "Join", Glyph: "a", Action: join}}})
 	}
 	return out, nil
 }
@@ -563,6 +574,7 @@ func (rv *sduiResolver) playRoom() []sdui.Item {
 		if t.Open {
 			room.Badges = append(room.Badges, "Open")
 		}
+		room.Actions = rv.roomActions(t)
 	}
 	out := []sdui.Item{room}
 	players := max(t.Game.Players, 1)
@@ -580,6 +592,24 @@ func (rv *sduiResolver) playRoom() []sdui.Item {
 			}
 		}
 		out = append(out, it)
+	}
+	return out
+}
+
+// roomActions are the host's buttons on its room: back into the game (playing it again rejoins the
+// session it has running), a code to invite someone with, and opening the room to friends or closing
+// it. A Kids or guest profile's room can't be opened, so it has no such button.
+func (rv *sduiResolver) roomActions(t seatTableView) []sdui.ItemAction {
+	out := []sdui.ItemAction{
+		{ID: "play", Label: "Play", Glyph: "a", Action: &sdui.Action{Type: sdui.ActPlay, Item: strconv.FormatInt(t.Game.Item, 10)}},
+		{ID: "invite", Label: "Invite", Glyph: "x", Action: &sdui.Action{Type: sdui.ActCommand, Op: "wittyplay.room.invite", Item: t.Session}},
+	}
+	switch {
+	case rv.u.Kind == auth.KindKids || rv.u.Kind == auth.KindGuest:
+	case t.Open:
+		out = append(out, sdui.ItemAction{ID: "close", Label: "Close the room", Glyph: "y", Action: &sdui.Action{Type: sdui.ActCommand, Op: "wittyplay.room.close", Item: t.Session}})
+	default:
+		out = append(out, sdui.ItemAction{ID: "open", Label: "Open to friends", Glyph: "y", Action: &sdui.Action{Type: sdui.ActCommand, Op: "wittyplay.room.create", Item: t.Session}})
 	}
 	return out
 }
@@ -670,7 +700,8 @@ func (rv *sduiResolver) playMemories() []sdui.Item {
 		}
 		for _, sh := range listShots(rv.s.games().shotsDir(rv.u.ID, id)) {
 			all = append(all, memory{sdui.Item{ID: fmt.Sprintf("shot-%d-%s", id, strings.TrimSuffix(sh.Name, ".png")), Kind: "photo", Title: li.Title,
-				Subtitle: "Screenshot · " + savedWords(sh.Taken), Badges: []string{"Shot"}, Route: fmt.Sprintf("/game/%d", id),
+				Subtitle: "Screenshot · " + savedWords(sh.Taken), Badges: []string{"Shot"},
+				Action: &sdui.Action{Type: sdui.ActNavigate, To: fmt.Sprintf("/page/online-memory?item=%d&name=%s", id, url.QueryEscape(sh.Name)), As: sdui.PresentLayer},
 				Images: map[string]string{"backdrop": fmt.Sprintf("/api/games/%d/shots/%s", id, sh.Name)}}, sh.Taken})
 		}
 	}
@@ -711,6 +742,68 @@ func (rv *sduiResolver) playControllers() []sdui.Item {
 		out = append(out, it)
 	}
 	return out
+}
+
+// playPrivacy: the two choices a profile makes about what its friends know, as switches in a Form
+// (wittyplay.online.set saves both). A guest has no friends, so both are off and say why.
+func (rv *sduiResolver) playPrivacy() []sdui.Item {
+	p := rv.s.Store.PresenceOf(rv.ctx, rv.u.ID, rv.u.Kind)
+	guest := rv.u.Kind == auth.KindGuest
+	why := ""
+	if guest {
+		why = "A guest has no friends to share with."
+	}
+	return []sdui.Item{
+		{ID: "sharePlaying", Kind: "view", Title: "Show friends what I’m playing", Subtitle: "Friends see “Playing Star Tide”. Off shows you as Online only.", Icon: "game",
+			Control: &sdui.Control{Type: sdui.ControlSwitch, Name: "sharePlaying", Value: p.Playing && !guest, Disabled: guest, Why: why}},
+		{ID: "appearOnline", Kind: "view", Title: "Appear online", Subtitle: "Off shows you as offline to everyone, playing or not.", Icon: "users",
+			Control: &sdui.Control{Type: sdui.ControlSwitch, Name: "appearOnline", Value: p.Online && !guest, Disabled: guest, Why: why}},
+	}
+}
+
+// playKidsFriends: for an administrator, every profile that could be a Kids profile's friend, each a
+// switch whose action saves the whole list with that one changed (wittyplay.kids.friends). Nothing for
+// anyone else, or when the profile isn't a Kids profile.
+func (rv *sduiResolver) playKidsFriends(req sdui.SourceRequest) ([]sdui.Item, error) {
+	if !rv.u.IsAdmin {
+		return nil, nil
+	}
+	id, err := strconv.ParseInt(req.Source.Str("user"), 10, 64)
+	if err != nil {
+		return nil, nil
+	}
+	kid, err := rv.s.Auth.User(rv.ctx, id)
+	if err != nil || kid == nil || kid.Kind != auth.KindKids {
+		return nil, nil
+	}
+	approved, err := rv.s.Store.KidsFriends(rv.ctx, kid.ID)
+	if err != nil {
+		return nil, err
+	}
+	all, err := rv.s.Auth.Users(rv.ctx)
+	if err != nil {
+		return nil, err
+	}
+	var out []sdui.Item
+	for _, o := range all {
+		if o.ID == kid.ID || o.Kind == auth.KindGuest {
+			continue
+		}
+		on := slices.Contains(approved, o.ID)
+		next := []int64{}
+		for _, a := range approved {
+			if a != o.ID {
+				next = append(next, a)
+			}
+		}
+		if !on {
+			next = append(next, o.ID)
+		}
+		out = append(out, sdui.Item{ID: "profile-" + strconv.FormatInt(o.ID, 10), Kind: "view", Title: profileName(&o), Icon: "user", Trailing: map[bool]string{true: "Approved", false: "Not approved"}[on],
+			Action:  &sdui.Action{Type: sdui.ActCommand, Op: "wittyplay.kids.friends", Item: strconv.FormatInt(kid.ID, 10), Params: map[string]any{"friends": next}},
+			Control: &sdui.Control{Type: sdui.ControlSwitch, Value: on}})
+	}
+	return out, nil
 }
 
 // ---------------------------------------------------------------- routes

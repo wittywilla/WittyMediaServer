@@ -74,7 +74,7 @@ export default function AuthPage() {
         <button type="button" className="btn ghost" onClick={() => setOther(true)}>Sign in with another account</button>
         {withPhone}
         {changeServer}
-        <div className="auth-version"><VersionTag version={version} /> · <Link to="/help">Help</Link> · <Link to="/legal">Legal</Link></div>
+        <div className="auth-version"><VersionTag version={version} /> · <Link to="/away">Connect from away</Link> · <Link to="/help">Help</Link> · <Link to="/legal">Legal</Link></div>
       </div>
     )
   }
@@ -83,7 +83,7 @@ export default function AuthPage() {
       <PasswordForm profile={chosen} onBack={style === 'profiles' ? () => { setChosen(null); setOther(false) } : undefined} />
       {!chosen && withPhone}
       {changeServer}
-      <div className="auth-version"><VersionTag version={version} /> · <Link to="/help">Help</Link> · <Link to="/legal">Legal</Link></div>
+      <div className="auth-version"><VersionTag version={version} /> · <Link to="/away">Connect from away</Link> · <Link to="/help">Help</Link> · <Link to="/legal">Legal</Link></div>
     </div>
   )
 }

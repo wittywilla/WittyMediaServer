@@ -37,7 +37,7 @@ https://claude.ai/artifact/UhfRD9j84KVC84qJj4aXie (private to its owner).
 | `music/` | Songs, karaoke, visualizers | Songs, now playing, lyrics (Follow along and Read), karaoke, the visualizer and all its effects, with Album art or Canvas video (`MU_<look>`) |
 | `settings/` | Settings, policy, first use | Appearance, required look and theme, first connect on phone and TV, "server isn't set up yet" (`SB_<look>`) |
 | `appscreens/` | App screens | Connect and away, profiles, screen time, pairing, remote and watch party, disc ranking, skip, WittyTV sheets and states, credits (`GB_<look>`) |
-| `gaps/` | Every feature, drawn | The 124 screens that close the feature-gap list (`docs/plans/DESIGN-2-FEATURE-GAPS.md`): playback panels and errors, discs, library filters and collections, music, audiobooks, podcasts, radio, WittyTV problems, games, readers, photos, accounts, modules, admin, offline, creators (`GB2_1` to `GB2_6`). Each is a `gp` entry in `Exp.dc.html`, drawn in every look. |
+| `gaps/` | Every feature, drawn | The 128 screens that close the feature-gap list (`docs/plans/DESIGN-2-FEATURE-GAPS.md`): playback panels and errors, discs, library filters and collections, music, audiobooks, podcasts, radio, WittyTV problems, games, readers, photos, accounts, modules, admin, offline, creators (`GB2_1` to `GB2_7`). Each is a `gp` entry in `Exp.dc.html`, drawn in every look. |
 
 The names of the boards use short look ids: `lumen`, `rail`, `stage`, `aero`, `aeroNight`, `aeroMeadow`, `aeroSunset`, `classic`, `classicCable`, `classicSatellite`, `compact`, `paper`, `marquee`, `crossbar`, `bigpicture`, `dashboard`, `retro`.
 

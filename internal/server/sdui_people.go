@@ -33,6 +33,11 @@ func creditGroup(c library.Credit) string {
 func creditItem(c library.Credit, group string) sdui.Item {
 	id := itoa(c.PersonID)
 	it := sdui.Item{ID: "person-" + id + "-" + group, Kind: "person", Title: c.Name, Group: group, Route: "/person/" + id, Images: map[string]string{}}
+	if c.PersonID == 0 {
+		// Someone only a TV guide names (a programme's credits) is no one this server keeps: the
+		// card has no page to open, and is told apart from the others by name.
+		it.ID, it.Route, c.HasPhoto = "name-"+strings.Join(strings.Fields(library.PersonKey(c.Name)), "-")+"-"+group, "", false
+	}
 	switch {
 	case c.Role == library.RoleCrew:
 		it.Subtitle = c.Job

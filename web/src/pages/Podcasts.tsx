@@ -5,6 +5,8 @@ import { api, type Item } from '../api'
 import { toast, useApp } from '../state'
 import LegalNote from '../components/LegalNote'
 import { ask, Dialog } from '../ui/Overlay'
+import SpecPage from '../spec/SpecPage'
+import { AUTO_STEPS, podcastAdminSpec } from '../spec/specs/podcastAdmin'
 
 // Podcasts: following a show (search Apple's free directory or paste its RSS
 // feed), and the controls on a podcast's page.
@@ -99,6 +101,8 @@ export function AddPodcast({ libraryId, onClose, onAdded }: { libraryId: number;
   )
 }
 
+const podcastHandled: ReadonlySet<string> = new Set(['check', 'unfollow', ...AUTO_STEPS.map((n) => `auto.${n}`)])
+
 // PodcastAdmin: refresh, auto-download and unfollow on a podcast's page.
 export function PodcastAdmin({ libraryId, title, onChanged }: { libraryId: number; title: string; onChanged: () => void }) {
   const { user } = useApp()
@@ -111,17 +115,13 @@ export function PodcastAdmin({ libraryId, title, onChanged }: { libraryId: numbe
     if (!await ask({ title: `Stop following “${p.title}”?`, body: 'Downloaded episodes stay in the library.', confirm: 'Stop following', danger: true })) return
     try { await api.del(`/podcasts/${p.id}`); toast('Unfollowed'); history.back() } catch (e: any) { toast(e.message) }
   }
-  return (
-    <div className="podcast-admin">
-      <button className="btn sm" onClick={refresh}>Check for new episodes</button>
-      <label className="muted">Keep downloaded:
-        <select className="select sm" value={p.autoDownload} onChange={(e) => auto(Number(e.target.value))} title="Saved to this library's folder each time the feed updates">
-          <option value={0}>none, stream them</option>{[1, 3, 5, 10, 25].map((n) => <option key={n} value={n}>newest {n} episode{n > 1 ? 's' : ''}</option>)}
-        </select>
-      </label>
-      <button className="btn sm danger" onClick={remove}>Unfollow</button>
-    </div>
-  )
+  const page = podcastAdminSpec(p.autoDownload)
+  const act = (id: string) => {
+    if (id === 'check') void refresh()
+    else if (id === 'unfollow') void remove()
+    else if (id.startsWith('auto.')) void auto(Number(id.slice(5)))
+  }
+  return <SpecPage bare page={page} handled={podcastHandled} onAction={act} className="podcast-admin" />
 }
 
 export function DownloadButton({ item, onDone }: { item: Item; onDone: (it: Item) => void }) {

@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { api, ApiError } from '../api'
 import { useApp } from '../state'
-import { HelpLink } from './HelpLink'
+import SpecPage from '../spec/SpecPage'
+import { INSTALL, moduleMissingSpec } from '../spec/specs/moduleMissing'
 
 // What a page shows when the module behind it isn't on this server: what's missing and what it
 // would add, and for an admin a button that installs it, with no restart. Never a broken screen.
@@ -47,22 +48,7 @@ export function ModuleMissing({ ids, what, onReady }: { ids: string[]; what?: st
     } finally { setAdding(false) }
   }
 
-  const name = mods?.[0]?.name || ids[0]
-  const busy = mods?.find((m) => m.phase && m.phase !== 'idle' && m.phase !== 'failed')
-  const noBuild = mods?.find((m) => m.unavailable)
-  return (
-    <div className="module-missing">
-      <h1>{what || `This needs ${name}`}</h1>
-      <p>{name} isn't on this server, so this can't open yet. Everything else works as usual.</p>
-      {mods?.map((m) => m.summary ? <p key={m.id}><strong>{m.name}</strong>: {m.summary}</p> : null)}
-      {!admin && <p>An admin of this server can install it in Settings, Modules.</p>}
-      <p><HelpLink to="module-store">What modules are</HelpLink></p>
-      {noBuild && <p>{noBuild.unavailable}</p>}
-      {admin && !busy && !noBuild && (mods || ids.map((id) => ({ id, name: id }))).map((m) => (
-        <button key={m.id} type="button" className="btn primary" disabled={adding} onClick={() => add(m.id)}>Install {m.name}</button>
-      ))}
-      {busy && <p>Installing {busy.name}{busy.total ? `: ${Math.round((busy.done || 0) * 100 / busy.total)}%` : '…'} There's no need to restart anything.</p>}
-      {err && <p className="module-missing-error">{err}</p>}
-    </div>
-  )
+  const spec = useMemo(() => moduleMissingSpec({ ids, what, admin, mods, adding, error: err }), [ids.join(), what, admin, mods, adding, err]) // eslint-disable-line react-hooks/exhaustive-deps
+  const handled = useMemo(() => new Set(spec.actions.map((a) => a.id || '')), [spec])
+  return <SpecPage page={spec} handled={handled} onAction={(id) => { if (id.startsWith(INSTALL)) add(id.slice(INSTALL.length)) }} />
 }

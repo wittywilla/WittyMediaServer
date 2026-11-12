@@ -21,6 +21,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/sduistore"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
 	"github.com/wittywilla/wittymediaserver/pkg/sdui"
+	"github.com/wittywilla/wittymodule/service"
 )
 
 // Modules' SDUI (docs/SDUI-MODULES.md): each module in use carries its pages, sections,
@@ -198,6 +199,16 @@ func (rv *sduiResolver) moduleItems(mod string, req sdui.SourceRequest) (sdui.So
 	if s.Modules == nil {
 		return sdui.SourceResult{}, nil
 	}
+	if mod == wittyPlayID {
+		// WittyPlay Online's sources are about this server's profiles and games: answered here
+		// (wittyplay_online.go), and cleaned like any module's.
+		if res, ok, err := rv.wittyPlayOnline(req); ok {
+			if err != nil || service.Running == nil || !service.Running(mod) {
+				return sdui.SourceResult{}, err
+			}
+			return rv.cleanModuleResult(mod, req, res), nil
+		}
+	}
 	ask := modmgr.ItemsRequest{Source: req.Source, Filter: req.Filter, Offset: req.Offset, Limit: req.Limit, Viewer: rv.moduleViewer(),
 		Settings: s.moduleSettingValues(rv.r, mod)}
 	ans, err := s.Modules.UIItems(mod, ask)
@@ -205,6 +216,13 @@ func (rv *sduiResolver) moduleItems(mod string, req sdui.SourceRequest) (sdui.So
 		s.Log.WarnContext(rv.r.Context(), "a module's data source failed", "cat", "sdui", "module", mod, "source", req.Source.Type(), "err", err)
 		return sdui.SourceResult{}, err
 	}
+	return rv.cleanModuleResult(mod, req, sdui.SourceResult{Items: ans.Items, Total: ans.Total, More: ans.More}), nil
+}
+
+// cleanModuleResult keeps what a module's source gave that is safe to send and the profile may
+// see, up to the request's limit.
+func (rv *sduiResolver) cleanModuleResult(mod string, req sdui.SourceRequest, ans sdui.SourceResult) sdui.SourceResult {
+	s := rv.s
 	out := sdui.SourceResult{Total: ans.Total, More: ans.More}
 	var yields []string
 	if ui := s.Modules.UI(mod); ui != nil {
@@ -227,7 +245,7 @@ func (rv *sduiResolver) moduleItems(mod string, req sdui.SourceRequest) (sdui.So
 	if out.Total < len(out.Items)+req.Offset {
 		out.Total = -1
 	}
-	return out, nil
+	return out
 }
 
 var moduleItemCan = []string{"play", "download", "share", "watchLater", "watched", "playOn", "watchParty"}

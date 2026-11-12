@@ -562,10 +562,19 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/play/{sid}/stats` | Signed-in | Session started by this account |
 | `GET /api/play/{sid}/screenshot` | Signed-in; address token | Session started by this account |
 | `GET /api/games/playing` | Signed-in | own: the game this account is playing |
-| `POST /api/play/join` | Signed-in | A live code for a running game; wrong codes limited per account; the game visible to this profile |
+| `POST /api/play/join` | Signed-in | A live code for a running game, or an open room whose host is a friend (not for a Kids or guest profile); wrong codes limited per account; the game visible to this profile |
 | `POST /api/play/{sid}/invite` | Signed-in | Session started by this account |
 | `GET /api/play/{sid}/seats` | Signed-in | Session started by this account, or joined with its code; the code only for the host |
 | `DELETE /api/play/{sid}/seats/{user}` | Signed-in | The host, or the person leaving |
+| `POST /api/play/{sid}/room` | Signed-in | Session started by this account; not a Kids or guest profile to open it |
+| `PUT /api/play/{sid}/seats/{user}` | Signed-in | Session started by this account; the person is in it |
+| `POST /api/play/{sid}/screenshot` | Signed-in | Session started by this account; keeps a PNG the game gave in this profile's own folder, at most 200 a game |
+| `GET /api/games/{id}/shots/{name}` | Signed-in | own: a screenshot this profile kept, of a game visible to it; the name checked against a fixed pattern |
+| `DELETE /api/games/{id}/shots/{name}` | Signed-in | own: a screenshot this profile kept, of a game visible to it |
+| `GET /api/games/online/me` | Signed-in | own |
+| `PUT /api/games/online/me` | Signed-in | own; not a guest |
+| `GET /api/games/online/kids/{user}` | Admin | A Kids profile |
+| `PUT /api/games/online/kids/{user}` | Admin | A Kids profile; every friend an existing profile that isn't a guest |
 | `GET /api/game-controllers` | Signed-in | Nothing: known controllers |
 | `GET /api/game-profiles` | Signed-in | own |
 | `POST /api/game-profiles` | Signed-in | own. Size, fields cleaned. Game: limits, and on that console |

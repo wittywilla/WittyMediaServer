@@ -161,7 +161,6 @@
 .col-preview { margin-top: 10px; font-size: var(--text-sm); min-height: 22px; }
 .col-preview-row { display: flex; gap: 5px; margin-top: 5px; overflow: hidden; }
 .col-preview-row img { width: 46px; height: 68px; object-fit: cover; border-radius: var(--r-xs); background: var(--bg-3); flex: none; }
-.col-save { padding: 4px 2px; }
 .ch-tag { flex: none; padding: 5px 12px; font-size: var(--text-sm); font-weight: 600; border: 0; border-radius: var(--r-sm); background: var(--bg-3); color: var(--fg-2); cursor: pointer; }
 .ch-tag:hover { color: var(--fg); background: var(--bg-4); }
 .ch-tag.on { background: var(--accent); color: var(--accent-fg); }

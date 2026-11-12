@@ -2,7 +2,3 @@
 /* Copyright (C) 2026 WittyWilla and contributors */
 
 /* What a page shows when the module behind it isn't on this server. */
-.module-missing { max-width: 34rem; margin: 3rem auto; padding: 1.5rem; text-align: center; }
-.module-missing h1 { margin: 0; font-size: var(--text-xl); }
-.module-missing p { margin: .75rem 0; }
-.module-missing-error { color: var(--danger); }

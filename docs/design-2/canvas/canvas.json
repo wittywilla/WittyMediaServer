@@ -930,6 +930,14 @@
    "w": 2500,
    "x": 0,
    "y": 10500
+  },
+  "GB2_7.dc.html": {
+   "h": 900,
+   "page": "gaps",
+   "title": "7 · WittyPlay Online extras",
+   "w": 2500,
+   "x": 0,
+   "y": 12700
   }
  },
  "createdOnFiles": {
@@ -1208,7 +1216,14 @@
   "TvMoreBoard.dc.html",
   "GB_lumen.dc.html",
   "GB_aero.dc.html",
-  "GapsBoard.dc.html"
+  "GapsBoard.dc.html",
+  "GB2_1.dc.html",
+  "GB2_2.dc.html",
+  "GB2_3.dc.html",
+  "GB2_4.dc.html",
+  "GB2_5.dc.html",
+  "GB2_6.dc.html",
+  "GB2_7.dc.html"
  ],
  "pages": [
   {

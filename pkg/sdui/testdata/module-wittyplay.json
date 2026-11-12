@@ -1,0 +1,413 @@
+{
+  "format": "wittymodule-sdui",
+  "formatVersion": 1,
+  "module": "wittyplay",
+  "catalog": 4,
+  "theme": {
+    "scope": "wittyplay",
+    "label": "Games",
+    "tokens": {
+      "accent": "#7F46B8"
+    }
+  },
+  "pages": [
+    {
+      "id": "wittyplay",
+      "kind": "custom",
+      "title": "What this server plays",
+      "icon": "game",
+      "description": "Every console, whether its games play on this server, and how.",
+      "sections": [
+        {
+          "id": "consoles",
+          "component": "Grid",
+          "props": {
+            "title": ""
+          },
+          "source": {
+            "limit": 60,
+            "only": "all",
+            "type": "wittyplay.consoles"
+          }
+        }
+      ]
+    }
+  ],
+  "inserts": [
+    {
+      "page": "games",
+      "after": "playing",
+      "section": {
+        "id": "wittyplay-consoles",
+        "component": "Shelf",
+        "props": {
+          "title": "What this server plays"
+        },
+        "source": {
+          "limit": 40,
+          "only": "ready",
+          "type": "wittyplay.consoles"
+        }
+      }
+    }
+  ],
+  "presets": [
+    {
+      "id": "wittyplay-consoles",
+      "label": "Consoles this server plays",
+      "description": "A row of the consoles whose games play here.",
+      "section": {
+        "id": "wittyplay-consoles",
+        "component": "Shelf",
+        "props": {
+          "title": "What this server plays"
+        },
+        "source": {
+          "limit": 40,
+          "only": "ready",
+          "type": "wittyplay.consoles"
+        }
+      }
+    }
+  ],
+  "sources": [
+    {
+      "type": "wittyplay.consoles",
+      "label": "Consoles this server plays",
+      "description": "Every console, whether its games play on this server, and how: a core, or a standalone emulator.",
+      "icon": "game",
+      "category": "",
+      "params": [
+        {
+          "name": "only",
+          "type": "enum",
+          "label": "Which consoles",
+          "default": "all",
+          "options": [
+            {
+              "value": "all",
+              "label": "Every console"
+            },
+            {
+              "value": "ready",
+              "label": "Those that play here"
+            }
+          ],
+          "since": 0
+        },
+        {
+          "name": "limit",
+          "type": "int",
+          "label": "At most",
+          "default": 40,
+          "min": 1,
+          "max": 60,
+          "since": 0
+        }
+      ],
+      "yields": [
+        "view"
+      ],
+      "cardStyle": "tile",
+      "paged": false,
+      "seeAll": "/page/wittyplay",
+      "title": "What this server plays",
+      "since": 4
+    },
+    {
+      "type": "wittyplay.recent",
+      "label": "Games you played",
+      "description": "The games this profile played, newest first, each with its era, how many can play, how long it has been played and its latest save.",
+      "icon": "history",
+      "category": "",
+      "params": [
+        {
+          "name": "limit",
+          "type": "int",
+          "label": "At most",
+          "default": 20,
+          "min": 1,
+          "max": 60,
+          "since": 0
+        }
+      ],
+      "yields": [
+        "game"
+      ],
+      "cardStyle": "game",
+      "paged": false,
+      "title": "Recent",
+      "since": 4
+    },
+    {
+      "type": "wittyplay.collections",
+      "label": "Classics by era",
+      "description": "The games this profile may play, by era, with how many each has. With an era, that era's games.",
+      "icon": "game",
+      "category": "",
+      "params": [
+        {
+          "name": "era",
+          "type": "enum",
+          "label": "Era",
+          "default": "",
+          "options": [
+            {
+              "value": "",
+              "label": "Every era, as collections"
+            },
+            {
+              "value": "first",
+              "label": "First era"
+            },
+            {
+              "value": "8-bit",
+              "label": "8-bit"
+            },
+            {
+              "value": "16-bit",
+              "label": "16-bit"
+            },
+            {
+              "value": "early-3d",
+              "label": "3D era"
+            },
+            {
+              "value": "disc",
+              "label": "Disc era"
+            },
+            {
+              "value": "pocket",
+              "label": "Handheld"
+            }
+          ],
+          "since": 0
+        },
+        {
+          "name": "limit",
+          "type": "int",
+          "label": "At most",
+          "default": 40,
+          "min": 1,
+          "max": 500,
+          "since": 0
+        }
+      ],
+      "yields": [
+        "collection",
+        "game"
+      ],
+      "cardStyle": "tile",
+      "paged": true,
+      "title": "Classics",
+      "since": 4
+    },
+    {
+      "type": "wittyplay.friends",
+      "label": "Friends",
+      "description": "The other profiles of this server this profile may see, playing first, with what each is doing as far as it shares. A Kids profile sees only the friends an administrator chose.",
+      "icon": "users",
+      "category": "",
+      "params": [
+        {
+          "name": "limit",
+          "type": "int",
+          "label": "At most",
+          "default": 20,
+          "min": 1,
+          "max": 100,
+          "since": 0
+        }
+      ],
+      "yields": [
+        "view"
+      ],
+      "cardStyle": "landscape",
+      "paged": false,
+      "title": "Friends",
+      "since": 4
+    },
+    {
+      "type": "wittyplay.rooms",
+      "label": "Open rooms",
+      "description": "Friends' games on this server that are open to join, with a seat free, of games this profile may play. None for a Kids profile.",
+      "icon": "users",
+      "category": "",
+      "params": [
+        {
+          "name": "limit",
+          "type": "int",
+          "label": "At most",
+          "default": 12,
+          "min": 1,
+          "max": 50,
+          "since": 0
+        }
+      ],
+      "yields": [
+        "view"
+      ],
+      "cardStyle": "landscape",
+      "paged": false,
+      "title": "Open rooms",
+      "since": 4
+    },
+    {
+      "type": "wittyplay.room",
+      "label": "Your room",
+      "description": "The game this profile is playing with others: the room first (its code for the host), then each player, or Waiting… for a free seat.",
+      "icon": "users",
+      "category": "",
+      "params": [
+        {
+          "name": "limit",
+          "type": "int",
+          "label": "At most",
+          "default": 9,
+          "min": 1,
+          "max": 9,
+          "since": 0
+        }
+      ],
+      "yields": [
+        "view"
+      ],
+      "cardStyle": "landscape",
+      "paged": false,
+      "title": "Your room",
+      "since": 4
+    },
+    {
+      "type": "wittyplay.saveStates",
+      "label": "Save states",
+      "description": "One game's saves for this profile, its own first, newest first.",
+      "icon": "history",
+      "category": "",
+      "params": [
+        {
+          "name": "item",
+          "type": "ref",
+          "label": "Game",
+          "help": "$item on a game's page.",
+          "required": true,
+          "since": 0
+        },
+        {
+          "name": "limit",
+          "type": "int",
+          "label": "At most",
+          "default": 20,
+          "min": 1,
+          "max": 110,
+          "since": 0
+        }
+      ],
+      "yields": [
+        "view"
+      ],
+      "cardStyle": "landscape",
+      "pageKinds": [
+        "detail"
+      ],
+      "paged": false,
+      "title": "Save states",
+      "since": 4
+    },
+    {
+      "type": "wittyplay.memories",
+      "label": "Memories",
+      "description": "This profile's save states and kept screenshots, across its games, newest first.",
+      "icon": "photo",
+      "category": "",
+      "params": [
+        {
+          "name": "limit",
+          "type": "int",
+          "label": "At most",
+          "default": 24,
+          "min": 1,
+          "max": 500,
+          "since": 0
+        }
+      ],
+      "yields": [
+        "view",
+        "photo"
+      ],
+      "cardStyle": "landscape",
+      "paged": true,
+      "title": "Memories",
+      "since": 4
+    },
+    {
+      "type": "wittyplay.controllers",
+      "label": "Controllers",
+      "description": "Each player of the game this profile is in, and who is playing it. A controller's battery and kind are the device's to show.",
+      "icon": "devices",
+      "category": "",
+      "params": [
+        {
+          "name": "limit",
+          "type": "int",
+          "label": "At most",
+          "default": 8,
+          "min": 1,
+          "max": 8,
+          "since": 0
+        }
+      ],
+      "yields": [
+        "view"
+      ],
+      "cardStyle": "landscape",
+      "paged": false,
+      "title": "Controllers",
+      "since": 4
+    }
+  ],
+  "settings": [
+    {
+      "id": "wittyplay",
+      "title": "Games",
+      "icon": "game",
+      "groups": [
+        {
+          "title": "Games page",
+          "rows": [
+            {
+              "key": "showConsoles",
+              "kind": "bool",
+              "label": "Show which consoles play here",
+              "help": "A row on the Games page, for everyone, of the consoles this server plays.",
+              "default": true
+            }
+          ]
+        },
+        {
+          "title": "For you",
+          "footer": "Each profile chooses its own.",
+          "rows": [
+            {
+              "key": "onlyPlayable",
+              "kind": "bool",
+              "label": "Only consoles that play here",
+              "help": "On the page of every console, leave out those this server can't play yet.",
+              "scope": "profile",
+              "default": false
+            }
+          ]
+        },
+        {
+          "rows": [
+            {
+              "key": "",
+              "kind": "info",
+              "label": "Setting up consoles",
+              "help": "Consoles, cores and standalone emulators are set up in Settings, Consoles & cores and Standalone emulators."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

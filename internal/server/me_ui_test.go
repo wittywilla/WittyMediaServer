@@ -13,7 +13,7 @@ import (
 // own colours) survives that, and can't be set this way.
 func TestPutUIKeepsWhatTheServerOwns(t *testing.T) {
 	ts, _, adult, _ := sduiAccounts(t)
-	if w := ts.do(t, "PUT", "/api/v1/sdui/experience?formFactor=phone", adult, map[string]string{"layout": "compactList"}); w.Code != 200 {
+	if w := ts.do(t, "PUT", "/api/v1/sdui/experience?formFactor=phone", adult, map[string]string{"experience": "compact"}); w.Code != 200 {
 		t.Fatalf("layout: %d %s", w.Code, w.Body)
 	}
 	if w := ts.do(t, "PUT", "/api/v1/theme/personal", adult, map[string]any{"tokens": map[string]string{"accent": "#2E7D32"}}); w.Code != 200 {
@@ -38,7 +38,7 @@ func TestPutUIKeepsWhatTheServerOwns(t *testing.T) {
 	if !doc.ActivityHidden {
 		t.Error("the app's own choice wasn't saved")
 	}
-	if doc.SDUI.Experiences["form:phone"] != "compactList" {
+	if doc.SDUI.Experiences["form:phone"] != "compact" {
 		t.Errorf("the layout: %+v", doc.SDUI.Experiences)
 	}
 	if doc.ThemePersonal.Tokens["accent"] == "" {

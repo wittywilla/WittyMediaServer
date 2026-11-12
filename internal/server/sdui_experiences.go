@@ -15,7 +15,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/pkg/sdui"
 )
 
-// Layout options (docs/SDUI.md, "Layout options"): the administrator chooses which layout
+// Experiences (docs/SDUI.md, "Experiences"): the administrator chooses which look
 // each form factor starts with and which profiles may choose; each profile chooses its
 // own for each of its devices. The layout in force is sent with the navigation and every
 // page as the shell an app draws its frame with, and the server makes the layout's
@@ -57,7 +57,7 @@ func (s *Server) sduiExperience(r *http.Request, cfg *sduistore.Config, formFact
 	}
 	asked := sduiPick(r, "experience", "X-WMS-Experience")
 	if asked != "" && sdui.ExperienceByID(asked) == nil {
-		return nil, errors.New("layout: one of the layout options in the catalogue")
+		return nil, errors.New("experience: one of the experiences in the catalogue")
 	}
 	if _, err := experienceDevice(r, formFactor); err != nil {
 		return nil, err
@@ -123,7 +123,7 @@ func (s *Server) handleSDUIExperienceGet(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	choice := s.experienceChoice(r, cfg, ff, l.ID)
-	writeJSON(w, 200, map[string]any{"layout": l.ID, "shell": sdui.ShellFor(l.ID, ff), "choice": choice, "editable": choice != nil})
+	writeJSON(w, 200, map[string]any{"experience": l.ID, "shell": sdui.ShellFor(l.ID, ff), "choice": choice, "editable": choice != nil})
 }
 
 // PUT /api/sdui/experience {layout}: the profile's layout for this device (device=, else the
@@ -137,29 +137,29 @@ func (s *Server) handleSDUIExperiencePut(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	var body struct {
-		Layout string `json:"layout"`
+		Experience string `json:"experience"`
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, 1024)
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&body); err != nil {
-		writeErr(w, 400, `expected {"layout": "<id>"}`)
+		writeErr(w, 400, `expected {"experience": "<id>"}`)
 		return
 	}
-	if sdui.ExperienceByID(body.Layout) == nil {
-		writeErr(w, 400, "layout: one of the layout options in the catalogue")
+	if sdui.ExperienceByID(body.Experience) == nil {
+		writeErr(w, 400, "experience: one of the experiences in the catalogue")
 		return
 	}
-	if p := cfg.Experiences; p != nil && len(p.Allowed) > 0 && !containsString(p.Allowed, body.Layout) {
-		writeErr(w, 403, "This server doesn't offer that layout. An administrator chooses which it offers.")
+	if p := cfg.Experiences; p != nil && len(p.Allowed) > 0 && !containsString(p.Allowed, body.Experience) {
+		writeErr(w, 403, "This server doesn't offer that look. An administrator chooses which it offers.")
 		return
 	}
-	if err := s.writeExperience(r, ff, body.Layout); err != nil {
-		s.Log.InfoContext(r.Context(), "layout choice not saved", "cat", "sdui", "profile", adminName(r), "formFactor", ff, "err", err)
+	if err := s.writeExperience(r, ff, body.Experience); err != nil {
+		s.Log.InfoContext(r.Context(), "experience choice not saved", "cat", "sdui", "profile", adminName(r), "formFactor", ff, "err", err)
 		writeErr(w, 400, err.Error())
 		return
 	}
-	s.Log.DebugContext(r.Context(), "layout chosen", "cat", "sdui", "profile", adminName(r), "formFactor", ff, "layout", body.Layout)
+	s.Log.DebugContext(r.Context(), "experience chosen", "cat", "sdui", "profile", adminName(r), "formFactor", ff, "experience", body.Experience)
 	s.handleSDUIExperienceGet(w, r)
 }
 
@@ -173,11 +173,11 @@ func (s *Server) handleSDUIExperienceDelete(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	if err := s.writeExperience(r, ff, ""); err != nil {
-		s.Log.InfoContext(r.Context(), "layout choice not reset", "cat", "sdui", "profile", adminName(r), "formFactor", ff, "err", err)
+		s.Log.InfoContext(r.Context(), "experience choice not reset", "cat", "sdui", "profile", adminName(r), "formFactor", ff, "err", err)
 		writeErr(w, 400, err.Error())
 		return
 	}
-	s.Log.DebugContext(r.Context(), "layout choice reset", "cat", "sdui", "profile", adminName(r), "formFactor", ff)
+	s.Log.DebugContext(r.Context(), "experience choice reset", "cat", "sdui", "profile", adminName(r), "formFactor", ff)
 	s.handleSDUIExperienceGet(w, r)
 }
 
@@ -199,7 +199,7 @@ func (s *Server) writeExperience(r *http.Request, formFactor, layout string) err
 		delete(ps.Experiences, key)
 	} else {
 		if len(ps.Experiences) >= maxLayoutDevices && ps.Experiences[key] == "" {
-			return errors.New("this profile has chosen layouts for too many devices: reset one first")
+			return errors.New("this profile has chosen looks for too many devices: reset one first")
 		}
 		ps.Experiences[key] = layout
 	}

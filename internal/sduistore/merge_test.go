@@ -80,11 +80,11 @@ func TestPublishMergesWithWhatWasPublishedSince(t *testing.T) {
 			draft: []edit{setPage("x1", "X"), setNav("x1")}, published: []edit{setAccent("#00ff00"), personal(true)},
 			wantTitles: map[string]string{"x1": "X"}, wantAccent: "#00ff00", wantNav: 2, wantOff: true},
 		{name: "layouts published since are kept beside the draft's page",
-			draft: []edit{setPage("a", "A")}, published: []edit{setLayout("streaming")}, wantTitles: map[string]string{"a": "A"}, wantLayout: "streaming"},
+			draft: []edit{setPage("a", "A")}, published: []edit{setLayout("stage")}, wantTitles: map[string]string{"a": "A"}, wantLayout: "stage"},
 		{name: "the draft's layouts are published",
-			draft: []edit{setLayout("compactList")}, wantLayout: "compactList"},
+			draft: []edit{setLayout("compact")}, wantLayout: "compact"},
 		{name: "layouts changed both ways conflict",
-			start: []edit{setLayout("sidebar")}, draft: []edit{setLayout("compactList")}, published: []edit{setLayout("streaming")}, conflicts: []string{"/layouts"}},
+			start: []edit{setLayout("classic")}, draft: []edit{setLayout("compact")}, published: []edit{setLayout("stage")}, conflicts: []string{"/experiences"}},
 		{name: "prefer draft settles a conflict the draft's way",
 			start: []edit{setPage("a", "A0")}, draft: []edit{setPage("a", "Mine")}, published: []edit{setPage("a", "Theirs"), setPage("b", "B")},
 			prefer: "draft", wantTitles: map[string]string{"a": "Mine", "b": "B"}},
@@ -161,7 +161,7 @@ func TestPublishMergesWithWhatWasPublishedSince(t *testing.T) {
 			if pub.Experiences != nil {
 				got = pub.Experiences.Default["phone"]
 			}
-			if got != tc.wantLayout && !(tc.wantLayout == "" && got == "sidebar") {
+			if got != tc.wantLayout && !(tc.wantLayout == "" && got == "classic") {
 				t.Errorf("phone layout %q", got)
 			}
 			if pub.Personalisation.Disabled != tc.wantOff {

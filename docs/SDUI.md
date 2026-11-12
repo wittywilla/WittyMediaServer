@@ -739,8 +739,8 @@ it is drawn, and how pages look. There are five, the same on every app:
 **What decides it.** The administrator chooses which layout each form factor
 starts with and which layouts profiles may choose (`ui_config.json`
 `layouts: {default: {formFactor: layout}, allowed: [layout]}`; the editor's
-routes are `GET`/`PUT /sdui/config/layouts`). Each profile chooses its own for
-each of its devices (`PUT /sdui/layout {layout}`; `DELETE` to follow the
+routes are `GET`/`PUT /sdui/config/experience`). Each profile chooses its own for
+each of its devices (`PUT /sdui/experience {layout}`; `DELETE` to follow the
 server again). An app names itself with `device=` (or `X-WMS-Device`): a
 stable name of its own, letters, digits, `-` and `_`, never anything that
 identifies the hardware; an app that sends none shares one choice per form

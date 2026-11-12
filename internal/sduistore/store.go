@@ -672,7 +672,7 @@ func (s *Store) Check(c *Config) []sdui.Issue {
 		checkTokens("/theme/modules/"+mod, c.Theme.Modules[mod])
 	}
 	for _, is := range sdui.ValidateExperiencePolicy(c.Experiences) {
-		is.Path = "/layouts" + is.Path
+		is.Path = "/experiences" + is.Path
 		ve.Issues = append(ve.Issues, is)
 	}
 	if s.checkTheme != nil {
@@ -997,7 +997,7 @@ func Merge(base, draft, published *Config, prefer string) (*Config, []string) {
 	if pick("/theme", base.Theme, draft.Theme, published.Theme) {
 		out.Theme = draft.Clone().Theme
 	}
-	if pick("/layouts", base.Experiences, draft.Experiences, published.Experiences) {
+	if pick("/experiences", base.Experiences, draft.Experiences, published.Experiences) {
 		out.Experiences = draft.Clone().Experiences
 	}
 	return out, conflicts

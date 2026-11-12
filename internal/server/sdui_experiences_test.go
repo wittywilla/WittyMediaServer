@@ -11,27 +11,27 @@ import (
 	"github.com/wittywilla/wittymediaserver/pkg/sdui"
 )
 
-type layoutAnswer struct {
-	Layout   string             `json:"layout"`
-	Shell    sdui.Shell         `json:"shell"`
-	Choice   *sdui.ExperienceChoice `json:"choice"`
-	Editable bool               `json:"editable"`
+type experienceAnswer struct {
+	Experience string                 `json:"experience"`
+	Shell      sdui.Shell             `json:"shell"`
+	Choice     *sdui.ExperienceChoice `json:"choice"`
+	Editable   bool                   `json:"editable"`
 }
 
-func TestLayoutOptionsAreChosenByTheServerAndEachProfilePerDevice(t *testing.T) {
+func TestExperiencesAreChosenByTheServerAndEachProfilePerDevice(t *testing.T) {
 	ts, admin, adult, kid := sduiAccounts(t)
-	get := func(token, query string) layoutAnswer {
+	get := func(token, query string) experienceAnswer {
 		t.Helper()
 		w := ts.do(t, "GET", "/api/v1/sdui/experience?"+query, token, nil)
 		if w.Code != 200 {
 			t.Fatalf("GET layout %s: %d %s", query, w.Code, w.Body)
 		}
-		var a layoutAnswer
+		var a experienceAnswer
 		_ = json.Unmarshal(w.Body.Bytes(), &a)
 		return a
 	}
 	// Nobody chose: the apps as they always looked.
-	if a := get(adult, "formFactor=phone"); a.Layout != "sidebar" || a.Shell.Nav != "bottomTabs" || a.Shell.Size != 56 || !a.Editable || len(a.Choice.Options) != 5 {
+	if a := get(adult, "formFactor=phone"); a.Experience != "lumen" || a.Shell.Nav != "bottomTabs" || a.Shell.Size != 56 || !a.Editable || len(a.Choice.Options) != len(sdui.Experiences) {
 		t.Fatalf("default on a phone: %+v", a)
 	}
 	if a := get(adult, "formFactor=tv"); a.Shell.Nav != "tvTopMenu" {
@@ -42,7 +42,7 @@ func TestLayoutOptionsAreChosenByTheServerAndEachProfilePerDevice(t *testing.T) 
 	w := ts.do(t, "GET", "/api/sdui/config/experience", admin, nil)
 	var cur struct{ ETag string }
 	_ = json.Unmarshal(w.Body.Bytes(), &cur)
-	pol := map[string]any{"default": map[string]string{"phone": "streaming"}, "allowed": []string{"sidebar", "streaming", "compactList"}}
+	pol := map[string]any{"default": map[string]string{"phone": "stage"}, "allowed": []string{"classic", "stage", "compact"}}
 	if w = ts.do(t, "PUT", "/api/sdui/config/experience", admin, pol, "If-Match", cur.ETag); w.Code != 200 {
 		t.Fatalf("saving layouts: %d %s", w.Code, w.Body)
 	}
@@ -50,37 +50,37 @@ func TestLayoutOptionsAreChosenByTheServerAndEachProfilePerDevice(t *testing.T) 
 		t.Errorf("a non-admin saved the server's layouts: %d", w.Code)
 	}
 	_ = json.Unmarshal(ts.do(t, "GET", "/api/sdui/config/experience", admin, nil).Body.Bytes(), &cur)
-	bad := map[string]any{"default": map[string]string{"phone": "topTabs"}, "allowed": []string{"sidebar"}}
+	bad := map[string]any{"default": map[string]string{"phone": "paper"}, "allowed": []string{"classic"}}
 	if w = ts.do(t, "PUT", "/api/sdui/config/experience", admin, bad, "If-Match", cur.ETag); w.Code != 400 || !strings.Contains(w.Body.String(), "allowed") {
 		t.Errorf("a default that isn't allowed: %d %s", w.Code, w.Body)
 	}
-	if a := get(adult, "formFactor=phone"); a.Layout != "streaming" || !a.Shell.Overlay || len(a.Choice.Options) != 3 {
+	if a := get(adult, "formFactor=phone"); a.Experience != "stage" || !a.Shell.Overlay || len(a.Choice.Options) != 3 {
 		t.Fatalf("after the administrator's choice: %+v", a)
 	}
 
 	// A profile's own choice is per device, and only among what is allowed.
-	if w = ts.do(t, "PUT", "/api/v1/sdui/experience?formFactor=phone&device=sams-phone", adult, map[string]string{"layout": "compactList"}); w.Code != 200 {
+	if w = ts.do(t, "PUT", "/api/v1/sdui/experience?formFactor=phone&device=sams-phone", adult, map[string]string{"experience": "compact"}); w.Code != 200 {
 		t.Fatalf("choosing: %d %s", w.Code, w.Body)
 	}
-	if w = ts.do(t, "PUT", "/api/v1/sdui/experience?formFactor=phone&device=sams-phone", adult, map[string]string{"layout": "topTabs"}); w.Code != 403 {
+	if w = ts.do(t, "PUT", "/api/v1/sdui/experience?formFactor=phone&device=sams-phone", adult, map[string]string{"experience": "paper"}); w.Code != 403 {
 		t.Errorf("a layout the server doesn't offer: %d", w.Code)
 	}
-	if w = ts.do(t, "PUT", "/api/v1/sdui/experience?formFactor=phone", adult, map[string]string{"layout": "spiral"}); w.Code != 400 {
+	if w = ts.do(t, "PUT", "/api/v1/sdui/experience?formFactor=phone", adult, map[string]string{"experience": "spiral"}); w.Code != 400 {
 		t.Errorf("a layout that isn't one: %d", w.Code)
 	}
-	if a := get(adult, "formFactor=phone&device=sams-phone"); a.Layout != "compactList" || a.Choice.Chosen != "compactList" {
+	if a := get(adult, "formFactor=phone&device=sams-phone"); a.Experience != "compact" || a.Choice.Chosen != "compact" {
 		t.Fatalf("on the chosen device: %+v", a)
 	}
-	if a := get(adult, "formFactor=phone&device=other-phone"); a.Layout != "streaming" {
+	if a := get(adult, "formFactor=phone&device=other-phone"); a.Experience != "stage" {
 		t.Fatalf("another device of the same profile: %+v", a)
 	}
-	if a := get(kid, "formFactor=phone&device=sams-phone"); a.Layout != "streaming" {
+	if a := get(kid, "formFactor=phone&device=sams-phone"); a.Experience != "stage" {
 		t.Fatalf("another profile on that device name: %+v", a)
 	}
 
 	// Pages and the navigation follow it.
 	doc := sduiDoc(t, ts.do(t, "GET", "/api/v1/sdui/pages/home?formFactor=phone&device=sams-phone", adult, nil))
-	if doc.Layout.Shell == nil || doc.Layout.Shell.Experience != "compactList" || doc.Layout.Density != "compact" {
+	if doc.Layout.Shell == nil || doc.Layout.Shell.Experience != "compact" || doc.Layout.Density != "compact" {
 		t.Fatalf("the page's layout: %+v", doc.Layout)
 	}
 	for _, n := range doc.Root.Children {
@@ -90,12 +90,12 @@ func TestLayoutOptionsAreChosenByTheServerAndEachProfilePerDevice(t *testing.T) 
 	}
 	var nav sdui.NavDocument
 	_ = json.Unmarshal(ts.do(t, "GET", "/api/v1/sdui/navigation?formFactor=phone&device=sams-phone", adult, nil).Body.Bytes(), &nav)
-	if nav.Shell == nil || nav.Shell.Experience != "compactList" || nav.Experiences == nil || nav.Experiences.Chosen != "compactList" {
+	if nav.Shell == nil || nav.Shell.Experience != "compact" || nav.Experiences == nil || nav.Experiences.Chosen != "compact" {
 		t.Fatalf("the navigation's shell: %+v %+v", nav.Shell, nav.Experiences)
 	}
 	// A layout asked for by name, to try it, wins for that request only.
-	doc = sduiDoc(t, ts.do(t, "GET", "/api/v1/sdui/pages/home?formFactor=phone&device=sams-phone&layout=sidebar", adult, nil))
-	if doc.Layout.Shell.Experience != "sidebar" {
+	doc = sduiDoc(t, ts.do(t, "GET", "/api/v1/sdui/pages/home?formFactor=phone&device=sams-phone&experience=classic", adult, nil))
+	if doc.Layout.Shell.Experience != "classic" {
 		t.Errorf("trying a layout: %+v", doc.Layout.Shell)
 	}
 
@@ -103,7 +103,7 @@ func TestLayoutOptionsAreChosenByTheServerAndEachProfilePerDevice(t *testing.T) 
 	if w = ts.do(t, "DELETE", "/api/v1/sdui/experience?formFactor=phone&device=sams-phone", adult, nil); w.Code != 200 {
 		t.Fatalf("reset: %d", w.Code)
 	}
-	if a := get(adult, "formFactor=phone&device=sams-phone"); a.Layout != "streaming" || a.Choice.Chosen != "" {
+	if a := get(adult, "formFactor=phone&device=sams-phone"); a.Experience != "stage" || a.Choice.Chosen != "" {
 		t.Fatalf("after reset: %+v", a)
 	}
 

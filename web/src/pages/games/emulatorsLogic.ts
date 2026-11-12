@@ -51,6 +51,15 @@ export type CatalogueEntry = {
   runnable: boolean; whyNot?: string
   job?: InstallJob
   bios?: { name: string; present: boolean; note?: string }[]
+  // Never downloaded: the administrator installs it and adds it (ManualEmulator.tsx).
+  manual?: { download: string; notes?: string }
+}
+
+// What the page shows about adding an emulator installed by hand.
+export type ManualView = {
+  download: string; notes?: string; programs?: string[]; dropFolder?: string; file?: string; system: string
+  detected?: { program: string; dir: string; entry: string; version?: string }
+  installed?: { id: string; version: string; source: string; installedAt: number }
 }
 
 export type SettingsScope = 'admin' | 'user' | 'game'

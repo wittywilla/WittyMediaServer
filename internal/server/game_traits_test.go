@@ -23,7 +23,7 @@ func TestEveryConsoleRowIsComplete(t *testing.T) {
 			t.Errorf("%s: media %q", id, row.Media)
 		}
 		// No end year is a console still made: the Switch.
-		if row.Launched < 1970 || (row.Ended != 0 && row.Ended < row.Launched) || (row.Ended == 0 && id != "switch") {
+		if row.Launched < 1970 || (row.Ended != 0 && row.Ended < row.Launched) || (row.Ended == 0 && id != "switch" && id != "switch2") {
 			t.Errorf("%s: years %d to %d", id, row.Launched, row.Ended)
 		}
 		c := row.Caps

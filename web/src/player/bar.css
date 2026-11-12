@@ -38,10 +38,10 @@
 .seek { overflow: visible; }
 .seek .chap { background: color-mix(in srgb, var(--picture-bg) 70%, transparent); }
 .seek.scrubbing .knob { opacity: 1; transform: translateX(-50%) scale(1.2); }
-.seek-tip { position: absolute; bottom: calc(100% + var(--space-xs)); translate: -50% 0; display: grid; justify-items: center; gap: 2px; padding: var(--space-xs) var(--space-s); border-radius: var(--r-md); background: var(--elev-3-fill); border: 1px solid var(--elev-3-line); color: var(--fg); font-size: var(--text-xs); pointer-events: none; z-index: 2; box-shadow: var(--elev-3-shadow); }
-.seek-tip-pic { display: block; inline-size: 10rem; aspect-ratio: 16 / 9; border-radius: var(--r-sm); overflow: hidden; background: var(--bg-3); }
+.seek-tip { position: absolute; bottom: calc(100% + var(--space-xs)); translate: -50% 0; display: grid; justify-items: center; gap: 2px; padding: var(--space-xs) var(--space-s); border-radius: var(--r-md); background: color-mix(in srgb, var(--picture-bg) 84%, transparent); border: 1px solid color-mix(in srgb, var(--on-image) 24%, transparent); color: var(--on-image); font-size: var(--text-xs); pointer-events: none; z-index: 2; box-shadow: var(--e-3); }
+.seek-tip-pic { display: block; inline-size: 10rem; aspect-ratio: 16 / 9; border-radius: var(--r-sm); overflow: hidden; background: color-mix(in srgb, var(--on-image) 14%, transparent); }
 .seek-tip-time { font-weight: 700; font-variant-numeric: tabular-nums; }
-.seek-tip-chap { color: var(--fg-2); max-inline-size: 12rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.seek-tip-chap { color: color-mix(in srgb, var(--on-image) 72%, transparent); max-inline-size: 12rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .more-pop { inset-inline-end: var(--space-m); inset-block-end: 4.5rem; }
 .more-pop button svg { inline-size: 1.125rem; block-size: 1.125rem; fill: currentColor; flex: none; }
 .more-pop .kbd-help { display: inline-grid; place-items: center; inline-size: 1.125rem; font-weight: 700; }
@@ -51,9 +51,9 @@
 .skip-intro:hover { background: var(--accent-2); }
 
 /* The error: what happened, and the ways on. */
-.player .overlay-msg .box.play-error { display: grid; gap: var(--space-s); justify-items: center; background: var(--elev-3-fill); border: 1px solid var(--elev-3-line); color: var(--fg); box-shadow: var(--elev-3-shadow); }
+.player .overlay-msg .box.play-error { display: grid; gap: var(--space-s); justify-items: center; background: color-mix(in srgb, var(--picture-bg) 84%, transparent); border: 1px solid color-mix(in srgb, var(--on-image) 24%, transparent); color: var(--on-image); box-shadow: var(--e-3); }
 .play-error h2 { margin: 0; font-size: var(--role-heading-size); }
-.play-error p { margin: 0; color: var(--fg-2); overflow-wrap: anywhere; }
+.play-error p { margin: 0; color: color-mix(in srgb, var(--on-image) 78%, transparent); overflow-wrap: anywhere; }
 .play-error-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-s); margin-top: var(--space-s); }
 
 /* On a television everything is larger and further apart. */
@@ -71,3 +71,5 @@ html.tv-mode .remote.remote-sheet { inset-inline: auto var(--gutter); inset-bloc
 html.tv-mode .sheet-menus .rk, html.tv-mode .sheet-tracks .rk, html.tv-mode .sheet-transport .rk { height: 56px; font-size: var(--text-md); }
 html.tv-mode .sheet-digits .rk { height: 60px; font-size: var(--text-xl); }
 html.tv-mode .remote .rk:focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: var(--focus-offset); }
+/* The bar is two or three rows tall on a narrow screen, so what floats over the picture sits higher. */
+@media (max-width: 700px) { .skip-intro, .watch-next { bottom: 12.5rem; } .auto-skip { bottom: 13.5rem; } }

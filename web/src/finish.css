@@ -48,7 +48,7 @@ html[data-type="mono"] body { letter-spacing: 0; }
 .scene-sky, .scene-light, .scene-image { inset: 0; inline-size: 100%; block-size: 100%; }
 .scene-image { object-fit: cover; }
 .scene-bubble { translate: -50% -50%; border-radius: var(--r-full); background: radial-gradient(circle at 32% 28%, var(--on-image) 0, transparent 14%), radial-gradient(circle at 50% 50%, transparent 58%, var(--c) 100%), var(--c); background-blend-mode: soft-light, normal, normal; box-shadow: inset 0 0 0 1px var(--c); animation: scene-float 14s ease-in-out infinite alternate; }
-.scene-hill { translate: -50% 0; border-radius: var(--r-full) var(--r-full) 0 0 / 100% 100% 0 0; box-shadow: inset 0 2px 0 color-mix(in srgb, var(--on-image) 40%, transparent); }
+.scene-hill { translate: -50% -50%; border-radius: 50%; box-shadow: inset 0 2px 0 color-mix(in srgb, var(--on-image) 40%, transparent); }
 .scene-light { animation: scene-sweep 26s ease-in-out infinite alternate; }
 @keyframes scene-float { from { transform: translateY(0); } to { transform: translateY(-1.6vmin); } }
 @keyframes scene-sweep { from { transform: translateX(-2%); } to { transform: translateX(3%); } }

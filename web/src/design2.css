@@ -83,19 +83,7 @@ html[data-input="pad"] .key-legend kbd, html[data-input="remote"] .key-legend kb
 .sdui-widget { padding: var(--space-m); border-radius: var(--r-lg); min-width: 0; }
 .sdui-widget h3 { margin: 0 0 var(--space-s); font-size: var(--role-title-size); }
 
-/* ---- what an experience brings, from the theme engine's `look` (set on <html> by theme.ts) ---- */
-html[data-type="humanist"] { --font: Seravek, "Gill Sans Nova", Ubuntu, Calibri, "Segoe UI", sans-serif; }
-html[data-type="rounded"] { --font: ui-rounded, "Hiragino Maru Gothic ProN", Quicksand, Nunito, "Segoe UI", sans-serif; }
-html[data-type="serif"] { --font: "Iowan Old Style", "Source Serif 4", Charter, Georgia, serif; }
-html[data-type="mono"] { --font: var(--font-mono); }
-/* Gloss: a light sheen over the top half of a primary button. Glass: a top-lit gradient and a highlight edge on the bars,
-   drawn with gradients rather than blur, so it is cheap. Both are off unless the experience asks. */
-html[data-fx-gloss="subtle"] .btn.primary, html[data-fx-gloss="full"] .btn.primary { background-image: linear-gradient(180deg, color-mix(in srgb, var(--on-image) 18%, transparent), transparent 52%); }
-html[data-fx-gloss="full"] .btn.primary { background-image: linear-gradient(180deg, color-mix(in srgb, var(--on-image) 32%, transparent), color-mix(in srgb, var(--on-image) 4%, transparent) 52%, color-mix(in srgb, var(--picture-bg) 8%, transparent)); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--on-image) 40%, transparent); }
-html[data-fx-glass="subtle"] :is(.sidebar, .topbar.under), html[data-fx-glass="full"] :is(.sidebar, .topbar.under) { background-image: linear-gradient(180deg, color-mix(in srgb, var(--on-image) 6%, transparent), transparent 60%); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--on-image) 12%, transparent); }
-html[data-fx-glow="full"] :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible { box-shadow: 0 0 10px var(--focus); }
-html[data-fx-bevel="full"] .btn:not(.ghost) { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--on-image) 28%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--picture-bg) 24%, transparent); }
-@media (prefers-reduced-transparency: reduce) { html[data-fx-glass] :is(.sidebar, .topbar.under) { background-image: none; box-shadow: none; } }
+/* ---- what an experience brings (type sets, finishes, scene) is in finish.css ---- */
 
 /* ---- the server's mark: a square badge, its content centred (never a bare letter) ---- */
 .brand-badge { display: inline-grid; place-items: center; flex: none; inline-size: 2rem; block-size: 2rem; border-radius: var(--r-md); background: var(--bg-3); color: var(--brand-accent); border: 1px solid var(--border); font-weight: 700; font-size: var(--text-md); line-height: 1; overflow: hidden; }

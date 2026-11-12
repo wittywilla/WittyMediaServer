@@ -8,7 +8,9 @@
 
 export type BrandMarkData = { kind: 'letter' | 'initials' | 'text' | 'image'; text?: string; imageUrl?: string; shown: string }
 export type RequiredValue = { value: string; by?: string; at?: string; scope: string }
-export type Look = { experience: string; theme: string; requiredExperience?: RequiredValue; requiredTheme?: RequiredValue; tvTheme?: string; effects?: Record<string, string>; shape?: { radius?: number; cardSet?: string }; type?: string; density?: string; motion?: Record<string, unknown> }
+export type SceneLayer = { type: 'gradient' | 'radial' | 'shape' | 'image'; angle?: number; stops?: { at: number; color: string }[]; x?: number; y?: number; w?: number; h?: number; color?: string; fade?: number; kind?: 'circle' | 'hill'; size?: number; file?: string }
+export type Finish = { glass?: { hi: string; lo: string; edge: string; shadow: string }; gloss?: string[] }
+export type Look = { finish?: Finish; scene?: { layers?: SceneLayer[] }; experience: string; theme: string; requiredExperience?: RequiredValue; requiredTheme?: RequiredValue; tvTheme?: string; effects?: Record<string, string>; shape?: { radius?: number; radiusMultiple?: number; cardSet?: string }; type?: string; density?: string; motion?: Record<string, unknown> }
 export type ResolvedTheme = {
   id: string
   source: 'server' | 'user' | 'required' | 'trial'

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useMemo, useState } from 'react'
+import MoreInfo from './MoreInfo'
 import { Link, Navigate, Route, Routes, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api } from '../../api'
 import { announce } from '../../a11y'
@@ -55,6 +56,15 @@ function SetList() {
   const [sets, setSets] = useState<TvSet[] | null>(null)
   const [err, setErr] = useState('')
   const [dragFrom, setDragFrom] = useState<number | null>(null)
+  // More info on a set is the first channel's programme on now.
+  const [info, setInfo] = useState<{ key: string; at: number } | null>(null)
+  const showInfo = async (s: TvSet) => {
+    try {
+      const g = await api.get<{ channels: { key: string }[] }>(`/guide?hours=1&limit=1&set=${encodeURIComponent(s.id)}`)
+      const first = g.channels?.[0]
+      if (first) setInfo({ key: first.key, at: Date.now() / 1000 }); else toast('That set has no channels yet.')
+    } catch (e) { toast((e as Error).message) }
+  }
   const load = () => getSets().then((s) => { setSets(s.sets.filter((x) => x.kind === 'custom')); setErr('') }).catch((e) => setErr((e as Error).message))
   useEffect(() => { void load() }, [])
   // The order is this account's own, whoever made the sets in it.
@@ -94,6 +104,7 @@ function SetList() {
                 <b>{s.name}</b>
                 <span>{s.count.toLocaleString()} {s.count === 1 ? 'channel' : 'channels'}{s.shared ? (s.mine ? ' · Shared with the household' : ' · Shared by an administrator') : ''}</span>
               </div>
+              <button type="button" className="ctv-btn sm" onClick={() => void showInfo(s)} aria-haspopup="dialog" aria-label={`More info about what is on ${s.name}`}>More info</button>
               <button type="button" className="ctv-btn sm icon" data-move="up" disabled={i === 0} onClick={() => void move(i, i - 1)} aria-label={`Move ${s.name} up`}><IconUp size={16} /></button>
               <button type="button" className="ctv-btn sm icon" data-move="down" disabled={i === sets.length - 1} onClick={() => void move(i, i + 1)} aria-label={`Move ${s.name} down`}><IconDown size={16} /></button>
               {s.editable && <Link className="ctv-btn sm" to={`/tv/sets/${setNumber(s.id)}`} aria-label={`Change ${s.name}`}><IconEdit size={16} /> Change</Link>}
@@ -102,6 +113,7 @@ function SetList() {
           ))}
         </ul>
       )}
+      {info && <MoreInfo channelKey={info.key} at={info.at} onClose={() => setInfo(null)} />}
     </>
   )
 }

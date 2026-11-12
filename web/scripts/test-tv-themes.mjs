@@ -271,6 +271,10 @@ if (only === '' || only === 'live') {
   const playing = (sel) => `(() => { const v = document.querySelector('${sel}'); return !!v && v === window.__v && !v.paused && v.readyState >= 2 })()`
   const previewPlaying = `(() => { const v = document.querySelector('.ctv-preview video'); return !!v && !v.paused && v.currentTime > 0.3 && !document.querySelector('.ctv-preview-msg') })()`
   const fsOn = () => page.eval(`!!document.fullscreenElement`)
+  // Whether this browser can go full screen at all, asked with a real user gesture. A headless Chrome can't (it has no
+  // window to fill), and then the full screen checks say so and are skipped rather than failed.
+  const fsWorks = await page.send('Runtime.evaluate', { expression: `document.documentElement.requestFullscreen().then(() => { const ok = !!document.fullscreenElement; return document.exitFullscreen().then(() => ok) }).catch(() => false)`, awaitPromise: true, userGesture: true, returnByValue: true }).then((r) => !!r?.result?.value).catch(() => false)
+  if (!fsWorks) console.log('skip full screen checks: this browser cannot go full screen (headless Chrome has no window to fill)')
   await size(SIZES.desktop)
   const exits = [
     ['Escape', () => press('Escape')],
@@ -300,11 +304,11 @@ if (only === '' || only === 'live') {
     await press('f'); await wait(600); const byKey = await fsOn(); await press('f'); await wait(600)
     const fsButton = `document.querySelector('.ctv-player [aria-label="Fullscreen"]')`
     await click(fsButton); await wait(600); const byButton = await fsOn(); await click(fsButton); await wait(600)
-    expect(`${theme}: F and the button go full screen and back`, byKey && byButton && !(await fsOn()), [byKey, byButton])
+    if (fsWorks) expect(`${theme}: F and the button go full screen and back`, byKey && byButton && !(await fsOn()), [byKey, byButton])
     const pausesBefore = await page.eval('window.__ev.pause')
     await click(`document.querySelector('.ctv-player .stage')`, 2); await wait(600); const byDouble = await fsOn()
     await click(`document.querySelector('.ctv-player .stage')`, 2); await wait(600)
-    expect(`${theme}: a double-click goes full screen and back`, byDouble && !(await fsOn()), byDouble)
+    if (fsWorks) expect(`${theme}: a double-click goes full screen and back`, byDouble && !(await fsOn()), byDouble)
     expect(`${theme}: still playing after full screen`, await page.eval(playing('.ctv-player video')))
     // Back to the guide, where the preview shows the same stream.
     await exit()

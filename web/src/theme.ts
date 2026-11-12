@@ -97,6 +97,10 @@ export async function loadThemeOverrides() {
   try { device = localStorage.getItem('wms.sdui.device') || '' } catch { /* the form factor's */ }
   try { resolved = await api.get<ResolvedTheme>('/theme' + (device ? '?device=' + encodeURIComponent(device) : '')) } catch { resolved = null }
   applyOverrides()
+  // No theme chosen on this device or required: the look brings its own default theme, always the same.
+  const wears = resolved?.look?.theme
+  if (wears && !deviceTheme() && document.documentElement.dataset.theme !== currentThemeId(wears)) applyTheme(wears)
+  window.dispatchEvent(new Event('wms-tv-look'))
   markListeners.forEach((l) => l())
   return resolved
 }

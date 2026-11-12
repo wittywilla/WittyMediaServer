@@ -345,7 +345,7 @@ function HeroView({ view }: { view: View }) {
   const logo = picture(obj(p, 'logo'))
   const step = (d: number) => setI((x) => (x + d + n) % n)
   return (
-    <div ref={box} className={'hero sdui-hero' + (str(view.node.props, 'style') === 'banner' ? ' banner' : '') + (page.reducedMotion ? ' cut' : '')} role="region" aria-label={view.label}
+    <div ref={box} className={'hero sdui-hero' + (str(view.node.props, 'style') === 'banner' ? ' banner' : '') + (page.reducedMotion ? ' cut' : '') + (picture(obj(p, 'image')) ? '' : ' bare')} role="region" aria-label={view.label}
       style={{ maxHeight: size ? px(num(size, 'height'), page.pt) : undefined, ...scopeStyle(view.node) }} data-sdui-stop={view.id} data-sdui-focus={view.node.focus ? view.id : undefined} data-sdui-section={view.id}
       onMouseEnter={() => setHold(true)} onMouseLeave={() => setHold(false)} onFocus={() => setHold(true)} onBlur={() => setHold(false)}
       data-sdui-hero-step onKeyDown={undefined}>

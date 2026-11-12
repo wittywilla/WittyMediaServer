@@ -95,8 +95,8 @@ function ScanTool({ lib }: { lib: Library }) {
   const { scanning, start } = useScan(lib, !!user?.isAdmin)
   if (!user?.isAdmin) return null
   return scanning
-    ? <Button size="sm" variant="ghost" icon={<IconRefresh />} disabled>Scanning… {scanning.done ?? 0}/{scanning.found ?? '?'}</Button>
-    : <Button size="sm" variant="ghost" icon={<IconRefresh />} onClick={() => void start()}>Scan</Button>
+    ? <Button size="sm" variant="ghost" className="tools-scan" icon={<IconRefresh />} disabled>Scanning… {scanning.done ?? 0}/{scanning.found ?? '?'}</Button>
+    : <Button size="sm" variant="ghost" className="tools-scan" icon={<IconRefresh />} onClick={() => void start()}>Scan</Button>
 }
 
 function VideoTools({ lib }: { lib: Library }) {
@@ -118,9 +118,9 @@ function VideoTools({ lib }: { lib: Library }) {
     <div className="sdui-tools" role="toolbar" aria-label={`${lib.name} tools`}>
       <div className="sdui-tools-row">
         <Button size="sm" variant="ghost" icon={<IconTune />} onClick={() => setOpen('filters')} aria-haspopup="dialog" data-tv-options>Filters{active > 0 ? ` (${active})` : ''}</Button>
-        {admin && <Button size="sm" variant="ghost" icon={<IconCheck />} onClick={() => setOpen('select')} aria-haspopup="dialog">Select</Button>}
-        {admin && <Button size="sm" variant="ghost" icon={<IconEdit />} onClick={() => setOpen('categories')} aria-haspopup="dialog">Categories</Button>}
-        {admin && queue > 0 && <LinkButton size="sm" variant="ghost" to={`/fix-matches?library=${lib.id}`}>Fix matches <span className="lib-badge">{queue}</span></LinkButton>}
+        {admin && <Button size="sm" variant="ghost" className="tools-admin" icon={<IconCheck />} onClick={() => setOpen('select')} aria-haspopup="dialog">Select</Button>}
+        {admin && <Button size="sm" variant="ghost" className="tools-admin" icon={<IconEdit />} onClick={() => setOpen('categories')} aria-haspopup="dialog">Categories</Button>}
+        {admin && queue > 0 && <LinkButton size="sm" variant="ghost" className="tools-admin" to={`/fix-matches?library=${lib.id}`}>Fix matches <span className="lib-badge">{queue}</span></LinkButton>}
         <ScanTool lib={lib} />
       </div>
       <ActiveFilters params={params} setParam={setParam} onSave={() => setOpen('save')} onClear={clear} />

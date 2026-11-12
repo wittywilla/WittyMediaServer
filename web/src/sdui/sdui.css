@@ -211,7 +211,8 @@ a.sdui-row:hover, button.sdui-row:hover { background: var(--hover); }
 /* The app's own tools under a page's title (extras/PageTools.tsx). */
 .sdui-tools { display: grid; gap: var(--sp-2); margin-bottom: var(--sdui-m); }
 .sdui-tools-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
-.sdui.ff-tv .sdui-tools { display: none; }
+/* On a television the toolbar keeps Filters and the saved views; editing titles is for a desk. */
+.sdui.ff-tv .sdui-tools .tools-admin, .sdui.ff-tv .sdui-tools .tools-scan { display: none; }
 .sdui-pick { display: grid; gap: var(--sp-3); }
 .sdui-pick-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); }
 .sdui-pick-head .input { flex: 1 1 220px; }
@@ -232,3 +233,7 @@ a.sdui-row:hover, button.sdui-row:hover { background: var(--hover); }
 .sdui.ff-tv .sdui-row-art.wide { width: calc(var(--sdui-pt) * 160px); height: calc(var(--sdui-pt) * 90px); }
 .sdui.ff-tv .sdui-row-art.square { width: calc(var(--sdui-pt) * 90px); height: calc(var(--sdui-pt) * 90px); }
 .sdui.ff-tv .sdui-episode-view { display: none; } /* a television keeps the page's own layout of episodes */
+/* A spotlight on a title with no backdrop (a poster is never stretched into one): no empty band
+   of picture above its words, just room for them under the top bar. */
+.sdui:not(.ff-tv) .hero.bare { height: auto; min-height: 0; max-height: none !important; padding-top: calc(var(--topbar-h) + var(--sp-6)); display: flex; flex-direction: column; justify-content: flex-end; }
+.sdui:not(.ff-tv) .hero.bare .info, .sdui:not(.ff-tv) .hero.bare .dots { position: relative; left: auto; right: auto; top: auto; bottom: auto; margin: 0 var(--gutter) var(--sp-4); width: auto; }

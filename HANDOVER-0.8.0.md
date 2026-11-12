@@ -80,9 +80,19 @@ Landed: the five layout options are gone; **experiences** (14, `pkg/sdui/experie
 
 Not done or not verified:
 - WittyPlay Online sources (`consoles`, `friends`, `presence`, `rooms`, `saveStates`, `memories`, `controllers`) and commands (`room.*`, `state.*`, `controller.*`): the engine, rooms and presence are S5's; nothing is registered here because nothing backs them yet.
-- More info data for any programme (overview, ratings, cast, where to watch, trailers) depends on S12's credits and S6's guide; not built here.
+- More info data for any programme: built by S6, `GET /tv/{key}/programme` (see "Session 6: WittyTV More info" below).
 - Logo for the name: the existing `PUT /branding/logo` (PNG or JPEG, 2 MB) is the mark's image; SVG and WebP are not accepted (no decoder).
 - Theme ids are lower case (`aeroday`, ...), and Witty, True black and High contrast keep their ids `default`, `oled`, `contrast`.
 - The layout editor's undo, redo, presets and per-form-factor preview are the apps' own over the existing revisions and `personal`; no new routes beyond placements.
 - The setup gate keeps `/capabilities` and `/identity` open (`setupRequired`, `setupURL`); the OOBE's 14 steps are the web's to draw. FIRST-TIME-SETUP.md describes the new flow in its introduction; its page-by-page pictures are the old twelve.
 - Full `go test ./...` and the web, Apple and Android checks were not run here.
+
+## Session 6: WittyTV More info
+
+Landed: `GET /api/v1/tv/{key}/programme?start=<unix>` (feature `tv-programme-info`) backs the Design 2 More info screen (`Exp.dc.html` `tvinfo`). It answers `channel`, `programme` (the facts line: rating, year, SxEy, length, genres, scores, CC/AD/audio/HD, languages, country, studio), `actions` (watch, record, remind/reminded, fromStart, watchLater/inList, open), `library` (item or show the profile may see), `credits` (S12's `library.Credits`: the library's, else the guide's XMLTV credits with `source: "guide"` and no person id), `trailers` (the library item's extras), `schedule` (other airings in 14 days on channels the profile may watch) and `ids` (imdb, tmdb). The XMLTV reader keeps credits, star ratings, languages, subtitles, sound, picture, new/repeat and ids (WittyTV migration 8, `epg_programmes.extra`, bounded; programme pictures are not kept). The SDUI `credits` source takes `programme: "<key>@<start>"`. Docs: CLIENT-API "More info", CHANNELS "For developers".
+
+Not done or not verified:
+- Clients (W2–W4) haven't wired the screen to it yet.
+- Where to watch: the route gives `ids`; streaming providers come from the existing `GET /discover/where-to-watch?tmdb=&type=`, which the app calls itself. The guide's ids are only there when the XMLTV source gives them.
+- Library titles are matched by name (shows) or name and year (films); a guide title spelt differently from the library's falls back to the guide's own data.
+- No SDUI page or conformance fixture uses the `programme` parameter yet: the More info screen has no catalogue page (W1's call).

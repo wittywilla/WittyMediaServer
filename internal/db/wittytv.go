@@ -99,6 +99,39 @@ var wittyTVMigrations = []string{
 	// What a person chose for a tuner channel's logo, which a new channel list doesn't touch:
 	// "" to find it by name, "none", or "kind|name" for the logo service's row.
 	`ALTER TABLE tuner_channels ADD COLUMN logo_set TEXT NOT NULL DEFAULT '';`,
+	// 7: channel sets, catch-up, stream health, backups for a channel, and fuller recording rules.
+	// A set's channels are guide keys (lib-5, tun-12), so a set can mix library and tuner
+	// channels; tv_set_order is each account's own order of the sets it sees, shared ones too.
+	// merged_into makes a tuner channel a backup of another, tried when that one won't open.
+	`CREATE TABLE IF NOT EXISTS tv_sets (
+	   id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	   name TEXT NOT NULL, shared INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
+	 CREATE INDEX IF NOT EXISTS tv_sets_user ON tv_sets(user_id);
+	 CREATE TABLE IF NOT EXISTS tv_set_channels (
+	   set_id INTEGER NOT NULL REFERENCES tv_sets(id) ON DELETE CASCADE,
+	   channel TEXT NOT NULL, position INTEGER NOT NULL, PRIMARY KEY(set_id, channel));
+	 CREATE TABLE IF NOT EXISTS tv_set_order (
+	   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	   set_id INTEGER NOT NULL REFERENCES tv_sets(id) ON DELETE CASCADE,
+	   position INTEGER NOT NULL, PRIMARY KEY(user_id, set_id));
+	 ALTER TABLE tuner_channels ADD COLUMN catchup_days INTEGER NOT NULL DEFAULT 0;
+	 ALTER TABLE tuner_channels ADD COLUMN catchup TEXT NOT NULL DEFAULT '';
+	 ALTER TABLE tuner_channels ADD COLUMN catchup_source TEXT NOT NULL DEFAULT '';
+	 ALTER TABLE tuner_channels ADD COLUMN health TEXT NOT NULL DEFAULT '';
+	 ALTER TABLE tuner_channels ADD COLUMN health_at INTEGER NOT NULL DEFAULT 0;
+	 ALTER TABLE tuner_channels ADD COLUMN health_msg TEXT NOT NULL DEFAULT '';
+	 ALTER TABLE tuner_channels ADD COLUMN merged_into INTEGER;
+	 CREATE INDEX IF NOT EXISTS tuner_channels_merged ON tuner_channels(merged_into);
+	 ALTER TABLE recording_rules ADD COLUMN any_channel INTEGER NOT NULL DEFAULT 0;
+	 ALTER TABLE recording_rules ADD COLUMN new_only INTEGER NOT NULL DEFAULT 0;
+	 ALTER TABLE recording_rules ADD COLUMN keep INTEGER NOT NULL DEFAULT 0;
+	 ALTER TABLE recording_rules ADD COLUMN pad_before INTEGER NOT NULL DEFAULT 0;
+	 ALTER TABLE recording_rules ADD COLUMN pad_after INTEGER NOT NULL DEFAULT 0;
+	 ALTER TABLE recordings ADD COLUMN pad_before INTEGER NOT NULL DEFAULT 0;
+	 ALTER TABLE recordings ADD COLUMN pad_after INTEGER NOT NULL DEFAULT 0;
+	 ALTER TABLE recordings ADD COLUMN season INTEGER;
+	 ALTER TABLE recordings ADD COLUMN episode INTEGER;
+	 CREATE INDEX IF NOT EXISTS epg_programmes_title ON epg_programmes(title COLLATE NOCASE, start);`,
 }
 
 func (d *DB) migrateWittyTV(ctx context.Context) error {

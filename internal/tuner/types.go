@@ -48,6 +48,16 @@ type Channel struct {
 	AudioCodec string `json:"audioCodec,omitempty"` // AC4, AC3…
 	// NoRecord is why the device says this channel may not be recorded.
 	NoRecord string `json:"noRecord,omitempty"`
+	// Catch-up: the source keeps CatchupDays of what the channel showed. Catchup is how to
+	// ask for it (default, append, shift, flussonic or xc) and CatchupSource the address
+	// template, both the driver's own business.
+	CatchupDays   int    `json:"catchupDays,omitempty"`
+	Catchup       string `json:"catchup,omitempty"`
+	CatchupSource string `json:"catchupSource,omitempty"`
+	// ArchiveStart and ArchiveEnd are set only when opening: play that stretch from the
+	// source's archive instead of what's on now.
+	ArchiveStart int64 `json:"archiveStart,omitempty"`
+	ArchiveEnd   int64 `json:"archiveEnd,omitempty"`
 }
 
 // Info describes a configured source.

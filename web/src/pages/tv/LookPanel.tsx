@@ -7,6 +7,8 @@ import { Button, Segmented, Sheet } from '../../ui'
 import { appColours, clearThemeColours, forgetPreviewSize, forgetTheme, PREVIEW_SIZES, pickTheme, previewSizeName, resetLook, setLook, setThemeColour, type Look } from './look'
 import { baseColours, FONTS, isHex, SHAPES, SLOTS, themeById, themeTokens, THEMES, type Font, type Shape, type Slot } from './tvThemes'
 import BackgroundPlayChoice from './BackgroundPlayChoice'
+import { useGuidePrefs } from './guidePrefs'
+import { PAGE_SIZES, pageSizeName, type PageSize } from './guideLogic'
 import './tvthemes.css'
 
 // WittyTV's look, on the guide's Look panel and in Settings. The first thing is one big choice,
@@ -188,6 +190,8 @@ const ThemePick = ({ look }: { look: Look }) => (
 
 export function LookEditor({ look, inSettings }: { look: Look; inSettings?: boolean }) {
   const sizeChosen = look.previewW != null
+  // How many channels at a time is this device's own, like the set it shows.
+  const [guidePrefs, setGuidePrefs] = useGuidePrefs()
   return (
     <div className="ctv-editor">
       <ThemePick look={look} />
@@ -212,6 +216,8 @@ export function LookEditor({ look, inSettings }: { look: Look; inSettings?: bool
           </>
         )}
         <Choice label="Row size" value={look.density} onChange={(v) => setLook({ density: v })} options={[{ v: 'compact', label: 'Compact' }, { v: 'normal', label: 'Normal' }, { v: 'large', label: 'Large' }]} />
+        <Choice<PageSize> label="Channels at a time" value={guidePrefs.pageSize} onChange={(v) => setGuidePrefs({ pageSize: v })} options={PAGE_SIZES.map((n) => ({ v: n, label: pageSizeName(n) }))}
+          hint="A number shows that many channels, with Previous and Next, Page Up and Page Down. All scrolls through every channel. Kept on this device." />
         <Choice label="Hours across the screen" value={look.hours} onChange={(v) => setLook({ hours: v })} options={[{ v: 0, label: 'What fits' }, { v: 1.5, label: '1½' }, { v: 2, label: '2' }, { v: 3, label: '3' }, { v: 4, label: '4' }]} />
         <fieldset className="ctv-choice">
           <legend>Show</legend>

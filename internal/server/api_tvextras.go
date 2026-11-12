@@ -43,6 +43,9 @@ func (s *Server) tvExtraRoutes(m *http.ServeMux) {
 	m.Handle("DELETE /api/channels/bumpers/item/{id}", ad(s.handleDeleteBumper))
 	m.Handle("GET /api/channels/discs", ad(s.handleChannelDiscs))
 	m.Handle("POST /api/channels/clip-preview", ad(s.handleClipPreview))
+	s.tvSetRoutes(m)
+	s.tvCatchupRoutes(m)
+	s.tvAdminRoutes(m)
 }
 
 // GET /api/time: the server's clock, in milliseconds. Players time a few of these to work out

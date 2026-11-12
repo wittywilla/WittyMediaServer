@@ -47,6 +47,14 @@ type Recording struct {
 	Path      string `json:"path,omitempty"`
 	SizeBytes int64  `json:"sizeBytes,omitempty"`
 	RuleID    *int64 `json:"ruleId,omitempty"`
+	// RuleTitle names the series recording this came from.
+	RuleTitle string `json:"ruleTitle,omitempty"`
+	// PadBefore and PadAfter are minutes more than the usual minute and two either side.
+	PadBefore int `json:"padBefore,omitempty"`
+	PadAfter  int `json:"padAfter,omitempty"`
+	// Conflict: when it starts, more recordings want its tuner than it has. See markConflicts.
+	Conflict bool `json:"conflict,omitempty"`
+	tunerID  int64
 }
 
 // Rule records every airing of a title on a channel.
@@ -56,6 +64,36 @@ type Rule struct {
 	ChannelID int64  `json:"channelId"`
 	Channel   string `json:"channel"`
 	Title     string `json:"title"`
+	RuleOptions
+}
+
+// RuleOptions are how a series recording goes about it.
+type RuleOptions struct {
+	// AnyChannel: record the title wherever it airs, not only on its channel.
+	AnyChannel bool `json:"anyChannel"`
+	// NewOnly skips an episode this rule has already recorded: the same season and episode,
+	// or failing those the same episode title.
+	NewOnly bool `json:"newOnly"`
+	// Keep is how many finished recordings of this rule to keep, newest first; 0 keeps all.
+	Keep int `json:"keep"`
+	// PadBefore and PadAfter: minutes more either side.
+	PadBefore int `json:"padBefore"`
+	PadAfter  int `json:"padAfter"`
+}
+
+// Check holds the options to what makes sense.
+func (o RuleOptions) Check() error {
+	if o.Keep < 0 || o.Keep > 1000 {
+		return errors.New("keep between 0 (all of them) and 1000 recordings")
+	}
+	return checkPadding(o.PadBefore, o.PadAfter)
+}
+
+func checkPadding(before, after int) error {
+	if before < 0 || before > 60 || after < 0 || after > 180 {
+		return errors.New("start up to an hour early, and end up to three hours late")
+	}
+	return nil
 }
 
 // Padding starts recordings early and ends them late, as broadcasts drift.
@@ -78,12 +116,14 @@ var (
 	recordingFreeEvery       = 30 * time.Second
 )
 
-const recCols = `r.id, IFNULL(r.user_id, IFNULL((SELECT u.user_id FROM recording_rules u WHERE u.id = r.rule_id), 0)), r.channel_id, IFNULL(NULLIF(c.name_set, ''), IFNULL(c.name, '')), IFNULL(NULLIF(c.number_set, ''), IFNULL(c.number, '')), r.title, r.sub, r.start, r.stop, r.status, r.error, r.path, r.rule_id`
+const recCols = `r.id, IFNULL(r.user_id, IFNULL((SELECT u.user_id FROM recording_rules u WHERE u.id = r.rule_id), 0)), r.channel_id, IFNULL(NULLIF(c.name_set, ''), IFNULL(c.name, '')), IFNULL(NULLIF(c.number_set, ''), IFNULL(c.number, '')), r.title, r.sub, r.start, r.stop, r.status, r.error, r.path, r.rule_id,
+	IFNULL((SELECT u.title FROM recording_rules u WHERE u.id = r.rule_id), ''), r.pad_before, r.pad_after, IFNULL(c.tuner_id, 0)`
 
 func (m *Manager) scanRec(sc interface{ Scan(...any) error }) (*Recording, error) {
 	var r Recording
 	var rule sql.NullInt64
-	if err := sc.Scan(&r.ID, &r.UserID, &r.ChannelID, &r.Channel, &r.Number, &r.Title, &r.Sub, &r.Start, &r.Stop, &r.Status, &r.Error, &r.Path, &rule); err != nil {
+	if err := sc.Scan(&r.ID, &r.UserID, &r.ChannelID, &r.Channel, &r.Number, &r.Title, &r.Sub, &r.Start, &r.Stop, &r.Status, &r.Error, &r.Path, &rule,
+		&r.RuleTitle, &r.PadBefore, &r.PadAfter, &r.tunerID); err != nil {
 		return nil, err
 	}
 	if rule.Valid {
@@ -126,12 +166,60 @@ func (m *Manager) Recordings(ctx context.Context) ([]*Recording, error) {
 		}
 		out = append(out, r)
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	rows.Close()
+	m.markConflicts(ctx, out)
+	return out, nil
 }
+
+// markConflicts flags each scheduled recording that, when it starts, would want its tuner
+// alongside more recordings than the tuner can stream at once. A tuner that names no limit
+// never conflicts. Watching isn't counted: a recording stops a viewer, not the other way round.
+func (m *Manager) markConflicts(ctx context.Context, list []*Recording) {
+	limits := map[int64]int{}
+	if ts, err := m.Tuners(ctx); err == nil {
+		for _, t := range ts {
+			limits[t.ID] = t.MaxStreams
+			if limits[t.ID] == 0 {
+				if s, _, err := m.source(ctx, t.ID); err == nil {
+					limits[t.ID] = s.Info().MaxStreams
+				}
+			}
+		}
+	}
+	busy := func(r *Recording) bool { return r.Status == "scheduled" || r.Status == "recording" }
+	for _, r := range list {
+		limit := limits[r.tunerID]
+		if r.Status != "scheduled" || limit <= 0 {
+			continue
+		}
+		at := r.Start - m.padBeforeOf(r)
+		n := 0
+		for _, o := range list {
+			if busy(o) && o.tunerID == r.tunerID && o.Start-m.padBeforeOf(o) <= at && o.Stop+m.padAfterOf(o) > at {
+				n++
+			}
+		}
+		r.Conflict = n > limit
+	}
+}
+
+func (m *Manager) padBeforeOf(r *Recording) int64 { return max(padBefore, int64(r.PadBefore)*60) }
+func (m *Manager) padAfterOf(r *Recording) int64  { return max(padAfter, int64(r.PadAfter)*60) }
 
 // Schedule adds a recording. A channel that is encrypted is refused here, not
 // when the time comes.
 func (m *Manager) Schedule(ctx context.Context, channelID, userID int64, title, sub string, start, stop int64) (*Recording, error) {
+	return m.SchedulePadded(ctx, channelID, userID, title, sub, start, stop, 0, 0)
+}
+
+// SchedulePadded is Schedule, starting padBefore minutes early and ending padAfter late.
+func (m *Manager) SchedulePadded(ctx context.Context, channelID, userID int64, title, sub string, start, stop int64, padBeforeMin, padAfterMin int) (*Recording, error) {
+	if err := checkPadding(padBeforeMin, padAfterMin); err != nil {
+		return nil, err
+	}
 	c, err := m.Channel(ctx, channelID)
 	if err != nil {
 		return nil, err
@@ -159,8 +247,8 @@ func (m *Manager) Schedule(ctx context.Context, channelID, userID int64, title, 
 	if m.DB.QueryRowContext(ctx, `SELECT id FROM recordings WHERE channel_id = ? AND start > ? AND start < ? AND status IN ('scheduled', 'recording')`, channelID, start-sameAiring, start+sameAiring).Scan(&dup) == nil {
 		return nil, errors.New("that programme is already being recorded")
 	}
-	res, err := m.DB.ExecContext(ctx, `INSERT INTO recordings(channel_id, user_id, title, sub, start, stop, status, created_at) VALUES(?,?,?,?,?,?,'scheduled',?)`,
-		channelID, userID, clip(title, 300), clip(sub, 300), start, stop, db.Now())
+	res, err := m.DB.ExecContext(ctx, `INSERT INTO recordings(channel_id, user_id, title, sub, start, stop, status, created_at, pad_before, pad_after) VALUES(?,?,?,?,?,?,'scheduled',?,?,?)`,
+		channelID, userID, clip(title, 300), clip(sub, 300), start, stop, db.Now(), padBeforeMin, padAfterMin)
 	if err != nil {
 		return nil, err
 	}
@@ -240,6 +328,14 @@ func (m *Manager) CancelRecording(ctx context.Context, id int64, deleteFile bool
 
 // AddRule records every airing of a title on a channel.
 func (m *Manager) AddRule(ctx context.Context, channelID, userID int64, title string) (*Rule, error) {
+	return m.AddRuleWith(ctx, channelID, userID, title, RuleOptions{})
+}
+
+// AddRuleWith is AddRule with options.
+func (m *Manager) AddRuleWith(ctx context.Context, channelID, userID int64, title string, o RuleOptions) (*Rule, error) {
+	if err := o.Check(); err != nil {
+		return nil, err
+	}
 	c, err := m.Channel(ctx, channelID)
 	if err != nil {
 		return nil, err
@@ -257,18 +353,41 @@ func (m *Manager) AddRule(ctx context.Context, channelID, userID int64, title st
 	if title == "" || len(title) > 300 {
 		return nil, errors.New("name what to record")
 	}
-	res, err := m.DB.ExecContext(ctx, `INSERT INTO recording_rules(channel_id, user_id, title, created_at) VALUES(?,?,?,?)`, channelID, userID, title, db.Now())
+	res, err := m.DB.ExecContext(ctx, `INSERT INTO recording_rules(channel_id, user_id, title, created_at, any_channel, new_only, keep, pad_before, pad_after) VALUES(?,?,?,?,?,?,?,?,?)`,
+		channelID, userID, title, db.Now(), boolInt(o.AnyChannel), boolInt(o.NewOnly), o.Keep, o.PadBefore, o.PadAfter)
 	if err != nil {
 		return nil, err
 	}
 	id, _ := res.LastInsertId()
 	m.Start()
-	return &Rule{ID: id, UserID: userID, ChannelID: channelID, Channel: c.Name, Title: title}, nil
+	return &Rule{ID: id, UserID: userID, ChannelID: channelID, Channel: c.Name, Title: title, RuleOptions: o}, nil
+}
+
+// UpdateRule changes how a series recording goes about it. What it has scheduled is
+// scheduled again from the guide with the new options.
+func (m *Manager) UpdateRule(ctx context.Context, id int64, o RuleOptions) error {
+	if err := o.Check(); err != nil {
+		return err
+	}
+	res, err := m.DB.ExecContext(ctx, `UPDATE recording_rules SET any_channel = ?, new_only = ?, keep = ?, pad_before = ?, pad_after = ? WHERE id = ?`,
+		boolInt(o.AnyChannel), boolInt(o.NewOnly), o.Keep, o.PadBefore, o.PadAfter, id)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrNotFound
+	}
+	if _, err := m.DB.ExecContext(ctx, `DELETE FROM recordings WHERE rule_id = ? AND status = 'scheduled'`, id); err != nil {
+		return err
+	}
+	m.applyRules(ctx)
+	return nil
 }
 
 // Rules lists series recordings.
 func (m *Manager) Rules(ctx context.Context) ([]Rule, error) {
-	rows, err := m.DB.QueryContext(ctx, `SELECT r.id, IFNULL(r.user_id, 0), r.channel_id, IFNULL(NULLIF(c.name_set, ''), IFNULL(c.name, '')), r.title FROM recording_rules r LEFT JOIN tuner_channels c ON c.id = r.channel_id ORDER BY r.title COLLATE NOCASE`)
+	rows, err := m.DB.QueryContext(ctx, `SELECT r.id, IFNULL(r.user_id, 0), r.channel_id, IFNULL(NULLIF(c.name_set, ''), IFNULL(c.name, '')), r.title,
+		r.any_channel, r.new_only, r.keep, r.pad_before, r.pad_after FROM recording_rules r LEFT JOIN tuner_channels c ON c.id = r.channel_id ORDER BY r.title COLLATE NOCASE`)
 	if err != nil {
 		return nil, err
 	}
@@ -276,9 +395,11 @@ func (m *Manager) Rules(ctx context.Context) ([]Rule, error) {
 	out := []Rule{}
 	for rows.Next() {
 		var r Rule
-		if err := rows.Scan(&r.ID, &r.UserID, &r.ChannelID, &r.Channel, &r.Title); err != nil {
+		var anyCh, newOnly int
+		if err := rows.Scan(&r.ID, &r.UserID, &r.ChannelID, &r.Channel, &r.Title, &anyCh, &newOnly, &r.Keep, &r.PadBefore, &r.PadAfter); err != nil {
 			return nil, err
 		}
+		r.AnyChannel, r.NewOnly = anyCh != 0, newOnly != 0
 		out = append(out, r)
 	}
 	return out, rows.Err()
@@ -305,23 +426,163 @@ func (m *Manager) applyRules(ctx context.Context) {
 	}
 	now := time.Now()
 	for _, rule := range rules {
-		c, err := m.Channel(ctx, rule.ChannelID)
-		if err != nil || !c.Enabled {
-			continue
-		}
-		list, err := m.Guide(ctx, c, now, now.AddDate(0, 0, 7))
-		if err != nil {
-			continue
-		}
-		for _, p := range list {
-			if !strings.EqualFold(p.Title, rule.Title) || p.Start < now.Unix() {
+		for _, a := range m.airings(ctx, rule, now, now.AddDate(0, 0, 7)) {
+			p := a.p
+			if rule.NewOnly && m.alreadyRecorded(ctx, rule.ID, p) {
 				continue
 			}
-			// One statement: the scheduler and a new rule can both be here at once.
-			_, _ = m.DB.ExecContext(ctx, `INSERT INTO recordings(channel_id, user_id, title, sub, start, stop, status, rule_id, created_at)
-				SELECT ?,NULLIF(?, 0),?,?,?,?,'scheduled',?,? WHERE NOT EXISTS (SELECT 1 FROM recordings WHERE channel_id = ? AND start = ?)`,
-				rule.ChannelID, rule.UserID, p.Title, p.Sub, p.Start, p.End, rule.ID, db.Now(), rule.ChannelID, p.Start)
+			// One statement: the scheduler and a new rule can both be here at once. The same
+			// airing is recorded once per rule, whichever channel it was found on.
+			_, _ = m.DB.ExecContext(ctx, `INSERT INTO recordings(channel_id, user_id, title, sub, start, stop, status, rule_id, created_at, pad_before, pad_after, season, episode)
+				SELECT ?,NULLIF(?, 0),?,?,?,?,'scheduled',?,?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM recordings WHERE (channel_id = ? OR rule_id = ?) AND start = ?)`,
+				a.channel, rule.UserID, p.Title, p.Sub, p.Start, p.End, rule.ID, db.Now(), rule.PadBefore, rule.PadAfter, p.Season, p.Episode, a.channel, rule.ID, p.Start)
 		}
+	}
+}
+
+type airing struct {
+	channel int64
+	p       Programme
+}
+
+// airings are a rule's programmes still to come: on its own channel, or, for a rule that
+// follows a title anywhere, on every channel that can be recorded, one channel per airing.
+func (m *Manager) airings(ctx context.Context, rule Rule, from, to time.Time) []airing {
+	var out []airing
+	if !rule.AnyChannel {
+		c, err := m.Channel(ctx, rule.ChannelID)
+		if err != nil || !c.Enabled {
+			return nil
+		}
+		list, err := m.Guide(ctx, c, from, to)
+		if err != nil {
+			return nil
+		}
+		for _, p := range list {
+			if strings.EqualFold(p.Title, rule.Title) && p.Start >= from.Unix() {
+				out = append(out, airing{c.ID, p})
+			}
+		}
+		return out
+	}
+	rows, err := m.DB.QueryContext(ctx, `SELECT channel, start, stop, title, sub, season, episode FROM epg_programmes
+		WHERE title = ? COLLATE NOCASE AND start >= ? AND start < ? ORDER BY start LIMIT 500`, rule.Title, from.Unix(), to.Unix())
+	if err != nil {
+		return nil
+	}
+	type found struct {
+		key string
+		p   Programme
+	}
+	var hits []found
+	for rows.Next() {
+		var f found
+		var season, episode sql.NullInt64
+		if rows.Scan(&f.key, &f.p.Start, &f.p.End, &f.p.Title, &f.p.Sub, &season, &episode) != nil {
+			continue
+		}
+		if season.Valid {
+			v := int(season.Int64)
+			f.p.Season = &v
+		}
+		if episode.Valid {
+			v := int(episode.Int64)
+			f.p.Episode = &v
+		}
+		hits = append(hits, f)
+	}
+	rows.Close()
+	seen := map[int64]bool{}
+	for _, f := range hits {
+		if seen[f.p.Start] {
+			continue
+		}
+		if id := m.recordableFor(ctx, f.key, rule.ChannelID); id != 0 {
+			seen[f.p.Start] = true
+			out = append(out, airing{id, f.p})
+		}
+	}
+	return out
+}
+
+// recordableFor is a channel that guide data with this key belongs to and that can be
+// recorded, the rule's own channel first.
+func (m *Manager) recordableFor(ctx context.Context, key string, prefer int64) int64 {
+	var ids []int64
+	if strings.HasPrefix(key, "tuner:") {
+		if id, err := strconv.ParseInt(strings.TrimPrefix(key, "tuner:"), 10, 64); err == nil {
+			ids = append(ids, id)
+		}
+	} else {
+		rows, err := m.DB.QueryContext(ctx, `SELECT id FROM tuner_channels WHERE epg_set = ? OR (epg_set = '' AND epg_id = ?) ORDER BY id != ?, id LIMIT 20`, key, key, prefer)
+		if err != nil {
+			return 0
+		}
+		for rows.Next() {
+			var id int64
+			if rows.Scan(&id) == nil {
+				ids = append(ids, id)
+			}
+		}
+		rows.Close()
+	}
+	for _, id := range ids {
+		c, err := m.Channel(ctx, id)
+		if err == nil && c.Enabled && c.Encrypted == "" && c.NoRecord == "" && c.MergedInto == 0 {
+			return id
+		}
+	}
+	return 0
+}
+
+// alreadyRecorded: this rule has recorded, or will record, this episode.
+func (m *Manager) alreadyRecorded(ctx context.Context, ruleID int64, p Programme) bool {
+	var n int
+	switch {
+	case p.Season != nil && p.Episode != nil:
+		_ = m.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM recordings WHERE rule_id = ? AND season = ? AND episode = ? AND status IN ('scheduled', 'recording', 'done') AND start != ?`,
+			ruleID, *p.Season, *p.Episode, p.Start).Scan(&n)
+	case strings.TrimSpace(p.Sub) != "":
+		_ = m.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM recordings WHERE rule_id = ? AND sub = ? COLLATE NOCASE AND status IN ('scheduled', 'recording', 'done') AND start != ?`,
+			ruleID, strings.TrimSpace(p.Sub), p.Start).Scan(&n)
+	}
+	return n > 0
+}
+
+// keepNewest removes a rule's oldest finished recordings, files and all, beyond what it
+// keeps. Only files in the recordings folder are ever removed.
+func (m *Manager) keepNewest(ctx context.Context, recordingID int64) {
+	var ruleID sql.NullInt64
+	var keep int
+	if m.DB.QueryRowContext(ctx, `SELECT r.rule_id, IFNULL(u.keep, 0) FROM recordings r LEFT JOIN recording_rules u ON u.id = r.rule_id WHERE r.id = ?`, recordingID).Scan(&ruleID, &keep) != nil ||
+		!ruleID.Valid || keep <= 0 {
+		return
+	}
+	rows, err := m.DB.QueryContext(ctx, `SELECT id, path FROM recordings WHERE rule_id = ? AND status = 'done' ORDER BY start DESC LIMIT -1 OFFSET ?`, ruleID.Int64, keep)
+	if err != nil {
+		return
+	}
+	type old struct {
+		id   int64
+		path string
+	}
+	var gone []old
+	for rows.Next() {
+		var o old
+		if rows.Scan(&o.id, &o.path) == nil {
+			gone = append(gone, o)
+		}
+	}
+	rows.Close()
+	for _, o := range gone {
+		if m.inRecordingsFolder(o.path) {
+			if err := os.Remove(o.path); err != nil && !os.IsNotExist(err) {
+				m.recLog(o.id).Warn("could not remove an old recording a series no longer keeps", "err", err)
+				continue
+			}
+		}
+		_, _ = m.DB.ExecContext(ctx, `DELETE FROM recordings WHERE id = ?`, o.id)
+		m.recLog(o.id).Info("removed an old recording: its series keeps only the newest", "keep", keep)
 	}
 }
 
@@ -387,7 +648,7 @@ func (m *Manager) dvrLoop(ctx context.Context) {
 
 func (m *Manager) startDue(ctx context.Context) {
 	now := time.Now().Unix()
-	rows, err := m.DB.QueryContext(ctx, `SELECT `+recCols+` FROM recordings r LEFT JOIN tuner_channels c ON c.id = r.channel_id WHERE r.status = 'scheduled' AND r.start - ? <= ?`, padBefore, now)
+	rows, err := m.DB.QueryContext(ctx, `SELECT `+recCols+` FROM recordings r LEFT JOIN tuner_channels c ON c.id = r.channel_id WHERE r.status = 'scheduled' AND r.start - MAX(?, r.pad_before * 60) <= ?`, padBefore, now)
 	if err != nil {
 		return
 	}
@@ -399,7 +660,7 @@ func (m *Manager) startDue(ctx context.Context) {
 	}
 	rows.Close()
 	for _, r := range due {
-		if r.Stop+padAfter <= now {
+		if r.Stop+m.padAfterOf(r) <= now {
 			m.finish(r.ID, "failed", "the server was not running when this was due", "")
 			continue
 		}
@@ -447,11 +708,14 @@ func (m *Manager) finish(id int64, status, msg, path string) {
 	if err != nil {
 		log.Error("could not save how a recording ended", "status", status, "err", err)
 	}
+	if status == "done" {
+		m.keepNewest(m.stopCtx, id)
+	}
 }
 
 // record runs one recording to its end.
 func (m *Manager) record(r *Recording) {
-	end := time.Unix(r.Stop+padAfter, 0)
+	end := time.Unix(r.Stop+m.padAfterOf(r), 0)
 	ctx, cancel := context.WithDeadline(logging.WithSession(m.stopCtx, recSession(r.ID)), end)
 	defer cancel()
 	log := m.recLog(r.ID)

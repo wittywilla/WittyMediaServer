@@ -5,6 +5,7 @@ package server
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -15,7 +16,6 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -732,6 +732,12 @@ type guideChannel struct {
 	Alternative *livetv.Alternative `json:"alternative,omitempty"` // the same station, clear
 	Notices     []string            `json:"notices,omitempty"`
 	Programmes  []guideProgramme    `json:"programmes"`
+	// CatchupDays: how far back the source keeps what it showed, to watch from the start.
+	CatchupDays int `json:"catchupDays,omitempty"`
+	// Health is what the last check or tune of a tuner channel found: ok, failing, or "".
+	Health string `json:"health,omitempty"`
+
+	tc *livetv.Channel // a tuner row's channel, for decorateTunerRows
 }
 
 // channelBrand is a name to look up in the logo service.
@@ -827,46 +833,52 @@ func (s *Server) handleGuide(w http.ResponseWriter, r *http.Request) {
 		limit = 40
 	}
 	offset := max(qInt(r, "offset", 0), 0)
-	kind := r.URL.Query().Get("kind")
-	group := r.URL.Query().Get("group")
-	rows := []guideChannel{}
-	if kind == "" || kind == "library" {
-		rows = append(rows, s.libraryRows(ctx, r)...)
-	}
-	if kind == "" || kind == "tuner" {
-		rows = append(rows, s.tunerRows(ctx, r)...)
-	}
-	favs, err := s.Channels.Favourites(ctx, userFrom(r).ID)
+	q := r.URL.Query()
+	ix := s.guideIndex(ctx, r)
+	pick, err := s.guidePick(ctx, r, ix, q.Get("set"))
 	if err != nil {
-		s.Log.WarnContext(ctx, "could not read favourite channels", "cat", "tv", "err", err)
+		writeErr(w, 404, err.Error())
+		return
 	}
-	groups := map[string]bool{}
-	for i := range rows {
-		rows[i].Favourite = favs[rows[i].Key]
-		if rows[i].Group != "" {
-			groups[rows[i].Group] = true
-		}
-		for _, g := range rows[i].Categories {
-			groups[g] = true
+	// The older ways of narrowing the guide, which a set can stand for too.
+	kind, group := q.Get("kind"), q.Get("group")
+	one, wantFavs := q.Get("channel"), qBool(r, "favourites")
+	find := strings.ToLower(strings.TrimSpace(q.Get("q")))
+	rows := make([]guideChannel, 0, len(pick))
+	for _, c := range pick {
+		if (kind == "" || c.Kind == kind) && (group == "" || c.Group == group || slices.Contains(c.Categories, group)) &&
+			(!wantFavs || c.Favourite) && (one == "" || c.Key == one) && (find == "" || channelMatches(&c, find)) {
+			rows = append(rows, c)
 		}
 	}
-	one := r.URL.Query().Get("channel")
-	wantFavs := qBool(r, "favourites")
-	if group != "" || wantFavs || one != "" {
-		kept := rows[:0]
-		for _, c := range rows {
-			if (group == "" || c.Group == group || slices.Contains(c.Categories, group)) && (!wantFavs || c.Favourite) && (one == "" || c.Key == one) {
-				kept = append(kept, c)
-			}
-		}
-		rows = kept
-	}
-	sort.SliceStable(rows, func(i, j int) bool { return channels.NumberLess(rows[i].Number, rows[j].Number) })
 	total := len(rows)
+	located := -2
+	if want := strings.TrimSpace(q.Get("locate")); want != "" {
+		located = locateChannel(rows, want)
+		if located >= 0 {
+			offset = located - located%limit
+		}
+	}
 	if offset > total {
 		offset = total
 	}
 	rows = rows[offset:min(offset+limit, total)]
+	out := map[string]any{"now": now.Unix(), "from": from.Unix(), "to": to.Unix(), "total": total, "offset": offset,
+		"groups": ix.groupNames(), "set": cmp.Or(q.Get("set"), "all"), "theme": s.tvSetting(ctx, "tvTheme"), "skin": s.tvSetting(ctx, "tvSkin"),
+		"layout": s.tvSetting(ctx, "tvLayout"), "backgroundPlay": s.backgroundPlay(ctx)}
+	if located != -2 {
+		out["located"] = located
+	}
+	if numbersOnly && qBool(r, "lite") {
+		lite := make([]liteChannel, len(rows))
+		for i, c := range rows {
+			lite[i] = liteChannel{c.Key, c.Kind, c.ID, c.Number, c.Name, c.Group, c.Logo, c.Brand, c.Favourite, c.Encrypted != ""}
+		}
+		out["channels"] = lite
+		writeJSON(w, 200, out)
+		return
+	}
+	s.decorateTunerRows(r, rows, ix.tunerList)
 	if numbersOnly {
 		// Only the channel list: numbers for dialling, no programmes.
 		for i := range rows {
@@ -877,23 +889,8 @@ func (s *Server) handleGuide(w http.ResponseWriter, r *http.Request) {
 			rows[i].Programmes = s.rowProgrammes(ctx, &rows[i], from, to)
 		}
 	}
-	names := make([]string, 0, len(groups))
-	for g := range groups {
-		names = append(names, g)
-	}
-	// The two everyone knows come first, then the rest of the owner's own.
-	rank := func(g string) int {
-		return map[string]int{"Movies": 0, "Kids": 1}[g] + b2i(g != "Movies" && g != "Kids")*2
-	}
-	sort.Slice(names, func(i, j int) bool {
-		if a, b := rank(names[i]), rank(names[j]); a != b {
-			return a < b
-		}
-		return names[i] < names[j]
-	})
-	writeJSON(w, 200, map[string]any{"now": now.Unix(), "from": from.Unix(), "to": to.Unix(), "total": total, "offset": offset,
-		"channels": rows, "groups": names, "theme": s.tvSetting(ctx, "tvTheme"), "skin": s.tvSetting(ctx, "tvSkin"), "layout": s.tvSetting(ctx, "tvLayout"),
-		"backgroundPlay": s.backgroundPlay(ctx)})
+	out["channels"] = rows
+	writeJSON(w, 200, out)
 }
 
 func b2i(b bool) int {
@@ -1084,7 +1081,13 @@ func (s *Server) handleLiveLeave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if v := viewerName(r); v != "" {
-		s.HLS.LeaveLive(key, v)
+		// A catch-up stream is left by naming the programme's start as well.
+		if start, err := strconv.ParseInt(r.URL.Query().Get("start"), 10, 64); err == nil && start > 0 && strings.HasPrefix(key, "tun-") {
+			id, _ := strconv.ParseInt(strings.TrimPrefix(key, "tun-"), 10, 64)
+			s.HLS.LeaveLive(catchupID(id, start), v)
+		} else {
+			s.HLS.LeaveLive(key, v)
+		}
 	}
 	writeJSON(w, 200, map[string]any{"ok": true})
 }

@@ -21,6 +21,7 @@ type Kind = { id: string; label: string; hint: string; drivers: string[] }
 // know yet goes under Something else, so a new one in WittyTuner still shows.
 const KINDS: Kind[] = [
   { id: 'playlist', label: 'A playlist from a TV provider', hint: 'An M3U or M3U8 list of channels: an address, or a file on this server.', drivers: ['iptv'] },
+  { id: 'xtream', label: 'An Xtream Codes-style provider', hint: 'A provider that gave you a server address, a username and a password. Its channels, groups, logos, guide and catch-up come with it.', drivers: ['xtream'] },
   { id: 'stream', label: 'One stream address', hint: 'A single channel at an HTTP, HLS, RTSP, RTP or UDP address.', drivers: ['stream'] },
   { id: 'network', label: 'A tuner box on your network', hint: 'An aerial or cable tuner that you reach by its address.', drivers: ['network'] },
   { id: 'satip', label: 'A SAT>IP box', hint: 'Satellite, aerial or cable through a SAT>IP server on your network.', drivers: ['satip'] },

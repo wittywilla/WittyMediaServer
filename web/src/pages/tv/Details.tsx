@@ -3,17 +3,24 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../../api'
-import { IconPlay } from '../../icons'
+import { IconPlay, IconPrev } from '../../icons'
 import { toast, useApp } from '../../state'
 import { Button, Dialog, LinkButton, Segmented } from '../../ui'
 import { type Look } from './look'
 import { useReminders } from './reminders'
 import { resetChannel } from './resetChannel'
+import { canCatchup } from './guideLogic'
 import { canOfferRecord, fmtClock, fmtDay, fmtLeft, fmtSpan, type GuideChannel, type GuidePage, type Programme } from './tvApi'
 
 // More about a programme, or the whole of the channel's day: the same dialog,
 // so that one is a key press away from the other.
-export default function DetailsDialog({ ch, p, now, startDay, onClose, onWatch, onRecord, onReset }: { ch: GuideChannel; p: Programme; now: number; startDay?: boolean; look: Look; onClose: () => void; onWatch: () => void; onRecord: () => void; onReset?: () => void }) {
+// onRecordOptions (tv-dvr-rules-2): Record opens the choices (padding, and which airings), rather
+// than recording at once. onFromStart (tv-catchup) and onAddToSet (tv-sets) are there only when
+// the server can do them.
+export default function DetailsDialog({ ch, p, now, startDay, onClose, onWatch, onRecord, onReset, onRecordOptions, onFromStart, onAddToSet }: {
+  ch: GuideChannel; p: Programme; now: number; startDay?: boolean; look: Look; onClose: () => void; onWatch: () => void; onRecord: () => void; onReset?: () => void
+  onRecordOptions?: (series: boolean) => void; onFromStart?: () => void; onAddToSet?: () => void
+}) {
   const [desc, setDesc] = useState(p.desc || '')
   const [day, setDay] = useState(!!startDay)
   const reminders = useReminders()
@@ -34,7 +41,11 @@ export default function DetailsDialog({ ch, p, now, startDay, onClose, onWatch, 
       {user?.isAdmin && ch.kind === 'library' && <LinkButton variant="ghost" to={`/tv/channels/${ch.id}`}>Edit channel</LinkButton>}
       {user?.isAdmin && ch.kind === 'library' && <Button variant="ghost" onClick={() => void resetChannel(ch.id, ch.name).then((done) => { if (done) { onReset?.(); onClose() } })}>Reset channel</Button>}
       {later && !ch.encrypted && p.kind !== 'none' && p.kind !== 'group' && <Button aria-pressed={reminded} onClick={() => void reminders.toggle(ch.key, p)}>{reminded ? '✓ Reminder set' : 'Remind me'}</Button>}
-      {canOfferRecord(ch, p, now) && <><Button onClick={() => void addSeries()}>Record every airing</Button><Button onClick={onRecord}>Record this</Button></>}
+      {onAddToSet && <Button variant="ghost" onClick={onAddToSet}>Add to set…</Button>}
+      {canOfferRecord(ch, p, now) && (onRecordOptions
+        ? <><Button onClick={() => onRecordOptions(true)}>Record every airing…</Button><Button onClick={() => onRecordOptions(false)}>Record this…</Button></>
+        : <><Button onClick={() => void addSeries()}>Record every airing</Button><Button onClick={onRecord}>Record this</Button></>)}
+      {onFromStart && canCatchup(ch, p, now) && <Button icon={<IconPrev />} onClick={onFromStart}>Watch from the start</Button>}
       {ch.alternative && <LinkButton variant="primary" icon={<IconPlay />} to={`/tv/watch/${ch.alternative.key}`}>Watch {ch.alternative.number} {ch.alternative.name} instead</LinkButton>}
       {!ch.encrypted && <Button variant={ch.alternative ? 'default' : 'primary'} icon={<IconPlay />} onClick={onWatch}>Watch channel now</Button>}
     </>
@@ -59,6 +70,7 @@ export default function DetailsDialog({ ch, p, now, startDay, onClose, onWatch, 
           {ch.noRecord && <p className="muted ctv-note">This channel can't be recorded: {ch.noRecord}.</p>}
           {ch.notices?.map((n) => <p key={n} className="muted ctv-note">{n}</p>)}
           {ch.kind === 'library' && <p className="muted ctv-note">Library channels can't be recorded: what they play is already in your library.</p>}
+          {onFromStart && !!ch.catchupDays && <p className="muted ctv-note">This channel keeps the last {ch.catchupDays === 1 ? 'day' : `${ch.catchupDays} days`} of its programmes, to watch from their start.</p>}
         </>
       )}
     </Dialog>

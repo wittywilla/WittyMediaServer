@@ -31,7 +31,7 @@ export default function MiniGuide({ channel, onTune, onClose, onFull }: { channe
       })
     if (!started.current) {
       started.current = true
-      api.get<GuidePage>('/guide?list=1&limit=20000').then((g) => {
+      api.get<GuidePage>('/guide?list=1&lite=1&limit=20000').then((g) => {
         const i = Math.max(0, g.channels.findIndex((c) => c.key === channel))
         const off = Math.max(0, i - Math.floor(ROWS / 2))
         return load(off, (l) => l.findIndex((c) => c.key === channel))

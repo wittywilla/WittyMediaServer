@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import Hls from 'hls.js'
 import { api } from '../../api'
 import { announce } from '../../a11y'
@@ -19,7 +19,8 @@ import MiniGuide from './MiniGuide'
 import Slate from './Slate'
 import { useLiveTracks } from './tracks'
 import { liveHls, liveVideo, setLive, useLive } from './live'
-import { fmtClock, fmtSpan, forgetLineup, getLineup, type Alternative, type GuideChannel, type TuneInfo } from './tvApi'
+import { fmtClock, fmtSpan, getLineup, type Alternative, type GuideChannel, type GuidePage, type TuneInfo } from './tvApi'
+import { catchupKey } from './guideLogic'
 import { useTvRemote } from '../../remote/tvTarget'
 import './tv.css'
 import './tvthemes.css'
@@ -31,6 +32,9 @@ haveHls(Hls)
 // shares one stream; pausing keeps a place in the server's buffer. The picture is
 // the TV section's one player (live.ts), carried over from the guide's preview
 // and back, so changing where it's shown never tunes again.
+//
+// With ?from=&to= it plays that programme from its start instead (tv-catchup): the viewer's own
+// stream from the channel's archive, which the banner says, and Back to live leaves.
 
 const REMOTE_KEY = 'wms.remote.tv'
 const remoteSaved = () => { try { return localStorage.getItem(REMOTE_KEY) === '1' } catch { return false } }
@@ -40,11 +44,16 @@ export default function TvPlayer() {
   const nav = useNavigate()
   // Changing channel takes the place of the channel left, and remembers where they all came from.
   const from = useLocation().state as { fromGuide?: boolean } | null
+  const [params] = useSearchParams()
+  const cuStart = Number(params.get('from')) || 0, cuEnd = Number(params.get('to')) || 0
+  const fromStart = cuStart > 0 && cuEnd > cuStart
+  // What the TV section's one player is asked for: the channel, or this programme of it from its start.
+  const liveKey = fromStart ? catchupKey(key, cuStart, cuEnd) : key
   const video = useRef<HTMLVideoElement | null>(liveVideo())
   const stage = useRef<HTMLDivElement | null>(null)
   const root = useIdle(4000, [])
-  const live = useLive(key, stage)
-  const mine = live.key === key
+  const live = useLive(liveKey, stage)
+  const mine = live.key === liveKey
   const info = mine ? live.info : null
   const err = mine ? live.err : ''
   const picture = mine && live.playing
@@ -96,16 +105,15 @@ export default function TvPlayer() {
     rememberChannel(key)
     setZap(null)
     getLineup().then((l) => { if (prevKey.current === key) setZap(l.find((c) => c.key === key) || null) }).catch(() => {})
-  }, [key, showBanner])
+  }, [key, liveKey, showBanner])
   useEffect(() => {
     if (!info) return
     announce(`Channel ${info.number}, ${info.name}${info.now?.title ? ', ' + info.now.title : ''}${info.notices?.length ? '. ' + info.notices.join(' ') : ''}`)
   }, [info?.key]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!err) return
-    // A channel refused now may have just shown itself to be encrypted.
-    forgetLineup()
-    getLineup().then((l) => { if (prevKey.current === key) setAlt(l.find((c) => c.key === key)?.alternative || null) }).catch(() => {})
+    // A channel refused now may have just shown itself to be encrypted: the guide says what to watch instead.
+    api.get<GuidePage>(`/guide?hours=1&limit=1&channel=${encodeURIComponent(key)}`).then((g) => { if (prevKey.current === key) setAlt(g.channels[0]?.alternative || null) }).catch(() => {})
   }, [err, key])
   // Ready, or already playing in the preview: play, or ask for a click if the browser won't.
   useEffect(() => {
@@ -113,6 +121,19 @@ export default function TvPlayer() {
     video.current?.play().catch(() => setNeedClick(true))
   }, [mine, live.ready])
   useEffect(() => { if (picture) showBanner() }, [picture, showBanner])
+  // From the start means from the start, wherever the stream's playlist would have a player begin.
+  const startedAt = useRef('')
+  useEffect(() => {
+    const v = video.current
+    if (!fromStart || !mine || !live.ready || !v || startedAt.current === liveKey) return
+    const toStart = () => {
+      if (!v.seekable.length) return
+      startedAt.current = liveKey
+      if (v.currentTime - v.seekable.start(0) > 5) v.currentTime = v.seekable.start(0)
+    }
+    if (v.seekable.length) toStart()
+    else { v.addEventListener('loadedmetadata', toStart, { once: true }); return () => v.removeEventListener('loadedmetadata', toStart) }
+  }, [fromStart, mine, live.ready, liveKey])
 
   // When a programme ends the TV section's player asks what's on next, and the banner moves on.
   const nowStart = info?.now?.start
@@ -151,7 +172,11 @@ export default function TvPlayer() {
 
   const seekTo = (t: number) => { const v = video.current; if (v) { setLive({ away: true }); v.currentTime = Math.max(win.start, Math.min(win.end, t)) } }
   // Back to where everyone on the channel is: live sync takes it from there.
-  const goLive = () => { const h = liveHls(); const v = video.current; if (v) { setLive({ away: false }); v.currentTime = h?.liveSyncPosition ?? win.end; v.play().catch(() => {}) } }
+  const goLive = () => {
+    // From the start, live is the channel itself.
+    if (fromStart) { nav(`/tv/watch/${key}`, { replace: true, state: from }); return }
+    const h = liveHls(); const v = video.current; if (v) { setLive({ away: false }); v.currentTime = h?.liveSyncPosition ?? win.end; v.play().catch(() => {}) }
+  }
 
   const step = useCallback(async (dir: 1 | -1) => {
     const list = await getLineup().catch(() => [] as GuideChannel[])
@@ -263,8 +288,9 @@ export default function TvPlayer() {
             <div className="ctv-msg-actions" onClick={(e) => e.stopPropagation()}>
               {alt && <button className="btn primary" onClick={() => nav(`/tv/watch/${alt.key}`, { replace: true })}>Watch {alt.number} {alt.name} instead</button>}
               {err.includes('Encrypted:') && <button className="btn" onClick={() => nav('/tv/encrypted')}>What can I do?</button>}
+              {fromStart && <button className="btn primary" onClick={goLive}>Watch the channel live</button>}
               <button className="btn" onClick={guide}>Back to the guide</button>
-              <button className="btn" onClick={() => void step(1)}>Next channel</button>
+              {!fromStart && <button className="btn" onClick={() => void step(1)}>Next channel</button>}
             </div>
           </div>
         </div>
@@ -273,17 +299,18 @@ export default function TvPlayer() {
       {dial && <div className="ctv-osd-dial" role="status">{dial}<span className="ctv-blink">_</span></div>}
       <div className="top" onClick={(e) => e.stopPropagation()}>
         <button className="ibtn" onClick={guide} title="Guide (G)" aria-label="Back to the guide"><IconBack /></button>
-        <div className="grow"><h2>{info ? `${info.number} ${info.name}` : 'Tuning…'}</h2><div className="sub">{isBehind ? `${Math.round(win.behind / 60)} min behind live` : 'Live'}</div></div>
+        <div className="grow"><h2>{info ? `${info.number} ${info.name}` : 'Tuning…'}</h2><div className="sub">{fromStart ? 'From the start' : isBehind ? `${Math.round(win.behind / 60)} min behind live` : 'Live'}</div></div>
       </div>
       {remoteOn && <Remote onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemoteOn(false)} label="WittyTV" />}
-      {banner && !mini && (info ? <Banner info={info} look={look} /> : zap && <ZapBanner ch={zap} look={look} />)}
+      {banner && !mini && (info ? <Banner info={info} look={look} fromStart={fromStart} /> : zap && <ZapBanner ch={zap} look={look} />)}
       {mini && <MiniGuide channel={key} onTune={tuneTo} onClose={() => setMini(false)} onFull={guide} />}
       {settingsOpen && <Dialog title="Player settings" onClose={() => setSettingsOpen(false)}><BackgroundPlayChoice /></Dialog>}
       <Controls video={video} duration={windowLen} offset={-win.start} onSeek={(t) => seekTo(win.start + t)} onFullscreen={() => toggleFullscreen(root.current)}
         remoteOn={remoteOn} onRemote={() => setRemoteOn(!remoteOn)} showChapterMarks={false} onSettings={() => setSettingsOpen(true)}
         audio={tracks.audio} subtitles={tracks.subtitles} onAudio={tracks.chooseAudio} onSubtitle={tracks.chooseSubtitle}
         extra={<>
-          {isBehind && <button className="btn sm" onClick={goLive} title="Back to live (L)">● Live</button>}
+          {fromStart ? <button className="btn sm primary" onClick={goLive} title="Back to live (L)">● Back to live</button>
+            : isBehind && <button className="btn sm" onClick={goLive} title="Back to live (L)">● Live</button>}
           <button className="btn sm" onClick={() => void step(-1)} title="Channel down (Page Down)" aria-label="Channel down">CH −</button>
           <button className="btn sm" onClick={() => void step(1)} title="Channel up (Page Up)" aria-label="Channel up">CH +</button>
           <button className="btn sm hide-narrow" onClick={last} disabled={!lastKey.current} title="Last channel (Backspace)">Last</button>
@@ -305,7 +332,7 @@ function ZapBanner({ ch, look }: { ch: GuideChannel; look: Look }) {
 }
 
 // The banner: what every box of the era showed on a channel change.
-function Banner({ info, look }: { info: TuneInfo; look: Look }) {
+function Banner({ info, look, fromStart }: { info: TuneInfo; look: Look; fromStart?: boolean }) {
   const [now, setNow] = useState(() => Date.now() / 1000)
   useEffect(() => { const t = setInterval(() => setNow(Date.now() / 1000), 5000); return () => clearInterval(t) }, [])
   const p = info.now
@@ -318,8 +345,9 @@ function Banner({ info, look }: { info: TuneInfo; look: Look }) {
       </div>
       <div className="ctv-banner-main">
         <div className="ctv-banner-title">{p?.title || info.name}{p?.rating && <em>{p.rating}</em>}</div>
-        <div className="ctv-banner-sub">{p?.sub || (p ? '' : 'No guide data')}</div>
-        {p && <div className="ctv-banner-progress"><span>{fmtClock(p.start)}</span><i><u style={{ width: pct + '%' }} /></i><span>{fmtClock(p.end)}</span></div>}
+        <div className="ctv-banner-sub">{fromStart && <em className="ctv-banner-tag">From the start</em>}{p?.sub || (p ? '' : 'No guide data')}</div>
+        {fromStart && <div className="ctv-banner-next">Press L or Back to live for the channel as it is now.</div>}
+        {p && !fromStart && <div className="ctv-banner-progress"><span>{fmtClock(p.start)}</span><i><u style={{ width: pct + '%' }} /></i><span>{fmtClock(p.end)}</span></div>}
         {info.next && <div className="ctv-banner-next">Next: {info.next.title} · {fmtSpan(info.next)}</div>}
         {info.playing && <div className="ctv-banner-next">Playing now: {info.playing.title}</div>}
         {info.notices?.map((n) => <div key={n} className="ctv-banner-notice">{n}{info.alternative ? ` Channel ${info.alternative.number} has the same station with sound.` : ''}</div>)}

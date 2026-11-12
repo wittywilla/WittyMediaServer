@@ -154,7 +154,7 @@ var tableParts = map[string]string{
 	"progress": PartHistory, "play_log": PartHistory, "item_stats": PartHistory, "item_reactions": PartHistory, "item_comments": PartHistory,
 	"annotations": PartHistory, "collections": PartHistory, "collection_items": PartHistory, "collection_shows": PartHistory,
 	"photo_albums": PartHistory, "photo_album_items": PartHistory, "saved_views": PartHistory, "creator_subs": PartHistory,
-	"lyrics_offsets": PartHistory, "tv_favourites": PartHistory, "tv_reminders": PartHistory, "share_links": PartHistory,
+	"lyrics_offsets": PartHistory, "tv_favourites": PartHistory, "tv_reminders": PartHistory, "tv_sets": PartHistory, "tv_set_channels": PartHistory, "tv_set_order": PartHistory, "share_links": PartHistory,
 	"screen_time": PartHistory, "profile_watch": PartHistory, "profile_events": PartHistory,
 
 	"channels": PartChannels, "channel_days": PartChannels, "channel_history": PartChannels, "channel_bumpers": PartChannels,

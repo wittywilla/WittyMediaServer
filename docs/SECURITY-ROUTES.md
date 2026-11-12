@@ -499,6 +499,11 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/tuners/{id}/channels` | Admin | Numeric id |
 | `POST /api/tuners/{id}/channels/enable` | Admin | Numeric id |
 | `PUT /api/tuner-channels/{id}` | Admin | Channel exists. Fields |
+| `POST /api/tuner-channels/bulk` | Admin | 1 to 20000 channel ids; a known action; check: up to 50 |
+| `GET /api/tuners/duplicates` | Admin | Nothing further |
+| `POST /api/tuners/{id}/health` | Admin | Tuner exists. One check per tuner at a time, within its stream limit |
+| `GET /api/tuners/{id}/health` | Admin | Tuner exists |
+| `DELETE /api/tuners/{id}/health` | Admin | Tuner exists |
 | `GET /api/epg/sources` | Admin | Nothing further |
 | `POST /api/epg/sources` | Admin | Name and address checked by the tuner manager |
 | `DELETE /api/epg/sources/{id}` | Admin | Source exists |
@@ -509,6 +514,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `DELETE /api/recordings/{id}` | Tuner channels | own, and every account's for an administrator |
 | `GET /api/recording-rules` | Tuner channels | own, and every account's for an administrator |
 | `POST /api/recording-rules` | Tuner channels | canRecord: a tuner channel, turned on, visible, clear and not marked not to be recorded; never a library channel. 20 per account, none for an administrator |
+| `PUT /api/recording-rules/{id}` | Tuner channels | own, and every account's for an administrator. Padding up to an hour before and three after; keep 0 to 1000 |
 | `DELETE /api/recording-rules/{id}` | Tuner channels | own, and every account's for an administrator |
 | `GET /api/games/consoles` | Signed-in | Counts: limits. Custom core assignments for admins only |
 | `GET /api/games/modes` | Signed-in | Client name |
@@ -659,6 +665,16 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/tv/favourites` | Signed-in | own |
 | `PUT /api/tv/favourites/{key}` | Signed-in | own. A channel the account may watch. A limit per account |
 | `DELETE /api/tv/favourites/{key}` | Signed-in | own. A channel the account may watch |
+| `GET /api/tv-sets` | Signed-in | own, and sets an administrator shared. Counts only channels the account may watch |
+| `POST /api/tv-sets` | Signed-in | own. Channels the account may watch. Name of 1 to 40 characters, unique. 50 sets and 5000 channels per set. Sharing needs an administrator |
+| `PUT /api/tv-sets/order` | Signed-in | own order, of sets the account sees |
+| `GET /api/tv-sets/{id}` | Signed-in | own, or shared |
+| `PUT /api/tv-sets/{id}` | Signed-in | own; a shared set, an administrator. New channels must be ones the account may watch. Sharing needs an administrator |
+| `POST /api/tv-sets/{id}/channels` | Signed-in | own; a shared set, an administrator. Added channels must be ones the account may watch |
+| `DELETE /api/tv-sets/{id}` | Signed-in | own; a shared set, an administrator |
+| `GET /api/tv/{key}/catchup` | Signed-in | Tuner channel key. Tuner channels allowed for the profile; channel visible, enabled and not encrypted; a start within the source's archive |
+| `GET /api/tv/{key}/catchup/{start}/playlist.m3u8` | Signed-in | As GET /api/tv/{key}/catchup. A stream token for that channel |
+| `GET /api/tv/{key}/catchup/{start}/seg/{name}` | Signed-in | As GET /api/tv/{key}/catchup. Only segment names FFmpeg wrote |
 | `GET /api/tv/reminders` | Signed-in | own |
 | `POST /api/tv/reminders` | Signed-in | own. A channel the account may watch. Title of up to 300 characters, a time ahead. A limit per account |
 | `DELETE /api/tv/reminders/{id}` | Signed-in | own |

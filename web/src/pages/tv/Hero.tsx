@@ -10,6 +10,7 @@ import Preview from './Preview'
 import { useReminders } from './reminders'
 import { canOfferRecord, fmtClock, fmtDay, fmtLeft, type GuideChannel, type Programme } from './tvApi'
 import { SHAPES } from './tvThemes'
+import { canCatchup } from './guideLogic'
 
 // Whether a title has logo artwork, asked once per title for as long as the page is open.
 const titleArtKnown = new Map<string, Promise<boolean>>()
@@ -26,9 +27,11 @@ function hasTitleArt(target: 'item' | 'show', id: number): Promise<boolean> {
 
 // The top of the guide: everything about the highlighted programme. Its picture
 // waits for the highlight to settle, so running down the channels loads nothing.
-export default function Hero({ ch, p, next, look, now, previewKey, previewName, previewMax, previewStart, onWatch, onDetails, onDay, onFav, onUp, onDown, onRecord }: {
+export default function Hero({ ch, p, next, look, now, previewKey, previewName, previewMax, previewStart, onWatch, onDetails, onDay, onFav, onUp, onDown, onRecord, onFromStart }: {
   ch?: GuideChannel; p?: Programme; next?: Programme; look: Look; now: number; previewKey: string; previewName: string; previewMax: number; previewStart: number
   onWatch: (key: string) => void; onDetails: () => void; onDay: () => void; onFav: () => void; onUp: () => void; onDown: () => void; onRecord: () => void
+  // A server that keeps an archive of a channel (tv-catchup) can play a programme from its start.
+  onFromStart?: (ch: GuideChannel, p: Programme) => void
 }) {
   const nav = useNavigate()
   const reminders = useReminders()
@@ -110,6 +113,7 @@ export default function Hero({ ch, p, next, look, now, previewKey, previewName, 
             ? <button className={'ctv-btn' + (reminded ? '' : ' on')} aria-pressed={reminded} onClick={() => p && void reminders.toggle(ch.key, p)}>{reminded ? '✓ Reminder set' : 'Remind me'}</button>
             : <button className="ctv-btn on" data-tv-first onClick={() => onWatch(ch.key)}><IconFull size={16} /> <span>Watch full screen</span></button>)}
           {ch && !ch.encrypted && later && <button className="ctv-btn" aria-label="Watch channel" onClick={() => onWatch(ch.key)}><IconFull size={16} /> <span>Watch channel</span></button>}
+          {onFromStart && ch && p && canCatchup(ch, p, now) && <button className="ctv-btn" onClick={() => onFromStart(ch, p)} title="Watch this programme from its start"><IconPrev size={16} /> <span>Watch from the start</span></button>}
           {isTitle && p && <button className="ctv-btn" onClick={() => nav(`/play/${p.itemId}?mode=title&start=${p.clip?.start ? Math.floor(p.clip.start) : 0}${p.clip ? `&ttn=${p.clip.title}` : ''}`)} title="Play it from the beginning, on your own"><IconPrev size={16} /> <span>Start over</span></button>}
           {isTitle && p && <Link className="ctv-btn" aria-label={isFilm ? 'Open the film' : 'Open the show'} to={p.showId ? `/show/${p.showId}` : `/item/${p.itemId}`}><IconFilm size={16} /> <span>{isFilm ? 'Open the film' : 'Open the show'}</span></Link>}
           {canOfferRecord(ch, p, now) && <button className="ctv-btn" onClick={onRecord}>● Record</button>}

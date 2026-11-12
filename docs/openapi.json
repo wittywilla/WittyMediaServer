@@ -4389,6 +4389,9 @@
           "canRecord": {
             "type": "boolean"
           },
+          "catchupDays": {
+            "type": "integer"
+          },
           "categories": {
             "items": {
               "type": "string"
@@ -4412,6 +4415,9 @@
           },
           "hd": {
             "type": "boolean"
+          },
+          "health": {
+            "type": "string"
           },
           "id": {
             "type": "integer"
@@ -14621,6 +14627,9 @@
           "audioCodec": {
             "type": "string"
           },
+          "backups": {
+            "type": "integer"
+          },
           "brand": {
             "anyOf": [
               {
@@ -14636,6 +14645,9 @@
           },
           "canRecord": {
             "type": "boolean"
+          },
+          "catchupDays": {
+            "type": "integer"
           },
           "enabled": {
             "type": "boolean"
@@ -14655,6 +14667,15 @@
           "hd": {
             "type": "boolean"
           },
+          "health": {
+            "type": "string"
+          },
+          "healthAt": {
+            "type": "integer"
+          },
+          "healthMsg": {
+            "type": "string"
+          },
           "id": {
             "type": "integer"
           },
@@ -14663,6 +14684,9 @@
           },
           "logoUrl": {
             "type": "string"
+          },
+          "mergedInto": {
+            "type": "integer"
           },
           "name": {
             "type": "string"
@@ -39990,6 +40014,44 @@
           "Server"
         ],
         "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putRecordingRulesId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change how a recording rule records: `anyChannel`, `newOnly`, `keep`, `padBefore`, `padAfter`",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user"
       }
     },
     "/recordings": {
@@ -48155,6 +48217,37 @@
         "x-wms-auth": "user"
       }
     },
+    "/tuner-channels/bulk": {
+      "post": {
+        "operationId": "postTunerChannelsBulk",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Many tuner channels at once: `ids`, `action` (enable, disable, renumber with `start`, merge with `into`, unmerge, check)",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/tuner-channels/{id}": {
       "put": {
         "operationId": "putTunerChannelsId",
@@ -48348,6 +48441,37 @@
         "x-wms-auth": "admin"
       }
     },
+    "/tuners/duplicates": {
+      "get": {
+        "operationId": "getTunersDuplicates",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Channels across every tuner that look like the same station, in groups",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/tuners/{id}": {
       "delete": {
         "operationId": "deleteTunersId",
@@ -48503,6 +48627,122 @@
           }
         ],
         "summary": "Enable all channels.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/tuners/{id}/health": {
+      "delete": {
+        "operationId": "deleteTunersIdHealth",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Stop a tuner's channel check",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "get": {
+        "operationId": "getTunersIdHealth",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "How a tuner's channel check is going",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "post": {
+        "operationId": "postTunersIdHealth",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Check every enabled channel of a tuner, in the background",
         "tags": [
           "Channels and live TV"
         ],
@@ -48665,6 +48905,253 @@
           "Channels and live TV"
         ],
         "x-wms-auth": "admin"
+      }
+    },
+    "/tv-sets": {
+      "get": {
+        "operationId": "getTvSets",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Every channel set this profile can choose: all, favourites, its own and shared sets, each source, each group, with counts",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user"
+      },
+      "post": {
+        "operationId": "postTvSets",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Make a custom set: `name`, `channels` (keys, in order), `shared` (administrators)",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/tv-sets/order": {
+      "put": {
+        "operationId": "putTvSetsOrder",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "This account's order of the custom sets it sees: `ids`",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/tv-sets/{id}": {
+      "delete": {
+        "operationId": "deleteTvSetsId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a set",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user"
+      },
+      "get": {
+        "operationId": "getTvSetsId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One custom set with its channels in order",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putTvSetsId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rename, share or replace the channels of a set",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/tv-sets/{id}/channels": {
+      "post": {
+        "operationId": "postTvSetsIdChannels",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add and remove channels: `add`, `remove`",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user"
       }
     },
     "/tv/encrypted-help": {
@@ -48968,6 +49455,152 @@
           "Channels and live TV"
         ],
         "x-wms-auth": "admin"
+      }
+    },
+    "/tv/{key}/catchup": {
+      "get": {
+        "operationId": "getTvKeyCatchup",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Watch a programme from its start, from the source's archive: `start`, `end`, `viewer`",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/tv/{key}/catchup/{start}/playlist.m3u8": {
+      "get": {
+        "operationId": "getTvKeyCatchupStartPlaylist",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "start",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The catch-up stream",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user",
+        "x-wms-stream-token": true
+      }
+    },
+    "/tv/{key}/catchup/{start}/seg/{name}": {
+      "get": {
+        "operationId": "getTvKeyCatchupStartSegName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "start",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A segment of the catch-up stream",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user",
+        "x-wms-stream-token": true
       }
     },
     "/tv/{key}/leave": {

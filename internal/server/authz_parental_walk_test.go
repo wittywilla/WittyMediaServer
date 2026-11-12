@@ -48,7 +48,7 @@ var idSpaces = map[string]string{
 	"/api/logos/{id}": "other", "/api/licenses/{id}": "other", "/api/libraries/{id}": "other", "/api/users/{id}": "other",
 	"/api/views/{id}": "other", "/api/channels/{id}": "other", "/api/couch/hosts/{id}": "other", "/api/game-profiles/{id}": "other",
 	"/api/modules/{id}": "other", "/api/module-store/{id}": "other", "/api/rigs/{id}": "other", "/api/sessions/{id}": "other",
-	"/api/shares/{id}": "other", "/api/recordings/{id}": "other", "/api/recording-rules/{id}": "other", "/api/tv/reminders/{id}": "other",
+	"/api/shares/{id}": "other", "/api/recordings/{id}": "other", "/api/recording-rules/{id}": "other", "/api/tv/reminders/{id}": "other", "/api/tv-sets/{id}": "other",
 	// A device and a watch party are named by random words, never by a title's number. What
 	// they show of titles is walked with a device that is playing what is hidden and a party
 	// that is watching it: see playingWhatIsHidden.

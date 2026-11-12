@@ -13,6 +13,8 @@ import { LogoConsentHint } from '../../components/edit/LogoChooser'
 import { forgetOwnerLook } from './look'
 import { fromLegacy, THEMES } from './tvThemes'
 import { forgetLineup, type Channel, type Driver, type EPGSource, type Found, type ScanState, type Tuner, type TunerChannel } from './tvApi'
+import { useFeatures } from '../../sdui/useSdui'
+import { BulkBar, ChannelHealth, CheckAll, Duplicates, Merged } from './TunerTools'
 import { Field, STATUS } from './tunerFields'
 import TunerSetup from './TunerSetup'
 import { ModuleMissing } from '../../components/ModuleMissing'
@@ -29,6 +31,7 @@ export default function TvSettings() {
       <Route path="new" element={<MovedEditor />} />
       <Route path="edit/:id" element={<MovedEditor />} />
       <Route path="tuner/:id" element={<TunerChannels />} />
+      <Route path="duplicates" element={<Duplicates />} />
       <Route path="*" element={<Navigate to="/settings/channels" replace />} />
     </Routes>
   )
@@ -84,6 +87,7 @@ function Tuners() {
   const [searching, setSearching] = useState(false)
   // The setup, open: from the start, at a device that was found, or at one kind by hand.
   const [setup, setSetup] = useState<{ start?: Found } | null>(null)
+  const dupes = !!useFeatures()?.has('tv-duplicates')
   const load = () => api.get<Tuner[]>('/tuners').then(setList).catch((e) => { if (e.status !== 424) toast(e.message) })
   const loadDrivers = () => { setDriversErr(''); return api.get<Driver[]>('/tuners/drivers').then((d) => { setDrivers(d); setNoModule(false) }).catch((e) => { if (e.status === 424) setNoModule(true); else setDriversErr(e.message) }) }
   useEffect(() => { void load(); void loadDrivers() }, [])
@@ -108,6 +112,7 @@ function Tuners() {
   return (
     <Section title="Tuners and IPTV" desc={desc}
       actions={<>
+        {dupes && list && list.length > 0 && <Link className="btn sm" to="duplicates">Duplicates</Link>}
         <button className="btn sm" disabled={searching || !drivers} onClick={() => void search()}><IconRefresh /> {searching ? 'Searching…' : 'Search for tuners'}</button>
         <button className="btn sm primary" disabled={!drivers} onClick={() => setSetup({})}><IconPlus /> Add live TV</button>
       </>}>
@@ -169,6 +174,12 @@ function TunerChannels() {
   const [q, setQ] = useState('')
   const [opts, setOpts] = useState<Record<string, string> | null>(null)
   const [limit, setLimit] = useState('0')
+  const features = useFeatures()
+  const health = !!features?.has('tv-channel-health')
+  const dupes = !!features?.has('tv-duplicates')
+  // Bulk changes arrived with health checks and merging; either says the server has them.
+  const bulk = health || dupes
+  const [picked, setPicked] = useState<Set<number>>(() => new Set())
   const load = () => {
     api.get<Tuner[]>('/tuners').then((l) => {
       const me = l.find((x) => String(x.id) === id) || null
@@ -203,6 +214,10 @@ function TunerChannels() {
     try { await api.post(`/tuners/${id}/refresh`); toast('Channel list read'); forgetLineup(); load() } catch (e: any) { toast(e.message) }
   }
   const shown = (list || []).filter((c) => !q || c.name.toLowerCase().includes(q.toLowerCase()) || c.number.includes(q) || (c.group || '').toLowerCase().includes(q.toLowerCase())).slice(0, 500)
+  const pick = (c: TunerChannel, on: boolean) => setPicked((p) => { const n = new Set(p); if (on) n.add(c.id); else n.delete(c.id); return n })
+  const allShownPicked = shown.length > 0 && shown.every((c) => picked.has(c.id))
+  // What is picked, in the order shown: renumbering and merging go by it.
+  const pickedInOrder = shown.filter((c) => picked.has(c.id)).concat((list || []).filter((c) => picked.has(c.id) && !shown.includes(c)))
   return (
     <>
       <PageHead title={t?.name || 'Tuner'} desc={t?.detail || driver?.name} actions={<Link className="btn" to="..">Back</Link>} />
@@ -212,6 +227,7 @@ function TunerChannels() {
           <button className="btn sm" onClick={() => void refresh()}><IconRefresh /> Read the list</button>
           {driver?.scans && <button className="btn sm primary" disabled={scan?.running} onClick={() => void startScan(opts?.source || '')}>{scan?.running ? `Scanning… ${scan.percent}%` : 'Scan for channels'}</button>}
         </>}>
+        {health && <CheckAll tunerId={id} onDone={load} />}
         {scan?.running && <div className="tvs-progress" role="progressbar" aria-valuenow={scan.percent} aria-valuemin={0} aria-valuemax={100} aria-label="Scan progress"><i style={{ width: scan.percent + '%' }} /><span>{scan.found} found{scan.message ? ` · ${scan.message}` : ''}</span></div>}
         {scan?.error && <p className="tvs-error" role="alert">{scan.error}</p>}
         {scan && !scan.running && !scan.error && <p className="tvs-note" role="status">The scan found {scan.clear} clear and {scan.encrypted} encrypted {scan.clear + scan.encrypted === 1 ? 'channel' : 'channels'}{scan.unknown ? `, and ${scan.unknown} not checked yet` : ''}.{scan.encrypted > 0 && <> Encrypted channels can't be played here, which isn't a fault in your setup. <Link to="/tv/encrypted">What can I do?</Link></>}</p>}
@@ -220,17 +236,24 @@ function TunerChannels() {
           <button className="btn sm ghost" onClick={() => void all(true)}>Show all</button>
           <button className="btn sm ghost" onClick={() => void all(false)}>Hide all</button>
         </div>
+        {bulk && picked.size > 0 && <BulkBar picked={pickedInOrder} all={list || []} health={health} merging={dupes} onDone={() => { setPicked(new Set()); forgetLineup(); load() }} onClear={() => setPicked(new Set())} />}
         <div className="tvs-table-wrap">
           <table className="tvs-table">
-            <thead><tr><th scope="col">In guide</th><th scope="col">Number</th><th scope="col">Name</th><th scope="col">Logo</th><th scope="col">Status</th><th scope="col">Can record</th><th scope="col">Guide id</th></tr></thead>
+            <thead><tr>
+              {bulk && <th scope="col"><input type="checkbox" aria-label="Select every channel shown" checked={allShownPicked} onChange={(e) => setPicked(e.target.checked ? new Set([...picked, ...shown.map((c) => c.id)]) : new Set([...picked].filter((x) => !shown.some((c) => c.id === x))))} /></th>}
+              <th scope="col">In guide</th><th scope="col">Number</th><th scope="col">Name</th><th scope="col">Logo</th><th scope="col">Status</th>{health && <th scope="col">Health</th>}<th scope="col">Can record</th><th scope="col">Guide id</th>
+            </tr></thead>
             <tbody>
               {shown.map((c) => (
-                <tr key={c.id} className={c.encrypted ? 'locked' : ''}>
+                <tr key={c.id} className={(c.encrypted ? 'locked' : '') + (c.mergedInto ? ' tvs-backup' : '')}>
+                  {bulk && <td><input type="checkbox" aria-label={`Select ${c.number} ${c.name}`} checked={picked.has(c.id)} onChange={(e) => pick(c, e.target.checked)} /></td>}
                   <td><input type="checkbox" aria-label={`${c.name} shows in the guide`} checked={c.enabled} onChange={(e) => void edit(c, { enabled: e.target.checked })} /></td>
                   <td><input className="input tvs-num-in" aria-label={`Number of ${c.name}`} defaultValue={c.number} onBlur={(e) => { if (e.target.value !== c.number) void edit(c, { number: e.target.value }) }} /></td>
                   <td>
                     <input className="input" aria-label={`Name of ${c.name}`} defaultValue={c.name} onBlur={(e) => { if (e.target.value !== c.name) void edit(c, { name: e.target.value }) }} />
                     {c.group && <small className="tvs-dim">{c.group}</small>}
+                    <Merged c={c} all={list || []} />
+                    {!!c.catchupDays && <small className="tvs-dim">Catch-up: {c.catchupDays === 1 ? '1 day' : `${c.catchupDays} days`}</small>}
                   </td>
                   <td><TunerLogo channel={c} onChange={(n) => setList((l) => l?.map((x) => (x.id === n.id ? n : x)) || null)} /></td>
                   <td>
@@ -239,6 +262,7 @@ function TunerChannels() {
                     {c.security === 'unknown' && <small className="tvs-dim" title="This source doesn't say. It is checked when you tune in.">Not checked yet</small>}
                     {c.atsc3 && <small className="tvs-dim">ATSC 3.0{c.audioCodec ? ` · ${c.videoCodec || ''} ${c.audioCodec}` : ''}</small>}
                   </td>
+                  {health && <td><ChannelHealth c={c} /></td>}
                   <td><input type="checkbox" aria-label={`${c.name} can be recorded`} disabled={!!c.encrypted} checked={!c.noRecord && !c.encrypted} title={c.noRecord || 'Untick if the device says this may not be recorded'} onChange={(e) => void edit(c, { noRecord: !e.target.checked })} /></td>
                   <td><input className="input mono" aria-label={`Guide id of ${c.name}`} defaultValue={c.epgSet || c.epgId || ''} onBlur={(e) => { if (e.target.value !== (c.epgSet || c.epgId || '')) void edit(c, { epg: e.target.value }) }} /></td>
                 </tr>

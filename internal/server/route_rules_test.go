@@ -7,6 +7,17 @@ package server
 // beyond that. TestEveryRouteHasAStatedRule fails on a route that is missing here: a new route for
 // signed-in accounts is a decision, and this is where it is written down.
 var routeRules = map[string]string{
+	"GET /api/tv-sets":                                          "Signed-in: own, and sets an administrator shared. Counts only channels the account may watch",
+	"POST /api/tv-sets":                                         "Signed-in: own. Channels the account may watch. Name of 1 to 40 characters, unique. 50 sets and 5000 channels per set. Sharing needs an administrator",
+	"PUT /api/tv-sets/order":                                    "Signed-in: own order, of sets the account sees",
+	"GET /api/tv-sets/{id}":                                     "Signed-in: own, or shared",
+	"PUT /api/tv-sets/{id}":                                     "Signed-in: own; a shared set, an administrator. New channels must be ones the account may watch. Sharing needs an administrator",
+	"POST /api/tv-sets/{id}/channels":                           "Signed-in: own; a shared set, an administrator. Added channels must be ones the account may watch",
+	"DELETE /api/tv-sets/{id}":                                  "Signed-in: own; a shared set, an administrator",
+	"GET /api/tv/{key}/catchup":                                 "Signed-in: Tuner channel key. Tuner channels allowed for the profile; channel visible, enabled and not encrypted; a start within the source's archive",
+	"GET /api/tv/{key}/catchup/{start}/playlist.m3u8":           "Signed-in: As GET /api/tv/{key}/catchup. A stream token for that channel",
+	"GET /api/tv/{key}/catchup/{start}/seg/{name}":              "Signed-in: As GET /api/tv/{key}/catchup. Only segment names FFmpeg wrote",
+	"PUT /api/recording-rules/{id}":                             "Tuner channels: own, and every account's for an administrator. Padding up to an hour before and three after; keep 0 to 1000",
 	"GET /api/p2p":                                              "Signed-in: Nothing further. The server's connection ID only for signed-in accounts. `device` says whether that device is the caller's own",
 	"GET /api/p2p/devices":                                      "Signed-in: own. Everyone's with 'all=1', for an admin",
 	"POST /api/p2p/devices":                                     "Signed-in: A session token, not a stream token. A well-formed Ed25519 device ID that isn't the server's own. A key listed for another account is refused. At most 32 per account, 512 in all",

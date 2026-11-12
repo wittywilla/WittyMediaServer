@@ -19,6 +19,10 @@ import (
 // as screen time: "play" is refused
 // when a profile's time is up, "tick" counts as watching and is let through so progress is saved.
 var routeClasses = map[string]string{
+	"GET /api/tv/{key}/catchup":                                 "play",
+	"GET /api/tv/{key}/catchup/{start}/playlist.m3u8":           "play",
+	"GET /api/tv/{key}/catchup/{start}/seg/{name}":              "play",
+	"PUT /api/recording-rules/{id}":                             "recordings",
 	"GET /api/games/{id}/emulators":                             "games",
 	"GET /api/modules/wittyplay/docker/emulators/{id}/settings": "games",
 	"GET /api/modules/wittyplay/docker/sessions":                "games",
@@ -183,6 +187,13 @@ var routeClasses = map[string]string{
 // (What they show still follows the account's limits; that is the handlers' work, and
 // TestLimitedProfilesNeverSeeHiddenTitles walks them for it.)
 var plainRoutes = []string{
+	"GET /api/tv-sets",
+	"POST /api/tv-sets",
+	"PUT /api/tv-sets/order",
+	"GET /api/tv-sets/{id}",
+	"PUT /api/tv-sets/{id}",
+	"POST /api/tv-sets/{id}/channels",
+	"DELETE /api/tv-sets/{id}",
 	// Peer to peer: a way in from away. A profile kept at home is refused by the handlers that
 	// enrol a device or make an invitation (FeatureRemote), and what arrives that way counts as away.
 	"DELETE /api/p2p/devices/{id}",

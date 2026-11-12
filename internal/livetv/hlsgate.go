@@ -555,10 +555,16 @@ func gateClient(home bool) *http.Client {
 // local network can resolve. Asking DNS instead would let a public name point home when it suits it.
 // A playlist from the internet stays on the internet.
 func mayLeadHome(t *Tuner) bool {
-	if t.Driver != "iptv" {
+	var p string
+	switch t.Driver {
+	case "iptv":
+		p = t.Options["playlist"]
+	case "xtream":
+		// A provider's panel: on the internet unless its own address says home.
+		p = t.Options["url"]
+	default:
 		return true
 	}
-	p := t.Options["playlist"]
 	if !strings.Contains(p, "://") {
 		return true
 	}

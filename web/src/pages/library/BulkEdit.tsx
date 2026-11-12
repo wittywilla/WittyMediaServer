@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { api } from '../../api'
 import { TokenField } from '../../components/edit/EditDetails'
 import RatingField from '../../components/RatingField'
 import { undoBatch, type Target } from '../../metadata'
 import { toast } from '../../state'
-import { Button, Dialog, Field, Input, Select } from '../../ui'
+import SpecPage from '../../spec/SpecPage'
+import { bulkRequest, bulkSpec, bulkTitle } from '../../spec/specs/bulkedit'
+import { Button, Dialog, Field } from '../../ui'
 import './library.css'
 
 // Changing many titles at once. Everything can be undone in one go.
@@ -27,9 +29,7 @@ export default function BulkEdit({ titles, onClose, onDone }: { titles: BulkTitl
   const [done, setDone] = useState<{ batch: string; done: number; failed: string[] } | null>(null)
   const apply = async () => {
     setBusy(true); setErr('')
-    const set: Record<string, string> = {}
-    if (year.trim()) set.year = year.trim()
-    if (setRatingOn) set.contentRating = rating
+    const { set } = bulkRequest({ year, setRating: setRatingOn, rating, lock })
     const all = ['title', 'sortTitle', 'year', 'overview', 'tagline', 'genres', 'tags', 'contentRating', 'rating', 'studios', 'network', 'director', 'edition', 'poster', 'backdrop', 'banner', 'logo']
     try {
       const r = await api.post<{ done: number; failed: string[]; batch: string }>('/meta/bulk', {
@@ -39,9 +39,15 @@ export default function BulkEdit({ titles, onClose, onDone }: { titles: BulkTitl
       setDone(r)
     } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
   }
-  const nothing = !addGenres.length && !removeGenres.length && !addTags.length && !removeTags.length && !year.trim() && !setRatingOn && !lock
+  const nothing = bulkRequest({ year, setRating: setRatingOn, rating, lock }).nothing(!!(addGenres.length || removeGenres.length || addTags.length || removeTags.length))
+  const spec = useMemo(() => bulkSpec({ count: titles.length, year, setRating: setRatingOn, lock, error: err, result: done }), [titles.length, year, setRatingOn, lock, err, done])
+  const onField = (id: string, v: string | number | boolean | File) => {
+    if (id === 'year') setYear(String(v).replace(/\D/g, '').slice(0, 4))
+    else if (id === 'setRating') setSetRatingOn(!!v)
+    else if (id === 'lock') setLock(String(v))
+  }
   return (
-    <Dialog title={`Edit ${titles.length} ${titles.length === 1 ? 'title' : 'titles'} together`} className="lib-bulk-dialog" onClose={done ? onDone : onClose}
+    <Dialog title={bulkTitle(titles.length)} className="lib-bulk-dialog" onClose={done ? onDone : onClose}
       description={done ? undefined : "Only what you fill in changes. What you change is locked on each title, so nothing changes it back."}
       actions={done
         ? <>
@@ -52,30 +58,17 @@ export default function BulkEdit({ titles, onClose, onDone }: { titles: BulkTitl
             <Button variant="ghost" onClick={onClose}>Cancel</Button>
             <Button variant="primary" busy={busy} disabled={nothing} onClick={apply}>Change {titles.length}</Button>
           </>}>
-      {done ? (
-        <>
-          <p role="status">Changed {done.done}. {done.failed.length ? `${done.failed.length} couldn't be changed.` : ''}</p>
-          {done.failed.length > 0 && <ul className="muted">{done.failed.slice(0, 10).map((f) => <li key={f}>{f}</li>)}</ul>}
-        </>
-      ) : (
-        <div className="form full">
-          <div className="row2">
+      <SpecPage embedded page={spec} onField={onField} after={done ? undefined : {
+        0: (
+          <div className="lib-bulk-tokens">
             <Field label="Add genres"><TokenField id="bulk-ag" value={addGenres} onChange={setAddGenres} placeholder="Comedy" /></Field>
             <Field label="Take away genres"><TokenField id="bulk-rg" value={removeGenres} onChange={setRemoveGenres} /></Field>
-          </div>
-          <div className="row2">
             <Field label="Add tags"><TokenField id="bulk-at" value={addTags} onChange={setAddTags} placeholder="Box set" /></Field>
             <Field label="Take away tags"><TokenField id="bulk-rt" value={removeTags} onChange={setRemoveTags} /></Field>
           </div>
-          <Field label="Year"><Input inputMode="numeric" maxLength={4} value={year} onChange={(e) => setYear(e.target.value.replace(/\D/g, ''))} /></Field>
-          <label className="lib-check"><input type="checkbox" checked={setRatingOn} onChange={(e) => setSetRatingOn(e.target.checked)} /> Set the content rating</label>
-          {setRatingOn && <RatingField value={rating} onChange={setRating} />}
-          <Field label="Locks">
-            <Select value={lock} onChange={(e) => setLock(e.target.value)} options={[{ value: '', label: 'Leave them as they are' }, { value: 'lock', label: 'Lock every field' }, { value: 'unlock', label: 'Unlock every field' }]} />
-          </Field>
-          {err && <div className="error" role="alert">{err}</div>}
-        </div>
-      )}
+        ),
+        1: setRatingOn ? <RatingField value={rating} onChange={setRating} /> : null,
+      }} />
     </Dialog>
   )
 }

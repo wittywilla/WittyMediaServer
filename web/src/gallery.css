@@ -51,8 +51,6 @@
 .gal-album-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .gal-album-img svg { width: 34px; height: 34px; }
 .gal-album.new .gal-album-img { border: 2px dashed var(--bg-4); background: transparent; }
-.gal-pick { display: grid; gap: 8px; margin: 12px 0; max-height: 50vh; overflow-y: auto; }
-.gal-pick .btn { justify-content: space-between; }
 .gal-planned { max-width: 560px; margin: 40px auto; padding: 26px; background: var(--bg-2); border: 1px dashed var(--bg-4); border-radius: var(--r-lg); }
 .gal-planned h1, .gal-planned h2 { margin: 8px 0; font-size: var(--text-xl); }
 .gal-planned p { color: var(--fg-2); line-height: 1.5; }

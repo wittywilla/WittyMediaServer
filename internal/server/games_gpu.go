@@ -119,13 +119,15 @@ func (s *Server) coreDrawsOnGPU(c cores.Core) bool {
 // runs the graphics microcode, as angrylion needs), PSP mostly at full speed on four or five
 // (PPSSPP's own software renderer; "none" never asks the runner for a context), and PlayStation 2
 // mostly at full speed, slower in places (LRPS2's "Software (SW)" renderer, which hands frames
-// over without a context). docs/GAMING.md has the figures. Cores missing here have no such mode:
-// Play!, Flycast, Azahar and the faster PlayStation cores.
+// over without a context), and a 3DS game at 60 frames a second (Azahar's own software
+// renderer). docs/GAMING.md has the figures. Cores missing here have no such mode: Play!,
+// Flycast, Panda3DS and the faster PlayStation cores.
 var cpuDrawing = map[string]map[string]string{
 	"mupen64plus_next": {"mupen64plus-rdp-plugin": "angrylion", "mupen64plus-rsp-plugin": "cxd4"},
 	"parallel_n64":     {"parallel-n64-gfxplugin": "angrylion", "parallel-n64-rspplugin": "cxd4"},
 	"ppsspp":           {"ppsspp_backend": "none"},
 	"pcsx2":            {"pcsx2_renderer": "Software (SW)"},
+	"azahar":           {"citra_graphics_api": "Software"},
 }
 
 // softwareNotice is the speed caveat for a game the processor draws, shown before it starts and
@@ -141,6 +143,7 @@ const softwareNotice = "This server has no graphics card games can use, so its p
 //   - ParaLLEl N64's OpenGL plugins drew nothing at all.
 //   - LRPS2's OpenGL renderer needs GL_ARB_shading_language_420pack, which macOS doesn't have, and
 //     made no picture.
+//   - Azahar asks for a Vulkan context on a Mac, which the runner can't offer, and wouldn't start.
 //
 // PPSSPP, SwanStation, Beetle PSX HW and Play! drew their games correctly at full speed there, on
 // the card, and aren't listed. Each listed core has a way for the processor to draw it.
@@ -149,8 +152,15 @@ var cardFaults = map[string]map[string]string{
 		"mupen64plus_next": "GLideN64 draws black pictures with a Mac's OpenGL",
 		"parallel_n64":     "its OpenGL plugins draw nothing with a Mac's OpenGL",
 		"pcsx2":            "its OpenGL renderer needs an extension a Mac's OpenGL doesn't have",
+		"azahar":           "it asks for Vulkan on a Mac, which the game runner can't offer",
 	},
 }
+
+// keepsOnCPU are cores whose processor drawing keeps the console's games at full speed, so
+// where their card drawing goes wrong they stay, drawn by the processor, rather than giving way
+// to another core that draws on the card: Azahar plays far more 3DS games than Panda3DS, and
+// its software renderer kept 60 frames a second on an Apple M3 Pro.
+var keepsOnCPU = map[string]bool{"azahar": true}
 
 // hostOS is the system this server runs on. Tests change it.
 var hostOS = runtime.GOOS
@@ -238,7 +248,7 @@ func (s *Server) pickCore(ctx context.Context, console *wittyplay.Console, itemI
 			// Play! does PlayStation 2 on a Mac, where LRPS2 can't use the card and its
 			// processor drawing can't keep a race at full speed. A game Play! can't open still
 			// goes on to LRPS2, as the next core to try.
-			if preferred == "" {
+			if preferred == "" && !keepsOnCPU[core.ID] {
 				if c := rightOnTheCard(g.cores.AllForConsole(console, ""), *core, func(c cores.Core) bool {
 					return s.coreDrawsOnGPU(c) && wittyplay.MissingBIOS(c.ID, systemDir) == ""
 				}); c != nil {

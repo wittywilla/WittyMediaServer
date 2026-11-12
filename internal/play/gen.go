@@ -554,6 +554,10 @@ type ThreeDSFile struct {
 	Package    bool
 	// NewOnly: this game only runs on a New 3DS, so a core has to be told to be one.
 	NewOnly bool
+	// Unflagged: its program was decrypted by a tool that left the NoCrypto flag unset. It
+	// plays, but Azahar goes by the flag and calls it encrypted, so a core gets a copy of
+	// the program with the flag set, made by CopyProgram.
+	Unflagged bool
 }
 
 // CoreTraits describes one core.
@@ -1112,11 +1116,20 @@ func Targets(consoleID string) []Target {
 	return r0
 }
 
-// CopyProgram writes the program out of an unencrypted package to a file of its
-// own. It's a plain copy of bytes that are already readable.
+// CopyProgram writes the program out of an unencrypted package, or out of a file decrypted
+// without its NoCrypto flag, to a file of its own. It's a plain copy of bytes that are
+// already readable; for an unflagged program, its flags then say so, as GodMode9 sets them
+// when it decrypts: no crypto, and no key-selection bits left over.
 func (t ThreeDSFile) CopyProgram(from string, to string) error {
 	err := service.Call(context.Background(), "wittyplay", "wittyplay.ThreeDSFile.CopyProgram", t, nil, []any{from, to}, nil)
 	return err
+}
+
+// NeedsCopy says a core can't open this file as it is, but can open its program copied out.
+func (t ThreeDSFile) NeedsCopy() bool {
+	var r0 bool
+	_ = service.Call(context.Background(), "wittyplay", "wittyplay.ThreeDSFile.NeedsCopy", t, nil, nil, []any{&r0})
+	return r0
 }
 
 // Traits says how to run a core. A core we don't know gets GPU room, as it may

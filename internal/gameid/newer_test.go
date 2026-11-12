@@ -191,3 +191,11 @@ func TestPS3DiscFolderFile(t *testing.T) {
 		t.Errorf("a large file was taken for PS3_DISC.SFB: %+v", f)
 	}
 }
+
+func TestNUPPackage(t *testing.T) {
+	b := make([]byte, 0x200)
+	copy(b, "NUP\x01")
+	if f := gameid.Sniff(bytes.NewReader(b), int64(len(b))); f.Console != "switch2" || f.Kind != gameid.KindGame || f.Encrypted {
+		t.Errorf("%+v", f)
+	}
+}

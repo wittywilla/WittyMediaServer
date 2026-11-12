@@ -239,6 +239,9 @@ func sniffNewer(r io.ReaderAt, size int64, head []byte) (Finding, bool) {
 		return sniffPFS0(r, size)
 	case bytes.HasPrefix(head, []byte("\x7fPKG")):
 		return sniffPKG(head)
+	case bytes.HasPrefix(head, []byte("NUP\x01")):
+		// Lichii's own package of a game, its files in the clear (src/core/file_sys/nup_container.h).
+		return Finding{Console: "switch2", Kind: KindGame, Proof: "It's a NUP package, Lichii's own form of a Switch 2 game."}, true
 	case bytes.HasPrefix(head, []byte(".SFB")) && size <= 64<<10:
 		return sniffSFB(r, size), true
 	}

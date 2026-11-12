@@ -354,6 +354,9 @@ func TestPS2DrawsOnTheProcessorWithABIOS(t *testing.T) {
 	if a.Ready || a.Reason != "bios" {
 		t.Fatalf("without a BIOS: %+v", a)
 	}
+	if c := consolesByID(t, g, g.admin)["ps2"]; c.BIOSMissing == "" {
+		t.Errorf("the list doesn't say which BIOS is missing: %+v", c)
+	}
 	bios := filepath.Join(g.s.games().systemDir(), "pcsx2", "bios", "SCPH-39001_USA.BIN")
 	if err := os.MkdirAll(filepath.Dir(bios), 0o755); err != nil {
 		t.Fatal(err)
@@ -395,6 +398,7 @@ func TestHowACoreDrawsOnAMacWithACard(t *testing.T) {
 		{"mupen64plus_next", "", drawsCPUFallback},
 		{"parallel_n64", "", drawsCPUFallback},
 		{"pcsx2", "", drawsCPUFallback},
+		{"azahar", "", drawsCPUFallback},
 		// No card it can use: as before.
 		{"ppsspp", macNoGPU, drawsCPUFallback},
 		{"play", macNoGPU, drawsNone},
@@ -500,6 +504,10 @@ func TestAMacCardPlaysPS2OnPlay(t *testing.T) {
 	if c := consolesByID(t, g, g.admin)["ps2"]; !c.Ready || c.Software || c.Notice != "" {
 		t.Errorf("ps2 in the list: %+v", c)
 	}
+	// What the console list says it plays on is what plays, not the first core installed.
+	if c := consolesByID(t, g, g.admin)["ps2"]; c.PlaysOn != "play" || c.BIOSMissing != "" {
+		t.Errorf("ps2 plays on %q, missing %q", c.PlaysOn, c.BIOSMissing)
+	}
 
 	// Chosen, LRPS2 plays, drawn by the processor, and says why.
 	if err := g.s.DB.SetSetting(context.Background(), "gamingCores", `{"ps2":"pcsx2"}`); err != nil {
@@ -510,5 +518,42 @@ func TestAMacCardPlaysPS2OnPlay(t *testing.T) {
 	}
 	if c := consolesByID(t, g, g.admin)["ps2"]; !c.Software || c.Notice != cardFaultNotice() {
 		t.Errorf("chosen, in the list: %+v", c)
+	}
+}
+
+// On a Mac whose runner can use the graphics card, a 3DS game plays on Azahar, drawn by the
+// processor: Azahar asks for Vulkan there, which the runner can't offer, and its software
+// renderer keeps full speed, so it doesn't give way to Panda3DS, which draws on the card but
+// plays fewer games. Someone who chose Panda3DS keeps it.
+func TestAMacPlays3DSOnAzaharsProcessor(t *testing.T) {
+	modtest.Need(t, "wittyplay")
+	t.Cleanup(func() { hostOS = runtime.GOOS })
+	hostOS = "darwin"
+	t.Setenv("WMS_WITTYPLAY_RUNNER", filepath.Join(t.TempDir(), "no-such-runner"))
+	g := newGameServer(t)
+	setGPU(g, stream.GPUProbe{Name: "Apple M3 Pro"})
+	placeCores(t, g, "azahar", "panda3ds")
+	it := addGame(t, g, "3ds", gameFile(t, "Game.cxi", fixture.NCCH(true, false, 1<<16)))
+
+	a := checkGame(t, g, it.ID)
+	if !a.Ready || !a.Software || a.Core == nil || a.Core.ID != "azahar" || a.Notice != cardFaultNotice() {
+		t.Fatalf("check: %+v", a)
+	}
+	if c := consolesByID(t, g, g.admin)["3ds"]; !c.Software || c.SoftwareWhy != "card-fault" || c.PlaysOn != "azahar" {
+		t.Errorf("3ds in the list: software %v (%s), plays on %q", c.Software, c.SoftwareWhy, c.PlaysOn)
+	}
+	if err := g.s.DB.SetSetting(context.Background(), "gamingCores", `{"3ds":"panda3ds"}`); err != nil {
+		t.Fatal(err)
+	}
+	if a := checkGame(t, g, it.ID); !a.Ready || a.Software || a.Core == nil || a.Core.ID != "panda3ds" {
+		t.Errorf("chosen: %+v", a)
+	}
+	// Elsewhere Azahar draws on the card.
+	hostOS = "linux"
+	if err := g.s.DB.SetSetting(context.Background(), "gamingCores", `{}`); err != nil {
+		t.Fatal(err)
+	}
+	if a := checkGame(t, g, it.ID); !a.Ready || a.Software || a.Core == nil || a.Core.ID != "azahar" {
+		t.Errorf("on Linux: %+v", a)
 	}
 }

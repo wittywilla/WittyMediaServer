@@ -135,6 +135,8 @@ func Test3DSEncryptionIsReadFromTheBytes(t *testing.T) {
 	}{
 		{"plain program", fixture.NCCH(true, false, size), false, gameid.KindGame, false},
 		{"encrypted program", fixture.NCCH(false, false, size), true, gameid.KindGame, false},
+		{"decrypted without the flag", fixture.NCCHUnflagged(size), false, gameid.KindGame, false},
+		{"decrypted without the flag, in a package", fixture.CIA(fixture.NCCHUnflagged(size), 0, 0x00040000), false, gameid.KindGame, false},
 		{"plain New 3DS program", fixture.NCCH(true, true, size), false, gameid.KindGame, true},
 		{"clear package", fixture.CIA(fixture.NCCH(true, false, size), 0, 0x00040000), false, gameid.KindGame, false},
 		// Marked encrypted, but the program is plainly readable: the bytes win.

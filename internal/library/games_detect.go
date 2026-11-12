@@ -29,7 +29,7 @@ import (
 // the "left out" list, where it can be looked at and overruled.
 
 // gameJudgeVersion is raised when these rules change, so that scans judge again.
-const gameJudgeVersion = 1
+const gameJudgeVersion = 2
 
 // How a verdict was reached.
 const (

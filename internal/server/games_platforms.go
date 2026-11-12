@@ -159,6 +159,17 @@ func drawsOn(id string, gpuCore bool, goos, noGPU string) (string, string) {
 	case !gpuCore:
 		return drawsCPU, ""
 	case noGPU == "" && gpuOS(goos):
+		// A Mac's card draws some cores wrongly: those the processor draws there (cardFaults).
+		if why := cardFaults[goos][id]; why != "" {
+			if cpuDrawing[id] == nil {
+				return drawsNone, "Needs a graphics card, and " + why + "."
+			}
+			note := cpuSpeedNotes[id]
+			if note == "" {
+				note = "Slower than on a graphics card."
+			}
+			return drawsCPUFallback, "Drawn by the processor, as " + why + ". " + note
+		}
 		return drawsGPU, "Needs a graphics card in the server."
 	case cpuDrawing[id] != nil:
 		note := cpuSpeedNotes[id]

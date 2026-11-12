@@ -9256,6 +9256,69 @@
               "null"
             ]
           },
+          "layouts": {
+            "items": {
+              "properties": {
+                "description": {
+                  "type": "string"
+                },
+                "icon": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "nav": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object"
+                },
+                "overlay": {
+                  "type": "boolean"
+                },
+                "pages": {
+                  "properties": {
+                    "cardSize": {
+                      "type": "string"
+                    },
+                    "density": {
+                      "type": "string"
+                    },
+                    "gridsAsRows": {
+                      "type": "boolean"
+                    },
+                    "hero": {
+                      "type": "string"
+                    },
+                    "landscapeCards": {
+                      "type": "boolean"
+                    },
+                    "rowsAsLists": {
+                      "type": "boolean"
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              "required": [
+                "description",
+                "icon",
+                "id",
+                "label",
+                "nav",
+                "pages"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "libraryKinds": {
             "items": {
               "type": "string"
@@ -9292,6 +9355,15 @@
           "nativeViews": {
             "items": {
               "$ref": "#/components/schemas/SDUIEnumOption"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "navStyles": {
+            "items": {
+              "type": "string"
             },
             "type": [
               "array",
@@ -9452,6 +9524,38 @@
                     "scale": {
                       "type": "integer"
                     },
+                    "shell": {
+                      "anyOf": [
+                        {
+                          "properties": {
+                            "layout": {
+                              "type": "string"
+                            },
+                            "nav": {
+                              "type": "string"
+                            },
+                            "open": {
+                              "type": "integer"
+                            },
+                            "overlay": {
+                              "type": "boolean"
+                            },
+                            "size": {
+                              "type": "integer"
+                            }
+                          },
+                          "required": [
+                            "layout",
+                            "nav",
+                            "size"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "spacing": {
                       "additionalProperties": {
                         "type": "integer"
@@ -9546,11 +9650,13 @@
           "conditions",
           "formFactors",
           "icons",
+          "layouts",
           "libraryKinds",
           "limits",
           "mediaKinds",
           "nativeScreens",
           "nativeViews",
+          "navStyles",
           "pageKinds",
           "personalKinds",
           "placeholders",
@@ -9978,6 +10084,33 @@
           "etag": {
             "type": "string"
           },
+          "layouts": {
+            "anyOf": [
+              {
+                "properties": {
+                  "allowed": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "default": {
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "navigation": {
             "anyOf": [
               {
@@ -10167,6 +10300,38 @@
                   },
                   "scale": {
                     "type": "integer"
+                  },
+                  "shell": {
+                    "anyOf": [
+                      {
+                        "properties": {
+                          "layout": {
+                            "type": "string"
+                          },
+                          "nav": {
+                            "type": "string"
+                          },
+                          "open": {
+                            "type": "integer"
+                          },
+                          "overlay": {
+                            "type": "boolean"
+                          },
+                          "size": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "layout",
+                          "nav",
+                          "size"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   },
                   "spacing": {
                     "additionalProperties": {
@@ -10561,10 +10726,77 @@
               "null"
             ]
           },
+          "layouts": {
+            "anyOf": [
+              {
+                "properties": {
+                  "chosen": {
+                    "type": "string"
+                  },
+                  "current": {
+                    "type": "string"
+                  },
+                  "options": {
+                    "items": {
+                      "$ref": "#/components/schemas/SDUIEnumOption"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "url": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "current",
+                  "options",
+                  "url"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "personal": {
             "anyOf": [
               {
                 "$ref": "#/components/schemas/SDUIPersonalInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "shell": {
+            "anyOf": [
+              {
+                "properties": {
+                  "layout": {
+                    "type": "string"
+                  },
+                  "nav": {
+                    "type": "string"
+                  },
+                  "open": {
+                    "type": "integer"
+                  },
+                  "overlay": {
+                    "type": "boolean"
+                  },
+                  "size": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "layout",
+                  "nav",
+                  "size"
+                ],
+                "type": "object"
               },
               {
                 "type": "null"

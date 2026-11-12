@@ -5,11 +5,8 @@
 
 .dgn-anchor { scroll-margin-top: calc(var(--topbar-h) + var(--sp-4)); }
 .dgn-err { margin: var(--sp-2) 0; }
-.dgn-start { display: flex; justify-content: flex-end; padding: var(--sp-4) 0; border-top: 1px solid var(--border); }
 
 /* Choosing a disc */
-.dgn-pick { display: grid; gap: var(--sp-3); min-width: 0; }
-.dgn-pick-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
 
 .dgn-browser { border: 1px solid var(--border); border-radius: var(--r-md); background: var(--bg-3); min-width: 0; overflow: hidden; }
 .dgn-browser-head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-2); padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--border); }
@@ -29,8 +26,6 @@
 .dgn-entry small { color: var(--fg-3); font-size: var(--text-xs); }
 
 /* Choosing storage */
-.dgn-groups { display: grid; gap: var(--sp-4); padding: var(--sp-3) 0; }
-.dgn-check:hover { background: var(--hover); }
 
 /* A check under way, and what it found */
 .dgn-phase { margin: var(--sp-2) 0; font-weight: 600; font-size: var(--text-md); overflow-wrap: anywhere; }

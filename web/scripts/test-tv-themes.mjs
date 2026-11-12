@@ -165,7 +165,7 @@ await page.eval(`localStorage.removeItem('wms.tv.owner')`)
 
 // ---------------------------------------- the Look panel, with the keyboard alone
 await openGuide(false); await wait(800)
-await page.eval(`[...document.querySelectorAll('.ctv-bar button')].find((b) => b.textContent === 'Look').focus()`)
+await page.eval(`[...document.querySelectorAll('.ctv-dock button')].find((b) => b.textContent.startsWith('Look')).focus()`)
 await press('Enter')
 await page.until(`document.querySelector('.ctv-look')`, 5000, 'the panel'); await wait(500)
 await shot('look-panel')
@@ -563,7 +563,7 @@ for (const [name, s] of only === 'sizes' || only === 'live' ? [] : Object.entrie
   }
   // The panel and settings keep to the app's own colours, so once each.
   await setLook({ theme: 'modern' }); await wait(500)
-  await page.eval(`[...document.querySelectorAll('.ctv-bar button')].find((b) => b.textContent === 'Look').click()`)
+  await page.eval(`[...document.querySelectorAll('.ctv-dock button')].find((b) => b.textContent.startsWith('Look')).click()`)
   await page.until(`document.querySelector('.ctv-look')`, 5000, 'the panel'); await wait(350)
   await checkScreen(`${name}: the Look panel`, s.min)
   await shot(`audit-panel-${name}`)
@@ -639,7 +639,7 @@ if (only !== 'sizes' && only !== 'live') {
   const e0 = await focusName(); await pad(DOWN); await wait(100)
   expect('a DualShock or DualSense pad moves the same', e0 !== await focusName())
   // The Look panel, by pad alone.
-  await page.eval(`[...document.querySelectorAll('.ctv-bar button')].find((b) => b.textContent === 'Look').focus()`)
+  await page.eval(`[...document.querySelectorAll('.ctv-dock button')].find((b) => b.textContent.startsWith('Look')).focus()`)
   await pad(A); await page.until(`document.querySelector('.ctv-look')`, 4000, 'the panel by A'); await wait(400)
   await page.eval(`document.querySelector('.ctv-themecard.on').focus()`)
   const before = await root('tvtheme')
@@ -667,7 +667,7 @@ if (only !== 'sizes' && only !== 'live' && !attached) {
     await tap(`document.querySelector('.ctv-row:not(.current) .ctv-cell:not(.past)')`)
     const now = await page.eval(`document.querySelector('.ctv-cell[data-focused="1"]').getAttribute('aria-label')`)
     expect(`${theme}: a tap moves the highlight`, was !== now, [was, now])
-    await tap(`[...document.querySelectorAll('.ctv-bar button')].find((b) => b.textContent === 'Look')`)
+    await tap(`[...document.querySelectorAll('.ctv-dock button')].find((b) => b.textContent.startsWith('Look'))`)
     expect(`${theme}: a tap opens Look`, await page.eval(`!!document.querySelector('.ctv-look')`))
     await tap(`[...document.querySelectorAll('.ctv-look .ctv-themecard')].find((c) => c.getAttribute('aria-checked') === 'false')`)
     const changed = await page.eval(`document.querySelector('.ctv-page').dataset.tvtheme`)

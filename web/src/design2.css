@@ -40,8 +40,8 @@ html[data-input="keys"] { --focus-width: 3px; --focus-offset: 3px; }
 html[data-input="pad"] { --focus-width: 3px; --focus-offset: 3px; --focus-scale: 1.04; }
 html.tv-mode, html[data-input="remote"].ten-foot { --focus-width: 4px; --focus-offset: 4px; --focus-scale: 1.06; --focus: var(--fg); }
 /* A control takes a fill, not a ring, in the dock and bar: the thing is the highlight. */
-.dock-btn:focus-visible, .tvm-pill:focus-visible { outline: none; background: var(--fg); color: var(--bg); }
-.dock-btn:focus-visible kbd { background: rgb(var(--bg-rgb) / .12); color: inherit; border-color: currentColor; }
+.dock:not(.ctv-dock) .dock-btn:focus-visible, .tvm-pill:focus-visible { outline: none; background: var(--fg); color: var(--bg); }
+.dock:not(.ctv-dock) .dock-btn:focus-visible kbd { background: rgb(var(--bg-rgb) / .12); color: inherit; border-color: currentColor; }
 @media (prefers-reduced-motion: reduce) { :root { --focus-move: 0ms; --screen-dur: 0ms; --hero-dur: 0ms; } }
 
 /* ---- surfaces step by tone: dialogs and menus are the top step ---- */
@@ -53,13 +53,13 @@ html.tv-mode, html[data-input="remote"].ten-foot { --focus-width: 4px; --focus-o
 .dock.sticky { position: sticky; bottom: calc(var(--dock-space) + var(--tabbar-space)); z-index: var(--z-sticky); }
 .dock.legend-only { justify-content: flex-end; background: transparent; border-top: 0; padding-block: var(--space-m); }
 .dock-row { display: flex; flex-wrap: wrap; gap: var(--space-s); }
-.dock-btn { display: inline-flex; align-items: center; gap: var(--space-s); min-height: var(--control-h); padding: 0 var(--space-m); border: 1px solid var(--elev-2-line); border-radius: var(--r-full); background: var(--elev-2-fill); color: var(--fg); font: inherit; font-size: var(--text-md); font-weight: 600; cursor: pointer; transition: background var(--focus-move), color var(--focus-move); }
-.dock-btn:hover { background: var(--bg-4); }
-.dock-btn.primary { background: var(--accent); border-color: transparent; color: var(--accent-fg); }
-.dock-btn[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent-line); }
-.dock-btn[disabled] { opacity: .5; cursor: default; }
+.dock:not(.ctv-dock) .dock-btn { display: inline-flex; align-items: center; gap: var(--space-s); min-height: var(--control-h); padding: 0 var(--space-m); border: 1px solid var(--elev-2-line); border-radius: var(--r-full); background: var(--elev-2-fill); color: var(--fg); font: inherit; font-size: var(--text-md); font-weight: 600; cursor: pointer; transition: background var(--focus-move), color var(--focus-move); }
+.dock:not(.ctv-dock) .dock-btn:hover { background: var(--bg-4); }
+.dock:not(.ctv-dock) .dock-btn.primary { background: var(--accent); border-color: transparent; color: var(--accent-fg); }
+.dock:not(.ctv-dock) .dock-btn[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent-line); }
+.dock:not(.ctv-dock) .dock-btn[disabled] { opacity: .5; cursor: default; }
 .dock-btn kbd, .key-legend kbd { min-width: 1.5em; text-align: center; }
-html.tv-mode .dock-btn { min-height: 66px; padding: 0 28px; font-size: var(--text-xl); }
+html.tv-mode .dock:not(.ctv-dock) .dock-btn { min-height: 66px; padding: 0 28px; font-size: var(--text-xl); }
 html.tv-mode .dock { padding-block: 24px; }
 
 /* ---- the key legend: glyphs for the input in use; the component draws nothing on touch ---- */

@@ -775,6 +775,9 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/sdui/export` | Admin | Page exists when one is named. target by form |
 | `POST /api/sdui/import` | Admin | 16 MB body. The file says it is a wittymedia-ui export. Into the draft unless target=published, which needs If-Match. Validated as the configuration is; dryRun changes nothing |
 | `GET /api/theme` | Signed-in | own theme choice. Colours only |
+| `GET /api/theme/personal` | Signed-in | own colours only |
+| `PUT /api/theme/personal` | Signed-in | own colours only. 32 KB, strict JSON. Known colour tokens, colour values only, at most 64 a set, at most 16 module scopes by form. Refused when any text would fall below WCAG AA on the theme the profile sees |
+| `DELETE /api/theme/personal` | Signed-in | own colours only |
 | `PUT /api/theme/global` | Admin | Theme exists. Known colour tokens, colour values only, at most 64. If-Match, when sent, must be the current ETag of ui_config.json |
 | `GET /api/theme/modules/{module}` | Admin | Module id by form |
 | `PUT /api/theme/modules/{module}` | Admin | Module id by form. Known colour tokens, colour values only, at most 64. If-Match, when sent, must be the current ETag of ui_config.json |

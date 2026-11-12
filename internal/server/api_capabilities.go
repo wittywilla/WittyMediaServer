@@ -110,6 +110,10 @@ var serverFeatures = []string{
 	// Modules carry their own SDUI (docs/SDUI-MODULES.md): their pages, rows, menu entries,
 	// sources and colours are merged in; their pictures and settings have routes of their own.
 	"sdui-modules", "module-settings",
+	// The theme on SDUI (docs/THEMES.md "SDUI tokens"): the catalogue says which tokens each
+	// component is drawn with, GET /api/v1/theme has shape, type and brand, overrides carry
+	// derived colours; a profile sets its own colours with /api/v1/theme/personal.
+	"theme-shape-type", "sdui-tokens", "theme-derived", "theme-personal",
 }
 
 // minClientVersions names the oldest version of each app this server still works with, by

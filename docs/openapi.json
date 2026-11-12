@@ -8959,6 +8959,9 @@
       },
       "ResolvedTheme": {
         "properties": {
+          "brand": {
+            "$ref": "#/components/schemas/ThemeBrand"
+          },
           "etag": {
             "type": "string"
           },
@@ -8977,11 +8980,20 @@
             },
             "type": "object"
           },
+          "personal": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
           "revision": {
             "type": "integer"
           },
           "scheme": {
             "type": "string"
+          },
+          "shape": {
+            "$ref": "#/components/schemas/ThemeShape"
           },
           "source": {
             "type": "string"
@@ -8991,6 +9003,9 @@
               "type": "string"
             },
             "type": "object"
+          },
+          "type": {
+            "$ref": "#/components/schemas/ThemeType"
           },
           "variants": {
             "additionalProperties": {
@@ -9007,17 +9022,25 @@
                   },
                   "type": "object"
                 },
+                "shape": {
+                  "$ref": "#/components/schemas/ThemeShape"
+                },
                 "tokens": {
                   "additionalProperties": {
                     "type": "string"
                   },
                   "type": "object"
+                },
+                "type": {
+                  "$ref": "#/components/schemas/ThemeType"
                 }
               },
               "required": [
                 "id",
                 "modules",
-                "tokens"
+                "shape",
+                "tokens",
+                "type"
               ],
               "type": "object"
             },
@@ -9034,14 +9057,18 @@
           }
         },
         "required": [
+          "brand",
           "etag",
           "id",
           "modules",
           "overrides",
+          "personal",
           "revision",
           "scheme",
+          "shape",
           "source",
           "tokens",
+          "type",
           "variants",
           "warnings"
         ],
@@ -9186,6 +9213,16 @@
           },
           "titleLines": {
             "type": "integer"
+          },
+          "tokens": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SDUITokenRoles"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -9537,6 +9574,16 @@
               "array",
               "null"
             ]
+          },
+          "theme": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SDUIThemeRoles"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -9698,6 +9745,9 @@
               "null"
             ]
           },
+          "expands": {
+            "type": "string"
+          },
           "fallback": {
             "type": "string"
           },
@@ -9721,6 +9771,18 @@
           },
           "label": {
             "type": "string"
+          },
+          "module": {
+            "type": "string"
+          },
+          "pageKinds": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
           },
           "props": {
             "items": {
@@ -9748,6 +9810,16 @@
               "type": "string"
             },
             "type": "object"
+          },
+          "tokens": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SDUITokenRoles"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "type": {
             "type": "string"
@@ -10830,6 +10902,9 @@
               }
             ]
           },
+          "module": {
+            "type": "string"
+          },
           "sections": {
             "type": "integer"
           },
@@ -11114,6 +11189,9 @@
             "type": "string"
           },
           "label": {
+            "type": "string"
+          },
+          "module": {
             "type": "string"
           },
           "page": {
@@ -11451,6 +11529,9 @@
           "label": {
             "type": "string"
           },
+          "module": {
+            "type": "string"
+          },
           "pageKinds": {
             "items": {
               "type": "string"
@@ -11550,6 +11631,62 @@
         },
         "type": "object"
       },
+      "SDUIThemeRoles": {
+        "properties": {
+          "colorRoles": {
+            "items": {
+              "$ref": "#/components/schemas/SDUIEnumOption"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "colorTokens": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "shapeTokens": {
+            "items": {
+              "$ref": "#/components/schemas/SDUIEnumOption"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "typeRoles": {
+            "additionalProperties": {
+              "properties": {
+                "family": {
+                  "type": "string"
+                },
+                "weight": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "family",
+                "weight"
+              ],
+              "type": "object"
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "colorRoles",
+          "colorTokens",
+          "shapeTokens",
+          "typeRoles"
+        ],
+        "type": "object"
+      },
       "SDUIThemeScope": {
         "properties": {
           "scope": {
@@ -11564,6 +11701,32 @@
         },
         "required": [
           "scope"
+        ],
+        "type": "object"
+      },
+      "SDUITokenRoles": {
+        "properties": {
+          "colors": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "shape": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "type": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "colors"
         ],
         "type": "object"
       },
@@ -12655,6 +12818,42 @@
         ],
         "type": "object"
       },
+      "ThemeBrand": {
+        "properties": {
+          "color": {
+            "type": "string"
+          },
+          "parts": {
+            "items": {
+              "properties": {
+                "accent": {
+                  "type": "boolean"
+                },
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "text"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "color",
+          "parts",
+          "token"
+        ],
+        "type": "object"
+      },
       "ThemeMeta": {
         "properties": {
           "author": {
@@ -12704,8 +12903,28 @@
           "scheme": {
             "type": "string"
           },
+          "shape": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ThemeShape"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "size": {
             "type": "integer"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ThemeType"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "version": {
             "type": "string"
@@ -12724,6 +12943,12 @@
       "ThemeModule": {
         "properties": {
           "overrides": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "personal": {
             "additionalProperties": {
               "type": "string"
             },
@@ -12771,6 +12996,111 @@
           "module",
           "tokens",
           "warnings"
+        ],
+        "type": "object"
+      },
+      "ThemePersonal": {
+        "properties": {
+          "etag": {
+            "type": "string"
+          },
+          "modules": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "type": "object"
+          },
+          "tokens": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "warnings": {
+            "items": {
+              "$ref": "#/components/schemas/ThemeWarning"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "etag",
+          "modules",
+          "tokens",
+          "warnings"
+        ],
+        "type": "object"
+      },
+      "ThemeShape": {
+        "properties": {
+          "badge": {
+            "type": "number"
+          },
+          "button": {
+            "type": "number"
+          },
+          "card": {
+            "type": "number"
+          },
+          "chip": {
+            "type": "number"
+          },
+          "dialog": {
+            "type": "number"
+          },
+          "field": {
+            "type": "number"
+          },
+          "focusOffset": {
+            "type": "number"
+          },
+          "focusScale": {
+            "type": "number"
+          },
+          "focusWidth": {
+            "type": "number"
+          },
+          "image": {
+            "type": "number"
+          },
+          "pill": {
+            "type": "number"
+          },
+          "radius": {
+            "type": "number"
+          },
+          "row": {
+            "type": "number"
+          },
+          "sheet": {
+            "type": "number"
+          },
+          "thumb": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "badge",
+          "button",
+          "card",
+          "chip",
+          "dialog",
+          "field",
+          "focusOffset",
+          "focusScale",
+          "focusWidth",
+          "image",
+          "pill",
+          "radius",
+          "row",
+          "sheet",
+          "thumb"
         ],
         "type": "object"
       },
@@ -12825,6 +13155,50 @@
           "other",
           "scheme",
           "webOnly"
+        ],
+        "type": "object"
+      },
+      "ThemeType": {
+        "properties": {
+          "body": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "display": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "mono": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "weights": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "body",
+          "display",
+          "mono",
+          "weights"
         ],
         "type": "object"
       },
@@ -45259,7 +45633,7 @@
             "bearer": []
           }
         ],
-        "summary": "The theme for this account, resolved: the server's theme and overrides, or the account's own choice (theme in /me/ui), with each module's colours, and contrast warnings. 304 with If-None-Match.",
+        "summary": "The theme for this account, resolved: the server's theme and overrides, or the account's own choice (theme in /me/ui), then the profile's own colours (/theme/personal), with each module's colours, the theme's shape and type, the server name's colouring (brand), and contrast warnings. 304 with If-None-Match.",
         "tags": [
           "Themes"
         ],
@@ -45516,6 +45890,168 @@
           "Themes"
         ],
         "x-wms-auth": "admin"
+      }
+    },
+    "/theme/personal": {
+      "delete": {
+        "operationId": "deleteThemePersonal",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThemePersonal"
+                }
+              }
+            },
+            "description": "Success.",
+            "headers": {
+              "ETag": {
+                "description": "Weak entity tag of this answer.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Take the profile's own colours away: back to the theme's.",
+        "tags": [
+          "Themes"
+        ],
+        "x-wms-auth": "user"
+      },
+      "get": {
+        "operationId": "getThemePersonal",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThemePersonal"
+                }
+              }
+            },
+            "description": "Success.",
+            "headers": {
+              "ETag": {
+                "description": "Weak entity tag of this answer.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The profile's own colour overrides (tokens) and its own for each module scope (modules), with contrast warnings on the theme it sees now. Only its own.",
+        "tags": [
+          "Themes"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putThemePersonal",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "modules": {
+                    "additionalProperties": {
+                      "additionalProperties": {
+                        "type": "string"
+                      },
+                      "type": "object"
+                    },
+                    "type": "object"
+                  },
+                  "tokens": {
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThemePersonal"
+                }
+              }
+            },
+            "description": "Success.",
+            "headers": {
+              "ETag": {
+                "description": "Weak entity tag of this answer.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "contrast": {
+                      "items": {
+                        "$ref": "#/components/schemas/ThemeWarning"
+                      },
+                      "type": "array"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Unknown tokens, anything not a colour, a scope that isn't a module id, or colours that would make text fall below WCAG AA (4.5:1): contrast lists the pairs."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Replace the profile's own colours: tokens over the theme it sees, modules over each module scope. Strict JSON, known colour tokens, colours only, at most 16 scopes. Refused (400, with the failing pairs in contrast) when any text would fall below WCAG AA on the theme in any of its looks.",
+        "tags": [
+          "Themes"
+        ],
+        "x-wms-auth": "user"
       }
     },
     "/themes": {

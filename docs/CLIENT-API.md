@@ -1599,6 +1599,9 @@ account's limits, as `GET /media/{id}/stems/{stem}` does; `full` is one more nam
 | `GET /theme/modules/{module}` | admin | A module's colour overrides, with contrast `warnings`. |
 | `PUT /theme/modules/{module}` | admin | Replace a module's colour overrides: `{"tokens": {"accent": "#3ad29f"}}`. Unknown tokens or anything not a colour: 400. |
 | `DELETE /theme/modules/{module}` | admin | The module goes back to the theme's colours. |
+| `GET /theme/personal` | user | This profile's own colours: `tokens` over the theme it sees and `modules` over each module scope, with contrast `warnings`. Only its own. See "The profile's own colours". |
+| `PUT /theme/personal` | user | Replace them: `{"tokens": {"accent": "#d02060"}, "modules": {"wittyplay": {"accent": "#3ad29f"}}}`. Unknown tokens, anything not a colour, or text that would fall below 4.5:1: 400, with the failing pairs in `contrast`. |
+| `DELETE /theme/personal` | user | Back to the theme's colours. |
 
 ### Server-driven UI
 

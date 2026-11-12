@@ -440,6 +440,8 @@ func schemaTypes() map[string]reflect.Type {
 		"SDUIPersonalisation": ty(sduistore.Personalisation{}), "SDUIPageEntry": ty(sduiPageEntry{}), "SDUIChange": ty(sduiChange{}), "SDUIExport": ty(sduiExport{}),
 		"SDUIConfig": ty(sduistore.Config{}), "SDUITheme": ty(sduistore.Theme{}), "SDUIRevision": ty(sduistore.Revision{}),
 		"ResolvedTheme": ty(ResolvedTheme{}), "ThemeModule": ty(ThemeModule{}), "ThemeWarning": ty(ThemeWarning{}), "ThemeModuleView": ty(themeModuleView{}),
+		"ThemePersonal": ty(themePersonalView{}), "ThemeShape": ty(themes.Shape{}), "ThemeType": ty(themes.TypeTokens{}), "ThemeBrand": ty(ThemeBrand{}),
+		"SDUITokenRoles": ty(sdui.TokenRoles{}), "SDUIThemeRoles": ty(sdui.ThemeRoles{}),
 		"CanvasInfo": ty(canvasInfo{}), "StemView": ty(stemView{}), "MediaMarkers": ty(mediaextras.Markers{}), "MarkerRange": ty(mediaextras.Range{}),
 		"MarkersEdit": ty(markersEdit{}), "SkipRange": ty(mediaextras.SkipRange{}),
 		"WhereToWatch": ty(watchxref.Answer{}), "WatchLocal": ty(watchxref.Local{}), "WatchVersion": ty(watchxref.Version{}), "WatchOffer": ty(watchxref.Offer{}),

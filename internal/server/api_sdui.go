@@ -423,7 +423,7 @@ func (s *Server) sduiPrepare(r *http.Request, name string) (*sduiRender, int, er
 	}
 	rv := s.newSDUIResolver(r, vars)
 	ctx := &sdui.RenderContext{ProfileKind: u.Kind, Admin: u.IsAdmin, UserName: firstNonEmpty(u.DisplayName, u.Name), ServerName: s.ServerName(r.Context()),
-		Features: serverFeatures, Cannot: sduiCannot(acc), Flags: map[string]bool{}, Vars: vars, Params: map[string]string{}, Scopes: sduiScopes(cfg, set),
+		Features: serverFeatures, Cannot: sduiCannot(acc), Flags: map[string]bool{}, Vars: vars, Params: map[string]string{}, Scopes: s.sduiThemeScopes(r, cfg, set),
 		Resolver: rv, UI: set, BasePath: "/api/v1/sdui", Source: source, ConfigRevision: cfg.Revision}
 	if err := s.sduiDevice(r, ctx); err != nil {
 		return nil, 400, err

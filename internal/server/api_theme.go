@@ -10,10 +10,13 @@ import (
 	"errors"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 
+	"github.com/wittywilla/wittymediaserver/internal/brandname"
 	"github.com/wittywilla/wittymediaserver/internal/sduistore"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
+	"github.com/wittywilla/wittymediaserver/pkg/sdui"
 )
 
 // The Master Theme Engine: one resolved theme per account, from
@@ -24,7 +27,10 @@ import (
 //     with it the global overrides (they were chosen for the server's theme);
 //  3. per-module overrides from ui_config.json, layered over either, for the parts of the
 //     interface that belong to a module. The same overrides reach server-driven screens
-//     through sdui.Render.
+//     through sdui.Render;
+//  4. the profile's own colours (api_theme_personal.go), over all of those.
+//
+// resolveThemeWith has the exact order.
 //
 // /api/themes and /api/themes/{id}/tokens.json are unchanged; this is a layer over them.
 
@@ -34,11 +40,15 @@ func (s *Server) themeRoutes(m *http.ServeMux) {
 	m.Handle("GET /api/theme/modules/{module}", s.requireAdmin(s.handleThemeModule))
 	m.Handle("PUT /api/theme/modules/{module}", s.requireAdmin(s.handleThemeModulePut))
 	m.Handle("DELETE /api/theme/modules/{module}", s.requireAdmin(s.handleThemeModuleDelete))
+	m.Handle("GET /api/theme/personal", s.requireUser(s.handleThemePersonal))
+	m.Handle("PUT /api/theme/personal", s.requireUser(s.handleThemePersonalPut))
+	m.Handle("DELETE /api/theme/personal", s.requireUser(s.handleThemePersonalDelete))
 }
 
 // ThemeWarning is text that would be hard to read: WCAG AA wants 4.5:1.
 type ThemeWarning struct {
-	// Scope is "global" or "module:<id>".
+	// Scope is "global", "module:<id>", "personal" (the profile's own colours) or
+	// "personal:<id>" (its own colours for a module).
 	Scope string `json:"scope"`
 	// Variant is "dark" or "light" when the warning is about one of an automatic theme's
 	// two looks; empty for a theme with one look.
@@ -51,17 +61,27 @@ type ResolvedTheme struct {
 	// ID is the theme in use; Source says whose choice it is: "server" or "user".
 	ID     string `json:"id"`
 	Source string `json:"source"`
-	// Tokens are its colours by token name, with the overrides applied.
+	// Tokens are its colours by token name, with the overrides applied: the global ones,
+	// then the profile's own, each with the colours worked out from it (themes.Derive).
 	Tokens map[string]string `json:"tokens"`
 	// Overrides are the global overrides applied (none when the account chose its own theme).
 	Overrides map[string]string `json:"overrides"`
-	// Modules are the colours for each module with overrides: the whole palette, with the
-	// module's own colours over Tokens.
+	// Personal are the profile's own colour overrides (GET /api/theme/personal).
+	Personal map[string]string `json:"personal"`
+	// Modules are the colours for each module scope with colours of its own: the whole
+	// palette, with the scope's colours and the profile's over Tokens.
 	Modules map[string]ThemeModule `json:"modules"`
 	// Scheme is "dark" or "light": which the theme is. "auto" for the automatic theme,
 	// which is dark or light as the device is; Tokens and Modules are then its dark look
 	// and Variants has both.
 	Scheme string `json:"scheme"`
+	// Shape is the theme's corners and focus ring in points, Type its typefaces and
+	// weights: what SDUI components' tokens.shape and tokens.type name.
+	Shape themes.Shape      `json:"shape"`
+	Type  themes.TypeTokens `json:"type"`
+	// Brand is the server's name ready to draw, and the colour token its coloured parts
+	// take, resolved like every other colour.
+	Brand ThemeBrand `json:"brand"`
 	// Variants are the theme's looks by scheme, each resolved the same way: one entry for
 	// an ordinary theme, "dark" and "light" for the automatic one. A client that follows
 	// the device's setting picks from here.
@@ -72,12 +92,24 @@ type ResolvedTheme struct {
 	Revision int64 `json:"revision"`
 }
 
+// ThemeBrand is the server's name as GET /api/status gives it (brandParts), and how its
+// parts are coloured: parts with accent in Token's colour (Color, from Tokens; a variant's
+// from its own tokens), the rest in fg.
+type ThemeBrand struct {
+	Parts []brandname.Part `json:"parts"`
+	Token string           `json:"token"`
+	Color string           `json:"color"`
+}
+
 // ThemeVariant is one look of a theme: the built-in theme behind it, its colours with the
-// global overrides applied, and each module's whole palette.
+// global and the profile's overrides applied, each module's whole palette, and its shape
+// and type.
 type ThemeVariant struct {
 	ID      string                       `json:"id"`
 	Tokens  map[string]string            `json:"tokens"`
 	Modules map[string]map[string]string `json:"modules"`
+	Shape   themes.Shape                 `json:"shape"`
+	Type    themes.TypeTokens            `json:"type"`
 }
 
 // The built-in themes the automatic theme is, by the device's setting.
@@ -101,31 +133,47 @@ func (s *Server) themeScheme(id string) string {
 	return "dark"
 }
 
-// ThemeModule is one module's colours.
+// ThemeModule is one module scope's colours.
 type ThemeModule struct {
 	Tokens    map[string]string `json:"tokens"`
 	Overrides map[string]string `json:"overrides"`
+	// Personal are the profile's own colours for the scope.
+	Personal map[string]string `json:"personal,omitempty"`
 }
 
-// userThemeChoice is the theme the account picked for itself, if it is here.
-func (s *Server) userThemeChoice(r *http.Request) string {
+// themeChoices are what the account chose for itself, from its interface choices: the
+// theme (the "theme" key of /api/me/ui) and its own colours ("themePersonal").
+type themeChoices struct {
+	Theme    string
+	Personal themePersonal
+}
+
+func (s *Server) themeChoicesOf(r *http.Request) themeChoices {
+	var out themeChoices
 	raw := s.Auth.UI(r.Context(), userFrom(r).ID)
 	if raw == "" {
-		return ""
+		return out
 	}
 	var ui struct {
-		Theme any `json:"theme"`
+		Theme    any             `json:"theme"`
+		Personal json.RawMessage `json:"themePersonal"`
 	}
 	if json.Unmarshal([]byte(raw), &ui) != nil {
-		return ""
+		return out
+	}
+	if len(ui.Personal) > 0 {
+		_ = json.Unmarshal(ui.Personal, &out.Personal)
 	}
 	id, _ := ui.Theme.(string)
 	id = strings.ToLower(strings.TrimSpace(id))
-	if id == "" || id == "auto" || !s.themeKnown(id) {
-		return ""
+	if id != "" && id != "auto" && s.themeKnown(id) {
+		out.Theme = id
 	}
-	return id
+	return out
 }
+
+// userThemeChoice is the theme the account picked for itself, if it is here.
+func (s *Server) userThemeChoice(r *http.Request) string { return s.themeChoicesOf(r).Theme }
 
 func (s *Server) themeKnown(id string) bool {
 	_, err := s.Themes.Colors(id)
@@ -158,6 +206,21 @@ func overlay(base map[string]string, over map[string]string) map[string]string {
 	return out
 }
 
+// layer lays over on pal with the colours worked out from it, and says which tokens it
+// changed (for the contrast check).
+func layer(pal, over map[string]string) (out, changed map[string]string) {
+	changed = themes.Derive(pal, over)
+	return overlay(pal, changed), changed
+}
+
+// union is the keys of a and b, as a set to range over.
+func union(a, b map[string]string) map[string]string {
+	if len(a) == 0 {
+		return b
+	}
+	return overlay(a, b)
+}
+
 // resolveTheme is the theme for this request.
 func (s *Server) resolveTheme(r *http.Request) (*ResolvedTheme, error) {
 	st, err := s.uiStore()
@@ -165,21 +228,46 @@ func (s *Server) resolveTheme(r *http.Request) (*ResolvedTheme, error) {
 		return nil, err
 	}
 	cfg := st.Current()
+	choices := s.themeChoicesOf(r)
+	return s.resolveThemeWith(r, cfg, s.moduleSet(nil), choices), nil
+}
+
+// resolveThemeWith resolves a theme from the server's settings and the account's choices.
+// The order, lowest first (docs/THEMES.md "Precedence"):
+//
+//  1. the theme pack (the server's, or the account's own choice);
+//  2. the administrator's global overrides (left out when the account chose its own theme:
+//     they were chosen for the server's);
+//  3. a module scope's own colours (its sdui.json), then 4. the administrator's overrides
+//     for the scope;
+//  5. the profile's own overrides, then 6. the profile's own for the scope.
+//
+// Each layer brings the colours worked out from it (themes.Derive), over what is under it,
+// so a layer that sets only the accent gets a hover, tints and focus ring to match.
+func (s *Server) resolveThemeWith(r *http.Request, cfg *sduistore.Config, set *sdui.ModuleSet, choices themeChoices) *ResolvedTheme {
 	t := &ResolvedTheme{ID: s.serverTheme(r.Context()), Source: "server", Modules: map[string]ThemeModule{},
-		Overrides: map[string]string{}, Warnings: []ThemeWarning{}, Revision: cfg.Revision}
-	if own := s.userThemeChoice(r); own != "" {
-		t.ID, t.Source = own, "user"
+		Overrides: map[string]string{}, Personal: overlay(nil, choices.Personal.Tokens), Warnings: []ThemeWarning{}, Revision: cfg.Revision}
+	if choices.Theme != "" {
+		t.ID, t.Source = choices.Theme, "user"
 	} else {
 		t.Overrides = overlay(nil, cfg.Theme.Tokens)
 	}
-	// Each look is resolved the same way: the theme's colours, the global overrides, then
-	// each module's own over those. An override that reads well on the dark look can be
-	// unreadable on the light one, so each look gets its own warnings.
+	// Each look is resolved the same way. An override that reads well on the dark look can
+	// be unreadable on the light one, so each look gets its own warnings.
 	looks := []struct{ scheme, id string }{{s.themeScheme(t.ID), t.ID}}
 	t.Scheme = looks[0].scheme
 	if t.ID == "auto" {
 		looks = []struct{ scheme, id string }{{"dark", autoDark}, {"light", autoLight}}
 		t.Scheme = "auto"
+	}
+	scopes := sduiScopes(cfg, set)
+	own := choices.Personal.Modules
+	names := map[string]bool{}
+	for k := range scopes {
+		names[k] = true
+	}
+	for k := range own {
+		names[k] = true
 	}
 	t.Variants = map[string]ThemeVariant{}
 	for i, look := range looks {
@@ -193,27 +281,59 @@ func (s *Server) resolveTheme(r *http.Request) (*ResolvedTheme, error) {
 				t.Warnings = append(t.Warnings, w)
 			}
 		}
-		v := ThemeVariant{ID: look.id, Tokens: overlay(s.baseColors(look.id), t.Overrides), Modules: map[string]map[string]string{}}
+		shape, typ := s.Themes.Look(look.id)
+		admin, g := layer(s.baseColors(look.id), t.Overrides)
 		if len(t.Overrides) > 0 {
-			warn("global", v.Tokens, t.Overrides)
+			warn("global", admin, g)
 		}
-		// Each module's own colours (its sdui.json), with the administrator's over them.
-		scopes := sduiScopes(cfg, s.moduleSet(nil))
-		for _, mod := range sortedStringKeys(scopes) {
-			ov := scopes[mod]
-			v.Modules[mod] = overlay(v.Tokens, ov)
-			warn("module:"+mod, v.Modules[mod], ov)
+		tokens, p := layer(admin, t.Personal)
+		if len(t.Personal) > 0 {
+			warn("personal", tokens, p)
+		}
+		v := ThemeVariant{ID: look.id, Tokens: tokens, Modules: map[string]map[string]string{}, Shape: shape, Type: typ}
+		for _, mod := range sortedStringKeys(names) {
+			// The scope's colours over the administrator's palette, warned about as
+			// before; then the profile's own, and its own for the scope, over those.
+			modPal, m := layer(admin, scopes[mod])
+			if len(scopes[mod]) > 0 {
+				warn("module:"+mod, modPal, m)
+			}
+			withOwn, p2 := layer(modPal, t.Personal)
+			final, pm := layer(withOwn, own[mod])
+			if mine := union(p2, pm); len(mine) > 0 && (len(t.Personal) > 0 || len(own[mod]) > 0) {
+				warn("personal:"+mod, final, mine)
+			}
+			v.Modules[mod] = final
 			if i == 0 {
-				t.Modules[mod] = ThemeModule{Tokens: v.Modules[mod], Overrides: overlay(nil, cfg.Theme.Modules[mod])}
+				t.Modules[mod] = ThemeModule{Tokens: final, Overrides: overlay(nil, cfg.Theme.Modules[mod]), Personal: own[mod]}
 			}
 		}
 		t.Variants[look.scheme] = v
 		if i == 0 {
-			t.Tokens = v.Tokens
+			t.Tokens, t.Shape, t.Type = v.Tokens, shape, typ
 		}
 	}
+	t.Warnings = dedupeWarnings(t.Warnings)
+	_, _, parts := s.brand(r.Context())
+	t.Brand = ThemeBrand{Parts: parts, Token: "brandAccent", Color: t.Tokens["brandAccent"]}
 	t.ETag = themeETag(t)
-	return t, nil
+	return t
+}
+
+// dedupeWarnings drops a scope's personal warning that the profile's global one already
+// gives for the same pair and look.
+func dedupeWarnings(in []ThemeWarning) []ThemeWarning {
+	seen := map[string]bool{}
+	out := in[:0]
+	for _, w := range in {
+		key := w.Variant + "|" + w.Text + "|" + w.Surface + "|" + strconv.FormatFloat(w.Ratio, 'f', 2, 64)
+		if strings.HasPrefix(w.Scope, "personal:") && seen["personal|"+key] {
+			continue
+		}
+		seen[w.Scope+"|"+key] = true
+		out = append(out, w)
+	}
+	return out
 }
 
 func themeETag(t *ResolvedTheme) string {
@@ -358,8 +478,9 @@ type themeModuleView struct {
 func (s *Server) moduleView(r *http.Request, mod string, cfg *sduistore.Config) themeModuleView {
 	ov := overlay(nil, cfg.Theme.Modules[mod])
 	v := themeModuleView{Module: mod, Tokens: ov, Warnings: []ThemeWarning{}, ETag: cfg.ETag}
-	base := s.baseColors(s.serverTheme(r.Context()))
-	v.Warnings = append(v.Warnings, contrastWarnings("module:"+mod, overlay(overlay(base, cfg.Theme.Tokens), ov), ov)...)
+	admin, _ := layer(s.baseColors(s.serverTheme(r.Context())), cfg.Theme.Tokens)
+	pal, changed := layer(admin, ov)
+	v.Warnings = append(v.Warnings, contrastWarnings("module:"+mod, pal, changed)...)
 	return v
 }
 
@@ -443,4 +564,31 @@ func (s *Server) setModuleTokens(w http.ResponseWriter, r *http.Request, mod str
 	}
 	s.Log.InfoContext(r.Context(), "module colours changed", "cat", "ui", "module", mod, "by", adminName(r))
 	writeJSONTagged(w, 200, cfg.ETag, s.moduleView(r, mod, cfg))
+}
+
+// sduiThemeScopes are the colours each theme scope's nodes carry in a rendered page
+// (node and document tokens): what the scope's palette in GET /api/theme modules has that
+// the account's own tokens don't, so a renderer that lays a node's tokens over the
+// resolved theme draws exactly that palette, derived colours and the profile's own
+// included. They are the theme's first look's (the dark one of the automatic theme): a
+// client following the device takes variants[scheme].modules[scope] instead.
+func (s *Server) sduiThemeScopes(r *http.Request, cfg *sduistore.Config, set *sdui.ModuleSet) map[string]map[string]string {
+	choices := s.themeChoicesOf(r)
+	if len(sduiScopes(cfg, set)) == 0 && len(choices.Personal.Modules) == 0 {
+		return map[string]map[string]string{}
+	}
+	t := s.resolveThemeWith(r, cfg, set, choices)
+	out := make(map[string]map[string]string, len(t.Modules))
+	for mod, m := range t.Modules {
+		diff := map[string]string{}
+		for k, v := range m.Tokens {
+			if t.Tokens[k] != v {
+				diff[k] = v
+			}
+		}
+		if len(diff) > 0 {
+			out[mod] = diff
+		}
+	}
+	return out
 }

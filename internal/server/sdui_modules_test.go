@@ -149,6 +149,9 @@ func TestModuleSDUIIsMergedEverywhere(t *testing.T) {
 	if env := ts.ModuleSettingsEnv("wittycomics"); len(env) != 1 || !strings.Contains(env[0], `"pageCache":16`) || !strings.Contains(env[0], "s3cret") {
 		t.Errorf("the helper's settings %v", env)
 	}
+	if w = ts.do(t, "GET", "/api/v1/sdui/modules/settings", adult, nil); !strings.Contains(w.Body.String(), `{"module":"wittycomics","label":"Comics","url":"/api/v1/sdui/modules/wittycomics/settings"}`) {
+		t.Errorf("the list for Settings → Modules: %s", w.Body)
+	}
 	if w = ts.do(t, "GET", "/api/sdui/modules/wittynothing/settings", adult, nil); w.Code != 404 {
 		t.Errorf("a module that isn't there: %d", w.Code)
 	}

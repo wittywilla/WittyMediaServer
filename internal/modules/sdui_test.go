@@ -5,6 +5,8 @@ package modules
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -110,5 +112,21 @@ func TestAnAPI3ModuleNeedsNoSDUI(t *testing.T) {
 	}
 	if uis, _ := m.UIs(); len(uis) != 0 {
 		t.Fatalf("UIs %v", uis)
+	}
+}
+
+func TestOnlyAHelperMayDeclareSources(t *testing.T) {
+	dir := t.TempDir()
+	ui := strings.ReplaceAll(photosUI, "wittyphotos", "wittycomics")
+	if err := os.WriteFile(filepath.Join(dir, sdui.ModuleFile), []byte(ui), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	web := &wittymodule.Manifest{ID: "wittycomics", Delivery: wittymodule.DeliveryWeb, API: SDUIAPI}
+	if _, err := readUI(dir, web, sdui.ModuleChecks{}); err == nil || !strings.Contains(err.Error(), "only a helper") {
+		t.Fatalf("a web bundle with sources: %v", err)
+	}
+	helper := &wittymodule.Manifest{ID: "wittycomics", Delivery: wittymodule.DeliveryHelper, API: SDUIAPI}
+	if _, err := readUI(dir, helper, sdui.ModuleChecks{}); err != nil {
+		t.Fatalf("a helper with sources: %v", err)
 	}
 }

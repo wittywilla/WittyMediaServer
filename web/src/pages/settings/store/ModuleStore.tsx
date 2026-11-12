@@ -9,7 +9,7 @@ import { Button, Chip, Chips, EmptyState, Input, LinkButton, Notice, Select, Spi
 import { PageHead } from '../ui'
 import { ItemCard } from './ItemCard'
 import { FailureDialog, FailureNotice, SandboxNote, UpdateAllPanel, useStoreView } from './parts'
-import { MODULE_KIND_WORDS, MODULE_KINDS, passesExtra, readFilters, STATUS_WORDS, STATUSES } from './overrides'
+import { itemModuleKind, MODULE_KIND_WORDS, MODULE_KINDS, passesExtra, readFilters, STATUS_WORDS, STATUSES } from './overrides'
 import { useFeatures } from '../../../sdui/useSdui'
 import { CATEGORIES, categoryOf, categoryTitle, checkAll, failureOf, matches, platformName, rank, showsRun, type Failure, type StoreItem } from './storeApi'
 
@@ -53,7 +53,7 @@ export default function ModuleStore() {
     passesExtra(i, { moduleKind, status })
   ).sort((a, b) => rank(a, q) - rank(b, q) || a.name.localeCompare(b.name)), [items, q, cat, show, publisher, platform, moduleKind, status])
   // Kinds are offered when the server says what each module is; a status, whenever any isn't stable.
-  const kindsHere = useMemo(() => MODULE_KINDS.filter((k) => (items || []).some((i) => i.moduleKind === k)), [items])
+  const kindsHere = useMemo(() => MODULE_KINDS.filter((k) => (items || []).some((i) => itemModuleKind(i) === k)), [items])
 
   const publishers = useMemo(() => [...new Set((items || []).map((i) => i.publisher?.name).filter(Boolean) as string[])].sort(), [items])
   const platforms = useMemo(() => [...new Set((items || []).flatMap((i) => i.platforms || []).filter((p) => p !== 'all'))].sort(), [items])

@@ -114,7 +114,7 @@ export function PendingNotice({ m, onGo, onDropped }: { m: ModuleStatus; onGo: (
   return (
     <Notice tone="warn" title={`${m.name} ${p.version}: downloaded, needs your go-ahead`}
       action={<span className="ms-actions"><Button size="sm" variant="primary" onClick={onGo}>Review…</Button><Button size="sm" variant="ghost" onClick={drop}>Drop it</Button></span>}>
-      It was downloaded and its signature checked, and then it turned out to need an override. Nothing changed: the version in use keeps running.
+      It was downloaded and its signature checked, and then it turned out to need an override. {m.installed ? 'Nothing changed: the version in use keeps running.' : 'Nothing is installed until you say yes.'}
     </Notice>
   )
 }

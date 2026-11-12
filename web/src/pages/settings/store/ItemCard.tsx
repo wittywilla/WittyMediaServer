@@ -2,12 +2,13 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ApiError } from '../../../api'
+import { api, ApiError } from '../../../api'
+import type { ModuleReport } from '../../../moduleStore'
 import { toast } from '../../../state'
 import { Button, Dialog, Progress } from '../../../ui'
 import { FailureDialog, itemPath, ModuleIcon, StateTags } from './parts'
 import { useOverrideDialog } from './overrideParts'
-import { moduleKindTitle, needsOverrideOf } from './overrides'
+import { itemModuleKind, moduleKindTitle, needsOverrideOf } from './overrides'
 import type { OverrideBody } from './OverrideDialog'
 import { categoryTitle, currentRun, failureOf, installModule, isBusy, mb, PHASE, type Failure, type RunItem, type StoreItem } from './storeApi'
 
@@ -20,6 +21,7 @@ export function actionFor(it: StoreItem): { label: string; aria: string } | null
   const m = it.status
   if (it.kind === 'in-development' || it.kind === 'refused' || it.kind === 'fork') return null
   if (m && isBusy(m)) return null
+  if (m?.pending) return null // its page asks for the go-ahead instead
   if (m?.installed) {
     if (it.failure && m.latest) return { label: 'Try again', aria: `Try again: update ${it.name}` }
     return m.latest && !m.pin ? { label: 'Update', aria: `Update ${it.name} to ${m.latest.version}` } : null
@@ -59,7 +61,12 @@ export function useInstall(it: StoreItem, onChanged: () => void, repairRoute: st
       if (!alive.current) return
       const failed = r?.items.find((x) => x.failure)
       if (failed?.failure) setFailure(failed.failure)
-      else if (r) { toast(`${it.name} is ready`); setTimeout(() => focusAfter?.(), 0) }
+      else if (r) {
+        // A release whose need shows only after its download is held, not installed: say so.
+        const held = await api.get<ModuleReport>('/modules').then((x) => x.modules.find((y) => y.id === it.id)?.pending).catch(() => undefined)
+        if (held) toast(`${it.name} ${held.version} was downloaded and needs your go-ahead`)
+        else { toast(`${it.name} is ready`); setTimeout(() => focusAfter?.(), 0) }
+      }
     } finally { going.current = false; if (alive.current) setWorking(false) }
   }
   // With an override, a refusal goes back to the override dialog, which explains it in place.
@@ -140,7 +147,7 @@ export function ItemCard({ item, onChanged, repairRoute }: { item: StoreItem; on
         <ModuleIcon item={item} />
         <span className="st-card-text">
           <b className="st-card-name">{item.name}</b>
-          <span className="st-card-by">{[item.publisher?.name || 'Part of this server', categoryTitle(item.group), moduleKindTitle(item.moduleKind)].filter(Boolean).join(' · ')}</span>
+          <span className="st-card-by">{[item.publisher?.name || 'Part of this server', categoryTitle(item.group), moduleKindTitle(itemModuleKind(item))].filter(Boolean).join(' · ')}</span>
           {item.summary && <span className="st-card-sum">{item.summary}</span>}
         </span>
       </Link>

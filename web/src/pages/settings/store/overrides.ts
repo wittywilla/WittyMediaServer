@@ -130,10 +130,13 @@ export function refusalKind(e: unknown): 'password' | 'override' | 'invalid' | '
   const x = e as { status?: number; data?: { code?: string; needsOverride?: unknown } } | null
   if (x?.status === 403 && (x.data?.code === 'password-needed' || x.data?.code === 'password-required' || x.data?.code === 'password-wrong' || x.data?.code === 'code-needed')) return 'password'
   if (x?.status === 403) return 'password'
-  if (x?.status === 409 && x.data?.needsOverride) return 'override'
+  // 409: no go-ahead was given; 400 bad-override: one was, and it doesn't fit what's needed now.
+  if ((x?.status === 409 || x?.status === 400) && needsOverrideOf(e)) return 'override'
   if (x?.status === 400) return 'invalid'
   return 'other'
 }
+
+export const refusalStatus = (e: unknown) => (e as { status?: number } | null)?.status ?? 0
 
 // ------------------------------------------------------------------ release status
 
@@ -179,8 +182,9 @@ export function withFilter(params: URLSearchParams, key: string, value: string):
 }
 
 // A store item's kind and status, wherever the server put them.
-type Filterable = { moduleKind?: string; releaseStatus?: string; status?: unknown }
-export const itemModuleKind = (it: Filterable) => it.moduleKind || ''
+type Filterable = { moduleKind?: string; delivery?: string; releaseStatus?: string; status?: unknown }
+// Without moduleKind, a delivery that names one of the kinds (web, helper, program) is the kind.
+export const itemModuleKind = (it: Filterable) => it.moduleKind || ((MODULE_KINDS as readonly string[]).includes(it.delivery || '') ? it.delivery! : '')
 export function itemReleaseStatus(it: Filterable): ReleaseStatus {
   if (it.releaseStatus) return releaseStatus(it.releaseStatus)
   // The installed copy's report entry says it too, when the catalogue doesn't.

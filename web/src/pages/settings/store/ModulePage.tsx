@@ -12,7 +12,7 @@ import { ConfirmOwner, type OwnerAsk } from '../ConfirmOwner'
 import { actionFor, ActionButton, InPlaceProgress, useInstall } from './ItemCard'
 import { ChangeNotes, FailureDialog, FailureNotice, itemPath, ModuleIcon, ModuleLogDialog, PolicyNote, StateTags, Tag, usePicture } from './parts'
 import { OverrideRecordBox, PendingNotice, StatusNotice, useOverrideDialog, WhatItAdds } from './overrideParts'
-import { moduleKindTitle, needsOverrideOf, overrideLines, type NeedsOverride } from './overrides'
+import { itemModuleKind, moduleKindTitle, needsOverrideOf, overrideLines, type NeedsOverride } from './overrides'
 import { InstallFromFile } from './InstallFromFile'
 import { OverrideDialog } from './OverrideDialog'
 import { categoryTitle, dayOf, failureOf, isBusy, itemDetail, mb, platformName, useFork, type Failure, type ItemDetail } from './storeApi'
@@ -183,7 +183,7 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
           {installedHere && m!.latest && <div><dt>Newest</dt><dd>{m!.latest.version}</dd></div>}
           {!!it.size && <div><dt>Download</dt><dd>{mb(it.size)}</dd></div>}
           <div><dt>Publisher</dt><dd>{it.publisher?.name || 'This server'}</dd></div>
-          {moduleKindTitle(it.moduleKind) && <div><dt>Kind</dt><dd>{moduleKindTitle(it.moduleKind)}</dd></div>}
+          {moduleKindTitle(itemModuleKind(it)) && <div><dt>Kind</dt><dd>{moduleKindTitle(itemModuleKind(it))}</dd></div>}
           {(it.license || m?.license) && <div><dt>Licence</dt><dd>{it.license || m?.license}</dd></div>}
           {it.released && <div><dt>Released</dt><dd>{dayOf(it.released)}</dd></div>}
           {it.minServer && <div className="wide"><dt>Fits servers</dt><dd>{it.minServer} to {it.maxServer}{it.fit.ok ? ', which includes this server' : ''}</dd></div>}

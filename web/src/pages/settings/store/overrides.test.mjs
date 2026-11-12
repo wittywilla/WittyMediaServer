@@ -59,6 +59,7 @@ test('refusals are told apart', () => {
   assert.equal(needsOverrideOf({ status: 409, data: { needsOverride: { kinds: [] } } }), null)
   assert.equal(refusalKind({ status: 403, data: { code: 'password-needed' } }), 'password')
   assert.equal(refusalKind({ status: 400, data: { error: 'accept names a kind that is not needed' } }), 'invalid')
+  assert.equal(refusalKind({ status: 400, data: { code: 'bad-override', needsOverride: { kinds: ['custom'], severity: 3 } } }), 'override')
   assert.equal(refusalKind({ status: 409, data: { needsOverride: { kinds: ['unsigned'] } } }), 'override')
   assert.equal(refusalKind(new Error('x')), 'other')
 })
@@ -85,6 +86,8 @@ test('the kind and status filters live in the address, and unknown values are ig
   assert.equal(passesExtra({ moduleKind: 'web', releaseStatus: 'beta' }, { moduleKind: 'web', status: 'beta' }), true)
   assert.equal(passesExtra({ moduleKind: 'helper' }, { moduleKind: 'web', status: '' }), false)
   assert.equal(passesExtra({ moduleKind: 'helper' }, { moduleKind: '', status: 'stable' }), true)
+  assert.equal(passesExtra({ delivery: 'web' }, { moduleKind: 'web', status: '' }), true) // from the delivery when there's no kind
+  assert.equal(passesExtra({ delivery: 'builtin' }, { moduleKind: 'web', status: '' }), false)
 })
 
 test('what a module adds', () => {

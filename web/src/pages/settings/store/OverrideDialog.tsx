@@ -6,7 +6,7 @@ import { useApp } from '../../../state'
 import { Button, Dialog } from '../../../ui'
 import { HelpLink } from '../../../components/HelpLink'
 import './overrides.css'
-import { friction, needsOverrideOf, overrideLines, overrideRequest, refusalKind, severityOf, stillNeeded, type NeedsOverride, type OverrideAnswers } from './overrides'
+import { friction, needsOverrideOf, refusalStatus, overrideLines, overrideRequest, refusalKind, severityOf, stillNeeded, type NeedsOverride, type OverrideAnswers } from './overrides'
 
 // The override: installing something the usual rules refuse, knowingly. It names every rule being
 // bypassed with the server's own words, has each one ticked, offers the permissions the module asks
@@ -62,7 +62,7 @@ export function OverrideDialog({ id, name, need: first, permissionWords, onSubmi
         const n = needsOverrideOf(x)!
         setNeed(n)
         setA((y) => ({ ...y, accepted: [], grants: y.grants.filter((g) => (n.permissions || []).includes(g)) }))
-        setErr('What this needs has changed. Read the warnings again and tick each one.')
+        setErr(refusalStatus(x) === 400 && message ? `${message} Read the warnings again and tick each one.` : 'What this needs has changed. Read the warnings again and tick each one.')
       } else setErr(message)
       setWorking(false)
     }
@@ -70,7 +70,7 @@ export function OverrideDialog({ id, name, need: first, permissionWords, onSubmi
 
   return (
     <Dialog alert size="md" className={`ov-dialog ov-sev-${f.level}`} title={`Install ${name} anyway?`} onClose={onClose}
-      description={`${lines.length === 1 ? 'One rule' : `${lines.length} rules`} that normally stop this install would be bypassed. Severity ${f.level} of 4.`}
+      description={`${lines.length === 1 ? 'One rule that normally stops this install' : `${lines.length} rules that normally stop this install`} would be bypassed. Severity ${f.level} of 4.`}
       actions={<>
         <Button variant="ghost" autoFocus onClick={onClose}>Cancel</Button>
         <Button variant={f.tone === 'danger' ? 'danger' : 'primary'} type="submit" form={uid + 'f'} busy={working} disabled={missing.length > 0} aria-describedby={uid + 'm'}>{f.button}</Button>
@@ -80,7 +80,7 @@ export function OverrideDialog({ id, name, need: first, permissionWords, onSubmi
           <IconShield size={f.level >= 3 ? 28 : 22} />
           <div>
             <strong>{f.heading}</strong>
-            {need.warning && <p>{need.warning}</p>}
+            {need.warning && !lines.some((l) => l.reason === need.warning) && <p>{need.warning}</p>}
             {need.version && <p className="ov-small">Version {need.version}{need.pending ? ', already downloaded and checked, waiting for your go-ahead' : ''}.</p>}
           </div>
         </div>

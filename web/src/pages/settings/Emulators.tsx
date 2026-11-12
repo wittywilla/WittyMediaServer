@@ -6,12 +6,12 @@ import { LoadError, Spinner } from '../../components/common'
 import { WebLink } from '../../components/WebLink'
 import { IconCheck, IconInfo, IconRefresh } from '../../icons'
 import { toast } from '../../state'
-import { ask, Dialog, Notice, Progress } from '../../ui'
+import { ask, Dialog, Input, Notice, Progress, Select, Switch } from '../../ui'
 import { useConsoles } from '../games/consoles'
 import { emulatorsApi } from '../games/emulatorsApi'
-import { fmtBytes, hostOf, jobProgress, requiresWords, same, sinceWords, wholeSettings, type BackendSettings, type CatalogueEntry, type DiagnosticCheck, type Diagnostics, type DockerStatus, type RunningSession, type Values } from '../games/emulatorsLogic'
+import { fmtBytes, hostOf, joinArgs, splitArgs, type OwnProgram, jobProgress, requiresWords, same, sinceWords, wholeSettings, type BackendSettings, type CatalogueEntry, type DiagnosticCheck, type Diagnostics, type DockerStatus, type RunningSession, type Values } from '../games/emulatorsLogic'
 import { SchemaForm } from '../games/SchemaForm'
-import { PageHead, SaveBar, Section } from './ui'
+import { PageHead, Row, SaveBar, Section } from './ui'
 import '../games/games-ui.css'
 import '../games/emulators.css'
 
@@ -95,6 +95,7 @@ export default function EmulatorsSettings() {
       </Section>
       <BackendForm onSaved={refresh} />
       <Catalogue list={list} error={listError} reload={loadList} setList={setList} page={page} />
+      <OwnPrograms />
       <Sessions />
     </div>
   )
@@ -377,5 +378,100 @@ function Sessions() {
         )}
       </div>
     </Section>
+  )
+}
+
+// Emulators an administrator installed on this server themselves: added by their path, run in
+// the same sandbox as any other. The only way to play the Switch, for which WittyPlay offers no
+// emulator, and how a FreeBSD server uses its own packages.
+function OwnPrograms() {
+  const consoles = useConsoles()
+  const [list, setList] = useState<OwnProgram[] | null>(null)
+  const [max, setMax] = useState(32)
+  const [failed, setFailed] = useState('')
+  const [editing, setEditing] = useState<{ at: number; p: OwnProgram } | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [catalogue, setCatalogue] = useState<CatalogueEntry[]>([])
+  const load = useCallback(() => emulatorsApi.own().then((r) => { setList(r.own || []); setMax(r.max || 32); setFailed('') }).catch((e) => setFailed(e?.message || 'Your programs couldn’t be loaded.')), [])
+  useEffect(() => { void load(); emulatorsApi.catalogue().then((l) => setCatalogue(l || [])).catch(() => {}) }, [load])
+  const save = async (next: OwnProgram[]) => {
+    setBusy(true)
+    setError('')
+    try {
+      const r = await emulatorsApi.saveOwn(next)
+      setList(r.own || [])
+      setEditing(null)
+      toast('Saved')
+    } catch (e: any) {
+      setError(e?.message || 'That couldn’t be saved.')
+    } finally { setBusy(false) }
+  }
+  const remove = async (at: number) => {
+    if (!list) return
+    if (!(await ask({ title: `Remove ${list[at].name}?`, body: 'Its program stays where it is. People’s settings for it are kept.', confirm: 'Remove' }))) return
+    await save(list.filter((_, i) => i !== at))
+  }
+  const name = (id: string) => consoles.find((c) => c.id === id)?.short || id
+  return (
+    <Section title="Your own emulator programs" desc="An emulator you installed on this server yourself, from wherever you chose. It runs in the same sandbox as the others, on this computer, never in a container. WittyPlay downloads nothing for it and checks no hash: it’s yours."
+      actions={list && list.length < max ? <button type="button" className="btn sm" onClick={() => { setError(''); setEditing({ at: -1, p: { name: '', systems: [], program: '', args: [] } }) }}>Add a program</button> : undefined}>
+      {failed ? <Notice tone="danger" action={<button type="button" className="btn sm" onClick={() => { void load() }}>Try again</button>}>{failed}</Notice>
+        : !list ? <Spinner />
+        : !list.length ? <p className="muted">None yet. This is how Switch games play, as WittyPlay offers no Switch emulator, and how an emulator from your system’s packages is used.</p>
+        : (
+          <ul className="emu-sessions">
+            {list.map((p, i) => (
+              <li key={p.id || i}>
+                <span><b>{p.name}</b><small className="muted">{p.systems.map(name).join(', ')} · <code>{p.program}</code>{p.like ? ` · settings of ${catalogue.find((c) => c.id === p.like)?.name || p.like}` : ''}</small></span>
+                <span>
+                  <button type="button" className="btn sm" onClick={() => { setError(''); setEditing({ at: i, p }) }}>Change</button>
+                  <button type="button" className="btn sm ghost" disabled={busy} onClick={() => { void remove(i) }}>Remove</button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      {editing && list && (
+        <OwnProgramDialog program={editing.p} consoles={consoles} catalogue={catalogue} busy={busy} error={error} onClose={() => setEditing(null)}
+          onSave={(p) => { void save(editing.at < 0 ? [...list, p] : list.map((x, i) => (i === editing.at ? p : x))) }} />
+      )}
+    </Section>
+  )
+}
+
+function OwnProgramDialog({ program, consoles, catalogue, busy, error, onClose, onSave }: {
+  program: OwnProgram; consoles: { id: string; name: string }[]; catalogue: CatalogueEntry[]; busy: boolean; error: string
+  onClose: () => void; onSave: (p: OwnProgram) => void
+}) {
+  const [p, setP] = useState<OwnProgram>(program)
+  const [args, setArgs] = useState(joinArgs(program.args))
+  const ok = p.name.trim() !== '' && p.program.trim() !== '' && p.systems.length > 0
+  const toggle = (id: string) => setP((x) => ({ ...x, systems: x.systems.includes(id) ? x.systems.filter((s) => s !== id) : [...x.systems, id] }))
+  return (
+    <Dialog title={program.name ? `Change ${program.name}` : 'Add your own emulator program'} size="wide" onClose={onClose}
+      actions={<><button type="button" className="btn ghost" onClick={onClose}>Cancel</button><button type="button" className="btn primary" disabled={!ok || busy} onClick={() => onSave({ ...p, args: splitArgs(args) })}>{busy ? 'Saving…' : 'Save'}</button></>}>
+      <div className="emu-dialog-body emu-form">
+        <Row label="Name"><Input aria-label="Name" value={p.name} maxLength={60} onChange={(e) => setP({ ...p, name: e.target.value })} /></Row>
+        <Row label="The program" desc="Its full path on this server, such as /usr/local/bin/rpcs3 or C:\Emulators\MyEmulator\emulator.exe.">
+          <Input aria-label="The program’s full path" value={p.program} spellCheck={false} autoComplete="off" onChange={(e) => setP({ ...p, program: e.target.value })} />
+        </Row>
+        <Row label="A build of" desc="If it’s one of the emulators WittyPlay knows, from another source: its settings and controllers are set up the same way.">
+          <Select aria-label="A build of" value={p.like || ''} onChange={(e) => setP({ ...p, like: e.target.value || undefined })}>
+            <option value="">None of these</option>
+            {catalogue.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </Select>
+        </Row>
+        <Row label="Its command line" desc="What comes after the program. {game} is the game’s file, {config} the folder its settings go in, {bios} the BIOS folder. Without {game}, the game goes last." stack>
+          <Input aria-label="Its command line" value={args} spellCheck={false} autoComplete="off" placeholder="--fullscreen {game}" onChange={(e) => setArgs(e.target.value)} />
+        </Row>
+        <Row label="Consoles it plays" stack>
+          <ul className="emu-map">
+            {consoles.map((c) => <li key={c.id}><span>{c.name}</span><Switch checked={p.systems.includes(c.id)} onChange={() => toggle(c.id)} label={c.name} /></li>)}
+          </ul>
+        </Row>
+        {error && <div className="emu-form-error"><Notice tone="danger">{error}</Notice></div>}
+      </div>
+    </Dialog>
   )
 }

@@ -228,3 +228,23 @@ export function groupFields(schema: Field[], query: string, advanced: boolean): 
   }
   return out
 }
+
+// An emulator already installed on this server, which an administrator added by its path:
+// emulators/own.go in WittyPlay. Args holds {game}, {config}, {bios} and {settings}.
+export type OwnProgram = { id?: string; name: string; systems: string[]; program: string; args?: string[]; configDir?: string; like?: string; added?: number }
+
+// An own program's command line as typed, one argument per space unless quoted.
+export function splitArgs(line: string): string[] {
+  const out: string[] = []
+  let cur = '', quote = '', any = false
+  for (const ch of line) {
+    if (quote) { if (ch === quote) quote = ''; else cur += ch; continue }
+    if (ch === '"' || ch === "'") { quote = ch; any = true; continue }
+    if (/\s/.test(ch)) { if (cur || any) out.push(cur); cur = ''; any = false; continue }
+    cur += ch
+  }
+  if (cur || any) out.push(cur)
+  return out
+}
+
+export const joinArgs = (args?: string[]) => (args || []).map((a) => (a === '' || /[\s"]/.test(a) ? `'${a}'` : a)).join(' ')

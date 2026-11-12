@@ -4,7 +4,7 @@
 //   node --experimental-strip-types --test web/src/pages/games/emulatorsLogic.test.mjs
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { apiPath, changedValues, fmtBytes, groupFields, hostOf, inheritedValue, jobProgress, mayEdit, numberFrom, placeholderOf, requiresWords, scopesFor, sinceWords, wholeSettings, withMapEntry } from './emulatorsLogic.ts'
+import { apiPath, changedValues, fmtBytes, groupFields, joinArgs, splitArgs, hostOf, inheritedValue, jobProgress, mayEdit, numberFrom, placeholderOf, requiresWords, scopesFor, sinceWords, wholeSettings, withMapEntry } from './emulatorsLogic.ts'
 
 test('a session’s addresses lose /api, which the client adds itself', () => {
   assert.equal(apiPath('/api/v1/modules/wittyplay/docker/sessions/abc/connect'), '/v1/modules/wittyplay/docker/sessions/abc/connect')
@@ -177,4 +177,11 @@ test('a whole emulator’s settings come in their sections, found by words, adva
   // A search finds advanced settings too: someone looking for one by name wants it.
   assert.deepEqual(groupFields(schema, 'fastmem', false).flatMap((g) => g.fields.map((x) => x.key)), ['fastmem'])
   assert.deepEqual(groupFields(schema, 'graphics vsync', false).flatMap((g) => g.fields.map((x) => x.key)), ['vsync'])
+})
+
+test('an own program’s command line, typed and shown', () => {
+  assert.deepEqual(splitArgs('--no-gui  --config "{config}/my file.yml" {game}'), ['--no-gui', '--config', '{config}/my file.yml', '{game}'])
+  assert.deepEqual(splitArgs(''), [])
+  assert.deepEqual(splitArgs("-x ''"), ['-x', ''])
+  assert.deepEqual(splitArgs(joinArgs(['a b', '', 'c'])), ['a b', '', 'c'])
 })

@@ -35,10 +35,12 @@ import './audio.css'
 import './pages/settings/settings.css'
 import { installTVInput } from './tv'
 import { installTvMode } from './tvmode/mode'
+import { installDensity } from './ui/density'
 import './tvmode/tvmode.css'
 import { installErrorReporter } from './errorReport'
 
 installTVInput()
+installDensity()
 installTvMode()
 installErrorReporter()
 

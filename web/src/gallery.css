@@ -152,13 +152,6 @@
 .col-x svg { width: 15px; height: 15px; }
 .col-dialog { max-height: 88vh; overflow-y: auto; }
 .col-dialog .seg { margin: 8px 0; }
-.col-rule { border: 1px solid var(--bg-4); border-radius: var(--r-md); padding: 10px 12px; margin: 10px 0; min-width: 0; }
-.col-rule legend { padding: 0 6px; font-weight: 600; font-size: var(--text-sm); }
-.col-types { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
-.col-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px 10px; font-size: var(--text-sm); }
-.col-fields label { display: grid; gap: 3px; min-width: 0; }
-.col-checks { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
-.col-preview { margin-top: 10px; font-size: var(--text-sm); min-height: 22px; }
 .col-preview-row { display: flex; gap: 5px; margin-top: 5px; overflow: hidden; }
 .col-preview-row img { width: 46px; height: 68px; object-fit: cover; border-radius: var(--r-xs); background: var(--bg-3); flex: none; }
 .ch-tag { flex: none; padding: 5px 12px; font-size: var(--text-sm); font-weight: 600; border: 0; border-radius: var(--r-sm); background: var(--bg-3); color: var(--fg-2); cursor: pointer; }

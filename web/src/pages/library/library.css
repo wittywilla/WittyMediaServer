@@ -52,3 +52,4 @@
 .lib-listing-note { margin-top: var(--sp-3); font-size: var(--text-sm); }
 .hub + .lib-listing-note { margin-top: calc(var(--sp-3) - var(--section-gap)); margin-bottom: var(--section-gap); }
 .lib-filter .ui-sheet-body { padding: 0 var(--sp-1) var(--sp-2); }
+.lib-bulk-tokens { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: var(--sp-3); }

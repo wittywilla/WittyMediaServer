@@ -4,7 +4,10 @@ import { useEffect, useId, useState } from 'react'
 import { STATE_NAMES, clearTaskHistory, fmtAgo, fmtCount, fmtDuration, fmtRate, taskAction, taskHistory, typeName, useActivity, type Task } from '../activity'
 import { IconCheck, IconClose, IconInfo, IconPause, IconPlay, IconRefresh, IconSettings, IconStop, IconTrash } from '../icons'
 import { useApp } from '../state'
-import { Button, Chip, Chips, EmptyState, IconButton, LinkButton, LoadError, Notice, Progress, Sheet, Spinner, Tabs, ask, toast } from '../ui'
+import SpecPage from '../spec/SpecPage'
+import { handledIds, withIds } from '../spec/model'
+import { activitySpec } from '../spec/specs/activity'
+import { Button, EmptyState, IconButton, LinkButton, LoadError, Notice, Progress, Sheet, Spinner, Tabs, ask, toast } from '../ui'
 
 // The panel behind the activity button: what's going on, library by library, and what
 // happened lately, with errors a person can act on. A sheet on phones.
@@ -17,6 +20,8 @@ export default function ActivityPanel({ onClose }: { onClose: () => void }) {
   const [tab, setTab] = useState<Tab>('now')
   const panel = useId()
   const going = a.tasks.length
+  const notices = activitySpec({ tab, connected: a.connected, loaded: a.loaded, readOnly: a.access.readOnly, update: update || '', isAdmin: !!user?.isAdmin, failedOnly: false, canClear: false })
+  const upAt = notices.sections.findIndex((x) => x.h === 'Update available')
   const count = (n: number) => (n ? <span className="act-tab-n">{n}</span> : null)
   return (
     <Sheet title="Activity" onClose={onClose} className="act-sheet" actions={a.access.readOnly ? undefined : (
@@ -24,13 +29,7 @@ export default function ActivityPanel({ onClose }: { onClose: () => void }) {
     )}>
       <Tabs label="Activity" value={tab} onChange={setTab} panelId={panel} items={[{ value: 'now', label: 'Now', badge: count(going) }, { value: 'history', label: 'History' }]} />
       <div id={panel} role="tabpanel" className="act-body">
-        {!a.connected && a.loaded && <p className="act-offline" role="status">Reconnecting to the server. This may be out of date.</p>}
-        {a.access.readOnly && <p className="act-readonly">You can see what the server is doing here. Only an administrator can change it.</p>}
-        {update && user?.isAdmin && tab === 'now' && (
-          <div className="act-update">
-            <Notice title="Update available" action={<LinkButton to="/settings/about#updates" size="sm" onClick={onClose}>What’s new</LinkButton>}>WittyMediaServer {update} can be installed.</Notice>
-          </div>
-        )}
+        {notices.sections.length > 0 && <SpecPage embedded page={notices} after={upAt >= 0 ? { [upAt]: <LinkButton to="/settings/about#updates" size="sm" onClick={onClose}>What’s new</LinkButton> } : undefined} />}
         {tab === 'now' ? <Now tasks={a.tasks} /> : <History recent={a.recent} readOnly={a.access.readOnly} />}
       </div>
     </Sheet>
@@ -164,15 +163,11 @@ function History({ recent, readOnly }: { recent: Task[]; readOnly: boolean }) {
     if (!await ask({ title: 'Clear the activity history?', body: 'What happened stops being listed here. WittyLog keeps its own record, and anything going on now carries on.', confirm: 'Clear history', danger: true })) return
     try { await clearTaskHistory(); setRows([]); setMore(false) } catch (e) { toast((e as Error).message) }
   }
+  const bar = activitySpec({ tab: 'history', connected: true, loaded: true, readOnly, update: '', isAdmin: false, failedOnly: only, canClear: !readOnly && rows.length > 0 })
+  const barIds = handledIds(withIds(bar))
   return (
     <>
-      <div className="act-history-bar">
-        <Chips label="Show">
-          <Chip selected={!only} onClick={() => setOnly(false)}>All</Chip>
-          <Chip selected={only} onClick={() => setOnly(true)}>Failed</Chip>
-        </Chips>
-        {!readOnly && rows.length > 0 && <Button size="sm" variant="ghost" icon={<IconTrash size={16} />} onClick={clearAll}>Clear history</Button>}
-      </div>
+      <SpecPage embedded page={bar} handled={barIds} onAction={(id) => { if (id === 'show:all') setOnly(false); else if (id === 'show:failed') setOnly(true); else if (id === 'clear') void clearAll() }} />
       {rows.length === 0
         ? <EmptyState icon={<IconCheck />} title={only ? 'Nothing has failed' : 'No history yet'} text={only ? 'Anything that fails is listed here with what to do about it.' : 'Finished work is listed here.'} />
         : <ul className="act-list">{rows.map((t) => <li key={t.id}><PastTask task={t} readOnly={readOnly} onRemoved={() => setRows((r) => r!.filter((x) => x.id !== t.id))} /></li>)}</ul>}

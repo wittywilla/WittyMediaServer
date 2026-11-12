@@ -222,6 +222,8 @@ my-theme.zip
 
 `theme.json` may have a `finish`: `glass` (`hi` and `lo` fills, an `edge` and a `shadow` colour: the recipe for a glass panel) and `gloss` (five colours for a glossy button: highlight, upper body, lower body, glow, edge). The experience says how much to use (`effects`: none, subtle or full). Left out, both are worked out from the colours.
 
+**How the web draws them.** `theme.ts` puts the look on `<html>`: `data-fx-glass`, `-gloss`, `-glow`, `-texture` and `-bevel` (`none`, `subtle`, `full`), `data-type`, `data-card-set`, `data-focus-style` and `data-screen`, plus `--shape-mult` (the radius multiple) and the theme's finish as `--glass-hi`, `--glass-lo`, `--glass-edge`, `--glass-shadow` and `--gloss-hi`, `--gloss-up`, `--gloss-lo`, `--gloss-glow`, `--gloss-edge`. Colours in a finish are accepted only as `#hex`, `rgb()`, `rgba()`, `hsl()` or `hsla()`; anything else is dropped. `web/src/finish.css` turns them into glass bars, menus, dialogs and panels, glossy buttons and rows, bevels, glow, paper grain or scanlines and the focus style, and names no look. The scene is drawn by `web/src/ui/Scene.tsx` behind the page: a gradient (sky), radial lights (a light sweep that drifts), circles (bubbles, bokeh) and a hill. The type sets are bundled (Nunito for `rounded`, Source Sans 3 for `humanist`, Source Serif 4 for `serif`, JetBrains Mono for `mono`, all SIL OFL, in `web/public/fonts`).
+
 ### Recipes
 
 **Only change the accent:**

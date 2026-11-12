@@ -67,7 +67,7 @@
 
 /* The stage: player in the middle, a panel beside it when one is open. */
 .np-stage { position: relative; z-index: 1; flex: 1 1 auto; min-height: 0; display: flex; gap: clamp(16px, 3vw, 40px); padding: 0 clamp(16px, 3vw, 40px); }
-.np-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(6px, 1.3vh, 16px); overflow-y: auto; overflow-x: hidden; padding: 4px 0; scrollbar-width: none; }
+.np-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: safe center; gap: clamp(6px, 1.3vh, 16px); overflow-y: auto; overflow-x: hidden; padding: 4px 0; scrollbar-width: none; }
 .np-main > * { flex: none; }
 
 /* Artwork, and the same picture again below it, flipped and fading: a plain second image,

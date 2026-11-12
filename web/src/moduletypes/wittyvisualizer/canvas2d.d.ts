@@ -1,10 +1,8 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
-// Copyright (C) 2026 WittyWilla and contributors
 import type { EffectFile } from './format.ts';
 import type { DrawInput, Renderer } from './gl.ts';
 export declare class CanvasRenderer implements Renderer {
     private canvas;
-    readonly kind: "canvas";
+    readonly kind: 'canvas';
     readonly software = true;
     readonly label = "Plain canvas";
     private ctx;

@@ -90,7 +90,7 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
     }).catch(() => {}).finally(() => setPrefsLoaded(true))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
   // The plugin comes when it's needed: most people's Bars, Waves and Drift don't need it.
-  const needShaders = prefsLoaded && prefs.viz && (!isNative(prefs.style) || (prefs.shuffleEvery > 0 && prefs.shufflePool === 'all'))
+  const needShaders = prefsLoaded && prefs.viz && p.vizHere
   const loadShaders = useCallback(() => { shaderEffects().then(setShaders).catch(() => {}) }, [])
   useEffect(() => { if (needShaders) loadShaders() }, [needShaders, loadShaders])
   useEffect(() => { root.current?.focus({ preventScroll: true }) }, [])

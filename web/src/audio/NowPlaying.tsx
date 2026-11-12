@@ -11,6 +11,7 @@ import { AudioPlayOn } from '../remote/PlayOnButton'
 import { IconKaraoke, IconList, IconMoon, IconMore, IconReadOpen, IconRepeat, IconRepeatOne, IconShuffle, IconSliders, IconStation, IconTurtle } from './icons'
 import { LyricsPanel } from './LyricsPanel'
 import { useLyrics } from './lyrics'
+import { Segmented } from '../ui/Choice'
 import { NowPlayingCanvas } from '../canvas/NowPlayingCanvas'
 import { QueuePanel } from './QueuePanel'
 import { ReadPanel, useExtras } from './ReadPanel'
@@ -27,8 +28,9 @@ const Karaoke = lazy(() => import('./Karaoke'))
 // transport, and from here everything else: lyrics, karaoke, the queue, the sound. It looks
 // the same in every theme because it sits on black, whatever the page behind it is doing.
 
-type Prefs = { viz: boolean; style: string; slow: boolean; shuffleEvery: number; shufflePool: 'all' | 'mine' }
-const DEFAULT_PREFS: Prefs = { viz: true, style: 'bars', slow: false, shuffleEvery: 0, shufflePool: 'mine' }
+type Prefs = { viz: boolean; canvas: boolean; style: string; slow: boolean; shuffleEvery: number; shufflePool: 'all' | 'mine' }
+// The visualizer is off until someone turns it on (docs/plans/DESIGN-2.md section 10).
+const DEFAULT_PREFS: Prefs = { viz: false, canvas: true, style: 'bars', slow: false, shuffleEvery: 0, shufflePool: 'mine' }
 const SHUFFLE_CHOICES = [0, 15, 30, 60, 120, 300, 600]
 const everyLabel = (s: number) => (s === 0 ? 'Off: stay on this one' : s < 60 ? `Every ${s} seconds` : s === 60 ? 'Every minute' : `Every ${s / 60} minutes`)
 
@@ -43,7 +45,7 @@ function savePrefs(p: Prefs) {
 function readPrefs(v: unknown): Prefs {
   const s = (typeof v === 'object' && v !== null ? v : {}) as Partial<Prefs>
   return {
-    viz: s.viz !== false, style: typeof s.style === 'string' && s.style.length <= 48 ? s.style : 'bars', slow: s.slow === true,
+    viz: s.viz === true, canvas: s.canvas !== false, style: typeof s.style === 'string' && s.style.length <= 48 ? s.style : 'bars', slow: s.slow === true,
     shuffleEvery: SHUFFLE_CHOICES.includes(s.shuffleEvery as number) ? (s.shuffleEvery as number) : 0, shufflePool: s.shufflePool === 'all' ? 'all' : 'mine',
   }
 }
@@ -191,7 +193,7 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
     <div className={'np' + (panel ? ' has-panel panel-' + panel : '')} ref={root} tabIndex={-1} role="dialog" aria-modal="true" aria-label={`Now playing: ${it.title}`}
       style={{ '--art': rgb } as React.CSSProperties} onClickCapture={(e) => { if (e.detail > 0) requestAnimationFrame(() => { if (!document.activeElement?.closest('input, select, textarea, .mp-pop-body, .np-panel')) root.current?.focus({ preventScroll: true }) }) }}>
       <div className="np-glow" aria-hidden="true" />
-      {canSing && <NowPlayingCanvas itemId={it.id} playing={p.playing} />}
+      {canSing && prefs.canvas && !prefs.viz && <NowPlayingCanvas itemId={it.id} playing={p.playing} />}
       {/* One canvas: it goes to the whole-screen view while that's open, and comes back after. */}
       {p.vizHere && prefsLoaded && prefs.viz && !wholeShader && <NpBackground style={style} slow={prefs.slow} rgb={rgb} playing={p.playing} media={p.media} trackMedia={trackMedia} onDecline={() => { setShown(''); setPrefs({ style: 'bars' }) }} />}
       {wholeShader && <VisualizerView media={trackMedia} place="full" onPlace={(pl) => { if (pl !== 'full') leaveWhole() }} onClose={leaveWhole} />}
@@ -260,7 +262,10 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
           <div className="np-tools">
             {p.vizHere && (
               <>
-                <button type="button" className={'np-viz-toggle ab-viz-btn' + (prefs.viz ? ' on' : '')} aria-pressed={prefs.viz} title="Visualizer (V)" onClick={() => setPrefs({ viz: !prefs.viz })}><IconVisualizer size={22} /> Visualizer</button>
+                {/* What is behind the player: the album's art, its Canvas video, or the visualizer. */}
+                <Segmented label="Behind the player" value={prefs.viz ? 'viz' : canSing && prefs.canvas ? 'canvas' : 'art'}
+                  onChange={(v) => setPrefs(v === 'viz' ? { viz: true } : v === 'canvas' ? { viz: false, canvas: true } : { viz: false, canvas: false })}
+                  options={[{ value: 'art', label: 'Album art' }, ...(canSing ? [{ value: 'canvas', label: 'Canvas video' }] : []), { value: 'viz', label: 'Visualizer', icon: <IconVisualizer size={16} /> }]} />
                 {prefs.viz && <div className="np-styles" role="radiogroup" aria-label="Visualizer style">
                   {NATIVE_STYLES.map((n) => <button type="button" role="radio" key={n.id} aria-checked={style === n.id} className={style === n.id ? 'on' : ''} onClick={() => pickStyle(n.id)}>{n.name}</button>)}
                   <Pop label="More visualizer styles" className={'np-more-styles' + (!isNative(style) ? ' on' : '')} icon={<span>{isNative(style) ? 'More' : shaders.find((s) => s.id === style)?.name || 'More'}</span>}>

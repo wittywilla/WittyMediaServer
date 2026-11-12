@@ -121,3 +121,45 @@ html[data-fx-bevel="full"] .btn:not(.ghost) { box-shadow: inset 0 1px 0 color-mi
 .rail-drawer-ic svg { inline-size: 1.5rem; block-size: 1.5rem; }
 @media (min-width: 901px) { .app.nav-rail .rail-drawer ~ .main { margin-inline-start: var(--rail-drawer, 360px); } }
 @media (prefers-reduced-motion: reduce) { .app.nav-rail .sidebar { transition: none; } }
+
+/* ---- the layout editor ---- */
+.shell-regions { display: grid; gap: var(--space-s); margin-top: var(--space-m); }
+.shell-region { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-m); padding: var(--space-s) var(--space-m); border: 1px solid var(--elev-1-line); border-radius: var(--r-md); background: var(--elev-1-fill); }
+.shell-region > b { flex: 1 1 8rem; }
+.shell-region label { display: flex; align-items: center; gap: var(--space-s); color: var(--fg-2); font-size: var(--text-sm); }
+
+/* ---- regions placed by the layout editor (data-r-* on the frame) ---- */
+.app[data-r-search="hidden"] .topbar .search, .app[data-r-brand="hidden"] :is(.sidebar .brand, .top-brand), .app[data-r-hero="hidden"] .hero, .app[data-r-dock="hidden"] .dock, .app[data-r-legend="hidden"] .key-legend, .app[data-r-clock="hidden"] .clock { display: none; }
+@media (min-width: 901px) { .app[data-r-nav="end"] { flex-direction: row-reverse; } .app[data-r-nav="end"] .sidebar { border-inline-end: 0; border-inline-start: 1px solid var(--border); } }
+.app[data-r-search="floating"] .topbar .search { position: fixed; inset-block-end: var(--space-l); inset-inline-end: var(--space-l); z-index: var(--z-popover); max-inline-size: 22rem; box-shadow: var(--elev-3-shadow); }
+.app[data-r-brand="center"] .topbar .top-brand { margin-inline: auto; }
+
+/* ---- finishes of the top-bar nav styles (data-nav-style on the frame), in the theme's own colours ---- */
+.app[data-nav-style="floatingGlassBar"] .topbar { margin: var(--space-s) var(--gutter) 0; border-radius: var(--r-full); background: color-mix(in srgb, var(--elev-2-fill) 86%, transparent); border: 1px solid var(--elev-2-line); box-shadow: var(--elev-3-shadow); background-image: linear-gradient(180deg, color-mix(in srgb, var(--on-image) 14%, transparent), transparent 60%); }
+.app[data-nav-style="cableBar"] .topbar { background: var(--accent); color: var(--accent-fg); border-radius: 0; }
+.app[data-nav-style="cableBar"] .topnav-link { color: var(--accent-fg); border-radius: 0; }
+.app[data-nav-style="cableBar"] .topnav-link.active { background: var(--accent-fg); color: var(--accent); }
+.app[data-nav-style="bevelBar"] .topbar { background: linear-gradient(180deg, var(--bg-4), var(--bg-3) 55%, var(--bg-2)); border-bottom: 1px solid var(--border-strong); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--on-image) 22%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--picture-bg) 30%, transparent); }
+.app[data-nav-style="bevelBar"] .topnav-link { border-radius: var(--r-sm); }
+.app[data-nav-style="teleKeys"] .topnav-link { border-radius: 0; border-bottom: 4px solid var(--fg-3); font-weight: 700; text-transform: uppercase; letter-spacing: var(--tracking-label); }
+.app[data-nav-style="teleKeys"] .topnav-link:nth-child(4n+1) { border-bottom-color: var(--danger); }
+.app[data-nav-style="teleKeys"] .topnav-link:nth-child(4n+2) { border-bottom-color: var(--ok); }
+.app[data-nav-style="teleKeys"] .topnav-link:nth-child(4n+3) { border-bottom-color: var(--warn); }
+.app[data-nav-style="teleKeys"] .topnav-link:nth-child(4n) { border-bottom-color: var(--accent); }
+.app[data-nav-style="crossbar"] .topnav { gap: var(--space-l); justify-content: center; }
+.app[data-nav-style="crossbar"] .topnav-link { font-size: var(--role-title-size); background: none; border-radius: 0; border-bottom: 2px solid transparent; color: var(--fg-2); }
+.app[data-nav-style="crossbar"] .topnav-link.active { background: none; color: var(--fg); border-bottom-color: var(--accent); }
+.app[data-nav-style="ornamentTabs"] .topbar { margin: var(--space-m) auto 0; inline-size: fit-content; max-inline-size: calc(100% - 2 * var(--gutter)); border-radius: var(--r-full); background: var(--elev-2-fill); border: 1px solid var(--elev-2-line); box-shadow: var(--elev-3-shadow); }
+.app[data-nav-style="ornamentTabs"] .topnav-link { min-block-size: 3.75rem; padding-inline: var(--space-l); }
+.ctv-banner-more { margin-top: var(--space-s); }
+
+/* ---- Carousel (Marquee): one big title at a time, centred, the neighbours smaller ---- */
+.sdui-carousel .row { justify-content: safe center; scroll-snap-type: x mandatory; gap: var(--space-l); padding-block: var(--space-l); }
+.sdui-carousel .sdui-item { scroll-snap-align: center; transition: transform var(--dur-screen) var(--ease-out), opacity var(--dur-screen); transform: scale(.82); opacity: .72; }
+.sdui-carousel .sdui-item:is(:hover, :focus-within) { transform: scale(1.12); opacity: 1; z-index: 1; }
+@media (prefers-reduced-motion: reduce) { .sdui-carousel .sdui-item { transition: none; } }
+/* ---- CrossBar (Crossbar): categories across, the chosen one's rows listed down under it ---- */
+.sdui-crossbar [data-sdui-tabs] { display: flex; justify-content: center; margin-block-end: var(--space-l); }
+.sdui-crossbar [role=tablist] { gap: var(--space-xl); border: 0; }
+.sdui-crossbar [role=tab] { font-size: var(--role-title-size); padding-block: var(--space-m); }
+.sdui-crossbar [role=tabpanel] { max-inline-size: 70rem; margin-inline: auto; }

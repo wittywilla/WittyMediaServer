@@ -5,7 +5,7 @@
 // adding a step means adding one line here and one file beside this one. Nothing here touches the
 // page or the network, so it can be tested on its own (plan.test.mjs).
 
-export type StepId = 'welcome' | 'account' | 'modules' | 'media' | 'games' | 'discs' | 'details' | 'logos' | 'music' | 'listings' | 'tv' | 'look' | 'theme' | 'done'
+export type StepId = 'welcome' | 'account' | 'modules' | 'media' | 'games' | 'discs' | 'details' | 'logos' | 'music' | 'listings' | 'tv' | 'look' | 'theme' | 'people' | 'remote' | 'done'
 
 // What the steps depend on. kinds is null until it's known, which it can't be before there's an
 // account to ask with. A kind that isn't listed needs no module, as the server has the last word.
@@ -43,6 +43,8 @@ export const STEPS: StepInfo[] = [
   { id: 'music', label: 'Lyrics', needs: 'server', when: (f) => canMake(f, 'music'), later: { where: 'Settings, Metadata agents, under Lyrics', to: '/settings/metadata#lyrics' } },
   { id: 'listings', label: 'Streaming lists', needs: 'server', when: (f) => canMake(f, 'movies') || canMake(f, 'shows'), later: { where: 'Settings, Metadata agents, under Streaming listings', to: '/settings/metadata#listings' } },
   { id: 'tv', label: 'Live TV', needs: ['wittytuner'], later: { where: 'Settings, Channels & tuners', to: '/settings/channels' } },
+  { id: 'people', label: 'People and rules', needs: 'server', later: { where: 'Settings, Profiles', to: '/settings/users' } },
+  { id: 'remote', label: 'Remote access and apps', needs: 'server', later: { where: 'Settings, Remote Access', to: '/settings/remote' } },
   { id: 'done', label: 'Ready', needs: 'server' },
 ]
 

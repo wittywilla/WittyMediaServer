@@ -243,7 +243,7 @@ function ShelfView({ view, depth }: { view: View; depth: number }) {
   const seeAllLabel = str(obj(view.node.props, 'seeAll'), 'label') || 'See all'
   const wideCards = view.cardStyle === 'landscape' || view.children[0]?.node.props?.shape === 'landscape'
   return (
-    <section className={'hub sdui-shelf' + (view.node.props?.numbered ? ' numbered' : '')} style={{ ...cardVars(view, page.pt), '--peek': view.peek || 0, ...scopeStyle(view.node) } as CSSProperties} data-scope={view.scope} data-sdui-section={depth === 1 ? view.id : undefined} aria-busy={waiting || undefined}>
+    <section className={'hub sdui-shelf' + (view.type === 'Carousel' ? ' sdui-carousel' : '') + (view.node.props?.numbered ? ' numbered' : '')} style={{ ...cardVars(view, page.pt), '--peek': view.peek || 0, ...scopeStyle(view.node) } as CSSProperties} data-scope={view.scope} data-sdui-section={depth === 1 ? view.id : undefined} aria-busy={waiting || undefined}>
       <Heading view={view} id={id} />
       {view.state === 'deferred' && !failed && <Near onNear={() => page.more(view.id)} />}
       {failed || view.state === 'empty' ? <StateLine view={view} /> : tiles && !waiting ? (
@@ -716,7 +716,7 @@ function TabsView({ view, depth }: { view: View; depth: number }) {
   const panel = 'sdui-panel-' + view.id
   const icon = (t: View) => sduiIcon(t.node.props?.icon)
   return (
-    <section className="sdui-tabs" data-sdui-section={depth === 1 ? view.id : undefined} style={scopeStyle(view.node)}>
+    <section className={'sdui-tabs' + (view.type === 'CrossBar' ? ' sdui-crossbar' : '')} data-sdui-section={depth === 1 ? view.id : undefined} style={scopeStyle(view.node)}>
       <div data-sdui-tabs={view.id} data-sdui-head>
         {str(view.node.props, 'style') === 'segments'
           ? <Segmented label={label} value={selected.id} onChange={choose} options={tabs.map((t) => ({ value: t.id, label: t.text?.title || '', icon: icon(t) }))} />

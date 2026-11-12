@@ -17,8 +17,11 @@ import { canOfferRecord, fmtClock, fmtDay, fmtLeft, fmtSpan, type GuideChannel, 
 // onRecordOptions (tv-dvr-rules-2): Record opens the choices (padding, and which airings), rather
 // than recording at once. onFromStart (tv-catchup) and onAddToSet (tv-sets) are there only when
 // the server can do them.
+// What the pop-up needs of a channel: the guide's rows have all of it, and the player's tune answer has the rest it knows.
+export type DetailChannel = Pick<GuideChannel, 'key' | 'kind' | 'number' | 'name'> & Partial<Pick<GuideChannel, 'id' | 'alternative' | 'catchupDays' | 'encrypted' | 'noRecord' | 'notices' | 'security' | 'canRecord' | 'logo' | 'brand'>>
+
 export default function DetailsDialog({ ch, p, now, startDay, onClose, onWatch, onRecord, onReset, onRecordOptions, onFromStart, onAddToSet }: {
-  ch: GuideChannel; p: Programme; now: number; startDay?: boolean; look: Look; onClose: () => void; onWatch: () => void; onRecord: () => void; onReset?: () => void
+  ch: DetailChannel; p: Programme; now: number; startDay?: boolean; look: Look; onClose: () => void; onWatch: () => void; onRecord: () => void; onReset?: () => void
   onRecordOptions?: (series: boolean) => void; onFromStart?: () => void; onAddToSet?: () => void
 }) {
   const [desc, setDesc] = useState(p.desc || '')
@@ -38,8 +41,8 @@ export default function DetailsDialog({ ch, p, now, startDay, onClose, onWatch, 
   const actions = (
     <>
       <Button variant="ghost" onClick={onClose}>Close</Button>
-      {user?.isAdmin && ch.kind === 'library' && <LinkButton variant="ghost" to={`/tv/channels/${ch.id}`}>Edit channel</LinkButton>}
-      {user?.isAdmin && ch.kind === 'library' && <Button variant="ghost" onClick={() => void resetChannel(ch.id, ch.name).then((done) => { if (done) { onReset?.(); onClose() } })}>Reset channel</Button>}
+      {user?.isAdmin && ch.kind === 'library' && ch.id != null && <LinkButton variant="ghost" to={`/tv/channels/${ch.id}`}>Edit channel</LinkButton>}
+      {user?.isAdmin && ch.kind === 'library' && ch.id != null && <Button variant="ghost" onClick={() => void resetChannel(ch.id!, ch.name).then((done) => { if (done) { onReset?.(); onClose() } })}>Reset channel</Button>}
       {later && !ch.encrypted && p.kind !== 'none' && p.kind !== 'group' && <Button aria-pressed={reminded} onClick={() => void reminders.toggle(ch.key, p)}>{reminded ? '✓ Reminder set' : 'Remind me'}</Button>}
       {onAddToSet && <Button variant="ghost" onClick={onAddToSet}>Add to set…</Button>}
       {canOfferRecord(ch, p, now) && (onRecordOptions
@@ -77,7 +80,7 @@ export default function DetailsDialog({ ch, p, now, startDay, onClose, onWatch, 
   )
 }
 
-function DayView({ ch, at, now }: { ch: GuideChannel; at: number; now: number }) {
+function DayView({ ch, at, now }: { ch: DetailChannel; at: number; now: number }) {
   const start = (() => { const d = new Date(at * 1000); d.setHours(0, 0, 0, 0); return d.getTime() / 1000 })()
   const [list, setList] = useState<Programme[] | null>(null)
   const [err, setErr] = useState('')

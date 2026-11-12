@@ -72,7 +72,7 @@ Numbering comes from your files. If a source numbers a show differently, see [Fi
 *A show's page. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
 - **Play** carries on from the next episode, and says which, with **Resume** if you're part-way through.
 - **Layout** switches between **Cards**, with pictures and overviews, and **Playlist**, a compact list. Each show remembers its own choice. **Settings → Playback & discs → TV episode layout** sets the default.
-- **Skip intro** appears during an episode's intro when the file has a chapter called `Intro` or `Opening`, or when you set where it ends: press **Edit** on the show or episode, and go to **Skip intro**. You can type the time, or use **Pick in player**. On a show, it covers every episode with no intro of its own.
+- **Skip intro** appears during an episode's intro when the file has a chapter called `Intro` or `Opening`, or when you set where it ends: press **Edit** on the show or episode, and go to **Skipping**. You can type the times, or use **Pick in player**. On a show, it covers every episode with no intro of its own.
 - **Next episode** is offered near the credits, with a short countdown. At the end of a show it offers something else to watch.
 - **Subtitles and sound** work as for any video: see [Watching and listening](PLAYING.md).
 

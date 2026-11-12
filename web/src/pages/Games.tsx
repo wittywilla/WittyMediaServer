@@ -11,6 +11,7 @@ import { getConsoles, knownConsoles, useConsoles, useSettingsHost } from './game
 import type { Background, ControllerData, ControlsData, PlayHost, PrepareStatus, Profile, ProfileHost, SessionInfo } from '@wittywilla/wittyplay'
 import { lazyModule } from '../moduleBundles'
 import { getTvMode } from '../tvmode/mode'
+import { useGameRemote } from '../remote/pageTargets'
 import './games.css'
 
 // Games: what the game pages share, and the page that holds the player. The library and a
@@ -111,6 +112,8 @@ export function GamePage() {
       close: () => nav(getTvMode() ? `/games/game/${it.id}` : couchOn() ? `/big/game/${it.id}` : `/item/${it.id}`, { replace: true }),
     }
   }, [it, settingsHost, user?.isAdmin])
+  // Another device can see that a game is on here, and stop it (docs/REMOTE-PROTOCOL.md).
+  useGameRemote(it?.id || 0, () => host?.close())
   if (err) return <div className="wp-page-error" role="alert"><LoadError what="This game" onRetry={() => window.location.reload()} /><p className="muted">{err}</p></div>
   if (!host) return <Spinner />
   const emulator = params.get('emulator')

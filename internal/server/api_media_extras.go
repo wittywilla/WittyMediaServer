@@ -126,6 +126,12 @@ type canvasInfo struct {
 	Task string `json:"task,omitempty"`
 	// CanGenerate: an administrator can have one cut from the video.
 	CanGenerate bool `json:"canGenerate"`
+	// Error is why the last try at cutting one failed, for the administrator who asked.
+	Error string `json:"error,omitempty"`
+	// Limited: this viewer is away from home and the owner limits the data of a stream
+	// there. The canvas is still served (slowed to the limit), but it is decoration, and an
+	// app should leave it out rather than spend the viewer's data on it.
+	Limited bool `json:"limited,omitempty"`
 }
 
 // canvasKinds are the items a canvas can go with.
@@ -216,6 +222,12 @@ func (s *Server) handleCanvas(w http.ResponseWriter, r *http.Request) {
 	}
 	out := canvasInfo{Loop: true, Task: s.mediaJobTask(fmt.Sprintf("canvas:%d", it.ID))}
 	out.CanGenerate = userFrom(r).IsAdmin && it.Kind == "video" && localFileItem(it) && s.canvasEncoder() != "" && s.Tools.FFmpeg != ""
+	if _, rate := s.remoteCaps(r); rate != "" {
+		out.Limited = true
+	}
+	if err := s.mediaJobError(fmt.Sprintf("canvas:%d", it.ID)); err != nil && userFrom(r).IsAdmin {
+		out.Error = err.Error()
+	}
 	f, ok := s.findCanvas(r.Context(), it)
 	if ok {
 		if fh, st, err := s.openExtra(r.Context(), f); err == nil {

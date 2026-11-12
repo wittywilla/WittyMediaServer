@@ -96,6 +96,14 @@ func (rv *sduiResolver) can(what string) []string {
 	if rv.acc.Can(library.FeatureSharing) {
 		out = append(out, "share")
 	}
+	// What plays can be sent to another device and watched together, unless the profile
+	// has those turned off (the server's own switches are the dialogs' to explain).
+	if what == "play" && rv.acc.Can(library.FeatureRemoteControl) {
+		out = append(out, "playOn")
+	}
+	if what == "play" && rv.acc.Can(library.FeatureSyncplay) {
+		out = append(out, "watchParty")
+	}
 	return out
 }
 
@@ -229,7 +237,11 @@ func (rv *sduiResolver) artist(lib int64, i int, a library.Artist) sdui.Item {
 }
 
 func (rv *sduiResolver) album(lib int64, a library.Album) sdui.Item {
-	out := sdui.Item{ID: fmt.Sprintf("album-%d-%d", lib, a.CoverItem), Kind: "album", Title: a.Title, Subtitle: a.Artist, Artist: a.Artist, Count: a.Tracks, RuntimeSec: a.DurationSec,
+	key := a.CoverItem
+	if key == 0 {
+		key = a.FirstItem
+	}
+	out := sdui.Item{ID: fmt.Sprintf("album-%d-%d", lib, key), Kind: "album", Title: a.Title, Subtitle: a.Artist, Artist: a.Artist, Count: a.Tracks, RuntimeSec: a.DurationSec,
 		Route: "/album/" + itoa(lib) + "?artist=" + url.QueryEscape(a.Artist) + "&album=" + url.QueryEscape(a.Title), Images: map[string]string{}}
 	if a.Year != nil {
 		out.Year = *a.Year
@@ -616,7 +628,12 @@ func (rv *sduiResolver) Items(req sdui.SourceRequest) (sdui.SourceResult, error)
 		}
 		all := make([]sdui.Item, 0, len(albums))
 		for _, a := range albums {
-			all = append(all, rv.album(lib.ID, a))
+			it := rv.album(lib.ID, a)
+			// An album's own page doesn't offer it again under "More by this artist".
+			if rv.subject != nil && rv.subject.Kind == "album" && rv.subject.ID == it.ID {
+				continue
+			}
+			all = append(all, it)
 		}
 		return page(all, req), nil
 	case "artists":
@@ -923,8 +940,9 @@ func (rv *sduiResolver) Subject() (*sdui.Item, error) {
 		for _, a := range albums {
 			if a.Title == v["album"] && (v["artist"] == "" || a.Artist == v["artist"]) {
 				it := rv.album(lib.ID, a)
-				if a.CoverItem != 0 {
-					it.PlayID, it.Can = itoa(a.CoverItem), rv.can("play")
+				// Play starts at the first track; the album page plays on from there.
+				if first := firstNonZero(a.FirstItem, a.CoverItem); first != 0 {
+					it.PlayID, it.Can = itoa(first), rv.can("play")
 				}
 				if rv.noPlay {
 					rv.unplayable(&it)
@@ -1094,4 +1112,13 @@ func (s *Server) sduiTopShelfRows(r *http.Request) []sdui.TopShelfRow {
 		}
 	}
 	return rows
+}
+
+func firstNonZero(v ...int64) int64 {
+	for _, x := range v {
+		if x != 0 {
+			return x
+		}
+	}
+	return 0
 }

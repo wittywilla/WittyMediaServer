@@ -129,3 +129,11 @@
 }
 @media (max-width: 1280px) { .set-toc-label { display: none; } 
 }
+
+/* Module settings (ModuleSettings.tsx): Settings' own rows, with a link per module. */
+.ms-link { display: inline-flex; align-items: center; gap: var(--sp-2); color: inherit; text-decoration: none; }
+.ms-link svg { width: 18px; height: 18px; }
+.ms-page-title { margin: var(--sp-6) 0 var(--sp-2); font-size: var(--text-lg); }
+.ms-value { color: var(--fg-2); }
+.ms-num, .ms-secret { display: inline-flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.ms-num .input { width: 8rem; }

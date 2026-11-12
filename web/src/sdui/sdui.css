@@ -89,7 +89,8 @@ button.lib-tile, button.sdui-row, button.sdui-banner { font: inherit; cursor: po
 .sdui-hero-arrow svg { width: 20px; height: 20px; }
 .sdui.ff-tv .sdui-hero { height: auto; aspect-ratio: 1920 / 620; min-height: 0; margin-inline: 0; border-radius: var(--r-lg); }
 
-/* A title's header. */
+/* A title's header. Without a backdrop there is no picture to leave room for. */
+.sdui-detail .detail-hero.bare { height: clamp(160px, 22vh, 240px); min-height: 0; }
 .sdui-detail .detail.compact { grid-template-columns: minmax(0, 1fr); margin-top: 0; }
 .sdui-detail.layout-compact h1 { text-shadow: none; }
 .sdui-detail .detail .poster.square { aspect-ratio: 1; }
@@ -107,7 +108,7 @@ button.lib-tile, button.sdui-row, button.sdui-banner { font: inherit; cursor: po
 /* Seasons, episodes, tracks. */
 .sdui-season-tabs { display: flex; gap: var(--sp-2); overflow-x: auto; padding: var(--sp-1) 0 var(--sp-3); margin-bottom: var(--sp-2); }
 .sdui-season { width: auto; min-height: var(--control-h); padding: var(--sp-2) var(--sp-4); border-radius: var(--r-full); border: 1px solid var(--border-strong); background: transparent; color: var(--fg-2); text-align: center; cursor: pointer; }
-.sdui-season .t { font-weight: 600; font-size: var(--text-sm); white-space: nowrap; }
+.sdui-season .t { margin-top: 0; color: inherit; font-weight: 600; font-size: var(--text-sm); white-space: nowrap; }
 .sdui-season .sub { font-size: var(--text-xs); color: inherit; opacity: .8; white-space: nowrap; }
 .sdui-season:hover { background: var(--hover); color: var(--fg); }
 .sdui-season.active, .sdui-season.active:hover { background: var(--fg); border-color: var(--fg); color: var(--bg); }
@@ -199,3 +200,22 @@ a.sdui-row:hover, button.sdui-row:hover { background: var(--hover); }
 .sdui-arrange .nav-custom-row.locked { background: transparent; border: 1px dashed var(--border); }
 .sdui-locked { font-size: var(--text-sm); flex: none; }
 .sdui-card-menu { z-index: var(--z-popover); }
+
+/* On a phone the spotlight grows with its words: a long title, a tagline and two lines of
+   overview never reach up under the top bar, which lies over the picture. */
+@media (max-width: 700px) {
+  .sdui:not(.ff-tv) .hero { height: auto; min-height: min(66vh, 520px); display: flex; flex-direction: column; justify-content: flex-end; padding-top: calc(var(--topbar-h) + var(--sp-12)); }
+  .sdui:not(.ff-tv) .hero .info { position: relative; left: auto; bottom: auto; margin: 0 var(--gutter) var(--sp-6); width: auto; }
+}
+
+/* The app's own tools under a page's title (extras/PageTools.tsx). */
+.sdui-tools { display: grid; gap: var(--sp-2); margin-bottom: var(--sdui-m); }
+.sdui-tools-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.sdui.ff-tv .sdui-tools { display: none; }
+.sdui-pick { display: grid; gap: var(--sp-3); }
+.sdui-pick-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); }
+.sdui-pick-head .input { flex: 1 1 220px; }
+.sdui-pick-all { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.sdui-pick-list { list-style: none; margin: 0; padding: 0; max-height: min(60vh, 520px); overflow: auto; }
+.sdui-pick-list li { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-2) var(--sp-1); box-shadow: 0 1px var(--border); }
+.sdui-pick-list label { display: flex; align-items: center; gap: var(--sp-2); flex: 1; min-width: 0; cursor: pointer; }

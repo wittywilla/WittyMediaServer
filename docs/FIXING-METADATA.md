@@ -9,7 +9,7 @@ All of this is for administrators. To see where details come from in the first p
 - [Choosing the right match](#choosing-the-right-match)
 - [Locks, sources and Revert](#locks-sources-and-revert)
 - [Artwork](#artwork)
-- [Skip intro](#skip-intro)
+- [Skipping](#skipping)
 - [Bonus features, versions and moving](#bonus-features-versions-and-moving)
 - [Logos](#logos)
 - [Refreshing a title](#refreshing-a-title)
@@ -35,7 +35,7 @@ All of this is for administrators. To see where details come from in the first p
 
 ## The Edit dialog
 
-Press **Edit** on a film, episode or show. One dialog holds everything about it, in sections you can jump between: **Match**, **Details**, **Artwork**, **Skip intro**, **Organise** and **Logos**. **Delete**, **Cancel** and **Save** stay in view however long it runs.
+Press **Edit** on a film, episode or show. One dialog holds everything about it, in sections you can jump between: **Match**, **Details**, **Artwork**, **Skipping**, **Organise** and **Logos**. **Delete**, **Cancel** and **Save** stay in view however long it runs.
 
 *Ctrl+S* saves, and *Escape* closes, asking first if something isn't saved.
 
@@ -100,11 +100,18 @@ Pictures from sources are fetched by your server, so no browser or app contacts 
 
 With **Save information and artwork next to your media** on, the chosen poster and backdrop are also copied to the standard names beside the file, and the NFO is rewritten. A hand-written one is kept as `.nfo.bak`.
 
-## Skip intro
+## Skipping
 
-Under **Where the intro ends**, type a time such as `1:05`, or press **Pick in player**, play to the moment, and press the button there. Blank means work it out from the file's chapters. On a show, it covers every episode with no intro of its own. Discs have their own menus, so this isn't offered for them.
+**On a film or an episode,** this section lists the **Recap**, the **Intro**, the **Credits** and the **Advert breaks**, each with where it starts and ends and where that came from: the file's chapters, a `.skip.json` or `.edl` beside the file, comparing the season's episodes, the show's own intro, or set by hand. Type times such as `1:05`, add or remove advert breaks, and press **Save skip times**. What you set wins over everything else and no scan changes it. Leave the end of the credits empty for credits that run to the end.
 
-Save or undo your changes first, because picking a time leaves the dialog.
+- **To go back to the file's times for one part,** empty the times you set for it, and save. **Back to what the files say** does it for all of them.
+- **Pick in player** opens the video with a bar over it: choose the part, play or seek to the moment, press **Starts here** or **Ends here**, then **Save**. Mark as many parts as you like, and press **Done** to come back.
+
+These save at once, with their own button, not with the dialog's **Save**.
+
+**On a show,** **Where the intro ends** sets one intro for every episode with none of its own: type a time, or press **Pick in player**, play the first episode to the moment, and press the button there. Blank means work it out from each file. To have the server find each episode's intro and credits by ear, use **Find intros and credits** on the show's page: see [Finding intros nothing marks](PLAYING.md#finding-intros-nothing-marks).
+
+Save or undo your other changes first, because picking a time leaves the dialog. Discs have their own menus, so none of this is offered for them.
 
 ## Bonus features, versions and moving
 

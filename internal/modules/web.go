@@ -54,6 +54,9 @@ type WebBundle struct {
 	API     int    `json:"api"`
 	// Pages are what it adds to the app's menus.
 	Pages []wittymodule.Page `json:"pages,omitempty"`
+	// Views are the IDs of the views of its own in its SDUI (docs/SDUI-MODULES.md, "Views"):
+	// the bundle exports a component for each, and the web app says it can draw them.
+	Views []string `json:"views,omitempty"`
 }
 
 // WebBundles lists the bundles in use.
@@ -70,8 +73,14 @@ func (m *Manager) WebBundles() []WebBundle {
 		if e.man.Delivery != wittymodule.DeliveryWeb {
 			entry, style = e.man.WebEntry, e.man.WebStyle
 		}
-		out = append(out, WebBundle{ID: id, Version: e.man.Version, Entry: entry, Style: style, API: e.man.API,
-			Pages: e.man.Pages, Base: "/api/modules/" + id + "/web/" + e.web.address(e.man.Version) + "/"})
+		b := WebBundle{ID: id, Version: e.man.Version, Entry: entry, Style: style, API: e.man.API,
+			Pages: e.man.Pages, Base: "/api/modules/" + id + "/web/" + e.web.address(e.man.Version) + "/"}
+		if e.ui != nil {
+			for _, v := range e.ui.Views {
+				b.Views = append(b.Views, v.ID)
+			}
+		}
+		out = append(out, b)
 	}
 	return out
 }

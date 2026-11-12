@@ -334,6 +334,9 @@
           "coverItem": {
             "type": "integer"
           },
+          "firstItem": {
+            "type": "integer"
+          },
           "durationSec": {
             "type": "number"
           },
@@ -850,9 +853,6 @@
           "available": {
             "type": "boolean"
           },
-          "canGenerate": {
-            "type": "boolean"
-          },
           "durationMs": {
             "type": "integer"
           },
@@ -865,13 +865,7 @@
           "mime": {
             "type": "string"
           },
-          "reason": {
-            "type": "string"
-          },
           "source": {
-            "type": "string"
-          },
-          "task": {
             "type": "string"
           },
           "url": {
@@ -879,6 +873,21 @@
           },
           "width": {
             "type": "integer"
+          },
+          "canGenerate": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": "string"
+          },
+          "limited": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "task": {
+            "type": "string"
           }
         },
         "required": [
@@ -7638,6 +7647,15 @@
           },
           "version": {
             "type": "string"
+          },
+          "views": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
           }
         },
         "required": [
@@ -31093,12 +31111,19 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "type": "object",
                   "properties": {
+                    "stems": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/StemView"
+                      }
+                    },
                     "names": {
+                      "type": "array",
                       "items": {
                         "type": "string"
-                      },
-                      "type": "array"
+                      }
                     },
                     "separation": {
                       "properties": {
@@ -31106,6 +31131,10 @@
                           "properties": {
                             "available": {
                               "type": "boolean"
+                            },
+                            "error": {
+                              "description": "why the last try failed, until it is tried again",
+                              "type": "string"
                             },
                             "note": {
                               "type": "string"
@@ -31127,6 +31156,10 @@
                           "properties": {
                             "available": {
                               "type": "boolean"
+                            },
+                            "error": {
+                              "description": "why the last try failed, until it is tried again",
+                              "type": "string"
                             },
                             "note": {
                               "type": "string"
@@ -31150,19 +31183,12 @@
                         "external"
                       ],
                       "type": "object"
-                    },
-                    "stems": {
-                      "items": {
-                        "$ref": "#/components/schemas/StemView"
-                      },
-                      "type": "array"
                     }
                   },
                   "required": [
                     "stems",
                     "names"
-                  ],
-                  "type": "object"
+                  ]
                 }
               }
             },

@@ -28,3 +28,9 @@
 .pc-rows li { display: flex; justify-content: space-between; gap: var(--sp-4); padding: var(--sp-2) var(--sp-3); background: var(--bg-3); border-radius: var(--r-sm); font-size: var(--text-sm); }
 .pc-rows li span:first-child { min-width: 0; overflow-wrap: anywhere; }
 .pc-rows li .muted { flex: none; }
+/* A day of the report, or the list of what was refused, with the focus on it as a whole. */
+.pc-block { border-radius: var(--r-sm); }
+.pc-block:focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: var(--focus-offset); }
+/* With a remote, the buttons that give time span the dialog, so Down from its × lands on them
+   and not past them on Done. */
+html.ten-foot .pc-give { display: grid; grid-template-columns: auto repeat(3, minmax(0, 1fr)); }

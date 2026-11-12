@@ -696,6 +696,36 @@ func TestPermissionRefusals(t *testing.T) {
 	}
 }
 
+// Adding to the queue, or moving things in it, around what is playing doesn't start it again.
+func TestQueueAroundWhatIsPlaying(t *testing.T) {
+	w := newWorld(t, func(c *Config) { c.MaxQueue = 10 })
+	host := w.create(person(1), 10, 11)
+	guest := w.join(person(2), host.Code)
+	w.ready(host, 1)
+	w.ready(guest, 2)
+	w.do(host, 1, Command{Type: CmdPlay})
+	w.pass(30 * time.Second)
+	before := w.view(guest, 2)
+	// 12 is put first and 13 last: 10 is now second, and still playing.
+	v := w.do(host, 1, Command{Type: CmdQueue, Items: []int64{12, 10, 11, 13}, Index: 1})
+	if v.State.ItemID != 10 || v.State.Index != 1 || v.State.Seq != before.State.Seq+1 || v.State.Paused || v.State.Waiting {
+		t.Fatalf("%+v", v.State)
+	}
+	if !near(v.State.PositionAt(w.ms()), before.State.PositionAt(w.ms())) || v.State.AtMs != before.State.AtMs {
+		t.Fatalf("the place moved: %+v, was %+v", v.State, before.State)
+	}
+	for _, m := range w.view(guest, 2).Members {
+		if m.State != MemberReady {
+			t.Fatalf("%s has to load again: %s", m.Name, m.State)
+		}
+	}
+	// Pointing at something else is a change of item, from its start, as before.
+	v = w.do(host, 1, Command{Type: CmdQueue, Items: []int64{12, 10, 11, 13}, Index: 2})
+	if v.State.ItemID != 11 || !near(v.State.PositionSec, 0) || !v.State.Waiting {
+		t.Fatalf("%+v", v.State)
+	}
+}
+
 func TestInvitesAndLists(t *testing.T) {
 	w := newWorld(t, func(c *Config) { c.MaxInvites = 2 })
 	w.hide(4, 10)

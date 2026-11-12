@@ -698,6 +698,7 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		}
 		all = append(all, c...)
 	}
+	all = dropTitleExtras(all) // stems and canvases go with a title; they aren't titles
 	if lib.Type == "games" {
 		archives.save(ctx, len(offline) == 0)
 		if err := s.Store.saveNotes(ctx, libraryID, archives, len(offline) > 0); err != nil {

@@ -739,7 +739,9 @@ The tasks for each app:
    The web app mounts one with the props `{ host, view, library?, ...the node's other
    props }`, where `host` is the object a module's pages get and `view` the view's ID;
    when the bundle or the export is missing, it draws the node's children, the fallback,
-   as for any view it doesn't have. A native
+   as for any view it doesn't have, and so it does when the view fails while drawing.
+   `GET /api/v1/modules/web` names each bundle's views (`views`), so the app knows
+   them without loading the bundle. A native
    app sends a module's view only if it really draws it; usually it sends none, and its
    users see the fallback.
 2. **Draw module settings in Settings → Modules**, as in [Drawing them in an app](#drawing-them-in-an-app),

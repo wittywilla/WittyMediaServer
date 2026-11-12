@@ -44,11 +44,9 @@ function pageOf(module: string, page: string) {
   return c
 }
 
-export default function ModulePage() {
-  const { module = '', page = '' } = useParams()
-  const { user } = useApp()
-  const admin = !!user?.isAdmin
-  const host = useMemo<PageHost>(() => ({
+// The host a module's page is given; a module's view in a server-driven page gets the same.
+export function makePageHost(module: string, admin: boolean): PageHost {
+  return {
     request,
     user: { admin },
     store: {
@@ -57,7 +55,14 @@ export default function ModulePage() {
     },
     token: getToken,
     base: serverBase,
-  }), [module, admin])
+  }
+}
+
+export default function ModulePage() {
+  const { module = '', page = '' } = useParams()
+  const { user } = useApp()
+  const admin = !!user?.isAdmin
+  const host = useMemo<PageHost>(() => makePageHost(module, admin), [module, admin])
   if (!WORD.test(module) || !WORD.test(page)) return null
   const Page = pageOf(module, page)
   return <Suspense fallback={<Spinner />}><Page host={host} /></Suspense>

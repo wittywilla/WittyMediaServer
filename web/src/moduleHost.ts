@@ -14,7 +14,7 @@ import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url'
 // Adding here raises the module API (moduleBundles.ts); removing or changing anything
 // breaks bundles already released.
 export const moduleHost = {
-  api: 3,
+  api: 4,
   react: React,
   reactDom: ReactDom,
   jsxRuntime,

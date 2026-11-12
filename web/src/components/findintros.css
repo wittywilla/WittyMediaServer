@@ -1,0 +1,10 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
+/* The Find intros and credits window on a show's page. */
+.find-intros { display: flex; flex-direction: column; gap: var(--sp-3); }
+.find-intros p { margin: 0; }
+.find-intros [role=status]:not(p) { display: flex; flex-direction: column; gap: var(--sp-2); }
+.find-intros-which { display: flex; flex-direction: column; gap: var(--sp-1); font-size: var(--text-sm); font-weight: 600; color: var(--fg-2); max-width: 320px; }
+.find-intros-line { font-size: var(--text-sm); color: var(--fg-2); }
+.find-intros-result { font-weight: 600; }
+.find-intros-problems { margin: 0; padding-left: var(--sp-5); font-size: var(--text-sm); color: var(--fg-2); max-height: 160px; overflow: auto; }

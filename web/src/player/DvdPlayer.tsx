@@ -18,6 +18,8 @@ import { discMemory, rememberDisc, useViewPrefs, type ViewPrefs } from './viewPr
 import { focusPlayerControls } from '../tv'
 import { announce } from '../a11y'
 import { getTvMode } from '../tvmode/mode'
+import { useDiscRemote } from '../remote/discTarget'
+import { PlayOnButton } from '../remote/PlayOnButton'
 
 haveHls(Hls)
 
@@ -606,6 +608,8 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
   const remoteEnabled = (k: RemoteKey) => keyWorks(form, k, remoteState)
   const keysNote = remoteNote(form, remoteState)
   const label = remoteLabel(form)
+  // Another device steering this one (docs/REMOTE-PROTOCOL.md): see remote/discTarget.ts.
+  useDiscRemote({ item, video, pres, waiting: st.waiting, stopped, locked, key: onRemote, seek, audio: switchAudio, subtitle: switchSub, close: chrome.close })
 
   // The picture and the disc's menus have the arrow keys until the viewer goes
   // to the controls.
@@ -784,6 +788,7 @@ export default function DvdPlayer({ item, mode, ttn, chapter, startAt, insert, m
             )}
             <button className="btn sm hide-narrow" onClick={titleMenu} title="Disc title menu (t)">Title menu</button>
             <button className="btn sm" onClick={menuKey} title={hasPopup || bdjOn ? 'Pop-up menu (m)' : 'Menu (m)'}><IconMenu /> Menu</button>
+            <PlayOnButton className="ibtn" iconOnly label="Play on another device" source={() => ({ kind: 'playing', itemId: item.id, itemKind: item.kind, title: item.title, positionSec: () => (presRef.current?.kind === 'title' ? pos() : 0), audio: title ? String(title.audioStream) : undefined, subtitle: title ? (title.subtitleStream < 0 ? 'off' : String(title.subtitleStream)) : undefined, stop: chrome.close })} />
             <button className="ibtn" onClick={back} title="Mini player"><IconMini /></button>
           </div>
           {remoteOn && (sheetLayout

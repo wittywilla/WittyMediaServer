@@ -17,7 +17,7 @@ import { fetchItems, fetchPage, kept, onChange, remember, bump } from './client'
 import { deviceKey, type Device } from './device'
 import { focusMap, next as nextFocus, type Dir } from './focus'
 import { applyItems, buildPage, sectionGap, type View } from './model'
-import { nativeInstead } from './native'
+import { hasTools, nativeInstead } from './native'
 import { plan, withQuery } from './routes'
 import { Ctx, px, type PageCtx } from './render/context'
 import { scopeStyle, Sections } from './render/components'
@@ -29,6 +29,7 @@ import './sdui.css'
 const Customise = lazy(() => import('./Customise'))
 const CardMenu = lazy(() => import('./render/CardMenu'))
 const ScreenHost = lazy(() => import('./render/ScreenHost'))
+const PageTools = lazy(() => import('./extras/PageTools'))
 
 // ---------------------------------------------------------------- the tree, changed without changing it
 
@@ -385,6 +386,7 @@ export default function SduiPage({ page, params, fallback }: { page: string; par
   return (
     <>
       <PageView doc={doc} device={device} handlers={handlers}>
+        {hasTools(doc, libraries) && <Suspense fallback={null}><PageTools doc={doc} /></Suspense>}
         {doc.meta?.source === 'draft' && <div className="ui-notice info sdui-draft" role="status"><div className="ui-notice-text"><strong>This is the draft</strong><span>Only you see it. Publish it from Settings, Pages and menu.</span></div><Link className="btn sm" to="/settings/pages">Open the editor</Link></div>}
         {st && (
           <div className="ui-notice warn sdui-screentime" role="status">

@@ -40,6 +40,11 @@ func (s *Server) handleLibraries(w http.ResponseWriter, r *http.Request) {
 		}
 		libs = shown
 	}
+	// A profile with limits is told how many titles it may see, not how many there are.
+	if err := s.Store.VisibleCounts(r.Context(), libs, s.access(r)); err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
 	writeJSON(w, 200, libs)
 }
 

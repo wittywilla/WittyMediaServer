@@ -2,7 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { arrange, entries, fitCount, groupOf, isActive, moved } from './navModel.ts'
+import { arrange, entries, fitCount, groupOf, isActive, moved, frameFor } from './navModel.ts'
 
 const items = [
   { id: 'home', label: 'Home', to: '/', end: true },
@@ -65,4 +65,12 @@ test('active: home only on its own page, the rest on anything beneath them', () 
 test('moved takes one item to a new place', () => {
   assert.deepEqual(moved(['a', 'b', 'c'], 0, 2), ['b', 'c', 'a'])
   assert.deepEqual(moved(['a', 'b', 'c'], 2, 0), ['c', 'a', 'b'])
+})
+
+test('the frame follows the server\'s shell, and the device\'s own choice only without one', () => {
+  assert.deepEqual(frameFor(undefined, 'top'), { style: 'top', rail: false, overlay: false, tabBar: true })
+  assert.deepEqual(frameFor({ nav: 'sidebar', size: 240 }, 'top'), { style: 'side', rail: false, overlay: false, tabBar: true, sidebar: 240 })
+  assert.deepEqual(frameFor({ nav: 'rail', size: 80 }, 'side'), { style: 'side', rail: true, overlay: false, tabBar: true, railWidth: 80 })
+  assert.deepEqual(frameFor({ nav: 'topTabs', overlay: true, size: 56 }, 'side'), { style: 'top', rail: false, overlay: true, tabBar: false })
+  assert.deepEqual(frameFor({ nav: 'bottomTabs', size: 56 }, 'side'), { style: 'side', rail: false, overlay: false, tabBar: true })
 })

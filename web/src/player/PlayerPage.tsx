@@ -5,6 +5,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { api, dvdStartMode, getPrefs, isDisc, type Item, type Prefs } from '../api'
 import { IconClose } from '../icons'
 import { PlayerChromeContext, usePlayerChrome, type PlayerChrome } from './chrome'
+import { queued } from '../remote/videoQueue'
 
 const DvdPlayer = lazy(() => import('./DvdPlayer'))
 const VideoPlayer = lazy(() => import('./VideoPlayer'))
@@ -56,9 +57,10 @@ function PlayerPage({ id, search }: { id: string; search: string }) {
   const [item, setItem] = useState<Item | null>(null)
   const [err, setErr] = useState('')
   const [prefs, setPrefs] = useState<Prefs | null>(null)
-  // Playing a list through: the server says what comes next in it.
+  // Playing a list through: the server says what comes next in it. A queue sent from another
+  // device says so itself (remote/videoQueue.ts).
   const listId = params.get('collection')
-  useEffect(() => { api.get<Item>(`/items/${id}${listId ? `?collection=${encodeURIComponent(listId)}` : ''}`).then(setItem).catch((e) => setErr(e.message)) }, [id, listId])
+  useEffect(() => { api.get<Item>(`/items/${id}${listId ? `?collection=${encodeURIComponent(listId)}` : ''}`).then((it) => setItem(queued(it))).catch((e) => setErr(e.message)) }, [id, listId])
   useEffect(() => { getPrefs().then(setPrefs) }, [])
   if (err) return <div className="player"><div className="overlay-msg"><div className="box">{err}<br /><BackButton /></div></div></div>
   if (!item || !prefs) return loading

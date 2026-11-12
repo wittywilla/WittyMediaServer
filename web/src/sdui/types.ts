@@ -115,7 +115,9 @@ export type NavItem = {
   placement: string // primary | more | end
 }
 
-export type Navigation = { version: number; formFactor: string; etag?: string; items: NavItem[]; personal?: PersonalInfo }
+// layouts: what this profile may choose on this device, for the Layout row in Settings (docs/SDUI.md, "Layout options").
+export type LayoutChoices = { current: string; chosen?: string; options: { value: string; label: string }[]; url: string }
+export type Navigation = { version: number; formFactor: string; etag?: string; items: NavItem[]; personal?: PersonalInfo; shell?: Shell; layouts?: LayoutChoices }
 
 // The spec's fallback profile, for a document that came without one: the web's.
 export const WEB_LAYOUT: Layout = {

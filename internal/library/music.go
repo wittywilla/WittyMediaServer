@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql"
 	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
+	"strconv"
 	"strings"
 )
 
@@ -22,8 +23,11 @@ type Album struct {
 	Tracks      int     `json:"tracks"`
 	DurationSec float64 `json:"durationSec"`
 	CoverItem   int64   `json:"coverItem"` // an item whose poster is the cover
-	AddedAt     int64   `json:"addedAt"`
-	Genre       string  `json:"genre,omitempty"`
+	// FirstItem is the album's first track (disc, then track number): what Play starts
+	// with, and what tells two albums apart when neither has a cover.
+	FirstItem int64  `json:"firstItem,omitempty"`
+	AddedAt   int64  `json:"addedAt"`
+	Genre     string `json:"genre,omitempty"`
 }
 
 // Artist is everyone credited as album artist (or the author).
@@ -96,7 +100,8 @@ func (s *Store) AlbumsFiltered(ctx context.Context, libraryID int64, f AlbumFilt
 		order = "plays DESC, added DESC"
 	}
 	rows, err := s.DB.QueryContext(ctx, `SELECT `+albumArtist+` AS a, IFNULL(i.album, '') AS i2, MIN(i.year) AS y, COUNT(*), SUM(IFNULL(i.runtime_sec, 0)),
-		MIN(CASE WHEN IFNULL(i.poster, '') <> '' THEN i.id END), MAX(i.added_at) AS added, MAX(IFNULL(i.genres, '')), `+plays+` AS plays
+		MIN(CASE WHEN IFNULL(i.poster, '') <> '' THEN i.id END), MAX(i.added_at) AS added, MAX(IFNULL(i.genres, '')), `+plays+` AS plays,
+		MIN(printf('%04d%06d%019d', IFNULL(i.disc_no, 1), IFNULL(i.track, 999999), i.id))
 		FROM items i WHERE `+strings.Join(where, " AND ")+` GROUP BY a, i2 ORDER BY `+order+` LIMIT ?`, append(args, limit)...)
 	if err != nil {
 		return nil, err
@@ -108,10 +113,15 @@ func (s *Store) AlbumsFiltered(ctx context.Context, libraryID int64, f AlbumFilt
 		var year, cover sql.NullInt64
 		var genres string
 		var played float64
-		if err := rows.Scan(&al.Artist, &al.Title, &year, &al.Tracks, &al.DurationSec, &cover, &al.AddedAt, &genres, &played); err != nil {
+		var first sql.NullString
+		if err := rows.Scan(&al.Artist, &al.Title, &year, &al.Tracks, &al.DurationSec, &cover, &al.AddedAt, &genres, &played, &first); err != nil {
 			return nil, err
 		}
 		al.Year, al.CoverItem = nullInt(year), cover.Int64
+		// The last 19 digits of the smallest disc+track+id key are the first track's id.
+		if k := first.String; len(k) >= 19 {
+			al.FirstItem, _ = strconv.ParseInt(k[len(k)-19:], 10, 64)
+		}
 		if g := splitList(genres); len(g) > 0 {
 			al.Genre = g[0]
 		}

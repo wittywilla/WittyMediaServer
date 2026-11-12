@@ -9,6 +9,9 @@
 import { Fragment, lazy, memo, Suspense, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { mediaUrl } from '../../api'
+import { Placeholder } from '../../components/common'
+import { countWords } from '../../libraryNouns'
+import { useApp } from '../../state'
 import { useAudio } from '../../audio/player'
 import { IconCheck, IconDown, IconLeft, IconPause, IconPlay, IconRight, IconSearch, IconStar } from '../../icons'
 import { tokenVar } from '../../themeOverrides'
@@ -20,6 +23,7 @@ import { plan } from '../routes'
 import type { Node, Props } from '../types'
 import { px, usePage } from './context'
 import { kindIcon, sduiIcon } from './icons'
+import { chooseEpisodeView, useEpisodeView } from '../extras/episodeView'
 import { Markdown } from './markdown'
 
 const NativeViewHost = lazy(() => import('./NativeViewHost'))
@@ -50,11 +54,13 @@ const clampClass = (lines: number | undefined) => (lines && lines > 0 ? ' sdui-c
 // The picture a card or block asks for: the address as the server wrote it.
 const picture = (image: Props | undefined) => (image && typeof image.url === 'string' && image.url.startsWith('/api/') ? mediaUrl(image.url) : '')
 
-function Picture({ image, kind, icon, contain }: { image: Props | undefined; kind?: unknown; icon?: unknown; contain?: boolean }) {
+// Without a picture, a titled thing gets the colour of its own the app's other pages give
+// it (Placeholder); a thing with an icon, or no title, gets that icon on a plain ground.
+function Picture({ image, kind, icon, contain, title }: { image: Props | undefined; kind?: unknown; icon?: unknown; contain?: boolean; title?: string }) {
   const src = picture(image)
   const [failed, setFailed] = useState(false)
   useEffect(() => setFailed(false), [src])
-  const fill = <span className="sdui-noart" aria-hidden="true">{icon ? sduiIcon(icon) : kindIcon(kind)}</span>
+  const fill = title && !icon ? <Placeholder title={title} /> : <span className="sdui-noart" aria-hidden="true">{icon ? sduiIcon(icon) : kindIcon(kind)}</span>
   if (!src || failed) return fill
   return <>{fill}<img className={contain ? 'sdui-contain' : undefined} src={src} alt="" loading="lazy" decoding="async" onError={() => setFailed(true)} /></>
 }
@@ -86,6 +92,7 @@ const SHAPE_CLASS: Record<string, string> = { poster: '', landscape: ' wide', sq
 
 export const CardView = memo(function CardView({ view, showTitles }: { view: View; showTitles: boolean }) {
   const p = view.node.props || {}
+  const { libraries } = useApp()
   const style = str(p, 'style'), shape = str(p, 'shape') || 'poster'
   const shows = view.shows || []
   const text = view.text || {}
@@ -95,10 +102,12 @@ export const CardView = memo(function CardView({ view, showTitles }: { view: Vie
   if (style === 'tile') {
     // A library, a collection: its name over the picture, or beside an icon on a plain tile.
     const image = obj(p, 'image')
+    const libId = /^lib(\d+)$/.exec(str(p, 'itemId'))?.[1]
+    const libraryType = libId ? libraries.find((l) => String(l.id) === libId)?.type : undefined
     return (
       <Pressable view={view} className={'lib-tile sdui-tile' + (image ? ' pictured' : '')}>
         {image ? <span className="sdui-tile-art"><Picture image={image} kind={p.kind} /></span> : <span className="lib-tile-ic" aria-hidden="true">{sduiIcon(p.icon) || kindIcon(p.kind)}</span>}
-        <span className="lib-tile-txt"><b>{text.title}</b>{text.count !== undefined && <span className="muted">{Number(text.count).toLocaleString()} {text.count === '1' ? 'item' : 'items'}</span>}</span>
+        <span className="lib-tile-txt"><b>{text.title}</b>{text.count !== undefined && <span className="muted">{countWords(libraryType, Number(text.count))}</span>}</span>
       </Pressable>
     )
   }
@@ -108,7 +117,7 @@ export const CardView = memo(function CardView({ view, showTitles }: { view: Vie
     <Pressable view={view} className={'card' + (SHAPE_CLASS[shape] ?? '') + (style === 'game' ? ' sdui-game' : '') + (channel ? ' sdui-channel' : '')} title={str(p, 'title') || undefined}>
       {text.rank && <span className="sdui-rank" aria-hidden="true">{text.rank}</span>}
       <div className="poster">
-        <Picture image={obj(p, 'image')} kind={p.kind} icon={p.icon} contain={channel || str(obj(p, 'image'), 'kind') === 'logo'} />
+        <Picture image={obj(p, 'image')} kind={p.kind} icon={p.icon} contain={channel || str(obj(p, 'image'), 'kind') === 'logo'} title={channel ? undefined : text.title || str(p, 'title') || undefined} />
         {shows.includes('badges') && <span className="sdui-badges">{(text.badges || '').split(' ').map((b) => <span key={b} className="badge">{b}</span>)}</span>}
         {shows.includes('unwatched') && <span className="badge count" aria-hidden="true">{text.unwatched}</span>}
         {shows.includes('watched') && <span className="badge seen" aria-hidden="true"><IconCheck /></span>}
@@ -373,6 +382,34 @@ function HeroView({ view }: { view: View }) {
 
 // ---------------------------------------------------------------- a title's header
 
+// The looping video behind a title (canvas/): a film's or an episode's own, the one of
+// what a show plays next, or an album's from its songs. Drawn only where one exists.
+const TitleCanvas = lazy(() => import('../../canvas/CanvasVideo').then((m) => ({ default: m.TitleCanvas })))
+const AlbumCanvas = lazy(() => import('../../canvas/CanvasVideo').then((m) => ({ default: m.AlbumCanvas })))
+export function trackIdsOf(root: Node): number[] {
+  const out: number[] = []
+  const walk = (n: Node) => {
+    if (n.type === 'Track' && /^\d+$/.test(str(n.props, 'itemId'))) out.push(Number(str(n.props, 'itemId')))
+    for (const c of n.children || []) walk(c)
+  }
+  walk(root)
+  return out
+}
+function HeaderCanvas({ header, doc }: { header: Node; doc: { root: Node } }) {
+  const p = header.props || {}
+  if (str(p, 'kind') === 'album') {
+    const ids = trackIdsOf(doc.root)
+    return ids.length ? <Suspense fallback={null}><AlbumCanvas trackIds={ids} /></Suspense> : null
+  }
+  const own = str(p, 'itemId')
+  const plays = (buttonsOf(p).find((b) => b.action?.type === 'play')?.action?.item) || ''
+  const id = /^\d+$/.test(own) ? Number(own) : /^\d+$/.test(plays) ? Number(plays) : 0
+  return id ? <Suspense fallback={null}><TitleCanvas itemId={id} /></Suspense> : null
+}
+
+// Titles whose cover is square: what stands in for a missing one is square too.
+const SQUARE_KINDS = ['album', 'podcast', 'audiobook']
+
 function DetailHeaderView({ view }: { view: View }) {
   const page = usePage()
   const p = view.node.props || {}
@@ -390,13 +427,15 @@ function DetailHeaderView({ view }: { view: View }) {
   return (
     <div className={'sdui-detail layout-' + layout} role="region" aria-label={view.label} style={scopeStyle(view.node)} data-sdui-stop={view.id} data-sdui-focus={view.node.focus ? view.id : undefined} data-sdui-section={view.id}>
       {layout !== 'compact' && (
-        <div className="detail-hero">
+        <div className={'detail-hero' + (backdrop ? '' : ' bare')}>
           <div className="bg" style={backdrop ? { backgroundImage: `url("${backdrop}")` } : undefined} />
+          {!page.inert && <HeaderCanvas header={view.node} doc={page.doc} />}
           <div className="shade" />
         </div>
       )}
       <div className={'detail' + (layout === 'compact' ? ' compact' : '')}>
-        {poster && layout !== 'compact' && <div><div className={'poster' + (str(poster, 'aspect') === '1/1' ? ' square' : '')}><Picture image={poster} kind={p.kind} /></div></div>}
+        {poster && layout !== 'compact' && <div><div className={'poster' + (str(poster, 'aspect') === '1/1' ? ' square' : '')}><Picture image={poster} kind={p.kind} title={view.text?.title} /></div></div>}
+        {!poster && layout === 'poster' && <div><div className={'poster' + (SQUARE_KINDS.includes(str(p, 'kind')) ? ' square' : '')}><Picture image={undefined} kind={p.kind} title={view.text?.title} /></div></div>}
         <div>
           {logo ? <h1 className="sdui-logo"><img src={logo} alt={view.text?.title || ''} /></h1> : <h1 className="sdui-clamp" style={clamp(view.lines?.title)}>{view.text?.title}</h1>}
           {view.text?.tagline && <div className="tagline">{view.text.tagline}</div>}
@@ -432,11 +471,20 @@ function DetailHeaderView({ view }: { view: View }) {
 
 // ---------------------------------------------------------------- seasons and tracks
 
+// The show a page is about, from its header ("show-5"), or ''.
+function showOf(root: Node): string {
+  if (root.type === 'DetailHeader') { const id = str(root.props, 'itemId'); return /^show-\d+$/.test(id) ? id : '' }
+  for (const c of root.children || []) { const hit = showOf(c); if (hit) return hit }
+  return ''
+}
+
 function SeasonListView({ view }: { view: View }) {
   const page = usePage()
   const p = view.node.props || {}
   const seasons = (Array.isArray(p.seasons) ? p.seasons : []) as Props[]
-  const list = str(p, 'style') === 'list'
+  const showId = showOf(page.doc.root)
+  const own = useEpisodeView(showId)
+  const list = own ? own === 'list' : str(p, 'style') === 'list'
   const waiting = loading(view, page.busy(view.id) && view.children.length === 0)
   return (
     <section className="sdui-seasons" role="region" aria-label={view.label} style={{ ...cardVars(view, page.pt), ...scopeStyle(view.node) }} data-sdui-section={view.id}>
@@ -453,6 +501,15 @@ function SeasonListView({ view }: { view: View }) {
               </button>
             )
           })}
+        </div>
+      )}
+      {showId && !page.inert && (
+        <div className="view-toggle sdui-episode-view">
+          <span className="muted" id={view.id + '-layout'}>Layout</span>
+          <div className="seg" role="group" aria-labelledby={view.id + '-layout'}>
+            <button type="button" className={!list ? 'active' : ''} aria-pressed={!list} onClick={() => chooseEpisodeView(showId, 'cards')}>Cards</button>
+            <button type="button" className={list ? 'active' : ''} aria-pressed={list} onClick={() => chooseEpisodeView(showId, 'list')}>Playlist</button>
+          </div>
         </div>
       )}
       <StateLine view={view} />
@@ -793,7 +850,7 @@ export function Draw({ view, depth }: { view: View; depth: number }): ReactNode 
     case 'ListItem': return <ListItemView view={view} />
     case 'NativeView': return (
       <Suspense fallback={<div className="loading-box" role="status" aria-label="Loading"><div className="spinner" /></div>}>
-        <NativeViewHost view={str(view.node.props, 'view')} library={str(view.node.props, 'library')} inert={!!page.inert}>
+        <NativeViewHost view={str(view.node.props, 'view')} library={str(view.node.props, 'library')} inert={!!page.inert} props={view.node.props || {}}>
           {view.children.map((c) => <Draw key={c.id} view={c} depth={depth + 1} />)}
         </NativeViewHost>
       </Suspense>

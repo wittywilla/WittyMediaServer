@@ -10,3 +10,10 @@
   .profile-actions { flex: 1 1 100%; }
   .profile-actions .btn { min-height: 44px; min-width: 44px; }
 }
+
+/* The limits dialog's three tabs on a phone: they share the width and wrap their words, so
+   none is cut off at the edge. */
+@media (max-width: 480px) {
+  .pc-tabs.tabs { gap: 0; overflow: visible; }
+  .pc-tabs.tabs button { flex: 1 1 0; min-width: 0; min-height: 44px; padding: var(--sp-2) var(--sp-1); white-space: normal; font-size: var(--text-sm); line-height: var(--leading-snug); }
+}

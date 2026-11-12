@@ -1,14 +1,19 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { HelpLink } from '../components/HelpLink'
 import { Link, useSearchParams } from 'react-router-dom'
 import { api, ApiError, type User, type UserView } from '../api'
+import { clock, tidyCode } from '../components/pairing'
 import { useApp } from '../state'
 import './pair.css'
 
 type Invite = { code: string; expiresInSec: number; user: User }
 type Asking = { code: string; device: string; platform: string; ip: string; profiles: { id: number; name: string; kind: string; needsPassword?: boolean }[]; needsPin?: boolean; twoFactor?: boolean }
+
+// The way on, given the focus when it appears: a link takes no autoFocus, and a remote or a
+// keyboard should land on it. Defined once, so drawing the page again doesn't take the focus back.
+const focusOnce = (el: HTMLElement | null) => { el?.focus() }
 
 // A device that started with secure pairing shows a 6-digit PIN that changes every 30 seconds.
 const PIN_LENGTH = 6
@@ -32,10 +37,22 @@ export default function PairPage() {
   // a session left open on a phone can't hand out the whole server.
   const [password, setPassword] = useState('')
   const [otp, setOtp] = useState('')
+  // After a wrong PIN or password the field to type again has the focus, so a phone's
+  // keyboard is already up for it.
+  const pinRef = useRef<HTMLInputElement | null>(null)
+  const passwordRef = useRef<HTMLInputElement | null>(null)
+  // Which of them, once the answer is in and the fields can be typed in again.
+  const refocus = useRef<'pin' | 'password' | null>(null)
+  useEffect(() => {
+    if (busy || !refocus.current) return
+    ;(refocus.current === 'pin' ? pinRef : passwordRef).current?.focus()
+    refocus.current = null
+  }, [busy])
 
-  const look = async (c: string) => {
-    setErr(''); setBusy(true)
-    try { const a = await api.post<Asking>('/pair/info', { code: c }); setAsking(a); setWho(user?.id || 0); setPin(''); setPinErr('') } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
+  const look = async (typed: string) => {
+    const c = tidyCode(typed)
+    setCode(c); setErr(''); setBusy(true)
+    try { const a = await api.post<Asking>('/pair/info', { code: c }); setAsking(a); setWho(user?.id || 0); setPin(''); setPinErr(''); setPassword(''); setOtp('') } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
   }
   // A code in the address only fills in the form's first step: the question
   // below is still asked.
@@ -43,7 +60,9 @@ export default function PairPage() {
 
   const needsPin = !!asking?.needsPin
   const needsPassword = !!user?.isAdmin && who === user.id
-  const pinReady = (!needsPin || pin.length === PIN_LENGTH) && (!needsPassword || (password !== '' && (!user?.twoFactor || otp.trim() !== '')))
+  // The server says whether this person's password comes with a code from their authenticator.
+  const twoFactor = !!(asking ? asking.twoFactor ?? user?.twoFactor : user?.twoFactor)
+  const pinReady = (!needsPin || pin.length === PIN_LENGTH) && (!needsPassword || (password !== '' && (!twoFactor || otp.trim() !== '')))
   const confirm = needsPassword ? { password, otp: otp.trim() } : {}
   const approve = async () => {
     if (!pinReady) { setPinErr(needsPin && pin.length !== PIN_LENGTH ? `Type the ${PIN_LENGTH}-digit PIN the TV shows now.` : 'Type your password to sign a device in as an administrator.'); return }
@@ -55,11 +74,13 @@ export default function PairPage() {
       if (e instanceof ApiError && e.status === 403 && needsPassword && reason !== 'locked') {
         // The password or code wasn't right: the question stays open.
         setPinErr(e.message); setPassword(''); setOtp('')
+        refocus.current = 'password'
       } else if (needsPin && reason === 'wrong-pin') {
         // The question stays open: the PIN changes every 30 seconds, so another try is normal.
         const left = e.data?.triesLeft
         setPinErr(typeof left === 'number' && left > 0 ? `${e.message} ${left === 1 ? 'One more try' : `${left} more tries`} before the sign-in ends.` : e.message)
         setPin('')
+        refocus.current = 'pin'
       } else if (reason === 'locked') {
         setErr('Too many wrong PINs were typed, so this sign-in has ended. Start again on the TV.'); setAsking(null)
       } else if (reason === 'expired' || reason === 'used' || reason === 'not-found' || (e instanceof ApiError && e.status === 410)) {
@@ -88,13 +109,26 @@ export default function PairPage() {
     const t = setTimeout(() => setLeft(left - 1), 1000)
     return () => clearTimeout(t)
   }, [left]) // eslint-disable-line react-hooks/exhaustive-deps
+  // What went wrong getting a code, said beside that button and not under the other form.
+  const [invErr, setInvErr] = useState('')
   const getCode = async () => {
-    setErr(''); setBusy(true)
-    try { const i = await api.post<Invite>('/pair/invite', { userId: who, ...confirm }); setInv(i); setLeft(i.expiresInSec); setPassword(''); setOtp('') } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
+    setInvErr(''); setBusy(true)
+    try { const i = await api.post<Invite>('/pair/invite', { userId: who, ...confirm }); setInv(i); setLeft(i.expiresInSec); setPassword(''); setOtp('') } catch (e: any) {
+      setInvErr(e.message)
+      if (e instanceof ApiError && e.status === 403 && needsPassword) { setPassword(''); setOtp('') }
+    } finally { setBusy(false) }
   }
 
   if (user && user.kind !== 'adult' && !user.isAdmin) {
-    return <><div className="toolbar"><h1>Sign in a TV</h1></div><p className="muted">An adult profile has to do this.</p></>
+    return (
+      <>
+        <div className="toolbar"><h1>Sign in a TV</h1></div>
+        <div className="panel pair-ask" role="status">
+          <p>Signing in a TV is for grown-ups. Ask an adult to do it from their own profile.</p>
+          <div className="panel-actions"><Link className="btn" to="/">Back to home</Link></div>
+        </div>
+      </>
+    )
   }
   if (done) {
     return (
@@ -104,7 +138,7 @@ export default function PairPage() {
           {done === 'denied'
             ? <p>The sign-in was refused. The TV has been told.</p>
             : <p><b>{done.device}</b> is now signed in as <b>{done.user.name}</b>. It will continue by itself in a moment.</p>}
-          <div className="panel-actions"><Link className="btn" to="/" autoFocus>Back to home</Link></div>
+          <div className="panel-actions"><Link className="btn" to="/" ref={focusOnce}>Back to home</Link></div>
         </div>
       </>
     )
@@ -114,7 +148,7 @@ export default function PairPage() {
     <>
       <div className="toolbar"><h1>Sign in a TV</h1></div>
       {asking ? (
-        <div className="panel pair-ask">
+        <form className="panel pair-ask" onSubmit={(e) => { e.preventDefault(); if (!busy) approve() }}>
           <h2>Is this your TV?</h2>
           <p><b>{asking.device}</b>{asking.platform ? ` (${asking.platform})` : ''} at {asking.ip} wants to sign in to this server.</p>
           <p className="panel-note">Only continue if you are looking at that code on your own TV right now.</p>
@@ -126,33 +160,33 @@ export default function PairPage() {
             )}
             {needsPin && (
               <label>PIN on the TV
-                <input className="input pair-pin" value={pin} autoFocus inputMode="numeric" pattern="[0-9]*" autoComplete="one-time-code"
+                <input ref={pinRef} className="input pair-pin" value={pin} autoFocus inputMode="numeric" pattern="[0-9]*" autoComplete="one-time-code"
                   maxLength={PIN_LENGTH} placeholder="123456" spellCheck={false} disabled={busy}
                   aria-describedby={pinErr ? 'pair-pin-help pair-pin-error' : 'pair-pin-help'} aria-invalid={pinErr ? true : undefined}
-                  onChange={(e) => { setPin(e.target.value.replace(/\D/g, '').slice(0, PIN_LENGTH)); setPinErr('') }}
-                  onKeyDown={(e) => { if (e.key === 'Enter' && pin.length === PIN_LENGTH && !busy) approve() }} />
+                  onChange={(e) => { setPin(e.target.value.replace(/\D/g, '').slice(0, PIN_LENGTH)); setPinErr('') }} />
                 <span id="pair-pin-help" className="panel-note">The {PIN_LENGTH} digits under the QR code. They change every 30 seconds, so type the ones shown now.</span>
               </label>
             )}
             {needsPassword && (
               <label>Your password
-                <input className="input" type="password" value={password} autoComplete="current-password" disabled={busy} onChange={(e) => { setPassword(e.target.value); setPinErr('') }} />
+                <input ref={passwordRef} className="input" type="password" value={password} autoComplete="current-password" disabled={busy} onChange={(e) => { setPassword(e.target.value); setPinErr('') }} />
                 <span className="panel-note">This device would be an administrator’s, so your password is asked for again. Pick a Kids or Guest profile above to skip it.</span>
               </label>
             )}
-            {needsPassword && user?.twoFactor && (
+            {needsPassword && twoFactor && (
               <label>Code from your authenticator app
-                <input className="input" value={otp} inputMode="numeric" autoComplete="one-time-code" disabled={busy} onChange={(e) => setOtp(e.target.value)} />
+                <input className="input" value={otp} inputMode="numeric" autoComplete="one-time-code" disabled={busy} onChange={(e) => { setOtp(e.target.value); setPinErr('') }} />
+                <span className="panel-note">Or one of your recovery codes.</span>
               </label>
             )}
             {pinErr && <div id="pair-pin-error" className="error" role="alert">{pinErr}</div>}
             {err && <div className="error" role="alert">{err}</div>}
           </div>
           <div className="panel-actions">
-            <button className="btn primary" autoFocus={!needsPin} disabled={busy || !pinReady} onClick={approve}>Sign it in</button>
-            <button className="btn ghost" disabled={busy} onClick={deny}>Refuse</button>
+            <button type="submit" className="btn primary" autoFocus={!needsPin && !needsPassword} disabled={busy || !pinReady}>Sign it in</button>
+            <button type="button" className="btn ghost" disabled={busy} onClick={deny}>Refuse</button>
           </div>
-        </div>
+        </form>
       ) : (
         <div className="pair-grid">
           <form className="panel" onSubmit={(e) => { e.preventDefault(); if (code.trim()) look(code) }}>
@@ -167,12 +201,12 @@ export default function PairPage() {
             </div>
             <div className="panel-actions"><button className="btn primary" disabled={busy || !code.trim()}>Continue</button></div>
           </form>
-          <div className="panel">
+          <form className="panel" onSubmit={(e) => { e.preventDefault(); if (!busy && !(needsPassword && !inv && password === '')) getCode() }}>
             <h2>Your TV asks for a code</h2>
             {inv ? (
               <div role="status">
                 <p className="pair-code">{inv.code}</p>
-                <p className="panel-note">Type this on the TV to sign it in as {inv.user.name}. It works once, for another {Math.floor(left / 60)}:{String(left % 60).padStart(2, '0')}.</p>
+                <p className="panel-note">Type this on the TV to sign it in as {inv.user.name}. It works once, for another {clock(left)}.</p>
               </div>
             ) : (
               <p className="panel-note">Get a code here and type it on the TV. Anyone who sees it could use it, so get it when you’re ready.</p>
@@ -193,11 +227,12 @@ export default function PairPage() {
                   <input className="input" type="password" value={password} autoComplete="current-password" disabled={busy} onChange={(e) => setPassword(e.target.value)} />
                   <span className="panel-note">A code for an administrator’s account asks for your password again.</span>
                 </label>
-                {user?.twoFactor && <label>Code from your authenticator app<input className="input" value={otp} inputMode="numeric" autoComplete="one-time-code" disabled={busy} onChange={(e) => setOtp(e.target.value)} /></label>}
+                {twoFactor && <label>Code from your authenticator app<input className="input" value={otp} inputMode="numeric" autoComplete="one-time-code" disabled={busy} onChange={(e) => setOtp(e.target.value)} /></label>}
               </div>
             )}
-            <div className="panel-actions"><button className="btn" disabled={busy || (needsPassword && !inv && password === '')} onClick={getCode}>{inv ? 'Get a new code' : 'Get a code'}</button></div>
-          </div>
+            {invErr && <div className="error" role="alert">{invErr}</div>}
+            <div className="panel-actions"><button type="submit" className="btn" disabled={busy || (needsPassword && !inv && password === '')}>{inv ? 'Get a new code' : 'Get a code'}</button></div>
+          </form>
         </div>
       )}
       <p className="muted"><HelpLink to="apps#sign-in-with-a-code">How signing in with a code works</HelpLink></p>

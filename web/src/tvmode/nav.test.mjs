@@ -4,7 +4,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { backStep, stepTab, tabPath, tabRootOf, tvKey, TV_TABS } from './nav.ts'
-import { tabsFromMenu } from './nav.ts'
+import { moreTabs, tabsFromMenu } from './nav.ts'
 
 test('the bar is Home, Libraries, Games, Live TV, Search, then You', () => {
   assert.deepEqual(TV_TABS.map((t) => t.label), ['Home', 'Libraries', 'Games', 'Live TV', 'Search', 'You'])
@@ -78,4 +78,20 @@ test('a server\'s menu becomes the bar: its order, the end entries last, Setting
   assert.equal(backStep({ tab: 'home', inBar: true, first: 'home' }), 'leave')
   // With no You to reach it from, Settings stays in the bar.
   assert.deepEqual(tabsFromMenu(menu.filter((m) => m.id !== 'you')).map((t) => t.id), ['home', 'search', 'libraries', 'settings'])
+})
+
+test('a server menu\'s More entries are gathered under one More tab, before the end entries', () => {
+  const menu = [
+    { id: 'home', label: 'Home', to: '/', placement: 'primary' },
+    { id: 'search', label: 'Search', to: '/search', placement: 'primary' },
+    { id: 'lib-1', label: 'Films', to: '/library/1', placement: 'primary' },
+    { id: 'collections', label: 'Collections', to: '/collections', placement: 'more' },
+    { id: 'lib-2', label: 'Music', to: '/library/2', placement: 'more' },
+    { id: 'you', label: 'You', to: '/you', placement: 'end', screen: 'profiles' },
+    { id: 'settings', label: 'Settings', to: '/settings', placement: 'more', screen: 'settings' },
+  ]
+  assert.deepEqual(tabsFromMenu(menu).map((t) => t.id), ['home', 'search', 'lib-1', 'more', 'you'])
+  assert.deepEqual(moreTabs(menu).map((t) => t.id), ['collections', 'lib-2'])
+  // Nothing placed under More: no More tab.
+  assert.deepEqual(tabsFromMenu(menu.filter((m) => m.placement !== 'more')).map((t) => t.id), ['home', 'search', 'lib-1', 'you'])
 })

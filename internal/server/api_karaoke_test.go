@@ -283,6 +283,23 @@ func TestApproximateInstrumentalWithFFmpeg(t *testing.T) {
 	if tk := waitTask(t, ts, admin, fmt.Sprint(decode[map[string]any](t, w)["task"])); tk.State != tasks.Failed || !strings.Contains(tk.Error+tk.Detail, "mono") {
 		t.Errorf("a mono song: %+v", tk)
 	}
+	// Whoever asked is told why by the listing too: not everyone may see tasks.
+	type listing struct {
+		Separation separationInfo `json:"separation"`
+	}
+	var said string
+	for i := 0; i < 100 && said == ""; i++ { // the reason is kept a moment after the task ends
+		said = decode[listing](t, ts.do(t, "GET", fmt.Sprintf("/api/media/%d/stems", monoSong.ID), adult, nil)).Separation.Approximate.Error
+		if said == "" {
+			time.Sleep(20 * time.Millisecond)
+		}
+	}
+	if !strings.Contains(said, "mono") || strings.Contains(said, root) {
+		t.Errorf("the listing after a mono song failed says %q", said)
+	}
+	if l := decode[listing](t, ts.do(t, "GET", fmt.Sprintf("/api/media/%d/stems", song.ID), adult, nil)); l.Separation.Approximate.Error != "" {
+		t.Errorf("a song that worked has an error: %q", l.Separation.Approximate.Error)
+	}
 }
 
 // With a real FFmpeg that can encode H.264: a canvas is cut from a video, small, silent,

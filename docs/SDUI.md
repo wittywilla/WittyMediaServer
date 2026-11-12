@@ -982,6 +982,23 @@ own window, is one of the three renderers.
   filter bar change the address's query, so Back undoes them.
 - **Native views.** `guide` is the guide's grid, `photoTimeline` and
   `photoMap` the photo library, `coverFlow` the music library's cover flow.
+  A module's view (`<module>.<name>`) is drawn by its web bundle, and the
+  app sends the views of the bundles in use with its own
+  ([Modules in server-driven UI](SDUI-MODULES.md#what-apps-need-to-do)).
+- **Layout options.** The frame follows the navigation's `shell`:
+  `sidebar` and `rail` are the side menu open or folded to icons (at the
+  sizes sent), `topTabs` the bar of tabs along the top (with no tab bar on a
+  phone), `bottomTabs` a phone's tab bar, and `overlay` lets the top bar lie
+  over the page until it scrolls. In TV mode `tvTopMenu` is the bar of
+  pills and `tvSideMenu` a column of icons that opens to show names while
+  it has focus. The app names itself with `device=`, a random name kept in
+  the browser. Settings, Appearance, Layout offers `layouts.options` and
+  "Use the server's"; Settings, Pages & menu, Layouts is the
+  administrator's `config/layouts`. Against a server without layouts the
+  device keeps its own choice of where the menu sits.
+- **Modules.** Their settings are under Settings, Module settings, drawn
+  with Settings' own rows; their pages of the app's own (`/m/...`) and their
+  views take the module's colours where its palette differs from everyone's.
 - **Where the app's own screens stand in.** A game's page, a book's front
   page, a photo, a radio station, a creator's channel and the short-video
   feed are not in the model. When the catch-all built-in `library` or
@@ -990,7 +1007,18 @@ own window, is one of the three renderers.
   for such a library or title is drawn as written. Under a title's header
   the app adds what the model has no component for: the credit a metadata
   source asks for, the file's technical facts, a disc's titles and extras,
-  and, for administrators, artwork, details and refresh.
+  and, for administrators, artwork, details and refresh (for a show also
+  "Find intros and credits"). Above a show's episodes is the Cards or
+  Playlist switch (an administrator's choice is kept for the show).
+- **The app's own tools.** Under the title of a library of films or shows:
+  Filters with every filter of the app's Filters panel (the page passes
+  them on: `series`, `kind`, `disc`, `minRating`, `audio`, `subtitle`,
+  `format`, `edition`, `search`, `seed` beside the filter bar's own),
+  saving a view and the saved views, and for administrators Select (to
+  edit titles together), Categories, Fix matches and Scan. A music library
+  has Play all, Songs and Playlists (those two open the app's own music
+  page on that tab) and Scan; Collections has New collection; a collection
+  has Play all, Edit, Remove titles and Delete (`extras/PageTools.tsx`).
 - **Customise and the editor.** `document.personal` drives "Customise this
   page"; the menu's `personal` drives "Arrange the menu" in Settings,
   Appearance. The administrator's editor is Settings, Pages & menu, built
@@ -2697,7 +2725,7 @@ Every source also takes `map`: `{"subtitle": "studio"}` puts another field of th
 |---|---|---|---|---|---|
 | `home` | The first page of the app. | `/` | tab |  |  |
 | `libraries` | Every library the profile can open. | `/libraries` | tab |  |  |
-| `library` | One library's own page. | `/library/{library}` | library, tab, sort, desc, genre, decade, year, content, resolution, watched, studio, network, tag | $library | library, libraryKind |
+| `library` | One library's own page. | `/library/{library}` | library, tab, sort, desc, genre, decade, year, content, resolution, watched, studio, network, tag, series, kind, disc, minRating, audio, subtitle, format, edition, search, seed | $library | library, libraryKind |
 | `detail` | The page of one film, show, episode, album, artist, book, game or collection. | `/item/{item}` | item, show, season, collection, library, artist, album, tab | $item, $show, $season, $collection, $library, $artist, $album | mediaKind, library, libraryKind |
 | `search` | Search across everything. | `/search` | q, tab | $query |  |
 | `livetv` | Channels and the guide. | `/tv` | tab |  |  |

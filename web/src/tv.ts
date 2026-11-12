@@ -21,7 +21,7 @@ import { isBackKey, nearest, ranked, type Dir } from './ui/spatial'
 
 const FOCUSABLE = 'a[href], button:not([disabled]), summary, input:not([disabled]):not([type=hidden]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 // Inside the player only these areas take part in spatial navigation.
-const PLAYER_CONTROLS = '.bottom, .top, .view-settings, .remote, .remote-bar, .mini-bar, .overlay-msg, .watch-next, .big-play, .skip-intro, .pick-intro, .ctv-mini, .tv-remind'
+const PLAYER_CONTROLS = '.bottom, .top, .view-settings, .remote, .remote-bar, .mini-bar, .overlay-msg, .watch-next, .big-play, .skip-intro, .auto-skip, .pick-intro, .ctv-mini, .tv-remind, .party-panel, .party-invite'
 // The player that fills the screen. A player inside a page (.inline) is just a
 // part of that page.
 const FULL_PLAYER = '.player:not(.mini):not(.inline)'
@@ -30,7 +30,7 @@ const FULL_PLAYER = '.player:not(.mini):not(.inline)'
 export const OWN_BACK = `[role=dialog], [role=alertdialog], [role=menu], .modal, .picker-backdrop, .view-settings, .audio-bar.full, .reader, ${FULL_PLAYER}`
 // What OK reaches first when the picture has the focus: whatever is asking
 // for an answer, then the controls.
-const PLAYER_FIRST = ['.big-play button', '.overlay-msg button', '.pick-intro button', '.skip-intro', '.watch-next button', '.bottom .big', '.bottom button:not([disabled])', '.top button:not([disabled])']
+const PLAYER_FIRST = ['.big-play button', '.overlay-msg button', '.pick-intro button', '.skip-intro', '.auto-skip button', '.watch-next button', '.bottom .big', '.bottom button:not([disabled])', '.top button:not([disabled])']
 
 const DIRS: Record<string, Dir> = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' }
 
@@ -363,7 +363,8 @@ function onKey(e: KeyboardEvent) {
 
 // ---------------------------------------------------------------- controllers
 
-function press(key: string) {
+// Also what a key from another device's remote does here (remote/device.ts).
+export function press(key: string) {
   const target = (document.activeElement as HTMLElement | null) || document.body
   const ev = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })
   target.dispatchEvent(ev)

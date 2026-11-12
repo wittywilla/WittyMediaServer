@@ -1,0 +1,7 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
+/* "Skipped intro · Undo": over the picture, on the player's own dark colours, opposite the
+   skip button so the two never share a corner. */
+.auto-skip { position: absolute; left: var(--sp-6); bottom: 110px; z-index: 6; display: flex; align-items: center; gap: var(--sp-3); max-width: calc(100% - var(--sp-8)); min-height: var(--control-h); padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-4); border-radius: var(--r-md); background: var(--bg-2); color: var(--fg); font-size: var(--text-sm); box-shadow: var(--e-3); animation: dialog-in var(--dur-3) var(--ease-out); }
+@media (max-width: 700px) { .auto-skip { left: var(--sp-4); bottom: 124px; } }
+@media (prefers-reduced-motion: reduce) { .auto-skip { animation: none; } }

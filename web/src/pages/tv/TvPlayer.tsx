@@ -20,6 +20,7 @@ import Slate from './Slate'
 import { useLiveTracks } from './tracks'
 import { liveHls, liveVideo, setLive, useLive } from './live'
 import { fmtClock, fmtSpan, forgetLineup, getLineup, type Alternative, type GuideChannel, type TuneInfo } from './tvApi'
+import { useTvRemote } from '../../remote/tvTarget'
 import './tv.css'
 import './tvthemes.css'
 
@@ -239,6 +240,10 @@ export default function TvPlayer() {
   }
   const remoteEnabled = (k: RemoteKey) => k === 'audio' ? tracks.audio.length > 1 : k === 'subtitle' ? tracks.subtitles.length > 0 : k !== 'angle'
   const togglePlay = () => { const v = video.current; if (v && !needClick) v.paused ? v.play().catch(() => {}) : v.pause() }
+  // Another device steering this one (docs/REMOTE-PROTOCOL.md): see remote/tvTarget.ts.
+  useTvRemote({ video, now: info?.now, positionSec: info?.positionSec || 0, serverTime: info?.serverTime || 0, ready: picture,
+    audio: tracks.audio, subtitles: tracks.subtitles, chooseAudio: tracks.chooseAudio, chooseSubtitle: tracks.chooseSubtitle,
+    seekBy: (sec) => { const v = video.current; if (v) seekTo(v.currentTime + sec) }, step: (dir) => void step(dir), stop: guide })
   const windowLen = Math.max(0, win.end - win.start)
   const isBehind = win.behind > 20
 

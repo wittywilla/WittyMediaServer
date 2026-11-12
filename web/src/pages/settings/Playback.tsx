@@ -8,6 +8,7 @@ import { LoadError } from '../../components/common'
 import { PageHead, Row, SaveBar, Section, Switch, useServerSettings } from './ui'
 import { Segmented } from '../../ui'
 import { deviceStreaming, setDeviceStreaming, type DeviceStreaming } from '../../player/streaming'
+import AutoSkipSection from './AutoSkip'
 
 // How things play: the player, TV episode lists, and DVDs and Blu-rays.
 
@@ -32,6 +33,8 @@ export default function PlaybackSettings() {
           </select>
         </Row>
       </Section>
+
+      <AutoSkipSection />
 
       <StreamingSection value={s.remoteStreaming || 'standard'} set={(v) => set('remoteStreaming', v)} />
 

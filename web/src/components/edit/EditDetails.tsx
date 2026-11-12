@@ -11,6 +11,7 @@ import LegalNote from '../LegalNote'
 import RatingField from '../RatingField'
 import { LogoRows } from './LogoChooser'
 import MatchPanel from './MatchPanel'
+import MarkersEditor from './MarkersEditor'
 import TitleArtPicker from './TitleArtPicker'
 import './edit.css'
 
@@ -24,7 +25,7 @@ export type EditSection = 'match' | 'details' | 'artwork' | 'playback' | 'organi
 
 const SECTIONS: { id: EditSection; label: string }[] = [
   { id: 'match', label: 'Match' }, { id: 'details', label: 'Details' }, { id: 'artwork', label: 'Artwork' },
-  { id: 'playback', label: 'Skip intro' }, { id: 'organise', label: 'Organise' }, { id: 'logos', label: 'Logos' },
+  { id: 'playback', label: 'Skipping' }, { id: 'organise', label: 'Organise' }, { id: 'logos', label: 'Logos' },
 ]
 
 export default function EditDetails({ target, id, start, onClose, onChanged }: {
@@ -403,19 +404,27 @@ function PlaybackSection(p: FieldProps & { target: Target; id: number; dirty: bo
       else p.onError('This show has no episodes to pick a time from.')
     } catch (e: any) { p.onError(e.message) }
   }
+  // An episode or film has every part, set through its markers. The older single time stays
+  // for a show (its own intro, for every episode without one), and for a title that still
+  // has one typed in, so that it can be seen and taken away.
+  const typed = !!p.ed.fields.introEnd?.value && !p.ed.introAuto
+  const single = p.target === 'show' || typed
   return (
     <section id="ed-playback" className="ed-section" aria-labelledby="ed-playback-h">
-      <h3 id="ed-playback-h">Skip intro</h3>
-      <FieldShell name="introEnd" label="Where the intro ends" p={p} wide hint={p.target === 'show' ? 'Used for every episode that has no intro of its own. Blank means work it out from each file\'s chapters.' : 'Blank means work it out from the file\'s chapters.'}>
-        {(id, d) => (
-          <div className="field-row">
-            <input id={id} className="input" value={text} placeholder="auto" inputMode="numeric" aria-describedby={d} aria-invalid={bad} onChange={(e) => setText(e.target.value)} onBlur={(e) => commit(e.target.value)} />
-            <button type="button" className="btn" onClick={pick}>Pick in player</button>
-          </div>
-        )}
-      </FieldShell>
+      <h3 id="ed-playback-h">Skipping</h3>
+      {single && (
+        <FieldShell name="introEnd" label="Where the intro ends" p={p} wide hint={p.target === 'show' ? 'Used for every episode that has no intro of its own. Blank means work it out from each file\'s chapters. An episode\'s own recap, credits and advert breaks are set from that episode\'s Edit.' : 'An older, single time. The intro set below wins over it; blank it to leave the times below in charge.'}>
+          {(id, d) => (
+            <div className="field-row">
+              <input id={id} className="input" value={text} placeholder="auto" inputMode="numeric" aria-describedby={d} aria-invalid={bad} onChange={(e) => setText(e.target.value)} onBlur={(e) => commit(e.target.value)} />
+              {p.target === 'show' && <button type="button" className="btn" onClick={pick}>Pick in player</button>}
+            </div>
+          )}
+        </FieldShell>
+      )}
       {bad && <div className="error" role="alert">Type the time as minutes and seconds, such as 1:05.</div>}
-      {p.ed.introAuto && !bad && <p className="muted ed-help">Found in the file's chapters.</p>}
+      {p.target === 'show' && p.ed.introAuto && !bad && <p className="muted ed-help">Found in the file's chapters.</p>}
+      {p.target === 'item' && <MarkersEditor id={p.id} dirty={p.dirty} onError={p.onError} />}
     </section>
   )
 }

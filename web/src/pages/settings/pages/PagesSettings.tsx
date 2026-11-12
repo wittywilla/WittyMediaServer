@@ -9,26 +9,31 @@
 import { useEffect, useState } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
 import { Tabs } from '../../../ui'
+import { useFeatures } from '../../../sdui/useSdui'
 import { PageHead } from '../ui'
 import { getPresets } from './api'
 import { DraftBar, EditorProvider } from './context'
 import { editPath, type Preset } from './editorModel.ts'
 import { HistoryAndFiles, PagesList, PresetsGallery } from './Lists'
+import LayoutsEditor from './LayoutsEditor'
 import NavigationEditor from './NavigationEditor'
 import PageEditor from './PageEditor'
 import './pages-editor.css'
 
-type View = 'pages' | 'navigation' | 'presets' | 'history'
+type View = 'pages' | 'navigation' | 'layouts' | 'presets' | 'history'
 const BASE = editPath('')
 const TABS: { value: View; label: string; to: string }[] = [
   { value: 'pages', label: 'Pages', to: BASE },
   { value: 'navigation', label: 'The menu', to: `${BASE}/navigation` },
+  { value: 'layouts', label: 'Layouts', to: `${BASE}/layouts` },
   { value: 'presets', label: 'Ready-made', to: `${BASE}/presets` },
   { value: 'history', label: 'History and files', to: `${BASE}/history` },
 ]
 
 export default function PagesSettings() {
   const { pathname } = useLocation()
+  // Layouts are for a server that has them.
+  const layoutsOn = !!useFeatures()?.has('sdui-layouts')
   const [first, second] = pathname.slice(BASE.length).split('/').filter(Boolean)
   const view = !first ? 'pages' : !second && TABS.some((t) => t.value === first) ? first as View : null
   // The gallery is asked for when it is first wanted, and kept while Settings stays on these pages.
@@ -39,7 +44,7 @@ export default function PagesSettings() {
   }, [view, presets])
   return (
     <EditorProvider>
-      {view && <Tabs label="Pages and menu" value={view} items={TABS} />}
+      {view && <Tabs label="Pages and menu" value={view} items={TABS.filter((t) => t.value !== 'layouts' || layoutsOn)} />}
       <Routes>
         <Route index element={<>
           <PageHead title="Pages & menu" desc="What Home, each library, a title’s page and the main menu hold, for everyone and in every app. Change a page, try it as a phone or a television would show it, and publish when it is right." />
@@ -47,6 +52,7 @@ export default function PagesSettings() {
           <PagesList />
         </>} />
         <Route path="navigation" element={<NavigationEditor />} />
+        <Route path="layouts" element={<LayoutsEditor />} />
         <Route path="presets" element={<>
           <PageHead title="Ready-made" desc="Pages and sections made for you to start from." />
           <DraftBar />

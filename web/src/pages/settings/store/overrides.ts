@@ -254,10 +254,10 @@ export function toDate(at?: number | string | null): Date | null {
 }
 
 const AUDIT_WORDS: Record<string, string> = {
-  override: 'Installed with an override', 'override-accepted': 'Installed with an override', 'override-removed': 'Removed an override',
-  upload: 'Uploaded a file', 'upload-installed': 'Installed from a file', 'upload-discarded': 'Discarded an uploaded file',
-  'pending-dropped': 'Dropped a download waiting for a go-ahead', 'password-refused': 'Password refused', 'module-older': 'Went back to an older version',
-  install: 'Installed', remove: 'Removed', rollback: 'Went back a version', 'source-changed': 'Changed publisher', fork: 'Used a fork',
+  'module-override': 'Installed with an override', 'module-override-removed': 'Removed an override', 'module-upload': 'Installed from a file',
+  'module-older': 'Went back to an older version', 'module-rollback': 'Took a version out of use', 'module-source': 'Changed where it comes from',
+  'module-undo': 'Undid an update', 'fork-refused': 'Refused a fork', 'password-refused': 'Password refused',
+  'store-added': 'Added a store', 'store-removed': 'Removed a store',
 }
 export const auditWords = (action: string) => AUDIT_WORDS[action] || cap(action.replace(/[-_]/g, ' '))
 

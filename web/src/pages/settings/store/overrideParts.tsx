@@ -5,7 +5,8 @@ import { api, fmtDateTime } from '../../../api'
 import { IconShield } from '../../../icons'
 import type { ModuleReport, ModuleStatus } from '../../../moduleStore'
 import { toast } from '../../../state'
-import { ask, Button, Notice } from '../../../ui'
+import { Button, Notice } from '../../../ui'
+import { ConfirmOwner, type OwnerAsk } from '../ConfirmOwner'
 import { OverrideDialog, type OverrideBody } from './OverrideDialog'
 import {
   overrideLines, releaseStatus, STATUS_WORDS, statusWarns, toDate, uiLines, type NeedsOverride, type OverrideRecord, type UiSummary,
@@ -35,21 +36,19 @@ const SOURCE_WORDS: Record<string, string> = { catalogue: 'from the official cat
 // The override on a module: what was bypassed, who said yes and when, what it was given, and the
 // way back. Removing it goes back to the last version that needed none, or takes the module off.
 export function OverrideRecordBox({ id, name, record, onRemoved, disabled }: { id: string; name: string; record: OverrideRecord; onRemoved: (r?: ModuleReport) => void; disabled?: boolean }) {
-  const [working, setWorking] = useState(false)
+  const [asking, setAsking] = useState(false)
   const when = toDate(record.at)
   const lines = overrideLines(record)
   const serious = lines.some((l) => ['unsigned', 'untrusted-key', 'custom', 'weak-sandbox'].includes(l.kind))
-  const remove = async () => {
-    if (!await ask({
-      title: `Remove the override on ${name}?`, confirm: 'Remove override', danger: true,
-      body: `${name} goes back to the last version on this server that needed no override. If there isn’t one, ${name} is taken off this server. Your files and what you’ve watched, read or played stay as they are.`,
-    })) return
-    setWorking(true)
-    try {
-      const r = await api.del<ModuleReport | ModuleStatus>(`/modules/${encodeURIComponent(id)}/override`)
+  // Taking an override back changes which code runs, so it asks for the password like any other.
+  const removeAsk: OwnerAsk = {
+    title: `Remove the override on ${name}?`, action: 'Remove override',
+    body: <p>{name} goes back to the last version on this server that needed no override. If there isn’t one, {name} is taken off this server. Your files and what you’ve watched, read or played stay as they are. This asks for your password.</p>,
+    run: async (password, code) => {
+      const r = await api.del<ModuleReport>(`/modules/${encodeURIComponent(id)}/override`, { password, code })
       toast(`The override on ${name} was removed`)
-      onRemoved(r && 'modules' in (r as ModuleReport) ? r as ModuleReport : undefined)
-    } catch (e) { toast(e instanceof Error ? e.message : String(e)) } finally { setWorking(false) }
+      onRemoved(r && 'modules' in r ? r : undefined)
+    },
   }
   return (
     <section className={'ov-record' + (serious ? ' danger' : '')} aria-label={`Override on ${name}`}>
@@ -63,7 +62,8 @@ export function OverrideRecordBox({ id, name, record, onRemoved, disabled }: { i
         {record.fingerprint && <div className="wide"><dt>Key fingerprint</dt><dd className="mono">{record.fingerprint}</dd></div>}
         <div className="wide"><dt>Permissions given</dt><dd>{record.grants?.length ? record.grants.join(', ') : serious ? 'None: it runs with no permissions, in the strictest sandbox' : 'As the module’s official rules allow'}</dd></div>
       </dl>
-      <div><Button size="sm" variant="danger" busy={working} disabled={disabled} onClick={remove}>Remove override</Button></div>
+      <div><Button size="sm" variant="danger" disabled={disabled} onClick={() => setAsking(true)}>Remove override</Button></div>
+      {asking && <ConfirmOwner ask={removeAsk} onClose={() => setAsking(false)} />}
     </section>
   )
 }

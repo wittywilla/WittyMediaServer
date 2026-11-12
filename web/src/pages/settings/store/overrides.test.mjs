@@ -121,10 +121,10 @@ test('dates in any of the server’s forms', () => {
 })
 
 test('the audit, newest first', () => {
-  const rows = auditRows([{ at: 1, action: 'upload' }, { at: 3, action: 'override-removed' }, { nope: true }, { at: 2, action: 'something-new' }])
-  assert.deepEqual(rows.map((r) => r.action), ['override-removed', 'something-new', 'upload'])
+  const rows = auditRows([{ at: 1, action: 'module-upload' }, { at: 3, action: 'module-override-removed' }, { nope: true }, { at: 2, action: 'something-new' }])
+  assert.deepEqual(rows.map((r) => r.action), ['module-override-removed', 'something-new', 'module-upload'])
   assert.equal(auditRows({ entries: [{ at: 1, action: 'a' }] }).length, 1)
   assert.equal(auditRows(null).length, 0)
-  assert.equal(auditWords('override-removed'), 'Removed an override')
+  assert.equal(auditWords('module-override-removed'), 'Removed an override')
   assert.equal(auditWords('something_new'), 'Something new')
 })

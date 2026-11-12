@@ -714,7 +714,7 @@ func (s *Server) handleSDUINavigation(w http.ResponseWriter, r *http.Request) {
 	var libs []sdui.NavLibrary
 	seen := map[string]bool{}
 	for _, l := range rv.libraries() {
-		libs = append(libs, sdui.NavLibrary{ID: l.ID, Name: l.Name, Kind: l.Type})
+		libs = append(libs, sdui.NavLibrary{ID: l.ID, Name: l.Name, Kind: l.Type, Count: l.ItemCount})
 		if !seen[l.Type] {
 			seen[l.Type] = true
 			ctx.LibraryKinds = append(ctx.LibraryKinds, l.Type)
@@ -744,6 +744,7 @@ func (s *Server) handleSDUINavigation(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, err.Error())
 		return
 	}
+	ctx.Experience = layout
 	doc := sdui.RenderNavigation(nav, func(id string) (sdui.Page, bool) { return effectivePage(cfg, id, set) }, libs, ctx)
 	doc.Shell = sdui.ShellFor(layout.ID, ctx.Profile.FormFactor)
 	doc.Experiences = s.experienceChoice(r, cfg, ctx.Profile.FormFactor, layout.ID)

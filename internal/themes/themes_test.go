@@ -50,7 +50,7 @@ func TestInstallListAndUpload(t *testing.T) {
 	}
 	good := zipOf(t, map[string]string{
 		"theme.json":    `{"id":"my-cinema","name":"My Cinema","scheme":"dark"}`,
-		"theme.css":     `:root{--accent:#ff0}body{background:url(assets/bg.jpg)}`,
+		"theme.css":     `:root{--accent:#ff0;--scene-image:url(assets/bg.jpg)}`,
 		"assets/bg.jpg": "jpeg",
 		"README.md":     "hi",
 	})

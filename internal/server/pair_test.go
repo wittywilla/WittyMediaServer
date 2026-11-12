@@ -237,8 +237,8 @@ func TestPairingIsRateLimited(t *testing.T) {
 
 func TestPairingStartValidates(t *testing.T) {
 	ts := newContractServer(t)
-	// Before there is any account nobody could approve.
-	if w := ts.do(t, "POST", "/api/pair/start", "", map[string]string{"device": "x"}); w.Code != 409 {
+	// Before there is any account first run is going: the server answers setup_required.
+	if w := ts.do(t, "POST", "/api/pair/start", "", map[string]string{"device": "x"}); w.Code != 503 {
 		t.Errorf("before setup: %d", w.Code)
 	}
 	ts.account(t, "Alex", "adult", false)

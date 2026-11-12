@@ -365,17 +365,9 @@ func (m *Manager) ZipPath(id string) (string, error) { return m.zipPath(id) }
 // Add validates an uploaded theme ZIP and stores it as <id>.zip. The id comes
 // from theme.json "id" or else the uploaded file name.
 func (m *Manager) Add(data []byte, fileName string) (*Meta, error) {
-	meta, err := parseTheme(data)
+	meta, id, err := checkAndID(data, fileName)
 	if err != nil {
 		return nil, err
-	}
-	id := strings.ToLower(meta.ID)
-	if id == "" {
-		id = strings.ToLower(strings.TrimSuffix(filepath.Base(fileName), filepath.Ext(fileName)))
-	}
-	id = regexp.MustCompile(`[^a-z0-9._-]+`).ReplaceAllString(id, "-")
-	if !idRe.MatchString(id) || !filepath.IsLocal(id+".zip") {
-		return nil, errors.New(`choose a theme id (theme.json "id") of letters, digits, dots, dashes or underscores`)
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -390,6 +382,30 @@ func (m *Manager) Add(data []byte, fileName string) (*Meta, error) {
 	}
 	meta.ID = id
 	return meta, nil
+}
+
+// checkAndID checks a ZIP as a theme and says what its id would be.
+func checkAndID(data []byte, fileName string) (*Meta, string, error) {
+	meta, err := parseTheme(data)
+	if err != nil {
+		return nil, "", err
+	}
+	id := strings.ToLower(meta.ID)
+	if id == "" {
+		id = strings.ToLower(strings.TrimSuffix(filepath.Base(fileName), filepath.Ext(fileName)))
+	}
+	id = regexp.MustCompile(`[^a-z0-9._-]+`).ReplaceAllString(id, "-")
+	if !idRe.MatchString(id) || !filepath.IsLocal(id+".zip") {
+		return nil, "", errors.New(`choose a theme id (theme.json "id") of letters, digits, dots, dashes or underscores`)
+	}
+	return meta, id, nil
+}
+
+// IDOf checks a ZIP as a theme someone uploads and says the id it would be installed as,
+// without installing it.
+func IDOf(data []byte, fileName string) (string, error) {
+	_, id, err := checkAndID(data, fileName)
+	return id, err
 }
 
 // parseTheme checks a ZIP by the rules for a theme, and reads its theme.json.
@@ -432,6 +448,12 @@ func parseTheme(data []byte) (*Meta, error) {
 			}
 			if outsideURL(b) {
 				return nil, outsideErr(f.Name)
+			}
+			if f.Name != "theme.css" {
+				return nil, fmt.Errorf("%s: a theme has one stylesheet, theme.css, and it holds variables only", f.Name)
+			}
+			if err := checkVariablesOnly(f.Name, b); err != nil {
+				return nil, err
 			}
 		}
 	}
@@ -553,4 +575,40 @@ func (m *Manager) AddCustom(c Custom) (*Meta, error) {
 		return nil, err
 	}
 	return m.Add(buf.Bytes(), id+".zip")
+}
+
+var (
+	cssBlockComment = regexp.MustCompile(`(?s)/\*.*?\*/`)
+	rootRule        = regexp.MustCompile(`(?s):root\s*\{([^{}]*)\}`)
+	fontFaceRule    = regexp.MustCompile(`(?s)@font-face\s*\{[^{}]*\}`)
+)
+
+// checkVariablesOnly refuses a theme.css that holds anything but variables: a theme is
+// colours, a scene and pictures and fonts, never rules for the interface's own classes
+// (docs/THEMES.md). The only things it may hold are :root { --variables; color-scheme }
+// and @font-face for its own fonts.
+func checkVariablesOnly(name string, css []byte) error {
+	text := cssBlockComment.ReplaceAllString(string(css), "")
+	for _, m := range rootRule.FindAllStringSubmatch(text, -1) {
+		for _, decl := range strings.Split(m[1], ";") {
+			d := strings.TrimSpace(decl)
+			if d == "" {
+				continue
+			}
+			prop, _, _ := strings.Cut(d, ":")
+			if p := strings.TrimSpace(prop); !strings.HasPrefix(p, "--") && p != "color-scheme" {
+				return fmt.Errorf("%s: %q isn't a variable. A theme sets variables in :root (and color-scheme); the interface draws itself from them", name, p)
+			}
+		}
+	}
+	rest := strings.TrimSpace(fontFaceRule.ReplaceAllString(rootRule.ReplaceAllString(text, ""), ""))
+	if rest != "" {
+		sel, _, _ := strings.Cut(rest, "{")
+		sel = strings.Join(strings.Fields(sel), " ")
+		if len(sel) > 60 {
+			sel = sel[:60] + "…"
+		}
+		return fmt.Errorf("%s: rules for the interface's classes aren't supported (found %q). A theme holds variables, a scene and pictures only; move colours into :root variables", name, sel)
+	}
+	return nil
 }

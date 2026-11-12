@@ -163,6 +163,10 @@ Overlays render into `<body>` through a portal, so nothing around them can clip 
   area, gutter, top bar, rail, type, targets (66), focus (ring 4, gap 4, scale 1.06, lift 6), shelf spacing and peek,
   card sizes, the Dock. It is in `--tv-*` in the stylesheet, unitless.
 
+### Experiences, finish and scenes (Design 2)
+
+An app is drawn by **experience** (layout, shell, shape, finish, type set, density, motion: [SDUI.md](SDUI.md#experiences)) and **theme** (colour, finish recipes, scene: [THEMES.md](THEMES.md)), chosen separately. The finish is data, not per-look code: the theme's `finish` gives a glass recipe and a gloss recipe, the experience's `effects` say how much of each (none, subtle, full), and every renderer draws the same recipes on Button, Card, Tabs, Dock, the menus, Notice and dialogs; on modest hardware and with reduced transparency every level drops one step. The scene is the theme's background layers, drawn behind the page and under the menu; reduced to its first layer on modest hardware. Glass is gradients, a highlight edge and a soft shadow, never `backdrop-filter` on scrolling content. The type sets are system, humanist, rounded (Nunito), mono (a monospaced face) and serif (Source Serif 4); the three fonts are bundled by every client with their licences credited. The standing rule holds in every experience: the server's name is drawn from `brand` and never hard-coded.
+
 ### Motion
 
 | Token | Time | For |

@@ -28,6 +28,7 @@ var publicRoutes = map[string]bool{
 	// A standalone emulator's desktop, shown in a sandboxed frame that carries no sign-in: the
 	// session's 256-bit ticket in the address is the way in, checked by WittyPlay.
 	"GET /api/modules/wittyplay/kasm/{sid}/{ticket}/{rest...}": true,
+	"GET /api/setup/state": true, "PUT /api/setup/state": true, "GET /api/sdui/preview": true,
 	"POST /api/setup":                  true,
 	"POST /api/login":                  true,
 	"POST /api/logout":                 true,

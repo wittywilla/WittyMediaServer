@@ -15,8 +15,7 @@ import (
 // Tokens is a theme as data, for clients that aren't browsers: the values of
 // its CSS variables, read and normalised. theme.css stays the one source, so
 // a theme author writes nothing extra for the TV apps to get the same colours.
-// Anything a theme does beyond its variables (its own selectors, images) only
-// exists in the web interface; WebOnly says there is such a thing.
+// A theme is variables, a scene and assets: nothing in it is web-only.
 type Tokens struct {
 	ID     string `json:"id"`
 	Name   string `json:"name"`
@@ -28,8 +27,7 @@ type Tokens struct {
 	// Fonts lists the theme's font families, best first.
 	Fonts []string `json:"fonts"`
 	// Other holds every remaining value as written (shadows, gradients).
-	Other   map[string]string `json:"other"`
-	WebOnly bool              `json:"webOnly"`
+	Other map[string]string `json:"other"`
 }
 
 // Tokens reads a theme's variables.
@@ -96,7 +94,6 @@ func parseTokens(css string) *Tokens {
 		}
 	}
 	t := &Tokens{Colors: map[string]string{}, Lengths: map[string]float64{}, Fonts: []string{}, Other: map[string]string{}}
-	t.WebOnly = strings.TrimSpace(rootBlock.ReplaceAllString(css, "")) != ""
 	for name := range vars {
 		v := mixedColor(vars, resolveVar(vars, name, 0))
 		if strings.HasSuffix(name, "-rgb") {

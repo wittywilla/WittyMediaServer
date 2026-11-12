@@ -1,5 +1,7 @@
 # First-time setup, step by step
 
+First-time setup happens **in a web browser only**. Until it is finished the server is not reachable by apps: they answer "This server isn't set up yet" with the address to finish at and a QR code of it ([First run](CLIENT-API.md#first-run) says what an app is sent). There are fourteen steps: Welcome, Account, Name and address, Look, Theme, Modules, Libraries, Details and artwork, Live TV, Games, Discs, People and rules, Remote access and apps, and Ready. **Look** offers every experience as a live preview and the setup becomes the one you try; **Theme** offers the themes, **Import a theme** and Make your own, and an experience wears its own theme unless you choose one. In **People and rules** an administrator can require a look, a theme or both of everyone, of kids or of one profile.
+
 This guide walks through every page of first-time setup, with a picture of each, so you know what's coming and what each answer does. It takes a few minutes. Only the account is required: everything else can be skipped and changed later, and each page says where in **Settings**.
 
 Your answers are saved as you go, so you can go back, or stop and carry on another day. A page only appears if your server can use what it asks about, so yours may have fewer pages than this.

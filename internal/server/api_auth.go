@@ -155,6 +155,7 @@ func (s *Server) handleSetup(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, err.Error())
 		return
 	}
+	s.markSetupStarted(r.Context())
 	tok, u, err := s.Auth.Login(r.Context(), c.Name, c.Password, deviceName(c.Device, r), false)
 	if err != nil {
 		writeErr(w, 500, err.Error())

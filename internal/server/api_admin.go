@@ -28,7 +28,7 @@ import (
 var settingKeys = []string{"tmdbKey", "tvdbKey", "tvdbPin", "hwAccel", "maxHeight", "menuLanguage", "audioLanguage", "subtitleLanguage",
 	"serverName", "audioCodec", "lowPower", "bdjEnabled", "dvdRegion", "blurayRegion", "dvdParental", "blurayAge", "discCountry", "saveMetadata", "dvdStart", "insertFx", "episodeView",
 	"hwEncoders", "directPlay", "qualityMode", "qualityProfile", "x264Preset", "crf", "maxBitrate", "audioBitrate",
-	"ffmpegVideoArgs", "ffmpegOutputArgs", "theme", "brandName", "brandColouring", "maxSpeed",
+	"ffmpegVideoArgs", "ffmpegOutputArgs", "theme", "brandName", "brandColouring", "brandSpans", "brandMark", "maxSpeed",
 	"loginStyle", "profilesRemote", "setupDone", "kidsManagedBy", "insertSound", "tvmaze", "wikidata", "musicbrainz", "animeIn", "animeTitles",
 	"libraryGrouping", "updateCheck", "moduleUpdateCheck", "moduleAutoInstall", "uploads", "uploadMaxMb", "uploadAccountMb", "shareLinks", "mapTiles", "mapOnline", "mapAttribution", "lanDiscovery", "radioDirectory", "radioChecks",
 	"legalOwnerNotice", "legalOwnerContact", "noPoster", "pairRequirePin", settingSecondOpinion}
@@ -237,6 +237,17 @@ func checkSetting(k, v string) error {
 	case "serverName", "brandName":
 		if len([]rune(v)) > brandname.MaxRunes {
 			return errors.New("the name must be at most 80 characters")
+		}
+	case "brandSpans":
+		if len(v) > 4096 {
+			return errors.New("the name's colours are too long")
+		}
+		if _, err := brandname.ParseSpans(v, brandname.MaxRunes); err != nil {
+			return err
+		}
+	case "brandMark":
+		if _, err := brandname.ParseMark(v); err != nil {
+			return err
 		}
 	case "brandColouring":
 		if !brandname.Valid(v) {

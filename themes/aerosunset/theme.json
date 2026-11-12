@@ -1,16 +1,16 @@
 {
-  "id": "aeroDay",
-  "name": "Aero Day",
-  "description": "Sky blue glass: gloss, gradients and a leaf-green hill.",
+  "id": "aerosunset",
+  "name": "Aero Sunset",
+  "description": "Golden-hour glass, orange to pink to violet.",
   "author": "WittyMediaServer",
   "version": "2",
   "scheme": "light",
   "builtin": true,
   "preview": {
-    "bg": "#cfeeff",
-    "surface": "#e7f6ff",
-    "text": "#0b3a5a",
-    "accent": "#166fa1"
+    "bg": "#ffd9b8",
+    "surface": "#ffe9d6",
+    "text": "#4a1b3a",
+    "accent": "#b23800"
   },
   "scene": {
     "layers": [
@@ -20,15 +20,15 @@
         "stops": [
           {
             "at": 0,
-            "color": "#6fcfff"
+            "color": "#ffd9a8"
           },
           {
-            "at": 48,
-            "color": "#bfeaff"
+            "at": 50,
+            "color": "#ffa06a"
           },
           {
             "at": 100,
-            "color": "#e1f8d6"
+            "color": "#d46bb8"
           }
         ]
       },
@@ -90,11 +90,11 @@
         "stops": [
           {
             "at": 0,
-            "color": "#8fdc7a"
+            "color": "#e88acb"
           },
           {
             "at": 100,
-            "color": "#3aa84a"
+            "color": "#a54fb8"
           }
         ]
       }
@@ -105,43 +105,43 @@
       "hi": "rgba(255,255,255,.9)",
       "lo": "rgba(255,255,255,.5)",
       "edge": "#ffffff",
-      "shadow": "rgba(20,120,200,.25)"
+      "shadow": "rgba(160,60,120,.25)"
     },
     "gloss": [
-      "#7fd8ff",
-      "#1e9be0",
-      "#0c7fc4",
-      "#39b5f0",
-      "#0a6aa8"
+      "#ffc08a",
+      "#ff7a3d",
+      "#e0561a",
+      "#ff9a5a",
+      "#b3410f"
     ]
   },
   "colors": {
-    "bg": "#cfeeff",
-    "bg2": "#ffffff",
-    "bg3": "#e7f6ff",
-    "bg4": "#d1e3ee",
-    "fg": "#0b3a5a",
-    "fg2": "#2f6a8c",
-    "fg3": "#436e86",
-    "accent": "#166fa1",
-    "accentHover": "#1a88c5",
+    "bg": "#ffd9b8",
+    "bg2": "#fff6ee",
+    "bg3": "#ffe9d6",
+    "bg4": "#edd4c6",
+    "fg": "#4a1b3a",
+    "fg2": "#7a3d62",
+    "fg3": "#865468",
+    "accent": "#b23800",
+    "accentHover": "#e06b36",
     "accentFg": "#ffffff",
-    "accentText": "#0a6aa8",
-    "brandAccent": "#0a6aa8",
+    "accentText": "#ae3f0f",
+    "brandAccent": "#ae3f0f",
     "danger": "#b8222f",
     "ok": "#116b45",
     "warn": "#8a5300",
-    "border": "#0b3a5a1a",
-    "borderStrong": "#0b3a5a33",
-    "controlLine": "#688aa0",
-    "hover": "#0b3a5a12",
-    "pressed": "#0b3a5a1f",
-    "accentSoft": "#166fa124",
-    "accentLine": "#166fa173",
+    "border": "#4a1b3a1a",
+    "borderStrong": "#4a1b3a33",
+    "controlLine": "#99757d",
+    "hover": "#4a1b3a12",
+    "pressed": "#4a1b3a1f",
+    "accentSoft": "#b2380024",
+    "accentLine": "#b2380073",
     "okSoft": "#116b4521",
     "warnSoft": "#8a530021",
     "dangerSoft": "#b8222f1c",
-    "focus": "#0a6aa8",
+    "focus": "#ae3f0f",
     "onImage": "#ffffff",
     "scrim": "#000000ad",
     "overlay": "#14182073"
@@ -203,8 +203,8 @@
     }
   },
   "tv": {
-    "ringColor": "#0b3a5a",
+    "ringColor": "#4a1b3a",
     "heroScrim": 0.78,
-    "tvText": "#0a3451"
+    "tvText": "#431834"
   }
 }

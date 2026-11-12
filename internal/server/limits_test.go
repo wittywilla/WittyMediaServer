@@ -41,7 +41,7 @@ func TestPublicRoutesTakeOnlySmallBodies(t *testing.T) {
 			t.Errorf("%s reads the same whether it fits or not: %d %s", c.path, ok.Code, ok.Body)
 		}
 	}
-	if !publicBody("/api/setup") || !publicBody("/api/logout") || publicBody("/api/users") || publicBody("/api/identity/x") {
+	if !publicBody("/api/setup") || !publicBody("/api/setup/state") || !publicBody("/api/logout") || publicBody("/api/users") || publicBody("/api/identity/x") {
 		t.Error("the list of public bodies is wrong")
 	}
 }

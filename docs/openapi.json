@@ -11380,6 +11380,15 @@
               "null"
             ]
           },
+          "music": {
+            "items": {
+              "type": "integer"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "nativeScreens": {
             "items": {
               "$ref": "#/components/schemas/SDUINativeScreenSpec"
@@ -11664,6 +11673,15 @@
             },
             "type": "object"
           },
+          "remote": {
+            "items": {
+              "type": "integer"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "repeats": {
             "items": {
               "$ref": "#/components/schemas/SDUIEnumOption"
@@ -11715,6 +11733,15 @@
                 "type": "null"
               }
             ]
+          },
+          "tvThemes": {
+            "items": {
+              "type": "integer"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
           }
         },
         "required": [
@@ -11728,6 +11755,7 @@
           "libraryKinds",
           "limits",
           "mediaKinds",
+          "music",
           "nativeScreens",
           "nativeViews",
           "navStyles",
@@ -11738,12 +11766,14 @@
           "platforms",
           "profileKinds",
           "profiles",
+          "remote",
           "repeats",
           "revision",
           "routes",
           "schemaVersion",
           "sources",
-          "spacing"
+          "spacing",
+          "tvThemes"
         ],
         "type": "object"
       },
@@ -13032,6 +13062,67 @@
       },
       "SDUINavEntry": {
         "properties": {
+          "drawer": {
+            "anyOf": [
+              {
+                "properties": {
+                  "count": {
+                    "type": "integer"
+                  },
+                  "icon": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "views": {
+                    "items": {
+                      "properties": {
+                        "icon": {
+                          "type": "string"
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string"
+                        },
+                        "params": {
+                          "additionalProperties": {
+                            "type": "string"
+                          },
+                          "type": "object"
+                        },
+                        "route": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "icon",
+                        "id",
+                        "label",
+                        "route"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "icon",
+                  "title",
+                  "views"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "icon": {
             "type": "string"
           },
@@ -15217,11 +15308,71 @@
           "color": {
             "type": "string"
           },
+          "mark": {
+            "properties": {
+              "imageUrl": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "shown": {
+                "type": "string"
+              },
+              "text": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "shown"
+            ],
+            "type": "object"
+          },
           "parts": {
             "items": {
               "properties": {
                 "accent": {
                   "type": "boolean"
+                },
+                "bold": {
+                  "type": "boolean"
+                },
+                "color": {
+                  "anyOf": [
+                    {
+                      "properties": {
+                        "angle": {
+                          "type": "integer"
+                        },
+                        "hex": {
+                          "type": "string"
+                        },
+                        "kind": {
+                          "type": "string"
+                        },
+                        "stops": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": [
+                            "array",
+                            "null"
+                          ]
+                        },
+                        "token": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 },
                 "text": {
                   "type": "string"
@@ -15239,12 +15390,43 @@
           },
           "token": {
             "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "properties": {
+                "need": {
+                  "type": "number"
+                },
+                "ratio": {
+                  "type": "number"
+                },
+                "surface": {
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "need",
+                "ratio",
+                "surface",
+                "text"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
           }
         },
         "required": [
           "color",
+          "mark",
           "parts",
-          "token"
+          "token",
+          "warnings"
         ],
         "type": "object"
       },
@@ -15637,9 +15819,6 @@
           },
           "scheme": {
             "type": "string"
-          },
-          "webOnly": {
-            "type": "boolean"
           }
         },
         "required": [
@@ -15649,8 +15828,7 @@
           "lengths",
           "name",
           "other",
-          "scheme",
-          "webOnly"
+          "scheme"
         ],
         "type": "object"
       },
@@ -44884,17 +45062,6 @@
         "x-wms-auth": "admin"
       }
     },
-    "/sdui/experiences": {
-      "get": {
-        "summary": "Every experience as data",
-        "operationId": "sduiExperiences",
-        "tags": ["SDUI"],
-        "x-wms-auth": "user",
-        "security": [{"bearer": []}],
-        "parameters": [],
-        "responses": {"200": {"description": "{experiences, navStyles, themes, default}", "content": {"application/json": {"schema": {"type": "object"}}}}, "default": {"$ref": "#/components/responses/Error"}}
-      }
-    },
     "/sdui/experience": {
       "delete": {
         "operationId": "deleteSduiLayout",
@@ -44992,6 +45159,37 @@
         "summary": "This profile's layout on this device: {layout}. 403 when it may not rearrange, or when the server doesn't offer that layout.",
         "tags": [
           "Server-driven UI"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/sdui/experiences": {
+      "get": {
+        "operationId": "sduiExperiences",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "{experiences, navStyles, themes, default}"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Every experience as data",
+        "tags": [
+          "SDUI"
         ],
         "x-wms-auth": "user"
       }
@@ -46596,6 +46794,32 @@
         "x-wms-auth": "admin"
       }
     },
+    "/sdui/preview": {
+      "get": {
+        "operationId": "getSDUIPreview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "A sample Home in an experience and theme",
+        "tags": [
+          "SDUI"
+        ],
+        "x-wms-auth": "public"
+      }
+    },
     "/sdui/topshelf": {
       "get": {
         "operationId": "getSduiTopshelf",
@@ -46938,6 +47162,87 @@
         "summary": "Create the first administrator (409 once there is an account).",
         "tags": [
           "Sign-in and accounts"
+        ],
+        "x-wms-auth": "public"
+      }
+    },
+    "/setup/complete": {
+      "post": {
+        "operationId": "postSetupComplete",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Finish first run",
+        "tags": [
+          "Setup"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/setup/state": {
+      "get": {
+        "operationId": "getSetupState",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "Where first run is",
+        "tags": [
+          "Setup"
+        ],
+        "x-wms-auth": "public"
+      },
+      "put": {
+        "operationId": "putSetupState",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "summary": "Save where first run is",
+        "tags": [
+          "Setup"
         ],
         "x-wms-auth": "public"
       }
@@ -49984,6 +50289,37 @@
           "Themes"
         ],
         "x-wms-auth": "admin"
+      }
+    },
+    "/themes/mine": {
+      "post": {
+        "operationId": "postThemesMine",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Import a theme of the signed-in profile's own",
+        "tags": [
+          "Themes"
+        ],
+        "x-wms-auth": "user"
       }
     },
     "/themes/{id}": {

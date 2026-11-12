@@ -196,7 +196,7 @@ var navSizes = map[string]map[string]int{
 // points (docs/plans/DESIGN-2.md 7.4).
 var (
 	navOpen   = map[string]map[string]int{NavRailDrawer: {FormWeb: 240, FormDesktop: 240, FormTablet: 220, FormTV: 400, FormHeadset: 240}, NavTVSideMenu: {FormTV: 400}}
-	navDrawer = map[string]map[string]int{NavRailDrawer: {FormWeb: 360, FormDesktop: 360, FormTablet: 300, FormTV: 480, FormHeadset: 360}}
+	navDrawer = map[string]map[string]int{NavRailDrawer: {FormWeb: 360, FormDesktop: 360, FormTablet: 300, FormTV: 480, FormHeadset: 360}, NavTVSideMenu: {FormTV: 480}}
 )
 
 //go:embed experiences/*.json

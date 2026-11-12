@@ -979,8 +979,11 @@ Witty**Media**Server. `/status` has it ready to draw:
 "brandParts": [{ "text": "Willow's " }, { "text": "Movies", "accent": true }]
 ```
 
-- **Draw `brandParts`** in order, in one line of text: parts with `accent: true` in the theme's
-  `accent-text` colour, the others in `fg`, all the same weight. It is there for the default name too
+- **Draw `brandParts`** in order, in one line of text, each in its own `color`: `{kind: "fg"}` in the
+  theme's text colour, `accent` in `brandAccent` (they change with the theme), `token` in the theme colour
+  `token` names, `static` in the fixed `hex` (the same in every theme) and `gradient` across `stops` (two to
+  four fixed colours) at `angle` degrees; `bold` parts in the heavy weight. `accent: true` is the same as the
+  accent kind. It is there for the default name too
   (`brandName` is then `""`), so an app needs no rule of its own. Joined, the parts are the name.
 - **Screen readers get the name once, whole**: give the text one accessibility label, `brandName` (or
   WittyMediaServer when it's empty), and keep the coloured pieces out of the accessibility tree
@@ -988,8 +991,14 @@ Witty**Media**Server. `/status` has it ready to draw:
   Android).
 - **Long names wrap** to a second or third line in a side menu rather than being cut off; a top bar
   shortens it with an ellipsis. The parts can break anywhere a normal line can.
-- A server older than this has no `brandParts`: draw `brandName` in one colour, or the default name as
-  Witty, Media in the theme colour, Server.
+
+The theme engine's `brand` (`GET /theme`) carries the parts with their colours, the **mark** for small
+spaces and `warnings`: `mark` is `{kind: letter|initials|text|image, text?, imageUrl?, shown}`, a square badge
+with `shown` centred in it (or the logo at `imageUrl`, fitted inside; the letter when it can't load), drawn
+in the rail's header, the tab bar's and the sign-in; `warnings` list the parts in a fixed colour that fall
+under 4.5:1 on a surface of this theme. The owner's colouring is `brandColouring` (the quick modes below) or
+`brandSpans`, the editor's `[{from, to, color, bold}]` over code points (at most 40, in order, not
+overlapping), which wins when set; the mark is `brandMark`, both in `PUT /settings`.
 
 `brandColouring` is how the owner chose it, kept with the name in `PUT /settings`:
 
@@ -1003,6 +1012,24 @@ An app that renames the server sends both `brandName` and `brandColouring`. If i
 name, chosen ranges no longer fit it, so the server goes back to `auto`. Anything else is refused with
 400. An app showing a rename window of its own can offer the same three choices; the rule and its cases
 are in `internal/brandname` (`testdata/cases.json`).
+
+## First run
+
+First run is fourteen steps in a web browser, and only there: `GET /setup/state` says where it is
+(`complete`, `steps`, `step`, `done`, `url`). Until it is complete the server answers **every route an app
+uses** with **503** and
+
+```json
+{ "error": "setup_required", "message": "This server isn't set up yet. Finish setup in a web browser.", "setupURL": "http://192.168.1.20:9797/setup" }
+```
+
+and a `Retry-After`. Only `/status`, `/health`, the setup routes (`/setup`, `/setup/state`,
+`/setup/complete`), the themes and `/sdui/experiences`, `/sdui/preview`, a restore of a backup and the web
+app's own files answer; the administrator's browser session also carries on for the setup's own calls.
+An app shows "This server isn't set up yet" with `setupURL` and a QR code of it, offers Check again and
+Choose another server, and never tries to sign in. `GET /sdui/preview?experience=<id>&theme=<id>` answers a
+sample Home and menu from generated demo data with the resolved theme before anyone has signed in, so the
+chooser draws every look with the client's own renderer.
 
 ## Choices that follow the account
 
@@ -1722,6 +1749,11 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `DELETE /sdui/pages/{page}/personal` | user | Back to the page as everyone has it. |
 | `GET /sdui/topshelf` | user | Content for a tvOS Top Shelf extension: what this account was watching, up to two rows its modules offer, and what is new, within its limits, at most 4 sections of 10 pictures, each sized for the device. 304 with If-None-Match when unchanged. |
 | `GET /sdui/experiences` | user | Every experience as data (`{experiences, navStyles, themes, default}`): the catalogue a chooser draws, with each experience's shell per form factor, default theme, WittyTV look, effects, shape, type set, density, motion and home. Which a person may pick is `GET /sdui/experience`. |
+| `GET /setup/state` | none | First run: `{complete, steps, step, done, url}`. The steps are welcome, account, name, look, theme, modules, libraries, details, livetv, games, discs, people, remote, ready. Until `complete`, every route an app uses answers 503 `setup_required` (below). |
+| `PUT /setup/state` | none, until first run is over | `{step, done}`. Before the first account: the setup code (`X-WMS-Setup-Code` from another device). After: an administrator. 409 once first run is over. |
+| `POST /setup/complete` | admin | First run is over: apps may connect. |
+| `GET /sdui/preview` | none | `experience=<id>` (and `theme`, `platform`, `formFactor`, `viewport`): `{experience, document, navigation, theme}`, a sample Home and menu made from generated demo data with the resolved theme (tokens, shape, type, finish, scene, tv, elevation, brand), so the first-run chooser draws every look with the client's own renderer before anyone has signed in. Rate limited. |
+| `POST /themes/mine` | user | Import a theme ZIP (the body, at most 26 MB) for this profile when the administrator allows it (`profileThemes`; administrators always may, and theirs is the server's). 403 when not allowed, 400 with the offending rule named when `theme.css` holds anything but variables, 409 for an id someone else has or after five themes. A profile's theme is offered to that profile only. |
 | `GET /sdui/experience` | user | The layout option in force on this device (`device=` names the app's own device, else the form factor): `{layout, shell, choice: {current, chosen, options, url}, editable}`. |
 | `PUT /sdui/experience` | user | This profile's layout on this device: `{layout}`. 403 when the profile may not rearrange or the server doesn't offer that layout. |
 | `DELETE /sdui/experience` | user | This device follows the server's layout again. |

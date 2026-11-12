@@ -4,6 +4,8 @@
 package sdui
 
 import (
+	"bytes"
+	"embed"
 	"encoding/json"
 	"strings"
 	"sync"
@@ -933,8 +935,9 @@ func buildCatalogue() *Catalogue {
 			{Op: "refresh", Label: "Refresh", Description: "Asks for the page again.", Method: "GET", Path: ""},
 		},
 		NativeScreens: append([]NativeScreenSpec(nil), nativeScreenSpecs...),
-		NativeViews:   opts("guide|TV guide grid", "photoTimeline|Photo timeline", "photoMap|Photo map", "coverFlow|Album cover flow"),
-		Icons:         append([]string(nil), Icons...),
+		TVThemes:      dataFile("tvthemes.json"), Remote: dataFile("remote.json"), Music: dataFile("music.json"),
+		NativeViews: opts("guide|TV guide grid", "photoTimeline|Photo timeline", "photoMap|Photo map", "coverFlow|Album cover flow"),
+		Icons:       append([]string(nil), Icons...),
 		Placeholders: opts("{user}|The profile's name", "{server}|The server's name", "{greeting}|Good morning, afternoon or evening", "{library}|The page's library",
 			"{title}|The page's title, or a source's first item", "{query}|What was searched for", "{each}|What a repeated section is repeated over", "{count}|How many items a source gave",
 			"{genre}|The source's genre", "{studio}|The source's studio", "{tag}|The source's tag"),
@@ -988,4 +991,17 @@ func menuScreens() []string {
 		}
 	}
 	return out
+}
+
+//go:embed data/*.json
+var dataFiles embed.FS
+
+// dataFile is one of the catalogue's data tables (data/*.json), validated as JSON when the
+// catalogue is built.
+func dataFile(name string) json.RawMessage {
+	b, err := dataFiles.ReadFile("data/" + name)
+	if err != nil || !json.Valid(b) {
+		panic("sdui: data/" + name + " is missing or not JSON")
+	}
+	return json.RawMessage(bytes.TrimSpace(b))
 }

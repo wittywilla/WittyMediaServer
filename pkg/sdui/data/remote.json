@@ -1,0 +1,20 @@
+{
+  "keys": [
+    {"id":"topMenu","label":"TOP MENU","group":"menus"},{"id":"menu","label":"MENU","group":"menus"},{"id":"return","label":"RETURN","group":"menus"},
+    {"id":"angle","label":"ANGLE","group":"options"},{"id":"audio","label":"AUDIO","group":"options"},{"id":"subtitle","label":"SUBTITLE","group":"options"},
+    {"id":"up","label":"Up","group":"pad"},{"id":"down","label":"Down","group":"pad"},{"id":"left","label":"Left","group":"pad"},{"id":"right","label":"Right","group":"pad"},{"id":"enter","label":"ENTER","group":"pad"},{"id":"eject","label":"Eject","group":"pad"},
+    {"id":"previous","label":"Previous","group":"transport"},{"id":"back","label":"Back 10","group":"transport"},{"id":"play","label":"Play","group":"transport"},{"id":"pause","label":"Pause","group":"transport"},{"id":"stop","label":"Stop","group":"transport"},{"id":"forward","label":"Forward 30","group":"transport"},{"id":"next","label":"Next","group":"transport"},
+    {"id":"0","label":"0","group":"digits"},{"id":"1","label":"1","group":"digits"},{"id":"2","label":"2","group":"digits"},{"id":"3","label":"3","group":"digits"},{"id":"4","label":"4","group":"digits"},{"id":"5","label":"5","group":"digits"},{"id":"6","label":"6","group":"digits"},{"id":"7","label":"7","group":"digits"},{"id":"8","label":"8","group":"digits"},{"id":"9","label":"9","group":"digits"},
+    {"id":"red","label":"Red","group":"colours"},{"id":"green","label":"Green","group":"colours"},{"id":"yellow","label":"Yellow","group":"colours"},{"id":"blue","label":"Blue","group":"colours"}
+  ],
+  "groups": ["menus","options","pad","transport","digits","colours"],
+  "pages": [["menus","options","pad","transport"],["digits","colours"]],
+  "kinds": {
+    "dvd": {"label":"DVD","dimmed":["red","green","yellow","blue"]},
+    "bluray": {"label":"Blu-ray","dimmed":[],"dimmedWhen":{"oneAngle":["angle"]}},
+    "video": {"label":"A video file","dimmed":["topMenu","menu","angle","red","green","yellow","blue"]},
+    "cd": {"label":"Audio CD","dimmed":["topMenu","menu","angle","subtitle","audio","red","green","yellow","blue"]}
+  },
+  "rule": "A key a disc or video does not use stays in place, dimmed with a dashed outline, never hidden.",
+  "looks": ["body","bar"]
+}

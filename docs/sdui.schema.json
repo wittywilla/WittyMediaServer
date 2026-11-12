@@ -209,6 +209,7 @@
           },
           "type": "array"
         },
+        "music": {},
         "nativeScreens": {
           "items": {
             "$ref": "#/$defs/NativeScreenSpec"
@@ -269,6 +270,7 @@
           },
           "type": "object"
         },
+        "remote": {},
         "repeats": {
           "items": {
             "$ref": "#/$defs/EnumOption"
@@ -301,7 +303,8 @@
         },
         "theme": {
           "$ref": "#/$defs/ThemeRoles"
-        }
+        },
+        "tvThemes": {}
       },
       "required": [
         "schemaVersion",
@@ -315,6 +318,9 @@
         "commands",
         "nativeScreens",
         "nativeViews",
+        "tvThemes",
+        "remote",
+        "music",
         "icons",
         "placeholders",
         "repeats",
@@ -1285,8 +1291,36 @@
       ],
       "type": "object"
     },
+    "NavDrawer": {
+      "properties": {
+        "count": {
+          "type": "integer"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "views": {
+          "items": {
+            "$ref": "#/$defs/NavView"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "title",
+        "icon",
+        "views"
+      ],
+      "type": "object"
+    },
     "NavEntry": {
       "properties": {
+        "drawer": {
+          "$ref": "#/$defs/NavDrawer"
+        },
         "icon": {
           "type": "string"
         },
@@ -1367,6 +1401,35 @@
       "required": [
         "id",
         "type"
+      ],
+      "type": "object"
+    },
+    "NavView": {
+      "properties": {
+        "icon": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "params": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "route": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "icon",
+        "route"
       ],
       "type": "object"
     },

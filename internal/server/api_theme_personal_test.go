@@ -317,3 +317,29 @@ func TestBrandColouringSurvivesTheThemeEngine(t *testing.T) {
 	}
 	check("after a refusal", "#FFB74D")
 }
+
+// The name's per-part colours, its mark and the contrast warnings come with the theme.
+func TestBrandCarriesColoursMarkAndWarnings(t *testing.T) {
+	ts, admin, adult, _ := sduiAccounts(t)
+	if err := ts.Themes.Install(builtin.Builtin); err != nil {
+		t.Fatal(err)
+	}
+	set := map[string]string{"brandName": "WittyMediaServer", "brandMark": `{"kind":"initials"}`,
+		"brandSpans": `[{"from":5,"to":10,"color":{"kind":"static","hex":"#2a2a2a"}}]`}
+	if w := ts.do(t, "PUT", "/api/settings", admin, set); w.Code != 200 {
+		t.Fatalf("settings: %d %s", w.Code, w.Body)
+	}
+	th := getTheme(t, ts, adult)
+	if th.Brand.Mark.Kind != "initials" || th.Brand.Mark.Shown != "WMS" {
+		t.Errorf("mark: %+v", th.Brand.Mark)
+	}
+	if len(th.Brand.Parts) != 3 || th.Brand.Parts[1].Color == nil || th.Brand.Parts[1].Color.Hex != "#2a2a2a" {
+		t.Errorf("parts: %+v", th.Brand.Parts)
+	}
+	if len(th.Brand.Warnings) == 0 {
+		t.Errorf("a dark grey word on a dark theme should warn: %+v", th.Brand.Warnings)
+	}
+	if w := ts.do(t, "PUT", "/api/settings", admin, map[string]string{"brandSpans": `[{"from":0,"to":3,"color":{"kind":"static","hex":"red"}}]`}); w.Code != 400 {
+		t.Errorf("a colour that isn't one: %d", w.Code)
+	}
+}

@@ -103,3 +103,4 @@ html.tv-mode .vs-row { min-block-size: 66px; font-size: var(--text-xl); }
 .sheet-page { min-block-size: 2.75rem; min-inline-size: 2.75rem; }
 .remote-sheet ~ :is(.watch-next, .skip-intro, .auto-skip) { display: none; }
 @media (max-height: 500px) { .sheet-menus .rk, .sheet-tracks .rk, .sheet-transport .rk { height: 2.75rem; } }
+.remote-sheet .remote-dpad .rk.d { min-inline-size: 2.75rem; min-block-size: 2.75rem; }

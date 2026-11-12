@@ -3,7 +3,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { buttonsOf } from './model.ts'
-import { focusedOf, presenceClass } from './playModel.ts'
+import { dotFor, focusedOf, presenceClass } from './playModel.ts'
 
 test('presence is a dot colour', () => {
   assert.equal(presenceClass('Playing'), 'on')
@@ -24,4 +24,13 @@ test('an action carries the key it is drawn with, and only the four there are', 
   const b = buttonsOf({ actions: [{ id: 'p', label: 'Resume', glyph: 'a', primary: true }, { id: 'o', label: 'Options', glyph: 'q' }] })
   assert.equal(b[0].glyph, 'a')
   assert.equal(b[1].glyph, undefined)
+})
+
+test('the catalogue\'s tones decide the dot when the card carries them', () => {
+  const tones = { Playing: 'ok', Online: 'ok', Away: 'warn', Offline: 'muted' }
+  assert.equal(dotFor('Playing', tones), 'on')
+  assert.equal(dotFor('Away', tones), 'away')
+  assert.equal(dotFor('Offline', tones), 'off')
+  assert.equal(dotFor('Online'), 'on', 'without tones, the names this app knows')
+  assert.equal(dotFor('Busy', { Busy: 'warn' }), 'away')
 })

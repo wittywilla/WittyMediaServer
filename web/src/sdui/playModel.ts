@@ -9,3 +9,13 @@ export const presenceClass = (badge: string): 'on' | 'away' | 'off' => ({ playin
 export function focusedOf<T extends { id: string }>(items: T[], focusId: string): T | undefined {
   return items.find((c) => c.id === focusId) || items[0]
 }
+
+// The dot for a badge: the catalogue's own tones for the person style (badgeTones: ok, warn, muted) when the card carries them, else the
+// names this app knows.
+export function dotFor(badge: string, tones?: Record<string, unknown>): 'on' | 'away' | 'off' {
+  const tone = tones?.[badge.trim()] ?? tones?.[badge.trim().toLowerCase()]
+  if (tone === 'ok') return 'on'
+  if (tone === 'warn') return 'away'
+  if (typeof tone === 'string') return 'off'
+  return presenceClass(badge)
+}

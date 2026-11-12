@@ -15,7 +15,8 @@ import { LinkButton } from './ui'
 import { AudioProvider } from './audio/player'
 import ConnectServer from './components/ConnectServer'
 import AuthPage from './pages/AuthPage'
-import { regionOn, StatusBar, SystemDock } from './shell/PlayChrome'
+import { usePageRegions } from './sdui/regions'
+import { StatusBar, SystemDock } from './shell/PlayChrome'
 import { PlayerDock } from './player/PlayerPage'
 import { Announcer, useDialogs } from './a11y'
 import LegalNote, { legalAckText } from './components/LegalNote'
@@ -160,6 +161,7 @@ function regionAttrs(p: Record<string, { position?: string; visible?: boolean }>
 function AppFrame() {
   // The server says how the frame is drawn: the experience's nav style (docs/SDUI.md, "Experiences").
   const menu = useMenu()
+  const regions = usePageRegions()
   const frame = frameFor(menu.shell)
   const style = frame.style
   const side = style !== 'top'
@@ -192,7 +194,7 @@ function AppFrame() {
       <Sidebar open={open} rail={rail} drawer={!wide} onClose={() => setDrawer(false)} withDrawer={frame.drawer} />
       <div className="main">
         <TopBar onMenu={toggle} showMenu={side || !wide} topNav={style !== 'side'} menuOpen={open} wide={wide} allTabs={!frame.tabBar} />
-        {regionOn(menu.shell, 'statusBar') && <StatusBar line="WittyPlay Online" />}
+        {regions?.statusBar && <StatusBar parts={regions.statusBar} />}
         <LegalAckBar />
         <PlainAwayBar />
         <main className="content" id="main" data-nav-zone="stage" tabIndex={-1}>
@@ -200,7 +202,7 @@ function AppFrame() {
           <LegalNote kind="general" className="legal-foot" />
           <footer className="page-foot"><VersionTag version={version} /></footer>
         </main>
-        {regionOn(menu.shell, 'systemDock') && menu.shell?.systemDock && <SystemDock entries={menu.shell.systemDock} />}
+        {regions?.systemDock && <SystemDock entries={regions.systemDock} />}
       </div>
       <TabBar onMenu={() => setDrawer(true)} />
     </div>

@@ -43,7 +43,8 @@ export function OverrideDialog({ id, name, need: first, permissionWords, onSubmi
   useEffect(() => { if (err) errRef.current?.focus() }, [err])
 
   const submit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    // A dialog opened from inside another form is still inside it to React: keep the submit here.
+    e.preventDefault(); e.stopPropagation()
     if (working || missing.length) return
     setWorking(true); setErr(''); setPwErr('')
     try {

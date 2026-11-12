@@ -559,14 +559,22 @@ function ForkForm({ m, onReport }: { m: ModuleStatus; onReport: (r: ModuleReport
       else { setWarning(''); setErr(e.message) }
     } finally { setWorking(false) }
   }
+  const over = useOverrideDialog()
+  const saved = (r: ModuleReport) => {
+    onReport(r)
+    toast(`${m.name} now comes from ${repo.trim()}`)
+    setTimeout(() => document.getElementById('mod-' + m.id)?.querySelector<HTMLElement>('.ms-head')?.focus(), 50)
+  }
   const confirm = async () => {
     setWorking(true); setErr('')
-    try {
-      onReport(await api.put<ModuleReport>(`/modules/${m.id}/source`, { repo, key, confirm: true, password, code }))
-      toast(`${m.name} now comes from ${repo.trim()}`)
-      setTimeout(() => document.getElementById('mod-' + m.id)?.querySelector<HTMLElement>('.ms-head')?.focus(), 50)
+    try { saved(await api.put<ModuleReport>(`/modules/${m.id}/source`, { repo, key, confirm: true, password, code })) }
+    catch (e: any) {
+      // On some systems a fork needs an override as well (on macOS, a weaker sandbox).
+      const need = needsOverrideOf(e)
+      if (need) over.open({ id: m.id, name: m.name, need, send: async (body) => saved(await api.put<ModuleReport>(`/modules/${m.id}/source`, { repo, key, confirm: true, ...body })) })
+      else setErr(e.message)
+      setCode(''); setWorking(false)
     }
-    catch (e: any) { setErr(e.message); setCode(''); setWorking(false) }
   }
   const { user } = useApp()
   const fingerprint = /fingerprint is ([0-9a-f ]+)\./.exec(warning)?.[1]
@@ -593,6 +601,7 @@ function ForkForm({ m, onReport }: { m: ModuleStatus; onReport: (r: ModuleReport
           </div>
         </div>
       )}
+      {over.dialog}
     </form>
   )
 }

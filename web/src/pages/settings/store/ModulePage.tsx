@@ -14,6 +14,7 @@ import { ChangeNotes, FailureDialog, FailureNotice, itemPath, ModuleIcon, Module
 import { OverrideRecordBox, PendingNotice, StatusNotice, useOverrideDialog, WhatItAdds } from './overrideParts'
 import { moduleKindTitle, needsOverrideOf, overrideLines, type NeedsOverride } from './overrides'
 import { InstallFromFile } from './InstallFromFile'
+import { OverrideDialog } from './OverrideDialog'
 import { categoryTitle, dayOf, failureOf, isBusy, itemDetail, mb, platformName, useFork, type Failure, type ItemDetail } from './storeApi'
 
 // A module's own page: everything needed to decide, and everything that can be done to it.
@@ -293,10 +294,22 @@ function ForkDialog({ d, onClose, onDone }: { d: ItemDetail; onClose: () => void
   const it = d.item
   const [trust, setTrust] = useState(false)
   const [owner, setOwner] = useState(false)
+  // On some systems a fork needs an override too (on macOS, a weaker sandbox): the same request,
+  // with the override beside the password.
+  const [need, setNeed] = useState<NeedsOverride | null>(null)
+  const done = () => { toast(`Installing ${it.name} from ${it.storeName}`); onDone(); onClose() }
+  if (need) return <OverrideDialog id={it.id} name={it.name} need={need} permissionWords={Object.fromEntries(d.permissions.map((p) => [p.name, p.words]))} onClose={onClose}
+    onSubmit={async (body) => { await useFork(it.store, it.id, true, d.fingerprint, body); done() }} />
   if (owner) return <ConfirmOwner onClose={() => setOwner(false)} ask={{
     title: `Replace ${it.name}?`, action: `Replace ${it.name}`,
     body: <p>This changes which code runs on this server, so it asks for your password. The official version is deleted first, so if this one won’t install, {it.name} is off until you try again or go back to the official version.</p>,
-    run: async (password, code) => { await useFork(it.store, it.id, true, d.fingerprint, { password, code }); toast(`Installing ${it.name} from ${it.storeName}`); onDone(); onClose() },
+    run: async (password, code) => {
+      try { await useFork(it.store, it.id, true, d.fingerprint, { password, code }); done() } catch (e) {
+        const n = needsOverrideOf(e)
+        if (!n) throw e
+        setOwner(false); setNeed(n)
+      }
+    },
   }} />
   return (
     <Dialog title={`Replace ${it.name} with this store’s version?`} onClose={onClose} size="md" alert

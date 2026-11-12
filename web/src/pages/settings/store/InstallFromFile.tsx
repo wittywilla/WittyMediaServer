@@ -31,7 +31,7 @@ function upload(p: Picked, onProgress: (sent: number, total: number) => void, si
     if (p.sums) form.append('sums', p.sums, p.sums.name)
     if (p.sig) form.append('sig', p.sig, p.sig.name)
     if (p.key.trim()) form.append('key', p.key.trim())
-    x.open('POST', serverBase() + '/api/modules/upload')
+    x.open('POST', serverBase() + '/api/module-uploads')
     const tok = getToken()
     if (tok) x.setRequestHeader('Authorization', 'Bearer ' + tok)
     x.upload.onprogress = (e) => { if (e.lengthComputable) onProgress(e.loaded, e.total) }
@@ -73,7 +73,7 @@ function UploadDialog({ onClose, onInstalled }: { onClose: () => void; onInstall
   // Whatever wasn't installed is discarded when the dialog goes, so nothing is left on the server.
   useEffect(() => () => {
     stop.current?.abort()
-    if (token.current && !installed.current) void api.del(`/modules/upload/${encodeURIComponent(token.current)}`).catch(() => {})
+    if (token.current && !installed.current) void api.del(`/module-uploads/${encodeURIComponent(token.current)}`).catch(() => {})
   }, [])
   useEffect(() => { if (stage.at === 'found') found.current?.focus() }, [stage.at])
 
@@ -97,11 +97,11 @@ function UploadDialog({ onClose, onInstalled }: { onClose: () => void; onInstall
     const t = token.current
     token.current = ''
     setStage({ at: 'choose' })
-    if (t) { try { await api.del(`/modules/upload/${encodeURIComponent(t)}`); toast('The uploaded file was discarded') } catch { /* it expires by itself */ } }
+    if (t) { try { await api.del(`/module-uploads/${encodeURIComponent(t)}`); toast('The uploaded file was discarded') } catch { /* it expires by itself */ } }
   }
   const install = async (body: OverrideBody | { password: string; code: string }) => {
     try {
-      await api.post(`/modules/upload/${encodeURIComponent(token.current)}/install`, body)
+      await api.post(`/module-uploads/${encodeURIComponent(token.current)}/install`, body)
     } catch (x) {
       // An upload that's gone (expired, or the server restarted) can't be installed: say so plainly.
       if (x instanceof ApiError && (x.status === 404 || x.status === 410)) {

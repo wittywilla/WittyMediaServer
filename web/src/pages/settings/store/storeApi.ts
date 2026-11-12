@@ -56,7 +56,7 @@ export const addStore = (url: string, key: string, allowPrivate: boolean, agreed
 export const removeStore = (id: string) => api.del(`/modulestore/stores/${encodeURIComponent(id)}`)
 export const setStoreOn = (id: string, on: boolean) => api.put<StoreInfo>(`/modulestore/stores/${encodeURIComponent(id)}/enabled`, { on })
 export const checkStore = (id: string) => api.post<StoreInfo>(`/modulestore/stores/${encodeURIComponent(id)}/check`)
-export const useFork = (store: string, id: string, confirm: boolean, fingerprint: string | undefined, secrets: OwnerSecrets) => api.post<ItemDetail>(`/modulestore/stores/${encodeURIComponent(store)}/fork/${encodeURIComponent(id)}`, { confirm, fingerprint, ...secrets })
+export const useFork = (store: string, id: string, confirm: boolean, fingerprint: string | undefined, secrets: OwnerSecrets & { override?: object }) => api.post<ItemDetail>(`/modulestore/stores/${encodeURIComponent(store)}/fork/${encodeURIComponent(id)}`, { confirm, fingerprint, ...secrets })
 
 // The server's words for a failure, or the error's own when it has none.
 export function failureOf(e: unknown, name = 'This module'): Failure {

@@ -224,3 +224,6 @@ html[data-card-set="list"] .sdui-row-text b { text-transform: uppercase; letter-
 
 /* One thing at a time at the foot: a film's mini player sits above the music bar, never across it. */
 .player.mini { inset-block-end: calc(20px + var(--dock-space, 0px)); }
+
+/* A finger needs 44 (principle 16): small buttons grow on a phone and under a coarse pointer. */
+@media (max-width: 700px), (pointer: coarse) { .btn.sm { min-height: 2.75rem; } }

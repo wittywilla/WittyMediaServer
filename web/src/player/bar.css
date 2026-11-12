@@ -94,3 +94,12 @@ html.tv-mode .vs-row { min-block-size: 66px; font-size: var(--text-xl); }
 .mini-progress { position: absolute; inset: auto 0 0 0; block-size: 3px; background: color-mix(in srgb, var(--on-image) 24%, transparent); }
 .mini-progress i { display: block; block-size: 100%; background: var(--accent); }
 .player.mini .mini-title { font-weight: 700; }
+
+/* The sheet is a solid body (nothing shows through), with keys a finger can hit (44), and it has the picture's corner to itself. */
+.remote.remote-sheet { background: linear-gradient(180deg, var(--bg-3), var(--bg-2)); }
+.sheet-menus .rk, .sheet-tracks .rk, .sheet-transport .rk, .sheet-digits .rk { min-height: 2.75rem; }
+.remote-sheet .remote-colours .rk, .remote-sheet .rk.colour { min-height: 2.75rem; }
+.sheet-head .rk.round, .sheet-head .rk.round.ghost { inline-size: 2.75rem; block-size: 2.75rem; }
+.sheet-page { min-block-size: 2.75rem; min-inline-size: 2.75rem; }
+.remote-sheet ~ :is(.watch-next, .skip-intro, .auto-skip) { display: none; }
+@media (max-height: 500px) { .sheet-menus .rk, .sheet-tracks .rk, .sheet-transport .rk { height: 2.75rem; } }

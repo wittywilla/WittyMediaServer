@@ -13,6 +13,7 @@ import { useApp } from '../state'
 import { SduiRoute } from '../sdui/useSdui'
 import { focusFirst, OWN_BACK, typing } from '../tv'
 import Libraries from './Libraries'
+import More from './More'
 import { backStep, stepTab, tabPath, tabRootOf, tabsFromMenu, tvKey, TV_TABS, type TabId, type TvTab } from './nav'
 import Search from './Search'
 import You from './You'
@@ -31,12 +32,15 @@ const BUSY = `${OWN_BACK}, .wp-playing, .wp-capture`
 
 const pill = (id: TabId) => document.querySelector<HTMLElement>(`.tvm-bar [data-tab="${CSS.escape(id)}"]`)
 
-function TopBar({ tab, tabs }: { tab: TabId; tabs: TvTab[] }) {
+// The menu: a row along the top, or (a layout that says tvSideMenu) a column down the left that
+// shows only icons until it has focus, and then opens to show their names (docs/SDUI.md).
+function TopBar({ tab, tabs, side }: { tab: TabId; tabs: TvTab[]; side?: { size: number; open: number } }) {
   const { user } = useApp()
   const shown = user ? profileName(user) : ''
+  const style = side ? { '--tvm-side': String(side.size || 120), '--tvm-side-open': String(side.open || 400) } as React.CSSProperties : undefined
   return (
-    <header className="tvm-bar" data-keep-focus>
-      <nav className="tvm-tabs" aria-label="TV mode" data-nav-group data-nav-entry=".tvm-pill[aria-current=page]">
+    <header className={'tvm-bar' + (side ? ' tvm-side' : '')} data-keep-focus style={style}>
+      <nav className="tvm-tabs" aria-label="TV mode" aria-orientation={side ? 'vertical' : undefined} data-nav-group data-nav-entry=".tvm-pill[aria-current=page]">
         {tabs.map((t) => {
           const you = t.screen === 'profiles'
           return (
@@ -58,6 +62,8 @@ export default function TvFrame({ pages }: { pages: ReactNode }) {
   // The bar: the server's menu for a television, where it sends one.
   const menu = useMenu()
   const tabs = useMemo(() => (menu.server && menu.all.length ? tabsFromMenu(menu.all) : TV_TABS), [menu.server, menu.all])
+  // The layout the server gives a television: its top menu, or a menu down the side.
+  const sideMenu = !!menu.server && menu.shell?.nav === 'tvSideMenu'
   const tabsNow = useRef(tabs)
   tabsNow.current = tabs
   const tab = tabRootOf(loc.pathname, tabs)
@@ -151,10 +157,10 @@ export default function TvFrame({ pages }: { pages: ReactNode }) {
   }, [choose, goBack])
 
   return (
-    <div className={'tvm' + (tab ? ' tvm-tab' : ' tvm-pushed')}>
+    <div className={'tvm' + (tab ? ' tvm-tab' : ' tvm-pushed') + (sideMenu ? ' tvm-sidemenu' : '')}>
       <a className="skip-link" data-nav-skip href="#main">Skip to content</a>
       {tab
-        ? <TopBar tab={tab} tabs={tabs} />
+        ? <TopBar tab={tab} tabs={tabs} side={sideMenu ? { size: menu.shell!.size, open: menu.shell!.open || 400 } : undefined} />
         : <button type="button" className="tvm-back" data-nav-skip onClick={goBack} aria-label="Back"><IconBack /></button>}
       <main className="content tvm-main" id="main" tabIndex={-1}>
         <Suspense fallback={<Spinner />}>
@@ -165,6 +171,7 @@ export default function TvFrame({ pages }: { pages: ReactNode }) {
             <Route path="/games/game/:id" element={<GameScreen />} />
             <Route path="/search" element={<SduiRoute fallback={<Search />} />} />
             <Route path="/you" element={<You />} />
+            <Route path="/more" element={<More />} />
             <Route path="*" element={pages} />
           </Routes>
         </Suspense>

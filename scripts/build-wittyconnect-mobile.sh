@@ -36,7 +36,7 @@ mkdir -p "$out"
 out="$(cd "$out" && pwd)"
 pkg=github.com/wittywilla/wittymediaserver/pkg/wittyconnect/mobile
 # The oldest systems the apps support (WittyMediaClient's android/app/build.gradle.kts and apple/project.yml).
-android_api="${ANDROID_API:-24}"
+android_api="${ANDROID_API:-23}"
 ios_version="${IOS_VERSION:-16.0}"
 tvos_version="${TVOS_VERSION:-17.0}"
 # Which Apple systems get a slice. Add macos or maccatalyst here if something needs them.
@@ -119,8 +119,12 @@ if [ "$what" = android ] || [ "$what" = all ]; then
   bin="$(install_gomobile "$xmobile_module" "$xmobile_version")"
   dir="$(scratch_module "$xmobile_module" "$xmobile_version")"
   echo "Building the Android library (API $android_api and newer)"
-  (cd "$dir" && PATH="$bin:$PATH" gomobile init && PATH="$bin:$PATH" gomobile bind "${flags[@]}" \
-    -target=android/arm64,android/arm,android/amd64 -androidapi "$android_api" \
+  # libp2p lists the network interfaces on Android 11 and later through github.com/wlynxg/anet, which reaches into
+  # the standard library's net package by go:linkname. Go 1.23 and later refuse that unless the linker is told not
+  # to check, as anet's own README says. Only the Android library needs it. Every processor the app ships an APK
+  # for gets a slice, 32-bit x86 included.
+  (cd "$dir" && PATH="$bin:$PATH" gomobile init && PATH="$bin:$PATH" gomobile bind -trimpath -ldflags "-s -w -checklinkname=0" \
+    -target=android/arm64,android/arm,android/amd64,android/386 -androidapi "$android_api" \
     -javapkg com.wittywilla.wittyconnect -o "$out/wittyconnect.aar" "$pkg")
   ls -lh "$out/wittyconnect.aar"
 fi

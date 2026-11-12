@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { SaveButton } from '../components/SaveToCollection'
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api, episodeLabel, fitWidth, fmtRuntime, fmtTime, getPrefs, posterUrl, sized, seasonPosterUrl, showBackdropUrl, showPosterUrl, type Item, type Prefs, type ShowDetail } from '../api'
 import EditDetails, { type EditSection } from '../components/edit/EditDetails'
@@ -10,12 +10,19 @@ import RefreshDialog from '../components/edit/RefreshDialog'
 import TitleExtras, { TitleLogo } from '../components/edit/TitleExtras'
 import BrandLogo from '../components/BrandLogo'
 import { BackLink, EmptyState, PageSkeleton, SeenBadge } from '../components/common'
+import { GONE_TEXT, isGone } from '../profileWords'
 import { IconCheck, IconEdit, IconImage, IconInfo, IconMore, IconPlay, IconRefresh } from '../icons'
+import { PlayOnButton, queueOf } from '../remote/PlayOnButton'
+import type { PlayOnSource } from '../remote/PlayOn'
 import { IconButton, RowSheet, Rows, SheetRow } from '../ui'
 import { useMedia } from '../shell/useNav'
 import { toast, useApp } from '../state'
 import LegalNote from '../components/LegalNote'
 import LogoNotice from '../components/LogoNotice'
+
+const TitleCanvas = lazy(() => import('../canvas/CanvasVideo').then((m) => ({ default: m.TitleCanvas })))
+const FindIntros = lazy(() => import('../components/FindIntros'))
+const WhereToWatch = lazy(() => import('../components/WhereToWatch'))
 
 export default function ShowPage() {
   const { id } = useParams()
@@ -26,11 +33,8 @@ export default function ShowPage() {
   const [err, setErr] = useState('')
   const [edit, setEdit] = useState<EditSection | ''>((params.get('edit') as EditSection) || '')
   const [refreshing, setRefreshing] = useState(false)
-  // Compare the episodes of each season by ear and mark what they share, as a task.
-  const findIntros = async () => {
-    setMore(false)
-    try { await api.post(`/shows/${show!.id}/detect-intros`, {}); toast('Looking for intros and credits. Tasks shows how far it has got.') } catch (e: any) { toast(e.message) }
-  }
+  // Compare the episodes of each season by ear and mark what they share: its own window, with progress.
+  const [finding, setFinding] = useState(false)
   const [art, setArt] = useState(false)
   const [prefs, setPrefs] = useState<Prefs | null>(null)
   const [viewOverride, setViewOverride] = useState<'' | 'cards' | 'list' | null>(null)
@@ -42,7 +46,7 @@ export default function ShowPage() {
   useEffect(() => { getPrefs().then(setPrefs) }, [])
   // Coming back from picking a time in the player opens where it was.
   useEffect(() => { if (params.get('edit')) { const p = new URLSearchParams(params); p.delete('edit'); setParams(p, { replace: true }) } }, []) // eslint-disable-line react-hooks/exhaustive-deps
-  if (err) return <EmptyState icon={<IconInfo />} title="This show didn’t load" text={err} />
+  if (err) return isGone(err) ? <EmptyState icon={<IconInfo />} title="This show isn’t available" text={GONE_TEXT} action={<Link className="btn" to="/">Back to home</Link>} /> : <EmptyState icon={<IconInfo />} title="This show didn’t load" text={err} />
   if (!d) return <PageSkeleton shape="item" />
   const { show, seasons, episodes } = d
   const seasonParam = params.get('season')
@@ -50,6 +54,8 @@ export default function ShowPage() {
   const eps = episodes.filter((e) => (e.season ?? -1) === season || (season === -1 && e.season == null))
   const next = episodes.find((e) => e.id === d.nextUpId)
   const nextResume = next?.progress?.resumeSec ? next.progress : null
+  // On another device: the episode that's next here, and the ones after it as its queue.
+  const playOnSource = (): PlayOnSource => ({ kind: 'item', itemId: next!.id, itemKind: next!.kind, title: [show.title, episodeLabel(next!)].filter(Boolean).join(' · '), ...queueOf(episodes.map((e) => e.id), episodes.indexOf(next!)) })
   const unmatched = episodes.filter((e) => e.season == null)
   // Layout: this show's own choice, else the server-wide default.
   const showView = viewOverride ?? show.view
@@ -62,6 +68,8 @@ export default function ShowPage() {
     <>
       <div className="detail-hero">
         <div className="bg" style={{ backgroundImage: `url(${sized(showBackdropUrl(show), fitWidth(innerWidth))})` }} />
+        {/* A show's canvas covers its episodes, so the one to watch next has it. */}
+        <Suspense fallback={null}><TitleCanvas itemId={next?.id ?? episodes[0]?.id} /></Suspense>
         <div className="shade" />
       </div>
       <div className="detail">
@@ -82,6 +90,7 @@ export default function ShowPage() {
                 <IconPlay /> {nextResume ? `Resume ${episodeLabel(next)}` : `Play ${episodeLabel(next) || next.title}`}
               </button>}
               <SaveButton showId={show.id} />
+              {next && <PlayOnButton className="btn square" iconOnly source={playOnSource} />}
               {user?.isAdmin && <IconButton label="More" hideTip className="item-more" aria-haspopup="dialog" onClick={() => setMore(true)}><IconMore /></IconButton>}
             </div>
           ) : <div className="actions">
@@ -89,9 +98,11 @@ export default function ShowPage() {
               <IconPlay /> {nextResume ? `Resume ${episodeLabel(next)} from ${fmtTime(nextResume.positionSec)}` : `Play ${episodeLabel(next) || next.title}`}
             </button>}
             <SaveButton showId={show.id} />
+            {next && <PlayOnButton source={playOnSource} />}
             {user?.isAdmin && <button className="btn ghost" onClick={() => setEdit('match')}><IconEdit /> Edit</button>}
             {user?.isAdmin && <button className="btn ghost" aria-haspopup="dialog" onClick={() => setArt(true)}><IconImage /> Artwork</button>}
             {user?.isAdmin && <button className="btn ghost" onClick={() => setRefreshing(true)} title="See what's new about this, and choose what to take"><IconRefresh /> Refresh</button>}
+            {user?.isAdmin && <button className="btn ghost" aria-haspopup="dialog" onClick={() => setFinding(true)} title="Compare each season's episodes by ear, and mark the intro and credits they share"><IconPlay /> Find intros and credits</button>}
           </div>}
           {more && (
             <RowSheet title={show.title} onClose={() => setMore(false)}>
@@ -99,12 +110,13 @@ export default function ShowPage() {
                 <SheetRow icon={<IconImage />} label="Artwork" onSelect={() => setArt(true)} />
                 <SheetRow icon={<IconEdit />} label="Edit" onSelect={() => setEdit('match')} />
                 <SheetRow icon={<IconRefresh />} label="Refresh" onSelect={() => setRefreshing(true)} />
-                <SheetRow icon={<IconPlay />} label="Find intros and credits" onSelect={findIntros} />
+                <SheetRow icon={<IconPlay />} label="Find intros and credits" onSelect={() => setFinding(true)} />
               </Rows>
             </RowSheet>
           )}
           {show.overview && <p className="overview">{show.overview}</p>}
           <TitleExtras target="show" id={show.id} libraryId={show.libraryId} />
+          {episodes[0] && <Suspense fallback={null}><WhereToWatch itemId={episodes[0].id} show /></Suspense>}
 
           <div className="season-tabs">
             {seasons.map((s) => (
@@ -142,6 +154,7 @@ export default function ShowPage() {
       {art && <TitleArtPicker target="show" id={show.id} onClose={() => setArt(false)} onApplied={appliedOnPage(load)} />}
       {edit && <EditDetails target="show" id={show.id} start={edit} onClose={() => setEdit('')} onChanged={load} />}
       {refreshing && <RefreshDialog target="show" id={show.id} onClose={() => setRefreshing(false)} onChanged={load} />}
+      {finding && user?.isAdmin && <Suspense fallback={null}><FindIntros showId={show.id} title={show.title} seasons={seasons} season={season} onClose={() => setFinding(false)} /></Suspense>}
     </>
   )
 }

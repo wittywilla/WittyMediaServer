@@ -278,7 +278,32 @@ func TestP2PInviteEnrolsAndSignsIn(t *testing.T) {
 	if w := ts.do(t, "POST", "/api/p2p/invite", kid, map[string]any{}); w.Code != 403 {
 		t.Fatalf("a kid's profile making an invite: %d", w.Code)
 	}
-	w := ts.do(t, "POST", "/api/p2p/invite", admin, map[string]any{})
+	// An invite signs a device in as the administrator wherever it is: that takes the
+	// administrator's password again, as approving a device at home does.
+	for _, c := range []struct {
+		name string
+		body map[string]any
+		code int
+	}{
+		{"no password", map[string]any{}, 403},
+		{"a wrong password", map[string]any{"password": "not the password"}, 403},
+		{"another account's managed profile", map[string]any{"userId": 999999, "password": "correct-horse-1"}, 403},
+	} {
+		w := ts.do(t, "POST", "/api/p2p/invite", admin, c.body)
+		if w.Code != c.code {
+			t.Fatalf("%s: %d %s", c.name, w.Code, w.Body)
+		}
+		if c.name == "no password" && !strings.Contains(w.Body.String(), `"reason":"`+pairNeedsPassword+`"`) {
+			t.Fatalf("%s: %s", c.name, w.Body)
+		}
+	}
+	ts.p2p.invites.mu.Lock()
+	n := len(ts.p2p.invites.open)
+	ts.p2p.invites.mu.Unlock()
+	if n != 0 {
+		t.Fatalf("%d invites were made without the password", n)
+	}
+	w := ts.do(t, "POST", "/api/p2p/invite", admin, map[string]any{"password": "correct-horse-1"})
 	if w.Code != 200 {
 		t.Fatalf("%d %s", w.Code, w.Body)
 	}

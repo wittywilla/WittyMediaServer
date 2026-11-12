@@ -34,7 +34,7 @@ func fakeSeparator(t *testing.T, ts *testServer, parts ...string) (release func(
 	}
 	dir = t.TempDir()
 	script := filepath.Join(dir, "demucs")
-	body := "#!/bin/sh\nhere=$(dirname \"$0\")\necho ' 50%|#####     |' >&2\ni=0\nwhile [ ! -e \"$here/go\" ] && [ $i -lt 600 ]; do sleep 0.05; i=$((i+1)); done\n" +
+	body := "#!/bin/sh\nhere=$(dirname \"$0\")\necho ' 50%|#####     |' >&2\ni=0\nwhile [ ! -e \"$here/go\" ] && [ $i -lt 12000 ]; do sleep 0.05; i=$((i+1)); done\n" +
 		"[ -e \"$here/fail\" ] && { echo 'no memory left' >&2; exit 3; }\nmkdir -p \"$2/htdemucs/song\"\n"
 	for _, p := range parts {
 		body += "cp \"$1\" \"$2/htdemucs/song/" + p + "\"\n"
@@ -47,7 +47,11 @@ func fakeSeparator(t *testing.T, ts *testServer, parts ...string) (release func(
 	ts.karaoke.found = &separator.Found{Name: "Demucs", Version: "4.0.1", Path: script, Words: []string{script, "{input}", "{output}"}}
 	ts.karaoke.looked = time.Now()
 	ts.karaoke.mu.Unlock()
-	return func() { put(t, filepath.Join(dir, "go"), nil) }, dir
+	// The stand-in waits for its release however busy the machine is (a quick version
+	// made slowly mustn't let it finish first), and is always let go when the test ends.
+	release = func() { _ = os.WriteFile(filepath.Join(dir, "go"), nil, 0o644) }
+	t.Cleanup(release)
+	return release, dir
 }
 
 // karaokeUntil asks until the answer is what's wanted.

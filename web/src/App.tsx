@@ -25,7 +25,8 @@ import { syncTilt } from './ui/tilt'
 import { Sidebar } from './shell/Sidebar'
 import { TabBar } from './shell/TabBar'
 import { TopBar } from './shell/TopBar'
-import { useMedia, useNavMigration, useNavPrefs } from './shell/useNav'
+import { frameFor } from './shell/navModel'
+import { useMedia, useMenu, useNavMigration, useNavPrefs } from './shell/useNav'
 import { useTvMode } from './tvmode/mode'
 import RemoteHost from './remote/RemoteHost'
 
@@ -141,8 +142,18 @@ function Shell() {
 // The page's frame. On wide screens the side menu sits beside the page and can fold
 // to a rail or away, which this device remembers; narrower, it's a drawer over the page.
 function AppFrame() {
-  const style = useNavStyle()
+  const own = useNavStyle()
+  // A server with layout options says how the frame is drawn (docs/SDUI.md, "Layout options");
+  // an older one leaves it to this device's own choice.
+  const menu = useMenu()
+  const frame = frameFor(menu.server ? menu.shell : undefined, own)
+  const style = menu.shell ? frame.style : own
   const side = style !== 'top'
+  useEffect(() => {
+    const root = document.documentElement.style
+    if (frame.sidebar) root.setProperty('--sidebar', frame.sidebar + 'px'); else root.removeProperty('--sidebar')
+    if (frame.railWidth) root.setProperty('--rail', frame.railWidth + 'px'); else root.removeProperty('--rail')
+  }, [frame.sidebar, frame.railWidth])
   const { version } = useApp()
   const { prefs } = useNavPrefs()
   const loc = useLocation()
@@ -152,13 +163,13 @@ function AppFrame() {
   const [tilt] = useUserPref('posterTilt', true)
   useEffect(() => { syncTilt(tilt) }, [tilt])
   useEffect(() => { setDrawer(false) }, [loc.pathname, wide])
-  const open = wide ? side && !folded : drawer
-  const rail = wide && side && folded && prefs.collapse !== 'hide'
+  const open = wide ? side && !folded && !frame.rail : drawer
+  const rail = wide && side && (frame.rail || (folded && prefs.collapse !== 'hide'))
   const toggle = () => {
     if (wide) { setNavCollapsed(!folded); setFolded(!folded) } else setDrawer((o) => !o)
   }
   return (
-    <div className={'app nav-' + style + (open ? ' nav-open' : '') + (rail ? ' nav-rail' : '')}>
+    <div className={'app nav-' + style + (open ? ' nav-open' : '') + (rail ? ' nav-rail' : '') + (frame.overlay ? ' nav-overlay' : '') + (frame.tabBar ? '' : ' no-tabbar')} data-layout={menu.shell?.layout || undefined}>
       <a className="skip-link" data-nav-skip href="#main">Skip to content</a>
       <Sidebar open={open} rail={rail} drawer={!wide} onClose={() => setDrawer(false)} />
       <div className="main">

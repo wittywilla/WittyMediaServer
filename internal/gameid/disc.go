@@ -143,6 +143,18 @@ func sniffISO(iso *isoImage, size int64) Finding {
 				Proof: fmt.Sprintf("Its SYSTEM.CNF starts a %s program, %s.", name, serial)}
 		}
 	}
+	if _, ok := findEntry(root, "PS3_DISC.SFB"); ok || strings.HasPrefix(system, "PS3VOLUME") {
+		f := Finding{Console: PS3, Kind: KindGame, Proof: "It has the PS3_DISC.SFB of a PlayStation 3 disc."}
+		if !ok {
+			f.Proof = "Its volume says it's a PlayStation 3 disc."
+		}
+		if dir, ok := findEntry(root, "PS3_GAME"); ok && dir.dir {
+			if sfo, ok := findEntry(iso.list(dir.lba, dir.size), "PARAM.SFO"); ok {
+				applyPS3SFO(&f, iso.read(sfo, 64<<10))
+			}
+		}
+		return f
+	}
 	if dir, ok := findEntry(root, "PSP_GAME"); ok && dir.dir {
 		f := Finding{Console: "psp", Kind: KindGame, Proof: "It has the PSP_GAME folder of a PSP disc."}
 		if sfo, ok := findEntry(iso.list(dir.lba, dir.size), "PARAM.SFO"); ok {
@@ -286,19 +298,18 @@ func sniffBootSector(r io.ReaderAt, size int64) (Finding, bool) {
 		}
 	}
 	// GameCube and Wii discs carry a magic number in their first bytes.
-	if b := at(r, 0, 0x40); b != nil {
-		be := binary.BigEndian
-		switch {
-		case be.Uint32(b[0x18:]) == 0x5D1C9EA3:
-			return Finding{Console: Wii, Kind: KindGame, Serial: clean(b[:6]), Title: titleIf(clean(b[0x20:0x40])), Proof: "It has the magic number of a Wii disc."}, true
-		case be.Uint32(b[0x1C:]) == 0xC2339F3D:
-			return Finding{Console: GameCube, Kind: KindGame, Serial: clean(b[:6]), Title: titleIf(clean(b[0x20:0x40])), Proof: "It has the magic number of a GameCube disc."}, true
-		case bytes.HasPrefix(b, []byte("\x01ZZZZZ\x01")):
-			return Finding{Console: ThreeDO, Kind: KindGame, Proof: "It starts with the volume mark of a 3DO disc."}, true
-		}
+	b := at(r, 0, discHeaderLen)
+	if b == nil {
+		b = at(r, 0, 0x40)
 	}
-	if b := at(r, 0x10000, 20); b != nil && bytes.HasPrefix(b, []byte("MICROSOFT*XBOX*MEDIA")) {
-		return Finding{Console: Xbox, Kind: KindGame, Proof: "It has the volume mark of an Xbox disc."}, true
+	if f, ok := nintendoDisc(b); ok {
+		return f, true
+	}
+	if b != nil && bytes.HasPrefix(b, []byte("\x01ZZZZZ\x01")) {
+		return Finding{Console: ThreeDO, Kind: KindGame, Proof: "It starts with the volume mark of a 3DO disc."}, true
+	}
+	if f, ok := sniffXISO(r, size); ok {
+		return f, true
 	}
 	// A PC Engine CD names itself in the second sector of its data track.
 	for _, off := range []int64{2048, 2352 + 16, 2352 + 24} {

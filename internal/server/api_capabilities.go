@@ -45,7 +45,33 @@ const (
 	//   - the streams of remote control and watch parties end the moment their sign-in
 	//     does, with "bye" or "closed" and a reason: "signed-out" or "feature-off"
 	//     (session-end-streams).
-	apiRevision = 15
+	//
+	// 16 is phase 2 of 0.8.0-alpha, counted once:
+	//   - modules carry their own SDUI (module API 4): their pages, rows, components,
+	//     sources, views, menu entries and colours are merged in; GET /sdui/modules,
+	//     /sdui/modules/{module}/images/{name}, /sdui/modules/settings and
+	//     /sdui/modules/{module}/settings[/personal] (sdui-modules, module-settings);
+	//   - layout options: document.layout.shell, the navigation's shell and layouts,
+	//     /sdui/layout and /sdui/config/layouts (sdui-layouts); a ListItem from a source
+	//     carries image, progress and badges; library rows take their kind's card style
+	//     and a phone's libraries are chips; a title's page on a phone or TV has no
+	//     personal;
+	//   - catalog.nativeScreens[].menu; command bodies hold {item} in a JSON string, and
+	//     collections and /items/show-<n>/progress take show IDs; the artist page
+	//     (/artist/{library}?name=, page detail-artist, media kind artist); the tracks
+	//     source's album is optional; backdrops at most 2x the window, never a poster;
+	//   - the editor: a draft's baseRevision, publish that merges and answers 409 with
+	//     conflicts (?prefer=draft|published), fromDraft/toDraft in diffs,
+	//     /sdui/validate?target=draft, 404 for deleting a page that isn't there;
+	//   - stems/approximate follows the karaoke setting (403 with reason, 429);
+	//     p2p/invite asks an administrator's password for an administrator (403
+	//     password-required);
+	//   - the theme on SDUI: the catalogue's tokens for every component and card style
+	//     (sdui-tokens), shape, type and brand in /theme (theme-shape-type), derived
+	//     colours for every layer of overrides (theme-derived), and a profile's own colours
+	//     at /theme/personal, refused below AA contrast (theme-personal); PUT /me/ui keeps
+	//     the keys the server owns.
+	apiRevision = 16
 	apiPrefix   = "/api/v1/"
 )
 
@@ -86,7 +112,7 @@ func (s *Server) versioned(next http.Handler) http.Handler {
 var serverFeatures = []string{
 	"profiles", "pairing", "pair-invite", "pair-totp", "pair-qr", "server-identity", "lan-discovery", "stream-tokens",
 	"direct-play", "hls", "hls-remux", "hls-fmp4", "transcode", "playback-profiles", "subtitles-webvtt", "subtitles-burn-in",
-	"dvd", "dvd-menus", "bluray", "bluray-menus", "audio-cd",
+	"dvd", "dvd-menus", "bluray", "bluray-menus", "audio-cd", "disc-ranking",
 	"shows", "next-up", "recommendations", "skip-intro",
 	"music", "audiobooks", "podcasts", "books", "annotations", "radio", "radio-directory",
 	"themes", "theme-tokens", "modules", "game-metadata", "system-tasks", "system-metrics", "module-pages",
@@ -113,6 +139,10 @@ var serverFeatures = []string{
 	// Modules carry their own SDUI (docs/SDUI-MODULES.md): their pages, rows, menu entries,
 	// sources and colours are merged in; their pictures and settings have routes of their own.
 	"sdui-modules", "module-settings",
+	// The theme on SDUI (docs/THEMES.md "SDUI tokens"): the catalogue says which tokens each
+	// component is drawn with, GET /api/v1/theme has shape, type and brand, overrides carry
+	// derived colours; a profile sets its own colours with /api/v1/theme/personal.
+	"theme-shape-type", "sdui-tokens", "theme-derived", "theme-personal",
 	// Layout options: document.layout.shell, the navigation's shell and layouts, /sdui/layout.
 	"sdui-layouts",
 }

@@ -766,6 +766,10 @@ func (s *Server) handleP2PInvite(w http.ResponseWriter, r *http.Request) {
 	}
 	var b struct {
 		UserID int64 `json:"userId"`
+		// The inviter's own password (and two-factor code), when the device will be
+		// signed in as an administrator: as for /api/pair/approve and /api/p2p/join.
+		Password string `json:"password"`
+		OTP      string `json:"otp"`
 	}
 	if err := readJSON(r, &b); err != nil {
 		writeErr(w, 400, "expected a JSON body")
@@ -779,6 +783,11 @@ func (s *Server) handleP2PInvite(w http.ResponseWriter, r *http.Request) {
 	node := s.p2pNode()
 	if node == nil {
 		writeErr(w, 409, "Peer-to-peer connections are off. An administrator can turn them on in Settings, Remote Access.")
+		return
+	}
+	// An invite signs a device in as the target wherever it is: as an administrator only
+	// with that administrator's password again, the same check /api/pair/approve makes.
+	if !s.confirmAdminGrant(w, r, target, b.Password, b.OTP) {
 		return
 	}
 	secret, err := s.p2p.invites.make(me.ID, target.ID, tokenFrom(r))

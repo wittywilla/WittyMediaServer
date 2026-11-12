@@ -9,6 +9,8 @@ test('a colour name becomes the CSS variable themes use', () => {
   assert.equal(tokenVar('bg2'), '--bg-2')
   assert.equal(tokenVar('borderStrong'), '--border-strong')
   assert.equal(tokenVar('fg'), '--fg')
+  // The hovered accent is --accent-2 in every stylesheet; --accent-hover is nothing.
+  assert.equal(tokenVar('accentHover'), '--accent-2')
 })
 
 test('a page belongs to a module or to the server', () => {
@@ -49,4 +51,30 @@ test('nothing but a plain colour reaches the page', () => {
   const bad = { id: 'x', source: 'server', overrides: { accent: 'red;} body{display:none', 'bad-name': '#FFFFFF', fg: 'url(https://example.org/x)', ok: '#12345678' }, modules: {} }
   assert.deepEqual(overrideDeclarations(bad, '', true), [['--ok', '#12345678']])
   assert.deepEqual(overrideDeclarations(null, 'wittytv', true), [])
+})
+
+test('a module\'s own colours (where its palette differs) apply on its pages, under the administrator\'s', () => {
+  const t = {
+    id: 'x', source: 'server', overrides: {}, tokens: { accent: '#111111', bg: '#000000', fg: '#ffffff' },
+    modules: { wittyboardgames: { overrides: { fg: '#eeeeee' }, tokens: { accent: '#ff8800', bg: '#000000', fg: '#eeeeee' } } },
+  }
+  const got = Object.fromEntries(overrideDeclarations(t, 'wittyboardgames', true))
+  assert.equal(got['--accent'], '#ff8800')
+  assert.equal(got['--fg'], '#eeeeee')
+  assert.equal(got['--bg'], undefined, 'the same as everyone\'s is left to the theme on screen')
+  assert.deepEqual(overrideDeclarations(t, '', true), [])
+})
+
+test('the profile\'s own colours go over everything, and its colours for a scope over those', () => {
+  const t = {
+    id: 'x', source: 'server', overrides: { accent: '#222222' }, tokens: { accent: '#222222', fg: '#ffffff' }, personal: { fg: '#fafafa' },
+    modules: { wittytv: { overrides: { fg: '#eeeeee' }, tokens: { accent: '#ff8800', fg: '#eeeeee' }, personal: { accent: '#00aa00' } } },
+  }
+  const on = Object.fromEntries(overrideDeclarations(t, 'wittytv', true))
+  assert.equal(on['--fg'], '#fafafa', 'over the scope\'s administrator colour')
+  assert.equal(on['--accent'], '#00aa00')
+  // A device showing its own theme still gets the profile's own colours.
+  const other = Object.fromEntries(overrideDeclarations(t, '', false))
+  assert.equal(other['--fg'], '#fafafa')
+  assert.equal(other['--accent'], undefined)
 })

@@ -10,7 +10,7 @@ import { announce } from '../../../a11y'
 import { forgetPages, bump, getPreview, onPreview, setPreview } from '../../../sdui/client'
 import { useApp } from '../../../state'
 import { ask, Button, LoadError, Notice, Spinner, toast } from '../../../ui'
-import { discardDraft, getCatalogue, getDiff, isConflict, listPages, message, previewToken, publishDraft } from './api'
+import { discardDraft, getCatalogue, getDiff, isConflict, listPages, mergeConflicts, message, previewToken, publishDraft } from './api'
 import { describeChanges, pageName, type Catalogue, type Change, type LibraryRef, type PageEntry } from './editorModel.ts'
 
 type Status = { draft: boolean; pages: PageEntry[]; changes: Change[] }
@@ -109,7 +109,27 @@ export function DraftBar({ route }: { route?: string }) {
     })) return
     setBusy('publish')
     try {
-      await publishDraft()
+      try {
+        await publishDraft()
+      } catch (e) {
+        // Someone published since this draft was begun, and changed some of the same things.
+        const clash = mergeConflicts(e)
+        if (!clash) throw e
+        const whole = clash.includes('/')
+        const named = clash.map((c) => c.replace(/^\/pages\//, '').replace(/^\/navigation$/, 'the menu').replace(/^\/theme$/, 'the theme').replace(/^\/personal$/, 'rearranging')).join(', ')
+        const keepDraft = await ask({
+          title: 'Changed in both places',
+          body: whole
+            ? 'What was published when this draft was begun is no longer kept, so the two can’t be merged. Publish the draft as it is, replacing what is published now?'
+            : `Since this draft was begun, someone published changes to ${named}, and the draft changes them too. Use the draft’s version of those? Everything else from both is kept either way.`,
+          confirm: whole ? 'Publish the draft' : 'Use the draft’s',
+          cancel: whole ? 'Cancel' : 'Keep what’s published',
+        })
+        if (whole && !keepDraft) return
+        // Closing the question is not an answer: say what publishing now would do, and ask once more.
+        if (!keepDraft && !await ask({ title: 'Publish, keeping what’s published for those?', body: `The draft’s other changes are published; ${named} stay as they are now.`, confirm: 'Publish' })) return
+        await publishDraft(keepDraft ? 'draft' : 'published')
+      }
       setPreview('')
       forgetPages(); bump()
       await refresh()

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { Component, lazy, useEffect, useState, type ComponentType, type Context, type ReactNode } from 'react'
+import { Component, lazy, useEffect, useState, useSyncExternalStore, type ComponentType, type Context, type ReactNode } from 'react'
 import { api, mediaUrl } from './api'
 import { ModuleMissing } from './components/ModuleMissing'
 import type { ReaderHost } from '@wittywilla/wittyink'
@@ -12,10 +12,12 @@ import type { ReaderHost } from '@wittywilla/wittyink'
 
 export type ReaderFormat = 'epub' | 'pdf' | 'cbz'
 const READERS: Record<ReaderFormat, string> = { epub: 'wittyebook', pdf: 'wittypdf', cbz: 'wittycomics' }
-const HOST_API = 3 // the newest module API moduleHost.ts provides
+// The newest module API whose bundles this host loads. API 4 made a module's SDUI part of
+// the module and changed nothing a bundle is given (moduleHost.ts), so its bundles load too.
+const HOST_API = 4
 
 type Page = { id: string; title: string; where: 'main' | 'settings'; icon?: string }
-type Bundle = { id: string; version: string; entry: string; style?: string; base: string; api: number; pages?: Page[] }
+type Bundle = { id: string; version: string; entry: string; style?: string; base: string; api: number; pages?: Page[]; views?: string[] }
 type HostContextType = Context<ReaderHost | null>
 export type BundledReader = { bundle: Bundle; ink: Bundle | null; Reader: ComponentType; HostContext: HostContextType }
 
@@ -200,4 +202,46 @@ export function useModulePages(): ModulePage[] {
     return () => { live = false }
   }, [])
   return pages
+}
+
+// ---------------------------------------------------------------- views for server-driven pages
+
+// A module's own view (docs/SDUI-MODULES.md, "Views"): the bundle exports `views`, a
+// component for each view ID, and the app says it can draw them (views= with its own), so
+// a page sends the NativeView itself rather than its fallback. Each is mounted with
+// `{host, view, library?, ...the node's other props}`, `host` being what a module's page gets.
+export type ModuleViewProps = { host: unknown; view: string; library?: string } & Record<string, unknown>
+
+let bundlesKnown: Bundle[] = []
+let viewIds: string[] = []
+let viewsAsked = false
+const viewListeners = new Set<() => void>()
+function askViews() {
+  if (viewsAsked) return
+  viewsAsked = true
+  askServer().then((list) => {
+    bundlesKnown = list.filter((b) => b.api <= HOST_API)
+    const next = bundlesKnown.flatMap((b) => (b.views || []).filter((v) => v.startsWith(b.id + '.')))
+    if (next.join(',') === viewIds.join(',')) return
+    viewIds = next
+    viewListeners.forEach((l) => l())
+  })
+}
+const subscribeViews = (l: () => void) => { askViews(); viewListeners.add(l); return () => { viewListeners.delete(l) } }
+
+// useModuleViews: the IDs of the module views this app can draw; empty until the server has said.
+export function useModuleViews(): string[] {
+  return useSyncExternalStore(subscribeViews, () => viewIds, () => viewIds)
+}
+
+// moduleView: the component a bundle exports for a view, or null when it has none or won't load.
+export async function moduleView(viewId: string): Promise<ComponentType<ModuleViewProps> | null> {
+  const b = bundlesKnown.find((x) => (x.views || []).includes(viewId))
+  if (!b || failed.has(keyOf(b))) return null
+  try {
+    await import('./moduleHost')
+    const m = await importBundle(b, (x) => typeof x.views === 'object' && x.views !== null)
+    const c = (m.views as Record<string, unknown>)[viewId]
+    return isComponent(c) ? c as ComponentType<ModuleViewProps> : null
+  } catch { return null }
 }

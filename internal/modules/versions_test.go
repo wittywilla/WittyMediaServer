@@ -99,7 +99,7 @@ func (w *world) withdraw(id string, serial int, key ed25519.PrivateKey, vs ...wi
 
 func threeVersions(w *world) {
 	for _, v := range []string{"0.2.0", "0.3.0", "0.4.0"} {
-		w.publish(v, manifestJSON(v, "0.4.0", "0.5.x", wittymodule.API))
+		w.publish(v, manifestJSON(v, "0.4.0", "0.5.x", MinAPI))
 	}
 }
 
@@ -108,7 +108,7 @@ func threeVersions(w *world) {
 func TestVersionsAreListedAndExplained(t *testing.T) {
 	w := newWorld(t)
 	threeVersions(w)
-	w.publish("0.5.0", manifestJSON("0.5.0", "0.9.0", "0.9.x", wittymodule.API))
+	w.publish("0.5.0", manifestJSON("0.5.0", "0.9.0", "0.9.x", MinAPI))
 	m := w.manager()
 	defer m.Close()
 	check(t, m)
@@ -133,7 +133,7 @@ func TestVersionsAreListedAndExplained(t *testing.T) {
 // Listing versions goes online only when a check does.
 func TestListingVersionsDoesntGoOnline(t *testing.T) {
 	w := newWorld(t)
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", MinAPI))
 	m := w.manager()
 	defer m.Close()
 	versions(t, m)
@@ -153,7 +153,7 @@ func TestDowngradePinAndReturnToLatest(t *testing.T) {
 	threeVersions(w)
 	auto := true
 	newManager := func() *Manager {
-		return New(Config{Dir: w.dir, Server: w.server, Builtins: [][]byte{manifestJSON(builtinVersion, "0.1.0", "0.x", wittymodule.API)},
+		return New(Config{Dir: w.dir, Server: w.server, Builtins: [][]byte{manifestJSON(builtinVersion, "0.1.0", "0.x", MinAPI)},
 			Keys: []ed25519.PublicKey{w.pub}, Fetch: &update.Fetcher{UserAgent: "test", Transport: w.gh},
 			AutoInstall: func() bool { return auto }, Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
 	}
@@ -213,8 +213,8 @@ func TestDowngradePinAndReturnToLatest(t *testing.T) {
 // Going back to the previous version takes no download, so it works offline.
 func TestSwitchingToWhatIsInstalledNeedsNoNetwork(t *testing.T) {
 	w := newWorld(t)
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API))
-	w.publish("0.3.0", manifestJSON("0.3.0", "0.4.0", "0.5.x", wittymodule.API))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", MinAPI))
+	w.publish("0.3.0", manifestJSON("0.3.0", "0.4.0", "0.5.x", MinAPI))
 	m := w.manager()
 	defer m.Close()
 	check(t, m)
@@ -232,7 +232,7 @@ func TestSwitchingToWhatIsInstalledNeedsNoNetwork(t *testing.T) {
 // Pinning what is in use keeps it, with no downgrade involved.
 func TestPinAndUnpin(t *testing.T) {
 	w := newWorld(t)
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", MinAPI))
 	m := w.manager()
 	defer m.Close()
 	check(t, m)
@@ -258,7 +258,7 @@ func TestPinAndUnpin(t *testing.T) {
 // Someone can go back to the built-in copy without blaming the version in use.
 func TestUseBuiltinKeepsTheOtherVersionChoosable(t *testing.T) {
 	w := newWorld(t)
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", MinAPI))
 	m := w.manager()
 	check(t, m)
 	installWait(t, m)
@@ -283,7 +283,7 @@ func TestDataFormatRefusesWhatCantReadTheData(t *testing.T) {
 	w := newWorld(t)
 	man := func(ver string, format, from int) []byte {
 		var m wittymodule.Manifest
-		if err := json.Unmarshal(manifestJSON(ver, "0.4.0", "0.5.x", wittymodule.API), &m); err != nil {
+		if err := json.Unmarshal(manifestJSON(ver, "0.4.0", "0.5.x", MinAPI), &m); err != nil {
 			t.Fatal(err)
 		}
 		m.DataFormat, m.DataFrom = format, from
@@ -351,8 +351,8 @@ func TestSecurityWithdrawalStopsAVersionEvenWhenPinned(t *testing.T) {
 // itself.
 func TestBrokenWithdrawalWarnsAndIsNotAutomatic(t *testing.T) {
 	w := newWorld(t)
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API))
-	w.publish("0.3.0", manifestJSON("0.3.0", "0.4.0", "0.5.x", wittymodule.API))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", MinAPI))
+	w.publish("0.3.0", manifestJSON("0.3.0", "0.4.0", "0.5.x", MinAPI))
 	w.withdraw("wittyphotos", 1, w.key, wittymodule.Withdrawn{Version: "0.3.0", Severity: wittymodule.SeverityBroken, Reason: "thumbnails come out sideways"})
 	m := w.manager()
 	defer m.Close()
@@ -380,7 +380,7 @@ func TestWithdrawalListCantBeForgedReplayedOrBorrowed(t *testing.T) {
 	for name, plant := range cases {
 		t.Run(name, func(t *testing.T) {
 			w := newWorld(t)
-			w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API))
+			w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", MinAPI))
 			_, stranger, _ := ed25519.GenerateKey(rand.Reader)
 			plant(w, stranger)
 			m := w.manager()
@@ -398,7 +398,7 @@ func TestWithdrawalListCantBeForgedReplayedOrBorrowed(t *testing.T) {
 	// An older signed list can't bring a withdrawn version back, and hiding the list
 	// doesn't either.
 	w := newWorld(t)
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", MinAPI))
 	w.withdraw("wittyphotos", 5, w.key, sec)
 	m := w.manager()
 	check(t, m)
@@ -432,7 +432,7 @@ func TestWithdrawalListCantBeForgedReplayedOrBorrowed(t *testing.T) {
 // nothing has changed.
 func TestFeedIsRememberedAndConditional(t *testing.T) {
 	w := newWorld(t)
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", MinAPI))
 	m := w.manager()
 	check(t, m)
 	check(t, m)
@@ -466,7 +466,7 @@ func TestFeedIsRememberedAndConditional(t *testing.T) {
 	if err := json.Unmarshal(b, &c); err != nil {
 		t.Fatal(err)
 	}
-	c.Releases[0].RawMan = manifestJSON("0.2.0", "0.1.0", "9.x", wittymodule.API)
+	c.Releases[0].RawMan = manifestJSON("0.2.0", "0.1.0", "9.x", MinAPI)
 	b, _ = json.Marshal(c)
 	if err := os.WriteFile(path, b, 0o644); err != nil {
 		t.Fatal(err)
@@ -483,7 +483,7 @@ func TestFeedIsRememberedAndConditional(t *testing.T) {
 // When GitHub says wait, everything waits, and the page says until when.
 func TestRateLimitHoldsOff(t *testing.T) {
 	w := newWorld(t)
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", MinAPI))
 	m := w.manager()
 	defer m.Close()
 	w.gh.mu.Lock()
@@ -515,7 +515,7 @@ func TestReleaseMustBelongToThisModule(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			w := newWorld(t)
 			var man wittymodule.Manifest
-			if err := json.Unmarshal(manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API), &man); err != nil {
+			if err := json.Unmarshal(manifestJSON("0.2.0", "0.4.0", "0.5.x", MinAPI), &man); err != nil {
 				t.Fatal(err)
 			}
 			edit(&man)
@@ -534,7 +534,7 @@ func TestReleaseMustBelongToThisModule(t *testing.T) {
 func TestDeliveryMustMatch(t *testing.T) {
 	w := newWorld(t)
 	var man wittymodule.Manifest
-	if err := json.Unmarshal(manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API), &man); err != nil {
+	if err := json.Unmarshal(manifestJSON("0.2.0", "0.4.0", "0.5.x", MinAPI), &man); err != nil {
 		t.Fatal(err)
 	}
 	man.Delivery, man.Entry = wittymodule.DeliveryWeb, "index.js"
@@ -552,7 +552,7 @@ func TestDeliveryMustMatch(t *testing.T) {
 // An attached helper keeps its state between calls for as long as the job needs it.
 func TestAttachedHelper(t *testing.T) {
 	w := newWorld(t)
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", MinAPI))
 	m := w.manager()
 	defer m.Close()
 	if a := m.Attach("wittyphotos", 0); a != nil {
@@ -585,7 +585,7 @@ func TestAttachedHelper(t *testing.T) {
 // Browsers can report a bundle failing, but only about the version in use.
 func TestReportFailureRollsBack(t *testing.T) {
 	w := newWorld(t)
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", MinAPI))
 	m := w.manager()
 	defer m.Close()
 	check(t, m)
@@ -620,7 +620,7 @@ func TestReportFailureRollsBack(t *testing.T) {
 func TestWebBundle(t *testing.T) {
 	w := newWorld(t)
 	const id = "wittyphotos" // the fake GitHub knows this one; the id doesn't matter here
-	man := wittymodule.Manifest{ID: id, Name: "WittyPhotos", Version: "0.2.0", Repo: "wittywilla/WittyPhotos", Delivery: wittymodule.DeliveryWeb, Entry: "index.js", Style: "style.css", API: wittymodule.API, MinServer: "0.4.0", MaxServer: "0.5.x"}
+	man := wittymodule.Manifest{ID: id, Name: "WittyPhotos", Version: "0.2.0", Repo: "wittywilla/WittyPhotos", Delivery: wittymodule.DeliveryWeb, Entry: "index.js", Style: "style.css", API: MinAPI, MinServer: "0.4.0", MaxServer: "0.5.x"}
 	raw, _ := json.Marshal(man)
 	top := wittymodule.WebTopFolder(id, "0.2.0")
 	files := map[string][]byte{wittymodule.ManifestFile: raw, "index.js": []byte("export default 1"), "style.css": []byte("a{}"), "chunk-a.js": []byte("export const a = 1")}
@@ -641,7 +641,7 @@ func TestWebBundle(t *testing.T) {
 		g.Assets = append(g.Assets, update.GHAsset{Name: n, Size: int64(len(b)), URL: "https://github.com" + base + n})
 	}
 	w.gh.rels = []update.GHRelease{g}
-	builtin, _ := json.Marshal(wittymodule.Manifest{ID: id, Name: "WittyPhotos", Version: "0.1.0", Repo: "wittywilla/WittyPhotos", Delivery: wittymodule.DeliveryWeb, API: wittymodule.API, MinServer: "0.1.0", MaxServer: "0.x"})
+	builtin, _ := json.Marshal(wittymodule.Manifest{ID: id, Name: "WittyPhotos", Version: "0.1.0", Repo: "wittywilla/WittyPhotos", Delivery: wittymodule.DeliveryWeb, API: MinAPI, MinServer: "0.1.0", MaxServer: "0.x"})
 	newM := func() *Manager {
 		return New(Config{Dir: w.dir, Server: w.server, Builtins: [][]byte{builtin}, Keys: []ed25519.PublicKey{w.pub},
 			Fetch: &update.Fetcher{UserAgent: "test", Transport: w.gh}, Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
@@ -817,7 +817,7 @@ func TestSetInstalled(t *testing.T) {
 // it is added back.
 func TestRemovedModuleStaysQuiet(t *testing.T) {
 	w := newWorld(t)
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", MinAPI))
 	m := w.manager()
 	defer m.Close()
 	check(t, m)
@@ -849,7 +849,7 @@ func TestRemovedModuleStaysQuiet(t *testing.T) {
 func TestForkTakesAModulesPlace(t *testing.T) {
 	needForks(t)
 	w := newWorld(t)
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API)) // the stock release
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", MinAPI)) // the stock release
 	m := w.manager()
 	defer m.Close()
 	check(t, m)
@@ -890,7 +890,7 @@ func TestForkTakesAModulesPlace(t *testing.T) {
 	w.gh.mu.Unlock()
 	forged := func(ver string, key ed25519.PrivateKey) {
 		var man wittymodule.Manifest
-		if err := json.Unmarshal(manifestJSON(ver, "0.4.0", "0.5.x", wittymodule.API), &man); err != nil {
+		if err := json.Unmarshal(manifestJSON(ver, "0.4.0", "0.5.x", MinAPI), &man); err != nil {
 			t.Fatal(err)
 		}
 		man.Repo = repo
@@ -1007,8 +1007,8 @@ func TestWittyTunerCantBeForked(t *testing.T) {
 // what is new, and can be updated by hand. A part of the server has no such switch.
 func TestModuleCanLeaveItsUpdatesToYou(t *testing.T) {
 	w := newWorld(t)
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API))
-	w.publish("0.3.0", manifestJSON("0.3.0", "0.4.0", "0.5.x", wittymodule.API))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", MinAPI))
+	w.publish("0.3.0", manifestJSON("0.3.0", "0.4.0", "0.5.x", MinAPI))
 	m := w.manager()
 	check(t, m)
 	if s := one(t, m); !s.AutoUpdate {
@@ -1062,7 +1062,7 @@ func TestBuiltinPartsHaveNoAutoUpdateSwitch(t *testing.T) {
 // A release that fails its signature costs one look, and fake tags can't hide what is known.
 func TestFakeReleasesCantHideRealOnes(t *testing.T) {
 	w := newWorld(t)
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", MinAPI))
 	m := w.manager()
 	defer m.Close()
 	if s := check(t, m); s.Latest == nil || s.Latest.Version != "0.2.0" {
@@ -1073,7 +1073,7 @@ func TestFakeReleasesCantHideRealOnes(t *testing.T) {
 	w.key = stranger
 	for i := range maxNewChecks + 3 {
 		v := fmt.Sprintf("9.0.%d", i)
-		w.publish(v, manifestJSON(v, "0.4.0", "0.5.x", wittymodule.API))
+		w.publish(v, manifestJSON(v, "0.4.0", "0.5.x", MinAPI))
 	}
 	w.key = real
 	if s := check(t, m); s.Latest == nil || s.Latest.Version != "0.2.0" {
@@ -1083,7 +1083,7 @@ func TestFakeReleasesCantHideRealOnes(t *testing.T) {
 		t.Fatalf("%+v", v)
 	}
 	// A real one published after them is found once the fakes have been looked at.
-	w.publish("0.3.0", manifestJSON("0.3.0", "0.4.0", "0.5.x", wittymodule.API))
+	w.publish("0.3.0", manifestJSON("0.3.0", "0.4.0", "0.5.x", MinAPI))
 	var s Status
 	for range 3 {
 		s = check(t, m)
@@ -1097,7 +1097,7 @@ func TestFakeReleasesCantHideRealOnes(t *testing.T) {
 // from the list of the newest.
 func TestWithdrawalsAreFoundByName(t *testing.T) {
 	w := newWorld(t)
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", MinAPI))
 	w.withdraw("wittyphotos", 1, w.key, wittymodule.Withdrawn{Version: "0.2.0", Severity: wittymodule.SeveritySecurity, Reason: "bad"})
 	all := w.gh.rels
 	hidden := []update.GHRelease{}
@@ -1122,7 +1122,7 @@ func TestAWithdrawalIsSeenWithoutTheReleasesChanging(t *testing.T) {
 
 	t.Run("after a read that failed", func(t *testing.T) {
 		w := newWorld(t)
-		w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API))
+		w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", MinAPI))
 		w.withdraw("wittyphotos", 1, w.key, wittymodule.Withdrawn{Version: "0.2.0", Severity: wittymodule.SeveritySecurity, Reason: "x"})
 		name := "/wittywilla/WittyPhotos/releases/download/withdrawals/" + wittymodule.WithdrawalsName("wittyphotos")
 		w.gh.mu.Lock()
@@ -1144,7 +1144,7 @@ func TestAWithdrawalIsSeenWithoutTheReleasesChanging(t *testing.T) {
 
 	t.Run("when the list of the newest doesn't reach it", func(t *testing.T) {
 		w := newWorld(t)
-		w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API))
+		w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", MinAPI))
 		w.gh.mu.Lock()
 		w.gh.feedOnly = append([]update.GHRelease{}, w.gh.rels...)
 		w.gh.mu.Unlock()
@@ -1177,7 +1177,7 @@ func TestAFileUploadedAgainIsReadAgain(t *testing.T) {
 		return out
 	}
 	w := newWorld(t)
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", MinAPI))
 	sizes := stamp(w, "2026-01-01T00:00:00Z", nil)
 	m := w.manager()
 	defer m.Close()
@@ -1187,7 +1187,7 @@ func TestAFileUploadedAgainIsReadAgain(t *testing.T) {
 	w.gh.mu.Lock()
 	w.gh.rels = nil
 	w.gh.mu.Unlock()
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.4.x", wittymodule.API))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.4.x", MinAPI))
 	stamp(w, "2026-02-02T00:00:00Z", sizes)
 	if s := check(t, m); s.Latest != nil && s.Latest.MaxServer != "0.4.x" {
 		t.Fatalf("still offered from what it said before: %+v", s.Latest)
@@ -1228,7 +1228,7 @@ func TestA403WithoutTheLimitDoesntHoldEveryone(t *testing.T) {
 // withdrawn versions doesn't replace the module's own.
 func TestGoingBackFromAForkLeavesNothingBehind(t *testing.T) {
 	w := newWorld(t)
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.API))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", MinAPI))
 	w.withdraw("wittyphotos", 5, w.key, wittymodule.Withdrawn{Version: "0.2.0", Severity: wittymodule.SeverityBroken, Reason: "stock list"})
 	m := w.manager()
 	defer m.Close()
@@ -1282,7 +1282,7 @@ func TestBrowserReports(t *testing.T) {
 	browserReportEvery = 0
 	defer func() { browserReportEvery = old }()
 	w := newWorld(t)
-	raw, _ := json.Marshal(wittymodule.Manifest{ID: "wittyphotos", Name: "WittyPhotos", Version: "0.1.0", Repo: "wittywilla/WittyPhotos", Delivery: wittymodule.DeliveryHelper, Entry: "x", API: wittymodule.API, MinServer: "0.1.0", MaxServer: "0.x"})
+	raw, _ := json.Marshal(wittymodule.Manifest{ID: "wittyphotos", Name: "WittyPhotos", Version: "0.1.0", Repo: "wittywilla/WittyPhotos", Delivery: wittymodule.DeliveryHelper, Entry: "x", API: MinAPI, MinServer: "0.1.0", MaxServer: "0.x"})
 	m := New(Config{Dir: w.dir, Server: w.server, Builtins: [][]byte{raw}, Keys: []ed25519.PublicKey{w.pub}, Fetch: &update.Fetcher{UserAgent: "test", Transport: w.gh}, Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
 	defer m.Close()
 	// A helper: nothing a browser says counts.

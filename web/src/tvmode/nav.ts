@@ -18,14 +18,29 @@ export const TV_TABS: TvTab[] = [
   { id: 'you', path: '/you', label: 'You', screen: 'profiles' },
 ]
 
-// tabsFromMenu: the bar from a server's menu for a television (GET /sdui/navigation): its entries in order,
-// the ones placed at the end last. Settings is reached from You on a television, as it always was, unless the
-// menu has no You to reach it from.
-export function tabsFromMenu(items: { id: string; label: string; to: string; icon?: string; placement?: string; screen?: string }[]): TvTab[] {
+// tabsFromMenu: the bar from a server's menu for a television (GET /sdui/navigation): its primary entries in
+// order, then More when the menu places anything there (moreTabs lists them on its own screen), then the ones
+// placed at the end. Settings is reached from You on a television, as it always was, unless the menu has no You
+// to reach it from.
+export const MORE_PATH = '/more'
+export function tabsFromMenu(items: MenuEntry[]): TvTab[] {
+  const usable = usableEntries(items)
+  const tab = (it: MenuEntry): TvTab => ({ id: it.id, path: it.to, label: it.label, icon: it.icon, screen: it.screen })
+  const more = usable.filter((it) => it.placement === 'more' && it.id !== 'search')
+  const bar = usable.filter((it) => (it.placement !== 'end' && it.placement !== 'more') || it.id === 'search').map(tab)
+  if (more.length) bar.push({ id: 'more', path: MORE_PATH, label: 'More', icon: 'more' })
+  return [...bar, ...usable.filter((it) => it.placement === 'end' && it.id !== 'search').map(tab)]
+}
+
+// moreTabs: what the More screen lists, in the menu's order.
+export function moreTabs(items: MenuEntry[]): TvTab[] {
+  return usableEntries(items).filter((it) => it.placement === 'more' && it.id !== 'search').map((it) => ({ id: it.id, path: it.to, label: it.label, icon: it.icon, screen: it.screen }))
+}
+
+type MenuEntry = { id: string; label: string; to: string; icon?: string; placement?: string; screen?: string }
+function usableEntries(items: MenuEntry[]): MenuEntry[] {
   const hasYou = items.some((it) => it.screen === 'profiles')
-  const usable = items.filter((it) => it.to.startsWith('/') && !(it.screen === 'settings' && hasYou))
-  const tab = (it: typeof items[number]): TvTab => ({ id: it.id, path: it.to, label: it.label, icon: it.icon, screen: it.screen })
-  return [...usable.filter((it) => it.placement !== 'end' || it.id === 'search').map(tab), ...usable.filter((it) => it.placement === 'end' && it.id !== 'search').map(tab)]
+  return items.filter((it) => it.to.startsWith('/') && !(it.screen === 'settings' && hasYou))
 }
 
 // tabRootOf: the tab whose first screen this is, or null for a screen opened from a tab, which has the

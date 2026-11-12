@@ -87,12 +87,19 @@ func TestUpdateIfMatchAndValidation(t *testing.T) {
 	if !errors.As(err, &ie) {
 		t.Errorf("a page stored under another name: %v", err)
 	}
-	_, err = s.Update("", "owner", func(c *Config) error {
-		c.Navigation = &sdui.Navigation{Items: []sdui.NavItem{{ID: "x", Type: "page", Page: "nowhere"}}}
-		return nil
-	})
-	if !errors.As(err, &ie) || ie.Issues[0].Path != "/navigation/items/0/page" {
-		t.Errorf("a navigation entry for a page that isn't there: %v", err)
+	// A menu entry for a page the file doesn't hold may be for a module's page, which the
+	// store can't know: it is a warning, never a reason to refuse or set the file aside.
+	// (The editor's route refuses one for a page that isn't there at all.)
+	nav := &sdui.Navigation{Items: []sdui.NavItem{{ID: "x", Type: "page", Page: "nowhere"}, {ID: "settings", Type: "native", Screen: "settings"}}}
+	warned := false
+	for _, is := range s.Check(&Config{Version: FormatVersion, Navigation: nav, Pages: map[string]sdui.Page{}}) {
+		warned = warned || (is.Path == "/navigation/items/0/page" && is.Severity == "warning")
+		if is.Severity == "error" {
+			t.Errorf("an entry for a page that may be a module's is an error: %+v", is)
+		}
+	}
+	if !warned {
+		t.Error("no warning for an entry whose page isn't in the file")
 	}
 	if s.Current().Revision != 2 {
 		t.Errorf("a refused save changed the revision: %d", s.Current().Revision)

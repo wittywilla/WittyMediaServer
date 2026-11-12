@@ -369,7 +369,13 @@ type sduiRender struct {
 	cfg  *sduistore.Config
 }
 
-var sduiFilterParams = []string{"tab", "sort", "desc", "genre", "decade", "year", "content", "resolution", "watched", "studio", "network", "tag"}
+// The rest are the filters of the web app's own Filters panel and saved views (the same as
+// GET /browse takes), so a view saved there opens on a server-driven library page too.
+// All but platform, which names the device here.
+// "service" is a streaming service: the library's "platform" filter, which a page's query
+// can't call "platform", the device's.
+var sduiFilterParams = []string{"tab", "sort", "desc", "genre", "decade", "year", "content", "resolution", "watched", "studio", "network", "tag", "service",
+	"series", "kind", "disc", "minRating", "audio", "subtitle", "format", "edition", "search", "seed"}
 
 // sduiPrepare works out which page a request is for and who is asking, on what. name is a
 // kind of page (home, library, detail, search, ...), chosen among the pages of that kind by
@@ -424,7 +430,7 @@ func (s *Server) sduiPrepare(r *http.Request, name string) (*sduiRender, int, er
 	}
 	rv := s.newSDUIResolver(r, vars)
 	ctx := &sdui.RenderContext{ProfileKind: u.Kind, Admin: u.IsAdmin, UserName: firstNonEmpty(u.DisplayName, u.Name), ServerName: s.ServerName(r.Context()),
-		Features: serverFeatures, Cannot: sduiCannot(acc), Flags: map[string]bool{}, Vars: vars, Params: map[string]string{}, Scopes: sduiScopes(cfg, set),
+		Features: serverFeatures, Cannot: sduiCannot(acc), Flags: map[string]bool{}, Vars: vars, Params: map[string]string{}, Scopes: s.sduiThemeScopes(r, cfg, set),
 		Resolver: rv, UI: set, BasePath: "/api/v1/sdui", Source: source, ConfigRevision: cfg.Revision}
 	if err := s.sduiDevice(r, ctx); err != nil {
 		return nil, 400, err
@@ -450,7 +456,7 @@ func (s *Server) sduiPrepare(r *http.Request, name string) (*sduiRender, int, er
 	var libID int64
 	libKind, mediaKind := "", ""
 	pages := effectivePages(cfg, set)
-	if kind == "library" || (kind == "detail" && vars["album"] != "") {
+	if kind == "library" || (kind == "detail" && (vars["album"] != "" || isArtistPage(vars))) {
 		lib, ok := rv.library(vars["library"])
 		if !ok {
 			return nil, 404, errors.New("not found")

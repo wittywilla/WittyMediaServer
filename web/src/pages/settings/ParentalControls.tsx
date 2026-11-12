@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useState, type KeyboardEvent } from 'react'
 import { api, profileName, type Access, type KindLimit, type ParentalLists, type RatingSystem, type ScreenTime, type TimeRules, type UserView } from '../../api'
 import { toast, useApp } from '../../state'
 import { Button } from '../../ui/Button'
@@ -242,6 +242,20 @@ type Activity = {
 }
 
 // What a profile watched and when, what it was refused, and more time for today.
+// The report scrolls inside its dialog, and a remote or a keyboard has only arrows to read it
+// with. Each day, and the list of what was refused, takes the focus as a whole; when one is
+// longer than the window shows, the arrow reads on through it before moving to the next.
+function readOn(e: KeyboardEvent<HTMLDivElement>) {
+  const block = e.target as HTMLElement
+  const down = e.key === 'ArrowDown'
+  if ((!down && e.key !== 'ArrowUp') || !block.classList?.contains('pc-block')) return
+  const view = e.currentTarget, v = view.getBoundingClientRect(), b = block.getBoundingClientRect()
+  const more = down ? b.bottom > v.bottom + 4 && view.scrollTop < view.scrollHeight - view.clientHeight - 1 : b.top < v.top - 4 && view.scrollTop > 0
+  if (!more) return
+  e.preventDefault()
+  view.scrollBy({ top: (down ? 1 : -1) * Math.max(80, view.clientHeight * 0.6) })
+}
+
 export function ActivityDialog({ user, onClose }: { user: UserView; onClose: () => void }) {
   const [a, setA] = useState<Activity | null>(null)
   const [err, setErr] = useState('')
@@ -263,7 +277,7 @@ export function ActivityDialog({ user, onClose }: { user: UserView; onClose: () 
       {err && <div className="error" role="alert">{err}</div>}
       {!a && !err && <div className="loading-box" role="status" aria-label="Loading"><div className="spinner" /></div>}
       {a && (
-        <div className="pc-activity">
+        <div className="pc-activity" onKeyDown={readOn}>
           <section>
             <h3>Today</h3>
             <p>{st && st.allowanceSec >= 0 ? `${hm(st.usedSec)} of ${hm(st.allowanceSec)} used.` : `${hm(st?.usedSec || 0)} of screen time.`}{st && !st.allowed ? ` ${st.message}` : ''}</p>
@@ -278,7 +292,7 @@ export function ActivityDialog({ user, onClose }: { user: UserView; onClose: () 
             {days.map((day) => {
               const total = a.days.find((d) => d.day === day)
               return (
-                <div className="pc-day" key={day}>
+                <div className="pc-day pc-block" key={day} tabIndex={0} role="group" aria-label={`${dayText(day)}${total ? `, ${hm(total.screenSec)} of screen time` : ''}`}>
                   <div className="pc-day-head"><b>{dayText(day)}</b><span className="muted">{total ? `${hm(total.screenSec)} of screen time${total.extraSec ? `, with ${hm(total.extraSec)} extra given` : ''}` : ''}</span></div>
                   <ul className="pc-rows">
                     {a.watched.filter((w) => w.day === day).map((w) => (
@@ -292,7 +306,7 @@ export function ActivityDialog({ user, onClose }: { user: UserView; onClose: () 
           <section>
             <h3>What was refused, and extra time</h3>
             {a.events.length === 0 && <p className="muted">Nothing.</p>}
-            <ul className="pc-rows">
+            <ul className={'pc-rows' + (a.events.length ? ' pc-block' : '')} tabIndex={a.events.length ? 0 : undefined} aria-label="What was refused, and extra time">
               {a.events.map((e, i) => (
                 <li key={i}>
                   <span>{REFUSED[e.kind] || e.kind}{e.kind === 'blocked' ? `: ${e.title}${e.detail ? ` (${e.detail})` : ''}` : e.kind === 'extra' ? `: ${e.detail} minutes, by ${e.title === 'PIN' ? 'the parents’ PIN' : e.title}` : WHY[e.detail] ? `: ${WHY[e.detail]}` : ''}</span>

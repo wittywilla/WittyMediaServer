@@ -16,9 +16,12 @@ import { useRemoteAllowed } from '../remote/allowed'
 
 const PlayOn = lazy(() => import('../remote/PlayOn'))
 const WatchParty = lazy(() => import('../remote/WatchParty'))
+const WhereToWatch = lazy(() => import('../components/WhereToWatch'))
+const TitleCanvas = lazy(() => import('../canvas/CanvasVideo').then((m) => ({ default: m.TitleCanvas })))
+const CanvasManager = lazy(() => import('../canvas/CanvasManager'))
 const RigGameDetails = lazy(() => import('./Rigs').then((m) => ({ default: m.RigGameDetails })))
 import { BackLink, EmptyState, LoadError, PageSkeleton, Spinner, artHue, isGeneratedArt } from '../components/common'
-import { IconDevices, IconDisc, IconEdit, IconImage, IconInfo, IconMenu, IconMore, IconNext, IconPlay, IconRefresh, IconRight, IconSettings, IconStar, IconUsers } from '../icons'
+import { IconDevices, IconDisc, IconEdit, IconFilm, IconImage, IconInfo, IconMenu, IconMore, IconNext, IconPlay, IconRefresh, IconRight, IconSettings, IconStar, IconUsers } from '../icons'
 import { IconButton, RowSheet, Rows, SheetRow } from '../ui'
 import { useMedia } from '../shell/useNav'
 import { toast, useApp } from '../state'
@@ -34,6 +37,7 @@ export default function ItemPage() {
   const [edit, setEdit] = useState<EditSection | ''>((params.get('edit') as EditSection) || '')
   const [refreshing, setRefreshing] = useState(false)
   const [art, setArt] = useState(false)
+  const [canvas, setCanvas] = useState(false)
   const [discSettings, setDiscSettings] = useState(false)
   const [prefs, setPrefs] = useState<Prefs | null>(null)
   const [broken, setBroken] = useState(false)
@@ -75,6 +79,7 @@ export default function ItemPage() {
       ? { key: 'resume', icon: <IconPlay />, label: `Resume from ${fmtTime(resume.positionSec)}`, disabled: !playable, run: () => nav(`/play/${it.id}?mode=title&ttn=${resume.discTitle || it.disc?.mainTitle || 1}`) }
       : { key: 'title', icon: <IconPlay />, label: it.disc?.content === 'tv' ? 'Play from the start' : 'Play movie', disabled: !playable, run: () => nav(`/play/${it.id}?mode=title&start=0`) },
     ...(it.disc?.hasMenus ? [{ key: 'menu', icon: <IconMenu />, label: 'Main menu', disabled: !playable, run: () => nav(`/play/${it.id}?mode=menu`) }] : []),
+    { key: 'device', icon: <IconDevices />, label: 'Play on…', disabled: !playable, run: () => setSendTo('device') },
     ...(user?.isAdmin ? [{ key: 'disc', icon: <IconSettings />, label: 'Disc settings', run: () => setDiscSettings(true) }] : []),
   ] : [
     ...(resume ? [{ key: 'start', icon: <IconPlay />, label: 'Play from start', run: () => nav(`/play/${it.id}?start=0`) }] : []),
@@ -84,6 +89,7 @@ export default function ItemPage() {
   ]
   if (user?.isAdmin) rest.push(
     { key: 'art', icon: <IconImage />, label: 'Artwork', run: () => setArt(true) },
+    { key: 'canvas', icon: <IconFilm />, label: 'Canvas', run: () => setCanvas(true) },
     { key: 'edit', icon: <IconEdit />, label: 'Edit', run: () => setEdit('match') },
     ...(disc || it.showId == null ? [{ key: 'refresh', icon: <IconRefresh />, label: 'Refresh', run: () => setRefreshing(true) }] : []),
   )
@@ -92,6 +98,7 @@ export default function ItemPage() {
     <>
       <div className="detail-hero">
         <div className="bg" style={backdropUrl(it) ? { backgroundImage: `url(${sized(backdropUrl(it), fitWidth(innerWidth))})` } : undefined} />
+        <Suspense fallback={null}><TitleCanvas itemId={it.id} /></Suspense>
         <div className="shade" />
       </div>
       <div className="detail">
@@ -147,10 +154,12 @@ export default function ItemPage() {
                 ? <button className="btn" disabled={!playable} onClick={() => nav(`/play/${it.id}?mode=title&ttn=${resume.discTitle || it.disc?.mainTitle || 1}`)}><IconPlay /> Resume from {fmtTime(resume.positionSec)}</button>
                 : <button className="btn" disabled={!playable} onClick={() => nav(`/play/${it.id}?mode=title&start=0`)}><IconPlay /> {it.disc?.content === 'tv' ? 'Play from the start' : 'Play movie'}</button>}
               {it.disc?.hasMenus && <button className="btn" disabled={!playable} onClick={() => nav(`/play/${it.id}?mode=menu`)}><IconMenu /> Main menu</button>}
+              <button className="btn" aria-haspopup="dialog" disabled={!playable} onClick={() => setSendTo('device')}><IconDevices /> Play on…</button>
               {user?.isAdmin && (
                 <div className="admin-tools" role="group" aria-label="Manage">
                   <button className="btn ghost square" onClick={() => setDiscSettings(true)} title="Disc settings" aria-label="Disc settings"><IconSettings /></button>
                   <button className="btn ghost square" aria-haspopup="dialog" onClick={() => setArt(true)} title="Artwork" aria-label="Artwork"><IconImage /></button>
+                  <button className="btn ghost square" aria-haspopup="dialog" onClick={() => setCanvas(true)} title="Canvas: the looping video behind this title" aria-label="Canvas"><IconFilm /></button>
                   <button className="btn ghost square" onClick={() => setEdit('match')} title="Edit details" aria-label="Edit details"><IconEdit /></button>
                   <button className="btn ghost square" onClick={() => setRefreshing(true)} title="Check for new details" aria-label="Check for new details"><IconRefresh /></button>
                 </div>
@@ -168,6 +177,7 @@ export default function ItemPage() {
               {may.party && <button className="btn" aria-haspopup="dialog" onClick={() => setSendTo('party')}><IconUsers /> Watch party</button>}
               <SaveButton itemId={it.id} />
               {user?.isAdmin && <button className="btn ghost" aria-haspopup="dialog" onClick={() => setArt(true)}><IconImage /> Artwork</button>}
+              {user?.isAdmin && <button className="btn ghost" aria-haspopup="dialog" onClick={() => setCanvas(true)} title="The looping video behind this title"><IconFilm /> Canvas</button>}
               {user?.isAdmin && <button className="btn ghost" onClick={() => setEdit('match')}><IconEdit /> Edit</button>}
               {user?.isAdmin && it.showId == null && <button className="btn ghost" onClick={() => setRefreshing(true)} title="See what's new about this, and choose what to take"><IconRefresh /> Refresh</button>}
             </div>
@@ -194,6 +204,7 @@ export default function ItemPage() {
           </div>
 
           <TitleExtras target="item" id={it.id} libraryId={it.libraryId} />
+          {it.showId == null && <Suspense fallback={null}><WhereToWatch itemId={it.id} /></Suspense>}
           {disc && <DiscSections item={it} admin={!!user?.isAdmin} playable={playable} />}
           <div className="page-back">{it.showId != null
             ? <BackLink to={`/show/${it.showId}?season=${it.season ?? -1}`} label={`Back to ${it.showTitle}`} />
@@ -209,12 +220,13 @@ export default function ItemPage() {
       {sendTo && (
         <Suspense fallback={null}>
           {sendTo === 'device'
-            ? <PlayOn source={{ kind: 'item', itemId: it.id, title: it.title }} onClose={() => setSendTo(null)} />
-            : <WatchParty item={{ id: it.id, title: it.title }} onClose={() => setSendTo(null)} />}
+            ? <PlayOn source={{ kind: 'item', itemId: it.id, itemKind: it.kind, title: it.title }} onClose={() => setSendTo(null)} />
+            : <WatchParty item={{ id: it.id, title: it.title, kind: it.kind, showId: it.showId }} onClose={() => setSendTo(null)} />}
         </Suspense>
       )}
       {edit && <EditDetails target="item" id={it.id} start={edit} onClose={() => setEdit('')} onChanged={load} />}
       {art && <TitleArtPicker target="item" id={it.id} onClose={() => setArt(false)} onApplied={appliedOnPage(load)} />}
+      {canvas && <Suspense fallback={null}><CanvasManager itemId={it.id} title={it.title} kind={disc ? 'disc' : 'video'} runtimeSec={it.runtimeSec} onClose={() => setCanvas(false)} /></Suspense>}
       {refreshing && <RefreshDialog target="item" id={it.id} onClose={() => setRefreshing(false)} onChanged={load} />}
       {discSettings && <DiscSettings item={it} prefs={prefs} onClose={() => setDiscSettings(false)} onSaved={(x) => { setIt(x); setDiscSettings(false); toast('Disc settings saved') }} />}
     </>

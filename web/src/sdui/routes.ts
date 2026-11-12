@@ -43,7 +43,9 @@ export type Resolved =
   | { kind: 'native'; screen: string; vars: Record<string, string> }
 
 // The query parameters each kind of page takes, beside what its route gives it.
-const PASSED = ['tab', 'sort', 'desc', 'genre', 'decade', 'year', 'content', 'resolution', 'watched', 'studio', 'network', 'tag', 'season']
+const PASSED = ['tab', 'sort', 'desc', 'genre', 'decade', 'year', 'content', 'resolution', 'watched', 'studio', 'network', 'tag', 'season',
+  // The rest of the app's own Filters panel and saved views (pages/library/Filters.tsx).
+  'series', 'kind', 'disc', 'minRating', 'audio', 'subtitle', 'format', 'edition', 'search', 'seed', 'service']
 
 function matchRule(rule: RouteRule, path: string): Record<string, string> | null {
   const want = rule.route.split('/'), got = path.split('/')
@@ -72,6 +74,10 @@ export function resolve(pathname: string, search = '', rules: RouteRule[] = ROUT
     const params: Record<string, string> = {}
     for (const [k, v] of Object.entries(rule.params || {})) { const x = fill(v); if (x) params[k] = x }
     for (const k of PASSED) { const x = query.get(k); if (x && !(k in params)) params[k] = x }
+    // The app's own Filters and saved views name a streaming service `platform`; a page takes it
+    // as `service`, since `platform` there is the device's.
+    const service = query.get('platform')
+    if (service && !params.service) params.service = service
     return { kind: 'page', page: fill(rule.page || ''), params }
   }
   return null

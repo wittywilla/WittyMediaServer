@@ -96,6 +96,8 @@ def tokens():
         'shape': {
             'radiusMultiple': {k.removeprefix('r-'): float(re.search(r'\*\s*([\d.]+)', v).group(1)) if '*' in v else 1 for k, v in t.items() if k in ('r-xs', 'r-sm', 'r-md', 'r-lg', 'r-xl')},
             'pill': px(t['r-full']),
+            # Which step each part of an app takes: GET /api/v1/theme "shape" (internal/themes/shape.go).
+            'roles': SHAPE_ROLES,
         },
         'depth': {'resting': shadow(t['e-1'])},
         'motion': {
@@ -154,6 +156,38 @@ def hexa(c):
     return f'#{r:02x}{g:02x}{b:02x}' + ('' if a >= 1 else f'{round(a * 255):02x}')
 
 
+# The corner each part takes, as a step of the radius scale (--r-xs ... --r-xl) or pill.
+# internal/themes/shape.go ShapeRoles is the same table; a test compares them.
+SHAPE_ROLES = {'card': 'md', 'button': 'md', 'field': 'md', 'row': 'md', 'thumb': 'sm', 'chip': 'pill',
+               'badge': 'xs', 'image': 'lg', 'sheet': 'lg', 'dialog': 'xl'}
+SHAPE_ORDER = ['radius', 'card', 'button', 'field', 'row', 'thumb', 'chip', 'badge', 'image', 'sheet', 'dialog', 'pill',
+               'focusWidth', 'focusOffset', 'focusScale']
+
+
+def theme_shape(vars_):
+    """A theme's corners and focus ring in pixels, as the stylesheet works them out from --radius."""
+    r = px(vars_['radius'])
+    steps = {k.removeprefix('r-'): float(re.search(r'\*\s*([\d.]+)', v).group(1)) if '*' in v else 1
+             for k, v in vars_.items() if k in ('r-xs', 'r-sm', 'r-md', 'r-lg', 'r-xl')}
+    out = {'radius': r}
+    for part, step in SHAPE_ROLES.items():
+        out[part] = px(vars_['r-full']) if step == 'pill' else round(r * steps[step], 2)
+    out.update({'pill': px(vars_['r-full']), 'focusWidth': px(vars_['focus-width']), 'focusOffset': px(vars_['focus-offset']),
+                'focusScale': float(vars_['focus-scale'])})
+    return {k: (int(v) if float(v).is_integer() else v) for k, v in ((k, out[k]) for k in SHAPE_ORDER)}
+
+
+def families(value):
+    return [f.strip().strip('"\'') for f in value.split(',') if f.strip()]
+
+
+def theme_type(vars_):
+    """A theme's typefaces and weights. Headings use the same family as the text on the web."""
+    body = families(vars_['font'])
+    return {'display': body, 'body': body, 'mono': families(vars_['font-mono']),
+            'weights': {'body': 400, 'medium': 500, 'strong': 600, 'heading': int(vars_['weight-heading'])}}
+
+
 # name in theme.json -> CSS variable
 COLORS = {
     'bg': 'bg', 'bg2': 'bg-2', 'bg3': 'bg-3', 'bg4': 'bg-4', 'fg': 'fg', 'fg2': 'fg-2', 'fg3': 'fg-3',
@@ -167,7 +201,7 @@ COLORS = {
 def theme_colors(css_file, defaults):
     vars_ = dict(defaults)
     vars_.update(block(css_file.read_text(encoding='utf-8'), ':root'))
-    return {name: hexa(rgba(vars_[var], vars_)) for name, var in COLORS.items()}, px(vars_['radius'])
+    return {name: hexa(rgba(vars_[var], vars_)) for name, var in COLORS.items()}, px(vars_['radius']), theme_shape(vars_), theme_type(vars_)
 
 
 def write(path, data, stale):
@@ -187,7 +221,7 @@ def main():
     for css_file in sorted(pathlib.Path('themes').glob('*/theme.css')):
         meta_file = css_file.parent / 'theme.json'
         meta = json.loads(meta_file.read_text(encoding='utf-8'))
-        meta['colors'], meta['radius'] = theme_colors(css_file, defaults)
+        meta['colors'], meta['radius'], meta['shape'], meta['type'] = theme_colors(css_file, defaults)
         write(meta_file, meta, stale)
     if CHECK and stale:
         print('Out of date, run python scripts/design-tokens.py:\n  ' + '\n  '.join(stale))

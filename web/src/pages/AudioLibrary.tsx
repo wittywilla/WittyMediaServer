@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api, fitWidth, fmtRuntime, fmtTime, posterUrl, sized, type Album, type Artist, type Item, type Library } from '../api'
 import { useArtColour } from '../audio/art'
@@ -8,7 +8,9 @@ import { IconHeart, IconHeartOn, IconStation } from '../audio/icons'
 import { useAudio, type AudioMode } from '../audio/player'
 import { BackLink, EmptyState, Placeholder, ScanButton, SkeletonGrid, Spinner } from '../components/common'
 import { IconAudio, IconCheck, IconDisc, IconPlay } from '../icons'
+import { PlayOnButton, queueOf } from '../remote/PlayOnButton'
 import { toast, useApp } from '../state'
+import { emptyLibraryWords } from '../profileWords'
 import { AddPodcast, DownloadButton, PodcastAdmin, PodcastFinder, PodcastWays } from './Podcasts'
 import LegalNote from '../components/LegalNote'
 import LibraryHeader, { type SortOption } from '../components/LibraryHeader'
@@ -102,7 +104,7 @@ function HomeTab({ lib, reload, onReload }: { lib: Library; reload: number; onRe
         </div>
       )
     }
-    return <EmptyState icon={<IconAudio />} title="Nothing here yet" text="Add audio files to this library's folders and scan it." />
+    return <EmptyState icon={<IconAudio />} title="Nothing here yet" text={emptyLibraryWords(user, "Add audio files to this library's folders and scan it.")} />
   }
   const mode: AudioMode = pods ? 'podcasts' : books ? 'audiobooks' : 'music'
   const playAll = async () => {
@@ -235,7 +237,7 @@ function AlbumsTab({ lib, params, set, reload, onReload }: { lib: Library; param
           <PodcastWays />
           {user?.isAdmin ? <PodcastFinder libraryId={lib.id} onAdded={onReload} /> : <p className="muted">Ask whoever runs this server to follow some shows.</p>}
         </div>
-      ) : <EmptyState icon={<IconAudio />} title="Nothing here" text={genre ? 'Nothing in this genre.' : "Add audio files to this library's folders and scan it."} />) : (
+      ) : <EmptyState icon={<IconAudio />} title="Nothing here" text={genre ? 'Nothing in this genre.' : emptyLibraryWords(user, "Add audio files to this library's folders and scan it.")} />) : (
         <div className="album-grid">
           {(shown || []).map((a) => <AlbumTile key={a.artist + '|' + a.title} libId={lib.id} a={a} book={books} />)}
         </div>
@@ -397,7 +399,12 @@ export function TrackList({ items, onPlay, showAlbum, episodes, extra, discs, he
 const baseTitle = (s: string) => s.toLowerCase().replace(/[([{].*?[)\]}]/g, ' ').replace(/\b(deluxe|remaster(ed)?|expanded|special|anniversary|edition|version)\b/g, ' ').replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
 
 // AlbumPage: one album or audiobook.
+const AlbumCanvas = lazy(() => import('../canvas/CanvasVideo').then((m) => ({ default: m.AlbumCanvas })))
+const AlbumCanvasManager = lazy(() => import('../canvas/AlbumCanvasManager'))
+
 export function AlbumPage() {
+  const { user } = useApp()
+  const [canvasOpen, setCanvasOpen] = useState(false)
   const { lib: libId } = useParams()
   const [params] = useSearchParams()
   const artist = params.get('artist') ?? ''
@@ -452,6 +459,7 @@ export function AlbumPage() {
   return (
     <div className="album-page" style={{ '--art': rgb } as React.CSSProperties}>
       <div className="mh-bg" aria-hidden="true" />
+      {!books && <Suspense fallback={null}><AlbumCanvas trackIds={tracks.filter((t) => !t.cdDisc).map((t) => t.id)} /></Suspense>}
       <BackLink to={`/library/${libId}`} label={lib?.name || (books ? 'Audiobooks' : 'Music')} />
       <div className="album-head">
         <div className={'album-cover big' + (books ? ' book' : '')}>{coverId ? <img src={coverUrl(coverId)} alt="" /> : <Placeholder title={tracks[0]?.album || 'Unknown'} />}</div>
@@ -467,7 +475,9 @@ export function AlbumPage() {
             {!books && tracks[0] && <button className="btn ghost" onClick={() => audio.startRadio(tracks[0])}><IconStation size={18} /> Station</button>}
             <button className="btn ghost" onClick={() => { audio.playNext(tracks); toast('Plays next') }}>Play next</button>
             <button className="btn ghost" onClick={() => { audio.enqueue(tracks); toast('Added to the queue') }}>Add to queue</button>
+            {tracks[0] && <PlayOnButton className="btn ghost" size={18} source={{ kind: 'item', itemId: tracks[0].id, itemKind: 'audio', title: album || tracks[0].title, ...queueOf(tracks.map((t) => t.id), 0) }} />}
             {!books && <button className="btn ghost" aria-pressed={allLiked} onClick={() => tracks.forEach((t) => { if (audio.liked(t.id) === allLiked) audio.toggleLike(t.id) })}>{allLiked ? <IconHeartOn size={18} /> : <IconHeart size={18} />} {allLiked ? 'Liked' : 'Like all'}</button>}
+            {!books && user?.isAdmin && tracks.some((t) => !t.cdDisc) && <button className="btn ghost" aria-haspopup="dialog" onClick={() => setCanvasOpen(true)} title="The looping video behind these songs">Canvas</button>}
           </div>
           {tracks[0]?.overview && !pods && <p className="album-desc">{tracks[0].overview}</p>}
           {pods && libId && <PodcastAdmin libraryId={numericLib} title={album} onChanged={() => setReloadTracks((n) => n + 1)} />}
@@ -478,6 +488,7 @@ export function AlbumPage() {
       {versions.length > 0 && <Shelf title="Other versions"><div className="mh-row mh-albums">{versions.map((a) => <AlbumTile key={a.title} libId={numericLib} a={a} noArtist />)}</div></Shelf>}
       {more.length > 0 && !books && <Shelf title={`More by ${artist}`} to={artistLink(numericLib, artist)}><div className="mh-row mh-albums">{more.map((a) => <AlbumTile key={a.title} libId={numericLib} a={a} noArtist />)}</div></Shelf>}
       <LegalNote kind={pods ? 'webMedia' : 'metadata'} />
+      {canvasOpen && <Suspense fallback={null}><AlbumCanvasManager songs={tracks.filter((t) => !t.cdDisc)} onClose={() => setCanvasOpen(false)} /></Suspense>}
     </div>
   )
 }

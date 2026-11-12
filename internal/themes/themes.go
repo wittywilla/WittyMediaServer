@@ -41,8 +41,12 @@ type Meta struct {
 	Builtin     bool   `json:"builtin,omitempty"`
 	// Colors and Radius are every colour and the corner radius as data, so the
 	// app can show a theme without loading it. Written by scripts/design-tokens.py.
-	Colors  map[string]string `json:"colors,omitempty"`
-	Radius  float64           `json:"radius,omitempty"`
+	Colors map[string]string `json:"colors,omitempty"`
+	Radius float64           `json:"radius,omitempty"`
+	// Shape and Type are its corners, focus ring, typefaces and weights (shape.go), also
+	// written by scripts/design-tokens.py. Uploaded themes may leave them out.
+	Shape   *Shape      `json:"shape,omitempty"`
+	Type    *TypeTokens `json:"type,omitempty"`
 	Preview struct {
 		BG      string `json:"bg,omitempty"`
 		Surface string `json:"surface,omitempty"`
@@ -161,6 +165,21 @@ func writeAtomic(dst string, b []byte) error {
 }
 
 func (m *Manager) readMeta(zipPath string) (*Meta, error) {
+	e, st := memoFor(zipPath)
+	if e != nil && e.meta != nil {
+		if c := copyOf(e.meta); c != nil {
+			return c, nil
+		}
+	}
+	meta, err := m.readMetaFile(zipPath)
+	if err == nil {
+		kept := copyOf(meta)
+		memoStore(zipPath, st, func(e *memoEntry) { e.meta = kept })
+	}
+	return meta, err
+}
+
+func (m *Manager) readMetaFile(zipPath string) (*Meta, error) {
 	zr, err := zip.OpenReader(zipPath)
 	if err != nil {
 		return nil, err

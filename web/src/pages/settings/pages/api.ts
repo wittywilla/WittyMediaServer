@@ -27,6 +27,8 @@ let draftTag = ''
 const keep = (etag: string | undefined | null) => { if (etag) draftTag = etag }
 
 // conflict: someone saved in between (412). issuesOf: what a refused save says is wrong (400).
+// mergeConflicts: what both the draft and a later publish changed, from a 409 answer to publishing.
+export const mergeConflicts = (e: unknown): string[] | null => (e instanceof ApiError && e.status === 409 && Array.isArray(e.data?.conflicts) ? e.data.conflicts as string[] : null)
 export const isConflict = (e: unknown) => e instanceof ApiError && e.status === 412
 export const issuesOf = (e: unknown): Issue[] | null => (e instanceof ApiError && e.status === 400 && Array.isArray(e.data?.issues) ? e.data.issues as Issue[] : null)
 export const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
@@ -66,6 +68,19 @@ export async function getPage(id: string, draft = true): Promise<PageAnswer> {
 export async function getNavigation(draft = true): Promise<NavAnswer> {
   const r = await sduiAsk<NavAnswer>('GET', `${SDUI_BASE}/config/navigation${draft ? '?' + DRAFT : ''}`)
   if (!r.data) throw new ApiError(0, 'The server sent no menu.')
+  if (draft) keep(r.data.etag)
+  return r.data
+}
+
+// Layout options (docs/SDUI.md, "Layout options"): which one each form factor starts with
+// (`layouts.default`), which profiles may choose (`layouts.allowed`), the built-in starting
+// ones, and the options themselves.
+export type LayoutOption = { id: string; label: string; description?: string; icon?: string; nav: Record<string, string>; overlay?: boolean }
+export type LayoutPolicy = { default?: Record<string, string>; allowed?: string[] }
+export type LayoutsAnswer = { etag: string; layouts: LayoutPolicy; builtin: Record<string, string>; options: LayoutOption[] }
+export async function getLayouts(draft = true): Promise<LayoutsAnswer> {
+  const r = await sduiAsk<LayoutsAnswer>('GET', `${SDUI_BASE}/config/layouts${draft ? '?' + DRAFT : ''}`)
+  if (!r.data) throw new ApiError(0, 'The server sent no layouts.')
   if (draft) keep(r.data.etag)
   return r.data
 }
@@ -121,6 +136,7 @@ export const savePage = (page: Page, onConflict?: () => Promise<boolean>) => toD
 // A built-in page goes back to how it ships; a page of the administrator's own is gone.
 export const removePage = (id: string, onConflict?: () => Promise<boolean>) => toDraft<Config>('DELETE', `${SDUI_BASE}/config/pages/${enc(id)}`, undefined, onConflict)
 export const saveNavigation = (nav: Navigation, onConflict?: () => Promise<boolean>) => toDraft<Config>('PUT', `${SDUI_BASE}/config/navigation`, nav, onConflict)
+export const saveLayouts = (policy: LayoutPolicy, onConflict?: () => Promise<boolean>) => toDraft<Config>('PUT', `${SDUI_BASE}/config/layouts`, policy, onConflict)
 export const resetNavigation = (onConflict?: () => Promise<boolean>) => toDraft<Config>('DELETE', `${SDUI_BASE}/config/navigation`, undefined, onConflict)
 // A page preset lands under the preset's own page ID.
 export const applyPreset = (id: string, onConflict?: () => Promise<boolean>) => toDraft<Config>('POST', `${SDUI_BASE}/presets/${enc(id)}/apply`, undefined, onConflict)
@@ -137,8 +153,10 @@ export async function previewToken(): Promise<string> {
 }
 
 // Publishing sends the draft's own ETag, so a draft someone else changed since it was looked at isn't published unseen.
-export async function publishDraft(): Promise<Config> {
-  const r = await sduiAsk<Config>('POST', `${SDUI_BASE}/draft/publish`, { headers: draftTag ? { 'If-Match': draftTag } : undefined })
+// prefer settles items the draft and what was published since both changed (409 with
+// `conflicts`): the draft's version, or what is published (docs/SDUI.md, "Publishing merges").
+export async function publishDraft(prefer?: 'draft' | 'published'): Promise<Config> {
+  const r = await sduiAsk<Config>('POST', `${SDUI_BASE}/draft/publish${prefer ? '?prefer=' + prefer : ''}`, { headers: draftTag ? { 'If-Match': draftTag } : undefined })
   draftTag = r.etag || ''
   return r.data as Config
 }

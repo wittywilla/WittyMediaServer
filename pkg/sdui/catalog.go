@@ -110,6 +110,8 @@ type ComponentSpec struct {
 	Module    string   `json:"module,omitempty"`
 	Expands   string   `json:"expands,omitempty"`
 	PageKinds []string `json:"pageKinds,omitempty"`
+	// Tokens are the theme tokens it is drawn with (tokens.go).
+	Tokens *TokenRoles `json:"tokens,omitempty"`
 }
 
 // CardStyleSpec describes one way a Card is drawn.
@@ -132,6 +134,8 @@ type CardStyleSpec struct {
 	SubtitleLines int `json:"subtitleLines"`
 	// Kinds are the item kinds the style is the natural one for.
 	Kinds []string `json:"kinds,omitempty"`
+	// Tokens are the theme tokens it is drawn with (tokens.go).
+	Tokens *TokenRoles `json:"tokens,omitempty"`
 }
 
 // SourceSpec describes one data source.
@@ -198,7 +202,8 @@ type CommandSpec struct {
 	Label       string `json:"label"`
 	Description string `json:"description"`
 	// Method and Path are the request that carries it out; {item} is the
-	// action's item.
+	// action's item, as it is ("5", "show-5"): URL-escaped in Path, and in Body
+	// always inside a JSON string, escaped as one, so the body is JSON for any ID.
 	Method string `json:"method"`
 	Path   string `json:"path"`
 	Body   string `json:"body,omitempty"`
@@ -211,6 +216,9 @@ type NativeScreenSpec struct {
 	Description string `json:"description"`
 	Route       string `json:"route"`
 	Icon        string `json:"icon"`
+	// Menu: a navigation entry may open it (type native). Screens that need a
+	// title or a channel are opened by actions only.
+	Menu bool `json:"menu,omitempty"`
 }
 
 // Catalogue is everything an editor or a renderer needs to know about the
@@ -242,6 +250,8 @@ type Catalogue struct {
 	// Profiles are the device profiles, so an editor can preview a page's
 	// budgets and a renderer can lay out a lazily loaded page of cards.
 	Profiles map[string]*Layout `json:"profiles"`
+	// Theme is the vocabulary of the components' tokens (tokens.go).
+	Theme *ThemeRoles `json:"theme,omitempty"`
 	// Layouts are the layout options: the menu's style on each form factor and what each
 	// changes about pages.
 	Layouts []LayoutSpec `json:"layouts"`
@@ -249,7 +259,7 @@ type Catalogue struct {
 	NavStyles []string `json:"navStyles"`
 }
 
-var catalogueOnce = sync.OnceValue(buildCatalogue)
+var catalogueOnce = sync.OnceValue(func() *Catalogue { return withTokens(buildCatalogue()) })
 
 // Catalog returns the catalogue. It is shared: don't change it.
 func Catalog() *Catalogue { return catalogueOnce() }

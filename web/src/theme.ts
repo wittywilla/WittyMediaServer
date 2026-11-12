@@ -65,10 +65,12 @@ function applyOverrides() {
   const globalApplies = !!resolved && resolved.source === 'server' && !deviceTheme()
   for (const [name, value] of overrideDeclarations(resolved, moduleNow, globalApplies)) { root.setProperty(name, value); overrideProps.push(name) }
 }
-// loadThemeOverrides asks the server for the signed-in account's resolved theme.
+// loadThemeOverrides asks the server for the signed-in account's resolved theme, puts its
+// colours on the page and hands it back (null when the server couldn't be asked).
 export async function loadThemeOverrides() {
   try { resolved = await api.get<ResolvedTheme>('/theme') } catch { resolved = null }
   applyOverrides()
+  return resolved
 }
 export function clearThemeOverrides() { resolved = null; applyOverrides() }
 // setThemeModule says which module's page is showing ("" for the server's own).

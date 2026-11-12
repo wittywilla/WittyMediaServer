@@ -156,11 +156,12 @@ type ContrastIssue struct {
 	Need    float64 `json:"need"`
 }
 
-// contrastPairs are the pairs scripts/theme-contrast.py holds the built-in themes to.
+// contrastPairs are the pairs scripts/theme-contrast.py holds the built-in themes to, and
+// the name in the corner (brandAccent), which they all take from the accent as text.
 var contrastPairs = func() [][2]string {
 	var out [][2]string
 	surfaces := []string{"bg", "bg2", "bg3"}
-	for _, t := range []string{"fg", "fg2", "fg3", "accentText", "danger", "ok", "warn"} {
+	for _, t := range []string{"fg", "fg2", "fg3", "accentText", "brandAccent", "danger", "ok", "warn"} {
 		for _, s := range surfaces {
 			out = append(out, [2]string{t, s})
 		}

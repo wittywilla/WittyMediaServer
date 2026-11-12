@@ -4,11 +4,13 @@
 export const settingsHelp: Record<string, string> = {
   libraries: 'libraries',
   pages: 'pages',
+  'module-settings': 'sdui-modules#settings',
   metadata: 'metadata',
   playback: 'settings#playback-and-discs',
   channels: 'channels',
   gaming: 'games',
   emulators: 'games#standalone-emulators',
+  'games-support': 'games#standalone-emulators',
   couch: 'game-rigs',
   transcoding: 'transcoding',
   'library-transcoding': 'library-transcoding',

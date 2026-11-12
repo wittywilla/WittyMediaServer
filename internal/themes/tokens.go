@@ -38,6 +38,21 @@ func (m *Manager) Tokens(id string) (*Tokens, error) {
 	if err != nil {
 		return nil, err
 	}
+	e, st := memoFor(p)
+	if e != nil && e.tokens != nil {
+		if c := copyOf(e.tokens); c != nil {
+			return c, nil
+		}
+	}
+	t, err := m.tokensFile(id, p)
+	if err == nil {
+		kept := copyOf(t)
+		memoStore(p, st, func(e *memoEntry) { e.tokens = kept })
+	}
+	return t, err
+}
+
+func (m *Manager) tokensFile(id, p string) (*Tokens, error) {
 	meta, err := m.readMeta(p)
 	if err != nil {
 		return nil, err

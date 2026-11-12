@@ -5,11 +5,13 @@ import { useLocation } from 'react-router-dom'
 import { getToken, serverBase } from '../api'
 import { useApp } from '../state'
 import { getTvMode, useTvMode } from '../tvmode/mode'
-import { onPreview, serverFeatures } from './client'
-import { describe, deviceKey, type Device } from './device'
+import { onPreview, prefetchPage, serverFeatures } from './client'
+import { describe, deviceKey, deviceName, type Device } from './device'
+import { useModuleViews } from '../moduleBundles'
 import { resolve } from './routes'
+import { ownLibraryTab } from './native'
 
-const SduiPage = lazy(() => import('./SduiPage'))
+const SduiPage = lazy(() => SduiPageCode())
 
 function facts() {
   const mq = (q: string) => { try { return window.matchMedia(q).matches } catch { return false } }
@@ -25,13 +27,17 @@ function facts() {
 // useDevice: what this window is, kept the same object until something a page depends
 // on changes (TV mode, the breakpoint, reduced motion), so a page isn't asked for again
 // on every pixel of a resize.
+let name = ''
+const ownName = () => (name ||= deviceName(facts().desktopShell, typeof localStorage === 'undefined' ? null : localStorage, () => Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)))
+
 export function useDevice(): Device {
   const tv = useTvMode()
-  const [device, setDevice] = useState<Device>(() => describe(facts()))
+  const views = useModuleViews()
+  const [device, setDevice] = useState<Device>(() => describe(facts(), views, ownName()))
   useEffect(() => {
     let timer = 0
     const check = () => {
-      const next = describe(facts())
+      const next = describe(facts(), views, ownName())
       setDevice((was) => (deviceKey(was, Number(was.viewport?.split('x')[0]) || 0) === deviceKey(next, window.innerWidth) ? was : next))
     }
     check()
@@ -40,7 +46,7 @@ export function useDevice(): Device {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
     mq.addEventListener('change', check)
     return () => { window.clearTimeout(timer); window.removeEventListener('resize', later); mq.removeEventListener('change', check) }
-  }, [tv])
+  }, [tv, views])
   return device
 }
 
@@ -78,12 +84,20 @@ export function usePreviewChanges() {
 
 // SduiRoute: the page at this address. Server-driven where the server has such pages and
 // the address is one of theirs; otherwise the page the app has always had (`fallback`).
+let pageCode = false
+const SduiPageCode = () => import('./SduiPage').then((m) => { pageCode = true; return m })
+
 export function SduiRoute({ fallback, loading }: { fallback: ReactNode; loading?: ReactNode }) {
   const features = useFeatures()
+  const device = useDevice()
+  const { libraries } = useApp()
   const loc = useLocation()
   usePreviewChanges()
   if (features === null) return <>{loading ?? <div className="loading-box" role="status" aria-label="Loading"><div className="spinner" /></div>}</>
   const at = resolve(loc.pathname, loc.search)
   if (!features.has('sdui-pages') || !at || at.kind !== 'page' || !at.page) return <>{fallback}</>
+  // A tab only the app's own page has (a music library's Songs, Playlists): that page.
+  if (at.page === 'library' && ownLibraryTab(at.params, libraries)) return <>{fallback}</>
+  if (!pageCode) prefetchPage(at.page, device, at.params)
   return <Suspense fallback={loading ?? <div className="loading-box" role="status" aria-label="Loading"><div className="spinner" /></div>}><SduiPage page={at.page} params={at.params} fallback={fallback} /></Suspense>
 }

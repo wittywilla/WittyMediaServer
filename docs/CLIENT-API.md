@@ -58,8 +58,11 @@ The same contract is in machine-readable form in `openapi.json` (OpenAPI 3.1), b
 fields, new values in lists. Ignore what you don't recognise; never assume a list of values is
 complete. Removing or changing anything means a new version, with v1 kept alongside. `apiRevision`
 in `/capabilities` counts additions, and `features` names them: look for a feature rather than
-comparing server version numbers. Server 0.8.0-alpha is revision 15 (0.7 was 10): one step for
-everything that release adds, each part with its own feature name. `/api/...` without a version is the same thing, for the web
+comparing server version numbers. Server 0.8.0-alpha is revision 16 (0.7 was 10): revision 15 for
+the release's first part and 16 for its second (modules' own SDUI, layout options, the theme on
+server-driven pages with each profile's own colours, the editor's merging publish, the artist page
+and the fixes listed under revision 16 in `api_capabilities.go`),
+each part with its own feature name. `/api/...` without a version is the same thing, for the web
 interface that ships with each server. Every API answer carries `X-WMS-API-Version`. A version this
 server doesn't have answers 404 with `apiVersions`.
 
@@ -921,6 +924,22 @@ automatic theme says which in `variant`.
 }
 ```
 
+**Layers, shape, type and the profile's own colours.** The order, lowest first, is the theme, the
+administrator's global colours, a module scope's own, the administrator's for the scope, the
+profile's own (`personal`), and the profile's own for the scope (`modules.<scope>.personal`); each
+layer brings the colours worked out from it (`theme-derived`: an accent alone also sets `accentHover`,
+`accentFg`, `accentText`, `focus`, `brandAccent`, `accentSoft` and `accentLine`). With
+`theme-shape-type`, the answer and each of `variants` have `shape` (corner radii and the focus ring, in
+points: `card`, `button`, `field`, `row`, `thumb`, `chip`, `badge`, `image`, `sheet`, `dialog`, `pill`,
+`focusWidth`, `focusOffset`, `focusScale`) and `type` (`display`, `body` and `mono` families, best
+first, and `weights`), and `brand` is the server's name (`parts`, as `brandParts`) with `color`, the
+`brandAccent` token resolved. With `theme-personal`, `GET`, `PUT` and `DELETE /theme/personal` read
+and set the signed-in profile's own colours: `{"tokens": {...}, "modules": {"<scope>": {...}}}`. A
+`PUT` that would put text under 4.5:1 on the theme the profile sees is refused (400) with the pairs in
+`contrast`. With `sdui-tokens`, every component and card style in `GET /sdui/catalog` has `tokens`:
+which colour token each part is drawn in, which text role each text takes, which `shape` token rounds
+each part ([Themes](THEMES.md#sdui-tokens)).
+
 `GET /themes` lists the themes, with four preview colours and `scheme` (`dark` or `light`), and which
 is the server's `default`. `GET /themes/{id}/tokens.json` is a theme as data, read from its CSS
 variables, so theme authors write one file and the apps get the same colours:
@@ -993,6 +1012,7 @@ to every device. `PUT` replaces all of it, so read first and keep keys you don't
 | Key | Who uses it | Shape |
 |---|---|---|
 | `home` | The home page | `{v: 2, order: [widget id...], hidden: [widget id...]}`. Widget ids are hub keys, plus `hero`, `libraries`, `jump` (the three continue rows as one) and `shuffle`. |
+| `autoSkip` | The video player | `{intro, recap, credits, adverts}`, each `true` to skip that part without a press; anything else, or no key, is off. The rules the web player follows are in [Playing](PLAYING.md#skipping-without-pressing-anything). |
 
 Add keys of your own under a name that says whose they are (`appletv: {...}`).
 
@@ -1392,8 +1412,8 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `PUT /shows/{id}/view` | admin | A show's episode layout: `cards`, `list`, or empty for the default. |
 | `GET /shows/{id}/artwork` | admin | Artwork to choose from. |
 | `GET /shows/{id}/art/{kind}` | user | A show's picture: `poster`, `backdrop` or `season` (with `n`). |
-| `POST /items/{id}/progress` | user | Save the viewer's position. Past 92% counts as watched. Discs send `discTitle` too. |
-| `DELETE /items/{id}/progress` | user | Forget the position (mark as not started). |
+| `POST /items/{id}/progress` | user | Save the viewer's position. Past 92% counts as watched. Discs send `discTitle` too. `{id}` `show-<n>` with `{"watched": true}` marks every episode of the show this profile may see watched. |
+| `DELETE /items/{id}/progress` | user | Forget the position (mark as not started). `{id}` `show-<n>`: in every episode of the show. |
 
 ### Metadata, matches and browsing
 
@@ -1499,6 +1519,10 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /dvd/{sid}/sub/{name}` | user, `st` | One sub-picture as a PNG. |
 | `GET /items/{id}/disc` | user | The disc page: the feature, extras and menus to jump into. |
 | `PUT /items/{id}/disc/labels` | admin | Name a disc's titles and chapters. |
+| `GET /items/{id}/disc/analysis` | user | Which title (DVD) or playlist (Blu-ray) is the film and why: `main` (what Play plays), `engineMain`, `chosen`, `rank` (confidence 0–1, `level`, `why`, `reasons`, `candidates`, `versions`, `episodes`, `feature`, `repairs`, `issues`, `paddedSectors`, `secondOpinion`), `canChoose`, `protected`. `pending: true` on a low-power server while it is worked out: ask again. `ranked: false` with a module from before rankings. |
+| `POST /items/{id}/disc/analysis` | admin | Work the ranking out again. `{"secondOpinion": true}` also asks a libbluray on this machine (Blu-ray only, when the setting `blurayLibbluray` is on and one is installed; never for an encrypted disc). |
+| `PUT /items/{id}/disc/choice` | admin | `{"ttn": n}`: remember this title or playlist as the disc's film, for everyone. It beats the engine's pick for Play, the disc page, the item's length and languages, and survives rescans while the disc has that title. |
+| `DELETE /items/{id}/disc/choice` | admin | Forget the choice: the engine's pick is the film again. |
 | `GET /items/{id}/disc/thumb/{ttn}/{n}` | user, `st` | A picture of a title (n = 0) or chapter; the first request makes it. |
 
 ### Audio CDs
@@ -1560,17 +1584,17 @@ asks for in one call. `{id}` is an item, as in
 
 | Route | Sign-in | What it does |
 |---|---|---|
-| `GET /media/{id}/canvas` | user | `{available, url, mime, width, height, durationMs, loop: true, source, reason, task, canGenerate}`: `source` is `upload`, `generated`, `sidecar` or `metadata-folder`; a file beside the media over 64 MB or 60 seconds isn't a canvas (`reason`: `too-big`, `too-long`); `task` is one being made now. In full: a short silent video to loop behind the player. Width, height and length need FFprobe; they're left out without it. Play `url` muted, looping. |
+| `GET /media/{id}/canvas` | user | `{available, url, mime, width, height, durationMs, loop: true, source, reason, task, canGenerate, limited, error}`: `error` is why the last try at cutting one failed (administrators only); `limited` is true for a viewer away from home whose streams the owner limits (leave the canvas out then: it is decoration); `source` is `upload`, `generated`, `sidecar` or `metadata-folder`; a file beside the media over 64 MB or 60 seconds isn't a canvas (`reason`: `too-big`, `too-long`); `task` is one being made now. In full: a short silent video to loop behind the player. Width, height and length need FFprobe; they're left out without it. Play `url` muted, looping. |
 | `GET /items/{id}/canvas` | user | The same, under the item's usual address. |
 | `GET /media/{id}/canvas/file` | user, `st` | The canvas itself, with byte ranges, an `ETag` and a day's caching (the `v` in `url` changes when the file does). |
 | `PUT /media/{id}/canvas` | admin | Upload a canvas: an MP4 or WebM of at most 30 MB as the body. It replaces any upload, and wins over a file beside the media. |
 | `DELETE /media/{id}/canvas` | admin | Forget the uploaded canvas. One beside the media stays. |
 | `POST /media/{id}/canvas/generate` | admin | Cut a canvas from a video file: `{startSec?, durationSec?}` (2 to 15 s; by default a quarter of the way in, 5 to 8 s by the size of the machine). Silent H.264 MP4, at most 720p (480p or 360p on a small machine), its end cross-faded into its start so it loops. 202 `{task}`. 400 for a song or a disc, 503 when FFmpeg has no H.264 encoder. |
-| `GET /media/{id}/stems` | user | `{stems: [{name, url, mime, size, multitrack?, source, approximate?}], names, separation}`: `source` is `upload`, `sidecar`, `separated` (the owner's separator made it) or `approximate`; `separation.approximate` and `separation.external` each say `{available, reason?, task?, note?}`. `separation.best` is `separator`, `approximate` or empty: the best this server can make; `separation.separator` names the separator in use (`Demucs`), whether found on the machine or named in its configuration. In full: a song's parts, from `vocals`, `instrumental`, `drums`, `bass`, `other`, and `multitrack` for a Native Instruments `.stem.mp4` holding all of them as audio tracks. |
+| `GET /media/{id}/stems` | user | `{stems: [{name, url, mime, size, multitrack?, source, approximate?}], names, separation}`: `source` is `upload`, `sidecar`, `separated` (the owner's separator made it) or `approximate`; `separation.approximate` and `separation.external` each say `{available, reason?, task?, note?, error?}`: `error` is why the last try failed, in words to show, until it is tried again (the separator's own words go to administrators only). `separation.best` is `separator`, `approximate` or empty: the best this server can make; `separation.separator` names the separator in use (`Demucs`), whether found on the machine or named in its configuration. In full: a song's parts, from `vocals`, `instrumental`, `drums`, `bass`, `other`, and `multitrack` for a Native Instruments `.stem.mp4` holding all of them as audio tracks. |
 | `GET /media/{id}/stems/{stem}` | user, `st` | One part, with byte ranges. `accompaniment` is another name for `instrumental`. |
 | `PUT /media/{id}/stems/{stem}` | admin | Upload a part: FLAC, WAV, Ogg, M4A, AAC, MP3 or WebM of at most 200 MB as the body (`multitrack`: an MP4). The server doesn't separate songs itself. |
 | `DELETE /media/{id}/stems/{stem}` | admin | Forget an uploaded part. |
-| `POST /media/{id}/stems/approximate` | user | Make an approximate `instrumental` with FFmpeg alone (what the two channels share is cancelled). 202 `{task}`; 200 `{exists: true}` when there is an instrumental already. It is listed with `approximate: true` and gives way to a real one. Say so to the person: the voice is quieter, not gone, and the music is mono. Mono songs fail. 503 without FFmpeg. |
+| `POST /media/{id}/stems/approximate` | user | Make an approximate `instrumental` with FFmpeg alone (what the two channels share is cancelled). 202 `{task}`; 200 `{exists: true}` when there is an instrumental already. It is listed with `approximate: true` and gives way to a real one. Say so to the person: the voice is quieter, not gone, and the music is mono. Mono songs fail. 503 without FFmpeg. 403 `{reason: "admin-only" | "off"}` for anyone but an administrator when the server's karaoke switch is "Only when an admin asks" or "Never"; 429 `{reason: "rate-limited"}` past 40 an hour for one account. |
 | `POST /media/{id}/stems/separate` | admin | Run the separator the owner installed on the song. 202 `{task}`; 409 when none is set up (`separation.external.reason` is `not-configured`). The parts it writes are listed with `source: "separated"`. |
 | `GET /media/{id}/karaoke` | user | Feature `karaoke-auto`. The one answer an app needs to play karaoke: `{state, quality, mix, stems: [{id, label, role, url, mime, defaultGain}], version, improving, progress, canImprove, reason?, message?, pollSec}`. See [Karaoke that sets itself up](#karaoke-that-sets-itself-up). Starts nothing. |
 | `POST /media/{id}/karaoke/prepare` | user | The same answer, after starting what is missing: the quick version, and behind it the real one if the server has a separator. No body. Idempotent: call it once when someone opens karaoke on a song. |
@@ -1636,6 +1660,9 @@ account's limits, as `GET /media/{id}/stems/{stem}` does; `full` is one more nam
 | `GET /theme/modules/{module}` | admin | A module's colour overrides, with contrast `warnings`. |
 | `PUT /theme/modules/{module}` | admin | Replace a module's colour overrides: `{"tokens": {"accent": "#3ad29f"}}`. Unknown tokens or anything not a colour: 400. |
 | `DELETE /theme/modules/{module}` | admin | The module goes back to the theme's colours. |
+| `GET /theme/personal` | user | This profile's own colours: `tokens` over the theme it sees and `modules` over each module scope, with contrast `warnings`. Only its own. See "The profile's own colours". |
+| `PUT /theme/personal` | user | Replace them: `{"tokens": {"accent": "#d02060"}, "modules": {"wittyplay": {"accent": "#3ad29f"}}}`. Unknown tokens, anything not a colour, or text that would fall below 4.5:1: 400, with the failing pairs in `contrast`. |
+| `DELETE /theme/personal` | user | Back to the theme's colours. |
 
 ### Server-driven UI
 
@@ -1665,16 +1692,16 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `GET /sdui/config` | admin | All of ui_config.json: the pages and navigation an administrator changed, the theme overrides, with its ETag. |
 | `PUT /sdui/config` | admin | Replace ui_config.json. ?target=draft writes to the draft; otherwise If-Match is required (428 without, 412 when stale). Everything is validated; 400 lists the issues, each with a path, a message and a fix. |
 | `GET /sdui/config/history` | admin | The last 10 revisions, newest first. |
-| `GET /sdui/config/diff` | admin | What differs between two revisions (?from= and ?to=: a revision number, current or draft): pages added, removed and changed, and inside a changed page the sections added, removed, changed and whether they were reordered. |
+| `GET /sdui/config/diff` | admin | What differs between two revisions (?from= and ?to=: a revision number, current or draft): pages added, removed and changed, and inside a changed page the sections added, removed, changed and whether they were reordered. `{from, to, fromDraft, toDraft, changes}`: for the draft, the revision it was begun from, with fromDraft/toDraft true. |
 | `POST /sdui/config/rollback/{rev}` | admin | Make a kept revision current again, as a new revision. |
 | `GET /sdui/config/pages` | admin | Every page in force, built-in ones included: id, kind, title, icon, match, and whether it is builtin, changed or custom. |
 | `GET /sdui/config/pages/{page}` | admin | One page as authored, where it comes from, the built-in page it would reset to, and what the validator says of it. |
 | `PUT /sdui/config/pages/{page}` | admin | Save one page. ?target=draft writes to the draft; otherwise If-Match is required (428 without, 412 when stale). 400 lists the issues. |
-| `DELETE /sdui/config/pages/{page}` | admin | Remove the configuration's page: a built-in page goes back to how it ships (reset to default), a page of the administrator's own is gone. ?target=draft writes to the draft; otherwise If-Match is required (428 without, 412 when stale). |
+| `DELETE /sdui/config/pages/{page}` | admin | Remove the configuration's page: a built-in page goes back to how it ships (reset to default), a page of the administrator's own is gone; 404 for a page that is in neither. ?target=draft writes to the draft; otherwise If-Match is required (428 without, 412 when stale). |
 | `GET /sdui/config/navigation` | admin | The navigation as authored, and the built-in one. |
 | `PUT /sdui/config/navigation` | admin | Save the navigation. ?target=draft writes to the draft; otherwise If-Match is required (428 without, 412 when stale). Settings can be moved but not hidden or given a condition. |
 | `DELETE /sdui/config/navigation` | admin | Back to the built-in navigation. ?target=draft writes to the draft; otherwise If-Match is required (428 without, 412 when stale). |
-| `POST /sdui/validate` | admin | Check {"page": ...}, {"navigation": ...} or {"config": ...} without saving: {ok, issues: [{path, severity, message, fix}]}. |
+| `POST /sdui/validate` | admin | Check {"page": ...}, {"navigation": ...} or {"config": ...} without saving: {ok, issues: [{path, severity, message, fix}]}. ?target=draft: a navigation may name the draft's pages. |
 | `GET /sdui/presets` | admin | The gallery of ready-made pages and sections: {presets: [{id, label, description, icon, kind, pageKinds, page or section}]}. |
 | `GET /sdui/config/layouts` | admin | The server's layouts: `{etag, layouts: {default, allowed}, options, builtin}`. |
 | `PUT /sdui/config/layouts` | admin | Saves `{default: {formFactor: layout}, allowed: [layout]}`; If-Match, or `target=draft`. |
@@ -1684,7 +1711,7 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `GET /sdui/draft` | admin | The unpublished draft; 404 when there is none. |
 | `PUT /sdui/draft` | admin | Keep a whole configuration as the draft. If-Match, when sent, is the draft's ETag (the published configuration's when there is no draft yet). |
 | `DELETE /sdui/draft` | admin | Forget the draft and every preview of it. |
-| `POST /sdui/draft/publish` | admin | Make the draft the configuration everyone gets, as a new revision. If-Match, when sent, is the draft's ETag. |
+| `POST /sdui/draft/publish` | admin | Apply what the draft changed since the revision it was begun from to the configuration everyone gets, as a new revision; what was published meanwhile is kept. 409 {conflicts, baseRevision, currentRevision} when both changed the same page, navigation, theme or personalisation; ?prefer=draft or ?prefer=published settles them. If-Match, when sent, is the draft's ETag. |
 | `POST /sdui/draft/preview` | admin | A token that shows the draft to this administrator alone, on any device they are signed in on, for two hours: {token, expiresAt}. Sent as preview=<token> or X-WMS-SDUI-Preview with the page and navigation routes. |
 | `GET /sdui/export` | admin | One page (?page=<id>) or the whole configuration as a file: {format: "wittymedia-ui", formatVersion, kind, page or config}. |
 | `POST /sdui/import` | admin | Bring in a file made by export: a page (saved under its own ID) or a configuration (its pages and navigation replace the target's; its theme colours too with theme=1). Into the draft unless target=published, which needs If-Match. dryRun=1 only reports the issues and the changes. |
@@ -1971,7 +1998,7 @@ one of these games answers 409 with `"rig": true`.
 | `POST /collections` | user | Create collection. |
 | `POST /collections/preview` | user | Preview rule. |
 | `GET /collections/holding` | user | Collections holding. |
-| `POST /collections/watch-later/items` | user | Watch later add. |
+| `POST /collections/watch-later/items` | user | Watch later add. `{items, shows}`: each a number, or a string `"5"` or `"show-5"` (a show, wherever it is listed). |
 | `GET /collections/{id}` | user | Collection. |
 | `PUT /collections/{id}` | user | Update collection. |
 | `DELETE /collections/{id}` | user | Delete collection. |
@@ -2034,7 +2061,7 @@ Favourites use `PUT /items/{id}/reaction` with `{"value": 1}`, as for anything e
 | `GET /p2p/devices` | user | The devices that may connect peer to peer: yours, or everyone's with `?all=1` for an admin. Each has `id`, `name`, `platform`, `lastSeen`, and `connected` with its `path` (direct or relayed). |
 | `POST /p2p/devices` | user | Put this device's key on the list, under your account: `{id, name, platform}`. An app does this once, while it reaches the server some other way. |
 | `DELETE /p2p/devices/{id}` | user | Take a device off the list. Its open connections close at once. |
-| `POST /p2p/invite` | user | An invite link (`wittymedia://p2p/...`) that puts one device on the list and signs it in, for this account or a Kids or Guest profile it manages. Adults only. Works once, for 15 minutes. |
+| `POST /p2p/invite` | user | `{userId, password, otp}`: an invite link (`wittymedia://p2p/...`) that puts one device on the list and signs it in, for this account or a Kids or Guest profile it manages. Adults only; an invite that signs a device in as an administrator takes the administrator's password again (403 with `reason: "password-required"` without it), as `/pair/approve` and `/p2p/join` do. Works once, for 15 minutes. |
 | `POST /p2p/join` | user | `{code, userId, password, otp}`: the code a device away from home is showing, typed in by someone signed in. The device finds the server by it, is put on the list and signed in. Adults only; signing a device in as an administrator takes the administrator's password again (403 with `reason: "password-required"` without it). Works once, for 15 minutes. 409 when peer-to-peer connections or their address book are off. Feature `p2p-join`. |
 | `GET /p2p/settings` | admin | The owner's choices, how every layer is doing in plain words (`steps`), who is contacted (`thirdParties`) and every device. |
 | `PUT /p2p/settings` | admin | Change them. Turning the feature on needs `accept: true`. |
@@ -2197,6 +2224,7 @@ See [LIBRARY-TRANSCODING.md](LIBRARY-TRANSCODING.md).
 | `GET /dvd/{sid}/bdj` | user | BDJ poll. |
 | `GET /dvd/{sid}/bdj/frame/{n}` | user | BDJ frame. |
 | `GET /bdj/status` | admin | BDJ status. |
+| `GET /bluray/capabilities` | admin | What optional help WittyBluray has here: `libbluray` (`enabled`, `available`, `version`, `reason`) and `libblurayPath`. |
 
 
 ## Backup

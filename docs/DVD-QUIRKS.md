@@ -113,6 +113,23 @@ None of this decrypts anything. It reads only the parts of a DVD that are never 
 
 The ranking reads structure, never pictures. A disc that only tells the film apart through its menu, or picks it from player settings, can still pick wrongly with **Play movie**. Choosing a title from the disc's menu, or from **Bonus Features**, avoids the guess.
 
+### What WittyDVD 0.4.0 adds
+
+WittyDVD's own [quirks reference](https://github.com/wittywilla/WittyDVD/blob/main/docs/QUIRKS.md) has every row with the test behind it. In short:
+
+| Pattern | WittyDVD |
+|---|---|
+| **Index tables damaged in either copy** | Each table of an IFO is read by itself and taken from the copy (IFO or BUP) where it is whole; tables are checked against each other, and cells that point nowhere are mended from the cell address table. Everything mended is listed in `Disc.Repairs`, which the server keeps and the disc's page shows |
+| **A film that only commands put together** | The title is dry-run in the disc's virtual machine; the cells it shows, in order, are the feature (`Feature.Segments`). The server plays them as one stream |
+| **A film cut into chained titles** | Each title jumps to the next; the feature runs through all of them, and the server plays it as one stream with one timeline |
+| **Fake title sets** | Index files with no video: none of their time counts |
+| **Hollow, overlapping and unlisted cells** | Cells that claim hours and hold a few sectors, that lie over each other, or that the cell address table doesn't list, aren't counted |
+| **Play-all only** | The title is split into episodes at its program chains (or where the VOB id changes), each with a start time and first chapter; the server starts each episode there |
+| **Unreadable sectors** | Retried, then read sector by sector; what can't be read comes back as zeros and is counted, and the disc's page says how many |
+| **Hostile input** | Ten fuzz targets cover every way bytes get in, including the ranking, and the dry runs of an analysis share one budget |
+
+The engine was built and tested on synthetic discs, written byte by byte by its tests. Since then its ranking has been checked read-only against a few images of pressed discs, which found two faults (short animations taken as decoys, featurettes taken as episodes), both fixed with synthetic regression tests. Most of the patterns above have still never been met on a physical disc.
+
 ## Regions and parental management
 
 | Feature | What it is | Hardware player | WittyDVD |

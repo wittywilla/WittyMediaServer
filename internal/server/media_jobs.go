@@ -32,7 +32,15 @@ type mediaJobs struct {
 	mu     sync.Mutex
 	queued map[string]string // what is waiting or running, by key → its task
 	turn   chan struct{}     // one job at a time
+	// failed is why the last try at a key failed, until it is tried again. The task says so
+	// too, but not everyone who may start a job may see tasks, and whoever pressed the
+	// button is owed the reason. Memory only, and bounded by maxJobFailures.
+	failed map[string]error
 }
+
+// maxJobFailures is how many reasons are remembered. Past it the oldest known go first,
+// in no particular order: it is a courtesy, not a record (the task history is that).
+const maxJobFailures = 64
 
 // startMediaJob queues fn under key ("stems-approx:12"), unless that is already queued or
 // the queue is full. It answers the task's id. fn gets a context that ends when the task
@@ -51,6 +59,7 @@ func (s *Server) startMediaJob(key string, by *auth.User, spec tasks.Spec, fn fu
 		j.mu.Unlock()
 		return "", errJobsFull
 	}
+	delete(j.failed, key) // a new try: the old reason no longer stands
 	stopped, stop := context.WithCancel(context.Background())
 	spec.By, spec.Cancel = byUser(by), stop
 	task := s.Tasks.Queue(spec)
@@ -85,6 +94,18 @@ func (s *Server) startMediaJob(key string, by *auth.User, spec tasks.Spec, fn fu
 		}
 		if err != nil && !errors.Is(err, context.Canceled) {
 			s.Log.Error("a media job failed", "cat", "library", "job", key, "err", err)
+			j.mu.Lock()
+			if j.failed == nil {
+				j.failed = map[string]error{}
+			}
+			for k := range j.failed {
+				if len(j.failed) < maxJobFailures {
+					break
+				}
+				delete(j.failed, k)
+			}
+			j.failed[key] = err
+			j.mu.Unlock()
 		}
 		task.Finish(err)
 	}, "cat", "library")
@@ -102,4 +123,13 @@ func (s *Server) mediaJobTask(key string) string {
 	j.mu.Lock()
 	defer j.mu.Unlock()
 	return j.queued[key]
+}
+
+// mediaJobError is why the last try at key failed, nil when it didn't or it is being
+// tried again.
+func (s *Server) mediaJobError(key string) error {
+	j := &s.mediaJobs
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	return j.failed[key]
 }

@@ -23,7 +23,7 @@ func TestNoBuildForThisSystemIsSaidPlainly(t *testing.T) {
 		other = "linux-amd64"
 	}
 	version := func(platform string) []wittymodule.CatalogVersion {
-		return []wittymodule.CatalogVersion{{Version: "1.0.0", Delivery: wittymodule.DeliveryHelper, API: wittymodule.API, MinServer: "0.6.0-alpha", MaxServer: "0.x",
+		return []wittymodule.CatalogVersion{{Version: "1.0.0", Delivery: wittymodule.DeliveryHelper, API: MinAPI, MinServer: "0.6.0-alpha", MaxServer: "0.x",
 			Sums: "a-SHA256SUMS.txt", Sig: "a-SHA256SUMS.txt.sig", Manifest: "module.json",
 			Platforms: map[string]wittymodule.CatalogFile{platform: {URL: "a.tar.gz", SHA256: strings.Repeat("0", 64), Size: 1}}}}
 	}

@@ -57,3 +57,12 @@
 .emu-start { position: fixed; inset: 0; display: grid; place-items: center; padding: var(--sp-4); background: var(--bg); color: var(--fg); overflow: auto; }
 .emu-start-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sp-2); }
 .gm-emu .btn[aria-disabled="true"] { opacity: .5; cursor: default; }
+
+/* A whole emulator's settings: search, the advanced switch, and a section per heading. */
+.emu-large-tools { display: flex; flex-wrap: wrap; gap: var(--sp-3); align-items: center; }
+.emu-large-tools input[type='search'] { flex: 1 1 220px; min-width: 0; }
+.emu-large-count { margin: var(--sp-2) 0; }
+.emu-group { border-top: 1px solid var(--border); }
+.emu-group h3 { margin: 0; font: inherit; }
+.emu-group-head { display: flex; width: 100%; justify-content: space-between; align-items: baseline; gap: var(--sp-2); padding: var(--sp-3) 0; background: none; border: 0; color: var(--fg); font-weight: 600; text-align: start; cursor: pointer; }
+.emu-group-head:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }

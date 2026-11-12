@@ -1,0 +1,56 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
+/* The list of devices' actions, and the live remote for one device (DeviceRemote.tsx). It is
+   mostly used from a phone held in one hand: one column, large keys, nothing that needs a hover. */
+.rc-row { flex-wrap: wrap; }
+.rc-row .rc-what { flex: 1 1 9rem; }
+.rc-acts { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-left: auto; }
+
+.rc-body { display: grid; gap: var(--sp-4); min-width: 0; }
+.rr { display: grid; gap: var(--sp-4); min-width: 0; }
+.rr-now { display: flex; align-items: center; gap: var(--sp-3); min-width: 0; }
+.rr-art { flex: none; width: 64px; height: 64px; object-fit: cover; border-radius: var(--r-sm); background: var(--bg-3); }
+.rr-what { min-width: 0; }
+.rr-title { font-weight: 600; font-size: var(--text-lg); color: var(--fg); overflow-wrap: anywhere; }
+.rr-line, .rr-status, .rr-note { color: var(--fg-2); font-size: var(--text-sm); line-height: var(--leading-snug); overflow-wrap: anywhere; }
+.rr-note { margin: 0; }
+.rr-problem { margin: 0; padding: var(--sp-2) var(--sp-3); border-radius: var(--r-sm); background: var(--warn-soft); color: var(--fg); font-size: var(--text-sm); }
+
+.rr-scrub, .rr-volume { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
+.rr-range { flex: 1; min-width: 0; height: 28px; accent-color: var(--accent); }
+.rr-time { flex: none; min-width: 3.2em; color: var(--fg-2); font-size: var(--text-sm); font-variant-numeric: tabular-nums; text-align: center; }
+
+.rr-keys { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: var(--sp-2); }
+.rr-keys .btn { min-width: 44px; min-height: 44px; }
+.rr-keys .rr-play { width: 56px; height: 56px; }
+
+.rr-picks { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--sp-3); }
+.rr-picks .select { width: 100%; }
+
+.rr-queue { border: 1px solid var(--border); border-radius: var(--r-md); overflow: hidden; }
+.rr-queue-head { display: flex; align-items: center; gap: var(--sp-2); width: 100%; min-height: 44px; padding: var(--sp-2) var(--sp-3); border: 0; background: var(--bg-2); color: var(--fg); font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
+.rr-queue-head svg { width: 18px; height: 18px; transition: rotate var(--dur-2) ease-out; }
+.rr-queue-head[aria-expanded=true] svg { rotate: 180deg; }
+.rr-queue-count { margin-left: auto; color: var(--fg-2); font-weight: 400; font-size: var(--text-sm); }
+.rr-queue-list { list-style: none; margin: 0; padding: var(--sp-1); max-height: 14rem; overflow: auto; border-top: 1px solid var(--border); }
+.rr-queue-item { display: flex; align-items: center; gap: var(--sp-2); width: 100%; min-height: 40px; padding: var(--sp-1) var(--sp-2); border: 0; border-radius: var(--r-sm); background: none; color: var(--fg); font: inherit; font-size: var(--text-sm); text-align: left; cursor: pointer; }
+.rr-queue-item:hover:not(:disabled) { background: var(--bg-3); }
+.rr-queue-item:disabled { cursor: default; }
+.rr-queue-item:disabled:not(.now) { color: var(--fg-2); }
+.rr-queue-item.now { background: var(--accent-soft); font-weight: 600; }
+.rr-queue-n { flex: none; display: grid; place-items: center; width: 1.8em; color: var(--fg-2); font-variant-numeric: tabular-nums; }
+.rr-queue-n svg { width: 14px; height: 14px; }
+.rr-queue-title { min-width: 0; overflow-wrap: anywhere; }
+.rr-queue .rr-note { padding: var(--sp-2) var(--sp-3); border-top: 1px solid var(--border); }
+
+/* The D-pad: a cross with OK in the middle, and Back, Home, Menu and Play/Pause in the corners. */
+.rr-pad { display: grid; grid-template-columns: repeat(3, minmax(56px, 76px)); grid-template-areas: "a u h" "l o r" "m d p"; gap: var(--sp-2); justify-content: center; padding-top: var(--sp-4); border-top: 1px solid var(--border); }
+.rr-pad .rr-key { width: 100%; height: auto; aspect-ratio: 1; min-height: 56px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--bg-3); }
+.rr-pad .rr-key svg { width: 24px; height: 24px; }
+.rr-pad .rr-key-o { border-radius: var(--r-full); background: var(--accent-soft); font-size: var(--text-md); }
+.rr-pad .rr-key-p svg { width: 16px; height: 16px; }
+.rr-key-a { grid-area: a; } .rr-key-u { grid-area: u; } .rr-key-h { grid-area: h; }
+.rr-key-l { grid-area: l; } .rr-key-o { grid-area: o; } .rr-key-r { grid-area: r; }
+.rr-key-m { grid-area: m; } .rr-key-d { grid-area: d; } .rr-key-p { grid-area: p; }
+
+@media (prefers-reduced-motion: reduce) { .rr-queue-head svg { transition: none; } }

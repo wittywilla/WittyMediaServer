@@ -96,6 +96,14 @@ func (rv *sduiResolver) can(what string) []string {
 	if rv.acc.Can(library.FeatureSharing) {
 		out = append(out, "share")
 	}
+	// What plays can be sent to another device and watched together, unless the profile
+	// has those turned off (the server's own switches are the dialogs' to explain).
+	if what == "play" && rv.acc.Can(library.FeatureRemoteControl) {
+		out = append(out, "playOn")
+	}
+	if what == "play" && rv.acc.Can(library.FeatureSyncplay) {
+		out = append(out, "watchParty")
+	}
 	return out
 }
 
@@ -207,8 +215,33 @@ func (rv *sduiResolver) show(sh *library.Show) sdui.Item {
 	return out
 }
 
+// isArtistPage: a detail page opened for an artist (/artist/{library}?name=), not for
+// one of their albums or a title.
+func isArtistPage(v map[string]string) bool {
+	return v["artist"] != "" && v["album"] == "" && v["item"] == "" && v["show"] == "" && v["collection"] == ""
+}
+
+// artist is a music artist as a card and as an artist page's subject. i is the artist's
+// place in the library's list, which names it among that library's artists.
+func (rv *sduiResolver) artist(lib int64, i int, a library.Artist) sdui.Item {
+	it := sdui.Item{ID: "artist-" + strconv.Itoa(i), Kind: "artist", Title: a.Name, Artist: a.Name, Count: a.Albums, Route: "/artist/" + itoa(lib) + "?name=" + url.QueryEscape(a.Name), Images: map[string]string{}}
+	noun := "albums"
+	if a.Albums == 1 {
+		noun = "album"
+	}
+	it.Subtitle = strconv.Itoa(a.Albums) + " " + noun
+	if a.CoverItem != 0 {
+		it.Images["square"] = "/api/items/" + itoa(a.CoverItem) + "/poster"
+	}
+	return it
+}
+
 func (rv *sduiResolver) album(lib int64, a library.Album) sdui.Item {
-	out := sdui.Item{ID: fmt.Sprintf("album-%d-%d", lib, a.CoverItem), Kind: "album", Title: a.Title, Subtitle: a.Artist, Artist: a.Artist, Count: a.Tracks, RuntimeSec: a.DurationSec,
+	key := a.CoverItem
+	if key == 0 {
+		key = a.FirstItem
+	}
+	out := sdui.Item{ID: fmt.Sprintf("album-%d-%d", lib, key), Kind: "album", Title: a.Title, Subtitle: a.Artist, Artist: a.Artist, Count: a.Tracks, RuntimeSec: a.DurationSec,
 		Route: "/album/" + itoa(lib) + "?artist=" + url.QueryEscape(a.Artist) + "&album=" + url.QueryEscape(a.Title), Images: map[string]string{}}
 	if a.Year != nil {
 		out.Year = *a.Year
@@ -351,7 +384,13 @@ func filterOf(src sdui.Source, page map[string]string) library.BrowseFilter {
 	if src.Bool("desc") {
 		q.Set("desc", "1")
 	}
+	if v := src.Str("service"); v != "" {
+		q.Set("platform", v)
+	}
 	for k, v := range page { // the page's filter bar wins over the source's own
+		if k == "service" {
+			k = "platform" // the library's name for a streaming service
+		}
 		q.Set(k, v)
 	}
 	f := library.ParseBrowseFilter(q)
@@ -595,7 +634,12 @@ func (rv *sduiResolver) Items(req sdui.SourceRequest) (sdui.SourceResult, error)
 		}
 		all := make([]sdui.Item, 0, len(albums))
 		for _, a := range albums {
-			all = append(all, rv.album(lib.ID, a))
+			it := rv.album(lib.ID, a)
+			// An album's own page doesn't offer it again under "More by this artist".
+			if rv.subject != nil && rv.subject.Kind == "album" && rv.subject.ID == it.ID {
+				continue
+			}
+			all = append(all, it)
 		}
 		return page(all, req), nil
 	case "artists":
@@ -611,16 +655,7 @@ func (rv *sduiResolver) Items(req sdui.SourceRequest) (sdui.SourceResult, error)
 			if i >= req.Offset+req.Limit+1 {
 				break
 			}
-			it := sdui.Item{ID: "artist-" + strconv.Itoa(i), Kind: "artist", Title: a.Name, Count: a.Albums, Route: "/artist/" + itoa(lib.ID) + "?name=" + url.QueryEscape(a.Name), Images: map[string]string{}}
-			noun := "albums"
-			if a.Albums == 1 {
-				noun = "album"
-			}
-			it.Subtitle = strconv.Itoa(a.Albums) + " " + noun
-			if a.CoverItem != 0 {
-				it.Images["square"] = "/api/items/" + itoa(a.CoverItem) + "/poster"
-			}
-			all = append(all, it)
+			all = append(all, rv.artist(lib.ID, i, a))
 		}
 		res := page(all, req)
 		res.Total = len(artists)
@@ -652,6 +687,16 @@ func (rv *sduiResolver) Items(req sdui.SourceRequest) (sdui.SourceResult, error)
 		q := library.ItemQuery{LibraryID: lib.ID, Kind: "audio", Sort: "track", Access: rv.acc, Brief: true, Album: &album, NoTotal: true}
 		if artist != "" {
 			q.AlbumArtist = &artist
+		}
+		if _, one := src["album"]; !one {
+			// An artist's page: every album's songs, by title, a page at a time.
+			q.Album, q.Sort, q.NoTotal, q.Offset, q.Limit = nil, "", false, req.Offset, req.Limit
+			items, total, err := s.Store.Items(rv.ctx, q)
+			if err != nil {
+				return sdui.SourceResult{}, err
+			}
+			_ = s.Store.AttachProgress(rv.ctx, rv.u.ID, items)
+			return sdui.SourceResult{Items: rv.items(items), More: req.Offset+len(items) < total, Total: total}, nil
 		}
 		if lib.Type == "podcasts" {
 			q.Sort, q.Desc = "aired", true
@@ -901,8 +946,32 @@ func (rv *sduiResolver) Subject() (*sdui.Item, error) {
 		for _, a := range albums {
 			if a.Title == v["album"] && (v["artist"] == "" || a.Artist == v["artist"]) {
 				it := rv.album(lib.ID, a)
+				// Play starts at the first track; the album page plays on from there.
+				if first := firstNonZero(a.FirstItem, a.CoverItem); first != 0 {
+					it.PlayID, it.Can = itoa(first), rv.can("play")
+				}
+				if rv.noPlay {
+					rv.unplayable(&it)
+				}
+				rv.subject = &it
+				break
+			}
+		}
+	case isArtistPage(v):
+		lib, ok := rv.library(v["library"])
+		if !ok {
+			return nil, sdui.ErrNotFound
+		}
+		artists, err := s.Store.Artists(rv.ctx, lib.ID, rv.acc)
+		if err != nil {
+			return nil, sdui.ErrNotFound
+		}
+		for i, a := range artists {
+			if a.Name == v["artist"] {
+				it := rv.artist(lib.ID, i, a)
 				if a.CoverItem != 0 {
-					it.PlayID, it.Can = itoa(a.CoverItem), rv.can("play")
+					// Play starts with one of the artist's songs, as an album's does with its first.
+					it.PlayID, it.Can = itoa(a.CoverItem), []string{"play"}
 				}
 				if rv.noPlay {
 					rv.unplayable(&it)
@@ -918,7 +987,9 @@ func (rv *sduiResolver) Subject() (*sdui.Item, error) {
 			return nil, sdui.ErrNotFound
 		}
 		it := rv.show(sh)
-		it.Can = []string{"watchLater"}
+		// watched.set and watched.clear take the show's ID too (show_watched.go).
+		it.Can = []string{"watchLater", "watched"}
+		it.Watched = sh.EpisodeCount > 0 && sh.Unwatched == 0
 		if rv.acc.Can(library.FeatureSharing) {
 			it.Can = append(it.Can, "share")
 		}
@@ -1022,6 +1093,21 @@ func (rv *sduiResolver) Facets(lib string, fields []string) ([]sdui.Facet, error
 			out = append(out, sdui.Facet{ID: field, Label: "Tag", Options: options(f.Tags, 60)})
 		case "watched":
 			out = append(out, sdui.Facet{ID: field, Label: "Watched", Options: []sdui.EnumOption{{Value: "no", Label: "Unwatched"}, {Value: "yes", Label: "Watched"}}})
+		case "service":
+			// The streaming services that list titles of this library this profile may see,
+			// most first; none while listings are off, and then the filter is left out.
+			ps, err := rv.s.Store.ListingPlatforms(rv.ctx, l.ID, rv.acc)
+			if err != nil || len(ps) == 0 {
+				continue
+			}
+			var opts []sdui.EnumOption
+			for i, p := range ps {
+				if i >= 30 {
+					break
+				}
+				opts = append(opts, sdui.EnumOption{Value: p.Key, Label: firstNonEmpty(p.Name, p.Key)})
+			}
+			out = append(out, sdui.Facet{ID: field, Label: "Streaming on", Options: opts})
 		}
 	}
 	return out, nil
@@ -1047,4 +1133,13 @@ func (s *Server) sduiTopShelfRows(r *http.Request) []sdui.TopShelfRow {
 		}
 	}
 	return rows
+}
+
+func firstNonZero(v ...int64) int64 {
+	for _, x := range v {
+		if x != 0 {
+			return x
+		}
+	}
+	return 0
 }

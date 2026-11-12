@@ -226,6 +226,18 @@
    "formFactor": "phone"
   },
   {
+   "id": "backdrops-iphone",
+   "file": "backdrops-iphone.json",
+   "title": "Backdrops on a 402-point iPhone, and titles without one",
+   "formFactor": "phone"
+  },
+  {
+   "id": "detail-film-phone-no-backdrop",
+   "file": "detail-film-phone-no-backdrop.json",
+   "title": "A film with no backdrop, on a 402-point iPhone",
+   "formFactor": "phone"
+  },
+  {
    "id": "detail-film-kids",
    "file": "detail-film-kids.json",
    "title": "A film's page for a profile without downloads or sharing",
@@ -259,6 +271,18 @@
    "id": "detail-album-fallback",
    "file": "detail-album-fallback.json",
    "title": "An album's page for a client without TrackList",
+   "formFactor": "tv"
+  },
+  {
+   "id": "detail-artist",
+   "file": "detail-artist.json",
+   "title": "An artist's page",
+   "formFactor": "phone"
+  },
+  {
+   "id": "detail-artist-tv",
+   "file": "detail-artist-tv.json",
+   "title": "An artist's page on a television",
    "formFactor": "tv"
   },
   {

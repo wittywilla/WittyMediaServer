@@ -28,7 +28,7 @@ func TestMacHelperCanBoxInItsPrograms(t *testing.T) {
 	}
 	dir := t.TempDir()
 	raw, err := json.Marshal(wittymodule.Manifest{ID: "wittyplay", Name: "WittyPlay", Version: "0.3.4", Repo: "wittywilla/WittyPlay",
-		Delivery: wittymodule.DeliveryHelper, Entry: "wittyplay-module", API: wittymodule.API, MinServer: "0.4.0", MaxServer: "0.5.x",
+		Delivery: wittymodule.DeliveryHelper, Entry: "wittyplay-module", API: MinAPI, MinServer: "0.4.0", MaxServer: "0.5.x",
 		Permissions: []string{wittymodule.PermissionNetwork, wittymodule.PermissionPrograms, wittymodule.PermissionDevices, wittymodule.PermissionData}})
 	if err != nil {
 		t.Fatal(err)

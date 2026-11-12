@@ -10,6 +10,8 @@ import { ChooseFolderButton } from '../components/FolderPicker'
 import { useModulePages } from '../moduleBundles'
 import { IconHelp, IconActivity, IconChannels, IconClose, IconContrast, IconDownload, IconDrive, IconEdit, IconFile, IconFilm, IconFolder, IconGamepad, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconNetwork, IconPalette, IconPlay, IconPlug, IconPlus, IconRefresh, IconRemote, IconRight, IconShield, IconSidebar, IconTag, IconTrash, IconTune, IconUsers, IconWrench, libIcon } from '../icons'
 import { toast, useApp } from '../state'
+import { settingsPageHidden } from '../profileWords'
+import { useMyLimits } from '../myLimits'
 import AppearanceSettings from './AppearanceSettings'
 import Profiles from './Profiles'
 import LicenseList from './settings/Licenses'
@@ -31,6 +33,7 @@ import { ask, Dialog } from '../ui/Overlay'
 import { Segmented } from '../ui/Choice'
 import { UpdateBanner } from '../components/UpdateBanner'
 import { Updates } from './settings/Updates'
+import { useFeatures } from '../sdui/useSdui'
 
 const ModulesSettings = lazy(() => import('./settings/Modules'))
 const ModuleStore = lazy(() => import('./settings/store/ModuleStore'))
@@ -48,7 +51,10 @@ const RemoteAccess = lazy(() => import('./settings/RemoteAccess'))
 const NetworkSettings = lazy(() => import('./settings/Network'))
 const CouchSettings = lazy(() => import('./settings/Couch'))
 const EmulatorsSettings = lazy(() => import('./settings/Emulators'))
+const GamesSupport = lazy(() => import('./settings/GamesSupport'))
 const WittyRigsSettings = lazy(() => import('./settings/WittyRigs'))
+const ModuleSettingsList = lazy(() => import('./settings/ModuleSettings').then((m) => ({ default: m.ModuleSettingsList })))
+const ModuleSettingsPage = lazy(() => import('./settings/ModuleSettings').then((m) => ({ default: m.ModuleSettingsPage })))
 const Security = lazy(() => import('./settings/Security'))
 const TvSettings = lazy(() => import('./tv/TvSettings'))
 // The editor of server-driven pages is a program of its own: nothing of it loads until it is opened.
@@ -84,7 +90,8 @@ const GROUPS: { title: string; pages: Page[] }[] = [
     { to: 'playback', label: 'Playback & discs', icon: <IconPlay />, admin: true, hint: 'Player, DVDs and Blu-rays' },
     { to: 'channels', label: 'Channels & tuners', icon: <IconChannels />, admin: true, hint: 'Tuners, IPTV, guide data and WittyTV options' },
     { to: 'gaming', label: 'Consoles & cores', icon: <IconGamepad />, admin: true, hint: 'Which consoles this server can play, their cores, and game streaming' },
-    { to: 'emulators', label: 'Standalone emulators', icon: <IconGamepad />, admin: true, hint: 'Emulators that run in a container: Docker, their licences, installs and settings' },
+    { to: 'games-support', label: 'What this server plays', icon: <IconGamepad />, hint: 'Each console, whether its games play here, and how' },
+    { to: 'emulators', label: 'Standalone emulators', icon: <IconGamepad />, admin: true, hint: 'PCSX2, Dolphin, RPCS3 and others: where they run, installs, firmware, controllers and every setting' },
     { to: 'couch', label: 'Game PCs', icon: <IconDrive />, admin: true, hint: 'Who can play on PCs running Sunshine, and which ones' },
     { to: 'transcoding', label: 'Live transcoding', icon: <IconFilm />, admin: true, hint: 'While someone watches: quality, hardware and formats' },
     { to: 'library-transcoding', label: 'Library transcoding', icon: <IconFilm />, admin: true, hint: 'Convert files ahead of time, and connect Tdarr' },
@@ -98,6 +105,7 @@ const GROUPS: { title: string; pages: Page[] }[] = [
     { to: 'games', label: 'My game settings', icon: <IconContrast />, hint: 'Picture, speed, shortcuts and more, for your games' },
     { to: 'activity', label: 'Activity', icon: <IconActivity />, hint: 'The button showing library scans and other background work' },
     { to: 'sharing', label: 'Sharing & photos', icon: <IconImage />, hint: 'Uploads, links, the photo map' },
+    { to: 'module-settings', label: 'Module settings', icon: <IconPlug />, hint: 'What the modules on this server let you set' },
   ] },
   { title: 'Advanced', pages: [
     { to: 'wittyrigs', label: 'WittyRigs', icon: <IconRemote />, admin: true, hint: 'Hosting demanding games on this server’s own hardware' },
@@ -118,7 +126,11 @@ export default function SettingsPage() {
   const { user, version } = useApp()
   const loc = useLocation()
   const modulePages = useModulePages().filter((p) => p.where === 'settings')
-  const groups = useMemo(() => GROUPS.map((g) => ({ ...g, pages: g.pages.filter((p) => !p.admin || user?.isAdmin) })).filter((g) => g.pages.length), [user?.isAdmin])
+  const features = useMyLimits()?.features
+  // Module settings are for a server that has them (feature module-settings).
+  const serverCan = useFeatures()
+  const moduleSettings = !!serverCan?.has('module-settings')
+  const groups = useMemo(() => GROUPS.map((g) => ({ ...g, pages: g.pages.filter((p) => (!p.admin || user?.isAdmin) && !settingsPageHidden(p.to, user, features) && (p.to !== 'module-settings' || moduleSettings)) })).filter((g) => g.pages.length), [user?.isAdmin, user?.kind, features, moduleSettings]) // eslint-disable-line react-hooks/exhaustive-deps
   const pages = useMemo(() => groups.flatMap((g) => g.pages), [groups])
   const moduleKey = modulePages.map((p) => `${p.module}/${p.id}/${p.title}`).join('|')
   const moduleResults = useMemo(() => modulePages.map((p) => ({ to: `/m/${p.module}/${p.id}`, title: p.title, where: 'From modules' })), [moduleKey])
@@ -198,6 +210,7 @@ export default function SettingsPage() {
           <Route path="gaming" element={<GamingSettings />} />
           <Route path="games" element={<><PageHead title="My game settings" desc="How your games look, sound and behave. Set something for every game, for one console or, from a game’s own page, for one game. It follows you to every device." /><GameSettingsPage /></>} />
           <Route path="emulators" element={<Suspense fallback={null}><EmulatorsSettings /></Suspense>} />
+          <Route path="games-support" element={<Suspense fallback={null}><GamesSupport /></Suspense>} />
           <Route path="couch" element={<Suspense fallback={null}><CouchSettings /></Suspense>} />
           <Route path="wittyrigs" element={<Suspense fallback={null}><WittyRigsSettings /></Suspense>} />
           <Route path="server" element={<Navigate to="/settings/metadata" replace />} />
@@ -221,6 +234,8 @@ export default function SettingsPage() {
           <Route path="repair" element={<Suspense fallback={null}><RepairSettings /></Suspense>} />
           <Route path="reset" element={<Suspense fallback={null}><ResetSettings /></Suspense>} />
           <Route path="modules" element={<Suspense fallback={null}><ModulesSettings /></Suspense>} />
+          <Route path="module-settings" element={<Suspense fallback={null}><ModuleSettingsList /></Suspense>} />
+          <Route path="module-settings/:module" element={<Suspense fallback={null}><ModuleSettingsPage /></Suspense>} />
           <Route path="modules/store" element={<Suspense fallback={null}><ModuleStore /></Suspense>} />
           <Route path="modules/store/:id" element={<Suspense fallback={null}><ModulePage /></Suspense>} />
           <Route path="modules/store/:store/:id" element={<Suspense fallback={null}><ModulePage /></Suspense>} />

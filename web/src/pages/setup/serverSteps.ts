@@ -6,7 +6,7 @@
 import type { StepId } from './plan'
 
 export const SERVER_STEP: Record<StepId, string> = {
-  welcome: 'welcome', account: 'account', look: 'look', theme: 'theme', modules: 'modules', media: 'libraries',
+  welcome: 'welcome', account: 'account', name: 'name', look: 'look', theme: 'theme', modules: 'modules', media: 'libraries',
   details: 'details', logos: 'details', music: 'details', listings: 'details', tv: 'livetv', games: 'games', discs: 'discs', people: 'people', remote: 'remote', done: 'ready',
 }
 

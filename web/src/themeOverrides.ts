@@ -6,6 +6,7 @@
 // to one module. This is the part of it that needs no page: what to set, and where a page
 // belongs. theme.ts puts the result on <html>.
 
+import type { StyledPart } from './brandStyle.ts'
 export type BrandMarkData = { kind: 'letter' | 'initials' | 'text' | 'image'; text?: string; imageUrl?: string; shown: string }
 export type RequiredValue = { value: string; by?: string; at?: string; scope: string }
 export type Look = { experience: string; theme: string; requiredExperience?: RequiredValue; requiredTheme?: RequiredValue; tvTheme?: string; effects?: Record<string, string>; shape?: { radius?: number; cardSet?: string }; type?: string; density?: string; motion?: Record<string, unknown> }
@@ -15,7 +16,7 @@ export type ResolvedTheme = {
   // The finished look: the experience and theme in force and what an administrator requires (docs/THEMES.md).
   look?: Look
   // The server's name as the theme engine draws it; the mark is the badge for small spaces (the rail's header).
-  brand?: { mark?: BrandMarkData }
+  brand?: { mark?: BrandMarkData; parts?: StyledPart[]; warnings?: { text: string; surface: string; ratio: number; need: number }[] }
   overrides: Record<string, string>
   // The whole palette (a server that has modules' own colours sends it).
   tokens?: Record<string, string>

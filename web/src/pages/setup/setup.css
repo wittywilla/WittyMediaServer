@@ -145,3 +145,27 @@ html.ten-foot .su-ack a, html.using-controller .su-ack a, html.ten-foot .op-head
 .su-progress-line { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-1) var(--sp-3); font-size: var(--text-sm); }
 .su-port { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; color: var(--fg-2); }
 .oobe-next-card .port-setting { justify-self: stretch; }
+
+/* ---- the fourteen steps (docs/design-2, OF_*): a list of steps beside the page, which wears the look and theme being tried ---- */
+.oobe-shell { width: min(78rem, 100%); }
+.oobe-head { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-3) var(--sp-6); }
+.oobe-head .brand { font-size: var(--page-title); font-weight: 800; letter-spacing: var(--tracking-display); }
+.oobe-head .brand .brand-badge, .oobe-head .brand img.brand-mark { inline-size: 40px; block-size: 40px; }
+.oobe-head .su-progress { flex: 1 1 20rem; max-width: 32rem; }
+.su-progress-words { text-transform: uppercase; letter-spacing: .08em; font-size: var(--text-xs); color: var(--accent-text); }
+.su-where-name, .su-where-page { color: var(--fg-2); }
+.oobe-body { display: grid; grid-template-columns: 13rem minmax(0, 1fr); gap: var(--sp-6); align-items: start; }
+.oobe-steps { position: sticky; top: var(--sp-4); }
+.oobe-steps ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.oobe-step > span, .oobe-step > button { display: flex; align-items: center; gap: var(--sp-3); inline-size: 100%; min-block-size: 36px; padding: 0 var(--sp-3); border: 0; border-radius: var(--r-md); background: none; color: var(--fg-2); font: inherit; font-size: var(--text-sm); text-align: start; }
+.oobe-step > button { cursor: pointer; }
+.oobe-step > button:hover { background: var(--hover); color: var(--fg); }
+.oobe-step i { flex: none; display: grid; place-items: center; inline-size: 20px; block-size: 20px; border-radius: 50%; background: var(--bg-3); color: var(--fg-2); font-style: normal; font-size: var(--text-2xs); font-weight: 700; }
+.oobe-step.done i { background: var(--ok-soft); color: var(--ok); }
+.oobe-step.now > span { background: var(--accent-soft); color: var(--accent-text); font-weight: 700; }
+.oobe-step.now i { background: var(--accent); color: var(--accent-fg); }
+.oobe-col { min-width: 0; display: grid; gap: var(--sp-3); }
+.oobe-skip { margin: 0; display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; font-size: var(--text-sm); }
+@media (max-width: 900px) { .oobe-body { grid-template-columns: 1fr; } .oobe-steps { display: none; } }
+.su-req { display: grid; grid-template-columns: minmax(6rem, 1fr) minmax(0, 1.2fr) minmax(0, 1.2fr); gap: var(--sp-3); align-items: center; margin-top: var(--sp-3); }
+@media (max-width: 700px) { .su-req { grid-template-columns: 1fr; } }

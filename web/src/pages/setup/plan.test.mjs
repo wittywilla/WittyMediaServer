@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
-import { canMake, currentStep, describeOutcome, GAMES_LINE, neighbours, offerable, onAnotherMachine, pathOf, planSteps, RECOMMENDED, STEPS, stepFromPath, stepNumber, updateChoiceFrom, updateSettings } from './plan.ts'
+import { canMake, canSkip, currentStep, drawnNumber, drawnSteps, describeOutcome, GAMES_LINE, neighbours, offerable, onAnotherMachine, pathOf, planSteps, RECOMMENDED, STEPS, stepFromPath, stepNumber, updateChoiceFrom, updateSettings } from './plan.ts'
 
 const facts = (over = {}) => ({ signedIn: true, store: true, modules: [], kinds: [], ...over })
 const ids = (f) => planSteps(f).map((s) => s.id)
@@ -19,7 +19,7 @@ test('someone with no account starts at the welcome page, then makes one', () =>
 test('once there is an account, the first two steps are gone', () => {
   const list = ids(facts())
   assert.ok(!list.includes('welcome') && !list.includes('account'))
-  assert.equal(list[0], 'look')
+  assert.equal(list[0], 'name')
 })
 
 test('a module\'s step only appears when the module is on this server', () => {
@@ -86,15 +86,15 @@ test('an address picks its step, and one that can\'t be shown goes to the first'
   assert.equal(currentStep(out, 'look', false).id, 'welcome', 'nothing past the account without one')
   const inn = planSteps(facts())
   assert.equal(currentStep(inn, 'look', true).id, 'look')
-  assert.equal(currentStep(inn, 'account', true).id, 'look', 'an account is only made once')
-  assert.equal(currentStep(inn, 'games', true).id, 'look', 'a step for a module that isn\'t there')
+  assert.equal(currentStep(inn, 'account', true).id, 'name', 'an account is only made once')
+  assert.equal(currentStep(inn, 'games', true).id, 'name', 'a step for a module that isn\'t there')
 })
 
 test('Back goes to the step before, but never back to making an account', () => {
   const inn = planSteps(facts())
-  assert.equal(neighbours(inn, 'look').back, undefined)
+  assert.equal(neighbours(inn, 'name').back, undefined)
   assert.equal(neighbours(inn, 'media').back.id, 'modules')
-  assert.deepEqual(ids(facts()).slice(0, 3), ['look', 'theme', 'modules'])
+  assert.deepEqual(ids(facts()).slice(0, 4), ['name', 'look', 'theme', 'modules'])
   assert.equal(neighbours(inn, 'media').next.id, inn[inn.findIndex((s) => s.id === 'media') + 1].id)
   const out = planSteps(facts({ signedIn: false, kinds: null }))
   assert.equal(neighbours(out, 'account').back.id, 'welcome')
@@ -153,4 +153,21 @@ test('the step number doesn\'t go back to 1 after making an account', () => {
 
 test('the games line is word for word what was asked for', () => {
   assert.equal(GAMES_LINE.replace(/’/g, "'"), "Point it at your games folder and leave it. Anything it can't prove is listed for you to look at.")
+})
+
+test('there are fourteen drawn steps, and the pages of Details and artwork share one number', () => {
+  const all = facts({ signedIn: false, kinds: null, modules: ['wittyplay', 'wittydvd', 'wittytuner'] })
+  const steps = planSteps({ ...all, signedIn: true, kinds: [] })
+  assert.equal(drawnSteps(steps).length + 2, 14)
+  assert.deepEqual(drawnNumber(steps, 'details', true), { at: 8, of: 14, page: { at: 1, of: 4 } })
+  assert.deepEqual(drawnNumber(steps, 'listings', true), { at: 8, of: 14, page: { at: 4, of: 4 } })
+  assert.deepEqual(drawnNumber(steps, 'tv', true), { at: 9, of: 14 })
+  assert.deepEqual(drawnNumber(steps, 'done', true), { at: 14, of: 14 })
+})
+
+test('the name, look and theme are asked, the rest can be passed', () => {
+  const byId = Object.fromEntries(STEPS.map((s) => [s.id, s]))
+  assert.ok(!canSkip(byId.look) && !canSkip(byId.theme) && !canSkip(byId.name))
+  assert.ok(canSkip(byId.media) && canSkip(byId.people))
+  assert.ok(!canSkip(byId.done))
 })

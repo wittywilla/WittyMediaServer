@@ -2,8 +2,6 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { api } from '../../api'
-import BrandDialog from '../../components/BrandDialog'
-import { Brand } from '../../components/common'
 import { IconAudio, IconBook, IconGamepad, IconPalette, IconTv, IconUsers } from '../../icons'
 import { Button, Field, Input } from '../../ui'
 import { WhereIsTheCode } from './parts'
@@ -19,15 +17,14 @@ const FEATURES = [
   { icon: <IconPalette />, title: 'Yours', text: 'It runs on your own computer. No account with anyone, and nothing is reported back.' },
 ]
 
-export function Welcome({ serverName, colouring, logo, onName, onStart }: { serverName: string; colouring: string; logo: string; onName: (name: string, logo: File | 'remove' | null, colouring: string) => void; onStart: () => void }) {
-  const [naming, setNaming] = useState(false)
+export function Welcome({ onStart }: { onStart: () => void }) {
   const [restoring, setRestoring] = useState(false)
   // While a backup is coming back, starting something else would only get in its way.
   const [busy, setBusy] = useState(false)
   return (
     <section className="oobe-welcome">
-      <img className="oobe-welcome-logo" src={logo || '/icon.svg'} alt="" />
-      <h1>Welcome to your media server</h1>
+      <img className="oobe-welcome-logo" src="/icon.svg" alt="" />
+      <h1>Let’s set up your server</h1>
       <p className="lead">Everything you own, in one place, on every screen in your home. Setup takes a few minutes. You can skip anything you’re not sure about, and change it all later.</p>
       <div className="su-starts" data-nav-group>
         {!busy && <Button variant="primary" size="big" autoFocus onClick={onStart}>Set up a new server</Button>}
@@ -38,14 +35,6 @@ export function Welcome({ serverName, colouring, logo, onName, onStart }: { serv
       <ul className="oobe-perks" aria-label="What your server does">
         {FEATURES.map((f) => <li key={f.title}><span className="ic">{f.icon}</span><span><b>{f.title}</b> <span className="muted">{f.text}</span></span></li>)}
       </ul>
-      <div className="oobe-name">
-        <div className="oobe-name-now">
-          <span className="muted">Your server is called</span>
-          <b><Brand name={serverName.trim()} colouring={colouring} /></b>
-        </div>
-        <Button onClick={() => setNaming(true)}>Rename…</Button>
-      </div>
-      {naming && <BrandDialog name={serverName} colouring={colouring} logo={logo} onClose={() => setNaming(false)} onSave={onName} />}
     </section>
   )
 }

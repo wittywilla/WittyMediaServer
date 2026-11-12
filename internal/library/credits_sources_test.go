@@ -715,6 +715,8 @@ func TestCreditsBackfillIsBounded(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	// One film has an NFO from before credits existed.
+	writeFile(t, filepath.Join(root, "Film 01.nfo"), []byte(`<movie><title>Film 01</title><actor><name>Ana Lima</name><role>Keeper</role></actor></movie>`))
 	read := func(src string) int {
 		return countRows(t, s, `SELECT COUNT(*) FROM credits_read WHERE source = ?`, src)
 	}
@@ -726,6 +728,9 @@ func TestCreditsBackfillIsBounded(t *testing.T) {
 	}
 	if n := read(CreditsNFO); n != films {
 		t.Errorf("NFOs read for %d of %d films", n, films)
+	}
+	if n := countRows(t, s, `SELECT COUNT(*) FROM credits WHERE source = 'nfo' AND role = 'cast'`); n != 1 {
+		t.Errorf("the NFO from before gave %d cast", n)
 	}
 
 	// Stopped: nothing.
@@ -754,4 +759,32 @@ func TestCreditsBackfillIsBounded(t *testing.T) {
 	if err := s.Store.DB.QueryRow(`SELECT COUNT(DISTINCT target_id) FROM credits WHERE source = 'tmdb' AND role = 'cast'`).Scan(&withCast); err != nil || withCast != films {
 		t.Errorf("%d films have a cast: %v", withCast, err)
 	}
+}
+
+// Refresh metadata reads the NFO beside a title again, as well as its service: an NFO written
+// since the scan names its people, and one taken away takes them.
+func TestRefreshReadsTheNFOAgain(t *testing.T) {
+	s, lib, root := matchFixture(t)
+	ctx := context.Background()
+	addFile(t, root, "Harbour Lights.mkv")
+	if err := s.scan(ctx, lib.ID); err != nil {
+		t.Fatal(err)
+	}
+	nfo := filepath.Join(root, "Harbour Lights.nfo")
+	writeFile(t, nfo, []byte(`<movie><title>Harbour Lights</title><actor><name>Ana Lima</name><role>Keeper</role></actor></movie>`))
+	it := oneItem(t, s, lib.ID)
+	if _, err := s.RefreshTitle(ctx, title(t, s, TargetItem, it.ID), nil, "owner"); err != nil {
+		t.Fatal(err)
+	}
+	c, _ := s.Store.ItemCredits(ctx, oneItem(t, s, lib.ID))
+	sameView(t, "cast after a refresh", view(c.Cast), []creditView{{"Ana Lima", "Keeper", "", "nfo"}})
+	sameView(t, "directing after a refresh", crewOf(c, "directing"), []creditView{{"Dee Rector", "", "Director", "tmdb"}})
+	if err := os.Remove(nfo); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.RefreshTitle(ctx, title(t, s, TargetItem, it.ID), nil, "owner"); err != nil {
+		t.Fatal(err)
+	}
+	c, _ = s.Store.ItemCredits(ctx, oneItem(t, s, lib.ID))
+	sameView(t, "cast once the NFO is gone", view(c.Cast), []creditView{})
 }

@@ -645,7 +645,7 @@ func (rv *sduiResolver) Items(req sdui.SourceRequest) (sdui.SourceResult, error)
 		if lib == nil {
 			return sdui.SourceResult{}, nil
 		}
-		albums, err := s.Store.AlbumsFiltered(rv.ctx, lib.ID, library.AlbumFilter{Sort: firstNonEmpty(src.Str("sort"), "added"), Artist: src.Str("artist"), Genre: src.Str("genre"), UserID: rv.u.ID, Limit: req.Offset + req.Limit + 1}, rv.acc)
+		albums, err := s.Store.AlbumsFiltered(rv.ctx, lib.ID, library.AlbumFilter{Sort: firstNonEmpty(src.Str("sort"), "added"), Artist: src.Str("artist"), Genre: src.Str("genre"), UserID: rv.u.ID, PlayedOnly: true, Limit: req.Offset + req.Limit + 1}, rv.acc)
 		if err != nil {
 			return sdui.SourceResult{}, err
 		}

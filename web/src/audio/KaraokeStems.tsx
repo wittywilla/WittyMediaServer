@@ -114,7 +114,7 @@ function Level({ label, value, onChange, big }: { label: string; value: number; 
 
 // The voice slider, Sing, and More. Only drawn while the parts are what's playing.
 export function KaraokeStemsControl({ k }: { k: KaraokeStemsState }) {
-  const [more, setMore] = useState(false)
+  const [more, setMore] = useState(true)
   const a = k.answer
   if (!k.active || !playable(a)) return null
   const v = k.sing ? 0 : levelOf(a, k.levels, 'vocals')

@@ -349,3 +349,13 @@ button.np-artist:hover { color: var(--np-fg); text-decoration: underline; text-u
 }
 .np-video { margin-top: 10px; min-height: 40px; font-size: var(--text-sm); }
 .np-video:focus-visible { outline: 3px solid var(--np-white); outline-offset: 2px; }
+
+/* Behind the words and the Follow along / Read choice (karaoke and lyrics) */
+.kar-art { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: .22; }
+.kar-bg ~ .np-canvas, .kar-bg ~ .np-shader, .kar-bg ~ .np-loop { position: absolute; inset: 0; z-index: 0; }
+.kar-choice { position: relative; z-index: 1; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; padding: 8px clamp(16px, 3vw, 40px) 0; }
+.kar-choice-l { font-size: var(--text-sm); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--np-fg-2); }
+.kar-top .seg { margin-right: 4px; }
+.kar-read { margin: 0; max-width: min(900px, 100%); max-height: 100%; overflow-y: auto; font: inherit; font-size: clamp(1.15rem, 2.8vh, 2rem); font-weight: 600; line-height: 1.5; white-space: pre-wrap; text-align: left; color: var(--np-fg); }
+.np-modes { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 0 18px 8px; }
+.np-note-inline { font-size: var(--text-sm); color: var(--np-fg-2); }

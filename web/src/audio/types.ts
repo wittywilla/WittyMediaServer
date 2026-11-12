@@ -28,7 +28,7 @@ export type PlayerView = {
   cdActive: boolean
   vizHere: boolean
   full: boolean
-  fullOpts: { visualizer?: boolean; panel?: 'lyrics' | 'queue' }
+  fullOpts: { visualizer?: boolean; panel?: 'lyrics' | 'queue' | 'karaoke' }
   collapsed: boolean
   albumUrl: string
   artistUrl: string
@@ -52,7 +52,7 @@ export type PlayerView = {
   setSleepAt: (v: number | 'chapter' | null) => void
   setSound: (patch: Partial<SoundSettings>) => void
   toggleLike: (id: number) => void
-  openFull: (opts?: { visualizer?: boolean; panel?: 'lyrics' | 'queue' }) => void
+  openFull: (opts?: { visualizer?: boolean; panel?: 'lyrics' | 'queue' | 'karaoke' }) => void
   closeFull: () => void
   setCollapsed: (v: boolean) => void
   goTowards: (url: string) => void

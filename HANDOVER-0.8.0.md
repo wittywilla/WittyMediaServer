@@ -55,24 +55,31 @@ server and the web client; the Apple and Android apps draw it from the same cont
 - **Web**: `CreditsView` (cast and guest rows of round portraits, initials when there is no picture, crew in
   columns of departments, Show all), the person page, catalogue 3; TV mode styles.
 
-### Known issues / not verified
-- Seen on a scratch server against the owner's test media (saveMetadata off): a film's cast and crew from its
-  movie.nfo, a show's from TVmaze with photos, a person page. No TMDB key there, so no biographies were seen;
-  TMDB, TheTVDB and TVmaze parsing is verified against hand-written JSON fixtures only
-  (`internal/library/credits_sources_test.go`).
-- `RefreshShow` and the scan-time TheTVDB/TVmaze show lookups are not tested end to end (the scanner has no
-  base-address hook for those two services); their parsing and storage are.
-- File tags (`©dir` in MP4) are unit-tested only: the tests have no ffprobe.
-- TVmaze gives no per-episode guest stars (one request per episode); TMDB and TheTVDB do.
-- A film's or episode's NFO edited without the media file changing is read on Refresh metadata only (as every
-  NFO field already was); show NFOs are read every scan.
-- Apple and Android fail the six new fixtures until they draw `Credits` (S3/S4, W3/W4). The web's conformance
-  test also fails on upstream's `peek` (Design 2, W2's work), not on credits.
-- The design lead's canvas draws the crew as "Role · Name" chips and a separate "Cast and crew by department"
-  page; the server sends the crew as person cards grouped by department in one `Credits` node with Show all.
-  If the canvas's separate page is wanted, it needs a route and page of its own (not built).
-- Fixed on the way: a film folder with an NFO this server wrote earlier (no people) beside a media centre's
-  movie.nfo now takes the people from movie.nfo; the title header's poster no longer hides under its placeholder.
+### Seen and verified
+Seen on a scratch server against the owner's test media (saveMetadata off, nothing written to the drive): a film's
+cast and crew from its movie.nfo, a show's from TVmaze with photos, a person page. Fixed on the way: a film folder
+with an NFO this server wrote earlier (no people) beside a media centre's movie.nfo now takes the people from
+movie.nfo; the title header's poster no longer hides under its placeholder; a person only a TV guide names (S6's
+programme credits) gets a card with no page instead of `/person/0`.
+
+### Issue candidates (for the owner to approve; nothing filed)
+1. **Credits from TMDB and TheTVDB not seen against the live services** (WittyMediaServer). Parsing and storage are
+   tested against hand-written answers only; no key was set on the test server, so no biographies or online credits
+   were seen running. Look in `internal/library/credits_online.go`, `people_details.go`, `credits_sources_test.go`.
+   Check: set a TMDB key, refresh a film, open a person.
+2. **Show refresh and scan-time TheTVDB/TVmaze lookups untested end to end** (WittyMediaServer). The scanner has no
+   base-address hook for TheTVDB or TVmaze, so `RefreshShow` and the scan's show lookup are only tested for their
+   parsing. Look in `internal/library/tvscan.go`, `tvdb.go`, `tvmaze.go`.
+3. **People from MP4 and Matroska tags unverified with real ffprobe** (WittyMediaServer). The mapping (DIRECTOR,
+   WRITTEN_BY, ©dir...) is unit-tested; whether ffprobe hands MP4's `©dir` over at all is unknown. Look in
+   `internal/library/credits_local.go` (`tagCredits`).
+4. **No per-episode guest stars from TVmaze** (WittyMediaServer). It would take one request per episode; TMDB and
+   TheTVDB give them. Look in `internal/library/tvmaze.go`.
+5. **An edited film or episode NFO is read again only on Refresh metadata** (WittyMediaServer). As every NFO field
+   already was; show NFOs are read every scan. Look in `internal/library/scan.go` (`filmNFOPeople`, `filmNFOs`).
+6. **Apple and Android draw `Credits`** (WittyMediaClient). They fail the six credits conformance fixtures
+   (`detail-film-credits`, `detail-show-season`, `detail-episode-tv`, `detail-person*`) until they do; rules in
+   docs/SDUI.md "Cast and crew". A person card with no action (guide-only people) opens nothing.
 
 ### Design 2 (W1), second round
 
@@ -89,13 +96,17 @@ Not done or not verified:
 
 ## Session 6: WittyTV More info
 
-Landed: `GET /api/v1/tv/{key}/programme?start=<unix>` (feature `tv-programme-info`) backs the Design 2 More info screen (`Exp.dc.html` `tvinfo`). It answers `channel`, `programme` (the facts line: rating, year, SxEy, length, genres, scores, CC/AD/audio/HD, languages, country, studio), `actions` (watch, record, remind/reminded, fromStart, watchLater/inList, open), `library` (item or show the profile may see), `credits` (S12's `library.Credits`: the library's, else the guide's XMLTV credits with `source: "guide"` and no person id), `trailers` (the library item's extras), `schedule` (other airings in 14 days on channels the profile may watch) and `ids` (imdb, tmdb). The XMLTV reader keeps credits, star ratings, languages, subtitles, sound, picture, new/repeat and ids (WittyTV migration 8, `epg_programmes.extra`, bounded; programme pictures are not kept). The SDUI `credits` source takes `programme: "<key>@<start>"`. Docs: CLIENT-API "More info", CHANNELS "For developers".
+Landed: `GET /api/v1/tv/{key}/programme?start=<unix>` (feature `tv-programme-info`) backs the Design 2 More info screen (`Exp.dc.html` `tvinfo`). It answers `channel`, `programme` (the facts line: rating, year, SxEy, length, genres, scores, CC/AD/audio/HD, languages, country, studio), `actions` (watch, record, remind/reminded, fromStart, watchLater/inList, open), `library` (item or show the profile may see), `credits` (S12's `library.Credits`: the library's, else the guide's XMLTV credits with `source: "guide"` and no person id), `trailers` (the library item's extras), `schedule` (other airings in 14 days on channels the profile may watch) and `ids` (imdb, tmdb). The XMLTV reader keeps credits, star ratings, languages, subtitles, sound, picture, new/repeat and ids (WittyTV migration 8, `epg_programmes.extra`, bounded; programme pictures are not kept). The SDUI `credits` source takes `programme: "<key>@<start>"`. Recordings (`GET`/`POST /recordings`) carry `channelKey` and `programme`, and SDUI `recordings` cards `channel` and `programme` (feature `tv-recording-refs`), only where the profile may watch that channel. Merged at ce29d9f8. Docs: CLIENT-API "More info", CHANNELS "For developers". Server tests: XMLTV details and bounds, `ProgrammeAt`/`Airings`, the route (guide-only, library match, refusals), the credits source, recording refs.
 
-Not done or not verified:
-- Clients (W2–W4) haven't wired the screen to it yet.
-- Where to watch: the route gives `ids`; streaming providers come from the existing `GET /discover/where-to-watch?tmdb=&type=`, which the app calls itself. The guide's ids are only there when the XMLTV source gives them.
-- Library titles are matched by name (shows) or name and year (films); a guide title spelt differently from the library's falls back to the guide's own data.
-- No SDUI page or conformance fixture uses the `programme` parameter yet: the More info screen has no catalogue page (W1's call).
+Release gate status (WittyTV guide and More info): the server side is done and tested. The screens are the client agents' (W6 reported Apple More info from the guide, the channel dock, the mini guide and recordings); S6 has not seen them running.
+
+Issue candidates (not filed; for the owner to approve):
+- More info "Advisory" line in the More section has no data source; critics' scores appear only when the guide or library gives one.
+- Library matching is by title (shows) and title plus year (films): a guide title spelt differently from the library's falls back to the guide's own data. A match on the guide's IMDb/TMDB ids against the library's would be firmer.
+- Where to watch on More info relies on the guide giving a TMDB id; guides without ids show only "On this server".
+- No SDUI catalogue page or conformance fixture uses the `credits` source's `programme` parameter (revision 8 is final; the screens are native).
+- More info for a recording older than the guide's kept past (about a month) answers 404.
+- The guide grid itself was last profiled on Apple TV and Android TV before Design 2's Dock redesign; a fresh pass at 10,000 channels on each TV client is worth doing.
 
 ## W13 (web design finish)
 

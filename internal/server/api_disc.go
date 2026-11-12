@@ -104,6 +104,13 @@ func (s *Server) handleDisc(w http.ResponseWriter, r *http.Request) {
 				listed[c.TTN] = true
 			}
 		}
+		// Another cut of the film is under the page's other versions, not a bonus feature.
+		// (The film itself, chosen or ranked, is the page's main title, never an extra.)
+		for _, v := range rk.Versions {
+			if v.Kind != "angle" {
+				delete(listed, v.TTN)
+			}
+		}
 		if main != nil {
 			if f := it.Disc.FeaturePlays(main.Number); f != nil {
 				for _, n := range f.Titles {
@@ -324,6 +331,17 @@ var (
 	errNoPicture = errors.New("no picture in this title")
 	errNoTitle   = errors.New("no such title or chapter")
 )
+
+// isVersion says a title is a cut of the film in the kept ranking: the one that plays is the
+// page's main title, the others its versions, and none of them an extra.
+func isVersion(rk *library.DiscRank, ttn int) bool {
+	for _, v := range rk.Versions {
+		if v.TTN == ttn && v.Kind != "angle" {
+			return true
+		}
+	}
+	return false
+}
 
 // rankOf is the kept ranking of an item's disc, or nil.
 func rankOf(it *library.Item) *library.DiscRank {

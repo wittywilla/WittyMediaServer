@@ -746,6 +746,7 @@ h3.section-title { font-size: var(--text-lg); margin-top: var(--sp-6); }
 .menu-tile:hover { background: var(--bg-4); }
 .disc-why { margin-top: var(--sp-4); background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-3) var(--sp-4); }
 .disc-why p { margin: var(--sp-2) 0; }
+.disc-why > .section-title:first-child { margin-top: 0; }
 .disc-why .why-level.high { border-color: var(--accent); color: var(--fg); }
 .disc-why .why-level.low { border-style: dashed; }
 .disc-why-more summary { cursor: pointer; color: var(--fg-2); font-weight: 600; }

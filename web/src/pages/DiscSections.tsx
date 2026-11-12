@@ -99,7 +99,7 @@ export default function DiscSections({ item, admin, playable }: { item: Item; ad
         </section>
       )}
 
-      {analysis?.rank && <DiscChoices item={item} rank={analysis.rank} playable={playable} unit={unit} />}
+      {analysis?.rank && <DiscChoices item={item} rank={analysis.rank} main={analysis.main} playable={playable} unit={unit} />}
 
       {view.extras.length > 0 && (
         <section aria-labelledby="extras-h">
@@ -113,7 +113,7 @@ export default function DiscSections({ item, admin, playable }: { item: Item; ad
                 </button>
                 {editing
                   ? <input className="input sm" value={labels.titles[t.ttn] || ''} placeholder={`Bonus feature ${i + 1}`} onChange={(e) => setTitle(t.ttn, e.target.value)} aria-label={`Name of title ${t.ttn}`} />
-                  : <div className="scene-name">{titleName(t, `Bonus feature ${i + 1}`)}<span className="muted"> · title {t.ttn}</span></div>}
+                  : <div className="scene-name">{titleName(t, `Bonus feature ${i + 1}`)}<span className="muted"> · {unit.toLowerCase()} {t.ttn}</span></div>}
               </div>
             ))}
           </div>

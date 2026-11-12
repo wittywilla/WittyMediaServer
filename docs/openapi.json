@@ -2499,6 +2499,9 @@
               }
             ]
           },
+          "rankError": {
+            "type": "string"
+          },
           "ranked": {
             "type": "boolean"
           },

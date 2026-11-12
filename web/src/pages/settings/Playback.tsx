@@ -128,8 +128,16 @@ function SecondOpinionRow({ s, set, dirty }: { s: Record<string, string>; set: (
   useEffect(() => { if (!dirty) api.get<typeof cap>('/bluray/capabilities').then(setCap).catch(() => setCap(null)) }, [dirty])
   const lb = cap?.libbluray
   return (
-    <Row label="Ask libbluray for a second opinion" desc={<>On a Blu-ray’s page, an admin can have a libbluray installed on this server compare its reading of the disc with WittyBluray’s pick of the film (<HelpLink to="bluray#a-second-opinion-from-libbluray">more about this</HelpLink>). It isn’t included, nothing is decrypted, and encrypted discs are never handed to it.{cap && <><br />{lb?.available ? `libbluray ${lb.version || ''} found${cap.libblurayPath ? `: ${cap.libblurayPath}` : ''}` : `No libbluray to ask: ${lb?.reason || 'none was found on this server'}`}</>}</>}>
-      <Switch label="Ask libbluray for a second opinion" checked={s.blurayLibbluray === '1'} onChange={(v) => set('blurayLibbluray', v ? '1' : '0')} />
+    <Row label="Ask libbluray for a second opinion" desc={<>On a Blu-ray’s page, an admin can have a libbluray installed on this server compare its reading of the disc with WittyBluray’s pick of the film (<HelpLink to="bluray#a-second-opinion-from-libbluray">more about this</HelpLink>). It isn’t included, nothing is decrypted, and encrypted discs are never handed to it.{cap && <><br />{lb?.available ? `libbluray ${lb.version || ''} found${cap.libblurayPath ? `: ${cap.libblurayPath}` : ''}` : `No libbluray to ask: ${shortReason(lb?.reason)}.`}</>}</>}>
+      <Switch label="Ask libbluray for a second opinion" checked={s.blurayLibbluray === '1'} onChange={(v) => set('blurayLibbluray', v ? '1' : '0')}
+        disabled={!!cap && !lb?.available && s.blurayLibbluray !== '1'} />
     </Row>
   )
+}
+
+// shortReason is the first clause of why no libbluray can be asked: the list of every file
+// name tried is for the server's log, not for Settings.
+function shortReason(reason?: string): string {
+  const r = (reason || 'none was found on this server').split(' (')[0].replace(/[.\s]+$/, '')
+  return r.length > 160 ? r.slice(0, 157) + '…' : r
 }

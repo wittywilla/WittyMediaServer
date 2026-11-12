@@ -14,7 +14,24 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/wittywilla/wittymediaserver/internal/brandart/fonts"
 )
+
+func TestMain(m *testing.M) {
+	if err := UseFonts(fonts.InterBold, fonts.InterRegular); err != nil {
+		panic(err)
+	}
+	os.Exit(m.Run())
+}
+
+// Inter's own GPOS kerning is applied: "Wo" sits closer than its plain advances, as in a browser.
+func TestInterKerning(t *testing.T) {
+	plain := TextWidth([]Run{{"W", Colour{}}}, 100, false) + TextWidth([]Run{{"o", Colour{}}}, 100, false)
+	if pair := TextWidth([]Run{{"Wo", Colour{}}}, 100, false); pair >= plain-0.5 {
+		t.Errorf("no kerning between W and o: %.2f vs %.2f", pair, plain)
+	}
+}
 
 // The web client's icons in the repository are what the generator draws now.
 func TestCommittedWebIconsAreCurrent(t *testing.T) {
@@ -72,6 +89,9 @@ func TestEveryTargetInEveryConcept(t *testing.T) {
 			targets = []string{"server", "player", "website"}
 		}
 		for _, target := range targets {
+			if target == "kit" {
+				continue // the same drawings as the other targets; docs/brand is checked by -check
+			}
 			files, err := k.Build(target, modules)
 			if err != nil {
 				t.Fatalf("%s %s: %v", c, target, err)

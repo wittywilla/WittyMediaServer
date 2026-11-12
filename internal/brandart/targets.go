@@ -25,7 +25,7 @@ func (f Files) Paths() []string {
 }
 
 // Targets is every target genicon knows: one per repository, and the server's packaging set.
-var Targets = []string{"server", "server-package", "client", "player", "reader", "catalog", "website"}
+var Targets = []string{"server", "server-package", "client", "player", "reader", "catalog", "website", "kit"}
 
 // Build makes a target's files. modules is the catalogue's id → category, for "catalog".
 func (k Kit) Build(target string, modules map[string]string) (Files, error) {
@@ -59,6 +59,8 @@ func (k Kit) Build(target string, modules map[string]string) (Files, error) {
 			}
 			f["icons/"+id+".png"] = encodePNG(img)
 		}
+	case "kit":
+		return k.BuildKit(modules), nil
 	case "website":
 		k.webIcons(f, Server, "images/brand/")
 		f["images/brand/social.png"] = k.Social(Server, 1200, 630, "Your films, shows, music, books and games, served from home.").PNG(1200, 630)

@@ -4,6 +4,10 @@
    from. docs/DESIGN.md explains the rules and how to add a page. Themes set the
    colour variables below; everything else is worked out from them, so a theme
    that only sets colours still gets every state right. */
+/* Inter 4.1 (SIL Open Font License, fonts/Inter-OFL.txt), served from here so every screen
+   shows the same letters as the brand pictures (docs/BRAND.md) whatever fonts it has. */
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 100 900; font-display: swap; src: url("/fonts/InterVariable.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: italic; font-weight: 100 900; font-display: swap; src: url("/fonts/InterVariable-Italic.woff2") format("woff2"); }
 :root {
   /* ---- colour: set by themes (docs/THEMES.md) ---- */
   --bg: #0f1115;
@@ -216,7 +220,7 @@ input[type=range] { accent-color: var(--accent); }
 .sidebar .brand .nav-text { min-width: 0; overflow-wrap: anywhere; }
 .sidebar .brand img { flex: none; }
 .sidebar .brand .brand-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; white-space: normal; overflow-wrap: anywhere; line-height: var(--leading-tight); }
-.brand { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 var(--sp-2); margin-bottom: var(--sp-3); font-weight: 700; font-size: var(--text-lg); letter-spacing: var(--tracking-heading); }
+.brand { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 var(--sp-2); margin-bottom: var(--sp-3); font-weight: 700; font-size: var(--text-lg); letter-spacing: var(--tracking-heading); font-optical-sizing: none; }
 .brand img { width: 28px; height: 28px; }
 .brand span { color: var(--fg); }
 .brand span b { color: var(--brand-accent); font-weight: 700; }

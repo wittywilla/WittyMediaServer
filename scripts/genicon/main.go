@@ -8,7 +8,8 @@
 //
 //	go run ./scripts/genicon -target <name> -o <repository> [-concept wink|monogram|signal] [-check]
 //	    writes one repository's set: server, server-package, client, player, reader, catalog,
-//	    website. -check changes nothing and fails if any file differs.
+//	    website; or kit, every form of every logo into docs/brand/<concept> (with -catalog for the
+//	    module icons). -check changes nothing and fails if any file differs.
 //	go run ./scripts/genicon -sheet <out.png> [-concept ...]
 //	    the comparison sheet of the three concepts (the -concept one marked as chosen)
 //	go run ./scripts/genicon out.png [size] | out.ico | -bitmaps <folder>
@@ -29,9 +30,11 @@ import (
 	"strings"
 
 	"github.com/wittywilla/wittymediaserver/internal/brandart"
+	"github.com/wittywilla/wittymediaserver/internal/brandart/fonts"
 )
 
 func main() {
+	check(brandart.UseFonts(fonts.InterBold, fonts.InterRegular))
 	// The older forms: genicon out.png [size], genicon out.ico, genicon -bitmaps <folder>.
 	if len(os.Args) >= 2 && !strings.HasPrefix(os.Args[1], "-") {
 		legacy(os.Args[1:])
@@ -50,6 +53,7 @@ func main() {
 	target := flag.String("target", "", "the set to write: "+strings.Join(brandart.Targets, ", "))
 	out := flag.String("o", ".", "the repository (or, for server-package, the folder) to write into")
 	checkOnly := flag.Bool("check", false, "change nothing; fail if a file differs from what would be written")
+	catalog := flag.String("catalog", filepath.Join("..", "WittyModuleCatalog", "catalog.json"), "for -target kit: the module catalogue whose icons to include")
 	sheet := flag.String("sheet", "", "write the comparison sheet of the three concepts to this PNG")
 	flag.Parse()
 
@@ -69,9 +73,13 @@ func main() {
 	}
 
 	var modules map[string]string
-	if *target == "catalog" {
+	switch *target {
+	case "catalog":
 		modules, err = catalogModules(filepath.Join(*out, "catalog.json"))
 		check(err)
+	case "kit":
+		// The module icons come too when WittyModuleCatalog is beside this repository.
+		modules, _ = catalogModules(*catalog)
 	}
 	files, err := kit.Build(*target, modules)
 	check(err)

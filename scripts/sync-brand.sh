@@ -10,6 +10,7 @@
 #   scripts/sync-brand.sh --check    change nothing; fail if any is out of date
 #
 # WITTY_SERVER is the WittyMediaServer checkout (default: beside this repository).
+# WITTY_CATALOG is WittyModuleCatalog's catalog.json, for the module icons in docs/brand (default: beside).
 # WITTY_BRAND_CONCEPT picks another design than the one in use (genicon -help lists them).
 set -eu
 here=$(cd "$(dirname "$0")/.." && pwd)
@@ -22,3 +23,5 @@ if [ ! -f "$server/scripts/genicon/main.go" ]; then
 fi
 cd "$server"
 go run ./scripts/genicon -target server -o "$here" ${WITTY_BRAND_CONCEPT:+-concept "$WITTY_BRAND_CONCEPT"} $check
+# Every form of every logo, for docs/brand (with the module icons when WittyModuleCatalog is beside this one).
+go run ./scripts/genicon -target kit -o "$here" -catalog "${WITTY_CATALOG:-$here/../WittyModuleCatalog/catalog.json}" ${WITTY_BRAND_CONCEPT:+-concept "$WITTY_BRAND_CONCEPT"} $check

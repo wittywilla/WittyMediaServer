@@ -39,7 +39,7 @@ What a package holds, and the name of everything in it, is in one place: `intern
 | `bump-server.sh` | Raises the server's version everywhere it's written. A bump isn't a release |
 | `dev-modules.mjs` | Run once in each checkout: makes `go.work` and links the module repositories beside it. See [docs/REPOSITORIES.md](../docs/REPOSITORIES.md) |
 | `genicon/` | Draws every logo, icon and background of the family (apps, installers, modules, website), from `internal/brandart`. See [docs/BRAND.md](../docs/BRAND.md) |
-| `sync-brand.sh` | Brings `web/public`'s icons up to date with genicon (`--check` only checks) |
+| `sync-brand.sh` | Brings `web/public`'s icons and `docs/brand` up to date with genicon (`--check` only checks) |
 | `pack/` | Writes `.zip` and `.tar.gz` with the right permissions from any system |
 
 ## Signing

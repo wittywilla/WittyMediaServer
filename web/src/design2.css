@@ -236,3 +236,8 @@ html[data-card-set="list"] .sdui-row-text b { text-transform: uppercase; letter-
   .app.nav-rail:has(.sidebar.keep-open) ~ .audio-bar { left: calc(50% + var(--rail-open, 240px) / 2); width: min(1320px, calc(100% - var(--rail-open, 240px) - 48px)); }
 }
 body:has(.audio-bar:not(.full)) .player.mini { inset-block-end: 108px; }
+
+/* Search is last before You, so a bar this wide wraps on a narrow window rather than running off it; the music bar never
+   covers the foot of a WittyTV page or its Dock. */
+@media (max-width: 700px) { .tvm-tabs { flex-wrap: wrap; } .tvm-you { margin-left: 0; } }
+body:has(.audio-bar:not(.full)) .ctv-page, body:has(.audio-bar:not(.full)) .tvm-main { padding-bottom: calc(var(--dock-space, 0px) + var(--space-m)); }

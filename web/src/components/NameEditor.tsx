@@ -25,10 +25,12 @@ export function renameDraft(d: BrandDraft, name: string): BrandDraft {
   return { ...d, name, cells }
 }
 
+// The letters as runs without a space, so a row wraps between words and never inside one (a space ends its run).
+const wordsOf = (letters: string[]): number[][] => { const out: number[][] = []; let cur: number[] = []; letters.forEach((l, i) => { cur.push(i); if (/\s/u.test(l)) { out.push(cur); cur = [] } }); if (cur.length) out.push(cur); return out }
 const range = (a: number, b: number) => Array.from({ length: Math.abs(b - a) + 1 }, (_, i) => Math.min(a, b) + i)
 const hexOf = (c: BrandColor | undefined) => (c?.kind === 'static' ? c.hex || '' : '')
 
-export function NameEditor({ draft, onChange, logoUrl, onLogoError }: { draft: BrandDraft; onChange: (d: BrandDraft) => void; logoUrl: string; onLogoError?: (msg: string) => void }) {
+export function NameEditor({ draft, onChange, logoUrl, onLogoError, onCheck }: { draft: BrandDraft; onChange: (d: BrandDraft) => void; logoUrl: string; onLogoError?: (msg: string) => void; onCheck?: (readable: boolean) => void }) {
   const shown = draft.name.trim() || DEFAULT_NAME
   const letters = useMemo(() => Array.from(shown), [shown])
   const cells = draft.cells.length === letters.length ? draft.cells : Array.from({ length: letters.length }, (_, i) => draft.cells[i] || PRESETS[0].cells(shown)[i])
@@ -84,6 +86,8 @@ export function NameEditor({ draft, onChange, logoUrl, onLogoError }: { draft: B
     return nameWarnings(parts, [{ name: 'the side menu', colour: css('--bg-2') }, { name: 'the top bar', colour: css('--bg') }], resolve)
   }, [parts, tick]) // eslint-disable-line react-hooks/exhaustive-deps
   const tooMany = spanCount(cells) > MAX_SPANS
+  const readable = warnings.length === 0 && !tooMany
+  useEffect(() => { onCheck?.(readable) }, [readable]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const markText = markShown(shown, draft.mark)
   const mst = draft.mark.kind === 'image' ? undefined : markStyle(parts)
@@ -119,12 +123,14 @@ export function NameEditor({ draft, onChange, logoUrl, onLogoError }: { draft: B
 
         <div className="ne-lab" id="ne-letters">Choose letters or words to colour</div>
         <div ref={chips} className="ne-chips" role="group" aria-labelledby="ne-letters" aria-describedby="ne-letters-help" onKeyDown={onKey}>
-          {letters.map((l, i) => {
-            const on = sel.includes(i)
-            return <button key={i} type="button" className={'ne-chip' + (on ? ' on' : '')} aria-pressed={on} tabIndex={i === focus ? 0 : -1} aria-label={/\s/u.test(l) ? 'space' : l}
-              style={partChipStyle(cells[i])}
-              onFocus={() => setFocus(i)} onClick={(e) => { if (e.shiftKey) setFocus(i); else { setAnchor(i); setFocus(i) } }}>{/\s/u.test(l) ? ' ' : l}</button>
-          })}
+          {wordsOf(letters).map((g, gi) => (
+            <span key={gi} className="ne-group">{g.map((i) => {
+              const l = letters[i], on = sel.includes(i)
+              return <button key={i} type="button" className={'ne-chip' + (on ? ' on' : '')} aria-pressed={on} tabIndex={i === focus ? 0 : -1} aria-label={/\s/u.test(l) ? 'space' : l}
+                style={partChipStyle(cells[i])}
+                onFocus={() => setFocus(i)} onClick={(e) => { if (e.shiftKey) setFocus(i); else { setAnchor(i); setFocus(i) } }}>{/\s/u.test(l) ? '\u00a0' : l}</button>
+            })}</span>
+          ))}
         </div>
         <div className="ne-hint" id="ne-letters-help">Arrows move, Shift and the arrows select a range, Space selects the letter. {words.length > 1 && <>Words: {words.map(([a, b], k) => <span key={a}>{k > 0 && ' · '}<button type="button" className="ne-word" onClick={() => selectWord([a, b])}>{letters.slice(a, b).join('')}</button></span>)}.</>}</div>
 
@@ -158,6 +164,11 @@ export function NameEditor({ draft, onChange, logoUrl, onLogoError }: { draft: B
           </div>
         )}
 
+        {tooMany && <div className="ne-note bad" role="alert"><b>Too many colour changes.</b> A name can have {MAX_SPANS} runs of colour; this one has {spanCount(cells)}. Use fewer colours, or a gradient.</div>}
+        {warnings.length > 0 && !tooMany && (
+          <div className="ne-note" role="status"><b>Check:</b> {warnings.slice(0, 2).map((w, i) => <span key={i}>{i > 0 && ' '}“{w.text}” is {w.ratio} to 1 on {w.surface}.</span>)} Words should be at least 4.5 to 1. Use a lighter colour or follow the theme.</div>
+        )}
+
         <div className="ne-lab">Presets</div>
         <div className="ne-row wrap" role="group" aria-label="Presets">
           {PRESETS.map((p) => {
@@ -184,10 +195,6 @@ export function NameEditor({ draft, onChange, logoUrl, onLogoError }: { draft: B
         </div>
         <p className="ne-hint">The mark is always centred in a square badge. A logo is a PNG or JPEG up to 2 MB, shown fitted inside the badge, and falls back to the letter on a server it can’t load from. It follows the name’s colours unless you choose fixed ones.</p>
 
-        {tooMany && <div className="ne-note bad" role="alert"><b>Too many colour changes.</b> A name can have {MAX_SPANS} runs of colour; this one has {spanCount(cells)}. Use fewer colours, or a gradient.</div>}
-        {warnings.length > 0 && !tooMany && (
-          <div className="ne-note" role="status"><b>Check:</b> {warnings.slice(0, 2).map((w, i) => <span key={i}>{i > 0 && ' '}“{w.text}” is {w.ratio} to 1 on {w.surface}.</span>)} Words should be at least 4.5 to 1. Use a lighter colour or follow the theme.</div>
-        )}
       </div>
 
       <div className="ne-preview" ref={frame} aria-label="Preview">

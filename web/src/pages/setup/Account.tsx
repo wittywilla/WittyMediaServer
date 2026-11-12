@@ -23,6 +23,8 @@ function problemsWith(name: string, pw: string, pw2: string, needCode: boolean, 
 
 export function Account({ back, onDone }: { back: () => void; onDone: (u: User, token: string) => void }) {
   const [name, setName] = useState('')
+  // What people at home call this profile: optional, and the sign-in name when empty.
+  const [shown, setShown] = useState('')
   const [pw, setPw] = useState('')
   const [pw2, setPw2] = useState('')
   const [show, setShow] = useState(false)
@@ -52,6 +54,7 @@ export function Account({ back, onDone }: { back: () => void; onDone: (u: User, 
     setBusy(true)
     try {
       const r = await api.post<{ token: string; user: User }>('/setup', { name: name.trim(), password: pw, setupCode: code.trim(), acknowledgedLegal: ack, device: navigator.userAgent.slice(0, 80) })
+      if (shown.trim()) { setToken(r.token); await api.put(`/users/${r.user.id}/profile`, { displayName: shown.trim() }).catch(() => { /* it can be set in Settings, Profiles */ }) }
       if (two) { setToken(r.token); setMade({ user: r.user, token: r.token }); setBusy(false) } else onDone(r.user, r.token)
     } catch (e: any) { setErr(e.message); setBusy(false) }
   }
@@ -61,6 +64,7 @@ export function Account({ back, onDone }: { back: () => void; onDone: (u: User, 
       <StepHead title="Create your account" lead="This account looks after the server: its libraries, people and settings. You can add a profile for everyone else later." />
       <div className="oobe-form su-form">
         <Field label="Name to sign in with" error={problems.name}><Input autoFocus value={name} onChange={(e) => setName(e.target.value)} autoComplete="username" autoCapitalize="off" spellCheck={false} /></Field>
+        <Field label="Name people see" hint="Optional. What this profile is called around the app; the name above is only for signing in."><Input value={shown} onChange={(e) => setShown(e.target.value)} maxLength={40} autoComplete="nickname" /></Field>
         <Field label="Password" hint={<span className={'oobe-strength l' + level}><i /><i /><i /><span>{['At least 8 characters', '', 'Good', 'Strong'][level]}</span></span>} error={problems.pw}>
           <Input type={show ? 'text' : 'password'} value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="new-password" />
         </Field>

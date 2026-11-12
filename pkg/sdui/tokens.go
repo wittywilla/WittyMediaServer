@@ -109,6 +109,7 @@ var shapeTokens = []EnumOption{
 
 // typeRoles: the layout.text roles.
 var typeRoles = map[string]TypeRole{
+	"display":   {"display", "heading"}, // revision 3: a spotlight's title; the old pageTitle size where a device has no bigger one
 	"pageTitle": {"display", "heading"},
 	"heading":   {"display", "heading"},
 	"title":     {"body", "strong"},
@@ -146,7 +147,7 @@ var componentTokens = map[string]TokenRoles{
 		Type: map[string]string{"title": "pageTitle"}},
 	"Hero": {Colors: join(overImage, focusRing, map[string]string{"background": "bg", "surface": "bg3", "text": "onImage", "secondaryText": "onImage",
 		"accent": "accent", "onAccent": "accentFg", "accentHover": "accentHover", "outline": "onImage", "badge": "scrim", "badgeText": "onImage"}),
-		Type:  map[string]string{"title": "pageTitle", "facts": "caption", "synopsis": "body", "button": "body", "badge": "badge"},
+		Type:  map[string]string{"title": "display", "facts": "caption", "synopsis": "body", "button": "body", "badge": "badge"},
 		Shape: join(focusShape, map[string]string{"corner": "image", "button": "button", "badge": "badge", "pageDots": "pill"})},
 	"Shelf": {Colors: join(focusRing, map[string]string{"text": "fg", "secondaryText": "fg2", "link": "accentText", "surface": "bg3"}),
 		Type:  map[string]string{"title": "heading", "subtitle": "caption", "seeAll": "body"},
@@ -165,6 +166,12 @@ var componentTokens = map[string]TokenRoles{
 	"FilterBar": {Colors: join(focusRing, map[string]string{"surface": "bg3", "text": "fg", "secondaryText": "fg2", "hintText": "fg3",
 		"fieldOutline": "controlLine", "outline": "borderStrong", "selected": "accentSoft", "selectedBorder": "accentLine", "selectedText": "fg", "hover": "hover"}),
 		Type: map[string]string{"label": "body", "count": "caption"}, Shape: join(focusShape, map[string]string{"field": "field", "chip": "chip", "menu": "sheet"})},
+	// The Dock is elevation 1 (a panel: tone bg2 and a hairline) with its buttons drawn as Buttons are.
+	"Dock": {Colors: join(focusRing, buttonParts, map[string]string{"background": "bg2", "border": "border", "text": "fg", "secondaryText": "fg2",
+		"selected": "accentSoft", "selectedText": "fg"}),
+		Type: map[string]string{"label": "body"}, Shape: join(focusShape, map[string]string{"button": "button"})},
+	"KeyLegend": {Colors: map[string]string{"text": "fg2", "outline": "borderStrong", "surface": "bg3"},
+		Type: map[string]string{"label": "caption"}, Shape: map[string]string{"keycap": "badge"}},
 	"DetailHeader": {Colors: join(overImage, focusRing, progressBar, buttonParts, map[string]string{"background": "bg", "text": "fg", "secondaryText": "fg2",
 		"link": "accentText", "badge": "scrim", "badgeText": "onImage", "border": "borderStrong"}),
 		Type:  map[string]string{"title": "pageTitle", "facts": "caption", "synopsis": "body", "button": "body", "badge": "badge"},

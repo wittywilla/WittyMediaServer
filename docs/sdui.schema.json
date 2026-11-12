@@ -609,6 +609,25 @@
       ],
       "type": "object"
     },
+    "DockMetrics": {
+      "properties": {
+        "height": {
+          "type": "integer"
+        },
+        "hintSize": {
+          "type": "integer"
+        },
+        "placement": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "placement",
+        "height",
+        "hintSize"
+      ],
+      "type": "object"
+    },
     "Document": {
       "properties": {
         "catalog": {
@@ -894,6 +913,9 @@
         "density": {
           "type": "string"
         },
+        "dock": {
+          "$ref": "#/$defs/DockMetrics"
+        },
         "externalLinks": {
           "type": "boolean"
         },
@@ -911,6 +933,9 @@
             "type": "integer"
           },
           "type": "array"
+        },
+        "peek": {
+          "type": "number"
         },
         "reducedMotion": {
           "type": "boolean"
@@ -954,6 +979,8 @@
         "text",
         "cards",
         "hero",
+        "peek",
+        "dock",
         "imageWidths",
         "budget",
         "textLimits",
@@ -2163,7 +2190,7 @@
     "tile",
     "chip"
   ],
-  "x-catalogRevision": 2,
+  "x-catalogRevision": 3,
   "x-components": [
     "Page",
     "Hero",
@@ -2173,6 +2200,8 @@
     "Tabs",
     "Tab",
     "FilterBar",
+    "Dock",
+    "KeyLegend",
     "DetailHeader",
     "SeasonList",
     "TrackList",

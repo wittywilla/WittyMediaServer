@@ -92,7 +92,7 @@ var navSizes = map[string]map[string]int{
 	NavRail:       {FormWeb: 80, FormDesktop: 80, FormTablet: 72, FormPhone: 72, FormTV: 120},
 	NavBottomTabs: {FormWeb: 56, FormDesktop: 56, FormTablet: 64, FormPhone: 56, FormTV: 100},
 	NavTopTabs:    {FormWeb: 64, FormDesktop: 64, FormTablet: 56, FormPhone: 48, FormTV: 100},
-	NavTVTopMenu:  {FormTV: 100},
+	NavTVTopMenu:  {FormTV: 88}, // themes/tokens.json tv.topBar.height
 	NavTVSideMenu: {FormTV: 120},
 }
 

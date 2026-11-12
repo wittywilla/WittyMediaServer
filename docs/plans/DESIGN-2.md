@@ -122,6 +122,8 @@ Android renderers. A theme made by a user or a module scope keeps working: anyth
 | W4 | Android | The same for `ui/Sdui*`, `ui/Theme.kt`, `tv/`; Android TV, phone, tablet, Chromebook; JVM tests; `testDebugUnitTest lintSideload assembleSideload` under a heavy slot. |
 
 Each workstream: commits small on its own `wip/design-*` branch off `wip/design`, merges `v0.8.0-alpha` often, merges
-into `v0.8.0-alpha` under `/tmp/witty-merge.lock` per ORCHESTRATION.md, never pushes. A platform may land its part
-before W1's later tokens exist by reading this file's schema and falling back to the current values; each
-platform's token reader must ignore unknown keys and default missing ones.
+into `v0.8.0-alpha` under `/tmp/witty-merge.lock` per ORCHESTRATION.md, never pushes.
+
+**No legacy.** Older servers and clients are "as is" alphas. There are no fallbacks, compatibility shims, capability
+gates for the new parts, or old code paths kept beside the new ones. The new catalogue revision requires `Dock` and
+`KeyLegend`; the token schema is the new one only; what the design replaces is deleted.

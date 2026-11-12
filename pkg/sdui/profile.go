@@ -96,6 +96,12 @@ type Layout struct {
 	// Cards is the size of each card style; Hero the size of a Hero.
 	Cards map[string]CardMetrics `json:"cards"`
 	Hero  Viewport               `json:"hero"`
+	// Peek is how much of the next card (or slide) shows at the trailing edge of a row
+	// or spotlight that scrolls, as a fraction of its width: 0 where the pointer has
+	// arrows or the edge is already clear (revision 3).
+	Peek float64 `json:"peek"`
+	// Dock is where a Dock goes and how tall it is (revision 3).
+	Dock DockMetrics `json:"dock"`
 	// ImageWidths are the widths pictures are asked for at: a card asks for
 	// the smallest that is at least its width times Scale.
 	ImageWidths []int      `json:"imageWidths"`
@@ -112,13 +118,23 @@ type Layout struct {
 	Shell *Shell `json:"shell,omitempty"`
 }
 
+// DockMetrics place the Dock: "bottom" is a bar Height points tall across the bottom of
+// the screen, outside the page's scroll; "sheet" is no bar, the controls opening from an
+// Options button as a sheet.
+type DockMetrics struct {
+	Placement string `json:"placement"`
+	Height    int    `json:"height"`
+	// HintSize is the key legend's text size in points.
+	HintSize int `json:"hintSize"`
+}
+
 // imageWidths are the buckets every device chooses pictures from, so the
 // server's picture cache holds a handful of sizes rather than one per device.
 var imageWidths = []int{120, 160, 240, 320, 480, 640, 960, 1280, 1920, 2560, 3840}
 
 // base card widths in points at size m, by form factor and shape.
 var baseWidths = map[string]map[string]int{
-	FormTV:      {"poster": 250, "landscape": 420, "square": 280, "circle": 220, "chip": 0},
+	FormTV:      {"poster": 250, "landscape": 420, "square": 300, "circle": 200, "chip": 0}, // themes/tokens.json tv.card
 	FormPhone:   {"poster": 120, "landscape": 224, "square": 144, "circle": 96, "chip": 0},
 	FormTablet:  {"poster": 160, "landscape": 288, "square": 180, "circle": 120, "chip": 0},
 	FormDesktop: {"poster": 180, "landscape": 320, "square": 200, "circle": 140, "chip": 0},
@@ -159,11 +175,13 @@ func ProfileFor(formFactor, class string) *Layout {
 	switch formFactor {
 	case FormTV:
 		l.Class, l.Scale, l.Canvas, l.Breakpoint = "hd", 1, Viewport{Width: 1920, Height: 1080}, "large"
-		l.SafeArea = Insets{Top: 60, Right: 80, Bottom: 60, Left: 80}
+		l.SafeArea = Insets{Top: 60, Right: 90, Bottom: 60, Left: 90} // themes/tokens.json tv.safe
 		l.FocusEngine, l.ExternalLinks = true, false
 		l.Spacing = map[string]int{"none": 0, "xs": 10, "s": 20, "m": 40, "l": 60, "xl": 100}
-		// tvOS's own text styles: title 1, title 2, title 3, body, caption 1.
-		l.Text = map[string]int{"pageTitle": 76, "heading": 57, "title": 48, "body": 29, "caption": 25, "badge": 23}
+		// themes/tokens.json tv.type. Revision 3 moved every role down a step from tvOS's own
+		// title 1 to caption 1 sizes (76, 57, 48): that size is now "display", for a spotlight's title.
+		l.Text = map[string]int{"display": 76, "pageTitle": 57, "heading": 48, "title": 38, "body": 29, "caption": 25, "badge": 23}
+		l.Peek, l.Dock = 0.18, DockMetrics{Placement: "bottom", Height: 112, HintSize: 25}
 		l.Hero = Viewport{Width: 1920, Height: 620}
 		l.Budget = Budget{MaxSections: 12, EagerSections: 4, ShelfItems: 12, GridItems: 36, ListItems: 30, PageSize: 24, HeroItems: 5, Repeats: 8}
 		l.TextLimits = TextLimits{Title: 80, Subtitle: 80, Synopsis: 160, Overview: 480}
@@ -174,14 +192,16 @@ func ProfileFor(formFactor, class string) *Layout {
 	case FormPhone:
 		l.Scale, l.Breakpoint = 3, "compact"
 		l.Spacing = map[string]int{"none": 0, "xs": 4, "s": 8, "m": 16, "l": 24, "xl": 40}
-		l.Text = map[string]int{"pageTitle": 28, "heading": 22, "title": 17, "body": 16, "caption": 13, "badge": 11}
+		l.Text = map[string]int{"display": 28, "pageTitle": 28, "heading": 22, "title": 17, "body": 16, "caption": 13, "badge": 11}
+		l.Peek, l.Dock = 0.12, DockMetrics{Placement: "sheet", HintSize: 12}
 		l.Hero = Viewport{Width: 430, Height: 242}
 		l.Budget = Budget{MaxSections: 16, EagerSections: 5, ShelfItems: 12, GridItems: 30, ListItems: 30, PageSize: 30, HeroItems: 5, Repeats: 10}
 		l.TextLimits = TextLimits{Title: 80, Subtitle: 80, Synopsis: 140, Overview: 400}
 	case FormTablet:
 		l.Breakpoint = "expanded"
 		l.Spacing = map[string]int{"none": 0, "xs": 4, "s": 8, "m": 16, "l": 24, "xl": 48}
-		l.Text = map[string]int{"pageTitle": 34, "heading": 24, "title": 20, "body": 17, "caption": 13, "badge": 12}
+		l.Text = map[string]int{"display": 34, "pageTitle": 34, "heading": 24, "title": 20, "body": 17, "caption": 13, "badge": 12}
+		l.Peek, l.Dock = 0.12, DockMetrics{Placement: "bottom", Height: 64, HintSize: 13}
 		l.Hero = Viewport{Width: 1024, Height: 440}
 		l.Budget = Budget{MaxSections: 20, EagerSections: 6, ShelfItems: 16, GridItems: 48, ListItems: 40, PageSize: 36, HeroItems: 5, Repeats: 12}
 		l.TextLimits = TextLimits{Title: 100, Subtitle: 100, Synopsis: 200, Overview: 700}
@@ -191,7 +211,8 @@ func ProfileFor(formFactor, class string) *Layout {
 		}
 		l.Breakpoint = "large"
 		l.Spacing = map[string]int{"none": 0, "xs": 4, "s": 8, "m": 16, "l": 24, "xl": 48}
-		l.Text = map[string]int{"pageTitle": 28, "heading": 20, "title": 16, "body": 14, "caption": 12, "badge": 11}
+		l.Text = map[string]int{"display": 28, "pageTitle": 28, "heading": 20, "title": 16, "body": 14, "caption": 12, "badge": 11}
+		l.Dock = DockMetrics{Placement: "bottom", Height: 64, HintSize: 12}
 		l.Hero = Viewport{Width: 1600, Height: 620}
 		l.Budget = Budget{MaxSections: 30, EagerSections: 8, ShelfItems: 20, GridItems: 60, ListItems: 50, PageSize: 48, HeroItems: 6, Repeats: 16}
 		l.TextLimits = TextLimits{Title: 120, Subtitle: 120, Synopsis: 220, Overview: 900}

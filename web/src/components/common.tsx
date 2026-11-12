@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { Fragment, memo, type CSSProperties } from 'react'
+import { Fragment, memo, useSyncExternalStore, type CSSProperties } from 'react'
+import { brandMark, subscribeMark } from '../theme'
 import { avatarColor } from '../ui/avatarColor'
 import { Link } from 'react-router-dom'
 import { PosterCard } from '../ui/Surface'
@@ -121,8 +122,15 @@ export const logoUrl = (version: string) => (version ? `${serverBase()}/api/bran
 
 // BrandMark is the picture beside the name: the custom logo or the app icon.
 // src overrides it (a logo being previewed before it is saved).
+// With the theme engine's mark it is a square badge with its content centred (a letter, initials, the owner's own
+// characters, or a logo fitted inside); until that has arrived, or for a preview, the picture.
 export function BrandMark({ src }: { src?: string }) {
   const { brandLogo } = useApp()
+  const mark = useSyncExternalStore(subscribeMark, brandMark)
+  if (!src && mark) {
+    if (mark.kind === 'image' && mark.imageUrl) return <span className="brand-mark brand-badge image" aria-hidden="true"><img src={mark.imageUrl} alt="" onError={(e) => { e.currentTarget.replaceWith(document.createTextNode(mark.shown)) }} /></span>
+    return <span className="brand-mark brand-badge" aria-hidden="true">{mark.shown}</span>
+  }
   return <img className="brand-mark" src={src || logoUrl(brandLogo)} alt="" />
 }
 

@@ -17,13 +17,14 @@ import { Games } from './setup/Games'
 import { Listings } from './setup/Listings'
 import { Tv } from './setup/Tv'
 import { Logos } from './setup/Logos'
-import { Look } from './setup/Look'
+import { Look, Theme } from './setup/Look'
 import { Media } from './setup/Media'
 import { Modules } from './setup/Modules'
 import { Music } from './setup/Music'
 import type { StepProps } from './setup/parts'
 import { currentStep, neighbours, pathOf, planSteps, stepFromPath, stepNumber, type Facts, type StepId } from './setup/plan'
 import { Welcome } from './setup/Welcome'
+import { doneBefore, SERVER_STEP } from './setup/serverSteps'
 import './setup/setup.css'
 
 // First-time setup. Which steps there are comes from setup/plan.ts, and each lives in a file of its
@@ -71,6 +72,9 @@ export default function SetupWizard() {
   // Show the address of the step that's showing, without a stop in the history for the old one.
   useEffect(() => { if (step && wanted !== step.id) navigate(pathOf(step.id) + loc.search, { replace: true }) }, [step, wanted, navigate, loc.search])
   useEffect(() => { window.scrollTo({ top: 0 }) }, [step?.id])
+  // The server keeps where first run was left, so a reload or another browser carries on from there.
+  const stepId = step?.id
+  useEffect(() => { if (signedIn && stepId) api.put('/setup/state', { step: SERVER_STEP[stepId], done: doneBefore(stepId) }).catch(() => { /* it is only a bookmark */ }) }, [signedIn, stepId])
 
   if (!facts || !step) return <div className="oobe"><div className="center"><Spinner /></div></div>
 
@@ -79,6 +83,8 @@ export default function SetupWizard() {
   const go = (id: StepId) => navigate(pathOf(id))
   const props: StepProps = { info: step, facts, refresh, next: () => { if (next) go(next.id) }, back: back ? () => go(back.id) : undefined }
   const finish = async (to = '/') => {
+    // First run is over: the server answers the apps from here on.
+    try { await api.post('/setup/complete', {}) } catch { /* an administrator only; the settings below still say so */ }
     try { await api.put('/settings', { setupDone: '1', brandColouring: colouring, ...(serverName.trim() ? { brandName: serverName.trim() } : {}) }) } catch { /* it asks again next time */ }
     setBrandName(serverName.trim() || brandName, colouring)
     await refreshLibraries()
@@ -112,7 +118,7 @@ export default function SetupWizard() {
             // From here it counts as set up only when the last page says so, even once there are libraries.
             api.put('/settings', { setupDone: '0' }).catch(() => {})
             if (pendingLogo) uploadLogo(pendingLogo).then(setBrandLogo).catch(() => {})
-            navigate(pathOf('modules'), { replace: true })
+            navigate(pathOf('look'), { replace: true })
           }} />}
           {step.id === 'modules' && <Modules {...props} />}
           {step.id === 'media' && <Media {...props} added={added} onAdded={(l) => setAdded((a) => a.some((x) => x.id === l.id) ? a.map((x) => (x.id === l.id ? l : x)) : [...a, l])} />}
@@ -124,6 +130,7 @@ export default function SetupWizard() {
           {step.id === 'listings' && <Listings {...props} />}
           {step.id === 'tv' && <Tv {...props} />}
           {step.id === 'look' && <Look {...props} />}
+          {step.id === 'theme' && <Theme {...props} />}
           {step.id === 'done' && <Done steps={steps} onFinish={finish} />}
         </main>
         <footer className="oobe-foot"><VersionTag version={version} /></footer>

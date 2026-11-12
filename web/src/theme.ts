@@ -54,7 +54,21 @@ let wanted = ''
 let resolved: ResolvedTheme | null = null
 let moduleNow = ''
 let overrideProps: string[] = []
+// The experience's finish on <html>, for design2.css to answer: which experience, its type set, its effects (glass,
+// gloss, glow, texture, bevel: none, subtle or full) and its density, until this device chooses its own.
+const EFFECTS = ['glass', 'gloss', 'glow', 'texture', 'bevel']
+function applyLook(look: ResolvedTheme['look']) {
+  const d = document.documentElement.dataset
+  if (!look) { delete d.experience; delete d.type; for (const e of EFFECTS) delete d['fx' + e[0].toUpperCase() + e.slice(1)]; return }
+  d.experience = look.experience
+  d.type = look.type || 'system'
+  for (const e of EFFECTS) d['fx' + e[0].toUpperCase() + e.slice(1)] = look.effects?.[e] || 'none'
+  if (look.density && !localStorage.getItem('wms.density')) { if (look.density === 'comfortable') delete d.density; else d.density = look.density }
+}
+// A look being tried, as first run offers them: only its finish, type and density, on top of what is showing.
+export function trialLook(look: ResolvedTheme['look']) { applyLook(look) }
 function applyOverrides() {
+  applyLook(resolved?.look)
   const root = document.documentElement.style
   for (const p of overrideProps) root.removeProperty(p)
   overrideProps = []
@@ -65,13 +79,23 @@ function applyOverrides() {
   const globalApplies = !!resolved && resolved.source === 'server' && !deviceTheme()
   for (const [name, value] of overrideDeclarations(resolved, moduleNow, globalApplies)) { root.setProperty(name, value); overrideProps.push(name) }
 }
+// The badge the server's name has for small spaces (docs/CLIENT-API.md): kept for BrandMark to draw.
+const markListeners = new Set<() => void>()
+export const brandMark = () => resolved?.brand?.mark
+export const subscribeMark = (l: () => void) => { markListeners.add(l); return () => { markListeners.delete(l) } }
 // loadThemeOverrides asks the server for the signed-in account's resolved theme, puts its
 // colours on the page and hands it back (null when the server couldn't be asked).
 export async function loadThemeOverrides() {
-  try { resolved = await api.get<ResolvedTheme>('/theme') } catch { resolved = null }
+  // For this device's own look: the server keeps the choice under the name the browser gave itself (sdui/device.ts).
+  let device = ''
+  try { device = localStorage.getItem('wms.sdui.device') || '' } catch { /* the form factor's */ }
+  try { resolved = await api.get<ResolvedTheme>('/theme' + (device ? '?device=' + encodeURIComponent(device) : '')) } catch { resolved = null }
   applyOverrides()
+  markListeners.forEach((l) => l())
   return resolved
 }
+// The finished look the server sent: what is required of this profile shows locked in Settings.
+export const currentLook = () => resolved?.look
 export function clearThemeOverrides() { resolved = null; applyOverrides() }
 // setThemeModule says which module's page is showing ("" for the server's own).
 export function setThemeModule(id: string) { if (id !== moduleNow) { moduleNow = id; applyOverrides() } }

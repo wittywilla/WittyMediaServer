@@ -273,6 +273,8 @@ async function send(method: string, path: string, body?: unknown, signal?: Abort
     window.dispatchEvent(new CustomEvent('wms:screen-time', { detail: data.screenTime }))
     throw new ApiError(res.status, data.error || res.statusText, data)
   }
+  // First run isn't over: the web is the only place it happens, so go there (the setup routes still answer).
+  if (res.status === 503 && data?.error === 'setup_required' && !location.pathname.startsWith('/setup')) location.assign('/setup')
   if (!res.ok) {
     reportRequestFailure(method, path, res.status, data?.error || res.statusText, res.headers.get('X-Request-Id'))
     throw new ApiError(res.status, data?.error || res.statusText, data)

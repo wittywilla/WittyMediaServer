@@ -24,7 +24,7 @@ export const ENTRIES: Entry[] = [
   { page: 'appearance', title: 'Colours', section: 'Colours', words: 'make a theme custom theme accent background tint corners round square' },
   { page: 'appearance', title: 'Accent colour', section: 'Colours', words: 'buttons highlights custom' },
   { page: 'appearance', title: 'Corners', section: 'Colours', words: 'rounded square soft radius' },
-  { page: 'appearance', title: 'Layout', section: 'Layout', words: 'navigation side menu top bar sidebar' },
+  { page: 'appearance', title: 'Look', section: 'Look', words: 'layout experience look navigation side menu top bar sidebar rail finish type spacing' },
   { page: 'appearance', title: 'Arrange the menu', at: 'navigation', words: 'reorder hide show menu items libraries group watch listen read play more menu folded' },
   { page: 'appearance', title: 'Moving posters', section: 'Motion and big screens', words: 'tilt animation motion' },
   { page: 'appearance', title: 'Moving backgrounds', section: 'Motion and big screens', words: 'canvas canvases looping video background animation motion data saver' },

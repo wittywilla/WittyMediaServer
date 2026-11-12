@@ -67,10 +67,16 @@ test('moved takes one item to a new place', () => {
   assert.deepEqual(moved(['a', 'b', 'c'], 2, 0), ['c', 'a', 'b'])
 })
 
-test('the frame follows the server\'s shell, and the device\'s own choice only without one', () => {
-  assert.deepEqual(frameFor(undefined, 'top'), { style: 'top', rail: false, overlay: false, tabBar: true })
-  assert.deepEqual(frameFor({ nav: 'sidebar', size: 240 }, 'top'), { style: 'side', rail: false, overlay: false, tabBar: true, sidebar: 240 })
-  assert.deepEqual(frameFor({ nav: 'rail', size: 80 }, 'side'), { style: 'side', rail: true, overlay: false, tabBar: true, railWidth: 80 })
-  assert.deepEqual(frameFor({ nav: 'topTabs', overlay: true, size: 56 }, 'side'), { style: 'top', rail: false, overlay: true, tabBar: false })
-  assert.deepEqual(frameFor({ nav: 'bottomTabs', size: 56 }, 'side'), { style: 'side', rail: false, overlay: false, tabBar: true })
+test('the frame follows the server\'s nav style, whichever of the thirteen it is', () => {
+  assert.deepEqual(frameFor(undefined), { nav: 'sidebar', style: 'side', rail: false, drawer: false, overlay: false, tabBar: true, sidebar: undefined })
+  assert.deepEqual(frameFor({ nav: 'sidebar', size: 240 }), { nav: 'sidebar', style: 'side', rail: false, drawer: false, overlay: false, tabBar: true, sidebar: 240 })
+  const rail = frameFor({ nav: 'railDrawer', size: 76, open: 240, drawer: 360 })
+  assert.deepEqual([rail.rail, rail.drawer, rail.railWidth, rail.open, rail.drawerWidth], [true, true, 76, 240, 360])
+  assert.equal(frameFor({ nav: 'rail', size: 80 }).drawer, false)
+  for (const nav of ['topTabs', 'floatingGlassBar', 'cableBar', 'bevelBar', 'teleKeys', 'crossbar', 'ornamentTabs']) {
+    const f = frameFor({ nav, size: 56, overlay: nav === 'topTabs' })
+    assert.deepEqual([f.style, f.tabBar, f.nav], ['top', false, nav], nav)
+  }
+  assert.equal(frameFor({ nav: 'topTabs', overlay: true, size: 56 }).overlay, true)
+  assert.deepEqual([frameFor({ nav: 'bottomTabs', size: 56 }).style, frameFor({ nav: 'bottomTabs', size: 56 }).tabBar], ['side', true])
 })

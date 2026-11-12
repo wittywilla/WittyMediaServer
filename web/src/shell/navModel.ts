@@ -5,7 +5,7 @@
 
 // icon, placement and screen come with a server's menu (GET /sdui/navigation): the icon's name, where the entry
 // sits (primary, more, end) and, for one of the app's own screens, which.
-export type NavItem = { id: string; label: string; to: string; kind?: string; end?: boolean; icon?: string; placement?: string; screen?: string }
+export type NavItem = { id: string; label: string; to: string; kind?: string; end?: boolean; icon?: string; placement?: string; screen?: string; drawer?: import('../sdui/types').NavDrawer }
 
 // A library's entry: "lib:3" as the web app named it, "lib-3" in a server's menu.
 export const isLibrary = (id: string) => id.startsWith('lib:') || id.startsWith('lib-')
@@ -96,15 +96,15 @@ export const moved = <T,>(list: T[], from: number, to: number): T[] => {
 // the frame's own pieces show (the side menu, folded to a rail or not, the bar along the top,
 // a phone's tab bar) and whether the top bar lies over the page. The server picks the style;
 // the app never picks one of its own. TV mode draws its own frame from the same shell.
-export type Frame = { style: 'side' | 'top'; rail: boolean; overlay: boolean; tabBar: boolean; sidebar?: number; railWidth?: number }
-export function frameFor(shell: { nav: string; overlay?: boolean; size: number } | undefined, fallback: 'side' | 'top' | 'both'): Frame {
-  const legacy = { style: (fallback === 'top' ? 'top' : 'side') as 'side' | 'top', rail: false, overlay: false, tabBar: true }
-  if (!shell) return legacy
-  switch (shell.nav) {
-    case 'sidebar': return { style: 'side', rail: false, overlay: !!shell.overlay, tabBar: true, sidebar: shell.size || undefined }
-    case 'rail': return { style: 'side', rail: true, overlay: !!shell.overlay, tabBar: true, railWidth: shell.size || undefined }
-    case 'topTabs': return { style: 'top', rail: false, overlay: !!shell.overlay, tabBar: false }
-    case 'bottomTabs': return { style: 'side', rail: false, overlay: !!shell.overlay, tabBar: true }
-  }
-  return legacy
+export type Frame = { nav: string; style: 'side' | 'top'; rail: boolean; drawer: boolean; overlay: boolean; tabBar: boolean; sidebar?: number; railWidth?: number; open?: number; drawerWidth?: number }
+// Nav styles that are a bar across the top (each drawn in its own finish: data-nav-style on the frame).
+const TOP_STYLES = ['topTabs', 'floatingGlassBar', 'cableBar', 'bevelBar', 'teleKeys', 'crossbar', 'ornamentTabs']
+export function frameFor(shell: { nav: string; overlay?: boolean; size: number; open?: number; drawer?: number } | undefined): Frame {
+  const nav = shell?.nav || 'sidebar'
+  const size = shell?.size || undefined
+  const overlay = !!shell?.overlay
+  if (nav === 'rail' || nav === 'railDrawer') return { nav, style: 'side', rail: true, drawer: nav === 'railDrawer', overlay, tabBar: true, railWidth: size, open: shell?.open, drawerWidth: shell?.drawer }
+  if (TOP_STYLES.includes(nav)) return { nav, style: 'top', rail: false, drawer: false, overlay, tabBar: false }
+  if (nav === 'bottomTabs') return { nav, style: 'side', rail: false, drawer: false, overlay, tabBar: true }
+  return { nav: 'sidebar', style: 'side', rail: false, drawer: false, overlay, tabBar: true, sidebar: size }
 }

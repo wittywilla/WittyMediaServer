@@ -2,13 +2,12 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { IconDownload, IconPlus } from '../icons'
+import { IconDownload, IconLock, IconPlus } from '../icons'
 import { api, getToken, mediaUrl, serverBase } from '../api'
 import BrandDialog, { uploadLogo } from '../components/BrandDialog'
 import { Brand, BrandMark, logoUrl } from '../components/common'
 import { toast, useApp } from '../state'
-import { applyTheme, AUTO_THEME, currentThemeId, CUSTOM_THEME, deviceTheme, setCustomThemeCss, setDeviceTheme, type ThemeMeta } from '../theme'
-import { setNavStyle, useNavStyle, type NavStyle } from '../navPrefs'
+import { applyTheme, AUTO_THEME, currentLook, loadThemeOverrides, currentThemeId, CUSTOM_THEME, deviceTheme, setCustomThemeCss, setDeviceTheme, type ThemeMeta } from '../theme'
 import NavCustomize from '../shell/NavCustomize'
 import { useMenu } from '../shell/useNav'
 import { bump } from '../sdui/client'
@@ -116,7 +115,9 @@ export default function AppearanceSettings() {
   const personalColours = !!useFeatures()?.has('theme-personal')
   const fallback = currentThemeId(serverTheme)
   const active = mine || fallback
-  const useHere = (id: string) => { setDeviceTheme(id); setMine(id); applyTheme(id || serverTheme) }
+  // An administrator can require a theme: it shows locked and nothing here changes it.
+  const required = currentLook()?.requiredTheme
+  const useHere = (id: string) => { if (required) return; setDeviceTheme(id); setMine(id); applyTheme(id || serverTheme) }
   const makeDefault = async (id: string) => {
     try { await api.put('/settings', { theme: id }); setServerTheme(id); toast('Everyone starts with this theme now', { tone: 'ok' }) } catch (e) { toast((e as Error).message, { tone: 'danger' }) }
   }
@@ -126,11 +127,11 @@ export default function AppearanceSettings() {
     if (logo === 'remove') { await api.del('/branding/logo'); setBrandLogo('') } else if (logo) setBrandLogo(await uploadLogo(logo))
     toast('Saved', { tone: 'ok' })
   }
-  const upload = async (f: File) => {
+  const upload = async (f: File, mineOnly = false) => {
     const headers: Record<string, string> = { 'Content-Type': 'application/zip' }
     const tok = getToken()
     if (tok) headers.Authorization = 'Bearer ' + tok
-    const res = await fetch(`${serverBase()}/api/themes?name=${encodeURIComponent(f.name)}`, { method: 'POST', headers, body: f, credentials: 'same-origin' })
+    const res = await fetch(`${serverBase()}/api/${mineOnly ? 'themes/mine' : 'themes'}?name=${encodeURIComponent(f.name)}`, { method: 'POST', headers, body: f, credentials: 'same-origin' })
     const data = await res.json().catch(() => ({}))
     if (!res.ok) { toast(data.error || 'That theme couldn’t be installed', { tone: 'danger' }); return }
     toast(`“${data.name}” is installed`, { tone: 'ok' })
@@ -167,7 +168,7 @@ export default function AppearanceSettings() {
 
   return (
     <>
-      <Section title="Theme" desc={mine
+      <Section title="Theme" desc={required ? <><IconLock /> {lockText(required)}. It can’t be changed here.</> : mine
         ? <>This device has its own theme. <button type="button" className="linkish" onClick={() => useHere('')}>Follow the server’s</button></>
         : 'This device follows the server’s theme. Choosing one here changes this device only.'}>
         <div className="theme-stage">
@@ -217,9 +218,9 @@ export default function AppearanceSettings() {
         </div>
         <div className="panel-actions">
           <Button icon={<IconPlus />} onClick={() => jumpTo('colours')}>Make your own</Button>
-          {admin && <>
-            <input ref={fileRef} type="file" accept=".zip,application/zip" hidden aria-label="Theme ZIP" onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = '' }} />
-            <Button variant="ghost" onClick={() => fileRef.current?.click()}>Install a theme ZIP…</Button>
+          {<>
+            <input ref={fileRef} type="file" accept=".zip,application/zip" hidden aria-label="Theme ZIP" onChange={(e) => { const f = e.target.files?.[0]; if (f) void upload(f, !admin); e.target.value = '' }} />
+            <Button variant="ghost" disabled={!!required} onClick={() => fileRef.current?.click()}>Import a theme…</Button>
           </>}
           <Link className="small-note" to="/help/themes">How themes work</Link>
         </div>
@@ -241,6 +242,7 @@ export default function AppearanceSettings() {
             <div className="brand"><BrandMark /><Brand name={brandName} /></div>
             <Button onClick={() => setNaming(true)}>Rename…</Button>
           </div>
+          <MarkRow />
           {naming && <BrandDialog name={brandName} colouring={brandColouring} logo={brandLogo ? logoUrl(brandLogo) : ''} onClose={() => setNaming(false)} onSave={saveBrand} />}
         </Section>
       )}
@@ -248,45 +250,79 @@ export default function AppearanceSettings() {
   )
 }
 
-// The layout options a server offers (docs/SDUI.md, "Layout options"): one for this profile on
-// this device, kept by the server; "As the server sets it" follows the administrator's choice.
-const LAYOUT_HINTS: Record<string, string> = {
-  sidebar: 'The menu down the side; a bar at the bottom on a phone',
-  topTabs: 'Tabs across the top, the whole width for the page',
-  tvRows: 'Rows of large cards, as on a television, with a narrow rail',
-  compactList: 'A line per title, the most on the screen at once',
-  streaming: 'A big spotlight under a see-through menu, then rows of wide cards',
+// The server's mark: the badge the side rail's header, the phone's tab bar and sign-in draw. A letter by default.
+function MarkRow() {
+  const [kind, setKind] = useState('letter')
+  const [text, setText] = useState('')
+  const [busy, setBusy] = useState(false)
+  useEffect(() => { api.get<Record<string, string>>('/settings').then((s) => { try { const m = JSON.parse(s.brandMark || '{}'); if (m.kind) { setKind(m.kind); setText(m.text || '') } } catch { /* the first letter */ } }).catch(() => {}) }, [])
+  const save = async (k: string, t: string) => {
+    setBusy(true)
+    try {
+      await api.put('/settings', { brandMark: k === 'letter' ? '' : JSON.stringify(k === 'text' ? { kind: k, text: t.trim() } : { kind: k }) })
+      await loadThemeOverrides()
+      toast('Saved', { tone: 'ok' })
+    } catch (e) { toast((e as Error).message, { tone: 'danger' }) } finally { setBusy(false) }
+  }
+  return (
+    <Row label="Mark" desc="The square badge for small spaces: the side rail, the phone’s bar and sign-in. A logo you’ve uploaded is fitted inside it; the letter shows if it can’t load.">
+      <Segmented label="Mark" value={kind} onChange={(k) => { setKind(k); if (k !== 'text') void save(k, text) }} options={[{ value: 'letter', label: 'Letter' }, { value: 'initials', label: 'Initials' }, { value: 'text', label: 'Your own' }, { value: 'image', label: 'Logo' }]} />
+      {kind === 'text' && <>
+        <Input aria-label="Your own one or two characters" maxLength={2} value={text} onChange={(e) => setText(e.target.value)} />
+        <Button size="sm" disabled={busy || !text.trim()} onClick={() => void save('text', text)}>Save</Button>
+      </>}
+    </Row>
+  )
 }
-const LAYOUT_PIC: Record<string, string> = { sidebar: 'side', topTabs: 'top', tvRows: 'rail', compactList: 'list', streaming: 'stream' }
 
-function ServerLayouts({ layouts }: { layouts: NonNullable<ReturnType<typeof useMenu>['layouts']> }) {
+// The experiences a server offers (docs/SDUI.md, "Experiences"): one for this profile on this device, kept by the
+// server; "As the server sets it" follows the administrator's choice. An administrator can require one, and it then
+// shows locked with who set it.
+type ExperienceCard = { id: string; name: string; tagline?: string; theme?: string; preview?: { bg: string; surface: string; accent: string }; nav: Record<string, string> }
+const NAV_PIC: Record<string, string> = { sidebar: 'side', rail: 'rail', railDrawer: 'rail', bottomTabs: 'top', topTabs: 'top', floatingGlassBar: 'top', cableBar: 'top', bevelBar: 'top', teleKeys: 'top', crossbar: 'stream', ornamentTabs: 'top', tvTopMenu: 'top', tvSideMenu: 'rail' }
+const lockText = (r: { by?: string; scope: string }) => `Required by ${r.by || 'an administrator'}${r.scope === 'everyone' ? ' for everyone' : r.scope === 'kids' ? ' for kids profiles' : ''}`
+
+function ServerLookRows({ choice }: { choice: NonNullable<ReturnType<typeof useMenu>['experiences']> }) {
   const [busy, setBusy] = useState('')
+  const [cards, setCards] = useState<ExperienceCard[]>([])
   const device = useDevice()
+  useEffect(() => { api.get<{ experiences: ExperienceCard[] }>('/sdui/experiences').then((r) => setCards(r.experiences)).catch(() => {}) }, [])
   const choose = async (value: string) => {
     setBusy(value)
     // For this device: its name and what it is, as the menu was asked for.
-    const path = layouts.url.replace(/^\/api(\/v1)?/, '') + (layouts.url.includes('?') ? '&' : '?') + query(device)
+    const path = choice.url.replace(/^\/api(\/v1)?/, '') + (choice.url.includes('?') ? '&' : '?') + query(device)
     try {
-      if (value) await api.put(path, { layout: value })
+      if (value) await api.put(path, { experience: value })
       else await api.del(path)
       bump()
-      announce(value ? `Layout: ${layouts.options.find((o) => o.value === value)?.label || value}` : 'Layout: as the server sets it')
+      void loadThemeOverrides()
+      announce(value ? `Look: ${choice.options.find((o) => o.value === value)?.label || value}` : 'Look: as the server sets it')
     } catch (e) { toast((e as Error).message, { tone: 'danger' }) } finally { setBusy('') }
   }
-  const current = layouts.chosen || ''
+  const locked = !!choice.required
+  const current = choice.chosen || ''
+  // A required look is the only one shown as on, and nothing can be pressed.
+  const options = locked ? [{ value: choice.required!.value, label: cards.find((c) => c.id === choice.required!.value)?.name || choice.required!.value }] : choice.options
   return (
     <>
-      <div className="layout-opts" role="radiogroup" aria-label="Layout on this device">
-        {layouts.options.map((o) => (
-          <button key={o.value} type="button" role="radio" aria-checked={layouts.current === o.value} disabled={!!busy} className={'layout-opt' + (layouts.current === o.value ? ' on' : '')} onClick={() => void choose(o.value)}>
-            <span className={'layout-pic pic-' + (LAYOUT_PIC[o.value] || 'side')} aria-hidden="true"><i className="s" /><i className="t" /><i className="c" /></span>
-            <b>{o.label}</b><span className="muted">{LAYOUT_HINTS[o.value] || ''}</span>
-          </button>
-        ))}
+      {locked && <p className="small-note" role="status"><IconLock /> {lockText(choice.required!)}.</p>}
+      <div className="layout-opts look-opts" role="radiogroup" aria-label="Look on this device">
+        {options.map((o) => {
+          const c = cards.find((x) => x.id === o.value)
+          const on = choice.current === o.value
+          return (
+            <button key={o.value} type="button" role="radio" aria-checked={on} disabled={!!busy || locked} className={'layout-opt' + (on ? ' on' : '')} onClick={() => void choose(o.value)}>
+              <span className={'layout-pic pic-' + (NAV_PIC[c?.nav.desktop || ''] || 'side')} aria-hidden="true" style={c?.preview ? { background: c.preview.bg, ['--pic-surface' as string]: c.preview.surface, ['--pic-accent' as string]: c.preview.accent } : undefined}><i className="s" /><i className="t" /><i className="c" /></span>
+              <b>{o.label}</b><span className="muted">{c?.tagline || ''}</span>
+            </button>
+          )
+        })}
       </div>
-      <Row label="As the server sets it" desc={current ? 'This device has a layout of its own. Go back to the one the server gives everyone.' : 'This device follows the server’s layout.'}>
-        <Button size="sm" variant="ghost" disabled={!current || !!busy} onClick={() => void choose('')}>Use the server’s</Button>
-      </Row>
+      {!locked && (
+        <Row label="As the server sets it" desc={current ? 'This device has a look of its own. Go back to the one the server gives everyone.' : 'This device follows the server’s look.'}>
+          <Button size="sm" variant="ghost" disabled={!current || !!busy} onClick={() => void choose('')}>Use the server’s</Button>
+        </Row>
+      )}
     </>
   )
 }
@@ -294,36 +330,9 @@ function ServerLayouts({ layouts }: { layouts: NonNullable<ReturnType<typeof use
 // Where the navigation sits on this device, and what's in it.
 function LayoutSection() {
   const menu = useMenu()
-  if (menu.server && menu.layouts) {
-    return (
-      <Section title="Layout" desc={<>How the app is laid out on this device: where the menu is and how pages look. Kept for you on this device; your other devices keep their own. Rearrange a page with <b>Customise this page</b> at its foot.</>}>
-        <ServerLayouts layouts={menu.layouts} />
-        <NavCustomize />
-        <DensityRow />
-      </Section>
-    )
-  }
-  return <OwnLayoutSection />
-}
-
-// Against a server without layout options: this device's own choice of where the menu sits.
-function OwnLayoutSection() {
-  const style = useNavStyle()
-  const opts: [NavStyle, string, string][] = [
-    ['side', 'Side menu', 'Libraries in a menu on the left'],
-    ['top', 'Top bar', 'Libraries along the top, more room for posters'],
-    ['both', 'Both', 'Top bar plus the side menu'],
-  ]
   return (
-    <Section title="Layout" desc={<>Where the navigation sits on this device. Phones always have the bar at the bottom instead. Rearrange the home page with <b>Customize home</b> at the foot of the home page.</>}>
-      <div className="layout-opts" role="radiogroup" aria-label="Navigation">
-        {opts.map(([v, label, hint]) => (
-          <button key={v} type="button" role="radio" aria-checked={style === v} className={'layout-opt' + (style === v ? ' on' : '')} onClick={() => setNavStyle(v)}>
-            <span className={'layout-pic pic-' + v} aria-hidden="true"><i className="s" /><i className="t" /><i className="c" /></span>
-            <b>{label}</b><span className="muted">{hint}</span>
-          </button>
-        ))}
-      </div>
+    <Section title="Look" desc={<>How the app looks and is laid out on this device: where the menu is, how pages are drawn, its finish and type. Colours are the theme, above. Kept for you on this device; your other devices keep their own. Rearrange a page with <b>Customise this page</b> at its foot.</>}>
+      {menu.experiences && <ServerLookRows choice={menu.experiences} />}
       <NavCustomize />
       <DensityRow />
     </Section>

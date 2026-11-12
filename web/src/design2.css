@@ -82,3 +82,42 @@ html[data-input="pad"] .key-legend kbd, html[data-input="remote"] .key-legend kb
 .sdui-widgets { display: grid; gap: var(--space-m); }
 .sdui-widget { padding: var(--space-m); border-radius: var(--r-lg); min-width: 0; }
 .sdui-widget h3 { margin: 0 0 var(--space-s); font-size: var(--role-title-size); }
+
+/* ---- what an experience brings, from the theme engine's `look` (set on <html> by theme.ts) ---- */
+html[data-type="humanist"] { --font: Seravek, "Gill Sans Nova", Ubuntu, Calibri, "Segoe UI", sans-serif; }
+html[data-type="rounded"] { --font: ui-rounded, "Hiragino Maru Gothic ProN", Quicksand, Nunito, "Segoe UI", sans-serif; }
+html[data-type="serif"] { --font: "Iowan Old Style", "Source Serif 4", Charter, Georgia, serif; }
+html[data-type="mono"] { --font: var(--font-mono); }
+/* Gloss: a light sheen over the top half of a primary button. Glass: a top-lit gradient and a highlight edge on the bars,
+   drawn with gradients rather than blur, so it is cheap. Both are off unless the experience asks. */
+html[data-fx-gloss="subtle"] .btn.primary, html[data-fx-gloss="full"] .btn.primary { background-image: linear-gradient(180deg, color-mix(in srgb, var(--on-image) 18%, transparent), transparent 52%); }
+html[data-fx-gloss="full"] .btn.primary { background-image: linear-gradient(180deg, color-mix(in srgb, var(--on-image) 32%, transparent), color-mix(in srgb, var(--on-image) 4%, transparent) 52%, color-mix(in srgb, var(--picture-bg) 8%, transparent)); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--on-image) 40%, transparent); }
+html[data-fx-glass="subtle"] :is(.sidebar, .topbar.under), html[data-fx-glass="full"] :is(.sidebar, .topbar.under) { background-image: linear-gradient(180deg, color-mix(in srgb, var(--on-image) 6%, transparent), transparent 60%); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--on-image) 12%, transparent); }
+html[data-fx-glow="full"] :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible { box-shadow: 0 0 10px var(--focus); }
+html[data-fx-bevel="full"] .btn:not(.ghost) { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--on-image) 28%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--picture-bg) 24%, transparent); }
+@media (prefers-reduced-transparency: reduce) { html[data-fx-glass] :is(.sidebar, .topbar.under) { background-image: none; box-shadow: none; } }
+
+/* ---- the server's mark: a square badge, its content centred (never a bare letter) ---- */
+.brand-badge { display: inline-grid; place-items: center; flex: none; inline-size: 2rem; block-size: 2rem; border-radius: var(--r-md); background: var(--bg-3); color: var(--brand-accent); border: 1px solid var(--border); font-weight: 700; font-size: var(--text-md); line-height: 1; overflow: hidden; }
+.brand-badge.image { padding: 4px; background: var(--elev-2-fill); }
+.brand-badge img { inline-size: 100%; block-size: 100%; object-fit: contain; }
+
+/* ---- the rail: closed (icons and the mark), open (the full menu, on hover, focus or kept open), and a library's drawer ---- */
+@media (min-width: 901px) {
+  .app.nav-rail .sidebar { z-index: var(--z-drawer); transition: width var(--dur-focus) var(--ease-out); }
+  .app.nav-rail .sidebar:is(:hover, :focus-within), .app.nav-rail .sidebar.keep-open { width: var(--rail-open, 240px); align-items: stretch; box-shadow: var(--elev-3-shadow); }
+  .app.nav-rail .sidebar:is(:hover, :focus-within) :is(.nav-text, .nav-section, .nav-empty), .app.nav-rail .sidebar.keep-open :is(.nav-text, .nav-section, .nav-empty) { display: revert; }
+  .app.nav-rail .sidebar:is(:hover, :focus-within) .nav-link, .app.nav-rail .sidebar.keep-open .nav-link { justify-content: flex-start; padding-inline: var(--sp-3); }
+  .app.nav-rail .sidebar:is(:hover, :focus-within) .brand, .app.nav-rail .sidebar.keep-open .brand { justify-content: flex-start; padding-inline: var(--sp-3); }
+  .app.nav-rail .sidebar.keep-open { box-shadow: none; position: sticky; }
+  .rail-keep { display: none; align-items: center; gap: var(--sp-3); padding: var(--sp-3); margin-top: auto; }
+  .app.nav-rail .sidebar:is(:hover, :focus-within) .rail-keep, .app.nav-rail .sidebar.keep-open .rail-keep { display: flex; }
+}
+.rail-drawer { position: fixed; z-index: calc(var(--z-drawer) - 1); inset-block: 0; inset-inline-start: var(--rail); inline-size: var(--rail-drawer, 360px); padding: var(--sp-6) var(--sp-3); background: var(--elev-1-fill); border-inline-end: 1px solid var(--elev-1-line); display: grid; align-content: start; gap: var(--sp-1); overflow-y: auto; }
+.rail-drawer-head { display: flex; align-items: center; gap: var(--sp-3); padding: 0 var(--sp-3) var(--sp-4); }
+.rail-drawer-head h2 { margin: 0; font-size: var(--role-heading-size); letter-spacing: var(--tracking-heading); }
+.rail-drawer-head p { margin: 0; font-size: var(--text-sm); }
+.rail-drawer-ic { display: grid; place-items: center; inline-size: 3rem; block-size: 3rem; border-radius: var(--r-md); background: var(--accent-soft); color: var(--accent-text); }
+.rail-drawer-ic svg { inline-size: 1.5rem; block-size: 1.5rem; }
+@media (min-width: 901px) { .app.nav-rail .rail-drawer ~ .main { margin-inline-start: var(--rail-drawer, 360px); } }
+@media (prefers-reduced-motion: reduce) { .app.nav-rail .sidebar { transition: none; } }

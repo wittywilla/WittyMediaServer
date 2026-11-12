@@ -116,7 +116,7 @@ Android renderers. A theme made by a user or a module scope keeps working: anyth
 
 | # | Owner | Delivers |
 |---|---|---|
-| W1 | Tokens, themes, SDUI contract | Section 2 and 5 in `styles.css`, `design-tokens.py`, `themes/*`, `theme-contrast.py`; catalogue `tokens` for components; any SDUI additions (new `Dock` and `KeyLegend` components with fallbacks, `Hero` and `Shelf` props for peek and See all card; `layout.shell` unchanged); conformance fixtures; docs (DESIGN, THEMES, SDUI, this file). Go tests. |
+| W1 | Tokens, themes, SDUI contract | Section 2 and 5 in `styles.css`, `design-tokens.py`, `themes/*`, `theme-contrast.py`; catalogue `tokens` for components; any SDUI additions (new `Dock` and `KeyLegend` components (required), `Hero` and `Shelf` props for peek and See all card; `layout.shell` unchanged); conformance fixtures; docs (DESIGN, THEMES, SDUI, this file). Go tests. |
 | W2 | Web and desktop | Frame, components, SDUI renderer, TV mode, spatial and gamepad per section 3, keyboard shortcuts and key legend, WittyTV web page on the four places, tests (`spatial`, `nav`, `gamepad`), the design checks, build. |
 | W3 | Apple | WittyKit token and input rules (pure, tested); SDUI renderer and TV frame in `apple/App/SDUI` and `Shell`; tvOS and Apple TV WittyTV (`Tv*.swift`) on the four places; iPhone, iPad, Mac, visionOS adapt. Simulator build and checks under a heavy slot. |
 | W4 | Android | The same for `ui/Sdui*`, `ui/Theme.kt`, `tv/`; Android TV, phone, tablet, Chromebook; JVM tests; `testDebugUnitTest lintSideload assembleSideload` under a heavy slot. |

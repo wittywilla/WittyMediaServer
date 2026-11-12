@@ -1435,6 +1435,9 @@
         },
         "rowsAsLists": {
           "type": "boolean"
+        },
+        "seeAllCard": {
+          "type": "boolean"
         }
       },
       "type": "object"

@@ -1,7 +1,7 @@
 {
  "kit": 1,
  "schemaVersion": 1,
- "catalogRevision": 2,
+ "catalogRevision": 3,
  "cases": [
   {
    "id": "home-tv-hd",
@@ -158,6 +158,24 @@
    "file": "library-films-tv.json",
    "title": "A film library on a television",
    "formFactor": "tv"
+  },
+  {
+   "id": "library-films-dock-desktop",
+   "file": "library-films-dock-desktop.json",
+   "title": "A film library with a Dock written into the page",
+   "formFactor": "desktop"
+  },
+  {
+   "id": "library-films-dock-phone",
+   "file": "library-films-dock-phone.json",
+   "title": "The same Dock on a phone",
+   "formFactor": "phone"
+  },
+  {
+   "id": "home-hero-peek-phone",
+   "file": "home-hero-peek-phone.json",
+   "title": "A spotlight that shows the next title's edge",
+   "formFactor": "phone"
   },
   {
    "id": "library-films-phone",

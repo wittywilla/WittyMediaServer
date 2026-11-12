@@ -446,7 +446,7 @@ A token set to the value it already has derives nothing. So a module scope with 
 
 #### Design 2: tv, elevation, density
 
-Additive, so clients that don't know them ignore them. `tv` is `{ringColor, heroScrim, tvText, units}`: the theme's ten-foot colours (derived again when a profile's override changes `fg`, so the ring and text stay legible) and `units`, the `tv` block of `themes/tokens.json` in TV units. `elevation` has `"0"` to `"3"`, each `{fillToken, fill, lineToken, line, shadow}` with the colours resolved in this look, so a client draws the page, a panel, a lifted card and an overlay without its own table. `density` is `{default, tvDefault, steps: {compact|comfortable|spacious: {space, control}}}`. Each look in `variants` has its own `tv` and `elevation`.
+`tv` is `{ringColor, heroScrim, tvText, units}`: the theme's ten-foot colours (derived again when a profile's override changes `fg`, so the ring and text stay legible) and `units`, the `tv` block of `themes/tokens.json` in TV units. `elevation` has `"0"` to `"3"`, each `{fillToken, fill, lineToken, line, shadow}` with the colours resolved in this look, so a client draws the page, a panel, a lifted card and an overlay without its own table. `density` is `{default, tvDefault, steps: {compact|comfortable|spacious: {space, control}}}`. Each look in `variants` has its own `tv` and `elevation`.
 
 #### The server's name
 

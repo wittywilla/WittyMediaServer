@@ -304,8 +304,7 @@ func buildComponents() []ComponentSpec {
 			A11y:    "Role: toolbar, labelled \"Filter and sort\". Each field is a pop-up button labelled \"<label>: <current choice or Any>\".",
 			Example: example(`{"id":"filters","component":"FilterBar","props":{"target":"all","fields":["genre","decade","watched"]}}`)},
 
-		{Type: "Dock", Label: "Dock", Icon: "more", Category: "navigation", Since: 3, Authored: true, Data: "none", Container: true, Children: []string{"Button", "KeyLegend"}, Focus: "group",
-			Fallback: "Stack", FallbackNote: "A row of its Buttons (the key legend is left out). Its generated controls, which are client commands, are left out too.",
+		{Type: "Dock", Label: "Dock", Icon: "more", Category: "navigation", Since: 3, Required: true, Authored: true, Data: "none", Container: true, Children: []string{"Button", "KeyLegend"}, Focus: "group",
 			Description: "The persistent controls of one screen, in one row that never moves: for a grid, its sort, filters, view and jump to a letter. It is where the screen's options key leads, and it carries the key legend. Put it last on the page.",
 			Props: []PropSpec{
 				rev3(pText("title", "Name", "Named to assistive technology: \"Options\" when left empty.", 40)),
@@ -319,11 +318,10 @@ func buildComponents() []ComponentSpec {
 				"desktop": "The same bar across the bottom of the content, layout.dock.height points tall, below the page's scroll; the options key (a period) or Shift+F10 moves focus to it.",
 				"phone":   "No bar: layout.dock.placement is sheet. The controls are one \"Options\" button at the end of the page's header that opens them as a bottom sheet, in the same order; the legend is left out.",
 			},
-			A11y: "Role: toolbar, labelled by its name. Each control is a button labelled as written (\"Sort: Title\"). The legend is hidden from assistive technology: its keys are in every control's hint.",
+			A11y:    "Role: toolbar, labelled by its name. Each control is a button labelled as written (\"Sort: Title\"). The legend is hidden from assistive technology: its keys are in every control's hint.",
 			Example: example(`{"id":"dock","component":"Dock","props":{"target":"all","controls":["sort","filter","view","jump"]}}`)},
 
-		{Type: "KeyLegend", Label: "Key legend", Icon: "info", Category: "text", Since: 3, Authored: true, Data: "none", Focus: "none",
-			Fallback: "Text", FallbackNote: "On a television a caption \"Select · Back · Options\" in a Text; elsewhere left out.",
+		{Type: "KeyLegend", Label: "Key legend", Icon: "info", Category: "text", Since: 3, Required: true, Authored: true, Data: "none", Focus: "none",
 			Description: "A line of key hints (\"OK Select\", \"Menu Options\") in glyphs matched to the input in use: a keyboard's key caps, a game pad's buttons, a remote's. Hidden when only touch or a mouse is in use. Normally the last thing in a Dock.",
 			Props: []PropSpec{
 				rev3(pList("actions", "Hints", "Which actions are shown, in order. The glyphs come from the input table in themes/tokens.json for the device in use.", []string{"select", "back", "options"},
@@ -425,7 +423,7 @@ func buildComponents() []ComponentSpec {
 			Props: []PropSpec{
 				req(pOf(PropMarkdown, "text", "Text", "Placeholders such as {user}, {greeting}, {server} and {library} are filled in.")),
 				pEnum("format", "Format", "", "plain", "plain|Plain", "markdown|Markdown"),
-				pEnum("role", "Size", "Sizes come from the device, not from numbers.", "body", "pageTitle|Page title", "heading|Heading", "title|Title", "body|Body", "caption|Caption"),
+				pEnum("role", "Size", "Sizes come from the device, not from numbers.", "body", "display|Display", "pageTitle|Page title", "heading|Heading", "title|Title", "body|Body", "caption|Caption"),
 				pEnum("align", "Align", "", "start", "start|Start", "center|Centre", "end|End"),
 				pInt("maxLines", "Most lines", "Cut with an ellipsis after this many lines. 0 doesn't cut.", 0, 0, 20),
 			},

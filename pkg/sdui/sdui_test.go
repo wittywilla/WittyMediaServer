@@ -85,7 +85,7 @@ func TestCatalogueIsConsistent(t *testing.T) {
 				}
 			}
 			p := Page{ID: "example", Kind: kind, Title: "Example", Sections: []Section{s}}
-			if s.Component == "FilterBar" {
+			if s.Component == "FilterBar" || s.Component == "Dock" {
 				p.Sections = append(p.Sections, Section{ID: "all", Component: "Grid", Source: Source{"type": "browse", "library": "$library", "filterable": true}})
 				p.Kind = "library"
 			}

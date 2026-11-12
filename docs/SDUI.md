@@ -132,8 +132,8 @@ built around its rules and every other device gets them for free.
 | There is no pointer. Everything a person can act on must take focus, and focus must start somewhere. | Every node a person can act on has `focus.order` in reading order and a `focus.group`; exactly one has `focus.default`. See [Focus](#focus). |
 | A page scrolls one way and its rows scroll sideways. Nothing scrolls both ways, and scrolling regions don't nest. | The components are that shape: a `Page` of sections, `Shelf` rows inside it. The validator refuses a row inside a row, and anything after the one `NativeView` or below a `Grid` that never ends. |
 | Focus moves by direction, and guessing by geometry jumps between rows of different lengths. | Movement between sections follows the page's order and each group remembers its member; geometry is never used to pick a row. |
-| The edge of a television picture can't be relied on. | `layout.safeArea`: 60 points top and bottom, 90 at the sides (changed in Design 2 from 80), on the 1920×1080 canvas. |
-| It is read from the sofa. | `layout.text` is tvOS's own type sizes (76, 57, 48, 29, 25 points) and cards are sized for three metres. |
+| The edge of a television picture can't be relied on. | `layout.safeArea`: 60 points top and bottom, 90 at the sides, on the 1920×1080 canvas. |
+| It is read from the sofa. | `layout.text` is the television's type sizes (`tv.type` in themes/tokens.json: 57, 48, 38, 29, 25 points, and 76 for `display`) and cards are sized for three metres. |
 | An Apple TV HD has little memory and a slow network stack. | A page is cut to `budget.maxSections`; only the first `budget.eagerSections` rows arrive with cards, 12 a row; the rest are fetched as they come near. |
 | A 4K poster in a 250-point card wastes all of it. | Every picture's address carries the width to ask for, from a short list of widths: 320 pixels for a poster on an HD, 640 on a 4K. |
 | There is no web view and no browser. | There is no web component; a button that opens a web page is not sent to a television. |
@@ -348,8 +348,8 @@ checked without pixels.
 - Spacing is one of six steps (`none`, `xs`, `s`, `m`, `l`, `xl`);
   `layout.spacing` says how many points each is on this device. The distance
   between a page's sections is `l` (`m` at the compact breakpoint).
-- Text is one of five roles (`pageTitle`, `heading`, `title`, `body`,
-  `caption`); `layout.text` gives each one's size. Use the platform's
+- Text is one of six roles (`display`, `pageTitle`, `heading`, `title`,
+  `body`, `caption`; `badge` is a seventh, for badges); `layout.text` gives each one's size. Use the platform's
   dynamic type for the role where it has one; the numbers are the sizes at
   the default setting.
 - A row or grid says how big its cards are in `props.card` (`width`,
@@ -507,9 +507,9 @@ Every component's role and label derivation is in its entry under
 
 ### Capability negotiation
 
-Thirteen components are **required**: `Page`, `Shelf`, `Grid`, `Card`,
+Fifteen components are **required**: `Page`, `Shelf`, `Grid`, `Card`,
 `Text`, `Notice`, `Divider`, `Spacer`, `Stack`, `Button`, `Image`, `List`,
-`ListItem`. A renderer that draws those can show every page. The rest are
+`ListItem`, `Dock`, `KeyLegend`. A renderer that draws those can show every page. The rest are
 optional: a client that doesn't send `components` is taken to draw all of
 its catalogue revision; one that does is sent only the optional components
 it names, and each of the others as its **fallback**, which is made of
@@ -747,7 +747,7 @@ it is drawn, and how pages look. There are five, the same on every app:
 |---|---|---|
 | `sidebar` | A column down the side where there is room (240 points; 220 on a tablet), a tab bar on a phone, the top menu on a television. | As written. **The default everywhere**: the apps as they have always looked. |
 | `topTabs` | A row of tabs across the top on every device, leaving the whole width to the page. | As written. |
-| `tvRows` | A narrow rail of icons (80 points; 72 on a tablet), a phone's tab bar, a television's top menu. | Grids become rows of large cards with See all (except a grid a filter bar drives), the spotlight is a billboard, cards a section doesn't size are large. |
+| `tvRows` | A narrow rail of icons (80 points; 72 on a tablet), a phone's tab bar, a television's top menu. | Grids become rows of large cards with See all as the last card (except a grid a filter bar drives), the spotlight is a billboard, cards a section doesn't size are large. |
 | `compactList` | A rail; on a television a menu down the side, 120 points closed and 400 open. | Rows, grids and the spotlight become lists, a line per title with its picture in its own shape, progress and two badges; compact spacing. |
 | `streaming` | A see-through row of tabs over the top of the page, solid once it scrolls; a phone's tab bar; a television's top menu (never over the page). | A billboard spotlight, wide cards for films, shows and episodes, comfortable spacing. |
 
@@ -790,6 +790,32 @@ renderer that follows the document draws every layout with nothing more. A
 two `badges` when the item has them. The conformance kit has a case for every
 layout on the device it suits best (`layout-*.json`), including a
 television's side menu and a grid a filter bar keeps.
+
+### Zones and the Dock
+
+Every screen has at most four zones: the **Bar** (the menu, from the navigation's
+shell), the **Stage** (the page), the **Dock** and the **Layer** (dialog, menu,
+player). The Dock is a `Dock` section: the persistent controls of one screen in a
+row that never moves, with a `KeyLegend` at its end. `layout.dock` says where it
+goes: `placement` `bottom` (a bar `height` points tall across the foot of the
+screen, outside the page's scroll: 112 on a television, 64 on a tablet, a desktop
+and the web) or `sheet` (a phone: no bar, an Options button opens the controls as
+a sheet), and `hintSize` for the legend. Its generated `controls` (`sort`,
+`filter`, `view`, `jump`) are Buttons whose action is the client command
+`control.open` with `params` `{control, target}`; the server builds them from the
+filter bar that drives `target`, leaves out those with nothing to offer (jump only
+when the sort is the title) and a Dock with no buttons. On a television the server
+adds a locked Dock to every page that has a filter bar over a grid. The Dock never
+takes default focus and the page's content comes before it in `focus.order`; the
+input that reaches it (Down from the last row, the options key, Start) is in
+`input` in themes/tokens.json, and `nav` there has the back ladder (Layer, Dock,
+Stage, Bar, Home).
+
+**Peek and See all.** `layout.peek` is the fraction of the next card or slide that
+shows at the trailing edge of a scrolling row or spotlight (0.18 on a television,
+0.12 on a phone and tablet, 0 elsewhere). A `Shelf` has it unless its node says
+`peek: false`; a `Hero` has it when its node says `peek: true`. A Shelf node with
+`seeAllCard: true` draws See all as its last card, in the shape of the row's cards.
 
 The reference table is [Layout options](#layout-options-1) in the catalogue
 below; `GET /sdui/catalog` has `layouts` and `navStyles`; `sdui-layouts` in
@@ -1002,7 +1028,7 @@ own window, is one of the three renderers.
   from `GET /sdui/navigation`, in the shell the app always had. Without
   those features (an older server) it keeps the pages and menu it worked
   out itself.
-- **What it says it is.** `catalog=2`, `platform` `web` (or `desktop`
+- **What it says it is.** `catalog=3`, `platform` `web` (or `desktop`
   inside the desktop app), and a form factor from the window: TV mode is
   `tv` (`deviceClass` by the screen), a window under 600 points is `phone`,
   a touch screen under 1200 is `tablet`, anything else `web` or `desktop`.
@@ -1199,7 +1225,7 @@ and without `meta.generatedAt` and `meta.etag`; `ETag(doc)` is `W/"sha256-`
 
 - `version` (1) changes only for something a client built for it can't
   survive. Clients refuse a version they don't know.
-- The **catalogue revision** (2) counts additions: a component, a property,
+- The **catalogue revision** (3) counts additions: a component, a property,
   a card style, a source, a condition, an action type. Each has a `since`.
   A client sends the revision it was built against and is sent nothing
   newer in its place; fallbacks cover components, the shape covers card
@@ -1264,8 +1290,8 @@ what the server does.
 | [`Tabs`](#tabs) | Tabs | navigation |  | none | group | Stack |
 | [`Tab`](#tab) | Tab | navigation |  | none | item | Stack |
 | [`FilterBar`](#filterbar) | Filter and sort | navigation |  | none | stop | left out |
-| [`Dock`](#dock) | Dock | navigation |  | none | group | Stack |
-| [`KeyLegend`](#keylegend) | Key legend | text |  | none | none | Text |
+| [`Dock`](#dock) | Dock | navigation | yes | none | group |  |
+| [`KeyLegend`](#keylegend) | Key legend | text | yes | none | none |  |
 | [`DetailHeader`](#detailheader) | Title header | detail |  | none | stop | Stack |
 | [`SeasonList`](#seasonlist) | Seasons and episodes | detail |  | required | group | Shelf |
 | [`TrackList`](#tracklist) | Track list | detail |  | required | group | List |
@@ -1625,8 +1651,6 @@ How it is drawn:
 
 Focus: its children take focus, and it is their group. Accessibility: Role: toolbar, labelled by its name. Each control is a button labelled as written ("Sort: Title"). The legend is hidden from assistive technology: its keys are in every control's hint.
 
-Fallback: A row of its Buttons (the key legend is left out). Its generated controls, which are client commands, are left out too.
-
 ```json
 {
   "id": "dock",
@@ -1659,8 +1683,6 @@ How it is drawn:
 - **Desktop and web.** The same row at the caption size, shown only while the last input was a key or a game pad; a mouse or touch hides it, the first key brings it back. Glyphs are key caps (the key, or its name).
 
 Focus: takes none. Accessibility: Role: none (hidden). The keys are announced as each control's hint instead.
-
-Fallback: On a television a caption "Select · Back · Options" in a Text; elsewhere left out.
 
 ```json
 {
@@ -1870,7 +1892,7 @@ Fallback: A Notice with the banner's title, text and button.
 |---|---|---|---|
 | `text` (required) | markdown |  | Text. Placeholders such as {user}, {greeting}, {server} and {library} are filled in. |
 | `format` | enum: plain, markdown | `plain` | Format |
-| `role` | enum: pageTitle, heading, title, body, caption | `body` | Size. Sizes come from the device, not from numbers. |
+| `role` | enum: display, pageTitle, heading, title, body, caption | `body` | Size. Sizes come from the device, not from numbers. |
 | `align` | enum: start, center, end | `start` | Align |
 | `maxLines` | int 0 to 20 |  | Most lines. Cut with an ellipsis after this many lines. 0 doesn't cut. |
 

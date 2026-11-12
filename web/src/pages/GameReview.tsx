@@ -1,24 +1,18 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { useEffect, useId, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { HelpLink } from '../components/HelpLink'
 import { api, type GameConsole, type GameDetailsInfo, type GameImport, type GameReview, type GameReviewItem, type GameVersions, type Item } from '../api'
-import { IconCheck, IconClose } from '../icons'
 import { Button, Dialog, EmptyState, Notice, Progress, Spinner, Tabs, toast } from '../ui'
 import { isBackKey } from '../ui/spatial'
 import SpecPage from '../spec/SpecPage'
 import { fixGameSpec, versionLinksSpec } from '../spec/specs/fixgame'
+import { reviewSpec } from '../spec/specs/gameReview'
 import './gamereview.css'
 
 // Putting a games library right. A scan lists what it can prove and asks about the rest:
 // see docs/GAMING.md. Nothing here touches a file, only what the server believes about it,
 // and everything can be taken back. Administrators only, as the routes behind it are.
-
-const KIND_WORDS: Record<string, string> = {
-  bios: 'BIOS', update: 'Updates', dlc: 'Extra content', utility: 'Utilities', audio: 'Music', data: 'Pieces of a game', other: 'Other files', duplicate: 'Copies', ignored: 'Not games',
-}
-const kindWord = (k: string) => KIND_WORDS[k] || k
 
 type Tab = 'needs' | 'blocked' | 'left' | 'ignored'
 
@@ -133,8 +127,8 @@ function GameReviewDialog({ libraryId, consoles, first, onClose, onChanged }: { 
   const [focusRow, setFocusRow] = useState<{ at: number } | null>(null)
   useEffect(() => {
     if (!focusRow || busy) return
-    const rows = box.current?.querySelectorAll<HTMLElement>('.gr-row')
-    const next = rows?.[Math.min(focusRow.at, rows.length - 1)]?.querySelector<HTMLElement>('button, a')
+    const rows = box.current?.querySelectorAll<HTMLElement>('.spec-row')
+    const next = rows?.[Math.min(focusRow.at, rows.length - 1)]?.querySelector<HTMLElement>('button, a') || rows?.[Math.min(focusRow.at, rows.length - 1)]
     ;(next || box.current?.querySelector<HTMLElement>('[role=tab][aria-selected=true]'))?.focus()
     setFocusRow(null)
   }, [focusRow, busy])
@@ -168,10 +162,7 @@ function GameReviewDialog({ libraryId, consoles, first, onClose, onChanged }: { 
           {data === null ? <Spinner /> : data.items.length === 0 ? <EmptyState title={tab === 'needs' ? 'Nothing needs a look' : 'Nothing here'} /> : (
             <>
               {data.total > data.items.length && <p className="muted">Showing the first {data.items.length.toLocaleString()} of {data.total.toLocaleString()}.</p>}
-              {tab === 'needs' && <BulkBar items={data.items} busy={busy} onAct={act} />}
-              <ul className="gr-list">
-                {data.items.map((it) => <ReviewRow key={it.id} it={it} tab={tab} consoles={consoles} busy={busy} onAct={act} />)}
-              </ul>
+              <ReviewList tab={tab} items={data.items} consoles={consoles} busy={busy} onAct={act} />
             </>
           )}
         </div>
@@ -180,49 +171,31 @@ function GameReviewDialog({ libraryId, consoles, first, onClose, onChanged }: { 
   )
 }
 
-// One click for many: a whole folder that's plainly one console's, but has no headers.
-function BulkBar({ items, busy, onAct }: { items: GameReviewItem[]; busy: boolean; onAct: (ids: number[], action: 'add' | 'ignore' | 'forget', console?: string, words?: string) => void }) {
-  const groups = new Map<string, { name: string; ids: number[] }>()
-  for (const it of items) {
-    const s = it.suggest[0]
-    if (!s) continue
-    const g = groups.get(s.console) || { name: s.short, ids: [] }
-    g.ids.push(it.id)
-    groups.set(s.console, g)
+// The list of files with their choices (reviewSpec); which row has its console choice open is this list's own.
+function ReviewList({ tab, items, consoles, busy, onAct }: { tab: Tab; items: GameReviewItem[]; consoles: GameConsole[]; busy: boolean; onAct: (ids: number[], action: 'add' | 'ignore' | 'forget', console?: string, words?: string) => void }) {
+  const [choosing, setChoosing] = useState<number | null>(null)
+  const box = useRef<HTMLDivElement>(null)
+  const page = useMemo(() => reviewSpec(tab, items, { busy, consoles: consoles.map((c) => ({ id: c.id, name: c.name })), choosing }), [tab, items, busy, consoles, choosing])
+  const ids = new Set<string>()
+  for (const sec of page.sections) if (sec.kind !== 'note' && sec.kind !== 'fields') for (const it of sec.items) { if (it.id) ids.add(it.id); if ('actions' in it) for (const a of it.actions || []) if (a.id) ids.add(a.id) }
+  // Opening the console choice puts focus on its first button; Back or Escape closes it.
+  useEffect(() => { if (choosing != null) box.current?.querySelector<HTMLElement>('.spec-chips:last-of-type .spec-chip')?.focus() }, [choosing])
+  const act = (id: string) => {
+    const [verb, a, b] = id.split('.')
+    const it = items.find((x) => String(x.id) === a)
+    if (verb === 'bulk') { const g = items.filter((x) => x.suggest[0]?.console === a); onAct(g.map((x) => x.id), 'add', a, `Added ${g.length} files as ${g[0]?.suggest[0]?.short} games.`) }
+    else if (verb === 'closepick') setChoosing(null)
+    else if (!it) return
+    else if (verb === 'add' && it.suggest[0]) onAct([it.id], 'add', it.suggest[0].console, `Added ${it.name} as a ${it.suggest[0].short} game.`)
+    else if (verb === 'other') setChoosing(choosing === it.id ? null : it.id)
+    else if (verb === 'ignore') onAct([it.id], 'ignore', undefined, `${it.name} won’t be listed.`)
+    else if (verb === 'forget') onAct([it.id], 'forget', undefined, 'Taken back. The library is being scanned again.')
+    else if (verb === 'pick') { const c = consoles.find((x) => x.id === b); setChoosing(null); if (c) onAct([it.id], 'add', c.id, `Added ${it.name} as a ${c.name} game.`) }
   }
-  const worth = [...groups.entries()].filter(([, g]) => g.ids.length > 1)
-  if (worth.length === 0) return null
   return (
-    <div className="gr-bulk">
-      {worth.map(([id, g]) => <Button key={id} size="sm" disabled={busy} onClick={() => onAct(g.ids, 'add', id, `Added ${g.ids.length} files as ${g.name} games.`)}>Add all {g.ids.length} as {g.name}</Button>)}
+    <div ref={box} onKeyDown={(e) => { if (choosing != null && (e.key === 'Escape' || isBackKey(e.nativeEvent))) { e.preventDefault(); e.stopPropagation(); setChoosing(null) } }}>
+      <SpecPage bare page={page} handled={ids} onAction={act} />
     </div>
-  )
-}
-
-function ReviewRow({ it, tab, consoles, busy, onAct }: { it: GameReviewItem; tab: Tab; consoles: GameConsole[]; busy: boolean; onAct: (ids: number[], action: 'add' | 'ignore' | 'forget', console?: string, words?: string) => void }) {
-  const [choosing, setChoosing] = useState(false)
-  const toggle = useRef<HTMLButtonElement>(null)
-  const first = it.suggest[0]
-  return (
-    <li className="gr-row">
-      <div className="gr-row-text">
-        <b className="gr-name">{it.name}</b>
-        {it.path !== it.name && <small className="gr-path">{it.path}</small>}
-        <span className="gr-reason">{tab === 'left' && <span className="pill">{kindWord(it.kind)}</span>} {it.reason}</span>
-      </div>
-      <div className="gr-row-actions">
-        {tab === 'blocked' && it.itemId ? <Link className="btn sm ghost" to={`/item/${it.itemId}`} aria-label={`Open ${it.name}`}>Open the game</Link> : null}
-        {tab === 'ignored' && <Button size="sm" disabled={busy} aria-label={`Take back saying ${it.name} isn’t a game`} onClick={() => onAct([it.id], 'forget', undefined, 'Taken back. The library is being scanned again.')}>Take it back</Button>}
-        {(tab === 'needs' || tab === 'left') && it.kind !== 'duplicate' && (
-          <>
-            {first && <Button size="sm" variant={tab === 'needs' ? 'primary' : 'ghost'} disabled={busy} aria-label={`${it.name} is a ${first.short} game`} onClick={() => onAct([it.id], 'add', first.console, `Added ${it.name} as a ${first.short} game.`)}><IconCheck /> It’s a {first.short} game</Button>}
-            <Button ref={toggle} size="sm" variant="ghost" disabled={busy} aria-expanded={choosing} aria-label={`Another console for ${it.name}`} onClick={() => setChoosing(!choosing)}>Another console</Button>
-            {tab === 'needs' && <Button size="sm" variant="ghost" disabled={busy} aria-label={`${it.name} is not a game`} onClick={() => onAct([it.id], 'ignore', undefined, `${it.name} won’t be listed.`)}><IconClose /> Not a game</Button>}
-          </>
-        )}
-      </div>
-      {choosing && <ConsolePicker consoles={consoles} disabled={busy} onPick={(c, name) => onAct([it.id], 'add', c, `Added ${it.name} as a ${name} game.`)} label={`Console for ${it.name}`} onClose={() => { setChoosing(false); toggle.current?.focus() }} />}
-    </li>
   )
 }
 

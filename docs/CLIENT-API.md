@@ -1892,6 +1892,10 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `DELETE /modules/wittyplay/docker/emulators/{id}/install` | admin | Cancel an emulator's install. What had been downloaded is kept for the next try. |
 | `GET /modules/wittyplay/docker/emulators/{id}/settings` | user | An emulator's settings as this account sees them: the schema, each layer and what they come to. `?game=` adds one game's. |
 | `PUT /modules/wittyplay/docker/emulators/{id}/settings` | user | Set an emulator's settings: {scope: admin, user or game, game, values}. Checked against the schema. |
+| `GET /modules/wittyplay/docker/emulators/{id}/manual` | admin | An emulator that's never downloaded (Ryujinx, Lichii): its project's page, the program names it's known by on the system it runs on, the drop folder, `manual.json`'s path, and what was found where it's usually installed. |
+| `POST /modules/wittyplay/docker/emulators/{id}/manual` | admin | Add it: {program: a full path, or "" for what was found}. Checked to be that emulator; answers as the GET, with `installed`. |
+| `GET /modules/wittyplay/docker/own` | admin | The administrator's own emulator programs, and how many may be kept. |
+| `PUT /modules/wittyplay/docker/own` | admin | Replace them: a list of {name, systems, program, args, configDir, like}. Each is checked to be a program on this server. |
 | `GET /modules/wittyplay/docker/sessions` | user | Games running in standalone emulators: the caller's own, or everyone's for an administrator. |
 | `POST /modules/wittyplay/docker/sessions/{sid}/pause` | user | Freeze a game in a standalone emulator. The player's own only. |
 | `POST /modules/wittyplay/docker/sessions/{sid}/resume` | user | Let a paused game in a standalone emulator go on. The player's own only. |

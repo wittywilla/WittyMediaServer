@@ -54,6 +54,12 @@ func (s *Server) wittyPlayDockerRoutes(m routes) {
 	m.Handle("GET /api/modules/wittyplay/docker/emulators/{id}/install", ad(s.handleWittyPlayDocker))
 	m.Handle("DELETE /api/modules/wittyplay/docker/emulators/{id}/install", ad(s.handleWittyPlayDocker))
 	m.Handle("DELETE /api/modules/wittyplay/docker/emulators/{id}", ad(s.handleWittyPlayDocker))
+	// An emulator the administrator installed themselves (Ryujinx, Lichii): what's found, and
+	// adding it; and their own emulator programs.
+	m.Handle("GET /api/modules/wittyplay/docker/emulators/{id}/manual", ad(s.handleWittyPlayDocker))
+	m.Handle("POST /api/modules/wittyplay/docker/emulators/{id}/manual", ad(s.handleWittyPlayDocker))
+	m.Handle("GET /api/modules/wittyplay/docker/own", ad(s.handleWittyPlayDocker))
+	m.Handle("PUT /api/modules/wittyplay/docker/own", ad(s.handleWittyPlayDocker))
 	// An emulator's settings: anyone's own, and an administrator's for everyone. WittyPlay
 	// decides which a request may change.
 	m.Handle("GET /api/modules/wittyplay/docker/emulators/{id}/settings", a(s.handleWittyPlayDocker))

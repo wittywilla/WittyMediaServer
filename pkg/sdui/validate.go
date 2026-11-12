@@ -228,6 +228,7 @@ func validatePage(p *Page, ui *ModuleSet, own bool) []Issue {
 			}
 		}
 	}
+	v.regions(p.Regions)
 	if len(p.Sections) == 0 && len(p.Variants) == 0 {
 		v.warn("/sections", "Add a section, or apply a preset.", "the page has no sections, so it will be empty")
 	}
@@ -1021,4 +1022,51 @@ func editDistance(a, b string) int {
 		prev, cur = cur, prev
 	}
 	return prev[len(b)]
+}
+
+// regions checks what a page puts into the shell's regions.
+func (v *validator) regions(r *PageRegions) {
+	if r == nil {
+		return
+	}
+	if len(r.StatusBar) > 6 {
+		v.err("/regions/statusBar", "Keep six or fewer.", "the status bar holds at most 6 items")
+	}
+	if len(r.SystemDock) > 7 {
+		v.err("/regions/systemDock", "Keep seven or fewer.", "the system dock holds at most 7 entries")
+	}
+	seen := map[string]bool{}
+	for i, it := range r.StatusBar {
+		p := "/regions/statusBar/" + strconv.Itoa(i)
+		if !ValidID(it.ID) || seen[it.ID] {
+			v.err(p+"/id", "Give each item its own short ID.", "an item's ID is lower-case letters, digits, - and _, and each is used once")
+		}
+		seen[it.ID] = true
+		if !contains(StatusKinds, it.Kind) {
+			v.err(p+"/kind", "Use "+strings.Join(StatusKinds, ", ")+".", "%q is not a kind of status item", it.Kind)
+		}
+		if len([]rune(it.Text)) > 80 {
+			v.err(p+"/text", "Shorten it.", "a status item's text is at most 80 characters")
+		}
+	}
+	seen = map[string]bool{}
+	for i, d := range r.SystemDock {
+		p := "/regions/systemDock/" + strconv.Itoa(i)
+		if !ValidID(d.ID) || seen[d.ID] {
+			v.err(p+"/id", "Give each entry its own short ID.", "an entry's ID is lower-case letters, digits, - and _, and each is used once")
+		}
+		seen[d.ID] = true
+		if strings.TrimSpace(d.Label) == "" || len([]rune(d.Label)) > 24 {
+			v.err(p+"/label", "Use one or two short words.", "an entry needs a label of at most 24 characters")
+		}
+		if !contains(Icons, d.Icon) {
+			v.err(p+"/icon", suggest(d.Icon, Icons), "%q is not one of the built-in icons", d.Icon)
+		}
+		if !strings.HasPrefix(d.Route, "/") {
+			v.err(p+"/route", "Use a place in the app such as /page/online.", "an entry opens a route")
+		}
+		if d.As != "" && d.As != PresentLayer {
+			v.err(p+"/as", "Use layer, or leave it out.", "%q is not a way to show a page", d.As)
+		}
+	}
 }

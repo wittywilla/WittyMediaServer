@@ -214,6 +214,7 @@ func Render(page Page, ctx *RenderContext) (Document, error) {
 	if page.Scope != "" {
 		doc.Theme = &ThemeScope{Scope: page.Scope, Tokens: copyTokens(ctx.Scopes[page.Scope])}
 	}
+	doc.Regions = r.regions(page.Regions)
 	doc.ScreenTime = ctx.ScreenTime
 	doc.Meta.GeneratedAt = ctx.Now.UTC()
 	doc.Meta.ETag = ETag(doc)
@@ -1035,6 +1036,15 @@ func (r *renderer) collectionPage(n *Node, in instance, offset, limit int, allow
 		if propBool(p, "numbered", false) {
 			n.Props["numbered"] = true
 		}
+		if s.Component == "Shelf" && propBool(p, "focusGrow", false) {
+			n.Props["focusGrow"] = true
+		}
+		if s.Component == "Shelf" && propBool(p, "detail", false) {
+			n.Props["detail"] = true
+		}
+	}
+	if propBool(p, "focusable", false) {
+		n.Props["focusable"] = true
 	}
 	spec, _ := r.sourceSpec(s.Source.Type())
 	// Past the device's budget of sections that arrive filled, a row is sent
@@ -1164,13 +1174,35 @@ func (r *renderer) listItem(parent string, it *Item) Node {
 	if len(it.Badges) > 0 {
 		n.Props["badges"] = it.Badges[:min(len(it.Badges), 2)]
 	}
+	if it.Trailing != "" {
+		n.Props["trailing"] = Truncate(it.Trailing, r.l.TextLimits.Subtitle)
+	}
+	if c := cleanControl(it.Control); c != nil {
+		n.Props["control"] = c
+	}
 	switch {
+	case it.Action != nil:
+		n.Action = it.Action
 	case it.Route != "":
 		n.Action = &Action{Type: ActNavigate, To: it.Route}
 	case it.PlayID != "":
 		n.Action = &Action{Type: ActPlay, Item: it.PlayID}
 	}
 	return n
+}
+
+// cleanControl is a control as it goes into a node: a type the catalogue knows, or nothing.
+func cleanControl(c *Control) *Control {
+	if c == nil || !contains([]string{ControlSwitch, ControlSelect, ControlField, ControlSlider}, c.Type) {
+		return nil
+	}
+	cc := *c
+	if cc.Type == ControlSwitch {
+		if _, ok := cc.Value.(bool); !ok {
+			cc.Value = false
+		}
+	}
+	return &cc
 }
 
 // hero fills a Hero: each title a Card of style "hero" holding its backdrop,
@@ -2227,3 +2259,28 @@ func (r *renderer) widget(n *Node, in instance) bool {
 	}
 	return true
 }
+
+// regions is what a page puts into the shell, with placeholders filled in: nil when it puts nothing.
+func (r *renderer) regions(in *PageRegions) *PageRegions {
+	if in == nil {
+		return nil
+	}
+	out := &PageRegions{}
+	for _, it := range in.StatusItems() {
+		it.Text = r.fill(it.Text, nil, nil)
+		out.StatusBar = append(out.StatusBar, it)
+	}
+	for _, d := range in.SystemDock {
+		if d.As != "" && d.As != PresentLayer {
+			d.As = ""
+		}
+		out.SystemDock = append(out.SystemDock, d)
+	}
+	if len(out.StatusBar) == 0 && len(out.SystemDock) == 0 {
+		return nil
+	}
+	return out
+}
+
+// StatusItems are the status bar's items, in order.
+func (p *PageRegions) StatusItems() []StatusItem { return slices.Clone(p.StatusBar) }

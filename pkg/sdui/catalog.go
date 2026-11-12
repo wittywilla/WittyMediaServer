@@ -12,7 +12,11 @@ import (
 // draws every component of the current revision: there is no negotiation and no fallback.
 // 5 added cast and crew: the Credits component, the credits and filmography sources, people
 // in search, the person page.
-const CatalogRevision = 6
+// 7 added what WittyPlay Online needs, all additive: Shelf focusGrow and detail, focusable on Shelf, Grid
+// and List, an item's actions (the detail panel's buttons), presence tones for person cards, the shell
+// regions statusBar and systemDock with the page's regions field, navigate actions shown as a layer,
+// and the controls a list row can carry (switch, select, field, slider) with the Form component.
+const CatalogRevision = 7
 
 // Property types, as an editor needs them to build a form.
 const (
@@ -127,6 +131,10 @@ type CardStyleSpec struct {
 	SubtitleLines int `json:"subtitleLines"`
 	// Kinds are the item kinds the style is the natural one for.
 	Kinds []string `json:"kinds,omitempty"`
+	// BadgeTones say how a badge's text is drawn on the style, by the badge's text: for a person
+	// card a presence dot on the avatar (Playing and Online ok, Away warn, Offline muted). A
+	// renderer draws what the table says, the same on every app.
+	BadgeTones map[string]string `json:"badgeTones,omitempty"`
 	// Tokens are the theme tokens it is drawn with (tokens.go).
 	Tokens *TokenRoles `json:"tokens,omitempty"`
 }

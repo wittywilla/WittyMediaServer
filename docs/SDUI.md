@@ -1328,6 +1328,9 @@ Focus: one stop in the page's focus order; it moves focus among its own parts. A
 | `maxItems` | int 0 to 60 |  | Most cards at first. How many cards are sent before the row asks for more. 0 uses the device's own limit. |
 | `peek` | bool | `true` | Show the next card's edge. layout.peek of the next card's width stays visible at the row's trailing edge, so it is clear the row scrolls on. Off cuts the row at a whole card. |
 | `seeAllCard` | enum: auto, always, never | `auto` | See all as a card. See all as the last card of the row, in the shape of the row's cards, in place of the link beside the heading. Automatic: on a television and in the experiences that ask for it (Stage, Big picture). |
+| `focusGrow` | bool | `false` | The focused card grows. The card with focus scales up (1.45 times on a television, 1.25 on a tablet or desktop, not at all on a phone, where the first card is simply larger) and the cards after it step aside; the others stay small. With reduced motion the card does not animate: it gets a ring. |
+| `detail` | bool | `false` | Detail panel under the row. A panel under the row shows the focused card's item (the first until focus moves): its title large, its subtitle as one line, and its actions as buttons carrying their key glyphs. An item with no actions has its route as the one A action. |
+| `focusable` | bool | `false` | Cards without a route take focus. A card with no route (a friend) is still a stop for focus, and OK on it is the page's to use. Off: it is not a button and takes no focus. |
 | `empty` | enum: hide, message | `hide` | When there is nothing to show. Leave the section out, or keep it with a message. |
 | `emptyText` | text, at most 200 |  | Message when empty. Shown in place of the items when there are none. |
 
@@ -1376,6 +1379,7 @@ Focus: its children take focus, and it is their group. Accessibility: Role: list
 | `cardSize` | enum: s, m, l | `m` | Card size. Small, medium or large cards. A profile may choose its own. |
 | `showTitles` | bool | `true` | Show titles under cards. Off draws the pictures alone. |
 | `maxItems` | int 0 to 200 |  | Most cards at first. How many cards the first page holds. 0 uses the device's own limit. |
+| `focusable` | bool | `false` | Cards without a route take focus. A card with no route (a friend) is still a stop for focus, and OK on it is the page's to use. Off: it is not a button and takes no focus. |
 | `empty` | enum: hide, message | `hide` | When there is nothing to show. Leave the section out, or keep it with a message. |
 | `emptyText` | text, at most 200 |  | Message when empty. Shown in place of the items when there are none. |
 
@@ -2351,6 +2355,7 @@ Holds: `ListItem`.
 | `title` | text, at most 120 |  | Title. The heading above the items. Placeholders such as {library} and {each} are filled in. |
 | `headingStyle` | enum: plain, band, underline | `plain` | Heading style. How the title is drawn: plain, a coloured band across the row, or underlined. Left plain, the experience chooses. |
 | `dense` | bool | `false` | Compact rows |
+| `focusable` | bool | `false` | Cards without a route take focus. A card with no route (a friend) is still a stop for focus, and OK on it is the page's to use. Off: it is not a button and takes no focus. |
 | `empty` | enum: hide, message | `hide` | When there is nothing to show. Leave the section out, or keep it with a message. |
 | `emptyText` | text, at most 200 |  | Message when empty. Shown in place of the items when there are none. |
 

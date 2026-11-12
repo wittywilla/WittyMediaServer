@@ -1,7 +1,7 @@
 {
  "kit": 1,
  "schemaVersion": 1,
- "catalogRevision": 6,
+ "catalogRevision": 7,
  "cases": [
   {
    "id": "home-tv-hd",
@@ -416,6 +416,12 @@
    "file": "module-not-installed.json",
    "title": "A page that uses a module that isn't installed",
    "formFactor": "phone"
+  },
+  {
+   "id": "wittyplay-online-focus-tv",
+   "file": "wittyplay-online-focus-tv.json",
+   "title": "WittyPlay Online home: focused tile grows, detail panel, regions, on a television",
+   "formFactor": "tv"
   },
   {
    "id": "wittyplay-people-tv",

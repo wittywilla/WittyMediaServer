@@ -52,6 +52,41 @@ type Page struct {
 	// TTLSeconds suggests how long a client may show the page before asking
 	// again. 0: the default for the page's kind.
 	TTLSeconds int `json:"ttlSeconds,omitempty"`
+	// Regions are what the page puts into the shell's own regions while it, or its theme scope, is
+	// showing: the status bar's items and the system dock's actions (docs/SDUI.md, "Shell regions").
+	Regions *PageRegions `json:"regions,omitempty"`
+}
+
+// PageRegions is a page's contribution to the shell: the content of the regions that take any.
+// A page that supplies one turns that region on for as long as the page shows, unless the
+// profile's own placements hide it.
+type PageRegions struct {
+	// StatusBar is what the status bar shows besides what the client knows (the clock, the
+	// controllers' batteries): the profile's name and a line, the server's name.
+	StatusBar []StatusItem `json:"statusBar,omitempty"`
+	// SystemDock is the round dock of the screen's destinations.
+	SystemDock []DockEntry `json:"systemDock,omitempty"`
+}
+
+// Status item kinds: "profile" (the profile's name, with Text as the line under it), "server" (the
+// server's name, drawn from the brand) and "text" (Text alone).
+var StatusKinds = []string{"profile", "server", "text"}
+
+// StatusItem is one thing in the status bar.
+type StatusItem struct {
+	ID   string `json:"id"`
+	Kind string `json:"kind"`
+	Text string `json:"text,omitempty"`
+}
+
+// DockEntry is one destination of the system dock: a round button, the current one labelled.
+type DockEntry struct {
+	ID    string `json:"id"`
+	Label string `json:"label"`
+	Icon  string `json:"icon"`
+	// Route is the place it opens; As "layer" shows that page over the screen.
+	Route string `json:"route"`
+	As    string `json:"as,omitempty"`
 }
 
 // Match narrows a page. Zero fields match anything.
@@ -284,6 +319,9 @@ type Document struct {
 	// Personal says what the profile may change about this page and what it
 	// has changed, so an app can offer "Customise" without knowing the page.
 	Personal *PersonalInfo `json:"personal,omitempty"`
+	// Regions is what the page puts into the shell's regions (Page.Regions), with the regions it
+	// turns on in Shell.
+	Regions *PageRegions `json:"regions,omitempty"`
 	// ScreenTime is present when the profile's screen time is over: nothing
 	// in the page offers to play, and this says why and until when.
 	ScreenTime *ScreenTime `json:"screenTime,omitempty"`
@@ -384,7 +422,14 @@ type Action struct {
 	Op string `json:"op,omitempty"`
 	// Params are extra, per type: {"resume": true} for play.
 	Params map[string]any `json:"params,omitempty"`
+	// As says how a navigate action's page is shown: "layer" over the current screen (a sheet, a
+	// quick menu) instead of replacing it, which a client that has no layers does as a page.
+	// Left out: the page replaces the screen.
+	As string `json:"as,omitempty"`
 }
+
+// PresentLayer is Action.As for a page shown over the screen.
+const PresentLayer = "layer"
 
 // Action types.
 const (
@@ -499,6 +544,67 @@ type Item struct {
 	Born     string `json:"born,omitempty"`
 	Died     string `json:"died,omitempty"`
 	KnownFor string `json:"knownFor,omitempty"`
+	// Action is what activating the item's row does instead of opening Route or playing PlayID: a
+	// command (sign a device out, add a title to a list). Trailing is the text at the row's end
+	// ("2 hours ago", "22 GB"). Control draws a switch, a choice, a field or a slider in the row:
+	// see Control. All three are drawn by List rows (docs/SDUI.md, "Forms and controls").
+	Action   *Action  `json:"action,omitempty"`
+	Trailing string   `json:"trailing,omitempty"`
+	Control  *Control `json:"control,omitempty"`
+	// Actions are the buttons a Shelf's detail panel shows for the item while it has focus (Resume,
+	// Play online, Options), first the A action. An item with none has its route as its A action.
+	Actions []ItemAction `json:"actions,omitempty"`
+}
+
+// ItemAction is one button of an item's detail panel.
+type ItemAction struct {
+	ID    string `json:"id"`
+	Label string `json:"label"`
+	// Glyph is the key the button is drawn with: a, b, x or y, the shared pad map (A selects, B goes
+	// back, X and Y are the secondary and options keys).
+	Glyph  string  `json:"glyph,omitempty"`
+	Action *Action `json:"action"`
+}
+
+// Glyphs are the keys an ItemAction may carry.
+var Glyphs = []string{"a", "b", "x", "y"}
+
+// Control types.
+const (
+	ControlSwitch = "switch" // on or off; the row's Action is what flipping it does
+	ControlSelect = "select" // one of Options
+	ControlField  = "field"  // a line (or lines) of text, or a number
+	ControlSlider = "slider" // a number from Min to Max in steps of Step
+)
+
+// Control is a control drawn in a list row, so a page can hold settings-like rows: Settings itself stays
+// hand-built, but a page the server serves (the profile's games privacy, a smart playlist's rules) is
+// made of these. A switch says its state in Value (a bool) and its row's Action is what flipping it
+// does: the server has already put the new value in the action's params, so a client never works out
+// the opposite. A select, field or slider carries the Action to run with the chosen value added to its
+// params as "value"; inside a Form the control has no Action of its own and the Form's is run with every
+// named control's value (see the Form component).
+type Control struct {
+	Type string `json:"type"`
+	// Name is the control's name inside a Form: the key its value goes under in the Form's command.
+	Name string `json:"name,omitempty"`
+	// Value is a bool (switch), a string (select, field) or a number (slider).
+	Value any `json:"value,omitempty"`
+	// Options are a select's choices.
+	Options []EnumOption `json:"options,omitempty"`
+	// Min, Max, Step and Unit are a slider's; Unit is a suffix ("%", " min").
+	Min  float64 `json:"min,omitempty"`
+	Max  float64 `json:"max,omitempty"`
+	Step float64 `json:"step,omitempty"`
+	Unit string  `json:"unit,omitempty"`
+	// Placeholder, MaxLength, Multiline and Input (text, number, url, search) are a field's.
+	Placeholder string `json:"placeholder,omitempty"`
+	MaxLength   int    `json:"maxLength,omitempty"`
+	Multiline   bool   `json:"multiline,omitempty"`
+	Input       string `json:"input,omitempty"`
+	// Disabled draws it dimmed and leaves it out of focus; Why says why, in a line under it.
+	Disabled bool   `json:"disabled,omitempty"`
+	Why      string `json:"why,omitempty"`
 }
 
 // Programme is something on a channel.

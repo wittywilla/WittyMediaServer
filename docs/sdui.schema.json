@@ -2,6 +2,9 @@
   "$defs": {
     "Action": {
       "properties": {
+        "as": {
+          "type": "string"
+        },
         "item": {
           "type": "string"
         },
@@ -94,6 +97,12 @@
       "properties": {
         "aspect": {
           "type": "string"
+        },
+        "badgeTones": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
         },
         "description": {
           "type": "string"
@@ -633,6 +642,83 @@
       ],
       "type": "object"
     },
+    "Control": {
+      "properties": {
+        "disabled": {
+          "type": "boolean"
+        },
+        "input": {
+          "type": "string"
+        },
+        "max": {
+          "type": "number"
+        },
+        "maxLength": {
+          "type": "integer"
+        },
+        "min": {
+          "type": "number"
+        },
+        "multiline": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "options": {
+          "items": {
+            "$ref": "#/$defs/EnumOption"
+          },
+          "type": "array"
+        },
+        "placeholder": {
+          "type": "string"
+        },
+        "step": {
+          "type": "number"
+        },
+        "type": {
+          "type": "string"
+        },
+        "unit": {
+          "type": "string"
+        },
+        "value": {},
+        "why": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object"
+    },
+    "DockEntry": {
+      "properties": {
+        "as": {
+          "type": "string"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "route": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "icon",
+        "route"
+      ],
+      "type": "object"
+    },
     "DockMetrics": {
       "properties": {
         "height": {
@@ -668,6 +754,9 @@
         },
         "personal": {
           "$ref": "#/$defs/PersonalInfo"
+        },
+        "regions": {
+          "$ref": "#/$defs/PageRegions"
         },
         "root": {
           "$ref": "#/$defs/Node"
@@ -985,6 +1074,15 @@
     },
     "Item": {
       "properties": {
+        "action": {
+          "$ref": "#/$defs/Action"
+        },
+        "actions": {
+          "items": {
+            "$ref": "#/$defs/ItemAction"
+          },
+          "type": "array"
+        },
         "artist": {
           "type": "string"
         },
@@ -1008,6 +1106,9 @@
         },
         "contentRating": {
           "type": "string"
+        },
+        "control": {
+          "$ref": "#/$defs/Control"
         },
         "count": {
           "type": "integer"
@@ -1111,6 +1212,9 @@
         "track": {
           "type": "integer"
         },
+        "trailing": {
+          "type": "string"
+        },
         "unwatched": {
           "type": "integer"
         },
@@ -1125,6 +1229,28 @@
         "id",
         "kind",
         "title"
+      ],
+      "type": "object"
+    },
+    "ItemAction": {
+      "properties": {
+        "action": {
+          "$ref": "#/$defs/Action"
+        },
+        "glyph": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "action"
       ],
       "type": "object"
     },
@@ -1544,6 +1670,9 @@
         "personal": {
           "$ref": "#/$defs/PersonalPolicy"
         },
+        "regions": {
+          "$ref": "#/$defs/PageRegions"
+        },
         "scope": {
           "type": "string"
         },
@@ -1647,6 +1776,23 @@
         "description",
         "route"
       ],
+      "type": "object"
+    },
+    "PageRegions": {
+      "properties": {
+        "statusBar": {
+          "items": {
+            "$ref": "#/$defs/StatusItem"
+          },
+          "type": "array"
+        },
+        "systemDock": {
+          "items": {
+            "$ref": "#/$defs/DockEntry"
+          },
+          "type": "array"
+        }
+      },
       "type": "object"
     },
     "PageStyle": {
@@ -2220,6 +2366,24 @@
       ],
       "type": "object"
     },
+    "StatusItem": {
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind"
+      ],
+      "type": "object"
+    },
     "TextLimits": {
       "properties": {
         "overview": {
@@ -2502,7 +2666,7 @@
     "logo",
     "chip"
   ],
-  "x-catalogRevision": 6,
+  "x-catalogRevision": 7,
   "x-components": [
     "Page",
     "Hero",

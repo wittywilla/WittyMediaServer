@@ -820,7 +820,38 @@ func playOnlineCases() []kase {
 	peoplePage := page("play", "custom",
 		sec("friends", "Shelf", map[string]any{"title": "Friends"}, sdui.Source{"type": "wittyplay.friends"}),
 		sec("room", "Shelf", map[string]any{"title": "Your room"}, sdui.Source{"type": "wittyplay.room"}))
+	// WittyPlay Online's home (revision 7): a row whose focused card grows with a detail panel under it,
+	// a lobby of friends that take focus without a route, and the shell regions a page supplies.
+	focusData := playOnlineData()
+	for i := range focusData.Sources {
+		if focusData.Sources[i].Match["type"] != "wittyplay.recent" {
+			continue
+		}
+		for j := range focusData.Sources[i].Items {
+			g := &focusData.Sources[i].Items[j]
+			label := "Resume"
+			if g.RuntimeSec == 0 {
+				label = "Play"
+			}
+			g.Actions = []sdui.ItemAction{
+				{ID: "play", Label: label, Glyph: "a", Action: &sdui.Action{Type: sdui.ActPlay, Item: g.PlayID}},
+				{ID: "online", Label: "Play online", Glyph: "x", Action: &sdui.Action{Type: sdui.ActCommand, Op: "wittyplay.room.create", Item: g.ID}},
+				{ID: "options", Label: "Options", Glyph: "y", Action: &sdui.Action{Type: sdui.ActNavigate, To: "/page/online-options?item=" + g.ID, As: sdui.PresentLayer}},
+			}
+		}
+	}
+	focusPg := page("online", "custom",
+		sec("recent", "Shelf", map[string]any{"title": "Recent", "focusGrow": true, "detail": true}, sdui.Source{"type": "wittyplay.recent"}),
+		sec("friends", "Shelf", map[string]any{"title": "Friends", "focusable": true}, sdui.Source{"type": "wittyplay.friends"}))
+	focusPg.Scope = "wittyplay"
+	focusPg.Regions = &sdui.PageRegions{
+		StatusBar: []sdui.StatusItem{{ID: "who", Kind: "profile", Text: "Playing as {user}"}, {ID: "server", Kind: "server"}},
+		SystemDock: []sdui.DockEntry{{ID: "home", Label: "Home", Icon: "home", Route: "/page/online"}, {ID: "together", Label: "Together", Icon: "users", Route: "/page/online-together"},
+			{ID: "controllers", Label: "Controllers", Icon: "game", Route: "/page/online-controllers", As: sdui.PresentLayer}},
+	}
 	return []kase{
+		{id: "wittyplay-online-focus-tv", title: "WittyPlay Online home: focused tile grows, detail panel, regions, on a television", in: Input{Page: focusPg, Request: tv, Data: focusData, ModuleUI: []sdui.ModuleUI{ui}},
+			checks: []string{"a Shelf with focusGrow and detail says so, and every game card carries its actions (A, X, Y glyphs) with Options as a navigate action shown as a layer", "friends are person cards with presence badges and the row says focusable, so a card with no route is still a focus stop", "the page's regions (status bar items, system dock entries) are in document.regions with placeholders filled"}},
 		{id: "wittyplay-people-tv", title: "Friends and a room's players as person cards on a television", in: Input{Page: peoplePage, Request: tv, Data: ppl, ModuleUI: []sdui.ModuleUI{people}},
 			checks: []string{"a person item is a person card: a round photo (initials when it has none), a name, a line and its badge", "a person with a route opens it; one without has no action and takes no focus", "every card is in WittyPlay's scope"}},
 		{id: "wittyplay-online-tv", title: "WittyPlay Online's rows on a television", in: Input{Page: pg, Request: tv, Data: playOnlineData(), ModuleUI: []sdui.ModuleUI{ui}},

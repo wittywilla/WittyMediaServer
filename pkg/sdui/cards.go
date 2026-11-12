@@ -238,3 +238,19 @@ func programme(pg *Programme, limit int) map[string]any {
 	}
 	return m
 }
+
+// cleanActions are an item's detail-panel buttons as a card carries them: at most four, each with a
+// label and an action, and a glyph only of the pad's four keys.
+func cleanActions(in []ItemAction) []ItemAction {
+	var out []ItemAction
+	for _, a := range in {
+		if a.Action == nil || a.Label == "" || len(out) == 4 {
+			continue
+		}
+		if !contains(Glyphs, a.Glyph) {
+			a.Glyph = ""
+		}
+		out = append(out, a)
+	}
+	return out
+}

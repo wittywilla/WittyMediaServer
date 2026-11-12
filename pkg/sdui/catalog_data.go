@@ -90,6 +90,12 @@ func rev6(p PropSpec) PropSpec {
 	return p
 }
 
+// rev7 marks a property as added in catalogue revision 7 (WittyPlay Online, forms).
+func rev7(p PropSpec) PropSpec {
+	p.Since = 7
+	return p
+}
+
 // rev3 marks a property as added in catalogue revision 3 (Design 2).
 func rev3(p PropSpec) PropSpec {
 	p.Since = 3
@@ -173,6 +179,7 @@ var (
 	propCardStyle = pEnum("cardStyle", "Card style", "How each item is drawn. Auto uses the style that suits the source.", "auto", cardStyleOptions...)
 	propHeading   = rev6(pEnum("headingStyle", "Heading style", "How the title is drawn: plain, a coloured band across the row, or underlined. Left plain, the experience chooses.", "plain", "plain|Plain", "band|Band", "underline|Underline"))
 	propCardSize  = pEnum("cardSize", "Card size", "Small, medium or large cards. A profile may choose its own.", "m", "s|Small", "m|Medium", "l|Large")
+	propFocusable = rev7(pBool("focusable", "Cards without a route take focus", "A card with no route (a friend) is still a stop for focus, and OK on it is the page's to use. Off: it is not a button and takes no focus.", false))
 	propEmpty     = pEnum("empty", "When there is nothing to show", "Leave the section out, or keep it with a message.", "hide", "hide|Leave it out", "message|Show a message")
 	propEmptyText = pText("emptyText", "Message when empty", "Shown in place of the items when there are none.", 200)
 	propTo        = pOf(PropRoute, "to", "Opens", "A place in the app, such as /library/3 or /page/family-night.")
@@ -233,7 +240,9 @@ func buildComponents() []ComponentSpec {
 				pInt("maxItems", "Most cards at first", "How many cards are sent before the row asks for more. 0 uses the device's own limit.", 0, 0, 60),
 				rev3(pBool("peek", "Show the next card's edge", "layout.peek of the next card's width stays visible at the row's trailing edge, so it is clear the row scrolls on. Off cuts the row at a whole card.", true)),
 				rev3(pEnum("seeAllCard", "See all as a card", "See all as the last card of the row, in the shape of the row's cards, in place of the link beside the heading. Automatic: on a television and in the experiences that ask for it (Stage, Big picture).", "auto", "auto|Where the layout says", "always|Always", "never|Never")),
-				propEmpty, propEmptyText,
+				rev7(pBool("focusGrow", "The focused card grows", "The card with focus scales up (1.45 times on a television, 1.25 on a tablet or desktop, not at all on a phone, where the first card is simply larger) and the cards after it step aside; the others stay small. With reduced motion the card does not animate: it gets a ring.", false)),
+				rev7(pBool("detail", "Detail panel under the row", "A panel under the row shows the focused card's item (the first until focus moves): its title large, its subtitle as one line, and its actions as buttons carrying their key glyphs. An item with no actions has its route as the one A action.", false)),
+				propFocusable, propEmpty, propEmptyText,
 			},
 			Renders: map[string]string{
 				"tv":      "A heading at the title size, then one row of cards that scrolls sideways under focus (cards layout.spacing.m apart, the next card peeking in by layout.peek of its width), the focused card kept a safe-area's width from the left edge and raised with the system's focus effect. The row is one focus section and remembers its last card. With props.seeAllCard, \"See all\" is a final card of the row's shape (its label in the title style, an arrow icon, the same corner), reached by moving past the last title; otherwise it is a link beside the heading.",
@@ -250,7 +259,7 @@ func buildComponents() []ComponentSpec {
 			Props: []PropSpec{propTitle, propHeading, propCardStyle, propCardSize,
 				pBool("showTitles", "Show titles under cards", "Off draws the pictures alone.", true),
 				pInt("maxItems", "Most cards at first", "How many cards the first page holds. 0 uses the device's own limit.", 0, 0, 200),
-				propEmpty, propEmptyText,
+				propFocusable, propEmpty, propEmptyText,
 			},
 			Renders: map[string]string{
 				"tv":      "layout.gridColumns columns for the card's shape (6 posters, 4 landscape cards), 40 points apart, focus moving by row and column; the next page is asked for when focus is within two rows of the end.",
@@ -614,7 +623,7 @@ func buildComponents() []ComponentSpec {
 
 		{Type: "List", Label: "List", Icon: "list", Category: "media", Since: 2, Authored: true, Data: "optional", Container: true, Children: []string{"ListItem"}, Focus: "group",
 			Description: "Rows of text with an icon or small picture, written by hand or drawn from a source.",
-			Props:       []PropSpec{propTitle, propHeading, pBool("dense", "Compact rows", "", false), propEmpty, propEmptyText},
+			Props:       []PropSpec{propTitle, propHeading, pBool("dense", "Compact rows", "", false), propFocusable, propEmpty, propEmptyText},
 			Renders:     map[string]string{"all": "Full-width rows (56 points, 44 dense, 90 on a television): picture or icon, title over subtitle, trailing text, and a chevron when the row opens something."},
 			States:      statesData,
 			A11y:        "Role: list labelled by the title.",
@@ -658,7 +667,8 @@ func buildCardStyles() []CardStyleSpec {
 		{Style: "circle", Label: "Circle", Shape: "circle", Aspect: "1/1", Image: []string{"square", "poster"}, Shows: []string{"title"}, TitleLines: 2, SubtitleLines: 0,
 			Description: "A round picture with a centred name."},
 		{Style: "person", Label: "Person", Shape: "circle", Aspect: "1/1", Image: []string{"square", "poster"}, Shows: []string{"title", "subtitle", "badges"}, TitleLines: 1, SubtitleLines: 1,
-			Description: "A round portrait with a name and a line under it: an artist, an author, someone in a title's cast or crew (the line is the part they played or their job), a friend (the line is where they are and the badge their presence). A person's initials stand in for a missing photo. The card opens something only when the item has a route; without one it is not a button and takes no focus.", Kinds: []string{"artist", "person"}},
+			Description: "A round portrait with a name and a line under it: an artist, an author, someone in a title's cast or crew (the line is the part they played or their job), a friend (the line is where they are and the badge their presence). A person's initials stand in for a missing photo. The card opens something only when the item has a route; without one it is not a button and takes no focus.", Kinds: []string{"artist", "person"},
+			BadgeTones: map[string]string{"Playing": "ok", "Online": "ok", "Away": "warn", "Offline": "muted"}},
 		{Style: "book", Label: "Book cover", Shape: "poster", Aspect: "2/3", Image: []string{"poster"}, Shows: []string{"title", "subtitle", "progress"}, TitleLines: 2, SubtitleLines: 1,
 			Description: "A book or comic cover with the title and author, and how far it has been read.", Kinds: []string{"book"}},
 		{Style: "game", Label: "Game box", Shape: "poster", Aspect: "3/4", Image: []string{"poster"}, Shows: []string{"title", "subtitle", "badges"}, TitleLines: 1, SubtitleLines: 1,

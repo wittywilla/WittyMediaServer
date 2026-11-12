@@ -125,6 +125,20 @@ Modern, Big picture, Outline and Compact take their colours from your theme's to
 
 It's only a suggestion. What a viewer picks comes first, then the app theme's suggestion, then what the server's owner chose for new viewers, and **Look** on the guide says which is showing. Custom can't be suggested, because it's each viewer's own. The built-in Midnight theme suggests Modern this way. A theme from before there were TV themes may set `--tv-layout` and `--tv-colours` instead, and those still work. See [Channels and live TV](CHANNELS.md#the-look).
 
+### The TV pass
+
+Design 2 gives every theme a ten-foot look, set in `theme.css` and written into `theme.json` `tv` for the apps:
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `--tv-ring-color` | `--fg` | the focus ring across the room. 4.5:1 on every surface and 3:1 on raised fills (`--bg-4`) |
+| `--tv-text` | `--fg` | body text a step stronger for distance (10% toward white on dark themes, toward black on light ones). 7:1 on every surface |
+| `--hero-scrim` | `.72` | how strong the dark scrim behind hero text is, 0 to 1: strong enough that white text still reads over the brightest picture (4.5:1) |
+
+`scripts/theme-contrast.py` checks all of it, and `--focus` on the surfaces too. The accent is not checked as the thing
+behind a focus ring: a ring sits a gap away from what it surrounds, so the surface shows between them (a control
+filled with the accent is separated from its ring by that gap). A theme that omits these gets them derived.
+
 ## Packing it as a ZIP
 
 `theme.json` and `theme.css` must be at the top of the ZIP, not inside a folder.
@@ -285,6 +299,7 @@ Set these in `:root`. Hover, selected and tinted shades are worked out from them
 | `scheme` | No | `dark` (the default) or `light` |
 | `description`, `author`, `version` | No | Shown in the picker, or for your records |
 | `colors`, `radius` | No | The colours as data, which draws the picker's preview exactly |
+| `tv` | No | `{ringColor, heroScrim, tvText}`: the ten-foot pass (see "The TV pass"). A theme that leaves it out gets them worked out |
 | `preview` | No | Four colours for the preview if `colors` isn't there: `bg`, `surface`, `text`, `accent` |
 | `builtin` | | Reserved: a ZIP with this is refused |
 
@@ -404,7 +419,7 @@ Six layers, each over the ones before it (later wins):
 
 Layers 1, 2 and 5 make `tokens`; every scope with colours of its own (3, 4 or 6) has its whole palette under `modules`. Server-driven pages get the scopes too: a page or section that names a scope receives, as `tokens`, what that scope's palette has that the account's `tokens` don't (see [SDUI](SDUI.md#theme-scopes)). A scope needn't be a module: `PUT /api/v1/theme/modules/family` gives a page of your own, with `"scope": "family"`, its own accent.
 
-The answer is `{id, source, scheme, tokens, overrides, personal, modules: {<scope>: {tokens, overrides, personal}}, shape, type, brand, variants, warnings, etag, revision}`, with an `ETag` header; send it back as `If-None-Match` for a 304. The ETag changes with anything in it: the theme, any layer, the server's name.
+The answer is `{id, source, scheme, tokens, overrides, personal, modules: {<scope>: {tokens, overrides, personal}}, shape, type, tv, elevation, density, brand, variants, warnings, etag, revision}`, with an `ETag` header; send it back as `If-None-Match` for a 304. The ETag changes with anything in it: the theme, any layer, the server's name.
 
 #### Derived colours
 
@@ -428,6 +443,10 @@ A token set to the value it already has derives nothing. So a module scope with 
 `shape` is the theme's corners and focus ring in points: `radius` (the theme's `--radius`), and the corner of each part, worked out from it the way the stylesheet does (`--r-xs` … `--r-xl` are 0.4, 0.6, 1, 1.4 and 2 times it): `card`, `button`, `field` and `row` (1×), `thumb` (0.6×), `badge` (0.4×), `image` and `sheet` (1.4×), `dialog` (2×), `chip` and `pill` (999: fully round), and `focusWidth`, `focusOffset` and `focusScale`. `themes/tokens.json` `shape.roles` has the same table. On a television use `tenFoot.focus` from `themes/tokens.json` instead of the three focus values.
 
 `type` is its typefaces and weights: `display` (page titles and headings), `body` and `mono`, each a list of families best first, and `weights` (`body` 400, `medium` 500, `strong` 600, `heading` 650). Sizes aren't the theme's: they are the device's, in a server-driven page's `layout.text`. The built-in themes carry both in `theme.json`; a theme uploaded without them gets them from its CSS (`--radius`, `--focus-width`, `--focus-offset`, `--font`, `--font-mono`, `--weight-heading`), else the stylesheet's. Each look in `variants` has its own `shape` and `type`.
+
+#### Design 2: tv, elevation, density
+
+Additive, so clients that don't know them ignore them. `tv` is `{ringColor, heroScrim, tvText, units}`: the theme's ten-foot colours (derived again when a profile's override changes `fg`, so the ring and text stay legible) and `units`, the `tv` block of `themes/tokens.json` in TV units. `elevation` has `"0"` to `"3"`, each `{fillToken, fill, lineToken, line, shadow}` with the colours resolved in this look, so a client draws the page, a panel, a lifted card and an overlay without its own table. `density` is `{default, tvDefault, steps: {compact|comfortable|spacious: {space, control}}}`. Each look in `variants` has its own `tv` and `elevation`.
 
 #### The server's name
 

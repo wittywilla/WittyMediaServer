@@ -77,3 +77,10 @@ test('fields: ids, validation and reach', () => {
   const bad = problems(withIds(mk('g', 'e', 't', '', [secF('', [{ kind: 'pin', label: 'P' }, { kind: 'select', label: 'S' }, { kind: 'slider', label: 'L' }, { kind: 'qr', label: 'Q' }, { kind: 'text', label: ' ' }])])))
   assert.equal(bad.length, 5)
 })
+
+test('rows: icons and row actions get ids and are reached', () => {
+  const p = withIds(mk('r', 'e', 't', '', [secR('h', [{ title: 'Pip', icon: 'Users', tint: 'b', to: '/p', actions: [{ title: 'Fix' }, { title: 'Remove', danger: true }] }])]))
+  assert.deepEqual(problems(p), [])
+  assert.deepEqual(p.sections[0].items[0].actions.map((a) => a.id), ['r.0.0.0', 'r.0.0.1'])
+  assert.deepEqual(reachable(p, new Set(['r.0.0.1'])), ['r.0.0', 'r.0.0.1'])
+})

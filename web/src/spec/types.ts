@@ -6,7 +6,11 @@
 
 // A line: a title, a value at its end, a smaller line under the title. `on` is the current choice (drawn with the
 // accent and marked aria-current). It goes somewhere with `to`, or is handled by id (SpecPage's onAction).
-export interface SpecRow { id?: string; title: string; value?: string; sub?: string; on?: boolean; to?: string; disabled?: boolean }
+// `icon` is a name from icons.tsx without its "Icon" prefix ("Users" is IconUsers); `tint` picks one of six tints the
+// theme derives from its accent and status colours. `actions` are buttons at the row's end (Fix, Remove): the row
+// itself then goes to `to` or is plain text.
+export interface SpecRowAction { id?: string; title: string; label?: string; danger?: boolean; disabled?: boolean }
+export interface SpecRow { id?: string; title: string; value?: string; sub?: string; on?: boolean; to?: string; disabled?: boolean; icon?: string; tint?: 'a' | 'b' | 'c' | 'd' | 'e' | 'f'; actions?: SpecRowAction[] }
 // A choice among a few: a toggle button, or a link with `to`.
 export interface SpecChip { id?: string; title: string; label?: string; on?: boolean; to?: string; disabled?: boolean }
 // A tile: a title, a line under it, and either artwork (`art`, an address) or a tint pair taken from the theme.

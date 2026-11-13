@@ -246,3 +246,10 @@ html.ten-foot .su-ack a, html.using-controller .su-ack a, html.ten-foot .op-head
 @media (max-width: 600px) { .su-look .su-cards.small { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .su-look .su-card.on { box-shadow: 0 0 0 3px var(--accent); }
 .su-look .su-card .lt { inline-size: 100%; block-size: auto; border-radius: var(--r-md); }
+
+/* WittyTV's look on the Look step: its own cards and a large picture of the guide. */
+.su-tv-lead { margin: 0 0 var(--sp-3); color: var(--fg-2); max-inline-size: 60ch; }
+.su-tv .su-card .ctv-pic { width: 100%; }
+.su-tv-big .ctv-pic { width: 100%; border-radius: var(--r-lg); box-shadow: 0 0 0 1px var(--border-strong); }
+.su-tv-note { margin: 0; padding: var(--sp-3); border-radius: var(--r-md); background: var(--bg-3); font-size: var(--text-sm); color: var(--fg-2); }
+.su-tv-note b { color: var(--fg); }

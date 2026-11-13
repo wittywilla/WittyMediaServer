@@ -24,8 +24,8 @@
   "effects": {
     "glass": "none",
     "gloss": "none",
-    "glow": "none",
-    "texture": "none",
+    "glow": "subtle",
+    "texture": "full",
     "bevel": "none"
   },
   "shape": {

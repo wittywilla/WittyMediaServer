@@ -139,7 +139,7 @@ export function Achievements({ cheevos }: { cheevos: Cheevos | null | undefined 
 }
 
 // children: the panel's title, line and buttons, which go under the logo and above the rest.
-// actions: the panel's buttons, which go under the console, year and rating, so those are read before Play.
+// actions: the panel's buttons, which go under the console, year, rating and makers, so those are read before Play.
 export function GameBio({ itemId, title, console: consoleName, children, top, actions }: { itemId: string; title: string; console?: string; children: ReactNode; top?: ReactNode; actions?: ReactNode }) {
   const { item, meta, cheevos } = useBio(itemId)
   const [open, setOpen] = useState<number | null>(null)
@@ -159,8 +159,8 @@ export function GameBio({ itemId, title, console: consoleName, children, top, ac
         {year && <span>{year}</span>}
         {rating.map((r) => <span key={r} className="wplay-bio-rating">{r}</span>)}
       </p>
-      {actions}
       {makers.length > 0 && <p className="wplay-bio-makers"><span className="wplay-bio-label">Made by</span> {makers.join(' · ')}</p>}
+      {actions}
       {about && <p className="wplay-bio-about">{about}</p>}
       {item?.genres?.length ? <p className="wplay-bio-genres">{item.genres.join(' · ')}</p> : null}
       {shots.length > 0 && <div className="wplay-bio-shots" data-nav-group>{shots.map((s, i) => <Shot key={s.url} url={s.url} label={SHOT_WORDS[s.kind] || 'Picture'} onOpen={() => setOpen(i)} />)}</div>}

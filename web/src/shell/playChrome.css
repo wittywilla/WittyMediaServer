@@ -585,3 +585,5 @@ html[data-wplay] .wpg-settings [role=tablist] { overflow-x: auto; scrollbar-widt
 @media (prefers-reduced-motion: reduce) { .wplay .sdui .sdui-shelf.layout-grid .sdui-item.grown { transform: none; } }
 /* The console, year and rating line keeps its height while the game loads, so Play never jumps down under the cursor. */
 .wplay-bio-line { min-block-size: 1.9em; }
+/* Who made it keeps its line too, for the same reason. */
+.wplay-bio-makers { min-block-size: 1.45em; }

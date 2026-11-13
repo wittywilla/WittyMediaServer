@@ -25,7 +25,7 @@ import { safeLink as safeHref } from '../../safeLink'
 import { buttonsOf, cardGap, creditGroups, factsOf, fieldOf, gridColumns, initials, type ButtonSpec, type View } from '../model'
 import { dotFor, focusedOf } from '../playModel'
 import { plan } from '../routes'
-import type { Node, Props } from '../types'
+import type { Action, Node, Props } from '../types'
 import { px, usePage } from './context'
 import { kindIcon, sduiIcon } from './icons'
 import { chooseEpisodeView, useEpisodeView } from '../extras/episodeView'
@@ -212,7 +212,19 @@ function Heading({ view, level = 2, id }: { view: View; level?: 2 | 3; id: strin
 
 function StateLine({ view }: { view: View }) {
   const page = usePage()
-  if (view.state === 'empty') return <p className="muted sdui-empty">{view.text?.empty || 'Nothing here yet.'}</p>
+  if (view.state === 'empty') {
+    // What the server says: the message, a line of advice, and one button that runs an ordinary action (docs/SDUI.md, empty sections).
+    const hint = str(view.node.props, 'emptyHint')
+    const go = obj(view.node.props, 'emptyAction')
+    const action = go && obj(go, 'action') as unknown as Action | undefined
+    return (
+      <div className="sdui-empty sdui-empty-state">
+        <p className="sdui-empty-text">{view.text?.empty || 'Nothing here yet.'}</p>
+        {hint && <p className="muted sdui-empty-hint">{hint}</p>}
+        {go && action && str(go, 'label') && <button type="button" className="btn primary sm" disabled={page.inert} onClick={() => !page.inert && page.act(action, view)}>{str(go, 'label')}</button>}
+      </div>
+    )
+  }
   if (view.state === 'error' || page.failed(view.id)) {
     return <p className="sdui-error" role="alert"><span>Couldn’t load this</span> <button type="button" className="btn sm" onClick={() => page.more(view.id)} disabled={page.busy(view.id)}>Retry</button></p>
   }

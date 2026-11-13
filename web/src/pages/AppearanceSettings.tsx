@@ -120,7 +120,8 @@ export default function AppearanceSettings() {
   const active = currentLook()?.requiredTheme?.value || mine || fallback
   // An administrator can require a theme: it shows locked and nothing here changes it.
   const required = currentLook()?.requiredTheme
-  const useHere = (id: string) => { if (required) return; setDeviceTheme(id); setMine(id); applyTheme(id || serverTheme) }
+  // The server is asked again, so the scene and finish are this theme's, not the last one's.
+  const useHere = (id: string) => { if (required) return; setDeviceTheme(id); setMine(id); applyTheme(id || serverTheme); void loadThemeOverrides() }
   const makeDefault = async (id: string) => {
     try { await api.put('/settings', { theme: id }); setServerTheme(id); toast('Everyone starts with this theme now', { tone: 'ok' }) } catch (e) { toast((e as Error).message, { tone: 'danger' }) }
   }

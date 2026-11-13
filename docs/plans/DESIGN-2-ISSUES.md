@@ -89,3 +89,24 @@ Nothing here is built; all were cut from the release. Each would be additive to 
 - **Module kit and clients on revision 8:** Apple and Android have not confirmed the revision-8 pieces (Form and list
   controls, regions, detail panel, QR, `object` params, the new stock-page routes); web has not drawn the Shelf `detail`
   panel, `document.regions`, the QR component or the settings slots.
+
+## W6 (Apple Appearance, chooser, setup-required), 2026-11-12
+
+Merged client 8f7d755: layout thumbnails in Appearance, first-connect chooser and admin policy chooser; setup-required screen with QR and `/setup`; app declares catalogue revision 8. Seen on iPhone 17 simulator.
+
+Issue candidates:
+1. "Trust this server" on the identity-mismatch screen goes to sign-in and skips the setup-required check on an unset-up server.
+2. Sessions share one simulator (saved servers and keychain leak between them); give each session its own.
+3. Look and theme change the app's colours but not its frame (nav style, rail, sidebar) yet (W3's frame work).
+4. Theme import not proven end to end (importer opens; no real ZIP imported; refusal wording unseen).
+5. More info and tvOS built and unit-tested but never seen running; iPad and Mac not looked at.
+6. Admin policy chooser: app relaunched once on "Who must use what"; crash or memory kill unknown, not reproduced.
+7. Revision-8 renderer pieces not built on Apple by W6 (confirm with W19): Shelf focusGrow/detail, Form and ListItem controls, statusBar/systemDock regions, QR component, command param types, new server pages.
+8. All-devices PUT writes five form-factor keys (a profile has 32 entries): check against a real server.
+9. Peer to peer real join not exercised by W6 (S3 proved it on iPhone).
+
+## S4 (Android peer to peer), 2026-11-12
+
+Gate 0b and 4 pass on Android: phone (wmc_phone) and Android TV (wmc_tv), R8 sideload build with wittyconnect bundled by default, client ec25c5e. Enrolled at home, then with the server's address cut (loopback only) reconnected "Peer to peer · direct" and played a film. Evidence: side-session-notes/.../s4-gate-p2p/.
+Join-by-code on Android TV with the address book on by default is still to be run after S1's default lands.
+Issue candidate: the first-connect chooser on Android (in S4's build) has no layout previews; W4's LayoutThumb is on unmerged wip/design-android.

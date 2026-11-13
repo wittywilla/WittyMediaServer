@@ -81,3 +81,16 @@ export function overrideDeclarations(t: ResolvedTheme | null, module: string, gl
 // A finish colour from a theme file (an imported one included): #hex or a plain rgb/rgba/hsl/hsla, nothing that could fetch or break out.
 const FINISH_COLOUR = /^(#[0-9a-f]{3,8}|(?:rgb|hsl)a?\(\s*[\d.]+%?(?:\s*[,/]?\s*[\d.]+%?){2,3}\s*\))$/i
 export const safeColour = (c: unknown): string => (typeof c === 'string' && FINISH_COLOUR.test(c.trim()) ? c.trim() : '')
+
+// themeQuery is what GET /theme is asked with: this device's name for its own look, and the theme this
+// device wears when it chose one, so the server answers with that theme's scene and finish rather than
+// the server's (#S8: Paper on a dark sky). "auto" asks for the one the device shows now; a theme made on
+// this device ("custom") isn't the server's, so nothing is asked for it and it draws no scene.
+export function themeQuery(device: string, own: string, prefersLight: boolean): string {
+  const q = new URLSearchParams()
+  if (device) q.set('device', device)
+  const theme = own === 'auto' ? (prefersLight ? 'light' : 'default') : own
+  if (theme && theme !== 'custom') q.set('theme', theme)
+  const s = q.toString()
+  return s ? '?' + s : ''
+}

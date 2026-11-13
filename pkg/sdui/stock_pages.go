@@ -107,6 +107,32 @@ func buildUtilityPages() []Page {
 			with(sec("rule", "Form", props{"title": "Rules", "op": "collection.createSmart", "submitLabel": "Save"}, nil),
 				sec("fields", "List", props{}, Source{"type": "smartRule"})),
 		}}
-	return []Page{creators, creator, comments, markers, canvas, smart, brand("studio", "studio", "studio", "globe"), brand("network", "network", "network", "tv"), brand("category", "category", "genre", "filter"),
+	// Administrators' pages, from the admin routes: the libraries, the titles whose match needs a look, and
+	// one title's possible matches. Their sources are empty for anyone else, and their commands refused.
+	admin := true
+	onlyAdmin := func(x Section) Section { return when(x, Condition{Admin: &admin}) }
+	notAdmin := when(sec("not", "Notice", props{"tone": "info", "text": "Only an administrator can manage this."}, nil), Condition{Admin: new(bool)})
+	manageLibraries := Page{ID: "manage-libraries", Kind: "custom", Title: "Libraries", Icon: "library",
+		Description: "Administrators: the libraries with their scan state, a row scanning each again, and a form adding one. Opened at /manage/libraries.",
+		Sections: []Section{notAdmin,
+			onlyAdmin(sec("all", "List", props{"empty": "message", "emptyText": "No libraries yet. Add one below."}, Source{"type": "libraryAdmin"})),
+			onlyAdmin(with(sec("add", "Form", props{"title": "Add a library", "op": "library.create", "submitLabel": "Add and scan"}, nil),
+				sec("fields", "List", props{}, Source{"type": "newLibrary"}))),
+		}}
+	fixMatches := Page{ID: "fix-matches", Kind: "custom", Title: "Fix matches", Icon: "filter",
+		Description: "Administrators: titles that are unmatched or matched with little certainty, each opening its possible matches. Opened at /manage/matches.",
+		Sections: []Section{notAdmin,
+			onlyAdmin(with(sec("tabs", "Tabs", props{"style": "segments", "default": "check"}, nil),
+				with(sec("check", "Tab", props{"label": "To check"}, nil), sec("queue", "List", props{"empty": "message", "emptyText": "Every title is matched."}, Source{"type": "matchQueue", "state": "attention"})),
+				with(sec("byhand", "Tab", props{"label": "Matched by hand"}, nil), sec("manual", "List", props{"empty": "message", "emptyText": "Nothing was matched by hand."}, Source{"type": "matchQueue", "state": "manual"})),
+				with(sec("left", "Tab", props{"label": "Left unmatched"}, nil), sec("none", "List", props{"empty": "message", "emptyText": "Nothing is left unmatched."}, Source{"type": "matchQueue", "state": "none"})))),
+		}}
+	match := Page{ID: "match", Kind: "custom", Title: "Fix the match", Icon: "search",
+		Description: "Administrators: one title's possible matches (opened with item), each matching it after asking. Opened at /manage/match/{item}.",
+		Sections: []Section{notAdmin,
+			onlyAdmin(sec("lead", "Text", props{"text": "Choose what this is. The details, artwork and people come from the one you choose.", "role": "caption"}, nil)),
+			onlyAdmin(sec("candidates", "List", props{"empty": "message", "emptyText": "No source suggests anything for this title."}, Source{"type": "matchCandidates", "item": "$item"})),
+		}}
+	return []Page{manageLibraries, fixMatches, match, creators, creator, comments, markers, canvas, smart, brand("studio", "studio", "studio", "globe"), brand("network", "network", "network", "tv"), brand("category", "category", "genre", "filter"),
 		versions, saveTo, devices, year, activity, notices}
 }

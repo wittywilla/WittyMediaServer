@@ -2,7 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { moduleForPath, overrideDeclarations, safeColour, tokenVar } from './themeOverrides.ts'
+import { moduleForPath, overrideDeclarations, safeColour, themeQuery, tokenVar } from './themeOverrides.ts'
 
 test('a colour name becomes the CSS variable themes use', () => {
   assert.equal(tokenVar('accentFg'), '--accent-fg')
@@ -82,4 +82,14 @@ test('the profile\'s own colours go over everything, and its colours for a scope
 test('a finish colour from a theme file is a plain colour and nothing that could fetch or break out', () => {
   for (const ok of ['#fff', '#7fd8ff', '#0a6aa8cc', 'rgba(255,255,255,.9)', 'rgb(20 140 80 / 25%)', 'hsl(200, 80%, 50%)', ' #123456 ']) assert.equal(safeColour(ok), ok.trim(), ok)
   for (const bad of ['url(https://x/y.png)', 'red; background: url(x)', 'var(--accent)', 'rgba(1,2,3) }', 'expression(1)', '', 42, null, undefined]) assert.equal(safeColour(bad), '', String(bad))
+})
+
+test('the theme this device chose is asked of the server, so its scene comes with it', () => {
+  assert.equal(themeQuery('', '', false), '')
+  assert.equal(themeQuery('abc', '', false), '?device=abc')
+  assert.equal(themeQuery('abc', 'paper', false), '?device=abc&theme=paper')
+  assert.equal(themeQuery('', 'auto', true), '?theme=light')
+  assert.equal(themeQuery('', 'auto', false), '?theme=default')
+  // Made on this device: the server has no such theme, and it wears no scene.
+  assert.equal(themeQuery('abc', 'custom', false), '?device=abc')
 })

@@ -2898,6 +2898,10 @@ Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 48
 | [`markers`](#markers) | Skip markers | context | view | tile |  | custom |
 | [`canvas`](#canvas) | Canvas video | context | view | tile |  | custom |
 | [`smartRule`](#smartrule) | A smart playlist's rule | context | view | tile |  | custom |
+| [`libraryAdmin`](#libraryadmin) | Libraries to manage | structure | view | tile |  | custom |
+| [`newLibrary`](#newlibrary) | A new library's fields | context | view | tile |  | custom |
+| [`matchQueue`](#matchqueue) | Titles to check | structure | view | tile | yes | custom |
+| [`matchCandidates`](#matchcandidates) | A title's possible matches | context | view | tile |  | custom |
 | [`formField`](#formfield) | A field for a Form | context | view | tile |  | custom |
 | [`search`](#search) | Search results | context | movie, show, album, book, game, channel, person | poster |  | search |
 
@@ -3519,6 +3523,49 @@ Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 48
 {"type":"smartRule"}
 ```
 
+#### libraryAdmin
+
+*Libraries to manage.* Administrators: every library with its kind, how many titles and when it was last scanned, each row scanning it again. Empty for anyone else.
+
+```json
+{"type":"libraryAdmin"}
+```
+
+#### newLibrary
+
+*A new library's fields.* Administrators: the name, kind and folder of a new library as controls for a Form whose command is library.create.
+
+```json
+{"type":"newLibrary"}
+```
+
+#### matchQueue
+
+*Titles to check.* Administrators: titles whose match is missing or doubtful (or in the state asked for), with how sure the match is and why, each row opening its title's match page.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `state` | enum: attention, unmatched, low, manual, none, all | `attention` | Which |
+| `library` | library |  | Library. One library; leave empty for every library the profile can open. $library on a library page, $each in a row repeated over libraries. |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"matchQueue","state":"attention"}
+```
+
+#### matchCandidates
+
+*A title's possible matches.* Administrators: what the online sources suggest for a title (item: an item's ID or show-<n>), best first, each with how sure and why, a row matching the title to it after asking; last, a row that takes the match off.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `item` (required) | ref |  | Title. $item. |
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"matchCandidates","item":"$item"}
+```
+
 #### formField
 
 *A field for a Form.* One row holding a text field named name, for a Form that sends it as a command param.
@@ -3629,6 +3676,9 @@ What shows each place in the app: an SDUI page, asked for with the parameters gi
 | `/markers/{item}` | page `markers` | item={item} |
 | `/canvas/{item}` | page `canvas` | item={item} |
 | `/smart-list` | page `smart-list` |  |
+| `/manage/libraries` | page `manage-libraries` |  |
+| `/manage/matches` | page `fix-matches` |  |
+| `/manage/match/{item}` | page `match` | item={item} |
 | `/year` | page `year` |  |
 | `/activity` | page `activity` |  |
 | `/notifications` | page `notifications` |  |
@@ -3702,6 +3752,9 @@ A menu entry (`type: native`) may open the screens marked *menu*; the others nee
 | `comment.add` | Adds a comment to a title (item); params.text is up to 2000 characters. Not for Kids or Guest profiles. | `POST /api/items/{item}/comments` with `{"body":"{text}"}`; `text` (string, required) |
 | `comment.delete` | Deletes a comment (item: its ID): its writer's, or any as an administrator. | `DELETE /api/comments/{item}` |
 | `library.scan` | Looks through the library's folders for new and changed files (administrators): the library is the item. | `POST /api/libraries/{item}/scan` |
+| `library.create` | Administrators: adds a library named params.name of kind params.type over the folder params.path, and scans it. | `POST /api/libraries` with `{"name":"{name}","type":"{type}","paths":["{path}"]}`; `name` (string, required); `type` (string, required); `path` (string, required) |
+| `meta.match` | Administrators: matches the title params.target (item or show) params.title to params.ref at the source params.source. | `POST /api/meta/{target}/{title}/match` with `{"source":"{source}","id":"{ref}"}`; `target` (string, required); `title` (string, required); `source` (string, required); `ref` (string, required) |
+| `meta.unmatch` | Administrators: leaves the title params.target params.title unmatched; scans don't look it up again. | `DELETE /api/meta/{target}/{title}/match`; `target` (string, required); `title` (string, required) |
 | `collection.add` | Puts the title (item) in the profile's list params.collection. | `POST /api/collections/{collection}/items` with `{"items":["{item}"]}`; `collection` (string, required) |
 | `collection.remove` | Takes the title (item) off the profile's list params.collection. | `DELETE /api/collections/{collection}/items` with `{"items":["{item}"]}`; `collection` (string, required) |
 | `collection.create` | Makes a list of the profile's own, named params.name. | `POST /api/collections` with `{"name":"{name}","kind":"manual"}`; `name` (string, required) |
@@ -3776,6 +3829,9 @@ The menu's style on each form factor, the theme and WittyTV look each wears by d
 | `home` | home | every home page | `setup` (Notice), `welcome` (Notice), `hero` (Hero of featured), `libraries` (Shelf of libraries), `jump` (Shelf of continueWatching), `onnow` (Shelf of liveNow), `foryou` (Shelf of recommended), `nextup` (Shelf of nextUp), `view` (Shelf of savedView, per pinnedView), `recent` (Shelf of recentlyAdded, per librarie), `shuffle` (Banner of random) |
 | `libraries` | libraries | every libraries page | `all` (Grid of libraries) |
 | `library` | library | every library page | `all` (Grid of recentlyAdded) |
+| `manage-libraries` | custom | every custom page | `not` (Notice), `all` (List of libraryAdmin), `add` (Form), `fields` (List of newLibrary) |
+| `fix-matches` | custom | every custom page | `not` (Notice), `tabs` (Tabs), `check` (Tab), `queue` (List of matchQueue), `byhand` (Tab), `manual` (List of matchQueue), `left` (Tab), `none` (List of matchQueue) |
+| `match` | custom | every custom page | `not` (Notice), `lead` (Text), `candidates` (List of matchCandidates) |
 | `creators` | custom | every custom page | `tabs` (Tabs), `all` (Tab), `everyone` (List of creators), `subscribed` (Tab), `mine` (List of creators) |
 | `creator` | custom | every custom page | `who` (List of creators) |
 | `comments` | custom | every custom page | `all` (List of comments), `write` (Form), `text` (List of formField), `readonly` (Text) |

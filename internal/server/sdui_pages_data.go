@@ -58,6 +58,15 @@ func (rv *sduiResolver) pageSource(req sdui.SourceRequest) (sdui.SourceResult, b
 			Control: &sdui.Control{Type: sdui.ControlField, Name: src.Str("name"), Placeholder: src.Str("placeholder"), Multiline: src.Bool("multiline"), MaxLength: max(src.Int("maxLength"), 1), Input: "text"}}}
 	case "smartRule":
 		all = smartRuleRows()
+	case "libraryAdmin":
+		all, err = rv.libraryAdminRows()
+	case "newLibrary":
+		all = rv.newLibraryRows()
+	case "matchQueue":
+		lib, _ := strconv.ParseInt(req.Source.Str("library"), 10, 64)
+		all, _, err = rv.matchQueueRows(req.Source.Str("state"), lib, min(req.Offset+req.Limit+1, 500), 0)
+	case "matchCandidates":
+		all, err = rv.matchCandidateRows(req.Source.Str("item"))
 	case "newList":
 		all = []sdui.Item{{ID: "name", Kind: "view", Title: "Name", Icon: "plus", Control: &sdui.Control{Type: sdui.ControlField, Name: "name", Placeholder: "A name for the list", MaxLength: 60, Input: "text"}}}
 	default:

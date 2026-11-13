@@ -18,6 +18,7 @@ import Unreachable from './components/Unreachable'
 import AuthPage from './pages/AuthPage'
 import { usePageRegions } from './sdui/regions'
 import { isPlayPath, PlayFrame, StatusBar, SystemDock } from './shell/PlayChrome'
+import { MainGames } from './shell/MainGames'
 import { useGamesInPlay } from './shell/PlayRedirect'
 import { PlayerDock } from './player/PlayerPage'
 import { Announcer, useDialogs } from './a11y'
@@ -156,7 +157,7 @@ function Shell() {
         : isCouchMode ? <Suspense fallback={<Spinner />}><Routes><Route path="/big/*" element={<CouchMode />} /></Routes></Suspense>
         : isGame ? <Suspense fallback={<Spinner />}><Routes><Route path="/game/:id" element={<GamePage />} /></Routes></Suspense>
         : isStream ? <Suspense fallback={<Spinner />}><Routes><Route path="/couch/:id/play/:app" element={<CouchPlayPage />} /><Route path="/couch-rig/:id" element={<RigPlayPage />} /></Routes></Suspense>
-        : isPlayer ? null : isWPlay ? <PlayFrame>{toPlayLibrary ? <Navigate to={toPlayLibrary} replace /> : <Suspense fallback={<RouteSkeleton />}><PageRoutes /></Suspense>}</PlayFrame> : tvMode ? <Suspense fallback={<Spinner />}><TvFrame pages={<PageRoutes />} /></Suspense> : <AppFrame />}
+        : isPlayer ? null : isWPlay ? <PlayFrame>{toPlayLibrary ? <Navigate to={toPlayLibrary} replace /> : <Suspense fallback={<RouteSkeleton />}><PageRoutes /></Suspense>}</PlayFrame> : tvMode ? <MainGames><Suspense fallback={<Spinner />}><TvFrame pages={<PageRoutes />} /></Suspense></MainGames> : <MainGames><AppFrame /></MainGames>}
       <PlayerDock />
       <RemoteHost />
       {isTv && <Suspense fallback={null}><TvHost /></Suspense>}

@@ -387,3 +387,13 @@ export const PANEL_ARTS: { id: PanelArt; label: string; note: string }[] = [
   { id: 'case', label: 'In its case or cartridge', note: 'The style chosen for the game, its console or every game' },
 ]
 export const panelArtOf = (v: unknown): PanelArt => (v === 'case' ? 'case' : 'art')
+
+// How games look outside WittyPlay (Home, the app's shelves and search): as WittyPlay draws them (in their case or cartridge, as chosen),
+// or just their box art. Per profile in /me/ui.
+export type MainArt = 'follow' | 'art'
+export const PLAY_MAIN_ART_KEY = 'wittyplayMainArt'
+export const MAIN_ARTS: { id: MainArt; label: string; note: string }[] = [
+  { id: 'follow', label: 'As WittyPlay shows them', note: 'In their case or cartridge, or however you chose here' },
+  { id: 'art', label: 'Just their box art', note: 'The cover alone, like a film’s poster' },
+]
+export const mainArtOf = (v: unknown): MainArt => (v === 'art' ? 'art' : 'follow')

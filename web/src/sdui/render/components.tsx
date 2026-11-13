@@ -66,6 +66,12 @@ const clampClass = (lines: number | undefined) => (lines && lines > 0 ? ' sdui-c
 
 // The picture a card or block asks for: the address as the server wrote it.
 const picture = (image: Props | undefined) => (image && typeof image.url === 'string' && image.url.startsWith('/api/') ? mediaUrl(image.url) : '')
+// A game's cover for drawing it in its case: the card's own picture when that is the cover, else the game's cover (a wide row such as
+// Jump back in sends a backdrop, which isn't what goes on a cartridge's label).
+const coverOf = (p: Props) => {
+  const image = obj(p, 'image')
+  return image && str(image, 'kind') === 'poster' ? picture(image) : mediaUrl(`/api/items/${encodeURIComponent(String(p.itemId))}/poster?w=480`)
+}
 
 // Without a picture, a titled thing gets the colour of its own the app's other pages give
 // it (Placeholder); a thing with an icon, or no title, gets that icon on a plain ground.
@@ -155,7 +161,7 @@ export const CardView = memo(function CardView({ view, showTitles }: { view: Vie
   // A shell may draw a game's picture its own way (WittyPlay's Game pictures: fitted, or in its case); null keeps the picture as sent.
   const gameArt = useContext(GameArtContext)
   const drawn = gameArt && p.kind === 'game' && p.itemId != null
-    ? gameArt.art({ itemId: String(p.itemId), console: str(p, 'console'), image: picture(obj(p, 'image')), title: text.title || str(p, 'title') })
+    ? gameArt.art({ itemId: String(p.itemId), console: str(p, 'console'), image: coverOf(p), title: text.title || str(p, 'title') })
     : null
   return (
     <Pressable view={view} className={'card' + (SHAPE_CLASS[shape] ?? '') + (style === 'game' ? ' sdui-game' : '') + (channel ? ' sdui-channel' : '') + (style === 'plate' || style === 'block' || style === 'logo' ? ' sdui-' + style : '')} title={(gameName ? gameTitleLabel({ title: text.title, titles: obj(p, 'titles') as GameTitles }, titlePref) : str(p, 'title')) || undefined}>

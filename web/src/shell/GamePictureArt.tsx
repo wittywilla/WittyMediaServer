@@ -16,9 +16,9 @@ import { useBrandLogos } from './brandLogos'
 import { IconImage } from '../icons'
 import { FitArt, GameCase } from './GameCase'
 import {
-  CASE_STYLES, FAMILY_VARIANTS, LABELS, MEDIA, PANEL_ARTS, PICTURES, PLAY_PANEL_ART_KEY, PLAY_PICTURES_KEY, panelArtOf, VARIANTS, cleanLook, emptyLook, familyVariant, lookFor, mediaDef, mediaFor,
+  CASE_STYLES, FAMILY_VARIANTS, LABELS, MEDIA, MAIN_ARTS, PANEL_ARTS, PICTURES, PLAY_MAIN_ART_KEY, PLAY_PANEL_ART_KEY, PLAY_PICTURES_KEY, mainArtOf, panelArtOf, VARIANTS, cleanLook, emptyLook, familyVariant, lookFor, mediaDef, mediaFor,
   picturesPref, resolveLook, styleDef, stylesOf, usualStyle, withFamilyVariant, withLook, withMediaStyle,
-  type CaseStyle, type LabelPick, type Look, type MediaId, type PanelArt, type PicturesPref, type Resolved, type ServerPictures, type Variant,
+  type CaseStyle, type LabelPick, type Look, type MainArt, type MediaId, type PanelArt, type PicturesPref, type Resolved, type ServerPictures, type Variant,
 } from './gamePictures'
 
 // ---- the choices ----
@@ -121,6 +121,31 @@ export function PanelCover({ mode, look, itemId, consoleId, image, title, brand 
   if (mode === 'case') return <div className="wplay-panel-cover case" aria-hidden="true"><GameCase style={look.case} consoleId={consoleId} art={image} logo={logo} title={title} label={look.label} brand={brand} /></div>
   if (!image || failed === image) return null
   return <div className="wplay-panel-cover" aria-hidden="true"><img src={image} alt="" onError={() => setFailed(image)} /></div>
+}
+
+// How games look in the rest of the app (PLAY_MAIN_ART_KEY).
+export function useMainArt(): [MainArt, (m: MainArt) => void] {
+  const [saved, save] = useUserPref<string>(PLAY_MAIN_ART_KEY, '')
+  return [mainArtOf(saved), (m) => { void save(m === 'follow' ? '' : m).catch(() => {}) }]
+}
+
+// The choice, for Settings › Game pictures and Setup: a radio group of buttons.
+export function MainArtChooser({ heading = true }: { heading?: boolean }) {
+  const [mode, setMode] = useMainArt()
+  const id = useId()
+  return (
+    <section className="wplay-pads-setting" aria-labelledby={id}>
+      <h2 id={id} className={heading ? undefined : 'sr-only'}>Games on Home and the rest of the app</h2>
+      {heading && <p className="wplay-console-note">How games look outside WittyPlay: on Home, in shelves and in search. Choosing one always opens its page in WittyPlay.</p>}
+      <div className="wplay-pads" role="radiogroup" aria-labelledby={id} data-nav-group>
+        {MAIN_ARTS.map((o) => (
+          <button key={o.id} type="button" role="radio" aria-checked={o.id === mode} className={'wplay-pad' + (o.id === mode ? ' on' : '')} onClick={() => setMode(o.id)}>
+            <span className="wplay-pad-text"><b>{o.label}</b><span>{o.note}</span></span>
+          </button>
+        ))}
+      </div>
+    </section>
+  )
 }
 
 // The choice of the game panel's picture, for Settings › Game pictures (yours only: it is how your panel looks).

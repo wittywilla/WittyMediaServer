@@ -156,3 +156,5 @@ export const cardRoute = (to: string, open: PlayOpen): string => {
   const m = /^\/game\/(\d+)$/.exec(to)
   return m && open === 'info' ? playGamePath(m[1]) : to
 }
+// Outside WittyPlay a game's card always opens its WittyPlay page: playing, saves and settings are there.
+export const mainGameRoute = (to: string): string => cardRoute(to, 'info')

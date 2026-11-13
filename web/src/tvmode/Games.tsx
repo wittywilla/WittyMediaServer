@@ -6,6 +6,7 @@ import { api, type GameConsole, type Item, type Library } from '../api'
 import { CardRow, EmptyState, LoadError, Spinner } from '../components/common'
 import { IconGamepad, IconRight } from '../icons'
 import GameDetails from '../pages/games/Details'
+import { playGamePath } from '../shell/playPaths'
 import GamesLibrary, { GameCard } from '../pages/games/Library'
 import { consoleMap, GameLinksContext, type GameLinks } from '../pages/games/data'
 import '../pages/games/games-ui.css'
@@ -92,5 +93,7 @@ export function GameScreen() {
   useEffect(() => { void load() }, [load])
   if (failed) return <LoadError what="This game" onRetry={() => { void load() }} />
   if (!it || String(it.id) !== id) return <Spinner />
+  // WittyPlay has every game's page, on a TV too: it opens there.
+  if (it.console !== 'rig') return <Navigate to={playGamePath(it.id)} replace />
   return <GameLinksContext.Provider value={links}><GameDetails it={it} reload={() => { void load() }} /></GameLinksContext.Provider>
 }

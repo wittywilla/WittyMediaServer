@@ -3,7 +3,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { moveTab, tabsPref, PLAY_TABS, libraryFor, yearsWords, layoutOf, exitWords, isPlayPads, isPlayPath, isPlayTop, padsFor, PLAY_EXIT, PLAY_TIP, swapFor, tipDue } from './playPaths.ts'
-import { cardRoute, openOf, playGamePath } from './playPaths.ts'
+import { cardRoute, mainGameRoute, openOf, playGamePath } from './playPaths.ts'
 
 test('WittyPlay Online pages take over the window; nothing else does', () => {
   assert.ok(isPlayPath('/page/wittyplay-online'))
@@ -81,4 +81,10 @@ test('a game card opens its WittyPlay page first unless the profile starts playi
   assert.equal(openOf(undefined), 'info')
   assert.equal(openOf('nonsense'), 'info')
   assert.equal(playGamePath(12), '/wittyplay/game/12')
+})
+
+test('outside WittyPlay a game card always opens its WittyPlay page', () => {
+  assert.equal(mainGameRoute('/game/745'), '/wittyplay/game/745')
+  assert.equal(mainGameRoute('/item/12'), '/item/12')
+  assert.equal(mainGameRoute('/game/745?resume=1'), '/game/745?resume=1')
 })

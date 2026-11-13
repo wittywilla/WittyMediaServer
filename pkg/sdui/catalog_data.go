@@ -743,16 +743,16 @@ var (
 	paramLimit   = pInt("limit", "Most items", "How many items it gives in all. 0 has no limit of its own; the device still pages it.", 0, 0, 500)
 	paramLibrary = pOf(PropLibrary, "library", "Library", "One library; leave empty for every library the profile can open. $library on a library page, $each in a row repeated over libraries.")
 	paramKind    = pEnum("kind", "Kind of library", "Only libraries of this kind.", "", LibraryKinds...)
-	paramMedia   = pEnum("media", "What", "", "all", "all|Everything", "watch|Films and episodes", "read|Books", "listen|Music, audiobooks and podcasts")
+	paramMedia   = pEnum("media", "What", "", "all", "all|Everything", "watch|Films and episodes", "read|Books", "listen|Music, audiobooks and podcasts", "play|Games played")
 )
 
 func buildSources() []SourceSpec {
 	browseSort := pEnum("sort", "Order", "", "", "title|Title", "added|Date added", "newest|Newest release", "oldest|Oldest release", "rating|Score", "shuffle|Shuffled")
 	return []SourceSpec{
 		{Type: "continueWatching", Label: "Continue watching", Icon: "history", Category: "personal", Since: 2, CardStyle: "progress", Title: "Continue watching", Paged: false,
-			Description: "What the profile is part-way through, most recent first.",
+			Description: "What the profile is part-way through, and the games it played, most recent first.",
 			Params:      []PropSpec{paramMedia, paramLimit},
-			Yields:      []string{"movie", "episode", "video", "disc", "book", "track", "audiobook", "podcast"},
+			Yields:      []string{"movie", "episode", "video", "disc", "book", "track", "audiobook", "podcast", "game"},
 			Example:     example(`{"type":"continueWatching","media":"watch"}`)},
 		{Type: "nextUp", Label: "Next up", Icon: "play", Category: "personal", Since: 2, CardStyle: "episode", Title: "Next up",
 			Description: "The next episode of every show the profile has started and not finished.",

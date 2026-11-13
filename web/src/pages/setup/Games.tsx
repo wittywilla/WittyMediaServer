@@ -10,7 +10,7 @@ import { GameTitleSample } from '../games/GameName'
 import { GAME_TITLE_CHOICES } from '../games/titles'
 import { useGameTitlePref } from '../games/useGameTitles'
 import { GAMES_LINE } from './plan'
-import { PictureQuickChooser } from '../../shell/GamePictureArt'
+import { MainArtChooser, PictureQuickChooser } from '../../shell/GamePictureArt'
 import { cleanLook, type Look } from '../../shell/gamePictures'
 
 // Belongs to WittyPlay, so it's only here when WittyPlay is.
@@ -49,6 +49,9 @@ export function Games({ info, next, back, added, goTo }: StepProps & { added: Li
       <h2 className="oobe-sub">How your games look</h2>
       <p className="muted oobe-hint">Box art comes in every shape. Show it whole, filling its tile, or each game in a case or cartridge like the ones its console used. Anyone can change this for themselves later, for every game, a console or one game, in WittyPlay’s Settings.</p>
       <PictureQuickChooser value={look} onChange={setLook} />
+      <h2 className="oobe-sub">Games on Home</h2>
+      <p className="muted oobe-hint">On Home and in the rest of the app, show games the same way, or just their box art. Choosing one always opens it in WittyPlay. This is for your profile; everyone can choose their own in WittyPlay’s Settings.</p>
+      <MainArtChooser heading={false} />
       {sources.length > 0 && (
         <>
           <h2 className="oobe-sub">More details, if you want them</h2>

@@ -2,6 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { playGamePath } from '../shell/playPaths'
 import { api, backdropUrl, codecName, fitWidth, sized, dvdStartMode, episodeLabel, fmtRuntime, fmtTime, insertFxOn, isDisc, langName, posterUrl, type Item, discName, isBluray } from '../api'
 import EditDetails, { type EditSection } from '../components/edit/EditDetails'
 import { DiscSettingsDialog } from '../components/edit/DiscDialogs'
@@ -11,7 +12,6 @@ import TitleExtras, { TitleLogo } from '../components/edit/TitleExtras'
 import { BookDetails } from './Books'
 import { SaveButton } from '../components/SaveToCollection'
 
-const GameDetails = lazy(() => import('./games/Details'))
 import { useRemoteAllowed } from '../remote/allowed'
 
 const PlayOn = lazy(() => import('../remote/PlayOn'))
@@ -60,7 +60,8 @@ export default function ItemPage() {
   if (libType === 'channels' || libType === 'musicvideos') return <Navigate replace to={`/watch/${it.id}`} />
   if (libType === 'radio') return <Navigate replace to={`/radio/${it.id}`} />
   if (it.kind === 'game' && it.console === 'rig') return <Suspense fallback={<Spinner />}><RigGameDetails it={it} /></Suspense>
-  if (it.kind === 'game') return <Suspense fallback={<Spinner />}><GameDetails it={it} reload={load} /></Suspense>
+  // A game's page is WittyPlay's (pages/PlayGame.tsx): from a search, a shelf or a link, it opens there, where it's played.
+  if (it.kind === 'game') return <Navigate to={playGamePath(it.id)} replace />
   if (it.kind === 'cd-image') return <Navigate replace to={`/cd/${it.id}`} />
   // Songs, chapters and episodes live on their album, book or podcast page.
   if (it.kind === 'audio') return <Navigate replace to={`/album/${it.libraryId}?artist=${encodeURIComponent(it.albumArtist || it.artist || '')}&album=${encodeURIComponent(it.album || '')}`} />

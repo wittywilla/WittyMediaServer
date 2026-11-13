@@ -144,6 +144,10 @@ func (rv *sduiResolver) item(it *library.Item) sdui.Item {
 		readable = it.Reader != "" && (rv.platform == "web" || rv.platform == "desktop")
 	case it.Kind == "game":
 		out.Kind, out.Route = "game", "/game/"+id
+		// Its console as people call it (NES), so a card can draw the game in that console's case.
+		if it.Console != "" {
+			out.Console = consoleShort(it.Console)
+		}
 		if t := it.Titles; t != nil {
 			out.Titles = &sdui.Titles{Native: t.Native, English: t.English, Romanized: t.Romanized}
 		}
@@ -443,7 +447,13 @@ func (rv *sduiResolver) Items(req sdui.SourceRequest) (sdui.SourceResult, error)
 		}
 		cont = s.filterItems(rv.ctx, rv.acc, cont)
 		_ = s.Store.AttachProgress(rv.ctx, rv.u.ID, cont)
-		var all []sdui.Item
+		// Each thing with when it was last touched, so games played (which keep no position) sit among the rest by that.
+		type touched struct {
+			at   int64
+			item sdui.Item
+		}
+		var list []touched
+		want := src.Str("media")
 		for _, it := range cont {
 			media := "watch"
 			switch it.Kind {
@@ -452,9 +462,23 @@ func (rv *sduiResolver) Items(req sdui.SourceRequest) (sdui.SourceResult, error)
 			case "audio":
 				media = "listen"
 			}
-			if m := src.Str("media"); m == "" || m == "all" || m == media {
-				all = append(all, rv.item(it))
+			if want == "" || want == "all" || want == media {
+				at := int64(0)
+				if it.Progress != nil {
+					at = it.Progress.UpdatedAt
+				}
+				list = append(list, touched{at, rv.item(it)})
 			}
+		}
+		if want == "all" || want == "play" {
+			for _, g := range s.recentlyPlayedGames(rv, 20) {
+				list = append(list, touched{g.at, rv.item(g.item)})
+			}
+		}
+		sort.SliceStable(list, func(i, j int) bool { return list[i].at > list[j].at })
+		all := make([]sdui.Item, 0, len(list))
+		for _, t := range list {
+			all = append(all, t.item)
 		}
 		return page(all, req), nil
 	case "nextUp":
@@ -1244,6 +1268,40 @@ func (rv *sduiResolver) pageFacets(fields []string) []sdui.Facet {
 			out = append(out, sdui.Facet{ID: f, Label: "Year", Options: opts})
 		case "minRating":
 			out = append(out, sdui.Facet{ID: f, Label: "Score", Options: []sdui.EnumOption{{Value: "9", Label: "9 and up"}, {Value: "8", Label: "8 and up"}, {Value: "7", Label: "7 and up"}, {Value: "6", Label: "6 and up"}}})
+		}
+	}
+	return out
+}
+
+type playedGame struct {
+	at   int64
+	item *library.Item
+}
+
+// recentlyPlayedGames is someone's most recently played games that they can still see, newest first: what "Jump back in" shows
+// beside what they were watching, reading and listening to.
+func (s *Server) recentlyPlayedGames(rv *sduiResolver, limit int) []playedGame {
+	played, err := s.Store.GameList(rv.ctx, rv.u.ID, false, limit)
+	if err != nil || len(played) == 0 {
+		return nil
+	}
+	ids := make([]int64, 0, len(played))
+	for _, e := range played {
+		ids = append(ids, e.ItemID)
+	}
+	items, _, err := s.Store.Items(rv.ctx, library.ItemQuery{IDs: ids, Kind: "game", Access: rv.acc, Limit: len(ids), Brief: true, NoTotal: true})
+	if err != nil {
+		return nil
+	}
+	items = s.filterItems(rv.ctx, rv.acc, items)
+	byID := make(map[int64]*library.Item, len(items))
+	for _, it := range items {
+		byID[it.ID] = it
+	}
+	out := make([]playedGame, 0, len(played))
+	for _, e := range played {
+		if it := byID[e.ItemID]; it != nil {
+			out = append(out, playedGame{e.LastPlayed, it})
 		}
 	}
 	return out

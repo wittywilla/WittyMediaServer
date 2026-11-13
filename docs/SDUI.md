@@ -2854,7 +2854,7 @@ Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 48
 
 | Source | Label | Category | Gives | Usual card style | Pages by cursor | On pages |
 |---|---|---|---|---|---|---|
-| [`continueWatching`](#continuewatching) | Continue watching | personal | movie, episode, video, disc, book, track, audiobook, podcast | progress |  | any |
+| [`continueWatching`](#continuewatching) | Continue watching | personal | movie, episode, video, disc, book, track, audiobook, podcast, game | progress |  | any |
 | [`nextUp`](#nextup) | Next up | personal | episode | episode |  | any |
 | [`recommended`](#recommended) | Recommended for you | personal | movie, show | poster |  | any |
 | [`watchLater`](#watchlater) | Watch later | personal | movie, show, episode, video | poster | yes | any |
@@ -2908,11 +2908,11 @@ Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 48
 
 #### continueWatching
 
-*Continue watching.* What the profile is part-way through, most recent first.
+*Continue watching.* What the profile is part-way through, and the games it played, most recent first.
 
 | Property | Type | Default | What it is |
 |---|---|---|---|
-| `media` | enum: all, watch, read, listen | `all` | What |
+| `media` | enum: all, watch, read, listen, play | `all` | What |
 | `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
 
 ```json
@@ -2962,7 +2962,7 @@ Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 48
 | Property | Type | Default | What it is |
 |---|---|---|---|
 | `library` | library |  | Library. One library; leave empty for every library the profile can open. $library on a library page, $each in a row repeated over libraries. |
-| `media` | enum: all, watch, read, listen | `all` | What |
+| `media` | enum: all, watch, read, listen, play | `all` | What |
 | `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
 
 ```json

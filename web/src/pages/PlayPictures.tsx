@@ -11,7 +11,7 @@ import { useApp } from '../state'
 import { ask, Button, Dialog, Notice, Segmented, Switch } from '../ui'
 import { WebLink } from '../components/WebLink'
 import { BRAND_LOGO_WARNING, brandLogosChanged, useBrandLogos, type BrandLogosState } from '../shell/brandLogos'
-import { consoleMedia, GameCardArt, GamePictureDialog, LookChooser, loadServerPictures, PanelArtChooser, serverPicturesChanged, useConsoleIndex, usePicturesPref, useServerPictures } from '../shell/GamePictureArt'
+import { consoleMedia, GameCardArt, GamePictureDialog, LookChooser, loadServerPictures, MainArtChooser, PanelArtChooser, serverPicturesChanged, useConsoleIndex, usePicturesPref, useServerPictures } from '../shell/GamePictureArt'
 import {
   CASE_STYLES, LABELS, PICTURES, cleanLook, emptyLook, exportName, importDoc, lookFor, prefToDoc, readDoc, withLook,
   WITTYPLAY_EXT, WITTYPLAY_TYPE, type Look, type PicturesPref, type Resolved, type ServerPictures, type WittyplayDoc,
@@ -117,6 +117,7 @@ export default function PlayPictures() {
       </section>
 
       {scope === 'me' && <PanelArtChooser />}
+      {scope === 'me' && <MainArtChooser />}
 
       <section className="wplay-pads-setting" aria-labelledby={ids.cons}>
         <h2 id={ids.cons}>Each console</h2>

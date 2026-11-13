@@ -79,7 +79,9 @@ func classify(pattern string) routeClass {
 	var c routeClass
 	switch {
 	case under("/api/games", "/api/play", "/api/consoles", "/api/couch", "/api/rigs", "/api/modules/wittyplay", "/api/game-profiles",
-		"/api/game-bezels", "/api/game-background", "/api/game-controllers"):
+		"/api/game-bezels", "/api/game-background", "/api/game-controllers"),
+		strings.HasPrefix(path, "/api/items/") && (ends("/achievements") || strings.Contains(path, "/achievements/")):
+		// A game's RetroAchievements belong to games, though they hang off the item.
 		c.feature = library.FeatureGames
 		// Under WittyPlay's own routes everything is a game being played, except an
 		// emulator's settings, the list of one's games, and pausing one.

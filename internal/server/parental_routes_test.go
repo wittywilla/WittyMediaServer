@@ -108,6 +108,8 @@ var routeClasses = map[string]string{
 	"GET /api/games/{id}/core-options":                          "games",
 	"GET /api/games/{id}/meta":                                  "games",
 	"GET /api/games/{id}/metadata":                              "games",
+	"GET /api/items/{id}/achievements":                          "games",
+	"GET /api/items/{id}/achievements/badge/{badge}":            "games",
 	"GET /api/games/{id}/patches":                               "games",
 	"GET /api/games/{id}/saves":                                 "games",
 	"GET /api/games/{id}/saves/{slot}/file":                     "games",

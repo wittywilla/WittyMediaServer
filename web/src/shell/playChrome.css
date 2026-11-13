@@ -583,3 +583,5 @@ html[data-wplay] .wpg-settings [role=tablist] { overflow-x: auto; scrollbar-widt
    beside it: its ring says which one it is. */
 .wplay .sdui .sdui-shelf.layout-grid .sdui-item.grown { transform: scale(1.04); transform-origin: 50% 0; }
 @media (prefers-reduced-motion: reduce) { .wplay .sdui .sdui-shelf.layout-grid .sdui-item.grown { transform: none; } }
+/* The console, year and rating line keeps its height while the game loads, so Play never jumps down under the cursor. */
+.wplay-bio-line { min-block-size: 1.9em; }

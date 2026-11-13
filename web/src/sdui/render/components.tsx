@@ -433,16 +433,17 @@ function ShelfDetail({ view, parent }: { view: View; parent: View }) {
   const extra = game && gameArt?.detail ? gameArt.detail({ itemId: game, console: str(p, 'console'), image: picture(obj(p, 'image')), title: text.title || '' }) : null
   const cover = game && gameArt?.cover ? gameArt.cover({ itemId: game, console: str(p, 'console'), image: picture(obj(p, 'image')), title: text.title || '' }) : null
   const actions = buttons.length > 0 && <ActionButtons buttons={buttons} view={parent} className="sdui-detail-actions" />
-  const head = (
+  const title = (
     <>
       <b className="sdui-detail-title">{text.title}</b>
       {text.subtitle && <span className="sdui-detail-line">{text.subtitle}</span>}
-      {extra ? <div className="sdui-detail-actrow" data-nav-group>{actions}{extra}</div> : actions}
     </>
   )
+  const buttonRow = extra ? <div className="sdui-detail-actrow" data-nav-group>{actions}{extra}</div> : actions
+  const head = <>{title}{buttonRow}</>
   return (
     <div className={'sdui-detail' + (game ? ' has-bio' : '')} aria-live="polite" data-for={view.id}>
-      {game ? <GameBio key={game} itemId={game} title={text.title || ''} console={typeof p.console === 'string' ? p.console : undefined} top={cover}>{head}</GameBio> : head}
+      {game ? <GameBio key={game} itemId={game} title={text.title || ''} console={typeof p.console === 'string' ? p.console : undefined} top={cover} actions={buttonRow}>{title}</GameBio> : head}
     </div>
   )
 }

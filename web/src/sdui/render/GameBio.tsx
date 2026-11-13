@@ -139,7 +139,8 @@ export function Achievements({ cheevos }: { cheevos: Cheevos | null | undefined 
 }
 
 // children: the panel's title, line and buttons, which go under the logo and above the rest.
-export function GameBio({ itemId, title, console: consoleName, children, top }: { itemId: string; title: string; console?: string; children: ReactNode; top?: ReactNode }) {
+// actions: the panel's buttons, which go under the console, year and rating, so those are read before Play.
+export function GameBio({ itemId, title, console: consoleName, children, top, actions }: { itemId: string; title: string; console?: string; children: ReactNode; top?: ReactNode; actions?: ReactNode }) {
   const { item, meta, cheevos } = useBio(itemId)
   const [open, setOpen] = useState<number | null>(null)
   const logo = meta?.art?.find((a) => a.kind === 'logo')
@@ -158,6 +159,7 @@ export function GameBio({ itemId, title, console: consoleName, children, top }: 
         {year && <span>{year}</span>}
         {rating.map((r) => <span key={r} className="wplay-bio-rating">{r}</span>)}
       </p>
+      {actions}
       {makers.length > 0 && <p className="wplay-bio-makers"><span className="wplay-bio-label">Made by</span> {makers.join(' · ')}</p>}
       {about && <p className="wplay-bio-about">{about}</p>}
       {item?.genres?.length ? <p className="wplay-bio-genres">{item.genres.join(' · ')}</p> : null}

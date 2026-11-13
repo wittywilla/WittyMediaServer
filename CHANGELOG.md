@@ -7,6 +7,7 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## 0.8.0-alpha
 
+- **Readers keep each profile's choices as module settings.** The Reader page hands WittyInk and the readers the profile's settings of those modules (`ReaderHost.settings`), so what is chosen in Settings, Modules and what is chosen while reading are the same on every device. A book's page has its Read button again on the web and desktop apps (server-driven pages had none): Read, Continue reading or Read again, and Read from the start. Apps without the readers aren't offered it.
 **Highlights.** This release is Design 2 and what it needs from the server.
 
 - **Design 2.** The old design is gone, with no fallback. Fourteen looks (experiences: Lumen, Rail, Stage, Aero, Classic, Classic Cable, Classic Satellite, Compact, Paper, Marquee, Crossbar, Big picture, Dashboard, Retro), chosen by an administrator's policy, by a profile for each device, or required of a profile, each described as data (including `wire`, its layout in a few words, for the pickers). Fifteen themes, any with any look, with import, a profile's own colours and contrast warnings. The server's name keeps its own colours and mark in every look and theme. See [docs/design-2](docs/design-2/README.md) and [Themes](docs/THEMES.md).

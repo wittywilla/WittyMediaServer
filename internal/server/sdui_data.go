@@ -125,7 +125,7 @@ func (rv *sduiResolver) item(it *library.Item) sdui.Item {
 	if it.Backdrop != "" {
 		out.Images["backdrop"] = "/api/items/" + id + "/backdrop"
 	}
-	playable := false
+	playable, readable := false, false
 	switch {
 	case it.Kind == "audio":
 		out.Kind, out.Artist, out.Subtitle = "track", firstNonEmpty(it.Artist, it.AlbumArtist), firstNonEmpty(it.Artist, it.AlbumArtist)
@@ -138,6 +138,10 @@ func (rv *sduiResolver) item(it *library.Item) sdui.Item {
 		playable = true
 	case it.Kind == "book":
 		out.Kind, out.Subtitle = "book", firstNonEmpty(it.AlbumArtist, it.Artist, out.Subtitle)
+		// A book a reader can open is "played" by opening it: the page's main button reads it
+		// (Read, Continue reading, Read again). Only the web and desktop apps have the readers,
+		// so other apps are offered nothing to press.
+		readable = it.Reader != "" && (rv.platform == "web" || rv.platform == "desktop")
 	case it.Kind == "game":
 		out.Kind, out.Route = "game", "/game/"+id
 	case it.Kind == "photo":
@@ -173,6 +177,15 @@ func (rv *sduiResolver) item(it *library.Item) sdui.Item {
 		case w >= 1900 || h >= 1000:
 			out.Badges = append(out.Badges, "HD")
 		}
+	}
+	if readable {
+		// A book's place is its position, which is never zero once it has been opened.
+		if p := it.Progress; p != nil && !p.Watched && p.PositionSec > 0 {
+			out.ResumeSec = p.PositionSec
+		}
+		out.PlayID = id
+		out.Can = append(rv.can("play"), "watchLater", "watched")
+		out.Can = slices.DeleteFunc(out.Can, func(c string) bool { return c == "playOn" })
 	}
 	if playable {
 		out.PlayID = id

@@ -26,7 +26,7 @@ Unmerged work at the time of collation (`git branch --no-merged v0.8.0-alpha`): 
 
 ## Decisions waiting on the owner
 
-Decided since (2026-11-12): the peer-to-peer "address book" (public DHT rendezvous for joining by code) is **on by default whenever peer to peer is on** (S1 makes the change).
+Decided since (2026-11-12): the peer-to-peer "address book" (public DHT rendezvous for joining by code) is **on by default whenever peer to peer is on**; it keeps its own switch, and an owner who turns it off keeps it off. It already behaved so; S1 added a test and plainer wording (server 79b2a4c7).
 
 1. **SDUI library and detail pages on the web: bring back the old tools or accept their loss.** Bulk edit, saved views, category
    editor, view settings, Scan, music tracks/playlists tabs and Play all, Find intros and credits, show cards/playlist switch,

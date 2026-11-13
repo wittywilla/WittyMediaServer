@@ -191,29 +191,94 @@ func (m *Manager) Install(id string) error {
 	m.loadFeed(id, e)
 	m.computeOffers(e)
 	rel := e.rel
+	var older error
+	if o := e.older; rel == nil && o != nil {
+		// Never chosen by itself: named, so whoever asked can be asked about it.
+		older = newErrOlderServer(id, e.builtin.Name, o.Version, o.MadeFor, m.cfg.Server)
+	}
 	m.mu.Unlock()
+	if older != nil {
+		return older
+	}
 	if rel == nil {
 		return errors.New("no compatible newer version is known; check for updates first")
 	}
 	return m.InstallVersion(id, rel.version, true)
 }
 
+// MadeForOlder says whether installing ver (or, with "", what an add or install would pick) means
+// a version made for an older server, for the audit log.
+func (m *Manager) MadeForOlder(id, ver string) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	e := m.mods[id]
+	if e == nil {
+		return false
+	}
+	m.loadFeed(id, e)
+	if ver == "" {
+		return e.rel == nil && e.olderRel != nil
+	}
+	if k := e.known[ver]; k != nil {
+		_, ok := olderServer(k.man, m.cfg.Server)
+		return ok
+	}
+	if man, _, err := m.usable(id, e, ver); err == nil {
+		_, ok := olderServer(man, m.cfg.Server)
+		return ok
+	}
+	return false
+}
+
+// InstallOlder installs the newest version made for an older server, when that is all there is
+// for this module: only when confirmOlder says someone read the warning, and otherwise refused
+// with *ErrOlderServer naming it. Nothing automatic calls this.
+func (m *Manager) InstallOlder(id string, confirmOlder bool) error {
+	m.mu.Lock()
+	e := m.mods[id]
+	if e == nil {
+		m.mu.Unlock()
+		return ErrUnknown
+	}
+	m.loadFeed(id, e)
+	m.computeOffers(e)
+	rel := e.olderRel
+	m.mu.Unlock()
+	if rel == nil {
+		return errors.New("no version of it is known; check for updates first")
+	}
+	return m.InstallVersionOlder(id, rel.version, true, confirmOlder)
+}
+
 // InstallVersion starts moving a module to a given version, newer or older. Without
 // confirm, a choice with a warning is refused with *ErrNeedsConfirm. A version already
 // on disk is switched to with no download, so going back works offline.
 func (m *Manager) InstallVersion(id, ver string, confirm bool) error {
+	return m.InstallVersionOlder(id, ver, confirm, false)
+}
+
+// InstallVersionOlder is InstallVersion that may also install a version made for an older
+// server, when confirmOlder says someone read that warning. Without it such a version is
+// refused with *ErrOlderServer.
+func (m *Manager) InstallVersionOlder(id, ver string, confirm, confirmOlder bool) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	e := m.mods[id]
 	if e == nil {
 		return ErrUnknown
 	}
-	return m.installVersionLocked(id, e, ver, confirm, nil)
+	return m.installVersionLocked(id, e, ver, confirm, confirmOlder, nil)
 }
 
 // InstallVersionWith is InstallVersion with an administrator's go-ahead past what the server would
 // refuse (override.go). A download held for that go-ahead is installed from what was held.
 func (m *Manager) InstallVersionWith(id, ver string, confirm bool, accept *OverrideAccept) error {
+	return m.InstallVersionWithOlder(id, ver, confirm, false, accept)
+}
+
+// InstallVersionWithOlder is InstallVersionWith that may also install a version made for an
+// older server, when confirmOlder says so.
+func (m *Manager) InstallVersionWithOlder(id, ver string, confirm, confirmOlder bool, accept *OverrideAccept) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	e := m.mods[id]
@@ -226,10 +291,10 @@ func (m *Manager) InstallVersionWith(id, ver string, confirm bool, accept *Overr
 		}
 		return m.installHeldLocked(h, accept)
 	}
-	return m.installVersionLocked(id, e, ver, confirm, accept)
+	return m.installVersionLocked(id, e, ver, confirm, confirmOlder, accept)
 }
 
-func (m *Manager) installVersionLocked(id string, e *entry, ver string, confirm bool, accept *OverrideAccept) error {
+func (m *Manager) installVersionLocked(id string, e *entry, ver string, confirm, confirmOlder bool, accept *OverrideAccept) error {
 	switch {
 	case !updatable(e.builtin):
 		return errors.New(e.builtin.Name + " is built into the server and updates with it")
@@ -263,13 +328,13 @@ func (m *Manager) installVersionLocked(id string, e *entry, ver string, confirm 
 		}
 		return errors.New("that version isn't known; check for updates first")
 	}
-	refused, warning := m.judge(e, man)
+	refused, _, warning := m.judgeParts(e, man)
 	var preNeeds []string
 	if refused != "" && rangeOnly(man, m.cfg.Server) {
 		// Outside its range with an API this server speaks: overridable, if nothing else stops it.
 		c := *man
 		c.MinServer, c.MaxServer = "0.0.0", "999.x"
-		if refused, warning = m.judge(e, &c); refused == "" {
+		if refused, _, warning = m.judgeParts(e, &c); refused == "" {
 			preNeeds = []string{OverrideOutOfRange}
 		}
 	}
@@ -281,6 +346,12 @@ func (m *Manager) installVersionLocked(id string, e *entry, ver string, confirm 
 		if err := accept.covers(needsOverride(ver, preNeeds, man), id, man); err != nil {
 			return err
 		}
+	}
+	if madeFor, ok := olderServer(man, m.cfg.Server); ok && !confirmOlder {
+		// Made for an older server: installed only by someone who was told, never by itself.
+		// confirmOlder answers that warning; plain confirm answers the rest.
+		m.log.Info("modules: refused a version made for an older server without confirmation", "module", id, "version", ver, "madeFor", madeFor)
+		return newErrOlderServer(id, e.builtin.Name, ver, madeFor, m.cfg.Server)
 	}
 	if warning != "" && !confirm {
 		return &ErrNeedsConfirm{Warning: warning}
@@ -303,7 +374,7 @@ func (m *Manager) installVersionLocked(id string, e *entry, ver string, confirm 
 	logging.Go("module install", func() {
 		ctx, cancel := context.WithTimeout(logging.WithSession(context.Background(), session), 30*time.Minute)
 		defer cancel()
-		err := m.install(ctx, id, e, &rel, older, preNeeds, accept)
+		err := m.install(ctx, id, e, &rel, older, confirmOlder, preNeeds, accept)
 		m.mu.Lock()
 		defer m.mu.Unlock()
 		e.busy = false
@@ -352,7 +423,7 @@ var phaseWords = map[string]string{PhaseDownloading: "Downloading", PhaseVerifyi
 
 // install does the work. Until the state is saved, the version in use is
 // untouched, so a failure at any step, or the power going, changes nothing.
-func (m *Manager) install(ctx context.Context, id string, e *entry, r *release, older bool, preNeeds []string, accept *OverrideAccept) error {
+func (m *Manager) install(ctx context.Context, id string, e *entry, r *release, older, confirmOlder bool, preNeeds []string, accept *OverrideAccept) error {
 	// 1. The signed list and the manifest, fetched again rather than remembered.
 	m.setPhase(e, PhaseVerifying)
 	man, v, err := m.verifiedRelease(ctx, id, e, r)
@@ -367,9 +438,15 @@ func (m *Manager) install(ctx context.Context, id string, e *entry, r *release, 
 		judged = &c
 	}
 	refused, _ := m.judge(e, judged)
+	madeFor, olderSrv := olderServer(man, m.cfg.Server)
+	name := e.builtin.Name
 	m.mu.Unlock()
 	if refused != "" {
 		return errors.New(refused)
+	}
+	if olderSrv && !confirmOlder {
+		// What the release signed says it was made for an older server, whatever was listed.
+		return newErrOlderServer(id, name, man.Version, madeFor, m.cfg.Server)
 	}
 	want, ok := v.list[r.archive.Name]
 	if !ok {

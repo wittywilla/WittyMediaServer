@@ -5,6 +5,8 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **A module version made for an older server is never installed without a warning.** One whose own range stops below this server (WittyPlay 0.3.6, `maxServer: 0.6.x`, on 0.8.0-alpha) may still start, but its pages, settings and features from this server can be missing. Automatic updates, Update All, "latest", first-run setup, restore and repair never pick one; with nothing made for this server they say "No version of WittyPlay for this server is published yet". The store, Settings → Modules, first-run setup and a setup step's "add the module" open a pop-up first (Don't install is the default; one pop-up with a choice for each when setup installs several), and only Install anyway sends `confirmOlder`; without it the install routes answer 409 `older-server` naming each version. One already in use says so in Settings → Modules and the store, with the newer version or Remove. `docs/MODULES.md`, "Version ranges".
+
 ## 0.8.0-alpha
 
 - **Readers keep each profile's choices as module settings.** The Reader page hands WittyInk and the readers the profile's settings of those modules (`ReaderHost.settings`), so what is chosen in Settings, Modules and what is chosen while reading are the same on every device. A book's page has its Read button again on the web and desktop apps (server-driven pages had none): Read, Continue reading or Read again, and Read from the start. Apps without the readers aren't offered it.

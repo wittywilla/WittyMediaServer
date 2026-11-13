@@ -7,7 +7,8 @@ import type { NeedsOverride, OverrideRecord, Pending, UiSummary } from './pages/
 // store in Settings, Add Library and first-run setup. Nothing here goes online.
 
 export type Withdrawn = { version: string; severity: string; reason: string }
-export type Offer = { version: string; minServer: string; maxServer: string; notes?: string; url?: string; published?: number; prerelease: boolean; size?: number; reason?: string; blocked?: string }
+// olderServer: made for an older server (madeFor, e.g. "0.6.x"): never installed without confirmOlder.
+export type Offer = { version: string; minServer: string; maxServer: string; notes?: string; url?: string; published?: number; prerelease: boolean; size?: number; reason?: string; blocked?: string; olderServer?: boolean; madeFor?: string }
 export type ModuleEvent = { at: number; kind: string; version?: string; detail?: string }
 export type ModuleSource = { repo: string; fingerprint: string; addedAt: number; addedBy?: string; store?: string }
 export type ModuleStatus = {
@@ -19,6 +20,9 @@ export type ModuleStatus = {
   withdrawn?: Withdrawn; lastFailure?: string; events?: ModuleEvent[]
   installed: boolean; core?: boolean; libraries?: string[]; requires?: string[]; requiredBy?: string[]
   source?: ModuleSource; noFork?: string; autoUpdate: boolean
+  // A version made for an older server: the only one on offer (olderOffer, its reason the warning),
+  // or the one in use (olderServer, madeFor, and olderWarning saying what to do about it).
+  olderOffer?: Offer; olderServer?: boolean; madeFor?: string; olderWarning?: string
   description?: string; publisher?: { name: string; url?: string }; icon?: string; enabled?: boolean
   // Installed past a rule (an override), its release status, what its SDUI adds, and a release held
   // until someone accepts what it needs.

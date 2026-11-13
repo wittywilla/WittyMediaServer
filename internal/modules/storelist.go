@@ -38,6 +38,9 @@ const (
 	FitNone      = "no-version"
 	FitLibrary   = "library"
 	FitWithdrawn = "withdrawn"
+	// FitOlderServer: the only version that would run was made for an older server. It is
+	// installed only when the request says confirmOlder, after its warning (Why) was shown.
+	FitOlderServer = "older-server"
 )
 
 // Fit says whether a module can be installed here, and if not, why.
@@ -97,6 +100,11 @@ type StoreItem struct {
 	// The override the version in use was installed with, when it was.
 	Override *OverrideInfo `json:"override,omitempty"`
 
+	// OlderServer: the version offered was made for an older server (MadeFor, e.g. "0.6.x"), as
+	// Fit.Why explains. Installing it needs confirmOlder.
+	OlderServer bool   `json:"olderServer,omitempty"`
+	MadeFor     string `json:"madeFor,omitempty"`
+
 	Fit     Fit      `json:"fit"`
 	Status  *Status  `json:"status,omitempty"`
 	Failure *Failure `json:"failure,omitempty"`
@@ -136,10 +144,12 @@ func (m *Manager) listedCatalog() (*wittymodule.Catalog, string) {
 // that the newest there is, with why it can't be used.
 func (s *Stores) offer(mod *wittymodule.CatalogModule) (*wittymodule.CatalogVersion, Fit) {
 	if len(mod.Versions) == 0 {
-		return nil, Fit{Kind: FitNone, Why: "No version of " + mod.Name + " is available yet."}
+		return nil, Fit{Kind: FitNone, Why: "No version of " + mod.Name + " for this server is published yet."}
 	}
 	server := s.m.cfg.Server
 	var first Fit
+	var older *wittymodule.CatalogVersion
+	var olderFit Fit
 	for i := range mod.Versions {
 		v := &mod.Versions[i]
 		f := fitOf(mod.Name, v, server)
@@ -149,6 +159,15 @@ func (s *Stores) offer(mod *wittymodule.CatalogModule) (*wittymodule.CatalogVers
 		if f.OK {
 			return v, f
 		}
+		if f.Kind == FitOlderServer && older == nil {
+			older, olderFit = v, f
+		}
+	}
+	if older != nil {
+		// Nothing made for this server: the newest made for an older one, with its warning, which
+		// is only installed by someone who confirms it.
+		olderFit.Why = "No version of " + mod.Name + " for this server is published yet. " + olderFit.Why
+		return older, olderFit
 	}
 	return &mod.Versions[0], first
 }
@@ -181,6 +200,9 @@ func fitOf(name string, v *wittymodule.CatalogVersion, server string) Fit {
 	}
 	if v.Platform(runtime.GOOS, runtime.GOARCH) == nil {
 		return Fit{Kind: FitNoBuild, Why: fmt.Sprintf("%s %s has no build for this kind of computer (%s).", name, v.Version, thisPlatform())}
+	}
+	if madeFor, ok := olderServerListed(name, v, server); ok {
+		return Fit{Kind: FitOlderServer, Why: OlderServerWarning(name, v.Version, madeFor, server)}
 	}
 	return Fit{OK: true, Kind: FitOK}
 }
@@ -220,6 +242,9 @@ func (s *Stores) fillListing(it *StoreItem, cat *wittymodule.Catalog, mod *witty
 	}
 	it.Version, it.Released, it.License, it.Permissions, it.Delivery = v.Version, v.Released, clean(v.License), v.Permissions, v.Delivery
 	it.Changelog, it.MinServer, it.MaxServer = clean(v.Changelog), v.MinServer, v.MaxServer
+	if fit.Kind == FitOlderServer {
+		it.OlderServer, it.MadeFor = true, v.MaxServer
+	}
 	it.Platforms = platformsOf(v)
 	if f := v.Platform(runtime.GOOS, runtime.GOARCH); f != nil {
 		it.Size = f.Size

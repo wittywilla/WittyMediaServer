@@ -1,0 +1,12 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
+
+/* The pop-up about module versions made for an older server, and the notice for one in use. */
+.st-older-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-3); }
+.st-older-list fieldset { margin: 0; padding: var(--sp-2) var(--sp-3); border: 1px solid var(--border, currentColor); border-radius: var(--radius, 8px); }
+.st-older-list legend { padding: 0 var(--sp-1); }
+.st-older-list p { margin: 0 0 var(--sp-2); font-size: var(--text-sm); }
+.st-older-list [role="radiogroup"] { display: flex; flex-wrap: wrap; gap: var(--sp-3); }
+.st-older-list label { display: inline-flex; align-items: center; gap: var(--sp-1); min-height: 44px; cursor: pointer; }
+.st-older-tag { font-weight: 600; }
+.ms-older p { margin: var(--sp-1) 0 var(--sp-2); }

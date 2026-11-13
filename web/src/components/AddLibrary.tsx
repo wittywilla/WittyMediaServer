@@ -14,6 +14,7 @@ import { Spinner } from './common'
 import OtherMachineHelp from './OtherMachineHelp'
 import '../pages/setup/setup.css'
 import { installAndWait } from '../pages/setup/install'
+import { useOlderAsk } from '../pages/settings/store/OlderServerDialog'
 import { GAMES_LINE, onAnotherMachine } from '../pages/setup/plan'
 import { useApp } from '../state'
 import { Segmented } from '../ui/Choice'
@@ -90,6 +91,8 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
   const [adding, setAdding] = useState('') // the module being added
   const [addedNote, setAddedNote] = useState('')
   const [addErr, setAddErr] = useState('')
+  // A module whose only version was made for an older server asks first, in a pop-up.
+  const older = useOlderAsk()
   // Where the keyboard goes next: a kind's tile (back from its form, or once its library is made),
   // or into the form that just opened. Without this it falls to the page, and Tab starts again at the top.
   const [focusKind, setFocusKind] = useState('')
@@ -102,7 +105,7 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
     if (adding) return
     setAdding(m.id); setAddErr('')
     try {
-      const r = await installAndWait(m.id, m.name)
+      const r = await installAndWait(m.id, m.name, undefined, { askOlder: older.ask })
       if (!r.ok) { setAddErr([r.failure?.title, r.failure?.message].filter(Boolean).join(': ')); return }
       const before = kinds || []
       const now = await learn()
@@ -219,6 +222,7 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
             </ul>
           </section>
         )}
+        {older.dialog}
       </div>
     )
   }
@@ -282,6 +286,7 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
       <div className="oobe-actions">
         <button type="button" className="btn ghost" onClick={() => { setFocusKind(t.type); setType(null); setPaths([]); setManual(''); setErr(''); setRefusedShare(false); setMissing([]); setAddErr('') }}>Back</button>
         <button type="button" className="btn primary" disabled={(!allPaths.length && !pods && !noFolder && !anime) || busy} onClick={add}>{busy ? 'Adding…' : pods ? 'Add, then follow shows' : joining ? `Add to ${joining.name}` : `Add ${newName}`}</button></div>
+      {older.dialog}
     </div>
   )
 }

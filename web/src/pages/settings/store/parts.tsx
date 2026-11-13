@@ -83,6 +83,7 @@ function FitTag({ kind }: { kind: string }) {
   if (kind === 'library') return <Tag tone="off">Comes with other modules</Tag>
   if (kind === 'no-build') return <Tag tone="off">Not for this computer</Tag>
   if (kind === 'withdrawn') return <Tag tone="bad" icon={<IconInfo size={12} />}>Withdrawn</Tag>
+  if (kind === 'older-server') return <Tag tone="warn" icon={<IconInfo size={12} />}>Made for an older server</Tag>
   return <Tag tone="bad" icon={<IconInfo size={12} />}>{kind === 'too-old' ? 'Built for an older server' : 'Needs a newer server'}</Tag>
 }
 
@@ -98,6 +99,7 @@ export function StateTags({ item }: { item: StoreItem }) {
       {m?.installed && !PHASE[m.phase] && m.enabled === false && <Tag tone="off">Turned off</Tag>}
       {m?.installed && !PHASE[m.phase] && m.enabled !== false && (item.failure ? <Tag tone="bad" icon={<IconInfo size={12} />}>Needs a look</Tag> : m.latest ? <Tag tone="new">Update available</Tag> : <Tag tone="ok" icon={<IconCheck size={12} />}>Installed</Tag>)}
       {!m?.installed && item.kind !== 'in-development' && item.kind !== 'refused' && !item.fit.ok && <FitTag kind={item.fit.kind} />}
+      {m?.installed && m.olderServer && <Tag tone="warn" icon={<IconInfo size={12} />}>Made for an older server</Tag>}
       {m?.pin && <Tag>Pinned</Tag>}
       {item.official && m?.source && <Tag tone="warn" icon={<IconShield size={12} />}>Other publisher</Tag>}
       {m?.pending && <Tag tone="warn">Needs your go-ahead</Tag>}

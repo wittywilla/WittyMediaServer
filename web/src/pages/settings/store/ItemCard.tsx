@@ -11,6 +11,8 @@ import { useOverrideDialog } from './overrideParts'
 import { itemModuleKind, moduleKindTitle, needsOverrideOf } from './overrides'
 import type { OverrideBody } from './OverrideDialog'
 import { categoryTitle, currentRun, failureOf, installModule, isBusy, mb, PHASE, type Failure, type RunItem, type StoreItem } from './storeApi'
+import { olderOf } from './olderServer'
+import { useOlderAsk } from './OlderServerDialog'
 
 // One module, with the one thing to do next, wherever it's shown. What can be done comes from
 // what the server says: nothing here decides whether something fits.
@@ -27,6 +29,8 @@ export function actionFor(it: StoreItem): { label: string; aria: string } | null
     return m.latest && !m.pin ? { label: 'Update', aria: `Update ${it.name} to ${m.latest.version}` } : null
   }
   if (it.fit.ok || it.kind === 'server') return { label: it.failure ? 'Try again' : 'Install', aria: `${it.failure ? 'Try again: install' : 'Install'} ${it.name}${it.version ? ` ${it.version}` : ''}` }
+  // Only a version made for an older server: the button asks first, in a pop-up.
+  if (it.fit.kind === 'older-server' && it.official) return { label: 'Install…', aria: `Install ${it.name} ${it.version || ''}, made for an older server: asks first` }
   return null
 }
 
@@ -53,6 +57,7 @@ export function useInstall(it: StoreItem, onChanged: () => void, repairRoute: st
     }
   }
   const over = useOverrideDialog()
+  const older = useOlderAsk()
   // After the server took the request: follow it to the end, then say how it went.
   const watch = async () => {
     try {
@@ -69,19 +74,26 @@ export function useInstall(it: StoreItem, onChanged: () => void, repairRoute: st
       }
     } finally { going.current = false; if (alive.current) setWorking(false) }
   }
-  // With an override, a refusal goes back to the override dialog, which explains it in place.
-  const run = async (confirm: boolean, override?: OverrideBody) => {
+  // With an override, a refusal goes back to the override dialog, which explains it in place. A
+  // version made for an older server opens its pop-up, and only Install anyway sends confirmOlder:
+  // a plan is all or nothing, so every one in it has to be chosen.
+  const run = async (confirm: boolean, override?: OverrideBody, confirmOlder?: boolean) => {
     if (going.current) return
     going.current = true
     setPlan(null); setWorking(true)
     try {
-      await installModule(it.id, confirm, override)
+      await installModule(it.id, confirm, confirmOlder ? { ...override, confirmOlder: true } : override)
     } catch (e) {
       going.current = false; if (alive.current) setWorking(false)
       if (override) throw e
       const need = needsOverrideOf(e)
+      const old = olderOf(e)
       if (e instanceof ApiError && e.data?.code === 'plan') setPlan(e.data.plan as RunItem[])
-      else if (need) over.open({ id: it.id, name: it.name, need, send: (body) => run(confirm, body) })
+      else if (old && !confirmOlder) {
+        const yes = await older.ask(old)
+        if (old.every((o) => yes.includes(o.module))) await run(confirm, undefined, true)
+        else toast(`${it.name} wasn’t installed`)
+      } else if (need) over.open({ id: it.id, name: it.name, need, send: (body) => run(confirm, body, confirmOlder) })
       else setFailure(failureOf(e, it.name))
       return
     }
@@ -92,6 +104,7 @@ export function useInstall(it: StoreItem, onChanged: () => void, repairRoute: st
       {plan && <PlanDialog item={it} plan={plan} onClose={() => setPlan(null)} onYes={() => run(true)} />}
       {failure && <FailureDialog failure={failure} name={it.name} moduleId={it.id} repairRoute={repairRoute} onClose={() => setFailure(null)} onRetry={() => run(false)} />}
       {over.dialog}
+      {older.dialog}
     </>
   )
   return { press: () => run(false), working, dialogs }
@@ -117,7 +130,7 @@ function PlanDialog({ item, plan, onClose, onYes }: { item: StoreItem; plan: Run
       description={`${item.name} is built on ${others.length === 1 ? 'a module that isn’t' : 'modules that aren’t'} on this server yet, so ${others.length === 1 ? 'it' : 'they'} will be installed first, in this order.`}
       actions={<><Button variant="ghost" autoFocus onClick={onClose}>Cancel</Button><Button variant="primary" onClick={onYes}>Install {plan.length} modules</Button></>}>
       <ol className="st-plan">
-        {plan.map((p) => <li key={p.id}><b>{p.name}</b>{p.to && <span className="ms-ver"> {p.to}</span>}{p.why && <span className="muted"> {p.why}</span>}</li>)}
+        {plan.map((p) => <li key={p.id}><b>{p.name}</b>{p.to && <span className="ms-ver"> {p.to}</span>}{p.why && <span className="muted"> {p.why}</span>}{p.olderServer && <span className="st-older-tag"> Made for an older server: you’ll be asked about it next.</span>}</li>)}
       </ol>
     </Dialog>
   )

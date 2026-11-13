@@ -8,6 +8,8 @@ import { LIB_TYPES } from '../../components/AddLibrary'
 import { Button, LoadError, Notice, Progress, Spinner } from '../../ui'
 import { CATEGORIES, checkAll, isBusy, mb, PHASE, storeView, type Failure, type Run, type StoreItem, type StoreView } from '../settings/store/storeApi'
 import { installAndWait } from './install'
+import { notInstalledWords, olderFromStore, series } from '../settings/store/olderServer'
+import { useOlderAsk } from '../settings/store/OlderServerDialog'
 import { ChoiceCards, LaterNote, StepActions, StepHead, TickRow, type StepProps } from './parts'
 import { ADVANCED, offerable, PLAIN_WORDS, RECOMMENDED, updateChoiceFrom, updateSettings, type UpdateChoice } from './plan'
 
@@ -19,7 +21,8 @@ const kindName = (t: string) => LIB_TYPES.find((x) => x.type === t)?.name || t
 const icon = (m: StoreItem) => m.libraries?.length ? libIcon(m.libraries[0]) : m.group === 'tv' ? <IconTv /> : <IconPlug />
 const ready = (m: StoreItem) => !!m.status?.installed
 
-type Going = { id: string; name: string; state: 'waiting' | 'working' | 'done' | 'failed'; failure?: Failure }
+// skipped: its only version was made for an older server, and Install anyway wasn't chosen.
+type Going = { id: string; name: string; state: 'waiting' | 'working' | 'done' | 'failed' | 'skipped'; failure?: Failure }
 
 export function Modules({ info, refresh, next, back }: StepProps) {
   const [view, setView] = useState<StoreView | null>(null)
@@ -32,6 +35,7 @@ export function Modules({ info, refresh, next, back }: StepProps) {
   const [checkErr, setCheckErr] = useState('')
   const stopped = useRef(false)
   const done = useRef<HTMLButtonElement>(null)
+  const older = useOlderAsk()
   const load = () => { setFailed(false); return storeView().then((v) => { setView(v); return v }).catch(() => { setFailed(true); return null }) }
   useEffect(() => {
     void load()
@@ -42,7 +46,9 @@ export function Modules({ info, refresh, next, back }: StepProps) {
   const offered = useMemo(() => offerable(view?.items || []), [view])
   // A module that can't run on this computer says so in place of being offered. Everything else
   // is only waiting for the list to be read, and that's what the button does.
-  const cantRun = (m: StoreItem) => !ready(m) && !m.fit.ok && m.fit.kind !== 'no-version'
+  // One whose only version was made for an older server can be chosen, and asks before it installs.
+  const cantRun = (m: StoreItem) => !ready(m) && !m.fit.ok && m.fit.kind !== 'no-version' && m.fit.kind !== 'older-server'
+  const onlyOlder = (m: StoreItem) => !ready(m) && m.fit.kind === 'older-server'
   const shelves = useMemo(() => {
     const usual = offered.filter((m) => !ADVANCED.includes(m.id) && !RECOMMENDED.includes(m.id))
     const known = CATEGORIES.map((c) => ({ ...c, modules: usual.filter((m) => m.group === c.id) }))
@@ -55,7 +61,7 @@ export function Modules({ info, refresh, next, back }: StepProps) {
   useEffect(() => {
     if (!view || ticked.current) return
     ticked.current = true
-    setChosen(new Set(offered.filter((m) => RECOMMENDED.includes(m.id) && !ready(m) && !cantRun(m)).map((m) => m.id)))
+    setChosen(new Set(offered.filter((m) => RECOMMENDED.includes(m.id) && !ready(m) && !cantRun(m) && !onlyOlder(m)).map((m) => m.id)))
   }, [view, offered]) // eslint-disable-line react-hooks/exhaustive-deps
   const toggle = (id: string) => setChosen((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
   const picks = offered.filter((m) => chosen.has(m.id) && !ready(m))
@@ -63,6 +69,8 @@ export function Modules({ info, refresh, next, back }: StepProps) {
     const words = PLAIN_WORDS[m.id] || m.summary
     if (ready(m)) return <TickRow key={m.id} checked disabled icon={icon(m)} title={m.name} text={words} note="Already on this server" />
     if (cantRun(m)) return <TickRow key={m.id} checked={false} disabled icon={icon(m)} title={m.name} text={words} note={m.fit.why} />
+    if (onlyOlder(m)) return <TickRow key={m.id} checked={chosen.has(m.id)} onChange={() => toggle(m.id)} icon={icon(m)} title={m.name} text={words}
+      note={`No version for this server is published yet. ${m.name} ${m.version} was made for WittyMediaServer ${series(m.madeFor || '')}, and you’ll be asked before it’s installed.`} />
     return <TickRow key={m.id} checked={chosen.has(m.id)} onChange={() => toggle(m.id)} icon={icon(m)} title={m.name} text={words}
       note={m.libraries?.length ? `Lets you add: ${m.libraries.map(kindName).join(', ')}` : undefined} />
   }
@@ -83,17 +91,28 @@ export function Modules({ info, refresh, next, back }: StepProps) {
     }
     setView(seen)
     if (seen.checkError) { setCheckErr(seen.checkError); setRunning(false); setGoing(null); return }
+    // Versions made for an older server are never installed without someone's say: one pop-up for
+    // all of them, a choice for each, and Don't install unless they choose otherwise.
+    const olderOnes = olderFromStore(seen.items, list.map((m) => m.id), seen.server)
+    const yes = olderOnes.length ? await older.ask(olderOnes) : []
     for (const m of list) {
       if (stopped.current) return
       const it = seen.items.find((i) => i.id === m.id && i.official)
-      if (it && !it.fit.ok && !ready(it)) {
+      const o = olderOnes.find((x) => x.module === m.id)
+      const anyway = !!o && yes.includes(m.id)
+      if (o && !anyway) {
+        setGoing((g) => g!.map((x) => x.id === m.id ? { ...x, state: 'skipped', failure: { kind: 'older-server', title: 'Not installed', message: notInstalledWords(o), try: ['Add it later from the module store, once a version made for this server is published.'] } } : x))
+        announce(`${m.name} wasn’t installed`)
+        continue
+      }
+      if (it && !it.fit.ok && !ready(it) && !anyway) {
         setGoing((g) => g!.map((x) => x.id === m.id ? { ...x, state: 'failed', failure: { kind: 'other', title: `${m.name} can’t be installed right now`, message: it.fit.why || '', try: [] } } : x))
         continue
       }
       setGoing((g) => g!.map((x) => x.id === m.id ? { ...x, state: 'working' } : x))
       announce(`Installing ${m.name}`)
-      const r = await installAndWait(m.id, m.name, setLive)
-      setGoing((g) => g!.map((x) => x.id === m.id ? { ...x, state: r.ok ? 'done' : 'failed', failure: r.failure } : x))
+      const r = await installAndWait(m.id, m.name, setLive, { confirmOlder: anyway, askOlder: older.ask })
+      setGoing((g) => g!.map((x) => x.id === m.id ? { ...x, state: r.ok ? 'done' : r.declined ? 'skipped' : 'failed', failure: r.failure } : x))
       announce(r.ok ? `${m.name} is ready` : `${m.name} didn’t install`)
     }
     if (stopped.current) return
@@ -109,7 +128,7 @@ export function Modules({ info, refresh, next, back }: StepProps) {
   if (!view) return <section><StepHead title="What do you want on this server?" lead={lead} /><Spinner /></section>
 
   if (going) {
-    const bad = going.filter((g) => g.state === 'failed')
+    const bad = going.filter((g) => g.state === 'failed' || g.state === 'skipped')
     const allDone = !running
     return (
       <section>
@@ -122,10 +141,10 @@ export function Modules({ info, refresh, next, back }: StepProps) {
             const phase = item?.phase || (status && isBusy(status) ? status.phase : '')
             return (
               <li key={g.id} className={g.state}>
-                <span className="su-going-mark" aria-hidden="true">{g.state === 'done' ? <IconCheck size={18} /> : g.state === 'failed' ? <IconInfo size={18} /> : g.state === 'working' ? <span className="spinner su-spin" /> : null}</span>
+                <span className="su-going-mark" aria-hidden="true">{g.state === 'done' ? <IconCheck size={18} /> : g.state === 'failed' || g.state === 'skipped' ? <IconInfo size={18} /> : g.state === 'working' ? <span className="spinner su-spin" /> : null}</span>
                 <span className="su-going-words">
                   <b>{g.name}</b>
-                  <span className="muted">{{ waiting: 'Waiting', working: phase ? `${PHASE[phase] || 'Working'}${item?.total ? `, ${mb(item.done)} of ${mb(item.total)}` : ''}` : 'Starting', done: 'Ready', failed: 'Didn’t install' }[g.state]}</span>
+                  <span className="muted">{{ waiting: 'Waiting', working: phase ? `${PHASE[phase] || 'Working'}${item?.total ? `, ${mb(item.done)} of ${mb(item.total)}` : ''}` : 'Starting', done: 'Ready', failed: 'Didn’t install', skipped: 'Not installed' }[g.state]}</span>
                   {g.state === 'working' && <Progress label={`${g.name}: installing`} value={item?.total ? item.done : undefined} max={item?.total || undefined} />}
                   {g.failure && <span className="su-going-why"><b>{g.failure.title}</b> {g.failure.message} {g.failure.try?.join(' ')}</span>}
                 </span>
@@ -139,6 +158,7 @@ export function Modules({ info, refresh, next, back }: StepProps) {
             <Button ref={done} variant="primary" size="big" onClick={next}>{bad.length ? 'Continue without them' : 'Continue'}</Button>
           </StepActions>
         )}
+        {older.dialog}
       </section>
     )
   }

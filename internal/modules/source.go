@@ -274,6 +274,7 @@ func (m *Manager) changeSource(id string, e *entry, s *Source, detail string) er
 		return err
 	}
 	e.known, e.etag, e.rel, e.latest, e.tooNew, e.lastError = map[string]*knownRelease{}, "", nil, nil, nil, ""
+	e.older, e.olderRel = nil, nil
 	m.checked = time.Time{} // the last answer was about the other source: the next check asks again
 	_ = os.Remove(m.feedPath(id))
 	m.resolve(id, e)

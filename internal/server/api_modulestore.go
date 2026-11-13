@@ -48,8 +48,35 @@ func (s *Server) noStore(w http.ResponseWriter) bool {
 	return false
 }
 
+// writeOlderServer answers a refusal of a version made for an older server: 409, code
+// "older-server", with each such version named in older (module, name, version, madeFor, server,
+// warning), so a page can ask about each before sending confirmOlder. plan, when there is one, is
+// what the install would do.
+func writeOlderServer(w http.ResponseWriter, err error, plan []modmgr.RunItem, more ...*modmgr.ErrOlderServer) bool {
+	var one *modmgr.ErrOlderServer
+	if err != nil && !errors.As(err, &one) {
+		return false
+	}
+	older := more
+	if one != nil && len(older) == 0 {
+		older = []*modmgr.ErrOlderServer{one}
+	}
+	if len(older) == 0 {
+		return false
+	}
+	out := map[string]any{"error": older[0].Error(), "code": "older-server", "warning": older[0].Warning, "older": older}
+	if plan != nil {
+		out["plan"] = plan
+	}
+	writeJSON(w, 409, out)
+	return true
+}
+
 // writeStoreErr answers with the plain words for what went wrong, and the kind of thing it was.
 func writeStoreErr(w http.ResponseWriter, name string, err error) {
+	if writeOlderServer(w, err, nil) {
+		return
+	}
 	var need *modmgr.ErrNeedsConfirm
 	if errors.As(err, &need) {
 		writeJSON(w, 409, map[string]any{"error": need.Warning, "code": "confirm", "warning": need.Warning})
@@ -121,15 +148,17 @@ func (s *Server) handleStoreItem(w http.ResponseWriter, r *http.Request) {
 }
 
 // POST /api/modulestore/install {"id": "...", "confirm": true}: install a module and what it's
-// built on. If it would bring anything else, it says what until the body says confirm. Progress
-// is in the run and the module's status.
+// built on. If it would bring anything else, it says what until the body says confirm. A version
+// made for an older server in the plan is refused (409, "older-server", naming each) until the
+// body says "confirmOlder": true. Progress is in the run and the module's status.
 func (s *Server) handleStoreInstall(w http.ResponseWriter, r *http.Request) {
 	if s.noStore(w) {
 		return
 	}
 	var b struct {
-		ID      string `json:"id"`
-		Confirm bool   `json:"confirm"`
+		ID           string `json:"id"`
+		Confirm      bool   `json:"confirm"`
+		ConfirmOlder bool   `json:"confirmOlder"`
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1024)).Decode(&b); err != nil || b.ID == "" {
 		writeErr(w, 400, "say which module: {\"id\": \"...\"}")
@@ -144,10 +173,20 @@ func (s *Server) handleStoreInstall(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 409, map[string]any{"error": "it needs other modules", "code": "plan", "plan": plan})
 		return
 	}
-	run, err := s.ModuleStores.InstallWithNeeds(b.ID, userFrom(r).Name)
+	if older := s.ModuleStores.OlderInPlan(plan); len(older) > 0 && !b.ConfirmOlder {
+		s.Log.InfoContext(r.Context(), "module install asks about a version made for an older server", "cat", "modules-store", "module", b.ID, "version", older[0].Version, "madeFor", older[0].MadeFor)
+		writeOlderServer(w, nil, plan, older...)
+		return
+	}
+	run, err := s.ModuleStores.InstallWithNeedsOlder(b.ID, userFrom(r).Name, b.ConfirmOlder)
 	if err != nil {
 		writeStoreErr(w, "That module", err)
 		return
+	}
+	if b.ConfirmOlder {
+		for _, o := range s.ModuleStores.OlderInPlan(plan) {
+			s.auditOlderServer(r, o.Module, o.Version)
+		}
 	}
 	s.Log.InfoContext(r.Context(), "module install started", "cat", "modules-store", "module", b.ID, "by", userFrom(r).Name)
 	writeJSON(w, 202, run)

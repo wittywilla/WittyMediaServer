@@ -22,7 +22,9 @@ The server starts and works with very few of them, so you only add what you want
 
 Only administrators can add, update or remove modules. The pages are **Settings → Modules** for what's on this server, and **Browse the store** on that page for everything that can be added.
 
-**Modules work with 0.6.0-alpha and later, and nothing older.** A module built for an older server can't run, and those older versions won't be fixed or updated. A later server may keep running a module built for 0.6.0-alpha or after, if the module says it fits. That's a courtesy and nothing is promised until the beta, so a module can stop fitting at a new server. When that happens, the page says so.
+**Modules work with 0.6.0-alpha and later, and nothing older.** A module built for an older server can't run, and those older versions won't be fixed or updated.
+
+**A version made for an older server only installs if you say so.** Each module says which servers it was made for. The modules for 0.8 say 0.8.0-alpha to 0.8.x. A version made for an earlier series, such as WittyPlay 0.3.6 made for 0.6, may still start on this server, but the pages, settings and features from 0.8 will be missing, and it may not work. So nothing installs one by itself: not automatic updates, not Update All, not first-run setup. When it's the only version there is, the store, first-run setup and the **Add** buttons on setup steps open a pop-up first. It names the version, the server it was made for, and what may not work. **Don't install** is the default; only **Install anyway** installs it. When setup installs several modules and more than one is like this, one pop-up lists them all, with a choice for each. A module that's already using such a version says so in **Settings → Modules** and in the store until it changes, with **Update** when a version made for this server is out, or **Remove**.
 
 ## Every module and what it adds
 
@@ -131,6 +133,7 @@ Opening the store doesn't look for new versions. It shows what the last check fo
 | **Comes with other modules** | There's nothing to install on its own |
 | **Not for this computer** | It has no build for this system |
 | **Built for an older server** | It can't run here, and its page says what to do |
+| **Made for an older server** | The only version there is was made for an earlier series. Installing it asks first, and it may not work |
 | **Needs a newer server** | Update this server first |
 | **Withdrawn** | Its publisher took this version back |
 | **In development** | A module this server doesn't know. It can only be installed from a file (see [Installing from a file](#installing-from-a-file)) |
@@ -205,6 +208,7 @@ Each failure says what happened and has a button for the rest: **What to do**, w
 | The download didn't work | Check that this server can reach the internet, or try again later |
 | The disk is full | Free some space on the disk that holds the server's data folder, then install it again |
 | Built for an older server | Install the current version from the store, if there is one |
+| Made for an older server | Update it when the store has a version made for this server, or remove it. Until then, its pages and settings from this server may be missing |
 | Needs a newer server | Update this server in **Settings → About**, or choose an older version of the module if one fits |
 | Nothing to install | Check for updates. If the module doesn't list this kind of computer, its publisher would need to build for it |
 | The module's program wouldn't run | Try again, as a virus scanner can hold a new program the first time. If the data folder is on a network share or a disk that doesn't allow programs to run, move it or change that |

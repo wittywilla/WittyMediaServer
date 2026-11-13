@@ -377,6 +377,11 @@ func (m *Manager) StageUpload(u Upload) (*UploadInfo, error) {
 		}
 		kinds = append(kinds, OverrideOutOfRange)
 		info.Problems = append(info.Problems, UploadProblem{Kind: OverrideOutOfRange, Text: sentence(err.Error())})
+	} else if madeFor, ok := olderServer(man, m.cfg.Server); ok {
+		// Made for an older server: from a file too, never without the go-ahead for that, which
+		// the out-of-range override is, with these words.
+		kinds = append(kinds, OverrideOutOfRange)
+		info.Problems = append(info.Problems, UploadProblem{Kind: OverrideOutOfRange, Text: OlderServerWarning(man.Name, man.Version, madeFor, m.cfg.Server)})
 	}
 	if st := status; st == StatusExperimental || st == StatusIncomplete {
 		kinds = append(kinds, OverrideIncomplete)

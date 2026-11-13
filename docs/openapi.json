@@ -7311,6 +7311,9 @@
           "blocked": {
             "type": "string"
           },
+          "madeFor": {
+            "type": "string"
+          },
           "maxServer": {
             "type": "string"
           },
@@ -7319,6 +7322,9 @@
           },
           "notes": {
             "type": "string"
+          },
+          "olderServer": {
+            "type": "boolean"
           },
           "prerelease": {
             "type": "boolean"
@@ -7562,6 +7568,9 @@
           "license": {
             "type": "string"
           },
+          "madeFor": {
+            "type": "string"
+          },
           "maxServer": {
             "type": "string"
           },
@@ -7584,6 +7593,22 @@
             "type": "string"
           },
           "notice": {
+            "type": "string"
+          },
+          "olderOffer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ModuleOffer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "olderServer": {
+            "type": "boolean"
+          },
+          "olderWarning": {
             "type": "string"
           },
           "override": {
@@ -7936,6 +7961,9 @@
           "license": {
             "type": "string"
           },
+          "madeFor": {
+            "type": "string"
+          },
           "maxServer": {
             "type": "string"
           },
@@ -7946,6 +7974,9 @@
             "type": "string"
           },
           "older": {
+            "type": "boolean"
+          },
+          "olderServer": {
             "type": "boolean"
           },
           "permissions": {
@@ -35950,6 +35981,12 @@
             "application/json": {
               "schema": {
                 "properties": {
+                  "confirmOlder": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
                   "installed": {
                     "items": {
                       "type": "string"
@@ -36958,6 +36995,21 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "confirmOlder": {
+                    "type": "boolean"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "202": {
             "content": {
@@ -37232,6 +37284,9 @@
                   "confirm": {
                     "type": "boolean"
                   },
+                  "confirmOlder": {
+                    "type": "boolean"
+                  },
                   "version": {
                     "type": "string"
                   }
@@ -37262,7 +37317,7 @@
             "bearer": []
           }
         ],
-        "summary": "Download, verify and install a version with no restart: the newest the last check found, or the one named in the body. A choice with a warning is answered 409 with code confirm until the body says confirm. 202; follow it with GET /modules.",
+        "summary": "Download, verify and install a version with no restart: the newest the last check found, or the one named in the body. A choice with a warning is answered 409 with code confirm until the body says confirm. A version made for an older server is never chosen by itself: it is answered 409 with code older-server, naming it in older, until the body says confirmOlder. 202; follow it with GET /modules.",
         "tags": [
           "Server"
         ],
@@ -37853,6 +37908,30 @@
     "/modulestore/install": {
       "post": {
         "operationId": "postModulestoreInstall",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "confirm": {
+                    "type": "boolean"
+                  },
+                  "confirmOlder": {
+                    "type": "boolean"
+                  },
+                  "id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "202": {
             "content": {
@@ -37873,7 +37952,7 @@
             "bearer": []
           }
         ],
-        "summary": "Install a module and what it is built on.",
+        "summary": "Install a module and what it is built on. A version made for an older server in the plan is answered 409 with code older-server, naming each in older, until the body says confirmOlder.",
         "tags": [
           "Server"
         ],

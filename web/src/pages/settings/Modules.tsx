@@ -17,6 +17,8 @@ import LegalNote from '../../components/LegalNote'
 import { LinkButton } from '../../ui'
 import { ChangeNotes, FailureNotice, ModuleIcon, ModuleLogDialog, PolicyNote, SandboxNote, UpdateAllPanel, useStoreView, WhatsNew } from './store/parts'
 import { checkAll, failureForStatus, type Failure } from './store/storeApi'
+import { olderOf, type OlderVersion } from './store/olderServer'
+import { useOlderAsk } from './store/OlderServerDialog'
 import { Dialog } from '../../ui/Overlay'
 import { ConfirmOwner, OwnerFields, type OwnerAsk } from './ConfirmOwner'
 import { OverrideRecordBox, OverrideTags, PendingNotice, StatusNotice, useOverrideDialog, type OverrideAsk } from './store/overrideParts'
@@ -36,7 +38,7 @@ const mb = (n = 0) => (n / 1048576).toFixed(1)
 const when = (ms: number) => fmtDateTime(ms)
 const day = (ms: number) => new Date(ms).toLocaleDateString(undefined, { dateStyle: 'medium' })
 const kindName = (t: string) => LIB_TYPES.find((x) => x.type === t)?.name || t
-const needsLook = (m: ModuleStatus) => m.state === 'fallback' || m.phase === 'failed' || !!m.withdrawn || !!m.notice
+const needsLook = (m: ModuleStatus) => m.state === 'fallback' || m.phase === 'failed' || !!m.withdrawn || !!m.notice || (m.installed && !!m.olderServer)
 const severity = (s: string) => s === 'security' ? 'for security reasons' : 'because it was broken'
 const pinWords = (pin: string) => `version ${pin}`
 const moduleIcon = (m: ModuleStatus) => m.libraries?.length ? libIcon(m.libraries[0]) : m.group === 'tv' ? <IconTv /> : <IconPlug />
@@ -168,8 +170,17 @@ export default function ModulesSettings() {
   const act = async (call: () => Promise<ModuleReport>, done?: string) => {
     try { setR(await call()); if (done) toast(done); void store.reload() } catch (e: any) { toast(e.message) }
   }
+  const older = useOlderAsk()
+  // Adding asks first when the only version was made for an older server: only Install anyway
+  // sends confirmOlder.
   const add = async (m: ModuleStatus) => {
-    await act(() => api.post<ModuleReport>(`/modules/${m.id}/add`), `${m.name} is being installed`)
+    try { setR(await api.post<ModuleReport>(`/modules/${m.id}/add`)); toast(`${m.name} is being installed`); void store.reload() } catch (e: any) {
+      const old = olderOf(e)
+      if (!old) { toast(e.message); focusRow(m.id); return }
+      const yes = await older.ask(old)
+      if (old.every((o) => yes.includes(o.module))) await act(() => api.post<ModuleReport>(`/modules/${m.id}/add`, { confirmOlder: true }), `${m.name} is being installed`)
+      else toast(`${m.name} wasn’t installed`)
+    }
     focusRow(m.id)
   }
   const remove = (m: ModuleStatus) => setAsk({
@@ -297,6 +308,7 @@ export default function ModulesSettings() {
 
       {canAudit && <ModuleAudit nameOf={nameOf} stamp={r} />}
       {over.dialog}
+      {older.dialog}
 
       {ownerAsk && <ConfirmOwner ask={ownerAsk} onClose={() => setOwnerAsk(null)} />}
       {versionsOf && <VersionsDialog m={r.modules.find((m) => m.id === versionsOf.id) || versionsOf} onClose={() => setVersionsOf(null)} onReport={setR} />}
@@ -329,6 +341,8 @@ function Tags({ m }: { m: ModuleStatus }) {
         : m.latest ? <Tag tone="new">Update available</Tag>
         : <Tag tone="ok" icon={<IconCheck size={12} />}>Installed</Tag>}
       {m.pending && <Tag tone="warn">Needs your go-ahead</Tag>}
+      {m.installed && m.olderServer && <Tag tone="warn" icon={<IconInfo size={12} />}>Made for an older server</Tag>}
+      {!m.installed && !m.latest && m.olderOffer && <Tag tone="warn">Only for an older server</Tag>}
       {m.installed && m.pin && <Tag>Pinned</Tag>}
       {m.source && <Tag tone="warn" icon={<IconShield size={12} />}>Other publisher</Tag>}
       <OverrideTags override={m.override} status={m.releaseStatus} />
@@ -430,6 +444,17 @@ function ModuleDetail({ id, m, checkedAt, nameOf, refused, onReport, kinds, onRe
       {refused && <p className="error" role="alert">{refused} <Link to="/settings/libraries">Go to Libraries</Link></p>}
       {failure && <FailureNotice failure={failure} name={m.name} moduleId={m.id} repairRoute={repairRoute} onRetry={m.latest ? onUpdate : undefined} />}
       {m.withdrawn && <p className="error">Version {m.withdrawn.version} was withdrawn {severity(m.withdrawn.severity)}: {m.withdrawn.reason}</p>}
+      {m.installed && m.olderServer && m.olderWarning && (
+        <div className="warn-box ms-older" role="note">
+          <b>Made for an older server</b>
+          <p>{m.olderWarning}</p>
+          <div className="ms-actions">
+            {m.latest && !working && <button type="button" className="btn sm primary" onClick={onUpdate}>Update to {m.latest.version}</button>}
+            {!working && <button type="button" className={'btn sm' + (m.latest ? ' ghost' : '')} onClick={onRemove}>Remove {m.name}</button>}
+          </div>
+        </div>
+      )}
+      {!m.installed && !m.latest && m.olderOffer && <p className="warn-box">No version of {m.name} for this server is published yet. {m.olderOffer.reason} Installing it asks you first.</p>}
       {m.lastFailure && !failure && <p className="warn-box">The last problem it had: {m.lastFailure}</p>}
 
       <dl className="ms-facts">
@@ -613,6 +638,9 @@ function VersionsDialog({ m, onClose, onReport }: { m: ModuleStatus; onClose: ()
   const [pending, setPending] = useState<{ v: VersionInfo; warning: string } | null>(null)
   const [needPassword, setNeedPassword] = useState<VersionInfo | null>(null)
   const over = useOverrideDialog()
+  // Versions made for an older server that someone chose Install anyway for, in its pop-up.
+  const older = useOlderAsk()
+  const olderOk = useRef<Set<string>>(new Set())
   const load = () => api.get<VersionList>(`/modules/${m.id}/versions`).then((l) => { setList(l); setErr('') }).catch((e) => setErr(e.message))
   useEffect(() => { void load() }, [m.id])
   // Check now is the only thing here that goes online, and someone has to press it.
@@ -628,20 +656,37 @@ function VersionsDialog({ m, onClose, onReport }: { m: ModuleStatus; onClose: ()
   }
   const backToButton = (ver: string) => setTimeout(() => document.getElementById('ver-' + ver)?.focus(), 50)
   const post = (v: VersionInfo, confirm: boolean, secrets?: { password: string; code: string }) =>
-    api.post<ModuleReport>(`/modules/${m.id}/install`, { version: v.version, confirm, ...secrets })
+    api.post<ModuleReport>(`/modules/${m.id}/install`, { version: v.version, confirm, ...(olderOk.current.has(v.version) ? { confirmOlder: true } : {}), ...secrets })
   const run = async (v: VersionInfo, confirm: boolean) => {
     try {
       onReport(await post(v, confirm))
       onClose()
     } catch (e: any) {
       const need = needsOverrideOf(e)
+      const old = olderOf(e)
       if (need) over.open(overrideAskFor(m, v.version, need, (n) => { onReport(n); onClose() }))
+      else if (old && !olderOk.current.has(v.version)) { if (await askOlder(v, old)) await run(v, true); else backToButton(v.version) }
       else if (e instanceof ApiError && e.data?.code === 'confirm') setPending({ v, warning: e.data.warning })
       else if (e instanceof ApiError && e.data?.code === 'password-needed') setNeedPassword(v)
       else { setErr(e.message); backToButton(v.version) }
     }
   }
-  const choose = (v: VersionInfo) => { if (v.warning) setPending({ v, warning: v.warning }); else void run(v, false) }
+  // The pop-up for a version made for an older server says everything its warning says, so Install
+  // anyway there answers both.
+  const askOlder = async (v: VersionInfo, list: OlderVersion[]) => {
+    const yes = await older.ask(list.map((o) => ({ ...o, warning: v.warning || o.warning })))
+    if (!list.every((o) => yes.includes(o.module))) return false
+    olderOk.current.add(v.version)
+    return true
+  }
+  const choose = async (v: VersionInfo) => {
+    if (v.olderServer) {
+      if (await askOlder(v, [{ module: m.id, name: m.name, version: v.version, madeFor: v.madeFor || v.maxServer, server: '', warning: v.warning || '' }])) void run(v, true)
+      else backToButton(v.version)
+      return
+    }
+    if (v.warning) setPending({ v, warning: v.warning }); else void run(v, false)
+  }
   const pinAct = async (call: () => Promise<ModuleReport>) => {
     try { onReport(await call()); await load() } catch (e: any) { setErr(e.message) }
   }
@@ -680,6 +725,7 @@ function VersionsDialog({ m, onClose, onReport }: { m: ModuleStatus; onClose: ()
         run: async (password, code) => { onReport(await post(needPassword, true, { password, code })); onClose() } }}
         onClose={() => { setNeedPassword(null); backToButton(needPassword.version) }} />}
       {over.dialog}
+      {older.dialog}
     </>
   )
 }
@@ -698,10 +744,11 @@ function VersionRow({ v, working, onChoose }: { v: VersionInfo; working: boolean
             {v.installed && !v.inUse && <Tag>Installed</Tag>}
             {v.prerelease && <Tag>Pre-release</Tag>}
             {v.older && <Tag>Older</Tag>}
+            {v.olderServer && <Tag tone="warn" icon={<IconInfo size={12} />}>Made for an older server</Tag>}
             {v.withdrawn && <Tag tone="bad" icon={<IconInfo size={12} />}>Withdrawn</Tag>}
           </span>
         </div>
-        {!v.inUse && <button type="button" id={'ver-' + v.version} className="btn sm" disabled={!can || working} onClick={onChoose} aria-label={`${v.installed ? 'Switch to' : 'Install'} version ${v.version}${!v.allowed && v.override ? ', with an override' : ''}`}>{!v.allowed && v.override ? 'Install anyway…' : v.installed ? 'Switch to this' : 'Install'}</button>}
+        {!v.inUse && <button type="button" id={'ver-' + v.version} className="btn sm" disabled={!can || working} onClick={onChoose} aria-label={`${v.installed ? 'Switch to' : 'Install'} version ${v.version}${!v.allowed && v.override ? ', with an override' : v.olderServer ? ', made for an older server: asks first' : ''}`}>{!v.allowed && v.override ? 'Install anyway…' : v.installed ? 'Switch to this' : v.olderServer ? 'Install…' : 'Install'}</button>}
       </div>
       <div className="muted ms-ver-fit">Works with servers {v.minServer} to {v.maxServer}{v.size ? ` · ${mb(v.size)} MB` : ''}{link && <> · <a href={link} target="_blank" rel="noreferrer">On GitHub</a></>}</div>
       {v.withdrawn && <p className="ms-bad">Withdrawn {severity(v.withdrawn.severity)}: {v.withdrawn.reason}</p>}

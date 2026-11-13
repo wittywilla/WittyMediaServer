@@ -5,6 +5,8 @@ import { api, ApiError } from '../api'
 import { useApp } from '../state'
 import SpecPage from '../spec/SpecPage'
 import { INSTALL, moduleMissingSpec } from '../spec/specs/moduleMissing'
+import { olderOf } from '../pages/settings/store/olderServer'
+import { useOlderAsk } from '../pages/settings/store/OlderServerDialog'
 
 // What a page shows when the module behind it isn't on this server: what's missing and what it
 // would add, and for an admin a button that installs it, with no restart. Never a broken screen.
@@ -20,6 +22,7 @@ export function ModuleMissing({ ids, what, onReady }: { ids: string[]; what?: st
   const [mods, setMods] = useState<Status[] | null>(null)
   const [err, setErr] = useState('')
   const [adding, setAdding] = useState(false)
+  const older = useOlderAsk()
 
   useEffect(() => {
     if (!admin) return
@@ -38,17 +41,28 @@ export function ModuleMissing({ ids, what, onReady }: { ids: string[]; what?: st
     return () => { live = false; clearTimeout(timer) }
   }, [admin, adding, ids.join()]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // A module whose only version was made for an older server asks first, in a pop-up; only
+  // Install anyway sends confirmOlder.
   const add = async (id: string) => {
     setErr('')
     setAdding(true)
     try {
       await api.post(`/modules/${id}/add`)
     } catch (e) {
-      setErr(e instanceof ApiError ? e.message : 'That module couldn’t be installed.')
+      const old = olderOf(e)
+      if (old) {
+        const yes = await older.ask(old)
+        if (old.every((o) => yes.includes(o.module))) {
+          try { await api.post(`/modules/${id}/add`, { confirmOlder: true }) } catch (x) { setErr(x instanceof ApiError ? x.message : 'That module couldn’t be installed.') }
+        } else setErr(`Not installed: no version of ${old.map((o) => o.name).join(', ')} for this server is published yet.`)
+      } else setErr(e instanceof ApiError ? e.message : 'That module couldn’t be installed.')
     } finally { setAdding(false) }
   }
 
   const spec = useMemo(() => moduleMissingSpec({ ids, what, admin, mods, adding, error: err }), [ids.join(), what, admin, mods, adding, err]) // eslint-disable-line react-hooks/exhaustive-deps
   const handled = useMemo(() => new Set(spec.actions.map((a) => a.id || '')), [spec])
-  return <SpecPage page={spec} handled={handled} onAction={(id) => { if (id.startsWith(INSTALL)) add(id.slice(INSTALL.length)) }} />
+  return <>
+    <SpecPage page={spec} handled={handled} onAction={(id) => { if (id.startsWith(INSTALL)) add(id.slice(INSTALL.length)) }} />
+    {older.dialog}
+  </>
 }

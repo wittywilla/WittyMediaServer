@@ -153,7 +153,13 @@ func newStoresWorld(t *testing.T, mods ...wittymodule.CatalogModule) *storesWorl
 // are, for a catalogue. A module with no process needs no build of anything.
 func webRelease(t *testing.T, starter string, key ed25519.PrivateKey, id, name, repo, ver string, requires ...string) wittymodule.CatalogVersion {
 	t.Helper()
-	man := wittymodule.Manifest{ID: id, Name: name, Version: ver, Repo: repo, Delivery: wittymodule.DeliveryWeb, Entry: "index.js", API: MinAPI, MinServer: MinModuleServer, MaxServer: "0.6.x", License: "MIT", Requires: requires}
+	return webReleaseFor(t, starter, key, id, name, repo, ver, MinModuleServer, "0.6.x", requires...)
+}
+
+// webReleaseFor is webRelease made for the servers from minServer to maxServer.
+func webReleaseFor(t *testing.T, starter string, key ed25519.PrivateKey, id, name, repo, ver, minServer, maxServer string, requires ...string) wittymodule.CatalogVersion {
+	t.Helper()
+	man := wittymodule.Manifest{ID: id, Name: name, Version: ver, Repo: repo, Delivery: wittymodule.DeliveryWeb, Entry: "index.js", API: MinAPI, MinServer: minServer, MaxServer: maxServer, License: "MIT", Requires: requires}
 	raw, _ := json.Marshal(man)
 	files := map[string][]byte{wittymodule.ManifestFile: raw, "index.js": []byte("export const v = '" + ver + "'\n")}
 	top := wittymodule.WebTopFolder(id, ver)
@@ -186,7 +192,7 @@ func webRelease(t *testing.T, starter string, key ed25519.PrivateKey, id, name, 
 		}
 	}
 	at := func(n string) string { return id + "/" + ver + "/" + n }
-	return wittymodule.CatalogVersion{Version: ver, Delivery: wittymodule.DeliveryWeb, API: MinAPI, MinServer: MinModuleServer, MaxServer: "0.6.x", License: "MIT", Released: "2026-11-01",
+	return wittymodule.CatalogVersion{Version: ver, Delivery: wittymodule.DeliveryWeb, API: MinAPI, MinServer: minServer, MaxServer: maxServer, License: "MIT", Released: "2026-11-01",
 		Sums: at(sumsName), Sig: at(sumsName + ".sig"), Manifest: at(manName),
 		Platforms: map[string]wittymodule.CatalogFile{wittymodule.PlatformAll: {URL: at(name2), Size: int64(len(archive)), SHA256: sum(archive)}}}
 }

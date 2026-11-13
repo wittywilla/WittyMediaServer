@@ -54,9 +54,10 @@ func (s *Server) handleModuleInstall(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var b struct {
-		Version  string        `json:"version"`
-		Confirm  bool          `json:"confirm"`
-		Override *overrideBody `json:"override"`
+		Version      string        `json:"version"`
+		Confirm      bool          `json:"confirm"`
+		ConfirmOlder bool          `json:"confirmOlder"` // a version made for an older server, after its warning
+		Override     *overrideBody `json:"override"`
 		moduleSecrets
 	}
 	if r.ContentLength != 0 && r.Body != nil {
@@ -75,7 +76,7 @@ func (s *Server) handleModuleInstall(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		id := r.PathValue("id")
-		if err := s.Modules.InstallVersionWith(id, b.Version, true, b.Override.accept(userFrom(r).Name)); err != nil {
+		if err := s.Modules.InstallVersionWithOlder(id, b.Version, true, b.ConfirmOlder, b.Override.accept(userFrom(r).Name)); err != nil {
 			s.auditOverride(r, "module override install failed", id, "version", b.Version, "overrides", b.Override.kinds(), "grants", b.Override.Grants, "err", err)
 			writeModuleErr(w, err)
 			return
@@ -92,16 +93,23 @@ func (s *Server) handleModuleInstall(w http.ResponseWriter, r *http.Request) {
 		}
 		s.auditModule(r, "module-older", id, "to version "+b.Version)
 	}
+	olderOne := b.ConfirmOlder && s.Modules.MadeForOlder(id, b.Version)
 	var err error
-	if b.Version == "" {
-		err = s.Modules.Install(r.PathValue("id"))
-	} else {
-		err = s.Modules.InstallVersion(r.PathValue("id"), b.Version, b.Confirm)
+	switch {
+	case b.Version == "" && b.ConfirmOlder:
+		err = s.Modules.InstallOlder(id, true)
+	case b.Version == "":
+		err = s.Modules.Install(id)
+	default:
+		err = s.Modules.InstallVersionOlder(id, b.Version, b.Confirm, b.ConfirmOlder)
 	}
 	if err != nil {
 		s.Log.WarnContext(r.Context(), "module update refused", "cat", "modules-store", "module", r.PathValue("id"), "err", err)
 		writeModuleErr(w, err)
 		return
+	}
+	if olderOne {
+		s.auditOlderServer(r, id, b.Version)
 	}
 	s.Log.InfoContext(r.Context(), "module update started", "cat", "modules-store", "module", r.PathValue("id"), "version", b.Version, "by", userFrom(r).Name)
 	writeJSON(w, 202, s.Modules.Report())
@@ -253,9 +261,38 @@ func (s *Server) handleModuleSourceClear(w http.ResponseWriter, r *http.Request)
 	s.moduleAction(w, r, "source-cleared", 200, func(id string) error { return s.Modules.ClearSource(id) })
 }
 
-// POST /api/modules/{id}/add: put a module on this server. Works straight away, offline.
+// POST /api/modules/{id}/add: put a module on this server. Works straight away, offline. When
+// the only version there is was made for an older server, it is refused (409, "older-server")
+// unless the body says {"confirmOlder": true}.
 func (s *Server) handleModuleAdd(w http.ResponseWriter, r *http.Request) {
-	s.moduleAction(w, r, "add", 202, func(id string) error { return s.Modules.AddModule(id) })
+	var b struct {
+		ConfirmOlder bool `json:"confirmOlder"`
+	}
+	if r.ContentLength != 0 && r.Body != nil {
+		if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1024)).Decode(&b); err != nil && !errors.Is(err, io.EOF) {
+			writeErr(w, 400, "unreadable request")
+			return
+		}
+	}
+	s.moduleAction(w, r, "add", 202, func(id string) error {
+		olderOne := b.ConfirmOlder && s.Modules.MadeForOlder(id, "")
+		err := s.Modules.AddModuleOlder(id, b.ConfirmOlder)
+		if err == nil && olderOne {
+			s.auditOlderServer(r, id, "")
+		}
+		return err
+	})
+}
+
+// auditOlderServer records that someone was told a module was made for an older server and
+// installed it anyway.
+func (s *Server) auditOlderServer(r *http.Request, id, version string) {
+	detail := "installed a version made for an older server, after its warning"
+	if version != "" {
+		detail = "version " + version + ": " + detail
+	}
+	s.auditModule(r, "module-older-server", id, detail)
+	s.Log.WarnContext(r.Context(), "a module made for an older server was installed on purpose", "cat", "modules-store", "module", id, "version", version, "by", userFrom(r).Name)
 }
 
 // POST /api/modules/{id}/remove: take a module off this server. Refused, with their
@@ -279,7 +316,8 @@ func (s *Server) handleModulesInstalled(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	var b struct {
-		Installed []string `json:"installed"`
+		Installed    []string `json:"installed"`
+		ConfirmOlder []string `json:"confirmOlder"` // modules whose version made for an older server may be installed
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 16<<10)).Decode(&b); err != nil || b.Installed == nil {
 		writeErr(w, 400, "say which modules: {\"installed\": [...]}")
@@ -290,7 +328,7 @@ func (s *Server) handleModulesInstalled(w http.ResponseWriter, r *http.Request) 
 		writeErr(w, 500, err.Error())
 		return
 	}
-	if err := s.Modules.SetInstalled(b.Installed, libs); err != nil {
+	if err := s.Modules.SetInstalledOlder(b.Installed, libs, b.ConfirmOlder); err != nil {
 		writeModuleErr(w, err)
 		return
 	}
@@ -497,6 +535,9 @@ func writeModuleErr(w http.ResponseWriter, err error) {
 	var bad *modmgr.ErrBadOverride
 	if errors.As(err, &bad) {
 		writeJSON(w, 400, map[string]any{"error": bad.Reason, "code": "bad-override", "needsOverride": bad.Needs})
+		return
+	}
+	if writeOlderServer(w, err, nil) {
 		return
 	}
 	if errors.Is(err, modmgr.ErrUnknownUpload) {

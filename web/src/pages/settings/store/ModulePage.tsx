@@ -149,7 +149,8 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
       {it.lookalike && <Notice tone="danger" title="This uses the name of another module">It calls itself {it.name}, the name of a module from this project, and it isn’t that module. Don’t assume it does what that one does.</Notice>}
       {it.kind === 'in-development' && <Notice title="A module this server doesn’t know" action={<InstallFromFile onInstalled={reload} />}>{it.why} If you have its release archive and trust whoever made it, it can be installed from the file, with an override.</Notice>}
       {it.kind === 'refused' && <Notice tone="danger" title="This can’t be used">{it.why}</Notice>}
-      {!it.fit.ok && it.kind !== 'in-development' && it.kind !== 'refused' && <Notice tone={it.fit.kind === 'library' ? undefined : 'warn'} title={it.fit.kind === 'too-old' ? 'Built for an older server' : it.fit.kind === 'too-new' ? 'Needs a newer server' : it.fit.kind === 'library' ? 'Comes with other modules' : 'Can’t be installed here'}>{it.fit.why}</Notice>}
+      {!it.fit.ok && it.kind !== 'in-development' && it.kind !== 'refused' && <Notice tone={it.fit.kind === 'library' ? undefined : 'warn'} title={it.fit.kind === 'too-old' ? 'Built for an older server' : it.fit.kind === 'older-server' ? 'Made for an older server' : it.fit.kind === 'too-new' ? 'Needs a newer server' : it.fit.kind === 'library' ? 'Comes with other modules' : 'Can’t be installed here'}>{it.fit.why}{it.fit.kind === 'older-server' && !installedHere && ' Installing it asks you first.'}</Notice>}
+      {m?.olderServer && m.olderWarning && it.fit.kind !== 'older-server' && <Notice tone="warn" title="Made for an older server">{m.olderWarning}</Notice>}
       {it.failure && <FailureNotice failure={it.failure} name={it.name} moduleId={it.id} repairRoute={repair} onRetry={act ? press : undefined} />}
       {m?.notice && !it.failure && <Notice tone="warn">{m.notice}</Notice>}
 

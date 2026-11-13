@@ -393,8 +393,8 @@ func (m *Manager) computeOffers(e *entry) {
 		vers = append(vers, v)
 	}
 	sort.Slice(vers, func(i, j int) bool { return wittymodule.Compare(vers[i], vers[j]) > 0 })
-	var latest, tooNew *Offer
-	var rel *release
+	var latest, tooNew, older *Offer
+	var rel, olderRel *release
 	for _, ver := range vers {
 		k := e.known[ver]
 		if wittymodule.Compare(ver, current) <= 0 {
@@ -425,10 +425,23 @@ func (m *Manager) computeOffers(e *entry) {
 			continue
 		}
 		o.Blocked = e.state.Blocked[ver]
+		if madeFor, ok := olderServer(k.man, m.cfg.Server); ok {
+			// Made for an older server: never what "latest" means. Kept aside, to be offered
+			// with its warning when nothing made for this server is known.
+			if older == nil {
+				o.OlderServer, o.MadeFor = true, madeFor
+				o.Reason = OlderServerWarning(e.builtin.Name, ver, madeFor, m.cfg.Server)
+				older, olderRel = o, &k.rel
+			}
+			continue
+		}
 		latest, rel = o, &k.rel
 		break
 	}
-	e.latest, e.tooNew, e.rel = latest, tooNew, rel
+	if latest != nil {
+		older, olderRel = nil, nil
+	}
+	e.latest, e.tooNew, e.rel, e.older, e.olderRel = latest, tooNew, rel, older, olderRel
 }
 
 // checkWithdrawals reads the list of withdrawn versions. Its release is an old one, so
@@ -524,7 +537,7 @@ type VersionInfo struct {
 	Older       bool                   `json:"older,omitempty"`     // older than the version in use
 	Allowed     bool                   `json:"allowed"`             // it can be chosen
 	Refused     string                 `json:"refused,omitempty"`   // why it can't, in words for a person
-	Warning     string                 `json:"warning,omitempty"`   // what to know first; choosing it needs confirming
+	Warning     string                 `json:"warning,omitempty"`   // what to know first; choosing it needs confirming; for Offer.OlderServer, confirmOlder too
 	Withdrawn   *wittymodule.Withdrawn `json:"withdrawn,omitempty"`
 }
 
@@ -540,8 +553,27 @@ type VersionList struct {
 }
 
 // judge decides whether a version may be chosen. It says everything it can before
-// anything is downloaded. Call with m.mu held.
+// anything is downloaded. A version made for an older server comes first in the warning,
+// and choosing it needs confirmOlder as well (judgeParts). Call with m.mu held.
 func (m *Manager) judge(e *entry, man *wittymodule.Manifest) (refused, warning string) {
+	refused, older, rest := m.judgeParts(e, man)
+	return refused, strings.TrimSpace(older + " " + rest)
+}
+
+// judgeParts is judge with the older-server warning apart from the rest, which plain confirm
+// covers. Call with m.mu held.
+func (m *Manager) judgeParts(e *entry, man *wittymodule.Manifest) (refused, older, warning string) {
+	refused, warning = m.judgeRest(e, man)
+	if refused != "" {
+		return refused, "", ""
+	}
+	if madeFor, ok := olderServer(man, m.cfg.Server); ok {
+		older = OlderServerWarning(e.builtin.Name, man.Version, madeFor, m.cfg.Server)
+	}
+	return "", older, warning
+}
+
+func (m *Manager) judgeRest(e *entry, man *wittymodule.Manifest) (refused, warning string) {
 	ver := man.Version
 	if err := supports(man, m.cfg.Server); err != nil {
 		return sentence(err.Error()), ""
@@ -608,9 +640,12 @@ func (m *Manager) Versions(id string) (VersionList, error) {
 			License: k.man.License, Permissions: k.man.Permissions}
 		v.Blocked = e.state.Blocked[ver]
 		v.Withdrawn = e.state.Withdrawn.Find(ver)
+		v.OlderServer, v.MadeFor = m.olderMark(k.man)
 		if !v.InUse {
 			v.Refused, v.Warning = m.judge(e, k.man)
 			v.Allowed = v.Refused == ""
+		} else if v.OlderServer {
+			v.Warning = OlderServerWarning(e.builtin.Name, ver, v.MadeFor, m.cfg.Server)
 		}
 		// The same number from a fork is someone else's code, not a part of the server.
 		if ver == e.builtin.Version && e.state.Source == nil {
@@ -628,9 +663,12 @@ func (m *Manager) Versions(id string) (VersionList, error) {
 			seen[ver] = true
 			v := VersionInfo{Offer: Offer{Version: ver, MinServer: man.MinServer, MaxServer: man.MaxServer, Prerelease: wittymodule.Prerelease(ver), Blocked: e.state.Blocked[ver]},
 				Installed: true, InUse: e.dir != "" && e.man.Version == ver, Older: wittymodule.Compare(ver, e.man.Version) < 0, Withdrawn: e.state.Withdrawn.Find(ver)}
+			v.OlderServer, v.MadeFor = m.olderMark(man)
 			if !v.InUse {
 				v.Refused, v.Warning = m.judge(e, man)
 				v.Allowed = v.Refused == ""
+			} else if v.OlderServer {
+				v.Warning = OlderServerWarning(e.builtin.Name, ver, v.MadeFor, m.cfg.Server)
 			}
 			l.Versions = append(l.Versions, v)
 		}
@@ -650,4 +688,34 @@ func (m *Manager) Versions(id string) (VersionList, error) {
 	}
 	sort.Slice(l.Versions, func(i, j int) bool { return wittymodule.Compare(l.Versions[i].Version, l.Versions[j].Version) > 0 })
 	return l, nil
+}
+
+// olderMark says whether a version was made for an older server, and for which. Call with m.mu held.
+func (m *Manager) olderMark(man *wittymodule.Manifest) (bool, string) {
+	madeFor, ok := olderServer(man, m.cfg.Server)
+	return ok, madeFor
+}
+
+// olderStatus fills in what the modules list says of a version in use that was made for an older
+// server, and of one that could be installed only with confirmOlder. Call with m.mu held.
+func (m *Manager) olderStatus(e *entry, st *Status) {
+	if e.older != nil && e.latest == nil {
+		o := *e.older
+		st.OlderOffer = &o
+	}
+	if e.dir == "" {
+		return
+	}
+	madeFor, ok := olderServer(e.man, m.cfg.Server)
+	if !ok {
+		return
+	}
+	st.OlderServer, st.MadeFor = true, madeFor
+	words := OlderServerWarning(e.builtin.Name, e.man.Version, madeFor, m.cfg.Server)
+	if e.latest != nil {
+		words += " Version " + e.latest.Version + ", made for this server, is available: install it."
+	} else {
+		words += " No version made for this server is published yet. Remove it until one is, or keep it knowing it may not work."
+	}
+	st.OlderWarning = words
 }

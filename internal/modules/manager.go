@@ -110,6 +110,15 @@ type Status struct {
 	Total          int64  `json:"total,omitempty"`
 	Error          string `json:"error,omitempty"` // why the last install failed
 
+	// OlderOffer is the newest version made for an older server, when no version made for this one
+	// is known: it can be installed only with confirmOlder, after the warning in its Reason.
+	OlderOffer *Offer `json:"olderOffer,omitempty"`
+	// OlderServer: the version in use was made for an older server (MadeFor), so pages, settings and
+	// features may be missing. OlderWarning says so, and what to do: the newer version, or removal.
+	OlderServer  bool   `json:"olderServer,omitempty"`
+	MadeFor      string `json:"madeFor,omitempty"`
+	OlderWarning string `json:"olderWarning,omitempty"`
+
 	// What the page needs in order to explain it.
 	Group     string                 `json:"group,omitempty"`
 	Summary   string                 `json:"summary,omitempty"`
@@ -174,6 +183,10 @@ type Offer struct {
 	Size       int64  `json:"size,omitempty"`
 	Reason     string `json:"reason,omitempty"`  // why it doesn't fit
 	Blocked    string `json:"blocked,omitempty"` // why it was taken out of use before
+	// OlderServer: it was made for an older server (its range is MadeFor), and fits only when
+	// widened. It is never chosen by itself, and installing it needs confirmOlder.
+	OlderServer bool   `json:"olderServer,omitempty"`
+	MadeFor     string `json:"madeFor,omitempty"`
 }
 
 // moduleState is what is remembered across restarts about one module.
@@ -241,6 +254,10 @@ type entry struct {
 	rel        *release // the newest compatible release
 	latest     *Offer
 	tooNew     *Offer
+	// older is the newest release made for an older server, when nothing newer fits: never
+	// installed by itself, only with confirmOlder.
+	olderRel *release
+	older    *Offer
 
 	busy        bool
 	phase       string
@@ -468,6 +485,16 @@ func writeAtomic(path string, b []byte) error {
 	return os.Rename(tmp, path)
 }
 
+// noted says whether the log already has a record of this kind for this version.
+func (e *entry) noted(kind, version string) bool {
+	for _, ev := range e.state.Events {
+		if ev.Kind == kind && ev.Version == version {
+			return true
+		}
+	}
+	return false
+}
+
 // note keeps a record for the page's log. Call with m.mu held, or before m is shared.
 func (e *entry) note(kind, version, detail string) {
 	e.state.Events = append(e.state.Events, Event{At: time.Now().UnixMilli(), Kind: kind, Version: version, Detail: firstLine(detail)})
@@ -610,6 +637,13 @@ func (m *Manager) resolve(id string, e *entry) {
 	m.uiGen++
 	if pick != nil {
 		e.man, e.dir = pick, pickDir
+		if madeFor, ok := olderServer(pick, m.cfg.Server); ok {
+			// Kept in the module's log once for each version, beside the warning its status carries.
+			m.logOnce(slog.LevelWarn, "modules: a version made for an older server is in use", "module", id, "version", pick.Version, "madeFor", madeFor)
+			if !e.noted("older-server", pick.Version) {
+				e.note("older-server", pick.Version, OlderServerWarning(name, pick.Version, madeFor, m.cfg.Server))
+			}
+		}
 		if raw, err := os.ReadFile(filepath.Join(pickDir, wittymodule.ManifestFile)); err == nil {
 			e.relStatus, e.relNote = manifestStatus(raw)
 		}
@@ -815,6 +849,7 @@ func (m *Manager) Report() Report {
 		m.loadFeed(id, m.mods[id])
 		st := m.mods[id].status(id)
 		m.overrideStatus(m.mods[id], &st)
+		m.olderStatus(m.mods[id], &st)
 		st.RequiredBy = m.requiredBy(id)
 		st.Unavailable = m.unavailable(m.mods[id])
 		r.Modules = append(r.Modules, st)

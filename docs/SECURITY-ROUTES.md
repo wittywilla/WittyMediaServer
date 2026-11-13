@@ -317,7 +317,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/modulestore` | Admin | Nothing further |
 | `POST /api/modulestore/check` | Admin | Answers younger than a minute are reused for this project's catalogue |
 | `GET /api/modulestore/item/{store}/{id}` | Admin | Known store and module |
-| `POST /api/modulestore/install` | Admin | Known module. Signed version. Says what else comes with it until confirmed |
+| `POST /api/modulestore/install` | Admin | Known module. Signed version. Says what else comes with it until confirmed. A version made for an older server only with `confirmOlder` |
 | `POST /api/modulestore/update-all` | Admin | One run at a time. Signed versions |
 | `GET /api/modulestore/run` | Admin | Nothing further |
 | `POST /api/modulestore/run/undo` | Admin | Own password, and a code with two-factor sign-in |
@@ -332,7 +332,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/modulestore/stores/{id}/fork/{module}` | Admin | Known store and module. Confirmation, with own password and a code with two-factor sign-in. The key the admin was shown. Refused for WittyTuner, where the machine's owner keeps forks out, and where this system can't box one in |
 | `GET /api/modules` | Admin | Nothing further |
 | `POST /api/modules/check` | Admin | Answers younger than a minute are reused |
-| `POST /api/modules/{id}/install` | Admin | Known module. Signed version. Confirmation for a version with a warning, with own password and a code with two-factor sign-in for one older than what is in use |
+| `POST /api/modules/{id}/install` | Admin | Known module. Signed version. Confirmation for a version with a warning, with own password and a code with two-factor sign-in for one older than what is in use. A version made for an older server only with `confirmOlder` |
 | `POST /api/module-uploads` | Admin | A multipart release archive of at most 512 MiB, a checksum list of 1 MiB, a signature of 4 KiB and a key of 256 bytes. Unpacked under the size limit with no paths out of its folder, checked, and held for 30 minutes for the administrator who sent it. Nothing runs |
 | `POST /api/module-uploads/{token}/install` | Admin | Own password and a code with two-factor sign-in. The upload is this administrator's and still held. The go-ahead names exactly the overrides needed, the module's name typed at severity 3 and above, and only permissions it asks for, for someone else's code, never with WMS_NO_MODULE_FORKS. Audited |
 | `DELETE /api/module-uploads/{token}` | Admin | The upload is this administrator's |
@@ -347,11 +347,11 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/modules/{id}/latest` | Admin | Known module |
 | `PUT /api/modules/{id}/source` | Admin | Known module. Repository and key. Confirmation, with own password and a code with two-factor sign-in |
 | `DELETE /api/modules/{id}/source` | Admin | Known module |
-| `POST /api/modules/{id}/add` | Admin | Known module |
+| `POST /api/modules/{id}/add` | Admin | Known module. A version made for an older server only with `confirmOlder` |
 | `POST /api/modules/{id}/remove` | Admin | Known module. No library needs it |
 | `POST /api/modules/{id}/enable` | Admin | Known module |
 | `POST /api/modules/{id}/disable` | Admin | Known module. No library needs it |
-| `PUT /api/modules/installed` | Admin | Known modules. No library needs what is left out |
+| `PUT /api/modules/installed` | Admin | Known modules. No library needs what is left out. A version made for an older server only for modules named in `confirmOlder` |
 | `GET /api/modules/libraries` | Signed-in | Nothing: which kinds of library exist |
 | `PUT /api/modules/libraries/{type}/label` | Admin | Known type. Label rules |
 | `GET /api/modules/web` | Signed-in | Nothing: the bundles in use |

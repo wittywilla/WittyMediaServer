@@ -10,6 +10,7 @@ import (
 	"github.com/wittywilla/wittymodule"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 
@@ -252,6 +253,13 @@ func (e *ErrNoVersion) Error() string { return e.Reason }
 // here already, or by installing the newest version that fits, in the background, with no
 // restart. Progress is in the Report.
 func (m *Manager) AddModule(id string) error {
+	return m.AddModuleOlder(id, false)
+}
+
+// AddModuleOlder is AddModule that, when no version made for this server is known, may install
+// the newest made for an older server: only with confirmOlder, and otherwise it is refused with
+// *ErrOlderServer naming it. What it's built on is added the same way.
+func (m *Manager) AddModuleOlder(id string, confirmOlder bool) error {
 	m.mu.Lock()
 	e := m.mods[id]
 	if e == nil {
@@ -266,7 +274,7 @@ func (m *Manager) AddModule(id string) error {
 		need := o != nil && !o.on() && !o.comesInside()
 		m.mu.Unlock()
 		if need {
-			if err := m.AddModule(r); err != nil {
+			if err := m.AddModuleOlder(r, confirmOlder); err != nil {
 				return fmt.Errorf("%s is built on %s: %w", e.builtin.Name, r, err)
 			}
 		}
@@ -294,10 +302,14 @@ func (m *Manager) AddModule(id string) error {
 	}
 	m.loadFeed(id, e)
 	m.computeOffers(e)
+	if e.rel == nil && e.olderRel != nil {
+		// Only a version made for an older server: never installed without someone's say.
+		return m.installVersionLocked(id, e, e.olderRel.version, true, confirmOlder, nil)
+	}
 	if e.rel == nil {
 		return &ErrNoVersion{Reason: m.whyNoVersion(e)}
 	}
-	return m.installVersionLocked(id, e, e.rel.version, true, nil)
+	return m.installVersionLocked(id, e, e.rel.version, true, false, nil)
 }
 
 // whyNoVersion puts in words why there's nothing to install. Call with m.mu held.
@@ -310,7 +322,7 @@ func (m *Manager) whyNoVersion(e *entry) string {
 	case m.cat == nil && m.cfg.CatalogURL != "":
 		return "This server hasn't been able to read the list of modules yet, so it can't install " + e.builtin.Name + ". Check for updates, or check its internet connection."
 	}
-	return "No version of " + e.builtin.Name + " is available for this server yet."
+	return "No version of " + e.builtin.Name + " for this server is published yet."
 }
 
 // noBuild: versions are listed, and none has a build for this system. Call with m.mu held.
@@ -435,7 +447,7 @@ func (m *Manager) removeModule(id string, libraries map[string][]string) error {
 		return err
 	}
 	m.resolve(id, e)
-	e.latest, e.tooNew, e.rel = nil, nil, nil
+	e.latest, e.tooNew, e.rel, e.older, e.olderRel = nil, nil, nil, nil, nil
 	m.prune(id, e)
 	return nil
 }
@@ -467,6 +479,13 @@ func (m *Manager) wouldStrand(id string, e *entry, libraries map[string][]string
 // first-run setup. It adds first, so a choice that moves libraries from one module to
 // another isn't refused along the way. Core modules stay whatever the list says.
 func (m *Manager) SetInstalled(ids []string, libraries map[string][]string) error {
+	return m.SetInstalledOlder(ids, libraries, nil)
+}
+
+// SetInstalledOlder is SetInstalled that may install, for the modules named in confirmOlder, a
+// version made for an older server when that is all there is. Any other such module isn't
+// installed: it says why on its status, as a module that couldn't start does.
+func (m *Manager) SetInstalledOlder(ids []string, libraries map[string][]string, confirmOlder []string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	want := map[string]bool{}
@@ -522,7 +541,7 @@ func (m *Manager) SetInstalled(ids []string, libraries map[string][]string) erro
 		ids := toAdd
 		logging.Go("module add", func() {
 			for _, id := range ids {
-				if err := m.AddModule(id); err != nil {
+				if err := m.AddModuleOlder(id, slices.Contains(confirmOlder, id)); err != nil {
 					m.log.Warn("modules: couldn't add a module that was chosen", "module", id, "err", err)
 					m.mu.Lock()
 					if e := m.mods[id]; e != nil {

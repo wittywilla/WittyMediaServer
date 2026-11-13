@@ -55,6 +55,11 @@ type RunItem struct {
 	Done    int64    `json:"done,omitempty"`
 	Total   int64    `json:"total,omitempty"`
 	Failure *Failure `json:"failure,omitempty"`
+	// OlderServer: To was made for an older server (MadeFor), because nothing made for this one
+	// is known. Warning says so; the run installs it only when the request said confirmOlder.
+	OlderServer bool   `json:"olderServer,omitempty"`
+	MadeFor     string `json:"madeFor,omitempty"`
+	Warning     string `json:"warning,omitempty"`
 }
 
 // Run is a whole run, as the page shows it.
@@ -70,6 +75,8 @@ type Run struct {
 	Skipped  int       `json:"skipped"`
 	CanUndo  bool      `json:"canUndo,omitempty"`
 	Undone   bool      `json:"undone,omitempty"`
+
+	confirmOlder bool // the request confirmed the versions made for an older server in it
 }
 
 func (r *Run) copy() *Run {
@@ -260,7 +267,7 @@ func (s *Stores) InstallPlan(id string) ([]RunItem, error) {
 		// A library has nothing to install: it reaches this server inside what is built on it.
 		// With no release listed, one can't be told from a module with none yet, and the module
 		// built on it is what will say so if that matters.
-		if x != id && st.Latest == nil && st.Updatable {
+		if x != id && st.Latest == nil && st.OlderOffer == nil && st.Updatable {
 			return nil
 		}
 		if x != id && st.Delivery == wittymodule.DeliveryLibrary {
@@ -290,6 +297,10 @@ func (s *Stores) InstallPlan(id string) ([]RunItem, error) {
 		}
 		if st.Latest != nil {
 			it.To = st.Latest.Version
+		} else if o := st.OlderOffer; o != nil && !st.Installed {
+			// Only a version made for an older server: in the plan with its warning, and
+			// installed only if the request confirms it.
+			it.To, it.OlderServer, it.MadeFor, it.Warning = o.Version, true, o.MadeFor, o.Reason
 		}
 		if x != id {
 			it.Why = byID[id].Name + " is built on it."
@@ -299,24 +310,50 @@ func (s *Stores) InstallPlan(id string) ([]RunItem, error) {
 	return items, nil
 }
 
-// InstallWithNeeds starts installing a module and what it's built on.
+// InstallWithNeeds starts installing a module and what it's built on. A plan with a version made
+// for an older server in it is refused (*ErrOlderServer); InstallWithNeedsOlder can confirm it.
 func (s *Stores) InstallWithNeeds(id, by string) (*Run, error) {
+	return s.InstallWithNeedsOlder(id, by, false)
+}
+
+// OlderInPlan lists the versions in a plan that were made for an older server, as refusals that
+// name each one.
+func (s *Stores) OlderInPlan(plan []RunItem) []*ErrOlderServer {
+	var out []*ErrOlderServer
+	for _, it := range plan {
+		if it.OlderServer {
+			out = append(out, newErrOlderServer(it.ID, it.Name, it.To, it.MadeFor, s.m.cfg.Server))
+		}
+	}
+	return out
+}
+
+// InstallWithNeedsOlder is InstallWithNeeds that installs versions made for an older server in
+// the plan when confirmOlder says someone was shown each of them and said go ahead.
+func (s *Stores) InstallWithNeedsOlder(id, by string, confirmOlder bool) (*Run, error) {
 	items, err := s.InstallPlan(id)
 	if err != nil {
 		return nil, err
 	}
-	return s.start(RunInstall, by, items, true)
+	if older := s.OlderInPlan(items); len(older) > 0 && !confirmOlder {
+		return nil, older[0]
+	}
+	return s.startWith(RunInstall, by, items, true, confirmOlder)
 }
 
 // start begins a run in the background. stopOnFail: a module whose dependency failed is skipped,
 // which an install wants; Update All goes on regardless.
 func (s *Stores) start(kind, by string, items []RunItem, stopOnFail bool) (*Run, error) {
+	return s.startWith(kind, by, items, stopOnFail, false)
+}
+
+func (s *Stores) startWith(kind, by string, items []RunItem, stopOnFail, confirmOlder bool) (*Run, error) {
 	s.runMu.Lock()
 	defer s.runMu.Unlock()
 	if s.current != nil {
 		return nil, ErrRunBusy
 	}
-	r := &Run{ID: logging.NewID("run"), Kind: kind, By: by, Started: time.Now().UnixMilli(), Items: items}
+	r := &Run{ID: logging.NewID("run"), Kind: kind, By: by, Started: time.Now().UnixMilli(), Items: items, confirmOlder: confirmOlder}
 	s.current = r
 	s.log.Info("modules: a run started", "run", r.ID, "kind", kind, "modules", len(items), "by", by)
 	logging.Go("modules run", func() { s.work(r, stopOnFail) }, "cat", "modules", "session", r.ID)
@@ -378,7 +415,8 @@ func (s *Stores) runOne(r *Run, i int, it RunItem) *Failure {
 	case !ok:
 		err = ErrUnknown
 	case it.To != "":
-		err = s.m.InstallVersion(it.ID, it.To, false)
+		// A version made for an older server goes ahead only when this run's request confirmed it.
+		err = s.m.InstallVersionOlder(it.ID, it.To, false, it.OlderServer && r.confirmOlder)
 	case !st.Installed:
 		err = s.m.AddModule(it.ID)
 	default:

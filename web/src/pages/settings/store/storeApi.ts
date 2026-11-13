@@ -23,8 +23,10 @@ export type StoreItem = {
   minServer?: string; maxServer?: string; fit: Fit; status?: ModuleStatus; failure?: Failure
   // What sort of module it is, how finished its release is, what its SDUI adds, and its override.
   moduleKind?: string; releaseStatus?: string; statusNote?: string; ui?: UiSummary; override?: OverrideRecord
+  // The version offered was made for an older server: fit kind 'older-server', its why the warning.
+  olderServer?: boolean; madeFor?: string
 }
-export type RunItem = { id: string; name: string; from?: string; to?: string; state: 'queued' | 'working' | 'done' | 'failed' | 'skipped' | 'undone'; why?: string; phase?: string; done?: number; total?: number; failure?: Failure }
+export type RunItem = { id: string; name: string; from?: string; to?: string; state: 'queued' | 'working' | 'done' | 'failed' | 'skipped' | 'undone'; why?: string; phase?: string; done?: number; total?: number; failure?: Failure; olderServer?: boolean; madeFor?: string; warning?: string }
 export type Run = { id: string; kind: string; by?: string; started: number; finished?: number; items: RunItem[]; updated: number; failed: number; skipped: number; canUndo?: boolean; undone?: boolean }
 // How well a module's helper is boxed in on this system, in words when it isn't fully.
 export type SandboxInfo = { level: 'full' | 'partial' | 'limited' | 'unconfined'; title?: string; words?: string }
@@ -49,6 +51,8 @@ export const currentRun = () => api.get<{ run?: Run }>('/modulestore/run').then(
 export type OwnerSecrets = { password: string; code: string }
 export const undoRun = (secrets: OwnerSecrets) => api.post<Run>('/modulestore/run/undo', secrets)
 export const dismissRun = () => api.del('/modulestore/run')
+// more can carry an override's go-ahead, and confirmOlder: true once someone chose Install anyway
+// for a version made for an older server (OlderServerDialog). Nothing else sends it.
 export const installModule = (id: string, confirm: boolean, more?: object) => api.post<Run>('/modulestore/install', { id, confirm, ...more })
 export const moduleLog = (id: string) => api.get<ModuleLog>(`/modulestore/modules/${encodeURIComponent(id)}/log`)
 export const previewStore = (url: string, key: string, allowPrivate: boolean, secrets?: OwnerSecrets) => api.post<StorePreview>('/modulestore/stores/preview', { url, key, private: allowPrivate, ...secrets })

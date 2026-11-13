@@ -36,3 +36,20 @@ not filed.
   `sdui.json` declares no pages or navigation; book and comic tiles with no cover show a gradient without a title.
 - **Owner decisions:** whether the player should fade out for the sleep timer; whether Speed and Colour also appear in
   Settings, Modules, Visualizer (the stored keys already match).
+
+## Android (W9) and web looks (W13)
+
+- **Android visualizer:** the app has only Bars, Waves and Drift (`ui/Visualizer.kt`): none of the 17 effects or Aurora Rings.
+  The effects are GLSL ES 3.00 in `WittyVisualizer` (`effects/*.glsl`, `shaders/*.glsl`, `engine.ts`, flash guard in
+  `safety.ts`) and can run unchanged on a GLES30 renderer.
+- **Android WittyRemote, revamped player controls, music toggle (Album art / Canvas video / Visualizer), lyrics modes,
+  sleep timer, queue and the effects picker:** not built.
+- **Android layout and name editors:** built on `wip/design-android-media-e` (commits 916b45a, 43b973a) but unmerged and
+  unverified: run `gradle testDebugUnitTest lintSideload assembleSideload` before merging.
+- **Android module pages** are SDUI-rendered (no native book or PDF readers).
+- **Dashboard look:** no recently-added widget kind (server); Continue and On TV tiles appear only with history or live TV.
+- **Big picture look:** its "What do you want to do?" tile Home needs a server page structure.
+- **Crossbar look** shows a "Saved views" tab with no data behind it.
+- **Item page shows the file's full server path** (QA D25).
+- **Settings, Appearance, Look:** stray controls peek above the sticky tab bar (P7).
+- **Phone top strip:** a partial word may still show at 320 px.

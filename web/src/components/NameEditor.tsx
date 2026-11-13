@@ -93,7 +93,7 @@ export function NameEditor({ draft, onChange, logoUrl, onLogoError, onCheck }: {
   const mst = draft.mark.kind === 'image' ? undefined : markStyle(parts)
   const Badge = ({ big }: { big?: boolean }) => (
     <span className={'ne-badge' + (big ? ' big' : '')} aria-hidden="true" style={mst}>
-      {draft.mark.kind === 'image' && logoUrl ? <img src={logoUrl} alt="" onError={() => onLogoError?.('The logo could not be shown')} /> : markText}
+      {draft.mark.kind === 'image' ? <img src={logoUrl || '/icon.svg'} alt="" onError={() => onLogoError?.('The logo could not be shown')} /> : markText}
     </span>
   )
   const pickLogo = (f: File | undefined) => {
@@ -181,7 +181,7 @@ export function NameEditor({ draft, onChange, logoUrl, onLogoError, onCheck }: {
         <div className="ne-lab">Mark for the rail and small spaces</div>
         <div className="ne-row wrap">
           <Badge big />
-          <Segmented<MarkKind> label="Mark" value={draft.mark.kind} onChange={(k) => { if (k === 'image') { if (logoUrl || draft.logo instanceof File) set({ mark: { kind: 'image' } }); else file.current?.click() } else set({ mark: { kind: k, ...(k === 'text' ? { text: draft.mark.text || '' } : {}) } }) }} options={[
+          <Segmented<MarkKind> label="Mark" value={draft.mark.kind} onChange={(k) => { if (k === 'image') set({ mark: { kind: 'image' } }); else set({ mark: { kind: k, ...(k === 'text' ? { text: draft.mark.text || '' } : {}) } }) }} options={[
             { value: 'letter', label: `Letter · ${markShown(shown, { kind: 'letter' })}` },
             { value: 'initials', label: `Initials · ${markShown(shown, { kind: 'initials' })}` },
             { value: 'text', label: 'Your own' },
@@ -191,10 +191,10 @@ export function NameEditor({ draft, onChange, logoUrl, onLogoError, onCheck }: {
         <div className="ne-row wrap">
           {draft.mark.kind === 'text' && <Input className="ne-own" aria-label="Your own one or two characters" maxLength={2} placeholder="1 to 2 characters" value={draft.mark.text || ''} onChange={(e) => set({ mark: { kind: 'text', text: e.target.value } })} />}
           <Button onClick={() => file.current?.click()}>{logoUrl || draft.logo instanceof File ? 'Replace the logo…' : 'Upload a logo…'}</Button>
-          {(logoUrl || draft.logo instanceof File) && draft.logo !== 'remove' && <Button variant="ghost" onClick={() => set({ logo: 'remove', mark: draft.mark.kind === 'image' ? { kind: 'letter' } : draft.mark })}>Remove the logo</Button>}
+          {(logoUrl || draft.logo instanceof File) && draft.logo !== 'remove' && <Button variant="ghost" onClick={() => set({ logo: 'remove' })}>Remove the logo</Button>}
           <input ref={file} type="file" accept="image/png,image/jpeg" hidden onChange={(e) => { pickLogo(e.target.files?.[0]); e.target.value = '' }} />
         </div>
-        <p className="ne-hint">The mark is always centred in a square badge. A logo is a PNG or JPEG up to 2 MB, shown fitted inside the badge, and falls back to the letter on a server it can’t load from. It follows the name’s colours unless you choose fixed ones.</p>
+        <p className="ne-hint">The mark is always centred in a square badge. Logo is the WittyMediaServer logo until you upload your own: a PNG or JPEG up to 2 MB, shown fitted inside the badge. It follows the name’s colours unless you choose fixed ones.</p>
 
       </div>
 

@@ -149,6 +149,13 @@ type Mark struct {
 	ImageURL string `json:"imageUrl,omitempty"`
 }
 
+// DefaultMark is the mark of a server that never chose one: the logo, which is the
+// WittyMediaServer logo (AppLogoURL) until the owner uploads their own.
+const DefaultMark = `{"kind":"image"}`
+
+// AppLogoURL is the WittyMediaServer logo, served beside the web app, as a PNG the apps can draw.
+const AppLogoURL = "/icon-512.png"
+
 // Mark kinds.
 const (
 	MarkLetter   = "letter"

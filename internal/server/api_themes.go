@@ -35,7 +35,8 @@ func (s *Server) brand(ctx context.Context) (name, colouring string, parts []bra
 // brandMark is the badge the rail, the tab bar's header and the sign-in draw: what it holds
 // and, for a logo, where it is. A logo that isn't on the server any more is the letter.
 func (s *Server) brandMark(ctx context.Context) brandname.Mark {
-	m, err := brandname.ParseMark(s.DB.GetSetting(ctx, "brandMark", ""))
+	// Never set: the WittyMediaServer logo. Saved as "": the first letter, as before.
+	m, err := brandname.ParseMark(s.DB.GetSetting(ctx, "brandMark", brandname.DefaultMark))
 	if err != nil {
 		return brandname.Mark{Kind: brandname.MarkLetter}
 	}
@@ -43,7 +44,7 @@ func (s *Server) brandMark(ctx context.Context) brandname.Mark {
 		if v := s.DB.GetSetting(ctx, "brandLogo", ""); v != "" {
 			m.ImageURL = "/api/v1/branding/logo?v=" + v
 		} else {
-			m = brandname.Mark{Kind: brandname.MarkLetter}
+			m.ImageURL = brandname.AppLogoURL // no logo of the owner's own: the app's
 		}
 	}
 	return m

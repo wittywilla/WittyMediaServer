@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { api, getToken, serverBase } from '../api'
 import { DEFAULT_NAME } from '../brandName'
-import { cellsFromColouring, cellsFromSpans, markFromSetting, markSetting, PRESETS, sameColor, spanCount, spansFromCells, MAX_SPANS, partsFromCells, type BrandSpan } from '../brandStyle.ts'
+import { cellsFromColouring, cellsFromSpans, markFromSetting, markSetting, PRESETS, sameColor, spanCount, spansFromCells, MAX_SPANS, partsFromCells, type BrandSpan, type Mark } from '../brandStyle.ts'
 import { toast, useApp } from '../state'
 import { loadThemeOverrides, setStatusBrandParts } from '../theme'
 import { Button } from '../ui'
@@ -14,7 +14,7 @@ import { NameEditor, type BrandDraft } from './NameEditor'
 // The name editor in a window: Settings, Appearance, Name and logo, and the layout editor's "Edit name…". Setup draws the
 // same editor on its own page (pages/setup/Name.tsx) and keeps the draft until there is an administrator to save it.
 
-export const startDraft = (name: string, colouring: string, spans: BrandSpan[], mark = markFromSetting('')): BrandDraft => {
+export const startDraft = (name: string, colouring: string, spans: BrandSpan[], mark: Mark = { kind: 'image' }): BrandDraft => {
   const shown = name.trim() || DEFAULT_NAME
   return { name, cells: spans.length ? cellsFromSpans(Array.from(shown).length, spans) : cellsFromColouring(shown, colouring), mark, logo: null }
 }
@@ -24,7 +24,7 @@ export async function loadBrandDraft(name: string, colouring: string): Promise<B
   const s = await api.get<Record<string, string>>('/settings').catch(() => ({} as Record<string, string>))
   let spans: BrandSpan[] = []
   try { spans = s.brandSpans ? JSON.parse(s.brandSpans) : [] } catch { /* the automatic colouring */ }
-  return startDraft(name, colouring, spans, markFromSetting(s.brandMark || ''))
+  return startDraft(name, colouring, spans, s.brandMark === undefined ? undefined : markFromSetting(s.brandMark))
 }
 
 // Saves a draft: the name, its colours (the automatic colouring is kept as the server's own, anything else as spans), the
@@ -38,7 +38,7 @@ export async function saveBrandDraft(d: BrandDraft): Promise<{ logo?: string; wa
   if (!isAuto && spanCount(d.cells) > MAX_SPANS) throw new Error('The name has too many changes of colour.')
   let logo: string | undefined
   if (d.logo === 'remove') { await api.del('/branding/logo'); logo = '' } else if (d.logo) logo = await uploadLogo(d.logo)
-  const saved = await api.put<{ brandWarnings?: BrandWarning[] }>('/settings', { brandName: d.name.trim(), brandColouring: 'auto', brandSpans: isAuto ? '' : JSON.stringify(spansFromCells(d.cells)), brandMark: markSetting(d.mark.kind === 'image' && logo === '' ? { kind: 'letter' } : d.mark) })
+  const saved = await api.put<{ brandWarnings?: BrandWarning[] }>('/settings', { brandName: d.name.trim(), brandColouring: 'auto', brandSpans: isAuto ? '' : JSON.stringify(spansFromCells(d.cells)), brandMark: markSetting(d.mark) })
   return { logo, warnings: saved?.brandWarnings || [] }
 }
 

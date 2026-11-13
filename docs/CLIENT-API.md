@@ -1941,6 +1941,14 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `GET /games/{id}/saves` | user | Game saves. |
 | `GET /games/{id}/saves/{slot}/thumb` | user | Game save thumb. |
 | `DELETE /games/{id}/saves/{slot}` | user | Game save delete. |
+| `GET /games/pictures` | user | How WittyPlay pictures games, server-wide: `server` (a .wittyplay document: default and consoles), `games` (looks by game id, only games this account may see), `caseStyles`. See [the .wittyplay format](specs/wittyplay-file.md). |
+| `PUT /games/pictures` | admin | Set the server's .wittyplay document (body, at most 64 KB); its games apply to the games they match. Answers `server`, `applied`, `unmatched`. |
+| `GET /games/pictures/file` | admin | The server's choices as a `.wittyplay` file (`application/vnd.wittyplay+json`). |
+| `POST /games/pictures/check` | user | Read a `.wittyplay` file before importing it: the document as read, and `matches` (this account's game ids for each of its games). Writes nothing. |
+| `PUT /games/{id}/picture` | admin | An administrator's look for one game: `{picture, case, label}`; empty takes it away. |
+| `GET /games/brand-logos` | user | Whether WittyPlay shows console logos (off by default), each console's logo when on with its source and licence, and the warning an administrator confirms. |
+| `PUT /games/brand-logos` | admin | `{enabled, accepted}`: on needs the warning confirmed; logos then come through the logo service and this server. |
+| `DELETE /games/brand-logos` | admin | Remove every downloaded console logo and turn them off. Answers `removed`. |
 | `GET /games/facets` | user | What a library's games can be filtered by, with how many there are. Query: `library`, `console`. |
 | `GET /games/{id}/metadata` | user | A game's match, dates, makers, players, scores, age ratings, pictures and credits. See [Game details](#game-details). |
 | `GET /games/{id}/art/{n}` | user | One of a game's pictures. Use the `url` in its metadata's `art` list as given. |

@@ -6,7 +6,7 @@
 // one game), controllers and their mapping, friends and privacy, and the WittyPlay module's own settings.
 import { lazy, Suspense, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { IconCheck, IconDevices, IconDisc, IconGamepad, IconLibrary, IconPlug, IconRemote, IconServer, IconSidebar, IconTune, IconUsers, IconWrench, IconRight } from '../icons'
+import { IconCheck, IconDevices, IconDisc, IconGamepad, IconImage, IconLibrary, IconPlug, IconRemote, IconServer, IconSidebar, IconTune, IconUsers, IconWrench, IconRight } from '../icons'
 import { useApp } from '../state'
 import { Spinner } from '../ui/Surface'
 import { PageHead } from './settings/ui'
@@ -21,6 +21,7 @@ const CouchSettings = lazy(() => import('./settings/Couch'))
 const WittyRigsSettings = lazy(() => import('./settings/WittyRigs'))
 const ModuleSettingsPage = lazy(() => import('./settings/ModuleSettings').then((m) => ({ default: m.ModuleSettingsPage })))
 const LibrariesSettings = lazy(() => import('./SettingsPage').then((m) => ({ default: m.Libraries })))
+const PlayPictures = lazy(() => import('./PlayPictures'))
 const ControllersScreen = lazy(() => import('./Games').then((m) => ({ default: m.ControllersScreen })))
 
 export const PLAY_SETTINGS = '/wittyplay/settings'
@@ -30,6 +31,7 @@ const ENTRIES: { title: string; entries: Entry[] }[] = [
   { title: 'For you', entries: [
     { id: 'games', icon: IconTune, label: 'My game settings', hint: 'Picture, speed, shortcuts and more: for every game, one console or one game', page: () => <><PageHead title="My game settings" desc="How your games look, sound and behave. Set something for every game, for one console or, from a game’s own page, for one game. It follows you to every device." /><GameSettingsPage /></> },
     { id: 'look', icon: IconSidebar, label: 'Layout, tabs and buttons', hint: 'Shelf, grid or list; the order of the tabs and which show; the buttons WittyPlay shows', page: () => <LookSetting /> },
+    { id: 'pictures', icon: IconImage, label: 'Game pictures', hint: 'Box art fitted or filled, or each game in its case or cartridge: for every game, a console or one game', page: () => <PlayPictures /> },
     { id: 'controllers', icon: IconGamepad, label: 'Controllers and buttons', hint: 'Who is on which player, and the buttons WittyPlay shows', to: '/page/wittyplay-controllers' },
     { id: 'mapping', icon: IconRemote, label: 'Controller mapping', hint: 'What each button and stick does, for each console', page: () => <ControllersScreen /> },
     { id: 'privacy', icon: IconUsers, label: 'Friends and what you play', hint: 'Who sees you online and what you are playing', to: '/page/wittyplay-privacy' },

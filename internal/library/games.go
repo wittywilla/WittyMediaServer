@@ -345,6 +345,9 @@ func (s *Scanner) indexGame(ctx context.Context, lib *Library, c candidate) erro
 		if err := s.Store.saveDiscs(ctx, existing.ID, c.discs); err != nil {
 			return err
 		}
+		if err := s.Store.noteSidecar(ctx, existing); err != nil {
+			return err
+		}
 		return s.Store.noteDetection(ctx, existing, v)
 	}
 	it := &Item{LibraryID: lib.ID, Kind: "game", Path: c.path, SizeBytes: c.size, MTime: c.mtime, Console: c.console}
@@ -414,6 +417,10 @@ func (s *Scanner) indexGame(ctx context.Context, lib *Library, c candidate) erro
 		return err
 	}
 	if err := s.Store.saveDiscs(ctx, it.ID, c.discs); err != nil {
+		return err
+	}
+	// A .wittyplay file beside it says how WittyPlay pictures it (read only, never written).
+	if err := s.Store.noteSidecar(ctx, it); err != nil {
 		return err
 	}
 	// Finding out about it happens in the background, so a scan never waits on the internet.

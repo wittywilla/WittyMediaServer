@@ -616,6 +616,7 @@ func (s *Server) Handler() http.Handler {
 		s.GameMeta.Tasks = s.Tasks
 	}
 	s.gameMetaRoutes(m)
+	s.gamePictureRoutes(m)
 	s.rigRoutes(s.needing("wittycouch", m))
 	s.couchRoutes(s.needing("wittycouch", m))
 	s.wittyRigsRoutes(m)

@@ -18,3 +18,9 @@ export const RowLayoutContext = createContext<RowLayout>('shelf')
 // showing is never hidden.
 export type ExtraTabs = { page: string; tabs: { id: string; label: string; to: string; after: string }[]; end?: ReactNode; order?: string[]; hidden?: string[] }
 export const TabsContext = createContext<ExtraTabs | null>(null)
+
+// - how a game's picture is drawn (WittyPlay's Game pictures): art gives what goes in a game card's picture (its box art fitted, or the
+//   game in its case), or null for the picture as sent; detail gives something for the game's detail panel (a button to change it).
+export type GameArtArgs = { itemId: string; console: string; image: string; title: string }
+export type GameArtApi = { art: (a: GameArtArgs) => ReactNode | null; detail?: (a: GameArtArgs) => ReactNode }
+export const GameArtContext = createContext<GameArtApi | null>(null)

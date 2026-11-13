@@ -56,6 +56,12 @@ var gameMigrations = []string{
 	// 4: a profile chooses two things: whether friends see what it plays (share), and whether
 	// it appears online at all (online). No row: yes to both, except for a guest.
 	`ALTER TABLE wittyplay_presence ADD COLUMN online INTEGER NOT NULL DEFAULT 1;`,
+	// 5: how a game is pictured in WittyPlay, server-wide (a .wittyplay look, docs/specs/wittyplay-file.md):
+	// an administrator's choice (source 'admin') and what a .wittyplay file beside the game says ('file').
+	`CREATE TABLE IF NOT EXISTS game_pictures (
+	   item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE, source TEXT NOT NULL,
+	   look TEXT NOT NULL, updated_at INTEGER NOT NULL,
+	   PRIMARY KEY(item_id, source)) WITHOUT ROWID;`,
 }
 
 func (d *DB) migrateGames(ctx context.Context) error {

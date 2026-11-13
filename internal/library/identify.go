@@ -54,7 +54,7 @@ const maxSniffsPerWalk = 2000
 // read, and a half-downloaded film shouldn't be listed.
 var neverSniffed = map[string]bool{
 	".part": true, ".partial": true, ".tmp": true, ".temp": true, ".crdownload": true, ".download": true, ".aria2": true, ".!qb": true, ".!ut": true, ".bak": true,
-	".nfo": true, ".txt": true, ".xml": true, ".json": true, ".log": true, ".db": true, ".ini": true, ".url": true, ".lnk": true, ".sfv": true, ".md5": true, ".sha1": true,
+	".nfo": true, ".wittyplay": true, ".txt": true, ".xml": true, ".json": true, ".log": true, ".db": true, ".ini": true, ".url": true, ".lnk": true, ".sfv": true, ".md5": true, ".sha1": true,
 	".sha256": true, ".torrent": true, ".exe": true, ".dll": true, ".so": true, ".dylib": true, ".msi": true, ".bat": true, ".cmd": true, ".sh": true, ".ps1": true, ".js": true,
 	".css": true, ".py": true, ".go": true, ".html": true, ".htm": true, ".pdf": true, ".doc": true, ".docx": true, ".xls": true, ".xlsx": true, ".ppt": true, ".pptx": true,
 }

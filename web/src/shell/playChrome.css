@@ -423,3 +423,96 @@ html[data-wplay] body { font-family: var(--font); }
 .wplay .sdui-shelf:not(.layout-grid):not(.layout-list) .wplay-bio :is(.wplay-bio-shots, .wplay-cheevos, .wplay-bio-genres, .wplay-bio-logo) { display: none; }
 .wplay .sdui-shelf:not(.layout-grid):not(.layout-list) .wplay-bio-about { -webkit-line-clamp: 2; }
 @media (prefers-reduced-transparency: reduce) { .wplay-cheevos-list li { opacity: 1; color: var(--fg-2); } }
+
+/* ==== Game pictures (GameCase.tsx, GamePictureArt.tsx, pages/PlayPictures.tsx): box art fitted over a blurred copy of itself, or the
+   game drawn in its case or cartridge. Kept together here, after everything else, so it merges cleanly. ==== */
+/* Fitted: the whole picture, nothing cut off, over a blurred, dimmed copy filling the rest (no bars). The !important lines beat the
+   app's ".card .poster img" (cover, relative) for these pictures only. */
+.gpic-fit { position: absolute; inset: 0; display: block; overflow: hidden; border-radius: inherit; background: #0c0e1c; }
+.gpic-fit > img.gpic-fit-back { position: absolute !important; inset: -12%; inline-size: 124% !important; block-size: 124% !important; max-inline-size: none; object-fit: cover !important; filter: blur(14px) brightness(.5) saturate(1.25); }
+.gpic-fit > img.gpic-fit-main { position: absolute !important; inset: 0; inline-size: 100% !important; block-size: 100% !important; object-fit: contain !important; filter: drop-shadow(0 4px 14px rgb(0 0 0 / .45)); }
+
+/* In its case: the drawing fits the tile whatever the case's shape (container units), above the title on the tile's foot. */
+.gcase-fit { position: absolute; inset: 6% 9% 9%; display: grid; place-items: center; container-type: size; z-index: 1; }
+.wplay .sdui-shelf:not(.layout-list) .card .poster > .gcase-fit { inset-block-end: 26%; }
+.wplay .sdui .sdui-shelf .card .poster:has(> .gcase-fit) { background: radial-gradient(120% 90% at 50% 100%, rgb(255 255 255 / .12), rgb(255 255 255 / .04) 62%, rgb(255 255 255 / .02)), #12163a; }
+.wplay .sdui-shelf.layout-list .card .poster > .gcase-fit { inset: 4%; }
+.gcase { --gc-col: var(--gc-tint, var(--gc-base, #3a3c44)); position: relative; display: block; inline-size: min(100cqw, calc(100cqh * var(--gc-ratio))); aspect-ratio: var(--gc-ar); filter: drop-shadow(0 .5cqh 1.2cqh rgb(0 0 0 / .5)); transition: transform var(--dur-2) var(--ease-out); }
+.gcase > svg { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; display: block; overflow: visible; }
+.gcase-over { pointer-events: none; z-index: 2; }
+.gcase-label { position: absolute; overflow: hidden; background: #0c0e1c; container-type: inline-size; z-index: 1; }
+.gcase-label .gpic-fit { border-radius: 0; }
+.gcase-title { position: absolute; inset: 0; display: grid; place-items: center; padding: 7%; background: linear-gradient(160deg, #f6f3ea, #d8d1c0); color: #17161d; text-align: center; }
+.gcase-title span { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; overflow-wrap: anywhere; font-size: clamp(7px, 14cqw, 34px); font-weight: 900; line-height: 1.05; letter-spacing: -.01em; }
+.gcase-blank { position: absolute; inset: 0; background: repeating-linear-gradient(135deg, rgb(255 255 255 / .16) 0 6px, rgb(255 255 255 / .07) 6px 12px), linear-gradient(160deg, #6a5ae0, #2c2f6e); }
+.gcase-logo { position: absolute; inset: 0; display: grid; place-items: center; padding: 9%; background: linear-gradient(160deg, #262a40, #0e1020); }
+.gcase-logo img, .gcase-brand img { position: static !important; inline-size: 100% !important; block-size: 100% !important; object-fit: contain !important; }
+.gcase-brand { position: absolute; z-index: 3; display: grid; place-items: center; padding: .6%; border-radius: 2px; background: rgb(0 0 0 / .6); }
+/* The drawing's parts, from one colour per case (a console's own shade when it has one). */
+.gcase .gc-body { fill: var(--gc-col); }
+.gcase .gc-well { fill: color-mix(in srgb, var(--gc-col) 68%, #000); }
+.gcase .gc-band, .gcase .gc-hinge { fill: color-mix(in srgb, var(--gc-col) 80%, #000); }
+.gcase .gc-grip, .gcase .gc-mark, .gcase .gc-side, .gcase .gc-screw { fill: color-mix(in srgb, var(--gc-col) 58%, #000); }
+.gcase .gc-groove { stroke: color-mix(in srgb, var(--gc-col) 55%, #000); stroke-width: 1.4; stroke-linecap: round; }
+.gcase .gc-edge { stroke: color-mix(in srgb, var(--gc-col) 62%, #000); stroke-width: 2; }
+.gcase.light .gc-groove, .gcase.light .gc-edge { stroke: color-mix(in srgb, var(--gc-col) 72%, #000); }
+.gcase .gc-sheen { fill: rgb(255 255 255 / .18); }
+.gcase .gc-hinge-line { stroke: rgb(255 255 255 / .16); stroke-width: 1; }
+.gcase .gc-glare { fill: rgb(255 255 255 / .1); }
+.gcase .gc-clear { fill: none; stroke: rgb(255 255 255 / .3); stroke-width: 1; }
+.gcase .gc-window, .gcase .gc-screen { fill: #08090d; }
+.gcase .gc-disc { fill: #c3c7d2; }
+.gcase .gc-metal { fill: #aeb3bd; }
+.gcase .gc-reel { fill: #f2efe6; }
+.gcase .gc-scan { stroke: rgb(120 200 255 / .1); stroke-width: 1; }
+.gcase .gc-lit { fill: none; stroke: rgb(255 236 190 / .55); stroke-width: 1.5; }
+.gcase-arcade-marquee .gcase-label { box-shadow: 0 0 2cqw rgb(255 220 150 / .5); }
+.gcase-cart-nes { --gc-base: #8e9096; } .gcase-cart-atari { --gc-base: #1e1b19; } .gcase-cart-super { --gc-base: #b7b6bb; } .gcase-cart-64 { --gc-base: #3b3c40; }
+.gcase-cart-mega { --gc-base: #17171a; } .gcase-cart-pocket { --gc-base: #c4c2bd; } .gcase-cart-advance { --gc-base: #4b4c55; } .gcase-card-slim { --gc-base: #4a4b51; }
+.gcase-case-jewel { --gc-base: #2a2c33; } .gcase-case-keep { --gc-base: #15161b; } .gcase-case-mini { --gc-base: #1e1d24; } .gcase-case-umd { --gc-base: #16171b; }
+.gcase-disk-floppy { --gc-base: #2b2d33; } .gcase-tape-cassette { --gc-base: #2a2a2e; } .gcase-arcade-marquee { --gc-base: #141418; } .gcase-generic-box { --gc-base: #2c3140; }
+/* The chosen game's case lifts a little; with reduced motion it stays where it is (the ring says which). */
+.wplay .sdui-shelf .card:focus-visible .gcase, .wplay .sdui-shelf .sdui-item.grown .gcase { transform: translateY(-2.5%); }
+@media (prefers-reduced-motion: reduce) { .gcase { transition: none; } .wplay .sdui-shelf .card:focus-visible .gcase, .wplay .sdui-shelf .sdui-item.grown .gcase { transform: none; } }
+@media (forced-colors: active) { .gcase-label { outline: 1px solid CanvasText; } }
+
+/* The detail panel's Picture style button. */
+.gpic-detail-btn { justify-self: start; min-block-size: 44px; padding: 0 18px; border: 0; border-radius: 999px; background: var(--wp-chip, var(--bg-3)); color: var(--fg); font: inherit; font-weight: 800; cursor: pointer; }
+.gpic-detail-btn:hover { background: var(--wp-chip-hover, var(--bg-4)); }
+.gpic-detail-btn:focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: var(--focus-offset); }
+
+/* Choosing: the live preview beside the questions; each answer a button in a radio group. */
+.gpic-look { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: clamp(14px, 1.6vw, 28px); align-items: start; }
+@media (max-width: 720px) { .gpic-look { grid-template-columns: minmax(0, 1fr); } }
+.gpic-look-now { position: sticky; inset-block-start: 8px; }
+.gpic-preview { position: relative; display: block; inline-size: clamp(120px, 12vw, 190px); aspect-ratio: 1; border-radius: 14px; overflow: hidden; background: linear-gradient(135deg, #5a4ad8, #1b234f); }
+.gpic-preview.sm { inline-size: 64px; border-radius: 10px; }
+.gpic-preview .gcase-fit { inset: 6%; }
+.gpic-filled img { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; object-fit: cover; }
+.gpic-choices { border: 0; padding: 0; margin: 0 0 14px; min-inline-size: 0; }
+.gpic-choices legend { padding: 0; margin-block-end: 8px; font-weight: 800; }
+.gpic-choice-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.gpic-choice { display: flex; align-items: center; gap: 10px; min-block-size: 48px; max-inline-size: 24rem; padding: 8px 14px; border: 0; border-radius: 14px; background: var(--wp-chip, var(--bg-3)); color: var(--fg); font: inherit; text-align: start; cursor: pointer; }
+.gpic-choice:hover { background: var(--wp-chip-hover, var(--bg-4)); }
+.gpic-choice.on { background: var(--accent); color: var(--accent-fg); }
+.gpic-choice:focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: 3px; }
+.gpic-choice-text { display: grid; gap: 2px; }
+.gpic-choice-text span { font-size: .85em; opacity: .85; }
+.gpic-choice-art { position: relative; flex: none; inline-size: 44px; block-size: 44px; }
+.gpic-choice-art .gcase-fit { inset: 0; }
+.gpic-sub { margin: 16px 0 8px; font-size: 1rem; font-weight: 800; }
+.gpic-samples { list-style: none; display: flex; flex-wrap: wrap; gap: 16px; margin: 0; padding: 0; }
+.gpic-samples li { display: grid; gap: 6px; justify-items: center; }
+.gpic-console-list { list-style: none; display: grid; gap: 8px; margin: 0; padding: 0; }
+.gpic-console-list li { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 14px; background: var(--wp-chip, var(--bg-3)); }
+.gpic-console-text { flex: 1; display: grid; min-inline-size: 0; }
+.gpic-console-text b, .gpic-console-text span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gpic-share { display: flex; flex-wrap: wrap; gap: 10px; }
+.gpic-said { color: var(--fg-2); }
+.gpic-brand-switch { display: flex; align-items: center; justify-content: space-between; gap: 12px; max-inline-size: 36rem; min-block-size: 48px; font-weight: 700; }
+.gpic-warning { display: grid; gap: 6px; margin: 0; padding-inline-start: 1.2em; }
+.gpic-credits { list-style: none; display: grid; gap: 8px; margin: 0 0 8px; padding: 0; }
+.gpic-credits li { display: flex; align-items: center; gap: 12px; }
+.gpic-credit-logo { flex: none; display: grid; place-items: center; inline-size: 80px; block-size: 32px; padding: 4px; border-radius: 6px; background: #11131f; }
+.gpic-credit-logo img { max-inline-size: 100%; max-block-size: 100%; object-fit: contain; }
+.gpic-dialog .gpic-look-now { position: static; }

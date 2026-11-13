@@ -519,6 +519,20 @@ To turn them on, open **Settings → Metadata agents → Logos**, read what it s
 
 Some consoles have no logo under a free license, and those stay as text. You can upload your own either way. **Remove them** turns downloads off and deletes the pictures.
 
+WittyPlay has a narrower switch of its own: **WittyPlay Settings → Game pictures → Brand logos**. It's off until an administrator turns it on and confirms a warning (logos are trademarks of their owners, shown for personal, non-commercial display on this server only, with no endorsement or affiliation). It covers console logos, which it downloads by itself, and game studio logos you choose from a game's **Logos**. Each logo's source and licence is listed under it, and **Remove downloaded logos** deletes them and turns it off.
+
+## Game pictures in WittyPlay
+
+Box art comes in every shape: tall, wide and square. **WittyPlay Settings → Game pictures** chooses how it's shown:
+
+- **Box art fitted** (the default): the whole picture, nothing cut off, over a soft, blurred copy of itself.
+- **Box art filled**: the picture fills its tile and its edges may be cut off.
+- **In its case or cartridge**: the game drawn in a cartridge, disc case, tape or arcade marquee like the ones its console used, with the box art, the game's logo or its title on the label. The drawings are WittyPlay's own and carry no maker's name or logo.
+
+Choose for every game, for each console, or for one game (**Picture style** in a game's panel in WittyPlay). Your choices follow you to every device. An administrator can also choose for everyone on the server; your own choice wins.
+
+Choices can be exported and imported as a `.wittyplay` file, an open format anyone may use: see [the .wittyplay file format](specs/wittyplay-file.md). A `.wittyplay` file beside a game, with the game's name (`Made Up Quest (USA).wittyplay`), is read when the library is scanned. Nothing is ever written into your games folders.
+
 ## If a game won't start
 
 | What it says | What to do |

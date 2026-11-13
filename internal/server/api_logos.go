@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
@@ -191,16 +192,25 @@ func (s *Server) handleLogoCandidates(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	out, err := s.logos().Candidates(r.Context(), g, r.URL.Query().Get("q"))
+	ctx := r.Context()
+	// WittyPlay's brand-logo agreement covers consoles and game studios: the logos already downloaded
+	// under it (or the app-wide one) are offered too, to use again without asking a source.
+	brand := s.Store.ConsoleLogosOn(ctx)
+	out, err := s.logos().Candidates(ctx, g, r.URL.Query().Get("q"))
 	if err != nil {
 		if errors.Is(err, library.ErrLogosNotAgreed) {
-			writeErr(w, 409, err.Error())
+			writeJSON(w, 409, map[string]any{"error": err.Error(), "brandLogos": brand, "brandKind": slices.Contains(library.BrandLogoKinds, g.Kind)})
 			return
 		}
 		writeErr(w, 502, err.Error())
 		return
 	}
-	writeJSON(w, 200, map[string]any{"candidates": out})
+	downloaded, err := s.logos().Downloaded(ctx, g.Kind, g.ID)
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	writeJSON(w, 200, map[string]any{"candidates": out, "downloaded": downloaded, "brandLogos": brand})
 }
 
 // GET /api/logos/preview?src=: a candidate's picture, fetched by the server and kept
@@ -211,7 +221,7 @@ func (s *Server) handleLogoPreview(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "not a logo address")
 		return
 	}
-	if s.Store.LogoConsent(r.Context()) != "yes" {
+	if s.Store.LogoConsent(r.Context()) != "yes" && !s.Store.ConsoleLogosOn(r.Context()) {
 		writeErr(w, 409, library.ErrLogosNotAgreed.Error())
 		return
 	}
@@ -229,6 +239,7 @@ func (s *Server) handleLogoChange(w http.ResponseWriter, r *http.Request) {
 		SourceID string `json:"sourceId"`
 		Query    string `json:"q"`
 		Status   string `json:"status"`
+		CopyFrom int64  `json:"copyFrom"` // another downloaded logo of the same kind, to use for this name too
 	}
 	if err := readJSON(r, &b); err != nil {
 		writeErr(w, 400, err.Error())
@@ -236,7 +247,9 @@ func (s *Server) handleLogoChange(w http.ResponseWriter, r *http.Request) {
 	}
 	var out *library.Logo
 	var err error
-	if b.SourceID != "" {
+	if b.CopyFrom > 0 {
+		out, err = s.logos().CopyFrom(r.Context(), g, b.CopyFrom)
+	} else if b.SourceID != "" {
 		out, err = s.logos().Pick(r.Context(), g, b.Query, b.SourceID)
 	} else {
 		out, err = s.logos().SetLogoStatus(r.Context(), g, b.Status)

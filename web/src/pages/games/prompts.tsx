@@ -10,7 +10,7 @@ import './prompts.css'
 
 type PadFamily = 'xbox' | 'playstation' | 'nintendo' | 'generic'
 type InputKind = 'pad' | 'keyboard' | 'remote' | 'pointer'
-type PromptButton = 'confirm' | 'back' | 'west' | 'north' | 'lb' | 'rb' | 'lt' | 'rt' | 'start' | 'select' | 'dpad'
+export type PromptButton = 'confirm' | 'back' | 'west' | 'north' | 'lb' | 'rb' | 'lt' | 'rt' | 'start' | 'select' | 'dpad'
 
 function familyOf(id: string): PadFamily {
   const s = id.toLowerCase()
@@ -95,7 +95,8 @@ function Round({ children, label }: { children: ReactNode; label: string }) {
   )
 }
 
-function PadGlyph({ button, family }: { button: PromptButton; family: PadFamily }) {
+// PadGlyph draws one button as the family at hand prints it (WittyPlay Online's button choice draws with it too).
+export function PadGlyph({ button, family }: { button: PromptButton; family: PadFamily }) {
   if (button === 'dpad') return <Round label="D-pad"><path fill="currentColor" d="M9.8 4h4.4v5.8H20v4.4h-5.8V20H9.8v-5.8H4V9.8h5.8z" /></Round>
   if (family === 'playstation' && ['confirm', 'back', 'west', 'north'].includes(button)) {
     const names: Record<string, string> = { confirm: 'cross', back: 'circle', west: 'square', north: 'triangle' }

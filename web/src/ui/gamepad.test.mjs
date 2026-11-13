@@ -3,7 +3,7 @@
 // node --experimental-strip-types --test web/src/ui/gamepad.test.mjs
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { isNintendo, padKeys } from './gamepad.ts'
+import { isNintendo, padKeys, setPadSwap } from './gamepad.ts'
 
 // A pad with these buttons held down and its sticks where they're given.
 const pad = (id, mapping, held = [], axes = [0, 0, 0, 0], count = 17) => ({
@@ -44,6 +44,17 @@ test('Nintendo pads swap A and B, so the right-hand button still confirms', () =
   assert.ok(!isNintendo(XBOX))
   assert.deepEqual(keys([pad(PRO, 'standard', [0])]), ['Escape'])
   assert.deepEqual(keys([pad(PRO, 'standard', [1])]), ['Enter'])
+})
+
+test('a screen that asked which buttons are held can trade them for any pad, or leave each to its id', () => {
+  setPadSwap(true)
+  assert.deepEqual(keys([pad(XBOX, 'standard', [0])]), ['Escape'])
+  assert.deepEqual(keys([pad(XBOX, 'standard', [1])]), ['Enter'])
+  setPadSwap(false)
+  assert.deepEqual(keys([pad(PRO, 'standard', [0])]), ['Enter'])
+  setPadSwap(null)
+  assert.deepEqual(keys([pad(PRO, 'standard', [0])]), ['Escape'])
+  assert.deepEqual(keys([pad(XBOX, 'standard', [0])]), ['Enter'])
 })
 
 test('the left stick moves past its dead zone, along the stronger axis', () => {

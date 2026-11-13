@@ -297,7 +297,7 @@
          "cardStyle": "game",
          "detail": true,
          "focusGrow": true,
-         "total": 3
+         "total": 6
         },
         "children": [
          {
@@ -318,8 +318,38 @@
            "kind": "game",
            "shape": "poster",
            "style": "game",
-           "subtitle": "16-bit classics \u00b7 1 to 2 players \u00b7 Played 3 hr 12 min \u00b7 Save state 3 ready",
-           "title": "Star Tide"
+           "subtitle": "16-bit classics · 1 to 2 players · Played 3 hr 12 min · Save state 3 ready",
+           "title": "Star Tide",
+           "actions": [
+            {
+             "id": "play",
+             "label": "Resume",
+             "glyph": "a",
+             "action": {
+              "type": "navigate",
+              "to": "/game/7101"
+             }
+            },
+            {
+             "id": "online",
+             "label": "Play online",
+             "glyph": "x",
+             "action": {
+              "type": "command",
+              "op": "wittyplay.room.create",
+              "item": "7101"
+             }
+            },
+            {
+             "id": "options",
+             "label": "Options",
+             "glyph": "y",
+             "action": {
+              "type": "navigate",
+              "to": "/item/7101"
+             }
+            }
+           ]
           },
           "action": {
            "type": "navigate",
@@ -353,8 +383,38 @@
            "kind": "game",
            "shape": "poster",
            "style": "game",
-           "subtitle": "8-bit classics \u00b7 1 to 2 players \u00b7 Played 48 min",
-           "title": "Pixel Orchard"
+           "subtitle": "8-bit classics · 1 to 2 players · Played 48 min",
+           "title": "Pixel Orchard",
+           "actions": [
+            {
+             "id": "play",
+             "label": "Play",
+             "glyph": "a",
+             "action": {
+              "type": "navigate",
+              "to": "/game/7102"
+             }
+            },
+            {
+             "id": "online",
+             "label": "Play online",
+             "glyph": "x",
+             "action": {
+              "type": "command",
+              "op": "wittyplay.room.create",
+              "item": "7102"
+             }
+            },
+            {
+             "id": "options",
+             "label": "Options",
+             "glyph": "y",
+             "action": {
+              "type": "navigate",
+              "to": "/item/7102"
+             }
+            }
+           ]
           },
           "action": {
            "type": "navigate",
@@ -387,8 +447,38 @@
            "kind": "game",
            "shape": "poster",
            "style": "game",
-           "subtitle": "Handheld classics \u00b7 1 player",
-           "title": "Lantern Keep"
+           "subtitle": "Handheld classics · 1 player",
+           "title": "Lantern Keep",
+           "actions": [
+            {
+             "id": "play",
+             "label": "Play",
+             "glyph": "a",
+             "action": {
+              "type": "navigate",
+              "to": "/game/7103"
+             }
+            },
+            {
+             "id": "online",
+             "label": "Play online",
+             "glyph": "x",
+             "action": {
+              "type": "command",
+              "op": "wittyplay.room.create",
+              "item": "7103"
+             }
+            },
+            {
+             "id": "options",
+             "label": "Options",
+             "glyph": "y",
+             "action": {
+              "type": "navigate",
+              "to": "/item/7103"
+             }
+            }
+           ]
           },
           "action": {
            "type": "navigate",
@@ -396,6 +486,198 @@
           },
           "focus": {
            "order": 8,
+           "group": "recent-row"
+          },
+          "scope": "wittyplay",
+          "tokens": {
+           "accent": "#7F46B8"
+          }
+         },
+         {
+          "type": "Card",
+          "id": "recent-row:7104",
+          "props": {
+           "badges": [
+            "First era"
+           ],
+           "image": {
+            "aspect": "3/4",
+            "height": 427,
+            "kind": "poster",
+            "url": "/api/items/7104/poster?w=320",
+            "width": 320
+           },
+           "itemId": "7104",
+           "kind": "game",
+           "shape": "poster",
+           "style": "game",
+           "subtitle": "First-era classics · 1 to 2 players",
+           "title": "Moth Racer",
+           "actions": [
+            {
+             "id": "play",
+             "label": "Play",
+             "glyph": "a",
+             "action": {
+              "type": "navigate",
+              "to": "/game/7104"
+             }
+            },
+            {
+             "id": "online",
+             "label": "Play online",
+             "glyph": "x",
+             "action": {
+              "type": "command",
+              "op": "wittyplay.room.create",
+              "item": "7104"
+             }
+            },
+            {
+             "id": "options",
+             "label": "Options",
+             "glyph": "y",
+             "action": {
+              "type": "navigate",
+              "to": "/item/7104"
+             }
+            }
+           ]
+          },
+          "action": {
+           "type": "navigate",
+           "to": "/game/7104"
+          },
+          "focus": {
+           "order": 9,
+           "group": "recent-row"
+          },
+          "scope": "wittyplay",
+          "tokens": {
+           "accent": "#7F46B8"
+          }
+         },
+         {
+          "type": "Card",
+          "id": "recent-row:7105",
+          "props": {
+           "badges": [
+            "Disc era"
+           ],
+           "image": {
+            "aspect": "3/4",
+            "height": 427,
+            "kind": "poster",
+            "url": "/api/items/7105/poster?w=320",
+            "width": 320
+           },
+           "itemId": "7105",
+           "kind": "game",
+           "shape": "poster",
+           "style": "game",
+           "subtitle": "Disc-era classics · 1 to 4 players",
+           "title": "Tin Roof Tennis",
+           "actions": [
+            {
+             "id": "play",
+             "label": "Play",
+             "glyph": "a",
+             "action": {
+              "type": "navigate",
+              "to": "/game/7105"
+             }
+            },
+            {
+             "id": "online",
+             "label": "Play online",
+             "glyph": "x",
+             "action": {
+              "type": "command",
+              "op": "wittyplay.room.create",
+              "item": "7105"
+             }
+            },
+            {
+             "id": "options",
+             "label": "Options",
+             "glyph": "y",
+             "action": {
+              "type": "navigate",
+              "to": "/item/7105"
+             }
+            }
+           ]
+          },
+          "action": {
+           "type": "navigate",
+           "to": "/game/7105"
+          },
+          "focus": {
+           "order": 10,
+           "group": "recent-row"
+          },
+          "scope": "wittyplay",
+          "tokens": {
+           "accent": "#7F46B8"
+          }
+         },
+         {
+          "type": "Card",
+          "id": "recent-row:7106",
+          "props": {
+           "badges": [
+            "3D era"
+           ],
+           "image": {
+            "aspect": "3/4",
+            "height": 427,
+            "kind": "poster",
+            "url": "/api/items/7106/poster?w=320",
+            "width": 320
+           },
+           "itemId": "7106",
+           "kind": "game",
+           "shape": "poster",
+           "style": "game",
+           "subtitle": "3D-era classics · 1 to 4 players",
+           "title": "Salt Road Kart",
+           "actions": [
+            {
+             "id": "play",
+             "label": "Play",
+             "glyph": "a",
+             "action": {
+              "type": "navigate",
+              "to": "/game/7106"
+             }
+            },
+            {
+             "id": "online",
+             "label": "Play online",
+             "glyph": "x",
+             "action": {
+              "type": "command",
+              "op": "wittyplay.room.create",
+              "item": "7106"
+             }
+            },
+            {
+             "id": "options",
+             "label": "Options",
+             "glyph": "y",
+             "action": {
+              "type": "navigate",
+              "to": "/item/7106"
+             }
+            }
+           ]
+          },
+          "action": {
+           "type": "navigate",
+           "to": "/game/7106"
+          },
+          "focus": {
+           "order": 11,
            "group": "recent-row"
           },
           "scope": "wittyplay",

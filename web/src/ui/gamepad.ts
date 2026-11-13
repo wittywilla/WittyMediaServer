@@ -42,6 +42,11 @@ export type PadContext = 'ui' | 'player'
 // some systems, "57e-2009-" with a name such as "Wireless Gamepad").
 export const isNintendo = (id: string) => /nintendo|pro controller|joy-?con|vendor: 057e|^0?57e-/i.test(id)
 
+// Whether the bottom and right face buttons trade places (the right-hand one confirms, as on a Nintendo pad), set by a screen
+// that asked the person which buttons they hold (WittyPlay Online), or null to tell by the pad's own id.
+let padSwap: boolean | null = null
+export function setPadSwap(v: boolean | null) { padSwap = v }
+
 // Pads a browser has no layout for but that are known all the same: for each of their buttons, its
 // place in the standard layout (-1 for none). Two Joy-Cons that Linux's joycond puts together as one
 // pad come to Chromium like this, with the D-pad after everything else.
@@ -72,7 +77,7 @@ export function padKeys(pads: readonly (Pad | null)[], o: PadOptions): Set<strin
   const down = new Set<string>()
   for (const p of pads) {
     if (!p) continue
-    const swap = isNintendo(p.id)
+    const swap = padSwap ?? isNintendo(p.id)
     const known = knownLayout(p, o)
     const standard = standardLayout(p, o) || !!known
     if (standard) {

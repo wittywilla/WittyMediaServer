@@ -28,6 +28,7 @@ import { plan } from '../routes'
 import type { Action, Node, Props } from '../types'
 import { px, usePage } from './context'
 import { kindIcon, sduiIcon } from './icons'
+import { useGlyph } from './glyphs'
 import { chooseEpisodeView, useEpisodeView } from '../extras/episodeView'
 import { ControlView, FormView } from './forms'
 import { controlOf } from '../formsModel'
@@ -101,6 +102,12 @@ function Pressable({ view, className, children, label, style, first, title }: { 
 
 const list0 = (v: unknown) => (Array.isArray(v) && typeof v[0] === 'string' ? v[0] as string : '')
 
+// A card's badges as sent, each whole ("3D era" is one badge, not two); the joined text when the props have none.
+const badgesOf = (p: Record<string, unknown>, joined?: string) => {
+  const sent = Array.isArray(p.badges) ? p.badges.filter((b): b is string => typeof b === 'string' && b !== '') : []
+  return sent.length ? sent : (joined || '').split(' ').filter(Boolean)
+}
+
 const SHAPE_CLASS: Record<string, string> = { poster: '', landscape: ' wide', square: ' square', circle: ' square sdui-round', chip: '' }
 
 export const CardView = memo(function CardView({ view, showTitles }: { view: View; showTitles: boolean }) {
@@ -142,7 +149,7 @@ export const CardView = memo(function CardView({ view, showTitles }: { view: Vie
       {text.rank && <span className="sdui-rank" aria-hidden="true">{text.rank}</span>}
       <div className="poster">
         <Picture image={obj(p, 'image')} kind={p.kind} icon={p.icon} contain={channel || str(obj(p, 'image'), 'kind') === 'logo'} title={channel ? undefined : text.title || str(p, 'title') || undefined} />
-        {shows.includes('badges') && <span className="sdui-badges">{(text.badges || '').split(' ').map((b) => <span key={b} className="badge">{b}</span>)}</span>}
+        {shows.includes('badges') && <span className="sdui-badges">{badgesOf(p, text.badges).map((b) => <span key={b} className="badge" data-badge={b.toLowerCase()}>{b}</span>)}</span>}
         {shows.includes('unwatched') && <span className="badge count" aria-hidden="true">{text.unwatched}</span>}
         {shows.includes('watched') && <span className="badge seen" aria-hidden="true"><IconCheck /></span>}
         {str(p, 'playId') && <div className="play"><span><IconPlay /></span></div>}
@@ -317,7 +324,10 @@ function ItemActions({ view }: { view: View }) {
 function ShelfDetail({ view, parent }: { view: View; parent: View }) {
   const text = view.text || {}
   // An item with no actions of its own is opened by the card's action: shown as A.
-  const own = buttonsOf(view.node.props)
+  // With none marked primary, the A button is (Resume, Play): what the accent says "do this next" of.
+  const sent = buttonsOf(view.node.props)
+  const lead = sent.some((b) => b.primary) ? -1 : Math.max(0, sent.findIndex((b) => b.glyph === 'a'))
+  const own = sent.map((b, i) => (i === lead ? { ...b, primary: true } : b))
   const buttons: ButtonSpec[] = own.length ? own : view.node.action ? [{ id: 'open', label: 'Open', glyph: 'a', primary: true, action: view.node.action }] : []
   return (
     <div className="sdui-detail" aria-live="polite" data-for={view.id}>
@@ -397,12 +407,14 @@ function QrView({ view }: { view: View }) {
 
 function ActionButtons({ buttons, view, className }: { buttons: ButtonSpec[]; view: View; className?: string }) {
   const page = usePage()
+  const drawGlyph = useGlyph()
   return (
     <div className={className || 'actions'}>
       {buttons.map((b) => {
         const step = plan(b.action, { externalLinks: page.layout.externalLinks })
         const cls = 'btn' + (b.primary ? ' primary' : '')
-        const body = <>{b.glyph ? <i className={'sdui-glyph g-' + b.glyph} aria-hidden="true">{b.glyph.toUpperCase()}</i> : sduiIcon(b.icon)} {b.label}</>
+        const glyph = b.glyph && (drawGlyph ? <i className={'sdui-glyph drawn g-' + b.glyph} aria-hidden="true">{drawGlyph(b.glyph)}</i> : <i className={'sdui-glyph g-' + b.glyph} aria-hidden="true">{b.glyph.toUpperCase()}</i>)
+        const body = <>{glyph || sduiIcon(b.icon)} {b.label}</>
         if (step.do === 'nothing') return null
         if (step.do === 'go' && !page.inert) return <Link key={b.id} className={cls} to={step.to} data-tv-first={b.primary || undefined}>{body}</Link>
         return <button key={b.id} type="button" className={cls} data-tv-first={b.primary || undefined} onClick={() => !page.inert && page.act(b.action, view)}>{body}</button>

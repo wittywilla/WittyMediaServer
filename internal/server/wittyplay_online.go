@@ -415,10 +415,67 @@ func (rv *sduiResolver) playRecent(req sdui.SourceRequest) ([]sdui.Item, error) 
 			line = append(line, w)
 			it.RuntimeSec = played
 		}
-		if slot := latestOwnSave(listSaves(rv.s.games().saveDir(rv.u.ID, li.ID))); slot > 0 {
+		slot := latestOwnSave(listSaves(rv.s.games().saveDir(rv.u.ID, li.ID)))
+		if slot > 0 {
 			line = append(line, fmt.Sprintf("Save state %d ready", slot))
 		}
 		it.Subtitle = strings.Join(line, " · ")
+		it.Actions = gameActions(li.ID, slot > 0)
+		out = append(out, it)
+	}
+	// Nothing played yet: the home row is never empty while there are games. It shows the
+	// classics, by title, in the same large tiles, so the first game is one press away.
+	if len(out) == 0 && req.Offset == 0 {
+		return rv.playClassicsRow()
+	}
+	return out, nil
+}
+
+// gameActions are a game's buttons in the home row's detail panel: A plays it (Resume when it has
+// a save state), Y opens its page.
+func gameActions(id int64, saved bool) []sdui.ItemAction {
+	sid := strconv.FormatInt(id, 10)
+	play := "Play"
+	if saved {
+		play = "Resume"
+	}
+	return []sdui.ItemAction{
+		{ID: "play", Label: play, Glyph: "a", Action: &sdui.Action{Type: sdui.ActNavigate, To: "/game/" + sid}},
+		{ID: "details", Label: "Details", Glyph: "y", Action: &sdui.Action{Type: sdui.ActNavigate, To: "/item/" + sid}},
+	}
+}
+
+// playClassicsRow is every game this profile may see, by era then title, each with its era's badge,
+// who may play and its buttons: what the home row shows before anything was played.
+func (rv *sduiResolver) playClassicsRow() ([]sdui.Item, error) {
+	games, err := rv.visibleGames()
+	if err != nil {
+		return nil, err
+	}
+	rank := map[string]int{}
+	for i, e := range eraOrder {
+		rank[e] = i + 1
+	}
+	sort.SliceStable(games, func(i, j int) bool {
+		a, b := rank[consoleEra(games[i].Console)], rank[consoleEra(games[j].Console)]
+		if a != b {
+			return a != 0 && (b == 0 || a < b)
+		}
+		return strings.ToLower(games[i].Title) < strings.ToLower(games[j].Title)
+	})
+	out := make([]sdui.Item, 0, len(games))
+	for _, g := range games {
+		it := rv.item(g)
+		line := []string{}
+		if l, ok := eraLabels[consoleEra(g.Console)]; ok {
+			it.Badges = []string{l.badge}
+			line = append(line, l.title)
+		}
+		if ports := consoleTraitsTable[g.Console].Caps.Input.Ports; ports > 0 {
+			line = append(line, playersWords(ports))
+		}
+		it.Subtitle = strings.Join(line, " · ")
+		it.Actions = gameActions(g.ID, false)
 		out = append(out, it)
 	}
 	return out, nil

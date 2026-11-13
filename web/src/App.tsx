@@ -17,7 +17,7 @@ import ConnectServer from './components/ConnectServer'
 import Unreachable from './components/Unreachable'
 import AuthPage from './pages/AuthPage'
 import { usePageRegions } from './sdui/regions'
-import { StatusBar, SystemDock } from './shell/PlayChrome'
+import { isPlayPath, PlayFrame, StatusBar, SystemDock } from './shell/PlayChrome'
 import { PlayerDock } from './player/PlayerPage'
 import { Announcer, useDialogs } from './a11y'
 import LegalNote, { legalAckText } from './components/LegalNote'
@@ -135,15 +135,17 @@ function Shell() {
   const isGame = loc.pathname.startsWith('/game/')
   const isCouchMode = loc.pathname === '/big' || loc.pathname.startsWith('/big/')
   const isStream = /^\/couch\/\d+\/play\//.test(loc.pathname) || loc.pathname.startsWith('/couch-rig/')
+  // WittyPlay Online takes over the window, over the app's frame and in its own palette (shell/PlayChrome.tsx), in TV mode too.
+  const isWPlay = isPlayPath(loc.pathname)
   return (
     <AudioProvider>
-      {!isTvPlayer && !isReader && !isStream && !isGame && !isPlayer && <Scene />}
+      {!isTvPlayer && !isReader && !isStream && !isGame && !isPlayer && !isWPlay && <Scene />}
       {isTvPlayer ? <Suspense fallback={tvFallback}><Routes><Route path="/tv/watch/:key" element={<TvPlayer />} /></Routes></Suspense>
         : isReader ? <Suspense fallback={<Spinner />}><Routes><Route path="/read/:id" element={<ReaderPage />} /></Routes></Suspense>
         : isCouchMode ? <Suspense fallback={<Spinner />}><Routes><Route path="/big/*" element={<CouchMode />} /></Routes></Suspense>
         : isGame ? <Suspense fallback={<Spinner />}><Routes><Route path="/game/:id" element={<GamePage />} /></Routes></Suspense>
         : isStream ? <Suspense fallback={<Spinner />}><Routes><Route path="/couch/:id/play/:app" element={<CouchPlayPage />} /><Route path="/couch-rig/:id" element={<RigPlayPage />} /></Routes></Suspense>
-        : isPlayer ? null : tvMode ? <Suspense fallback={<Spinner />}><TvFrame pages={<PageRoutes />} /></Suspense> : <AppFrame />}
+        : isPlayer ? null : isWPlay ? <PlayFrame><Suspense fallback={<RouteSkeleton />}><PageRoutes /></Suspense></PlayFrame> : tvMode ? <Suspense fallback={<Spinner />}><TvFrame pages={<PageRoutes />} /></Suspense> : <AppFrame />}
       <PlayerDock />
       <RemoteHost />
       {isTv && <Suspense fallback={null}><TvHost /></Suspense>}

@@ -102,8 +102,12 @@ function applyLook(look: ResolvedTheme['look']) {
 }
 // A look being tried, as first run offers them: only its finish, type and density, on top of what is showing.
 export function trialLook(look: ResolvedTheme['look']) { applyLook(look) }
+// WittyPlay Online takes over the screen with its own palette (shell/PlayChrome.tsx): while it shows, no look is worn (no
+// finish, type set, shape or scene on <html>), and putting it away puts the look back as it was.
+let playMode = false
+export function setPlayMode(on: boolean) { if (on !== playMode) { playMode = on; applyOverrides() } }
 function applyOverrides() {
-  applyLook(resolved?.look)
+  applyLook(playMode ? undefined : resolved?.look)
   const root = document.documentElement.style
   for (const p of overrideProps) root.removeProperty(p)
   overrideProps = []

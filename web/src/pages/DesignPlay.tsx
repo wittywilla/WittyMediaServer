@@ -2,7 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 // WittyPlay Online's page drawn from the conformance fixture (pkg/sdui/conformance/fixtures/wittyplay-online-tv.json), with the new
 // pieces switched on (Shelf focusGrow and detail, item actions with keys): what the renderer does with them before a server sends
-// them. For administrators, like /design.
+// them. For administrators, like /design. It shows in WittyPlay's own frame (shell/PlayChrome.tsx), which brings the page's main.
 import { useMemo } from 'react'
 import { describe, type DeviceFacts } from '../sdui/device'
 import { PageView } from '../sdui/SduiPage'
@@ -19,9 +19,9 @@ export default function DesignPlay() {
   const form = q.get('screen') === 'privacy'
   const device = useMemo(() => describe(facts(!form)), [form])
   return (
-    <main id="main" tabIndex={-1} className="design-play" style={{ padding: 'var(--sp-5)' }}>
+    <div className="design-play">
       <h1 className="sr-only">WittyPlay Online</h1>
       <PageView doc={(form ? privacy : fixture) as unknown as Document} device={device} handlers={{ act: () => {}, more: () => {}, busy: () => false, failed: () => false, setQuery: () => {}, menu: () => {} }} />
-    </main>
+    </div>
   )
 }

@@ -252,6 +252,7 @@ export function PageRoutes() {
       <Route path="/books" element={<SduiRoute fallback={<NotFound />} />} />
       <Route path="/games" element={<SduiRoute fallback={<NotFound />} />} />
       <Route path="/page/:id" element={<SduiRoute fallback={<NotFound />} />} />
+      <Route path="/manage/*" element={<SduiRoute fallback={<NotFound />} />} />
       <Route path="/tv/recordings" element={<Suspense fallback={tvFallback}><RecordingsPage /></Suspense>} />
       <Route path="/tv/channels/*" element={<Suspense fallback={tvFallback}><ChannelsPage /></Suspense>} />
       <Route path="/tv/sets/*" element={<Suspense fallback={tvFallback}><SetsPage /></Suspense>} />

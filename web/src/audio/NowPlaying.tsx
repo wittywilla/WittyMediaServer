@@ -250,8 +250,9 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
       style={{ '--art': rgb } as React.CSSProperties} onClickCapture={(e) => { if (e.detail > 0) requestAnimationFrame(() => { if (!document.activeElement?.closest('input, select, textarea, .mp-pop-body, .np-panel')) root.current?.focus({ preventScroll: true }) }) }}>
       <div className="np-glow" aria-hidden="true" />
       {canSing && prefs.canvas && !prefs.viz && <NowPlayingCanvas itemId={it.id} playing={p.playing} />}
-      {/* One canvas: it goes to the whole-screen view while that's open, and comes back after. */}
-      {prefsLoaded && prefs.viz && !wholeShader && (isNative(style) || p.vizHere) && <NpBackground style={style} slow={prefs.slow} rgb={rgb} playing={p.playing} media={p.media} trackMedia={trackMedia} onDecline={() => { setShown(''); setPrefs({ style: 'bars' }) }} />}
+      {/* One canvas: it goes to the whole-screen view or to karaoke while that's open, and comes back after
+          (two at once shared one effect session, and closing karaoke ended it for the player too). */}
+      {prefsLoaded && prefs.viz && !wholeShader && !karaoke && (isNative(style) || p.vizHere) && <NpBackground style={style} slow={prefs.slow} rgb={rgb} playing={p.playing} media={p.media} trackMedia={trackMedia} onDecline={() => { setShown(''); setPrefs({ style: 'bars' }) }} />}
       {wholeShader && <VisualizerView media={trackMedia} place="full" onPlace={(pl) => { if (pl !== 'full') leaveWhole() }} onClose={leaveWhole} />}
 
       <header className="np-top">

@@ -89,7 +89,7 @@ html[data-wplay] body { font-family: var(--font); }
     linear-gradient(165deg, #1e2056 0%, #181b4b 48%, #13214a 100%);
   background-color: #13163f;
 }
-.wplay-stage { flex: 1; min-block-size: 0; padding: 0 var(--wp-gutter) calc(var(--wp-dock) * 1.25 + 80px); outline: none; }
+.wplay-stage { flex: 1 0 auto; min-block-size: 0; padding: 0 var(--wp-gutter) calc(var(--wp-dock) * 1.25 + 80px); outline: none; }
 .wplay-stage:focus-visible { outline: none; }
 
 /* ---- the status bar: who, then the server's name, the controllers, the time and the way out ---- */

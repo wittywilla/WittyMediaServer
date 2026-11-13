@@ -57,7 +57,7 @@ function LookPreview({ card, device }: { card: Card; device: Device }) {
   const style = { ['--lp-bg' as string]: pv?.bg, ['--lp-surface' as string]: pv?.surface, ['--lp-accent' as string]: pv?.accent }
   const where = kind === 'side' ? 'at the side' : kind === 'bottom' ? 'at the bottom' : kind === 'none' ? 'part of Home' : 'along the top'
   return (
-    <div className={'lp lp-' + device + ' nav-' + kind + ' home-' + spec.home} style={style} role="img" aria-label={`${card.name} on a ${device}: the menu is ${where}`}>
+    <div className={'lp lp-' + device + ' nav-' + kind + ' home-' + spec.home} style={style} role="img" aria-label={`${card.name} ${device === "headset" ? "in VR" : "on a " + device}: the menu is ${where}`}>
       {kind !== 'none' && <div className="lp-nav"><span className="lp-brand"><Brand name="" /></span><i className="on" /><i /><i /><i /></div>}
       <div className="lp-page"><LookHome home={spec.home} cards={spec.cards} /></div>
     </div>
@@ -127,7 +127,7 @@ export function Look({ info, next, back }: StepProps) {
         <div className="su-look">
           <ChoiceCards label="Look" value={pick} onChange={choose} small cards={cards.map((c) => ({ value: c.id, title: c.name, text: c.tagline, pic: swatch(c, device) }))} />
           <div className="su-look-view">
-            <Segmented<Device> label="Preview on" value={device} onChange={setDevice} options={[{ value: 'tv', label: 'TV' }, { value: 'desktop', label: 'Desktop' }, { value: 'phone', label: 'Phone' }, { value: 'headset', label: 'Headset' }]} />
+            <Segmented<Device> label="Preview on" value={device} onChange={setDevice} options={[{ value: 'tv', label: 'TV' }, { value: 'desktop', label: 'Desktop' }, { value: 'phone', label: 'Phone' }, { value: 'headset', label: 'VR' }]} />
             {cards.find((c) => c.id === pick) && <LookPreview card={cards.find((c) => c.id === pick)!} device={device} />}
             {cards.find((c) => c.id === pick) && <p className="su-tv-note"><b>{cards.find((c) => c.id === pick)!.name}</b>{cards.find((c) => c.id === pick)!.tagline ? ` · ${cards.find((c) => c.id === pick)!.tagline}.` : '.'} You can change it, or rearrange any page, later in Settings, Appearance.</p>}
           </div>

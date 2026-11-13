@@ -13,7 +13,7 @@ export const DEVICES = [
   { id: 'desktop', label: 'Desktop' },
   { id: 'tablet', label: 'Tablet' },
   { id: 'phone', label: 'Phone' },
-  { id: 'headset', label: 'Headset' },
+  { id: 'headset', label: 'VR' },
 ] as const
 export type DeviceId = typeof DEVICES[number]['id']
 

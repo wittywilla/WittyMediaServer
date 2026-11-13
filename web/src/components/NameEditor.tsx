@@ -2,7 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { announce } from '../a11y'
-import { nameWords, PRESETS, FIXED_SWATCHES, GRADIENT_SWATCHES, THEME_SWATCHES, cssVarOf, fixed, gradient, isHex, markShown, nameLength, nameWarnings, partsFromCells, presetLabel, sameColor, spanCount, MAX_SPANS, type BrandColor, type Mark, type MarkKind } from '../brandStyle.ts'
+import { nameWords, PRESETS, FIXED_SWATCHES, GRADIENT_SWATCHES, ACCENT, cssVarOf, fixed, gradient, isHex, markShown, nameLength, nameWarnings, partsFromCells, presetLabel, sameColor, spanCount, MAX_SPANS, type BrandColor, type Mark, type MarkKind } from '../brandStyle.ts'
 import { DEFAULT_NAME } from '../brandName'
 import { Button, Input, Segmented } from '../ui'
 import { Brand, markStyle } from './common'
@@ -109,7 +109,6 @@ export function NameEditor({ draft, onChange, logoUrl, onLogoError, onCheck }: {
     <button key={label} type="button" className={'ne-sw' + (current && sameColor(current, c) ? ' on' : '')} aria-pressed={!!current && sameColor(current, c)} aria-label={label} title={label}
       style={{ background: bg, ['--sw' as string]: bg } as CSSProperties} onClick={() => paint(c, `${label} for ${sel.length === 1 ? letters[sel[0]] : sel.length + ' letters'}`)} />
   )
-  const swBg = (c: BrandColor) => (c.kind === 'fg' ? 'var(--fg)' : c.kind === 'accent' ? 'var(--brand-accent)' : `var(${cssVarOf(c.token || 'ok')})`)
   const [gradStops, setGradStops] = useState<string[]>(GRADIENT_SWATCHES[0].stops || [])
   const [angle, setAngle] = useState(90)
   const gradCss = (st: string[], a: number) => `linear-gradient(${a}deg, ${st.join(', ')})`
@@ -135,8 +134,10 @@ export function NameEditor({ draft, onChange, logoUrl, onLogoError, onCheck }: {
         <div className="ne-hint" id="ne-letters-help">Arrows move, Shift and the arrows select a range, Space selects the letter. {words.length > 1 && <>Words: {words.map(([a, b], k) => <span key={a}>{k > 0 && ' · '}<button type="button" className="ne-word" onClick={() => selectWord([a, b])}>{letters.slice(a, b).join('')}</button></span>)}.</>}</div>
 
         <div className="ne-lab">Colour for the selection</div>
-        <div className="ne-sub">Follows the theme (changes with the theme)</div>
-        <div className="ne-row" role="group" aria-label="Colours that follow the theme">{THEME_SWATCHES.map((t) => swatch(t.color, t.label, swBg(t.color)))}</div>
+        <div className="ne-sub">Theme colour (changes with the theme)</div>
+        <div className="ne-row">{(() => { const on = !!current && sameColor(current, ACCENT); return (
+          <button type="button" className={'ne-theme' + (on ? ' on' : '')} aria-pressed={on} onClick={() => paint(ACCENT, `Theme colour for ${sel.length === 1 ? letters[sel[0]] : sel.length + ' letters'}`)}>
+            <span className="ne-theme-dot" aria-hidden="true" />Follow the theme</button>) })()}</div>
         <div className="ne-sub">Fixed colour (stays the same in every theme)</div>
         <div className="ne-row" role="group" aria-label="Fixed colours">
           {FIXED_SWATCHES.map((h) => swatch(fixed(h), h.toUpperCase(), h))}

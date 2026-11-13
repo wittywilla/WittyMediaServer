@@ -36,6 +36,8 @@ import { Markdown } from './markdown'
 import { WidgetGridView } from './widgets'
 import { GameBio } from './GameBio'
 import { CardRouteContext } from './cardRoute'
+import { gameTitleLabel, gameTitleParts, titleLang, type GameTitles } from '../../pages/games/titles'
+import { useGameTitlePref } from '../../pages/games/useGameTitles'
 
 const NativeViewHost = lazy(() => import('./NativeViewHost'))
 const DetailExtras = lazy(() => import('../extras/DetailExtras'))
@@ -119,6 +121,9 @@ export const CardView = memo(function CardView({ view, showTitles }: { view: Vie
   const style = str(p, 'style'), shape = str(p, 'shape') || 'poster'
   const shows = view.shows || []
   const text = view.text || {}
+  // A game's name as the profile prefers it (/me/ui gameTitles), when the card carries the game's other names.
+  const [titlePref] = useGameTitlePref()
+  const gameName = p.kind === 'game' && p.titles && text.title ? gameTitleParts({ title: text.title, titles: obj(p, 'titles') as GameTitles }, titlePref) : null
   if (shape === 'chip') {
     return <Pressable view={view} className="chip sdui-chip">{p.icon ? sduiIcon(p.icon) : null}<span>{text.title}</span></Pressable>
   }
@@ -148,10 +153,10 @@ export const CardView = memo(function CardView({ view, showTitles }: { view: Vie
   const channel = style === 'channel'
   const now = obj(p, 'now')
   return (
-    <Pressable view={view} className={'card' + (SHAPE_CLASS[shape] ?? '') + (style === 'game' ? ' sdui-game' : '') + (channel ? ' sdui-channel' : '') + (style === 'plate' || style === 'block' || style === 'logo' ? ' sdui-' + style : '')} title={str(p, 'title') || undefined}>
+    <Pressable view={view} className={'card' + (SHAPE_CLASS[shape] ?? '') + (style === 'game' ? ' sdui-game' : '') + (channel ? ' sdui-channel' : '') + (style === 'plate' || style === 'block' || style === 'logo' ? ' sdui-' + style : '')} title={(gameName ? gameTitleLabel({ title: text.title, titles: obj(p, 'titles') as GameTitles }, titlePref) : str(p, 'title')) || undefined}>
       {text.rank && <span className="sdui-rank" aria-hidden="true">{text.rank}</span>}
       <div className="poster">
-        <Picture image={obj(p, 'image')} kind={p.kind} icon={p.icon} contain={channel || str(obj(p, 'image'), 'kind') === 'logo'} title={channel ? undefined : text.title || str(p, 'title') || undefined} />
+        <Picture image={obj(p, 'image')} kind={p.kind} icon={p.icon} contain={channel || str(obj(p, 'image'), 'kind') === 'logo'} title={channel ? undefined : gameName?.main || text.title || str(p, 'title') || undefined} />
         {shows.includes('badges') && <span className="sdui-badges">{badgesOf(p, text.badges).map((b) => <span key={b} className="badge" data-badge={b.toLowerCase()}>{b}</span>)}</span>}
         {shows.includes('unwatched') && <span className="badge count" aria-hidden="true">{text.unwatched}</span>}
         {shows.includes('watched') && <span className="badge seen" aria-hidden="true"><IconCheck /></span>}
@@ -167,7 +172,8 @@ export const CardView = memo(function CardView({ view, showTitles }: { view: Vie
         </>
       ) : (
         <>
-          {text.title && <div className={'title' + (view.lines?.title && view.lines.title > 1 ? ' sdui-clamp' : '')} style={view.lines?.title && view.lines.title > 1 ? clamp(view.lines.title) : undefined}>{text.title}</div>}
+          {text.title && <div className={'title' + (view.lines?.title && view.lines.title > 1 ? ' sdui-clamp' : '')} style={view.lines?.title && view.lines.title > 1 ? clamp(view.lines.title) : undefined} lang={gameName ? titleLang(gameName.main) : undefined}>{gameName ? gameName.main : text.title}</div>}
+          {gameName?.sub && <div className="sub game-title-sub" lang={titleLang(gameName.sub)}>{gameName.sub}</div>}
           {(text.subtitle || text.remaining) && <div className="sub">{[text.subtitle, text.remaining].filter(Boolean).join(' · ')}</div>}
           {text.synopsis && <div className="sub sdui-synopsis sdui-clamp" style={clamp(view.lines?.synopsis)}>{text.synopsis}</div>}
         </>

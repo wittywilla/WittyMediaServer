@@ -9,6 +9,9 @@ import { PadGlyph, type PromptButton } from '../pages/games/prompts'
 import type { GlyphKey } from '../sdui/render/glyphs'
 import { setPadSwap } from '../ui/gamepad'
 import { useUserPref } from '../ui/userPrefs'
+import { GameTitleSample } from '../pages/games/GameName'
+import { GAME_TITLE_CHOICES, type GameTitlePref } from '../pages/games/titles'
+import { useGameTitlePref } from '../pages/games/useGameTitles'
 import { moveTab, PLAY_TABS, PLAY_TABS_KEY, tabsPref, type PlayTabsPref, isPlayPads, layoutOf, padsFor, PLAY_KEYS, PLAY_LAYOUT_KEY, PLAY_LAYOUTS, PLAY_PADS, PLAY_PADS_KEY, swapFor, type PlayLayout, type PlayPads, openOf, PLAY_OPEN_KEY, PLAY_OPENS, type PlayOpen } from './playPaths'
 
 // By position: A at the bottom, B on the right, X on the left, Y at the top. Nintendo's letters for those places are the pad's own.
@@ -126,15 +129,30 @@ export function OpenChooser({ value, onChange, labelledBy }: { value: PlayOpen; 
   )
 }
 
+// How games are named (/me/ui gameTitles): each choice with one game's name as it would show. Also fit for a first-launch step.
+export function GameTitlesChooser({ value, onChange, labelledBy }: { value: GameTitlePref; onChange: (p: GameTitlePref) => void; labelledBy: string }) {
+  return (
+    <div className="wplay-pads" role="radiogroup" aria-labelledby={labelledBy} data-nav-group>
+      {GAME_TITLE_CHOICES.map((o) => (
+        <button key={o.id} type="button" role="radio" aria-checked={o.id === value} className={'wplay-pad' + (o.id === value ? ' on' : '')} onClick={() => onChange(o.id)}>
+          <span className="wplay-pad-text"><b>{o.label}</b><GameTitleSample pref={o.id} /></span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
 // WittyPlay Settings' page for these choices.
 export function LookSetting() {
   const [pads, , setPads] = usePlayPads()
   const [layout, setLayout] = usePlayLayout()
   const [open, setOpen] = usePlayOpen()
-  const a = useId(), b = useId(), c = useId()
+  const [titles, setTitles] = useGameTitlePref()
+  const a = useId(), b = useId(), c = useId(), d = useId()
   return (
     <div className="wplay-look-setting">
       <section className="wplay-pads-setting"><h2 id={c}>When you choose a game</h2><OpenChooser value={open} onChange={setOpen} labelledBy={c} /></section>
+      <section className="wplay-pads-setting"><h2 id={d}>Game titles</h2><GameTitlesChooser value={titles} onChange={setTitles} labelledBy={d} /></section>
       <section className="wplay-pads-setting"><h2 id={a}>Layout</h2><LayoutChooser value={layout} onChange={setLayout} labelledBy={a} /></section>
       <TabsSetting />
       <section className="wplay-pads-setting"><h2 id={b}>Buttons shown in WittyPlay</h2><PadsChooser value={pads} onChange={setPads} labelledBy={b} /></section>

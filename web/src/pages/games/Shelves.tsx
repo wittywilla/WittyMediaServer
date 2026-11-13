@@ -8,6 +8,9 @@ import { useApp } from '../../state'
 import { Chip } from '../../ui'
 import { IconGamepad, IconInfo, IconPlay, IconRight, IconSettings, IconStar, IconTune } from '../../icons'
 import { cardCover, crispIfSmall, fmtAgo, fmtPlayed, saveThumb, useGameLinks, type GameContinue } from './data'
+import { GameName, useGameName } from './GameName'
+import { gameTitle, gameTitleLabel, titleLang } from './titles'
+import { useGameTitlePref } from './useGameTitles'
 import './shelves.css'
 
 // Shelves: the games home (WittyMediaClient's docs/WITTYPLAY-EXPERIENCE.md, the contract every
@@ -152,15 +155,17 @@ const caseOf = (c?: GameConsole): GameShelfShape => c?.shelf?.case || (c?.media 
 const cartOf = (c?: GameConsole): GameShelfShape => c?.shelf?.cart || (c?.media === 'disc' ? { kind: 'disc', aspect: 1, height: 0.66 } : { kind: 'cart', aspect: 0.88, height: 0.85 })
 
 function Cover({ it, c }: { it: Item; c?: GameConsole }) {
-  return it.poster ? <img src={cardCover(it)} alt="" decoding="async" loading="lazy" onLoad={crispIfSmall} /> : <Placeholder title={it.title} label={c?.short} />
+  const { name } = useGameName(it)
+  return it.poster ? <img src={cardCover(it)} alt="" decoding="async" loading="lazy" onLoad={crispIfSmall} /> : <Placeholder title={name} label={c?.short} />
 }
 
 // A game in its case, cover showing.
 function GameCase({ it, c, ribbon, fav, shelf, pulled, onPull }: { it: Item; c?: GameConsole; ribbon: boolean; fav: boolean; shelf: string } & PullProps) {
   const key = `${shelf}:${it.id}`, on = pulled === key, sh = caseOf(c)
+  const { label } = useGameName(it)
   return (
     <button type="button" className={`gm-case kind-${sh.kind}${on ? ' pulled' : ''}`} data-gm-item={it.id} style={{ '--aspect': sh.aspect, '--h': sh.height } as CSSProperties}
-      aria-label={`${it.title}${c ? ', ' + c.short : ''}${stateSpoken(c)}${ribbon ? ', in progress' : ''}${fav ? ', a favourite' : ''}${on ? ', chosen' : ''}`} aria-expanded={on}
+      aria-label={`${label}${c ? ', ' + c.short : ''}${stateSpoken(c)}${ribbon ? ', in progress' : ''}${fav ? ', a favourite' : ''}${on ? ', chosen' : ''}`} aria-expanded={on}
       onClick={() => onPull(on ? null : key)}>
       <span className="gm-case-art"><Cover it={it} c={c} /></span>
       {ribbon && <i className="gm-ribbon" aria-hidden="true" />}
@@ -172,9 +177,10 @@ function GameCase({ it, c, ribbon, fav, shelf, pulled, onPull }: { it: Item; c?:
 // A game as its cartridge, card or disc, cover on the label.
 function GameCart({ it, c, ribbon, fav, shelf, pulled, onPull }: { it: Item; c?: GameConsole; ribbon: boolean; fav: boolean; shelf: string } & PullProps) {
   const key = `${shelf}:${it.id}`, on = pulled === key, sh = cartOf(c)
+  const { label } = useGameName(it)
   return (
     <button type="button" className={`gm-cart kind-${sh.kind}${on ? ' pulled' : ''}`} data-gm-item={it.id} style={{ '--aspect': sh.aspect, '--h': sh.height } as CSSProperties}
-      aria-label={`${it.title}${c ? ', ' + c.short : ''}${stateSpoken(c)}${ribbon ? ', in progress' : ''}${fav ? ', a favourite' : ''}${on ? ', chosen' : ''}`} aria-expanded={on}
+      aria-label={`${label}${c ? ', ' + c.short : ''}${stateSpoken(c)}${ribbon ? ', in progress' : ''}${fav ? ', a favourite' : ''}${on ? ', chosen' : ''}`} aria-expanded={on}
       onClick={() => onPull(on ? null : key)}>
       <span className="gm-cart-label"><Cover it={it} c={c} /></span>
       {ribbon && <i className="gm-ribbon" aria-hidden="true" />}
@@ -185,16 +191,17 @@ function GameCart({ it, c, ribbon, fav, shelf, pulled, onPull }: { it: Item; c?:
 
 function Spine({ it, c, ribbon, fav, shelf, pulled, onPull }: { it: Item; c?: GameConsole; ribbon: boolean; fav: boolean; shelf: string } & PullProps) {
   const key = `${shelf}:${it.id}`
-  const width = 34 + Math.min(14, Math.round(it.title.length * 0.55))
+  const { name, label } = useGameName(it)
+  const width = 34 + Math.min(14, Math.round(name.length * 0.55))
   if (pulled === key) return <FaceOut it={it} c={c} ribbon={ribbon} shelf={shelf} pulled={pulled} onPull={onPull} from={width} />
   const style = { '--sw': width, '--tint': deepColour(it), '--grain': `${ERA_GRAIN[c?.era || ''] || 10}px` } as CSSProperties
   return (
     <button type="button" className={`gm-spine media-${c?.media || 'cart'}`} style={style} data-gm-item={it.id}
-      aria-label={`${it.title}${c ? ', ' + c.short : ''}${stateSpoken(c)}${ribbon ? ', in progress' : ''}${fav ? ', a favourite' : ''}`}
+      aria-label={`${label}${c ? ', ' + c.short : ''}${stateSpoken(c)}${ribbon ? ', in progress' : ''}${fav ? ', a favourite' : ''}`}
       onClick={() => onPull(key)}>
       {ribbon && <i className="gm-ribbon" aria-hidden="true" />}
       {fav && <IconStar className="gm-spine-fav" size={12} />}
-      <span className="gm-spine-title" aria-hidden="true">{it.title}</span>
+      <span className="gm-spine-title" aria-hidden="true" lang={titleLang(name)}>{name}</span>
       <span className="gm-spine-foot" aria-hidden="true">{footName(c)}</span>
     </button>
   )
@@ -203,13 +210,14 @@ function Spine({ it, c, ribbon, fav, shelf, pulled, onPull }: { it: Item; c?: Ga
 function FaceOut({ it, c, ribbon, shelf, pulled, onPull, from }: { it: Item; c?: GameConsole; ribbon: boolean; shelf: string; from?: number } & PullProps) {
   const key = `${shelf}:${it.id}`
   const isPulled = pulled === key
+  const { name, label } = useGameName(it)
   return (
     <button type="button" className={`gm-faceout media-${c?.media || 'cart'}${isPulled ? ' pulled' : ''}`} data-gm-item={it.id}
       style={from ? { '--sw0': `${from}px` } as CSSProperties : undefined}
-      aria-label={`${it.title}${c ? ', ' + c.short : ''}${stateSpoken(c)}${ribbon ? ', in progress' : ''}${isPulled ? ', chosen' : ''}`} aria-expanded={isPulled}
+      aria-label={`${label}${c ? ', ' + c.short : ''}${stateSpoken(c)}${ribbon ? ', in progress' : ''}${isPulled ? ', chosen' : ''}`} aria-expanded={isPulled}
       onClick={() => onPull(isPulled ? null : key)}>
       <span className="gm-faceout-art">
-        {it.poster ? <img src={cardCover(it)} alt="" decoding="async" loading="lazy" onLoad={crispIfSmall} /> : <Placeholder title={it.title} label={c?.short} />}
+        {it.poster ? <img src={cardCover(it)} alt="" decoding="async" loading="lazy" onLoad={crispIfSmall} /> : <Placeholder title={name} label={c?.short} />}
       </span>
       {ribbon && <i className="gm-ribbon" aria-hidden="true" />}
     </button>
@@ -219,10 +227,11 @@ function FaceOut({ it, c, ribbon, shelf, pulled, onPull, from }: { it: Item; c?:
 function PulledInfo({ it, c, cont }: { it: Item; c?: GameConsole; cont?: GameContinue }) {
   const links = useGameLinks()
   const ready = c?.ready ?? true
+  const { label } = useGameName(it)
   const facts = [c?.short, it.studio, it.genres?.[0]].filter(Boolean)
   return (
-    <div className="gm-pulled" role="group" aria-label={it.title}>
-      <b>{it.title}</b>
+    <div className="gm-pulled" role="group" aria-label={label}>
+      <b><GameName item={it} /></b>
       <small>{facts.join(' · ')}</small>
       {cont && <small className="gm-pulled-left"><i aria-hidden="true" />Where you left off: {fmtAgo(cont.lastPlayed)}</small>}
       {consoleState(c) === 'software' && <small>Drawn by the server’s processor, so it can run slower.</small>}
@@ -302,14 +311,15 @@ export function ResumeCard({ e, c }: { e: GameContinue; c?: GameConsole }) {
   const played = it.progress?.positionSec || 0
   const pic = e.save?.hasThumb ? saveThumb(it.id, e.save.slot, e.save.updatedAt) : it.poster ? cardCover(it) : ''
   const ready = c?.ready ?? true
+  const { name, label } = useGameName(it)
   return (
     <Link className="gm-resume-card" to={ready ? links.play(it.id, e.save ? 'resume=1' : '') : links.item(it.id)} data-gm-item={it.id} data-gm-section
-      aria-label={`${ready ? (e.save ? 'Resume ' : 'Play ') : ''}${it.title}${c ? ', ' + c.short : ''}${stateSpoken(c)}, last played ${fmtAgo(e.lastPlayed)}`}>
-      <span className="gm-resume-pic">{pic ? <img src={pic} alt="" decoding="async" onLoad={crispIfSmall} /> : <Placeholder title={it.title} label={c?.short} />}</span>
+      aria-label={`${ready ? (e.save ? 'Resume ' : 'Play ') : ''}${label}${c ? ', ' + c.short : ''}${stateSpoken(c)}, last played ${fmtAgo(e.lastPlayed)}`}>
+      <span className="gm-resume-pic">{pic ? <img src={pic} alt="" decoding="async" onLoad={crispIfSmall} /> : <Placeholder title={name} label={c?.short} />}</span>
       {e.save && <i className="gm-ribbon" aria-hidden="true" />}
       <span className="gm-resume-text">
         <small>Where you left off</small>
-        <b>{it.title}</b>
+        <b><GameName item={it} /></b>
         <span>{[c?.short, played > 60 ? fmtPlayed(played) : '', fmtAgo(e.lastPlayed)].filter(Boolean).join(' · ')}</span>
       </span>
       {ready
@@ -322,6 +332,7 @@ export function ResumeCard({ e, c }: { e: GameContinue; c?: GameConsole }) {
 // The other games in progress, smaller, each with its ribbon.
 export function OnTheGo({ list, consoles }: { list: GameContinue[]; consoles: Map<string, GameConsole> }) {
   const links = useGameLinks()
+  const [titlePref] = useGameTitlePref()
   if (list.length === 0) return null
   return (
     <section className="gm-onthego gm-section" data-gm-section data-nav-row aria-label="Continue playing">
@@ -331,10 +342,10 @@ export function OnTheGo({ list, consoles }: { list: GameContinue[]; consoles: Ma
         const played = it.progress?.positionSec || 0
         return (
           <Link key={it.id} className="gm-otg" to={c?.ready === false ? links.item(it.id) : links.play(it.id, e.save ? 'resume=1' : '')} data-gm-item={it.id}
-            aria-label={`${c?.ready === false ? '' : e.save ? 'Resume ' : 'Play '}${it.title}${stateSpoken(c)}, last played ${fmtAgo(e.lastPlayed)}`}>
-            <span className="gm-otg-pic">{pic ? <img src={pic} alt="" decoding="async" loading="lazy" onLoad={crispIfSmall} /> : <Placeholder title={it.title} label={c?.short} />}</span>
+            aria-label={`${c?.ready === false ? '' : e.save ? 'Resume ' : 'Play '}${gameTitleLabel(it, titlePref)}${stateSpoken(c)}, last played ${fmtAgo(e.lastPlayed)}`}>
+            <span className="gm-otg-pic">{pic ? <img src={pic} alt="" decoding="async" loading="lazy" onLoad={crispIfSmall} /> : <Placeholder title={gameTitle(it, titlePref)} label={c?.short} />}</span>
             {e.save && <i className="gm-ribbon" aria-hidden="true" />}
-            <b>{it.title}</b>
+            <b><GameName item={it} /></b>
             <small>{[played > 60 ? fmtPlayed(played) : '', fmtAgo(e.lastPlayed)].filter(Boolean).join(' · ')}</small>
           </Link>
         )

@@ -516,6 +516,9 @@ var migrations = []string{
 	// written_at tell a file of ours from one someone has since replaced at the same name.
 	`CREATE TABLE IF NOT EXISTS saved_files (
 	   path TEXT PRIMARY KEY, written_at INTEGER NOT NULL, size INTEGER NOT NULL DEFAULT 0) WITHOUT ROWID;`,
+	// 35: a game's other names, as JSON {"native", "english"}: its name in its own script and
+	// its English release's, for profiles that would rather see those than the title.
+	`ALTER TABLE items ADD COLUMN alt_titles TEXT;`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

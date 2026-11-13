@@ -519,6 +519,12 @@ func (s *Store) MarkGameEdited(ctx context.Context, id int64, fields ...string) 
 	for _, f := range fields {
 		r.Edited[f] = true
 		delete(r.Applied, f)
+		// A title typed by hand is shown as typed: the source's other names were for its title.
+		if f == "title" {
+			if err := s.setGameTitles(ctx, id, ""); err != nil {
+				return err
+			}
+		}
 	}
 	_, err = s.DB.ExecContext(ctx, `UPDATE game_meta SET edited = ?, applied = ? WHERE item_id = ?`, listOf(r.Edited), listOf(r.Applied), id)
 	return err
@@ -934,6 +940,15 @@ func (g *GameMeta) applyAnswers(ctx context.Context, id int64, answers []gamemet
 		it.Provider, it.ProviderID = "", ""
 	}
 	if err := g.Store.upsertItem(ctx, it); err != nil {
+		return err
+	}
+	// The game's other names go with the title a source gave. A title someone typed is shown
+	// as they typed it, whatever a profile prefers.
+	others := ""
+	if !r.Edited["title"] && m.Confidence >= gamemeta.AcceptConfidence {
+		others = gameTitlesFor(m.Native, m.English, it.Title)
+	}
+	if err := g.Store.setGameTitles(ctx, id, others); err != nil {
 		return err
 	}
 	// Pictures are fetched later, unless what's wanted is what's already here.

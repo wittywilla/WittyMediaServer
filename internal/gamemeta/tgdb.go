@@ -218,6 +218,13 @@ func (s *TGDB) info(ctx context.Context, g *tgdbGame, a *tgdbAnswer) *Info {
 	if g.Players > 0 && g.Players <= 64 {
 		in.Players = g.Players
 	}
+	// Its other names say nothing of what each is: one in a script of its own is the game's own.
+	for _, a := range g.Alternates {
+		if n := nativeName(a); n != "" {
+			in.Native = n
+			break
+		}
+	}
 	if d := lines(s.names(ctx, "developers", &s.developers, g.Developers), 1); len(d) > 0 {
 		in.Developer = d[0]
 	}

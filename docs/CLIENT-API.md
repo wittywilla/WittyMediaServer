@@ -1196,6 +1196,16 @@ file is sent. Nothing is earned or tracked yet, so show every achievement as not
 
 The first answer for a console can take several seconds, while its list of games is fetched; after that they're quick.
 
+A game item can carry `titles`: `{native, english, romanized}`, each only when known. `native` is the name in the
+game's own script (A列車で行こう), `english` its English release's name (A-Train), and `romanized` the `title` as
+listed (A Ressha de Ikou). `title` and `sortTitle` keep their meaning, so lists sort as before, and searches
+(`search=`) match every one of these names. A profile chooses which to show in `/me/ui` under `gameTitles`:
+`romanized` (the default, also when the key is absent), `native`, `english`, or `both` (the native name with the
+English one, else the title, under it in smaller text); whichever isn't known falls back to `title`. WittyPlay's
+game cards carry the same object as the Card prop `titles`. They come from the metadata sources (ScreenScraper,
+IGDB, TheGamesDB, RAWG and Wikidata know some), so games matched before this need a metadata refresh to have them;
+a title typed by hand drops them.
+
 A game with no `poster` should use art made from its title and console, as the web client does. In lists, ask for
 `/items/{id}/poster?w=320`: full-size box art is several times larger than a grid needs.
 

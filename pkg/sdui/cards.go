@@ -225,6 +225,15 @@ func (r *renderer) card(parent, style, size string, it *Item, src Source) Node {
 	if it.Console != "" {
 		p["console"] = it.Console
 	}
+	if t := it.Titles; t != nil && it.Kind == "game" && (t.Native != "" || t.English != "") {
+		titles := map[string]any{}
+		for k, v := range map[string]string{"native": t.Native, "english": t.English, "romanized": t.Romanized} {
+			if v != "" {
+				titles[k] = Truncate(v, lim.Title)
+			}
+		}
+		p["titles"] = titles
+	}
 	if acts := cleanActions(it.Actions); len(acts) > 0 {
 		p["actions"] = acts
 	}

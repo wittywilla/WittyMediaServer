@@ -252,6 +252,8 @@ type wdValue struct {
 	ID     string `json:"id"`
 	Time   string `json:"time"`
 	Amount string `json:"amount"`
+	// Text is a monolingual text's, such as a title.
+	Text string `json:"text"`
 }
 
 type wdSnak struct {
@@ -298,6 +300,9 @@ const (
 	wdCERO       = "P853"
 	wdUSK        = "P914"
 	wdSinglePlay = "Q208189"
+	// A work's title, and a thing's name in its own language: the original's.
+	wdTitle       = "P1476"
+	wdNativeLabel = "P1705"
 )
 
 // api calls the Wikimedia API, leaving it alone when it says it's busy.
@@ -503,6 +508,17 @@ func (s *WikidataSource) info(e *wdEntityData) *Info {
 	in := &Info{ID: e.ID, Title: Line(e.Labels["en"].Value), URL: "https://www.wikidata.org/wiki/" + e.ID}
 	if in.Title == "" {
 		in.Title = Line(e.Labels["mul"].Value)
+	}
+	// The English label is the English name. The game's own is its title or native label,
+	// when that is written in a script of its own: those are the original's, where a label in
+	// another language may be a translation.
+	in.English = englishName(e.Labels["en"].Value)
+	for _, p := range []string{wdTitle, wdNativeLabel} {
+		for _, c := range bestClaims(e.Claims[p]) {
+			if n := nativeName(c.Mainsnak.value().Text); n != "" && in.Native == "" {
+				in.Native = n
+			}
+		}
 	}
 	if t := e.Sitelinks["enwiki"].Title; t != "" {
 		in.URL = "https://en.wikipedia.org/wiki/" + url.PathEscape(strings.ReplaceAll(t, " ", "_"))

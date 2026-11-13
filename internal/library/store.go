@@ -112,6 +112,9 @@ type Item struct {
 	Reading string `json:"reading,omitempty"`
 	// Games: the console it runs on (wittyplay.Consoles).
 	Console string `json:"console,omitempty"`
+	// Games: the game's other names, for a profile that would rather see those than the title.
+	// Only when a metadata source knew one of them.
+	Titles *GameTitles `json:"titles,omitempty"`
 	// Internet radio: filled by the radio routes.
 	Radio *RadioMeta `json:"radio,omitempty"`
 	// CD images: a track of a disc says which disc it is (kind audio, in a music
@@ -398,7 +401,8 @@ const itemCols = `i.id, i.library_id, i.kind, i.path, i.title, i.sort_title, i.y
 	i.audio_langs, i.sub_langs, i.disc_json, i.provider, i.provider_id, i.size_bytes, i.mtime, i.added_at, i.updated_at, i.missing,
 	i.show_id, (SELECT s.title FROM shows s WHERE s.id = i.show_id), i.season, i.episode, i.episode_end, i.aired,
 	IFNULL(i.play_mode, ''), IFNULL(i.insert_fx, ''), i.intro_start, i.intro_end,
-	IFNULL(i.artist, ''), IFNULL(i.album, ''), IFNULL(i.album_artist, ''), i.track, i.disc_no, IFNULL(i.reading, ''), IFNULL(i.console, ''), i.cd_disc`
+	IFNULL(i.artist, ''), IFNULL(i.album, ''), IFNULL(i.album_artist, ''), i.track, i.disc_no, IFNULL(i.reading, ''), IFNULL(i.console, ''), i.cd_disc,
+	IFNULL(i.alt_titles, '')`
 
 var itemColsBrief = strings.Replace(itemCols, "i.disc_json", "CASE WHEN json_valid(i.disc_json) THEN json_remove(i.disc_json, '$.titles', '$.cd') END", 1)
 
@@ -413,13 +417,17 @@ func scanItem(sc interface{ Scan(...any) error }) (*Item, error) {
 	var showTitle, aired sql.NullString
 	var introStart, introEnd sql.NullFloat64
 	var track, discNo, cdDisc sql.NullInt64
+	var altTitles string
 	err := sc.Scan(&it.ID, &it.LibraryID, &it.Kind, &it.Path, &it.Title, &it.SortTitle, &year, &overview, &tagline, &genres, &rating,
 		&contentRating, &studio, &runtime, &poster, &backdrop, &container, &vcodec, &width, &height,
 		&audio, &subs, &discJSON, &provider, &providerID, &size, &mtime, &it.AddedAt, &it.UpdatedAt, &missing,
 		&showID, &showTitle, &season, &episode, &episodeEnd, &aired, &it.PlayMode, &it.InsertFX, &introStart, &introEnd,
-		&it.Artist, &it.Album, &it.AlbumArtist, &track, &discNo, &it.Reading, &it.Console, &cdDisc)
+		&it.Artist, &it.Album, &it.AlbumArtist, &track, &discNo, &it.Reading, &it.Console, &cdDisc, &altTitles)
 	if err != nil {
 		return nil, err
+	}
+	if it.Kind == "game" {
+		it.Titles = readGameTitles(altTitles, it.Title)
 	}
 	if cdDisc.Valid {
 		it.CDDisc = &cdDisc.Int64
@@ -613,9 +621,9 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 		where = append(where, "i.library_id NOT IN (SELECT id FROM libraries WHERE type = '"+CommercialsType+"' AND show_main = 0)")
 	}
 	if q.Search != "" {
-		where = append(where, "(i.title LIKE ? OR i.overview LIKE ?)")
+		where = append(where, "(i.title LIKE ? OR i.overview LIKE ? OR "+altTitlesLike+")")
 		like := "%" + q.Search + "%"
-		args = append(args, like, like)
+		args = append(args, like, like, like)
 	}
 	if q.Genre != "" {
 		where = append(where, "('|' || IFNULL(i.genres,'') || '|') LIKE ?")

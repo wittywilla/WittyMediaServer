@@ -1534,6 +1534,7 @@ Focus: its children take focus, and it is their group. Accessibility: Role: grid
 | `remaining` | string |  | Time left. Progress cards: "42 min left". |
 | `itemId` | string |  | Item. The item's ID. |
 | `kind` | string |  | Kind. The item's kind. |
+| `titles` | object |  | Game titles. Game cards: {native, english, romanized}, each only when known. An app shows the one its profile prefers (the gameTitles preference), falling back to title. |
 | `playId` | string |  | Plays. What a play affordance on the card starts, when the item can be played. |
 | `image` | object |  | Picture. {url, width, height, aspect, kind}: the address with the width to ask for. |
 | `progress` | number |  | Progress. 0 to 1. |

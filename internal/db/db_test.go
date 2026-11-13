@@ -247,6 +247,38 @@ func TestInfiniteNumbersAreCleared(t *testing.T) {
 	}
 }
 
+// A database from before games had other names gains the column, empty, keeping its rows.
+func TestGameOtherNamesColumnIsAdded(t *testing.T) {
+	dir := t.TempDir()
+	saved := migrations
+	migrations = saved[:len(saved)-1]
+	d, err := Open(dir)
+	migrations = saved
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	if _, err := d.ExecContext(ctx, `INSERT INTO libraries(id, name, type, created_at) VALUES(1, 'L', 'games', 0)`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.ExecContext(ctx, `INSERT INTO items(id, library_id, kind, path, title, sort_title, added_at, updated_at) VALUES(1, 1, 'game', '/g', 'Mega Geemu', 'Mega Geemu', 0, 0)`); err != nil {
+		t.Fatal(err)
+	}
+	d.Close()
+	if d, err = Open(dir); err != nil {
+		t.Fatal(err)
+	}
+	defer d.Close()
+	var title string
+	var alt sql.NullString
+	if err := d.QueryRowContext(ctx, `SELECT title, alt_titles FROM items WHERE id = 1`).Scan(&title, &alt); err != nil {
+		t.Fatal(err)
+	}
+	if title != "Mega Geemu" || alt.Valid {
+		t.Errorf("%q %v", title, alt)
+	}
+}
+
 func TestSettingsReadsEverySavedOne(t *testing.T) {
 	d, err := Open(t.TempDir())
 	if err != nil {

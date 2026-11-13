@@ -16,6 +16,8 @@ export type Result = { to: string; title: string; where: string; hint?: string }
 export const sectionId = (title: string) => title.toLowerCase().replace(/[’'"]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
 export const ENTRIES: Entry[] = [
+  // My game settings
+  { page: 'games', title: 'Game titles', section: 'Game titles', words: 'game names original native script japanese kanji kana english title romanized romaji language' },
   // Appearance
   { page: 'appearance', title: 'Theme', section: 'Theme', words: 'themes look skin style dark mode light mode night automatic witty cinema evergreen high contrast light midnight paper true black oled' },
   { page: 'appearance', title: 'Light or dark, as this device is set', section: 'Theme', words: 'automatic dark mode light mode night follow system' },

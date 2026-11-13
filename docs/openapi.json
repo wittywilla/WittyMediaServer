@@ -5165,6 +5165,27 @@
           "title": {
             "type": "string"
           },
+          "titles": {
+            "anyOf": [
+              {
+                "properties": {
+                  "english": {
+                    "type": "string"
+                  },
+                  "native": {
+                    "type": "string"
+                  },
+                  "romanized": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "track": {
             "anyOf": [
               {

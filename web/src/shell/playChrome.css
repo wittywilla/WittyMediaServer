@@ -94,9 +94,16 @@ html[data-wplay] body { font-family: var(--font); }
 
 /* ---- the status bar: who, then the server's name, the controllers, the time and the way out ---- */
 .wplay .play-status { padding: clamp(14px, 2.4vw, 32px) var(--wp-gutter) clamp(8px, 1vw, 16px); gap: var(--sp-3) var(--sp-5); }
-/* The status bar stays at the top while the page scrolls under it, on a frosted band so what passes beneath never muddles it. */
-.wplay .play-status { position: sticky; inset-block-start: 0; z-index: 4; background: linear-gradient(180deg, rgb(14 16 48 / .9), rgb(14 16 48 / .72)); backdrop-filter: blur(18px) saturate(1.2); -webkit-backdrop-filter: blur(18px) saturate(1.2); box-shadow: 0 1px 0 rgb(255 255 255 / .06); }
-@media (prefers-reduced-transparency: reduce) { .wplay .play-status { background: rgb(14 16 48); backdrop-filter: none; -webkit-backdrop-filter: none; } }
+/* The status bar stays at the top. At the top of a page it is clear, as it always was; once the page scrolls, a soft frosted fade
+   comes up behind it: darkest at the very top and feathering to nothing below the bar, so there is never a hard edge or a line. */
+.wplay .play-status { position: sticky; inset-block-start: 0; z-index: 4; isolation: isolate; }
+.wplay .play-status::before { content: ""; position: absolute; inset: 0 0 -36px; z-index: -1; pointer-events: none; opacity: 0; transition: opacity var(--dur-3, .3s) var(--ease-out, ease-out);
+  background: linear-gradient(180deg, rgb(16 14 52 / .92) 0%, rgb(16 14 52 / .78) 55%, rgb(16 14 52 / 0) 100%);
+  backdrop-filter: blur(20px) saturate(1.25); -webkit-backdrop-filter: blur(20px) saturate(1.25);
+  mask-image: linear-gradient(180deg, #000 0%, #000 60%, transparent 100%); -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 60%, transparent 100%); }
+.wplay[data-scrolled] .play-status::before { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .wplay .play-status::before { transition: none; } }
+@media (prefers-reduced-transparency: reduce) { .wplay .play-status::before { background: linear-gradient(180deg, rgb(16 14 52) 0%, rgb(16 14 52) 70%, rgb(16 14 52 / 0) 100%); backdrop-filter: none; -webkit-backdrop-filter: none; } }
 .wplay .play-avatar { inline-size: clamp(44px, 3.2vw, 60px); block-size: clamp(44px, 3.2vw, 60px); background: linear-gradient(135deg, #ff8aa3, #8a7bd8 55%, #5ff0d6); color: #13163f; font-size: clamp(1.1rem, 1.3vw, 1.6rem); font-weight: 900; box-shadow: 0 0 0 2px rgb(255 255 255 / .35); }
 .wplay .play-who-text b { font-size: clamp(1.1rem, 1.45vw, 1.7rem); font-weight: 800; line-height: 1.15; }
 .wplay .play-who-text span { font-size: clamp(.9rem, 1.05vw, 1.25rem); color: var(--fg-2); }

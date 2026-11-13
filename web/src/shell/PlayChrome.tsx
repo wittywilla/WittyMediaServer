@@ -200,6 +200,8 @@ export function PlayFrame({ children }: { children: ReactNode }) {
   // a moment after the screen has drawn and the profile's own choices have come; the help button shows it again.
   const [seen, setSeen] = useUserPref<boolean>(PLAY_TIP_KEY, false)
   const [tip, setTip] = useState(false)
+  // Scrolled away from the top: the status bar gets its soft backing (playChrome.css), so what passes under it never muddles it.
+  const [scrolled, setScrolled] = useState(false)
   const [ready, setReady] = useState(false)
   useEffect(() => { const t = window.setTimeout(() => setReady(true), 900); return () => window.clearTimeout(t) }, [])
   useEffect(() => { if (ready && tipDue(seen)) setTip(true) }, [ready]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -235,7 +237,7 @@ export function PlayFrame({ children }: { children: ReactNode }) {
   }, [top]) // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <GlyphContext.Provider value={glyph}><RowLayoutContext.Provider value={layout}><TabsContext.Provider value={tabs}><CardRouteContext.Provider value={route}><GameArtContext.Provider value={gameArt}>
-      <div className="wplay" data-arrows-move data-scope="wittyplay" data-pads={pads} data-layout={layout}>
+      <div className="wplay" data-arrows-move data-scope="wittyplay" data-pads={pads} data-layout={layout} data-scrolled={scrolled || undefined} onScroll={(e) => { const s = e.currentTarget.scrollTop > 8; if (s !== scrolled) setScrolled(s) }}>
         <StatusBar parts={regions?.statusBar || PLAY_STATUS} onExit={exit} onHelp={() => setTip(true)} />
         <main className="wplay-stage" id="main" data-nav-zone="stage" tabIndex={-1}>
           {loc.pathname === PLAY_CONTROLLERS && <PadsSetting />}

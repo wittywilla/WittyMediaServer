@@ -13,6 +13,7 @@ import { Button, Dialog, Segmented } from '../ui'
 import { useUserPref } from '../ui/userPrefs'
 import type { GameArtApi, GameArtArgs } from '../sdui/render/glyphs'
 import { useBrandLogos } from './brandLogos'
+import { IconImage } from '../icons'
 import { FitArt, GameCase } from './GameCase'
 import {
   CASE_STYLES, FAMILY_VARIANTS, LABELS, MEDIA, PICTURES, PLAY_PICTURES_KEY, VARIANTS, cleanLook, emptyLook, familyVariant, lookFor, mediaDef, mediaFor,
@@ -254,7 +255,7 @@ export function GamePictureButton(props: { itemId: string; title: string; consol
   const [open, setOpen] = useState(false)
   return (
     <>
-      <button type="button" className="gpic-detail-btn" onClick={() => setOpen(true)} aria-haspopup="dialog">Picture style</button>
+      <button type="button" className="gpic-detail-btn" onClick={() => setOpen(true)} aria-haspopup="dialog" aria-label="Picture style" title="Picture style"><IconImage /></button>
       {open && <GamePictureDialog {...props} onClose={() => setOpen(false)} />}
     </>
   )

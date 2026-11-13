@@ -93,7 +93,7 @@
 
 
 /* The detail panel's Picture style button. */
-.gpic-detail-btn { justify-self: start; min-block-size: 44px; padding: 0 18px; border: 0; border-radius: 999px; background: var(--wp-chip, var(--bg-3)); color: var(--fg); font: inherit; font-weight: 800; cursor: pointer; }
+.gpic-detail-btn { display: inline-grid; place-items: center; flex: none; inline-size: clamp(48px, 3.4vw, 64px); block-size: clamp(48px, 3.4vw, 64px); padding: 0; border: 0; border-radius: 999px; background: var(--wp-chip, var(--bg-3)); color: var(--fg); font: inherit; font-weight: 800; cursor: pointer; }
 .gpic-detail-btn:hover { background: var(--wp-chip-hover, var(--bg-4)); }
 .gpic-detail-btn:focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: var(--focus-offset); }
 
@@ -137,3 +137,9 @@
 .gpic-quick { display: grid; gap: 12px; }
 .gpic-quick-previews { display: flex; flex-wrap: wrap; gap: 12px; }
 .gpic-quick .gpic-preview { inline-size: clamp(96px, 10vw, 140px); }
+
+/* The Picture style button sits at the end of the panel's row of buttons, the same height as them. */
+.sdui-detail-actrow { display: flex; flex-wrap: wrap; align-items: center; gap: clamp(10px, 1.1vw, 20px); margin-block-start: clamp(4px, .6vw, 10px); }
+.sdui-detail-actrow > .sdui-detail-actions { margin: 0; }
+.gpic-detail-btn svg { inline-size: 42%; block-size: 42%; }
+.wplay .gpic-detail-btn:focus-visible { outline: none; box-shadow: 0 0 0 4px var(--wp-ring), 0 0 0 7px var(--focus); }

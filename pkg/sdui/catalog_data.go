@@ -182,9 +182,12 @@ var (
 	propFocusable = rev8(pBool("focusable", "Cards without a route take focus", "A card with no route (a friend) is still a stop for focus, and OK on it is the page's to use. Off: it is not a button and takes no focus.", false))
 	propEmpty     = pEnum("empty", "When there is nothing to show", "Leave the section out, or keep it with a message.", "hide", "hide|Leave it out", "message|Show a message")
 	propEmptyText = pText("emptyText", "Message when empty", "Shown in place of the items when there are none.", 200)
-	propTo        = pOf(PropRoute, "to", "Opens", "A place in the app, such as /library/3 or /page/family-night.")
-	propNative    = pEnum("native", "Opens a screen of the app", "A screen the app draws itself.", "", "settings|Settings", "guide|TV guide", "profiles|Who's watching", "downloads|Downloads", "remote|Remote control", "nowPlaying|Now playing", "pair|Pair a device", "collections|Collections", "player|The player (with item)")
-	propURL       = on(pOf(PropURL, "url", "Opens a web page", "An http or https address, opened in the browser. Left out on a television."), FormPhone, FormTablet, FormDesktop, FormWeb)
+	// A way forward from an empty section (rev 8): a line of advice and one button.
+	propEmptyHint   = rev8(pText("emptyHint", "Hint when empty", "A line under the message that says what to do about it: \"Add a games library in Settings.\"", 300))
+	propEmptyAction = rev8(pOf(PropObject, "emptyAction", "Button when empty", "One button under the message: {label, and one of to (a route), native, op (a command, with item and params and confirm); optional as: layer, and when: a condition such as {\"admin\": true}, so only administrators are offered it}."))
+	propTo          = pOf(PropRoute, "to", "Opens", "A place in the app, such as /library/3 or /page/family-night.")
+	propNative      = pEnum("native", "Opens a screen of the app", "A screen the app draws itself.", "", "settings|Settings", "guide|TV guide", "profiles|Who's watching", "downloads|Downloads", "remote|Remote control", "nowPlaying|Now playing", "pair|Pair a device", "collections|Collections", "player|The player (with item)")
+	propURL         = on(pOf(PropURL, "url", "Opens a web page", "An http or https address, opened in the browser. Left out on a television."), FormPhone, FormTablet, FormDesktop, FormWeb)
 	// The command a button, notice or row runs (rev 7): op names one of the catalogue's commands, item is
 	// its item ($item on a page opened about a title), params its other values ($name and the like are
 	// filled in), confirm a question to ask first; back goes back instead.
@@ -250,7 +253,7 @@ func buildComponents() []ComponentSpec {
 				rev3(pEnum("seeAllCard", "See all as a card", "See all as the last card of the row, in the shape of the row's cards, in place of the link beside the heading. Automatic: on a television and in the experiences that ask for it (Stage, Big picture).", "auto", "auto|Where the layout says", "always|Always", "never|Never")),
 				rev8(pBool("focusGrow", "The focused card grows", "The card with focus scales up (1.45 times on a television, 1.25 on a tablet or desktop, not at all on a phone, where the first card is simply larger) and the cards after it step aside; the others stay small. With reduced motion the card does not animate: it gets a ring.", false)),
 				rev8(pBool("detail", "Detail panel under the row", "A panel under the row shows the focused card's item (the first until focus moves): its title large, its subtitle as one line, and its actions as buttons carrying their key glyphs. An item with no actions has its route as the one A action.", false)),
-				propFocusable, propEmpty, propEmptyText,
+				propFocusable, propEmpty, propEmptyText, propEmptyHint, propEmptyAction,
 			},
 			Renders: map[string]string{
 				"tv":      "A heading at the title size, then one row of cards that scrolls sideways under focus (cards layout.spacing.m apart, the next card peeking in by layout.peek of its width), the focused card kept a safe-area's width from the left edge and raised with the system's focus effect. The row is one focus section and remembers its last card. With props.seeAllCard, \"See all\" is a final card of the row's shape (its label in the title style, an arrow icon, the same corner), reached by moving past the last title; otherwise it is a link beside the heading.",
@@ -267,7 +270,7 @@ func buildComponents() []ComponentSpec {
 			Props: []PropSpec{propTitle, propHeading, propCardStyle, propCardSize,
 				pBool("showTitles", "Show titles under cards", "Off draws the pictures alone.", true),
 				pInt("maxItems", "Most cards at first", "How many cards the first page holds. 0 uses the device's own limit.", 0, 0, 200),
-				propFocusable, propEmpty, propEmptyText,
+				propFocusable, propEmpty, propEmptyText, propEmptyHint, propEmptyAction,
 			},
 			Renders: map[string]string{
 				"tv":      "layout.gridColumns columns for the card's shape (6 posters, 4 landscape cards), 40 points apart, focus moving by row and column; the next page is asked for when focus is within two rows of the end.",
@@ -325,7 +328,7 @@ func buildComponents() []ComponentSpec {
 			Props: []PropSpec{propTitle, propHeading, propCardStyle, propCardSize,
 				rev6(pBool("showTitles", "Show the focused title", "The focused card's title and facts under it.", true)),
 				rev6(pInt("maxItems", "Most cards at first", "How many cards are sent before the row asks for more. 0 uses the device's own limit.", 0, 0, 40)),
-				propEmpty, propEmptyText,
+				propEmpty, propEmptyText, propEmptyHint, propEmptyAction,
 			},
 			Renders: map[string]string{
 				"tv":      "A row of cards centred on the focused one, which is drawn at 1.25 times the others with the focus ring; left and right move the row so the focused card stays in the middle; its title, facts and a Play button are under it. The row is one focus section.",
@@ -377,7 +380,7 @@ func buildComponents() []ComponentSpec {
 			Props: []PropSpec{propTitle, propHeading,
 				rev6(pEnum("numbers", "Numbers", "Channel numbers where the items are channels, else their place in the list.", "auto", "auto|Channel or place", "index|Place in the list")),
 				rev6(pInt("maxItems", "Most rows at first", "How many rows are sent before the list asks for more. 0 uses the device's own limit.", 0, 0, 100)),
-				propEmpty, propEmptyText,
+				propEmpty, propEmptyText, propEmptyHint, propEmptyAction,
 			},
 			Renders: map[string]string{
 				"tv":      "A row per item at layout.text.title: the number in a fixed column at the start (as wide as the longest), the logo or picture, then the title and subtitle; the focused row is filled.",
@@ -1169,6 +1172,7 @@ func commandSpecs() []CommandSpec {
 		{Op: "comment.add", Label: "Write a comment", Description: "Adds a comment to a title (item); params.text is up to 2000 characters. Not for Kids or Guest profiles.", Method: "POST", Path: "/api/items/{item}/comments", Body: `{"body":"{text}"}`,
 			Params: []CommandParam{{Name: "text", Type: "string", Label: "Comment", Required: true}}},
 		{Op: "comment.delete", Label: "Delete a comment", Description: "Deletes a comment (item: its ID): its writer's, or any as an administrator.", Method: "DELETE", Path: "/api/comments/{item}"},
+		{Op: "library.scan", Label: "Scan the library", Description: "Looks through the library's folders for new and changed files (administrators): the library is the item.", Method: "POST", Path: "/api/libraries/{item}/scan"},
 		{Op: "collection.add", Label: "Add to a list", Description: "Puts the title (item) in the profile's list params.collection.", Method: "POST", Path: "/api/collections/{collection}/items", Body: `{"items":["{item}"]}`,
 			Params: []CommandParam{{Name: "collection", Type: "string", Label: "List", Required: true}}},
 		{Op: "collection.remove", Label: "Take off a list", Description: "Takes the title (item) off the profile's list params.collection.", Method: "DELETE", Path: "/api/collections/{collection}/items", Body: `{"items":["{item}"]}`,

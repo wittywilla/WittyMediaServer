@@ -66,6 +66,8 @@ Nothing is pushed by agents. The owner pushes.
 
 Written by W7 (2026-11-12). Nothing here is pushed or tagged by an agent: the owner does it. A bump is not a release.
 
+The release plan for all 25 repositories (versions, publish order, pins, CI, the owner's commands, deleting the old releases) is [RELEASE-0.8.0-PLAN.md](RELEASE-0.8.0-PLAN.md); the issue candidates are in [RELEASE-0.8.0-ISSUES.md](RELEASE-0.8.0-ISSUES.md).
+
 **1. The server's version (0.8.0-alpha is already in the tree).** `scripts/bump-server.sh <version> ["note"]` raises it
 everywhere it is written and lists the modules whose `maxServer` no longer covers it. Written in:
 

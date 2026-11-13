@@ -500,10 +500,12 @@ html[data-wplay] body { font-family: var(--font); }
 .wpg .legal-note, .wpg .gm-credits { color: var(--fg-2); }
 /* One row of buttons always, so Down from any of them goes to the saves: where the row is narrow, the other buttons keep only their
    icons (their names stay for screen readers and show as a tooltip-free label on focus). */
-@container wpg-head (max-width: 62rem) {
-  .wpg-btn:not(.primary) { inline-size: clamp(52px, 4.6vw, 72px); padding: 0; flex: none; }
+@container wpg-head (max-width: 104rem) {
+  .wpg-btn:not(.primary) { min-inline-size: clamp(52px, 4.6vw, 72px); padding: 0 clamp(14px, 1.2vw, 20px); flex: none; }
   .wpg-btn:not(.primary) .wpg-btn-label { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-  .wpg-btn.primary { flex: 1 1 auto; min-inline-size: 0; }
+  /* The one in focus (or under the pointer) says what it is, as a console's home does. */
+  .wpg-btn:not(.primary):is(:focus-visible, :hover) .wpg-btn-label { position: static; inline-size: auto; block-size: auto; overflow: visible; clip-path: none; }
+  .wpg-btn.primary { flex: 1 1 auto; min-inline-size: 0; max-inline-size: 30rem; }
 }
 @media (max-width: 800px) {
   .wpg-hero { grid-template-columns: minmax(0, 1fr); }

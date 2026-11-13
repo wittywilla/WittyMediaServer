@@ -12,7 +12,7 @@ import { Brand } from '../../components/common'
 import { Button, Field, Segmented, Select } from '../../ui'
 import { setTvMode, useTvMode } from '../../tvmode/mode'
 import { LayoutThumb } from '../../ui/LayoutThumb'
-import type { WireMap } from '../../ui/layoutSpecs'
+import { specFor, type Cards, type Home, type WireMap } from '../../ui/layoutSpecs'
 import { ChoiceCards, LaterNote, StepActions, StepHead, TickRow, type StepProps } from './parts'
 
 type Card = { id: string; name: string; tagline?: string; theme?: string; type?: string; density?: string; effects?: Record<string, string>; preview?: { bg: string; surface: string; accent: string }; nav: Record<string, string>; wire?: WireMap }
@@ -23,20 +23,41 @@ type Device = 'tv' | 'desktop' | 'phone' | 'headset'
 const SIDE = new Set(['sidebar', 'rail', 'railDrawer', 'tvSideMenu', 'ornamentTabs'])
 const BOTTOM = new Set(['bottomTabs'])
 
-// A small Home drawn in the look being tried, for each kind of device: where its menu is, the server's name, a spotlight and a row.
-// Made of the look's own colours and gradients, no pictures.
+// A small Home drawn in the look being tried, for each kind of device: where its menu is, the server's name, and Home
+// arranged as that look arranges it (a spotlight and a row, a poster carousel, big tiles, a list, widgets, a cross menu).
+// Made of the look's own colours and gradients, no pictures; the shape comes from the same `wire` the thumbnails draw.
+const tint = (i: number) => ({ filter: `hue-rotate(${i * 40}deg)` })
+function LookHome({ home, cards }: { home: Home; cards: Cards }) {
+  const row = (n: number, kind: string = cards) => <div className={'lp-row c-' + kind}>{Array.from({ length: n }, (_, i) => <i key={i} style={tint(i)} />)}</div>
+  const hero = (small?: boolean) => <div className={'lp-hero' + (small ? ' small' : '')}><b>Harbour Lights</b>{!small && <span>A night-shift ferry pilot finds a locked lantern room.</span>}<em>Resume</em></div>
+  switch (home) {
+    case 'carousel':
+      return <div className="lp-carousel">{[0, 1, 2, 3, 4].map((i) => <i key={i} className={i === 2 ? 'on' : ''} style={tint(i)} />)}<b>Harbour Lights</b></div>
+    case 'tiles':
+      return <><div className="lp-tiles">{[0, 1, 2].map((i) => <i key={i} className={i === 0 ? 'on' : ''} style={tint(i)}><span>{['Films', 'TV', 'Music'][i]}</span></i>)}</div></>
+    case 'list':
+      return <div className="lp-list">{[0, 1, 2, 3, 4, 5].map((i) => <p key={i} className={i === 0 ? 'on' : ''}><i style={tint(i)} /><b /><em /></p>)}</div>
+    case 'widgets':
+      return <div className="lp-widgets"><i className="wide" style={tint(0)} /><i style={tint(1)} /><i style={tint(2)} /><i style={tint(3)} /><i className="wide" style={tint(4)} /></div>
+    case 'rows':
+      return <div className="lp-cross"><div className="lp-cross-bar">{[0, 1, 2, 3, 4].map((i) => <i key={i} className={i === 1 ? 'on' : ''} />)}</div><div className="lp-list">{[0, 1, 2, 3].map((i) => <p key={i} className={i === 0 ? 'on' : ''}><i style={tint(i)} /><b /><em /></p>)}</div></div>
+    case 'banner':
+      return <>{hero(true)}{row(5)}{row(5)}</>
+  }
+  return <>{hero()}{row(5)}</>
+}
+
 function LookPreview({ card, device }: { card: Card; device: Device }) {
+  const spec = specFor(card.wire, device)
   const nav = card.nav[device] || card.nav.desktop || 'topTabs'
-  const kind = SIDE.has(nav) ? 'side' : BOTTOM.has(nav) ? 'bottom' : 'top'
+  const kind = spec.nav === 'none' || spec.nav === 'crossbar' ? 'none' : spec.nav === 'bottom' || BOTTOM.has(nav) ? 'bottom' : ['sidebar', 'rail', 'railDrawer'].includes(spec.nav) || SIDE.has(nav) ? 'side' : 'top'
   const pv = card.preview
   const style = { ['--lp-bg' as string]: pv?.bg, ['--lp-surface' as string]: pv?.surface, ['--lp-accent' as string]: pv?.accent }
+  const where = kind === 'side' ? 'at the side' : kind === 'bottom' ? 'at the bottom' : kind === 'none' ? 'part of Home' : 'along the top'
   return (
-    <div className={'lp lp-' + device + ' nav-' + kind} style={style} role="img" aria-label={`${card.name} on a ${device}: the menu is ${kind === 'side' ? 'at the side' : kind === 'bottom' ? 'at the bottom' : 'along the top'}`}>
-      <div className="lp-nav"><span className="lp-brand"><Brand name="" /></span><i className="on" /><i /><i /><i /></div>
-      <div className="lp-page">
-        <div className="lp-hero"><b>Harbour Lights</b><span>A night-shift ferry pilot finds a locked lantern room.</span><em>Resume</em></div>
-        <div className="lp-row">{[0, 1, 2, 3, 4].map((i) => <i key={i} style={{ filter: `hue-rotate(${i * 40}deg)` }} />)}</div>
-      </div>
+    <div className={'lp lp-' + device + ' nav-' + kind + ' home-' + spec.home} style={style} role="img" aria-label={`${card.name} on a ${device}: the menu is ${where}`}>
+      {kind !== 'none' && <div className="lp-nav"><span className="lp-brand"><Brand name="" /></span><i className="on" /><i /><i /><i /></div>}
+      <div className="lp-page"><LookHome home={spec.home} cards={spec.cards} /></div>
     </div>
   )
 }

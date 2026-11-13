@@ -384,3 +384,11 @@ button.np-artist:hover { color: var(--np-fg); text-decoration: underline; text-u
 .np-pill { display: inline-flex; align-items: center; min-height: 28px; padding: 0 12px; border-radius: var(--r-full); background: var(--np-chip); font-size: var(--text-sm); font-weight: 600; font-variant-numeric: tabular-nums; }
 .np-pill.now { background: var(--np-white); color: var(--np-black); }
 .np-callout { border-left: 3px solid var(--np-white); }
+
+/* Karaoke Mix (board "stems"): a row for each part, its level as a pill, the shortcuts under it */
+.kar-mix { flex: 1 0 100%; display: grid; gap: 10px; justify-items: center; }
+.kar-mix-rows { display: grid; gap: 6px; width: min(560px, 100%); }
+.kar-mix .kar-level { display: grid; grid-template-columns: 7.5em 1fr auto; align-items: center; gap: 12px; font-size: var(--text-md); font-weight: 600; text-align: left; }
+.kar-mix .kar-level input { width: 100%; min-height: 44px; accent-color: var(--np-white); }
+.kar-mix-pills { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.kar-mix-note { margin: 0; font-size: var(--text-sm); color: var(--np-fg-2); }

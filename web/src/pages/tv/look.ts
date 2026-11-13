@@ -45,7 +45,7 @@ export type Look = {
 }
 
 const SETTINGS: Required<Pick<Saved, 'density' | 'hours' | 'nowLine' | 'progress' | 'subtitles' | 'logos' | 'art' | 'preview' | 'previewSound' | 'previewBar'>> = {
-  density: 'normal', hours: 0, nowLine: true, progress: true, subtitles: true, logos: true, art: true, preview: 'highlight', previewSound: false, previewBar: 'bar',
+  density: 'normal', hours: 0, nowLine: true, progress: true, subtitles: true, logos: true, art: true, preview: 'highlight', previewSound: true, previewBar: 'bar',
 }
 
 // The sizes the preview snaps to, and their names. Any size between works too.

@@ -326,6 +326,9 @@ input[type=range] { accent-color: var(--accent); }
      halo of the page's colour: readable on any picture, light or dark. */
   .app:has(.hero, .detail-hero) .topbar { margin-bottom: calc(-1 * var(--topbar-h)); background: linear-gradient(rgb(var(--bg-rgb) / .9), rgb(var(--bg-rgb) / .8) 65%, rgb(var(--bg-rgb) / 0)); }
   .app:has(.hero, .detail-hero) .topbar :is(.section-row a, .topnav-link, .top-brand) { text-shadow: 0 0 2px rgb(var(--bg-rgb)), 0 0 8px rgb(var(--bg-rgb)); }
+  /* A link on a pill of its own (the active one, in most nav styles) is already readable there, and the
+     halo would smudge its dark words on the light pill. Crossbar marks it with a line instead, so keeps it. */
+  .app:not([data-nav-style="crossbar"]):has(.hero, .detail-hero) .topbar .topnav-link.active { text-shadow: none; }
   .app:has(.hero, .detail-hero) .topbar::before { content: ''; position: absolute; inset: 0; z-index: -1; background: var(--bg); opacity: 0; animation: bar-solid linear both; animation-timeline: scroll(root); animation-range: var(--sp-4) calc(var(--topbar-h) * 3); }
   .app:has(.hero, .detail-hero) .topbar::after { animation: bar-solid linear both; animation-timeline: scroll(root); animation-range: var(--sp-4) calc(var(--topbar-h) * 3); }
   .app:has(.home.editing) .topbar { margin-bottom: 0; background: var(--bg); }

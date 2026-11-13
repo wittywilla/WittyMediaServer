@@ -665,13 +665,27 @@ Unmerged work at the time of collation (`git branch --no-merged v0.8.0-alpha`): 
 
 ## wittywilla/WittyModule
 
-1. **Release WittyModule with module API 4 and move every module to it**
-   - Labels: enhancement, area:packaging
-   - Modules pin v0.3.0 and build API 4 only under `go.work`; their CI/release (`wittymodule@v0.3.0 check`, `needs-bump`, `go mod
-     tidy -diff`) refuse API 4. Then run `kit/module-kit.sh --tool <version>` in each module, raise pins in WittyModuleCatalog
-     (`ci.yml`, `publish.yml`, `refresh.sh`) and each module's CI, add API 4 versions to the catalogue; WittyEbook/PDF/Comics →
-     WittyInk `#v0.3.0`; WittyReader `npm install`. WittyModule's own `needs-bump` still fails. Needs the owner's go-ahead.
-   - Sources: HO s1 #3, HO s1 issues #1, HO s5 #7, HO s6 #9, HO s8 #5, HO s10 #1, HO s11 #1, HO s7 issues #8.
+1. **After publishing: check every module's CI and release run with WittyModule 0.4.0**
+   - Labels: not-verified, area:packaging
+   - Done before the release (2026-11-12, S13): WittyModule is 0.4.0 (0.3.0 was published with API 3), and every module's and the
+     catalogue's workflows and `refresh.sh` run `wittymodule@v0.4.0`; `publish-all.sh` raises go.mod pins and the WittyInk and
+     WittyReader npm locks while publishing. Not seen: the module workflows' `check`, `needs-bump` and `go mod tidy -diff` steps
+     running on GitHub against the published 0.4.0, and WittyModule's own `needs-bump`, which was reported failing. Watch the first
+     runs; `kit/module-kit.sh --tool v0.4.0` regenerates a module's workflows if one has drifted.
+   - Where: each module's `.github/workflows/`, WittyModule `kit/module-kit.sh`, `kit/workflow.py`; plan: `RELEASE-0.8.0-PLAN.md` G1, G4.
+   - Sources: HO s1 #3, HO s1 issues #1, HO s5 #7, HO s6 #9, HO s8 #5, HO s10 #1, HO s11 #1, HO s7 issues #8; S13.
+
+2. **Release the player copies (`wittydvdplayer`, `wittyblurayplayer`) so WittyMediaPlayer can update them**
+   - Labels: enhancement, area:packaging, area:discs
+   - WittyMediaPlayer's updater (`engine/internal/modupdate`) looks for a GitHub release tagged `wittydvdplayer-v<version>`
+     (and `wittyblurayplayer-v…`) carrying that copy's signed SHA256SUMS, `.sig`, manifest and per-platform archives named by the
+     copy's own id. Nothing makes those releases: the module release runs on `v*` tags and only the Go folder tags
+     `wittydvdplayer/vX` are made. "Look for updates" in the player finds nothing; the built-in copies keep working. Fix in the kit: a
+     second generated workflow that runs `wittymodule pack` in the subfolder on a `wittydvdplayer-v*` tag and signs it like the root
+     module (or the root release packs the copy too), then `publish-all.sh` tags it.
+   - Where: WittyModule `kit/module-kit.sh`, `kit/workflow.py`; WittyDVD and WittyBluray `.github/workflows/release.yml`;
+     WittyMediaPlayer `engine/internal/modupdate`; server `scripts/publish-all.sh` (`player_copy`).
+   - Sources: S7 HANDOVER issue candidate 14; plan G5.
 
 ## wittywilla/WittyModuleCatalog
 

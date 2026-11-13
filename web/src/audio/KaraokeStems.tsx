@@ -101,37 +101,37 @@ export function useKaraokeStems(p: PlayerView) {
 
 export type KaraokeStemsState = ReturnType<typeof useKaraokeStems>
 
-function Level({ label, value, onChange, big }: { label: string; value: number; onChange: (v: number) => void; big?: boolean }) {
+function Level({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
   const pct = Math.round(value * 100)
   return (
-    <label className={'kar-level' + (big ? ' big' : '')}>
+    <label className="kar-level">
       <span>{label}</span>
       <input type="range" min={0} max={100} step={5} value={pct} onChange={(e) => onChange(Number(e.target.value) / 100)} aria-valuetext={`${pct}%`} />
-      <output>{pct}%</output>
+      <output className="np-pill">{pct}%</output>
     </label>
   )
 }
 
-// The voice slider, Sing, and More. Only drawn while the parts are what's playing.
+// The Mix: a row for each part the song has been separated into (Voice, then whatever else there is: Music, Drums,
+// Bass, Other), each with its level as a pill, and the three shortcuts under them (board "stems"). Only drawn while
+// the parts are what's playing.
 export function KaraokeStemsControl({ k }: { k: KaraokeStemsState }) {
-  const [more, setMore] = useState(true)
   const a = k.answer
   if (!k.active || !playable(a)) return null
-  const v = k.sing ? 0 : levelOf(a, k.levels, 'vocals')
+  const rows = sliders(a)
+  const voice = rows.find((r) => r.id === 'vocals')
+  const pristine = !k.sing && rows.every((r) => levelOf(a, k.levels, r.id) === defaultLevel(a, r.id))
   return (
-    <div className="kar-stems" role="group" aria-label="Singer's voice">
-      <Level big label="Vocals (approximate)" value={v} onChange={(n) => k.setLevel('vocals', n)} />
-      <button type="button" className={'kar-chip' + (k.sing ? ' on' : '')} aria-pressed={k.sing} onClick={() => k.setSing(!k.sing)} title="Take the singer out, or put them back (V)">Sing</button>
-      <button type="button" className={'kar-chip' + (more ? ' on' : '')} aria-expanded={more} onClick={() => setMore(!more)}>More</button>
-      {more && (
-        <div className="kar-more">
-          {sliders(a).filter((s) => s.id !== 'vocals').map((s) => <Level key={s.id} label={s.label + ' (approximate)'} value={levelOf(a, k.levels, s.id)} onChange={(n) => k.setLevel(s.id, n)} />)}
-          <div className="kar-more-foot">
-            <span className="kar-quality">{qualityName(a)}</span>
-            <button type="button" className="kar-chip" onClick={k.reset} disabled={!k.sing && sliders(a).every((s) => levelOf(a, k.levels, s.id) === defaultLevel(a, s.id))}>Reset</button>
-          </div>
-        </div>
-      )}
+    <div className="kar-stems kar-mix" role="group" aria-label="Mix">
+      <div className="kar-mix-rows">
+        {rows.map((r) => <Level key={r.id} label={r.id === 'vocals' ? 'Voice' : r.label} value={r.id === 'vocals' && k.sing ? 0 : levelOf(a, k.levels, r.id)} onChange={(n) => k.setLevel(r.id, n)} />)}
+      </div>
+      <div className="kar-mix-pills">
+        {voice && <button type="button" className={'kar-chip' + (k.sing ? ' on' : '')} aria-pressed={k.sing} onClick={() => k.setSing(!k.sing)} title="Take the singer out, or put them back (V)">Voice off</button>}
+        {voice && <button type="button" className="kar-chip" onClick={() => k.setLevel('vocals', 0.2)} title="Keep the singer quietly, as a guide">Guide voice</button>}
+        <button type="button" className="kar-chip" onClick={k.reset} disabled={pristine}>Reset</button>
+      </div>
+      <p className="kar-mix-note">{qualityName(a)}. The parts are separated on your server, so the levels are approximate.</p>
     </div>
   )
 }

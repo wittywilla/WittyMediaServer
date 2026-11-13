@@ -121,6 +121,8 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
     return () => clearInterval(t)
   }, [prefs.viz, prefs.shuffleEvery, prefs.shufflePool, prefs.slow, prefs.style, shaders])
 
+  // Karaoke covers the player: a menu left open under it would sit over the words, so any open menu closes.
+  useEffect(() => { if (karaoke) document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })) }, [karaoke])
   const toggleFullscreen = () => {
     const el = root.current
     if (!el) return

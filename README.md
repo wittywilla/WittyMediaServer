@@ -175,7 +175,7 @@ WittyMediaClient adds Android, Android TV, iOS, tvOS and Plasma Big Screen. Andr
 | [Backup and restore](docs/BACKUP.md) · [Repair](docs/REPAIR.md) · [WittyDiagnoser](docs/DIAGNOSER.md) | Keeping it healthy |
 | [Config file and logs](docs/CONFIG.md) · [Statistics](docs/STATS.md) · [Themes](docs/THEMES.md) | Fine tuning |
 
-**For developers:** [Contributing](CONTRIBUTING.md), [Repositories](docs/REPOSITORIES.md), [Reference](docs/REFERENCE.md), [Client API](docs/CLIENT-API.md), [Making a module](docs/MODULES.md), [Security model](docs/SECURITY-REVIEW.md) and the [Changelog](CHANGELOG.md).
+**For developers:** [Contributing](CONTRIBUTING.md), [Repositories](docs/REPOSITORIES.md), [Reference](docs/REFERENCE.md), [Client API](docs/CLIENT-API.md), [Server-driven UI](docs/SDUI.md) and [for modules](docs/SDUI-MODULES.md), [Design 2](docs/design-2/README.md), [Making a module](docs/MODULES.md), [Security model](docs/SECURITY-REVIEW.md) and the [Changelog](CHANGELOG.md).
 
 ## Privacy and security
 

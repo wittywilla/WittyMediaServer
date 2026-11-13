@@ -57,6 +57,9 @@ html[data-type="mono"] body { letter-spacing: 0; }
 /* With a scene, the frame lets it show: the page and the bars stop painting a flat page colour of their own. */
 html[data-scene] :is(.app, .main, .content) { background: transparent; }
 html[data-scene] .topbar { background: transparent; }
+/* ...until the page is scrolled under it: then it gains the page's colour, frosted, so its words read over posters. */
+html[data-scene] .app .topbar.under { background: rgb(var(--bg-rgb) / .86); box-shadow: 0 1px 0 var(--border); -webkit-backdrop-filter: blur(18px) saturate(1.3); backdrop-filter: blur(18px) saturate(1.3); } /* design-ok: one bar, only once scrolled under */
+@media (prefers-reduced-transparency: reduce) { html[data-scene] .app .topbar.under { background: var(--bg); -webkit-backdrop-filter: none; backdrop-filter: none; } }
 
 /* ---- glass: the bars, menus, dialogs, panels and the Dock take the theme's recipe ---- */
 html[data-fx-glass="subtle"] :is(.sidebar, .topbar, .tabbar, .dock:not(.ctv-dock), .modal, [role=menu], .ui-menu, .popover, .sdui-widget, .ui-card) { background-image: linear-gradient(180deg, color-mix(in srgb, var(--glass-hi) 45%, transparent), transparent 70%); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--glass-edge) 60%, transparent); }

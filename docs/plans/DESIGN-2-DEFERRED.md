@@ -94,3 +94,7 @@ Not run: Android TV (S4's looks run covers it). Deferred:
 - manage-libraries says "1 titles".
 - Lyrics timing by listening: only tried on the middle of the mix (weak on piano-led songs, so it moves little); a real
   separated voice, where it should do best, was not tried (no separator installed).
+
+## From S13 (release candidates), 2026-11-13
+
+- Not built in the RC pass: Windows and Linux desktop packages, AppImage/Flatpak/Snap, WittyMediaPlayer (owner, Windows/WSL); the Android build needs JAVA_HOME at a JDK 17 (Homebrew openjdk@17 here), as gomobile finds no javac otherwise.

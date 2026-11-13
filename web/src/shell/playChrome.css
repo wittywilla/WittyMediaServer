@@ -405,7 +405,21 @@ html[data-wplay] body { font-family: var(--font); }
 .wplay-bio-label { color: var(--fg); font-weight: 800; }
 .wplay-bio-about { margin: 0; color: var(--fg); font-size: clamp(.9rem, 1vw, 1.1rem); line-height: 1.45; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 6; overflow: hidden; }
 .wplay-bio-shots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
-.wplay-bio-shot { inline-size: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 8px; background: rgb(0 0 0 / .3); }
+.wplay-bio-shot { display: block; padding: 0; border: 0; inline-size: 100%; aspect-ratio: 4 / 3; border-radius: 8px; overflow: hidden; background: rgb(0 0 0 / .3); cursor: zoom-in; transition: transform var(--dur-2) var(--ease-out); }
+.wplay-bio-shot img { display: block; inline-size: 100%; block-size: 100%; object-fit: cover; }
+.wplay-bio-shot:hover { transform: scale(1.04); }
+.wplay-bio-shot:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--wp-ring), 0 0 0 6px var(--focus); transform: scale(1.04); }
+@media (prefers-reduced-motion: reduce) { .wplay-bio-shot, .wplay-bio-shot:hover, .wplay-bio-shot:focus-visible { transition: none; transform: none; } }
+/* A picture large (GameBio's ShotViewer). */
+.wplay-shot-view.modal { inline-size: min(96vw, 72rem); }
+.wplay-shot-stage { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; }
+.wplay-shot-stage figure { grid-column: 2; margin: 0; display: grid; gap: 8px; justify-items: center; }
+.wplay-shot-stage img { inline-size: min(100%, calc(70dvh * 4 / 3)); block-size: auto; max-block-size: 70dvh; object-fit: contain; border-radius: 10px; image-rendering: pixelated; background: #000; }
+.wplay-shot-stage figcaption { color: var(--fg-2); font-weight: 700; }
+.wplay-shot-arrow { display: grid; place-items: center; inline-size: 48px; block-size: 48px; border: 0; border-radius: 50%; background: var(--bg-3, rgb(255 255 255 / .1)); color: var(--fg); cursor: pointer; }
+.wplay-shot-arrow:last-child { grid-column: 3; }
+.wplay-shot-arrow:hover { background: var(--accent); color: var(--accent-fg); }
+.wplay-shot-arrow:focus-visible { outline: var(--focus-width, 3px) solid var(--focus); outline-offset: 3px; }
 .wplay-cheevos { display: grid; gap: 8px; padding-block-start: 10px; border-block-start: 1px solid rgb(255 255 255 / .12); }
 .wplay-cheevos h3 { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 0; font-size: clamp(.95rem, 1.05vw, 1.2rem); font-weight: 900; }
 .wplay-cheevos-count { color: var(--fg-2); font-size: .85em; font-weight: 700; }

@@ -154,7 +154,7 @@ function move(dir: Dir): boolean {
     const near = gone && nearest(gone, all.filter((el) => visible(el, boxes.get(el)!) && !hiddenInScroller(el, boxes.get(el)!, document.body)), (el) => boxes.get(el)!)
     if (near) { focus(near); return true }
     // Nothing focused yet: start where this page's main action is, or at the first control of the main content.
-    const first = firstOf(all.filter((el) => el.closest('.content, .player, [role=dialog]')), boxes) || all.find((el) => visible(el, boxes.get(el)!))
+    const first = firstOf(all.filter((el) => el.closest('.content, #main, .player, [role=dialog]')), boxes) || all.find((el) => visible(el, boxes.get(el)!))
     if (!first) return false
     focus(first)
     return true

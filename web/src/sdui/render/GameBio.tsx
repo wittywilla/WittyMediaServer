@@ -5,6 +5,8 @@
 // after focus settles, so running along a row doesn't ask the server about every game it passes.
 import { useEffect, useState, type ReactNode } from 'react'
 import { api, mediaUrl, type GameDetailsInfo, type Item } from '../../api'
+import { IconLeft, IconRight } from '../../icons'
+import { Dialog } from '../../ui/Overlay'
 
 type Cheevo = { id: number; title: string; description: string; points: number; badge?: string }
 type Cheevos = {
@@ -51,10 +53,39 @@ function Logo({ url, title }: { url: string; title: string }) {
   return <img className="wplay-bio-logo" src={mediaUrl(url)} alt={title} onError={() => setOk(false)} />
 }
 
-function Shot({ url }: { url: string }) {
+const SHOT_WORDS: Record<string, string> = { screenshot: 'In the game', title: 'Title screen', artwork: 'Artwork' }
+
+// A picture from the game: a button that opens it large.
+function Shot({ url, label, onOpen }: { url: string; label: string; onOpen: () => void }) {
   const [ok, setOk] = useState(true)
   if (!ok) return null
-  return <img className="wplay-bio-shot" src={mediaUrl(url)} alt="" loading="lazy" onError={() => setOk(false)} />
+  return (
+    <button type="button" className="wplay-bio-shot" onClick={onOpen} aria-label={`${label}: show larger`}>
+      <img src={mediaUrl(url)} alt="" loading="lazy" onError={() => setOk(false)} />
+    </button>
+  )
+}
+
+// The pictures large, one at a time: Left and Right (or a pad's d-pad) between them, Esc or B to close.
+function ShotViewer({ title, shots, at, onMove, onClose }: { title: string; shots: { url: string; kind: string }[]; at: number; onMove: (i: number) => void; onClose: () => void }) {
+  const n = shots.length
+  const go = (d: number) => onMove((at + d + n) % n)
+  const s = shots[at]
+  return (
+    <Dialog title={title} onClose={onClose} size="wide" className="wplay-shot-view">
+      <div className="wplay-shot-stage" onKeyDown={(e) => {
+        if (e.key === 'ArrowLeft') { e.preventDefault(); e.stopPropagation(); go(-1) }
+        else if (e.key === 'ArrowRight') { e.preventDefault(); e.stopPropagation(); go(1) }
+      }}>
+        {n > 1 && <button type="button" className="wplay-shot-arrow" onClick={() => go(-1)} aria-label="Previous picture"><IconLeft /></button>}
+        <figure>
+          <img src={mediaUrl(s.url)} alt={`${title}: ${SHOT_WORDS[s.kind] || 'picture'}`} />
+          <figcaption>{SHOT_WORDS[s.kind] || 'Picture'}{n > 1 ? ` · ${at + 1} of ${n}` : ''}</figcaption>
+        </figure>
+        {n > 1 && <button type="button" className="wplay-shot-arrow" onClick={() => go(1)} aria-label="Next picture" autoFocus><IconRight /></button>}
+      </div>
+    </Dialog>
+  )
 }
 
 function Achievements({ cheevos }: { cheevos: Cheevos | null | undefined }) {
@@ -96,6 +127,7 @@ function Achievements({ cheevos }: { cheevos: Cheevos | null | undefined }) {
 // children: the panel's title, line and buttons, which go under the logo and above the rest.
 export function GameBio({ itemId, title, console: consoleName, children }: { itemId: string; title: string; console?: string; children: ReactNode }) {
   const { item, meta, cheevos } = useBio(itemId)
+  const [open, setOpen] = useState<number | null>(null)
   const logo = meta?.art?.find((a) => a.kind === 'logo')
   const shots = (meta?.art || []).filter((a) => a.kind === 'screenshot' || a.kind === 'title' || a.kind === 'artwork').slice(0, 3)
   const makers = [...new Set([meta?.developer || item?.studio, meta?.publisher].filter(Boolean) as string[])]
@@ -114,7 +146,8 @@ export function GameBio({ itemId, title, console: consoleName, children }: { ite
       {makers.length > 0 && <p className="wplay-bio-makers"><span className="wplay-bio-label">Made by</span> {makers.join(' · ')}</p>}
       {about && <p className="wplay-bio-about">{about}</p>}
       {item?.genres?.length ? <p className="wplay-bio-genres">{item.genres.join(' · ')}</p> : null}
-      {shots.length > 0 && <div className="wplay-bio-shots">{shots.map((s) => <Shot key={s.url} url={s.url} />)}</div>}
+      {shots.length > 0 && <div className="wplay-bio-shots" data-nav-group>{shots.map((s, i) => <Shot key={s.url} url={s.url} label={SHOT_WORDS[s.kind] || 'Picture'} onOpen={() => setOpen(i)} />)}</div>}
+      {open !== null && shots[open] && <ShotViewer title={title} shots={shots} at={open} onMove={setOpen} onClose={() => setOpen(null)} />}
       <Achievements cheevos={cheevos} />
     </div>
   )

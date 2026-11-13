@@ -11,6 +11,7 @@ import { dockCurrent, usePageRegions, type DockEntry, type StatusPart } from '..
 import { setPlayMode } from '../theme'
 import { isBackKey } from '../ui/spatial'
 import { useApp } from '../state'
+import { focusFirst } from '../tv'
 import { dockFor, exitWords, isPlayPath, isPlayTop, PLAY_CONSOLES, PLAY_CONTROLLERS, PLAY_EXIT, PLAY_PADS_TITLE, PLAY_STATUS, PLAY_TIP, PLAY_TIP_KEY, tipDue, type PlayLayout, type PlayPads } from './playPaths'
 import { usePlayTabs, LayoutChooser, LayoutSwitch, PadsChooser, PadsSetting, PlayGlyph, usePlayLayout, usePlayPads } from './playPads'
 import { GlyphContext, RowLayoutContext, TabsContext, type GlyphKey } from '../sdui/render/glyphs'
@@ -175,6 +176,13 @@ export function PlayFrame({ children }: { children: ReactNode }) {
     setPlayMode(true)
     return () => { delete html.dataset.wplay; setPlayMode(false) }
   }, [])
+  // Like a console, every WittyPlay page starts on its chosen game or main button, keyboard, pad or remote alike: the
+  // first arrow then moves from there, and Enter plays. It looks a few times, as a page may still be loading its games.
+  useEffect(() => {
+    const idle = () => { const a = document.activeElement; return !a || a === document.body || a === document.getElementById('main') || !a.isConnected }
+    const tries = [120, 450, 1000, 2000, 3500].map((ms) => window.setTimeout(() => { if (idle()) focusFirst() }, ms))
+    return () => tries.forEach(window.clearTimeout)
+  }, [loc.pathname, loc.search])
   // The tip shows by itself the first time this profile opens WittyPlay (kept in the profile's /me/ui, so once on every device),
   // a moment after the screen has drawn and the profile's own choices have come; the help button shows it again.
   const [seen, setSeen] = useUserPref<boolean>(PLAY_TIP_KEY, false)

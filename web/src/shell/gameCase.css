@@ -143,3 +143,9 @@
 .sdui-detail-actrow > .sdui-detail-actions { margin: 0; }
 .gpic-detail-btn svg { inline-size: 42%; block-size: 42%; }
 .wplay .gpic-detail-btn:focus-visible { outline: none; box-shadow: 0 0 0 4px var(--wp-ring), 0 0 0 7px var(--focus); }
+
+/* The game panel's picture (GamePictureArt PanelCover): the art whole, or the game in its case, above the name and Play. */
+.wplay-panel-cover { display: grid; place-items: center; block-size: clamp(150px, 26vh, 320px); margin-block-end: 4px; }
+.wplay-panel-cover img { max-inline-size: 100%; max-block-size: 100%; object-fit: contain; border-radius: clamp(8px, .8vw, 14px); box-shadow: 0 18px 40px rgb(0 0 0 / .45), 0 0 0 1px rgb(255 255 255 / .08); }
+.wplay-panel-cover.case { position: relative; inline-size: min(100%, clamp(140px, 22vh, 260px)); aspect-ratio: 3 / 4; block-size: auto; justify-self: center; }
+.wplay .sdui-shelf:not(.layout-grid):not(.layout-list) .wplay-panel-cover { display: none; }

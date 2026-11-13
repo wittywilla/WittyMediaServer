@@ -377,3 +377,13 @@ export function importDoc(pref: PicturesPref, doc: WittyplayDoc, matches: number
 
 // A file name for an export: letters, digits and spaces of the name given, and the extension.
 export const exportName = (name: string) => (name.replace(/[^\p{L}\p{N} _-]+/gu, '').trim().slice(0, 60) || 'game-pictures') + WITTYPLAY_EXT
+
+// The picture at the top of WittyPlay's game panel (beside the games): the game's own art as it is, or the game in its case or
+// cartridge as chosen for it. Per profile in /me/ui.
+export type PanelArt = 'art' | 'case'
+export const PLAY_PANEL_ART_KEY = 'wittyplayPanelArt'
+export const PANEL_ARTS: { id: PanelArt; label: string; note: string }[] = [
+  { id: 'art', label: 'The game’s art, as it is', note: 'Its box art whole, nothing drawn round it' },
+  { id: 'case', label: 'In its case or cartridge', note: 'The style chosen for the game, its console or every game' },
+]
+export const panelArtOf = (v: unknown): PanelArt => (v === 'case' ? 'case' : 'art')

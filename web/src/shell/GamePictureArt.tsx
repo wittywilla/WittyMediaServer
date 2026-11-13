@@ -16,9 +16,9 @@ import { useBrandLogos } from './brandLogos'
 import { IconImage } from '../icons'
 import { FitArt, GameCase } from './GameCase'
 import {
-  CASE_STYLES, FAMILY_VARIANTS, LABELS, MEDIA, PICTURES, PLAY_PICTURES_KEY, VARIANTS, cleanLook, emptyLook, familyVariant, lookFor, mediaDef, mediaFor,
+  CASE_STYLES, FAMILY_VARIANTS, LABELS, MEDIA, PANEL_ARTS, PICTURES, PLAY_PANEL_ART_KEY, PLAY_PICTURES_KEY, panelArtOf, VARIANTS, cleanLook, emptyLook, familyVariant, lookFor, mediaDef, mediaFor,
   picturesPref, resolveLook, styleDef, stylesOf, usualStyle, withFamilyVariant, withLook, withMediaStyle,
-  type CaseStyle, type LabelPick, type Look, type MediaId, type PicturesPref, type Resolved, type ServerPictures, type Variant,
+  type CaseStyle, type LabelPick, type Look, type MediaId, type PanelArt, type PicturesPref, type Resolved, type ServerPictures, type Variant,
 } from './gamePictures'
 
 // ---- the choices ----
@@ -108,6 +108,40 @@ export function GameCardArt({ look, itemId, consoleId, image, title, brand }: { 
   return <FitArt src={image} className="gpic-tile" onFail={() => setFailed(image)} />
 }
 
+// What sits at the top of the game panel (PLAY_PANEL_ART_KEY).
+export function usePanelArt(): [PanelArt, (p: PanelArt) => void] {
+  const [saved, save] = useUserPref<string>(PLAY_PANEL_ART_KEY, '')
+  return [panelArtOf(saved), (p) => { void save(p === 'art' ? '' : p).catch(() => {}) }]
+}
+
+// The game panel's picture: the art as it is (whole, never cropped), or the game in the case its look chooses.
+export function PanelCover({ mode, look, itemId, consoleId, image, title, brand }: { mode: PanelArt; look: Resolved; itemId: string; consoleId: string; image: string; title: string; brand?: string | null }) {
+  const [failed, setFailed] = useState('')
+  const logo = useGameLogo(itemId, mode === 'case' && look.label === 'logo')
+  if (mode === 'case') return <div className="wplay-panel-cover case" aria-hidden="true"><GameCase style={look.case} consoleId={consoleId} art={image} logo={logo} title={title} label={look.label} brand={brand} /></div>
+  if (!image || failed === image) return null
+  return <div className="wplay-panel-cover" aria-hidden="true"><img src={image} alt="" onError={() => setFailed(image)} /></div>
+}
+
+// The choice of the game panel's picture, for Settings › Game pictures (yours only: it is how your panel looks).
+export function PanelArtChooser() {
+  const [mode, setMode] = usePanelArt()
+  const id = useId()
+  return (
+    <section className="wplay-pads-setting" aria-labelledby={id}>
+      <h2 id={id}>The picture beside the games</h2>
+      <p className="wplay-console-note">At the top of the panel that shows the chosen game, above its name and Play.</p>
+      <div className="wplay-pads" role="radiogroup" aria-labelledby={id} data-nav-group>
+        {PANEL_ARTS.map((o) => (
+          <button key={o.id} type="button" role="radio" aria-checked={o.id === mode} className={'wplay-pad' + (o.id === mode ? ' on' : '')} onClick={() => setMode(o.id)}>
+            <span className="wplay-pad-text"><b>{o.label}</b><span>{o.note}</span></span>
+          </button>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 // What WittyPlay's frame gives the renderer (sdui/render/glyphs.ts GameArtContext): each game card's picture as chosen, and the
 // detail panel's button for one game.
 export function useGameArtApi(): GameArtApi {
@@ -115,6 +149,7 @@ export function useGameArtApi(): GameArtApi {
   const server = useServerPictures()
   const consoles = useConsoleIndex()
   const brands = useBrandLogos()
+  const [panelArt] = usePanelArt()
   return useMemo<GameArtApi>(() => ({
     art: ({ itemId, console: short, image, title }: GameArtArgs) => {
       const c = consoles.find(short)
@@ -125,7 +160,15 @@ export function useGameArtApi(): GameArtApi {
       return <GameCardArt look={look} itemId={itemId} consoleId={id} image={image} title={title} brand={brand ? brandUrl(brand) : null} />
     },
     detail: (a: GameArtArgs) => <GamePictureButton itemId={a.itemId} title={a.title} console={a.console} image={a.image} />,
-  }), [pref, server, consoles, brands])
+    cover: ({ itemId, console: short, image, title }: GameArtArgs) => {
+      const c = consoles.find(short)
+      const id = c?.id || short.toLowerCase()
+      const look = lookFor(pref, server, itemId, id, consoleMedia(c, id))
+      const caseLook = look.picture === 'case' ? look : { ...look, picture: 'case' as const }
+      const brand = brands?.enabled ? brands.logos[id] : undefined
+      return <PanelCover key={itemId} mode={panelArt} look={caseLook} itemId={itemId} consoleId={id} image={image} title={title} brand={brand ? brandUrl(brand) : null} />
+    },
+  }), [pref, server, consoles, brands, panelArt])
 }
 // A light logo reads on the dark plate a case gives it.
 const brandUrl = (b: { id: number; version: number; opaque: boolean }) => logoImageUrl(b, b.opaque ? 'original' : 'white')

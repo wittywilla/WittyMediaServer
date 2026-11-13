@@ -431,6 +431,7 @@ function ShelfDetail({ view, parent }: { view: View; parent: View }) {
   // The shell's own part for a game (WittyPlay: how this game's picture is drawn): one more button at the end of the row.
   const gameArt = useContext(GameArtContext)
   const extra = game && gameArt?.detail ? gameArt.detail({ itemId: game, console: str(p, 'console'), image: picture(obj(p, 'image')), title: text.title || '' }) : null
+  const cover = game && gameArt?.cover ? gameArt.cover({ itemId: game, console: str(p, 'console'), image: picture(obj(p, 'image')), title: text.title || '' }) : null
   const actions = buttons.length > 0 && <ActionButtons buttons={buttons} view={parent} className="sdui-detail-actions" />
   const head = (
     <>
@@ -441,7 +442,7 @@ function ShelfDetail({ view, parent }: { view: View; parent: View }) {
   )
   return (
     <div className={'sdui-detail' + (game ? ' has-bio' : '')} aria-live="polite" data-for={view.id}>
-      {game ? <GameBio key={game} itemId={game} title={text.title || ''} console={typeof p.console === 'string' ? p.console : undefined}>{head}</GameBio> : head}
+      {game ? <GameBio key={game} itemId={game} title={text.title || ''} console={typeof p.console === 'string' ? p.console : undefined} top={cover}>{head}</GameBio> : head}
     </div>
   )
 }

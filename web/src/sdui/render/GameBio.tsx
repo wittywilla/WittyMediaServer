@@ -139,7 +139,7 @@ export function Achievements({ cheevos }: { cheevos: Cheevos | null | undefined 
 }
 
 // children: the panel's title, line and buttons, which go under the logo and above the rest.
-export function GameBio({ itemId, title, console: consoleName, children }: { itemId: string; title: string; console?: string; children: ReactNode }) {
+export function GameBio({ itemId, title, console: consoleName, children, top }: { itemId: string; title: string; console?: string; children: ReactNode; top?: ReactNode }) {
   const { item, meta, cheevos } = useBio(itemId)
   const [open, setOpen] = useState<number | null>(null)
   const logo = meta?.art?.find((a) => a.kind === 'logo')
@@ -150,6 +150,7 @@ export function GameBio({ itemId, title, console: consoleName, children }: { ite
   const about = item?.overview?.trim()
   return (
     <div className="wplay-bio" data-loaded={item ? '' : undefined}>
+      {top}
       {logo && <Logo key={logo.url} url={logo.url} title={title} />}
       {children}
       <p className="wplay-bio-line">

@@ -232,7 +232,7 @@ export function PlayFrame({ children }: { children: ReactNode }) {
   }, [top]) // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <GlyphContext.Provider value={glyph}><RowLayoutContext.Provider value={layout}><TabsContext.Provider value={tabs}><CardRouteContext.Provider value={route}>
-      <div className="wplay" data-scope="wittyplay" data-pads={pads} data-layout={layout}>
+      <div className="wplay" data-arrows-move data-scope="wittyplay" data-pads={pads} data-layout={layout}>
         <StatusBar parts={regions?.statusBar || PLAY_STATUS} onExit={exit} onHelp={() => setTip(true)} />
         <main className="wplay-stage" id="main" data-nav-zone="stage" tabIndex={-1}>
           {loc.pathname === PLAY_CONTROLLERS && <PadsSetting />}

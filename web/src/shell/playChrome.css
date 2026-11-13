@@ -437,3 +437,132 @@ html[data-wplay] body { font-family: var(--font); }
 .wplay .sdui-shelf:not(.layout-grid):not(.layout-list) .wplay-bio :is(.wplay-bio-shots, .wplay-cheevos, .wplay-bio-genres, .wplay-bio-logo) { display: none; }
 .wplay .sdui-shelf:not(.layout-grid):not(.layout-list) .wplay-bio-about { -webkit-line-clamp: 2; }
 @media (prefers-reduced-transparency: reduce) { .wplay-cheevos-list li { opacity: 1; color: var(--fg-2); } }
+
+/* ==== a game's page in WittyPlay (games/Details.tsx, variant "play"): built for a controller and a TV first ==================== */
+.wpg { --wpg-gap: clamp(28px, 3.2vw, 56px); position: relative; display: grid; gap: var(--wpg-gap); padding-block: clamp(8px, 1.6vw, 28px) calc(var(--wp-dock) + 120px); }
+.wpg-backdrop { position: fixed; inset: -40px; z-index: -1; background-size: cover; background-position: center; filter: blur(40px) saturate(1.1) brightness(.3); transform: scale(1.08); pointer-events: none; }
+.wpg::after { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(120% 80% at 20% 0%, color-mix(in srgb, var(--wpg-tint, #3a2f8f) 32%, transparent), transparent 60%), linear-gradient(180deg, rgb(10 12 40 / .55), rgb(8 10 34 / .94) 60%); }
+/* hero: the cover, then what it is and the buttons, the main one where focus starts */
+.wpg-hero { display: grid; grid-template-columns: clamp(150px, min(22vw, 34vh), 420px) minmax(0, 1fr); gap: clamp(20px, 3vw, 56px); align-items: end; }
+.wpg-cover { align-self: start; }
+.wpg-cover img, .wpg-cover .placeholder { display: block; inline-size: 100%; border-radius: clamp(12px, 1.2vw, 20px); box-shadow: 0 30px 70px rgb(0 0 0 / .55), 0 0 0 1px rgb(255 255 255 / .1); }
+.wpg-head { display: grid; gap: clamp(12px, 1.2vw, 20px); min-inline-size: 0; }
+.wpg-logo { max-inline-size: min(100%, 34rem); max-block-size: clamp(70px, 9vw, 160px); object-fit: contain; object-position: left bottom; filter: drop-shadow(0 4px 18px rgb(0 0 0 / .6)); }
+.wpg-title { margin: 0; font-size: clamp(2rem, 4.4vw, 4.6rem); font-weight: 900; line-height: 1.02; letter-spacing: -.01em; text-wrap: balance; text-shadow: 0 4px 24px rgb(0 0 0 / .45); }
+.wpg-title.small { font-size: clamp(1.1rem, 1.6vw, 1.7rem); font-weight: 800; color: var(--fg-2); text-shadow: none; }
+.wpg-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.wpg-chip { padding: 5px 14px; border-radius: 999px; background: rgb(255 255 255 / .1); color: var(--fg); font-size: clamp(.85rem, 1vw, 1.1rem); font-weight: 750; }
+.wpg-chip.console { background: linear-gradient(180deg, #5ff0d6, #1fc3a8); color: var(--accent-fg); font-weight: 900; }
+.wpg-chip.rating { background: none; box-shadow: inset 0 0 0 2px rgb(255 255 255 / .45); }
+.wpg-head { container-type: inline-size; container-name: wpg-head; }
+.wpg-actions { display: flex; flex-wrap: nowrap; gap: clamp(10px, 1vw, 16px); margin-block-start: 4px; }
+.wpg-btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-block-size: clamp(52px, 4.6vw, 72px); padding: 0 clamp(20px, 2vw, 34px); border: 0; border-radius: 999px; background: var(--wp-chip); color: var(--fg); font: inherit; font-size: clamp(1rem, 1.25vw, 1.4rem); font-weight: 850; text-decoration: none; cursor: pointer; transition: transform var(--dur-2) var(--ease-out), background var(--dur-2), box-shadow var(--dur-2); }
+.wpg-btn-label { white-space: nowrap; }
+.wpg .gm-prompts { display: none; }
+.wpg-btn svg { inline-size: 1.15em; block-size: 1.15em; flex: none; }
+.wpg-btn:hover { background: var(--wp-chip-hover); }
+.wpg-btn.primary { min-inline-size: clamp(170px, 14vw, 260px); background: linear-gradient(180deg, #5ff0d6, #1fc3a8); color: var(--accent-fg); }
+.wpg-btn.icon { inline-size: clamp(52px, 4.6vw, 72px); padding: 0; }
+.wpg-btn.on svg { color: #ffd34d; }
+.wpg-btn.small { min-block-size: 44px; font-size: 1rem; justify-self: start; }
+.wpg-count { display: inline-grid; place-items: center; min-inline-size: 1.6em; block-size: 1.6em; padding: 0 .4em; border-radius: 999px; background: #5ff0d6; color: var(--accent-fg); font-size: .8em; font-weight: 900; }
+:is(.wpg, .wpg-saves-sheet) :is(.wpg-btn, .wpg-shot, .wpg-mini):focus-visible { outline: none; box-shadow: 0 0 0 4px var(--wp-ring), 0 0 0 8px #fff; transform: scale(1.05); }
+/* rows a d-pad walks sideways */
+.wpg-row { display: grid; gap: 14px; min-inline-size: 0; }
+.wpg h2 { margin: 0; font-size: clamp(1.25rem, 1.7vw, 2rem); font-weight: 900; }
+.wpg-empty { margin: 0; max-inline-size: 60ch; color: var(--fg-2); font-size: clamp(.95rem, 1.05vw, 1.15rem); }
+.wpg-shots { list-style: none; margin: 0; padding: 12px 12px 18px; margin-inline: -12px; display: flex; gap: clamp(16px, 1.6vw, 28px); overflow-x: auto; scroll-snap-type: x proximity; scroll-padding-inline: 12px; scrollbar-width: none; }
+.wpg-shots::-webkit-scrollbar { display: none; }
+.wpg-shots > li { flex: none; scroll-snap-align: start; }
+.wpg-shot { display: block; padding: 0; border: 0; inline-size: clamp(200px, min(20vw, 30vh), 420px); aspect-ratio: 4 / 3; border-radius: 16px; overflow: hidden; background: #000; cursor: zoom-in; box-shadow: 0 14px 34px rgb(0 0 0 / .4); transition: transform var(--dur-2) var(--ease-out), box-shadow var(--dur-2); }
+.wpg-shot img { display: block; inline-size: 100%; block-size: 100%; object-fit: cover; }
+/* achievements: what can be earned, laid out wide */
+.wpg-cheevos .wplay-cheevos { border: 0; padding: 0; }
+.wpg-cheevos .wplay-cheevos h3 { font-size: clamp(1.25rem, 1.7vw, 2rem); }
+.wpg-cheevos .wplay-cheevos-list { grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr)); max-block-size: none; overflow: visible; }
+.wplay-cheevos-credit { margin: 0; color: var(--fg-2); font-size: .85rem; }
+.wplay-cheevos-credit a { color: inherit; }
+/* about and facts, then the rest of the game's page as cards */
+.wpg-about { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: clamp(16px, 2vw, 32px); align-items: start; }
+.wpg-card, .wpg .gm-panel, .wpg-advanced > details { display: grid; gap: 12px; padding: clamp(18px, 1.8vw, 30px); border-radius: clamp(16px, 1.4vw, 24px); background: rgb(255 255 255 / .06); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .06); }
+.wpg .gm-overview { margin: 0; font-size: clamp(1rem, 1.15vw, 1.25rem); line-height: 1.55; }
+.wpg-facts .gm-facts-box { margin: 0; padding: 0; background: none; }
+.wpg-facts .gm-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 20px; margin: 0; }
+.wpg-facts .gm-facts dt { color: var(--fg-2); font-size: .8rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
+.wpg-facts .gm-facts dd { margin: 2px 0 0; font-size: clamp(1rem, 1.1vw, 1.2rem); font-weight: 700; }
+.wpg .gm-panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr)); gap: clamp(14px, 1.6vw, 26px); margin: 0; }
+.wpg .gm-panel h2 { font-size: clamp(1.1rem, 1.4vw, 1.6rem); }
+.wpg :is(.gm-panel, .wpg-advanced) .btn { min-block-size: 48px; padding-inline: 20px; border: 0; border-radius: 999px; background: var(--wp-chip); color: var(--fg); font-weight: 800; }
+.wpg :is(.gm-panel, .wpg-advanced) .btn:hover { background: var(--wp-chip-hover); }
+.wpg :is(.gm-panel, .wpg-advanced, .wpg-about) :is(.btn, a, textarea, summary):focus-visible { outline: none; box-shadow: 0 0 0 3px var(--wp-ring), 0 0 0 6px #fff; }
+.wpg .gm-notes { inline-size: 100%; border-radius: 14px; background: rgb(0 0 0 / .25); }
+.wpg-advanced > details > summary { cursor: pointer; font-weight: 850; font-size: clamp(1rem, 1.2vw, 1.3rem); min-block-size: 44px; display: flex; align-items: center; border-radius: 12px; }
+.wpg .legal-note, .wpg .gm-credits { color: var(--fg-2); }
+/* One row of buttons always, so Down from any of them goes to the saves: where the row is narrow, the other buttons keep only their
+   icons (their names stay for screen readers and show as a tooltip-free label on focus). */
+@container wpg-head (max-width: 62rem) {
+  .wpg-btn:not(.primary) { inline-size: clamp(52px, 4.6vw, 72px); padding: 0; flex: none; }
+  .wpg-btn:not(.primary) .wpg-btn-label { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .wpg-btn.primary { flex: 1 1 auto; min-inline-size: 0; }
+}
+@media (max-width: 800px) {
+  .wpg-hero { grid-template-columns: minmax(0, 1fr); }
+  .wpg-cover { inline-size: min(52vw, 220px); }
+  .wpg-about { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { .wpg :is(.wpg-btn, .wpg-shot) { transition: none; transform: none !important; } }
+
+/* Wide screens (16:9 and wider, big enough): the about, facts and panels sit side by side so a TV is filled without long lines. */
+@media (min-width: 1400px) and (min-aspect-ratio: 16/10) {
+  .wpg-about { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) ; }
+  .wpg .gm-panels { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+/* Squarer screens (4:3, 5:4): the hero stacks less tall, and the panels two by two. */
+@media (max-aspect-ratio: 4/3) and (min-width: 801px) {
+  .wpg .gm-panels { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* ==== a game's settings in WittyPlay: a full-height panel built for a controller (Details.tsx sheet, class wpg-settings) ==== */
+html[data-wplay] .ui-sheet-wrap:has(.wpg-settings) { background: rgb(6 8 30 / .72); backdrop-filter: blur(6px); }
+html[data-wplay] .modal.ui-sheet.wpg-settings { inline-size: min(100vw, max(40rem, 58vw)); background: #161a4a; color: #fff; border: 0; box-shadow: -30px 0 80px rgb(0 0 0 / .5); font-size: clamp(1rem, 1.05vw, 1.25rem); }
+html[data-wplay] .wpg-settings .ui-dialog-head { padding: clamp(18px, 2vw, 32px) clamp(20px, 2.4vw, 40px); }
+html[data-wplay] .wpg-settings .ui-dialog-head h2 { font-size: clamp(1.3rem, 1.8vw, 2.1rem); font-weight: 900; }
+html[data-wplay] .wpg-settings .ui-sheet-body { padding: 0 clamp(20px, 2.4vw, 40px) clamp(24px, 3vw, 48px); scroll-padding-block: 120px; }
+html[data-wplay] .wpg-settings :is(button, select, input, a, summary, [tabindex="0"]) { min-block-size: 48px; }
+html[data-wplay] .wpg-settings :is(button, select, input, a, summary, [tabindex="0"]):focus-visible { outline: none; box-shadow: 0 0 0 3px #5ff0d6, 0 0 0 6px #fff; border-radius: 12px; }
+@media (max-width: 700px) { html[data-wplay] .modal.ui-sheet.wpg-settings { inline-size: 100vw; } }
+
+/* Below the hero: what the game is and its facts on the left, its achievements on the right (stacked on narrow screens). */
+.wpg-main { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(min(100%, 22rem), 1fr); gap: clamp(16px, 2vw, 32px); align-items: start; }
+.wpg-col { display: grid; gap: clamp(16px, 2vw, 32px); min-inline-size: 0; }
+.wpg-cheevos .wplay-cheevos-list { grid-template-columns: minmax(0, 1fr); max-block-size: min(60vh, 40rem); overflow-y: auto; }
+@media (max-width: 900px), (max-aspect-ratio: 1/1) { .wpg-main { grid-template-columns: minmax(0, 1fr); } }
+@media (min-width: 1400px) and (min-aspect-ratio: 16/10) { .wpg-main { grid-template-columns: minmax(0, 2fr) minmax(24rem, 1fr); } }
+
+/* ==== save states: their own panel at the side (a sheet), a column of big screenshots a d-pad walks down ==== */
+html[data-wplay] .ui-sheet-wrap:has(.wpg-saves-sheet) { background: rgb(6 8 30 / .6); backdrop-filter: blur(6px); }
+html[data-wplay] .modal.ui-sheet.wpg-saves-sheet { inline-size: min(100vw, clamp(22rem, 34vw, 40rem)); background: #161a4a; color: #fff; border: 0; box-shadow: -30px 0 80px rgb(0 0 0 / .5); }
+html[data-wplay] .wpg-saves-sheet .ui-dialog-head { padding: clamp(18px, 2vw, 32px) clamp(20px, 2.4vw, 36px); }
+html[data-wplay] .wpg-saves-sheet .ui-dialog-head h2 { font-size: clamp(1.3rem, 1.8vw, 2.1rem); font-weight: 900; }
+html[data-wplay] .wpg-saves-sheet .ui-sheet-body { padding: 4px clamp(20px, 2.4vw, 36px) 40px; scroll-padding-block: 80px; }
+.wpg-saves-sheet .wpg-saves { list-style: none; margin: 0; padding: 0; display: grid; gap: clamp(18px, 2vh, 28px); }
+.wpg-saves-sheet .wpg-saves > li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 8px 12px; }
+.wpg-saves-sheet .wpg-save { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 14px; align-items: center; color: #fff; text-decoration: none; border-radius: 16px; }
+.wpg-saves-sheet .resume .wpg-save { grid-template-columns: minmax(0, 1fr); }
+.wpg-saves-sheet .wpg-save-tools { grid-row: 2; grid-column: 1 / -1; justify-self: start; display: flex; gap: 8px; }
+.wpg-save-pic { position: relative; display: block; aspect-ratio: 4 / 3; border-radius: 14px; overflow: hidden; background: #000; box-shadow: 0 12px 30px rgb(0 0 0 / .45), 0 0 0 1px rgb(255 255 255 / .1); transition: transform var(--dur-2) var(--ease-out), box-shadow var(--dur-2); }
+.wpg-save-pic img, .wpg-save-pic .gm-save-blank { display: block; inline-size: 100%; block-size: 100%; object-fit: cover; }
+.wpg-save-num { position: absolute; inset-block-start: 8px; inset-inline-start: 8px; display: grid; place-items: center; min-inline-size: 2em; block-size: 2em; padding: 0 .5em; border-radius: 999px; background: rgb(0 0 0 / .72); color: #fff; font-weight: 900; }
+.wpg-save-text { display: grid; gap: 4px; align-content: center; justify-items: start; }
+.wpg-save-text b { font-size: clamp(1.05rem, 1.25vw, 1.4rem); font-weight: 850; }
+.wpg-saves-sheet .resume .wpg-save-text b { font-size: clamp(1.2rem, 1.5vw, 1.7rem); }
+.wpg-save-text time { color: rgb(255 255 255 / .72); font-size: clamp(.9rem, 1vw, 1.1rem); }
+.wpg-save-cue { display: inline-flex; align-items: center; gap: 6px; margin-block-start: 4px; padding: 6px 14px; border-radius: 999px; background: rgb(255 255 255 / .12); font-weight: 900; }
+.wpg-saves-sheet .resume .wpg-save-cue, .wpg-save:is(:hover, :focus-visible) .wpg-save-cue { background: linear-gradient(180deg, #5ff0d6, #1fc3a8); color: var(--accent-fg); }
+.wpg-save:focus-visible { outline: none; }
+.wpg-save:focus-visible .wpg-save-pic { box-shadow: 0 0 0 4px #5ff0d6, 0 0 0 8px #fff; transform: scale(1.02); }
+.wpg-saves-sheet .wpg-mini { display: grid; place-items: center; inline-size: 48px; block-size: 48px; border: 0; border-radius: 50%; background: rgb(255 255 255 / .1); color: #fff; cursor: pointer; }
+.wpg-saves-sheet .wpg-mini:hover { background: rgb(255 255 255 / .2); }
+.wpg-saves-sheet .wpg-mini:focus-visible { outline: none; box-shadow: 0 0 0 3px #5ff0d6, 0 0 0 6px #fff; }
+html[data-wplay] .wpg-settings [role=tablist] { overflow-x: auto; scrollbar-width: none; scroll-padding-inline: 40px; }
+@media (prefers-reduced-motion: reduce) { .wpg-save-pic, .wpg-save:focus-visible .wpg-save-pic { transition: none; transform: none; } }

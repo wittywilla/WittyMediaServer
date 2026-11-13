@@ -100,6 +100,8 @@ export function Menu({ trigger, items, label, head, align = 'end', className }: 
     onKeyDown: (e) => {
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         if (!open && e.key === 'ArrowUp') { /* stays with the page */ return }
+        // A screen driven like a console (WittyPlay) moves on with the arrows: only OK opens the menu.
+        if (!open && (e.currentTarget as HTMLElement).closest('[data-arrows-move]')) return
         e.preventDefault(); e.stopPropagation()
         setStart(e.key === 'ArrowUp' ? 'last' : 'first')
         setOpen(true)

@@ -27,6 +27,17 @@ function search(): boolean {
 
 // The bar's entries, in order, and the one that is current: the previous or next tab.
 function stepBar(step: -1 | 1): boolean {
+  // In an open panel with tabs of its own (a game's settings), LB and RB switch those.
+  const dialogs = Array.from(document.querySelectorAll<HTMLElement>('[role=dialog]')).filter(shown)
+  const inner = dialogs[dialogs.length - 1]?.querySelector<HTMLElement>('[role=tablist]')
+  if (inner) {
+    const tabs = Array.from(inner.querySelectorAll<HTMLElement>('[role=tab]')).filter(shown)
+    const at = tabs.findIndex((t) => t.getAttribute('aria-selected') === 'true')
+    const to = tabs[at + step]
+    if (at < 0 || !to) return true
+    to.click(); to.focus(); to.scrollIntoView({ block: 'nearest', inline: 'center' })
+    return true
+  }
   const links = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-nav-zone="bar"] a[href]')).filter((a) => shown(a) && !a.matches('.brand, .top-brand, [data-nav-nostep]'))
   const i = links.findIndex((a) => a.getAttribute('aria-current') === 'page' || a.classList.contains('active'))
   const to = links[i + step]

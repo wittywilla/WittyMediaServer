@@ -10,7 +10,6 @@ import { api, type Item } from '../api'
 import { LoadError, Spinner } from '../components/common'
 import GameDetails from './games/Details'
 import { GameLinksContext, type GameLinks } from './games/data'
-import { Achievements, useCheevos } from '../sdui/render/GameBio'
 import { PLAY_LIBRARY, playGamePath } from '../shell/playPaths'
 
 const links: GameLinks = {
@@ -18,11 +17,6 @@ const links: GameLinks = {
   item: (id) => playGamePath(id),
   library: (lib, query) => `${PLAY_LIBRARY}/${lib}${query ? '?' + query : ''}`,
   play: (id, query) => `/game/${id}${query ? '?' + query : ''}`,
-}
-
-function Cheevos({ id }: { id: number }) {
-  const cheevos = useCheevos(id)
-  return <div className="wplay-game-cheevos"><Achievements cheevos={cheevos} /></div>
 }
 
 export default function PlayGame() {
@@ -36,8 +30,7 @@ export default function PlayGame() {
   if (!it || String(it.id) !== id) return <Spinner />
   return (
     <div className="wplay-game">
-      <GameLinksContext.Provider value={value}><GameDetails it={it} reload={() => { void load() }} /></GameLinksContext.Provider>
-      <Cheevos id={it.id} />
+      <GameLinksContext.Provider value={value}><GameDetails it={it} variant="play" reload={() => { void load() }} /></GameLinksContext.Provider>
     </div>
   )
 }

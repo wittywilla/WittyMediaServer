@@ -53,7 +53,7 @@ function Logo({ url, title }: { url: string; title: string }) {
   return <img className="wplay-bio-logo" src={mediaUrl(url)} alt={title} onError={() => setOk(false)} />
 }
 
-const SHOT_WORDS: Record<string, string> = { screenshot: 'In the game', title: 'Title screen', artwork: 'Artwork' }
+export const SHOT_WORDS: Record<string, string> = { screenshot: 'In the game', title: 'Title screen', artwork: 'Artwork' }
 
 // A picture from the game: a button that opens it large.
 function Shot({ url, label, onOpen }: { url: string; label: string; onOpen: () => void }) {
@@ -67,7 +67,7 @@ function Shot({ url, label, onOpen }: { url: string; label: string; onOpen: () =
 }
 
 // The pictures large, one at a time: Left and Right (or a pad's d-pad) between them, Esc or B to close.
-function ShotViewer({ title, shots, at, onMove, onClose }: { title: string; shots: { url: string; kind: string }[]; at: number; onMove: (i: number) => void; onClose: () => void }) {
+export function ShotViewer({ title, shots, at, onMove, onClose }: { title: string; shots: { url: string; kind: string }[]; at: number; onMove: (i: number) => void; onClose: () => void }) {
   const n = shots.length
   const go = (d: number) => onMove((at + d + n) % n)
   const s = shots[at]
@@ -93,6 +93,7 @@ export function useCheevos(itemId: string | number): Cheevos | null | undefined 
   const [c, setC] = useState<Cheevos | null | undefined>(undefined)
   useEffect(() => {
     setC(undefined)
+    if (!itemId) return
     const ctl = new AbortController()
     api.get<Cheevos>(`/items/${itemId}/achievements`, ctl.signal).then((x) => !ctl.signal.aborted && setC(x), () => !ctl.signal.aborted && setC(null))
     return () => ctl.abort()
@@ -121,6 +122,7 @@ export function Achievements({ cheevos }: { cheevos: Cheevos | null | undefined 
         {list.length > 0 && <span className="wplay-cheevos-count">{list.length} · {points} points</span>}
       </h3>
       {words && <p className="wplay-cheevos-note">{words}</p>}
+      {list.length > 0 && <p className="wplay-cheevos-credit">Achievements from <a href={cheevos?.game?.url || 'https://retroachievements.org'} target="_blank" rel="noopener noreferrer">RetroAchievements.org</a></p>}
       {list.length > 0 && (
         <ul className="wplay-cheevos-list" tabIndex={0} aria-label={`${list.length} achievements, none earned`}>
           {list.map((a) => (

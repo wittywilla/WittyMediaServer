@@ -9,7 +9,7 @@ import ArtworkPicker, { ART_SOURCE } from '../../components/ArtworkPicker'
 import { Placeholder, Spinner } from '../../components/common'
 import LegalNote from '../../components/LegalNote'
 import { openPlayOn } from '../../remote/RemoteHost'
-import { IconCheck, IconDevices, IconDownload, IconEdit, IconGamepad, IconImage, IconInfo, IconMore, IconPlay, IconRefresh, IconSettings, IconStar, IconTrash, IconTune, IconUsers } from '../../icons'
+import { IconCheck, IconDevices, IconDownload, IconEdit, IconGamepad, IconImage, IconHistory, IconInfo, IconMore, IconPlay, IconRefresh, IconSettings, IconStar, IconTrash, IconTune, IconUsers } from '../../icons'
 import { toast, useApp } from '../../state'
 import { ask, Dialog, Menu, Sheet, useBackCloses, type MenuEntry } from '../../ui'
 import { GameCredits, GameMatchBar, GameRatings, GameShots } from '../GameMeta'
@@ -21,6 +21,7 @@ import { Ambient } from './Library'
 import './shelves.css'
 import type { SaveSlot } from '@wittywilla/wittyplay'
 import './games-ui.css'
+import { Achievements, SHOT_WORDS, ShotViewer, useCheevos } from '../../sdui/render/GameBio'
 import { CorePlatforms, runsOnWords } from './platforms'
 import type { CorePickerScope } from './CorePicker'
 
@@ -51,7 +52,9 @@ const pickSaveFile = (accept: string) => new Promise<File | null>((resolve) => {
   input.click()
 })
 
-export default function GameDetails({ it, reload }: { it: Item; reload?: () => void }) {
+// variant 'play': WittyPlay's game page (pages/PlayGame.tsx), built for a controller and a TV first: everything in rows a d-pad
+// walks, the main button where focus starts, big targets, and the same settings, saves, tools and fixes as the app's page.
+export default function GameDetails({ it, reload, variant }: { it: Item; reload?: () => void; variant?: 'play' }) {
   const links = useGameLinks()
   const nav = useNavigate()
   const { user, libraries } = useApp()
@@ -81,6 +84,22 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
   const [longRead, setLongRead] = useState(false)
   const [edit, setEdit] = useState(false)
   const [art, setArt] = useState(false)
+  const [shot, setShot] = useState<number | null>(null)
+  // WittyPlay keeps the save states in a panel at the side, opened from beside Play, so they never push the game's page down.
+  const [savesOpen, setSavesOpen] = useState(false)
+  const savesButton = useRef<HTMLButtonElement>(null)
+  const closeSaves = useCallback(() => { setSavesOpen(false); requestAnimationFrame(() => savesButton.current?.focus()) }, [])
+  useBackCloses(savesOpen, closeSaves, 'wmsGameSaves')
+  // A sheet opened from a controller starts on its first thing to choose: a save, or the settings' chosen tab.
+  useEffect(() => {
+    if (variant !== 'play' || (!savesOpen && !showSettings)) return
+    const t = window.setTimeout(() => {
+      const sheet = document.querySelector<HTMLElement>(savesOpen ? '.wpg-saves-sheet' : '.wpg-settings')
+      sheet?.querySelector<HTMLElement>(savesOpen ? '.wpg-save' : '[role=tab][aria-selected=true], [role=tab]')?.focus()
+    }, 60)
+    return () => window.clearTimeout(t)
+  }, [savesOpen, showSettings, variant])
+  const cheevos = useCheevos(variant === 'play' ? it.id : 0)
   const loadSaves = useCallback(() => api.get<SaveSlot[]>(`/games/${it.id}/saves`).then(setSaves).catch(() => {}), [it.id])
   const loadCheck = useCallback(() => api.get<GameCheck>(`/games/${it.id}/check`).then(setCheck).catch(() => {}), [it.id])
   const loadMeta = useCallback(() => api.get<GameDetailsInfo>(`/games/${it.id}/metadata`).then(setMeta).catch(() => {}), [it.id])
@@ -155,6 +174,234 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  // Parts both layouts show: the app's page and WittyPlay's (variant 'play').
+  const facts = (
+  <section className="gm-section gm-facts-box" aria-label="Details">
+    {meta && <GameRatings d={meta} />}
+    <dl className="gm-facts">
+      {it.year && !meta?.released && <div><dt>Year</dt><dd>{it.year}</dd></div>}
+      {meta?.released && <div><dt>Released</dt><dd>{fmtReleased(meta.released)}</dd></div>}
+      {it.studio && <div><dt>Developer</dt><dd>{it.studio}</dd></div>}
+      {user?.isAdmin && (it.studio || c) && <div><dt>Logos</dt><dd className="gm-logo-buttons">
+        {c && <ChangeLogoButton kind="console" name={c.logoName || c.name} label={`${c.short} logo`} />}
+        {it.studio && <ChangeLogoButton kind="gamestudio" name={it.studio} label="Developer's logo" />}
+      </dd></div>}
+      {meta?.publisher && <div><dt>Publisher</dt><dd>{meta.publisher}</dd></div>}
+      {meta && meta.players > 0 && <div><dt>Players</dt><dd>{meta.players === 1 ? '1' : `Up to ${meta.players}`}</dd></div>}
+      {meta?.franchise && <div><dt>Series</dt><dd><Link to={links.library(it.libraryId, 'series=' + encodeURIComponent(meta.franchise))}>{meta.franchise}</Link></dd></div>}
+      {(it.genres || []).length > 0 && <div><dt>Genres</dt><dd>{it.genres.map((g, i) => <span key={g}>{i > 0 && ', '}<Link to={links.library(it.libraryId, 'genre=' + encodeURIComponent(g))}>{g}</Link></span>)}</dd></div>}
+    </dl>
+  </section>
+  )
+  const panels = (
+  <div className="gm-panels" data-gm-section>
+    <section className="gm-panel" aria-labelledby="gm-play-h">
+      <h2 id="gm-play-h">How you play it</h2>
+      <ul className="gm-checks">
+        <li className="ok"><IconCheck size={16} /><span><b>Runs on your server</b><small>and streams to this device, so this device needs no emulator and nothing downloads. Saves stay on the server, and follow you to every device. Playing on the device itself, without the server, isn’t available yet.</small></span></li>
+        {check?.core && (
+          <li className="ok gm-core-line"><IconCheck size={16} /><span>
+            <b>{check.core.name}</b>
+            <small>{c?.coreAbout?.[check.core.id]?.about ? `${c.coreAbout[check.core.id].about} ` : ''}The core that plays this game. License: {check.core.license || 'not known'}.</small>
+            <CorePlatforms support={c?.coreSupport?.[check.core.id]} />
+            {user?.isAdmin && c && <button type="button" className="btn sm gm-core-change" onClick={() => setPicker({ kind: 'game', itemId: it.id, title: it.title, consoleShort: c.short })}>Change core</button>}
+          </span></li>
+        )}
+        {check?.reason === 'core' && !check.noBuild && <li className="no gm-core-line"><IconInfo size={16} /><span><b>No core installed</b>{user?.isAdmin && c
+          ? <><small>A core is the free program that plays these games.</small><button type="button" className="btn sm gm-core-change" onClick={() => setPicker({ kind: 'console', consoleId: c.id, consoleShort: c.short })}>Choose a core</button></>
+          : <small>Ask whoever runs this server.</small>}</span></li>}
+        {check?.needsGpu && check.reason !== 'gpu' && <li className="info"><IconInfo size={16} /><span><b>Uses the server’s graphics card</b><small>This console is drawn with one, so it needs a server that has one.</small></span></li>}
+        {check?.software && <li className="info"><IconInfo size={16} /><span><b>Drawn by the server’s processor</b><small>This server has no graphics card games can use, so its processor draws this console’s games. They can run slower than on a server with one.</small></span></li>}
+        {check?.reason === 'gpu' && <li className="no"><IconInfo size={16} /><span><b>Needs a graphics card this server can’t give it</b><small>{check.gpuMissing ? `Why: ${check.gpuMissing}.` : 'This server has none it can use.'}</small></span></li>}
+        {(check?.bios || []).filter((b) => b.required || b.found).map((b) => (
+          <li key={b.file} className={b.found ? 'ok' : 'no'}>
+            {b.found ? <IconCheck size={16} /> : <IconInfo size={16} />}
+            <span><b>BIOS: <code>{b.using || b.file}</code></b><small>{b.found ? `Found${b.from ? ' by its checksum' : ''}. ${b.for}.` : `Not found yet. ${b.for}. Put your own copy in a folder named ${check?.biosFolder || 'BIOS'} beside these games.`}</small></span>
+          </li>
+        ))}
+        {c?.unavailable && <li className="no"><IconInfo size={16} /><span><b>Not playable here yet</b><small>{c.unavailable}</small></span></li>}
+        {seats > 0 && <li className="info"><IconUsers size={16} /><span><b>Seats</b><small>{seats === 1 ? 'One player.' : `Up to ${seats} players on one screen${c?.capabilities?.input.multitap ? `, ${c.capabilities.input.multitap} with a multitap` : ''}.`}</small></span></li>}
+      </ul>
+    </section>
+    <section className="gm-panel" aria-labelledby="gm-controls-h">
+      <h2 id="gm-controls-h">Controls</h2>
+      {c?.pad && (
+        <p className="gm-pad-list">
+          <span className="pill">D-pad</span>
+          {c.pad.sticks && <span className="pill">Stick</span>}
+          {[...c.pad.face, ...(c.pad.shoulder || []), ...c.pad.meta].map((b) => <span key={b.id} className="pill">{b.label}</span>)}
+        </p>
+      )}
+      <p className="muted">Controllers, keyboards, TV remotes and touch screens all work, and pressing Escape or Start and Select together opens the game menu.</p>
+      <div className="gm-panel-actions"><Link className="btn sm" to={`/controllers?console=${encodeURIComponent(it.console || '')}`}><IconGamepad /> Set up controllers</Link></div>
+    </section>
+    <section className="gm-panel" aria-labelledby="gm-cheats-h">
+      <h2 id="gm-cheats-h">Cheats</h2>
+      <p className="muted">{cheats > 0 ? `${cheats.toLocaleString()} ${cheats === 1 ? 'cheat' : 'cheats'} saved for this game. Turn them on and off from the game menu or below.` : 'No cheats saved. Add codes here, or from the game menu while you play.'}</p>
+      <div className="gm-panel-actions"><button ref={settingsButton} type="button" className="btn sm" aria-haspopup="dialog" onClick={(e) => { e.currentTarget.focus(); setShowSettings(true) }}><IconTune size={16} /> Cheats and settings</button></div>
+    </section>
+    {mine && (
+      <section className="gm-panel" aria-labelledby="gm-notes-h">
+        <h2 id="gm-notes-h">Your notes</h2>
+        <textarea className="input gm-notes" rows={3} maxLength={8000} value={note} aria-labelledby="gm-notes-h" onChange={(e) => setNote(e.target.value)} onBlur={() => { if (note !== mine.note) void putMeta({ note }) }} placeholder="Passwords, where you got to, anything. Only you can see these." />
+      </section>
+    )}
+  </div>
+  )
+  const sheet = showSettings && (
+    <Sheet title={`Settings for ${it.title}`} onClose={closeSettings} className={'gm-settings-sheet' + (variant === 'play' ? ' wpg-settings' : '')}>
+      <Suspense fallback={<Spinner />}><SettingsScreen host={settingsHost} consoles={consoleList} itemId={it.id} itemTitle={it.title} consoleId={it.console} onError={say} /></Suspense>
+    </Sheet>
+  )
+  const advanced = (
+  <details className="gm-section gm-file">
+    <summary>{user?.isAdmin ? 'Fix this game, files and advanced' : 'Files and advanced'}</summary>
+    <dl className="gm-facts">
+      <div><dt>File</dt><dd>{[it.container?.toUpperCase(), sizeText].filter(Boolean).join(' · ')}</dd></div>
+      {meta?.tags && meta.tags !== it.tagline && <div><dt>File name says</dt><dd>{meta.tags}</dd></div>}
+      {user?.isAdmin && <div className="wide"><dt>Path</dt><dd><code>{it.path}</code></dd></div>}
+    </dl>
+    <div className="gm-panel-actions">
+      {mine?.hasBattery && <a className="btn sm ghost" href={mediaUrl(`/api/games/${it.id}/battery`)} download>Download battery save</a>}
+      <button type="button" className="btn sm ghost" onClick={() => void battery()}>{mine?.hasBattery ? 'Replace battery save…' : 'Import a battery save…'}</button>
+    </div>
+    {user?.isAdmin && meta && <GameMatchBar it={it} d={meta} onChanged={() => { void loadMeta(); reload?.() }} />}
+    {user?.isAdmin && meta && <GameFixPanel it={it} d={meta} consoles={consoles} onChanged={() => { void loadMeta(); reload?.() }} />}
+  </details>
+  )
+  const overlays = (
+    <>
+      {picker && <Suspense fallback={null}><CorePicker scope={picker} onClose={() => { setPicker(null); void loadCheck(); void getConsoles(true) }} /></Suspense>}
+      <PromptBar className="gm-prompts" always={links.couch} items={prompts} />
+      {edit && <EditGame item={it} onClose={() => setEdit(false)} onSaved={() => { setEdit(false); reload?.() }} />}
+      {art && <ArtworkPicker title={`Artwork for ${it.title}`} onClose={() => setArt(false)}
+        kinds={[{ kind: 'poster', label: 'Cover', shape: 'tall' }, { kind: 'backdrop', label: 'Backdrop', shape: 'wide' }]}
+        current={(k) => (k === 'poster' ? it.poster : it.backdrop) || ''}
+        load={(k) => api.get<{ candidates: ArtCandidate[]; warning: string }>(`/items/${it.id}/artwork?kind=${k}`)
+          .then((r) => ({ candidates: r.candidates.map((c) => ({ url: c.url, sourceLabel: ART_SOURCE[c.source] || c.source })), warnings: r.warning ? [r.warning] : [] }))}
+        apply={async (changes) => { await api.put<Item>(`/items/${it.id}`, changes); reload?.(); toast('poster' in changes && !('backdrop' in changes) ? 'Cover updated' : 'Artwork updated') }} />}
+    </>
+  )
+
+  if (variant === 'play') {
+    const logo = meta?.art.find((a) => a.kind === 'logo')
+    const shots = (meta?.art || []).filter((a) => a.kind !== 'logo')
+    const age = meta?.ages?.[0]
+    const ordered = [...(auto ? [auto] : []), ...others]
+    const playTo = check?.emulator ? links.play(it.id, 'emulator=' + encodeURIComponent(check.emulator.id)) : links.play(it.id, resumes ? 'resume=1' : undefined)
+    return (
+      <div className="wpg" style={tint ? { ['--wpg-tint' as string]: tint } : undefined}>
+        {back && <div className="wpg-backdrop" style={{ backgroundImage: `url(${back})` }} aria-hidden="true" />}
+        <section className="wpg-hero" aria-labelledby="wpg-title">
+          <div className="wpg-cover">
+            {it.poster ? <img src={heroCover(it)} alt="" /> : <Placeholder title={it.title} label={c?.short} />}
+          </div>
+          <div className="wpg-head">
+            {logo && <img className="wpg-logo" src={mediaUrl(logo.url)} alt="" onError={(e) => { e.currentTarget.hidden = true }} />}
+            <h1 id="wpg-title" className={logo ? 'wpg-title small' : 'wpg-title'}>{it.title}</h1>
+            <ul className="wpg-chips" aria-label="About this game">
+              {c && <li className="wpg-chip console">{c.short}</li>}
+              {(meta?.released || it.year) && <li className="wpg-chip">{meta?.released ? meta.released.slice(0, 4) : it.year}</li>}
+              {meta && meta.players > 0 && <li className="wpg-chip">{meta.players === 1 ? '1 player' : `1–${meta.players} players`}</li>}
+              {age ? <li className="wpg-chip rating">{age.system} {age.value}</li> : it.contentRating ? <li className="wpg-chip rating">{it.contentRating}</li> : null}
+              {(it.genres || []).slice(0, 2).map((g) => <li key={g} className="wpg-chip">{g}</li>)}
+              {played > 60 && <li className="wpg-chip">{fmtPlayed(played)} played</li>}
+            </ul>
+            {meta && <GameProblem d={meta} />}
+            {check && !check.ready && (
+              <div className="gm-blocked" role="status">
+                <IconInfo />
+                <div>
+                  <strong>{check.reason === 'encrypted' ? 'This copy is encrypted' : check.reason === 'core' && !check.noBuild ? 'This game needs a core first' : check.reason === 'bios' ? 'This game needs a BIOS file' : check.reason === 'gpu' || check.noBuild ? 'Not on this server' : 'This console can’t play here yet'}</strong>
+                  <p>{check.message}</p>
+                </div>
+              </div>
+            )}
+            <div className="wpg-actions" data-nav-group role="group" aria-label="Play">
+              {ready && <Link data-tv-first className="wpg-btn primary" to={playTo}><IconPlay /> {check?.emulator ? `Play with ${check.emulator.name}` : resumes ? 'Resume' : 'Play'}</Link>}
+              <button ref={savesButton} type="button" className="wpg-btn" aria-haspopup="dialog" onClick={() => setSavesOpen(true)}><IconHistory /> <span className="wpg-btn-label">Save states</span>{ordered.length > 0 && <span className="wpg-count" aria-label={`${ordered.length} saved`}>{ordered.length}</span>}</button>
+              {ready && auto && !check?.emulator && <Link className="wpg-btn" to={links.play(it.id)}><IconRefresh /> <span className="wpg-btn-label">Start over</span></Link>}
+              {!ready && check?.reason === 'core' && !check.noBuild && user?.isAdmin && c && <button type="button" data-tv-first className="wpg-btn primary" onClick={() => setPicker({ kind: 'console', consoleId: c.id, consoleShort: c.short })}><IconSettings /> Choose a core</button>}
+              {!ready && check?.reason === 'bios' && user?.isAdmin && <Link data-tv-first className="wpg-btn primary" to="/wittyplay/settings"><IconSettings /> Set up {c?.short}</Link>}
+              {mine && <button type="button" className={'wpg-btn' + (mine.favourite ? ' on' : '')} aria-pressed={mine.favourite} onClick={() => putMeta({ favourite: !mine.favourite })}><IconStar /> <span className="wpg-btn-label">{mine.favourite ? 'Favourite' : 'Add to favourites'}</span></button>}
+              <button ref={settingsButton} type="button" className="wpg-btn" aria-haspopup="dialog" onClick={(e) => { e.currentTarget.focus(); setShowSettings(true) }}><IconTune /> <span className="wpg-btn-label">Game settings</span></button>
+              <Menu label="More for this game" items={moreItems} align="start"
+                trigger={(p) => <button type="button" {...p} ref={p.ref as React.Ref<HTMLButtonElement>} className="wpg-btn icon" aria-label="More"><IconMore /></button>} />
+            </div>
+            <EmulatorChoices it={it} />
+          </div>
+        </section>
+
+        <div className="wpg-main">
+          <div className="wpg-col">
+            {it.overview && (
+              <section className="wpg-card" aria-labelledby="wpg-about-h">
+                <h2 id="wpg-about-h">About this game</h2>
+                <p className={'gm-overview' + (longRead ? '' : ' short')}>{it.overview}</p>
+                {it.overview.length > 420 && <button type="button" className="wpg-btn small" aria-expanded={longRead} onClick={() => setLongRead((o) => !o)}>{longRead ? 'Show less' : 'Read more'}</button>}
+              </section>
+            )}
+            <div className="wpg-card wpg-facts">{facts}</div>
+          </div>
+          <div className="wpg-card wpg-cheevos"><Achievements cheevos={cheevos} /></div>
+        </div>
+
+        {shots.length > 0 && (
+          <section className="wpg-row" aria-labelledby="wpg-pics-h">
+            <h2 id="wpg-pics-h">Pictures</h2>
+            <ul className="wpg-shots" data-nav-group data-nav-entry=":scope > li:first-child .wpg-shot">
+              {shots.map((a, i) => (
+                <li key={a.url}><button type="button" className="wpg-shot" onClick={() => setShot(i)} aria-label={`${SHOT_WORDS[a.kind] || 'Picture'}: show larger`}>
+                  <img src={mediaUrl(a.url)} alt="" loading="lazy" onLoad={crispIfSmall} onError={(e) => { (e.currentTarget.closest('li') as HTMLElement).hidden = true }} />
+                </button></li>
+              ))}
+            </ul>
+          </section>
+        )}
+        {shot !== null && shots[shot] && <ShotViewer title={it.title} shots={shots} at={shot} onMove={setShot} onClose={() => setShot(null)} />}
+
+        {savesOpen && (
+          <Sheet title="Save states" onClose={closeSaves} className="wpg-saves-sheet">
+            {ordered.length === 0 ? (
+              <p className="wpg-empty">Nothing saved yet. While you play, open the game menu (Start and Select together, or Esc) to save a moment. Where you stop is kept here by itself.</p>
+            ) : (
+              <ul className="wpg-saves">
+                {ordered.map((s) => {
+                  const when = fmtAgo(s.updatedAt)
+                  return (
+                    <li key={s.slot} className={s.slot === 0 ? 'resume' : ''}>
+                      <Link to={links.play(it.id, s.slot === 0 ? 'resume=1' : `slot=${s.slot}`)} className="wpg-save" aria-label={`${s.slot === 0 ? 'Resume' : 'Load'} ${slotName(s.slot)}, saved ${when}`}>
+                        <span className="wpg-save-pic">
+                          {s.hasThumb ? <img src={saveThumb(it.id, s.slot, s.updatedAt)} alt="" loading="lazy" decoding="async" onLoad={crispIfSmall} /> : <span className="gm-save-blank" />}
+                          {s.slot > 0 && s.slot < 100 && <span className="wpg-save-num" aria-hidden="true">{s.slot}</span>}
+                        </span>
+                        <span className="wpg-save-text">
+                          <b>{slotName(s.slot)}</b>
+                          <time dateTime={new Date(s.updatedAt * 1000).toISOString()} title={fmtDateTime(s.updatedAt * 1000)}>{when}</time>
+                          <span className="wpg-save-cue" aria-hidden="true"><IconPlay size={16} /> {s.slot === 0 ? 'Resume' : 'Load'}</span>
+                        </span>
+                      </Link>
+                      <div className="wpg-save-tools" data-nav-group data-nav-entry=":scope > :first-child">
+                        <a className="wpg-mini" href={mediaUrl(`/api/games/${it.id}/saves/${s.slot}/file`)} download aria-label={`Download ${slotName(s.slot)}`}><IconDownload size={18} /></a>
+                        <button type="button" className="wpg-mini" onClick={() => removeSave(s.slot)} aria-label={`Delete ${slotName(s.slot)}`}><IconTrash size={18} /></button>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </Sheet>
+        )}
+
+        <div className="wpg-more">{panels}</div>
+        {sheet}
+        <div className="wpg-advanced">{advanced}</div>
+        {meta && <GameCredits d={meta} />}
+        <LegalNote kind="games" />
+        {overlays}
+      </div>
+    )
+  }
   return (
     <div className="gm-page gm-detail">
       <Ambient colour={tint} />
@@ -245,22 +492,7 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
           {it.overview.length > 420 && <button type="button" className="btn sm ghost" aria-expanded={longRead} onClick={() => setLongRead((o) => !o)}>{longRead ? 'Show less' : 'Read more'}</button>}
         </section>
       )}
-      <section className="gm-section gm-facts-box" aria-label="Details">
-        {meta && <GameRatings d={meta} />}
-        <dl className="gm-facts">
-          {it.year && !meta?.released && <div><dt>Year</dt><dd>{it.year}</dd></div>}
-          {meta?.released && <div><dt>Released</dt><dd>{fmtReleased(meta.released)}</dd></div>}
-          {it.studio && <div><dt>Developer</dt><dd>{it.studio}</dd></div>}
-          {user?.isAdmin && (it.studio || c) && <div><dt>Logos</dt><dd className="gm-logo-buttons">
-            {c && <ChangeLogoButton kind="console" name={c.logoName || c.name} label={`${c.short} logo`} />}
-            {it.studio && <ChangeLogoButton kind="gamestudio" name={it.studio} label="Developer's logo" />}
-          </dd></div>}
-          {meta?.publisher && <div><dt>Publisher</dt><dd>{meta.publisher}</dd></div>}
-          {meta && meta.players > 0 && <div><dt>Players</dt><dd>{meta.players === 1 ? '1' : `Up to ${meta.players}`}</dd></div>}
-          {meta?.franchise && <div><dt>Series</dt><dd><Link to={links.library(it.libraryId, 'series=' + encodeURIComponent(meta.franchise))}>{meta.franchise}</Link></dd></div>}
-          {(it.genres || []).length > 0 && <div><dt>Genres</dt><dd>{it.genres.map((g, i) => <span key={g}>{i > 0 && ', '}<Link to={links.library(it.libraryId, 'genre=' + encodeURIComponent(g))}>{g}</Link></span>)}</dd></div>}
-        </dl>
-      </section>
+      {facts}
       </div>
 
       {!user?.isAdmin && <GameVersionLinks it={it} />}
@@ -288,91 +520,14 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
         </section>
       )}
 
-      <div className="gm-panels" data-gm-section>
-        <section className="gm-panel" aria-labelledby="gm-play-h">
-          <h2 id="gm-play-h">How you play it</h2>
-          <ul className="gm-checks">
-            <li className="ok"><IconCheck size={16} /><span><b>Runs on your server</b><small>and streams to this device, so this device needs no emulator and nothing downloads. Saves stay on the server, and follow you to every device. Playing on the device itself, without the server, isn’t available yet.</small></span></li>
-            {check?.core && (
-              <li className="ok gm-core-line"><IconCheck size={16} /><span>
-                <b>{check.core.name}</b>
-                <small>{c?.coreAbout?.[check.core.id]?.about ? `${c.coreAbout[check.core.id].about} ` : ''}The core that plays this game. License: {check.core.license || 'not known'}.</small>
-                <CorePlatforms support={c?.coreSupport?.[check.core.id]} />
-                {user?.isAdmin && c && <button type="button" className="btn sm gm-core-change" onClick={() => setPicker({ kind: 'game', itemId: it.id, title: it.title, consoleShort: c.short })}>Change core</button>}
-              </span></li>
-            )}
-            {check?.reason === 'core' && !check.noBuild && <li className="no gm-core-line"><IconInfo size={16} /><span><b>No core installed</b>{user?.isAdmin && c
-              ? <><small>A core is the free program that plays these games.</small><button type="button" className="btn sm gm-core-change" onClick={() => setPicker({ kind: 'console', consoleId: c.id, consoleShort: c.short })}>Choose a core</button></>
-              : <small>Ask whoever runs this server.</small>}</span></li>}
-            {check?.needsGpu && check.reason !== 'gpu' && <li className="info"><IconInfo size={16} /><span><b>Uses the server’s graphics card</b><small>This console is drawn with one, so it needs a server that has one.</small></span></li>}
-            {check?.software && <li className="info"><IconInfo size={16} /><span><b>Drawn by the server’s processor</b><small>This server has no graphics card games can use, so its processor draws this console’s games. They can run slower than on a server with one.</small></span></li>}
-            {check?.reason === 'gpu' && <li className="no"><IconInfo size={16} /><span><b>Needs a graphics card this server can’t give it</b><small>{check.gpuMissing ? `Why: ${check.gpuMissing}.` : 'This server has none it can use.'}</small></span></li>}
-            {(check?.bios || []).filter((b) => b.required || b.found).map((b) => (
-              <li key={b.file} className={b.found ? 'ok' : 'no'}>
-                {b.found ? <IconCheck size={16} /> : <IconInfo size={16} />}
-                <span><b>BIOS: <code>{b.using || b.file}</code></b><small>{b.found ? `Found${b.from ? ' by its checksum' : ''}. ${b.for}.` : `Not found yet. ${b.for}. Put your own copy in a folder named ${check?.biosFolder || 'BIOS'} beside these games.`}</small></span>
-              </li>
-            ))}
-            {c?.unavailable && <li className="no"><IconInfo size={16} /><span><b>Not playable here yet</b><small>{c.unavailable}</small></span></li>}
-            {seats > 0 && <li className="info"><IconUsers size={16} /><span><b>Seats</b><small>{seats === 1 ? 'One player.' : `Up to ${seats} players on one screen${c?.capabilities?.input.multitap ? `, ${c.capabilities.input.multitap} with a multitap` : ''}.`}</small></span></li>}
-          </ul>
-        </section>
-        <section className="gm-panel" aria-labelledby="gm-controls-h">
-          <h2 id="gm-controls-h">Controls</h2>
-          {c?.pad && (
-            <p className="gm-pad-list">
-              <span className="pill">D-pad</span>
-              {c.pad.sticks && <span className="pill">Stick</span>}
-              {[...c.pad.face, ...(c.pad.shoulder || []), ...c.pad.meta].map((b) => <span key={b.id} className="pill">{b.label}</span>)}
-            </p>
-          )}
-          <p className="muted">Controllers, keyboards, TV remotes and touch screens all work, and pressing Escape or Start and Select together opens the game menu.</p>
-          <div className="gm-panel-actions"><Link className="btn sm" to={`/controllers?console=${encodeURIComponent(it.console || '')}`}><IconGamepad /> Set up controllers</Link></div>
-        </section>
-        <section className="gm-panel" aria-labelledby="gm-cheats-h">
-          <h2 id="gm-cheats-h">Cheats</h2>
-          <p className="muted">{cheats > 0 ? `${cheats.toLocaleString()} ${cheats === 1 ? 'cheat' : 'cheats'} saved for this game. Turn them on and off from the game menu or below.` : 'No cheats saved. Add codes here, or from the game menu while you play.'}</p>
-          <div className="gm-panel-actions"><button ref={settingsButton} type="button" className="btn sm" aria-haspopup="dialog" onClick={(e) => { e.currentTarget.focus(); setShowSettings(true) }}><IconTune size={16} /> Cheats and settings</button></div>
-        </section>
-        {mine && (
-          <section className="gm-panel" aria-labelledby="gm-notes-h">
-            <h2 id="gm-notes-h">Your notes</h2>
-            <textarea className="input gm-notes" rows={3} maxLength={8000} value={note} aria-labelledby="gm-notes-h" onChange={(e) => setNote(e.target.value)} onBlur={() => { if (note !== mine.note) void putMeta({ note }) }} placeholder="Passwords, where you got to, anything. Only you can see these." />
-          </section>
-        )}
-      </div>
+      {panels}
 
-      {showSettings && (
-        <Sheet title={`Settings for ${it.title}`} onClose={closeSettings} className="gm-settings-sheet">
-          <Suspense fallback={<Spinner />}><SettingsScreen host={settingsHost} consoles={consoleList} itemId={it.id} itemTitle={it.title} consoleId={it.console} onError={say} /></Suspense>
-        </Sheet>
-      )}
+      {sheet}
 
-      <details className="gm-section gm-file">
-        <summary>{user?.isAdmin ? 'Fix this game, files and advanced' : 'Files and advanced'}</summary>
-        <dl className="gm-facts">
-          <div><dt>File</dt><dd>{[it.container?.toUpperCase(), sizeText].filter(Boolean).join(' · ')}</dd></div>
-          {meta?.tags && meta.tags !== it.tagline && <div><dt>File name says</dt><dd>{meta.tags}</dd></div>}
-          {user?.isAdmin && <div className="wide"><dt>Path</dt><dd><code>{it.path}</code></dd></div>}
-        </dl>
-        <div className="gm-panel-actions">
-          {mine?.hasBattery && <a className="btn sm ghost" href={mediaUrl(`/api/games/${it.id}/battery`)} download>Download battery save</a>}
-          <button type="button" className="btn sm ghost" onClick={() => void battery()}>{mine?.hasBattery ? 'Replace battery save…' : 'Import a battery save…'}</button>
-        </div>
-        {user?.isAdmin && meta && <GameMatchBar it={it} d={meta} onChanged={() => { void loadMeta(); reload?.() }} />}
-        {user?.isAdmin && meta && <GameFixPanel it={it} d={meta} consoles={consoles} onChanged={() => { void loadMeta(); reload?.() }} />}
-      </details>
+      {advanced}
       {meta && <GameCredits d={meta} />}
       <LegalNote kind="games" />
-      {picker && <Suspense fallback={null}><CorePicker scope={picker} onClose={() => { setPicker(null); void loadCheck(); void getConsoles(true) }} /></Suspense>}
-      <PromptBar className="gm-prompts" always={links.couch} items={prompts} />
-      {edit && <EditGame item={it} onClose={() => setEdit(false)} onSaved={() => { setEdit(false); reload?.() }} />}
-      {art && <ArtworkPicker title={`Artwork for ${it.title}`} onClose={() => setArt(false)}
-        kinds={[{ kind: 'poster', label: 'Cover', shape: 'tall' }, { kind: 'backdrop', label: 'Backdrop', shape: 'wide' }]}
-        current={(k) => (k === 'poster' ? it.poster : it.backdrop) || ''}
-        load={(k) => api.get<{ candidates: ArtCandidate[]; warning: string }>(`/items/${it.id}/artwork?kind=${k}`)
-          .then((r) => ({ candidates: r.candidates.map((c) => ({ url: c.url, sourceLabel: ART_SOURCE[c.source] || c.source })), warnings: r.warning ? [r.warning] : [] }))}
-        apply={async (changes) => { await api.put<Item>(`/items/${it.id}`, changes); reload?.(); toast('poster' in changes && !('backdrop' in changes) ? 'Cover updated' : 'Artwork updated') }} />}
+      {overlays}
     </div>
   )
 }

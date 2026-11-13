@@ -15,6 +15,8 @@ export const IconVisualizer = (p: P) => <S {...p} d="M4 13h2.5v8H4zm4.5-8H11v16H
 export const IconActivity = (p: P) => <S {...p} d="M9.2 3.5L6.3 11H2v2h5.7l1.4-3.6 5 11.1L17 13h5v-2h-6.3l-1.7 4.4z" />
 export const IconPlay = (p: P) => <S {...p} d="M8 5v14l11-7z" />
 export const IconPause = (p: P) => <S {...p} d="M6 19h4V5H6zm8-14v14h4V5z" />
+// A clock turning back: save states, where you were.
+export const IconHistory = (p: P) => <S {...p} d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.95 8.95 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8z" />
 // A looped arrow back: leaving for somewhere else (WittyPlay's Return To Server), not a page's Back.
 export const IconReturn = (p: P) => <S {...p} d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z" />
 export const IconBack = (p: P) => <S {...p} d="M20 11H7.8l5.6-5.6L12 4l-8 8 8 8 1.4-1.4L7.8 13H20z" />

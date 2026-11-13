@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from 're
 import type { GameConsole, Item } from '../../api'
 import { Placeholder } from '../../components/common'
 import { heroCover } from './data'
+import { gameTitle, gameTitleLabel } from './titles'
+import { useGameTitlePref } from './useGameTitles'
 
 // The covers at the top of the games home: one at the front, the others turned away on
 // either side, standing on a shiny floor. Only what's near the front is on the page, and
@@ -78,6 +80,7 @@ export function CoverFlow({ items, index, onIndex, onOpen, onDown, consoles, lab
   }
   // Each cover's own shape, once its picture has come.
   const [shapes, setShapes] = useState<Record<number, number>>({})
+  const [titlePref] = useGameTitlePref()
 
   const first = Math.max(0, index - NEAR), last = Math.min(items.length - 1, index + NEAR)
   const shown = items.slice(first, last + 1)
@@ -88,12 +91,12 @@ export function CoverFlow({ items, index, onIndex, onOpen, onDown, consoles, lab
         const i = first + n, d = i - index, a = Math.abs(d), c = consoles.get(it.console || '')
         return (
           <button key={it.id} type="button" className="gm-flow-item" style={{ ...place(d), ...(shapes[it.id] ? { '--flow-ar': shapes[it.id] } as CSSProperties : null) }} tabIndex={d === 0 ? 0 : -1} data-front={d === 0 ? '1' : undefined} data-gm-flow={it.id}
-            aria-hidden={d === 0 ? undefined : true} aria-label={`${it.title}${c ? ', ' + c.short : ''}. ${i + 1} of ${items.length}. Open`}
+            aria-hidden={d === 0 ? undefined : true} aria-label={`${gameTitleLabel(it, titlePref)}${c ? ', ' + c.short : ''}. ${i + 1} of ${items.length}. Open`}
             onClick={() => { if (drag.current?.moved) return; if (d === 0) onOpen(it); else go(i) }}>
             <span className="gm-flow-art">
               {it.poster
                 ? <img src={heroCover(it)} alt="" draggable={false} decoding="async" onLoad={(e) => { const m = e.currentTarget; if (m.naturalHeight) { const ar = m.naturalWidth / m.naturalHeight; setShapes((l) => (l[it.id] === ar ? l : { ...l, [it.id]: ar })) } }} />
-                : <Placeholder title={it.title} label={c?.short} />}
+                : <Placeholder title={gameTitle(it, titlePref)} label={c?.short} />}
             </span>
             {a <= REFLECTED && it.poster && <span className="gm-flow-floor" aria-hidden="true"><img src={heroCover(it)} alt="" draggable={false} decoding="async" /></span>}
           </button>

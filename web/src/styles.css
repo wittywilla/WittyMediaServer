@@ -27,7 +27,13 @@
   --radius: 10px;
   --sidebar: 240px;
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
-  --font: "Inter", "Segoe UI Variable Text", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  /* Other scripts, from the fonts every system has (none are bundled): names in Japanese, Korean, Chinese, Cyrillic,
+     Greek and more, such as games known by their original titles. Japanese first, as most such games are; the browser
+     still finds each character in the first of these that has it. Every --font ends with it. */
+  --font-intl: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Yu Gothic", Meiryo, "Noto Sans CJK JP", "Noto Sans JP",
+    "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans CJK KR", "PingFang SC", "PingFang TC", "Microsoft YaHei", "Microsoft JhengHei",
+    "Noto Sans CJK SC", "Noto Sans", "Droid Sans Fallback";
+  --font: "Inter", "Segoe UI Variable Text", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, var(--font-intl), sans-serif;
   /* Channels of --bg and --accent for translucent mixes: rgb(var(--bg-rgb) / .5) */
   --bg-rgb: 15 17 21;
   --accent-rgb: 121 85 255;
@@ -252,6 +258,11 @@ button { cursor: pointer; }
 button:disabled { cursor: default; }
 img, svg { flex: none; }
 code, kbd { font-family: var(--font-mono); }
+/* A game's English name under its name in its own script ("Original with English below"; pages/games/titles.ts). */
+span.game-title-sub { display: block; font-size: .8em; font-weight: 400; opacity: .78; margin-top: .1em; }
+.game-title-sample { display: inline-flex; flex-direction: column; align-items: flex-start; gap: .1em; line-height: 1.25; }
+.game-title-sample.big { font-size: var(--text-lg); font-weight: 600; margin-top: var(--sp-2); }
+.game-title-setting-note { margin: var(--sp-2) 0 0; color: var(--fg-2); }
 code { font-size: .92em; }
 input[type=range] { accent-color: var(--accent); }
 /* The slider: a thin track filled up to --pct (set it where the value changes). */

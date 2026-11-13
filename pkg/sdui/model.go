@@ -545,6 +545,10 @@ type Item struct {
 	NextID string `json:"nextId,omitempty"`
 	// Console is a game's console as people call it (SNES, Mega Drive): a games row can be narrowed by it.
 	Console string `json:"console,omitempty"`
+	// Titles are a game's other names, each only when known: in its own script (native), its
+	// English release's (english) and the title as listed (romanized). A game card carries them
+	// as its "titles" prop, so an app can show the one its profile prefers.
+	Titles *Titles `json:"titles,omitempty"`
 	// Group is the part of a title's credits a person card is in: cast, guests, or a crew
 	// department (CreditGroups). The card's subtitle is the part played or the job.
 	Group string `json:"group,omitempty"`
@@ -566,6 +570,13 @@ type Item struct {
 	// Link is what a QR code stands for: a route of the app (/games?join=CODE) or an https address. Only
 	// the QR component reads it.
 	Link string `json:"link,omitempty"`
+}
+
+// Titles are a game's names, each only when known.
+type Titles struct {
+	Native    string `json:"native,omitempty"`
+	English   string `json:"english,omitempty"`
+	Romanized string `json:"romanized,omitempty"`
 }
 
 // ItemAction is one button of an item's detail panel.

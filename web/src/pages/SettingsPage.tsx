@@ -21,6 +21,7 @@ import PlaybackSettings from './settings/Playback'
 import SharingSettings from './settings/Sharing'
 import GamingSettings from './settings/Gaming'
 import { ConsolePicker, GameSettingsPage } from './games/consoles'
+import { GameTitlesSetting } from './games/GameTitlesSetting'
 import { kindTitle, libraryKinds, missingKind, orList, type LibraryKind } from '../moduleStore'
 import { PageHead, Row, SaveBar, Section, Switch, useServerSettings } from './settings/ui'
 import { jumpWhenReady } from './settings/jump'
@@ -209,7 +210,7 @@ export default function SettingsPage() {
           <Route path="playback" element={<PlaybackSettings />} />
           <Route path="channels/*" element={<Suspense fallback={<div className="center"><div className="spinner" /></div>}><TvSettings /></Suspense>} />
           <Route path="gaming" element={<GamingSettings />} />
-          <Route path="games" element={<><PageHead title="My game settings" desc="How your games look, sound and behave. Set something for every game, for one console or, from a game’s own page, for one game. It follows you to every device." /><GameSettingsPage /></>} />
+          <Route path="games" element={<><PageHead title="My game settings" desc="How your games look, sound and behave. Set something for every game, for one console or, from a game’s own page, for one game. It follows you to every device." /><GameTitlesSetting /><GameSettingsPage /></>} />
           <Route path="emulators" element={<Suspense fallback={null}><EmulatorsSettings /></Suspense>} />
           <Route path="games-support" element={<Suspense fallback={null}><GamesSupport /></Suspense>} />
           <Route path="couch" element={<Suspense fallback={null}><CouchSettings /></Suspense>} />

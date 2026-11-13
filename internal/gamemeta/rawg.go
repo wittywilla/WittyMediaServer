@@ -80,6 +80,8 @@ type rawgGame struct {
 	Shots       []struct {
 		Image string `json:"image"`
 	} `json:"short_screenshots"`
+	// AlternativeNames come with a game's own page, not in searches.
+	AlternativeNames []string `json:"alternative_names"`
 }
 
 func (s *RAWG) get(ctx context.Context, path string, q url.Values, out any) error {
@@ -116,6 +118,14 @@ func (s *RAWG) info(g *rawgGame) *Info {
 	in.Description = Text(g.Raw)
 	if in.Description == "" {
 		in.Description = Text(g.Description)
+	}
+	// RAWG names a game in English; one of its other names in a script of its own is the game's own.
+	in.English = englishName(g.Name)
+	for _, a := range g.AlternativeNames {
+		if n := nativeName(a); n != "" {
+			in.Native = n
+			break
+		}
 	}
 	names := func(l []rawgName) []string {
 		var out []string

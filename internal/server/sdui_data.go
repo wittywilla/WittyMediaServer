@@ -144,6 +144,9 @@ func (rv *sduiResolver) item(it *library.Item) sdui.Item {
 		readable = it.Reader != "" && (rv.platform == "web" || rv.platform == "desktop")
 	case it.Kind == "game":
 		out.Kind, out.Route = "game", "/game/"+id
+		if t := it.Titles; t != nil {
+			out.Titles = &sdui.Titles{Native: t.Native, English: t.English, Romanized: t.Romanized}
+		}
 	case it.Kind == "photo":
 		out.Kind = "photo"
 	case strings.HasPrefix(it.Kind, "dvd") || strings.HasPrefix(it.Kind, "bluray") || it.Kind == library.CDKind:

@@ -103,8 +103,8 @@ func (r *CollectionRule) where(userID int64) (string, []any) {
 	}
 	if r.Search != "" {
 		like := "%" + r.Search + "%"
-		w = append(w, "(i.title LIKE ? OR i.overview LIKE ?)")
-		args = append(args, like, like)
+		w = append(w, "(i.title LIKE ? OR i.overview LIKE ? OR "+altTitlesLike+")")
+		args = append(args, like, like, like)
 	}
 	if r.Artist != "" {
 		like := "%" + r.Artist + "%"

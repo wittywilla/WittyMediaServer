@@ -89,8 +89,12 @@ type AgeRating struct {
 
 // Info is what one source says about one game. Every field is optional.
 type Info struct {
-	ID          string   `json:"id"`
-	Title       string   `json:"title,omitempty"`
+	ID    string `json:"id"`
+	Title string `json:"title,omitempty"`
+	// Native is the game's name in its own script (A列車で行こう), English its English
+	// release's name (A-Train), when the source knows them. See titles.go.
+	Native      string   `json:"native,omitempty"`
+	English     string   `json:"english,omitempty"`
 	Tags        string   `json:"tags,omitempty"`
 	Description string   `json:"description,omitempty"`
 	Released    string   `json:"released,omitempty"` // YYYY, YYYY-MM or YYYY-MM-DD

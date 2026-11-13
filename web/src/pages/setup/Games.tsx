@@ -5,7 +5,10 @@ import { api, type GameSource, type Library } from '../../api'
 import { GameKeyFields } from '../GameMeta'
 import { IconCheck } from '../../icons'
 import { Button } from '../../ui'
-import { LaterNote, StepActions, StepHead, type StepProps } from './parts'
+import { ChoiceCards, LaterNote, StepActions, StepHead, type StepProps } from './parts'
+import { GameTitleSample } from '../games/GameName'
+import { GAME_TITLE_CHOICES } from '../games/titles'
+import { useGameTitlePref } from '../games/useGameTitles'
 import { GAMES_LINE } from './plan'
 
 // Belongs to WittyPlay, so it's only here when WittyPlay is.
@@ -14,6 +17,7 @@ export function Games({ info, next, back, added, goTo }: StepProps & { added: Li
   const [keys, setKeys] = useState<Record<string, string>>({})
   const [open, setOpen] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [titles, setTitles] = useGameTitlePref()
   useEffect(() => { api.get<{ sources: GameSource[] }>('/gamemeta/sources').then((r) => setSources(r.sources.filter((s) => s.fields.length > 0))).catch(() => {}) }, [])
   const libs = added.filter((l) => l.type === 'games')
   const save = async () => {
@@ -30,6 +34,10 @@ export function Games({ info, next, back, added, goTo }: StepProps & { added: Li
         ? <p className="oobe-added"><IconCheck size={16} /> {libs.map((l) => l.name).join(', ')} {libs.length === 1 ? 'is' : 'are'} being looked through now.</p>
         : <p className="muted oobe-hint">You haven’t added a games folder yet. <Button size="sm" onClick={() => goTo('media')}>Add one</Button></p>}
       <p className="muted oobe-hint su-gap">It works out each game’s console and name by itself, and checks each file against a list of known games. Nothing is bundled or downloaded, so the games are your own. Files with copy protection are listed with a plain reason, and aren’t played.</p>
+      <h2 className="oobe-sub">Game titles</h2>
+      <p className="muted oobe-hint">Many games were made in Japan and are listed by their name in Latin letters. Show their names that way, in their own script, or by their English release. This is for your profile; everyone can choose their own in Settings.</p>
+      <ChoiceCards label="Game titles" value={titles} onChange={setTitles} small
+        cards={GAME_TITLE_CHOICES.map((c) => ({ value: c.id, title: c.label, text: c.note, pic: <GameTitleSample pref={c.id} /> }))} />
       {sources.length > 0 && (
         <>
           <h2 className="oobe-sub">More details, if you want them</h2>

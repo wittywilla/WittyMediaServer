@@ -215,6 +215,48 @@ func pick(list []ssText) string {
 	return ""
 }
 
+// ssTitles finds a game's name in its own script and its English release's name, from
+// its names by region. A name in another script counts as the game's own only when the
+// game came out first where that name is used: an American game's Japanese name is a
+// translation. When no dates are known, any such name will do, Japan's first.
+func ssTitles(g *ssGame) (native, english string) {
+	for _, want := range []string{"us", "uk", "eu", "au", "wor"} {
+		for _, t := range g.Noms {
+			if t.Region == want {
+				if english = englishName(t.Text); english != "" {
+					break
+				}
+			}
+		}
+		if english != "" {
+			break
+		}
+	}
+	origin, first := "", ""
+	for _, d := range g.Dates {
+		if c := cleanDate(d.Text); c != "" && (first == "" || c < first) {
+			first, origin = c, d.Region
+		}
+	}
+	switch origin {
+	case "", "wor", "ss":
+		for _, want := range []string{"jp", "kr", "cn", "tw", "ru", ""} {
+			for _, t := range g.Noms {
+				if (want == "" || t.Region == want) && nativeName(t.Text) != "" {
+					return nativeName(t.Text), english
+				}
+			}
+		}
+	default:
+		for _, t := range g.Noms {
+			if t.Region == origin && nativeName(t.Text) != "" {
+				return nativeName(t.Text), english
+			}
+		}
+	}
+	return "", english
+}
+
 // ssPicture makes a reference to one of a game's pictures. It holds no login.
 func ssPicture(system, game, media string) string {
 	return "ss:" + system + ":" + game + ":" + media
@@ -265,6 +307,7 @@ func (s *ScreenScraper) info(g *ssGame) *Info {
 	sys := rawID(g.Systeme.ID)
 	in := &Info{ID: id, Title: Line(pick(g.Noms)), Description: Text(pick(g.Synopsis)), Released: cleanDate(pick(g.Dates)),
 		Developer: Line(g.Developpr.Text), Publisher: Line(g.Editeur.Text), URL: "https://www.screenscraper.fr/gameinfos.php?gameid=" + url.QueryEscape(id)}
+	in.Native, in.English = ssTitles(g)
 	var genres []string
 	for _, x := range g.Genres {
 		genres = append(genres, pick(x.Noms))

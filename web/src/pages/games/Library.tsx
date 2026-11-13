@@ -21,6 +21,7 @@ import { VirtualGames, type VirtualHandle } from './VirtualGames'
 import { useConsoleLogos } from './ConsoleMark'
 import { CollectionBand, GamesDock, OnTheGo, ResumeCard, Shelf, useShelfView, ViewSwitch, YoursOn } from './Shelves'
 import { ConsoleCores } from './ConsoleCores'
+import { GameName, useGameName } from './GameName'
 import './games-ui.css'
 
 // The games home: covers at the top, what's being played, the consoles, shelves, then every
@@ -44,14 +45,15 @@ const lastPlace = new Map<string, { y: number; item: number }>()
 
 export function GameCard({ item, console: c, fav, to }: { item: Item; console?: GameConsole; fav?: boolean; to?: string }) {
   const links = useGameLinks()
+  const { name, label } = useGameName(item)
   return (
-    <Link to={to || links.item(item.id)} className="card gm-card" title={item.title} data-gm-item={item.id}>
+    <Link to={to || links.item(item.id)} className="card gm-card" title={label} data-gm-item={item.id}>
       <div className="poster">
-        {item.poster ? <img src={cardCover(item)} alt="" loading="lazy" decoding="async" onLoad={(e) => e.currentTarget.classList.add('in')} /> : <Placeholder title={item.title} label={c?.short} />}
+        {item.poster ? <img src={cardCover(item)} alt="" loading="lazy" decoding="async" onLoad={(e) => e.currentTarget.classList.add('in')} /> : <Placeholder title={name} label={c?.short} />}
         {fav && <span className="gm-card-fav" role="img" aria-label="Favourite"><IconStar size={14} /></span>}
         <div className="play"><span><IconPlay /></span></div>
       </div>
-      <div className="title">{item.title}</div>
+      <div className="title"><GameName item={item} /></div>
       <div className="sub">
         {item.rating != null && <span className="gm-card-score"><IconStar size={12} />{item.rating.toFixed(1)}</span>}
         {[c?.short, item.year].filter(Boolean).join(' · ')}
@@ -103,6 +105,7 @@ function Hero({ items: list, consoles, resumable, title, place }: { items: Item[
   const index = Math.min(at ?? (items.length - 1) >> 1, items.length - 1)
   const it = items[index]
   const tint = useCoverTint(it?.poster ? heroCover(it) : null)
+  const heroName = useGameName(it)
   if (!it) return null
   const c = consoles.get(it.console || '')
   const ready = c?.ready ?? true
@@ -113,13 +116,13 @@ function Hero({ items: list, consoles, resumable, title, place }: { items: Item[
       <CoverFlow items={items} index={index} onIndex={setAt} consoles={consoles} onOpen={(g) => nav(links.item(g.id))} label={title}
         onDown={() => { const b = info.current?.querySelector<HTMLElement>('a[href]'); b?.focus({ preventScroll: true }); return !!b }} />
       <div className="gm-hero-info" ref={info}>
-        <h2 aria-live="polite">{it.title}</h2>
+        <h2 aria-live="polite"><GameName item={it} /></h2>
         <div className="meta">{[c?.name || c?.short, it.year, it.studio].filter(Boolean).map((t) => <span key={String(t)}>{t}</span>)}</div>
         <div className="gm-hero-actions">
           {ready
             ? <Link className="btn primary big gm-play" to={links.play(it.id, resume ? 'resume=1' : '')}><IconPlay /> {resume ? 'Resume' : 'Play'}</Link>
             : <Link className="btn big" to={links.item(it.id)}>{c?.reason === 'gpu' ? <><IconInfo size={16} /> Not on this server</> : <><IconSettings size={16} /> Needs setting up</>}</Link>}
-          <Link className="btn big ghost" to={links.item(it.id)} aria-label={`About ${it.title}`}>About this game</Link>
+          <Link className="btn big ghost" to={links.item(it.id)} aria-label={`About ${heroName.label}`}>About this game</Link>
         </div>
       </div>
     </section>

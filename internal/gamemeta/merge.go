@@ -28,10 +28,13 @@ type Credit struct {
 // Merged is the result of merging.
 type Merged struct {
 	Title, Tags, Description, Released, Developer, Publisher, Franchise string
-	Genres                                                              []string
-	Players                                                             int
-	Scores                                                              []Score
-	Ages                                                                []AgeRating
+	// Native and English are the game's other names, from the sources sure enough to
+	// name it (see RenameConfidence).
+	Native, English string
+	Genres          []string
+	Players         int
+	Scores          []Score
+	Ages            []AgeRating
 	// Posters and Backdrops are every candidate, best first: if one can't be fetched
 	// the next is tried.
 	Posters, Backdrops []string
@@ -113,6 +116,8 @@ func Merge(answers []Answer) *Merged {
 		if in.Confidence >= RenameConfidence {
 			take(&m.Title, in.Title, src)
 			take(&m.Tags, in.Tags, src)
+			take(&m.Native, in.Native, src)
+			take(&m.English, in.English, src)
 		}
 		take(&m.Description, in.Description, src)
 		take(&m.Released, in.Released, src)

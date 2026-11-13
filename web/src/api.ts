@@ -72,6 +72,8 @@ export type Item = {
   reading?: '' | 'ltr' | 'rtl' | 'webtoon'
   // Games: the console it runs on.
   console?: string
+  // Games: its other names, each only when known (pages/games/titles.ts shows the one the profile prefers).
+  titles?: { native?: string; english?: string; romanized?: string }
   // Internet radio: what's known about a station, from the radio routes.
   radio?: RadioMeta
   // CD images: a track says which disc item it belongs to.

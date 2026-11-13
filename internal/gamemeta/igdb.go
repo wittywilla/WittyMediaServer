@@ -124,7 +124,8 @@ func (s *IGDB) post(ctx context.Context, endpoint, body string, out any) error {
 
 const igdbFields = `fields id,name,slug,url,summary,storyline,first_release_date,aggregated_rating,aggregated_rating_count,rating,rating_count,` +
 	`cover.image_id,screenshots.image_id,artworks.image_id,genres.name,franchises.name,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,` +
-	`multiplayer_modes.offlinemax,multiplayer_modes.offlinecoopmax,game_modes.slug,age_ratings.organization.name,age_ratings.rating_category.rating,platforms;`
+	`multiplayer_modes.offlinemax,multiplayer_modes.offlinecoopmax,game_modes.slug,age_ratings.organization.name,age_ratings.rating_category.rating,platforms,` +
+	`alternative_names.name,alternative_names.comment;`
 
 type igdbImage struct {
 	ImageID string `json:"image_id"`
@@ -166,6 +167,12 @@ type igdbGame struct {
 			Rating string `json:"rating"`
 		} `json:"rating_category"`
 	} `json:"age_ratings"`
+	// AlternativeNames carry a comment saying what each is: "Japanese title - original",
+	// "Japanese title - romanization", "Acronym" and so on.
+	AlternativeNames []struct {
+		Name    string `json:"name"`
+		Comment string `json:"comment"`
+	} `json:"alternative_names"`
 }
 
 func (s *IGDB) image(id, size string) string {
@@ -179,6 +186,17 @@ func (s *IGDB) info(g *igdbGame) *Info {
 	in := &Info{ID: strconv.FormatInt(g.ID, 10), Title: Line(g.Name), Description: Text(g.Summary), Released: unixDate(g.FirstRelease), URL: WebAddress(g.URL)}
 	if in.Description == "" {
 		in.Description = Text(g.Storyline)
+	}
+	// IGDB names a game as it was released in English. Its own name is the alternative
+	// name marked as the original, when that is in a script of its own.
+	in.English = englishName(g.Name)
+	for _, a := range g.AlternativeNames {
+		if strings.Contains(strings.ToLower(a.Comment), "original") {
+			if n := nativeName(a.Name); n != "" {
+				in.Native = n
+				break
+			}
+		}
 	}
 	for _, c := range g.InvolvedCompanies {
 		if c.Developer && in.Developer == "" {

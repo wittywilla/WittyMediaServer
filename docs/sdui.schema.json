@@ -1228,6 +1228,9 @@
         "title": {
           "type": "string"
         },
+        "titles": {
+          "$ref": "#/$defs/Titles"
+        },
         "track": {
           "type": "integer"
         },
@@ -2479,6 +2482,20 @@
       "required": [
         "scope"
       ],
+      "type": "object"
+    },
+    "Titles": {
+      "properties": {
+        "english": {
+          "type": "string"
+        },
+        "native": {
+          "type": "string"
+        },
+        "romanized": {
+          "type": "string"
+        }
+      },
       "type": "object"
     },
     "TokenRoles": {

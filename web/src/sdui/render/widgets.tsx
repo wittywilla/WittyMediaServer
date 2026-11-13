@@ -24,7 +24,9 @@ const greeting = (h: number) => (h < 5 ? 'Good night' : h < 12 ? 'Good morning' 
 
 export function WidgetGridView({ view, draw }: { view: View; draw: (child: View) => ReactNode }) {
   const phone = useMedia('(max-width: 700px)')
-  const columns = phone ? 2 : int(view.node.props, 'columns', 4, 1, 12)
+  // As many columns as the grid says, but never more than the tiles can fill: two tiles share the width, not half of it.
+  const filled = view.children.reduce((n, c) => n + int(c.node.props, 'w', 1, 1, 12), 0)
+  const columns = phone ? 2 : Math.max(1, Math.min(int(view.node.props, 'columns', 4, 1, 12), filled || 1))
   // Rows with nothing in them take no room: the rows tiles ask for are counted off in order (a tile hidden for this
   // profile, or one with nothing to show, leaves no gap).
   const rows = [...new Set(view.children.map((c) => int(c.node.props, 'y', 0, 0, 40)))].sort((a, b) => a - b)

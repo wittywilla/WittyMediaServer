@@ -30,6 +30,8 @@ Start with the roadmap.
 |---|---|
 | [DESIGN-2.md](DESIGN-2.md) | The contract: principles, the fourteen looks, the removal list |
 | [DESIGN-2-RELEASE.md](DESIGN-2-RELEASE.md) | The release cut: the freeze, the gates, the issue candidates and the release checklist |
+| [RELEASE-0.8.0-PLAN.md](RELEASE-0.8.0-PLAN.md) | The release plan for every repository: versions, publish order, pins, CI, the owner's commands, deleting the old releases |
+| [RELEASE-0.8.0-ISSUES.md](RELEASE-0.8.0-ISSUES.md) | Every open item from every session and QA pass, deduplicated, as issue candidates for the owner to approve |
 | [DESIGN-2-SDUI-GAPS.md](DESIGN-2-SDUI-GAPS.md) · [DESIGN-2-FEATURE-GAPS.md](DESIGN-2-FEATURE-GAPS.md) · [DESIGN-2-FEATURE-GAPS-CLIENTS.md](DESIGN-2-FEATURE-GAPS-CLIENTS.md) | What the catalogue and the apps lacked, and where each gap went |
 | [DESIGN-2-QA-1.md](DESIGN-2-QA-1.md) to [DESIGN-2-QA-5.md](DESIGN-2-QA-5.md) | The QA passes: defects, owners and what is open |
 | [TV-MODE.md](TV-MODE.md) · [module-isolation.md](module-isolation.md) | TV mode, and how modules are kept apart |

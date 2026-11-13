@@ -52,3 +52,11 @@ Merged at client 90e1273 (tip unbuilt after three small alpha merges; the big te
 - Unchecked: whether card sets (list, tile, block) reach the SDUI renderer; 15 themes on every look beyond Aero.
 - Layout editor: game-controller moves on iOS, preview frames for other form factors, "For everyone" for page sections.
 - Give W6's LayoutThumb the finish (`.finished(...)`); other agents' files still use `.system(size:`.
+
+## From S12 and the coordinator (admin and list pages)
+Merged at server ece6f71a: /manage/libraries, /manage/matches, /manage/match/{item}. Still deferred:
+- Bulk edit as SDUI: needs picking several titles on one page; no component does multi-select.
+- Delete or rename a library from SDUI: a row has one action (scan); the routes exist.
+- Shorts and concerts pages: no server route (see DESIGN-2-ISSUES.md).
+- Smart playlist live match count: a Form can't feed its values to a source, and there's no preview route.
+- Download chooser: no server API for download options.

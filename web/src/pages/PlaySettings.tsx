@@ -6,7 +6,7 @@
 // one game), controllers and their mapping, friends and privacy, and the WittyPlay module's own settings.
 import { lazy, Suspense, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { IconRight } from '../icons'
+import { IconCheck, IconDevices, IconDisc, IconGamepad, IconLibrary, IconPlug, IconRemote, IconServer, IconSidebar, IconTune, IconUsers, IconWrench, IconRight } from '../icons'
 import { useApp } from '../state'
 import { Spinner } from '../ui/Surface'
 import { PageHead } from './settings/ui'
@@ -25,23 +25,23 @@ const ControllersScreen = lazy(() => import('./Games').then((m) => ({ default: m
 
 export const PLAY_SETTINGS = '/wittyplay/settings'
 
-type Entry = { id: string; label: string; hint: string; admin?: boolean; to?: string; page?: () => ReactNode }
+type Entry = { id: string; label: string; hint: string; icon: (p: { size?: number }) => ReactNode; admin?: boolean; to?: string; page?: () => ReactNode }
 const ENTRIES: { title: string; entries: Entry[] }[] = [
   { title: 'For you', entries: [
-    { id: 'games', label: 'My game settings', hint: 'Picture, speed, shortcuts and more: for every game, one console or one game', page: () => <><PageHead title="My game settings" desc="How your games look, sound and behave. Set something for every game, for one console or, from a game’s own page, for one game. It follows you to every device." /><GameSettingsPage /></> },
-    { id: 'look', label: 'Layout, tabs and buttons', hint: 'Shelf, grid or list; the order of the tabs and which show; the buttons WittyPlay shows', page: () => <LookSetting /> },
-    { id: 'controllers', label: 'Controllers and buttons', hint: 'Who is on which player, and the buttons WittyPlay shows', to: '/page/wittyplay-controllers' },
-    { id: 'mapping', label: 'Controller mapping', hint: 'What each button and stick does, for each console', page: () => <ControllersScreen /> },
-    { id: 'privacy', label: 'Friends and what you play', hint: 'Who sees you online and what you are playing', to: '/page/wittyplay-privacy' },
-    { id: 'module', label: 'WittyPlay options', hint: 'What the WittyPlay module lets you set', page: () => <ModuleSettingsPage /> },
+    { id: 'games', icon: IconTune, label: 'My game settings', hint: 'Picture, speed, shortcuts and more: for every game, one console or one game', page: () => <><PageHead title="My game settings" desc="How your games look, sound and behave. Set something for every game, for one console or, from a game’s own page, for one game. It follows you to every device." /><GameSettingsPage /></> },
+    { id: 'look', icon: IconSidebar, label: 'Layout, tabs and buttons', hint: 'Shelf, grid or list; the order of the tabs and which show; the buttons WittyPlay shows', page: () => <LookSetting /> },
+    { id: 'controllers', icon: IconGamepad, label: 'Controllers and buttons', hint: 'Who is on which player, and the buttons WittyPlay shows', to: '/page/wittyplay-controllers' },
+    { id: 'mapping', icon: IconRemote, label: 'Controller mapping', hint: 'What each button and stick does, for each console', page: () => <ControllersScreen /> },
+    { id: 'privacy', icon: IconUsers, label: 'Friends and what you play', hint: 'Who sees you online and what you are playing', to: '/page/wittyplay-privacy' },
+    { id: 'module', icon: IconPlug, label: 'WittyPlay options', hint: 'What the WittyPlay module lets you set', page: () => <ModuleSettingsPage /> },
   ] },
   { title: 'This server', entries: [
-    { id: 'consoles', label: 'Consoles and cores', hint: 'Which consoles play here, each one’s core and its options, BIOS files, and game streaming', admin: true, page: () => <GamingSettings /> },
-    { id: 'support', label: 'What this server plays', hint: 'Each console, whether its games play here, and how', page: () => <GamesSupport /> },
-    { id: 'libraries', label: 'Libraries', hint: 'The folders games come from, each library’s console and naming, and scans', admin: true, page: () => <LibrariesSettings /> },
-    { id: 'emulators', label: 'Standalone emulators', hint: 'PCSX2, Dolphin, RPCS3 and others: installs, firmware, controllers and every setting', admin: true, page: () => <EmulatorsSettings /> },
-    { id: 'pcs', label: 'Game PCs', hint: 'Who can play on PCs running Sunshine, and which ones', admin: true, page: () => <CouchSettings /> },
-    { id: 'rigs', label: 'WittyRigs', hint: 'Hosting demanding games on this server’s own hardware', admin: true, page: () => <WittyRigsSettings /> },
+    { id: 'consoles', icon: IconDisc, label: 'Consoles and cores', hint: 'Which consoles play here, each one’s core and its options, BIOS files, and game streaming', admin: true, page: () => <GamingSettings /> },
+    { id: 'support', icon: IconCheck, label: 'What this server plays', hint: 'Each console, whether its games play here, and how', page: () => <GamesSupport /> },
+    { id: 'libraries', icon: IconLibrary, label: 'Libraries', hint: 'The folders games come from, each library’s console and naming, and scans', admin: true, page: () => <LibrariesSettings /> },
+    { id: 'emulators', icon: IconWrench, label: 'Standalone emulators', hint: 'PCSX2, Dolphin, RPCS3 and others: installs, firmware, controllers and every setting', admin: true, page: () => <EmulatorsSettings /> },
+    { id: 'pcs', icon: IconDevices, label: 'Game PCs', hint: 'Who can play on PCs running Sunshine, and which ones', admin: true, page: () => <CouchSettings /> },
+    { id: 'rigs', icon: IconServer, label: 'WittyRigs', hint: 'Hosting demanding games on this server’s own hardware', admin: true, page: () => <WittyRigsSettings /> },
   ] },
 ]
 
@@ -71,7 +71,7 @@ export default function PlaySettings() {
             {g.entries.map((e) => (
               <li key={e.id}>
                 <Link to={e.to || (e.id === 'module' ? `${PLAY_SETTINGS}/module/wittyplay` : `${PLAY_SETTINGS}/${e.id}`)} className="wplay-settings-link">
-                  <span><b>{e.label}</b><span>{e.hint}</span></span><IconRight aria-hidden="true" />
+                  <span className="wplay-settings-icon" aria-hidden="true"><e.icon /></span><span><b>{e.label}</b><span>{e.hint}</span></span><IconRight aria-hidden="true" />
                 </Link>
               </li>
             ))}

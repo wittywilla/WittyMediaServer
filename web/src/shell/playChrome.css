@@ -193,7 +193,8 @@ html[data-wplay] body { font-family: var(--font); }
 .wplay .play-dock a.on .play-dock-ic { inline-size: var(--wp-dock); block-size: var(--wp-dock); background: linear-gradient(180deg, #5ff0d6, #1fc3a8); color: var(--accent-fg); box-shadow: 0 0 0 4px var(--wp-ring), 0 0 0 8px #fff; transform: scale(1.12); }
 .wplay .play-dock a:focus-visible .play-dock-ic { outline: none; box-shadow: 0 0 0 4px var(--wp-ring), 0 0 0 8px var(--focus); transform: scale(1.12); }
 /* Under its button, out of the row's flow, so a long name never pushes the buttons apart. */
-.wplay .play-dock-label { position: absolute; inset-block-start: calc(100% + 6px); inset-inline-start: 50%; transform: translateX(-50%); white-space: nowrap; font-size: clamp(.8rem, .9vw, 1.05rem); font-weight: 800; }
+/* Under the current button, clear of its scaled ring (it reaches about 14px past the button), on a small dark pill so it reads over any scene. */
+.wplay .play-dock-label { position: absolute; inset-block-start: calc(100% + 18px); inset-inline-start: 50%; transform: translateX(-50%); white-space: nowrap; font-size: clamp(.85rem, .95vw, 1.1rem); font-weight: 800; padding: 2px 10px; border-radius: 999px; background: rgb(0 0 0 / .55); color: #fff; line-height: 1.4; }
 
 /* ---- the first-time tip: how to get back to the app, with a ring round the Home button ---- */
 .wplay-tip-scrim { position: fixed; inset: 0; z-index: 5; display: grid; place-items: center; padding: var(--wp-gutter); background: rgb(6 8 30 / .74); animation: fade-in var(--dur-2) ease-out; }
@@ -381,3 +382,10 @@ html[data-wplay] body { font-family: var(--font); }
 @media (forced-colors: active) {
   .wplay .sdui-shelf.focus-grow .sdui-item.grown .card .poster, .wplay .play-dock a.on .play-dock-ic { outline: 3px solid CanvasText; }
 }
+/* Each WittyPlay setting has an icon in a rounded tile beside its name. */
+.wplay-settings-icon { flex: none; display: grid; place-items: center; inline-size: clamp(40px, 3.2vw, 56px); block-size: clamp(40px, 3.2vw, 56px); border-radius: clamp(12px, 1vw, 16px); background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--accent); }
+.wplay-settings-icon svg { inline-size: 55%; block-size: 55%; }
+.wplay-settings-link:focus-visible .wplay-settings-icon, .wplay-settings-link:hover .wplay-settings-icon { background: var(--accent); color: var(--accent-fg); }
+/* Every card in a row is as tall as the tallest, so a one-line description doesn't leave a smaller box. */
+.wplay-settings-list > li { display: flex; }
+.wplay-settings-list > li > .wplay-settings-link { flex: 1; }

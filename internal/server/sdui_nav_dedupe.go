@@ -4,6 +4,7 @@
 package server
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/wittywilla/wittymediaserver/pkg/sdui"
@@ -57,4 +58,61 @@ func dedupeModuleEntries(items []sdui.NavEntry, personal *sdui.PersonalInfo, fro
 		personal = &p
 	}
 	return kept, personal
+}
+
+// wittyPlayNavID is WittyPlay's menu entry: its console home, which is the server's Games.
+const wittyPlayNavID = "wittyplay-online"
+
+// gamesBecomeWittyPlay: with WittyPlay in the menu, it replaces the games libraries' entries rather than
+// being dropped as a repeat of their label. It takes the first one's place and placement, so Games stays
+// where it was; the libraries are still reached from inside WittyPlay. Every app gets this from here.
+func gamesBecomeWittyPlay(items []sdui.NavEntry, personal *sdui.PersonalInfo, libs []sdui.NavLibrary) ([]sdui.NavEntry, *sdui.PersonalInfo) {
+	at := -1
+	for i, it := range items {
+		if it.ID == wittyPlayNavID {
+			at = i
+		}
+	}
+	if at < 0 {
+		return items, personal
+	}
+	games := map[string]bool{}
+	for _, l := range libs {
+		if l.Kind == "games" {
+			games["lib-"+strconv.FormatInt(l.ID, 10)] = true
+		}
+	}
+	play := items[at]
+	dropped := map[string]bool{}
+	out := make([]sdui.NavEntry, 0, len(items))
+	placed := false
+	for i, it := range items {
+		if i == at {
+			continue
+		}
+		if games[it.ID] {
+			dropped[it.ID] = true
+			if !placed {
+				play.Placement = it.Placement
+				out = append(out, play)
+				placed = true
+			}
+			continue
+		}
+		out = append(out, it)
+	}
+	if !placed {
+		return items, personal
+	}
+	if personal != nil {
+		p := *personal
+		p.Sections = nil
+		for _, s := range personal.Sections {
+			if !dropped[s.ID] {
+				p.Sections = append(p.Sections, s)
+			}
+		}
+		personal = &p
+	}
+	return out, personal
 }

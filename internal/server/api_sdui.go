@@ -760,6 +760,7 @@ func (s *Server) handleSDUINavigation(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx.Experience = layout
 	doc := sdui.RenderNavigation(nav, func(id string) (sdui.Page, bool) { return effectivePage(cfg, id, set) }, libs, ctx)
+	doc.Items, doc.Personal = gamesBecomeWittyPlay(doc.Items, doc.Personal, libs)
 	doc.Items, doc.Personal = dropModuleEntriesLibrariesCover(doc.Items, doc.Personal, set)
 	doc.Shell = s.shellFor(r, cfg, layout, ctx.Profile.FormFactor)
 	doc.Experiences = s.experienceChoice(r, cfg, ctx.Profile.FormFactor, layout.ID)

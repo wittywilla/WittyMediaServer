@@ -302,6 +302,11 @@ func (s *ScreenScraper) info(g *ssGame) *Info {
 	if m := ssMediaName(g, "sstitle"); m != "" && sys != "" {
 		in.Art = append(in.Art, ArtRef{Ref: ssPicture(sys, id, m), Kind: "title"})
 	}
+	if m := ssMediaName(g, "wheel-hd"); m != "" && sys != "" {
+		in.Art = append(in.Art, ArtRef{Ref: ssPicture(sys, id, m), Kind: "logo"})
+	} else if m := ssMediaName(g, "wheel"); m != "" && sys != "" {
+		in.Art = append(in.Art, ArtRef{Ref: ssPicture(sys, id, m), Kind: "logo"})
+	}
 	return in
 }
 

@@ -477,7 +477,7 @@ func TestLibretroArt(t *testing.T) {
 	if len(in.MorePosters) != 2 || !strings.Contains(in.MorePosters[0], "Japan") {
 		t.Errorf("other releases: %v", in.MorePosters)
 	}
-	if len(in.Art) != 2 || in.Art[1].Kind != "title" || in.Title != "" {
+	if len(in.Art) != 3 || in.Art[1].Kind != "title" || in.Art[2].Kind != "logo" || in.Title != "" {
 		t.Errorf("%+v", in)
 	}
 	list, err := db.Search(context.Background(), "snes", "Odd Name More")

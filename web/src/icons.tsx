@@ -15,6 +15,8 @@ export const IconVisualizer = (p: P) => <S {...p} d="M4 13h2.5v8H4zm4.5-8H11v16H
 export const IconActivity = (p: P) => <S {...p} d="M9.2 3.5L6.3 11H2v2h5.7l1.4-3.6 5 11.1L17 13h5v-2h-6.3l-1.7 4.4z" />
 export const IconPlay = (p: P) => <S {...p} d="M8 5v14l11-7z" />
 export const IconPause = (p: P) => <S {...p} d="M6 19h4V5H6zm8-14v14h4V5z" />
+// A looped arrow back: leaving for somewhere else (WittyPlay's Return To Server), not a page's Back.
+export const IconReturn = (p: P) => <S {...p} d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z" />
 export const IconBack = (p: P) => <S {...p} d="M20 11H7.8l5.6-5.6L12 4l-8 8 8 8 1.4-1.4L7.8 13H20z" />
 export const IconClose = (p: P) => <S {...p} d="M19 6.4L17.6 5 12 10.6 6.4 5 5 6.4l5.6 5.6L5 17.6 6.4 19l5.6-5.6 5.6 5.6 1.4-1.4-5.6-5.6z" />
 export const IconFull = (p: P) => <S {...p} d="M7 14H5v5h5v-2H7zm-2-4h2V7h3V5H5zm12 7h-3v2h5v-5h-2zm-3-12v2h3v3h2V5z" />

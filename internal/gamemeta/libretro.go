@@ -604,7 +604,9 @@ func (s *LibretroArt) pictures(d *libDB, i int32) *Info {
 	r := &d.recs[i]
 	sys := d.allFiles[d.recFile[i]]
 	in := &Info{ID: r.Name, Poster: s.picture(sys, "Named_Boxarts", r.Name), Backdrop: s.picture(sys, "Named_Snaps", r.Name)}
-	in.Art = []ArtRef{{Ref: s.picture(sys, "Named_Snaps", r.Name), Kind: "screenshot"}, {Ref: s.picture(sys, "Named_Titles", r.Name), Kind: "title"}}
+	in.Art = []ArtRef{{Ref: s.picture(sys, "Named_Snaps", r.Name), Kind: "screenshot"}, {Ref: s.picture(sys, "Named_Titles", r.Name), Kind: "title"},
+		// Not every console's set has logos: one that isn't there is simply not shown.
+		{Ref: s.picture(sys, "Named_Logos", r.Name), Kind: "logo"}}
 	// If this exact release has no picture, another release of the game might.
 	seen := 0
 	for _, j := range d.byKey[NameKey(r.Name)] {

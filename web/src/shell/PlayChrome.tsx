@@ -4,7 +4,7 @@ import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useSta
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Brand } from '../components/common'
 import { cornerName } from '../api'
-import { IconExpand, IconHelp, IconHome } from '../icons'
+import { IconExpand, IconHelp, IconReturn } from '../icons'
 import { useUserPref } from '../ui/userPrefs'
 import { sduiIcon } from '../sdui/render/icons'
 import { dockCurrent, usePageRegions, type DockEntry, type StatusPart } from '../sdui/regions'
@@ -72,7 +72,7 @@ export function StatusBar({ parts, onExit, onHelp }: { parts: StatusPart[]; onEx
         <time className="play-clock">{time}</time>
         {onHelp && <button type="button" className="play-sys" onClick={onHelp} aria-label="How to get back to the app" title="How to get back to the app"><IconHelp /></button>}
         {toggleFull && <button type="button" className="play-sys" onClick={toggleFull} aria-pressed={full} aria-label="Full screen" title={full ? 'Leave full screen' : 'Full screen'}><IconExpand /></button>}
-        {onExit && <button type="button" className="play-sys play-exit" onClick={onExit} aria-label="Exit WittyPlay to Home" title="Exit to Home (Esc)"><IconHome /><span className="play-exit-label" aria-hidden="true">Home</span></button>}
+        {onExit && <button type="button" className="play-sys play-exit" onClick={onExit} aria-label="Return To Server" title="Return to the server's Home (Esc)"><IconReturn /><span className="play-exit-label" aria-hidden="true">Return To Server</span></button>}
       </div>
     </header>
   )
@@ -148,7 +148,7 @@ function ExitTip({ onClose, choose, pads, setPads, layout, setLayout }: { onClos
           <>
             <h2 id={id + 't'}>{PLAY_TIP.title}</h2>
             <p id={id + 'd'}>{PLAY_TIP.intro}</p>
-            <ul>{ways.map((w) => <li key={w.key}>{w.glyph ? <span className="wplay-tip-key">{drawn('b')}</span> : <kbd>{w.key}</kbd>}<span>{w.text}</span></li>)}</ul>
+            <ul>{ways.map((w) => <li key={w.key}>{w.glyph ? <span className="wplay-tip-key">{drawn('b')}</span> : w.key === 'server' ? <span className="wplay-tip-key" aria-hidden="true"><IconReturn size={22} /></span> : <kbd>{w.key}</kbd>}<span>{w.text}</span></li>)}</ul>
             <button type="button" className="wplay-tip-ok" onClick={onClose}>{drawn('a')} {PLAY_TIP.done}</button>
           </>
         )}

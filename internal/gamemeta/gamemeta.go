@@ -117,7 +117,7 @@ type Info struct {
 // Referrer). It may be private to the server, so it's never sent to a browser.
 type ArtRef struct {
 	Ref  string `json:"ref"`
-	Kind string `json:"kind"` // screenshot | title | artwork
+	Kind string `json:"kind"` // screenshot | title | artwork | logo (the game's name drawn as its logo, on a clear background)
 }
 
 // Candidate is one possible game in a search, for someone to choose from.
@@ -205,4 +205,14 @@ type Metered interface {
 // is still missing.
 type GapFiller interface {
 	GapsOnly() bool
+}
+
+// hasArt says whether a list already has a picture of this kind.
+func hasArt(art []ArtRef, kind string) bool {
+	for _, a := range art {
+		if a.Kind == kind {
+			return true
+		}
+	}
+	return false
 }

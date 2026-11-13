@@ -22,9 +22,13 @@ export const usePageRegions = () => useSyncExternalStore((l) => { listeners.add(
 
 // Where the dock's current entry is: the one whose route is the address or a parent of it. A route with a query (a tab of a page,
 // ?tab=together) is current only with the same query: the page without it is none of them.
-export const dockCurrent = (entries: DockEntry[], pathname: string, search = '') => entries.findIndex((e) => {
-  const q = e.route.indexOf('?')
-  if (q < 0) return pathname === e.route || pathname.startsWith(e.route + '/')
-  const want = new URLSearchParams(e.route.slice(q + 1)), have = new URLSearchParams(search)
-  return pathname === e.route.slice(0, q) && [...want].every(([k, v]) => have.get(k) === v)
-})
+// An entry asking for a query (Together, ?tab=together) wins over a plain one on the same page (Home), whatever their order.
+export const dockCurrent = (entries: DockEntry[], pathname: string, search = '') => {
+  const have = new URLSearchParams(search)
+  const exact = entries.findIndex((e) => {
+    const q = e.route.indexOf('?')
+    if (q < 0) return false
+    return pathname === e.route.slice(0, q) && [...new URLSearchParams(e.route.slice(q + 1))].every(([k, v]) => have.get(k) === v)
+  })
+  return exact >= 0 ? exact : entries.findIndex((e) => !e.route.includes('?') && (pathname === e.route || pathname.startsWith(e.route + '/')))
+}

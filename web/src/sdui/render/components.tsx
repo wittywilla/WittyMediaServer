@@ -34,6 +34,7 @@ import { ControlView, FormView } from './forms'
 import { controlOf } from '../formsModel'
 import { Markdown } from './markdown'
 import { WidgetGridView } from './widgets'
+import { GameBio } from './GameBio'
 
 const NativeViewHost = lazy(() => import('./NativeViewHost'))
 const DetailExtras = lazy(() => import('../extras/DetailExtras'))
@@ -411,11 +412,19 @@ function ShelfDetail({ view, parent }: { view: View; parent: View }) {
   const lead = sent.some((b) => b.primary) ? -1 : Math.max(0, sent.findIndex((b) => b.glyph === 'a'))
   const own = sent.map((b, i) => (i === lead ? { ...b, primary: true } : b))
   const buttons: ButtonSpec[] = own.length ? own : view.node.action ? [{ id: 'open', label: 'Open', glyph: 'a', primary: true, action: view.node.action }] : []
-  return (
-    <div className="sdui-detail" aria-live="polite" data-for={view.id}>
+  const head = (
+    <>
       <b className="sdui-detail-title">{text.title}</b>
       {text.subtitle && <span className="sdui-detail-line">{text.subtitle}</span>}
       {buttons.length > 0 && <ActionButtons buttons={buttons} view={parent} className="sdui-detail-actions" />}
+    </>
+  )
+  // A game's card brings its bio: logo, console, maker, rating, pictures and achievements.
+  const p = view.node.props || {}
+  const game = p.kind === 'game' && p.itemId != null ? String(p.itemId) : ''
+  return (
+    <div className={'sdui-detail' + (game ? ' has-bio' : '')} aria-live="polite" data-for={view.id}>
+      {game ? <GameBio key={game} itemId={game} title={text.title || ''} console={typeof p.console === 'string' ? p.console : undefined}>{head}</GameBio> : head}
     </div>
   )
 }

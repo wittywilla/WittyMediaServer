@@ -21,7 +21,7 @@ test('the exit tip shows until the profile has seen it, and names every way out'
   assert.ok(tipDue(undefined))
   assert.ok(tipDue(false))
   assert.ok(!tipDue(true))
-  assert.deepEqual(PLAY_TIP.ways.map((w) => w.key), ['Home', 'Esc', 'B'])
+  assert.deepEqual(PLAY_TIP.ways.map((w) => w.key), ['server', 'Esc', 'B'])
 })
 
 test('the buttons shown are guessed from a connected pad, else the keyboard', () => {

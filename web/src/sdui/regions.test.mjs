@@ -20,3 +20,10 @@ test('a dock route with a query is current only with that query', () => {
   assert.equal(dockCurrent(e, '/page/wittyplay-online', '?tab=memories'), -1)
   assert.equal(dockCurrent(e, '/search'), 0)
 })
+
+test('a plain Home entry yields to a query entry on the same page', () => {
+  const e = [{ id: 'home', route: '/page/wittyplay-online' }, { id: 'together', route: '/page/wittyplay-online?tab=together' }]
+  assert.equal(dockCurrent(e, '/page/wittyplay-online', ''), 0)
+  assert.equal(dockCurrent(e, '/page/wittyplay-online', '?tab=together'), 1)
+  assert.equal(dockCurrent(e, '/page/wittyplay-online', '?tab=classics'), 0)
+})

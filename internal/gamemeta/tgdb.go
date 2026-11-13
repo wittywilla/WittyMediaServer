@@ -206,6 +206,8 @@ func (s *TGDB) pictures(in *Info, a *tgdbAnswer, id int64) {
 			in.Art = append(in.Art, ArtRef{Ref: u, Kind: "screenshot"})
 		case img.Type == "titlescreen" && len(in.Art) < 8:
 			in.Art = append(in.Art, ArtRef{Ref: u, Kind: "title"})
+		case img.Type == "clearlogo" && !hasArt(in.Art, "logo"):
+			in.Art = append(in.Art, ArtRef{Ref: u, Kind: "logo"})
 		}
 	}
 }

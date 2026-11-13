@@ -18,15 +18,21 @@ export const PLAY_SETTINGS = '/wittyplay/settings'
 // The status bar and dock when a page brings none (WittyPlay's Settings, the games library): the same as WittyPlay Online's own.
 export const PLAY_STATUS = [{ id: 'me', kind: 'profile' as const, text: 'WittyPlay Online' }, { id: 'server', kind: 'server' as const }]
 export const PLAY_DOCK = [
+  { id: 'home', label: 'Home', icon: 'home', route: PLAY_HOME },
   { id: 'search', label: 'Search', icon: 'search', route: '/search' },
   { id: 'together', label: 'Together', icon: 'users', route: PLAY_HOME + '?tab=together' },
   { id: 'controllers', label: 'Controllers', icon: 'devices', route: '/page/wittyplay-controllers' },
   { id: 'memories', label: 'Memories', icon: 'photo', route: PLAY_HOME + '?tab=memories' },
   { id: 'settings', label: 'Settings', icon: 'settings', route: PLAY_SETTINGS },
 ]
-// The dock's Settings opens WittyPlay's whole Settings (its privacy page is one of them).
-export const dockFor = <T extends { id: string; route: string }>(entries: T[] | undefined): T[] =>
-  (entries?.length ? entries : (PLAY_DOCK as unknown as T[])).map((e) => (e.id === 'settings' ? { ...e, route: PLAY_SETTINGS } : e))
+// The dock's Settings opens WittyPlay's whole Settings (its privacy page is one of them). The dock always starts with WittyPlay's
+// own Home, so every WittyPlay page (Settings, Controllers, a console) has one press back to it; leaving for the server is the
+// status bar's Return To Server.
+const PLAY_DOCK_HOME = PLAY_DOCK[0]
+export const dockFor = <T extends { id: string; route: string }>(entries: T[] | undefined): T[] => {
+  const list = (entries?.length ? entries : (PLAY_DOCK as unknown as T[])).map((e) => (e.id === 'settings' ? { ...e, route: PLAY_SETTINGS } : e))
+  return list.some((e) => e.id === 'home' || e.route === PLAY_HOME) ? list : [PLAY_DOCK_HOME as unknown as T, ...list]
+}
 
 // Its top level, where Back exits to Home.
 export const isPlayTop = (path: string) => path === PLAY_HOME || path === PLAY_DESIGN
@@ -36,9 +42,9 @@ export const isPlayTop = (path: string) => path === PLAY_HOME || path === PLAY_D
 export const PLAY_TIP_KEY = 'wittyplayExitTipSeen'
 export const PLAY_TIP = {
   title: 'Getting back to the app',
-  intro: 'WittyPlay Online fills the whole screen. To leave it and go back to Home:',
+  intro: 'WittyPlay Online fills the whole screen. To leave it and go back to the server:',
   ways: [
-    { key: 'Home', text: 'Choose Home, at the top right.' },
+    { key: 'server', text: 'Choose Return To Server, at the top right.' },
     { key: 'Esc', text: 'Press Esc (or Backspace) on a keyboard.' },
     { key: 'B', text: 'Press B on a controller, or Back on a TV remote.' },
   ],

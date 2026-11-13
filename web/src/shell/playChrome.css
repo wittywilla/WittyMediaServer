@@ -251,7 +251,7 @@ html[data-wplay] body { font-family: var(--font); }
 .wplay-settings-link { display: flex; align-items: center; gap: var(--sp-4); min-block-size: clamp(64px, 5.4vw, 96px); padding: var(--sp-3) clamp(16px, 1.5vw, 28px); border-radius: clamp(14px, 1.2vw, 22px); background: var(--wp-chip); color: var(--fg); text-decoration: none; }
 .wplay-settings-link:hover { background: var(--wp-chip-hover); }
 .wplay-settings-link:focus-visible { outline: none; box-shadow: 0 0 0 4px var(--wp-ring), 0 0 0 7px var(--focus); }
-.wplay-settings-link > span { display: grid; gap: 2px; flex: 1; min-inline-size: 0; }
+.wplay-settings-link > span:not(.wplay-settings-icon) { display: grid; gap: 2px; flex: 1; min-inline-size: 0; }
 .wplay-settings-link b { font-size: clamp(1.05rem, 1.35vw, 1.55rem); font-weight: 900; }
 .wplay-settings-link > span > span { color: var(--fg-2); font-size: clamp(.9rem, 1vw, 1.1rem); }
 .wplay-settings-link svg { flex: none; inline-size: 24px; block-size: 24px; }
@@ -392,3 +392,34 @@ html[data-wplay] body { font-family: var(--font); }
 /* Every card in a row is as tall as the tallest, so a one-line description doesn't leave a smaller box. */
 .wplay-settings-list > li { display: flex; }
 .wplay-settings-list > li > .wplay-settings-link { flex: 1; }
+
+/* ---- a game's bio in the detail panel (GameBio.tsx): logo, console, makers, rating, pictures, and its RetroAchievements greyed ---- */
+.wplay .sdui-detail.has-bio { display: grid; gap: clamp(8px, .8vw, 14px); align-content: start; }
+.wplay .sdui-shelf:is(.layout-grid, .layout-list) > .sdui-detail.has-bio { max-block-size: calc(100dvh - 12rem); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.wplay-bio { display: grid; gap: clamp(8px, .8vw, 14px); min-inline-size: 0; }
+.wplay-bio-logo { display: block; max-inline-size: min(100%, 22rem); max-block-size: clamp(56px, 7vw, 120px); object-fit: contain; object-position: left center; filter: drop-shadow(0 2px 8px rgb(0 0 0 / .5)); }
+.wplay-bio-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0; color: var(--fg-2); font-size: clamp(.85rem, .95vw, 1.05rem); font-weight: 700; }
+.wplay-bio-console { padding: 2px 10px; border-radius: 999px; background: linear-gradient(180deg, #5ff0d6, #1fc3a8); color: var(--accent-fg); font-weight: 900; letter-spacing: .02em; }
+.wplay-bio-rating { padding: 1px 8px; border-radius: 6px; box-shadow: inset 0 0 0 1.5px currentColor; }
+.wplay-bio-makers, .wplay-bio-genres { margin: 0; color: var(--fg-2); font-size: clamp(.85rem, .95vw, 1.05rem); }
+.wplay-bio-label { color: var(--fg); font-weight: 800; }
+.wplay-bio-about { margin: 0; color: var(--fg); font-size: clamp(.9rem, 1vw, 1.1rem); line-height: 1.45; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 6; overflow: hidden; }
+.wplay-bio-shots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.wplay-bio-shot { inline-size: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 8px; background: rgb(0 0 0 / .3); }
+.wplay-cheevos { display: grid; gap: 8px; padding-block-start: 10px; border-block-start: 1px solid rgb(255 255 255 / .12); }
+.wplay-cheevos h3 { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 0; font-size: clamp(.95rem, 1.05vw, 1.2rem); font-weight: 900; }
+.wplay-cheevos-count { color: var(--fg-2); font-size: .85em; font-weight: 700; }
+.wplay-cheevos-note { margin: 0; color: var(--fg-2); font-size: clamp(.85rem, .95vw, 1rem); }
+.wplay-cheevos-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-block-size: 18rem; overflow-y: auto; scrollbar-width: thin; border-radius: 10px; }
+.wplay-cheevos-list:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--wp-ring), 0 0 0 6px var(--focus); }
+/* Greyed: what can be earned, none of it earned here yet. */
+.wplay-cheevos-list li { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 10px; background: rgb(255 255 255 / .05); opacity: .62; }
+.wplay-cheevos-list li > img, .wplay-cheevos-list li > i { inline-size: 40px; block-size: 40px; border-radius: 6px; filter: grayscale(1); background: rgb(255 255 255 / .1); }
+.wplay-cheevos-list li > span { display: grid; min-inline-size: 0; }
+.wplay-cheevos-list b { font-size: .95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wplay-cheevos-list li > span > span { color: var(--fg-2); font-size: .8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wplay-cheevos-list em { font-style: normal; font-weight: 800; color: var(--fg-2); font-size: .85rem; }
+/* The sideways row keeps its panel short: console, year, rating and makers, and two lines of what it's about. */
+.wplay .sdui-shelf:not(.layout-grid):not(.layout-list) .wplay-bio :is(.wplay-bio-shots, .wplay-cheevos, .wplay-bio-genres, .wplay-bio-logo) { display: none; }
+.wplay .sdui-shelf:not(.layout-grid):not(.layout-list) .wplay-bio-about { -webkit-line-clamp: 2; }
+@media (prefers-reduced-transparency: reduce) { .wplay-cheevos-list li { opacity: 1; color: var(--fg-2); } }

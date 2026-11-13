@@ -188,6 +188,10 @@ export default function Karaoke({ p, ly, onClose, behind, choice }: { p: PlayerV
             : p.sound.keyShift !== 0 ? 'A changed key can warble a little on long notes.'
               : lines.length > 0 && !timedWords ? 'Lines are timed; the fill within a line is an estimate.' : ' ')}
       </p>
+      {/* The keys karaoke answers, said as the player says its own (they were there, but nowhere to be seen). */}
+      <p className="np-hints kar-hints" aria-hidden="true">
+        <kbd>Esc</kbd> back · <kbd>Space</kbd> play or pause · <kbd>←</kbd> <kbd>→</kbd> previous or next line · <kbd>V</kbd> {stems.active ? 'voice on or off' : 'voice lower'} · <kbd>−</kbd> <kbd>+</kbd> key · <kbd>[</kbd> <kbd>]</kbd> words sooner or later · <kbd>F</kbd> full screen
+      </p>
     </div>
   )
 }

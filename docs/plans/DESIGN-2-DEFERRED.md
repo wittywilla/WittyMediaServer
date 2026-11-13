@@ -26,6 +26,7 @@ platform. Fix what breaks the path; nothing else.
 ## Deferred (finish when there is time)
 - Language (interface translation); visualizer Speed/Colour tuning; karaoke Mix as rows.
 - Android: headset frames, scene `image` layers, per-profile density, administrator policy UI, WittyPlay Online views.
+- Apple (W3): iPad looks pass covered 6 of 14 (lumen, rail, stage, aero, classic, classicCable; xcodebuild test hangs after each look, killed by a watchdog) and the tvOS 14-look pass was not run (W14 owns it); per-look bar finish on tvOS waits on finish tokens; the TV drawer/rail badge and the hero narrow-page fix were built and compiled but the TV side menu was not seen running.
 - Apple: Mac frame, visionOS ornament, iPad and Mac visual checks, admin policy chooser relaunch investigation.
 - Standalone: WittyReader remote provider polish, WittyMediaPlayer remaining pieces, installers.
 - Parity audits W21-W23 and W11 (paused until after the release).

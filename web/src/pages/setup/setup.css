@@ -265,3 +265,7 @@ html.ten-foot .su-ack a, html.using-controller .su-ack a, html.ten-foot .op-head
 /* A TV is short for its width, and a banner Home has two rows: their posters are shorter so all of Home fits. */
 .lp-tv .lp-row i, .lp.home-banner .lp-row i { max-block-size: 3.2rem; }
 .lp-tv .lp-hero span { display: none; }
+/* VR and TV are short for their width: Marquee's posters are sized by height so the whole carousel shows. */
+.lp-headset .lp-carousel, .lp-tv .lp-carousel { grid-template-columns: repeat(5, auto); justify-content: center; }
+.lp-headset .lp-carousel i, .lp-tv .lp-carousel i { block-size: 3.4rem; inline-size: auto; }
+.lp-headset .lp-carousel i.on, .lp-tv .lp-carousel i.on { block-size: 5.2rem; }

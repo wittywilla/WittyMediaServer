@@ -8,7 +8,7 @@ export type LayerId = 'dht' | 'relay' | 'holePunch' | 'portMap' | 'ipv6'
 export const LAYERS: { id: LayerId; label: string; desc: string }[] = [
   { id: 'portMap', label: 'Ask my router for a port', desc: 'Asks the router at home to forward one port to this computer (UPnP, NAT-PMP or PCP), renews it, and removes it when this is turned off. Nothing leaves your home for it.' },
   { id: 'ipv6', label: 'Ask my router to let IPv6 in', desc: 'Where your connection has IPv6, asks the router to let connections reach this computer on that one port.' },
-  { id: 'dht', label: 'Public address book', desc: 'Announces where this server is on the public IPFS network, so apps find it by its ID. Off, apps can only use addresses they already know, which stops working when your address changes.' },
+  { id: 'dht', label: 'Public address book', desc: 'Announces this server’s ID and internet address on the public IPFS network, never what’s on it, so apps find it by its ID and a TV that has never been at home can join by a code. Off, apps can only use addresses they already know, which stops working when your address changes, and a TV can’t join by a code.' },
   { id: 'relay', label: 'Relays', desc: 'Lets a relay introduce an app to this server, and carry the connection when nothing else works. A relay sees addresses and amounts, never what is sent.' },
   { id: 'holePunch', label: 'Hole punching', desc: 'Has the app and this server connect to each other at the same moment, so both routers let the connection through. Needs relays.' },
 ]

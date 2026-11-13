@@ -296,8 +296,8 @@ html[data-wplay] body { font-family: var(--font); }
 .wplay .sdui-shelf:is(.layout-grid, .layout-list) > .row-wrap { grid-area: row; margin-inline: 0; }
 .wplay .sdui-shelf:is(.layout-grid, .layout-list) > .sdui-detail { grid-area: detail; position: sticky; inset-block-start: var(--sp-4); padding: clamp(14px, 1.4vw, 26px); border-radius: clamp(14px, 1.3vw, 24px); background: var(--wp-chip); }
 .wplay .sdui-shelf:is(.layout-grid, .layout-list) .sdui-detail-title { font-size: clamp(1.4rem, 2vw, 2.4rem); }
-.wplay .sdui-shelf:is(.layout-grid, .layout-list) .row { flex-wrap: wrap; overflow: visible; margin-inline: 0; padding: clamp(20px, 1.8vw, 30px) 12px calc(var(--wp-dock) + 80px); align-items: flex-start; }
-.wplay .sdui-shelf.layout-grid .row { display: grid; grid-template-columns: repeat(auto-fill, minmax(clamp(120px, 11vw, 220px), 1fr)); gap: clamp(12px, 1.4vw, 26px); }
+.wplay .sdui-shelf:is(.layout-grid, .layout-list) .row { flex-wrap: wrap; overflow: visible; margin-inline: 0; padding: 8px 12px calc(var(--wp-dock) + 80px); align-items: flex-start; }
+.wplay .sdui-shelf.layout-grid .row { display: grid; grid-template-columns: repeat(auto-fill, minmax(clamp(170px, 16vw, 300px), 1fr)); gap: clamp(12px, 1.4vw, 26px); }
 .wplay .sdui-shelf.layout-grid .sdui-item .card, .wplay .sdui-shelf.layout-grid .sdui-item.grown .card { width: 100%; }
 .wplay .sdui-shelf.layout-grid .sdui-item.grown .card .poster { box-shadow: 0 0 0 4px var(--wp-ring), 0 0 0 8px #fff; }
 .wplay .sdui-shelf.layout-grid .card .title, .wplay .sdui-shelf.layout-grid.has-detail .sdui-item.grown .card .title { font-size: clamp(.95rem, 1.15vw, 1.35rem); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; padding-block-end: 0; inset-block-end: clamp(10px, 1.1vw, 20px); }
@@ -579,3 +579,7 @@ html[data-wplay] .wpg-saves-sheet .ui-sheet-body { padding: 4px clamp(20px, 2.4v
 html[data-wplay] .wpg-settings [role=tablist] { overflow-x: auto; scrollbar-width: none; scroll-padding-inline: 40px; }
 @media (prefers-reduced-motion: reduce) { .wpg-save-pic, .wpg-save:focus-visible .wpg-save-pic { transition: none; transform: none; } }
 /* ==== Game pictures: the drawings and choosers are styled in gameCase.css (imported by GameCase.tsx), so Setup can show them too. ==== */
+/* In the grid the chosen game lifts only a little, growing down from its top edge, so it never reaches the tabs above or the games
+   beside it: its ring says which one it is. */
+.wplay .sdui .sdui-shelf.layout-grid .sdui-item.grown { transform: scale(1.04); transform-origin: 50% 0; }
+@media (prefers-reduced-motion: reduce) { .wplay .sdui .sdui-shelf.layout-grid .sdui-item.grown { transform: none; } }

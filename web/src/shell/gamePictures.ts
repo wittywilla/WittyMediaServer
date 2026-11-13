@@ -18,9 +18,9 @@ export const PLAY_PICTURES_KEY = 'wittyplayPictures'
 export const MAX_PREF_GAMES = 150
 
 export const PICTURES: { id: PicturePick; label: string; note: string }[] = [
-  { id: 'fitted', label: 'Box art fitted', note: 'The whole picture, nothing cut off, over a soft blurred copy of itself' },
+  { id: 'case', label: 'In its case or cartridge', note: 'Drawn whole in a cartridge, disc case or tape like the ones its console used' },
   { id: 'filled', label: 'Box art filled', note: 'The picture fills the tile; its edges may be cut off' },
-  { id: 'case', label: 'In its case or cartridge', note: 'Drawn in a cartridge, disc case or tape like the ones its console used' },
+  { id: 'fitted', label: 'Box art fitted', note: 'The whole picture, nothing cut off, over a soft blurred copy of itself' },
 ]
 export const LABELS: { id: LabelPick; label: string; note: string }[] = [
   { id: 'boxart', label: 'Box art', note: 'The game’s cover on the label' },
@@ -264,7 +264,7 @@ export function familyVariant(l: Look, family: 'cart' | 'disc'): Variant | '' {
 
 export type Resolved = { picture: PicturePick; case: CaseStyle; label: LabelPick; caseChosen: boolean; media: MediaId }
 
-// The look for one game: each field from the first level that sets it, most particular first; then fitted, its medium's usual case and
+// The look for one game: each field from the first level that sets it, most particular first; then in its case (the medium's usual one) and
 // the box art. At each level a case for this game itself ("case") counts before one for its medium ("cases"). A style this version
 // doesn't draw (a newer program's) is passed over.
 export function resolveLook(levels: (Look | undefined)[], media: MediaId): Resolved {
@@ -279,7 +279,7 @@ export function resolveLook(levels: (Look | undefined)[], media: MediaId): Resol
     const v = x.case && isCaseStyle(x.case) ? x.case : x.cases?.[media] && isCaseStyle(x.cases[media]) ? x.cases[media] : undefined
     if (v) { c = v; break }
   }
-  return { picture: (pick('picture') as PicturePick) || 'fitted', case: c || usualStyle(media), label: (pick('label') as LabelPick) || 'boxart', caseChosen: !!c, media }
+  return { picture: (pick('picture') as PicturePick) || 'case', case: c || usualStyle(media), label: (pick('label') as LabelPick) || 'boxart', caseChosen: !!c, media }
 }
 
 export type ServerPictures = { server?: { default?: Look; consoles?: Record<string, Look> }; games?: Record<string, Look> }

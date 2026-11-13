@@ -324,7 +324,7 @@ export function PictureQuickChooser({ value, onChange }: { value: Look; onChange
           return <li key={q.console}><span className="gpic-preview" aria-hidden="true">{r.picture === 'filled' ? <span className="gpic-filled"><img src={q.image} alt="" /></span> : <GameCardArt look={r} itemId="" consoleId={q.console} image={q.image} title={q.title} />}</span></li>
         })}
       </ul>
-      <Choices label="How games are pictured" value={l.picture || 'fitted'} inherit="" noInherit onChange={(v) => onChange({ ...l, picture: (v || 'fitted') as Look['picture'] })}
+      <Choices label="How games are pictured" value={l.picture || 'case'} inherit="" noInherit onChange={(v) => onChange({ ...l, picture: (v || 'case') as Look['picture'] })}
         options={PICTURES.map((p) => ({ id: p.id, label: p.label, note: p.note }))} />
       {l.picture === 'case' && <MediumChoices look={l} onChange={onChange} quick />}
     </div>

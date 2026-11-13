@@ -50,7 +50,7 @@ test('each field comes from the most particular level that sets it', () => {
   // The person's console choice is under the server's choice for one game, over the server's console choice.
   assert.deepEqual(lookFor(pref, server, '8', 'snes', 'cart-16bit'), { picture: 'fitted', case: 'cart-64', label: 'title', caseChosen: true, media: 'cart-16bit' })
   assert.deepEqual(lookFor(pref, server, '9', 'nes', 'cart-8bit'), { picture: 'case', case: 'cart-nes', label: 'logo', caseChosen: false, media: 'cart-8bit' })
-  assert.deepEqual(lookFor(undefined, undefined, '1', 'nes', 'cart-8bit'), { picture: 'fitted', case: 'cart-nes', label: 'boxart', caseChosen: false, media: 'cart-8bit' })
+  assert.deepEqual(lookFor(undefined, undefined, '1', 'nes', 'cart-8bit'), { picture: 'case', case: 'cart-nes', label: 'boxart', caseChosen: false, media: 'cart-8bit' })
   // A style this version doesn't draw is passed over; auto stops at the medium's usual one.
   assert.equal(resolveLook([{ case: 'cart-hologram' }, { case: 'cart-64' }], 'cd').case, 'cart-64')
   assert.equal(resolveLook([{ case: 'auto' }, { case: 'cart-64' }], 'cd').case, 'case-jewel')

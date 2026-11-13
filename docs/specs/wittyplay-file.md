@@ -204,7 +204,7 @@ At each level the case is decided by `case` first, then by `cases` for the game'
 A program that combines several files (a person's own choices, a server's choices, a sidecar) decides their order.
 WittyMediaServer's is: the person's choice for the game, the server's choice for the game (an administrator's, then a
 sidecar's), the person's choice for the console, the server's for the console, the person's default, the server's
-default, and finally `fitted` with the medium's usual case and the box art.
+default, and finally `case` (the medium's usual case) with the medium's usual case and the box art.
 
 ## Unknown fields
 

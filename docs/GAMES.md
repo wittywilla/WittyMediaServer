@@ -525,9 +525,9 @@ WittyPlay has a narrower switch of its own: **WittyPlay Settings → Game pictur
 
 Box art comes in every shape: tall, wide and square. **WittyPlay Settings → Game pictures** chooses how it's shown:
 
-- **Box art fitted** (the default): the whole picture, nothing cut off, over a soft, blurred copy of itself.
+- **Box art fitted**: the whole picture, nothing cut off, over a soft, blurred copy of itself.
 - **Box art filled**: the picture fills its tile and its edges may be cut off.
-- **In its case or cartridge**: the game drawn in a cartridge, disc case, tape or arcade marquee like the ones its console used, with the box art, the game's logo or its title on the label. The drawings are WittyPlay's own and carry no maker's name or logo.
+- **In its case or cartridge** (the default): the game drawn whole in a cartridge, disc case, tape or arcade marquee like the ones its console used, with the box art, the game's logo or its title on the label. The drawings are WittyPlay's own and carry no maker's name or logo.
 
 Choose for every game, for each console, or for one game (**Picture style** in a game's panel in WittyPlay). Your choices follow you to every device. An administrator can also choose for everyone on the server; your own choice wins.
 

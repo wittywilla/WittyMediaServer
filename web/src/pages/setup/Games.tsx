@@ -23,7 +23,7 @@ export function Games({ info, next, back, added, goTo }: StepProps & { added: Li
   useEffect(() => { api.get<{ sources: GameSource[] }>('/gamemeta/sources').then((r) => setSources(r.sources.filter((s) => s.fields.length > 0))).catch(() => {}) }, [])
   const libs = added.filter((l) => l.type === 'games')
   // How games are pictured in WittyPlay, for everyone on the server (each person can choose their own later).
-  const [look, setLook] = useState<Look>({ picture: 'fitted' })
+  const [look, setLook] = useState<Look>({ picture: 'case' })
   const save = async () => {
     setBusy(true)
     const body = Object.fromEntries(Object.entries(keys).filter(([, v]) => v.trim()).map(([k, v]) => [k, v.trim()]))

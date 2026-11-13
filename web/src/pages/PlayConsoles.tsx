@@ -20,6 +20,7 @@ import { arrangeTabs } from '../sdui/playModel'
 import { libraryFor, PLAY_CONSOLES, PLAY_LIBRARY, PLAY_TABS, tabRoute, yearsWords } from '../shell/playPaths'
 import { getConsoles } from './games/consoles'
 import PlayLibraryView from './PlayLibraryView'
+import { TileSizeSwitch } from '../shell/GamePictureArt'
 import { ERA_NAMES } from './games/Shelves'
 import { GameSettingsPage } from './games/consoles'
 import GamingSettings from './settings/Gaming'
@@ -72,7 +73,7 @@ export function PlayTabsRow({ current }: { current: string }) {
       <nav className="tabs" aria-label="Views">
         {tabs.map((t) => <Link key={t.id} to={tabRoute(t.id)} className={t.id === current ? 'active' : ''} aria-current={t.id === current ? 'page' : undefined}>{t.label}</Link>)}
       </nav>
-      <LayoutSwitch />
+      <div className="wplay-switches"><TileSizeSwitch /><LayoutSwitch /></div>
     </div>
   )
 }

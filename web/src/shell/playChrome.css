@@ -68,7 +68,7 @@ html[data-wplay] {
   --picture-bg: #0a0f2e !important;
   /* WittyPlay's own sizes: a ten-foot screen drawn at any window size (the board is 1920 wide). */
   --wp-gutter: clamp(16px, 4.6vw, 96px);
-  --wp-tile: clamp(132px, min(15.6vw, 25vh), 300px);
+  --wp-tile: calc(clamp(132px, min(15.6vw, 25vh), 300px) * var(--wp-scale, 1));
   --wp-grow: 1.27;
   --wp-ring: #0a0f2e;
   --wp-chip: rgb(255 255 255 / .14);
@@ -297,7 +297,7 @@ html[data-wplay] body { font-family: var(--font); }
 .wplay .sdui-shelf:is(.layout-grid, .layout-list) > .sdui-detail { grid-area: detail; position: sticky; inset-block-start: var(--sp-4); padding: clamp(14px, 1.4vw, 26px); border-radius: clamp(14px, 1.3vw, 24px); background: var(--wp-chip); }
 .wplay .sdui-shelf:is(.layout-grid, .layout-list) .sdui-detail-title { font-size: clamp(1.4rem, 2vw, 2.4rem); }
 .wplay .sdui-shelf:is(.layout-grid, .layout-list) .row { flex-wrap: wrap; overflow: visible; margin-inline: 0; padding: 8px 12px calc(var(--wp-dock) + 80px); align-items: flex-start; }
-.wplay .sdui-shelf.layout-grid .row { display: grid; grid-template-columns: repeat(auto-fill, minmax(clamp(170px, 16vw, 300px), 1fr)); gap: clamp(12px, 1.4vw, 26px); }
+.wplay .sdui-shelf.layout-grid .row { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(clamp(170px, 16vw, 300px) * var(--wp-scale, 1)), 1fr)); gap: clamp(12px, 1.4vw, 26px); }
 .wplay .sdui-shelf.layout-grid .sdui-item .card, .wplay .sdui-shelf.layout-grid .sdui-item.grown .card { width: 100%; }
 .wplay .sdui-shelf.layout-grid .sdui-item.grown .card .poster { box-shadow: 0 0 0 4px var(--wp-ring), 0 0 0 8px #fff; }
 .wplay .sdui-shelf.layout-grid .card .title, .wplay .sdui-shelf.layout-grid.has-detail .sdui-item.grown .card .title { font-size: clamp(.95rem, 1.15vw, 1.35rem); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; padding-block-end: 0; inset-block-end: clamp(10px, 1.1vw, 20px); }
@@ -384,7 +384,7 @@ html[data-wplay] body { font-family: var(--font); }
 @media (max-width: 599px) {
   .wplay .play-exit-label { display: none; }
   .wplay .play-brand { display: none; }
-  html[data-wplay] { --wp-tile: 42vw; --wp-grow: 1.15; --wp-dock: 48px; }
+  html[data-wplay] { --wp-tile: calc(42vw * var(--wp-scale, 1)); --wp-grow: 1.15; --wp-dock: 48px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -607,8 +607,8 @@ html[data-wplay] .wpg-settings [role=tablist] { overflow-x: auto; scrollbar-widt
 .wpl-row-head h2 { margin: 0; display: flex; align-items: baseline; gap: 10px; font-size: clamp(1.2rem, 1.6vw, 1.8rem); font-weight: 900; }
 .wpl-line { display: flex; gap: clamp(14px, 1.4vw, 24px); overflow-x: auto; padding: 12px; margin-inline: -12px; scroll-padding-inline: 12px; scroll-snap-type: x proximity; scrollbar-width: none; }
 .wpl-line::-webkit-scrollbar { display: none; }
-.wpl-line > .wpl-game { flex: none; inline-size: clamp(140px, 13vw, 240px); scroll-snap-align: start; }
-.wpl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(clamp(150px, 14vw, 260px), 1fr)); gap: clamp(16px, 1.6vw, 28px); padding: 12px; margin-inline: -12px; }
+.wpl-line > .wpl-game { flex: none; inline-size: calc(clamp(140px, 13vw, 240px) * var(--wp-scale, 1)); scroll-snap-align: start; }
+.wpl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(clamp(150px, 14vw, 260px) * var(--wp-scale, 1)), 1fr)); gap: clamp(16px, 1.6vw, 28px); padding: 12px; margin-inline: -12px; }
 .wpl-game { display: grid; grid-template-rows: auto auto; align-content: start; align-self: start; gap: 8px; color: var(--fg); text-decoration: none; border-radius: 14px; transition: transform var(--dur-2) var(--ease-out); }
 .wpl-game:hover, .wpl-game:focus-visible { transform: translateY(-3px); }
 .wpl-game-art { position: relative; display: grid; place-items: center; inline-size: 100%; aspect-ratio: 1 / 1; border-radius: 12px; overflow: visible; }
@@ -627,3 +627,18 @@ html[data-wplay] .wpg-settings [role=tablist] { overflow-x: auto; scrollbar-widt
 .wplay-review-notice svg { flex: none; color: #ffd34d; }
 .wplay .wpl-review .gr-banner .btn, .wplay-review-go { display: inline-flex; align-items: center; min-block-size: 48px; padding: 0 22px; border: 0; border-radius: 999px; background: linear-gradient(180deg, #ffe07a, #f2b632); color: #2a1d00; font-weight: 900; text-decoration: none; }
 .wplay .wpl-review .gr-banner .btn:focus-visible, .wplay-review-go:focus-visible { outline: none; box-shadow: 0 0 0 4px var(--wp-ring), 0 0 0 8px #fff; }
+
+/* Game size (Settings › Game pictures, and the games page's switch): one scale for every grid and row of games. */
+/* The tile width is first worked out on the page; worked out again here, where the chosen size is known. */
+.wplay[data-tiles] { --wp-tile: calc(clamp(132px, min(15.6vw, 25vh), 300px) * var(--wp-scale, 1)); }
+@media (max-width: 599px) { .wplay[data-tiles] { --wp-tile: calc(42vw * var(--wp-scale, 1)); } }
+.wplay[data-tiles="small"] { --wp-scale: .75; }
+.wplay[data-tiles="large"] { --wp-scale: 1.35; }
+.wplay-size-switch { flex: none; display: inline-flex; align-items: center; gap: 4px; padding: 4px; border-radius: var(--r-full); background: var(--wp-chip); }
+.wplay-size-switch.labelled { padding-inline-start: 16px; }
+.wplay-size-label { margin-inline-end: 8px; font-weight: 800; }
+.wplay-size-switch button { display: grid; place-items: center; inline-size: 44px; block-size: 44px; border: 0; border-radius: var(--r-full); background: none; color: var(--fg-2); cursor: pointer; }
+.wplay-size-switch button:hover { color: var(--fg); background: var(--wp-chip); }
+.wplay-size-switch button[aria-pressed="true"] { background: linear-gradient(180deg, #5ff0d6, #1fc3a8); color: var(--accent-fg); }
+.wplay-size-switch button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--wp-ring), 0 0 0 6px var(--focus); }
+.wplay-switches { flex: none; display: inline-flex; align-items: center; gap: 10px; }

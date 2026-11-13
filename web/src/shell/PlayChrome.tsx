@@ -17,7 +17,7 @@ import { usePlayTabs, LayoutChooser, LayoutSwitch, OpenChooser, PadsChooser, Pad
 import { CardRouteContext } from '../sdui/render/cardRoute'
 import { PlayReviewNotice } from './PlayReviewNotice'
 import { GameArtContext, GlyphContext, RowLayoutContext, TabsContext, type GlyphKey } from '../sdui/render/glyphs'
-import { useGameArtApi } from './GamePictureArt'
+import { TileSizeSwitch, useGameArtApi, useTileSize } from './GamePictureArt'
 import './playChrome.css'
 
 export { isPlayPath }
@@ -203,6 +203,7 @@ export function PlayFrame({ children }: { children: ReactNode }) {
   const [tip, setTip] = useState(false)
   // Scrolled away from the top: the status bar gets its soft backing (playChrome.css), so what passes under it never muddles it.
   const [scrolled, setScrolled] = useState(false)
+  const [tileSize] = useTileSize()
   const [ready, setReady] = useState(false)
   useEffect(() => { const t = window.setTimeout(() => setReady(true), 900); return () => window.clearTimeout(t) }, [])
   useEffect(() => { if (ready && tipDue(seen)) setTip(true) }, [ready]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -214,7 +215,7 @@ export function PlayFrame({ children }: { children: ReactNode }) {
   const gameArt = useGameArtApi()
   // The Consoles tab beside the server's tabs, and the layout switch at the end of the row.
   const [tabPref] = usePlayTabs()
-  const tabs = useMemo(() => ({ page: 'wittyplay-online', tabs: [{ id: 'consoles', label: 'Consoles', to: PLAY_CONSOLES, after: 'recent' }, { id: 'all', label: 'All games', to: PLAY_LIBRARY, after: 'consoles' }], end: <LayoutSwitch />, order: tabPref.order, hidden: tabPref.hidden }), [tabPref.order.join(), tabPref.hidden.join()]) // eslint-disable-line react-hooks/exhaustive-deps
+  const tabs = useMemo(() => ({ page: 'wittyplay-online', tabs: [{ id: 'consoles', label: 'Consoles', to: PLAY_CONSOLES, after: 'recent' }, { id: 'all', label: 'All games', to: PLAY_LIBRARY, after: 'consoles' }], end: <div className="wplay-switches"><TileSizeSwitch /><LayoutSwitch /></div>, order: tabPref.order, hidden: tabPref.hidden }), [tabPref.order.join(), tabPref.hidden.join()]) // eslint-disable-line react-hooks/exhaustive-deps
   const top = isPlayTop(loc.pathname)
   // A game's card opens its page first, or the game itself, as this profile chose.
   const [openPref] = usePlayOpen()
@@ -238,7 +239,7 @@ export function PlayFrame({ children }: { children: ReactNode }) {
   }, [top]) // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <GlyphContext.Provider value={glyph}><RowLayoutContext.Provider value={layout}><TabsContext.Provider value={tabs}><CardRouteContext.Provider value={route}><GameArtContext.Provider value={gameArt}>
-      <div className="wplay" data-arrows-move data-scope="wittyplay" data-pads={pads} data-layout={layout} data-scrolled={scrolled || undefined} onScroll={(e) => { const s = e.currentTarget.scrollTop > 8; if (s !== scrolled) setScrolled(s) }}>
+      <div className="wplay" data-arrows-move data-scope="wittyplay" data-pads={pads} data-layout={layout} data-scrolled={scrolled || undefined} data-tiles={tileSize} onScroll={(e) => { const s = e.currentTarget.scrollTop > 8; if (s !== scrolled) setScrolled(s) }}>
         <StatusBar parts={regions?.statusBar || PLAY_STATUS} onExit={exit} onHelp={() => setTip(true)} />
         <main className="wplay-stage" id="main" data-nav-zone="stage" tabIndex={-1}>
           {loc.pathname === PLAY_CONTROLLERS && <PadsSetting />}

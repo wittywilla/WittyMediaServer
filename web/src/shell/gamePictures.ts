@@ -397,3 +397,9 @@ export const MAIN_ARTS: { id: MainArt; label: string; note: string }[] = [
   { id: 'art', label: 'Just their box art', note: 'The cover alone, like a film’s poster' },
 ]
 export const mainArtOf = (v: unknown): MainArt => (v === 'art' ? 'art' : 'follow')
+
+// How big games are drawn in WittyPlay's grids and rows: smaller to see more at once, larger to see each better. Per profile in /me/ui.
+export type TileSize = 'small' | 'medium' | 'large'
+export const PLAY_TILE_SIZE_KEY = 'wittyplayTileSize'
+export const TILE_SIZES: { id: TileSize; label: string }[] = [{ id: 'small', label: 'Small' }, { id: 'medium', label: 'Medium' }, { id: 'large', label: 'Large' }]
+export const tileSizeOf = (v: unknown): TileSize => (v === 'small' || v === 'large' ? v : 'medium')

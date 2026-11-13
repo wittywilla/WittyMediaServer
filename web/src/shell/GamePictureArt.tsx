@@ -16,9 +16,9 @@ import { useBrandLogos } from './brandLogos'
 import { IconImage } from '../icons'
 import { FitArt, GameCase } from './GameCase'
 import {
-  CASE_STYLES, FAMILY_VARIANTS, LABELS, MEDIA, MAIN_ARTS, PANEL_ARTS, PICTURES, PLAY_MAIN_ART_KEY, PLAY_PANEL_ART_KEY, PLAY_PICTURES_KEY, mainArtOf, panelArtOf, VARIANTS, cleanLook, emptyLook, familyVariant, lookFor, mediaDef, mediaFor,
+  CASE_STYLES, FAMILY_VARIANTS, LABELS, MEDIA, MAIN_ARTS, PANEL_ARTS, PICTURES, PLAY_MAIN_ART_KEY, PLAY_TILE_SIZE_KEY, TILE_SIZES, tileSizeOf, PLAY_PANEL_ART_KEY, PLAY_PICTURES_KEY, mainArtOf, panelArtOf, VARIANTS, cleanLook, emptyLook, familyVariant, lookFor, mediaDef, mediaFor,
   picturesPref, resolveLook, styleDef, stylesOf, usualStyle, withFamilyVariant, withLook, withMediaStyle,
-  type CaseStyle, type LabelPick, type Look, type MainArt, type MediaId, type PanelArt, type PicturesPref, type Resolved, type ServerPictures, type Variant,
+  type CaseStyle, type LabelPick, type Look, type MainArt, type MediaId, type TileSize, type PanelArt, type PicturesPref, type Resolved, type ServerPictures, type Variant,
 } from './gamePictures'
 
 // ---- the choices ----
@@ -121,6 +121,28 @@ export function PanelCover({ mode, look, itemId, consoleId, image, title, brand 
   if (mode === 'case') return <div className="wplay-panel-cover case" aria-hidden="true"><GameCase style={look.case} consoleId={consoleId} art={image} logo={logo} title={title} label={look.label} brand={brand} /></div>
   if (!image || failed === image) return null
   return <div className="wplay-panel-cover" aria-hidden="true"><img src={image} alt="" onError={() => setFailed(image)} /></div>
+}
+
+// How big games are drawn (PLAY_TILE_SIZE_KEY).
+export function useTileSize(): [TileSize, (t: TileSize) => void] {
+  const [saved, save] = useUserPref<string>(PLAY_TILE_SIZE_KEY, '')
+  return [tileSizeOf(saved), (t) => { void save(t === 'medium' ? '' : t).catch(() => {}) }]
+}
+
+// The quick switch (the games library's header) and Settings' choice: three pressed-or-not buttons.
+export function TileSizeSwitch({ withLabel = false }: { withLabel?: boolean }) {
+  const [size, setSize] = useTileSize()
+  const id = useId()
+  return (
+    <div className={'wplay-size-switch' + (withLabel ? ' labelled' : '')} role="group" aria-labelledby={withLabel ? id : undefined} aria-label={withLabel ? undefined : 'Game size'}>
+      {withLabel && <span id={id} className="wplay-size-label">Game size</span>}
+      {TILE_SIZES.map((t, i) => (
+        <button key={t.id} type="button" aria-pressed={size === t.id} aria-label={t.label} title={t.label} onClick={() => setSize(t.id)}>
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x={8 - i * 2.5} y={8 - i * 2.5} width={8 + i * 5} height={8 + i * 5} rx="2" fill="currentColor" /></svg>
+        </button>
+      ))}
+    </div>
+  )
 }
 
 // How games look in the rest of the app (PLAY_MAIN_ART_KEY).

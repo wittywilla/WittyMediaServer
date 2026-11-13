@@ -185,8 +185,11 @@ html[data-wplay] body { font-family: var(--font); }
 .wplay .sdui .lib-tile { background: var(--wp-chip); border-radius: clamp(14px, 1.3vw, 24px); }
 
 /* ---- the system dock: large round buttons along the foot, the current one filled in the accent with its name under it ---- */
-.wplay .play-dock { position: fixed; z-index: 1; inset-block-end: calc(clamp(14px, 3.2vh, 40px) + env(safe-area-inset-bottom, 0px) + 1.2em); gap: clamp(14px, 1.9vw, 30px); align-items: center; }
+/* Above the games scrolling under it (a chosen tile's title sits at 3), below the first-launch tip (5). */
+.wplay .play-dock { position: fixed; z-index: 4; inset-block-end: calc(clamp(14px, 3.2vh, 40px) + env(safe-area-inset-bottom, 0px) + 1.2em); gap: clamp(14px, 1.9vw, 30px); align-items: center; }
 .wplay .play-dock a { position: relative; gap: 6px; }
+/* A fade at the foot so the dock reads over the games scrolling beneath it. */
+.wplay .play-dock::before { content: ""; position: fixed; inset-inline: 0; inset-block-end: 0; block-size: calc(var(--wp-dock) * 2 + 60px); z-index: -1; pointer-events: none; background: linear-gradient(180deg, transparent, rgb(8 10 34 / .88) 60%); }
 .wplay .play-dock-ic { inline-size: var(--wp-dock); block-size: var(--wp-dock); background: var(--wp-chip); color: var(--fg); box-shadow: none; transition: transform var(--dur-2) var(--ease-out), background var(--dur-2); }
 .wplay .play-dock-ic svg { inline-size: 42%; block-size: 42%; }
 .wplay .play-dock a:hover .play-dock-ic { background: var(--wp-chip-hover); }
@@ -283,11 +286,11 @@ html[data-wplay] body { font-family: var(--font); }
 .wplay .sdui-shelf:is(.layout-grid, .layout-list) > .row-wrap { grid-area: row; margin-inline: 0; }
 .wplay .sdui-shelf:is(.layout-grid, .layout-list) > .sdui-detail { grid-area: detail; position: sticky; inset-block-start: var(--sp-4); padding: clamp(14px, 1.4vw, 26px); border-radius: clamp(14px, 1.3vw, 24px); background: var(--wp-chip); }
 .wplay .sdui-shelf:is(.layout-grid, .layout-list) .sdui-detail-title { font-size: clamp(1.4rem, 2vw, 2.4rem); }
-.wplay .sdui-shelf:is(.layout-grid, .layout-list) .row { flex-wrap: wrap; overflow: visible; padding: 12px 6px calc(var(--wp-dock) + 80px); align-items: flex-start; }
+.wplay .sdui-shelf:is(.layout-grid, .layout-list) .row { flex-wrap: wrap; overflow: visible; margin-inline: 0; padding: 12px 6px calc(var(--wp-dock) + 80px); align-items: flex-start; }
 .wplay .sdui-shelf.layout-grid .row { display: grid; grid-template-columns: repeat(auto-fill, minmax(clamp(120px, 11vw, 220px), 1fr)); gap: clamp(12px, 1.4vw, 26px); }
 .wplay .sdui-shelf.layout-grid .sdui-item .card, .wplay .sdui-shelf.layout-grid .sdui-item.grown .card { width: 100%; }
 .wplay .sdui-shelf.layout-grid .sdui-item.grown .card .poster { box-shadow: 0 0 0 4px var(--wp-ring), 0 0 0 8px #fff; }
-.wplay .sdui-shelf.layout-grid .card .title, .wplay .sdui-shelf.layout-grid.has-detail .sdui-item.grown .card .title { font-size: clamp(.95rem, 1.15vw, 1.35rem); }
+.wplay .sdui-shelf.layout-grid .card .title, .wplay .sdui-shelf.layout-grid.has-detail .sdui-item.grown .card .title { font-size: clamp(.95rem, 1.15vw, 1.35rem); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; padding-block-end: 0; inset-block-end: clamp(10px, 1.1vw, 20px); }
 /* List: a dense row each, the art small at the start, the title and its line beside it. */
 .wplay .sdui-shelf.layout-list .row { display: grid; grid-template-columns: 1fr; gap: 8px; }
 .wplay .sdui-shelf.layout-list .sdui-item .card, .wplay .sdui-shelf.layout-list .sdui-item.grown .card { display: grid; grid-template-columns: clamp(52px, 4.4vw, 80px) minmax(0, 1fr); grid-template-rows: auto auto; column-gap: var(--sp-4); align-items: center; width: 100%; min-block-size: 64px; padding: 8px 14px 8px 8px; border-radius: 14px; background: var(--wp-chip); }

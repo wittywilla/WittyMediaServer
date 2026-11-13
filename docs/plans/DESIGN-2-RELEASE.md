@@ -66,6 +66,8 @@ Nothing is pushed by agents. The owner pushes.
 
 Written by W7 (2026-11-12). Nothing here is pushed or tagged by an agent: the owner does it. A bump is not a release.
 
+The release plan for all 25 repositories (versions, publish order, pins, CI, the owner's commands, deleting the old releases) is [RELEASE-0.8.0-PLAN.md](RELEASE-0.8.0-PLAN.md); the issue candidates are in [RELEASE-0.8.0-ISSUES.md](RELEASE-0.8.0-ISSUES.md).
+
 **1. The server's version (0.8.0-alpha is already in the tree).** `scripts/bump-server.sh <version> ["note"]` raises it
 everywhere it is written and lists the modules whose `maxServer` no longer covers it. Written in:
 
@@ -90,9 +92,9 @@ Versioning).
 `experiences/` tables into `sdui/internal/core`; then regenerate `catalog.json` (`json.Marshal(core.Catalog())`), copy it
 and `docs/sdui-module.schema.json` into `sdui/` and `kit/sdui/`, set `sdui.CatalogRevision` in `sdui/check.go`, and update
 the lists in `kit/sdui/wittymodule-sdui.ts`. Check: `WMS_SERVER=<server checkout> go test ./...`, `node --test
-kit/sdui/tests/*.test.mjs`, `tsc --strict` on the kit file. WittyModule's own version is its `module.json`-less release
-(a Go module: tag `v0.x.y`); every module's `module.json` carries its own `version`, `minServer` and `maxServer`
-(`wittymodule bump` raises one and its changelog). Each module's `sdui.json` says `catalog: 8`.
+kit/sdui/tests/*.test.mjs`, `tsc --strict` on the kit file. WittyModule's own version is the `version` in its `module.json`
+(0.4.0 for this release; a Go module, tagged `v0.x.y`); every module's `module.json` carries its own `version`, `minServer` and `maxServer`
+(`wittymodule bump` raises one and its changelog). A module's `sdui.json` `catalog` is the lowest revision it needs (the server takes 1 to 8), so it is not raised for the release: only a module using revision 8 features (WittyPlay) says 8.
 
 **4. The clients keep their own versions.** Raise them only when they ship:
 

@@ -388,6 +388,9 @@ func (v *validator) sections(list []Section, path string, depth int, parent stri
 		if s.Component == "Grid" {
 			grids[s.ID] = s
 		}
+		if a, ok := s.Props["emptyAction"]; ok {
+			v.emptyAction(a, sp+"/props/emptyAction")
+		}
 		if (s.Component == "Tab") != (parent == "Tabs" || parent == "CrossBar") {
 			if s.Component == "Tab" {
 				v.err(sp+"/component", "Put the Tab inside a Tabs section.", "a Tab belongs inside Tabs or a CrossBar")
@@ -1083,6 +1086,38 @@ func (v *validator) regions(r *PageRegions) {
 		}
 		if d.As != "" && d.As != PresentLayer {
 			v.err(p+"/as", "Use layer, or leave it out.", "%q is not a way to show a page", d.As)
+		}
+	}
+}
+
+// emptyAction checks the button an empty section offers: a label and exactly one place to go or command to run.
+func (v *validator) emptyAction(a any, path string) {
+	m, ok := a.(map[string]any)
+	if !ok {
+		v.err(path, "Write {\"label\": \"Add a library\", \"native\": \"settings\"}.", "emptyAction is an object with a label and where it leads")
+		return
+	}
+	if strings.TrimSpace(propStr(m, "label", "")) == "" || len([]rune(propStr(m, "label", ""))) > 40 {
+		v.err(path+"/label", "Give the button a label of at most 40 characters.", "the button needs a label")
+	}
+	n := 0
+	for _, k := range []string{"to", "native", "op"} {
+		if propStr(m, k, "") != "" {
+			n++
+		}
+	}
+	if n != 1 {
+		v.err(path, "Keep one of to, native and op.", "the button leads to one place or runs one command, not %d", n)
+	}
+	if to := propStr(m, "to", ""); to != "" && !ValidRoute(to) {
+		v.err(path+"/to", "Use a place in the app beginning with one /.", "%q is not a place in the app", to)
+	}
+	if op := propStr(m, "op", ""); op != "" && !contains(values(opts(commandOps()...)), op) {
+		v.err(path+"/op", "Use one of the catalogue's commands.", "%q is not a command", op)
+	}
+	if w, has := m["when"]; has {
+		if _, isMap := w.(map[string]any); !isMap {
+			v.err(path+"/when", "Write a condition such as {\"admin\": true}.", "when is a condition")
 		}
 	}
 }

@@ -63,6 +63,10 @@
                     "cardSize": "l",
                     "detail": true,
                     "empty": "message",
+                    "emptyAction": {
+                      "label": "Open Classics",
+                      "to": "/page/wittyplay-online?tab=classics"
+                    },
                     "emptyText": "Nothing played yet. Pick a game from Classics.",
                     "focusGrow": true,
                     "seeAll": "never",
@@ -88,6 +92,14 @@
                   "component": "Grid",
                   "props": {
                     "empty": "message",
+                    "emptyAction": {
+                      "label": "Add a games library",
+                      "native": "settings",
+                      "when": {
+                        "admin": true
+                      }
+                    },
+                    "emptyHint": "An administrator adds a games library in Settings; its games appear after a scan.",
                     "emptyText": "No games in your libraries yet.",
                     "title": "Classics by era"
                   },

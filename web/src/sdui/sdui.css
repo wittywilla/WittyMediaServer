@@ -266,3 +266,8 @@ html.tv-mode .sdui-crew-person { min-height: var(--tv-quiet-h); padding: calc(va
 html.tv-mode .sdui-crew-person:focus { outline: var(--tv-ring) solid var(--focus); background: var(--bg-3); }
 html.tv-mode .sdui-crew-name { font-size: var(--tv-secondary); }
 html.tv-mode .sdui-crew-job, html.tv-mode .sdui-dept-more { font-size: var(--tv-caption); }
+
+/* An empty section that says what to do: the message, a line of advice, one button (calm column) */
+.sdui-empty-state { display: grid; justify-items: start; gap: var(--sp-2, 8px); padding: var(--sp-3, 12px) 0; }
+.sdui-empty-text { margin: 0; font-weight: 600; }
+.sdui-empty-hint { margin: 0; max-width: 60ch; }

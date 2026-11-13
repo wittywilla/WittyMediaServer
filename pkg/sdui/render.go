@@ -4,6 +4,7 @@
 package sdui
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -1132,6 +1133,12 @@ func (r *renderer) collectionPage(n *Node, in instance, offset, limit int, allow
 		}
 		n.State = "empty"
 		n.Props["emptyText"] = r.fill(propStr(p, "emptyText", "Nothing here yet"), in.each, s.Source)
+		if h := r.fill(propStr(p, "emptyHint", ""), in.each, s.Source); h != "" {
+			n.Props["emptyHint"] = h
+		}
+		if a := r.emptyAction(p, in); a != nil {
+			n.Props["emptyAction"] = a
+		}
 		return true
 	}
 	r.eager++
@@ -2412,4 +2419,32 @@ func dropCount(n *Node) {
 	if t, _ := n.Props["title"].(string); strings.Contains(t, "{count}") {
 		n.Props["title"] = strings.TrimSpace(strings.NewReplacer(" ({count})", "", "{count}", "").Replace(t))
 	}
+}
+
+// emptyAction is the button an empty section offers (props.emptyAction): its label and an action (to, native or
+// op), when the condition in its "when" holds for this profile and device; nil when there is none or it doesn't.
+func (r *renderer) emptyAction(p map[string]any, in instance) map[string]any {
+	m, _ := p["emptyAction"].(map[string]any)
+	if m == nil {
+		return nil
+	}
+	label := r.fill(propStr(m, "label", ""), in.each, nil)
+	if label == "" {
+		return nil
+	}
+	if w, ok := m["when"]; ok {
+		var c Condition
+		b, err := json.Marshal(w)
+		if err != nil || json.Unmarshal(b, &c) != nil || !Evaluate(&c, r.ctx) {
+			return nil
+		}
+	}
+	a := r.link(m)
+	if a == nil {
+		return nil
+	}
+	if a.Type == ActNavigate && propStr(m, "as", "") == PresentLayer {
+		a.As = PresentLayer
+	}
+	return map[string]any{"label": label, "action": a}
 }

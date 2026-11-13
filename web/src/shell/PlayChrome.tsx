@@ -12,7 +12,7 @@ import { setPlayMode } from '../theme'
 import { isBackKey } from '../ui/spatial'
 import { useApp } from '../state'
 import { focusFirst } from '../tv'
-import { cardRoute, dockFor, exitWords, isPlayPath, isPlayTop, PLAY_CONSOLES, PLAY_CONTROLLERS, PLAY_EXIT, PLAY_PADS_TITLE, PLAY_STATUS, PLAY_TIP, PLAY_TIP_KEY, tipDue, type PlayLayout, type PlayPads } from './playPaths'
+import { cardRoute, dockFor, PLAY_LIBRARY, exitWords, isPlayPath, isPlayTop, PLAY_CONSOLES, PLAY_CONTROLLERS, PLAY_EXIT, PLAY_PADS_TITLE, PLAY_STATUS, PLAY_TIP, PLAY_TIP_KEY, tipDue, type PlayLayout, type PlayPads } from './playPaths'
 import { usePlayTabs, LayoutChooser, LayoutSwitch, OpenChooser, PadsChooser, PadsSetting, PlayGlyph, usePlayLayout, usePlayOpen, usePlayPads } from './playPads'
 import { CardRouteContext } from '../sdui/render/cardRoute'
 import { PlayReviewNotice } from './PlayReviewNotice'
@@ -214,7 +214,7 @@ export function PlayFrame({ children }: { children: ReactNode }) {
   const gameArt = useGameArtApi()
   // The Consoles tab beside the server's tabs, and the layout switch at the end of the row.
   const [tabPref] = usePlayTabs()
-  const tabs = useMemo(() => ({ page: 'wittyplay-online', tabs: [{ id: 'consoles', label: 'Consoles', to: PLAY_CONSOLES, after: 'recent' }], end: <LayoutSwitch />, order: tabPref.order, hidden: tabPref.hidden }), [tabPref.order.join(), tabPref.hidden.join()]) // eslint-disable-line react-hooks/exhaustive-deps
+  const tabs = useMemo(() => ({ page: 'wittyplay-online', tabs: [{ id: 'consoles', label: 'Consoles', to: PLAY_CONSOLES, after: 'recent' }, { id: 'all', label: 'All games', to: PLAY_LIBRARY, after: 'consoles' }], end: <LayoutSwitch />, order: tabPref.order, hidden: tabPref.hidden }), [tabPref.order.join(), tabPref.hidden.join()]) // eslint-disable-line react-hooks/exhaustive-deps
   const top = isPlayTop(loc.pathname)
   // A game's card opens its page first, or the game itself, as this profile chose.
   const [openPref] = usePlayOpen()

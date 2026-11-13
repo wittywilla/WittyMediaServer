@@ -13,6 +13,7 @@ import { Spinner } from '../ui/Surface'
 import { GameArtContext } from '../sdui/render/glyphs'
 import { playGamePath } from '../shell/playPaths'
 import { GameReviewBanner } from './GameReview'
+import { PlayTabsRow } from './PlayConsoles'
 
 const ROW = 24
 const PAGE = 60
@@ -118,6 +119,7 @@ export default function PlayLibraryView({ lib }: { lib: Library }) {
   const chosen = consoles?.find((c) => c.id === consoleId)
   return (
     <div className="wpl">
+      {!consoleId && !q && <PlayTabsRow current="all" />}
       <header className="wpl-head">
         {consoleId && <button type="button" className="wpl-back" onClick={() => setParams({})} aria-label="Back to every console"><IconLeft /></button>}
         <h1>{chosen ? chosen.name : lib.name}</h1>

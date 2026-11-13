@@ -110,7 +110,7 @@ export const PLAY_LIBRARY = '/wittyplay/library'
 // The home's tabs as the server's page has them, for WittyPlay's own pages to show the same row.
 // In the order they come unless someone arranges their own (Recent, then Consoles, then the rest).
 export const PLAY_TABS = [
-  { id: 'recent', label: 'Recent' }, { id: 'consoles', label: 'Consoles' }, { id: 'classics', label: 'Classics' },
+  { id: 'recent', label: 'Recent' }, { id: 'consoles', label: 'Consoles' }, { id: 'all', label: 'All games' }, { id: 'classics', label: 'Classics' },
   { id: 'together', label: 'Together' }, { id: 'memories', label: 'Memories' }, { id: 'discover', label: 'Discover' },
 ]
 // Someone's own arrangement of the tabs, per profile in /me/ui: {order, hidden}, by id.
@@ -130,7 +130,8 @@ export function moveTab(order: string[], id: string, dir: -1 | 1): string[] {
   ;[all[i], all[j]] = [all[j], all[i]]
   return all
 }
-export const tabRoute = (id: string) => (id === 'consoles' ? PLAY_CONSOLES : PLAY_HOME + '?tab=' + id)
+// Consoles and All games are WittyPlay's own pages; the rest are the home page's tabs.
+export const tabRoute = (id: string) => (id === 'consoles' ? PLAY_CONSOLES : id === 'all' ? PLAY_LIBRARY : PLAY_HOME + '?tab=' + id)
 
 // The games library a console's games are browsed in: the one kept for that console, else the first games library (it holds many).
 export function libraryFor<L extends { id: number; type: string; console?: string }>(libs: L[], consoleId: string): L | undefined {

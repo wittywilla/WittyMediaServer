@@ -3,7 +3,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { moveTab, tabsPref, PLAY_TABS, libraryFor, yearsWords, layoutOf, exitWords, isPlayPads, isPlayPath, isPlayTop, padsFor, PLAY_EXIT, PLAY_TIP, swapFor, tipDue } from './playPaths.ts'
-import { cardRoute, mainGameRoute, openOf, playGamePath } from './playPaths.ts'
+import { cardRoute, mainGameRoute, openOf, playGamePath, tabRoute } from './playPaths.ts'
 
 test('WittyPlay Online pages take over the window; nothing else does', () => {
   assert.ok(isPlayPath('/page/wittyplay-online'))
@@ -65,8 +65,8 @@ test('years and layouts read as people say them', () => {
 })
 
 test('the tabs start Recent, Consoles, Classics, and each profile can move and hide them (never Recent)', () => {
-  assert.deepEqual(PLAY_TABS.slice(0, 3).map((t) => t.id), ['recent', 'consoles', 'classics'])
-  assert.deepEqual(tabsPref(undefined).order.slice(0, 3), ['recent', 'consoles', 'classics'])
+  assert.deepEqual(PLAY_TABS.slice(0, 4).map((t) => t.id), ['recent', 'consoles', 'all', 'classics'])
+  assert.deepEqual(tabsPref(undefined).order.slice(0, 4), ['recent', 'consoles', 'all', 'classics'])
   assert.deepEqual(tabsPref({ hidden: ['recent', 'discover'] }).hidden, ['discover'])
   assert.deepEqual(moveTab(['recent', 'consoles', 'classics'], 'classics', -1).slice(0, 3), ['recent', 'classics', 'consoles'])
   assert.deepEqual(moveTab(['recent', 'consoles'], 'recent', -1).slice(0, 2), ['recent', 'consoles'])
@@ -87,4 +87,8 @@ test('outside WittyPlay a game card always opens its WittyPlay page', () => {
   assert.equal(mainGameRoute('/game/745'), '/wittyplay/game/745')
   assert.equal(mainGameRoute('/item/12'), '/item/12')
   assert.equal(mainGameRoute('/game/745?resume=1'), '/game/745?resume=1')
+})
+
+test('the All games tab opens WittyPlay\'s games library', () => {
+  assert.equal(tabRoute('all'), '/wittyplay/library')
 })

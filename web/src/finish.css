@@ -102,6 +102,11 @@ html[data-fx-texture="subtle"] body::after, html[data-fx-texture="full"] body::a
 html[data-fx-texture="subtle"] body::after { background-image: radial-gradient(color-mix(in srgb, var(--fg) 7%, transparent) 0.6px, transparent 0.9px); background-size: 4px 4px; opacity: .5; }
 html[data-fx-texture="full"] body::after { background-image: repeating-linear-gradient(180deg, transparent 0 2px, color-mix(in srgb, var(--picture-bg) 18%, transparent) 2px 3px); }
 @media (prefers-reduced-motion: reduce), (prefers-reduced-transparency: reduce) { html[data-fx-texture="full"] body::after { opacity: .4; } }
+/* The CRT finish: scanlines (above) and a faint phosphor glow on the words. It is off for the high-contrast theme and when more contrast is asked for. */
+html[data-fx-texture="full"] body { text-shadow: 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent); }
+@media (prefers-contrast: more) { html[data-fx-texture] body::after { content: none; } html[data-fx-texture="full"] body { text-shadow: none; } }
+html[data-theme="contrast"][data-fx-texture] body::after { content: none; }
+html[data-theme="contrast"][data-fx-texture="full"] body { text-shadow: none; }
 
 /* ---- focus by look: ring (the default), ring-lift (the ring and a small rise), fill (the thing is the highlight) ---- */
 html[data-focus-style="fill"] :is(.btn, .dock-btn, .nav-link, .topnav-link, .sdui-row, .spec-row, [role=tab], [role=menuitem], .tab):focus-visible { background: var(--accent); color: var(--accent-fg); outline: none; box-shadow: none; }

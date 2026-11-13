@@ -222,17 +222,40 @@ check_alone() { # <repo>: its own tests, on its own
   note "its own tests pass"
 }
 
-lock() { # <repo>: locks what a module's bundle is built with, where nothing else has
-  local r=$1
-  [ -f "$dir/package.json" ] && [ ! -f "$dir/package-lock.json" ] && grep -q 'build:bundle' "$dir/package.json" || return 0
-  if [ $apply = 0 ]; then note "would lock its npm packages"; return 0; fi
-  sed -E -i.bak "s|\"github:$OWNER/WittyInk\"|\"github:$OWNER/WittyInk#v$ink_version\"|" "$dir/package.json" && rm -f "$dir/package.json.bak"
-  if (cd "$dir" && npm install --package-lock-only --ignore-scripts --no-audit --no-fund >/dev/null 2>&1); then
-    git -C "$dir" add package.json package-lock.json
-    git -C "$dir" commit -qm "Locks what the bundle is built with"
+lock() { # <repo>: locks what a bundle is built with to what this release has just published
+  local r=$1 how=""
+  [ -f "$dir/package.json" ] || return 0
+  if [ ! -f "$dir/package-lock.json" ]; then
+    grep -q 'build:bundle' "$dir/package.json" && how=new
+  elif grep -q "\"github:$OWNER/WittyInk#v" "$dir/package.json" && ! grep -q "\"github:$OWNER/WittyInk#v$ink_version\"" "$dir/package.json"; then
+    how=ink # its lock holds an earlier WittyInk
+  elif [ "$r" = WittyReader ]; then
+    how=reader # its lock holds the reader plugins as they were when it was last locked
+  fi
+  [ -n "$how" ] || return 0
+  if [ $apply = 0 ]; then note "would lock its npm packages to this release's versions"; return 0; fi
+  local ok=1
+  case $how in
+    new | ink)
+      # -i.bak, then removing it: the one form of sed -i both GNU and BSD (macOS) sed take.
+      sed -E -i.bak "s|\"github:$OWNER/WittyInk(#v[^\"]*)?\"|\"github:$OWNER/WittyInk#v$ink_version\"|" "$dir/package.json" && rm -f "$dir/package.json.bak"
+      (cd "$dir" && npm install --package-lock-only --ignore-scripts --no-audit --no-fund >/dev/null 2>&1) || ok=0
+      ;;
+    reader)
+      # The same unpinned specs, resolved afresh: each plugin's main is now its new release.
+      (cd "$dir" && npm install --package-lock-only --ignore-scripts --no-audit --no-fund \
+        "@wittywilla/wittycomics@github:$OWNER/WittyComics" "@wittywilla/wittyebook@github:$OWNER/WittyEbook" \
+        "@wittywilla/wittyink@github:$OWNER/WittyInk" "@wittywilla/wittypdf@github:$OWNER/WittyPDF" >/dev/null 2>&1) || ok=0
+      ;;
+  esac
+  if [ $ok = 0 ]; then
+    [ $how = new ] && { note "couldn't lock its npm packages: its workflow installs them unlocked"; return 0; }
+    die "$r: couldn't raise its lock to this release's versions; run npm install --package-lock-only in it to see why"
+  fi
+  git -C "$dir" add package.json package-lock.json
+  if ! git -C "$dir" diff --cached --quiet; then
+    git -C "$dir" commit -qm "Locks what the bundle is built with to this release's versions"
     note "locked"
-  else
-    note "couldn't lock its npm packages: its workflow installs them unlocked"
   fi
 }
 

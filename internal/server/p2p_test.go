@@ -551,3 +551,41 @@ func TestP2PSettingsDefaultsAndValidation(t *testing.T) {
 		t.Fatalf("addresses for an invite: %v", got)
 	}
 }
+
+// The public address book, which a TV that has never been home needs to join by a code, is on
+// whenever peer to peer is, unless an owner turned it off: a server that never touched it, or
+// saved its settings before a layer was added, has it on; one turned off stays off.
+func TestTheAddressBookIsOnUnlessTurnedOff(t *testing.T) {
+	ts := newTestServer(t)
+	_, admin := ts.user(t, "owner", "adult", true, "")
+	ctx := context.Background()
+	dht := func(saved string) bool {
+		t.Helper()
+		if err := ts.DB.SetSetting(ctx, p2pSettingKey, saved); err != nil {
+			t.Fatal(err)
+		}
+		return ts.loadP2P(ctx).Layers.DHT
+	}
+	if !dht("") {
+		t.Error("never set: the address book should be on")
+	}
+	if !dht(`{"enabled":true,"port":40123,"layers":{"relay":true,"holePunch":true}}`) {
+		t.Error("saved without it: the address book should be on")
+	}
+	if dht(`{"enabled":true,"port":40123,"layers":{"dht":false,"relay":true}}`) {
+		t.Error("turned off by the owner: it should stay off")
+	}
+	// What Settings is shown for a server that never chose.
+	if err := ts.DB.SetSetting(ctx, p2pSettingKey, ""); err != nil {
+		t.Fatal(err)
+	}
+	var got struct {
+		Settings struct {
+			Layers p2p.Layers `json:"layers"`
+		} `json:"settings"`
+	}
+	w := ts.do(t, "GET", "/api/p2p/settings", admin, nil)
+	if json.Unmarshal(w.Body.Bytes(), &got) != nil || w.Code != 200 || !got.Settings.Layers.DHT || !got.Settings.Layers.Relay || !got.Settings.Layers.HolePunch {
+		t.Errorf("Settings for a server that never chose: %d %s", w.Code, w.Body)
+	}
+}

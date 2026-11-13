@@ -38,7 +38,7 @@ It is off until the owner turns it on. Off, no node exists, no socket is open, n
 
 ## The layers
 
-An app tries these in order and uses the best that works. It keeps looking: a relayed connection is replaced by a direct one as soon as one can be made, and a network change starts the search again.
+Every layer is on when the owner turns the feature on, and each has its own switch; one an owner turns off stays off (`TestTheAddressBookIsOnUnlessTurnedOff`). The address book (`dht`) is on with the rest because joining by a code needs it, and so does finding a server whose address has changed. What the server puts in it is its peer ID, its addresses and its port, under its own ID, and, while a code is waiting, under the code's key; never anything about media, accounts or what is played. An app tries these in order and uses the best that works. It keeps looking: a relayed connection is replaced by a direct one as soon as one can be made, and a network change starts the search again.
 
 | | Layer | How | Switch |
 |---|---|---|---|

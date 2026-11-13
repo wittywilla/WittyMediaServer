@@ -297,6 +297,25 @@ button.card { display: block; }
 .sdui-qr figcaption { color: var(--fg-2); font-size: var(--text-sm); }
 .sdui-qr-address { overflow-wrap: anywhere; user-select: all; font-size: var(--text-xs); color: var(--fg-2); }
 
+/* ---- card styles the looks ask for: plate (title on the art, over a scrim along its foot), block (a flat cell of colour with its title,
+   teletext's) and logo (a contain-fitted logo on a plain tile, a satellite box's channel) ---- */
+.card.sdui-plate { position: relative; }
+.card.sdui-plate .title, .card.sdui-plate .sub { position: absolute; inset-inline: 0; margin: 0; padding-inline: var(--space-s); color: var(--on-image); text-shadow: 0 1px 2px color-mix(in srgb, var(--picture-bg) 70%, transparent); z-index: 2; }
+.card.sdui-plate .title { bottom: 1.4em; padding-top: var(--space-xl); background: linear-gradient(to top, color-mix(in srgb, var(--picture-bg) 78%, transparent), transparent); }
+.card.sdui-plate .sub { bottom: 0; padding-bottom: var(--space-xs); }
+.card.sdui-plate .poster::after { display: none; }
+.card.sdui-block .poster { background: var(--accent); aspect-ratio: 16 / 9; }
+.card.sdui-block .poster img, .card.sdui-block .poster .ph, .card.sdui-block .poster .sdui-noart { display: none; }
+.card.sdui-block .title { position: absolute; inset-inline: 0; top: 0; margin: 0; padding: var(--space-s); color: var(--accent-fg); font-weight: 700; text-transform: uppercase; letter-spacing: var(--tracking-label); }
+.card.sdui-block { position: relative; border-radius: 0; }
+.card.sdui-block .poster { border-radius: 0; }
+.card.sdui-block .sub { display: none; }
+.card.sdui-logo .poster { background: var(--bg-3); aspect-ratio: 16 / 9; display: grid; place-items: center; }
+.card.sdui-logo .poster img { object-fit: contain; padding: var(--space-m); inline-size: 100%; block-size: 100%; }
+/* A crossbar's categories scroll sideways inside their own bar on a narrow window instead of widening the page. */
+.sdui-crossbar [data-sdui-tabs] { max-inline-size: 100%; overflow-x: auto; scrollbar-width: none; }
+.sdui-crossbar [role=tablist] { flex-wrap: nowrap; min-inline-size: max-content; }
+.sdui-crossbar { max-inline-size: 100%; overflow-x: clip; }
 /* ---- Dashboard polish: a greeting, tiles with a picture for what they are, depth, and room to breathe ---- */
 .sdui-greet { margin: 0 0 var(--space-m); font-size: var(--role-heading-size); font-weight: var(--weight-heading); letter-spacing: var(--tracking-heading); color: var(--fg); }
 .sdui-widget { background: linear-gradient(180deg, color-mix(in srgb, var(--elev-1-fill) 92%, var(--on-image)), var(--elev-1-fill)); box-shadow: var(--e-1); padding: var(--space-l); gap: var(--space-m); }

@@ -887,7 +887,18 @@ func playOnlineCases() []kase {
 	qrPg.Scope = "wittyplay"
 	// WittyPlay Online's own home page, as WittyPlay's sdui.json defines it.
 	online, _ := sdui.NewModuleSet([]sdui.ModuleUI{ui}).Page("wittyplay-online")
+	// Empty sections that say what to do (revision 8): a hint and a button, the button for administrators only.
+	emptyPg := page("empty-library", "library",
+		sec("all", "Grid", map[string]any{"empty": "message", "emptyText": "No photos yet.", "emptyHint": "Add pictures to the library's folders; they appear after a scan.",
+			"emptyAction": map[string]any{"label": "Scan now", "op": "library.scan", "item": "$library", "when": map[string]any{"admin": true}}}, sdui.Source{"type": "recentlyAdded", "library": "$library"}))
+	emptyAdmin, emptyAdult := request("desktop"), request("desktop")
+	emptyAdmin.Admin = true
+	emptyAdmin.Vars, emptyAdult.Vars = map[string]string{"library": "4"}, map[string]string{"library": "4"}
 	return []kase{
+		{id: "empty-actions-admin-desktop", title: "An empty library offers an administrator a button", in: Input{Page: emptyPg, Request: emptyAdmin, Data: Data{}},
+			checks: []string{"an empty section with empty message has state empty, its text, its hint and the button {label, action} when the condition holds", "the button's command carries the library as its item"}},
+		{id: "empty-actions-adult-desktop", title: "The same empty library for a profile that doesn't administer", in: Input{Page: emptyPg, Request: emptyAdult, Data: Data{}},
+			checks: []string{"the hint is there and the administrators' button is not"}},
 		{id: "qr-room-phone", title: "QR codes from an item's link and from an address, on a phone", in: Input{Page: qrPg, Request: phone, Data: qrData, ModuleUI: []sdui.ModuleUI{ui}},
 			checks: []string{"a QR section with a source takes the first item's link as its value and its title as the caption", "a route says isRoute so the client makes it absolute with the server's address", "a value that is neither a route nor an https address leaves the section out"}},
 

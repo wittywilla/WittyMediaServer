@@ -61,3 +61,9 @@ Merged at server ece6f71a: /manage/libraries, /manage/matches, /manage/match/{it
 - Shorts and concerts pages: no server route (see DESIGN-2-ISSUES.md).
 - Smart playlist live match count: a Form can't feed its values to a source, and there's no preview route.
 - Download chooser: no server API for download options.
+
+## From S4 (Android lean pass), client 5ceeba8
+- Android: WittyRemote keeps the player's existing Remote panel (floating or bar), not redrawn as the canvas's sheet.
+- Android TV Home: lumen/classic, rail/marquee and stage/dashboard look identical (same top-menu frame); the other 8 are distinct.
+- Android TV: the key-legend Dock bar overlaps the first row ("Recently added") on Home.
+- Android last merge (base TvLook change) not re-tested; phone and tablet looks not run.

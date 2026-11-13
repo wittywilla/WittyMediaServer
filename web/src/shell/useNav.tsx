@@ -15,6 +15,7 @@ import { useApp } from '../state'
 import { getUserPref, setUserPref, useUserPref } from '../ui/userPrefs'
 import { featureOff, useMyLimits } from '../myLimits'
 import type { NavItem, NavPrefs } from './navModel'
+import { foldGames } from './navModel'
 
 // The main menu. A server with server-driven pages says what is in it, in what order, for
 // this profile on this device (GET /sdui/navigation), and keeps each profile's own order
@@ -190,7 +191,7 @@ export function useMenu(): MenuState {
     const items = srv.nav?.items || []
     const labelled = new Set(items.filter((e) => e.id.startsWith('lib-')).map((e) => e.label.toLowerCase()))
     const fromServer: NavItem[] = items.filter((e) => e.id.startsWith('lib-') || !labelled.has(e.label.toLowerCase())).map((e) => ({ id: e.id, label: e.label, to: e.route, end: e.route === '/', kind: kindOf(e.id), icon: e.icon, placement: e.placement, screen: e.screen, drawer: e.drawer }))
-    const all = placeOwn(fromServer, own, srv.personal)
+    const all = placeOwn(foldGames(fromServer), own, srv.personal)
     const sections = srv.nav?.personal?.sections || []
     const ownHidden = new Set(srv.personal?.hidden || [])
     const known = new Set(sections.map((s) => s.id))

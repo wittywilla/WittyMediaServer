@@ -11,7 +11,7 @@ import { dockCurrent, usePageRegions, type DockEntry, type StatusPart } from '..
 import { setPlayMode } from '../theme'
 import { isBackKey } from '../ui/spatial'
 import { useApp } from '../state'
-import { exitWords, isPlayPath, isPlayTop, PLAY_CONTROLLERS, PLAY_EXIT, PLAY_PADS_TITLE, PLAY_TIP, PLAY_TIP_KEY, tipDue, type PlayPads } from './playPaths'
+import { dockFor, exitWords, isPlayPath, isPlayTop, PLAY_CONTROLLERS, PLAY_EXIT, PLAY_PADS_TITLE, PLAY_STATUS, PLAY_TIP, PLAY_TIP_KEY, tipDue, type PlayPads } from './playPaths'
 import { PadsChooser, PadsSetting, PlayGlyph, usePlayPads } from './playPads'
 import { GlyphContext, type GlyphKey } from '../sdui/render/glyphs'
 import './playChrome.css'
@@ -197,12 +197,12 @@ export function PlayFrame({ children }: { children: ReactNode }) {
   return (
     <GlyphContext.Provider value={glyph}>
       <div className="wplay" data-scope="wittyplay" data-pads={pads}>
-        <StatusBar parts={regions?.statusBar || [{ id: 'server', kind: 'server' }]} onExit={exit} onHelp={() => setTip(true)} />
+        <StatusBar parts={regions?.statusBar || PLAY_STATUS} onExit={exit} onHelp={() => setTip(true)} />
         <main className="wplay-stage" id="main" data-nav-zone="stage" tabIndex={-1}>
           {loc.pathname === PLAY_CONTROLLERS && <PadsSetting />}
           {children}
         </main>
-        {regions?.systemDock && <SystemDock entries={regions.systemDock} />}
+        <SystemDock entries={dockFor(regions?.systemDock)} />
         {tip && <ExitTip onClose={closeTip} choose={!padsChosen} pads={pads} setPads={setPads} />}
       </div>
     </GlyphContext.Provider>

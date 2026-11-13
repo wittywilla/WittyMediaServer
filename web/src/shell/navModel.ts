@@ -10,6 +10,17 @@ export type NavItem = { id: string; label: string; to: string; kind?: string; en
 // A library's entry: "lib:3" as the web app named it, "lib-3" in a server's menu.
 export const isLibrary = (id: string) => id.startsWith('lib:') || id.startsWith('lib-')
 
+// With WittyPlay Online in the menu, it is the app's Games: one entry called Games, and the games libraries and the plain Games
+// page are not listed beside it (they open WittyPlay too). Without it the menu is as it was.
+export const PLAY_ROUTE = '/page/wittyplay-online'
+export const isPlayEntry = (it: NavItem) => it.to === PLAY_ROUTE || it.to.startsWith(PLAY_ROUTE + '?')
+export function foldGames(items: NavItem[]): NavItem[] {
+  if (!items.some(isPlayEntry)) return items
+  return items
+    .filter((it) => isPlayEntry(it) || !((isLibrary(it.id) && it.kind === 'games') || it.to === '/games'))
+    .map((it) => (isPlayEntry(it) ? { ...it, label: 'Games', icon: it.icon || 'game' } : it))
+}
+
 export type NavPrefs = {
   order?: string[]
   hidden?: string[]

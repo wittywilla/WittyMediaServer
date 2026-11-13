@@ -18,6 +18,7 @@ import Unreachable from './components/Unreachable'
 import AuthPage from './pages/AuthPage'
 import { usePageRegions } from './sdui/regions'
 import { isPlayPath, PlayFrame, StatusBar, SystemDock } from './shell/PlayChrome'
+import { useGamesInPlay } from './shell/PlayRedirect'
 import { PlayerDock } from './player/PlayerPage'
 import { Announcer, useDialogs } from './a11y'
 import LegalNote, { legalAckText } from './components/LegalNote'
@@ -44,6 +45,7 @@ const PairPage = lazy(() => import('./pages/PairPage'))
 const SharedPage = lazy(() => import('./pages/SharedPage'))
 const DesignPage = lazy(() => import('./pages/DesignPage'))
 const DesignPlay = lazy(() => import('./pages/DesignPlay'))
+const PlaySettings = lazy(() => import('./pages/PlaySettings'))
 const GapsReview = lazy(() => import('./spec/GapsReview'))
 const HelpPage = lazy(() => import('./pages/HelpPage'))
 const HelpPublicPage = lazy(() => import('./pages/HelpPage').then((m) => ({ default: m.HelpPublicPage })))
@@ -107,6 +109,8 @@ function Shell() {
   const { user, loading, setupRequired, onboarding, needServer, unreachable } = useApp()
   const loc = useLocation()
   const tvMode = useTvMode()
+  // WittyPlay installed: the games pages show in its frame too (shell/PlayRedirect.tsx). Asked before any early return.
+  const gamesInPlay = useGamesInPlay(loc.pathname)
   // A module's pages can be tinted differently from the rest (the theme engine's module overrides).
   const pageModule = moduleForPath(loc.pathname)
   useLayoutEffect(() => { setThemeModule(pageModule) }, [pageModule])
@@ -136,7 +140,7 @@ function Shell() {
   const isCouchMode = loc.pathname === '/big' || loc.pathname.startsWith('/big/')
   const isStream = /^\/couch\/\d+\/play\//.test(loc.pathname) || loc.pathname.startsWith('/couch-rig/')
   // WittyPlay Online takes over the window, over the app's frame and in its own palette (shell/PlayChrome.tsx), in TV mode too.
-  const isWPlay = isPlayPath(loc.pathname)
+  const isWPlay = isPlayPath(loc.pathname) || gamesInPlay
   return (
     <AudioProvider>
       {!isTvPlayer && !isReader && !isStream && !isGame && !isPlayer && !isWPlay && <Scene />}
@@ -266,6 +270,9 @@ export function PageRoutes() {
       <Route path="/help/:guide" element={<Suspense fallback={<Spinner />}><HelpPage /></Suspense>} />
       <Route path="/design" element={<DesignPage />} />
       <Route path="/design/play" element={<Suspense fallback={<Spinner />}><DesignPlay /></Suspense>} />
+      <Route path="/wittyplay/settings" element={<Suspense fallback={<Spinner />}><PlaySettings /></Suspense>} />
+      <Route path="/wittyplay/settings/module/:module" element={<Suspense fallback={<Spinner />}><PlaySettings /></Suspense>} />
+      <Route path="/wittyplay/settings/:section/*" element={<Suspense fallback={<Spinner />}><PlaySettings /></Suspense>} />
       <Route path="/design/gaps" element={<Suspense fallback={<Spinner />}><GapsReview /></Suspense>} />
       <Route path="/design/gaps/:key" element={<Suspense fallback={<Spinner />}><GapsReview /></Suspense>} />
       <Route path="*" element={<NotFound />} />

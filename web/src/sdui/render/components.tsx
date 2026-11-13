@@ -23,7 +23,7 @@ import { useList } from '../gridView'
 import { KeyLegend } from '../../ui/KeyLegend'
 import { safeLink as safeHref } from '../../safeLink'
 import { buttonsOf, cardGap, creditGroups, factsOf, fieldOf, gridColumns, initials, type ButtonSpec, type View } from '../model'
-import { dotFor, focusedOf } from '../playModel'
+import { consolesOf, dotFor, focusedOf } from '../playModel'
 import { plan } from '../routes'
 import type { Action, Node, Props } from '../types'
 import { px, usePage } from './context'
@@ -284,12 +284,17 @@ function ShelfView({ view, depth }: { view: View; depth: number }) {
   // focusGrow: the focused card is the large one and the rest stay small; detail: its title, line and actions under the row.
   const grow = view.node.props?.focusGrow === true && !chips && !tiles
   const detail = view.node.props?.detail === true && !chips && !tiles
+  // A games row whose cards say their console gets a bar of its consoles over it (All first): choosing one narrows the row.
+  const consoles = grow ? consolesOf(view.children.map((c) => c.node)) : []
+  const [onlyConsole, setOnlyConsole] = useState('')
+  const shown = onlyConsole && consoles.some((c) => c.name === onlyConsole) ? view.children.filter((c) => c.node.props?.console === onlyConsole) : view.children
   const [focusId, setFocusId] = useState('')
-  const focused = focusedOf(view.children, focusId)
+  const focused = focusedOf(shown, focusId)
   return (
     <section className={'hub sdui-shelf' + (grow ? ' focus-grow' : '') + (grow && detail ? ' has-detail' : '') + (view.type === 'Carousel' ? ' sdui-carousel' : '') + (view.node.props?.focusGrow === true ? ' sdui-focusgrow' : '') + (view.node.props?.numbered ? ' numbered' : '')} style={{ ...cardVars(view, page.pt), '--peek': view.peek || 0, ...scopeStyle(view.node) } as CSSProperties} data-scope={view.scope} data-sdui-section={depth === 1 ? view.id : undefined} aria-busy={waiting || undefined}>
       <Heading view={view} id={id} />
       {view.state === 'deferred' && !failed && <Near onNear={() => page.more(view.id)} />}
+      {consoles.length > 0 && !waiting && !failed && <ConsoleBar consoles={consoles} total={view.children.length} value={onlyConsole} onChange={(c) => { setOnlyConsole(c); setFocusId('') }} label={(view.text?.title || view.label || 'Games') + ': consoles'} />}
       {failed || view.state === 'empty' ? <StateLine view={view} /> : tiles && !waiting ? (
         // Plain tiles (libraries) wrap, as the app's library tiles always have.
         <div className="lib-tiles" role="list" aria-labelledby={view.text?.title ? id : undefined} aria-label={view.text?.title ? undefined : view.label} data-nav-group>
@@ -299,7 +304,7 @@ function ShelfView({ view, depth }: { view: View; depth: number }) {
         <div className="row-wrap">
           <button ref={prev} type="button" className="row-arrow prev" tabIndex={-1} aria-hidden="true" onClick={() => by(-1)} hidden><IconLeft /></button>
           <div className={'row' + (chips ? ' sdui-chips' : '')} ref={row} data-nav-group role="list" aria-labelledby={view.text?.title ? id : undefined} aria-label={view.text?.title ? undefined : view.label || undefined}>
-            {waiting ? <Placeholders view={view} /> : view.children.map((c) => <div role="listitem" key={c.id} className={'sdui-item' + (grow && c.id === focused?.id ? ' grown' : '')} onFocus={grow || detail ? () => setFocusId(c.id) : undefined} onPointerEnter={grow || detail ? () => setFocusId(c.id) : undefined}><CardView view={c} showTitles={showTitles} /></div>)}
+            {waiting ? <Placeholders view={view} /> : shown.map((c) => <div role="listitem" key={c.id} className={'sdui-item' + (grow && c.id === focused?.id ? ' grown' : '')} onFocus={grow || detail ? () => setFocusId(c.id) : undefined} onPointerEnter={grow || detail ? () => setFocusId(c.id) : undefined}><CardView view={c} showTitles={showTitles} /></div>)}
             {view.hasMore && !waiting && <Near horizontal root={row} onNear={() => page.more(view.id)} />}
             {page.busy(view.id) && !waiting && <Placeholders view={{ ...view, placeholders: 2 }} />}
             {seeAllCard && !waiting && !view.hasMore && <div role="listitem" className="sdui-item"><SeeAllCard to={view.seeAll!} label={seeAllLabel} title={view.text?.title} wide={wideCards} /></div>}
@@ -309,6 +314,57 @@ function ShelfView({ view, depth }: { view: View; depth: number }) {
       )}
       {detail && focused && !waiting && !failed && <ShelfDetail view={focused} parent={view} />}
     </section>
+  )
+}
+
+// The consoles of a games row as a row of chips (a toolbar of toggle buttons: arrows, a remote and a pad reach each one, and a click,
+// Enter or A chooses). It scrolls sideways on a narrow screen, with arrows to page it where a pointer is.
+function ConsoleBar({ consoles, total, value, onChange, label }: { consoles: { name: string; count: number }[]; total: number; value: string; onChange: (c: string) => void; label: string }) {
+  const bar = useRef<HTMLDivElement | null>(null)
+  const page = usePage()
+  const by = (dir: number) => { const el = bar.current; if (el) el.scrollBy({ left: dir * el.clientWidth * 0.7, behavior: page.reducedMotion ? 'auto' : 'smooth' }) }
+  // Between the tabs and the row, for the arrows of a keyboard, a remote or a pad: down from the tabs comes here, down from here goes to
+  // the row, up from the row comes back, and left and right move along the chips. Read before the page's own arrows (capture).
+  useEffect(() => {
+    const own = bar.current
+    const section = own?.closest('section')
+    if (!own || !section) return
+    const keys = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return
+      const at = document.activeElement as HTMLElement | null
+      if (!at) return
+      const chips = Array.from(own.querySelectorAll<HTMLElement>('.sdui-console-chip'))
+      const chosen = () => own.querySelector<HTMLElement>('.sdui-console-chip.on') || chips[0]
+      const go = (el: HTMLElement | null | undefined) => { if (!el) return; e.preventDefault(); e.stopPropagation(); el.focus(); el.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }) }
+      const inBar = own.contains(at)
+      if (inBar) {
+        const i = chips.indexOf(at)
+        if (e.key === 'ArrowRight') go(chips[i + 1] || at)
+        else if (e.key === 'ArrowLeft') go(chips[i - 1] || at)
+        else if (e.key === 'ArrowDown') go(section.querySelector<HTMLElement>('.row .sdui-item.grown .card, .row .card'))
+        else if (e.key === 'ArrowUp') go(page.doc && document.querySelector<HTMLElement>('[role=tab][aria-selected=true]'))
+        return
+      }
+      if (e.key === 'ArrowUp' && section.querySelector('.row')?.contains(at)) go(chosen())
+      else if (e.key === 'ArrowDown' && at.getAttribute('role') === 'tab' && at.getAttribute('aria-selected') === 'true' && section.isConnected && section.getClientRects().length) go(chosen())
+    }
+    window.addEventListener('keydown', keys, true)
+    return () => window.removeEventListener('keydown', keys, true)
+  }, [page.doc])
+  const chip = (name: string, text: string, count: number) => (
+    <button key={name || 'all'} type="button" className={'sdui-console-chip' + (value === name ? ' on' : '')} aria-pressed={value === name} onClick={() => onChange(name)}>
+      <span>{text}</span><span className="sdui-console-count" aria-label={count === 1 ? '1 game' : count + ' games'}>{count}</span>
+    </button>
+  )
+  return (
+    <div className="sdui-console-bar">
+      <button type="button" className="sdui-console-arrow prev" tabIndex={-1} aria-hidden="true" onClick={() => by(-1)}><IconLeft /></button>
+      <div className="sdui-console-chips" ref={bar} role="toolbar" aria-label={label} data-nav-group>
+        {chip('', 'All', total)}
+        {consoles.map((c) => chip(c.name, c.name, c.count))}
+      </div>
+      <button type="button" className="sdui-console-arrow next" tabIndex={-1} aria-hidden="true" onClick={() => by(1)}><IconRight /></button>
+    </div>
   )
 }
 

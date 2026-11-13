@@ -23,6 +23,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 	"github.com/wittywilla/wittymediaserver/internal/play/stream"
 	"github.com/wittywilla/wittymediaserver/pkg/sdui"
 )
@@ -401,6 +402,7 @@ func (rv *sduiResolver) playRecent(req sdui.SourceRequest) ([]sdui.Item, error) 
 			continue
 		}
 		it := rv.item(li)
+		it.Console = consoleShort(li.Console)
 		era := consoleEra(li.Console)
 		line := []string{}
 		if l, ok := eraLabels[era]; ok {
@@ -430,6 +432,29 @@ func (rv *sduiResolver) playRecent(req sdui.SourceRequest) ([]sdui.Item, error) 
 	}
 	return out, nil
 }
+
+// consoleShort is a console's short name (SNES, Mega Drive), for the home row's console bar; its id when it has none.
+func consoleShort(id string) string {
+	shortOnce.Do(func() {
+		shortNames = map[string]string{}
+		for _, c := range wittyplay.Consoles() {
+			n := c.Short
+			if n == "" {
+				n = c.Name
+			}
+			shortNames[c.ID] = n
+		}
+	})
+	if n := shortNames[id]; n != "" {
+		return n
+	}
+	return id
+}
+
+var (
+	shortOnce  sync.Once
+	shortNames map[string]string
+)
 
 // gameActions are a game's buttons in the home row's detail panel: A plays it (Resume when it has
 // a save state), Y opens its page.
@@ -466,6 +491,7 @@ func (rv *sduiResolver) playClassicsRow() ([]sdui.Item, error) {
 	out := make([]sdui.Item, 0, len(games))
 	for _, g := range games {
 		it := rv.item(g)
+		it.Console = consoleShort(g.Console)
 		line := []string{}
 		if l, ok := eraLabels[consoleEra(g.Console)]; ok {
 			it.Badges = []string{l.badge}

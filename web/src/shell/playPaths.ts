@@ -10,7 +10,23 @@ export const PLAY_HOME = '/page/wittyplay-online'
 const PLAY_DESIGN = '/design/play'
 
 // One of WittyPlay Online's pages (the module's own pages are named wittyplay-…).
-export const isPlayPath = (path: string) => path === PLAY_HOME || path.startsWith('/page/wittyplay-') || path === PLAY_DESIGN
+export const isPlayPath = (path: string) => path === PLAY_HOME || path === '/page/wittyplay' || path.startsWith('/page/wittyplay-') || path === PLAY_DESIGN || path === PLAY_SETTINGS || path.startsWith(PLAY_SETTINGS + '/')
+
+// WittyPlay's Settings: every games page of the app's Settings, in WittyPlay's frame (pages/PlaySettings.tsx).
+export const PLAY_SETTINGS = '/wittyplay/settings'
+
+// The status bar and dock when a page brings none (WittyPlay's Settings, the games library): the same as WittyPlay Online's own.
+export const PLAY_STATUS = [{ id: 'me', kind: 'profile' as const, text: 'WittyPlay Online' }, { id: 'server', kind: 'server' as const }]
+export const PLAY_DOCK = [
+  { id: 'search', label: 'Search', icon: 'search', route: '/search' },
+  { id: 'together', label: 'Together', icon: 'users', route: PLAY_HOME + '?tab=together' },
+  { id: 'controllers', label: 'Controllers', icon: 'devices', route: '/page/wittyplay-controllers' },
+  { id: 'memories', label: 'Memories', icon: 'photo', route: PLAY_HOME + '?tab=memories' },
+  { id: 'settings', label: 'Settings', icon: 'settings', route: PLAY_SETTINGS },
+]
+// The dock's Settings opens WittyPlay's whole Settings (its privacy page is one of them).
+export const dockFor = <T extends { id: string; route: string }>(entries: T[] | undefined): T[] =>
+  (entries?.length ? entries : (PLAY_DOCK as unknown as T[])).map((e) => (e.id === 'settings' ? { ...e, route: PLAY_SETTINGS } : e))
 
 // Its top level, where Back exits to Home.
 export const isPlayTop = (path: string) => path === PLAY_HOME || path === PLAY_DESIGN

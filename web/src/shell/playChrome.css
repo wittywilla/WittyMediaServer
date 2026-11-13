@@ -68,7 +68,7 @@ html[data-wplay] {
   --picture-bg: #0a0f2e !important;
   /* WittyPlay's own sizes: a ten-foot screen drawn at any window size (the board is 1920 wide). */
   --wp-gutter: clamp(16px, 4.6vw, 96px);
-  --wp-tile: clamp(132px, min(15.6vw, 27.5vh), 300px);
+  --wp-tile: clamp(132px, min(15.6vw, 25vh), 300px);
   --wp-grow: 1.27;
   --wp-ring: #0a0f2e;
   --wp-chip: rgb(255 255 255 / .14);
@@ -153,6 +153,20 @@ html[data-wplay] body { font-family: var(--font); }
 .wplay .card .sdui-badges .badge:is([data-badge="disc era"], [data-badge="32-bit"]) { background: #c9b0ff; }
 .wplay .card .sdui-badges .badge[data-badge="3d era"] { background: #ffc08a; }
 
+/* The home's parts sit close: tabs, consoles, the row and its detail all fit over the dock on a 16:9 screen. */
+.wplay .sdui-tabs { gap: 0; }
+.wplay .sdui-tabs > [role="tabpanel"] { gap: clamp(8px, 1vw, 20px); }
+.wplay .sdui-shelf.focus-grow { gap: 0; }
+.wplay .sdui-shelf.focus-grow .row { padding-block: clamp(12px, 1vw, 18px); }
+
+/* ---- the consoles bar over the home row: calm chips, the chosen one in the accent ---- */
+.wplay .sdui-console-bar { margin-block-end: clamp(2px, .4vw, 8px); }
+.wplay .sdui-console-chip { min-block-size: clamp(44px, 3vw, 56px); padding: 0 clamp(14px, 1.1vw, 22px); background: var(--wp-chip); font-size: clamp(.95rem, 1.1vw, 1.3rem); font-weight: 800; }
+.wplay .sdui-console-chip:hover { background: var(--wp-chip-hover); }
+.wplay .sdui-console-chip.on { background: linear-gradient(180deg, #5ff0d6, #1fc3a8); color: var(--accent-fg); }
+.wplay .sdui-console-chip:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--wp-ring), 0 0 0 6px var(--focus); }
+.wplay .sdui-console-arrow { background: var(--wp-chip); }
+
 /* ---- under the row: the focused game's name large, its line, and pills with the pad's keys ---- */
 .wplay .sdui-detail { gap: clamp(6px, .7vw, 12px); padding-block-start: clamp(8px, 1.2vw, 22px); }
 .wplay .sdui-detail-title { font-size: clamp(1.8rem, 2.6vw, 3.1rem); font-weight: 900; letter-spacing: 0; line-height: 1.05; }
@@ -171,14 +185,15 @@ html[data-wplay] body { font-family: var(--font); }
 .wplay .sdui .lib-tile { background: var(--wp-chip); border-radius: clamp(14px, 1.3vw, 24px); }
 
 /* ---- the system dock: large round buttons along the foot, the current one filled in the accent with its name under it ---- */
-.wplay .play-dock { position: fixed; z-index: 1; inset-block-end: clamp(14px, 3.2vh, 40px); gap: clamp(14px, 1.9vw, 30px); align-items: center; }
-.wplay .play-dock a { gap: 6px; }
+.wplay .play-dock { position: fixed; z-index: 1; inset-block-end: calc(clamp(14px, 3.2vh, 40px) + env(safe-area-inset-bottom, 0px) + 1.2em); gap: clamp(14px, 1.9vw, 30px); align-items: center; }
+.wplay .play-dock a { position: relative; gap: 6px; }
 .wplay .play-dock-ic { inline-size: var(--wp-dock); block-size: var(--wp-dock); background: var(--wp-chip); color: var(--fg); box-shadow: none; transition: transform var(--dur-2) var(--ease-out), background var(--dur-2); }
 .wplay .play-dock-ic svg { inline-size: 42%; block-size: 42%; }
 .wplay .play-dock a:hover .play-dock-ic { background: var(--wp-chip-hover); }
 .wplay .play-dock a.on .play-dock-ic { inline-size: var(--wp-dock); block-size: var(--wp-dock); background: linear-gradient(180deg, #5ff0d6, #1fc3a8); color: var(--accent-fg); box-shadow: 0 0 0 4px var(--wp-ring), 0 0 0 8px #fff; transform: scale(1.12); }
 .wplay .play-dock a:focus-visible .play-dock-ic { outline: none; box-shadow: 0 0 0 4px var(--wp-ring), 0 0 0 8px var(--focus); transform: scale(1.12); }
-.wplay .play-dock-label { font-size: clamp(.8rem, .9vw, 1.05rem); font-weight: 800; margin-block-start: 4px; }
+/* Under its button, out of the row's flow, so a long name never pushes the buttons apart. */
+.wplay .play-dock-label { position: absolute; inset-block-start: calc(100% + 6px); inset-inline-start: 50%; transform: translateX(-50%); white-space: nowrap; font-size: clamp(.8rem, .9vw, 1.05rem); font-weight: 800; }
 
 /* ---- the first-time tip: how to get back to the app, with a ring round the Home button ---- */
 .wplay-tip-scrim { position: fixed; inset: 0; z-index: 5; display: grid; place-items: center; padding: var(--wp-gutter); background: rgb(6 8 30 / .74); animation: fade-in var(--dur-2) ease-out; }
@@ -223,6 +238,23 @@ html[data-wplay] body { font-family: var(--font); }
 .wplay-pad-text span { color: var(--fg-2); font-size: clamp(.9rem, 1vw, 1.1rem); }
 .wplay-pads-setting { display: grid; gap: var(--sp-3); margin-block-end: var(--sp-6); }
 .wplay-pads-setting h2 { margin: 0; font-size: clamp(1.2rem, 1.7vw, 2rem); font-weight: 900; }
+
+/* ---- WittyPlay's Settings (pages/PlaySettings.tsx): big rows, two columns where there is room; each page the app's own ---- */
+.wplay-settings { display: grid; gap: clamp(16px, 2vw, 32px); max-inline-size: 90rem; }
+.wplay-settings h1 { margin: 0; font-size: clamp(1.8rem, 2.6vw, 3.1rem); font-weight: 900; }
+.wplay-settings h2 { margin: 0 0 var(--sp-3); font-size: clamp(1.1rem, 1.5vw, 1.75rem); font-weight: 800; color: var(--fg-2); }
+.wplay-settings-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 28rem), 1fr)); gap: clamp(8px, 1vw, 16px); }
+.wplay-settings-link { display: flex; align-items: center; gap: var(--sp-4); min-block-size: clamp(64px, 5.4vw, 96px); padding: var(--sp-3) clamp(16px, 1.5vw, 28px); border-radius: clamp(14px, 1.2vw, 22px); background: var(--wp-chip); color: var(--fg); text-decoration: none; }
+.wplay-settings-link:hover { background: var(--wp-chip-hover); }
+.wplay-settings-link:focus-visible { outline: none; box-shadow: 0 0 0 4px var(--wp-ring), 0 0 0 7px var(--focus); }
+.wplay-settings-link > span { display: grid; gap: 2px; flex: 1; min-inline-size: 0; }
+.wplay-settings-link b { font-size: clamp(1.05rem, 1.35vw, 1.55rem); font-weight: 900; }
+.wplay-settings-link > span > span { color: var(--fg-2); font-size: clamp(.9rem, 1vw, 1.1rem); }
+.wplay-settings-link svg { flex: none; inline-size: 24px; block-size: 24px; }
+.wplay-settings-page { display: grid; gap: var(--sp-4); max-inline-size: 90rem; }
+.wplay-settings-back { justify-self: start; display: inline-flex; align-items: center; min-block-size: 44px; padding: 0 var(--sp-4); border-radius: var(--r-full); background: var(--wp-chip); color: var(--fg); font-weight: 800; text-decoration: none; }
+.wplay-settings-back::before { content: "‹"; margin-inline-end: .4em; font-size: 1.3em; line-height: 1; }
+.wplay-settings-back:focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: var(--focus-offset); }
 
 /* A phone: one column, the clock and pads wrap under the name, smaller tiles and dock. */
 @media (max-width: 599px) {

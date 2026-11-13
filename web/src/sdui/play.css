@@ -13,6 +13,19 @@
 @media (max-width: 599px) { .sdui-shelf.focus-grow .sdui-item.grown .card { width: calc(var(--card-w, 140px) * 1.2); } }
 @media (prefers-reduced-motion: reduce) { .sdui-shelf.focus-grow .sdui-item .card { transition: none; } .sdui-shelf.focus-grow .sdui-item.grown .card { width: var(--card-w, 140px); } }
 
+/* ---- the consoles of a games row, over it: chips that scroll sideways (arrows to page them only where a fine pointer is) ---- */
+.sdui-console-bar { position: relative; display: flex; align-items: center; gap: var(--sp-2); min-inline-size: 0; }
+.sdui-console-chips { display: flex; gap: var(--sp-2); overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; padding: 6px 4px; min-inline-size: 0; flex: 1; overscroll-behavior-x: contain; }
+.sdui-console-chips::-webkit-scrollbar { display: none; }
+.sdui-console-chip { flex: none; scroll-snap-align: start; display: inline-flex; align-items: center; gap: .55em; min-block-size: 44px; padding: 0 1em; border: 0; border-radius: var(--r-full); background: var(--bg-3); color: var(--fg); font: inherit; font-weight: 700; white-space: nowrap; cursor: pointer; }
+.sdui-console-chip:hover { background: var(--bg-4); }
+.sdui-console-chip.on { background: var(--accent); color: var(--accent-fg); }
+.sdui-console-chip:focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: 3px; }
+.sdui-console-count { font-size: .85em; font-weight: 800; opacity: .75; font-variant-numeric: tabular-nums; }
+.sdui-console-arrow { display: none; flex: none; place-items: center; inline-size: 40px; block-size: 40px; border: 0; border-radius: 50%; background: var(--bg-3); color: var(--fg); cursor: pointer; }
+@media (hover: hover) and (pointer: fine) { .sdui-console-arrow { display: grid; } }
+@media (forced-colors: active) { .sdui-console-chip.on { outline: 2px solid CanvasText; } }
+
 /* ---- the detail panel under it ---- */
 .sdui-detail { display: grid; gap: var(--sp-2); padding: var(--sp-3) 0 0; }
 .sdui-detail-title { font-size: var(--page-title); font-weight: 800; letter-spacing: var(--tracking-display); line-height: var(--leading-tight); }

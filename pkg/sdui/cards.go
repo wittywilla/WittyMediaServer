@@ -222,6 +222,9 @@ func (r *renderer) card(parent, style, size string, it *Item, src Source) Node {
 	if it.Action != nil {
 		n.Action = it.Action
 	}
+	if it.Console != "" {
+		p["console"] = it.Console
+	}
 	if acts := cleanActions(it.Actions); len(acts) > 0 {
 		p["actions"] = acts
 	}

@@ -1117,6 +1117,9 @@
         "channel": {
           "type": "string"
         },
+        "console": {
+          "type": "string"
+        },
         "contentRating": {
           "type": "string"
         },

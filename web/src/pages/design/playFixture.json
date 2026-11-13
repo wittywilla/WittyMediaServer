@@ -349,7 +349,8 @@
               "to": "/item/7101"
              }
             }
-           ]
+           ],
+           "console": "SNES"
           },
           "action": {
            "type": "navigate",
@@ -414,7 +415,8 @@
               "to": "/item/7102"
              }
             }
-           ]
+           ],
+           "console": "NES"
           },
           "action": {
            "type": "navigate",
@@ -478,7 +480,8 @@
               "to": "/item/7103"
              }
             }
-           ]
+           ],
+           "console": "Game Boy"
           },
           "action": {
            "type": "navigate",
@@ -542,7 +545,8 @@
               "to": "/item/7104"
              }
             }
-           ]
+           ],
+           "console": "Arcade"
           },
           "action": {
            "type": "navigate",
@@ -606,7 +610,8 @@
               "to": "/item/7105"
              }
             }
-           ]
+           ],
+           "console": "PlayStation"
           },
           "action": {
            "type": "navigate",
@@ -670,7 +675,8 @@
               "to": "/item/7106"
              }
             }
-           ]
+           ],
+           "console": "SNES"
           },
           "action": {
            "type": "navigate",

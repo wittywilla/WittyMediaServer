@@ -9,6 +9,8 @@ test('WittyPlay Online pages take over the window; nothing else does', () => {
   assert.ok(isPlayPath('/page/wittyplay-controllers'))
   assert.ok(isPlayPath('/page/wittyplay-privacy'))
   assert.ok(isPlayPath('/design/play'))
+  assert.ok(isPlayPath('/page/wittyplay'))
+  assert.ok(isPlayPath('/wittyplay/settings/emulators'))
   assert.ok(!isPlayPath('/'))
   assert.ok(!isPlayPath('/page/home'))
   assert.ok(!isPlayPath('/game/12'))

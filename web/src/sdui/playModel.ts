@@ -19,3 +19,15 @@ export function dotFor(badge: string, tones?: Record<string, unknown>): 'on' | '
   if (typeof tone === 'string') return 'off'
   return presenceClass(badge)
 }
+
+// The consoles of a games row (each card's props.console), most games first, for the bar over it: none when the row holds fewer than
+// two, where a bar would choose nothing.
+export function consolesOf(items: { props?: Record<string, unknown> }[]): { name: string; count: number }[] {
+  const n = new Map<string, number>()
+  for (const it of items) { const c = it.props?.console; if (typeof c === 'string' && c) n.set(c, (n.get(c) || 0) + 1) }
+  if (n.size < 2) return []
+  return [...n].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+}
+
+// The row's cards on one console, or all of them with none chosen.
+export const onConsole = <T extends { props?: Record<string, unknown> }>(items: T[], name: string): T[] => (name ? items.filter((it) => it.props?.console === name) : items)

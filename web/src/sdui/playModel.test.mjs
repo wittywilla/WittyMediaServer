@@ -3,7 +3,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { buttonsOf } from './model.ts'
-import { dotFor, focusedOf, presenceClass } from './playModel.ts'
+import { consolesOf, dotFor, focusedOf, onConsole, presenceClass } from './playModel.ts'
 
 test('presence is a dot colour', () => {
   assert.equal(presenceClass('Playing'), 'on')
@@ -33,4 +33,12 @@ test('the catalogue\'s tones decide the dot when the card carries them', () => {
   assert.equal(dotFor('Offline', tones), 'off')
   assert.equal(dotFor('Online'), 'on', 'without tones, the names this app knows')
   assert.equal(dotFor('Busy', { Busy: 'warn' }), 'away')
+})
+
+test('a games row offers its consoles, most games first, and narrows to one', () => {
+  const row = [{ props: { console: 'SNES' } }, { props: { console: 'NES' } }, { props: { console: 'SNES' } }, { props: {} }]
+  assert.deepEqual(consolesOf(row), [{ name: 'SNES', count: 2 }, { name: 'NES', count: 1 }])
+  assert.equal(onConsole(row, 'SNES').length, 2)
+  assert.equal(onConsole(row, '').length, 4)
+  assert.deepEqual(consolesOf([{ props: { console: 'SNES' } }]), [])
 })

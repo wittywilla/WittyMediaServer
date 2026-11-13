@@ -2,7 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { arrange, entries, fitCount, groupOf, isActive, moved, frameFor } from './navModel.ts'
+import { arrange, entries, fitCount, foldGames, groupOf, isActive, moved, frameFor } from './navModel.ts'
 
 const items = [
   { id: 'home', label: 'Home', to: '/', end: true },
@@ -79,4 +79,17 @@ test('the frame follows the server\'s nav style, whichever of the thirteen it is
   }
   assert.equal(frameFor({ nav: 'topTabs', overlay: true, size: 56 }).overlay, true)
   assert.deepEqual([frameFor({ nav: 'bottomTabs', size: 56 }).style, frameFor({ nav: 'bottomTabs', size: 56 }).tabBar], ['side', true])
+})
+
+test('with WittyPlay Online in the menu it is Games, and the games libraries and Games page fold into it', () => {
+  const items = [
+    { id: 'home', label: 'Home', to: '/' },
+    { id: 'lib-3', label: 'Retro', to: '/library/3', kind: 'games' },
+    { id: 'lib-4', label: 'Films', to: '/library/4', kind: 'movies' },
+    { id: 'games', label: 'Games', to: '/games' },
+    { id: 'wittyplay-online', label: 'WittyPlay Online', to: '/page/wittyplay-online' },
+  ]
+  assert.deepEqual(foldGames(items).map((i) => i.id + ':' + i.label), ['home:Home', 'lib-4:Films', 'wittyplay-online:Games'])
+  const without = items.filter((i) => i.id !== 'wittyplay-online')
+  assert.deepEqual(foldGames(without), without)
 })

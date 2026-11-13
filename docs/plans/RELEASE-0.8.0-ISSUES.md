@@ -26,6 +26,8 @@ Unmerged work at the time of collation (`git branch --no-merged v0.8.0-alpha`): 
 
 ## Decisions waiting on the owner
 
+Decided since (2026-11-12): the peer-to-peer "address book" (public DHT rendezvous for joining by code) is **on by default whenever peer to peer is on** (S1 makes the change).
+
 1. **SDUI library and detail pages on the web: bring back the old tools or accept their loss.** Bulk edit, saved views, category
    editor, view settings, Scan, music tracks/playlists tabs and Play all, Find intros and credits, show cards/playlist switch,
    collections manager. Related accepted gap: admin pages (bulk edit, edit match, fix matches, library management) as SDUI forms.
@@ -615,6 +617,20 @@ Unmerged work at the time of collation (`git branch --no-merged v0.8.0-alpha`): 
     - After session 10's logging, `lintSideload assembleSideload`, tvOS and visionOS builds weren't run; visionOS fix (90f8f49) not rebuilt
       in the combined pass.
     - Sources: HO s10 #2, HO s11 #3.
+
+24. **First-connect "Choose how it looks" showed no looks against an older test server**
+   - Labels: not-verified, design-2, platform:ios, platform:tvos
+   - Against a server at catalogue revision 5 the chooser listed no looks. Probably expected (that server has no experiences);
+     recheck against a 0.8.0-alpha server.
+   - Where: `apple/App/` first-connect chooser (W6's area).
+   - Sources: HO s3 issue candidates #5.
+
+25. **Apple: read card styles from the server's catalogue rather than the built-in copy**
+   - Labels: enhancement, area:sdui, platform:ios, platform:tvos
+   - WittyKit's `SDUICatalog.swift` carries a built-in copy of the card styles; reading them from `GET /api/sdui/catalog` would
+     stop the copy falling behind the server.
+   - Where: `apple/WittyKit/Sources/WittyKit/SDUI/SDUICatalog.swift`, server `GET /api/sdui/catalog`.
+   - Sources: HO s3 issue candidates #6 (raised by S5).
 
 ## wittywilla/WittyPlay
 

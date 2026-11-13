@@ -298,6 +298,7 @@ export class SoundListener {
   private source: MediaStreamAudioSourceNode | null = null
   private stream: MediaStream | null = null
   private watched: HTMLMediaElement | null = null
+  private song = '' // the source the capture was taken from
   private trackId = ''
   private frames = 0
   live = false
@@ -310,8 +311,10 @@ export class SoundListener {
     if (el && g?.routed(el)) { this.analyser = g.analyser; this.live = true; this.dropCopy(); return }
     if (!el || !canRoute(el)) { this.live = false; return }
     if (typeof el.captureStream === 'function') {
-      if (el !== this.watched) { this.dropCopy(); this.watched = el; this.stream = el.captureStream() }
-      const t = this.stream?.getAudioTracks()[0]
+      // Captured again for each song: after a skip the old capture's track can still say it is live
+      // while carrying only silence, and the visualizer went still.
+      if (el !== this.watched || el.currentSrc !== this.song) { this.dropCopy(); this.watched = el; this.song = el.currentSrc; this.stream = el.captureStream() }
+      const t = this.stream?.getAudioTracks().find((x) => x.readyState === 'live')
       if (t && t.id !== this.trackId) {
         this.trackId = t.id
         this.source?.disconnect()

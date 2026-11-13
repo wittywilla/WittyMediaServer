@@ -5,8 +5,9 @@ import { useCanvas } from './useCanvas'
 
 // Behind the full-screen music player: the song's canvas, or its album's. It runs while the
 // music does and holds still while it's paused. The visualizer, when it's on, draws over it.
-export function NowPlayingCanvas({ itemId, playing }: { itemId: number; playing: boolean }) {
+// With framed, it is drawn in a 16:9 frame where the cover goes, the visualizer around it.
+export function NowPlayingCanvas({ itemId, playing, framed }: { itemId: number; playing: boolean; framed?: boolean }) {
   const c = useCanvas(itemId)
   if (!c.info?.available || c.blocked) return null
-  return <CanvasVideo info={c.info} blocked={c.blocked} paused={!playing} className="np-loop" />
+  return <CanvasVideo info={c.info} blocked={c.blocked} paused={!playing} className={framed ? 'np-art-loop' : 'np-loop'} />
 }

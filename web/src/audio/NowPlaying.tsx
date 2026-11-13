@@ -3,7 +3,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api, fmtTime, posterUrl } from '../api'
 import { Placeholder } from '../components/common'
-import { IconBack15, IconChapters, IconClose, IconDown, IconForward30, IconFull, IconMic, IconNext, IconPause, IconPlay, IconPrev, IconVisualizer } from '../icons'
+import { IconBack15, IconChapters, IconClose, IconDown, IconForward30, IconFull, IconImage, IconMic, IconNext, IconPause, IconPlay, IconPrev, IconVisualizer } from '../icons'
 import { useArtColour } from './art'
 import { Backdrop, NATIVE_STYLES, type NativeStyle } from './backdrop'
 import { AddToPlaylist, Like, Pop, Seek, Volume } from './controls'
@@ -30,9 +30,15 @@ const Karaoke = lazy(() => import('./Karaoke'))
 // transport, and from here everything else: lyrics, karaoke, the queue, the sound. It looks
 // the same in every theme because it sits on black, whatever the page behind it is doing.
 
-type Prefs = { viz: boolean; canvas: boolean; style: string; slow: boolean; shuffleEvery: number; shufflePool: 'all' | 'mine' }
+type Prefs = { viz: boolean; canvas: boolean; style: string; slow: boolean; shuffleEvery: number; shufflePool: 'all' | 'mine'; vizArt: VizArt; vizText: VizText; fade: boolean }
+// Where the album's cover sits while the visualizer plays: hidden, or in one of these places.
+// And where the song's name and the controls sit over it.
+type VizText = 'top' | 'middle' | 'bottom'
+const VIZ_TEXT: { id: VizText; name: string }[] = [{ id: 'top', name: 'Top' }, { id: 'middle', name: 'Middle' }, { id: 'bottom', name: 'Bottom' }]
+type VizArt = 'off' | 'centre' | 'left' | 'right' | 'corner' | 'canvas'
+const VIZ_ART: { id: VizArt; name: string }[] = [{ id: 'off', name: 'Hidden' }, { id: 'centre', name: 'In the middle' }, { id: 'left', name: 'On the left' }, { id: 'right', name: 'On the right' }, { id: 'corner', name: 'Small, in the corner' }, { id: 'canvas', name: 'Canvas video, in the middle' }]
 // The visualizer is off until someone turns it on (docs/plans/DESIGN-2.md section 10).
-const DEFAULT_PREFS: Prefs = { viz: false, canvas: true, style: 'bars', slow: false, shuffleEvery: 0, shufflePool: 'mine' }
+const DEFAULT_PREFS: Prefs = { viz: false, canvas: true, style: 'bars', slow: false, shuffleEvery: 0, shufflePool: 'mine', vizArt: 'off', vizText: 'middle', fade: false }
 const SHUFFLE_CHOICES = [0, 15, 30, 60, 120, 300, 600]
 const everyLabel = (s: number) => (s === 0 ? 'Off: stay on this one' : s < 60 ? `Every ${s} seconds` : s === 60 ? 'Every minute' : `Every ${s / 60} minutes`)
 
@@ -49,6 +55,9 @@ function readPrefs(v: unknown): Prefs {
   return {
     viz: s.viz === true, canvas: s.canvas !== false, style: typeof s.style === 'string' && s.style.length <= 48 ? s.style : 'bars', slow: s.slow === true,
     shuffleEvery: SHUFFLE_CHOICES.includes(s.shuffleEvery as number) ? (s.shuffleEvery as number) : 0, shufflePool: s.shufflePool === 'all' ? 'all' : 'mine',
+    vizArt: VIZ_ART.some((a) => a.id === s.vizArt) ? (s.vizArt as VizArt) : 'off',
+    vizText: VIZ_TEXT.some((a) => a.id === s.vizText) ? (s.vizText as VizText) : 'middle',
+    fade: s.fade === true,
   }
 }
 
@@ -71,9 +80,12 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
   const [wholeShader, setWholeShader] = useState(false)
   // The effect presets and their sliders open on asking, so the visualizer isn't buried under them.
   const [effectsOpen, setEffectsOpen] = useState(false)
-  // With the visualizer behind it, the player's controls fade after a few quiet seconds and come
+  // With the visualizer behind it and Fade the controls chosen (Layout; off unless asked for), the controls fade after a few quiet seconds and come
   // back with any movement, key or focus, as a video player's do.
   const [idle, setIdle] = useState(false)
+  // Said only when someone asks for the Canvas video of a song that has none, then gone again.
+  const [noCanvasSaid, setNoCanvasSaid] = useState(false)
+  useEffect(() => { if (!noCanvasSaid) return; const t = setTimeout(() => setNoCanvasSaid(false), 6000); return () => clearTimeout(t) }, [noCanvasSaid])
   const [said, setSaid] = useState('')
   const artUrl = it.poster ? posterUrl(it) : ''
   const rgb = useArtColour(artUrl)
@@ -103,16 +115,21 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
   const loadShaders = useCallback(() => { shaderEffects().then(setShaders).catch(() => {}) }, [])
   useEffect(() => { if (needShaders) loadShaders() }, [needShaders, loadShaders])
   useEffect(() => { root.current?.focus({ preventScroll: true }) }, [])
-  const quietable = prefs.viz && prefsLoaded && !panel && !karaoke && !effectsOpen && !wholeShader
+  const quietable = prefs.viz && prefs.fade && prefsLoaded && !panel && !karaoke && !effectsOpen && !wholeShader
   useEffect(() => {
     const el = root.current
     if (!quietable || !el) { setIdle(false); return }
     let t: ReturnType<typeof setTimeout> | undefined
-    const wake = () => { setIdle(false); clearTimeout(t); t = setTimeout(() => setIdle(true), IDLE_MS) }
+    // Never while someone is using the controls: a menu open (they open outside the player), a control
+    // with the keyboard's focus, or the pointer resting on them.
+    const busy = () => !!document.querySelector('.mp-pop-body') || (!!document.activeElement && document.activeElement !== el && el.contains(document.activeElement)) ||
+      !!el.querySelector(':is(.np-top, .np-seek, .np-transport, .np-tools, .np-hints):hover')
+    const quiet = () => { if (busy()) t = setTimeout(quiet, IDLE_MS); else setIdle(true) }
+    const wake = () => { setIdle(false); clearTimeout(t); t = setTimeout(quiet, IDLE_MS) }
     const kinds = ['pointermove', 'pointerdown', 'keydown', 'focusin', 'wheel'] as const
-    kinds.forEach((k) => el.addEventListener(k, wake, { passive: true }))
+    kinds.forEach((k) => document.addEventListener(k, wake, { passive: true }))
     wake()
-    return () => { clearTimeout(t); kinds.forEach((k) => el.removeEventListener(k, wake)) }
+    return () => { clearTimeout(t); kinds.forEach((k) => document.removeEventListener(k, wake)) }
   }, [quietable])
   useEffect(() => {
     const o = p.fullOpts.panel
@@ -214,10 +231,12 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
     if (p.playing) p.toggle()
     p.goTowards(`/watch/${video.videoId}${at ? `?t=${Math.floor(at)}` : ''}`)
   }
+  // The Canvas video in the cover's place, the visualizer around it; a song with none shows its cover there.
+  const framedCanvas = prefs.viz && prefs.vizArt === 'canvas' && canSing && hasCanvas
   const behindChoice = (
     <Segmented label="Behind the player" value={prefs.viz ? 'viz' : canSing && prefs.canvas && hasCanvas ? 'canvas' : 'art'}
-                  onChange={(v) => setPrefs(v === 'viz' ? { viz: true } : v === 'canvas' ? { viz: false, canvas: true } : { viz: false, canvas: false })}
-                  options={[{ value: 'art', label: 'Album art' }, ...(canSing ? [{ value: 'canvas', label: 'Canvas video', disabled: !hasCanvas }] : []), { value: 'viz', label: 'Visualizer', icon: <IconVisualizer size={16} /> }]} />
+                  onChange={(v) => { if (v === 'canvas' && !hasCanvas) { setNoCanvasSaid(true); return } setNoCanvasSaid(false); setPrefs(v === 'viz' ? { viz: true } : v === 'canvas' ? { viz: false, canvas: true } : { viz: false, canvas: false }) }}
+                  options={[{ value: 'art', label: 'Album art' }, ...(canSing ? [{ value: 'canvas', label: 'Canvas video' }] : []), { value: 'viz', label: 'Visualizer', icon: <IconVisualizer size={16} /> }]} />
   )
   const karaokeBehind = prefs.viz
     ? (isNative(style) || p.vizHere) ? <NpBackground style={style} slow={prefs.slow} rgb={rgb} playing={p.playing} media={p.media} trackMedia={trackMedia} onDecline={() => { setShown(''); setPrefs({ style: 'bars' }) }} /> : null
@@ -227,7 +246,7 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
   const placeLine = p.books ? 'Chapters' : p.live ? 'Stations' : 'Queue'
 
   return (
-    <div className={'np' + (panel ? ' has-panel panel-' + panel : '') + (prefs.viz && prefsLoaded ? ' viz-on' : '') + (idle && quietable ? ' np-idle' : '')} ref={root} tabIndex={-1} role="dialog" aria-modal="true" aria-label={`Now playing: ${it.title}`}
+    <div className={'np' + (panel ? ' has-panel panel-' + panel : '') + (prefs.viz && prefsLoaded ? ' viz-on' : '') + (idle && quietable ? ' np-idle' : '') + (prefs.viz && prefsLoaded ? ' viz-text-' + prefs.vizText : '') + (prefs.viz && prefsLoaded && prefs.vizArt !== 'off' && artUrl ? ' viz-art-' + (prefs.vizArt === 'canvas' ? 'centre' : prefs.vizArt) : '')} ref={root} tabIndex={-1} role="dialog" aria-modal="true" aria-label={`Now playing: ${it.title}`}
       style={{ '--art': rgb } as React.CSSProperties} onClickCapture={(e) => { if (e.detail > 0) requestAnimationFrame(() => { if (!document.activeElement?.closest('input, select, textarea, .mp-pop-body, .np-panel')) root.current?.focus({ preventScroll: true }) }) }}>
       <div className="np-glow" aria-hidden="true" />
       {canSing && prefs.canvas && !prefs.viz && <NowPlayingCanvas itemId={it.id} playing={p.playing} />}
@@ -268,10 +287,10 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
       <div className="np-stage">
         <div className="np-main">
           <div className="np-artbox">
-            <div className="np-art" style={p.live ? { backgroundSize: 'contain' } : undefined}>
+            {framedCanvas ? <div className="np-art np-art-wide"><NowPlayingCanvas itemId={it.id} playing={p.playing} framed /></div> : <div className="np-art" style={p.live ? { backgroundSize: 'contain' } : undefined}>
               {artUrl ? <img src={artUrl} alt={`Cover of ${it.album || it.title}`} style={p.live ? { objectFit: 'contain' } : undefined} /> : <Placeholder title={it.title} />}
-            </div>
-            {artUrl && !p.live && <div className="np-reflect" aria-hidden="true"><img src={artUrl} alt="" /></div>}
+            </div>}
+            {artUrl && !p.live && !framedCanvas && <div className="np-reflect" aria-hidden="true"><img src={artUrl} alt="" /></div>}
           </div>
           <div className="np-title">
             <h2 className="ab-title">{it.title}</h2>
@@ -318,6 +337,23 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
                 {prefs.viz && p.vizHere && shaders.length > 0 && effectsOpen && <EffectChips effects={shaders} current={style} onPick={pickStyle} />}
                 {prefs.viz && <button type="button" className={'np-chip slow-chip' + (prefs.slow ? ' on' : '')} aria-pressed={prefs.slow} title="A slower, gentler pace" onClick={() => setPrefs({ slow: !prefs.slow })}><IconTurtle size={20} /> Slow</button>}
                 {prefs.viz && (
+                  <Pop label={`Layout: cover ${VIZ_ART.find((a) => a.id === prefs.vizArt)?.name.toLowerCase()}, words ${prefs.vizText}`} className={'np-chip-pop' + (prefs.vizArt !== 'off' || prefs.vizText !== 'middle' ? ' on' : '')} icon={<><IconImage size={18} /><span>Layout</span></>}>
+                    {(close) => (
+                      <div className="mp-menu np-style-menu" role="menu">
+                        {artUrl && <>
+                          <span className="mp-menu-note">The album's cover</span>
+                          {VIZ_ART.filter((a) => a.id !== 'canvas' || (canSing && hasCanvas)).map((a) => <button type="button" key={a.id} role="menuitemradio" aria-checked={prefs.vizArt === a.id} className={prefs.vizArt === a.id ? 'on' : ''} onClick={() => { setPrefs({ vizArt: a.id }); close() }}>{a.name}</button>)}
+                          <span className="mp-menu-rule" />
+                        </>}
+                        <span className="mp-menu-note">The song's name and the controls</span>
+                        {VIZ_TEXT.map((a) => <button type="button" key={a.id} role="menuitemradio" aria-checked={prefs.vizText === a.id} className={prefs.vizText === a.id ? 'on' : ''} onClick={() => { setPrefs({ vizText: a.id }); close() }}>{a.name}</button>)}
+                        <span className="mp-menu-rule" />
+                        <button type="button" role="menuitemcheckbox" aria-checked={prefs.fade} className={prefs.fade ? 'on' : ''} onClick={() => { setPrefs({ fade: !prefs.fade }); close() }}>Fade the controls when nothing is touched</button>
+                      </div>
+                    )}
+                  </Pop>
+                )}
+                {prefs.viz && (
                   <Pop label={prefs.shuffleEvery ? `Shuffling visualizers: ${everyLabel(prefs.shuffleEvery)}` : 'Shuffle visualizers'} className={'np-chip-pop' + (prefs.shuffleEvery ? ' on' : '')} icon={<><IconShuffle size={18} /><span>{prefs.shuffleEvery ? everyLabel(prefs.shuffleEvery).replace('Every ', '') : 'Styles'}</span></>}>
                     {(close) => (
                       <div className="mp-menu np-style-menu">
@@ -330,7 +366,7 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
                     )}
                   </Pop>
                 )}
-                {canSing && !hasCanvas && <span className="np-note-inline">This song and its album have no Canvas video{canvasInfo.blocked ? ' to show on this device' : ''}.</span>}
+                {canSing && !hasCanvas && noCanvasSaid && <span className="np-note-inline" role="status">This song and its album have no Canvas video{canvasInfo.blocked ? ' to show on this device' : ''}.</span>}
                 <span className="np-tools-rule" aria-hidden="true" />
               </>
             )}

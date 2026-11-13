@@ -400,3 +400,37 @@ button.np-artist:hover { color: var(--np-fg); text-decoration: underline; text-u
 .np.np-idle :is(.np-top, .np-seek, .np-transport, .np-tools, .np-hints) { opacity: 0; }
 .np.np-idle { cursor: none; }
 @media (prefers-reduced-motion: reduce) { .np :is(.np-top, .np-seek, .np-transport, .np-tools, .np-hints) { transition: none; } }
+
+/* The album's cover over the visualizer, where its listener put it (Cover, in the visualizer's
+   chips): in the middle as usual, in a column beside the song's name and controls (never over them),
+   or small in the top corner. */
+.np.viz-on[class*="viz-art-"] .np-artbox { display: block; }
+.np.viz-on.viz-art-centre .np-artbox { --np-art: clamp(120px, 28vh, 320px); }
+.np.viz-on:is(.viz-art-left, .viz-art-right, .viz-art-corner) .np-reflect { display: none; }
+@media (min-width: 1100px) {
+  .np.viz-on:is(.viz-art-left, .viz-art-right) .np-main { display: grid; align-content: center; justify-content: center; column-gap: clamp(24px, 4vw, 72px); row-gap: clamp(6px, 1.3vh, 16px); }
+  .np.viz-on.viz-art-left .np-main { grid-template-columns: var(--np-side-art) minmax(0, 760px); }
+  .np.viz-on.viz-art-right .np-main { grid-template-columns: minmax(0, 760px) var(--np-side-art); }
+  .np.viz-on:is(.viz-art-left, .viz-art-right) { --np-side-art: clamp(160px, 30vh, 360px); }
+  .np.viz-on:is(.viz-art-left, .viz-art-right) .np-main > * { justify-self: center; }
+  .np.viz-on:is(.viz-art-left, .viz-art-right) .np-main > :not(.np-artbox) { grid-column: 2; }
+  .np.viz-on.viz-art-right .np-main > :not(.np-artbox) { grid-column: 1; }
+  .np.viz-on:is(.viz-art-left, .viz-art-right) .np-artbox { --np-art: var(--np-side-art); grid-row: 1 / span 8; align-self: center; margin: 0; }
+  .np.viz-on.viz-art-left .np-artbox { grid-column: 1; }
+  .np.viz-on.viz-art-right .np-artbox { grid-column: 2; }
+}
+@media (max-width: 1099px) {
+  .np.viz-on:is(.viz-art-left, .viz-art-right) .np-artbox { --np-art: clamp(110px, 24vh, 260px); margin-bottom: clamp(16px, 4vh, 36px); }
+}
+.np.viz-on.viz-art-corner .np-artbox { position: absolute; z-index: 1; margin: 0; left: clamp(12px, 2vw, 28px); top: clamp(64px, 9vh, 96px); --np-art: clamp(72px, 12vh, 132px); }
+/* Cover: Canvas video, in the middle — the song's own loop held at 16:9 where the cover goes. */
+.np-artbox:has(.np-art-wide) { width: auto; }
+.np-art.np-art-wide { width: min(86vw, calc(var(--np-art) * 16 / 9)); aspect-ratio: 16 / 9; }
+.np-art-wide .canvas-loop { opacity: 1; }
+/* Where the song's name and the controls sit over the visualizer (Layout): top, middle or bottom. */
+.np.viz-on.viz-text-middle .np-stage { justify-content: center; }
+.np.viz-on.viz-text-middle .np-main { justify-content: safe center; }
+.np.viz-on.viz-text-top .np-main { justify-content: flex-start; }
+.np.viz-on.viz-text-bottom .np-main { justify-content: flex-end; }
+.np.viz-on:is(.viz-art-left, .viz-art-right).viz-text-top .np-main { align-content: start; }
+.np.viz-on:is(.viz-art-left, .viz-art-right).viz-text-bottom .np-main { align-content: end; }

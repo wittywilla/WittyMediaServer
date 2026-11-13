@@ -80,11 +80,14 @@ export function trackingMedia(el: () => HTMLMediaElement | null): () => HTMLMedi
       const out = new MediaStream()
       let watched: HTMLMediaElement | null = null
       let copy: MediaStream | null = null
+      let song = '' // the source the track in out was taken from
       const sync = () => {
         const now = el() as Captureable | null
         if (!now?.captureStream) return
-        if (now !== watched) { watched = now; copy = now.captureStream() }
-        const track = copy?.getAudioTracks()[0]
+        // Captured again for each song: after a skip the old capture's track can still say it is live
+        // while carrying only silence.
+        if (now !== watched || now.currentSrc !== song) { watched = now; song = now.currentSrc; copy = now.captureStream() }
+        const track = copy?.getAudioTracks().find((x) => x.readyState === 'live')
         const have = out.getAudioTracks()[0]
         if (track && track !== have) {
           if (have) out.removeTrack(have)
@@ -94,7 +97,8 @@ export function trackingMedia(el: () => HTMLMediaElement | null): () => HTMLMedi
       sync()
       const t = setInterval(() => {
         const have = out.getAudioTracks()[0]
-        if (have && have.readyState === 'ended') { clearInterval(t); return } // the plugin hung up
+        // Ended with the same song still loaded: the plugin hung up. Ended because the song changed: carry on.
+        if (have && have.readyState === 'ended' && watched?.currentSrc === song) { clearInterval(t); return }
         sync()
       }, 500)
       return out

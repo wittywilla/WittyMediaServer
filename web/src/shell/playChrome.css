@@ -587,3 +587,43 @@ html[data-wplay] .wpg-settings [role=tablist] { overflow-x: auto; scrollbar-widt
 .wplay-bio-line { min-block-size: 1.9em; }
 /* Who made it keeps its line too, for the same reason. */
 .wplay-bio-makers { min-block-size: 1.45em; }
+
+/* ==== a games library in WittyPlay (pages/PlayLibraryView.tsx): a row of games for each console, search, All as a grid ==== */
+.wpl { display: grid; gap: clamp(18px, 2.2vw, 36px); padding-block-start: clamp(4px, .8vw, 12px); }
+.wpl-head { display: flex; flex-wrap: wrap; align-items: center; gap: clamp(10px, 1.2vw, 18px); }
+.wpl-head h1 { margin: 0; font-size: clamp(1.6rem, 2.6vw, 2.8rem); font-weight: 900; }
+.wpl-head > .wpl-count { margin-inline-end: auto; font-size: clamp(.8rem, .9vw, 1rem); }
+.wpl-count { padding: 2px 10px; border-radius: 999px; background: rgb(255 255 255 / .1); color: var(--fg-2); font-size: .45em; font-weight: 800; }
+.wpl-back { display: grid; place-items: center; inline-size: 52px; block-size: 52px; border: 0; border-radius: 50%; background: var(--wp-chip); color: var(--fg); cursor: pointer; }
+.wpl-search { display: flex; align-items: center; gap: 10px; flex: 0 1 26rem; min-block-size: 52px; padding: 0 18px; border-radius: 999px; background: var(--wp-chip); color: var(--fg-2); }
+.wpl-search input { flex: 1; min-inline-size: 0; border: 0; background: none; color: var(--fg); font: inherit; font-size: clamp(1rem, 1.1vw, 1.2rem); outline: none; }
+.wpl-search:focus-within { box-shadow: 0 0 0 3px var(--wp-ring), 0 0 0 6px var(--focus); }
+.wpl-btn, .wpl-all { display: inline-flex; align-items: center; gap: 8px; min-block-size: 52px; padding: 0 22px; border: 0; border-radius: 999px; background: var(--wp-chip); color: var(--fg); font: inherit; font-weight: 850; cursor: pointer; }
+.wpl-all { min-block-size: 44px; padding: 0 18px; }
+.wpl-btn:hover, .wpl-all:hover, .wpl-back:hover { background: var(--wp-chip-hover); }
+.wpl :is(.wpl-btn, .wpl-all, .wpl-back, .wpl-game):focus-visible { outline: none; box-shadow: 0 0 0 4px var(--wp-ring), 0 0 0 8px #fff; }
+.wpl-row { display: grid; gap: 10px; min-inline-size: 0; }
+.wpl-row-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.wpl-row-head h2 { margin: 0; display: flex; align-items: baseline; gap: 10px; font-size: clamp(1.2rem, 1.6vw, 1.8rem); font-weight: 900; }
+.wpl-line { display: flex; gap: clamp(14px, 1.4vw, 24px); overflow-x: auto; padding: 12px; margin-inline: -12px; scroll-padding-inline: 12px; scroll-snap-type: x proximity; scrollbar-width: none; }
+.wpl-line::-webkit-scrollbar { display: none; }
+.wpl-line > .wpl-game { flex: none; inline-size: clamp(140px, 13vw, 240px); scroll-snap-align: start; }
+.wpl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(clamp(150px, 14vw, 260px), 1fr)); gap: clamp(16px, 1.6vw, 28px); padding: 12px; margin-inline: -12px; }
+.wpl-game { display: grid; gap: 8px; color: var(--fg); text-decoration: none; border-radius: 14px; transition: transform var(--dur-2) var(--ease-out); }
+.wpl-game:hover, .wpl-game:focus-visible { transform: translateY(-3px); }
+.wpl-game-art { position: relative; display: grid; place-items: center; aspect-ratio: 4 / 5; border-radius: 12px; overflow: visible; }
+.wpl-game-art > img { inline-size: 100%; block-size: 100%; object-fit: cover; border-radius: 12px; box-shadow: 0 12px 28px rgb(0 0 0 / .4); }
+.wpl-game-art > .gcase-fit { inset: 2%; }
+.wpl-game-blank { display: grid; place-items: center; inline-size: 100%; block-size: 100%; padding: 12px; border-radius: 12px; background: rgb(255 255 255 / .08); text-align: center; font-weight: 800; }
+.wpl-game-name { text-align: center; font-weight: 800; font-size: clamp(.9rem, 1vw, 1.1rem); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.wpl-wait { display: grid; place-items: center; min-block-size: 120px; }
+.wpl-empty, .wpl-found { margin: 0; color: var(--fg-2); font-size: clamp(1rem, 1.1vw, 1.2rem); }
+@media (prefers-reduced-motion: reduce) { .wpl-game { transition: none; } .wpl-game:hover, .wpl-game:focus-visible { transform: none; } }
+
+/* "Files need a look": the library's notice and WittyPlay home's, in WittyPlay's colours. */
+.wplay .wpl-review .gr-banner, .wplay-review-notice p { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; margin: 0; padding: clamp(12px, 1.2vw, 18px) clamp(16px, 1.6vw, 24px); border: 0; border-radius: 18px; background: rgb(255 211 77 / .12); box-shadow: inset 0 0 0 1.5px rgb(255 211 77 / .5); color: var(--fg); font-size: clamp(.95rem, 1.05vw, 1.15rem); }
+.wplay .wpl-review .gr-banner > span, .wplay-review-notice p > span { flex: 1 1 18rem; }
+.wplay-review-notice { display: grid; gap: 10px; margin-block-end: clamp(12px, 1.4vw, 20px); }
+.wplay-review-notice svg { flex: none; color: #ffd34d; }
+.wplay .wpl-review .gr-banner .btn, .wplay-review-go { display: inline-flex; align-items: center; min-block-size: 48px; padding: 0 22px; border: 0; border-radius: 999px; background: linear-gradient(180deg, #ffe07a, #f2b632); color: #2a1d00; font-weight: 900; text-decoration: none; }
+.wplay .wpl-review .gr-banner .btn:focus-visible, .wplay-review-go:focus-visible { outline: none; box-shadow: 0 0 0 4px var(--wp-ring), 0 0 0 8px #fff; }

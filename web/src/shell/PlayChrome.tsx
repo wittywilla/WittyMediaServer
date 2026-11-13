@@ -15,6 +15,7 @@ import { focusFirst } from '../tv'
 import { cardRoute, dockFor, exitWords, isPlayPath, isPlayTop, PLAY_CONSOLES, PLAY_CONTROLLERS, PLAY_EXIT, PLAY_PADS_TITLE, PLAY_STATUS, PLAY_TIP, PLAY_TIP_KEY, tipDue, type PlayLayout, type PlayPads } from './playPaths'
 import { usePlayTabs, LayoutChooser, LayoutSwitch, OpenChooser, PadsChooser, PadsSetting, PlayGlyph, usePlayLayout, usePlayOpen, usePlayPads } from './playPads'
 import { CardRouteContext } from '../sdui/render/cardRoute'
+import { PlayReviewNotice } from './PlayReviewNotice'
 import { GameArtContext, GlyphContext, RowLayoutContext, TabsContext, type GlyphKey } from '../sdui/render/glyphs'
 import { useGameArtApi } from './GamePictureArt'
 import './playChrome.css'
@@ -241,6 +242,7 @@ export function PlayFrame({ children }: { children: ReactNode }) {
         <StatusBar parts={regions?.statusBar || PLAY_STATUS} onExit={exit} onHelp={() => setTip(true)} />
         <main className="wplay-stage" id="main" data-nav-zone="stage" tabIndex={-1}>
           {loc.pathname === PLAY_CONTROLLERS && <PadsSetting />}
+          {top && <PlayReviewNotice />}
           {children}
         </main>
         <SystemDock entries={dockFor(regions?.systemDock)} />

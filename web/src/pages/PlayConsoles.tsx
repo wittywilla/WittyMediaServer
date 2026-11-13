@@ -19,6 +19,7 @@ import { LayoutSwitch, usePlayTabs } from '../shell/playPads'
 import { arrangeTabs } from '../sdui/playModel'
 import { libraryFor, PLAY_CONSOLES, PLAY_LIBRARY, PLAY_TABS, tabRoute, yearsWords } from '../shell/playPaths'
 import { getConsoles } from './games/consoles'
+import PlayLibraryView from './PlayLibraryView'
 import { ERA_NAMES } from './games/Shelves'
 import { GameSettingsPage } from './games/consoles'
 import GamingSettings from './settings/Gaming'
@@ -203,12 +204,11 @@ export function PlayConsoleSettings() {
 }
 
 // A games library in WittyPlay's frame: the app's own (every game, by console, with search and filters).
-const GamesLibrary = lazy(() => import('./games/Library'))
 export function PlayLibrary() {
   const { id } = useParams()
   const { libraries } = useApp()
   const games = libraries.filter((l) => l.type === 'games')
   const lib = (id ? games.find((l) => String(l.id) === id) : games[0])
   if (!lib) return <p className="wplay-empty">No games library here yet. An administrator adds one in Settings.</p>
-  return <Suspense fallback={<Spinner />}><GamesLibrary key={lib.id} lib={lib} /></Suspense>
+  return <Suspense fallback={<Spinner />}><PlayLibraryView key={lib.id} lib={lib} /></Suspense>
 }

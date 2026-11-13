@@ -1179,6 +1179,23 @@ in the owner's chosen order of sources, and they're what lists can sort and filt
 - `credits`: `{name, text, site, url, license}`. **Show these wherever the game's details are.** Some sources'
   terms require it, RAWG's on every page using its data, and Wikipedia's text needs its link and licence.
 
+`GET /items/{id}/achievements` lists the game's achievements at RetroAchievements, found by a checksum of its
+file. The checksum is taken on this server the first time someone asks, and only matched here: nothing about the
+file is sent. Nothing is earned or tracked yet, so show every achievement as not earned. The answer is
+`{state, game, achievements, message}`:
+
+- `state`: `ok`; `nokey` when no RetroAchievements Web API key is set (an administrator adds one in Settings,
+  Metadata agents); `unsupported` for a console, or a disc, whose checksums aren't taken; `notfound` when
+  RetroAchievements doesn't know this exact file, or it has no achievements; `error` for anything else, such as the
+  service not answering. When it isn't `ok`, `message` says so in plain words, to show as it is.
+- `game`: `{id, title, url, points}`, with `url` its page at RetroAchievements and `points` all its achievements'
+  points together. `null` unless `state` is `ok`.
+- `achievements`: `{id, title, description, points, badge}`, in the game's own order. `badge` is this server's
+  address for the greyed-out picture, `""` when there is none. Pictures come through the server, so a client
+  never contacts RetroAchievements. Credit RetroAchievements wherever these are shown.
+
+The first answer for a console can take several seconds, while its list of games is fetched; after that they're quick.
+
 A game with no `poster` should use art made from its title and console, as the web client does. In lists, ask for
 `/items/{id}/poster?w=320`: full-size box art is several times larger than a grid needs.
 
@@ -1944,6 +1961,8 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `GET /games/facets` | user | What a library's games can be filtered by, with how many there are. Query: `library`, `console`. |
 | `GET /games/{id}/metadata` | user | A game's match, dates, makers, players, scores, age ratings, pictures and credits. See [Game details](#game-details). |
 | `GET /games/{id}/art/{n}` | user | One of a game's pictures. Use the `url` in its metadata's `art` list as given. |
+| `GET /items/{id}/achievements` | user | A game's achievements at RetroAchievements, none of them earned yet. See [Game details](#game-details). |
+| `GET /items/{id}/achievements/badge/{badge}` | user | An achievement's greyed-out picture, as PNG. Use the `badge` address an achievement gives. |
 | `GET /games/{id}/metadata/search` | admin | Games this might be, from every source in use. Query: `q`. Answers `results` and `failed`. |
 | `PUT /games/{id}/metadata/match` | admin | This is the right game: `{source, id, lock}`. With no source, only sets the lock. |
 | `DELETE /games/{id}/metadata/match` | admin | This match is wrong, and there's no right one. |

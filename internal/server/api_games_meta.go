@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -28,6 +29,8 @@ func (s *Server) gameMetaRoutes(m *http.ServeMux) {
 	m.Handle("GET /api/games/facets", a(s.handleGameFacets))
 	m.Handle("GET /api/games/{id}/metadata", a(s.handleGameMetadata))
 	m.Handle("GET /api/games/{id}/art/{n}", a(s.handleGameArt))
+	m.Handle("GET /api/items/{id}/achievements", a(s.handleItemAchievements))
+	m.Handle("GET /api/items/{id}/achievements/badge/{badge}", a(s.handleItemAchievementBadge))
 	m.Handle("GET /api/games/{id}/metadata/search", s.requireAdmin(s.handleGameSearch))
 	m.Handle("PUT /api/games/{id}/metadata/match", s.requireAdmin(s.handleGameMatch))
 	m.Handle("DELETE /api/games/{id}/metadata/match", s.requireAdmin(s.handleGameUnmatch))
@@ -228,7 +231,7 @@ func sourceMessage(err error) string {
 func (s *Server) handleGameMetaStatus(w http.ResponseWriter, r *http.Request) {
 	st := s.GameMeta.Status(r.Context())
 	for _, k := range library.GameSourceKeys {
-		if k != "ssDevId" && k != "ssDevPassword" && s.DB.GetSetting(r.Context(), k, "") != "" {
+		if k != "ssDevId" && k != "ssDevPassword" && !slices.Contains(library.AchievementKeys, k) && s.DB.GetSetting(r.Context(), k, "") != "" {
 			st.KeysSet = true
 		}
 	}

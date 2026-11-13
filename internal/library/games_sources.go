@@ -27,11 +27,15 @@ type GameSourceSetting struct {
 }
 
 // GameSourceKeys are the settings that hold what sources need. They are secrets.
-var GameSourceKeys = []string{"igdbClientId", "igdbClientSecret", "rawgKey", "tgdbKey", "ssUser", "ssPassword", "ssDevId", "ssDevPassword"}
+var GameSourceKeys = []string{"igdbClientId", "igdbClientSecret", "rawgKey", "tgdbKey", "ssUser", "ssPassword", "ssDevId", "ssDevPassword", "retroAchievementsKey"}
+
+// AchievementKeys are the keys among those that don't change what's known about games,
+// so saving one doesn't send every game to be looked up again.
+var AchievementKeys = []string{"retroAchievementsKey"}
 
 // defaultSourceOrder is who's believed first until the owner says otherwise. The best
 // data first; Wikidata last, as it often has plain summaries when nothing else does.
-var defaultSourceOrder = []string{"igdb", "screenscraper", "libretro", "libretroart", "wikidata", "rawg", "tgdb"}
+var defaultSourceOrder = []string{"igdb", "screenscraper", "libretro", "libretroart", "wikidata", "rawg", "tgdb", "retroachievements"}
 
 // GameSourceOrder reads the owner's list, with any source it doesn't mention added at
 // the end, switched on.
@@ -97,6 +101,9 @@ func (g *GameMeta) sources(ctx context.Context) *sourceSet {
 			continue
 		}
 		set.order = append(set.order, o.ID)
+		if sc, ok := src.(gamemeta.Sidecar); ok && sc.Sidecar() {
+			continue // listed, never asked about games
+		}
 		if o.On && usable(src, settings) {
 			set.on = append(set.on, o.ID)
 		}
@@ -139,7 +146,27 @@ func (g *GameMeta) build(s map[string]string) []gamemeta.Source {
 		&gamemeta.ScreenScraper{User: s["ssUser"], Password: s["ssPassword"], DevUser: s["ssDevId"], DevPass: s["ssDevPassword"], HTTP: client},
 		&gamemeta.RAWG{Key: s["rawgKey"], HTTP: client},
 		&gamemeta.TGDB{Key: s["tgdbKey"], HTTP: client},
+		&gamemeta.RetroAchievements{Key: s["retroAchievementsKey"], HTTP: client, Dir: filepath.Join(cache, "retroachievements")},
 	}
+}
+
+// Achievements is the RetroAchievements source. ready: it has a key and is switched on.
+func (g *GameMeta) Achievements(ctx context.Context) (ra *gamemeta.RetroAchievements, ready bool) {
+	set := g.sources(ctx)
+	ra, _ = set.all["retroachievements"].(*gamemeta.RetroAchievements)
+	if ra == nil {
+		return nil, false
+	}
+	settings := map[string]string{}
+	for _, k := range GameSourceKeys {
+		settings[k] = g.setting(ctx, k)
+	}
+	for _, o := range GameSourceOrder(g.setting(ctx, "gameSources"), g.Store.DB.GetSetting(ctx, "wikidata", "1")) {
+		if o.ID == "retroachievements" {
+			return ra, o.On && usable(ra, settings)
+		}
+	}
+	return ra, false
 }
 
 // Requests sources with an allowance have spent are counted in the settings table,

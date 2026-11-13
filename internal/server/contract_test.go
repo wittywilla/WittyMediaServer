@@ -409,6 +409,7 @@ func schemaTypes() map[string]reflect.Type {
 		"GameDetails": ty(library.GameDetails{}), "GameArt": ty(library.GameArt{}), "GameScore": ty(gamemeta.Score{}), "GameAgeRating": ty(gamemeta.AgeRating{}), "GameCredit": ty(gamemeta.Credit{}),
 		"GameFacets": ty(library.GameFacets{}), "GameFacet": ty(library.GameFacet{}), "GameMetaStatus": ty(library.GameMetaStatus{}), "GameConsoleTally": ty(library.GameConsoleTally{}), "GameSourcePause": ty(library.GameSourcePause{}),
 		"GameCandidate": ty(gamemeta.Candidate{}), "GameSourceSetting": ty(library.GameSourceSetting{}),
+		"Achievements": ty(AchievementsAnswer{}), "AchievementsGame": ty(AchievementsGame{}), "Achievement": ty(AchievementView{}),
 		"RadioMeta": ty(library.RadioMeta{}), "NowPlaying": ty(library.NowPlaying{}), "DirectoryStation": ty(library.DirectoryStation{}), "DirectoryFacets": ty(library.DirectoryFacets{}), "DirectoryCount": ty(library.DirectoryCount{}),
 		"CustomStatus": ty(CustomStatus{}), "CustomCore": ty(CustomCore{}), "CoreReport": ty(CoreReport{}), "CoreVersion": ty(CoreVersion{}), "CorePlays": ty(CorePlays{}), "CoreAudit": ty(CoreAudit{}),
 		"CustomConsoleView": ty(CustomConsoleView{}), "CorePickOption": ty(CorePickOption{}), "GameCoreOption": ty(GameCoreOption{}),

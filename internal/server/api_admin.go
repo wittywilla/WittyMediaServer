@@ -182,7 +182,7 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		v = strings.TrimSpace(v)
-		if slices.Contains(library.GameSourceKeys, k) && s.DB.GetSetting(r.Context(), k, "") != v {
+		if slices.Contains(library.GameSourceKeys, k) && !slices.Contains(library.AchievementKeys, k) && s.DB.GetSetting(r.Context(), k, "") != v {
 			gameKeyChanged = true
 		}
 		if err := s.DB.SetSetting(r.Context(), k, v); err != nil {

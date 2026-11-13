@@ -163,6 +163,8 @@ var routeRules = map[string]string{
 	"DELETE /api/theme/personal":                                "Signed-in: own colours only",
 	"GET /api/items":                                            "Signed-in: limits, in the query. Paths for admins only",
 	"GET /api/items/{id}":                                       "Signed-in: limits. own progress. Paths for admins only",
+	"GET /api/items/{id}/achievements":                          "Signed-in: limits. A game. Its file is only read, and its checksum is matched on this server. No keys or paths answered",
+	"GET /api/items/{id}/achievements/badge/{badge}":            "Signed-in: limits. A game. Badge name is digits, and one of the game's own achievements. Fetched through the server",
 	"GET /api/items/{id}/annotations":                           "Signed-in: limits. Book inside a library. own",
 	"GET /api/items/{id}/backdrop":                              "Signed-in; ticket; address token: limits. Pictures only",
 	"GET /api/items/{id}/book":                                  "Signed-in: limits. Book, plain file inside a library",

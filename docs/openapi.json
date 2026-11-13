@@ -206,6 +206,92 @@
         ],
         "type": "object"
       },
+      "Achievement": {
+        "properties": {
+          "badge": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "points": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "badge",
+          "description",
+          "id",
+          "points",
+          "title"
+        ],
+        "type": "object"
+      },
+      "Achievements": {
+        "properties": {
+          "achievements": {
+            "items": {
+              "$ref": "#/components/schemas/Achievement"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "game": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AchievementsGame"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "achievements",
+          "game",
+          "message",
+          "state"
+        ],
+        "type": "object"
+      },
+      "AchievementsGame": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "points": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "points",
+          "title",
+          "url"
+        ],
+        "type": "object"
+      },
       "ActivityAccess": {
         "properties": {
           "enabled": {
@@ -27396,6 +27482,95 @@
           "Browsing"
         ],
         "x-wms-auth": "admin"
+      }
+    },
+    "/items/{id}/achievements": {
+      "get": {
+        "operationId": "getItemsIdAchievements",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Achievements"
+                }
+              }
+            },
+            "description": "Always 200 for a game: state says whether there are achievements to show, and message why not."
+          },
+          "404": {
+            "description": "Not a game, or not one this account may see."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A game's achievements at RetroAchievements, found by a checksum of its file taken on this server. None are earned or tracked yet.",
+        "tags": [
+          "games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/items/{id}/achievements/badge/{badge}": {
+      "get": {
+        "operationId": "getItemsIdAchievementsBadgeBadge",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "badge",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/png": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The picture."
+          },
+          "404": {
+            "description": "Not one of this game's achievement pictures."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "An achievement's greyed-out picture, fetched from RetroAchievements by the server and kept.",
+        "tags": [
+          "games"
+        ],
+        "x-wms-auth": "user"
       }
     },
     "/items/{id}/annotations": {

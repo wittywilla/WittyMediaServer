@@ -15,7 +15,7 @@ import { WebLink } from '../components/WebLink'
 // page, Settings and the setup wizard. Everything here is the server's work: pictures
 // come through the server, and a source's address or key never reaches this page.
 
-const SOURCE_NAMES: Record<string, string> = { libretro: 'libretro database', libretroart: 'libretro thumbnails', wikidata: 'Wikidata', igdb: 'IGDB', rawg: 'RAWG', tgdb: 'TheGamesDB', screenscraper: 'ScreenScraper' }
+const SOURCE_NAMES: Record<string, string> = { libretro: 'libretro database', libretroart: 'libretro thumbnails', wikidata: 'Wikidata', igdb: 'IGDB', rawg: 'RAWG', tgdb: 'TheGamesDB', screenscraper: 'ScreenScraper', retroachievements: 'RetroAchievements' }
 export const sourceName = (id: string) => SOURCE_NAMES[id] || id
 const KIND_LABEL: Record<string, string> = { screenshot: 'Screenshot', title: 'Title screen', artwork: 'Artwork' }
 
@@ -308,7 +308,7 @@ export function GameSourcesSettings() {
     try {
       await api.put('/settings', body)
       setValues((v) => { const n = { ...v }; for (const f of s.fields) delete n[f.setting]; return n })
-      toast(clear ? 'Key removed' : 'Key saved. Your games will be looked up again in the background.')
+      toast(clear ? 'Key removed' : s.gives.includes('achievements') ? 'Key saved. Achievements show in each game\'s details.' : 'Key saved. Your games will be looked up again in the background.')
       load()
     } catch (e: any) { toast(e.message) }
   }

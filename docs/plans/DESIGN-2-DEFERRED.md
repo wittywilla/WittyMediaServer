@@ -67,3 +67,14 @@ Merged at server ece6f71a: /manage/libraries, /manage/matches, /manage/match/{it
 - Android TV Home: lumen/classic, rail/marquee and stage/dashboard look identical (same top-menu frame); the other 8 are distinct.
 - Android TV: the key-legend Dock bar overlaps the first row ("Recently added") on Home.
 - Android last merge (base TvLook change) not re-tested; phone and tablet looks not run.
+
+## From W18 (WittyMediaPlayer SDUI and themes), player 148d2b9
+Merged: Go page provider + Qt Widgets renderer; start, Settings, Disc modules, Look, About, disc guide, why, disc health, WittyRemote and CD pages as SDUI; the 15 server themes, theme ZIP import, finishes. Playback, disc menus, control bar and visualizer stay native.
+- Conformance covers 7 of 128 fixtures only; card pictures, glass shadows and multi-column layouts not drawn.
+- `visualizerHearsTheMusicAndLeavesItAlone` crashed (SIGSEGV) on offscreen Qt; baseline not run.
+- Not run: synthetic disc tests (WITTY_TEST_SYNTH_DVD/BD), real discs, CD ripper tests, disc/CD page screenshots, Windows and Linux (installer, uninstaller, AppImage).
+- Remote colour keys are not wired to the disc controller; WOFF2 imports need Brotli; `color-mix()` in imported themes is ignored; first-run Look dialog skipped with no audio device.
+- Server-sourced pages not built (the player has no server address or sign-in); seam is `PageHost`.
+- `engine/go.mod` requires the server module (pkg/sdui), resolving only through go.work; `scripts/dev-modules.mjs` must add the server checkout and a release needs a server tag.
+- Disc guide page duplicates the native Disc menu. Leftover build output in the W18 scratchpad.
+- Player's Settings is an SDUI page; the server's own Settings stays hand-built.

@@ -519,6 +519,10 @@ The `QR` component draws a QR code for a link, for a phone to scan (a room's joi
 
 A books library's Books tab has a FilterBar with two more filters: `reading` (Reading, Finished, Not started: what the profile has started, finished or never opened) and `format` (Books, PDFs, Comics), and the grid's `books` source follows them (`filterable`). A book's page can list its formats with the `formats` source (the format that opens and the other files of the same name beside it, with sizes; never paths). On the search page a FilterBar with no target (`narrow`) offers Year and Score; every filterable search section follows them, so a film, show or anime library's results are narrowed by the library's own filters.
 
+### Empty sections that say what to do
+
+A Shelf, Grid or List with `empty: "message"` and nothing to show is drawn as an empty state: its `emptyText`, then the optional `emptyHint` (a line of advice) and the optional `emptyAction` (one button). The node has `state: "empty"` and props `emptyText`, `emptyHint` and `emptyAction`, where `emptyAction` is `{label, action}` and `action` is an ordinary action (navigate, native or a command, with `as: "layer"` and `confirm` as everywhere). The author gives the button a `when` condition, so only administrators are offered "Scan now" or "Add a games library" and everyone else sees the hint alone; the server has already applied it, so a client draws what it is sent. A page with no data should say what to do rather than draw a bare title: every client draws the empty state generically from these props, the same on every page. The built-in library pages for photos, books, games and other libraries offer an administrator `library.scan` (the library is the item).
+
 ### The conformance kit
 
 [`pkg/sdui/conformance/fixtures`](../pkg/sdui/conformance/fixtures/index.json) holds
@@ -1434,6 +1438,8 @@ Focus: one stop in the page's focus order; it moves focus among its own parts. A
 | `focusable` | bool | `false` | Cards without a route take focus. A card with no route (a friend) is still a stop for focus, and OK on it is the page's to use. Off: it is not a button and takes no focus. |
 | `empty` | enum: hide, message | `hide` | When there is nothing to show. Leave the section out, or keep it with a message. |
 | `emptyText` | text, at most 200 |  | Message when empty. Shown in place of the items when there are none. |
+| `emptyHint` | text, at most 300 |  | Hint when empty. A line under the message that says what to do about it: "Add a games library in Settings." |
+| `emptyAction` | object |  | Button when empty. One button under the message: {label, and one of to (a route), native, op (a command, with item and params and confirm); optional as: layer, and when: a condition such as {"admin": true}, so only administrators are offered it}. |
 
 How it is drawn:
 
@@ -1483,6 +1489,8 @@ Focus: its children take focus, and it is their group. Accessibility: Role: list
 | `focusable` | bool | `false` | Cards without a route take focus. A card with no route (a friend) is still a stop for focus, and OK on it is the page's to use. Off: it is not a button and takes no focus. |
 | `empty` | enum: hide, message | `hide` | When there is nothing to show. Leave the section out, or keep it with a message. |
 | `emptyText` | text, at most 200 |  | Message when empty. Shown in place of the items when there are none. |
+| `emptyHint` | text, at most 300 |  | Hint when empty. A line under the message that says what to do about it: "Add a games library in Settings." |
+| `emptyAction` | object |  | Button when empty. One button under the message: {label, and one of to (a route), native, op (a command, with item and params and confirm); optional as: layer, and when: a condition such as {"admin": true}, so only administrators are offered it}. |
 
 How it is drawn:
 
@@ -1645,6 +1653,8 @@ Focus: the node takes focus when it can be acted on. Accessibility: Role: tab. L
 | `maxItems` | int 0 to 40 |  | Most cards at first. How many cards are sent before the row asks for more. 0 uses the device's own limit. |
 | `empty` | enum: hide, message | `hide` | When there is nothing to show. Leave the section out, or keep it with a message. |
 | `emptyText` | text, at most 200 |  | Message when empty. Shown in place of the items when there are none. |
+| `emptyHint` | text, at most 300 |  | Hint when empty. A line under the message that says what to do about it: "Add a games library in Settings." |
+| `emptyAction` | object |  | Button when empty. One button under the message: {label, and one of to (a route), native, op (a command, with item and params and confirm); optional as: layer, and when: a condition such as {"admin": true}, so only administrators are offered it}. |
 
 How it is drawn:
 
@@ -1804,6 +1814,8 @@ Focus: its children take focus, and it is their group. Accessibility: Role: regi
 | `maxItems` | int 0 to 100 |  | Most rows at first. How many rows are sent before the list asks for more. 0 uses the device's own limit. |
 | `empty` | enum: hide, message | `hide` | When there is nothing to show. Leave the section out, or keep it with a message. |
 | `emptyText` | text, at most 200 |  | Message when empty. Shown in place of the items when there are none. |
+| `emptyHint` | text, at most 300 |  | Hint when empty. A line under the message that says what to do about it: "Add a games library in Settings." |
+| `emptyAction` | object |  | Button when empty. One button under the message: {label, and one of to (a route), native, op (a command, with item and params and confirm); optional as: layer, and when: a condition such as {"admin": true}, so only administrators are offered it}. |
 
 How it is drawn:
 
@@ -3689,6 +3701,7 @@ A menu entry (`type: native`) may open the screens marked *menu*; the others nee
 | `creator.subscribe` | Subscribes the profile to a creator (item), or takes the subscription off (params.on false). | `PUT /api/creators/{item}/subscribe` with `{"on":"{on}"}`; `on` (bool, required) |
 | `comment.add` | Adds a comment to a title (item); params.text is up to 2000 characters. Not for Kids or Guest profiles. | `POST /api/items/{item}/comments` with `{"body":"{text}"}`; `text` (string, required) |
 | `comment.delete` | Deletes a comment (item: its ID): its writer's, or any as an administrator. | `DELETE /api/comments/{item}` |
+| `library.scan` | Looks through the library's folders for new and changed files (administrators): the library is the item. | `POST /api/libraries/{item}/scan` |
 | `collection.add` | Puts the title (item) in the profile's list params.collection. | `POST /api/collections/{collection}/items` with `{"items":["{item}"]}`; `collection` (string, required) |
 | `collection.remove` | Takes the title (item) off the profile's list params.collection. | `DELETE /api/collections/{collection}/items` with `{"items":["{item}"]}`; `collection` (string, required) |
 | `collection.create` | Makes a list of the profile's own, named params.name. | `POST /api/collections` with `{"name":"{name}","kind":"manual"}`; `name` (string, required) |

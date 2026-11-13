@@ -296,7 +296,7 @@ html[data-wplay] body { font-family: var(--font); }
 .wplay .sdui-shelf:is(.layout-grid, .layout-list) > .row-wrap { grid-area: row; margin-inline: 0; }
 .wplay .sdui-shelf:is(.layout-grid, .layout-list) > .sdui-detail { grid-area: detail; position: sticky; inset-block-start: var(--sp-4); padding: clamp(14px, 1.4vw, 26px); border-radius: clamp(14px, 1.3vw, 24px); background: var(--wp-chip); }
 .wplay .sdui-shelf:is(.layout-grid, .layout-list) .sdui-detail-title { font-size: clamp(1.4rem, 2vw, 2.4rem); }
-.wplay .sdui-shelf:is(.layout-grid, .layout-list) .row { flex-wrap: wrap; overflow: visible; margin-inline: 0; padding: 12px 6px calc(var(--wp-dock) + 80px); align-items: flex-start; }
+.wplay .sdui-shelf:is(.layout-grid, .layout-list) .row { flex-wrap: wrap; overflow: visible; margin-inline: 0; padding: clamp(20px, 1.8vw, 30px) 12px calc(var(--wp-dock) + 80px); align-items: flex-start; }
 .wplay .sdui-shelf.layout-grid .row { display: grid; grid-template-columns: repeat(auto-fill, minmax(clamp(120px, 11vw, 220px), 1fr)); gap: clamp(12px, 1.4vw, 26px); }
 .wplay .sdui-shelf.layout-grid .sdui-item .card, .wplay .sdui-shelf.layout-grid .sdui-item.grown .card { width: 100%; }
 .wplay .sdui-shelf.layout-grid .sdui-item.grown .card .poster { box-shadow: 0 0 0 4px var(--wp-ring), 0 0 0 8px #fff; }

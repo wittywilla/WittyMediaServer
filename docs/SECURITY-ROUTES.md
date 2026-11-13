@@ -73,6 +73,8 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `DELETE /api/libraries/{id}` | Admin | Numeric id |
 | `POST /api/libraries/{id}/scan` | Admin | Library exists |
 | `GET /api/libraries/{id}/scan` | Signed-in | Library is within the account's allowed libraries. File names and skipped files for admins only |
+| `POST /api/libraries/{id}/forget-metadata` | Admin | Library exists and isn't being scanned. Removes only files the server recorded writing, and NFOs with its marker, inside the library's folders, through the folder (never through a link out of it); a person's `.nfo.bak` goes back. Every item keeps its ID; history, locks and people's edits stay. Logged and shown in Activity |
+| `POST /api/libraries/forget-metadata` | Admin | As for one library, for every library, none being scanned. Also drops downloaded logos and where-to-watch answers |
 | `GET /api/genres` | Signed-in | limits |
 | `GET /api/items` | Signed-in | limits, in the query. Paths for admins only |
 | `GET /api/logos/status` | Signed-in | Whether downloads are agreed to, and the source. Counts for admins only |

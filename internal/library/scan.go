@@ -883,23 +883,12 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 	}
 	// An id in the name says exactly what this is, and rules say how to read a folder's naming.
 	hint, hasHint := IDTag(c.path)
-	it.Title, it.Year = itemName(lib.Type, stripIDTags(base))
-	// Folder name is often better than "VIDEO_TS"/"movie.mkv".
-	if parentTitle, parentYear := ParseName(stripIDTags(filepath.Base(filepath.Dir(c.path)))); lib.Type != CommercialsType && c.kind != "dvd-folder" && c.kind != "bluray-folder" && it.Year == nil && parentYear != nil && !strings.EqualFold(filepath.Dir(c.path), lib.Paths[0]) {
-		it.Title, it.Year = parentTitle, parentYear
-	}
 	rules, _ := ctx.Value(rulesKey{}).(*ruleSet)
-	rule, hasRule := rules.test(c.path)
-	if hasRule {
-		if rule.Title != "" {
-			it.Title = rule.Title
-		}
-		if rule.Year != nil {
-			it.Year = rule.Year
-		}
-		if rule.ID != "" && !hasHint {
-			hint, hasHint = MatchRef{rule.Source, rule.ID}, true
-		}
+	var rule RuleResult
+	var hasRule bool
+	it.Title, it.Year, rule, hasRule = nameFromFile(lib, c.path, c.kind, rules)
+	if hasRule && rule.ID != "" && !hasHint {
+		hint, hasHint = MatchRef{rule.Source, rule.ID}, true
 	}
 	prov.note(it, SourceFile)
 
@@ -1005,6 +994,30 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 		s.Store.markRuleExtra(ctx, it, rule.Extra)
 	}
 	return nil
+}
+
+// nameFromFile is what a scan makes of a film's file name before anything is read or looked
+// up: its title and year, and the rule of the library's that its folder's naming fits.
+func nameFromFile(lib *Library, path, kind string, rules *ruleSet) (title string, year *int, rule RuleResult, hasRule bool) {
+	base := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
+	if kind == "dvd-folder" || kind == "bluray-folder" {
+		base = discFolderName(path)
+	}
+	title, year = itemName(lib.Type, stripIDTags(base))
+	// Folder name is often better than "VIDEO_TS"/"movie.mkv".
+	if parentTitle, parentYear := ParseName(stripIDTags(filepath.Base(filepath.Dir(path)))); lib.Type != CommercialsType && kind != "dvd-folder" && kind != "bluray-folder" && year == nil && parentYear != nil && (len(lib.Paths) == 0 || !strings.EqualFold(filepath.Dir(path), lib.Paths[0])) {
+		title, year = parentTitle, parentYear
+	}
+	rule, hasRule = rules.test(path)
+	if hasRule {
+		if rule.Title != "" {
+			title = rule.Title
+		}
+		if rule.Year != nil {
+			year = rule.Year
+		}
+	}
+	return title, year, rule, hasRule
 }
 
 // filmNFOPeople are the people of the first of a film's NFOs that names anyone. The NFO the

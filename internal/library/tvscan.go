@@ -107,15 +107,16 @@ func rootFor(roots []string, p string) string {
 	return best
 }
 
-// indexEpisode indexes one file of a shows library.
-func (s *Scanner) indexEpisode(ctx context.Context, lib *Library, c candidate, tv *tvScan) error {
-	root := rootFor(lib.Paths, c.path)
-	ref, ok := ParseEpisode(root, c.path)
+// episodeRef is what a file's name and folders say of an episode in a shows library: its show
+// and the show's folder, its numbers and its title. A file with no numbers is an extra of the
+// show its folder names, numbered -1.
+func episodeRef(lib *Library, path string) EpisodeRef {
+	root := rootFor(lib.Paths, path)
+	ref, ok := ParseEpisode(root, path)
 	if !ok {
-		// Unnumbered file: keep it under its show folder as an extra.
-		rel, _ := filepath.Rel(root, c.path)
+		rel, _ := filepath.Rel(root, path)
 		parts := strings.Split(filepath.ToSlash(rel), "/")
-		name := strings.TrimSuffix(parts[len(parts)-1], filepath.Ext(c.path))
+		name := strings.TrimSuffix(parts[len(parts)-1], filepath.Ext(path))
 		ref = EpisodeRef{Title: cleanEpisodeTitle(name)}
 		if len(parts) > 1 {
 			ref.Show, ref.ShowYear = ParseName(parts[0])
@@ -126,6 +127,12 @@ func (s *Scanner) indexEpisode(ctx context.Context, lib *Library, c candidate, t
 		}
 		ref.Season, ref.Episode = -1, -1
 	}
+	return ref
+}
+
+// indexEpisode indexes one file of a shows library.
+func (s *Scanner) indexEpisode(ctx context.Context, lib *Library, c candidate, tv *tvScan) error {
+	ref := episodeRef(lib, c.path)
 	sh, err := s.tvShow(ctx, lib, ref, tv)
 	if err != nil {
 		return err

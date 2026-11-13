@@ -5,8 +5,6 @@ package server
 
 import (
 	"context"
-	"crypto/sha1"
-	"encoding/hex"
 	"errors"
 	"io"
 	"net/http"
@@ -849,8 +847,7 @@ func (s *Server) cachedRemote(ctx context.Context, u string) (string, error) {
 // remoteArtPath is where a remote image is kept. The file's name is ours alone:
 // nothing from the address becomes part of it.
 func (s *Server) remoteArtPath(u string) string {
-	h := sha1.Sum([]byte(u))
-	return filepath.Join(s.Cfg.ImagesDir, "r-"+hex.EncodeToString(h[:10]))
+	return library.RemoteArtPath(s.Cfg.ImagesDir, u)
 }
 
 // errArtUnreachable: the site gave no answer, or none that could be read to the end.

@@ -511,6 +511,11 @@ var migrations = []string{
 	   name TEXT NOT NULL DEFAULT '', platform TEXT NOT NULL DEFAULT '', how TEXT NOT NULL DEFAULT '',
 	   created_at INTEGER NOT NULL, last_seen INTEGER NOT NULL DEFAULT 0, last_path TEXT NOT NULL DEFAULT '');
 	 CREATE INDEX IF NOT EXISTS p2p_devices_user ON p2p_devices(user_id);`,
+	// 34: the files this server saved beside the media (artwork, NFOs, CD sidecars), so the
+	// owner can take them away again without touching anything a person put there. size and
+	// written_at tell a file of ours from one someone has since replaced at the same name.
+	`CREATE TABLE IF NOT EXISTS saved_files (
+	   path TEXT PRIMARY KEY, written_at INTEGER NOT NULL, size INTEGER NOT NULL DEFAULT 0) WITHOUT ROWID;`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

@@ -29460,6 +29460,111 @@
         "x-wms-auth": "admin"
       }
     },
+    "/libraries/forget-metadata": {
+      "post": {
+        "operationId": "postAllLibrariesForgetMetadata",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "details": {
+                    "description": "Reset the downloaded details in the server (default true).",
+                    "type": "boolean"
+                  },
+                  "files": {
+                    "description": "Remove the files the server saved beside the media (default true).",
+                    "type": "boolean"
+                  },
+                  "rescan": {
+                    "description": "Scan again afterwards, so everything is matched and downloaded again (default false).",
+                    "type": "boolean"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "cached": {
+                      "type": "integer"
+                    },
+                    "companions": {
+                      "type": "integer"
+                    },
+                    "libraries": {
+                      "type": "integer"
+                    },
+                    "lockedKept": {
+                      "type": "integer"
+                    },
+                    "logos": {
+                      "type": "integer"
+                    },
+                    "notReset": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "problems": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "removed": {
+                      "type": "integer"
+                    },
+                    "rescanning": {
+                      "items": {
+                        "type": "integer"
+                      },
+                      "type": "array"
+                    },
+                    "restored": {
+                      "type": "integer"
+                    },
+                    "shows": {
+                      "type": "integer"
+                    },
+                    "skipped": {
+                      "type": "integer"
+                    },
+                    "titles": {
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove every library's downloaded details, and the downloaded logos.",
+        "tags": [
+          "Browsing"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/libraries/{id}": {
       "delete": {
         "operationId": "deleteLibrariesById",
@@ -29561,6 +29666,120 @@
           }
         ],
         "summary": "Change a library; scanning starts.",
+        "tags": [
+          "Browsing"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libraries/{id}/forget-metadata": {
+      "post": {
+        "operationId": "postLibrariesForgetMetadata",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "details": {
+                    "description": "Reset the downloaded details in the server (default true).",
+                    "type": "boolean"
+                  },
+                  "files": {
+                    "description": "Remove the files the server saved beside the media (default true).",
+                    "type": "boolean"
+                  },
+                  "rescan": {
+                    "description": "Scan again afterwards, so everything is matched and downloaded again (default false).",
+                    "type": "boolean"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "cached": {
+                      "type": "integer"
+                    },
+                    "companions": {
+                      "type": "integer"
+                    },
+                    "libraries": {
+                      "type": "integer"
+                    },
+                    "lockedKept": {
+                      "type": "integer"
+                    },
+                    "logos": {
+                      "type": "integer"
+                    },
+                    "notReset": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "problems": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "removed": {
+                      "type": "integer"
+                    },
+                    "rescanning": {
+                      "items": {
+                        "type": "integer"
+                      },
+                      "type": "array"
+                    },
+                    "restored": {
+                      "type": "integer"
+                    },
+                    "shows": {
+                      "type": "integer"
+                    },
+                    "skipped": {
+                      "type": "integer"
+                    },
+                    "titles": {
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a library's downloaded details: the files the server saved beside the media, and what services said about its titles. Watch history, locks and IDs stay.",
         "tags": [
           "Browsing"
         ],

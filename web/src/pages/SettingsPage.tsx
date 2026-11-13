@@ -30,6 +30,7 @@ import './settings/settings.css'
 import './settings/settings-page.css'
 import LegalNote from '../components/LegalNote'
 import { ask, Dialog } from '../ui/Overlay'
+import { ForgetMetadataDialog } from './settings/ForgetMetadata'
 import { Segmented } from '../ui/Choice'
 import { UpdateBanner } from '../components/UpdateBanner'
 import { Updates } from './settings/Updates'
@@ -289,6 +290,8 @@ function Libraries() {
   const { libraries, refreshLibraries } = useApp()
   const [editing, setEditing] = useState<Partial<Library> | null>(null)
   const [adding, setAdding] = useState(false)
+  // Removing downloaded details: a library, or null for every library; undefined when closed.
+  const [forgetting, setForgetting] = useState<Library | null | undefined>(undefined)
   const [grouping, setGrouping] = useState<Grouping>('combine')
   useEffect(() => { api.get<Record<string, string>>('/settings').then((s) => setGrouping(s.libraryGrouping === 'separate' ? 'separate' : 'combine')).catch(() => {}) }, [])
   const changeGrouping = async (g: Grouping) => {
@@ -339,12 +342,22 @@ function Libraries() {
               <div className="set-lib-actions">
                 <button className="btn sm" onClick={() => scan(l)} disabled={l.scanning}><IconRefresh /> Scan now</button>
                 <button className="btn sm ghost" onClick={() => setEditing(l)}><IconEdit /> Edit</button>
+                <button className="btn sm ghost" onClick={() => setForgetting(l)} disabled={l.scanning} title="Removes what was downloaded for this library, to try matching and downloading again">Remove downloaded details…</button>
                 <span className="grow" />
                 <button className="btn sm ghost square danger-hover" onClick={() => remove(l)} aria-label={`Remove ${l.name}`} title="Remove library"><IconTrash /></button>
               </div>
             </article>
           ))}
         </div>
+      )}
+      {libraries.length > 0 && (
+        <div className="set-lib-tools">
+          <button className="btn sm" onClick={() => setForgetting(null)} disabled={libraries.some((l) => l.scanning)}>Remove downloaded details from every library…</button>
+          <small>To try matching and downloading again from a clean start. What people watched, their lists and your own edits stay.</small>
+        </div>
+      )}
+      {forgetting !== undefined && (
+        <ForgetMetadataDialog library={forgetting ?? undefined} libraries={libraries} onClose={() => setForgetting(undefined)} onDone={() => { void refreshLibraries() }} />
       )}
       {adding && (
         <Dialog title="Add a library" size="wide" className="add-lib-modal" onClose={() => setAdding(false)}>

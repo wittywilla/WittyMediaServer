@@ -464,6 +464,9 @@ func (s *Scanner) saveCDSidecar(ctx context.Context, it *Item) {
 	b, err := json.MarshalIndent(sc, "", "  ")
 	if err == nil {
 		err = writeBeside(cdSidecarPath(it.Path), append(b, '\n'), s.Store.Roots(ctx))
+		if err == nil {
+			s.Store.savedBeside(ctx, cdSidecarPath(it.Path))
+		}
 	}
 	if err != nil {
 		s.Log.Debug("save cd metadata", "path", it.Path, "err", err)

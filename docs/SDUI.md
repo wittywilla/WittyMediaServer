@@ -3752,6 +3752,8 @@ A menu entry (`type: native`) may open the screens marked *menu*; the others nee
 | `comment.add` | Adds a comment to a title (item); params.text is up to 2000 characters. Not for Kids or Guest profiles. | `POST /api/items/{item}/comments` with `{"body":"{text}"}`; `text` (string, required) |
 | `comment.delete` | Deletes a comment (item: its ID): its writer's, or any as an administrator. | `DELETE /api/comments/{item}` |
 | `library.scan` | Looks through the library's folders for new and changed files (administrators): the library is the item. | `POST /api/libraries/{item}/scan` |
+| `library.forgetMetadata` | Administrators: removes what was downloaded for the library (item), to match and download it again from a clean start: the files the server saved beside the media, and the details in the server. IDs, watch history, lists and locked fields stay. It's scanned again afterwards. | `POST /api/libraries/{item}/forget-metadata` with `{"files":true,"details":true,"rescan":true}` |
+| `libraries.forgetMetadata` | Administrators: the same as library.forgetMetadata for every library at once, and the downloaded logos. Every library is scanned again afterwards. | `POST /api/libraries/forget-metadata` with `{"files":true,"details":true,"rescan":true}` |
 | `library.create` | Administrators: adds a library named params.name of kind params.type over the folder params.path, and scans it. | `POST /api/libraries` with `{"name":"{name}","type":"{type}","paths":["{path}"]}`; `name` (string, required); `type` (string, required); `path` (string, required) |
 | `meta.match` | Administrators: matches the title params.target (item or show) params.title to params.ref at the source params.source. | `POST /api/meta/{target}/{title}/match` with `{"source":"{source}","id":"{ref}"}`; `target` (string, required); `title` (string, required); `source` (string, required); `ref` (string, required) |
 | `meta.unmatch` | Administrators: leaves the title params.target params.title unmatched; scans don't look it up again. | `DELETE /api/meta/{target}/{title}/match`; `target` (string, required); `title` (string, required) |
@@ -3829,7 +3831,7 @@ The menu's style on each form factor, the theme and WittyTV look each wears by d
 | `home` | home | every home page | `setup` (Notice), `welcome` (Notice), `hero` (Hero of featured), `libraries` (Shelf of libraries), `jump` (Shelf of continueWatching), `onnow` (Shelf of liveNow), `foryou` (Shelf of recommended), `nextup` (Shelf of nextUp), `view` (Shelf of savedView, per pinnedView), `recent` (Shelf of recentlyAdded, per librarie), `shuffle` (Banner of random) |
 | `libraries` | libraries | every libraries page | `all` (Grid of libraries) |
 | `library` | library | every library page | `all` (Grid of recentlyAdded) |
-| `manage-libraries` | custom | every custom page | `not` (Notice), `all` (List of libraryAdmin), `add` (Form), `fields` (List of newLibrary) |
+| `manage-libraries` | custom | every custom page | `not` (Notice), `all` (List of libraryAdmin), `forget` (Button), `add` (Form), `fields` (List of newLibrary) |
 | `fix-matches` | custom | every custom page | `not` (Notice), `tabs` (Tabs), `check` (Tab), `queue` (List of matchQueue), `byhand` (Tab), `manual` (List of matchQueue), `left` (Tab), `none` (List of matchQueue) |
 | `match` | custom | every custom page | `not` (Notice), `lead` (Text), `candidates` (List of matchCandidates) |
 | `creators` | custom | every custom page | `tabs` (Tabs), `all` (Tab), `everyone` (List of creators), `subscribed` (Tab), `mine` (List of creators) |

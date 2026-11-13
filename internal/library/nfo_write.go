@@ -140,7 +140,11 @@ func (s *Scanner) writeArt(ctx context.Context, ref, dst string) error {
 	if err != nil {
 		return err
 	}
-	return writeBeside(dst, b, s.Store.Roots(ctx))
+	if err := writeBeside(dst, b, s.Store.Roots(ctx)); err != nil {
+		return err
+	}
+	s.Store.savedBeside(ctx, dst)
+	return nil
 }
 
 // writeNFO replaces a file beside the media in one step, so a crash or a full
@@ -291,6 +295,8 @@ func (s *Scanner) SaveItemMetadata(ctx context.Context, it *Item) error {
 	}
 	if err := writeNFO(nfoPath, doc, s.Store.Roots(ctx)); err != nil {
 		errs = append(errs, err)
+	} else {
+		s.Store.savedBeside(ctx, nfoPath)
 	}
 	return errors.Join(errs...)
 }
@@ -349,6 +355,8 @@ func (s *Scanner) SaveShowMetadata(ctx context.Context, sh *Show) error {
 	}
 	if err := writeNFO(filepath.Join(sh.Path, "tvshow.nfo"), doc, s.Store.Roots(ctx)); err != nil {
 		errs = append(errs, err)
+	} else {
+		s.Store.savedBeside(ctx, filepath.Join(sh.Path, "tvshow.nfo"))
 	}
 	return errors.Join(errs...)
 }

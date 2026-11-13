@@ -116,6 +116,8 @@ func buildUtilityPages() []Page {
 		Description: "Administrators: the libraries with their scan state, a row scanning each again, and a form adding one. Opened at /manage/libraries.",
 		Sections: []Section{notAdmin,
 			onlyAdmin(sec("all", "List", props{"empty": "message", "emptyText": "No libraries yet. Add one below."}, Source{"type": "libraryAdmin"})),
+			onlyAdmin(sec("forget", "Button", props{"label": "Remove downloaded details", "icon": "history", "op": "libraries.forgetMetadata", "variant": "ghost",
+				"confirm": "Remove what was downloaded for every library and download it again? History, lists and locked fields stay."}, nil)),
 			onlyAdmin(with(sec("add", "Form", props{"title": "Add a library", "op": "library.create", "submitLabel": "Add and scan"}, nil),
 				sec("fields", "List", props{}, Source{"type": "newLibrary"}))),
 		}}

@@ -40,6 +40,7 @@ export const ENTRIES: Entry[] = [
   // Libraries and server
   { page: 'libraries', title: 'Folders of the same kind', section: 'Folders of the same kind', words: 'combine separate libraries grouping' },
   { page: 'libraries', title: 'Add a library', words: 'folder scan media movies shows music' },
+  { page: 'libraries', title: 'Remove downloaded details', words: 'metadata forget clear reset nfo artwork posters fanart download again rematch match test clean' },
   { page: 'pages', title: 'Change Home for everyone', words: 'home page rows sections shelves hero spotlight layout arrange server-driven sdui editor customise customize everyone', admin: true },
   { page: 'pages', title: 'Change a library’s page or a title’s page', words: 'library page detail page item page rows grid filter tabs sections editor', admin: true },
   { page: 'pages', title: 'The menu for everyone', words: 'navigation menu entries tab bar sidebar top menu order hide add entry phone tablet television', admin: true },

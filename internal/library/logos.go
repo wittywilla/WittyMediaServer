@@ -227,16 +227,24 @@ func (l *Logos) SetLogoConsent(ctx context.Context, accepted, removeDownloaded b
 	if !removeDownloaded {
 		return nil
 	}
+	_, err := l.ForgetDownloaded(ctx)
+	return err
+}
+
+// ForgetDownloaded drops every logo that was downloaded, files and all, and says how many.
+// Each is looked for again, as on a new server. A logo the owner uploaded is theirs, and
+// stays, as does their choice of the name alone.
+func (l *Logos) ForgetDownloaded(ctx context.Context) (int, error) {
 	rows, err := l.Store.DB.QueryContext(ctx, `SELECT id, file FROM logos WHERE status = ? AND source <> 'you'`, LogoFound)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	var gone []Logo
 	for rows.Next() {
 		var g Logo
 		if err := rows.Scan(&g.ID, &g.file); err != nil {
 			rows.Close()
-			return err
+			return 0, err
 		}
 		gone = append(gone, g)
 	}
@@ -246,7 +254,7 @@ func (l *Logos) SetLogoConsent(ctx context.Context, accepted, removeDownloaded b
 	}
 	_, err = l.Store.DB.ExecContext(ctx, `UPDATE logos SET status = ?, file = '', source = '', source_id = '', source_url = '', license = '', license_url = '', credit = '', opaque = 0, version = version + 1
 		WHERE status = ? AND source <> 'you'`, LogoPending, LogoFound)
-	return err
+	return len(gone), err
 }
 
 // ---------------------------------------------------------------------------

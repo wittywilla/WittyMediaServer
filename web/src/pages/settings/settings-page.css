@@ -57,7 +57,22 @@
 .set-lib-paths li { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; color: var(--fg-2); font: var(--text-xs) var(--font-mono); }
 .set-lib-paths li svg { flex: none; color: var(--fg-3); }
 .set-lib-paths li span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; direction: rtl; text-align: left; }
-.set-lib-actions { display: flex; align-items: center; gap: 8px; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border); }
+.set-lib-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border); }
+.set-lib-tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); margin-top: var(--sp-4); }
+.set-lib-tools small { color: var(--fg-2); font-size: var(--text-xs); flex: 1 1 240px; min-width: 0; }
+
+/* Removing downloaded details. */
+.fm-parts { border: 0; margin: 0 0 var(--sp-3); padding: 0; display: grid; gap: var(--sp-1); }
+.fm-part { display: flex; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-2); min-height: 44px; border-radius: var(--r-sm); cursor: pointer; min-width: 0; }
+.fm-part:hover { background: var(--hover); }
+.fm-part:focus-within { outline: 2px solid var(--focus); outline-offset: 1px; }
+.fm-part input { flex: none; width: 22px; height: 22px; margin: 2px 0 0; accent-color: var(--accent); }
+.fm-part > span { display: grid; gap: 2px; min-width: 0; }
+.fm-part small { color: var(--fg-2); font-size: var(--text-xs); line-height: 1.45; }
+.fm-kept { margin: 0; color: var(--fg-2); font-size: var(--text-sm); line-height: 1.5; }
+.fm-counts { margin: 0; padding-left: 1.2em; display: grid; gap: var(--sp-1); font-size: var(--text-sm); line-height: 1.5; }
+.fm-problems { margin-top: var(--sp-3); font-size: var(--text-xs); color: var(--fg-2); }
+.fm-problems ul { margin: var(--sp-1) 0 0; padding-left: 1.2em; overflow-wrap: anywhere; }
 
 /* Facts and long text. */
 .set-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px 24px; margin: 4px 0 16px; }

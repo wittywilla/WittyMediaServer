@@ -147,8 +147,9 @@ export function BrandMark({ src }: { src?: string }) {
 // theme colour (brandName.ts). colouring overrides the server's (a preview).
 // Screen readers get the name once, whole, rather than in coloured pieces; the
 // tooltip (for a long name cut short) is on the hidden part, so it isn't read again.
-// Where it has to wrap, it wraps between the words of the name, not inside one.
-export function Brand({ name, colouring, parts: given }: { name: string; colouring?: string; parts?: StyledPart[] }) {
+// Where it has to wrap, it wraps between the words of the name, not inside one. oneLine: never wrap (a phone's
+// top bar, where it is cut short instead); browsers break at <wbr> even with white-space: nowrap.
+export function Brand({ name, colouring, parts: given, oneLine }: { name: string; colouring?: string; parts?: StyledPart[]; oneLine?: boolean }) {
   const { brandColouring, brandName } = useApp()
   const served = useSyncExternalStore(subscribeMark, servedBrandParts)
   const shown = name || DEFAULT_NAME
@@ -156,7 +157,7 @@ export function Brand({ name, colouring, parts: given }: { name: string; colouri
   // tried, or a preview, is worked out here.
   const own = given ?? (colouring === undefined && (name || '') === brandName && served?.length && served.map((p) => p.text).join('') === shown ? served : undefined)
   const parts: StyledPart[] = own ?? brandParts(shown, colouring ?? brandColouring)
-  const joined = (i: number) => i > 0 && !/\s$/u.test(parts[i - 1].text) && !/^\s/u.test(parts[i].text)
+  const joined = (i: number) => !oneLine && i > 0 && !/\s$/u.test(parts[i - 1].text) && !/^\s/u.test(parts[i].text)
   return (
     <span className="brand-name">
       <span className="sr-only">{shown}</span>

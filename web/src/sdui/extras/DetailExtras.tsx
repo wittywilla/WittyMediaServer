@@ -6,7 +6,8 @@
 // module's own sdui.json (WittyDVD, WittyBluray). The page
 // model has no components for these; they are the app's own, as on its hand-built pages.
 
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { api, codecName, discName, getPrefs, isBluray, isDisc, langName, type Item, type Show } from '../../api'
 import { toast, useApp } from '../../state'
 import { onEpisodeViewChosen, setEpisodeView, useEpisodeView, type EpisodeView } from './episodeView'
@@ -107,6 +108,7 @@ export default function DetailExtras({ place, header, doc }: { place: 'tools' | 
   const main = item?.disc?.titles.find((x) => x.number === item.disc?.mainTitle)
   const sizeGB = item?.sizeBytes ? (item.sizeBytes / 1e9).toFixed(2) + ' GB' : ''
   return (
+    <AtPageEnd>
     <div className="sdui-extras">
       <Credit provider={title.provider} providerId={title.providerId} />
       {item && (item.width > 0 || item.container || disc) && (
@@ -124,7 +126,16 @@ export default function DetailExtras({ place, header, doc }: { place: 'tools' | 
       </Suspense>
       <LegalNote kind="metadata" />
     </div>
+    </AtPageEnd>
   )
+}
+
+// AtPageEnd draws its children at the end of the page (SduiPage's end slot), so a title's facts, listings and small
+// print come after what the page is about; with no slot (a preview), they stay where they are.
+function AtPageEnd({ children }: { children: ReactNode }) {
+  const [slot, setSlot] = useState<Element | null>(null)
+  useEffect(() => { setSlot(document.querySelector('[data-sdui-end]')) }, [])
+  return slot ? createPortal(children, slot) : <>{children}</>
 }
 
 // A show's tools: its episodes' layout (the show's own, which an administrator keeps for

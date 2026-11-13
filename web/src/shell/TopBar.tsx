@@ -114,10 +114,10 @@ function SectionRow({ list }: { list: NavItem[] }) {
     // The current section starts at the left edge, after the fade, so no word is ever cut at the start.
     if (el && on) el.scrollLeft = Math.max(0, on.offsetLeft - parseFloat(getComputedStyle(el).paddingLeft))
   }, [path, list])
-  if (list.length === 0) return <Link to="/" className="brand section-row-brand"><BrandMark /><Brand name={brandName} /></Link>
+  if (list.length === 0) return <Link to="/" className="brand section-row-brand"><BrandMark /><Brand name={brandName} oneLine /></Link>
   return (
     <>
-      <Link to="/" className="brand phone-brand" aria-label={brandName || 'Home'}><BrandMark /><Brand name={brandName} /></Link>
+      <Link to="/" className="brand phone-brand" aria-label={brandName || 'Home'}><BrandMark /><Brand name={brandName} oneLine /></Link>
       <nav className="section-row" aria-label="Sections" ref={row}>
         {list.map((it) => <NavLink key={it.id} to={it.to} end={it.end}>{it.label}</NavLink>)}
       </nav>
@@ -180,7 +180,7 @@ export function TopBar({ onMenu, showMenu, topNav, menuOpen, wide, allTabs }: { 
           {wide ? <IconSidebar /> : <IconMenu />}
         </button>
       )}
-      {topNav && !showMenu && <Link to="/" className="brand top-brand"><BrandMark /><Brand name={brandName} /></Link>}
+      {topNav && !showMenu && <Link to="/" className="brand top-brand"><BrandMark /><Brand name={brandName} oneLine /></Link>}
       {topNav && <TopNav />}
       <form className="search" role="search" onSubmit={(e) => { e.preventDefault(); if (q.trim()) nav('/search?q=' + encodeURIComponent(q.trim())) }}>
         <IconSearch />

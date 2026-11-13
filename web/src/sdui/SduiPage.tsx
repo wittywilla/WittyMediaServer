@@ -160,6 +160,8 @@ export function PageView({ doc, device, handlers, width, children }: { doc: Docu
         {title && <h1 className={tv || ownHeading ? 'sr-only' : 'sdui-page-title'}>{title}</h1>}
         {children}
         <Sections views={model.root.children} />
+        {/* A title's own facts, where else it is listed and the small print go here, after its episodes, cast and more like it (DetailExtras). */}
+        {doc.page.kind === 'detail' && <div className="sdui-page-end" data-sdui-end />}
         {blank && <div className="sdui-nothing"><EmptyState icon={<IconInfo />} title="Nothing here yet" text="When there is something for this page, it will appear here. Check back after you add media or turn a module on." /></div>}
       </div>
     </Ctx.Provider>

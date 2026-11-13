@@ -3859,7 +3859,7 @@ The menu's style on each form factor, the theme and WittyTV look each wears by d
 | `library-books` | library | books | `reading` (Shelf of continueWatching), `shelf` (Tabs), `books` (Tab), `filters` (FilterBar), `all` (Grid of books), `series` (Tab), `in-series` (Shelf of books, per bookSerie), `authors` (Tab), `by-author` (Shelf of books, per bookAuthor) |
 | `library-games` | library | games | `playing` (Shelf of continuePlaying), `all` (Grid of recentlyAdded) |
 | `detail` | detail | every detail page | `header` (DetailHeader), `credits` (Credits of credits), `similar` (Shelf of similar) |
-| `detail-show` | detail | show | `header` (DetailHeader), `credits` (Credits of credits), `episodes` (SeasonList of episodes), `similar` (Shelf of similar) |
+| `detail-show` | detail | show | `header` (DetailHeader), `episodes` (SeasonList of episodes), `credits` (Credits of credits), `similar` (Shelf of similar) |
 | `detail-episode` | detail | episode | `header` (DetailHeader), `credits` (Credits of credits), `season` (Shelf of episodes) |
 | `detail-album` | detail | album | `header` (DetailHeader), `tracks` (TrackList of tracks), `more` (Shelf of albums) |
 | `detail-artist` | detail | artist | `header` (DetailHeader), `albums` (Shelf of albums), `tracks` (TrackList of tracks) |

@@ -129,9 +129,10 @@ func buildStockPages() []Page {
 	detailShow := Page{ID: "detail-show", Kind: "detail", Title: "{title}", Icon: "show", Match: &Match{MediaKind: "show"},
 		Sections: []Section{
 			sec("header", "DetailHeader", props{"facts": []string{"year", "contentRating", "rating", "genres", "count"}, "actions": []string{"play", "watchLater", "share"}}, nil),
-			// Opened with ?season= (a season's page), the season's guest stars come too.
-			sec("credits", "Credits", nil, Source{"type": "credits", "show": "$show", "season": "$season"}),
+			// The episodes first: they are what the page is for. Then the cast; opened with ?season= (a
+			// season's page), the season's guest stars come too.
 			sec("episodes", "SeasonList", nil, Source{"type": "episodes", "show": "$show"}),
+			sec("credits", "Credits", nil, Source{"type": "credits", "show": "$show", "season": "$season"}),
 			sec("similar", "Shelf", props{"title": "More like this"}, Source{"type": "similar", "item": "$show", "limit": 12}),
 		}}
 	detailEpisode := Page{ID: "detail-episode", Kind: "detail", Title: "{title}", Icon: "show", Match: &Match{MediaKind: "episode"},

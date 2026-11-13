@@ -115,8 +115,6 @@ export default function ShowPage() {
             </RowSheet>
           )}
           {show.overview && <p className="overview">{show.overview}</p>}
-          <TitleExtras target="show" id={show.id} libraryId={show.libraryId} />
-          {episodes[0] && <Suspense fallback={null}><WhereToWatch itemId={episodes[0].id} show /></Suspense>}
 
           <div className="season-tabs">
             {seasons.map((s) => (
@@ -142,6 +140,9 @@ export default function ShowPage() {
               {eps.map((e) => <EpisodeRow key={e.id} ep={e} />)}
             </div>
           )}
+          {/* What the show is first (seasons and episodes), then cast and crew, where else it is listed and the small print. */}
+          <TitleExtras target="show" id={show.id} libraryId={show.libraryId} />
+          {episodes[0] && <Suspense fallback={null}><WhereToWatch itemId={episodes[0].id} show /></Suspense>}
           <div className="page-back"><BackLink to={`/library/${show.libraryId}`} label="Back to library" /></div>
           {show.provider === 'tvdb' && <p className="fine-print">Metadata provided by <a href="https://thetvdb.com" target="_blank" rel="noreferrer">TheTVDB</a>. Please consider adding missing information or subscribing.</p>}
           {show.provider === 'tmdb-tv' && <p className="fine-print">Details from <a href="https://www.themoviedb.org" target="_blank" rel="noreferrer">TMDB</a>. This product uses the TMDB API but is not endorsed or certified by TMDB.</p>}

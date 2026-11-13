@@ -609,13 +609,13 @@ html[data-wplay] .wpg-settings [role=tablist] { overflow-x: auto; scrollbar-widt
 .wpl-line::-webkit-scrollbar { display: none; }
 .wpl-line > .wpl-game { flex: none; inline-size: clamp(140px, 13vw, 240px); scroll-snap-align: start; }
 .wpl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(clamp(150px, 14vw, 260px), 1fr)); gap: clamp(16px, 1.6vw, 28px); padding: 12px; margin-inline: -12px; }
-.wpl-game { display: grid; gap: 8px; color: var(--fg); text-decoration: none; border-radius: 14px; transition: transform var(--dur-2) var(--ease-out); }
+.wpl-game { display: grid; grid-template-rows: auto auto; align-content: start; align-self: start; gap: 8px; color: var(--fg); text-decoration: none; border-radius: 14px; transition: transform var(--dur-2) var(--ease-out); }
 .wpl-game:hover, .wpl-game:focus-visible { transform: translateY(-3px); }
-.wpl-game-art { position: relative; display: grid; place-items: center; aspect-ratio: 1 / 1; border-radius: 12px; overflow: visible; }
+.wpl-game-art { position: relative; display: grid; place-items: center; inline-size: 100%; aspect-ratio: 1 / 1; border-radius: 12px; overflow: visible; }
 .wpl-game-art > img { inline-size: 100%; block-size: 100%; object-fit: cover; border-radius: 12px; box-shadow: 0 12px 28px rgb(0 0 0 / .4); }
 .wpl-game-art > .gcase-fit { inset: 2%; place-items: end center; }
 .wpl-game-blank { display: grid; place-items: center; inline-size: 100%; block-size: 100%; padding: 12px; border-radius: 12px; background: rgb(255 255 255 / .08); text-align: center; font-weight: 800; }
-.wpl-game-name { text-align: center; font-weight: 800; font-size: clamp(.9rem, 1vw, 1.1rem); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.wpl-game-name { text-align: center; font-weight: 800; font-size: clamp(.9rem, 1vw, 1.1rem); line-height: 1.3; min-block-size: 2.6em; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .wpl-wait { display: grid; place-items: center; min-block-size: 120px; }
 .wpl-empty, .wpl-found { margin: 0; color: var(--fg-2); font-size: clamp(1rem, 1.1vw, 1.2rem); }
 @media (prefers-reduced-motion: reduce) { .wpl-game { transition: none; } .wpl-game:hover, .wpl-game:focus-visible { transform: none; } }

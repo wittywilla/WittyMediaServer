@@ -538,6 +538,25 @@ func (s *Server) handleGameConsoles(w http.ResponseWriter, r *http.Request) {
 				views[i].Count = counts[views[i].ID]
 			}
 		}
+	} else {
+		// Without a library: each console's games across every games library this profile can see (WittyPlay's Consoles).
+		acc := s.access(r)
+		if libs, err := s.visibleLibraries(r.Context(), acc); err == nil {
+			total := map[string]int{}
+			for _, l := range libs {
+				if l.Type != "games" || l.Hidden() {
+					continue
+				}
+				if counts, err := s.Store.GameCounts(r.Context(), l.ID, acc); err == nil {
+					for k, n := range counts {
+						total[k] += n
+					}
+				}
+			}
+			for i := range views {
+				views[i].TotalGames = total[views[i].ID]
+			}
+		}
 	}
 	writeJSON(w, 200, views)
 }

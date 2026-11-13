@@ -310,7 +310,7 @@ A module that needs to know about file types shouldn't keep a list of its own. `
 Versions move in small steps as work lands. A bump isn't a release: nothing is tagged or published by one.
 
 ```bash
-go run github.com/wittywilla/wittymodule/cmd/wittymodule@v0.3.0 bump -note "Reads a new format." -changelog CHANGELOG.md .
+go run github.com/wittywilla/wittymodule/cmd/wittymodule@v0.4.0 bump -note "Reads a new format." -changelog CHANGELOG.md .
 scripts/bump-server.sh 0.6.1-alpha "What changed."
 ```
 

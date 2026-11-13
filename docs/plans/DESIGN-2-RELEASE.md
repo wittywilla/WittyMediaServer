@@ -92,9 +92,9 @@ Versioning).
 `experiences/` tables into `sdui/internal/core`; then regenerate `catalog.json` (`json.Marshal(core.Catalog())`), copy it
 and `docs/sdui-module.schema.json` into `sdui/` and `kit/sdui/`, set `sdui.CatalogRevision` in `sdui/check.go`, and update
 the lists in `kit/sdui/wittymodule-sdui.ts`. Check: `WMS_SERVER=<server checkout> go test ./...`, `node --test
-kit/sdui/tests/*.test.mjs`, `tsc --strict` on the kit file. WittyModule's own version is its `module.json`-less release
-(a Go module: tag `v0.x.y`); every module's `module.json` carries its own `version`, `minServer` and `maxServer`
-(`wittymodule bump` raises one and its changelog). Each module's `sdui.json` says `catalog: 8`.
+kit/sdui/tests/*.test.mjs`, `tsc --strict` on the kit file. WittyModule's own version is the `version` in its `module.json`
+(0.4.0 for this release; a Go module, tagged `v0.x.y`); every module's `module.json` carries its own `version`, `minServer` and `maxServer`
+(`wittymodule bump` raises one and its changelog). A module's `sdui.json` `catalog` is the lowest revision it needs (the server takes 1 to 8), so it is not raised for the release: only a module using revision 8 features (WittyPlay) says 8.
 
 **4. The clients keep their own versions.** Raise them only when they ship:
 

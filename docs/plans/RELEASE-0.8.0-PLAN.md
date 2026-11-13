@@ -16,7 +16,7 @@ is never reused**, even after its tag or release is deleted (proxy.golang.org an
 
 | # | Repository | Releases as | Last published | State on `v0.8.0-alpha` | Before it can be tagged |
 |---|---|---|---|---|---|
-| 1 | WittyModule | **0.4.0** | v0.3.0 | module.json says 0.3.0 (already published, with module API 3); the branch is API 4 | **Gate bug G1**: raise to 0.4.0 and every `wittymodule@v0.3.0` |
+| 1 | WittyModule | **0.4.0** | v0.3.0 (module API 3) | 0.4.0 (module API 4, kit at revision 8) | none (G1 fixed) |
 | 2 | WittyDisc | 0.2.1 | v0.2.0 | 0.2.1 | none |
 | 3 | WittyDVD | 0.4.0, and Go folder tag `wittydvdplayer/v0.3.0` | v0.3.1, wittydvdplayer/v0.2.0 | 0.4.0, copy 0.3.0 | none |
 | 4 | WittyBluray | 0.4.0, and `wittyblurayplayer/v0.3.0` | v0.3.0, wittyblurayplayer/v0.2.0 | 0.4.0, copy 0.3.0 | none |
@@ -29,16 +29,16 @@ is never reused**, even after its tag or release is deleted (proxy.golang.org an
 | 11 | WittyCouch | 0.3.0 | v0.2.1 | 0.3.0 | none |
 | 12 | WittyCouchHost | 0.3.0 | v0.2.0 | 0.3.0 | none |
 | 13 | WittyInk | 0.3.0 | v0.2.0 | 0.3.0 | none |
-| 14 | WittyEbook | 0.3.0 | v0.2.0 | 0.3.0 | WittyInk pin (G4) |
-| 15 | WittyPDF | 0.3.0 | v0.2.1 | 0.3.0 | WittyInk pin (G4) |
-| 16 | WittyComics | 0.3.0 | v0.2.0 | 0.3.0 | WittyInk pin (G4) |
+| 14 | WittyEbook | 0.3.0 | v0.2.0 | 0.3.0 | none: its WittyInk pin is raised during publishing (G4) |
+| 15 | WittyPDF | 0.3.0 | v0.2.1 | 0.3.0 | none: as WittyEbook |
+| 16 | WittyComics | 0.3.0 | v0.2.0 | 0.3.0 | none: as WittyEbook |
 | 17 | WittyVisualizer | 0.3.0 | v0.2.1 | 0.3.0 | none |
 | 18 | WittyStats | 0.2.0 | v0.1.2 | 0.2.0 | none |
 | 19 | WittyModuleCatalog | no version: `serial` rises with each refresh (22 now) | the moving `catalog` release | lists only API 3 versions | after every module above |
 | 20 | **WittyMediaServer** | **0.8.0-alpha** | v0.7.2-alpha | consistent (main.go, web package, README) | modules and catalogue first |
-| 21 | WittyMediaClient | **0.5.0** | v0.4.1 | still says 0.4.1 (already published) | **Gate bug G2**: raise to 0.5.0 |
-| 22 | WittyReader | 0.2.0 | v0.1.1 | 0.2.0 ("not released yet" heading) | lock raised to the 0.3.0 plugins (G4); date the heading |
-| 23 | WittyMediaPlayer | 0.1.3 (CMake `VERSION`) | tag v0.1.2 (its build failed; no release) | 0.1.3 | `VISUALIZER_TAG` v0.3.0 (G4); engine pins (publish-all does them) |
+| 21 | WittyMediaClient | **0.5.0** | v0.4.1 | 0.5.0 (Apple build 2, Android code 9) | none (G2 fixed) |
+| 22 | WittyReader | 0.2.0 | v0.1.1 | 0.2.0 ("not released yet" heading) | its lock is raised to the 0.3.0 plugins during publishing (G4); date the heading |
+| 23 | WittyMediaPlayer | 0.1.3 (CMake `VERSION`) | tag v0.1.2 (its build failed; no release) | 0.1.3, `VISUALIZER_TAG` v0.3.0 | none: engine pins are raised during publishing |
 | 24 | WittyMediaServer.com | not versioned: a push to `main` deploys it | n/a | builds hourly from GitHub releases | after the server and clients are released |
 | 25 | WittyMediaRemoteMedia | **nothing to release** ("not started, on purpose") | none | README, design | push `main` only |
 
@@ -46,16 +46,24 @@ Changelogs: most modules keep their changes under `## Unreleased` with inline "*
 to the version and date at release (`wittymodule bump -changelog` does it for a module). WittyStats has no 0.1.2 section
 although 0.1.2 was released. WittyMediaRemoteMedia and WittyMediaServer.com have no CHANGELOG (gate 6 finding).
 
-## 2. Gate bugs found by this plan (to fix before publishing)
+## 2. Gate bugs found by this plan, and what became of them
 
-| | What | Owner | Effect if left |
-|---|---|---|---|
-| G1 | WittyModule is still 0.3.0, a published number whose code is module API 3. Every module's `ci.yml`, `release.yml` and `withdraw.yml`, WittyDisc's two workflows, and WittyModuleCatalog's `ci.yml`, `publish.yml`, `refresh.yml` and `scripts/refresh.sh` run `go run github.com/wittywilla/wittymodule/cmd/wittymodule@v0.3.0` | WittyModule (W7/S1) | `publish-all.sh` skips the existing tag ("tags never move") and pins every module to the old kit; the API 4 modules can't be packed, signed or catalogued |
-| G2 | WittyMediaClient is still 0.4.1: `apple/project.yml` `MARKETING_VERSION` (and `CURRENT_PROJECT_VERSION`), `android/app/build.gradle.kts` `versionName` 0.4.1 / `versionCode` 8, `desktop/package.json`; no 0.5.0 changelog section | clients (design lead) | its `release.yml` checks the tag against these and refuses `v0.5.0` |
-| G3 | W7's checklist says every module's `sdui.json` is `catalog: 8`. Only WittyPlay's is: Comics, Ebook, Ink, IFB, PDF, Photos, Stats, Visualizer, Bluray, DVD are at 7; Couch, Rigs, Tuner, CD, CouchHost at 2 | module owners, or the design lead drops the line | none at run time (the server takes revisions 1 to 8); the checklist fails |
-| G4 | npm and workflow pins `publish-all.sh` doesn't raise: WittyComics, WittyEbook, WittyPDF `@wittywilla/wittyink: github:wittywilla/WittyInk#v0.2.0` (its `lock()` skips a repository that has a lock); WittyReader's lock resolves the four reader plugins at their 0.2.x commits; WittyMediaPlayer `release.yml` `VISUALIZER_TAG: v0.2.1` | S8 (readers), S7 (player) | the readers and the player are built with last release's plugins; if not fixed first, they are owner steps 3d and 4b below |
-| G5 | The player copies (`wittydvdplayer`, `wittyblurayplayer`) have no downloadable release: the player's updater looks for `wittydvdplayer-v*` release tags, and nothing makes them; only the Go folder tags are made | S7 | none now (the player has the copies built in); issue candidate |
-| G6 | `docs/MODULES-CUTOVER.md`'s "What this publishes" table and "all of them declare module API 3" are out of date | S1 | misleading during publishing; this plan supersedes it for 0.8.0-alpha |
+| | What | Done |
+|---|---|---|
+| G1 | WittyModule said 0.3.0, a number already published with module API 3, and every module's `ci.yml`, `release.yml`, `withdraw.yml`, WittyDisc's workflows and the catalogue's `ci.yml`, `publish.yml` and `scripts/refresh.sh` ran `wittymodule@v0.3.0`: `publish-all.sh` would have skipped the existing tag and pinned everything to the old kit | **Fixed** 2026-11-12: WittyModule 0.4.0 (`maxServer` 0.8.x, a 0.4.0 changelog section), every `@v0.3.0` raised to `@v0.4.0` in 19 repositories and in `docs/MODULES.md`. WittyModule's tests pass |
+| G2 | WittyMediaClient said 0.4.1 (already released) | **Fixed**: 0.5.0 in `apple/project.yml` (build 2), `android/app/build.gradle.kts` (code 9), `desktop/package.json` and its lock, and a 0.5.0 changelog section |
+| G3 | The checklist asked every module's `sdui.json` to say `catalog: 8` | **Decided** (design lead): `catalog` is the lowest revision a module needs; the server takes 1 to 8. The checklist line is changed; no module is raised |
+| G4 | npm and workflow pins: WittyComics, WittyEbook, WittyPDF pinned `WittyInk#v0.2.0` in their locks; WittyReader's lock held the 0.2.x reader plugins; WittyMediaPlayer built with `VISUALIZER_TAG v0.2.1`; WittyInk's `repository` named `#v0.2.0` | **Fixed**: `publish-all.sh`'s `lock()` now raises the WittyInk pin and regenerates the lock in each module that has one, right after WittyInk is published, and re-resolves WittyReader's four plugins after they are; `VISUALIZER_TAG` is v0.3.0 (the player's CI checks out that tag, so its first green run is after WittyVisualizer 0.3.0 is out); WittyInk's `repository` has no ref |
+| G5 | The player copies (`wittydvdplayer`, `wittyblurayplayer`) have no downloadable release: the player's updater looks for `wittydvdplayer-v*` release tags; only the Go folder tags are made | Open, issue candidate (S7). No effect now: the player has the copies built in |
+| G6 | `docs/MODULES-CUTOVER.md`'s "What this publishes" table and "all of them declare module API 3" are out of date | Open (S1). This plan supersedes it for 0.8.0-alpha |
+
+**Before WittyModule is published (pre-tag check):** if the server's `pkg/sdui` changed after W7's last kit sync, run
+`kit/sync-sdui-core.sh <server checkout>` in WittyModule again and its checks ([Release checklist](DESIGN-2-RELEASE.md#release-checklist),
+part 3), and merge that before step 3. WittyModule is published first, and a module built against an older kit can't be
+rebuilt under the same number.
+
+**Parity audits** (`DESIGN-2-PARITY-*.md`, auditors W21 to W23) were paused by the owner until after the alpha: they are an
+after-release task, with what they find filed as GitHub issues.
 
 **The branch and the tag share a name.** The server's work is on branch `v0.8.0-alpha`, and its release tag is
 `v0.8.0-alpha`. `publish-all.sh` uses full refs, so it is safe; anything typed by hand must say `refs/heads/v0.8.0-alpha`
@@ -152,16 +160,8 @@ Pins raised by the script on the way (each committed as "Uses the versions this 
 0.4.0, wittycd 0.2.1, wittydisc 0.2.1, wittydvdplayer 0.3.0, wittyblurayplayer 0.3.0, wittymodule 0.4.0; the server's
 `go.mod` to wittymodule 0.4.0 and wittydisc 0.2.1.
 
-**If G4 was not fixed before step 3**, after 3c and before 3d (stop with Ctrl-C after WittyStats, or let it finish and
-fix before step 4):
-
-```bash
-cd ~/projects/WittyComics && npm pkg set dependencies.@wittywilla/wittyink=github:wittywilla/WittyInk#v0.3.0 && npm install --package-lock-only
-```
-
-(the same in WittyEbook and WittyPDF; commit; these three then need a patch release 0.3.1 each, as 0.3.0 is out), and in
-WittyReader `npm update @wittywilla/wittycomics @wittywilla/wittyebook @wittywilla/wittyink @wittywilla/wittypdf`, commit,
-push `main`. In WittyMediaPlayer set `VISUALIZER_TAG: v0.3.0` in `.github/workflows/release.yml`, commit, push `main`.
+`lock()` also raises, during the same run: the WittyInk pin in WittyEbook, WittyPDF and WittyComics (package.json and
+lock, committed before each is tagged), and WittyReader's lock to the plugins just published (before it is pushed).
 
 ### Step 4. Tag the apps (each has its own `release.yml`; none is signed with a key)
 

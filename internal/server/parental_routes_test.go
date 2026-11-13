@@ -292,6 +292,8 @@ var plainRoutes = []string{
 	"GET /api/licenses/{id}",
 	"GET /api/listings/status",
 	"GET /api/logos/credits",
+	"GET /api/console-photos/{id}",
+	"GET /api/console-photos/{id}/image",
 	"GET /api/logos/status",
 	"GET /api/logos/{id}/image",
 	"GET /api/me",

@@ -34,7 +34,12 @@ export function GameSettingsPage() {
 
 let consolesCache: Promise<GameConsole[]> | null = null
 export const getConsoles = (fresh = false): Promise<GameConsole[]> => {
-  if (!consolesCache || fresh) consolesCache = api.get<GameConsole[]>('/games/consoles')
+  if (!consolesCache || fresh) {
+    // A failure isn't kept: the next one to ask asks again.
+    const asked = api.get<GameConsole[]>('/games/consoles')
+    consolesCache = asked
+    asked.catch(() => { if (consolesCache === asked) consolesCache = null })
+  }
   return consolesCache
 }
 

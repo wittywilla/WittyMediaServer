@@ -77,6 +77,8 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/libraries/forget-metadata` | Admin | As for one library, for every library, none being scanned. Also drops downloaded logos and where-to-watch answers |
 | `GET /api/genres` | Signed-in | limits |
 | `GET /api/items` | Signed-in | limits, in the query. Paths for admins only |
+| `GET /api/console-photos/{id}` | Signed-in | Console id checked. A console's picture from Wikimedia Commons, asked for only with Wikidata on and Wikimedia downloads agreed to |
+| `GET /api/console-photos/{id}/image` | Signed-in | Console id checked. Only a picture this server kept |
 | `GET /api/logos/status` | Signed-in | Whether downloads are agreed to, and the source. Counts for admins only |
 | `PUT /api/logos/consent` | Admin | Body says yes or no |
 | `POST /api/logos/lookup` | Signed-in | Up to 200 names. Only an admin's request can add a name or ask a source |

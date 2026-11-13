@@ -1529,6 +1529,8 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 
 | Route | Who | What it does |
 |---|---|---|
+| `GET /console-photos/{id}` | Signed in | A console's picture for WittyPlay's Consoles tab, from Wikimedia Commons by its Wikidata entity, fetched and kept by the server: `{imageUrl, credit, license, licenseUrl, pageUrl, source}`, or 404. Asked for only with Wikidata lookups on and Wikimedia downloads agreed to. |
+| `GET /console-photos/{id}/image` | Signed in | That picture, from the server's own copy. |
 | `GET /logos/status` | Signed in | Whether logo downloads are agreed to, and for an administrator how far they have got. |
 | `PUT /logos/consent` | Admin | Agree or decline logo downloads, and optionally remove what was downloaded. |
 | `POST /logos/lookup` | Signed in | What to show for up to 200 names: a logo, or the name. |

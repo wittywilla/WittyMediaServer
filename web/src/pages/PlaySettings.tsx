@@ -12,6 +12,7 @@ import { Spinner } from '../ui/Surface'
 import { PageHead } from './settings/ui'
 import { GameSettingsPage } from './games/consoles'
 import GamingSettings from './settings/Gaming'
+import { LookSetting } from '../shell/playPads'
 import './settings/settings.css'
 
 const EmulatorsSettings = lazy(() => import('./settings/Emulators'))
@@ -19,6 +20,7 @@ const GamesSupport = lazy(() => import('./settings/GamesSupport'))
 const CouchSettings = lazy(() => import('./settings/Couch'))
 const WittyRigsSettings = lazy(() => import('./settings/WittyRigs'))
 const ModuleSettingsPage = lazy(() => import('./settings/ModuleSettings').then((m) => ({ default: m.ModuleSettingsPage })))
+const LibrariesSettings = lazy(() => import('./SettingsPage').then((m) => ({ default: m.Libraries })))
 const ControllersScreen = lazy(() => import('./Games').then((m) => ({ default: m.ControllersScreen })))
 
 export const PLAY_SETTINGS = '/wittyplay/settings'
@@ -27,6 +29,7 @@ type Entry = { id: string; label: string; hint: string; admin?: boolean; to?: st
 const ENTRIES: { title: string; entries: Entry[] }[] = [
   { title: 'For you', entries: [
     { id: 'games', label: 'My game settings', hint: 'Picture, speed, shortcuts and more: for every game, one console or one game', page: () => <><PageHead title="My game settings" desc="How your games look, sound and behave. Set something for every game, for one console or, from a game’s own page, for one game. It follows you to every device." /><GameSettingsPage /></> },
+    { id: 'look', label: 'Layout, tabs and buttons', hint: 'Shelf, grid or list; the order of the tabs and which show; the buttons WittyPlay shows', page: () => <LookSetting /> },
     { id: 'controllers', label: 'Controllers and buttons', hint: 'Who is on which player, and the buttons WittyPlay shows', to: '/page/wittyplay-controllers' },
     { id: 'mapping', label: 'Controller mapping', hint: 'What each button and stick does, for each console', page: () => <ControllersScreen /> },
     { id: 'privacy', label: 'Friends and what you play', hint: 'Who sees you online and what you are playing', to: '/page/wittyplay-privacy' },
@@ -35,6 +38,7 @@ const ENTRIES: { title: string; entries: Entry[] }[] = [
   { title: 'This server', entries: [
     { id: 'consoles', label: 'Consoles and cores', hint: 'Which consoles play here, each one’s core and its options, BIOS files, and game streaming', admin: true, page: () => <GamingSettings /> },
     { id: 'support', label: 'What this server plays', hint: 'Each console, whether its games play here, and how', page: () => <GamesSupport /> },
+    { id: 'libraries', label: 'Libraries', hint: 'The folders games come from, each library’s console and naming, and scans', admin: true, page: () => <LibrariesSettings /> },
     { id: 'emulators', label: 'Standalone emulators', hint: 'PCSX2, Dolphin, RPCS3 and others: installs, firmware, controllers and every setting', admin: true, page: () => <EmulatorsSettings /> },
     { id: 'pcs', label: 'Game PCs', hint: 'Who can play on PCs running Sunshine, and which ones', admin: true, page: () => <CouchSettings /> },
     { id: 'rigs', label: 'WittyRigs', hint: 'Hosting demanding games on this server’s own hardware', admin: true, page: () => <WittyRigsSettings /> },

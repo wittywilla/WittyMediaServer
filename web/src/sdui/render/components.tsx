@@ -6,7 +6,7 @@
 // parts, their line limits, the picture, the role and label. Nothing here works out what
 // to show.
 
-import { Fragment, lazy, memo, Suspense, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { Fragment, lazy, memo, Suspense, useContext, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { mediaUrl, serverBase } from '../../api'
 import { Placeholder } from '../../components/common'
@@ -23,12 +23,12 @@ import { useList } from '../gridView'
 import { KeyLegend } from '../../ui/KeyLegend'
 import { safeLink as safeHref } from '../../safeLink'
 import { buttonsOf, cardGap, creditGroups, factsOf, fieldOf, gridColumns, initials, type ButtonSpec, type View } from '../model'
-import { consolesOf, dotFor, focusedOf } from '../playModel'
+import { arrangeTabs, consolesOf, dotFor, focusedOf } from '../playModel'
 import { plan } from '../routes'
 import type { Action, Node, Props } from '../types'
 import { px, usePage } from './context'
 import { kindIcon, sduiIcon } from './icons'
-import { useGlyph } from './glyphs'
+import { RowLayoutContext, TabsContext, useGlyph } from './glyphs'
 import { chooseEpisodeView, useEpisodeView } from '../extras/episodeView'
 import { ControlView, FormView } from './forms'
 import { controlOf } from '../formsModel'
@@ -290,8 +290,16 @@ function ShelfView({ view, depth }: { view: View; depth: number }) {
   const shown = onlyConsole && consoles.some((c) => c.name === onlyConsole) ? view.children.filter((c) => c.node.props?.console === onlyConsole) : view.children
   const [focusId, setFocusId] = useState('')
   const focused = focusedOf(shown, focusId)
+  // A shell may lay a growing row out as a grid or a list (WittyPlay's layout choice); up and down then move between its lines.
+  const chosenLayout = useContext(RowLayoutContext)
+  const laid = grow ? chosenLayout : 'shelf'
+  const lines = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (laid === 'shelf' || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') || e.altKey || e.ctrlKey || e.metaKey) return
+    const to = cardToward(e.currentTarget, document.activeElement as HTMLElement | null, e.key === 'ArrowUp' ? -1 : 1)
+    if (to) { e.preventDefault(); e.stopPropagation(); to.focus(); to.scrollIntoView?.({ block: 'nearest' }) }
+  }
   return (
-    <section className={'hub sdui-shelf' + (grow ? ' focus-grow' : '') + (grow && detail ? ' has-detail' : '') + (view.type === 'Carousel' ? ' sdui-carousel' : '') + (view.node.props?.focusGrow === true ? ' sdui-focusgrow' : '') + (view.node.props?.numbered ? ' numbered' : '')} style={{ ...cardVars(view, page.pt), '--peek': view.peek || 0, ...scopeStyle(view.node) } as CSSProperties} data-scope={view.scope} data-sdui-section={depth === 1 ? view.id : undefined} aria-busy={waiting || undefined}>
+    <section className={'hub sdui-shelf' + (grow ? ' focus-grow layout-' + laid : '') + (grow && detail ? ' has-detail' : '') + (view.type === 'Carousel' ? ' sdui-carousel' : '') + (view.node.props?.focusGrow === true ? ' sdui-focusgrow' : '') + (view.node.props?.numbered ? ' numbered' : '')} style={{ ...cardVars(view, page.pt), '--peek': view.peek || 0, ...scopeStyle(view.node) } as CSSProperties} data-scope={view.scope} data-sdui-section={depth === 1 ? view.id : undefined} aria-busy={waiting || undefined}>
       <Heading view={view} id={id} />
       {view.state === 'deferred' && !failed && <Near onNear={() => page.more(view.id)} />}
       {consoles.length > 0 && !waiting && !failed && <ConsoleBar consoles={consoles} total={view.children.length} value={onlyConsole} onChange={(c) => { setOnlyConsole(c); setFocusId('') }} label={(view.text?.title || view.label || 'Games') + ': consoles'} />}
@@ -303,7 +311,7 @@ function ShelfView({ view, depth }: { view: View; depth: number }) {
       ) : (
         <div className="row-wrap">
           <button ref={prev} type="button" className="row-arrow prev" tabIndex={-1} aria-hidden="true" onClick={() => by(-1)} hidden><IconLeft /></button>
-          <div className={'row' + (chips ? ' sdui-chips' : '')} ref={row} data-nav-group role="list" aria-labelledby={view.text?.title ? id : undefined} aria-label={view.text?.title ? undefined : view.label || undefined}>
+          <div className={'row' + (chips ? ' sdui-chips' : '')} ref={row} data-nav-group role="list" onKeyDown={lines} aria-labelledby={view.text?.title ? id : undefined} aria-label={view.text?.title ? undefined : view.label || undefined}>
             {waiting ? <Placeholders view={view} /> : shown.map((c) => <div role="listitem" key={c.id} className={'sdui-item' + (grow && c.id === focused?.id ? ' grown' : '')} onFocus={grow || detail ? () => setFocusId(c.id) : undefined} onPointerEnter={grow || detail ? () => setFocusId(c.id) : undefined}><CardView view={c} showTitles={showTitles} /></div>)}
             {view.hasMore && !waiting && <Near horizontal root={row} onNear={() => page.more(view.id)} />}
             {page.busy(view.id) && !waiting && <Placeholders view={{ ...view, placeholders: 2 }} />}
@@ -315,6 +323,23 @@ function ShelfView({ view, depth }: { view: View; depth: number }) {
       {detail && focused && !waiting && !failed && <ShelfDetail view={focused} parent={view} />}
     </section>
   )
+}
+
+// The card a line up (-1) or down (1) from the focused one in a wrapped row: the nearest by its middle, or none at the edge.
+function cardToward(row: HTMLElement, at: HTMLElement | null, dir: -1 | 1): HTMLElement | null {
+  if (!at || !row.contains(at)) return null
+  const here = at.getBoundingClientRect()
+  const mid = here.left + here.width / 2
+  let best: HTMLElement | null = null, bestScore = Infinity
+  for (const c of Array.from(row.querySelectorAll<HTMLElement>('.card'))) {
+    if (c === at) continue
+    const r = c.getBoundingClientRect()
+    const dy = dir < 0 ? here.top - r.bottom : r.top - here.bottom
+    if (dy < -4) continue
+    const score = dy * 4 + Math.abs(r.left + r.width / 2 - mid)
+    if (score < bestScore) { best = c; bestScore = score }
+  }
+  return best
 }
 
 // The consoles of a games row as a row of chips (a toolbar of toggle buttons: arrows, a remote and a pad reach each one, and a click,
@@ -345,7 +370,8 @@ function ConsoleBar({ consoles, total, value, onChange, label }: { consoles: { n
         else if (e.key === 'ArrowUp') go(page.doc && document.querySelector<HTMLElement>('[role=tab][aria-selected=true]'))
         return
       }
-      if (e.key === 'ArrowUp' && section.querySelector('.row')?.contains(at)) go(chosen())
+      const rowEl = section.querySelector<HTMLElement>('.row')
+      if (e.key === 'ArrowUp' && rowEl?.contains(at) && !cardToward(rowEl, at, -1)) go(chosen())
       else if (e.key === 'ArrowDown' && at.getAttribute('role') === 'tab' && at.getAttribute('aria-selected') === 'true' && section.isConnected && section.getClientRects().length) go(chosen())
     }
     window.addEventListener('keydown', keys, true)
@@ -874,12 +900,26 @@ function TabsView({ view, depth }: { view: View; depth: number }) {
   const label = 'Views'
   const panel = 'sdui-panel-' + view.id
   const icon = (t: View) => sduiIcon(t.node.props?.icon)
+  // A shell's own tabs beside the page's (WittyPlay's Consoles), after the tab each names, unless the page has that tab itself.
+  const extra = useContext(TabsContext)
+  const mine = !!extra && extra.page === page.doc.page.id && depth === 1
+  const withExtra = <T extends { value: string; label: ReactNode; to?: string }>(items: T[]): T[] => {
+    if (!mine || !extra) return items
+    const out = [...items]
+    for (const x of extra.tabs) {
+      if (out.some((i) => i.value === x.id)) continue
+      const at = out.findIndex((i) => i.value === x.after)
+      out.splice(at < 0 ? out.length : at + 1, 0, { value: x.id, label: x.label, to: x.to } as T)
+    }
+    return arrangeTabs(out, extra.order, extra.hidden, selected.id)
+  }
   return (
     <section className={'sdui-tabs' + (view.type === 'CrossBar' ? ' sdui-crossbar' : '')} data-sdui-section={depth === 1 ? view.id : undefined} style={scopeStyle(view.node)}>
       <div data-sdui-tabs={view.id} data-sdui-head>
         {str(view.node.props, 'style') === 'segments'
           ? <Segmented label={label} value={selected.id} onChange={choose} options={tabs.map((t) => ({ value: t.id, label: t.text?.title || '', icon: icon(t) }))} />
-          : <TabStrip label={label} value={selected.id} onChange={choose} panelId={panel} items={tabs.map((t) => ({ value: t.id, label: <>{icon(t)}{t.text?.title}</> }))} />}
+          : <TabStrip label={label} value={selected.id} onChange={choose} panelId={panel} items={withExtra(tabs.map((t) => ({ value: t.id, label: <>{icon(t)}{t.text?.title}</> })))} />}
+        {mine && extra?.end}
       </div>
       <div id={panel} role="tabpanel" aria-label={selected.text?.title} className="sdui-stack" aria-busy={page.busy('page') || undefined}
         onFocus={cross ? aim : undefined} onMouseOver={cross ? aim : undefined}>

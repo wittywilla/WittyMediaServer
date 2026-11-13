@@ -194,6 +194,8 @@ var routeRules = map[string]string{
 	"GET /api/listings/status":                                  "Signed-in: Whether listings are on, the region and the credit. Counts and progress for admins only",
 	"GET /api/logos/credits":                                    "Signed-in: limits, on studios and networks: those of titles and channels the account may see",
 	"GET /api/artwork/credits":                                  "Signed-in: limits, in the query: pictures of titles the account may see",
+	"GET /api/console-photos/{id}":                              "Signed-in: Console id checked. A console's picture from Wikimedia Commons, asked for only with Wikidata on and Wikimedia downloads agreed to",
+	"GET /api/console-photos/{id}/image":                        "Signed-in: Console id checked. Only a picture this server kept",
 	"GET /api/logos/status":                                     "Signed-in: Whether downloads are agreed to, and the source. Counts for admins only",
 	"GET /api/logos/{id}/image":                                 "Signed-in: Numeric id. One of three variants, from the server's own files. Pictures only",
 	"GET /api/me":                                               "Signed-in: The caller's own account",

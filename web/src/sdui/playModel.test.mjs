@@ -3,7 +3,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { buttonsOf } from './model.ts'
-import { consolesOf, dotFor, focusedOf, onConsole, presenceClass } from './playModel.ts'
+import { arrangeTabs, consolesOf, dotFor, focusedOf, onConsole, presenceClass } from './playModel.ts'
 
 test('presence is a dot colour', () => {
   assert.equal(presenceClass('Playing'), 'on')
@@ -41,4 +41,11 @@ test('a games row offers its consoles, most games first, and narrows to one', ()
   assert.equal(onConsole(row, 'SNES').length, 2)
   assert.equal(onConsole(row, '').length, 4)
   assert.deepEqual(consolesOf([{ props: { console: 'SNES' } }]), [])
+})
+
+test('tabs follow the person’s order and leave out those hidden, but never the one showing', () => {
+  const t = ['recent', 'classics', 'consoles', 'together'].map((value) => ({ value }))
+  assert.deepEqual(arrangeTabs(t, ['consoles', 'recent']).map((x) => x.value), ['consoles', 'recent', 'classics', 'together'])
+  assert.deepEqual(arrangeTabs(t, [], ['together', 'recent'], 'recent').map((x) => x.value), ['recent', 'classics', 'consoles'])
+  assert.deepEqual(arrangeTabs(t).map((x) => x.value), ['recent', 'classics', 'consoles', 'together'])
 })

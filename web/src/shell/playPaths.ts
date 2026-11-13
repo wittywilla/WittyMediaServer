@@ -10,7 +10,7 @@ export const PLAY_HOME = '/page/wittyplay-online'
 const PLAY_DESIGN = '/design/play'
 
 // One of WittyPlay Online's pages (the module's own pages are named wittyplay-…).
-export const isPlayPath = (path: string) => path === PLAY_HOME || path === '/page/wittyplay' || path.startsWith('/page/wittyplay-') || path === PLAY_DESIGN || path === PLAY_SETTINGS || path.startsWith(PLAY_SETTINGS + '/')
+export const isPlayPath = (path: string) => path === PLAY_HOME || path === '/page/wittyplay' || path.startsWith('/page/wittyplay-') || path === PLAY_DESIGN || path === PLAY_SETTINGS || path.startsWith(PLAY_SETTINGS + '/') || path.startsWith('/wittyplay/')
 
 // WittyPlay's Settings: every games page of the app's Settings, in WittyPlay's frame (pages/PlaySettings.tsx).
 export const PLAY_SETTINGS = '/wittyplay/settings'
@@ -84,3 +84,52 @@ export const exitWords = (p: PlayPads) => ({
 }[p])
 // A Nintendo choice trades the bottom and right buttons (the right one confirms); the others leave each pad to its own id.
 export const swapFor = (p: PlayPads): boolean | null => (p === 'nintendo' ? true : p === 'keyboard' ? null : false)
+
+// ---- how WittyPlay lays out its games: one row sideways with the focused game below (the console way), a grid that scrolls down, or a
+// dense list for big libraries. Per profile in /me/ui, like the buttons; Settings and the tab row change it.
+export type PlayLayout = 'shelf' | 'grid' | 'list'
+export const PLAY_LAYOUT_KEY = 'wittyplayLayout'
+export const PLAY_LAYOUTS: { id: PlayLayout; label: string; note: string }[] = [
+  { id: 'shelf', label: 'Shelf', note: 'One row that scrolls sideways, the chosen game large with its details below' },
+  { id: 'grid', label: 'Grid', note: 'Every game in tiles that scroll down, its details beside them' },
+  { id: 'list', label: 'List', note: 'Dense rows: title, console and when it was played, for big libraries' },
+]
+export const isPlayLayout = (v: unknown): v is PlayLayout => PLAY_LAYOUTS.some((l) => l.id === v)
+export const layoutOf = (v: unknown): PlayLayout => (isPlayLayout(v) ? v : 'shelf')
+
+// The Consoles tab: WittyPlay's own page (pages/PlayConsoles.tsx), beside the page's tabs from the server.
+export const PLAY_CONSOLES = '/wittyplay/consoles'
+// A games library inside WittyPlay: the app's whole games library (by console, search, filters), in WittyPlay's frame.
+export const PLAY_LIBRARY = '/wittyplay/library'
+// The home's tabs as the server's page has them, for WittyPlay's own pages to show the same row.
+// In the order they come unless someone arranges their own (Recent, then Consoles, then the rest).
+export const PLAY_TABS = [
+  { id: 'recent', label: 'Recent' }, { id: 'consoles', label: 'Consoles' }, { id: 'classics', label: 'Classics' },
+  { id: 'together', label: 'Together' }, { id: 'memories', label: 'Memories' }, { id: 'discover', label: 'Discover' },
+]
+// Someone's own arrangement of the tabs, per profile in /me/ui: {order, hidden}, by id.
+export const PLAY_TABS_KEY = 'wittyplayTabs'
+export type PlayTabsPref = { order: string[]; hidden: string[] }
+export function tabsPref(v: unknown): PlayTabsPref {
+  const o = (v && typeof v === 'object' ? v : {}) as Partial<PlayTabsPref>
+  const ids = (x: unknown) => (Array.isArray(x) ? x.filter((i): i is string => typeof i === 'string') : [])
+  const order = ids(o.order)
+  return { order: order.length ? order : PLAY_TABS.map((t) => t.id), hidden: ids(o.hidden).filter((h) => h !== 'recent') }
+}
+// One tab moved one place (-1 up, 1 down) in the arrangement.
+export function moveTab(order: string[], id: string, dir: -1 | 1): string[] {
+  const all = [...order, ...PLAY_TABS.map((t) => t.id).filter((t) => !order.includes(t))]
+  const i = all.indexOf(id), j = i + dir
+  if (i < 0 || j < 0 || j >= all.length) return all
+  ;[all[i], all[j]] = [all[j], all[i]]
+  return all
+}
+export const tabRoute = (id: string) => (id === 'consoles' ? PLAY_CONSOLES : PLAY_HOME + '?tab=' + id)
+
+// The games library a console's games are browsed in: the one kept for that console, else the first games library (it holds many).
+export function libraryFor<L extends { id: number; type: string; console?: string }>(libs: L[], consoleId: string): L | undefined {
+  const games = libs.filter((l) => l.type === 'games')
+  return games.find((l) => l.console === consoleId) || games.find((l) => !l.console || l.console === 'auto') || games[0]
+}
+// A console's years as people say them: 1990 to 1997, or since 2017.
+export const yearsWords = (launched?: number, ended?: number) => (launched ? (ended && ended !== launched ? launched + ' to ' + ended : ended ? String(launched) : 'Since ' + launched) : '')

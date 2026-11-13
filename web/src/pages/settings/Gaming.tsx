@@ -58,7 +58,8 @@ function StandingPill({ s }: { s: Standing }) {
   return <span className={'gm-pill ' + (s === 'ready' ? 'ok' : s === 'none' ? 'off' : 'warn')}>{s === 'ready' ? <IconCheck size={14} /> : <IconInfo size={14} />} {STANDING_WORDS[s]}</span>
 }
 
-export default function GamingSettings() {
+// only: one console's card alone (its core, its other cores and its BIOS files), as WittyPlay's console page shows it.
+export default function GamingSettings({ only }: { only?: string } = {}) {
   const [st, setSt] = useState<Status | null>(null)
   const [busy, setBusy] = useState('')
   const [confirm, setConfirm] = useState<{ id: string; name: string; license: string }[] | null>(null)
@@ -243,6 +244,7 @@ export default function GamingSettings() {
 
   return (
     <>
+      {only ? (() => { const row = st.consoles.find((c) => c.id === only); return row ? <div className="gm-setups">{card(row)}</div> : <p className="muted">This server doesn’t know this console.</p> })() : <>
       <PageHead title="Consoles & cores" desc="Games run on this server and stream to whatever you’re playing on. To play a console’s games, the server needs a core for it: a small free program that plays them. Some consoles also need a BIOS file of your own." />
       <Section title="Your consoles" desc={withGames.length ? `${readyCount} of ${withGames.length} ${withGames.length === 1 ? 'console' : 'consoles'} with games ${readyCount === 1 ? 'is' : 'are'} ready to play.` : 'When a library has games in it, its consoles show up here first.'}
         actions={uniqueMissing.length > 1 ? <button type="button" className="btn primary" disabled={!!busy} onClick={() => setConfirm(uniqueMissing)}>{busy ? 'Installing…' : `Install all ${uniqueMissing.length} recommended cores`}</button> : undefined}>
@@ -359,6 +361,7 @@ export default function GamingSettings() {
       )}
       <CustomCoresSection onChanged={refresh} />
       <LegalNote kind="cores" className="set-legal" />
+      </>}
       {picker && <Suspense fallback={null}><CorePicker scope={picker} onClose={() => { setPicker(null); void refresh() }} /></Suspense>}
       {confirm && (
         <Dialog title={confirm.length === 1 ? `Install ${confirm[0].name}?` : `Install ${confirm.length} cores?`} onClose={() => setConfirm(null)}

@@ -286,7 +286,8 @@ function CommercialsSwitch({ library }: { library: Library }) {
   )
 }
 
-function Libraries() {
+// Exported for WittyPlay's Settings, which shows the same list (its games libraries among them).
+export function Libraries() {
   const { libraries, refreshLibraries } = useApp()
   const [editing, setEditing] = useState<Partial<Library> | null>(null)
   const [adding, setAdding] = useState(false)

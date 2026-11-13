@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Brand } from '../components/common'
 import { cornerName } from '../api'
@@ -11,9 +11,9 @@ import { dockCurrent, usePageRegions, type DockEntry, type StatusPart } from '..
 import { setPlayMode } from '../theme'
 import { isBackKey } from '../ui/spatial'
 import { useApp } from '../state'
-import { dockFor, exitWords, isPlayPath, isPlayTop, PLAY_CONTROLLERS, PLAY_EXIT, PLAY_PADS_TITLE, PLAY_STATUS, PLAY_TIP, PLAY_TIP_KEY, tipDue, type PlayPads } from './playPaths'
-import { PadsChooser, PadsSetting, PlayGlyph, usePlayPads } from './playPads'
-import { GlyphContext, type GlyphKey } from '../sdui/render/glyphs'
+import { dockFor, exitWords, isPlayPath, isPlayTop, PLAY_CONSOLES, PLAY_CONTROLLERS, PLAY_EXIT, PLAY_PADS_TITLE, PLAY_STATUS, PLAY_TIP, PLAY_TIP_KEY, tipDue, type PlayLayout, type PlayPads } from './playPaths'
+import { usePlayTabs, LayoutChooser, LayoutSwitch, PadsChooser, PadsSetting, PlayGlyph, usePlayLayout, usePlayPads } from './playPads'
+import { GlyphContext, RowLayoutContext, TabsContext, type GlyphKey } from '../sdui/render/glyphs'
 import './playChrome.css'
 
 export { isPlayPath }
@@ -94,12 +94,11 @@ export function SystemDock({ entries }: { entries: DockEntry[] }) {
   )
 }
 
-// The first-time tip: how to get back to the app. A dialog (focus moves in and stays, Esc, Back, B or A on its button closes it), with a
-// ring drawn round the Home button so it points at it.
-// First "Which buttons should we show?" (on the first launch), then how to get back to the app in those buttons.
-function ExitTip({ onClose, choose, pads, setPads }: { onClose: () => void; choose: boolean; pads: PlayPads; setPads: (p: PlayPads) => void }) {
+// The first-time tip, a dialog (focus moves in and stays; Esc, Back or B closes it): on the first launch "Which buttons should we
+// show?" and then, optionally, the layout; always how to get back to the app, in those buttons, with a ring round the Home button.
+function ExitTip({ onClose, choose, pads, setPads, layout, setLayout }: { onClose: () => void; choose: boolean; pads: PlayPads; setPads: (p: PlayPads) => void; layout: PlayLayout; setLayout: (l: PlayLayout) => void }) {
   const id = useId()
-  const [step, setStep] = useState<'pads' | 'exit'>(choose ? 'pads' : 'exit')
+  const [step, setStep] = useState<'pads' | 'layout' | 'exit'>(choose ? 'pads' : 'exit')
   const box = useRef<HTMLDivElement | null>(null)
   const [ring, setRing] = useState<DOMRect | null>(null)
   useEffect(() => {
@@ -107,7 +106,7 @@ function ExitTip({ onClose, choose, pads, setPads }: { onClose: () => void; choo
     return () => { if (before?.isConnected) before.focus({ preventScroll: true }) }
   }, [])
   useEffect(() => {
-    box.current?.querySelector<HTMLElement>(step === 'pads' ? '[aria-checked=true]' : '.wplay-tip-ok')?.focus()
+    box.current?.querySelector<HTMLElement>(step === 'exit' ? '.wplay-tip-ok' : '[aria-checked=true]')?.focus()
     if (step !== 'exit') { setRing(null); return }
     const place = () => setRing(document.querySelector('.wplay .play-exit')?.getBoundingClientRect() || null)
     place()
@@ -133,7 +132,17 @@ function ExitTip({ onClose, choose, pads, setPads }: { onClose: () => void; choo
             <h2 id={id + 't'}>{PLAY_PADS_TITLE}</h2>
             <p id={id + 'd'}>WittyPlay shows these buttons on its screens. You can change it later under Controllers.</p>
             <PadsChooser value={pads} onChange={setPads} labelledBy={id + 't'} />
-            <button type="button" className="wplay-tip-ok" onClick={() => { setPads(pads); setStep('exit') }}>{drawn('a')} Continue</button>
+            <button type="button" className="wplay-tip-ok" onClick={() => { setPads(pads); setStep('layout') }}>{drawn('a')} Continue</button>
+          </>
+        ) : step === 'layout' ? (
+          <>
+            <h2 id={id + 't'}>How should your games be laid out?</h2>
+            <p id={id + 'd'}>You can switch at any time with the buttons at the end of the tabs, or in Settings.</p>
+            <LayoutChooser value={layout} onChange={setLayout} labelledBy={id + 't'} />
+            <div className="wplay-tip-row">
+              <button type="button" className="wplay-tip-ok" onClick={() => { setLayout(layout); setStep('exit') }}>{drawn('a')} Continue</button>
+              <button type="button" className="wplay-tip-skip" onClick={() => setStep('exit')}>Skip</button>
+            </div>
           </>
         ) : (
           <>
@@ -176,6 +185,10 @@ export function PlayFrame({ children }: { children: ReactNode }) {
   const closeTip = () => { setTip(false); if (tipDue(seen)) void setSeen(true).catch(() => {}) }
   const [pads, padsChosen, setPads] = usePlayPads()
   const glyph = useCallback((g: GlyphKey) => <PlayGlyph pads={pads} g={g} />, [pads])
+  const [layout, setLayout] = usePlayLayout()
+  // The Consoles tab beside the server's tabs, and the layout switch at the end of the row.
+  const [tabPref] = usePlayTabs()
+  const tabs = useMemo(() => ({ page: 'wittyplay-online', tabs: [{ id: 'consoles', label: 'Consoles', to: PLAY_CONSOLES, after: 'recent' }], end: <LayoutSwitch />, order: tabPref.order, hidden: tabPref.hidden }), [tabPref.order.join(), tabPref.hidden.join()]) // eslint-disable-line react-hooks/exhaustive-deps
   const top = isPlayTop(loc.pathname)
   useEffect(() => {
     if (!top) return
@@ -195,16 +208,16 @@ export function PlayFrame({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('keydown', onKey, true)
   }, [top]) // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <GlyphContext.Provider value={glyph}>
-      <div className="wplay" data-scope="wittyplay" data-pads={pads}>
+    <GlyphContext.Provider value={glyph}><RowLayoutContext.Provider value={layout}><TabsContext.Provider value={tabs}>
+      <div className="wplay" data-scope="wittyplay" data-pads={pads} data-layout={layout}>
         <StatusBar parts={regions?.statusBar || PLAY_STATUS} onExit={exit} onHelp={() => setTip(true)} />
         <main className="wplay-stage" id="main" data-nav-zone="stage" tabIndex={-1}>
           {loc.pathname === PLAY_CONTROLLERS && <PadsSetting />}
           {children}
         </main>
         <SystemDock entries={dockFor(regions?.systemDock)} />
-        {tip && <ExitTip onClose={closeTip} choose={!padsChosen} pads={pads} setPads={setPads} />}
+        {tip && <ExitTip onClose={closeTip} choose={!padsChosen} pads={pads} setPads={setPads} layout={layout} setLayout={setLayout} />}
       </div>
-    </GlyphContext.Provider>
+    </TabsContext.Provider></RowLayoutContext.Provider></GlyphContext.Provider>
   )
 }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { lazy, Suspense, useEffect, useLayoutEffect, useState } from 'react'
-import { Link, Route, Routes, useLocation } from 'react-router-dom'
+import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AppProvider, ToastHost, useApp } from './state'
 import { ReminderWatcher } from './pages/tv/reminders'
 import { api } from './api'
@@ -46,6 +46,9 @@ const SharedPage = lazy(() => import('./pages/SharedPage'))
 const DesignPage = lazy(() => import('./pages/DesignPage'))
 const DesignPlay = lazy(() => import('./pages/DesignPlay'))
 const PlaySettings = lazy(() => import('./pages/PlaySettings'))
+const PlayConsoles = lazy(() => import('./pages/PlayConsoles'))
+const PlayConsoleSettings = lazy(() => import('./pages/PlayConsoles').then((m) => ({ default: m.PlayConsoleSettings })))
+const PlayLibrary = lazy(() => import('./pages/PlayConsoles').then((m) => ({ default: m.PlayLibrary })))
 const GapsReview = lazy(() => import('./spec/GapsReview'))
 const HelpPage = lazy(() => import('./pages/HelpPage'))
 const HelpPublicPage = lazy(() => import('./pages/HelpPage').then((m) => ({ default: m.HelpPublicPage })))
@@ -141,6 +144,9 @@ function Shell() {
   const isStream = /^\/couch\/\d+\/play\//.test(loc.pathname) || loc.pathname.startsWith('/couch-rig/')
   // WittyPlay Online takes over the window, over the app's frame and in its own palette (shell/PlayChrome.tsx), in TV mode too.
   const isWPlay = isPlayPath(loc.pathname) || gamesInPlay
+  // A games library's page, with WittyPlay installed: WittyPlay's own view of it (the app's whole games library, in its frame).
+  const playLib = gamesInPlay ? /^\/library\/(\d+)$/.exec(loc.pathname)?.[1] : undefined
+  const toPlayLibrary = playLib ? '/wittyplay/library/' + playLib + loc.search : ''
   return (
     <AudioProvider>
       {!isTvPlayer && !isReader && !isStream && !isGame && !isPlayer && !isWPlay && <Scene />}
@@ -149,7 +155,7 @@ function Shell() {
         : isCouchMode ? <Suspense fallback={<Spinner />}><Routes><Route path="/big/*" element={<CouchMode />} /></Routes></Suspense>
         : isGame ? <Suspense fallback={<Spinner />}><Routes><Route path="/game/:id" element={<GamePage />} /></Routes></Suspense>
         : isStream ? <Suspense fallback={<Spinner />}><Routes><Route path="/couch/:id/play/:app" element={<CouchPlayPage />} /><Route path="/couch-rig/:id" element={<RigPlayPage />} /></Routes></Suspense>
-        : isPlayer ? null : isWPlay ? <PlayFrame><Suspense fallback={<RouteSkeleton />}><PageRoutes /></Suspense></PlayFrame> : tvMode ? <Suspense fallback={<Spinner />}><TvFrame pages={<PageRoutes />} /></Suspense> : <AppFrame />}
+        : isPlayer ? null : isWPlay ? <PlayFrame>{toPlayLibrary ? <Navigate to={toPlayLibrary} replace /> : <Suspense fallback={<RouteSkeleton />}><PageRoutes /></Suspense>}</PlayFrame> : tvMode ? <Suspense fallback={<Spinner />}><TvFrame pages={<PageRoutes />} /></Suspense> : <AppFrame />}
       <PlayerDock />
       <RemoteHost />
       {isTv && <Suspense fallback={null}><TvHost /></Suspense>}
@@ -270,6 +276,10 @@ export function PageRoutes() {
       <Route path="/help/:guide" element={<Suspense fallback={<Spinner />}><HelpPage /></Suspense>} />
       <Route path="/design" element={<DesignPage />} />
       <Route path="/design/play" element={<Suspense fallback={<Spinner />}><DesignPlay /></Suspense>} />
+      <Route path="/wittyplay/consoles" element={<Suspense fallback={<Spinner />}><PlayConsoles /></Suspense>} />
+      <Route path="/wittyplay/consoles/:id" element={<Suspense fallback={<Spinner />}><PlayConsoleSettings /></Suspense>} />
+      <Route path="/wittyplay/library" element={<Suspense fallback={<Spinner />}><PlayLibrary /></Suspense>} />
+      <Route path="/wittyplay/library/:id" element={<Suspense fallback={<Spinner />}><PlayLibrary /></Suspense>} />
       <Route path="/wittyplay/settings" element={<Suspense fallback={<Spinner />}><PlaySettings /></Suspense>} />
       <Route path="/wittyplay/settings/module/:module" element={<Suspense fallback={<Spinner />}><PlaySettings /></Suspense>} />
       <Route path="/wittyplay/settings/:section/*" element={<Suspense fallback={<Spinner />}><PlaySettings /></Suspense>} />

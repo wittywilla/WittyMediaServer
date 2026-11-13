@@ -9,7 +9,7 @@ import { PadGlyph, type PromptButton } from '../pages/games/prompts'
 import type { GlyphKey } from '../sdui/render/glyphs'
 import { setPadSwap } from '../ui/gamepad'
 import { useUserPref } from '../ui/userPrefs'
-import { isPlayPads, padsFor, PLAY_KEYS, PLAY_PADS, PLAY_PADS_KEY, swapFor, type PlayPads } from './playPaths'
+import { moveTab, PLAY_TABS, PLAY_TABS_KEY, tabsPref, type PlayTabsPref, isPlayPads, layoutOf, padsFor, PLAY_KEYS, PLAY_LAYOUT_KEY, PLAY_LAYOUTS, PLAY_PADS, PLAY_PADS_KEY, swapFor, type PlayLayout, type PlayPads } from './playPaths'
 
 // By position: A at the bottom, B on the right, X on the left, Y at the top. Nintendo's letters for those places are the pad's own.
 const PLACE: Record<GlyphKey, PromptButton> = { a: 'confirm', b: 'back', x: 'west', y: 'north' }
@@ -56,6 +56,96 @@ export function PadsSetting() {
     <section className="wplay-pads-setting">
       <h2 id={id}>Buttons shown in WittyPlay</h2>
       <PadsChooser value={pads} onChange={setPads} labelledBy={id} />
+    </section>
+  )
+}
+
+// ---- the layout of WittyPlay's games: Shelf, Grid or List, per profile ----
+export function usePlayLayout(): [PlayLayout, (l: PlayLayout) => void] {
+  const [saved, save] = useUserPref<string>(PLAY_LAYOUT_KEY, '')
+  return [layoutOf(saved), (l) => { void save(l).catch(() => {}) }]
+}
+
+// A drawing of each layout, for the choices.
+function LayoutIcon({ id }: { id: PlayLayout }) {
+  const r = (x: number, y: number, w: number, h: number) => <rect key={x + ':' + y} x={x} y={y} width={w} height={h} rx="1.5" />
+  const shapes = id === 'shelf' ? [r(2, 6, 8, 9), r(12, 7, 5, 7), r(19, 7, 4, 7)]
+    : id === 'grid' ? [r(2, 3, 5, 5), r(9.5, 3, 5, 5), r(17, 3, 5, 5), r(2, 10, 5, 5), r(9.5, 10, 5, 5), r(17, 10, 5, 5), r(2, 17, 5, 4), r(9.5, 17, 5, 4), r(17, 17, 5, 4)]
+    : [r(2, 4, 4, 4), r(8, 5, 14, 2), r(2, 10, 4, 4), r(8, 11, 14, 2), r(2, 16, 4, 4), r(8, 17, 14, 2)]
+  return <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">{shapes}</svg>
+}
+
+// The quick switch at the end of the tab row: three buttons, the chosen one pressed.
+export function LayoutSwitch() {
+  const [layout, setLayout] = usePlayLayout()
+  return (
+    <div className="wplay-layout-switch" role="group" aria-label="Layout">
+      {PLAY_LAYOUTS.map((l) => (
+        <button key={l.id} type="button" aria-pressed={layout === l.id} aria-label={l.label} title={l.label} onClick={() => setLayout(l.id)}><LayoutIcon id={l.id} /></button>
+      ))}
+    </div>
+  )
+}
+
+// The full choice, with words: WittyPlay's Settings and the first-time tip.
+export function LayoutChooser({ value, onChange, labelledBy }: { value: PlayLayout; onChange: (l: PlayLayout) => void; labelledBy: string }) {
+  return (
+    <div className="wplay-pads" role="radiogroup" aria-labelledby={labelledBy} data-nav-group>
+      {PLAY_LAYOUTS.map((l) => (
+        <button key={l.id} type="button" role="radio" aria-checked={l.id === value} className={'wplay-pad' + (l.id === value ? ' on' : '')} onClick={() => onChange(l.id)}>
+          <span className="wplay-layout-art" aria-hidden="true"><LayoutIcon id={l.id} /></span>
+          <span className="wplay-pad-text"><b>{l.label}</b><span>{l.note}</span></span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// WittyPlay Settings' page for both choices.
+export function LookSetting() {
+  const [pads, , setPads] = usePlayPads()
+  const [layout, setLayout] = usePlayLayout()
+  const a = useId(), b = useId()
+  return (
+    <div className="wplay-look-setting">
+      <section className="wplay-pads-setting"><h2 id={a}>Layout</h2><LayoutChooser value={layout} onChange={setLayout} labelledBy={a} /></section>
+      <TabsSetting />
+      <section className="wplay-pads-setting"><h2 id={b}>Buttons shown in WittyPlay</h2><PadsChooser value={pads} onChange={setPads} labelledBy={b} /></section>
+    </div>
+  )
+}
+
+// ---- the tabs: someone's own order and which show ----
+export function usePlayTabs(): [PlayTabsPref, (p: PlayTabsPref) => void] {
+  const [saved, save] = useUserPref<unknown>(PLAY_TABS_KEY, null)
+  return [tabsPref(saved), (p) => { void save(p).catch(() => {}) }]
+}
+
+// The tabs in order, each with Up, Down and Show: plain buttons a remote or a pad reaches with the arrows. Recent always shows.
+export function TabsSetting() {
+  const [pref, setPref] = usePlayTabs()
+  const id = useId()
+  const label = (t: string) => PLAY_TABS.find((x) => x.id === t)?.label || t
+  const order = [...pref.order, ...PLAY_TABS.map((t) => t.id).filter((t) => !pref.order.includes(t))].filter((t) => PLAY_TABS.some((x) => x.id === t))
+  return (
+    <section className="wplay-pads-setting">
+      <h2 id={id}>Tabs</h2>
+      <p className="wplay-console-note">The order of the tabs along the top, and which of them show.</p>
+      <ol className="wplay-tabs-setting" aria-labelledby={id}>
+        {order.map((t, i) => {
+          const shown = !pref.hidden.includes(t)
+          return (
+            <li key={t} className={shown ? '' : 'off'}>
+              <b>{label(t)}</b>
+              <span className="wplay-tabs-buttons">
+                <button type="button" disabled={i === 0} onClick={() => setPref({ ...pref, order: moveTab(order, t, -1) })} aria-label={'Move ' + label(t) + ' up'}>Up</button>
+                <button type="button" disabled={i === order.length - 1} onClick={() => setPref({ ...pref, order: moveTab(order, t, 1) })} aria-label={'Move ' + label(t) + ' down'}>Down</button>
+                <button type="button" aria-pressed={shown} disabled={t === 'recent'} onClick={() => setPref({ ...pref, hidden: shown ? [...pref.hidden, t] : pref.hidden.filter((h) => h !== t) })} aria-label={'Show ' + label(t)}>{shown ? 'Shown' : 'Hidden'}</button>
+              </span>
+            </li>
+          )
+        })}
+      </ol>
     </section>
   )
 }

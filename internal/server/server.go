@@ -139,21 +139,23 @@ type Server struct {
 	router    *portmap.Probe // the latest "check my router"
 
 	// setupFinished caches that first run is over: once it is, nothing about it is asked again.
-	setupFinished atomic.Bool
-	setupCode     string
-	setupCodeOnce sync.Once
-	audioSlots    chan struct{} // audio transcodes running at once
-	gameOnce      sync.Once
-	gameSvc       *gameService
-	rigOnce       sync.Once
-	rigSvc        *rigService
-	moonOnce      sync.Once
-	couchSvc      *couchService
-	radioChecks   sync.WaitGroup // "check every station" runs on its own
-	diagOnce      sync.Once
-	diag          *diagnose.Manager // WittyDiagnoser, started when first wanted
-	logoOnce      sync.Once
-	logoSvc       *library.Logos // the logo service, made when first wanted
+	setupFinished    atomic.Bool
+	setupCode        string
+	setupCodeOnce    sync.Once
+	audioSlots       chan struct{} // audio transcodes running at once
+	gameOnce         sync.Once
+	gameSvc          *gameService
+	rigOnce          sync.Once
+	rigSvc           *rigService
+	moonOnce         sync.Once
+	couchSvc         *couchService
+	radioChecks      sync.WaitGroup // "check every station" runs on its own
+	diagOnce         sync.Once
+	diag             *diagnose.Manager // WittyDiagnoser, started when first wanted
+	consolePhotoOnce sync.Once
+	consolePhotoSvc  *consolePhotos // WittyPlay's console pictures, made when first wanted
+	logoOnce         sync.Once
+	logoSvc          *library.Logos // the logo service, made when first wanted
 	// When the guide last told it about tuner channels: see noteTunerLogos.
 	tunerLogosNoted atomic.Int64
 
@@ -268,6 +270,8 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("POST /api/libraries/forget-metadata", s.requireAdmin(s.handleForgetAllMetadata))
 	m.Handle("GET /api/genres", a(s.handleGenres))
 	m.Handle("GET /api/items", a(s.handleItems))
+	m.Handle("GET /api/console-photos/{id}", a(s.handleConsolePhoto))
+	m.Handle("GET /api/console-photos/{id}/image", a(s.handleConsolePhotoImage))
 	m.Handle("GET /api/logos/status", a(s.handleLogoStatus))
 	m.Handle("PUT /api/logos/consent", s.requireAdmin(s.handleLogoConsent))
 	m.Handle("POST /api/logos/lookup", a(s.handleLogoLookup))

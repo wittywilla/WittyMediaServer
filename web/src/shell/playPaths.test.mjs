@@ -2,7 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { exitWords, isPlayPads, isPlayPath, isPlayTop, padsFor, PLAY_EXIT, PLAY_TIP, swapFor, tipDue } from './playPaths.ts'
+import { moveTab, tabsPref, PLAY_TABS, libraryFor, yearsWords, layoutOf, exitWords, isPlayPads, isPlayPath, isPlayTop, padsFor, PLAY_EXIT, PLAY_TIP, swapFor, tipDue } from './playPaths.ts'
 
 test('WittyPlay Online pages take over the window; nothing else does', () => {
   assert.ok(isPlayPath('/page/wittyplay-online'))
@@ -46,4 +46,27 @@ test('Back exits to Home only from the top page', () => {
   assert.ok(isPlayTop('/page/wittyplay-online'))
   assert.ok(!isPlayTop('/page/wittyplay-privacy'))
   assert.equal(PLAY_EXIT, '/')
+})
+
+test('a console is browsed in its own library, else a mixed one', () => {
+  const libs = [{ id: 1, type: 'movies' }, { id: 2, type: 'games', console: 'snes' }, { id: 3, type: 'games', console: 'auto' }]
+  assert.equal(libraryFor(libs, 'snes').id, 2)
+  assert.equal(libraryFor(libs, 'nes').id, 3)
+  assert.equal(libraryFor([{ id: 1, type: 'movies' }], 'nes'), undefined)
+})
+
+test('years and layouts read as people say them', () => {
+  assert.equal(yearsWords(1990, 1997), '1990 to 1997')
+  assert.equal(yearsWords(2017), 'Since 2017')
+  assert.equal(yearsWords(), '')
+  assert.equal(layoutOf('grid'), 'grid')
+  assert.equal(layoutOf('tiles'), 'shelf')
+})
+
+test('the tabs start Recent, Consoles, Classics, and each profile can move and hide them (never Recent)', () => {
+  assert.deepEqual(PLAY_TABS.slice(0, 3).map((t) => t.id), ['recent', 'consoles', 'classics'])
+  assert.deepEqual(tabsPref(undefined).order.slice(0, 3), ['recent', 'consoles', 'classics'])
+  assert.deepEqual(tabsPref({ hidden: ['recent', 'discover'] }).hidden, ['discover'])
+  assert.deepEqual(moveTab(['recent', 'consoles', 'classics'], 'classics', -1).slice(0, 3), ['recent', 'classics', 'consoles'])
+  assert.deepEqual(moveTab(['recent', 'consoles'], 'recent', -1).slice(0, 2), ['recent', 'consoles'])
 })

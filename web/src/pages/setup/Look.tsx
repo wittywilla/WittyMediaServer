@@ -129,10 +129,7 @@ export function Look({ info, next, back }: StepProps) {
           <div className="su-look-view">
             <Segmented<Device> label="Preview on" value={device} onChange={setDevice} options={[{ value: 'tv', label: 'TV' }, { value: 'desktop', label: 'Desktop' }, { value: 'phone', label: 'Phone' }, { value: 'headset', label: 'Headset' }]} />
             {cards.find((c) => c.id === pick) && <LookPreview card={cards.find((c) => c.id === pick)!} device={device} />}
-            <div className="su-look-notes">
-              <p><b>Server name</b> Drawn in this look’s colours on every screen. Edit it under Name and logo.</p>
-              <p><b>Edit layout</b> Move anything later, for everyone or just for you.</p>
-            </div>
+            {cards.find((c) => c.id === pick) && <p className="su-tv-note"><b>{cards.find((c) => c.id === pick)!.name}</b>{cards.find((c) => c.id === pick)!.tagline ? ` · ${cards.find((c) => c.id === pick)!.tagline}.` : '.'} You can change it, or rearrange any page, later in Settings, Appearance.</p>}
           </div>
         </div>
       )}

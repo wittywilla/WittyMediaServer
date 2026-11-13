@@ -175,10 +175,6 @@ html.ten-foot .su-ack a, html.using-controller .su-ack a, html.ten-foot .op-head
 .su-look { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: var(--sp-5); align-items: start; }
 @media (max-width: 1100px) { .su-look { grid-template-columns: 1fr; } }
 .su-look-view { display: grid; gap: var(--sp-3); position: sticky; top: var(--sp-4); }
-.su-look-notes { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-2); }
-.su-look-notes p { margin: 0; padding: var(--sp-3); border-radius: var(--r-md); background: var(--bg-3); font-size: var(--text-xs); color: var(--fg-2); }
-.su-look-notes b { display: block; color: var(--fg); font-size: var(--text-sm); margin-bottom: 2px; }
-@media (max-width: 700px) { .su-look-notes { grid-template-columns: 1fr; } }
 .lp { display: grid; border-radius: var(--r-lg); overflow: hidden; background: var(--lp-bg); box-shadow: 0 0 0 1px var(--border-strong); aspect-ratio: 16 / 10; }
 .lp-phone { aspect-ratio: 9 / 16; max-block-size: 26rem; inline-size: 14rem; justify-self: center; }
 .lp-tv, .lp-headset { aspect-ratio: 16 / 9; }

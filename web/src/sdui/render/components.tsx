@@ -138,7 +138,7 @@ export const CardView = memo(function CardView({ view, showTitles }: { view: Vie
   const channel = style === 'channel'
   const now = obj(p, 'now')
   return (
-    <Pressable view={view} className={'card' + (SHAPE_CLASS[shape] ?? '') + (style === 'game' ? ' sdui-game' : '') + (channel ? ' sdui-channel' : '')} title={str(p, 'title') || undefined}>
+    <Pressable view={view} className={'card' + (SHAPE_CLASS[shape] ?? '') + (style === 'game' ? ' sdui-game' : '') + (channel ? ' sdui-channel' : '') + (style === 'plate' || style === 'block' || style === 'logo' ? ' sdui-' + style : '')} title={str(p, 'title') || undefined}>
       {text.rank && <span className="sdui-rank" aria-hidden="true">{text.rank}</span>}
       <div className="poster">
         <Picture image={obj(p, 'image')} kind={p.kind} icon={p.icon} contain={channel || str(obj(p, 'image'), 'kind') === 'logo'} title={channel ? undefined : text.title || str(p, 'title') || undefined} />

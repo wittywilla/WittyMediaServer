@@ -89,7 +89,11 @@ html[data-wplay] body { font-family: var(--font); }
     linear-gradient(165deg, #1e2056 0%, #181b4b 48%, #13214a 100%);
   background-color: #13163f;
 }
-.wplay-stage { flex: 1 0 auto; min-block-size: 0; padding: 0 var(--wp-gutter) calc(var(--wp-dock) * 1.25 + 80px); outline: none; }
+/* The status bar's height (its padding and its 44px row), so what sticks while the page scrolls sticks just under it. */
+.wplay { --wp-bar: calc(clamp(14px, 2.4vw, 32px) + clamp(8px, 1vw, 16px) + 48px); }
+.wplay .gpic-look-now { inset-block-start: calc(var(--wp-bar) + 8px); }
+/* The page is one layer, under the status bar and the dock (both 4): nothing on it, however it is drawn, can rise above them. */
+.wplay-stage { position: relative; z-index: 0; isolation: isolate; flex: 1 0 auto; min-block-size: 0; padding: 0 var(--wp-gutter) calc(var(--wp-dock) * 1.25 + 80px); outline: none; }
 .wplay-stage:focus-visible { outline: none; }
 
 /* ---- the status bar: who, then the server's name, the controllers, the time and the way out ---- */
@@ -291,7 +295,7 @@ html[data-wplay] body { font-family: var(--font); }
 .wplay .sdui-shelf.layout-grid, .wplay .sdui-shelf.layout-list { display: grid; grid-template-columns: minmax(0, 1fr) minmax(16rem, 26rem); grid-template-areas: "bar bar" "row detail"; column-gap: clamp(16px, 2vw, 40px); align-items: start; }
 .wplay .sdui-shelf:is(.layout-grid, .layout-list) > .sdui-console-bar { grid-area: bar; }
 .wplay .sdui-shelf:is(.layout-grid, .layout-list) > .row-wrap { grid-area: row; margin-inline: 0; }
-.wplay .sdui-shelf:is(.layout-grid, .layout-list) > .sdui-detail { grid-area: detail; position: sticky; inset-block-start: var(--sp-4); padding: clamp(14px, 1.4vw, 26px); border-radius: clamp(14px, 1.3vw, 24px); background: var(--wp-chip); }
+.wplay .sdui-shelf:is(.layout-grid, .layout-list) > .sdui-detail { grid-area: detail; position: sticky; inset-block-start: calc(var(--wp-bar) + 12px); padding: clamp(14px, 1.4vw, 26px); border-radius: clamp(14px, 1.3vw, 24px); background: var(--wp-chip); }
 .wplay .sdui-shelf:is(.layout-grid, .layout-list) .sdui-detail-title { font-size: clamp(1.4rem, 2vw, 2.4rem); }
 .wplay .sdui-shelf:is(.layout-grid, .layout-list) .row { flex-wrap: wrap; overflow: visible; margin-inline: 0; padding: 8px 12px calc(var(--wp-dock) + 80px); align-items: flex-start; }
 .wplay .sdui-shelf.layout-grid .row { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(clamp(170px, 16vw, 300px) * var(--wp-scale, 1)), 1fr)); gap: clamp(12px, 1.4vw, 26px); }
@@ -330,7 +334,7 @@ html[data-wplay] body { font-family: var(--font); }
 .wplay-console-dot { position: absolute; inset-block-start: 12px; inset-inline-end: 12px; inline-size: 12px; block-size: 12px; border-radius: 50%; background: var(--fg-3); }
 .wplay-console-dot.ready { background: var(--ok); }
 .wplay-console-dot.setup { background: var(--warn); }
-.wplay-console-panel { position: sticky; inset-block-start: var(--sp-4); display: grid; gap: var(--sp-3); padding: clamp(18px, 1.8vw, 32px); border-radius: clamp(18px, 1.6vw, 28px); background: #1f2358; box-shadow: 0 0 0 1px rgb(255 255 255 / .1), 0 20px 50px rgb(4 6 24 / .45); animation: wplay-panel-in var(--dur-3) var(--ease-out); }
+.wplay-console-panel { position: sticky; inset-block-start: calc(var(--wp-bar) + 12px); display: grid; gap: var(--sp-3); padding: clamp(18px, 1.8vw, 32px); border-radius: clamp(18px, 1.6vw, 28px); background: #1f2358; box-shadow: 0 0 0 1px rgb(255 255 255 / .1), 0 20px 50px rgb(4 6 24 / .45); animation: wplay-panel-in var(--dur-3) var(--ease-out); }
 @keyframes wplay-panel-in { from { opacity: 0; transform: translateX(24px); } }
 .wplay-console-panel h2 { margin: 0; font-size: clamp(1.4rem, 2vw, 2.4rem); font-weight: 900; line-height: 1.1; }
 .wplay-console-mark { display: grid; place-items: start; min-block-size: 4rem; }
@@ -402,7 +406,7 @@ html[data-wplay] body { font-family: var(--font); }
 
 /* ---- a game's bio in the detail panel (GameBio.tsx): logo, console, makers, rating, pictures, and its RetroAchievements greyed ---- */
 .wplay .sdui-detail.has-bio { display: grid; gap: clamp(8px, .8vw, 14px); align-content: start; }
-.wplay .sdui-shelf:is(.layout-grid, .layout-list) > .sdui-detail.has-bio { max-block-size: calc(100dvh - 12rem); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.wplay .sdui-shelf:is(.layout-grid, .layout-list) > .sdui-detail.has-bio { max-block-size: calc(100dvh - var(--wp-bar) - var(--wp-dock) - 7rem); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
 .wplay-bio { display: grid; gap: clamp(8px, .8vw, 14px); min-inline-size: 0; }
 .wplay-bio-logo { display: block; max-inline-size: min(100%, 22rem); max-block-size: clamp(56px, 7vw, 120px); object-fit: contain; object-position: left center; filter: drop-shadow(0 2px 8px rgb(0 0 0 / .5)); }
 .wplay-bio-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0; color: var(--fg-2); font-size: clamp(.85rem, .95vw, 1.05rem); font-weight: 700; }

@@ -245,7 +245,9 @@ function Choices<T extends string>({ label, value, options, onChange, inherit, n
 // The questions for one level (everything, a console, a game), with what each leaves to the level above in words. For a console or a
 // game the case is one of its medium's styles (or any other); for every game, a style per kind of medium, with quick choices for all
 // cartridges and all discs at once.
-export function LookChooser({ look, onChange, above, consoleId, media, everyMedium, sample }: { look: Look; onChange: (l: Look) => void; above: Resolved; consoleId?: string; media: MediaId; everyMedium?: boolean; sample: { image: string; title: string; itemId?: string } }) {
+// from: where an unset choice comes from, in its words ("this server", "every game", "its console"): its first option says so.
+export function LookChooser({ look, onChange, above, consoleId, media, everyMedium, sample, from = 'above' }: { look: Look; onChange: (l: Look) => void; above: Resolved; consoleId?: string; media: MediaId; everyMedium?: boolean; sample: { image: string; title: string; itemId?: string }; from?: string }) {
+  const as = from === 'above' ? 'As before' : `As ${from}`
   const l = cleanLook(look)
   const [all, setAll] = useState(false)
   const set = (k: 'picture' | 'case' | 'label', v: string) => { const n: Look = { ...l }; if (v) n[k] = v as never; else delete n[k]; onChange(n) }
@@ -261,18 +263,18 @@ export function LookChooser({ look, onChange, above, consoleId, media, everyMedi
     <div className="gpic-look">
       <div className="gpic-look-now" aria-hidden="true">{shown.picture === 'filled' ? <span className="gpic-preview"><span className="gpic-filled">{sample.image ? <img src={sample.image} alt="" /> : <Placeholder title={sample.title} />}</span></span> : preview(shown)}</div>
       <div className="gpic-look-choices">
-        <Choices label="Picture" value={l.picture || ''} inherit={'As before: ' + name(PICTURES, above.picture)} onChange={(v) => set('picture', v)}
+        <Choices label="Picture" value={l.picture || ''} inherit={`${as}: ${name(PICTURES, above.picture)}`} onChange={(v) => set('picture', v)}
           options={PICTURES.map((p) => ({ id: p.id, label: p.label, note: p.note }))} />
         {shown.picture === 'case' && (
           <>
             {everyMedium ? <MediumChoices look={l} onChange={onChange} consoleId={consoleId} /> : (
               <>
-                <Choices label="Case" value={(l.case as CaseStyle) || ''} inherit={'As before: ' + styleName(above.case)} onChange={(v) => set('case', v)}
+                <Choices label="Case" value={(l.case as CaseStyle) || ''} inherit={`${as}: ${styleName(above.case)}`} onChange={(v) => set('case', v)}
                   options={styles.map((id) => ({ id, label: styleName(id), art: art(id) }))} />
                 <button type="button" className="gpic-more" aria-expanded={all} onClick={() => setAll(!all)}>{all ? 'Only the styles for ' + mediaDef(media).label.toLowerCase() : 'Show every style'}</button>
               </>
             )}
-            <Choices label="On the label" value={(l.label as LabelPick) || ''} inherit={'As before: ' + name(LABELS, above.label)} onChange={(v) => set('label', v)}
+            <Choices label="On the label" value={(l.label as LabelPick) || ''} inherit={`${as}: ${name(LABELS, above.label)}`} onChange={(v) => set('label', v)}
               options={LABELS.map((x) => ({ id: x.id, label: x.label, note: x.note }))} />
           </>
         )}
@@ -334,7 +336,7 @@ export function GamePictureDialog({ itemId, title, console: short, image, onClos
           options={[{ value: 'me', label: 'Just for me' }, { value: 'server', label: 'For everyone here' }]} />
       )}
       {scope === 'server' && <p className="muted">Everyone on this server sees this unless they choose their own for this game.</p>}
-      <LookChooser look={own} onChange={(l) => void save(l)} above={above} consoleId={id} media={consoleMedia(c, id)} sample={{ image, title, itemId }} />
+      <LookChooser look={own} from="its console" onChange={(l) => void save(l)} above={above} consoleId={id} media={consoleMedia(c, id)} sample={{ image, title, itemId }} />
       {err && <p className="error" role="alert">{err}</p>}
     </Dialog>
   )

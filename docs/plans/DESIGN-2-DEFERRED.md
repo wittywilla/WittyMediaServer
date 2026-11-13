@@ -78,3 +78,19 @@ Merged: Go page provider + Qt Widgets renderer; start, Settings, Disc modules, L
 - `engine/go.mod` requires the server module (pkg/sdui), resolving only through go.work; `scripts/dev-modules.mjs` must add the server checkout and a release needs a server tag.
 - Disc guide page duplicates the native Disc menu. Leftover build output in the W18 scratchpad.
 - Player's Settings is an SDUI page; the server's own Settings stays hand-built.
+
+## From S11 (the one big test), 2026-11-13
+
+Passed: browser first run (14 steps), 12 modules, STUFF libraries, a film, music, WittyTV, a module page, manage-libraries,
+look and theme on web (Stage, Evergreen, Midnight, Paper); desktop sign-in and play; Apple TV and iPhone peer-to-peer
+check (code, away, invite, play); Android phone address, code, first-connect look and theme (Lumen, Paper), play.
+Not run: Android TV (S4's looks run covers it). Deferred:
+
+- Android: the status bar draws over the server chooser's heading (no top inset on that screen).
+- Android, Paper: under Home's spotlight the page goes dark while section headings stay dark ("Your libraries").
+- Android: launched with a remembered server that is gone, it spins with no end and no way back to the chooser.
+- Android first-connect chooser: Next sits after all fourteen looks inside a 420 dp scroll box; easy to miss on a phone.
+- Web: signing in again part-way through first run, /setup shows "Page not found" until a step's address is opened.
+- manage-libraries says "1 titles".
+- Lyrics timing by listening: only tried on the middle of the mix (weak on piano-led songs, so it moves little); a real
+  separated voice, where it should do best, was not tried (no separator installed).

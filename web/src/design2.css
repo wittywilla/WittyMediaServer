@@ -312,3 +312,7 @@ button.card { display: block; }
 .card.sdui-block .sub { display: none; }
 .card.sdui-logo .poster { background: var(--bg-3); aspect-ratio: 16 / 9; display: grid; place-items: center; }
 .card.sdui-logo .poster img { object-fit: contain; padding: var(--space-m); inline-size: 100%; block-size: 100%; }
+/* A crossbar's categories scroll sideways inside their own bar on a narrow window instead of widening the page. */
+.sdui-crossbar [data-sdui-tabs] { max-inline-size: 100%; overflow-x: auto; scrollbar-width: none; }
+.sdui-crossbar [role=tablist] { flex-wrap: nowrap; min-inline-size: max-content; }
+.sdui-crossbar { max-inline-size: 100%; overflow-x: clip; }

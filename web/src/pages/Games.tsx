@@ -6,12 +6,11 @@ import { api, getToken, mediaUrl, posterUrl, serverBase, type Item } from '../ap
 import { LoadError, Spinner } from '../components/common'
 import { reportClient, setLogSession } from '../errorReport'
 import { useApp } from '../state'
-import { couchOn } from './games/data'
 import { getConsoles, knownConsoles, useConsoles, useSettingsHost } from './games/consoles'
 import type { Background, ControllerData, ControlsData, PlayHost, PrepareStatus, Profile, ProfileHost, SessionInfo } from '@wittywilla/wittyplay'
 import { lazyModule } from '../moduleBundles'
-import { getTvMode } from '../tvmode/mode'
 import { useGameRemote } from '../remote/pageTargets'
+import { playGamePath } from '../shell/playPaths'
 import './games.css'
 
 // Games: what the game pages share, and the page that holds the player. The library and a
@@ -109,7 +108,8 @@ export function GamePage() {
         return (url.startsWith('http') ? url : window.location.origin + url).replace(/^http/, 'ws')
       },
       action: (sid, type, slot, on, extra) => api.post(`/play/${sid}/action`, { type, slot: slot ?? 0, on: !!on, ...extra }),
-      close: () => nav(getTvMode() ? `/games/game/${it.id}` : couchOn() ? `/big/game/${it.id}` : `/item/${it.id}`, { replace: true }),
+      // A game always closes to its own page in WittyPlay (pages/PlayGame.tsx), wherever it was started.
+      close: () => nav(playGamePath(it.id), { replace: true }),
     }
   }, [it, settingsHost, user?.isAdmin])
   // Another device can see that a game is on here, and stop it (docs/REMOTE-PROTOCOL.md).

@@ -49,6 +49,7 @@ const PlaySettings = lazy(() => import('./pages/PlaySettings'))
 const PlayConsoles = lazy(() => import('./pages/PlayConsoles'))
 const PlayConsoleSettings = lazy(() => import('./pages/PlayConsoles').then((m) => ({ default: m.PlayConsoleSettings })))
 const PlayLibrary = lazy(() => import('./pages/PlayConsoles').then((m) => ({ default: m.PlayLibrary })))
+const PlayGame = lazy(() => import('./pages/PlayGame'))
 const GapsReview = lazy(() => import('./spec/GapsReview'))
 const HelpPage = lazy(() => import('./pages/HelpPage'))
 const HelpPublicPage = lazy(() => import('./pages/HelpPage').then((m) => ({ default: m.HelpPublicPage })))
@@ -280,6 +281,7 @@ export function PageRoutes() {
       <Route path="/wittyplay/consoles/:id" element={<Suspense fallback={<Spinner />}><PlayConsoleSettings /></Suspense>} />
       <Route path="/wittyplay/library" element={<Suspense fallback={<Spinner />}><PlayLibrary /></Suspense>} />
       <Route path="/wittyplay/library/:id" element={<Suspense fallback={<Spinner />}><PlayLibrary /></Suspense>} />
+      <Route path="/wittyplay/game/:id" element={<Suspense fallback={<Spinner />}><PlayGame /></Suspense>} />
       <Route path="/wittyplay/settings" element={<Suspense fallback={<Spinner />}><PlaySettings /></Suspense>} />
       <Route path="/wittyplay/settings/module/:module" element={<Suspense fallback={<Spinner />}><PlaySettings /></Suspense>} />
       <Route path="/wittyplay/settings/:section/*" element={<Suspense fallback={<Spinner />}><PlaySettings /></Suspense>} />

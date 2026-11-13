@@ -16,7 +16,7 @@ import { GameCredits, GameMatchBar, GameRatings, GameShots } from '../GameMeta'
 import { GameFixPanel, GameProblem, GameVersionLinks } from '../GameReview'
 import { getConsoles, SettingsScreen, useConsoles, useSettingsHost } from './consoles'
 import { EmulatorChoices } from './EmulatorChoices'
-import { crispIfSmall, fmtPlayed, heroCover, saveThumb, useCoverTint, useGameLinks, type GameCheck } from './data'
+import { crispIfSmall, fmtAgo, fmtPlayed, heroCover, saveThumb, useCoverTint, useGameLinks, type GameCheck } from './data'
 import { Ambient } from './Library'
 import './shelves.css'
 import type { SaveSlot } from '@wittywilla/wittyplay'
@@ -211,7 +211,7 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
           {auto && ready && (
             <Link className="gm-resume" to={links.play(it.id, 'resume=1')} aria-label={`Resume from ${fmtDateTime(auto.updatedAt * 1000)}`}>
               {auto.hasThumb ? <img src={saveThumb(it.id, 0, auto.updatedAt)} alt="" loading="lazy" onLoad={crispIfSmall} /> : <span className="gm-save-blank" />}
-              <span><b>Where you left off</b><small>{fmtDateTime(auto.updatedAt * 1000)}</small></span>
+              <span className="gm-resume-text"><b>Where you left off</b><small><time dateTime={new Date(auto.updatedAt * 1000).toISOString()} title={fmtDateTime(auto.updatedAt * 1000)}>{fmtAgo(auto.updatedAt)}</time></small><em className="gm-resume-cue"><IconPlay size={14} /> Resume</em></span>
               <i className="gm-ribbon" aria-hidden="true" />
             </Link>
           )}
@@ -276,7 +276,8 @@ export default function GameDetails({ it, reload }: { it: Item; reload?: () => v
                   {s.hasThumb ? <img src={saveThumb(it.id, s.slot, s.updatedAt)} alt="" loading="lazy" decoding="async" onLoad={crispIfSmall} /> : <span className="gm-save-blank" />}
                   <span className="gm-save-play"><IconPlay /></span>
                 </Link>
-                <div className="gm-save-text"><b>{slotName(s.slot)}</b><small>{fmtDateTime(s.updatedAt * 1000)}</small></div>
+                {s.slot > 0 && s.slot < 100 && <span className="gm-save-num" aria-hidden="true">{s.slot}</span>}
+                <div className="gm-save-text"><b>{slotName(s.slot)}</b><small><time dateTime={new Date(s.updatedAt * 1000).toISOString()} title={fmtDateTime(s.updatedAt * 1000)}>{fmtAgo(s.updatedAt)}</time></small></div>
                 <div className="gm-save-tools">
                   <a className="btn sm ghost square" href={mediaUrl(`/api/games/${it.id}/saves/${s.slot}/file`)} download aria-label={`Download ${slotName(s.slot)}`} title="Download"><IconDownload size={16} /></a>
                   <button type="button" className="btn sm ghost square" onClick={() => removeSave(s.slot)} aria-label={`Delete ${slotName(s.slot)}`} title="Delete"><IconTrash size={16} /></button>

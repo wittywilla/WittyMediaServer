@@ -88,7 +88,19 @@ function ShotViewer({ title, shots, at, onMove, onClose }: { title: string; shot
   )
 }
 
-function Achievements({ cheevos }: { cheevos: Cheevos | null | undefined }) {
+// A game's RetroAchievements on their own (a game's WittyPlay page): undefined while loading, null when the server has none to give.
+export function useCheevos(itemId: string | number): Cheevos | null | undefined {
+  const [c, setC] = useState<Cheevos | null | undefined>(undefined)
+  useEffect(() => {
+    setC(undefined)
+    const ctl = new AbortController()
+    api.get<Cheevos>(`/items/${itemId}/achievements`, ctl.signal).then((x) => !ctl.signal.aborted && setC(x), () => !ctl.signal.aborted && setC(null))
+    return () => ctl.abort()
+  }, [itemId])
+  return c
+}
+
+export function Achievements({ cheevos }: { cheevos: Cheevos | null | undefined }) {
   if (cheevos === undefined) return null
   const list = cheevos?.state === 'ok' ? cheevos.achievements || [] : []
   const words = !cheevos

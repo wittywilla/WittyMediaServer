@@ -139,3 +139,20 @@ export function libraryFor<L extends { id: number; type: string; console?: strin
 }
 // A console's years as people say them: 1990 to 1997, or since 2017.
 export const yearsWords = (launched?: number, ended?: number) => (launched ? (ended && ended !== launched ? launched + ' to ' + ended : ended ? String(launched) : 'Since ' + launched) : '')
+
+// ---- a game's own page in WittyPlay (pages/PlayGame.tsx): where a game opens first, and where it comes back to when it's closed ----
+export const PLAY_GAME = '/wittyplay/game'
+export const playGamePath = (id: number | string) => `${PLAY_GAME}/${id}`
+// What choosing a game does: show its page first (Play is the first button there) or start it straight away. Per profile in /me/ui.
+export type PlayOpen = 'info' | 'play'
+export const PLAY_OPEN_KEY = 'wittyplayOpen'
+export const PLAY_OPENS: { id: PlayOpen; label: string; note: string }[] = [
+  { id: 'info', label: 'Show its page first', note: 'Its pictures, saves, settings and achievements, with Play as the first button' },
+  { id: 'play', label: 'Start playing', note: 'Straight into the game. Its page is still there when you close it' },
+]
+export const openOf = (v: unknown): PlayOpen => (v === 'play' ? 'play' : 'info')
+// A game card's link inside WittyPlay: to the game's page, unless this profile chose to start playing. Anything else is left alone.
+export const cardRoute = (to: string, open: PlayOpen): string => {
+  const m = /^\/game\/(\d+)$/.exec(to)
+  return m && open === 'info' ? playGamePath(m[1]) : to
+}

@@ -9,7 +9,7 @@ import { PadGlyph, type PromptButton } from '../pages/games/prompts'
 import type { GlyphKey } from '../sdui/render/glyphs'
 import { setPadSwap } from '../ui/gamepad'
 import { useUserPref } from '../ui/userPrefs'
-import { moveTab, PLAY_TABS, PLAY_TABS_KEY, tabsPref, type PlayTabsPref, isPlayPads, layoutOf, padsFor, PLAY_KEYS, PLAY_LAYOUT_KEY, PLAY_LAYOUTS, PLAY_PADS, PLAY_PADS_KEY, swapFor, type PlayLayout, type PlayPads } from './playPaths'
+import { moveTab, PLAY_TABS, PLAY_TABS_KEY, tabsPref, type PlayTabsPref, isPlayPads, layoutOf, padsFor, PLAY_KEYS, PLAY_LAYOUT_KEY, PLAY_LAYOUTS, PLAY_PADS, PLAY_PADS_KEY, swapFor, type PlayLayout, type PlayPads, openOf, PLAY_OPEN_KEY, PLAY_OPENS, type PlayOpen } from './playPaths'
 
 // By position: A at the bottom, B on the right, X on the left, Y at the top. Nintendo's letters for those places are the pad's own.
 const PLACE: Record<GlyphKey, PromptButton> = { a: 'confirm', b: 'back', x: 'west', y: 'north' }
@@ -101,13 +101,40 @@ export function LayoutChooser({ value, onChange, labelledBy }: { value: PlayLayo
   )
 }
 
-// WittyPlay Settings' page for both choices.
+// What choosing a game does (/me/ui wittyplayOpen): its page first, or straight into the game.
+export function usePlayOpen(): [PlayOpen, (o: PlayOpen) => void] {
+  const [saved, save] = useUserPref<string>(PLAY_OPEN_KEY, '')
+  return [openOf(saved), (o) => { void save(o).catch(() => {}) }]
+}
+
+function OpenIcon({ id }: { id: PlayOpen }) {
+  return id === 'info'
+    ? <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><rect x="2" y="4" width="7" height="10" rx="1.5" /><rect x="11" y="5" width="11" height="2" rx="1" /><rect x="11" y="9" width="8" height="2" rx="1" /><rect x="2" y="16" width="9" height="4" rx="2" /></svg>
+    : <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" /></svg>
+}
+
+export function OpenChooser({ value, onChange, labelledBy }: { value: PlayOpen; onChange: (o: PlayOpen) => void; labelledBy: string }) {
+  return (
+    <div className="wplay-pads" role="radiogroup" aria-labelledby={labelledBy} data-nav-group>
+      {PLAY_OPENS.map((o) => (
+        <button key={o.id} type="button" role="radio" aria-checked={o.id === value} className={'wplay-pad' + (o.id === value ? ' on' : '')} onClick={() => onChange(o.id)}>
+          <span className="wplay-layout-art" aria-hidden="true"><OpenIcon id={o.id} /></span>
+          <span className="wplay-pad-text"><b>{o.label}</b><span>{o.note}</span></span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// WittyPlay Settings' page for these choices.
 export function LookSetting() {
   const [pads, , setPads] = usePlayPads()
   const [layout, setLayout] = usePlayLayout()
-  const a = useId(), b = useId()
+  const [open, setOpen] = usePlayOpen()
+  const a = useId(), b = useId(), c = useId()
   return (
     <div className="wplay-look-setting">
+      <section className="wplay-pads-setting"><h2 id={c}>When you choose a game</h2><OpenChooser value={open} onChange={setOpen} labelledBy={c} /></section>
       <section className="wplay-pads-setting"><h2 id={a}>Layout</h2><LayoutChooser value={layout} onChange={setLayout} labelledBy={a} /></section>
       <TabsSetting />
       <section className="wplay-pads-setting"><h2 id={b}>Buttons shown in WittyPlay</h2><PadsChooser value={pads} onChange={setPads} labelledBy={b} /></section>

@@ -35,6 +35,7 @@ import { controlOf } from '../formsModel'
 import { Markdown } from './markdown'
 import { WidgetGridView } from './widgets'
 import { GameBio } from './GameBio'
+import { CardRouteContext } from './cardRoute'
 
 const NativeViewHost = lazy(() => import('./NativeViewHost'))
 const DetailExtras = lazy(() => import('../extras/DetailExtras'))
@@ -82,6 +83,7 @@ function Picture({ image, kind, icon, contain, title }: { image: Props | undefin
 // opened in a new tab, and a button otherwise.
 function Pressable({ view, className, children, label, style, first, title }: { view: View; className?: string; children: ReactNode; label?: string; style?: CSSProperties; first?: boolean; title?: string }) {
   const page = usePage()
+  const route = useContext(CardRouteContext)
   const node = view.node
   const step = plan(node.action, { externalLinks: page.layout.externalLinks })
   const common = {
@@ -94,7 +96,7 @@ function Pressable({ view, className, children, label, style, first, title }: { 
   }
   // Someone in a list that is operated by OK (the lobby) is a stop even with nowhere to go.
   if (step.do === 'nothing' || page.inert) return <div {...common} role={view.role === 'button' ? 'group' : undefined} tabIndex={node.props?.focusable === true ? 0 : undefined}>{children}</div>
-  if (step.do === 'go') return <Link {...common} to={step.to}>{children}</Link>
+  if (step.do === 'go') return <Link {...common} to={view.type === 'Card' ? route(step.to) : step.to}>{children}</Link>
   if (step.do === 'open') return <a {...common} href={safeHref(step.url) || undefined} target="_blank" rel="noopener noreferrer">{children}</a>
   return <button type="button" {...common} onClick={() => page.act(node.action, view)}>{children}</button>
 }

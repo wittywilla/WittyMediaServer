@@ -28,6 +28,18 @@ import ErrorBoundary from './components/ErrorBoundary'
 import './styles.css'
 import './design2.css'
 import './finish.css'
+
+// After the server is updated, a page that was already open asks for parts of the old app that are gone. Load the new app
+// instead, once (a second failure within a minute is a real fault, and the error page says so).
+window.addEventListener('vite:preloadError', (e) => {
+  try {
+    const last = Number(sessionStorage.getItem('wms.staleReload') || 0)
+    if (Date.now() - last < 60_000) return
+    sessionStorage.setItem('wms.staleReload', String(Date.now()))
+  } catch { /* storage off: still reload once for this event */ }
+  e.preventDefault()
+  window.location.reload()
+})
 import './player.css'
 import './player/bar.css'
 import './oobe.css'

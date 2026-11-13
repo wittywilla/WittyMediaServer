@@ -3,6 +3,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { moveTab, tabsPref, PLAY_TABS, libraryFor, yearsWords, layoutOf, exitWords, isPlayPads, isPlayPath, isPlayTop, padsFor, PLAY_EXIT, PLAY_TIP, swapFor, tipDue } from './playPaths.ts'
+import { cardRoute, openOf, playGamePath } from './playPaths.ts'
 
 test('WittyPlay Online pages take over the window; nothing else does', () => {
   assert.ok(isPlayPath('/page/wittyplay-online'))
@@ -69,4 +70,15 @@ test('the tabs start Recent, Consoles, Classics, and each profile can move and h
   assert.deepEqual(tabsPref({ hidden: ['recent', 'discover'] }).hidden, ['discover'])
   assert.deepEqual(moveTab(['recent', 'consoles', 'classics'], 'classics', -1).slice(0, 3), ['recent', 'classics', 'consoles'])
   assert.deepEqual(moveTab(['recent', 'consoles'], 'recent', -1).slice(0, 2), ['recent', 'consoles'])
+})
+
+test('a game card opens its WittyPlay page first unless the profile starts playing', () => {
+  assert.equal(cardRoute('/game/745', 'info'), '/wittyplay/game/745')
+  assert.equal(cardRoute('/game/745', 'play'), '/game/745')
+  assert.equal(cardRoute('/game/745?resume=1', 'info'), '/game/745?resume=1')
+  assert.equal(cardRoute('/item/745', 'info'), '/item/745')
+  assert.equal(openOf('play'), 'play')
+  assert.equal(openOf(undefined), 'info')
+  assert.equal(openOf('nonsense'), 'info')
+  assert.equal(playGamePath(12), '/wittyplay/game/12')
 })

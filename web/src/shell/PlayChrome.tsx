@@ -12,8 +12,9 @@ import { setPlayMode } from '../theme'
 import { isBackKey } from '../ui/spatial'
 import { useApp } from '../state'
 import { focusFirst } from '../tv'
-import { dockFor, exitWords, isPlayPath, isPlayTop, PLAY_CONSOLES, PLAY_CONTROLLERS, PLAY_EXIT, PLAY_PADS_TITLE, PLAY_STATUS, PLAY_TIP, PLAY_TIP_KEY, tipDue, type PlayLayout, type PlayPads } from './playPaths'
-import { usePlayTabs, LayoutChooser, LayoutSwitch, PadsChooser, PadsSetting, PlayGlyph, usePlayLayout, usePlayPads } from './playPads'
+import { cardRoute, dockFor, exitWords, isPlayPath, isPlayTop, PLAY_CONSOLES, PLAY_CONTROLLERS, PLAY_EXIT, PLAY_PADS_TITLE, PLAY_STATUS, PLAY_TIP, PLAY_TIP_KEY, tipDue, type PlayLayout, type PlayPads } from './playPaths'
+import { usePlayTabs, LayoutChooser, LayoutSwitch, OpenChooser, PadsChooser, PadsSetting, PlayGlyph, usePlayLayout, usePlayOpen, usePlayPads } from './playPads'
+import { CardRouteContext } from '../sdui/render/cardRoute'
 import { GlyphContext, RowLayoutContext, TabsContext, type GlyphKey } from '../sdui/render/glyphs'
 import './playChrome.css'
 
@@ -99,7 +100,8 @@ export function SystemDock({ entries }: { entries: DockEntry[] }) {
 // show?" and then, optionally, the layout; always how to get back to the app, in those buttons, with a ring round the Home button.
 function ExitTip({ onClose, choose, pads, setPads, layout, setLayout }: { onClose: () => void; choose: boolean; pads: PlayPads; setPads: (p: PlayPads) => void; layout: PlayLayout; setLayout: (l: PlayLayout) => void }) {
   const id = useId()
-  const [step, setStep] = useState<'pads' | 'layout' | 'exit'>(choose ? 'pads' : 'exit')
+  const [step, setStep] = useState<'pads' | 'layout' | 'open' | 'exit'>(choose ? 'pads' : 'exit')
+  const [open, setOpen] = usePlayOpen()
   const box = useRef<HTMLDivElement | null>(null)
   const [ring, setRing] = useState<DOMRect | null>(null)
   useEffect(() => {
@@ -141,7 +143,17 @@ function ExitTip({ onClose, choose, pads, setPads, layout, setLayout }: { onClos
             <p id={id + 'd'}>You can switch at any time with the buttons at the end of the tabs, or in Settings.</p>
             <LayoutChooser value={layout} onChange={setLayout} labelledBy={id + 't'} />
             <div className="wplay-tip-row">
-              <button type="button" className="wplay-tip-ok" onClick={() => { setLayout(layout); setStep('exit') }}>{drawn('a')} Continue</button>
+              <button type="button" className="wplay-tip-ok" onClick={() => { setLayout(layout); setStep('open') }}>{drawn('a')} Continue</button>
+              <button type="button" className="wplay-tip-skip" onClick={() => setStep('open')}>Skip</button>
+            </div>
+          </>
+        ) : step === 'open' ? (
+          <>
+            <h2 id={id + 't'}>When you choose a game…</h2>
+            <p id={id + 'd'}>Open its page first, or start playing straight away. You can change this in Settings.</p>
+            <OpenChooser value={open} onChange={setOpen} labelledBy={id + 't'} />
+            <div className="wplay-tip-row">
+              <button type="button" className="wplay-tip-ok" onClick={() => { setOpen(open); setStep('exit') }}>{drawn('a')} Continue</button>
               <button type="button" className="wplay-tip-skip" onClick={() => setStep('exit')}>Skip</button>
             </div>
           </>
@@ -198,6 +210,9 @@ export function PlayFrame({ children }: { children: ReactNode }) {
   const [tabPref] = usePlayTabs()
   const tabs = useMemo(() => ({ page: 'wittyplay-online', tabs: [{ id: 'consoles', label: 'Consoles', to: PLAY_CONSOLES, after: 'recent' }], end: <LayoutSwitch />, order: tabPref.order, hidden: tabPref.hidden }), [tabPref.order.join(), tabPref.hidden.join()]) // eslint-disable-line react-hooks/exhaustive-deps
   const top = isPlayTop(loc.pathname)
+  // A game's card opens its page first, or the game itself, as this profile chose.
+  const [openPref] = usePlayOpen()
+  const route = useCallback((to: string) => cardRoute(to, openPref), [openPref])
   useEffect(() => {
     if (!top) return
     const onKey = (e: globalThis.KeyboardEvent) => {
@@ -216,7 +231,7 @@ export function PlayFrame({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('keydown', onKey, true)
   }, [top]) // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <GlyphContext.Provider value={glyph}><RowLayoutContext.Provider value={layout}><TabsContext.Provider value={tabs}>
+    <GlyphContext.Provider value={glyph}><RowLayoutContext.Provider value={layout}><TabsContext.Provider value={tabs}><CardRouteContext.Provider value={route}>
       <div className="wplay" data-scope="wittyplay" data-pads={pads} data-layout={layout}>
         <StatusBar parts={regions?.statusBar || PLAY_STATUS} onExit={exit} onHelp={() => setTip(true)} />
         <main className="wplay-stage" id="main" data-nav-zone="stage" tabIndex={-1}>
@@ -226,6 +241,6 @@ export function PlayFrame({ children }: { children: ReactNode }) {
         <SystemDock entries={dockFor(regions?.systemDock)} />
         {tip && <ExitTip onClose={closeTip} choose={!padsChosen} pads={pads} setPads={setPads} layout={layout} setLayout={setLayout} />}
       </div>
-    </TabsContext.Provider></RowLayoutContext.Provider></GlyphContext.Provider>
+    </CardRouteContext.Provider></TabsContext.Provider></RowLayoutContext.Provider></GlyphContext.Provider>
   )
 }

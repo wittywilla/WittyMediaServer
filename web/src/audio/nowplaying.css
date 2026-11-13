@@ -392,3 +392,11 @@ button.np-artist:hover { color: var(--np-fg); text-decoration: underline; text-u
 .kar-mix .kar-level input { width: 100%; min-height: 44px; accent-color: var(--np-white); }
 .kar-mix-pills { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 .kar-mix-note { margin: 0; font-size: var(--text-sm); color: var(--np-fg-2); }
+
+/* The visualizer on and nothing touched for a few seconds: the controls fade so the picture has the
+   screen, and any movement, key or focus brings them back (NowPlaying.tsx, IDLE_MS). The song's name
+   stays. */
+.np :is(.np-top, .np-seek, .np-transport, .np-tools, .np-hints) { transition: opacity .5s ease; }
+.np.np-idle :is(.np-top, .np-seek, .np-transport, .np-tools, .np-hints) { opacity: 0; }
+.np.np-idle { cursor: none; }
+@media (prefers-reduced-motion: reduce) { .np :is(.np-top, .np-seek, .np-transport, .np-tools, .np-hints) { transition: none; } }

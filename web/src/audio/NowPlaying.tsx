@@ -56,6 +56,9 @@ const isNative = (style: string): style is NativeStyle => NATIVE_STYLES.some((n)
 
 type Panel = '' | 'lyrics' | 'queue' | 'sound' | 'read' | 'sleep'
 
+// How long the controls stay with nothing touched, the visualizer on.
+const IDLE_MS = 4000
+
 export default function NowPlaying({ p }: { p: PlayerView }) {
   const it = p.current!
   const root = useRef<HTMLDivElement>(null)
@@ -66,6 +69,11 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
   const [shown, setShown] = useState('') // what shuffle is showing now, if it's on
   const [shaders, setShaders] = useState<ShaderEffect[]>([])
   const [wholeShader, setWholeShader] = useState(false)
+  // The effect presets and their sliders open on asking, so the visualizer isn't buried under them.
+  const [effectsOpen, setEffectsOpen] = useState(false)
+  // With the visualizer behind it, the player's controls fade after a few quiet seconds and come
+  // back with any movement, key or focus, as a video player's do.
+  const [idle, setIdle] = useState(false)
   const [said, setSaid] = useState('')
   const artUrl = it.poster ? posterUrl(it) : ''
   const rgb = useArtColour(artUrl)
@@ -95,6 +103,17 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
   const loadShaders = useCallback(() => { shaderEffects().then(setShaders).catch(() => {}) }, [])
   useEffect(() => { if (needShaders) loadShaders() }, [needShaders, loadShaders])
   useEffect(() => { root.current?.focus({ preventScroll: true }) }, [])
+  const quietable = prefs.viz && prefsLoaded && !panel && !karaoke && !effectsOpen && !wholeShader
+  useEffect(() => {
+    const el = root.current
+    if (!quietable || !el) { setIdle(false); return }
+    let t: ReturnType<typeof setTimeout> | undefined
+    const wake = () => { setIdle(false); clearTimeout(t); t = setTimeout(() => setIdle(true), IDLE_MS) }
+    const kinds = ['pointermove', 'pointerdown', 'keydown', 'focusin', 'wheel'] as const
+    kinds.forEach((k) => el.addEventListener(k, wake, { passive: true }))
+    wake()
+    return () => { clearTimeout(t); kinds.forEach((k) => el.removeEventListener(k, wake)) }
+  }, [quietable])
   useEffect(() => {
     const o = p.fullOpts.panel
     if (o === 'karaoke') { if (canSing) setKaraoke(true) } else if (o) setPanel(o)
@@ -208,7 +227,7 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
   const placeLine = p.books ? 'Chapters' : p.live ? 'Stations' : 'Queue'
 
   return (
-    <div className={'np' + (panel ? ' has-panel panel-' + panel : '') + (prefs.viz && prefsLoaded ? ' viz-on' : '')} ref={root} tabIndex={-1} role="dialog" aria-modal="true" aria-label={`Now playing: ${it.title}`}
+    <div className={'np' + (panel ? ' has-panel panel-' + panel : '') + (prefs.viz && prefsLoaded ? ' viz-on' : '') + (idle && quietable ? ' np-idle' : '')} ref={root} tabIndex={-1} role="dialog" aria-modal="true" aria-label={`Now playing: ${it.title}`}
       style={{ '--art': rgb } as React.CSSProperties} onClickCapture={(e) => { if (e.detail > 0) requestAnimationFrame(() => { if (!document.activeElement?.closest('input, select, textarea, .mp-pop-body, .np-panel')) root.current?.focus({ preventScroll: true }) }) }}>
       <div className="np-glow" aria-hidden="true" />
       {canSing && prefs.canvas && !prefs.viz && <NowPlayingCanvas itemId={it.id} playing={p.playing} />}
@@ -295,7 +314,8 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
                     )}
                   </Pop>}
                 </div>}
-                {prefs.viz && p.vizHere && shaders.length > 0 && <EffectChips effects={shaders} current={style} onPick={pickStyle} />}
+                {prefs.viz && p.vizHere && shaders.length > 0 && <button type="button" className={'np-chip' + (effectsOpen ? ' on' : '')} aria-expanded={effectsOpen} title="Effects and their settings" onClick={() => setEffectsOpen(!effectsOpen)}><IconVisualizer size={18} /> Effects</button>}
+                {prefs.viz && p.vizHere && shaders.length > 0 && effectsOpen && <EffectChips effects={shaders} current={style} onPick={pickStyle} />}
                 {prefs.viz && <button type="button" className={'np-chip slow-chip' + (prefs.slow ? ' on' : '')} aria-pressed={prefs.slow} title="A slower, gentler pace" onClick={() => setPrefs({ slow: !prefs.slow })}><IconTurtle size={20} /> Slow</button>}
                 {prefs.viz && (
                   <Pop label={prefs.shuffleEvery ? `Shuffling visualizers: ${everyLabel(prefs.shuffleEvery)}` : 'Shuffle visualizers'} className={'np-chip-pop' + (prefs.shuffleEvery ? ' on' : '')} icon={<><IconShuffle size={18} /><span>{prefs.shuffleEvery ? everyLabel(prefs.shuffleEvery).replace('Every ', '') : 'Styles'}</span></>}>

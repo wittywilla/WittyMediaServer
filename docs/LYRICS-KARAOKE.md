@@ -255,3 +255,7 @@ The routes are under `/music/lyrics` in [Client API](CLIENT-API.md#every-route).
 ---
 
 <sub>WittyMediaServer documentation</sub>
+
+## Timing set by listening
+
+The first time a song's timed lyrics are asked for, the server listens to it once in the background (about half a second of FFmpeg at 8 kHz, then a few thousand sums) and moves the lines up to 2 seconds either way to meet the voice, only when one fit clearly stands out; otherwise they stay where they are. The separated voice is used when karaoke has made one. Anyone who moves the words themselves keeps their own timing; Reset goes back to the song's. Kept in the cache folder (`lyrics/timing-<id>.json`), and done again for new lyrics. `internal/lyrics/autosync.go`, `internal/server/lyrics_autosync.go`.

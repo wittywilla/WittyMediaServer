@@ -78,11 +78,15 @@ type lyricsReply struct {
 	Plain        string        `json:"plain"`
 	Instrumental bool          `json:"instrumental,omitempty"`
 	OffsetMS     int64         `json:"offsetMs"`
-	Online       bool          `json:"online"`  // this server may look lyrics up
-	CanEdit      bool          `json:"canEdit"` // this person may correct them for everyone
-	Tried        bool          `json:"tried"`   // online was asked and had nothing
-	Failed       string        `json:"failed,omitempty"`
-	Retry        bool          `json:"retry,omitempty"` // busy with another song: ask again in a moment
+	// AutoSync says what the server heard of the lines' timing (lyrics_autosync.go): set, kept,
+	// working (ask again in a moment), or nothing. AutoMS is where it put them.
+	AutoSync string `json:"autoSync,omitempty"`
+	AutoMS   int64  `json:"autoMs,omitempty"`
+	Online   bool   `json:"online"`  // this server may look lyrics up
+	CanEdit  bool   `json:"canEdit"` // this person may correct them for everyone
+	Tried    bool   `json:"tried"`   // online was asked and had nothing
+	Failed   string `json:"failed,omitempty"`
+	Retry    bool   `json:"retry,omitempty"` // busy with another song: ask again in a moment
 }
 
 var lyricsNames = map[string][2]string{
@@ -397,9 +401,30 @@ func (s *Server) askOnline(ctx context.Context, it *library.Item, again bool) (*
 
 // lyricsOffset is a person's own timing for an item, or def when they haven't moved it.
 func (s *Server) lyricsOffset(ctx context.Context, userID, itemID, def int64) int64 {
-	ms := def
-	_ = s.DB.QueryRowContext(ctx, `SELECT offset_ms FROM lyrics_offsets WHERE user_id = ? AND item_id = ?`, userID, itemID).Scan(&ms)
-	return ms
+	if ms, ok := s.lyricsOwnOffset(ctx, userID, itemID); ok {
+		return ms
+	}
+	return def
+}
+
+// lyricsOwnOffset is the timing a person set themselves, if they did.
+func (s *Server) lyricsOwnOffset(ctx context.Context, userID, itemID int64) (int64, bool) {
+	var ms int64
+	err := s.DB.QueryRowContext(ctx, `SELECT offset_ms FROM lyrics_offsets WHERE user_id = ? AND item_id = ?`, userID, itemID).Scan(&ms)
+	return ms, err == nil
+}
+
+// autoTiming puts the lines where listening to the song says they belong, for anyone who hasn't
+// moved them themselves. Only for a song's own timed lines: a video's start is its link's.
+func (s *Server) autoTiming(ctx context.Context, userID int64, t *lyricsTarget, out *lyricsReply) {
+	if t.it != t.asked || !out.Synced || len(out.Lines) == 0 {
+		return
+	}
+	ms, state := s.lyricsAutoOffset(t.it, out.Lines)
+	out.AutoSync, out.AutoMS = state, ms
+	if _, own := s.lyricsOwnOffset(ctx, userID, t.asked.ID); !own {
+		out.OffsetMS = ms
+	}
 }
 
 // lyricsTarget is the item asked about and the one whose lyrics they are. A music video
@@ -480,11 +505,13 @@ func (s *Server) handleLyrics(w http.ResponseWriter, r *http.Request) {
 	if o := readSavedLyrics(s.lyricsOverridePath(it.ID)); o != nil {
 		out.Instrumental = o.Instrumental
 		fillLyrics(&out, lyrics.Parse(o.Text), "override")
+		s.autoTiming(ctx, u.ID, t, &out)
 		writeJSON(w, 200, out)
 		return
 	}
 	if d, src := s.localLyrics(ctx, it); !d.Empty() {
 		fillLyrics(&out, d, src)
+		s.autoTiming(ctx, u.ID, t, &out)
 		writeJSON(w, 200, out)
 		return
 	}
@@ -507,6 +534,7 @@ func (s *Server) handleLyrics(w http.ResponseWriter, r *http.Request) {
 		} else {
 			out.Instrumental = saved.Instrumental
 			fillLyrics(&out, lyrics.Parse(saved.Text), saved.Provider)
+			s.autoTiming(ctx, u.ID, t, &out)
 		}
 	}
 	writeJSON(w, 200, out)
@@ -532,7 +560,8 @@ func (s *Server) handleLyricsOffset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var err error
-	if in.OffsetMS == t.defaultMS {
+	// Back to the song's own timing (its link's for a video, or where listening put it): nothing of theirs to keep.
+	if in.OffsetMS == t.defaultMS || (t.it == t.asked && in.OffsetMS == s.lyricsAutoCached(t.it.ID)) {
 		_, err = s.DB.ExecContext(r.Context(), `DELETE FROM lyrics_offsets WHERE user_id = ? AND item_id = ?`, userFrom(r).ID, it.ID)
 	} else {
 		_, err = s.DB.ExecContext(r.Context(), `INSERT INTO lyrics_offsets(user_id, item_id, offset_ms) VALUES(?,?,?)

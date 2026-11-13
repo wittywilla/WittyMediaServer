@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api, fmtTime } from '../api'
 import { IconClose, IconEdit, IconRefresh } from '../icons'
 import { toast } from '../state'
-import { useLineIndex, type LyricLine, type useLyrics } from './lyrics'
+import { ownTiming, useLineIndex, type LyricLine, type useLyrics } from './lyrics'
 import type { PlayerView } from './types'
 import { WebLink } from '../components/WebLink'
 import { Segmented } from '../ui/Choice'
@@ -74,9 +74,9 @@ export function LyricsPanel({ p, ly, onClose }: { p: PlayerView; ly: ReturnType<
           {timed && !reading && (
             <span className="np-nudge" role="group" aria-label="Timing">
               <button type="button" className="np-chip small" onClick={() => nudge(-250)} title="The words come sooner">Sooner</button>
-              <span aria-live="polite" className="np-nudge-v">{offset === 0 ? 'On time' : `${offset > 0 ? '+' : ''}${(offset / 1000).toFixed(2)} s`}</span>
+              <span aria-live="polite" className="np-nudge-v">{offset === 0 ? 'On time' : `${offset > 0 ? '+' : ''}${(offset / 1000).toFixed(2)} s`}{lyrics?.autoSync === 'set' && offset === ownTiming(lyrics) ? ', set by listening' : ''}</span>
               <button type="button" className="np-chip small" onClick={() => nudge(250)} title="The words come later">Later</button>
-              {offset !== 0 && <button type="button" className="np-chip small" onClick={() => setOffset(0)}>Reset</button>}
+              {offset !== ownTiming(lyrics) && <button type="button" className="np-chip small" onClick={() => setOffset(ownTiming(lyrics))}>Reset</button>}
             </span>
           )}
           {lyrics.canEdit && <button type="button" className="np-chip small" onClick={() => setFixing(true)}><IconEdit size={16} /> Fix</button>}

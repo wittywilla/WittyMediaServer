@@ -11,7 +11,16 @@ export type Lyrics = {
   itemId: number; source: string; sourceName?: string; creditUrl?: string; synced: boolean; lines: LyricLine[]; plain: string
   instrumental?: boolean; offsetMs: number; online: boolean; canEdit: boolean; tried: boolean; failed?: string; retry?: boolean
   songId?: number; startMs?: number // a music video showing its song's lyrics, and where the song starts in it
+  // Where the server put the lines by listening to the song (set), that it listened and left them (kept),
+  // or that it is listening now (working: asked again in a moment).
+  autoSync?: '' | 'set' | 'kept' | 'working'; autoMs?: number
 }
+
+// The timing a song's lines have before anyone moves them: where listening put them, or where a video's song starts.
+export const ownTiming = (l: Lyrics | null) => (l?.autoSync === 'set' ? l.autoMs || 0 : l?.startMs || 0)
+// While the server listens to the song for its timing: ask again this often, this many times.
+const LISTEN_MS = 4000
+const LISTENS = 6
 
 // A song's lyrics change rarely, so they're kept for as long as this page is open, and
 // asked for again only after someone has corrected them. Not when the source couldn't be
@@ -34,6 +43,7 @@ export function useLyrics(itemId: number | undefined, wanted: boolean) {
     if (have) { setLyrics(have); return }
     let gone = false
     let tries = 0
+    let listens = 0
     let timer: ReturnType<typeof setTimeout> | undefined
     // Moving on to another song gives this one up: a look-up nobody is waiting for
     // mustn't hold a connection the next song needs (issue #17).
@@ -45,9 +55,10 @@ export function useLyrics(itemId: number | undefined, wanted: boolean) {
         .then((l) => {
           if (gone) return
           if (l.retry && ++tries < RETRIES) { timer = setTimeout(ask, RETRY_MS); return }
-          if (!l.failed) held.set(itemId, l)
+          if (!l.failed && l.autoSync !== 'working') held.set(itemId, l)
           setLyrics(l)
           setLoading(false)
+          if (l.autoSync === 'working' && ++listens <= LISTENS) timer = setTimeout(ask, LISTEN_MS)
         })
         .catch((e: Error) => { if (!gone) { setFailed(e.message); setLoading(false) } })
     }

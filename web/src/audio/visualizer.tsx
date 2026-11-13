@@ -97,8 +97,10 @@ export function trackingMedia(el: () => HTMLMediaElement | null): () => HTMLMedi
       sync()
       const t = setInterval(() => {
         const have = out.getAudioTracks()[0]
-        // Ended with the same song still loaded: the plugin hung up. Ended because the song changed: carry on.
-        if (have && have.readyState === 'ended' && watched?.currentSrc === song) { clearInterval(t); return }
+        // Ended with the same song still loaded on the element that is still playing: the plugin hung up.
+        // Ended because the song changed, or because the next song started on the other deck (no gaps
+        // between songs plays them on two elements in turn): carry on with the one now playing.
+        if (have && have.readyState === 'ended' && el() === watched && watched?.currentSrc === song) { clearInterval(t); return }
         sync()
       }, 500)
       return out

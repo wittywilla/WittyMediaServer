@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Segmented } from '../ui/Choice'
 import { HelpLink } from '../components/HelpLink'
 import { IconClose, IconFull, IconNext, IconPause, IconPlay, IconPrev } from '../icons'
-import { lineAt, useLineIndex, wordTimes, type LyricLine, type useLyrics } from './lyrics'
+import { lineAt, ownTiming, useLineIndex, wordTimes, type LyricLine, type useLyrics } from './lyrics'
 import { KaraokeStemsControl, useKaraokeStems } from './KaraokeStems'
 import { soundGraph } from './sound'
 import type { PlayerView } from './types'
@@ -176,7 +176,7 @@ export default function Karaoke({ p, ly, onClose, behind, choice }: { p: PlayerV
         </div>
         <div className="kar-stepper" role="group" aria-label="Timing of the words">
           <button type="button" onClick={() => setOffset(offset - 100)} aria-label="Words sooner">−</button>
-          <span aria-live="polite">Words {offset === 0 ? 'on time' : `${offset > 0 ? '+' : ''}${(offset / 1000).toFixed(1)} s`}</span>
+          <span aria-live="polite">Words {offset === 0 ? 'on time' : `${offset > 0 ? '+' : ''}${(offset / 1000).toFixed(1)} s`}{lyrics?.autoSync === 'set' && offset === ownTiming(lyrics) ? ' (by listening)' : ''}</span>
           <button type="button" onClick={() => setOffset(offset + 100)} aria-label="Words later">+</button>
         </div>
       </footer>

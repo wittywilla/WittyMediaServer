@@ -30,97 +30,158 @@ export const LABELS: { id: LabelPick; label: string; note: string }[] = [
 
 // ---- the cases: data, so a style is added or redrawn in one place (GameCase.tsx draws each "draw" id) ----
 
-// How a kind of game medium can be shown: front on, at an angle, in its box; in its case, or the bare disc.
-export type Variant = 'front' | 'angled' | 'box' | 'case' | 'bare' | 'alt'
+// How a kind of game medium can be shown: front on, at an angle, in its box; in its case, or the bare disc; or as a download (a
+// download is a way to show any game, so every medium offers it).
+export type Variant = 'front' | 'angled' | 'box' | 'case' | 'bare' | 'alt' | 'digital'
 export const VARIANTS: { id: Variant; label: string }[] = [
   { id: 'front', label: 'Front on' }, { id: 'angled', label: 'At an angle' }, { id: 'box', label: 'In its box' },
   { id: 'case', label: 'In its case' }, { id: 'bare', label: 'The disc alone' }, { id: 'alt', label: 'Another way' },
+  { id: 'digital', label: 'As a download' },
 ]
 
 export type CaseStyle = string
-// Every style WittyPlay draws, in the format's order: its words, the drawing it uses (GameCase.tsx SHAPES), and whether it is that
-// drawing turned at an angle. The words never name a maker or a product: they say the era and the shape.
+// Every style WittyPlay draws, in the format's order: its words, the drawing it uses (gameCaseShapes.tsx SHAPES), the finish it is drawn
+// in (tone) and whether it is that drawing turned at an angle. The words never name a maker or a product: they say the era and the shape.
 export type StyleDef = { id: CaseStyle; label: string; note: string; draw: string; angled?: boolean; tone?: string }
 const st = (id: string, label: string, note: string, draw = id, more: Partial<StyleDef> = {}): StyleDef => ({ id, label, note, draw, ...more })
 const angled = (base: StyleDef): StyleDef => ({ ...base, id: base.id + '-angled', label: base.label + ', at an angle', note: 'Turned to show its side', angled: true })
-const CARTS = [
-  st('cart-nes', '8-bit cartridge', 'A grey front-loading cartridge with ridges and a label window'),
-  st('cart-atari', 'Early cartridge', 'A short first-generation cartridge with a wide label'),
-  st('cart-super', '16-bit cartridge', 'Rounded at the top, with grip ridges'),
-  st('cart-64', '64-bit cartridge', 'Tall, with a ridged, sloping top'),
-  st('cart-mega', 'Black 16-bit cartridge', 'Black, with a slanted label top'),
-  st('cart-pocket', 'Handheld cartridge', 'Small, with a notched corner'),
-  st('cart-advance', 'Wide handheld cartridge', 'Wide and short'),
-  st('card-slim', 'Game card', 'A small, thin card'),
+// The finishes a drawing can come in: a colour of plastic, gold, see-through, wood grain.
+const FINISH: Record<string, string> = { gold: 'gold', dark: 'black', clear: 'see-through', red: 'red', blue: 'blue', green: 'green', white: 'white', wood: 'wood-grain' }
+const finish = (base: StyleDef, t: string): StyleDef => ({ ...base, id: base.id + '-' + t, label: base.label + ', ' + FINISH[t], note: 'The same shape in ' + FINISH[t], tone: t })
+// A drawing in each of its finishes, each also turned at an angle when it has a side to show.
+const finishes = (base: StyleDef, fins: string[], turn = true): StyleDef[] => fins.flatMap((t) => { const x = finish(base, t); return turn ? [x, angled(x)] : [x] })
+
+const CARTS: [StyleDef, string[]][] = [
+  [st('cart-nes', '8-bit cartridge', 'A grey front-loading cartridge with ridges and a label window'), ['gold', 'dark', 'clear']],
+  [st('cart-atari', 'Early cartridge', 'A short first-generation cartridge with a ribbed top and wide label'), ['wood', 'gold', 'clear']],
+  [st('cart-super', '16-bit cartridge', 'Rounded at the top, with grip dimples and a narrow foot'), ['gold', 'dark', 'clear']],
+  [st('cart-64', '64-bit cartridge', 'Wide and short, with a rounded, ridged top edge and a large label'), ['gold', 'red', 'blue', 'clear']],
+  [st('cart-mega', 'Black 16-bit cartridge', 'Black, with a slanted top over a recessed label'), ['gold', 'red', 'clear']],
+  [st('cart-pocket', 'Handheld cartridge', 'Small, with a notched corner, top ridges and an arrow'), ['red', 'blue', 'green', 'gold', 'clear']],
+  [st('cart-advance', 'Wide handheld cartridge', 'Wide and short, with sloped shoulders'), ['clear', 'gold', 'blue']],
+  [st('card-slim', 'Game card', 'A small, thin card with one corner cut'), ['red', 'blue', 'green', 'white']],
 ]
-export const CASE_STYLES: StyleDef[] = [
-  ...CARTS,
-  st('card-hu', 'Thin card', 'A card no thicker than a credit card'),
-  ...CARTS.map(angled),
-  st('box-cart', 'Cartridge box', 'A tall cardboard box'),
+const CASES: [StyleDef, string[]][] = [
+  [st('case-jewel', 'CD jewel case', 'A square clear case with a hinge down one side'), ['white', 'clear']],
+  [st('case-keep', 'DVD case', 'A tall case with a clear sleeve'), ['white', 'green', 'blue', 'red']],
+  [st('case-blu', 'Slim disc case', 'A shorter, slimmer case with a band along the top'), ['dark', 'white', 'green']],
+  [st('case-mini', 'Mini disc case', 'A smaller, squarer disc case'), ['white', 'dark']],
+  [st('case-clamshell', 'Plastic clamshell', 'A hinged plastic case with ribs and a latch'), ['white', 'clear']],
+  [st('case-card', 'Card case', 'A small case for a game card'), ['dark', 'red', 'blue']],
+  [st('case-umd', 'Small disc case', 'The tall, narrow case a small disc shell came in'), ['dark', 'blue']],
+  [st('case-tape', 'Cassette case', 'A cassette in its clear box'), ['white', 'dark']],
+]
+const BOXES: StyleDef[] = [
+  st('box-cart', 'Cartridge box', 'A tall cardboard box with a lid and a side'),
   st('box-cart-wide', 'Wide cartridge box', 'A wide cardboard box'),
   st('box-small', 'Small box', 'A small cardboard box for a handheld game'),
-  st('box-big', 'Big box', 'A large cardboard box, as computer games came in'),
-  st('case-clamshell', 'Plastic clamshell', 'A hinged plastic case with ribs'),
-  st('case-card', 'Card case', 'A small case for a game card'),
-  st('case-jewel', 'CD jewel case', 'A square clear case with a hinge'),
-  st('case-keep', 'DVD case', 'A tall case with a clear sleeve'),
-  angled(st('case-keep', 'DVD case', '')),
-  st('case-blu', 'Slim disc case', 'A shorter, slimmer case with a band along the top'),
-  angled(st('case-blu', 'Slim disc case', '')),
-  st('case-mini', 'Mini disc case', 'A smaller, squarer disc case'),
+  st('box-big', 'Big box', 'A large, deep cardboard box, as computer games came in'),
+  st('box-tall', 'Tall box', 'A narrow, tall cardboard box'),
+  st('box-flip', 'Lid box', 'A cardboard box with a lid that opens along the top'),
+]
+const HU = st('card-hu', 'Thin card', 'A card no thicker than a credit card, contacts along one edge')
+const UMD = st('umd-bare', 'Small disc shell', 'A small disc in its shell, with a window')
+const FLOPPY = st('disk-floppy', '3.5-inch floppy disk', 'A hard disk with a metal shutter')
+const F525 = st('disk-525', '5.25-inch floppy disk', 'A floppy disk in a square sleeve')
+const TAPE = st('tape-cassette', 'Cassette tape', 'A tape with two reels')
+const MARQUEE = st('arcade-marquee', 'Arcade marquee', 'A cabinet’s lit sign over its screen')
+const CABINET = st('arcade-cabinet', 'Arcade cabinet', 'A whole upright cabinet, the game on its screen')
+const TILE = st('digital-tile', 'Download', 'A game that came as a download, as a glossy app tile')
+const KEEP = CASES[1][0], BLU = CASES[2][0]
+
+// The ids and their order are the format's: the first sixty-odd are the first version's, and nothing is ever renamed or removed.
+const ALL: StyleDef[] = [
+  ...CARTS.map(([d]) => d), HU, ...CARTS.map(([d]) => angled(d)),
+  ...BOXES.slice(0, 4), CASES[4][0], CASES[5][0], CASES[0][0], KEEP, angled(KEEP), BLU, angled(BLU), CASES[3][0],
   st('disc-bare', 'Disc', 'The disc alone, label side up'),
   st('disc-gd', 'Disc, gold-edged', 'The disc alone, with a bright inner ring', 'disc-bare', { tone: 'gd' }),
   st('disc-mini', 'Mini disc', 'A small disc alone'),
-  st('umd-bare', 'Small disc shell', 'A small disc in its shell, with a window'),
-  st('case-umd', 'Small disc case', 'The tall, narrow case a small disc shell came in'),
-  st('disk-floppy', '3.5-inch floppy disk', 'A hard disk with a metal shutter'),
-  st('disk-525', '5.25-inch floppy disk', 'A floppy disk in a square sleeve'),
-  st('tape-cassette', 'Cassette tape', 'A tape with two reels'),
-  st('case-tape', 'Cassette case', 'A cassette in its clear box'),
-  st('arcade-marquee', 'Arcade marquee', 'A cabinet’s lit sign'),
-  st('arcade-pcb', 'Arcade board', 'A circuit board with a label'),
-  st('digital-tile', 'Download', 'A game that came as a download'),
+  UMD, CASES[6][0], FLOPPY, F525, TAPE, CASES[7][0], MARQUEE, st('arcade-pcb', 'Arcade board', 'A circuit board with a label'), TILE,
   st('generic-box', 'Plain box', 'A plain box, for anything'),
+  // Added in the redraw.
+  ...CARTS.flatMap(([d, f]) => finishes(d, f)),
+  ...CASES.flatMap(([d, f]) => [angled(d), ...finishes(d, f)]),
+  ...BOXES.slice(4), ...BOXES.flatMap((b) => finishes(b, ['white', 'dark'], false)),
+  ...finishes(HU, ['dark', 'gold', 'blue'], false),
+  st('disc-bd', 'Disc, blue-ringed', 'The disc alone, with a blue-violet inner ring', 'disc-bare', { tone: 'bd' }),
+  st('disc-dark', 'Disc, black-ringed', 'The disc alone, with a black inner ring', 'disc-bare', { tone: 'dark' }),
+  st('disc-mini-dark', 'Mini disc, black-ringed', 'A small disc alone, with a black inner ring', 'disc-mini', { tone: 'dark' }),
+  st('disc-sleeve', 'Disc in a sleeve', 'The disc half out of a paper sleeve'),
+  st('disc-sleeve-gd', 'Disc in a sleeve, gold-edged', 'A disc with a bright inner ring half out of a sleeve', 'disc-sleeve', { tone: 'gd' }),
+  angled(UMD), ...finishes(UMD, ['clear', 'blue'], false),
+  ...finishes(FLOPPY, ['blue', 'red', 'green', 'white'], false), ...finishes(F525, ['blue', 'red', 'clear'], false),
+  angled(TAPE), ...finishes(TAPE, ['white', 'dark', 'clear'], false),
+  CABINET, angled(CABINET), ...finishes(CABINET, ['red', 'blue'], false), ...finishes(MARQUEE, ['red', 'blue', 'green'], false),
+  st('digital-poster', 'Download, poster', 'A tall store poster with a download bar'),
+  st('digital-banner', 'Download, banner', 'A wide banner with a play button'),
+  st('digital-window', 'Download, window', 'The game in an app window with a progress bar'),
+  ...finishes(TILE, ['red', 'blue', 'green', 'gold', 'dark'], false),
 ]
+export const CASE_STYLES: StyleDef[] = ALL.filter((c, i) => ALL.findIndex((x) => x.id === c.id) === i)
 const BY_ID = new Map(CASE_STYLES.map((c) => [c.id, c]))
 export const styleDef = (id: string): StyleDef | undefined => BY_ID.get(id)
 export const isCaseStyle = (v: unknown): v is CaseStyle => typeof v === 'string' && BY_ID.has(v)
 
-// Every kind of medium games came on, and the styles each can be shown in, the first being its usual one.
+// Every kind of medium games came on, and the styles each can be shown in, the first being its usual one. variants are the named ways
+// (and what the quick choices for a whole family use); more are the other finishes, boxes and cases that also suit it.
 export type MediaId = string
-export type MediaDef = { id: MediaId; label: string; family: 'cart' | 'disc' | 'other'; variants: Partial<Record<Variant, CaseStyle>> }
-const mk = (id: string, label: string, family: MediaDef['family'], variants: MediaDef['variants']): MediaDef => ({ id, label, family, variants })
+export type MediaDef = { id: MediaId; label: string; family: 'cart' | 'disc' | 'other'; variants: Partial<Record<Variant, CaseStyle>>; more: CaseStyle[] }
+const mk = (id: string, label: string, family: MediaDef['family'], variants: MediaDef['variants'], more: CaseStyle[] = []): MediaDef => ({ id, label, family, variants, more })
+// The ways to show any game as a download, then plain boxes.
+const DL = ['digital-poster', 'digital-banner', 'digital-window', 'digital-tile-red', 'digital-tile-blue', 'digital-tile-green', 'digital-tile-gold', 'digital-tile-dark']
+const fins = (base: string, ...f: string[]) => f.flatMap((t) => [`${base}-${t}`, `${base}-${t}-angled`])
+const caseSet = (base: string, ...f: string[]) => [base + '-angled', ...f.flatMap((t) => [`${base}-${t}`, `${base}-${t}-angled`])]
 export const MEDIA: MediaDef[] = [
-  mk('cart-8bit', '8-bit cartridges', 'cart', { front: 'cart-nes', angled: 'cart-nes-angled', box: 'box-cart' }),
-  mk('cart-early', 'Early cartridges', 'cart', { front: 'cart-atari', angled: 'cart-atari-angled', box: 'box-cart' }),
-  mk('cart-16bit', '16-bit cartridges', 'cart', { front: 'cart-super', angled: 'cart-super-angled', box: 'box-cart-wide' }),
-  mk('cart-mega', 'Black 16-bit cartridges', 'cart', { front: 'cart-mega', angled: 'cart-mega-angled', box: 'case-clamshell', alt: 'box-cart' }),
-  mk('cart-64', '64-bit cartridges', 'cart', { front: 'cart-64', angled: 'cart-64-angled', box: 'box-cart-wide' }),
-  mk('cart-pocket', 'Handheld cartridges', 'cart', { front: 'cart-pocket', angled: 'cart-pocket-angled', box: 'box-small' }),
-  mk('cart-advance', 'Wide handheld cartridges', 'cart', { front: 'cart-advance', angled: 'cart-advance-angled', box: 'box-small' }),
-  mk('card', 'Game cards', 'cart', { front: 'card-slim', angled: 'card-slim-angled', box: 'case-card' }),
-  mk('hucard', 'Thin cards', 'cart', { front: 'card-hu', box: 'case-jewel' }),
-  mk('cd', 'CDs', 'disc', { case: 'case-jewel', bare: 'disc-bare', alt: 'case-keep' }),
-  mk('gd', 'Gold-edged discs', 'disc', { case: 'case-jewel', bare: 'disc-gd', alt: 'case-keep' }),
-  mk('dvd', 'DVDs', 'disc', { case: 'case-keep', bare: 'disc-bare', angled: 'case-keep-angled' }),
-  mk('bluray', 'High-definition discs', 'disc', { case: 'case-blu', bare: 'disc-bare', angled: 'case-blu-angled' }),
-  mk('minidisc', 'Mini discs', 'disc', { case: 'case-mini', bare: 'disc-mini' }),
-  mk('umd', 'Small disc shells', 'disc', { bare: 'umd-bare', case: 'case-umd' }),
-  mk('floppy35', '3.5-inch floppy disks', 'other', { front: 'disk-floppy', box: 'box-big' }),
-  mk('floppy525', '5.25-inch floppy disks', 'other', { front: 'disk-525', box: 'box-big' }),
-  mk('tape', 'Cassette tapes', 'other', { front: 'tape-cassette', case: 'case-tape' }),
-  mk('arcade', 'Arcade', 'other', { front: 'arcade-marquee', alt: 'arcade-pcb' }),
-  mk('digital', 'Downloads', 'other', { front: 'digital-tile', box: 'generic-box' }),
-  mk('other', 'Anything else', 'other', { box: 'generic-box', front: 'digital-tile' }),
+  mk('cart-8bit', '8-bit cartridges', 'cart', { front: 'cart-nes', angled: 'cart-nes-angled', box: 'box-cart', digital: 'digital-tile' },
+    [...fins('cart-nes', 'gold', 'dark', 'clear'), 'box-tall', 'box-flip', 'box-cart-white', 'box-cart-dark', 'case-clamshell', ...DL]),
+  mk('cart-early', 'Early cartridges', 'cart', { front: 'cart-atari', angled: 'cart-atari-angled', box: 'box-cart', digital: 'digital-tile' },
+    [...fins('cart-atari', 'wood', 'gold', 'clear'), 'box-flip', 'box-tall', 'box-cart-dark', 'box-cart-white', ...DL]),
+  mk('cart-16bit', '16-bit cartridges', 'cart', { front: 'cart-super', angled: 'cart-super-angled', box: 'box-cart-wide', digital: 'digital-tile' },
+    [...fins('cart-super', 'gold', 'dark', 'clear'), 'box-cart', 'box-flip', 'box-cart-wide-white', 'box-cart-wide-dark', 'case-clamshell', ...DL]),
+  mk('cart-mega', 'Black 16-bit cartridges', 'cart', { front: 'cart-mega', angled: 'cart-mega-angled', box: 'case-clamshell', alt: 'box-cart', digital: 'digital-tile' },
+    [...fins('cart-mega', 'gold', 'red', 'clear'), 'case-clamshell-angled', 'case-clamshell-white', 'case-clamshell-clear', 'box-cart-wide', 'box-flip', 'box-cart-dark', ...DL]),
+  mk('cart-64', '64-bit cartridges', 'cart', { front: 'cart-64', angled: 'cart-64-angled', box: 'box-cart-wide', digital: 'digital-tile' },
+    [...fins('cart-64', 'gold', 'red', 'blue', 'clear'), 'box-cart', 'box-flip', 'box-cart-wide-white', 'box-cart-wide-dark', 'case-clamshell', ...DL]),
+  mk('cart-pocket', 'Handheld cartridges', 'cart', { front: 'cart-pocket', angled: 'cart-pocket-angled', box: 'box-small', digital: 'digital-tile' },
+    [...fins('cart-pocket', 'red', 'blue', 'green', 'gold', 'clear'), 'box-small-white', 'box-small-dark', 'box-flip', 'box-tall', ...DL]),
+  mk('cart-advance', 'Wide handheld cartridges', 'cart', { front: 'cart-advance', angled: 'cart-advance-angled', box: 'box-small', digital: 'digital-tile' },
+    [...fins('cart-advance', 'clear', 'gold', 'blue'), 'box-small-white', 'box-small-dark', 'box-flip', 'box-cart-wide', ...DL]),
+  mk('card', 'Game cards', 'cart', { front: 'card-slim', angled: 'card-slim-angled', box: 'case-card', digital: 'digital-tile' },
+    [...fins('card-slim', 'red', 'blue', 'green', 'white'), ...caseSet('case-card', 'dark', 'red', 'blue'), 'box-small', 'box-small-white', 'box-small-dark', 'box-tall', ...DL]),
+  mk('hucard', 'Thin cards', 'cart', { front: 'card-hu', box: 'case-jewel', digital: 'digital-tile' },
+    ['card-hu-dark', 'card-hu-gold', 'card-hu-blue', 'case-jewel-angled', 'case-jewel-white', 'case-jewel-clear', 'box-small', 'box-small-white', 'box-flip', ...DL]),
+  mk('cd', 'CDs', 'disc', { case: 'case-jewel', bare: 'disc-bare', alt: 'case-keep', digital: 'digital-tile' },
+    [...caseSet('case-jewel', 'white', 'clear'), 'disc-sleeve', 'disc-dark', 'case-keep-angled', 'case-keep-white', 'case-keep-blue', 'case-mini', 'box-flip', 'box-small', ...DL]),
+  mk('gd', 'Gold-edged discs', 'disc', { case: 'case-jewel', bare: 'disc-gd', alt: 'case-keep', digital: 'digital-tile' },
+    [...caseSet('case-jewel', 'white', 'clear'), 'disc-sleeve-gd', 'case-keep-angled', 'case-keep-white', 'case-keep-blue', 'case-keep-red', 'box-flip', 'box-small', ...DL]),
+  mk('dvd', 'DVDs', 'disc', { case: 'case-keep', bare: 'disc-bare', angled: 'case-keep-angled', digital: 'digital-tile' },
+    [...['white', 'green', 'blue', 'red'].flatMap((t) => [`case-keep-${t}`, `case-keep-${t}-angled`]), 'disc-sleeve', 'disc-dark', 'case-blu', 'case-jewel', 'box-flip', 'box-big', ...DL]),
+  mk('bluray', 'High-definition discs', 'disc', { case: 'case-blu', bare: 'disc-bare', angled: 'case-blu-angled', digital: 'digital-tile' },
+    [...['dark', 'white', 'green'].flatMap((t) => [`case-blu-${t}`, `case-blu-${t}-angled`]), 'disc-bd', 'disc-sleeve', 'case-keep', 'case-keep-angled', 'case-keep-blue', 'box-flip', ...DL]),
+  mk('minidisc', 'Mini discs', 'disc', { case: 'case-mini', bare: 'disc-mini', digital: 'digital-tile' },
+    [...caseSet('case-mini', 'white', 'dark'), 'disc-mini-dark', 'case-keep', 'box-small', 'box-flip', ...DL]),
+  mk('umd', 'Small disc shells', 'disc', { bare: 'umd-bare', case: 'case-umd', digital: 'digital-tile' },
+    ['umd-bare-angled', 'umd-bare-clear', 'umd-bare-blue', ...caseSet('case-umd', 'dark', 'blue'), 'box-small', 'box-tall', ...DL]),
+  mk('floppy35', '3.5-inch floppy disks', 'other', { front: 'disk-floppy', box: 'box-big', digital: 'digital-tile' },
+    ['disk-floppy-blue', 'disk-floppy-red', 'disk-floppy-green', 'disk-floppy-white', 'box-flip', 'box-cart', 'box-cart-white', 'box-big-white', 'box-big-dark', 'case-keep', ...DL]),
+  mk('floppy525', '5.25-inch floppy disks', 'other', { front: 'disk-525', box: 'box-big', digital: 'digital-tile' },
+    ['disk-525-blue', 'disk-525-red', 'disk-525-clear', 'box-flip', 'box-cart-wide', 'box-big-white', 'box-big-dark', 'box-small', ...DL]),
+  mk('tape', 'Cassette tapes', 'other', { front: 'tape-cassette', case: 'case-tape', digital: 'digital-tile' },
+    ['tape-cassette-angled', 'tape-cassette-white', 'tape-cassette-dark', 'tape-cassette-clear', ...caseSet('case-tape', 'white', 'dark'), 'box-flip', 'box-cart', 'box-cart-wide', 'box-big', ...DL]),
+  mk('arcade', 'Arcade', 'other', { front: 'arcade-marquee', alt: 'arcade-pcb', digital: 'digital-tile' },
+    ['arcade-cabinet', 'arcade-cabinet-angled', 'arcade-cabinet-red', 'arcade-cabinet-blue', 'arcade-marquee-red', 'arcade-marquee-blue', 'arcade-marquee-green', 'box-flip', 'box-tall', ...DL]),
+  mk('digital', 'Downloads', 'other', { front: 'digital-tile', box: 'generic-box', digital: 'digital-poster' },
+    ['digital-banner', 'digital-window', 'digital-tile-red', 'digital-tile-blue', 'digital-tile-green', 'digital-tile-gold', 'digital-tile-dark', 'box-big', 'box-big-white', 'box-big-dark', 'box-flip', 'case-keep', 'case-keep-angled', 'case-jewel', 'case-jewel-angled', 'disc-bare', 'disk-floppy', 'disk-525']),
+  mk('other', 'Anything else', 'other', { box: 'generic-box', front: 'digital-tile', digital: 'digital-poster' },
+    ['box-cart', 'box-cart-wide', 'box-small', 'box-big', 'box-tall', 'box-flip', 'case-keep', 'case-jewel', 'case-clamshell', 'disc-bare', 'cart-nes', 'tape-cassette', 'disk-floppy', ...DL.filter((d) => d !== 'digital-poster')]),
 ]
 const MEDIA_BY_ID = new Map(MEDIA.map((x) => [x.id, x]))
 export const mediaDef = (id: string): MediaDef => MEDIA_BY_ID.get(id) || MEDIA_BY_ID.get('other')!
-// A medium's styles, its usual one first.
-export const stylesOf = (media: string): CaseStyle[] => [...new Set(Object.values(mediaDef(media).variants) as CaseStyle[])]
+// A medium's styles, its usual one first, then its other ways, then the finishes and everything else that suits it.
+export const stylesOf = (media: string): CaseStyle[] => { const m = mediaDef(media); return [...new Set([...(Object.values(m.variants) as CaseStyle[]), ...m.more])].filter(isCaseStyle) }
 export const usualStyle = (media: string): CaseStyle => stylesOf(media)[0]
-// Which variants a family offers as a quick choice (Setup, and every game): cartridges front, angled or boxed; discs in a case or bare.
-export const FAMILY_VARIANTS: Record<'cart' | 'disc', Variant[]> = { cart: ['front', 'angled', 'box'], disc: ['case', 'bare'] }
+// Which variants a family offers as a quick choice (Setup, and every game): cartridges front, angled, boxed or as a download; discs in a case, bare or as a download.
+export const FAMILY_VARIANTS: Record<'cart' | 'disc', Variant[]> = { cart: ['front', 'angled', 'box', 'digital'], disc: ['case', 'bare', 'digital'] }
 
 // Each console's medium, by its id (the server's console ids, docs/specs/wittyplay-file.md "Media").
 export const CONSOLE_MEDIA: Record<string, MediaId> = {

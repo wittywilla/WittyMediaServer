@@ -21,7 +21,10 @@ test('every medium offers styles WittyPlay draws, every console has a medium, an
   assert.equal(styleDef('disc-gd').draw, 'disc-bare')
   // Every kind of medium the owner listed is here.
   for (const md of ['cart-8bit', 'card', 'hucard', 'cd', 'gd', 'dvd', 'bluray', 'minidisc', 'umd', 'floppy35', 'floppy525', 'tape', 'arcade', 'digital']) assert.ok(MEDIA.some((x) => x.id === md), md)
-  assert.deepEqual(stylesOf('umd'), ['umd-bare', 'case-umd'])
+  assert.deepEqual(stylesOf('umd').slice(0, 2), ['umd-bare', 'case-umd'])
+  // Every medium can be shown as a download, and offers plenty of choice.
+  for (const md of MEDIA) assert.ok(stylesOf(md.id).some((x) => x.startsWith('digital-')), md.id + ' offers a download style')
+  for (const md of MEDIA) assert.ok(stylesOf(md.id).length >= 8, md.id + ' has many styles')
   assert.ok(stylesOf('cd').includes('disc-bare') && stylesOf('dvd').includes('disc-bare'))
   assert.equal(caseFor('snes'), 'cart-super')
   assert.equal(caseFor('ps2'), 'case-keep')
@@ -69,7 +72,8 @@ test('a style per medium: every CD bare, every cartridge at an angle; a console 
   assert.equal(resolveLook([discs], 'minidisc').case, 'disc-mini')
   assert.equal(resolveLook([discs], 'gd').case, 'disc-gd')
   assert.equal(familyVariant(withFamilyVariant(discs, 'disc', null), 'disc'), '')
-  assert.deepEqual(FAMILY_VARIANTS.disc, ['case', 'bare'])
+  assert.deepEqual(FAMILY_VARIANTS.disc, ['case', 'bare', 'digital'])
+  assert.equal(resolveLook([withFamilyVariant({}, 'cart', 'digital')], 'cart-64').case, 'digital-tile')
   assert.deepEqual(cleanLook({ cases: { cd: '../x', dvd: 'disc-bare', 'Bad Key': 'x' } }), { cases: { dvd: 'disc-bare' } })
 })
 

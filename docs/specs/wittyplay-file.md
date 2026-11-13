@@ -113,32 +113,34 @@ uses include `nes`, `snes`, `n64`, `gc`, `wii`, `wiiu`, `switch`, `gb`, `gba`, `
 
 ### Media
 
-Every kind of medium games came on has an id, and a few case styles it can be shown in, the first being its usual one.
-A look's `cases` chooses a style per medium; a program decides each console's medium (WittyMediaServer's are below).
+Every kind of medium games came on has an id and the case styles it can be shown in, the first being its usual one. The table
+lists its named ways (front, at an angle, in its box or case, bare, and as a download: every medium can be shown as a download,
+with `digital-tile`); a program may offer more of the styles below for it, such as other finishes, boxes and cases. A look's
+`cases` chooses a style per medium; a program decides each console's medium (WittyMediaServer's are below).
 
 | Medium | What it is | Styles (usual first) | WittyMediaServer's consoles |
 |---|---|---|---|
-| `cart-8bit` | 8-bit cartridges | `cart-nes`, `cart-nes-angled`, `box-cart` | `nes` |
-| `cart-early` | First-generation cartridges | `cart-atari`, `cart-atari-angled`, `box-cart` | `a2600`, `a5200`, `a7800` |
-| `cart-16bit` | 16-bit cartridges | `cart-super`, `cart-super-angled`, `box-cart-wide` | `snes` |
-| `cart-mega` | Black 16-bit cartridges | `cart-mega`, `cart-mega-angled`, `case-clamshell` | `md`, `32x`, `sms`, `neogeo` |
-| `cart-64` | 64-bit cartridges | `cart-64`, `cart-64-angled`, `box-cart-wide` | `n64`, `jaguar` |
-| `cart-pocket` | Handheld cartridges | `cart-pocket`, `cart-pocket-angled`, `box-small` | `gb`, `gbc`, `gg`, `ngp`, `ws`, `vb` |
-| `cart-advance` | Wide handheld cartridges | `cart-advance`, `cart-advance-angled`, `box-small` | `gba` |
-| `card` | Small game cards | `card-slim`, `card-slim-angled`, `case-card` | `nds`, `3ds`, `switch`, `switch2` |
-| `hucard` | Thin, credit-card-sized cards | `card-hu`, `case-jewel` | `pce`, `lynx` |
-| `cd` | CDs | `case-jewel`, `disc-bare`, `case-keep` | `ps1`, `saturn`, `segacd`, `3do` |
-| `gd` | High-density discs with a bright inner ring | `case-jewel`, `disc-gd`, `case-keep` | `dc` |
-| `dvd` | DVDs | `case-keep`, `disc-bare`, `case-keep-angled` | `ps2`, `xbox`, `wii` |
-| `bluray` | High-definition discs | `case-blu`, `disc-bare`, `case-blu-angled` | `ps3`, `wiiu` |
-| `minidisc` | Small 8 cm discs | `case-mini`, `disc-mini` | `gc` |
-| `umd` | Small discs in a shell | `umd-bare`, `case-umd` | `psp` |
-| `floppy35` | 3.5-inch floppy disks | `disk-floppy`, `box-big` | `amiga`, `atarist`, `dos`, `pc98`, `x68000` |
-| `floppy525` | 5.25-inch floppy disks | `disk-525`, `box-big` | `apple2`, `bbc` |
-| `tape` | Cassette tapes | `tape-cassette`, `case-tape` | `c64`, `zx`, `cpc`, `msx` |
-| `arcade` | Arcade machines | `arcade-marquee`, `arcade-pcb` | `arcade`, `mame`, `fbneo` |
-| `digital` | Download only | `digital-tile`, `generic-box` | `pc` |
-| `other` | Anything else | `generic-box`, `digital-tile` | any other |
+| `cart-8bit` | 8-bit cartridges | `cart-nes`, `cart-nes-angled`, `box-cart`, `digital-tile` | `nes` |
+| `cart-early` | First-generation cartridges | `cart-atari`, `cart-atari-angled`, `box-cart`, `digital-tile` | `a2600`, `a5200`, `a7800` |
+| `cart-16bit` | 16-bit cartridges | `cart-super`, `cart-super-angled`, `box-cart-wide`, `digital-tile` | `snes` |
+| `cart-mega` | Black 16-bit cartridges | `cart-mega`, `cart-mega-angled`, `case-clamshell`, `digital-tile` | `md`, `32x`, `sms`, `neogeo` |
+| `cart-64` | 64-bit cartridges | `cart-64`, `cart-64-angled`, `box-cart-wide`, `digital-tile` | `n64`, `jaguar` |
+| `cart-pocket` | Handheld cartridges | `cart-pocket`, `cart-pocket-angled`, `box-small`, `digital-tile` | `gb`, `gbc`, `gg`, `ngp`, `ws`, `vb` |
+| `cart-advance` | Wide handheld cartridges | `cart-advance`, `cart-advance-angled`, `box-small`, `digital-tile` | `gba` |
+| `card` | Small game cards | `card-slim`, `card-slim-angled`, `case-card`, `digital-tile` | `nds`, `3ds`, `switch`, `switch2` |
+| `hucard` | Thin, credit-card-sized cards | `card-hu`, `case-jewel`, `digital-tile` | `pce`, `lynx` |
+| `cd` | CDs | `case-jewel`, `disc-bare`, `case-keep`, `digital-tile` | `ps1`, `saturn`, `segacd`, `3do` |
+| `gd` | High-density discs with a bright inner ring | `case-jewel`, `disc-gd`, `case-keep`, `digital-tile` | `dc` |
+| `dvd` | DVDs | `case-keep`, `disc-bare`, `case-keep-angled`, `digital-tile` | `ps2`, `xbox`, `wii` |
+| `bluray` | High-definition discs | `case-blu`, `disc-bare`, `case-blu-angled`, `digital-tile` | `ps3`, `wiiu` |
+| `minidisc` | Small 8 cm discs | `case-mini`, `disc-mini`, `digital-tile` | `gc` |
+| `umd` | Small discs in a shell | `umd-bare`, `case-umd`, `digital-tile` | `psp` |
+| `floppy35` | 3.5-inch floppy disks | `disk-floppy`, `box-big`, `digital-tile` | `amiga`, `atarist`, `dos`, `pc98`, `x68000` |
+| `floppy525` | 5.25-inch floppy disks | `disk-525`, `box-big`, `digital-tile` | `apple2`, `bbc` |
+| `tape` | Cassette tapes | `tape-cassette`, `case-tape`, `digital-tile` | `c64`, `zx`, `cpc`, `msx` |
+| `arcade` | Arcade machines | `arcade-marquee`, `arcade-pcb`, `digital-tile` | `arcade`, `mame`, `fbneo` |
+| `digital` | Download only | `digital-tile`, `generic-box`, `digital-poster` | `pc` |
+| `other` | Anything else | `generic-box`, `digital-tile`, `digital-poster` | any other |
 
 ### Case styles
 
@@ -156,7 +158,14 @@ A program may draw them however it likes; these are what the ids mean. Any style
 | `cart-advance` | A wide, short handheld cartridge |
 | `card-slim` | A small, thin game card |
 | `card-hu` | A card no thicker than a credit card, contacts along one edge |
-| `…-angled` | Any of the eight above, `case-keep` or `case-blu`, turned to show its side (for example `cart-nes-angled`) |
+| `…-angled` | A cartridge, card, case, cassette, small disc shell or arcade cabinet turned to show its side (for example `cart-nes-angled`, `case-jewel-angled`) |
+| `<style>-<finish>` | The same drawing in a finish: `gold`, `dark` (black), `clear` (see-through), `red`, `blue`, `green`, `white` or `wood` (wood-grain), for example `cart-nes-gold`, `case-keep-green`, `box-cart-dark`; finishes of an angled-capable drawing also exist at an angle (`cart-nes-gold-angled`) |
+| `box-tall`, `box-flip` | A narrow, tall cardboard box; a cardboard box with a lid along the top |
+| `disc-bd`, `disc-dark`, `disc-mini-dark` | A disc alone with a blue-violet or a black inner ring |
+| `disc-sleeve`, `disc-sleeve-gd` | A disc half out of a paper sleeve |
+| `arcade-cabinet` | A whole upright arcade cabinet with the game on its screen |
+| `digital-poster`, `digital-banner`, `digital-window` | Download-only styles: a tall store poster with a progress bar, a wide banner with a play button, an app window with a status bar |
+| `digital-tile-<finish>` | The download tile in a colour |
 | `box-cart`, `box-cart-wide`, `box-small`, `box-big` | A cardboard box: tall, wide, small, or large as computer games came in |
 | `case-clamshell` | A hinged plastic case with ribs |
 | `case-card` | A small case for a game card |

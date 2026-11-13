@@ -13,7 +13,8 @@
 .wplay .sdui-shelf:not(.layout-list) .card .poster > .gcase-fit { inset-block-end: 26%; }
 .wplay .sdui .sdui-shelf .card .poster:has(> .gcase-fit) { background: radial-gradient(120% 90% at 50% 100%, rgb(255 255 255 / .12), rgb(255 255 255 / .04) 62%, rgb(255 255 255 / .02)), #12163a; }
 .wplay .sdui-shelf.layout-list .card .poster > .gcase-fit { inset: 4%; }
-.gcase { --gc-col: var(--gc-tint, var(--gc-base, #3a3c44)); position: relative; display: block; inline-size: min(100cqw, calc(100cqh * var(--gc-ratio))); aspect-ratio: var(--gc-ar); filter: drop-shadow(0 .5cqh 1.2cqh rgb(0 0 0 / .5)); transition: transform var(--dur-2) var(--ease-out); }
+.gcase-fit { filter: drop-shadow(0 .5cqh .3cqh rgb(0 0 0 / .4)) drop-shadow(0 1.2cqh 1.4cqh rgb(0 0 0 / .22)); }
+.gcase { --gc-col: var(--gc-tint, var(--gc-base, #3a3c44)); position: relative; display: block; inline-size: min(100cqw, calc(100cqh * var(--gc-ratio))); aspect-ratio: var(--gc-ar); transition: transform var(--dur-2) var(--ease-out); }
 .gcase > svg { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; display: block; overflow: visible; }
 .gcase-over { pointer-events: none; z-index: 2; }
 .gcase-label { position: absolute; overflow: hidden; background: #0c0e1c; container-type: inline-size; z-index: 1; }
@@ -23,34 +24,73 @@
 .gcase-blank { position: absolute; inset: 0; background: repeating-linear-gradient(135deg, rgb(255 255 255 / .16) 0 6px, rgb(255 255 255 / .07) 6px 12px), linear-gradient(160deg, #6a5ae0, #2c2f6e); }
 .gcase-logo { position: absolute; inset: 0; display: grid; place-items: center; padding: 9%; background: linear-gradient(160deg, #262a40, #0e1020); }
 .gcase-logo img, .gcase-brand img { position: static !important; inline-size: 100% !important; block-size: 100% !important; object-fit: contain !important; }
+/* The label is printed paper or plastic: a shaded lip where it sits in its recess, and a soft sheen across it. */
+.gcase-label::before { content: ''; position: absolute; inset: 0; z-index: 2; border-radius: inherit; pointer-events: none; box-shadow: inset 0 0 0 .5px rgb(0 0 0 / .55), inset 1px 1.5px 3px rgb(0 0 0 / .45), inset -.5px -.5px 1px rgb(255 255 255 / .12); }
+.gcase-label::after { content: ''; position: absolute; inset: 0; z-index: 2; border-radius: inherit; pointer-events: none; background: linear-gradient(135deg, rgb(255 255 255 / .08), transparent 40%); }
 .gcase-brand { position: absolute; z-index: 3; display: grid; place-items: center; padding: .6%; border-radius: 2px; background: rgb(0 0 0 / .6); }
-/* The drawing's parts, from one colour per case (a console's own shade when it has one). */
-.gcase .gc-body { fill: var(--gc-col); }
-.gcase .gc-well { fill: color-mix(in srgb, var(--gc-col) 68%, #000); }
-.gcase .gc-band, .gcase .gc-hinge { fill: color-mix(in srgb, var(--gc-col) 80%, #000); }
-.gcase .gc-grip, .gcase .gc-mark, .gcase .gc-side, .gcase .gc-screw { fill: color-mix(in srgb, var(--gc-col) 58%, #000); }
-.gcase .gc-groove { stroke: color-mix(in srgb, var(--gc-col) 55%, #000); stroke-width: 1.4; stroke-linecap: round; }
-.gcase .gc-edge { stroke: color-mix(in srgb, var(--gc-col) 62%, #000); stroke-width: 2; }
-.gcase.light .gc-groove, .gcase.light .gc-edge { stroke: color-mix(in srgb, var(--gc-col) 72%, #000); }
-.gcase .gc-sheen { fill: rgb(255 255 255 / .18); }
-.gcase .gc-hinge-line { stroke: rgb(255 255 255 / .16); stroke-width: 1; }
-.gcase .gc-glare { fill: rgb(255 255 255 / .1); }
-.gcase .gc-clear { fill: none; stroke: rgb(255 255 255 / .3); stroke-width: 1; }
-.gcase .gc-window, .gcase .gc-screen { fill: #08090d; }
-.gcase .gc-disc { fill: #c3c7d2; }
-.gcase .gc-metal { fill: #aeb3bd; }
-.gcase .gc-reel { fill: #f2efe6; }
-.gcase .gc-scan { stroke: rgb(120 200 255 / .1); stroke-width: 1; }
-.gcase .gc-lit { fill: none; stroke: rgb(255 236 190 / .55); stroke-width: 1.5; }
-.gcase-arcade-marquee .gcase-label { box-shadow: 0 0 2cqw rgb(255 220 150 / .5); }
+/* The drawing's parts. Fills come from gradients in gameCaseShapes.tsx (Defs) built on --gc-col: a console's shade, or the finish (tone-*). */
+.gcase .gc-groove { stroke: rgb(0 0 0 / .55); stroke-width: 1.1; stroke-linecap: round; }
+.gcase .gc-groove-hi { stroke: rgb(255 255 255 / .2); stroke-width: .8; stroke-linecap: round; }
+.gcase .gc-mark { fill: rgb(0 0 0 / .5); }
+.gcase .gc-card-line { fill: none; stroke: rgb(0 0 0 / .28); stroke-width: .8; }
+.gcase .gc-grain { display: none; fill: none; stroke: rgb(0 0 0 / .35); stroke-width: 1.2; stroke-linecap: round; }
+.gcase.tone-wood .gc-grain { display: block; }
+.gcase .gc-inner { display: none; }
+.gcase .gc-inner > rect:first-child { fill: #1d6a3e; }
+.gcase.tone-clear .gc-inner, .gcase.tone-smoke .gc-inner { display: block; }
+.gcase.tone-clear .gc-body { fill-opacity: .6; }
+.gcase .gc-lit { fill: rgb(255 226 150 / .12); stroke: rgb(255 236 190 / .6); stroke-width: 1.4; }
+.gcase .gc-lit-fill { fill: #e8c46c; }
+.gcase .gc-prog { fill: #5ba8ff; }
+.gcase .gc-badge { fill: rgb(10 12 30 / .82); stroke: rgb(255 255 255 / .75); stroke-width: 1.4; }
+.gcase .gc-badge-mark { fill: none; stroke: #fff; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+/* Discs: silver, with the clear ring, the mirror band, the hole, and a rainbow sheen like a real disc's. */
+.gcase .gc-disc-rim { stroke: rgb(255 255 255 / .6); }
+.gcase .gc-disc-ring { fill: rgb(228 233 243 / .78); }
+.gcase .gc-disc-hub { fill: rgb(176 183 198 / .92); }
+.gcase .gc-hole { fill: #0b0c14; }
+.gcase .gc-disc-iri { fill: rgb(150 190 255 / .16); }
+.gcase.tone-gd .gc-disc-ring { fill: rgb(222 188 100 / .92); } .gcase.tone-gd .gc-disc-hub { fill: rgb(188 148 62 / .95); } .gcase.tone-gd .gc-disc-rim { stroke: rgb(236 204 120 / .85); }
+.gcase.tone-bd .gc-disc-ring { fill: rgb(128 140 232 / .86); } .gcase.tone-bd .gc-disc-hub { fill: rgb(92 100 190 / .95); } .gcase.tone-bd .gc-disc-rim { stroke: rgb(156 168 255 / .8); }
+.gcase.tone-dark .gc-disc-ring { fill: rgb(40 41 50 / .94); } .gcase.tone-dark .gc-disc-hub { fill: rgb(70 72 84 / .95); } .gcase.tone-dark .gc-disc-rim { stroke: rgb(255 255 255 / .35); }
+.gcase-disc-bare .gcase-label::after, .gcase-disc-mini .gcase-label::after, .gcase-disc-sleeve .gcase-label::after {
+  background: conic-gradient(from 30deg, rgb(255 90 170 / 0), rgb(255 210 90 / .12), rgb(90 255 200 / 0) 22%, rgb(90 170 255 / .14) 36%, rgb(255 90 170 / 0) 48%, rgb(255 220 110 / .12) 62%, rgb(120 255 200 / 0) 74%, rgb(130 150 255 / .14) 88%, rgb(255 90 170 / 0)), linear-gradient(135deg, rgb(255 255 255 / .06), transparent 45%);
+  mix-blend-mode: screen; }
+/* Finishes: a style may be drawn in a colour of plastic. */
+.gcase.tone-gold { --gc-col: #c9a24a; } .gcase.tone-dark { --gc-col: #1d1d22; } .gcase.tone-clear { --gc-col: #aebbd0; }
+.gcase.tone-red { --gc-col: #b8353d; } .gcase.tone-blue { --gc-col: #2f61b8; } .gcase.tone-green { --gc-col: #2d8a57; }
+.gcase.tone-white { --gc-col: #ecebe6; } .gcase.tone-wood { --gc-col: #7d5231; }
+.gcase-disc-bare, .gcase-disc-mini, .gcase-disc-sleeve { --gc-base: #c9ccd4; }
+/* The colour each drawing has when nothing else decides. */
 .gcase-cart-nes { --gc-base: #8e9096; } .gcase-cart-atari { --gc-base: #1e1b19; } .gcase-cart-super { --gc-base: #b7b6bb; } .gcase-cart-64 { --gc-base: #3b3c40; }
-.gcase-cart-mega { --gc-base: #17171a; } .gcase-cart-pocket { --gc-base: #c4c2bd; } .gcase-cart-advance { --gc-base: #4b4c55; } .gcase-card-slim { --gc-base: #4a4b51; }
-.gcase-case-jewel { --gc-base: #2a2c33; } .gcase-case-keep { --gc-base: #15161b; } .gcase-case-mini { --gc-base: #1e1d24; } .gcase-case-umd { --gc-base: #16171b; }
-.gcase-disk-floppy { --gc-base: #2b2d33; } .gcase-tape-cassette { --gc-base: #2a2a2e; } .gcase-arcade-marquee { --gc-base: #141418; } .gcase-generic-box { --gc-base: #2c3140; }
+.gcase-cart-mega { --gc-base: #17171a; } .gcase-cart-pocket { --gc-base: #c4c2bd; } .gcase-cart-advance { --gc-base: #4b4c55; } .gcase-card-slim { --gc-base: #4a4b51; } .gcase-card-hu { --gc-base: #e6e3dc; }
+.gcase-case-jewel { --gc-base: #2a2c33; } .gcase-case-keep { --gc-base: #15161b; } .gcase-case-mini { --gc-base: #1e1d24; } .gcase-case-umd { --gc-base: #16171b; } .gcase-case-card { --gc-base: #d8dadf; }
+.gcase-case-clamshell { --gc-base: #141417; } .gcase-case-blu { --gc-base: #1f3f86; } .gcase-case-tape { --gc-base: #cdd5e2; } .gcase-umd-bare { --gc-base: #16171b; }
+.gcase-disk-floppy { --gc-base: #2b2d33; } .gcase-disk-525 { --gc-base: #17171b; } .gcase-tape-cassette { --gc-base: #2a2a2e; } .gcase-arcade-marquee { --gc-base: #1a1a20; } .gcase-arcade-cabinet { --gc-base: #25252d; }
+.gcase-arcade-pcb { --gc-base: #1f5a34; } .gcase-digital-tile { --gc-base: #2a2f52; } .gcase-digital-poster, .gcase-digital-banner, .gcase-digital-window { --gc-base: #232846; }
+.gcase-generic-box { --gc-base: #4a5370; }
+.gcase-box-cart, .gcase-box-cart-wide, .gcase-box-small, .gcase-box-big, .gcase-box-tall, .gcase-box-flip { --gc-base: #cdb88f; }
+.gcase[class*='gcase-box-'].tone-white { --gc-col: #ece8de; } .gcase[class*='gcase-box-'].tone-dark { --gc-col: #2a2b33; }
+/* Turned at an angle: a real solid. The drawing is the front; its side (gcase-edge) swings back from the right edge, and the whole is
+   scaled to stay inside the tile. */
+.gcase.angled { transform-style: preserve-3d; transform: translateX(-5%) perspective(200cqw) rotateY(-30deg) scale(.8); }
+.gcase.angled > * { transform: translateZ(.01px); }
+.gcase.angled > .gcase-label { transform: translateZ(.4px); }
+.gcase.angled > .gcase-over { transform: translateZ(.8px); }
+.gcase.angled > .gcase-brand { transform: translateZ(1px); }
+.gcase-edge { position: absolute; transform-origin: left center; transform: rotateY(90deg); border-radius: 0 2px 2px 0; pointer-events: none;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--gc-col) 52%, #000), color-mix(in srgb, var(--gc-col) 34%, #000)); box-shadow: inset 0 0 0 .6px rgb(255 255 255 / .1), inset 1px 0 1px rgb(255 255 255 / .12); }
+.gcase-cart-nes .gcase-edge, .gcase-cart-super .gcase-edge, .gcase-cart-64 .gcase-edge, .gcase-cart-mega .gcase-edge, .gcase-cart-pocket .gcase-edge, .gcase-cart-advance .gcase-edge, .gcase-cart-atari .gcase-edge {
+  background-image: repeating-linear-gradient(0deg, transparent 0 7%, rgb(0 0 0 / .22) 7% 8%), linear-gradient(90deg, color-mix(in srgb, var(--gc-col) 52%, #000), color-mix(in srgb, var(--gc-col) 34%, #000)); }
+.gcase[class*='gcase-case-'] .gcase-edge { background: linear-gradient(90deg, color-mix(in srgb, var(--gc-col) 70%, #000), color-mix(in srgb, var(--gc-col) 48%, #000)); border-radius: 0 3px 3px 0; }
+.gcase-arcade-cabinet .gcase-edge { background: linear-gradient(90deg, color-mix(in srgb, var(--gc-col) 70%, #000), color-mix(in srgb, var(--gc-col) 40%, #000)); }
 /* The chosen game's case lifts a little; with reduced motion it stays where it is (the ring says which). */
 .wplay .sdui-shelf .card:focus-visible .gcase, .wplay .sdui-shelf .sdui-item.grown .gcase { transform: translateY(-2.5%); }
-@media (prefers-reduced-motion: reduce) { .gcase { transition: none; } .wplay .sdui-shelf .card:focus-visible .gcase, .wplay .sdui-shelf .sdui-item.grown .gcase { transform: none; } }
+.wplay .sdui-shelf .card:focus-visible .gcase.angled, .wplay .sdui-shelf .sdui-item.grown .gcase.angled { transform: translate(-5%, -2.5%) perspective(200cqw) rotateY(-30deg) scale(.8); }
+@media (prefers-reduced-motion: reduce) { .gcase { transition: none; } .wplay .sdui-shelf .card:focus-visible .gcase, .wplay .sdui-shelf .sdui-item.grown .gcase { transform: none; }
+  .wplay .sdui-shelf .card:focus-visible .gcase.angled, .wplay .sdui-shelf .sdui-item.grown .gcase.angled { transform: translateX(-5%) perspective(200cqw) rotateY(-30deg) scale(.8); } }
 @media (forced-colors: active) { .gcase-label { outline: 1px solid CanvasText; } }
+
 
 /* The detail panel's Picture style button. */
 .gpic-detail-btn { justify-self: start; min-block-size: 44px; padding: 0 18px; border: 0; border-radius: 999px; background: var(--wp-chip, var(--bg-3)); color: var(--fg); font: inherit; font-weight: 800; cursor: pointer; }
@@ -93,26 +133,6 @@
 .gpic-credit-logo img { max-inline-size: 100%; max-block-size: 100%; object-fit: contain; }
 .gpic-dialog .gpic-look-now { position: static; }
 
-/* Every kind of medium: angled views, discs, boards, downloads. */
-.gcase.angled { transform: perspective(60cqw) rotateY(-26deg) translateX(4%); transform-origin: 40% 50%; }
-.wplay .sdui-shelf .card:focus-visible .gcase.angled, .wplay .sdui-shelf .sdui-item.grown .gcase.angled { transform: perspective(60cqw) rotateY(-26deg) translate(4%, -2.5%); }
-@media (prefers-reduced-motion: reduce) { .wplay .sdui-shelf .card:focus-visible .gcase.angled, .wplay .sdui-shelf .sdui-item.grown .gcase.angled { transform: perspective(60cqw) rotateY(-26deg) translateX(4%); } }
-.gcase .gc-contact { stroke: #c9a24a; stroke-width: 3; }
-.gcase .gc-pcb { fill: #1f5a34; }
-.gcase .gc-chip { fill: #16171b; }
-.gcase .gc-badge { fill: rgb(10 12 30 / .8); stroke: rgb(255 255 255 / .7); stroke-width: 1.5; }
-.gcase .gc-badge-mark { fill: none; stroke: #fff; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
-.gcase-disc-bare, .gcase-disc-mini { --gc-base: #c9ccd4; }
-.gcase-disc-bare .gc-disc, .gcase-disc-mini .gc-disc { fill: var(--gc-col); }
-.gcase .gc-disc-edge { fill: none; stroke: rgb(255 255 255 / .55); stroke-width: 1.5; }
-.gcase .gc-disc-ring { fill: rgb(225 230 240 / .85); }
-.gcase.tone-gd .gc-disc-ring { fill: rgb(214 182 102 / .9); }
-.gcase .gc-disc-hub { fill: rgb(170 176 190 / .9); }
-.gcase .gc-hole { fill: #0b0c14; }
-.gcase-box-cart, .gcase-box-cart-wide, .gcase-box-small, .gcase-box-big { --gc-base: #d9d2c2; }
-.gcase-card-hu { --gc-base: #e6e3dc; } .gcase-case-clamshell { --gc-base: #141417; } .gcase-case-card { --gc-base: #d8dadf; } .gcase-case-blu { --gc-base: #1f3f86; }
-.gcase-umd-bare { --gc-base: #16171b; } .gcase-case-umd { --gc-base: #121318; } .gcase-disk-525 { --gc-base: #17171b; } .gcase-case-tape { --gc-base: rgb(200 210 225 / .35); }
-.gcase-arcade-pcb { --gc-base: #1f5a34; } .gcase-digital-tile { --gc-base: #2a2f52; }
 /* Setup's quick choice. */
 .gpic-quick { display: grid; gap: 12px; }
 .gpic-quick-previews { display: flex; flex-wrap: wrap; gap: 12px; }

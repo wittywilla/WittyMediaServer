@@ -26,8 +26,10 @@
 
 /* ---- the WittyPlay scope: a rounded, glossy look that any look may wear ---- */
 [data-scope="wittyplay"] { --r-md: calc(var(--radius) * 1.6); }
-[data-scope="wittyplay"] .card { border-radius: var(--r-lg); overflow: hidden; }
-[data-scope="wittyplay"] .card .poster { border-radius: inherit; }
+/* The box art is rounded and clipped, not the whole card: the title and year under it sit in the card's
+   bottom corner, and a rounded, clipped card cut off their first letter. */
+[data-scope="wittyplay"] .card { border-radius: var(--r-lg); }
+[data-scope="wittyplay"] .card .poster { border-radius: inherit; overflow: hidden; }
 [data-scope="wittyplay"] .card.sdui-game .poster::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, color-mix(in srgb, var(--on-image) 16%, transparent), transparent 40%, color-mix(in srgb, var(--picture-bg) 55%, transparent)); }
 [data-scope="wittyplay"] .sdui-detail-actions .btn.primary { background: var(--accent); color: var(--accent-fg); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--on-image) 35%, transparent); }
 

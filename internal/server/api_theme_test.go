@@ -345,3 +345,42 @@ func TestTimeZoneSetting(t *testing.T) {
 		t.Errorf("not back to the computer's zone: %s", time.Local)
 	}
 }
+
+// A device that chose a theme asks for it, and every built-in theme comes back as itself, with
+// its own scene and finish: Paper's light page never sits on the default's dark sky (S8).
+func TestEveryThemeAskedForComesWithItsOwnScene(t *testing.T) {
+	ts, _, adult, _ := sduiAccounts(t)
+	if err := ts.Themes.Install(builtin.Builtin); err != nil {
+		t.Fatal(err)
+	}
+	list := ts.Themes.List()
+	if len(list) < 15 {
+		t.Fatalf("%d built-in themes", len(list))
+	}
+	same := func(a, b any) bool {
+		x, _ := json.Marshal(a)
+		y, _ := json.Marshal(b)
+		return string(x) == string(y)
+	}
+	_, defaultScene := ts.Themes.LookOf("default")
+	for _, m := range list {
+		th := decode[ResolvedTheme](t, ts.do(t, "GET", "/api/v1/theme?theme="+m.ID, adult, nil))
+		finish, scene := ts.Themes.LookOf(m.ID)
+		if th.ID != m.ID || th.Look.Theme != m.ID {
+			t.Errorf("%s: answered as %q (look %q)", m.ID, th.ID, th.Look.Theme)
+		}
+		if !same(th.Look.Scene, scene) || !same(th.Look.Finish, finish) {
+			t.Errorf("%s: not its own scene or finish: %+v", m.ID, th.Look.Scene)
+		}
+		if len(th.Look.Scene.Layers) == 0 {
+			t.Errorf("%s: no scene at all", m.ID)
+		}
+		if m.Scheme == "light" && same(th.Look.Scene, defaultScene) {
+			t.Errorf("%s: a light theme on the default's dark scene", m.ID)
+		}
+	}
+	// Asked for nothing, the account wears what the server says, as before.
+	if th := decode[ResolvedTheme](t, ts.do(t, "GET", "/api/v1/theme", adult, nil)); th.Look.Theme == "paper" {
+		t.Errorf("unasked: %q", th.Look.Theme)
+	}
+}

@@ -73,7 +73,7 @@ func buildStockPages() []Page {
 			Description: "A library of films or shows: filters and sorting over a grid.",
 			Sections: []Section{
 				sec("filters", "FilterBar", props{"target": "all"}, nil),
-				sec("all", "Grid", props{"empty": "message", "emptyText": "Nothing matches these filters."}, Source{"type": "browse", "library": "$library", "filterable": true}),
+				sec("all", "Grid", props{"empty": "message", "emptyText": "Nothing to show here.", "emptyHint": "If filters are on, clear them. Otherwise this library's folders have nothing in them yet: add files, or add a folder in Settings, Libraries, then scan.", "emptyAction": scanAction}, Source{"type": "browse", "library": "$library", "filterable": true}),
 			}})
 	}
 

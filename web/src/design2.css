@@ -342,3 +342,5 @@ html[data-card-set="row"] .sdui-row:is(:hover, :focus-visible) :is(.muted, .sdui
 
 /* With a scene behind the page, a billboard shades only its left for the words; the scene shows through the rest. */
 html[data-scene] .hero .shade { background: linear-gradient(90deg, rgb(var(--bg-rgb) / .5) 0%, rgb(var(--bg-rgb) / 0) 70%); }
+/* With a scene there is no page colour to fade to, so the picture itself fades out at the bottom and the scene shows through. */
+html[data-scene] .hero .bg { -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent 100%); mask-image: linear-gradient(180deg, #000 55%, transparent 100%); }

@@ -94,16 +94,13 @@ html[data-wplay] body { font-family: var(--font); }
 
 /* ---- the status bar: who, then the server's name, the controllers, the time and the way out ---- */
 .wplay .play-status { padding: clamp(14px, 2.4vw, 32px) var(--wp-gutter) clamp(8px, 1vw, 16px); gap: var(--sp-3) var(--sp-5); }
-/* The status bar stays at the top. At the top of a page it is clear, as it always was; once the page scrolls, a soft frosted fade
-   comes up behind it: darkest at the very top and feathering to nothing below the bar, so there is never a hard edge or a line. */
-.wplay .play-status { position: sticky; inset-block-start: 0; z-index: 4; isolation: isolate; }
-.wplay .play-status::before { content: ""; position: absolute; inset: 0 0 -36px; z-index: -1; pointer-events: none; opacity: 0; transition: opacity var(--dur-3, .3s) var(--ease-out, ease-out);
-  background: linear-gradient(180deg, rgb(16 14 52 / .92) 0%, rgb(16 14 52 / .78) 55%, rgb(16 14 52 / 0) 100%);
-  backdrop-filter: blur(20px) saturate(1.25); -webkit-backdrop-filter: blur(20px) saturate(1.25);
-  mask-image: linear-gradient(180deg, #000 0%, #000 60%, transparent 100%); -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 60%, transparent 100%); }
-.wplay[data-scrolled] .play-status::before { opacity: 1; }
-@media (prefers-reduced-motion: reduce) { .wplay .play-status::before { transition: none; } }
-@media (prefers-reduced-transparency: reduce) { .wplay .play-status::before { background: linear-gradient(180deg, rgb(16 14 52) 0%, rgb(16 14 52) 70%, rgb(16 14 52 / 0) 100%); backdrop-filter: none; -webkit-backdrop-filter: none; } }
+/* The status bar stays at the top. At the top of a page it is clear, as it always was; once the page scrolls it gets a deep band
+   that fades to nothing at its foot, so what passes under it never muddles it and there is no hard edge. */
+/* Its own layer: rows that scroll sideways get layers of their own, and would otherwise be painted over it. */
+.wplay .play-status { position: sticky; inset-block-start: 0; z-index: 4; transform: translateZ(0); will-change: transform; }
+.wplay[data-scrolled] .play-status { background: linear-gradient(180deg, rgb(16 14 52 / .97) 0%, rgb(16 14 52 / .94) 86%, rgb(16 14 52 / 0) 100%); }
+/* Rows that scroll sideways keep below it: they are given a place in the stacking order under the status bar's. */
+.wplay :is(.wpg-shots, .wpl-line, .wpg-saves, .sdui-shelf .row) { position: relative; z-index: 0; }
 .wplay .play-avatar { inline-size: clamp(44px, 3.2vw, 60px); block-size: clamp(44px, 3.2vw, 60px); background: linear-gradient(135deg, #ff8aa3, #8a7bd8 55%, #5ff0d6); color: #13163f; font-size: clamp(1.1rem, 1.3vw, 1.6rem); font-weight: 900; box-shadow: 0 0 0 2px rgb(255 255 255 / .35); }
 .wplay .play-who-text b { font-size: clamp(1.1rem, 1.45vw, 1.7rem); font-weight: 800; line-height: 1.15; }
 .wplay .play-who-text span { font-size: clamp(.9rem, 1.05vw, 1.25rem); color: var(--fg-2); }
@@ -642,3 +639,12 @@ html[data-wplay] .wpg-settings [role=tablist] { overflow-x: auto; scrollbar-widt
 .wplay-size-switch button[aria-pressed="true"] { background: linear-gradient(180deg, #5ff0d6, #1fc3a8); color: var(--accent-fg); }
 .wplay-size-switch button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--wp-ring), 0 0 0 6px var(--focus); }
 .wplay-switches { flex: none; display: inline-flex; align-items: center; gap: 10px; }
+/* The game page's cards keep their contents their own size, however tall the row makes the card: buttons stay buttons, a console's
+   button names stay a row of chips. */
+.wpg .gm-panel, .wpg-card { align-content: start; }
+.wpg .gm-panel > *, .wpg-card > * { justify-self: stretch; }
+.wpg :is(.gm-panel-actions, .gm-panel) > .btn, .wpg .gm-panel-actions { justify-self: start; }
+.wpg .gm-panel-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.wpg .gm-pad-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }
+.wpg .gm-pad-list .pill { display: inline-flex; align-items: center; min-block-size: 32px; padding: 0 12px; border-radius: 999px; background: rgb(255 255 255 / .1); border: 0; font-weight: 800; }
+.wpg .gm-core-change { justify-self: start; margin-block-start: 6px; }

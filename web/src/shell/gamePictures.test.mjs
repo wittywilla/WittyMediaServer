@@ -3,39 +3,74 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { CASE_STYLES, CONSOLE_CASE, MAX_PREF_GAMES, caseFor, cleanLook, exportName, importDoc, isCaseStyle, lookFor, picturesPref, prefToDoc, readDoc, resolveLook, withLook } from './gamePictures.ts'
+import { CASE_STYLES, CONSOLE_MEDIA, FAMILY_VARIANTS, MAX_PREF_GAMES, MEDIA, caseFor, cleanLook, exportName, familyVariant, importDoc, isCaseStyle, lookFor, mediaFor, picturesPref, prefToDoc, readDoc, resolveLook, styleDef, stylesOf, withFamilyVariant, withLook, withMediaStyle } from './gamePictures.ts'
 
-test('every console names a case WittyPlay draws, and the list is the format’s', () => {
-  for (const [id, c] of Object.entries(CONSOLE_CASE)) assert.ok(isCaseStyle(c), id + ' → ' + c)
-  const schema = JSON.parse(readFileSync(new URL('../../../docs/specs/wittyplay.schema.json', import.meta.url), 'utf8'))
+const schema = JSON.parse(readFileSync(new URL('../../../docs/specs/wittyplay.schema.json', import.meta.url), 'utf8'))
+
+test('every medium offers styles WittyPlay draws, every console has a medium, and the lists are the format’s', () => {
+  for (const md of MEDIA) {
+    assert.ok(stylesOf(md.id).length >= 2, md.id + ' has more than one way to be shown')
+    for (const st of stylesOf(md.id)) assert.ok(isCaseStyle(st), md.id + ' → ' + st)
+  }
+  for (const [id, md] of Object.entries(CONSOLE_MEDIA)) assert.ok(MEDIA.some((x) => x.id === md), id + ' → ' + md)
   assert.deepEqual(schema.$defs.look.properties.case.examples, ['auto', ...CASE_STYLES.map((c) => c.id)])
+  assert.deepEqual(schema.$defs.look.properties.cases.propertyNames.examples, MEDIA.map((x) => x.id))
+  // Every drawing a style names exists for an angled one's base, and ids are unique.
+  assert.equal(new Set(CASE_STYLES.map((c) => c.id)).size, CASE_STYLES.length)
+  assert.equal(styleDef('cart-nes-angled').draw, 'cart-nes')
+  assert.equal(styleDef('disc-gd').draw, 'disc-bare')
+  // Every kind of medium the owner listed is here.
+  for (const md of ['cart-8bit', 'card', 'hucard', 'cd', 'gd', 'dvd', 'bluray', 'minidisc', 'umd', 'floppy35', 'floppy525', 'tape', 'arcade', 'digital']) assert.ok(MEDIA.some((x) => x.id === md), md)
+  assert.deepEqual(stylesOf('umd'), ['umd-bare', 'case-umd'])
+  assert.ok(stylesOf('cd').includes('disc-bare') && stylesOf('dvd').includes('disc-bare'))
   assert.equal(caseFor('snes'), 'cart-super')
   assert.equal(caseFor('ps2'), 'case-keep')
   assert.equal(caseFor('gc'), 'case-mini')
-  assert.equal(caseFor('psp'), 'case-umd')
+  assert.equal(caseFor('psp'), 'umd-bare')
+  assert.equal(caseFor('ps3'), 'case-blu')
   assert.equal(caseFor('arcade'), 'arcade-marquee')
   // A console not listed goes by how the server says its games came.
-  assert.equal(caseFor('newthing', 'jewel'), 'case-jewel')
-  assert.equal(caseFor('newthing', 'box', 'pocket'), 'cart-pocket')
+  assert.equal(mediaFor('newthing', 'jewel'), 'cd')
+  assert.equal(mediaFor('newthing', 'box', 'pocket'), 'cart-pocket')
   assert.equal(caseFor('newthing'), 'generic-box')
 })
 
 test('no case is named after a maker or a product', () => {
-  const words = CASE_STYLES.map((c) => c.label + ' ' + c.note).join(' ')
-  assert.doesNotMatch(words, /nintendo|sega|sony|playstation|xbox|atari|genesis|mega drive|famicom|game ?boy|commodore|amiga|neo ?geo|snk|nec/i)
+  const words = [...CASE_STYLES.map((c) => c.label + ' ' + c.note), ...MEDIA.map((x) => x.label)].join(' ')
+  assert.doesNotMatch(words, /nintendo|sega|sony|playstation|xbox|atari|genesis|mega drive|famicom|game ?boy|commodore|amiga|neo ?geo|snk|nec|blu-ray|umd|dreamcast/i)
 })
 
 test('each field comes from the most particular level that sets it', () => {
   const pref = { default: { picture: 'case' }, consoles: { snes: { label: 'title' } }, games: { 7: { case: 'generic-box' } } }
   const server = { server: { default: { picture: 'filled', label: 'logo' }, consoles: { snes: { picture: 'fitted' } } }, games: { 7: { picture: 'filled' }, 8: { case: 'cart-64' } } }
-  assert.deepEqual(lookFor(pref, server, '7', 'snes', 'cart-super'), { picture: 'filled', case: 'generic-box', label: 'title', caseChosen: true })
+  assert.deepEqual(lookFor(pref, server, '7', 'snes', 'cart-16bit'), { picture: 'filled', case: 'generic-box', label: 'title', caseChosen: true, media: 'cart-16bit' })
   // The person's console choice is under the server's choice for one game, over the server's console choice.
-  assert.deepEqual(lookFor(pref, server, '8', 'snes', 'cart-super'), { picture: 'fitted', case: 'cart-64', label: 'title', caseChosen: true })
-  assert.deepEqual(lookFor(pref, server, '9', 'nes', 'cart-nes'), { picture: 'case', case: 'cart-nes', label: 'logo', caseChosen: false })
-  assert.deepEqual(lookFor(undefined, undefined, '1', 'nes', 'cart-nes'), { picture: 'fitted', case: 'cart-nes', label: 'boxart', caseChosen: false })
-  // A case this version doesn't draw, or auto, is the console's own.
-  assert.equal(resolveLook([{ case: 'cart-hologram' }], 'case-jewel').case, 'case-jewel')
-  assert.equal(resolveLook([{ case: 'auto' }, { case: 'cart-64' }], 'case-jewel').case, 'case-jewel')
+  assert.deepEqual(lookFor(pref, server, '8', 'snes', 'cart-16bit'), { picture: 'fitted', case: 'cart-64', label: 'title', caseChosen: true, media: 'cart-16bit' })
+  assert.deepEqual(lookFor(pref, server, '9', 'nes', 'cart-8bit'), { picture: 'case', case: 'cart-nes', label: 'logo', caseChosen: false, media: 'cart-8bit' })
+  assert.deepEqual(lookFor(undefined, undefined, '1', 'nes', 'cart-8bit'), { picture: 'fitted', case: 'cart-nes', label: 'boxart', caseChosen: false, media: 'cart-8bit' })
+  // A style this version doesn't draw is passed over; auto stops at the medium's usual one.
+  assert.equal(resolveLook([{ case: 'cart-hologram' }, { case: 'cart-64' }], 'cd').case, 'cart-64')
+  assert.equal(resolveLook([{ case: 'auto' }, { case: 'cart-64' }], 'cd').case, 'case-jewel')
+})
+
+test('a style per medium: every CD bare, every cartridge at an angle; a console or a game still chooses its own', () => {
+  let all = withMediaStyle({}, 'cd', 'disc-bare')
+  assert.equal(resolveLook([all], 'cd').case, 'disc-bare')
+  assert.equal(resolveLook([all], 'dvd').case, 'case-keep')
+  all = withFamilyVariant(all, 'cart', 'angled')
+  assert.equal(familyVariant(all, 'cart'), 'angled')
+  assert.equal(resolveLook([all], 'cart-16bit').case, 'cart-super-angled')
+  // Thin cards have no angled view: they keep their usual one.
+  assert.equal(resolveLook([all], 'hucard').case, 'card-hu')
+  assert.equal(resolveLook([{ case: 'case-keep' }, all], 'cd').case, 'case-keep')
+  assert.equal(resolveLook([{ cases: { cd: 'case-jewel' } }, all], 'cd').case, 'case-jewel')
+  const discs = withFamilyVariant({}, 'disc', 'bare')
+  assert.equal(resolveLook([discs], 'umd').case, 'umd-bare')
+  assert.equal(resolveLook([discs], 'minidisc').case, 'disc-mini')
+  assert.equal(resolveLook([discs], 'gd').case, 'disc-gd')
+  assert.equal(familyVariant(withFamilyVariant(discs, 'disc', null), 'disc'), '')
+  assert.deepEqual(FAMILY_VARIANTS.disc, ['case', 'bare'])
+  assert.deepEqual(cleanLook({ cases: { cd: '../x', dvd: 'disc-bare', 'Bad Key': 'x' } }), { cases: { dvd: 'disc-bare' } })
 })
 
 test('what /me/ui holds is read safely, and nonsense is left out', () => {

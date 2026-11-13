@@ -6,10 +6,11 @@
 // (brandLogos.ts); it sits on a small plate where the case has room for one. The drawings are vectors, so they stay crisp at any size,
 // and they fit their tile whatever its shape (gameCase CSS in playChrome.css, "Game pictures").
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
-import type { CaseStyle, LabelPick } from './gamePictures'
+import { styleDef, type CaseStyle, type LabelPick } from './gamePictures'
+import './gameCase.css'
 
 type Box = [x: number, y: number, w: number, h: number]
-type Shape = { w: number; h: number; label: Box; r?: number; brand?: Box; body: ReactNode; over?: ReactNode }
+type Shape = { w: number; h: number; label: Box; r?: number; round?: boolean; brand?: Box; body: ReactNode; over?: ReactNode }
 
 // Grooves: n lines between two points, for ridges and grips.
 const rows = (n: number, x1: number, x2: number, y1: number, y2: number, cls = 'gc-groove') =>
@@ -21,7 +22,8 @@ const well = ([x, y, w, h]: Box, pad: number, r: number) => <rect className="gc-
 // A soft highlight down the left and across the top, as light from above would make.
 const sheen = (d: string) => <path className="gc-sheen" d={d} />
 
-const SHAPES: Record<CaseStyle, Shape> = {
+// One drawing per shape, by its id: the styles (gamePictures.ts CASE_STYLES) say which drawing each uses, and whether at an angle.
+const SHAPES: Record<string, Shape> = {
   // 8-bit: a grey front-loader, label window above a band of ridges.
   'cart-nes': {
     w: 120, h: 132, label: [14, 14, 92, 70], r: 2,
@@ -142,7 +144,7 @@ const SHAPES: Record<CaseStyle, Shape> = {
     </>,
   },
   // A small disc in a shell: rounded at the top, its label above a window onto the disc.
-  'case-umd': {
+  'umd-bare': {
     w: 100, h: 112, label: [12, 10, 76, 54], r: 3, brand: [14, 68, 44, 9],
     body: <>
       <path className="gc-body" d="M0 30 Q0 0 30 0 H70 Q100 0 100 30 V104 Q100 112 92 112 H8 Q0 112 0 104 Z" />
@@ -200,6 +202,125 @@ const SHAPES: Record<CaseStyle, Shape> = {
     </>,
     over: <path className="gc-glare" d="M4 4 H40 L16 136 H4 Z" />,
   },
+  // A thin card, wide, with its contacts along one edge.
+  'card-hu': {
+    w: 140, h: 92, label: [8, 8, 124, 62], r: 3,
+    body: <>
+      <rect className="gc-body" x="0" y="0" width="140" height="92" rx="6" />
+      {cols(9, 30, 110, 76, 86, 'gc-contact')}
+    </>,
+  },
+  'box-cart': box(100, 140, 6),
+  'box-cart-wide': box(140, 100, 6),
+  'box-small': box(110, 110, 5),
+  'box-big': box(112, 140, 10),
+  // A hinged plastic clamshell: a clear sleeve over the cover, ribs top and bottom.
+  'case-clamshell': {
+    w: 104, h: 142, label: [10, 10, 90, 122], r: 2,
+    body: <>
+      <rect className="gc-body" x="0" y="0" width="104" height="142" rx="4" />
+      {rows(2, 12, 92, 4, 7, 'gc-hinge-line')}
+      {rows(2, 12, 92, 135, 138, 'gc-hinge-line')}
+      <rect className="gc-hinge" x="0" y="0" width="7" height="142" rx="2" />
+    </>,
+    over: <><path className="gc-glare" d="M10 10 H54 L22 132 H10 Z" /><rect className="gc-clear" x="9" y="9" width="92" height="124" rx="2" /></>,
+  },
+  // A small case for a game card.
+  'case-card': {
+    w: 100, h: 124, label: [7, 5, 88, 114], r: 2,
+    body: <>
+      <rect className="gc-body" x="0" y="0" width="100" height="124" rx="5" />
+      {cols(2, 2.5, 4.5, 14, 110, 'gc-hinge-line')}
+    </>,
+    over: <><path className="gc-glare" d="M7 5 H52 L18 119 H7 Z" /><rect className="gc-clear" x="6" y="4" width="90" height="116" rx="2" /></>,
+  },
+  // A shorter, slimmer disc case with a band along its top.
+  'case-blu': {
+    w: 100, h: 126, label: [7, 17, 88, 104], r: 2, brand: [12, 5, 76, 9],
+    body: <>
+      <rect className="gc-body" x="0" y="0" width="100" height="126" rx="5" />
+      <rect className="gc-band" x="7" y="4" width="88" height="11" rx="1" />
+    </>,
+    over: <><path className="gc-glare" d="M7 17 H52 L18 121 H7 Z" /><rect className="gc-clear" x="6" y="3" width="90" height="119" rx="2" /></>,
+  },
+  // The disc alone: the art printed on it, a clear ring and the hole in the middle.
+  'disc-bare': disc(120, 18, 7),
+  'disc-mini': disc(120, 24, 9),
+  // The tall, narrow case a small disc shell came in.
+  'case-umd': {
+    w: 84, h: 140, label: [6, 6, 74, 128], r: 2,
+    body: <>
+      <rect className="gc-body" x="0" y="0" width="84" height="140" rx="5" />
+      {cols(2, 2, 4, 14, 126, 'gc-hinge-line')}
+    </>,
+    over: <><path className="gc-glare" d="M6 6 H44 L16 134 H6 Z" /><rect className="gc-clear" x="5" y="5" width="76" height="130" rx="2" /></>,
+  },
+  // A 5.25-inch floppy: a square sleeve, a label across the top, the hub hole and the read slot.
+  'disk-525': {
+    w: 124, h: 124, label: [12, 8, 100, 44], r: 1,
+    body: <>
+      <rect className="gc-body" x="0" y="0" width="124" height="124" rx="2" />
+      <circle className="gc-window" cx="62" cy="76" r="13" />
+      <circle className="gc-metal" cx="62" cy="76" r="7" />
+      <rect className="gc-window" x="56" y="94" width="12" height="26" rx="6" />
+      <rect className="gc-window" x="10" y="70" width="5" height="5" />
+    </>,
+  },
+  // A cassette in its clear box: the insert behind, a hinge along the foot.
+  'case-tape': {
+    w: 140, h: 92, label: [6, 6, 128, 78], r: 2,
+    body: <rect className="gc-body" x="0" y="0" width="140" height="92" rx="4" />,
+    over: <>
+      <rect className="gc-clear" x="4" y="4" width="132" height="82" rx="2" />
+      <path className="gc-glare" d="M6 6 H70 L46 84 H6 Z" />
+      <rect className="gc-hinge" x="0" y="86" width="140" height="6" rx="2" />
+    </>,
+  },
+  // An arcade board: a green board, chips, a label stuck on, its edge connector.
+  'arcade-pcb': {
+    w: 140, h: 110, label: [34, 12, 72, 48], r: 1,
+    body: <>
+      <rect className="gc-pcb" x="0" y="0" width="140" height="102" rx="3" />
+      {[[10, 70], [40, 70], [70, 70], [100, 70], [10, 14], [112, 14]].map(([x, y]) => <rect key={x + ':' + y} className="gc-chip" x={x} y={y} width={x > 100 || x === 10 && y === 14 ? 18 : 26} height={y === 14 ? 40 : 18} rx="1" />)}
+      {cols(24, 14, 126, 102, 110, 'gc-contact')}
+    </>,
+  },
+  // A download: a rounded tile, the art filling it, a small arrow in its corner.
+  'digital-tile': {
+    w: 120, h: 120, label: [6, 6, 108, 108], r: 18,
+    body: <rect className="gc-body" x="0" y="0" width="120" height="120" rx="22" />,
+    over: <>
+      <circle className="gc-badge" cx="98" cy="98" r="15" />
+      <path className="gc-badge-mark" d="M98 88 V104 M91 98 L98 105 L105 98" />
+    </>,
+  },
+}
+
+// A cardboard box: its front the label, its side in shadow, a flap line along the top.
+function box(w: number, h: number, depth: number): Shape {
+  return {
+    w: w + depth, h, label: [3, 3, w - 6, h - 6], r: 1,
+    body: <>
+      <path className="gc-side" d={`M${w - 2} 2 L${w + depth} ${depth} V${h - depth} L${w - 2} ${h} Z`} />
+      <rect className="gc-body" x="0" y="0" width={w} height={h} rx="2" />
+    </>,
+    over: <><path className="gc-glare" d={`M3 3 H${w * 0.4} L${w * 0.15} ${h - 3} H3 Z`} /><line className="gc-hinge-line" x1="3" x2={w - 3} y1="3.5" y2="3.5" /></>,
+  }
+}
+// A disc of size w: the art over its whole face, a clear ring of radius ring and the hole.
+function disc(w: number, ring: number, hole: number): Shape {
+  const c = w / 2
+  return {
+    w, h: w, label: [2, 2, w - 4, w - 4], round: true,
+    body: <circle className="gc-disc" cx={c} cy={c} r={c} />,
+    over: <>
+      <circle className="gc-disc-edge" cx={c} cy={c} r={c - 1} />
+      <circle className="gc-disc-ring" cx={c} cy={c} r={ring} />
+      <circle className="gc-disc-hub" cx={c} cy={c} r={ring * 0.6} />
+      <circle className="gc-hole" cx={c} cy={c} r={hole} />
+      <path className="gc-glare" d={`M${c} 2 A${c - 2} ${c - 2} 0 0 1 ${w - 6} ${c * 0.7} L${c} ${c} Z`} />
+    </>,
+  }
 }
 
 // Colours by console, where its cases or cartridges came in one: plain shades, never a maker's mark.
@@ -212,7 +333,6 @@ const TINT: Record<string, string> = {
 }
 const LIGHT = new Set(['snes', 'gb', 'gbc', 'pce', 'lynx', 'dc', 'wii', 'wiiu', 'c64', 'msx', 'nes'])
 export const tintFor = (consoleId: string) => TINT[consoleId]
-export const SHAPE_SIZE = (style: CaseStyle) => ({ w: SHAPES[style].w, h: SHAPES[style].h })
 
 const pct = (v: number, of: number) => (v / of) * 100 + '%'
 const place = (b: Box, s: Shape): CSSProperties => ({ left: pct(b[0], s.w), top: pct(b[1], s.h), width: pct(b[2], s.w), height: pct(b[3], s.h) })
@@ -240,15 +360,16 @@ function Label({ art, logo, title, label }: { art: string; logo?: string; title:
 
 // One game in its case. consoleId picks the colour; brand is a downloaded console logo's address, or nothing.
 export function GameCase({ style, consoleId, art, logo, title, label, brand }: { style: CaseStyle; consoleId?: string; art: string; logo?: string; title: string; label: LabelPick; brand?: string | null }) {
-  const s = SHAPES[style] || SHAPES['generic-box']
+  const def = styleDef(style) || styleDef('generic-box')!
+  const s = SHAPES[def.draw] || SHAPES['generic-box']
   const tint = consoleId ? TINT[consoleId] : undefined
   const light = consoleId ? LIGHT.has(consoleId) : false
   const vars = { '--gc-ar': `${s.w} / ${s.h}`, '--gc-ratio': s.w / s.h, ...(tint ? { '--gc-tint': tint } : {}) } as CSSProperties
   return (
     <span className="gcase-fit">
-      <span className={'gcase gcase-' + style + (light ? ' light' : '')} style={vars} data-case={style}>
+      <span className={'gcase gcase-' + def.draw + (def.angled ? ' angled' : '') + (def.tone ? ' tone-' + def.tone : '') + (light ? ' light' : '')} style={vars} data-case={style}>
         <svg className="gcase-body" viewBox={`0 0 ${s.w} ${s.h}`} aria-hidden="true" focusable="false">{s.body}</svg>
-        <span className="gcase-label" style={{ ...place(s.label, s), borderRadius: s.r ? pct(s.r, s.w) : undefined }}><Label art={art} logo={logo} title={title} label={label} /></span>
+        <span className="gcase-label" style={{ ...place(s.label, s), borderRadius: s.round ? '50%' : s.r ? pct(s.r, s.w) : undefined }}><Label art={art} logo={logo} title={title} label={label} /></span>
         {s.over && <svg className="gcase-over" viewBox={`0 0 ${s.w} ${s.h}`} aria-hidden="true" focusable="false">{s.over}</svg>}
         {brand && s.brand && <span className="gcase-brand" style={place(s.brand, s)}><img src={brand} alt="" loading="lazy" decoding="async" /></span>}
       </span>

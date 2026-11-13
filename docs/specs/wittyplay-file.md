@@ -41,7 +41,7 @@ A `.wittyplay` file never holds pictures, logos or other media, and never anythi
   "wittyplay": 1,
   "name": "Living room",
   "generator": "WittyMediaServer 0.8.0",
-  "default": { "picture": "case", "case": "auto", "label": "boxart" },
+  "default": { "picture": "case", "label": "boxart", "cases": { "cd": "disc-bare", "cart-16bit": "cart-super-angled" } },
   "consoles": {
     "ps1": { "picture": "fitted" },
     "snes": { "case": "cart-super" }
@@ -86,7 +86,8 @@ A look says how pictures are shown at one level. Every field is optional: one le
 | Field | Values | Meaning |
 |---|---|---|
 | `picture` | `fitted`, `filled`, `case` | `fitted`: the whole box art, nothing cut off, over a blurred and dimmed copy of itself so the tile has no empty bars. `filled`: the box art fills the tile and is cropped to it. `case`: the game is drawn in a cartridge, disc case or similar, with its art on the label. |
-| `case` | a case style id, or `auto` | Which case to draw when `picture` is `case`. `auto` (or leaving it out) lets the console decide. |
+| `case` | a case style id, or `auto` | Which case to draw when `picture` is `case`. `auto` (or leaving it out) lets the medium decide. It counts before `cases`. |
+| `cases` | an object: medium id → case style id | A case style per kind of medium (see *Media*), for every game of that medium the look covers: for example all CDs as the bare disc. At most 64. |
 | `label` | `boxart`, `logo`, `title` | What goes on the case's label: the box art, the game's own logo picture (the box art when it has none), or the game's title set in type. |
 
 ### Game
@@ -110,45 +111,91 @@ uses include `nes`, `snes`, `n64`, `gc`, `wii`, `wiiu`, `switch`, `gb`, `gba`, `
 `segacd`, `32x`, `saturn`, `dc`, `ps1`, `ps2`, `ps3`, `psp`, `xbox`, `pce`, `a2600`, `a5200`, `a7800`, `lynx`, `jaguar`,
 `ws`, `ngp`, `neogeo` and `arcade`. Another program may map its own names onto these.
 
+### Media
+
+Every kind of medium games came on has an id, and a few case styles it can be shown in, the first being its usual one.
+A look's `cases` chooses a style per medium; a program decides each console's medium (WittyMediaServer's are below).
+
+| Medium | What it is | Styles (usual first) | WittyMediaServer's consoles |
+|---|---|---|---|
+| `cart-8bit` | 8-bit cartridges | `cart-nes`, `cart-nes-angled`, `box-cart` | `nes` |
+| `cart-early` | First-generation cartridges | `cart-atari`, `cart-atari-angled`, `box-cart` | `a2600`, `a5200`, `a7800` |
+| `cart-16bit` | 16-bit cartridges | `cart-super`, `cart-super-angled`, `box-cart-wide` | `snes` |
+| `cart-mega` | Black 16-bit cartridges | `cart-mega`, `cart-mega-angled`, `case-clamshell` | `md`, `32x`, `sms`, `neogeo` |
+| `cart-64` | 64-bit cartridges | `cart-64`, `cart-64-angled`, `box-cart-wide` | `n64`, `jaguar` |
+| `cart-pocket` | Handheld cartridges | `cart-pocket`, `cart-pocket-angled`, `box-small` | `gb`, `gbc`, `gg`, `ngp`, `ws`, `vb` |
+| `cart-advance` | Wide handheld cartridges | `cart-advance`, `cart-advance-angled`, `box-small` | `gba` |
+| `card` | Small game cards | `card-slim`, `card-slim-angled`, `case-card` | `nds`, `3ds`, `switch`, `switch2` |
+| `hucard` | Thin, credit-card-sized cards | `card-hu`, `case-jewel` | `pce`, `lynx` |
+| `cd` | CDs | `case-jewel`, `disc-bare`, `case-keep` | `ps1`, `saturn`, `segacd`, `3do` |
+| `gd` | High-density discs with a bright inner ring | `case-jewel`, `disc-gd`, `case-keep` | `dc` |
+| `dvd` | DVDs | `case-keep`, `disc-bare`, `case-keep-angled` | `ps2`, `xbox`, `wii` |
+| `bluray` | High-definition discs | `case-blu`, `disc-bare`, `case-blu-angled` | `ps3`, `wiiu` |
+| `minidisc` | Small 8 cm discs | `case-mini`, `disc-mini` | `gc` |
+| `umd` | Small discs in a shell | `umd-bare`, `case-umd` | `psp` |
+| `floppy35` | 3.5-inch floppy disks | `disk-floppy`, `box-big` | `amiga`, `atarist`, `dos`, `pc98`, `x68000` |
+| `floppy525` | 5.25-inch floppy disks | `disk-525`, `box-big` | `apple2`, `bbc` |
+| `tape` | Cassette tapes | `tape-cassette`, `case-tape` | `c64`, `zx`, `cpc`, `msx` |
+| `arcade` | Arcade machines | `arcade-marquee`, `arcade-pcb` | `arcade`, `mame`, `fbneo` |
+| `digital` | Download only | `digital-tile`, `generic-box` | `pc` |
+| `other` | Anything else | `generic-box`, `digital-tile` | any other |
+
 ### Case styles
 
-Original drawings that evoke how each kind of console delivered its games. None reproduces a product, a brand name or
-a logo. A program may draw them however it likes; these are what the ids mean.
+Original drawings that evoke how each kind of medium was delivered. None reproduces a product, a brand name or a logo.
+A program may draw them however it likes; these are what the ids mean. Any style may be chosen for any game.
 
-| Id | Drawing | Usual consoles |
-|---|---|---|
-| `cart-nes` | An 8-bit front-loading grey cartridge: ridged sides and a label window | `nes` |
-| `cart-atari` | A short first-generation cartridge with a wide label | `a2600`, `a5200`, `a7800` |
-| `cart-super` | A 16-bit cartridge, rounded at the top, with grip ridges | `snes` |
-| `cart-64` | A tall 64-bit cartridge with a ridged, sloping top | `n64`, `jaguar` |
-| `cart-mega` | A black 16-bit cartridge with a slanted label top | `md`, `32x`, `sms`, `neogeo` |
-| `cart-pocket` | A small handheld cartridge with a notched corner | `gb`, `gg`, `ngp`, `ws`, `vb` |
-| `cart-advance` | A wide, short handheld cartridge | `gba` |
-| `card-slim` | A thin game card | `nds`, `3ds`, `switch`, `switch2`, `pce`, `lynx` |
-| `case-jewel` | A square CD jewel case with hinge and tray | `ps1`, `saturn`, `segacd`, `dc` |
-| `case-keep` | A tall DVD keep case | `ps2`, `xbox`, `wii`, `wiiu`, `ps3` |
-| `case-mini` | A small, squarer disc case | `gc` |
-| `case-umd` | A small disc in a shell with a window | `psp` |
-| `disk-floppy` | A 3.5-inch floppy disk with shutter and label | home computers (`amiga`, `dos`, `atarist`) |
-| `tape-cassette` | An audio cassette with two reels | home computers (`c64`, `zx`, `cpc`, `msx`) |
-| `arcade-marquee` | An arcade cabinet's lit marquee | `arcade` |
-| `generic-box` | A plain box, for anything else | any |
+| Id | Drawing |
+|---|---|
+| `cart-nes` | An 8-bit front-loading grey cartridge: ridged sides and a label window |
+| `cart-atari` | A short first-generation cartridge with a wide label |
+| `cart-super` | A 16-bit cartridge, rounded at the top, with grip ridges |
+| `cart-64` | A tall 64-bit cartridge with a ridged, sloping top |
+| `cart-mega` | A black 16-bit cartridge with a slanted label top |
+| `cart-pocket` | A small handheld cartridge with a notched corner |
+| `cart-advance` | A wide, short handheld cartridge |
+| `card-slim` | A small, thin game card |
+| `card-hu` | A card no thicker than a credit card, contacts along one edge |
+| `…-angled` | Any of the eight above, `case-keep` or `case-blu`, turned to show its side (for example `cart-nes-angled`) |
+| `box-cart`, `box-cart-wide`, `box-small`, `box-big` | A cardboard box: tall, wide, small, or large as computer games came in |
+| `case-clamshell` | A hinged plastic case with ribs |
+| `case-card` | A small case for a game card |
+| `case-jewel` | A square CD jewel case with hinge |
+| `case-keep` | A tall DVD keep case |
+| `case-blu` | A shorter, slimmer disc case with a band along the top |
+| `case-mini` | A small, squarer disc case |
+| `disc-bare` | The disc alone, label side up |
+| `disc-gd` | The disc alone, with a bright inner ring |
+| `disc-mini` | A small disc alone |
+| `umd-bare` | A small disc in its shell, with a window |
+| `case-umd` | The tall, narrow case a small disc shell came in |
+| `disk-floppy` | A 3.5-inch floppy disk with shutter and label |
+| `disk-525` | A 5.25-inch floppy disk in its square sleeve |
+| `tape-cassette` | An audio cassette with two reels |
+| `case-tape` | A cassette in its clear box |
+| `arcade-marquee` | An arcade cabinet's lit marquee |
+| `arcade-pcb` | An arcade circuit board with a label |
+| `digital-tile` | A rounded tile with a download mark, for a game that came as a download |
+| `generic-box` | A plain box, for anything else |
 
-A reader that meets a case style id it does not know draws the console's own (as for `auto`), and keeps the id.
+A reader that meets a case style id it does not know passes it over (as for `auto`), and keeps the id.
 
 ## Precedence
 
-For one game, each field of the look (`picture`, `case`, `label`) is taken from the first of these that sets it:
+For one game, each field of the look (`picture`, `case` or `cases`, `label`) is taken from the first of these that sets
+it:
 
 1. the game's entry (or entries) in `games`;
 2. its console's entry in `consoles`;
 3. `default`;
 4. the program's own default.
 
+At each level the case is decided by `case` first, then by `cases` for the game's medium.
+
 A program that combines several files (a person's own choices, a server's choices, a sidecar) decides their order.
 WittyMediaServer's is: the person's choice for the game, the server's choice for the game (an administrator's, then a
 sidecar's), the person's choice for the console, the server's for the console, the person's default, the server's
-default, and finally `fitted` with the console's case and the box art.
+default, and finally `fitted` with the medium's usual case and the box art.
 
 ## Unknown fields
 
@@ -165,7 +212,8 @@ A reader refuses a file that:
 - has no `wittyplay`, or one that is not a whole number of at least 1 (a higher number than it knows is refused as
   *newer*);
 - gives a known field the wrong type, or `picture` or `label` a value not listed here;
-- gives `case` a value that is not a case style id (`^[a-z0-9][a-z0-9-]{0,39}$`);
+- gives `case`, or a key or value of `cases`, something that is not an id (`^[a-z0-9][a-z0-9-]{0,39}$`), or `cases`
+  more than 64 entries;
 - gives a console id that does not fit its pattern;
 - has a game with no usable `match`, a `file` containing `/` or `\`, or an `item` below 1;
 - has more than 200 consoles or 2000 games, or text longer than its limit.

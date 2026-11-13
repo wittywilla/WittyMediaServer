@@ -4,28 +4,59 @@
   "title": ".wittyplay file, version 1",
   "description": "How games are pictured in a games front end: box art fitted or filled, or drawn in a cartridge or case. Open specification: docs/specs/wittyplay-file.md. This schema is dedicated to the public domain (CC0 1.0).",
   "type": "object",
-  "required": ["wittyplay"],
+  "required": [
+    "wittyplay"
+  ],
   "properties": {
-    "wittyplay": { "description": "The format's version. This schema describes 1.", "const": 1 },
-    "name": { "type": "string", "maxLength": 200 },
-    "description": { "type": "string", "maxLength": 1000 },
-    "generator": { "description": "The program that wrote the file, for people reading it.", "type": "string", "maxLength": 200 },
-    "default": { "$ref": "#/$defs/look" },
+    "wittyplay": {
+      "description": "The format's version. This schema describes 1.",
+      "const": 1
+    },
+    "name": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000
+    },
+    "generator": {
+      "description": "The program that wrote the file, for people reading it.",
+      "type": "string",
+      "maxLength": 200
+    },
+    "default": {
+      "$ref": "#/$defs/look"
+    },
     "consoles": {
       "description": "A look per console, by console id.",
       "type": "object",
       "maxProperties": 200,
-      "propertyNames": { "pattern": "^[a-z0-9][a-z0-9_-]{0,31}$" },
-      "additionalProperties": { "$ref": "#/$defs/look" }
+      "propertyNames": {
+        "pattern": "^[a-z0-9][a-z0-9_-]{0,31}$"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/look"
+      }
     },
     "games": {
       "type": "array",
       "maxItems": 2000,
       "items": {
-        "allOf": [{ "$ref": "#/$defs/look" }],
+        "allOf": [
+          {
+            "$ref": "#/$defs/look"
+          }
+        ],
         "type": "object",
-        "required": ["match"],
-        "properties": { "match": { "$ref": "#/$defs/match" } }
+        "required": [
+          "match"
+        ],
+        "properties": {
+          "match": {
+            "$ref": "#/$defs/match"
+          }
+        }
       }
     }
   },
@@ -35,14 +66,107 @@
       "description": "How pictures are shown at one level. Every field is optional; an absent one is decided by the level above.",
       "type": "object",
       "properties": {
-        "picture": { "description": "fitted: the whole box art over a blurred, dimmed copy of itself; filled: the box art fills the tile, cropped; case: drawn in a cartridge, disc case or the like.", "enum": ["fitted", "filled", "case"] },
+        "picture": {
+          "description": "fitted: the whole box art over a blurred, dimmed copy of itself; filled: the box art fills the tile, cropped; case: drawn in a cartridge, disc case or the like.",
+          "enum": [
+            "fitted",
+            "filled",
+            "case"
+          ]
+        },
         "case": {
-          "description": "The case drawing, when picture is case. auto lets the console decide. A reader that doesn't know a style draws the console's own.",
+          "description": "The case style for these games themselves, when picture is case; it counts before cases. auto lets the medium decide. A reader that doesn't know a style passes it over.",
           "type": "string",
           "pattern": "^[a-z0-9][a-z0-9-]{0,39}$",
-          "examples": ["auto", "cart-nes", "cart-atari", "cart-super", "cart-64", "cart-mega", "cart-pocket", "cart-advance", "card-slim", "case-jewel", "case-keep", "case-mini", "case-umd", "disk-floppy", "tape-cassette", "arcade-marquee", "generic-box"]
+          "examples": [
+            "auto",
+            "cart-nes",
+            "cart-atari",
+            "cart-super",
+            "cart-64",
+            "cart-mega",
+            "cart-pocket",
+            "cart-advance",
+            "card-slim",
+            "card-hu",
+            "cart-nes-angled",
+            "cart-atari-angled",
+            "cart-super-angled",
+            "cart-64-angled",
+            "cart-mega-angled",
+            "cart-pocket-angled",
+            "cart-advance-angled",
+            "card-slim-angled",
+            "box-cart",
+            "box-cart-wide",
+            "box-small",
+            "box-big",
+            "case-clamshell",
+            "case-card",
+            "case-jewel",
+            "case-keep",
+            "case-keep-angled",
+            "case-blu",
+            "case-blu-angled",
+            "case-mini",
+            "disc-bare",
+            "disc-gd",
+            "disc-mini",
+            "umd-bare",
+            "case-umd",
+            "disk-floppy",
+            "disk-525",
+            "tape-cassette",
+            "case-tape",
+            "arcade-marquee",
+            "arcade-pcb",
+            "digital-tile",
+            "generic-box"
+          ]
         },
-        "label": { "description": "What goes on a case's label: the box art, the game's logo picture, or its title in type.", "enum": ["boxart", "logo", "title"] }
+        "cases": {
+          "description": "A case style per kind of medium: every game of that medium the look covers is shown in it. Keys are medium ids, values case style ids.",
+          "type": "object",
+          "maxProperties": 64,
+          "propertyNames": {
+            "pattern": "^[a-z0-9][a-z0-9-]{0,39}$",
+            "examples": [
+              "cart-8bit",
+              "cart-early",
+              "cart-16bit",
+              "cart-mega",
+              "cart-64",
+              "cart-pocket",
+              "cart-advance",
+              "card",
+              "hucard",
+              "cd",
+              "gd",
+              "dvd",
+              "bluray",
+              "minidisc",
+              "umd",
+              "floppy35",
+              "floppy525",
+              "tape",
+              "arcade",
+              "digital",
+              "other"
+            ]
+          },
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,39}$"
+          }
+        },
+        "label": {
+          "description": "What goes on a case's label: the box art, the game's logo picture, or its title in type.",
+          "enum": [
+            "boxart",
+            "logo",
+            "title"
+          ]
+        }
       },
       "additionalProperties": true
     },
@@ -50,12 +174,41 @@
       "description": "Which game an entry is for. Every field given must agree. item is one server's own id.",
       "type": "object",
       "properties": {
-        "item": { "type": "integer", "minimum": 1 },
-        "file": { "type": "string", "maxLength": 200, "pattern": "^[^/\\\\]+$" },
-        "title": { "type": "string", "maxLength": 200 },
-        "console": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{0,31}$" }
+        "item": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "file": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^[^/\\\\]+$"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "console": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,31}$"
+        }
       },
-      "anyOf": [{ "required": ["item"] }, { "required": ["file"] }, { "required": ["title"] }],
+      "anyOf": [
+        {
+          "required": [
+            "item"
+          ]
+        },
+        {
+          "required": [
+            "file"
+          ]
+        },
+        {
+          "required": [
+            "title"
+          ]
+        }
+      ],
       "additionalProperties": true
     }
   }

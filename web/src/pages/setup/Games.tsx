@@ -7,6 +7,8 @@ import { IconCheck } from '../../icons'
 import { Button } from '../../ui'
 import { LaterNote, StepActions, StepHead, type StepProps } from './parts'
 import { GAMES_LINE } from './plan'
+import { PictureQuickChooser } from '../../shell/GamePictureArt'
+import { cleanLook, type Look } from '../../shell/gamePictures'
 
 // Belongs to WittyPlay, so it's only here when WittyPlay is.
 export function Games({ info, next, back, added, goTo }: StepProps & { added: Library[]; goTo: (id: 'media') => void }) {
@@ -16,10 +18,16 @@ export function Games({ info, next, back, added, goTo }: StepProps & { added: Li
   const [busy, setBusy] = useState(false)
   useEffect(() => { api.get<{ sources: GameSource[] }>('/gamemeta/sources').then((r) => setSources(r.sources.filter((s) => s.fields.length > 0))).catch(() => {}) }, [])
   const libs = added.filter((l) => l.type === 'games')
+  // How games are pictured in WittyPlay, for everyone on the server (each person can choose their own later).
+  const [look, setLook] = useState<Look>({ picture: 'fitted' })
   const save = async () => {
     setBusy(true)
     const body = Object.fromEntries(Object.entries(keys).filter(([, v]) => v.trim()).map(([k, v]) => [k, v.trim()]))
     try { if (Object.keys(body).length) await api.put('/settings', body) } catch { /* keys can be added later */ }
+    try {
+      const now = await api.get<{ server?: Record<string, unknown> }>('/games/pictures')
+      await api.put('/games/pictures', { ...(now.server || {}), wittyplay: 1, default: cleanLook(look) })
+    } catch { /* it can be chosen later, in WittyPlay's Settings */ }
     setBusy(false)
     next()
   }
@@ -30,6 +38,9 @@ export function Games({ info, next, back, added, goTo }: StepProps & { added: Li
         ? <p className="oobe-added"><IconCheck size={16} /> {libs.map((l) => l.name).join(', ')} {libs.length === 1 ? 'is' : 'are'} being looked through now.</p>
         : <p className="muted oobe-hint">You haven’t added a games folder yet. <Button size="sm" onClick={() => goTo('media')}>Add one</Button></p>}
       <p className="muted oobe-hint su-gap">It works out each game’s console and name by itself, and checks each file against a list of known games. Nothing is bundled or downloaded, so the games are your own. Files with copy protection are listed with a plain reason, and aren’t played.</p>
+      <h2 className="oobe-sub">How your games look</h2>
+      <p className="muted oobe-hint">Box art comes in every shape. Show it whole, filling its tile, or each game in a case or cartridge like the ones its console used. Anyone can change this for themselves later, for every game, a console or one game, in WittyPlay’s Settings.</p>
+      <PictureQuickChooser value={look} onChange={setLook} />
       {sources.length > 0 && (
         <>
           <h2 className="oobe-sub">More details, if you want them</h2>

@@ -58,8 +58,20 @@ const CaseAuto = "auto"
 // CaseStyles are the case drawings this version names. A file may name another (a newer program's);
 // a reader that doesn't know it draws the console's own.
 var CaseStyles = []string{
-	"cart-nes", "cart-atari", "cart-super", "cart-64", "cart-mega", "cart-pocket", "cart-advance", "card-slim",
-	"case-jewel", "case-keep", "case-mini", "case-umd", "disk-floppy", "tape-cassette", "arcade-marquee", "generic-box",
+	"cart-nes", "cart-atari", "cart-super", "cart-64", "cart-mega", "cart-pocket", "cart-advance", "card-slim", "card-hu",
+	"cart-nes-angled", "cart-atari-angled", "cart-super-angled", "cart-64-angled", "cart-mega-angled", "cart-pocket-angled",
+	"cart-advance-angled", "card-slim-angled",
+	"box-cart", "box-cart-wide", "box-small", "box-big", "case-clamshell", "case-card",
+	"case-jewel", "case-keep", "case-keep-angled", "case-blu", "case-blu-angled", "case-mini",
+	"disc-bare", "disc-gd", "disc-mini", "umd-bare", "case-umd",
+	"disk-floppy", "disk-525", "tape-cassette", "case-tape", "arcade-marquee", "arcade-pcb", "digital-tile", "generic-box",
+}
+
+// Media are the kinds of medium games came on, each with its own case styles (docs/specs/wittyplay-file.md, "Media"): a look's
+// "cases" chooses a style per medium.
+var Media = []string{
+	"cart-8bit", "cart-early", "cart-16bit", "cart-mega", "cart-64", "cart-pocket", "cart-advance", "card", "hucard",
+	"cd", "gd", "dvd", "bluray", "minidisc", "umd", "floppy35", "floppy525", "tape", "arcade", "digital", "other",
 }
 
 var (
@@ -84,12 +96,14 @@ type Look struct {
 	Picture string `json:"picture,omitempty"`
 	Case    string `json:"case,omitempty"`
 	Label   string `json:"label,omitempty"`
-	Extra   Extra  `json:"-"`
+	// Cases is a case style per kind of medium (Media), for every game of that medium the look covers.
+	Cases map[string]string `json:"cases,omitempty"`
+	Extra Extra             `json:"-"`
 }
 
 // Empty says nothing is set.
 func (l Look) Empty() bool {
-	return l.Picture == "" && l.Case == "" && l.Label == "" && len(l.Extra) == 0
+	return l.Picture == "" && l.Case == "" && l.Label == "" && len(l.Cases) == 0 && len(l.Extra) == 0
 }
 
 // Over is l with every field it leaves empty taken from under.
@@ -102,6 +116,16 @@ func (l Look) Over(under Look) Look {
 	}
 	if l.Label == "" {
 		l.Label = under.Label
+	}
+	if len(under.Cases) > 0 {
+		merged := make(map[string]string, len(l.Cases)+len(under.Cases))
+		for k, v := range under.Cases {
+			merged[k] = v
+		}
+		for k, v := range l.Cases {
+			merged[k] = v
+		}
+		l.Cases = merged
 	}
 	return l
 }
@@ -220,6 +244,14 @@ func (l Look) check(where string) error {
 	}
 	if l.Case != "" && !caseID.MatchString(l.Case) {
 		return fmt.Errorf(`%s: "case" is a case style id`, where)
+	}
+	if len(l.Cases) > 64 {
+		return fmt.Errorf(`%s: "cases" names at most 64 media`, where)
+	}
+	for media, style := range l.Cases {
+		if !caseID.MatchString(media) || !caseID.MatchString(style) {
+			return fmt.Errorf(`%s: "cases" maps a medium id to a case style id`, where)
+		}
 	}
 	return nil
 }
@@ -372,6 +404,9 @@ func (l *Look) UnmarshalJSON(b []byte) error {
 			return err
 		}
 	}
+	if err := take(f, "cases", &l.Cases); err != nil {
+		return err
+	}
 	l.Extra = rest(f)
 	return nil
 }
@@ -384,6 +419,9 @@ func (l Look) fields() map[string]any {
 	put(out, "picture", l.Picture)
 	put(out, "case", l.Case)
 	put(out, "label", l.Label)
+	if len(l.Cases) > 0 {
+		out["cases"] = l.Cases
+	}
 	return out
 }
 

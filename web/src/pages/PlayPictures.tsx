@@ -11,7 +11,7 @@ import { useApp } from '../state'
 import { ask, Button, Dialog, Notice, Segmented, Switch } from '../ui'
 import { WebLink } from '../components/WebLink'
 import { BRAND_LOGO_WARNING, brandLogosChanged, useBrandLogos, type BrandLogosState } from '../shell/brandLogos'
-import { consoleCase, GameCardArt, GamePictureDialog, LookChooser, loadServerPictures, serverPicturesChanged, useConsoleIndex, usePicturesPref, useServerPictures } from '../shell/GamePictureArt'
+import { consoleMedia, GameCardArt, GamePictureDialog, LookChooser, loadServerPictures, serverPicturesChanged, useConsoleIndex, usePicturesPref, useServerPictures } from '../shell/GamePictureArt'
 import {
   CASE_STYLES, LABELS, PICTURES, cleanLook, emptyLook, exportName, importDoc, lookFor, prefToDoc, readDoc, withLook,
   WITTYPLAY_EXT, WITTYPLAY_TYPE, type Look, type PicturesPref, type Resolved, type ServerPictures, type WittyplayDoc,
@@ -77,7 +77,7 @@ export default function PlayPictures() {
   const mine = scope === 'me' ? pref : serverPref
   const resolveFor = (p: PicturesPref, s: ServerPictures | undefined) => (consoleId: string) => {
     const c = consoles.find(consoleId)
-    return lookFor(p, s, '', consoleId, consoleCase(c, consoleId))
+    return lookFor(p, s, '', consoleId, consoleMedia(c, consoleId))
   }
   const now = scope === 'me' ? resolveFor(pref, server) : resolveFor({}, { server: server.server })
   const aboveAll = (consoleId: string) => (scope === 'me' ? resolveFor({}, server)(consoleId) : resolveFor({}, undefined)(consoleId))
@@ -111,7 +111,7 @@ export default function PlayPictures() {
 
       <section className="wplay-pads-setting" aria-labelledby={ids.all}>
         <h2 id={ids.all}>Every game</h2>
-        <LookChooser look={mine.default || {}} onChange={(l) => change({}, l)} above={aboveAll('')} sample={SAMPLES[0]} consoleId="ps2" />
+        <LookChooser look={mine.default || {}} onChange={(l) => change({}, l)} above={aboveAll('ps2')} sample={SAMPLES[0]} consoleId="ps2" media="dvd" everyMedium />
         <h3 className="gpic-sub">With covers of every shape</h3>
         <Samples resolve={now} />
       </section>
@@ -157,8 +157,8 @@ export default function PlayPictures() {
       {editing && (
         <Dialog title={`Games for ${editingConsole?.name || editing}`} size="wide" className="gpic-dialog" onClose={() => setEditing(null)}
           actions={<><Button variant="ghost" disabled={emptyLook(mine.consoles?.[editing])} onClick={() => change({ console: editing }, {})}>As every game</Button><Button variant="primary" onClick={() => setEditing(null)}>Done</Button></>}>
-          <LookChooser look={mine.consoles?.[editing] || {}} onChange={(l) => change({ console: editing }, l)} consoleId={editing}
-            above={scope === 'me' ? lookFor({ default: pref.default }, { server: { default: server.server?.default, consoles: server.server?.consoles } }, '', editing, consoleCase(editingConsole, editing)) : lookFor({ default: serverPref.default }, undefined, '', editing, consoleCase(editingConsole, editing))}
+          <LookChooser look={mine.consoles?.[editing] || {}} onChange={(l) => change({ console: editing }, l)} consoleId={editing} media={consoleMedia(editingConsole, editing)}
+            above={scope === 'me' ? lookFor({ default: pref.default }, { server: { default: server.server?.default, consoles: server.server?.consoles } }, '', editing, consoleMedia(editingConsole, editing)) : lookFor({ default: serverPref.default }, undefined, '', editing, consoleMedia(editingConsole, editing))}
             sample={{ image: SAMPLES[0].image, title: editingConsole?.short || editing }} />
         </Dialog>
       )}

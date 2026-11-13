@@ -96,6 +96,8 @@ func TestRefused(t *testing.T) {
 		"negative item":    `{"wittyplay":1,"games":[{"match":{"item":-3}}]}`,
 		"wrong type":       `{"wittyplay":1,"consoles":[]}`,
 		"long name":        `{"wittyplay":1,"name":"` + strings.Repeat("x", MaxName+1) + `"}`,
+		"bad cases":        `{"wittyplay":1,"default":{"cases":{"cd":"../x"}}}`,
+		"cases not object": `{"wittyplay":1,"default":{"cases":["cd"]}}`,
 	} {
 		if _, err := Parse([]byte(in)); err == nil {
 			t.Errorf("%s: accepted %s", name, in)
@@ -152,8 +154,11 @@ func TestSpecAgrees(t *testing.T) {
 	var s struct {
 		Defs map[string]struct {
 			Properties map[string]struct {
-				Enum     []string `json:"enum"`
-				Examples []string `json:"examples"`
+				Enum          []string `json:"enum"`
+				Examples      []string `json:"examples"`
+				PropertyNames struct {
+					Examples []string `json:"examples"`
+				} `json:"propertyNames"`
 			} `json:"properties"`
 		} `json:"$defs"`
 	}
@@ -167,6 +172,9 @@ func TestSpecAgrees(t *testing.T) {
 	if strings.Join(look["case"].Examples, ",") != "auto,"+strings.Join(CaseStyles, ",") {
 		t.Errorf("schema's case styles differ from CaseStyles: %v", look["case"].Examples)
 	}
+	if strings.Join(look["cases"].PropertyNames.Examples, ",") != strings.Join(Media, ",") {
+		t.Errorf("schema's media differ from Media: %v", look["cases"].PropertyNames.Examples)
+	}
 	spec, err := os.ReadFile("../../docs/specs/wittyplay-file.md")
 	if err != nil {
 		t.Fatal(err)
@@ -178,5 +186,21 @@ func TestSpecAgrees(t *testing.T) {
 	}
 	if _, err := Parse(spec[start+8 : start+8+end]); err != nil {
 		t.Errorf("the spec's example doesn't read: %v", err)
+	}
+}
+
+// A style per medium: kept through a read and a write, and a game's level over the console's, medium by medium.
+func TestCasesPerMedium(t *testing.T) {
+	d, err := Parse([]byte(`{"wittyplay":1,"default":{"cases":{"cd":"disc-bare","dvd":"case-keep-angled"}},"consoles":{"ps1":{"cases":{"cd":"case-keep"}}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := d.For(0, "ps1", "x.cue", "X")
+	if got.Cases["cd"] != "case-keep" || got.Cases["dvd"] != "case-keep-angled" {
+		t.Fatalf("cases = %v", got.Cases)
+	}
+	out, _ := d.Encode()
+	if !strings.Contains(string(out), `"disc-bare"`) {
+		t.Fatalf("lost cases:\n%s", out)
 	}
 }

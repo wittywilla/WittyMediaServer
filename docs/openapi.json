@@ -23596,6 +23596,102 @@
         "x-wms-auth": "admin"
       }
     },
+    "/games/brand-logos": {
+      "delete": {
+        "operationId": "deleteGamesBrandLogos",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the summary."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove every downloaded console logo, files and all, and turn them off. Answers `removed`.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "get": {
+        "operationId": "getGamesBrandLogos",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the summary."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Whether WittyPlay shows console logos (`enabled`, off by default), each console's logo when on (`logos` by console id, with source, licence and credit), and the `warning` an administrator confirms. For an administrator also `appWide`, `pending` and `agreedAt`.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putGamesBrandLogos",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the summary."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Turn console logos on or off: `{enabled, accepted}`. On needs `accepted` (the warning confirmed), then logos are downloaded through the logo service.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/games/consoles": {
       "get": {
         "operationId": "getGamesConsoles",
@@ -23984,6 +24080,154 @@
           "Server"
         ],
         "x-wms-auth": "user"
+      }
+    },
+    "/games/pictures": {
+      "get": {
+        "operationId": "getGamesPictures",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the summary."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "How WittyPlay pictures games, server-wide: `server` (the server's .wittyplay document: default and consoles), `games` (each game's look by id, only games this account may see) and `caseStyles`. See docs/specs/wittyplay-file.md.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putGamesPictures",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            },
+            "application/vnd.wittyplay+json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the summary."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set the server's .wittyplay document (body, at most 64 KB). Its games are applied to the games they match as an administrator's choice. Answers `server`, `applied`, `unmatched`. 400 when invalid, 413 when too big.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/games/pictures/check": {
+      "post": {
+        "operationId": "postGamesPicturesCheck",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            },
+            "application/vnd.wittyplay+json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the summary."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read a .wittyplay file (body, at most 64 KB) before importing it into one's own choices: answers the document as read, and `matches`, for each of its games the ids of this account's games it matches. Writes nothing. 400 when invalid, 413 when too big.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/games/pictures/file": {
+      "get": {
+        "operationId": "getGamesPicturesFile",
+        "responses": {
+          "200": {
+            "content": {
+              "application/vnd.wittyplay+json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the summary."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The server's choices as a .wittyplay file to download (application/vnd.wittyplay+json).",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
       }
     },
     "/games/playing": {
@@ -25053,6 +25297,56 @@
           "Games"
         ],
         "x-wms-auth": "user"
+      }
+    },
+    "/games/{id}/picture": {
+      "put": {
+        "operationId": "putGamePicture",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the summary."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "An administrator's look for one game `{picture, case, label}` (docs/specs/wittyplay-file.md); an empty one takes it away.",
+        "tags": [
+          "Games"
+        ],
+        "x-wms-auth": "admin"
       }
     },
     "/games/{id}/play": {

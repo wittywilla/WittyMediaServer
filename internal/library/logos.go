@@ -202,6 +202,57 @@ func (s *Store) LogoConsent(ctx context.Context) string {
 	return ""
 }
 
+// WittyPlay's own, narrower agreement (WittyPlay Settings › Game pictures): consoles' logos only, for
+// its cartridges, cases and console marks. Off until an administrator turns it on and confirms the
+// warning; it downloads console logos even when the app-wide agreement above was declined.
+const (
+	ConsoleLogosSetting = "wittyplayBrandLogos"
+	ConsoleLogosVersion = "1"
+)
+
+// ConsoleLogosOn says WittyPlay's agreement to console logos stands.
+func (s *Store) ConsoleLogosOn(ctx context.Context) bool {
+	return s.DB.GetSetting(ctx, ConsoleLogosSetting, "") == ConsoleLogosVersion
+}
+
+// SetConsoleLogos records WittyPlay's agreement. Agreeing makes a row for each console name given and
+// starts looking for their logos; withdrawing stops looking (unless the app-wide agreement stands) and
+// keeps what was downloaded until it's removed (ForgetDownloadedKind).
+func (l *Logos) SetConsoleLogos(ctx context.Context, on bool, names []string) error {
+	v := "0"
+	if on {
+		v = ConsoleLogosVersion
+	}
+	if err := l.Store.DB.SetSetting(ctx, ConsoleLogosSetting, v); err != nil {
+		return err
+	}
+	if err := l.Store.DB.SetSetting(ctx, ConsoleLogosSetting+"At", strconv.FormatInt(db.Now(), 10)); err != nil {
+		return err
+	}
+	if !on {
+		return nil
+	}
+	for _, n := range names {
+		if strings.TrimSpace(n) == "" {
+			continue
+		}
+		if _, err := l.Store.EnsureLogo(ctx, LogoConsole, n); err != nil {
+			return err
+		}
+	}
+	if _, err := l.Store.DB.ExecContext(ctx, `UPDATE logos SET status = ?, tried_at = 0 WHERE status = ? AND kind = ?`, LogoPending, LogoNone, LogoConsole); err != nil {
+		return err
+	}
+	l.Kick()
+	return nil
+}
+
+// downloadsAllowed says which logos may be looked for now: every kind, consoles only, or none.
+func (l *Logos) downloadsAllowed(ctx context.Context) (all, consoles bool) {
+	all = l.Store.LogoConsent(ctx) == "yes"
+	return all, all || l.Store.ConsoleLogosOn(ctx)
+}
+
 // SetLogoConsent records the owner's answer. Agreeing starts the downloads;
 // declining stops them, and drops what was downloaded when asked to. A logo the
 // owner uploaded is theirs, and stays.
@@ -235,7 +286,16 @@ func (l *Logos) SetLogoConsent(ctx context.Context, accepted, removeDownloaded b
 // Each is looked for again, as on a new server. A logo the owner uploaded is theirs, and
 // stays, as does their choice of the name alone.
 func (l *Logos) ForgetDownloaded(ctx context.Context) (int, error) {
-	rows, err := l.Store.DB.QueryContext(ctx, `SELECT id, file FROM logos WHERE status = ? AND source <> 'you'`, LogoFound)
+	return l.ForgetDownloadedKind(ctx, "")
+}
+
+// ForgetDownloadedKind is ForgetDownloaded for one kind of logo only ("" for every kind).
+func (l *Logos) ForgetDownloadedKind(ctx context.Context, kind string) (int, error) {
+	only, args := "", []any{LogoFound}
+	if kind != "" {
+		only, args = " AND kind = ?", append(args, kind)
+	}
+	rows, err := l.Store.DB.QueryContext(ctx, `SELECT id, file FROM logos WHERE status = ? AND source <> 'you'`+only, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -253,7 +313,7 @@ func (l *Logos) ForgetDownloaded(ctx context.Context) (int, error) {
 		l.removeFiles(g.file)
 	}
 	_, err = l.Store.DB.ExecContext(ctx, `UPDATE logos SET status = ?, file = '', source = '', source_id = '', source_url = '', license = '', license_url = '', credit = '', opaque = 0, version = version + 1
-		WHERE status = ? AND source <> 'you'`, LogoPending, LogoFound)
+		WHERE status = ? AND source <> 'you'`+only, append([]any{LogoPending}, args...)...)
 	return len(gone), err
 }
 
@@ -455,8 +515,16 @@ func (l *Logos) work(ctx context.Context) {
 	}
 	var t *tasks.Handle // only once there's something to do: this wakes after every scan
 	defer func() { t.Finish(nil) }()
-	for l.Store.LogoConsent(ctx) == "yes" {
-		g, err := scanLogo(l.Store.DB.QueryRowContext(ctx, `SELECT `+logoCols+` FROM logos WHERE status = ? ORDER BY kind <> 'console', id LIMIT 1`, LogoPending))
+	for {
+		all, consoles := l.downloadsAllowed(ctx)
+		if !consoles {
+			return
+		}
+		only := ""
+		if !all {
+			only = ` AND kind = 'console'`
+		}
+		g, err := scanLogo(l.Store.DB.QueryRowContext(ctx, `SELECT `+logoCols+` FROM logos WHERE status = ?`+only+` ORDER BY kind <> 'console', id LIMIT 1`, LogoPending))
 		if err != nil {
 			return
 		}
@@ -507,7 +575,7 @@ func (l *Logos) lookFor(ctx context.Context, g *Logo) error {
 
 // Candidates lists what a source has for a logo, for someone choosing by hand.
 func (l *Logos) Candidates(ctx context.Context, g *Logo, query string) ([]LogoCandidate, error) {
-	if l.Store.LogoConsent(ctx) != "yes" {
+	if !l.SearchAllowed(ctx, g.Kind) {
 		return nil, ErrLogosNotAgreed
 	}
 	if l.Source == nil {
@@ -521,6 +589,59 @@ func (l *Logos) Candidates(ctx context.Context, g *Logo, query string) ([]LogoCa
 		c = []LogoCandidate{}
 	}
 	return c, err
+}
+
+// BrandLogoKinds are the kinds WittyPlay's agreement (ConsoleLogosOn) covers: a console's logo, which
+// it downloads by itself, and a game studio's, which an administrator may search for and choose.
+var BrandLogoKinds = []string{LogoConsole, LogoGameStudio}
+
+// SearchAllowed says an administrator may search a source for this kind of logo: under the app-wide
+// agreement, or WittyPlay's for its brand kinds.
+func (l *Logos) SearchAllowed(ctx context.Context, kind string) bool {
+	if l.Store.LogoConsent(ctx) == "yes" {
+		return true
+	}
+	return l.Store.ConsoleLogosOn(ctx) && (kind == LogoConsole || kind == LogoGameStudio)
+}
+
+// Downloaded lists the logos of one kind already downloaded here (not uploaded), to reuse for
+// another name without asking a source again: a console's logo for its other name, say.
+func (l *Logos) Downloaded(ctx context.Context, kind string, except int64) ([]Logo, error) {
+	rows, err := l.Store.DB.QueryContext(ctx, `SELECT `+logoCols+` FROM logos WHERE kind = ? AND status = ? AND source NOT IN ('you', '') AND id <> ? ORDER BY name COLLATE NOCASE LIMIT 200`, kind, LogoFound, except)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []Logo{}
+	for rows.Next() {
+		g, err := scanLogo(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, *g)
+	}
+	return out, rows.Err()
+}
+
+// CopyFrom makes another downloaded logo of the same kind this one too, with its source, licence and
+// credit, so the credits still say where it came from.
+func (l *Logos) CopyFrom(ctx context.Context, g *Logo, fromID int64) (*Logo, error) {
+	if !l.SearchAllowed(ctx, g.Kind) {
+		return nil, ErrLogosNotAgreed
+	}
+	from, err := l.Store.LogoByID(ctx, fromID)
+	if err != nil || from == nil || from.ID == g.ID || from.Kind != g.Kind || !from.Has || from.Source == "you" || from.Source == "" {
+		return nil, ErrNotFound
+	}
+	b, err := os.ReadFile(l.pathFor(from.file, "original"))
+	if err != nil {
+		return nil, ErrNotFound
+	}
+	c := LogoCandidate{Source: from.Source, SourceID: "copy:" + strconv.FormatInt(from.ID, 10), PageURL: from.SourceURL, License: from.License, LicenseURL: from.LicenseURL, Credit: from.Credit}
+	if err := l.store(ctx, g, b, c); err != nil {
+		return nil, err
+	}
+	return l.Store.LogoByID(ctx, g.ID)
 }
 
 // ErrLogosNotAgreed: downloading logos needs the owner's agreement first.

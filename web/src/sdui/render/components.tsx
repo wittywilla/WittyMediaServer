@@ -28,7 +28,7 @@ import { plan } from '../routes'
 import type { Action, Node, Props } from '../types'
 import { px, usePage } from './context'
 import { kindIcon, sduiIcon } from './icons'
-import { RowLayoutContext, TabsContext, useGlyph } from './glyphs'
+import { GameArtContext, RowLayoutContext, TabsContext, useGlyph } from './glyphs'
 import { chooseEpisodeView, useEpisodeView } from '../extras/episodeView'
 import { ControlView, FormView } from './forms'
 import { controlOf } from '../formsModel'
@@ -152,11 +152,16 @@ export const CardView = memo(function CardView({ view, showTitles }: { view: Vie
   }
   const channel = style === 'channel'
   const now = obj(p, 'now')
+  // A shell may draw a game's picture its own way (WittyPlay's Game pictures: fitted, or in its case); null keeps the picture as sent.
+  const gameArt = useContext(GameArtContext)
+  const drawn = gameArt && p.kind === 'game' && p.itemId != null
+    ? gameArt.art({ itemId: String(p.itemId), console: str(p, 'console'), image: picture(obj(p, 'image')), title: text.title || str(p, 'title') })
+    : null
   return (
     <Pressable view={view} className={'card' + (SHAPE_CLASS[shape] ?? '') + (style === 'game' ? ' sdui-game' : '') + (channel ? ' sdui-channel' : '') + (style === 'plate' || style === 'block' || style === 'logo' ? ' sdui-' + style : '')} title={(gameName ? gameTitleLabel({ title: text.title, titles: obj(p, 'titles') as GameTitles }, titlePref) : str(p, 'title')) || undefined}>
       {text.rank && <span className="sdui-rank" aria-hidden="true">{text.rank}</span>}
       <div className="poster">
-        <Picture image={obj(p, 'image')} kind={p.kind} icon={p.icon} contain={channel || str(obj(p, 'image'), 'kind') === 'logo'} title={channel ? undefined : gameName?.main || text.title || str(p, 'title') || undefined} />
+        {drawn ?? <Picture image={obj(p, 'image')} kind={p.kind} icon={p.icon} contain={channel || str(obj(p, 'image'), 'kind') === 'logo'} title={channel ? undefined : gameName?.main || text.title || str(p, 'title') || undefined} />}
         {shows.includes('badges') && <span className="sdui-badges">{badgesOf(p, text.badges).map((b) => <span key={b} className="badge" data-badge={b.toLowerCase()}>{b}</span>)}</span>}
         {shows.includes('unwatched') && <span className="badge count" aria-hidden="true">{text.unwatched}</span>}
         {shows.includes('watched') && <span className="badge seen" aria-hidden="true"><IconCheck /></span>}
@@ -430,9 +435,13 @@ function ShelfDetail({ view, parent }: { view: View; parent: View }) {
   // A game's card brings its bio: logo, console, maker, rating, pictures and achievements.
   const p = view.node.props || {}
   const game = p.kind === 'game' && p.itemId != null ? String(p.itemId) : ''
+  // The shell's own part for a game (WittyPlay: how this game's picture is drawn), after its buttons.
+  const gameArt = useContext(GameArtContext)
+  const extra = game && gameArt?.detail ? gameArt.detail({ itemId: game, console: str(p, 'console'), image: picture(obj(p, 'image')), title: text.title || '' }) : null
+  const withExtra = extra ? <>{head}{extra}</> : head
   return (
     <div className={'sdui-detail' + (game ? ' has-bio' : '')} aria-live="polite" data-for={view.id}>
-      {game ? <GameBio key={game} itemId={game} title={text.title || ''} console={typeof p.console === 'string' ? p.console : undefined}>{head}</GameBio> : head}
+      {game ? <GameBio key={game} itemId={game} title={text.title || ''} console={typeof p.console === 'string' ? p.console : undefined}>{withExtra}</GameBio> : head}
     </div>
   )
 }

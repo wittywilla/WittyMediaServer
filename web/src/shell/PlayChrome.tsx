@@ -15,7 +15,8 @@ import { focusFirst } from '../tv'
 import { cardRoute, dockFor, exitWords, isPlayPath, isPlayTop, PLAY_CONSOLES, PLAY_CONTROLLERS, PLAY_EXIT, PLAY_PADS_TITLE, PLAY_STATUS, PLAY_TIP, PLAY_TIP_KEY, tipDue, type PlayLayout, type PlayPads } from './playPaths'
 import { usePlayTabs, LayoutChooser, LayoutSwitch, OpenChooser, PadsChooser, PadsSetting, PlayGlyph, usePlayLayout, usePlayOpen, usePlayPads } from './playPads'
 import { CardRouteContext } from '../sdui/render/cardRoute'
-import { GlyphContext, RowLayoutContext, TabsContext, type GlyphKey } from '../sdui/render/glyphs'
+import { GameArtContext, GlyphContext, RowLayoutContext, TabsContext, type GlyphKey } from '../sdui/render/glyphs'
+import { useGameArtApi } from './GamePictureArt'
 import './playChrome.css'
 
 export { isPlayPath }
@@ -206,6 +207,8 @@ export function PlayFrame({ children }: { children: ReactNode }) {
   const [pads, padsChosen, setPads] = usePlayPads()
   const glyph = useCallback((g: GlyphKey) => <PlayGlyph pads={pads} g={g} />, [pads])
   const [layout, setLayout] = usePlayLayout()
+  // How each game's picture is drawn: fitted, filled, or in its case (Settings › Game pictures, and a game's own Picture style).
+  const gameArt = useGameArtApi()
   // The Consoles tab beside the server's tabs, and the layout switch at the end of the row.
   const [tabPref] = usePlayTabs()
   const tabs = useMemo(() => ({ page: 'wittyplay-online', tabs: [{ id: 'consoles', label: 'Consoles', to: PLAY_CONSOLES, after: 'recent' }], end: <LayoutSwitch />, order: tabPref.order, hidden: tabPref.hidden }), [tabPref.order.join(), tabPref.hidden.join()]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -231,7 +234,7 @@ export function PlayFrame({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('keydown', onKey, true)
   }, [top]) // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <GlyphContext.Provider value={glyph}><RowLayoutContext.Provider value={layout}><TabsContext.Provider value={tabs}><CardRouteContext.Provider value={route}>
+    <GlyphContext.Provider value={glyph}><RowLayoutContext.Provider value={layout}><TabsContext.Provider value={tabs}><CardRouteContext.Provider value={route}><GameArtContext.Provider value={gameArt}>
       <div className="wplay" data-arrows-move data-scope="wittyplay" data-pads={pads} data-layout={layout}>
         <StatusBar parts={regions?.statusBar || PLAY_STATUS} onExit={exit} onHelp={() => setTip(true)} />
         <main className="wplay-stage" id="main" data-nav-zone="stage" tabIndex={-1}>
@@ -241,6 +244,6 @@ export function PlayFrame({ children }: { children: ReactNode }) {
         <SystemDock entries={dockFor(regions?.systemDock)} />
         {tip && <ExitTip onClose={closeTip} choose={!padsChosen} pads={pads} setPads={setPads} layout={layout} setLayout={setLayout} />}
       </div>
-    </CardRouteContext.Provider></TabsContext.Provider></RowLayoutContext.Provider></GlyphContext.Provider>
+    </GameArtContext.Provider></CardRouteContext.Provider></TabsContext.Provider></RowLayoutContext.Provider></GlyphContext.Provider>
   )
 }

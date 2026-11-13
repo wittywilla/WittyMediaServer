@@ -7,6 +7,9 @@ package server
 // beyond that. TestEveryRouteHasAStatedRule fails on a route that is missing here: a new route for
 // signed-in accounts is a decision, and this is where it is written down.
 var routeRules = map[string]string{
+	"GET /api/games/pictures":                                   "Signed-in: the server's own looks; per-game looks only for games the account may see",
+	"POST /api/games/pictures/check":                            "Signed-in: reads a .wittyplay file of at most 64 KB; matches only games the account may see. Writes nothing",
+	"GET /api/games/brand-logos":                                "Signed-in: whether console logos are on, and the logos (ids and credits) when they are. When they were agreed to, for an administrator",
 	"GET /api/tv-sets":                                          "Signed-in: own, and sets an administrator shared. Counts only channels the account may watch",
 	"POST /api/tv-sets":                                         "Signed-in: own. Channels the account may watch. Name of 1 to 40 characters, unique. 50 sets and 5000 channels per set. Sharing needs an administrator",
 	"PUT /api/tv-sets/order":                                    "Signed-in: own order, of sets the account sees",

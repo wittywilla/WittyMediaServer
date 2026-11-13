@@ -638,6 +638,14 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `PUT /api/gaming/consoles/{console}/core` | Admin | Known console. Core allowed for it |
 | `GET /api/gaming/games/{id}/core` | Admin | A game |
 | `PUT /api/gaming/games/{id}/core` | Admin | A game. Core allowed for it |
+| `GET /api/games/pictures` | Signed-in | the server's own looks; per-game looks only for games the account may see |
+| `POST /api/games/pictures/check` | Signed-in | reads a .wittyplay file of at most 64 KB; matches only games the account may see. Writes nothing |
+| `GET /api/games/brand-logos` | Signed-in | whether console logos are on, and the logos (ids and credits) when they are. When they were agreed to, for an administrator |
+| `PUT /api/games/pictures` | Admin | A .wittyplay file of at most 64 KB, checked against the format |
+| `GET /api/games/pictures/file` | Admin | Nothing further |
+| `PUT /api/games/{id}/picture` | Admin | A game. A look checked against the format |
+| `PUT /api/games/brand-logos` | Admin | Turning on needs the warning confirmed (accepted) |
+| `DELETE /api/games/brand-logos` | Admin | Removes downloaded console logos only; uploaded ones stay |
 | `GET /api/games/facets` | Signed-in | Library within the account's allowed libraries. limits |
 | `GET /api/games/{id}/metadata` | Signed-in | limits. A game. File hashes and serials for admins only |
 | `GET /api/games/{id}/art/{n}` | Signed-in | limits. A game. Picture number. Pictures only |

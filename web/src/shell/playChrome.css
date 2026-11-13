@@ -568,3 +568,4 @@ html[data-wplay] .wpg-saves-sheet .ui-sheet-body { padding: 4px clamp(20px, 2.4v
 .wpg-saves-sheet .wpg-mini:focus-visible { outline: none; box-shadow: 0 0 0 3px #5ff0d6, 0 0 0 6px #fff; }
 html[data-wplay] .wpg-settings [role=tablist] { overflow-x: auto; scrollbar-width: none; scroll-padding-inline: 40px; }
 @media (prefers-reduced-motion: reduce) { .wpg-save-pic, .wpg-save:focus-visible .wpg-save-pic { transition: none; transform: none; } }
+/* ==== Game pictures: the drawings and choosers are styled in gameCase.css (imported by GameCase.tsx), so Setup can show them too. ==== */

@@ -4,10 +4,12 @@
    panel under it, key glyphs on buttons, and the module scope's look (glossy tiles, rounded, presence dots). */
 
 /* ---- Shelf focusGrow: the focused card is large, the rest stay small ---- */
-.sdui-shelf.focus-grow .row { padding-block: var(--sp-8) var(--sp-6); align-items: center; }
+.sdui-shelf.focus-grow .row { padding-block: var(--sp-4); align-items: center; }
+/* The detail panel says what the grown card's own caption would. */
+.sdui-shelf.focus-grow.has-detail .sdui-item.grown .card .title, .sdui-shelf.focus-grow.has-detail .sdui-item.grown .card .sub { display: none; }
 .sdui-shelf.focus-grow .sdui-item { transition: margin var(--dur-2) var(--ease-out); }
 .sdui-shelf.focus-grow .sdui-item .card { transition: width var(--dur-2) var(--ease-out), box-shadow var(--dur-2); }
-.sdui-shelf.focus-grow .sdui-item.grown .card { width: calc(var(--card-w, 140px) * 1.3); box-shadow: var(--e-3), 0 0 0 3px var(--fg); }
+.sdui-shelf.focus-grow .sdui-item.grown .card { width: calc(var(--card-w, 140px) * 1.2); box-shadow: var(--e-3), 0 0 0 3px var(--fg); }
 @media (max-width: 599px) { .sdui-shelf.focus-grow .sdui-item.grown .card { width: calc(var(--card-w, 140px) * 1.2); } }
 @media (prefers-reduced-motion: reduce) { .sdui-shelf.focus-grow .sdui-item .card { transition: none; } .sdui-shelf.focus-grow .sdui-item.grown .card { width: var(--card-w, 140px); } }
 

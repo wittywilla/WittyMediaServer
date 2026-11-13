@@ -268,7 +268,7 @@ function ShelfView({ view, depth }: { view: View; depth: number }) {
   const [focusId, setFocusId] = useState('')
   const focused = focusedOf(view.children, focusId)
   return (
-    <section className={'hub sdui-shelf' + (grow ? ' focus-grow' : '') + (view.type === 'Carousel' ? ' sdui-carousel' : '') + (view.node.props?.focusGrow === true ? ' sdui-focusgrow' : '') + (view.node.props?.numbered ? ' numbered' : '')} style={{ ...cardVars(view, page.pt), '--peek': view.peek || 0, ...scopeStyle(view.node) } as CSSProperties} data-scope={view.scope} data-sdui-section={depth === 1 ? view.id : undefined} aria-busy={waiting || undefined}>
+    <section className={'hub sdui-shelf' + (grow ? ' focus-grow' : '') + (grow && detail ? ' has-detail' : '') + (view.type === 'Carousel' ? ' sdui-carousel' : '') + (view.node.props?.focusGrow === true ? ' sdui-focusgrow' : '') + (view.node.props?.numbered ? ' numbered' : '')} style={{ ...cardVars(view, page.pt), '--peek': view.peek || 0, ...scopeStyle(view.node) } as CSSProperties} data-scope={view.scope} data-sdui-section={depth === 1 ? view.id : undefined} aria-busy={waiting || undefined}>
       <Heading view={view} id={id} />
       {view.state === 'deferred' && !failed && <Near onNear={() => page.more(view.id)} />}
       {failed || view.state === 'empty' ? <StateLine view={view} /> : tiles && !waiting ? (
@@ -304,7 +304,9 @@ function ItemActions({ view }: { view: View }) {
 // The panel under a row whose focused card is bound to it: its title large, its line, and its actions as buttons with their key.
 function ShelfDetail({ view, parent }: { view: View; parent: View }) {
   const text = view.text || {}
-  const buttons = buttonsOf(view.node.props)
+  // An item with no actions of its own is opened by the card's action: shown as A.
+  const own = buttonsOf(view.node.props)
+  const buttons: ButtonSpec[] = own.length ? own : view.node.action ? [{ id: 'open', label: 'Open', glyph: 'a', primary: true, action: view.node.action }] : []
   return (
     <div className="sdui-detail" aria-live="polite" data-for={view.id}>
       <b className="sdui-detail-title">{text.title}</b>

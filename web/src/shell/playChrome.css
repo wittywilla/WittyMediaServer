@@ -13,7 +13,7 @@
 .play-pads li { display: inline-flex; align-items: center; gap: var(--sp-1); }
 .play-pads i { inline-size: 1.25rem; block-size: .6rem; border-radius: var(--r-xs); background: var(--ok); }
 .play-clock { font-size: var(--text-xl); font-weight: 800; font-variant-numeric: tabular-nums; }
-.play-dock { position: fixed; inset-inline: 0; inset-block-end: var(--sp-5); z-index: var(--z-sticky); display: flex; justify-content: center; align-items: flex-start; gap: var(--sp-4); pointer-events: none; }
+.play-dock { position: fixed; inset-inline: 0; inset-block-end: calc(var(--sp-5) + var(--dock-space, 0px) + var(--tabbar-space, 0px)); z-index: var(--z-sticky); display: flex; justify-content: center; align-items: flex-start; gap: var(--sp-4); pointer-events: none; }
 .play-dock a { pointer-events: auto; display: grid; justify-items: center; gap: var(--sp-1); color: var(--fg); text-decoration: none; }
 .play-dock-ic { display: grid; place-items: center; inline-size: 3.5rem; block-size: 3.5rem; border-radius: 50%; background: var(--bg-3); box-shadow: 0 0 0 1px var(--border-strong), var(--e-2); }
 .play-dock a.on .play-dock-ic { inline-size: 4.5rem; block-size: 4.5rem; background: var(--accent); color: var(--accent-fg); }

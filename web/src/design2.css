@@ -104,7 +104,7 @@ html.tv-mode .sdui-widgets { gap: var(--space-l); }
 /* ---- the server's mark: a square badge, its content centred (never a bare letter) ---- */
 .brand-badge { display: inline-grid; place-items: center; flex: none; inline-size: 2rem; block-size: 2rem; border-radius: var(--r-md); background: var(--bg-3); color: var(--brand-accent); border: 1px solid var(--border); font-weight: 700; font-size: var(--text-md); line-height: 1; overflow: hidden; }
 .brand-badge.image { padding: 4px; background: var(--elev-2-fill); }
-.brand-badge img { inline-size: 100%; block-size: 100%; object-fit: contain; }
+.brand-badge img, .brand .brand-badge img { inline-size: 100%; block-size: 100%; object-fit: contain; } /* over .brand img and .top-brand img, which size a bare picture */
 
 /* ---- the rail: closed (icons and the mark), open (the full menu, on hover, focus or kept open), and a library's drawer ---- */
 @media (min-width: 901px) {

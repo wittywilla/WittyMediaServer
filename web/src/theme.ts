@@ -2,7 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { api, serverBase } from './api'
 import type { StyledPart } from './brandStyle.ts'
-import { overrideDeclarations, safeColour, type ResolvedTheme, type SceneLayer } from './themeOverrides'
+import { overrideDeclarations, safeColour, themeQuery, type ResolvedTheme, type SceneLayer } from './themeOverrides'
 import { themeDeclarations } from './ui/themeMaker'
 
 // Themes are ZIPs on the server (see docs/THEMES.md). The server default can
@@ -94,7 +94,8 @@ function applyLook(look: ResolvedTheme['look']) {
   const g = look.finish?.glass
   if (g) for (const [k, v] of [['hi', g.hi], ['lo', g.lo], ['edge', g.edge], ['shadow', g.shadow]]) { const c = safeColour(v); if (c) put('--glass-' + k, c) }
   look.finish?.gloss?.slice(0, 5).forEach((c, i) => { const ok = safeColour(c); if (ok) put('--gloss-' + GLOSS[i], ok) })
-  const layers = look.scene?.layers || []
+  // A theme made on this device has no scene of its own, and the server's look is for another theme.
+  const layers = d.theme === CUSTOM_THEME ? [] : look.scene?.layers || []
   if (layers.length) d.scene = ''; else delete d.scene
   setScene(layers)
   if (look.density && !localStorage.getItem('wms.density')) { if (look.density === 'comfortable') delete d.density; else d.density = look.density }
@@ -128,7 +129,8 @@ export async function loadThemeOverrides() {
   // For this device's own look: the server keeps the choice under the name the browser gave itself (sdui/device.ts).
   let device = ''
   try { device = localStorage.getItem('wms.sdui.device') || '' } catch { /* the form factor's */ }
-  try { resolved = await api.get<ResolvedTheme>('/theme' + (device ? '?device=' + encodeURIComponent(device) : '')) } catch { resolved = null }
+  // And the theme this device chose, if it did: the server answers with that theme's scene and finish.
+  try { resolved = await api.get<ResolvedTheme>('/theme' + themeQuery(device, deviceTheme(), !!lightDevice?.matches)) } catch { resolved = null }
   applyOverrides()
   // No theme chosen on this device or required: the look brings its own default theme, always the same.
   const wears = resolved?.look?.theme
@@ -154,7 +156,8 @@ const resolveTheme = (id: string) => (id === AUTO_THEME ? (lightDevice?.matches 
 // load is fetched again the next time the theme is picked (instead of the
 // click silently doing nothing because the link already pointed at it).
 export function applyTheme(wantedId: string, version = '') {
-  if (lightDevice) lightDevice.onchange = wantedId === AUTO_THEME ? () => applyTheme(AUTO_THEME, version) : null
+  // Following the device's light or dark: the scene follows too, when this device chose it.
+  if (lightDevice) lightDevice.onchange = wantedId === AUTO_THEME ? () => { applyTheme(AUTO_THEME, version); if (deviceTheme() === AUTO_THEME) void loadThemeOverrides() } : null
   const id = resolveTheme(wantedId)
   if (id === CUSTOM_THEME && customThemeCss()) { wanted = ''; applyCustom(customThemeCss()); applyOverrides(); return }
   clearCustom()

@@ -418,6 +418,18 @@
    "formFactor": "phone"
   },
   {
+   "id": "empty-actions-admin-desktop",
+   "file": "empty-actions-admin-desktop.json",
+   "title": "An empty library offers an administrator a button",
+   "formFactor": "desktop"
+  },
+  {
+   "id": "empty-actions-adult-desktop",
+   "file": "empty-actions-adult-desktop.json",
+   "title": "The same empty library for a profile that doesn't administer",
+   "formFactor": "desktop"
+  },
+  {
    "id": "qr-room-phone",
    "file": "qr-room-phone.json",
    "title": "QR codes from an item's link and from an address, on a phone",

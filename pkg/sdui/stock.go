@@ -37,6 +37,9 @@ var yes, no = true, false
 // videoKinds are the kinds of library whose page is a filtered grid.
 var videoKinds = []string{"movies", "shows", "anime"}
 
+// scanAction is what an empty library offers an administrator: look through the folders again.
+var scanAction = map[string]any{"label": "Scan now", "op": "library.scan", "item": "$library", "when": map[string]any{"admin": true}}
+
 func buildStockPages() []Page {
 	notTV := Condition{Not: &Condition{FormFactor: []string{FormTV}}}
 	home := Page{ID: "home", Kind: "home", Title: "Home", Icon: "home",
@@ -62,7 +65,7 @@ func buildStockPages() []Page {
 
 	library := Page{ID: "library", Kind: "library", Title: "{library}", Icon: "library",
 		Description: "Any library without a page of its own kind: everything in it, newest first.",
-		Sections:    []Section{sec("all", "Grid", props{"empty": "message", "emptyText": "Nothing has been found in this library's folders yet."}, Source{"type": "recentlyAdded", "library": "$library"})}}
+		Sections:    []Section{sec("all", "Grid", props{"empty": "message", "emptyText": "Nothing has been found in this library's folders yet.", "emptyHint": "Add files to its folders; they appear after a scan.", "emptyAction": scanAction}, Source{"type": "recentlyAdded", "library": "$library"})}}
 
 	var videoLibs []Page
 	for _, kind := range videoKinds {
@@ -94,7 +97,7 @@ func buildStockPages() []Page {
 	}
 	photosLib := Page{ID: "library-photos", Kind: "library", Title: "{library}", Icon: "photo", Match: &Match{LibraryKind: "photos"},
 		Sections: []Section{with(sec("timeline", "NativeView", props{"view": "photoTimeline", "library": "$library"}, nil),
-			sec("all", "Grid", props{"cardStyle": "photo", "showTitles": false, "empty": "message", "emptyText": "No photos yet."}, Source{"type": "recentlyAdded", "library": "$library"}))}}
+			sec("all", "Grid", props{"cardStyle": "photo", "showTitles": false, "empty": "message", "emptyText": "No photos yet.", "emptyHint": "Add pictures to the library's folders; they appear after a scan.", "emptyAction": scanAction}, Source{"type": "recentlyAdded", "library": "$library"}))}}
 	// The bookshelf as WittyInk's has it: every book by title, then a row for each series in
 	// its own order, and for each author by series.
 	booksLib := Page{ID: "library-books", Kind: "library", Title: "{library}", Icon: "book", Match: &Match{LibraryKind: "books"},
@@ -104,7 +107,7 @@ func buildStockPages() []Page {
 			with(sec("shelf", "Tabs", props{"style": "segments"}, nil),
 				with(sec("books", "Tab", props{"label": "Books", "icon": "book"}, nil),
 					sec("filters", "FilterBar", props{"target": "all", "fields": []string{"reading", "format"}, "sorts": []string{"title", "added"}}, nil),
-					sec("all", "Grid", props{"cardStyle": "book", "empty": "message", "emptyText": "No books match."}, Source{"type": "books", "library": "$library", "filterable": true})),
+					sec("all", "Grid", props{"cardStyle": "book", "empty": "message", "emptyText": "No books match.", "emptyHint": "Change the filters, or add books to the library's folders.", "emptyAction": scanAction}, Source{"type": "books", "library": "$library", "filterable": true})),
 				with(sec("series", "Tab", props{"label": "Series", "icon": "list"}, nil),
 					repeated(sec("in-series", "Shelf", props{"title": "{each}", "cardStyle": "book"}, Source{"type": "books", "library": "$library", "series": "$each"}), "bookSeries")),
 				with(sec("authors", "Tab", props{"label": "Authors", "icon": "user"}, nil),
@@ -113,7 +116,7 @@ func buildStockPages() []Page {
 	gamesLib := Page{ID: "library-games", Kind: "library", Title: "{library}", Icon: "game", Match: &Match{LibraryKind: "games"}, Scope: "wittyplay",
 		Sections: []Section{
 			sec("playing", "Shelf", props{"title": "Continue playing"}, Source{"type": "continuePlaying", "library": "$library"}),
-			sec("all", "Grid", props{"cardStyle": "game", "empty": "message", "emptyText": "No games yet."}, Source{"type": "recentlyAdded", "library": "$library"}),
+			sec("all", "Grid", props{"cardStyle": "game", "empty": "message", "emptyText": "No games yet.", "emptyHint": "Add game files to the library's folders; they appear after a scan.", "emptyAction": scanAction}, Source{"type": "recentlyAdded", "library": "$library"}),
 		}}
 
 	detail := Page{ID: "detail", Kind: "detail", Title: "{title}", Icon: "info",

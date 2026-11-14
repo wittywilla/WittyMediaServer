@@ -6,8 +6,8 @@ package server
 import (
 	"context"
 	"encoding/json"
-	"strings"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/wittywilla/wittymediaserver/internal/modules"

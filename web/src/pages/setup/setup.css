@@ -210,7 +210,7 @@ html.ten-foot .su-ack a, html.using-controller .su-ack a, html.ten-foot .op-head
 .lp.home-carousel .lp-page { align-content: center; }
 .lp-carousel { display: grid; grid-template-columns: 1fr 1.2fr 2fr 1.2fr 1fr; align-items: center; gap: var(--sp-2); }
 .lp-carousel i { aspect-ratio: 2 / 3; border-radius: var(--r-sm); background: linear-gradient(160deg, var(--lp-accent), var(--lp-surface)); opacity: .55; }
-.lp-carousel i.on { opacity: 1; box-shadow: 0 0 0 2px var(--lp-accent), 0 8px 24px rgb(0 0 0 / .4); }
+.lp-carousel i.on { opacity: 1; box-shadow: 0 0 0 2px var(--lp-accent), var(--shadow); }
 .lp-carousel b { grid-column: 1 / -1; justify-self: center; font-size: var(--text-sm); color: var(--fg); }
 /* Big picture: three large tiles with their names, easy to see from across a room. */
 .lp.home-tiles .lp-page { align-content: stretch; }
@@ -222,7 +222,7 @@ html.ten-foot .su-ack a, html.using-controller .su-ack a, html.ten-foot .op-head
 .lp-list { display: grid; gap: 4px; }
 .lp-list p { display: grid; grid-template-columns: 1.6rem 1fr auto; align-items: center; gap: var(--sp-2); margin: 0; padding: 4px var(--sp-2); border-radius: var(--r-sm); background: var(--lp-surface); }
 .lp-list p.on { box-shadow: inset 3px 0 0 var(--lp-accent); }
-.lp-list p i { block-size: 1rem; border-radius: 3px; background: linear-gradient(160deg, var(--lp-accent), var(--lp-surface)); }
+.lp-list p i { block-size: 1rem; border-radius: var(--r-xs); background: linear-gradient(160deg, var(--lp-accent), var(--lp-surface)); }
 .lp-list p b { block-size: 6px; inline-size: 70%; border-radius: var(--r-full); background: var(--fg-2); }
 .lp-list p em { block-size: 6px; inline-size: 2rem; border-radius: var(--r-full); background: var(--fg-3); }
 .lp-cross { display: grid; gap: var(--sp-3); }

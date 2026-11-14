@@ -56,7 +56,7 @@ func extrasOf(t *testing.T, raw []byte, id string) (string, string, *StoreUI, *S
 
 var bigclockExtras = map[string]any{
 	"status": "experimental", "statusNote": "Alarms aren't done.",
-	"ui": map[string]any{"pages": []any{map[string]any{"id": "clock", "title": "Big Clock"}}, "navigation": []any{"Clock"}, "settings": true, "sources": 2},
+	"ui":          map[string]any{"pages": []any{map[string]any{"id": "clock", "title": "Big Clock"}}, "navigation": []any{"Clock"}, "settings": true, "sources": 2},
 	"integration": map[string]any{"routes": 12, "screens": []any{"/clock", "/clock/:id"}, "settings": []any{"Clocks"}, "data": true, "feature": "clocks"},
 }
 

@@ -30,13 +30,13 @@ import './games-ui.css'
 // buttons do what along the bottom.
 
 const SORTS = [
-  { id: 'popular', label: 'Most popular' },
+  { id: 'rating', label: 'Highest rated' },
   { id: 'newest', label: 'Newest first' },
   { id: 'oldest', label: 'Oldest first' },
   { id: 'title', label: 'A to Z' },
 ] as const
-const MORE_SORTS = [{ id: 'rating', label: 'Highest rated' }, { id: 'added', label: 'Recently added' }] as const
-const DEFAULT_SORT = 'popular'
+const MORE_SORTS = [{ id: 'added', label: 'Recently added' }] as const
+const DEFAULT_SORT = 'rating'
 
 const typingIn = (el: EventTarget | null) => !!(el as Element | null)?.matches?.('input:not([type=checkbox]):not([type=radio]):not([type=range]), textarea, select, [contenteditable]')
 
@@ -224,7 +224,7 @@ export default function GamesLibrary({ lib }: { lib: Library }) {
   const [consoleHero, setConsoleHero] = useState<Item[]>([])
   useEffect(() => {
     if (!consoleId) { setConsoleHero([]); return }
-    api.get<{ items: Item[] }>(`/items?library=${lib.id}&kind=game&console=${encodeURIComponent(consoleId)}&sort=popular&limit=40`).then((r) => setConsoleHero(r.items.filter((it) => it.poster).slice(0, 15))).catch(() => setConsoleHero([]))
+    api.get<{ items: Item[] }>(`/items?library=${lib.id}&kind=game&console=${encodeURIComponent(consoleId)}&sort=rating&desc=1&limit=40`).then((r) => setConsoleHero(r.items.filter((it) => it.poster).slice(0, 15))).catch(() => setConsoleHero([]))
   }, [lib.id, consoleId])
 
   const byId = useMemo(() => consoleMap(consoles), [consoles])
@@ -235,9 +235,9 @@ export default function GamesLibrary({ lib }: { lib: Library }) {
     if (!shelfConsoles) return
     let on = true
     const ids = shelfConsoles.split(',')
-    Promise.all(ids.map((id) => api.get<{ items: Item[] }>(`/items?library=${lib.id}&kind=game&console=${encodeURIComponent(id)}&sort=popular&desc=0&limit=24`).then((r) => [id, r.items || []] as const).catch(() => [id, []] as const)))
+    Promise.all(ids.map((id) => api.get<{ items: Item[] }>(`/items?library=${lib.id}&kind=game&console=${encodeURIComponent(id)}&sort=rating&desc=1&limit=24`).then((r) => [id, r.items || []] as const).catch(() => [id, []] as const)))
       .then((all) => { if (on) setByConsole(Object.fromEntries(all)) })
-    api.get<{ items: Item[] }>(`/items?library=${lib.id}&kind=game&players=2&sort=popular&desc=0&limit=24`).then((r) => { if (on) setForTwo(r.items || []) }).catch(() => {})
+    api.get<{ items: Item[] }>(`/items?library=${lib.id}&kind=game&players=2&sort=rating&desc=1&limit=24`).then((r) => { if (on) setForTwo(r.items || []) }).catch(() => {})
     return () => { on = false }
   }, [lib.id, shelfConsoles, version])
   const progress = useMemo(() => new Map((home?.continue || []).map((e) => [e.item.id, e])), [home])

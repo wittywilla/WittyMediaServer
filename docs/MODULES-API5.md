@@ -212,6 +212,7 @@ A server offers each host feature at a version (`modules.Offers()`): `http` 1, `
 These are designed in the plan and come with the module that needs them:
 
 - A module's own new setup steps placed in the web wizard by `after`/`before` (the "Finish setting up" notice and page work: `POST /setup/{id}`), players, readers and menu folding from the web part.
+- Hooks for a web part's screens that aren't routes: the audio player's visualizer place (WittyVisualizer's `VisualizerStage` and `currentSession`), the folder picker's window (WittyIntegratedFileBrowser's default export) and an SDUI page's views (`views`, WittyStats' dashboard). WittyModule 0.5.2's `integration.json` and `Registration` have none, so these modules claim nothing and the app takes those named exports from the bundle, as before. Their `register(host)` returns nothing yet.
 - Doctor checks from modules.
 - Module databases in backups.
 - `/capabilities` features from what modules are in use (today they are the server's fixed list; changing that is agreed with the apps first).

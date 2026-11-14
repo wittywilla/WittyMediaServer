@@ -1297,12 +1297,8 @@ and without `meta.generatedAt` and `meta.etag`; `ETag(doc)` is `W/"sha256-`
 
 ### The music table
 
-`GET /api/sdui/catalog` carries `music` (`pkg/sdui/data/music.json`): the mini player's controls and the visualizer's.
-`music.visualizer.presets` are the effects the effects picker offers, the same as WittyVisualizer's `effects/*.glsl`
-(the 17 classics and Aurora Rings, in the order of its README): `{id, name, motion, calm, cost}`. `motion` is
-`gentle` or `lively`, `calm` is true when calm mode keeps the effect (the gentle ones; it is on by default when the
-system asks for reduced motion), `cost` is how hard it works the graphics card (1 to 3). The `preset` control's
-default is `skyline`. Every effect takes both of the other two controls, so show them for every effect: `speedPct` (an int, 50 to 200 %, default 100; it multiplies the animation clock) and `colour` (`effect`, the default: each effect's own colour families, or `theme`: a family built from the theme's accent). There is no album-art colour source. They are also the module's settings keys, `speedPct` and `colour`. A new effect in WittyVisualizer is a new entry here.
+`GET /api/sdui/catalog` carries `music` (`pkg/sdui/data/music.json`): the mini player's controls (`miniPlayer`), the karaoke controls, and `visualizer.defaultOn` (whether the full player opens with the visualizer; it doesn't).
+The visualizer's effects and their controls are WittyVisualizer's own, not the catalogue's: an app lists the effects from the module's settings page (`GET /api/sdui/modules/wittyvisualizer/settings`, the `effect` row's options, the same as its `effects/*.glsl`) and saves a person's choices there (`speedPct`, `colour`, `intensity` and the rest are its settings keys). Without the module there is no visualizer.
 
 ## Reference
 

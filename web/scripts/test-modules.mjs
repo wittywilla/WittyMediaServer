@@ -30,7 +30,7 @@ const PAGES = {
   books: '/library/2', book: '/item/13', reader: '/read/13',
   comics: '/library/3', comicReader: '/read/14',
   pdf: '/library/4', pdfReader: '/read/15',
-  photos: '/library/1', stats: '/m/wittystats/stats',
+  photos: '/library/1', stats: '/page/wittystats',
   cd: '/cd/3', dvd: '/item/2', bluray: '/item/1', games: '/library/3', game: '/item/7',
   // "path|a>b": after the page loads, press the button named a, then b (a state: a panel, a dialog, a player).
   cdAbout: '/cd/3|About this disc', dvdPlayer: '/item/2|Play', blurayPlayer: '/item/1|Play',

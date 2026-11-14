@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 // The parts of the catalogue (GET /sdui/catalog) that are data for the player: WittyRemote's keys, groups, pages and
-// which keys each kind of disc dims, and the music player's controls and visualizer presets. Read once per sign-in.
+// which keys each kind of disc dims, and the music player's controls. Read once per sign-in.
 import { api } from '../api'
 import { setCommandSpecs, type CommandSpec } from './routes'
 import { setRemoteCatalogue, type RemoteCatalogue } from '../player/remoteKeys'
 
 export type MusicCatalogue = {
   miniPlayer: string[]
-  visualizer: { presets: { id: string; name: string }[]; controls: { id: string; type: string; min?: number; max?: number; default?: number | string | boolean; options?: string[] }[]; defaultOn: boolean }
+  // The visualizer's effects and controls are WittyVisualizer's own (its settings page), not the catalogue's.
+  visualizer: { defaultOn: boolean }
   karaoke: { controls: { id: string; type: string; min?: number; max?: number; default?: number | boolean; note?: string; unit?: string }[] }
 }
 

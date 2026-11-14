@@ -18,16 +18,17 @@ import (
 // which checks again.
 
 // libraryAdminRows: every library, its kind, size and last scan (or how far its scan has got); a row opens its
-// scan choices (manage-library, as a layer).
-func (rv *sduiResolver) libraryAdminRows() ([]sdui.Item, error) {
+// scan choices (manage-library, as a layer). busy: a library is being scanned, so the page is to be drawn
+// again (Meta.RefreshSec) until none is.
+func (rv *sduiResolver) libraryAdminRows() (out []sdui.Item, busy bool, err error) {
 	if !rv.u.IsAdmin {
-		return nil, nil
+		return nil, false, nil
 	}
 	libs, err := rv.s.Store.Libraries(rv.ctx)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
-	out := make([]sdui.Item, 0, len(libs))
+	out = make([]sdui.Item, 0, len(libs))
 	for _, l := range libs {
 		facts := []string{l.Type, strconv.Itoa(l.ItemCount) + " titles"}
 		if l.LastScanAt != nil && *l.LastScanAt > 0 {
@@ -39,13 +40,13 @@ func (rv *sduiResolver) libraryAdminRows() ([]sdui.Item, error) {
 		row := sdui.Item{ID: "lib-" + itoa(l.ID), Kind: "view", Title: l.Name, Subtitle: strings.Join(facts, " · "), Icon: "library", Trailing: "Scan",
 			Action: &sdui.Action{Type: sdui.ActNavigate, To: "/manage/library/" + itoa(l.ID), As: sdui.PresentLayer}}
 		if p := rv.s.Scanner.Snapshot(l.ID); p != nil {
-			row.Trailing = scanCount(p)
+			row.Trailing, busy = scanCount(p), true
 		} else if l.Scanning {
-			row.Trailing = "Scanning"
+			row.Trailing, busy = "Scanning", true
 		}
 		out = append(out, row)
 	}
-	return out, nil
+	return out, busy, nil
 }
 
 // scanCount says how far a scan has got, as the activity panel does: "12,400 of 16,780 files".
@@ -66,21 +67,20 @@ func groupDigits(n int) string {
 }
 
 // libraryScanRows: one library's scan (manage-library): how far a scan has got, or when it was last scanned,
-// then Scan for changes and Full rescan (which asks first).
-func (rv *sduiResolver) libraryScanRows(ref string) ([]sdui.Item, error) {
+// then Scan for changes and Full rescan (which asks first). busy: it is being scanned, so the page is to be
+// drawn again (Meta.RefreshSec) until it settles on "Last scanned".
+func (rv *sduiResolver) libraryScanRows(ref string) (out []sdui.Item, busy bool, err error) {
 	if !rv.u.IsAdmin {
-		return nil, nil
+		return nil, false, nil
 	}
 	id, err := strconv.ParseInt(ref, 10, 64)
 	if err != nil {
-		return nil, nil
+		return nil, false, nil
 	}
 	l, err := rv.s.Store.Library(rv.ctx, id)
 	if err != nil {
-		return nil, nil //nolint:nilerr // a library that's gone has nothing to show
+		return nil, false, nil //nolint:nilerr // a library that's gone has nothing to show
 	}
-	var out []sdui.Item
-	busy := false
 	if p := rv.s.Scanner.Snapshot(id); p != nil {
 		busy = true
 		doing := "Scanning"
@@ -110,7 +110,7 @@ func (rv *sduiResolver) libraryScanRows(ref string) ([]sdui.Item, error) {
 		full.Action = &sdui.Action{Type: sdui.ActCommand, Op: "library.rescan", Item: ref,
 			Confirm: "Read every file of " + l.Name + " and its details again? On a big library this can take a long time. The library stays usable meanwhile."}
 	}
-	return append(out, changes, full), nil
+	return append(out, changes, full), busy, nil
 }
 
 // newLibraryRows: a new library's name, kind and folder, for the library.create Form.

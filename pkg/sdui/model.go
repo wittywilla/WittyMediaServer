@@ -474,6 +474,12 @@ type Meta struct {
 	ConfigRevision int64 `json:"configRevision,omitempty"`
 	// TTLSeconds suggests how long to show the page before asking again.
 	TTLSeconds int `json:"ttlSeconds,omitempty"`
+	// RefreshSec: something on the page is in progress (a library scan counting up), so while
+	// the page is open and showing, a client asks for it again (quietly, keeping scroll and
+	// focus) this many seconds after the last answer arrived; never sooner, and not while the
+	// app or tab is hidden. Absent or 0: don't; it is left out once nothing is busy. Any data
+	// source may ask for it (SourceResult.RefreshSec); it is at most MaxRefreshSec.
+	RefreshSec int `json:"refreshSec,omitempty"`
 }
 
 // ---------------------------------------------------------------------------

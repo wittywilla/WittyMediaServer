@@ -11630,6 +11630,9 @@
             "properties": {},
             "type": "object"
           },
+          "refreshSec": {
+            "type": "integer"
+          },
           "source": {
             "type": "string"
           },

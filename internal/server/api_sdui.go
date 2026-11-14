@@ -88,6 +88,7 @@ const (
 	// enough that a page and its diff, or an app's burst of requests as it starts, are one
 	// render; short enough that nobody sees a row that is out of date.
 	recentRenderFor  = 3 * time.Second
+	busyRenderFor    = 500 * time.Millisecond
 	maxPreviewTokens = 16
 	previewTokenFor  = 2 * time.Hour
 )
@@ -587,7 +588,13 @@ func (s *Server) renderPage(w http.ResponseWriter, r *http.Request) (sdui.Docume
 		st.mu.Lock()
 		got, ok := st.recent[key]
 		st.mu.Unlock()
-		if ok && got.uid == u.ID && time.Since(got.at) < recentRenderFor {
+		// A page showing something in progress (meta.refreshSec: a scan counting up) is asked for again
+		// every few seconds to see it move, so its render answers again for only a moment.
+		keepFor := recentRenderFor
+		if got.doc.Meta.RefreshSec > 0 {
+			keepFor = busyRenderFor
+		}
+		if ok && got.uid == u.ID && time.Since(got.at) < keepFor {
 			return got.doc, true
 		}
 	}

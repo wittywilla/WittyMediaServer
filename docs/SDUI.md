@@ -233,7 +233,7 @@ Go types are `sdui.Document`, `sdui.Node`, `sdui.Action`, `sdui.Focus`.
 | `screenTime` | ScreenTime, *omit* | `{reason, message, nextAt}`, present when the profile's screen time is over: see [Profiles with limits](#profiles-with-limits). |
 | `regions` | PageRegions, *omit* | What the page puts into the shell's regions while it (or its theme scope) is showing: `statusBar` items and `systemDock` entries. See [Shell regions](#shell-regions-and-what-a-page-supplies-to-them). |
 | `personal` | PersonalInfo, *omit* | What the profile may change about this page and what it has changed: see [Personalisation](#personalisation). |
-| `meta` | Meta | `{etag, generatedAt, source, configRevision, ttlSeconds}`. `source` is `config` or `draft`. Ask again after `ttlSeconds` (0: only when something happens). |
+| `meta` | Meta | `{etag, generatedAt, source, configRevision, ttlSeconds, refreshSec}`. `source` is `config` or `draft`. Ask again after `ttlSeconds` (0: only when something happens). `refreshSec`, *omit*: something on the page is in progress, so redraw it every `refreshSec` seconds while it is open: see [Pages that are in progress](#pages-that-are-in-progress). |
 
 ### Node
 
@@ -361,6 +361,30 @@ screen (`floor((content + gap) / (card + gap)) + 1`, at most the row's first
 page), pulsing unless motion is reduced. A whole page loading for the first
 time shows three such rows. A page that fails to load shows the app's own
 error view with Retry; a 404 shows "This isn't available" with a way Home.
+
+### Pages that are in progress
+
+`meta.refreshSec` says something the page shows is changing as it is looked
+at: a library being scanned ("Full rescan: 1,681 of 12,708 files"). Any of
+the server's data sources on any page may ask for it (Go:
+`SourceResult.RefreshSec`; a module's helper can't yet); the server sends the
+smallest any section rendered with the page asked for (2 seconds for a scan, never more than 300) and leaves the field
+out once nothing on the page is busy. Absent or 0 means don't. While a page
+or a layer that has it is open:
+
+- Ask for the page again (`/diff?since=` or the whole page, with the same
+  parameters) `refreshSec` seconds after the last answer arrived: never
+  sooner, never two at once, and not while the app is in the background, the
+  window or tab is hidden or the screen is locked. Coming back to it, ask
+  once at once, then carry on. Stop when the page or layer closes, and when
+  an answer comes without `refreshSec`: that answer, "Last scanned …", is the
+  one to keep showing.
+- Redraw quietly: no placeholders, spinner or flash, the scroll position and
+  focus where they were, rows matched by `id` so only what changed changes.
+- Don't announce the page again to a screen reader, nor each step of a
+  count. When the page settles (an answer without `refreshSec`), read out
+  the first row whose words changed ("Last scanned …") once, politely.
+- `ttlSeconds` still applies once `refreshSec` is gone.
 
 ### Paging
 
@@ -1110,6 +1134,12 @@ own window, is one of the three renderers.
   applied to the kept tree (`patch.ts`), and anything that doesn't apply
   drops it. It is asked for again after `meta.ttlSeconds` while the tab is
   visible, and after a command or a change to the profile's arrangement.
+  With `meta.refreshSec` (a scan counting up) it is asked for again that
+  many seconds after each answer while the tab is visible, as soon as it
+  shows again, and quietly: no placeholders, scroll and focus kept
+  (`refresh.ts`). When it settles, the first row whose words changed is read
+  out once through the polite live region; a layer does the same and stops
+  when it closes.
   Rows that had been filled or paged stay filled when the page comes again.
 - **Focus.** Tab order is the document's order. In TV mode, and with a
   game pad or arrow keys anywhere, `focus.ts` decides where an arrow goes

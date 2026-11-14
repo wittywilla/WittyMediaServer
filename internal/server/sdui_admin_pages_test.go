@@ -4,11 +4,15 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/pkg/sdui"
 )
 
 // The administrators' pages: an administrator gets the libraries, a form to add one and a title's match
@@ -54,3 +58,44 @@ func TestSDUIAdminPages(t *testing.T) {
 		t.Errorf("match page: %+v", n)
 	}
 }
+
+// A library being scanned: its manage-library page and the libraries' page ask to be drawn again
+// (meta.refreshSec) and show how far it has got; once the scan is over neither asks.
+func TestSDUILibraryScanRefreshes(t *testing.T) {
+	ts := newTestServer(t)
+	lib := ts.library(t, "movies", t.TempDir())
+	boss, admin := ts.user(t, "boss", "adult", true, "")
+	one := fmt.Sprintf("/api/v1/sdui/pages/manage-library?formFactor=web&item=%d", lib)
+	all := "/api/v1/sdui/pages/manage-libraries?formFactor=web"
+
+	for _, p := range []string{one, all} {
+		if doc := sduiDoc(t, ts.do(t, "GET", p, admin, nil)); doc.Meta.RefreshSec != 0 {
+			t.Errorf("%s: an idle library's page asks to be redrawn every %d s", p, doc.Meta.RefreshSec)
+		}
+	}
+
+	// Nothing else scans in this test, so the progress map is ours to fill.
+	// (A scan started here would go through a POST, which drops the account's just-finished renders.)
+	ts.Scanner.Progress[lib] = &library.ScanProgress{LibraryID: lib, Phase: "scanning", Found: 12708, Done: 1681, Mode: library.ScanFull}
+	ts.forgetRecent(boss.ID)
+	doc := sduiDoc(t, ts.do(t, "GET", one, admin, nil))
+	if doc.Meta.RefreshSec != sdui.BusyRefreshSec {
+		t.Errorf("a scanning library's page: refreshSec %d, want %d", doc.Meta.RefreshSec, sdui.BusyRefreshSec)
+	}
+	if n := findNode(&doc.Root, "choices"); n == nil || len(n.Children) == 0 || !strings.Contains(jsonOf(n.Children[0]), "1,681 of 12,708 files") {
+		t.Errorf("the state row doesn't say how far the scan has got: %+v", n)
+	}
+	if doc := sduiDoc(t, ts.do(t, "GET", all, admin, nil)); doc.Meta.RefreshSec != sdui.BusyRefreshSec {
+		t.Errorf("the libraries' page while one scans: refreshSec %d", doc.Meta.RefreshSec)
+	}
+
+	delete(ts.Scanner.Progress, lib)
+	time.Sleep(busyRenderFor) // a busy render answers again for only a moment
+	for _, p := range []string{one, all} {
+		if doc := sduiDoc(t, ts.do(t, "GET", p, admin, nil)); doc.Meta.RefreshSec != 0 {
+			t.Errorf("%s: still asks to be redrawn after the scan: %d", p, doc.Meta.RefreshSec)
+		}
+	}
+}
+
+func jsonOf(v any) string { b, _ := json.Marshal(v); return string(b) }

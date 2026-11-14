@@ -34,8 +34,10 @@ var (
 	yearRe    = regexp.MustCompile(`^(.*?)[\s._(\[-]+((?:19|20)\d{2})[\s._)\]-]*(.*)$`)
 	junkRe    = regexp.MustCompile(`(?i)[\s._-]*(1080p|2160p|720p|480p|4k|uhd|bluray|blu-ray|bdrip|brrip|dvdrip|dvd|web-?dl|webrip|hdtv|x264|x265|h\.?264|h\.?265|hevc|aac|ac3|dts|remux|proper|repack|extended|unrated|directors?\.?cut|multi|dual|hdr|dv)\b.*$`)
 	spacersRe = regexp.MustCompile(`[._]+`)
-	wsRe      = regexp.MustCompile(`\s+`)
-	articles  = []string{"the ", "a ", "an "}
+	// A release's tags anywhere in a name, joined by dots, underscores or dashes (releaseName).
+	releaseTagRe = regexp.MustCompile(`(?i)(?:^|[\s._-])(?:\d{3,4}p|4k|uhd|blu-?ray|b[dr]rip|dvdrip|web-?dl|webrip|hdtv|[xh][._]?26[45]|hevc|aac|ac3|ddp?[\s._]?\d|dts|remux|hdr)(?:$|[\s._-])`)
+	wsRe         = regexp.MustCompile(`\s+`)
+	articles     = []string{"the ", "a ", "an "}
 	// A catalogue number stuck to the title: "8707Dr.Story" is "Dr.Story".
 	catalogRe = regexp.MustCompile(`^\d{3,}([A-Z][a-z])`)
 )
@@ -107,6 +109,12 @@ func parseName(name string, catalog bool) (title string, year *int) {
 	if catalog {
 		n = catalogRe.ReplaceAllString(n, "$1")
 	}
+	// A name some tools shortened, with " ... " where the middle was: what follows is the release's tags.
+	for _, cut := range []string{" ... ", "…"} {
+		if i := strings.Index(n, cut); i > 0 {
+			n = n[:i]
+		}
+	}
 	if m := yearRe.FindStringSubmatch(n); m != nil && strings.TrimSpace(m[1]) != "" {
 		y, _ := strconv.Atoi(m[2])
 		year = &y
@@ -127,6 +135,16 @@ func parseName(name string, catalog bool) (title string, year *int) {
 		n = titleCase(strings.ToLower(n))
 	}
 	return n, year
+}
+
+// releaseName reports whether a title is a release's file name rather than a title: release
+// tags (WEB-DL, H.265, 1080p…) after words joined by dots or underscores, or with no spaces at all. "Dr. No" and
+// "Mr. & Mrs. Smith" are titles.
+func releaseName(s string) bool {
+	if !releaseTagRe.MatchString(s) {
+		return false
+	}
+	return strings.Count(s, ".")+strings.Count(s, "_") >= 3 || !strings.Contains(strings.TrimSpace(s), " ")
 }
 
 func titleCase(s string) string {
@@ -155,21 +173,23 @@ func SortTitle(t string) string {
 // ---------------------------------------------------------------------------
 
 type nfoMovie struct {
-	XMLName   xml.Name `xml:"movie"`
-	Title     string   `xml:"title"`
-	SortTitle string   `xml:"sorttitle"`
-	Year      int      `xml:"year"`
-	Plot      string   `xml:"plot"`
-	Outline   string   `xml:"outline"`
-	Tagline   string   `xml:"tagline"`
-	Genres    []string `xml:"genre"`
-	Rating    float64  `xml:"rating"`
-	MPAA      string   `xml:"mpaa"`
-	Studio    string   `xml:"studio"`
-	Runtime   int      `xml:"runtime"`
-	Premiered string   `xml:"premiered"`
-	Thumb     []string `xml:"thumb"`
-	Fanart    struct {
+	XMLName xml.Name `xml:"movie"`
+	Title   string   `xml:"title"`
+	// Some tools write the release's file name as the title and the real one here.
+	OriginalTitle string   `xml:"originaltitle"`
+	SortTitle     string   `xml:"sorttitle"`
+	Year          int      `xml:"year"`
+	Plot          string   `xml:"plot"`
+	Outline       string   `xml:"outline"`
+	Tagline       string   `xml:"tagline"`
+	Genres        []string `xml:"genre"`
+	Rating        float64  `xml:"rating"`
+	MPAA          string   `xml:"mpaa"`
+	Studio        string   `xml:"studio"`
+	Runtime       int      `xml:"runtime"`
+	Premiered     string   `xml:"premiered"`
+	Thumb         []string `xml:"thumb"`
+	Fanart        struct {
 		Thumb []string `xml:"thumb"`
 	} `xml:"fanart"`
 	UniqueIDs []struct {
@@ -193,8 +213,18 @@ func applyNFO(it *Item, path string) bool {
 		return false
 	}
 	m.clean()
-	if m.Title != "" {
-		it.Title = m.Title
+	// A release's file name as the title ("Invasion.of.the.Body.Snat ... WEB-DL.DD.5.1.H.265-PiRaTeS"): the
+	// original title when it's a real one, else the title found from the folder or file stays.
+	if title := m.Title; title != "" {
+		if releaseName(title) {
+			title = ""
+			if ot := m.OriginalTitle; ot != "" && !releaseName(ot) {
+				title = ot
+			}
+		}
+		if title != "" {
+			it.Title = title
+		}
 	}
 	if m.SortTitle != "" {
 		it.SortTitle = m.SortTitle
@@ -282,7 +312,7 @@ func applySidecarJSON(it *Item, path string) bool {
 		return false
 	}
 	m.clean()
-	if m.Title != "" {
+	if m.Title != "" && !releaseName(m.Title) {
 		it.Title = m.Title
 	}
 	if m.SortTitle != "" {

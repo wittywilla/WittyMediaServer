@@ -96,6 +96,7 @@ func cleanRef(s string) string {
 
 func (m *nfoMovie) clean() {
 	m.Title = metafolder.Line(m.Title, 300)
+	m.OriginalTitle = metafolder.Line(m.OriginalTitle, 300)
 	m.SortTitle = metafolder.Line(m.SortTitle, 300)
 	m.Plot = metafolder.Text(m.Plot, 20000)
 	m.Outline = metafolder.Text(m.Outline, 20000)

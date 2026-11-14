@@ -24,14 +24,9 @@ import (
 
 // Module routes (module API 5, docs/MODULES-API5.md). A module's integration.json lists the
 // HTTP routes it answers. The server mounts each at /api/modules/<id><path> (and /api/v1/...),
-// and at each alias, checks who may call it, the profile's features and screen time and the
-// item it names, then passes the request to the module's service at /http<path>, saying who is
-// asking. The module never sees this server's sign-in, and never a file path a browser chose.
-//
-// An alias answers one of the server's own paths that apps already call (/api/games/{id}/play).
-// A module can only take over a path the server registered for that module as its own copy of
-// the feature (needing): while a version of API 5 that claims the path is in use, the server's
-// copy steps aside for it, route by route; otherwise the server's copy answers as it always did.
+// checks who may call it, the profile's features and screen time and the item it names, then
+// passes the request to the module's service at /http<path>, saying who is asking. The module
+// never sees this server's sign-in, and never a file path a browser chose.
 
 // Defaults for a module route that sets no limits of its own.
 const (
@@ -72,27 +67,14 @@ func (s *Server) routing() *moduleRouting {
 	if rt := s.modRouting; rt != nil && rt.gen == gen {
 		return rt
 	}
-	rt := &moduleRouting{gen: gen, direct: map[string]*http.ServeMux{}, alias: map[string]map[string]moduleRouteRef{},
-		routes: map[string]map[string]moduleRouteRef{}, names: map[string]*wittymodule.Integration{}}
+	rt := &moduleRouting{gen: gen, direct: map[string]*http.ServeMux{}, names: map[string]*wittymodule.Integration{}}
 	for _, u := range in {
 		mux := http.NewServeMux()
-		rt.alias[u.ID] = map[string]moduleRouteRef{}
-		rt.routes[u.ID] = map[string]moduleRouteRef{}
 		rt.names[u.ID] = u.Integration
 		for _, r := range u.Integration.HTTP {
 			ref := moduleRouteRef{module: u.ID, feature: u.Integration.Feature, route: r}
 			for _, meth := range r.Methods {
-				pattern := meth + " /api/modules/" + u.ID + r.Path
-				rt.routes[u.ID][pattern] = ref
-				mux.Handle(pattern, s.moduleRouteHandler(ref))
-				for _, a := range r.Alias {
-					// Only the server's own routes for this module can be taken over.
-					if s.legacy.has(u.ID, meth+" "+a) {
-						rt.alias[u.ID][meth+" "+a] = ref
-					} else {
-						s.Log.Warn("a module's alias isn't one of this server's routes for it, and is left out", "cat", "modules", "module", u.ID, "route", meth+" "+a)
-					}
-				}
+				mux.Handle(meth+" /api/modules/"+u.ID+r.Path, s.moduleRouteHandler(ref))
 			}
 		}
 		rt.direct[u.ID] = mux
@@ -105,10 +87,13 @@ func (s *Server) routing() *moduleRouting {
 func (s *Server) handleModuleRoute(w http.ResponseWriter, r *http.Request) {
 	mux := s.routing().direct[r.PathValue("id")]
 	if mux == nil {
-		// Nothing answers here: a module with no version of API 5 in use has no routes of its
-		// own (its routes are the server's, registered by name), so this is any other unknown
-		// address. Who isn't signed in learns nothing about which modules are here.
-		s.requireUser(func(w http.ResponseWriter, _ *http.Request) { writeErr(w, 404, "not found") }).ServeHTTP(w, r)
+		// A module that isn't here, or isn't turned on: 424 says which, so an app can say so and
+		// offer to add it. Who isn't signed in learns nothing about which modules are here.
+		s.requireUser(func(w http.ResponseWriter, _ *http.Request) {
+			if s.Modules == nil || !writeModuleMissing(w, s.Modules.Missing(r.PathValue("id"))) {
+				writeErr(w, 404, "not found")
+			}
+		}).ServeHTTP(w, r)
 		return
 	}
 	if _, pattern := mux.Handler(r); pattern == "" {
@@ -116,12 +101,6 @@ func (s *Server) handleModuleRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	mux.ServeHTTP(w, r)
-}
-
-// moduleAlias is the module route that takes over one of the server's own routes now, if any.
-func (s *Server) moduleAlias(module, pattern string) (moduleRouteRef, bool) {
-	ref, ok := s.routing().alias[module][pattern]
-	return ref, ok
 }
 
 // classKey carries a module route's class for parental controls (parentalGate), which can't be
@@ -337,57 +316,7 @@ func moduleItem(it *library.Item) *service.Item {
 	return out
 }
 
-// takeOver serves one of the server's own routes for a module (needing): the module's route
-// when a version of it in use claims this one as an alias, else the server's own copy. The
-// request was signed in and classed for parental controls by the server's own pattern, as it
-// always was, before the module's route is chosen.
-func (s *Server) takeOver(module, pattern string, own http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ref, ok := s.moduleAlias(module, pattern)
-		if !ok {
-			own.ServeHTTP(w, r)
-			return
-		}
-		if ref.route.Auth == wittymodule.AuthTicket {
-			s.passToModule(w, r, ref)
-			return
-		}
-		s.requireUser(func(w http.ResponseWriter, r *http.Request) {
-			if ref.route.Auth == wittymodule.AuthAdmin && !userFrom(r).IsAdmin {
-				writeErr(w, 403, "admin only")
-				return
-			}
-			s.passToModule(w, r, ref)
-		}).ServeHTTP(w, r)
-	})
-}
-
-// legacyPatterns are the server's own routes for each module, as needing registered them: the
-// only paths a module's alias may take over.
-type legacyPatterns struct {
-	mu sync.Mutex
-	m  map[string][]string
-}
-
-func (l *legacyPatterns) add(module, pattern string) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	if l.m == nil {
-		l.m = map[string][]string{}
-	}
-	if !slices.Contains(l.m[module], pattern) {
-		l.m[module] = append(l.m[module], pattern)
-	}
-}
-
-func (l *legacyPatterns) has(module, pattern string) bool {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	return slices.Contains(l.m[module], pattern)
-}
-
-// IntegrationCheck holds a module's integration.json to what this server can do. (Aliases
-// are held to the server's own routes for the module as the routes are made: routing.)
+// IntegrationCheck holds a module's integration.json to what this server can do.
 func IntegrationCheck(id string, in *wittymodule.Integration) error {
 	if in.Feature != "" && !slices.Contains(library.Features, in.Feature) {
 		return fmt.Errorf("it belongs to a feature this server doesn't know, %q", in.Feature)

@@ -123,7 +123,6 @@ func TestPictureUploadsTakeASlotFirst(t *testing.T) {
 	}()
 	for _, c := range []struct{ method, path string }{
 		{"POST", "/api/game-bezels?name=a.png"},
-		{"PUT", "/api/game-background/image"},
 	} {
 		r := httptest.NewRequest(c.method, c.path, &failingBody{t: t})
 		r.RemoteAddr = "192.168.1.50:4000"

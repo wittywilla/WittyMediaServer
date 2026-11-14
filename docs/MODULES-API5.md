@@ -5,13 +5,11 @@ For developers of modules and of the server: what module API 5 adds to a module,
 - [In short](#in-short)
 - [integration.json](#integrationjson)
 - [Routes](#routes)
-- [Aliases: the server's own paths](#aliases-the-servers-own-paths)
 - [The host API](#the-host-api)
 - [Lifecycle](#lifecycle)
 - [The web part](#the-web-part)
 - [Building a web part](#building-a-web-part)
 - [Versions and what a server offers](#versions-and-what-a-server-offers)
-- [While a module moves: the server's own copy](#while-a-module-moves-the-servers-own-copy)
 - [Testing](#testing)
 - [Not yet](#not-yet)
 
@@ -22,12 +20,12 @@ For developers of modules and of the server: what module API 5 adds to a module,
 | A module of API 5 has | Where | What the server does with it |
 |---|---|---|
 | `integration.json` | beside `module.json` and `sdui.json`, in every archive | Reads it strictly at install and at every start; refuses a version whose file doesn't pass; applies it while the version is in use |
-| HTTP routes | its service, under `/http` | Mounts each at `/api/modules/<id><path>` and at its aliases, checks who may call it, passes the request on |
+| HTTP routes | its service, under `/http` | Mounts each at `/api/modules/<id><path>`, checks who may call it, passes the request on; apps call it there |
 | A web part that exports `register(host)` | `web/` in its archive | Tells the web app what the module claims; loads the bundle when one of its screens is first needed |
-| Its own data | a SQLite database in its data folder | Backs it up; lets it read the server's own tables it takes over, once |
+| Its own data | a SQLite database in its data folder | Backs it up |
 | Lifecycle calls | its service, on the helper protocol | Calls them at a version's first start and before the module is taken off |
 
-`wittymodule.API` and the server's `API` are 5. A server takes 3 to 5. A version of API 5 must carry `integration.json` if it's a helper, program or web bundle (`wittymodule check` and `catalog-add` refuse one without it).
+`wittymodule.API` and the server's `API` are 5. A server takes API 5 only: no other module API is supported (the owner, 2026-11-13: no backwards compatibility). A version of API 5 must carry `integration.json` if it's a helper, program or web bundle (`wittymodule check` and `catalog-add` refuse one without it).
 
 ## integration.json
 
@@ -39,10 +37,8 @@ Read strictly: one object, at most 256 KiB, and an unknown field anywhere is ref
   "host": { "http": ">=1 <2", "web": ">=5", "host": ">=1" },
   "feature": "games",
   "http": [
-    { "path": "/games/{id}/play", "methods": ["POST"], "auth": "user", "item": "id", "plays": true,
-      "alias": ["/api/games/{id}/play"], "limits": { "body": "256KB", "time": "3m" } },
-    { "path": "/play/{sid}/stream", "methods": ["GET", "POST"], "auth": "user", "upgrade": "websocket", "stream": true,
-      "alias": ["/api/play/{sid}/stream"] },
+    { "path": "/games/{id}/play", "methods": ["POST"], "auth": "user", "item": "id", "plays": true, "limits": { "body": "256KB", "time": "3m" } },
+    { "path": "/play/{sid}/stream", "methods": ["GET", "POST"], "auth": "user", "upgrade": "websocket", "stream": true },
     { "path": "/kasm/{sid}/{ticket}/{rest...}", "methods": ["GET"], "auth": "ticket", "csp": "sandboxed-page" }
   ],
   "web": {
@@ -53,7 +49,7 @@ Read strictly: one object, at most 256 KiB, and an unknown field anywhere is ref
     "navFold": [ { "libraryKind": "games", "into": "wittyplay-online" } ]
   },
   "sdui": { "ops": [ { "id": "wittyplay.room.create", "http": "POST /rooms" } ] },
-  "data": { "store": "sqlite", "import": "server-games-v1", "backup": "saves" },
+  "data": { "store": "sqlite", "backup": "saves" },
   "lifecycle": { "install": true, "upgrade": true, "uninstall": "ask-keep-data" },
   "live": { "sessions": true }
 }
@@ -66,7 +62,7 @@ Read strictly: one object, at most 256 KiB, and an unknown field anywhere is ref
 | `http` | [Routes](#routes) |
 | `web` | [The web part](#the-web-part) |
 | `sdui.ops` | Its SDUI commands, each answered by one of its own routes (`"METHOD /path"`) |
-| `data` | Its own database: `store` is `sqlite`; `import` names the server's data it takes over once ([the host API](#the-host-api)); `backup` is the part of a backup it goes in (`settings`, `saves`, `library`). Needs the `data` permission and a `dataFormat` in `module.json` |
+| `data` | Its own database: `store` is `sqlite`; `backup` is the part of a backup it goes in (`settings`, `saves`, `library`). Needs the `data` permission and a `dataFormat` in `module.json`. It starts empty |
 | `lifecycle` | Which [lifecycle calls](#lifecycle) it answers |
 | `live` | `sessions`: it reports live sessions (games, streams) to the server |
 
@@ -85,7 +81,6 @@ Each route is mounted at `/api/modules/<id><path>` and `/api/v1/modules/<id><pat
 | `plays` | Calling it starts or goes on playing: it counts towards screen time and is refused when that's used up (a `DELETE` never is) |
 | `upgrade` | `websocket`: the route takes a WebSocket. One from another site's page is refused |
 | `stream` | The answer is a stream, sent as it comes, with no size or time limit |
-| `alias` | [The server's own paths](#aliases-the-servers-own-paths) it also answers |
 | `limits` | `body` (default 1 MB), `answer` (default 16 MB), `time` (default 1 minute) |
 | `csp` | `sandboxed-page`, for a ticket route whose answer is a page: it's shown in a sandboxed frame with an origin of nobody's |
 
@@ -103,17 +98,6 @@ Each route is mounted at `/api/modules/<id><path>` and `/api/v1/modules/<id><pat
 A module checks again what matters to it (`service.People`, `service.Admins`), and decides what's whose: a save, a session, a person's settings.
 
 **A route never takes a file path from a browser.** A file comes from `X-Witty-Item`, or from the host API's `Item`, both opened after the server's own access check.
-
-## Aliases: the server's own paths
-
-The Apple and Android apps call the server's own paths (`/api/games/{id}/play`, `/api/play/{sid}/ws`, …), and they must keep working, unchanged, whichever side answers. A route's `alias` lists those paths; an alias must have the same parameters as the route.
-
-- **Only the server's own routes for that module can be aliased.** Those are the routes the server registers for a module's feature with `needing(id)` (internal/server/api_modules.go): the server's own copy. An alias of anything else is left out and logged.
-- **Route by route.** While a version of API 5 that claims an alias is in use, that one route goes to the module; every other route of the server's copy still answers as it did. When the module is absent, the alias answers `424 Failed Dependency` with `module` and `moduleName`, as it always has.
-- **Signed in and classed as before.** An aliased request is signed in and checked for parental controls by the server's own route, exactly as it was, then passed to the module as above.
-- The `/api/v1/` form follows by itself.
-
-So a module moves its API into itself one route group at a time, with the apps none the wiser: the answer must be the same status and shape (see [Testing](#testing)).
 
 ## The host API
 
@@ -133,11 +117,8 @@ Every call that's on someone's behalf says who (`host.On{User}`, or `host.For(r)
 | `StartSession`, `EndSession` | `POST /sessions`, `DELETE /sessions/{id}` | Something live, for metrics, screen time and "playing now" |
 | `Events` | `GET /events?after=&wait=` | Waits up to `wait` (at most 55s) for events after a number: `server.started`, `scan.finished`, … |
 | `Task` | `POST /tasks/{name}` | A long piece of work, shown with the server's tasks (administrators only) |
-| `Legacy` | `GET /legacy/{table}?after=&limit=` | A page of rows of one of the server's own tables that `data.import` names, by rowid, each as a JSON object |
 
 Refusals are JSON `{"error"}` with the status; an `X-Witty-Host` header tells a refusal of the host API's from a call this server doesn't have (`host.ErrNotOffered`).
-
-**The legacy tables** each import may read are listed in the server (`legacyImports`, internal/server/host_api.go): `server-games-v1` (WittyPlay's 23 tables), `server-couch-v1` (WittyCouch's and WittyRigs'). Ids are kept: the module's data refers to the server's item ids, user ids, save slots and session ids as they are, because the apps keep them.
 
 ## Lifecycle
 
@@ -199,14 +180,10 @@ It writes `index.js` and `style.css`. React, react-dom, the JSX runtime, **react
 
 A server offers each host feature at a version (`modules.Offers()`): `http` 1, `web` 5, `sdui` its catalogue revision, `host` 1. A version whose `host` ranges this server doesn't meet is refused, with the reason. Adding to a host feature raises its version; a module asks for `">=n"` and uses `host.has(…)` (web) or `Client.Has(…)` (Go) for anything newer that it can do without.
 
-## While a module moves: the server's own copy
-
-Until every module has moved, the server keeps its own copy of each module's feature (its routes, its pages), used whenever that module has no version of API 5 in use: absent, turned off, or a version of API 3 or 4. That's what keeps an older module working on a newer server, and the apps working with any of them. A module's version of API 5 takes the copy's place route by route (aliases) and screen by screen (the web part). When every stock module is on API 5, a later server deletes the copies and raises its oldest module API to 5.
-
 ## Testing
 
-- **The apps' contract:** `internal/server/contract_modules_test.go` sends the apps' own calls (from WittyMediaClient) and compares each answer's status and shape (every key, and the kind of every value) with `testdata/contract/<state>.json`: `absent` today, `legacy` and `api5` with a module from the test catalogue. `WMS_UPDATE_CONTRACT=1` rewrites them; only ever on purpose, agreed with the apps.
-- **Routes:** `module_routes_test.go`: identity, sign-in dropped, forged headers dropped, admin routes, features, items, aliases, ticket routes, paths out of a route.
+- **The apps' contract:** `internal/server/contract_modules_test.go` sends the apps' own calls (from WittyMediaClient) and compares each answer's status and shape (every key, and the kind of every value) with `testdata/contract/<state>.json`: the module absent, and installed. `WMS_UPDATE_CONTRACT=1` rewrites them; only ever on purpose, agreed with the apps.
+- **Routes:** `module_routes_test.go`: identity, sign-in dropped, forged headers dropped, admin routes, features, items, ticket routes, paths out of a route, a missing module.
 - **Host API:** `host_api_test.go`.
 - **The host object:** `web/src/moduleHost.test.mjs` keeps `hostFor` and WittyModule `kit/web/host` the same (`WITTYMODULE=<checkout>` if it isn't beside this one).
 

@@ -6,6 +6,8 @@ For the owner and every session working on modules: how each module comes to own
 
 Surveyed against server `v0.8.0-alpha` at `e90ae00a`, WittyModule `561dbdf`, WittyPlay 0.4.2 (`27f00d1`) and every module repository at its `v0.8.0-alpha`. Line counts leave out tests.
 
+> **The owner, 2026-11-13: no backwards compatibility, ever.** "We are building a new standard. I want NO old code or standards in the latest version." Module API 5 is the only module API. There are no aliases of the server's old paths, no server copies of a module's feature for older module versions (no `legacyFor`), no downgrade or export-back work, and no import of the server's old data unless losing it would hurt testing (default: a clean start). The server's copy of each feature is deleted in the same step that moves it. The client apps keep working by being **updated to the new API alongside each step**, not by compatibility layers; contract tests assert the new contract. Where the text below still describes aliases, imports or legacy states, this note wins.
+
 This plan **supersedes the "server builds with it" half of [module-isolation.md](module-isolation.md)**. That plan put shared game, disc and broadcast code in core libraries compiled into the server, which makes a server release the only way to update that code. Its other parts still stand: the encryption guards stay the server's, duplicated code is removed, and modules are usable without the server.
 
 - [The owner's goal](#the-owners-goal)
@@ -17,7 +19,7 @@ This plan **supersedes the "server builds with it" half of [module-isolation.md]
 - [The web host SDK](#the-web-host-sdk)
 - [Looking and feeling the same](#looking-and-feeling-the-same)
 - [Updating a module without a server release](#updating-a-module-without-a-server-release)
-- [When a module is missing, older or newer](#when-a-module-is-missing-older-or-newer)
+- [When a module is missing](#when-a-module-is-missing)
 - [Client apps](#client-apps)
 - [First-run setup (OOBE)](#first-run-setup-oobe)
 - [Security](#security)
@@ -146,12 +148,11 @@ Checked strictly, like `sdui.json`: an unknown field is refused, and there's a s
   "host": { "http": ">=1 <2", "web": ">=5 <6", "sdui": ">=8" },     // host features it needs
   "feature": "games",                                                // parental/limits feature it belongs to
   "http": [
-    // Mounted at /api/modules/wittyplay/... and, for the paths apps already use, at these aliases.
+    // Mounted at /api/modules/wittyplay/...: the module's API is its own, and apps call it there.
     { "path": "/games/{id}/play", "methods": ["POST"], "auth": "user",
-      "item": "id", "alias": ["/api/games/{id}/play"], "limits": { "body": "256KB", "time": "45s" } },
-    { "path": "/play/{sid}/ws", "methods": ["GET"], "auth": "user", "upgrade": "websocket", "stream": true,
-      "alias": ["/api/play/{sid}/ws"] },
-    { "path": "/gaming/cores/{id}", "methods": ["DELETE"], "auth": "admin", "alias": ["/api/gaming/cores/{id}"] },
+      "item": "id", "limits": { "body": "256KB", "time": "45s" } },
+    { "path": "/play/{sid}/ws", "methods": ["GET"], "auth": "user", "upgrade": "websocket", "stream": true },
+    { "path": "/gaming/cores/{id}", "methods": ["DELETE"], "auth": "admin" },
     { "path": "/kasm/{sid}/{ticket}/{rest...}", "methods": ["GET"], "auth": "ticket", "csp": "sandboxed-page" }
   ],
   "web": {
@@ -169,8 +170,7 @@ Checked strictly, like `sdui.json`: an unknown field is refused, and there's a s
     "navFold":  [ { "libraryKind": "games", "into": "wittyplay-online" } ]
   },
   "sdui": { "ops": [ { "id": "wittyplay.room.create", "http": "POST /rooms" } ] },
-  "data": { "store": "sqlite", "format": 3, "from": 1, "import": "server-games-v1",
-            "backup": "saves" },
+  "data": { "store": "sqlite", "format": 3, "from": 1, "backup": "saves" },
   "lifecycle": { "install": true, "upgrade": true, "uninstall": "ask-keep-data", "enable": true, "disable": true },
   "live": { "sessions": true, "doctor": true, "logTopics": "from module.json" }
 }
@@ -180,8 +180,7 @@ Checked strictly, like `sdui.json`: an unknown field is refused, and there's a s
 
 **`http`: module routes**
 
-- **Mounting.** The server mounts each route at `/api/modules/<id>/…`, and also at any `alias`. An alias is how today's paths (`/api/games/…`, `/api/play/…`, `/api/tuners/…`) keep working for the apps.
-  - An alias may only claim a path on the server's **legacy list** for that module, which is signed into the server. A module can't take over `/api/auth`.
+- **Mounting.** The server mounts each route at `/api/modules/<id>/…` (and `/api/v1/modules/<id>/…`). That is the module's API; apps call it there.
 - **What the server checks before the request reaches the module:**
   - `auth`: `user`, `admin`, `ticket`, or `public` (refused for anything but static files).
   - The module's `feature`: parental rules and screen time.
@@ -224,14 +223,13 @@ Checked strictly, like `sdui.json`: an unknown field is refused, and there's a s
 
 **`data`: the module's own database**
 
-- `import` names a one-off import from the server's legacy tables: the server exports them through the host API, and the module writes them into its own database.
 - `backup` says which backup class the data belongs to.
 
 **`lifecycle`: calls to the module's service, in its sandbox, at each point**
 
 | Call | When | What it's for |
 |---|---|---|
-| `install` | first time | create the database, import legacy data |
+| `install` | first time | create the database |
 | `upgrade{from,to}` | a new version | migrations; refused if `dataFrom` can't read the data, as today |
 | `enable` / `disable` | turned on or off | |
 | `uninstall{keepData}` | taken off | the admin is asked whether to keep the module's data |
@@ -326,31 +324,18 @@ The facades (`internal/play/**`, `internal/couch/**`) go away. Instead:
 - **The server's floor for its modules.** During the move a server release may need a module version that has taken over code the server dropped. The server ships `moduleFloors` (for example `wittyplay >= 0.6.0`), and on start it updates a module below its floor from the store, as auto-update already can. Offline, it keeps the module's old version **and the legacy code path**, as described next. That's why legacy code is removed only in M9.
 - **Data never goes backwards silently.** `dataFormat`/`dataFrom` refuse a downgrade that can't read the data, as today, and the module's own migrations run in `upgrade`.
 
-## When a module is missing, older or newer
+## When a module is missing
 
-For each module, during the move:
+| State | Routes | Web | SDUI |
+|---|---|---|---|
+| **Absent or turned off** | Its routes (`/api/modules/<id>/…`) answer `424` with `module` and `moduleName` | Its screens show `ModuleMissing` with "Add it"; its menu entries and inserts disappear | Stock pages stand; module pages are gone |
+| **Installed (API 5)** | The module answers | The module draws its screens | The module answers its sources and ops |
 
-| State | Routes | Web | SDUI | Data |
-|---|---|---|---|---|
-| **Absent** | `424` with `module` and `moduleName`, unchanged | Its routes show `ModuleMissing` with "Add it". Its menu entries and inserts disappear, as today | Stock pages stand; module pages are gone | Legacy tables untouched until a module imports them |
-| **Older (API ≤ 4)** | The server's **legacy handlers** answer, exactly as today | The server's legacy UI is used | As today | Server's tables |
-| **API 5** | Module routes, legacy paths served through `alias` | The module's registered UI; the server's legacy UI for that module is not loaded | Module answers its own sources and ops | Module's database, imported once on `install`. Game and item ids, save slots and the session id format are kept on import and on export back to API 4 |
-| **Newer than this server understands** | The store refuses it (host range) with the reason; an override can force it under today's override rules | — | — | — |
+A module on another API isn't supported: the store and the server refuse it.
 
-Three more rules hold in every state.
-
-1. **Capabilities follow what is installed and enabled.**
-   - `/capabilities` is computed from the modules installed and enabled at that moment. When a module is absent or disabled, its feature flags are gone in the same response.
-   - Android hides screens only by these flags and has no 424 handling, so a test checks that "absent" means "flag absent".
-   - The 424 body carries a readable `error` message, since apps show that text.
-2. **A missing module's page still offers a way on.** When a module is absent, its web routes (`/play/…`, `/cd/…`, `/game/…`, `/couch…`) show a plain page with "Add it" (admins) and "Back". It works with a TV remote and keyboard, needs nothing of the app's menu, and runs inside an app's web view.
-3. **Ids never change.** Item and game ids, library ids, save slot numbers and the session id format are **kept on import and on export back**. The apps store item ids for recently played, favourites and touch layouts, and those must keep working. The module's database refers to the server's item ids and never renumbers them.
-
-**Documented for admins:** the Apple apps read capability flags when signing in and when a server is opened. So a module installed or removed while an app is open shows there only after the app reopens the server. A module page saved in an app shows "not found" once the module is gone.
-
-The legacy code is guarded **per module**, at one switch (`legacyFor(id)`), so each module flips on its own and nothing is half-switched.
-
-The import is idempotent and leaves the legacy tables in place until M9. Going back to an API-4 module then still finds its data, and anything written in between is exported back by the module's `uninstall`/`downgrade` call. **If an export back isn't possible for some table, that downgrade is refused with the reason, under today's data rules.**
+1. **Capabilities follow what is installed and enabled.** `/capabilities` drops a module's feature flags when it is absent or turned off, by test, so an app hides what it can't use.
+2. **A missing module's page still offers a way on:** a plain page with "Add it" (admins) and "Back", usable with a TV remote, inside an app's web view.
+3. **Ids are the server's.** A module's data refers to the server's item, library and user ids as they are.
 
 ## Client apps
 
@@ -360,7 +345,7 @@ The import is idempotent and leaves the legacy tables in place until M9. Going b
 - Android: phone, tablet, TV (`android/`), session s4.
 - Desktop (`desktop/`).
 
-It must work against a server with modules moved out, and against older and newer module versions.
+They keep working by being **updated to each step's new API** (s3, s4), never through compatibility layers on the server. Each step lists what moves where; the app sessions switch to it in the same step, and the contract tests assert the new contract.
 
 What the apps use today (from WittyMediaClient):
 
@@ -470,7 +455,6 @@ Today's setup wizard (`web/src/pages/setup/plan.ts`, `internal/server/setup_stat
   - `tv` becomes WittyTuner's.
   - `discs` becomes WittyDisc's, shared by DVD and Blu-ray.
   - The old-version warnings on the Modules step stay the server's.
-  - Until each module ships API 5, the server's own copy of the step shows (legacyFor), so the step is never lost.
 - **Apps.**
   - The setup wizard is web-only today. Apps show "This server isn't set up yet" with the address.
   - SDUI step pages let the apps draw the "Finish setting up" steps later, behind a feature flag (`module-setup`) they opt into. Nothing changes for them until then.
@@ -501,7 +485,7 @@ The apps and browsers talking to the server must never become a way in.
 | Data stays the module's, and leaves with it | Its database is in its own folder, in backups under its declared class, and kept or removed at uninstall as the admin chooses ("keep" by default). The server's own tables are never written by a module |
 | Misbehaviour is contained | Three failures a day take a version out of use (exists today). A module that floods the host API (rate limits per module), keeps routes over time, or sends malformed answers is throttled, then quarantined: turned off, with the reason in its log and a notice to admins |
 | Everything is recorded | The module audit log (exists) gains installs and upgrades with the permissions agreed, overrides, lifecycle calls, refused host API calls and quarantines |
-| Apps are protected | Apps only ever talk to the server's own routes. Module routes and aliases keep the same contract, checked by the contract tests. A module can't set cookies, can't serve pages on the app's origin except as a web bundle under the CSP, and ticket pages are always sandboxed |
+| Apps are protected | Apps talk to the server's routes and to modules' routes under `/api/modules/<id>`, which the server checks first; the contract tests assert both. A module can't set cookies, can't serve pages on the app's origin except as a web bundle under the CSP, and ticket pages are always sandboxed |
 
 **Never possible, overridden or not:** a module reading the server's database or another module's folder; a module receiving a person's sign-in; an alias of a route that isn't the module's own; turning off the encryption guards (scramble, AACS, MPEG-TS, HLS gate); a module served at the app's origin without the CSP; installing a withdrawn-for-security version; a module answering for parental or screen-time decisions.
 
@@ -596,7 +580,7 @@ What moves (→ module) and what stays (host). "Hook" names what in M0 makes the
 
 Every step:
 
-- keeps the app working at every commit, with legacy code still in place until M9;
+- deletes the server's copy of what it moves, in the same step (no legacy code is kept);
 - is committed locally in each repository it touches;
 - is **never pushed, tagged or released without the owner's say-so**.
 
@@ -617,7 +601,6 @@ Within a step the order is: WittyModule (kit), then the server, then the module,
 | **M6** | WittyTuner admin, setup, EPG sources | WittyTuner, server | Guide and DVR untouched |
 | **M7** | WittyPhotos web part; readers hook; visualizer, stats and file browser adopt `register`; stock pages defer to modules | the modules, server | |
 | **M8** | Catalogue: every API-5 version listed with its integration summary; store shows "what this adds" | WittyModuleCatalog | |
-| **M9** | A later server: `MinAPI` 5, every `legacyFor` path and legacy table deleted, `moduleFloors` raised | WittyMediaServer | The server is a host only |
 
 **WittyPlay first, as asked.** M0 is the cost of doing it properly and is shared by every later step. M0a to M1 is the first thing the owner can see working.
 
@@ -645,8 +628,7 @@ Each server step touches files other sessions own. The coordinating session is t
 
   The script runs against seeded test data. Answers are normalised (ids, times) and saved. Every step replays them against three states:
   - module absent: expect `424`s;
-  - module API 4: legacy;
-  - module API 5.
+  - module installed (API 5): the new contract.
 
   Lives in `internal/server/contract_modules_test.go`, beside `contract_test.go`, with the module binaries from a local test catalogue (`scripts/make-test-catalog.sh`).
 - **SDUI conformance:** `pkg/sdui/conformance` in the same three states; module documents compared before and after.
@@ -655,7 +637,7 @@ Each server step touches files other sessions own. The coordinating session is t
   - Screens: Home, the games library, the game page, PlayChrome in each layout, Play settings, pictures, controllers, the pause menu and launch screen, TV mode, phone width.
   - Each step re-captures them and compares; any visible difference is a failure, not a judgement call.
   - Also checked by eye in the browser pane.
-- **Upgrade paths:** API 4 → 5 import, 5 → 4 downgrade (export back or refusal), uninstall with and without keeping data, server offline below a floor.
+- **Uninstall:** with and without keeping data.
 - **Native apps:** s3/s4 run their test suites (`GamesTests`, `SDUIModulesTests`, Android equivalents) against the test server at M2, M3 and M9.
 
 - **Every platform, for WittyPlay (M1b–M3):**

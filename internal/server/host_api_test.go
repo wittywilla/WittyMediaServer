@@ -28,7 +28,7 @@ func (f fakeHostModules) Name(string) string { return "WittyPlay" }
 
 func TestHostAPI(t *testing.T) {
 	ts := newTestServer(t)
-	ts.hostModsForTest = fakeHostModules{in: &wittymodule.Integration{Module: "wittyplay", Data: &wittymodule.DataPart{Store: "sqlite", Import: "server-games-v1"}}}
+	ts.hostModsForTest = fakeHostModules{in: &wittymodule.Integration{Module: "wittyplay", Data: &wittymodule.DataPart{Store: "sqlite"}}}
 	api := httptest.NewServer(ts.HostAPI())
 	defer api.Close()
 	ctx := context.Background()
@@ -149,18 +149,6 @@ func TestHostAPI(t *testing.T) {
 	evs, _, err = c.Events(ctx, next, 5*time.Second)
 	if err != nil || len(evs) != 1 || evs[0].Type != "item.added" || time.Since(start) > 4*time.Second {
 		t.Fatalf("waiting for an event: %+v %v", evs, err)
-	}
-
-	// Legacy data: only the tables its import names.
-	if _, err := ts.DB.ExecContext(ctx, `INSERT INTO wittyplay_controls (user_id, console, kind, key, data, updated_at) VALUES (?, 'snes', 'pad', 'k', '{}', 1)`, pal.ID); err != nil {
-		t.Fatal(err)
-	}
-	rows, _, err := c.Legacy(ctx, "wittyplay_controls", 0, 10)
-	if err != nil || len(rows) != 1 || !strings.Contains(string(rows[0]), `"console":"snes"`) {
-		t.Fatalf("legacy rows: %s %v", rows, err)
-	}
-	if _, _, err := c.Legacy(ctx, "users", 0, 10); !host.IsForbidden(err) {
-		t.Errorf("the users table: %v", err)
 	}
 
 	// A task's progress.

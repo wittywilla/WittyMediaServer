@@ -161,8 +161,8 @@ var tableParts = map[string]string{
 	"tuners": PartChannels, "tuner_channels": PartChannels, "epg_sources": PartChannels, "epg_channels": PartChannels,
 	"epg_programmes": PartChannels, "recordings": PartChannels, "recording_rules": PartChannels,
 
-	"wittyplay_backgrounds": PartSaves, "wittyplay_bezels": PartSaves, "wittyplay_controls": PartSaves, "wittyplay_core_options": PartSaves,
-	"wittyplay_game_meta": PartSaves, "wittyplay_patches": PartSaves, "wittyplay_profiles": PartSaves, "wittyplay_settings": PartSaves,
+	"wittyplay_bezels": PartSaves, "wittyplay_core_options": PartSaves,
+	"wittyplay_game_meta": PartSaves, "wittyplay_patches": PartSaves, "wittyplay_settings": PartSaves,
 	"wittyplay_presence": PartSaves, "wittyplay_kids_friends": PartSaves,
 }
 

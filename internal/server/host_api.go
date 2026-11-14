@@ -9,7 +9,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -80,9 +79,7 @@ func (s *Server) HostAPI() http.Handler {
 	h("DELETE "+b+"/sessions/{id}", s.hostSessionEnd)
 	h("GET "+b+"/events", s.hostEventsWait)
 	h("POST "+b+"/tasks/{name}", s.hostTask)
-	h("GET "+b+"/legacy/{table}", s.hostLegacy)
 	h("POST "+b+"/audit", s.hostAudit)
-	h("GET "+b+"/legacy-files/{dir...}", s.hostLegacyFiles)
 	return mux
 }
 
@@ -543,137 +540,6 @@ func (s *Server) hostTask(w http.ResponseWriter, r *http.Request, module string)
 		}
 	}
 	w.WriteHeader(204)
-}
-
-// ---------------------------------------------------------------- legacy data
-
-// legacyImports are the server's own data a module of API 5 may take over, by the name its
-// integration.json gives (data.import): which module, and which tables. Only these tables, and
-// only for that module, can be read.
-var legacyImports = map[string]struct {
-	module string
-	tables []string
-	files  []string // folders under the data folder whose files it may read, once
-}{
-	"server-games-v1": {"wittyplay", []string{"wittyplay_controls", "wittyplay_profiles", "wittyplay_backgrounds", "wittyplay_settings",
-		"wittyplay_game_meta", "wittyplay_core_options", "wittyplay_bezels", "wittyplay_patches", "custom_cores", "custom_core_versions",
-		"custom_consoles", "game_core_choice", "game_core_plays", "game_core_audit", "wittyplay_presence", "wittyplay_kids_friends",
-		"game_pictures", "game_meta", "game_meta_sources", "game_files", "game_review", "game_decisions", "game_discs"},
-		[]string{"gaming/backgrounds"}},
-	"server-couch-v1": {"wittycouch", []string{"wittycouch_hosts", "wittyrigs_rigs", "wittyrigs_apps"}, nil},
-}
-
-func (s *Server) hostLegacy(w http.ResponseWriter, r *http.Request, module string) {
-	table := r.PathValue("table")
-	in := s.hostMods().Integration(module)
-	allowed := false
-	if in != nil && in.Data != nil {
-		if imp, ok := legacyImports[in.Data.Import]; ok && imp.module == module && slices.Contains(imp.tables, table) {
-			allowed = true
-		}
-	}
-	if !allowed {
-		writeJSON(w, 403, map[string]string{"error": "not data this module takes over"})
-		return
-	}
-	after, _ := strconv.ParseInt(r.URL.Query().Get("after"), 10, 64)
-	limit := min(max(qIntOf(r.URL.Query().Get("limit"), 500), 1), 2000)
-	rows, next, err := s.legacyRows(r.Context(), table, after, limit)
-	if err != nil {
-		writeJSON(w, 500, map[string]string{"error": err.Error()})
-		return
-	}
-	writeJSON(w, 200, map[string]any{"rows": rows, "next": next})
-}
-
-// legacyRows reads a page of a table by its rowid, each row as a JSON object of its columns.
-// table is one of legacyImports' names, never anything a caller typed in freely.
-func (s *Server) legacyRows(ctx context.Context, table string, after int64, limit int) ([]json.RawMessage, int64, error) {
-	rs, err := s.DB.QueryContext(ctx, fmt.Sprintf(`SELECT rowid AS _rowid, * FROM %q WHERE rowid > ? ORDER BY rowid LIMIT ?`, table), after, limit)
-	if err != nil {
-		if strings.Contains(err.Error(), "no such table") {
-			return nil, after, nil
-		}
-		return nil, after, err
-	}
-	defer rs.Close()
-	cols, err := rs.Columns()
-	if err != nil {
-		return nil, after, err
-	}
-	var out []json.RawMessage
-	next := after
-	for rs.Next() {
-		vals := make([]any, len(cols))
-		ptrs := make([]any, len(cols))
-		for i := range vals {
-			ptrs[i] = &vals[i]
-		}
-		if err := rs.Scan(ptrs...); err != nil {
-			return nil, after, err
-		}
-		row := map[string]any{}
-		for i, c := range cols {
-			if b, ok := vals[i].([]byte); ok {
-				vals[i] = string(b)
-			}
-			if c == "_rowid" {
-				if n, ok := vals[i].(int64); ok {
-					next = n
-				}
-				continue
-			}
-			row[c] = vals[i]
-		}
-		raw, _ := json.Marshal(row)
-		out = append(out, raw)
-	}
-	return out, next, rs.Err()
-}
-
-// hostLegacyFiles lists (a folder) or sends (a file) what the server kept on disk for a module
-// that takes it over: only under the folders its import names, and nothing outside them.
-func (s *Server) hostLegacyFiles(w http.ResponseWriter, r *http.Request, module string) {
-	in := s.hostMods().Integration(module)
-	rel := filepath.Clean(filepath.FromSlash(r.PathValue("dir")))
-	ok := false
-	if in != nil && in.Data != nil && !strings.Contains(r.PathValue("dir"), "..") {
-		if imp, found := legacyImports[in.Data.Import]; found && imp.module == module {
-			for _, d := range imp.files {
-				d = filepath.FromSlash(d)
-				if rel == d || strings.HasPrefix(rel, d+string(filepath.Separator)) {
-					ok = true
-				}
-			}
-		}
-	}
-	if !ok {
-		writeJSON(w, 403, map[string]string{"error": "not files this module takes over"})
-		return
-	}
-	full := filepath.Join(s.Cfg.DataDir, rel)
-	st, err := os.Lstat(full)
-	if err != nil {
-		writeJSON(w, 404, map[string]string{"error": "not there"})
-		return
-	}
-	if st.IsDir() {
-		ents, _ := os.ReadDir(full)
-		names := []string{}
-		for _, e := range ents {
-			if e.Type().IsRegular() {
-				names = append(names, e.Name())
-			}
-		}
-		writeJSON(w, 200, map[string]any{"files": names})
-		return
-	}
-	if !st.Mode().IsRegular() {
-		writeJSON(w, 404, map[string]string{"error": "not there"})
-		return
-	}
-	w.Header().Set("Content-Type", "application/octet-stream")
-	http.ServeFile(w, r, full)
 }
 
 // hostAudit writes a row of the server's audit log for a module (custom cores, overrides and the

@@ -56,8 +56,6 @@ func (s *Server) gameRoutes(m routes) {
 	gameregion.Set(s.DB.GetSetting(context.Background(), "gamingRegionOrder", ""))
 	m.Handle("GET /api/games/consoles", a(s.handleGameConsoles))
 	m.Handle("GET /api/games/modes", a(s.handleGameModes))
-	m.Handle("GET /api/consoles/{console}/controls", a(s.handleGameControls))
-	m.Handle("PUT /api/consoles/{console}/controls", a(s.handlePutGameControl))
 	m.Handle("POST /api/games/{id}/prepare", a(s.handleGamePrepare))
 	m.Handle("POST /api/games/{id}/play", a(s.handleGamePlay))
 	m.Handle("GET /api/games/{id}/saves", a(s.handleGameSaves))
@@ -72,7 +70,6 @@ func (s *Server) gameRoutes(m routes) {
 	m.Handle("POST /api/play/{sid}/action", a(s.handlePlayAction))
 	s.seatRoutes(m)
 	s.playOnlineRoutes(m)
-	s.gameProfileRoutes(m)
 	m.Handle("GET /api/gaming", s.requireAdmin(s.handleGaming))
 	m.Handle("POST /api/gaming/cores/{id}/install", s.requireAdmin(s.handleCoreInstall))
 	m.Handle("GET /api/gaming/cores/{id}/install", s.requireAdmin(s.handleCoreInstallProgress))
@@ -586,152 +583,6 @@ func (s *Server) gameConsole(id string) *wittyplay.Console {
 		return nil
 	}
 	return c
-}
-
-// A client's name for itself, chosen by the client and kept on the device. It only
-// labels saved layouts, so it proves nothing and needs to be nothing more than tidy.
-var gameDeviceRe = regexp.MustCompile(`^[A-Za-z0-9._-]{1,64}$`)
-
-func touchKey(device, orientation string) string { return device + "/" + orientation }
-
-// handleGameControls gives a client everything it needs to draw and map a console's
-// controller: what the console has, the defaults, and what this person saved. Asking
-// with ?device= includes the touch layouts saved for that device.
-func (s *Server) handleGameControls(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("console")
-	if s.gameConsole(id) == nil {
-		writeErr(w, 404, "not found")
-		return
-	}
-	ctx, userID := r.Context(), userFrom(r).ID
-	saved, err := s.Store.GameControls(ctx, userID, id)
-	if err != nil {
-		writeErr(w, 500, err.Error())
-		return
-	}
-	profiles, err := s.Store.GameProfiles(ctx, userID)
-	if err != nil {
-		writeErr(w, 500, err.Error())
-		return
-	}
-	background, err := s.Store.GetGameBackground(ctx, userID)
-	if err != nil {
-		writeErr(w, 500, err.Error())
-		return
-	}
-	var game int64
-	if g, err := strconv.ParseInt(r.URL.Query().Get("game"), 10, 64); err == nil && g > 0 {
-		if it, err := s.visibleItem(r, g); err == nil && it.Kind == "game" {
-			game = g
-		}
-	}
-	gamepads := saved[wittyplay.KindGamepad]
-	if gamepads == nil {
-		gamepads = map[string]json.RawMessage{}
-	}
-	var keyboard json.RawMessage
-	if k, ok := saved[wittyplay.KindKeyboard][""]; ok {
-		keyboard = k
-	}
-	// What Edit layout kept, for every shape of device: they follow the account (game_layouts.go).
-	layouts := map[string]json.RawMessage{}
-	for shape, l := range saved[kindLayout] {
-		if layoutShapes[shape] {
-			layouts[shape] = l
-		}
-	}
-	touch := map[string]json.RawMessage{}
-	if device := r.URL.Query().Get("device"); gameDeviceRe.MatchString(device) {
-		for _, o := range []string{wittyplay.Landscape, wittyplay.Portrait} {
-			if l, ok := saved[wittyplay.KindTouch][touchKey(device, o)]; ok {
-				touch[o] = l
-			}
-		}
-	}
-	writeJSON(w, 200, map[string]any{
-		"console":  id,
-		"pad":      wittyplay.Pad(id),
-		"controls": wittyplay.Controls(id),
-		"targets":  wittyplay.Targets(id),
-		"defaults": map[string]any{
-			"gamepad": wittyplay.DefaultGamepadFor(id), "keyboard": wittyplay.DefaultKeyboardFor(id), "remote": wittyplay.DefaultRemote(), "options": wittyplay.DefaultOptions(id),
-			"touch": map[string]any{wittyplay.Landscape: wittyplay.DefaultTouch(id, wittyplay.Landscape), wittyplay.Portrait: wittyplay.DefaultTouch(id, wittyplay.Portrait)},
-		},
-		"saved":      map[string]any{"gamepad": gamepads, "keyboard": keyboard, "touch": touch, "layouts": layouts},
-		"game":       game,
-		"profiles":   activeProfilesFor(profiles, id, game),
-		"background": background,
-	})
-}
-
-// handlePutGameControl saves one layout for the signed-in account, or removes it
-// when data is null. Everything is checked: a layout comes from a client.
-func (s *Server) handlePutGameControl(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("console")
-	if s.gameConsole(id) == nil {
-		writeErr(w, 404, "not found")
-		return
-	}
-	var b struct {
-		Kind        string          `json:"kind"`
-		Key         string          `json:"key"` // gamepad: its model; touch: this device
-		Orientation string          `json:"orientation"`
-		Data        json.RawMessage `json:"data"`
-	}
-	r.Body = http.MaxBytesReader(w, r.Body, wittyplay.MaxControlSize+1024)
-	if err := readJSON(r, &b); err != nil {
-		writeErr(w, 400, "this layout can't be read")
-		return
-	}
-	key := ""
-	switch b.Kind {
-	case wittyplay.KindGamepad:
-		key = b.Key
-		if key == "" || len(key) > 120 {
-			writeErr(w, 400, "a gamepad's model name is needed")
-			return
-		}
-	case wittyplay.KindKeyboard:
-	case wittyplay.KindTouch:
-		if !gameDeviceRe.MatchString(b.Key) || (b.Orientation != wittyplay.Landscape && b.Orientation != wittyplay.Portrait) {
-			writeErr(w, 400, "a touch layout needs a device and an orientation")
-			return
-		}
-		key = touchKey(b.Key, b.Orientation)
-	case kindLayout:
-		if !layoutShapes[b.Key] {
-			writeErr(w, 400, "a layout is for a shape of device: phone-portrait, phone-landscape, tablet-portrait, tablet-landscape, desktop or tv")
-			return
-		}
-		key = b.Key
-	default:
-		writeErr(w, 400, "unknown kind of layout")
-		return
-	}
-	var clean json.RawMessage
-	if len(b.Data) > 0 && string(b.Data) != "null" {
-		var err error
-		if b.Kind == kindLayout {
-			clean, err = cleanLayout(controlKeys(id), b.Data)
-		} else {
-			clean, err = wittyplay.CleanControl(id, b.Kind, b.Data)
-		}
-		if err != nil {
-			writeErr(w, 400, err.Error())
-			return
-		}
-	}
-	if err := s.Store.SetGameControl(r.Context(), userFrom(r).ID, id, b.Kind, key, clean); err != nil {
-		if errors.Is(err, library.ErrTooManyControls) {
-			writeErr(w, 409, err.Error())
-			return
-		}
-		s.Log.WarnContext(r.Context(), "could not save a control layout", "cat", "games", "kind", b.Kind, "console", id, "by", userFrom(r).Name, "err", err)
-		writeErr(w, 500, err.Error())
-		return
-	}
-	s.Log.DebugContext(r.Context(), "control layout saved", "cat", "games", "kind", b.Kind, "console", id, "by", userFrom(r).Name, "removed", clean == nil)
-	writeJSON(w, 200, map[string]any{"ok": true})
 }
 
 // saveDir is one account's folder for one game: built only from numbers.

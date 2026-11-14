@@ -78,8 +78,7 @@ func classify(pattern string) routeClass {
 	stops := method == "DELETE" // leaving a stream is always allowed
 	var c routeClass
 	switch {
-	case under("/api/games", "/api/play", "/api/consoles", "/api/couch", "/api/rigs", "/api/modules/wittyplay", "/api/game-profiles",
-		"/api/game-bezels", "/api/game-background", "/api/game-controllers"),
+	case under("/api/games", "/api/play", "/api/couch", "/api/rigs", "/api/modules/wittyplay", "/api/game-bezels"),
 		strings.HasPrefix(path, "/api/items/") && (ends("/achievements") || strings.Contains(path, "/achievements/")):
 		// A game's RetroAchievements belong to games, though they hang off the item.
 		c.feature = library.FeatureGames

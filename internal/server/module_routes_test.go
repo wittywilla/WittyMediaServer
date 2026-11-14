@@ -62,8 +62,7 @@ func playIntegration() *wittymodule.Integration {
 		HTTP: []wittymodule.Route{
 			{Path: "/echo", Methods: []string{"GET"}, Auth: "user"},
 			{Path: "/secret", Methods: []string{"GET"}, Auth: "admin"},
-			{Path: "/games/{id}/play", Methods: []string{"POST"}, Auth: "user", Item: "id", Plays: true, Alias: []string{"/api/games/{id}/play"}},
-			{Path: "/games/{id}/saves", Methods: []string{"GET"}, Auth: "user", Alias: []string{"/api/not/the/servers/{id}"}},
+			{Path: "/games/{id}/play", Methods: []string{"POST"}, Auth: "user", Item: "id", Plays: true},
 			{Path: "/desk/{sid}/{rest...}", Methods: []string{"GET"}, Auth: "ticket", CSP: "sandboxed-page"},
 		}}
 }
@@ -148,18 +147,9 @@ func TestModuleOwnRoutes(t *testing.T) {
 		t.Errorf("an item that isn't there: %d", w.Code)
 	}
 
-	// The server's own route for WittyPlay, taken over by the module's alias.
-	n = len(*got)
-	w = ts.do(t, "POST", fmt.Sprintf("/api/v1/games/%d/play", game.ID), palTok, map[string]any{"resume": true})
-	if w.Code != 200 || len(*got) != n+1 || last().Path != fmt.Sprintf("/http/games/%d/play", game.ID) {
-		t.Fatalf("the alias: %d %s, module heard %d", w.Code, w.Body, len(*got)-n)
-	}
-	if w := ts.do(t, "POST", fmt.Sprintf("/api/games/%d/play", game.ID), noGames, nil); w.Code != 403 {
-		t.Errorf("the alias, games off: %d", w.Code)
-	}
-	// An alias of a path that isn't the server's route for the module is left out.
-	if w := ts.do(t, "GET", "/api/not/the/servers/1", palTok, nil); w.Code == 200 {
-		t.Errorf("an alias of someone else's path answered: %d", w.Code)
+	// A play route is held to screen time and the games feature like the server's own.
+	if w := ts.do(t, "POST", fmt.Sprintf("/api/modules/wittyplay/games/%d/play", game.ID), noGames, nil); w.Code != 403 {
+		t.Errorf("games off: %d", w.Code)
 	}
 
 	// A ticket route: nobody's identity, and its page boxed in.
@@ -175,17 +165,16 @@ func TestModuleOwnRoutes(t *testing.T) {
 	}
 }
 
-// Without a version of API 5 in use, the server's own routes answer as they always did.
-func TestModuleRoutesLeaveTheServersOwnAlone(t *testing.T) {
+// A module that isn't here answers 424, saying which.
+func TestModuleRoutesOfAMissingModule(t *testing.T) {
 	ts := newTestServer(t)
 	ts.integrations = func() ([]modmgr.InUse, uint64) { return nil, 1 }
 	_, tok := ts.user(t, "pal", "adult", false, "")
-	w := ts.do(t, "GET", "/api/games/consoles", tok, nil)
-	if w.Code == 404 {
-		t.Fatalf("the server's own route: %d %s", w.Code, w.Body)
-	}
 	if w := ts.do(t, "GET", "/api/modules/wittyplay/echo", tok, nil); w.Code != 404 && w.Code != 424 {
 		t.Errorf("a module route with no module: %d", w.Code)
+	}
+	if w := ts.do(t, "GET", "/api/modules/wittyplay/echo", "", nil); w.Code != 401 {
+		t.Errorf("signed out: %d", w.Code)
 	}
 }
 

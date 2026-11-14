@@ -24,6 +24,5 @@ func FuzzPictures(f *testing.F) {
 	f.Fuzz(func(t *testing.T, b []byte) {
 		imageType(bytes.NewReader(b), "x.png")
 		_, _, _, _ = reencodeImage(b)
-		_, _ = cleanBackground(b)
 	})
 }

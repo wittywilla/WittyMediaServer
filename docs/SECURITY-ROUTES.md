@@ -544,8 +544,6 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `DELETE /api/recording-rules/{id}` | Tuner channels | own, and every account's for an administrator |
 | `GET /api/games/consoles` | Signed-in | Counts: limits. Custom core assignments for admins only |
 | `GET /api/games/modes` | Signed-in | Client name |
-| `GET /api/consoles/{console}/controls` | Signed-in | Known console. own layouts. Game: limits |
-| `PUT /api/consoles/{console}/controls` | Signed-in | Known console. own. Size, kind, device name, layout cleaned |
 | `POST /api/games/{id}/prepare` | Signed-in | limits. A game on a known, available console |
 | `POST /api/games/{id}/play` | Signed-in | limits. A game on a known, available console. Core allowed, file refused if encrypted. Limit on games at once |
 | `GET /api/games/{id}/emulators` | Signed-in | limits. A game on a known console. Answers a list, empty unless WittyPlay offers one. Not with games turned off for the profile |
@@ -580,22 +578,6 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `PUT /api/games/online/me` | Signed-in | own; not a guest |
 | `GET /api/games/online/kids/{user}` | Admin | A Kids profile |
 | `PUT /api/games/online/kids/{user}` | Admin | A Kids profile; every friend an existing profile that isn't a guest |
-| `GET /api/game-controllers` | Signed-in | Nothing: known controllers |
-| `GET /api/game-profiles` | Signed-in | own |
-| `POST /api/game-profiles` | Signed-in | own. Size, fields cleaned. Game: limits, and on that console |
-| `GET /api/game-profiles/resolve` | Signed-in | Known console, kind. own. Game: limits |
-| `GET /api/game-profiles/export` | Signed-in | own |
-| `POST /api/game-profiles/import` | Signed-in | own. File size, each profile cleaned. Game: limits |
-| `GET /api/game-profiles/{id}` | Signed-in | own |
-| `PUT /api/game-profiles/{id}` | Signed-in | own. Size, fields cleaned. Game: limits |
-| `DELETE /api/game-profiles/{id}` | Signed-in | own |
-| `POST /api/game-profiles/{id}/copy` | Signed-in | own |
-| `POST /api/game-profiles/{id}/active` | Signed-in | own |
-| `GET /api/game-background` | Signed-in | own |
-| `PUT /api/game-background` | Signed-in | own. Fields |
-| `DELETE /api/game-background` | Signed-in | own |
-| `GET /api/game-background/image` | Signed-in; address token | own |
-| `PUT /api/game-background/image` | Signed-in | own. PNG, JPEG or WebP of at most 10 MB and 24 megapixels, drawn again as a new JPEG |
 | `GET /api/gaming` | Admin | Nothing further |
 | `POST /api/gaming/cores/{id}/install` | Admin | Core id format. Offered by this server |
 | `GET /api/gaming/cores/{id}/install` | Admin | Core id format. Reads only how far its download has got |

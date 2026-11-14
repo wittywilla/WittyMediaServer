@@ -166,10 +166,8 @@ type Server struct {
 	open openStreams
 	emus emulatorGames
 
-	// Module API 5 (module_routes.go): the routes of the modules in use, and the server's own
-	// routes for each module, which only those may take over.
+	// Module API 5 (module_routes.go): the routes of the modules in use.
 	modRouting *moduleRouting
-	legacy     legacyPatterns
 	// integrations stands in for Modules.Integrations in tests.
 	integrations func() ([]modmgr.InUse, uint64)
 	// The host API's state (host_api.go): live sessions modules report, their events and tasks.

@@ -21,12 +21,11 @@ import (
 // The apps' contract while modules move out of the server (docs/plans/MODULAR-MODULES.md,
 // "Client apps"). The Apple and Android apps call these addresses; what each answers (its
 // status, and the shape of its JSON: every key and the kind of every value) is kept in
-// testdata/contract/<state>.json and must not change when a module's feature moves from the
-// server's own copy into the module. Each state is a server as an app might meet it:
+// testdata/contract/<state>.json: the contract the apps are written against, changed only together
+// with them (s3, s4). Each state is a server as an app might meet it:
 //
-//	absent   the module isn't on the server (an app hides what it can't use; 424 says why)
-//	legacy   a version of API 3 or 4 is in use: the server's own copy answers (WMS_TEST_CATALOG)
-//	api5     a version of API 5 answers through its routes and aliases (WMS_TEST_CATALOG)
+//	absent     the module isn't on the server (an app hides what it can't use; 424 says why)
+//	installed  the module answers its own routes (WMS_TEST_CATALOG)
 //
 // WMS_UPDATE_CONTRACT=1 writes the files from what the server answers now: only ever on purpose,
 // with the change agreed with the apps.
@@ -53,9 +52,9 @@ var contractCalls = []contractCall{
 	{name: "games meta", method: "GET", path: "/api/v1/games/{game}/meta"},
 	{name: "games prepare", method: "POST", path: "/api/v1/games/{game}/prepare", body: map[string]any{}},
 	{name: "games play", method: "POST", path: "/api/v1/games/{game}/play", body: map[string]any{"resume": false, "client": "native"}},
-	{name: "console controls", method: "GET", path: "/api/v1/consoles/snes/controls?device=phone&game={game}"},
-	{name: "profiles resolve", method: "GET", path: "/api/v1/game-profiles/resolve?kind=gamepad&controller=x&console=snes&game={game}"},
-	{name: "game background", method: "GET", path: "/api/v1/game-background"},
+	{name: "console controls", method: "GET", path: "/api/v1/modules/wittyplay/consoles/snes/controls?device=phone&game={game}"},
+	{name: "profiles resolve", method: "GET", path: "/api/v1/modules/wittyplay/game-profiles/resolve?kind=gamepad&controller=x&console=snes&game={game}"},
+	{name: "game background", method: "GET", path: "/api/v1/modules/wittyplay/game-background"},
 	{name: "play session", method: "GET", path: "/api/v1/play/0123456789abcdef"},
 	{name: "couch", method: "GET", path: "/api/v1/couch"},
 	{name: "rigs", method: "GET", path: "/api/v1/rigs"},

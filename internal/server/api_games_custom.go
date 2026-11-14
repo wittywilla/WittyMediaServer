@@ -1830,7 +1830,6 @@ func (s *Server) handleGameCorePut(w http.ResponseWriter, r *http.Request) {
 // see. They are data, not code, so they stay even with custom cores turned off.
 func (s *Server) publishCustomConsoles(ctx context.Context) {
 	bg := context.WithoutCancel(ctx)
-	s.adoptCustomConsoles(bg) // games_adopt.go: custom-gamecube and the like became real consoles
 	customs := s.customCoreRows(bg)
 	rows, err := s.DB.QueryContext(bg, `SELECT id, data, aliases, cores FROM custom_consoles ORDER BY created_at, id`)
 	if err != nil {

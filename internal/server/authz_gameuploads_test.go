@@ -58,7 +58,6 @@ func TestGuestsAndKidsAndGameUploads(t *testing.T) {
 		{"battery", "PUT", fmt.Sprintf("/api/games/%d/battery", item), state, true},
 		{"patch", "POST", fmt.Sprintf("/api/games/%d/patches?name=x", item), patch, false},
 		{"bezel", "POST", "/api/game-bezels?name=x", pic.Bytes(), true},
-		{"background", "PUT", "/api/game-background/image", pic.Bytes(), true},
 	}
 	for _, c := range cases {
 		if got := send(guest, c.method, c.path, c.body); got != 403 {

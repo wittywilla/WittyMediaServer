@@ -308,7 +308,7 @@ func TestFeaturesTurnedOff(t *testing.T) {
 		{"games", "POST", fmt.Sprintf("/api/games/%d/play", game.ID), map[string]any{}},
 		{"games", "GET", "/api/couch", nil},
 		{"games", "GET", "/api/rigs", nil},
-		{"games", "GET", "/api/game-profiles", nil},
+		{"games", "GET", "/api/games/consoles", nil},
 		{"recordings", "GET", "/api/recordings", nil},
 		{"recordings", "POST", "/api/recording-rules", map[string]any{}},
 		{"downloads", "GET", fmt.Sprintf("/api/items/%d/original", film.ID), nil},

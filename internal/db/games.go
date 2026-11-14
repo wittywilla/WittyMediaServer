@@ -62,6 +62,11 @@ var gameMigrations = []string{
 	   item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE, source TEXT NOT NULL,
 	   look TEXT NOT NULL, updated_at INTEGER NOT NULL,
 	   PRIMARY KEY(item_id, source)) WITHOUT ROWID;`,
+	// 6: controller layouts, controller profiles and the controller screen's picture are
+	// WittyPlay's own now (module API 5, its own database).
+	`DROP TABLE IF EXISTS wittyplay_controls;
+	 DROP TABLE IF EXISTS wittyplay_profiles;
+	 DROP TABLE IF EXISTS wittyplay_backgrounds;`,
 }
 
 func (d *DB) migrateGames(ctx context.Context) error {

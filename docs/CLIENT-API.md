@@ -1952,8 +1952,6 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `GET /games/{id}/check` | user | What a game needs in order to play, and whether this server has it. |
 | `GET /games/consoles` | user | Game consoles. |
 | `GET /games/modes` | user | Game modes. |
-| `GET /consoles/{console}/controls` | user | Game controls. |
-| `PUT /consoles/{console}/controls` | user | Put game control. |
 | `POST /games/{id}/play` | user | Game play. |
 | `GET /games/{id}/emulators` | user | The standalone emulators set up to play this game: {emulators: [{id, name, version, stream, ready, why}]}. Empty when WittyPlay has none. 403 `feature-off` with games off for the profile. |
 | `POST /games/{id}/play/emulator` | user | Start this game in a standalone emulator: {emulator} in; 201 with the session and where to connect, stop, pause and resume it. Refused with 403 `screen-time` when the profile's time is up. The game belongs to the sign-in that started it: it is ended when that sign-in ends (signing out, switching profile), when the profile's screen time runs out, and when games are turned off for the profile. |
@@ -1991,22 +1989,6 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `GET /gamemeta/sources` | admin | Every source, in the order they're believed: what it needs, costs and sends. Key values are never included. |
 | `PUT /gamemeta/sources` | admin | Set the sources' order and whether each is on: `{sources: [{id, on}]}`. Costs no requests. |
 | `POST /gamemeta/sources/{id}/test` | admin | Does this work? `{fields: {setting: value}}`. Saves nothing. Keys themselves are saved through `PUT /settings`, and masked when read back. |
-| `GET /game-controllers` | user | Controllers this server knows by vendor and product. |
-| `GET /game-profiles` | user | This account's controller profiles. |
-| `POST /game-profiles` | user | Makes a controller profile. |
-| `GET /game-profiles/resolve` | user | Which profile and mapping apply to a controller here. |
-| `GET /game-profiles/export` | user | A file of these profiles, or of all of them. |
-| `POST /game-profiles/import` | user | Adds the profiles in an exported file. |
-| `GET /game-profiles/{id}` | user | One controller profile. |
-| `PUT /game-profiles/{id}` | user | Replaces a controller profile. |
-| `DELETE /game-profiles/{id}` | user | Deletes a controller profile. |
-| `POST /game-profiles/{id}/copy` | user | Copies a controller profile. |
-| `POST /game-profiles/{id}/active` | user | Puts a controller profile in or out of use. |
-| `GET /game-background` | user | This account's controller screen background: fit, position and dimming. |
-| `PUT /game-background` | user | Changes its fit, position and dimming. |
-| `DELETE /game-background` | user | Removes the picture. |
-| `GET /game-background/image` | user | This account's own picture. |
-| `PUT /game-background/image` | user | Uploads a picture as the body: PNG, JPEG or WebP, up to 10 MB. |
 | `GET /games/settings/schema` | user | Describe every game setting: its kind, range, default and caution. |
 | `GET /games/settings` | user | A person's settings for a game (?item=) or console (?console=): effective values, where each came from, every level, and the server's limits. |
 | `PUT /games/settings` | user | Change one level: a patch (null removes a value), a whole settings file, or a reset. Server levels need an administrator. |

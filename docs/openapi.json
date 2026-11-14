@@ -12193,6 +12193,9 @@
                         "as": {
                           "type": "string"
                         },
+                        "current": {
+                          "type": "boolean"
+                        },
                         "icon": {
                           "type": "string"
                         },
@@ -13006,6 +13009,9 @@
                       "properties": {
                         "as": {
                           "type": "string"
+                        },
+                        "current": {
+                          "type": "boolean"
                         },
                         "icon": {
                           "type": "string"

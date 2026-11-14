@@ -18,7 +18,7 @@ require (
 	github.com/nwaples/rardecode/v2 v2.4.5
 	github.com/ulikunitz/xz v0.5.17
 	github.com/wittywilla/wittydisc v0.2.0
-	github.com/wittywilla/wittymodule v0.5.1
+	github.com/wittywilla/wittymodule v0.5.2
 	golang.org/x/crypto v0.58.0
 	golang.org/x/image v0.47.0
 	golang.org/x/net v0.62.0

@@ -69,7 +69,7 @@ type ModuleHealth struct {
 	Version  string          `json:"version,omitempty"`
 	State    string          `json:"state"` // installed | builtin | fallback | disabled
 	Delivery string          `json:"delivery,omitempty"`
-	Running  bool            `json:"running"`         // a helper's process is up
+	Running  bool            `json:"running"`          // a helper's process is up
 	Notice   string          `json:"notice,omitempty"` // why the version wanted isn't in use
 	LastFail string          `json:"lastFailure,omitempty"`
 	Checks   []string        `json:"checks,omitempty"` // "id|title" from its manifest

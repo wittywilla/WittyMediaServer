@@ -9,7 +9,7 @@ import { Button, Notice } from '../../../ui'
 import { ConfirmOwner, type OwnerAsk } from '../ConfirmOwner'
 import { OverrideDialog, type OverrideBody } from './OverrideDialog'
 import {
-  overrideLines, releaseStatus, STATUS_WORDS, statusWarns, toDate, uiLines, type NeedsOverride, type OverrideRecord, type UiSummary,
+  overrideLines, releaseStatus, STATUS_WORDS, statusWarns, toDate, addsLines, type IntegrationSummary, type NeedsOverride, type OverrideRecord, type UiSummary,
 } from './overrides'
 import './overrides.css'
 
@@ -88,22 +88,17 @@ export function StatusNotice({ status, note, name, installed }: { status?: strin
   )
 }
 
-// What a module's SDUI adds to the app: its pages, its menu entries and whether it has settings.
-export function WhatItAdds({ ui, name }: { ui?: UiSummary | null; name: string }) {
-  const l = uiLines(ui)
-  // An empty summary only says its server-driven screens add nothing; it may still have a page of
-  // its own, so nothing is claimed either way.
-  if (!l || l.empty) return null
+// What a version adds, in plain words: to every app (its SDUI pages, menu entries and settings) and,
+// from module API 5, to this server (its screens, settings, setup steps, routes, data and feature).
+export function WhatItAdds({ ui, integration, id, libraries, name }: { ui?: UiSummary | null; integration?: IntegrationSummary | null; id?: string; libraries?: string[]; name: string }) {
+  const lines = addsLines(ui, integration, { id, libraries })
+  if (!lines.length) return null
   return (
     <section className="st-mod-sec" aria-labelledby="st-adds">
-      <h2 id="st-adds">What it adds</h2>
-      {(
-        <ul className="ov-adds" aria-label={`What ${name} adds`}>
-          {l.pages.length > 0 && <li><b>{l.pages.length === 1 ? 'A page' : `${l.pages.length} pages`}:</b> {l.pages.join(', ')}</li>}
-          {l.navigation.length > 0 && <li><b>In the menu:</b> {l.navigation.join(', ')}</li>}
-          <li><b>Settings:</b> {l.settings ? 'its own page in Settings' : 'none of its own'}</li>
-        </ul>
-      )}
+      <h2 id="st-adds">What this adds</h2>
+      <ul className="ov-adds" aria-label={`What ${name} adds`}>
+        {lines.map((l) => <li key={l.label}><b>{l.label}:</b> {l.text}</li>)}
+      </ul>
     </section>
   )
 }

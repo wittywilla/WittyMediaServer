@@ -620,7 +620,7 @@ Within a step the order is: WittyModule (kit), then the server, then the module,
 | **M1** | **WittyPlay UI** into the module: the files listed above, re-pointed at `@wittywilla/wms-host`, registered by `integration.json`. The server keeps its copy behind `legacyFor('wittyplay')` | WittyPlay 0.5.0, server | Pixel-identical screenshots; the WittyPlay bundle carries the Play UI. **Done 2026-11-13** (same text on 14 pages, 0.4.2 against 0.5.0) |
 | **M1b** | **The cores & emulators store in WittyPlay's frame**; the server's three Settings rows become one launcher row (with WittyPlay ≥ 0.6) | WittyPlay 0.6.0, server | One interface; the store lists, installs, updates and removes cores and emulators on macOS (Apple silicon), Docker and Linux |
 | **M2** | **WittyPlay APIs** into the module's service, route group by route group (cores, custom cores, BIOS, GPU and platforms first, with the store; then play/session, saves, settings, profiles, standalone emulators and the docker/kasm routes, online+sources+ops, pictures, achievements), each behind aliases, each with its golden tests | WittyPlay 0.6.x, server | Apps unchanged; the facade shrinks per group; cores install and a test core plays, and a standalone emulator starts, on macOS (Apple silicon, Intel where possible), the Docker image (amd64, arm64), Linux and Windows; FreeBSD as promised |
-| **M3** | **WittyPlay data and the games library kind:** scan hooks with `gameid`/`gamearchive`/`gamemeta` in the module; tables imported into its database; secrets for metadata keys; console table served at run time; facades removed | WittyPlay 0.7.0, server | Server has no games code outside `legacyFor`; the module download holds the whole feature; the platform runs of M2 pass again with the module's own data |
+| **M3** | **WittyPlay data and the games library kind:** scan hooks with `gameid`/`gamearchive`/`gamemeta` in the module; its own database from a clean start (no import); secrets for metadata keys; console table served at run time; facades removed | WittyPlay 0.7.0, server | Server has no games code; the module download holds the whole feature; the platform runs of M2 pass again with the module's own data |
 | **M4** | WittyCouch and WittyRigs, the same way (rigs need WittyPlay's frame: `requires` with a range) | WittyCouch 0.4.0, WittyRigs 0.4.0, server | **Done 2026-11-14:** their routes, pages, settings and data (own databases, starting empty) are the modules'; SDUI pages for TV; the server keeps rig libraries as held libraries (host API `/libraries`, `/items`, `/programs`). `requires` has no version range yet (WittyModule) |
 | **M5** | Disc player bundle (WittyDisc web part) and WittyDVD/WittyBluray sources, settings, routes; WittyCD player | WittyDisc, WittyDVD, WittyBluray, WittyCD, server | Guards untouched |
 | **M6** | WittyTuner admin, setup, EPG sources | WittyTuner, server | Guide and DVR untouched |
@@ -686,14 +686,16 @@ Each server step touches files other sessions own. The coordinating session is t
 | Overlap with other sessions' edits | No branch switching in the shared folder; edits coordinated through the coordinating session; one step at a time |
 | Scale | M0 is about the size of one large feature; M1-M3 move ~50k lines. Each step is shippable on its own, and M9 is optional until everything has moved |
 
-## Decisions for the owner
+## Decisions (made 2026-11-14)
 
-1. **Approve module API 5 as described.** That covers `integration.json` as the install script, the host API, web host API 5, module-owned databases, and legacy paths kept until M9.
-2. **Game identification and metadata (`gameid`, `gamearchive`, `gamemeta`) move into WittyPlay.** This drops the WittyGameCore-in-the-server idea from module-isolation.md, so they update through the store. The server keeps only generic items.
-3. **Module data in its own SQLite database**, imported once from today's tables. The alternative, tables in the server's database under the module's name, keeps backups simpler but puts migrations back into the server.
-4. **Uninstall asks whether to keep a module's data.** Recommended default: keep.
-6. **WittyPlay's own store for cores and emulators** (owner, 2026-11-13): one interface in WittyPlay; the server's Settings keeps a launcher row; the core and emulator structure kept exactly and tested on every platform, especially Docker and macOS. Decided.
-5. **Which server version carries M0** (suggested: 0.9.0-alpha), and whether M1-M3 ship as WittyPlay 0.5-0.7 on the alpha channel.
+The owner: "do all that now! Don't wait, just DO IT".
+
+1. **Module API 5 is approved as described, with no legacy paths.** No aliases or old routes are kept, not even until M9. As each module moves, the server's copy of its feature is deleted in the same step. Modules of API 3 and 4 that haven't moved yet (the readers, discs, tuner and others) still run on the server's copy until their step (M5 to M7).
+2. **`gameid`, `gamearchive` and `gamemeta` move into WittyPlay.** The server keeps only generic items. This is M3: the games library scan and game metadata become WittyPlay's, through scan hooks.
+3. **Each module has its own SQLite database, with no import from the server's old tables** (alpha). A module starts empty, and a server migration drops the old tables (WittyPlay's in games migration 7, WittyCouch's and WittyRigs' in 8).
+4. **Removing a module asks whether to keep its data, and keeping it is the default.** The server sends `keepData` to the module's `lifecycle.uninstall` (`POST /api/modules/{id}/remove?keepData=0` deletes it). The web app's Remove dialogs have a ticked "Keep what it saved here" box. The Android apps can't remove modules; the Apple apps add the choice if they can.
+5. **M0 to M3 ship in 0.8.0-alpha.** WittyPlay is versioned 0.5.x, then 0.6 and 0.7 as the M2 and M3 pieces land, on the alpha channel. Release kits are prepared; each release is published only with the owner's go-ahead.
+6. **WittyPlay's own store for cores and emulators** (owner, 2026-11-13): one interface in WittyPlay; the server's Settings keeps a launcher row; the core and emulator structure kept exactly and tested on every platform, especially Docker and macOS.
 
 ---
 

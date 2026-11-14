@@ -7,7 +7,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
   auditRows, auditWords, friction, itemReleaseStatus, needsOverrideOf, overrideLines, overrideRequest, passesExtra, readFilters,
-  reasonFor, refusalKind, warningAddsSomething, releaseStatus, severityOf, statusWarns, stillNeeded, toDate, uiLines, uploadView, withFilter,
+  reasonFor, refusalKind, warningAddsSomething, releaseStatus, severityOf, statusWarns, stillNeeded, toDate, uiLines, uploadView, withFilter, addsLines,
 } from './overrides.ts'
 
 const answers = (o = {}) => ({ accepted: [], password: '', code: '', typed: '', grants: [], ...o })
@@ -95,6 +95,32 @@ test('what a module adds', () => {
   assert.deepEqual(uiLines({ pages: [{ id: 'discs', title: 'Discs' }, { id: 'raw' }], navigation: ['Discs', ' '], settings: true }),
     { pages: ['Discs', 'raw'], navigation: ['Discs'], settings: true, empty: false })
   assert.equal(uiLines({}).empty, true)
+})
+
+test('what this adds, in plain words, from the catalogue and from the installed copy', () => {
+  assert.deepEqual(addsLines(undefined, undefined), [])
+  assert.deepEqual(addsLines({}, undefined), []) // an empty SDUI summary claims nothing
+  // An API 4 version: only its SDUI.
+  assert.deepEqual(addsLines({ pages: [{ id: 'discs', title: 'Discs' }], settings: false }).map((l) => l.label), ['A page in every app, on TV too', 'Settings'])
+  // Pages titled per item are counted, not named.
+  assert.equal(addsLines({ pages: [{ id: 'a', title: 'Games' }, { id: 'b', title: '{title}' }, { id: 'c', title: '{library}' }] })[0].text, 'Games, and 2 pages for one item each')
+  // The catalogue's summary of an API 5 version: counts, with the module's own library kinds.
+  const cat = addsLines({ pages: [{ id: 'couch', title: 'Game PCs' }], navigation: ['Game PCs'] },
+    { routes: 12, screens: ['/couch', '/couch/:id'], settings: ['Game PCs'], data: true, feature: 'games' }, { id: 'wittycouch', libraries: ['games'] })
+  const by = Object.fromEntries(cat.map((l) => [l.label, l.text]))
+  assert.deepEqual(cat.map((l) => l.label), ['A page in every app, on TV too', 'In the menu', 'In the web app', 'In Settings', 'On this server', 'Its data', 'Libraries', 'Who sees it'])
+  assert.equal(by['In the web app'], '2 screens of its own')
+  assert.equal(by['On this server'], 'answers 12 kinds of request of its own at /api/v1/modules/wittycouch/')
+  assert.match(by['Its data'], /database of its own/)
+  assert.equal(by.Libraries, 'games')
+  assert.match(by['Who sees it'], /“games” feature/)
+  // The installed copy says who may call its routes and its setup steps.
+  const inst = Object.fromEntries(addsLines(null, { routes: 1, routeKinds: { user: 0, admin: 1, ticket: 0, items: 0, streams: 0, plays: 0 }, setup: ['Games', ' '], libraries: ['rig'] }, { libraries: ['games'] }).map((l) => [l.label, l.text]))
+  assert.equal(inst['On this server'], 'answers 1 kind of request of its own (1 for administrators only)')
+  assert.equal(inst['When setting up the server'], '1 step: Games')
+  assert.equal(inst['Its data'], 'keeps nothing of its own on this server')
+  assert.equal(inst.Libraries, 'rig')
+  assert.equal(inst['In the web app'], undefined)
 })
 
 test('an upload maps to what the dialog shows', () => {

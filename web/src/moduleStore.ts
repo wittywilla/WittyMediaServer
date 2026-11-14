@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { api } from './api'
-import type { NeedsOverride, OverrideRecord, Pending, UiSummary } from './pages/settings/store/overrides'
+import type { IntegrationSummary, NeedsOverride, OverrideRecord, Pending, UiSummary } from './pages/settings/store/overrides'
 
 // What the server says about modules, for the three places that show them: the
 // store in Settings, Add Library and first-run setup. Nothing here goes online.
@@ -24,9 +24,9 @@ export type ModuleStatus = {
   // or the one in use (olderServer, madeFor, and olderWarning saying what to do about it).
   olderOffer?: Offer; olderServer?: boolean; madeFor?: string; olderWarning?: string
   description?: string; publisher?: { name: string; url?: string }; icon?: string; enabled?: boolean
-  // Installed past a rule (an override), its release status, what its SDUI adds, and a release held
-  // until someone accepts what it needs.
-  override?: OverrideRecord; releaseStatus?: string; statusNote?: string; uiAdds?: UiSummary; pending?: Pending
+  // Installed past a rule (an override), its release status, what its SDUI and its integration.json
+  // add, and a release held until someone accepts what it needs.
+  override?: OverrideRecord; releaseStatus?: string; statusNote?: string; uiAdds?: UiSummary; integrationAdds?: IntegrationSummary; pending?: Pending
 }
 export type LibraryKind = { type: string; available: boolean; modules: ModuleRef[]; label?: string; shared?: boolean }
 export type ModuleRef = { id: string; name: string; installed: boolean }

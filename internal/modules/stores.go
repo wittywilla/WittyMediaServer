@@ -237,7 +237,7 @@ func (s *Stores) readKept(e *storeEntry) (*wittymodule.Catalog, error) {
 	if err != nil {
 		return nil, err
 	}
-	c, err := verifyCatalog(raw, sig, []ed25519.PublicKey{k})
+	c, err := wittymodule.VerifyCatalog(raw, sig, []ed25519.PublicKey{k})
 	if err != nil {
 		return nil, err
 	}
@@ -358,7 +358,7 @@ func (s *Stores) Preview(ctx context.Context, raw, key string, private bool) (*S
 		}
 	}
 	k, _ := parseSourceKey(pinned)
-	c, err := verifyCatalog(cat, sig, []ed25519.PublicKey{k})
+	c, err := wittymodule.VerifyCatalog(cat, sig, []ed25519.PublicKey{k})
 	if err != nil {
 		return nil, err
 	}
@@ -430,7 +430,7 @@ func (s *Stores) Add(ctx context.Context, raw, key string, private bool, by stri
 	if err != nil {
 		return nil, err
 	}
-	c, err := verifyCatalog(cat, sig, []ed25519.PublicKey{k})
+	c, err := wittymodule.VerifyCatalog(cat, sig, []ed25519.PublicKey{k})
 	if err != nil {
 		return nil, err
 	}
@@ -524,13 +524,13 @@ func (s *Stores) look(ctx context.Context, rec *storeRecord) (*Failure, *wittymo
 	if err != nil {
 		return explainErr(name, err), nil, nil, nil
 	}
-	c, err := verifyCatalog(cat, sig, []ed25519.PublicKey{k})
+	c, err := wittymodule.VerifyCatalog(cat, sig, []ed25519.PublicKey{k})
 	if errors.Is(err, wittymodule.ErrCatalogSignature) {
 		// The pinned key doesn't sign this. If the store now offers a different key that does,
 		// say so as loudly as possible, and never take that key.
 		if offered, oerr := f.small(ctx, rec.URL+".key", maxStoreKeyFile); oerr == nil {
 			if nk, kerr := parseSourceKey(strings.TrimSpace(string(offered))); kerr == nil && !nk.Equal(k) {
-				if _, verr := verifyCatalog(cat, sig, []ed25519.PublicKey{nk}); verr == nil {
+				if _, verr := wittymodule.VerifyCatalog(cat, sig, []ed25519.PublicKey{nk}); verr == nil {
 					return explainErr(name, fmt.Errorf("the signing key has changed: you agreed to %s, and it now offers %s", Fingerprint(k), Fingerprint(nk))), nil, nil, nil
 				}
 			}

@@ -349,3 +349,7 @@ html[data-card-set="row"] .sdui-row:is(:hover, :focus-visible) :is(.muted, .sdui
 html[data-scene] .hero .shade { background: linear-gradient(90deg, rgb(var(--bg-rgb) / .5) 0%, rgb(var(--bg-rgb) / 0) 70%); }
 /* With a scene there is no page colour to fade to, so the picture itself fades out at the bottom and the scene shows through. */
 html[data-scene] .hero .bg { -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent 100%); mask-image: linear-gradient(180deg, #000 55%, transparent 100%); }
+/* An upright frame (a phone, a tablet) is sized by its height, so it doesn't grow taller than the card beside it. */
+.look-opts .layout-opt .layout-thumb:is(.lt-phone, .lt-tablet), .su-card .layout-thumb:is(.lt-phone, .lt-tablet) { inline-size: auto; width: auto; block-size: 9rem; height: 9rem; max-inline-size: 100%; margin-inline: auto; }
+.look-colours-big .layout-thumb:is(.lt-phone, .lt-tablet), .su-colours-big .layout-thumb:is(.lt-phone, .lt-tablet) { inline-size: auto; width: auto; block-size: min(22rem, 60vh); height: min(22rem, 60vh); }
+.look-colours-big .layout-thumb:is(.lt-desktop, .lt-tv), .su-colours-big .layout-thumb:is(.lt-desktop, .lt-tv) { inline-size: min(100%, 26rem); width: min(100%, 26rem); }

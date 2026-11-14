@@ -14,12 +14,12 @@ import { Brand } from '../../components/common'
 import { Button, Segmented } from '../../ui'
 import { setTvMode, useTvMode } from '../../tvmode/mode'
 import { LayoutThumb } from '../../ui/LayoutThumb'
+import { useDevice } from '../../sdui/useSdui'
 import { specFor, type Cards, type Home, type WireMap } from '../../ui/layoutSpecs'
 import { ChoiceCards, LaterNote, StepActions, StepHead, TickRow, type StepProps } from './parts'
 
 type Card = { id: string; name: string; tagline?: string; theme?: string; type?: string; density?: string; effects?: Record<string, string>; preview?: { bg: string; surface: string; accent: string }; nav: Record<string, string>; wire?: WireMap; tvTheme?: string }
 const FORM_FACTORS = ['phone', 'tablet', 'desktop', 'web', 'tv', 'headset']
-const swatch = (c: Card, device: Device) => <LayoutThumb wire={c.wire} formFactor={device} colours={c.preview} />
 // The layout chosen on the first page, carried to the colours page (and back to it): its id.
 let chosenLayout = ''
 
@@ -94,6 +94,8 @@ function TvLookChoice({ suggested, lookName, value, onChange }: { suggested?: st
 // Step: Look. All fourteen experiences, each tried on this page as it is chosen (its finish, type and spacing, and the
 // theme it wears). The choice becomes the server's starting look for every kind of device; people can pick their own later.
 export function Look({ info, next, back }: StepProps) {
+  // The layouts are drawn as this device shows them: an upright phone, a tablet, a computer or a TV.
+  const here = useDevice().formFactor as keyof WireMap
   const { serverTheme } = useApp()
   const [cards, setCards] = useState<Card[]>([])
   const [pick, setPick] = useState(chosenLayout || 'lumen')
@@ -128,7 +130,7 @@ export function Look({ info, next, back }: StepProps) {
       <StepHead title="Choose a layout" lead="Each look is a layout, finish and type of its own, drawn here as a phone shows it. Pick one for everyone: it is tried here as you choose. Colours are the next page, and people can pick their own later." />
       {cards.length > 0 && (
         <div className="su-look">
-          <ChoiceCards label="Layout" value={pick} onChange={choose} small cards={cards.map((c) => ({ value: c.id, title: c.name, text: c.tagline, pic: swatch(c, 'phone') }))} />
+          <ChoiceCards label="Layout" value={pick} onChange={choose} small cards={cards.map((c) => ({ value: c.id, title: c.name, text: c.tagline, pic: <LayoutThumb wire={c.wire} formFactor={here} colours={c.preview} /> }))} />
           <div className="su-look-view">
             <Segmented<Device> label="Preview on" value={device} onChange={setDevice} options={[{ value: 'tv', label: 'TV' }, { value: 'desktop', label: 'Desktop' }, { value: 'phone', label: 'Phone' }, { value: 'headset', label: 'VR' }]} />
             {cards.find((c) => c.id === pick) && <LookPreview card={cards.find((c) => c.id === pick)!} device={device} />}
@@ -148,6 +150,8 @@ export function Look({ info, next, back }: StepProps) {
 
 // Step: Theme. Colour is separate from the look: any theme goes with any look, an imported one included.
 export function Theme({ info, next, back }: StepProps) {
+  // The layouts are drawn as this device shows them: an upright phone, a tablet, a computer or a TV.
+  const here = useDevice().formFactor as keyof WireMap
   const { serverTheme, setServerTheme } = useApp()
   const [themes, setThemes] = useState<ThemeMeta[]>([])
   // Nothing is chosen until someone does: then the theme stays the look's own, whichever look is picked later.
@@ -195,12 +199,12 @@ export function Theme({ info, next, back }: StepProps) {
       {themes.length > 0 && (
         <div className="su-colours">
           <figure className="su-colours-big">
-            <LayoutThumb wire={layout?.wire} formFactor="phone" colours={themes.find((t) => t.id === pick)?.preview} />
+            <LayoutThumb wire={layout?.wire} formFactor={here} colours={themes.find((t) => t.id === pick)?.preview} />
             <figcaption><b>{themes.find((t) => t.id === pick)?.name.replace(/^WittyMediaServer /, '') || ''}</b>{layout ? ` with ${layout.name}` : ''}</figcaption>
           </figure>
           <ChoiceCards label="Theme" value={pick} onChange={choose} small cards={themes.map((t) => ({
             value: t.id, title: t.name.replace(/^WittyMediaServer /, ''),
-            pic: <LayoutThumb wire={layout?.wire} formFactor="phone" colours={t.preview} />,
+            pic: <LayoutThumb wire={layout?.wire} formFactor={here} colours={t.preview} />,
           }))} />
         </div>
       )}

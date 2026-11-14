@@ -265,6 +265,8 @@ function ServerLookRows({ choice }: { choice: NonNullable<ReturnType<typeof useM
   const [colour, setColour] = useState(deviceTheme() || serverTheme)
   const file = useRef<HTMLInputElement | null>(null)
   const device = useDevice()
+  // Drawn as this device shows it: an upright phone, a tablet, a computer or a TV.
+  const here = device.formFactor as keyof WireMap
   const loadThemes = () => api.get<{ themes: ThemeMeta[] }>('/themes').then((r) => setThemes(r.themes)).catch(() => {})
   useEffect(() => { api.get<{ experiences: ExperienceCard[] }>('/sdui/experiences').then((r) => setCards(r.experiences)).catch(() => {}) }, [])
   useEffect(() => { void loadThemes() }, [])
@@ -306,13 +308,13 @@ function ServerLookRows({ choice }: { choice: NonNullable<ReturnType<typeof useM
       <>
         <h3 className="look-step">Choose colours</h3>
         <figure className="look-colours-big">
-          <LayoutThumb wire={picked?.wire} formFactor="phone" colours={shown?.preview} />
+          <LayoutThumb wire={picked?.wire} formFactor={here} colours={shown?.preview} />
           <figcaption><b>{shown?.name || colour}</b>{picked ? ` with ${picked.name}` : ''}</figcaption>
         </figure>
         <div className="layout-opts look-opts" role="radiogroup" aria-label="Colours">
           {themes.map((t) => (
             <button key={t.id} type="button" role="radio" aria-checked={t.id === colour} disabled={lockedTheme} className={'layout-opt' + (t.id === colour ? ' on' : '')} onClick={() => { setColour(t.id); applyTheme(t.id) }}>
-              <LayoutThumb wire={picked?.wire} formFactor="phone" colours={t.preview} />
+              <LayoutThumb wire={picked?.wire} formFactor={here} colours={t.preview} />
               <b>{t.name}</b>
             </button>
           ))}
@@ -336,7 +338,7 @@ function ServerLookRows({ choice }: { choice: NonNullable<ReturnType<typeof useM
           const on = layout === o.value
           return (
             <button key={o.value} type="button" role="radio" aria-checked={on} disabled={!!busy || lockedLook} className={'layout-opt' + (on ? ' on' : '')} onClick={() => setLayout(o.value)}>
-              <LayoutThumb wire={c?.wire} formFactor="phone" colours={c?.preview} />
+              <LayoutThumb wire={c?.wire} formFactor={here} colours={c?.preview} />
               <b>{o.label}</b><span className="muted">{c?.tagline || ''}</span>
             </button>
           )

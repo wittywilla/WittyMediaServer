@@ -172,6 +172,10 @@ export function register(host: ModuleHost): Registration {
 
 **Looking the same.** A module draws with the app's own components, and its stylesheet uses the app's design tokens as `var(--name)` (WittyModule `kit/web/tokens.json`, from `scripts/export-module-kit.mjs`), never copies of their values, so every theme and the server's own colours follow. A bundle's stylesheet is on only while its screen is.
 
+## TV
+
+A module's web part (routes and frames) is drawn by the browser and the desktop app only: tvOS has no web view, and the TV apps draw natively. So every screen a person needs from a module also has an SDUI page in its `sdui.json` (the TV apps draw it, as the phone and tablet apps do), or is one of the apps' own screens fed by the module's routes (a game's page and player). A TV screen works with a d-pad and a remote: focus moves, Back leaves, text and targets are sized for across a room, and nothing needs hover or touch. A module's SDUI sources are told the viewer (`viewer.user`, `profileKind`, `formFactor`), and its cards can carry switches, choices, actions and detail-panel buttons, so settings and stores can be SDUI pages too. Check every module screen on tvOS and Android TV as well as in a browser.
+
 ## Building a web part
 
 WittyModule `kit/web/build-bundle.mjs` is the one builder (no module keeps a copy of its own any more):

@@ -513,6 +513,31 @@ Today's override system (`docs/MODULE-STORE.md`, kinds `incomplete`, `out-of-ran
 
 `docs/MODULE-SECURITY.md` (written with the first override that's new): the threat model above in plain words; what each permission and override means, with its risk and how to undo it; how to read the audit log; what quarantine means; and how to report a module.
 
+## TV is a first-class target (owner, 2026-11-14)
+
+The owner: "Remember that WittyPlay has to also work with this new UI in tvOS and AndroidTV. Keep this in mind with all of these design choices."
+
+So every module screen a person needs must have a **TV version that the Apple TV and Android TV apps draw natively**: SDUI pages (or the apps' own native screens, such as the game page and player), never a web part. tvOS has no web view, so a module's web routes (`integration.json` `web`, frames `fullscreen`, `app` and the web app's `tv`) never reach an Apple TV; they serve the browser and the desktop app only. A TV screen has:
+
+- **Focus:** d-pad and remote focus, with one focusable thing at a time, a visible focus, and Back always leaving;
+- **Ten-foot sizing:** text and targets sized for a TV, inside the TV's safe area;
+- **No dead ends:** no hover-only control, no touch-only gesture, no text field without a remote-friendly way in.
+
+**Where WittyPlay stands** (after the move of its game API):
+
+| Screen | Browser and desktop | TV apps | Still to do for TV |
+|---|---|---|---|
+| WittyPlay Online (Recent, Classics, Friends, Rooms), What this server plays, Controllers, the in-game menu, Your room, Memories, Friends and privacy, Kids friends | SDUI | SDUI (native) | Check each on tvOS and Android TV |
+| The frame: status bar and round dock | Web (`PlayChrome`) | SDUI `regions` (statusBar, systemDock) on a page | Every WittyPlay page sends them; the apps draw them natively |
+| A game's page, save states, the player | Web (`PlayGame`, `/game/:id`) | The apps' native game page and player (module routes) | Save states as the SDUI source `wittyplay.saveStates` on the native page |
+| Libraries and consoles (`/wittyplay/library`, `/wittyplay/consoles`) | Web | Not yet | An SDUI page: shelves by console, filters as a filter bar |
+| Settings, including Cores & emulators (the store) | Web (`PlaySettings`, `CoresStore`) | Not yet | SDUI settings pages: lists with switches, choices and actions (`Control`, `Action`), install progress as a source |
+| The first-run step | Web (`setup/Games`) | Not yet | An SDUI setup step |
+
+**The contract.** A module that declares a web route a person needs should also have an SDUI page for TV. `wittymodule check` will warn about a web-only screen with no SDUI page (to come). And WittyModule 0.5.1 gives a module's SDUI sources the viewer and full cards (switches, actions, detail buttons): what the settings and store pages above need.
+
+**Acceptance.** Every WittyPlay change is checked on tvOS (s3) and Android TV (s4) as well as on phones and the web, on a test server with WittyPlay.
+
 ## WittyPlay: one interface, with its own store for cores and emulators
 
 The owner, 2026-11-13: WittyPlay gets its own store for cores. A Settings button launches WittyPlay, and everything happens through that one interface. The existing core and third-party emulator structure is kept as it is, and works on every server platform, especially Docker and macOS.

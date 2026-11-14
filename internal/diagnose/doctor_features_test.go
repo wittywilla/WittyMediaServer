@@ -25,17 +25,25 @@ func TestFeatureFindings(t *testing.T) {
 	got := runFeatures(t, &FeatureState{
 		P2P:       &P2PState{On: true, Running: true, Reachability: "private", NATUDP: "strict", RelayLayer: true, PortMapLayer: true, MappingError: "no UPnP"},
 		Overrides: []OverrideState{{Module: "wittydvd", Version: "0.4.0", Kinds: []string{"unsigned"}, By: "admin", At: 1762900000}},
-		Emulators: &EmulatorState{Known: true, Backend: "host", Permissions: []EmulatorPermission{{Name: "screen-recording"}, {Name: "accessibility", Granted: true}}},
+		Modules: []ModuleHealth{
+			{ID: "wittyplay", Name: "WittyPlay", Version: "0.5.0", State: "installed", Delivery: "helper", Running: true, Checks: []string{"host|Can emulators run here?"},
+				Findings: []ModuleFinding{{Check: "host", Key: "permission-screen-recording", Severity: "problem", Title: "macOS hasn't let the server record the screen", What: "…", Steps: []string{"Open System Settings"}}}},
+			{ID: "wittytuner", Name: "WittyTuner", State: "installed", Delivery: "helper", Running: true, Checks: []string{"channels|Channel health"}, AskError: "timed out"},
+			{ID: "wittydvd", Name: "WittyDVD", State: "installed", Delivery: "helper", LastFail: "it exited with status 2"},
+			{ID: "wittycd", Name: "WittyCD", State: "fallback", Notice: "its signature doesn't check out"},
+			{ID: "wittyphotos", Name: "WittyPhotos", State: "installed", Delivery: "helper", Running: true},
+			{ID: "wittystats", Name: "WittyStats", State: "disabled", Delivery: "web"},
+		},
 		Separator: &SeparatorState{Wanted: true, Looked: 7},
-		Channels:  []ChannelState{{Source: "Playlist A", Total: 50, OK: 40, Failing: 10}, {Source: "Playlist B", Total: 5, Failing: 5}, {Source: "Fine", Total: 3, OK: 3}},
 	})
 	want := map[string]Severity{
-		"p2p-reach":                            SevProblem,
-		"module-override-wittydvd":             SevWarn,
-		"emulator-permission-screen-recording": SevProblem,
-		"separator":                            SevWarn,
-		"channel-health-Playlist A":            SevWarn,
-		"channel-health-Playlist B":            SevProblem,
+		"p2p-reach":                SevProblem,
+		"module-override-wittydvd": SevWarn,
+		"module-wittyplay-permission-screen-recording": SevProblem,
+		"module-health-wittytuner":                     SevWarn,
+		"module-health-wittydvd":                       SevProblem,
+		"module-health-wittycd":                        SevProblem,
+		"separator":                                    SevWarn,
 	}
 	for k, sev := range want {
 		i, ok := got[k]
@@ -58,7 +66,7 @@ func TestFeatureFindings(t *testing.T) {
 func TestFeatureFindingsWhenAllIsWell(t *testing.T) {
 	got := runFeatures(t, &FeatureState{
 		P2P:       &P2PState{On: true, Running: true, Reachability: "public"},
-		Emulators: &EmulatorState{Known: true, Backend: "docker", Available: true},
+		Modules:   []ModuleHealth{{ID: "wittyplay", State: "installed", Delivery: "helper", Running: true, Checks: []string{"host|Host"}, Findings: []ModuleFinding{}}},
 		Separator: &SeparatorState{Wanted: true, Found: true},
 	})
 	if len(got) != 0 {

@@ -131,6 +131,7 @@ The name on each row is what `--only` takes.
 | `module-versions` | A version with a failed signature, missing files, or not for this server | [Takes it out of use](#a-module-is-broken) |
 | `module-updates` | An update that stopped partway, or installed files nothing uses | Moves them to the safety copy |
 | `module-helpers` | Helpers still running with no server | Ends them. Only programs running from this data folder's modules |
+| `module-health` | In a running server: a module not running the version it should, a helper that stopped with an error, and whatever each module's own checks found ([Checks for Repair](MODULES.md#checks-for-repair)) | You follow its steps |
 
 **The install** (`install`)
 
@@ -151,9 +152,7 @@ The name on each row is what `--only` takes.
 |---|---|---|
 | `p2p-reach` | Peer to peer on but not running, or devices away from home unable to reach it, with why | You change a setting or the router, with steps |
 | `module-overrides` | Each module running under a manual override, with what was skipped and by whom | You remove the override when a good version is out |
-| `emulator-host` | A Mac's missing Screen Recording or Accessibility permission for WittyPlay's emulators, or their host not available | You give the permission, with steps |
 | `separator` | Karaoke allowed, but no vocal separator installed | You install one, with steps |
-| `channel-health` | Channels of a tuner or playlist that failed their last health check | You check the source, with steps |
 
 ## A module is broken
 

@@ -118,7 +118,7 @@ WARN stopping reason=tray-quit why="Quit was chosen in the tray icon" uptime=2h3
 4. Look through **What will be in it**. It counts what will be replaced, and **Compare some lines, before and after** shows examples. The "before" stays on this page and isn't in the ZIP.
 5. Press **Download logs as ZIP**.
 
-The ZIP holds recent logs, crash reports, a summary of this server, how the newer features are doing (`features.json`: whether peer to peer is reachable and how, modules under an override, WittyPlay's emulators and macOS permissions, karaoke's separator, channels failing their checks, and the pages' revision, with no keys, invites, codes or device addresses), a short README, and the newest three [WittyDiagnoser](DIAGNOSER.md#reports) reports with names hidden. It's made on your server when you ask, and nothing is ever uploaded.
+The ZIP holds recent logs (every module's lines among them, under its name), crash reports, a summary of this server with each module's version, Repair's results (`doctor.json`: its last report, or the module and feature checks run as the ZIP is made), how the newer features are doing (`features.json`: whether peer to peer is reachable and how, modules under an override, WittyPlay's emulators and macOS permissions, karaoke's separator, channels failing their checks, and the pages' revision, with no keys, invites, codes or device addresses), a short README, and the newest three [WittyDiagnoser](DIAGNOSER.md#reports) reports with names hidden. It's made on your server when you ask, and nothing is ever uploaded.
 
 The README ends by saying what the ZIP holds: the dates its logs cover, how many crash reports there are (with no reports, `crashes/none.txt` says so), and anything from before a reset. A reset that keeps a copy moves the old logs and crash reports into that copy (`before-reset-…` in the data folder); those from the days you chose go in too, in a folder of the copy's name, and the README says how many older ones were left there.
 
@@ -377,7 +377,6 @@ A topic that's on lets its lines through whatever the level, and turning a modul
 Where the list of topics comes from:
 
 - **Any helper module** gets `calls`, `output` and `lifecycle`, done by the server around the helper.
-- **The built-in engines** are listed in `engineTopics` in `internal/server/api_logmodules.go`.
 - **Any other module** declares its own in its manifest, under `capabilities.logTopics`, each as `"id|Label|What it adds"`. See [Making a module](MODULES.md). A helper is told what's on through the environment, as `WITTYMODULE_LOG` and `WITTYMODULE_LOG_TOPICS`, the next time it starts, and prints what it likes to stderr.
 
 ### Clients
@@ -442,7 +441,7 @@ These are handled in one place, with nothing to add at call sites:
 6. A new media route: add its prefix to `sessionFromPath`.
 7. A new secret-shaped value: a redaction pattern, or `logging.AddSecret`, and a test case.
 8. A new setting that changes behaviour: `summarySettings`, if it isn't secret.
-9. A new module or engine: `"module", id` on its logger, and optional detail with `"topic", id`, listed in `engineTopics` or its manifest.
+9. A new module or engine: `"module", id` on its logger, and optional detail with `"topic", id`, listed in its manifest.
 10. A change someone may need to prove later (an override, a device let in or out, a licence accepted): `logging.Audit(ctx, log, "…", "cat", …, "by", who)`.
 11. Work someone will follow end to end across the server, a module and an app: one ID with a prefix, in `logging.SessionKinds`, reported by the apps under the same ID.
 

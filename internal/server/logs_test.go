@@ -337,7 +337,7 @@ func TestSummaryAndBundleHoldNoSecrets(t *testing.T) {
 				t.Errorf("%s holds a planted secret:\n%s", f.Name, b)
 			}
 		}
-		if !names["summary.json"] || !names["README.txt"] || !names["features.json"] {
+		if !names["summary.json"] || !names["README.txt"] || !names["features.json"] || !names["doctor.json"] {
 			t.Errorf("%v", names)
 		}
 	}

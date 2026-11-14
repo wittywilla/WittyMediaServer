@@ -308,7 +308,24 @@ WittyLog notices a module by itself and gives it a level and options in **Settin
 "capabilities": { "logTopics": ["scan|Scanning|Each file looked at", "cache|Cache|Hits and misses"] }
 ```
 
-The helper is told what the owner chose through its environment when it starts: `WITTYMODULE_LOG` holds a level (`debug`, `info`, `warn`, `error` or `off`) and `WITTYMODULE_LOG_TOPICS` a comma-separated list of topics that are on. Print what's wanted to stderr, one thing per line. Never print tokens, passwords or the contents of files. See [how every part logs](LOGGING.md#module-logging-levels-and-options-per-module).
+The helper is told what the owner chose through its environment when it starts: `WITTYMODULE_LOG` holds a level (`debug`, `info`, `warn`, `error` or `off`) and `WITTYMODULE_LOG_TOPICS` a comma-separated list of topics that are on. Print what's wanted to stderr, one thing per line, best with `log/slog` (its level, `cat`, `session` and `topic` are read). Never print tokens, passwords or the contents of files. The server lists no module's topics itself: what a module offers is what its manifest says. See [how every part logs](LOGGING.md#module-logging-levels-and-options-per-module).
+
+### Checks for Repair
+
+**Settings → Repair** checks every installed module by itself: whether the version it should run is in use, and whether its helper is running or stopped with an error. A module that can tell more lists its own checks in the manifest, each as `"id|title"`:
+
+```json
+"capabilities": { "doctor": ["host|Can standalone emulators run here, with the permissions they need?"] }
+```
+
+and answers the service call `doctor.Check` (no arguments) with a list of findings:
+
+```json
+[{"check": "host", "key": "permission-screen-recording", "severity": "problem",
+  "title": "macOS hasn't let the server record the screen", "what": "…", "steps": ["Open System Settings, …"]}]
+```
+
+`severity` is `info`, `warn` or `problem`; `key` stays the same for the same finding. Say what is wrong and what to do, in plain words, with no secrets or file contents: the server shows it in Repair under Modules and puts it in the bug-report download (`doctor.json`, `features.json`). It asks only a running helper, for at most 5 seconds, and at most 20 findings are kept. WittyPlay and WittyTuner do this.
 
 A module that needs to know about file types shouldn't keep a list of its own. `GET /api/media-types` gives every format, codec and container the server knows, with extensions, how each plays, which libraries take it and whether this machine can handle it. `docs/media-types.json` is the same list as a file, for use when a module is built. See [Supported formats](SUPPORTED-FORMATS.md).
 

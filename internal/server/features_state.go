@@ -5,20 +5,20 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/diagnose"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/modules"
 	"github.com/wittywilla/wittymediaserver/internal/separator"
 	"github.com/wittywilla/wittymodule/service"
 )
 
 // featureState is how the newer features are doing, for Repair's Features checks and the
 // support bundle's features.json. It asks nothing slow: what each part already knows, and
-// WittyPlay for a few seconds at most. No secrets: no keys, invites, codes or device addresses.
+// each module with checks of its own for a few seconds at most. No secrets: no keys, invites, codes or device addresses.
 func (s *Server) featureState(ctx context.Context) *diagnose.FeatureState {
-	f := &diagnose.FeatureState{Overrides: []diagnose.OverrideState{}, Channels: []diagnose.ChannelState{}}
+	f := &diagnose.FeatureState{Overrides: []diagnose.OverrideState{}, Modules: []diagnose.ModuleHealth{}}
 
 	// Peer to peer.
 	cfg := s.loadP2P(ctx)
@@ -33,28 +33,24 @@ func (s *Server) featureState(ctx context.Context) *diagnose.FeatureState {
 	}
 	f.P2P = p
 
-	// Modules under an override.
+	// Every module: its state, and what its own checks found (capabilities.doctor in its
+	// manifest, answered by the module). Overrides are noted as well.
 	if s.Modules != nil {
 		for _, m := range s.Modules.Report().Modules {
 			if o := m.Override; o != nil {
 				f.Overrides = append(f.Overrides, diagnose.OverrideState{Module: m.ID, Version: o.Version, Kinds: o.Kinds, By: o.By, At: o.At, Source: o.Source})
 			}
-		}
-	}
-
-	// WittyPlay's standalone emulators.
-	if service.Running != nil && service.Running(wittyPlayID) {
-		em := &diagnose.EmulatorState{}
-		cctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-		var raw json.RawMessage
-		if err := service.Call(cctx, wittyPlayID, "docker.Summary", nil, nil, nil, []any{&raw}); err == nil && len(raw) > 0 {
-			if json.Unmarshal(raw, em) == nil {
-				em.Known = true
-				em.Error = logging.Redact(em.Error)
+			if m.State == modules.StateAbsent {
+				continue
 			}
+			h := diagnose.ModuleHealth{ID: m.ID, Name: m.Name, Version: m.Version, State: m.State, Delivery: m.Delivery,
+				Notice: logging.Redact(m.Notice), LastFail: logging.Redact(m.LastFail), Checks: s.Modules.DoctorChecks(m.ID)}
+			h.Running = service.Running != nil && service.Running(m.ID)
+			if len(h.Checks) > 0 && h.Running {
+				h.Findings, h.AskError = askModuleDoctor(ctx, m.ID)
+			}
+			f.Modules = append(f.Modules, h)
 		}
-		cancel()
-		f.Emulators = em
 	}
 
 	// Karaoke's separator: only what was found already, unless nobody has looked yet.
@@ -76,5 +72,34 @@ func (s *Server) featureState(ctx context.Context) *diagnose.FeatureState {
 	return f
 }
 
-// wittyPlayID is the module that plays games.
-const wittyPlayID = "wittyplay"
+// askModuleDoctor runs a module's own checks. What it says is cleaned like anything else
+// from outside: a known severity, bounded text, no secrets.
+func askModuleDoctor(ctx context.Context, id string) ([]diagnose.ModuleFinding, string) {
+	cctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	var got []modules.DoctorFinding
+	if err := service.Call(cctx, id, modules.DoctorMethod, nil, nil, nil, []any{&got}); err != nil {
+		return nil, logging.Redact(cutRunes(err.Error(), 300))
+	}
+	out := []diagnose.ModuleFinding{}
+	for i, g := range got {
+		if i == 20 {
+			break
+		}
+		switch g.Severity {
+		case "info", "warn", "problem":
+		default:
+			g.Severity = "warn"
+		}
+		fd := diagnose.ModuleFinding{Check: logging.ValidSession(g.Check), Key: logging.ValidSession(g.Key), Severity: g.Severity,
+			Title: logging.Redact(cutRunes(g.Title, 160)), What: logging.Redact(cutRunes(g.What, 1000))}
+		for j, st := range g.Steps {
+			if j == 6 {
+				break
+			}
+			fd.Steps = append(fd.Steps, logging.Redact(cutRunes(st, 300)))
+		}
+		out = append(out, fd)
+	}
+	return out, ""
+}

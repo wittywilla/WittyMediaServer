@@ -18,9 +18,8 @@ import (
 type FeatureState struct {
 	P2P       *P2PState       `json:"p2p,omitempty"`
 	Overrides []OverrideState `json:"overrides"`
-	Emulators *EmulatorState  `json:"emulators,omitempty"`
+	Modules   []ModuleHealth  `json:"modules"`
 	Separator *SeparatorState `json:"separator,omitempty"`
-	Channels  []ChannelState  `json:"channels"`
 	SDUI      *SDUIState      `json:"sdui,omitempty"`
 }
 
@@ -52,31 +51,6 @@ type OverrideState struct {
 	Source  string   `json:"source,omitempty"`
 }
 
-// EmulatorState is WittyPlay's standalone emulators: where they run and what's missing.
-type EmulatorState struct {
-	Known       bool                 `json:"known"` // WittyPlay answered
-	Backend     string               `json:"backend,omitempty"`
-	Available   bool                 `json:"available"`
-	Error       string               `json:"error,omitempty"`
-	Missing     []string             `json:"missing,omitempty"`
-	Permissions []EmulatorPermission `json:"permissions,omitempty"`
-	Installed   []InstalledEmulator  `json:"installed,omitempty"`
-	Sessions    int                  `json:"sessions"`
-}
-
-// EmulatorPermission is one macOS permission the native host needs.
-type EmulatorPermission struct {
-	Name    string `json:"name"` // screen-recording | accessibility
-	Granted bool   `json:"granted"`
-}
-
-// InstalledEmulator is one emulator set up on the server.
-type InstalledEmulator struct {
-	ID      string `json:"id"`
-	Version string `json:"version,omitempty"`
-	Source  string `json:"source,omitempty"` // catalogue | manual | own
-}
-
 // SeparatorState is the program that separates vocals for karaoke.
 type SeparatorState struct {
 	Wanted  bool   `json:"wanted"` // karaoke may separate songs (the setting isn't "never")
@@ -86,13 +60,31 @@ type SeparatorState struct {
 	Looked  int    `json:"looked"` // how many folders were searched
 }
 
-// ChannelState is the last health check of one tuner's or playlist's channels.
-type ChannelState struct {
-	Source  string `json:"source"`
-	Total   int    `json:"total"`
-	OK      int    `json:"ok"`
-	Failing int    `json:"failing"`
-	Checked int64  `json:"checked,omitempty"`
+// ModuleHealth is one installed module as the running server sees it, with what its own
+// checks found. A module declares its checks in its manifest (capabilities.doctor) and
+// answers them itself; the server names no module here.
+type ModuleHealth struct {
+	ID       string          `json:"id"`
+	Name     string          `json:"name,omitempty"`
+	Version  string          `json:"version,omitempty"`
+	State    string          `json:"state"` // installed | builtin | fallback | disabled
+	Delivery string          `json:"delivery,omitempty"`
+	Running  bool            `json:"running"`         // a helper's process is up
+	Notice   string          `json:"notice,omitempty"` // why the version wanted isn't in use
+	LastFail string          `json:"lastFailure,omitempty"`
+	Checks   []string        `json:"checks,omitempty"` // "id|title" from its manifest
+	Findings []ModuleFinding `json:"findings,omitempty"`
+	AskError string          `json:"askError,omitempty"` // its checks couldn't be asked
+}
+
+// ModuleFinding is one thing a module's own check found.
+type ModuleFinding struct {
+	Check    string   `json:"check"`
+	Key      string   `json:"key"`
+	Severity string   `json:"severity"` // info | warn | problem
+	Title    string   `json:"title"`
+	What     string   `json:"what"`
+	Steps    []string `json:"steps,omitempty"`
 }
 
 // SDUIState is the pages' configuration.
@@ -104,11 +96,10 @@ type SDUIState struct {
 
 func featureChecks() []Check {
 	return []Check{
+		{ID: "module-health", Area: AreaModules, Title: "Is every installed module running, and do its own checks pass?", Run: checkModuleHealth},
 		{ID: "p2p-reach", Area: AreaFeatures, Title: "Can devices away from home reach this server peer to peer?", Run: checkP2P},
 		{ID: "module-overrides", Area: AreaFeatures, Title: "Is any module running under a manual override?", Run: checkOverrides},
-		{ID: "emulator-host", Area: AreaFeatures, Title: "Can WittyPlay's emulators run here?", Run: checkEmulators},
 		{ID: "separator", Area: AreaFeatures, Title: "Can karaoke separate vocals?", Run: checkSeparator},
-		{ID: "channel-health", Area: AreaFeatures, Title: "Are any channel sources failing their health checks?", Run: checkChannels},
 	}
 }
 
@@ -204,37 +195,6 @@ func checkOverrides(ctx context.Context, e *DoctorEnv) []Issue {
 	return out
 }
 
-func checkEmulators(ctx context.Context, e *DoctorEnv) []Issue {
-	f := e.features(ctx)
-	if f == nil {
-		return nil // said once, by checkP2P
-	}
-	m := f.Emulators
-	if m == nil || !m.Known || m.Backend == "" || m.Backend == "off" {
-		return nil
-	}
-	var out []Issue
-	for _, p := range m.Permissions {
-		if p.Granted {
-			continue
-		}
-		what, pane := "record the screen, so it can't show an emulator's picture", "Screen & System Audio Recording"
-		if p.Name == "accessibility" {
-			what, pane = "send key presses and controller input to an emulator", "Accessibility"
-		}
-		out = append(out, Issue{Key: "emulator-permission-" + p.Name, Severity: SevProblem, Safety: SafetyManual,
-			Title: "macOS hasn't let the server " + strings.SplitN(what, ",", 2)[0],
-			What:  "Emulators run on this Mac need permission to " + what + ". Until it's given, games in these emulators won't start.",
-			Steps: []string{"Open System Settings, Privacy & Security, " + pane + ".", "Turn it on for the program that runs the server (WittyMediaServer, or the Terminal you started it from).", "Start the server again: macOS only applies this to a program when it starts."}})
-	}
-	if len(out) == 0 && !m.Available {
-		out = append(out, Issue{Key: "emulator-host", Severity: SevWarn, Safety: SafetyManual, Title: "WittyPlay's emulators can't run here now",
-			What:  "The " + m.Backend + " way of running them isn't available: " + orWords(m.Error, strings.Join(m.Missing, "; ")) + ".",
-			Steps: []string{"Open Settings, Games, Emulators, and read what it says under how emulators run."}})
-	}
-	return out
-}
-
 func checkSeparator(ctx context.Context, e *DoctorEnv) []Issue {
 	f := e.features(ctx)
 	if f == nil {
@@ -249,24 +209,43 @@ func checkSeparator(ctx context.Context, e *DoctorEnv) []Issue {
 		Steps: []string{"Install Demucs (pip install demucs), Spleeter or audio-separator for the account that runs the server.", "Start the server again, or open Settings, Music, Karaoke, so it looks again."}}}
 }
 
-func checkChannels(ctx context.Context, e *DoctorEnv) []Issue {
+func checkModuleHealth(ctx context.Context, e *DoctorEnv) []Issue {
 	f := e.features(ctx)
 	if f == nil {
 		return nil // said once, by checkP2P
 	}
 	var out []Issue
-	for _, c := range f.Channels {
-		if c.Failing == 0 || c.Total == 0 {
+	for _, m := range f.Modules {
+		name := orWords(m.Name, m.ID)
+		steps := []string{"Open Settings, Modules, " + name + ", for its state and what it last said.",
+			"Settings, WittyLog, Module: " + name + " shows its lines; turn on its options there for more."}
+		switch {
+		case m.State == "fallback":
+			out = append(out, Issue{Key: "module-health-" + m.ID, Severity: SevProblem, Safety: SafetyManual, Title: name + " isn't running the version it should",
+				What: orWords(m.Notice, "A version was refused") + ".", Steps: steps})
+			continue
+		case m.State == "disabled":
+			continue
+		case m.Delivery == "helper" && !m.Running && m.LastFail != "":
+			out = append(out, Issue{Key: "module-health-" + m.ID, Severity: SevProblem, Safety: SafetyManual, Title: name + " isn't running",
+				What: "Its helper stopped: " + m.LastFail + ".", Steps: steps})
 			continue
 		}
-		sev, title := SevWarn, fmt.Sprintf("%d of %d channels from %s failed their health check", c.Failing, c.Total, c.Source)
-		if c.OK == 0 {
-			sev, title = SevProblem, "Every channel checked from "+c.Source+" failed its health check"
+		if len(m.Checks) > 0 && m.AskError != "" {
+			out = append(out, Issue{Key: "module-health-" + m.ID, Severity: SevWarn, Safety: SafetyManual, Title: name + "'s own checks couldn't run",
+				What: "It was asked and didn't answer: " + m.AskError + ".", Steps: steps})
 		}
-		out = append(out, Issue{Key: "channel-health-" + c.Source, Severity: sev, Safety: SafetyManual, Title: title,
-			What: "Those channels won't play until the source answers again. When a channel has a backup, the backup plays instead.",
-			Steps: []string{"Open Live TV, Sources, and check the source's address and login, or whether your subscription has ended.",
-				"Settings, WittyLog, Live TV area: the health check's lines say what each channel answered."}})
+		for _, fd := range m.Findings {
+			sev := SevInfo
+			switch fd.Severity {
+			case "problem":
+				sev = SevProblem
+			case "warn":
+				sev = SevWarn
+			}
+			out = append(out, Issue{Key: "module-" + m.ID + "-" + orWords(fd.Key, fd.Check), Severity: sev, Safety: SafetyManual,
+				Title: fd.Title, What: fd.What, Steps: fd.Steps, Details: []string{name + " " + m.Version + ", check " + fd.Check}})
+		}
 	}
 	return out
 }

@@ -51,28 +51,6 @@ var helperTopics = []LogTopic{
 	{ID: "lifecycle", Label: "Starting and stopping", Description: "Each time the helper process starts or stops, and why."},
 }
 
-// What the built-in engines log, for those with more to say than their area's
-// level gives. A module from elsewhere lists its own in its manifest, under
-// capabilities.logTopics; see moduleTopics.
-var engineTopics = map[string][]LogTopic{
-	"wittydvd": {
-		{ID: "nav", Label: "Navigation", Description: "Every step the DVD navigator takes: program chains, cells and commands."},
-		{ID: "menus", Label: "Menus and buttons", Description: "Each menu read from the disc, and each button pressed."},
-	},
-	"wittybluray": {
-		{ID: "nav", Label: "Navigation", Description: "Every step the Blu-ray navigator takes: titles, playlists and commands."},
-		{ID: "menus", Label: "Menus and buttons", Description: "Each menu read from the disc, and each button pressed."},
-		{ID: "bdj", Label: "Java menus", Description: "What a disc's Java program prints, and what it asks the player to do."},
-	},
-	"wittyplay": {
-		{ID: "core", Label: "Emulator messages", Description: "What the emulator core says as it runs. Often a lot."},
-		{ID: "runner", Label: "Game runner", Description: "What the separate process that runs the game prints."},
-	},
-	"wittytuner": {
-		{ID: "tuner", Label: "Tuning", Description: "Each tune, scan and signal report from tuners."},
-	},
-}
-
 type logModuleState struct {
 	Version   string          `json:"version"`
 	Name      string          `json:"name"`
@@ -193,15 +171,14 @@ func (s *Server) saveLogModules(ctx context.Context) {
 	}
 }
 
-// moduleTopics is the list of advanced options for a module: what any helper has,
-// what the built-in engines list here, and what the module's own manifest declares
-// under capabilities.logTopics, as "id|label|description".
+// moduleTopics is the list of advanced options for a module: what any helper has, and
+// what the module's own manifest declares under capabilities.logTopics, as
+// "id|label|description". The server names none of them itself.
 func (s *Server) moduleTopics(id, delivery string) []LogTopic {
 	var out []LogTopic
 	if delivery == "helper" {
 		out = append(out, helperTopics...)
 	}
-	out = append(out, engineTopics[id]...)
 	if s.Modules != nil {
 		seen := map[string]bool{}
 		for _, t := range out {

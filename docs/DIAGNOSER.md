@@ -115,11 +115,10 @@ Problems with the server's newer features aren't about a disc or a drive, so the
 |---|---|
 | **Devices away from home can't reach this server peer to peer** | Outside computers couldn't connect, with the reason: a strict NAT, a port mapping the router refused, a shared outside address, relays off or none holding a place. When only a relay reaches it, a note says so |
 | **Peer-to-peer connections are on, but not running** | They couldn't start. The log's Peer to peer area says why |
-| **macOS hasn't let the server record the screen / send key presses** | WittyPlay's emulators on a Mac need Screen Recording and Accessibility permission. The steps say where to give it, and that the server must start again |
-| **WittyPlay's emulators can't run here now** | The chosen way of running them (Docker, the sandbox, this computer's desktop) isn't available, with WittyPlay's reason |
 | **A module runs under a manual override** | One per module, with what was skipped, who did it and when |
+| **A module isn't running, or isn't running the version it should** | Under Modules: every installed module, with its helper's last error |
+| **What a module's own checks found** | Modules list their own checks and answer them (see [Checks for Repair](MODULES.md#checks-for-repair)): WittyPlay a Mac's missing Screen Recording or Accessibility permission, or a way of running emulators that isn't available; WittyTuner channels that failed their last health check |
 | **Karaoke can't separate vocals** | No Demucs, Spleeter or audio-separator was found, so songs get the approximate instrumental |
-| **Channels failed their health check** | Some, or every, channel of a tuner or playlist failed its last health check |
 
 The same state is `features.json` in the [log download](LOGGING.md#downloading-logs-to-share). The code is `internal/diagnose/doctor_features.go`; the server fills `DoctorEnv.Features` in `internal/server/features_state.go`.
 

@@ -331,3 +331,21 @@ func (s *Server) handleRepairRestart(w http.ResponseWriter, r *http.Request) {
 		time.AfterFunc(300*time.Millisecond, s.Restart)
 	}
 }
+
+// bundleDoctor is what a bug report says of Repair: its last full report when there is
+// one, and otherwise the module and feature checks, run now (they only look).
+func (s *Server) bundleDoctor(ctx context.Context) *diagnose.DoctorReport {
+	s.repair.mu.Lock()
+	rep := s.repair.report
+	s.repair.mu.Unlock()
+	if rep != nil {
+		return rep
+	}
+	var checks []diagnose.Check
+	for _, c := range diagnose.AllChecks() {
+		if c.Area == diagnose.AreaFeatures || c.ID == "module-health" {
+			checks = append(checks, c)
+		}
+	}
+	return diagnose.RunDoctor(ctx, s.repairEnv(), checks, nil)
+}

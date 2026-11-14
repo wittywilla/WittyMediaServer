@@ -351,6 +351,9 @@ func (s *Server) bundleOptions(r *http.Request) logging.BundleOptions {
 	if b, err := json.MarshalIndent(s.SystemSummary(r.Context()), "", "  "); err == nil {
 		o.Extra = append(o.Extra, logging.BundleFile{Name: "summary.json", Description: "Version, modules, system, disk space and settings that matter, with no secrets", Data: b})
 	}
+	if b, err := json.MarshalIndent(s.bundleDoctor(r.Context()), "", "  "); err == nil {
+		o.Extra = append(o.Extra, logging.BundleFile{Name: "doctor.json", Description: "Repair's last report, or its module and feature checks run now: every module's state and what its own checks found", Data: b})
+	}
 	if b, err := json.MarshalIndent(s.featureState(r.Context()), "", "  "); err == nil {
 		o.Extra = append(o.Extra, logging.BundleFile{Name: "features.json", Description: "Peer to peer, module overrides, emulators and their permissions, karaoke's separator, channel health and the pages' revision, with no secrets", Data: b})
 	}

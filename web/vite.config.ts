@@ -79,7 +79,7 @@ function keepGitkeep(): Plugin {
 
 export default defineConfig({
   plugins: [react(), precompress(), pdfAssets(), keepGitkeep()],
-  define: { __WEB_MODULES__: JSON.stringify([]), __PDF_ASSETS__: JSON.stringify(`/assets/pdfjs-${pdfVersion}/`) },
+  define: { __PDF_ASSETS__: JSON.stringify(`/assets/pdfjs-${pdfVersion}/`) },
   // The browsers this app has always reached, TVs included, whatever the bundler's default is now.
   build: { outDir: 'dist', emptyOutDir: true, sourcemap: false, target: ['es2020', 'edge88', 'firefox78', 'chrome87', 'safari14'] },
   server: {

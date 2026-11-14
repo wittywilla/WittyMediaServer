@@ -161,7 +161,8 @@ What `web` claims, the web app learns from `GET /api/modules/web` (each bundle's
 | `takeover` | A library of that kind goes to the module's own view of it (`/library/2` → `/wittyplay/library/2`) |
 | `routes` with `frame: "tv"` | In TV mode only, the route's TV screen is the module's |
 | `setup` | The setup wizard's step of that id is the module's, given the wizard's own step props. New steps of a module's own come next ([Not yet](#not-yet)) |
-| `players`, `readers`, `navFold` | Declared and checked now; drawn from the module as each module that needs one moves ([Not yet](#not-yet)) |
+| `readers` | A book of that format (`epub`, `pdf`, `cbz`, as the server's book answer names its reader) opens in the module's reader: the app loads WittyInk's bundle first (the reader kit every reader's `@wittywilla/wittyink` is), and pdf.js for a PDF, then the module's, and draws `register(host).readers[format]` inside WittyInk's `HostContext` with the app's reader host. No module claiming the format: the reader says none is in use |
+| `players`, `navFold` | Declared and checked now; drawn from the module as each module that needs one moves ([Not yet](#not-yet)) |
 
 `register(host)` returns a `Registration` (types in WittyModule `kit/web/host`, package `@wittywilla/wms-host`):
 
@@ -171,6 +172,7 @@ export function register(host: ModuleHost): Registration {
   return {
     routes: { '/wittyplay/*': PlayFrame, '/game/:id': GamePage },
     cards: { game: { art: (a) => <GameArt {...a} />, link: (to) => playLink(to) } },
+    readers: { epub: EpubReader },   // WittyEbook's: integration.json web.readers [{format: "epub"}]
     settings: { gaming: GamingSettings },
   }
 }
@@ -211,7 +213,8 @@ A server offers each host feature at a version (`modules.Offers()`): `http` 1, `
 
 These are designed in the plan and come with the module that needs them:
 
-- A module's own new setup steps placed in the web wizard by `after`/`before` (the "Finish setting up" notice and page work: `POST /setup/{id}`), players, readers and menu folding from the web part.
+- A module's own new setup steps placed in the web wizard by `after`/`before` (the "Finish setting up" notice and page work: `POST /setup/{id}`), players and menu folding from the web part.
+- The readers hook in the catalogue's summary of a version, so a missing reader can be named by its format.
 - Doctor checks from modules.
 - Module databases in backups.
 - `/capabilities` features from what modules are in use (today they are the server's fixed list; changing that is agreed with the apps first).

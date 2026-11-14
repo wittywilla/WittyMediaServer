@@ -913,7 +913,7 @@ func TestPartialRestore(t *testing.T) {
 	if got := one(`SELECT COUNT(*) FROM game_core_audit`); got != "1" {
 		t.Errorf("what no backup holds should stay: %q", got)
 	}
-	if got := one(`SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger'`); got != "10" {
+	if got := one(`SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger'`); got != "9" {
 		t.Errorf("triggers: %q", got)
 	}
 }

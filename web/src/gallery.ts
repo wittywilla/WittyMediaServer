@@ -12,7 +12,7 @@ export type Photo = {
 }
 export type PhotoDetail = Photo & {
   fileName: string; folder: string; sizeBytes: number; make?: string; model?: string; lens?: string; fNumber?: number; exposure?: string
-  iso?: number; focalMm?: number; lat?: number; lon?: number; alt?: number; albums: number[]; webSafe: boolean
+  iso?: number; focalMm?: number; lat?: number; lon?: number; alt?: number; webSafe: boolean
 }
 export type PhotoMonth = { ym: number; count: number }
 export type PhotoFolder = { folder: string; count: number; coverId: number }
@@ -22,7 +22,7 @@ export type PhotoAlbum = {
   count: number; coverId: number; createdAt: number; updatedAt: number
 }
 export type ShareLink = {
-  id: number; userId: number; owner?: string; kind: 'item' | 'album'; targetId: number; title: string; allowDownload: boolean
+  id: number; userId: number; owner?: string; kind: 'item' | 'photos'; targetId: number; title: string; allowDownload: boolean
   expiresAt: number | null; views: number; createdAt: number; token?: string
 }
 

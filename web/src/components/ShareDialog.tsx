@@ -12,10 +12,12 @@ import SpecPage from '../spec/SpecPage'
 import { handledIds } from '../spec/model'
 import { shareSpec } from '../spec/specs/share'
 
-// Sharing something: a link inside this server for other profiles, or (pictures,
-// videos and albums) a link for someone with no account, with its own end date.
+// Sharing something: a link inside this server for other profiles, or (a picture or video, or
+// a set of them such as an album) a link for someone with no account, with its own end date.
 
-export default function ShareDialog({ kind, id, title, onClose, internalPath }: { kind: 'item' | 'album'; id: number; title: string; onClose: () => void; internalPath: string }) {
+// kind item shares one picture or video (id); kind photos a set of them (ids, with the title as its
+// name), as they are when the link is made: an album's, from WittyPhotos.
+export default function ShareDialog({ kind, id, ids, title, onClose, internalPath }: { kind: 'item' | 'photos'; id?: number; ids?: () => Promise<number[]>; title: string; onClose: () => void; internalPath: string }) {
   const [days, setDays] = useState(30)
   const [download, setDownload] = useState(false)
   const [link, setLink] = useState('')
@@ -27,7 +29,8 @@ export default function ShareDialog({ kind, id, title, onClose, internalPath }: 
   const make = async () => {
     setBusy(true); setErr('')
     try {
-      const l = await api.post<ShareLink>('/shares', { kind, id, days, allowDownload: download })
+      const body = kind === 'photos' ? { kind, ids: await ids!(), title } : { kind, id }
+      const l = await api.post<ShareLink>('/shares', { ...body, days, allowDownload: download })
       setLink(location.origin + '/s/' + l.token)
     } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
   }

@@ -29,7 +29,7 @@ This plan **supersedes the "server builds with it" half of [module-isolation.md]
 - [Order of work](#order-of-work)
 - [Testing](#testing)
 - [Risks](#risks)
-- [Decisions for the owner](#decisions-for-the-owner)
+- [Decisions (made 2026-11-14)](#decisions-made-2026-11-14)
 
 ---
 

@@ -224,29 +224,17 @@ func TestPhotosEndToEnd(t *testing.T) {
 	if len(page) != 2 {
 		t.Errorf("folder has %d", len(page))
 	}
-	// Albums belong to their owner until shared, and only list what the
-	// account may see.
-	album, err := s.CreatePhotoAlbum(ctx, lib.ID, 1, "Trip", "", false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := s.PhotoAlbumByID(ctx, album.ID, 2, false); err == nil {
-		t.Error("another account can see a private album")
-	}
+	// Some pictures by number (an album's, or a share link's), still within the limits.
 	ids := []int64{page[0].ID, page[1].ID, 99999}
-	if n, err := s.AddToPhotoAlbum(ctx, album, ids); err != nil || n != 2 {
-		t.Errorf("added %d, %v (a missing picture must be skipped)", n, err)
+	if p, _, _ := s.Photos(ctx, PhotoQuery{LibraryID: lib.ID, IDs: ids}); len(p) != 2 {
+		t.Errorf("by number: %d", len(p))
 	}
 	blocked := &Access{MaxAge: NoAgeLimit, AllowUnrated: true, BlockItems: []int64{page[0].ID}}
-	l, err := s.PhotoAlbums(ctx, lib.ID, 1, blocked)
-	if err != nil || len(l) != 1 || l[0].Count != 1 {
-		t.Errorf("albums %+v %v", l, err)
+	if m, _ := s.PhotoMonths(ctx, PhotoQuery{LibraryID: lib.ID, IDs: ids, Access: blocked}); len(m) != 1 || m[0].Count != 1 {
+		t.Errorf("months by number, within limits: %+v", m)
 	}
-	if err := s.UpdatePhotoAlbum(ctx, album.ID, "Trip", "", true, nil); err != nil {
-		t.Fatal(err)
-	}
-	if l, _ := s.PhotoAlbums(ctx, lib.ID, 2, nil); len(l) != 1 {
-		t.Errorf("a shared album should be listed for others: %+v", l)
+	if p, _, _ := s.Photos(ctx, PhotoQuery{LibraryID: lib.ID, IDs: []int64{}}); len(p) != 0 {
+		t.Errorf("no numbers is no pictures: %d", len(p))
 	}
 	// A Kids profile with default limits sees no unrated pictures.
 	kids := DefaultAccess("kids")

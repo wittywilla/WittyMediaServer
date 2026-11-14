@@ -333,17 +333,19 @@ func (s *Store) ClearWatchHistory(ctx context.Context, userID int64) error {
 // ShareLink lets someone without an account see one item or album. Only a hash
 // of the link's secret is stored, so the link itself is shown once, when made.
 type ShareLink struct {
-	ID            int64  `json:"id"`
-	UserID        int64  `json:"userId"`
-	Owner         string `json:"owner,omitempty"`
-	Kind          string `json:"kind"` // item | album
-	TargetID      int64  `json:"targetId"`
-	Title         string `json:"title"`
-	AllowDownload bool   `json:"allowDownload"`
-	ExpiresAt     *int64 `json:"expiresAt"`
-	Views         int64  `json:"views"`
-	CreatedAt     int64  `json:"createdAt"`
-	Token         string `json:"token,omitempty"` // only when just created
+	ID       int64  `json:"id"`
+	UserID   int64  `json:"userId"`
+	Owner    string `json:"owner,omitempty"`
+	Kind     string `json:"kind"`     // item | photos
+	TargetID int64  `json:"targetId"` // the item; 0 for a set of pictures
+	// Items are the pictures of a set (kind photos), kept with the link when it's made.
+	Items         []int64 `json:"-"`
+	Title         string  `json:"title"`
+	AllowDownload bool    `json:"allowDownload"`
+	ExpiresAt     *int64  `json:"expiresAt"`
+	Views         int64   `json:"views"`
+	CreatedAt     int64   `json:"createdAt"`
+	Token         string  `json:"token,omitempty"` // only when just created
 }
 
 func hashShareToken(t string) string {
@@ -359,14 +361,51 @@ func (s *Store) CreateShare(ctx context.Context, l ShareLink) (*ShareLink, error
 	}
 	tok := base64.RawURLEncoding.EncodeToString(raw)
 	now := db.Now()
-	res, err := s.DB.ExecContext(ctx, `INSERT INTO share_links(token_hash, user_id, kind, target_id, title, allow_download, expires_at, created_at) VALUES(?,?,?,?,?,?,?,?)`,
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	res, err := tx.ExecContext(ctx, `INSERT INTO share_links(token_hash, user_id, kind, target_id, title, allow_download, expires_at, created_at) VALUES(?,?,?,?,?,?,?,?)`,
 		hashShareToken(tok), l.UserID, l.Kind, l.TargetID, l.Title, l.AllowDownload, l.ExpiresAt, now)
 	if err != nil {
 		return nil, err
 	}
 	l.ID, _ = res.LastInsertId()
+	for _, id := range l.Items {
+		if _, err := tx.ExecContext(ctx, `INSERT OR IGNORE INTO share_link_items(share_id, item_id) VALUES(?, ?)`, l.ID, id); err != nil {
+			return nil, err
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
 	l.CreatedAt, l.Token = now, tok
 	return &l, nil
+}
+
+// ShareItems are the pictures a link to a set shares, in the order they were given.
+func (s *Store) ShareItems(ctx context.Context, shareID int64) ([]int64, error) {
+	rows, err := s.DB.QueryContext(ctx, `SELECT item_id FROM share_link_items WHERE share_id = ? ORDER BY rowid`, shareID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []int64{}
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		out = append(out, id)
+	}
+	return out, rows.Err()
+}
+
+// ShareHolds says whether a link to a set shares a picture.
+func (s *Store) ShareHolds(ctx context.Context, shareID, itemID int64) bool {
+	var one int
+	return s.DB.QueryRowContext(ctx, `SELECT 1 FROM share_link_items WHERE share_id = ? AND item_id = ?`, shareID, itemID).Scan(&one) == nil
 }
 
 // ShareByToken finds a link that is still valid.

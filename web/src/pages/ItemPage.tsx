@@ -8,7 +8,6 @@ import { DiscSettingsDialog } from '../components/edit/DiscDialogs'
 import RefreshDialog from '../components/edit/RefreshDialog'
 import TitleArtPicker, { PosterMenu, appliedOnPage } from '../components/edit/TitleArtPicker'
 import TitleExtras, { TitleLogo } from '../components/edit/TitleExtras'
-import { BookDetails } from './Books'
 import { SaveButton } from '../components/SaveToCollection'
 
 import { useRemoteAllowed } from '../remote/allowed'
@@ -50,7 +49,8 @@ export default function ItemPage() {
   if (broken) return <LoadError what="This title" onRetry={load} />
   if (err) return <EmptyState icon={<IconInfo />} title="This title isn’t available" text="It may have been removed, or this profile may not be allowed to see it." action={<Link className="btn" to="/">Back to home</Link>} />
   if (!it) return <PageSkeleton shape="item" />
-  if (it.kind === 'book') return <BookDetails it={it} />
+  // A book's page is WittyInk's server-driven one; this is only drawn when there is none: read it.
+  if (it.kind === 'book') return <Navigate replace to={`/read/${it.id}`} />
   // Pictures and creator videos have their own places.
   const libType = libraries.find((l) => l.id === it.libraryId)?.type
   if (libType === 'photos') return <Navigate replace to={`/library/${it.libraryId}?view=${it.id}`} />

@@ -596,7 +596,7 @@ func (s *Server) renderPage(w http.ResponseWriter, r *http.Request) (sdui.Docume
 		writeErr(w, code, err.Error())
 		return sdui.Document{}, false
 	}
-	doc, err := sdui.Render(rn.page, rn.ctx)
+	doc, err := sdui.Render(s.withModuleSetup(r.Context(), rn.page, u.IsAdmin), rn.ctx)
 	if errors.Is(err, sdui.ErrNotFound) {
 		writeErr(w, 404, "not found")
 		return sdui.Document{}, false

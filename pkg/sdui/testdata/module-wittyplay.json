@@ -1453,6 +1453,169 @@
       }
     },
     {
+      "id": "wittyplay-setup",
+      "kind": "custom",
+      "title": "Set up games",
+      "icon": "game",
+      "description": "WittyPlay's first-run step on every app, for administrators: the server's \"Finish setting up WittyPlay\" notice on Home opens it.",
+      "scope": "wittyplay",
+      "sections": [
+        {
+          "id": "admins",
+          "component": "Notice",
+          "props": {
+            "text": "Only an administrator installs cores and emulators. What this server plays is in Settings.",
+            "tone": "info"
+          },
+          "when": {
+            "admin": false
+          }
+        },
+        {
+          "id": "intro",
+          "component": "Text",
+          "props": {
+            "text": "WittyPlay plays the games in your games libraries, on this server and on every app. To play a console's games, install a core for it: start with the consoles you have games for."
+          },
+          "when": {
+            "admin": true
+          }
+        },
+        {
+          "id": "first",
+          "component": "List",
+          "props": {
+            "title": "First things"
+          },
+          "when": {
+            "admin": true
+          },
+          "children": [
+            {
+              "id": "store",
+              "component": "ListItem",
+              "props": {
+                "icon": "disc",
+                "subtitle": "Install the cores your consoles need, and add BIOS files where a console wants them",
+                "title": "Cores & emulators",
+                "to": "/page/wittyplay-store"
+              }
+            },
+            {
+              "id": "plays",
+              "component": "ListItem",
+              "props": {
+                "icon": "game",
+                "subtitle": "Every console, and whether its games play here yet",
+                "title": "What this server plays",
+                "to": "/page/wittyplay"
+              }
+            },
+            {
+              "id": "options",
+              "component": "ListItem",
+              "props": {
+                "icon": "settings",
+                "native": "settings",
+                "subtitle": "In this app's Settings, Modules, Games",
+                "title": "WittyPlay options"
+              }
+            }
+          ]
+        },
+        {
+          "id": "computer",
+          "component": "List",
+          "props": {
+            "focusable": true,
+            "title": "On a computer"
+          },
+          "when": {
+            "admin": true
+          },
+          "children": [
+            {
+              "id": "more",
+              "component": "ListItem",
+              "props": {
+                "icon": "info",
+                "subtitle": "How game titles are written, how games are pictured, and optional sources of scores and box art are chosen in WittyPlay's Settings in a browser.",
+                "title": "Game titles, pictures and more details"
+              }
+            }
+          ]
+        },
+        {
+          "id": "finish",
+          "component": "List",
+          "props": {
+            "focusable": true,
+            "title": ""
+          },
+          "source": {
+            "type": "wittyplay.setup"
+          },
+          "when": {
+            "admin": true
+          }
+        },
+        {
+          "id": "dock",
+          "component": "Dock",
+          "props": {
+            "legend": true
+          }
+        }
+      ],
+      "regions": {
+        "statusBar": [
+          {
+            "id": "me",
+            "kind": "profile",
+            "text": "WittyPlay Online"
+          },
+          {
+            "id": "server",
+            "kind": "server"
+          }
+        ],
+        "systemDock": [
+          {
+            "id": "search",
+            "label": "Search",
+            "icon": "search",
+            "route": "/search"
+          },
+          {
+            "id": "together",
+            "label": "Together",
+            "icon": "users",
+            "route": "/page/wittyplay-online?tab=together"
+          },
+          {
+            "id": "controllers",
+            "label": "Controllers",
+            "icon": "devices",
+            "route": "/page/wittyplay-controllers",
+            "as": "layer"
+          },
+          {
+            "id": "memories",
+            "label": "Memories",
+            "icon": "photo",
+            "route": "/page/wittyplay-online?tab=memories"
+          },
+          {
+            "id": "settings",
+            "label": "Settings",
+            "icon": "settings",
+            "route": "/page/wittyplay-settings",
+            "current": true
+          }
+        ]
+      }
+    },
+    {
       "id": "wittyplay-quick",
       "kind": "custom",
       "title": "Menu",
@@ -2189,6 +2352,19 @@
       "paged": false,
       "title": "Standalone emulators",
       "since": 8
+    },
+    {
+      "type": "wittyplay.setup",
+      "label": "Finishing the first-run step",
+      "description": "For an administrator: rows to finish WittyPlay's first-run step or put it off, which tell the server to stop showing \"Finish setting up WittyPlay\". Nothing for anyone else.",
+      "icon": "check",
+      "category": "",
+      "yields": [
+        "view"
+      ],
+      "cardStyle": "tile",
+      "paged": false,
+      "since": 8
     }
   ],
   "navigation": [
@@ -2311,6 +2487,22 @@
       "description": "Cores & emulators, administrators: uninstalls a standalone emulator (item: its ID). Saves stay.",
       "method": "DELETE",
       "path": "/api/modules/wittyplay/docker/emulators/{item}"
+    },
+    {
+      "op": "wittyplay.setup.done",
+      "label": "Finish setting up",
+      "description": "Administrators: WittyPlay's first-run step is done, so the server stops showing \"Finish setting up WittyPlay\".",
+      "method": "POST",
+      "path": "/api/modules/wittyplay/setup/games",
+      "body": "{\"skip\":false}"
+    },
+    {
+      "op": "wittyplay.setup.later",
+      "label": "Do this later",
+      "description": "Administrators: WittyPlay's first-run step is put off; everything in it is in WittyPlay's Settings.",
+      "method": "POST",
+      "path": "/api/modules/wittyplay/setup/games",
+      "body": "{\"skip\":true}"
     }
   ]
 }

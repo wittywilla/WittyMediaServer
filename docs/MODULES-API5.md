@@ -123,6 +123,7 @@ Every call that's on someone's behalf says who (`host.On{User}`, or `host.For(r)
 | `Tools` | `GET /tools` | The server's FFmpeg and FFprobe, the encoders it has, and its test of hardware encoders |
 | `Events` | `GET /events?after=&wait=` | Waits up to `wait` (at most 55s) for events after a number: `server.started`, `scan.finished`, … |
 | `Task` | `POST /tasks/{name}` | A long piece of work, shown with the server's tasks (administrators only) |
+| (`Do`) | `POST /setup/{id}` `{skip}` | On an administrator's behalf: the module's setup step `id` is done (or skipped) at the `version` it declares. Until then a step with a `page` is a "Finish setting up <module>" notice on administrators' Home, on every app, opening that SDUI page. Written to the audit log |
 
 Refusals are JSON `{"error"}` with the status; an `X-Witty-Host` header tells a refusal of the host API's from a call this server doesn't have (`host.ErrNotOffered`).
 
@@ -201,7 +202,7 @@ A server offers each host feature at a version (`modules.Offers()`): `http` 1, `
 
 These are designed in the plan and come with the module that needs them:
 
-- A module's own new setup steps (placed by `after`/`before`, shown later as "Finish setting up"), players, readers and menu folding from the web part.
+- A module's own new setup steps placed in the web wizard by `after`/`before` (the "Finish setting up" notice and page work: `POST /setup/{id}`), players, readers and menu folding from the web part.
 - Doctor checks from modules.
 - Module databases in backups.
 - `/capabilities` features from what modules are in use (today they are the server's fixed list; changing that is agreed with the apps first).

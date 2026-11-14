@@ -38,6 +38,7 @@ type moduleSession struct {
 	host.Session
 	Module  string
 	Started time.Time
+	done    chan struct{} // closed when it ends
 }
 
 type moduleSessions struct {
@@ -96,12 +97,20 @@ func (s *Server) hostSessionStart(w http.ResponseWriter, r *http.Request, module
 	}
 	ms.next++
 	in.ID = module + "-" + strconv.Itoa(ms.next)
-	ms.m[in.ID] = &moduleSession{Session: in, Module: module, Started: time.Now()}
+	v := &moduleSession{Session: in, Module: module, Started: time.Now(), done: make(chan struct{})}
+	ms.m[in.ID] = v
 	start := !ms.watching
 	ms.watching = true
 	ms.mu.Unlock()
 	if start {
 		logging.Go("module sessions", s.watchModuleSessions, "cat", "modules")
+	}
+	if in.Kind == "game" {
+		name := ""
+		if u, err := s.Auth.User(r.Context(), in.User); err == nil {
+			name = u.Name
+		}
+		s.streams.game(in.ID, in.User, name, in.Title, v.done, func() GameView { return GameView{} })
 	}
 	writeJSON(w, 200, map[string]string{"id": in.ID})
 }
@@ -116,6 +125,7 @@ func (s *Server) hostSessionEnd(w http.ResponseWriter, r *http.Request, module s
 		return
 	}
 	delete(ms.m, v.ID)
+	close(v.done)
 	ms.mu.Unlock()
 	s.sessionPlayed(*v)
 	w.WriteHeader(204)
@@ -146,6 +156,7 @@ func (s *Server) stopModuleSessions(reason string, match func(*moduleSession) bo
 		if match(v) {
 			gone = append(gone, *v)
 			delete(ms.m, id)
+			close(v.done)
 		}
 	}
 	ms.mu.Unlock()

@@ -22,6 +22,11 @@ func (s *Server) RunningNow() []any {
 	if s.gameSvc != nil && s.gameSvc.mgr != nil {
 		games = s.gameSvc.mgr.Count()
 	}
+	for _, v := range s.modSessions.List() {
+		if v.Kind == "game" {
+			games++
+		}
+	}
 	if s.Conns != nil {
 		connections = s.Conns.Open()
 	}

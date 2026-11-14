@@ -33,7 +33,7 @@ RUN VERSION="${VERSION#v}"  && GOARM="${TARGETVARIANT#v}" CGO_ENABLED=0 GOOS="$T
 # Debian, as game cores are prebuilt for glibc: on Alpine the game runner can't even
 # start, and a compatibility layer leaves several cores unable to load. libgl1 is
 # linked by a few software-rendered cores that never use it.
-FROM debian:trixie-slim@sha256:f6b08b09a05725f9431502d3b5714f5c4576e82c1a84fa1debe0c24a7e0c3ec4
+FROM debian:trixie-slim@sha256:a72b4433de1cf7d6bae0c4cee74d0547f58601a643b3375f070c51600d63b6b2
 ARG TARGETARCH VERSION=dev
 LABEL org.opencontainers.image.title="WittyMediaServer" \
       org.opencontainers.image.description="Your own media server: films, TV, music, photos, books, DVD and Blu-ray menus, and games" \

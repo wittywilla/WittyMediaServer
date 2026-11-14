@@ -110,7 +110,6 @@ export default function ModulesSettings() {
   const loc = useLocation()
   const target = params.get('add') || loc.hash.slice(1)
   const reached = useRef('')
-  const [hostReady, setHostReady] = useState(false)
   const store = useStoreView()
   const [logOf, setLogOf] = useState<ModuleStatus | null>(null)
   const features = useFeatures()
@@ -119,7 +118,6 @@ export default function ModulesSettings() {
   useEffect(() => {
     api.get<ModuleReport>('/modules').then(setR).catch((e) => setFailed(e.message))
     api.get<Record<string, string>>('/settings').then(setSettings).catch(() => {})
-    api.get<{ ready: boolean }>('/couch').then((m) => setHostReady(m.ready)).catch(() => {})
   }, [])
 
   // While something installs, follow it.
@@ -317,14 +315,6 @@ export default function ModulesSettings() {
       {ask && <Confirm ask={ask} onClose={() => setAsk(null)} />}
       {logOf && <ModuleLogDialog moduleId={logOf.id} name={logOf.name} onClose={() => setLogOf(null)} />}
 
-      <Section title="Installed separately" desc="A program of its own that runs beside this server, under its own license. The server works without it.">
-        <div className="mod-list">
-          <div className="mod-row">
-            <span className="mod-name"><b>WittyCouch Host</b><span className="muted">Lets people play on Game PCs in the page, built on Moonlight’s own code. License: AGPL-3.0-or-later, with Moonlight-derived parts under the GPL-3.0. <a href="https://github.com/wittywilla/WittyCouchHost" target="_blank" rel="noreferrer noopener">Source</a></span></span>
-            <span className="mod-ver"><span className="mod-local">{hostReady ? 'Installed' : 'Not installed'}</span></span>
-          </div>
-        </div>
-      </Section>
       <LegalNote kind="modules" className="set-legal" />
     </div>
   )

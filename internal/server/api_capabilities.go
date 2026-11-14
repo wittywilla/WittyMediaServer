@@ -120,7 +120,7 @@ var serverFeatures = []string{
 	"shows", "next-up", "recommendations", "skip-intro",
 	"music", "audiobooks", "podcasts", "books", "annotations", "radio", "radio-directory",
 	"themes", "theme-tokens", "modules", "game-metadata", "system-tasks", "system-metrics", "module-pages",
-	"game-controller-profiles", "game-settings", "custom-game-cores", "game-rigs", "library-transcoding",
+	"game-controller-profiles", "game-settings", "custom-game-cores", "library-transcoding",
 	"channels", "live-tv", "live-tv-stream-tokens", "tv-favourites", "tv-reminders", "recordings",
 	"browse", "saved-views", "metadata-editing", "logos", "streaming-listings",
 	"music-home", "music-radio", "lyrics", "min-client-versions", "robust-streaming",

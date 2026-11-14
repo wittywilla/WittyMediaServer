@@ -50,7 +50,7 @@ export function moduleForPath(path: string): string {
   const m = /^\/m\/([a-z][a-z0-9_-]*)\//.exec(path)
   if (m) return m[1]
   if (path === '/tv' || path.startsWith('/tv/')) return 'wittytv'
-  if (path.startsWith('/game/') || path === '/controllers' || path === '/couch' || path.startsWith('/couch/') || path.startsWith('/couch-rig/') || path.startsWith('/big')) return 'wittyplay'
+  if (path.startsWith('/game/') || path === '/controllers' || path === '/couch' || path.startsWith('/couch/') || path.startsWith('/rigs/') || path.startsWith('/big')) return 'wittyplay'
   return ''
 }
 

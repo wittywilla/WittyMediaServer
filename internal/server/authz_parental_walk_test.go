@@ -42,7 +42,7 @@ var idSpaces = map[string]string{
 	"/api/p2p/devices/{id}": "other", // a device's key
 	"/api/items/{id}":       "item", "/api/media/{id}": "item", "/api/games/{id}": "item", "/api/cd/{id}": "item", "/api/radio/{id}": "item",
 	"/api/videos/{id}": "item", "/api/photos/{id}": "item", "/api/music/extras/{id}": "item", "/api/music/loudness/{id}": "item",
-	"/api/music/links/{id}": "item", "/api/music/lyrics/{id}": "item", "/api/music/radio/{id}": "item", "/api/rigs/games/{id}": "item",
+	"/api/music/links/{id}": "item", "/api/music/lyrics/{id}": "item", "/api/music/radio/{id}": "item",
 	"/api/shows/{id}": "show",
 	// A person: called with every person there is, as "other" numbers are.
 	"/api/people/{id}":        "person",
@@ -50,8 +50,8 @@ var idSpaces = map[string]string{
 	"/api/collections/{id}":   "other", "/api/photos/albums/{id}": "other", "/api/creators/{id}": "other", "/api/hls/{id}": "other",
 	"/api/console-photos/{id}": "other", // a console's id (snes): a picture of the hardware, the same for everyone
 	"/api/logos/{id}":          "other", "/api/licenses/{id}": "other", "/api/libraries/{id}": "other", "/api/users/{id}": "other",
-	"/api/views/{id}": "other", "/api/channels/{id}": "other", "/api/couch/hosts/{id}": "other",
-	"/api/modules/{id}": "other", "/api/module-store/{id}": "other", "/api/rigs/{id}": "other", "/api/sessions/{id}": "other",
+	"/api/views/{id}": "other", "/api/channels/{id}": "other",
+	"/api/modules/{id}": "other", "/api/module-store/{id}": "other", "/api/sessions/{id}": "other",
 	"/api/shares/{id}": "other", "/api/recordings/{id}": "other", "/api/recording-rules/{id}": "other", "/api/tv/reminders/{id}": "other", "/api/tv-sets/{id}": "other",
 	// A device and a watch party are named by random words, never by a title's number. What
 	// they show of titles is walked with a device that is playing what is hidden and a party
@@ -64,7 +64,6 @@ var idSpaces = map[string]string{
 var walkSkips = map[string]string{
 	"GET /api/system/metrics/stream": "a stream of numbers, for as long as it is listened to",
 	"GET /api/system/tasks/stream":   "a stream of tasks, for as long as it is listened to",
-	"GET /api/couch/find":            "searches the network",
 	"GET /api/playback/speedtest":    "megabytes of noise",
 	"GET /api/dictionary":            "asks the internet",
 	"GET /api/remote-control/events": "a stream of devices, for as long as it is listened to; the same views as the list of devices, which is walked",

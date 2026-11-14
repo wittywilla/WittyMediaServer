@@ -18,8 +18,7 @@ const WatchParty = lazy(() => import('../remote/WatchParty'))
 const WhereToWatch = lazy(() => import('../components/WhereToWatch'))
 const TitleCanvas = lazy(() => import('../canvas/CanvasVideo').then((m) => ({ default: m.TitleCanvas })))
 const CanvasManager = lazy(() => import('../canvas/CanvasManager'))
-const RigGameDetails = lazy(() => import('./Rigs').then((m) => ({ default: m.RigGameDetails })))
-import { BackLink, EmptyState, LoadError, PageSkeleton, Spinner, artHue, isGeneratedArt } from '../components/common'
+import { BackLink, EmptyState, LoadError, PageSkeleton, artHue, isGeneratedArt } from '../components/common'
 import { IconDevices, IconDisc, IconEdit, IconFilm, IconImage, IconInfo, IconMenu, IconMore, IconNext, IconPlay, IconRefresh, IconRight, IconSettings, IconStar, IconUsers } from '../icons'
 import { IconButton, RowSheet, Rows, SheetRow } from '../ui'
 import { useMedia } from '../shell/useNav'
@@ -58,7 +57,7 @@ export default function ItemPage() {
   if (libType === 'shorts') return <Navigate replace to={`/library/${it.libraryId}?v=${it.id}`} />
   if (libType === 'channels' || libType === 'musicvideos') return <Navigate replace to={`/watch/${it.id}`} />
   if (libType === 'radio') return <Navigate replace to={`/radio/${it.id}`} />
-  if (it.kind === 'game' && it.console === 'rig') return <Suspense fallback={<Spinner />}><RigGameDetails it={it} /></Suspense>
+  if (it.kind === 'game' && it.console === 'rig') return <Navigate to={`/rigs/game/${it.id}`} replace /> // a gaming PC's game: WittyRigs' page
   // A game's page is WittyPlay's (pages/PlayGame.tsx): from a search, a shelf or a link, it opens there, where it's played.
   if (it.kind === 'game') return <Navigate to={`/game/${it.id}`} replace /> // WittyPlay's game page
   if (it.kind === 'cd-image') return <Navigate replace to={`/cd/${it.id}`} />

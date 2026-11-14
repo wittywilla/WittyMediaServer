@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react'
-import { api, ApiError, forgetMissingModule, MODULES_CHANGED, getToken, inMainMenus, serverBase } from '../api'
-import { IconChart, IconGamepad, IconHome, IconLibrary, IconPlug, IconTv, libIcon } from '../icons'
+import { api, getToken, inMainMenus, serverBase } from '../api'
+import { IconChart, IconHome, IconLibrary, IconPlug, IconTv, libIcon } from '../icons'
 import { useModulePages } from '../moduleBundles'
 import { setOwnerNavStyle } from '../navPrefs'
 import { deletePersonal, fetchNavigation, getPersonal, keptNavigation, NAV_PERSONAL, onChange, onPreview, putPersonal } from '../sdui/client'
@@ -22,42 +22,6 @@ import { foldGames } from './navModel'
 // and hidden entries (docs/SDUI.md, "Navigation"). The shell draws it as it always has:
 // the side menu, the bar along the top, a phone's bar at the bottom, a TV's top menu.
 // An older server has no such answer, and the menu is worked out here as before.
-
-// A server without WittyCouch answers 424, which a browser logs as an error on every page
-// load: having been told so, this device doesn't ask that server again for ten minutes, or
-// until modules are changed from here.
-const NO_COUCH = 'wms.noCouch.'
-if (typeof window !== 'undefined') window.addEventListener(MODULES_CHANGED, () => {
-  try { localStorage.removeItem(NO_COUCH + serverBase()) } catch { /* nothing kept */ }
-  couchAsked = null
-})
-function askCouch(): Promise<boolean> {
-  const key = NO_COUCH + serverBase()
-  try { if (Number(localStorage.getItem(key) || 0) > Date.now()) return Promise.resolve(false) } catch { /* ask, then */ }
-  return api.get<{ allowed: boolean }>('/couch').then((r) => r.allowed).catch((e) => {
-    forgetMissingModule()
-    if (e instanceof ApiError && e.status === 424) { try { localStorage.setItem(key, String(Date.now() + 600_000)) } catch { /* ask again next time */ } }
-    return false
-  })
-}
-
-// Whether to offer Game PCs. It's asked for once per person, however many menus want
-// to know, as the answer rarely changes.
-let couchAsked: { user: number; answer: Promise<boolean> } | null = null
-function useCanUseCouch() {
-  const { user } = useApp()
-  const [can, setCan] = useState(false)
-  const [changed, setChanged] = useState(0)
-  useEffect(() => { const on = () => setChanged((n) => n + 1); window.addEventListener(MODULES_CHANGED, on); return () => window.removeEventListener(MODULES_CHANGED, on) }, [])
-  useEffect(() => {
-    if (!user) return
-    if (couchAsked?.user !== user.id) couchAsked = { user: user.id, answer: askCouch() }
-    let live = true
-    couchAsked.answer.then((a) => { if (live) setCan(a) })
-    return () => { live = false }
-  }, [user?.id, changed]) // eslint-disable-line react-hooks/exhaustive-deps
-  return can
-}
 
 // ---------------------------------------------------------------- the server's menu, kept once for every part of the shell
 
@@ -108,19 +72,17 @@ function useServerNav(): { on: boolean; nav: Navigation | null; personal: Person
   return { on, nav: state.key === key ? state.nav : null, personal: state.key === key ? state.personal : null, device }
 }
 
-// The entries only this app has, which a server's menu doesn't know: Game PCs and the
-// pages modules add to the main menu.
+// The entries only this app has, which a server's menu doesn't know: the pages modules add to
+// the main menu.
 function useOwnEntries(): NavItem[] {
-  const couch = useCanUseCouch()
   const modulePages = useModulePages()
   return useMemo(() => {
     const list: NavItem[] = []
-    if (couch) list.push({ id: 'couch', label: 'Game PCs', to: '/couch' })
     for (const p of modulePages) {
       if (p.where === 'main') list.push({ id: `m:${p.module}:${p.id}`, label: p.title, to: `/m/${p.module}/${p.id}`, kind: 'module:' + (p.icon ?? '') })
     }
     return list
-  }, [couch, modulePages])
+  }, [modulePages])
 }
 
 function placeOwn(server: NavItem[], own: NavItem[], personal: Personal | null): NavItem[] {
@@ -246,7 +208,6 @@ export function navIcon(item: NavItem): ReactNode {
     case 'home': return <IconHome />
     case 'tv': return <IconTv />
     case 'collections': return <IconLibrary />
-    case 'couch': return <IconGamepad />
     default: return libIcon(item.kind || '')
   }
 }

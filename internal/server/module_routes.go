@@ -19,8 +19,17 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
+	"github.com/wittywilla/wittymediaserver/internal/remote"
 	"github.com/wittywilla/wittymodule"
 	"github.com/wittywilla/wittymodule/service"
+)
+
+// headerLimited, headerReached and headerMachine are told to a module's routes beside
+// WittyModule's own (service.Who has no field for them yet; modules read them by name).
+const (
+	headerLimited = "X-Witty-Limited"
+	headerReached = "X-Witty-Reached"
+	headerMachine = "X-Witty-Machine"
 )
 
 // Module routes (module API 5, docs/MODULES-API5.md). A module's integration.json lists the
@@ -285,6 +294,16 @@ func (s *Server) passToModule(w http.ResponseWriter, r *http.Request, ref module
 		}
 		if !clientFrom(r).Where.AtHome() {
 			extra.Set(service.HeaderAway, "1")
+		}
+		// A profile with limits set on it (WittyCouch keeps a PC's desktop from it).
+		if a := accessFor(u); a != nil && a.Limited() {
+			extra.Set(headerLimited, "1")
+		}
+		// The name this device reached the server by, and whether it is this machine itself:
+		// what a module that hands out addresses (WittyRigs: this machine's own Sunshine) needs.
+		extra.Set(headerReached, r.Host)
+		if clientFrom(r).Where == remote.Machine {
+			extra.Set(headerMachine, "1")
 		}
 	}
 	// A query's sign-in (a stream token) isn't the module's.

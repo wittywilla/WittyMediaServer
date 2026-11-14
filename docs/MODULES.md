@@ -55,7 +55,7 @@ The server keeps only the shape of what a module says:
 
 | In the server | What it is |
 |---|---|
-| `internal/play/...`, `internal/couch/...` | Stubs written by `kit/facade` in WittyModule from `facade.json` in the module: the module's types, and functions that call its service. Never edited by hand, except `manual.go` |
+| `internal/play/...` | Stubs written by `kit/facade` in WittyModule from `facade.json` in the module: the module's types, and functions that call its service. Never edited by hand, except `manual.go` |
 | `internal/dvd`, `internal/bluray`, `internal/cd`, `internal/tuner` | The types those modules answer in, kept as a copy. A helper and the server compile them separately, and they match by field name |
 | `internal/tuner/mpegts`, and `isofs` from WittyDisc | The server's **own** encryption guard and disc image reader, so it refuses encrypted media itself, whatever a module says |
 | `web/src/moduletypes` | The TypeScript types of the browser parts, from `scripts/sync-module-types.mjs`. Types only: nothing from them runs |

@@ -305,8 +305,6 @@ func TestFeaturesTurnedOff(t *testing.T) {
 	}{
 		{"games", "GET", "/api/games/brand-logos", nil},
 		{"games", "GET", fmt.Sprintf("/api/games/%d/metadata", game.ID), nil},
-		{"games", "GET", "/api/couch", nil},
-		{"games", "GET", "/api/rigs", nil},
 		{"recordings", "GET", "/api/recordings", nil},
 		{"recordings", "POST", "/api/recording-rules", map[string]any{}},
 		{"downloads", "GET", fmt.Sprintf("/api/items/%d/original", film.ID), nil},

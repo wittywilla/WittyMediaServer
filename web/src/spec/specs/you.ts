@@ -37,8 +37,8 @@ export function youSpec(d: YouIn): SpecPageData {
     s.push(secR('Server', [
       row('Libraries', '/settings/libraries', 'Library', quiet), row('Metadata and artwork', '/settings/metadata', 'Image', quiet), row('Fix matches', '/fix-matches', 'Wand', quiet),
       row('Playback and discs', '/settings/playback', 'Play', quiet), row('Live TV and tuners', '/settings/channels', 'Channels', quiet), row('Consoles and cores', '/settings/gaming', 'Gamepad', quiet),
-      row('Game PCs', '/settings/couch', 'Drive', quiet), row('Live transcoding', '/settings/transcoding', 'Bolt', quiet), row('Library transcoding', '/settings/library-transcoding', 'Refresh', quiet),
-      row('Remote access', '/settings/remote', 'Globe', quiet), row('Appearance and branding', '/settings/appearance', 'Brush', quiet), row('WittyRigs', '/settings/wittyrigs', 'Server', quiet),
+      row('Live transcoding', '/settings/transcoding', 'Bolt', quiet), row('Library transcoding', '/settings/library-transcoding', 'Refresh', quiet),
+      row('Remote access', '/settings/remote', 'Globe', quiet), row('Appearance and branding', '/settings/appearance', 'Brush', quiet),
     ]))
     s.push(secR('Maintenance', [
       row('WittyLog', '/settings/logs', 'File', quiet), row('WittyDiagnoser', '/settings/diagnoser', 'Tune', quiet), row('Modules', '/settings/modules', 'Plug', quiet),

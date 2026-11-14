@@ -249,7 +249,7 @@ internal/server        routes, streaming, security, the built-in web app
 | `wms-forwarder` in `cmd` | Ships as `wms` in the `.zip` and `.tar.gz` only, so a copy of 0.5.2-alpha can update |
 | `internal/server` | The HTTP API, streaming, security middleware and the built-in web app |
 | `internal/modules` | The store, catalogue, signatures, sandboxes, and starting helpers |
-| `internal/play`, `internal/couch` | Stubs written by a generator from each module's source: its types, and functions that call its service |
+| `internal/play` | Stubs written by a generator from WittyPlay's source: its types, and functions that call its service |
 | `internal/dvd`, `internal/bluray`, `internal/cd`, `internal/tuner` | The types those modules answer in, kept as a copy |
 | `isofs` from WittyDisc, `internal/tuner/mpegts` | The server's own disc image reader and encryption guard, so it refuses encrypted media itself, whatever a module says |
 | `internal/library` | Libraries, scanning, shows, music, books, metadata, watch state |

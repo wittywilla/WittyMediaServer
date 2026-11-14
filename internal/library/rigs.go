@@ -103,3 +103,17 @@ func (s *Store) VisibleRigGames(ctx context.Context, libraryID int64, a *Access)
 		append([]any{libraryID}, args...)...).Scan(&n)
 	return n, err
 }
+
+// SetRigPoster sets a rig game's picture from its PC ("" for none). A picture someone chose by
+// hand stays: only an empty one, or the PC's own, is replaced. It says whether it changed.
+func (s *Store) SetRigPoster(ctx context.Context, itemID int64, poster string) (bool, error) {
+	it, err := s.Item(ctx, itemID)
+	if err != nil {
+		return false, err
+	}
+	if it.Console != RigConsole || (it.Poster != "" && !strings.HasPrefix(it.Poster, RigArtPrefix)) || it.Poster == poster {
+		return false, nil
+	}
+	it.Poster = poster
+	return true, s.upsertItem(ctx, it)
+}

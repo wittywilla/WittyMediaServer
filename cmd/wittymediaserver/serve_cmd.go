@@ -290,13 +290,6 @@ func cmdServe(args []string) int {
 			return nil
 		},
 		Dir: filepath.Join(cfg.DataDir, "modules"), Server: version, Builtins: modules.ServerManifests(), Known: true, CatalogURL: update.ModuleCatalog(), Starter: layout.Current().Modules(),
-		WriteFolders: func(id string) []string {
-			switch id {
-			case "wittycouch": // so do the keys that say this server is paired with a computer
-				return []string{filepath.Join(cfg.DataDir, "wittycouch"), filepath.Join(cfg.DataDir, "gamerigs")}
-			}
-			return nil
-		},
 		Transport: logging.Calls(library.SafeClient.Transport, "modules", "modules"), Log: log, Launcher: modulesLauncher(), LogEnv: logs.ModuleEnv,
 		CheckEnabled: func() bool {
 			ctx := context.Background()
@@ -533,8 +526,6 @@ func cmdServe(args []string) int {
 		if srv.TV != nil {
 			srv.TV.Close()
 		}
-		srv.StopRigs()
-		srv.StopCouch()
 		sctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		srv.StopRemote(sctx)

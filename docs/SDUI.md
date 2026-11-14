@@ -635,7 +635,7 @@ like the built-in ones.
 
 | For the profile | Conditions that are false | And |
 |---|---|---|
-| Games off | `can: games`; features `game-metadata`, `game-controller-profiles`, `game-settings`, `custom-game-cores`, `game-rigs`, `standalone-emulators`; modules `wittyplay`, `wittycouch`, `wittyrigs` | Games libraries are in no page, row or navigation entry; `continuePlaying` is empty. |
+| Games off | `can: games`; features `game-metadata`, `game-controller-profiles`, `game-settings`, `custom-game-cores`, `standalone-emulators`; modules `wittyplay`, `wittycouch`, `wittyrigs` | Games libraries are in no page, row or navigation entry; `continuePlaying` is empty. |
 | Live TV off | `can: liveTv`; features `live-tv`, `live-tv-stream-tokens`, `tv-favourites`, `tv-reminders`, `recordings`; modules `wittytv`, `wittytuner` | `liveNow` and channel search are empty; the built-in Live TV entry is not in the navigation. |
 | Recording off | `can: recordings`; feature `recordings` | `recordings` is empty. |
 | Watch parties off | `can: syncplay`; feature `syncplay` | No **Watch party** button. |

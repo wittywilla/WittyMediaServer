@@ -96,6 +96,10 @@ Each route is mounted at `/api/modules/<id><path>` and `/api/v1/modules/<id><pat
 | `X-Witty-Kind` | The profile's kind: `adult`, `kids` or `guest` |
 | `X-Witty-Confirmed` | `1` on a `confirm` route when the person gave their password and it was right |
 | `X-Witty-SignIn` | An opaque name for the sign-in the request came from, the same for each of its requests and new each time the server starts. A session names it so that signing out there ends it |
+| `X-Witty-Away` | `1` when the server counts the device as away from home |
+| `X-Witty-Limited` | `1` when the profile has limits set on it |
+| `X-Witty-Reached` | The host (and port) the device reached the server by |
+| `X-Witty-Machine` | `1` when the request came from the server's own machine |
 
 **What it does with the answer:** drops `Set-Cookie`, adds `X-Content-Type-Options: nosniff`, holds a non-stream answer to its limit, and leaves `Cache-Control` to the module.
 
@@ -121,10 +125,14 @@ Every call that's on someone's behalf says who (`host.On{User}`, or `host.For(r)
 | `StartSession`, `EndSession` | `POST /sessions`, `DELETE /sessions/{id}` | Something live (`kind`, `user`, `item`, `title`, `signIn`). The server shows it in "playing now" and metrics, counts its time as screen time, adds a game's time to "Continue playing", and ends it when its sign-in ends, its profile's screen time runs out, games are turned off for the profile or the account goes: it then sends the event `session.stop` (`{id, user, reason}`) and the module stops it |
 | `Users` | `GET /users` | Every account: id, name, display name, kind, administrator, when a sign-in of theirs was last used |
 | `Tools` | `GET /tools` | The server's FFmpeg and FFprobe, the encoders it has, and its test of hardware encoders |
-| `Events` | `GET /events?after=&wait=` | Waits up to `wait` (at most 55s) for events after a number: `server.started`, `scan.finished`, … |
+| `Events` | `GET /events?after=&wait=` | Waits up to `wait` (at most 55s) for events after a number: `server.started`, `scan.finished`, `user.deleted` `{user}`, `library.removed` `{library}`, … |
 | `Task` | `POST /tasks/{name}` | A long piece of work, shown with the server's tasks (administrators only) |
 | (`Do`) | `GET /setup` | `{"done": [ids]}`: the module's setup steps done or skipped at the version it declares |
 | (`Do`) | `POST /setup/{id}` `{skip}` | On an administrator's behalf: the module's setup step `id` is done (or skipped) at the `version` it declares. Until then a step with a `page` is a "Finish setting up <module>" notice on administrators' Home, on every app, opening that SDUI page. Written to the audit log |
+| (`Do`) | `GET /programs/{id}` | How to run a program module this module is built on (its `requires`, or theirs): `{path, args, version}`, 404 when it isn't installed and on (WittyCouch Host for WittyCouch and WittyRigs) |
+| (`Do`) | `POST /libraries` `{name}`, `PATCH`/`DELETE /libraries/{id}` | A games library the module holds (`console: rig`), whose games come from somewhere other than files: nothing scans it. Only a module serving games libraries, and only such libraries |
+| (`Do`) | `PUT /libraries/{id}/items` `{path, title, tagline}`, `DELETE /items/{id}` | A game in such a library: `{id, new}`; `path` is `rig://…`, naming nothing on disk; a new one is asked about by the game metadata sources |
+| (`Do`) | `PUT`/`DELETE /items/{id}/poster` | Such a game's picture from where it comes (the bytes, up to 8 MB), or none; a picture someone chose by hand is never replaced |
 
 Refusals are JSON `{"error"}` with the status; an `X-Witty-Host` header tells a refusal of the host API's from a call this server doesn't have (`host.ErrNotOffered`).
 

@@ -24,9 +24,7 @@ import * as m14 from './moduleBundles'
 import * as m15 from './myLimits'
 import * as m16 from './pages/SettingsPage'
 import * as m17 from './pages/games/VirtualGames'
-import * as m18 from './pages/settings/Couch'
 import * as m19 from './pages/settings/ModuleSettings'
-import * as m20 from './pages/settings/WittyRigs'
 import * as m21 from './pages/settings/ui'
 import * as m22 from './pages/setup/parts'
 import * as m23 from './pages/setup/plan'
@@ -78,9 +76,7 @@ export const appModules: Record<string, unknown> = {
   'myLimits': m15,
   'pages/SettingsPage': m16,
   'pages/games/VirtualGames': m17,
-  'pages/settings/Couch': m18,
   'pages/settings/ModuleSettings': m19,
-  'pages/settings/WittyRigs': m20,
   'pages/settings/ui': m21,
   'pages/setup/parts': m22,
   'pages/setup/plan': m23,

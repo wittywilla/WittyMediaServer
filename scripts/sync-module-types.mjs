@@ -20,7 +20,7 @@ const tsc = join(web, 'node_modules/typescript/bin/tsc')
 
 const modules = {
   wittyink: 'WittyInk', wittyebook: 'WittyEbook', wittypdf: 'WittyPDF', wittycomics: 'WittyComics', wittyvisualizer: 'WittyVisualizer',
-  wittyplay: 'WittyPlay', wittycouch: 'WittyCouch', wittyintegratedfilebrowser: 'WittyIntegratedFileBrowser',
+  wittyplay: 'WittyPlay', wittyintegratedfilebrowser: 'WittyIntegratedFileBrowser',
 }
 
 const entryOf = (dir) => {

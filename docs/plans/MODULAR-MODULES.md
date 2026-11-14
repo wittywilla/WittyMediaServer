@@ -29,7 +29,7 @@ This plan **supersedes the "server builds with it" half of [module-isolation.md]
 - [Order of work](#order-of-work)
 - [Testing](#testing)
 - [Risks](#risks)
-- [Decisions for the owner](#decisions-for-the-owner)
+- [Decisions (made 2026-11-14)](#decisions-made-2026-11-14)
 
 ---
 
@@ -599,7 +599,7 @@ What moves (→ module) and what stays (host). "Hook" names what in M0 makes the
 | **WittyCD** | `CdPlayer`, `CdGraphics`, `cd.css`, the CD part of `cdEngine` via an audio-engine slot, identify and matches routes | Audio stream through FFmpeg, cover fetching, `items.cd_disc` | Players, audio-engine slot |
 | **WittyPhotos** | Gets a web part: `PhotosLibrary`, `PhotoMap`, `PhotoViewer`, `mapMath` as its views; albums routes; photo-map settings | Photo scan and EXIF storage, image serving, uploads, sharing | Views, routes, settings, data (albums) |
 | **Readers** | Nothing big. The format→reader map and WittyInk precondition become the `readers` hook; `Books.tsx` goes once WittyInk's pages are the only ones; the stock `books`/`library-books` pages defer to WittyInk's | Unpacking books and comics, conversion, **the sanitiser**, annotations | Readers |
-| **WittyVisualizer, WittyStats, WittyIntegratedFileBrowser** | Adopt `register`; visualizer presets come from the module, not `music.json` | Metrics and who sees them; `/api/fs` and its fallback | Audio-stage slot |
+| **WittyVisualizer, WittyStats, WittyIntegratedFileBrowser** | Adopt `register`; visualizer presets come from the module, not `music.json`. **Done 2026-11-14 (M7b):** API 5 with `integration.json`; TV pages Statistics and Server folders | Metrics and who sees them; `/api/fs` and its fallback | Audio-stage slot (not in WittyModule 0.5.2: the named exports stand in) |
 
 ## Order of work
 

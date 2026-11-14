@@ -57,6 +57,9 @@ test('routes: an address is a page with parameters, or one of the app\'s own scr
   assert.deepEqual(resolve('/collections/12'), { kind: 'page', page: 'detail', params: { collection: '12' } })
   assert.deepEqual(resolve('/search', '?q=moon'), { kind: 'page', page: 'search', params: { q: 'moon' } })
   assert.deepEqual(resolve('/page/family-night', '?tab=b'), { kind: 'page', page: 'family-night', params: { tab: 'b' } })
+  // What a custom page is opened about reaches the server, so its sources read $item, $name and $of.
+  assert.deepEqual(resolve('/page/wittyintegratedfilebrowser', '?name=%2Fmedia%2FMusic'), { kind: 'page', page: 'wittyintegratedfilebrowser', params: { name: '/media/Music' } })
+  assert.deepEqual(resolve('/page/wittycouch-host', '?item=4&name=Den'), { kind: 'page', page: 'wittycouch-host', params: { item: '4', name: 'Den' } })
   assert.deepEqual(resolve('/settings/appearance'), { kind: 'native', screen: 'settings', vars: { section: 'appearance' } })
   assert.deepEqual(resolve('/tv/guide'), { kind: 'native', screen: 'guide', vars: {} })
   assert.equal(resolve('/help/getting-started'), null)

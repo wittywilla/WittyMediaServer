@@ -4,3 +4,4 @@ export type { VisualizerHost } from './host.ts';
 export type { Settings } from './engine.ts';
 export { moduleSettingValues, normalizeSettings } from './engine.ts';
 export type { Place } from './session.ts';
+export declare function register(_host: unknown): Record<string, never>;

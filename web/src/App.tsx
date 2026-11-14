@@ -136,7 +136,7 @@ function Shell() {
   if (moduleFull) {
     return (
       <AudioProvider>
-        <ModuleCards><ModuleFrame match={moduleFull} fallback={<Spinner />} /></ModuleCards>
+        <ModuleCards hold fallback={<Spinner />}><ModuleFrame match={moduleFull} fallback={<Spinner />} /></ModuleCards>
         <PlayerDock />
         <RemoteHost />
         <ReminderWatcher />

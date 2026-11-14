@@ -6676,6 +6676,106 @@
           "installed": {
             "type": "boolean"
           },
+          "integrationAdds": {
+            "anyOf": [
+              {
+                "properties": {
+                  "data": {
+                    "type": "boolean"
+                  },
+                  "feature": {
+                    "type": "string"
+                  },
+                  "libraries": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "routeKinds": {
+                    "anyOf": [
+                      {
+                        "properties": {
+                          "admin": {
+                            "type": "integer"
+                          },
+                          "items": {
+                            "type": "integer"
+                          },
+                          "plays": {
+                            "type": "integer"
+                          },
+                          "streams": {
+                            "type": "integer"
+                          },
+                          "ticket": {
+                            "type": "integer"
+                          },
+                          "user": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "admin",
+                          "items",
+                          "plays",
+                          "streams",
+                          "ticket",
+                          "user"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "routes": {
+                    "type": "integer"
+                  },
+                  "screens": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "settings": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "setup": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "routes",
+                  "screens",
+                  "settings"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "lastFailure": {
             "type": "string"
           },

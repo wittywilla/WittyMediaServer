@@ -144,7 +144,7 @@ func (m *Manager) loadCatalog(saved map[string]moduleState) {
 		if err != nil {
 			return nil, err
 		}
-		return verifyCatalog(raw, sig, m.keys)
+		return wittymodule.VerifyCatalog(raw, sig, m.keys)
 	}
 	if c, err := read(m.dir); err == nil {
 		best, from = c, m.cfg.CatalogURL
@@ -312,7 +312,7 @@ func (m *Manager) checkCatalog(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("the module catalogue's signature: %w", err)
 	}
-	c, err := verifyCatalog(raw, sig, m.keys)
+	c, err := wittymodule.VerifyCatalog(raw, sig, m.keys)
 	if err != nil {
 		return fmt.Errorf("the module catalogue was ignored: %w", err)
 	}

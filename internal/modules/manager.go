@@ -150,6 +150,9 @@ type Status struct {
 	Requires      []string      `json:"requires,omitempty"`
 	RequiredBy    []string      `json:"requiredBy,omitempty"`
 
+	// What the version in use adds to this server, from its integration.json (module API 5).
+	IntegrationAdds *StoreIntegration `json:"integrationAdds,omitempty"`
+
 	// A fork in place of the module's own repository.
 	StockRepo string      `json:"stockRepo"`
 	Source    *SourceInfo `json:"source,omitempty"`

@@ -167,7 +167,7 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
         </section>
       )}
 
-      <WhatItAdds ui={it.ui || m?.uiAdds} name={it.name} />
+      <WhatItAdds ui={it.ui || m?.uiAdds} integration={installedHere && m?.integrationAdds ? m.integrationAdds : it.integration || m?.integrationAdds} id={it.id} libraries={it.libraries} name={it.name} />
 
       <section className="st-mod-sec" aria-labelledby="st-new">
         <h2 id="st-new">What’s new{(m?.latest?.version || it.version) ? <span className="ms-ver"> {m?.latest?.version || it.version}</span> : null}</h2>

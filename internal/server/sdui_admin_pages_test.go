@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/pkg/sdui"
 )
 
 // The administrators' pages: an administrator gets the libraries, a form to add one and a title's match
@@ -52,5 +53,31 @@ func TestSDUIAdminPages(t *testing.T) {
 	doc = sduiDoc(t, ts.do(t, "GET", fmt.Sprintf("/api/v1/sdui/pages/match?formFactor=web&item=%d", it.ID), admin, nil))
 	if n := findNode(&doc.Root, "candidates"); n == nil || len(n.Children) == 0 || n.Children[len(n.Children)-1].Action.Op != "meta.unmatch" {
 		t.Errorf("match page: %+v", n)
+	}
+}
+
+// The You page's Libraries row opens /manage/libraries on every client: the route is the page
+// manage-libraries, and on every form factor (a television's too) an administrator gets its rows, each
+// opening that library's scan choices as a layer.
+func TestManageLibrariesOnEveryFormFactor(t *testing.T) {
+	routes := map[string]sdui.RouteSpec{}
+	for _, r := range sdui.Catalog().Routes {
+		routes[r.Pattern] = r
+	}
+	if r := routes["/manage/libraries"]; r.Page != "manage-libraries" || r.Native != "" {
+		t.Fatalf("/manage/libraries: %+v", r)
+	}
+	if r := routes["/manage/library/{item}"]; r.Page != "manage-library" || r.Params["item"] != "{item}" {
+		t.Fatalf("/manage/library/{item}: %+v", r)
+	}
+	ts := newTestServer(t)
+	lib := ts.library(t, "movies", t.TempDir())
+	_, admin := ts.user(t, "boss", "adult", true, "")
+	for _, ff := range []string{"phone", "tablet", "tv", "desktop", "web"} {
+		doc := sduiDoc(t, ts.do(t, "GET", "/api/v1/sdui/pages/manage-libraries?formFactor="+ff, admin, nil))
+		n := findNode(&doc.Root, "all")
+		if n == nil || len(n.Children) != 1 || n.Children[0].Action == nil || n.Children[0].Action.To != fmt.Sprintf("/manage/library/%d", lib) || n.Children[0].Action.As != "layer" {
+			t.Errorf("%s: libraries for an administrator: %+v", ff, n)
+		}
 	}
 }

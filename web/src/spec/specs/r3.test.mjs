@@ -79,6 +79,8 @@ test('you: an administrator sees everything, every row goes somewhere and has an
   assert.deepEqual(p.sections.map((s) => s.h), ['Account', 'Household', 'Yours', 'On this device', 'Server', 'Maintenance', 'Help and about', 'This server', ''])
   for (const s of p.sections.slice(0, 7)) for (const r of s.items) { assert.ok(r.to, r.title); assert.ok(r.icon, r.title) }
   assert.equal(p.sections[0].items[2].value, 'On')
+  // Libraries opens the SDUI page every client draws (manage-libraries), each library's scan choices a layer over it.
+  assert.equal(p.sections.find((s) => s.h === 'Server').items.find((r) => r.title === 'Libraries').to, '/manage/libraries')
   assert.equal(p.sections.at(-1).items.map((c) => c.id).join(), 'sign-out')
 })
 

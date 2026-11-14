@@ -113,7 +113,7 @@ func buildUtilityPages() []Page {
 	onlyAdmin := func(x Section) Section { return when(x, Condition{Admin: &admin}) }
 	notAdmin := when(sec("not", "Notice", props{"tone": "info", "text": "Only an administrator can manage this."}, nil), Condition{Admin: new(bool)})
 	manageLibraries := Page{ID: "manage-libraries", Kind: "custom", Title: "Libraries", Icon: "library",
-		Description: "Administrators: the libraries with their scan state, a row opening each one's scan choices, and a form adding one. Opened at /manage/libraries.",
+		Description: "Administrators: the libraries with their scan state, a row opening each one's scan choices, and a form adding one. Opened at /manage/libraries, which the You page's Libraries row opens on every client.",
 		Sections: []Section{notAdmin,
 			onlyAdmin(sec("all", "List", props{"empty": "message", "emptyText": "No libraries yet. Add one below."}, Source{"type": "libraryAdmin"})),
 			onlyAdmin(sec("forget", "Button", props{"label": "Remove downloaded details", "icon": "history", "op": "libraries.forgetMetadata", "variant": "ghost",

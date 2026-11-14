@@ -35,7 +35,7 @@ export function youSpec(d: YouIn): SpecPageData {
   s.push(secR('On this device', [row('Theme', '/settings/appearance#theme', 'Palette', 'b', d.themeName)]))
   if (d.isAdmin) {
     s.push(secR('Server', [
-      row('Libraries', '/settings/libraries', 'Library', quiet), row('Metadata and artwork', '/settings/metadata', 'Image', quiet), row('Fix matches', '/fix-matches', 'Wand', quiet),
+      row('Libraries', '/manage/libraries', 'Library', quiet), row('Metadata and artwork', '/settings/metadata', 'Image', quiet), row('Fix matches', '/fix-matches', 'Wand', quiet),
       row('Playback', '/settings/playback', 'Play', quiet), row('Live TV and tuners', '/settings/channels', 'Channels', quiet), row('Consoles and cores', '/settings/gaming', 'Gamepad', quiet),
       row('Live transcoding', '/settings/transcoding', 'Bolt', quiet), row('Library transcoding', '/settings/library-transcoding', 'Refresh', quiet),
       row('Remote access', '/settings/remote', 'Globe', quiet), row('Appearance and branding', '/settings/appearance', 'Brush', quiet),

@@ -1197,6 +1197,9 @@ func (r *renderer) collectionPage(n *Node, in instance, offset, limit int, allow
 					row.Props["number"] = strconv.Itoa(num)
 				}
 			}
+			if propBool(p, "focusable", false) {
+				row.Props["focusable"] = true // a stop even while it has no action (a scan's choices while it runs)
+			}
 			n.Children = append(n.Children, row)
 			continue
 		}

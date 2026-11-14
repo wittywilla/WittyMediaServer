@@ -25,7 +25,9 @@ func Focusable(n *Node, inHero bool) bool {
 		if c, ok := n.Props["control"].(*Control); ok && c != nil {
 			return !c.Disabled || n.Action != nil
 		}
-		return n.Action != nil
+		// A row of a focusable list stays a stop without an action, so focus isn't lost when a
+		// refresh sends it without one for a while (Scan for changes while a scan runs).
+		return n.Action != nil || n.Props["focusable"] == true
 	case "Hero":
 		return len(n.Children) > 0
 	case "DetailHeader":
@@ -50,14 +52,17 @@ func focusGroup(n *Node) bool {
 //  1. a SearchBox with autofocus;
 //  2. else the page's DetailHeader;
 //  3. else the first focusable node that isn't a Tab, a FilterBar or a
-//     SearchBox: the content, not the controls above it;
+//     SearchBox: the content, not the controls above it. A row of a
+//     focusable List that has no action (a line that only says how things
+//     stand, such as "Last scanned") is passed over for the next one;
 //  4. else the first focusable node.
 func stampFocus(root *Node) {
 	order := 0
 	var first, content, header, search *Node
 	var walk func(n *Node, group string, inHero bool)
 	var stamp func(n *Node, group string, inHero bool)
-	inDock := false // the Dock's buttons are controls, not content: focus doesn't start there
+	inDock := false  // the Dock's buttons are controls, not content: focus doesn't start there
+	passive := false // in a focusable List, whose rows without an action are stops but not starts
 	walk = func(n *Node, group string, inHero bool) {
 		if n.Type == "Dock" {
 			inDock = true
@@ -82,9 +87,12 @@ func stampFocus(root *Node) {
 		if focusGroup(n) {
 			group = n.ID
 		}
+		was := passive
+		passive = listLike(n.Type) && n.Props["focusable"] == true
 		for i := range n.Children {
 			walk(&n.Children[i], group, inHero || n.Type == "Hero")
 		}
+		passive = was
 	}
 	stamp = func(n *Node, group string, inHero bool) {
 		n.Focus = nil
@@ -106,7 +114,7 @@ func stampFocus(root *Node) {
 				}
 				fallthrough
 			default:
-				if content == nil && !inDock {
+				if content == nil && !inDock && !(passive && n.Action == nil) {
 					content = n
 				}
 			}

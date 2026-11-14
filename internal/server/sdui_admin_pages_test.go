@@ -125,3 +125,23 @@ func TestManageLibrariesOnEveryFormFactor(t *testing.T) {
 		}
 	}
 }
+
+// On a television the scan choices open on "Scan for changes", not on the line that says when the library
+// was last scanned: a focusable list's rows without an action are stops, not where focus starts.
+func TestManageLibraryFocusStartsOnScan(t *testing.T) {
+	ts := newTestServer(t)
+	lib := ts.library(t, "movies", t.TempDir())
+	_, admin := ts.user(t, "boss", "adult", true, "")
+	ts.Scanner.Progress[lib] = &library.ScanProgress{LibraryID: lib, Phase: "scanning", Found: 10, Done: 1}
+	busy := sduiDoc(t, ts.do(t, "GET", fmt.Sprintf("/api/v1/sdui/pages/manage-library?formFactor=tv&item=%d", lib), admin, nil))
+	delete(ts.Scanner.Progress, lib)
+	if n := findNode(&busy.Root, "choices:changes"); n == nil || n.Focus == nil {
+		t.Fatalf("while scanning, Scan for changes isn't a focus stop: %+v", n)
+	}
+	time.Sleep(busyRenderFor)
+	doc := sduiDoc(t, ts.do(t, "GET", fmt.Sprintf("/api/v1/sdui/pages/manage-library?formFactor=tv&item=%d", lib), admin, nil))
+	n := findNode(&doc.Root, "choices:changes")
+	if n == nil || n.Focus == nil || !n.Focus.Default {
+		t.Errorf("focus doesn't start on Scan for changes: %+v", n)
+	}
+}

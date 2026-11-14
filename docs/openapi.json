@@ -8192,6 +8192,197 @@
           "id": {
             "type": "string"
           },
+          "integration": {
+            "anyOf": [
+              {
+                "properties": {
+                  "cards": {
+                    "items": {
+                      "properties": {
+                        "art": {
+                          "type": "boolean"
+                        },
+                        "detail": {
+                          "type": "boolean"
+                        },
+                        "link": {
+                          "type": "boolean"
+                        },
+                        "mediaKind": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "mediaKind"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "navFold": {
+                    "items": {
+                      "properties": {
+                        "into": {
+                          "type": "string"
+                        },
+                        "libraryKind": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "into",
+                        "libraryKind"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "players": {
+                    "items": {
+                      "properties": {
+                        "mediaKind": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "mediaKind"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "readers": {
+                    "items": {
+                      "properties": {
+                        "format": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "format"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "routes": {
+                    "items": {
+                      "properties": {
+                        "frame": {
+                          "type": "string"
+                        },
+                        "path": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "frame",
+                        "path"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "settings": {
+                    "items": {
+                      "properties": {
+                        "admin": {
+                          "type": "boolean"
+                        },
+                        "after": {
+                          "type": "string"
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string"
+                        },
+                        "search": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": [
+                            "array",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "label"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "setup": {
+                    "items": {
+                      "properties": {
+                        "after": {
+                          "type": "string"
+                        },
+                        "id": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "takeover": {
+                    "items": {
+                      "properties": {
+                        "libraryKind": {
+                          "type": "string"
+                        },
+                        "route": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "libraryKind",
+                        "route"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  }
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "pages": {
             "items": {
               "properties": {
@@ -36149,6 +36340,55 @@
           "Server"
         ],
         "x-wms-auth": "admin"
+      }
+    },
+    "/module-images/{module}/{name}": {
+      "get": {
+        "operationId": "getModuleImagesModuleName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "module",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/*": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "A picture a module of API 5 kept through the host API (PNG, JPEG, GIF or WebP), named by its content."
+          },
+          "404": {
+            "description": "There is none."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A picture a module kept",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "user"
       }
     },
     "/module-store/{id}/{key}": {

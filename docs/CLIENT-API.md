@@ -1425,6 +1425,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in `openap
 | `GET /modules/{id}/icon` | user | Its picture, kept by the server and checked against the signed catalogue. |
 | `GET /module-store/{id}/{key}` | user | A little JSON a module's page kept for this person, or null. |
 | `PUT /module-store/{id}/{key}` | user | Keeps it: at most 64 KB a key and 32 keys a module. |
+| `GET /module-images/{module}/{name}` | user | A picture a module of API 5 kept through the host API (docs/MODULES-API5.md), named by its content. |
 | `GET /modules/{id}/notices` | user | The licenses of the libraries in its programs, as plain text. |
 | `POST /modules/{id}/pin` | admin | Keep the version in use; automatic updates leave it alone. A version withdrawn for security reasons goes out of use anyway. |
 | `DELETE /modules/{id}/pin` | admin | Let automatic updates move it again. |

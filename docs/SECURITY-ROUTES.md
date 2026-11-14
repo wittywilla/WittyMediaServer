@@ -359,6 +359,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/modules/{id}/notices` | Signed-in | Known module. Only the notices file of the version in use |
 | `GET /api/module-store/{id}/{key}` | Signed-in | own. Known module. A key of letters and digits |
 | `PUT /api/module-store/{id}/{key}` | Signed-in | own. Known module. A key of letters and digits. JSON of at most 64 KB, and 32 keys for a module |
+| `GET /api/module-images/{module}/{name}` | Signed-in | A name of letters and digits with one extension, inside that module's own picture folder; only pictures a module kept through the host API |
 | `GET /api/modules/{id}/web/{version}/{path...}` | Signed-in; address token | Version in use. Name in the bundle's signed list, of a listed file type, hash checked when served |
 | `POST /api/modules/{id}/failed` | Signed-in | Known module. 4 KB body. Rate per account. Counts against a version only from an admin |
 | `GET /api/modules/wittyplay/docker/status` | Admin | Passed to WittyPlay as the administrator: X-Witty- headers from the client dropped, X-Witty-User and X-Witty-Admin set. WittyPlay checks the body |

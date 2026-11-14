@@ -213,6 +213,7 @@ var routeRules = map[string]string{
 	"GET /api/meta/{target}/{id}/listings":                      "Signed-in: limits",
 	"GET /api/module-store/{id}/{key}":                          "Signed-in: own. Known module. A key of letters and digits",
 	"GET /api/modules/{id}/icon":                                "Signed-in: Known module. Only what the signed catalogue names, kept on this server",
+	"GET /api/module-images/{module}/{name}":                    "Signed-in: A name of letters and digits with one extension, inside that module's own picture folder; only pictures a module kept through the host API",
 	"GET /api/modules/{id}/notices":                             "Signed-in: Known module. Only the notices file of the version in use",
 	"GET /api/modules/libraries":                                "Signed-in: Nothing: which kinds of library exist",
 	"GET /api/modules/web":                                      "Signed-in: Nothing: the bundles in use",

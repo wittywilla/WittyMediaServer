@@ -11,6 +11,7 @@ To add, update or remove modules on a server, see [Modules and the store](MODULE
 - [Writing a helper](#writing-a-helper)
 - [The helper protocol (module API 3)](#the-helper-protocol-module-api-3)
 - [A module's SDUI (module API 4)](SDUI-MODULES.md)
+- [A module that owns its whole feature (module API 5)](MODULES-API5.md)
 - [Writing a service](#writing-a-service)
 - [Writing a web part](#writing-a-web-part)
 - [What a module may ask for](#what-a-module-may-ask-for)

@@ -281,6 +281,8 @@ func cmdServe(args []string) int {
 	var settingsFrom atomic.Pointer[server.Server]
 	modMgr := modules.New(modules.Config{
 		UIChecks: server.UIChecks(),
+		// What a module of API 5 may add to this server (module_routes.go).
+		IntegrationCheck: server.IntegrationCheck,
 		SettingsEnv: func(id string) []string {
 			if s := settingsFrom.Load(); s != nil {
 				return s.ModuleSettingsEnv(id)

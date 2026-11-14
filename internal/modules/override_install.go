@@ -394,6 +394,11 @@ func (m *Manager) StageUpload(u Upload) (*UploadInfo, error) {
 	m.mu.Lock()
 	checks := m.cfg.UIChecks
 	m.mu.Unlock()
+	if _, err := m.readIntegration(stage, man); err != nil && info.Refusal == "" {
+		// What a module adds to the server is never overridden: it's how the server keeps it
+		// to its own routes and screens.
+		info.Refusal = "Its " + wittymodule.IntegrationFile + " can't be used: " + sentence(err.Error())
+	}
 	if _, err := readUI(stage, man, checks); err != nil {
 		kinds = append(kinds, OverrideIncomplete)
 		info.Problems = append(info.Problems, UploadProblem{Kind: OverrideIncomplete, Text: sentence(err.Error()) + " It would run with nothing of its own in any app."})

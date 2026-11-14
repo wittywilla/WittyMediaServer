@@ -166,6 +166,13 @@ type Server struct {
 	open openStreams
 	emus emulatorGames
 
+	// Module API 5 (module_routes.go): the routes of the modules in use, and the server's own
+	// routes for each module, which only those may take over.
+	modRouting *moduleRouting
+	legacy     legacyPatterns
+	// integrations stands in for Modules.Integrations in tests.
+	integrations func() ([]modmgr.InUse, uint64)
+
 	// Work the server started on its own, which Close ends and waits for: see background.
 	bgMu     sync.Mutex
 	bgWork   sync.WaitGroup
@@ -517,6 +524,8 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/modules/web", s.requireUser(s.handleModulesWeb))
 	m.Handle("GET /api/modules/{id}/web/{version}/{path...}", s.requireUser(s.handleModuleWebFile))
 	m.Handle("POST /api/modules/{id}/failed", s.requireUser(s.handleModuleFailed))
+	// A module's own routes (module API 5): who may call each is checked in module_routes.go.
+	m.HandleFunc("/api/modules/{id}/{path...}", s.handleModuleRoute)
 	s.remoteRoutes(m)
 	s.taskRoutes(m)
 	s.streams.init(s)

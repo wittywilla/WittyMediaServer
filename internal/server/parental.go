@@ -247,6 +247,9 @@ func (s *Server) parentalGate(w http.ResponseWriter, r *http.Request, u *auth.Us
 		return w, r, nil, true
 	}
 	c := classify(r.Pattern)
+	if mc, ok := r.Context().Value(classKey{}).(routeClass); ok {
+		c = mc // a module's own route, classed by its integration.json (module_routes.go)
+	}
 	if c.feature != "" && !a.Can(c.feature) {
 		s.noteRefused(r.Context(), u, "feature", 0, "", c.feature)
 		writeJSON(w, 403, map[string]any{"error": featureRefusal[c.feature], "code": "feature-off", "feature": c.feature})

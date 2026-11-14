@@ -5,6 +5,9 @@ package modules
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/subtle"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"net"
@@ -86,7 +89,19 @@ func (m *Manager) ServiceConn(id string) (*service.Conn, error) {
 		var started service.Started
 		ns := &runningService{a: a, version: a.Version(), looked: now, notify: map[string]func(json.RawMessage){}}
 		a.OnNotify(ns.heard)
-		if _, err := a.Call(service.MethodStart, nil, &started); err != nil {
+		var params any
+		if m.hostURL != "" {
+			// Where its host API is, and a secret for this start (module API 5).
+			tok := newHostToken()
+			for t, owner := range m.hostTokens {
+				if owner == id {
+					delete(m.hostTokens, t) // the last start's secret is no use now
+				}
+			}
+			m.hostTokens[tok] = id
+			params = service.StartParams{Host: m.hostURL, HostToken: tok, Offers: Offers()}
+		}
+		if _, err := a.Call(service.MethodStart, params, &started); err != nil {
 			a.Close()
 			return nil, err
 		}
@@ -238,6 +253,16 @@ func stripWitty(h http.Header) {
 // WithIdentity if any, are set afresh. onErr hears a failure to reach it; modify, if given,
 // may change the service's answer before it is sent on.
 func ProxyToService(c *service.Conn, w http.ResponseWriter, r *http.Request, path string, onErr func(error), modify ...func(*http.Response) error) {
+	var m func(*http.Response) error
+	if len(modify) > 0 {
+		m = modify[0]
+	}
+	ProxyToServiceWith(c, w, r, path, nil, onErr, m)
+}
+
+// ProxyToServiceWith is ProxyToService with more of the server's own X-Witty- headers, set
+// after every one the browser sent is dropped (a module route's item and features).
+func ProxyToServiceWith(c *service.Conn, w http.ResponseWriter, r *http.Request, path string, extra http.Header, onErr func(error), modify func(*http.Response) error) {
 	p := &httputil.ReverseProxy{
 		BufferPool: bufpool.Copy, // a game's picture and sound go through here all the while it is played
 		Rewrite: func(pr *httputil.ProxyRequest) {
@@ -250,6 +275,11 @@ func ProxyToService(c *service.Conn, w http.ResponseWriter, r *http.Request, pat
 				pr.Out.Header.Set(HeaderUser, strconv.FormatInt(id.user, 10))
 				if id.admin {
 					pr.Out.Header.Set(HeaderAdmin, "1")
+				}
+			}
+			for k, vs := range extra {
+				if strings.HasPrefix(http.CanonicalHeaderKey(k), "X-Witty-") && k != service.TokenHeader {
+					pr.Out.Header[http.CanonicalHeaderKey(k)] = vs
 				}
 			}
 		},
@@ -265,8 +295,8 @@ func ProxyToService(c *service.Conn, w http.ResponseWriter, r *http.Request, pat
 	if c.Client != nil && c.Client.Transport != nil {
 		p.Transport = c.Client.Transport
 	}
-	if len(modify) > 0 && modify[0] != nil {
-		p.ModifyResponse = modify[0]
+	if modify != nil {
+		p.ModifyResponse = modify
 	}
 	p.ServeHTTP(w, r)
 }
@@ -319,6 +349,51 @@ func (m *Manager) Capability(id, name string) []string {
 	defer m.mu.Unlock()
 	if e := m.mods[id]; e != nil {
 		return e.man.Capabilities[name]
+	}
+	return nil
+}
+
+// SetHost says where this server's host API listens (module API 5): services started from
+// now on are told it, with a secret of their own.
+func (m *Manager) SetHost(url string) {
+	m.svcMu.Lock()
+	defer m.svcMu.Unlock()
+	m.hostURL = url
+	if m.hostTokens == nil {
+		m.hostTokens = map[string]string{}
+	}
+}
+
+// HostModule is the module a host API secret was given to, if any.
+func (m *Manager) HostModule(token string) (string, bool) {
+	if token == "" {
+		return "", false
+	}
+	m.svcMu.Lock()
+	defer m.svcMu.Unlock()
+	for t, id := range m.hostTokens {
+		if subtle.ConstantTimeCompare([]byte(t), []byte(token)) == 1 {
+			return id, true
+		}
+	}
+	return "", false
+}
+
+func newHostToken() string {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		panic(err)
+	}
+	return hex.EncodeToString(b)
+}
+
+// Libraries are the kinds of library a module's version in use says it serves: what it may
+// ask the host API about.
+func (m *Manager) Libraries(id string) []string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if e := m.mods[id]; e != nil && e.man != nil && e.dir != "" {
+		return append([]string(nil), e.man.Libraries...)
 	}
 	return nil
 }

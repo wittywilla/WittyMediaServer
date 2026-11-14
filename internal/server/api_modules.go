@@ -613,6 +613,10 @@ func (g moduleRoutes) Handle(pattern string, h http.Handler) {
 	missing := g.s.requireUser(func(w http.ResponseWriter, _ *http.Request) {
 		writeModuleMissing(w, g.s.Modules.Missing(g.id))
 	})
+	// This is the server's own copy of the module's feature: a version of the module of API 5
+	// may take this route over (module_routes.go).
+	g.s.legacy.add(g.id, pattern)
+	h = g.s.takeOver(g.id, pattern, h)
 	g.m.Handle(pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if g.s.Modules != nil && !g.s.Modules.Installed(g.id) {
 			missing.ServeHTTP(w, r)

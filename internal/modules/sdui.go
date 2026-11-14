@@ -23,10 +23,16 @@ import (
 // for it carries sdui.json, checked against the catalogue before it is used, and a version
 // without one is refused. Versions built for API 3 keep working as they did; one that
 // carries sdui.json anyway has it used.
+//
+// API 5 makes a module own its whole feature (docs/MODULES-API5.md): a version built for it
+// carries integration.json, read by integration.go, saying which routes it answers, what its
+// web bundle adds, its data and its lifecycle. The server keeps its own copy of a module's
+// feature for versions built for 3 and 4 (legacyFor).
 const (
-	API     = 4
-	MinAPI  = 3
-	SDUIAPI = 4
+	API            = 5
+	MinAPI         = 3
+	SDUIAPI        = 4
+	IntegrationAPI = 5
 )
 
 // Methods a helper answers for its SDUI.

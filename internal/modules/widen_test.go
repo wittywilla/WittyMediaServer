@@ -22,7 +22,8 @@ func TestAPreOneRangeFitsLaterServers(t *testing.T) {
 		{"0.6.x", "0.8.0", 3, true},
 		{"0.8.x", "0.8.0-alpha", 4, true},
 		{"0.6.x", "0.8.0-alpha", 2, false}, // too old an API
-		{"0.6.x", "0.8.0-alpha", 5, false}, // too new an API
+		{"0.6.x", "0.8.0-alpha", 5, true},
+		{"0.6.x", "0.8.0-alpha", 6, false}, // too new an API
 		{"0.6.3", "0.8.0-alpha", 3, false}, // an exact top is kept
 		{"0.6.x", "1.0.0", 3, false},       // a 1.x server is another line
 	}

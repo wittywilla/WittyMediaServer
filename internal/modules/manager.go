@@ -230,12 +230,13 @@ type entry struct {
 	listed  *wittymodule.CatalogModule // where a catalogue describes it
 	state   moduleState
 
-	man     *wittymodule.Manifest // the version in use
-	dir     string                // its folder; "" with no version in use
-	proc    *proc                 // for a helper; nil otherwise
-	web     *webFiles             // for a bundle; nil otherwise
-	ui      *sdui.ModuleUI        // its SDUI (sdui.json), checked; nil when it has none
-	pending string                // a held download waiting for a go-ahead (override.go)
+	man     *wittymodule.Manifest    // the version in use
+	dir     string                   // its folder; "" with no version in use
+	proc    *proc                    // for a helper; nil otherwise
+	web     *webFiles                // for a bundle; nil otherwise
+	ui      *sdui.ModuleUI           // its SDUI (sdui.json), checked; nil when it has none
+	integ   *wittymodule.Integration // its integration.json (module API 5), checked; nil when it has none
+	pending string                   // a held download waiting for a go-ahead (override.go)
 	// relStatus and relNote are what the version in use says of itself: stable, beta,
 	// experimental or incomplete (module API 4).
 	relStatus, relNote string
@@ -294,6 +295,9 @@ type Config struct {
 	LogEnv func(id string) []string
 	// UIChecks are the theme engine's checks a module's sdui.json is held to.
 	UIChecks sdui.ModuleChecks
+	// IntegrationCheck holds a module's integration.json to what this server can do (the
+	// features it knows, the paths it keeps for itself); nil checks only the file itself.
+	IntegrationCheck func(id string, in *wittymodule.Integration) error
 	// SettingsEnv gives a module's settings (docs/SDUI-MODULES.md), as environment for its
 	// helper.
 	SettingsEnv func(id string) []string
@@ -337,6 +341,10 @@ type Manager struct {
 	svcMu       sync.Mutex
 	services    map[string]*runningService
 	svcWatching bool
+	// The host API (module API 5): where it listens, and the secret each service was given
+	// at its start, by secret.
+	hostURL    string
+	hostTokens map[string]string
 }
 
 // New reads what is installed and picks the version of each module to use. A
@@ -556,6 +564,10 @@ func (m *Manager) usable(id string, e *entry, ver string) (*wittymodule.Manifest
 	if r := dataRefusal(e.builtin.Name, man, e.state.DataHigh); r != "" {
 		return nil, "", errors.New(r)
 	}
+	if _, err := m.readIntegration(dir, man); err != nil {
+		m.logOnce(slog.LevelWarn, "a module's integration was refused", "module", id, "version", ver, "err", err)
+		return nil, "", err
+	}
 	if _, err := readUI(dir, man, m.cfg.UIChecks); err != nil {
 		if !ov.has(OverrideIncomplete) {
 			m.logOnce(slog.LevelWarn, "a module's pages were refused", "module", id, "version", ver, "err", err)
@@ -632,7 +644,7 @@ func (m *Manager) resolve(id string, e *entry) {
 		logging.Go("module close", func() { defer m.retiring.Done(); p.Close() }, "cat", "modules")
 		e.proc = nil
 	}
-	e.fails, e.web, e.dir, e.ui = 0, nil, "", nil
+	e.fails, e.web, e.dir, e.ui, e.integ = 0, nil, "", nil, nil
 	e.relStatus, e.relNote = "", ""
 	m.uiGen++
 	if pick != nil {
@@ -647,7 +659,10 @@ func (m *Manager) resolve(id string, e *entry) {
 		if raw, err := os.ReadFile(filepath.Join(pickDir, wittymodule.ManifestFile)); err == nil {
 			e.relStatus, e.relNote = manifestStatus(raw)
 		}
-		// usable has just checked it.
+		// usable has just checked these.
+		if in, err := m.readIntegration(pickDir, pick); err == nil {
+			e.integ = in
+		}
 		if ui, err := readUI(pickDir, pick, m.cfg.UIChecks); err == nil {
 			e.ui = ui
 		} else {

@@ -262,4 +262,3 @@ func (s *Server) passToWittyPlay(w http.ResponseWriter, r *http.Request, modify 
 		s.Log.WarnContext(r.Context(), "could not pass a request to WittyPlay", "cat", "modules", "module", wittyPlayID, "err", err)
 	}, modify)
 }
-

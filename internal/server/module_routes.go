@@ -278,6 +278,9 @@ func (s *Server) passToModule(w http.ResponseWriter, r *http.Request, ref module
 		if confirmed {
 			extra.Set(service.HeaderConfirmed, "1")
 		}
+		if h := s.signInHandle(sessionOf(r)); h != "" {
+			extra.Set(service.HeaderSignIn, h)
+		}
 	}
 	// A query's sign-in (a stream token) isn't the module's.
 	if q := r.URL.Query(); q.Has("token") || q.Has("st") {

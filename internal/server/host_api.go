@@ -77,6 +77,8 @@ func (s *Server) HostAPI() http.Handler {
 	h("POST "+b+"/images", s.hostImage)
 	h("POST "+b+"/sessions", s.hostSessionStart)
 	h("DELETE "+b+"/sessions/{id}", s.hostSessionEnd)
+	h("GET "+b+"/users", s.hostUsers)
+	h("GET "+b+"/tools", s.hostTools)
 	h("GET "+b+"/events", s.hostEventsWait)
 	h("POST "+b+"/tasks/{name}", s.hostTask)
 	h("POST "+b+"/audit", s.hostAudit)
@@ -373,62 +375,6 @@ func (s *Server) handleModuleImage(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Cache-Control", "private, max-age=31536000, immutable") // named by what it holds
 	http.ServeFile(w, r, path)
-}
-
-// ---------------------------------------------------------------- live sessions
-
-// moduleSession is something live a module reported: a game being played.
-type moduleSession struct {
-	host.Session
-	Module  string
-	Started time.Time
-}
-
-type moduleSessions struct {
-	mu   sync.Mutex
-	next int
-	m    map[string]*moduleSession
-}
-
-// List is the live sessions modules reported, for metrics and "playing now".
-func (ms *moduleSessions) List() []moduleSession {
-	ms.mu.Lock()
-	defer ms.mu.Unlock()
-	out := make([]moduleSession, 0, len(ms.m))
-	for _, v := range ms.m {
-		out = append(out, *v)
-	}
-	return out
-}
-
-func (s *Server) hostSessionStart(w http.ResponseWriter, r *http.Request, module string) {
-	var in host.Session
-	if err := json.NewDecoder(io.LimitReader(r.Body, 64<<10)).Decode(&in); err != nil || in.User <= 0 || in.Kind == "" {
-		writeJSON(w, 400, map[string]string{"error": "a session needs a kind and a person"})
-		return
-	}
-	ms := &s.modSessions
-	ms.mu.Lock()
-	if ms.m == nil {
-		ms.m = map[string]*moduleSession{}
-	}
-	ms.next++
-	in.ID = module + "-" + strconv.Itoa(ms.next)
-	ms.m[in.ID] = &moduleSession{Session: in, Module: module, Started: time.Now()}
-	ms.mu.Unlock()
-	writeJSON(w, 200, map[string]string{"id": in.ID})
-}
-
-func (s *Server) hostSessionEnd(w http.ResponseWriter, r *http.Request, module string) {
-	ms := &s.modSessions
-	ms.mu.Lock()
-	defer ms.mu.Unlock()
-	if v := ms.m[r.PathValue("id")]; v == nil || v.Module != module {
-		writeJSON(w, 404, map[string]string{"error": "no such session"})
-		return
-	}
-	delete(ms.m, r.PathValue("id"))
-	w.WriteHeader(204)
 }
 
 // ---------------------------------------------------------------- events

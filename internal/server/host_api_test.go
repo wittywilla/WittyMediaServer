@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymodule"
 	"github.com/wittywilla/wittymodule/host"
@@ -136,6 +137,30 @@ func TestHostAPI(t *testing.T) {
 	}
 	if err := c.EndSession(ctx, sid); !host.IsNotFound(err) {
 		t.Errorf("ending it twice: %v", err)
+	}
+	var played float64
+	_ = ts.DB.QueryRowContext(ctx, `SELECT position_sec FROM progress WHERE user_id = ? AND item_id = ?`, pal.ID, game.ID).Scan(&played)
+	if err := ts.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM progress WHERE user_id = ? AND item_id = ?`, pal.ID, game.ID).Scan(new(int)); err != nil {
+		t.Errorf("time played wasn't kept: %v", err)
+	}
+	// Ended by the server: signing out there ends it, and the module is told.
+	handle := ts.signInHandle(auth.SessionID(palTok))
+	sid, _ = c.StartSession(ctx, host.Session{Kind: "game", User: pal.ID, Item: game.ID, SignIn: handle})
+	other, _ := c.StartSession(ctx, host.Session{Kind: "game", User: pal.ID, Item: game.ID, SignIn: "elsewhere"})
+	ts.signInsEnded(auth.SessionEnd{Session: auth.SessionID(palTok), UserID: pal.ID})
+	if l := ts.modSessions.List(); len(l) != 1 || l[0].ID != other {
+		t.Errorf("after signing out: %+v", l)
+	}
+	if evs, _, _ := c.Events(ctx, 0, 0); len(evs) == 0 || evs[len(evs)-1].Type != host.EventSessionStop || !strings.Contains(string(evs[len(evs)-1].Data), sid) {
+		t.Errorf("the module wasn't told: %+v", evs)
+	}
+	_ = c.EndSession(ctx, other)
+	// Accounts and tools.
+	if us, err := c.Users(ctx); err != nil || len(us) < 2 {
+		t.Errorf("users: %+v %v", us, err)
+	}
+	if _, err := c.Tools(ctx); err != nil {
+		t.Errorf("tools: %v", err)
 	}
 
 	// Events.

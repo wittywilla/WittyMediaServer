@@ -151,6 +151,14 @@ func (s *Server) signInsEnded(e auth.SessionEnd) {
 	}
 	s.syncEngine().DropSeats(func(u syncplay.User) bool { return gone(seatSession(u.Seat), u.ID) })
 	s.emus.stop(s, func(g *emulatorGame) bool { return gone(g.session, g.user) })
+	signIn := s.signInHandle(e.Session)
+	keep := s.signInHandle(e.Keep)
+	s.stopModuleSessions("signed-out", func(v *moduleSession) bool {
+		if e.Session != "" {
+			return v.SignIn == signIn
+		}
+		return v.User == e.UserID && (e.Keep == "" || v.SignIn != keep)
+	})
 }
 
 // accountGone is signInsEnded for an account that no longer exists: what it was invited to
@@ -187,6 +195,7 @@ func (s *Server) limitsChanged(ctx context.Context, userID int64) {
 	}
 	if !a.Can(library.FeatureGames) {
 		s.emus.stop(s, func(g *emulatorGame) bool { return g.user == userID })
+		s.stopModuleSessions("feature-off", func(v *moduleSession) bool { return v.User == userID })
 	}
 	if e := s.syncEngine(); !a.Can(library.FeatureSyncplay) {
 		s.open.stop(endedFeatureOff, mine(openParty))

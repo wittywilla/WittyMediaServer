@@ -14,7 +14,9 @@ export type ReaderFormat = 'epub' | 'pdf' | 'cbz'
 const READERS: Record<ReaderFormat, string> = { epub: 'wittyebook', pdf: 'wittypdf', cbz: 'wittycomics' }
 // The newest module API whose bundles this host loads. API 4 made a module's SDUI part of
 // the module and changed nothing a bundle is given (moduleHost.ts), so its bundles load too.
-const HOST_API = 4
+// API 5 adds to what a bundle is given (web host API 5: the router, the app's client, state,
+// UI kit and contexts, and register(host); moduleRegistry.tsx) and takes nothing away.
+const HOST_API = 5
 
 type Page = { id: string; title: string; where: 'main' | 'settings'; icon?: string }
 type Bundle = { id: string; version: string; entry: string; style?: string; base: string; api: number; pages?: Page[]; views?: string[] }

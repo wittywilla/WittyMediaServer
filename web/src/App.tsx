@@ -19,6 +19,7 @@ import AuthPage from './pages/AuthPage'
 import { usePageRegions } from './sdui/regions'
 import { isPlayPath, PlayFrame, StatusBar, SystemDock } from './shell/PlayChrome'
 import { MainGames } from './shell/MainGames'
+import { ModuleCards, ModuleFrame, ModuleRouteView, matchModuleRoute, useModuleWeb } from './moduleRegistry'
 import { useGamesInPlay } from './shell/PlayRedirect'
 import { PlayerDock } from './player/PlayerPage'
 import { Announcer, useDialogs } from './a11y'
@@ -116,6 +117,9 @@ function Shell() {
   const tvMode = useTvMode()
   // WittyPlay installed: the games pages show in its frame too (shell/PlayRedirect.tsx). Asked before any early return.
   const gamesInPlay = useGamesInPlay(loc.pathname)
+  // Screens modules of API 5 draw themselves (moduleRegistry.tsx): a full-window one takes the
+  // place of the app's frame, as the app's own players and WittyPlay's frame do.
+  const moduleWeb = useModuleWeb()
   // A module's pages can be tinted differently from the rest (the theme engine's module overrides).
   const pageModule = moduleForPath(loc.pathname)
   useLayoutEffect(() => { setThemeModule(pageModule) }, [pageModule])
@@ -149,6 +153,17 @@ function Shell() {
   // A games library's page, with WittyPlay installed: WittyPlay's own view of it (the app's whole games library, in its frame).
   const playLib = gamesInPlay ? /^\/library\/(\d+)$/.exec(loc.pathname)?.[1] : undefined
   const toPlayLibrary = playLib ? '/wittyplay/library/' + playLib + loc.search : ''
+  const moduleFull = matchModuleRoute(moduleWeb, loc.pathname, ['fullscreen'])
+  if (moduleFull) {
+    return (
+      <AudioProvider>
+        <ModuleCards><ModuleFrame match={moduleFull} fallback={<Spinner />} /></ModuleCards>
+        <PlayerDock />
+        <RemoteHost />
+        <ReminderWatcher />
+      </AudioProvider>
+    )
+  }
   return (
     <AudioProvider>
       {!isTvPlayer && !isReader && !isStream && !isGame && !isPlayer && !isWPlay && <Scene />}
@@ -157,7 +172,7 @@ function Shell() {
         : isCouchMode ? <Suspense fallback={<Spinner />}><Routes><Route path="/big/*" element={<CouchMode />} /></Routes></Suspense>
         : isGame ? <Suspense fallback={<Spinner />}><Routes><Route path="/game/:id" element={<GamePage />} /></Routes></Suspense>
         : isStream ? <Suspense fallback={<Spinner />}><Routes><Route path="/couch/:id/play/:app" element={<CouchPlayPage />} /><Route path="/couch-rig/:id" element={<RigPlayPage />} /></Routes></Suspense>
-        : isPlayer ? null : isWPlay ? <PlayFrame>{toPlayLibrary ? <Navigate to={toPlayLibrary} replace /> : <Suspense fallback={<RouteSkeleton />}><PageRoutes /></Suspense>}</PlayFrame> : tvMode ? <MainGames><Suspense fallback={<Spinner />}><TvFrame pages={<PageRoutes />} /></Suspense></MainGames> : <MainGames><AppFrame /></MainGames>}
+        : isPlayer ? null : isWPlay ? <PlayFrame>{toPlayLibrary ? <Navigate to={toPlayLibrary} replace /> : <Suspense fallback={<RouteSkeleton />}><PageRoutes /></Suspense>}</PlayFrame> : tvMode ? <MainGames><ModuleCards><Suspense fallback={<Spinner />}><TvFrame pages={<PageRoutes />} /></Suspense></ModuleCards></MainGames> : <MainGames><ModuleCards><AppFrame /></ModuleCards></MainGames>}
       <PlayerDock />
       <RemoteHost />
       {isTv && <Suspense fallback={null}><TvHost /></Suspense>}
@@ -234,6 +249,11 @@ function RouteSkeleton() {
 
 // Every page of the app, by its address. The usual frame and TV mode's frame both show them.
 export function PageRoutes() {
+  // A page a module of API 5 draws inside the app's frame comes before the app's own.
+  const moduleWeb = useModuleWeb()
+  const loc = useLocation()
+  const moduleRoute = matchModuleRoute(moduleWeb, loc.pathname, ['app', 'tv'])
+  if (moduleRoute) return <ModuleRouteView match={moduleRoute} fallback={<RouteSkeleton />} />
   return (
     <Routes>
       <Route path="/" element={<SduiRoute fallback={<HomePage />} loading={<RouteSkeleton />} />} />

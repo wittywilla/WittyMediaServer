@@ -8,6 +8,7 @@ import { SettingsHelp } from '../components/HelpLink'
 import { BackLink, UpdateDot, VersionTag, LoadError } from '../components/common'
 import { ChooseFolderButton } from '../components/FolderPicker'
 import { useModulePages } from '../moduleBundles'
+import { ModuleSettingsView, useModuleSettingsTabs, type ModuleSettingsTab } from '../moduleRegistry'
 import { IconHelp, IconActivity, IconChannels, IconClose, IconContrast, IconDownload, IconDrive, IconEdit, IconFile, IconFilm, IconFolder, IconGamepad, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconNetwork, IconPalette, IconPlay, IconPlug, IconPlus, IconRefresh, IconRemote, IconRight, IconShield, IconSidebar, IconTag, IconTrash, IconTune, IconUsers, IconWrench, libIcon } from '../icons'
 import { toast, useApp } from '../state'
 import { settingsPageHidden } from '../profileWords'
@@ -124,6 +125,21 @@ const GROUPS: { title: string; pages: Page[] }[] = [
   ] },
 ]
 
+// withModuleTabs puts the Settings sections modules draw among the built-in ones.
+function withModuleTabs(groups: typeof GROUPS, tabs: ModuleSettingsTab[]): typeof GROUPS {
+  if (!tabs.length) return groups
+  const own = new Set(groups.flatMap((g) => g.pages.map((p) => p.to)))
+  const row = (t: ModuleSettingsTab, was?: Page): Page => ({ to: t.id, label: t.label, icon: was?.icon ?? <IconPlug />, admin: t.admin, hint: was?.hint ?? '' })
+  const out = groups.map((g) => ({ ...g, pages: g.pages.flatMap((p) => {
+    const same = tabs.find((t) => t.id === p.to)
+    const after = tabs.filter((t) => t.after === p.to && !own.has(t.id))
+    return [same ? row(same, p) : p, ...after.map((t) => row(t))]
+  }) }))
+  const rest = tabs.filter((t) => !own.has(t.id) && !(t.after && own.has(t.after)))
+  if (rest.length) out.push({ title: 'From modules', pages: rest.map((t) => row(t)) })
+  return out
+}
+
 export default function SettingsPage() {
   const { user, version } = useApp()
   const loc = useLocation()
@@ -132,7 +148,12 @@ export default function SettingsPage() {
   // Module settings are for a server that has them (feature module-settings).
   const serverCan = useFeatures()
   const moduleSettings = !!serverCan?.has('module-settings')
-  const groups = useMemo(() => GROUPS.map((g) => ({ ...g, pages: g.pages.filter((p) => (!p.admin || user?.isAdmin) && !settingsPageHidden(p.to, user, features) && (p.to !== 'module-settings' || moduleSettings)) })).filter((g) => g.pages.length), [user?.isAdmin, user?.kind, features, moduleSettings]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Sections modules of API 5 draw (moduleRegistry.tsx): one with a built-in section's id takes
+  // its place, one after a built-in section goes there, any other under From modules.
+  const moduleTabs = useModuleSettingsTabs().filter((t) => !t.admin || user?.isAdmin)
+  const tabsKey = moduleTabs.map((t) => `${t.module}/${t.id}/${t.label}/${t.after || ''}`).join('|')
+  const groups = useMemo(() => withModuleTabs(GROUPS, moduleTabs).map((g) => ({ ...g, pages: g.pages.filter((p) => (!p.admin || user?.isAdmin) && !settingsPageHidden(p.to, user, features) && (p.to !== 'module-settings' || moduleSettings)) })).filter((g) => g.pages.length), [user?.isAdmin, user?.kind, features, moduleSettings, tabsKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  const moduleTab = moduleTabs.find((t) => t.id === loc.pathname.split('/')[2])
   const pages = useMemo(() => groups.flatMap((g) => g.pages), [groups])
   const moduleKey = modulePages.map((p) => `${p.module}/${p.id}/${p.title}`).join('|')
   const moduleResults = useMemo(() => modulePages.map((p) => ({ to: `/m/${p.module}/${p.id}`, title: p.title, where: 'From modules' })), [moduleKey])
@@ -202,7 +223,7 @@ export default function SettingsPage() {
           </div>
         )}
         {slug !== 'about' && <UpdateBanner />}
-        <Routes>
+        {moduleTab ? <ModuleSettingsView tab={moduleTab} /> : <Routes>
           <Route index element={narrow ? null : <Navigate to={user?.isAdmin ? '/settings/libraries' : '/settings/users'} replace />} />
           <Route path="libraries" element={<Libraries />} />
           <Route path="pages/*" element={<Suspense fallback={<div className="loading-box"><div className="spinner" /></div>}><PagesSettings /></Suspense>} />
@@ -245,7 +266,7 @@ export default function SettingsPage() {
           <Route path="about" element={<About />} />
           <Route path="legal" element={<Suspense fallback={null}><LegalSettings /></Suspense>} />
           <Route path="*" element={<Navigate to={user?.isAdmin ? '/settings/libraries' : '/settings/users'} replace />} />
-        </Routes>
+        </Routes>}
       </div>
     </div>
   )

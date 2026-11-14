@@ -94,3 +94,13 @@ test('nothing zooms the whole page', async () => {
     }
   }
 })
+
+test('inside the app, a menu near the foot keeps clear of the bar drawn over the page', () => {
+  // A phone 390 by 844, the app's bar taking 88px at the foot (overlayFoot.ts): Menu passes 844 - 88.
+  const phone = { width: 390, height: 844 - 88 }
+  const button = { left: 330, top: 700, right: 374, bottom: 736 }
+  const panel = { width: 240, height: 120 }
+  const p = placeMenu(button, panel, phone, 'end')
+  assert.ok(p.top + Math.min(panel.height, p.maxHeight) <= phone.height - EDGE, 'the menu ends above the bar')
+  assert.ok(onScreen(p, panel, phone))
+})

@@ -59,8 +59,8 @@
 
 /* Phones: the whole screen, the preview on top and two to a row below it. */
 @media (max-width: 600px) {
-  .modal-backdrop:has(> .art-picker) { padding: 0; place-items: stretch; }
-  .modal.art-picker { height: 100dvh !important; max-height: 100dvh !important; border-radius: 0 !important; border-width: 0; padding: 0 0 env(safe-area-inset-bottom); }
+  .modal-backdrop:has(> .art-picker) { padding: 0 0 var(--overlay-foot); place-items: stretch; }
+  .modal.art-picker { height: calc(100dvh - var(--overlay-foot)) !important; max-height: calc(100dvh - var(--overlay-foot)) !important; border-radius: 0 !important; border-width: 0; padding: 0 0 env(safe-area-inset-bottom); }
   .art-picker > .ui-dialog-head { padding: var(--sp-4) var(--sp-4) var(--sp-1); }
   .art-picker > .ap-tabs { margin: 0 var(--sp-4); }
   .art-picker > .actions, .art-picker > .ap-note, .art-picker > .legal-note { padding-inline: var(--sp-4); }

@@ -104,6 +104,7 @@
   --rail: 76px;                            /* the side menu collapsed to icons */
   --tabbar-h: 60px;                        /* the phone's bottom bar */
   --tabbar-space: 0px;                     /* room kept for that bar: set where it shows */
+  --overlay-foot: 0px;                     /* room menus, sheets and dialogs leave at the foot for a bar drawn over the page (the app's): set in shell.css */
   --dock-space: 0px;                       /* room kept for the audio bar or mini player */
 
   /* ---- shape: follows the theme's --radius ---- */
@@ -678,15 +679,15 @@ h3.section-title { font-size: var(--text-lg); margin-top: var(--sp-6); }
 .empty p { margin: 0 0 var(--sp-4); max-width: 46ch; font-size: var(--text-md); }
 .toast { position: fixed; bottom: calc(var(--sp-5) + var(--dock-space) + var(--tabbar-space)); left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100vw - 32px); background: var(--bg-4); color: var(--fg); padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md); border: 1px solid var(--border); box-shadow: var(--e-3); z-index: var(--z-toast); font-size: var(--text-md); font-weight: 500; animation: toast-in var(--dur-3) var(--ease-out); }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, 8px); } }
-.modal-backdrop { position: fixed; inset: 0; background: var(--overlay); display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; z-index: var(--z-modal); padding: var(--sp-5); animation: fade-in var(--dur-2) ease-out; overflow: auto; overscroll-behavior: contain; }
-.modal { background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r-xl); padding: var(--sp-6); width: 100%; max-width: 640px; max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); overflow: auto; box-shadow: var(--e-3); animation: dialog-in var(--dur-3) var(--ease-out); }
+.modal-backdrop { position: fixed; inset: 0; background: var(--overlay); display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; z-index: var(--z-modal); padding: var(--sp-5) var(--sp-5) calc(var(--sp-5) + var(--overlay-foot)); animation: fade-in var(--dur-2) ease-out; overflow: auto; overscroll-behavior: contain; }
+.modal { background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r-xl); padding: var(--sp-6); width: 100%; max-width: 640px; max-height: calc(100vh - 40px - var(--overlay-foot)); max-height: calc(100dvh - 40px - var(--overlay-foot)); overflow: auto; box-shadow: var(--e-3); animation: dialog-in var(--dur-3) var(--ease-out); }
 @keyframes dialog-in { from { opacity: 0; transform: translateY(6px) scale(.985); } }
 .modal h2 { margin: 0 0 var(--sp-4); font-size: var(--text-xl); }
 .modal .actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-6); }
 /* Phones: dialogs come up from the bottom, in thumb's reach. */
 @media (max-width: 600px) {
-  .modal-backdrop { place-items: end center; padding: var(--sp-4) 0 0; }
-  .modal { width: 100% !important; max-width: none !important; max-height: 92dvh !important; border-radius: var(--r-xl) var(--r-xl) 0 0 !important; border-width: 1px 0 0; padding: var(--sp-5) var(--sp-4) calc(var(--sp-5) + env(safe-area-inset-bottom)); animation-name: sheet-in; }
+  .modal-backdrop { place-items: end center; padding: var(--sp-4) 0 var(--overlay-foot); }
+  .modal { width: 100% !important; max-width: none !important; max-height: min(92dvh, calc(100dvh - var(--sp-4) - var(--overlay-foot))) !important; border-radius: var(--r-xl) var(--r-xl) 0 0 !important; border-width: 1px 0 0; padding: var(--sp-5) var(--sp-4) calc(var(--sp-5) + env(safe-area-inset-bottom)); animation-name: sheet-in; }
   @keyframes sheet-in { from { transform: translateY(24px); opacity: 0; } }
 }
 

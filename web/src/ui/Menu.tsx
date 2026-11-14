@@ -5,10 +5,11 @@ import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { isBackKey } from './spatial'
 import { movedAway, placeMenu, type Box } from './menuPlace'
+import { usableHeight } from './overlayFoot'
 
 // A menu that opens from a button. It renders into <body> at a place worked out
 // from the button, so a bar, a scrolling panel or a player beside it can never
-// cover or clip it. Keyboard and remote: arrows move, Home and End jump, typing a
+// cover or clip it, and above a bar drawn over the page (the app's: overlayFoot.ts). Keyboard and remote: arrows move, Home and End jump, typing a
 // letter finds, Enter chooses, Escape or Back closes, and focus returns to the button.
 
 export type MenuEntry =
@@ -41,7 +42,7 @@ export function Menu({ trigger, items, label, head, align = 'end', className }: 
     if (!p) return
     // A button that isn't laid out still gets its menu, on screen (placeMenu), never a hidden one.
     anchorAt.current = anchorBox()
-    setPos(placeMenu(anchorAt.current, { width: p.offsetWidth, height: p.scrollHeight }, { width: innerWidth, height: innerHeight }, align, EDGE))
+    setPos(placeMenu(anchorAt.current, { width: p.offsetWidth, height: p.scrollHeight }, { width: innerWidth, height: usableHeight() }, align, EDGE))
   }, [align])
 
   useLayoutEffect(() => { if (open) place() }, [open, place, items.length])

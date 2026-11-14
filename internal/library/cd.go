@@ -221,7 +221,7 @@ func readCDSidecar(image string) *cdSidecar {
 // indexCD adds or refreshes a disc and, in a music library, its tracks.
 func (s *Scanner) indexCD(ctx context.Context, lib *Library, c candidate) error {
 	existing, err := s.Store.itemByPath(ctx, lib.ID, c.path)
-	if err == nil && existing.MTime == c.mtime && existing.SizeBytes == c.size && existing.Kind == CDKind && cdInfoOf(existing) != nil && cdInfoOf(existing).DiscID != "" {
+	if err == nil && c.same(existing, c.mtime) && existing.Kind == CDKind && cdInfoOf(existing) != nil && cdInfoOf(existing).DiscID != "" {
 		if existing.Missing {
 			if err := s.Store.restore(ctx, existing.ID); err != nil {
 				return err

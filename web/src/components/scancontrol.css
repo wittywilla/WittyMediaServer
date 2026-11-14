@@ -1,0 +1,6 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
+/* Scan for changes with its menu beside it: one control in two parts, joined. */
+.scan-ctl { display: inline-flex; align-items: stretch; flex: none; }
+.scan-ctl > .btn:first-child { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.scan-ctl > .scan-ctl-more { border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: 1px; }

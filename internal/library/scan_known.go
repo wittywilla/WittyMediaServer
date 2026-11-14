@@ -20,14 +20,22 @@ type knownFile struct {
 	hasDisc         bool
 	provider        string
 	title           string // only where a scan looks at it: see loadKnown
+	updated         int64  // when the row was last written
 }
 
-// unchanged is what's known about this file, if the library's row is for the file as it is now.
+// unchanged is what's known about this file, if the library's row is for the file as it is now
+// (and a Full rescan has read it again already, when one is under way).
 func (c *candidate) unchanged() *knownFile {
-	if c.known != nil && c.known.mtime == c.mtime && c.known.size == c.size {
+	if c.known != nil && c.known.mtime == c.mtime && c.known.size == c.size && !(c.reread > 0 && c.known.updated < c.reread) {
 		return c.known
 	}
 	return nil
+}
+
+// same says an item's row is for this file as it is now, at this time (a file's own, or with its
+// sidecar's when newer), and a Full rescan under way has read it again already.
+func (c *candidate) same(existing *Item, mtime int64) bool {
+	return existing.MTime == mtime && existing.SizeBytes == c.size && !(c.reread > 0 && existing.UpdatedAt < c.reread)
 }
 
 // loadKnown fills in what the library knows about the files a walk found. Files of no interest to
@@ -42,7 +50,7 @@ func (s *Store) loadKnown(ctx context.Context, libraryID int64, all []candidate,
 		titles = "title"
 	}
 	rows, err := s.DB.QueryContext(ctx, `SELECT id, path, `+titles+`, IFNULL(provider, ''), IFNULL(poster, '') <> '', IFNULL(mtime, 0), IFNULL(size_bytes, 0), missing,
-		IFNULL(show_id, 0), IFNULL(season, -1), IFNULL(episode, -1), disc_json IS NOT NULL FROM items WHERE library_id = ?`, libraryID)
+		IFNULL(show_id, 0), IFNULL(season, -1), IFNULL(episode, -1), disc_json IS NOT NULL, IFNULL(updated_at, 0) FROM items WHERE library_id = ?`, libraryID)
 	if err != nil {
 		return err
 	}
@@ -50,7 +58,7 @@ func (s *Store) loadKnown(ctx context.Context, libraryID int64, all []candidate,
 	var path sql.RawBytes
 	for rows.Next() {
 		var k knownFile
-		if err := rows.Scan(&k.id, &path, &k.title, &k.provider, &k.hasPoster, &k.mtime, &k.size, &k.missing, &k.showID, &k.season, &k.episode, &k.hasDisc); err != nil {
+		if err := rows.Scan(&k.id, &path, &k.title, &k.provider, &k.hasPoster, &k.mtime, &k.size, &k.missing, &k.showID, &k.season, &k.episode, &k.hasDisc, &k.updated); err != nil {
 			return err
 		}
 		if i, ok := byPath[string(path)]; ok {

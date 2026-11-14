@@ -22,8 +22,25 @@ func TestSDUIAdminPages(t *testing.T) {
 	_, adult := ts.user(t, "bob", "adult", false, "")
 
 	doc := sduiDoc(t, ts.do(t, "GET", "/api/v1/sdui/pages/manage-libraries?formFactor=web", admin, nil))
-	if n := findNode(&doc.Root, "all"); n == nil || len(n.Children) != 1 || n.Children[0].Action == nil || n.Children[0].Action.Op != "library.scan" {
+	if n := findNode(&doc.Root, "all"); n == nil || len(n.Children) != 1 || n.Children[0].Action == nil || n.Children[0].Action.To != fmt.Sprintf("/manage/library/%d", lib) || n.Children[0].Action.As != "layer" {
 		t.Fatalf("libraries for an administrator: %+v", n)
+	}
+	// A library's scan choices: Scan for changes, and Full rescan, which asks first.
+	one := sduiDoc(t, ts.do(t, "GET", fmt.Sprintf("/api/v1/sdui/pages/manage-library?formFactor=web&item=%d", lib), admin, nil))
+	n := findNode(&one.Root, "choices")
+	if n == nil || len(n.Children) < 2 {
+		t.Fatalf("scan choices: %+v", n)
+	}
+	changes, full := n.Children[len(n.Children)-2], n.Children[len(n.Children)-1]
+	if changes.Action == nil || changes.Action.Op != "library.scan" || changes.Action.Confirm != "" {
+		t.Errorf("scan for changes: %+v", changes.Action)
+	}
+	if full.Action == nil || full.Action.Op != "library.rescan" || full.Action.Confirm == "" {
+		t.Errorf("full rescan: %+v", full.Action)
+	}
+	one = sduiDoc(t, ts.do(t, "GET", fmt.Sprintf("/api/v1/sdui/pages/manage-library?formFactor=web&item=%d", lib), adult, nil))
+	if findNode(&one.Root, "choices") != nil || findNode(&one.Root, "not") == nil {
+		t.Errorf("a profile that isn't an administrator sees the scan choices: %+v", one.Root)
 	}
 	if f := findNode(&doc.Root, "add"); f == nil || f.Action == nil || f.Action.Op != "library.create" {
 		t.Errorf("the add form: %+v", f)

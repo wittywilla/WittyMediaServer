@@ -47,10 +47,10 @@
 .set-libs { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
 .set-lib { display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-4); border-radius: var(--r-lg); background: var(--bg-2); border: 1px solid var(--border); transition: border-color var(--dur-2); min-width: 0; }
 .set-lib:hover { border-color: var(--border-strong); }
-.set-lib-top { display: flex; align-items: center; gap: 14px; }
+.set-lib-top { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
 .set-lib-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--r-md); background: var(--accent-soft); color: var(--accent-text); flex: none; }
 .set-lib-icon svg { width: 22px; height: 22px; }
-.set-lib-title { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.set-lib-title { flex: 1; min-width: 9em; display: grid; gap: 2px; }
 .set-lib-title b { font-size: var(--text-base); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .set-lib-title span { color: var(--fg-2); font-size: var(--text-xs); }
 .set-lib-paths { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }

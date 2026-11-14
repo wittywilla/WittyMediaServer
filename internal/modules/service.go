@@ -63,6 +63,29 @@ type runningService struct {
 	last   time.Time // the last time it was asked for
 	looked time.Time // the last time its process was checked
 	notify map[string]func(json.RawMessage)
+	// calls is how many calls the server has under way to it (Using): a service answering one,
+	// however long it takes, isn't idle.
+	calls int // guarded by the manager's svcMu
+}
+
+// Using marks a call to a module's service under way, for as long as it takes (a scan call that
+// groups a whole library): the service isn't stopped as idle meanwhile, whatever it says when
+// asked whether it's busy. The func it returns ends it. A service not running yet is started by
+// the call itself, and is marked once it is.
+func (m *Manager) Using(id string) (done func()) {
+	m.svcMu.Lock()
+	defer m.svcMu.Unlock()
+	s := m.services[id]
+	if s == nil {
+		return func() {}
+	}
+	s.calls++
+	return func() {
+		m.svcMu.Lock()
+		defer m.svcMu.Unlock()
+		s.calls--
+		s.last = time.Now()
+	}
 }
 
 // ServiceConn finds a module's service, starting it if need be. It is what service.Dial is set to.
@@ -187,25 +210,32 @@ func (m *Manager) watchServices() {
 			m.svcMu.Unlock()
 			return
 		}
-		idle := map[string]*runningService{}
-		for id, s := range m.services {
-			if time.Since(s.last) > serviceIdle {
-				idle[id] = s
-			}
-		}
+		idle := m.idleServices(time.Now())
 		m.svcMu.Unlock()
 		for id, s := range idle {
 			if busy(s.conn) {
 				continue
 			}
 			m.svcMu.Lock()
-			if m.services[id] == s && time.Since(s.last) > serviceIdle {
+			if m.services[id] == s && s.calls == 0 && time.Since(s.last) > serviceIdle {
 				delete(m.services, id)
 				s.a.Close()
 			}
 			m.svcMu.Unlock()
 		}
 	}
+}
+
+// idleServices are the services with nothing to do: none of the server's calls under way, and
+// not asked for in serviceIdle. svcMu is held.
+func (m *Manager) idleServices(now time.Time) map[string]*runningService {
+	idle := map[string]*runningService{}
+	for id, s := range m.services {
+		if s.calls == 0 && now.Sub(s.last) > serviceIdle {
+			idle[id] = s
+		}
+	}
+	return idle
 }
 
 // busy asks a service. One that can't say counts as busy, since stopping it could end a game.

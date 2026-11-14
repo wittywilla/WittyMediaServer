@@ -122,7 +122,7 @@ func (s *Scanner) leftOut(ctx context.Context, lib *Library, c candidate) bool {
 	if c.unchanged() != nil {
 		return false
 	}
-	if existing, err := s.Store.itemByPath(ctx, lib.ID, c.path); err == nil && existing.MTime == c.mtime && existing.SizeBytes == c.size {
+	if existing, err := s.Store.itemByPath(ctx, lib.ID, c.path); err == nil && c.same(existing, c.mtime) {
 		return false
 	}
 	content := mediatypes.Sniff(readHead(c.path))

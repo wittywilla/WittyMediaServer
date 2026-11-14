@@ -139,7 +139,7 @@ func (s *Server) forgetMetadata(w http.ResponseWriter, r *http.Request, libs []l
 	rescanning := []int64{}
 	if b.Rescan {
 		for _, l := range libs {
-			if s.Scanner.StartBy(l.ID, byUser(u)) {
+			if s.Scanner.StartBy(l.ID, library.ScanChanges, byUser(u)) {
 				rescanning = append(rescanning, l.ID)
 			}
 		}

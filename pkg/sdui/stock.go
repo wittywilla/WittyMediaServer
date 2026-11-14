@@ -38,7 +38,7 @@ var yes, no = true, false
 var videoKinds = []string{"movies", "shows", "anime"}
 
 // scanAction is what an empty library offers an administrator: look through the folders again.
-var scanAction = map[string]any{"label": "Scan now", "op": "library.scan", "item": "$library", "when": map[string]any{"admin": true}}
+var scanAction = map[string]any{"label": "Scan for changes", "op": "library.scan", "item": "$library", "when": map[string]any{"admin": true}}
 
 func buildStockPages() []Page {
 	notTV := Condition{Not: &Condition{FormFactor: []string{FormTV}}}

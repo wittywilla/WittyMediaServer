@@ -311,15 +311,27 @@ func (s *Server) hostLibraries(w http.ResponseWriter, r *http.Request, module st
 		return
 	}
 	// foreignNfo: whether .nfo files other programs wrote beside the media are to be read (a
-	// module scanning the library reads only this server's own otherwise).
+	// module scanning the library reads only this server's own otherwise). scan: the library's
+	// scan while one runs or waits to carry on after a restart, how much it reads again (changes,
+	// or full: every file and its details from scratch) and when it began, so a module scanning
+	// it reads everything again once for a full one.
+	type scanNow struct {
+		Mode  string `json:"mode"`
+		Since int64  `json:"since"`
+	}
 	type library struct {
 		host.Library
-		ForeignNFO bool `json:"foreignNfo"`
+		ForeignNFO bool     `json:"foreignNfo"`
+		Scan       *scanNow `json:"scan,omitempty"`
 	}
 	out := []library{}
 	for _, l := range libs {
 		if s.servesKind(module, l.Type) {
-			out = append(out, library{host.Library{ID: l.ID, Name: l.Name, Kind: l.Type, Console: l.Console, Paths: l.Paths}, l.ForeignNFO})
+			one := library{host.Library{ID: l.ID, Name: l.Name, Kind: l.Type, Console: l.Console, Paths: l.Paths}, l.ForeignNFO, nil}
+			if l.ScanMode != "" {
+				one.Scan = &scanNow{Mode: string(l.ScanMode), Since: l.ScanSince}
+			}
+			out = append(out, one)
 		}
 	}
 	writeJSON(w, 200, map[string]any{"libraries": out})
@@ -572,6 +584,16 @@ func (s *Server) hostTask(w http.ResponseWriter, r *http.Request, module string)
 	}
 	if err := json.NewDecoder(io.LimitReader(r.Body, 16<<10)).Decode(&in); err != nil {
 		writeJSON(w, 400, map[string]string{"error": "not a task's report"})
+		return
+	}
+	// scan-<library>: how far a scan call the module is answering has got. It's the scan's own
+	// progress (it keeps the scan from being stopped as stuck), never a task of its own; when
+	// the module isn't scanning that library now it's dropped.
+	if rest, ok := strings.CutPrefix(name, "scan-"); ok {
+		if id, err := strconv.ParseInt(rest, 10, 64); err == nil && id > 0 && s.Scanner != nil {
+			s.Scanner.ModuleReport(module, id, in.Done, in.Total)
+		}
+		w.WriteHeader(204)
 		return
 	}
 	key := module + "/" + name

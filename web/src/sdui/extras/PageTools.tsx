@@ -14,11 +14,12 @@ import { api, type Item, type Library, type Show } from '../../api'
 import { useAudio } from '../../audio/player'
 import { canPost, type Collection } from '../../gallery'
 import { IconShuffle } from '../../audio/icons'
-import { IconCheck, IconEdit, IconPlay, IconPlus, IconRefresh, IconTrash, IconTune } from '../../icons'
+import { IconCheck, IconEdit, IconPlay, IconPlus, IconTrash, IconTune } from '../../icons'
 import type { BrowseResult, BrowseRow, SavedView } from '../../metadata'
 import { toast, useApp } from '../../state'
 import { Button, Dialog, LinkButton, ask } from '../../ui'
 import { bump } from '../client'
+import { ScanControl, type ScanMode, type ScanProgress } from '../../components/ScanControl'
 import type { Document } from '../types'
 import { toolsFor } from '../native'
 import { ActiveFilters, FILTER_KEYS, FilterPanel, SaveViewDialog } from '../../pages/library/Filters'
@@ -64,7 +65,7 @@ function useParamsHere() {
 }
 
 function useScan(lib: Library, admin: boolean) {
-  const [scanning, setScanning] = useState<{ done?: number; found?: number } | null>(null)
+  const [scanning, setScanning] = useState<ScanProgress | null>(null)
   useEffect(() => {
     if (!admin) return
     let t = 0
@@ -72,7 +73,7 @@ function useScan(lib: Library, admin: boolean) {
     let live = true
     const poll = async () => {
       try {
-        const r = await api.get<{ scanning: boolean; progress: { done?: number; found?: number } | null }>(`/libraries/${lib.id}/scan`)
+        const r = await api.get<{ scanning: boolean; progress: ScanProgress | null }>(`/libraries/${lib.id}/scan`)
         if (!live) return
         setScanning(r.scanning ? r.progress || {} : null)
         // The page shows what the scan found once it has finished.
@@ -84,19 +85,14 @@ function useScan(lib: Library, admin: boolean) {
     poll()
     return () => { live = false; window.clearTimeout(t) }
   }, [lib.id, admin])
-  const start = async () => {
-    try { await api.post(`/libraries/${lib.id}/scan`); setScanning({}); toast(`Scanning ${lib.name}`) } catch (e) { toast((e as Error).message, { tone: 'danger' }) }
-  }
-  return { scanning, start }
+  return { scanning, started: (mode: ScanMode) => setScanning({ mode }) }
 }
 
 function ScanTool({ lib }: { lib: Library }) {
   const { user } = useApp()
-  const { scanning, start } = useScan(lib, !!user?.isAdmin)
+  const { scanning, started } = useScan(lib, !!user?.isAdmin)
   if (!user?.isAdmin) return null
-  return scanning
-    ? <Button size="sm" variant="ghost" className="tools-scan" icon={<IconRefresh />} disabled>Scanning… {scanning.done ?? 0}/{scanning.found ?? '?'}</Button>
-    : <Button size="sm" variant="ghost" className="tools-scan" icon={<IconRefresh />} onClick={() => void start()}>Scan</Button>
+  return <ScanControl lib={lib} progress={scanning} onStarted={started} size="sm" className="tools-scan" />
 }
 
 function VideoTools({ lib }: { lib: Library }) {

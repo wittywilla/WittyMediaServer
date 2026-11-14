@@ -521,7 +521,7 @@ A books library's Books tab has a FilterBar with two more filters: `reading` (Re
 
 ### Empty sections that say what to do
 
-A Shelf, Grid or List with `empty: "message"` and nothing to show is drawn as an empty state: its `emptyText`, then the optional `emptyHint` (a line of advice) and the optional `emptyAction` (one button). The node has `state: "empty"` and props `emptyText`, `emptyHint` and `emptyAction`, where `emptyAction` is `{label, action}` and `action` is an ordinary action (navigate, native or a command, with `as: "layer"` and `confirm` as everywhere). The author gives the button a `when` condition, so only administrators are offered "Scan now" or "Add a games library" and everyone else sees the hint alone; the server has already applied it, so a client draws what it is sent. A page with no data should say what to do rather than draw a bare title: every client draws the empty state generically from these props, the same on every page. The built-in library pages for photos, books, games and other libraries offer an administrator `library.scan` (the library is the item).
+A Shelf, Grid or List with `empty: "message"` and nothing to show is drawn as an empty state: its `emptyText`, then the optional `emptyHint` (a line of advice) and the optional `emptyAction` (one button). The node has `state: "empty"` and props `emptyText`, `emptyHint` and `emptyAction`, where `emptyAction` is `{label, action}` and `action` is an ordinary action (navigate, native or a command, with `as: "layer"` and `confirm` as everywhere). The author gives the button a `when` condition, so only administrators are offered "Scan for changes" or "Add a games library" and everyone else sees the hint alone; the server has already applied it, so a client draws what it is sent. A page with no data should say what to do rather than draw a bare title: every client draws the empty state generically from these props, the same on every page. The built-in library pages for photos, books, games and other libraries offer an administrator `library.scan` (the library is the item).
 
 ### The conformance kit
 
@@ -2899,6 +2899,7 @@ Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 48
 | [`canvas`](#canvas) | Canvas video | context | view | tile |  | custom |
 | [`smartRule`](#smartrule) | A smart playlist's rule | context | view | tile |  | custom |
 | [`libraryAdmin`](#libraryadmin) | Libraries to manage | structure | view | tile |  | custom |
+| [`libraryScan`](#libraryscan) | A library's scan | context | view | tile |  | custom |
 | [`newLibrary`](#newlibrary) | A new library's fields | context | view | tile |  | custom |
 | [`matchQueue`](#matchqueue) | Titles to check | structure | view | tile | yes | custom |
 | [`matchCandidates`](#matchcandidates) | A title's possible matches | context | view | tile |  | custom |
@@ -3525,10 +3526,22 @@ Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 48
 
 #### libraryAdmin
 
-*Libraries to manage.* Administrators: every library with its kind, how many titles and when it was last scanned, each row scanning it again. Empty for anyone else.
+*Libraries to manage.* Administrators: every library with its kind, how many titles and when it was last scanned (or how far its scan has got), each row opening the library's scan choices (/manage/library/{id}, as a layer). Empty for anyone else.
 
 ```json
 {"type":"libraryAdmin"}
+```
+
+#### libraryScan
+
+*A library's scan.* Administrators: one library (item) as it is being scanned, if it is (a row saying how far: "Scanning: 12,400 of 16,780 files", or a full rescan, or when it was last scanned), then a row for each way to scan it: Scan for changes (library.scan) and Full rescan (library.rescan, asking first). Empty for anyone else.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `item` (required) | ref |  | Library. $item: the library's ID. |
+
+```json
+{"type":"libraryScan","item":"$item"}
 ```
 
 #### newLibrary
@@ -3677,6 +3690,7 @@ What shows each place in the app: an SDUI page, asked for with the parameters gi
 | `/canvas/{item}` | page `canvas` | item={item} |
 | `/smart-list` | page `smart-list` |  |
 | `/manage/libraries` | page `manage-libraries` |  |
+| `/manage/library/{item}` | page `manage-library` | item={item} |
 | `/manage/matches` | page `fix-matches` |  |
 | `/manage/match/{item}` | page `match` | item={item} |
 | `/year` | page `year` |  |
@@ -3747,7 +3761,8 @@ A menu entry (`type: native`) may open the screens marked *menu*; the others nee
 | `creator.subscribe` | Subscribes the profile to a creator (item), or takes the subscription off (params.on false). | `PUT /api/creators/{item}/subscribe` with `{"on":"{on}"}`; `on` (bool, required) |
 | `comment.add` | Adds a comment to a title (item); params.text is up to 2000 characters. Not for Kids or Guest profiles. | `POST /api/items/{item}/comments` with `{"body":"{text}"}`; `text` (string, required) |
 | `comment.delete` | Deletes a comment (item: its ID): its writer's, or any as an administrator. | `DELETE /api/comments/{item}` |
-| `library.scan` | Looks through the library's folders for new and changed files (administrators): the library is the item. | `POST /api/libraries/{item}/scan` |
+| `library.scan` | Administrators: looks through the library's folders (the library is the item) for new, changed or removed files only; everything else stays as it was. A scan never times out: it runs until it finishes or is stopped, and one a restart interrupted carries on when the server starts. | `POST /api/libraries/{item}/scan` with `{"mode":"changes"}` |
+| `library.rescan` | Administrators: reads every file of the library (the item) and its details again from scratch, changed or not. On a big library it can take a long time; the library stays usable meanwhile, and one a restart interrupted carries on when the server starts. Ask before it (confirm). | `POST /api/libraries/{item}/scan` with `{"mode":"full"}` |
 | `library.forgetMetadata` | Administrators: removes what was downloaded for the library (item), to match and download it again from a clean start: the files the server saved beside the media, and the details in the server. IDs, watch history, lists and locked fields stay. It's scanned again afterwards. | `POST /api/libraries/{item}/forget-metadata` with `{"files":true,"details":true,"rescan":true}` |
 | `libraries.forgetMetadata` | Administrators: the same as library.forgetMetadata for every library at once, and the downloaded logos. Every library is scanned again afterwards. | `POST /api/libraries/forget-metadata` with `{"files":true,"details":true,"rescan":true}` |
 | `library.create` | Administrators: adds a library named params.name of kind params.type over the folder params.path, and scans it. | `POST /api/libraries` with `{"name":"{name}","type":"{type}","paths":["{path}"]}`; `name` (string, required); `type` (string, required); `path` (string, required) |
@@ -3829,6 +3844,7 @@ The menu's style on each form factor, the theme and WittyTV look each wears by d
 | `libraries` | libraries | every libraries page | `all` (Grid of libraries) |
 | `library` | library | every library page | `all` (Grid of recentlyAdded) |
 | `manage-libraries` | custom | every custom page | `not` (Notice), `all` (List of libraryAdmin), `forget` (Button), `add` (Form), `fields` (List of newLibrary) |
+| `manage-library` | custom | every custom page | `not` (Notice), `lead` (Text), `choices` (List of libraryScan) |
 | `fix-matches` | custom | every custom page | `not` (Notice), `tabs` (Tabs), `check` (Tab), `queue` (List of matchQueue), `byhand` (Tab), `manual` (List of matchQueue), `left` (Tab), `none` (List of matchQueue) |
 | `match` | custom | every custom page | `not` (Notice), `lead` (Text), `candidates` (List of matchCandidates) |
 | `creators` | custom | every custom page | `tabs` (Tabs), `all` (Tab), `everyone` (List of creators), `subscribed` (Tab), `mine` (List of creators) |

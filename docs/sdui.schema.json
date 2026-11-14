@@ -2897,6 +2897,7 @@
     "canvas",
     "smartRule",
     "libraryAdmin",
+    "libraryScan",
     "newLibrary",
     "matchQueue",
     "matchCandidates",

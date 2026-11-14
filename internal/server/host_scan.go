@@ -78,6 +78,6 @@ func (s *Server) hostRescan(w http.ResponseWriter, r *http.Request, module strin
 		writeJSON(w, 409, map[string]string{"error": "a held library's items come from its module, not from a scan"})
 		return
 	}
-	started := s.Scanner.StartBy(lib.ID, tasks.By{Name: s.hostMods().Name(module)})
+	started := s.Scanner.StartBy(lib.ID, library.ScanChanges, tasks.By{Name: s.hostMods().Name(module)})
 	writeJSON(w, 202, map[string]bool{"started": started})
 }

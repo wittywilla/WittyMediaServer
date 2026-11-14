@@ -36,6 +36,10 @@ type Library struct {
 	// ForeignNFO: .nfo files other programs wrote beside the media are read (they are on unless
 	// turned off; the server's own are read either way).
 	ForeignNFO bool `json:"foreignNfo"`
+	// ScanMode is how much the library's scan reads again (ScanChanges or ScanFull) while one
+	// runs or waits to carry on after a restart; "" otherwise. ScanSince is when it began.
+	ScanMode  ScanMode `json:"scanMode,omitempty"`
+	ScanSince int64    `json:"-"`
 }
 
 // CommercialsType is a library of the owner's own adverts and bumpers for
@@ -213,12 +217,13 @@ var ErrNotFound = errors.New("not found")
 // ---------------------------------------------------------------------------
 
 const libraryCols = `l.id, l.name, l.type, IFNULL(l.console, ''), l.created_at, l.last_scan_at, l.scanning,
-	(SELECT COUNT(*) FROM items i WHERE i.library_id = l.id AND i.missing = 0), l.show_main, l.read_only, l.foreign_nfo`
+	(SELECT COUNT(*) FROM items i WHERE i.library_id = l.id AND i.missing = 0), l.show_main, l.read_only, l.foreign_nfo,
+	IFNULL((SELECT r.mode FROM library_scans r WHERE r.library_id = l.id), ''), IFNULL((SELECT r.started_at FROM library_scans r WHERE r.library_id = l.id), 0)`
 
 func scanLibrary(sc interface{ Scan(...any) error }) (*Library, error) {
 	var l Library
 	var scanning, showMain, readOnly, foreignNFO int
-	if err := sc.Scan(&l.ID, &l.Name, &l.Type, &l.Console, &l.CreatedAt, &l.LastScanAt, &scanning, &l.ItemCount, &showMain, &readOnly, &foreignNFO); err != nil {
+	if err := sc.Scan(&l.ID, &l.Name, &l.Type, &l.Console, &l.CreatedAt, &l.LastScanAt, &scanning, &l.ItemCount, &showMain, &readOnly, &foreignNFO, &l.ScanMode, &l.ScanSince); err != nil {
 		return nil, err
 	}
 	l.Scanning = scanning != 0

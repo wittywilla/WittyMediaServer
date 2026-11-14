@@ -35,6 +35,10 @@ type fakeScans struct {
 	described func(a wittymodule.ScanDescribeArgs) wittymodule.ScanDescribed
 	// onIdentify runs at each identify call (a test stops the scan there).
 	onIdentify func(n int)
+	// during runs inside each identify call, with its context (a call that takes a while).
+	during func(ctx context.Context, a wittymodule.ScanIdentifyArgs)
+	// failDescribe, when it answers an error, fails the nth describe call with it.
+	failDescribe func(n int) error
 }
 
 func (f *fakeScans) ScanModule(kind string) (ScanModule, bool) {
@@ -68,6 +72,9 @@ func (f *fakeScans) Call(ctx context.Context, module, call string, args, out any
 			}
 		}
 		f.mu.Unlock()
+		if f.during != nil {
+			f.during(ctx, a)
+		}
 		if f.onIdentify != nil {
 			f.onIdentify(n)
 			if err := ctx.Err(); err != nil {
@@ -83,7 +90,13 @@ func (f *fakeScans) Call(ctx context.Context, module, call string, args, out any
 		_ = json.Unmarshal(b, &a)
 		f.mu.Lock()
 		f.describe = append(f.describe, a)
+		n := len(f.describe)
 		f.mu.Unlock()
+		if f.failDescribe != nil {
+			if err := f.failDescribe(n); err != nil {
+				return err
+			}
+		}
 		answer = wittymodule.ScanDescribed{}
 		if f.described != nil {
 			answer = f.described(a)

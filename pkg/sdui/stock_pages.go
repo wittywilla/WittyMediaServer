@@ -113,13 +113,19 @@ func buildUtilityPages() []Page {
 	onlyAdmin := func(x Section) Section { return when(x, Condition{Admin: &admin}) }
 	notAdmin := when(sec("not", "Notice", props{"tone": "info", "text": "Only an administrator can manage this."}, nil), Condition{Admin: new(bool)})
 	manageLibraries := Page{ID: "manage-libraries", Kind: "custom", Title: "Libraries", Icon: "library",
-		Description: "Administrators: the libraries with their scan state, a row scanning each again, and a form adding one. Opened at /manage/libraries.",
+		Description: "Administrators: the libraries with their scan state, a row opening each one's scan choices, and a form adding one. Opened at /manage/libraries.",
 		Sections: []Section{notAdmin,
 			onlyAdmin(sec("all", "List", props{"empty": "message", "emptyText": "No libraries yet. Add one below."}, Source{"type": "libraryAdmin"})),
 			onlyAdmin(sec("forget", "Button", props{"label": "Remove downloaded details", "icon": "history", "op": "libraries.forgetMetadata", "variant": "ghost",
 				"confirm": "Remove what was downloaded for every library and download it again? History, lists and locked fields stay."}, nil)),
 			onlyAdmin(with(sec("add", "Form", props{"title": "Add a library", "op": "library.create", "submitLabel": "Add and scan"}, nil),
 				sec("fields", "List", props{}, Source{"type": "newLibrary"}))),
+		}}
+	manageLibrary := Page{ID: "manage-library", Kind: "custom", Title: "Scan the library", Icon: "library",
+		Description: "Administrators: one library's scan (opened with item, usually as a layer): how far a scan has got, then Scan for changes and Full rescan. Opened at /manage/library/{item}.",
+		Sections: []Section{notAdmin,
+			onlyAdmin(sec("lead", "Text", props{"text": "Scan for changes looks only at new, changed or removed files. Full rescan reads every file and its details again from scratch. Neither times out, and the library stays usable meanwhile.", "role": "caption"}, nil)),
+			onlyAdmin(sec("choices", "List", props{"empty": "message", "emptyText": "That library isn't there any more."}, Source{"type": "libraryScan", "item": "$item"})),
 		}}
 	fixMatches := Page{ID: "fix-matches", Kind: "custom", Title: "Fix matches", Icon: "filter",
 		Description: "Administrators: titles that are unmatched or matched with little certainty, each opening its possible matches. Opened at /manage/matches.",
@@ -135,6 +141,6 @@ func buildUtilityPages() []Page {
 			onlyAdmin(sec("lead", "Text", props{"text": "Choose what this is. The details, artwork and people come from the one you choose.", "role": "caption"}, nil)),
 			onlyAdmin(sec("candidates", "List", props{"empty": "message", "emptyText": "No source suggests anything for this title."}, Source{"type": "matchCandidates", "item": "$item"})),
 		}}
-	return []Page{manageLibraries, fixMatches, match, creators, creator, comments, markers, canvas, smart, brand("studio", "studio", "studio", "globe"), brand("network", "network", "network", "tv"), brand("category", "category", "genre", "filter"),
+	return []Page{manageLibraries, manageLibrary, fixMatches, match, creators, creator, comments, markers, canvas, smart, brand("studio", "studio", "studio", "globe"), brand("network", "network", "network", "tv"), brand("category", "category", "genre", "filter"),
 		versions, saveTo, devices, year, activity, notices}
 }

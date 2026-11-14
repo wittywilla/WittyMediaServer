@@ -72,7 +72,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/libraries` | Admin | Name, known type, full paths to existing folders. Module for the type is installed; for a games library, a module that scans games is installed and on, and the console is `auto` or one it names |
 | `PUT /api/libraries/{id}` | Admin | As creating. Refused for a library owned by a game PC |
 | `DELETE /api/libraries/{id}` | Admin | Numeric id |
-| `POST /api/libraries/{id}/scan` | Admin | Library exists |
+| `POST /api/libraries/{id}/scan` | Admin | Library exists; body `{mode}` read up to 4 KB, only `changes` or `full` (400 otherwise) |
 | `PUT /api/libraries/{id}/nfo` | Admin | Library exists |
 | `POST /api/libraries/{id}/purge-metadata` | Admin | Library exists and isn't read-only; deletes only `.nfo` and `.metadata.json` files inside its folders |
 | `GET /api/libraries/{id}/scan` | Signed-in | Library is within the account's allowed libraries. File names for admins only |

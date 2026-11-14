@@ -3972,6 +3972,9 @@
           "readOnly": {
             "type": "boolean"
           },
+          "scanMode": {
+            "type": "string"
+          },
           "scanning": {
             "type": "boolean"
           },
@@ -23050,7 +23053,37 @@
                       "type": [
                         "object",
                         "null"
-                      ]
+                      ],
+                      "properties": {
+                        "libraryId": {
+                          "type": "integer"
+                        },
+                        "phase": {
+                          "type": "string"
+                        },
+                        "current": {
+                          "type": "string"
+                        },
+                        "found": {
+                          "type": "integer"
+                        },
+                        "done": {
+                          "type": "integer"
+                        },
+                        "startedAt": {
+                          "type": "integer"
+                        },
+                        "mode": {
+                          "type": "string",
+                          "enum": [
+                            "changes",
+                            "full"
+                          ]
+                        },
+                        "resumed": {
+                          "type": "boolean"
+                        }
+                      }
                     },
                     "scanning": {
                       "type": "boolean"
@@ -23071,7 +23104,7 @@
             "bearer": []
           }
         ],
-        "summary": "Scan progress.",
+        "summary": "Scan progress: `progress` is null when no scan runs, else `{libraryId, phase, current, found, done, startedAt, mode, resumed}` (`mode` changes or full; `resumed` when it carries on after a restart; `current` for administrators only).",
         "tags": [
           "Browsing"
         ],
@@ -23089,6 +23122,25 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "mode": {
+                    "enum": [
+                      "changes",
+                      "full"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "202": {
             "content": {
@@ -23097,6 +23149,13 @@
                   "properties": {
                     "started": {
                       "type": "boolean"
+                    },
+                    "mode": {
+                      "type": "string",
+                      "enum": [
+                        "changes",
+                        "full"
+                      ]
                     }
                   },
                   "type": "object"
@@ -23114,7 +23173,7 @@
             "bearer": []
           }
         ],
-        "summary": "Scan now.",
+        "summary": "Scan the library. `mode` changes (the default, also with no body): only new, changed or removed files. full: every file and its details again from scratch. A scan has no time limit; it stops when nothing moves for 10 minutes, and carries on after a restart. `started` is false when one is already running.",
         "tags": [
           "Browsing"
         ],

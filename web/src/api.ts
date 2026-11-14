@@ -39,7 +39,8 @@ export type HouseholdProfile = { id: number; name: string; displayName?: string;
 export type UserView = User & { access: Access | null }
 export type Library = {
   id: number; name: string; type: string; console?: string; paths: string[]; createdAt: number
-  lastScanAt: number | null; scanning: boolean; itemCount: number; showMain?: boolean; readOnly?: boolean
+  lastScanAt: number | null; scanning: boolean; scanMode?: 'changes' | 'full'; // scanMode: while a scan runs or waits to carry on after a restart
+  itemCount: number; showMain?: boolean; readOnly?: boolean
   foreignNfo?: boolean // reads .nfo files other programs wrote beside the media
 }
 // A commercials library stays out of the menus and Home unless switched on.

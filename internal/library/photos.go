@@ -261,7 +261,7 @@ func (s *Scanner) indexPhoto(ctx context.Context, lib *Library, c candidate) err
 		return nil // unchanged
 	}
 	existing, err := s.Store.itemByPath(ctx, lib.ID, c.path)
-	if err == nil && existing.MTime == c.mtime && existing.SizeBytes == c.size && !existing.Missing {
+	if err == nil && c.same(existing, c.mtime) && !existing.Missing {
 		return nil // unchanged
 	}
 	it := &Item{LibraryID: lib.ID, Kind: c.kind, Path: c.path, SizeBytes: c.size, MTime: c.mtime, Poster: LazyPoster}

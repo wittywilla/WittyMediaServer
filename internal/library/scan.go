@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/wittywilla/wittydisc/isofs"
@@ -79,9 +80,12 @@ type Scanner struct {
 
 	mu      sync.Mutex
 	running map[int64]context.CancelFunc
+	live    map[int64]*liveScan // guarded by mu
 	// Progress for the UI.
 	Progress map[int64]*ScanProgress
 	lastTrim time.Time // when the caches were last kept to their limits; guarded by mu
+	// stopping: the server is stopping, so a scan that fails now carries on at the next start.
+	stopping atomic.Bool
 }
 
 type ScanProgress struct {
@@ -91,49 +95,97 @@ type ScanProgress struct {
 	Found     int    `json:"found"`
 	Done      int    `json:"done"`
 	StartedAt int64  `json:"startedAt"`
+	// Mode is how much the scan reads again: changes, or full.
+	Mode ScanMode `json:"mode"`
+	// Resumed: a restart cut this scan short and it's carrying on.
+	Resumed bool `json:"resumed,omitempty"`
 }
 
 func NewScanner(store *Store, tools *ffmpeg.Tools, cacheDir string, tmdbKey func() string, log *slog.Logger) *Scanner {
-	sc := &Scanner{Store: store, Tools: tools, CacheDir: cacheDir, ImagesDir: filepath.Join(cacheDir, "images"), TMDBKey: tmdbKey, Log: log.With("cat", "library"), slot: make(chan struct{}, 1), running: map[int64]context.CancelFunc{}, Progress: map[int64]*ScanProgress{}}
+	sc := &Scanner{Store: store, Tools: tools, CacheDir: cacheDir, ImagesDir: filepath.Join(cacheDir, "images"), TMDBKey: tmdbKey, Log: log.With("cat", "library"), slot: make(chan struct{}, 1), running: map[int64]context.CancelFunc{}, live: map[int64]*liveScan{}, Progress: map[int64]*ScanProgress{}}
 	if tools != nil && tools.FFmpeg != "" {
 		cd.ForeignAudio = sc.flacOfSheetAudio
 	}
 	return sc
 }
 
-// Start scans a library in the background (no-op if already scanning).
-func (s *Scanner) Start(libraryID int64) bool { return s.StartBy(libraryID, tasks.By{}) }
+// Start scans a library for changes in the background (no-op if already scanning).
+func (s *Scanner) Start(libraryID int64) bool { return s.StartBy(libraryID, ScanChanges, tasks.By{}) }
 
-// StartBy is Start, saying who asked. A scan of a library whose scan was stopped picks
-// up where it left off: files it has already seen, unchanged, take almost no time.
-func (s *Scanner) StartBy(libraryID int64, by tasks.By) bool {
+// StartBy starts a scan of a library, reading again only what changed or, with ScanFull,
+// everything, saying who asked. It has no time limit: it runs until it's done, a person stops
+// it, or nothing moves for StuckAfter. A scan that was stopped, or that a restart cut short,
+// picks up where it left off: files it has already seen, unchanged, take almost no time, and a
+// Full rescan doesn't read again what it has read already.
+func (s *Scanner) StartBy(libraryID int64, mode ScanMode, by tasks.By) bool {
+	if mode != ScanFull {
+		mode = ScanChanges
+	}
 	s.mu.Lock()
 	if _, ok := s.running[libraryID]; ok {
 		s.mu.Unlock()
 		return false
 	}
-	ctx, cancel := context.WithCancel(context.Background())
-	s.running[libraryID] = cancel
-	s.Progress[libraryID] = &ScanProgress{LibraryID: libraryID, Phase: "starting", StartedAt: time.Now().Unix()}
+	ctx, cancel := context.WithCancelCause(context.Background())
+	stop := func() { cancel(nil) }
+	live := &liveScan{last: time.Now(), cancel: cancel, mode: mode}
+	s.running[libraryID] = stop
+	s.live[libraryID] = live
+	s.Progress[libraryID] = &ScanProgress{LibraryID: libraryID, Phase: "starting", StartedAt: time.Now().Unix(), Mode: mode}
 	s.mu.Unlock()
 	name, rig := "", false
 	if lib, err := s.Store.Library(ctx, libraryID); err == nil {
 		name, rig = lib.Name, lib.IsRig()
 	}
-	t := s.Tasks.Queue(tasks.Spec{Type: tasks.TypeScan, Title: "Scanning " + name, Phase: "Waiting for its turn", LibraryID: libraryID, LibraryName: name, Unit: "files",
-		By: by, Cancel: cancel, Pausable: true, RetryKey: strconv.FormatInt(libraryID, 10), Quiet: rig})
+	run, err := s.Store.beginRun(ctx, libraryID, mode)
+	if err != nil {
+		s.Log.WarnContext(ctx, "could not write down a scan, so a restart would start it again", "library", libraryID, "err", err)
+		run = &scanRun{mode: mode, since: time.Now().Unix()}
+	}
+	live.mode, live.resumed = run.mode, run.resumed
+	s.progress(libraryID, func(p *ScanProgress) { p.Mode, p.Resumed = run.mode, run.resumed })
+	title := "Scanning " + name
+	if run.mode == ScanFull {
+		title = "Full rescan of " + name
+	}
+	phase := "Waiting for its turn"
+	if run.resumed {
+		phase = "Waiting to carry on where it left off"
+	}
+	t := s.Tasks.Queue(tasks.Spec{Type: tasks.TypeScan, Title: title, Phase: phase, LibraryID: libraryID, LibraryName: name, Unit: "files",
+		By: by, Cancel: stop, Pausable: true, RetryKey: strconv.FormatInt(libraryID, 10) + "/" + string(run.mode), Quiet: rig})
 	id := logging.NewID("scan")
 	ctx = logging.WithSession(ctx, id) // every record of this scan carries it
 	ctx = pace.Background(ctx)         // and it gives way to people on a small machine
+	ctx = context.WithValue(ctx, runKey{}, run)
+	ctx = context.WithValue(ctx, liveKey{}, live)
 	logging.Go("library scan", func() {
 		defer func() {
 			s.mu.Lock()
 			delete(s.running, libraryID)
+			delete(s.live, libraryID)
 			delete(s.Progress, libraryID)
 			s.mu.Unlock()
 		}()
+		watching, stopWatching := context.WithCancel(ctx)
+		go live.watch(watching)
 		err := scanGuarded(func() error { return s.scan(context.WithValue(ctx, taskKey{}, t), libraryID) }, "cat", "library", "session", id)
-		t.Finish(err)
+		stopWatching()
+		if cause := context.Cause(ctx); err != nil && errors.Is(cause, ErrScanStuck) {
+			err = cause
+		}
+		// What a restart cut short carries on at the next start; anything else is over.
+		if s.stopping.Load() && err != nil {
+			t.Fail("The server stopped during this scan. It carries on where it left off when the server starts again.", "", err)
+			s.Log.InfoContext(ctx, "scan cut short by the server stopping; it carries on at the next start", "library", libraryID, "err", err)
+			return
+		}
+		s.Store.endRun(context.Background(), libraryID)
+		if errors.Is(err, ErrScanStuck) {
+			t.Fail(err.Error(), stuckFix, nil)
+		} else {
+			t.Finish(err)
+		}
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
 				s.Log.InfoContext(ctx, "scan cancelled", "library", libraryID)
@@ -338,12 +390,20 @@ func (s *Scanner) Cancel(libraryID int64) {
 	}
 }
 
+// progress updates what the UI shows of a scan, which also says the scan is moving.
 func (s *Scanner) progress(id int64, f func(p *ScanProgress)) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if p := s.Progress[id]; p != nil {
-		f(p)
+	p := s.Progress[id]
+	if p == nil {
+		return
 	}
+	f(p)
+	what := "it was " + p.Phase
+	if p.Current != "" {
+		what = "it was on " + p.Current
+	}
+	s.live[id].doing(what)
 }
 
 // Running says a scan of this library is queued or under way.
@@ -376,6 +436,9 @@ type candidate struct {
 	format string
 	// known is what the library already says about this path, if anything.
 	known *knownFile
+	// reread: a Full rescan began then (Unix seconds), so this file is read again unless it
+	// has been since. 0: only a change has it read again.
+	reread int64
 }
 
 // discover lists playable things under a root: video files, disc images and
@@ -512,6 +575,7 @@ const (
 	phaseWorkingOut = "Working out what each file is"
 	phaseListing    = "Listing what was found"
 	phaseDescribing = "Finding out about what's new"
+	phaseGrouping   = "Putting what was found together"
 )
 
 func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
@@ -541,6 +605,7 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 			return nil
 		}
 		s.progress(libraryID, func(p *ScanProgress) { p.Phase = "waiting" })
+		defer liveOf(ctx).wait()()
 		select {
 		case s.slot <- struct{}{}:
 			holding = true
@@ -567,7 +632,10 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 			<-s.slot
 			holding = false
 		}
-		if err := task.Wait(ctx); err != nil {
+		waited := liveOf(ctx).wait()
+		err := task.Wait(ctx)
+		waited()
+		if err != nil {
 			return err
 		}
 		return takeSlot()
@@ -664,6 +732,13 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	ctx = context.WithValue(ctx, rulesKey{}, rules)
 	if err := s.Store.loadKnown(ctx, libraryID, all, !IsAudioLibrary(lib.Type) && lib.Type != "photos" && lib.Type != "books"); err != nil && ctx.Err() == nil {
 		s.Log.WarnContext(ctx, "could not read what the library holds in one go; looking file by file", "library", lib.Name, "err", err)
+	}
+	if run := runOf(ctx); run.full() {
+		// Every file is read again, but for those this Full rescan has read already (before a
+		// restart cut it short).
+		for i := range all {
+			all[i].reread = run.since
+		}
 	}
 	s.progress(libraryID, func(p *ScanProgress) { p.Phase = "indexing"; p.Found = len(all) })
 	task.Phase(phaseLooking)
@@ -764,7 +839,7 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 		return nil
 	}
 	existing, err := s.Store.itemByPath(ctx, lib.ID, c.path)
-	if err == nil && existing.MTime == c.mtime && existing.SizeBytes == c.size {
+	if err == nil && c.same(existing, c.mtime) {
 		// The file is what it was. Its details and anyone's edits stay; only a
 		// picture may still be found (it needs no second look at the file or
 		// the internet, and a broken file must not cost that on every scan).
@@ -1112,6 +1187,7 @@ func (s *Scanner) fillAudioFormats(ctx context.Context, libraryID int64) {
 		}
 		task.Progress(int64(i), int64(len(todo)))
 		task.Item(filepath.Base(r.path), r.path)
+		scanMoved(ctx)
 		pctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		p, err := s.Tools.ProbeFile(pctx, r.path)
 		cancel()

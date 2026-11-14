@@ -8,7 +8,7 @@ import { EmptyState, ItemCard, LoadError, ScanButton, ShowCard, SkeletonGrid, Sp
 import { Button, LinkButton, Notice, Shelf as ShelfRow } from '../../ui'
 import LegalNote from '../../components/LegalNote'
 import LibraryHeader, { type SortOption } from '../../components/LibraryHeader'
-import { IconCheck, IconEdit, IconFilm, IconPlus, IconRefresh, IconTune } from '../../icons'
+import { IconCheck, IconEdit, IconFilm, IconPlus, IconTune } from '../../icons'
 import { artPictureUrl, type BrowseResult, type BrowseRow, type Category, type ListingStatus, type SavedView, type Shelves } from '../../metadata'
 import { toast, useApp } from '../../state'
 import { emptyLibraryWords } from '../../profileWords'
@@ -16,6 +16,7 @@ import BulkEdit from './BulkEdit'
 import CategoryEditor from './CategoryEditor'
 import { ActiveFilters, FILTER_KEYS, FilterPanel, SaveViewDialog } from './Filters'
 import './library.css'
+import type { ScanProgress } from '../../components/ScanControl'
 
 // Films and shows: sleek shelves to start with, a grid once something is asked for. The
 // address holds the whole state, so a view can be bookmarked or pinned.
@@ -102,7 +103,7 @@ export default function VideoLibrary({ lib }: { lib: Library }) {
   const [failed, setFailed] = useState(false)
   const [retry, setRetry] = useState(0)
   const [scanTick, setScanTick] = useState(0)
-  const [scanning, setScanning] = useState<{ done?: number; found?: number } | null>(null)
+  const [scanning, setScanning] = useState<ScanProgress | null>(null)
   const [filters, setFilters] = useState(false)
   const [saving, setSaving] = useState(false)
   const [arranging, setArranging] = useState(false)
@@ -172,7 +173,7 @@ export default function VideoLibrary({ lib }: { lib: Library }) {
     let was = false
     const poll = async () => {
       try {
-        const r = await api.get<{ scanning: boolean; progress: { done?: number; found?: number } | null }>(`/libraries/${id}/scan`)
+        const r = await api.get<{ scanning: boolean; progress: ScanProgress | null }>(`/libraries/${id}/scan`)
         setScanning(r.scanning ? r.progress : null)
         if (was && !r.scanning) setScanTick((n) => n + 1)
         was = r.scanning
@@ -220,9 +221,7 @@ export default function VideoLibrary({ lib }: { lib: Library }) {
           {user?.isAdmin && queueCount > 0 && <LinkButton variant="ghost" to={`/fix-matches?library=${lib.id}`}>Fix matches <span className="lib-badge">{queueCount}</span></LinkButton>}
           {user?.isAdmin && grid && <Button variant="ghost" icon={<IconCheck />} className={selecting ? 'active' : undefined} aria-pressed={selecting} onClick={() => { setSelecting(!selecting); setSelected(new Map()) }}>Select</Button>}
           {user?.isAdmin && !grid && <Button variant="ghost" icon={<IconEdit />} onClick={() => setArranging(true)}>Categories</Button>}
-          {scanning
-            ? <Button variant="ghost" icon={<IconRefresh />} disabled>Scanning… {scanning.done ?? 0}/{scanning.found ?? '?'}</Button>
-            : <ScanButton lib={lib} onStarted={() => setScanning({})} />}
+          <ScanButton lib={lib} progress={scanning} onStarted={(mode) => setScanning({ mode })} />
         </>}
       >
         <ActiveFilters params={params} setParam={setParam} onSave={() => setSaving(true)} onClear={clearAll} platforms={shelves?.platforms} />

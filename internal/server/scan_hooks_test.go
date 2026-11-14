@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -26,6 +27,9 @@ type fakeScanModule struct {
 	mu    sync.Mutex
 	id    string
 	calls []string
+	// inDone, when set, is told when the last identify call arrives, which then waits for
+	// release (a call that takes a while).
+	inDone, release chan struct{}
 }
 
 func (f *fakeScanModule) ScanModule(kind string) (library.ScanModule, bool) {
@@ -46,6 +50,17 @@ func (f *fakeScanModule) Call(ctx context.Context, module, call string, args, ou
 	case wittymodule.CallScanChoices:
 		answer = wittymodule.ScanChoices{Facet: "console", Values: []wittymodule.ScanChoice{{ID: "nes", Name: "Nintendo Entertainment System", Short: "NES"}}}
 	case wittymodule.CallScanIdentify:
+		var a wittymodule.ScanIdentifyArgs
+		b, _ := json.Marshal(args)
+		_ = json.Unmarshal(b, &a)
+		if a.Done && f.inDone != nil {
+			f.inDone <- struct{}{}
+			select {
+			case <-f.release:
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		}
 		answer = wittymodule.ScanIdentified{}
 	case wittymodule.CallScanDescribe:
 		answer = wittymodule.ScanDescribed{}
@@ -145,6 +160,84 @@ func TestHostScanHooks(t *testing.T) {
 	}
 	if err := c.Rescan(ctx, games); !host.IsNotFound(err) {
 		t.Errorf("a module that doesn't scan games: %v", err)
+	}
+}
+
+// Scan for changes and Full rescan: the mode is checked, the host tells the module scanning the
+// library which it is, and what the module reports of a call's progress goes to the scan
+// (never a task of its own), and only while it's answering one.
+func TestScanModesAndModuleProgress(t *testing.T) {
+	ts := newTestServer(t)
+	ts.hostModsForTest = fakeHostModules{in: &wittymodule.Integration{Module: "wittyplay"}}
+	scans := &fakeScanModule{id: "wittyplay", inDone: make(chan struct{}), release: make(chan struct{})}
+	ts.Scanner.Modules = scans
+	api := httptest.NewServer(ts.HostAPI())
+	defer api.Close()
+	ctx := context.Background()
+	c := host.NewAt(api.URL, "tok", nil)
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "a.nes"), []byte("nes"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	games := ts.library(t, "games", dir)
+	_, admin := ts.user(t, "modes-admin", "adult", true, "")
+	for _, bad := range []any{map[string]any{"mode": "deep"}, []byte("{")} {
+		if w := ts.do(t, "POST", "/api/libraries/"+itoa64(games)+"/scan", admin, bad); w.Code != 400 {
+			t.Errorf("%v: %d %s", bad, w.Code, w.Body)
+		}
+	}
+	if err := c.Task(ctx, "scan-"+itoa64(games), 1, 2, nil); err != nil {
+		t.Fatal(err)
+	}
+	w := ts.do(t, "POST", "/api/libraries/"+itoa64(games)+"/scan", admin, map[string]any{"mode": "full"})
+	if w.Code != 202 || !strings.Contains(w.Body.String(), `"mode":"full"`) || !strings.Contains(w.Body.String(), `"started":true`) {
+		t.Fatalf("full rescan: %d %s", w.Code, w.Body)
+	}
+	select {
+	case <-scans.inDone:
+	case <-time.After(10 * time.Second):
+		t.Fatal("the last identify call never came")
+	}
+	var libs struct {
+		Libraries []struct {
+			ID   int64 `json:"id"`
+			Scan *struct {
+				Mode  string `json:"mode"`
+				Since int64  `json:"since"`
+			} `json:"scan"`
+		} `json:"libraries"`
+	}
+	if err := c.Do(ctx, host.On{}, "GET", "/libraries", nil, &libs); err != nil {
+		t.Fatal(err)
+	}
+	if len(libs.Libraries) != 1 || libs.Libraries[0].Scan == nil || libs.Libraries[0].Scan.Mode != "full" || libs.Libraries[0].Scan.Since == 0 {
+		t.Fatalf("host libraries: %+v", libs)
+	}
+	if err := c.Task(ctx, "scan-"+itoa64(games), 7, 9, nil); err != nil {
+		t.Fatal(err)
+	}
+	var reported bool
+	for _, task := range append(ts.Tasks.Live(), ts.Tasks.Recent()...) {
+		if strings.Contains(task.Key, "scan-") {
+			t.Errorf("a scan's progress became a task: %+v", task)
+		}
+		if task.Type == "scan" && task.LibraryID == games && task.Done == 7 && task.Total == 9 {
+			reported = true
+		}
+	}
+	if !reported {
+		t.Errorf("the scan's task doesn't show the module's progress: %+v", ts.Tasks.Live())
+	}
+	if w := ts.do(t, "GET", "/api/libraries/"+itoa64(games)+"/scan", admin, nil); !strings.Contains(w.Body.String(), `"mode":"full"`) {
+		t.Errorf("progress: %s", w.Body)
+	}
+	close(scans.release)
+	for deadline := time.Now().Add(10 * time.Second); ts.Scanner.Running(games) && time.Now().Before(deadline); {
+		time.Sleep(20 * time.Millisecond)
+	}
+	libs.Libraries = nil
+	if err := c.Do(ctx, host.On{}, "GET", "/libraries", nil, &libs); err != nil || len(libs.Libraries) != 1 || libs.Libraries[0].Scan != nil {
+		t.Errorf("after the scan: %+v %v", libs, err)
 	}
 }
 

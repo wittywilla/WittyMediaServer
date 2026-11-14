@@ -17,7 +17,8 @@ import (
 // read. Each source is empty for anyone but an administrator, and each row's command goes to an admin route,
 // which checks again.
 
-// libraryAdminRows: every library, its kind, size and last scan; a row scans it again.
+// libraryAdminRows: every library, its kind, size and last scan (or how far its scan has got); a row opens its
+// scan choices (manage-library, as a layer).
 func (rv *sduiResolver) libraryAdminRows() ([]sdui.Item, error) {
 	if !rv.u.IsAdmin {
 		return nil, nil
@@ -35,15 +36,81 @@ func (rv *sduiResolver) libraryAdminRows() ([]sdui.Item, error) {
 		if len(l.Paths) > 0 {
 			facts = append(facts, l.Paths[0])
 		}
-		row := sdui.Item{ID: "lib-" + itoa(l.ID), Kind: "view", Title: l.Name, Subtitle: strings.Join(facts, " · "), Icon: "library", Trailing: "Scan"}
-		if l.Scanning {
+		row := sdui.Item{ID: "lib-" + itoa(l.ID), Kind: "view", Title: l.Name, Subtitle: strings.Join(facts, " · "), Icon: "library", Trailing: "Scan",
+			Action: &sdui.Action{Type: sdui.ActNavigate, To: "/manage/library/" + itoa(l.ID), As: sdui.PresentLayer}}
+		if p := rv.s.Scanner.Snapshot(l.ID); p != nil {
+			row.Trailing = scanCount(p)
+		} else if l.Scanning {
 			row.Trailing = "Scanning"
-		} else {
-			row.Action = &sdui.Action{Type: sdui.ActCommand, Op: "library.scan", Item: itoa(l.ID)}
 		}
 		out = append(out, row)
 	}
 	return out, nil
+}
+
+// scanCount says how far a scan has got, as the activity panel does: "12,400 of 16,780 files".
+func scanCount(p *library.ScanProgress) string {
+	if p.Found > 0 {
+		return groupDigits(p.Done) + " of " + groupDigits(p.Found) + " files"
+	}
+	return "Scanning"
+}
+
+// groupDigits writes a count with commas: 16,780.
+func groupDigits(n int) string {
+	s := strconv.Itoa(n)
+	for i := len(s) - 3; i > 0; i -= 3 {
+		s = s[:i] + "," + s[i:]
+	}
+	return s
+}
+
+// libraryScanRows: one library's scan (manage-library): how far a scan has got, or when it was last scanned,
+// then Scan for changes and Full rescan (which asks first).
+func (rv *sduiResolver) libraryScanRows(ref string) ([]sdui.Item, error) {
+	if !rv.u.IsAdmin {
+		return nil, nil
+	}
+	id, err := strconv.ParseInt(ref, 10, 64)
+	if err != nil {
+		return nil, nil
+	}
+	l, err := rv.s.Store.Library(rv.ctx, id)
+	if err != nil {
+		return nil, nil //nolint:nilerr // a library that's gone has nothing to show
+	}
+	var out []sdui.Item
+	busy := false
+	if p := rv.s.Scanner.Snapshot(id); p != nil {
+		busy = true
+		doing := "Scanning"
+		if p.Mode == library.ScanFull {
+			doing = "Full rescan"
+		}
+		if p.Resumed {
+			doing += ", carrying on after a restart"
+		}
+		state := sdui.Item{ID: "state", Kind: "view", Title: doing, Subtitle: l.Name, Icon: "clock", Trailing: scanCount(p)}
+		if p.Found > 0 {
+			state.Title = doing + ": " + scanCount(p)
+		}
+		out = append(out, state)
+	} else if l.Scanning || l.ScanMode != "" {
+		busy = true
+		out = append(out, sdui.Item{ID: "state", Kind: "view", Title: "Scanning", Subtitle: l.Name, Icon: "clock"})
+	} else if l.LastScanAt != nil && *l.LastScanAt > 0 {
+		out = append(out, sdui.Item{ID: "state", Kind: "view", Title: "Last scanned " + time.Unix(*l.LastScanAt, 0).Format("2 Jan 2006 15:04"), Subtitle: l.Name, Icon: "history"})
+	}
+	changes := sdui.Item{ID: "changes", Kind: "view", Title: "Scan for changes", Subtitle: "Only new, changed or removed files.", Icon: "folder"}
+	full := sdui.Item{ID: "full", Kind: "view", Title: "Full rescan", Subtitle: "Reads every file and its details again, from scratch.", Icon: "library"}
+	if busy {
+		changes.Trailing, full.Trailing = "Scanning", "Scanning"
+	} else {
+		changes.Action = &sdui.Action{Type: sdui.ActCommand, Op: "library.scan", Item: ref}
+		full.Action = &sdui.Action{Type: sdui.ActCommand, Op: "library.rescan", Item: ref,
+			Confirm: "Read every file of " + l.Name + " and its details again? On a big library this can take a long time. The library stays usable meanwhile."}
+	}
+	return append(out, changes, full), nil
 }
 
 // newLibraryRows: a new library's name, kind and folder, for the library.create Form.

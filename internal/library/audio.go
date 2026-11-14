@@ -128,7 +128,7 @@ func (s *Scanner) indexAudio(ctx context.Context, lib *Library, c candidate, cov
 		return nil // unchanged
 	}
 	existing, err := s.Store.itemByPath(ctx, lib.ID, c.path)
-	if err == nil && existing.MTime == c.mtime && existing.SizeBytes == c.size {
+	if err == nil && c.same(existing, c.mtime) {
 		if existing.Missing {
 			return s.Store.restore(ctx, existing.ID)
 		}

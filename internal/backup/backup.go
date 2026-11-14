@@ -163,12 +163,13 @@ var tableParts = map[string]string{
 //   - sign-ins: a backup must not let anyone in, and nobody expects a sign-in to come back.
 //   - devices that may connect peer to peer: the same. They add themselves again at home.
 //   - the audit log: what happened on this machine, which a restore mustn't rewrite.
-//   - measurements and finished jobs: of this machine, at that time.
+//   - measurements, finished jobs and scans under way: of this machine, at that time.
 var neverTables = map[string]bool{
 	"schema": true, "sqlite_sequence": true, "sessions": true, "p2p_devices": true,
 	"game_core_audit": true,
 	"metrics_hourly":  true, "stream_bytes": true, "task_history": true,
 	"ltc_runs": true, "ltc_files": true, "ltc_memo": true,
+	"library_scans": true, "scan_describe": true,
 }
 
 // FileEntry is one file in an archive.

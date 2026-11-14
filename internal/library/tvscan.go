@@ -141,7 +141,7 @@ func (s *Scanner) indexEpisode(ctx context.Context, lib *Library, c candidate, t
 		return nil // unchanged
 	}
 	existing, err := s.Store.itemByPath(ctx, lib.ID, c.path)
-	sameFile := err == nil && existing.MTime == c.mtime && existing.SizeBytes == c.size
+	sameFile := err == nil && c.same(existing, c.mtime)
 	if sameFile && existing.Poster != "" && existing.ShowID != nil && *existing.ShowID == sh.ID && !s.tvInfoNew(ctx, existing, sh, tv) {
 		if existing.Missing {
 			return s.Store.restore(ctx, existing.ID)

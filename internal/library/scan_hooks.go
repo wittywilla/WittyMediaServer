@@ -154,7 +154,8 @@ func scanLibraryOf(lib *Library, mod ScanModule) wittymodule.ScanLibrary {
 // scan.identify, the items the last call answers kept, and the new or changed ones described.
 func (s *Scanner) scanByModule(ctx context.Context, lib *Library, mod ScanModule, pausePoint func() error, tally *scanTally, started time.Time) error {
 	task := scanTask(ctx)
-	steps := []tasks.Step{{Name: phaseFinding, Share: 1}, {Name: phaseWorkingOut, Share: 4}, {Name: phaseListing, Share: 2}, {Name: phaseTidying, Share: 1}}
+	live, run := liveOf(ctx), runOf(ctx)
+	steps := []tasks.Step{{Name: phaseFinding, Share: 1}, {Name: phaseWorkingOut, Share: 4}, {Name: phaseGrouping, Share: 1}, {Name: phaseListing, Share: 2}, {Name: phaseTidying, Share: 1}}
 	if mod.Describe {
 		steps = append(steps, tasks.Step{Name: phaseDescribing, Share: 2})
 	}
@@ -201,6 +202,12 @@ func (s *Scanner) scanByModule(ctx context.Context, lib *Library, mod ScanModule
 	scanLib := scanLibraryOf(lib, mod)
 	scanID := strconv.FormatInt(lib.ID, 10) + "-" + strconv.FormatInt(time.Now().UnixNano(), 36)
 	s.progress(lib.ID, func(p *ScanProgress) { p.Phase = "indexing"; p.Found = len(files) })
+	// What the module reports of its own progress inside a call (the host API's task
+	// scan-<library>) moves the bar, in files.
+	moduleSays := func(done, total int64) {
+		task.Progress(done, total)
+		s.progress(lib.ID, func(p *ScanProgress) { p.Done = int(min(done, int64(len(files)))) })
+	}
 	for i := 0; i < len(files); i += identifyBatch {
 		if err := pausePoint(); err != nil {
 			return err
@@ -211,7 +218,10 @@ func (s *Scanner) scanByModule(ctx context.Context, lib *Library, mod ScanModule
 		task.Progress(int64(i), int64(len(files)))
 		var none struct{}
 		args := wittymodule.ScanIdentifyArgs{Scan: scanID, Library: scanLib, Files: batch, Total: len(files), Offline: offline}
-		if err := s.Modules.Call(ctx, mod.ID, wittymodule.CallScanIdentify, args, &none); err != nil {
+		called := live.calling(mod.ID, mod.Name+" was working out what "+filepath.Base(batch[0].Path)+" and the files after it are", moduleSays)
+		err := s.Modules.Call(ctx, mod.ID, wittymodule.CallScanIdentify, args, &none)
+		called()
+		if err != nil {
 			if ctx.Err() != nil {
 				return ctx.Err()
 			}
@@ -221,19 +231,28 @@ func (s *Scanner) scanByModule(ctx context.Context, lib *Library, mod ScanModule
 	if err := pausePoint(); err != nil {
 		return err
 	}
-	task.Progress(int64(len(files)), int64(len(files)))
+	// The last call puts the files together into items: on a big library, a while.
+	task.Phase(phaseGrouping)
+	task.Item("", "")
+	task.Progress(0, int64(len(files)))
+	s.progress(lib.ID, func(p *ScanProgress) { p.Phase = "grouping"; p.Current = ""; p.Done = 0 })
 	var done wittymodule.ScanIdentified
 	args := wittymodule.ScanIdentifyArgs{Scan: scanID, Library: scanLib, Total: len(files), Done: true, Offline: offline}
-	if err := s.Modules.Call(ctx, mod.ID, wittymodule.CallScanIdentify, args, &done); err != nil {
+	called := live.calling(mod.ID, mod.Name+" was putting what it found together", moduleSays)
+	err := s.Modules.Call(ctx, mod.ID, wittymodule.CallScanIdentify, args, &done)
+	called()
+	if err != nil {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
 		return fmt.Errorf("%s couldn't say what the files are: %w", mod.Name, err)
 	}
+	task.Progress(int64(len(files)), int64(len(files)))
 
 	// Keeping what it found.
 	task.Phase(phaseListing)
 	task.Item("", "")
+	s.progress(lib.ID, func(p *ScanProgress) { p.Phase = "listing" })
 	changed, kept, refused, err := s.Store.applyScanned(ctx, lib, mod, done.Items)
 	if err != nil {
 		return err
@@ -247,19 +266,41 @@ func (s *Scanner) scanByModule(ctx context.Context, lib *Library, mod ScanModule
 		return err
 	}
 
-	// What's known about what's new.
-	if mod.Describe && len(changed) > 0 {
-		task.Phase(phaseDescribing)
-		task.Unit("items")
-		err := s.describe(ctx, lib, mod, changed, false, func(done, total int) error {
-			task.Progress(int64(done), int64(total))
-			return pausePoint()
-		})
-		if ctx.Err() != nil {
-			return ctx.Err()
+	// What's known about what's new: listed first, so a restart carries on with what's left,
+	// and with every item on a Full rescan, read again from the start.
+	if mod.Describe {
+		if err := s.Store.queueDescribe(ctx, lib.ID, changed); err != nil {
+			return err
 		}
+		if run.full() && !run.queued {
+			if err := s.Store.queueAllDescribe(ctx, lib.ID); err != nil {
+				return err
+			}
+			run.queued = true
+		}
+		todo, err := s.Store.toDescribe(ctx, lib.ID)
 		if err != nil {
-			s.minorFailure(ctx, "could not find out about what's new", err)
+			return err
+		}
+		if len(todo) > 0 {
+			task.Phase(phaseDescribing)
+			task.Unit("items")
+			task.Progress(0, int64(len(todo)))
+			s.progress(lib.ID, func(p *ScanProgress) { p.Phase = "describing" })
+			err := s.describe(ctx, lib, mod, todo, run.full(), func(batch []int64, done, total int) error {
+				s.Store.described(ctx, batch)
+				task.Progress(int64(done), int64(total))
+				return pausePoint()
+			})
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+			if err != nil && s.stopping.Load() {
+				return err // carried on at the next start
+			}
+			if err != nil {
+				s.minorFailure(ctx, "could not find out about what's new", err)
+			}
 		}
 	}
 	s.Store.DB.Optimize(ctx)
@@ -556,9 +597,10 @@ func (s *Scanner) DescribesKind(kind string) (ScanModule, bool) {
 
 // describe sends items to scan.describe in batches, and applies what comes back. between runs
 // after each batch (progress, a pause), and stops it with its error.
-func (s *Scanner) describe(ctx context.Context, lib *Library, mod ScanModule, ids []int64, refresh bool, between func(done, total int) error) error {
+func (s *Scanner) describe(ctx context.Context, lib *Library, mod ScanModule, ids []int64, refresh bool, between func(batch []int64, done, total int) error) error {
 	scanLib := scanLibraryOf(lib, mod)
 	var failed error
+	task := scanTask(ctx)
 	for i := 0; i < len(ids); i += describeBatch {
 		batch := ids[i:min(i+describeBatch, len(ids))]
 		args := wittymodule.ScanDescribeArgs{Library: scanLib, Refresh: refresh}
@@ -576,13 +618,24 @@ func (s *Scanner) describe(ctx context.Context, lib *Library, mod ScanModule, id
 			}
 			args.Items = append(args.Items, d)
 		}
+		answered := true
 		if len(args.Items) > 0 {
 			var out wittymodule.ScanDescribed
-			if err := s.Modules.Call(ctx, mod.ID, wittymodule.CallScanDescribe, args, &out); err != nil {
+			base := int64(i)
+			called := liveOf(ctx).calling(mod.ID, mod.Name+" was finding out about "+args.Items[0].Title, func(done, _ int64) {
+				task.Progress(base+min(done, int64(len(batch))), int64(len(ids)))
+			})
+			err := s.Modules.Call(ctx, mod.ID, wittymodule.CallScanDescribe, args, &out)
+			called()
+			if err != nil {
 				if ctx.Err() != nil {
 					return ctx.Err()
 				}
 				failed = fmt.Errorf("%s couldn't describe what was found: %w", mod.Name, err)
+				if s.stopping.Load() {
+					return failed // its service went with the server: the rest waits for the next start
+				}
+				answered = false
 			} else {
 				for _, f := range out.Items {
 					if _, asked := edits[f.ID]; !asked {
@@ -598,7 +651,11 @@ func (s *Scanner) describe(ctx context.Context, lib *Library, mod ScanModule, id
 			}
 		}
 		if between != nil {
-			if err := between(i+len(batch), len(ids)); err != nil {
+			var done []int64 // what was described: a batch the module couldn't answer stays to be asked again
+			if answered {
+				done = batch
+			}
+			if err := between(done, i+len(batch), len(ids)); err != nil {
 				return err
 			}
 		}

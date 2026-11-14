@@ -545,6 +545,16 @@ var migrations = []string{
 	 CREATE TABLE IF NOT EXISTS item_edits (
 	   item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE, field TEXT NOT NULL,
 	   PRIMARY KEY(item_id, field)) WITHOUT ROWID;`,
+	// 39: scans that carry on after a restart. Each library's scan is written down as it starts
+	// (how much it reads again, when it began, whether a Full rescan has listed every item to be
+	// described) and forgotten when it ends; the items still to be described are kept as a list.
+	`CREATE TABLE IF NOT EXISTS library_scans (
+	   library_id INTEGER PRIMARY KEY REFERENCES libraries(id) ON DELETE CASCADE,
+	   mode TEXT NOT NULL, started_at INTEGER NOT NULL, queued INTEGER NOT NULL DEFAULT 0);
+	 CREATE TABLE IF NOT EXISTS scan_describe (
+	   item_id INTEGER PRIMARY KEY REFERENCES items(id) ON DELETE CASCADE,
+	   library_id INTEGER NOT NULL REFERENCES libraries(id) ON DELETE CASCADE);
+	 CREATE INDEX IF NOT EXISTS scan_describe_library ON scan_describe(library_id);`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

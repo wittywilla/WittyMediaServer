@@ -253,3 +253,18 @@ func (s *Server) hostTools(w http.ResponseWriter, r *http.Request, module string
 	t.HardwareDone = done
 	writeJSON(w, 200, t)
 }
+
+// hostReport is a module's word on its own version: working, or failing where the server can't
+// see (three failures in a day take the version out of use, as for a bundle that fails in browsers).
+func (s *Server) hostReport(w http.ResponseWriter, r *http.Request, module string) {
+	var in host.Report
+	if err := json.NewDecoder(io.LimitReader(r.Body, 8<<10)).Decode(&in); err != nil {
+		writeJSON(w, 400, map[string]string{"error": "a report is {working, reason}"})
+		return
+	}
+	if err := s.hostMods().ModuleReport(module, in.Working, in.Reason); err != nil {
+		writeJSON(w, 404, map[string]string{"error": err.Error()})
+		return
+	}
+	w.WriteHeader(204)
+}

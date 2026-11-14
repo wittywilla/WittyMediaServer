@@ -206,7 +206,7 @@ func (s *Server) passToModule(w http.ResponseWriter, r *http.Request, ref module
 			writeErr(w, 404, "not found")
 			return
 		}
-		item = moduleItem(it)
+		item = s.moduleItemFull(ctx, it)
 	}
 
 	// Limits: what a request may carry, and how long an answer may take, unless it's a stream.
@@ -281,6 +281,9 @@ func (s *Server) passToModule(w http.ResponseWriter, r *http.Request, ref module
 		if h := s.signInHandle(sessionOf(r)); h != "" {
 			extra.Set(service.HeaderSignIn, h)
 		}
+		if !clientFrom(r).Where.AtHome() {
+			extra.Set(service.HeaderAway, "1")
+		}
 	}
 	// A query's sign-in (a stream token) isn't the module's.
 	if q := r.URL.Query(); q.Has("token") || q.Has("st") {
@@ -337,6 +340,32 @@ func moduleItem(it *library.Item) *service.Item {
 			f.Size = st.Size()
 		}
 		out.Files = []service.File{f}
+	}
+	return out
+}
+
+// moduleItemFull is moduleItem with what only a single item's answer carries: a game's discs, each
+// as one of its files, in order, and the file in its archive someone chose (facet "entry").
+func (s *Server) moduleItemFull(ctx context.Context, it *library.Item) *service.Item {
+	out := moduleItem(it)
+	if it.Kind != "game" || s.Store == nil {
+		return out
+	}
+	if discs, err := s.Store.GameDiscs(ctx, it.ID); err == nil && len(discs) > 1 {
+		out.Files = out.Files[:0]
+		for _, d := range discs {
+			f := service.File{Path: d.Path}
+			if st, err := os.Stat(d.Path); err == nil && !st.IsDir() {
+				f.Size = st.Size()
+			}
+			out.Files = append(out.Files, f)
+		}
+	}
+	if e := s.Store.GameEntry(ctx, it.ID); e != "" {
+		if out.Facets == nil {
+			out.Facets = map[string]string{}
+		}
+		out.Facets["entry"] = e
 	}
 	return out
 }

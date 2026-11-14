@@ -39,3 +39,23 @@ func (m *Manager) ReportWorking(id, ver string) {
 		e.fails = 0
 	}
 }
+
+// ModuleReport is a module's own word on the version in use: working (a game started), or failing in a
+// way the server can't see itself (its helper failed). Through the host API.
+func (m *Manager) ModuleReport(id string, working bool, reason string) error {
+	m.mu.Lock()
+	e := m.mods[id]
+	ver := ""
+	if e != nil {
+		ver = e.man.Version
+	}
+	m.mu.Unlock()
+	if e == nil {
+		return ErrUnknown
+	}
+	if working {
+		m.ReportWorking(id, ver)
+		return nil
+	}
+	return m.ReportFailure(id, ver, reason)
+}

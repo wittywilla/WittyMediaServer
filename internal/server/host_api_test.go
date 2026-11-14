@@ -25,7 +25,8 @@ func (f fakeHostModules) Libraries(string) []string          { return []string{"
 func (f fakeHostModules) Integration(string) *wittymodule.Integration {
 	return f.in
 }
-func (f fakeHostModules) Name(string) string { return "WittyPlay" }
+func (f fakeHostModules) Name(string) string                      { return "WittyPlay" }
+func (f fakeHostModules) ModuleReport(string, bool, string) error { return nil }
 
 func TestHostAPI(t *testing.T) {
 	ts := newTestServer(t)

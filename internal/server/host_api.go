@@ -42,6 +42,7 @@ type hostModules interface {
 	Libraries(id string) []string
 	Integration(id string) *wittymodule.Integration
 	Name(id string) string
+	ModuleReport(id string, working bool, reason string) error
 }
 
 func (s *Server) hostMods() hostModules {
@@ -79,6 +80,7 @@ func (s *Server) HostAPI() http.Handler {
 	h("DELETE "+b+"/sessions/{id}", s.hostSessionEnd)
 	h("GET "+b+"/users", s.hostUsers)
 	h("GET "+b+"/tools", s.hostTools)
+	h("POST "+b+"/report", s.hostReport)
 	h("GET "+b+"/events", s.hostEventsWait)
 	h("POST "+b+"/tasks/{name}", s.hostTask)
 	h("POST "+b+"/audit", s.hostAudit)
@@ -162,7 +164,7 @@ func (s *Server) hostItem(w http.ResponseWriter, r *http.Request, module string)
 			return
 		}
 	}
-	writeJSON(w, 200, moduleItem(it))
+	writeJSON(w, 200, s.moduleItemFull(r.Context(), it))
 }
 
 func (s *Server) hostItems(w http.ResponseWriter, r *http.Request, module string) {

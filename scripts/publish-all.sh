@@ -120,7 +120,7 @@ if [ $have_gh = 1 ]; then
   done
   pub=$(gh api "repos/$OWNER/$CATALOG/actions/variables/MODULE_PUBLIC_KEY" --jq .value 2>/dev/null || true)
   [ -n "$pub" ] || { [ $apply = 1 ] && die "$CATALOG has no MODULE_PUBLIC_KEY variable"; owner_step "set MODULE_PUBLIC_KEY on $CATALOG, and the WMS_SIGNING_KEY secret in each repository's release environment: scripts/set-module-secret.sh"; }
-  for r in "${PROGRAMS[@]}" "${WEB[@]}" "$CATALOG"; do
+  for r in WittyDisc "${PROGRAMS[@]}" "${WEB[@]}" "$CATALOG"; do
     if ! gh secret list -R "$OWNER/$r" --env release --json name --jq '.[].name' 2>/dev/null | grep -q '^WMS_SIGNING_KEY$'; then
       [ $apply = 1 ] && die "$r has no WMS_SIGNING_KEY in its release environment"
       owner_step "$r needs WMS_SIGNING_KEY in a release environment"
@@ -383,7 +383,8 @@ done
 dvd_copy_version=$(git -C "$repos/WittyDVD" show "$(source_branch WittyDVD):wittydvdplayer/module.json" | sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' | head -1 | tr -d '\r')
 bluray_copy_version=$(git -C "$repos/WittyBluray" show "$(source_branch WittyBluray):wittyblurayplayer/module.json" | sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' | head -1 | tr -d '\r')
 
-for r in "${LIBRARIES[@]}"; do should_run "$r" && publish "$r" 0 1; done
+# WittyModule signs nothing; WittyDisc ships the disc player, a signed web part, since 0.3.0.
+for r in "${LIBRARIES[@]}"; do should_run "$r" && publish "$r" "$([ "$r" = WittyDisc ] && echo 1 || echo 0)" 1; done
 for r in "${PROGRAMS[@]}"; do
   should_run "$r" || continue
   publish "$r" 1 1

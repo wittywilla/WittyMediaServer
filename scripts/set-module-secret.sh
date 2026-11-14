@@ -15,12 +15,12 @@
 #                                     only list what each repository has (names, never values)
 #
 # The key's text is never printed: it goes straight from the file to the GitHub CLI, which
-# encrypts it before sending. WittyModule, WittyDisc and WittyReader sign nothing, so they
-# never get it.
+# encrypts it before sending. WittyModule and WittyReader sign nothing, so they never get it.
+# WittyDisc does: since 0.3.0 it ships the disc player as a web part, a signed bundle.
 set -euo pipefail
 
 OWNER=${OWNER:-wittywilla}
-REPOS=(WittyDVD WittyBluray WittyCD WittyTuner WittyPhotos WittyIntegratedFileBrowser WittyRigs WittyPlay WittyCouch WittyCouchHost WittyInk WittyEbook WittyPDF WittyComics WittyVisualizer WittyStats WittyModuleCatalog)
+REPOS=(WittyDisc WittyDVD WittyBluray WittyCD WittyTuner WittyPhotos WittyIntegratedFileBrowser WittyRigs WittyPlay WittyCouch WittyCouchHost WittyInk WittyEbook WittyPDF WittyComics WittyVisualizer WittyStats WittyModuleCatalog)
 
 GH=gh
 if ! command -v gh >/dev/null 2>&1; then

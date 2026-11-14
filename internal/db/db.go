@@ -519,6 +519,9 @@ var migrations = []string{
 	// 35: a game's other names, as JSON {"native", "english"}: its name in its own script and
 	// its English release's, for profiles that would rather see those than the title.
 	`ALTER TABLE items ADD COLUMN alt_titles TEXT;`,
+	// 36: the names people gave a disc's titles and chapters are WittyDVD's and WittyBluray's
+	// own (module API 5, each its own database, starting empty).
+	`ALTER TABLE items DROP COLUMN disc_labels;`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

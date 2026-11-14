@@ -134,7 +134,7 @@ The engine was built and tested on synthetic discs, written byte by byte by its 
 
 | Feature | What it is | Hardware player | WittyDVD |
 |---|---|---|---|
-| **Region codes** | VMG region mask, where a set bit means not allowed. SPRM 20 is the player's region as a bitmask | Refuses discs for other regions | SPRM 20 is set to the disc's lowest allowed region, or the one in **Settings → Playback & discs**, so discs play everywhere. Region-coding-enhanced discs, which check that SPRM 20 holds exactly one region, pass. Tested |
+| **Region codes** | VMG region mask, where a set bit means not allowed. SPRM 20 is the player's region as a bitmask | Refuses discs for other regions | SPRM 20 is set to the disc's lowest allowed region, or the one in **Settings → DVDs and Blu-rays**, so discs play everywhere. Region-coding-enhanced discs, which check that SPRM 20 holds exactly one region, pass. Tested |
 | **Multi-region discs** | Several regions allowed. Some discs branch on SPRM 20, for trailers per region | Its own region | The lowest allowed region |
 | **Parental blocks** | Alternative versions of a scene as consecutive title PGCs (PGC category block type 1, modes first, middle and last). Each has a parental ID mask. The VMG's parental table (PTL_MAIT) gives, per country and level 1 to 8, the mask of each title set | Plays the PGC whose mask matches the table for its level and country | The table is parsed (`parsePTLMAIT`), and the navigator picks the matching PGC when it enters a block (`parentalPGC`). With parental control off (SPRM 13 is 15), it acts at level 8, which permits everything. The references don't define this case. A country the table doesn't list uses its first entry. Tested |
 

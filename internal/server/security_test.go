@@ -327,7 +327,7 @@ func TestRestrictedAccountCantReachHiddenTitles(t *testing.T) {
 
 	for _, target := range []string{
 		fmt.Sprintf("/api/items/%d", bad.ID), fmt.Sprintf("/api/items/%d/poster", bad.ID), fmt.Sprintf("/api/items/%d/file", bad.ID), fmt.Sprintf("/api/items/%d/play", bad.ID),
-		fmt.Sprintf("/api/items/%d/stream", bad.ID), fmt.Sprintf("/api/items/%d/disc", bad.ID), fmt.Sprintf("/api/items/%d/recommend", bad.ID), fmt.Sprintf("/api/items/%d/book", bad.ID),
+		fmt.Sprintf("/api/items/%d/stream", bad.ID), fmt.Sprintf("/api/items/%d/recommend", bad.ID), fmt.Sprintf("/api/items/%d/book", bad.ID),
 		fmt.Sprintf("/api/shows/%d", sh.ID), fmt.Sprintf("/api/shows/%d/art/poster", sh.ID), fmt.Sprintf("/api/shows/%d/art/backdrop", sh.ID),
 	} {
 		if w := ts.do(t, "GET", target, kid, nil); w.Code == 200 {
@@ -420,7 +420,7 @@ func TestAdminRoutes(t *testing.T) {
 	// a real window on this computer's screen if one got through.
 	for _, rt := range []struct{ m, p string }{
 		{"POST", "/api/libraries"}, {"PUT", "/api/libraries/1"}, {"DELETE", "/api/libraries/1"}, {"POST", "/api/libraries/1/scan"},
-		{"PUT", "/api/items/1"}, {"GET", "/api/items/1/artwork"}, {"PUT", "/api/items/1/disc/labels"}, {"GET", "/api/artwork/preview?src=x.png"},
+		{"PUT", "/api/items/1"}, {"GET", "/api/items/1/artwork"}, {"GET", "/api/artwork/preview?src=x.png"},
 		{"POST", "/api/themes"}, {"DELETE", "/api/themes/x"}, {"PUT", "/api/shows/1"}, {"PUT", "/api/shows/1/view"}, {"GET", "/api/shows/1/artwork"},
 		{"GET", "/api/podcasts/search?q=ab"}, {"POST", "/api/podcasts"}, {"PUT", "/api/podcasts/1"}, {"POST", "/api/podcasts/1/refresh"}, {"DELETE", "/api/podcasts/1"}, {"POST", "/api/items/1/download"},
 		{"GET", "/api/settings"}, {"PUT", "/api/settings"}, {"PUT", "/api/branding/logo"}, {"DELETE", "/api/branding/logo"}, {"GET", "/api/system"},

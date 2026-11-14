@@ -149,12 +149,6 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/people` | Signed-in | limits: only people credited on a title the account may see, counting only those titles |
 | `GET /api/people/{id}` | Signed-in | limits: 404 unless credited on a title the account may see; the filmography names only those |
 | `GET /api/people/{id}/photo` | Signed-in; ticket; address token | limits, as the person. Pictures only, from the cache, the internet or inside a library |
-| `GET /api/items/{id}/disc` | Signed-in | limits. Item is a disc |
-| `PUT /api/items/{id}/disc/labels` | Admin | Labels trimmed |
-| `GET /api/items/{id}/disc/analysis` | Signed-in | limits. Item is a disc. Who chose is named to admins only |
-| `POST /api/items/{id}/disc/analysis` | Admin | Item is a disc. A second opinion only for an unencrypted Blu-ray, with the setting on and a libbluray found |
-| `PUT /api/items/{id}/disc/choice` | Admin | Item is a disc. Title exists on it |
-| `DELETE /api/items/{id}/disc/choice` | Admin | Item is a disc |
 | `GET /api/items/{id}/disc/thumb/{ttn}/{n}` | Signed-in; ticket; address token | limits. Item is a disc and not scrambled. Title and chapter exist |
 | `GET /api/artwork/preview` | Admin; address token | Web address, cache name, or a picture inside a library |
 | `GET /api/prefs` | Signed-in | Nothing: server-wide playback defaults |
@@ -190,8 +184,6 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/cd/{id}` | Signed-in; ticket | limits. Disc image inside a library |
 | `GET /api/cd/{id}/audio` | Signed-in; ticket | limits. Disc image inside a library. Format, tracks, start. Limit for viewers away from home |
 | `GET /api/cd/{id}/graphics` | Signed-in; ticket | limits. Disc image inside a library. Sector range |
-| `GET /api/cd/{id}/matches` | Admin | Disc image inside a library |
-| `POST /api/cd/{id}/identify` | Admin | Disc image inside a library. Release id |
 | `GET /api/cd-covers/{release}` | Admin | Release id looked up by the scanner |
 | `GET /api/items/{id}/book` | Signed-in | limits. Book, plain file inside a library |
 | `GET /api/items/{id}/page/{n}` | Signed-in; address token | limits. Book inside a library. Page exists. Restrictive content policy |
@@ -245,7 +237,6 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/dvd/{sid}/bdj` | Signed-in | Blu-ray session exists. An account with limits is checked against what it plays |
 | `GET /api/dvd/{sid}/bdj/frame/{n}` | Signed-in | Blu-ray session exists. An account with limits is checked against what it plays |
 | `GET /api/bdj/status` | Admin | Nothing further |
-| `GET /api/bluray/capabilities` | Admin | Nothing further: names a library's path, so admins only |
 | `GET /api/dvd/{sid}/still/{name}` | Signed-in; ticket; address token | Session exists, and for a ticket is of the ticket's item. Still is one the session made. An account with limits is checked against what it plays |
 | `GET /api/dvd/{sid}/subs` | Signed-in; address token | Session exists. Time window of at most 600 seconds. An account with limits is checked against what it plays |
 | `GET /api/dvd/{sid}/sub/{name}` | Signed-in; ticket; address token | Session exists, and for a ticket is of the ticket's item. Picture exists. An account with limits is checked against what it plays |

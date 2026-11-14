@@ -96,6 +96,12 @@ func (s *Server) HostAPI() http.Handler {
 	h("GET "+b+"/audit", s.hostAuditLog)
 	h("GET "+b+"/setup", s.hostSetupState)
 	h("POST "+b+"/setup/{id}", s.hostSetupDone)
+	h("GET "+b+"/discs/libbluray", s.hostLibbluray)
+	h("GET "+b+"/discs/{id}", s.hostDiscGet)
+	h("POST "+b+"/discs/{id}/rank", s.hostDiscRank)
+	h("PUT "+b+"/discs/{id}/choice", s.hostDiscChoose)
+	h("GET "+b+"/cds/{id}/matches", s.hostCDMatches)
+	h("PUT "+b+"/cds/{id}/release", s.hostCDRelease)
 	return mux
 }
 

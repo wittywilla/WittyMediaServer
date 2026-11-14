@@ -79,7 +79,7 @@ export default function You() {
       { key: 'libraries', label: 'Libraries', icon: <IconLibrary />, tint: QUIET, to: '/settings/libraries' },
       { key: 'metadata', label: 'Metadata and artwork', icon: <IconImage />, tint: QUIET, to: '/settings/metadata' },
       { key: 'fix', label: 'Fix matches', icon: <IconTag />, tint: QUIET, to: '/fix-matches' },
-      { key: 'playback', label: 'Playback and discs', icon: <IconPlay />, tint: QUIET, to: '/settings/playback' },
+      { key: 'playback', label: 'Playback', icon: <IconPlay />, tint: QUIET, to: '/settings/playback' },
       { key: 'livetv', label: 'Live TV and tuners', icon: <IconTv />, tint: QUIET, to: '/settings/channels' },
       { key: 'gaming', label: 'Consoles and cores', icon: <IconGamepad />, tint: QUIET, to: '/settings/gaming' },
       { key: 'transcoding', label: 'Live transcoding', icon: <IconTune />, tint: QUIET, to: '/settings/transcoding' },

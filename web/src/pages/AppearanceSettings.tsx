@@ -232,7 +232,7 @@ export default function AppearanceSettings() {
       {admin && <Suspense fallback={null}><EngineColours /></Suspense>}
       {personalColours && <Suspense fallback={null}><PersonalColours /></Suspense>}
       <PlayerSection />
-      {/* A profile's own choice. An administrator has it under Playback & discs, a page the others don't get. */}
+      {/* A profile's own choice. An administrator has it under Playback, a page the others don't get. */}
       {!admin && <AutoSkipSection />}
       {admin && (
         <Section id="name" title="Name and logo" desc="Shown in the corner, on the sign-in page and in the browser tab. The license notice in Settings, About always remains.">

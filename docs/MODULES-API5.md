@@ -133,6 +133,10 @@ Every call that's on someone's behalf says who (`host.On{User}`, or `host.For(r)
 | (`Do`) | `POST /libraries` `{name}`, `PATCH`/`DELETE /libraries/{id}` | A games library the module holds (`console: rig`), whose games come from somewhere other than files: nothing scans it. Only a module serving games libraries, and only such libraries |
 | (`Do`) | `PUT /libraries/{id}/items` `{path, title, tagline}`, `DELETE /items/{id}` | A game in such a library: `{id, new}`; `path` is `rig://…`, naming nothing on disk; a new one is asked about by the game metadata sources |
 | (`Do`) | `PUT`/`DELETE /items/{id}/poster` | Such a game's picture from where it comes (the bytes, up to 8 MB), or none; a picture someone chose by hand is never replaced |
+| (`Do`) | `GET /discs/{id}?page=1&rank=1` | WittyDVD and WittyBluray, each for its own kind of disc, on someone's behalf: what the server keeps of a disc (its ranking, without the feature's cells; the film, the engine's pick, an administrator's choice and, for administrators, who chose; whether it's encrypted; `noPlay` when the person's screen time is up), with `page=1` the disc's page from the engine's checked answers, and with `rank=1` the ranking worked out first when the kept one is another engine's (`pending` on a server set to go easy) |
+| (`Do`) | `POST /discs/{id}/rank` `{secondOpinion}`, `PUT /discs/{id}/choice` `{ttn}` | On an administrator's behalf: rank the disc again (a Blu-ray's with a libbluray's second opinion, when the server's setting allows), or choose its film (`-1` forgets the choice). The answer is the disc as `GET` gives it |
+| (`Do`) | `GET /discs/libbluray` | WittyBluray, for an administrator: whether a libbluray can give a second opinion, and where it is |
+| (`Do`) | `GET /cds/{id}/matches`, `PUT /cds/{id}/release` `{releaseId}` | WittyCD, for an administrator: what an audio CD could be (the server asks MusicBrainz with its table of contents, as its scan does), and using a release's names and cover (`""` for the disc's own); the answer is the disc as `GET /api/cd/{id}` gives it |
 
 Refusals are JSON `{"error"}` with the status; an `X-Witty-Host` header tells a refusal of the host API's from a call this server doesn't have (`host.ErrNotOffered`).
 
@@ -161,7 +165,8 @@ What `web` claims, the web app learns from `GET /api/modules/web` (each bundle's
 | `takeover` | A library of that kind goes to the module's own view of it (`/library/2` → `/wittyplay/library/2`) |
 | `routes` with `frame: "tv"` | In TV mode only, the route's TV screen is the module's |
 | `setup` | The setup wizard's step of that id is the module's, given the wizard's own step props. New steps of a module's own come next ([Not yet](#not-yet)) |
-| `players`, `readers`, `navFold` | Declared and checked now; drawn from the module as each module that needs one moves ([Not yet](#not-yet)) |
+| `players` | The player for a media kind: a disc (`disc`, WittyDisc's) or an audio CD (`cd`, WittyCD's). With a player, `register` can also hand over `itemMenu` (what a title's "Manage" menu offers for that kind, each opening a dialog of its own) and `audioEngines` (an engine that plays through the app's own audio element, so the music carries on when the player's page is left) |
+| `readers`, `navFold` | Declared and checked now; drawn from the module as each module that needs one moves ([Not yet](#not-yet)) |
 
 `register(host)` returns a `Registration` (types in WittyModule `kit/web/host`, package `@wittywilla/wms-host`):
 
@@ -211,7 +216,8 @@ A server offers each host feature at a version (`modules.Offers()`): `http` 1, `
 
 These are designed in the plan and come with the module that needs them:
 
-- A module's own new setup steps placed in the web wizard by `after`/`before` (the "Finish setting up" notice and page work: `POST /setup/{id}`), players, readers and menu folding from the web part.
+- A module's own new setup steps placed in the web wizard by `after`/`before` (the "Finish setting up" notice and page work: `POST /setup/{id}`), readers and menu folding from the web part.
+- `itemMenu` and `audioEngines` as integration.json fields: today they come with a `players` claim, from `register` alone.
 - Doctor checks from modules.
 - Module databases in backups.
 - `/capabilities` features from what modules are in use (today they are the server's fixed list; changing that is agreed with the apps first).

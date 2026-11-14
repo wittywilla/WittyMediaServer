@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-// The app's own parts a module's web bundle may use (web host API 5): what WittyPlay's screens, moved
-// out of the app, still import from it. A bundle imports them as @wms/app/<path>, which WittyModule's
+// The app's own parts a module's web bundle may use (web host API 5): what WittyPlay's, WittyDisc's
+// and WittyCD's screens, moved out of the app, still import from it. A bundle imports them as @wms/app/<path>, which WittyModule's
 // builder turns into a stand-in reading this map (moduleHost.ts, app). scripts/export-module-kit.mjs
 // writes each one's exports for the builder. Removing one, or an export of one, breaks bundles already
 // released: add, never take away, until the next web host API.
@@ -56,10 +56,30 @@ import * as m48 from './ui/gamepad'
 import * as m49 from './ui/index'
 import * as m50 from './ui/spatial'
 import * as m51 from './ui/userPrefs'
+import * as m52 from './a11y'
+import * as m53 from './audio/player'
+import * as m54 from './player/Controls'
+import * as m55 from './player/InsertDisc'
+import * as m56 from './player/Remote'
+import * as m57 from './player/TrackPicker'
+import * as m58 from './player/ViewSettings'
+import * as m59 from './player/chrome'
+import * as m60 from './player/hooks'
+import * as m61 from './player/remoteKeys'
+import * as m62 from './player/speed'
+import * as m63 from './player/viewPrefs'
+import * as m64 from './remote/PlayOnButton'
+import * as m65 from './remote/playerStates'
+import * as m66 from './remote/target'
+import * as m67 from './tvmode/mode'
+import * as m68 from './audio/visualizer' // WittyCD's player opens the visualizer
 
 export const appModules: Record<string, unknown> = {
   'App': m0,
+  'a11y': m52,
   'api': m1,
+  'audio/player': m53,
+  'audio/visualizer': m68,
   'components/ArtworkPicker': m2,
   'components/BrandLogo': m3,
   'components/ConsoleMark': m4,
@@ -80,8 +100,21 @@ export const appModules: Record<string, unknown> = {
   'pages/settings/ui': m21,
   'pages/setup/parts': m22,
   'pages/setup/plan': m23,
+  'player/Controls': m54,
+  'player/InsertDisc': m55,
+  'player/Remote': m56,
+  'player/TrackPicker': m57,
+  'player/ViewSettings': m58,
+  'player/chrome': m59,
+  'player/hooks': m60,
+  'player/remoteKeys': m61,
+  'player/speed': m62,
+  'player/viewPrefs': m63,
+  'remote/PlayOnButton': m64,
   'remote/RemoteHost': m24,
   'remote/pageTargets': m25,
+  'remote/playerStates': m65,
+  'remote/target': m66,
   'sdui/SduiPage': m26,
   'sdui/device': m27,
   'sdui/regions': m28,
@@ -102,6 +135,7 @@ export const appModules: Record<string, unknown> = {
   'state': m43,
   'theme': m44,
   'tv': m45,
+  'tvmode/mode': m67,
   'ui/Overlay': m46,
   'ui/Surface': m47,
   'ui/gamepad': m48,

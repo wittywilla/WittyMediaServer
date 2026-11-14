@@ -48,7 +48,7 @@ Click the picture to pause or play. Double-click for full screen.
 | **?** | Lists every key |
 | Full screen | F does this too |
 
-The speeds go from 0.5× up to what the server allows, which is 4× unless an administrator has changed it under [Playback & discs](SETTINGS.md#playback-and-discs). Above 4×, most browsers mute the sound.
+The speeds go from 0.5× up to what the server allows, which is 4× unless an administrator has changed it under [Playback](SETTINGS.md#playback). Above 4×, most browsers mute the sound.
 
 ## Keyboard shortcuts
 
@@ -150,7 +150,7 @@ A range that doesn't make sense (one that ends before it starts, or a file that 
 
 ### Skipping without pressing anything
 
-Each profile can have the player skip by itself: **Settings → Playback & discs → Skipping** for an administrator, **Settings → Appearance → Skipping** for everyone else. There are four switches, all off to begin with: **Skip intros**, **Skip recaps**, **Skip credits** and **Skip adverts**. The choice is kept with the account, so it follows you to your other devices.
+Each profile can have the player skip by itself: **Settings → Playback → Skipping** for an administrator, **Settings → Appearance → Skipping** for everyone else. There are four switches, all off to begin with: **Skip intros**, **Skip recaps**, **Skip credits** and **Skip adverts**. The choice is kept with the account, so it follows you to your other devices.
 
 | | |
 |---|---|
@@ -211,7 +211,7 @@ Occasionally a browser says it can play a file and then can't. The player notice
 
 ### Robust streaming
 
-For a slow or unreliable connection: a hotel's Wi-Fi, a phone on a train, a home connection that's slow to send. It favours keeping the video playing over the sharpest picture. An administrator can turn it on for everyone away from home, under [Playback & discs](SETTINGS.md#playback-and-discs), and each device can choose for itself, in the player's [viewing settings](#viewing-settings) or on that settings page. A device's own choice wins, at home or away, so it helps on poor Wi-Fi at home too.
+For a slow or unreliable connection: a hotel's Wi-Fi, a phone on a train, a home connection that's slow to send. It favours keeping the video playing over the sharpest picture. An administrator can turn it on for everyone away from home, under [Playback](SETTINGS.md#playback), and each device can choose for itself, in the player's [viewing settings](#viewing-settings) or on that settings page. A device's own choice wins, at home or away, so it helps on poor Wi-Fi at home too.
 
 With it on:
 

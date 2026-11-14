@@ -5,18 +5,12 @@ package server
 
 import (
 	"context"
-	"errors"
-	"fmt"
-	"net/http"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/bdsession"
 	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
 	"github.com/wittywilla/wittymediaserver/internal/library"
-	"github.com/wittywilla/wittymediaserver/internal/logging"
-	"github.com/wittywilla/wittymediaserver/internal/pace"
 )
 
 // Which title of a disc is the film, and why. The disc engines rank a disc's titles
@@ -34,32 +28,6 @@ import (
 // settingSecondOpinion turns on asking a libbluray the machine's owner installed.
 const settingSecondOpinion = "blurayLibbluray"
 
-// discAnalysisView is what GET /api/items/{id}/disc/analysis answers.
-type discAnalysisView struct {
-	Kind string `json:"kind"` // dvd or bluray
-	// Ranked: the engine in use gave a ranking. False with an engine from before
-	// rankings: the main title is then the older rule's pick, with no reasons.
-	Ranked bool `json:"ranked"`
-	// Pending: the ranking is being worked out in the background, on a server set to go
-	// easy on its machine. Ask again in a few seconds.
-	Pending bool `json:"pending"`
-	// Main is what Play plays: the chosen title, or else the engine's. EngineMain is the
-	// engine's own pick. Both are -1 when there is none.
-	Main       int                 `json:"main"`
-	EngineMain int                 `json:"engineMain"`
-	Chosen     *library.DiscChoice `json:"chosen"`
-	// ChosenBy is the name of the account that chose, for admins.
-	ChosenBy  string            `json:"chosenBy,omitempty"`
-	Rank      *library.DiscRank `json:"rank"`
-	CanChoose bool              `json:"canChoose"`
-	// RankError says why the ranking couldn't be worked out lately. It is asked again after
-	// a while, or at once by an admin's "Rank again".
-	RankError string `json:"rankError,omitempty"`
-	Protected bool   `json:"protected"`
-	// SecondOpinion says whether a libbluray can be asked: Blu-rays, and admins, only.
-	SecondOpinion *secondOpinionState `json:"secondOpinion,omitempty"`
-}
-
 type secondOpinionState struct {
 	Enabled   bool   `json:"enabled"`   // the setting is on
 	Available bool   `json:"available"` // the module found a libbluray on this machine
@@ -69,20 +37,6 @@ type secondOpinionState struct {
 
 // ranking keeps one background analysis going at a time.
 var ranking sync.Mutex
-
-func (s *Server) discItem(w http.ResponseWriter, r *http.Request) *library.Item {
-	id, ok := pathInt(r, "id")
-	if !ok {
-		writeErr(w, 400, "bad id")
-		return nil
-	}
-	it, err := s.visibleItem(r, id)
-	if err != nil || !isDiscKind(it) {
-		writeErr(w, 404, "disc not found")
-		return nil
-	}
-	return it
-}
 
 // engineOf names the module version in use for a disc's kind, as a kept ranking names it.
 func (s *Server) engineOf(it *library.Item) string {
@@ -242,28 +196,6 @@ func (s *Server) rankStale(it *library.Item) bool {
 	return it.Disc.Rank == nil || it.Disc.Rank.Engine != engine
 }
 
-func (s *Server) discAnalysis(r *http.Request, it *library.Item, pending bool) discAnalysisView {
-	u := userFrom(r)
-	v := discAnalysisView{Kind: "dvd", Main: -1, EngineMain: -1, Pending: pending, CanChoose: u.IsAdmin}
-	if isBluray(it) {
-		v.Kind = "bluray"
-	}
-	if d := it.Disc; d != nil {
-		v.Protected = d.Scrambled
-		v.Rank, v.Chosen, v.Ranked = d.Rank, d.Chosen, d.Rank != nil
-		if len(d.Titles) > 0 || d.Rank != nil {
-			v.Main, v.EngineMain = d.MainTitle, d.EngineMain()
-		}
-		if d.Chosen != nil && u.IsAdmin {
-			_ = s.DB.QueryRowContext(r.Context(), `SELECT name FROM users WHERE id = ?`, d.Chosen.By).Scan(&v.ChosenBy)
-		}
-	}
-	if isBluray(it) && u.IsAdmin {
-		v.SecondOpinion = s.secondOpinionState(r.Context())
-	}
-	return v
-}
-
 func (s *Server) secondOpinionState(ctx context.Context) *secondOpinionState {
 	st := &secondOpinionState{Enabled: s.DB.GetSetting(ctx, settingSecondOpinion, "0") == "1"}
 	if bdsession.Capability == nil {
@@ -279,152 +211,6 @@ func (s *Server) secondOpinionState(ctx context.Context) *secondOpinionState {
 	return st
 }
 
-// GET /api/items/{id}/disc/analysis
-func (s *Server) handleDiscAnalysis(w http.ResponseWriter, r *http.Request) {
-	it := s.discItem(w, r)
-	if it == nil {
-		return
-	}
-	pending := false
-	failed := s.rankFailedLately(it)
-	if failed == "" && s.rankStale(it) {
-		if s.DB.GetSetting(r.Context(), "lowPower", "0") == "1" {
-			// Nobody waits for it on a machine that is being spared: it is worked out
-			// behind, one disc at a time, and the page asks again.
-			pending = true
-			if ranking.TryLock() {
-				item, req := *it, logging.RequestFrom(r.Context())
-				started := s.background("disc ranking", func(bg context.Context) {
-					defer ranking.Unlock()
-					ctx, cancel := context.WithTimeout(pace.Background(logging.WithRequest(bg, req)), 5*time.Minute)
-					defer cancel()
-					pace.Yield(ctx)
-					if err := s.rankDisc(ctx, &item, false); err != nil && ctx.Err() == nil {
-						s.Log.WarnContext(ctx, "a disc couldn't be ranked", "cat", "discs", "item", item.ID, "err", err)
-					}
-				}, "cat", "discs", "item", item.ID)
-				if !started {
-					ranking.Unlock()
-				}
-			}
-		} else if err := s.rankDisc(r.Context(), it, false); err != nil {
-			if writeModuleMissing(w, err) {
-				return
-			}
-			// The page still has what the scan found.
-			s.Log.WarnContext(r.Context(), "a disc couldn't be ranked", "cat", "discs", "item", it.ID, "err", err)
-			failed = err.Error()
-		}
-	}
-	v := s.discAnalysis(r, it, pending)
-	if failed != "" {
-		v.RankError = s.viewerError(r, errors.New(failed))
-	}
-	writeJSON(w, 200, v)
-}
-
-// POST /api/items/{id}/disc/analysis  {"secondOpinion":true}
-// Works the ranking out again, for an admin. With secondOpinion, a libbluray on this
-// machine is asked to compare, which the setting has to allow.
-func (s *Server) handleDiscAnalyse(w http.ResponseWriter, r *http.Request) {
-	it := s.discItem(w, r)
-	if it == nil {
-		return
-	}
-	var b struct {
-		SecondOpinion bool `json:"secondOpinion"`
-	}
-	if err := readJSON(r, &b); err != nil {
-		writeErr(w, 400, err.Error())
-		return
-	}
-	if b.SecondOpinion {
-		switch {
-		case !isBluray(it):
-			writeErr(w, 400, "Only a Blu-ray can have a second opinion.")
-			return
-		case s.DB.GetSetting(r.Context(), settingSecondOpinion, "0") != "1":
-			writeErr(w, 403, "Asking libbluray is turned off. An admin can turn it on in Settings, Playback.")
-			return
-		case it.Disc != nil && it.Disc.Scrambled:
-			writeErr(w, 403, "This disc is encrypted, and only this server's own reader looks at an encrypted disc.")
-			return
-		}
-		if st := s.secondOpinionState(r.Context()); !st.Available {
-			writeErr(w, 409, firstNonEmpty(st.Reason, "No libbluray was found on this machine."))
-			return
-		}
-	}
-	if err := s.rankDisc(r.Context(), it, b.SecondOpinion); err != nil {
-		if writeModuleMissing(w, err) {
-			return
-		}
-		writeErr(w, 500, s.viewerError(r, err))
-		return
-	}
-	s.Log.InfoContext(r.Context(), "a disc was ranked again", "cat", "discs", "item", it.ID, "secondOpinion", b.SecondOpinion)
-	writeJSON(w, 200, s.discAnalysis(r, it, false))
-}
-
-// PUT /api/items/{id}/disc/choice  {"ttn":3}
-// Remembers a title as this disc's film, for everyone. Admins only.
-func (s *Server) handleDiscChoose(w http.ResponseWriter, r *http.Request) {
-	it := s.discItem(w, r)
-	if it == nil {
-		return
-	}
-	var b struct {
-		TTN *int `json:"ttn"`
-	}
-	if err := readJSON(r, &b); err != nil {
-		writeErr(w, 400, err.Error())
-		return
-	}
-	if b.TTN == nil || *b.TTN < 0 {
-		writeErr(w, 400, "Say which title: ttn.")
-		return
-	}
-	if it.Disc == nil || !it.Disc.HasTitle(*b.TTN) {
-		writeErr(w, 400, fmt.Sprintf("This disc has no title %d to play.", *b.TTN))
-		return
-	}
-	if err := s.Store.ChooseDiscMain(r.Context(), it, *b.TTN, userFrom(r).ID); err != nil {
-		writeErr(w, 500, s.viewerError(r, err))
-		return
-	}
-	s.Log.InfoContext(r.Context(), "a disc's film was chosen", "cat", "discs", "item", it.ID, "ttn", *b.TTN)
-	writeJSON(w, 200, s.discAnalysis(r, it, false))
-}
-
-// DELETE /api/items/{id}/disc/choice
-// Forgets the choice: the engine's pick is the film again. Admins only.
-func (s *Server) handleDiscUnchoose(w http.ResponseWriter, r *http.Request) {
-	it := s.discItem(w, r)
-	if it == nil {
-		return
-	}
-	if err := s.Store.ChooseDiscMain(r.Context(), it, -1, userFrom(r).ID); err != nil {
-		writeErr(w, 500, s.viewerError(r, err))
-		return
-	}
-	s.Log.InfoContext(r.Context(), "a disc's chosen film was cleared", "cat", "discs", "item", it.ID)
-	writeJSON(w, 200, s.discAnalysis(r, it, false))
-}
-
-// GET /api/bluray/capabilities
-// What optional help WittyBluray has on this machine, for the settings page. Admins only:
-// it names a library's path.
-func (s *Server) handleBlurayCapabilities(w http.ResponseWriter, r *http.Request) {
-	st := s.secondOpinionState(r.Context())
-	out := map[string]any{"libbluray": st}
-	if bdsession.Capability != nil {
-		if c, err := bdsession.Capability(); err == nil {
-			out["libblurayPath"] = c.Libbluray.Path
-		}
-	}
-	writeJSON(w, 200, out)
-}
-
 // discEpisode finds an episode of the disc by its place in viewing order.
 func discEpisode(d *library.DiscInfo, index int) *library.DiscEpisode {
 	if d == nil || d.Rank == nil {
@@ -438,16 +224,14 @@ func discEpisode(d *library.DiscInfo, index int) *library.DiscEpisode {
 	return nil
 }
 
-// discWhy is the short form of a ranking for the disc page: one sentence and how sure.
-func discWhy(d *library.DiscInfo) map[string]any {
-	if d == nil || d.Rank == nil {
-		return nil
-	}
-	rk := d.Rank
-	why := strings.TrimSpace(rk.Why)
-	out := map[string]any{"why": why, "confidence": rk.Confidence, "level": rk.Level, "engineMain": rk.Main, "decoys": rk.Decoys}
-	if d.Chosen != nil {
-		out["chosen"] = d.Chosen.TTN
+// libblurayState is whether a libbluray can give a second opinion, and where it is, for
+// WittyBluray's settings.
+func (s *Server) libblurayState(ctx context.Context) map[string]any {
+	out := map[string]any{"libbluray": s.secondOpinionState(ctx)}
+	if bdsession.Capability != nil {
+		if c, err := bdsession.Capability(); err == nil {
+			out["libblurayPath"] = c.Libbluray.Path
+		}
 	}
 	return out
 }

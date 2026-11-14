@@ -16,13 +16,12 @@ import LegalNote from '../../components/LegalNote'
 import { IconEdit, IconFilm, IconImage, IconMore, IconPlay, IconRefresh, IconSettings } from '../../icons'
 import { Menu, type MenuEntry } from '../../ui/Menu'
 import { bump } from '../client'
+import { useModuleItemMenu } from '../../moduleRegistry'
 import type { Document, Node } from '../types'
 
 const EditDetails = lazy(() => import('../../components/edit/EditDetails'))
 const RefreshDialog = lazy(() => import('../../components/edit/RefreshDialog'))
 const TitleExtras = lazy(() => import('../../components/edit/TitleExtras'))
-const DiscSettingsDialog = lazy(() => import('../../components/edit/DiscDialogs').then((m) => ({ default: m.DiscSettingsDialog })))
-const DiscNamesDialog = lazy(() => import('../../components/edit/DiscDialogs').then((m) => ({ default: m.DiscNamesDialog })))
 const CanvasManager = lazy(() => import('../../canvas/CanvasManager'))
 const AlbumCanvasManager = lazy(() => import('../../canvas/AlbumCanvasManager'))
 
@@ -68,7 +67,10 @@ export default function DetailExtras({ place, header, doc }: { place: 'tools' | 
   const { user } = useApp()
   const t = targetOf(header)
   const title = useTitle(t, doc.meta?.etag || '')
-  const [open, setOpen] = useState<'' | 'art' | 'edit' | 'refresh' | 'canvas' | 'disc' | 'names'>('')
+  const [open, setOpen] = useState<'' | 'art' | 'edit' | 'refresh' | 'canvas'>('')
+  // A disc's own tools (Disc settings, names of its titles) are WittyDisc's, with its player.
+  const discItem = t?.target === 'item' && title && isDisc(title as Item) ? title as Item : null
+  const discMenu = useModuleItemMenu(discItem ? 'disc' : null, discItem, !!user?.isAdmin)
   if (place === 'tools' && header.props?.kind === 'album' && user?.isAdmin) return <AlbumCanvasTool doc={doc} />
   if (!t || !title) return null
   const item = t.target === 'item' ? title as Item : null
@@ -81,8 +83,7 @@ export default function DetailExtras({ place, header, doc }: { place: 'tools' | 
       { key: 'art', label: 'Artwork', icon: <IconImage />, onSelect: () => setOpen('art') },
       { key: 'edit', label: 'Edit details', icon: <IconEdit />, onSelect: () => setOpen('edit') },
       ...(item && (item.kind === 'video' || isDisc(item)) ? [{ key: 'canvas', label: 'Canvas', icon: <IconFilm />, onSelect: () => setOpen('canvas') } as MenuEntry] : []),
-      ...(item && isDisc(item) ? [{ key: 'disc', label: 'Disc settings', icon: <IconSettings />, onSelect: () => setOpen('disc') } as MenuEntry,
-        ...(!item.disc?.scrambled ? [{ key: 'names', label: 'Name titles and scenes', icon: <IconEdit />, onSelect: () => setOpen('names') } as MenuEntry] : [])] : []),
+      ...discMenu.entries.map((e) => ({ key: e.key, label: e.label, icon: e.icon === 'edit' ? <IconEdit /> : <IconSettings />, onSelect: () => discMenu.choose(e) } as MenuEntry)),
       ...(item?.showId == null ? [{ key: 'refresh', label: 'Check for new details', icon: <IconRefresh />, onSelect: () => setOpen('refresh') } as MenuEntry] : []),
     ]
     return (
@@ -92,8 +93,7 @@ export default function DetailExtras({ place, header, doc }: { place: 'tools' | 
           {open === 'art' && <TitleArtPicker target={t.target} id={t.id} onApplied={appliedOnPage(changed)} onClose={() => setOpen('')} />}
           {open === 'edit' && <EditDetails target={t.target} id={t.id} start="match" onClose={() => setOpen('')} onChanged={changed} />}
           {open === 'refresh' && <RefreshDialog target={t.target} id={t.id} onClose={() => setOpen('')} onChanged={changed} />}
-          {open === 'disc' && item && <DiscSettingsDialog item={item} onClose={() => setOpen('')} onSaved={() => { setOpen(''); toast('Disc settings saved'); changed() }} />}
-          {open === 'names' && item && <DiscNamesDialog item={item} onClose={() => setOpen('')} onSaved={() => { setOpen(''); changed() }} />}
+          {discMenu.dialog(changed)}
           {open === 'canvas' && item && <CanvasManager itemId={item.id} title={item.title} kind={isDisc(item) ? 'disc' : 'video'} runtimeSec={item.runtimeSec} onClose={() => { setOpen(''); changed() }} />}
         </Suspense>
       </>

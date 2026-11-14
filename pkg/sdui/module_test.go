@@ -247,3 +247,53 @@ func (a *asked) Items(req SourceRequest) (SourceResult, error) {
 	a.types = append(a.types, req.Source.Type())
 	return SourceResult{Items: []Item{{ID: "g1", Kind: "game", Title: "Go"}}, Total: 1}, nil
 }
+
+// A module's own commands: named for it, on its own routes, listed in the catalogue beside the
+// server's, and found by Command.
+func TestModuleCommands(t *testing.T) {
+	file := func(cmds string) *ModuleUI {
+		t.Helper()
+		ui, err := ParseModuleUI([]byte(`{"format":"wittymodule-sdui","formatVersion":1,"module":"wittyx","catalog":2,"theme":{"scope":"wittyx"},"commands":[` + cmds + `]}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return ui
+	}
+	good := `{"op":"wittyx.core.install","label":"Install","description":"Installs a core.","method":"POST","path":"/api/modules/wittyx/gaming/cores/{item}/install","body":"{\"why\":\"{why}\"}","params":[{"name":"why","type":"string","label":"Why"}]}`
+	ui := file(good)
+	if issues := ValidateModuleUI(ui, "wittyx", ModuleChecks{}); len(issues) != 0 {
+		t.Fatalf("a good command has issues: %v", issues)
+	}
+	set := NewModuleSet([]ModuleUI{*ui})
+	c, ok := set.Command("wittyx.core.install")
+	if !ok || c.Module != "wittyx" {
+		t.Fatalf("not found: %+v", c)
+	}
+	found := false
+	for _, cc := range CatalogWith(set).Commands {
+		found = found || cc.Op == "wittyx.core.install"
+	}
+	if !found || len(CatalogWith(set).Commands) != len(Catalog().Commands)+1 {
+		t.Error("the catalogue doesn't list it beside the server's own")
+	}
+	if _, ok := set.Command("watchLater.add"); !ok {
+		t.Error("the server's own commands are found too")
+	}
+	for name, bad := range map[string]string{
+		"another module's name":  `{"op":"wittyy.go","label":"Go","description":"Goes.","method":"POST","path":"/api/modules/wittyx/go"}`,
+		"a server op":            `{"op":"watchLater.add","label":"Go","description":"Goes.","method":"POST","path":"/api/modules/wittyx/go"}`,
+		"outside its routes":     `{"op":"wittyx.go","label":"Go","description":"Goes.","method":"POST","path":"/api/sessions/end"}`,
+		"climbing out":           `{"op":"wittyx.go","label":"Go","description":"Goes.","method":"POST","path":"/api/modules/wittyx/../../sessions"}`,
+		"a strange method":       `{"op":"wittyx.go","label":"Go","description":"Goes.","method":"TRACE","path":"/api/modules/wittyx/go"}`,
+		"a body that isn't JSON": `{"op":"wittyx.go","label":"Go","description":"Goes.","method":"POST","path":"/api/modules/wittyx/go","body":"{not json"}`,
+	} {
+		if issues := ValidateModuleUI(file(bad), "wittyx", ModuleChecks{}); len(issues) == 0 {
+			t.Errorf("%s: no issue", name)
+		}
+	}
+	// A command on another module's routes never reaches the set, even unchecked.
+	stray := file(`{"op":"wittyx.go","label":"Go","description":"Goes.","method":"POST","path":"/api/sessions/end"}`)
+	if _, ok := NewModuleSet([]ModuleUI{*stray}).Command("wittyx.go"); ok {
+		t.Error("a command outside its module's routes was kept")
+	}
+}

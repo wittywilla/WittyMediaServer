@@ -420,6 +420,28 @@ the `NativeView`; every other app is sent the `NativeView`'s children, its fallb
 `NativeView` of a module's view must always have children that make sense on a
 television.
 
+## Commands
+
+A module's pages and items run commands: the server's own (a row's switch, Watch later), and the module's own, which it declares under `commands`. Each is named `<module>.<name>` and carried out by a request to the module's own routes, under `/api/modules/<module>/`; the server lists them in its catalogue (`GET /api/v1/sdui/catalog`) beside its own, so every app runs them exactly as it runs the server's, with nothing to update.
+
+```json
+"commands": [
+  {"op": "wittyplay.core.install", "label": "Install the core", "description": "Downloads a console's core.",
+   "method": "POST", "path": "/api/modules/wittyplay/gaming/cores/{item}/install"}
+]
+```
+
+| Field | What it is |
+|---|---|
+| `op` | `<module>.<name>`, not one of the server's own |
+| `label`, `description` | Words for the editor and assistive technology |
+| `method` | `GET`, `POST`, `PUT`, `PATCH` or `DELETE` |
+| `path` | One of the module's own routes, under `/api/modules/<module>/`; `{item}` and `{param}` are filled in, URL-escaped |
+| `body` | Optional JSON, with `{item}` and each `{param}` inside a string (an `int` parameter's quotes go) |
+| `params` | The values besides the item: `name`, `type` (`string`, `int`, `bool`, `ints`, `object`), `label`, `required` |
+
+A module may declare up to 64. Its items may carry only its own commands and the server commands that name it; the server checks every action an item carries against the catalogue, and the module's routes check who may do what (a route's `auth`, `confirm` for a password).
+
 ## Pages
 
 A module's page is an ordinary [SDUI page](SDUI.md#the-model-in-one-page), with sections,

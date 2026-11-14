@@ -82,6 +82,11 @@ type ModuleUI struct {
 	// NativeView (the module's web bundle, for one); every other app draws the
 	// NativeView's sections instead.
 	Views []ModuleView `json:"views,omitempty"`
+	// Commands are the module's own commands, which its pages and items run: each named
+	// <module>.<name>, carried out by a request to the module's own routes
+	// (/api/modules/<module>/…). The server lists them in its catalogue, beside its own, so every
+	// client runs them as it runs the server's.
+	Commands []CommandSpec `json:"commands,omitempty"`
 	// Navigation entries the module adds to the main menu.
 	Navigation []NavItem `json:"navigation,omitempty"`
 	// Settings describe the module's settings, which every app's own Settings
@@ -332,6 +337,42 @@ func ValidateModuleUI(ui *ModuleUI, module string, checks ModuleChecks) []Issue 
 			v.err(path, "Give each its own name.", "%q is already used at %s", n, prev)
 		}
 		seen[kind+" "+n] = path
+	}
+	for i := range ui.Commands {
+		c := &ui.Commands[i]
+		p := fmt.Sprintf("/commands/%d", i)
+		if ModuleOf(c.Op) != mod || !sourceNamePattern.MatchString(strings.ReplaceAll(strings.TrimPrefix(c.Op, mod+"."), ".", "")) {
+			v.err(p+"/op", "Name it "+mod+".something, in camelCase.", "%q is not a name of this module's: a command is %s.<name>", c.Op, mod)
+		}
+		for _, sc := range Catalog().Commands {
+			if sc.Op == c.Op {
+				v.err(p+"/op", "Choose another name.", "%q is one of the server's own commands", c.Op)
+			}
+		}
+		name(p+"/op", "command", c.Op)
+		v.specText(p, c.Label, c.Description)
+		if !contains([]string{"GET", "POST", "PUT", "PATCH", "DELETE"}, c.Method) {
+			v.err(p+"/method", "Use GET, POST, PUT, PATCH or DELETE.", "%q is not a method a command may use", c.Method)
+		}
+		prefix := "/api/modules/" + mod + "/"
+		if !strings.HasPrefix(c.Path, prefix) || strings.Contains(c.Path, "..") || strings.ContainsAny(c.Path, "?#\\ ") || len(c.Path) > 300 {
+			v.err(p+"/path", "Point it at one of the module's own routes, under "+prefix+".", "%q is not a path of this module's", c.Path)
+		}
+		if c.Body != "" && (len(c.Body) > 2000 || !json.Valid([]byte(commandBodyShape(c.Body)))) {
+			v.err(p+"/body", "Write it as JSON, with {item} and each {param} inside a string.", "the body isn't JSON")
+		}
+		for j, pa := range c.Params {
+			pp := fmt.Sprintf("%s/params/%d", p, j)
+			if !contains([]string{"string", "int", "bool", "ints", "object"}, pa.Type) {
+				v.err(pp+"/type", "Use string, int, bool, ints or object.", "%q is not a type of parameter", pa.Type)
+			}
+			if pa.Name == "" || pa.Name == "item" || strings.ContainsAny(pa.Name, "{} ") {
+				v.err(pp+"/name", "Give it a plain name.", "%q can't name a parameter", pa.Name)
+			}
+		}
+	}
+	if len(ui.Commands) > 64 {
+		v.err("/commands", "Keep to 64.", "a module may declare at most 64 commands")
 	}
 	for i := range ui.Sources {
 		s := &ui.Sources[i].SourceSpec
@@ -735,6 +776,7 @@ type ModuleSet struct {
 	uis        []ModuleUI
 	components map[string]*ModuleComponent
 	sources    map[string]*SourceSpec
+	commands   map[string]*CommandSpec
 	views      map[string]*ModuleView
 	pages      map[string]*Page
 	pageOwner  map[string]string
@@ -743,7 +785,7 @@ type ModuleSet struct {
 // NewModuleSet indexes modules' SDUI. Files should have passed
 // ValidateModuleUI; a name two files claim goes to the first.
 func NewModuleSet(uis []ModuleUI) *ModuleSet {
-	s := &ModuleSet{components: map[string]*ModuleComponent{}, sources: map[string]*SourceSpec{}, views: map[string]*ModuleView{}, pages: map[string]*Page{}, pageOwner: map[string]string{}}
+	s := &ModuleSet{components: map[string]*ModuleComponent{}, sources: map[string]*SourceSpec{}, commands: map[string]*CommandSpec{}, views: map[string]*ModuleView{}, pages: map[string]*Page{}, pageOwner: map[string]string{}}
 	// A copy of its own, so nothing the caller does later changes it.
 	if b, err := json.Marshal(uis); err == nil {
 		_ = json.Unmarshal(b, &s.uis)
@@ -765,6 +807,13 @@ func NewModuleSet(uis []ModuleUI) *ModuleSet {
 					src.Since = CatalogRevision
 				}
 				s.sources[src.Type] = src
+			}
+		}
+		for j := range ui.Commands {
+			c := &ui.Commands[j]
+			if ModuleOf(c.Op) == ui.Module && s.commands[c.Op] == nil && strings.HasPrefix(c.Path, "/api/modules/"+ui.Module+"/") {
+				c.Module = ui.Module
+				s.commands[c.Op] = c
 			}
 		}
 		for j := range ui.Views {
@@ -1162,10 +1211,11 @@ func exampleProps(specs []PropSpec) map[string]any {
 // added, as an editor needs it. With an empty set it is Catalog() itself.
 func CatalogWith(s *ModuleSet) *Catalogue {
 	base := Catalog()
-	if s == nil || (len(s.components) == 0 && len(s.sources) == 0 && len(s.views) == 0) {
+	if s == nil || (len(s.components) == 0 && len(s.sources) == 0 && len(s.views) == 0 && len(s.commands) == 0) {
 		return base
 	}
 	c := *base
+	c.Commands = append([]CommandSpec(nil), base.Commands...)
 	c.Components = append([]ComponentSpec(nil), base.Components...)
 	c.Sources = append([]SourceSpec(nil), base.Sources...)
 	c.NativeViews = append([]EnumOption(nil), base.NativeViews...)
@@ -1181,6 +1231,11 @@ func CatalogWith(s *ModuleSet) *Catalogue {
 				sc := *src
 				sc.Module = ui.Module
 				c.Sources = append(c.Sources, sc)
+			}
+		}
+		for _, mc := range ui.Commands {
+			if cmd := s.commands[mc.Op]; cmd != nil && cmd.Module == ui.Module {
+				c.Commands = append(c.Commands, *cmd)
 			}
 		}
 		for _, w := range ui.Views {
@@ -1271,4 +1326,24 @@ func moduleComponentIn(set *ModuleSet, t Section, path string) string {
 		}
 	}
 	return ""
+}
+
+// Command is a command of the server's own or of a module in the set.
+func (s *ModuleSet) Command(op string) (CommandSpec, bool) {
+	for _, c := range Catalog().Commands {
+		if c.Op == op {
+			return c, true
+		}
+	}
+	if s != nil {
+		if c := s.commands[op]; c != nil {
+			return *c, true
+		}
+	}
+	return CommandSpec{}, false
+}
+
+// commandBodyShape is a command's body with its placeholders made plain values, to check it is JSON.
+func commandBodyShape(body string) string {
+	return regexp.MustCompile(`"\{[A-Za-z0-9_]+\}"`).ReplaceAllString(body, `"x"`)
 }

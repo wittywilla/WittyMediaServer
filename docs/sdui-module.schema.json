@@ -1,5 +1,68 @@
 {
   "$defs": {
+    "CommandParam": {
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "type",
+        "label"
+      ],
+      "type": "object"
+    },
+    "CommandSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "body": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "method": {
+          "type": "string"
+        },
+        "module": {
+          "type": "string"
+        },
+        "op": {
+          "type": "string"
+        },
+        "params": {
+          "items": {
+            "$ref": "#/$defs/CommandParam"
+          },
+          "type": "array"
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "op",
+        "label",
+        "description",
+        "method",
+        "path"
+      ],
+      "type": "object"
+    },
     "Condition": {
       "additionalProperties": false,
       "properties": {
@@ -315,6 +378,12 @@
         },
         "catalog": {
           "type": "integer"
+        },
+        "commands": {
+          "items": {
+            "$ref": "#/$defs/CommandSpec"
+          },
+          "type": "array"
         },
         "components": {
           "items": {

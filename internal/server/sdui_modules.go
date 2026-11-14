@@ -351,13 +351,12 @@ func (rv *sduiResolver) cleanModuleAction(mod string, a *sdui.Action) *sdui.Acti
 		}
 		out.Item = a.Item
 	case sdui.ActCommand:
-		known := false
-		var spec sdui.CommandSpec
-		for _, c := range sdui.Catalog().Commands {
-			if c.Op == a.Op {
-				known, spec = true, c
-			}
+		// The server's own commands, and those the modules in use declare (sdui.json "commands").
+		var set *sdui.ModuleSet
+		if rv.s != nil {
+			set = rv.s.moduleSet(nil)
 		}
+		spec, known := set.Command(a.Op)
 		if !known || !(spec.Module == mod || strings.HasPrefix(a.Op, mod+".")) || len(a.Item) > 200 {
 			return nil
 		}

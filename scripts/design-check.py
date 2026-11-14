@@ -97,7 +97,7 @@ def css_problems(text):
                 found.append((n, 'z-index', m.group(1)))
         if re.search(r'transition:\s*all\b', body):
             found.append((n, 'transition-all', 'transition: all'))
-        if re.search(r'backdrop-filter:\s*(?!none)|[^-]filter:\s*blur', body):
+        if re.search(r'backdrop-filter:(?!\s*none)|[^-]filter:\s*blur', body):
             found.append((n, 'blur', 'blur'))
         if drawn:
             found[start:] = [f for f in found[start:] if f[1] not in DRAWN_OWN]

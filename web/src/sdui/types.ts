@@ -91,7 +91,9 @@ export type Personal = {
 
 export type ScreenTime = { reason?: string; message?: string; nextAt?: number }
 
-export type Meta = { etag?: string; generatedAt?: string; source?: string; configRevision?: number; ttlSeconds?: number }
+// refreshSec: something on the page is in progress; ask for it again that many seconds after each answer
+// while it is open and showing (docs/SDUI.md, "Pages that are in progress", and refresh.ts).
+export type Meta = { etag?: string; generatedAt?: string; source?: string; configRevision?: number; ttlSeconds?: number; refreshSec?: number }
 
 export type Document = {
   version: number

@@ -29,6 +29,7 @@ func (rv *sduiResolver) pageSource(req sdui.SourceRequest) (sdui.SourceResult, b
 	typ := req.Source.Type()
 	var all []sdui.Item
 	var err error
+	busy := false // something these rows show is in progress: the page asks to be drawn again
 	switch typ {
 	case "versions":
 		all, err = rv.versionsOf(req.Source.Str("item"))
@@ -59,9 +60,9 @@ func (rv *sduiResolver) pageSource(req sdui.SourceRequest) (sdui.SourceResult, b
 	case "smartRule":
 		all = smartRuleRows()
 	case "libraryAdmin":
-		all, err = rv.libraryAdminRows()
+		all, busy, err = rv.libraryAdminRows()
 	case "libraryScan":
-		all, err = rv.libraryScanRows(req.Source.Str("item"))
+		all, busy, err = rv.libraryScanRows(req.Source.Str("item"))
 	case "newLibrary":
 		all = rv.newLibraryRows()
 	case "matchQueue":
@@ -80,7 +81,11 @@ func (rv *sduiResolver) pageSource(req sdui.SourceRequest) (sdui.SourceResult, b
 	if lim := req.Source.Int("limit"); lim > 0 && lim < req.Limit {
 		req.Limit = lim
 	}
-	return page(all, req), true, nil
+	res := page(all, req)
+	if busy {
+		res.RefreshSec = sdui.BusyRefreshSec
+	}
+	return res, true, nil
 }
 
 // subjectItem is the title an "item" the page names is, when this profile may see it (a film, an

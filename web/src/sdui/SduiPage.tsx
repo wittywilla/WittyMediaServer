@@ -19,6 +19,7 @@ import { focusMap, next as nextFocus, type Dir } from './focus'
 import { applyItems, buildPage, sectionGap, type View } from './model'
 import { hasTools, nativeInstead } from './native'
 import { plan, withQuery } from './routes'
+import { changedRows, refreshDelay } from './refresh'
 import { Ctx, px, type PageCtx } from './render/context'
 import { scopeStyle, Sections } from './render/components'
 import { setPageMove } from '../tv'
@@ -274,6 +275,10 @@ export default function SduiPage({ page, params, fallback }: { page: string; par
   // A page shown over this one (navigate with as "layer"): the game's quick menu.
   const [layer, setLayer] = useState('')
   const [tick, setTick] = useState(0)
+  // quiet: the next ask is the page's own refresh (meta.refreshSec), drawn with no placeholders,
+  // busy state or error view. settled counts answers, so the next refresh waits for the last one.
+  const quiet = useRef(false)
+  const [settled, setSettled] = useState(0)
   const drawn = useRef<Document | null>(doc)
   drawn.current = doc
   const dkey = deviceKey(device, window.innerWidth)
@@ -281,17 +286,30 @@ export default function SduiPage({ page, params, fallback }: { page: string; par
   // Ask for the page: at once what was kept, then what it is now.
   useEffect(() => {
     const ctl = new AbortController()
+    const still = quiet.current
+    quiet.current = false
     const had = kept(page, device, params)
     if (had && had !== drawn.current && drawn.current?.page.id !== had.page.id) setDoc(had)
-    setBusy((b) => new Set(b).add('page'))
+    if (!still) setBusy((b) => new Set(b).add('page'))
     fetchPage(page, device, params, { signal: ctl.signal }).then((d) => {
+      // A page that was in progress and now isn't (a scan finished): say how it ended, once.
+      const was = drawn.current
+      if (was && was.page.id === d.page.id && refreshDelay(was) && !refreshDelay(d)) {
+        const line = changedRows(was.root, d.root)[0]
+        if (line) announce(line)
+      }
       setProblem(null)
-      setFailed(new Set())
+      setFailed((f) => (f.size ? new Set() : f))
       setDoc((was) => (was && was.meta?.etag === d.meta?.etag && was.page.id === d.page.id && was.page.route === d.page.route ? was : carryOver(d, was)))
     }).catch((e) => {
-      if (ctl.signal.aborted) return
+      // A refresh that didn't arrive leaves the page as it is; the next one tries again.
+      if (ctl.signal.aborted || still) return
       setProblem({ status: e instanceof ApiError ? e.status : 0, message: (e as Error).message })
-    }).finally(() => { if (!ctl.signal.aborted) setBusy((b) => { const n = new Set(b); n.delete('page'); return n }) })
+    }).finally(() => {
+      if (ctl.signal.aborted) return
+      if (!still) setBusy((b) => { const n = new Set(b); n.delete('page'); return n })
+      setSettled((n) => n + 1)
+    })
     return () => ctl.abort()
   }, [key, dkey, tick]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -312,6 +330,19 @@ export default function SduiPage({ page, params, fallback }: { page: string; par
     return () => clearInterval(t)
   }, [ttl, key])
   useEffect(() => onChange(() => setTick((n) => n + 1)), [])
+  // Something on the page is in progress (meta.refreshSec): ask again that long after each answer,
+  // quietly, only while the page is open and the tab is showing; once at once when it shows again.
+  // Closing the page or layer unmounts this and stops it; an answer without the hint ends it.
+  const refreshMs = refreshDelay(doc)
+  useEffect(() => {
+    if (!refreshMs) return
+    let t = 0
+    const again = () => { quiet.current = true; setTick((n) => n + 1) }
+    if (!document.hidden) t = window.setTimeout(again, refreshMs)
+    const seen = () => { window.clearTimeout(t); if (!document.hidden) again() }
+    document.addEventListener('visibilitychange', seen)
+    return () => { window.clearTimeout(t); document.removeEventListener('visibilitychange', seen) }
+  }, [refreshMs, key, settled])
   // Offline: try again every few seconds, so the page comes back by itself.
   useEffect(() => {
     if (problem?.status !== 0) return

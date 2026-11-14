@@ -61,7 +61,18 @@ type SourceResult struct {
 	Reason string
 	// Selected is the season an "episodes" source chose when none was named.
 	Selected string
+	// RefreshSec says what these items show is changing right now (a scan counting up): the page
+	// is to be asked for again after this many seconds while it is open. 0: it isn't. Render puts
+	// the smallest any section asked for into Meta.RefreshSec; BusyRefreshSec is the usual value.
+	RefreshSec int
 }
+
+// BusyRefreshSec is how often a page showing something in progress asks to be drawn again:
+// SourceResult.RefreshSec for a source that is busy. MaxRefreshSec bounds what Render passes on.
+const (
+	BusyRefreshSec = 2
+	MaxRefreshSec  = 300
+)
 
 // Each is one thing a section is repeated over.
 type Each struct {
@@ -149,6 +160,8 @@ type renderer struct {
 	eager  int  // data sections that arrived filled so far
 	asked  int  // data sections whose source was asked, filled or empty
 	clock  bool // a condition looked at the time
+	// refresh: the smallest RefreshSec a source asked for, 0 when none did.
+	refresh int
 	ids    map[string]bool
 	totals map[string]int // section → total its source reported
 	err    error
@@ -215,7 +228,7 @@ func Render(page Page, ctx *RenderContext) (Document, error) {
 
 	doc := Document{Version: SchemaVersion, Catalog: CatalogRevision, Layout: r.l, Root: root, Personal: info,
 		Page: PageInfo{ID: page.ID, Kind: page.Kind, Title: r.fill(page.Title, nil, nil), Icon: page.Icon, Route: r.route(), Variant: variant, Params: r.pageParams()},
-		Meta: Meta{Source: ctx.Source, ConfigRevision: ctx.ConfigRevision, TTLSeconds: r.ttl()}}
+		Meta: Meta{Source: ctx.Source, ConfigRevision: ctx.ConfigRevision, TTLSeconds: r.ttl(), RefreshSec: r.refresh}}
 	if page.Scope != "" {
 		doc.Theme = &ThemeScope{Scope: page.Scope, Tokens: copyTokens(ctx.Scopes[page.Scope])}
 	}
@@ -1014,6 +1027,9 @@ func (r *renderer) ask(src Source, each *Each, offset, limit int) (SourceResult,
 	res, err := r.ctx.Resolver.Items(SourceRequest{Source: rs, Filter: r.filter(src), Offset: offset, Limit: limit})
 	if err != nil {
 		return res, rs, err
+	}
+	if n := min(res.RefreshSec, MaxRefreshSec); n > 0 && (r.refresh == 0 || n < r.refresh) {
+		r.refresh = n
 	}
 	if len(res.Items) > limit {
 		res.Items, res.More = res.Items[:limit], true

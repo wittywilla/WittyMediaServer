@@ -1403,6 +1403,9 @@
           "format": "date-time",
           "type": "string"
         },
+        "refreshSec": {
+          "type": "integer"
+        },
         "source": {
           "type": "string"
         },

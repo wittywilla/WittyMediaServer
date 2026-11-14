@@ -9,7 +9,6 @@ import LegalNote from '../LegalNote'
 import { sendPicture } from '../../metadata'
 import { Button, Dialog, Notice } from '../../ui'
 import { WebLink } from '../WebLink'
-import { BRAND_LOGO_WARNING, BRAND_LOGOS_SETTING, brandLogosChanged } from '../../shell/brandLogos'
 import './edit.css'
 
 // Everywhere a logo can be set: search by name, choose among what comes back with its source
@@ -58,14 +57,13 @@ export function ChangeLogoButton({ kind, name, label = 'Change logo', variant = 
 
 // What it says where downloads aren't on: why there's nothing to search, and where the one
 // agreement is. Never a dead end, because uploading and choosing none don't need it.
-export function LogoConsentHint({ onLeave, compact, brandKind }: { onLeave?: () => void; compact?: boolean; brandKind?: boolean }) {
+export function LogoConsentHint({ onLeave, compact }: { onLeave?: () => void; compact?: boolean }) {
   const { user } = useApp()
   const [consent, setConsent] = useState<string | null>(null)
   useEffect(() => { api.get<{ consent: string }>('/logos/status').then((r) => setConsent(r.consent)).catch(() => {}) }, [])
   if (consent === null || consent === 'yes') return null
   const words = user?.isAdmin
-    ? <>Downloading logos is off{consent === 'no' ? ', as you chose' : ''}. Nothing is fetched until you agree. Read what it means and turn it on in <Link to="/settings/metadata#logos" onClick={onLeave}>Settings, Metadata agents, Logos</Link>. Uploading your own works without it.
-      {brandKind && <> For console and game studio logos only, you can instead turn on brand logos in <Link to={BRAND_LOGOS_SETTING} onClick={onLeave}>WittyPlay Settings, Game pictures</Link>, after reading its warning about trademarks.</>}</>
+    ? <>Downloading logos is off{consent === 'no' ? ', as you chose' : ''}. Nothing is fetched until you agree. Read what it means and turn it on in <Link to="/settings/metadata#logos" onClick={onLeave}>Settings, Metadata agents, Logos</Link>. Uploading your own works without it.</>
     : <>Downloading logos is off on this server, so names show instead. Its owner can turn it on.</>
   return compact ? <small className="tvs-help">{words}</small> : <Notice tone="warn">{words}</Notice>
 }
@@ -116,12 +114,9 @@ function Downloaded({ list, busy, onPick }: { list: LogoInfo[]; busy: boolean; o
   )
 }
 
-const BRAND_KINDS: LogoKind[] = ['console', 'gamestudio']
-
 export function LogoPanel({ logo, onChanged, onLeave }: { logo: LogoInfo; onChanged: (l: LogoInfo) => void; onLeave?: () => void }) {
   const [list, setList] = useState<Candidate[] | null>(null)
   const [downloaded, setDownloaded] = useState<LogoInfo[]>([])
-  const [brandOn, setBrandOn] = useState(false)
   const [needsConsent, setNeedsConsent] = useState(false)
   const [q, setQ] = useState(logo.name)
   const [err, setErr] = useState('')
@@ -130,8 +125,8 @@ export function LogoPanel({ logo, onChanged, onLeave }: { logo: LogoInfo; onChan
   const input = useRef<HTMLInputElement | null>(null)
   const look = (query: string) => {
     setList(null); setErr('')
-    api.get<{ candidates: Candidate[]; downloaded?: LogoInfo[]; brandLogos?: boolean }>(`/logos/${logo.id}/candidates?q=${encodeURIComponent(query)}`)
-      .then((r) => { setList(r.candidates); setDownloaded(r.downloaded || []); setBrandOn(!!r.brandLogos) })
+    api.get<{ candidates: Candidate[]; downloaded?: LogoInfo[] }>(`/logos/${logo.id}/candidates?q=${encodeURIComponent(query)}`)
+      .then((r) => { setList(r.candidates); setDownloaded(r.downloaded || []) })
       .catch((e) => { setList([]); if (e.status === 409) setNeedsConsent(true); else setErr(e.message) })
   }
   useEffect(() => { look(logo.name) }, [logo.id]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -142,7 +137,7 @@ export function LogoPanel({ logo, onChanged, onLeave }: { logo: LogoInfo; onChan
   }
   const reuse = async (l: LogoInfo) => {
     setBusy(true); setErr('')
-    try { done(await api.put<LogoInfo>(`/logos/${logo.id}`, { copyFrom: l.id })); brandLogosChanged() } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
+    try { done(await api.put<LogoInfo>(`/logos/${logo.id}`, { copyFrom: l.id })) } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
   }
   const status = async (s: 'text' | 'pending') => {
     setBusy(true); setErr('')
@@ -171,11 +166,8 @@ export function LogoPanel({ logo, onChanged, onLeave }: { logo: LogoInfo; onChan
           <input ref={input} hidden type="file" accept="image/png,image/jpeg,image/webp,image/gif" aria-label="Upload a logo" onChange={(e) => { void upload(e.target.files?.[0]); e.target.value = '' }} />
         </div>
       </div>
-      {needsConsent ? <LogoConsentHint onLeave={onLeave} brandKind={BRAND_KINDS.includes(logo.kind)} /> : (
+      {needsConsent ? <LogoConsentHint onLeave={onLeave} /> : (
         <>
-          {brandOn && BRAND_KINDS.includes(logo.kind) && (
-            <Notice tone="warn"><b>Brand logos are on in WittyPlay.</b> {BRAND_LOGO_WARNING.join(' ')} Remove them in <Link to={BRAND_LOGOS_SETTING} onClick={onLeave}>WittyPlay Settings, Game pictures</Link>.</Notice>
-          )}
           <Downloaded list={downloaded} busy={busy} onPick={reuse} />
           <form className="field-row" onSubmit={(e) => { e.preventDefault(); look(q) }}>
             <input className="input" aria-label="Search for a logo by name" value={q} onChange={(e) => setQ(e.target.value)} />

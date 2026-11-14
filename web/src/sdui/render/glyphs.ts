@@ -22,5 +22,8 @@ export const TabsContext = createContext<ExtraTabs | null>(null)
 // - how a game's picture is drawn (WittyPlay's Game pictures): art gives what goes in a game card's picture (its box art fitted, or the
 //   game in its case), or null for the picture as sent; detail gives something for the game's detail panel (a button to change it).
 export type GameArtArgs = { itemId: string; console: string; image: string; title: string }
-export type GameArtApi = { art: (a: GameArtArgs) => ReactNode | null; detail?: (a: GameArtArgs) => ReactNode; cover?: (a: GameArtArgs) => ReactNode }
+// bio: the panel under a row about a game, drawn by the shell around the panel's own title (children) and buttons (actions),
+// with top (cover's) over it; without one the panel is the title and buttons alone.
+export type GameBioArgs = GameArtArgs & { top?: ReactNode; actions?: ReactNode; children: ReactNode }
+export type GameArtApi = { art: (a: GameArtArgs) => ReactNode | null; detail?: (a: GameArtArgs) => ReactNode; cover?: (a: GameArtArgs) => ReactNode; bio?: (a: GameBioArgs) => ReactNode }
 export const GameArtContext = createContext<GameArtApi | null>(null)

@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { api } from '../../api'
 import { IconDown, IconEdit, IconPlug, IconPlus, IconTrash, IconUp } from '../../icons'
 import { toast } from '../../state'
-import { GameSourcesSettings } from '../GameMeta'
 import { MusicOnlineSettings } from '../MusicOnline'
 import { LoadError } from '../../components/common'
 import { PageHead, Row, SaveBar, Section, Switch, useServerSettings } from './ui'
@@ -36,7 +35,7 @@ export default function MetadataSettings() {
         <Row label="TVmaze" badge={NO_KEY} desc="TV shows: episode titles, plots, posters and stills. Used until you add a TheTVDB key. Data shared under CC BY-SA 4.0.">
           <Switch label="Use TVmaze" checked={on('tvmaze')} onChange={(v) => set('tvmaze', v ? '1' : '0')} />
         </Row>
-        <Row label="Wikidata and Wikipedia" badge={NO_KEY} desc="Movies and games: facts, ratings and plot summaries (no posters). For movies, used until you add a TMDB key.">
+        <Row label="Wikidata and Wikipedia" badge={NO_KEY} desc="Movies: facts, ratings and plot summaries (no posters). Used until you add a TMDB key.">
           <Switch label="Use Wikidata" checked={on('wikidata')} onChange={(v) => set('wikidata', v ? '1' : '0')} />
         </Row>
         <Row label="Radio Browser" badge={NO_KEY} desc="Internet radio: a free community directory of stations to search, with logos, genres and countries. Your server contacts it when you search, and once a day for stations you added from it, sending only their IDs. It is never told what anyone listens to.">
@@ -58,8 +57,6 @@ export default function MetadataSettings() {
       </Section>
 
       <MusicOnlineSettings s={s} set={set} on={on} />
-
-      <GameSourcesSettings />
 
       <CustomAgents />
 

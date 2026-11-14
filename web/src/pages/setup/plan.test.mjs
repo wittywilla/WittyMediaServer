@@ -57,6 +57,10 @@ test('streaming lists are asked only where movies or shows can be made', () => {
   assert.equal(canMake(facts({ kinds: null }), 'movies'), true)
 })
 
+// Settings sections a module's step points to: the module draws them (its integration.json settings claim), so
+// they aren't on the settings page here. Each with its label there.
+const MODULE_PAGES = { 'game-metadata': { module: 'wittyplay', label: 'Game metadata' } }
+
 test('every step that asks something says where to change it later, and that page exists', () => {
   const routes = readFileSync(new URL('../SettingsPage.tsx', import.meta.url), 'utf8')
   const labels = [...routes.matchAll(/to: '([a-z-]+)', label: '([^']+)'/g)].map((m) => [m[1], m[2]])
@@ -64,6 +68,12 @@ test('every step that asks something says where to change it later, and that pag
     if (s.id === 'welcome' || s.id === 'account' || s.id === 'done') continue
     assert.ok(s.later, `${s.id} has nowhere to change it later`)
     const page = s.later.to.replace('/settings/', '').split('#')[0]
+    const own = MODULE_PAGES[page]
+    if (own) {
+      assert.ok(Array.isArray(s.needs) && s.needs.includes(own.module), `${s.id}: ${page} is ${own.module}'s, and the step doesn't need it`)
+      assert.ok(s.later.where.startsWith('Settings, ' + own.label), `${s.id}: "${s.later.where}" isn't what ${own.module} calls it: ${own.label}`)
+      continue
+    }
     assert.ok(routes.includes(`path="${page}"`) || routes.includes(`path="${page}/*"`), `no settings page ${page}`)
     const label = labels.find(([to]) => to === page)?.[1]
     assert.ok(s.later.where.startsWith('Settings, ' + label), `${s.id}: "${s.later.where}" isn't what the menu calls it: ${label}`)

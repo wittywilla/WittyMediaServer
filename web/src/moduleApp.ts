@@ -3,14 +3,14 @@
 // The app's own parts a module's web bundle may use (web host API 5): what WittyPlay's screens, moved
 // out of the app, still import from it. A bundle imports them as @wms/app/<path>, which WittyModule's
 // builder turns into a stand-in reading this map (moduleHost.ts, app). scripts/export-module-kit.mjs
-// writes each one's exports for the builder. Removing one, or an export of one, breaks bundles already
-// released: add, never take away, until the next web host API.
+// writes each one's exports for the builder. Removing one, or an export of one, breaks a bundle that
+// still imports it: a module takes its own copy of a part that is its alone (as WittyPlay did of the
+// game parts) before the part goes from here.
 
 import * as m0 from './App'
 import * as m1 from './api'
 import * as m2 from './components/ArtworkPicker'
 import * as m3 from './components/BrandLogo'
-import * as m4 from './components/ConsoleMark'
 import * as m5 from './components/HelpLink'
 import * as m6 from './components/LegalNote'
 import * as m7 from './components/LibraryHeader'
@@ -23,7 +23,6 @@ import * as m13 from './icons'
 import * as m14 from './moduleBundles'
 import * as m15 from './myLimits'
 import * as m16 from './pages/SettingsPage'
-import * as m17 from './pages/games/VirtualGames'
 import * as m19 from './pages/settings/ModuleSettings'
 import * as m21 from './pages/settings/ui'
 import * as m22 from './pages/setup/parts'
@@ -41,12 +40,6 @@ import * as m33 from './shell/navModel'
 import * as m34 from './shell/useNav'
 import * as m35 from './spec/SpecPage'
 import * as m36 from './spec/model'
-import * as m37 from './spec/specs/consoleCores'
-import * as m38 from './spec/specs/emulatorChoices'
-import * as m39 from './spec/specs/fixgame'
-import * as m40 from './spec/specs/gameLibrary'
-import * as m41 from './spec/specs/gameReview'
-import * as m42 from './spec/specs/manualEmulator'
 import * as m43 from './state'
 import * as m44 from './theme'
 import * as m45 from './tv'
@@ -62,7 +55,6 @@ export const appModules: Record<string, unknown> = {
   'api': m1,
   'components/ArtworkPicker': m2,
   'components/BrandLogo': m3,
-  'components/ConsoleMark': m4,
   'components/HelpLink': m5,
   'components/LegalNote': m6,
   'components/LibraryHeader': m7,
@@ -75,7 +67,6 @@ export const appModules: Record<string, unknown> = {
   'moduleBundles': m14,
   'myLimits': m15,
   'pages/SettingsPage': m16,
-  'pages/games/VirtualGames': m17,
   'pages/settings/ModuleSettings': m19,
   'pages/settings/ui': m21,
   'pages/setup/parts': m22,
@@ -93,12 +84,6 @@ export const appModules: Record<string, unknown> = {
   'shell/useNav': m34,
   'spec/SpecPage': m35,
   'spec/model': m36,
-  'spec/specs/consoleCores': m37,
-  'spec/specs/emulatorChoices': m38,
-  'spec/specs/fixgame': m39,
-  'spec/specs/gameLibrary': m40,
-  'spec/specs/gameReview': m41,
-  'spec/specs/manualEmulator': m42,
   'state': m43,
   'theme': m44,
   'tv': m45,

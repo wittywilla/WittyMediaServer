@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-// node --experimental-strip-types --test web/src/pages/games/titles.test.mjs
+// node --experimental-strip-types --test web/src/sdui/render/titles.test.mjs
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { asGameTitlePref, gameTitle, gameTitleLabel, gameTitleParts, titleLang, GAME_TITLE_EXAMPLE } from './titles.ts'

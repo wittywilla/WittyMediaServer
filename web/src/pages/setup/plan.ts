@@ -45,7 +45,7 @@ export const STEPS: StepInfo[] = [
   { id: 'music', label: 'Lyrics', needs: 'server', when: (f) => canMake(f, 'music'), later: { where: 'Settings, Metadata agents, under Lyrics', to: '/settings/metadata#lyrics' } },
   { id: 'listings', label: 'Streaming lists', needs: 'server', when: (f) => canMake(f, 'movies') || canMake(f, 'shows'), later: { where: 'Settings, Metadata agents, under Streaming listings', to: '/settings/metadata#listings' } },
   { id: 'tv', label: 'Live TV', needs: ['wittytuner'], later: { where: 'Settings, Channels & tuners', to: '/settings/channels' } },
-  { id: 'games', label: 'Games', needs: ['wittyplay'], later: { where: 'Settings, Metadata agents', to: '/settings/metadata' } },
+  { id: 'games', label: 'Games', needs: ['wittyplay'], later: { where: 'Settings, Game metadata', to: '/settings/game-metadata' } },
   { id: 'discs', label: 'Discs', needs: ['wittydvd', 'wittybluray'], later: { where: 'Settings, Playback & discs', to: '/settings/playback' } },
   { id: 'people', label: 'People and rules', needs: 'server', later: { where: 'Settings, Profiles', to: '/settings/users' } },
   { id: 'remote', label: 'Remote access and apps', needs: 'server', later: { where: 'Settings, Remote Access', to: '/settings/remote' } },

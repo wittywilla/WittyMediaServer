@@ -33,7 +33,17 @@ func (a managerScans) ScanModule(kind string) (library.ScanModule, bool) {
 	return library.ScanModule{ID: by.ID, Name: by.Name, Version: by.Version, On: by.On, Describe: by.Part.Describe, Facet: by.Part.Facet}, true
 }
 
+// scanCallLimit bounds one scan call. The last identify call groups every file of a library at
+// once (16,000 and more in a big games library), well past a service call's usual 3 minutes; a
+// cancelled scan still ends it at once through ctx.
+const scanCallLimit = 30 * time.Minute
+
 func (managerScans) Call(ctx context.Context, module, call string, args, out any) error {
+	if _, ok := ctx.Deadline(); !ok {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, scanCallLimit)
+		defer cancel()
+	}
 	return service.Call(ctx, module, call, nil, nil, []any{args}, []any{out})
 }
 

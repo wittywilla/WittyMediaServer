@@ -8,8 +8,9 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { api, type Library } from '../../api'
 import { BackLink, EmptyState, Spinner } from '../../components/common'
 import { creatorArt, fmtCount, videoThumb, type Creator, type VideoCard } from '../../gallery'
-import { IconEdit, IconRefresh, IconSearch } from '../../icons'
-import { useApp, toast } from '../../state'
+import { IconEdit, IconSearch } from '../../icons'
+import { useApp } from '../../state'
+import { ScanControl } from '../../components/ScanControl'
 import { Avatar, LoadMore, SubscribeButton, useVideoList, VideoTile } from './parts'
 import '../../creators.css'
 import LegalNote from '../../components/LegalNote'
@@ -52,7 +53,6 @@ export default function ChannelsLibrary({ lib }: { lib: Library }) {
     if (tab === 'concerts') u.set('length', 'long')
     return u.toString()
   }, [lib.id, search, tag, tab])
-  const rescan = async () => { await api.post(`/libraries/${lib.id}/scan`); setScanning(true); toast('Scan started'); setTimeout(() => setScanning(false), 3000) }
   const browsing = search || tag
   const music = lib.type === 'musicvideos'
   return (
@@ -66,7 +66,7 @@ export default function ChannelsLibrary({ lib }: { lib: Library }) {
         tabs={<div className="seg ch-tabs" role="tablist" aria-label="View">
           {(music ? MUSIC_TABS : TABS).map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k && !browsing} className={tab === k && !browsing ? 'active' : ''} onClick={() => { set({ tab: k === 'home' ? null : k, q: null, tag: null }); setText('') }}>{l}</button>)}
         </div>}
-        actions={user?.isAdmin && <button className="btn sm ghost" disabled={scanning} onClick={rescan}><IconRefresh /> Scan</button>}
+        actions={user?.isAdmin && <ScanControl lib={lib} scanning={scanning} size="sm" onStarted={() => { setScanning(true); setTimeout(() => setScanning(false), 3000) }} />}
       />
       {tags.length > 0 && tab !== 'channels' && (
         <SpecPage bare className="ch-tags" page={topicsSpec(tags, tag || '')} handled={TOPIC_HANDLED(tags)} onAction={(id) => set({ tag: id.slice(4) === tag || id === 'tag:' ? null : id.slice(4) })} />

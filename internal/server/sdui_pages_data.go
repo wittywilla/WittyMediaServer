@@ -60,6 +60,8 @@ func (rv *sduiResolver) pageSource(req sdui.SourceRequest) (sdui.SourceResult, b
 		all = smartRuleRows()
 	case "libraryAdmin":
 		all, err = rv.libraryAdminRows()
+	case "libraryScan":
+		all, err = rv.libraryScanRows(req.Source.Str("item"))
 	case "newLibrary":
 		all = rv.newLibraryRows()
 	case "matchQueue":

@@ -7,9 +7,10 @@ import { avatarColor } from '../ui/avatarColor'
 import { Link } from 'react-router-dom'
 import { PosterCard } from '../ui/Surface'
 import { brandParts, DEFAULT_NAME } from '../brandName'
-import { api, artSet, CARD_SIZES, episodeLabel, fmtRuntime, discName, isBluray, isDisc, posterUrl, serverBase, showPosterUrl, sized, WIDE_CARD_SIZES, type Item, type Show } from '../api'
-import { toast, useApp } from '../state'
-import { IconCheck, IconLeft, IconRefresh } from '../icons'
+import { artSet, CARD_SIZES, episodeLabel, fmtRuntime, discName, isBluray, isDisc, posterUrl, serverBase, showPosterUrl, sized, WIDE_CARD_SIZES, type Item, type Show } from '../api'
+import { useApp } from '../state'
+import { IconCheck, IconLeft } from '../icons'
+import { ScanControl, type ScanMode, type ScanProgress } from './ScanControl'
 
 // The shared parts, under the names pages import them by.
 export { CardRow, EmptyState, LoadError, PageSkeleton, SkeletonGrid, Spinner } from '../ui/Surface'
@@ -44,14 +45,11 @@ export function Placeholder({ title, label }: { title: string; label?: string })
   )
 }
 
-// ScanButton: look through a library's folders again, for administrators.
-export function ScanButton({ lib, onStarted }: { lib: { id: number; name: string }; onStarted?: () => void }) {
+// ScanButton: Scan for changes and Full rescan (ScanControl), for administrators.
+export function ScanButton({ lib, progress, onStarted }: { lib: { id: number; name: string }; progress?: ScanProgress | null; onStarted?: (mode: ScanMode) => void }) {
   const { user } = useApp()
   if (!user?.isAdmin) return null
-  const scan = async () => {
-    try { await api.post(`/libraries/${lib.id}/scan`); toast(`Scanning ${lib.name}`); onStarted?.() } catch (e: any) { toast(e.message) }
-  }
-  return <button className="btn ghost" onClick={scan}><IconRefresh /> Scan</button>
+  return <ScanControl lib={lib} progress={progress} onStarted={onStarted} />
 }
 
 // Episodes render as wide stills (16:9) with the show name; `wide` is set

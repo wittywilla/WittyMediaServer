@@ -6,6 +6,7 @@ import { api, type Library } from '../api'
 import AddLibrary, { GroupingChoice, type Grouping } from '../components/AddLibrary'
 import { SettingsHelp } from '../components/HelpLink'
 import { BackLink, UpdateDot, VersionTag, LoadError } from '../components/common'
+import { ScanControl, scanProgressText, useScanProgress } from '../components/ScanControl'
 import { ChooseFolderButton } from '../components/FolderPicker'
 import { useModulePages } from '../moduleBundles'
 import { ModuleSettingsView, useModuleSettingsTabs, type ModuleSettingsTab } from '../moduleRegistry'
@@ -327,11 +328,10 @@ export function Libraries() {
     if (!await ask({ title: `Delete the metadata files in “${l.name}”?`, body: `Every .nfo and .metadata.json file in its folders is deleted, whoever wrote it, and the library is scanned again from the file names and what is found online. Your media, pictures and subtitles stay. This can't be undone.`, confirm: 'Delete metadata files', danger: true })) return
     try { const r = await api.post<{ deleted: number }>(`/libraries/${l.id}/purge-metadata`); toast(`${r.deleted.toLocaleString()} ${r.deleted === 1 ? 'file' : 'files'} deleted. Scanning ${l.name}`); setTimeout(refreshLibraries, 1000) } catch (e: any) { toast(e.message) }
   }
-  const scan = async (l: Library) => { await api.post(`/libraries/${l.id}/scan`); toast(`Scanning ${l.name}`); setTimeout(refreshLibraries, 1000) }
   const add = () => setAdding(true)
   return (
     <>
-      <PageHead title="Libraries" desc="Each library is one or more folders of one kind of media. The server looks through them every 6 hours, and Scan now does it straight away."
+      <PageHead title="Libraries" desc="Each library is one or more folders of one kind of media. The server looks through them for changes every 6 hours. Scan for changes does it straight away, and Full rescan reads every file and its details again from scratch."
         actions={libraries.length > 0 && <button className="btn primary" onClick={add}><IconPlus /> Add library</button>} />
       {libraries.length > 0 && (
         <div className="set-lib-summary">
@@ -358,13 +358,13 @@ export function Libraries() {
                   <b>{l.name}</b>
                   <span>{l.name === typeLabel(l.type) ? '' : `${typeLabel(l.type)} · `}{l.itemCount.toLocaleString()} {l.itemCount === 1 ? 'item' : 'items'}</span>
                 </div>
-                {l.scanning && <span className="set-pill live">Scanning…</span>}
+                {l.scanning && <LibraryScanPill library={l} />}
               </div>
               <ul className="set-lib-paths">{l.paths.map((p) => <li key={p} title={p}><IconFolder size={14} /><span><bdi>{p}</bdi></span></li>)}</ul>
               {l.type === 'commercials' && <CommercialsSwitch library={l} />}
               {l.type !== 'radio' && l.type !== 'podcasts' && <NfoSwitch library={l} />}
               <div className="set-lib-actions">
-                <button className="btn sm" onClick={() => scan(l)} disabled={l.scanning}><IconRefresh /> Scan now</button>
+                <ScanControl lib={l} scanning={l.scanning} progress={l.scanning ? { mode: l.scanMode } : null} size="sm" variant="default" onStarted={() => setTimeout(refreshLibraries, 1000)} />
                 <button className="btn sm ghost" onClick={() => setEditing(l)}><IconEdit /> Edit</button>
                 <button className="btn sm ghost" onClick={() => setForgetting(l)} disabled={l.scanning} title="Removes what was downloaded for this library, to try matching and downloading again">Remove downloaded details…</button>
                 {l.type !== 'radio' && l.type !== 'podcasts' && <button className="btn sm ghost" onClick={() => void purge(l)} disabled={l.scanning || l.readOnly} title={l.readOnly ? 'This library is read-only' : 'Deletes every .nfo and .metadata.json file in its folders'}>Delete metadata files…</button>}
@@ -581,4 +581,10 @@ function About() {
       </Section>
     </>
   )
+}
+
+// LibraryScanPill: how far a library's scan has got, "Scanning: 12,400 of 16,780 files", asked for while it runs.
+function LibraryScanPill({ library }: { library: Library }) {
+  const progress = useScanProgress(library.id, library.scanning)
+  return <span className="set-pill live" role="status">{scanProgressText(progress ?? { mode: library.scanMode })}</span>
 }

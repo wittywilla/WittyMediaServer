@@ -275,6 +275,17 @@
       "setting": "/settings/metadata"
     },
     {
+      "name": "RetroAchievements",
+      "hosts": [
+        "retroachievements.org",
+        "media.retroachievements.org"
+      ],
+      "gets": "Your Web API key, a console's list of known game checksums, and the achievements and their badge pictures for a game it recognises. Your game files' checksums are matched on this server and never sent.",
+      "when": "Only after a key is added: when a game's page or panel shows its achievements, at most once a second. Lists are kept for days.",
+      "control": "Settings, Metadata agents",
+      "setting": "/settings/metadata"
+    },
+    {
       "name": "TheGamesDB",
       "hosts": [
         "api.thegamesdb.net"

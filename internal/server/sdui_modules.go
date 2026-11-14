@@ -188,7 +188,7 @@ func moduleNavigation(nav sdui.Navigation, set *sdui.ModuleSet) sdui.Navigation 
 
 // moduleViewer is who a module is told is asking.
 func (rv *sduiResolver) moduleViewer() modmgr.Viewer {
-	return modmgr.Viewer{ProfileKind: rv.u.Kind, Admin: rv.u.IsAdmin, Cannot: sduiCannot(rv.acc), FormFactor: rv.formFactor, Platform: rv.platform, Locale: rv.locale}
+	return modmgr.Viewer{User: rv.u.ID, ProfileKind: rv.u.Kind, Admin: rv.u.IsAdmin, Cannot: sduiCannot(rv.acc), FormFactor: rv.formFactor, Platform: rv.platform, Locale: rv.locale}
 }
 
 // moduleItems asks a module's helper for one of its sources and keeps only what is safe to

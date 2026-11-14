@@ -138,6 +138,8 @@ type ItemsRequest struct {
 
 // Viewer describes the profile a page is drawn for, as much as a module needs.
 type Viewer struct {
+	// User is the account the page is for, for a module's own data about that person.
+	User        int64  `json:"user,omitempty"`
 	ProfileKind string `json:"profileKind"`
 	Admin       bool   `json:"admin,omitempty"`
 	// Cannot are the parental feature switches that are off for it.

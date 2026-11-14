@@ -143,6 +143,10 @@
 @media (max-width: 700px) {
   html[data-app="wittymediaclient"] .tabbar, html[data-app="wittymediaclient"] .app .topbar { display: none; }
 }
+/* The app's bar is drawn over the page, so nothing the page puts on top can cover it: menus, popovers,
+   tooltips, dialogs and sheets keep clear of it instead (--overlay-foot; ui/overlayFoot.ts for the ones
+   placed by script). A sheet up from the bottom then sits on the bar. */
+html[data-app] { --overlay-foot: var(--tabbar-space); }
 .search-page-box { display: none; }
 @media (max-width: 700px) {
   .search-page-box { display: flex; position: relative; align-items: center; margin-bottom: var(--sp-4); }

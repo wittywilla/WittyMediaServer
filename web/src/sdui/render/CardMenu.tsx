@@ -5,6 +5,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { usableHeight } from '../../ui/overlayFoot'
 import type { View } from '../model'
 import type { Action } from '../types'
 
@@ -34,7 +35,7 @@ export default function CardMenu({ card, x, y, act, onClose }: { card: View; x: 
     const el = box.current
     if (!el) return
     const r = el.getBoundingClientRect()
-    setAt({ left: Math.max(8, Math.min(x, window.innerWidth - r.width - 8)), top: Math.max(8, Math.min(y, window.innerHeight - r.height - 8)) })
+    setAt({ left: Math.max(8, Math.min(x, window.innerWidth - r.width - 8)), top: Math.max(8, Math.min(y, usableHeight() - r.height - 8)) })
     el.querySelector<HTMLElement>('[role=menuitem]')?.focus()
   }, [x, y])
   useEffect(() => {

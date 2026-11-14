@@ -27,6 +27,11 @@ export const ROUTES: RouteRule[] = [
   { route: '/games', page: 'games' },
   // A custom page may be opened about something: a title (item), a name, with what it is of (catalogue: Params).
   { route: '/page/{id}', page: '{id}', params: { item: '?item', name: '?name', of: '?of' } },
+  // The administrators' pages: the You page's Libraries row opens /manage/libraries, whose rows open a library's scan choices as a layer.
+  { route: '/manage/libraries', page: 'manage-libraries' },
+  { route: '/manage/library/{item}', page: 'manage-library', params: { item: '{item}' } },
+  { route: '/manage/matches', page: 'fix-matches' },
+  { route: '/manage/match/{item}', page: 'match', params: { item: '{item}' } },
   { route: '/settings', native: 'settings' },
   { route: '/settings/{section}', native: 'settings' },
   { route: '/tv/guide', native: 'guide' },

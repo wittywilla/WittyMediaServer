@@ -76,7 +76,7 @@ export default function You() {
       { key: 'theme', label: 'Theme', icon: <IconPalette />, tint: '#0e7c6f', to: '/settings/appearance', value: themeName || undefined },
     ] },
     { key: 'server', label: 'Server', rows: only(admin, [
-      { key: 'libraries', label: 'Libraries', icon: <IconLibrary />, tint: QUIET, to: '/settings/libraries' },
+      { key: 'libraries', label: 'Libraries', icon: <IconLibrary />, tint: QUIET, to: '/manage/libraries' },
       { key: 'metadata', label: 'Metadata and artwork', icon: <IconImage />, tint: QUIET, to: '/settings/metadata' },
       { key: 'fix', label: 'Fix matches', icon: <IconTag />, tint: QUIET, to: '/fix-matches' },
       { key: 'playback', label: 'Playback', icon: <IconPlay />, tint: QUIET, to: '/settings/playback' },

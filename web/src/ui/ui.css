@@ -42,7 +42,7 @@
 .ui-dialog-desc { margin: calc(-1 * var(--sp-2)) 0 var(--sp-4); color: var(--fg-2); font-size: var(--text-md); max-width: 62ch; }
 .modal.ui-dialog.sm { max-width: 28rem; }
 .modal.ui-dialog.sm .actions { margin-top: var(--sp-4); }
-.ui-sheet-wrap { place-items: stretch end; padding: 0; }
+.ui-sheet-wrap { place-items: stretch end; padding: 0 0 var(--overlay-foot); }
 .modal.ui-sheet { width: min(26rem, 100vw); max-width: none; height: 100%; max-height: none; border-radius: 0; border-width: 0 0 0 1px; display: flex; flex-direction: column; overflow: hidden; animation-name: ui-sheet-in; }
 .ui-sheet-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 @keyframes ui-sheet-in { from { transform: translateX(var(--sp-6)); opacity: 0; } }

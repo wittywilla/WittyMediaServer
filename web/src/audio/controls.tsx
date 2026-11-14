@@ -2,6 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { usableHeight } from '../ui/overlayFoot'
 import { api, fmtTime, type Item } from '../api'
 import { IconMute, IconPlus, IconVolume } from '../icons'
 import { toast } from '../state'
@@ -26,7 +27,7 @@ export function Pop({ label, icon, children, className, on, up }: { label: strin
     const left = Math.max(room, Math.min(innerWidth - m.width - room, b.right - m.width))
     const below = b.bottom + room
     const above = b.top - m.height - room
-    const fitsBelow = below + m.height <= innerHeight - room
+    const fitsBelow = below + m.height <= usableHeight() - room
     const top = up ? (above >= room ? above : below) : fitsBelow ? below : Math.max(room, above)
     setPlace({ left, top })
     body.current?.querySelector<HTMLElement>('[autofocus], input, button, a')?.focus({ preventScroll: true })

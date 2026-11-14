@@ -2,6 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { cloneElement, useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type FocusEvent, type PointerEvent, type ReactElement, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { usableHeight } from './overlayFoot'
 
 // A short hint for a control, shown on hover and on keyboard or remote focus.
 // It never holds anything you need in order to act: on touch it doesn't appear,
@@ -35,7 +36,7 @@ export function Tooltip({ text, side = 'top', describes = true, children }: { te
     let left = a.left + a.width / 2 - t.width / 2
     let top = side === 'bottom' || a.top - t.height - EDGE < 0 ? a.bottom + EDGE : a.top - t.height - EDGE
     if (side === 'right') { left = a.right + EDGE; top = a.top + a.height / 2 - t.height / 2 }
-    setPos({ left: Math.max(EDGE, Math.min(left, innerWidth - t.width - EDGE)), top: Math.max(EDGE, Math.min(top, innerHeight - t.height - EDGE)) })
+    setPos({ left: Math.max(EDGE, Math.min(left, innerWidth - t.width - EDGE)), top: Math.max(EDGE, Math.min(top, usableHeight() - t.height - EDGE)) })
   }, [anchor, side])
   useEffect(() => {
     if (!anchor) return

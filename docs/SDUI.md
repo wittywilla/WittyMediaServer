@@ -528,6 +528,8 @@ These pages are drawn from the server's own data by the same renderer as every o
 | `/year` | `year` | | Totals, months, top titles, shows, artists and genres from the profile's own play log; Clear my history (asks first). |
 | `/activity` | `activity` | | Tabs Now and History of what the server is doing; what the profile may see follows its limits. |
 | `/notifications` | `notifications` | | Reminders and, for an administrator, a new version. |
+| `/manage/libraries` | `manage-libraries` | | Administrators only (anyone else sees a notice and nothing else): every library (`libraryAdmin`) with its kind, size and last scan or how far its scan has got; a row opens `/manage/library/{id}` as a layer. Then Remove downloaded details and a form adding a library. The You page's **Libraries** row opens this route on every client (phone, tablet, television and the web's You page), never `/settings/libraries`. |
+| `/manage/library/{item}` | `manage-library` | a library | Administrators only: how far a scan has got or when the library was last scanned (`libraryScan`), then Scan for changes (`library.scan`) and Full rescan (`library.rescan`, which asks first). |
 
 A page opened about something is a `custom` page that takes `item`, `name` and `of`; its sources read `$item`, `$name` and `$of`, and `{title}` is the title (item) or the name. Each source checks what it is asked about against the profile's limits: a title a profile may not see has no versions and no lists, whatever the URL says.
 

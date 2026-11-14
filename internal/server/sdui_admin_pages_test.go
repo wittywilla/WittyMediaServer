@@ -99,3 +99,29 @@ func TestSDUILibraryScanRefreshes(t *testing.T) {
 }
 
 func jsonOf(v any) string { b, _ := json.Marshal(v); return string(b) }
+
+// The You page's Libraries row opens /manage/libraries on every client: the route is the page
+// manage-libraries, and on every form factor (a television's too) an administrator gets its rows, each
+// opening that library's scan choices as a layer.
+func TestManageLibrariesOnEveryFormFactor(t *testing.T) {
+	routes := map[string]sdui.RouteSpec{}
+	for _, r := range sdui.Catalog().Routes {
+		routes[r.Pattern] = r
+	}
+	if r := routes["/manage/libraries"]; r.Page != "manage-libraries" || r.Native != "" {
+		t.Fatalf("/manage/libraries: %+v", r)
+	}
+	if r := routes["/manage/library/{item}"]; r.Page != "manage-library" || r.Params["item"] != "{item}" {
+		t.Fatalf("/manage/library/{item}: %+v", r)
+	}
+	ts := newTestServer(t)
+	lib := ts.library(t, "movies", t.TempDir())
+	_, admin := ts.user(t, "boss", "adult", true, "")
+	for _, ff := range []string{"phone", "tablet", "tv", "desktop", "web"} {
+		doc := sduiDoc(t, ts.do(t, "GET", "/api/v1/sdui/pages/manage-libraries?formFactor="+ff, admin, nil))
+		n := findNode(&doc.Root, "all")
+		if n == nil || len(n.Children) != 1 || n.Children[0].Action == nil || n.Children[0].Action.To != fmt.Sprintf("/manage/library/%d", lib) || n.Children[0].Action.As != "layer" {
+			t.Errorf("%s: libraries for an administrator: %+v", ff, n)
+		}
+	}
+}

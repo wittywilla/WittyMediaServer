@@ -275,16 +275,33 @@ push_and_tag() { # <repo> <version or empty>
   tag_once "$r" "v$v"
 }
 
-tag_once() { # <repo> <tag>
-  local r=$1 tag=$2 have want
-  have=$(git -C "$dir" ls-remote --tags origin "refs/tags/$tag" | cut -f1)
+tag_once() { # <repo> <tag>: on GitHub, by the repository's Release workflow, which alone may make one
+  local r=$1 tag=$2 have want branch folder="" waited=0
+  want=$(git -C "$dir" rev-parse HEAD)
+  have=$(git -C "$dir" ls-remote origin "refs/tags/$tag^{}" "refs/tags/$tag" | sort -r -k2 | head -1 | cut -f1) # the commit, for an annotated tag too
   if [ -n "$have" ]; then
-    note "$tag is already there, and tags never move"
+    # Tags never move, and a published version is never reused.
+    [ "$have" = "$want" ] || die "$r: $tag already exists on another commit (${have:0:7}, not ${want:0:7}): raise the version and run this again"
+    note "$tag is already there, on this commit"
     return 0
   fi
-  want=$(git -C "$dir" rev-parse HEAD)
-  git -C "$dir" tag -a "$tag" -m "$r ${tag##*v}" "$want"
-  git -C "$dir" push -q origin "refs/tags/$tag" || die "$r: the tag was refused"
+  if [ $apply = 0 ]; then
+    git -C "$dir" tag -a "$tag" -m "$r ${tag##*v}" "$want"
+    git -C "$dir" push -q origin "refs/tags/$tag" || die "$r: the tag was refused"
+    note "tagged $tag (the real run asks $r's Release workflow to)"
+    return 0
+  fi
+  branch=main
+  [ "$r" = "$SERVER" ] && branch=$server_branch
+  case $tag in */v*) folder=${tag%%/v*} ;; esac
+  gh workflow run tag.yml -R "$OWNER/$r" --ref "$branch" -f version="${tag##*v}" -f branch="$branch" -f commit="$want" ${folder:+-f folder="$folder"} >/dev/null ||
+    die "$r: couldn't start its Release workflow (is .github/workflows/tag.yml on $branch?)"
+  note "asked $r's Release workflow for $tag; it waits for the checks on ${want:0:7}"
+  until git -C "$dir" ls-remote --exit-code origin "refs/tags/$tag" >/dev/null 2>&1; do
+    sleep 30
+    waited=$((waited + 30))
+    [ $waited -lt 3600 ] || die "$r: $tag didn't appear in an hour: see the Release run in its Actions tab, then run this again with --from $r"
+  done
   note "tagged $tag"
 }
 

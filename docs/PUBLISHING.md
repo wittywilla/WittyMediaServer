@@ -35,13 +35,16 @@ Never commit disc images, media, API keys or a data folder. Run the checks in `C
 Before it, a soak run of at least 4 hours on Linux, and on Windows when a machine can be spared: [Soak runs](../scripts/README.md#soak-runs). It has to pass, or what it found has an issue.
 
 1. Run `scripts/bump-server.sh <version>`, and write the `CHANGELOG.md` section. The release page opens with what to download and where WittyMediaClient is, from `body` in `.github/workflows/release.yml`: keep what it says has been run the same as the README's.
-2. Tag it and push the tag. In GitHub Desktop: **History**, right-click the commit, **Create Tag**, then **Push origin**. Or:
+2. Release it with the **Release** workflow. Nobody pushes a version tag by hand: the repository refuses one from any
+   computer, and nobody can move or delete one ([Version tags](#version-tags)). In the **Actions** tab choose **Release**,
+   then **Run workflow**, with the version (without the `v`) and the branch. Or:
 
    ```bash
-   git tag v0.6.0-alpha
-   git push origin v0.6.0-alpha
+   gh workflow run tag.yml -R wittywilla/WittyMediaServer -f version=0.8.0-alpha -f branch=v0.8.0-alpha
    ```
 
+   It checks that the version files say that version and that every check on the commit passed, then makes the tag,
+   which starts the release. Tick **dry_run** to check without making it.
 3. Watch the **Actions** tab. `.github/workflows/release.yml` builds everything, stops at the `release` environment for the owner's approval if it requires one, signs the checksum list, and publishes.
 4. Check the **Releases** page lists the archives for all ten platforms, the installers (Windows `.msi`, macOS `.pkg`, Linux `.deb`, `.rpm`, `.AppImage`, `.flatpak` and `.snap`, FreeBSD `.pkg`), `SHA256SUMS.txt` and `SHA256SUMS.txt.sig`.
 5. Give the release a short summary. Installed servers show it as the notes under **Settings → About**.
@@ -50,9 +53,23 @@ A tag with a suffix such as `-alpha` is published as a pre-release, and its Dock
 
 **The tracking issue.** Making a release branch (`v0.8.0-alpha`), or starting the **release tracking** workflow by hand with a version, opens an issue called "Release <version> tracking", labelled `release`, with the checklist in `.github/release-checklist.md`. Starting it again brings the issue up to date and keeps its ticks. Once the release is published, the workflow ticks every line whose files the release has, says in a comment what's left, and closes the issue when nothing is. `scripts/release-tracking.sh` does the same from your own computer, and `DRY_RUN=1` only says what it would do.
 
-**To retry,** delete the tag on GitHub under **Releases**, then **Tags**, make it again on the new commit, and push.
+**To retry,** fix what failed and run the release workflow again on the same tag from the **Actions** tab (**Re-run jobs**). A tag can't be moved or deleted, and a published version number is never used again: if the fix needs a new commit, release the next version.
 
 **This workflow has never run.** The first tag may need fixes. [Publishing the modules](MODULES-CUTOVER.md) has to come first, as the Docker build needs `wittymodule` v0.3.0 on GitHub.
+
+## Version tags
+
+A version tag (`v0.8.0-alpha`, `v0.4.0`, and a Go module folder's `wittydvdplayer/v0.3.0`) starts a release, and Go's module
+proxy keeps every version it has seen for ever. So in every repository that releases:
+
+- **Only the Release workflow makes one** (`.github/workflows/tag.yml`, from WittyModule's kit for the modules). It pushes the
+  tag with a deploy key kept in the repository's `tag` environment, and the rules let nothing else create one: a
+  `git push origin v9.9.9` from any computer, the owner's included, is refused.
+- **Nobody moves or deletes one**, the owner included: there's no exception.
+
+`scripts/set-tag-rules.sh` sets this up (the `tag` environment, its deploy key, the two rulesets) for every repository, and
+`scripts/set-tag-rules.sh --check` says what each has. `scripts/publish-all.sh --apply` asks each repository's Release workflow
+for its tags.
 
 ## Signing releases
 
@@ -64,7 +81,7 @@ The key was made once, with `go run ./scripts/sign keygen`, and is at `~/.wms-si
 
 1. **Back it up now.** Copy `release.key` to a password manager, or a USB stick kept somewhere safe. Never email it, or put it in a chat or a shared cloud folder.
 2. **Let GitHub sign releases.** On github.com, open **Settings**, then **Environments**, then **New environment**, and name it `release`. Tick **Required reviewers** and add yourself. Under **Environment secrets**, add `WMS_SIGNING_KEY`, with all of `release.key` as its value. Delete any repository secret of that name. A tag then waits for your approval before it's signed.
-3. **Protect tags.** Add a ruleset so that only you can create, move or delete a tag starting with `v`.
+3. **Protect tags.** Run `scripts/set-tag-rules.sh` once: see [Version tags](#version-tags).
 
 Without the secret, a release comes out unsigned, and servers can't update to it from Settings.
 

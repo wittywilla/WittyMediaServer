@@ -92,7 +92,11 @@ the 25 repositories (here: `/Users/willowpoortenga/Documents/Github/WittyMediaSe
 ### Step 0. Once: keys and secrets (docs/MODULES-CUTOVER.md sections 1 to 3)
 
 ```bash
-scripts/set-module-secret.sh --require-approval --protect-tags ~/.wms-signing/module.key
+scripts/set-module-secret.sh --require-approval ~/.wms-signing/module.key
+```
+
+```bash
+scripts/set-tag-rules.sh
 ```
 
 ```bash
@@ -163,21 +167,23 @@ Pins raised by the script on the way (each committed as "Uses the versions this 
 `lock()` also raises, during the same run: the WittyInk pin in WittyEbook, WittyPDF and WittyComics (package.json and
 lock, committed before each is tagged), and WittyReader's lock to the plugins just published (before it is pushed).
 
-### Step 4. Tag the apps (each has its own `release.yml`; none is signed with a key)
+### Step 4. Release the apps (each has its own `release.yml`; none is signed with a key)
+
+A tag is made only by each repository's Release workflow (`tag.yml`); a tag pushed from a computer is refused (`scripts/set-tag-rules.sh`).
 
 ```bash
-git -C ~/projects/WittyMediaClient fetch origin && git -C ~/projects/WittyMediaClient tag -a v0.5.0 -m "WittyMediaClient 0.5.0" origin/main && git -C ~/projects/WittyMediaClient push origin refs/tags/v0.5.0
+gh workflow run tag.yml -R wittywilla/WittyMediaClient -f version=0.5.0 -f branch=main
 ```
 
 Wait for its release (desktop for every OS, Flatpak, Snap, FreeBSD, Android APKs, unsigned iOS and tvOS IPAs and the
 AltStore source), then:
 
 ```bash
-git -C ~/projects/WittyReader fetch origin && git -C ~/projects/WittyReader tag -a v0.2.0 -m "WittyReader 0.2.0" origin/main && git -C ~/projects/WittyReader push origin refs/tags/v0.2.0
+gh workflow run tag.yml -R wittywilla/WittyReader -f version=0.2.0 -f branch=main
 ```
 
 ```bash
-git -C ~/projects/WittyMediaPlayer fetch origin && git -C ~/projects/WittyMediaPlayer tag -a v0.1.3 -m "WittyMediaPlayer 0.1.3" origin/main && git -C ~/projects/WittyMediaPlayer push origin refs/tags/v0.1.3
+gh workflow run tag.yml -R wittywilla/WittyMediaPlayer -f version=0.1.3 -f branch=main
 ```
 
 (WittyMediaPlayer is "not a blocker" under gate 5: if its build fails again, leave the tag and file it.)

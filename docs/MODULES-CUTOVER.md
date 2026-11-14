@@ -55,10 +55,10 @@ There are two now: `release.key` signs the server, and `module.key` signs module
 
 Every repository the release needs is already on GitHub, under its final name.
 
-Give them the key, with approval and tag rules, and check that it's there. The second command lists names only, and the key's text is never printed:
+Give them the key, with approval, and check that it's there. The second command lists names only, and the key's text is never printed:
 
 ```bash
-scripts/set-module-secret.sh --require-approval --protect-tags ~/.wms-signing/module.key
+scripts/set-module-secret.sh --require-approval ~/.wms-signing/module.key
 ```
 
 ```bash
@@ -66,9 +66,15 @@ scripts/set-module-secret.sh --check
 ```
 
 - **Approving signatures:** a release stops before it's signed, and waits for you to click **Approve** on its page in the **Actions** tab.
-- **Protecting version tags:** only you can create, move or delete a tag starting with `v`.
+- **Version tags:** made only by each repository's Release workflow, and never moved or deleted, by anyone:
 
-Both are strongly recommended. All modules share one key, so a compromised build in one repository could otherwise get a release of another module signed, and every server would accept it.
+  ```bash
+  scripts/set-tag-rules.sh
+  ```
+
+  Then `scripts/set-tag-rules.sh --check`. A tag pushed from a computer is refused; [Publishing a release](PUBLISHING.md#publishing-a-release) says how a release is made now.
+
+Both are needed. All modules share one key, so a compromised build in one repository could otherwise get a release of another module signed, and every server would accept it.
 
 The catalogue also needs the public half of the key:
 

@@ -117,6 +117,13 @@ export function refreshModuleWeb() {
 // ---------------------------------------------------------------- loading a bundle's registration
 
 const registrations = new Map<string, Promise<Registration | null>>()
+// The registrations that have arrived, readable at once. What's drawn after a bundle loaded has
+// its registration on its first render, and everything waiting for the same bundle (a module's
+// screen and the card Provider around it) gets it in one render: a screen is never drawn first
+// and then again inside a Provider that came later, which would start a game twice.
+const arrived = new Map<string, Registration | null>()
+const arrivals = new Set<() => void>()
+const onArrival = (l: () => void) => { arrivals.add(l); return () => { arrivals.delete(l) } }
 
 /** A module's registration: its bundle loaded and register(host) called, once. */
 export function registrationOf(module: string): Promise<Registration | null> {
@@ -127,21 +134,28 @@ export function registrationOf(module: string): Promise<Registration | null> {
       if (!m) return null
       const { hostFor } = await import('./moduleHost')
       return ((m.register as (h: unknown) => Registration)(hostFor(module))) || {}
-    })().catch(() => null)
+    })().catch(() => null).then((r) => {
+      arrived.set(module, r)
+      arrivals.forEach((l) => l())
+      return r
+    })
     registrations.set(module, p)
   }
   return p
 }
 
+/** A module's registration if it has arrived: undefined while it hasn't, null with no module. */
+function useArrived(module: string | undefined): Registration | null | undefined {
+  const now = () => (module ? arrived.get(module) : null)
+  return useSyncExternalStore(onArrival, now, now)
+}
+
 function useRegistration(module: string | undefined): Registration | null | undefined {
-  const [reg, setReg] = useState<Registration | null | undefined>(undefined)
+  const reg = useArrived(module)
   useEffect(() => {
-    if (!module) return
-    let live = true
-    registrationOf(module).then((r) => { if (live) setReg(r) })
-    return () => { live = false }
-  }, [module])
-  return module ? reg : null
+    if (module && reg === undefined) void registrationOf(module)
+  }, [module, reg])
+  return reg
 }
 
 // ---------------------------------------------------------------- routes and frames
@@ -225,24 +239,35 @@ class Guarded extends Component<{ module: string; children: ReactNode }, { crash
 // ---------------------------------------------------------------- cards
 
 /** Provides a module's card parts for the kinds it claims, over the app's own. Its bundle is
- * loaded once the page is idle; until then the app's own drawing stands. */
-export function ModuleCards({ children }: { children: ReactNode }) {
+ * loaded once the page is idle; until then the app's own drawing stands.
+ *
+ * A Provider that arrives while children are drawn would replace them (new parents, new
+ * children), so a frame whose screens start something when they mount is given `hold`: the
+ * bundle loads at once and the fallback stands until it has, so its children mount once. A frame
+ * drawn after the bundle arrived has the Provider from its first render either way. */
+export function ModuleCards({ children, hold, fallback = null }: { children: ReactNode; hold?: boolean; fallback?: ReactNode }) {
   const list = useModuleWeb()
   const owner = list.find((m) => (m.part.cards || []).some((c) => c.mediaKind === 'game'))?.module
-  const [parts, setParts] = useState<CardParts | null>(null)
+  const reg = useArrived(owner)
   useEffect(() => {
-    if (!owner) { setParts(null); return }
-    let live = true
-    const go = () => registrationOf(owner).then((r) => { if (live) setParts(r?.cards?.game || null) })
-    const idle = (window as unknown as { requestIdleCallback?: (f: () => void) => number }).requestIdleCallback
-    if (idle) idle(go); else setTimeout(go, 1)
-    return () => { live = false }
-  }, [owner])
+    if (!owner || reg !== undefined) return
+    const go = () => { void registrationOf(owner) }
+    if (hold) { go(); return }
+    const w = window as unknown as { requestIdleCallback?: (f: () => void) => number; cancelIdleCallback?: (n: number) => void }
+    if (w.requestIdleCallback && w.cancelIdleCallback) {
+      const n = w.requestIdleCallback(go)
+      return () => w.cancelIdleCallback!(n)
+    }
+    const t = setTimeout(go, 1)
+    return () => clearTimeout(t)
+  }, [owner, reg, hold])
+  const parts = reg?.cards?.game || null
   const art = useMemo<GameArtApi | null>(() => parts && parts.art ? {
     art: (a) => parts.art!({ ...a, kind: 'game' }),
     detail: parts.detail ? (a) => parts.detail!({ ...a, kind: 'game' }) : undefined,
     cover: parts.cover ? (a) => parts.cover!({ ...a, kind: 'game' }) : undefined,
   } : null, [parts])
+  if (hold && owner && reg === undefined) return <>{fallback}</>
   if (parts?.Provider) return <parts.Provider>{children}</parts.Provider>
   let out = children
   if (art) out = <GameArtContext.Provider value={art}>{out}</GameArtContext.Provider>

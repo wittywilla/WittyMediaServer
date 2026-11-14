@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 // Where a page asks for one of the app's own rich views (docs/SDUI.md, "NativeView"):
-// the TV guide's grid, the photo timeline and map, cover flow. Each is the view the web
-// app has always had, unchanged. Where the view can't be shown here (the library isn't
+// the TV guide's grid, the photo timeline and map, cover flow. The photo views are
+// WittyPhotos' (its bundle's views wittyphotos.timeline and wittyphotos.map); the others are
+// the web app's own. Where the view can't be shown here (the library isn't
 // one this profile has), what the page put inside the NativeView is drawn instead.
 
 import { Component, lazy, useEffect, useMemo, useState, type ComponentType, type ReactNode } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { api, type Album } from '../../api'
 import { makePageHost } from '../../pages/ModulePage'
 import { moduleView, type ModuleViewProps } from '../../moduleBundles'
@@ -16,7 +17,6 @@ import CoverFlow, { type Cover } from '../../pages/music/CoverFlow'
 import { useApp } from '../../state'
 
 const GuidePage = lazy(() => import('../../pages/tv/GuidePage'))
-const PhotosLibrary = lazy(() => import('../../pages/photos/PhotosLibrary'))
 
 export default function NativeViewHost({ view, library, inert, children, props }: { view: string; library: string; inert: boolean; children: ReactNode; props?: Record<string, unknown> }) {
   const { libraries } = useApp()
@@ -26,21 +26,12 @@ export default function NativeViewHost({ view, library, inert, children, props }
   // A drawing of the page, in the editor: the view's name stands for it.
   if (inert) return <div className="sdui-native-stand" role="img" aria-label={`The app’s own view: ${view}`}><b>{NAMES[view] || view}</b><span className="muted">The app’s own view is shown here.</span></div>
   if (view === 'guide') return <div className="sdui-native" data-sdui-native="guide"><GuidePage /></div>
-  if ((view === 'photoTimeline' || view === 'photoMap') && lib) return <div className="sdui-native" data-sdui-native={view}><Photos lib={lib} map={view === 'photoMap'} /></div>
+  if ((view === 'photoTimeline' || view === 'photoMap') && lib) return <ModuleViewHost view={view === 'photoMap' ? 'wittyphotos.map' : 'wittyphotos.timeline'} props={{ ...props, library: String(lib.id) }}>{children}</ModuleViewHost>
   if (view === 'coverFlow' && lib) return <div className="sdui-native" data-sdui-native="coverFlow"><Covers libId={lib.id} tall={lib.type === 'audiobooks'} /></div>
   return <div className="sdui-stack">{children}</div>
 }
 
 const NAMES: Record<string, string> = { guide: 'TV guide', photoTimeline: 'Photo timeline', photoMap: 'Photo map', coverFlow: 'Cover flow' }
-
-function Photos({ lib, map }: { lib: NonNullable<ReturnType<typeof useApp>['libraries'][number]>; map: boolean }) {
-  const [params, setParams] = useSearchParams()
-  // The map is one of the photo library's own tabs: open on it, once.
-  useEffect(() => {
-    if (map && !params.get('tab')) { const next = new URLSearchParams(params); next.set('tab', 'map'); setParams(next, { replace: true }) }
-  }, [map]) // eslint-disable-line react-hooks/exhaustive-deps
-  return <PhotosLibrary key={lib.id} lib={lib} />
-}
 
 function Covers({ libId, tall }: { libId: number; tall: boolean }) {
   const nav = useNavigate()

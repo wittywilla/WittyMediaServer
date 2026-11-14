@@ -4,7 +4,6 @@
 package server
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -61,7 +60,6 @@ func canReact(u *auth.User) bool { return u != nil && (u.IsAdmin || u.Kind != au
 var (
 	maxCommentsPerAccount    = 5000
 	maxCollectionsPerAccount = 200
-	maxAlbumsPerAccount      = 200
 )
 
 // underLimit answers 409 when an account already has as many of something as it may.
@@ -95,16 +93,12 @@ func (s *Server) photoQuery(r *http.Request) (library.PhotoQuery, error) {
 		f := q.Get("folder")
 		pq.Folder = &f
 	}
-	if v := q.Get("album"); v != "" {
-		id, err := strconv.ParseInt(v, 10, 64)
+	if q.Has("ids") {
+		ids, err := photoIDs(q.Get("ids"))
 		if err != nil {
-			return pq, library.ErrNotFound
+			return pq, err
 		}
-		a, err := s.Store.PhotoAlbumByID(r.Context(), id, userFrom(r).ID, userFrom(r).IsAdmin)
-		if err != nil || a.LibraryID != pq.LibraryID {
-			return pq, library.ErrNotFound
-		}
-		pq.Album = id
+		pq.IDs = ids
 	}
 	if v := q.Get("bbox"); v != "" {
 		b, err := parseBBox(v)
@@ -114,6 +108,25 @@ func (s *Server) photoQuery(r *http.Request) (library.PhotoQuery, error) {
 		pq.BBox = b
 	}
 	return pq, nil
+}
+
+// maxPhotoIDs is the most pictures ids= may name: an album's, as WittyPhotos lists them.
+const maxPhotoIDs = 5000
+
+// photoIDs reads ids=: item numbers with commas between, at most maxPhotoIDs.
+func photoIDs(v string) ([]int64, error) {
+	ids := []int64{}
+	if strings.TrimSpace(v) == "" {
+		return ids, nil
+	}
+	for _, p := range strings.Split(v, ",") {
+		id, err := strconv.ParseInt(strings.TrimSpace(p), 10, 64)
+		if err != nil || id <= 0 || len(ids) >= maxPhotoIDs {
+			return nil, library.ErrBadInput(fmt.Sprintf("ids are up to %d item numbers, with commas between", maxPhotoIDs))
+		}
+		ids = append(ids, id)
+	}
+	return ids, nil
 }
 
 // parseBBox reads "south,west,north,east" in degrees. West greater than east
@@ -151,7 +164,7 @@ func writeLibErr(w http.ResponseWriter, err error) {
 	}
 }
 
-// GET /api/photos/months?library=&favorites=&album=...
+// GET /api/photos/months?library=&favorites=&ids=...
 func (s *Server) handlePhotoMonths(w http.ResponseWriter, r *http.Request) {
 	pq, err := s.photoQuery(r)
 	if err != nil {
@@ -166,7 +179,7 @@ func (s *Server) handlePhotoMonths(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, m)
 }
 
-// GET /api/photos/list?library=&ym=&album=&folder=&favorites=&kind=&search=&bbox=&limit=&cursor=
+// GET /api/photos/list?library=&ym=&ids=&folder=&favorites=&kind=&search=&bbox=&limit=&cursor=
 func (s *Server) handlePhotoList(w http.ResponseWriter, r *http.Request) {
 	pq, err := s.photoQuery(r)
 	if err != nil {
@@ -198,7 +211,8 @@ func (s *Server) handlePhotoFolders(w http.ResponseWriter, r *http.Request) {
 
 // GET /api/photos/map?library=&zoom=&bbox=&fit=1 (and the list's filters): groups
 // of pictures for the part of the map in view. fit=1 adds the box around every
-// located picture, for the first view; without a zoom it's only that box.
+// located picture, for the first view; without a zoom it's only that box. The online
+// map under them is WittyPhotos' setting (GET /api/modules/wittyphotos/map).
 func (s *Server) handlePhotoMap(w http.ResponseWriter, r *http.Request) {
 	pq, err := s.photoQuery(r)
 	if err != nil {
@@ -212,8 +226,7 @@ func (s *Server) handlePhotoMap(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	tiles, credit := s.onlineMap(r.Context())
-	out := map[string]any{"clusters": c, "truncated": cut, "tiles": tiles, "attribution": credit}
+	out := map[string]any{"clusters": c, "truncated": cut}
 	if qBool(r, "fit") {
 		b, err := s.Store.PhotoBounds(r.Context(), pq)
 		if err != nil {
@@ -223,17 +236,6 @@ func (s *Server) handlePhotoMap(w http.ResponseWriter, r *http.Request) {
 		out["bounds"] = b
 	}
 	writeJSON(w, 200, out)
-}
-
-// onlineMap is the online map's address and the credit its provider asks for,
-// or nothing while the online map is off. mapOnline unset (servers from before
-// the switch) follows whether an address was given, as it did then.
-func (s *Server) onlineMap(ctx context.Context) (tiles, credit string) {
-	tiles = s.DB.GetSetting(ctx, "mapTiles", "")
-	if tiles == "" || s.DB.GetSetting(ctx, "mapOnline", "") == "0" || !validMapTiles(tiles) {
-		return "", ""
-	}
-	return tiles, s.DB.GetSetting(ctx, "mapAttribution", "")
 }
 
 // GET /api/photos/ai: the place for the local AI. It doesn't exist yet; when it
@@ -423,186 +425,6 @@ func (s *Server) serveEmbeddedMotion(w http.ResponseWriter, r *http.Request, it 
 	h.Set("Content-Security-Policy", "default-src 'none'; sandbox")
 	h.Set("Cache-Control", "private, max-age=3600")
 	http.ServeContent(w, r, "", st.ModTime(), io.NewSectionReader(f, off, length))
-}
-
-// ---------------------------------------------------------------------------
-// Albums
-// ---------------------------------------------------------------------------
-
-// GET /api/photos/albums?library=
-func (s *Server) handlePhotoAlbums(w http.ResponseWriter, r *http.Request) {
-	libID := int64(qInt(r, "library", 0))
-	if _, err := s.libraryOfType(r, libID, "photos"); err != nil {
-		writeLibErr(w, err)
-		return
-	}
-	a, err := s.Store.PhotoAlbums(r.Context(), libID, userFrom(r).ID, s.access(r))
-	if err != nil {
-		writeLibErr(w, err)
-		return
-	}
-	writeJSON(w, 200, a)
-}
-
-type albumBody struct {
-	LibraryID   int64  `json:"libraryId"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Shared      bool   `json:"shared"`
-	CoverID     *int64 `json:"coverId"`
-}
-
-func (b *albumBody) clean() error {
-	b.Name, b.Description = strings.TrimSpace(b.Name), strings.TrimSpace(b.Description)
-	if b.Name == "" || len(b.Name) > 200 {
-		return library.ErrBadInput("an album needs a name of up to 200 characters")
-	}
-	if len(b.Description) > 4000 {
-		return library.ErrBadInput("the description is too long")
-	}
-	return nil
-}
-
-// POST /api/photos/albums
-func (s *Server) handleCreateAlbum(w http.ResponseWriter, r *http.Request) {
-	u := userFrom(r)
-	if !canPost(u) {
-		writeErr(w, 403, "this profile can't make albums")
-		return
-	}
-	if !s.underLimit(w, r, u, `SELECT COUNT(*) FROM photo_albums WHERE owner_id = ?`, maxAlbumsPerAccount, "albums") {
-		return
-	}
-	var b albumBody
-	if err := readJSON(r, &b); err != nil {
-		writeErr(w, 400, err.Error())
-		return
-	}
-	if err := b.clean(); err != nil {
-		writeLibErr(w, err)
-		return
-	}
-	if _, err := s.libraryOfType(r, b.LibraryID, "photos"); err != nil {
-		writeLibErr(w, err)
-		return
-	}
-	a, err := s.Store.CreatePhotoAlbum(r.Context(), b.LibraryID, u.ID, b.Name, b.Description, b.Shared)
-	if err != nil {
-		writeLibErr(w, err)
-		return
-	}
-	writeJSON(w, 201, a)
-}
-
-// ownAlbum loads an album the account may change.
-func (s *Server) ownAlbum(r *http.Request) (*library.PhotoAlbum, error) {
-	id, ok := pathInt(r, "id")
-	if !ok {
-		return nil, library.ErrNotFound
-	}
-	u := userFrom(r)
-	a, err := s.Store.PhotoAlbumByID(r.Context(), id, u.ID, u.IsAdmin)
-	if err != nil {
-		return nil, err
-	}
-	if a.OwnerID != u.ID && !u.IsAdmin {
-		return nil, library.ErrNotFound
-	}
-	return a, nil
-}
-
-// PUT /api/photos/albums/{id}
-func (s *Server) handleUpdateAlbum(w http.ResponseWriter, r *http.Request) {
-	a, err := s.ownAlbum(r)
-	if err != nil {
-		writeLibErr(w, err)
-		return
-	}
-	var b albumBody
-	if err := readJSON(r, &b); err != nil {
-		writeErr(w, 400, err.Error())
-		return
-	}
-	if err := b.clean(); err != nil {
-		writeLibErr(w, err)
-		return
-	}
-	if b.CoverID != nil && *b.CoverID != 0 {
-		if it, err := s.visibleItem(r, *b.CoverID); err != nil || it.LibraryID != a.LibraryID {
-			writeErr(w, 400, "that picture can't be the cover")
-			return
-		}
-	}
-	if err := s.Store.UpdatePhotoAlbum(r.Context(), a.ID, b.Name, b.Description, b.Shared, b.CoverID); err != nil {
-		writeLibErr(w, err)
-		return
-	}
-	writeJSON(w, 200, map[string]any{"ok": true})
-}
-
-// DELETE /api/photos/albums/{id}: the pictures stay.
-func (s *Server) handleDeleteAlbum(w http.ResponseWriter, r *http.Request) {
-	a, err := s.ownAlbum(r)
-	if err != nil {
-		writeLibErr(w, err)
-		return
-	}
-	if err := s.Store.DeletePhotoAlbum(r.Context(), a.ID); err != nil {
-		writeLibErr(w, err)
-		return
-	}
-	writeJSON(w, 200, map[string]any{"ok": true})
-}
-
-const maxAlbumBatch = 2000
-
-// POST /api/photos/albums/{id}/items {ids}
-func (s *Server) handleAlbumAdd(w http.ResponseWriter, r *http.Request) {
-	a, err := s.ownAlbum(r)
-	if err != nil {
-		writeLibErr(w, err)
-		return
-	}
-	var b struct {
-		IDs []int64 `json:"ids"`
-	}
-	if err := readJSON(r, &b); err != nil || len(b.IDs) == 0 || len(b.IDs) > maxAlbumBatch {
-		writeErr(w, 400, "ids must list 1 to 2000 pictures")
-		return
-	}
-	allowed := make([]int64, 0, len(b.IDs))
-	for _, id := range b.IDs {
-		if _, err := s.visibleItem(r, id); err == nil {
-			allowed = append(allowed, id)
-		}
-	}
-	n, err := s.Store.AddToPhotoAlbum(r.Context(), a, allowed)
-	if err != nil {
-		writeLibErr(w, err)
-		return
-	}
-	writeJSON(w, 200, map[string]any{"added": n})
-}
-
-// DELETE /api/photos/albums/{id}/items {ids}
-func (s *Server) handleAlbumRemove(w http.ResponseWriter, r *http.Request) {
-	a, err := s.ownAlbum(r)
-	if err != nil {
-		writeLibErr(w, err)
-		return
-	}
-	var b struct {
-		IDs []int64 `json:"ids"`
-	}
-	if err := readJSON(r, &b); err != nil || len(b.IDs) == 0 || len(b.IDs) > maxAlbumBatch {
-		writeErr(w, 400, "ids must list 1 to 2000 pictures")
-		return
-	}
-	if err := s.Store.RemoveFromPhotoAlbum(r.Context(), a.ID, b.IDs); err != nil {
-		writeLibErr(w, err)
-		return
-	}
-	writeJSON(w, 200, map[string]any{"ok": true})
 }
 
 // ---------------------------------------------------------------------------

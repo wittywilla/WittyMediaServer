@@ -10,8 +10,12 @@ import type { ReaderHost } from '@wittywilla/wittyink'
 // server, which takes a version out of use after three reports in a day, and the page says what's
 // missing. Nothing here runs until a page needs it.
 
-export type ReaderFormat = 'epub' | 'pdf' | 'cbz'
-const READERS: Record<ReaderFormat, string> = { epub: 'wittyebook', pdf: 'wittypdf', cbz: 'wittycomics' }
+// A kind of book, as the server's book answer names its reader: epub, pdf, cbz. Which module reads
+// it is the module's own say (integration.json web.readers, module API 5): nothing here names one.
+export type ReaderFormat = string
+// The reader kit every reader is built on and shares: the app's copy of @wittywilla/wittyink, as
+// the builder's stand-in reads it (moduleHost.wittyink), is WittyInk's bundle.
+const READER_KIT = 'wittyink'
 // The newest module API whose bundles this host loads. API 4 made a module's SDUI part of
 // the module and changed nothing a bundle is given (moduleHost.ts), so its bundles load too.
 // API 5 adds to what a bundle is given (web host API 5: the router, the app's client, state,
@@ -19,7 +23,7 @@ const READERS: Record<ReaderFormat, string> = { epub: 'wittyebook', pdf: 'wittyp
 const HOST_API = 5
 
 type Page = { id: string; title: string; where: 'main' | 'settings'; icon?: string }
-type Bundle = { id: string; version: string; entry: string; style?: string; base: string; api: number; pages?: Page[]; views?: string[] }
+export type Bundle = { id: string; version: string; entry: string; style?: string; base: string; api: number; pages?: Page[]; views?: string[]; integration?: { readers?: { format: string }[] } }
 type HostContextType = Context<ReaderHost | null>
 export type BundledReader = { bundle: Bundle; ink: Bundle | null; Reader: ComponentType; HostContext: HostContextType }
 
@@ -77,24 +81,36 @@ function importBundle(b: Bundle, shape: (m: Record<string, unknown>) => boolean)
 const isComponent = (c: unknown) => typeof c === 'function' || (typeof c === 'object' && c !== null && '$$typeof' in c)
 const isInk = (m: Record<string, unknown>) => typeof m.useHost === 'function' && isComponent((m.HostContext as { Provider?: unknown })?.Provider)
 
-// chooseReader finds the bundle to use for a kind of book, or null if it isn't here. WittyInk
-// goes first, since every reader is built on it and shares it.
+// readerOf: the bundle whose module says it reads a kind of book (the readers hook), if one is in use.
+export const readerOf = (format: string, list: Bundle[]) =>
+  list.find((b) => b.api >= 5 && b.api <= HOST_API && (b.integration?.readers || []).some((r) => r.format === format)) ?? null
+
+// The reader kit's bundle, if it's in use.
+export const readerKitOf = (list: Bundle[]) => list.find((b) => b.id === READER_KIT && b.api <= HOST_API) ?? null
+
+// chooseReader finds the reader for a kind of book, or null if none is here. The reader kit goes
+// first, since every reader is built on it and shares it: its bundle is what the reader's
+// stand-in for @wittywilla/wittyink reads, so it has to be there before the reader's script runs.
 async function chooseReader(format: ReaderFormat, list: Bundle[]): Promise<BundledReader | null> {
-  const bundle = list.find((b) => b.id === READERS[format])
-  if (!bundle || bundle.api > HOST_API || failed.has(keyOf(bundle))) return null
-  const { moduleHost } = await import('./moduleHost')
-  const ink = list.find((b) => b.id === 'wittyink' && b.api <= HOST_API && !failed.has(keyOf(b))) ?? null
-  if (!ink) return null
+  const bundle = readerOf(format, list)
+  if (!bundle || failed.has(keyOf(bundle))) return null
+  const { moduleHost, hostFor } = await import('./moduleHost')
+  const ink = readerKitOf(list)
+  if (!ink || failed.has(keyOf(ink))) return null
   const inkModule = await importBundle(ink, isInk)
-  let r = readers.get(keyOf(bundle))
+  let r = readers.get(keyOf(bundle) + '|' + format)
   if (!r) {
     r = (async () => {
-      if (bundle.id === 'wittypdf') moduleHost.pdfjsModule = await moduleHost.pdfjs()
+      if (format === 'pdf') moduleHost.pdfjsModule = await moduleHost.pdfjs()
       moduleHost.wittyink = inkModule
-      const m = await importBundle(bundle, (m) => isComponent(m.default))
-      return { bundle, ink, Reader: m.default as ComponentType, HostContext: inkModule.HostContext as HostContextType }
+      const m = await importBundle(bundle, (x) => typeof x.register === 'function')
+      const reg = (m.register as (h: unknown) => { readers?: Record<string, unknown> })(hostFor(bundle.id)) || {}
+      const Reader = reg.readers?.[format]
+      if (!isComponent(Reader)) throw new Error(`it says it reads ${format} but hands over no reader for it`)
+      return { bundle, ink, Reader: Reader as ComponentType, HostContext: inkModule.HostContext as HostContextType }
     })()
-    readers.set(keyOf(bundle), r)
+    r.catch((e) => reportFailure(bundle, e))
+    readers.set(keyOf(bundle) + '|' + format, r)
   }
   // A script runs once, so a reader keeps the WittyInk it first met, whatever is in
   // use by now. If that one has since failed, so has this reader.
@@ -109,14 +125,8 @@ const usable = (r: BundledReader) => !failed.has(keyOf(r.bundle)) && !(r.ink && 
 // when next used.
 const askServer = () => within(ASK_MS, api.get<{ bundles: Bundle[] }>('/modules/web').then((r) => r.bundles || []).catch(() => [] as Bundle[]), [] as Bundle[])
 
-export function useBundledReader(format: ReaderFormat | undefined) {
-  const [list, setList] = useState<Bundle[] | null>(null)
+export function useBundledReader(format: ReaderFormat | undefined, list: Bundle[] | null) {
   const [answer, setAnswer] = useState<{ format: ReaderFormat; reader: BundledReader | null } | null>(null)
-  useEffect(() => {
-    let live = true
-    askServer().then((l) => { if (live) setList(l) })
-    return () => { live = false }
-  }, [])
   useEffect(() => {
     if (!format || !list) return
     let live = true
@@ -125,6 +135,17 @@ export function useBundledReader(format: ReaderFormat | undefined) {
     return () => { live = false }
   }, [format, list])
   return answer && answer.format === format ? answer.reader : undefined
+}
+
+// useReaderBundles: the bundles in use, asked for each time a reader opens; null until known.
+export function useReaderBundles(): Bundle[] | null {
+  const [list, setList] = useState<Bundle[] | null>(null)
+  useEffect(() => {
+    let live = true
+    askServer().then((l) => { if (live) setList(l) })
+    return () => { live = false }
+  }, [])
+  return list
 }
 
 // Any other plugin's bundle, for when it's opened: its script, or null if it isn't here.

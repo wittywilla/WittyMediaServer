@@ -84,7 +84,7 @@ The map needs nothing online. A small outline of the world's land comes with the
 ![Photos placed on a map of the world](images/photos-map.webp)
 *The map, with pictures from [Wikimedia Commons](https://commons.wikimedia.org/), each credited in [the list](images/CREDITS.md).*
 
-If you want streets and place names, an admin can turn on **Use an online map** in **Settings → Sharing & photos**, under **Photo map**, and give its address and the credit its provider asks to be shown. It's off by default.
+If you want streets and place names, an admin can turn on **Use an online map** in WittyPhotos' settings (**Settings → Modules → WittyPhotos**), and give its address and the credit its provider asks to be shown. It's off by default.
 
 When it's on, **each viewer's device asks that provider for the parts of the map being looked at**, so the provider learns roughly what area is being viewed and from where. The map says so underneath, and shows the provider's credit. The pictures and their places stay on your server. Anyone can switch their own device back to the outline with the globe button on the map, and if the provider doesn't answer, the outline comes back by itself. Use a provider whose terms allow it.
 
@@ -114,7 +114,7 @@ An admin can change these in **Settings → Sharing & photos**, under **Uploads*
 **Share** on a picture, clip or album gives two ways. Adults and admins can use it.
 
 - **With other profiles here:** a link for anyone signed in who can open this library. They still see only what their limits allow.
-- **With someone without an account:** press **Make a link**, with an end date of 1 day, 7 days, 30 days, 1 year or no end date. They see only that and your profile name, with no way into the server.
+- **With someone without an account:** press **Make a link**, with an end date of 1 day, 7 days, 30 days, 1 year or no end date. They see only that and your profile name, with no way into the server. An album's link shares the pictures in it when the link is made: pictures added later aren't in it.
 
 For someone without an account, pictures are re-encoded, so camera details and locations stay home. Clips whose file says where they were shot go through the converted stream for the same reason. Tick **Allow downloading the original files** only if you mean it: an original carries everything in the file.
 
@@ -136,7 +136,7 @@ Every route is in [Client API](CLIENT-API.md#every-route), and everything is on 
 | Route | What it gives |
 |---|---|
 | `GET /api/photos/months?library=` | Months with pictures, for a timeline |
-| `GET /api/photos/list?library=&ym=&album=&folder=&favorites=&kind=&search=&bbox=&limit=&cursor=` | One page, newest first, with `nextCursor` |
+| `GET /api/photos/list?library=&ym=&ids=&folder=&favorites=&kind=&search=&bbox=&limit=&cursor=` | One page, newest first, with `nextCursor`. `ids` (up to 5000) keeps to some pictures: an album's |
 | `GET /api/photos/{id}` | One picture's details, including EXIF and place |
 | `GET /api/photos/folders?library=` | Folders |
 | `GET /api/photos/map?library=&zoom=&bbox=&fit=1` | Groups of pictures for a map zoom (Web Mercator, 256 pixels across the world at zoom 0), in the box `south,west,north,east` (west greater than east crosses the date line). Each group has its place, count, newest picture, box and dates. `fit=1` adds `bounds`, the box around every placed picture. Takes the list's filters too |
@@ -145,8 +145,9 @@ Every route is in [Client API](CLIENT-API.md#every-route), and everything is on 
 | `GET /api/items/{id}/motion` | A live photo's clip |
 | `PUT /api/items/{id}/reaction` `{value}` | Favourite (1) or not (0) |
 | `POST /api/libraries/{id}/upload` | Multipart upload, field `file` |
-| `POST /api/shares` | Make a link: `{kind, id, days, allowDownload}` |
+| `POST /api/shares` | Make a link: `{kind: "item", id}` or a set of pictures `{kind: "photos", ids, title}`, with `days` and `allowDownload` |
 | `GET /api/share/{token}` | What a link opens, without an account. `…/image/{id}`, `…/play/{id}` and `…/original/{id}` serve its contents |
+| `/api/modules/wittyphotos/…` | WittyPhotos' own: albums (`/albums`, `/albums/{id}`, `/albums/{id}/items`) and the online map (`/map`), in [Client API](CLIENT-API.md#photos) |
 
 ---
 

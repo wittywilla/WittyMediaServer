@@ -89,39 +89,6 @@ func TestSmallThingsFollowTheLimits(t *testing.T) {
 	}
 }
 
-func TestPhotoAlbumCoverFollowsTheLimits(t *testing.T) {
-	ts := newTestServer(t)
-	root := t.TempDir()
-	lib := ts.library(t, "photos", root)
-	hidden := ts.item(t, &library.Item{LibraryID: lib, Kind: "photo", Path: filepath.Join(root, "h.jpg"), Title: "h", ContentRating: "R"})
-	ts.user(t, "boss", "adult", true, "")
-	_, alice := ts.user(t, "alice", "adult", false, "")
-	_, kid := ts.user(t, "kid", "kids", false, "")
-	w := ts.do(t, "POST", "/api/photos/albums", alice, map[string]any{"libraryId": lib, "name": "A", "shared": true})
-	var alb struct {
-		ID int64 `json:"id"`
-	}
-	if err := json.Unmarshal(w.Body.Bytes(), &alb); err != nil || alb.ID == 0 {
-		t.Fatalf("%d %s", w.Code, w.Body)
-	}
-	if w := ts.do(t, "POST", fmt.Sprintf("/api/photos/albums/%d/items", alb.ID), alice, map[string]any{"ids": []int64{hidden.ID}}); w.Code >= 300 {
-		t.Fatalf("%d %s", w.Code, w.Body)
-	}
-	var list []struct {
-		CoverID *int64 `json:"coverId"`
-		Count   int    `json:"count"`
-	}
-	w = ts.do(t, "GET", fmt.Sprintf("/api/photos/albums?library=%d", lib), kid, nil)
-	if err := json.Unmarshal(w.Body.Bytes(), &list); err != nil {
-		t.Fatalf("%d %s", w.Code, w.Body)
-	}
-	for _, a := range list {
-		if a.CoverID != nil && *a.CoverID == hidden.ID {
-			t.Errorf("the hidden picture is its cover: %+v", a)
-		}
-	}
-}
-
 // A channel's logo is for whoever may see the channel.
 func TestChannelLogoFollowsWhoMaySeeIt(t *testing.T) {
 	h, admin, kid, s := tvServer(t)

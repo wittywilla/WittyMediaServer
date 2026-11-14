@@ -21,7 +21,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 )
 
-// Links that share one item or album with someone who has no account.
+// Links that share one picture or a set of them (an album's, say) with someone who has no account.
 //
 // The rules: the link holds a long random secret and only its hash is stored;
 // it opens exactly what it names and nothing else; it checks on every request
@@ -29,7 +29,7 @@ import (
 // by the server, so EXIF and locations stay home, unless "allow download" was
 // ticked; and it can be ended at any time.
 
-// POST /api/shares {kind: item|album, id, days, allowDownload}
+// POST /api/shares {kind: item, id | kind: photos, ids, title; days, allowDownload}
 func (s *Server) handleCreateShare(w http.ResponseWriter, r *http.Request) {
 	u := userFrom(r)
 	if !canPost(u) {
@@ -41,10 +41,12 @@ func (s *Server) handleCreateShare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var b struct {
-		Kind          string `json:"kind"`
-		ID            int64  `json:"id"`
-		Days          int    `json:"days"` // 0 = no end date
-		AllowDownload bool   `json:"allowDownload"`
+		Kind          string  `json:"kind"`
+		ID            int64   `json:"id"`
+		IDs           []int64 `json:"ids"`   // a set of pictures (kind photos)
+		Title         string  `json:"title"` // a set's name: what the link's page is headed
+		Days          int     `json:"days"`  // 0 = no end date
+		AllowDownload bool    `json:"allowDownload"`
 	}
 	if err := readJSON(r, &b); err != nil {
 		writeErr(w, 400, err.Error())
@@ -63,16 +65,33 @@ func (s *Server) handleCreateShare(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		l.Title = it.Title
-	case "album":
-		// Seeing someone's shared album doesn't make it yours to hand to anyone.
-		a, err := s.Store.PhotoAlbumByID(r.Context(), b.ID, u.ID, u.IsAdmin)
-		if err != nil || (a.OwnerID != u.ID && !u.IsAdmin) {
-			writeErr(w, 404, "not found")
+	case "photos":
+		// Only what this account may see itself, and only pictures and videos.
+		if len(b.IDs) == 0 || len(b.IDs) > maxShareSet {
+			writeErr(w, 400, fmt.Sprintf("ids must list 1 to %d pictures", maxShareSet))
 			return
 		}
-		l.Title = a.Name
+		title := strings.TrimSpace(b.Title)
+		if title == "" || len(title) > 200 || strings.ContainsAny(title, "\r\n") {
+			writeErr(w, 400, "a set of pictures needs a title of one line, up to 200 characters")
+			return
+		}
+		seen := map[int64]bool{}
+		for _, id := range b.IDs {
+			if seen[id] {
+				continue
+			}
+			seen[id] = true
+			it, err := s.visibleItem(r, id)
+			if err != nil || (it.Kind != "photo" && it.Kind != "video") {
+				writeErr(w, 404, "only pictures and videos you can see can be shared by link")
+				return
+			}
+			l.Items = append(l.Items, id)
+		}
+		l.TargetID, l.Title = 0, title
 	default:
-		writeErr(w, 400, "kind must be item or album")
+		writeErr(w, 400, "kind must be item or photos")
 		return
 	}
 	if b.Days > 0 {
@@ -123,6 +142,9 @@ func (s *Server) handleDeleteShare(w http.ResponseWriter, r *http.Request) {
 // The public side: no account, only the link's secret
 // ---------------------------------------------------------------------------
 
+// maxShareSet is the most pictures one link may share.
+const maxShareSet = 2000
+
 // shareContext is an open link and the account it speaks for.
 type shareContext struct {
 	link  *library.ShareLink
@@ -160,14 +182,8 @@ func (s *Server) sharedItem(ctx context.Context, c *shareContext, id int64) (*li
 		if id != c.link.TargetID {
 			return nil, library.ErrNotFound
 		}
-	case "album":
-		// The album has to still be one the link's maker may share, not only hold the picture:
-		// its owner may have made it private since.
-		if _, err := s.Store.PhotoAlbumByID(ctx, c.link.TargetID, c.owner.ID, c.owner.IsAdmin); err != nil {
-			return nil, library.ErrNotFound
-		}
-		var one int
-		if err := s.DB.QueryRowContext(ctx, `SELECT 1 FROM photo_album_items WHERE album_id = ? AND item_id = ?`, c.link.TargetID, id).Scan(&one); err != nil {
+	case "photos":
+		if !s.Store.ShareHolds(ctx, c.link.ID, id) {
 			return nil, library.ErrNotFound
 		}
 	default:
@@ -212,19 +228,27 @@ func (s *Server) handleShareOpen(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		addItem(it, 0)
-	case "album":
-		a, err := s.Store.PhotoAlbumByID(r.Context(), c.link.TargetID, c.owner.ID, c.owner.IsAdmin)
-		if err != nil {
-			writeErr(w, 404, "this link has ended or never existed")
-			return
-		}
-		list, _, err := s.Store.Photos(r.Context(), library.PhotoQuery{LibraryID: a.LibraryID, UserID: 0, Access: c.acc, Album: a.ID, Limit: 500})
+	case "photos":
+		ids, err := s.Store.ShareItems(r.Context(), c.link.ID)
 		if err != nil {
 			writeLibErr(w, err)
 			return
 		}
-		for _, p := range list {
-			photos = append(photos, sharedPhoto{ID: p.ID, Kind: p.Kind, Title: p.Title, TakenAt: p.TakenAt, Width: p.Width, Height: p.Height, DurationSec: p.DurationSec})
+		// Newest first, a page at a time, as the owner may still see them.
+		q := library.PhotoQuery{UserID: 0, Access: c.acc, IDs: ids, Limit: 500}
+		for len(photos) < maxShareSet {
+			list, next, err := s.Store.Photos(r.Context(), q)
+			if err != nil {
+				writeLibErr(w, err)
+				return
+			}
+			for _, p := range list {
+				photos = append(photos, sharedPhoto{ID: p.ID, Kind: p.Kind, Title: p.Title, TakenAt: p.TakenAt, Width: p.Width, Height: p.Height, DurationSec: p.DurationSec})
+			}
+			if next == "" {
+				break
+			}
+			q.Cursor = next
 		}
 	}
 	s.Store.CountShareView(r.Context(), c.link.ID)

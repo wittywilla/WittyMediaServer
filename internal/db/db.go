@@ -519,6 +519,18 @@ var migrations = []string{
 	// 35: a game's other names, as JSON {"native", "english"}: its name in its own script and
 	// its English release's, for profiles that would rather see those than the title.
 	`ALTER TABLE items ADD COLUMN alt_titles TEXT;`,
+	// 36: albums are WittyPhotos' own (module API 5, its own database, starting empty), and
+	// so is the photo map's online map. A share link now shares one picture or a set of them,
+	// listed with the link when it's made: a link to an album goes with the albums.
+	`DELETE FROM share_links WHERE kind = 'album';
+	 DROP TABLE IF EXISTS photo_album_items;
+	 DROP TABLE IF EXISTS photo_albums;
+	 DELETE FROM settings WHERE key IN ('mapTiles', 'mapOnline', 'mapAttribution');
+	 CREATE TABLE IF NOT EXISTS share_link_items (
+	   share_id INTEGER NOT NULL REFERENCES share_links(id) ON DELETE CASCADE,
+	   item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+	   PRIMARY KEY(share_id, item_id));
+	 CREATE INDEX IF NOT EXISTS share_link_items_item ON share_link_items(item_id);`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

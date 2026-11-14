@@ -151,7 +151,6 @@ var screens = map[string][]string{
 	"pages/creators/ChannelsLibrary.tsx": {"creators"},
 	"pages/creators/ShortsLibrary.tsx":   {"creators"},
 	"pages/creators/WatchPage.tsx":       {"creators"},
-	"pages/Books.tsx":                    {"reader"},
 	"pages/settings/Metadata.tsx":        {"webResults"},
 	"pages/settings/Modules.tsx":         {"modules"},
 	"pages/settings/Sharing.tsx":         {"sharing"},

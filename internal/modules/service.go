@@ -333,6 +333,9 @@ var mayHave = map[string]map[string]bool{
 	"wittyplay":   {wittymodule.PermissionNetwork: true, wittymodule.PermissionPrograms: true, wittymodule.PermissionDevices: true, wittymodule.PermissionData: true},
 	"wittycouch":  {wittymodule.PermissionNetwork: true, wittymodule.PermissionPrograms: true, wittymodule.PermissionData: true},
 	"wittyrigs":   {wittymodule.PermissionNetwork: true, wittymodule.PermissionPrograms: true, wittymodule.PermissionData: true},
+	// WittyPhotos' service reaches nothing but the server: the network is what lets it listen
+	// for the server on this machine (the sandbox allows no socket without it).
+	"wittyphotos": {wittymodule.PermissionNetwork: true, wittymodule.PermissionData: true},
 }
 
 // Call asks a module's helper one thing. Without a version in use, it says which is missing.

@@ -483,13 +483,6 @@ function SignInScreen() {
 
 // ---------------------------------------------------------------- about
 
-// The readers built into the web app (their versions are set at build time).
-const READERS: Record<string, [string, string]> = {
-  wittyebook: ['WittyEbook', 'EPUB reader'],
-  wittypdf: ['WittyPDF', 'PDF reader'],
-  wittycomics: ['WittyComics', 'Comic and manga reader'],
-  wittyink: ['WittyInk', 'Highlights, notes and pen, shared by the readers'],
-}
 type Engine = { name: string; module: string; version: string; local?: boolean; role: string }
 
 function About() {
@@ -506,7 +499,6 @@ function About() {
   }, [user])
   useEffect(() => { api.get<{ version: string; modules: Engine[] }>('/about').then(setAbout).catch(() => {}) }, [])
   useEffect(() => { if (loc.hash && about) document.getElementById(loc.hash.slice(1))?.scrollIntoView({ block: 'start' }) }, [loc.hash, about])
-  const readers = __WEB_MODULES__.filter((m) => READERS[m.id]).sort((a, b) => Object.keys(READERS).indexOf(a.id) - Object.keys(READERS).indexOf(b.id))
   const hw = (sys?.hardware || []).filter((h: any) => h.working).map((h: any) => h.label)
   return (
     <>
@@ -522,13 +514,6 @@ function About() {
             <a key={m.name} className="mod-row" href={`https://github.com/wittywilla/${m.name}`} target="_blank" rel="noreferrer">
               <span className="mod-name"><b>{m.name}</b><span className="muted">{m.role}</span></span>
               <span className="mod-ver">{m.version}{m.local && <span className="mod-local" title="Built from this server's own copy of the module">built in</span>}</span>
-            </a>
-          ))}
-          <div className="mod-group">Readers</div>
-          {readers.map((m) => (
-            <a key={m.id} className="mod-row" href={`https://github.com/wittywilla/${READERS[m.id][0]}`} target="_blank" rel="noreferrer">
-              <span className="mod-name"><b>{READERS[m.id][0]}</b><span className="muted">{READERS[m.id][1]}</span></span>
-              <span className="mod-ver">{m.version}</span>
             </a>
           ))}
         </div>

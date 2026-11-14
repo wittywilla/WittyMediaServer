@@ -306,47 +306,31 @@ func TestLikesAndComments(t *testing.T) {
 	}
 }
 
-func TestAlbums(t *testing.T) {
+// ids= keeps a list to some pictures (an album's: WittyPhotos keeps albums), and still only
+// those the account may see.
+func TestPhotoIDs(t *testing.T) {
 	ts := newGalleryServer(t)
 	id := ts.uploadOK(ts.adult, "picture.jpg")
-	lib := ts.lib.ID
-	if w := ts.do("POST", "/api/photos/albums", ts.adult, map[string]any{"libraryId": lib, "name": "  "}); w.Code != 400 {
-		t.Errorf("an album without a name: %d", w.Code)
+	other := ts.uploadOK(ts.adult, "other.jpg")
+	lib := itoa(ts.lib.ID)
+	w := ts.do("GET", "/api/photos/list?library="+lib+"&ids="+itoa(id), ts.adult, nil)
+	if w.Code != 200 || !strings.Contains(w.Body.String(), "picture") || strings.Contains(w.Body.String(), "other") {
+		t.Errorf("ids: %d %s", w.Code, w.Body)
 	}
-	if w := ts.do("POST", "/api/photos/albums", ts.kid, map[string]any{"libraryId": lib, "name": "x"}); w.Code != 403 {
-		t.Errorf("a kid made an album: %d", w.Code)
+	if w := ts.do("GET", "/api/photos/months?library="+lib+"&ids="+itoa(id)+","+itoa(other), ts.adult, nil); w.Code != 200 || !strings.Contains(w.Body.String(), `"count":2`) {
+		t.Errorf("months of ids: %d %s", w.Code, w.Body)
 	}
-	if w := ts.do("POST", "/api/photos/albums", ts.outside, map[string]any{"libraryId": lib, "name": "x"}); w.Code != 404 {
-		t.Errorf("an album in a library the account can't open: %d", w.Code)
+	if w := ts.do("GET", "/api/photos/list?library="+lib+"&ids=", ts.adult, nil); w.Code != 200 || strings.Contains(w.Body.String(), "picture") {
+		t.Errorf("no ids is nothing: %d %s", w.Code, w.Body)
 	}
-	w := ts.do("POST", "/api/photos/albums", ts.adult, map[string]any{"libraryId": lib, "name": "Trip"})
-	if w.Code != 201 {
-		t.Fatalf("album: %d %s", w.Code, w.Body)
+	for _, bad := range []string{"x", "1,,2", "-4"} {
+		if w := ts.do("GET", "/api/photos/list?library="+lib+"&ids="+bad, ts.adult, nil); w.Code != 400 {
+			t.Errorf("ids=%s: %d", bad, w.Code)
+		}
 	}
-	var a library.PhotoAlbum
-	_ = json.Unmarshal(w.Body.Bytes(), &a)
-	aid := itoa(a.ID)
-	if w := ts.do("POST", "/api/photos/albums/"+aid+"/items", ts.adult, map[string]any{"ids": []int64{id}}); w.Code != 200 || !strings.Contains(w.Body.String(), `"added":1`) {
-		t.Errorf("add: %d %s", w.Code, w.Body)
-	}
-	// Someone else's private album is invisible to them.
-	if w := ts.do("POST", "/api/photos/albums/"+aid+"/items", ts.guest, map[string]any{"ids": []int64{id}}); w.Code != 404 {
-		t.Errorf("another account changed an album: %d", w.Code)
-	}
-	if w := ts.do("GET", "/api/photos/list?library="+itoa(lib)+"&album="+aid, ts.guest, nil); w.Code != 404 {
-		t.Errorf("another account opened a private album: %d", w.Code)
-	}
-	if w := ts.do("GET", "/api/photos/list?library="+itoa(lib)+"&album="+aid, ts.adult, nil); w.Code != 200 || !strings.Contains(w.Body.String(), "picture") {
-		t.Errorf("album list: %d %s", w.Code, w.Body)
-	}
-	if w := ts.do("DELETE", "/api/photos/albums/"+aid, ts.guest, nil); w.Code != 404 {
-		t.Errorf("another account deleted an album: %d", w.Code)
-	}
-	if w := ts.do("DELETE", "/api/photos/albums/"+aid, ts.adult, nil); w.Code != 200 {
-		t.Errorf("delete: %d", w.Code)
-	}
-	if _, err := ts.s.Store.Item(context.Background(), id); err != nil {
-		t.Error("deleting an album must leave its pictures")
+	// A Kids profile doesn't see an unrated picture by naming it.
+	if w := ts.do("GET", "/api/photos/list?library="+lib+"&ids="+itoa(id), ts.kid, nil); w.Code != 200 || strings.Contains(w.Body.String(), "picture") {
+		t.Errorf("kid: %d %s", w.Code, w.Body)
 	}
 }
 
@@ -418,14 +402,6 @@ func TestPublicLinks(t *testing.T) {
 	}
 }
 
-func TestMapTilesSetting(t *testing.T) {
-	for v, want := range map[string]bool{"": true, "https://tiles.example/{z}/{x}/{y}.png": true, "http://tiles.example/{z}/{x}/{y}.png": false, "https://tiles.example/map.png": false, "javascript:alert(1)//{z}{x}{y}": false, `https://a/{z}/{x}/{y}"onerror=`: false} {
-		if validMapTiles(v) != want {
-			t.Errorf("%q: want %v", v, want)
-		}
-	}
-}
-
 func TestPhotoMapRoute(t *testing.T) {
 	ts := newGalleryServer(t)
 	ctx := context.Background()
@@ -435,10 +411,8 @@ func TestPhotoMapRoute(t *testing.T) {
 	}
 	lib := itoa(ts.lib.ID)
 	type answer struct {
-		Clusters    []library.PhotoCluster `json:"clusters"`
-		Bounds      *library.PhotoBounds   `json:"bounds"`
-		Tiles       string                 `json:"tiles"`
-		Attribution string                 `json:"attribution"`
+		Clusters []library.PhotoCluster `json:"clusters"`
+		Bounds   *library.PhotoBounds   `json:"bounds"`
 	}
 	get := func(token, query string) (int, answer) {
 		t.Helper()
@@ -450,7 +424,7 @@ func TestPhotoMapRoute(t *testing.T) {
 	if code, a := get(ts.adult, "&fit=1"); code != 200 || len(a.Clusters) != 0 || a.Bounds == nil {
 		t.Errorf("fit alone is only the box: %d %+v", code, a)
 	}
-	if code, a := get(ts.adult, "&zoom=3&fit=1"); code != 200 || len(a.Clusters) != 1 || a.Clusters[0].Cover != id || a.Bounds == nil || a.Bounds.Count != 1 || a.Tiles != "" {
+	if code, a := get(ts.adult, "&zoom=3&fit=1"); code != 200 || len(a.Clusters) != 1 || a.Clusters[0].Cover != id || a.Bounds == nil || a.Bounds.Count != 1 {
 		t.Errorf("the map: %d %+v", code, a)
 	}
 	// Across the date line, and boxes that aren't boxes.
@@ -468,26 +442,6 @@ func TestPhotoMapRoute(t *testing.T) {
 	}
 	if code, _ := get(ts.outside, "&zoom=3"); code != 404 {
 		t.Errorf("an account without the library: %d", code)
-	}
-	// The online map: an address alone turns it on, as before there was a switch; off is off.
-	set := func(k, v string) {
-		if err := ts.s.DB.SetSetting(ctx, k, v); err != nil {
-			t.Fatal(err)
-		}
-	}
-	set("mapTiles", "https://tiles.example/{z}/{x}/{y}.png")
-	set("mapAttribution", "© Example contributors")
-	if _, a := get(ts.adult, "&zoom=3"); a.Tiles == "" || a.Attribution != "© Example contributors" {
-		t.Errorf("address set: %+v", a)
-	}
-	set("mapOnline", "0")
-	if _, a := get(ts.adult, "&zoom=3"); a.Tiles != "" || a.Attribution != "" {
-		t.Errorf("switched off: %+v", a)
-	}
-	for k, v := range map[string]string{"mapOnline": "yes", "mapAttribution": "<img src=x onerror=alert(1)>"} {
-		if err := checkSetting(k, v); err == nil {
-			t.Errorf("%s=%q accepted", k, v)
-		}
 	}
 }
 

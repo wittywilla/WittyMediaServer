@@ -487,11 +487,7 @@ func (n *normaliser) element(x *sdui.Node, depth int, parent *sdui.Node) Element
 			m, _ := f.(map[string]any)
 			e.Buttons = append(e.Buttons, str(m, "label")+": "+firstNonEmpty(optionLabel(m, str(m, "value")), "Any"))
 		}
-		if t := str(p, "countText"); t != "" {
-			text("count", t)
-		} else if c, ok := num(p, "count"); ok {
-			text("count", strconv.Itoa(int(c))+" titles")
-		}
+		text("count", str(p, "countText"))
 	case "Dock":
 		e.Role, e.Label = "toolbar", firstNonEmpty(str(p, "title"), "Options")
 		e.Cards = intp(len(x.Children))

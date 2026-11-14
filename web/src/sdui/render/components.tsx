@@ -987,7 +987,7 @@ function FilterBarView({ view }: { view: View }) {
       ))}
       {chosen.length > 0 && <button type="button" className="btn sm ghost" onClick={() => page.setQuery(Object.fromEntries(fields.map((f) => [f.id, ''])))}>Clear</button>}
       <span className="grow" />
-      {view.text?.count && <span className="count" role="status">{Number(num(p, 'count')).toLocaleString()} {num(p, 'count') === 1 ? 'title' : 'titles'}</span>}
+      {view.text?.count && <span className="count" role="status">{view.text.count}</span>}
     </div>
   )
 }

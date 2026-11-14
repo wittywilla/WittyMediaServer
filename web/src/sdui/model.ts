@@ -306,9 +306,7 @@ function viewOf(x: Node, depth: number, parent: Node | undefined, l: Layout, pag
       if (sort) b.push('Sort: ' + optionLabel(fieldOf(sort)))
       for (const f of list(p, 'fields')) { const fl = fieldOf(f as Props); b.push(fl.label + ': ' + (optionLabel(fl) || 'Any')) }
       if (b.length) e.buttons = b
-      const c = num(p, 'count')
       if (str(p, 'countText')) text('count', str(p, 'countText'))
-      else if (c !== undefined) text('count', Math.trunc(c) + ' titles')
       break
     }
     case 'DetailHeader': {

@@ -86,6 +86,7 @@ func (s *Server) HostAPI() http.Handler {
 	h("POST "+b+"/tasks/{name}", s.hostTask)
 	h("POST "+b+"/audit", s.hostAudit)
 	h("GET "+b+"/audit", s.hostAuditLog)
+	h("GET "+b+"/setup", s.hostSetupState)
 	h("POST "+b+"/setup/{id}", s.hostSetupDone)
 	return mux
 }

@@ -759,7 +759,6 @@ The server always sends `canRecord`, `true` or `false`, wherever it describes a 
 | `GET /guide/search` | `[].canRecord`, for the hit's channel |
 | `GET /tv/reminders`, `POST /tv/reminders` | `canRecord`, for the reminder's channel |
 | `GET /channels`, and for an administrator `POST /channels`, `GET` and `PUT /channels/{id}`, and `POST /channels/{id}/restore` | `canRecord`: always `false` |
-| `GET /tuners/{id}/channels`, `PUT /tuner-channels/{id}` | `canRecord` |
 
 For one programme, offer Record when its channel's `canRecord` is `true`, the programme's `kind` is `broadcast`, and
 its `end` is still to come.
@@ -1910,7 +1909,6 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `GET /channels/{id}/logo` | user | Channel logo. |
 | `PUT /channels/{id}/logo` | admin | Set channel logo. |
 | `DELETE /channels/{id}/logo` | admin | Delete channel logo. |
-| `GET /tv/encrypted-help` | user | Encrypted help. |
 | `GET /guide/search` | user | What is coming up that matches, soonest first, each with its channel's `canRecord`. q (2 to 100 letters), days (1 to 14), limit. 429 with `Retry-After` when several searches are running. |
 | `GET /tv/favourites` | user | This account's favourite channels, as channel keys. The guide marks them too. |
 | `PUT /tv/favourites/{key}` | user | Star a channel. |
@@ -1935,28 +1933,34 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `DELETE /channels/bumpers/item/{id}` | admin | An upload goes altogether, its file too. A chosen video only comes off the list. |
 | `GET /channels/discs` | admin | Every disc, whether it is encrypted, and the words for refusing those that are. |
 | `POST /channels/clip-preview` | admin | Body: item, title. An HLS stream of the title, to try a scene before adding it. |
-| `GET /tuners/drivers` | admin | Tuner drivers. |
-| `GET /tuners/discover` | admin | Tuner discover. |
-| `GET /tuners` | admin | Tuners. |
-| `POST /tuners` | admin | Create tuner. |
-| `POST /tuners/check` | admin | Check tuner: what a source says before it's saved. Answers `{ok, result}` or `{ok: false, problem: {kind, message, hint}}`, and keeps nothing. |
-| `PUT /tuners/{id}` | admin | Update tuner. |
-| `DELETE /tuners/{id}` | admin | Delete tuner. |
-| `POST /tuners/{id}/refresh` | admin | Refresh tuner. |
-| `POST /tuners/{id}/scan` | admin | Scan tuner. |
-| `GET /tuners/{id}/scan` | admin | Scan progress2. |
-| `POST /tuners/{id}/test` | admin | Test tuner: tunes one channel (`{channel}`, or 0 to let it choose) for a few seconds, as a viewer would. Encrypted channels are refused as everywhere else. |
-| `GET /tuners/{id}/channels` | admin | Tuner channels. |
-| `POST /tuners/{id}/channels/enable` | admin | Enable all channels. |
-| `PUT /tuner-channels/{id}` | admin | Edit tuner channel. `logo` is `""` to find it by name, `none`, or `kind\|name` in the logo service. |
-| `GET /epg/sources` | admin | EPG sources. |
-| `POST /epg/sources` | admin | Add EPG source. |
-| `DELETE /epg/sources/{id}` | admin | Delete EPG source. |
-| `POST /epg/sources/{id}/refresh` | admin | Refresh EPG source. |
-| `GET /epg/ids` | admin | EPGI ds. |
 | `GET /recordings` | user | This account's recordings, and an administrator's sees everyone's. |
 | `POST /recordings` | user | Schedule. Only a channel whose `canRecord` is true: 400 for a library channel, 403 for an encrypted one, one marked not to be recorded, or a profile without recordings, 404 for a channel turned off, 409 at 50 waiting (not for an administrator). See "Recording". |
 | `DELETE /recordings/{id}` | user | Cancel a recording of this account's; an administrator, anyone's. |
+
+**Tuners, their channels and guide sources are WittyTuner's** (module API 5): their routes are the module's own, under `/modules/wittytuner/`, checked by the server as [MODULES-API5.md](MODULES-API5.md) says, and answer 424 with `module` while WittyTuner isn't in use. Its `integration.json` lists them with who may call each. The guide, live TV, catch-up, recordings, favourites, reminders and sets above stay the server's, and a channel's key is still `tun-<id>`, its id in WittyTuner. Its TV screens are SDUI pages of the module's own (`wittytuner`, `wittytuner-tuner`, `wittytuner-setup`); its first-run step is `tv`.
+
+| Route (under `/modules/wittytuner`) | Sign-in | What it does |
+|---|---|---|
+| `GET /encrypted-help` | user | What encrypted channels are and what to do (was `/tv/encrypted-help`). A security notice's `helpUrl` names it. |
+| `GET /drivers` | admin | The kinds of tuner, with their settings and how well each has been tried. |
+| `GET /discover` | admin | Tuners on this network and machine not added yet. 12-second limit. |
+| `GET /tuners`, `POST /tuners` | admin | Every tuner (passwords masked); add one (its channels are read at once). |
+| `POST /tuners/check` | admin | What a source says before it's saved: `{ok, result}` or `{ok: false, problem: {kind, message, hint}}`. |
+| `PUT /tuners/{id}`, `DELETE /tuners/{id}` | admin | Change (a masked password keeps the stored one) or remove a tuner, with its channels and own guide source. |
+| `POST /tuners/{id}/refresh` | admin | Read a tuner's channel list again. |
+| `POST /tuners/{id}/scan`, `GET /tuners/{id}/scan` | admin | Scan for channels (`{source}`); how the scan is going. |
+| `POST /tuners/{id}/test` | admin | Tune one channel (`{channel}`, 0 to choose) for a few seconds, as a viewer would. |
+| `GET /tuners/{id}/channels` | admin | A tuner's channels, each with `logoUrl` or `brand`, and `canRecord`. |
+| `POST /tuners/{id}/channels/enable` | admin | Every channel of a tuner in the guide, or none (`{enabled}`). |
+| `POST`, `GET`, `DELETE /tuners/{id}/health` | admin | Check every enabled channel of a tuner in the background; how it's going; stop it. |
+| `PUT /channels/{id}` | admin | Change a channel: `enabled`, `number`, `name`, `epg`, `logo` (`""`, `none` or `kind\|name`), `noRecord`, `checkAgain`. |
+| `POST /channels/bulk` | admin | Many channels at once: `ids`, `action` (enable, disable, renumber with `start`, merge with `into`, unmerge, check). |
+| `GET /duplicates` | admin | Channels across every tuner that look like the same station, in groups. |
+| `GET /epg/sources`, `POST /epg/sources` | admin | Guide sources; add one (`{name, url}`: a web address, or a file named at the server itself). |
+| `DELETE /epg/sources/{id}`, `POST /epg/sources/{id}/refresh` | admin | Remove a guide source (the guide forgets what it gave); read it again now. |
+| `GET /epg/ids` | admin | The guide's channel ids and names, for matching a channel by hand. |
+| `POST /found/{key}` | admin | Add a tuner the search found, by the key its SDUI row carries. |
+| `POST /setup/tv` | admin | WittyTuner's first-run step is done, or put off (`{skip}`). |
 
 ### Games
 
@@ -2265,11 +2269,6 @@ See [LIBRARY-TRANSCODING.md](LIBRARY-TRANSCODING.md).
 | `POST /recording-rules` | user | Record every airing of a title. Only a channel whose `canRecord` is true, refused as `POST /recordings` is; 409 at 20 (not for an administrator). See "Recording". |
 | `PUT /recording-rules/{id}` | user | Change how a recording rule records: `anyChannel`, `newOnly`, `keep`, `padBefore`, `padAfter`. |
 | `DELETE /recording-rules/{id}` | user | Delete a recording rule of this account's; an administrator, anyone's. |
-| `POST /tuner-channels/bulk` | admin | Many tuner channels at once: `ids`, `action` (enable, disable, renumber with `start`, merge with `into`, unmerge, check). |
-| `GET /tuners/duplicates` | admin | Channels across every tuner that look like the same station, in groups. |
-| `POST /tuners/{id}/health` | admin | Check every enabled channel of a tuner, in the background. |
-| `GET /tuners/{id}/health` | admin | How a tuner's channel check is going. |
-| `DELETE /tuners/{id}/health` | admin | Stop a tuner's channel check. |
 | `GET /dvd/{sid}/menu/{serial}/effect/{n}` | user | DVD effect. |
 | `GET /dvd/{sid}/sound/{n}` | user | DVD sound. |
 | `GET /dvd/{sid}/bdj` | user | BDJ poll. |

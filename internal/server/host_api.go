@@ -102,6 +102,9 @@ func (s *Server) HostAPI() http.Handler {
 	h("PUT "+b+"/discs/{id}/choice", s.hostDiscChoose)
 	h("GET "+b+"/cds/{id}/matches", s.hostCDMatches)
 	h("PUT "+b+"/cds/{id}/release", s.hostCDRelease)
+	h("POST "+b+"/tv/guide/{source}", s.hostTVGuide)
+	h("DELETE "+b+"/tv/guide/{source}", s.hostTVGuideDrop)
+	h("GET "+b+"/tv/guide/ids", s.hostTVGuideIDs)
 	return mux
 }
 
@@ -144,6 +147,8 @@ func (s *Server) hostHello(w http.ResponseWriter, r *http.Request, module string
 		"gamingCustomCores": s.Cfg != nil && s.Cfg.GamingCustomCores && os.Getenv("WMS_GAMING_NO_CUSTOM_CORES") != "1",
 		// The built-in test console is offered: a developer's server, or WMS_GAMING_TESTCORE=1.
 		"gamingTestCore": s.testingGames(),
+		// WittyTuner's custom command driver: the server was started with WMS_TUNER_COMMANDS=1.
+		"tunerCommands": os.Getenv("WMS_TUNER_COMMANDS") == "1",
 	}
 	writeJSON(w, 200, host.Hello{Module: module, Server: s.Version, Offers: modmgr.Offers(), Machine: machine})
 }

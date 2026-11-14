@@ -78,9 +78,7 @@ func TestTVRoutesNeedTheRightAccount(t *testing.T) {
 		{"POST", "/api/channels/preview"}, {"GET", "/api/channels/suggestions"}, {"GET", "/api/channels/options"},
 		{"POST", "/api/channels/from-network"}, {"POST", "/api/channels/networks/refresh"}, {"POST", "/api/channels/1/rebuild"},
 		{"GET", "/api/channels/1/history"}, {"POST", "/api/channels/1/restore"}, {"PUT", "/api/channels/1/logo"}, {"DELETE", "/api/channels/1/logo"},
-		{"GET", "/api/tuners"}, {"POST", "/api/tuners"}, {"PUT", "/api/tuners/1"}, {"DELETE", "/api/tuners/1"}, {"GET", "/api/tuners/drivers"}, {"GET", "/api/tuners/discover"},
-		{"POST", "/api/tuners/1/scan"}, {"POST", "/api/tuners/1/refresh"}, {"POST", "/api/tuners/check"}, {"POST", "/api/tuners/1/test"}, {"GET", "/api/tuners/1/channels"}, {"PUT", "/api/tuner-channels/1"},
-		{"GET", "/api/epg/sources"}, {"POST", "/api/epg/sources"}, {"DELETE", "/api/epg/sources/1"}, {"GET", "/api/tv/settings"}, {"PUT", "/api/tv/settings"},
+		{"GET", "/api/tv/settings"}, {"PUT", "/api/tv/settings"},
 		{"PUT", "/api/libraries/1/main"},
 	}
 	for _, c := range adminOnly {
@@ -145,15 +143,6 @@ func TestChannelInputIsChecked(t *testing.T) {
 	}
 	if w := tvCall(h, "POST", "/api/recordings", admin, `{"channel":"lib-1","title":"x","start":1,"stop":2}`); w.Code != 400 || !strings.Contains(w.Body.String(), "already in your library") {
 		t.Errorf("library channels are not recorded: %d %s", w.Code, w.Body)
-	}
-	if w := tvCall(h, "POST", "/api/tuners", admin, `{"driver":"command","name":"x","options":{"command":"/bin/sh"}}`); w.Code != 400 {
-		t.Errorf("a web session must not be able to add a command: %d", w.Code)
-	}
-	if w := tvCall(h, "POST", "/api/tuners", admin, `{"driver":"nope","name":"x"}`); w.Code != 400 {
-		t.Errorf("unknown driver: %d", w.Code)
-	}
-	if w := tvCall(h, "POST", "/api/epg/sources", admin, `{"url":"ftp://x.test/a"}`); w.Code != 400 {
-		t.Errorf("guide scheme: %d", w.Code)
 	}
 }
 
@@ -222,16 +211,5 @@ func TestNoAudioDecoderReadsFFmpeg(t *testing.T) {
 	}
 	if noAudioDecoder("Connection reset by peer") {
 		t.Error("other failures are not about sound")
-	}
-}
-
-func TestEncryptedHelpComesFromTheAPI(t *testing.T) {
-	h, _, kid, _ := tvServer(t)
-	w := tvCall(h, "GET", "/api/tv/encrypted-help", kid, "")
-	if w.Code != 200 || !strings.Contains(w.Body.String(), "ATSC 1.0") {
-		t.Fatalf("%d %s", w.Code, w.Body)
-	}
-	if w := tvCall(h, "GET", "/api/tv/encrypted-help", "", ""); w.Code != 401 {
-		t.Errorf("signed out: %d", w.Code)
 	}
 }

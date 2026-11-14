@@ -319,7 +319,7 @@ These need the **WittyTuner** module. No channel lists or stream addresses come 
 ![The Channels and tuners page in Settings](images/settings-channels.webp)
 *Settings, Channels & tuners, on a server with no tuner attached.*
 
-1. Go to **Settings → Channels & tuners → Tuners and IPTV**. Without WittyTuner, it says so and offers to add it.
+1. Go to **Settings → Live TV & tuners**, which WittyTuner adds once it is installed (Settings → Modules). Its tuners, their channels and the guide sources are WittyTuner's own, kept in its own data; the guide and recordings stay the server's. On a TV or phone app, the same is an administrator's page from WittyTuner: the tuners, what's on this network to add with a press, each tuner's channels, and the guide sources.
 2. Press **Add live TV**. It goes a step at a time:
    1. **What you have**, in plain words: a playlist from a TV provider, an Xtream Codes-style provider (a server address, a username and a password, which brings its channels, groups as groups, logos, guide and catch-up), one stream address, a tuner box on your network, a SAT>IP box, a TV card or capture device in this computer, or something else.
    2. **Its details.** For a device, **Search for it** looks on your network and this computer; whatever it doesn't find, type in by hand, such as a tuner box's address. A playlist or stream is an address, or a file on the server. **Check it** asks for its channels without saving anything, and says what it found: the model and how many tuners it has, how many channels, and how many are marked as encrypted. When it doesn't work it says which way: nothing answered at that address, something answered but isn't that kind of device, or the playlist couldn't be read (a web page about a playlist isn't the playlist). The server checks the details again when you press **Add and read its channels**.
@@ -492,7 +492,7 @@ Everything here lives on the server behind JSON, so apps can draw their own guid
 
 **More info.** `GET /api/tv/{key}/programme?start=<a moment in it>` is one programme in full, for the Design 2 More info screen: the guide's facts, which buttons apply, the library title when there is one (its credits, trailers and page), else the guide's own credits, and the title's other airings in the next 14 days. The SDUI `credits` source takes `programme: "<key>@<start>"` for the same cast and crew. See [Client API](CLIENT-API.md#more-info).
 
-**Encrypted channels.** The guide, the tune answer and the tuner settings give each tuner channel `security: {state, label, detail, reason, helpUrl}`, where state is `encrypted`, `clear` or `unknown`, and `alternative` names a clear version. Show those, and the page from `GET /api/tv/encrypted-help`, rather than wording of your own. Keep the device notes here in step with `internal/livetv/help.go`.
+**Encrypted channels.** The guide, the tune answer and the tuner settings give each tuner channel `security: {state, label, detail, reason, helpUrl}`, where state is `encrypted`, `clear` or `unknown`, and `alternative` names a clear version. Show those, and the page from `GET /api/modules/wittytuner/encrypted-help` (WittyTuner's), rather than wording of your own. Keep the device notes here in step with WittyTuner's `api/help.go`.
 
 **A channel's definition:**
 
@@ -526,7 +526,6 @@ Definition
 | `POST /api/tv/{key}/leave?viewer=` | Signed in | A player has gone |
 | `GET /api/time` | Signed in | The server's clock, for keeping viewers to the same moment |
 | `GET /api/tv/{key}/logo` | May watch the channel | A tuner channel's logo, through the server. Internet addresses only |
-| `GET /api/tv/encrypted-help` | Signed in | The help page behind the encrypted label |
 | `GET /api/channels` | Signed in | Library channels this account may see |
 | `POST /api/channels`, `PUT` and `DELETE /api/channels/{id}` | Admin | Manage |
 | `GET /api/channels/{id}`, `/history`, `POST /restore` | Admin | Definition and earlier versions |
@@ -536,14 +535,11 @@ Definition
 | `POST /api/channels/{id}/rebuild` | Admin | Regenerate after what's on now |
 | `POST /api/channels/networks/refresh` | Admin | Fill in missing network facts |
 | `PUT` and `DELETE /api/channels/{id}/logo`, `GET` (signed in) | Admin | The owner's own logo |
-| `GET /api/tuners/drivers`, `/discover` | Admin | What can be added, and what's on the network |
-| `GET` and `POST /api/tuners`, `PUT` and `DELETE /api/tuners/{id}` | Admin | Manage |
-| `POST /api/tuners/{id}/scan`, `GET` for progress | Admin | Find channels |
-| `GET /api/tuners/{id}/channels`, `PUT /api/tuner-channels/{id}` | Admin | Turn on or off, renumber, map guide data |
-| `GET` and `POST /api/epg/sources`, `DELETE`, `POST .../refresh` | Admin | XMLTV sources |
 | `GET` and `POST /api/recordings`, `DELETE /api/recordings/{id}` | May use tuner channels | Recordings. Each person sees and cancels their own, an administrator all of them |
 | `GET` and `POST /api/recording-rules`, `DELETE /api/recording-rules/{id}` | May use tuner channels | Every airing of a title |
 | `GET` and `PUT /api/tv/settings` | Admin | Buffers, recordings folder, conversion limits |
+
+Tuners, their channels, checks, duplicates and guide sources, and the encrypted-channels page, are WittyTuner's own routes under `/api/modules/wittytuner/`: see [CLIENT-API.md](CLIENT-API.md) and WittyTuner's `integration.json`. WittyTuner fetches each guide source and hands the guide to the server (host API `POST /tv/guide/{source}`), which keeps it.
 
 ---
 

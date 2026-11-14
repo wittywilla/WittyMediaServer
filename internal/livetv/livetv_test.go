@@ -8,8 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/wittywilla/wittymediaserver/internal/modules"
-	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -83,64 +81,30 @@ func iptvServer(t *testing.T) *httptest.Server {
 	return srv
 }
 
-func addIPTV(t *testing.T, m *Manager, srv *httptest.Server) (*Tuner, []*Channel) {
+// addIPTV puts the playlist's channels on a tuner of the fake WittyTuner, as it would read them.
+func addIPTV(t *testing.T, f *fakeDirectory, srv *httptest.Server) (int64, []*Channel) {
 	t.Helper()
-	ctx := context.Background()
-	tn, err := m.Create(ctx, &Tuner{Driver: "iptv", Name: "List", Options: map[string]string{"playlist": srv.URL + "/list.m3u", "guide": srv.URL + "/guide.xml"}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if tn.Channels != 4 || tn.LastError != "" {
-		t.Fatalf("%+v", tn)
-	}
-	ch, err := m.Channels(ctx, tn.ID)
-	if err != nil {
-		t.Fatal(err)
+	const tn = 1
+	ch := []*Channel{
+		f.add(tn, Channel{Number: "5", Name: "News", Group: "News", EPGID: "news.test", Driver: "iptv"}, srv.URL+"/news.ts"),
+		f.add(tn, Channel{Number: "6", Name: "Films", EPGID: "film.test", Driver: "iptv"}, srv.URL+"/film.ts"),
+		f.add(tn, Channel{Number: "7", Name: "Locked", Encrypted: "its playlist entry names a DRM licence", Driver: "iptv"}, srv.URL+"/locked.mpd"),
+		f.add(tn, Channel{Number: "8", Name: "Scrambled", Driver: "iptv"}, srv.URL+"/scrambled.ts"),
 	}
 	return tn, ch
 }
 
-func TestChannelsSurviveRescan(t *testing.T) {
-	m := testManager(t)
-	srv := iptvServer(t)
-	tn, ch := addIPTV(t, m, srv)
-	ctx := context.Background()
-	if ch[0].Name != "News" || ch[0].Number != "5" || ch[0].Group != "News" || ch[0].EPGID != "news.test" {
-		t.Fatalf("%+v", ch[0])
-	}
-	if ch[2].Encrypted == "" {
-		t.Fatal("a DRM playlist entry must be marked")
-	}
-	name, num, off := "My News", "105", false
-	if _, err := m.EditChannel(ctx, ch[0].ID, ChannelEdit{Name: &name, Number: &num, Enabled: &off}); err != nil {
-		t.Fatal(err)
-	}
-	if err := m.Refresh(ctx, tn.ID); err != nil {
-		t.Fatal(err)
-	}
-	got, _ := m.Channel(ctx, ch[0].ID)
-	if got.Name != "My News" || got.Number != "105" || got.Enabled {
-		t.Fatalf("a refresh must keep the owner's choices: %+v", got)
-	}
-	bad := "abc"
-	if _, err := m.EditChannel(ctx, ch[0].ID, ChannelEdit{Number: &bad}); err == nil {
-		t.Fatal("bad number")
-	}
-}
-
 func TestOpenEncryptedAndLimits(t *testing.T) {
-	m := testManager(t)
+	m, f := testManager(t)
 	srv := iptvServer(t)
-	tn, ch := addIPTV(t, m, srv)
+	tn, ch := addIPTV(t, f, srv)
 	ctx := context.Background()
 	_, err := m.Open(ctx, ch[2].ID)
 	var e *wittytuner.EncryptedError
 	if !errors.As(err, &e) {
 		t.Fatalf("encrypted: %v", err)
 	}
-	if _, err := m.Update(ctx, tn.ID, "List", nil, true, 1); err != nil {
-		t.Fatal(err)
-	}
+	f.limit[tn] = 1
 	a, err := m.Open(ctx, ch[0].ID)
 	if err != nil {
 		t.Fatal(err)
@@ -155,60 +119,31 @@ func TestOpenEncryptedAndLimits(t *testing.T) {
 		t.Fatalf("released: %v", err)
 	}
 	b.Release()
-	m.mu.Lock()
-	n := m.inUse[tn.ID]
-	m.mu.Unlock()
-	if n != 0 {
+	if n := f.used(tn); n != 0 {
 		t.Fatalf("in use: %d", n)
 	}
 }
 
-func TestPasswordsNotSentBack(t *testing.T) {
-	m := testManager(t)
-	ctx := context.Background()
-	tn, err := m.Create(ctx, &Tuner{Driver: "backend", Name: "B", Options: map[string]string{"protocol": "http-m3u", "address": "http://127.0.0.1:1", "username": "u", "password": "secret"}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if pub := PublicOptions(tn); pub["password"] != Masked {
-		t.Fatalf("%+v", pub)
-	}
-	opts := PublicOptions(tn)
-	got, err := m.Update(ctx, tn.ID, "B2", opts, true, 0)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got.Options["password"] != "secret" {
-		t.Fatalf("a masked password must keep the stored one: %v", got.Options["password"])
-	}
-}
-
-func TestInvalidTuner(t *testing.T) {
-	m := testManager(t)
-	ctx := context.Background()
-	if _, err := m.Create(ctx, &Tuner{Driver: "nope", Name: "x"}); err == nil {
-		t.Fatal("unknown driver")
-	}
-	if _, err := m.Create(ctx, &Tuner{Driver: "iptv", Name: ""}); err == nil {
-		t.Fatal("no name")
-	}
-	if _, err := m.Create(ctx, &Tuner{Driver: "command", Name: "x", Options: map[string]string{"command": "/bin/sh"}}); err == nil {
-		t.Fatal("custom commands are off by default")
-	}
-}
-
+// A guide WittyTuner hands over keeps only the programmes of channels on this server, and a
+// channel with no guide id is matched by its name, for WittyTuner to keep.
 func TestXMLTVGuide(t *testing.T) {
-	m := testManager(t)
+	m, f := testManager(t)
 	srv := iptvServer(t)
-	_, ch := addIPTV(t, m, srv)
+	_, ch := addIPTV(t, f, srv)
 	ctx := context.Background()
-	list, _ := m.Sources(ctx)
-	if len(list) != 1 {
-		t.Fatalf("the tuner's guide should become a source: %+v", list)
-	}
-	if err := m.FetchSource(ctx, list[0].ID); err != nil {
+	res, err := http.Get(srv.URL + "/guide.xml")
+	if err != nil {
 		t.Fatal(err)
 	}
+	defer res.Body.Close()
+	n, matched, err := m.Ingest(ctx, 3, res.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != 3 || matched[ch[2].ID] != "byname" || len(matched) != 1 {
+		t.Fatalf("%d programmes, matched %v", n, matched)
+	}
+	f.change(m, ch[2].ID, func(c *Channel) { c.EPGID = matched[ch[2].ID] })
 	now := time.Now()
 	g, err := m.Guide(ctx, ch[0], now, now.Add(3*time.Hour))
 	if err != nil {
@@ -222,24 +157,25 @@ func TestXMLTVGuide(t *testing.T) {
 	if skipped != 0 {
 		t.Fatal("programmes of channels not on this server must not be stored")
 	}
-	// A channel with no id matches by name.
-	locked, _ := m.Channel(ctx, ch[2].ID)
-	if locked.EPGID != "byname" {
-		t.Fatalf("name match: %+v", locked)
-	}
 	ids, _ := m.GuideIDs(ctx)
 	if len(ids) != 3 {
 		t.Fatalf("%+v", ids)
 	}
-	if err := m.DeleteSource(ctx, list[0].ID); err != nil {
+	if err := m.DropSource(ctx, 3); err != nil {
 		t.Fatal(err)
+	}
+	ids, _ = m.GuideIDs(ctx)
+	var left int
+	_ = m.DB.QueryRow(`SELECT COUNT(*) FROM epg_programmes WHERE source LIKE 'xmltv:3%'`).Scan(&left)
+	if len(ids) != 0 || left != 0 {
+		t.Fatalf("a removed source's guide stays: %d ids, %d programmes", len(ids), left)
 	}
 }
 
 func TestBroadcastDataFillsTheGuide(t *testing.T) {
-	m := testManager(t)
+	m, f := testManager(t)
 	srv := iptvServer(t)
-	_, ch := addIPTV(t, m, srv)
+	_, ch := addIPTV(t, f, srv)
 	ctx := context.Background()
 	c := ch[1]
 	key := broadcastKey(c)
@@ -254,9 +190,9 @@ func TestBroadcastDataFillsTheGuide(t *testing.T) {
 }
 
 func TestRecordingRawStream(t *testing.T) {
-	m := testManager(t)
+	m, f := testManager(t)
 	srv := iptvServer(t)
-	tn, ch := addIPTV(t, m, srv)
+	tn, ch := addIPTV(t, f, srv)
 	folder := t.TempDir()
 	m.Folder = func() string { return folder }
 	finished := make(chan string, 1)
@@ -291,10 +227,7 @@ func TestRecordingRawStream(t *testing.T) {
 	if got.Status != "done" || got.SizeBytes != 500*188 {
 		t.Fatalf("%+v", got)
 	}
-	m.mu.Lock()
-	n := m.inUse[tn.ID]
-	m.mu.Unlock()
-	if n != 0 {
+	if n := f.used(tn); n != 0 {
 		t.Fatalf("the tuner should be free: %d", n)
 	}
 	if err := m.CancelRecording(ctx, r.ID, true); err != nil {
@@ -306,9 +239,9 @@ func TestRecordingRawStream(t *testing.T) {
 }
 
 func TestRecordingRefusesEncrypted(t *testing.T) {
-	m := testManager(t)
+	m, f := testManager(t)
 	srv := iptvServer(t)
-	_, ch := addIPTV(t, m, srv)
+	_, ch := addIPTV(t, f, srv)
 	folder := t.TempDir()
 	m.Folder = func() string { return folder }
 	ctx := context.Background()
@@ -347,9 +280,9 @@ func TestRecordingRefusesEncrypted(t *testing.T) {
 }
 
 func TestSeriesRule(t *testing.T) {
-	m := testManager(t)
+	m, f := testManager(t)
 	srv := iptvServer(t)
-	_, ch := addIPTV(t, m, srv)
+	_, ch := addIPTV(t, f, srv)
 	ctx := context.Background()
 	future := time.Now().Add(2 * time.Hour).Unix()
 	key := ch[0].GuideKey()
@@ -388,13 +321,4 @@ func TestSafeFileName(t *testing.T) {
 	if !strings.HasPrefix(safeFileName(strings.Repeat("é", 200)), "é") || len(safeFileName(strings.Repeat("é", 200))) > 120 {
 		t.Error("long names are cut")
 	}
-}
-
-// testManager has the real WittyTuner, from the test catalogue.
-func testManager(t *testing.T) *Manager {
-	t.Helper()
-	old := engine
-	t.Cleanup(func() { SetEngine(old) })
-	SetEngine(modules.Tuners{M: modtest.Need(t, "wittytuner")})
-	return bareManager(t)
 }

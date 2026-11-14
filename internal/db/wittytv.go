@@ -135,6 +135,25 @@ var wittyTVMigrations = []string{
 	// 8: what a guide says about a programme beyond its line in the grid (credits, scores, languages,
 	// subtitles, sound, year), as JSON, for its More info. Read for one programme at a time.
 	`ALTER TABLE epg_programmes ADD COLUMN extra TEXT NOT NULL DEFAULT '';`,
+	// 9: tuners, their channels and the guide sources are WittyTuner's own (module API 5, its own
+	// database, starting empty). The server keeps the guide: epg_channels now names WittyTuner's
+	// source ids, with no table of sources here. What named the old tuner channels by id goes with
+	// them, since WittyTuner's ids start again: the guide's programmes, scheduled recordings and
+	// series rules, favourites, reminders and set entries of tuner channels. Finished recordings
+	// stay, with no channel.
+	`DROP TABLE IF EXISTS tuner_channels;
+	 CREATE TABLE epg_channels_kept (source_id INTEGER NOT NULL, epg_id TEXT NOT NULL, name TEXT NOT NULL, PRIMARY KEY(source_id, epg_id));
+	 DROP TABLE IF EXISTS epg_channels;
+	 ALTER TABLE epg_channels_kept RENAME TO epg_channels;
+	 DROP TABLE IF EXISTS epg_sources;
+	 DROP TABLE IF EXISTS tuners;
+	 DELETE FROM epg_programmes;
+	 DELETE FROM recordings WHERE status IN ('scheduled', 'recording');
+	 UPDATE recordings SET channel_id = 0, rule_id = NULL;
+	 DELETE FROM recording_rules;
+	 DELETE FROM tv_favourites WHERE channel LIKE 'tun-%';
+	 DELETE FROM tv_reminders WHERE channel LIKE 'tun-%';
+	 DELETE FROM tv_set_channels WHERE channel LIKE 'tun-%';`,
 }
 
 func (d *DB) migrateWittyTV(ctx context.Context) error {

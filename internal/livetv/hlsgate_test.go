@@ -329,25 +329,6 @@ func TestGateAtHomeRefusesLinkLocal(t *testing.T) {
 	}
 }
 
-func TestMayLeadHome(t *testing.T) {
-	for _, tc := range []struct {
-		t    Tuner
-		want bool
-	}{
-		{Tuner{Driver: "network"}, true},
-		{Tuner{Driver: "stream"}, true},
-		{Tuner{Driver: "iptv", Options: map[string]string{"playlist": "/srv/list.m3u"}}, true},
-		{Tuner{Driver: "iptv", Options: map[string]string{"playlist": "http://192.168.1.2/list.m3u"}}, true},
-		{Tuner{Driver: "iptv", Options: map[string]string{"playlist": "http://localhost/list.m3u"}}, true},
-		{Tuner{Driver: "iptv", Options: map[string]string{"playlist": "https://iptv.example.com/list.m3u"}}, false},
-		{Tuner{Driver: "iptv", Options: map[string]string{"playlist": "https://8.8.8.8/list.m3u"}}, false},
-	} {
-		if got := mayLeadHome(&tc.t); got != tc.want {
-			t.Errorf("%+v: %v", tc.t, got)
-		}
-	}
-}
-
 // Addresses a playlist makes up can't grow memory for ever, and playlists are never forgotten.
 func TestGateRemembersABoundedNumber(t *testing.T) {
 	g, _ := testGate(t, "http://upstream.invalid/l.m3u8", true)
@@ -421,16 +402,9 @@ func TestFFmpegNeverSeesAKeyThatComesLater(t *testing.T) {
 	srv = httptest.NewServer(mux)
 	defer srv.Close()
 
-	m := testManager(t)
+	m, d := testManager(t)
 	ctx := context.Background()
-	tn, err := m.Create(ctx, &Tuner{Driver: "iptv", Name: "Live", Options: map[string]string{"playlist": srv.URL + "/list.m3u"}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	ch, err := m.Channels(ctx, tn.ID)
-	if err != nil || len(ch) != 1 {
-		t.Fatalf("%v %+v", err, ch)
-	}
+	ch := []*Channel{d.add(1, Channel{Number: "1", Name: "Live", Driver: "iptv"}, srv.URL+"/live.m3u8")}
 	o, err := m.Open(ctx, ch[0].ID)
 	if err != nil {
 		t.Fatal(err)

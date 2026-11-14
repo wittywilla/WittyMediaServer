@@ -37,8 +37,8 @@ func TestPublicErrorKeepsAddressesAndFoldersOut(t *testing.T) {
 // A row can come from a backup, and a backup's password only says who made it. Removing a recording
 // removes a file in the recordings folder and nothing else.
 func TestARecordingRowCantNameAnyOtherFile(t *testing.T) {
-	m := testManager(t)
-	c := liveChannel(t, m, newLiveFake(t, nil))
+	m, d := testManager(t)
+	c := liveChannel(t, d, newLiveFake(t, nil))
 	base := t.TempDir()
 	folder := filepath.Join(base, "recordings")
 	if err := os.MkdirAll(filepath.Join(folder, "News"), 0o750); err != nil {
@@ -98,9 +98,9 @@ func TestRecordingStopsWhenTheDiskIsNearlyFull(t *testing.T) {
 	old := recordingFreeFloor
 	recordingFreeFloor = math.MaxInt64
 	defer func() { recordingFreeFloor = old }()
-	m := testManager(t)
+	m, d := testManager(t)
 	f := newLiveFake(t, nil)
-	c := liveChannel(t, m, f)
+	c := liveChannel(t, d, f)
 	folder := t.TempDir()
 	m.Folder = func() string { return folder }
 	ctx := context.Background()

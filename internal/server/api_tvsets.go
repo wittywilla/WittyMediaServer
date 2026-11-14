@@ -249,13 +249,32 @@ func (s *Server) handleTVSets(w http.ResponseWriter, r *http.Request) {
 		sources = append(sources, setInfo{ID: "src:lib", Kind: "source", Name: "My library", Count: lib, Driver: "library"})
 	}
 	if len(byTuner) > 0 && s.TV != nil {
-		tuners, err := s.TV.Tuners(ctx)
+		// The tuners, as WittyTuner names them, by name.
+		all, err := s.TV.AllChannels(ctx)
 		if err != nil {
 			s.Log.WarnContext(ctx, "could not list tuners for the set picker", "cat", "tv", "err", err)
 		}
+		type tunerName struct {
+			id           int64
+			name, driver string
+		}
+		var tuners []tunerName
+		seen := map[int64]bool{}
+		for _, c := range all {
+			if !seen[c.TunerID] {
+				seen[c.TunerID] = true
+				tuners = append(tuners, tunerName{c.TunerID, c.TunerName, c.Driver})
+			}
+		}
+		sort.Slice(tuners, func(i, j int) bool {
+			if a, b := strings.ToLower(tuners[i].name), strings.ToLower(tuners[j].name); a != b {
+				return a < b
+			}
+			return tuners[i].id < tuners[j].id
+		})
 		for _, t := range tuners {
-			if n := byTuner[t.ID]; n > 0 {
-				sources = append(sources, setInfo{ID: "src:tun-" + strconv.FormatInt(t.ID, 10), Kind: "source", Name: t.Name, Count: n, Driver: t.Driver})
+			if n := byTuner[t.id]; n > 0 {
+				sources = append(sources, setInfo{ID: "src:tun-" + strconv.FormatInt(t.id, 10), Kind: "source", Name: t.name, Count: n, Driver: t.driver})
 			}
 		}
 	}

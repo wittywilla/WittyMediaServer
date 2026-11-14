@@ -36,6 +36,17 @@ func securityServer(t *testing.T) *httptest.Server {
 	return srv
 }
 
+// addBox is securityServer's lineup on a network tuner, as WittyTuner reads it: what the device
+// says about each channel's protection and format.
+func addBox(f *fakeDirectory, srv *httptest.Server) {
+	box := func(c Channel, path string) { c.Driver = "network"; f.add(1, c, srv.URL+path) }
+	box(Channel{Number: "5.1", Name: "WTST", Security: SecurityClear}, "/ok")
+	box(Channel{Number: "105.1", Name: "WTST ATSC3", ATSC3: true, VideoCodec: "HEVC", AudioCodec: "AC4", Encrypted: "the device says it is protected (DRM)"}, "/ok")
+	box(Channel{Number: "7.1", Name: "ALONE", Encrypted: "the device says it is protected (DRM)"}, "/ok")
+	box(Channel{Number: "9.1", Name: "SNEAKY", Security: SecurityClear}, "/scrambled")
+	box(Channel{Number: "11.1", Name: "WCLR3", ATSC3: true, VideoCodec: "HEVC", AudioCodec: "AC4", Security: SecurityClear}, "/ok")
+}
+
 func channelNamed(t *testing.T, list []*Channel, name string) *Channel {
 	t.Helper()
 	for _, c := range list {
@@ -48,16 +59,10 @@ func channelNamed(t *testing.T, list []*Channel, name string) *Channel {
 }
 
 func TestSecurityStatusAndAlternatives(t *testing.T) {
-	m := testManager(t)
+	m, f := testManager(t)
 	srv := securityServer(t)
 	ctx := context.Background()
-	tn, err := m.Create(ctx, &Tuner{Driver: "network", Name: "Box", Options: map[string]string{"address": srv.URL}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if tn.Encrypted != 2 || tn.Clear != 3 {
-		t.Fatalf("counts: %+v", tn)
-	}
+	addBox(f, srv)
 	list, _ := m.GuideChannels(ctx)
 	a3, plain, alone := channelNamed(t, list, "WTST ATSC3"), channelNamed(t, list, "WTST"), channelNamed(t, list, "ALONE")
 	if a3.Security != SecurityEncrypted || !a3.ATSC3 || plain.Security != SecurityClear || plain.ATSC3 {
@@ -89,12 +94,10 @@ func TestSecurityStatusAndAlternatives(t *testing.T) {
 }
 
 func TestUnencryptedATSC3Plays(t *testing.T) {
-	m := testManager(t)
+	m, f := testManager(t)
 	srv := securityServer(t)
 	ctx := context.Background()
-	if _, err := m.Create(ctx, &Tuner{Driver: "network", Name: "Box", Options: map[string]string{"address": srv.URL}}); err != nil {
-		t.Fatal(err)
-	}
+	addBox(f, srv)
 	list, _ := m.GuideChannels(ctx)
 	c := channelNamed(t, list, "WCLR3")
 	if !c.ATSC3 || c.Security != SecurityClear || c.VideoCodec != "HEVC" || c.AudioCodec != "AC4" {
@@ -108,13 +111,10 @@ func TestUnencryptedATSC3Plays(t *testing.T) {
 }
 
 func TestStreamShowsWhatItIs(t *testing.T) {
-	m := testManager(t)
+	m, f := testManager(t)
 	srv := securityServer(t)
 	ctx := context.Background()
-	tn, err := m.Create(ctx, &Tuner{Driver: "network", Name: "Box", Options: map[string]string{"address": srv.URL}})
-	if err != nil {
-		t.Fatal(err)
-	}
+	addBox(f, srv)
 	list, _ := m.GuideChannels(ctx)
 	c := channelNamed(t, list, "SNEAKY")
 	if c.Security != SecurityClear {
@@ -136,23 +136,13 @@ func TestStreamShowsWhatItIs(t *testing.T) {
 	o.Release()
 	got, _ := m.Channel(ctx, c.ID)
 	if got.Security != SecurityEncrypted || got.Encrypted != wittytuner.ScrambledReason {
-		t.Fatalf("it should now be labelled: %+v", got)
-	}
-	// A rescan reads the same clean lineup: what the stream showed stays.
-	if err := m.Refresh(ctx, tn.ID); err != nil {
-		t.Fatal(err)
-	}
-	got, _ = m.Channel(ctx, c.ID)
-	if got.Security != SecurityEncrypted {
-		t.Fatal("a rescan must not forget what the stream showed")
+		t.Fatalf("WittyTuner should have been told, and it labelled: %+v", got)
 	}
 	if _, err := m.Open(ctx, c.ID); !wittytuner.IsEncrypted(err) {
 		t.Fatalf("now refused before tuning: %v", err)
 	}
-	// Check again only forgets: the guard still stands in the way.
-	if _, err := m.EditChannel(ctx, c.ID, ChannelEdit{CheckAgain: true}); err != nil {
-		t.Fatal(err)
-	}
+	// Check again (in WittyTuner) only forgets: the guard still stands in the way.
+	f.change(m, c.ID, func(c *Channel) { c.Encrypted, c.Security = "", SecurityUnknown })
 	o, err = m.Open(ctx, c.ID)
 	if err != nil {
 		t.Fatal(err)
@@ -168,18 +158,10 @@ func TestStreamShowsWhatItIs(t *testing.T) {
 }
 
 func TestPlaylistChannelIsCheckedByPlaying(t *testing.T) {
-	m := testManager(t)
+	m, f := testManager(t)
 	streams := securityServer(t)
-	list := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "#EXTM3U\n#EXTINF:-1,Long\n%s/ok\n", streams.URL)
-	}))
-	defer list.Close()
 	ctx := context.Background()
-	tn, err := m.Create(ctx, &Tuner{Driver: "iptv", Name: "L", Options: map[string]string{"playlist": list.URL}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	ch, _ := m.Channels(ctx, tn.ID)
+	ch := []*Channel{f.add(1, Channel{Number: "1", Name: "Long", Driver: "iptv"}, streams.URL+"/ok")}
 	if ch[0].Security != SecurityUnknown {
 		t.Fatalf("a playlist doesn't say: %+v", ch[0])
 	}
@@ -201,14 +183,12 @@ func TestPlaylistChannelIsCheckedByPlaying(t *testing.T) {
 }
 
 func TestRecordingRestrictionsAreHonoured(t *testing.T) {
-	m := testManager(t)
+	m, f := testManager(t)
 	srv := iptvServer(t)
-	_, ch := addIPTV(t, m, srv)
+	_, ch := addIPTV(t, f, srv)
 	ctx := context.Background()
-	yes := true
-	if _, err := m.EditChannel(ctx, ch[0].ID, ChannelEdit{NoRecord: &yes}); err != nil {
-		t.Fatal(err)
-	}
+	noRecord := func(why string) { f.change(m, ch[0].ID, func(c *Channel) { c.NoRecord = why }) }
+	noRecord("you marked it as not to be recorded")
 	now := time.Now().Unix()
 	if _, err := m.Schedule(ctx, ch[0].ID, 1, "x", "", now, now+60); err == nil || !strings.Contains(err.Error(), "can't be recorded") {
 		t.Fatalf("%v", err)
@@ -217,17 +197,12 @@ func TestRecordingRestrictionsAreHonoured(t *testing.T) {
 		t.Fatal("nor as a series")
 	}
 	// Scheduled first, restricted after: it must not start.
-	no := false
-	if _, err := m.EditChannel(ctx, ch[0].ID, ChannelEdit{NoRecord: &no}); err != nil {
-		t.Fatal(err)
-	}
+	noRecord("")
 	r, err := m.Schedule(ctx, ch[0].ID, 1, "x", "", now, now+60)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := m.EditChannel(ctx, ch[0].ID, ChannelEdit{NoRecord: &yes}); err != nil {
-		t.Fatal(err)
-	}
+	noRecord("you marked it as not to be recorded")
 	folder := t.TempDir()
 	m.Folder = func() string { return folder }
 	full, _ := m.recording(ctx, r.ID)
@@ -235,23 +210,5 @@ func TestRecordingRestrictionsAreHonoured(t *testing.T) {
 	got, _ := m.recording(ctx, r.ID)
 	if got.Status != "failed" || got.Path != "" {
 		t.Fatalf("%+v", got)
-	}
-}
-
-func TestHelpOnlySaysWhatWasChecked(t *testing.T) {
-	h := EncryptedHelp()
-	if h.Checked == "" || len(h.Devices) == 0 {
-		t.Fatalf("%+v", h)
-	}
-	for _, d := range h.Devices {
-		if !strings.HasPrefix(d.URL, "https://") || d.Facts == "" || d.Source == "" {
-			t.Errorf("every device note names its source: %+v", d)
-		}
-	}
-	text := fmt.Sprintf("%+v", h)
-	for _, needle := range []string{"licensed", "ATSC 1.0", "isn't a device licensed", "support can change"} {
-		if !strings.Contains(text, needle) {
-			t.Errorf("help lacks %q", needle)
-		}
 	}
 }

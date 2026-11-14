@@ -34,11 +34,11 @@ func (s *syncBuffer) String() string {
 // A recording that fails always leaves a record tied to its ID, including one a
 // restart cut short.
 func TestFailedRecordingLeavesARecord(t *testing.T) {
-	m := testManager(t)
+	m, f := testManager(t)
 	buf := &syncBuffer{}
 	m.Log = slog.New(slog.NewTextHandler(buf, &slog.HandlerOptions{Level: slog.LevelDebug})).With("cat", "tv")
 	srv := iptvServer(t)
-	_, ch := addIPTV(t, m, srv)
+	_, ch := addIPTV(t, f, srv)
 	ctx := context.Background()
 	now := time.Now().Unix()
 	r, err := m.Schedule(ctx, ch[0].ID, 1, "Show", "", now, now+60)

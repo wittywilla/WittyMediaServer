@@ -282,7 +282,6 @@ var plainRoutes = []string{
 	"PUT /api/theme/personal",
 	"DELETE /api/theme/personal",
 	"GET /api/time",
-	"GET /api/tv/encrypted-help",
 	"GET /api/tv/favourites",
 	"GET /api/tv/reminders",
 	"GET /api/tv/{key}/logo",

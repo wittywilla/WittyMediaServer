@@ -308,7 +308,7 @@ func cmdServe(args []string) int {
 	defer modMgr.Close()
 	modStores := modules.NewStores(modules.StoresConfig{Manager: modMgr, Dir: filepath.Join(cfg.DataDir, "modules"), Transport: logging.Calls(library.SafeClient.Transport, "modules", "module store"), Log: log, CheckEnabled: modMgr.CheckEnabled})
 	library.SetPhotoEngine(photoengine.PhotoEngine{M: modMgr})
-	livetv.SetEngine(modules.Tuners{M: modMgr})
+	livetv.SetDirectory(livetv.RemoteDirectory{R: modules.Tuners{M: modMgr}, CheckInput: modules.CheckInput})
 	cd.Open = modules.CDs{M: modMgr}.Open
 	library.EngineThere = modMgr.Installed
 	modMgr.UseServices()

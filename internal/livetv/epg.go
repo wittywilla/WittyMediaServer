@@ -6,37 +6,19 @@ package livetv
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
-	"net/http"
-	"net/url"
-	"os"
 	"strings"
 	"time"
 
-	"github.com/wittywilla/wittymediaserver/internal/db"
-	"github.com/wittywilla/wittymediaserver/internal/tasks"
 	"github.com/wittywilla/wittymediaserver/internal/tuner/mpegts"
 	"github.com/wittywilla/wittymediaserver/internal/tuner/xmltv"
 )
 
-// Guide data: XMLTV sources fetched on a schedule, and what broadcasts say
-// about themselves while a channel is on. Only the coming two weeks are kept,
+// Guide data: XMLTV guides WittyTuner fetches from its sources on a schedule and hands over
+// (Ingest), and what broadcasts say about themselves while a channel is on. Only the coming two weeks are kept,
 // and only for channels on the server, so a guide file of a whole country does
 // not fill the database.
-
-// EPGSource is a place guide data comes from.
-type EPGSource struct {
-	ID         int64  `json:"id"`
-	Name       string `json:"name"`
-	URL        string `json:"url"`
-	LastFetch  *int64 `json:"lastFetch"`
-	LastError  string `json:"lastError"`
-	Programmes int    `json:"programmes"`
-	TunerID    *int64 `json:"tunerId,omitempty"`
-}
 
 // Programme is one guide entry.
 type Programme struct {
@@ -51,105 +33,12 @@ type Programme struct {
 	Episode  *int   `json:"episode,omitempty"`
 }
 
-const (
-	epgRefresh  = 12 * time.Hour
-	epgKeepDays = 14
-)
-
-// Sources lists guide sources.
-func (m *Manager) Sources(ctx context.Context) ([]EPGSource, error) {
-	rows, err := m.DB.QueryContext(ctx, `SELECT id, name, url, last_fetch, last_error, programmes, tuner_id FROM epg_sources ORDER BY name COLLATE NOCASE`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	out := []EPGSource{}
-	for rows.Next() {
-		var s EPGSource
-		var last, tuner sql.NullInt64
-		if err := rows.Scan(&s.ID, &s.Name, &s.URL, &last, &s.LastError, &s.Programmes, &tuner); err != nil {
-			return nil, err
-		}
-		if last.Valid {
-			s.LastFetch = &last.Int64
-		}
-		if tuner.Valid {
-			s.TunerID = &tuner.Int64
-		}
-		out = append(out, s)
-	}
-	return out, rows.Err()
-}
-
-func checkEPGPlace(place string) error {
-	if strings.Contains(place, "://") {
-		u, err := url.Parse(place)
-		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
-			return errors.New("guide data comes from an http(s) address or a file on the server")
-		}
-		return nil
-	}
-	if st, err := os.Stat(place); err != nil || !st.Mode().IsRegular() { // a pipe would hold the refresh for ever
-		return errors.New("that guide file was not found on the server")
-	}
-	return nil
-}
-
-// webGuide: a guide address a tuner or a playlist may name, as opposed to what the owner types.
-func webGuide(place string) bool {
-	u, err := url.Parse(place)
-	return err == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != ""
-}
-
-// AddSource adds a guide source and fetches it.
-func (m *Manager) AddSource(ctx context.Context, name, place string) (*EPGSource, error) {
-	place = strings.TrimSpace(place)
-	name = strings.TrimSpace(name)
-	if err := checkEPGPlace(place); err != nil {
-		return nil, err
-	}
-	if name == "" {
-		name = place
-	}
-	if len(name) > 200 || len(place) > 2000 {
-		return nil, errors.New("that is too long")
-	}
-	res, err := m.DB.ExecContext(ctx, `INSERT INTO epg_sources(name, url) VALUES(?, ?)`, name, place)
-	if err != nil {
-		if strings.Contains(err.Error(), "UNIQUE") {
-			return nil, errors.New("that guide source is already there")
-		}
-		return nil, err
-	}
-	id, _ := res.LastInsertId()
-	m.Log.InfoContext(ctx, "guide source added", "source", id, "name", name, "url", place)
-	m.Start()
-	m.background("guide refresh", func(ctx context.Context) {
-		if err := m.FetchSource(ctx, id); err != nil && ctx.Err() == nil {
-			m.Log.Warn("guide refresh failed", "name", name, "err", err)
-		}
-	}, "cat", "tv")
-	return &EPGSource{ID: id, Name: name, URL: place}, nil
-}
-
-// DeleteSource removes a source.
-func (m *Manager) DeleteSource(ctx context.Context, id int64) error {
-	res, err := m.DB.ExecContext(ctx, `DELETE FROM epg_sources WHERE id = ?`, id)
-	if err != nil {
-		return err
-	}
-	if n, _ := res.RowsAffected(); n == 0 {
-		return ErrNotFound
-	}
-	m.Log.InfoContext(ctx, "guide source removed", "source", id)
-	return nil
-}
+const epgKeepDays = 14
 
 func (m *Manager) epgLoop(ctx context.Context) {
 	t := time.NewTicker(30 * time.Minute)
 	defer t.Stop()
 	for {
-		m.refreshDue(ctx)
 		m.pruneGuide(ctx)
 		select {
 		case <-ctx.Done():
@@ -159,91 +48,16 @@ func (m *Manager) epgLoop(ctx context.Context) {
 	}
 }
 
-// refreshDue fetches sources not fetched for a while.
-func (m *Manager) refreshDue(ctx context.Context) {
-	list, err := m.Sources(ctx)
-	if err != nil {
-		return
-	}
-	for _, s := range list {
-		if s.LastFetch != nil && time.Since(time.Unix(*s.LastFetch, 0)) < epgRefresh {
-			continue
-		}
-		if err := m.FetchSource(ctx, s.ID); err != nil {
-			if ctx.Err() == nil {
-				m.Log.Warn("guide refresh failed", "name", s.Name, "err", err)
-			}
-		}
-	}
-}
-
 func (m *Manager) pruneGuide(ctx context.Context) {
 	_, _ = m.DB.ExecContext(ctx, `DELETE FROM epg_programmes WHERE stop < ?`, time.Now().Add(-24*time.Hour).Unix())
 }
 
-func (m *Manager) openGuide(ctx context.Context, place, auth string, client *http.Client) (io.ReadCloser, error) {
-	if !strings.Contains(place, "://") {
-		return os.Open(place)
-	}
-	req, err := http.NewRequestWithContext(ctx, "GET", place, nil)
-	if err != nil {
-		return nil, err
-	}
-	if auth != "" {
-		var h http.Header
-		if json.Unmarshal([]byte(auth), &h) == nil {
-			for k, v := range h {
-				req.Header[k] = v
-			}
-		}
-	}
-	req.Header.Set("User-Agent", "WittyMediaServer")
-	res, err := client.Do(req)
-	if err != nil {
-		return nil, gateError(err)
-	}
-	if res.StatusCode != 200 {
-		res.Body.Close()
-		return nil, fmt.Errorf("the guide source answered %s", res.Status)
-	}
-	return res.Body, nil
-}
-
-// FetchSource reads one source now, storing only programmes of channels on
-// this server.
-func (m *Manager) FetchSource(ctx context.Context, id int64) (err error) {
-	task := m.Tasks.Start(tasks.Spec{Type: tasks.TypeGuide, Title: "Updating the TV guide", AdminOnly: true})
-	defer func() { task.Finish(err) }()
-	var place, auth string
-	var tunerID sql.NullInt64
-	if err := m.DB.QueryRowContext(ctx, `SELECT url, auth, tuner_id FROM epg_sources WHERE id = ?`, id).Scan(&place, &auth, &tunerID); err != nil {
-		return ErrNotFound
-	}
-	client := gateClient(true)
-	err = checkEPGPlace(place)
-	if tunerID.Valid {
-		// A guide a tuner or its playlist named, rather than the owner.
-		client = m.internetClient()
-		if t, terr := m.Tuner(ctx, tunerID.Int64); terr == nil && mayLeadHome(t) {
-			client = gateClient(true)
-		}
-		if !webGuide(place) {
-			err = errors.New("a playlist's guide has to be a web address")
-		}
-	}
-	if err != nil {
-		_, _ = m.DB.ExecContext(ctx, `UPDATE epg_sources SET last_error = ?, last_fetch = ? WHERE id = ?`, PublicError(err), db.Now(), id)
+// DropSource forgets what a guide source WittyTuner removed gave: its channel ids and programmes.
+func (m *Manager) DropSource(ctx context.Context, id int64) error {
+	if _, err := m.DB.ExecContext(ctx, `DELETE FROM epg_channels WHERE source_id = ?`, id); err != nil {
 		return err
 	}
-	began := time.Now()
-	n, err := m.fetch(ctx, id, place, auth, client)
-	msg := ""
-	if err != nil {
-		msg = PublicError(err)
-	} else {
-		m.Log.InfoContext(ctx, "guide fetched", "source", id, "programmes", n, "took", time.Since(began).Round(time.Millisecond).String())
-	}
-	_, _ = m.DB.ExecContext(ctx, `UPDATE epg_sources SET last_error = ?, last_fetch = ?, programmes = ? WHERE id = ?`, msg, db.Now(), n, id)
+	_, err := m.DB.ExecContext(ctx, `DELETE FROM epg_programmes WHERE source IN (?, ?)`, fmt.Sprintf("xmltv:%d", id), fmt.Sprintf("xmltv:%d:coming", id))
 	return err
 }
 
@@ -283,40 +97,44 @@ func (i *idleReader) Read(p []byte) (int, error) {
 	return i.r.Read(p)
 }
 
-func (m *Manager) fetch(ctx context.Context, id int64, place, auth string, client *http.Client) (int, error) {
+// Ingest reads a guide WittyTuner fetched from one of its sources (id), keeping only the programmes
+// of channels on this server, and says which channels without a guide id of their own it matched
+// by name, for WittyTuner to keep. A guide cut short changes nothing.
+func (m *Manager) Ingest(ctx context.Context, id int64, r io.Reader) (int, map[int64]string, error) {
 	ctx, cancel := context.WithTimeout(ctx, guideMaxTime)
 	defer cancel()
-	r, err := m.openGuide(ctx, place, auth, client)
+	list, _, err := m.allChannels(ctx, true)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
-	defer r.Close()
+	n, matched, err := m.fetch(ctx, cancel, id, r, list)
+	if err == nil {
+		m.Start()
+		m.ForgetChannels()
+	}
+	return n, matched, err
+}
+
+func (m *Manager) fetch(ctx context.Context, cancel context.CancelFunc, id int64, r io.Reader, list []*Channel) (int, map[int64]string, error) {
+	// Whatever is reading the guide is stopped with it: a body that stops sending holds a read.
+	if c, ok := r.(io.Closer); ok {
+		defer context.AfterFunc(ctx, func() { _ = c.Close() })()
+	}
 	stalled := time.AfterFunc(guideIdle, cancel)
 	defer stalled.Stop()
 	// What the server has: guide ids, and names to match on when there are none.
 	wanted := map[string]bool{}
 	byName := map[string]int64{}
-	rows, err := m.DB.QueryContext(ctx, `SELECT c.id, c.epg_id, c.epg_set, c.name, c.name_set FROM tuner_channels c WHERE c.enabled = 1`)
-	if err != nil {
-		return 0, err
-	}
-	type row struct {
-		id           int64
-		key, set, nm string
-	}
-	for rows.Next() {
-		var c row
-		var nameSet string
-		if rows.Scan(&c.id, &c.key, &c.set, &c.nm, &nameSet) != nil {
+	for _, c := range list {
+		if !c.Enabled {
 			continue
 		}
-		if k := firstNonEmpty(c.set, c.key); k != "" {
+		if k := c.GuideKey(); k != "" {
 			wanted[k] = true
 		} else {
-			byName[normalizeName(firstNonEmpty(nameSet, c.nm))] = c.id
+			byName[normalizeName(c.Name)] = c.ID
 		}
 	}
-	rows.Close()
 	now := time.Now()
 	from, to := now.Add(-12*time.Hour), now.AddDate(0, 0, epgKeepDays)
 	src := fmt.Sprintf("xmltv:%d", id)
@@ -363,7 +181,7 @@ func (m *Manager) fetch(ctx context.Context, id int64, place, auth string, clien
 		return nil
 	}
 	var failed error
-	err = xmltv.Parse(&idleReader{r: r, timer: stalled, idle: guideIdle}, func(c xmltv.Channel) bool {
+	err := xmltv.Parse(&idleReader{r: r, timer: stalled, idle: guideIdle}, func(c xmltv.Channel) bool {
 		name := ""
 		if len(c.Names) > 0 {
 			name = c.Names[0]
@@ -409,35 +227,30 @@ func (m *Manager) fetch(ctx context.Context, id int64, place, auth string, clien
 	}
 	if err != nil {
 		discard()
-		return 0, fmt.Errorf("the guide could not be read: %w", err)
+		return 0, nil, fmt.Errorf("the guide could not be read: %w", err)
 	}
 	stalled.Stop()
 	tx, err := m.DB.BeginTx(ctx, nil)
 	if err != nil {
 		discard()
-		return 0, err
+		return 0, nil, err
 	}
 	defer tx.Rollback()
 	if _, err := tx.ExecContext(ctx, `DELETE FROM epg_channels WHERE source_id = ?`, id); err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	for _, c := range channels {
 		if _, err := tx.ExecContext(ctx, `INSERT OR REPLACE INTO epg_channels(source_id, epg_id, name) VALUES(?,?,?)`, id, c.id, c.name); err != nil {
-			return 0, err
+			return 0, nil, err
 		}
 	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM epg_programmes WHERE source = ?`, src); err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	if _, err := tx.ExecContext(ctx, `UPDATE epg_programmes SET source = ? WHERE source = ?`, src, coming); err != nil {
-		return 0, err
+		return 0, nil, err
 	}
-	for cid, key := range matched {
-		if _, err := tx.ExecContext(ctx, `UPDATE tuner_channels SET epg_id = ? WHERE id = ? AND epg_id = '' AND epg_set = ''`, key, cid); err != nil {
-			return 0, err
-		}
-	}
-	return count, tx.Commit()
+	return count, matched, tx.Commit()
 }
 
 func clip(s string, n int) string {

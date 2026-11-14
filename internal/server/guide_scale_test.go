@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/wittywilla/wittymediaserver/internal/livetv"
 )
 
 // bigLineup adds two IPTV tuners with n channels between them, in groups, and
@@ -23,19 +25,13 @@ func bigLineup(t testing.TB, s *Server, n, hours int) {
 		t.Fatal(err)
 	}
 	defer tx.Rollback()
-	for id, name := range []string{"Provider A", "Provider B"} {
-		if _, err := tx.Exec(`INSERT INTO tuners(id, driver, name, options, created_at) VALUES(?, 'iptv', ?, '{}', 1)`, id+1, name); err != nil {
-			t.Fatal(err)
-		}
-	}
+	names := []string{"Provider A", "Provider B"}
 	groups := []string{"News", "Sports", "Kids", "Movies", "Music", "Documentary", "Entertainment", "Regional"}
 	start := time.Now().Truncate(30*time.Minute).Unix() - 3600
 	for i := 1; i <= n; i++ {
 		epg := fmt.Sprintf("ch%05d.test", i)
-		if _, err := tx.Exec(`INSERT INTO tuner_channels(id, tuner_id, source_id, number, name, grp, epg_id) VALUES(?,?,?,?,?,?,?)`,
-			i, 1+i%2, fmt.Sprint("s", i), fmt.Sprint(i), fmt.Sprintf("Channel %05d", i), groups[i%len(groups)], epg); err != nil {
-			t.Fatal(err)
-		}
+		tunerChannel(t, livetv.Channel{ID: int64(i), TunerID: int64(1 + i%2), TunerName: names[i%2], Driver: "iptv", Number: fmt.Sprint(i), Name: fmt.Sprintf("Channel %05d", i),
+			Group: groups[i%len(groups)], EPGID: epg, Enabled: true}, "http://provider.invalid/"+epg+".ts")
 		for h := 0; h < hours*2; h++ {
 			at := start + int64(h)*1800
 			if _, err := tx.Exec(`INSERT INTO epg_programmes(channel, start, stop, title) VALUES(?,?,?,?)`, epg, at, at+1800, fmt.Sprintf("Programme %d on %d", h, i)); err != nil {

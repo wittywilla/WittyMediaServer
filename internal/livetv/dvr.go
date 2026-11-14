@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -120,8 +121,8 @@ var (
 	recordingFreeEvery       = 30 * time.Second
 )
 
-const recCols = `r.id, IFNULL(r.user_id, IFNULL((SELECT u.user_id FROM recording_rules u WHERE u.id = r.rule_id), 0)), r.channel_id, IFNULL(NULLIF(c.name_set, ''), IFNULL(c.name, '')), IFNULL(NULLIF(c.number_set, ''), IFNULL(c.number, '')), r.title, r.sub, r.start, r.stop, r.status, r.error, r.path, r.rule_id,
-	IFNULL((SELECT u.title FROM recording_rules u WHERE u.id = r.rule_id), ''), r.pad_before, r.pad_after, IFNULL(c.tuner_id, 0)`
+const recCols = `r.id, IFNULL(r.user_id, IFNULL((SELECT u.user_id FROM recording_rules u WHERE u.id = r.rule_id), 0)), r.channel_id, '', '', r.title, r.sub, r.start, r.stop, r.status, r.error, r.path, r.rule_id,
+	IFNULL((SELECT u.title FROM recording_rules u WHERE u.id = r.rule_id), ''), r.pad_before, r.pad_after, 0`
 
 func (m *Manager) scanRec(sc interface{ Scan(...any) error }) (*Recording, error) {
 	var r Recording
@@ -157,7 +158,7 @@ func (m *Manager) inRecordingsFolder(p string) bool {
 
 // Recordings lists every recording, newest first.
 func (m *Manager) Recordings(ctx context.Context) ([]*Recording, error) {
-	rows, err := m.DB.QueryContext(ctx, `SELECT `+recCols+` FROM recordings r LEFT JOIN tuner_channels c ON c.id = r.channel_id ORDER BY r.start DESC LIMIT 2000`)
+	rows, err := m.DB.QueryContext(ctx, `SELECT `+recCols+` FROM recordings r ORDER BY r.start DESC LIMIT 2000`)
 	if err != nil {
 		return nil, err
 	}
@@ -174,6 +175,7 @@ func (m *Manager) Recordings(ctx context.Context) ([]*Recording, error) {
 		return nil, err
 	}
 	rows.Close()
+	m.fillChannels(ctx, out...)
 	m.markConflicts(ctx, out)
 	return out, nil
 }
@@ -183,14 +185,9 @@ func (m *Manager) Recordings(ctx context.Context) ([]*Recording, error) {
 // never conflicts. Watching isn't counted: a recording stops a viewer, not the other way round.
 func (m *Manager) markConflicts(ctx context.Context, list []*Recording) {
 	limits := map[int64]int{}
-	if ts, err := m.Tuners(ctx); err == nil {
-		for _, t := range ts {
-			limits[t.ID] = t.MaxStreams
-			if limits[t.ID] == 0 {
-				if s, _, err := m.source(ctx, t.ID); err == nil {
-					limits[t.ID] = s.Info().MaxStreams
-				}
-			}
+	if list, _, err := m.allChannels(ctx, false); err == nil {
+		for _, c := range list {
+			limits[c.TunerID] = c.TunerStreams
 		}
 	}
 	busy := func(r *Recording) bool { return r.Status == "scheduled" || r.Status == "recording" }
@@ -304,11 +301,25 @@ func (m *Manager) ForgetUser(ctx context.Context, userID int64) error {
 }
 
 func (m *Manager) recording(ctx context.Context, id int64) (*Recording, error) {
-	r, err := m.scanRec(m.DB.QueryRowContext(ctx, `SELECT `+recCols+` FROM recordings r LEFT JOIN tuner_channels c ON c.id = r.channel_id WHERE r.id = ?`, id))
+	r, err := m.scanRec(m.DB.QueryRowContext(ctx, `SELECT `+recCols+` FROM recordings r WHERE r.id = ?`, id))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
+	if err == nil {
+		m.fillChannels(ctx, r)
+	}
 	return r, err
+}
+
+// fillChannels names each recording's channel and its tuner, from WittyTuner's channels. A channel
+// that has gone, or WittyTuner being off, leaves them empty.
+func (m *Manager) fillChannels(ctx context.Context, list ...*Recording) {
+	_, by, _ := m.allChannels(ctx, false)
+	for _, r := range list {
+		if c := by[r.ChannelID]; c != nil {
+			r.Channel, r.Number, r.tunerID = c.Name, c.Number, c.TunerID
+		}
+	}
 }
 
 // CancelRecording stops or removes a recording. Files stay unless deleteFile.
@@ -405,8 +416,8 @@ func (m *Manager) UpdateRule(ctx context.Context, id int64, o RuleOptions) error
 
 // Rules lists series recordings.
 func (m *Manager) Rules(ctx context.Context) ([]Rule, error) {
-	rows, err := m.DB.QueryContext(ctx, `SELECT r.id, IFNULL(r.user_id, 0), r.channel_id, IFNULL(NULLIF(c.name_set, ''), IFNULL(c.name, '')), r.title,
-		r.any_channel, r.new_only, r.keep, r.pad_before, r.pad_after FROM recording_rules r LEFT JOIN tuner_channels c ON c.id = r.channel_id ORDER BY r.title COLLATE NOCASE`)
+	rows, err := m.DB.QueryContext(ctx, `SELECT r.id, IFNULL(r.user_id, 0), r.channel_id, '', r.title,
+		r.any_channel, r.new_only, r.keep, r.pad_before, r.pad_after FROM recording_rules r ORDER BY r.title COLLATE NOCASE`)
 	if err != nil {
 		return nil, err
 	}
@@ -421,7 +432,16 @@ func (m *Manager) Rules(ctx context.Context) ([]Rule, error) {
 		r.AnyChannel, r.NewOnly = anyCh != 0, newOnly != 0
 		out = append(out, r)
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	_, by, _ := m.allChannels(ctx, false)
+	for i := range out {
+		if c := by[out[i].ChannelID]; c != nil {
+			out[i].Channel = c.Name
+		}
+	}
+	return out, nil
 }
 
 // DeleteRule stops a series recording. What is scheduled from it goes too.
@@ -555,17 +575,24 @@ func (m *Manager) recordableFor(ctx context.Context, key string, prefer int64) i
 			ids = append(ids, id)
 		}
 	} else {
-		rows, err := m.DB.QueryContext(ctx, `SELECT id FROM tuner_channels WHERE epg_set = ? OR (epg_set = '' AND epg_id = ?) ORDER BY id != ?, id LIMIT 20`, key, key, prefer)
+		list, _, err := m.allChannels(ctx, false)
 		if err != nil {
 			return 0
 		}
-		for rows.Next() {
-			var id int64
-			if rows.Scan(&id) == nil {
-				ids = append(ids, id)
+		for _, c := range list {
+			if c.GuideKey() == key {
+				ids = append(ids, c.ID)
 			}
 		}
-		rows.Close()
+		sort.Slice(ids, func(i, j int) bool {
+			if (ids[i] == prefer) != (ids[j] == prefer) {
+				return ids[i] == prefer
+			}
+			return ids[i] < ids[j]
+		})
+		if len(ids) > 20 {
+			ids = ids[:20]
+		}
 	}
 	for _, id := range ids {
 		c, err := m.Channel(ctx, id)
@@ -693,7 +720,7 @@ func (m *Manager) dvrLoop(ctx context.Context) {
 
 func (m *Manager) startDue(ctx context.Context) {
 	now := time.Now().Unix()
-	rows, err := m.DB.QueryContext(ctx, `SELECT `+recCols+` FROM recordings r LEFT JOIN tuner_channels c ON c.id = r.channel_id WHERE r.status = 'scheduled' AND r.start - MAX(?, r.pad_before * 60) <= ?`, padBefore, now)
+	rows, err := m.DB.QueryContext(ctx, `SELECT `+recCols+` FROM recordings r WHERE r.status = 'scheduled' AND r.start - MAX(?, r.pad_before * 60) <= ?`, padBefore, now)
 	if err != nil {
 		return
 	}
@@ -704,6 +731,7 @@ func (m *Manager) startDue(ctx context.Context) {
 		}
 	}
 	rows.Close()
+	m.fillChannels(ctx, due...)
 	for _, r := range due {
 		if r.Stop+m.padAfterOf(r) <= now {
 			m.finish(r.ID, "failed", "the server was not running when this was due", "")
@@ -999,4 +1027,11 @@ func (m *Manager) recordPath(r *Recording) (string, error) {
 		}
 		p = filepath.Join(dir, name+" ("+strconv.Itoa(i)+").ts")
 	}
+}
+
+func boolInt(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }

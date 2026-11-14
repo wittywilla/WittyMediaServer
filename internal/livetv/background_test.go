@@ -5,18 +5,13 @@ package livetv
 
 import (
 	"context"
-	"database/sql"
-	"io"
 	"log/slog"
 	"os"
 	"slices"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
-
-	"github.com/wittywilla/wittymediaserver/internal/tuner"
 )
 
 // What the manager starts on its own is ended and waited for by Close. Before, a test's manager
@@ -72,28 +67,13 @@ func TestCloseDoesNotWaitForEver(t *testing.T) {
 // scan, and a recording. Close ends each, and each has written what it had to before Close
 // returns, so the database can close after it.
 func TestCloseWaitsForTheManagersOwnWork(t *testing.T) {
-	old := engine
-	t.Cleanup(func() { SetEngine(old) })
-	scanning := make(chan struct{})
-	SetEngine(&slowEngine{scanning: scanning})
-	m := bareManager(t)
+	m, f := testManager(t)
 	folder := t.TempDir()
 	m.Folder = func() string { return folder }
 	ctx := context.Background()
-	tn, err := m.Create(ctx, &Tuner{Driver: "iptv", Name: "Slow", Options: map[string]string{"playlist": "/srv/slow.m3u"}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	ch, err := m.Channels(ctx, tn.ID)
-	if err != nil || len(ch) != 1 {
-		t.Fatalf("%v %v", err, ch)
-	}
-	if err := m.StartScan(tn.ID, ""); err != nil {
-		t.Fatal(err)
-	}
-	<-scanning
+	c := f.add(1, Channel{Number: "1", Name: "Slow", Driver: "iptv"}, "slow")
 	now := time.Now().Unix()
-	rec, err := m.Schedule(ctx, ch[0].ID, 1, "Show", "", now, now+600)
+	rec, err := m.Schedule(ctx, c.ID, 1, "Show", "", now, now+600)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,7 +88,7 @@ func TestCloseWaitsForTheManagersOwnWork(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 	}
 	running := m.stillRunning()
-	for _, want := range []string{"guide refresher", "recording scheduler", "channel scan", "recording"} {
+	for _, want := range []string{"guide tidying", "recording scheduler", "recording"} {
 		if !slices.Contains(strings.Split(running, ", "), want) {
 			t.Errorf("%s isn't running: %s", want, running)
 		}
@@ -118,14 +98,6 @@ func TestCloseWaitsForTheManagersOwnWork(t *testing.T) {
 
 	if left := m.stillRunning(); left != "" {
 		t.Errorf("still running after Close: %s", left)
-	}
-	// The scan ended its own way, and said so.
-	if st := m.ScanProgress(tn.ID); st.Running {
-		t.Errorf("the scan is still marked running: %+v", st)
-	}
-	var lastScan sql.NullInt64
-	if err := m.DB.QueryRow(`SELECT last_scan FROM tuners WHERE id = ?`, tn.ID).Scan(&lastScan); err != nil || !lastScan.Valid {
-		t.Errorf("the scan's end wasn't saved: %v %v", lastScan, err)
 	}
 	// The recording says the server stopped, and what it recorded stays.
 	got, err := m.Recording(ctx, rec.ID)
@@ -138,40 +110,7 @@ func TestCloseWaitsForTheManagersOwnWork(t *testing.T) {
 	if _, err := os.Stat(got.Path); err != nil {
 		t.Errorf("what was recorded is gone: %v", err)
 	}
-	// Nothing starts after Close.
-	if err := m.StartScan(tn.ID, ""); err == nil {
-		t.Error("a scan started after Close")
+	if n := f.used(1); n != 0 {
+		t.Errorf("the tuner is still held: %d", n)
 	}
-	if st := m.ScanProgress(tn.ID); st.Running {
-		t.Errorf("a scan is marked running after Close: %+v", st)
-	}
-}
-
-// slowEngine's sources scan, and send a stream, until they're told to stop.
-type slowEngine struct {
-	fakeEngine
-	scanning chan struct{}
-	once     sync.Once
-}
-
-func (e *slowEngine) New(context.Context, string, tuner.Config, tuner.Env) (tuner.Source, error) {
-	return &slowSource{listSource: listSource{playlist: "http://tuner.test/live.ts\n"}, e: e}, nil
-}
-
-type slowSource struct {
-	listSource
-	e *slowEngine
-}
-
-func (s *slowSource) Scan(ctx context.Context, _ tuner.ScanOptions, _ func(tuner.Progress)) ([]tuner.Channel, error) {
-	s.e.once.Do(func() { close(s.e.scanning) })
-	<-ctx.Done()
-	time.Sleep(20 * time.Millisecond) // still finishing when Close is asked
-	return nil, ctx.Err()
-}
-
-func (s *slowSource) Open(context.Context, tuner.Channel) (*tuner.Stream, error) {
-	r, w := io.Pipe()
-	go func() { _, _ = w.Write(make([]byte, 188*10)) }() // then nothing more, until closed
-	return &tuner.Stream{Reader: r}, nil
 }

@@ -658,14 +658,13 @@ func stripSecrets(ctx context.Context, d *sql.DB, secret []string) error {
 	for _, stmt := range []string{
 		`UPDATE users SET totp_secret = NULL, totp_on = 0, recovery_codes = NULL`,
 		`DELETE FROM share_links`,
-		`UPDATE epg_sources SET auth = ''`,
 	} {
 		if _, err := d.ExecContext(ctx, stmt); err != nil {
 			return err
 		}
 	}
-	// Addresses of TV sources may have a login in them.
-	for _, col := range []struct{ table, id, col string }{{"tuners", "id", "options"}, {"epg_sources", "id", "url"}, {"podcasts", "id", "url"}} {
+	// Addresses may have a login in them. (Tuners and guide sources are WittyTuner's, in its own data.)
+	for _, col := range []struct{ table, id, col string }{{"podcasts", "id", "url"}} {
 		if err := scrubColumn(ctx, d, col.table, col.id, col.col); err != nil {
 			return err
 		}

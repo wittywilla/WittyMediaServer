@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"strings"
 	"testing"
 	"time"
 
@@ -217,7 +218,7 @@ func TestStuckScanStopsAndReportsKeepOneGoing(t *testing.T) {
 		t.Fatal("a scan nothing moved in wasn't stopped")
 	}
 	waitScan(t, f.s, f.lib.ID)
-	if !errors.Is(cause, ErrScanStuck) {
+	if !errors.Is(cause, ErrScanStuck) || !strings.Contains(cause.Error(), "while Fake Play was putting what it found together") {
 		t.Fatalf("stopped with %v", cause)
 	}
 	if runs, _ := f.s.Store.ScanRuns(f.ctx); len(runs) != 0 {

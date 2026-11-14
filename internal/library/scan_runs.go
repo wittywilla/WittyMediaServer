@@ -58,9 +58,12 @@ var ErrScanStuck = errors.New("the scan was stopped because nothing moved for a 
 type stuckError struct{ what string }
 
 func (e *stuckError) Error() string {
-	return fmt.Sprintf("Nothing moved for %s while %s, so the scan was stopped as stuck. Scan the library again; if it stops at the same place, the log has the details.",
-		roundMinutes(StuckAfter), e.what)
+	return fmt.Sprintf("Nothing moved for %s while %s, so the scan was stopped as stuck.", roundMinutes(StuckAfter), e.what)
 }
+
+// stuckFix is what to do about a stuck scan.
+const stuckFix = "Scan the library again. If it stops at the same place, the log has the details."
+
 func (e *stuckError) Unwrap() error { return ErrScanStuck }
 
 func roundMinutes(d time.Duration) string {
@@ -228,13 +231,17 @@ func (l *liveScan) moved() {
 	l.mu.Unlock()
 }
 
-// doing says what the scan is doing now, which also counts as moving.
+// doing says what the scan is doing now, which also counts as moving. While a module's call is
+// under way, what that call is for says it better.
 func (l *liveScan) doing(what string) {
 	if l == nil {
 		return
 	}
 	l.mu.Lock()
-	l.last, l.what = time.Now(), what
+	l.last = time.Now()
+	if l.module == "" {
+		l.what = what
+	}
 	l.mu.Unlock()
 }
 

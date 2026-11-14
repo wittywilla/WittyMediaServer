@@ -181,7 +181,11 @@ func (s *Scanner) StartBy(libraryID int64, mode ScanMode, by tasks.By) bool {
 			return
 		}
 		s.Store.endRun(context.Background(), libraryID)
-		t.Finish(err)
+		if errors.Is(err, ErrScanStuck) {
+			t.Fail(err.Error(), stuckFix, nil)
+		} else {
+			t.Finish(err)
+		}
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
 				s.Log.InfoContext(ctx, "scan cancelled", "library", libraryID)

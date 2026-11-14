@@ -1159,13 +1159,14 @@ interface reads the first two from the server too.
 
 ## Game details
 
-Scans only list a game's file, and details arrive afterwards in the background, so a game's item fills
-in over time. `title`, `year`, `overview`, `genres`, `studio` (its developer), `rating` (out of 10: critics
+A games library is scanned through WittyPlay (its scan hooks, [MODULES-API5.md](MODULES-API5.md#scan-hooks)): the scan
+lists a game's file, and WittyPlay fills in its details then and in the background, so a game's item fills in over
+time. `title`, `year`, `overview`, `genres`, `studio` (its developer), `rating` (out of 10: critics
 if any, otherwise players), `contentRating` and the art on `GET /items/{id}` are already the merged result,
 in the owner's chosen order of sources, and they're what lists can sort and filter by. A hidden game answers
 404 here like anywhere, so parental controls need nothing from a client.
 
-`GET /games/{id}/metadata` has the rest:
+`GET /modules/wittyplay/games/{id}/metadata` has the rest:
 
 - `status`: `pending` while it's being looked up, then `done`. Ask again in a while if it's `pending`.
 - `matchSource`, `matchMethod` (`checksum`, `serial`, `name` or `manual`) and `confidence` out of 100. No
@@ -1174,24 +1175,24 @@ in the owner's chosen order of sources, and they're what lists can sort and filt
   who gave a score.
 - `ages`: `{system, value, age}`, such as ESRB and T, with what that means in years. `contentRating` on the
   item is the strictest of these, written `ESRB T`.
-- `art`: `{kind, url}`, with `kind` being `screenshot`, `title` or `artwork`. Pictures are fetched by the server,
+- `art`: `{kind, url}`, with `kind` being `screenshot`, `title` or `artwork`. Pictures are fetched by WittyPlay,
   so a client never talks to a source. A picture that can't be found answers 404: leave it out.
 - `credits`: `{name, text, site, url, license}`. **Show these wherever the game's details are.** Some sources'
   terms require it, RAWG's on every page using its data, and Wikipedia's text needs its link and licence.
 
-`GET /items/{id}/achievements` lists the game's achievements at RetroAchievements, found by a checksum of its
+`GET /modules/wittyplay/items/{id}/achievements` lists the game's achievements at RetroAchievements, found by a checksum of its
 file. The checksum is taken on this server the first time someone asks, and only matched here: nothing about the
 file is sent. Nothing is earned or tracked yet, so show every achievement as not earned. The answer is
 `{state, game, achievements, message}`:
 
-- `state`: `ok`; `nokey` when no RetroAchievements Web API key is set (an administrator adds one in Settings,
-  Metadata agents); `unsupported` for a console, or a disc, whose checksums aren't taken; `notfound` when
+- `state`: `ok`; `nokey` when no RetroAchievements Web API key is set (an administrator adds one in WittyPlay's
+  settings, kept as one of its secrets); `unsupported` for a console, or a disc, whose checksums aren't taken; `notfound` when
   RetroAchievements doesn't know this exact file, or it has no achievements; `error` for anything else, such as the
   service not answering. When it isn't `ok`, `message` says so in plain words, to show as it is.
 - `game`: `{id, title, url, points}`, with `url` its page at RetroAchievements and `points` all its achievements'
   points together. `null` unless `state` is `ok`.
-- `achievements`: `{id, title, description, points, badge}`, in the game's own order. `badge` is this server's
-  address for the greyed-out picture, `""` when there is none. Pictures come through the server, so a client
+- `achievements`: `{id, title, description, points, badge}`, in the game's own order. `badge` is WittyPlay's
+  address for the greyed-out picture, `""` when there is none. Pictures come through WittyPlay, so a client
   never contacts RetroAchievements. Credit RetroAchievements wherever these are shown.
 
 The first answer for a console can take several seconds, while its list of games is fetched; after that they're quick.
@@ -1210,7 +1211,7 @@ A game with no `poster` should use art made from its title and console, as the w
 `/items/{id}/poster?w=320`: full-size box art is several times larger than a grid needs.
 
 The first pass over a large collection takes a while, on purpose: each source is asked no faster than its
-rules allow. `GET /gamemeta/status` says how it's going, for administrators.
+rules allow. `GET /modules/wittyplay/gamemeta/status` says how it's going, for administrators.
 
 ## People
 
@@ -1431,6 +1432,8 @@ Paths are relative to `/api/v1`. Full request and response shapes are in `openap
 | `DELETE /modules/{id}/pin` | admin | Let automatic updates move it again. |
 | `PUT /modules/{id}/autoupdate` | admin | Whether this module may update by itself while the server's setting is on: `{"on": false}`. It still looks for updates and offers them. Not for modules that update with the server. |
 | `POST /modules/{id}/latest` | admin | End a pin and move to the newest version that fits. 202. |
+| `GET /modules/{id}/secrets` | admin | Which secrets an administrator gave the module (keys for its online sources): `{"set": [names]}`. Names only, never values. |
+| `PUT /modules/{id}/secrets/{name}` | admin | Give the module a secret: `{"value": "..."}`, `""` to remove it. The name is letters, digits, `-`, `_` and `.`, up to 64. The value is never shown again or logged; the audit log says it was set or removed. Answers `{"ok": true}`. |
 | `POST /modules/{id}/remove` | admin | Take a module off this server. Answered 409 with `"code": "module-in-use"` and the `libraries` that need it. No data is touched. |
 | `PUT /modules/installed` | admin | Make the set of modules on this server what someone chose: `{"installed": ["wittyvideo"]}`, as first-run setup does. Refused whole if libraries need something left out. A module whose only version was made for an older server isn't installed unless it is named in `"confirmOlder": ["wittyplay"]`; otherwise its status `error` says why. |
 | `PUT /modules/{id}/source` | admin | Take this module's releases from a fork: `{"repo": "someone/WittyDVD", "key": "<public key>", "confirm": true, "password": "...", "code": "..."}`. Answered 409 with `"code": "confirm"` and the security warning until confirmed. Show that warning; don't replace it. 403 where forks are refused. See [Using someone's fork](MODULE-STORE.md#using-someones-fork). |
@@ -1441,7 +1444,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in `openap
 | `GET /modules/{id}/web/{version}/{path}` | user | A file of the bundle in use. Only names in its signed list exist. |
 | `POST /modules/{id}/failed` | user | A browser saying a bundle wouldn't load or crashed: `{"version": "...", "reason": "..."}`. Three within a day, at most one a minute, from an administrator's browser take that version out of use, and anyone else's goes in the module's log. 204. |
 
-`POST /libraries` answers 409 with `"code": "module-missing"` and the `modules` that would make it possible when a kind of library's module isn't installed.
+`POST /libraries` answers 409 with `"code": "module-missing"` and the `modules` that would make it possible when a kind of library's module isn't installed. A `games` library (made or changed with `PUT /libraries/{id}`) needs a module that scans games, installed and on; its `console` is `auto` or one of that module's consoles, or it's refused as "unknown console".
 
 A folder on another machine (`\\nas\media`), named from anywhere but the server's own desktop, is refused by `POST /libraries`, `PUT /libraries/{id}` and `GET /fs` with `"code": "other-machine"`, unless the owner set `allowNetworkPaths`. A client should lay out the ways forward: add it on the server's own desktop, use a drive letter or mount on the server, or that setting.
 
@@ -1522,11 +1525,11 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `PUT /libraries/{id}` | admin | Change a library; scanning starts. |
 | `DELETE /libraries/{id}` | admin | Remove a library (the files stay). |
 | `POST /libraries/{id}/scan` | admin | Scan now. |
-| `GET /libraries/{id}/scan` | user | Scan progress. For an administrator, a games library also has `skipped`: files the last scan couldn't use, by extension. |
+| `GET /libraries/{id}/scan` | user | Scan progress. |
 | `POST /libraries/{id}/forget-metadata` | admin | Remove downloaded details, to see matching and downloading happen again. Body `{"files": true, "details": true, "rescan": false}` (files and details default to on). `files`: the artwork, NFOs and CD sidecars the server saved beside the media, and macOS `._` files with them; a person's NFO kept as `.nfo.bak` goes back. Works on a read-only library too. `details`: overviews, genres, ratings, artwork, matches, cast and crew and where-to-watch answers of its films, episodes and shows, which go back to their file names; cached pictures go too. Kept: IDs, watch history and progress, people's ratings, lists, favourites, and fields someone locked or typed. Answer: counts `removed`, `restored`, `companions`, `skipped`, `titles`, `shows`, `cached`, `lockedKept`, `notReset` (libraries whose kind isn't looked up by file name), `rescanning`. 409 while the library is being scanned. |
 | `POST /libraries/forget-metadata` | admin | The same for every library, and downloaded logos and where-to-watch answers (`logos` counts them). |
 | `GET /genres` | user | Genres among movies and other items. |
-| `GET /items` | user | List and filter items. All filtering and sorting happens here, so clients never filter themselves. Games: `console=<id>` for one console, `played=1` for what this user has played, `genre=`, `decade=1990`, `players=2` (at least this many), `minRating=8` (out of 10), `unmatched=1` (no match found), and `sort=title`, `rating`, `year` or `added`. |
+| `GET /items` | user | List and filter items. All filtering and sorting happens here, so clients never filter themselves. Games: `console=<id>` for one console, `played=1` for what this user has played, `genre=`, `decade=1990`, `minRating=8` (out of 10), and `sort=title`, `rating`, `year` or `added`. |
 | `GET /items/{id}` | user | One item, with its progress, next episode, intro range and (discs) how it starts. |
 | `PUT /items/{id}` | admin | Edit an item's details or refresh them; any field may be left out. |
 | `GET /items/{id}/poster` | user, `st` | Poster image. For games, `w=320` (up to 640) asks for a smaller copy, for lists. |
@@ -1557,8 +1560,6 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 
 | Route | Who | What it does |
 |---|---|---|
-| `GET /console-photos/{id}` | Signed in | A console's picture for WittyPlay's Consoles tab, from Wikimedia Commons by its Wikidata entity, fetched and kept by the server: `{imageUrl, credit, license, licenseUrl, pageUrl, source}`, or 404. Asked for only with Wikidata lookups on and Wikimedia downloads agreed to. |
-| `GET /console-photos/{id}/image` | Signed in | That picture, from the server's own copy. |
 | `GET /logos/status` | Signed in | Whether logo downloads are agreed to, and for an administrator how far they have got. |
 | `PUT /logos/consent` | Admin | Agree or decline logo downloads, and optionally remove what was downloaded. |
 | `POST /logos/lookup` | Signed in | What to show for up to 200 names: a logo, or the name. |
@@ -1946,9 +1947,11 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 
 ### Games
 
-| Route | Sign-in | What it does |
+Playing, a game's details and matching, review, pictures and achievements are WittyPlay's, a module of API 5: its routes are under `/modules/wittyplay/`, checked by the server as [MODULES-API5.md](MODULES-API5.md) says (feature `games`), and answer 424 with `module` while the module isn't in use. [GAMING-API.md](GAMING-API.md) has the routes for playing. Lists of games are the server's own `/items` (`kind=game`, `console=`).
+
+| Route (under `/modules/wittyplay`) | Sign-in | What it does |
 |---|---|---|
-| `GET /games/{id}/versions` | user | A game's other versions and its discs. Playing a game is WittyPlay's: its routes are under `/modules/wittyplay/` ([GAMING-API.md](GAMING-API.md)). |
+| `GET /games/{id}/versions` | user | A game's other versions and its discs. |
 | `PUT /games/{id}/version` | admin | Which file in its archive to play. |
 | `POST /games/{id}/split` | admin | A version becomes a game of its own. |
 | `PUT /games/{id}/console` | admin | This file is for another console. |
@@ -1977,7 +1980,9 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `POST /gamemeta/refetch` | admin | Forget what every source said about every game and ask again. Locked games stay. |
 | `GET /gamemeta/sources` | admin | Every source, in the order they're believed: what it needs, costs and sends. Key values are never included. |
 | `PUT /gamemeta/sources` | admin | Set the sources' order and whether each is on: `{sources: [{id, on}]}`. Costs no requests. |
-| `POST /gamemeta/sources/{id}/test` | admin | Does this work? `{fields: {setting: value}}`. Saves nothing. Keys themselves are saved through `PUT /settings`, and masked when read back. |
+| `POST /gamemeta/sources/{id}/test` | admin | Does this work? `{fields: {setting: value}}`. Saves nothing. Keys themselves are the module's secrets, set with `PUT /modules/wittyplay/secrets/{name}` and never read back. |
+| `GET /console-photos/{id}` | user | A console's picture for WittyPlay's Consoles tab, from Wikimedia Commons by its Wikidata entity, fetched and kept by WittyPlay: `{imageUrl, credit, license, licenseUrl, pageUrl, source}`, or 404. Asked for only with Wikidata lookups on and Wikimedia downloads agreed to. |
+| `GET /console-photos/{id}/image` | user | That picture, from WittyPlay's own copy. |
 
 ### Game PCs and game rigs (WittyCouch, WittyRigs)
 

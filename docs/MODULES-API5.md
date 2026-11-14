@@ -6,6 +6,7 @@ For developers of modules and of the server: what module API 5 adds to a module,
 - [integration.json](#integrationjson)
 - [Routes](#routes)
 - [The host API](#the-host-api)
+- [Scan hooks](#scan-hooks)
 - [Lifecycle](#lifecycle)
 - [The web part](#the-web-part)
 - [Building a web part](#building-a-web-part)
@@ -23,6 +24,7 @@ For developers of modules and of the server: what module API 5 adds to a module,
 | HTTP routes | its service, under `/http` | Mounts each at `/api/modules/<id><path>`, checks who may call it, passes the request on; apps call it there |
 | A web part that exports `register(host)` | `web/` in its archive | Tells the web app what the module claims; loads the bundle when one of its screens is first needed |
 | Its own data | a SQLite database in its data folder | Backs it up |
+| [Scan hooks](#scan-hooks) | its service (`service.Config.Scan`) | Scans the libraries of the kinds it names through it, and applies what it answers |
 | Lifecycle calls | its service, on the helper protocol | Calls them at a version's first start and before the module is taken off |
 
 `wittymodule.API` and the server's `API` are 5. A server takes API 5 only: no other module API is supported (the owner, 2026-11-13: no backwards compatibility). A version of API 5 must carry `integration.json` if it's a helper, program or web bundle (`wittymodule check` and `catalog-add` refuse one without it).
@@ -34,7 +36,7 @@ Read strictly: one object, at most 256 KiB, and an unknown field anywhere is ref
 ```jsonc
 {
   "format": "wittymodule-integration", "formatVersion": 1, "module": "wittyplay",
-  "host": { "http": ">=1 <2", "web": ">=5", "host": ">=1" },
+  "host": { "http": ">=1 <2", "web": ">=5", "host": ">=2" },
   "feature": "games",
   "http": [
     { "path": "/games/{id}/play", "methods": ["POST"], "auth": "user", "item": "id", "plays": true, "limits": { "body": "256KB", "time": "3m" } },
@@ -51,7 +53,8 @@ Read strictly: one object, at most 256 KiB, and an unknown field anywhere is ref
   "sdui": { "ops": [ { "id": "wittyplay.room.create", "http": "POST /rooms" } ] },
   "data": { "store": "sqlite", "backup": "saves" },
   "lifecycle": { "install": true, "upgrade": true, "uninstall": "ask-keep-data" },
-  "live": { "sessions": true }
+  "live": { "sessions": true },
+  "scan": { "libraryKinds": ["games"], "identify": true, "describe": true, "facet": "console" }
 }
 ```
 
@@ -65,12 +68,13 @@ Read strictly: one object, at most 256 KiB, and an unknown field anywhere is ref
 | `data` | Its own database: `store` is `sqlite`; `backup` is the part of a backup it goes in (`settings`, `saves`, `library`). Needs the `data` permission and a `dataFormat` in `module.json`. It starts empty |
 | `lifecycle` | Which [lifecycle calls](#lifecycle) it answers |
 | `live` | `sessions`: it reports live sessions (games, streams) to the server |
+| `scan` | The kinds of library it scans (`libraryKinds`), whether it answers `scan.identify` and `scan.describe`, and the facet it holds a library to (`console`). See [Scan hooks](#scan-hooks) |
 
-Routes, data and lifecycle need a module with a service (`delivery` `helper`, with `service.Config.HTTP`).
+Routes, data, lifecycle and scan need a module with a service (`delivery` `helper`, with `service.Config.HTTP`).
 
 ## Routes
 
-Each route is mounted at `/api/modules/<id><path>` and `/api/v1/modules/<id><path>`. A module's path can't start with one of the server's own names under `/api/modules/{id}/` (`install`, `versions`, `web`, `enable`, …: `modules.ReservedPaths`).
+Each route is mounted at `/api/modules/<id><path>` and `/api/v1/modules/<id><path>`. A module's path can't start with one of the server's own names under `/api/modules/{id}/` (`install`, `versions`, `web`, `enable`, `secrets`, …: `modules.ReservedPaths`).
 
 | Field | What it does |
 |---|---|
@@ -91,7 +95,7 @@ Each route is mounted at `/api/modules/<id><path>` and `/api/v1/modules/<id><pat
 |---|---|
 | `X-Witty-Service-Token` | The secret of this start of the service |
 | `X-Witty-User`, `X-Witty-Admin` | Who is asking (none on a ticket route) |
-| `X-Witty-Item` | The item a route's `item` names: id, library, kind, title, facets (`console`), and its files as paths to read. base64url JSON |
+| `X-Witty-Item` | The item a route's `item` names: id, library, kind, title, facets (`console`), and its files in order as paths to read (`files`; the first is the item's path, then its other discs). base64url JSON |
 | `X-Witty-Features` | The features this profile may use, space separated |
 | `X-Witty-Kind` | The profile's kind: `adult`, `kids` or `guest` |
 | `X-Witty-Confirmed` | `1` on a `confirm` route when the person gave their password and it was right |
@@ -116,25 +120,58 @@ Every call that's on someone's behalf says who (`host.On{User}`, or `host.For(r)
 | Call | Path (`/host/v1`) | What it does |
 |---|---|---|
 | `Hello` | `GET /hello` | The module the server thinks this is, the server's version, what it offers, and `machine`: what whoever runs the machine allows (`gamingCustomCores`) |
-| `Item` | `GET /items/{id}` | An item, with its files, if the person may see it (403) and it's in one of the module's kinds of library (404) |
+| `Item` | `GET /items/{id}` | An item, with its files in order (`files`) and facets (`console`), if the person may see it (403) and it's in one of the module's kinds of library (404) |
 | `Items` | `GET /items?libraryKind=&library=&kind=&facet.console=&search=&offset=&limit=` | Items the person may see, without files, at most 500 |
+| `Facets` | `GET /items/facets?library=` | What one library holds as the person may see it, by the generic facets only: genres, decades, rated, letters (a module works out its own, such as players or series) |
 | `May` | `GET /may?feature=` | Whether the person may use a feature now: their limits, parental rules and screen time |
 | `Settings` | `GET /settings` | The module's settings (from `sdui.json`): the server's, then the person's own |
-| `Secret` | `GET /secrets/{name}` | A secret an administrator gave the module (kept as `module.<id>.secret.<name>`), or "" |
+| `Secret` | `GET /secrets/{name}` | A secret an administrator gave the module (kept as `module.<id>.secret.<name>`), or "". An administrator sets one with `PUT /api/modules/{id}/secrets/{name}` `{"value"}` ("" removes it; the value is never shown again or logged, the audit log says it was set or removed) and sees which are set with `GET /api/modules/{id}/secrets` (`{"set": [names]}`) |
 | `PutImage` | `POST /images?item=&role=` | Keeps a picture (PNG, JPEG, GIF or WebP, up to 8 MB) and says where pages show it: `/api/module-images/<module>/<name>` |
 | `StartSession`, `EndSession` | `POST /sessions`, `DELETE /sessions/{id}` | Something live (`kind`, `user`, `item`, `title`, `signIn`). The server shows it in "playing now" and metrics, counts its time as screen time, adds a game's time to "Continue playing", and ends it when its sign-in ends, its profile's screen time runs out, games are turned off for the profile or the account goes: it then sends the event `session.stop` (`{id, user, reason}`) and the module stops it |
 | `Users` | `GET /users` | Every account: id, name, display name, kind, administrator, when a sign-in of theirs was last used |
 | `Tools` | `GET /tools` | The server's FFmpeg and FFprobe, the encoders it has, and its test of hardware encoders |
 | `Events` | `GET /events?after=&wait=` | Waits up to `wait` (at most 55s) for events after a number: `server.started`, `scan.finished`, `user.deleted` `{user}`, `library.removed` `{library}`, … |
 | `Task` | `POST /tasks/{name}` | A long piece of work, shown with the server's tasks (administrators only) |
+| `SetItem` | `PATCH /items/{id}` | What the module found out about an item later (`ItemFields`, as [`scan.describe`](#scan-hooks) answers). Only items in libraries of a kind the module scans (404 otherwise). A field a person typed is never changed. `poster` and `backdrop` must be addresses `PutImage` gave this module (400 otherwise). 204 |
+| `Rescan` | `POST /libraries/{id}/scan` | Scans a library again, after a person decided what a file is. Only libraries of a kind the module scans. 202 `{"started"}` |
 | (`Do`) | `GET /setup` | `{"done": [ids]}`: the module's setup steps done or skipped at the version it declares |
 | (`Do`) | `POST /setup/{id}` `{skip}` | On an administrator's behalf: the module's setup step `id` is done (or skipped) at the `version` it declares. Until then a step with a `page` is a "Finish setting up <module>" notice on administrators' Home, on every app, opening that SDUI page. Written to the audit log |
 | (`Do`) | `GET /programs/{id}` | How to run a program module this module is built on (its `requires`, or theirs): `{path, args, version}`, 404 when it isn't installed and on (WittyCouch Host for WittyCouch and WittyRigs) |
 | (`Do`) | `POST /libraries` `{name}`, `PATCH`/`DELETE /libraries/{id}` | A games library the module holds (`console: rig`), whose games come from somewhere other than files: nothing scans it. Only a module serving games libraries, and only such libraries |
-| (`Do`) | `PUT /libraries/{id}/items` `{path, title, tagline}`, `DELETE /items/{id}` | A game in such a library: `{id, new}`; `path` is `rig://…`, naming nothing on disk; a new one is asked about by the game metadata sources |
+| (`Do`) | `PUT /libraries/{id}/items` `{path, title, tagline}`, `DELETE /items/{id}` | A game in such a library: `{id, new}`; `path` is `rig://…`, naming nothing on disk; a new one is described by the module that scans games ([`scan.describe`](#scan-hooks)) |
 | (`Do`) | `PUT`/`DELETE /items/{id}/poster` | Such a game's picture from where it comes (the bytes, up to 8 MB), or none; a picture someone chose by hand is never replaced |
 
 Refusals are JSON `{"error"}` with the status; an `X-Witty-Host` header tells a refusal of the host API's from a call this server doesn't have (`host.ErrNotOffered`).
+
+## Scan hooks
+
+A module that knows a kind of library better than the server does scans it through the server. Its `integration.json` says which kinds:
+
+```json
+"scan": { "libraryKinds": ["games"], "identify": true, "describe": true, "facet": "console" }
+```
+
+A library of a kind a module's `scan` lists, with that module installed and on, is scanned like this. The calls go to the module's service (`service.Config.Scan`, `*service.ScanHooks`, types in `wittymodule/scan.go`), and the scan's stop ends them.
+
+1. **The walk.** The server walks every folder of the library. Names starting with `.` or `$` are skipped, only regular files are taken, and a symlinked folder isn't followed. A folder that is empty or can't be read is *offline*: what was under it is kept.
+2. **`scan.identify`.** The server sends the files in walk order, in batches of at most 256, each with its path, root, size and time (each answered `{}`). Then it sends one call with `done: true` and no files. That answer lists every item the library holds now (`items[]`):
+
+   | Field | What it is |
+   |---|---|
+   | `files` | The item's files in order: the first is the item's path, then its other discs |
+   | `kind`, `title`, `sortTitle`, `tagline`, `year` | What the item is (`kind` is `game` for games) |
+   | `container`, `size`, `mtime` | Its file's format, size and time |
+   | `facets` | `{"console": "…"}` |
+   | `versionOf`, `versionLabel` | The path of the item this is another version of, and what to call this version |
+
+   It also carries `problems` and `result` (the words the scan ends with). The server adds or updates items by their first file, keeps each item's files in order (table `item_files`; `X-Witty-Item` and the host's `Item` list them as `files`), links versions (`item_links`, link `version`, with the label), and marks missing what isn't listed, unless it was under an offline folder. The task shows the scan's phases and progress. A stopped scan sends no `done` call.
+3. **`scan.describe`.** For the items that are new or whose files changed, in batches of 50. Each item comes with `edited`: the fields a person typed in the item editor (`PUT /api/items/{id}` keeps them for every item, in table `item_edits`). The answer is `ItemFields` for each item: `title`, `sortTitle`, `tagline`, `overview`, `year`, `genres`, `rating`, `contentRating`, `studio`, `poster` and `backdrop` (addresses `PutImage` gave), `provider`, `providerId`, `titles` (`native`, `english`) and `clear` (fields to empty). The server applies it, except the fields a person typed.
+
+A game added to a held (rig) library is described the same way. **Refresh** in the item editor sends one `scan.describe` for that item with `refresh: true`. What the module finds out later (an internet lookup it queued) it sets with the host's [`SetItem`](#the-host-api); after a person decided what a file is, it asks for [`Rescan`](#the-host-api).
+
+**`scan.choices`** `{libraryKind, testing}` → `{facet, values: [{id, name, short}]}`: the values a library can be held to (consoles). The server checks a library's `console` against it (`auto` is always allowed; anything else is refused as "unknown console") and takes cards' short console names from it. It's kept per module version.
+
+**Without the module.** A library of a kind that needs a scanning module (`games`) can't be made or changed unless such a module is installed and on: `POST`/`PUT /api/libraries` answers 409 `{"error", "code": "module-missing", "modules"}`. When the module is missing or off, a scan of an existing library keeps its items as they are and says why.
 
 ## Lifecycle
 
@@ -198,13 +235,14 @@ It writes `index.js` and `style.css`. React, react-dom, the JSX runtime, **react
 
 ## Versions and what a server offers
 
-A server offers each host feature at a version (`modules.Offers()`): `http` 1, `web` 5, `sdui` its catalogue revision, `host` 1. A version whose `host` ranges this server doesn't meet is refused, with the reason. Adding to a host feature raises its version; a module asks for `">=n"` and uses `host.has(…)` (web) or `Client.Has(…)` (Go) for anything newer that it can do without.
+A server offers each host feature at a version (`modules.Offers()`): `http` 1, `web` 5, `sdui` its catalogue revision, `host` 2 (`SetItem` and `Rescan`; WittyPlay asks `">=2"`). A version whose `host` ranges this server doesn't meet is refused, with the reason. Adding to a host feature raises its version; a module asks for `">=n"` and uses `host.has(…)` (web) or `Client.Has(…)` (Go) for anything newer that it can do without.
 
 ## Testing
 
 - **The apps' contract:** `internal/server/contract_modules_test.go` sends the apps' own calls (from WittyMediaClient) and compares each answer's status and shape (every key, and the kind of every value) with `testdata/contract/<state>.json`: the module absent, and installed. `WMS_UPDATE_CONTRACT=1` rewrites them; only ever on purpose, agreed with the apps.
 - **Routes:** `module_routes_test.go`: identity, sign-in dropped, forged headers dropped, admin routes, features, items, ticket routes, paths out of a route, a missing module.
-- **Host API:** `host_api_test.go`.
+- **Host API:** `host_api_test.go`; `SetItem`, `Rescan`, the module secrets routes and a games library without its module in `internal/server/scan_hooks_test.go`.
+- **Scan hooks:** `internal/library/scan_hooks_test.go`: the walk, batches, `done`, versions, missing and offline folders, `describe` and edited fields, a missing module.
 - **The host object:** `web/src/moduleHost.test.mjs` keeps `hostFor` and WittyModule `kit/web/host` the same (`WITTYMODULE=<checkout>` if it isn't beside this one).
 
 ## Not yet

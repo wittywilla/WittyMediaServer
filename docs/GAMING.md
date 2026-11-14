@@ -8,19 +8,11 @@ How games are built and why, for anyone changing them. To play games, see [Games
 
 | Part | Where | What it holds |
 |---|---|---|
-| The module | The **WittyPlay** repository | Console tables, settings, the runner (`host`, `libretro`, `cmd/wittyplay-game-runner`), streaming (`stream`), core installs (`cores`), patches (`patch`), the service (`rpc`, `cmd/wittyplay-module`), the player (`web/`) |
-| Stubs in the server | `internal/play`, `internal/play/stream`, `cores`, `ipc`, `patch` | Written by `kit/facade` in WittyModule from `facade.json` in WittyPlay: the module's types, and functions that call its service. Never edited by hand, except `manual.go` |
-| Routes | `internal/server/api_games*.go`, `api_game_options.go`, `api_game_profiles.go`, `game_peers.go` | Sign-in, access rules and saving settings |
-| Scanning | `internal/library/games*.go`, `internal/gameid`, `internal/gamearchive`, `internal/gamemeta`, `internal/gameregion` | What a file is, what a game's called, and unpacking. These stay in the server |
-| Pages | `web/src/pages/Games.tsx`, `pages/games/`, `GameReview.tsx`, `GameMeta.tsx`, `settings/Gaming.tsx`, `settings/GamingCustom.tsx` | The library, a game's page and couch mode. They have to work with the module missing |
+| The module | The **WittyPlay** repository | Console tables, settings, the runner (`host`, `libretro`, `cmd/wittyplay-game-runner`), streaming (`stream`), core installs (`cores`), patches (`patch`), the service (`rpc`, `cmd/wittyplay-module`), the player and pages (`web/`), and what a game file is and its details (`gameid`, `gamearchive`, `gamemeta`, `gameregion`) |
+| Routes | WittyPlay's `integration.json` | Every games route is the module's, under `/api/modules/wittyplay/`. The server checks sign-in, the feature `games`, the item and screen time before passing a request on ([MODULES-API5.md](MODULES-API5.md#routes)) |
+| Scanning | `internal/library` in the server, and WittyPlay's scan hooks | The server walks a games library's folders and keeps the items; WittyPlay says what each file is and fills in its details ([scan hooks](MODULES-API5.md#scan-hooks)) |
 
-A change to what the server calls is two changes in two repositories, and means running the generator again:
-
-```bash
-go run ./kit/facade -config <WittyPlay>/facade.json -module <WittyPlay> -server <this checkout>
-```
-
-Run it from a WittyModule checkout. [Modules](MODULES.md) has the rest of how a service runs and is released.
+The server has no games code of its own: it keeps generic items (kind `game`, with `console` as a facet), held libraries for game PCs, play sessions, screen time and "Continue playing", and the parental feature `games`. A change to what the server and WittyPlay say to each other is a change to WittyModule (`integration.json`, the scan hooks, the host API) as well. [Modules](MODULES.md) has the rest of how a service runs and is released.
 
 ## What it has to do
 
@@ -344,14 +336,14 @@ Every game runs on the server and is streamed. The device you hold only decodes 
 
 ## Libraries and scanning
 
-- **Library type `games`**, with a `console` on the library (`nes`, `snes`, and so on) or `auto` for one folder holding many consoles. Several libraries of one console work the same way as several Movies libraries: the add flow's "combine or separate" choice applies per console.
+- **Library type `games`**, scanned through WittyPlay: the server walks the folders and WittyPlay decides what each file is ([scan hooks](MODULES-API5.md#scan-hooks)). Without WittyPlay installed and on, a games library can't be made, and a scan of one keeps its games as they are. A library has a `console` (`nes`, `snes`, and so on) or `auto` for one folder holding many consoles. Several libraries of one console work the same way as several Movies libraries: the add flow's "combine or separate" choice applies per console.
 - **Items** have kind `game` and a `console`. Multi-file games: a `.cue`, `.gdi` or `.ccd` hides the files it names, and an `.m3u` hides the discs it lists.
 - **Archives** count as the game inside them, so nothing needs unpacking first.
 - **What gets skipped:** BIOS folders (`bios`, `system`), and anything shown not to be a game.
 
 ### What a scan believes
 
-A file's name is where the question starts, not where it ends. So every file is judged on evidence (`internal/gameid`, and `internal/library/games_detect.go`), and a game's page shows an administrator what the evidence was.
+A file's name is where the question starts, not where it ends. So every file is judged on evidence (WittyPlay's `gameid` and its detection), and a game's page shows an administrator what the evidence was.
 
 | Evidence | How sure | What it covers |
 |---|---|---|
@@ -367,23 +359,23 @@ The file wins an argument. A PlayStation 2 game in a folder named for the PlaySt
 - **Needs a look** is for files that might be games: no header where every game has one (`mustHaveHeader`), a disc with nothing to say which console, a console with no core here, an archive holding hundreds of different things. One click says what it is, or that it isn't a game.
 - **Left out** is for what's been shown not to be one: BIOS files (by name and by bytes), updates and extra content (a 3DS title's type in its title id, a PSP's `CATEGORY`, a name's tags), test cartridges and cheat devices, music CDs, chiptunes, text, programs, film discs, and a second copy of something. These can be overruled.
 
-These choices are kept in the database, beside the library. A header-less NES dump is listed if its size fits, with a note: only Mesen can play one, by its checksum.
+These choices are kept in WittyPlay's own database, beside the library's id. A header-less NES dump is listed if its size fits, with a note: only Mesen can play one, by its checksum.
 
 **Several files, one game.** After each file has been judged:
 
 - **Copies** are found by checksum, across folders and whatever they're named. Only files the same size as another are ever read for this. The one that needs no unpacking is kept.
 - **Discs** come together by name: `Disc 2`, `(CD2)`, `disc2of3`, or a folder called `Disc 2`. They can be loose, in archives, or both, and they're offered to the core as a playlist, so the game's menu can change disc. A disc kept on another drive from the data folder is copied beside the playlist for as long as the game is running, unless a link can be made, because cores can't follow a playlist across drives.
 - **Versions** (regions, revisions, betas) of one name on one console share a tile, headed by a released version in the first region of the owner's order. The head stays the head, as saves belong to it. Each version is still its own game, with its own saves.
-- **Sets:** an archive of versions of one game plays the verified one in the first region of the owner's order, leaving out bad dumps, hacks and translations, and its page lets an administrator choose another (`games_sets.go`).
-- **What someone typed stays.** A field marked as edited that no source gave is theirs, and no scan changes it, whatever an NFO beside the file says. A field that's both edited and from a source is an old answer an earlier version read back from an NFO it wrote, which a better one can replace.
+- **Sets:** an archive of versions of one game plays the verified one in the first region of the owner's order, leaving out bad dumps, hacks and translations, and its page lets an administrator choose another.
+- **What someone typed stays.** A field a person typed in the item editor is kept in the server's `item_edits`, and WittyPlay is told about it (`edited`): no scan or lookup changes it, whatever an NFO beside the file says.
 
 **Importing a big library** needs nobody watching. It runs in the background, and carries on from where it stopped after a restart: what's been judged is saved every 200 files, and what's been looked up as it goes. A file is only read again if it changes. On this project's test library of 8,500 files on a hard disk, the scan took 30 seconds and every game had a name and a checksum match within a minute, with online sources and pictures carrying on after that.
 
 ### Games in archives
 
-`.7z`, `.zip`, `.rar` and `.tar` work wherever a console accepts a game file, and so does anything compressed with gzip, bzip2, xz or Zstandard, as one file (`Game.sfc.xz`) or as a tar (`.tar.gz`, `.tgz`, `.tar.bz2`, `.tar.xz`, `.tar.zst` and their short forms). That includes split sets (`.part1.rar` on, `.7z.001` on: all the parts stay together in one folder), and files whose extension is wrong for what they really are. An archive inside an archive doesn't count. Code: `internal/gamearchive`.
+`.7z`, `.zip`, `.rar` and `.tar` work wherever a console accepts a game file, and so does anything compressed with gzip, bzip2, xz or Zstandard, as one file (`Game.sfc.xz`) or as a tar (`.tar.gz`, `.tgz`, `.tar.bz2`, `.tar.xz`, `.tar.zst` and their short forms). That includes split sets (`.part1.rar` on, `.7z.001` on: all the parts stay together in one folder), and files whose extension is wrong for what they really are. An archive inside an archive doesn't count. Code: `gamearchive` in WittyPlay.
 
-**Scanning** reads only an archive's headers, and only when the file is new or changed: what each one holds is kept in the database. A collection of about 2,000 archives takes about a second the first time. A compressed tar has no index, so a scan reads through the first 64 MB of one at most. The title comes from the archive's file name, with its tags (`Game (USA) [!].7z` is "Game", "USA").
+**Scanning** reads only an archive's headers, and only when the file is new or changed: what each one holds is kept in WittyPlay's database. A collection of about 2,000 archives takes about a second the first time. A compressed tar has no index, so a scan reads through the first 64 MB of one at most. The title comes from the archive's file name, with its tags (`Game (USA) [!].7z` is "Game", "USA").
 
 **Which file:** a playlist first, then a `.cue` or `.gdi`, then `.ccd` or `.toc`, then any other game file for that console. Among several candidates, it prefers one named after the archive, then a verified dump in a widely-played region, and puts bad dumps and hacks last. A tie goes to the first in the archive.
 
@@ -406,13 +398,13 @@ A `.cue`, `.gdi` or `.m3u` from an archive is checked before it's used: each fil
 
 **Saves** don't depend on any of this: they belong to the account and the item (`u<id>/i<id>`), and the item is the archive's path in the library. A one-file game is always opened as `game.<ext>`, in case a core names files after what it opened.
 
-**Starting** a game that isn't unpacked yet: `POST /games/{id}/prepare` starts the unpack and says how far it has got, and the player shows that. `POST /games/{id}/play` works without it, and just takes as long as the unpack does.
+**Starting** a game that isn't unpacked yet: `POST /modules/wittyplay/games/{id}/prepare` starts the unpack and says how far it has got, and the player shows that. `POST /modules/wittyplay/games/{id}/play` works without it, and just takes as long as the unpack does.
 
 ### Metadata and box art
 
-Scans only list files. Details, ratings and pictures come along behind them in the background (`internal/library/games_meta.go`), and [Metadata](METADATA.md#video-games) has the sources, what each one is sent, and how games are matched. Your own files always come first: `Game.png`, `Game-cover.jpg`, `Game-poster.jpg`, `Game-fanart.jpg` and `Game.nfo` beside a game. With no box art, the library shows a tile made from the game's name and console. Native apps get all this through `GET /games/{id}/metadata`: see [the client API](CLIENT-API.md#game-details).
+WittyPlay answers a scan's `scan.describe` at once with what it knows on this machine, and details, ratings and pictures from online sources come along behind in the background, through its own queue. The sources, what each one is sent and how games are matched are in WittyPlay's own docs; [Metadata](METADATA.md#video-games) says where. Your own files always come first: `Game.png`, `Game-cover.jpg`, `Game-poster.jpg`, `Game-fanart.jpg` and `Game.nfo` beside a game. With no box art, the library shows a tile made from the game's name and console. Native apps get all this through `GET /modules/wittyplay/games/{id}/metadata`: see [the client API](CLIENT-API.md#game-details).
 
-**Console icons** are the logo service's kinds `console` and `gamestudio`, downloaded only after an administrator agrees (`ConsoleMark.tsx`, and [the logo service](METADATA.md#the-logo-service)). Pages have to look right with text alone.
+**Console icons** are WittyPlay's (`/modules/wittyplay/games/brand-logos`): the logo service's kinds `console` and `gamestudio`, downloaded through WittyPlay only after an administrator agrees (`ConsoleMark.tsx`, and [the logo service](METADATA.md#the-logo-service)). Pages have to look right with text alone.
 
 ## Saves, states and resume
 
@@ -665,7 +657,7 @@ Treat a ROM as hostile and a core as buggy.
 
 **Archives**
 
-- An archive is hostile input, and its decoders are other people's code. Everything that reads one runs in a throwaway worker: the server started again with an internal flag. It boxes itself in with the same layers as the runner (`internal/play/hostsandbox`), and has a memory limit of 4 GB and a lower priority. On Windows it uses a job object for the limit. A crafted header that makes a decoder panic ends the worker, and the server reports that one archive as damaged. A scan's worker that stops answering for 60 seconds is killed.
+- An archive is hostile input, and its decoders are other people's code. Everything that reads one runs in a throwaway worker. It boxes itself in with the same layers as the runner (`hostsandbox` in WittyPlay), and has a memory limit of 4 GB and a lower priority. On Windows it uses a job object for the limit. A crafted header that makes a decoder panic ends the worker, and the scan reports that one archive as damaged. A scan's worker that stops answering for 60 seconds is killed.
 - A name that climbs out of the folder, is absolute, or names a drive or a device refuses the whole archive. Writing also goes through `os.Root`.
 - Links, devices and folders in an archive are ignored. No link is ever created.
 - At most 10,000 entries and 32 GB, with at most 2,000 times the archive's own size above 1 GB. Those are checked against the headers first. Then the bytes are counted as they're written, since headers can lie. Checksums are checked where the format has them.

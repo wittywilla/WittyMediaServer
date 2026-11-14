@@ -162,7 +162,7 @@ Name files `Artist - Title.mp4`, or keep a folder per artist. Recordings of 20 m
 
 ### Games
 
-Choose the console when you add the library, or **Many consoles in one folder**, which sorts by folder and file type. Nothing is bundled or downloaded, so these are your own files.
+A games library needs the WittyPlay module, installed and on: WittyPlay decides what each file is and finds its details. Choose the console when you add the library, or **Many consoles in one folder**, which sorts by folder and file type. Nothing is bundled or downloaded, so these are your own files.
 
 ```
 Games/

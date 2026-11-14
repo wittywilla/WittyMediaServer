@@ -238,13 +238,17 @@ func TestVersion2OfferTakesNoTokenInTheAddress(t *testing.T) {
 // A game's WebSocket and its save pictures can't carry a header in a browser.
 func TestTokenInAddressForGameRoutes(t *testing.T) {
 	for path, want := range map[string]string{
-		"/api/play/0123abcd/ws?token=t":      "t",
-		"/api/play/0123abcd/stream?token=t":  "t",
-		"/api/play/0123abcd/streams?token=t": "",
-		"/api/games/7/saves/1/thumb?token=t": "t",
-		"/api/play/0123abcd/action?token=t":  "",
-		"/api/games/7/saves?token=t":         "",
-		"/api/play/0123abcd/ws/more?token=t": "",
+		"/api/modules/wittyplay/play/0123abcd/stream?token=t":   "t",
+		"/api/modules/wittyplay/play/0123abcd/streams?token=t":  "",
+		"/api/modules/wittyplay/games/7/saves/1/thumb?token=t":  "t",
+		"/api/modules/wittyplay/game-bezels/3?token=t":          "t",
+		"/api/modules/wittyplay/game-background/image?token=t":  "t",
+		"/api/modules/wittyplay/play/0123abcd/action?token=t":   "",
+		"/api/modules/wittyplay/games/7/saves?token=t":          "",
+		"/api/modules/wittyplay/play/0123abcd/stream/x?token=t": "",
+		"/api/modules/wittytuner/game-bezels/3?token=t":         "",
+		"/api/play/0123abcd/stream?token=t":                     "",
+		"/api/games/7/saves/1/thumb?token=t":                    "",
 	} {
 		r := httptest.NewRequest("GET", path, nil)
 		if got := TokenFrom(r); got != want {

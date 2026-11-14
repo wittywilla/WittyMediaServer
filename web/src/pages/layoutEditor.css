@@ -55,3 +55,5 @@
 
 .le-device { display: grid; gap: var(--sp-1); justify-items: center; padding: var(--sp-2); inline-size: 9rem; }
 .le-device .le-thumb { inline-size: 100%; block-size: auto; border-radius: var(--r-sm); }
+/* Each device is drawn in its own frame (an upright phone, a TV 16:9): the same height, so the row lines up. */
+.le-device .le-thumb:is(.lt-phone, .lt-tablet) { inline-size: auto; block-size: 5.625rem; max-inline-size: 100%; }

@@ -13,7 +13,7 @@ Every one in this list is on GitHub under its final name, with its history, so n
 | Repository | What it's for |
 |---|---|
 | WittyMediaServer | The server |
-| WittyModule | The shared tools and manifest format modules are built with, the kit that writes a module's workflows, and the SDUI kit (`sdui/` for Go, `kit/sdui/` for web bundles) that writes and checks the `sdui.json` every module API 4 version carries |
+| WittyModule | The shared tools and manifest format modules are built with, the kit that writes a module's workflows, and the SDUI kit (`sdui/` for Go, `kit/sdui/` for web bundles) that writes and checks the `sdui.json` every module carries |
 | WittyModuleCatalog | The signed list of modules and versions that a server's store reads. Holds no module code |
 | WittyDisc | Reading disc images, used by the disc engines |
 | WittyDVD | The DVD engine, and in `wittydvdplayer/` its copy for WittyMediaPlayer |

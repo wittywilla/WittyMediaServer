@@ -20,11 +20,8 @@ import (
 // The published wittymodule a server is built with must never be ahead of the API this
 // server says it speaks, or a module built for it would be taken without its SDUI checked.
 func TestServerAPIIsAtLeastWittyModules(t *testing.T) {
-	if wittymodule.API > API || wittymodule.MinAPI < MinAPI {
-		t.Fatalf("wittymodule speaks %d–%d and this server %d–%d: raise API here, with what it adds", wittymodule.MinAPI, wittymodule.API, MinAPI, API)
-	}
-	if SDUIAPI > API {
-		t.Fatal("the API that makes SDUI part of a module is one this server doesn't take")
+	if wittymodule.API > API {
+		t.Fatalf("wittymodule speaks %d and this server %d: raise API here, with what it adds", wittymodule.API, API)
 	}
 }
 
@@ -35,19 +32,19 @@ const photosUI = `{"format":"wittymodule-sdui","formatVersion":1,"module":"witty
 "navigation":[{"id":"wittyphotos","type":"page","page":"wittyphotos"}],
 "settings":[{"id":"wittyphotos","title":"Picks","groups":[{"rows":[{"key":"household","kind":"int","label":"Players","default":4}]}]}]}`
 
-func api4(ver string) []byte {
-	return manifestJSON(ver, "0.4.0", "0.5.x", SDUIAPI)
+func api5(ver string) []byte {
+	return manifestJSON(ver, "0.4.0", "0.5.x", API)
 }
 
-// An API 4 version without its SDUI, or with one that doesn't fit, isn't installed by itself: it
+// A version without its SDUI, or with one that doesn't fit, isn't installed by itself: it
 // is downloaded, checked and held for an administrator's "incomplete" override, which installs it
 // with nothing of its own in any app.
-func TestAnAPI4ModuleWithoutGoodSDUINeedsAnOverride(t *testing.T) {
+func TestAModuleWithoutGoodSDUINeedsAnOverride(t *testing.T) {
 	bad := strings.Replace(photosUI, `"component":"Shelf"`, `"component":"Shelve"`, 1)
-	for name, extra := range map[string]map[string][]byte{"none": nil, "bad": {sdui.ModuleFile: []byte(bad)}} {
+	for name, extra := range map[string]map[string][]byte{"none": {sdui.ModuleFile: nil}, "bad": {sdui.ModuleFile: []byte(bad)}} {
 		t.Run(name, func(t *testing.T) {
 			w := newWorld(t)
-			w.publishWith("0.4.0", api4("0.4.0"), extra)
+			w.publishWith("0.4.0", api5("0.4.0"), extra)
 			m := w.manager()
 			defer m.Close()
 			check(t, m)
@@ -98,9 +95,9 @@ func settled(t *testing.T, m *Manager) Status {
 	return Status{}
 }
 
-func TestAnAPI4ModuleWithSDUIIsUsedAndAnswersItsSources(t *testing.T) {
+func TestAModuleWithSDUIIsUsedAndAnswersItsSources(t *testing.T) {
 	w := newWorld(t)
-	w.publishWith("0.4.0", api4("0.4.0"), map[string][]byte{sdui.ModuleFile: []byte(photosUI)})
+	w.publishWith("0.4.0", api5("0.4.0"), map[string][]byte{sdui.ModuleFile: []byte(photosUI)})
 	m := w.manager()
 	defer m.Close()
 	check(t, m)
@@ -135,31 +132,17 @@ func TestAnAPI4ModuleWithSDUIIsUsedAndAnswersItsSources(t *testing.T) {
 	}
 }
 
-func TestAnAPI3ModuleNeedsNoSDUI(t *testing.T) {
-	w := newWorld(t)
-	w.publish("0.4.0", manifestJSON("0.4.0", "0.4.0", "0.5.x", 3))
-	m := w.manager()
-	defer m.Close()
-	check(t, m)
-	if s := installWait(t, m); s.Version != "0.4.0" {
-		t.Fatalf("an older-API module without SDUI wasn't installed: %+v", s)
-	}
-	if uis, _ := m.UIs(); len(uis) != 0 {
-		t.Fatalf("UIs %v", uis)
-	}
-}
-
 func TestOnlyAHelperMayDeclareSources(t *testing.T) {
 	dir := t.TempDir()
 	ui := strings.ReplaceAll(photosUI, "wittyphotos", "wittycomics")
 	if err := os.WriteFile(filepath.Join(dir, sdui.ModuleFile), []byte(ui), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	web := &wittymodule.Manifest{ID: "wittycomics", Delivery: wittymodule.DeliveryWeb, API: SDUIAPI}
+	web := &wittymodule.Manifest{ID: "wittycomics", Delivery: wittymodule.DeliveryWeb, API: API}
 	if _, err := readUI(dir, web, sdui.ModuleChecks{}); err == nil || !strings.Contains(err.Error(), "only a helper") {
 		t.Fatalf("a web bundle with sources: %v", err)
 	}
-	helper := &wittymodule.Manifest{ID: "wittycomics", Delivery: wittymodule.DeliveryHelper, API: SDUIAPI}
+	helper := &wittymodule.Manifest{ID: "wittycomics", Delivery: wittymodule.DeliveryHelper, API: API}
 	if _, err := readUI(dir, helper, sdui.ModuleChecks{}); err != nil {
 		t.Fatalf("a helper with sources: %v", err)
 	}
@@ -169,7 +152,7 @@ func TestOnlyAHelperMayDeclareSources(t *testing.T) {
 // and nothing is counted against the version.
 func TestAHelperThatLeavesAfterACallIsStartedAgain(t *testing.T) {
 	w := newWorld(t)
-	w.publishWith("0.4.0", manifestJSON("0.4.0", "0.4.0", "0.5.x", SDUIAPI, "one-call"), map[string][]byte{sdui.ModuleFile: []byte(photosUI)})
+	w.publishWith("0.4.0", manifestJSON("0.4.0", "0.4.0", "0.5.x", API, "one-call"), map[string][]byte{sdui.ModuleFile: []byte(photosUI)})
 	m := w.manager()
 	defer m.Close()
 	check(t, m)

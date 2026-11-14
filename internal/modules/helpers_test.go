@@ -65,6 +65,7 @@ func withInstalled(t *testing.T, w *world, builtin, raw, exe []byte, extra map[s
 	for k, v := range extra {
 		files[k] = v
 	}
+	withModuleFiles(files)
 	top := man.Top(runtime.GOOS, runtime.GOARCH)
 	var list strings.Builder
 	for n, b := range files {

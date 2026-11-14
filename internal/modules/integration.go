@@ -47,17 +47,13 @@ var ReservedPaths = []string{"install", "rollback", "versions", "pin", "autoupda
 func (m *Manager) readIntegration(dir string, man *wittymodule.Manifest) (*wittymodule.Integration, error) {
 	b, err := os.ReadFile(filepath.Join(dir, wittymodule.IntegrationFile))
 	if errors.Is(err, fs.ErrNotExist) {
-		if man.API >= IntegrationAPI && man.NeedsIntegration() {
-			return nil, fmt.Errorf("it is built for module API %d, where a module says what it adds to a server, and it has no %s", man.API, wittymodule.IntegrationFile)
+		if man.NeedsIntegration() {
+			return nil, fmt.Errorf("it has no %s, which says what a module adds to a server", wittymodule.IntegrationFile)
 		}
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
-	}
-	if man.API < IntegrationAPI {
-		// An older version's file isn't read: what it adds is the server's own copy's to do.
-		return nil, nil
 	}
 	in, err := wittymodule.ParseIntegration(b)
 	if err != nil {

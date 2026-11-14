@@ -38,7 +38,7 @@ func withExtras(t *testing.T, raw []byte, extra map[string]map[string]any) []byt
 
 func listedVersion(id, delivery string) wittymodule.CatalogModule {
 	m := listedModule(id, strings.ToUpper(id[:1])+id[1:])
-	m.Versions = []wittymodule.CatalogVersion{{Version: "1.0.0", Delivery: delivery, API: SDUIAPI, MinServer: MinModuleServer, MaxServer: "0.6.x", License: "MIT", Released: "2026-11-01",
+	m.Versions = []wittymodule.CatalogVersion{{Version: "1.0.0", Delivery: delivery, API: API, MinServer: MinModuleServer, MaxServer: "0.6.x", License: "MIT", Released: "2026-11-01",
 		Sums: id + ".sums", Sig: id + ".sums.sig", Manifest: id + ".json",
 		Platforms: map[string]wittymodule.CatalogFile{wittymodule.PlatformAll: {URL: id + ".tar.gz", Size: 10, SHA256: strings.Repeat("a", 64)}}}}
 	return m

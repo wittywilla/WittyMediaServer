@@ -186,11 +186,8 @@ func TestAnEarlierRunsGivingUpIsUndone(t *testing.T) {
 	}
 }
 
-// Issue #294: the start-up repair lifts only what slow starts and crashes did. A game runner
-// that stopped before the game was ready is the Mac sandbox fix's and the game-failures fix's to
-// decide on (liftNestedSandboxBlocks, liftGameFailureBlocks), so it's left as it was here, on
-// every system.
-func TestTheStartUpRepairLeavesTheMacFixItsOwn(t *testing.T) {
+// Issue #294: the start-up repair lifts only what slow starts and crashes did.
+func TestTheStartUpRepairLiftsOnlySlowStartsAndCrashes(t *testing.T) {
 	m := New(Config{Dir: t.TempDir(), Server: "0.6.2-alpha", Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
 	defer m.Close()
 	for _, c := range []struct {
@@ -199,7 +196,6 @@ func TestTheStartUpRepairLeavesTheMacFixItsOwn(t *testing.T) {
 	}{
 		{keptFailing + " (the helper didn't say hello: read |0: file already closed)", true},
 		{keptFailing + " (it stopped without answering)", true},
-		{runnerStopped + ": a sandbox refused it)", false},
 		{"Its files have changed since they were installed.", false},
 	} {
 		e := &entry{builtin: &wittymodule.Manifest{ID: "wittyplay", Name: "WittyPlay", Version: "0.1.0"}, state: moduleState{Active: "0.3.4", Blocked: map[string]string{"0.3.4": c.why}}}

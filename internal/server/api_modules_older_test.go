@@ -39,6 +39,7 @@ func olderStarter(t *testing.T, ts *testServer) *modmgr.Manager {
 		API: modmgr.MinAPI, MinServer: modmgr.MinModuleServer, MaxServer: "0.6.x", License: "MIT"}
 	raw, _ := json.Marshal(man)
 	files := map[string][]byte{wittymodule.ManifestFile: raw, "index.js": []byte("export const v = 1\n")}
+	withModuleFiles(id, files)
 	top := wittymodule.WebTopFolder(id, ver)
 	var buf bytes.Buffer
 	gz := gzip.NewWriter(&buf)

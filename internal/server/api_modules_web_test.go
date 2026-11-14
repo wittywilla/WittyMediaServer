@@ -30,6 +30,7 @@ import (
 
 	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
 	"github.com/wittywilla/wittymediaserver/internal/update"
+	"github.com/wittywilla/wittymediaserver/pkg/sdui"
 	"github.com/wittywilla/wittymodule"
 )
 
@@ -76,6 +77,7 @@ func installedBundleWith(t *testing.T, script, style string, api int, extra map[
 	for n, b := range extra {
 		files[n] = b
 	}
+	withModuleFiles(id, files)
 	var buf bytes.Buffer
 	gz := gzip.NewWriter(&buf)
 	tw := tar.NewWriter(gz)
@@ -249,5 +251,16 @@ func TestModuleFailureReportRoute(t *testing.T) {
 	}
 	if w := ts.do(t, "POST", "/api/modules/wittycomics/failed", tok, map[string]string{"version": "0.2.0", "reason": "x"}); w.Code != 204 {
 		t.Errorf("signed in: %d %s", w.Code, w.Body.String())
+	}
+}
+
+// withModuleFiles adds the least sdui.json and integration.json every module carries to a
+// release's files, unless it has its own.
+func withModuleFiles(id string, files map[string][]byte) {
+	if _, ok := files[sdui.ModuleFile]; !ok {
+		files[sdui.ModuleFile] = []byte(`{"format":"wittymodule-sdui","formatVersion":1,"module":"` + id + `","catalog":2,"theme":{"scope":"` + id + `"}}`)
+	}
+	if _, ok := files[wittymodule.IntegrationFile]; !ok {
+		files[wittymodule.IntegrationFile] = []byte(`{"format":"wittymodule-integration","formatVersion":1,"module":"` + id + `"}`)
 	}
 }

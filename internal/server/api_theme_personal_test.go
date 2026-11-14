@@ -62,7 +62,7 @@ func TestThemePrecedence(t *testing.T) {
 			if err := ts.Themes.Install(builtin.Builtin); err != nil {
 				t.Fatal(err)
 			}
-			ts.Modules = installedBundleWith(t, `export default 1`, `a{}`, modmgr.SDUIAPI, map[string][]byte{sdui.ModuleFile: []byte(comicsUI)})
+			ts.Modules = installedBundleWith(t, `export default 1`, `a{}`, modmgr.API, map[string][]byte{sdui.ModuleFile: []byte(comicsUI)})
 			if c.admin {
 				ts.do(t, "PUT", "/api/theme/global", admin, map[string]any{"tokens": map[string]string{"accent": global}})
 			}

@@ -162,6 +162,7 @@ func webReleaseFor(t *testing.T, starter string, key ed25519.PrivateKey, id, nam
 	man := wittymodule.Manifest{ID: id, Name: name, Version: ver, Repo: repo, Delivery: wittymodule.DeliveryWeb, Entry: "index.js", API: MinAPI, MinServer: minServer, MaxServer: maxServer, License: "MIT", Requires: requires}
 	raw, _ := json.Marshal(man)
 	files := map[string][]byte{wittymodule.ManifestFile: raw, "index.js": []byte("export const v = '" + ver + "'\n")}
+	withModuleFiles(files)
 	top := wittymodule.WebTopFolder(id, ver)
 	var buf bytes.Buffer
 	gz := gzip.NewWriter(&buf)

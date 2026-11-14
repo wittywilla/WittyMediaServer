@@ -215,12 +215,6 @@ type moduleState struct {
 	DataHigh       int                      `json:"dataHigh,omitempty"`  // the newest data format used so far
 	Withdrawn      *wittymodule.Withdrawals `json:"withdrawn,omitempty"` // the newest signed list seen
 	Events         []Event                  `json:"events,omitempty"`
-	// NestedSandboxFixed: what a Mac took out of use while no game could start there has been put
-	// back, once (liftNestedSandboxBlocks).
-	NestedSandboxFixed bool `json:"nestedSandboxFixed,omitempty"`
-	// GameFailuresUncounted: what games failing to start took out of use, before only the helper
-	// failing counted, has been put back, once (liftGameFailureBlocks).
-	GameFailuresUncounted bool `json:"gameFailuresUncounted,omitempty"`
 	// Integrated is the last version whose lifecycle call (install or upgrade, module API 5)
 	// went through, so each version is set up once.
 	Integrated string `json:"integrated,omitempty"`
@@ -244,7 +238,7 @@ type entry struct {
 	integ   *wittymodule.Integration // its integration.json (module API 5), checked; nil when it has none
 	pending string                   // a held download waiting for a go-ahead (override.go)
 	// relStatus and relNote are what the version in use says of itself: stable, beta,
-	// experimental or incomplete (module API 4).
+	// experimental or incomplete.
 	relStatus, relNote string
 	notice             string
 	fails              int
@@ -384,28 +378,14 @@ func New(cfg Config) *Manager {
 	sort.Strings(m.order)
 	m.loadKnown(saved)
 	m.loadCustom(saved)
-	lifted := false
 	for _, id := range m.order {
 		m.checkSavedSource(id, m.mods[id])
-		if liftNestedSandboxBlocks(goos(), id, m.mods[id], m.log) {
-			lifted = true
-		}
-		if liftGameFailureBlocks(id, m.mods[id], m.log) {
-			lifted = true
-		}
 		m.giveAnotherChance(id, m.mods[id])
 		m.resolve(id, m.mods[id])
 		// The kept catalogue was judged before anyone knew what's on disk, which made every
 		// installed module look as if its own version were an update.
 		m.computeOffers(m.mods[id])
 		m.prune(id, m.mods[id])
-	}
-	if lifted {
-		m.mu.Lock()
-		if err := m.saveState(); err != nil {
-			m.log.Warn("modules: saving the state", "err", err)
-		}
-		m.mu.Unlock()
 	}
 	return m
 }
@@ -416,11 +396,7 @@ func New(cfg Config) *Manager {
 func (m *Manager) giveAnotherChance(id string, e *entry) {
 	ver := e.state.Active
 	why := e.state.Blocked[ver]
-	// A game runner that stopped before the game was ready is liftNestedSandboxBlocks' to put
-	// back on a Mac, where the server's own sandbox was to blame, and liftGameFailureBlocks'
-	// anywhere, once: a game failing no longer counts against WittyPlay. Seen here, it came back
-	// after both, and stays.
-	if ver == "" || !strings.HasPrefix(why, keptFailing) || strings.HasPrefix(why, runnerStopped) || m.hasFallback(id, e, ver) {
+	if ver == "" || !strings.HasPrefix(why, keptFailing) || m.hasFallback(id, e, ver) {
 		return
 	}
 	delete(e.state.Blocked, ver)
@@ -463,7 +439,7 @@ func (m *Manager) saveState() error {
 	saved := map[string]moduleState{}
 	for id, e := range m.mods {
 		s := e.state
-		if s.Active != "" || s.Previous != "" || len(s.Blocked) > 0 || s.Pin != "" || s.NoAuto || s.Removed || s.Disabled || s.Source != nil || s.DataHigh > 0 || s.Withdrawn != nil || len(s.Events) > 0 || s.NestedSandboxFixed || s.GameFailuresUncounted || s.Integrated != "" {
+		if s.Active != "" || s.Previous != "" || len(s.Blocked) > 0 || s.Pin != "" || s.NoAuto || s.Removed || s.Disabled || s.Source != nil || s.DataHigh > 0 || s.Withdrawn != nil || len(s.Events) > 0 || s.Integrated != "" {
 			saved[id] = s
 		}
 	}
@@ -1076,8 +1052,7 @@ func (m *Manager) ReportBrowserFailure(id, ver, reason string, admin bool) error
 // ReportFailure records a version failing where the server can't see it itself: a
 // bundle in someone's browser, or a helper during a game. Three within a day and
 // the version goes out of use. A report about any other version is ignored, so an
-// old tab can't count against what replaced it. A game that couldn't start because of
-// that game, its core or its console isn't one: see liftGameFailureBlocks.
+// old tab can't count against what replaced it.
 func (m *Manager) ReportFailure(id, ver, reason string) error {
 	m.mu.Lock()
 	e := m.mods[id]

@@ -10,22 +10,21 @@ import (
 )
 
 // A pre-1.0 range such as 0.6.x lets a module run on any later 0.x server whose module
-// API it fits: the API number decides, not the minor version it was released beside.
+// API it fits (5): the API number decides, not the minor version it was released beside.
 func TestAPreOneRangeFitsLaterServers(t *testing.T) {
 	cases := []struct {
 		max, server string
 		api         int
 		fits        bool
 	}{
-		{"0.6.x", "0.8.0-alpha", 3, true},
-		{"0.6.x", "0.8.0-alpha", 4, true},
-		{"0.6.x", "0.8.0", 3, true},
-		{"0.8.x", "0.8.0-alpha", 4, true},
-		{"0.6.x", "0.8.0-alpha", 2, false}, // too old an API
+		{"0.6.x", "0.8.0-alpha", 3, false}, // an API before 5
+		{"0.6.x", "0.8.0-alpha", 4, false},
+		{"0.8.x", "0.8.0-alpha", 4, false},
 		{"0.6.x", "0.8.0-alpha", 5, true},
+		{"0.6.x", "0.8.0", 5, true},
 		{"0.6.x", "0.8.0-alpha", 6, false}, // too new an API
-		{"0.6.3", "0.8.0-alpha", 3, false}, // an exact top is kept
-		{"0.6.x", "1.0.0", 3, false},       // a 1.x server is another line
+		{"0.6.3", "0.8.0-alpha", 5, false}, // an exact top is kept
+		{"0.6.x", "1.0.0", 5, false},       // a 1.x server is another line
 	}
 	for _, c := range cases {
 		man := &wittymodule.Manifest{ID: "wittyx", Name: "X", Version: "0.1.0", Repo: "a/b", Delivery: wittymodule.DeliveryHelper, Entry: "x", API: c.api, MinServer: "0.6.0-alpha", MaxServer: c.max}

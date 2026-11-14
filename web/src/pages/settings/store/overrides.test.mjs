@@ -100,11 +100,11 @@ test('what a module adds', () => {
 test('what this adds, in plain words, from the catalogue and from the installed copy', () => {
   assert.deepEqual(addsLines(undefined, undefined), [])
   assert.deepEqual(addsLines({}, undefined), []) // an empty SDUI summary claims nothing
-  // An API 4 version: only its SDUI.
+  // A version that adds only SDUI.
   assert.deepEqual(addsLines({ pages: [{ id: 'discs', title: 'Discs' }], settings: false }).map((l) => l.label), ['A page in every app, on TV too', 'Settings'])
   // Pages titled per item are counted, not named.
   assert.equal(addsLines({ pages: [{ id: 'a', title: 'Games' }, { id: 'b', title: '{title}' }, { id: 'c', title: '{library}' }] })[0].text, 'Games, and 2 pages for one item each')
-  // The catalogue's summary of an API 5 version: counts, with the module's own library kinds.
+  // The catalogue’s summary of a version: counts, with the module's own library kinds.
   const cat = addsLines({ pages: [{ id: 'couch', title: 'Game PCs' }], navigation: ['Game PCs'] },
     { routes: 12, screens: ['/couch', '/couch/:id'], settings: ['Game PCs'], data: true, feature: 'games' }, { id: 'wittycouch', libraries: ['games'] })
   const by = Object.fromEntries(cat.map((l) => [l.label, l.text]))

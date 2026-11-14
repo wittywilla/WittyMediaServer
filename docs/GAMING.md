@@ -449,13 +449,13 @@ Values live in layers. The most specific one that has a value wins, one key at a
 | Level | Who can set it | Stored in |
 |---|---|---|
 | Built-in default | Nobody | `settings.go` |
-| Everyone on this server | An administrator | The `settings` table, `gamingDefaults` |
-| Everyone, one console | An administrator | The `settings` table, `gamingDefaults.<console>` |
+| Everyone on this server | An administrator | WittyPlay's own settings (`wittyplay_config`), `gamingDefaults` |
+| Everyone, one console | An administrator | WittyPlay's own settings (`wittyplay_config`), `gamingDefaults.<console>` |
 | All of a person's games | That person | `wittyplay_settings` |
 | A person's games on one console | That person | `wittyplay_settings` |
 | One game, for one person | That person | `wittyplay_settings` |
 
-Administrators also set **limits**, which aren't defaults, because nobody can go past them: the fastest fast-forward (`gamingMaxSpeed`), rewind's memory per game (`gamingRewindMB`) and whether run-ahead is allowed (`gamingRunAhead`). Left alone they follow the machine: 4× and 32 MB, or 2× and 16 MB on one with fewer than four CPU threads.
+Administrators also set **limits**, which aren't defaults, because nobody can go past them: the fastest fast-forward (`gamingMaxSpeed`), rewind's memory per game (`gamingRewindMB`) and whether run-ahead is allowed (`gamingRunAhead`). They are WittyPlay's own settings too, with the rest of *Settings, Consoles & cores* (`GET`/`PUT /api/modules/wittyplay/gaming/settings`). Left alone they follow the machine: 4× and 32 MB, or 2× and 16 MB on one with fewer than four CPU threads.
 
 Stored values are checked again when they're used, so a value that's stopped being valid is ignored and a game still starts. Reading settings never fails a start.
 

@@ -11,15 +11,14 @@ import type { ReaderHost } from '@wittywilla/wittyink'
 // missing. Nothing here runs until a page needs it.
 
 // A kind of book, as the server's book answer names its reader: epub, pdf, cbz. Which module reads
-// it is the module's own say (integration.json web.readers, module API 5): nothing here names one.
+// it is the module's own say (integration.json web.readers): nothing here names one.
 export type ReaderFormat = string
 // The reader kit every reader is built on and shares: the app's copy of @wittywilla/wittyink, as
 // the builder's stand-in reads it (moduleHost.wittyink), is WittyInk's bundle.
 const READER_KIT = 'wittyink'
-// The newest module API whose bundles this host loads. API 4 made a module's SDUI part of
-// the module and changed nothing a bundle is given (moduleHost.ts), so its bundles load too.
-// API 5 adds to what a bundle is given (web host API 5: the router, the app's client, state,
-// UI kit and contexts, and register(host); moduleRegistry.tsx) and takes nothing away.
+// The module API whose bundles this host loads: 5, the only one a server takes. A bundle is
+// given web host API 5 (moduleHost.ts: the router, the app's client, state, UI kit and contexts)
+// and hands over register(host) (moduleRegistry.tsx).
 const HOST_API = 5
 
 type Page = { id: string; title: string; where: 'main' | 'settings'; icon?: string }
@@ -83,7 +82,7 @@ const isInk = (m: Record<string, unknown>) => typeof m.useHost === 'function' &&
 
 // readerOf: the bundle whose module says it reads a kind of book (the readers hook), if one is in use.
 export const readerOf = (format: string, list: Bundle[]) =>
-  list.find((b) => b.api >= 5 && b.api <= HOST_API && (b.integration?.readers || []).some((r) => r.format === format)) ?? null
+  list.find((b) => b.api <= HOST_API && (b.integration?.readers || []).some((r) => r.format === format)) ?? null
 
 // The reader kit's bundle, if it's in use.
 export const readerKitOf = (list: Bundle[]) => list.find((b) => b.id === READER_KIT && b.api <= HOST_API) ?? null

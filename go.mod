@@ -16,7 +16,6 @@ require (
 	github.com/multiformats/go-multiaddr v0.16.1
 	github.com/multiformats/go-multihash v0.2.3
 	github.com/nwaples/rardecode/v2 v2.4.5
-	github.com/pion/webrtc/v4 v4.2.26
 	github.com/ulikunitz/xz v0.5.17
 	github.com/wittywilla/wittydisc v0.2.0
 	github.com/wittywilla/wittymodule v0.5.0
@@ -106,6 +105,7 @@ require (
 	github.com/pion/transport/v4 v4.0.2 // indirect
 	github.com/pion/transport/v5 v5.1.4 // indirect
 	github.com/pion/turn/v5 v5.1.3 // indirect
+	github.com/pion/webrtc/v4 v4.2.26 // indirect
 	github.com/polydawn/refmt v0.90.0 // indirect
 	github.com/prometheus/client_golang v1.24.1 // indirect
 	github.com/prometheus/client_model v0.6.3 // indirect

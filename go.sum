@@ -265,8 +265,8 @@ github.com/whyrusleeping/go-keyspace v0.0.0-20160322163242-5b898ac5add1 h1:EKhdz
 github.com/whyrusleeping/go-keyspace v0.0.0-20160322163242-5b898ac5add1/go.mod h1:8UvriyWtv5Q5EOgjHaSseUEdkQfvwFv1I/In/O2M9gc=
 github.com/wittywilla/wittydisc v0.2.0 h1:ukluqAo2jwerFUG/aI3Kd544f3DMuBD/rSA6DLiSjcI=
 github.com/wittywilla/wittydisc v0.2.0/go.mod h1:qQE6MC1dQtG9GjYNBJNkOt9p2M5FBQ3VqV3k4CMCfLQ=
-github.com/wittywilla/wittymodule v0.3.0 h1:mJL5qK2/j2GiQytFtJNkJzBE3/aJDzH/m2A6Bgn1v+k=
-github.com/wittywilla/wittymodule v0.3.0/go.mod h1:s4SONzwSeE/5v+HbhiO4H2CaIOxZpjS187rwwQY0kj8=
+github.com/wittywilla/wittymodule v0.5.0 h1:4U2xIQ3kWbUB6aglgIH7KCPfPNnWfcAXykfO1o5L2U4=
+github.com/wittywilla/wittymodule v0.5.0/go.mod h1:s4SONzwSeE/5v+HbhiO4H2CaIOxZpjS187rwwQY0kj8=
 github.com/wlynxg/anet v0.0.5 h1:J3VJGi1gvo0JwZ/P1/Yc/8p63SoW98B5dHkYDmpgvvU=
 github.com/wlynxg/anet v0.0.5/go.mod h1:eay5PRQr7fIVAMbTbchTnO9gG65Hg/uYGdc7mguHxoA=
 github.com/xyproto/randomstring v1.0.5 h1:YtlWPoRdgMu3NZtP45drfy1GKoojuR7hmRcnhZqKjWU=

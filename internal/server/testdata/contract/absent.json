@@ -1,0 +1,651 @@
+{
+  "capabilities": {
+    "status": 200,
+    "type": "application/json",
+    "shape": {
+      "apiBase": "string",
+      "apiRevision": "number",
+      "apiVersion": "number",
+      "apiVersions": [
+        "number"
+      ],
+      "auth": {
+        "pairing": "bool",
+        "password": "bool",
+        "streamTokenParam": "string",
+        "tokenHeader": "string"
+      },
+      "features": [
+        "string"
+      ],
+      "fingerprint": "string",
+      "itemKinds": [
+        "string"
+      ],
+      "libraryTypes": [
+        "string"
+      ],
+      "minClientVersions": {
+        "android": "string",
+        "apple": "string",
+        "desktop": "string"
+      },
+      "playback": {
+        "directPlay": "bool",
+        "profiles": [
+          "string"
+        ],
+        "remoteStreaming": "string",
+        "rules": {
+          "nextEpisodeCountdown": "number",
+          "reportProgressMinSec": "number",
+          "reportProgressSec": "number",
+          "resumeMinSec": "number",
+          "watchNextBeforeEndSec": "number",
+          "watchedFraction": "number"
+        },
+        "streamingModes": [
+          "string"
+        ]
+      },
+      "publicKey": "string",
+      "server": "string",
+      "serverId": "string",
+      "serverName": "string",
+      "setupRequired": "bool",
+      "setupURL": "string",
+      "version": "string"
+    }
+  },
+  "console controls": {
+    "status": 424,
+    "type": "application/json",
+    "shape": {
+      "error": "string",
+      "module": "string",
+      "moduleName": "string"
+    }
+  },
+  "couch": {
+    "status": 424,
+    "type": "application/json",
+    "shape": {
+      "error": "string",
+      "module": "string",
+      "moduleName": "string"
+    }
+  },
+  "game background": {
+    "status": 424,
+    "type": "application/json",
+    "shape": {
+      "error": "string",
+      "module": "string",
+      "moduleName": "string"
+    }
+  },
+  "games check": {
+    "status": 424,
+    "type": "application/json",
+    "shape": {
+      "error": "string",
+      "module": "string",
+      "moduleName": "string"
+    }
+  },
+  "games consoles": {
+    "status": 424,
+    "type": "application/json",
+    "shape": {
+      "error": "string",
+      "module": "string",
+      "moduleName": "string"
+    }
+  },
+  "games home": {
+    "status": 424,
+    "type": "application/json",
+    "shape": {
+      "error": "string",
+      "module": "string",
+      "moduleName": "string"
+    }
+  },
+  "games meta": {
+    "status": 424,
+    "type": "application/json",
+    "shape": {
+      "error": "string",
+      "module": "string",
+      "moduleName": "string"
+    }
+  },
+  "games metadata": {
+    "status": 200,
+    "type": "application/json",
+    "shape": {
+      "ages": [],
+      "art": [],
+      "confidence": "number",
+      "credits": [],
+      "developer": "string",
+      "franchise": "string",
+      "itemId": "number",
+      "locked": "bool",
+      "matchMethod": "string",
+      "matchSource": "string",
+      "players": "number",
+      "publisher": "string",
+      "released": "string",
+      "scores": [],
+      "status": "string",
+      "tags": "string"
+    }
+  },
+  "games play": {
+    "status": 424,
+    "type": "application/json",
+    "shape": {
+      "error": "string",
+      "module": "string",
+      "moduleName": "string"
+    }
+  },
+  "games prepare": {
+    "status": 424,
+    "type": "application/json",
+    "shape": {
+      "error": "string",
+      "module": "string",
+      "moduleName": "string"
+    }
+  },
+  "games saves": {
+    "status": 424,
+    "type": "application/json",
+    "shape": {
+      "error": "string",
+      "module": "string",
+      "moduleName": "string"
+    }
+  },
+  "games settings": {
+    "status": 424,
+    "type": "application/json",
+    "shape": {
+      "error": "string",
+      "module": "string",
+      "moduleName": "string"
+    }
+  },
+  "games versions": {
+    "status": 424,
+    "type": "application/json",
+    "shape": {
+      "error": "string",
+      "module": "string",
+      "moduleName": "string"
+    }
+  },
+  "items games": {
+    "status": 200,
+    "type": "application/json",
+    "shape": {
+      "items": [
+        {
+          "addedAt": "number",
+          "audioLangs": [],
+          "backdrop": "string",
+          "console": "string",
+          "container": "string",
+          "contentRating": "string",
+          "genres": [],
+          "height": "number",
+          "id": "number",
+          "insertFx": "string",
+          "kind": "string",
+          "libraryId": "number",
+          "missing": "bool",
+          "mtime": "number",
+          "overview": "string",
+          "path": "string",
+          "playMode": "string",
+          "poster": "string",
+          "provider": "string",
+          "providerId": "string",
+          "rating": "null",
+          "runtimeSec": "number",
+          "sizeBytes": "number",
+          "sortTitle": "string",
+          "studio": "string",
+          "subLangs": [],
+          "tagline": "string",
+          "title": "string",
+          "updatedAt": "number",
+          "videoCodec": "string",
+          "width": "number",
+          "year": "null"
+        }
+      ],
+      "total": "number"
+    }
+  },
+  "items games console": {
+    "status": 200,
+    "type": "application/json",
+    "shape": {
+      "items": [
+        {
+          "addedAt": "number",
+          "audioLangs": [],
+          "backdrop": "string",
+          "console": "string",
+          "container": "string",
+          "contentRating": "string",
+          "genres": [],
+          "height": "number",
+          "id": "number",
+          "insertFx": "string",
+          "kind": "string",
+          "libraryId": "number",
+          "missing": "bool",
+          "mtime": "number",
+          "overview": "string",
+          "path": "string",
+          "playMode": "string",
+          "poster": "string",
+          "provider": "string",
+          "providerId": "string",
+          "rating": "null",
+          "runtimeSec": "number",
+          "sizeBytes": "number",
+          "sortTitle": "string",
+          "studio": "string",
+          "subLangs": [],
+          "tagline": "string",
+          "title": "string",
+          "updatedAt": "number",
+          "videoCodec": "string",
+          "width": "number",
+          "year": "null"
+        }
+      ],
+      "total": "number"
+    }
+  },
+  "module settings": {
+    "status": 200,
+    "type": "application/json",
+    "shape": {
+      "modules": []
+    }
+  },
+  "play session": {
+    "status": 424,
+    "type": "application/json",
+    "shape": {
+      "error": "string",
+      "module": "string",
+      "moduleName": "string"
+    }
+  },
+  "profiles resolve": {
+    "status": 424,
+    "type": "application/json",
+    "shape": {
+      "error": "string",
+      "module": "string",
+      "moduleName": "string"
+    }
+  },
+  "rigs": {
+    "status": 424,
+    "type": "application/json",
+    "shape": {
+      "error": "string",
+      "module": "string",
+      "moduleName": "string"
+    }
+  },
+  "sdui games page": {
+    "status": 200,
+    "type": "application/json",
+    "shape": {
+      "catalog": "number",
+      "layout": {
+        "breakpoint": "string",
+        "budget": {
+          "eagerSections": "number",
+          "gridItems": "number",
+          "heroItems": "number",
+          "listItems": "number",
+          "maxSections": "number",
+          "pageSize": "number",
+          "repeats": "number",
+          "shelfItems": "number"
+        },
+        "cards": {
+          "album": {
+            "aspect": "string",
+            "shape": "string",
+            "width": {
+              "l": "number",
+              "m": "number",
+              "s": "number"
+            }
+          },
+          "block": {
+            "aspect": "string",
+            "shape": "string",
+            "width": {
+              "l": "number",
+              "m": "number",
+              "s": "number"
+            }
+          },
+          "book": {
+            "aspect": "string",
+            "shape": "string",
+            "width": {
+              "l": "number",
+              "m": "number",
+              "s": "number"
+            }
+          },
+          "channel": {
+            "aspect": "string",
+            "shape": "string",
+            "width": {
+              "l": "number",
+              "m": "number",
+              "s": "number"
+            }
+          },
+          "chip": {
+            "shape": "string",
+            "width": {
+              "l": "number",
+              "m": "number",
+              "s": "number"
+            }
+          },
+          "circle": {
+            "aspect": "string",
+            "shape": "string",
+            "width": {
+              "l": "number",
+              "m": "number",
+              "s": "number"
+            }
+          },
+          "episode": {
+            "aspect": "string",
+            "shape": "string",
+            "width": {
+              "l": "number",
+              "m": "number",
+              "s": "number"
+            }
+          },
+          "game": {
+            "aspect": "string",
+            "shape": "string",
+            "width": {
+              "l": "number",
+              "m": "number",
+              "s": "number"
+            }
+          },
+          "landscape": {
+            "aspect": "string",
+            "shape": "string",
+            "width": {
+              "l": "number",
+              "m": "number",
+              "s": "number"
+            }
+          },
+          "logo": {
+            "aspect": "string",
+            "shape": "string",
+            "width": {
+              "l": "number",
+              "m": "number",
+              "s": "number"
+            }
+          },
+          "person": {
+            "aspect": "string",
+            "shape": "string",
+            "width": {
+              "l": "number",
+              "m": "number",
+              "s": "number"
+            }
+          },
+          "photo": {
+            "aspect": "string",
+            "shape": "string",
+            "width": {
+              "l": "number",
+              "m": "number",
+              "s": "number"
+            }
+          },
+          "plate": {
+            "aspect": "string",
+            "shape": "string",
+            "width": {
+              "l": "number",
+              "m": "number",
+              "s": "number"
+            }
+          },
+          "poster": {
+            "aspect": "string",
+            "shape": "string",
+            "width": {
+              "l": "number",
+              "m": "number",
+              "s": "number"
+            }
+          },
+          "progress": {
+            "aspect": "string",
+            "shape": "string",
+            "width": {
+              "l": "number",
+              "m": "number",
+              "s": "number"
+            }
+          },
+          "square": {
+            "aspect": "string",
+            "shape": "string",
+            "width": {
+              "l": "number",
+              "m": "number",
+              "s": "number"
+            }
+          },
+          "tile": {
+            "aspect": "string",
+            "shape": "string",
+            "width": {
+              "l": "number",
+              "m": "number",
+              "s": "number"
+            }
+          }
+        },
+        "density": "string",
+        "dock": {
+          "height": "number",
+          "hintSize": "number",
+          "placement": "string"
+        },
+        "externalLinks": "bool",
+        "focusEngine": "bool",
+        "formFactor": "string",
+        "hero": {
+          "height": "number",
+          "width": "number"
+        },
+        "imageWidths": [
+          "number"
+        ],
+        "peek": "number",
+        "safeArea": {
+          "bottom": "number",
+          "left": "number",
+          "right": "number",
+          "top": "number"
+        },
+        "scale": "number",
+        "shell": {
+          "experience": "string",
+          "nav": "string",
+          "placements": {
+            "brand": {
+              "visible": "bool"
+            },
+            "clock": {
+              "visible": "bool"
+            },
+            "dock": {
+              "visible": "bool"
+            },
+            "hero": {
+              "visible": "bool"
+            },
+            "legend": {
+              "visible": "bool"
+            },
+            "nav": {
+              "visible": "bool"
+            },
+            "profile": {
+              "visible": "bool"
+            },
+            "search": {
+              "visible": "bool"
+            },
+            "statusBar": {
+              "visible": "bool"
+            },
+            "systemDock": {
+              "visible": "bool"
+            }
+          },
+          "size": "number"
+        },
+        "spacing": {
+          "l": "number",
+          "m": "number",
+          "none": "number",
+          "s": "number",
+          "xl": "number",
+          "xs": "number"
+        },
+        "text": {
+          "badge": "number",
+          "body": "number",
+          "caption": "number",
+          "display": "number",
+          "heading": "number",
+          "pageTitle": "number",
+          "title": "number"
+        },
+        "textLimits": {
+          "overview": "number",
+          "subtitle": "number",
+          "synopsis": "number",
+          "title": "number"
+        }
+      },
+      "meta": {
+        "configRevision": "number",
+        "etag": "string",
+        "generatedAt": "string",
+        "source": "string",
+        "ttlSeconds": "number"
+      },
+      "page": {
+        "icon": "string",
+        "id": "string",
+        "kind": "string",
+        "route": "string",
+        "title": "string"
+      },
+      "personal": {
+        "allow": [
+          "string"
+        ],
+        "editable": "bool",
+        "sections": [
+          {
+            "empty": "bool",
+            "id": "string",
+            "title": "string"
+          }
+        ],
+        "url": "string"
+      },
+      "root": {
+        "children": [
+          {
+            "children": [
+              {
+                "action": {
+                  "to": "string",
+                  "type": "string"
+                },
+                "focus": {
+                  "default": "bool",
+                  "group": "string",
+                  "order": "number"
+                },
+                "id": "string",
+                "props": {
+                  "console": "string",
+                  "itemId": "string",
+                  "kind": "string",
+                  "shape": "string",
+                  "style": "string",
+                  "title": "string"
+                },
+                "type": "string"
+              }
+            ],
+            "id": "string",
+            "props": {
+              "card": {
+                "aspect": "string",
+                "height": "number",
+                "shape": "string",
+                "width": "number"
+              },
+              "cardSize": "string",
+              "cardStyle": "string",
+              "seeAll": {
+                "label": "string",
+                "route": "string"
+              },
+              "title": "string"
+            },
+            "type": "string"
+          }
+        ],
+        "id": "string",
+        "props": {
+          "title": "string"
+        },
+        "type": "string"
+      },
+      "theme": {
+        "scope": "string"
+      },
+      "version": "number"
+    }
+  }
+}

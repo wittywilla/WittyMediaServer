@@ -269,3 +269,8 @@ html.ten-foot .su-ack a, html.using-controller .su-ack a, html.ten-foot .op-head
 .lp-headset .lp-carousel, .lp-tv .lp-carousel { grid-template-columns: repeat(5, auto); justify-content: center; }
 .lp-headset .lp-carousel i, .lp-tv .lp-carousel i { block-size: 3.4rem; inline-size: auto; }
 .lp-headset .lp-carousel i.on, .lp-tv .lp-carousel i.on { block-size: 5.2rem; }
+/* Choose colours: the chosen layout large, in the theme being tried, above the themes drawn in it. */
+.su-colours { display: grid; gap: var(--sp-5); }
+.su-colours-big { display: grid; justify-items: center; gap: var(--sp-2); margin: 0; }
+.su-colours-big .layout-thumb { width: min(100%, 16rem); height: auto; border-radius: var(--r-lg); box-shadow: var(--e-2); }
+.su-colours-big figcaption { color: var(--fg-2); font-size: var(--text-sm); }

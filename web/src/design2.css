@@ -278,6 +278,11 @@ body:has(.audio-bar:not(.full)) .ctv-page, body:has(.audio-bar:not(.full)) .tvm-
 .look-opts .layout-opt { display: grid; gap: var(--space-s); align-content: start; text-align: start; padding: var(--space-s); }
 .look-opts .layout-opt.on { outline: 3px solid var(--focus); outline-offset: 2px; }
 .look-opts .layout-opt .layout-thumb { inline-size: 100%; }
+/* Settings, Look: two pages, layout then colours. The chosen layout drawn large in the theme being tried. */
+.look-step { margin: 0 0 var(--space-s); font-size: var(--text-lg); }
+.look-colours-big { display: grid; justify-items: center; gap: var(--space-s); margin: 0 0 var(--space-m); }
+.look-colours-big .layout-thumb { inline-size: min(100%, 16rem); block-size: auto; border-radius: var(--radius); }
+.look-colours-big figcaption { color: var(--fg-2); }
 .oobe .layout-thumb { min-inline-size: 10rem; }
 
 /* ---- focusGrow: the focused card grows (1.45 on a television, 1.25 on a tablet or desktop, none on a phone); reduced motion keeps the ring ---- */

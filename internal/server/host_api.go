@@ -126,6 +126,8 @@ func (s *Server) hostHello(w http.ResponseWriter, r *http.Request, module string
 	machine := map[string]bool{
 		// The config file allows custom cores, and the machine's lock doesn't keep them off.
 		"gamingCustomCores": s.Cfg != nil && s.Cfg.GamingCustomCores && os.Getenv("WMS_GAMING_NO_CUSTOM_CORES") != "1",
+		// The built-in test console is offered: a developer's server, or WMS_GAMING_TESTCORE=1.
+		"gamingTestCore": s.testingGames(),
 	}
 	writeJSON(w, 200, host.Hello{Module: module, Server: s.Version, Offers: modmgr.Offers(), Machine: machine})
 }

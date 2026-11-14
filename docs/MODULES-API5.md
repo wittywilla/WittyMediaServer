@@ -83,6 +83,7 @@ Each route is mounted at `/api/modules/<id><path>` and `/api/v1/modules/<id><pat
 | `stream` | The answer is a stream, sent as it comes, with no size or time limit |
 | `limits` | `body` (default 1 MB), `answer` (default 16 MB), `time` (default 1 minute) |
 | `csp` | `sandboxed-page`, for a ticket route whose answer is a page: it's shown in a sandboxed frame with an origin of nobody's |
+| `confirm` | The request may carry the person's password in `X-WMS-Confirm-Password` (and `X-WMS-Confirm-Code` with two-factor sign-in). The server checks it as for its own careful actions, refuses a wrong one itself (403, counted as a failed sign-in), and tells the module only `X-Witty-Confirmed: 1`. Without `confirm`, the headers are dropped: no module ever sees a password |
 
 **What the server checks, before the module hears of a request:** sign-in, administrator, the profile's feature and screen time, the item, the size of the request, and for a WebSocket that it comes from this site. **What it drops:** the `Authorization` header, its sign-in cookie, a stream token in the query (`token`, `st`), and every `X-Witty-` header a browser sent. **What it adds** (`wittymodule/service`, `service.Who(r)`):
 
@@ -92,6 +93,9 @@ Each route is mounted at `/api/modules/<id><path>` and `/api/v1/modules/<id><pat
 | `X-Witty-User`, `X-Witty-Admin` | Who is asking (none on a ticket route) |
 | `X-Witty-Item` | The item a route's `item` names: id, library, kind, title, facets (`console`), and its files as paths to read. base64url JSON |
 | `X-Witty-Features` | The features this profile may use, space separated |
+| `X-Witty-Kind` | The profile's kind: `adult`, `kids` or `guest` |
+| `X-Witty-Confirmed` | `1` on a `confirm` route when the person gave their password and it was right |
+| `X-Witty-SignIn` | An opaque name for the sign-in the request came from, the same for each of its requests and new each time the server starts. A session names it so that signing out there ends it |
 
 **What it does with the answer:** drops `Set-Cookie`, adds `X-Content-Type-Options: nosniff`, holds a non-stream answer to its limit, and leaves `Cache-Control` to the module.
 
@@ -107,14 +111,16 @@ Every call that's on someone's behalf says who (`host.On{User}`, or `host.For(r)
 
 | Call | Path (`/host/v1`) | What it does |
 |---|---|---|
-| `Hello` | `GET /hello` | The module the server thinks this is, the server's version, what it offers |
+| `Hello` | `GET /hello` | The module the server thinks this is, the server's version, what it offers, and `machine`: what whoever runs the machine allows (`gamingCustomCores`) |
 | `Item` | `GET /items/{id}` | An item, with its files, if the person may see it (403) and it's in one of the module's kinds of library (404) |
 | `Items` | `GET /items?libraryKind=&library=&kind=&facet.console=&search=&offset=&limit=` | Items the person may see, without files, at most 500 |
 | `May` | `GET /may?feature=` | Whether the person may use a feature now: their limits, parental rules and screen time |
 | `Settings` | `GET /settings` | The module's settings (from `sdui.json`): the server's, then the person's own |
 | `Secret` | `GET /secrets/{name}` | A secret an administrator gave the module (kept as `module.<id>.secret.<name>`), or "" |
 | `PutImage` | `POST /images?item=&role=` | Keeps a picture (PNG, JPEG, GIF or WebP, up to 8 MB) and says where pages show it: `/api/module-images/<module>/<name>` |
-| `StartSession`, `EndSession` | `POST /sessions`, `DELETE /sessions/{id}` | Something live, for metrics, screen time and "playing now" |
+| `StartSession`, `EndSession` | `POST /sessions`, `DELETE /sessions/{id}` | Something live (`kind`, `user`, `item`, `title`, `signIn`). The server shows it in "playing now" and metrics, counts its time as screen time, adds a game's time to "Continue playing", and ends it when its sign-in ends, its profile's screen time runs out, games are turned off for the profile or the account goes: it then sends the event `session.stop` (`{id, user, reason}`) and the module stops it |
+| `Users` | `GET /users` | Every account: id, name, display name, kind, administrator, when a sign-in of theirs was last used |
+| `Tools` | `GET /tools` | The server's FFmpeg and FFprobe, the encoders it has, and its test of hardware encoders |
 | `Events` | `GET /events?after=&wait=` | Waits up to `wait` (at most 55s) for events after a number: `server.started`, `scan.finished`, … |
 | `Task` | `POST /tasks/{name}` | A long piece of work, shown with the server's tasks (administrators only) |
 
@@ -192,7 +198,7 @@ A server offers each host feature at a version (`modules.Offers()`): `http` 1, `
 These are designed in the plan and come with the module that needs them:
 
 - A module's own new setup steps (placed by `after`/`before`, shown later as "Finish setting up"), players, readers and menu folding from the web part.
-- Live sessions counted in metrics and screen time, and doctor checks from modules.
+- Doctor checks from modules.
 - Module databases in backups.
 - `/capabilities` features from what modules are in use (today they are the server's fixed list; changing that is agreed with the apps first).
 - `wittymodule web preview`: a module's screens without a server.

@@ -15,6 +15,7 @@ import (
 // The modules on this server, with the version of each in use, for Settings, About.
 
 type moduleInfo struct {
+	ID      string `json:"id"` // kept in a sanitized bug report, where a name may be hidden
 	Name    string `json:"name"`
 	Version string `json:"version"`
 	Role    string `json:"role"`
@@ -27,7 +28,7 @@ func (s *Server) modulesInUse() []moduleInfo {
 	}
 	for _, m := range s.Modules.Report().Modules {
 		if m.Enabled && m.Delivery != "builtin" && m.Version != "" {
-			out = append(out, moduleInfo{Name: m.Name, Version: m.Version, Role: m.Summary})
+			out = append(out, moduleInfo{ID: m.ID, Name: m.Name, Version: m.Version, Role: m.Summary})
 		}
 	}
 	return out

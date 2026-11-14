@@ -46,7 +46,9 @@ func (s *Server) featureState(ctx context.Context) *diagnose.FeatureState {
 			h := diagnose.ModuleHealth{ID: m.ID, Name: m.Name, Version: m.Version, State: m.State, Delivery: m.Delivery,
 				Notice: logging.Redact(m.Notice), LastFail: logging.Redact(m.LastFail), Checks: s.Modules.DoctorChecks(m.ID)}
 			h.Running = service.Running != nil && service.Running(m.ID)
-			if len(h.Checks) > 0 && h.Running {
+			// A helper that isn't running is started to answer: Repair and a bug report
+			// are asked for, and its checks are what they're for.
+			if len(h.Checks) > 0 && (m.State == modules.StateInstalled || m.State == modules.StateBuiltin) {
 				h.Findings, h.AskError = askModuleDoctor(ctx, m.ID)
 			}
 			f.Modules = append(f.Modules, h)
@@ -75,7 +77,7 @@ func (s *Server) featureState(ctx context.Context) *diagnose.FeatureState {
 // askModuleDoctor runs a module's own checks. What it says is cleaned like anything else
 // from outside: a known severity, bounded text, no secrets.
 func askModuleDoctor(ctx context.Context, id string) ([]diagnose.ModuleFinding, string) {
-	cctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	cctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 	var got []modules.DoctorFinding
 	if err := service.Call(cctx, id, modules.DoctorMethod, nil, nil, nil, []any{&got}); err != nil {

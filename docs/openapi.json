@@ -4239,6 +4239,9 @@
           "createdAt": {
             "type": "integer"
           },
+          "foreignNfo": {
+            "type": "boolean"
+          },
           "id": {
             "type": "integer"
           },
@@ -4282,6 +4285,7 @@
         },
         "required": [
           "createdAt",
+          "foreignNfo",
           "id",
           "itemCount",
           "lastScanAt",
@@ -5667,6 +5671,9 @@
       },
       "ModuleInfo": {
         "properties": {
+          "id": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
@@ -5678,6 +5685,7 @@
           }
         },
         "required": [
+          "id",
           "name",
           "role",
           "version"
@@ -16211,7 +16219,7 @@
           }
         },
         "security": [],
-        "summary": "Secure pairing (v2): start a session to show as a QR code and a rotating 6-digit PIN (TOTP, 30 s). `qr` is `wms://pair?v=1&s=<serverId>&u=<base url>&c=<sessionId>&k=<check>`; `approveUrl` opens the web approve page. Lasts 5 minutes. Rate limited per address (429), with /pair/start.",
+        "summary": "Secure pairing (v2): start a session to show as a QR code and a rotating 6-digit PIN (TOTP, 30 s). `qr` is `wms://pair?v=1\u0026s=\u003cserverId\u003e\u0026u=\u003cbase url\u003e\u0026c=\u003csessionId\u003e\u0026k=\u003ccheck\u003e`; `approveUrl` opens the web approve page. Lasts 5 minutes. Rate limited per address (429), with /pair/start.",
         "tags": [
           "Sign-in and accounts"
         ],
@@ -23195,7 +23203,7 @@
             "bearer": []
           }
         ],
-        "summary": "Forget the position (mark as not started). {id} show-<n>: in every episode of the show.",
+        "summary": "Forget the position (mark as not started). {id} show-\u003cn\u003e: in every episode of the show.",
         "tags": [
           "Browsing"
         ],
@@ -23262,7 +23270,7 @@
             "bearer": []
           }
         ],
-        "summary": "Save the viewer's position. Past 92% counts as watched. Discs send `discTitle` too. {id} show-<n> with {\"watched\": true} marks every episode of the show this profile may see watched.",
+        "summary": "Save the viewer's position. Past 92% counts as watched. Discs send `discTitle` too. {id} show-\u003cn\u003e with {\"watched\": true} marks every episode of the show this profile may see watched.",
         "tags": [
           "Browsing"
         ],
@@ -33552,7 +33560,7 @@
             "bearer": []
           }
         ],
-        "summary": "Whether peer-to-peer connections are on, and what an app needs for them: `serverId` (what to dial), `addrs` (where the server was last reachable, to keep as hints), `devicesOnly`, `layers`. `?device=<id>` adds `enrolled`. See P2P.md.",
+        "summary": "Whether peer-to-peer connections are on, and what an app needs for them: `serverId` (what to dial), `addrs` (where the server was last reachable, to keep as hints), `devicesOnly`, `layers`. `?device=\u003cid\u003e` adds `enrolled`. See P2P.md.",
         "tags": [
           "Remote access and signed-in devices"
         ],
@@ -36268,7 +36276,7 @@
     },
     "/recordings": {
       "get": {
-        "description": "channelKey and programme are there only when the profile may watch that channel; pass them to GET /tv/{key}/programme?start=<start>. POST /recordings answers the scheduled recording with the same fields.",
+        "description": "channelKey and programme are there only when the profile may watch that channel; pass them to GET /tv/{key}/programme?start=\u003cstart\u003e. POST /recordings answers the scheduled recording with the same fields.",
         "operationId": "getRecordings",
         "parameters": [],
         "responses": {
@@ -36291,7 +36299,7 @@
             "bearer": []
           }
         ],
-        "summary": "Recordings: each with `channelId`, `channel` (its name), `start`, `stop`, `status`, and `channelKey` and `programme` (`<key>@<start>`) for opening More info",
+        "summary": "Recordings: each with `channelId`, `channel` (its name), `start`, `stop`, `status`, and `channelKey` and `programme` (`\u003ckey\u003e@\u003cstart\u003e`) for opening More info",
         "tags": [
           "Channels and live TV"
         ],
@@ -38367,7 +38375,7 @@
             "bearer": []
           }
         ],
-        "summary": "A token that shows the draft to this administrator alone, on any device they are signed in on, for two hours: {token, expiresAt}. Sent as preview=<token> or X-WMS-SDUI-Preview with the page and navigation routes.",
+        "summary": "A token that shows the draft to this administrator alone, on any device they are signed in on, for two hours: {token, expiresAt}. Sent as preview=\u003ctoken\u003e or X-WMS-SDUI-Preview with the page and navigation routes.",
         "tags": [
           "Server-driven UI"
         ],
@@ -38638,7 +38646,7 @@
             "bearer": []
           }
         ],
-        "summary": "One page (?page=<id>) or the whole configuration as a file: {format: \"wittymedia-ui\", formatVersion, kind, page or config}.",
+        "summary": "One page (?page=\u003cid\u003e) or the whole configuration as a file: {format: \"wittymedia-ui\", formatVersion, kind, page or config}.",
         "tags": [
           "Server-driven UI"
         ],
@@ -39449,7 +39457,7 @@
             "bearer": []
           }
         ],
-        "summary": "A page, rendered for this account and device: an SDUI document (docs/SDUI.md, docs/sdui.schema.json). {page} is a kind of page (home, libraries, library?library=, detail?item= or ?show= or ?collection= or ?library=&artist=&album=, search?q=, livetv, music, photos, books, games, collections), chosen among the pages of that kind by what the request names, or one page's ID. Filled with what the account may see, cut to the device's budget, with components the client can't draw replaced by their fallbacks. 304 with If-None-Match.",
+        "summary": "A page, rendered for this account and device: an SDUI document (docs/SDUI.md, docs/sdui.schema.json). {page} is a kind of page (home, libraries, library?library=, detail?item= or ?show= or ?collection= or ?library=\u0026artist=\u0026album=, search?q=, livetv, music, photos, books, games, collections), chosen among the pages of that kind by what the request names, or one page's ID. Filled with what the account may see, cut to the device's budget, with components the client can't draw replaced by their fallbacks. 304 with If-None-Match.",
         "tags": [
           "Server-driven UI"
         ],
@@ -39699,7 +39707,7 @@
             "bearer": []
           }
         ],
-        "summary": "?since=<etag>: patches from the render the client has, or the whole document when the server no longer has it. 304 when nothing changed.",
+        "summary": "?since=\u003cetag\u003e: patches from the render the client has, or the whole document when the server no longer has it. 304 when nothing changed.",
         "tags": [
           "Server-driven UI"
         ],
@@ -40726,6 +40734,53 @@
           }
         ],
         "summary": "Finish first run",
+        "tags": [
+          "Setup"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/setup/module-steps/skip": {
+      "post": {
+        "description": "An administrator puts off a module's setup step: the Dismiss of \"Finish setting up\" on Home (SDUI command setup.skip). The step stays in the module's Settings.",
+        "operationId": "skipModuleSetupStep",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "module": {
+                    "type": "string"
+                  },
+                  "step": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "module",
+                  "step"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Put off."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Put off a module's setup step",
         "tags": [
           "Setup"
         ],
@@ -46022,53 +46077,6 @@
           "Metadata"
         ],
         "x-wms-auth": "user"
-      }
-    },
-    "/setup/module-steps/skip": {
-      "post": {
-        "summary": "Put off a module's setup step",
-        "description": "An administrator puts off a module's setup step: the Dismiss of \"Finish setting up\" on Home (SDUI command setup.skip). The step stays in the module's Settings.",
-        "tags": [
-          "Setup"
-        ],
-        "x-wms-auth": "admin",
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "module",
-                  "step"
-                ],
-                "properties": {
-                  "module": {
-                    "type": "string"
-                  },
-                  "step": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "204": {
-            "description": "Put off."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "operationId": "skipModuleSetupStep"
       }
     }
   },

@@ -320,6 +320,11 @@ func (s *Server) handleCrashDelete(w http.ResponseWriter, r *http.Request) {
 
 // ---------------------------------------------------------------- the support bundle
 
+// findingWords are the keys of Repair's findings and module states whose text is the
+// program's own: a sanitized bundle keeps them readable, hiding only paths, addresses and
+// known names inside them.
+var findingWords = []string{"title", "what", "fix", "steps", "details", "name", "notice", "lastFailure", "askError", "error", "mappingError", "check"}
+
 // bundleSanitized: what's made for handing to someone is sanitized unless asked otherwise.
 // sanitize=0 turns it off; redact is its earlier name.
 func bundleSanitized(r *http.Request) bool {
@@ -352,10 +357,10 @@ func (s *Server) bundleOptions(r *http.Request) logging.BundleOptions {
 		o.Extra = append(o.Extra, logging.BundleFile{Name: "summary.json", Description: "Version, modules, system, disk space and settings that matter, with no secrets", Data: b})
 	}
 	if b, err := json.MarshalIndent(s.bundleDoctor(r.Context()), "", "  "); err == nil {
-		o.Extra = append(o.Extra, logging.BundleFile{Name: "doctor.json", Description: "Repair's last report, or its module and feature checks run now: every module's state and what its own checks found", Data: b})
+		o.Extra = append(o.Extra, logging.BundleFile{Name: "doctor.json", Description: "Repair's last report, or its module and feature checks run now: every module's state and what its own checks found", Data: b, Plain: findingWords})
 	}
 	if b, err := json.MarshalIndent(s.featureState(r.Context()), "", "  "); err == nil {
-		o.Extra = append(o.Extra, logging.BundleFile{Name: "features.json", Description: "Peer to peer, module overrides, emulators and their permissions, karaoke's separator, channel health and the pages' revision, with no secrets", Data: b})
+		o.Extra = append(o.Extra, logging.BundleFile{Name: "features.json", Description: "Every module's state and what its own checks found, peer to peer, overrides, karaoke's separator and the pages' revision, with no secrets", Data: b, Plain: findingWords})
 	}
 	if s.BundleExtras != nil {
 		o.Extra = append(o.Extra, s.BundleExtras()...)

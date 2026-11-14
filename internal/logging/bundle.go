@@ -49,6 +49,10 @@ type BundleFile struct {
 	Name        string
 	Description string
 	Data        []byte
+	// Plain names the JSON keys whose text is the program's own words (a finding's title,
+	// a module's name): sanitized as free text, so paths, addresses and titles inside are
+	// still hidden, but the sentence stays readable. Any other key is judged by its name.
+	Plain []string
 }
 
 // BundlePart is one file in the preview.
@@ -321,7 +325,7 @@ func PreviewDir(dir string, g *CrashGuard, o BundleOptions) BundlePreview {
 	for _, e := range o.Extra {
 		add(e.Name, e.Description, int64(len(e.Data)))
 		if scrub != nil {
-			_ = scrubJSONish(scrub, e.Data)
+			_ = scrubJSONish(scrub, e.Data, e.Plain)
 		}
 	}
 	for _, f := range logs {
@@ -410,7 +414,7 @@ func WriteBundleDir(w io.Writer, dir string, g *CrashGuard, o BundleOptions) err
 	for _, e := range o.Extra {
 		data := e.Data
 		if scrub != nil {
-			data = scrubJSONish(scrub, data)
+			data = scrubJSONish(scrub, data, e.Plain)
 		}
 		if err := write(e.Name, data); err != nil {
 			return err
@@ -649,12 +653,19 @@ var goSourceLine = regexp.MustCompile(`\.go:\d+`)
 
 // scrubJSONish hides what could identify someone in a summary or report: JSON is
 // walked, by key, and anything else is treated as text.
-func scrubJSONish(s *Sanitizer, data []byte) []byte {
+func scrubJSONish(s *Sanitizer, data []byte, plain []string) []byte {
 	var v any
 	if err := json.Unmarshal(data, &v); err != nil {
 		return []byte(s.Final(s.Text(string(data))))
 	}
-	v = scrubValue(s, "", v)
+	var keep map[string]bool
+	if len(plain) > 0 {
+		keep = make(map[string]bool, len(plain))
+		for _, k := range plain {
+			keep[k] = true
+		}
+	}
+	v = scrubValue(s, "", v, keep)
 	out, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
 		return []byte(fmt.Sprintf("{\"error\":%q}", "could not sanitize this file"))
@@ -662,7 +673,7 @@ func scrubJSONish(s *Sanitizer, data []byte) []byte {
 	return []byte(s.Final(string(out)))
 }
 
-func scrubValue(s *Sanitizer, key string, v any) any {
+func scrubValue(s *Sanitizer, key string, v any, plain map[string]bool) any {
 	switch x := v.(type) {
 	case map[string]any:
 		// A key can be a name too. In order, so numbers are given out the same way each time.
@@ -673,14 +684,17 @@ func scrubValue(s *Sanitizer, key string, v any) any {
 		sort.Strings(keys)
 		out := make(map[string]any, len(x))
 		for _, k := range keys {
-			out[s.Final(k)] = scrubValue(s, k, x[k])
+			out[s.Final(k)] = scrubValue(s, k, x[k], plain)
 		}
 		return out
 	case []any:
 		for i, sub := range x {
-			x[i] = scrubValue(s, key, sub)
+			x[i] = scrubValue(s, key, sub, plain)
 		}
 	case string:
+		if plain[key] {
+			return s.Text(x)
+		}
 		return s.Attr(key, x)
 	}
 	return v

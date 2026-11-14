@@ -191,3 +191,38 @@ func TestSanitizedBundleHidesWhoAndWhere(t *testing.T) {
 		t.Error("a file name climbed out")
 	}
 }
+
+// A finding's own words stay readable in a sanitized bundle; what could identify someone
+// inside them is still hidden, and a key not named plain is judged as before.
+func TestPlainKeysStayReadable(t *testing.T) {
+	dir := t.TempDir()
+	extra := BundleFile{Name: "doctor.json", Plain: []string{"title", "what"}, Data: []byte(`{"issues":[{"title":"WittyDVD isn't running",` +
+		`"what":"Its helper stopped reading /Volumes/Planted Disk/Film.iso from 192.168.4.20 with token=S3CRETVALUE9876","name":"Planted Person"}]}`)}
+	var buf bytes.Buffer
+	if err := WriteBundleDir(&buf, dir, nil, BundleOptions{Sanitize: true, Extra: []BundleFile{extra}}); err != nil {
+		t.Fatal(err)
+	}
+	zr, err := zip.NewReader(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got string
+	for _, f := range zr.File {
+		if f.Name == "doctor.json" {
+			r, _ := f.Open()
+			b, _ := io.ReadAll(r)
+			r.Close()
+			got = string(b)
+		}
+	}
+	for _, want := range []string{"WittyDVD isn't running", "Its helper stopped reading"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("%q was hidden:\n%s", want, got)
+		}
+	}
+	for _, not := range []string{"Planted Disk", "192.168.4.20", "S3CRETVALUE9876", "Planted Person"} {
+		if strings.Contains(got, not) {
+			t.Errorf("%q left in:\n%s", not, got)
+		}
+	}
+}

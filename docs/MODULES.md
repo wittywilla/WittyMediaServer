@@ -325,7 +325,7 @@ and answers the service call `doctor.Check` (no arguments) with a list of findin
   "title": "macOS hasn't let the server record the screen", "what": "…", "steps": ["Open System Settings, …"]}]
 ```
 
-`severity` is `info`, `warn` or `problem`; `key` stays the same for the same finding. Say what is wrong and what to do, in plain words, with no secrets or file contents: the server shows it in Repair under Modules and puts it in the bug-report download (`doctor.json`, `features.json`). It asks only a running helper, for at most 5 seconds, and at most 20 findings are kept. WittyPlay and WittyTuner do this.
+`severity` is `info`, `warn` or `problem`; `key` stays the same for the same finding. Say what is wrong and what to do, in plain words, with no secrets or file contents: the server shows it in Repair under Modules and puts it in the bug-report download (`doctor.json`, `features.json`). A helper that isn't running is started to answer, and has 15 seconds; and at most 20 findings are kept. WittyPlay and WittyTuner do this.
 
 A module that needs to know about file types shouldn't keep a list of its own. `GET /api/media-types` gives every format, codec and container the server knows, with extensions, how each plays, which libraries take it and whether this machine can handle it. `docs/media-types.json` is the same list as a file, for use when a module is built. See [Supported formats](SUPPORTED-FORMATS.md).
 

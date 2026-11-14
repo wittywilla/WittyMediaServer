@@ -218,6 +218,9 @@ type moduleState struct {
 	// GameFailuresUncounted: what games failing to start took out of use, before only the helper
 	// failing counted, has been put back, once (liftGameFailureBlocks).
 	GameFailuresUncounted bool `json:"gameFailuresUncounted,omitempty"`
+	// Integrated is the last version whose lifecycle call (install or upgrade, module API 5)
+	// went through, so each version is set up once.
+	Integrated string `json:"integrated,omitempty"`
 }
 
 type entry struct {
@@ -456,7 +459,7 @@ func (m *Manager) saveState() error {
 	saved := map[string]moduleState{}
 	for id, e := range m.mods {
 		s := e.state
-		if s.Active != "" || s.Previous != "" || len(s.Blocked) > 0 || s.Pin != "" || s.NoAuto || s.Removed || s.Disabled || s.Source != nil || s.DataHigh > 0 || s.Withdrawn != nil || len(s.Events) > 0 || s.NestedSandboxFixed || s.GameFailuresUncounted {
+		if s.Active != "" || s.Previous != "" || len(s.Blocked) > 0 || s.Pin != "" || s.NoAuto || s.Removed || s.Disabled || s.Source != nil || s.DataHigh > 0 || s.Withdrawn != nil || len(s.Events) > 0 || s.NestedSandboxFixed || s.GameFailuresUncounted || s.Integrated != "" {
 			saved[id] = s
 		}
 	}

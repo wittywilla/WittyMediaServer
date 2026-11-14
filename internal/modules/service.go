@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -109,6 +110,13 @@ func (m *Manager) ServiceConn(id string) (*service.Conn, error) {
 		if err != nil || u.Scheme != "http" || !loopback(u.Hostname()) {
 			a.Close()
 			err := errors.New("its service isn't on this machine")
+			a.failedNow(err)
+			return nil, err
+		}
+		// A version of API 5 is set up once, at its first start: its own data, a move from
+		// what the server kept before. It isn't used until that went through.
+		if err := m.integrate(id, a); err != nil {
+			a.Close()
 			a.failedNow(err)
 			return nil, err
 		}
@@ -396,4 +404,65 @@ func (m *Manager) Libraries(id string) []string {
 		return append([]string(nil), e.man.Libraries...)
 	}
 	return nil
+}
+
+// integrate makes the lifecycle call a version in use hasn't had yet: install for the first
+// version of API 5, upgrade when the version changed. A module that asks for neither is
+// simply noted as set up.
+func (m *Manager) integrate(id string, a *Attached) error {
+	m.mu.Lock()
+	e := m.mods[id]
+	if e == nil || e.man == nil || e.dir == "" {
+		m.mu.Unlock()
+		return nil
+	}
+	in, ver, prev := e.integ, e.man.Version, e.state.Integrated
+	m.mu.Unlock()
+	if in == nil || prev == ver {
+		return nil
+	}
+	call := ""
+	if l := in.Lifecycle; l != nil {
+		switch {
+		case prev == "" && l.Install:
+			call = wittymodule.CallInstall
+		case prev != "" && l.Upgrade:
+			call = wittymodule.CallUpgrade
+		}
+	}
+	if call != "" {
+		if _, err := a.Call(call, wittymodule.LifecycleArgs{From: prev, To: ver}, nil); err != nil {
+			m.log.Warn("modules: a version's setup failed", "cat", "modules", "module", id, "version", ver, "call", call, "err", err)
+			return fmt.Errorf("setting up %s %s failed: %w", id, ver, err)
+		}
+		m.log.Info("modules: a version was set up", "cat", "modules", "module", id, "version", ver, "call", call, "from", prev)
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if e.man != nil && e.man.Version == ver {
+		e.state.Integrated = ver
+		return m.saveState()
+	}
+	return nil
+}
+
+// Uninstall tells a module of API 5 it is being taken off this server, and whether to keep its
+// data, before it goes. A module that doesn't answer the call, or isn't running, is let go:
+// its data folder stays unless the server removes it.
+func (m *Manager) Uninstall(id string, keepData bool) error {
+	in := m.Integration(id)
+	if in == nil || in.Lifecycle == nil || in.Lifecycle.Uninstall == "" {
+		return nil
+	}
+	if _, err := m.ServiceConn(id); err != nil {
+		return nil // not running and can't be started: nothing to tell
+	}
+	m.svcMu.Lock()
+	s := m.services[id]
+	m.svcMu.Unlock()
+	if s == nil {
+		return nil
+	}
+	_, err := s.a.Call(wittymodule.CallUninstall, wittymodule.LifecycleArgs{KeepData: keepData}, nil)
+	return err
 }

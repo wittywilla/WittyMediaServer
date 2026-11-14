@@ -354,6 +354,10 @@ func cmdServe(args []string) int {
 	handler := srv.Handler()
 	srv.ApplyEvidenceSettings(context.Background())
 	srv.StartMetadata()
+	// Where modules of API 5 ask this server for what only it has (internal/server/host_api.go).
+	if err := srv.StartHostAPI(); err != nil {
+		log.Warn("the host API for modules could not start: modules of API 5 can't reach this server", "cat", "modules", "err", err)
+	}
 	httpServer := &http.Server{
 		Addr:              cfg.Listen,
 		Handler:           handler,

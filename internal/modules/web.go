@@ -57,6 +57,11 @@ type WebBundle struct {
 	// Views are the IDs of the views of its own in its SDUI (docs/SDUI-MODULES.md, "Views"):
 	// the bundle exports a component for each, and the web app says it can draw them.
 	Views []string `json:"views,omitempty"`
+	// Integration is what its integration.json says the bundle adds to the web app (module
+	// API 5): its routes and frames, cards, players, readers, Settings sections, setup steps
+	// and menu folding, so the app knows before loading any of its code. The bundle's
+	// register(host) export hands over the components.
+	Integration *wittymodule.WebPart `json:"integration,omitempty"`
 }
 
 // WebBundles lists the bundles in use.
@@ -75,6 +80,9 @@ func (m *Manager) WebBundles() []WebBundle {
 		}
 		b := WebBundle{ID: id, Version: e.man.Version, Entry: entry, Style: style, API: e.man.API,
 			Pages: e.man.Pages, Base: "/api/modules/" + id + "/web/" + e.web.address(e.man.Version) + "/"}
+		if e.integ != nil && !e.state.Disabled {
+			b.Integration = e.integ.Web
+		}
 		if e.ui != nil {
 			for _, v := range e.ui.Views {
 				b.Views = append(b.Views, v.ID)

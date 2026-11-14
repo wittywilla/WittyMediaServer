@@ -303,6 +303,11 @@ func (s *Server) handleModuleRemove(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return err
 		}
+		// A module of API 5 is told first, and whether to keep its data (?keepData=0 to
+		// remove it; kept unless someone says so). One that can't be told still goes.
+		if err := s.Modules.Uninstall(id, r.URL.Query().Get("keepData") != "0"); err != nil {
+			s.Log.WarnContext(r.Context(), "a module couldn't be told it is being taken off", "cat", "modules", "module", id, "err", err)
+		}
 		return s.Modules.RemoveModule(id, libs)
 	})
 }

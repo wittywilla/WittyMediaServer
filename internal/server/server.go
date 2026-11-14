@@ -172,6 +172,14 @@ type Server struct {
 	legacy     legacyPatterns
 	// integrations stands in for Modules.Integrations in tests.
 	integrations func() ([]modmgr.InUse, uint64)
+	// The host API's state (host_api.go): live sessions modules report, their events and tasks.
+	modSessions moduleSessions
+	hostEvMu    sync.Mutex
+	hostEv      *hostEventLog
+	modTasksMu  sync.Mutex
+	modTasks    map[string]*tasks.Handle
+	// hostModsForTest stands in for Modules in the host API's tests.
+	hostModsForTest hostModules
 
 	// Work the server started on its own, which Close ends and waits for: see background.
 	bgMu     sync.Mutex
@@ -208,6 +216,7 @@ func (s *Server) StartMetadata() {
 	s.Scanner.OnScanned = func() {
 		s.logos().Kick()
 		s.Scanner.KickListings()
+		s.hostEvents().publish("scan.finished", nil) // modules of API 5 hear of it (host_api.go)
 	}
 	s.Scanner.OnGamesScanned = func() {
 		s.logos().Kick()
@@ -526,6 +535,7 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("POST /api/modules/{id}/failed", s.requireUser(s.handleModuleFailed))
 	// A module's own routes (module API 5): who may call each is checked in module_routes.go.
 	m.HandleFunc("/api/modules/{id}/{path...}", s.handleModuleRoute)
+	m.Handle("GET /api/module-images/{module}/{name}", s.requireUser(s.handleModuleImage))
 	s.remoteRoutes(m)
 	s.taskRoutes(m)
 	s.streams.init(s)

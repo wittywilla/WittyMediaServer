@@ -74,7 +74,7 @@ const useNarrow = () => useSyncExternalStore((changed) => {
   return () => m.removeEventListener('change', changed)
 }, () => window.matchMedia(NARROW).matches)
 
-type Page = { to: string; label: string; icon: React.ReactNode; admin?: boolean; hint: string }
+type Page = { to: string; label: string; icon: React.ReactNode; admin?: boolean; hint: string; launch?: string }
 
 // Each row's colour on a phone, where the menu is a grouped list with tinted icon tiles: the
 // same colours as the apps' You page (WittyMediaClient's docs/APP-DESIGN.md, You and
@@ -129,9 +129,10 @@ const GROUPS: { title: string; pages: Page[] }[] = [
 function withModuleTabs(groups: typeof GROUPS, tabs: ModuleSettingsTab[]): typeof GROUPS {
   if (!tabs.length) return groups
   const own = new Set(groups.flatMap((g) => g.pages.map((p) => p.to)))
-  const row = (t: ModuleSettingsTab, was?: Page): Page => ({ to: t.id, label: t.label, icon: was?.icon ?? <IconPlug />, admin: t.admin, hint: was?.hint ?? '' })
+  const row = (t: ModuleSettingsTab, was?: Page): Page => ({ to: t.id, label: t.label, icon: was?.icon ?? <IconPlug />, admin: t.admin, hint: was?.hint ?? '', launch: t.launch })
   const out = groups.map((g) => ({ ...g, pages: g.pages.flatMap((p) => {
     const same = tabs.find((t) => t.id === p.to)
+    if (same?.hidden) return [] // the module's own place has it now (launch)
     const after = tabs.filter((t) => t.after === p.to && !own.has(t.id))
     return [same ? row(same, p) : p, ...after.map((t) => row(t))]
   }) }))
@@ -191,7 +192,7 @@ export default function SettingsPage() {
           <div key={g.title} className="set-nav-group">
             <div className="set-nav-head">{g.title}</div>
             {g.pages.map((p) => (
-              <NavLink key={p.to} to={`/settings/${p.to}`} className="set-nav-link" title={p.hint}>
+              <NavLink key={p.to} to={p.launch || `/settings/${p.to}`} className="set-nav-link" title={p.hint}>
                 <span className="set-nav-icon" style={tint(p.to)}>{p.icon}</span><span className="set-nav-text"><span>{p.label}</span><small className="set-nav-hint">{p.hint}</small></span>{p.to === 'about' && <UpdateDot />}<IconRight className="set-nav-go" />
               </NavLink>
             ))}
@@ -223,7 +224,7 @@ export default function SettingsPage() {
           </div>
         )}
         {slug !== 'about' && <UpdateBanner />}
-        {moduleTab ? <ModuleSettingsView tab={moduleTab} /> : <Routes>
+        {moduleTab?.launch ? <Navigate to={moduleTab.launch} replace /> : moduleTab ? <ModuleSettingsView tab={moduleTab} /> : <Routes>
           <Route index element={narrow ? null : <Navigate to={user?.isAdmin ? '/settings/libraries' : '/settings/users'} replace />} />
           <Route path="libraries" element={<Libraries />} />
           <Route path="pages/*" element={<Suspense fallback={<div className="loading-box"><div className="spinner" /></div>}><PagesSettings /></Suspense>} />

@@ -18,7 +18,7 @@ import { GameArtContext, type GameArtApi, type GameArtArgs } from './sdui/render
 // own copy of the module's screens draws them as it always did.
 
 export type WebRoute = { path: string; frame: 'fullscreen' | 'app' | 'tv' }
-export type SettingsTab = { id: string; label: string; admin?: boolean; after?: string; search?: string[] }
+export type SettingsTab = { id: string; label: string; admin?: boolean; after?: string; search?: string[]; launch?: string; hidden?: boolean }
 export type WebPart = {
   routes?: WebRoute[]
   takeover?: { libraryKind: string; route: string }[]

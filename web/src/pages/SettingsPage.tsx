@@ -25,6 +25,7 @@ import { ConsolePicker } from '../components/ConsolePicker'
 import { kindTitle, libraryKinds, missingKind, orList, type LibraryKind } from '../moduleStore'
 import { PageHead, Row, SaveBar, Section, Switch, useServerSettings } from './settings/ui'
 import { jumpWhenReady } from './settings/jump'
+import { commercialsSwitchText, nfoOn, nfoSwitchText } from './settings/librarySwitches'
 import { SettingsResults, SettingsSearch } from './settings/SettingsSearch'
 import TranscodeSettings from './TranscodeSettings'
 import './settings/settings.css'
@@ -284,7 +285,7 @@ function CommercialsSwitch({ library }: { library: Library }) {
   }
   return (
     <div className="set-lib-switch">
-      <span><b>Show in the main menus and on Home</b><br /><small className="muted">Off: only channels use it. Either way, it plays on the channels you choose it for.</small></span>
+      <span><b>Show in the main menus and on Home</b><br /><small className="muted">{commercialsSwitchText(!!library.showMain)}</small></span>
       <Switch checked={!!library.showMain} label={`Show ${library.name} in the main menus and on Home`} onChange={(v) => void set(v)} />
     </div>
   )
@@ -297,10 +298,11 @@ function NfoSwitch({ library }: { library: Library }) {
   const set = async (use: boolean) => {
     try { await api.put(`/libraries/${library.id}/nfo`, { use }); await refreshLibraries(); toast(use ? `${library.name} reads .nfo files from other programs again, and is being scanned` : `${library.name} now ignores other programs' .nfo files, and is being scanned`) } catch (e: any) { toast(e.message) }
   }
+  const on = nfoOn(library)
   return (
     <div className="set-lib-switch">
-      <span><b>Use .nfo files from other programs</b><br /><small className="muted">Off: titles, years and details come from the file names and what is found online. The server's own .nfo files are read either way.</small></span>
-      <Switch checked={library.foreignNfo !== false} label={`Use .nfo files from other programs in ${library.name}`} onChange={(v) => void set(v)} />
+      <span><b>Use .nfo files from other programs</b><br /><small className="muted">{nfoSwitchText(on)}</small></span>
+      <Switch checked={on} label={`Use .nfo files from other programs in ${library.name}`} onChange={(v) => void set(v)} />
     </div>
   )
 }

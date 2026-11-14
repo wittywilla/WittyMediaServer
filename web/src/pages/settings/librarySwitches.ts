@@ -1,0 +1,19 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 WittyWilla and contributors
+// The words under a library's switches in Settings, Libraries: they say what the switch does as it
+// stands now, so a switch that is on never reads "Off: …".
+
+// nfoOn: whether a library reads .nfo files other programs wrote (foreignNfo). On unless turned off.
+export const nfoOn = (lib: { foreignNfo?: boolean }): boolean => lib.foreignNfo !== false
+
+export function nfoSwitchText(on: boolean): string {
+  return on
+    ? "On: titles, years and details are read from other programs' .nfo files beside the media, where there are any. The server's own .nfo files are read either way."
+    : "Off: titles, years and details come from the file names and what is found online. The server's own .nfo files are read either way."
+}
+
+export function commercialsSwitchText(on: boolean): string {
+  return on
+    ? 'On: it shows in the menus and on Home, and plays on the channels you choose it for.'
+    : 'Off: only channels use it, on the channels you choose it for.'
+}

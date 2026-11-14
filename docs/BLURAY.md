@@ -43,7 +43,7 @@ On a Blu-ray's page:
 | **Resume from** | Back to where you stopped |
 | **Main menu** | The disc's top menu, skipping the intros |
 
-**Disc settings** on the page, for administrators, chooses what's on the disc, whether inserting it starts with the menu or the feature, and the insert effect. The defaults, the region, parental limits and country are under **Settings → Playback & discs**. Pick the region your discs are from: a disc for another region shows its own message instead of the movie.
+**Disc settings** on the page, for administrators, chooses what's on the disc, whether inserting it starts with the menu or the feature, and the insert effect. The defaults, the region, parental limits and country are under **Settings → DVDs and Blu-rays**. Pick the region your discs are from: a disc for another region shows its own message instead of the movie.
 
 **In a menu,** the arrow keys, the on-screen remote, a game controller or a TV remote move between buttons, and **OK** presses one. The disc's own program then runs, as its authors intended. **Top menu** returns to the top menu from the film.
 
@@ -66,7 +66,7 @@ WittyBluray 0.4.0 and later rank every playlist of a disc and explain their pick
 
 ## A second opinion from libbluray
 
-If a libbluray is installed on the server, WittyBluray can compare its reading of a disc with libbluray's. It is off until an administrator turns on **Settings → Playback & discs → Ask libbluray for a second opinion**, and the row says whether a libbluray was found. Then **Compare with libbluray** on a disc's page asks once, and the answer appears under **How the engine decided**. WittyBluray's own pick still decides what plays.
+If a libbluray is installed on the server, WittyBluray can compare its reading of a disc with libbluray's. It is off until an administrator turns on **Settings → DVDs and Blu-rays → Ask libbluray for a second opinion**, and the row says whether a libbluray was found. Then **Compare with libbluray** on a disc's page asks once, and the answer appears under **How the engine decided**. WittyBluray's own pick still decides what plays.
 
 - libbluray isn't shipped. On macOS and Windows WittyBluray loads it at run time if one is installed (`libbluray.2.dylib`, `libbluray-2.dll`). On Linux the module is a static program and asks libbluray only when built with `-tags libbluray`.
 - It is a library from outside the project reading the disc's files, in the module's helper process, which is why it starts off.
@@ -92,7 +92,7 @@ Press **Remote**, or **R**, for the WittyBluray remote. Its button is in the pla
 
 - **3D discs (MVC)** play their 2D view, because FFmpeg has no decoder for the other. The disc is marked 3D in the library.
 - **Side-by-side and over-under 3D**, on discs or files made that way: the viewing settings have **3D video**, and **Show 3D as**: one eye in 2D, or red and cyan for paper glasses.
-- **4K UHD discs** are read like any other. With **Maximum resolution** on **Source**, they're sent as 1080p, because converting 4K in software is beyond most machines. Choose **2160p (4K)** under **Settings → Playback & discs → Conversion** to send them as 4K. No real UHD disc has been tried.
+- **4K UHD discs** are read like any other. With **Maximum resolution** on **Source**, they're sent as 1080p, because converting 4K in software is beyond most machines. Choose **2160p (4K)** under **Settings → Live transcoding** to send them as 4K. No real UHD disc has been tried.
 - **HDR** (HDR10, HDR10+ and the HDR10 layer of Dolby Vision) is mapped to an ordinary picture for the browser. An FFmpeg without the `zscale` and `tonemap` filters plays it unmapped: watchable, but flat. HDR screens haven't been checked.
 
 ## BD-J (Java) menus
@@ -102,7 +102,7 @@ Many commercial Blu-rays write their menus in Java. **This is off until you turn
 To show those menus:
 
 1. Install any Java 8 or newer on the server, with its graphics libraries. [Eclipse Temurin](https://adoptium.net) is a free build of OpenJDK. A stripped-down Java without graphics can't run them. On Linux, install `fontconfig` too. In Docker, add both to the image.
-2. Go to **Settings → Playback & discs** and turn on **Run Blu-ray Java menus (BD-J)**. The page shows which Java it found.
+2. Go to **Settings → DVDs and Blu-rays** and turn on **Run Blu-ray Java menus (BD-J)**. The page shows which Java it found.
 3. If it found none, or you want another, name it in the server's [config file](CONFIG.md) as `javaPath`, or with `-java` or `WMS_JAVA`, and start the server again. **It can't be set from the web page**, so that a web account can't choose what the server runs. A location saved in Settings by an older version is ignored.
 4. Insert the disc.
 
@@ -124,7 +124,7 @@ A Java menu is worked with the remote's arrows, OK and colour keys. A tap or cli
 ## On a small machine
 
 - Only the bytes being played are read. Nothing is copied to disk.
-- **Settings → Playback & discs → Low-power mode for discs** uses the cheapest deinterlacer and the fastest encoder setting.
+- **Settings → DVDs and Blu-rays → Low-power mode for discs** uses the cheapest deinterlacer and the fastest encoder setting.
 - A hardware encoder helps most: see [Live transcoding](TRANSCODING.md#hardware-encoders).
 - Subtitle pictures are decoded in two-minute windows as the viewer reaches them, so a 20 GB film is never scanned whole.
 

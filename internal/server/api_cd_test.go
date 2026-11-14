@@ -8,12 +8,13 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
-	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"math"
 	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 )
 
 // cdImage writes a generated two-track disc and adds it as an item.
@@ -41,7 +42,7 @@ func cdImage(t *testing.T, ts *contractServer) (id int64, pcm []byte) {
 func TestCDRoutes(t *testing.T) {
 	modtest.Need(t, "wittycd")
 	ts := newContractServer(t)
-	_, session := ts.account(t, "listener", "adult", false)
+	listener, session := ts.account(t, "listener", "adult", false)
 	id, pcm := cdImage(t, ts)
 
 	w := ts.do(t, "GET", fmt.Sprintf("/api/cd/%d", id), session, nil)
@@ -96,11 +97,12 @@ func TestCDRoutes(t *testing.T) {
 	if c := ts.do(t, "GET", fmt.Sprintf("/api/cd/%d/audio?format=wav&st=%s", other, tok), "", nil).Code; c != 401 {
 		t.Errorf("a ticket for another disc: %d", c)
 	}
-	// Choosing what a disc is belongs to an admin.
-	if c := ts.do(t, "GET", fmt.Sprintf("/api/cd/%d/matches", id), session, nil).Code; c != 403 {
+	// Choosing what a disc is belongs to an admin: WittyCD asks the host API, which says no for
+	// anyone else.
+	if c := discHostAs(t, ts.Server, wittyCDID, listener, "GET", fmt.Sprintf("/cds/%d/matches", id), nil).Code; c != 403 {
 		t.Errorf("matches as a listener: %d", c)
 	}
-	if c := ts.do(t, "POST", fmt.Sprintf("/api/cd/%d/identify", id), session, map[string]string{"releaseId": ""}).Code; c != 403 {
+	if c := discHostAs(t, ts.Server, wittyCDID, listener, "PUT", fmt.Sprintf("/cds/%d/release", id), map[string]string{"releaseId": ""}).Code; c != 403 {
 		t.Errorf("identify as a listener: %d", c)
 	}
 

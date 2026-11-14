@@ -152,12 +152,6 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/people` | Signed-in | limits: only people credited on a title the account may see, counting only those titles |
 | `GET /api/people/{id}` | Signed-in | limits: 404 unless credited on a title the account may see; the filmography names only those |
 | `GET /api/people/{id}/photo` | Signed-in; ticket; address token | limits, as the person. Pictures only, from the cache, the internet or inside a library |
-| `GET /api/items/{id}/disc` | Signed-in | limits. Item is a disc |
-| `PUT /api/items/{id}/disc/labels` | Admin | Labels trimmed |
-| `GET /api/items/{id}/disc/analysis` | Signed-in | limits. Item is a disc. Who chose is named to admins only |
-| `POST /api/items/{id}/disc/analysis` | Admin | Item is a disc. A second opinion only for an unencrypted Blu-ray, with the setting on and a libbluray found |
-| `PUT /api/items/{id}/disc/choice` | Admin | Item is a disc. Title exists on it |
-| `DELETE /api/items/{id}/disc/choice` | Admin | Item is a disc |
 | `GET /api/items/{id}/disc/thumb/{ttn}/{n}` | Signed-in; ticket; address token | limits. Item is a disc and not scrambled. Title and chapter exist |
 | `GET /api/artwork/preview` | Admin; address token | Web address, cache name, or a picture inside a library |
 | `GET /api/prefs` | Signed-in | Nothing: server-wide playback defaults |
@@ -193,8 +187,6 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/cd/{id}` | Signed-in; ticket | limits. Disc image inside a library |
 | `GET /api/cd/{id}/audio` | Signed-in; ticket | limits. Disc image inside a library. Format, tracks, start. Limit for viewers away from home |
 | `GET /api/cd/{id}/graphics` | Signed-in; ticket | limits. Disc image inside a library. Sector range |
-| `GET /api/cd/{id}/matches` | Admin | Disc image inside a library |
-| `POST /api/cd/{id}/identify` | Admin | Disc image inside a library. Release id |
 | `GET /api/cd-covers/{release}` | Admin | Release id looked up by the scanner |
 | `GET /api/items/{id}/book` | Signed-in | limits. Book, plain file inside a library |
 | `GET /api/items/{id}/page/{n}` | Signed-in; address token | limits. Book inside a library. Page exists. Restrictive content policy |
@@ -248,7 +240,6 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/dvd/{sid}/bdj` | Signed-in | Blu-ray session exists. An account with limits is checked against what it plays |
 | `GET /api/dvd/{sid}/bdj/frame/{n}` | Signed-in | Blu-ray session exists. An account with limits is checked against what it plays |
 | `GET /api/bdj/status` | Admin | Nothing further |
-| `GET /api/bluray/capabilities` | Admin | Nothing further: names a library's path, so admins only |
 | `GET /api/dvd/{sid}/still/{name}` | Signed-in; ticket; address token | Session exists, and for a ticket is of the ticket's item. Still is one the session made. An account with limits is checked against what it plays |
 | `GET /api/dvd/{sid}/subs` | Signed-in; address token | Session exists. Time window of at most 600 seconds. An account with limits is checked against what it plays |
 | `GET /api/dvd/{sid}/sub/{name}` | Signed-in; ticket; address token | Session exists, and for a ticket is of the ticket's item. Picture exists. An account with limits is checked against what it plays |
@@ -484,32 +475,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/channels/{id}/logo` | Signed-in | Numeric id |
 | `PUT /api/channels/{id}/logo` | Admin | Channel exists. PNG or JPEG of at most 2 MB, 16 to 4096 pixels a side |
 | `DELETE /api/channels/{id}/logo` | Admin | Numeric id |
-| `GET /api/tv/encrypted-help` | Signed-in | Nothing: fixed text |
 | `GET /api/tv/{key}/logo` | Signed-in | Channel key. Account may watch tuner channels, channel enabled. Web address only, internet-only client, pictures only |
-| `GET /api/tuners/drivers` | Admin | Nothing further |
-| `GET /api/tuners/discover` | Admin | 12-second limit |
-| `GET /api/tuners` | Admin | Options masked |
-| `POST /api/tuners` | Admin | Driver and options checked by the tuner manager |
-| `POST /api/tuners/check` | Admin | Playlist file place checked; options checked by the tuner manager; nothing saved; 90-second limit; masked passwords only from the tuner named |
-| `PUT /api/tuners/{id}` | Admin | Tuner exists. Options checked by the tuner manager |
-| `DELETE /api/tuners/{id}` | Admin | Tuner exists |
-| `POST /api/tuners/{id}/refresh` | Admin | Tuner exists |
-| `POST /api/tuners/{id}/scan` | Admin | Tuner exists. Source |
-| `GET /api/tuners/{id}/scan` | Admin | Numeric id |
-| `POST /api/tuners/{id}/test` | Admin | Tuner exists. Channel must be the tuner's. Opened as a viewer's would be: encrypted refused, tuner limits kept; 90-second limit |
-| `GET /api/tuners/{id}/channels` | Admin | Numeric id |
-| `POST /api/tuners/{id}/channels/enable` | Admin | Numeric id |
-| `PUT /api/tuner-channels/{id}` | Admin | Channel exists. Fields |
-| `POST /api/tuner-channels/bulk` | Admin | 1 to 20000 channel ids; a known action; check: up to 50 |
-| `GET /api/tuners/duplicates` | Admin | Nothing further |
-| `POST /api/tuners/{id}/health` | Admin | Tuner exists. One check per tuner at a time, within its stream limit |
-| `GET /api/tuners/{id}/health` | Admin | Tuner exists |
-| `DELETE /api/tuners/{id}/health` | Admin | Tuner exists |
-| `GET /api/epg/sources` | Admin | Nothing further |
-| `POST /api/epg/sources` | Admin | Name and address checked by the tuner manager |
-| `DELETE /api/epg/sources/{id}` | Admin | Source exists |
-| `POST /api/epg/sources/{id}/refresh` | Admin | Numeric id |
-| `GET /api/epg/ids` | Admin | Nothing further |
 | `GET /api/recordings` | Tuner channels | own, and every account's for an administrator |
 | `POST /api/recordings` | Tuner channels | canRecord: a tuner channel, turned on, visible, clear and not marked not to be recorded; never a library channel. 50 waiting per account, none for an administrator |
 | `DELETE /api/recordings/{id}` | Tuner channels | own, and every account's for an administrator |

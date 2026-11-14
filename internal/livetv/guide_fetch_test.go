@@ -6,6 +6,7 @@ package livetv
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -36,17 +37,13 @@ func TestSlowGuideHoldsNoLock(t *testing.T) {
 		}
 	}))
 	defer srv.Close()
-	m := testManager(t)
+	m, _ := testManager(t)
 	ctx := context.Background()
-	s, err := m.AddSource(ctx, "Slow", srv.URL+"/g.xml")
-	if err != nil {
-		t.Fatal(err)
-	}
 	done := make(chan error, 1)
-	go func() { done <- m.FetchSource(ctx, s.ID) }()
+	go func() { _, _, err := m.Ingest(ctx, 1, get(t, srv.URL+"/g.xml")); done <- err }()
 	time.Sleep(200 * time.Millisecond)
 	at := time.Now()
-	if _, err := m.DB.Exec(`UPDATE epg_sources SET name = 'Still slow' WHERE id = ?`, s.ID); err != nil {
+	if _, err := m.DB.Exec(`INSERT INTO epg_channels(source_id, epg_id, name) VALUES(99, 'w', 'Still slow')`); err != nil {
 		t.Errorf("a write failed while the guide was coming in: %v", err)
 	}
 	if d := time.Since(at); d > time.Second {
@@ -81,17 +78,13 @@ func TestStalledGuideIsGivenUpOn(t *testing.T) {
 		}
 	}))
 	defer srv.Close()
-	m := testManager(t)
+	m, _ := testManager(t)
 	ctx := context.Background()
-	s, err := m.AddSource(ctx, "Stuck", srv.URL+"/g.xml")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := m.DB.Exec(`INSERT INTO epg_channels(source_id, epg_id, name) VALUES(?, 'old', 'Old')`, s.ID); err != nil {
+	if _, err := m.DB.Exec(`INSERT INTO epg_channels(source_id, epg_id, name) VALUES(1, 'old', 'Old')`); err != nil {
 		t.Fatal(err)
 	}
 	at := time.Now()
-	if err := m.FetchSource(ctx, s.ID); err == nil {
+	if _, _, err := m.Ingest(ctx, 1, get(t, srv.URL+"/g.xml")); err == nil {
 		t.Error("a guide cut short counted as read")
 	}
 	if d := time.Since(at); d > 5*time.Second {
@@ -124,32 +117,27 @@ func TestGuideCaps(t *testing.T) {
 		fmt.Fprint(w, `</tv>`)
 	}))
 	defer srv.Close()
-	m := testManager(t)
+	m, d := testManager(t)
 	ctx := context.Background()
-	list := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		fmt.Fprint(w, "#EXTM3U\n#EXTINF:-1 tvg-id=\"keyed\",Keyed\nhttp://stream.example/a.ts\n")
-	}))
-	defer list.Close()
-	tn, err := m.Create(ctx, &Tuner{Driver: "iptv", Name: "L", Options: map[string]string{"playlist": list.URL + "/l.m3u"}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	ch, err := m.Channels(ctx, tn.ID)
-	if err != nil || len(ch) != 1 {
-		t.Fatalf("%v %v", err, ch)
-	}
-	c = ch[0]
-	s, err := m.AddSource(ctx, "Big", srv.URL+"/g.xml")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := m.FetchSource(ctx, s.ID); err != nil {
+	c = d.add(1, Channel{Number: "1", Name: "Keyed", EPGID: "keyed", Driver: "iptv"}, "http://stream.example/a.ts")
+	if _, _, err := m.Ingest(ctx, 1, get(t, srv.URL+"/g.xml")); err != nil {
 		t.Fatal(err)
 	}
 	var channels, programmes int
-	_ = m.DB.QueryRow(`SELECT COUNT(*) FROM epg_channels WHERE source_id = ?`, s.ID).Scan(&channels)
+	_ = m.DB.QueryRow(`SELECT COUNT(*) FROM epg_channels WHERE source_id = 1`).Scan(&channels)
 	_ = m.DB.QueryRow(`SELECT COUNT(*) FROM epg_programmes`).Scan(&programmes)
 	if channels > 10 || programmes > 25 || programmes == 0 {
 		t.Errorf("%d channels, %d programmes", channels, programmes)
 	}
+}
+
+// get is a guide from an address, as WittyTuner would hand it over.
+func get(t *testing.T, addr string) io.Reader {
+	t.Helper()
+	res, err := http.Get(addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { res.Body.Close() })
+	return res.Body
 }

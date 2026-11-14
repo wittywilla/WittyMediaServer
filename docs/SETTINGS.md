@@ -20,8 +20,8 @@ Open Settings from your name at the top right. On a phone, it's in the **You** t
 | Add a key for posters and plots | [Metadata agents](#metadata-agents) |
 | Fix a film matched to the wrong title | [Metadata agents](#metadata-agents), **Fix matches** |
 | Save posters and info files beside my media | [Metadata agents](#metadata-agents), **Saving information** |
-| Skip disc menus, or change the disc region | [Playback and discs](#playback-and-discs) |
-| Allow faster playback speeds | [Playback and discs](#playback-and-discs) |
+| Skip disc menus, or change the disc region | [DVDs and Blu-rays](#dvds-and-blu-rays) |
+| Allow faster playback speeds | [Playback](#playback) |
 | Add a TV tuner, an IPTV list or guide data | [Channels and tuners](#channels-and-tuners) |
 | Make a channel from my library | [Channels and tuners](#channels-and-tuners) |
 | Install what a console needs to play | [Consoles and cores](#consoles-and-cores) |
@@ -96,26 +96,34 @@ Where titles, posters, plots and ratings come from. Information inside your file
 
 More: [Metadata](METADATA.md), [Fixing metadata](FIXING-METADATA.md), [The metadata folder](METADATA-FOLDER.md).
 
-### Playback and discs
+### Playback
 
-The page is called **Playback & discs**. It sets how videos, shows and discs play for everyone.
+The page is called **Playback**. It sets how videos and shows play for everyone.
 
-![The Playback and discs page in Settings](images/settings-playback.webp)
-*Settings, Playback & discs.*
+![The Playback page in Settings](images/settings-playback.webp)
+*Settings, Playback.*
 
 - **Fastest playback speed** is the highest speed the player offers. 4× is the recommended limit: above it, most browsers mute the sound, and a video being converted has to convert faster than it plays.
 - **TV episode layout** is the default for every show. A show can change it on its own page.
 - **Skipping** is the one part of this page that is yours alone, not the server's: whether the player skips intros, recaps, credits and adverts by itself for the profile signed in. All four start off, and they save as you change them. Profiles that aren't administrators find the same switches under [Appearance](#appearance). See [Skipping without pressing anything](PLAYING.md#skipping-without-pressing-anything).
 - **Streaming for viewers away from home** is **Standard**, as it always was, or **Robust**, which favours staying smooth on poor connections. **On this device** is the browser's own choice, which wins over the server's at home or away. See [Robust streaming](PLAYING.md#robust-streaming).
+
+More: [Watching and listening](PLAYING.md).
+
+### DVDs and Blu-rays
+
+The page is called **DVDs and Blu-rays**, and it's WittyDisc's: it's there with WittyDVD or WittyBluray. It sets how discs play for everyone; each disc can change some of it in its own **Disc settings**.
+
 - **When a disc is inserted** starts with the disc's menu, or skips to the movie.
 - **Disc insert animation** and **Drive sounds** are the tray effect.
 - **Preferred languages** take two-letter codes such as `en` or `fr`, for menus, audio and subtitles on discs that offer them.
 - **Low-power mode for discs** helps small computers such as a Raspberry Pi, at a small cost in quality.
 - **Run Blu-ray Java menus (BD-J)** shows menus written in Java. It needs Java 8 or newer installed on the server, and runs code from the disc in a boxed-in process, so it starts off. With it off, these discs play their main feature directly.
+- **Ask libbluray for a second opinion** lets an administrator have a libbluray installed on the server compare its reading of a Blu-ray with WittyBluray's. It isn't included, and it starts off.
 - **DVD region** and **Blu-ray region** are for discs that check where they're being played. A Blu-ray from another region shows its own message instead of the movie, so pick the region your discs are from.
 - **Parental limits** are the disc's own checks, used to choose a version of the film. They aren't a lock on the server: use [Profiles](#profiles) for that.
 
-More: [Watching and listening](PLAYING.md), [DVDs](DVD.md), [Blu-rays](BLURAY.md).
+More: [DVDs](DVD.md), [Blu-rays](BLURAY.md).
 
 ### Channels and tuners
 

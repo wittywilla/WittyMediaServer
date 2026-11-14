@@ -24,15 +24,10 @@ import (
 func logoChannels(t *testing.T, s *Server, logos ...string) {
 	t.Helper()
 	s.Cfg.ImagesDir = t.TempDir()
-	if _, err := s.DB.Exec(`INSERT INTO tuners(id, driver, name, options, created_at) VALUES(1, 'iptv', 'Test', '{}', 1)`); err != nil {
-		t.Fatal(err)
-	}
+	useTuners(t)
 	for i, logo := range logos {
-		id := i + 1
-		if _, err := s.DB.Exec(`INSERT INTO tuner_channels(id, tuner_id, source_id, number, name, logo) VALUES(?, 1, ?, ?, ?, ?)`,
-			id, fmt.Sprint("s", id), fmt.Sprint(id), fmt.Sprint("Channel ", id), logo); err != nil {
-			t.Fatal(err)
-		}
+		id := int64(i + 1)
+		tunerChannel(t, livetv.Channel{ID: id, Number: fmt.Sprint(id), Name: fmt.Sprint("Channel ", id), LogoURL: logo, Enabled: true, Driver: "iptv"}, "http://provider.invalid/x.ts")
 	}
 }
 
@@ -173,9 +168,7 @@ func TestTunerLogoFollowsWhoMayWatch(t *testing.T) {
 	library.SafeClient = remote.Client()
 	defer func() { library.SafeClient = saved }()
 	logoChannels(t, s, remote.URL+"/one.png", remote.URL+"/off.png")
-	if _, err := s.DB.Exec(`UPDATE tuner_channels SET enabled = 0 WHERE id = 2`); err != nil {
-		t.Fatal(err)
-	}
+	changeTunerChannel(s, 2, func(c *livetv.Channel) { c.Enabled = false })
 	ctx := context.Background()
 	if _, err := s.Auth.CreateUser(ctx, "alex", "correct horse", false); err != nil {
 		t.Fatal(err)
@@ -224,8 +217,6 @@ func TestLogoAddressNeverReachesClients(t *testing.T) {
 	for _, c := range []struct{ method, path, body string }{
 		{"GET", "/api/guide", ""},
 		{"GET", "/api/guide?list=1", ""},
-		{"GET", "/api/tuners/1/channels", ""},
-		{"PUT", "/api/tuner-channels/1", `{"number":"7"}`},
 	} {
 		w := tvCall(h, c.method, c.path, admin, c.body)
 		if w.Code != 200 {
@@ -263,80 +254,15 @@ func TestTunerChannelLogo(t *testing.T) {
 	if _, b := tunerLogo(c); b != nil {
 		t.Errorf("radio isn't a TV network: %+v", b)
 	}
-	for in, want := range map[string]string{"": "", " none ": "none", "network|NBC": "network|NBC", "studio| Open Pictures ": "studio|Open Pictures"} {
-		if got, err := checkTunerLogoChoice(in); err != nil || got != want {
-			t.Errorf("%q: %q %v", in, got, err)
-		}
-	}
-	for _, in := range []string{"NBC", "evil|NBC", "network|", "network|---", "network|" + strings.Repeat("x", 121)} {
-		if _, err := checkTunerLogoChoice(in); err == nil {
-			t.Errorf("%q should be refused", in)
-		}
-	}
 }
 
-// A person can put a channel's logo right through the API, a list's address stays hidden, and the
-// credits say where every picture on a screen came from, for whoever can see it.
-func TestTunerChannelLogoChoiceAndCredits(t *testing.T) {
+// The credits say where every picture on a screen came from, and nothing about a list's address.
+func TestTunerChannelLogoCredits(t *testing.T) {
 	h, admin, kid, s := tvServer(t)
 	logoChannels(t, s, "https://logos.example/secret.png", "")
-	if _, err := s.DB.Exec(`UPDATE tuner_channels SET name = 'NBC HD', enabled = 1 WHERE id = 2`); err != nil {
-		t.Fatal(err)
+	if w := tvCall(h, "GET", "/api/guide", admin, ""); w.Code != 200 || strings.Contains(w.Body.String(), "secret.png") {
+		t.Fatalf("%d %s", w.Code, w.Body)
 	}
-	if _, err := s.DB.Exec(`UPDATE tuner_channels SET enabled = 1 WHERE id = 1`); err != nil {
-		t.Fatal(err)
-	}
-	row := func(id int) map[string]any {
-		var list []map[string]any
-		w := tvCall(h, "GET", "/api/tuners/1/channels", admin, "")
-		if err := json.Unmarshal(w.Body.Bytes(), &list); err != nil {
-			t.Fatal(err)
-		}
-		if strings.Contains(w.Body.String(), "secret.png") {
-			t.Errorf("the list's address reached a client: %s", w.Body)
-		}
-		for _, c := range list {
-			if int(c["id"].(float64)) == id {
-				return c
-			}
-		}
-		t.Fatalf("no channel %d", id)
-		return nil
-	}
-	if b, _ := row(2)["brand"].(map[string]any); b["name"] != "NBC" || b["kind"] != "network" {
-		t.Errorf("found by name: %v", row(2))
-	}
-	if u, _ := row(1)["logoUrl"].(string); !strings.HasPrefix(u, "/api/tv/tun-1/logo") {
-		t.Errorf("the list's logo comes through this server: %v", row(1))
-	}
-	put := func(id int, logo string) int {
-		return tvCall(h, "PUT", fmt.Sprintf("/api/tuner-channels/%d", id), admin, fmt.Sprintf(`{"logo":%q}`, logo)).Code
-	}
-	if c := put(2, "evil|x"); c != 400 {
-		t.Errorf("a kind that isn't one: %d", c)
-	}
-	if c := put(2, "studio|Open Pictures"); c != 200 {
-		t.Errorf("a person's correction: %d", c)
-	}
-	if b, _ := row(2)["brand"].(map[string]any); b["name"] != "Open Pictures" || b["kind"] != "studio" {
-		t.Errorf("the correction: %v", row(2))
-	}
-	if g, err := s.Store.LogoFor(context.Background(), "studio", "Open Pictures"); err != nil || g == nil {
-		t.Errorf("the service should know the name someone gave: %v %v", g, err)
-	}
-	if c := put(1, "none"); c != 200 {
-		t.Errorf("none: %d", c)
-	}
-	if r := row(1); r["logoUrl"] != nil || r["brand"] != nil {
-		t.Errorf("none means none: %v", r)
-	}
-	if c := put(1, ""); c != 200 {
-		t.Errorf("back to automatic: %d", c)
-	}
-	if w := tvCall(h, "PUT", "/api/tuner-channels/2", kid, `{"logo":"none"}`); w.Code != 403 {
-		t.Errorf("only an administrator: %d", w.Code)
-	}
-	// A guide row and the credits say the same thing, and nothing about the list's address.
 	w := tvCall(h, "GET", "/api/logos/credits", admin, "")
 	if !strings.Contains(w.Body.String(), `"name":"Channel 1","source":"list"`) || strings.Contains(w.Body.String(), "secret.png") {
 		t.Errorf("credits: %s", w.Body)
@@ -346,32 +272,5 @@ func TestTunerChannelLogoChoiceAndCredits(t *testing.T) {
 	}
 	if w := tvCall(h, "GET", "/api/logos?kind=nonsense", admin, ""); w.Code != 400 {
 		t.Errorf("a kind that isn't one: %d", w.Code)
-	}
-	if w := tvCall(h, "GET", "/api/logos?kind=studio&q=open", admin, ""); !strings.Contains(w.Body.String(), "Open Pictures") {
-		t.Errorf("found by name: %s", w.Body)
-	}
-}
-
-// The guided setup's two questions: a check that can't be read is refused, and a test of a
-// tuner that isn't there says so rather than tuning anything.
-func TestTunerCheckAndTestAnswers(t *testing.T) {
-	h, admin, _, _ := tvServer(t)
-	if w := tvCall(h, "POST", "/api/tuners/check", admin, "not json"); w.Code != 400 {
-		t.Errorf("unreadable check: %d %s", w.Code, w.Body)
-	}
-	if w := tvCall(h, "POST", "/api/tuners/9/test", admin, "{}"); w.Code != 404 {
-		t.Errorf("test of a tuner that isn't there: %d %s", w.Code, w.Body)
-	}
-	if w := tvCall(h, "POST", "/api/tuners/x/test", admin, "{}"); w.Code != 400 {
-		t.Errorf("bad id: %d", w.Code)
-	}
-	// A playlist file elsewhere on the server is refused before anything is asked of WittyTuner.
-	w := tvCall(h, "POST", "/api/tuners/check", admin, `{"driver":"iptv","name":"x","options":{"playlist":"/nowhere/at/all.m3u"}}`)
-	var got struct {
-		OK      bool           `json:"ok"`
-		Problem livetv.Problem `json:"problem"`
-	}
-	if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil || w.Code != 200 || got.OK || got.Problem.Kind != "settings" {
-		t.Errorf("%d %s", w.Code, w.Body)
 	}
 }

@@ -9,7 +9,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -22,6 +21,8 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/diagnose"
@@ -392,10 +393,10 @@ func schemaTypes() map[string]reflect.Type {
 	return map[string]reflect.Type{
 		"User": ty(auth.User{}), "UserView": ty(userView{}), "Access": ty(library.Access{}),
 		"Library": ty(library.Library{}), "Item": ty(library.Item{}), "Progress": ty(library.Progress{}), "Show": ty(library.Show{}), "Season": ty(library.Season{}),
-		"CDView": ty(cdView{}), "CDMatch": ty(library.CDMatch{}), "DiscInfo": ty(library.DiscInfo{}), "DiscLabels": ty(library.DiscLabels{}), "Album": ty(library.Album{}), "Artist": ty(library.Artist{}), "MusicLinks": ty(MusicLinks{}), "MusicLinkView": ty(MusicLinkView{}), "MusicLinkSide": ty(MusicLinkSide{}), "MusicVideoCard": ty(MusicVideoCard{}), "MusicLink": ty(music.Link{}), "MusicMatchResult": ty(music.Result{}), "Network": ty(library.Network{}),
+		"CDView": ty(cdView{}), "DiscInfo": ty(library.DiscInfo{}), "Album": ty(library.Album{}), "Artist": ty(library.Artist{}), "MusicLinks": ty(MusicLinks{}), "MusicLinkView": ty(MusicLinkView{}), "MusicLinkSide": ty(MusicLinkSide{}), "MusicVideoCard": ty(MusicVideoCard{}), "MusicLink": ty(music.Link{}), "MusicMatchResult": ty(music.Result{}), "Network": ty(library.Network{}),
 		"Podcast": ty(library.Podcast{}), "Annotation": ty(library.Annotation{}), "SearchHit": ty(library.SearchHit{}), "Agent": ty(library.Agent{}), "AgentResult": ty(library.AgentResult{}),
-		"ArtCandidate": ty(artCandidate{}), "DiscTitleView": ty(discTitle{}), "DiscChapterView": ty(discChapter{}), "DiscMenuView": ty(discMenu{}), "DiscAnalysis": ty(discAnalysisView{}),
-		"PlayInfo": ty(playInfo{}), "Track": ty(trackInfo{}), "RemoteStanding": ty(remoteStanding{}),
+		"ArtCandidate": ty(artCandidate{}),
+		"PlayInfo":     ty(playInfo{}), "Track": ty(trackInfo{}), "RemoteStanding": ty(remoteStanding{}),
 		"Presentation": ty(dvdsession.Presentation{}), "PresentationMedia": ty(dvdsession.Media{}), "DiscMenu": ty(dvdsession.Menu{}), "DiscButton": ty(dvdsession.ButtonView{}),
 		"DiscTitlePlaying": ty(dvdsession.TitleView{}), "DiscTrack": ty(dvdsession.Track{}), "DiscAction": ty(dvdsession.Action{}), "SubEvent": ty(dvdsession.SubEvent{}),
 		"PlaybackProfile": ty(playback.Profile{}), "PlaybackCapabilities": ty(playback.Capabilities{}), "PlaybackRequest": ty(playbackRequest{}), "PlaybackResponse": ty(playbackResponse{}),
@@ -420,7 +421,7 @@ func schemaTypes() map[string]reflect.Type {
 		"ModuleLibraryType": ty(modmgr.LibraryType{}), "ModuleRef": ty(modmgr.ModuleRef{}), "ModuleSource": ty(modmgr.SourceInfo{}), "ModuleWebBundle": ty(modmgr.WebBundle{}),
 		"LogPage": ty(logging.Page{}), "LogEntry": ty(logging.Record{}), "SystemSummary": ty(SystemSummary{}), "CrashReport": ty(logging.Crash{}), "BundlePreview": ty(logging.BundlePreview{}), "LogModule": ty(LogModule{}), "DiagnoseJob": ty(diagnose.View{}),
 		"GuideChannel": ty(guideChannel{}), "GuideProgramme": ty(guideProgramme{}), "TuneInfo": ty(tuneInfo{}), "GuideHit": ty(guideHit{}), "ChannelAlternative": ty(livetv.Alternative{}),
-		"ChannelSecurity": ty(securityInfo{}), "ChannelBrand": ty(channelBrand{}), "TVReminder": ty(reminderView{}), "ChannelView": ty(channelView{}), "TunerChannelView": ty(tunerChannelView{}),
+		"ChannelSecurity": ty(securityInfo{}), "ChannelBrand": ty(channelBrand{}), "TVReminder": ty(reminderView{}), "ChannelView": ty(channelView{}),
 		"ResetView": ty(resetView{}), "ResetCopy": ty(reset.Copy{}), "ResetRequest": ty(reset.Request{}), "ResetResult": ty(reset.Result{}), "LegalNotice": ty(legal.Notice{}), "LegalSection": ty(legal.Section{}), "LegalService": ty(legal.Service{}),
 		"SDUIDocument": ty(sdui.Document{}), "SDUINode": ty(sdui.Node{}), "SDUICondition": ty(sdui.Condition{}), "SDUIAction": ty(sdui.Action{}), "SDUIFocus": ty(sdui.Focus{}),
 		"SDUIMeta": ty(sdui.Meta{}), "SDUIPatch": ty(sdui.Patch{}), "SDUIDiff": ty(sduiDiff{}), "SDUIPage": ty(sdui.Page{}), "SDUISection": ty(sdui.Section{}),

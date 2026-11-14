@@ -6,8 +6,6 @@ package server
 import (
 	"errors"
 	"net/http"
-	"os"
-	"path/filepath"
 	"slices"
 	"strings"
 )
@@ -46,41 +44,4 @@ func (s *Server) checkAdminPaths(r *http.Request, paths, already []string) error
 		}
 	}
 	return nil
-}
-
-// checkSourcePlace is for a playlist or guide named as a file: read and partly shown back, so it has
-// to come from where media and the server's own things are, or be chosen at the server itself. Web
-// addresses are checked by whatever fetches them.
-func (s *Server) checkSourcePlace(r *http.Request, place string) error {
-	place = strings.TrimSpace(place)
-	if place == "" || (strings.Contains(place, "://") && !otherMachine(place)) {
-		return nil
-	}
-	if err := s.checkAdminPaths(r, []string{place}, nil); err != nil {
-		return err
-	}
-	if otherMachine(place) {
-		return nil
-	}
-	st, err := os.Stat(place)
-	if err != nil || !st.Mode().IsRegular() {
-		return errors.New("that file was not found on the server")
-	}
-	if onThisMachine(r) || s.Store.LibraryFile(r.Context(), place) || inDataFolder(s.Cfg.DataDir, place) {
-		return nil
-	}
-	return errors.New("Keep this file in a library folder or the server's data folder, or add it on the server's own desktop.")
-}
-
-func inDataFolder(dir, path string) bool {
-	root, err := filepath.EvalSymlinks(dir)
-	if err != nil {
-		return false
-	}
-	real, err := filepath.EvalSymlinks(path)
-	if err != nil {
-		return false
-	}
-	rel, err := filepath.Rel(root, real)
-	return err == nil && filepath.IsLocal(rel)
 }

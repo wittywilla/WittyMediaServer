@@ -90,6 +90,11 @@ func (m *Manager) ServiceConn(id string) (*service.Conn, error) {
 		if a == nil {
 			return nil, m.missing(id)
 		}
+		if serviceReachesHost[id] && !a.p.strict {
+			// It listens on this machine and calls the host API back, which a sandbox without a
+			// network refuses; its helpers, which read the discs, still have none.
+			a.p.network = true
+		}
 		var started service.Started
 		ns := &runningService{a: a, version: a.Version(), looked: now, notify: map[string]func(json.RawMessage){}}
 		a.OnNotify(ns.heard)
@@ -328,7 +333,8 @@ func (m *Manager) closeServices() {
 // gets none, so a file that takes over a parser has nowhere to send anything and nothing to run.
 // Only modules this project publishes are listed: a fork or anyone else's gets none of these.
 var mayHave = map[string]map[string]bool{
-	tunerID:       {wittymodule.PermissionNetwork: true, wittymodule.PermissionPrograms: true, wittymodule.PermissionDevices: true},
+	tunerID:       {wittymodule.PermissionNetwork: true, wittymodule.PermissionPrograms: true, wittymodule.PermissionDevices: true, wittymodule.PermissionData: true},
+	"wittydvd":    {wittymodule.PermissionData: true},
 	"wittybluray": {wittymodule.PermissionPrograms: true, wittymodule.PermissionData: true},
 	"wittyplay":   {wittymodule.PermissionNetwork: true, wittymodule.PermissionPrograms: true, wittymodule.PermissionDevices: true, wittymodule.PermissionData: true},
 	"wittycouch":  {wittymodule.PermissionNetwork: true, wittymodule.PermissionPrograms: true, wittymodule.PermissionData: true},
@@ -337,6 +343,13 @@ var mayHave = map[string]map[string]bool{
 	// for the server on this machine (the sandbox allows no socket without it).
 	"wittyphotos": {wittymodule.PermissionNetwork: true, wittymodule.PermissionData: true},
 }
+
+// serviceReachesHost are the modules whose service, and only their service, may reach the
+// network: the disc modules, whose helpers read untrusted disc images with no network at all, and
+// whose services only listen on this machine and ask the host API (module API 5). No system's
+// sandbox here can allow this machine's own address alone, so the service process has the
+// network a module with that permission has; it reads no disc.
+var serviceReachesHost = map[string]bool{"wittydvd": true, "wittybluray": true, "wittycd": true}
 
 // Call asks a module's helper one thing. Without a version in use, it says which is missing.
 func (m *Manager) Call(id, method string, params, out any) ([]byte, error) {

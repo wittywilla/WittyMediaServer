@@ -759,7 +759,6 @@ The server always sends `canRecord`, `true` or `false`, wherever it describes a 
 | `GET /guide/search` | `[].canRecord`, for the hit's channel |
 | `GET /tv/reminders`, `POST /tv/reminders` | `canRecord`, for the reminder's channel |
 | `GET /channels`, and for an administrator `POST /channels`, `GET` and `PUT /channels/{id}`, and `POST /channels/{id}/restore` | `canRecord`: always `false` |
-| `GET /tuners/{id}/channels`, `PUT /tuner-channels/{id}` | `canRecord` |
 
 For one programme, offer Record when its channel's `canRecord` is `true`, the programme's `kind` is `broadcast`, and
 its `end` is still to come.
@@ -816,7 +815,7 @@ DELETE /dvd/{sessionId}                      when finished
 ```
 
 The same routes serve DVDs and Blu-rays. Open with `mode` from `disc.startMode`, or `mode: "title"` with
-`ttn` and `chapter` to skip the menus (the disc page, `/items/{id}/disc`, lists them), or `menu` and
+`ttn` and `chapter` to skip the menus (the disc page, `/modules/wittydvd/discs/{id}` or `/modules/wittybluray/discs/{id}`, lists them), or `menu` and
 `menuVts` to open one menu. Send remembered choices along as `audioLanguage`, `subtitleLanguage` and
 `angle`; they are the app's to remember, per disc.
 
@@ -1657,13 +1656,21 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /dvd/{sid}/still/{name}` | user, `st` | A still picture (a menu or slide without video). |
 | `GET /dvd/{sid}/subs` | user | Sub-picture subtitle events for a time window. Normally reached through `title.subtitlesUrl`. |
 | `GET /dvd/{sid}/sub/{name}` | user, `st` | One sub-picture as a PNG. |
-| `GET /items/{id}/disc` | user | The disc page: the feature, extras and menus to jump into. |
-| `PUT /items/{id}/disc/labels` | admin | Name a disc's titles and chapters. |
-| `GET /items/{id}/disc/analysis` | user | Which title (DVD) or playlist (Blu-ray) is the film and why: `main` (what Play plays), `engineMain`, `chosen`, `rank` (confidence 0–1, `level`, `why`, `reasons`, `candidates`, `versions`, `episodes`, `feature`, `repairs`, `issues`, `paddedSectors`, `secondOpinion`), `canChoose`, `protected`. `pending: true` on a low-power server while it is worked out: ask again. `ranked: false` with a module from before rankings. |
-| `POST /items/{id}/disc/analysis` | admin | Work the ranking out again. `{"secondOpinion": true}` also asks a libbluray on this machine (Blu-ray only, when the setting `blurayLibbluray` is on and one is installed; never for an encrypted disc). |
-| `PUT /items/{id}/disc/choice` | admin | `{"ttn": n}`: remember this title or playlist as the disc's film, for everyone. It beats the engine's pick for Play, the disc page, the item's length and languages, and survives rescans while the disc has that title. |
-| `DELETE /items/{id}/disc/choice` | admin | Forget the choice: the engine's pick is the film again. |
 | `GET /items/{id}/disc/thumb/{ttn}/{n}` | user, `st` | A picture of a title (n = 0) or chapter; the first request makes it. |
+
+A disc's page, why a title is its film, the choice of another and the names of its titles are WittyDVD's and WittyBluray's own routes (module API 5), under `/modules/wittydvd/` for a DVD and `/modules/wittybluray/` for a Blu-ray. Each answers for its own kind of disc only (404 for the other's), and 424 with `module` while the module isn't in use. Their sections on a title's page (Feature Presentation, Scenes, Why this title and the rest) come with the page from the modules' `sdui.json`, and their rows run the modules' own commands (`wittydvd.choose`, `wittydvd.clearChoice`, `wittydvd.rank`; `wittybluray.*` the same, and `wittybluray.compare`).
+
+| Route (under `/modules/wittydvd` or `/modules/wittybluray`) | Sign-in | What it does |
+|---|---|---|
+| `GET /discs/{id}` | user | The disc page: `main` (the feature, with its `chapters`), `extras` and `menus` to jump into, `hidden`, `rank` (`why`, `confidence`, `level`, `engineMain`, `decoys`, `chosen`), `episodes`, `versions`. Each title's and chapter's `label` is the name given to it. 403 for an encrypted disc. |
+| `PUT /discs/{id}/labels` | admin | Name a disc's titles and chapters: `{"titles": {"3": "Making of"}, "chapters": {"1": {"4": "The dragon"}}}`. Kept in the module's own database. |
+| `GET /discs/{id}/analysis` | user | Which title (DVD) or playlist (Blu-ray) is the film and why: `main` (what Play plays), `engineMain`, `chosen`, `chosenBy` (admins), `rank` (confidence 0–1, `level`, `why`, `reasons`, `candidates`, `versions`, `episodes`, `feature`, `repairs`, `issues`, `paddedSectors`, `secondOpinion`), `canChoose`, `protected`, `secondOpinion` (Blu-rays, admins). `pending: true` on a low-power server while it is worked out: ask again. `ranked: false` with no ranking. |
+| `POST /discs/{id}/analysis` | admin | Work the ranking out again. `{"secondOpinion": true}` also asks a libbluray on this machine (Blu-ray only, when the setting `blurayLibbluray` is on and one is installed; never for an encrypted disc). Answers the analysis. |
+| `PUT /discs/{id}/choice` | admin | `{"ttn": n}`: remember this title or playlist as the disc's film, for everyone. It beats the engine's pick for Play, the disc page, the item's length and languages, and survives rescans while the disc has that title. Answers the analysis. |
+| `DELETE /discs/{id}/choice` | admin | Forget the choice: the engine's pick is the film again. |
+| `GET /libbluray` | admin | WittyBluray only: whether a libbluray here can give a second opinion, `libbluray` (`enabled`, `available`, `version`, `reason`), and `libblurayPath`. |
+
+The player in a browser is WittyDisc's web part, which WittyDVD and WittyBluray bring; the disc sessions above stay the server's.
 
 ### Audio CDs
 
@@ -1672,9 +1679,14 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /cd/{id}` | user, `st` | A disc's tracks and layout, and this person's place on it. |
 | `GET /cd/{id}/audio` | user, `st` | The disc as one continuous stream: `format`, `tracks`, `loops`, `start`, `deemphasis`. |
 | `GET /cd/{id}/graphics` | user, `st` | CD+G packets for a run of sectors. |
-| `GET /cd/{id}/matches` | admin | What this disc could be, from MusicBrainz, asked with only its table of contents. |
-| `POST /cd/{id}/identify` | admin | Use a release's names and cover. An empty `releaseId` goes back to the disc's own. |
 | `GET /cd-covers/{release}` | admin | A release's cover, small, for choosing between matches. |
+
+Finding what a disc is is WittyCD's own (module API 5), under `/modules/wittycd/`, and answers 424 with `module` while WittyCD isn't in use. The CD player in a browser is WittyCD's web part (`/cd/{id}`); on TV, the SDUI page `wittycd-identify?item=<id>` lists the matches, each row running `wittycd.identify`.
+
+| Route (under `/modules/wittycd`) | Sign-in | What it does |
+|---|---|---|
+| `GET /cds/{id}/matches` | admin | What this disc could be, from MusicBrainz, asked with only its table of contents: `itemId`, `discId`, `matches`, `attribution`. |
+| `POST /cds/{id}/identify` | admin | `{"releaseId": "..."}`: use a release's names and cover; `""` goes back to the disc's own. Answers the disc as `GET /cd/{id}` does. |
 
 ### Music, audiobooks and podcasts
 
@@ -1899,7 +1911,6 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `GET /channels/{id}/logo` | user | Channel logo. |
 | `PUT /channels/{id}/logo` | admin | Set channel logo. |
 | `DELETE /channels/{id}/logo` | admin | Delete channel logo. |
-| `GET /tv/encrypted-help` | user | Encrypted help. |
 | `GET /guide/search` | user | What is coming up that matches, soonest first, each with its channel's `canRecord`. q (2 to 100 letters), days (1 to 14), limit. 429 with `Retry-After` when several searches are running. |
 | `GET /tv/favourites` | user | This account's favourite channels, as channel keys. The guide marks them too. |
 | `PUT /tv/favourites/{key}` | user | Star a channel. |
@@ -1924,28 +1935,34 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `DELETE /channels/bumpers/item/{id}` | admin | An upload goes altogether, its file too. A chosen video only comes off the list. |
 | `GET /channels/discs` | admin | Every disc, whether it is encrypted, and the words for refusing those that are. |
 | `POST /channels/clip-preview` | admin | Body: item, title. An HLS stream of the title, to try a scene before adding it. |
-| `GET /tuners/drivers` | admin | Tuner drivers. |
-| `GET /tuners/discover` | admin | Tuner discover. |
-| `GET /tuners` | admin | Tuners. |
-| `POST /tuners` | admin | Create tuner. |
-| `POST /tuners/check` | admin | Check tuner: what a source says before it's saved. Answers `{ok, result}` or `{ok: false, problem: {kind, message, hint}}`, and keeps nothing. |
-| `PUT /tuners/{id}` | admin | Update tuner. |
-| `DELETE /tuners/{id}` | admin | Delete tuner. |
-| `POST /tuners/{id}/refresh` | admin | Refresh tuner. |
-| `POST /tuners/{id}/scan` | admin | Scan tuner. |
-| `GET /tuners/{id}/scan` | admin | Scan progress2. |
-| `POST /tuners/{id}/test` | admin | Test tuner: tunes one channel (`{channel}`, or 0 to let it choose) for a few seconds, as a viewer would. Encrypted channels are refused as everywhere else. |
-| `GET /tuners/{id}/channels` | admin | Tuner channels. |
-| `POST /tuners/{id}/channels/enable` | admin | Enable all channels. |
-| `PUT /tuner-channels/{id}` | admin | Edit tuner channel. `logo` is `""` to find it by name, `none`, or `kind\|name` in the logo service. |
-| `GET /epg/sources` | admin | EPG sources. |
-| `POST /epg/sources` | admin | Add EPG source. |
-| `DELETE /epg/sources/{id}` | admin | Delete EPG source. |
-| `POST /epg/sources/{id}/refresh` | admin | Refresh EPG source. |
-| `GET /epg/ids` | admin | EPGI ds. |
 | `GET /recordings` | user | This account's recordings, and an administrator's sees everyone's. |
 | `POST /recordings` | user | Schedule. Only a channel whose `canRecord` is true: 400 for a library channel, 403 for an encrypted one, one marked not to be recorded, or a profile without recordings, 404 for a channel turned off, 409 at 50 waiting (not for an administrator). See "Recording". |
 | `DELETE /recordings/{id}` | user | Cancel a recording of this account's; an administrator, anyone's. |
+
+**Tuners, their channels and guide sources are WittyTuner's** (module API 5): their routes are the module's own, under `/modules/wittytuner/`, checked by the server as [MODULES-API5.md](MODULES-API5.md) says, and answer 424 with `module` while WittyTuner isn't in use. Its `integration.json` lists them with who may call each. The guide, live TV, catch-up, recordings, favourites, reminders and sets above stay the server's, and a channel's key is still `tun-<id>`, its id in WittyTuner. Its TV screens are SDUI pages of the module's own (`wittytuner`, `wittytuner-tuner`, `wittytuner-setup`); its first-run step is `tv`.
+
+| Route (under `/modules/wittytuner`) | Sign-in | What it does |
+|---|---|---|
+| `GET /encrypted-help` | user | What encrypted channels are and what to do (was `/tv/encrypted-help`). A security notice's `helpUrl` names it. |
+| `GET /drivers` | admin | The kinds of tuner, with their settings and how well each has been tried. |
+| `GET /discover` | admin | Tuners on this network and machine not added yet. 12-second limit. |
+| `GET /tuners`, `POST /tuners` | admin | Every tuner (passwords masked); add one (its channels are read at once). |
+| `POST /tuners/check` | admin | What a source says before it's saved: `{ok, result}` or `{ok: false, problem: {kind, message, hint}}`. |
+| `PUT /tuners/{id}`, `DELETE /tuners/{id}` | admin | Change (a masked password keeps the stored one) or remove a tuner, with its channels and own guide source. |
+| `POST /tuners/{id}/refresh` | admin | Read a tuner's channel list again. |
+| `POST /tuners/{id}/scan`, `GET /tuners/{id}/scan` | admin | Scan for channels (`{source}`); how the scan is going. |
+| `POST /tuners/{id}/test` | admin | Tune one channel (`{channel}`, 0 to choose) for a few seconds, as a viewer would. |
+| `GET /tuners/{id}/channels` | admin | A tuner's channels, each with `logoUrl` or `brand`, and `canRecord`. |
+| `POST /tuners/{id}/channels/enable` | admin | Every channel of a tuner in the guide, or none (`{enabled}`). |
+| `POST`, `GET`, `DELETE /tuners/{id}/health` | admin | Check every enabled channel of a tuner in the background; how it's going; stop it. |
+| `PUT /channels/{id}` | admin | Change a channel: `enabled`, `number`, `name`, `epg`, `logo` (`""`, `none` or `kind\|name`), `noRecord`, `checkAgain`. |
+| `POST /channels/bulk` | admin | Many channels at once: `ids`, `action` (enable, disable, renumber with `start`, merge with `into`, unmerge, check). |
+| `GET /duplicates` | admin | Channels across every tuner that look like the same station, in groups. |
+| `GET /epg/sources`, `POST /epg/sources` | admin | Guide sources; add one (`{name, url}`: a web address, or a file named at the server itself). |
+| `DELETE /epg/sources/{id}`, `POST /epg/sources/{id}/refresh` | admin | Remove a guide source (the guide forgets what it gave); read it again now. |
+| `GET /epg/ids` | admin | The guide's channel ids and names, for matching a channel by hand. |
+| `POST /found/{key}` | admin | Add a tuner the search found, by the key its SDUI row carries. |
+| `POST /setup/tv` | admin | WittyTuner's first-run step is done, or put off (`{skip}`). |
 
 ### Games
 
@@ -2254,17 +2271,11 @@ See [LIBRARY-TRANSCODING.md](LIBRARY-TRANSCODING.md).
 | `POST /recording-rules` | user | Record every airing of a title. Only a channel whose `canRecord` is true, refused as `POST /recordings` is; 409 at 20 (not for an administrator). See "Recording". |
 | `PUT /recording-rules/{id}` | user | Change how a recording rule records: `anyChannel`, `newOnly`, `keep`, `padBefore`, `padAfter`. |
 | `DELETE /recording-rules/{id}` | user | Delete a recording rule of this account's; an administrator, anyone's. |
-| `POST /tuner-channels/bulk` | admin | Many tuner channels at once: `ids`, `action` (enable, disable, renumber with `start`, merge with `into`, unmerge, check). |
-| `GET /tuners/duplicates` | admin | Channels across every tuner that look like the same station, in groups. |
-| `POST /tuners/{id}/health` | admin | Check every enabled channel of a tuner, in the background. |
-| `GET /tuners/{id}/health` | admin | How a tuner's channel check is going. |
-| `DELETE /tuners/{id}/health` | admin | Stop a tuner's channel check. |
 | `GET /dvd/{sid}/menu/{serial}/effect/{n}` | user | DVD effect. |
 | `GET /dvd/{sid}/sound/{n}` | user | DVD sound. |
 | `GET /dvd/{sid}/bdj` | user | BDJ poll. |
 | `GET /dvd/{sid}/bdj/frame/{n}` | user | BDJ frame. |
 | `GET /bdj/status` | admin | BDJ status. |
-| `GET /bluray/capabilities` | admin | What optional help WittyBluray has here: `libbluray` (`enabled`, `available`, `version`, `reason`) and `libblurayPath`. |
 
 
 ## Backup

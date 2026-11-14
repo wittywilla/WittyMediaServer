@@ -73,6 +73,9 @@ type ErrMissing struct {
 
 func (e *ErrMissing) Error() string { return e.Name + " isn't on this server." }
 
+// ModuleMissing says this is a module being absent or off, for packages that can't name ErrMissing.
+func (e *ErrMissing) ModuleMissing() bool { return true }
+
 // missing is the ErrMissing for a module.
 // Missing is the ErrMissing for a module.
 func (m *Manager) Missing(id string) error { return m.missing(id) }

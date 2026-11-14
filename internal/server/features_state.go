@@ -64,17 +64,6 @@ func (s *Server) featureState(ctx context.Context) *diagnose.FeatureState {
 	}
 	f.Separator = sep
 
-	// Channels' last health checks.
-	if s.TV != nil {
-		if tuners, err := s.TV.Tuners(ctx); err == nil {
-			for _, t := range tuners {
-				if h := s.TV.Health(t.ID); h != nil && h.Done > 0 {
-					f.Channels = append(f.Channels, diagnose.ChannelState{Source: t.Name, Total: h.Done, OK: h.OK, Failing: h.Failing, Checked: h.Started})
-				}
-			}
-		}
-	}
-
 	// The pages' configuration.
 	if st, err := s.uiStore(); err == nil && st != nil {
 		ui := &diagnose.SDUIState{}

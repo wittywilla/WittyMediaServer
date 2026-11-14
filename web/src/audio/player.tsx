@@ -6,7 +6,7 @@ import { api, getPrefs, getToken, mediaUrl, posterUrl, serverBase, type Item } f
 import { reportMediaError } from '../errorReport'
 import { setSpeed, SPEEDS } from '../player/speed'
 import { toast, useApp } from '../state'
-import { useCdEngine, type CdActions, type CdNow } from './cdEngine'
+import { useAudioEngineSlot, type EngineActions, type EngineNow } from './engineSlot'
 import MiniPlayer from './MiniPlayer'
 import { canRoute, loadSound, openGraph, saveSound, soundGraph, type SoundSettings } from './sound'
 import type { AudioMode, PlayerView, Repeat } from './types'
@@ -75,8 +75,8 @@ const Ctx = createContext<AudioCtx | null>(null)
 export const useAudio = () => useContext(Ctx)!
 
 // The CD player's view of things. A context of its own, as it changes several
-// times a second and only the CD page and the bar care.
-export type CdCtxValue = { now: CdNow | null; actions: CdActions; audioEl: HTMLAudioElement | null; playing: boolean; toggle: () => void }
+// times a second and only the CD page and the bar care. The engine is WittyCD's (audio/engineSlot.tsx).
+export type CdCtxValue = { now: EngineNow | null; actions: EngineActions; audioEl: HTMLAudioElement | null; playing: boolean; toggle: () => void }
 const CdCtx = createContext<CdCtxValue | null>(null)
 export const useCd = () => useContext(CdCtx)!
 
@@ -139,7 +139,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   // A disc in the player: one stream, and tracks are places in it, so the queue
   // only mirrors it for the bar and the lock screen.
   const cdOn = useRef(false)
-  const cd = useCdEngine(audio, {
+  const { engine: cd, runner: cdRunner } = useAudioEngineSlot('cd', audio, {
     onDisc: (items) => {
       cdOn.current = !!items
       if (items) dropPrepared()
@@ -893,7 +893,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <Ctx.Provider value={ctx}>
-      <CdCtx.Provider value={cdValue}>{children}<AudioTarget p={view} /></CdCtx.Provider>
+      <CdCtx.Provider value={cdValue}>{children}<AudioTarget p={view} />{cdRunner}</CdCtx.Provider>
       <audio ref={(el) => { deckA.current = el; if (el && !audio.current) audio.current = el }} preload="auto" {...deckEvents} />
       <audio ref={deckB} preload="none" {...deckEvents} />
       {current && !takenOver && !(cdActive && loc.pathname === `/cd/${cd.now!.disc.id}`) && (

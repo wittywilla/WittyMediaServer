@@ -24,18 +24,18 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/library"
 )
 
-// The disc page: the feature first ("Feature Presentation") with named
-// chapters, then bonus features, then shortcuts into the disc's menus.
+// The disc page: the feature first ("Feature Presentation") with its chapters, then bonus
+// features, then shortcuts into the disc's menus. WittyDVD and WittyBluray show it (their routes
+// and SDUI sources, with the names given to titles and chapters, which are theirs); the server
+// works it out from the disc engine's checked answers and hands it over (host_discs.go).
 
 type discChapter struct {
 	N     int     `json:"n"`
 	Start float64 `json:"start"`
-	Label string  `json:"label"` // user label, "" = default
 }
 
 type discTitle struct {
 	TTN         int           `json:"ttn"`
-	Label       string        `json:"label"` // user label, "" = default
 	DurationSec float64       `json:"durationSec"`
 	Chapters    []discChapter `json:"chapters"`
 	Audio       []string      `json:"audio"`
@@ -56,8 +56,7 @@ var menuLabels = map[string]string{
 }
 
 // discPageView is a disc's page: the film, the other titles worth watching, and the disc's
-// own menus to jump into. The web's and apps' disc sections (the modules' sdui.json, answered
-// in disc_sources.go) and GET /api/items/{id}/disc are both made from it.
+// own menus to jump into, as the host API gives it to the disc modules.
 type discPageView struct {
 	Main   *discTitle
 	Extras []discTitle
@@ -69,51 +68,10 @@ type discPageView struct {
 // errDiscEncrypted: the disc's video is encrypted, so nothing of it is read to play.
 var errDiscEncrypted = errors.New("This disc is encrypted, and encrypted discs aren't supported.")
 
-// GET /api/items/{id}/disc
-func (s *Server) handleDisc(w http.ResponseWriter, r *http.Request) {
-	id, ok := pathInt(r, "id")
-	if !ok {
-		writeErr(w, 400, "bad id")
-		return
-	}
-	it, err := s.visibleItem(r, id)
-	if err != nil || !isDiscKind(it) {
-		writeErr(w, 404, "disc not found")
-		return
-	}
-	v, err := s.discPage(r.Context(), it)
-	if writeModuleMissing(w, err) {
-		return
-	}
-	switch {
-	case errors.Is(err, errDiscEncrypted):
-		writeErr(w, 403, err.Error())
-		return
-	case err != nil:
-		writeErr(w, 500, s.viewerError(r, err))
-		return
-	}
-	out := map[string]any{"main": nil, "extras": []discTitle{}, "menus": []discMenu{}}
-	if v.Main != nil {
-		out["main"] = *v.Main
-	}
-	if v.Extras != nil {
-		out["extras"] = v.Extras
-	}
-	if v.Menus != nil {
-		out["menus"] = v.Menus
-	}
-	if v.Hidden >= 0 {
-		out["hidden"] = v.Hidden
-	}
-	addRank(out, it)
-	writeJSON(w, 200, out)
-}
-
 // discPages keeps the last few disc pages worked out, for a short while: one page of the
 // app asks for a disc's feature, scenes, extras and menus as separate sections, and each
-// would otherwise start the disc's helper again. A change to the disc's names or its film
-// forgets it (discPageForget).
+// would otherwise start the disc's helper again. A change of its film forgets it
+// (discPageForget).
 var discPages = struct {
 	sync.Mutex
 	m map[int64]discPageCached
@@ -173,14 +131,12 @@ func (s *Server) discPageDVD(ctx context.Context, it *library.Item) (*discPageVi
 		return nil, err
 	}
 	defer o.Close()
-	labels := s.Store.DiscLabels(ctx, it.ID)
 	d := o.Disc
 	view := func(ts *dvd.TitleSummary) discTitle {
-		t := discTitle{TTN: ts.Number, Label: labels.Titles[strconv.Itoa(ts.Number)], DurationSec: ts.Duration, Angles: ts.Angles, Wide: ts.Video.Wide,
+		t := discTitle{TTN: ts.Number, DurationSec: ts.Duration, Angles: ts.Angles, Wide: ts.Video.Wide,
 			Chapters: []discChapter{}, Audio: []string{}, Subtitles: []string{}}
-		names := labels.Chapters[strconv.Itoa(ts.Number)]
 		for i, c := range ts.Chapters {
-			t.Chapters = append(t.Chapters, discChapter{N: i + 1, Start: c, Label: names[strconv.Itoa(i+1)]})
+			t.Chapters = append(t.Chapters, discChapter{N: i + 1, Start: c})
 		}
 		for _, a := range ts.Audio {
 			label := strings.TrimSpace(fmt.Sprintf("%s %s", a.Language, a.Purpose()))
@@ -260,48 +216,6 @@ func (s *Server) discPageDVD(ctx context.Context, it *library.Item) (*discPageVi
 		out.Menus = append(out.Menus, discMenu{Kind: "title", Label: menuLabels["title"]})
 	}
 	return out, nil
-}
-
-func (s *Server) openDisc(w http.ResponseWriter, r *http.Request) (*library.Item, *dvdsession.Engine, bool) {
-	id, ok := pathInt(r, "id")
-	if !ok {
-		writeErr(w, 400, "bad id")
-		return nil, nil, false
-	}
-	it, err := s.visibleItem(r, id)
-	if err != nil || (it.Kind != "dvd-iso" && it.Kind != "dvd-folder") {
-		writeErr(w, 404, "disc not found")
-		return nil, nil, false
-	}
-	o, err := dvdsession.Open(it.Path)
-	if writeModuleMissing(w, err) {
-		return nil, nil, false
-	}
-	if err != nil {
-		writeErr(w, 500, s.viewerError(r, err))
-		return nil, nil, false
-	}
-	return it, o, true
-}
-
-// PUT /api/items/{id}/disc/labels  {"titles":{"3":"Making of"},"chapters":{"1":{"4":"The dragon"}}}
-func (s *Server) handleDiscLabels(w http.ResponseWriter, r *http.Request) {
-	id, ok := pathInt(r, "id")
-	if !ok {
-		writeErr(w, 400, "bad id")
-		return
-	}
-	var b library.DiscLabels
-	if err := readJSON(r, &b); err != nil {
-		writeErr(w, 400, err.Error())
-		return
-	}
-	if err := s.Store.SetDiscLabels(r.Context(), id, b.Clean()); err != nil {
-		writeErr(w, 500, err.Error())
-		return
-	}
-	discPageForget(id)
-	writeJSON(w, 200, s.Store.DiscLabels(r.Context(), id))
 }
 
 // Thumbnails are produced by FFmpeg on first request; at most two at a time
@@ -448,22 +362,4 @@ func rankOf(it *library.Item) *library.DiscRank {
 		return nil
 	}
 	return it.Disc.Rank
-}
-
-// addRank adds what the engine's ranking says to a disc page's answer: why this title, a
-// TV disc's episodes and the film's other versions. The whole of it is at
-// /api/items/{id}/disc/analysis.
-func addRank(out map[string]any, it *library.Item) {
-	out["rank"] = nil
-	rk := rankOf(it)
-	if rk == nil {
-		return
-	}
-	out["rank"] = discWhy(it.Disc)
-	if len(rk.Episodes) > 0 {
-		out["episodes"] = rk.Episodes
-	}
-	if len(rk.Versions) > 0 {
-		out["versions"] = rk.Versions
-	}
 }

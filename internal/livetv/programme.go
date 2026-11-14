@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -147,29 +148,31 @@ func (m *Manager) Airings(ctx context.Context, title string, from, to time.Time,
 // guideChannelsFor are the channels in the guide whose programmes are stored under this key:
 // "tuner:<id>" for what a broadcast said, else a guide id a channel was matched or set to.
 func (m *Manager) guideChannelsFor(ctx context.Context, key string) []int64 {
-	const inGuide = `c.enabled = 1 AND t.enabled = 1 AND c.merged_into IS NULL`
-	var rows *sql.Rows
-	var err error
+	list, err := m.GuideChannels(ctx)
+	if err != nil {
+		return nil
+	}
+	var out []int64
 	if v, ok := strings.CutPrefix(key, "tuner:"); ok {
 		id, perr := strconv.ParseInt(v, 10, 64)
 		if perr != nil {
 			return nil
 		}
-		rows, err = m.DB.QueryContext(ctx, `SELECT c.id FROM tuner_channels c JOIN tuners t ON t.id = c.tuner_id WHERE c.id = ? AND `+inGuide, id)
-	} else {
-		rows, err = m.DB.QueryContext(ctx, `SELECT c.id FROM tuner_channels c JOIN tuners t ON t.id = c.tuner_id
-			WHERE (c.epg_set = ? OR (c.epg_set = '' AND c.epg_id = ?)) AND `+inGuide+` ORDER BY c.id LIMIT 20`, key, key)
-	}
-	if err != nil {
-		return nil
-	}
-	defer rows.Close()
-	var out []int64
-	for rows.Next() {
-		var id int64
-		if rows.Scan(&id) == nil {
-			out = append(out, id)
+		for _, c := range list {
+			if c.ID == id {
+				out = append(out, id)
+			}
 		}
+		return out
+	}
+	for _, c := range list {
+		if c.GuideKey() == key {
+			out = append(out, c.ID)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i] < out[j] })
+	if len(out) > 20 {
+		out = out[:20]
 	}
 	return out
 }

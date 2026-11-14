@@ -531,6 +531,9 @@ var migrations = []string{
 	   item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
 	   PRIMARY KEY(share_id, item_id));
 	 CREATE INDEX IF NOT EXISTS share_link_items_item ON share_link_items(item_id);`,
+	// 37: the names people gave a disc's titles and chapters are WittyDVD's and WittyBluray's
+	// own (module API 5, each its own database, starting empty).
+	`ALTER TABLE items DROP COLUMN disc_labels;`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

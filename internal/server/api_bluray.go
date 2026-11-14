@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -34,14 +33,12 @@ func (s *Server) discPageBluray(ctx context.Context, it *library.Item) (*discPag
 	}
 	d := od.Disc
 	defer d.Close()
-	labels := s.Store.DiscLabels(ctx, it.ID)
 	view := func(pl *bluray.Playlist) discTitle {
-		t := discTitle{TTN: pl.Number, Label: labels.Titles[strconv.Itoa(pl.Number)], DurationSec: d.PlaylistDuration(pl), Angles: 1, Wide: true,
+		t := discTitle{TTN: pl.Number, DurationSec: d.PlaylistDuration(pl), Angles: 1, Wide: true,
 			Chapters: []discChapter{}, Audio: []string{}, Subtitles: []string{}}
-		names := labels.Chapters[strconv.Itoa(pl.Number)]
 		// Chapters as the engine maps them onto the playlist's playing time.
 		for i, ch := range bdsession.Chapters(d, pl) {
-			t.Chapters = append(t.Chapters, discChapter{N: i + 1, Start: ch.Start, Label: names[strconv.Itoa(i+1)]})
+			t.Chapters = append(t.Chapters, discChapter{N: i + 1, Start: ch.Start})
 		}
 		if len(pl.Items) > 0 {
 			it0 := pl.Items[0]

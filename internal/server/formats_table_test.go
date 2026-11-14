@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"io"
 	"log/slog"
 	"os"
@@ -19,6 +18,8 @@ import (
 	"testing"
 	"testing/fstest"
 	"time"
+
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/bdsession"

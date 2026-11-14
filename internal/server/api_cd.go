@@ -313,14 +313,13 @@ func (s *Server) cdViewOf(r *http.Request, it *library.Item, d *wittycd.Disc) (*
 	return v, nil
 }
 
-// cdRoutes are what WittyCD answers.
+// cdRoutes are the disc's layout and its sound, which stay the server's: what the disc is
+// (matches, identify) is WittyCD's own route, asking the host API (host_discs.go).
 func (s *Server) cdRoutes(m routes) {
 	a := s.requireUser
 	m.Handle("GET /api/cd/{id}", a(s.handleCD))
 	m.Handle("GET /api/cd/{id}/audio", a(s.handleCDAudio))
 	m.Handle("GET /api/cd/{id}/graphics", a(s.handleCDGraphics))
-	m.Handle("GET /api/cd/{id}/matches", s.requireAdmin(s.handleCDMatches))
-	m.Handle("POST /api/cd/{id}/identify", s.requireAdmin(s.handleCDIdentify))
 }
 
 // GET /api/cd/{id}
@@ -501,22 +500,6 @@ func (s *Server) handleCDGraphics(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(b)
 }
 
-// GET /api/cd/{id}/matches: what this disc could be. Sends only the table of
-// contents to MusicBrainz.
-func (s *Server) handleCDMatches(w http.ResponseWriter, r *http.Request) {
-	it, d, release, ok := s.cdItem(w, r)
-	if !ok {
-		return
-	}
-	defer release()
-	ms, err := s.Scanner.CDLookup(r.Context(), d)
-	if err != nil {
-		writeErr(w, 502, err.Error())
-		return
-	}
-	writeJSON(w, 200, map[string]any{"itemId": it.ID, "discId": d.TOC().MusicBrainzID(), "matches": ms, "attribution": library.MusicBrainzAttribution})
-}
-
 // GET /api/cd-covers/{release}: a release's cover, small, for choosing between
 // matches, so that a browser needn't ask another site for it.
 func (s *Server) handleCDCover(w http.ResponseWriter, r *http.Request) {
@@ -529,48 +512,4 @@ func (s *Server) handleCDCover(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "private, max-age=86400")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	_, _ = w.Write(b)
-}
-
-// POST /api/cd/{id}/identify {"releaseId": "..."}: use this release's names and
-// cover. {"releaseId": ""} goes back to the disc's own names on the next scan.
-func (s *Server) handleCDIdentify(w http.ResponseWriter, r *http.Request) {
-	it, d, release, ok := s.cdItem(w, r)
-	if !ok {
-		return
-	}
-	defer release()
-	var b struct {
-		ReleaseID string `json:"releaseId"`
-	}
-	if err := readJSON(r, &b); err != nil {
-		writeErr(w, 400, "expected a JSON body")
-		return
-	}
-	lib, err := s.Store.Library(r.Context(), it.LibraryID)
-	if err != nil {
-		writeErr(w, 500, err.Error())
-		return
-	}
-	if b.ReleaseID == "" {
-		if err := s.Scanner.ForgetCDMatch(r.Context(), lib, it, d); err != nil {
-			writeErr(w, 500, err.Error())
-			return
-		}
-	} else {
-		m, err := s.Scanner.CDRelease(r.Context(), d, b.ReleaseID)
-		if err != nil {
-			writeErr(w, 502, err.Error())
-			return
-		}
-		if err := s.Scanner.ApplyCDMatch(r.Context(), lib, it, d, m); err != nil {
-			writeErr(w, 500, err.Error())
-			return
-		}
-	}
-	v, err := s.cdViewOf(r, it, d)
-	if err != nil {
-		writeErr(w, 500, err.Error())
-		return
-	}
-	writeJSON(w, 200, v)
 }

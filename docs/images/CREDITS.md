@@ -87,7 +87,7 @@ Licences were read from each work's source on the day it was fetched. This is a 
 | `settings-logs.webp` | Settings, WittyLog. |
 | `settings-metadata.webp` | Settings, Metadata agents. |
 | `settings-modules.webp` | Settings, Modules. |
-| `settings-playback.webp` | Settings, Playback & discs. |
+| `settings-playback.webp` | Settings, Playback. |
 | `settings-remote.webp` | Settings, Remote Access. The address is an example. |
 | `settings-repair.webp` | Settings, Repair. |
 | `settings-reset.webp` | Settings, Reset. |

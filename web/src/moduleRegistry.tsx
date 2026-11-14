@@ -48,12 +48,23 @@ export type CardParts = {
 export type Registration = {
   routes?: Record<string, ComponentType<RouteProps>>
   cards?: Record<string, CardParts>
-  players?: Record<string, ComponentType<{ host: unknown; itemId: string }>>
+  /** The player for a media kind it claims (players): given the item and the player's address
+   * parameters, as the app's own player had them. */
+  players?: Record<string, ComponentType<PlayerProps>>
   readers?: Record<string, ComponentType<{ host: unknown }>>
   settings?: Record<string, ComponentType<{ host: unknown }>>
   /** A first-run step: given the wizard's own step props too, as the app's own step had them. */
   setup?: Record<string, ComponentType<Record<string, unknown>>>
+  /** What a title's "Manage" menu offers for a media kind whose player it claims, each opening a
+   * dialog of its own (web host API 5; integration.json has no field for it yet, so the claim is
+   * the player's). */
+  itemMenu?: Record<string, (item: unknown, who: { admin: boolean }) => ItemMenuEntry[]>
+  /** An engine that plays through the app's own audio element, for a media kind whose player it
+   * claims (audio/engineSlot.tsx). */
+  audioEngines?: Record<string, unknown>
 }
+export type PlayerProps = { host: unknown; item: unknown; params: Record<string, string | undefined>; startAt: number | null }
+export type ItemMenuEntry = { key: string; label: string; icon?: string; Dialog: ComponentType<{ host: unknown; item: unknown; onClose: () => void; onSaved: () => void }> }
 export type RouteProps = { host: unknown; params: Record<string, string | undefined> }
 
 export type ModuleWeb = { module: string; version: string; part: WebPart }
@@ -275,4 +286,38 @@ export function useModuleSetupStep(id: string): ComponentType<Record<string, unk
   if (!owner) return null
   if (reg === undefined) return undefined
   return reg?.setup?.[id] || null
+}
+
+// ---------------------------------------------------------------- players and a title's menu
+
+/** The module of API 5 in use that claims the player for a media kind, if one does. */
+export function playerOwner(list: ModuleWeb[], mediaKind: string): string | undefined {
+  return list.find((m) => (m.part.players || []).some((p) => p.mediaKind === mediaKind))?.module
+}
+
+/** A module's player for a media kind: what's missing said if no module in use claims it or it
+ * won't load. modules names the modules that could, for "Add it". */
+export function ModulePlayer({ mediaKind, modules, fallback, ...props }: Omit<PlayerProps, 'host'> & { mediaKind: string; modules: string[]; fallback: ReactNode }) {
+  const owner = playerOwner(useModuleWeb(), mediaKind)
+  const reg = useRegistration(owner)
+  if (!owner) return <ModuleMissing ids={modules} />
+  if (reg === undefined) return <>{fallback}</>
+  const C = reg?.players?.[mediaKind]
+  if (!C) return <ModuleMissing ids={[owner]} />
+  return <Suspense fallback={fallback}><Guarded module={owner}><C host={hostNow(owner)} {...props} /></Guarded></Suspense>
+}
+
+/** What a module offers in a title's menu for a media kind it plays, and the dialog open now. */
+export function useModuleItemMenu(mediaKind: string | null, item: unknown, admin: boolean) {
+  const list = useModuleWeb()
+  const owner = mediaKind ? playerOwner(list, mediaKind) : undefined
+  const reg = useRegistration(owner)
+  const [open, setOpen] = useState<ItemMenuEntry | null>(null)
+  const entries = useMemo<ItemMenuEntry[]>(() => (owner && mediaKind && item ? reg?.itemMenu?.[mediaKind]?.(item, { admin }) : null) || [], [owner, mediaKind, item, admin, reg])
+  const dialog = (onSaved: () => void) => open && owner ? (
+    <Suspense fallback={null}><Guarded module={owner}>
+      <open.Dialog host={hostNow(owner)} item={item} onClose={() => setOpen(null)} onSaved={() => { setOpen(null); onSaved() }} />
+    </Guarded></Suspense>
+  ) : null
+  return { entries, choose: setOpen, dialog }
 }

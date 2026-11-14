@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/logging"
-	"github.com/wittywilla/wittymediaserver/internal/tuner"
 )
 
 // closeWait is how long Close waits for the manager's own work. A recording or an FFmpeg that
@@ -109,12 +108,6 @@ func (m *Manager) Close() {
 	m.bgClosed = true
 	m.bgMu.Unlock()
 	m.stop()
-	m.mu.Lock()
-	for _, s := range m.sources {
-		_ = s.Close()
-	}
-	m.sources = map[int64]tuner.Source{}
-	m.mu.Unlock()
 	// Not holding m.mu: the work being waited for may want it. A second Close waits for the first.
 	m.closeOnce.Do(func() {
 		done := make(chan struct{})

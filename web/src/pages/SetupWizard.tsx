@@ -15,7 +15,6 @@ import { Details } from './setup/Details'
 import { Discs } from './setup/Discs'
 import { Done } from './setup/Done'
 import { Listings } from './setup/Listings'
-import { Tv } from './setup/Tv'
 import { Logos } from './setup/Logos'
 import { Look, Theme } from './setup/Look'
 import { People } from './setup/People'
@@ -140,7 +139,7 @@ export default function SetupWizard() {
               {step.id === 'logos' && <Logos {...props} />}
               {step.id === 'music' && <Music {...props} />}
               {step.id === 'listings' && <Listings {...props} />}
-              {step.id === 'tv' && <Tv {...props} />}
+              {step.id === 'tv' && <ModuleStep id="tv" props={{ ...props }} own={null} />}
               {step.id === 'look' && <Look {...props} />}
               {step.id === 'theme' && <Theme {...props} />}
               {step.id === 'people' && <People {...props} />}

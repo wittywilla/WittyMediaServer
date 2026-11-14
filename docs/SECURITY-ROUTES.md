@@ -3,7 +3,7 @@
 Every route of the server: who may call it and what it validates. `TestRouteTableMatchesTheCode` keeps this table and the code
 together. [SECURITY-REVIEW.md](SECURITY-REVIEW.md) describes the model behind it.
 
-Nothing else listens for HTTP: the HTTPS port serves this same handler. A module's own routes (`/api/modules/<id>/...`, module API 5) are checked as their integration.json says: who may call each, its limits, whether it plays and whether it asks for the password again.
+Nothing else listens for HTTP: the HTTPS port serves this same handler. A module's own routes (`/api/modules/<id>/...`) are checked as their integration.json says: who may call each, its limits, whether it plays and whether it asks for the password again. Every module the server runs is of module API 5 and has one; a version of another API isn't taken, so no module answers a route its integration.json doesn't list. WittyPlay's settings for the whole server, for example, are its own administrators' route (`/api/modules/wittyplay/gaming/settings`): `PUT /api/settings` keeps only the server's own settings and drops any other name.
 
 Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served wherever `GET` is.
 

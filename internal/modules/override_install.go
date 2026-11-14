@@ -299,8 +299,8 @@ func (m *Manager) StageUpload(u Upload) (*UploadInfo, error) {
 
 	// What no override passes.
 	switch {
-	case man.API < MinAPI || man.API > API:
-		return refuse(fmt.Sprintf("It is built for module API %d, and this server speaks %d to %d: there is no way to run it here.", man.API, MinAPI, API))
+	case man.API != API:
+		return refuse(fmt.Sprintf("It is built for module API %d, and this server takes module API %d only: there is no way to run it here.", man.API, API))
 	case man.Delivery == wittymodule.DeliveryLibrary || man.Delivery == wittymodule.DeliveryBuiltin:
 		return refuse("It has nothing to install on its own: it reaches a server inside other modules.")
 	case known && !e.absent && man.Delivery != builtinDelivery:

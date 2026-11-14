@@ -191,7 +191,20 @@ func (s *Server) hostItem(w http.ResponseWriter, r *http.Request, module string)
 			return
 		}
 	}
-	writeJSON(w, 200, s.moduleItemFull(r.Context(), it))
+	out := hostItemAnswer{Item: s.moduleItemFull(r.Context(), it)}
+	if l := s.Store.LinkOf(r.Context(), it.ID); l != nil && l.Link == library.LinkVersion && l.ParentItem != nil {
+		out.VersionOf, out.VersionLabel = *l.ParentItem, l.Label
+	}
+	writeJSON(w, 200, out)
+}
+
+// hostItemAnswer is the host's Item: the item as a module's route is told of it, and, for an
+// item that is another version of one (a scan's versionOf, item_links), that item's id and what
+// this version is called.
+type hostItemAnswer struct {
+	*service.Item
+	VersionOf    int64  `json:"versionOf,omitempty"`
+	VersionLabel string `json:"versionLabel,omitempty"`
 }
 
 // hostItemSorts are the orders a module may list items in.

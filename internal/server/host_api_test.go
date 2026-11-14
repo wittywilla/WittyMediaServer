@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -109,6 +110,25 @@ func TestHostAPI(t *testing.T) {
 
 	// The server's own item JSON, sorted and picked, and what a games library holds.
 	second := ts.item(t, &library.Item{LibraryID: games, Kind: "game", Path: "/g/b.sfc", Title: "B game", Console: "snes", Poster: "/g/b.png"})
+	// Another version of a game says which, and what it's called.
+	if err := ts.Store.AttachItem(ctx, second.ID, library.LinkVersion, "", "Europe", &game.ID, nil); err != nil {
+		t.Fatal(err)
+	}
+	var ver struct {
+		ID           int64  `json:"id"`
+		VersionOf    int64  `json:"versionOf"`
+		VersionLabel string `json:"versionLabel"`
+	}
+	if err := c.Do(ctx, host.On{User: pal.ID}, "GET", "/items/"+strconv.FormatInt(second.ID, 10), nil, &ver); err != nil || ver.ID != second.ID || ver.VersionOf != game.ID || ver.VersionLabel != "Europe" {
+		t.Fatalf("a version: %+v %v", ver, err)
+	}
+	ver.VersionOf, ver.VersionLabel = 0, ""
+	if err := c.Do(ctx, host.On{User: pal.ID}, "GET", "/items/"+strconv.FormatInt(game.ID, 10), nil, &ver); err != nil || ver.ID != game.ID || ver.VersionOf != 0 {
+		t.Fatalf("the game itself: %+v %v", ver, err)
+	}
+	if err := ts.Store.DetachItem(ctx, second.ID); err != nil {
+		t.Fatal(err)
+	}
 	full, err := c.ItemsFull(ctx, host.On{User: pal.ID}, host.Query{Library: games, Sort: "title", Desc: true})
 	if err != nil || len(full) != 2 || !strings.Contains(string(full[0]), `"title":"B game"`) || strings.Contains(string(full[0]), "/g/b") {
 		t.Fatalf("full items: %s %v", full, err)

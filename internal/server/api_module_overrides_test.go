@@ -26,7 +26,7 @@ import (
 func unsignedRelease(t *testing.T) (name string, archive []byte) {
 	t.Helper()
 	man := wittymodule.Manifest{ID: "wittynew", Name: "Witty New", Version: "0.1.0", Repo: "someone/WittyNew", Delivery: wittymodule.DeliveryWeb,
-		Entry: "index.js", API: modmgr.SDUIAPI, MinServer: "0.4.0", MaxServer: "0.5.x", Permissions: []string{wittymodule.PermissionNetwork}}
+		Entry: "index.js", API: modmgr.API, MinServer: "0.4.0", MaxServer: "0.5.x", Permissions: []string{wittymodule.PermissionNetwork}}
 	raw, _ := json.Marshal(man)
 	ui := `{"format":"wittymodule-sdui","formatVersion":1,"module":"wittynew","catalog":2,"theme":{"scope":"wittynew"},
 "pages":[{"id":"wittynew","kind":"custom","title":"New things","sections":[{"id":"recent","component":"Shelf","source":{"type":"recentlyAdded"}}]}],
@@ -35,7 +35,9 @@ func unsignedRelease(t *testing.T) (name string, archive []byte) {
 	var buf bytes.Buffer
 	gz := gzip.NewWriter(&buf)
 	tw := tar.NewWriter(gz)
-	for n, b := range map[string][]byte{wittymodule.ManifestFile: raw, "index.js": []byte("export default 1"), sdui.ModuleFile: []byte(ui)} {
+	files := map[string][]byte{wittymodule.ManifestFile: raw, "index.js": []byte("export default 1"), sdui.ModuleFile: []byte(ui)}
+	withModuleFiles(man.ID, files)
+	for n, b := range files {
 		if err := tw.WriteHeader(&tar.Header{Name: top + "/" + n, Typeflag: tar.TypeReg, Mode: 0o644, Size: int64(len(b))}); err != nil {
 			t.Fatal(err)
 		}

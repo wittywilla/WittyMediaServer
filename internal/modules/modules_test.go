@@ -32,6 +32,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/update"
+	"github.com/wittywilla/wittymediaserver/pkg/sdui"
 	"github.com/wittywilla/wittymodule"
 )
 
@@ -272,14 +273,44 @@ func (w *world) publish(ver string, man []byte) map[string]string {
 	return w.publishWith(ver, man, nil)
 }
 
-// publishWith publishes a version with more files in its archive, such as sdui.json.
+// minimalUI and minimalIntegration are the least sdui.json and integration.json a module carries.
+func minimalUI(id string) string {
+	return `{"format":"wittymodule-sdui","formatVersion":1,"module":"` + id + `","catalog":2,"theme":{"scope":"` + id + `"}}`
+}
+
+func minimalIntegration(id string) string {
+	return `{"format":"wittymodule-integration","formatVersion":1,"module":"` + id + `"}`
+}
+
+// withModuleFiles adds the least sdui.json and integration.json to a release's files, as its
+// manifest needs them, unless it has its own.
+func withModuleFiles(files map[string][]byte) {
+	var m wittymodule.Manifest
+	if json.Unmarshal(files[wittymodule.ManifestFile], &m) != nil {
+		return
+	}
+	if _, ok := files[sdui.ModuleFile]; !ok && needsUI(&m) {
+		files[sdui.ModuleFile] = []byte(minimalUI(m.ID))
+	}
+	if _, ok := files[wittymodule.IntegrationFile]; !ok && m.NeedsIntegration() {
+		files[wittymodule.IntegrationFile] = []byte(minimalIntegration(m.ID))
+	}
+}
+
+// publishWith publishes a version with more files in its archive, such as its own sdui.json
+// in place of the least one (a nil file leaves one out).
 func (w *world) publishWith(ver string, man []byte, extra map[string][]byte) map[string]string {
 	w.t.Helper()
 	const id = "wittyphotos"
 	top := wittymodule.TopFolder(id, ver, runtime.GOOS, runtime.GOARCH)
 	files := map[string][]byte{wittymodule.ManifestFile: man, entryName(): helperBytes(w.t), "LICENSE": []byte("license")}
-	for n, b := range extra {
-		files[n] = b
+	withModuleFiles(files)
+	for n, b := range extra { // nil leaves a file out
+		if b == nil {
+			delete(files, n)
+		} else {
+			files[n] = b
+		}
 	}
 	archive := packFiles(top, files)
 	archiveName := wittymodule.ArchiveName(id, ver, runtime.GOOS, runtime.GOARCH)
@@ -418,7 +449,7 @@ func TestOutOfRangeIsNotOfferedOrInstallable(t *testing.T) {
 // Modules start with this release: one built for less is refused, and the words say so.
 func TestOlderAPIIsRefused(t *testing.T) {
 	w := newWorld(t)
-	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", wittymodule.MinAPI-1))
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", MinAPI-1))
 	m := w.manager()
 	defer m.Close()
 	s := check(t, m)
@@ -960,7 +991,7 @@ func TestStateFileProblemsAreNotFatal(t *testing.T) {
 
 func TestBuiltinModulesCantBeInstalled(t *testing.T) {
 	w := newWorld(t)
-	m := New(Config{Dir: w.dir, Server: w.server, Builtins: [][]byte{[]byte(`{"id":"wittydvd","name":"WittyDVD","version":"0.1.0","repo":"wittywilla/WittyDVD","delivery":"builtin","api":3,"minServer":"0.4.0","maxServer":"0.5.x"}`)},
+	m := New(Config{Dir: w.dir, Server: w.server, Builtins: [][]byte{[]byte(`{"id":"wittydvd","name":"WittyDVD","version":"0.1.0","repo":"wittywilla/WittyDVD","delivery":"builtin","api":5,"minServer":"0.4.0","maxServer":"0.5.x"}`)},
 		Keys: []ed25519.PublicKey{w.pub}, Fetch: &update.Fetcher{UserAgent: "test", Transport: w.gh}, Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
 	defer m.Close()
 	m.Check(context.Background(), 0)

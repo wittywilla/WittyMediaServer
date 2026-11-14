@@ -34,7 +34,7 @@ const comicsUI = `{"format":"wittymodule-sdui","formatVersion":1,"module":"witty
 
 func TestModuleSDUIIsMergedEverywhere(t *testing.T) {
 	ts, admin, adult, kid := sduiAccounts(t)
-	ts.Modules = installedBundleWith(t, `export default 1`, `a{}`, modmgr.SDUIAPI, map[string][]byte{sdui.ModuleFile: []byte(comicsUI)})
+	ts.Modules = installedBundleWith(t, `export default 1`, `a{}`, modmgr.API, map[string][]byte{sdui.ModuleFile: []byte(comicsUI)})
 	if uis, _ := ts.Modules.UIs(); len(uis) != 1 {
 		t.Fatalf("the module's SDUI isn't in use: %+v", ts.Modules.Report())
 	}

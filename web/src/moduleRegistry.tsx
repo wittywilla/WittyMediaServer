@@ -8,14 +8,14 @@ import { ModuleMissing } from './components/ModuleMissing'
 import { CardRouteContext } from './sdui/render/cardRoute'
 import { GameArtContext, type GameArtApi, type GameArtArgs } from './sdui/render/glyphs'
 
-// What modules of API 5 add to the web app (docs/MODULES-API5.md, "The web part"). A module's
+// What modules add to the web app (docs/MODULES-API5.md, "The web part"). A module's
 // integration.json says what it claims: its routes and frames, its cards, players, readers,
 // Settings sections, setup steps and menu folding. The server sends that with the bundle list
 // (GET /modules/web, `integration`), so the app knows before any of the module's code loads.
 // The bundle's register(host) export hands over the components when they are first needed.
 //
-// While a module has no version of API 5 in use, nothing here claims anything, and the app's
-// own copy of the module's screens draws them as it always did.
+// While a module isn't in use, nothing here claims anything: what it would draw is missing, and
+// says which module draws it (ModuleMissing).
 
 export type WebRoute = { path: string; frame: 'fullscreen' | 'app' | 'tv' }
 export type SettingsTab = { id: string; label: string; admin?: boolean; after?: string; search?: string[]; launch?: string; hidden?: boolean }
@@ -91,7 +91,7 @@ function ask() {
   if (asked) return
   asked = true
   api.get<{ bundles: Bundle[] }>('/modules/web').then((r) => {
-    const next = (r.bundles || []).filter((b) => b.api >= 5 && b.api <= HOST_API && b.integration).map((b) => ({ module: b.id, version: b.version, part: b.integration as WebPart }))
+    const next = (r.bundles || []).filter((b) => b.api <= HOST_API && b.integration).map((b) => ({ module: b.id, version: b.version, part: b.integration as WebPart }))
     const same = JSON.stringify(next) === JSON.stringify(known)
     try { localStorage.setItem(CACHE, JSON.stringify(next)) } catch { /* private mode */ }
     if (!same) {
@@ -103,7 +103,7 @@ function ask() {
 
 const subscribe = (l: () => void) => { ask(); listeners.add(l); return () => { listeners.delete(l) } }
 
-/** The modules of API 5 in use and what they add to the web app. */
+/** The modules in use and what they add to the web app. */
 export function useModuleWeb(): ModuleWeb[] {
   return useSyncExternalStore(subscribe, () => known, () => known)
 }
@@ -163,7 +163,7 @@ function routeRegex(path: string): { re: RegExp; names: string[] } {
 }
 const regexCache = new Map<string, { re: RegExp; names: string[] }>()
 
-/** The module route a path is, if a module of API 5 in use claims it. The first claim wins. */
+/** The module route a path is, if a module in use claims it. The first claim wins. */
 export function matchModuleRoute(list: ModuleWeb[], pathname: string, frames?: WebRoute['frame'][]): RouteMatch | null {
   for (const m of list) {
     for (const r of m.part.routes || []) {
@@ -254,7 +254,7 @@ export function ModuleCards({ children }: { children: ReactNode }) {
 
 export type ModuleSettingsTab = SettingsTab & { module: string }
 
-/** The Settings sections modules of API 5 draw. */
+/** The Settings sections modules draw. */
 export function useModuleSettingsTabs(): ModuleSettingsTab[] {
   const list = useModuleWeb()
   return useMemo(() => list.flatMap((m) => (m.part.settings || []).map((s) => ({ ...s, module: m.module }))), [list])
@@ -277,7 +277,7 @@ export const ModuleFrame = ({ match, fallback }: { match: RouteMatch; fallback: 
 
 // ---------------------------------------------------------------- first-run setup
 
-/** A module's first-run step for an id, if a module of API 5 in use declares one: its component,
+/** A module's first-run step for an id, if a module in use declares one: its component,
  * once its bundle is loaded; undefined while loading, null when none. */
 export function useModuleSetupStep(id: string): ComponentType<Record<string, unknown>> | null | undefined {
   const list = useModuleWeb()
@@ -290,7 +290,7 @@ export function useModuleSetupStep(id: string): ComponentType<Record<string, unk
 
 // ---------------------------------------------------------------- players and a title's menu
 
-/** The module of API 5 in use that claims the player for a media kind, if one does. */
+/** The module in use that claims the player for a media kind, if one does. */
 export function playerOwner(list: ModuleWeb[], mediaKind: string): string | undefined {
   return list.find((m) => (m.part.players || []).some((p) => p.mediaKind === mediaKind))?.module
 }

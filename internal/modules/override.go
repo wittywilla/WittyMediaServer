@@ -234,7 +234,7 @@ func (a *OverrideAccept) covers(n *ErrNeedsOverride, id string, man *wittymodule
 // rangeOnly reports that a version is refused only for its server range, while its module API is
 // one this server speaks: that it could run in compatibility mode.
 func rangeOnly(man *wittymodule.Manifest, server string) bool {
-	if supports(man, server) == nil || man.API < MinAPI || man.API > API {
+	if supports(man, server) == nil || man.API != API {
 		return false
 	}
 	c := *man
@@ -242,7 +242,7 @@ func rangeOnly(man *wittymodule.Manifest, server string) bool {
 	return c.Supports(server, MinAPI, API) == nil
 }
 
-// Status of a version, as its manifest says (module API 4; absent in older manifests).
+// Status of a version, as its manifest says.
 const (
 	StatusStable       = "stable"
 	StatusBeta         = "beta"

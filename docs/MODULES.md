@@ -9,8 +9,8 @@ To add, update or remove modules on a server, see [Modules and the store](MODULE
 - [The manifest](#the-manifest)
 - [Version ranges, including the edges](#version-ranges-including-the-edges)
 - [Writing a helper](#writing-a-helper)
-- [The helper protocol (module API 3)](#the-helper-protocol-module-api-3)
-- [A module's SDUI (module API 4)](SDUI-MODULES.md)
+- [The helper protocol](#the-helper-protocol)
+- [A module's SDUI](SDUI-MODULES.md)
 - [A module that owns its whole feature (module API 5)](MODULES-API5.md)
 - [Writing a service](#writing-a-service)
 - [Writing a web part](#writing-a-web-part)
@@ -31,9 +31,9 @@ To add, update or remove modules on a server, see [Modules and the store](MODULE
 - [Overrides, custom modules and installing from a file](#overrides-custom-modules-and-installing-from-a-file)
 - [How the apps use modules](#how-the-apps-use-modules)
 
-**Modules work with WittyMediaServer 0.6.0-alpha and later, and nothing older.** Module API 3 and `minServer` 0.6.0-alpha are the start of the line. The server refuses a version built for less, and says why. A later server may keep running a module if its range says it fits, but nothing promises that until the beta.
+**Modules work with WittyMediaServer 0.6.0-alpha and later, and nothing older.** `minServer` 0.6.0-alpha is the start of the line, and a server takes module API 5 only ([MODULES-API5.md](MODULES-API5.md)). The server refuses a version built for anything else, and says why. A later server may keep running a module if its range says it fits, but nothing promises that until the beta.
 
-**Two numbers that aren't the same.** The *module API* (`api` in a manifest, 3 today, `wittymodule.API`) is the contract between a server and its modules. The *client API revision* (`apiRevision`, in [Client API](CLIENT-API.md)) is the one apps use, and has nothing to do with this.
+**Two numbers that aren't the same.** The *module API* (`api` in a manifest, 5 today, `wittymodule.API`) is the contract between a server and its modules. The *client API revision* (`apiRevision`, in [Client API](CLIENT-API.md)) is the one apps use, and has nothing to do with this.
 
 ## How a module runs
 
@@ -43,7 +43,7 @@ The server has no module's source. Each module is a repository of its own at `gi
 
 | Delivery | What a release holds | How it runs | Used by |
 |---|---|---|---|
-| `helper` | A program per platform | A separate process, one call at a time over pipes: [the helper protocol](#the-helper-protocol-module-api-3). It can also be a [service](#writing-a-service) | WittyPhotos, WittyIntegratedFileBrowser, WittyTuner, WittyDVD, WittyBluray, WittyCD, WittyRigs; as services, WittyPlay and WittyCouch |
+| `helper` | A program per platform | A separate process, one call at a time over pipes: [the helper protocol](#the-helper-protocol). It can also be a [service](#writing-a-service) | WittyPhotos, WittyIntegratedFileBrowser, WittyTuner, WittyDVD, WittyBluray, WittyCD, WittyRigs; as services, WittyPlay and WittyCouch |
 | `program` | A program per platform | The server starts it for one job, in that job's own protocol. It must also answer the hello, so an install can check it runs | WittyCouch Host |
 | `web` | One bundle for every platform | The browser loads it when a page first needs it, under the page's content security policy | WittyInk, WittyEbook, WittyPDF, WittyComics, WittyVisualizer, WittyStats |
 | `library` | Nothing to install | Linked into others, and reaches a server inside them | WittyDisc, WittyModule |
@@ -90,9 +90,9 @@ Every module has a `module.json`, shipped in its releases and covered by their s
   "license": "AGPL-3.0-or-later",
   "delivery": "helper",
   "entry": "wittyphotos-module",
-  "api": 3,
-  "minServer": "0.6.0-alpha",
-  "maxServer": "0.6.x",
+  "api": 5,
+  "minServer": "0.8.0-alpha",
+  "maxServer": "0.8.x",
   "group": "photos",
   "summary": "Photo libraries: what a photo says about itself.",
   "libraries": ["photos"],
@@ -124,7 +124,7 @@ Every module has a `module.json`, shipped in its releases and covered by their s
 | `core` | One others can't do without, so it can't be taken off a server |
 | `pages` | Pages it adds to the app: see [Pages](#pages) |
 
-**The module API.** A server takes API 3 to 4 (`MinAPI` and `API` in `internal/modules/sdui.go`: the server's own numbers, which the `wittymodule` it is built with must not get ahead of). API 4 makes a module's SDUI part of the module: a release carries `sdui.json`, checked against the catalogue at install and before every use, and a version built for API 4 without one is refused unless an administrator [overrides](#overrides-custom-modules-and-installing-from-a-file) that, when it runs without its SDUI ([SDUI for modules](SDUI-MODULES.md)). Before API 4 the server took 3 to 3. Adding to the API raises only the top. Breaking it raises the bottom too, which disables older modules, so that's done rarely. It's one number for the whole server, as the helper protocol and host interfaces are one contract. API 3 adds services, notifications, what a module may ask for, pages, and a part in the browser for a helper.
+**The module API.** A server takes API 5 only (`MinAPI` and `API` in `internal/modules/sdui.go`, both 5: the server's own numbers, which the `wittymodule` it is built with must not get ahead of). A release carries `sdui.json`, checked against the catalogue at install and before every use, and a version without one is refused unless an administrator [overrides](#overrides-custom-modules-and-installing-from-a-file) that, when it runs without its SDUI ([SDUI for modules](SDUI-MODULES.md)). It also carries `integration.json`, saying what it adds to the server ([MODULES-API5.md](MODULES-API5.md)). It's one number for the whole server, as the helper protocol and host interfaces are one contract. There is no backwards compatibility: a version built for API 3 or 4 isn't taken.
 
 `wittymodule check` refuses a manifest with an API outside that range or a `minServer` below `0.6.0-alpha`, and a server refuses such a release with a message that says so.
 
@@ -186,12 +186,12 @@ func main() {
 
 The server starts a helper on first use and stops it after a minute idle, with one call at a time and a time limit of 60 seconds by default. A job that keeps state, such as an open disc, has a helper of its own for as long as it lasts.
 
-## The helper protocol (module API 3)
+## The helper protocol
 
 A helper is started with `--wms-helper` and talks over stdin and stdout: one line of JSON per message, each at most 1 MiB, optionally followed by a binary blob of the size it announced (at most 128 MiB). Sizes are checked before memory is set aside.
 
 ```
-helper → {"module":"wittyphotos","version":"0.3.0","api":3}
+helper → {"module":"wittyphotos","version":"0.3.0","api":5}
 server → {"id":1,"method":"read","params":{"path":"..."}}
 helper → {"id":1,"result":{...},"blob":0}
 server → {"id":2,"method":"read","params":{"path":"..."}}
@@ -450,9 +450,9 @@ https://github.com/wittywilla/WittyModuleCatalog/releases/download/catalog/catal
         {
           "version": "0.3.0",
           "delivery": "helper",
-          "api": 3,
-          "minServer": "0.6.0-alpha",
-          "maxServer": "0.6.x",
+          "api": 5,
+          "minServer": "0.8.0-alpha",
+          "maxServer": "0.8.x",
           "license": "AGPL-3.0-or-later",
           "permissions": [],
           "released": "2026-11-01",
@@ -603,7 +603,7 @@ A server refuses some versions on a judgement rather than an impossibility, and 
 
 | Kind | When | Severity |
 |---|---|---|
-| `incomplete` | The manifest's `status` is `experimental` or `incomplete`; or a version built for API 4 has no `sdui.json`, or one that fails the catalogue, and then runs without its SDUI | 1 |
+| `incomplete` | The manifest's `status` is `experimental` or `incomplete`; or a version has no `sdui.json`, or one that fails the catalogue, and then runs without its SDUI | 1 |
 | `out-of-range` | This server is outside `minServer`..`maxServer` while the module API is one it speaks (compatibility mode: the range is ignored) | 2 |
 | `local-file` | Installed from an uploaded release archive | 2 |
 | `custom` | A module ID this server doesn't know | 3 |
@@ -611,7 +611,7 @@ A server refuses some versions on a judgement rather than an impossibility, and 
 | `weak-sandbox` | A module from another publisher on macOS, where the only sandbox is sandbox-exec | 3 |
 | `unsigned` | No signature at all | 4 |
 
-**Never overridden.** A module API outside what the server speaks (3 to 4), a delivery or protocol other than the one expected, a data format that would lose data, a version withdrawn for security, no build for this system, a replacement for WittyTuner, `WMS_NO_MODULE_FORKS=1`, a system with no sandbox for other publishers' code (FreeBSD and others), and a Mac whose sandbox-exec won't take the profile.
+**Never overridden.** A module API other than the one the server speaks (5), a delivery or protocol other than the one expected, a data format that would lose data, a version withdrawn for security, no build for this system, a replacement for WittyTuner, `WMS_NO_MODULE_FORKS=1`, a system with no sandbox for other publishers' code (FreeBSD and others), and a Mac whose sandbox-exec won't take the profile.
 
 **The go-ahead** (`OverrideAccept`) names exactly the kinds needed, no more and no fewer; from severity 3 it has the module's ID typed; the route asks for the administrator's password, and code with two-factor sign-in, again. Anything else is refused: 409 `needs-override` without one, 400 `bad-override` with one that doesn't fit, each with `needsOverride` saying what would.
 

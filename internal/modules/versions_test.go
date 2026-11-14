@@ -628,6 +628,7 @@ func TestWebBundle(t *testing.T) {
 	raw, _ := json.Marshal(man)
 	top := wittymodule.WebTopFolder(id, "0.2.0")
 	files := map[string][]byte{wittymodule.ManifestFile: raw, "index.js": []byte("export default 1"), "style.css": []byte("a{}"), "chunk-a.js": []byte("export const a = 1")}
+	withModuleFiles(files)
 	archive := webPack(t, top, files)
 	archiveName := wittymodule.WebArchiveName(id, "0.2.0")
 	manName := wittymodule.ManifestName(id, "0.2.0")
@@ -720,7 +721,7 @@ func webPack(t *testing.T, top string, files map[string][]byte) []byte {
 func storeManager(t *testing.T, w *world) *Manager {
 	t.Helper()
 	m := func(id, name string, extra string) []byte {
-		return []byte(`{"id":"` + id + `","name":"` + name + `","version":"0.1.0","repo":"wittywilla/WittyMediaServer","delivery":"builtin","api":3,"minServer":"0.1.0","maxServer":"0.x",` + extra + `}`)
+		return []byte(`{"id":"` + id + `","name":"` + name + `","version":"0.1.0","repo":"wittywilla/WittyMediaServer","delivery":"builtin","api":5,"minServer":"0.1.0","maxServer":"0.x",` + extra + `}`)
 	}
 	return New(Config{Dir: w.dir, Server: w.server, Builtins: [][]byte{
 		m("wittyvideo", "WittyVideo", `"libraries":["movies","shows"]`),
@@ -994,7 +995,7 @@ func TestForkLockForgetsASavedFork(t *testing.T) {
 // WittyTuner holds the line on encrypted broadcasts, and a fork could cross it unseen.
 func TestWittyTunerCantBeForked(t *testing.T) {
 	w := newWorld(t)
-	raw := []byte(`{"id":"wittytuner","name":"WittyTuner","version":"0.1.0","repo":"wittywilla/WittyTuner","delivery":"helper","entry":"wittytuner-module","api":3,"minServer":"0.1.0","maxServer":"0.x"}`)
+	raw := []byte(`{"id":"wittytuner","name":"WittyTuner","version":"0.1.0","repo":"wittywilla/WittyTuner","delivery":"helper","entry":"wittytuner-module","api":5,"minServer":"0.1.0","maxServer":"0.x"}`)
 	m := New(Config{Dir: w.dir, Server: w.server, Builtins: [][]byte{raw}, Keys: []ed25519.PublicKey{w.pub}, Fetch: &update.Fetcher{UserAgent: "test", Transport: w.gh}, Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
 	defer m.Close()
 	pub, _, _ := ed25519.GenerateKey(rand.Reader)
@@ -1264,7 +1265,7 @@ func TestSavedSourceIsChecked(t *testing.T) {
 	w := newWorld(t)
 	pub, _, _ := ed25519.GenerateKey(rand.Reader)
 	key := base64.StdEncoding.EncodeToString(pub)
-	raw := []byte(`{"id":"wittytuner","name":"WittyTuner","version":"0.1.0","repo":"wittywilla/WittyTuner","delivery":"helper","entry":"wittytuner-module","api":3,"minServer":"0.1.0","maxServer":"0.x"}`)
+	raw := []byte(`{"id":"wittytuner","name":"WittyTuner","version":"0.1.0","repo":"wittywilla/WittyTuner","delivery":"helper","entry":"wittytuner-module","api":5,"minServer":"0.1.0","maxServer":"0.x"}`)
 	state, _ := json.Marshal(map[string]moduleState{"wittytuner": {Active: "0.2.0", Source: &Source{Repo: "someone/WittyTuner", Key: key}}})
 	if err := os.MkdirAll(w.dir, 0o755); err != nil {
 		t.Fatal(err)

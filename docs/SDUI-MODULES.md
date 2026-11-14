@@ -17,7 +17,7 @@ whole file is [`pkg/sdui/testdata/module-boardgames.json`](../pkg/sdui/testdata/
 and [The worked example, end to end](#the-worked-example-end-to-end) walks through it.
 
 - [What and why](#what-and-why)
-- [Module API 4](#module-api-4)
+- [Module API 5](#module-api-5)
 - [The file](#the-file)
 - [Names](#names)
 - [Theme](#theme)
@@ -38,7 +38,7 @@ and [The worked example, end to end](#the-worked-example-end-to-end) walks throu
 - [Conformance fixtures](#conformance-fixtures)
 - [Writing the file](#writing-the-file)
 - [The worked example, end to end](#the-worked-example-end-to-end)
-- [Migrating a module to API 4](#migrating-a-module-to-api-4)
+- [Giving a module its SDUI](#giving-a-module-its-sdui)
 
 ## What and why
 
@@ -62,24 +62,22 @@ Settings are the one exception to "it is SDUI". A module *describes* its setting
 and each app draws them in its own Settings, in its own style. Settings is never an SDUI
 page ([SDUI.md](SDUI.md#server-driven-ui-sdui)).
 
-## Module API 4
+## Module API 5
 
-Module API 4 makes `sdui.json` part of a module. The numbers are in
+A module carries its SDUI in `sdui.json`, beside `module.json`. The numbers are in
 `internal/modules/sdui.go`:
 
 | Constant | Value | What it means |
 |---|---|---|
-| `API` | 4 | The newest module API this server takes. |
-| `MinAPI` | 3 | The oldest. A version built for API 3 still runs. |
-| `SDUIAPI` | 4 | From this API on, a module must carry `sdui.json`. |
+| `API` | 5 | The module API this server takes. |
+| `MinAPI` | 5 | The same: a version built for any other API isn't taken. |
 
 Which versions must carry the file:
 
-| `api` in module.json | `delivery` | `sdui.json` |
-|---|---|---|
-| 4 or more | `helper`, `program`, `web` | **Required.** A version without one is refused, unless an administrator overrides that (kind `incomplete`); it then runs without its SDUI. |
-| 4 or more | `library`, `builtin` | Not read. A library reaches the server inside other modules. |
-| 3 | any | Optional. API 3 modules keep working until they are upgraded. One that carries `sdui.json` anyway has it checked and used. |
+| `delivery` | `sdui.json` |
+|---|---|
+| `helper`, `program`, `web` | **Required.** A version without one is refused, unless an administrator overrides that (kind `incomplete`); it then runs without its SDUI. |
+| `library`, `builtin` | Not read. A library reaches the server inside other modules. |
 
 A module with nothing to add to the apps still carries the smallest file:
 
@@ -227,7 +225,7 @@ a helper too). The server starts the helper on first use, as for any call
 helper to ask, so it declares no sources; its sections use the catalogue's.
 
 For each page of a section's items, the server calls the helper's **`sdui.items`** method
-over [the helper protocol](MODULES.md#the-helper-protocol-module-api-3):
+over [the helper protocol](MODULES.md#the-helper-protocol):
 
 ```
 server → {"id":7,"method":"sdui.items","params":{
@@ -708,7 +706,7 @@ don't refuse it.
 
 The refusal says what is wrong, in one of these forms:
 
-- `it is built for module API 4, where a module carries its own SDUI, and it has no sdui.json`
+- `it has no sdui.json, which a module carries with its own SDUI`
 - `sdui.json is 1200000 bytes; the most is 1048576`
 - `sdui.json can't be read: json: unknown field "script"`
 - `sdui.json has something after its end`
@@ -857,10 +855,10 @@ writes the result to `sdui.json` in its build.
 ### Either way
 
 - **`wittymodule check`** reads `sdui.json` beside `module.json` and checks it as the
-  server will. A module built for API 4 without one fails.
+  server will. A helper, program or web module without one fails.
 - **`wittymodule pack`** puts `sdui.json` in every archive of the release.
 - The server is the last word: its catalogue and the theme engine's colour tokens decide.
-  Test against a server ([Migrating a module to API 4](#migrating-a-module-to-api-4)).
+  Test against a server ([Giving a module its SDUI](#giving-a-module-its-sdui)).
 
 ## The worked example, end to end
 
@@ -936,11 +934,11 @@ the page under Settings → Modules → Board games. An administrator sets `list
 `settings.changed` when an administrator changes them, and gets
 `"settings": {"household": 4, "ages": "all"}` with each question about its source.
 
-## Migrating a module to API 4
+## Giving a module its SDUI
 
 For each module repository:
 
-1. **Raise `api` to 4 in `module.json`**, with the WittyModule that speaks API 4.
+1. **Set `api` to 5 in `module.json`**, with the WittyModule that speaks API 5, and give it its `integration.json` ([MODULES-API5.md](MODULES-API5.md)).
 2. **Write the module's SDUI.**
    - A Go module: build it in Go with `github.com/wittywilla/wittymodule/sdui`, and write
      `sdui.json` from it.

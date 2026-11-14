@@ -33,6 +33,7 @@ func archiveOf(t *testing.T, dir string, man wittymodule.Manifest, files map[str
 	for n, b := range files {
 		all[n] = b
 	}
+	withModuleFiles(all)
 	top := man.Top(runtime.GOOS, runtime.GOARCH)
 	name := top + ".tar.gz"
 	if runtime.GOOS == "windows" {
@@ -61,7 +62,7 @@ const newUI = `{"format":"wittymodule-sdui","formatVersion":1,"module":"wittynew
 
 func newBundle() (wittymodule.Manifest, map[string][]byte) {
 	man := wittymodule.Manifest{ID: "wittynew", Name: "Witty New", Version: "0.1.0", Repo: "someone/WittyNew", Delivery: wittymodule.DeliveryWeb,
-		Entry: "index.js", API: SDUIAPI, MinServer: "0.4.0", MaxServer: "0.5.x", Permissions: []string{wittymodule.PermissionNetwork}}
+		Entry: "index.js", API: API, MinServer: "0.4.0", MaxServer: "0.5.x", Permissions: []string{wittymodule.PermissionNetwork}}
 	return man, map[string][]byte{"index.js": []byte("export default 1"), sdui.ModuleFile: []byte(newUI)}
 }
 

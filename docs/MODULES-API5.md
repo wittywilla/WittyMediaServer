@@ -27,7 +27,7 @@ For developers of modules and of the server: what module API 5 adds to a module,
 | [Scan hooks](#scan-hooks) | its service (`service.Config.Scan`) | Scans the libraries of the kinds it names through it, and applies what it answers |
 | Lifecycle calls | its service, on the helper protocol | Calls them at a version's first start and before the module is taken off |
 
-`wittymodule.API` and the server's `API` are 5. A server takes API 5 only: no other module API is supported (the owner, 2026-11-13: no backwards compatibility). A version of API 5 must carry `integration.json` if it's a helper, program or web bundle (`wittymodule check` and `catalog-add` refuse one without it).
+`wittymodule.API` and the server's `API` and `MinAPI` are 5. A server takes API 5 only: no other module API is supported (the owner, 2026-11-13: no backwards compatibility). A version built for another API isn't installed, even with an override, and isn't used; the store says why. Every helper, program or web bundle carries `sdui.json` and `integration.json` (`wittymodule check` and `catalog-add` refuse one without them). The kinds of media that are part of the server (WittyVideo, WittyChannels, WittyShorts, WittyAudio, WittyPodcasts) are listed with the modules as builtin modules of API 5: they carry neither file, as nothing of theirs is installed.
 
 ## integration.json
 
@@ -119,8 +119,8 @@ Every call that's on someone's behalf says who (`host.On{User}`, or `host.For(r)
 
 | Call | Path (`/host/v1`) | What it does |
 |---|---|---|
-| `Hello` | `GET /hello` | The module the server thinks this is, the server's version, what it offers, and `machine`: what whoever runs the machine allows (`gamingCustomCores`) |
-| `Item` | `GET /items/{id}` | An item, with its files in order (`files`) and facets (`console`), if the person may see it (403) and it's in one of the module's kinds of library (404) |
+| `Hello` | `GET /hello` | The module the server thinks this is, the server's version, what it offers, and `machine`: what whoever runs the machine allows (`gamingCustomCores`, `gamingTestCore`) |
+| `Item` | `GET /items/{id}` | An item, with its files in order (`files`) and facets (`console`), if the person may see it (403) and it's in one of the module's kinds of library (404). An item that is another version of one (a scan's `versionOf`) says which in `versionOf` (that item's id) and what this version is called in `versionLabel` |
 | `Items` | `GET /items?libraryKind=&library=&kind=&facet.console=&search=&offset=&limit=` | Items the person may see, without files, at most 500 |
 | `Facets` | `GET /items/facets?library=` | What one library holds as the person may see it, by the generic facets only: genres, decades, rated, letters (a module works out its own, such as players or series) |
 | `May` | `GET /may?feature=` | Whether the person may use a feature now: their limits, parental rules and screen time |

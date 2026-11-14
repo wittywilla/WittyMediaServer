@@ -15,24 +15,17 @@ import (
 	"github.com/wittywilla/wittymodule"
 )
 
-// The module API this server speaks. The numbers are the server's own: it decides what it
-// takes, and the published wittymodule a server is built with may be older than the
-// contract here (a test keeps wittymodule's from getting ahead of these).
+// The module API this server speaks: 5, and only 5 (docs/MODULES-API5.md). The numbers are the
+// server's own: it decides what it takes, and the published wittymodule a server is built with
+// may be older than the contract here (a test keeps wittymodule's from getting ahead of these).
 //
-// API 4 makes a module's SDUI part of the module (docs/SDUI-MODULES.md): a version built
-// for it carries sdui.json, checked against the catalogue before it is used, and a version
-// without one is refused. Versions built for API 3 keep working as they did; one that
-// carries sdui.json anyway has it used.
-//
-// API 5 makes a module own its whole feature (docs/MODULES-API5.md): a version built for it
-// carries integration.json, read by integration.go, saying which routes it answers, what its
-// web bundle adds, its data and its lifecycle. The server keeps its own copy of a module's
-// feature for versions built for 3 and 4 (legacyFor).
+// A module of API 5 owns its whole feature: a version carries sdui.json, checked against the
+// catalogue before it is used, and integration.json, read by integration.go, saying which routes
+// it answers, what its web bundle adds, its data and its lifecycle. A version built for another
+// API isn't taken.
 const (
-	API            = 5
-	MinAPI         = 3
-	SDUIAPI        = 4
-	IntegrationAPI = 5
+	API    = 5
+	MinAPI = 5
 )
 
 // Methods a helper answers for its SDUI.
@@ -51,12 +44,9 @@ const (
 // settings, as a JSON object.
 const SettingsEnv = "WITTYMODULE_SETTINGS"
 
-// needsUI reports whether a version must carry sdui.json: one built for API 4 or newer
-// that the server runs or loads. A library reaches the server inside others.
+// needsUI reports whether a version must carry sdui.json: one the server runs or loads. A
+// library reaches the server inside others.
 func needsUI(man *wittymodule.Manifest) bool {
-	if man.API < SDUIAPI {
-		return false
-	}
 	switch man.Delivery {
 	case wittymodule.DeliveryHelper, wittymodule.DeliveryProgram, wittymodule.DeliveryWeb:
 		return true
@@ -70,7 +60,7 @@ func readUI(dir string, man *wittymodule.Manifest, checks sdui.ModuleChecks) (*s
 	b, err := os.ReadFile(filepath.Join(dir, sdui.ModuleFile))
 	if errors.Is(err, fs.ErrNotExist) {
 		if needsUI(man) {
-			return nil, fmt.Errorf("it is built for module API %d, where a module carries its own SDUI, and it has no %s", man.API, sdui.ModuleFile)
+			return nil, fmt.Errorf("it has no %s, which a module carries with its own SDUI", sdui.ModuleFile)
 		}
 		return nil, nil
 	}

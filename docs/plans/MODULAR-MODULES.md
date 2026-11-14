@@ -121,8 +121,8 @@ The server is the **host**. It keeps what every module shares, and what it must 
 
 A new module API, built as the foundation rather than patched onto API 4.
 
-- `API = 5`. During the move the server takes 3 to 5 (`MinAPI` stays 3), so nothing breaks before a module is rebuilt.
-- After every stock module ships on API 5, a later server raises `MinAPI` to 5 and deletes the legacy paths. That is step [M9](#order-of-work).
+- `API = 5`. During the move the server took 3 to 5 (`MinAPI` was 3), so nothing broke before a module was rebuilt.
+- Once every stock module shipped on API 5, the server raised `MinAPI` to 5 and deleted the legacy paths: step [M9](#order-of-work), done 2026-11-14.
 
 What API 5 adds:
 
@@ -321,7 +321,7 @@ The facades (`internal/play/**`, `internal/couch/**`) go away. Instead:
 
 - **Ranges, not pins.** A module says which host features it needs (`host.http`, `host.web`, `host.sdui`), and the server says what it offers in `/api/modules` and the store. The store offers only versions that fit, and says why for those that don't. That extends today's `minServer`/`maxServer` and widening (`internal/modules/widen.go`).
 - **What only a server release changes:** the host's own features. That means a new hook, a new host API call, or a token change. Everything module-specific ships in the module.
-- **The server's floor for its modules.** During the move a server release may need a module version that has taken over code the server dropped. The server ships `moduleFloors` (for example `wittyplay >= 0.6.0`), and on start it updates a module below its floor from the store, as auto-update already can. Offline, it keeps the module's old version **and the legacy code path**, as described next. That's why legacy code is removed only in M9.
+- **No floor for modules.** The plan had the server ship `moduleFloors` and keep a legacy code path for a module below its floor until M9. With no legacy paths at all (the owner, 2026-11-14), neither was built: a server takes API 5 only, and a module version on another API is refused, with the reason, until an API 5 version is installed.
 - **Data never goes backwards silently.** `dataFormat`/`dataFrom` refuse a downgrade that can't read the data, as today, and the module's own migrations run in `upgrade`.
 
 ## When a module is missing
@@ -626,6 +626,7 @@ Within a step the order is: WittyModule (kit), then the server, then the module,
 | **M6** | WittyTuner admin, setup, EPG sources | WittyTuner, server | **Done 2026-11-14:** tuners, channels and guide sources are WittyTuner 0.4.0's own (its own database, starting empty; WittyTV migration 9 drops the server's tables), with its routes, Settings section, first-run step and SDUI pages for TV. The server keeps the guide, recordings, sets and every stream's guard, and opens channels through the module's service; guides arrive through the host API (`/tv/guide`). Guide and DVR untouched |
 | **M7** | WittyPhotos web part; readers hook; visualizer, stats and file browser adopt `register`; stock pages defer to modules | the modules, server | |
 | **M8** | Catalogue: every API-5 version listed with its integration summary; store shows "what this adds" | WittyModuleCatalog | |
+| **M9** | The server takes module API 5 only; every path kept for API 3 and 4 goes | server, WittyModule, WittyPlay, WittyCouchHost | **Done 2026-11-14:** `MinAPI` is 5 (`internal/modules/sdui.go`): a version of another API is refused at install and isn't used; every version that the server runs or loads carries `sdui.json` and `integration.json`, with no older-API branch left in the loader. The server's own kinds (WittyVideo, WittyChannels, WittyShorts, WittyAudio, WittyPodcasts) are listed as builtin modules of API 5. The one-off repairs of WittyPlay versions a Mac's sandbox or a failing game took out of use (both for WittyPlay 0.3, API 3) are gone with their saved state. `legacyFor`, `moduleFloors`, the facades and the import runner had gone with M1 to M7 (none was built for longer than its step). M3's leftovers: the host's `Item` says `versionOf` and `versionLabel` for another version of an item, and WittyPlay's server-wide settings (`gaming*`: region order, quality, games at once, limits, runner, unpacking, network) are WittyPlay's own, at `GET`/`PUT /modules/wittyplay/gaming/settings`, no longer written to the server's `/settings`, which never kept them. WittyCouchHost 0.4.0, the last stock module on API 4, is on API 5 (an `integration.json` that adds nothing; WittyCouch and WittyRigs run it). WittyModule's `MinAPI` is 5 too (committed, unreleased). The published catalogue still lists API 3 versions only, so a server of this step installs nothing from it until the API 5 releases are published |
 
 **WittyPlay first, as asked.** M0 is the cost of doing it properly and is shared by every later step. M0a to M1 is the first thing the owner can see working.
 

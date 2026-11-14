@@ -45,6 +45,8 @@ var libTranscodeMigrations = []string{
 	`ALTER TABLE ltc_rules ADD COLUMN auto INTEGER NOT NULL DEFAULT 0;
 	 ALTER TABLE ltc_rules ADD COLUMN auto_since INTEGER NOT NULL DEFAULT 0;
 	 ALTER TABLE ltc_runs ADD COLUMN auto INTEGER NOT NULL DEFAULT 0;`,
+	// 3: a library can leave other programs' .nfo files unread (library.Library.ForeignNFO).
+	`ALTER TABLE libraries ADD COLUMN foreign_nfo INTEGER NOT NULL DEFAULT 1;`,
 }
 
 func (d *DB) migrateLibTranscode(ctx context.Context) error {

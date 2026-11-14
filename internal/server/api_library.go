@@ -950,3 +950,63 @@ func (s *Server) handleClearProgress(w http.ResponseWriter, r *http.Request) {
 	_ = s.Store.ClearProgress(r.Context(), userFrom(r).ID, id)
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
+
+// PUT /api/libraries/{id}/nfo {use}: whether the library reads .nfo files other programs wrote
+// beside its media (the server's own are read either way). It is scanned again either way.
+func (s *Server) handleLibraryNFO(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathInt(r, "id")
+	if !ok {
+		writeErr(w, 400, "bad id")
+		return
+	}
+	var b struct {
+		Use bool `json:"use"`
+	}
+	if err := readJSON(r, &b); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	if err := s.Store.SetLibraryForeignNFO(r.Context(), id, b.Use); err != nil {
+		writeErr(w, 404, "no such library")
+		return
+	}
+	// Every file read again: what an NFO said goes, or comes back.
+	if err := s.Store.RereadLibrary(r.Context(), id); err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	s.Scanner.Start(id)
+	writeJSON(w, 200, map[string]any{"foreignNfo": b.Use})
+}
+
+// POST /api/libraries/{id}/purge-metadata: deletes every .nfo and .metadata.json file in the
+// library's folders (media, pictures and subtitles stay), then scans it again. Refused for a
+// read-only library.
+func (s *Server) handlePurgeMetadata(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathInt(r, "id")
+	if !ok {
+		writeErr(w, 400, "bad id")
+		return
+	}
+	lib, err := s.Store.Library(r.Context(), id)
+	if err != nil {
+		writeErr(w, 404, "no such library")
+		return
+	}
+	n, err := s.Store.PurgeMetadataFiles(r.Context(), lib)
+	if errors.Is(err, library.ErrReadOnly) {
+		writeErr(w, 409, err.Error())
+		return
+	}
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	s.Log.Info("metadata files deleted from a library's folders", "cat", "library", "library", lib.ID, "files", n, "by", userFrom(r).Name)
+	if err := s.Store.RereadLibrary(r.Context(), id); err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	s.Scanner.Start(id)
+	writeJSON(w, 200, map[string]any{"deleted": n})
+}

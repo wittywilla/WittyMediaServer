@@ -73,3 +73,54 @@ func TestParseNameShortenedRelease(t *testing.T) {
 		}
 	}
 }
+
+// A downloader's NFO doesn't move the year read from the folder; a real NFO does.
+func TestNFOReleaseYearKeepsTheFolders(t *testing.T) {
+	dir := t.TempDir()
+	p := filepath.Join(dir, "movie.nfo")
+	y := 1966
+	it := &Item{Title: "How the Grinch Stole Christmas", Year: &y}
+	_ = os.WriteFile(p, []byte(`<movie><title>How.the.Grinch.Stole.Chri ... 160p.AAC.2.0.HDR.x265-hallowed</title><originaltitle>How the Grinch Stole Christmas!</originaltitle><year>2024</year><premiered>2024-12-29</premiered></movie>`), 0o644)
+	applyNFO(it, p)
+	if it.Year == nil || *it.Year != 1966 || it.Title != "How the Grinch Stole Christmas!" {
+		t.Fatalf("got %q %v", it.Title, *it.Year)
+	}
+	y2 := 2000
+	it = &Item{Title: "Film", Year: &y2}
+	_ = os.WriteFile(p, []byte(`<movie><title>A Real Title</title><year>2001</year></movie>`), 0o644)
+	applyNFO(it, p)
+	if *it.Year != 2001 {
+		t.Fatalf("a real NFO's year: got %d", *it.Year)
+	}
+}
+
+// A library that doesn't read other programs' NFOs still reads the server's own, and the purge
+// takes .nfo and .metadata.json files and nothing else.
+func TestForeignNFOAndPurge(t *testing.T) {
+	dir := t.TempDir()
+	theirs, ours := filepath.Join(dir, "a.nfo"), filepath.Join(dir, "b.nfo")
+	_ = os.WriteFile(theirs, []byte(`<movie><title>X</title></movie>`), 0o644)
+	_ = os.WriteFile(ours, []byte(`<movie><title>Y</title></movie><!-- `+nfoMarker+` -->`), 0o644)
+	off := &Library{ForeignNFO: false}
+	if nfoUsable(off, theirs) || !nfoUsable(off, ours) || !nfoUsable(&Library{ForeignNFO: true}, theirs) {
+		t.Fatal("wrong NFOs usable")
+	}
+	if got := usableNFOs(off, []string{theirs, ours}); len(got) != 1 || got[0] != ours {
+		t.Fatalf("usable %v", got)
+	}
+	for _, n := range []string{"film.mkv", "film.srt", "poster.jpg", "film.metadata.json", "metadata.json", "._movie.nfo"} {
+		_ = os.WriteFile(filepath.Join(dir, n), []byte("x"), 0o644)
+	}
+	st := &Store{}
+	if _, err := st.PurgeMetadataFiles(t.Context(), &Library{Paths: []string{dir}, ReadOnly: true}); err != ErrReadOnly {
+		t.Fatalf("read-only: %v", err)
+	}
+	n, err := st.PurgeMetadataFiles(t.Context(), &Library{Paths: []string{dir}})
+	if err != nil || n != 5 {
+		t.Fatalf("purged %d, %v", n, err)
+	}
+	left, _ := os.ReadDir(dir)
+	if len(left) != 3 {
+		t.Fatalf("left %d files", len(left))
+	}
+}

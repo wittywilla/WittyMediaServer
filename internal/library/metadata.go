@@ -229,12 +229,16 @@ func applyNFO(it *Item, path string) bool {
 	if m.SortTitle != "" {
 		it.SortTitle = m.SortTitle
 	}
-	if m.Year != 0 {
-		y := m.Year
-		it.Year = &y
-	} else if len(m.Premiered) >= 4 {
-		if y, err := strconv.Atoi(m.Premiered[:4]); err == nil && validYear(y) {
+	// A downloader's NFO (its title a release name) dates the film by the day its file came out: a
+	// year already read from the folder or file name ("How the Grinch Stole Christmas (1966)") stays.
+	if !(releaseName(m.Title) && it.Year != nil) {
+		if m.Year != 0 {
+			y := m.Year
 			it.Year = &y
+		} else if len(m.Premiered) >= 4 {
+			if y, err := strconv.Atoi(m.Premiered[:4]); err == nil && validYear(y) {
+				it.Year = &y
+			}
 		}
 	}
 	if m.Plot != "" {

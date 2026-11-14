@@ -41,6 +41,7 @@ export type UserView = User & { access: Access | null }
 export type Library = {
   id: number; name: string; type: string; console?: string; paths: string[]; createdAt: number
   lastScanAt: number | null; scanning: boolean; itemCount: number; showMain?: boolean; readOnly?: boolean
+  foreignNfo?: boolean // reads .nfo files other programs wrote beside the media
 }
 // A commercials library stays out of the menus and Home unless switched on.
 export const inMainMenus = (l: Library) => l.type !== 'commercials' || !!l.showMain

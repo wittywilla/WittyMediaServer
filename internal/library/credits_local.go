@@ -18,6 +18,10 @@ import (
 // read, names nobody.
 func (s *Scanner) nfoCredits(ctx context.Context, t *Title) []CreditIn {
 	var scratch Item
+	// A library that leaves other programs' NFOs unread reads nobody from them either.
+	if lib := s.titleLibrary(ctx, t); lib != nil && !lib.ForeignNFO {
+		return nil
+	}
 	var show Show
 	switch {
 	case t.Item != nil && t.Item.ShowID != nil:

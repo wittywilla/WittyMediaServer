@@ -179,7 +179,8 @@ func (s *Scanner) indexEpisode(ctx context.Context, lib *Library, c candidate, t
 	dir := filepath.Dir(c.path)
 	base := strings.TrimSuffix(filepath.Base(c.path), filepath.Ext(c.path))
 	it.Poster = findArt(dir, base+"-thumb", base)
-	fromNFO := applyEpisodeNFO(it, filepath.Join(dir, base+".nfo"))
+	epNFO := filepath.Join(dir, base+".nfo")
+	fromNFO := nfoUsable(lib, epNFO) && applyEpisodeNFO(it, epNFO)
 	if list, read := it.credits[CreditsNFO]; read {
 		addActorPhotos(list, newActorPhotos(sh.Path))
 	} else {
@@ -347,7 +348,8 @@ func (s *Scanner) tvShow(ctx context.Context, lib *Library, ref EpisodeRef, tv *
 	if b := findArt(ref.ShowDir, "fanart", "backdrop", "background", "landscape"); b != "" {
 		sh.Backdrop = b
 	}
-	fromNFO := applyShowNFO(sh, filepath.Join(ref.ShowDir, "tvshow.nfo"))
+	showNFO := filepath.Join(ref.ShowDir, "tvshow.nfo")
+	fromNFO := nfoUsable(lib, showNFO) && applyShowNFO(sh, showNFO)
 	if _, read := sh.credits[CreditsNFO]; !read {
 		sh.credits.set(CreditsNFO, nil) // no tvshow.nfo (any more): it names nobody
 	}

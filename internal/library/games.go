@@ -360,7 +360,9 @@ func (s *Scanner) indexGame(ctx context.Context, lib *Library, c candidate) erro
 	it.Backdrop = gameBackdrop(dir, base)
 	parsed, tags := it.Title, it.Tagline
 	nfo := filepath.Join(dir, base+".nfo")
-	applyNFO(it, nfo)
+	if nfoUsable(lib, nfo) {
+		applyNFO(it, nfo)
+	}
 	// What the owner's own files say stays: sources only fill in the rest. An NFO this
 	// server wrote is only what it thought then, and a better answer can replace it. The
 	// pictures saved beside it are the same.

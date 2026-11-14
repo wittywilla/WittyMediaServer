@@ -275,6 +275,8 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("PUT /api/libraries/{id}", s.requireAdmin(s.handleUpdateLibrary))
 	m.Handle("DELETE /api/libraries/{id}", s.requireAdmin(s.handleDeleteLibrary))
 	m.Handle("POST /api/libraries/{id}/scan", s.requireAdmin(s.handleScan))
+	m.Handle("PUT /api/libraries/{id}/nfo", s.requireAdmin(s.handleLibraryNFO))
+	m.Handle("POST /api/libraries/{id}/purge-metadata", s.requireAdmin(s.handlePurgeMetadata))
 	m.Handle("GET /api/libraries/{id}/scan", a(s.handleScanProgress))
 	m.Handle("POST /api/libraries/{id}/forget-metadata", s.requireAdmin(s.handleForgetMetadata))
 	m.Handle("POST /api/libraries/forget-metadata", s.requireAdmin(s.handleForgetAllMetadata))

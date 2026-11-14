@@ -25873,6 +25873,100 @@
         "x-wms-auth": "admin"
       }
     },
+    "/libraries/{id}/nfo": {
+      "put": {
+        "operationId": "putLibrariesIdNfo",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "use": {
+                    "type": "boolean"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "{foreignNfo}. The library is scanned again."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Whether the library reads .nfo files other programs wrote.",
+        "tags": [
+          "Browsing"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libraries/{id}/purge-metadata": {
+      "post": {
+        "operationId": "postLibrariesIdPurgeMetadata",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "{deleted}: how many files. 409 for a read-only library. The library is scanned again."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete every .nfo and .metadata.json file in the library's folders.",
+        "tags": [
+          "Browsing"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/libraries/{id}/scan": {
       "get": {
         "operationId": "getLibrariesScan",

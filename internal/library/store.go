@@ -33,6 +33,9 @@ type Library struct {
 	ShowMain bool `json:"showMain"`
 	// ReadOnly: nothing the server does may change this library's files.
 	ReadOnly bool `json:"readOnly"`
+	// ForeignNFO: .nfo files other programs wrote beside the media are read (they are on unless
+	// turned off; the server's own are read either way).
+	ForeignNFO bool `json:"foreignNfo"`
 }
 
 // CommercialsType is a library of the owner's own adverts and bumpers for
@@ -210,17 +213,18 @@ var ErrNotFound = errors.New("not found")
 // ---------------------------------------------------------------------------
 
 const libraryCols = `l.id, l.name, l.type, IFNULL(l.console, ''), l.created_at, l.last_scan_at, l.scanning,
-	(SELECT COUNT(*) FROM items i WHERE i.library_id = l.id AND i.missing = 0), l.show_main, l.read_only`
+	(SELECT COUNT(*) FROM items i WHERE i.library_id = l.id AND i.missing = 0), l.show_main, l.read_only, l.foreign_nfo`
 
 func scanLibrary(sc interface{ Scan(...any) error }) (*Library, error) {
 	var l Library
-	var scanning, showMain, readOnly int
-	if err := sc.Scan(&l.ID, &l.Name, &l.Type, &l.Console, &l.CreatedAt, &l.LastScanAt, &scanning, &l.ItemCount, &showMain, &readOnly); err != nil {
+	var scanning, showMain, readOnly, foreignNFO int
+	if err := sc.Scan(&l.ID, &l.Name, &l.Type, &l.Console, &l.CreatedAt, &l.LastScanAt, &scanning, &l.ItemCount, &showMain, &readOnly, &foreignNFO); err != nil {
 		return nil, err
 	}
 	l.Scanning = scanning != 0
 	l.ShowMain = showMain != 0
 	l.ReadOnly = readOnly != 0
+	l.ForeignNFO = foreignNFO != 0
 	l.Paths = []string{}
 	return &l, nil
 }

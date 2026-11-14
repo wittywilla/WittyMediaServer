@@ -289,6 +289,21 @@ function CommercialsSwitch({ library }: { library: Library }) {
   )
 }
 
+// Other programs' .nfo files (a downloader's, a media centre's) are read unless this is off. Some
+// write a release's file name as the title and the day the file came out as the year.
+function NfoSwitch({ library }: { library: Library }) {
+  const { refreshLibraries } = useApp()
+  const set = async (use: boolean) => {
+    try { await api.put(`/libraries/${library.id}/nfo`, { use }); await refreshLibraries(); toast(use ? `${library.name} reads .nfo files from other programs again, and is being scanned` : `${library.name} now ignores other programs' .nfo files, and is being scanned`) } catch (e: any) { toast(e.message) }
+  }
+  return (
+    <div className="set-lib-switch">
+      <span><b>Use .nfo files from other programs</b><br /><small className="muted">Off: titles, years and details come from the file names and what is found online. The server's own .nfo files are read either way.</small></span>
+      <Switch checked={library.foreignNfo !== false} label={`Use .nfo files from other programs in ${library.name}`} onChange={(v) => void set(v)} />
+    </div>
+  )
+}
+
 // Exported for WittyPlay's Settings, which shows the same list (its games libraries among them).
 export function Libraries() {
   const { libraries, refreshLibraries } = useApp()
@@ -307,6 +322,10 @@ export function Libraries() {
     await api.del(`/libraries/${l.id}`)
     await refreshLibraries()
     toast('Library removed')
+  }
+  const purge = async (l: Library) => {
+    if (!await ask({ title: `Delete the metadata files in “${l.name}”?`, body: `Every .nfo and .metadata.json file in its folders is deleted, whoever wrote it, and the library is scanned again from the file names and what is found online. Your media, pictures and subtitles stay. This can't be undone.`, confirm: 'Delete metadata files', danger: true })) return
+    try { const r = await api.post<{ deleted: number }>(`/libraries/${l.id}/purge-metadata`); toast(`${r.deleted.toLocaleString()} ${r.deleted === 1 ? 'file' : 'files'} deleted. Scanning ${l.name}`); setTimeout(refreshLibraries, 1000) } catch (e: any) { toast(e.message) }
   }
   const scan = async (l: Library) => { await api.post(`/libraries/${l.id}/scan`); toast(`Scanning ${l.name}`); setTimeout(refreshLibraries, 1000) }
   const add = () => setAdding(true)
@@ -343,10 +362,12 @@ export function Libraries() {
               </div>
               <ul className="set-lib-paths">{l.paths.map((p) => <li key={p} title={p}><IconFolder size={14} /><span><bdi>{p}</bdi></span></li>)}</ul>
               {l.type === 'commercials' && <CommercialsSwitch library={l} />}
+              {l.type !== 'radio' && l.type !== 'podcasts' && <NfoSwitch library={l} />}
               <div className="set-lib-actions">
                 <button className="btn sm" onClick={() => scan(l)} disabled={l.scanning}><IconRefresh /> Scan now</button>
                 <button className="btn sm ghost" onClick={() => setEditing(l)}><IconEdit /> Edit</button>
                 <button className="btn sm ghost" onClick={() => setForgetting(l)} disabled={l.scanning} title="Removes what was downloaded for this library, to try matching and downloading again">Remove downloaded details…</button>
+                {l.type !== 'radio' && l.type !== 'podcasts' && <button className="btn sm ghost" onClick={() => void purge(l)} disabled={l.scanning || l.readOnly} title={l.readOnly ? 'This library is read-only' : 'Deletes every .nfo and .metadata.json file in its folders'}>Delete metadata files…</button>}
                 <span className="grow" />
                 <button className="btn sm ghost square danger-hover" onClick={() => remove(l)} aria-label={`Remove ${l.name}`} title="Remove library"><IconTrash /></button>
               </div>

@@ -916,13 +916,13 @@
                   "props": {
                     "fields": [
                       "genre",
-                      "decade"
+                      "minRating"
                     ],
                     "sorts": [
                       "title",
                       "added",
-                      "newest",
-                      "rating"
+                      "rating",
+                      "oldest"
                     ],
                     "target": "all-games"
                   }
@@ -937,9 +937,10 @@
                     "emptyText": "No games match."
                   },
                   "source": {
+                    "every": true,
                     "filterable": true,
                     "library": "$library",
-                    "type": "browse"
+                    "type": "wittyplay.library"
                   }
                 }
               ]
@@ -2099,7 +2100,7 @@
     {
       "type": "wittyplay.library",
       "label": "Games by console",
-      "description": "With a console, that console's games by title, in one games library ($library) or every one. Without, the consoles that have games there, each with how many, opening the library that holds them.",
+      "description": "With a console, that console's games by title, in one games library ($library) or every one; with every, all of its games, following the page's filters when filterable. Otherwise, the consoles that have games there, each with how many, opening the library that holds them.",
       "icon": "game",
       "category": "",
       "params": [
@@ -2116,6 +2117,20 @@
           "label": "Console",
           "help": "A console's ID, such as snes. Empty: the consoles themselves.",
           "maxLength": 40,
+          "since": 0
+        },
+        {
+          "name": "every",
+          "type": "bool",
+          "label": "Every game",
+          "help": "Without a console: every game there rather than the consoles, by title.",
+          "since": 0
+        },
+        {
+          "name": "filterable",
+          "type": "bool",
+          "label": "Follows the page's filters",
+          "help": "With every: the page's FilterBar (genre, score at least, order) narrows and sorts it.",
           "since": 0
         },
         {

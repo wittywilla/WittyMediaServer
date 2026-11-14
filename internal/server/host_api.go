@@ -117,7 +117,11 @@ func (s *Server) onBehalf(r *http.Request) (*auth.User, *library.Access, error) 
 }
 
 func (s *Server) hostHello(w http.ResponseWriter, r *http.Request, module string) {
-	writeJSON(w, 200, host.Hello{Module: module, Server: s.Version, Offers: modmgr.Offers()})
+	machine := map[string]bool{
+		// The config file allows custom cores, and the machine's lock doesn't keep them off.
+		"gamingCustomCores": s.Cfg != nil && s.Cfg.GamingCustomCores && os.Getenv("WMS_GAMING_NO_CUSTOM_CORES") != "1",
+	}
+	writeJSON(w, 200, host.Hello{Module: module, Server: s.Version, Offers: modmgr.Offers(), Machine: machine})
 }
 
 // servesKind says whether a module serves libraries of a type.

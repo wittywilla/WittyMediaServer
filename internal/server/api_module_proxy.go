@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wittywilla/wittymediaserver/internal/auth"
 	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
 	"github.com/wittywilla/wittymodule/service"
 )
@@ -264,26 +263,3 @@ func (s *Server) passToWittyPlay(w http.ResponseWriter, r *http.Request, modify 
 	}, modify)
 }
 
-// withoutSignIn is a copy of h without this server's sign-in: the module never needs it, and
-// the service token and identity headers say all it may know.
-func withoutSignIn(h http.Header) http.Header {
-	out := h.Clone()
-	out.Del("Authorization")
-	out.Del("X-WMS-Token")
-	if cookies := out.Values("Cookie"); len(cookies) > 0 {
-		out.Del("Cookie")
-		var keep []string
-		for _, line := range cookies {
-			for _, part := range strings.Split(line, ";") {
-				name, _, _ := strings.Cut(strings.TrimSpace(part), "=")
-				if name != "" && name != auth.CookieName {
-					keep = append(keep, strings.TrimSpace(part))
-				}
-			}
-		}
-		if len(keep) > 0 {
-			out.Set("Cookie", strings.Join(keep, "; "))
-		}
-	}
-	return out
-}

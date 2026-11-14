@@ -169,6 +169,12 @@ func modulePath(r *http.Request, route wittymodule.Route) (string, error) {
 }
 
 // passToModule sends a checked request on to a module's service.
+// The headers a request carries the person's password and code in, for a route with "confirm".
+const (
+	confirmPassword = "X-WMS-Confirm-Password"
+	confirmCode     = "X-WMS-Confirm-Code"
+)
+
 func (s *Server) passToModule(w http.ResponseWriter, r *http.Request, ref moduleRouteRef) {
 	route := ref.route
 	upgrade := strings.EqualFold(r.Header.Get("Upgrade"), "websocket")
@@ -227,6 +233,19 @@ func (s *Server) passToModule(w http.ResponseWriter, r *http.Request, ref module
 		defer cancel()
 	}
 
+	// A route with "confirm": the person's password, checked here; the module hears only that it
+	// was right. A wrong one is refused here, and counts as a failed sign-in.
+	confirmed := false
+	if pw := r.Header.Get(confirmPassword); pw != "" && route.Confirm && u != nil && route.Auth != wittymodule.AuthTicket {
+		if len(pw) > 4<<10 || !s.confirmOwner(w, r, pw, r.Header.Get(confirmCode)) {
+			if len(pw) > 4<<10 {
+				writeErr(w, 400, "that password is too long")
+			}
+			return
+		}
+		confirmed = true
+	}
+
 	if service.Dial == nil {
 		writeErr(w, http.StatusFailedDependency, "modules aren't available on this server")
 		return
@@ -256,6 +275,9 @@ func (s *Server) passToModule(w http.ResponseWriter, r *http.Request, ref module
 	if u != nil && route.Auth != wittymodule.AuthTicket {
 		extra.Set(service.HeaderFeatures, strings.Join(s.featuresOf(r, u), " "))
 		extra.Set(service.HeaderKind, u.Kind) // adult, kids or guest: a guest can only look
+		if confirmed {
+			extra.Set(service.HeaderConfirmed, "1")
+		}
 	}
 	// A query's sign-in (a stream token) isn't the module's.
 	if q := r.URL.Query(); q.Has("token") || q.Has("st") {
@@ -322,4 +344,30 @@ func IntegrationCheck(id string, in *wittymodule.Integration) error {
 		return fmt.Errorf("it belongs to a feature this server doesn't know, %q", in.Feature)
 	}
 	return nil
+}
+
+// withoutSignIn is a copy of h without this server's sign-in: the module never needs it, and
+// the service token and identity headers say all it may know.
+func withoutSignIn(h http.Header) http.Header {
+	out := h.Clone()
+	out.Del("Authorization")
+	out.Del("X-WMS-Token")
+	out.Del(confirmPassword) // checked by the server on a "confirm" route; never the module's
+	out.Del(confirmCode)
+	if cookies := out.Values("Cookie"); len(cookies) > 0 {
+		out.Del("Cookie")
+		var keep []string
+		for _, line := range cookies {
+			for _, part := range strings.Split(line, ";") {
+				name, _, _ := strings.Cut(strings.TrimSpace(part), "=")
+				if name != "" && name != auth.CookieName {
+					keep = append(keep, strings.TrimSpace(part))
+				}
+			}
+		}
+		if len(keep) > 0 {
+			out.Set("Cookie", strings.Join(keep, "; "))
+		}
+	}
+	return out
 }

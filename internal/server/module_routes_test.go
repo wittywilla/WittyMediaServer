@@ -62,6 +62,7 @@ func playIntegration() *wittymodule.Integration {
 		HTTP: []wittymodule.Route{
 			{Path: "/echo", Methods: []string{"GET"}, Auth: "user"},
 			{Path: "/secret", Methods: []string{"GET"}, Auth: "admin"},
+			{Path: "/careful", Methods: []string{"PUT"}, Auth: "admin", Confirm: true},
 			{Path: "/games/{id}/play", Methods: []string{"POST"}, Auth: "user", Item: "id", Plays: true},
 			{Path: "/desk/{sid}/{rest...}", Methods: []string{"GET"}, Auth: "ticket", CSP: "sandboxed-page"},
 		}}
@@ -162,6 +163,32 @@ func TestModuleOwnRoutes(t *testing.T) {
 	}
 	if w := ts.do(t, "GET", "/api/modules/wittyplay/desk/ab12/../../secret", "", nil); w.Code == 200 {
 		t.Errorf("a path out of the route: %d", w.Code)
+	}
+}
+
+// A route with "confirm": the server checks the password, and the module hears only that it was
+// right. No route ever passes the password on.
+func TestModuleRouteConfirm(t *testing.T) {
+	ts := newTestServer(t)
+	got := withModule(t, ts, playIntegration())
+	_, admin := ts.user(t, "boss", "adult", true, "")
+	pw := "X-WMS-Confirm-Password"
+	last := func() http.Header { return (*got)[len(*got)-1].Header }
+	if w := ts.do(t, "PUT", "/api/modules/wittyplay/careful", admin, nil, pw, "correct-horse-1"); w.Code != 200 || last().Get("X-Witty-Confirmed") != "1" || last().Get(pw) != "" {
+		t.Errorf("right password: %d %v", w.Code, last())
+	}
+	n := len(*got)
+	if w := ts.do(t, "PUT", "/api/modules/wittyplay/careful", admin, nil, pw, "wrong"); w.Code != 403 || len(*got) != n {
+		t.Errorf("wrong password: %d, module heard %d", w.Code, len(*got)-n)
+	}
+	if w := ts.do(t, "PUT", "/api/modules/wittyplay/careful", admin, nil); w.Code != 200 || last().Get("X-Witty-Confirmed") != "" {
+		t.Errorf("no password: %d %v", w.Code, last())
+	}
+	if w := ts.do(t, "PUT", "/api/modules/wittyplay/careful", admin, nil, "X-Witty-Confirmed", "1"); w.Code != 200 || last().Get("X-Witty-Confirmed") != "" {
+		t.Errorf("a forged confirmation: %v", last())
+	}
+	if w := ts.do(t, "GET", "/api/modules/wittyplay/secret", admin, nil, pw, "correct-horse-1"); w.Code != 200 || last().Get(pw) != "" || last().Get("X-Witty-Confirmed") != "" {
+		t.Errorf("a route without confirm: %v", last())
 	}
 }
 

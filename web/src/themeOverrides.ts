@@ -20,8 +20,8 @@ export type ResolvedTheme = {
   // The server's name as the theme engine draws it; the mark is the badge for small spaces (the rail's header).
   brand?: { mark?: BrandMarkData; parts?: StyledPart[]; warnings?: { text: string; surface: string; ratio: number; need: number }[] }
   overrides: Record<string, string>
-  // The whole palette (a server that has modules' own colours sends it).
-  tokens?: Record<string, string>
+  // The whole palette.
+  tokens: Record<string, string>
   // A module's: the administrator's overrides alone, and (docs/SDUI-MODULES.md, "Theme") the
   // whole palette with the module's own colours and those overrides over it.
   modules: Record<string, { overrides: Record<string, string>; tokens?: Record<string, string>; personal?: Record<string, string> }>
@@ -64,7 +64,7 @@ export function overrideDeclarations(t: ResolvedTheme | null, module: string, gl
   if (module) {
     // The colours the module itself would like: where its palette differs from everyone's.
     const own = t.modules?.[module]?.tokens || {}
-    for (const [name, value] of Object.entries(own)) if (t.tokens && t.tokens[name] !== value) merged[name] = value
+    for (const [name, value] of Object.entries(own)) if (t.tokens[name] !== value) merged[name] = value
     Object.assign(merged, t.modules?.[module]?.overrides || {})
   }
   Object.assign(merged, t.personal || {})

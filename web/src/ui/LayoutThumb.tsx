@@ -8,27 +8,35 @@ import { specFor, type Cards, type Home, type Nav, type WireMap } from './layout
 // picker shows each look as it would wear the chosen theme. Decoration only: the card it sits on carries the name.
 export type Colours = { bg?: string; surface?: string; accent?: string }
 
-const W = 160, H = 100
+// The frame each kind of device is drawn in: a phone upright, a tablet a little less tall, a computer 16:10, a TV 16:9.
+export type Frame = 'phone' | 'tablet' | 'desktop' | 'tv'
+const FRAMES: Record<Frame, [number, number]> = { phone: [76, 160], tablet: [120, 160], desktop: [160, 100], tv: [160, 90] }
+export const frameFor = (formFactor: string): Frame => formFactor === 'phone' || formFactor === 'tablet' || formFactor === 'tv' ? formFactor : 'desktop'
 
-function NavShape({ nav }: { nav: Nav }) {
+// Places for n small items along a bar, from x0 a step apart; fewer on a narrow frame.
+const along = (W: number, x0: number, step: number, n = 4) => Array.from({ length: W < 100 ? n - 1 : n }, (_, i) => x0 + i * step)
+
+function NavShape({ nav, W, H }: { nav: Nav; W: number; H: number }) {
+  const sw = Math.round(W * 0.19)
   switch (nav) {
-    case 'sidebar': return <g><rect x="0" y="0" width="30" height={H} className="lt-surface" />{[14, 24, 34, 44].map((y) => <rect key={y} x="5" y={y} width="20" height="4" rx="2" className={y === 14 ? 'lt-accent' : 'lt-mute'} />)}</g>
+    case 'sidebar': return <g><rect x="0" y="0" width={sw} height={H} className="lt-surface" />{[14, 24, 34, 44].map((y) => <rect key={y} x={sw * 0.17} y={y} width={sw * 0.66} height="4" rx="2" className={y === 14 ? 'lt-accent' : 'lt-mute'} />)}</g>
     case 'rail': return <g><rect x="0" y="0" width="12" height={H} className="lt-surface" />{[14, 26, 38, 50].map((y) => <circle key={y} cx="6" cy={y} r="3" className={y === 14 ? 'lt-accent' : 'lt-mute'} />)}</g>
     case 'railDrawer': return <g><rect x="0" y="0" width="12" height={H} className="lt-surface" />{[14, 26, 38].map((y) => <circle key={y} cx="6" cy={y} r="3" className={y === 26 ? 'lt-accent' : 'lt-mute'} />)}<rect x="12" y="0" width="28" height={H} className="lt-surface2" />{[18, 28, 38, 48].map((y) => <rect key={y} x="17" y={y} width="18" height="4" rx="2" className="lt-mute" />)}<rect x="17" y="8" width="14" height="5" rx="1" className="lt-fg" /></g>
-    case 'floating': return <g><rect x="22" y="5" width="116" height="11" rx="5.5" className="lt-surface2" />{[36, 54, 72, 90].map((x) => <rect key={x} x={x} y="9" width="12" height="3" rx="1.5" className={x === 36 ? 'lt-accent' : 'lt-mute'} />)}</g>
-    case 'cable': return <g><rect x="0" y="0" width={W} height="13" className="lt-accent" />{[8, 30, 52, 74].map((x) => <rect key={x} x={x} y="5" width="16" height="3" className="lt-onaccent" />)}</g>
-    case 'bevel': return <g><rect x="0" y="0" width={W} height="13" className="lt-surface2" /><rect x="0" y="12" width={W} height="1.5" className="lt-mute" />{[8, 30, 52, 74].map((x) => <rect key={x} x={x} y="4.5" width="16" height="4" rx="1" className={x === 8 ? 'lt-accent' : 'lt-mute'} />)}</g>
-    case 'tele': return <g><rect x="0" y="0" width={W} height="13" className="lt-surface" />{[0, 1, 2, 3].map((i) => <rect key={i} x={8 + i * 22} y="7" width="18" height="4" className={['lt-red', 'lt-green', 'lt-yellow', 'lt-accent'][i]} />)}</g>
-    case 'crossbar': return <g>{[30, 56, 82, 108].map((x, i) => <g key={x}><circle cx={x + 6} cy="7" r="3.5" className={i === 1 ? 'lt-accent' : 'lt-mute'} /></g>)}</g>
-    case 'bottom': return <g><rect x="14" y={H - 14} width={W - 28} height="10" rx="5" className="lt-surface2" />{[40, 60, 80, 100].map((x) => <circle key={x} cx={x} cy={H - 9} r="2.5" className={x === 40 ? 'lt-accent' : 'lt-mute'} />)}</g>
+    case 'floating': { const x = W * 0.14, w = W * 0.72; return <g><rect x={x} y="5" width={w} height="11" rx="5.5" className="lt-surface2" />{along(W, x + 8, (w - 16) / 4).map((cx, i) => <rect key={cx} x={cx} y="9" width={Math.min(12, w / 6)} height="3" rx="1.5" className={i === 0 ? 'lt-accent' : 'lt-mute'} />)}</g> }
+    case 'cable': return <g><rect x="0" y="0" width={W} height="13" className="lt-accent" />{along(W, 8, 22).map((x) => <rect key={x} x={x} y="5" width="16" height="3" className="lt-onaccent" />)}</g>
+    case 'bevel': return <g><rect x="0" y="0" width={W} height="13" className="lt-surface2" /><rect x="0" y="12" width={W} height="1.5" className="lt-mute" />{along(W, 8, 22).map((x) => <rect key={x} x={x} y="4.5" width="16" height="4" rx="1" className={x === 8 ? 'lt-accent' : 'lt-mute'} />)}</g>
+    case 'tele': return <g><rect x="0" y="0" width={W} height="13" className="lt-surface" />{along(W, 8, 22).map((x, i) => <rect key={i} x={x} y="7" width="18" height="4" className={['lt-red', 'lt-green', 'lt-yellow', 'lt-accent'][i]} />)}</g>
+    case 'crossbar': { const xs = along(W, 0, 1); return <g>{xs.map((_, i) => <circle key={i} cx={W * (i + 1) / (xs.length + 1)} cy="7" r="3.5" className={i === 1 ? 'lt-accent' : 'lt-mute'} />)}</g> }
+    case 'bottom': { const xs = along(W, 0, 1); return <g><rect x={W * 0.09} y={H - 14} width={W * 0.82} height="10" rx="5" className="lt-surface2" />{xs.map((_, i) => <circle key={i} cx={W * 0.09 + W * 0.82 * (i + 1) / (xs.length + 1)} cy={H - 9} r="2.5" className={i === 0 ? 'lt-accent' : 'lt-mute'} />)}</g> }
     case 'none': return <g />
-    default: return <g><rect x="0" y="0" width={W} height="12" className="lt-surface" />{[8, 28, 48, 68].map((x) => <rect key={x} x={x} y="4.5" width="14" height="3" rx="1.5" className={x === 8 ? 'lt-accent' : 'lt-mute'} />)}</g>
+    default: return <g><rect x="0" y="0" width={W} height="12" className="lt-surface" />{along(W, 8, 20).map((x) => <rect key={x} x={x} y="4.5" width="14" height="3" rx="1.5" className={x === 8 ? 'lt-accent' : 'lt-mute'} />)}</g>
   }
 }
 
 // The free area beside or under the menu.
-function area(nav: Nav): { x: number; y: number; w: number; h: number } {
-  if (nav === 'sidebar') return { x: 36, y: 8, w: W - 44, h: H - 12 }
+function area(nav: Nav, W: number, H: number): { x: number; y: number; w: number; h: number } {
+  const sw = Math.round(W * 0.19)
+  if (nav === 'sidebar') return { x: sw + 6, y: 8, w: W - sw - 14, h: H - 12 }
   if (nav === 'rail') return { x: 18, y: 8, w: W - 26, h: H - 12 }
   if (nav === 'railDrawer') return { x: 46, y: 8, w: W - 54, h: H - 12 }
   if (nav === 'floating') return { x: 10, y: 22, w: W - 20, h: H - 26 }
@@ -39,7 +47,8 @@ function area(nav: Nav): { x: number; y: number; w: number; h: number } {
 }
 
 function Cards({ kind, x, y, w, h }: { kind: Cards; x: number; y: number; w: number; h: number }) {
-  const n = kind === 'big' ? 3 : kind === 'landscape' || kind === 'logo' ? 3 : 5
+  const wide = kind === 'big' || kind === 'landscape' || kind === 'logo'
+  const n = w < 90 ? (wide ? 2 : 3) : wide ? 3 : 5
   const gap = 4
   const cw = (w - gap * (n - 1)) / n
   if (kind === 'list') return <g>{[0, 1, 2].map((i) => <g key={i}><rect x={x} y={y + i * 11} width="9" height="8" rx="1" className="lt-surface2" /><rect x={x + 13} y={y + 2 + i * 11} width={w * 0.5} height="3" rx="1.5" className="lt-fg" /><rect x={x + 13} y={y + 6 + i * 11} width={w * 0.3} height="2" rx="1" className="lt-mute" /></g>)}</g>
@@ -73,15 +82,18 @@ function HomeShape({ home, cards, box }: { home: Home; cards: Cards; box: { x: n
   }
 }
 
-export function LayoutThumb({ wire, formFactor = 'desktop', colours, className }: { wire?: WireMap; formFactor?: keyof WireMap; colours?: Colours; className?: string }) {
+// formFactor picks the wireframe; frame the shape it is drawn in (by default the form factor's own).
+export function LayoutThumb({ wire, formFactor = 'desktop', frame, colours, className }: { wire?: WireMap; formFactor?: keyof WireMap; frame?: Frame; colours?: Colours; className?: string }) {
+  const f = frame || frameFor(formFactor)
+  const [W, H] = FRAMES[f]
   const s = specFor(wire, formFactor)
-  const box = area(s.nav)
+  const box = area(s.nav, W, H)
   const style = { ...(colours?.bg ? { '--lt-bg': colours.bg } : {}), ...(colours?.surface ? { '--lt-surface': colours.surface } : {}), ...(colours?.accent ? { '--lt-accent': colours.accent } : {}) } as CSSProperties
   return (
-    <svg className={'layout-thumb' + (className ? ' ' + className : '')} style={style} viewBox={`0 0 ${W} ${H}`} aria-hidden="true" focusable="false">
+    <svg className={'layout-thumb lt-' + f + (className ? ' ' + className : '')} style={style} viewBox={`0 0 ${W} ${H}`} aria-hidden="true" focusable="false">
       <rect x="0" y="0" width={W} height={H} className="lt-bg" />
       <HomeShape home={s.home} cards={s.cards} box={box} />
-      <NavShape nav={s.nav} />
+      <NavShape nav={s.nav} W={W} H={H} />
       {s.dock && <rect x="0" y={H - 9} width={W} height="9" className="lt-surface" />}
     </svg>
   )

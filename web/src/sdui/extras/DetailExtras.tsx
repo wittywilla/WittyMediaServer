@@ -13,8 +13,7 @@ import { toast, useApp } from '../../state'
 import { onEpisodeViewChosen, setEpisodeView, useEpisodeView, type EpisodeView } from './episodeView'
 import TitleArtPicker, { appliedOnPage } from '../../components/edit/TitleArtPicker'
 import LegalNote from '../../components/LegalNote'
-import { IconDevices, IconEdit, IconFilm, IconImage, IconMore, IconPlay, IconRefresh, IconSettings, IconUsers } from '../../icons'
-import { useRemoteAllowed } from '../../remote/allowed'
+import { IconEdit, IconFilm, IconImage, IconMore, IconPlay, IconRefresh, IconSettings } from '../../icons'
 import { Menu, type MenuEntry } from '../../ui/Menu'
 import { bump } from '../client'
 import type { Document, Node } from '../types'
@@ -22,12 +21,10 @@ import type { Document, Node } from '../types'
 const EditDetails = lazy(() => import('../../components/edit/EditDetails'))
 const RefreshDialog = lazy(() => import('../../components/edit/RefreshDialog'))
 const TitleExtras = lazy(() => import('../../components/edit/TitleExtras'))
-const PlayOn = lazy(() => import('../../remote/PlayOn'))
 const DiscSettingsDialog = lazy(() => import('../../components/edit/DiscDialogs').then((m) => ({ default: m.DiscSettingsDialog })))
 const DiscNamesDialog = lazy(() => import('../../components/edit/DiscDialogs').then((m) => ({ default: m.DiscNamesDialog })))
 const CanvasManager = lazy(() => import('../../canvas/CanvasManager'))
 const AlbumCanvasManager = lazy(() => import('../../canvas/AlbumCanvasManager'))
-const WatchParty = lazy(() => import('../../remote/WatchParty'))
 
 type Target = { target: 'item'; id: number } | { target: 'show'; id: number } | null
 
@@ -79,8 +76,7 @@ export default function DetailExtras({ place, header, doc }: { place: 'tools' | 
   const changed = () => { asked.clear(); bump() }
   if (place === 'tools') {
     if (show) return <ShowTools show={show} admin={!!user?.isAdmin} onPick={(w) => setOpen(w)} open={open} close={() => setOpen('')} t={t} changed={changed} />
-    const sending = item ? <SendTools item={item} header={header} /> : null
-    if (!user?.isAdmin) return sending
+    if (!user?.isAdmin) return null
     const entries: MenuEntry[] = [
       { key: 'art', label: 'Artwork', icon: <IconImage />, onSelect: () => setOpen('art') },
       { key: 'edit', label: 'Edit details', icon: <IconEdit />, onSelect: () => setOpen('edit') },
@@ -91,7 +87,6 @@ export default function DetailExtras({ place, header, doc }: { place: 'tools' | 
     ]
     return (
       <>
-        {sending}
         <Menu label="Manage this title" align="end" items={entries} trigger={(props) => <button type="button" {...props} className="btn ghost square" aria-label="Manage this title" title="Manage this title"><IconMore /></button>} />
         <Suspense fallback={null}>
           {open === 'art' && <TitleArtPicker target={t.target} id={t.id} onApplied={appliedOnPage(changed)} onClose={() => setOpen('')} />}
@@ -179,29 +174,6 @@ function ShowTools({ show, admin, onPick, open, close, t, changed }: {
         {open === 'art' && <TitleArtPicker target={t.target} id={t.id} onApplied={appliedOnPage(changed)} onClose={close} />}
         {open === 'edit' && <EditDetails target={t.target} id={t.id} start="match" onClose={close} onChanged={changed} />}
         {open === 'refresh' && <RefreshDialog target={t.target} id={t.id} onClose={close} onChanged={changed} />}
-      </Suspense>
-    </>
-  )
-}
-
-// Play on another device and Watch party, for a title that plays, where the page's own
-// header doesn't offer them (a page written before they were, or an older server).
-const SENDABLE = (it: Item) => it.kind === 'video' || isDisc(it)
-function SendTools({ item, header }: { item: Item; header: Node }) {
-  const may = useRemoteAllowed()
-  const [open, setOpen] = useState<'' | 'device' | 'party'>('')
-  const offered = new Set((Array.isArray(header.props?.actions) ? header.props.actions : []).map((a) => (a as { id?: string }).id))
-  if (!SENDABLE(item)) return null
-  const device = may.playOn && !offered.has('playOn')
-  const party = may.party && !offered.has('watchParty')
-  if (!device && !party) return null
-  return (
-    <>
-      {device && <button type="button" className="btn ghost square" aria-label="Play on another device" title="Play on another device" aria-haspopup="dialog" onClick={() => setOpen('device')}><IconDevices /></button>}
-      {party && <button type="button" className="btn ghost square" aria-label="Watch party" title="Watch party" aria-haspopup="dialog" onClick={() => setOpen('party')}><IconUsers /></button>}
-      <Suspense fallback={null}>
-        {open === 'device' && <PlayOn source={{ kind: 'item', itemId: item.id, title: item.title }} onClose={() => setOpen('')} />}
-        {open === 'party' && <WatchParty item={{ id: item.id, title: item.title, kind: item.kind, showId: item.showId ?? undefined }} onClose={() => setOpen('')} />}
       </Suspense>
     </>
   )

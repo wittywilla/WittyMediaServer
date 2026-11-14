@@ -253,45 +253,105 @@ export default function AppearanceSettings() {
 type ExperienceCard = { id: string; name: string; tagline?: string; theme?: string; preview?: { bg: string; surface: string; accent: string }; nav: Record<string, string>; wire?: WireMap }
 const lockText = (r: { by?: string; scope: string }) => `Required by ${r.by || 'an administrator'}${r.scope === 'everyone' ? ' for everyone' : r.scope === 'kids' ? ' for kids profiles' : ''}`
 
+// The look on this device, in two pages: first the layout (each look's wireframe as a phone shows it), then its
+// colours (the chosen layout large, in the theme being tried, and every theme drawn in it). "Use this" keeps both.
 function ServerLookRows({ choice }: { choice: NonNullable<ReturnType<typeof useMenu>['experiences']> }) {
+  const { serverTheme } = useApp()
   const [busy, setBusy] = useState('')
   const [cards, setCards] = useState<ExperienceCard[]>([])
+  const [themes, setThemes] = useState<ThemeMeta[]>([])
+  const [page, setPage] = useState<1 | 2>(1)
+  const [layout, setLayout] = useState(choice.current)
+  const [colour, setColour] = useState(deviceTheme() || serverTheme)
+  const file = useRef<HTMLInputElement | null>(null)
   const device = useDevice()
+  // Drawn as this device shows it: an upright phone, a tablet, a computer or a TV.
+  const here = device.formFactor as keyof WireMap
+  const loadThemes = () => api.get<{ themes: ThemeMeta[] }>('/themes').then((r) => setThemes(r.themes)).catch(() => {})
   useEffect(() => { api.get<{ experiences: ExperienceCard[] }>('/sdui/experiences').then((r) => setCards(r.experiences)).catch(() => {}) }, [])
-  const choose = async (value: string) => {
-    setBusy(value)
-    // For this device: its name and what it is, as the menu was asked for.
-    const path = choice.url.replace(/^\/api(\/v1)?/, '') + (choice.url.includes('?') ? '&' : '?') + query(device)
+  useEffect(() => { void loadThemes() }, [])
+  useEffect(() => { setLayout(choice.current) }, [choice.current])
+  const lookPath = () => choice.url.replace(/^\/api(\/v1)?/, '') + (choice.url.includes('?') ? '&' : '?') + query(device)
+  const lockedLook = !!choice.required
+  const lockedTheme = !!currentLook()?.requiredTheme
+  const picked = cards.find((x) => x.id === layout)
+  const useThis = async () => {
+    setBusy('save')
     try {
-      if (value) await api.put(path, { experience: value })
-      else await api.del(path)
-      bump()
-      void loadThemeOverrides()
-      announce(value ? `Look: ${choice.options.find((o) => o.value === value)?.label || value}` : 'Look: as the server sets it')
+      if (!lockedLook && layout !== choice.current) await api.put(lookPath(), { experience: layout })
+      if (!lockedTheme) { setDeviceTheme(colour === serverTheme ? '' : colour); applyTheme(colour) }
+      bump(); void loadThemeOverrides()
+      announce(`Look: ${picked?.name || layout}, colours: ${themes.find((t) => t.id === colour)?.name || colour}`)
+      setPage(1)
     } catch (e) { toast((e as Error).message, { tone: 'danger' }) } finally { setBusy('') }
   }
-  const locked = !!choice.required
+  const followServer = async () => {
+    setBusy('server')
+    try { await api.del(lookPath()); bump(); void loadThemeOverrides(); announce('Look: as the server sets it') } catch (e) { toast((e as Error).message, { tone: 'danger' }) } finally { setBusy('') }
+  }
+  const importZip = async (f: File) => {
+    const headers: Record<string, string> = { 'Content-Type': 'application/zip' }
+    const tok = getToken()
+    if (tok) headers.Authorization = 'Bearer ' + tok
+    const res = await fetch(`${serverBase()}/api/themes/mine?name=${encodeURIComponent(f.name)}`, { method: 'POST', headers, body: f, credentials: 'same-origin' })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) { toast(data.error || 'That theme couldn’t be installed', { tone: 'danger' }); return }
+    await loadThemes()
+    if (data.id) setColour(data.id)
+  }
   const current = choice.chosen || ''
-  // A required look is the only one shown as on, and nothing can be pressed.
-  const options = locked ? [{ value: choice.required!.value, label: cards.find((c) => c.id === choice.required!.value)?.name || choice.required!.value }] : choice.options
+  // A required look is the only one shown, and nothing can be pressed.
+  const options = lockedLook ? [{ value: choice.required!.value, label: cards.find((c) => c.id === choice.required!.value)?.name || choice.required!.value }] : choice.options
+  if (page === 2) {
+    const shown = themes.find((t) => t.id === colour)
+    return (
+      <>
+        <h3 className="look-step">Choose colours</h3>
+        <figure className="look-colours-big">
+          <LayoutThumb wire={picked?.wire} formFactor={here} colours={shown?.preview} />
+          <figcaption><b>{shown?.name || colour}</b>{picked ? ` with ${picked.name}` : ''}</figcaption>
+        </figure>
+        <div className="layout-opts look-opts" role="radiogroup" aria-label="Colours">
+          {themes.map((t) => (
+            <button key={t.id} type="button" role="radio" aria-checked={t.id === colour} disabled={lockedTheme} className={'layout-opt' + (t.id === colour ? ' on' : '')} onClick={() => { setColour(t.id); applyTheme(t.id) }}>
+              <LayoutThumb wire={picked?.wire} formFactor={here} colours={t.preview} />
+              <b>{t.name}</b>
+            </button>
+          ))}
+        </div>
+        <div className="panel-actions">
+          <input ref={file} type="file" accept=".zip,application/zip" hidden aria-label="Theme ZIP" onChange={(e) => { const f = e.target.files?.[0]; if (f) void importZip(f); e.target.value = '' }} />
+          <Button variant="ghost" disabled={lockedTheme} onClick={() => file.current?.click()}>Import a theme…</Button>
+          <Button variant="ghost" onClick={() => { applyTheme(deviceTheme() || serverTheme); setPage(1) }}>Back</Button>
+          <Button variant="primary" busy={busy === 'save'} onClick={() => void useThis()}>Use this</Button>
+        </div>
+      </>
+    )
+  }
   return (
     <>
-      {locked && <p className="small-note" role="status"><IconLock /> {lockText(choice.required!)}. An administrator changes it in <Link to="/settings/pages/layouts">Pages &amp; menu, Looks</Link>.</p>}
-      <div className="layout-opts look-opts" role="radiogroup" aria-label="Look on this device">
+      <h3 className="look-step">Choose a layout</h3>
+      {lockedLook && <p className="small-note" role="status"><IconLock /> {lockText(choice.required!)}. An administrator changes it in <Link to="/settings/pages/layouts">Pages &amp; menu, Looks</Link>.</p>}
+      <div className="layout-opts look-opts" role="radiogroup" aria-label="Layout on this device">
         {options.map((o) => {
           const c = cards.find((x) => x.id === o.value)
-          const on = choice.current === o.value
+          const on = layout === o.value
           return (
-            <button key={o.value} type="button" role="radio" aria-checked={on} disabled={!!busy || locked} className={'layout-opt' + (on ? ' on' : '')} onClick={() => void choose(o.value)}>
-              <LayoutThumb wire={c?.wire} colours={c?.preview} />
+            <button key={o.value} type="button" role="radio" aria-checked={on} disabled={!!busy || lockedLook} className={'layout-opt' + (on ? ' on' : '')} onClick={() => setLayout(o.value)}>
+              <LayoutThumb wire={c?.wire} formFactor={here} colours={c?.preview} />
               <b>{o.label}</b><span className="muted">{c?.tagline || ''}</span>
             </button>
           )
         })}
       </div>
-      {!locked && (
+      <div className="panel-actions">
+        {lockedTheme
+          ? <Button variant="primary" busy={busy === 'save'} disabled={lockedLook} onClick={() => void useThis()}>Continue</Button>
+          : <Button variant="primary" onClick={() => setPage(2)}>Next</Button>}
+      </div>
+      {!lockedLook && (
         <Row label="As the server sets it" desc={current ? 'This device has a look of its own. Go back to the one the server gives everyone.' : 'This device follows the server’s look.'}>
-          <Button size="sm" variant="ghost" disabled={!current || !!busy} onClick={() => void choose('')}>Use the server’s</Button>
+          <Button size="sm" variant="ghost" disabled={!current || !!busy} onClick={() => void followServer()}>Use the server’s</Button>
         </Row>
       )}
     </>
@@ -302,7 +362,7 @@ function ServerLookRows({ choice }: { choice: NonNullable<ReturnType<typeof useM
 function LayoutSection() {
   const menu = useMenu()
   return (
-    <Section title="Look" desc={<>How the app looks and is laid out on this device: where the menu is, how pages are drawn, its finish and type. Colours are the theme, above. Kept for you on this device; your other devices keep their own. Rearrange a page with <b>Customise this page</b> at its foot.</>}>
+    <Section title="Look" desc={<>How the app looks and is laid out on this device: where the menu is, how pages are drawn, its finish and type. Choose a layout, then its colours. Kept for you on this device; your other devices keep their own. Rearrange a page with <b>Customise this page</b> at its foot.</>}>
       {menu.experiences && <ServerLookRows choice={menu.experiences} />}
       <Row label="Edit layout" desc="Move the menu, the server’s name, search, the Dock and the spotlight, or hide what you don’t use: for you on this device, or for everyone."><Button onClick={() => window.dispatchEvent(new Event(LAYOUT_EVENT))}>Edit layout…</Button></Row>
       <NavCustomize />

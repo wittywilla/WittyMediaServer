@@ -14,12 +14,14 @@ import { Brand } from '../../components/common'
 import { Button, Segmented } from '../../ui'
 import { setTvMode, useTvMode } from '../../tvmode/mode'
 import { LayoutThumb } from '../../ui/LayoutThumb'
+import { useDevice } from '../../sdui/useSdui'
 import { specFor, type Cards, type Home, type WireMap } from '../../ui/layoutSpecs'
 import { ChoiceCards, LaterNote, StepActions, StepHead, TickRow, type StepProps } from './parts'
 
 type Card = { id: string; name: string; tagline?: string; theme?: string; type?: string; density?: string; effects?: Record<string, string>; preview?: { bg: string; surface: string; accent: string }; nav: Record<string, string>; wire?: WireMap; tvTheme?: string }
 const FORM_FACTORS = ['phone', 'tablet', 'desktop', 'web', 'tv', 'headset']
-const swatch = (c: Card, device: Device) => <LayoutThumb wire={c.wire} formFactor={device} colours={c.preview} />
+// The layout chosen on the first page, carried to the colours page (and back to it): its id.
+let chosenLayout = ''
 
 type Device = 'tv' | 'desktop' | 'phone' | 'headset'
 const SIDE = new Set(['sidebar', 'rail', 'railDrawer', 'tvSideMenu', 'ornamentTabs'])
@@ -92,14 +94,16 @@ function TvLookChoice({ suggested, lookName, value, onChange }: { suggested?: st
 // Step: Look. All fourteen experiences, each tried on this page as it is chosen (its finish, type and spacing, and the
 // theme it wears). The choice becomes the server's starting look for every kind of device; people can pick their own later.
 export function Look({ info, next, back }: StepProps) {
+  // The layouts are drawn as this device shows them: an upright phone, a tablet, a computer or a TV.
+  const here = useDevice().formFactor as keyof WireMap
   const { serverTheme } = useApp()
   const [cards, setCards] = useState<Card[]>([])
-  const [pick, setPick] = useState('lumen')
+  const [pick, setPick] = useState(chosenLayout || 'lumen')
   const tv = useTvMode()
   const [device, setDevice] = useState<Device>('desktop')
   // WittyTV's own look: '' follows what the chosen look suggests; anything else overrides it for everyone.
   const [tvLook, setTvLook] = useState('')
-  useEffect(() => { api.get<{ experiences: Card[]; default: string }>('/sdui/experiences').then((r) => { setCards(r.experiences); setPick(r.default) }).catch(() => {}) }, [])
+  useEffect(() => { api.get<{ experiences: Card[]; default: string }>('/sdui/experiences').then((r) => { setCards(r.experiences); setPick(chosenLayout || r.default) }).catch(() => {}) }, [])
   useEffect(() => { api.get<Record<string, string>>('/tv/settings').then((v) => setTvLook(v.tvTheme || '')).catch(() => {}) }, [])
   const choose = (id: string) => {
     setPick(id)
@@ -110,6 +114,7 @@ export function Look({ info, next, back }: StepProps) {
     if (c.theme) applyTheme(c.theme)
   }
   const save = async () => {
+    chosenLayout = pick
     try {
       const got = await getLooks(false)
       const policy = { ...(got.experiences || {}), default: Object.fromEntries(FORM_FACTORS.map((f) => [f, pick])) }
@@ -122,10 +127,10 @@ export function Look({ info, next, back }: StepProps) {
   }
   return (
     <section>
-      <StepHead title="Choose a look" lead="Fourteen looks, each a layout, finish and type of its own. Pick one for everyone: it is tried here as you choose. Colours are the next step, and people can pick their own look later." />
+      <StepHead title="Choose a layout" lead="Each look is a layout, finish and type of its own, drawn here as a phone shows it. Pick one for everyone: it is tried here as you choose. Colours are the next page, and people can pick their own later." />
       {cards.length > 0 && (
         <div className="su-look">
-          <ChoiceCards label="Look" value={pick} onChange={choose} small cards={cards.map((c) => ({ value: c.id, title: c.name, text: c.tagline, pic: swatch(c, device) }))} />
+          <ChoiceCards label="Layout" value={pick} onChange={choose} small cards={cards.map((c) => ({ value: c.id, title: c.name, text: c.tagline, pic: <LayoutThumb wire={c.wire} formFactor={here} colours={c.preview} /> }))} />
           <div className="su-look-view">
             <Segmented<Device> label="Preview on" value={device} onChange={setDevice} options={[{ value: 'tv', label: 'TV' }, { value: 'desktop', label: 'Desktop' }, { value: 'phone', label: 'Phone' }, { value: 'headset', label: 'VR' }]} />
             {cards.find((c) => c.id === pick) && <LookPreview card={cards.find((c) => c.id === pick)!} device={device} />}
@@ -138,13 +143,15 @@ export function Look({ info, next, back }: StepProps) {
         <TickRow kind="switch" checked={tv} onChange={setTvMode} title="TV mode" text="Laid out and driven like the Apple TV and Android TV apps, with a remote or a controller, for a screen across the room. Only on this device." />
       </div>
       <LaterNote info={info} />
-      <StepActions back={back}><Button variant="primary" size="big" onClick={() => void save()}>Continue</Button></StepActions>
+      <StepActions back={back}><Button variant="primary" size="big" onClick={() => void save()}>Next</Button></StepActions>
     </section>
   )
 }
 
 // Step: Theme. Colour is separate from the look: any theme goes with any look, an imported one included.
 export function Theme({ info, next, back }: StepProps) {
+  // The layouts are drawn as this device shows them: an upright phone, a tablet, a computer or a TV.
+  const here = useDevice().formFactor as keyof WireMap
   const { serverTheme, setServerTheme } = useApp()
   const [themes, setThemes] = useState<ThemeMeta[]>([])
   // Nothing is chosen until someone does: then the theme stays the look's own, whichever look is picked later.
@@ -153,6 +160,14 @@ export function Theme({ info, next, back }: StepProps) {
   const [own, setOwn] = useState(false)
   useEffect(() => { getLooks(false).then((l) => setOwn(!!l.experiences?.profileThemes)).catch(() => {}) }, [])
   const file = useRef<HTMLInputElement | null>(null)
+  // The layout chosen on the page before, drawn in each theme's colours.
+  const [layout, setLayout] = useState<Card | null>(null)
+  useEffect(() => {
+    api.get<{ experiences: Card[]; default: string }>('/sdui/experiences').then((r) => {
+      const id = chosenLayout || currentLook()?.experience || r.default
+      setLayout(r.experiences.find((c) => c.id === id) || r.experiences[0] || null)
+    }).catch(() => {})
+  }, [])
   const load = () => api.get<{ themes: ThemeMeta[] }>('/themes').then((r) => setThemes(r.themes)).catch(() => {})
   useEffect(() => { void load() }, [])
   const choose = (id: string) => { setChosen(true); setPick(id); applyTheme(id) }
@@ -180,18 +195,18 @@ export function Theme({ info, next, back }: StepProps) {
   }
   return (
     <section>
-      <StepHead title="Choose a theme" lead="The colours. Any theme goes with any look, and it changes right away. You can import one, or make your own later in Settings, Appearance." />
+      <StepHead title="Choose colours" lead={`The colours for ${layout ? layout.name : 'the layout you chose'}. Any theme goes with any layout, and it changes right away. You can import one, or make your own later in Settings, Appearance.`} />
       {themes.length > 0 && (
-        <ChoiceCards label="Theme" value={pick} onChange={choose} small cards={themes.map((t) => ({
-          value: t.id, title: t.name.replace(/^WittyMediaServer /, ''),
-          pic: (
-            <span className="oobe-theme-pic" style={{ background: t.preview.bg }} aria-hidden="true">
-              <i className="bar" style={{ background: t.preview.surface }} />
-              <i className="card" style={{ background: t.preview.surface }} /><i className="card" style={{ background: t.preview.surface }} /><i className="card" style={{ background: t.preview.surface }} />
-              <i className="btn" style={{ background: t.preview.accent }} />
-            </span>
-          ),
-        }))} />
+        <div className="su-colours">
+          <figure className="su-colours-big">
+            <LayoutThumb wire={layout?.wire} formFactor={here} colours={themes.find((t) => t.id === pick)?.preview} />
+            <figcaption><b>{themes.find((t) => t.id === pick)?.name.replace(/^WittyMediaServer /, '') || ''}</b>{layout ? ` with ${layout.name}` : ''}</figcaption>
+          </figure>
+          <ChoiceCards label="Theme" value={pick} onChange={choose} small cards={themes.map((t) => ({
+            value: t.id, title: t.name.replace(/^WittyMediaServer /, ''),
+            pic: <LayoutThumb wire={layout?.wire} formFactor={here} colours={t.preview} />,
+          }))} />
+        </div>
       )}
       <h2 className="oobe-sub">How people use it</h2>
       <div className="su-gap su-how">
@@ -203,7 +218,7 @@ export function Theme({ info, next, back }: StepProps) {
         <Button variant="ghost" onClick={() => file.current?.click()}>Import a theme…</Button>
       </div>
       <LaterNote info={info} />
-      <StepActions back={back}><Button variant="primary" size="big" onClick={() => void save()}>Continue</Button></StepActions>
+      <StepActions back={back}><Button variant="primary" size="big" onClick={() => void save()}>Use this</Button></StepActions>
     </section>
   )
 }

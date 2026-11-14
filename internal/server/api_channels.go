@@ -810,7 +810,7 @@ func (s *Server) handleGuide(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, err.Error())
 		return
 	}
-	// The older ways of narrowing the guide, which a set can stand for too.
+	// Narrowing the set: by kind, group and favourites (the guide's Filter), to one channel, and by words.
 	kind, group := q.Get("kind"), q.Get("group")
 	one, wantFavs := q.Get("channel"), qBool(r, "favourites")
 	find := strings.ToLower(strings.TrimSpace(q.Get("q")))

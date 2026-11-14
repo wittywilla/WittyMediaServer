@@ -94,6 +94,11 @@ button.lib-tile, button.sdui-row, button.sdui-banner { font: inherit; cursor: po
 .sdui-detail .detail.compact { grid-template-columns: minmax(0, 1fr); margin-top: 0; }
 .sdui-detail.layout-compact h1 { text-shadow: none; }
 .sdui-detail .detail .poster.square { aspect-ratio: 1; }
+/* A title's actions: centred on every device. The main action, then the rest (Watch later, Mark watched, Download,
+   Share) as a centred group; on a narrow screen it wraps onto centred lines rather than running off the edge. */
+.sdui-detail .sdui-detail-actions { justify-content: center; }
+.sdui-detail-more { display: flex; flex-wrap: wrap; gap: var(--sp-2); justify-content: center; min-inline-size: 0; }
+.sdui-detail .detail .sdui-detail-more > .btn { flex: 0 0 auto; }
 .sdui-detail-progress { width: min(320px, 100%); height: 4px; margin: 0 0 var(--sp-4); border-radius: var(--r-full); background: var(--bg-4); overflow: hidden; }
 .sdui-detail-progress i { display: block; height: 100%; background: var(--accent); }
 .sdui-overview .overview { margin-bottom: var(--sp-2); }
@@ -103,6 +108,7 @@ button.lib-tile, button.sdui-row, button.sdui-banner { font: inherit; cursor: po
   .sdui-detail .detail { grid-template-columns: minmax(0, 1fr); }
   .sdui-detail .detail > :first-child:not(:last-child) { width: clamp(120px, 34vw, 170px); }
   .sdui-detail-actions .btn.primary { flex: 1 1 100%; }
+  .sdui-detail-more { flex: 1 1 100%; }
 }
 
 /* Seasons, episodes, tracks. */

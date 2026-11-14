@@ -653,6 +653,14 @@ function DetailHeaderView({ view }: { view: View }) {
   const buttons = buttonsOf(p)
   const primary = buttons.find((b) => b.primary)
   const overview = view.text?.overview
+  const button = (b: (typeof buttons)[number]) => {
+    const step = plan(b.action, { externalLinks: page.layout.externalLinks })
+    if (step.do === 'nothing') return null
+    const cls = 'btn' + (b.primary ? ' primary' : '')
+    const body = <>{b.glyph ? <i className={'sdui-glyph g-' + b.glyph} aria-hidden="true">{b.glyph.toUpperCase()}</i> : sduiIcon(b.icon)} {b.label}</>
+    if (step.do === 'go' && !page.inert) return <Link key={b.id} className={cls} to={step.to} data-tv-first={b === primary || undefined}>{body}</Link>
+    return <button key={b.id} type="button" className={cls} data-tv-first={b === primary || undefined} onClick={() => !page.inert && page.act(b.action, view)}>{body}</button>
+  }
   return (
     <div className={'sdui-detail layout-' + layout} role="region" aria-label={view.label} style={scopeStyle(view.node)} data-sdui-stop={view.id} data-sdui-focus={view.node.focus ? view.id : undefined} data-sdui-section={view.id}>
       {layout !== 'compact' && (
@@ -674,15 +682,11 @@ function DetailHeaderView({ view }: { view: View }) {
             </div>
           )}
           {view.progress !== undefined && view.progress > 0 && <div className="sdui-detail-progress" role="progressbar" aria-label="Watched" aria-valuemin={0} aria-valuemax={100} aria-valuenow={view.progress}><i style={{ width: view.progress + '%' }} /></div>}
+          {/* The main action, then the rest (Watch later, Mark watched, Download, Share) as one centred row that
+              scrolls sideways only when it is wider than the screen. */}
           <div className="actions sdui-detail-actions" data-nav-group>
-            {buttons.map((b) => {
-              const step = plan(b.action, { externalLinks: page.layout.externalLinks })
-              if (step.do === 'nothing') return null
-              const cls = 'btn' + (b.primary ? ' primary' : '')
-              const body = <>{b.glyph ? <i className={'sdui-glyph g-' + b.glyph} aria-hidden="true">{b.glyph.toUpperCase()}</i> : sduiIcon(b.icon)} {b.label}</>
-              if (step.do === 'go' && !page.inert) return <Link key={b.id} className={cls} to={step.to} data-tv-first={b === primary || undefined}>{body}</Link>
-              return <button key={b.id} type="button" className={cls} data-tv-first={b === primary || undefined} onClick={() => !page.inert && page.act(b.action, view)}>{body}</button>
-            })}
+            {buttons.filter((b) => b.primary).map(button)}
+            {buttons.some((b) => !b.primary) && <div className="sdui-detail-more">{buttons.filter((b) => !b.primary).map(button)}</div>}
             {!page.inert && <Suspense fallback={null}><DetailExtras place="tools" header={view.node} doc={page.doc} /></Suspense>}
           </div>
           {overview && (

@@ -656,10 +656,13 @@ function DetailHeaderView({ view }: { view: View }) {
   const button = (b: (typeof buttons)[number]) => {
     const step = plan(b.action, { externalLinks: page.layout.externalLinks })
     if (step.do === 'nothing') return null
-    const cls = 'btn' + (b.primary ? ' primary' : '')
-    const body = <>{b.glyph ? <i className={'sdui-glyph g-' + b.glyph} aria-hidden="true">{b.glyph.toUpperCase()}</i> : sduiIcon(b.icon)} {b.label}</>
+    const icon = b.glyph ? <i className={'sdui-glyph g-' + b.glyph} aria-hidden="true">{b.glyph.toUpperCase()}</i> : sduiIcon(b.icon)
+    // The main action is a filled button; the others, as on every app, an icon with its name under it.
+    const cls = b.primary ? 'btn primary' : 'sdui-action'
+    const body = b.primary ? <>{icon} {b.label}</> : <><span className="sdui-action-icon">{icon}</span><span className="sdui-action-label">{b.label}</span></>
+    const on = !b.primary && b.pressed ? true : undefined
     if (step.do === 'go' && !page.inert) return <Link key={b.id} className={cls} to={step.to} data-tv-first={b === primary || undefined}>{body}</Link>
-    return <button key={b.id} type="button" className={cls} data-tv-first={b === primary || undefined} onClick={() => !page.inert && page.act(b.action, view)}>{body}</button>
+    return <button key={b.id} type="button" className={cls} aria-pressed={on} data-tv-first={b === primary || undefined} onClick={() => !page.inert && page.act(b.action, view)}>{body}</button>
   }
   return (
     <div className={'sdui-detail layout-' + layout} role="region" aria-label={view.label} style={scopeStyle(view.node)} data-sdui-stop={view.id} data-sdui-focus={view.node.focus ? view.id : undefined} data-sdui-section={view.id}>
@@ -682,8 +685,8 @@ function DetailHeaderView({ view }: { view: View }) {
             </div>
           )}
           {view.progress !== undefined && view.progress > 0 && <div className="sdui-detail-progress" role="progressbar" aria-label="Watched" aria-valuemin={0} aria-valuemax={100} aria-valuenow={view.progress}><i style={{ width: view.progress + '%' }} /></div>}
-          {/* The main action, then the rest (Watch later, Mark watched, Download, Share) as one centred row that
-              scrolls sideways only when it is wider than the screen. */}
+          {/* The main action, then the rest (Watch later, Mark watched, Download, Share) as icons with their names, in one
+              centred row that scrolls sideways only when it is wider than the screen: the same on every app. */}
           <div className="actions sdui-detail-actions" data-nav-group>
             {buttons.filter((b) => b.primary).map(button)}
             {buttons.some((b) => !b.primary) && <div className="sdui-detail-more">{buttons.filter((b) => !b.primary).map(button)}</div>}

@@ -318,6 +318,7 @@ var plainRoutes = []string{
 	"GET /api/meta/{target}/{id}/attached",
 	"GET /api/meta/{target}/{id}/listings",
 	"GET /api/module-store/{id}/{key}",
+	"GET /api/module-images/{module}/{name}",
 	"GET /api/modules/libraries",
 	"GET /api/modules/web",
 	"GET /api/modules/{id}/icon",

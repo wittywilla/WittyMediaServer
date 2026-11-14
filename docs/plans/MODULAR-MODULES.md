@@ -22,6 +22,7 @@ This plan **supersedes the "server builds with it" half of [module-isolation.md]
 - [First-run setup (OOBE)](#first-run-setup-oobe)
 - [Security](#security)
 - [Overrides: bypassing a protection, with warnings](#overrides-bypassing-a-protection-with-warnings)
+- [WittyPlay: one interface, with its own store for cores and emulators](#wittyplay-one-interface-with-its-own-store-for-cores-and-emulators)
 - [Module by module](#module-by-module)
 - [Order of work](#order-of-work)
 - [Testing](#testing)
@@ -528,6 +529,54 @@ Today's override system (`docs/MODULE-STORE.md`, kinds `incomplete`, `out-of-ran
 
 `docs/MODULE-SECURITY.md` (written with the first override that's new): the threat model above in plain words; what each permission and override means, with its risk and how to undo it; how to read the audit log; what quarantine means; and how to report a module.
 
+## WittyPlay: one interface, with its own store for cores and emulators
+
+The owner, 2026-11-13: WittyPlay gets its own store for cores. A Settings button launches WittyPlay, and everything happens through that one interface. The existing core and third-party emulator structure is kept as it is, and works on every server platform, especially Docker and macOS.
+
+**One interface.**
+
+- **WittyPlay → Settings → Cores & emulators** holds everything about what this server plays:
+  - browsing, installing, updating and removing **libretro cores** and **standalone emulators** (PCSX2, Dolphin, RPCS3, Ryujinx and the rest);
+  - per-console default core and per-game core;
+  - BIOS and firmware;
+  - custom cores;
+  - each core's and emulator's licence and notices;
+  - what each needs, and why one isn't available on this system.
+- It's built from today's screens: Consoles & cores, What this server plays, Standalone emulators and custom cores, already in the module since M1. They're arranged as one store in WittyPlay's frame.
+- **The server's Settings keeps launchers only.** Its rows for these (`gaming`, `games-support`, `emulators`) become one row, "Games & emulators", which opens `/wittyplay/settings/store`. They are no longer a second copy of the UI.
+- With WittyPlay older than 0.6 the server keeps its own rows, as today.
+- The apps are unchanged: they have no core screens.
+
+**Kept exactly, owned by the module:**
+
+- The core builds list (`corebuilds.txt`) and per-platform availability with its refusals.
+- Core downloads and checksums, licence acceptance and notices, the custom-core approval, versions and rollback, and the core audit log.
+- GPU checks and the cores that need a graphics card.
+- Standalone emulators: the catalogue, schemas generated from each emulator's config, settings writers, manual and own installs, the Docker/KasmVNC backend with its ticket route and sandboxed page, and the native per-OS runtimes:
+  - Linux: bubblewrap;
+  - macOS: sandbox-exec plus ScreenCaptureKit and input injection;
+  - Windows: job object, low integrity, desktop duplication, WASAPI and SendInput;
+  - FreeBSD: Xvfb with resource limits, admin opt-in.
+- The game runner's own sandbox.
+
+All of this already lives mostly in WittyPlay. What moves is the server's half: `api_games_custom.go`, `core_choices.go`, `games_platforms.go`, `games_gpu.go`, `games_bios.go`, `games_standalone.go`, the docker proxy routes and `emulator_sessions.go`. It moves in M2, as routes of the module with aliases for every path an app or page calls today.
+
+**The same trust model, in the security section's terms:**
+
+- Core and emulator downloads keep their checksums and signatures, and the core-downloads workflow that publishes them.
+- Their hosts go in `network.hosts`: the libretro buildbot, the WittyPlayCores releases and each emulator's release host. That puts them on the privacy list.
+- Docker access stays an administrator's choice with its warning.
+- Installing an emulator outside a container remains the admin-only "your own program" path, with its warning.
+
+**On every platform.** Each step's acceptance includes a run on each platform:
+
+- macOS on Apple silicon, and on Intel where a machine is available;
+- the Docker image (`linux/amd64` and `linux/arm64`);
+- Linux on bare metal;
+- a Windows build.
+
+On each: install WittyPlay, install a core from the store, play a test core (WittyPlay's `testcore`), and start one standalone emulator where that platform supports it (Docker or native). FreeBSD is checked for what it promises: the store shows which cores have FreeBSD builds; standalone emulators are refused unless the admin opts in to Xvfb.
+
 ## Module by module
 
 What moves (→ module) and what stays (host). "Hook" names what in M0 makes the move possible.
@@ -559,9 +608,10 @@ Within a step the order is: WittyModule (kit), then the server, then the module,
 | **M0b** | Server: integration loader, the generic route proxy (auth classes, item and feature checks, limits, WebSocket, aliases with the legacy list), host API v1, lifecycle runner with rollback, module databases and the import runner, `legacyFor(id)`, `moduleFloors`, `live` sessions, parental/limits/backup/log topics read from manifests (equal to today's lists, by test) | WittyMediaServer | Nothing moves yet; every test still green |
 | **M0c** | Web host API 5: the registry and its use in `App.tsx`, `SettingsPage`, the setup wizard, `ItemPage`, `openItem`, `PlayerPage`, `LibraryPage`, SDUI cards; the shared router, UI kit, state hooks, input; generated types; tokens contract | WittyMediaServer, WittyModule `kit/web` | Today's special cases become the server's *own* registrations of its legacy UI, so the look is unchanged by construction |
 | **M0d** | Tooling: `wittymodule web build`/`preview`; the golden contract harness and screenshot baseline; `WittyMediaPlayer/engine` builds with `wittymodule/sdui` instead of the server's `pkg/sdui` (ends `GOWORK=off`) | WittyModule, WittyMediaServer, WittyMediaPlayer | S5's limits all addressed |
-| **M1** | **WittyPlay UI** into the module: the files listed above, re-pointed at `@wittywilla/wms-host`, registered by `integration.json`. The server keeps its copy behind `legacyFor('wittyplay')` | WittyPlay 0.5.0, server | Pixel-identical screenshots; the WittyPlay bundle carries the Play UI |
-| **M2** | **WittyPlay APIs** into the module's service, route group by route group (play/session, saves, settings, profiles, custom cores, online+sources+ops, pictures, achievements), each behind aliases, each with its golden tests | WittyPlay 0.6.x, server | Apps unchanged; the facade shrinks per group |
-| **M3** | **WittyPlay data and the games library kind:** scan hooks with `gameid`/`gamearchive`/`gamemeta` in the module; tables imported into its database; secrets for metadata keys; console table served at run time; facades removed | WittyPlay 0.7.0, server | Server has no games code outside `legacyFor`; the module download holds the whole feature |
+| **M1** | **WittyPlay UI** into the module: the files listed above, re-pointed at `@wittywilla/wms-host`, registered by `integration.json`. The server keeps its copy behind `legacyFor('wittyplay')` | WittyPlay 0.5.0, server | Pixel-identical screenshots; the WittyPlay bundle carries the Play UI. **Done 2026-11-13** (same text on 14 pages, 0.4.2 against 0.5.0) |
+| **M1b** | **The cores & emulators store in WittyPlay's frame**; the server's three Settings rows become one launcher row (with WittyPlay ≥ 0.6) | WittyPlay 0.6.0, server | One interface; the store lists, installs, updates and removes cores and emulators on macOS (Apple silicon), Docker and Linux |
+| **M2** | **WittyPlay APIs** into the module's service, route group by route group (cores, custom cores, BIOS, GPU and platforms first, with the store; then play/session, saves, settings, profiles, standalone emulators and the docker/kasm routes, online+sources+ops, pictures, achievements), each behind aliases, each with its golden tests | WittyPlay 0.6.x, server | Apps unchanged; the facade shrinks per group; cores install and a test core plays, and a standalone emulator starts, on macOS (Apple silicon, Intel where possible), the Docker image (amd64, arm64), Linux and Windows; FreeBSD as promised |
+| **M3** | **WittyPlay data and the games library kind:** scan hooks with `gameid`/`gamearchive`/`gamemeta` in the module; tables imported into its database; secrets for metadata keys; console table served at run time; facades removed | WittyPlay 0.7.0, server | Server has no games code outside `legacyFor`; the module download holds the whole feature; the platform runs of M2 pass again with the module's own data |
 | **M4** | WittyCouch and WittyRigs, the same way (rigs need WittyPlay's frame: `requires` with a range) | WittyCouch, WittyRigs, server | |
 | **M5** | Disc player bundle (WittyDisc web part) and WittyDVD/WittyBluray sources, settings, routes; WittyCD player | WittyDisc, WittyDVD, WittyBluray, WittyCD, server | Guards untouched |
 | **M6** | WittyTuner admin, setup, EPG sources | WittyTuner, server | Guide and DVR untouched |
@@ -608,6 +658,14 @@ Each server step touches files other sessions own. The coordinating session is t
 - **Upgrade paths:** API 4 → 5 import, 5 → 4 downgrade (export back or refusal), uninstall with and without keeping data, server offline below a floor.
 - **Native apps:** s3/s4 run their test suites (`GamesTests`, `SDUIModulesTests`, Android equivalents) against the test server at M2, M3 and M9.
 
+- **Every platform, for WittyPlay (M1b–M3):**
+  - macOS on Apple silicon (this Mac), and on Intel where available;
+  - the Docker image (`linux/amd64`, `linux/arm64` under emulation where needed);
+  - Linux on bare metal;
+  - a Windows build.
+
+  On each: the store lists and installs a core, the test core plays, and a standalone emulator starts where supported (Docker, or the native runtime). The sandbox level is reported as before. FreeBSD: cores listed as the builds list says; emulators only with the admin's opt-in.
+
 ## Risks
 
 | Risk | Mitigation |
@@ -627,6 +685,7 @@ Each server step touches files other sessions own. The coordinating session is t
 2. **Game identification and metadata (`gameid`, `gamearchive`, `gamemeta`) move into WittyPlay.** This drops the WittyGameCore-in-the-server idea from module-isolation.md, so they update through the store. The server keeps only generic items.
 3. **Module data in its own SQLite database**, imported once from today's tables. The alternative, tables in the server's database under the module's name, keeps backups simpler but puts migrations back into the server.
 4. **Uninstall asks whether to keep a module's data.** Recommended default: keep.
+6. **WittyPlay's own store for cores and emulators** (owner, 2026-11-13): one interface in WittyPlay; the server's Settings keeps a launcher row; the core and emulator structure kept exactly and tested on every platform, especially Docker and macOS. Decided.
 5. **Which server version carries M0** (suggested: 0.9.0-alpha), and whether M1-M3 ship as WittyPlay 0.5-0.7 on the alpha channel.
 
 ---

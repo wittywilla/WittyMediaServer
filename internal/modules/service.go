@@ -6,6 +6,7 @@ package modules
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
@@ -15,6 +16,8 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -416,11 +419,22 @@ func (m *Manager) integrate(id string, a *Attached) error {
 		m.mu.Unlock()
 		return nil
 	}
-	in, ver, prev := e.integ, e.man.Version, e.state.Integrated
+	in, ver, prev, dir := e.integ, e.man.Version, e.state.Integrated, e.dir
 	m.mu.Unlock()
-	if in == nil || prev == ver {
+	if in == nil {
 		return nil
 	}
+	// Set up by version and by what its integration.json says: a build of the same version that
+	// keeps data it didn't before (a developer's) is set up too.
+	mark := ver
+	if b, err := os.ReadFile(filepath.Join(dir, wittymodule.IntegrationFile)); err == nil {
+		sum := sha256.Sum256(b)
+		mark = ver + "#" + hex.EncodeToString(sum[:6])
+	}
+	if prev == mark {
+		return nil
+	}
+	from, _, _ := strings.Cut(prev, "#")
 	call := ""
 	if l := in.Lifecycle; l != nil {
 		switch {
@@ -431,7 +445,7 @@ func (m *Manager) integrate(id string, a *Attached) error {
 		}
 	}
 	if call != "" {
-		if _, err := a.Call(call, wittymodule.LifecycleArgs{From: prev, To: ver}, nil); err != nil {
+		if _, err := a.Call(call, wittymodule.LifecycleArgs{From: from, To: ver}, nil); err != nil {
 			m.log.Warn("modules: a version's setup failed", "cat", "modules", "module", id, "version", ver, "call", call, "err", err)
 			return fmt.Errorf("setting up %s %s failed: %w", id, ver, err)
 		}
@@ -440,7 +454,7 @@ func (m *Manager) integrate(id string, a *Attached) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if e.man != nil && e.man.Version == ver {
-		e.state.Integrated = ver
+		e.state.Integrated = mark
 		return m.saveState()
 	}
 	return nil

@@ -276,6 +276,7 @@ func (s *Server) passToModule(w http.ResponseWriter, r *http.Request, ref module
 	}
 	if u != nil && route.Auth != wittymodule.AuthTicket {
 		extra.Set(service.HeaderFeatures, strings.Join(s.featuresOf(r, u), " "))
+		extra.Set(service.HeaderKind, u.Kind) // adult, kids or guest: a guest can only look
 	}
 	// A query's sign-in (a stream token) isn't the module's.
 	if q := r.URL.Query(); q.Has("token") || q.Has("st") {

@@ -81,6 +81,7 @@ func (s *Server) HostAPI() http.Handler {
 	h("GET "+b+"/events", s.hostEventsWait)
 	h("POST "+b+"/tasks/{name}", s.hostTask)
 	h("GET "+b+"/legacy/{table}", s.hostLegacy)
+	h("GET "+b+"/legacy-files/{dir...}", s.hostLegacyFiles)
 	return mux
 }
 
@@ -551,12 +552,14 @@ func (s *Server) hostTask(w http.ResponseWriter, r *http.Request, module string)
 var legacyImports = map[string]struct {
 	module string
 	tables []string
+	files  []string // folders under the data folder whose files it may read, once
 }{
 	"server-games-v1": {"wittyplay", []string{"wittyplay_controls", "wittyplay_profiles", "wittyplay_backgrounds", "wittyplay_settings",
 		"wittyplay_game_meta", "wittyplay_core_options", "wittyplay_bezels", "wittyplay_patches", "custom_cores", "custom_core_versions",
 		"custom_consoles", "game_core_choice", "game_core_plays", "game_core_audit", "wittyplay_presence", "wittyplay_kids_friends",
-		"game_pictures", "game_meta", "game_meta_sources", "game_files", "game_review", "game_decisions", "game_discs"}},
-	"server-couch-v1": {"wittycouch", []string{"wittycouch_hosts", "wittyrigs_rigs", "wittyrigs_apps"}},
+		"game_pictures", "game_meta", "game_meta_sources", "game_files", "game_review", "game_decisions", "game_discs"},
+		[]string{"gaming/backgrounds"}},
+	"server-couch-v1": {"wittycouch", []string{"wittycouch_hosts", "wittyrigs_rigs", "wittyrigs_apps"}, nil},
 }
 
 func (s *Server) hostLegacy(w http.ResponseWriter, r *http.Request, module string) {
@@ -625,4 +628,49 @@ func (s *Server) legacyRows(ctx context.Context, table string, after int64, limi
 		out = append(out, raw)
 	}
 	return out, next, rs.Err()
+}
+
+// hostLegacyFiles lists (a folder) or sends (a file) what the server kept on disk for a module
+// that takes it over: only under the folders its import names, and nothing outside them.
+func (s *Server) hostLegacyFiles(w http.ResponseWriter, r *http.Request, module string) {
+	in := s.hostMods().Integration(module)
+	rel := filepath.Clean(filepath.FromSlash(r.PathValue("dir")))
+	ok := false
+	if in != nil && in.Data != nil && !strings.Contains(r.PathValue("dir"), "..") {
+		if imp, found := legacyImports[in.Data.Import]; found && imp.module == module {
+			for _, d := range imp.files {
+				d = filepath.FromSlash(d)
+				if rel == d || strings.HasPrefix(rel, d+string(filepath.Separator)) {
+					ok = true
+				}
+			}
+		}
+	}
+	if !ok {
+		writeJSON(w, 403, map[string]string{"error": "not files this module takes over"})
+		return
+	}
+	full := filepath.Join(s.Cfg.DataDir, rel)
+	st, err := os.Lstat(full)
+	if err != nil {
+		writeJSON(w, 404, map[string]string{"error": "not there"})
+		return
+	}
+	if st.IsDir() {
+		ents, _ := os.ReadDir(full)
+		names := []string{}
+		for _, e := range ents {
+			if e.Type().IsRegular() {
+				names = append(names, e.Name())
+			}
+		}
+		writeJSON(w, 200, map[string]any{"files": names})
+		return
+	}
+	if !st.Mode().IsRegular() {
+		writeJSON(w, 404, map[string]string{"error": "not there"})
+		return
+	}
+	w.Header().Set("Content-Type", "application/octet-stream")
+	http.ServeFile(w, r, full)
 }

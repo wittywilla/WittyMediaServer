@@ -261,7 +261,7 @@ Go types are `sdui.Document`, `sdui.Node`, `sdui.Action`, `sdui.Focus`.
 
 A command action may carry `confirm`, a question to ask first ("Delete this memory?"): the client shows it with the command's label as the confirming button and Cancel beside it, and runs the command only on a yes.
 
-A `navigate` action may carry `as: "layer"`: the page is shown over the current screen (a sheet, a quick menu, a dialog) and Back closes it, instead of replacing the screen. A client with no layers shows it as a page. Any page can be a layer; there is no separate kind.
+A `navigate` action may carry `as: "layer"`: the page is shown over the current screen (a sheet, a quick menu, a dialog) and Back closes it, instead of replacing the screen. A client with no layers shows it as a page. Any page can be a layer; there is no separate kind. A layer takes focus as it opens and gives it back to what opened it as it closes. It shows the page's `title` at its top, with a Close button on a touch screen or desktop; on a television, Back closes it and the hints bar (OK Select · Back) is drawn once, for the layer, not again for the page under it.
 
 Ignore an action type you don't know.
 
@@ -381,6 +381,11 @@ or a layer that has it is open:
   one to keep showing.
 - Redraw quietly: no placeholders, spinner or flash, the scroll position and
   focus where they were, rows matched by `id` so only what changed changes.
+  A row may come back without its action while the work runs ("Scan for
+  changes" while a scan runs, with `trailing` "Scanning"); such lists say
+  `focusable`, so the row stays a stop, keeps focus if it had it, and OK on
+  it does nothing. Focus never jumps to another row or control because of a
+  refresh.
 - Don't announce the page again to a screen reader, nor each step of a
   count. When the page settles (an answer without `refreshSec`), read out
   the first row whose words changed ("Last scanned …") once, politely.

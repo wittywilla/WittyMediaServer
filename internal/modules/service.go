@@ -484,3 +484,20 @@ func (m *Manager) Uninstall(id string, keepData bool) error {
 	_, err := s.a.Call(wittymodule.CallUninstall, wittymodule.LifecycleArgs{KeepData: keepData}, nil)
 	return err
 }
+
+// serviceCall makes a helper-protocol call to a module's running service, starting it if need be:
+// for a module of API 5, whose service has its data and its host API. handled is false when there
+// is no service to ask.
+func (m *Manager) serviceCall(id, method string, params, out any) (blob []byte, err error, handled bool) {
+	if _, err := m.ServiceConn(id); err != nil {
+		return nil, nil, false
+	}
+	m.svcMu.Lock()
+	s := m.services[id]
+	m.svcMu.Unlock()
+	if s == nil {
+		return nil, nil, false
+	}
+	blob, err = s.a.Call(method, params, out)
+	return blob, err, true
+}

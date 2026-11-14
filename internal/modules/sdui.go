@@ -159,9 +159,16 @@ type ItemsAnswer struct {
 // ErrNotRunning is a module's SDUI call when the module has no helper running here.
 var ErrNotRunning = errors.New("the module isn't running on this server")
 
-// UIItems asks a module's helper for one of its sources.
+// UIItems asks a module for one of its sources: a module of API 5 in its service, where its data
+// and its host API are (its helper process is started without them); any other in its helper.
 func (m *Manager) UIItems(id string, req ItemsRequest) (ItemsAnswer, error) {
 	var out ItemsAnswer
+	if m.Integration(id) != nil {
+		_, err, handled := m.serviceCall(id, MethodSDUIItems, req, &out)
+		if handled {
+			return out, err
+		}
+	}
 	_, err, handled := m.call(id, MethodSDUIItems, req, &out)
 	if !handled {
 		return out, ErrNotRunning

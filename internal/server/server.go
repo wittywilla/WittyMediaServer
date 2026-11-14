@@ -30,8 +30,6 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/diagnose"
 	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
-	"github.com/wittywilla/wittymediaserver/internal/gamearchive"
-	"github.com/wittywilla/wittymediaserver/internal/gameregion"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/identity"
 	"github.com/wittywilla/wittymediaserver/internal/library"
@@ -58,15 +56,13 @@ type Server struct {
 	Tools   *ffmpeg.Tools
 	Store   *library.Store
 	Scanner *library.Scanner
-	// GameMeta finds out about games, in the background.
-	GameMeta *library.GameMeta
-	Auth     *auth.Service
-	HLS      *hls.Manager
-	DVD      *dvdsession.Manager
-	BD       *bdsession.Manager
-	Themes   *themes.Manager
-	Web      fs.FS
-	Version  string
+	Auth    *auth.Service
+	HLS     *hls.Manager
+	DVD     *dvdsession.Manager
+	BD      *bdsession.Manager
+	Themes  *themes.Manager
+	Web     fs.FS
+	Version string
 	// Tasks is every background job; see api_tasks.go. Made in Handler.
 	Tasks *tasks.Registry
 	// LibConvert converts libraries' files ahead of time. Nil without FFmpeg.
@@ -143,19 +139,15 @@ type Server struct {
 	router    *portmap.Probe // the latest "check my router"
 
 	// setupFinished caches that first run is over: once it is, nothing about it is asked again.
-	setupFinished    atomic.Bool
-	setupCode        string
-	setupCodeOnce    sync.Once
-	audioSlots       chan struct{} // audio transcodes running at once
-	raArchiveOnce    sync.Once
-	raArchive        *gamearchive.Cache // archived games unpacked for their RetroAchievements checksum
-	radioChecks      sync.WaitGroup     // "check every station" runs on its own
-	diagOnce         sync.Once
-	diag             *diagnose.Manager // WittyDiagnoser, started when first wanted
-	consolePhotoOnce sync.Once
-	consolePhotoSvc  *consolePhotos // WittyPlay's console pictures, made when first wanted
-	logoOnce         sync.Once
-	logoSvc          *library.Logos // the logo service, made when first wanted
+	setupFinished atomic.Bool
+	setupCode     string
+	setupCodeOnce sync.Once
+	audioSlots    chan struct{}  // audio transcodes running at once
+	radioChecks   sync.WaitGroup // "check every station" runs on its own
+	diagOnce      sync.Once
+	diag          *diagnose.Manager // WittyDiagnoser, started when first wanted
+	logoOnce      sync.Once
+	logoSvc       *library.Logos // the logo service, made when first wanted
 	// When the guide last told it about tuner channels: see noteTunerLogos.
 	tunerLogosNoted atomic.Int64
 
@@ -215,19 +207,16 @@ func (s *Server) StartMetadata() {
 		s.Scanner.KickListings()
 		s.hostEvents().publish("scan.finished", nil) // modules of API 5 hear of it (host_api.go)
 	}
-	s.Scanner.OnGamesScanned = func() { s.logos().Kick() }
 	after := s.Scanner.AfterScan
 	s.Scanner.AfterScan = func(id int64) {
 		if after != nil {
 			after(id)
 		}
 		s.kickMusicMatch(id)
+		s.afterModuleScan(id)
 	}
 	if s.DB.GetSetting(context.Background(), "music.linksMatched", "") == "" {
 		s.kickMusicMatch(0) // songs and videos scanned before links existed
-	}
-	if s.GameMeta != nil {
-		s.GameMeta.OnSettled = func() { s.logos().Kick() }
 	}
 	logging.Go("metadata start", func() {
 		ctx := context.Background()
@@ -280,8 +269,6 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("POST /api/libraries/forget-metadata", s.requireAdmin(s.handleForgetAllMetadata))
 	m.Handle("GET /api/genres", a(s.handleGenres))
 	m.Handle("GET /api/items", a(s.handleItems))
-	m.Handle("GET /api/console-photos/{id}", a(s.handleConsolePhoto))
-	m.Handle("GET /api/console-photos/{id}/image", a(s.handleConsolePhotoImage))
 	m.Handle("GET /api/logos/status", a(s.handleLogoStatus))
 	m.Handle("PUT /api/logos/consent", s.requireAdmin(s.handleLogoConsent))
 	m.Handle("POST /api/logos/lookup", a(s.handleLogoLookup))
@@ -622,14 +609,7 @@ func (s *Server) Handler() http.Handler {
 	m.HandleFunc("GET /api/share/{token}/hls/{id}/seg/{n}", s.handleShareHLSSegment)
 
 	s.channelRoutes(m)
-	gameregion.Set(s.DB.GetSetting(context.Background(), "gamingRegionOrder", ""))
-	s.gameReviewRoutes(s.needing("wittyplay", m))
-	if s.GameMeta == nil {
-		s.GameMeta = library.NewGameMeta(s.Store, s.Cfg.ImagesDir, s.Cfg.CacheDir, s.Log)
-		s.GameMeta.Tasks = s.Tasks
-	}
-	s.gameMetaRoutes(m)
-	s.gamePictureRoutes(m)
+	s.useScanModules()
 	s.diagnoseRoutes(m)
 	s.metaFolderRoutes(m)
 	s.parentalRoutes(m)

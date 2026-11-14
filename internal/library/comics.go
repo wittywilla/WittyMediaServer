@@ -22,8 +22,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/archive"
 	"github.com/wittywilla/wittymediaserver/internal/ebook"
-	"github.com/wittywilla/wittymediaserver/internal/gamearchive"
 )
 
 // Comics in any archive, whatever their names claim: many a .cbr is really a ZIP and
@@ -142,7 +142,7 @@ func (s *Scanner) ComicPageList(p string) ([]string, error) {
 	if ok && cur.mtime.Equal(st.ModTime()) {
 		return cur.pages, nil
 	}
-	l, err := gamearchive.List(p)
+	l, err := archive.List(p)
 	if err != nil {
 		return nil, err
 	}
@@ -186,15 +186,15 @@ func (s *Scanner) ComicPageFile(ctx context.Context, p string, pages []string, n
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return "", err
 	}
-	var want []gamearchive.Want
+	var want []archive.Want
 	for i := n; i < len(pages) && i < n+comicReadAhead; i++ {
 		if _, err := os.Stat(filepath.Join(dir, name(i))); err != nil {
-			want = append(want, gamearchive.Want{Name: pages[i], Out: name(i)})
+			want = append(want, archive.Want{Name: pages[i], Out: name(i)})
 		}
 	}
 	uctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
-	if _, err := gamearchive.Unpack(uctx, p, dir, want, int64(len(want))*maxComicPage); err != nil {
+	if _, err := archive.Unpack(uctx, p, dir, want, int64(len(want))*maxComicPage); err != nil {
 		return "", err
 	}
 	trimCache(filepath.Join(s.CacheDir, "comics"), "", maxComicCache)

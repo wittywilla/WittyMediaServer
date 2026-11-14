@@ -39,11 +39,9 @@ const (
 // What an entity's short description has to say to be the right sort of thing, and what
 // rules it out. A film called the same as a studio has a picture too, and it isn't a logo.
 var logoKindWords = map[string][]string{
-	LogoStudio:     {"studio", "company", "production", "producer", "animation", "entertainment", "distributor", "pictures", "film", "television", "conglomerate", "subsidiary", "label"},
-	LogoNetwork:    {"network", "television", "channel", "broadcast", "streaming", "cable", "tv", "service", "station"},
-	LogoConsole:    {"console", "handheld", "video game", "game system", "gaming", "computer", "system"},
-	LogoGameStudio: {"video game", "game", "developer", "publisher", "company", "studio", "entertainment", "software"},
-	LogoPlatform:   {"streaming", "video on demand", "service", "platform", "subscription", "television", "website"},
+	LogoStudio:   {"studio", "company", "production", "producer", "animation", "entertainment", "distributor", "pictures", "film", "television", "conglomerate", "subsidiary", "label"},
+	LogoNetwork:  {"network", "television", "channel", "broadcast", "streaming", "cable", "tv", "service", "station"},
+	LogoPlatform: {"streaming", "video on demand", "service", "platform", "subscription", "television", "website"},
 }
 
 var logoNotWords = []string{"album", "song", "single", "given name", "family name", "surname", "disambiguation", "human", "actor", "actress", "singer", "episode", "novel", "book", "character", "painting"}

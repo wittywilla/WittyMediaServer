@@ -149,8 +149,6 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	gameKeyChanged := false
-	regionsWere := s.DB.GetSetting(r.Context(), "gamingRegionOrder", "")
 	// Words chosen for one name don't fit another: a new name sent without its
 	// colouring (by an older app) goes back to the automatic split.
 	if n, ok := in["brandName"]; ok && in["brandColouring"] == "" && strings.TrimSpace(n) != s.DB.GetSetting(r.Context(), "brandName", "") &&
@@ -182,19 +180,10 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		v = strings.TrimSpace(v)
-		if slices.Contains(library.GameSourceKeys, k) && !slices.Contains(library.AchievementKeys, k) && s.DB.GetSetting(r.Context(), k, "") != v {
-			gameKeyChanged = true
-		}
 		if err := s.DB.SetSetting(r.Context(), k, v); err != nil {
 			writeErr(w, 500, err.Error())
 			return
 		}
-	}
-	if gameKeyChanged {
-		s.GameMeta.KeysChanged(r.Context()) // the new source can be asked about every game
-	}
-	if regions := s.DB.GetSetting(r.Context(), "gamingRegionOrder", ""); regions != regionsWere {
-		s.gameRegionsChanged(regions)
 	}
 	if _, ok := in["timeZone"]; ok {
 		s.applyTimeZone(r.Context())

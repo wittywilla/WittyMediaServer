@@ -303,8 +303,6 @@ func TestFeaturesTurnedOff(t *testing.T) {
 		feature, method, target string
 		body                    any
 	}{
-		{"games", "GET", "/api/games/brand-logos", nil},
-		{"games", "GET", fmt.Sprintf("/api/games/%d/metadata", game.ID), nil},
 		{"recordings", "GET", "/api/recordings", nil},
 		{"recordings", "POST", "/api/recording-rules", map[string]any{}},
 		{"downloads", "GET", fmt.Sprintf("/api/items/%d/original", film.ID), nil},
@@ -361,9 +359,10 @@ func TestFeaturesTurnedOff(t *testing.T) {
 	if mine.Limited || !mine.Features["games"] || !mine.Features["writeComments"] {
 		t.Errorf("an account with no limits: %+v", mine)
 	}
-	// The refusals are there for whoever manages the profile.
+	// The refusals are there for whoever manages the profile. (Games' own routes are WittyPlay's,
+	// refused by module_routes.go for its feature.)
 	var n int
-	if err := ts.DB.QueryRow(`SELECT COUNT(*) FROM profile_events WHERE user_id = ? AND kind = 'feature'`, limited.ID).Scan(&n); err != nil || n != 5 {
+	if err := ts.DB.QueryRow(`SELECT COUNT(*) FROM profile_events WHERE user_id = ? AND kind = 'feature'`, limited.ID).Scan(&n); err != nil || n != 4 {
 		t.Errorf("%d kinds of refusal written down, want one for each feature: %v", n, err)
 	}
 }
@@ -381,8 +380,10 @@ func TestKidsKeepWhatTheyHadAndGainNothing(t *testing.T) {
 	if w := ts.do(t, "GET", fmt.Sprintf("/api/items/%d/comments", film.ID), kid, nil); w.Code != 200 || !strings.Contains(w.Body.String(), "first") {
 		t.Errorf("a Kids profile reads comments: %d %s", w.Code, w.Body)
 	}
-	if w := ts.do(t, "GET", "/api/games/brand-logos", kid, nil); w.Code != 200 {
-		t.Errorf("a Kids profile has games: %d %s", w.Code, w.Body)
+	var kidLimits struct{ Features map[string]bool }
+	readBody(t, ts.do(t, "GET", "/api/me/limits", kid, nil).Body.Bytes(), &kidLimits)
+	if !kidLimits.Features["games"] {
+		t.Errorf("a Kids profile has games: %+v", kidLimits)
 	}
 	// An administrator turns everything on for it.
 	if w := ts.do(t, "PUT", fmt.Sprintf("/api/users/%d/access", kidUser.ID), admin, map[string]any{"access": map[string]any{"off": []string{}}}); w.Code != 200 {

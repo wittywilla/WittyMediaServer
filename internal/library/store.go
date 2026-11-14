@@ -110,11 +110,11 @@ type Item struct {
 	// Books: "" / ltr, rtl (manga) or webtoon (vertical strip). For books
 	// RuntimeSec is the length in pages (comics) or chapters (EPUB).
 	Reading string `json:"reading,omitempty"`
-	// Games: the console it runs on (wittyplay.Consoles).
+	// Games: the console it runs on (the console facet, from the module that scans games).
 	Console string `json:"console,omitempty"`
-	// Games: the game's other names, for a profile that would rather see those than the title.
-	// Only when a metadata source knew one of them.
-	Titles *GameTitles `json:"titles,omitempty"`
+	// Its other names, for a profile that would rather see those than the title. Only when
+	// whoever described it knew one of them (a game's module).
+	Titles *ItemTitles `json:"titles,omitempty"`
 	// Internet radio: filled by the radio routes.
 	Radio *RadioMeta `json:"radio,omitempty"`
 	// CD images: a track of a disc says which disc it is (kind audio, in a music
@@ -426,9 +426,7 @@ func scanItem(sc interface{ Scan(...any) error }) (*Item, error) {
 	if err != nil {
 		return nil, err
 	}
-	if it.Kind == "game" {
-		it.Titles = readGameTitles(altTitles, it.Title)
-	}
+	it.Titles = readItemTitles(altTitles, it.Title)
 	if cdDisc.Valid {
 		it.CDDisc = &cdDisc.Int64
 	}
@@ -517,7 +515,6 @@ type ItemQuery struct {
 	Offset    int
 	Genre     string
 	Kind      string // an item kind, or "disc" for every DVD and Blu-ray
-	Series    string // games: only this franchise
 	// DiscContent: "movie" or "tv", discs holding films or TV episodes.
 	DiscContent string
 	ShowID      int64
@@ -542,13 +539,9 @@ type ItemQuery struct {
 	// PlayedBy: only what this user has played for more than a minute (games'
 	// Continue playing shelf, which must not depend on how far a list has loaded).
 	PlayedBy int64
-	// Games: at least this score out of 10, released in this decade, for at least
-	// this many players at once.
+	// At least this score out of 10, released in this decade.
 	MinRating float64
 	Decade    int
-	Players   int
-	// Unmatched: games the lookup has finished with and found nothing for.
-	Unmatched bool
 	// HasArt: only items with a backdrop or a frame from the video, for the home
 	// page's hero, which would otherwise be an empty dark box.
 	HasArt bool
@@ -674,17 +667,6 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 	if q.Decade > 0 {
 		where = append(where, "i.year >= ? AND i.year < ?")
 		args = append(args, q.Decade, q.Decade+10)
-	}
-	if q.Players > 0 {
-		where = append(where, "i.id IN (SELECT item_id FROM game_meta WHERE players >= ?)")
-		args = append(args, q.Players)
-	}
-	if q.Unmatched {
-		where = append(where, "i.id IN (SELECT item_id FROM game_meta WHERE match_source = '' AND status = 'done')")
-	}
-	if q.Series != "" {
-		where = append(where, "i.id IN (SELECT item_id FROM game_meta WHERE franchise = ?)")
-		args = append(args, q.Series)
 	}
 	if q.PlayedBy != 0 {
 		where = append(where, "i.id IN (SELECT item_id FROM progress WHERE user_id = ? AND position_sec > 60)")

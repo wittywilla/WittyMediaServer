@@ -234,7 +234,7 @@ func junction(t *testing.T, target, link string) {
 	}
 }
 
-// Every kind of library skips them, games and galleries too, which used to index anything.
+// Every kind of library skips them, a module's kinds and galleries too, which used to index anything.
 func TestEveryLibraryKindSkipsLinksOut(t *testing.T) {
 	outside := t.TempDir()
 	for _, n := range []string{"secret.jpg", "secret.mp4", "secret.sfc"} {
@@ -245,7 +245,14 @@ func TestEveryLibraryKindSkipsLinksOut(t *testing.T) {
 	for name, find := range map[string]func(string, walkStep) ([]candidate, error){
 		"photos":   discoverPhotos,
 		"creators": discoverCreatorVideos,
-		"games":    func(root string, _ walkStep) ([]candidate, error) { return discoverGames(root, "snes") },
+		"module": func(root string, _ walkStep) ([]candidate, error) { // what a module's scan is sent
+			files, err := walkForModule(context.Background(), root)
+			var out []candidate
+			for _, f := range files {
+				out = append(out, candidate{path: f.Path})
+			}
+			return out, err
+		},
 	} {
 		lib := t.TempDir()
 		for _, n := range []string{"secret.jpg", "secret.mp4", "secret.sfc"} {

@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
@@ -122,7 +124,8 @@ func (s *Server) hostLibraryRemove(w http.ResponseWriter, r *http.Request, modul
 }
 
 // PUT /host/v1/libraries/{id}/items {path, title, tagline}: adds a game, or updates the one at
-// that path. A new one is asked about by the game metadata sources, as a scan's are.
+// that path. A new one is described by the module that scans games (scan.describe), as a
+// scan's are.
 func (s *Server) hostHeldItemSave(w http.ResponseWriter, r *http.Request, module string) {
 	lib := s.heldLibrary(w, r, module)
 	if lib == nil {
@@ -152,10 +155,19 @@ func (s *Server) hostHeldItemSave(w http.ResponseWriter, r *http.Request, module
 		return
 	}
 	fresh := had == 0
-	if fresh && s.GameMeta != nil {
+	if fresh {
+		// A new one is described as a scan's are, by the module that scans games. Its title is
+		// always the PC's (the name Moonlight needs), so it counts as typed: nothing changes it.
+		if err := s.Store.SetItemEdited(ctx, id, "title"); err != nil {
+			writeJSON(w, 500, map[string]string{"error": err.Error()})
+			return
+		}
+		libID := lib.ID
 		logging.Go("held game details", func() {
-			if err := s.Store.EnrichRigGame(context.Background(), id); err == nil {
-				s.GameMeta.Kick()
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			defer cancel()
+			if err := s.Scanner.DescribeItems(ctx, libID, []int64{id}, false); err != nil && !errors.Is(err, library.ErrNoScanModule) {
+				s.Log.Warn("could not describe a held game", "cat", "games", "item", id, "err", err)
 			}
 		}, "cat", "games")
 	}

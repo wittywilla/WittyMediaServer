@@ -13,6 +13,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
 	"github.com/wittywilla/wittymodule"
 	"github.com/wittywilla/wittymodule/host"
 )
@@ -50,7 +51,7 @@ func TestHostAPI(t *testing.T) {
 		t.Fatalf("a forged secret: %v", err)
 	}
 	h, err := c.Hello(ctx)
-	if err != nil || h.Module != "wittyplay" || h.Offers[wittymodule.HostAPI] != host.Version {
+	if err != nil || h.Module != "wittyplay" || h.Offers[wittymodule.HostAPI] != modmgr.HostAPIVersion {
 		t.Fatalf("hello: %+v %v", h, err)
 	}
 
@@ -97,12 +98,13 @@ func TestHostAPI(t *testing.T) {
 		t.Errorf("counts in a films library: %v", err)
 	}
 
-	// A game's serial, from what the scan found.
-	if _, err := ts.DB.ExecContext(ctx, `INSERT INTO game_meta(item_id, library_id, serial) VALUES(?, ?, 'SHVC-AX')`, game.ID, games); err != nil {
+	// A game on two discs: its files in order, as its module's scan kept them, and only the
+	// console among its facets.
+	if _, err := ts.DB.ExecContext(ctx, `INSERT INTO item_files(item_id, n, path) VALUES(?, 0, '/g/a.sfc'), (?, 1, '/g/a2.sfc')`, game.ID, game.ID); err != nil {
 		t.Fatal(err)
 	}
-	if it, err := c.Item(ctx, host.On{User: pal.ID}, game.ID); err != nil || it.Facets["serial"] != "SHVC-AX" {
-		t.Errorf("the serial: %+v %v", it.Facets, err)
+	if it, err := c.Item(ctx, host.On{User: pal.ID}, game.ID); err != nil || len(it.Files) != 2 || it.Files[1].Path != "/g/a2.sfc" || len(it.Facets) != 1 {
+		t.Errorf("the files: %+v %v", it, err)
 	}
 
 	// The server's own item JSON, sorted and picked, and what a games library holds.

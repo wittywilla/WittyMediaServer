@@ -9,7 +9,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 	"io"
 	"log/slog"
 	"os"
@@ -55,8 +54,9 @@ type Scanner struct {
 	AnimeTitles func() string
 	// Agents returns the custom metadata agents, in the order they run.
 	Agents func() []Agent
-	// GameMeta finds out about games after a scan has listed them.
-	GameMeta *GameMeta
+	// Modules are the modules that scan kinds of library (scan hooks, module API 5): games are
+	// WittyPlay's. May be nil: then every library is scanned by the server's own walks.
+	Modules ScanModules
 	// TMDBBase replaces TMDB's address in tests.
 	TMDBBase string
 	// OnScanned runs after a scan of a library that holds films or shows.
@@ -64,8 +64,6 @@ type Scanner struct {
 	// AfterScan is told when any library's scan has finished without trouble. It's called
 	// with the scan's turn at the disk given up, and must not hold things up.
 	AfterScan func(libraryID int64)
-	// OnGamesScanned runs after a scan of a library of games.
-	OnGamesScanned func()
 	// SaveMeta reports whether to write NFO/artwork beside the media.
 	SaveMeta func() bool
 	// NoPoster says what a video with no poster of its own gets: NoPosterFrame (also when
@@ -258,36 +256,6 @@ func scanResult(files, problems int, took time.Duration) string {
 	return s + ", with " + plural(problems, "problem", "problems") + "."
 }
 
-// gameScanResult says what came of a scan of games: what someone comes to the activity
-// panel to find out is how many there are, and whether any of them want their attention.
-func (s *Store) gameScanResult(ctx context.Context, lib *Library, problems int, took time.Duration) string {
-	games := 0
-	if counts, err := s.GameCounts(ctx, lib.ID, nil); err == nil {
-		for _, n := range counts {
-			games += n
-		}
-	}
-	plural := func(n int, one, many string) string {
-		if n == 1 {
-			return "1 " + one
-		}
-		return strconv.Itoa(n) + " " + many
-	}
-	out := fmt.Sprintf("Found %s in %s.", plural(games, "game", "games"), took.Round(time.Second))
-	if review, err := s.GameReviewList(ctx, lib, "none", 1, 0); err == nil {
-		if n := review.Counts["needs"]; n > 0 {
-			out += " " + plural(n, "file needs", "files need") + " a look."
-		}
-		if n := review.Counts["blocked"]; n > 0 {
-			out += " " + plural(n, "game", "games") + " can't play."
-		}
-	}
-	if problems > 0 {
-		out += " " + plural(problems, "problem", "problems") + " along the way."
-	}
-	return out
-}
-
 type taskKey struct{}
 
 // scanTask is the activity entry of the scan this context belongs to. May be nil, and
@@ -404,12 +372,6 @@ type candidate struct {
 	mtime int64
 	// motion: the clip of a live photo (photos libraries).
 	motion string
-	// console: games, the console this file was sorted into.
-	console string
-	// verdict is how the console was worked out, and discs the game's discs when it has
-	// several. Games only.
-	verdict *gameVerdict
-	discs   []gameDisc
 	// format is the registry's id, when the content said it and the name didn't.
 	format string
 	// known is what the library already says about this path, if anything.
@@ -548,8 +510,8 @@ const (
 	phaseTidying    = "Tidying up"
 	phaseSound      = "Reading sound formats"
 	phaseWorkingOut = "Working out what each file is"
-	phaseListing    = "Listing the games"
-	phaseVersions   = "Putting versions of a game together"
+	phaseListing    = "Listing what was found"
+	phaseDescribing = "Finding out about what's new"
 )
 
 func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
@@ -559,6 +521,16 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	}
 	if lib.IsRig() {
 		return nil // its games come from the PC, not from folders here
+	}
+	// A library of a kind a module scans is scanned by the module's hooks (scan_hooks.go).
+	mod, byModule := s.scanModule(lib.Type)
+	if byModule && !mod.On {
+		// Without the module nothing can be told to be one, which isn't everything being gone.
+		s.Log.WarnContext(ctx, "the module that scans this kind of library isn't in use; keeping the library's items as they are", "library", lib.Name, "module", mod.ID)
+		task := scanTask(ctx)
+		task.Begin()
+		task.Result(mod.Name + " isn't installed or is turned off, so nothing here can tell what these files are. The library's items are kept as they are.")
+		return nil
 	}
 	s.Store.setScanning(ctx, libraryID, true)
 	defer s.Store.setScanning(context.Background(), libraryID, false)
@@ -606,43 +578,18 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	ctx = context.WithValue(ctx, tallyKey{}, tally)
 	failed := 0
 
+	if byModule {
+		return s.scanByModule(ctx, lib, mod, pausePoint, tally, started)
+	}
 	var all []candidate
 	var offline []string
-	var archives *archiveIndex
-	if lib.Type == "games" && len(wittyplay.Consoles()) == 0 {
-		// Without WittyPlay nothing can be told to be a game, which isn't the games being gone.
-		s.Log.WarnContext(ctx, "WittyPlay isn't running; keeping the library's games as they are", "library", lib.Name)
-		return nil
-	}
-	if lib.Type == "games" {
-		archives = newArchiveIndex(s.Store, libraryID)
-		archives.reading = func(path string) {
-			s.progress(libraryID, func(p *ScanProgress) { p.Current = filepath.Base(path) })
-			task.Item(filepath.Base(path), path)
-			// Reading archives can be the longest part of a scan, so pausing can't wait for its end.
-			_ = pausePoint()
-		}
-		archives.stopped = func() bool { return ctx.Err() != nil }
-		archives.looking = func(done, total int) {
-			s.progress(libraryID, func(p *ScanProgress) { p.Done, p.Found = done, total })
-			task.Progress(int64(done), int64(total))
-			_ = pausePoint()
-		}
-		defer archives.close()
-	}
 	// One bar across the whole scan, each phase named, with a rough idea of how long each takes.
-	if lib.Type == "games" {
-		task.Steps(tasks.Step{Name: phaseWorkingOut, Share: 4}, tasks.Step{Name: phaseListing, Share: 4},
-			tasks.Step{Name: phaseTidying, Share: 1}, tasks.Step{Name: phaseVersions, Share: 1})
-		task.Phase(phaseWorkingOut)
-	} else {
-		steps := []tasks.Step{{Name: phaseFinding, Share: 2}, {Name: phaseLooking, Share: 6}, {Name: phaseTidying, Share: 1}}
-		if matchableLibrary(lib.Type) || lib.Type == "videos" {
-			steps = append(steps, tasks.Step{Name: phaseSound, Share: 1})
-		}
-		task.Steps(steps...)
-		task.Phase(phaseFinding)
+	steps := []tasks.Step{{Name: phaseFinding, Share: 2}, {Name: phaseLooking, Share: 6}, {Name: phaseTidying, Share: 1}}
+	if matchableLibrary(lib.Type) || lib.Type == "videos" {
+		steps = append(steps, tasks.Step{Name: phaseSound, Share: 1})
 	}
+	task.Steps(steps...)
+	task.Phase(phaseFinding)
 	for _, root := range lib.Paths {
 		if err := pausePoint(); err != nil {
 			return err
@@ -670,14 +617,7 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		case lib.Type == CommercialsType, lib.Type == "videos":
 			find = discoverClips
 		}
-		var c []candidate
-		var err error
-		if lib.Type == "games" {
-			// pauses and watches for a cancel as it goes, and shares what it finds with this scan
-			c, err = walkGuarded(func(root string, _ walkStep) ([]candidate, error) { return archives.discover(root, lib.Console) }, root, nil)
-		} else {
-			c, err = findUnlessCancelled(ctx, find, root, task.PauseWanted, pausePoint)
-		}
+		c, err := findUnlessCancelled(ctx, find, root, task.PauseWanted, pausePoint)
 		if ctx.Err() != nil {
 			return ctx.Err() // before anything half-found is kept
 		}
@@ -699,12 +639,6 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		all = append(all, c...)
 	}
 	all = dropTitleExtras(all) // stems and canvases go with a title; they aren't titles
-	if lib.Type == "games" {
-		archives.save(ctx, len(offline) == 0)
-		if err := s.Store.saveNotes(ctx, libraryID, archives, len(offline) > 0); err != nil {
-			s.Log.WarnContext(ctx, "could not save what a games scan left out", "library", lib.Name, "err", err)
-		}
-	}
 	// Files someone moved to another library or removed, and files moved here.
 	if leave, adopt, err := s.Store.libraryNotes(ctx, libraryID); err == nil {
 		if len(leave) > 0 {
@@ -728,18 +662,11 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	}
 	rules := s.Store.loadRuleSet(ctx, lib)
 	ctx = context.WithValue(ctx, rulesKey{}, rules)
-	if lib.Type != "games" {
-		if err := s.Store.loadKnown(ctx, libraryID, all, !IsAudioLibrary(lib.Type) && lib.Type != "photos" && lib.Type != "books"); err != nil && ctx.Err() == nil {
-			s.Log.WarnContext(ctx, "could not read what the library holds in one go; looking file by file", "library", lib.Name, "err", err)
-		}
+	if err := s.Store.loadKnown(ctx, libraryID, all, !IsAudioLibrary(lib.Type) && lib.Type != "photos" && lib.Type != "books"); err != nil && ctx.Err() == nil {
+		s.Log.WarnContext(ctx, "could not read what the library holds in one go; looking file by file", "library", lib.Name, "err", err)
 	}
 	s.progress(libraryID, func(p *ScanProgress) { p.Phase = "indexing"; p.Found = len(all) })
-	if lib.Type == "games" {
-		task.Phase(phaseListing)
-		task.Unit("games")
-	} else {
-		task.Phase(phaseLooking)
-	}
+	task.Phase(phaseLooking)
 	task.Progress(0, int64(len(all)))
 	keep := map[string]bool{}
 	tv := newTVScan()
@@ -777,8 +704,6 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 				return s.indexPhoto(ctx, lib, c)
 			case IsCreatorLibrary(lib.Type):
 				return s.indexCreatorVideo(ctx, lib, c, creators)
-			case lib.Type == "games":
-				return s.indexGame(ctx, lib, c)
 			}
 			return s.index(ctx, lib, c)
 		})
@@ -822,18 +747,6 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	s.Log.InfoContext(ctx, "scan finished", "library", lib.Name, "items", len(all), "errors", failed+problems,
 		"offline", len(offline), "took", time.Since(started).Round(time.Second).String())
 	task.Result(scanResult(len(all), failed+problems, time.Since(started)))
-	if lib.Type == "games" {
-		task.Phase(phaseVersions)
-		if err := s.Store.linkGameVersions(ctx, lib); err != nil {
-			s.Log.WarnContext(ctx, "could not put versions of a game together", "library", lib.Name, "err", err)
-		}
-		task.Result(s.Store.gameScanResult(ctx, lib, failed+problems, time.Since(started)))
-		s.Store.ensureGameLogos(ctx, lib)
-		if s.OnGamesScanned != nil {
-			s.OnGamesScanned()
-		}
-		s.GameMeta.Kick()
-	}
 	return nil
 }
 

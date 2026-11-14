@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/wittywilla/wittymediaserver/pkg/sdui"
@@ -28,14 +29,18 @@ func Offers() map[string]int {
 		wittymodule.HostHTTP: 1,
 		wittymodule.HostWeb:  5,
 		wittymodule.HostSDUI: sdui.CatalogRevision,
-		wittymodule.HostAPI:  host.Version,
+		wittymodule.HostAPI:  HostAPIVersion,
 	}
 }
+
+// HostAPIVersion is the host API this server offers: 2 since scan hooks (PATCH /items/{id},
+// POST /libraries/{id}/scan).
+const HostAPIVersion = 2
 
 // ReservedPaths are the first parts of /api/modules/{id}/... that are the server's own, which a
 // module's route can't start with.
 var ReservedPaths = []string{"install", "rollback", "versions", "pin", "autoupdate", "latest", "source",
-	"icon", "notices", "add", "remove", "enable", "disable", "web", "failed", "pending", "override", "check"}
+	"icon", "notices", "add", "remove", "enable", "disable", "web", "failed", "pending", "override", "check", "secrets"}
 
 // readIntegration reads and checks a version's integration.json: nil and no error when it has
 // none and needn't.
@@ -121,4 +126,42 @@ func (m *Manager) Integration(id string) *wittymodule.Integration {
 		return e.integ
 	}
 	return nil
+}
+
+// ScanBy is the module that scans a kind of library (integration.json's scan part).
+type ScanBy struct {
+	ID, Name, Version string
+	Part              wittymodule.ScanPart
+	// On: a version of it that scans the kind is in use and turned on. Without one, Part is
+	// empty and the kind's items are kept as they are, unless the server scans it itself.
+	On bool
+}
+
+// ScanModule is the module whose version in use scans this kind of library. With none in use,
+// it's a module known to bring libraries of the kind (off or not installed), so a scan can
+// say which one is missing; false when no module is known for the kind at all.
+func (m *Manager) ScanModule(kind string) (ScanBy, bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, id := range m.order {
+		e := m.mods[id]
+		if e.integ == nil || e.integ.Scan == nil || !slices.Contains(e.integ.Scan.LibraryKinds, kind) || e.dir == "" || !e.on() {
+			continue
+		}
+		return ScanBy{ID: id, Name: e.man.Name, Version: e.man.Version, Part: *e.integ.Scan, On: true}, true
+	}
+	for _, id := range m.order {
+		e := m.mods[id]
+		if e.builtin != nil && slices.Contains(e.builtin.Libraries, kind) {
+			return ScanBy{ID: id, Name: e.builtin.Name}, true
+		}
+	}
+	return ScanBy{}, false
+}
+
+// Known says whether this server knows a module of this ID, installed or not.
+func (m *Manager) Known(id string) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.mods[id] != nil
 }

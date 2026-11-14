@@ -6,6 +6,7 @@
 package library
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -41,7 +42,9 @@ func TestPipesDontStopAScan(t *testing.T) {
 		readCDSidecar(filepath.Join(dir, "y.iso"))
 		_, _ = readPlain(filepath.Join(dir, "film.nfo"))
 		_, _ = readSidecar(filepath.Join(dir, "film.json"))
-		_, _ = discoverGames(dir, "auto")
+		if files, _ := walkForModule(context.Background(), dir); len(files) != 1 { // pipes aren't files to send a module
+			t.Errorf("a module's walk found %d files", len(files))
+		}
 		got, _ := discover(dir, nil)
 		for _, c := range got {
 			if strings.Contains(c.path, "Disc") {

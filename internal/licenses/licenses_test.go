@@ -5,7 +5,6 @@ package licenses
 
 import (
 	"encoding/json"
-	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -79,24 +78,6 @@ func TestWhatMustBeSaidIsSaid(t *testing.T) {
 	}
 	if c := all["FFmpeg"]; !strings.Contains(c.License, "GPL") {
 		t.Errorf("FFmpeg: %+v", c)
-	}
-	var cores int
-	for _, c := range All() {
-		if c.Group == GroupCores {
-			cores++
-		}
-	}
-	if cores == 0 && os.Getenv(modtest.EnvCatalog) != "" {
-		modtest.Need(t, "wittyplay")
-		Reload()
-		for _, c := range All() {
-			if c.Group == GroupCores {
-				cores++
-			}
-		}
-		if cores == 0 {
-			t.Error("no game cores listed")
-		}
 	}
 }
 

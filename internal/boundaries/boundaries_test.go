@@ -20,20 +20,19 @@ const internal = "github.com/wittywilla/wittymediaserver/internal/"
 // movable is each package that is to leave the server (docs/plans/module-isolation.md), with
 // what else of the server it may import until then. A package's own folders are always allowed.
 var movable = map[string][]string{
-	"dvd":              nil, // generated from WittyDVD
-	"bluray":           nil, // generated from WittyBluray
-	"cd":               nil, // generated from WittyCD
-	"cdlookup":         {"cd"},
-	"tuner":            {"tuner/mpegts"},
-	"tuner/mpegts":     nil, // WittyBroadcast
-	"tuner/xmltv":      nil, // WittyBroadcast
-	"gameid":           nil, // WittyGameCore
-	"gameregion":       nil,
-	"zipsafe":          nil,
-	"play/hostsandbox": nil,
-	"ebook":            nil, // WittyEbook
-	"midi":             nil,
-	"lyrics":           nil,
+	"dvd":          nil, // generated from WittyDVD
+	"bluray":       nil, // generated from WittyBluray
+	"cd":           nil, // generated from WittyCD
+	"cdlookup":     {"cd"},
+	"tuner":        {"tuner/mpegts"},
+	"tuner/mpegts": nil, // WittyBroadcast
+	"tuner/xmltv":  nil, // WittyBroadcast
+	"zipsafe":      nil,
+	"hostsandbox":  nil,
+	"archive":      {"hostsandbox", "zipsafe"},
+	"ebook":        nil, // WittyEbook
+	"midi":         nil,
+	"lyrics":       nil,
 }
 
 // Every file counts, tests and other systems' files included, since all of them move.

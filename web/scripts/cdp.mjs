@@ -24,12 +24,17 @@ export async function launch({ software = false, width = 1280, height = 720, arg
   if (!exe) throw new Error('no Chromium browser found; set WV_BROWSER')
   const dir = mkdtempSync(join(tmp || tmpdir(), 'wv-browser-'))
   const flags = [
-    '--headless=new', `--user-data-dir=${dir}`, '--remote-debugging-port=0', '--no-first-run', '--no-default-browser-check', '--mute-audio',
+    '--headless=new', `--user-data-dir=${dir}`, '--disable-features=MacAppCodeSignClone', '--remote-debugging-port=0', '--no-first-run', '--no-default-browser-check', '--mute-audio',
     '--autoplay-policy=no-user-gesture-required', `--window-size=${width},${height}`, '--disable-background-networking', '--disable-sync',
     ...(software ? ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--disable-gpu-rasterization'] : ['--enable-gpu', '--use-angle=default', '--ignore-gpu-blocklist']),
     ...args, 'about:blank',
   ]
   const proc = spawn(exe, flags, { stdio: ['ignore', 'ignore', 'pipe'] })
+  // A script that ends before close() (a failed check, Ctrl-C) mustn't leave the browser running: an orphaned headless
+  // Chrome holds memory, and on a Mac each one also keeps a copy of the app in the temp folder.
+  const kill = () => { try { proc.kill('SIGKILL') } catch { /* already gone */ } try { rmSync(dir, { recursive: true, force: true }) } catch { /* held */ } }
+  process.once('exit', kill)
+  for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.once(sig, () => { kill(); process.exit(130) })
   const ws = await new Promise((resolve, reject) => {
     let err = ''
     const t = setTimeout(() => reject(new Error('the browser did not start: ' + err)), 20000)

@@ -8,12 +8,13 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
-	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"math"
 	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 )
 
 // cdImage writes a generated two-track disc and adds it as an item.

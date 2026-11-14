@@ -746,7 +746,7 @@ type securityInfo struct {
 	HelpURL string `json:"helpUrl,omitempty"`
 }
 
-const encryptedHelpURL = "/api/tv/encrypted-help"
+const encryptedHelpURL = "/api/modules/wittytuner/encrypted-help"
 
 func fromSchedule(p channels.Programme) guideProgramme {
 	g := guideProgramme{Start: p.Start, End: p.End, Kind: p.Kind, Title: p.Title, Sub: p.Sub, Genre: p.Genre, Rating: p.Rating, Year: p.Year,

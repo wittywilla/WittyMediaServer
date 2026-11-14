@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/wittywilla/wittymediaserver/internal/livetv"
 )
 
 // recordableServer is recordingServer with one channel of each kind: a library
@@ -17,16 +19,10 @@ import (
 func recordableServer(t *testing.T) (call func(method, path, token, body string) (int, string), admin, alice, kid, lib string) {
 	t.Helper()
 	call, admin, alice, _, s := recordingServer(t)
-	for _, q := range []string{
-		`UPDATE tuner_channels SET epg_id = 'clear.tv' WHERE id = 1`,
-		`INSERT INTO tuner_channels(id, tuner_id, source_id, number, name, locator, enabled, encrypted, encrypted_why) VALUES(3, 1, 's3', '3', 'Locked', 'http://provider.invalid/3.ts', 1, 1, 'it needs a CableCARD')`,
-		`INSERT INTO tuner_channels(id, tuner_id, source_id, number, name, locator, enabled, no_record, epg_id) VALUES(4, 1, 's4', '4', 'Copy never', 'http://provider.invalid/4.ts', 1, 'the device says copy never', 'never.tv')`,
-		`INSERT INTO tuner_channels(id, tuner_id, source_id, number, name, locator, enabled, no_record_set) VALUES(5, 1, 's5', '5', 'Marked', 'http://provider.invalid/5.ts', 1, 1)`,
-	} {
-		if _, err := s.DB.Exec(q); err != nil {
-			t.Fatal(err)
-		}
-	}
+	changeTunerChannel(s, 1, func(c *livetv.Channel) { c.EPGID = "clear.tv" })
+	tunerChannel(t, livetv.Channel{ID: 3, Number: "3", Name: "Locked", Enabled: true, Encrypted: "it needs a CableCARD"}, "http://provider.invalid/3.ts")
+	tunerChannel(t, livetv.Channel{ID: 4, Number: "4", Name: "Copy never", Enabled: true, NoRecord: "the device says copy never", EPGID: "never.tv"}, "http://provider.invalid/4.ts")
+	tunerChannel(t, livetv.Channel{ID: 5, Number: "5", Name: "Marked", Enabled: true, NoRecord: "you marked it as not to be recorded, from what the device says"}, "http://provider.invalid/5.ts")
 	start := time.Now().Add(2 * time.Hour).Unix()
 	for _, ch := range []string{"clear.tv", "never.tv"} {
 		if _, err := s.DB.Exec(`INSERT INTO epg_programmes(channel, start, stop, title) VALUES(?, ?, ?, 'Findable news')`, ch, start, start+1800); err != nil {
@@ -204,11 +200,6 @@ func TestCanRecordIsSentEverywhere(t *testing.T) {
 	_, body = call("GET", "/api/channels/"+strings.TrimPrefix(lib, "lib-"), admin, "")
 	if !strings.Contains(body, `"canRecord":false`) {
 		t.Errorf("one library channel: %s", body)
-	}
-	_, body = call("GET", "/api/tuners/1/channels", admin, "")
-	tuned := canRecordIn(t, []byte(body), "name")
-	if !tuned["Channel 1"] || tuned["Locked"] || tuned["Copy never"] || tuned["Marked"] {
-		t.Errorf("a tuner's channels: %v", tuned)
 	}
 
 	// Reminders, which a client may offer Record beside.

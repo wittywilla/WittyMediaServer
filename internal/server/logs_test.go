@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"io"
 	"log/slog"
 	"net/http"
@@ -17,6 +16,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 )

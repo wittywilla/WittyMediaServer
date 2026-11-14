@@ -9,7 +9,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -22,6 +21,8 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/diagnose"
@@ -420,7 +421,7 @@ func schemaTypes() map[string]reflect.Type {
 		"ModuleLibraryType": ty(modmgr.LibraryType{}), "ModuleRef": ty(modmgr.ModuleRef{}), "ModuleSource": ty(modmgr.SourceInfo{}), "ModuleWebBundle": ty(modmgr.WebBundle{}),
 		"LogPage": ty(logging.Page{}), "LogEntry": ty(logging.Record{}), "SystemSummary": ty(SystemSummary{}), "CrashReport": ty(logging.Crash{}), "BundlePreview": ty(logging.BundlePreview{}), "LogModule": ty(LogModule{}), "DiagnoseJob": ty(diagnose.View{}),
 		"GuideChannel": ty(guideChannel{}), "GuideProgramme": ty(guideProgramme{}), "TuneInfo": ty(tuneInfo{}), "GuideHit": ty(guideHit{}), "ChannelAlternative": ty(livetv.Alternative{}),
-		"ChannelSecurity": ty(securityInfo{}), "ChannelBrand": ty(channelBrand{}), "TVReminder": ty(reminderView{}), "ChannelView": ty(channelView{}), "TunerChannelView": ty(tunerChannelView{}),
+		"ChannelSecurity": ty(securityInfo{}), "ChannelBrand": ty(channelBrand{}), "TVReminder": ty(reminderView{}), "ChannelView": ty(channelView{}),
 		"ResetView": ty(resetView{}), "ResetCopy": ty(reset.Copy{}), "ResetRequest": ty(reset.Request{}), "ResetResult": ty(reset.Result{}), "LegalNotice": ty(legal.Notice{}), "LegalSection": ty(legal.Section{}), "LegalService": ty(legal.Service{}),
 		"SDUIDocument": ty(sdui.Document{}), "SDUINode": ty(sdui.Node{}), "SDUICondition": ty(sdui.Condition{}), "SDUIAction": ty(sdui.Action{}), "SDUIFocus": ty(sdui.Focus{}),
 		"SDUIMeta": ty(sdui.Meta{}), "SDUIPatch": ty(sdui.Patch{}), "SDUIDiff": ty(sduiDiff{}), "SDUIPage": ty(sdui.Page{}), "SDUISection": ty(sdui.Section{}),

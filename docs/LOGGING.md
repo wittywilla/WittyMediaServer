@@ -261,7 +261,7 @@ A session ID is what lets someone jump from an error to everything about that pl
 | Remote control | `rc-<device ID>` of the device being controlled | `api_remote_control.go`, `wittyremote`, the apps' `RemoteDevice` |
 | A peer-to-peer connection | `p2p-<the device's short ID>` (`p2p.ConnSession`), which the device knows too; a connection test gets its own `p2p-…` | `internal/p2p/node.go`, `api_p2p.go`, the apps' P2P code |
 | A media job | `sep-…` for a karaoke separation, `canvas-…`, `intro-…`, `job-…` | `media_jobs.go` |
-| A channel health check | `tvcheck-…` | `livetv/health.go` |
+| A channel health check | (WittyTuner's own log, `cat=tv`) | WittyTuner `api/health.go` |
 
 Add it with `.With("session", id)` when the work starts, or put it in a context with `logging.WithSession`. New long-running work gets its own: `id := logging.NewID("scan")`. The IDs are not secrets, as every route using one also needs a sign-in. Never use a token, or a hash of one, as a session ID (`sessionOf` in the remote-control code is one: don't log it).
 

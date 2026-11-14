@@ -29,7 +29,7 @@ This plan **supersedes the "server builds with it" half of [module-isolation.md]
 - [Order of work](#order-of-work)
 - [Testing](#testing)
 - [Risks](#risks)
-- [Decisions for the owner](#decisions-for-the-owner)
+- [Decisions for the owner](#decisions-made-2026-11-14)
 
 ---
 
@@ -623,7 +623,7 @@ Within a step the order is: WittyModule (kit), then the server, then the module,
 | **M3** | **WittyPlay data and the games library kind:** scan hooks with `gameid`/`gamearchive`/`gamemeta` in the module; its own database from a clean start (no import); secrets for metadata keys; console table served at run time; facades removed | WittyPlay 0.7.0, server | Server has no games code; the module download holds the whole feature; the platform runs of M2 pass again with the module's own data |
 | **M4** | WittyCouch and WittyRigs, the same way (rigs need WittyPlay's frame: `requires` with a range) | WittyCouch 0.4.0, WittyRigs 0.4.0, server | **Done 2026-11-14:** their routes, pages, settings and data (own databases, starting empty) are the modules'; SDUI pages for TV; the server keeps rig libraries as held libraries (host API `/libraries`, `/items`, `/programs`). `requires` has no version range yet (WittyModule) |
 | **M5** | Disc player bundle (WittyDisc web part) and WittyDVD/WittyBluray sources, settings, routes; WittyCD player | WittyDisc, WittyDVD, WittyBluray, WittyCD, server | Guards untouched |
-| **M6** | WittyTuner admin, setup, EPG sources | WittyTuner, server | Guide and DVR untouched |
+| **M6** | WittyTuner admin, setup, EPG sources | WittyTuner, server | **Done 2026-11-14:** tuners, channels and guide sources are WittyTuner 0.4.0's own (its own database, starting empty; WittyTV migration 9 drops the server's tables), with its routes, Settings section, first-run step and SDUI pages for TV. The server keeps the guide, recordings, sets and every stream's guard, and opens channels through the module's service; guides arrive through the host API (`/tv/guide`). Guide and DVR untouched |
 | **M7** | WittyPhotos web part; readers hook; visualizer, stats and file browser adopt `register`; stock pages defer to modules | the modules, server | |
 | **M8** | Catalogue: every API-5 version listed with its integration summary; store shows "what this adds" | WittyModuleCatalog | |
 

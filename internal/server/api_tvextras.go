@@ -46,7 +46,6 @@ func (s *Server) tvExtraRoutes(m *http.ServeMux) {
 	s.tvSetRoutes(m)
 	s.tvProgrammeRoutes(m)
 	s.tvCatchupRoutes(m)
-	s.tvAdminRoutes(m)
 }
 
 // GET /api/time: the server's clock, in milliseconds. Players time a few of these to work out

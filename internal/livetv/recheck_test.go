@@ -66,17 +66,9 @@ func newLiveFake(t *testing.T, segment []byte) *liveFake {
 	return f
 }
 
-func liveChannel(t *testing.T, m *Manager, f *liveFake) *Channel {
+func liveChannel(t *testing.T, d *fakeDirectory, f *liveFake) *Channel {
 	t.Helper()
-	tn, err := m.Create(context.Background(), &Tuner{Driver: "iptv", Name: "Live", Options: map[string]string{"playlist": f.srv.URL + "/list.m3u"}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	ch, err := m.Channels(context.Background(), tn.ID)
-	if err != nil || len(ch) != 1 {
-		t.Fatalf("%v %+v", err, ch)
-	}
-	return ch[0]
+	return d.add(1, Channel{Number: "1", Name: "Live", Driver: "iptv"}, f.srv.URL+"/live.m3u8")
 }
 
 func refusedIn(t *testing.T, o *Opened, within time.Duration) {
@@ -91,9 +83,9 @@ func refusedIn(t *testing.T, o *Opened, within time.Duration) {
 // A playing stream that adds a key is stopped, and the channel is marked as any other
 // encrypted channel is.
 func TestKeyAddedPartwayRefusesAPlayingStream(t *testing.T) {
-	m := testManager(t)
+	m, d := testManager(t)
 	f := newLiveFake(t, nil)
-	c := liveChannel(t, m, f)
+	c := liveChannel(t, d, f)
 	ctx := context.Background()
 	o, err := m.Open(ctx, c.ID)
 	if err != nil {
@@ -119,9 +111,9 @@ func TestKeyAddedPartwayRefusesAPlayingStream(t *testing.T) {
 
 // A key already there at opening marks the channel too, on the way to being refused.
 func TestKeyAtOpeningMarksTheChannel(t *testing.T) {
-	m := testManager(t)
+	m, d := testManager(t)
 	f := newLiveFake(t, nil)
-	c := liveChannel(t, m, f)
+	c := liveChannel(t, d, f)
 	f.locked.Store(true)
 	ctx := context.Background()
 	if _, err := m.Open(ctx, c.ID); !wittytuner.IsEncrypted(err) {
@@ -156,9 +148,9 @@ func TestWatchGoesOnThroughFailures(t *testing.T) {
 }
 
 func TestStreamGoesOnWhilePlaylistIsOutOfReach(t *testing.T) {
-	m := testManager(t)
+	m, d := testManager(t)
 	f := newLiveFake(t, nil)
-	c := liveChannel(t, m, f)
+	c := liveChannel(t, d, f)
 	o, err := m.Open(context.Background(), c.ID)
 	if err != nil {
 		t.Fatal(err)
@@ -183,9 +175,9 @@ func TestStreamGoesOnWhilePlaylistIsOutOfReach(t *testing.T) {
 
 // Releasing a stream ends its looking.
 func TestReleaseStopsLooking(t *testing.T) {
-	m := testManager(t)
+	m, d := testManager(t)
 	f := newLiveFake(t, nil)
-	c := liveChannel(t, m, f)
+	c := liveChannel(t, d, f)
 	o, err := m.Open(context.Background(), c.ID)
 	if err != nil {
 		t.Fatal(err)
@@ -215,14 +207,14 @@ func TestRecordingKeepsWhatWasClearWhenAKeyComes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := testManager(t)
+	m, d := testManager(t)
 	m.Tools = &ffmpeg.Tools{FFmpeg: bin}
 	folder := t.TempDir()
 	m.Folder = func() string { return folder }
 	finished := make(chan string, 1)
 	m.AfterRecording = func(p string) { finished <- p }
 	f := newLiveFake(t, segment)
-	c := liveChannel(t, m, f)
+	c := liveChannel(t, d, f)
 	ctx := context.Background()
 	now := time.Now().Unix()
 	rec, err := m.Schedule(ctx, c.ID, 1, "News", "", now, now+120)

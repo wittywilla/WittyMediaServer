@@ -74,7 +74,6 @@ const GuidePage = lazy(() => import('./pages/tv/GuidePage'))
 const RecordingsPage = lazy(() => import('./pages/tv/RecordingsPage'))
 const SetsPage = lazy(() => import('./pages/tv/SetsPage'))
 const ChannelsPage = lazy(() => import('./pages/tv/ChannelsPage'))
-const EncryptedHelp = lazy(() => import('./pages/tv/EncryptedHelp'))
 const TvPlayer = lazy(() => import('./pages/tv/TvPlayer'))
 // The TV section's one stream, shared by the guide's preview and the watch view.
 const TvHost = lazy(() => import('./pages/tv/TvHost'))
@@ -270,7 +269,6 @@ export function PageRoutes() {
       <Route path="/tv/recordings" element={<Suspense fallback={tvFallback}><RecordingsPage /></Suspense>} />
       <Route path="/tv/channels/*" element={<Suspense fallback={tvFallback}><ChannelsPage /></Suspense>} />
       <Route path="/tv/sets/*" element={<Suspense fallback={tvFallback}><SetsPage /></Suspense>} />
-      <Route path="/tv/encrypted" element={<Suspense fallback={tvFallback}><EncryptedHelp /></Suspense>} />
       <Route path="/settings/*" element={<SettingsPage />} />
       <Route path="/m/:module/:page" element={<Suspense fallback={<Spinner />}><ModulePage /></Suspense>} />
       <Route path="/help" element={<Suspense fallback={<Spinner />}><HelpPage /></Suspense>} />

@@ -328,7 +328,7 @@ func (m *Manager) closeServices() {
 // gets none, so a file that takes over a parser has nowhere to send anything and nothing to run.
 // Only modules this project publishes are listed: a fork or anyone else's gets none of these.
 var mayHave = map[string]map[string]bool{
-	tunerID:       {wittymodule.PermissionNetwork: true, wittymodule.PermissionPrograms: true, wittymodule.PermissionDevices: true},
+	tunerID:       {wittymodule.PermissionNetwork: true, wittymodule.PermissionPrograms: true, wittymodule.PermissionDevices: true, wittymodule.PermissionData: true},
 	"wittybluray": {wittymodule.PermissionPrograms: true, wittymodule.PermissionData: true},
 	"wittyplay":   {wittymodule.PermissionNetwork: true, wittymodule.PermissionPrograms: true, wittymodule.PermissionDevices: true, wittymodule.PermissionData: true},
 	"wittycouch":  {wittymodule.PermissionNetwork: true, wittymodule.PermissionPrograms: true, wittymodule.PermissionData: true},

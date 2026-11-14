@@ -156,7 +156,7 @@ var tableParts = map[string]string{
 	"screen_time": PartHistory, "profile_watch": PartHistory, "profile_events": PartHistory,
 
 	"channels": PartChannels, "channel_days": PartChannels, "channel_history": PartChannels, "channel_bumpers": PartChannels,
-	"tuners": PartChannels, "tuner_channels": PartChannels, "epg_sources": PartChannels, "epg_channels": PartChannels,
+	"epg_channels":   PartChannels,
 	"epg_programmes": PartChannels, "recordings": PartChannels, "recording_rules": PartChannels,
 }
 

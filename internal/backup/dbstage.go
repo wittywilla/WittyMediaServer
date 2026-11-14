@@ -445,7 +445,7 @@ func dangerousRoot(p string, f Folders) string {
 var artColumns = []struct{ table, col string }{
 	{"items", "poster"}, {"items", "backdrop"}, {"shows", "poster"}, {"shows", "backdrop"}, {"seasons", "poster"},
 	{"creators", "avatar"}, {"creators", "banner"}, {"channels", "logo"}, {"title_meta", "banner"}, {"title_meta", "logo"},
-	{"tuner_channels", "logo"}, {"podcasts", "image"},
+	{"podcasts", "image"},
 }
 
 // Text shown to people. Markup never reaches a page as markup, and it's taken out here too.
@@ -847,7 +847,7 @@ func describeDatabase(ctx context.Context, d *sql.DB, in *Inspection) error {
 	}
 
 	// Places on the network the server would contact, so a person can see them.
-	for _, q := range []string{`SELECT COALESCE(options, '') FROM tuners`, `SELECT COALESCE(url, '') FROM epg_sources`} {
+	for _, q := range []string{`SELECT COALESCE(url, '') FROM podcasts`} {
 		rows, err := d.QueryContext(ctx, q)
 		if err != nil {
 			return err

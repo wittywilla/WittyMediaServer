@@ -283,7 +283,7 @@ The manifest's `permissions` say what the sandbox leaves open, and the server ha
 | `network` | Sockets, as a tuner or a game streamed to a browser needs them | WittyTuner, WittyPlay, WittyCouch, WittyRigs |
 | `programs` | Starting FFmpeg and its own programs | WittyTuner, WittyPlay, WittyCouch, WittyRigs, WittyBluray |
 | `devices` | Capture cards, tuners and graphics on this machine | WittyTuner, WittyPlay |
-| `data` | Writing in a folder of its own, given in `WITTYMODULE_DATA`, and those in `WITTYMODULE_WRITE` | WittyBluray, WittyPlay, WittyCouch, WittyRigs |
+| `data` | Writing in a folder of its own, given in `WITTYMODULE_DATA`, and those in `WITTYMODULE_WRITE` | WittyBluray, WittyPlay, WittyCouch, WittyRigs, WittyTuner |
 
 A permission a server doesn't know means the version can't run there, and it's shown with that reason.
 

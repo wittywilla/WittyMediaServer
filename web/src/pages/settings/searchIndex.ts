@@ -59,7 +59,6 @@ export const ENTRIES: Entry[] = [
   { page: 'playback', title: 'DVD and Blu-ray region', section: 'DVDs and Blu-rays', words: 'region code' },
   { page: 'channels', title: 'WittyTV theme for new viewers', words: 'tv guide look default' },
   { page: 'channels', title: 'Tuners and IPTV', section: 'Tuners and IPTV', words: 'm3u playlist hdhomerun antenna live tv' },
-  { page: 'channels', title: 'Guide data', section: 'Guide data', words: 'xmltv epg listings schedule' },
   { page: 'transcoding', title: 'Hardware encoders', section: 'Hardware encoders', words: 'gpu nvenc quick sync vaapi amf videotoolbox acceleration' },
   { page: 'transcoding', title: 'Picture quality', section: 'Picture quality', words: 'bitrate encoder speed preset crf' },
   { page: 'transcoding', title: 'Allow direct play', section: 'Playback', words: 'maximum resolution sound format' },

@@ -154,17 +154,17 @@ type RenderContext struct {
 
 // renderer carries one render's state.
 type renderer struct {
-	ctx    *RenderContext
-	page   *Page
-	l      *Layout
-	eager  int  // data sections that arrived filled so far
-	asked  int  // data sections whose source was asked, filled or empty
-	clock  bool // a condition looked at the time
+	ctx   *RenderContext
+	page  *Page
+	l     *Layout
+	eager int  // data sections that arrived filled so far
+	asked int  // data sections whose source was asked, filled or empty
+	clock bool // a condition looked at the time
 	// refresh: the smallest RefreshSec a source asked for, 0 when none did.
 	refresh int
-	ids    map[string]bool
-	totals map[string]int // section → total its source reported
-	err    error
+	ids     map[string]bool
+	totals  map[string]int // section → total its source reported
+	err     error
 }
 
 // instance is one section to draw: the authored section and, for a copy of a

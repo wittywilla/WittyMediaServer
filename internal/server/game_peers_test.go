@@ -87,10 +87,10 @@ func TestGameSessionConnectionsAreLimited(t *testing.T) {
 		t.Fatal(err)
 	}
 	<-gathered
-	body := map[string]any{"sdp": pc.LocalDescription().SDP}
+	body := map[string]any{"hello": map[string]any{"v": 2}, "sdp": pc.LocalDescription().SDP}
 	answered, refused := 0, 0
 	for range peerOfferBurst + 12 {
-		w := g.do("POST", "/api/play/"+sess.ID+"/webrtc", g.admin, body)
+		w := g.do("POST", "/api/play/"+sess.ID+"/stream", g.admin, body)
 		switch w.Code {
 		case 200:
 			answered++
@@ -112,11 +112,14 @@ func TestGameSessionConnectionsAreLimited(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 	dial := func() (*websocket.Conn, int) {
-		c, res, err := websocket.Dial(ctx, srv.URL+"/api/play/"+sess.ID+"/ws?video=jpeg", &websocket.DialOptions{HTTPHeader: http.Header{"Authorization": {"Bearer " + g.admin}}})
+		c, res, err := websocket.Dial(ctx, srv.URL+"/api/play/"+sess.ID+"/stream", &websocket.DialOptions{HTTPHeader: http.Header{"Authorization": {"Bearer " + g.admin}}})
 		if err != nil {
 			if res != nil {
 				return nil, res.StatusCode
 			}
+			t.Fatal(err)
+		}
+		if err := c.Write(ctx, websocket.MessageText, []byte(`{"type":"hello","v":2,"video":["jpeg"]}`)); err != nil {
 			t.Fatal(err)
 		}
 		return c, 101

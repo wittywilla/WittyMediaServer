@@ -250,21 +250,7 @@ func (st *sessionState) wait(id string) {
 // Done closes when the game has ended.
 func (s *Session) Done() <-chan struct{} { return stateOf(s.Sid).done }
 
-// ServeWS passes a browser's connection straight to the module.
-func (s *Session) ServeWS(w http.ResponseWriter, r *http.Request, mode string) {
-	if service.Proxy == nil {
-		http.Error(w, "WittyPlay isn't on this server", http.StatusFailedDependency)
-		return
-	}
-	q := r.URL.Query()
-	q.Set("video", mode)
-	r.URL.RawQuery = q.Encode()
-	if err := service.Proxy(module, w, r, "/ws/"+s.Sid); err != nil {
-		http.Error(w, err.Error(), http.StatusFailedDependency)
-	}
-}
-
-// ServeStream passes a version 2 WebSocket straight to the module. away is the server's word on
+// ServeStream passes a stream WebSocket straight to the module. away is the server's word on
 // where the device is, and replaces anything the address said.
 func (s *Session) ServeStream(w http.ResponseWriter, r *http.Request, away bool) {
 	if service.Proxy == nil {

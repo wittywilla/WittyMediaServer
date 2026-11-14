@@ -3,7 +3,7 @@
 Every route of the server: who may call it and what it validates. `TestRouteTableMatchesTheCode` keeps this table and the code
 together. [SECURITY-REVIEW.md](SECURITY-REVIEW.md) describes the model behind it.
 
-Nothing else listens for HTTP: the HTTPS port serves this same handler. Three routes are WebSockets: `GET /api/play/{sid}/ws`, `GET /api/play/{sid}/stream`, and WittyPlay's KasmVNC desktop under `GET /api/modules/wittyplay/kasm/{sid}/{ticket}/{rest...}`.
+Nothing else listens for HTTP: the HTTPS port serves this same handler. Two routes are WebSockets: `GET /api/play/{sid}/stream` and WittyPlay's KasmVNC desktop under `GET /api/modules/wittyplay/kasm/{sid}/{ticket}/{rest...}`.
 
 Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served wherever `GET` is.
 
@@ -557,8 +557,6 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `PUT /api/games/{id}/battery` | Signed-in | limits. A game not being played. At most 64 MB, limits per game and per account, imports at once |
 | `GET /api/play/{sid}` | Signed-in | Session started by this account, or joined with its code |
 | `DELETE /api/play/{sid}` | Signed-in | Session started by this account |
-| `POST /api/play/{sid}/webrtc` | Signed-in | Session started by this account, or joined with its code. Offer size |
-| `GET /api/play/{sid}/ws` | Signed-in; address token | Session started by this account, or joined with its code. WebSocket: origin must match the host, messages limited in size |
 | `POST /api/play/{sid}/stream` | Signed-in | Session started by this account, or joined with its code. Hello checked, offer size |
 | `GET /api/play/{sid}/stream` | Signed-in; address token | Session started by this account, or joined with its code. WebSocket: origin must match the host, a hello first, messages limited in size |
 | `POST /api/play/{sid}/action` | Signed-in | Session started by this account. Known action |

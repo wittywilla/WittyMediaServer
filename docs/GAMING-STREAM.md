@@ -16,8 +16,8 @@ runs, with H.264 decoded in hardware through VideoToolbox and MediaCodec.
 a rented server in front, or a guest Wi-Fi that blocks it. It's a property of the network, not the platform, so every client
 has it. JPEG stays for a server with no H.264 encoder at all.
 
-Version 1 (`/play/{sid}/webrtc` and `/play/{sid}/ws`) keeps working, unchanged, until every app has moved. Version 2 needs
-WittyPlay 0.3.5 or later; with an older one, the server's `modes` don't offer it, and its routes answer `needs-update`.
+This is the only stream: `/play/{sid}/stream`, version 2. The routes of version 1 (`/play/{sid}/webrtc` and
+`/play/{sid}/ws`) are gone.
 
 ### Why
 
@@ -46,7 +46,7 @@ behind it waits):
 
 Press to picture, in milliseconds, median and 95th percentile. It includes the round trip itself.
 
-| Network: round trip, jitter, loss, speed | WebRTC | WebSocket, version 1 | WebSocket, version 2 |
+| Network: round trip, jitter, loss, speed | WebRTC | WebSocket that only queues (version 1, removed) | WebSocket, version 2 |
 |---|---|---|---|
 | Home Wi-Fi: 6 ms, 4 ms, 0.5% | 16 / 42 | 14 / 38 | 17 / 56 |
 | Away: 40 ms, 8 ms, 1% | 58 / 106 | 53 / 171 | 51 / 170 |
@@ -94,9 +94,9 @@ Over a WebSocket, a lost packet's wait looks to the server like a queue, so on a
 
 ### Finding it
 
-`GET /games/modes` and a session's `modes` list what the server can stream, best first, as before. A mode reachable through
-version 2 says so with `"stream": 2`. A client that knows version 2 uses `/play/{sid}/stream` for those, and the version 1
-routes for anything else.
+`GET /games/modes` and a session's `modes` list what the server can stream, best first, as before. Every mode says
+`"stream": 2`, and is reached through `/play/{sid}/stream`. A client that meets a higher number it doesn't know shows
+"update this app" rather than connecting.
 
 ```json
 {"id": "webrtc", "video": ["h264", "vp8"], "audio": "opus", "input": "datachannel", "stream": 2}
@@ -134,7 +134,7 @@ Everything a client says about itself, in one JSON object. It's the same over bo
 | `watch` | `false` for a controller with no picture or sound, such as a phone held as a pad beside a TV. Default `true` |
 | `video` | Codecs this device decodes in hardware, best first: `h264`, `vp8`, and for later `hevc`, `av1`. Over WebRTC the offer decides, and this breaks ties. Over the WebSocket: H.264 when the server has it, unless the list puts `jpeg` before `h264`; an empty list, or none, is H.264. Send `["jpeg"]` for JPEG |
 | `audio` | `opus` and/or `pcm`, best first. WebRTC is always Opus. Over the WebSocket, leave out `opus` if you can't decode it |
-| `seats` | The players this device controls, 0 to 7, as below. Left out: version 1's way, any player nobody has taken |
+| `seats` | The players this device controls, 0 to 7, as below. Left out: any player nobody has taken |
 | `display.hz` | The screen's refresh rate, as exactly as you know it (59.94, 60, 50, 120). The server may run the game at it, below |
 | `display.width`, `height` | The screen's size in pixels. For the log, and later for choosing a picture size |
 | `latency` | `auto`, `fastest`, `balanced` or `steady`, as `emulation.latency` in [the games API](GAMING-API.md#settings) |
@@ -214,7 +214,7 @@ A game has up to 8 players (`ports`). Each device can hold some of them:
 - A hello with `"seats": [1]` takes player 2 for this device. To change, send `{"type": "seats", "ports": [0, 1]}`. Add
   `"take": true` to take a player another device has; otherwise that one is refused with an `error`. A device that
   connects again with the same `device` id gets its own players back.
-- Input for a player another device holds is ignored. A device that names no seats (as every version 1 client) can play any
+- Input for a player another device holds is ignored. A device that names no seats can play any
   player nobody holds.
 - Whenever seats change, everyone gets `{"type": "seats", "seats": [{"port", "conn", "name", "you"}]}`.
 - When a device lets a player go, or leaves, that player's buttons are released.
@@ -227,7 +227,7 @@ Every device of the account that started the game can join it this way, up to 8 
 
 Binary messages, little-endian, on `input` or the WebSocket. The first byte says what each is.
 
-**Controller state:** as in version 1, 13 bytes, or 11 without triggers, or 17 with a number of your own on the end:
+**Controller state:** 13 bytes, or 11 without triggers, or 17 with a number of your own on the end:
 
 | Bytes | Field | Meaning |
 |---|---|---|
@@ -317,7 +317,7 @@ own lights (a drive light, a lamp on an arcade cabinet), through libretro's LED 
 a light to spare. libretro has no colour light bar: light a controller's player number, or its light bar's colour, from
 `seats`.
 
-**Timing and control,** optional, as in version 1:
+**Timing and control,** optional, as in [the games API](GAMING-API.md#measuring-and-timing):
 
 | First byte | From | Rest |
 |---|---|---|
@@ -400,7 +400,6 @@ for the server's log.
 | 424 | `no-module` | WittyPlay isn't installed on this server |
 | 429 | `busy` | Too many connections at once. Wait for `Retry-After` |
 | 500 | `failed` | Something went wrong starting it. Try again, then fall back |
-| 501 | `needs-update` | This server's WittyPlay is older than version 2 of the stream (before 0.3.5). Its `modes` don't say `"stream": 2` then, so a client that follows them never sees this. Use version 1's routes |
 
 While connected, refusals come as `{"type": "error", "code": "...", "text": "..."}`: `seat-taken` (with `port`), `bad-seat`
 and `bad-message`. The game ending comes as `{"type": "ended", "code": "...", "text": "..."}`, and the connection then closes:
@@ -464,8 +463,7 @@ to its `ms`. Not yet: several fingers, motion and lights, which browsers give pa
 7. `led` events and `seats` on the controller's lights (`InputDevice.getLightsManager()`, Android 12 and later).
 8. On Android TV, call `Surface.setFrameRate(fps, FRAME_RATE_COMPATIBILITY_FIXED_SOURCE)` and report the new `hz`.
 
-**Every app:** use `/play/{sid}/stream` when a mode says `"stream": 2`, and the version 1 routes otherwise. The rest of the
-game API is unchanged.
+**Every app:** `/play/{sid}/stream` is the only way to connect to a game.
 
 ## Games in a standalone emulator
 

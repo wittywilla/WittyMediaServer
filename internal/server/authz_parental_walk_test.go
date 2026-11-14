@@ -65,7 +65,6 @@ var idSpaces = map[string]string{
 var walkSkips = map[string]string{
 	"GET /api/system/metrics/stream": "a stream of numbers, for as long as it is listened to",
 	"GET /api/system/tasks/stream":   "a stream of tasks, for as long as it is listened to",
-	"GET /api/play/{sid}/ws":         "a WebSocket",
 	"GET /api/play/{sid}/stream":     "a WebSocket",
 	"GET /api/couch/find":            "searches the network",
 	"GET /api/playback/speedtest":    "megabytes of noise",

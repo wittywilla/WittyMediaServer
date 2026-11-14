@@ -19,9 +19,8 @@ states, so there is no emulator or game logic to write. The routes are in `inter
 4. `GET /games/{id}/saves` lists saved states. If slot 0 exists, offer Resume.
 5. `POST /games/{id}/play` with `{"resume": true}` or `{"resume": false}` starts it and answers the session,
    including `modes`.
-6. Connect with the first mode in `modes` you can use. The game starts once a viewer is connected. A mode with
-   `"stream": 2` takes **version 2 of the stream**, one route and the same messages for every device:
-   [the stream](GAMING-STREAM.md). New apps should use it; what follows here is version 1, which keeps working.
+6. Connect with the first mode in `modes` you can use, through [the stream](GAMING-STREAM.md): one route and the same
+   messages for every device. The game starts once a viewer is connected.
 7. Send controller states. Show a menu of your own for saving, loading and quitting.
 8. `DELETE /play/{sid}` saves and stops it. The answer comes once everything is written.
 
@@ -83,10 +82,8 @@ Each emulator's settings are data: `GET /modules/wittyplay/docker/emulators/{id}
 | `GET /games/{id}/saves/{slot}/thumb` | user | A state's picture (PNG) |
 | `DELETE /games/{id}/saves/{slot}` | user | Deletes a state |
 | `GET /play/{sid}` | owner | The session |
-| `POST /play/{sid}/webrtc` | owner | Connects over WebRTC. Body: `{"sdp": offer, "prefer": ""}`; answers `{"sdp": answer}` |
-| `GET /play/{sid}/ws?video=h264` | owner | Connects over a WebSocket; `video` is `h264` or `jpeg` |
-| `POST /play/{sid}/stream` | owner | Version 2: connects over WebRTC. Body `{"hello": {...}, "sdp": offer}`; answers `{"stream": {...}, "sdp": answer}`. [The stream](GAMING-STREAM.md) |
-| `GET /play/{sid}/stream` | owner | Version 2's WebSocket, the same messages: the hello first, as text |
+| `POST /play/{sid}/stream` | owner | Connects over WebRTC. Body `{"hello": {...}, "sdp": offer}`; answers `{"stream": {...}, "sdp": answer}`. [The stream](GAMING-STREAM.md) |
+| `GET /play/{sid}/stream` | owner | The stream's WebSocket, the same messages: the hello first, as text |
 | `POST /play/{sid}/action` | owner | `{"type": "save" or "load", "slot": n}`, `{"type": "reset"}`, `{"type": "pause", "on": bool}`, `{"type": "disc", "slot": n}` to change disc, from 0, in a game whose session says it has `discs` above 1, `{"type": "device", "port": n, "device": id}`. [More while a game is running](#while-a-game-is-running) |
 | `DELETE /play/{sid}` | owner | Saves and stops |
 | `POST /play/{sid}/invite` | owner | A code others can join this game with: `{code, expiresAt}`, four letters, ten minutes. See [Seats](#seats) |
@@ -342,8 +339,8 @@ client fills them.
 
 `GET /games/modes?client=native` answers `{client, modes}`, and the session's `modes` is the same list: what you can use, best first. Use the first one
 you support, and move to the next if it doesn't show a picture within about 12 seconds. Ignore ids you don't
-know, because more may appear. `"stream": 2` on a mode means it can be reached through version 2 of the stream,
-[one way for every device](GAMING-STREAM.md), which is what the web player uses. A mode with `browserOnly` set is never listed for a native client, and leaving
+know, because more may appear. Every mode is reached through [the stream](GAMING-STREAM.md), and says its version
+in `"stream"` (2). A mode with `browserOnly` set is never listed for a native client, and leaving
 out `client` counts as native. No such mode exists today.
 
 | `id` | Video | Audio | Input | Needs |
@@ -352,45 +349,12 @@ out `client` counts as native. No such mode exists today.
 | `ws-h264` | H.264 Annex B | PCM | WebSocket | A decoder that takes raw frames, such as `MediaCodec` or `VTDecompressionSession` |
 | `ws-jpeg` | One JPEG per frame | PCM | WebSocket | Only a JPEG decoder. Works when the server has no video encoder |
 
-### WebRTC
+### Connecting
 
-Standard offer and answer with no trickle, over HTTPS or HTTP, using your sign-in:
-
-1. Create a peer connection. Add **receive-only** video and audio transceivers.
-2. Create the data channels: `input` (unordered, no retransmits, binary), `events` (reliable, text), and if you want it,
-   `timing` (unordered, no retransmits, binary: see [Measuring and timing](#measuring-and-timing)).
-3. Create an offer, set it, and wait for ICE gathering to finish (a second or two is enough).
-4. `POST /play/{sid}/webrtc` with the SDP, then set the answer. The answer holds all of the server's
-   candidates.
-
-The server picks H.264 if your offer has it and VP8 otherwise. Send `"prefer": "vp8"` to ask for VP8. Offer the
-`http://www.webrtc.org/experiments/rtp-hdrext/playout-delay` header extension: the server uses it to say a frame may not wait, and a
-frame then goes to your decoder as soon as it's whole. If your stack doesn't honour it, ask for the smallest receive buffer it allows
-(`jitterBufferTarget` or the same on your platform). Latency is the point. Sound and video are separate streams, so as not to
-hold one back for the other.
-
-A connection that fails or stalls should be made again with a new offer: the game waits, paused, for a minute. The old picture
-can stay up meanwhile.
-
-Out of your home network, WebRTC needs a route to the server's UDP port. Admins set that up in Settings, Consoles & cores.
-If it fails, the WebSocket modes work anywhere HTTP does.
-
-### WebSocket
-
-Connect to `GET /play/{sid}/ws?video=h264` or `video=jpeg` with your sign-in in the `Authorization` header.
-Browsers can't set that header, and use the sign-in cookie or `?token=`. The first message is text: `{"type":"hello","video":"h264"}`. It
-says what you'll get, which may be `jpeg` if H.264 isn't available. After that:
-
-Binary messages, whose first byte says what they are:
-
-| First byte | Rest |
-|---|---|
-| 1 | H.264: one byte (1 for a keyframe, else 0), then one frame in Annex B with its parameter sets before each keyframe. The first frame is a keyframe |
-| 2 | One JPEG |
-| 3 | PCM: u32 little-endian sample rate, then signed 16-bit little-endian stereo. The rate may be anything a console uses, such as 32040 |
-
-Text messages are events, as below. Send controller states as binary messages. If you fall behind, frames are
-dropped, and you carry on from the next keyframe.
+A `webrtc` mode connects with `POST /play/{sid}/stream`, and the `ws-` modes with the WebSocket `GET /play/{sid}/stream`;
+the hello says which video you want. [The stream](GAMING-STREAM.md) has the hello, the messages and the errors. Out of your
+home network, WebRTC needs a route to the server's UDP port. Admins set that up in Settings, Consoles & cores. If it fails,
+the WebSocket works anywhere HTTP does.
 
 ## Measuring and timing
 

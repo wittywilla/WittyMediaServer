@@ -4,7 +4,6 @@
 package server
 
 import (
-	"net/http"
 	"sync"
 	"time"
 )
@@ -99,9 +98,4 @@ func (p *peerLimits) socket(id string, now time.Time) (release func(), ok bool) 
 			p.mu.Unlock()
 		})
 	}, true
-}
-
-func tooManyPeers(w http.ResponseWriter, retry string) {
-	w.Header().Set("Retry-After", retry)
-	writeErr(w, 429, "Too many connections to this game. Try again in a minute.")
 }

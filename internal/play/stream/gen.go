@@ -210,8 +210,7 @@ type Mode struct {
 	// BrowserOnly marks a mode only a web browser can use. None exists yet; in-browser
 	// emulation will be one, and is left out of the answer for native clients.
 	BrowserOnly bool `json:"browserOnly,omitempty"`
-	// Stream is the version of /play/{sid}/stream this mode can be reached through: 2. Left
-	// out, only version 1's own route.
+	// Stream is the version of /play/{sid}/stream this mode is reached through.
 	Stream int `json:"stream,omitempty"`
 }
 
@@ -441,15 +440,6 @@ func (s *Session) Advance(frames int) error {
 	return err
 }
 
-// Answer connects a browser over WebRTC: it takes the browser's offer and returns
-// the answer. prefer is "" or "vp8". Which codec is used depends on what the
-// browser offered and what FFmpeg here can encode.
-func (s *Session) Answer(ctx context.Context, offer string, prefer string) (string, error) {
-	var r0 string
-	err := service.Call(ctx, "wittyplay", "stream.Session.Answer", s, s, []any{offer, prefer}, []any{&r0})
-	return r0, err
-}
-
 // Apply brings a running game into line with new settings. Only what differs from
 // the last time is sent, and a safe-mode game takes nothing: it's running with
 // defaults so that someone can get out of a mess.
@@ -464,7 +454,7 @@ func (s *Session) ChangeDisc(index int) error {
 	return err
 }
 
-// Connect answers a version 2 connection over WebRTC. away says the server counts the device
+// Connect answers a connection over WebRTC. away says the server counts the device
 // as away from home, which it starts lower for.
 func (s *Session) Connect(ctx context.Context, hello Hello, offer string, away bool) (Connected, error) {
 	var r0 Connected

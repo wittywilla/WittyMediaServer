@@ -89,7 +89,7 @@ func TestGamesAPIAccess(t *testing.T) {
 		{"consoles need a sign-in", "GET", "/api/games/consoles", "", 401},
 		{"playing needs a sign-in", "POST", "/api/games/1/play", "", 401},
 		{"session control needs a sign-in", "POST", "/api/play/abc/action", "", 401},
-		{"streaming needs a sign-in", "GET", "/api/play/abc/ws", "", 401},
+		{"streaming needs a sign-in", "GET", "/api/play/abc/stream", "", 401},
 		{"version 2 needs a sign-in", "POST", "/api/play/abc/stream", "", 401},
 		{"version 2's WebSocket needs a sign-in", "GET", "/api/play/abc/stream", "", 401},
 		{"an unknown session can't be connected to", "POST", "/api/play/abc/stream", g.other, 404},
@@ -195,7 +195,7 @@ func TestGameSessionsBelongToTheirOwner(t *testing.T) {
 		"owner sees it":          {"GET", "/api/play/" + info.ID, g.admin, 200},
 		"someone else does not":  {"GET", "/api/play/" + info.ID, g.other, 404},
 		"nor can they stop it":   {"DELETE", "/api/play/" + info.ID, g.other, 404},
-		"nor stream it":          {"GET", "/api/play/" + info.ID + "/ws", g.other, 404},
+		"nor stream it":          {"GET", "/api/play/" + info.ID + "/stream", g.other, 404},
 		"nor by version 2":       {"GET", "/api/play/" + info.ID + "/stream", g.other, 404},
 		"a bad slot is refused":  {"GET", idPath("/api/games/{id}/saves/102/thumb"), g.admin, 404},
 		"a path is not a slot":   {"GET", idPath("/api/games/{id}/saves/..%2F..%2Fsecret/thumb"), g.admin, 404},
@@ -206,7 +206,7 @@ func TestGameSessionsBelongToTheirOwner(t *testing.T) {
 			t.Errorf("%s: got %d, want %d: %s", name, w.Code, c.want, w.Body.String())
 		}
 	}
-	if w := g.do("POST", "/api/play/"+info.ID+"/webrtc", g.other, map[string]any{"sdp": "x"}); w.Code != 404 {
+	if w := g.do("POST", "/api/play/"+info.ID+"/stream", g.other, map[string]any{"hello": map[string]any{"v": 2}, "sdp": "x"}); w.Code != 404 {
 		t.Errorf("someone else's offer: got %d", w.Code)
 	}
 	if w := g.do("POST", "/api/play/"+info.ID+"/stream", g.other, map[string]any{"hello": map[string]any{"v": 2}, "sdp": "x"}); w.Code != 404 || !strings.Contains(w.Body.String(), `"no-session"`) {

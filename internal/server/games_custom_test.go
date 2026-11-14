@@ -462,7 +462,7 @@ func TestHostileConsolesThroughTheAPI(t *testing.T) {
 	if w := g.do("DELETE", "/api/gaming/custom/consoles/"+id, g.admin, nil); w.Code != 409 {
 		t.Errorf("removing one a library uses: %d %s", w.Code, w.Body)
 	}
-	got := decode[map[string]any](t, g.do("GET", "/api/consoles/"+id+"/controls", g.other, nil))
+	got := decode[map[string]any](t, g.do("GET", "/api/modules/wittyplay/consoles/"+id+"/controls", g.other, nil))
 	pad, _ := got["pad"].(map[string]any)
 	if face, _ := pad["face"].([]any); len(face) != 4 {
 		t.Errorf("it asked for a controller like the SNES's: %+v", got["pad"])

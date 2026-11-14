@@ -34,7 +34,6 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/play/cores"
 	"github.com/wittywilla/wittymediaserver/internal/play/ipc"
 	"github.com/wittywilla/wittymediaserver/internal/play/stream"
-	"github.com/wittywilla/wittymodule/service"
 )
 
 // Games: the API around WittyPlay. Sessions and streaming live in the module;
@@ -63,8 +62,6 @@ func (s *Server) gameRoutes(m routes) {
 	m.Handle("DELETE /api/games/{id}/saves/{slot}", a(s.handleGameSaveDelete))
 	m.Handle("GET /api/play/{sid}", a(s.handlePlayGet))
 	m.Handle("DELETE /api/play/{sid}", a(s.handlePlayStop))
-	m.Handle("POST /api/play/{sid}/webrtc", a(s.handlePlayWebRTC))
-	m.Handle("GET /api/play/{sid}/ws", a(s.handlePlayWS))
 	m.Handle("POST /api/play/{sid}/stream", a(s.handlePlayStream))
 	m.Handle("GET /api/play/{sid}/stream", a(s.handlePlayStreamWS))
 	m.Handle("POST /api/play/{sid}/action", a(s.handlePlayAction))
@@ -1126,77 +1123,13 @@ func (s *Server) handlePlayStop(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
 
-func (s *Server) handlePlayWebRTC(w http.ResponseWriter, r *http.Request) {
-	sess := s.watchSession(r)
-	if sess == nil {
-		writeErr(w, 404, "not found")
-		return
-	}
-	if !s.games().peers.offer(sess.ID(), time.Now()) {
-		tooManyPeers(w, "60")
-		return
-	}
-	var b struct {
-		SDP    string `json:"sdp"`
-		Prefer string `json:"prefer"`
-	}
-	r.Body = http.MaxBytesReader(w, r.Body, stream.MaxOfferSize+1024)
-	if err := readJSON(r, &b); err != nil {
-		writeErr(w, 400, "bad offer")
-		return
-	}
-	answer, err := sess.Answer(r.Context(), b.SDP, b.Prefer)
-	if err != nil {
-		s.Log.WarnContext(r.Context(), "could not connect to a game by WebRTC", "cat", "games", "session", sess.ID(), "err", err)
-		writeErr(w, 422, err.Error())
-		return
-	}
-	writeJSON(w, 200, map[string]any{"sdp": answer})
-}
-
-func (s *Server) handlePlayWS(w http.ResponseWriter, r *http.Request) {
-	sess := s.watchSession(r)
-	if sess == nil {
-		writeErr(w, 404, "not found")
-		return
-	}
-	release, ok := s.games().peers.socket(sess.ID(), time.Now())
-	if !ok {
-		tooManyPeers(w, "10")
-		return
-	}
-	defer release()
-	sess.ServeWS(w, r, r.URL.Query().Get("video"))
-}
-
-// streamRefused answers a refused version 2 connection: docs/GAMING-STREAM.md, Errors.
+// streamRefused answers a refused connection: docs/GAMING-STREAM.md, Errors.
 func streamRefused(w http.ResponseWriter, status int, code, text string) {
 	writeJSON(w, status, map[string]string{"error": text, "code": code})
 }
 
-// handlePlayStream connects a device over WebRTC, version 2: its hello and its offer in, what it
-// gets and the answer out. The server says whether it's away from home; the device doesn't.
-// A WittyPlay from before version 2 of the stream has no Session.Connect and no /stream route. Its
-// modes don't offer version 2 then, so clients keep to version 1, which works as it always has; a
-// client that asks for version 2 anyway is told what to update, not that something failed.
-const needsStreamV2 = "Version 2 of the stream needs a newer WittyPlay (0.3.5 or later). An administrator can update it in Settings, Modules. Version 1 (/play/{id}/webrtc and /play/{id}/ws) works meanwhile."
-
-// moduleLacks says a call failed because the module's version doesn't have it.
-func moduleLacks(err error) bool {
-	var ce *service.CallError
-	return errors.As(err, &ce) && ce.Code == "unknown-method"
-}
-
-// offersStreamV2 says the module's modes can be reached through version 2.
-func offersStreamV2(modes []stream.Mode) bool {
-	for _, m := range modes {
-		if m.Stream >= stream.StreamVersion {
-			return true
-		}
-	}
-	return false
-}
-
+// handlePlayStream connects a device over WebRTC: its hello and its offer in, what it gets and
+// the answer out. The server says whether it's away from home; the device doesn't.
 func (s *Server) handlePlayStream(w http.ResponseWriter, r *http.Request) {
 	sess := s.watchSession(r)
 	if sess == nil {
@@ -1235,10 +1168,6 @@ func (s *Server) handlePlayStream(w http.ResponseWriter, r *http.Request) {
 	}
 	got, err := sess.Connect(r.Context(), b.Hello, b.SDP, !clientFrom(r).Where.AtHome())
 	if err != nil {
-		if moduleLacks(err) {
-			streamRefused(w, 501, "needs-update", needsStreamV2)
-			return
-		}
 		var se *stream.StreamError
 		if errors.As(err, &se) && se.Status >= 400 && se.Status < 600 {
 			streamRefused(w, se.Status, se.Code, se.Text)
@@ -1251,7 +1180,7 @@ func (s *Server) handlePlayStream(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, got)
 }
 
-// handlePlayStreamWS is version 2's fallback: the same messages on a WebSocket.
+// handlePlayStreamWS is the stream's fallback: the same messages on a WebSocket.
 func (s *Server) handlePlayStreamWS(w http.ResponseWriter, r *http.Request) {
 	// Someone who joined with a code may connect here too. The hello on this socket goes straight to
 	// WittyPlay, so their seat is the one their app asks for: GAMING-API.md, Seats.
@@ -1267,11 +1196,6 @@ func (s *Server) handlePlayStreamWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer release()
-	// An older WittyPlay has no route to pass this to, and would only say "not found".
-	if !offersStreamV2(s.games().mgr.Modes(stream.ClientNative)) {
-		streamRefused(w, 501, "needs-update", needsStreamV2)
-		return
-	}
 	sess.ServeStream(w, r, !clientFrom(r).Where.AtHome())
 }
 

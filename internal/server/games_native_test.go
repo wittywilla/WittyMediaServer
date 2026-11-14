@@ -182,8 +182,8 @@ func TestNativeClientPlaysAGame(t *testing.T) {
 	var answer struct {
 		SDP string `json:"sdp"`
 	}
-	if c := call("POST", "/api/play/"+sess.ID+"/webrtc", map[string]any{"sdp": pc.LocalDescription().SDP}, &answer); c != 200 {
-		t.Fatalf("webrtc: %d", c)
+	if c := call("POST", "/api/play/"+sess.ID+"/stream", map[string]any{"hello": map[string]any{"v": 2, "app": "test"}, "sdp": pc.LocalDescription().SDP}, &answer); c != 200 {
+		t.Fatalf("stream: %d", c)
 	}
 	if err := pc.SetRemoteDescription(webrtc.SessionDescription{Type: webrtc.SDPTypeAnswer, SDP: answer.SDP}); err != nil {
 		t.Fatal(err)
@@ -209,38 +209,10 @@ func TestNativeClientPlaysAGame(t *testing.T) {
 		t.Fatal("the button press did not reach the game, or the event did not come back")
 	}
 
-	// The WebSocket mode with a bearer header, as an app would use it.
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
-	c, _, err := websocket.Dial(ctx, srv.URL+"/api/play/"+sess.ID+"/ws?video=jpeg", &websocket.DialOptions{HTTPHeader: http.Header{"Authorization": {"Bearer " + g.admin}}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	c.SetReadLimit(1 << 24)
-	typ, b, err := c.Read(ctx)
-	if err != nil || typ != websocket.MessageText || !strings.Contains(string(b), `"hello"`) {
-		t.Fatalf("first message: %v %s", err, b)
-	}
-	c.Close(websocket.StatusNormalClosure, "")
-
-	// Version 2, where this WittyPlay has it. One from before it says what to update instead, on
-	// both routes, and version 1 above has played regardless.
-	v2 := false
-	for _, m := range sess.Modes {
-		v2 = v2 || m.Stream >= 2
-	}
-	if !v2 {
-		w := g.do("POST", "/api/play/"+sess.ID+"/stream", g.admin, map[string]any{"hello": map[string]any{"v": 2}, "sdp": "x"})
-		if w.Code != 501 || !strings.Contains(w.Body.String(), `"needs-update"`) {
-			t.Fatalf("version 2 on a WittyPlay without it: %d %s", w.Code, w.Body.String())
-		}
-		_, res, err := websocket.Dial(ctx, srv.URL+"/api/play/"+sess.ID+"/stream", &websocket.DialOptions{HTTPHeader: http.Header{"Authorization": {"Bearer " + g.admin}}})
-		if err == nil || res == nil || res.StatusCode != 501 {
-			t.Fatalf("version 2's WebSocket on a WittyPlay without it: %v %v", res, err)
-		}
-		t.Log("this WittyPlay has no version 2 of the stream, and says so")
-	} else {
-		// Version 2, as docs/GAMING-STREAM.md has it: the hello and the offer through one route.
+	{
+		// A second device, as docs/GAMING-STREAM.md has it: the hello and the offer through one route.
 		pc2, err := webrtc.NewPeerConnection(webrtc.Configuration{})
 		if err != nil {
 			t.Fatal(err)
@@ -298,12 +270,11 @@ func TestNativeClientPlaysAGame(t *testing.T) {
 		if err := c2.Write(ctx, websocket.MessageText, []byte(`{"type":"hello","v":2,"device":"phone-1","watch":false,"seats":[2]}`)); err != nil {
 			t.Fatal(err)
 		}
-		typ, b, err = c2.Read(ctx)
+		typ, b, err := c2.Read(ctx)
 		if err != nil || typ != websocket.MessageText || !strings.Contains(string(b), `"type":"stream"`) || !strings.Contains(string(b), `"transport":"websocket"`) {
 			t.Fatalf("version 2's first message: %v %s", err, b)
 		}
 		c2.Close(websocket.StatusNormalClosure, "")
-
 	}
 
 	if c := call("DELETE", "/api/play/"+sess.ID, nil, nil); c != 200 {

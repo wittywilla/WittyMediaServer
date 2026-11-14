@@ -45,6 +45,11 @@ if [ "${WMS_CATALOG_GOMOD:-}" != 1 ]; then
   for repo in WittyModule WittyDisc "${mods[@]}"; do
     [ -f "$repos/$repo/go.mod" ] && (cd "$out" && GOWORK="$out/go.work" go work use "$(cd -P "$repos/$repo" && pwd)")
   done
+  # A WittyModule version not yet released, as a module's go.mod may name it, is this checkout too.
+  wm=$(cd -P "$wittymodule_dir" && pwd)
+  for v in $(for repo in "${mods[@]}"; do [ -f "$repos/$repo/go.mod" ] && sed -n 's|.*github.com/wittywilla/wittymodule \(v[^ ]*\).*|\1|p' "$repos/$repo/go.mod"; done | sort -u); do
+    (cd "$out" && GOWORK="$out/go.work" go work edit -replace "github.com/wittywilla/wittymodule@$v=$wm")
+  done
   export GOWORK="$out/go.work"
 fi
 
@@ -72,7 +77,13 @@ for repo in "${mods[@]}"; do
       mkdir -p "$work/node_modules/@wittywilla"
       ln -s "$repos/WittyInk" "$work/node_modules/@wittywilla/wittyink"
     fi
-    (cd "$work" && node build-bundle.mjs "$work" "$work/dist" >/dev/null)
+    if grep -q 'kit/web/build-bundle.mjs' "$dir/package.json" 2>/dev/null; then
+      # Module API 5: WittyModule's kit builds it, with the module's own tools where it has them.
+      if [ -d "$dir/node_modules" ]; then rm -rf "$work/node_modules"; ln -s "$dir/node_modules" "$work/node_modules"; fi
+      (cd "$work" && node "$wittymodule_dir/kit/web/build-bundle.mjs" . >/dev/null)
+    else
+      (cd "$work" && node build-bundle.mjs "$work" "$work/dist" >/dev/null)
+    fi
     built="$work/dist"
   fi
   case "$delivery" in

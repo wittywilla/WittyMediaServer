@@ -347,6 +347,7 @@ type Manager struct {
 	// The host API (module API 5): where it listens, and the secret each service was given
 	// at its start, by secret.
 	hostURL    string
+	hostMu     sync.Mutex // hostTokens' own: a host API call comes in while a service is starting (under svcMu)
 	hostTokens map[string]string
 }
 

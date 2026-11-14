@@ -336,6 +336,11 @@ func cmdServe(args []string) int {
 		Instance: lock.ID(),
 	}
 	settingsFrom.Store(srv)
+	// Where modules of API 5 ask this server for what only it has (internal/server/host_api.go):
+	// before anything can start a module's service, so every one is told where it is.
+	if err := srv.StartHostAPI(); err != nil {
+		log.Warn("the host API for modules could not start: modules of API 5 can't reach this server", "cat", "modules", "err", err)
+	}
 	if restoreDone != nil {
 		if restoreDone.OK {
 			log.Warn("a backup was restored", "cat", "server", "mode", restoreDone.Mode, "file", restoreDone.Name, "parts", strings.Join(restoreDone.Parts, ","), "safety", restoreDone.Safety)
@@ -354,10 +359,6 @@ func cmdServe(args []string) int {
 	handler := srv.Handler()
 	srv.ApplyEvidenceSettings(context.Background())
 	srv.StartMetadata()
-	// Where modules of API 5 ask this server for what only it has (internal/server/host_api.go).
-	if err := srv.StartHostAPI(); err != nil {
-		log.Warn("the host API for modules could not start: modules of API 5 can't reach this server", "cat", "modules", "err", err)
-	}
 	httpServer := &http.Server{
 		Addr:              cfg.Listen,
 		Handler:           handler,

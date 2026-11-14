@@ -97,12 +97,14 @@ func (m *Manager) ServiceConn(id string) (*service.Conn, error) {
 		if m.hostURL != "" {
 			// Where its host API is, and a secret for this start (module API 5).
 			tok := newHostToken()
+			m.hostMu.Lock()
 			for t, owner := range m.hostTokens {
 				if owner == id {
 					delete(m.hostTokens, t) // the last start's secret is no use now
 				}
 			}
 			m.hostTokens[tok] = id
+			m.hostMu.Unlock()
 			params = service.StartParams{Host: m.hostURL, HostToken: tok, Offers: Offers()}
 		}
 		if _, err := a.Call(service.MethodStart, params, &started); err != nil {
@@ -368,8 +370,10 @@ func (m *Manager) Capability(id, name string) []string {
 // now on are told it, with a secret of their own.
 func (m *Manager) SetHost(url string) {
 	m.svcMu.Lock()
-	defer m.svcMu.Unlock()
 	m.hostURL = url
+	m.svcMu.Unlock()
+	m.hostMu.Lock()
+	defer m.hostMu.Unlock()
 	if m.hostTokens == nil {
 		m.hostTokens = map[string]string{}
 	}
@@ -380,8 +384,8 @@ func (m *Manager) HostModule(token string) (string, bool) {
 	if token == "" {
 		return "", false
 	}
-	m.svcMu.Lock()
-	defer m.svcMu.Unlock()
+	m.hostMu.Lock()
+	defer m.hostMu.Unlock()
 	for t, id := range m.hostTokens {
 		if subtle.ConstantTimeCompare([]byte(t), []byte(token)) == 1 {
 			return id, true

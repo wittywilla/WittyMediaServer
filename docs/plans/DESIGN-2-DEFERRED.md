@@ -98,3 +98,6 @@ Not run: Android TV (S4's looks run covers it). Deferred:
 ## From S13 (release candidates), 2026-11-13
 
 - Not built in the RC pass: Windows and Linux desktop packages, AppImage/Flatpak/Snap, WittyMediaPlayer (owner, Windows/WSL); the Android build needs JAVA_HOME at a JDK 17 (Homebrew openjdk@17 here), as gomobile finds no javac otherwise.
+
+## Relayed request (not yet confirmed by the owner in the design chat): two-page first-connect chooser
+Every client: (1) "Choose a layout": look cards only, each drawing the look's wireframe from the server's `wire` for the viewer's form factor; the look in force selected, a required one locked; Next. (2) "Choose colours": a large preview of the chosen layout in the selected theme's colours, theme cards drawing that wireframe in their own colours, "Import a theme…", "Use this" (saves both), "Back". Web has only the first-run setup Look and Theme steps (web/src/pages/setup/Look.tsx), no per-profile first-connect chooser. Apple and Android have one combined chooser today. Not built; breaks the freeze, so it waits for the owner's yes.

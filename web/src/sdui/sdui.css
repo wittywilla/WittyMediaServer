@@ -158,6 +158,8 @@ button.lib-tile, button.sdui-row, button.sdui-banner { font: inherit; cursor: po
 .sdui-notice .ui-notice-text { display: grid; gap: 2px; }
 /* The notice's buttons: the main one, then a quieter Dismiss beside it; below each other on a phone. */
 .sdui-notice-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
+.sdui-notice .sdui-notice-actions .btn:not(.ghost) { background: var(--bg-4); } /* a step up from the notice's own fill, so the main button reads as the main one */
+.sdui-notice .sdui-notice-actions .btn:not(.ghost):hover { background: color-mix(in srgb, var(--bg-4) 80%, var(--fg)); }
 @media (max-width: 600px) { .sdui-notice-actions { flex: 1 1 100%; flex-direction: column; align-items: stretch; } }
 .sdui-notice-ic { display: grid; flex: none; color: var(--fg-2); }
 .sdui-notice-ic svg { width: 20px; height: 20px; }

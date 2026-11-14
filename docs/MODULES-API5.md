@@ -193,7 +193,7 @@ What `web` claims, the web app learns from `GET /api/modules/web` (each bundle's
 |---|---|
 | `routes` with `frame: "fullscreen"` | The route takes the window in place of the app's frame (as the players and WittyPlay's frame do) |
 | `routes` with `frame: "app"` or `"tv"` | The route's page comes before the app's own, inside the app's frame |
-| `cards` | Cards of that media kind take their art, detail panel and link from the module (`game` today) |
+| `cards` | Cards of that media kind take their art, detail panel and link from the module (`game` today). The card-art context's `bio` draws the panel under a card's row (WittyPlay: logo, console, maker, rating, pictures, achievements) |
 | `settings` | A section of Settings: one with a built-in section's id takes its place, one with `after` goes after that one, any other under "From modules" |
 | `takeover` | A library of that kind goes to the module's own view of it (`/library/2` → `/wittyplay/library/2`) |
 | `routes` with `frame: "tv"` | In TV mode only, the route's TV screen is the module's |

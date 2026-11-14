@@ -20,7 +20,7 @@ import (
 type fakeHostModules struct{ in *wittymodule.Integration }
 
 func (f fakeHostModules) HostModule(t string) (string, bool) { return "wittyplay", t == "tok" }
-func (f fakeHostModules) Libraries(string) []string           { return []string{"games"} }
+func (f fakeHostModules) Libraries(string) []string          { return []string{"games"} }
 func (f fakeHostModules) Integration(string) *wittymodule.Integration {
 	return f.in
 }

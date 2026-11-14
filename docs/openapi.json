@@ -3938,6 +3938,9 @@
           "createdAt": {
             "type": "integer"
           },
+          "foreignNfo": {
+            "type": "boolean"
+          },
           "id": {
             "type": "integer"
           },
@@ -3981,6 +3984,7 @@
         },
         "required": [
           "createdAt",
+          "foreignNfo",
           "id",
           "itemCount",
           "lastScanAt",

@@ -81,6 +81,7 @@ func (s *Server) HostAPI() http.Handler {
 	h("GET "+b+"/events", s.hostEventsWait)
 	h("POST "+b+"/tasks/{name}", s.hostTask)
 	h("GET "+b+"/legacy/{table}", s.hostLegacy)
+	h("POST "+b+"/audit", s.hostAudit)
 	h("GET "+b+"/legacy-files/{dir...}", s.hostLegacyFiles)
 	return mux
 }
@@ -673,4 +674,26 @@ func (s *Server) hostLegacyFiles(w http.ResponseWriter, r *http.Request, module 
 	}
 	w.Header().Set("Content-Type", "application/octet-stream")
 	http.ServeFile(w, r, full)
+}
+
+// hostAudit writes a row of the server's audit log for a module (custom cores, overrides and the
+// rest share it): who did it (the person a call is for), what, to what. Kept by the server, so a
+// module can't take its own rows out.
+func (s *Server) hostAudit(w http.ResponseWriter, r *http.Request, module string) {
+	u, _, err := s.onBehalf(r)
+	if err != nil {
+		writeJSON(w, 403, map[string]string{"error": err.Error()})
+		return
+	}
+	var in struct {
+		Action string `json:"action"`
+		Core   string `json:"core"`
+		Detail string `json:"detail"`
+	}
+	if err := json.NewDecoder(io.LimitReader(r.Body, 8<<10)).Decode(&in); err != nil || in.Action == "" || len(in.Action) > 64 || len(in.Core) > 128 {
+		writeJSON(w, 400, map[string]string{"error": "an audit row needs an action"})
+		return
+	}
+	s.writeAudit(r.Context(), u, module+" "+in.Action, in.Action, in.Core, in.Detail)
+	w.WriteHeader(204)
 }

@@ -60,6 +60,7 @@ func (s *Scanner) fillNFOCredits(ctx context.Context, lib *Library) error {
 		return err
 	}
 	for _, id := range ids {
+		scanMoved(ctx)
 		if err := pace.Yield(ctx); err != nil {
 			return err
 		}
@@ -89,6 +90,7 @@ func (s *Scanner) fillOnlineCredits(ctx context.Context, lib *Library) error {
 		return err
 	}
 	for _, td := range todo {
+		scanMoved(ctx)
 		if err := pace.Yield(ctx); err != nil {
 			return err
 		}
@@ -268,6 +270,7 @@ func (s *Scanner) fillPeopleDetails(ctx context.Context) error {
 		return err
 	}
 	for _, p := range people {
+		scanMoved(ctx)
 		if err := pace.Yield(ctx); err != nil {
 			return err
 		}

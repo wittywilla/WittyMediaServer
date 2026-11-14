@@ -8,10 +8,12 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
+	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
 	"github.com/wittywilla/wittymediaserver/internal/tasks"
@@ -72,14 +74,16 @@ func (s *Server) wireTasks() {
 		s.Update.Tasks = s.Tasks
 	}
 	s.Tasks.OnRetry(tasks.TypeScan, func(old tasks.Task, by tasks.By) error {
-		id, err := strconv.ParseInt(old.RetryKey, 10, 64)
+		key, mode, _ := strings.Cut(old.RetryKey, "/")
+		id, err := strconv.ParseInt(key, 10, 64)
 		if err != nil {
 			return tasks.ErrCant
 		}
 		if _, err := s.Store.Library(context.Background(), id); err != nil {
 			return errors.New("that library no longer exists")
 		}
-		if !s.Scanner.StartBy(id, by) {
+		m, _ := library.ParseScanMode(mode)
+		if !s.Scanner.StartBy(id, m, by) {
 			return errors.New("that library is already being scanned")
 		}
 		return nil

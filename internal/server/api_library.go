@@ -5,6 +5,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -208,8 +209,24 @@ func (s *Server) handleScan(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "library not found")
 		return
 	}
-	started := s.Scanner.StartBy(id, byUser(userFrom(r)))
-	writeJSON(w, 202, map[string]any{"started": started})
+	// {"mode": "changes"} (the default, also with no body) reads only new, changed or removed
+	// files; {"mode": "full"} reads every file and its details again from scratch.
+	var in struct {
+		Mode string `json:"mode"`
+	}
+	if r.ContentLength != 0 {
+		if err := json.NewDecoder(io.LimitReader(r.Body, 4<<10)).Decode(&in); err != nil && !errors.Is(err, io.EOF) {
+			writeErr(w, 400, "the body is not JSON")
+			return
+		}
+	}
+	mode, ok := library.ParseScanMode(in.Mode)
+	if !ok {
+		writeErr(w, 400, `mode is "changes" or "full"`)
+		return
+	}
+	started := s.Scanner.StartBy(id, mode, byUser(userFrom(r)))
+	writeJSON(w, 202, map[string]any{"started": started, "mode": mode})
 }
 
 func (s *Server) handleScanProgress(w http.ResponseWriter, r *http.Request) {

@@ -486,6 +486,8 @@ func cmdServe(args []string) int {
 		logging.Go("discovery", func() { d.Run(ctx) }, "cat", "remote")
 	}
 	srv.WatchModules(ctx)
+	// Scans a restart cut short carry on, each as it was asked for (a Full rescan from where it got to).
+	scanner.ResumeScans(context.Background())
 	srv.StartBackupSchedule(ctx)
 	logging.Loop("update check", func() {
 		updater.Run(ctx, func() bool { return database.GetSetting(context.Background(), "updateCheck", "1") == "1" })
@@ -515,6 +517,7 @@ func cmdServe(args []string) int {
 		}
 		log.Warn("stopping", append(stopLine, srv.RunningNow()...)...)
 		logging.NoteStopping() // a stop while it wasn't answering keeps what it was doing
+		scanner.Stopping()     // a scan cut short now carries on at the next start
 		hlsMgr.StopAllLive()
 		hlsMgr.StopAll()
 		if srv.TV != nil {

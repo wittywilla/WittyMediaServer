@@ -83,12 +83,19 @@ func (rv *sduiResolver) libraryScanRows(ref string) ([]sdui.Item, error) {
 	busy := false
 	if p := rv.s.Scanner.Snapshot(id); p != nil {
 		busy = true
-		state := sdui.Item{ID: "state", Kind: "view", Title: "Scanning", Subtitle: l.Name, Icon: "clock", Trailing: scanCount(p)}
+		doing := "Scanning"
+		if p.Mode == library.ScanFull {
+			doing = "Full rescan"
+		}
+		if p.Resumed {
+			doing += ", carrying on after a restart"
+		}
+		state := sdui.Item{ID: "state", Kind: "view", Title: doing, Subtitle: l.Name, Icon: "clock", Trailing: scanCount(p)}
 		if p.Found > 0 {
-			state.Title = "Scanning: " + scanCount(p)
+			state.Title = doing + ": " + scanCount(p)
 		}
 		out = append(out, state)
-	} else if l.Scanning {
+	} else if l.Scanning || l.ScanMode != "" {
 		busy = true
 		out = append(out, sdui.Item{ID: "state", Kind: "view", Title: "Scanning", Subtitle: l.Name, Icon: "clock"})
 	} else if l.LastScanAt != nil && *l.LastScanAt > 0 {

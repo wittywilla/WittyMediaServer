@@ -176,6 +176,7 @@ func (s *Scanner) importPlaylists(ctx context.Context, lib *Library, files []can
 		if err := ctx.Err(); err != nil {
 			return
 		}
+		scanMoved(ctx)
 		if err := s.importPlaylist(ctx, lib, c, owner); err != nil {
 			s.minorFailure(ctx, "could not read a playlist", err, "file", c.path)
 		}

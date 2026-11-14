@@ -123,6 +123,7 @@ Every call that's on someone's behalf says who (`host.On{User}`, or `host.For(r)
 | `Tools` | `GET /tools` | The server's FFmpeg and FFprobe, the encoders it has, and its test of hardware encoders |
 | `Events` | `GET /events?after=&wait=` | Waits up to `wait` (at most 55s) for events after a number: `server.started`, `scan.finished`, … |
 | `Task` | `POST /tasks/{name}` | A long piece of work, shown with the server's tasks (administrators only) |
+| (`Do`) | `GET /setup` | `{"done": [ids]}`: the module's setup steps done or skipped at the version it declares |
 | (`Do`) | `POST /setup/{id}` `{skip}` | On an administrator's behalf: the module's setup step `id` is done (or skipped) at the `version` it declares. Until then a step with a `page` is a "Finish setting up <module>" notice on administrators' Home, on every app, opening that SDUI page. Written to the audit log |
 
 Refusals are JSON `{"error"}` with the status; an `X-Witty-Host` header tells a refusal of the host API's from a call this server doesn't have (`host.ErrNotOffered`).

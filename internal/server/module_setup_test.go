@@ -59,4 +59,8 @@ func TestModuleSetupSteps(t *testing.T) {
 	if done := ts.moduleStepsDone(ctx); len(done) != 1 || done[0] != "wittyplay.games@2" {
 		t.Errorf("done: %v", done)
 	}
+	var state struct{ Done []string }
+	if err := c.Do(ctx, host.On{}, "GET", "/setup", nil, &state); err != nil || len(state.Done) != 1 || state.Done[0] != "games" {
+		t.Errorf("state: %+v %v", state, err)
+	}
 }

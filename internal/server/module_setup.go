@@ -125,6 +125,21 @@ func (s *Server) hostSetupDone(w http.ResponseWriter, r *http.Request, module st
 	w.WriteHeader(204)
 }
 
+// hostSetupState says which of the calling module's setup steps are done (or skipped) at the
+// version it declares: GET /host/v1/setup, {"done": [ids]}.
+func (s *Server) hostSetupState(w http.ResponseWriter, r *http.Request, module string) {
+	done := []string{}
+	if integ := s.hostMods().Integration(module); integ != nil && integ.Web != nil {
+		have := s.moduleStepsDone(r.Context())
+		for _, st := range integ.Web.Setup {
+			if slices.Contains(have, moduleStepKey(module, st.ID, st.Version)) {
+				done = append(done, st.ID)
+			}
+		}
+	}
+	writeJSON(w, 200, map[string]any{"done": done})
+}
+
 // withModuleSetup puts a "Finish setting up" notice for each module step left at the top of
 // Home, for an administrator.
 func (s *Server) withModuleSetup(ctx context.Context, page sdui.Page, admin bool) sdui.Page {

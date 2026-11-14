@@ -61,7 +61,6 @@ const CreatorPage = lazy(() => import('./pages/creators/ChannelsLibrary').then((
 const LibraryPage = lazy(() => import('./pages/LibraryPage'))
 const ItemPage = lazy(() => import('./pages/ItemPage'))
 const ShowPage = lazy(() => import('./pages/ShowPage'))
-const CdPlayer = lazy(() => import('./player/CdPlayer'))
 const AlbumPage = lazy(() => import('./pages/AudioLibrary').then((m) => ({ default: m.AlbumPage })))
 const ArtistPage = lazy(() => import('./pages/music/ArtistPage'))
 const ReaderPage = lazy(() => import('./pages/Reader'))
@@ -245,7 +244,6 @@ export function PageRoutes() {
       <Route path="/album/:lib" element={<SduiRoute fallback={<AlbumPage />} loading={<RouteSkeleton />} />} />
       <Route path="/artist/:lib" element={<Suspense fallback={<Spinner />}><ArtistPage /></Suspense>} />
       <Route path="/radio/:id" element={<Suspense fallback={<Spinner />}><RadioStationPage /></Suspense>} />
-      <Route path="/cd/:id" element={<CdPlayer />} />
       <Route path="/collections" element={<SduiRoute fallback={<NotFound />} />} />
       <Route path="/collections/:id" element={<SduiRoute fallback={<NotFound />} />} />
       <Route path="/person/:id" element={<SduiRoute fallback={<NotFound />} loading={<RouteSkeleton />} />} />

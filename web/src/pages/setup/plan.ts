@@ -46,7 +46,7 @@ export const STEPS: StepInfo[] = [
   { id: 'listings', label: 'Streaming lists', needs: 'server', when: (f) => canMake(f, 'movies') || canMake(f, 'shows'), later: { where: 'Settings, Metadata agents, under Streaming listings', to: '/settings/metadata#listings' } },
   { id: 'tv', label: 'Live TV', needs: ['wittytuner'], later: { where: 'Settings, Channels & tuners', to: '/settings/channels' } },
   { id: 'games', label: 'Games', needs: ['wittyplay'], later: { where: 'Settings, Metadata agents', to: '/settings/metadata' } },
-  { id: 'discs', label: 'Discs', needs: ['wittydvd', 'wittybluray'], later: { where: 'Settings, Playback & discs', to: '/settings/playback' } },
+  { id: 'discs', label: 'Discs', needs: ['wittydvd', 'wittybluray'], later: { where: 'Settings, DVDs and Blu-rays', to: '/settings/discs' } },
   { id: 'people', label: 'People and rules', needs: 'server', later: { where: 'Settings, Profiles', to: '/settings/users' } },
   { id: 'remote', label: 'Remote access and apps', needs: 'server', later: { where: 'Settings, Remote Access', to: '/settings/remote' } },
   { id: 'done', label: 'Ready', needs: 'server' },

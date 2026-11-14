@@ -55,8 +55,6 @@ export const ENTRIES: Entry[] = [
   { page: 'metadata', title: 'Custom agents', section: 'Custom agents' },
   { page: 'playback', title: 'Player', section: 'Player', words: 'playback speed episode layout' },
   { page: 'playback', title: 'Skipping', section: 'Skipping', words: 'auto skip intro recap credits adverts commercials next episode automatically' },
-  { page: 'playback', title: 'DVDs and Blu-rays', section: 'DVDs and Blu-rays', words: 'disc region languages drive sounds insert animation parental bd-j java low power' },
-  { page: 'playback', title: 'DVD and Blu-ray region', section: 'DVDs and Blu-rays', words: 'region code' },
   { page: 'channels', title: 'WittyTV theme for new viewers', words: 'tv guide look default' },
   { page: 'channels', title: 'Tuners and IPTV', section: 'Tuners and IPTV', words: 'm3u playlist hdhomerun antenna live tv' },
   { page: 'channels', title: 'Guide data', section: 'Guide data', words: 'xmltv epg listings schedule' },

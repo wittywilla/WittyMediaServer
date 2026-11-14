@@ -816,7 +816,7 @@ DELETE /dvd/{sessionId}                      when finished
 ```
 
 The same routes serve DVDs and Blu-rays. Open with `mode` from `disc.startMode`, or `mode: "title"` with
-`ttn` and `chapter` to skip the menus (the disc page, `/items/{id}/disc`, lists them), or `menu` and
+`ttn` and `chapter` to skip the menus (the disc page, `/modules/wittydvd/discs/{id}` or `/modules/wittybluray/discs/{id}`, lists them), or `menu` and
 `menuVts` to open one menu. Send remembered choices along as `audioLanguage`, `subtitleLanguage` and
 `angle`; they are the app's to remember, per disc.
 
@@ -1655,13 +1655,21 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /dvd/{sid}/still/{name}` | user, `st` | A still picture (a menu or slide without video). |
 | `GET /dvd/{sid}/subs` | user | Sub-picture subtitle events for a time window. Normally reached through `title.subtitlesUrl`. |
 | `GET /dvd/{sid}/sub/{name}` | user, `st` | One sub-picture as a PNG. |
-| `GET /items/{id}/disc` | user | The disc page: the feature, extras and menus to jump into. |
-| `PUT /items/{id}/disc/labels` | admin | Name a disc's titles and chapters. |
-| `GET /items/{id}/disc/analysis` | user | Which title (DVD) or playlist (Blu-ray) is the film and why: `main` (what Play plays), `engineMain`, `chosen`, `rank` (confidence 0–1, `level`, `why`, `reasons`, `candidates`, `versions`, `episodes`, `feature`, `repairs`, `issues`, `paddedSectors`, `secondOpinion`), `canChoose`, `protected`. `pending: true` on a low-power server while it is worked out: ask again. `ranked: false` with a module from before rankings. |
-| `POST /items/{id}/disc/analysis` | admin | Work the ranking out again. `{"secondOpinion": true}` also asks a libbluray on this machine (Blu-ray only, when the setting `blurayLibbluray` is on and one is installed; never for an encrypted disc). |
-| `PUT /items/{id}/disc/choice` | admin | `{"ttn": n}`: remember this title or playlist as the disc's film, for everyone. It beats the engine's pick for Play, the disc page, the item's length and languages, and survives rescans while the disc has that title. |
-| `DELETE /items/{id}/disc/choice` | admin | Forget the choice: the engine's pick is the film again. |
 | `GET /items/{id}/disc/thumb/{ttn}/{n}` | user, `st` | A picture of a title (n = 0) or chapter; the first request makes it. |
+
+A disc's page, why a title is its film, the choice of another and the names of its titles are WittyDVD's and WittyBluray's own routes (module API 5), under `/modules/wittydvd/` for a DVD and `/modules/wittybluray/` for a Blu-ray. Each answers for its own kind of disc only (404 for the other's), and 424 with `module` while the module isn't in use. Their sections on a title's page (Feature Presentation, Scenes, Why this title and the rest) come with the page from the modules' `sdui.json`, and their rows run the modules' own commands (`wittydvd.choose`, `wittydvd.clearChoice`, `wittydvd.rank`; `wittybluray.*` the same, and `wittybluray.compare`).
+
+| Route (under `/modules/wittydvd` or `/modules/wittybluray`) | Sign-in | What it does |
+|---|---|---|
+| `GET /discs/{id}` | user | The disc page: `main` (the feature, with its `chapters`), `extras` and `menus` to jump into, `hidden`, `rank` (`why`, `confidence`, `level`, `engineMain`, `decoys`, `chosen`), `episodes`, `versions`. Each title's and chapter's `label` is the name given to it. 403 for an encrypted disc. |
+| `PUT /discs/{id}/labels` | admin | Name a disc's titles and chapters: `{"titles": {"3": "Making of"}, "chapters": {"1": {"4": "The dragon"}}}`. Kept in the module's own database. |
+| `GET /discs/{id}/analysis` | user | Which title (DVD) or playlist (Blu-ray) is the film and why: `main` (what Play plays), `engineMain`, `chosen`, `chosenBy` (admins), `rank` (confidence 0–1, `level`, `why`, `reasons`, `candidates`, `versions`, `episodes`, `feature`, `repairs`, `issues`, `paddedSectors`, `secondOpinion`), `canChoose`, `protected`, `secondOpinion` (Blu-rays, admins). `pending: true` on a low-power server while it is worked out: ask again. `ranked: false` with no ranking. |
+| `POST /discs/{id}/analysis` | admin | Work the ranking out again. `{"secondOpinion": true}` also asks a libbluray on this machine (Blu-ray only, when the setting `blurayLibbluray` is on and one is installed; never for an encrypted disc). Answers the analysis. |
+| `PUT /discs/{id}/choice` | admin | `{"ttn": n}`: remember this title or playlist as the disc's film, for everyone. It beats the engine's pick for Play, the disc page, the item's length and languages, and survives rescans while the disc has that title. Answers the analysis. |
+| `DELETE /discs/{id}/choice` | admin | Forget the choice: the engine's pick is the film again. |
+| `GET /libbluray` | admin | WittyBluray only: whether a libbluray here can give a second opinion, `libbluray` (`enabled`, `available`, `version`, `reason`), and `libblurayPath`. |
+
+The player in a browser is WittyDisc's web part, which WittyDVD and WittyBluray bring; the disc sessions above stay the server's.
 
 ### Audio CDs
 
@@ -1670,9 +1678,14 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /cd/{id}` | user, `st` | A disc's tracks and layout, and this person's place on it. |
 | `GET /cd/{id}/audio` | user, `st` | The disc as one continuous stream: `format`, `tracks`, `loops`, `start`, `deemphasis`. |
 | `GET /cd/{id}/graphics` | user, `st` | CD+G packets for a run of sectors. |
-| `GET /cd/{id}/matches` | admin | What this disc could be, from MusicBrainz, asked with only its table of contents. |
-| `POST /cd/{id}/identify` | admin | Use a release's names and cover. An empty `releaseId` goes back to the disc's own. |
 | `GET /cd-covers/{release}` | admin | A release's cover, small, for choosing between matches. |
+
+Finding what a disc is is WittyCD's own (module API 5), under `/modules/wittycd/`, and answers 424 with `module` while WittyCD isn't in use. The CD player in a browser is WittyCD's web part (`/cd/{id}`); on TV, the SDUI page `wittycd-identify?item=<id>` lists the matches, each row running `wittycd.identify`.
+
+| Route (under `/modules/wittycd`) | Sign-in | What it does |
+|---|---|---|
+| `GET /cds/{id}/matches` | admin | What this disc could be, from MusicBrainz, asked with only its table of contents: `itemId`, `discId`, `matches`, `attribution`. |
+| `POST /cds/{id}/identify` | admin | `{"releaseId": "..."}`: use a release's names and cover; `""` goes back to the disc's own. Answers the disc as `GET /cd/{id}` does. |
 
 ### Music, audiobooks and podcasts
 
@@ -2262,7 +2275,6 @@ See [LIBRARY-TRANSCODING.md](LIBRARY-TRANSCODING.md).
 | `GET /dvd/{sid}/bdj` | user | BDJ poll. |
 | `GET /dvd/{sid}/bdj/frame/{n}` | user | BDJ frame. |
 | `GET /bdj/status` | admin | BDJ status. |
-| `GET /bluray/capabilities` | admin | What optional help WittyBluray has here: `libbluray` (`enabled`, `available`, `version`, `reason`) and `libblurayPath`. |
 
 
 ## Backup

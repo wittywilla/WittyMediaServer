@@ -84,7 +84,7 @@ const GROUPS: { title: string; pages: Page[] }[] = [
     { to: 'libraries', label: 'Libraries', icon: <IconLibrary />, admin: true, hint: 'Folders of movies, shows, music and books' },
     { to: 'pages', label: 'Pages & menu', icon: <IconSidebar />, admin: true, hint: 'What Home, the libraries and the menu hold, for everyone' },
     { to: 'metadata', label: 'Metadata agents', icon: <IconTag />, admin: true, hint: 'Where posters and plots come from' },
-    { to: 'playback', label: 'Playback & discs', icon: <IconPlay />, admin: true, hint: 'Player, DVDs and Blu-rays' },
+    { to: 'playback', label: 'Playback', icon: <IconPlay />, admin: true, hint: 'Player, skipping and streaming' },
     { to: 'channels', label: 'Channels & tuners', icon: <IconChannels />, admin: true, hint: 'Tuners, IPTV, guide data and WittyTV options' },
     { to: 'transcoding', label: 'Live transcoding', icon: <IconFilm />, admin: true, hint: 'While someone watches: quality, hardware and formats' },
     { to: 'library-transcoding', label: 'Library transcoding', icon: <IconFilm />, admin: true, hint: 'Convert files ahead of time, and connect Tdarr' },

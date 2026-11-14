@@ -143,61 +143,14 @@ func openDisc(t *testing.T, ts *testServer, tok string, id int64, body map[strin
 	return got.SessionID, got.Presentation
 }
 
-func analysisOf(t *testing.T, ts *testServer, tok string, id int64) discAnalysisView {
-	t.Helper()
-	w := ts.do(t, "GET", fmt.Sprintf("/api/items/%d/disc/analysis", id), tok, nil)
-	if w.Code != 200 {
-		t.Fatalf("the analysis: %d %s", w.Code, w.Body)
-	}
-	var v discAnalysisView
-	if err := json.Unmarshal(w.Body.Bytes(), &v); err != nil {
-		t.Fatal(err)
-	}
-	return v
-}
-
-// sectionsOf is the ids of a title page's top-level sections, as an app is sent them, with
-// the titles of their rows.
-func sectionsOf(t *testing.T, ts *testServer, tok string, id int64) map[string][]string {
-	t.Helper()
-	w := ts.do(t, "GET", fmt.Sprintf("/api/sdui/pages/detail?item=%d&catalog=2", id), tok, nil)
-	if w.Code != 200 {
-		t.Fatalf("the title page: %d %s", w.Code, w.Body)
-	}
-	var doc struct {
-		Root struct {
-			Children []struct {
-				ID       string `json:"id"`
-				Children []struct {
-					Props map[string]any `json:"props"`
-				} `json:"children"`
-			} `json:"children"`
-		} `json:"root"`
-	}
-	if err := json.Unmarshal(w.Body.Bytes(), &doc); err != nil {
-		t.Fatal(err)
-	}
-	out := map[string][]string{}
-	for _, c := range doc.Root.Children {
-		var rows []string
-		for _, r := range c.Children {
-			if s, ok := r.Props["title"].(string); ok {
-				rows = append(rows, s)
-			}
-		}
-		out[c.ID] = rows
-	}
-	return out
-}
-
 func TestRankedDVDsWithTheRealModule(t *testing.T) {
 	m := modtest.Need(t, "wittydvd", "wittybluray")
 	var list []synthDVD
 	dir := synthList(t, "wittydvd", &list)
 	ts := newTestServer(t)
 	ts.Modules = m
-	_, admin := ts.user(t, "admin", "adult", true, "")
-	_, viewer := ts.user(t, "viewer", "adult", false, "")
+	admin, _ := ts.user(t, "admin", "adult", true, "")
+	viewer, viewerTok := ts.user(t, "viewer", "adult", false, "")
 	items, lib := scanDiscs(t, ts, dir)
 	for _, want := range list {
 		t.Run(want.Name, func(t *testing.T) {
@@ -236,32 +189,18 @@ func TestRankedDVDsWithTheRealModule(t *testing.T) {
 
 			// Anyone who may see the disc sees why; only an admin may choose.
 			v := analysisOf(t, ts, viewer, it.ID)
-			if !v.Ranked || v.Main != want.Main || v.EngineMain != want.Main || v.CanChoose || v.Kind != "dvd" {
+			if !v.Ranked || v.Main != want.Main || v.EngineMain != want.Main || v.Kind != "dvd" {
 				t.Errorf("the viewer's analysis: %+v", v)
 			}
-			if a := analysisOf(t, ts, admin, it.ID); !a.CanChoose {
-				t.Error("an admin can't choose")
-			}
 
-			// The title page carries WittyDVD's sections from its own sdui.json, and none of WittyBluray's.
-			secs := sectionsOf(t, ts, viewer, it.ID)
-			if rows := secs["wittydvd-feature"]; len(rows) == 0 || rows[0] != "Play the film" {
-				t.Errorf("Feature Presentation: %v (sections %v)", rows, secs)
-			}
-			if rows := secs["wittydvd-why"]; len(rows) == 0 || !strings.HasSuffix(rows[0], "is the film") {
-				t.Errorf("Why this title: %v", rows)
-			}
-			if len(want.EpisodeStarts) > 2 && len(secs["wittydvd-episodes"]) != len(want.EpisodeStarts) {
-				t.Errorf("Episodes: %v", secs["wittydvd-episodes"])
-			}
-			for id := range secs {
-				if strings.HasPrefix(id, "wittybluray-") || id == "wittydvd-refusal" {
-					t.Errorf("a section that doesn't belong on this DVD: %s", id)
-				}
+			// WittyDVD is told the disc's page: the film first.
+			pg := discHostPage(t, ts, viewer, it.ID)
+			if pg.Main == nil || pg.Main.TTN != want.Main {
+				t.Errorf("the page's film: %+v", pg.Main)
 			}
 
 			// Play plays the film: the whole of it, through every title it runs through.
-			_, p := openDisc(t, ts, viewer, it.ID, map[string]any{"mode": "title"})
+			_, p := openDisc(t, ts, viewerTok, it.ID, map[string]any{"mode": "title"})
 			if p.Kind != "title" || p.Title == nil {
 				t.Fatalf("Play shows %q (%s)", p.Kind, p.Reason)
 			}
@@ -277,12 +216,12 @@ func TestRankedDVDsWithTheRealModule(t *testing.T) {
 
 			// An episode of a title that plays them all starts where it starts.
 			if len(want.EpisodeStarts) > 2 && len(d.Rank.Episodes) == len(want.EpisodeStarts) {
-				_, p := openDisc(t, ts, viewer, it.ID, map[string]any{"mode": "title", "episode": 3})
+				_, p := openDisc(t, ts, viewerTok, it.ID, map[string]any{"mode": "title", "episode": 3})
 				if p.Title == nil || !near(p.Title.StartSec, want.EpisodeStarts[2], 2) {
 					t.Errorf("episode 3 starts at %+v, want %.0fs", p.Title, want.EpisodeStarts[2])
 				}
 			}
-			if w := ts.do(t, "POST", fmt.Sprintf("/api/items/%d/dvd", it.ID), viewer, map[string]any{"mode": "title", "episode": 99}); w.Code != 400 {
+			if w := ts.do(t, "POST", fmt.Sprintf("/api/items/%d/dvd", it.ID), viewerTok, map[string]any{"mode": "title", "episode": 99}); w.Code != 400 {
 				t.Errorf("an episode the disc hasn't: %d", w.Code)
 			}
 		})
@@ -309,13 +248,13 @@ func TestRankedDVDsWithTheRealModule(t *testing.T) {
 	if other < 0 {
 		t.Fatal("the simple disc has one title")
 	}
-	if w := ts.do(t, "PUT", fmt.Sprintf("/api/items/%d/disc/choice", it.ID), viewer, map[string]any{"ttn": other}); w.Code != 403 {
+	if w := discHost(t, ts, viewer, "PUT", fmt.Sprintf("/discs/%d/choice", it.ID), map[string]any{"ttn": other}); w.Code != 403 {
 		t.Errorf("a viewer chose the film: %d", w.Code)
 	}
-	if w := ts.do(t, "PUT", fmt.Sprintf("/api/items/%d/disc/choice", it.ID), admin, map[string]any{"ttn": 77}); w.Code != 400 {
+	if w := discHost(t, ts, admin, "PUT", fmt.Sprintf("/discs/%d/choice", it.ID), map[string]any{"ttn": 77}); w.Code != 400 {
 		t.Errorf("a title the disc hasn't was chosen: %d", w.Code)
 	}
-	if w := ts.do(t, "PUT", fmt.Sprintf("/api/items/%d/disc/choice", it.ID), admin, map[string]any{"ttn": other}); w.Code != 200 {
+	if w := discHost(t, ts, admin, "PUT", fmt.Sprintf("/discs/%d/choice", it.ID), map[string]any{"ttn": other}); w.Code != 200 {
 		t.Fatalf("choosing: %d %s", w.Code, w.Body)
 	}
 	v := analysisOf(t, ts, viewer, it.ID)
@@ -325,7 +264,7 @@ func TestRankedDVDsWithTheRealModule(t *testing.T) {
 	if a := analysisOf(t, ts, admin, it.ID); a.ChosenBy != "admin" {
 		t.Errorf("the admin isn't told who chose: %q", a.ChosenBy)
 	}
-	if _, p := openDisc(t, ts, viewer, it.ID, map[string]any{"mode": "title"}); p.Title == nil || p.Title.TTN != other {
+	if _, p := openDisc(t, ts, viewerTok, it.ID, map[string]any{"mode": "title"}); p.Title == nil || p.Title.TTN != other {
 		t.Errorf("Play doesn't play the chosen title: %+v", p.Title)
 	}
 	again := scanAgain(t, ts, lib)[it.Path]
@@ -335,7 +274,7 @@ func TestRankedDVDsWithTheRealModule(t *testing.T) {
 	if again.Disc.MainTitle != other || again.Disc.Chosen == nil {
 		t.Errorf("the choice is gone after a scan: main %d", again.Disc.MainTitle)
 	}
-	if w := ts.do(t, "DELETE", fmt.Sprintf("/api/items/%d/disc/choice", it.ID), admin, nil); w.Code != 200 {
+	if w := discHost(t, ts, admin, "PUT", fmt.Sprintf("/discs/%d/choice", it.ID), map[string]any{"ttn": -1}); w.Code != 200 {
 		t.Fatalf("clearing: %d %s", w.Code, w.Body)
 	}
 	if v := analysisOf(t, ts, viewer, it.ID); v.Main != pick.Main || v.Chosen != nil {
@@ -349,8 +288,8 @@ func TestRankedBlurayWithTheRealModule(t *testing.T) {
 	dir := synthList(t, "wittybluray", &list)
 	ts := newTestServer(t)
 	ts.Modules = m
-	_, admin := ts.user(t, "admin", "adult", true, "")
-	_, viewer := ts.user(t, "viewer", "adult", false, "")
+	admin, _ := ts.user(t, "admin", "adult", true, "")
+	viewer, viewerTok := ts.user(t, "viewer", "adult", false, "")
 	items, _ := scanDiscs(t, ts, dir)
 	for _, want := range list {
 		t.Run(want.Name, func(t *testing.T) {
@@ -396,17 +335,9 @@ func TestRankedBlurayWithTheRealModule(t *testing.T) {
 			}
 
 			// The disc page lists the film with the engine's chapters, and not the decoys.
-			w := ts.do(t, "GET", fmt.Sprintf("/api/items/%d/disc", it.ID), viewer, nil)
-			var page struct {
-				Main *struct {
-					TTN      int `json:"ttn"`
-					Chapters []struct{ N int }
-				} `json:"main"`
-				Extras []struct{ TTN int } `json:"extras"`
-				Rank   map[string]any      `json:"rank"`
-			}
-			if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &page) != nil || page.Main == nil {
-				t.Fatalf("the disc page: %d %s", w.Code, w.Body)
+			page := discHostPage(t, ts, viewer, it.ID)
+			if page.Main == nil {
+				t.Fatal("the disc page has no film")
 			}
 			if page.Main.TTN != want.Main || (want.Chapters > 0 && len(page.Main.Chapters) != want.Chapters) {
 				t.Errorf("the page's film is %d with %d chapters, want %d with %d", page.Main.TTN, len(page.Main.Chapters), want.Main, want.Chapters)
@@ -414,24 +345,8 @@ func TestRankedBlurayWithTheRealModule(t *testing.T) {
 			if want.Decoys > 0 && len(page.Extras) > 50 {
 				t.Errorf("the page lists %d extras on a disc of %d decoys", len(page.Extras), want.Decoys)
 			}
-			if page.Rank == nil || page.Rank["why"] == "" {
-				t.Errorf("the page doesn't say why: %v", page.Rank)
-			}
 
-			secs := sectionsOf(t, ts, viewer, it.ID)
-			if rows := secs["wittybluray-feature"]; len(rows) == 0 || rows[0] != "Play the film" {
-				t.Errorf("Feature Presentation: %v (sections %v)", rows, secs)
-			}
-			if len(want.Editions) > 1 && len(secs["wittybluray-versions"]) == 0 {
-				t.Errorf("no other versions: %v", secs)
-			}
-			for id := range secs {
-				if strings.HasPrefix(id, "wittydvd-") {
-					t.Errorf("a DVD's section on a Blu-ray: %s", id)
-				}
-			}
-
-			_, p := openDisc(t, ts, viewer, it.ID, map[string]any{"mode": "title"})
+			_, p := openDisc(t, ts, viewerTok, it.ID, map[string]any{"mode": "title"})
 			if p.Kind != "title" || p.Title == nil || p.Title.TTN != want.Main {
 				t.Fatalf("Play shows %q %+v (%s), want playlist %d", p.Kind, p.Title, p.Reason, want.Main)
 			}
@@ -440,7 +355,7 @@ func TestRankedBlurayWithTheRealModule(t *testing.T) {
 			}
 			// A play-all playlist's parts are episodes, each played from its own start.
 			if len(want.PlayAllStarts) > 2 && len(want.Episodes) == 0 {
-				_, p := openDisc(t, ts, viewer, it.ID, map[string]any{"mode": "title", "episode": 2})
+				_, p := openDisc(t, ts, viewerTok, it.ID, map[string]any{"mode": "title", "episode": 2})
 				whole := want.PlayAll
 				if whole < 0 {
 					whole = want.Main
@@ -456,17 +371,17 @@ func TestRankedBlurayWithTheRealModule(t *testing.T) {
 		if it.Disc == nil {
 			continue
 		}
-		u := fmt.Sprintf("/api/items/%d/disc/analysis", it.ID)
-		if w := ts.do(t, "POST", u, viewer, map[string]any{"secondOpinion": true}); w.Code != 403 {
+		u := fmt.Sprintf("/discs/%d/rank", it.ID)
+		if w := discHost(t, ts, viewer, "POST", u, map[string]any{"secondOpinion": true}); w.Code != 403 {
 			t.Errorf("a viewer asked for a second opinion: %d", w.Code)
 		}
-		if w := ts.do(t, "POST", u, admin, map[string]any{"secondOpinion": true}); w.Code != 403 {
+		if w := discHost(t, ts, admin, "POST", u, map[string]any{"secondOpinion": true}); w.Code != 403 {
 			t.Errorf("a second opinion with the setting off: %d %s", w.Code, w.Body)
 		}
-		if w := ts.do(t, "POST", u, admin, map[string]any{}); w.Code != 200 {
+		if w := discHost(t, ts, admin, "POST", u, map[string]any{}); w.Code != 200 {
 			t.Errorf("ranking again: %d %s", w.Code, w.Body)
 		}
-		w := ts.do(t, "GET", "/api/bluray/capabilities", admin, nil)
+		w := discHostAs(t, ts.Server, wittyBlurayID, admin, "GET", "/discs/libbluray", nil)
 		if w.Code != 200 || !strings.Contains(w.Body.String(), `"libbluray"`) {
 			t.Errorf("capabilities: %d %s", w.Code, w.Body)
 		}

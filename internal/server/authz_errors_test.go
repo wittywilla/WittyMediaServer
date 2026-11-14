@@ -31,9 +31,7 @@ func TestErrorsDontNameFolders(t *testing.T) {
 		m, u string
 		body any
 	}{
-		{"GET", fmt.Sprintf("/api/items/%d/disc", d.ID), nil},
 		{"POST", fmt.Sprintf("/api/items/%d/dvd", d.ID), map[string]any{}},
-		{"GET", fmt.Sprintf("/api/items/%d/disc", b.ID), nil},
 		{"POST", fmt.Sprintf("/api/items/%d/dvd", b.ID), map[string]any{}},
 		{"GET", fmt.Sprintf("/api/items/%d/play", v.ID), nil},
 		{"POST", fmt.Sprintf("/api/items/%d/playback", v.ID), map[string]any{"profile": "web"}},

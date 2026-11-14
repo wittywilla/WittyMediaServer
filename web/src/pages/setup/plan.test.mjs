@@ -64,6 +64,9 @@ test('every step that asks something says where to change it later, and that pag
     if (s.id === 'welcome' || s.id === 'account' || s.id === 'done') continue
     assert.ok(s.later, `${s.id} has nowhere to change it later`)
     const page = s.later.to.replace('/settings/', '').split('#')[0]
+    // A module's own section of Settings (web.settings in its integration.json) isn't one of the
+    // app's routes: DVDs and Blu-rays is WittyDisc's, which WittyDVD and WittyBluray bring.
+    if (page === 'discs') { assert.equal(s.later.where, 'Settings, DVDs and Blu-rays'); continue }
     assert.ok(routes.includes(`path="${page}"`) || routes.includes(`path="${page}/*"`), `no settings page ${page}`)
     const label = labels.find(([to]) => to === page)?.[1]
     assert.ok(s.later.where.startsWith('Settings, ' + label), `${s.id}: "${s.later.where}" isn't what the menu calls it: ${label}`)

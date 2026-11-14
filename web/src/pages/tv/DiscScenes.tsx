@@ -129,7 +129,7 @@ function ScenePicker({ disc, clips, onAdd, onRemove, onClose }: { disc: DiscOpti
   const [label, setLabel] = useState('')
   const [previewing, setPreviewing] = useState(false)
   useEffect(() => {
-    api.get<DiscPage>(`/items/${disc.id}/disc`).then((p) => { setPage(p); setTtn(p.main?.ttn || p.extras[0]?.ttn || 0) }).catch((e) => setErr(e.message))
+    api.get<DiscPage>(`/modules/${disc.format === 'bluray' ? 'wittybluray' : 'wittydvd'}/discs/${disc.id}`).then((p) => { setPage(p); setTtn(p.main?.ttn || p.extras[0]?.ttn || 0) }).catch((e) => setErr(e.message))
   }, [disc.id])
   const titles = useMemo(() => (page ? [...(page.main ? [page.main] : []), ...page.extras] : []), [page])
   const cur: DiscTitle | undefined = titles.find((t) => t.ttn === ttn)

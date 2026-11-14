@@ -65,7 +65,7 @@ You add a library under **Settings → Libraries → Add library**. A kind of li
 - **Modules:** WittyDVD for DVDs, WittyBluray for Blu-rays, WittyCD for audio CDs. Add only the ones you want. A disc in a library with no module for it stays listed, with nothing known about what's in it, until you add one.
 - **Menus:** real disc menus in the browser, with an on-screen remote. A Blu-ray with Java menus needs a Java you install yourself, and it's off until you turn it on: see [Blu-rays](BLURAY.md#bd-j-java-menus).
 - **Resume:** yes, in the title you were watching.
-- **Subtitles and sound:** the disc's own tracks and languages, chapters and camera angles. Choose your preferred languages under **Settings → Playback & discs**.
+- **Subtitles and sound:** the disc's own tracks and languages, chapters and camera angles. Choose your preferred languages under **Settings → DVDs and Blu-rays**.
 - **Details:** films and series are matched as usual. Audio CDs use CD-TEXT, then MusicBrainz and the Cover Art Archive, which are asked only about the track lengths.
 - **Refused:** encrypted discs (CSS on DVDs, AACS on Blu-rays) are listed with a clear message and can't be played. BD+ is never run.
 

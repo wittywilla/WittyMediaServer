@@ -142,7 +142,6 @@ var screens = map[string][]string{
 	"pages/Podcasts.tsx":                 {"webResults"},
 	"pages/RadioLibrary.tsx":             {"webMedia", "webResults"},
 	"pages/GameMeta.tsx":                 {"webResults"},
-	"player/CdPlayer.tsx":                {"metadata", "webResults"},
 	"pages/AudioLibrary.tsx":             {"webMedia"},
 	"pages/tv/GuidePage.tsx":             {"tv"},
 	"pages/tv/TvSettings.tsx":            {"tv"},

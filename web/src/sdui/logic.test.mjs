@@ -213,13 +213,13 @@ test('a streaming-service filter goes to a page as service, never as the device\
 
 test('catalogue commands: {item} and the parameters fill the path and the body', async () => {
   const { commandRequest, plan, setCommandSpecs } = await import('./routes.ts')
-  const join = { op: 'wittyplay.room.join', method: 'POST', path: '/api/play/join', body: '{"room":"{item}","code":"{code}"}', params: [{ name: 'code', type: 'string' }] }
-  assert.deepEqual(commandRequest(join, { type: 'command', op: join.op, item: 'abc' + '"', params: { code: 'K 9"' } }), { do: 'request', method: 'POST', path: '/play/join', body: { room: 'abc"', code: 'K 9"' } })
+  const join = { op: 'wittyplay.room.join', method: 'POST', path: '/api/modules/wittyplay/play/join', body: '{"room":"{item}","code":"{code}"}', params: [{ name: 'code', type: 'string' }] }
+  assert.deepEqual(commandRequest(join, { type: 'command', op: join.op, item: 'abc' + '"', params: { code: 'K 9"' } }), { do: 'request', method: 'POST', path: '/modules/wittyplay/play/join', body: { room: 'abc"', code: 'K 9"' } })
   // Not given: an empty string.
   assert.deepEqual(commandRequest(join, { type: 'command', op: join.op, item: 's1' }).body, { room: 's1', code: '' })
-  const assign = { op: 'wittyplay.controller.assign', method: 'PUT', path: '/api/play/{item}/seat/{user}', body: '{"user":"{user}","seat":"{seat}"}', params: [{ name: 'user', type: 'string', required: true }, { name: 'seat', type: 'int', required: true }] }
+  const assign = { op: 'wittyplay.controller.assign', method: 'PUT', path: '/api/modules/wittyplay/play/{item}/seat/{user}', body: '{"user":"{user}","seat":"{seat}"}', params: [{ name: 'user', type: 'string', required: true }, { name: 'seat', type: 'int', required: true }] }
   const step = commandRequest(assign, { type: 'command', op: assign.op, item: 'a/b', params: { user: 'x y', seat: 2 } })
-  assert.deepEqual(step, { do: 'request', method: 'PUT', path: '/play/a%2Fb/seat/x%20y', body: { user: 'x y', seat: 2 } }, 'an int parameter is a number, a path value is escaped')
+  assert.deepEqual(step, { do: 'request', method: 'PUT', path: '/modules/wittyplay/play/a%2Fb/seat/x%20y', body: { user: 'x y', seat: 2 } }, 'an int parameter is a number, a path value is escaped')
   assert.deepEqual(commandRequest(assign, { type: 'command', op: assign.op, item: 'a', params: { user: 'x' } }), { do: 'nothing' }, 'a required parameter that is missing')
   // Through plan, once the catalogue is known; the two client-handled ops need none.
   setCommandSpecs([join])
@@ -231,7 +231,7 @@ test('catalogue commands: {item} and the parameters fill the path and the body',
 
 test('command params: bool, ints and an object built from a Form\'s controls', async () => {
   const { commandRequest, objectParam } = await import('./routes.ts')
-  const online = { op: 'wittyplay.online.set', method: 'PUT', path: '/api/games/online/me', body: '{"sharePlaying":"{sharePlaying}","appearOnline":"{appearOnline}"}', params: [{ name: 'sharePlaying', type: 'bool', required: true }, { name: 'appearOnline', type: 'bool', required: true }] }
+  const online = { op: 'wittyplay.online.set', method: 'PUT', path: '/api/modules/wittyplay/games/online/me', body: '{"sharePlaying":"{sharePlaying}","appearOnline":"{appearOnline}"}', params: [{ name: 'sharePlaying', type: 'bool', required: true }, { name: 'appearOnline', type: 'bool', required: true }] }
   assert.deepEqual(commandRequest(online, { type: 'command', op: online.op, params: { sharePlaying: true, appearOnline: false } }).body, { sharePlaying: true, appearOnline: false })
   const kids = { op: 'x.kids', method: 'POST', path: '/api/k', body: '{"see":"{see}"}', params: [{ name: 'see', type: 'ints' }] }
   assert.deepEqual(commandRequest(kids, { type: 'command', op: 'x.kids', params: { see: [3, 5] } }).body, { see: [3, 5] })

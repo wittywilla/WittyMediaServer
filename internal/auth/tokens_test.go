@@ -229,7 +229,7 @@ func TestStreamTokenScope(t *testing.T) {
 // Version 2's offer goes by fetch, which can carry a header, so only its WebSocket takes a
 // token in the address.
 func TestVersion2OfferTakesNoTokenInTheAddress(t *testing.T) {
-	r := httptest.NewRequest("POST", "/api/play/0123abcd/stream?token=t", nil)
+	r := httptest.NewRequest("POST", "/api/modules/wittyplay/play/0123abcd/stream?token=t", nil)
 	if got := TokenFrom(r); got != "" {
 		t.Errorf("a POST took %q from its address", got)
 	}

@@ -83,10 +83,10 @@ func TestCommandParamsFillToJSON(t *testing.T) {
 // The WittyPlay Online commands are the ones docs/GAMING-API.md lists, each to the route it names.
 func TestWittyPlayCommands(t *testing.T) {
 	want := map[string]string{
-		"wittyplay.room.create": "POST /api/play/{item}/room", "wittyplay.room.join": "POST /api/play/join",
-		"wittyplay.room.invite": "POST /api/play/{item}/invite", "wittyplay.state.save": "POST /api/play/{item}/action",
-		"wittyplay.state.load": "POST /api/play/{item}/action", "wittyplay.state.delete": "DELETE /api/games/{item}/saves/{slot}",
-		"wittyplay.controller.assign": "PUT /api/play/{item}/seats/{user}", "wittyplay.room.leave": "DELETE /api/play/{item}/seats/{user}",
+		"wittyplay.room.create": "POST /api/modules/wittyplay/play/{item}/room", "wittyplay.room.join": "POST /api/modules/wittyplay/play/join",
+		"wittyplay.room.invite": "POST /api/modules/wittyplay/play/{item}/invite", "wittyplay.state.save": "POST /api/modules/wittyplay/play/{item}/action",
+		"wittyplay.state.load": "POST /api/modules/wittyplay/play/{item}/action", "wittyplay.state.delete": "DELETE /api/modules/wittyplay/games/{item}/saves/{slot}",
+		"wittyplay.controller.assign": "PUT /api/modules/wittyplay/play/{item}/seats/{user}", "wittyplay.room.leave": "DELETE /api/modules/wittyplay/play/{item}/seats/{user}",
 		"rewind.open": " ", "controller.remap": " ",
 	}
 	for _, cmd := range Catalog().Commands {

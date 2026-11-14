@@ -6,23 +6,26 @@ The web player uses exactly these routes and has no private ones. Conventions (s
 [the client API](CLIENT-API.md), which also lists these routes under `/api/v1`, with the game's details and matching. Paths below are written without `/api`.
 
 The server runs the game. A client shows a video stream, plays an audio stream and sends controller
-states, so there is no emulator or game logic to write. The routes are in `internal/server/api_games*.go`,
-`api_game_options.go` and `api_game_profiles.go`. What runs behind them is the WittyPlay module: [the design](GAMING.md) explains it.
+states, so there is no emulator or game logic to write. Playing, saves, settings, cores and consoles are the WittyPlay
+module's own routes (module API 5), under `/modules/wittyplay/` (`/api/v1/modules/wittyplay/...`): WittyPlay's `api`
+package answers them, and the server checks sign-in, the game and screen time before passing them on. A server without
+WittyPlay answers them `424`. A game's details, matching, review and pictures are still the server's (`/games/{id}/metadata`,
+`/games/review`, …), until its library scan hands games to WittyPlay. [The design](GAMING.md) explains it.
 
 ## Playing a game
 
 1. List games with `GET /items?library=<id>&kind=game`. A library's `console` and an item's `console` say which
    console it is. A game without a picture answers 404 on its poster: draw a placeholder, as for any item.
-2. `GET /games/consoles` says what each console has (`pad`) and whether it can be played now (`ready`, and when
+2. `GET /modules/wittyplay/games/consoles` says what each console has (`pad`) and whether it can be played now (`ready`, and when
    it can't, `reason` and `message`). See [Games this server can't draw](#games-this-server-cant-draw).
 3. `GET /modules/wittyplay/consoles/{console}/controls?device=<your device id>` gives the controller as data (below).
-4. `GET /games/{id}/saves` lists saved states. If slot 0 exists, offer Resume.
-5. `POST /games/{id}/play` with `{"resume": true}` or `{"resume": false}` starts it and answers the session,
+4. `GET /modules/wittyplay/games/{id}/saves` lists saved states. If slot 0 exists, offer Resume.
+5. `POST /modules/wittyplay/games/{id}/play` with `{"resume": true}` or `{"resume": false}` starts it and answers the session,
    including `modes`.
 6. Connect with the first mode in `modes` you can use, through [the stream](GAMING-STREAM.md): one route and the same
    messages for every device. The game starts once a viewer is connected.
 7. Send controller states. Show a menu of your own for saving, loading and quitting.
-8. `DELETE /play/{sid}` saves and stops it. The answer comes once everything is written.
+8. `DELETE /modules/wittyplay/play/{sid}` saves and stops it. The answer comes once everything is written.
 
 An account plays one game at a time: starting another saves and ends the first, on any device. A game
 is stopped and saved after 60 seconds with nobody connected, and after 30 minutes with no controller
@@ -31,10 +34,10 @@ trip through the app switcher loses nothing.
 
 ## Playing with a standalone emulator
 
-A server whose `features` include `standalone-emulators` may offer a game in a standalone emulator as well as on a core. For Xbox, PlayStation 3 and Wii U it's the only way: a game's `check` names the emulator, and each console in `GET /games/consoles` carries `standaloneEmulators` (as below) and `standalone`, the one Play starts.
+A server whose `features` include `standalone-emulators` may offer a game in a standalone emulator as well as on a core. For Xbox, PlayStation 3 and Wii U it's the only way: a game's `check` names the emulator, and each console in `GET /modules/wittyplay/games/consoles` carries `standaloneEmulators` (as below) and `standalone`, the one Play starts.
 
-1. `GET /games/{id}/emulators` answers `{"emulators": [{"id", "name", "version", "stream", "ready", "why", "experimental", "needsBios"}]}`. The list is empty when nothing is set up for the game's console: offer nothing then. When `ready` is false, `why` is a sentence to show beside a disabled button.
-2. `POST /games/{id}/play/emulator` with `{"emulator": "<id>"}` starts it: `201` and
+1. `GET /modules/wittyplay/games/{id}/emulators` answers `{"emulators": [{"id", "name", "version", "stream", "ready", "why", "experimental", "needsBios"}]}`. The list is empty when nothing is set up for the game's console: offer nothing then. When `ready` is false, `why` is a sentence to show beside a disabled button.
+2. `POST /modules/wittyplay/games/{id}/play/emulator` with `{"emulator": "<id>"}` starts it: `201` and
 
    ```json
    {"id": "…", "emulator": "pcsx2", "name": "PCSX2", "backend": "docker+webrtc",
@@ -55,14 +58,14 @@ Each emulator's settings are data: `GET /modules/wittyplay/docker/emulators/{id}
 
 | Route | Sign-in | What it does |
 |---|---|---|
-| `GET /games/home?library=` | user | The games home screen in one answer: `hero`, `continue` (`{item, plays, lastPlayed, save}`), `recent`, `favourites`, `favouriteIds`, `mostPlayed`, and `shelves` (`{kind: "genre" or "series", name, count, items}`) |
-| `GET /games/{id}/check` | user | What a game needs and whether this server has it: `{ready, reason, message, core, emulator, needsGpu, gpuMissing, software, notice, encrypted, bios: [{file, for, required, found, using, from}]}`. For a BIOS a core takes under any name (PlayStation 2), `using` is the file this game starts with, and `from` is where the server found it by its checksum. `reason` is `core`, `bios`, `gpu`, `emulator` (no core plays it, and no standalone emulator is set up) or `unavailable`, and `message` says it for people. `emulator` (`{id, name, version}`), with `ready` true, means no core plays it here and that standalone emulator does: start it as [Playing with a standalone emulator](#playing-with-a-standalone-emulator) says. See [Games this server can't draw](#games-this-server-cant-draw) |
-| `GET /games/consoles` | user | Every console, with `pad`, `ready`, `unavailable`, `cores` and `installed`, and its `era`, years, `media`, `capabilities` and `shelf` ([below](#what-a-console-can-do)). When it isn't ready, `reason` (`unavailable`, `core` or `gpu`) and `message`. `gpuMissing`, `software` and `notice` as for a game's check, with `softwareWhy`, `playsOn` and `biosMissing`. `coreSupport`: [which platforms each core runs on](#which-platforms-a-core-runs-on). With `?library=<id>`, also `count`: that library's games for it |
-| `GET /games/playing` | user | The game this account is playing now: `{id, itemId, title, console, device, startedAt, seats}`, or 204. What a device needs to offer "Continue here" |
-| `GET /games/modes?client=native` | user | What this server can stream, best first |
+| `GET /modules/wittyplay/games/home?library=` | user | The games home screen in one answer: `hero`, `continue` (`{item, plays, lastPlayed, save}`), `recent`, `favourites`, `favouriteIds`, `mostPlayed`, and `shelves` (`{kind: "genre" or "series", name, count, items}`) |
+| `GET /modules/wittyplay/games/{id}/check` | user | What a game needs and whether this server has it: `{ready, reason, message, core, emulator, needsGpu, gpuMissing, software, notice, encrypted, bios: [{file, for, required, found, using, from}]}`. For a BIOS a core takes under any name (PlayStation 2), `using` is the file this game starts with, and `from` is where the server found it by its checksum. `reason` is `core`, `bios`, `gpu`, `emulator` (no core plays it, and no standalone emulator is set up) or `unavailable`, and `message` says it for people. `emulator` (`{id, name, version}`), with `ready` true, means no core plays it here and that standalone emulator does: start it as [Playing with a standalone emulator](#playing-with-a-standalone-emulator) says. See [Games this server can't draw](#games-this-server-cant-draw) |
+| `GET /modules/wittyplay/games/consoles` | user | Every console, with `pad`, `ready`, `unavailable`, `cores` and `installed`, and its `era`, years, `media`, `capabilities` and `shelf` ([below](#what-a-console-can-do)). When it isn't ready, `reason` (`unavailable`, `core` or `gpu`) and `message`. `gpuMissing`, `software` and `notice` as for a game's check, with `softwareWhy`, `playsOn` and `biosMissing`. `coreSupport`: [which platforms each core runs on](#which-platforms-a-core-runs-on). With `?library=<id>`, also `count`: that library's games for it |
+| `GET /modules/wittyplay/games/playing` | user | The game this account is playing now: `{id, itemId, title, console, device, startedAt, seats}`, or 204. What a device needs to offer "Continue here" |
+| `GET /modules/wittyplay/games/modes?client=native` | user | What this server can stream, best first |
 | `GET /modules/wittyplay/consoles/{console}/controls?device=` | user | The controller as data |
 | `PUT /modules/wittyplay/consoles/{console}/controls` | user | Saves one layout, or removes it |
-| `POST /games/{id}/prepare` | user | Gets a game ready without waiting: `{state, done, total}`, see below |
+| `POST /modules/wittyplay/games/{id}/prepare` | user | Gets a game ready without waiting: `{state, done, total}`, see below |
 | `GET /games/{id}/versions` | user | `{versions: [{id, label, current}], inside?: [{entry, label, current, altered}], discs?: [{disc, name}]}`: its other versions as games of their own, and for an administrator the versions inside its archive, and its discs |
 | `PUT /games/{id}/version` `{entry}` | admin | Which file in its archive to play, or `""` to choose by the rules |
 | `POST /games/{id}/split` | admin | A version becomes a game of its own, and stays one |
@@ -77,21 +80,21 @@ Each emulator's settings are data: `GET /modules/wittyplay/docker/emulators/{id}
 | `GET /modules/wittyplay/game-profiles/export?id=&id=`, `POST /modules/wittyplay/game-profiles/import` | user | A file of profiles out, and in |
 | `GET /modules/wittyplay/game-controllers` | user | Controllers known by vendor and product. Browsers need it; an app usually doesn't |
 | `GET`, `PUT`, `DELETE /modules/wittyplay/game-background`; `GET`, `PUT /modules/wittyplay/game-background/image` | user | The account's own picture behind the controller screen |
-| `POST /games/{id}/play` | user | Starts a game. Body: `{"resume": bool, "client": "native"}` |
-| `GET /games/{id}/saves` | user | This account's saved states: `[{slot, updatedAt, size, hasThumb, core}]` |
-| `GET /games/{id}/saves/{slot}/thumb` | user | A state's picture (PNG) |
-| `DELETE /games/{id}/saves/{slot}` | user | Deletes a state |
-| `GET /play/{sid}` | owner | The session |
-| `POST /play/{sid}/stream` | owner | Connects over WebRTC. Body `{"hello": {...}, "sdp": offer}`; answers `{"stream": {...}, "sdp": answer}`. [The stream](GAMING-STREAM.md) |
-| `GET /play/{sid}/stream` | owner | The stream's WebSocket, the same messages: the hello first, as text |
-| `POST /play/{sid}/action` | owner | `{"type": "save" or "load", "slot": n}`, `{"type": "reset"}`, `{"type": "pause", "on": bool}`, `{"type": "disc", "slot": n}` to change disc, from 0, in a game whose session says it has `discs` above 1, `{"type": "device", "port": n, "device": id}`. [More while a game is running](#while-a-game-is-running) |
-| `DELETE /play/{sid}` | owner | Saves and stops |
-| `POST /play/{sid}/invite` | owner | A code others can join this game with: `{code, expiresAt}`, four letters, ten minutes. See [Seats](#seats) |
-| `POST /play/join` | user | `{code}` joins someone's game: `{sid, seat, itemId, title, console, host}` |
-| `GET /play/{sid}/seats` | owner or joined | `{host, seats, code?}`: the host, who joined and their seats; the code for the host only |
-| `DELETE /play/{sid}/seats/{user}` | owner or that person | Frees a seat |
-| `GET /gaming`, `POST /gaming/cores/{id}/install`, `DELETE /gaming/cores/{id}`, `DELETE /gaming/unpacked` | admin | Server setup. An app can leave this to the web interface |
-| `/gaming/custom/...`, `/gaming/consoles/{console}/core`, `/gaming/games/{id}/core` | admin | An administrator's own cores and custom consoles, listed in [the client API](CLIENT-API.md). An app can leave this to the web interface too. A custom console is like any other console to every route here: its ID starts with `custom-`, and `pad` may be a whole RetroPad |
+| `POST /modules/wittyplay/games/{id}/play` | user | Starts a game. Body: `{"resume": bool, "client": "native"}` |
+| `GET /modules/wittyplay/games/{id}/saves` | user | This account's saved states: `[{slot, updatedAt, size, hasThumb, core}]` |
+| `GET /modules/wittyplay/games/{id}/saves/{slot}/thumb` | user | A state's picture (PNG) |
+| `DELETE /modules/wittyplay/games/{id}/saves/{slot}` | user | Deletes a state |
+| `GET /modules/wittyplay/play/{sid}` | owner | The session |
+| `POST /modules/wittyplay/play/{sid}/stream` | owner | Connects over WebRTC. Body `{"hello": {...}, "sdp": offer}`; answers `{"stream": {...}, "sdp": answer}`. [The stream](GAMING-STREAM.md) |
+| `GET /modules/wittyplay/play/{sid}/stream` | owner | The stream's WebSocket, the same messages: the hello first, as text |
+| `POST /modules/wittyplay/play/{sid}/action` | owner | `{"type": "save" or "load", "slot": n}`, `{"type": "reset"}`, `{"type": "pause", "on": bool}`, `{"type": "disc", "slot": n}` to change disc, from 0, in a game whose session says it has `discs` above 1, `{"type": "device", "port": n, "device": id}`. [More while a game is running](#while-a-game-is-running) |
+| `DELETE /modules/wittyplay/play/{sid}` | owner | Saves and stops |
+| `POST /modules/wittyplay/play/{sid}/invite` | owner | A code others can join this game with: `{code, expiresAt}`, four letters, ten minutes. See [Seats](#seats) |
+| `POST /modules/wittyplay/play/join` | user | `{code}` joins someone's game: `{sid, seat, itemId, title, console, host}` |
+| `GET /modules/wittyplay/play/{sid}/seats` | owner or joined | `{host, seats, code?}`: the host, who joined and their seats; the code for the host only |
+| `DELETE /modules/wittyplay/play/{sid}/seats/{user}` | owner or that person | Frees a seat |
+| `GET /modules/wittyplay/gaming`, `POST /modules/wittyplay/gaming/cores/{id}/install`, `DELETE /modules/wittyplay/gaming/cores/{id}`, `DELETE /modules/wittyplay/gaming/unpacked` | admin | Server setup. An app can leave this to the web interface |
+| `/modules/wittyplay/gaming/custom/...`, `/modules/wittyplay/gaming/consoles/{console}/core`, `/modules/wittyplay/gaming/games/{id}/core` | admin | An administrator's own cores and custom consoles, listed in [the client API](CLIENT-API.md). An app can leave this to the web interface too. A custom console is like any other console to every route here: its ID starts with `custom-`, and `pad` may be a whole RetroPad |
 
 A session belongs to the account that started it; to anyone else its routes answer 404. One game takes at most 8 viewers and 4 connecting at once: past that the oldest goes, and a connection may answer 429 with `Retry-After`.
 
@@ -133,7 +136,7 @@ With `reason: "gpu"`, `runsOn` lists the server platforms its games would play o
 ### Which platforms a core runs on
 
 Every device plays every game: the server runs it and streams it. What decides whether a game plays is the server's
-platform: whether its core is published there, and how it draws there. `GET /games/consoles` and `GET /gaming` give,
+platform: whether its core is published there, and how it draws there. `GET /modules/wittyplay/games/consoles` and `GET /modules/wittyplay/gaming` give,
 for each console, `coreSupport`: for each core on offer, `{here, platforms}`.
 
 | Field | Meaning |
@@ -146,7 +149,7 @@ for each console, `coreSupport`: for each core on offer, `{here, platforms}`.
 | `note` | In words: what that means, or the speed measured, such as "Full speed on an Apple M3 Pro, on about one processor core." |
 
 Where it shows: Settings → Consoles & cores, for each console and each core; the core a console or a game plays with
-(`GET /gaming/games/{id}/core` gives each option's `here`); and a game's page, where `GET /games/{id}/check` adds:
+(`GET /modules/wittyplay/gaming/games/{id}/core` gives each option's `here`); and a game's page, where `GET /modules/wittyplay/games/{id}/check` adds:
 
 | Field | When | Meaning |
 |---|---|---|
@@ -155,15 +158,15 @@ Where it shows: Settings → Consoles & cores, for each console and each core; t
 | `noBuild: true` | `reason: "core"` | Not one of its console's cores is published for this server's platform, so installing can't help: show it as not on this server, with `runsOn` |
 
 **Downloads.** `internal/server/corebuilds.txt` says which platforms each core is published for, from libretro's build
-server; CI checks every listed download weekly (`scripts/corebuilds`). `POST /gaming/cores/{id}/install` for a core
+server; CI checks every listed download weekly (`scripts/corebuilds`). `POST /modules/wittyplay/gaming/cores/{id}/install` for a core
 with no build for this server answers 409 `{error, noBuild: true, platform, alternative}`, where `platform` is like
 `macos/arm64` and `alternative` is `{id, name, console}`: a core that plays the same console here. If the download
 server answers 404 anyway, the answer is 502 with the same fields.
 
 ### Choosing a core
 
-What a core picker needs, for an administrator: a console's default (`GET /gaming/consoles/{console}/core`) or one
-game's own core (`GET /gaming/games/{id}/core`). Both answer:
+What a core picker needs, for an administrator: a console's default (`GET /modules/wittyplay/gaming/consoles/{console}/core`) or one
+game's own core (`GET /modules/wittyplay/gaming/games/{id}/core`). Both answer:
 
 | Field | Meaning |
 |---|---|
@@ -187,20 +190,20 @@ Each choice is `{id, name, license, installed, source, canInstall, recommended, 
 | `bios` | When it won't start without a BIOS file of the owner's own: `{files, found}`, any one of `files` |
 | `starts`, `failures`, `seconds`, `lastError`, `best` | For a game: how it has gone on that game |
 
-`GET /games/consoles` gives the same `strength` and `about` for each core as `coreAbout`, for anyone.
+`GET /modules/wittyplay/games/consoles` gives the same `strength` and `about` for each core as `coreAbout`, for anyone.
 
-To choose a core that isn't installed: `POST /gaming/cores/{id}/install`, then the `PUT` beside the `GET` with
-`{core}`, which only takes an installed core. While the install runs, `GET /gaming/cores/{id}/install` answers
+To choose a core that isn't installed: `POST /modules/wittyplay/gaming/cores/{id}/install`, then the `PUT` beside the `GET` with
+`{core}`, which only takes an installed core. While the install runs, `GET /modules/wittyplay/gaming/cores/{id}/install` answers
 `{installing, received, total}` in bytes (`total` 0 when the download server gave no size; a core with support files,
 such as PPSSPP, counts again from 0 for those). The website asks about four times a second. An older WittyPlay module
 always answers `installing: false`; show the install as under way without a size.
 
 A save state is made by one core and only loads in that core; in-game saves (battery saves and memory cards) stay with
-the game. `GET /games/{id}/saves` says which core made each state (`core`, its name).
+the game. `GET /modules/wittyplay/games/{id}/saves` says which core made each state (`core`, its name).
 
 **A game in an archive** has to be unpacked before it starts, which can take minutes for a large disc on a small server.
-`POST /games/{id}/play` takes that long, which is fine as long as your HTTP client's timeout allows it. To show
-progress, call `POST /games/{id}/prepare` about once a second until `state` is `ready`, and then call play:
+`POST /modules/wittyplay/games/{id}/play` takes that long, which is fine as long as your HTTP client's timeout allows it. To show
+progress, call `POST /modules/wittyplay/games/{id}/prepare` about once a second until `state` is `ready`, and then call play:
 
 | `state` | Meaning |
 |---|---|
@@ -224,7 +227,7 @@ someone change it, send a `device` action. Anything the emulator didn't offer an
 
 ## What a console can do
 
-`GET /games/consoles` gives every console what a client needs to lay out its games and build its game menu, so a new
+`GET /modules/wittyplay/games/consoles` gives every console what a client needs to lay out its games and build its game menu, so a new
 console needs data, not new screens:
 
 - `era` (`first`, `8-bit`, `16-bit`, `early-3d`, `disc`, `pocket`), `launched` and `ended` (years, roughly), and `media`
@@ -248,15 +251,15 @@ a person's own choice wins over both.
 
 Playing one game together from several devices. The account that starts a game is its host, and its own devices can
 always watch and play it. Anyone else signed in to this server needs a code: the host asks for one
-(`POST /play/{sid}/invite`), four letters that last ten minutes, and the other device sends it to `POST /play/join`.
+(`POST /modules/wittyplay/play/{sid}/invite`), four letters that last ten minutes, and the other device sends it to `POST /modules/wittyplay/play/join`.
 Adults, Kids and Guest profiles join the same way, and only with a code; a profile whose limits wouldn't let it open
 the game can't join it (403). Wrong codes are limited per account (429 with `Retry-After`). Someone who joined may get
 the session, connect over WebRTC or the WebSocket and send their seat's controller states (`seat`, from 1; -1 means
 every seat is taken and they can only watch). Seats are numbered as [the stream](GAMING-STREAM.md)'s players, the host
-being 0. Over version 2's WebRTC (`POST /play/{sid}/stream`) the server sets a joined device's hello to its own seat, or
+being 0. Over version 2's WebRTC (`POST /modules/wittyplay/play/{sid}/stream`) the server sets a joined device's hello to its own seat, or
 to none for a watcher, whatever it asked for. Over version 2's WebSocket the hello goes straight to WittyPlay, so the
 app sends `seats: [seat]` itself. Saving, loading, settings and stopping stay the host's. A seat ends when
-the host frees it, its holder leaves (`DELETE /play/{sid}/seats/{user}`) or the game ends.
+the host frees it, its holder leaves (`DELETE /modules/wittyplay/play/{sid}/seats/{user}`) or the game ends.
 
 Playing with someone on another server is reserved and not built: clients show **Multiplayer** greyed out.
 
@@ -266,11 +269,11 @@ WittyPlay Online's data (Design 2, `docs/plans/DESIGN-2-SDUI-GAPS.md` section 6)
 (`gamesHome`, `quickMenu`, `lobby`, `controllers`, `memories`, the status bar and the system dock) are drawn by the
 apps from these sources; nothing here is a page of its own.
 
-**Friends** are the other profiles of this server. A profile makes two choices (`GET` and `PUT /games/online/me`;
+**Friends** are the other profiles of this server. A profile makes two choices (`GET` and `PUT /modules/wittyplay/games/online/me`;
 yes to both until it says otherwise): whether friends see what it plays (`sharePlaying`; off, it's shown online with no
 game) and whether it appears online at all (`appearOnline`; off, it's offline to everyone, playing or not). A **Kids**
 profile sees, and is seen by, only the profiles an administrator chose for it (`GET` and
-`PUT /games/online/kids/{user}`, `{friends}`; the `GET` also lists every profile that could be one, as `candidates`
+`PUT /modules/wittyplay/games/online/kids/{user}`, `{friends}`; the `GET` also lists every profile that could be one, as `candidates`
 with `approved`), and gets no open rooms. A **guest** has no friends and is
 nobody's. Presence is `playing` (in a game on this server, as its host or in a seat), `online` (used this server in
 the last five minutes), `away` (in the last hour) or `offline`; the game is named only to someone whose limits would
@@ -278,13 +281,13 @@ let them open it.
 
 A **room** is a game being played on this server with seats for others ([Seats](#seats)): rooms are shared on this
 server, not across servers, so a room's mode is "Shared". The host opens it to the friends who may see it
-(`POST /play/{sid}/room`, `{open}`), who then join with no code (`POST /play/join` with `{room: sid}`); it answers the
+(`POST /modules/wittyplay/play/{sid}/room`, `{open}`), who then join with no code (`POST /modules/wittyplay/play/join` with `{room: sid}`); it answers the
 host's code, which a phone's QR join link carries (`/games?join=CODE`). The host moves players
-(`PUT /play/{sid}/seats/{user}`, `{seat}`; a held seat is swapped). Kids and guest profiles can't open their games or
+(`PUT /modules/wittyplay/play/{sid}/seats/{user}`, `{seat}`; a held seat is swapped). Kids and guest profiles can't open their games or
 join an open room; they still join with a code.
 
-**Memories** are a profile's own save states and the screenshots it kept (`POST /play/{sid}/screenshot`, at most 200 a
-game; `GET` and `DELETE /games/{id}/shots/{name}`). There are no clips and no voice chat.
+**Memories** are a profile's own save states and the screenshots it kept (`POST /modules/wittyplay/play/{sid}/screenshot`, at most 200 a
+game; `GET` and `DELETE /modules/wittyplay/games/{id}/shots/{name}`). There are no clips and no voice chat.
 
 ### Its sources
 
@@ -322,14 +325,14 @@ any button" are each app's own.
 
 | Command | Route |
 |---|---|
-| `wittyplay.room.create` | `POST /play/{sid}/room` `{open: true}` |
-| `wittyplay.room.join` | `POST /play/join` `{room}`, or `{code}` |
-| `wittyplay.room.invite` | `POST /play/{sid}/invite` |
-| `wittyplay.state.save`, `wittyplay.state.load` | `POST /play/{sid}/action` `{type: "save" or "load", slot}` |
-| `wittyplay.state.delete` | `DELETE /games/{id}/saves/{slot}` |
-| `wittyplay.controller.assign` | `PUT /play/{sid}/seats/{user}` `{seat}` |
-| `wittyplay.room.close` | `POST /play/{sid}/room` `{open: false}` |
-| `wittyplay.room.leave` | `DELETE /play/{sid}/seats/{user}` (the host frees anyone's seat; anyone leaves their own) |
+| `wittyplay.room.create` | `POST /modules/wittyplay/play/{sid}/room` `{open: true}` |
+| `wittyplay.room.join` | `POST /modules/wittyplay/play/join` `{room}`, or `{code}` |
+| `wittyplay.room.invite` | `POST /modules/wittyplay/play/{sid}/invite` |
+| `wittyplay.state.save`, `wittyplay.state.load` | `POST /modules/wittyplay/play/{sid}/action` `{type: "save" or "load", slot}` |
+| `wittyplay.state.delete` | `DELETE /modules/wittyplay/games/{id}/saves/{slot}` |
+| `wittyplay.controller.assign` | `PUT /modules/wittyplay/play/{sid}/seats/{user}` `{seat}` |
+| `wittyplay.room.close` | `POST /modules/wittyplay/play/{sid}/room` `{open: false}` |
+| `wittyplay.room.leave` | `DELETE /modules/wittyplay/play/{sid}/seats/{user}` (the host frees anyone's seat; anyone leaves their own) |
 
 The action's `item` is the session (`{sid}`), or the game's ID for `wittyplay.state.delete`; the rest come in the
 action's `params` (`slot`, `user`, `seat` and, for `wittyplay.room.join`, `code`). [SDUI](SDUI.md#action) says how a
@@ -337,7 +340,7 @@ client fills them.
 
 ## Modes
 
-`GET /games/modes?client=native` answers `{client, modes}`, and the session's `modes` is the same list: what you can use, best first. Use the first one
+`GET /modules/wittyplay/games/modes?client=native` answers `{client, modes}`, and the session's `modes` is the same list: what you can use, best first. Use the first one
 you support, and move to the next if it doesn't show a picture within about 12 seconds. Ignore ids you don't
 know, because more may appear. Every mode is reached through [the stream](GAMING-STREAM.md), and says its version
 in `"stream"` (2). A mode with `browserOnly` set is never listed for a native client, and leaving
@@ -351,7 +354,7 @@ out `client` counts as native. No such mode exists today.
 
 ### Connecting
 
-A `webrtc` mode connects with `POST /play/{sid}/stream`, and the `ws-` modes with the WebSocket `GET /play/{sid}/stream`;
+A `webrtc` mode connects with `POST /modules/wittyplay/play/{sid}/stream`, and the `ws-` modes with the WebSocket `GET /modules/wittyplay/play/{sid}/stream`;
 the hello says which video you want. [The stream](GAMING-STREAM.md) has the hello, the messages and the errors. Out of your
 home network, WebRTC needs a route to the server's UDP port. Admins set that up in Settings, Consoles & cores. If it fails,
 the WebSocket works anywhere HTTP does.
@@ -570,10 +573,10 @@ Everything in the game menu is on the server, so an app doesn't have to invent a
 
 | Route | What it does |
 |---|---|
-| `GET /games/settings/schema` | Every setting: `key`, `group`, `section`, `label`, `help`, `caution`, `kind` (`toggle`, `choice`, `slider`, `color`, `bezel`), `default`, `min`, `max`, `step`, `unit`, `choices`, `shader`, `motion`. Also `presets` to offer, and the save slot numbers |
-| `GET /games/settings?item=<id>` or `?console=<id>` | `resolved` (`values`, `sources`, `coreOptions`, `coreSources`, `controls`, `presets`), `layers` by level, and `limits` (`maxSpeed`, `rewindBytes`, `runAhead`) |
-| `PUT /games/settings` | Change one level, and get the same view back |
-| `POST /games/settings/validate` | Check a settings file: `{"document": "...", "item": 12}` gives `{"ok", "report": {"errors", "ignored"}, "layer"}`. Each issue has `line`, `column`, `path` and `message` |
+| `GET /modules/wittyplay/games/settings/schema` | Every setting: `key`, `group`, `section`, `label`, `help`, `caution`, `kind` (`toggle`, `choice`, `slider`, `color`, `bezel`), `default`, `min`, `max`, `step`, `unit`, `choices`, `shader`, `motion`. Also `presets` to offer, and the save slot numbers |
+| `GET /modules/wittyplay/games/settings?item=<id>` or `?console=<id>` | `resolved` (`values`, `sources`, `coreOptions`, `coreSources`, `controls`, `presets`), `layers` by level, and `limits` (`maxSpeed`, `rewindBytes`, `runAhead`) |
+| `PUT /modules/wittyplay/games/settings` | Change one level, and get the same view back |
+| `POST /modules/wittyplay/games/settings/validate` | Check a settings file: `{"document": "...", "item": 12}` gives `{"ok", "report": {"errors", "ignored"}, "layer"}`. Each issue has `line`, `column`, `path` and `message` |
 
 A `PUT` has a `level` (`person`, `console`, `game`, or for an administrator `server`, `serverConsole`), the `item` or
 `console` it's about, and one of:
@@ -594,7 +597,7 @@ app to act on when opening a game.
 
 ## While a game is running
 
-`POST /play/{id}/action` takes these as well, as `{"type", "slot", "on", "value", "key", "text"}`:
+`POST /modules/wittyplay/play/{id}/action` takes these as well, as `{"type", "slot", "on", "value", "key", "text"}`:
 
 | `type` | With | What it does |
 |---|---|---|
@@ -604,20 +607,20 @@ app to act on when opening a game.
 | `undo` | | Go back to before the last load. Pressing it again goes forward |
 | `option` | `key`, `text` | Set one core option now, without saving it |
 
-Save and load take slots 1 to 99, and load also takes 0, 100 and 101, as under [Routes](#routes). `GET /games/{id}/saves` lists what exists, with the `core` that made each.
+Save and load take slots 1 to 99, and load also takes 0, 100 and 101, as under [Routes](#routes). `GET /modules/wittyplay/games/{id}/saves` lists what exists, with the `core` that made each.
 
 Events also bring `frame`, with the `width` and `height` of what the core really draws, whenever that changes. `GET
-/play/{id}` says the same once a picture exists. What a client draws on top needs this, because the video may be
+/modules/wittyplay/play/{id}` says the same once a picture exists. What a client draws on top needs this, because the video may be
 scaled on the way and the size in the first answer is only what the core expected.
 
-`GET /play/{id}/stats` gives `gameFps`, `sentFps`, `skipped`, `encodedFps`, `encodeMs`, `kbps`, `droppedFrames`, `width`,
+`GET /modules/wittyplay/play/{id}/stats` gives `gameFps`, `sentFps`, `skipped`, `encodedFps`, `encodeMs`, `kbps`, `droppedFrames`, `width`,
 `height`, `core`, `encoder`, `speed`, `paused`, `rewindBytes` and `rewindFrames`. Ask at most once a second, and only
-while showing them. `GET /play/{id}/screenshot` gives a PNG with no effects on it.
+while showing them. `GET /modules/wittyplay/play/{id}/screenshot` gives a PNG with no effects on it.
 
-`GET /games/{id}/core-options` lists each option with `key`, `label`, `info`, `category`, `choices`, `labels` (the name of each choice),
+`GET /modules/wittyplay/games/{id}/core-options` lists each option with `key`, `label`, `info`, `category`, `choices`, `labels` (the name of each choice),
 `default` and `hidden` (the core says it doesn't apply just now, so leave it out of a menu).
 
-`POST /games/{id}/play` also takes `"safeMode": true`: defaults only, no cheats, no patches. Its answer has `safeMode`,
+`POST /modules/wittyplay/games/{id}/play` also takes `"safeMode": true`: defaults only, no cheats, no patches. Its answer has `safeMode`,
 `maxSpeed`, and `notices` to show, such as a patch that wasn't applied.
 
 ## A person's own files
@@ -630,12 +633,12 @@ A Guest profile gets 403 from every route that uploads here. A Kids profile can 
 
 | Route | Limits |
 |---|---|
-| `GET`, `PUT /games/{id}/saves/{slot}/file` | 256 MB. Slots 1 to 99 to put. A file with our header is checked, a plain one gets a `warning` |
-| `GET`, `PUT /games/{id}/battery` | 64 MB. Refused with 409 while that person is playing it |
-| `GET`, `POST /games/{id}/patches?name=`, `PUT`, `DELETE /games/{id}/patches/{patch}` | IPS or BPS, 64 MB, 16 to a game. They take effect when the game next starts. Adult profiles only |
-| `GET`, `PUT /games/{id}/cheats`, `POST /games/{id}/cheats/import` | 500 codes. Import reads a file and says what's in it, and only `PUT` keeps anything |
-| `GET`, `POST /game-bezels?name=`, `GET`, `DELETE /game-bezels/{bezel}` | PNG, JPEG, WebP, 16 MB, 16 MP, 16 images. Decoded and made again |
-| `GET`, `PUT /games/{id}/meta`, `GET /games/recent` | `favourite`, `note` (8 KB). `recent` takes `limit` and `favourites=1`, and gives `item`, `plays`, `lastPlayed`, `favourite` |
+| `GET`, `PUT /modules/wittyplay/games/{id}/saves/{slot}/file` | 256 MB. Slots 1 to 99 to put. A file with our header is checked, a plain one gets a `warning` |
+| `GET`, `PUT /modules/wittyplay/games/{id}/battery` | 64 MB. Refused with 409 while that person is playing it |
+| `GET`, `POST /modules/wittyplay/games/{id}/patches?name=`, `PUT`, `DELETE /modules/wittyplay/games/{id}/patches/{patch}` | IPS or BPS, 64 MB, 16 to a game. They take effect when the game next starts. Adult profiles only |
+| `GET`, `PUT /modules/wittyplay/games/{id}/cheats`, `POST /modules/wittyplay/games/{id}/cheats/import` | 500 codes. Import reads a file and says what's in it, and only `PUT` keeps anything |
+| `GET`, `POST /modules/wittyplay/game-bezels?name=`, `GET`, `DELETE /modules/wittyplay/game-bezels/{bezel}` | PNG, JPEG, WebP, 16 MB, 16 MP, 16 images. Decoded and made again |
+| `GET`, `PUT /modules/wittyplay/games/{id}/meta`, `GET /modules/wittyplay/games/recent` | `favourite`, `note` (8 KB). `recent` takes `limit` and `favourites=1`, and gives `item`, `plays`, `lastPlayed`, `favourite` |
 
 ## What a TV app must build itself
 
@@ -644,14 +647,14 @@ A Guest profile gets 403 from every route that uploads here. A Kids profile can 
 - The game menu: Resume, Press Start, Press Select, Save, Load, Reset, Quit. Focus handling is the platform's.
   Remember that Back goes up, and that the picture owns the D-pad until the menu is open.
 - Choosing a mode from `modes`, and falling back.
-- Stopping cleanly with `DELETE /play/{sid}`, including when the app leaves the screen for good.
+- Stopping cleanly with `DELETE /modules/wittyplay/play/{sid}`, including when the app leaves the screen for good.
 
 **Moved to the server for this**, so apps don't have to do it: what every console's controller has, its names
 for its buttons, default layouts, saved layouts, controller profiles and which applies, sessions, saves, resume and play time.
 Nothing about a game lives only in the web player, except this device's own choices: which connection mode to force,
 whether to show touch controls, and which controller is on which player.
 
-**With the rest of the API:** these routes are under `/api/v1` as well. `GET /capabilities` lists `games` in `libraryTypes`, and `game-metadata`, `game-settings`, `game-controller-profiles`, `custom-game-cores` and `game-rigs` in `features`. `POST /items/{id}/playback` is for videos and answers 400 for a game: start one with `POST /games/{id}/play`.
+**With the rest of the API:** these routes are under `/api/v1` as well. `GET /capabilities` lists `games` in `libraryTypes`, and `game-metadata`, `game-settings`, `game-controller-profiles`, `custom-game-cores` and `game-rigs` in `features`. `POST /items/{id}/playback` is for videos and answers 400 for a game: start one with `POST /modules/wittyplay/games/{id}/play`.
 
 ---
 

@@ -75,7 +75,7 @@ function CouchConsoles() {
   const libs = useGameLibraries()
   const [lists, setLists] = useState<{ lib: number; name: string; consoles: GameConsole[] }[] | null>(null)
   useEffect(() => {
-    Promise.all(libs.map((l) => api.get<GameConsole[]>(`/games/consoles?library=${l.id}`).then((c) => ({ lib: l.id, name: l.name, consoles: c.filter((x) => (x.count || 0) > 0).sort((a, b) => (b.count || 0) - (a.count || 0)) })))).then(setLists).catch(() => setLists([]))
+    Promise.all(libs.map((l) => api.get<GameConsole[]>(`/modules/wittyplay/games/consoles?library=${l.id}`).then((c) => ({ lib: l.id, name: l.name, consoles: c.filter((x) => (x.count || 0) > 0).sort((a, b) => (b.count || 0) - (a.count || 0)) })))).then(setLists).catch(() => setLists([]))
   }, [libs])
   const logosShown = useConsoleLogos((lists || []).flatMap((l) => l.consoles))
   if (!lists) return <Spinner />
@@ -113,7 +113,7 @@ function CouchSearch() {
   const first = useRef<HTMLButtonElement>(null)
   useEffect(() => { first.current?.focus({ preventScroll: true }) }, [])
   useEffect(() => { const t = setTimeout(() => setQ(typed.trim()), 250); return () => clearTimeout(t) }, [typed])
-  useEffect(() => { if (lib) api.get<GameConsole[]>(`/games/consoles?library=${lib}`).then(setConsoles).catch(() => {}) }, [lib])
+  useEffect(() => { if (lib) api.get<GameConsole[]>(`/modules/wittyplay/games/consoles?library=${lib}`).then(setConsoles).catch(() => {}) }, [lib])
   const byId = useMemo(() => consoleMap(consoles), [consoles])
   const query = `library=${lib}&kind=game&sort=title&desc=0&search=${encodeURIComponent(q)}`
   return (

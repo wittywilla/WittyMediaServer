@@ -36,7 +36,7 @@ let consolesCache: Promise<GameConsole[]> | null = null
 export const getConsoles = (fresh = false): Promise<GameConsole[]> => {
   if (!consolesCache || fresh) {
     // A failure isn't kept: the next one to ask asks again.
-    const asked = api.get<GameConsole[]>('/games/consoles')
+    const asked = api.get<GameConsole[]>('/modules/wittyplay/games/consoles')
     consolesCache = asked
     asked.catch(() => { if (consolesCache === asked) consolesCache = null })
   }

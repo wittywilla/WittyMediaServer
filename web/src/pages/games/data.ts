@@ -29,7 +29,7 @@ export type GameCheck = {
 // A page back from a game shows what it showed at once, and then catches up.
 const homes = new Map<number, GameHome>()
 export const cachedHome = (lib: number) => homes.get(lib) || null
-export const getHome = (lib: number) => api.get<GameHome>(`/games/home?library=${lib}`).then((h) => { homes.set(lib, h); return h })
+export const getHome = (lib: number) => api.get<GameHome>(`/modules/wittyplay/games/home?library=${lib}`).then((h) => { homes.set(lib, h); return h })
 export const forgetHome = (lib: number) => { homes.delete(lib) }
 
 // Covers come as smaller copies, as big as they'll be seen on this screen.
@@ -38,7 +38,7 @@ export const cardCover = (it: Item) => `${posterUrl(it)}&w=${dense ? 480 : 320}`
 export const heroCover = (it: Item) => `${posterUrl(it)}&w=${dense ? 800 : 480}`
 
 export const saveThumb = (id: number, slot: number, v: number) => {
-  const u = mediaUrl(`/api/games/${id}/saves/${slot}/thumb`)
+  const u = mediaUrl(`/api/modules/wittyplay/games/${id}/saves/${slot}/thumb`)
   return u + (u.includes('?') ? '&' : '?') + `v=${v}`
 }
 

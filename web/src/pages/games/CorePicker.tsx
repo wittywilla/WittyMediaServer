@@ -86,11 +86,11 @@ export default function CorePicker({ scope, onClose, playing, onPicked }: {
   const alive = useRef(true)
   useEffect(() => () => { alive.current = false }, [])
 
-  const base = scope.kind === 'game' ? `/gaming/games/${scope.itemId}/core` : `/gaming/consoles/${encodeURIComponent(scope.consoleId)}/core`
+  const base = scope.kind === 'game' ? `/modules/wittyplay/gaming/games/${scope.itemId}/core` : `/modules/wittyplay/gaming/consoles/${encodeURIComponent(scope.consoleId)}/core`
   const load = useCallback(() => api.get<CoreChoices>(base).then((v) => { if (alive.current) setInfo(v) }).catch((e: any) => { if (alive.current) setFailed(e.message) }), [base])
   useEffect(() => { void load() }, [load])
   useEffect(() => {
-    if (scope.kind === 'game') api.get<SaveSlot[]>(`/games/${scope.itemId}/saves`).then((s) => { if (alive.current) setStates(s) }).catch(() => {})
+    if (scope.kind === 'game') api.get<SaveSlot[]>(`/modules/wittyplay/games/${scope.itemId}/saves`).then((s) => { if (alive.current) setStates(s) }).catch(() => {})
   }, [scope])
   // The controller and the remote start on what's chosen now.
   useEffect(() => {
@@ -138,7 +138,7 @@ export default function CorePicker({ scope, onClose, playing, onPicked }: {
     const poll = async () => {
       while (polling) {
         try {
-          const p = await api.get<{ installing: boolean; received: number; total: number }>(`/gaming/cores/${c.id}/install`)
+          const p = await api.get<{ installing: boolean; received: number; total: number }>(`/modules/wittyplay/gaming/cores/${c.id}/install`)
           if (polling && alive.current && p.installing) setProgress({ received: p.received, total: p.total })
         } catch { /* the install itself says what went wrong */ }
         await new Promise((r) => setTimeout(r, 250))
@@ -146,7 +146,7 @@ export default function CorePicker({ scope, onClose, playing, onPicked }: {
     }
     void poll()
     try {
-      await api.post(`/gaming/cores/${c.id}/install`)
+      await api.post(`/modules/wittyplay/gaming/cores/${c.id}/install`)
       polling = false
       toast(`${c.name} installed`)
       if (alive.current) setConfirm('')

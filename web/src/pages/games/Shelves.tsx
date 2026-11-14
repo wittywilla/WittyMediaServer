@@ -389,7 +389,7 @@ export function GamesDock() {
   const [playing, setPlaying] = useState<GamePlaying | null>(null)
   useEffect(() => {
     let on = true
-    const look = () => api.get<GamePlaying | null>('/games/playing').then((p) => { if (on) setPlaying(p && p.itemId ? p : null) }).catch(() => {})
+    const look = () => api.get<GamePlaying | null>('/modules/wittyplay/games/playing').then((p) => { if (on) setPlaying(p && p.itemId ? p : null) }).catch(() => {})
     void look()
     const t = window.setInterval(look, 30000)
     return () => { on = false; window.clearInterval(t) }

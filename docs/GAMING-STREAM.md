@@ -16,7 +16,7 @@ runs, with H.264 decoded in hardware through VideoToolbox and MediaCodec.
 a rented server in front, or a guest Wi-Fi that blocks it. It's a property of the network, not the platform, so every client
 has it. JPEG stays for a server with no H.264 encoder at all.
 
-This is the only stream: `/play/{sid}/stream`, version 2. The routes of version 1 (`/play/{sid}/webrtc` and
+This is the only stream: `/modules/wittyplay/play/{sid}/stream`, version 2. The routes of version 1 (`/play/{sid}/webrtc` and
 `/play/{sid}/ws`) are gone.
 
 ### Why
@@ -94,8 +94,8 @@ Over a WebSocket, a lost packet's wait looks to the server like a queue, so on a
 
 ### Finding it
 
-`GET /games/modes` and a session's `modes` list what the server can stream, best first, as before. Every mode says
-`"stream": 2`, and is reached through `/play/{sid}/stream`. A client that meets a higher number it doesn't know shows
+`GET /modules/wittyplay/games/modes` and a session's `modes` list what the server can stream, best first, as before. Every mode says
+`"stream": 2`, and is reached through `/modules/wittyplay/play/{sid}/stream`. A client that meets a higher number it doesn't know shows
 "update this app" rather than connecting.
 
 ```json
@@ -147,7 +147,7 @@ Everything a client says about itself, in one JSON object. It's the same over bo
 3. Make the data channels: `input` (unordered, no retransmits, binary) and `events` (ordered, reliable, text). `timing`
    (unordered, no retransmits) is still accepted, but timing messages can now go on `input` as well.
 4. Make the offer, set it, and wait for ICE gathering, up to 1.5 seconds.
-5. `POST /play/{sid}/stream` with `{"hello": {...}, "sdp": "<offer>"}`. It answers `{"stream": {...}, "sdp": "<answer>"}`.
+5. `POST /modules/wittyplay/play/{sid}/stream` with `{"hello": {...}, "sdp": "<offer>"}`. It answers `{"stream": {...}, "sdp": "<answer>"}`.
 6. Set the answer. The stream's description is also sent as the first message on `events` once it opens.
 
 The video is H.264 Constrained Baseline (`profile-level-id=42e01f`, `packetization-mode=1`), or VP8 when the offer has no
@@ -159,7 +159,7 @@ picture back.
 
 ### WebSocket
 
-`GET /play/{sid}/stream`, upgraded to a WebSocket, with the sign-in as for any route: the `Authorization` header from an app,
+`GET /modules/wittyplay/play/{sid}/stream`, upgraded to a WebSocket, with the sign-in as for any route: the `Authorization` header from an app,
 the cookie or `?token=` from a browser. The first message must be the hello, as text, within 5 seconds:
 
 ```json
@@ -388,7 +388,7 @@ for the server's log.
 
 ### Errors
 
-`POST /play/{sid}/stream` and the WebSocket's upgrade answer as any route does, with a `code` beside `error`:
+`POST /modules/wittyplay/play/{sid}/stream` and the WebSocket's upgrade answer as any route does, with a `code` beside `error`:
 
 | Status | `code` | Meaning |
 |---|---|---|
@@ -406,7 +406,7 @@ and `bad-message`. The game ending comes as `{"type": "ended", "code": "...", "t
 
 | `code` | Meaning |
 |---|---|
-| `stopped` | It was saved and stopped: by `DELETE /play/{sid}`, or because the account started another game somewhere |
+| `stopped` | It was saved and stopped: by `DELETE /modules/wittyplay/play/{sid}`, or because the account started another game somewhere |
 | `quit` | The game shut itself down |
 | `crashed` | The emulator stopped or stopped answering. What was saved stays |
 | `idle` | Nobody pressed anything for 30 minutes |
@@ -463,11 +463,11 @@ to its `ms`. Not yet: several fingers, motion and lights, which browsers give pa
 7. `led` events and `seats` on the controller's lights (`InputDevice.getLightsManager()`, Android 12 and later).
 8. On Android TV, call `Surface.setFrameRate(fps, FRAME_RATE_COMPATIBILITY_FIXED_SOURCE)` and report the new `hz`.
 
-**Every app:** `/play/{sid}/stream` is the only way to connect to a game.
+**Every app:** `/modules/wittyplay/play/{sid}/stream` is the only way to connect to a game.
 
 ## Games in a standalone emulator
 
-A game started with `POST /games/{id}/play/emulator` is not a session of this protocol, though it borrows its WebRTC half. WittyPlay relays RTP that an FFmpeg beside the emulator made, so there is no WebSocket mode, no `timing` channel, no seats, no rewind and no stats message; the hello is checked the same way, the answer is the same `Connected`, and the first `events` message is the same stream description. Its bitrate follows what the browser reports losing, in a few large steps. See [the API](GAMING-API.md#playing-with-a-standalone-emulator).
+A game started with `POST /modules/wittyplay/games/{id}/play/emulator` is not a session of this protocol, though it borrows its WebRTC half. WittyPlay relays RTP that an FFmpeg beside the emulator made, so there is no WebSocket mode, no `timing` channel, no seats, no rewind and no stats message; the hello is checked the same way, the answer is the same `Connected`, and the first `events` message is the same stream description. Its bitrate follows what the browser reports losing, in a few large steps. See [the API](GAMING-API.md#playing-with-a-standalone-emulator).
 
 ## Where it lives
 

@@ -99,14 +99,14 @@ export default function GameDetails({ it, reload, variant }: { it: Item; reload?
     return () => window.clearTimeout(t)
   }, [savesOpen, showSettings, variant])
   const cheevos = useCheevos(variant === 'play' ? it.id : 0)
-  const loadSaves = useCallback(() => api.get<SaveSlot[]>(`/games/${it.id}/saves`).then(setSaves).catch(() => {}), [it.id])
-  const loadCheck = useCallback(() => api.get<GameCheck>(`/games/${it.id}/check`).then(setCheck).catch(() => {}), [it.id])
+  const loadSaves = useCallback(() => api.get<SaveSlot[]>(`/modules/wittyplay/games/${it.id}/saves`).then(setSaves).catch(() => {}), [it.id])
+  const loadCheck = useCallback(() => api.get<GameCheck>(`/modules/wittyplay/games/${it.id}/check`).then(setCheck).catch(() => {}), [it.id])
   const loadMeta = useCallback(() => api.get<GameDetailsInfo>(`/games/${it.id}/metadata`).then(setMeta).catch(() => {}), [it.id])
   useEffect(() => { void loadSaves(); void loadCheck() }, [loadSaves, loadCheck])
   useEffect(() => { void loadMeta() }, [loadMeta, it.updatedAt])
   useEffect(() => {
-    api.get<GamePersonal>(`/games/${it.id}/meta`).then((m) => { setMine(m); setNote(m.note) }).catch(() => {})
-    api.get<{ resolved: { values: Record<string, unknown> } }>(`/games/settings?item=${it.id}`).then((v) => setResumeMode(String(v.resolved.values['states.resume'] || 'ask'))).catch(() => {})
+    api.get<GamePersonal>(`/modules/wittyplay/games/${it.id}/meta`).then((m) => { setMine(m); setNote(m.note) }).catch(() => {})
+    api.get<{ resolved: { values: Record<string, unknown> } }>(`/modules/wittyplay/games/settings?item=${it.id}`).then((v) => setResumeMode(String(v.resolved.values['states.resume'] || 'ask'))).catch(() => {})
   }, [it.id])
   // Still being looked up: show what's found as it arrives.
   useEffect(() => {
@@ -137,16 +137,16 @@ export default function GameDetails({ it, reload, variant }: { it: Item; reload?
   const seats = c?.capabilities?.input.ports || 0
 
   const putMeta = async (patch: Partial<GamePersonal>) => {
-    try { setMine(await api.put<GamePersonal>(`/games/${it.id}/meta`, patch)) } catch (e: any) { toast(e.message) }
+    try { setMine(await api.put<GamePersonal>(`/modules/wittyplay/games/${it.id}/meta`, patch)) } catch (e: any) { toast(e.message) }
   }
   const removeSave = async (slot: number) => {
     if (!await ask({ title: `Delete ${slotName(slot).toLowerCase()}?`, body: 'This save can’t be brought back.', confirm: 'Delete', danger: true })) return
-    try { await api.del(`/games/${it.id}/saves/${slot}`); void loadSaves() } catch (e: any) { toast(e.message) }
+    try { await api.del(`/modules/wittyplay/games/${it.id}/saves/${slot}`); void loadSaves() } catch (e: any) { toast(e.message) }
   }
   const battery = async () => {
     const f = await pickSaveFile('.srm,.sav,.ram')
     if (!f) return
-    try { await uploadFile(`/games/${it.id}/battery`, f, 'PUT'); toast('Battery save replaced. The old one is kept beside it on the server.') } catch (e: any) { toast(e.message) }
+    try { await uploadFile(`/modules/wittyplay/games/${it.id}/battery`, f, 'PUT'); toast('Battery save replaced. The old one is kept beside it on the server.') } catch (e: any) { toast(e.message) }
   }
   const moreItems: MenuEntry[] = [
     ...(ready ? [{ key: 'safe', label: 'Start with default settings', icon: <IconRefresh />, onSelect: () => nav(links.play(it.id, `safe=1${auto ? '&resume=1' : ''}`)) }] : []),
@@ -261,7 +261,7 @@ export default function GameDetails({ it, reload, variant }: { it: Item; reload?
       {user?.isAdmin && <div className="wide"><dt>Path</dt><dd><code>{it.path}</code></dd></div>}
     </dl>
     <div className="gm-panel-actions">
-      {mine?.hasBattery && <a className="btn sm ghost" href={mediaUrl(`/api/games/${it.id}/battery`)} download>Download battery save</a>}
+      {mine?.hasBattery && <a className="btn sm ghost" href={mediaUrl(`/api/modules/wittyplay/games/${it.id}/battery`)} download>Download battery save</a>}
       <button type="button" className="btn sm ghost" onClick={() => void battery()}>{mine?.hasBattery ? 'Replace battery save…' : 'Import a battery save…'}</button>
     </div>
     {user?.isAdmin && meta && <GameMatchBar it={it} d={meta} onChanged={() => { void loadMeta(); reload?.() }} />}
@@ -380,7 +380,7 @@ export default function GameDetails({ it, reload, variant }: { it: Item; reload?
                         </span>
                       </Link>
                       <div className="wpg-save-tools" data-nav-group data-nav-entry=":scope > :first-child">
-                        <a className="wpg-mini" href={mediaUrl(`/api/games/${it.id}/saves/${s.slot}/file`)} download aria-label={`Download ${slotName(s.slot)}`}><IconDownload size={18} /></a>
+                        <a className="wpg-mini" href={mediaUrl(`/api/modules/wittyplay/games/${it.id}/saves/${s.slot}/file`)} download aria-label={`Download ${slotName(s.slot)}`}><IconDownload size={18} /></a>
                         <button type="button" className="wpg-mini" onClick={() => removeSave(s.slot)} aria-label={`Delete ${slotName(s.slot)}`}><IconTrash size={18} /></button>
                       </div>
                     </li>
@@ -508,7 +508,7 @@ export default function GameDetails({ it, reload, variant }: { it: Item; reload?
                 {s.slot > 0 && s.slot < 100 && <span className="gm-save-num" aria-hidden="true">{s.slot}</span>}
                 <div className="gm-save-text"><b>{slotName(s.slot)}</b><small><time dateTime={new Date(s.updatedAt * 1000).toISOString()} title={fmtDateTime(s.updatedAt * 1000)}>{fmtAgo(s.updatedAt)}</time></small></div>
                 <div className="gm-save-tools">
-                  <a className="btn sm ghost square" href={mediaUrl(`/api/games/${it.id}/saves/${s.slot}/file`)} download aria-label={`Download ${slotName(s.slot)}`} title="Download"><IconDownload size={16} /></a>
+                  <a className="btn sm ghost square" href={mediaUrl(`/api/modules/wittyplay/games/${it.id}/saves/${s.slot}/file`)} download aria-label={`Download ${slotName(s.slot)}`} title="Download"><IconDownload size={16} /></a>
                   <button type="button" className="btn sm ghost square" onClick={() => removeSave(s.slot)} aria-label={`Delete ${slotName(s.slot)}`} title="Delete"><IconTrash size={16} /></button>
                 </div>
               </li>

@@ -201,7 +201,7 @@ export default function GamesLibrary({ lib }: { lib: Library }) {
   const descending = sort === 'rating' || sort === 'added'
   const query = `library=${lib.id}&kind=game&sort=${sort}&desc=${descending ? 1 : 0}&console=${encodeURIComponent(consoleId)}&search=${encodeURIComponent(q)}&genre=${encodeURIComponent(genre)}&series=${encodeURIComponent(series)}&decade=${decade}&players=${players}&minRating=${score}${unmatched ? '&unmatched=1' : ''}`
 
-  const loadConsoles = useCallback(() => api.get<GameConsole[]>(`/games/consoles?library=${lib.id}`).then(setConsoles).catch(() => {}), [lib.id])
+  const loadConsoles = useCallback(() => api.get<GameConsole[]>(`/modules/wittyplay/games/consoles?library=${lib.id}`).then(setConsoles).catch(() => {}), [lib.id])
   const loadHome = useCallback(() => getHome(lib.id).then((h) => { setHome(h); setFavs(new Set(h.favouriteIds)); setHomeFailed(false) }).catch(() => setHomeFailed(true)), [lib.id])
   useEffect(() => { void loadHome() }, [loadHome])
   useEffect(() => { api.get<GameFacets>(`/games/facets?library=${lib.id}&console=${encodeURIComponent(consoleId)}`).then(setFacets).catch(() => {}) }, [lib.id, consoleId, version])
@@ -266,7 +266,7 @@ export default function GamesLibrary({ lib }: { lib: Library }) {
     const on = !favs.has(id)
     setFavs((s) => { const n = new Set(s); if (on) n.add(id); else n.delete(id); return n })
     try {
-      await api.put(`/games/${id}/meta`, { favourite: on })
+      await api.put(`/modules/wittyplay/games/${id}/meta`, { favourite: on })
       toast(on ? 'Added to favourites' : 'Taken out of favourites')
       forgetHome(lib.id)
       void loadHome()

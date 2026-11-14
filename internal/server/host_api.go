@@ -310,8 +310,13 @@ func (s *Server) handleModuleImage(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "not found")
 		return
 	}
+	path := filepath.Join(s.Cfg.ImagesDir, "modules", module, name)
+	if st, err := os.Stat(path); err != nil || !st.Mode().IsRegular() {
+		writeErr(w, 404, "not found")
+		return
+	}
 	w.Header().Set("Cache-Control", "private, max-age=31536000, immutable") // named by what it holds
-	http.ServeFile(w, r, filepath.Join(s.Cfg.ImagesDir, "modules", module, name))
+	http.ServeFile(w, r, path)
 }
 
 // ---------------------------------------------------------------- live sessions

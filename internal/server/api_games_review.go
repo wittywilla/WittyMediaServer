@@ -6,21 +6,17 @@ package server
 import (
 	"context"
 	"errors"
-	"io"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
-	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/gamearchive"
 	"github.com/wittywilla/wittymediaserver/internal/gameid"
 	"github.com/wittywilla/wittymediaserver/internal/gameregion"
 	"github.com/wittywilla/wittymediaserver/internal/library"
-	"github.com/wittywilla/wittymediaserver/internal/logging"
 	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 )
 
@@ -374,126 +370,7 @@ func (s *Server) handleGameNotAGame(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
 
-// prepareGame gives the file a core should open: one disc or cartridge, or a list of a
-// game's discs. Those can be files, archives, or some of each.
-func (g *gameService) prepareGame(ctx context.Context, store *library.Store, it *library.Item, console *wittyplay.Console) (string, func(), error) {
-	discs, err := store.GameDiscs(ctx, it.ID)
-	if err != nil || len(discs) < 2 || !console.Accepts(".m3u") {
-		return g.prepareROM(ctx, it.Path, console, store.GameEntry(ctx, it.ID))
-	}
-	return g.prepareDiscs(ctx, discs, console)
-}
-
-// prepareDiscs makes a folder holding a playlist of a game's discs, and the discs or
-// links to them. A core reads a playlist's names relative to itself, and can't follow one
-// across drives, so what's beside it has to be real, or as near as the system allows.
-func (g *gameService) prepareDiscs(ctx context.Context, discs []library.GameDisc, console *wittyplay.Console) (rom string, cleanup func(), err error) {
-	var ends []func()
-	finish := func() {
-		for _, end := range ends {
-			end()
-		}
-	}
-	defer func() {
-		if err != nil {
-			finish()
-		}
-	}()
-	tmpRoot := filepath.Join(g.dir, "tmp")
-	if err = os.MkdirAll(tmpRoot, 0o700); err != nil {
-		return "", nil, err
-	}
-	dir, err := os.MkdirTemp(tmpRoot, "rom-")
-	if err != nil {
-		return "", nil, err
-	}
-	ends = append(ends, func() { _ = os.RemoveAll(dir) })
-	// Every disc is made ready at once: unpacking is what takes the time, and the cache unpacks
-	// two at a time. One after the other, Final Fantasy VII from a USB drive took two minutes to
-	// start, for its two archived discs, though its first disc needed no unpacking at all.
-	type ready struct {
-		rom     string
-		release func()
-		err     error
-	}
-	got := make([]ready, len(discs))
-	var wg sync.WaitGroup
-	for i, d := range discs {
-		wg.Add(1)
-		got[i].err = errors.New("this disc could not be made ready")
-		logging.Go("preparing a disc", func() {
-			defer wg.Done()
-			got[i].rom, got[i].release, got[i].err = g.prepareROM(ctx, d.Path, console, "")
-		}, "cat", "games")
-	}
-	wg.Wait()
-	for _, r := range got {
-		if r.release != nil {
-			ends = append(ends, r.release)
-		}
-	}
-	var list strings.Builder
-	for i, d := range discs {
-		if got[i].err != nil {
-			return "", nil, got[i].err
-		}
-		one := got[i].rom
-		sub := "disc" + strconv.Itoa(d.Disc)
-		if err := os.Mkdir(filepath.Join(dir, sub), 0o700); err != nil {
-			return "", nil, err
-		}
-		files := []string{one}
-		switch strings.ToLower(filepath.Ext(one)) {
-		case ".cue", ".gdi", ".ccd", ".toc":
-			if sheet, err := gameid.ReadSheet(one); err == nil {
-				files = append(files, sheet.Files...)
-			}
-		}
-		for _, f := range files {
-			if err := linkOrCopy(f, filepath.Join(dir, sub, filepath.Base(f))); err != nil {
-				return "", nil, err
-			}
-		}
-		list.WriteString(sub + "/" + filepath.Base(one) + "\n")
-	}
-	m3u := filepath.Join(dir, "game.m3u")
-	if err := os.WriteFile(m3u, []byte(list.String()), 0o600); err != nil {
-		return "", nil, err
-	}
-	var once bool
-	return m3u, func() {
-		if !once {
-			once = true
-			finish()
-		}
-	}, nil
-}
-
-// linkOrCopy puts a file in a second place as cheaply as this system allows. A hard link
-// works on the same drive, and a symbolic link where the account may make them. A copy is
-// what's left: it costs the time and the room, for as long as the game is running.
-func linkOrCopy(from, to string) error {
-	if _, err := os.Lstat(to); err == nil {
-		return nil // a track two sheets name
-	}
-	if os.Link(from, to) == nil {
-		return nil
-	}
-	if os.Symlink(from, to) == nil {
-		return nil
-	}
-	in, err := os.Open(from)
-	if err != nil {
-		return err
-	}
-	defer in.Close()
-	out, err := os.Create(to)
-	if err != nil {
-		return err
-	}
-	_, err = io.Copy(out, in)
-	if cerr := out.Close(); err == nil {
-		err = cerr
-	}
-	return err
+// testingGames: the built-in test console is only offered to developers.
+func (s *Server) testingGames() bool {
+	return (s.Cfg != nil && s.Cfg.Dev) || os.Getenv("WMS_GAMING_TESTCORE") == "1"
 }

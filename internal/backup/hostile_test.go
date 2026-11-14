@@ -29,7 +29,7 @@ func TestPlainArchiveCantPlantSecretsOrSwitches(t *testing.T) {
 	}
 	bad := filepath.Join(dir, "bad.zip")
 	tamper(t, src, bad,
-		`INSERT OR REPLACE INTO settings(key, value) VALUES ('serverKey', 'PLANTED'), ('serverId', 'PLANTED'), ('tmdbKey', 'PLANTED'), ('libtranscode.tdarrKey', 'PLANTED'), ('gamingCustomCores', '1'), ('brandName', 'Kept')`,
+		`INSERT OR REPLACE INTO settings(key, value) VALUES ('serverKey', 'PLANTED'), ('serverId', 'PLANTED'), ('tmdbKey', 'PLANTED'), ('libtranscode.tdarrKey', 'PLANTED'), ('brandName', 'Kept')`,
 		`INSERT INTO ltc_rules(library_id, policy, output, allow_writes, updated_at, auto, auto_since) VALUES (1, '{}', 'replace', 1, 1, 1, 1)`,
 	)
 	in, err := Inspect(ctx, bad, "", f, nil)
@@ -50,7 +50,6 @@ func TestPlainArchiveCantPlantSecretsOrSwitches(t *testing.T) {
 	defer d.Close()
 	for q, want := range map[string]string{
 		`SELECT COUNT(*) FROM settings WHERE value = 'PLANTED'`:                      "0",
-		`SELECT COUNT(*) FROM settings WHERE key = 'gamingCustomCores'`:              "0",
 		`SELECT value FROM settings WHERE key = 'brandName'`:                         "Kept",
 		`SELECT auto FROM ltc_rules WHERE library_id = 1`:                            "0",
 		`SELECT allow_writes FROM ltc_rules WHERE library_id = 1`:                    "0",

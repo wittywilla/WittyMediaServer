@@ -511,7 +511,7 @@ const hideLinked = "i.id NOT IN (SELECT item_id FROM item_links)"
 type ItemQuery struct {
 	LibraryID int64
 	Search    string
-	Sort      string // title | added | year | rating | runtime | popular | newest | oldest
+	Sort      string // title | added | year | rating | runtime | newest | oldest
 	Desc      bool
 	Limit     int
 	Offset    int
@@ -717,7 +717,6 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 		}
 	}
 	order := "i.sort_title COLLATE NOCASE"
-	from := "items i"
 	// whole: the order already says which way each of its keys goes.
 	whole := false
 	dir := ""
@@ -732,11 +731,6 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 	case "series":
 		// Books by series, then their place in it, then title; those in none go last.
 		order, whole = "IFNULL(i.album, '') = '', IFNULL(i.album, '') COLLATE NOCASE"+dir+", IFNULL(i.track, 999999)"+dir+", i.sort_title COLLATE NOCASE"+dir+", i.id"+dir, true
-	case "popular":
-		// Games: how often anyone on this server played it, then how well it's rated.
-		// A join, so a large library doesn't look through the plays once per game.
-		from = "items i LEFT JOIN (SELECT item_id, SUM(plays) AS plays FROM wittyplay_game_meta GROUP BY item_id) pop ON pop.item_id = i.id"
-		order = "IFNULL(pop.plays, 0) DESC, IFNULL(i.rating, 0) DESC, i.sort_title COLLATE NOCASE"
 	case "newest":
 		// Anything with no known year goes last either way.
 		order = "i.year IS NULL, i.year DESC, i.sort_title COLLATE NOCASE"
@@ -785,7 +779,7 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 	if q.Brief {
 		cols = itemColsBrief
 	}
-	rows, err := s.DB.QueryContext(ctx, `SELECT `+cols+` FROM `+from+` WHERE `+w+` ORDER BY `+order+` LIMIT ? OFFSET ?`, append(args, limit, q.Offset)...)
+	rows, err := s.DB.QueryContext(ctx, `SELECT `+cols+` FROM items i WHERE `+w+` ORDER BY `+order+` LIMIT ? OFFSET ?`, append(args, limit, q.Offset)...)
 	if err != nil {
 		return nil, 0, err
 	}

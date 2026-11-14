@@ -71,6 +71,7 @@ func (s *Server) HostAPI() http.Handler {
 	h("GET "+b+"/items/{id}", s.hostItem)
 	h("GET "+b+"/items", s.hostItems)
 	h("GET "+b+"/items/counts", s.hostCounts)
+	h("GET "+b+"/items/facets", s.hostFacets)
 	h("GET "+b+"/libraries", s.hostLibraries)
 	h("GET "+b+"/may", s.hostMay)
 	h("GET "+b+"/settings", s.hostSettings)
@@ -84,6 +85,7 @@ func (s *Server) HostAPI() http.Handler {
 	h("GET "+b+"/events", s.hostEventsWait)
 	h("POST "+b+"/tasks/{name}", s.hostTask)
 	h("POST "+b+"/audit", s.hostAudit)
+	h("GET "+b+"/audit", s.hostAuditLog)
 	return mux
 }
 
@@ -167,8 +169,14 @@ func (s *Server) hostItem(w http.ResponseWriter, r *http.Request, module string)
 	writeJSON(w, 200, s.moduleItemFull(r.Context(), it))
 }
 
+// hostItemSorts are the orders a module may list items in.
+var hostItemSorts = []string{"", "added", "rating", "oldest", "title"}
+
+// hostItems lists the items of the module's kinds of library a person may see. With full=1
+// each is the server's own brief item, as GET /api/v1/items gives it (poster, rating, genres
+// and the rest); otherwise the module's shape of it, without its files.
 func (s *Server) hostItems(w http.ResponseWriter, r *http.Request, module string) {
-	_, a, err := s.onBehalf(r)
+	u, a, err := s.onBehalf(r)
 	if err != nil {
 		writeJSON(w, 403, map[string]string{"error": err.Error()})
 		return
@@ -183,30 +191,89 @@ func (s *Server) hostItems(w http.ResponseWriter, r *http.Request, module string
 	kind := q.Get("libraryKind")
 	limit := min(max(qIntOf(q.Get("limit"), 100), 1), 500)
 	offset := max(qIntOf(q.Get("offset"), 0), 0)
-	var out []*service.Item
+	sort := q.Get("sort")
+	if !slices.Contains(hostItemSorts, sort) {
+		writeJSON(w, 400, map[string]string{"error": "items sort by added, rating, oldest or title"})
+		return
+	}
+	var ids []int64
+	if v := q.Get("ids"); v != "" {
+		for _, p := range strings.Split(v, ",") {
+			id, err := strconv.ParseInt(strings.TrimSpace(p), 10, 64)
+			if err != nil || id <= 0 || len(ids) >= 500 {
+				writeJSON(w, 400, map[string]string{"error": "ids are up to 500 item numbers, with commas between"})
+				return
+			}
+			ids = append(ids, id)
+		}
+	}
+	minRating, _ := strconv.ParseFloat(q.Get("minRating"), 64)
+	full := q.Get("full") == "1"
+	var found []*library.Item
 	for _, l := range libs {
 		if !s.servesKind(module, l.Type) || (want != 0 && l.ID != want) || (kind != "" && l.Type != kind) {
 			continue
 		}
 		iq := library.ItemQuery{LibraryID: l.ID, Kind: q.Get("kind"), Search: q.Get("search"), Console: q.Get("facet.console"),
+			Sort: sort, Desc: q.Get("desc") == "1", MinRating: minRating, Genre: q.Get("genre"), Series: q.Get("series"), IDs: ids,
 			Access: a, Brief: true, NoTotal: true, Limit: offset + limit}
 		items, _, err := s.Store.Items(r.Context(), iq)
 		if err != nil {
 			writeJSON(w, 500, map[string]string{"error": err.Error()})
 			return
 		}
-		for _, it := range items {
-			m := moduleItem(it)
-			m.Files = nil // a list doesn't carry files: ask for the item
-			out = append(out, m)
-		}
+		found = append(found, items...)
 	}
-	if offset >= len(out) {
-		out = nil
+	if offset >= len(found) {
+		found = nil
 	} else {
-		out = out[offset:min(len(out), offset+limit)]
+		found = found[offset:min(len(found), offset+limit)]
+	}
+	if full {
+		if u != nil {
+			_ = s.Store.AttachProgress(r.Context(), u.ID, found)
+		}
+		if u == nil || !u.IsAdmin {
+			for _, it := range found {
+				it.Path = ""
+				it.Poster, it.Backdrop = artForViewer(it.Poster), artForViewer(it.Backdrop)
+			}
+		}
+		if found == nil {
+			found = []*library.Item{}
+		}
+		writeJSON(w, 200, map[string]any{"items": found})
+		return
+	}
+	var out []*service.Item
+	for _, it := range found {
+		m := moduleItem(it)
+		m.Files = nil // a list doesn't carry files: ask for the item
+		out = append(out, m)
 	}
 	writeJSON(w, 200, map[string]any{"items": out})
+}
+
+// hostFacets is what a games library of the module's holds, as the person asking may see it:
+// the same counts GET /api/v1/games/facets gives.
+func (s *Server) hostFacets(w http.ResponseWriter, r *http.Request, module string) {
+	_, a, err := s.onBehalf(r)
+	if err != nil {
+		writeJSON(w, 403, map[string]string{"error": err.Error()})
+		return
+	}
+	id, _ := strconv.ParseInt(r.URL.Query().Get("library"), 10, 64)
+	lib, err := s.Store.Library(r.Context(), id)
+	if err != nil || lib.Type != "games" || !s.servesKind(module, lib.Type) {
+		writeJSON(w, 404, map[string]string{"error": "no such library"})
+		return
+	}
+	f, err := s.Store.GameFacets(r.Context(), lib.ID, "", a)
+	if err != nil {
+		writeJSON(w, 500, map[string]string{"error": err.Error()})
+		return
+	}
+	writeJSON(w, 200, f)
 }
 
 // hostLibraries lists the libraries of the module's kinds, with their folders: for its own work
@@ -226,8 +293,9 @@ func (s *Server) hostLibraries(w http.ResponseWriter, r *http.Request, module st
 	writeJSON(w, 200, map[string]any{"libraries": out})
 }
 
-// hostCounts counts games by console in the module's games libraries, as the person asking may
-// see them (everything, with nobody named). Only the console facet is counted today.
+// hostCounts counts games by console in the module's games libraries (or one of them, library=),
+// as the person asking may see them (everything, with nobody named). Only the console facet is
+// counted today.
 func (s *Server) hostCounts(w http.ResponseWriter, r *http.Request, module string) {
 	_, a, err := s.onBehalf(r)
 	if err != nil {
@@ -235,6 +303,16 @@ func (s *Server) hostCounts(w http.ResponseWriter, r *http.Request, module strin
 		return
 	}
 	kind, by := r.URL.Query().Get("libraryKind"), r.URL.Query().Get("by")
+	want, _ := strconv.ParseInt(r.URL.Query().Get("library"), 10, 64)
+	if want != 0 {
+		// One library: of its kind, which has to be one the module serves.
+		lib, err := s.Store.Library(r.Context(), want)
+		if err != nil || !s.servesKind(module, lib.Type) || (kind != "" && kind != lib.Type) {
+			writeJSON(w, 404, map[string]string{"error": "no such library"})
+			return
+		}
+		kind = lib.Type
+	}
 	if by != "console" || kind != "games" || !s.servesKind(module, kind) {
 		writeJSON(w, 400, map[string]string{"error": "only games, by console, can be counted"})
 		return
@@ -246,7 +324,7 @@ func (s *Server) hostCounts(w http.ResponseWriter, r *http.Request, module strin
 	}
 	out := map[string]int{}
 	for _, l := range libs {
-		if l.Type != kind {
+		if l.Type != kind || (want != 0 && l.ID != want) {
 			continue
 		}
 		counts, err := s.Store.GameCounts(r.Context(), l.ID, a)
@@ -512,6 +590,12 @@ func (s *Server) hostAudit(w http.ResponseWriter, r *http.Request, module string
 		writeJSON(w, 400, map[string]string{"error": "an audit row needs an action"})
 		return
 	}
-	s.writeAudit(r.Context(), u, module+" "+in.Action, in.Action, in.Core, in.Detail)
+	s.writeAudit(r.Context(), u, module+" "+in.Action, module, in.Action, in.Core, in.Detail)
 	w.WriteHeader(204)
+}
+
+// hostAuditLog is the module's own rows of the audit log, newest first: limit=, at most 500.
+func (s *Server) hostAuditLog(w http.ResponseWriter, r *http.Request, module string) {
+	limit := min(max(qIntOf(r.URL.Query().Get("limit"), 100), 1), 500)
+	writeJSON(w, 200, map[string]any{"rows": s.coreAudit(r.Context(), module, limit)})
 }

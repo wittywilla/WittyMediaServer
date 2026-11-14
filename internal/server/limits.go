@@ -36,15 +36,50 @@ func publicBody(p string) bool {
 	return false
 }
 
+// bigUploadPath says which routes take a body larger than the server's usual limit.
+// They set their own limit once they know who's asking; a module's route, from its
+// integration (module_routes.go).
+func (s *Server) bigUploadPath(r *http.Request) bool {
+	p := r.URL.Path
+	if mediaUploadPath(p) || strings.HasSuffix(p, "/backup/restore/upload") || strings.HasSuffix(p, "/channels/bumpers/upload") {
+		return true
+	}
+	return s.isModuleRoute(r)
+}
+
+// isModuleRoute says whether a request is for one of a module's own routes.
+func (s *Server) isModuleRoute(r *http.Request) bool {
+	p := r.URL.Path
+	if rest, ok := strings.CutPrefix(p, apiPrefix); ok {
+		p = "/api/" + rest
+	}
+	rest, ok := strings.CutPrefix(p, "/api/modules/")
+	if !ok {
+		return false
+	}
+	id, _, _ := strings.Cut(rest, "/")
+	mux := s.routing().direct[id]
+	if mux == nil {
+		return false
+	}
+	u := *r.URL
+	u.Path, u.RawPath = p, ""
+	q := *r
+	q.URL = &u
+	_, pattern := mux.Handler(&q)
+	return pattern != ""
+}
+
 // limitBody bounds the size of a request's body and how long it may take to arrive.
-func limitBody(w http.ResponseWriter, r *http.Request) {
+// big leaves the size to the route.
+func limitBody(w http.ResponseWriter, r *http.Request, big bool) {
 	rc := http.NewResponseController(w)
 	noBody := r.Body == http.NoBody
 	if publicBody(r.URL.Path) {
 		r.Body = http.MaxBytesReader(w, r.Body, maxCredentialBytes)
 		_ = rc.SetReadDeadline(time.Now().Add(publicBodyTime))
 	} else {
-		if !bigUploadPath(r.URL.Path) {
+		if !big {
 			r.Body = http.MaxBytesReader(w, r.Body, maxRequestBody)
 		}
 		_ = rc.SetReadDeadline(time.Now().Add(requestBodyTime))

@@ -109,32 +109,6 @@ func TestLongRequestOutlivesTheBodyDeadline(t *testing.T) {
 	}
 }
 
-// Pictures are read whole into memory, so no more than a few at once. The answer comes
-// before any of the body is read.
-func TestPictureUploadsTakeASlotFirst(t *testing.T) {
-	g := newGameServer(t)
-	for range cap(importSlots) {
-		importSlots <- struct{}{}
-	}
-	defer func() {
-		for range cap(importSlots) {
-			<-importSlots
-		}
-	}()
-	for _, c := range []struct{ method, path string }{
-		{"POST", "/api/game-bezels?name=a.png"},
-	} {
-		r := httptest.NewRequest(c.method, c.path, &failingBody{t: t})
-		r.RemoteAddr = "192.168.1.50:4000"
-		r.Header.Set("Authorization", "Bearer "+g.other)
-		w := httptest.NewRecorder()
-		g.h.ServeHTTP(w, r)
-		if w.Code != 503 {
-			t.Errorf("%s: %d %s", c.path, w.Code, w.Body)
-		}
-	}
-}
-
 type failingBody struct{ t *testing.T }
 
 func (f *failingBody) Read([]byte) (int, error) {

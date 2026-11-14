@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"slices"
@@ -241,6 +242,7 @@ func (s *Server) passToModule(w http.ResponseWriter, r *http.Request, ref module
 			if len(pw) > 4<<10 {
 				writeErr(w, 400, "that password is too long")
 			}
+			s.writeAudit(ctx, u, ref.module+" password-refused", ref.module, "password-refused", "", r.Method+" "+route.Path)
 			return
 		}
 		confirmed = true
@@ -361,12 +363,17 @@ func (s *Server) moduleItemFull(ctx context.Context, it *library.Item) *service.
 			out.Files = append(out.Files, f)
 		}
 	}
-	if e := s.Store.GameEntry(ctx, it.ID); e != "" {
+	set := func(k, v string) {
+		if v == "" {
+			return
+		}
 		if out.Facets == nil {
 			out.Facets = map[string]string{}
 		}
-		out.Facets["entry"] = e
+		out.Facets[k] = v
 	}
+	set("entry", s.Store.GameEntry(ctx, it.ID))
+	set("serial", s.Store.GameSerial(ctx, it.ID)) // what the scan read in the file, or its name
 	return out
 }
 
@@ -402,4 +409,31 @@ func withoutSignIn(h http.Header) http.Header {
 		}
 	}
 	return out
+}
+
+// kasmCSP is for a module's page that runs someone else's code, such as an emulator's desktop
+// that may have been taken over. Under the server's own origin such a page could read the app's
+// storage and ask the API anything as the person signed in, so it never runs there: "sandbox"
+// without allow-same-origin gives it an origin that is nobody's. That's the same rule every
+// other answer under /api/ follows (apiCSP), with scripts allowed.
+const kasmCSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; " +
+	"connect-src 'self'; font-src 'self' data:; media-src 'self' blob:; worker-src 'self' blob:; object-src 'none'; " +
+	"base-uri 'none'; form-action 'none'; frame-ancestors 'self'; sandbox allow-scripts allow-pointer-lock"
+
+// cappedBody stops a module's answer at a size.
+type cappedBody struct {
+	io.ReadCloser
+	left int64
+}
+
+func (c *cappedBody) Read(p []byte) (int, error) {
+	if c.left <= 0 {
+		return 0, errors.New("the module's answer is too large")
+	}
+	if int64(len(p)) > c.left {
+		p = p[:c.left]
+	}
+	n, err := c.ReadCloser.Read(p)
+	c.left -= int64(n)
+	return n, err
 }

@@ -292,8 +292,6 @@ func cmdServe(args []string) int {
 		Dir: filepath.Join(cfg.DataDir, "modules"), Server: version, Builtins: modules.ServerManifests(), Known: true, CatalogURL: update.ModuleCatalog(), Starter: layout.Current().Modules(),
 		WriteFolders: func(id string) []string {
 			switch id {
-			case "wittyplay": // saves, cores and what's unpacked stay where a server keeps them
-				return []string{filepath.Join(cfg.DataDir, "gaming")}
 			case "wittycouch": // so do the keys that say this server is paired with a computer
 				return []string{filepath.Join(cfg.DataDir, "wittycouch"), filepath.Join(cfg.DataDir, "gamerigs")}
 			}
@@ -535,7 +533,6 @@ func cmdServe(args []string) int {
 		if srv.TV != nil {
 			srv.TV.Close()
 		}
-		srv.StopGames() // saves every running game
 		srv.StopRigs()
 		srv.StopCouch()
 		sctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

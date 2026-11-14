@@ -267,8 +267,8 @@ func (s *Store) GameDiscs(ctx context.Context, itemID int64) ([]GameDisc, error)
 
 // playedGames lists a library's games that someone has played.
 func (s *Store) playedGames(ctx context.Context, libraryID int64) (map[int64]bool, error) {
-	rows, err := s.DB.QueryContext(ctx, `SELECT i.id FROM items i WHERE i.library_id = ? AND i.kind = 'game' AND (
-		EXISTS (SELECT 1 FROM item_stats st WHERE st.item_id = i.id) OR EXISTS (SELECT 1 FROM game_core_plays p WHERE p.item_id = i.id))`, libraryID)
+	rows, err := s.DB.QueryContext(ctx, `SELECT i.id FROM items i WHERE i.library_id = ? AND i.kind = 'game' AND
+		EXISTS (SELECT 1 FROM item_stats st WHERE st.item_id = i.id)`, libraryID)
 	if err != nil {
 		return nil, err
 	}
@@ -291,7 +291,7 @@ func (s *Store) playedGames(ctx context.Context, libraryID int64) (map[int64]boo
 // record again, which goes no further than the local list.
 func (s *Store) GameRegionsChanged(ctx context.Context) error {
 	if _, err := s.DB.ExecContext(ctx, `DELETE FROM item_links WHERE link = ? AND parent_item IN (SELECT i.id FROM items i LEFT JOIN game_meta m ON m.item_id = i.id
-		WHERE i.kind = 'game' AND NOT EXISTS (SELECT 1 FROM item_stats st WHERE st.item_id = i.id) AND NOT EXISTS (SELECT 1 FROM game_core_plays p WHERE p.item_id = i.id)
+		WHERE i.kind = 'game' AND NOT EXISTS (SELECT 1 FROM item_stats st WHERE st.item_id = i.id)
 		  AND instr(',' || IFNULL(m.edited, '') || ',', ',title,') = 0)`, LinkVersion); err != nil {
 		return err
 	}
@@ -515,6 +515,16 @@ func ConsoleLogoName(id string) string {
 		return c.Name
 	}
 	return ""
+}
+
+// LogoConsoleIDs are the consoles whose logos are known by a name of their own here, whether or
+// not WittyPlay is running to list its consoles.
+func LogoConsoleIDs() []string {
+	out := make([]string, 0, len(consoleLogoNames))
+	for id := range consoleLogoNames {
+		out = append(out, id)
+	}
+	return out
 }
 
 var consoleLogoNames = map[string]string{

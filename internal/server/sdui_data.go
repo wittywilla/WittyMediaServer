@@ -12,10 +12,12 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 	"github.com/wittywilla/wittymediaserver/pkg/sdui"
 )
 
@@ -1306,3 +1308,27 @@ func (s *Server) recentlyPlayedGames(rv *sduiResolver, limit int) []playedGame {
 	}
 	return out
 }
+
+// consoleShort is a console's short name (SNES, Mega Drive), so a card can draw a game in its
+// console's case; its id when it has none.
+func consoleShort(id string) string {
+	shortOnce.Do(func() {
+		shortNames = map[string]string{}
+		for _, c := range wittyplay.Consoles() {
+			n := c.Short
+			if n == "" {
+				n = c.Name
+			}
+			shortNames[c.ID] = n
+		}
+	})
+	if n := shortNames[id]; n != "" {
+		return n
+	}
+	return id
+}
+
+var (
+	shortOnce  sync.Once
+	shortNames map[string]string
+)

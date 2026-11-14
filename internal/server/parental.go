@@ -78,15 +78,12 @@ func classify(pattern string) routeClass {
 	stops := method == "DELETE" // leaving a stream is always allowed
 	var c routeClass
 	switch {
-	case under("/api/games", "/api/play", "/api/couch", "/api/rigs", "/api/modules/wittyplay", "/api/game-bezels"),
+	case under("/api/games", "/api/couch", "/api/rigs"),
 		strings.HasPrefix(path, "/api/items/") && (ends("/achievements") || strings.Contains(path, "/achievements/")):
-		// A game's RetroAchievements belong to games, though they hang off the item.
+		// A game's RetroAchievements belong to games, though they hang off the item. Playing
+		// a game is WittyPlay's: its routes say which of them play (module_routes.go).
 		c.feature = library.FeatureGames
-		// Under WittyPlay's own routes everything is a game being played, except an
-		// emulator's settings, the list of one's games, and pausing one.
-		emulator := under("/api/modules/wittyplay") && !ends("/settings", "/docker/sessions", "/pause")
-		playing := under("/api/play", "/api/couch/sessions") || emulator ||
-			(method == "POST" && ends("/play", "/play/emulator", "/prepare", "/start", "/stream", "/webrtc"))
+		playing := under("/api/couch/sessions") || (method == "POST" && ends("/play", "/start", "/stream", "/webrtc"))
 		if playing && !stops {
 			c.time = timePlay
 		}

@@ -400,24 +400,18 @@ func checkTempFiles(_ context.Context, e *DoctorEnv) []Issue {
 		}
 	}
 	var size int64
-	// With no server running, the folders of old streams and the place game files unpack to
-	// are left over. With one running, some of it is in use. The conversion folder can be
-	// anywhere the owner chose, with anything else in it, so only a stream's folder counts,
-	// as when the server starts up.
+	// With no server running, the folders of old streams are left over. With one running,
+	// some of them are in use. The conversion folder can be anywhere the owner chose, with
+	// anything else in it, so only a stream's folder counts, as when the server starts up.
 	if !e.ServerUp() {
-		for _, dir := range []string{e.Transcode, filepath.Join(e.Data, "gaming", "tmp")} {
-			entries, err := os.ReadDir(dir)
-			if err != nil {
+		entries, _ := os.ReadDir(e.Transcode)
+		for _, d := range entries {
+			if !d.IsDir() || !hls.IsSessionDir(d.Name()) {
 				continue
 			}
-			for _, d := range entries {
-				if dir == e.Transcode && !(d.IsDir() && hls.IsSessionDir(d.Name())) {
-					continue
-				}
-				p := filepath.Join(dir, d.Name())
-				t.remove = append(t.remove, p)
-				size += treeSize(p)
-			}
+			p := filepath.Join(e.Transcode, d.Name())
+			t.remove = append(t.remove, p)
+			size += treeSize(p)
 		}
 	}
 	n := len(t.moved) + len(t.remove)
@@ -426,7 +420,7 @@ func checkTempFiles(_ context.Context, e *DoctorEnv) []Issue {
 	}
 	what := fmt.Sprintf("%s left behind by something that stopped partway.", countOf(n, "temporary file or folder", "temporary files and folders"))
 	if size >= 1<<20 {
-		what += fmt.Sprintf(" %d MB of them are converted video and unpacked game files.", size>>20)
+		what += fmt.Sprintf(" %d MB of them are converted video.", size>>20)
 	}
 	return []Issue{{Key: "temp-files", Severity: SevWarn, Title: "Leftover temporary files", Safety: SafetySafe, Count: n, Names: names, data: t, What: what,
 		Fix: "Moves stray files to the safety copy, and removes the leftover converted video and unpacked game files, which the server makes again when they're needed."}}

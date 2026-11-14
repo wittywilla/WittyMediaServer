@@ -69,7 +69,6 @@ const (
 	PartHistory    = "history"
 	PartChannels   = "channels"
 	PartArtwork    = "artwork"
-	PartSaves      = "saves"
 	PartModules    = "modules"
 	PartMetaFiles  = "metadatafiles"
 	PartLyrics     = "lyrics"
@@ -85,7 +84,6 @@ func Parts() []Part {
 		{ID: PartHistory, Label: "Watch history and personal data", Desc: "Progress, what's been watched, favourites, ratings, playlists, collections, notes and share links.", Default: true, Needs: []string{PartLibrary, PartUsers}, HasTables: true},
 		{ID: PartChannels, Label: "Channels and TV", Desc: "WittyTV channels, tuners, the guide, scheduled recordings, bumpers and channel logos.", Default: true, Needs: []string{PartLibrary}, HasTables: true},
 		{ID: PartArtwork, Label: "Artwork", Desc: "Posters, backdrops and logos the server has saved. They can be fetched again, so leave this out if space is tight.", Default: true},
-		{ID: PartSaves, Label: "Game saves", Desc: "Saves, saved states, game settings, bezels and backgrounds for every account.", Default: true, Needs: []string{PartLibrary, PartUsers}, HasTables: true},
 		{ID: PartModules, Label: "Module settings", Desc: "Which modules are on and how each one updates. Their programs aren't kept: they install again from their signed releases.", Default: true},
 		{ID: PartMetaFiles, Label: "Metadata files", Desc: "The folder of text files for fixing titles by hand, if you've made one. It stays readable inside the ZIP unless you set a password.", Default: true},
 		{ID: PartLyrics, Label: "Lyrics corrections", Desc: "Lyrics someone corrected on this server. Left out unless you ask, because they're the words of songs.", Default: false},
@@ -160,33 +158,17 @@ var tableParts = map[string]string{
 	"channels": PartChannels, "channel_days": PartChannels, "channel_history": PartChannels, "channel_bumpers": PartChannels,
 	"tuners": PartChannels, "tuner_channels": PartChannels, "epg_sources": PartChannels, "epg_channels": PartChannels,
 	"epg_programmes": PartChannels, "recordings": PartChannels, "recording_rules": PartChannels,
-
-	"wittyplay_bezels": PartSaves, "wittyplay_core_options": PartSaves,
-	"wittyplay_game_meta": PartSaves, "wittyplay_patches": PartSaves, "wittyplay_settings": PartSaves,
-	"wittyplay_presence": PartSaves, "wittyplay_kids_friends": PartSaves,
-}
-
-// isCoreCache: what a core worked out for itself beside a save, such as compiled shaders. It's made
-// again for nothing, can run to gigabytes, and is only worth having on the machine that made it.
-func isCoreCache(rel string) bool {
-	parts := strings.Split(rel, "/")
-	for i := 0; i+2 < len(parts); i++ {
-		if parts[i] == "system" && parts[i+2] == "cache" {
-			return true
-		}
-	}
-	return false
 }
 
 // neverTables stay out of every backup, for a reason:
 //   - sign-ins: a backup must not let anyone in, and nobody expects a sign-in to come back.
 //   - devices that may connect peer to peer: the same. They add themselves again at home.
-//   - custom cores: their programs aren't kept, so the rows would point at nothing.
+//   - the audit log: what happened on this machine, which a restore mustn't rewrite.
 //   - game PCs: pairing keys live beside them, on this machine.
 //   - measurements and finished jobs: of this machine, at that time.
 var neverTables = map[string]bool{
 	"schema": true, "sqlite_sequence": true, "sessions": true, "p2p_devices": true,
-	"custom_cores": true, "custom_core_versions": true, "custom_consoles": true, "game_core_choice": true, "game_core_plays": true, "game_core_audit": true,
+	"game_core_audit":  true,
 	"wittycouch_hosts": true, "wittyrigs_rigs": true, "wittyrigs_apps": true,
 	"metrics_hourly": true, "stream_bytes": true, "task_history": true,
 	"ltc_runs": true, "ltc_files": true, "ltc_memo": true,
@@ -349,7 +331,7 @@ type fileSource struct {
 }
 
 // sources are every folder a backup takes from. Nothing else in the data folder is read:
-// not logs, reports, caches, modules, cores, BIOS files, keys or certificates.
+// not logs, reports, caches, modules, keys or certificates.
 func sources() []fileSource {
 	data := func(parts ...string) func(Folders) string {
 		return func(f Folders) string { return filepath.Join(append([]string{f.Data}, parts...)...) }
@@ -359,9 +341,6 @@ func sources() []fileSource {
 		{Part: PartSettings, Prefix: "branding/", Root: data("branding"), Check: mustBePicture},
 		{Part: PartChannels, Prefix: "channel-logos/", Root: data("channel-logos"), Check: mustBePicture},
 		{Part: PartChannels, Prefix: "bumpers/", Root: data("bumpers"), Check: notAProgram},
-		{Part: PartSaves, Prefix: "saves/", Root: data("gaming", "saves"), Check: notAProgram, Skip: isCoreCache},
-		{Part: PartSaves, Prefix: "bezels/", Root: data("gaming", "bezels"), Check: mustBePicture},
-		{Part: PartSaves, Prefix: "backgrounds/", Root: data("gaming", "backgrounds"), Check: mustBePicture},
 		{Part: PartMetaFiles, Prefix: "metadata/", Root: data("metadata"), Check: metadataFile},
 		{Part: PartLyrics, Prefix: "lyrics-corrections/", Root: data("lyrics-corrections"), Check: mustBeJSONFile},
 		{Part: PartRecordings, Prefix: "recordings/", Root: data("recordings"), Check: notAProgram},

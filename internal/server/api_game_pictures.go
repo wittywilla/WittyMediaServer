@@ -202,6 +202,19 @@ func (s *Server) handleGamePicturesCheck(w http.ResponseWriter, r *http.Request)
 	writeJSON(w, 200, map[string]any{"doc": d, "matches": matches})
 }
 
+// gameItem loads a game this account may see.
+func (s *Server) gameItem(r *http.Request) (*library.Item, bool) {
+	id, ok := pathInt(r, "id")
+	if !ok {
+		return nil, false
+	}
+	it, err := s.visibleItem(r, id)
+	if err != nil || it.Kind != "game" {
+		return nil, false
+	}
+	return it, true
+}
+
 // PUT /api/games/{id}/picture {picture, case, label}: an administrator's look for one game, for
 // everyone on this server; an empty one takes it away.
 func (s *Server) handleGamePicturePut(w http.ResponseWriter, r *http.Request) {
@@ -236,8 +249,8 @@ func (s *Server) handleGamePicturePut(w http.ResponseWriter, r *http.Request) {
 
 // ---- brand logos ----
 
-// brandLogoNames are the names the logo service looks console logos up by: every console this
-// server knows, and the ones it has traits for.
+// brandLogoConsoles are the names the logo service looks console logos up by: every console
+// WittyPlay knows, and those the library names itself.
 func brandLogoConsoles() map[string]string {
 	out := map[string]string{}
 	for _, c := range wittyplay.Consoles() {
@@ -250,11 +263,9 @@ func brandLogoConsoles() map[string]string {
 			out[c.ID] = c.Name
 		}
 	}
-	for id := range consoleTraitsTable {
+	for _, id := range library.LogoConsoleIDs() {
 		if _, ok := out[id]; !ok {
-			if n := library.ConsoleLogoName(id); n != "" {
-				out[id] = n
-			}
+			out[id] = library.ConsoleLogoName(id)
 		}
 	}
 	return out

@@ -14,7 +14,7 @@ func FuzzSubtitleText(f *testing.F) {
 	f.Fuzz(func(t *testing.T, b []byte, pts int64, start float64) { timestampedVTT(b, pts, start) })
 }
 
-// Pictures that came from anyone with an account: a bezel, a background.
+// Pictures that came from anyone with an account.
 func FuzzPictures(f *testing.F) {
 	f.Add([]byte("\x89PNG\r\n\x1a\n"))
 	f.Add([]byte("\xff\xd8\xff"))
@@ -23,6 +23,5 @@ func FuzzPictures(f *testing.F) {
 	f.Add([]byte("<svg xmlns='http://www.w3.org/2000/svg'><script>x</script></svg>"))
 	f.Fuzz(func(t *testing.T, b []byte) {
 		imageType(bytes.NewReader(b), "x.png")
-		_, _, _, _ = reencodeImage(b)
 	})
 }

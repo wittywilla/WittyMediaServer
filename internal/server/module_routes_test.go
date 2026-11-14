@@ -4,6 +4,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -63,6 +64,7 @@ func playIntegration() *wittymodule.Integration {
 			{Path: "/echo", Methods: []string{"GET"}, Auth: "user"},
 			{Path: "/secret", Methods: []string{"GET"}, Auth: "admin"},
 			{Path: "/careful", Methods: []string{"PUT"}, Auth: "admin", Confirm: true},
+			{Path: "/upload", Methods: []string{"POST"}, Auth: "user", Limits: &wittymodule.Limits{Body: "64MB"}},
 			{Path: "/games/{id}/play", Methods: []string{"POST"}, Auth: "user", Item: "id", Plays: true},
 			{Path: "/desk/{sid}/{rest...}", Methods: []string{"GET"}, Auth: "ticket", CSP: "sandboxed-page"},
 		}}
@@ -181,6 +183,10 @@ func TestModuleRouteConfirm(t *testing.T) {
 	if w := ts.do(t, "PUT", "/api/modules/wittyplay/careful", admin, nil, pw, "wrong"); w.Code != 403 || len(*got) != n {
 		t.Errorf("wrong password: %d, module heard %d", w.Code, len(*got)-n)
 	}
+	// The refusal is in the module's own rows of the audit log.
+	if rows := ts.coreAudit(context.Background(), "wittyplay", 10); len(rows) != 1 || rows[0].Action != "password-refused" || rows[0].User != "boss" || rows[0].Detail != "PUT /careful" {
+		t.Errorf("audit log: %+v", rows)
+	}
 	if w := ts.do(t, "PUT", "/api/modules/wittyplay/careful", admin, nil); w.Code != 200 || last().Get("X-Witty-Confirmed") != "" {
 		t.Errorf("no password: %d %v", w.Code, last())
 	}
@@ -213,4 +219,18 @@ func TestIntegrationCheck(t *testing.T) {
 		t.Error("an unknown feature passed")
 	}
 	_ = json.Valid
+}
+
+// A module's route takes the body its integration allows, past the server's general limit;
+// anything else under /api/modules/ keeps that limit.
+func TestModuleRouteBodyLimit(t *testing.T) {
+	ts := newTestServer(t)
+	withModule(t, ts, playIntegration())
+	for path, big := range map[string]bool{"/api/modules/wittyplay/upload": true, "/api/v1/modules/wittyplay/upload": true,
+		"/api/modules/wittyplay/echo": false, "/api/modules/wittyplay/nope": false, "/api/modules/wittycomics/upload": false, "/api/modules/audit": false} {
+		r := httptest.NewRequest("POST", path, nil)
+		if got := ts.bigUploadPath(r); got != big {
+			t.Errorf("%s: %v", path, got)
+		}
+	}
 }

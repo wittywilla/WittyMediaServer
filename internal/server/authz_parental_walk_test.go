@@ -57,7 +57,6 @@ var idSpaces = map[string]string{
 	// they show of titles is walked with a device that is playing what is hidden and a party
 	// that is watching it: see playingWhatIsHidden.
 	"/api/remote-control/devices/{id}": "other", "/api/syncplay/rooms/{id}": "other",
-	"/api/modules/wittyplay/docker/emulators/{id}": "other",
 }
 
 // walkSkips are routes the walk can't call: they hold the connection open until the caller goes
@@ -65,7 +64,6 @@ var idSpaces = map[string]string{
 var walkSkips = map[string]string{
 	"GET /api/system/metrics/stream": "a stream of numbers, for as long as it is listened to",
 	"GET /api/system/tasks/stream":   "a stream of tasks, for as long as it is listened to",
-	"GET /api/play/{sid}/stream":     "a WebSocket",
 	"GET /api/couch/find":            "searches the network",
 	"GET /api/playback/speedtest":    "megabytes of noise",
 	"GET /api/dictionary":            "asks the internet",
@@ -517,7 +515,7 @@ func TestLimitedProfilesNeverSeeHiddenTitles(t *testing.T) {
 	}
 	for _, must := range []string{"GET /api/items", "GET /api/items/{id}", "GET /api/items/{id}/file", "GET /api/home", "GET /api/shows", "GET /api/shows/{id}", "GET /api/genres",
 		"GET /api/collections/{id}", "GET /api/browse", "GET /api/music/artists", "GET /api/music/albums", "GET /api/radio", "GET /api/creators",
-		"GET /api/videos", "GET /api/items/{id}/comments", "GET /api/brands", "GET /api/me/review", "GET /api/me/recommended", "GET /api/games/home", "GET /api/music/home",
+		"GET /api/videos", "GET /api/items/{id}/comments", "GET /api/brands", "GET /api/me/review", "GET /api/me/recommended", "GET /api/music/home",
 		"GET /api/sdui/pages/{page}", "GET /api/sdui/topshelf", "GET /api/remote-control/devices"} {
 		if !found[must] {
 			t.Errorf("the walk can't find the hidden titles through %s even for an adult with no limits, so it would miss a leak there", must)

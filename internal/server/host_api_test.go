@@ -90,6 +90,53 @@ func TestHostAPI(t *testing.T) {
 	if _, err := c.Counts(ctx, host.On{User: pal.ID}, "movies", "console"); err == nil {
 		t.Error("films were counted for a games module")
 	}
+	if counts, err := c.CountsIn(ctx, host.On{User: pal.ID}, games, "console"); err != nil || counts["snes"] != 1 {
+		t.Fatalf("counts in one library: %v %v", counts, err)
+	}
+	if _, err := c.CountsIn(ctx, host.On{User: pal.ID}, films, "console"); !host.IsNotFound(err) {
+		t.Errorf("counts in a films library: %v", err)
+	}
+
+	// A game's serial, from what the scan found.
+	if _, err := ts.DB.ExecContext(ctx, `INSERT INTO game_meta(item_id, library_id, serial) VALUES(?, ?, 'SHVC-AX')`, game.ID, games); err != nil {
+		t.Fatal(err)
+	}
+	if it, err := c.Item(ctx, host.On{User: pal.ID}, game.ID); err != nil || it.Facets["serial"] != "SHVC-AX" {
+		t.Errorf("the serial: %+v %v", it.Facets, err)
+	}
+
+	// The server's own item JSON, sorted and picked, and what a games library holds.
+	second := ts.item(t, &library.Item{LibraryID: games, Kind: "game", Path: "/g/b.sfc", Title: "B game", Console: "snes", Poster: "/g/b.png"})
+	full, err := c.ItemsFull(ctx, host.On{User: pal.ID}, host.Query{Library: games, Sort: "title", Desc: true})
+	if err != nil || len(full) != 2 || !strings.Contains(string(full[0]), `"title":"B game"`) || strings.Contains(string(full[0]), "/g/b") {
+		t.Fatalf("full items: %s %v", full, err)
+	}
+	if full, _ := c.ItemsFull(ctx, host.On{User: pal.ID}, host.Query{LibraryKind: "games", IDs: []int64{second.ID}}); len(full) != 1 || !strings.Contains(string(full[0]), `"poster":"local"`) {
+		t.Errorf("one item by its number: %s", full)
+	}
+	if full, _ := c.ItemsFull(ctx, host.On{User: kid.ID}, host.Query{LibraryKind: "games", IDs: []int64{game.ID}}); len(full) != 0 {
+		t.Errorf("a game too old for the person asking: %s", full)
+	}
+	if _, err := c.ItemsFull(ctx, host.On{User: pal.ID}, host.Query{LibraryKind: "games", Sort: "popular"}); err == nil {
+		t.Error("an order the host API doesn't offer")
+	}
+	if f, err := c.Facets(ctx, host.On{User: pal.ID}, games); err != nil || !strings.Contains(string(f), `"letters"`) {
+		t.Errorf("facets: %s %v", f, err)
+	}
+	if _, err := c.Facets(ctx, host.On{User: pal.ID}, films); !host.IsNotFound(err) {
+		t.Errorf("facets of a films library: %v", err)
+	}
+
+	// The audit log: rows carry their module, and a module reads only its own.
+	if err := c.Audit(ctx, host.On{User: pal.ID}, "added", "core_a", "sha256 x"); err != nil {
+		t.Fatal(err)
+	}
+	ts.writeAudit(ctx, nil, "module", "", "module-override", "module wittyplay", "the server's own row")
+	ts.writeAudit(ctx, nil, "wittytuner x", "wittytuner", "x", "", "another module's row")
+	rows, err := c.AuditLog(ctx, 10)
+	if err != nil || len(rows) != 1 || rows[0].Action != "added" || rows[0].User != "pal" || rows[0].Core != "core_a" || rows[0].Detail != "sha256 x" {
+		t.Fatalf("audit log: %+v %v", rows, err)
+	}
 
 	// What a person may do.
 	if may, err := c.May(ctx, host.On{User: pal.ID}, "games"); !may || err != nil {

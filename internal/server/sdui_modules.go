@@ -21,7 +21,6 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/sduistore"
 	"github.com/wittywilla/wittymediaserver/internal/themes"
 	"github.com/wittywilla/wittymediaserver/pkg/sdui"
-	"github.com/wittywilla/wittymodule/service"
 )
 
 // Modules' SDUI (docs/SDUI-MODULES.md): each module in use carries its pages, sections,
@@ -198,16 +197,6 @@ func (rv *sduiResolver) moduleItems(mod string, req sdui.SourceRequest) (sdui.So
 	s := rv.s
 	if s.Modules == nil {
 		return sdui.SourceResult{}, nil
-	}
-	if mod == wittyPlayID {
-		// WittyPlay Online's sources are about this server's profiles and games: answered here
-		// (wittyplay_online.go), and cleaned like any module's.
-		if res, ok, err := rv.wittyPlayOnline(req); ok {
-			if err != nil || service.Running == nil || !service.Running(mod) {
-				return sdui.SourceResult{}, err
-			}
-			return rv.cleanModuleResult(mod, req, res), nil
-		}
 	}
 	// A disc's sections are about this server's copy of the disc: its kept ranking, the
 	// choice of film and the names of its titles (disc_sources.go).

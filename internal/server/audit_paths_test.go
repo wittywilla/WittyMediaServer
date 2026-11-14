@@ -4,19 +4,13 @@
 package server
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
-	"sync"
 	"testing"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
@@ -46,22 +40,6 @@ func TestCollectionsDontGiveAwayAddresses(t *testing.T) {
 	}
 	if strings.Contains(got.Body.String(), "SECRETKEY") || strings.Contains(got.Body.String(), st.URL) {
 		t.Errorf("the station's address came through: %s", got.Body)
-	}
-}
-
-func TestRecentGamesHideTheFolder(t *testing.T) {
-	modtest.Need(t, "wittyplay")
-	g := newGameServer(t)
-	item := runnerGameItem(t, g)
-	if w := g.do("PUT", fmt.Sprintf("/api/games/%d/meta", item), g.other, map[string]any{"favourite": true}); w.Code != 200 {
-		t.Fatalf("%d %s", w.Code, w.Body)
-	}
-	w := g.do("GET", "/api/games/recent?favourites=1", g.other, nil)
-	if w.Code != 200 || !strings.Contains(w.Body.String(), `"id"`) {
-		t.Fatalf("%d %s", w.Code, w.Body)
-	}
-	if strings.Contains(w.Body.String(), "Game.wittytest") {
-		t.Errorf("the path came through: %s", w.Body)
 	}
 }
 
@@ -119,100 +97,5 @@ func TestStationErrorsDontQuoteTheAddress(t *testing.T) {
 	_, err := library.OpenStation(context.Background(), "http://127.0.0.1:1/SECRETPATH?key=SECRETKEY")
 	if err == nil || strings.Contains(err.Error(), "SECRET") {
 		t.Errorf("%v", err)
-	}
-}
-
-func wantImport(t *testing.T, g *gameServer, method, path string, body []byte, want int, words string) {
-	t.Helper()
-	r := httptest.NewRequest(method, path, bytes.NewReader(body))
-	r.RemoteAddr = "192.168.1.50:4000"
-	r.Header.Set("Authorization", "Bearer "+g.other)
-	w := httptest.NewRecorder()
-	g.h.ServeHTTP(w, r)
-	if w.Code != want || !strings.Contains(w.Body.String(), words) {
-		t.Errorf("%s %s: %d %s", method, path, w.Code, w.Body)
-	}
-}
-
-// What the limit says is the limit: larger than the server's general limit on a request.
-func TestImportsTakeWhatTheirLimitSays(t *testing.T) {
-	modtest.Need(t, "wittyplay")
-	g := newGameServer(t)
-	item := runnerGameItem(t, g)
-	big := make([]byte, 33<<20)
-	copy(big, "PATCH")
-	copy(big[len(big)-3:], "EOF")
-	wantImport(t, g, "PUT", fmt.Sprintf("/api/games/%d/saves/1/file", item), big, 200, "")
-	wantImport(t, g, "PUT", fmt.Sprintf("/api/games/%d/battery", item), big, 200, "")
-	if !bigUploadPath(fmt.Sprintf("/api/games/%d/patches", item)) {
-		t.Error("patches are held to the general limit")
-	}
-	// The general limit still holds everywhere else.
-	if bigUploadPath("/api/items/1/file") || bigUploadPath("/api/games/1/meta") {
-		t.Error("that's too wide")
-	}
-}
-
-func TestAccountsHaveALimitAcrossTheirGames(t *testing.T) {
-	modtest.Need(t, "wittyplay")
-	g := newGameServer(t)
-	item := runnerGameItem(t, g)
-	old := maxAccountGameBytes
-	maxAccountGameBytes = 2 << 30
-	defer func() { maxAccountGameBytes = old }()
-
-	u := g.do("GET", "/api/me", g.other, nil)
-	var me struct {
-		ID int64 `json:"id"`
-	}
-	if err := json.Unmarshal(u.Body.Bytes(), &me); err != nil || me.ID == 0 {
-		t.Fatalf("%d %s", u.Code, u.Body)
-	}
-	other := filepath.Join(g.s.games().saveDir(me.ID, 99999), "auto.state")
-	if err := os.MkdirAll(filepath.Dir(other), 0o700); err != nil {
-		t.Fatal(err)
-	}
-	f, err := os.Create(other)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := f.Truncate(2 << 30); err != nil {
-		t.Fatal(err)
-	}
-	f.Close()
-	wantImport(t, g, "PUT", fmt.Sprintf("/api/games/%d/battery", item), []byte("data"), 409, "2 GB")
-	wantImport(t, g, "PUT", fmt.Sprintf("/api/games/%d/saves/1/file", item), []byte("data"), 409, "2 GB")
-	wantImport(t, g, "POST", fmt.Sprintf("/api/games/%d/patches", item), []byte("PATCHEOF"), 409, "2 GB")
-}
-
-// Requests arriving together can't all take the last place.
-func TestPatchLimitHoldsWithManyAtOnce(t *testing.T) {
-	modtest.Need(t, "wittyplay")
-	g := newGameServer(t)
-	item := runnerGameItem(t, g)
-	ctx := context.Background()
-	var wg sync.WaitGroup
-	var mu sync.Mutex
-	added, refused := 0, 0
-	for i := 0; i < maxGamePatches*2; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			_, err := g.s.Store.AddGamePatch(ctx, 1, item, library.GamePatch{Name: "p", Kind: "ips"}, maxGamePatches)
-			mu.Lock()
-			defer mu.Unlock()
-			switch {
-			case err == nil:
-				added++
-			case errors.Is(err, library.ErrTooManyPatches):
-				refused++
-			default:
-				t.Error(err)
-			}
-		}()
-	}
-	wg.Wait()
-	if added != maxGamePatches || refused != maxGamePatches {
-		t.Errorf("%d added, %d refused", added, refused)
 	}
 }

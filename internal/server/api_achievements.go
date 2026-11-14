@@ -138,6 +138,18 @@ type raKept struct {
 	Hash  string `json:"hash"`
 }
 
+// raArchives unpacks an archived game long enough to take its checksum, in the server's
+// cache. WittyPlay keeps its own unpacked games for playing them.
+func (s *Server) raArchives() *gamearchive.Cache {
+	s.raArchiveOnce.Do(func() {
+		s.raArchive = &gamearchive.Cache{Dir: filepath.Join(s.Cfg.CacheDir, "ra-unpacked"), Limit: func() int64 { return raUnpackLimit }}
+	})
+	return s.raArchive
+}
+
+// raUnpackLimit is the room the checksums' unpacked games may take: one large disc.
+const raUnpackLimit = 8 << 30
+
 // raHash is the checksum RetroAchievements knows this game's file by. It's taken once
 // and kept under the server's cache, until the file changes.
 func (s *Server) raHash(ctx context.Context, ra *gamemeta.RetroAchievements, it *library.Item) (string, error) {
@@ -175,7 +187,7 @@ func (s *Server) raHash(ctx context.Context, ra *gamemeta.RetroAchievements, it 
 			return "", fmt.Errorf("console %q isn't available to unpack the game", it.Console)
 		}
 		var cleanup func()
-		rom, cleanup, err = s.games().prepareROM(ctx, it.Path, console, entry)
+		rom, cleanup, err = s.raArchives().AcquireEntry(ctx, it.Path, console, entry)
 		if err != nil {
 			return "", err
 		}

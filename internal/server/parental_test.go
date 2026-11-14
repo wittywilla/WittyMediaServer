@@ -303,12 +303,10 @@ func TestFeaturesTurnedOff(t *testing.T) {
 		feature, method, target string
 		body                    any
 	}{
-		{"games", "GET", "/api/games/consoles", nil},
+		{"games", "GET", "/api/games/brand-logos", nil},
 		{"games", "GET", fmt.Sprintf("/api/games/%d/metadata", game.ID), nil},
-		{"games", "POST", fmt.Sprintf("/api/games/%d/play", game.ID), map[string]any{}},
 		{"games", "GET", "/api/couch", nil},
 		{"games", "GET", "/api/rigs", nil},
-		{"games", "GET", "/api/games/consoles", nil},
 		{"recordings", "GET", "/api/recordings", nil},
 		{"recordings", "POST", "/api/recording-rules", map[string]any{}},
 		{"downloads", "GET", fmt.Sprintf("/api/items/%d/original", film.ID), nil},
@@ -385,8 +383,8 @@ func TestKidsKeepWhatTheyHadAndGainNothing(t *testing.T) {
 	if w := ts.do(t, "GET", fmt.Sprintf("/api/items/%d/comments", film.ID), kid, nil); w.Code != 200 || !strings.Contains(w.Body.String(), "first") {
 		t.Errorf("a Kids profile reads comments: %d %s", w.Code, w.Body)
 	}
-	if w := ts.do(t, "GET", "/api/games/consoles", kid, nil); w.Code != 200 {
-		t.Errorf("a Kids profile plays games: %d %s", w.Code, w.Body)
+	if w := ts.do(t, "GET", "/api/games/brand-logos", kid, nil); w.Code != 200 {
+		t.Errorf("a Kids profile has games: %d %s", w.Code, w.Body)
 	}
 	// An administrator turns everything on for it.
 	if w := ts.do(t, "PUT", fmt.Sprintf("/api/users/%d/access", kidUser.ID), admin, map[string]any{"access": map[string]any{"off": []string{}}}); w.Code != 200 {

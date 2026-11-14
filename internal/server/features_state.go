@@ -47,7 +47,7 @@ func (s *Server) featureState(ctx context.Context) *diagnose.FeatureState {
 		em := &diagnose.EmulatorState{}
 		cctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		var raw json.RawMessage
-		if err := callWittyPlay(cctx, "docker.Summary", nil, []any{&raw}); err == nil && len(raw) > 0 {
+		if err := service.Call(cctx, wittyPlayID, "docker.Summary", nil, nil, nil, []any{&raw}); err == nil && len(raw) > 0 {
 			if json.Unmarshal(raw, em) == nil {
 				em.Known = true
 				em.Error = logging.Redact(em.Error)
@@ -86,3 +86,6 @@ func (s *Server) featureState(ctx context.Context) *diagnose.FeatureState {
 	}
 	return f
 }
+
+// wittyPlayID is the module that plays games.
+const wittyPlayID = "wittyplay"

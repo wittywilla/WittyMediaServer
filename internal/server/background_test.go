@@ -54,20 +54,3 @@ func TestCloseSavesFinishedActivity(t *testing.T) {
 		t.Errorf("%d of 20 in the history", n)
 	}
 }
-
-// The games service's own work goes through it: a sweep asked for after Close never starts.
-func TestGamesWorkStopsWithTheServer(t *testing.T) {
-	ts := newTestServer(t)
-	ts.Close()
-	ts.sweepBIOS(true)
-	g := ts.games()
-	g.bios.mu.Lock()
-	sweeping := g.bios.sweeping
-	g.bios.mu.Unlock()
-	if sweeping {
-		t.Error("a BIOS sweep is marked running after the server closed, so none would run again")
-	}
-	if p := ts.gpuStatus("/a/runner"); p.Checking {
-		t.Errorf("the card check started after Close: %+v", p)
-	}
-}

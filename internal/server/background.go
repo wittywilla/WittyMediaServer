@@ -42,6 +42,9 @@ func (s *Server) Close() {
 	}
 	s.bgMu.Unlock()
 	s.bgWork.Wait()
+	if s.raArchive != nil {
+		s.raArchive.Close()
+	}
 	if s.TV != nil {
 		s.TV.Close() // the server closed it already as it stopped; a test's is closed here
 	}

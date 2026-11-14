@@ -13,11 +13,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/couch/gamestream/fake"
-	"github.com/wittywilla/wittymediaserver/internal/library"
-	"github.com/wittywilla/wittymediaserver/internal/play/fakecore"
 )
 
 // A PC chooses its apps' numbers, so pictures of ones it no longer lists have to go.
@@ -89,10 +86,8 @@ func TestADeletedAccountLeavesNothingBehind(t *testing.T) {
 	f := rigFake(t)
 	h := addCouch(t, ts, f, adult)
 	pairCouch(t, ts, f, adult, h.ID)
-	g := ts.games()
 	dir := "u" + fmt.Sprint(u)
-	files := []string{filepath.Join(g.saveDir(u, 5), "slot1.state"), filepath.Join(g.dir, "bezels", dir, "b1.png"), filepath.Join(g.patchDir(u, 5), "1.patch"),
-		ts.couch().artPath(u, h.ID, 7)}
+	files := []string{ts.couch().artPath(u, h.ID, 7)}
 	for _, p := range files {
 		if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
 			t.Fatal(err)
@@ -268,77 +263,6 @@ func userFromToken(t *testing.T, ts *galleryServer, token string) int64 {
 		t.Fatalf("%v", err)
 	}
 	return v.ID
-}
-
-// Waiting behind another patched game gives up with whoever was waiting.
-func TestPatchingOneAtATime(t *testing.T) {
-	modtest.Need(t, "wittyplay")
-	g := newGameServer(t)
-	item := runnerGameItem(t, g)
-	gs := g.s.games()
-	u := int64(1)
-	if _, err := g.s.Store.AddGamePatch(context.Background(), u, item, library.GamePatch{Name: "p", Kind: "ips"}, maxGamePatches); err != nil {
-		t.Fatal(err)
-	}
-	patchSlot <- struct{}{}
-	defer func() { <-patchSlot }()
-	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
-	defer cancel()
-	rom := filepath.Join(t.TempDir(), "game.nes")
-	if err := os.WriteFile(rom, []byte("rom"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	got, _, _ := gs.patchROM(ctx, g.s.Store, u, item, rom, nil)
-	if got != rom {
-		t.Errorf("%s", got)
-	}
-	if ctx.Err() == nil {
-		t.Error("it went ahead without waiting for the other")
-	}
-}
-
-// Asking a core what it offers loads it, so a changed file is refused here as for a game.
-func TestCoreOptionsCheckACustomCore(t *testing.T) {
-	modtest.Need(t, "wittyplay")
-	buildCustomRunner(t)
-	g := newGameServer(t)
-	g.enableCustom(t)
-	good := fakeCoreFile(t, "probeme", fakecore.Good)
-	core := g.addCore(t, "probeme", good, []string{"snes"}, nil)
-	if err := g.s.DB.SetSetting(context.Background(), "gamingCores", `{"snes":"probeme"}`); err != nil {
-		t.Fatal(err)
-	}
-	// Approving it may have kept what it offers, which is safe to answer from; this is about asking again.
-	if _, err := g.s.DB.ExecContext(context.Background(), `DELETE FROM wittyplay_core_options`); err != nil {
-		t.Log(err)
-	}
-	store := g.s.games().custom.store
-	if err := os.WriteFile(store.CorePath(core.ID, core.SHA256), append(append([]byte{}, good...), 1), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	id, _, custom := g.s.coreForConsole(context.Background(), "snes", 0)
-	if id != "probeme" || custom == nil {
-		t.Fatalf("%q %v", id, custom)
-	}
-	if w := g.do("POST", "/api/games/settings/validate", g.kid, map[string]any{"document": "{}", "console": "snes"}); w.Code >= 500 {
-		t.Errorf("%d %s", w.Code, w.Body)
-	}
-	if !auditHas(g.customAudit(t), "file-changed", core.ID) {
-		t.Error("the changed file wasn't checked before asking it")
-	}
-}
-
-func TestSilentCoresArentAskedAgain(t *testing.T) {
-	modtest.Need(t, "wittyplay")
-	g := newGameServer(t)
-	gs := g.s.games()
-	gs.silentCores.Store("test", time.Now())
-	if at, ok := gs.silentCores.Load("test"); !ok || time.Since(at.(time.Time)) >= silentCoreFor {
-		t.Error("not kept")
-	}
-	if cap(gs.probeSlot) != 1 {
-		t.Errorf("%d at once", cap(gs.probeSlot))
-	}
 }
 
 func TestModuleReportsAreLimited(t *testing.T) {

@@ -13,7 +13,6 @@ import (
 	"testing"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
-	"github.com/wittywilla/wittymediaserver/internal/play/cores"
 )
 
 // What a limited account can't open doesn't show on the way there either.
@@ -148,15 +147,5 @@ func TestChannelLogoFollowsWhoMaySeeIt(t *testing.T) {
 	}
 	if got := tvCall(h, "GET", fmt.Sprintf("/api/channels/%d/logo", c.ID), kid, ""); got.Code != 404 {
 		t.Errorf("someone who can't see the channel: %d", got.Code)
-	}
-}
-
-// A core an administrator added isn't described to everyone.
-func TestConsoleListKeepsCustomCoresToAdministrators(t *testing.T) {
-	v := []consoleView{{}}
-	v[0].Installed = append(v[0].Installed, cores.Core{ID: "mine", Source: cores.SourceCustom, SHA256: "abc"}, cores.Core{ID: "stock", Source: "installed"})
-	hideCustom(v)
-	if len(v[0].Installed) != 1 || v[0].Installed[0].ID != "stock" {
-		t.Errorf("%+v", v[0].Installed)
 	}
 }

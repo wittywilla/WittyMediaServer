@@ -5,12 +5,14 @@
 package server
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
 	"io"
 	"io/fs"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -28,6 +30,8 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/diagnose"
 	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
+	"github.com/wittywilla/wittymediaserver/internal/gamearchive"
+	"github.com/wittywilla/wittymediaserver/internal/gameregion"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/identity"
 	"github.com/wittywilla/wittymediaserver/internal/library"
@@ -143,8 +147,8 @@ type Server struct {
 	setupCode        string
 	setupCodeOnce    sync.Once
 	audioSlots       chan struct{} // audio transcodes running at once
-	gameOnce         sync.Once
-	gameSvc          *gameService
+	raArchiveOnce    sync.Once
+	raArchive        *gamearchive.Cache // archived games unpacked for their RetroAchievements checksum
 	rigOnce          sync.Once
 	rigSvc           *rigService
 	moonOnce         sync.Once
@@ -162,9 +166,8 @@ type Server struct {
 	// WittyRemote and watch parties: see api_remote_control.go and api_syncplay.go.
 	remoteCtl remoteCtl
 	watch     watchParties
-	// What sign-ins have open, ended when they end: see live_ends.go and emulator_sessions.go.
+	// What sign-ins have open, ended when they end: see live_ends.go.
 	open openStreams
-	emus emulatorGames
 
 	// Module API 5 (module_routes.go): the routes of the modules in use.
 	modRouting *moduleRouting
@@ -216,10 +219,7 @@ func (s *Server) StartMetadata() {
 		s.Scanner.KickListings()
 		s.hostEvents().publish("scan.finished", nil) // modules of API 5 hear of it (host_api.go)
 	}
-	s.Scanner.OnGamesScanned = func() {
-		s.logos().Kick()
-		s.sweepBIOS(true) // BIOS files that came with the games, found by their checksums
-	}
+	s.Scanner.OnGamesScanned = func() { s.logos().Kick() }
 	after := s.Scanner.AfterScan
 	s.Scanner.AfterScan = func(id int64) {
 		if after != nil {
@@ -626,8 +626,8 @@ func (s *Server) Handler() http.Handler {
 	m.HandleFunc("GET /api/share/{token}/hls/{id}/seg/{n}", s.handleShareHLSSegment)
 
 	s.channelRoutes(m)
-	s.gameRoutes(s.needing("wittyplay", m))
-	s.wittyPlayDockerRoutes(s.needing("wittyplay", m))
+	gameregion.Set(s.DB.GetSetting(context.Background(), "gamingRegionOrder", ""))
+	s.gameReviewRoutes(s.needing("wittyplay", m))
 	if s.GameMeta == nil {
 		s.GameMeta = library.NewGameMeta(s.Store, s.Cfg.ImagesDir, s.Cfg.CacheDir, s.Log)
 		s.GameMeta.Tasks = s.Tasks
@@ -676,7 +676,7 @@ const (
 func (s *Server) limits(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
-			limitBody(w, r)
+			limitBody(w, r, s.bigUploadPath(r))
 		}
 		g := newWriteGuard(w, r.URL.Path)
 		defer g.finish()
@@ -765,7 +765,7 @@ func (s *Server) mediaSession(p string) string {
 // sessionFromPath finds the session a media address belongs to, so the requests
 // of a playback show up beside everything else about it.
 func sessionFromPath(p string) string {
-	for _, prefix := range []string{"/api/hls/", "/api/dvd/", "/api/play/"} {
+	for _, prefix := range []string{"/api/hls/", "/api/dvd/"} {
 		if rest, ok := strings.CutPrefix(p, prefix); ok {
 			if i := strings.IndexByte(rest, '/'); i >= 0 {
 				rest = rest[:i]
@@ -810,6 +810,11 @@ func (w *statusWriter) ReadFrom(r io.Reader) (int64, error) {
 }
 
 func (w *statusWriter) Unwrap() http.ResponseWriter { return w.ResponseWriter }
+
+// Hijack lets a WebSocket through when request logging is on (a module's streaming routes).
+func (w *statusWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	return http.NewResponseController(w.ResponseWriter).Hijack()
+}
 func (w *statusWriter) Flush() {
 	w.wrote = true
 	if f, ok := w.ResponseWriter.(http.Flusher); ok {

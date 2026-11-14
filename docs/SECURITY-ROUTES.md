@@ -3,7 +3,7 @@
 Every route of the server: who may call it and what it validates. `TestRouteTableMatchesTheCode` keeps this table and the code
 together. [SECURITY-REVIEW.md](SECURITY-REVIEW.md) describes the model behind it.
 
-Nothing else listens for HTTP: the HTTPS port serves this same handler. Two routes are WebSockets: `GET /api/play/{sid}/stream` and WittyPlay's KasmVNC desktop under `GET /api/modules/wittyplay/kasm/{sid}/{ticket}/{rest...}`.
+Nothing else listens for HTTP: the HTTPS port serves this same handler. A module's own routes (`/api/modules/<id>/...`, module API 5) are checked as their integration.json says: who may call each, its limits, whether it plays and whether it asks for the password again.
 
 Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served wherever `GET` is.
 
@@ -362,28 +362,6 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/module-images/{module}/{name}` | Signed-in | A name of letters and digits with one extension, inside that module's own picture folder; only pictures a module kept through the host API |
 | `GET /api/modules/{id}/web/{version}/{path...}` | Signed-in; address token | Version in use. Name in the bundle's signed list, of a listed file type, hash checked when served |
 | `POST /api/modules/{id}/failed` | Signed-in | Known module. 4 KB body. Rate per account. Counts against a version only from an admin |
-| `GET /api/modules/wittyplay/docker/status` | Admin | Passed to WittyPlay as the administrator: X-Witty- headers from the client dropped, X-Witty-User and X-Witty-Admin set. WittyPlay checks the body |
-| `GET /api/modules/wittyplay/docker/settings` | Admin | Passed to WittyPlay as the administrator: X-Witty- headers from the client dropped, X-Witty-User and X-Witty-Admin set. WittyPlay checks the body |
-| `PUT /api/modules/wittyplay/docker/settings` | Admin | Passed to WittyPlay as the administrator: X-Witty- headers from the client dropped, X-Witty-User and X-Witty-Admin set. WittyPlay checks the body |
-| `GET /api/modules/wittyplay/docker/emulators` | Admin | Passed to WittyPlay as the administrator: X-Witty- headers from the client dropped, X-Witty-User and X-Witty-Admin set. WittyPlay checks the body |
-| `GET /api/modules/wittyplay/docker/installed` | Admin | Passed to WittyPlay as the administrator: X-Witty- headers from the client dropped, X-Witty-User and X-Witty-Admin set. WittyPlay checks the body |
-| `POST /api/modules/wittyplay/docker/emulators/{id}/install` | Admin | Passed to WittyPlay as the administrator: X-Witty- headers from the client dropped, X-Witty-User and X-Witty-Admin set. WittyPlay checks the body |
-| `GET /api/modules/wittyplay/docker/emulators/{id}/install` | Admin | Passed to WittyPlay as the administrator: X-Witty- headers from the client dropped, X-Witty-User and X-Witty-Admin set. WittyPlay checks the body |
-| `DELETE /api/modules/wittyplay/docker/emulators/{id}` | Admin | Passed to WittyPlay as the administrator: X-Witty- headers from the client dropped, X-Witty-User and X-Witty-Admin set. WittyPlay checks the body |
-| `POST /api/modules/wittyplay/docker/sessions/{sid}/connect` | Signed-in | Passed to WittyPlay as the caller: X-Witty- headers from the client dropped, X-Witty-User set. WittyPlay answers only the session's player |
-| `DELETE /api/modules/wittyplay/docker/sessions/{sid}` | Signed-in | Passed to WittyPlay as the caller: X-Witty- headers from the client dropped, X-Witty-User and X-Witty-Admin set. WittyPlay answers only the session's player or an admin |
-| `GET /api/modules/wittyplay/docker/diagnostics` | Admin | Passed to WittyPlay as the administrator: X-Witty- headers from the client dropped, X-Witty-User and X-Witty-Admin set. WittyPlay checks the body |
-| `DELETE /api/modules/wittyplay/docker/emulators/{id}/install` | Admin | Passed to WittyPlay as the administrator: X-Witty- headers from the client dropped, X-Witty-User and X-Witty-Admin set. WittyPlay checks the body |
-| `GET /api/modules/wittyplay/docker/emulators/{id}/settings` | Signed-in | Passed to WittyPlay as the caller: X-Witty- headers from the client dropped, X-Witty-User and X-Witty-Admin set. WittyPlay answers the caller's own layers and the administrator's, never another account's |
-| `PUT /api/modules/wittyplay/docker/emulators/{id}/settings` | Signed-in | Passed to WittyPlay as the caller: X-Witty- headers from the client dropped, X-Witty-User and X-Witty-Admin set. 256 KB body. WittyPlay checks every value against its schema, lets only an admin write the admin layer or an admin-only setting, and writes only the caller's own layers |
-| `GET /api/modules/wittyplay/docker/emulators/{id}/manual` | Admin | Passed to WittyPlay as the caller: X-Witty- headers from the client dropped, X-Witty-User and X-Witty-Admin set. Reads only: what's found where the emulator is usually installed and in WittyPlay's drop folder |
-| `POST /api/modules/wittyplay/docker/emulators/{id}/manual` | Admin | Passed to WittyPlay as the caller, 256 KB body. WittyPlay checks the path is that emulator's program (a Mac app's bundle identifier, the program's name, files beside it) before recording it; nothing is downloaded or run |
-| `GET /api/modules/wittyplay/docker/own` | Admin | Passed to WittyPlay as the caller. The administrator's own emulator programs |
-| `PUT /api/modules/wittyplay/docker/own` | Admin | Passed to WittyPlay as the caller, 256 KB body. Each entry is checked to be a program file on this server, for consoles that exist, with no line break in its command line; they run in the same sandbox as any emulator |
-| `GET /api/modules/wittyplay/docker/sessions` | Signed-in | Passed to WittyPlay as the caller: X-Witty- headers from the client dropped, X-Witty-User and X-Witty-Admin set. WittyPlay lists only the caller's own, or all for an admin |
-| `POST /api/modules/wittyplay/docker/sessions/{sid}/pause` | Signed-in | Passed to WittyPlay as the caller: X-Witty- headers from the client dropped, X-Witty-User set. WittyPlay answers only the session's player |
-| `POST /api/modules/wittyplay/docker/sessions/{sid}/resume` | Signed-in | Passed to WittyPlay as the caller: X-Witty- headers from the client dropped, X-Witty-User set. WittyPlay answers only the session's player |
-| `GET /api/modules/wittyplay/kasm/{sid}/{ticket}/{rest...}` | Public, with a session's ticket | The address holds a session's own random 256-bit ticket, which only the person who started the game is given and which ends with it. Names of the wrong shape are refused here; WittyPlay checks the ticket in constant time and answers anything else as not found. Reading only. Nobody's identity or sign-in is passed on. The answer is sandboxed away from this server's origin, sets no cookie and redirects nowhere else. WebSocket: from the sandboxed frame or this site only Passed on only for a game this server started and that hasn't ended, and only while the profile that started it may still play (games not turned off for it, screen time left); every refusal is the same 404. The ticket is kept out of the log |
 | `GET /api/reach/{nonce}` | Public | Nonce of a running outside test |
 | `GET /api/remote` | Admin | Nothing further |
 | `GET /api/remote/status` | Signed-in, or this computer | no account only from the server's own computer, directly (the tray). What is wrong in a fault, which can name files, only for an admin |
@@ -542,83 +520,6 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/recording-rules` | Tuner channels | canRecord: a tuner channel, turned on, visible, clear and not marked not to be recorded; never a library channel. 20 per account, none for an administrator |
 | `PUT /api/recording-rules/{id}` | Tuner channels | own, and every account's for an administrator. Padding up to an hour before and three after; keep 0 to 1000 |
 | `DELETE /api/recording-rules/{id}` | Tuner channels | own, and every account's for an administrator |
-| `GET /api/games/consoles` | Signed-in | Counts: limits. Custom core assignments for admins only |
-| `GET /api/games/modes` | Signed-in | Client name |
-| `POST /api/games/{id}/prepare` | Signed-in | limits. A game on a known, available console |
-| `POST /api/games/{id}/play` | Signed-in | limits. A game on a known, available console. Core allowed, file refused if encrypted. Limit on games at once |
-| `GET /api/games/{id}/emulators` | Signed-in | limits. A game on a known console. Answers a list, empty unless WittyPlay offers one. Not with games turned off for the profile |
-| `POST /api/games/{id}/play/emulator` | Signed-in | limits. A game on a known console, its file in a library. 4 KB body, the emulator named by id. The server gives WittyPlay the file; WittyPlay refuses what is not installed, too large for this machine, or over its limit on emulators at once. Not with games turned off for the profile, nor when its screen time is over. The game is the sign-in's that started it: ended when that sign-in ends, when the profile's time runs out, and when games are turned off for it |
-| `GET /api/games/{id}/saves` | Signed-in | limits. A game. own folder, built from numbers |
-| `GET /api/games/{id}/saves/{slot}/thumb` | Signed-in; address token | limits. A game. Slot number. own folder |
-| `DELETE /api/games/{id}/saves/{slot}` | Signed-in | limits. A game. Slot number. own folder |
-| `GET /api/games/{id}/saves/{slot}/file` | Signed-in; address token | limits. A game. Slot number. own folder |
-| `PUT /api/games/{id}/saves/{slot}/file` | Signed-in | limits. A game. Slots 1 and up. At most 256 MB, header checked, limits per game and per account, imports at once |
-| `GET /api/games/{id}/battery` | Signed-in; address token | limits. A game. own folder |
-| `PUT /api/games/{id}/battery` | Signed-in | limits. A game not being played. At most 64 MB, limits per game and per account, imports at once |
-| `GET /api/play/{sid}` | Signed-in | Session started by this account, or joined with its code |
-| `DELETE /api/play/{sid}` | Signed-in | Session started by this account |
-| `POST /api/play/{sid}/stream` | Signed-in | Session started by this account, or joined with its code. Hello checked, offer size |
-| `GET /api/play/{sid}/stream` | Signed-in; address token | Session started by this account, or joined with its code. WebSocket: origin must match the host, a hello first, messages limited in size |
-| `POST /api/play/{sid}/action` | Signed-in | Session started by this account. Known action |
-| `GET /api/play/{sid}/stats` | Signed-in | Session started by this account |
-| `GET /api/play/{sid}/screenshot` | Signed-in; address token | Session started by this account |
-| `GET /api/games/playing` | Signed-in | own: the game this account is playing |
-| `POST /api/play/join` | Signed-in | A live code for a running game, or an open room whose host is a friend (not for a Kids or guest profile); wrong codes limited per account; the game visible to this profile |
-| `POST /api/play/{sid}/invite` | Signed-in | Session started by this account |
-| `GET /api/play/{sid}/seats` | Signed-in | Session started by this account, or joined with its code; the code only for the host |
-| `DELETE /api/play/{sid}/seats/{user}` | Signed-in | The host, or the person leaving |
-| `POST /api/play/{sid}/room` | Signed-in | Session started by this account; not a Kids or guest profile to open it |
-| `PUT /api/play/{sid}/seats/{user}` | Signed-in | Session started by this account; the person is in it |
-| `POST /api/play/{sid}/screenshot` | Signed-in | Session started by this account; keeps a PNG the game gave in this profile's own folder, at most 200 a game |
-| `GET /api/games/{id}/shots/{name}` | Signed-in | own: a screenshot this profile kept, of a game visible to it; the name checked against a fixed pattern |
-| `DELETE /api/games/{id}/shots/{name}` | Signed-in | own: a screenshot this profile kept, of a game visible to it |
-| `GET /api/games/online/me` | Signed-in | own |
-| `PUT /api/games/online/me` | Signed-in | own; not a guest |
-| `GET /api/games/online/kids/{user}` | Admin | A Kids profile |
-| `PUT /api/games/online/kids/{user}` | Admin | A Kids profile; every friend an existing profile that isn't a guest |
-| `GET /api/gaming` | Admin | Nothing further |
-| `POST /api/gaming/cores/{id}/install` | Admin | Core id format. Offered by this server |
-| `GET /api/gaming/cores/{id}/install` | Admin | Core id format. Reads only how far its download has got |
-| `DELETE /api/gaming/cores/{id}` | Admin | Core id format. Installed by this server |
-| `DELETE /api/gaming/unpacked` | Admin | Nothing further |
-| `GET /api/games/settings/schema` | Signed-in | Nothing: fixed description |
-| `GET /api/games/settings` | Signed-in | Console known. Game: limits. own |
-| `PUT /api/games/settings` | Signed-in | Console known. Game: limits. own levels; server levels for admins. Size, settings checked |
-| `POST /api/games/settings/validate` | Signed-in | Console known. Game: limits. Size. Nothing saved |
-| `GET /api/games/recent` | Signed-in | own list. limits on each game. Paths for admins only |
-| `GET /api/game-bezels` | Signed-in | own |
-| `POST /api/game-bezels` | Signed-in | own. At most 16 per account, 16 MB, 16 megapixels. Decoded and written as a new PNG |
-| `GET /api/game-bezels/{bezel}` | Signed-in; address token | own |
-| `DELETE /api/game-bezels/{bezel}` | Signed-in | own |
-| `GET /api/games/{id}/core-options` | Signed-in | limits. A game |
-| `GET /api/games/{id}/meta` | Signed-in | limits. A game. own |
-| `PUT /api/games/{id}/meta` | Signed-in | limits. A game. own. Note of up to 8 KB |
-| `GET /api/games/{id}/cheats` | Signed-in | limits. A game. own |
-| `PUT /api/games/{id}/cheats` | Signed-in | limits. A game. own. Size, list cleaned |
-| `POST /api/games/{id}/cheats/import` | Signed-in | limits. A game. Size, file parsed. Nothing saved |
-| `GET /api/games/{id}/patches` | Signed-in | limits. A game. own |
-| `POST /api/games/{id}/patches` | Signed-in | limits. A game. own. Patch format and size, 16 per game, limit per account, imports at once |
-| `PUT /api/games/{id}/patches/{patch}` | Signed-in | limits. A game. own |
-| `DELETE /api/games/{id}/patches/{patch}` | Signed-in | limits. A game. own |
-| `GET /api/gaming/custom` | Admin | Nothing further |
-| `PUT /api/gaming/custom/enabled` | Admin | Own password to turn on |
-| `POST /api/gaming/custom/staged/upload` | Admin | Custom cores on. Own password. Package size and contents |
-| `POST /api/gaming/custom/staged/url` | Admin | Custom cores on. Own password. Address, hash |
-| `POST /api/gaming/custom/staged/placed` | Admin | Custom cores on. Own password. Key from the server's own list |
-| `POST /api/gaming/custom/staged/{token}/approve` | Admin | Custom cores on. Staged token. Acknowledgement and fields |
-| `DELETE /api/gaming/custom/staged/{token}` | Admin | Staged token |
-| `PUT /api/gaming/custom/cores/{id}` | Admin | Custom cores on. Core exists. Fields |
-| `DELETE /api/gaming/custom/cores/{id}` | Admin | Core exists |
-| `POST /api/gaming/custom/cores/{id}/reapprove` | Admin | Custom cores on. Own password |
-| `POST /api/gaming/custom/cores/{id}/rollback` | Admin | Custom cores on. Own password. Hash format |
-| `POST /api/gaming/custom/cores/{id}/files` | Admin | Custom cores on. Own password. Package size and contents |
-| `POST /api/gaming/custom/consoles` | Admin | Custom cores on. Console JSON size and fields |
-| `PUT /api/gaming/custom/consoles/{id}` | Admin | Custom cores on. Console JSON size and fields |
-| `DELETE /api/gaming/custom/consoles/{id}` | Admin | No library is set to it |
-| `GET /api/gaming/consoles/{console}/core` | Admin | Known console |
-| `PUT /api/gaming/consoles/{console}/core` | Admin | Known console. Core allowed for it |
-| `GET /api/gaming/games/{id}/core` | Admin | A game |
-| `PUT /api/gaming/games/{id}/core` | Admin | A game. Core allowed for it |
 | `GET /api/games/pictures` | Signed-in | the server's own looks; per-game looks only for games the account may see |
 | `POST /api/games/pictures/check` | Signed-in | reads a .wittyplay file of at most 64 KB; matches only games the account may see. Writes nothing |
 | `GET /api/games/brand-logos` | Signed-in | whether console logos are on, and the logos (ids and credits) when they are. When they were agreed to, for an administrator |
@@ -721,8 +622,6 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/backup/restore/start` | An admin, or before any account exists this machine or the setup code | Typed RESTORE. Password and code, unless no account exists. An archive that's been checked, and known parts. It's read again as it's unpacked. The swap is made at the next start |
 | `DELETE /api/backup/restore/request` | An admin, or before any account exists this machine or the setup code | Nothing: takes back what's waiting for the next start |
 | `POST /api/backup/undo` | Admin | Password, and code with two-factor sign-in. Safety copy name by form, holding its own list. What it moves stays inside the data folders |
-| `GET /api/games/home` | Signed-in | limits, in the query. Library number. own lists, without what the account can no longer see |
-| `GET /api/games/{id}/check` | Signed-in | limits. A game. Says what it needs, as Play does: BIOS files beside the game are collected. Names and paths of the server aren't answered |
 | `GET /api/libraries/{id}/games/review` | Admin | A games library. Known list. Limit and offset |
 | `POST /api/libraries/{id}/games/review/apply` | Admin | A games library. 1 to 5,000 ids, known action, known console. No file is touched |
 | `GET /api/libraries/{id}/games/import` | Admin | A games library |

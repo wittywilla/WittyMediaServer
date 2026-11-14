@@ -83,6 +83,8 @@ func aServer(t *testing.T) (Folders, string) {
 	writeTestFile(t, filepath.Join(f.Images, "up-1.jpg"), jpeg)
 	writeTestFile(t, filepath.Join(f.Images, "logos", "a.png"), []byte("\x89PNG\r\n\x1a\n1234567890"))
 	writeTestFile(t, filepath.Join(f.Images, "not-a-picture.txt"), []byte("leftover"))
+	writeTestFile(t, filepath.Join(f.Data, "bumpers", "u1", "intro.mp4"), []byte("BUMPERDATA"))
+	// WittyPlay's, from before it kept its own data: never in a backup.
 	writeTestFile(t, filepath.Join(f.Data, "gaming", "saves", "u1", "i1", "save.srm"), []byte("SAVEDATA"))
 	writeTestFile(t, filepath.Join(f.Data, "gaming", "cores", "core.so"), []byte("\x7fELFcore"))
 	writeTestFile(t, filepath.Join(f.Data, "branding", "logo.png"), []byte("\x89PNG\r\n\x1a\n1234567890"))
@@ -94,7 +96,7 @@ func aServer(t *testing.T) (Folders, string) {
 	return f, media
 }
 
-var everything = []string{PartLibrary, PartSettings, PartUsers, PartHistory, PartChannels, PartArtwork, PartSaves, PartModules, PartMetaFiles}
+var everything = []string{PartLibrary, PartSettings, PartUsers, PartHistory, PartChannels, PartArtwork, PartModules, PartMetaFiles}
 
 func entriesOf(t *testing.T, p string) map[string][]byte {
 	t.Helper()
@@ -146,13 +148,13 @@ func TestPlainBackupHoldsNoSecretsAndNoCode(t *testing.T) {
 		t.Fatal("no password was given")
 	}
 	all := entriesOf(t, out)
-	for _, want := range []string{ManifestName, ReadmeName, dbEntry, "artwork/up-1.jpg", "artwork/logos/a.png", "saves/u1/i1/save.srm", "branding/logo.png", "modules/state.json"} {
+	for _, want := range []string{ManifestName, ReadmeName, dbEntry, "artwork/up-1.jpg", "artwork/logos/a.png", "bumpers/u1/intro.mp4", "branding/logo.png", "modules/state.json"} {
 		if _, ok := all[want]; !ok {
 			t.Errorf("%s is missing", want)
 		}
 	}
 	for name, b := range all {
-		if strings.Contains(name, "core.so") || strings.Contains(name, "helper") || strings.Contains(name, "wms.log") || strings.HasSuffix(name, "not-a-picture.txt") || strings.HasPrefix(name, "lyrics-corrections") {
+		if strings.Contains(name, "core.so") || strings.Contains(name, "save.srm") || strings.Contains(name, "helper") || strings.Contains(name, "wms.log") || strings.HasSuffix(name, "not-a-picture.txt") || strings.HasPrefix(name, "lyrics-corrections") {
 			t.Errorf("%s shouldn't be in it", name)
 		}
 		for _, planted := range []string{"TMDBPLANTEDKEY", "TOTPPLANTEDSECRET", "RECOVERYPLANTED", "SESSIONPLANTED", "IDENTITYPLANTED", "LOGPLANTED"} {
@@ -371,8 +373,9 @@ func TestHostileArchivesAreRefused(t *testing.T) {
 		{"text direction trick", zip.FileHeader{Name: "artwork/a\u202egpj.exe"}},
 		{"empty folder name", zip.FileHeader{Name: "artwork//a.jpg"}},
 		{"unknown folder", zip.FileHeader{Name: "secrets/a.jpg"}},
-		{"a program", zip.FileHeader{Name: "saves/u1/run.exe"}},
-		{"a script", zip.FileHeader{Name: "saves/u1/run.sh"}},
+		{"a program", zip.FileHeader{Name: "bumpers/u1/run.exe"}},
+		{"a script", zip.FileHeader{Name: "bumpers/u1/run.sh"}},
+		{"a game save", zip.FileHeader{Name: "saves/u1/i1/save.srm"}},
 		{"a web page", zip.FileHeader{Name: "metadata/a.html"}},
 		{"svg picture", zip.FileHeader{Name: "artwork/a.svg"}},
 		{"module program", zip.FileHeader{Name: "modules/wittydvd/versions/1/helper"}},
@@ -445,7 +448,7 @@ func TestZipBombsAreRefused(t *testing.T) {
 	if w, err := zw.Create(ManifestName); err == nil {
 		_, _ = w.Write(manifestOnly())
 	}
-	w, err := zw.CreateHeader(&zip.FileHeader{Name: "saves/u1/big.srm", Method: zip.Deflate})
+	w, err := zw.CreateHeader(&zip.FileHeader{Name: "bumpers/u1/big.mp4", Method: zip.Deflate})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -549,12 +552,12 @@ func TestChangesAfterTheBackupAreRefused(t *testing.T) {
 	}, nil)
 	wantRefused(t, f, bad, "not really a picture")
 	rewrap(t, src, bad, func(name string, b []byte) ([]byte, bool) {
-		if name == "saves/u1/i1/save.srm" {
+		if name == "bumpers/u1/intro.mp4" {
 			return []byte("\x7fELF\x02\x01\x01"), true
 		}
 		return b, true
 	}, nil)
-	wantRefused(t, f, bad, "a program posing as a save")
+	wantRefused(t, f, bad, "a program posing as a bumper")
 	rewrap(t, src, bad, func(_ string, b []byte) ([]byte, bool) { return b, true }, map[string][]byte{"themes/evil.zip": []byte("PK\x03\x04no")})
 	wantRefused(t, f, bad, "a theme that isn't one")
 }
@@ -747,7 +750,7 @@ func TestFullRoundTrip(t *testing.T) {
 			if err := os.Rename(out, keep); err != nil {
 				t.Fatal(err)
 			}
-			for _, p := range []string{"wms.db", "wms.db-wal", "wms.db-shm", "gaming", "cache", "branding", "modules", "metadata", "lyrics-corrections"} {
+			for _, p := range []string{"wms.db", "wms.db-wal", "wms.db-shm", "bumpers", "cache", "branding", "modules", "metadata", "lyrics-corrections"} {
 				_ = os.RemoveAll(filepath.Join(f.Data, p))
 			}
 			d, err := db.Open(f.Data)
@@ -779,7 +782,7 @@ func TestFullRoundTrip(t *testing.T) {
 			if r == nil || !r.OK {
 				t.Fatalf("%+v", r)
 			}
-			for _, p := range []string{"cache/images/up-1.jpg", "cache/images/logos/a.png", "gaming/saves/u1/i1/save.srm", "branding/logo.png", "modules/state.json", "metadata/Films/The Treeline [item-1].json"} {
+			for _, p := range []string{"cache/images/up-1.jpg", "cache/images/logos/a.png", "bumpers/u1/intro.mp4", "branding/logo.png", "modules/state.json", "metadata/Films/The Treeline [item-1].json"} {
 				if _, err := os.Stat(filepath.Join(f.Data, filepath.FromSlash(p))); err != nil {
 					t.Errorf("%s isn't back: %v", p, err)
 				}
@@ -868,7 +871,7 @@ func TestPartialRestore(t *testing.T) {
 	}
 	mustExec(t, d.DB, `UPDATE items SET title = 'Changed since' WHERE id = 1`)
 	mustExec(t, d.DB, `UPDATE settings SET value = 'Changed name' WHERE key = 'brandName'`)
-	mustExec(t, d.DB, `INSERT INTO custom_consoles(id, data, aliases, cores, created_at, updated_at) VALUES ('c', '{}', '', '', 1, 1)`)
+	mustExec(t, d.DB, `INSERT INTO game_core_audit(at, user_name, action, core, detail, module) VALUES (1, 'kim', 'added', 'c', '', 'wittyplay')`)
 
 	in, err := Inspect(ctx, out, "", f, nil)
 	if err != nil {
@@ -907,7 +910,7 @@ func TestPartialRestore(t *testing.T) {
 	if got := one(`SELECT COUNT(*) FROM sessions`); got != "1" {
 		t.Errorf("sign-ins should stay when accounts aren't replaced: %q", got)
 	}
-	if got := one(`SELECT COUNT(*) FROM custom_consoles`); got != "1" {
+	if got := one(`SELECT COUNT(*) FROM game_core_audit`); got != "1" {
 		t.Errorf("what no backup holds should stay: %q", got)
 	}
 	if got := one(`SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger'`); got != "10" {
@@ -1085,14 +1088,5 @@ func TestBackupNamesCantBePaths(t *testing.T) {
 	}
 	if !ValidName("wms-backup-20260101-000000.zip") {
 		t.Error("a real one failed")
-	}
-}
-
-// What a core worked out for itself is made again for nothing and can run to gigabytes.
-func TestACoresCacheStaysOutOfABackup(t *testing.T) {
-	for rel, want := range map[string]bool{"3/12/system/pcsx2/cache/shaders.bin": true, "system/pcsx2/cache/a": true, "3/12/system/pcsx2/memcards/card.ps2": false, "3/12/save.srm": false, "3/cache/x": false} {
-		if got := isCoreCache(rel); got != want {
-			t.Errorf("%s: %v", rel, got)
-		}
 	}
 }

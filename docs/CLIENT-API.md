@@ -1948,15 +1948,7 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 
 | Route | Sign-in | What it does |
 |---|---|---|
-| `GET /games/home` | user | The games home screen in one answer, for `?library=`. |
-| `GET /games/{id}/check` | user | What a game needs in order to play, and whether this server has it. |
-| `GET /games/consoles` | user | Game consoles. |
-| `GET /games/modes` | user | Game modes. |
-| `POST /games/{id}/play` | user | Game play. |
-| `GET /games/{id}/emulators` | user | The standalone emulators set up to play this game: {emulators: [{id, name, version, stream, ready, why}]}. Empty when WittyPlay has none. 403 `feature-off` with games off for the profile. |
-| `POST /games/{id}/play/emulator` | user | Start this game in a standalone emulator: {emulator} in; 201 with the session and where to connect, stop, pause and resume it. Refused with 403 `screen-time` when the profile's time is up. The game belongs to the sign-in that started it: it is ended when that sign-in ends (signing out, switching profile), when the profile's screen time runs out, and when games are turned off for the profile. |
-| `POST /games/{id}/prepare` | user | Game prepare. |
-| `GET /games/{id}/versions` | user | A game's other versions and its discs. See [GAMING-API.md](GAMING-API.md). |
+| `GET /games/{id}/versions` | user | A game's other versions and its discs. Playing a game is WittyPlay's: its routes are under `/modules/wittyplay/` ([GAMING-API.md](GAMING-API.md)). |
 | `PUT /games/{id}/version` | admin | Which file in its archive to play. |
 | `POST /games/{id}/split` | admin | A version becomes a game of its own. |
 | `PUT /games/{id}/console` | admin | This file is for another console. |
@@ -1964,9 +1956,6 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `GET /libraries/{id}/games/review` | admin | Files that didn't become games, or can't play. Query: `kind`, `limit`, `offset`. |
 | `POST /libraries/{id}/games/review/apply` | admin | Says what those files are. |
 | `GET /libraries/{id}/games/import` | admin | How an import is going. |
-| `GET /games/{id}/saves` | user | Game saves. |
-| `GET /games/{id}/saves/{slot}/thumb` | user | Game save thumb. |
-| `DELETE /games/{id}/saves/{slot}` | user | Game save delete. |
 | `GET /games/pictures` | user | How WittyPlay pictures games, server-wide: `server` (a .wittyplay document: default and consoles), `games` (looks by game id, only games this account may see), `caseStyles`. See [the .wittyplay format](specs/wittyplay-file.md). |
 | `PUT /games/pictures` | admin | Set the server's .wittyplay document (body, at most 64 KB); its games apply to the games they match. Answers `server`, `applied`, `unmatched`. |
 | `GET /games/pictures/file` | admin | The server's choices as a `.wittyplay` file (`application/vnd.wittyplay+json`). |
@@ -1989,52 +1978,6 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `GET /gamemeta/sources` | admin | Every source, in the order they're believed: what it needs, costs and sends. Key values are never included. |
 | `PUT /gamemeta/sources` | admin | Set the sources' order and whether each is on: `{sources: [{id, on}]}`. Costs no requests. |
 | `POST /gamemeta/sources/{id}/test` | admin | Does this work? `{fields: {setting: value}}`. Saves nothing. Keys themselves are saved through `PUT /settings`, and masked when read back. |
-| `GET /games/settings/schema` | user | Describe every game setting: its kind, range, default and caution. |
-| `GET /games/settings` | user | A person's settings for a game (?item=) or console (?console=): effective values, where each came from, every level, and the server's limits. |
-| `PUT /games/settings` | user | Change one level: a patch (null removes a value), a whole settings file, or a reset. Server levels need an administrator. |
-| `POST /games/settings/validate` | user | Check a settings file without saving it: errors and ignored things, by line. |
-| `GET /games/recent` | user | A person's most recently played games, or favourites with ?favourites=1, with play counts. |
-| `GET /games/playing` | user | The game this account is playing now, the device it started on, and who joined it; 204 when none. For "Continue here". |
-| `GET /game-bezels` | user | A person's own images for around the picture. |
-| `POST /game-bezels` | user | Add an image, as the request body. PNG, JPEG or WebP, decoded and made again. |
-| `GET /game-bezels/{bezel}` | user | One of a person's images, as a PNG. |
-| `DELETE /game-bezels/{bezel}` | user | Remove one of a person's images. |
-| `GET /games/{id}/core-options` | user | What this game's core offers, what's chosen, and what it will ignore. |
-| `GET /games/{id}/meta` | user | What a person keeps about a game: favourite, note, play count, last played. |
-| `PUT /games/{id}/meta` | user | Change a game's favourite mark or note. |
-| `GET /games/{id}/cheats` | user | A person's cheat codes for a game. |
-| `PUT /games/{id}/cheats` | user | Replace a person's cheat codes for a game. A running game takes them at once. |
-| `POST /games/{id}/cheats/import` | user | Read a cheat file, as the request body, and say what's in it. Nothing is kept. |
-| `GET /games/{id}/patches` | user | A person's IPS and BPS patches for a game. |
-| `POST /games/{id}/patches` | user | Add a patch, as the request body, with ?name=. Applied to a copy when the game starts. |
-| `PUT /games/{id}/patches/{patch}` | user | Turn a patch on or off. |
-| `DELETE /games/{id}/patches/{patch}` | user | Remove a patch. |
-| `GET /games/{id}/saves/{slot}/file` | user | Download a saved state, with a header that an import checks. |
-| `PUT /games/{id}/saves/{slot}/file` | user | Put a state file into a slot, as the request body. Slots 1 to 99. |
-| `GET /games/{id}/battery` | user | Download a game's battery save. |
-| `PUT /games/{id}/battery` | user | Replace a game's battery save, as the request body. Refused while it's being played. |
-| `GET /modules/wittyplay/docker/status` | admin | Whether WittyPlay's Docker backend is on, whether Docker answers, and how many containers run. |
-| `GET /modules/wittyplay/docker/settings` | admin | The Docker backend's settings, their schema and the backends. |
-| `PUT /modules/wittyplay/docker/settings` | admin | Replace the Docker backend's settings. WittyPlay checks them. |
-| `GET /modules/wittyplay/docker/emulators` | admin | The standalone emulators WittyPlay lists, with what's installed. |
-| `GET /modules/wittyplay/docker/installed` | admin | The standalone emulators installed. |
-| `POST /modules/wittyplay/docker/emulators/{id}/install` | admin | Start installing a standalone emulator. 202 and the job. |
-| `GET /modules/wittyplay/docker/emulators/{id}/install` | admin | How an emulator's install is going. |
-| `DELETE /modules/wittyplay/docker/emulators/{id}` | admin | Uninstall a standalone emulator. Refused while someone plays with it. |
-| `POST /modules/wittyplay/docker/sessions/{sid}/connect` | user | WebRTC for a game in a container: {hello, offer} in, the same answer a core's game gives. |
-| `DELETE /modules/wittyplay/docker/sessions/{sid}` | user | Stop a game in a container: the player's own, or any for an administrator. |
-| `GET /modules/wittyplay/docker/diagnostics` | admin | A look over everything standalone emulators depend on here, in plain words: {host, checks}. |
-| `DELETE /modules/wittyplay/docker/emulators/{id}/install` | admin | Cancel an emulator's install. What had been downloaded is kept for the next try. |
-| `GET /modules/wittyplay/docker/emulators/{id}/settings` | user | An emulator's settings as this account sees them: the schema, each layer and what they come to. `?game=` adds one game's. |
-| `PUT /modules/wittyplay/docker/emulators/{id}/settings` | user | Set an emulator's settings: {scope: admin, user or game, game, values}. Checked against the schema. |
-| `GET /modules/wittyplay/docker/emulators/{id}/manual` | admin | An emulator that's never downloaded (Ryujinx, Lichii): its project's page, the program names it's known by on the system it runs on, the drop folder, `manual.json`'s path, and what was found where it's usually installed. |
-| `POST /modules/wittyplay/docker/emulators/{id}/manual` | admin | Add it: {program: a full path, or "" for what was found}. Checked to be that emulator; answers as the GET, with `installed`. |
-| `GET /modules/wittyplay/docker/own` | admin | The administrator's own emulator programs, and how many may be kept. |
-| `PUT /modules/wittyplay/docker/own` | admin | Replace them: a list of {name, systems, program, args, configDir, like}. Each is checked to be a program on this server. |
-| `GET /modules/wittyplay/docker/sessions` | user | Games running in standalone emulators: the caller's own, or everyone's for an administrator. |
-| `POST /modules/wittyplay/docker/sessions/{sid}/pause` | user | Freeze a game in a standalone emulator. The player's own only. |
-| `POST /modules/wittyplay/docker/sessions/{sid}/resume` | user | Let a paused game in a standalone emulator go on. The player's own only. |
-| `GET /modules/wittyplay/kasm/{sid}/{ticket}/{rest}` | public | The KasmVNC desktop of a game in a container, and its WebSocket. Open the `kasmUrl` a start gives, as it is, in a frame sandboxed with `allow-scripts allow-pointer-lock` and never `allow-same-origin`: the ticket in it is the whole of the way in. 404 unless this server started that game, it is still going, and the profile that started it may still play. |
 
 ### Game PCs
 
@@ -2317,50 +2260,6 @@ See [LIBRARY-TRANSCODING.md](LIBRARY-TRANSCODING.md).
 
 | Route | Sign-in | What it does |
 |---|---|---|
-| `GET /play/{sid}` | user | Play get. |
-| `DELETE /play/{sid}` | user | Play stop. |
-| `POST /play/{sid}/stream` | user | Connects a device over WebRTC, version 2: `{hello, sdp}` in, `{stream, sdp}` out. See [the stream](GAMING-STREAM.md). |
-| `GET /play/{sid}/stream` | user | Version 2's WebSocket: the same messages as over WebRTC, the hello first. |
-| `POST /play/join` | user | Join someone's game with their code, `{code}`, or a friend's open room with none, `{room: sid}` (not for a Kids or guest profile). Answers `{sid, seat, itemId, title, console, host}`. Wrong codes are limited. |
-| `POST /play/{sid}/invite` | user | The host makes a four-letter code others can join with, for ten minutes. |
-| `GET /play/{sid}/seats` | user | The host and everyone who joined; the host also sees the code. |
-| `DELETE /play/{sid}/seats/{user}` | user | Frees a seat: the host frees anyone's, and anyone may leave. |
-| `POST /play/{sid}/room` | user | The host opens its game to the friends who may see it, so they join with no code (`{open}`, default true), or closes it. Answers `{sid, open, code, expiresAt}`: the code is for a phone's QR join link. Kids and guest profiles can't open a game. |
-| `PUT /play/{sid}/seats/{user}` | user | The host moves someone who joined to another player, `{seat}` from 1, or -1 to watch; a seat someone else holds is swapped. Answers the seats. |
-| `POST /play/{sid}/screenshot` | user | Keeps the current picture in the host's memories. Answers `{name, itemId, url}`. |
-| `GET /games/{id}/shots/{name}` | user | One kept screenshot, as a PNG. |
-| `DELETE /games/{id}/shots/{name}` | user | Deletes a kept screenshot. |
-| `GET /games/online/me` | user | What this profile lets its friends know: `{sharePlaying, appearOnline, canShare}`. Not sharing what it plays shows it online with no game; not appearing online shows it offline. |
-| `PUT /games/online/me` | user | Sets either or both: `{sharePlaying, appearOnline}`. A guest has no friends to share with. |
-| `GET /games/online/kids/{user}` | admin | The profiles a Kids profile may see, and be seen by, as friends: `{user, name, friends, candidates: [{id, name, kind, approved}]}`, every profile that could be one. |
-| `PUT /games/online/kids/{user}` | admin | Sets them: `{friends: [id…]}`. |
-| `POST /play/{sid}/action` | user | Play action. |
-| `GET /play/{sid}/stats` | user | A running game's numbers: frame rates, encode time, bitrate, drops. |
-| `GET /play/{sid}/screenshot` | user | The current picture as a PNG. |
-| `GET /gaming` | admin | Gaming. |
-| `POST /gaming/cores/{id}/install` | admin | Core install. |
-| `GET /gaming/cores/{id}/install` | admin | How far an install under way has got: `{installing, received, total}` in bytes, `total` 0 when the download server gave no size. An older WittyPlay always answers `installing: false`. |
-| `DELETE /gaming/cores/{id}` | admin | Core remove. |
-| `DELETE /gaming/unpacked` | admin | Empty the unpacked games cache. |
-| `GET /gaming/custom` | admin | Custom cores and consoles: whether they're on, what's here, the cores folder and the audit log. |
-| `PUT /gaming/custom/enabled` | admin | Turn custom cores on (password) or off. |
-| `POST /gaming/custom/staged/upload` | admin | Upload a core and test-load it. Multipart, password field first. |
-| `POST /gaming/custom/staged/url` | admin | Fetch a core from a public https address and test-load it. |
-| `POST /gaming/custom/staged/placed` | admin | Test-load a file from the cores folder. |
-| `POST /gaming/custom/staged/{token}/approve` | admin | Approve a core that passed its test-load. |
-| `DELETE /gaming/custom/staged/{token}` | admin | Throw away a core waiting for approval. |
-| `PUT /gaming/custom/cores/{id}` | admin | Change a custom core's name, licence, note and consoles. |
-| `DELETE /gaming/custom/cores/{id}` | admin | Remove a custom core. Saves are never touched. |
-| `POST /gaming/custom/cores/{id}/reapprove` | admin | Approve a changed core file again, after testing it. |
-| `POST /gaming/custom/cores/{id}/rollback` | admin | Go back to a kept version. |
-| `POST /gaming/custom/cores/{id}/files` | admin | Add an info file, or a zip of assets or BIOS-folder files. |
-| `POST /gaming/custom/consoles` | admin | Add a custom console. |
-| `PUT /gaming/custom/consoles/{id}` | admin | Change a custom console. |
-| `DELETE /gaming/custom/consoles/{id}` | admin | Remove a custom console. |
-| `GET /gaming/consoles/{console}/core` | admin | A console's cores for the core picker, installed or not, and its default: see [Choosing a core](GAMING-API.md#choosing-a-core). |
-| `PUT /gaming/consoles/{console}/core` | admin | Choose a console's core. |
-| `GET /gaming/games/{id}/core` | admin | What plays a game, and how each core has gone on it: the picker's `choices`, and `options`, the installed ones, for older clients. |
-| `PUT /gaming/games/{id}/core` | admin | Choose a core for one game. |
 | `GET /reach/{nonce}` | none | Reach. |
 | `DELETE /users/{id}/2fa` | admin | User two factor reset. |
 | `GET /recording-rules` | user | This account's recording rules, and an administrator's sees everyone's. |

@@ -203,7 +203,7 @@ func (s *Server) moduleGateFromBody(w http.ResponseWriter, r *http.Request) bool
 // auditModule writes a change to which code runs down beside custom cores', as both are the same
 // kind of thing, and in the log.
 func (s *Server) auditModule(r *http.Request, action, id, detail string) {
-	s.writeAudit(r.Context(), userFrom(r), "module", action, "module "+id, detail)
+	s.writeAudit(r.Context(), userFrom(r), "module", "", action, "module "+id, detail)
 }
 
 // moduleAction runs one change to a module; action is fixed text for the log ("pin", ...).

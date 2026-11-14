@@ -87,7 +87,6 @@ func waitForScan(t *testing.T, g *gameServer, id int64) {
 
 func TestNeedsALookThroughTheAPI(t *testing.T) {
 	g := newGameServer(t)
-	defer g.s.StopGames()
 	lib := reviewLibrary(t, g, map[string][]byte{
 		"NES/Odd Dump (USA).nes":    make([]byte, 64<<10),
 		"NES/Readable (USA).nes":    fixture.NES(),
@@ -197,7 +196,6 @@ func TestNeedsALookThroughTheAPI(t *testing.T) {
 // A choice in an archive has to be a file that's in it.
 func TestChoosingAVersionInAnArchive(t *testing.T) {
 	g := newGameServer(t)
-	defer g.s.StopGames()
 	dir := t.TempDir()
 	zipPath := filepath.Join(dir, "Mega Game.zip")
 	writeTestZip(t, zipPath, map[string][]byte{"Mega Game (U).smc": fixture.SNES("MEGA GAME"), "Mega Game (J).smc": fixture.SNES("MEGA GAME J"), "Mega Game (U) [b1].smc": fixture.SNES("BAD")})
@@ -251,84 +249,6 @@ func TestChoosingAVersionInAnArchive(t *testing.T) {
 	}
 }
 
-// A game on several discs is offered to a core as a playlist of its discs, wherever they
-// are, and everything made for it goes when the game ends. Its archived discs are unpacked
-// side by side, and the playlist keeps the discs' order.
-func TestDiscsBecomeAPlaylist(t *testing.T) {
-	g := newGameServer(t)
-	defer g.s.StopGames()
-	cue := func(bin string) []byte { return []byte("FILE \"" + bin + "\" BINARY\n  TRACK 01 MODE2/2352\n") }
-	dir := t.TempDir()
-	mk := func(name string, b []byte) string {
-		p := filepath.Join(dir, name)
-		if err := os.WriteFile(p, b, 0o644); err != nil {
-			t.Fatal(err)
-		}
-		return p
-	}
-	mk("Mega Game Disc 1.bin", fixture.Raw(fixture.PS1("SLUS_100.01")))
-	first := mk("Mega Game Disc 1.cue", cue("Mega Game Disc 1.bin"))
-	second := filepath.Join(dir, "mega-game-disc2of3-u-slus-10002-.zip")
-	writeTestZip(t, second, map[string][]byte{"Mega Game Disc 2.bin": fixture.Raw(fixture.PS1("SLUS_100.02")), "Mega Game Disc 2.cue": cue("Mega Game Disc 2.bin")})
-	third := filepath.Join(dir, "mega-game-disc3of3-u-slus-10003-.zip")
-	writeTestZip(t, third, map[string][]byte{"Mega Game Disc 3.bin": fixture.Raw(fixture.PS1("SLUS_100.03")), "Mega Game Disc 3.cue": cue("Mega Game Disc 3.bin")})
-	w := g.do("POST", "/api/libraries", g.admin, map[string]any{"name": "PS1", "type": "games", "console": "ps1", "paths": []string{dir}})
-	if w.Code != 201 {
-		t.Fatalf("%d %s", w.Code, w.Body)
-	}
-	var lib library.Library
-	jsonBody(t, w, &lib)
-	waitForScan(t, g, lib.ID)
-	ctx := context.Background()
-	items, _, _ := g.s.Store.Items(ctx, library.ItemQuery{LibraryID: lib.ID})
-	if len(items) != 1 || items[0].Title != "Mega Game" || items[0].Path != first {
-		t.Fatalf("%+v", items)
-	}
-	discs, err := g.s.Store.GameDiscs(ctx, items[0].ID)
-	if err != nil || len(discs) != 3 || discs[1].Path != second || discs[2].Path != third {
-		t.Fatalf("%+v %v", discs, err)
-	}
-	gs := g.s.games()
-	rom, cleanup, err := gs.prepareDiscs(ctx, discs, consoleForTest(t, "ps1"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	list, err := os.ReadFile(rom)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(list) != "disc1/Mega Game Disc 1.cue\ndisc2/Mega Game Disc 2.cue\ndisc3/Mega Game Disc 3.cue\n" {
-		t.Fatalf("%q", list)
-	}
-	for _, f := range []string{"disc1/Mega Game Disc 1.bin", "disc1/Mega Game Disc 1.cue", "disc2/Mega Game Disc 2.bin", "disc2/Mega Game Disc 2.cue", "disc3/Mega Game Disc 3.bin", "disc3/Mega Game Disc 3.cue"} {
-		if _, err := os.Stat(filepath.Join(filepath.Dir(rom), filepath.FromSlash(f))); err != nil {
-			t.Errorf("%s: %v", f, err)
-		}
-	}
-	cleanup()
-	if _, err := os.Stat(filepath.Dir(rom)); !os.IsNotExist(err) {
-		t.Errorf("the folder stayed: %v", err)
-	}
-	if _, err := os.Stat(first); err != nil {
-		t.Errorf("the original went with it: %v", err)
-	}
-}
-
-// A full server says so before unpacking or patching anything.
-func TestAFullServerSaysSoFirst(t *testing.T) {
-	t.Setenv("WMS_WITTYPLAY_RUNNER", os.Args[0])
-	g := newGameServer(t)
-	defer g.s.StopGames()
-	item := runnerGameItem(t, g)
-	if err := g.s.DB.SetSetting(context.Background(), "gamingMaxSessions", "0"); err != nil {
-		t.Fatal(err)
-	}
-	w := g.do("POST", fmt.Sprintf("/api/games/%d/play", item), g.admin, map[string]any{})
-	if w.Code != 503 || !strings.Contains(w.Body.String(), "as many games") {
-		t.Fatalf("%d %s", w.Code, w.Body)
-	}
-}
-
 // The order of regions is checked, is used from then on, and brings what's listed into line.
 func TestTheOrderOfRegionsIsASetting(t *testing.T) {
 	t.Cleanup(func() { gameregion.Set("") })
@@ -370,40 +290,4 @@ func TestTheOrderOfRegionsIsASetting(t *testing.T) {
 		time.Sleep(50 * time.Millisecond)
 	}
 	waitForScan(t, g, lib.ID)
-}
-
-// A disc that can't be made ready stops the game from starting, and what was made for the
-// other discs, at the same time, goes with it.
-func TestABadDiscLeavesNothingBehind(t *testing.T) {
-	g := newGameServer(t)
-	defer g.s.StopGames()
-	cue := func(bin string) []byte { return []byte("FILE \"" + bin + "\" BINARY\n  TRACK 01 MODE2/2352\n") }
-	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "Mega Game Disc 1.bin"), fixture.Raw(fixture.PS1("SLUS_100.01")), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	first := filepath.Join(dir, "Mega Game Disc 1.cue")
-	if err := os.WriteFile(first, cue("Mega Game Disc 1.bin"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	second := filepath.Join(dir, "mega-game-disc2of2-u-slus-10002-.zip")
-	writeTestZip(t, second, map[string][]byte{"Mega Game Disc 2.bin": fixture.Raw(fixture.PS1("SLUS_100.02")), "Mega Game Disc 2.cue": cue("Mega Game Disc 2.bin")})
-	broken := filepath.Join(dir, "broken.zip")
-	if err := os.WriteFile(broken, []byte("PK\x03\x04 not really an archive"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	discs := []library.GameDisc{{Disc: 1, Path: first}, {Disc: 2, Path: second}, {Disc: 3, Path: broken}}
-	gs := g.s.games()
-	if rom, _, err := gs.prepareDiscs(context.Background(), discs, consoleForTest(t, "ps1")); err == nil {
-		t.Fatalf("started with a broken disc: %s", rom)
-	}
-	left, _ := os.ReadDir(filepath.Join(gs.dir, "tmp"))
-	if len(left) != 0 {
-		t.Errorf("left behind: %v", left)
-	}
-	// Nothing is still held for the game: the unpacked disc can be cleared away.
-	gs.archives.Clear()
-	if n := gs.archives.Used(); n != 0 {
-		t.Errorf("%d bytes still held after the failed start", n)
-	}
 }

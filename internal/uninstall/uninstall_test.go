@@ -109,7 +109,7 @@ func dirGone(t *testing.T, p string) {
 // its own, and a file someone put there.
 func fillData(t *testing.T, dir string) {
 	t.Helper()
-	for _, f := range []string{"wms.db", "wms.db-wal", "cache/images/a.jpg", "logs/wms.log", "modules/wittyplay/versions/1/x", "gaming/cores/c.dll", "themes/t.json"} {
+	for _, f := range []string{"wms.db", "wms.db-wal", "cache/images/a.jpg", "logs/wms.log", "modules/wittyplay/versions/1/x", "themes/t.json"} {
 		write(t, filepath.Join(dir, filepath.FromSlash(f)), "x")
 	}
 }

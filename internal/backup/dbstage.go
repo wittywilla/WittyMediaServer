@@ -325,9 +325,7 @@ var (
 		// Peer-to-peer connections reach out to the internet and ask the router for a port:
 		// like Remote Access, off after a restore until someone turns them on. The key stays,
 		// so the server keeps its ID; the devices add themselves to its list again at home.
-		"p2p": true,
-		// Custom cores are programs, which no backup holds: turning them on is for this machine's owner.
-		"gamingCustomCores": true}
+		"p2p": true}
 	// Settings that hold addresses the server will contact. Kept only from a protected
 	// archive, as nobody can have changed one of those without the password.
 	addressSetting = map[string]bool{"agents": true, "lyricsMirror": true, "moduleSources": true, "moduleStores": true}

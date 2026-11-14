@@ -19,9 +19,6 @@ func (s *Server) RunningNow() []any {
 	if s.HLS != nil {
 		transcodes = s.HLS.ActiveCount()
 	}
-	if s.gameSvc != nil && s.gameSvc.mgr != nil {
-		games = s.gameSvc.mgr.Count()
-	}
 	for _, v := range s.modSessions.List() {
 		if v.Kind == "game" {
 			games++

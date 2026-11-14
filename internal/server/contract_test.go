@@ -37,7 +37,6 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/metrics"
 	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
 	"github.com/wittywilla/wittymediaserver/internal/music"
-	"github.com/wittywilla/wittymediaserver/internal/play/cores"
 	"github.com/wittywilla/wittymediaserver/internal/playback"
 	"github.com/wittywilla/wittymediaserver/internal/reset"
 	"github.com/wittywilla/wittymediaserver/internal/sduistore"
@@ -409,9 +408,6 @@ func schemaTypes() map[string]reflect.Type {
 		"GameCandidate": ty(gamemeta.Candidate{}), "GameSourceSetting": ty(library.GameSourceSetting{}),
 		"Achievements": ty(AchievementsAnswer{}), "AchievementsGame": ty(AchievementsGame{}), "Achievement": ty(AchievementView{}),
 		"RadioMeta": ty(library.RadioMeta{}), "NowPlaying": ty(library.NowPlaying{}), "DirectoryStation": ty(library.DirectoryStation{}), "DirectoryFacets": ty(library.DirectoryFacets{}), "DirectoryCount": ty(library.DirectoryCount{}),
-		"CustomStatus": ty(CustomStatus{}), "CustomCore": ty(CustomCore{}), "CoreReport": ty(CoreReport{}), "CoreVersion": ty(CoreVersion{}), "CorePlays": ty(CorePlays{}), "CoreAudit": ty(CoreAudit{}),
-		"CustomConsoleView": ty(CustomConsoleView{}), "CorePickOption": ty(CorePickOption{}), "GameCoreOption": ty(GameCoreOption{}),
-		"CoreBinary": ty(cores.Binary{}), "CoreFirmware": ty(cores.Firmware{}), "CoreFileState": ty(cores.CoreFileState{}), "PlacedCoreFile": ty(cores.PlacedFile{}),
 		"Task":                 ty(tasks.Task{}),
 		"LibTranscodeSettings": ty(libtranscode.Settings{}),
 		"LibTranscodeRun":      ty(libtranscode.Run{}),

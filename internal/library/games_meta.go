@@ -1733,3 +1733,10 @@ func (s *Store) GameFacets(ctx context.Context, libraryID int64, console string,
 	rows.Close()
 	return out, nil
 }
+
+// GameSerial is the serial a scan found for a game, in its file or its name; "" when none was.
+func (s *Store) GameSerial(ctx context.Context, itemID int64) string {
+	var serial string
+	_ = s.DB.QueryRowContext(ctx, `SELECT serial FROM game_meta WHERE item_id = ?`, itemID).Scan(&serial)
+	return serial
+}

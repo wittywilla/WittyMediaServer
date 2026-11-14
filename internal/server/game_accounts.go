@@ -3,26 +3,12 @@
 
 package server
 
-import (
-	"os"
-	"path/filepath"
-	"strconv"
-)
+// A person's saves, controller layouts, profiles and controller-screen picture are WittyPlay's
+// own (module API 5): it hears of an account going from the host's events.
 
-// A person's controller layouts, profiles and controller-screen picture are WittyPlay's own
-// (module API 5: its routes at /api/modules/wittyplay/consoles/..., /game-profiles, /game-background).
-
-// removeUserGameFiles is for when an account goes: its rows go with it, and this is what
-// they don't cover. An account's number can be used again by the next one made, which
-// mustn't find any of this.
+// removeUserGameFiles is for when an account goes: what its rows don't cover. An account's
+// number can be used again by the next one made, which mustn't find any of this.
 func (s *Server) removeUserGameFiles(userID int64) {
-	g := s.games()
-	if sess := g.mgr.ForUser(userID); sess != nil {
-		sess.Stop() // it would save into what's about to go
-	}
-	dir := "u" + strconv.FormatInt(userID, 10)
-	_ = os.RemoveAll(filepath.Join(g.dir, "saves", dir))
-	_ = os.RemoveAll(filepath.Join(g.dir, "bezels", dir))
 	s.forgetCouchUser(userID)
 	r := s.rigs()
 	r.mu.Lock()

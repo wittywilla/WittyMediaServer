@@ -67,6 +67,22 @@ var gameMigrations = []string{
 	`DROP TABLE IF EXISTS wittyplay_controls;
 	 DROP TABLE IF EXISTS wittyplay_profiles;
 	 DROP TABLE IF EXISTS wittyplay_backgrounds;`,
+	// 7: the rest of the game API is WittyPlay's (module API 5): its settings, game details,
+	// core options, bezels, patches, presence, friends, custom cores and consoles, and which
+	// core plays a game. The audit log stays the server's, and says which module a row is for.
+	`DROP TABLE IF EXISTS wittyplay_settings;
+	 DROP TABLE IF EXISTS wittyplay_game_meta;
+	 DROP TABLE IF EXISTS wittyplay_core_options;
+	 DROP TABLE IF EXISTS wittyplay_bezels;
+	 DROP TABLE IF EXISTS wittyplay_patches;
+	 DROP TABLE IF EXISTS wittyplay_presence;
+	 DROP TABLE IF EXISTS wittyplay_kids_friends;
+	 DROP TABLE IF EXISTS custom_core_versions;
+	 DROP TABLE IF EXISTS custom_cores;
+	 DROP TABLE IF EXISTS custom_consoles;
+	 DROP TABLE IF EXISTS game_core_choice;
+	 DROP TABLE IF EXISTS game_core_plays;
+	 ALTER TABLE game_core_audit ADD COLUMN module TEXT NOT NULL DEFAULT '';`,
 }
 
 func (d *DB) migrateGames(ctx context.Context) error {

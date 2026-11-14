@@ -21,6 +21,8 @@ WittyStats is a module, and it isn't part of the server until you add it.
 
 The numbers belong to the server. It collects them and decides who sees what, with or without this module. Removing WittyStats takes the screen away, and saved layouts stay with each person's account.
 
+On televisions and phones, Statistics is WittyStats' own page in the menu: the server's figures, time in each library and the most watched titles and shows. The web and desktop apps draw the dashboard you arrange.
+
 ## What it shows
 
 

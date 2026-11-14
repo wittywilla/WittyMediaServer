@@ -559,8 +559,11 @@ func buildComponents() []ComponentSpec {
 				pEnum("tone", "Tone", "", "info", "info|Information", "success|Good news", "warning|Warning", "danger|Problem"),
 				pText("title", "Title", "", 120), req(pText("text", "Text", "", 400)), propIcon,
 				pText("buttonLabel", "Button", "", 40), propTo, propNative, propURL, propOp, propOpItem, propOpArgs, propConfirm, propBack,
+				rev8(pText("dismissLabel", "Dismiss button", "A second button beside the first, such as Dismiss: it runs dismissOp. Sent as dismiss {label, op, params}.", 40)),
+				rev8(pEnum("dismissOp", "Dismiss runs", "The command the dismiss button runs; the page is asked for again after it.", "", commandOps()...)),
+				rev8(pOf(PropObject, "dismissParams", "Dismiss's values", "The dismiss command's values by name, each a text or a $variable.")),
 			},
-			Renders: map[string]string{"all": "A rounded block in token bg2 with a 4-point bar at its leading edge in the tone's colour (accent, ok, warn, danger), the icon, title in the title size, text in body, and the button at the end (below on a phone). It takes focus only when it has a button."},
+			Renders: map[string]string{"all": "A rounded block in token bg2 with a 4-point bar at its leading edge in the tone's colour (accent, ok, warn, danger), the icon, title in the title size, text in body, and the button at the end (below on a phone). With dismiss, a second, quieter button beside the first (after it; below it on a phone) runs dismiss.op with dismiss.params, then the page is asked for again. It takes focus only when it has a button; on a TV each button is its own focus stop, the main one first."},
 			A11y:    "Role: status (alert for warning and danger). Label: \"<title>. <text>\".",
 			Example: example(`{"id":"setup","component":"Notice","when":{"admin":true,"flag":"setupIncomplete"},"props":{"tone":"info","title":"Finish setting up","text":"A few things are left to choose.","buttonLabel":"Open settings","native":"settings"}}`)},
 
@@ -1151,11 +1154,6 @@ func commandSpecs() []CommandSpec {
 		{Op: "watched.clear", Label: "Mark unwatched", Description: "Forgets the profile's progress in the title; for a show, in every episode.", Method: "DELETE", Path: "/api/v1/items/{item}/progress"},
 		{Op: "selectTab", Label: "Choose a tab", Description: "Asks for the page again with tab=<params.tab>, or shows the tab's content when the client already has it.", Method: "GET", Path: ""},
 		{Op: "control.open", Label: "Open a control", Description: "Client-handled, from a Dock: params.control is sort, filter, view or jump and params.target the Grid. sort and filter open the page's FilterBar choices for the target; view switches it between its grid and a list and remembers it for the profile on the device; jump opens a letter picker (A to Z and #) and brings the grid to the first title starting with the letter by asking its more.url until one has arrived, at most 20 pages.", Method: "GET", Path: ""},
-		{Op: "disc.choose", Label: "Make it the film", Description: "Discs: an administrator makes params.ttn (a DVD's title or a Blu-ray's playlist) the disc's film (item), for everyone, instead of the engine's pick.", Method: "PUT", Path: "/api/v1/items/{item}/disc/choice", Body: `{"ttn":"{ttn}"}`,
-			Params: []CommandParam{{Name: "ttn", Type: "int", Label: "Title or playlist", Required: true}}},
-		{Op: "disc.clearChoice", Label: "Use the engine's pick", Description: "Discs: forgets the film an administrator chose for the disc (item): the engine's pick plays again.", Method: "DELETE", Path: "/api/v1/items/{item}/disc/choice"},
-		{Op: "disc.rank", Label: "Rank again", Description: "Discs: an administrator has the disc's module work out which title of the disc (item) is the film again.", Method: "POST", Path: "/api/v1/items/{item}/disc/analysis", Body: `{"secondOpinion":false}`},
-		{Op: "disc.compare", Label: "Compare with libbluray", Description: "Blu-rays: an administrator has a libbluray installed on the server compare its reading of the disc (item); the setting has to allow it.", Method: "POST", Path: "/api/v1/items/{item}/disc/analysis", Body: `{"secondOpinion":true}`},
 		{Op: "wittyplay.room.create", Label: "Open a room", Description: "WittyPlay Online: opens the game being played (item: its session) to the friends who may see it, so they join with no code. Answers the host's code.", Method: "POST", Path: "/api/modules/wittyplay/play/{item}/room", Body: `{"open":true}`},
 		{Op: "wittyplay.room.join", Label: "Join a room", Description: "WittyPlay Online: takes a seat in an open room (item: its session) or, with params.code, the room that code belongs to (no item).", Method: "POST", Path: "/api/modules/wittyplay/play/join", Body: `{"room":"{item}","code":"{code}"}`,
 			Params: []CommandParam{{Name: "code", Type: "string", Label: "Join code"}}},
@@ -1211,5 +1209,7 @@ func commandSpecs() []CommandSpec {
 		{Op: "rewind.open", Label: "Rewind", Description: "Client-handled, in the game player: opens the player's rewind panel. No request.", Method: "GET", Path: ""},
 		{Op: "controller.remap", Label: "Remap controls", Description: "Client-handled, in the game player: opens the player's own controller-mapping panel. No request.", Method: "GET", Path: ""},
 		{Op: "refresh", Label: "Refresh", Description: "Asks for the page again.", Method: "GET", Path: ""},
+		{Op: "setup.skip", Label: "Dismiss", Description: "Administrators: puts off a module's setup step (params.module, params.step), so \"Finish setting up\" leaves Home; the step stays in the module's Settings.", Method: "POST", Path: "/api/setup/module-steps/skip", Body: `{"module":"{module}","step":"{step}"}`,
+			Params: []CommandParam{{Name: "module", Type: "string", Label: "Module", Required: true}, {Name: "step", Type: "string", Label: "Step", Required: true}}},
 	}
 }

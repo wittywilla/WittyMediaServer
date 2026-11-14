@@ -40,6 +40,7 @@ export type UserView = User & { access: Access | null }
 export type Library = {
   id: number; name: string; type: string; console?: string; paths: string[]; createdAt: number
   lastScanAt: number | null; scanning: boolean; itemCount: number; showMain?: boolean; readOnly?: boolean
+  foreignNfo?: boolean // reads .nfo files other programs wrote beside the media
 }
 // A commercials library stays out of the menus and Home unless switched on.
 export const inMainMenus = (l: Library) => l.type !== 'commercials' || !!l.showMain
@@ -136,7 +137,6 @@ export type DiscChapterView = { n: number; start: number; label: string }
 export type DiscTitleView = { ttn: number; label: string; durationSec: number; chapters: DiscChapterView[]; audio: string[]; subtitles: string[]; angles: number; wide: boolean }
 export type DiscMenuView = { kind: string; vts: number; label: string }
 export type DiscView = { main: DiscTitleView | null; extras: DiscTitleView[]; menus: DiscMenuView[] }
-export type DiscLabels = { titles: Record<string, string>; chapters: Record<string, Record<string, string>> }
 export type SubEvent = { start: number; end: number; x: number; y: number; w: number; h: number; forced?: boolean; url: string
   text?: string; color?: string; outline?: string; size?: number; halign?: number; valign?: number; bold?: boolean; italic?: boolean }
 export type DvdMedia = { type: 'hls' | 'still' | 'none'; url?: string; loop: boolean; durationSec: number; stillSec: number; audio: boolean }

@@ -6,9 +6,10 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 	"net/http"
 	"testing"
+
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
 )
 
 func TestRadioRelayHasALimit(t *testing.T) {

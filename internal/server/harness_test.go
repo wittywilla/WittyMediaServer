@@ -7,9 +7,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
-	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
-	"github.com/wittywilla/wittymediaserver/internal/modules/photoengine"
 	"io"
 	"log/slog"
 	"net/http"
@@ -17,6 +14,10 @@ import (
 	"path/filepath"
 	"testing"
 	"testing/fstest"
+
+	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
+	"github.com/wittywilla/wittymediaserver/internal/modules/modtest"
+	"github.com/wittywilla/wittymediaserver/internal/modules/photoengine"
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/bdsession"
@@ -140,7 +141,7 @@ func (ts *testServer) item(t *testing.T, it *library.Item) *library.Item {
 
 func init() {
 	modtest.Wire = func(m *modmgr.Manager) {
-		livetv.SetEngine(modmgr.Tuners{M: m})
+		livetv.SetDirectory(livetv.RemoteDirectory{R: modmgr.Tuners{M: m}, CheckInput: modmgr.CheckInput})
 		library.SetPhotoEngine(photoengine.PhotoEngine{M: m})
 		library.EngineThere = m.Installed
 	}

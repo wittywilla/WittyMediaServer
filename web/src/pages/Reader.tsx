@@ -1,22 +1,20 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, mediaUrl, type Item } from '../api'
 import type { Ann, EpubInfo, ReaderHost } from '@wittywilla/wittyink'
 import { ModuleMissing } from '../components/ModuleMissing'
-import { toast } from '../state'
+import { toast, useApp } from '../state'
 import { reportClient } from '../errorReport'
-import { BundledReaderView, useBundledReader } from '../moduleBundles'
+import { BundledReaderView, readerKitOf, readerOf, useBundledReader, useReaderBundles } from '../moduleBundles'
 import { useBookRemote } from '../remote/pageTargets'
 import './reader.css'
 
-// Books libraries in WittyMediaServer: the WittyEbook, WittyPDF and
-// WittyComics readers, with a host that saves the place and notes per account
-// on the server (so every device continues where the reader left off) and
-// fetches pages and definitions through the server.
-
-const READER_MODULE = { pdf: 'wittypdf', cbz: 'wittycomics', epub: 'wittyebook' }
+// Books libraries in WittyMediaServer: whichever module reads the kind of book (its
+// integration.json's readers hook: WittyEbook, WittyPDF, WittyComics), built on WittyInk, with a
+// host that saves the place and notes per account on the server (so every device continues where
+// the reader left off) and fetches pages and definitions through the server.
 
 type BookInfo = Partial<EpubInfo> & { format: string; reader?: string; reading: string; title: string; pages?: number }
 // Bumped when the server's book headers change, so cached chapters refresh.
@@ -31,13 +29,20 @@ export default function ReaderPage() {
   // The profile's settings of WittyInk and the readers (their sdui.json), drawn in Settings under
   // Modules: a book opens with them, and choices made while reading are saved to them.
   const [prefs, setPrefs] = useState<Record<string, Record<string, unknown>> | null>(null)
+  const bundles = useReaderBundles()
+  const format = info ? (info.reader === 'pdf' ? 'pdf' : info.reader === 'cbz' ? 'cbz' : 'epub') : undefined
+  const reader = format && bundles ? readerOf(format, bundles) : null
+  const kit = bundles ? readerKitOf(bundles) : null
   useEffect(() => {
     api.get<Item>(`/items/${id}`).then(setIt).catch((e) => setErr(e.message))
     api.get<BookInfo>(`/items/${id}/book`).then(setInfo).catch((e) => setErr(e.message))
-    const mods = ['wittyink', ...Object.values(READER_MODULE)]
+  }, [id])
+  useEffect(() => {
+    if (!bundles || !format) return
+    const mods = [kit?.id, reader?.id].filter(Boolean) as string[]
     Promise.all(mods.map((m) => api.get<{ values?: Record<string, unknown> }>(`/sdui/modules/${m}/settings`).then((r) => r.values ?? {}).catch(() => ({}))))
       .then((vals) => setPrefs(Object.fromEntries(mods.map((m, i) => [m, vals[i]]))))
-  }, [id])
+  }, [bundles, format, kit?.id, reader?.id])
   const close = () => (window.history.state?.idx > 0 ? nav(-1) : nav(`/item/${id}`))
   // Another device steering this one (docs/REMOTE-PROTOCOL.md): it is told the place each time the reader saves it.
   const placeChanged = useBookRemote(it?.id || 0, it?.progress && !it.progress.watched ? it.progress.positionSec : 0, close)
@@ -45,11 +50,10 @@ export default function ReaderPage() {
   const host = useMemo((): ReaderHost | null => {
     if (!it || !info || !prefs) return null
     const base = `/items/${it.id}`
-    const format = info.reader === 'pdf' ? 'pdf' : info.reader === 'cbz' ? 'cbz' : 'epub'
     return {
       key: String(it.id),
       book: { title: it.title, author: it.artist, year: it.year },
-      format,
+      format: format as ReaderHost['format'],
       reading: info.reading,
       start: it.progress && !it.progress.watched ? it.progress.positionSec : 0,
       saveProgress: (positionSec, durationSec) => { placeChanged(positionSec, durationSec); api.post(`${base}/progress`, { positionSec, durationSec }).catch(() => {}) },
@@ -79,16 +83,29 @@ export default function ReaderPage() {
       // What goes wrong in the reader, for this server's log. The reader sends
       // fixed text; reportClient groups repeats, keeps to its limits and hides tokens.
       report: (level, message, detail) => reportClient({
-        level, kind: 'reader', module: READER_MODULE[format], message, stack: [detail?.page && `page ${detail.page}`, detail?.stack].filter(Boolean).join('\n') || undefined,
+        level, kind: 'reader', module: reader?.id || 'wittyink', message, stack: [detail?.page && `page ${detail.page}`, detail?.stack].filter(Boolean).join('\n') || undefined,
       }),
     }
-  }, [it, info, prefs]) // eslint-disable-line react-hooks/exhaustive-deps
-  // A newer reader from its own release, when one is in use; otherwise null and the copies above.
-  const bundled = useBundledReader(host?.format)
+  }, [it, info, prefs, format, reader?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  // The reader from its own release, when one is in use; otherwise null.
+  const bundled = useBundledReader(host?.format, bundles)
 
   if (err) return <div className="reader center"><div className="error">{err}<br /><button className="btn" onClick={close}>Back</button></div></div>
   if (!host || bundled === undefined) return <div className="reader center"><div className="spinner" /></div>
-  const missing = <div className="reader center"><ModuleMissing ids={[READER_MODULE[host.format], 'wittyink']} what={it?.title} onReady={() => window.location.reload()} /></div>
+  const missing = <div className="reader center">{kit && !reader ? <NoReader format={host.format} /> : <ModuleMissing ids={[reader?.id, 'wittyink'].filter(Boolean) as string[]} what={it?.title} onReady={() => window.location.reload()} />}</div>
   if (!bundled) return missing
   return <BundledReaderView r={bundled} host={host} fallback={missing}><h1 className="sr-only">{it?.title}</h1></BundledReaderView>
+}
+
+// No module in use says it reads this kind of book. The store doesn't say which would (its
+// summaries don't carry the readers hook), so this names the kind and where to look.
+function NoReader({ format }: { format: string }) {
+  const { user } = useApp()
+  return (
+    <div className="empty" role="status">
+      <h2>No reader for {format.toUpperCase()} books is in use here</h2>
+      <p className="muted">{user?.isAdmin ? 'Add one from the module store.' : 'Ask whoever runs this server to add one.'}</p>
+      {user?.isAdmin && <Link className="btn" to="/settings/modules/store">Open the module store</Link>}
+    </div>
+  )
 }

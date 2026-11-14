@@ -10,9 +10,11 @@ import (
 
 	"encoding/json"
 	"fmt"
-	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"testing"
 	"time"
+
+	"github.com/wittywilla/wittymediaserver/internal/auth"
+	"github.com/wittywilla/wittymediaserver/internal/livetv"
 
 	"github.com/wittywilla/wittymediaserver/internal/tuner/xmltv"
 	"github.com/wittywilla/wittymediaserver/pkg/sdui"
@@ -30,13 +32,14 @@ func programmeFixture(t *testing.T) (*creditsFixture, int64, int64) {
 		{Role: "director", Name: "Ana Ruiz"}, {Role: "actor", Name: "Mara Voss", Character: "Nell"},
 		{Role: "guest", Name: "Jon Ellis"}, {Role: "presenter", Name: "Kim Ode"}, {Role: "writer", Name: "Lee Park"},
 	}, Stars: []xmltv.Star{{Value: "8.1/10", System: "IMDB"}}, IMDb: "tt0123456", TMDb: "tv/4242", Subtitles: []string{"EN"}, HD: true})
+	useTuners(t)
+	tunerChannel(t, livetv.Channel{ID: 1, Number: "4", Name: "Harbour Network", EPGID: "harbour.test", Enabled: true}, "http://provider.invalid/1.ts")
+	tunerChannel(t, livetv.Channel{ID: 2, Number: "5", Name: "Pine", EPGID: "pine.test", Enabled: true}, "http://provider.invalid/2.ts")
 	filmDetails, _ := json.Marshal(xmltv.Details{Year: 2001, Credits: []xmltv.Credit{{Role: "actor", Name: "Someone The Guide Says"}}})
 	for _, q := range []struct {
 		sql  string
 		args []any
 	}{
-		{`INSERT INTO tuners(id, driver, name, options, created_at) VALUES(1, 'stream', 'Test', '{}', 1)`, nil},
-		{`INSERT INTO tuner_channels(id, tuner_id, source_id, number, name, locator, epg_id) VALUES(1, 1, 's1', '4', 'Harbour Network', 'http://provider.invalid/1.ts', 'harbour.test'), (2, 1, 's2', '5', 'Pine', 'http://provider.invalid/2.ts', 'pine.test')`, nil},
 		{`INSERT INTO epg_programmes(channel, start, stop, title, descr, category, rating, extra) VALUES('harbour.test', ?, ?, 'Robot Friend', 'A robot.', 'Family', 'G', ?)`, []any{film, film + 5400, string(filmDetails)}},
 		{`INSERT INTO epg_programmes(channel, start, stop, title, sub, descr, category, rating, season, episode, extra) VALUES('harbour.test', ?, ?, 'The Quiet Orchard', 'The Ledger', 'Frost.', 'Drama', 'TV-PG', 1, 3, ?)`, []any{other, other + 3600, string(guideOnly)}},
 		{`INSERT INTO epg_programmes(channel, start, stop, title, sub) VALUES('pine.test', ?, ?, 'The Quiet Orchard', 'Again')`, []any{other + 86400, other + 90000}},
@@ -208,9 +211,7 @@ func TestRecordingsOpenMoreInfo(t *testing.T) {
 		t.Errorf("the card: %+v", c)
 	}
 	// A channel turned off is one nobody may watch now: nothing points at it.
-	if _, err := s.DB.Exec(`UPDATE tuner_channels SET enabled = 0 WHERE id = 1`); err != nil {
-		t.Fatal(err)
-	}
+	changeTunerChannel(s, 1, func(c *livetv.Channel) { c.Enabled = false })
 	for _, x := range list() {
 		if _, ok := x["channelKey"]; ok || x["programme"] != nil {
 			t.Errorf("a channel they can't watch: %+v", x)

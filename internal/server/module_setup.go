@@ -110,10 +110,7 @@ func (s *Server) hostSetupDone(w http.ResponseWriter, r *http.Request, module st
 		}
 	}
 	ctx := r.Context()
-	key := moduleStepKey(module, id, version)
-	done := slices.DeleteFunc(s.moduleStepsDone(ctx), func(k string) bool { return strings.HasPrefix(k, module+"."+id+"@") })
-	done = append(done, key)
-	if err := s.DB.SetSetting(ctx, settingModuleSetupDone, strings.Join(done, ",")); err != nil {
+	if err := s.recordModuleStep(ctx, module, id, version); err != nil {
 		writeJSON(w, 500, map[string]string{"error": err.Error()})
 		return
 	}
@@ -140,6 +137,47 @@ func (s *Server) hostSetupState(w http.ResponseWriter, r *http.Request, module s
 	writeJSON(w, 200, map[string]any{"done": done})
 }
 
+// POST /api/setup/module-steps/skip {module, step}: an administrator puts off a module's setup
+// step (the "Dismiss" of its notice on Home, the command setup.skip). Only a step the module in
+// use declares, at the version it declares.
+func (s *Server) handleModuleStepSkip(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		Module string `json:"module"`
+		Step   string `json:"step"`
+	}
+	if err := json.NewDecoder(io.LimitReader(r.Body, 1<<10)).Decode(&in); err != nil || in.Module == "" || in.Step == "" {
+		writeErr(w, 400, "a step is {module, step}")
+		return
+	}
+	version, found := 0, false
+	if s.Modules != nil {
+		if integ := s.Modules.Integration(in.Module); integ != nil && integ.Web != nil {
+			for _, st := range integ.Web.Setup {
+				if st.ID == in.Step {
+					version, found = st.Version, true
+				}
+			}
+		}
+	}
+	if !found {
+		writeErr(w, 404, "no module in use has that setup step")
+		return
+	}
+	ctx := r.Context()
+	if err := s.recordModuleStep(ctx, in.Module, in.Step, version); err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	s.writeAudit(ctx, userFrom(r), in.Module+" setup-skipped", in.Module, "setup-skipped", "", in.Step)
+	w.WriteHeader(204)
+}
+
+// recordModuleStep remembers a module's step as done (or skipped) at a version.
+func (s *Server) recordModuleStep(ctx context.Context, module, id string, version int) error {
+	done := slices.DeleteFunc(s.moduleStepsDone(ctx), func(k string) bool { return strings.HasPrefix(k, module+"."+id+"@") })
+	return s.DB.SetSetting(ctx, settingModuleSetupDone, strings.Join(append(done, moduleStepKey(module, id, version)), ","))
+}
+
 // withModuleSetup puts a "Finish setting up" notice for each module step left at the top of
 // Home, for an administrator.
 func (s *Server) withModuleSetup(ctx context.Context, page sdui.Page, admin bool) sdui.Page {
@@ -160,7 +198,8 @@ func withSetupNotices(page sdui.Page, steps []pendingModuleStep) sdui.Page {
 			text += " You can also do it later, in " + st.Later + "."
 		}
 		notices = append(notices, sdui.Section{ID: "module-setup-" + st.Module + "-" + st.ID, Component: "Notice",
-			Props: map[string]any{"tone": "info", "title": "Finish setting up " + st.Name, "text": text, "buttonLabel": "Set up", "to": "/page/" + st.Page}})
+			Props: map[string]any{"tone": "info", "title": "Finish setting up " + st.Name, "text": text, "buttonLabel": "Set up", "to": "/page/" + st.Page,
+				"dismissLabel": "Dismiss", "dismissOp": "setup.skip", "dismissParams": map[string]any{"module": st.Module, "step": st.ID}}})
 	}
 	page.Sections = append(notices, page.Sections...)
 	return page

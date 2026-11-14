@@ -653,6 +653,17 @@ function DetailHeaderView({ view }: { view: View }) {
   const buttons = buttonsOf(p)
   const primary = buttons.find((b) => b.primary)
   const overview = view.text?.overview
+  const button = (b: (typeof buttons)[number]) => {
+    const step = plan(b.action, { externalLinks: page.layout.externalLinks })
+    if (step.do === 'nothing') return null
+    const icon = b.glyph ? <i className={'sdui-glyph g-' + b.glyph} aria-hidden="true">{b.glyph.toUpperCase()}</i> : sduiIcon(b.icon)
+    // The main action is a filled button; the others, as on every app, an icon with its name under it.
+    const cls = b.primary ? 'btn primary' : 'sdui-action'
+    const body = b.primary ? <>{icon} {b.label}</> : <><span className="sdui-action-icon">{icon}</span><span className="sdui-action-label">{b.label}</span></>
+    const on = !b.primary && b.pressed ? true : undefined
+    if (step.do === 'go' && !page.inert) return <Link key={b.id} className={cls} to={step.to} data-tv-first={b === primary || undefined}>{body}</Link>
+    return <button key={b.id} type="button" className={cls} aria-pressed={on} data-tv-first={b === primary || undefined} onClick={() => !page.inert && page.act(b.action, view)}>{body}</button>
+  }
   return (
     <div className={'sdui-detail layout-' + layout} role="region" aria-label={view.label} style={scopeStyle(view.node)} data-sdui-stop={view.id} data-sdui-focus={view.node.focus ? view.id : undefined} data-sdui-section={view.id}>
       {layout !== 'compact' && (
@@ -674,15 +685,11 @@ function DetailHeaderView({ view }: { view: View }) {
             </div>
           )}
           {view.progress !== undefined && view.progress > 0 && <div className="sdui-detail-progress" role="progressbar" aria-label="Watched" aria-valuemin={0} aria-valuemax={100} aria-valuenow={view.progress}><i style={{ width: view.progress + '%' }} /></div>}
+          {/* The main action, then the rest (Watch later, Mark watched, Download, Share) as icons with their names, in one
+              centred row that scrolls sideways only when it is wider than the screen: the same on every app. */}
           <div className="actions sdui-detail-actions" data-nav-group>
-            {buttons.map((b) => {
-              const step = plan(b.action, { externalLinks: page.layout.externalLinks })
-              if (step.do === 'nothing') return null
-              const cls = 'btn' + (b.primary ? ' primary' : '')
-              const body = <>{b.glyph ? <i className={'sdui-glyph g-' + b.glyph} aria-hidden="true">{b.glyph.toUpperCase()}</i> : sduiIcon(b.icon)} {b.label}</>
-              if (step.do === 'go' && !page.inert) return <Link key={b.id} className={cls} to={step.to} data-tv-first={b === primary || undefined}>{body}</Link>
-              return <button key={b.id} type="button" className={cls} data-tv-first={b === primary || undefined} onClick={() => !page.inert && page.act(b.action, view)}>{body}</button>
-            })}
+            {buttons.filter((b) => b.primary).map(button)}
+            {buttons.some((b) => !b.primary) && <div className="sdui-detail-more">{buttons.filter((b) => !b.primary).map(button)}</div>}
             {!page.inert && <Suspense fallback={null}><DetailExtras place="tools" header={view.node} doc={page.doc} /></Suspense>}
           </div>
           {overview && (
@@ -1087,14 +1094,24 @@ function NoticeView({ view }: { view: View }) {
   const p = view.node.props || {}
   const step = plan(view.node.action, { externalLinks: page.layout.externalLinks })
   const focus = { 'data-sdui-focus': view.node.focus ? view.id : undefined, 'data-tv-first': view.node.focus?.default || undefined }
+  const main = view.text?.button && step.do !== 'nothing' ? (
+    step.do === 'go' && !page.inert ? <Link className="btn sm" to={step.to} {...focus}>{view.text.button}</Link>
+      : step.do === 'open' ? <a className="btn sm" href={safeHref(step.url) || undefined} target="_blank" rel="noopener noreferrer" {...focus}>{view.text.button}</a>
+        : <button type="button" className="btn sm" {...focus} onClick={() => !page.inert && page.act(view.node.action, view)}>{view.text.button}</button>
+  ) : null
+  const dismiss = obj(p, 'dismiss')
+  const dismissing: Action | undefined = dismiss && str(dismiss, 'op') ? { type: 'command', op: str(dismiss, 'op'), params: (obj(dismiss, 'params') || {}) as Record<string, unknown> } : undefined
   return (
     <div className={'ui-notice sdui-notice ' + (TONE[str(p, 'tone')] || 'info')} role={view.role} data-sdui-section={view.id} style={scopeStyle(view.node)}>
       {p.icon ? <span className="sdui-notice-ic" aria-hidden="true">{sduiIcon(p.icon)}</span> : null}
       <div className="ui-notice-text">{view.text?.title && <strong>{view.text.title}</strong>}<span>{view.text?.text}</span></div>
-      {view.text?.button && step.do !== 'nothing' && (
-        step.do === 'go' && !page.inert ? <Link className="btn sm" to={step.to} {...focus}>{view.text.button}</Link>
-          : step.do === 'open' ? <a className="btn sm" href={safeHref(step.url) || undefined} target="_blank" rel="noopener noreferrer" {...focus}>{view.text.button}</a>
-            : <button type="button" className="btn sm" {...focus} onClick={() => !page.inert && page.act(view.node.action, view)}>{view.text.button}</button>
+      {(main || dismissing) && (
+        <div className="sdui-notice-actions">
+          {main}
+          {/* Dismiss: a second, quieter button after the main one (below it on a phone). It runs its command, and the
+              page is asked for again. */}
+          {dismissing && <button type="button" className="btn sm ghost" onClick={() => !page.inert && page.act(dismissing, view)}>{str(dismiss, 'label') || 'Dismiss'}</button>}
+        </div>
       )}
     </div>
   )

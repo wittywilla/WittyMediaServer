@@ -5,9 +5,10 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/wittywilla/wittymediaserver/internal/livetv"
 )
 
 type setsAnswer struct {
@@ -208,74 +209,21 @@ func TestGuideFindsAndPages(t *testing.T) {
 	}
 }
 
-func TestTunerBulkAndBackups(t *testing.T) {
+// WittyTuner's choices reach the guide: a backup of another channel is hidden from it, as is a
+// channel turned off, and a number the owner chose is the one shown.
+func TestGuideFollowsWittyTuner(t *testing.T) {
 	ts := newTestServer(t)
 	_, admin := ts.user(t, "owner", "adult", true, "")
-	_, adult := ts.user(t, "sam", "adult", false, "")
 	bigLineup(t, ts.Server, 10, 1)
-	// The same station twice: one guide id across both tuners.
-	if _, err := ts.DB.Exec(`UPDATE tuner_channels SET epg_id = 'same.test', name = 'Same Station' WHERE id IN (3, 4)`); err != nil {
-		t.Fatal(err)
-	}
-	if w := ts.do(t, "GET", "/api/tuners/duplicates", adult, nil); w.Code != 403 {
-		t.Fatalf("duplicates for an adult: %d", w.Code)
-	}
-	d := decode[dupAnswer](t, ts.do(t, "GET", "/api/tuners/duplicates", admin, nil))
-	if len(d.Groups) != 1 || d.Groups[0].Reason != "same guide id" || len(d.Groups[0].Channels) != 2 {
-		t.Fatalf("duplicates: %+v", d)
-	}
-	// Merging hides the backup from the guide; unmerging brings it back.
-	if w := ts.do(t, "POST", "/api/tuner-channels/bulk", admin, map[string]any{"ids": []int64{4}, "action": "merge", "into": 3}); w.Code != 200 {
-		t.Fatalf("merge: %d %s", w.Code, w.Body.String())
-	}
+	changeTunerChannel(ts.Server, 4, func(c *livetv.Channel) { c.MergedInto = 3 })
 	if g := ts.guide(t, admin, "list=1"); g.Total != 9 || strings.Contains(","+keys(g)+",", ",tun-4,") {
-		t.Fatalf("after merging: %s", keys(g))
+		t.Fatalf("a backup in the guide: %s", keys(g))
 	}
-	if w := ts.do(t, "POST", "/api/tuner-channels/bulk", admin, map[string]any{"ids": []int64{3}, "action": "merge", "into": 4}); w.Code != 400 {
-		t.Fatalf("merging into a backup: %d", w.Code)
-	}
-	if w := ts.do(t, "POST", "/api/tuner-channels/bulk", admin, map[string]any{"ids": []int64{4}, "action": "unmerge"}); w.Code != 200 {
-		t.Fatalf("unmerge: %d", w.Code)
-	}
-	// Renumbering from 500 in the order given; switching some off.
-	if w := ts.do(t, "POST", "/api/tuner-channels/bulk", admin, map[string]any{"ids": []int64{9, 1}, "action": "renumber", "start": "500"}); w.Code != 200 {
-		t.Fatalf("renumber: %d", w.Code)
-	}
-	if w := ts.do(t, "POST", "/api/tuner-channels/bulk", admin, map[string]any{"ids": []int64{9}, "action": "renumber", "start": "5.1"}); w.Code != 400 {
-		t.Fatalf("renumber from a decimal: %d", w.Code)
-	}
-	if w := ts.do(t, "POST", "/api/tuner-channels/bulk", admin, map[string]any{"ids": []int64{2}, "action": "disable"}); w.Code != 200 {
-		t.Fatalf("disable: %d", w.Code)
-	}
+	changeTunerChannel(ts.Server, 4, func(c *livetv.Channel) { c.MergedInto = 0 })
+	changeTunerChannel(ts.Server, 2, func(c *livetv.Channel) { c.Enabled = false })
+	changeTunerChannel(ts.Server, 9, func(c *livetv.Channel) { c.Number = "500" })
 	g := ts.guide(t, admin, "list=1")
-	last := g.Channels[len(g.Channels)-2:]
-	if g.Total != 9 || last[0].Key != "tun-9" || last[0].Number != "500" || last[1].Key != "tun-1" || last[1].Number != "501" {
-		t.Fatalf("after renumbering: %s", keys(g))
+	if g.Total != 9 || strings.Contains(","+keys(g)+",", ",tun-2,") || g.Channels[len(g.Channels)-1].Key != "tun-9" || g.Channels[len(g.Channels)-1].Number != "500" {
+		t.Fatalf("after WittyTuner's changes: %s", keys(g))
 	}
-	if w := ts.do(t, "POST", "/api/tuner-channels/bulk", admin, map[string]any{"ids": []int64{1}, "action": "explode"}); w.Code != 400 {
-		t.Fatalf("unknown action: %d", w.Code)
-	}
-	if w := ts.do(t, "POST", "/api/tuner-channels/bulk", adult, map[string]any{"ids": []int64{1}, "action": "disable"}); w.Code != 403 {
-		t.Fatalf("bulk for an adult: %d", w.Code)
-	}
-	// A backup whose main channel has gone comes back by itself.
-	if w := ts.do(t, "POST", "/api/tuner-channels/bulk", admin, map[string]any{"ids": []int64{4}, "action": "merge", "into": 3}); w.Code != 200 {
-		t.Fatal(w.Code)
-	}
-	if w := ts.do(t, "DELETE", "/api/tuners/"+fmt.Sprint(1+3%2), admin, nil); w.Code != 200 {
-		t.Fatalf("delete tuner: %d %s", w.Code, w.Body.String())
-	}
-	if g := ts.guide(t, admin, "list=1"); !strings.Contains(","+keys(g)+",", ",tun-4,") {
-		t.Fatalf("the backup stayed hidden: %s", keys(g))
-	}
-}
-
-type dupAnswer struct {
-	Groups []struct {
-		Reason    string `json:"reason"`
-		Suggested int64  `json:"suggested"`
-		Channels  []struct {
-			ID int64 `json:"id"`
-		} `json:"channels"`
-	} `json:"groups"`
 }

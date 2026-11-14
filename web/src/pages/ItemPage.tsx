@@ -4,11 +4,10 @@ import { lazy, Suspense, useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api, backdropUrl, codecName, fitWidth, sized, dvdStartMode, episodeLabel, fmtRuntime, fmtTime, insertFxOn, isDisc, langName, posterUrl, type Item, discName, isBluray } from '../api'
 import EditDetails, { type EditSection } from '../components/edit/EditDetails'
-import { DiscSettingsDialog } from '../components/edit/DiscDialogs'
+import { useModuleItemMenu } from '../moduleRegistry'
 import RefreshDialog from '../components/edit/RefreshDialog'
 import TitleArtPicker, { PosterMenu, appliedOnPage } from '../components/edit/TitleArtPicker'
 import TitleExtras, { TitleLogo } from '../components/edit/TitleExtras'
-import { BookDetails } from './Books'
 import { SaveButton } from '../components/SaveToCollection'
 
 import { useRemoteAllowed } from '../remote/allowed'
@@ -22,7 +21,7 @@ import { BackLink, EmptyState, LoadError, PageSkeleton, artHue, isGeneratedArt }
 import { IconDevices, IconDisc, IconEdit, IconFilm, IconImage, IconInfo, IconMenu, IconMore, IconNext, IconPlay, IconRefresh, IconRight, IconSettings, IconStar, IconUsers } from '../icons'
 import { IconButton, RowSheet, Rows, SheetRow } from '../ui'
 import { useMedia } from '../shell/useNav'
-import { toast, useApp } from '../state'
+import { useApp } from '../state'
 import LegalNote from '../components/LegalNote'
 
 export default function ItemPage() {
@@ -36,11 +35,12 @@ export default function ItemPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [art, setArt] = useState(false)
   const [canvas, setCanvas] = useState(false)
-  const [discSettings, setDiscSettings] = useState(false)
   const [broken, setBroken] = useState(false)
   const [more, setMore] = useState(false)
   const [sendTo, setSendTo] = useState<'device' | 'party' | null>(null)
   const may = useRemoteAllowed()
+  // A disc's own tools (Disc settings, names of its titles) are WittyDisc's, with its player.
+  const discMenu = useModuleItemMenu(it && isDisc(it) ? 'disc' : null, it, !!user?.isAdmin)
   // A phone has one row: the main action, Save, and "⋯" for the rest.
   const phone = useMedia('(max-width: 760px)')
   const load = () => { setBroken(false); return api.get<Item>(`/items/${id}`).then(setIt).catch((e) => { if (e.status >= 500) setBroken(true); else setErr(e.message) }) }
@@ -50,7 +50,8 @@ export default function ItemPage() {
   if (broken) return <LoadError what="This title" onRetry={load} />
   if (err) return <EmptyState icon={<IconInfo />} title="This title isn’t available" text="It may have been removed, or this profile may not be allowed to see it." action={<Link className="btn" to="/">Back to home</Link>} />
   if (!it) return <PageSkeleton shape="item" />
-  if (it.kind === 'book') return <BookDetails it={it} />
+  // A book's page is WittyInk's server-driven one; this is only drawn when there is none: read it.
+  if (it.kind === 'book') return <Navigate replace to={`/read/${it.id}`} />
   // Pictures and creator videos have their own places.
   const libType = libraries.find((l) => l.id === it.libraryId)?.type
   if (libType === 'photos') return <Navigate replace to={`/library/${it.libraryId}?view=${it.id}`} />
@@ -77,7 +78,7 @@ export default function ItemPage() {
       : { key: 'title', icon: <IconPlay />, label: it.disc?.content === 'tv' ? 'Play from the start' : 'Play movie', disabled: !playable, run: () => nav(`/play/${it.id}?mode=title&start=0`) },
     ...(it.disc?.hasMenus ? [{ key: 'menu', icon: <IconMenu />, label: 'Main menu', disabled: !playable, run: () => nav(`/play/${it.id}?mode=menu`) }] : []),
     { key: 'device', icon: <IconDevices />, label: 'Play on…', disabled: !playable, run: () => setSendTo('device') },
-    ...(user?.isAdmin ? [{ key: 'disc', icon: <IconSettings />, label: 'Disc settings', run: () => setDiscSettings(true) }] : []),
+    ...discMenu.entries.map((e) => ({ key: e.key, icon: e.icon === 'edit' ? <IconEdit /> : <IconSettings />, label: e.label, run: () => discMenu.choose(e) })),
   ] : [
     ...(resume ? [{ key: 'start', icon: <IconPlay />, label: 'Play from start', run: () => nav(`/play/${it.id}?start=0`) }] : []),
     ...(it.nextId ? [{ key: 'next', icon: <IconNext />, label: 'Next episode', run: () => nav(`/item/${it.nextId}`) }] : []),
@@ -154,7 +155,7 @@ export default function ItemPage() {
               <button className="btn" aria-haspopup="dialog" disabled={!playable} onClick={() => setSendTo('device')}><IconDevices /> Play on…</button>
               {user?.isAdmin && (
                 <div className="admin-tools" role="group" aria-label="Manage">
-                  <button className="btn ghost square" onClick={() => setDiscSettings(true)} title="Disc settings" aria-label="Disc settings"><IconSettings /></button>
+                  {discMenu.entries.map((e) => <button key={e.key} className="btn ghost square" aria-haspopup="dialog" onClick={() => discMenu.choose(e)} title={e.label} aria-label={e.label}>{e.icon === 'edit' ? <IconEdit /> : <IconSettings />}</button>)}
                   <button className="btn ghost square" aria-haspopup="dialog" onClick={() => setArt(true)} title="Artwork" aria-label="Artwork"><IconImage /></button>
                   <button className="btn ghost square" aria-haspopup="dialog" onClick={() => setCanvas(true)} title="Canvas: the looping video behind this title" aria-label="Canvas"><IconFilm /></button>
                   <button className="btn ghost square" onClick={() => setEdit('match')} title="Edit details" aria-label="Edit details"><IconEdit /></button>
@@ -224,7 +225,7 @@ export default function ItemPage() {
       {art && <TitleArtPicker target="item" id={it.id} onClose={() => setArt(false)} onApplied={appliedOnPage(load)} />}
       {canvas && <Suspense fallback={null}><CanvasManager itemId={it.id} title={it.title} kind={disc ? 'disc' : 'video'} runtimeSec={it.runtimeSec} onClose={() => setCanvas(false)} /></Suspense>}
       {refreshing && <RefreshDialog target="item" id={it.id} onClose={() => setRefreshing(false)} onChanged={load} />}
-      {discSettings && <DiscSettingsDialog item={it} onClose={() => setDiscSettings(false)} onSaved={(x) => { setIt(x); setDiscSettings(false); toast('Disc settings saved') }} />}
+      {discMenu.dialog(() => { api.get<Item>(`/items/${it.id}`).then(setIt).catch(() => {}) })}
     </>
   )
 }

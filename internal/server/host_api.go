@@ -98,6 +98,15 @@ func (s *Server) HostAPI() http.Handler {
 	h("GET "+b+"/audit", s.hostAuditLog)
 	h("GET "+b+"/setup", s.hostSetupState)
 	h("POST "+b+"/setup/{id}", s.hostSetupDone)
+	h("GET "+b+"/discs/libbluray", s.hostLibbluray)
+	h("GET "+b+"/discs/{id}", s.hostDiscGet)
+	h("POST "+b+"/discs/{id}/rank", s.hostDiscRank)
+	h("PUT "+b+"/discs/{id}/choice", s.hostDiscChoose)
+	h("GET "+b+"/cds/{id}/matches", s.hostCDMatches)
+	h("PUT "+b+"/cds/{id}/release", s.hostCDRelease)
+	h("POST "+b+"/tv/guide/{source}", s.hostTVGuide)
+	h("DELETE "+b+"/tv/guide/{source}", s.hostTVGuideDrop)
+	h("GET "+b+"/tv/guide/ids", s.hostTVGuideIDs)
 	return mux
 }
 
@@ -140,6 +149,8 @@ func (s *Server) hostHello(w http.ResponseWriter, r *http.Request, module string
 		"gamingCustomCores": s.Cfg != nil && s.Cfg.GamingCustomCores && os.Getenv("WMS_GAMING_NO_CUSTOM_CORES") != "1",
 		// The built-in test console is offered: a developer's server, or WMS_GAMING_TESTCORE=1.
 		"gamingTestCore": s.testingGames(),
+		// WittyTuner's custom command driver: the server was started with WMS_TUNER_COMMANDS=1.
+		"tunerCommands": os.Getenv("WMS_TUNER_COMMANDS") == "1",
 	}
 	writeJSON(w, 200, host.Hello{Module: module, Server: s.Version, Offers: modmgr.Offers(), Machine: machine})
 }
@@ -299,10 +310,16 @@ func (s *Server) hostLibraries(w http.ResponseWriter, r *http.Request, module st
 		writeJSON(w, 500, map[string]string{"error": err.Error()})
 		return
 	}
-	out := []host.Library{}
+	// foreignNfo: whether .nfo files other programs wrote beside the media are to be read (a
+	// module scanning the library reads only this server's own otherwise).
+	type library struct {
+		host.Library
+		ForeignNFO bool `json:"foreignNfo"`
+	}
+	out := []library{}
 	for _, l := range libs {
 		if s.servesKind(module, l.Type) {
-			out = append(out, host.Library{ID: l.ID, Name: l.Name, Kind: l.Type, Console: l.Console, Paths: l.Paths})
+			out = append(out, library{host.Library{ID: l.ID, Name: l.Name, Kind: l.Type, Console: l.Console, Paths: l.Paths}, l.ForeignNFO})
 		}
 	}
 	writeJSON(w, 200, map[string]any{"libraries": out})

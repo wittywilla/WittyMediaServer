@@ -825,7 +825,7 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 		}
 	}
 	nfoSource := SourceNFO
-	for _, nfo := range filmNFOs(c.path, dir, base) {
+	for _, nfo := range usableNFOs(lib, filmNFOs(c.path, dir, base)) {
 		if applyNFO(it, nfo) {
 			if nfoIsOurs(nfo) {
 				nfoSource = SourceSaved
@@ -835,7 +835,7 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 	}
 	if _, read := it.credits[CreditsNFO]; !read || len(it.credits[CreditsNFO]) == 0 {
 		// No NFO (any more) names nobody; one that names nobody may sit beside one that does.
-		it.credits.set(CreditsNFO, filmNFOPeople(filmNFOs(c.path, dir, base)))
+		it.credits.set(CreditsNFO, filmNFOPeople(usableNFOs(lib, filmNFOs(c.path, dir, base))))
 	}
 	for _, sc := range []string{c.path + ".metadata.json", filepath.Join(dir, base+".metadata.json"), filepath.Join(dir, "metadata.json")} {
 		if applySidecarJSON(it, sc) {

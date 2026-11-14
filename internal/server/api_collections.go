@@ -18,6 +18,9 @@ import (
 // recommendations. See docs/COLLECTIONS.md.
 
 // GET /api/collections
+// maxCollectionBatch is the most titles one request adds to or takes from a collection.
+const maxCollectionBatch = 2000
+
 func (s *Server) handleCollections(w http.ResponseWriter, r *http.Request) {
 	c, err := s.Store.Collections(r.Context(), userFrom(r).ID, s.access(r))
 	if err != nil {
@@ -193,7 +196,7 @@ func (b *collectionItemsBody) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
 	}
-	if len(raw.Items)+len(raw.Shows) > maxAlbumBatch {
+	if len(raw.Items)+len(raw.Shows) > maxCollectionBatch {
 		return errors.New("too many")
 	}
 	b.Items, b.Shows = nil, nil
@@ -235,7 +238,7 @@ func parseTitleRef(m json.RawMessage) (id int64, show bool, err error) {
 
 func (b *collectionItemsBody) valid() bool {
 	n := len(b.Items) + len(b.Shows)
-	return n > 0 && n <= maxAlbumBatch
+	return n > 0 && n <= maxCollectionBatch
 }
 
 // POST /api/collections/{id}/items {items, shows}

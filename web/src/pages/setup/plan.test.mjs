@@ -59,7 +59,13 @@ test('streaming lists are asked only where movies or shows can be made', () => {
 
 // Settings sections a module's step points to: the module draws them (its integration.json settings claim), so
 // they aren't on the settings page here. Each with its label there.
-const MODULE_PAGES = { 'game-metadata': { module: 'wittyplay', label: 'Game metadata' } }
+// A module's own section of Settings (web.settings in its integration.json) isn't one of the app's
+// routes: Game metadata is WittyPlay's, and DVDs and Blu-rays WittyDisc's, which WittyDVD and
+// WittyBluray bring.
+const MODULE_PAGES = {
+  'game-metadata': { module: 'wittyplay', label: 'Game metadata' },
+  discs: { module: 'wittydvd', label: 'DVDs and Blu-rays' },
+}
 
 test('every step that asks something says where to change it later, and that page exists', () => {
   const routes = readFileSync(new URL('../SettingsPage.tsx', import.meta.url), 'utf8')

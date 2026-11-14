@@ -97,6 +97,9 @@ type StoreItem struct {
 	StatusNote    string `json:"statusNote,omitempty"`
 	// The SDUI the offered version adds to every app, as the catalogue sums it up.
 	UI *StoreUI `json:"ui,omitempty"`
+	// What the offered version adds to this server (module API 5): its routes, screens,
+	// settings and data, as the catalogue sums up its integration.json.
+	Integration *StoreIntegration `json:"integration,omitempty"`
 	// The override the version in use was installed with, when it was.
 	Override *OverrideInfo `json:"override,omitempty"`
 
@@ -250,8 +253,7 @@ func (s *Stores) fillListing(it *StoreItem, cat *wittymodule.Catalog, mod *witty
 		it.Size = f.Size
 	}
 	it.ModuleKind = v.Delivery
-	x := extraOf(cat, mod.ID, v.Version)
-	it.ReleaseStatus, it.StatusNote, it.UI = x.Status, x.StatusNote, x.UI
+	it.ReleaseStatus, it.StatusNote, it.UI, it.Integration = catalogExtras(v)
 }
 
 // finishItem fills in what comes from the module's state on this server.

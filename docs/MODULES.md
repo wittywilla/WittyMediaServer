@@ -282,7 +282,7 @@ The manifest's `permissions` say what the sandbox leaves open, and the server ha
 | `network` | Sockets, as a tuner or a game streamed to a browser needs them | WittyTuner, WittyPlay, WittyCouch, WittyRigs |
 | `programs` | Starting FFmpeg and its own programs | WittyTuner, WittyPlay, WittyCouch, WittyRigs, WittyBluray |
 | `devices` | Capture cards, tuners and graphics on this machine | WittyTuner, WittyPlay |
-| `data` | Writing in a folder of its own, given in `WITTYMODULE_DATA`, and those in `WITTYMODULE_WRITE` | WittyBluray, WittyPlay, WittyCouch, WittyRigs |
+| `data` | Writing in a folder of its own, given in `WITTYMODULE_DATA`, and those in `WITTYMODULE_WRITE` | WittyBluray, WittyPlay, WittyCouch, WittyRigs, WittyTuner |
 
 A permission a server doesn't know means the version can't run there, and it's shown with that reason.
 
@@ -604,7 +604,7 @@ A server refuses some versions on a judgement rather than an impossibility, and 
 
 **From a file.** `POST /api/module-uploads` takes the archive and, when there are any, its checksum list, signature and the publisher's key. It is unpacked under the usual limits and checked as a download is, and every file is held to a signed list when there is one. An unsigned version is hashed at install and signed with the server's own key (`<data>/modules/.local-key`, trusted only for versions an override names), so a file changed afterwards is refused like any other. A module this server doesn't know is kept across restarts as a custom module from its saved state.
 
-**A store** shows a version's `status`, `statusNote` and a summary of its SDUI (`ui`) from the catalogue, which `wittymodule catalog-add` writes, read from the same signed bytes as the rest; they only describe it.
+**A store** shows a version's `status`, `statusNote`, a summary of its SDUI (`ui`) and, from module API 5, a summary of its `integration.json` (`integration`: `routes`, `screens`, `settings`, `data`, `feature`) from the catalogue, which `wittymodule catalog-add` writes, read and checked by `wittymodule.ParseCatalog` with the rest of the signed bytes; they only describe it. Once a version is installed, the module's `integrationAdds` sums up its own `integration.json`, which says more (`routeKinds`, `setup`, `libraries`). The module page shows both as **What this adds**.
 
 ## How the apps use modules
 

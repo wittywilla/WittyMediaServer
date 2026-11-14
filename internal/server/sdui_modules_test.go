@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
+	"github.com/wittywilla/wittymediaserver/internal/sduistore"
 	"github.com/wittywilla/wittymediaserver/pkg/sdui"
 )
 
@@ -221,5 +222,36 @@ func TestModuleCommandKeepsItsQuestion(t *testing.T) {
 	got := rv.cleanModuleAction("wittyplay", &sdui.Action{Type: sdui.ActCommand, Op: "wittyplay.memory.delete", Item: "7", Confirm: "Delete this memory?", Params: map[string]any{"name": "a.png"}})
 	if got == nil || got.Confirm != "Delete this memory?" {
 		t.Fatalf("the question: %+v", got)
+	}
+}
+
+// A module's page of a kind, or for a kind of library, comes before the built-in one: the books
+// pages are WittyInk's while it's in use, and the built-in books and library-books pages only
+// stand when it isn't.
+func TestStockPagesDeferToAModulesOwn(t *testing.T) {
+	cfg := &sduistore.Config{}
+	pick := func(set *sdui.ModuleSet, kind, libraryKind string) string {
+		p, _ := sdui.SelectPage(effectivePages(cfg, set), kind, 4, libraryKind, "")
+		return p.ID
+	}
+	if got := pick(nil, "library", "books"); got != "library-books" {
+		t.Errorf("without the module, a books library: %s", got)
+	}
+	if got := pick(nil, "books", ""); got != "books" {
+		t.Errorf("without the module, Books: %s", got)
+	}
+	ink := sdui.NewModuleSet([]sdui.ModuleUI{{Module: "wittyink", Pages: []sdui.Page{
+		{ID: "wittyink-library", Kind: "library", Title: "{library}", Match: &sdui.Match{LibraryKind: "books"}},
+		{ID: "wittyink-books", Kind: "books", Title: "Books"},
+		{ID: "wittyink-book", Kind: "detail", Title: "{title}", Match: &sdui.Match{MediaKind: "book"}},
+	}}})
+	if got := pick(ink, "library", "books"); got != "wittyink-library" {
+		t.Errorf("with the module, a books library: %s", got)
+	}
+	if got := pick(ink, "books", ""); got != "wittyink-books" {
+		t.Errorf("with the module, Books: %s", got)
+	}
+	if p, _ := sdui.SelectPage(effectivePages(cfg, ink), "detail", 4, "books", "book"); p.ID != "wittyink-book" {
+		t.Errorf("with the module, a book: %s", p.ID)
 	}
 }

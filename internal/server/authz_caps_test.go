@@ -78,14 +78,13 @@ func TestUploadsAddUpToALimit(t *testing.T) {
 	}
 }
 
-func TestCommentsCollectionsAndAlbumsPerAccount(t *testing.T) {
-	oc, oa, om := maxCommentsPerAccount, maxCollectionsPerAccount, maxAlbumsPerAccount
-	maxCommentsPerAccount, maxCollectionsPerAccount, maxAlbumsPerAccount = 2, 2, 2
-	defer func() { maxCommentsPerAccount, maxCollectionsPerAccount, maxAlbumsPerAccount = oc, oa, om }()
+func TestCommentsAndCollectionsPerAccount(t *testing.T) {
+	oc, oa := maxCommentsPerAccount, maxCollectionsPerAccount
+	maxCommentsPerAccount, maxCollectionsPerAccount = 2, 2
+	defer func() { maxCommentsPerAccount, maxCollectionsPerAccount = oc, oa }()
 	ts := newTestServer(t)
 	root := t.TempDir()
 	movies := ts.library(t, "movies", root)
-	photos := ts.library(t, "photos", root)
 	it := ts.item(t, &library.Item{LibraryID: movies, Kind: "video", Path: filepath.Join(root, "a.mkv"), Title: "A"})
 	_, admin := ts.user(t, "boss", "adult", true, "")
 	_, adult := ts.user(t, "bob", "adult", false, "")
@@ -95,7 +94,6 @@ func TestCommentsCollectionsAndAlbumsPerAccount(t *testing.T) {
 	}{
 		{"comment", fmt.Sprintf("/api/items/%d/comments", it.ID), map[string]any{"body": "hello"}},
 		{"collection", "/api/collections", map[string]any{"name": "Mine"}},
-		{"album", "/api/photos/albums", map[string]any{"libraryId": photos, "name": "Mine"}},
 	} {
 		for i := range 2 {
 			if w := ts.do(t, "POST", c.path, adult, c.body); w.Code >= 300 {

@@ -2,7 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { api, ApiError } from '../../../api'
 import type { ModuleStatus, VersionInfo } from '../../../moduleStore'
-import type { OverrideRecord, UiSummary } from './overrides'
+import type { IntegrationSummary, OverrideRecord, UiSummary } from './overrides'
 
 // What the module store's pages ask the server. Everything a page shows about a module comes
 // from here, including its pictures: a page never fetches from an address in a catalogue, and
@@ -21,8 +21,9 @@ export type StoreItem = {
   libraries?: string[]; requires?: string[]; needs?: string[]; core?: boolean; updates?: string; stays?: string
   platforms?: string[]; delivery?: string; version?: string; released?: string; size?: number; license?: string; permissions?: string[]; changelog?: string
   minServer?: string; maxServer?: string; fit: Fit; status?: ModuleStatus; failure?: Failure
-  // What sort of module it is, how finished its release is, what its SDUI adds, and its override.
-  moduleKind?: string; releaseStatus?: string; statusNote?: string; ui?: UiSummary; override?: OverrideRecord
+  // What sort of module it is, how finished its release is, what its SDUI and its integration.json
+  // add, and its override.
+  moduleKind?: string; releaseStatus?: string; statusNote?: string; ui?: UiSummary; integration?: IntegrationSummary; override?: OverrideRecord
   // The version offered was made for an older server: fit kind 'older-server', its why the warning.
   olderServer?: boolean; madeFor?: string
 }

@@ -25,7 +25,8 @@ export const ROUTES: RouteRule[] = [
   { route: '/photos', page: 'photos' },
   { route: '/books', page: 'books' },
   { route: '/games', page: 'games' },
-  { route: '/page/{id}', page: '{id}' },
+  // A custom page may be opened about something: a title (item), a name, with what it is of (catalogue: Params).
+  { route: '/page/{id}', page: '{id}', params: { item: '?item', name: '?name', of: '?of' } },
   { route: '/settings', native: 'settings' },
   { route: '/settings/{section}', native: 'settings' },
   { route: '/tv/guide', native: 'guide' },

@@ -60,7 +60,6 @@ const CreatorPage = lazy(() => import('./pages/creators/ChannelsLibrary').then((
 const LibraryPage = lazy(() => import('./pages/LibraryPage'))
 const ItemPage = lazy(() => import('./pages/ItemPage'))
 const ShowPage = lazy(() => import('./pages/ShowPage'))
-const CdPlayer = lazy(() => import('./player/CdPlayer'))
 const AlbumPage = lazy(() => import('./pages/AudioLibrary').then((m) => ({ default: m.AlbumPage })))
 const ArtistPage = lazy(() => import('./pages/music/ArtistPage'))
 const ReaderPage = lazy(() => import('./pages/Reader'))
@@ -73,7 +72,6 @@ const GuidePage = lazy(() => import('./pages/tv/GuidePage'))
 const RecordingsPage = lazy(() => import('./pages/tv/RecordingsPage'))
 const SetsPage = lazy(() => import('./pages/tv/SetsPage'))
 const ChannelsPage = lazy(() => import('./pages/tv/ChannelsPage'))
-const EncryptedHelp = lazy(() => import('./pages/tv/EncryptedHelp'))
 const TvPlayer = lazy(() => import('./pages/tv/TvPlayer'))
 // The TV section's one stream, shared by the guide's preview and the watch view.
 const TvHost = lazy(() => import('./pages/tv/TvHost'))
@@ -242,7 +240,6 @@ export function PageRoutes() {
       <Route path="/album/:lib" element={<SduiRoute fallback={<AlbumPage />} loading={<RouteSkeleton />} />} />
       <Route path="/artist/:lib" element={<Suspense fallback={<Spinner />}><ArtistPage /></Suspense>} />
       <Route path="/radio/:id" element={<Suspense fallback={<Spinner />}><RadioStationPage /></Suspense>} />
-      <Route path="/cd/:id" element={<CdPlayer />} />
       <Route path="/collections" element={<SduiRoute fallback={<NotFound />} />} />
       <Route path="/collections/:id" element={<SduiRoute fallback={<NotFound />} />} />
       <Route path="/person/:id" element={<SduiRoute fallback={<NotFound />} loading={<RouteSkeleton />} />} />
@@ -267,7 +264,6 @@ export function PageRoutes() {
       <Route path="/tv/recordings" element={<Suspense fallback={tvFallback}><RecordingsPage /></Suspense>} />
       <Route path="/tv/channels/*" element={<Suspense fallback={tvFallback}><ChannelsPage /></Suspense>} />
       <Route path="/tv/sets/*" element={<Suspense fallback={tvFallback}><SetsPage /></Suspense>} />
-      <Route path="/tv/encrypted" element={<Suspense fallback={tvFallback}><EncryptedHelp /></Suspense>} />
       <Route path="/settings/*" element={<SettingsPage />} />
       <Route path="/m/:module/:page" element={<Suspense fallback={<Spinner />}><ModulePage /></Suspense>} />
       <Route path="/help" element={<Suspense fallback={<Spinner />}><HelpPage /></Suspense>} />

@@ -29,6 +29,14 @@ export type OverrideRecord = {
 
 // What a module's SDUI adds to the app: from the catalogue (`ui`) or the installed copy (`uiAdds`).
 export type UiSummary = { pages?: { id: string; title?: string }[]; navigation?: string[]; settings?: boolean; sources?: number; inserts?: number }
+// What a version adds to the server (module API 5, its integration.json): from the catalogue
+// (`integration`, counts only) or the installed copy (`integrationAdds`, with who may call its
+// routes, its setup steps and the libraries whose pages it draws).
+export type RouteKinds = { user?: number; admin?: number; ticket?: number; items?: number; streams?: number; plays?: number }
+export type IntegrationSummary = {
+  routes?: number; routeKinds?: RouteKinds; screens?: string[]; settings?: string[]; setup?: string[]
+  data?: boolean; feature?: string; libraries?: string[]
+}
 
 // A release downloaded and checked, held until someone accepts what it needs.
 export type Pending = { version: string; needsOverride: NeedsOverride }
@@ -213,6 +221,55 @@ export function uiLines(ui?: UiSummary | null): UiLines | null {
   const navigation = (ui.navigation || []).map((l) => String(l).trim()).filter(Boolean)
   const settings = !!ui.settings
   return { pages, navigation, settings, empty: !pages.length && !navigation.length && !settings }
+}
+
+export type AddsLine = { label: string; text: string }
+const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
+const list = (xs?: string[]) => (xs || []).map((x) => String(x).trim()).filter(Boolean)
+
+// addsLines says in plain words what a version adds: to every app (its SDUI) and to this server
+// (its integration.json). Empty when neither says anything, which claims nothing either way.
+export function addsLines(ui?: UiSummary | null, integ?: IntegrationSummary | null, o: { id?: string; libraries?: string[] } = {}): AddsLine[] {
+  const out: AddsLine[] = []
+  const l = uiLines(ui)
+  if (l && l.pages.length) {
+    // A title such as "{title}" is filled in per item: those pages are counted, not named.
+    const named = l.pages.filter((t) => !/\{[^}]*\}/.test(t))
+    const each = l.pages.length - named.length
+    const text = [named.join(', '), each ? `${named.length ? 'and ' : ''}${count(each, 'page', 'pages')} for one item each` : ''].filter(Boolean).join(', ')
+    out.push({ label: `${l.pages.length === 1 ? 'A page' : `${l.pages.length} pages`} in every app, on TV too`, text })
+  }
+  if (l && l.navigation.length) out.push({ label: 'In the menu', text: l.navigation.join(', ') })
+  if (!integ) {
+    if (l && !l.empty) out.push({ label: 'Settings', text: l.settings ? 'its own page in Settings' : 'none of its own' })
+    return out
+  }
+  const screens = list(integ.screens).length
+  if (screens) out.push({ label: 'In the web app', text: `${count(screens, 'screen', 'screens')} of its own` })
+  const settings = list(integ.settings)
+  if (settings.length) out.push({ label: 'In Settings', text: settings.join(', ') })
+  else if (l && !l.empty) out.push({ label: 'Settings', text: l.settings ? 'its own page in Settings' : 'none of its own' })
+  const setup = list(integ.setup)
+  if (setup.length) out.push({ label: 'When setting up the server', text: `${count(setup.length, 'step', 'steps')}: ${setup.join(', ')}` })
+  const routes = Math.max(0, integ.routes || 0)
+  if (routes) {
+    const k = integ.routeKinds || {}
+    const parts = [
+      k.admin ? `${k.admin} for administrators only` : '',
+      k.ticket ? `${k.ticket} opened by a link, without signing in` : '',
+      k.items ? `${k.items} about one item, checked against what the profile may see` : '',
+      k.streams ? `${k.streams} that ${k.streams === 1 ? 'streams' : 'stream'}` : '',
+      k.plays ? `${k.plays} that ${k.plays === 1 ? 'counts' : 'count'} towards screen time` : '',
+    ].filter(Boolean)
+    const where = o.id ? ` at /api/v1/modules/${o.id}/` : ''
+    out.push({ label: 'On this server', text: `answers ${count(routes, 'kind of request', 'kinds of request')} of its own${where}${parts.length ? ` (${parts.join('; ')})` : ''}` })
+  }
+  out.push({ label: 'Its data', text: integ.data ? 'a database of its own, kept with this server’s and in its backups' : 'keeps nothing of its own on this server' })
+  const libs = list(integ.libraries).length ? list(integ.libraries) : list(o.libraries)
+  if (libs.length) out.push({ label: 'Libraries', text: libs.join(', ') })
+  const feature = (integ.feature || '').trim()
+  if (feature) out.push({ label: 'Who sees it', text: `it all belongs to the “${feature}” feature: a profile without it doesn’t see or reach any of it` })
+  return out
 }
 
 // ------------------------------------------------------------------ an upload

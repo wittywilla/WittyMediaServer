@@ -602,85 +602,6 @@
         ],
         "type": "object"
       },
-      "CDMatch": {
-        "properties": {
-          "artist": {
-            "type": "string"
-          },
-          "barcode": {
-            "type": "string"
-          },
-          "country": {
-            "type": "string"
-          },
-          "date": {
-            "type": "string"
-          },
-          "disc": {
-            "type": "integer"
-          },
-          "discs": {
-            "type": "integer"
-          },
-          "exact": {
-            "type": "boolean"
-          },
-          "group": {
-            "type": "string"
-          },
-          "hasCover": {
-            "type": "boolean"
-          },
-          "label": {
-            "type": "string"
-          },
-          "releaseId": {
-            "type": "string"
-          },
-          "title": {
-            "type": "string"
-          },
-          "tracks": {
-            "items": {
-              "properties": {
-                "artist": {
-                  "type": "string"
-                },
-                "number": {
-                  "type": "integer"
-                },
-                "title": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "number",
-                "title"
-              ],
-              "type": "object"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "url": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "artist",
-          "disc",
-          "discs",
-          "exact",
-          "hasCover",
-          "releaseId",
-          "title",
-          "tracks",
-          "url"
-        ],
-        "type": "object"
-      },
       "CDView": {
         "properties": {
           "artist": {
@@ -1499,500 +1420,6 @@
         ],
         "type": "object"
       },
-      "DiscAnalysis": {
-        "properties": {
-          "canChoose": {
-            "type": "boolean"
-          },
-          "chosen": {
-            "anyOf": [
-              {
-                "properties": {
-                  "at": {
-                    "type": "integer"
-                  },
-                  "by": {
-                    "type": "integer"
-                  },
-                  "ttn": {
-                    "type": "integer"
-                  },
-                  "was": {
-                    "type": "integer"
-                  }
-                },
-                "required": [
-                  "at",
-                  "by",
-                  "ttn",
-                  "was"
-                ],
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "chosenBy": {
-            "type": "string"
-          },
-          "engineMain": {
-            "type": "integer"
-          },
-          "kind": {
-            "type": "string"
-          },
-          "main": {
-            "type": "integer"
-          },
-          "pending": {
-            "type": "boolean"
-          },
-          "protected": {
-            "type": "boolean"
-          },
-          "rank": {
-            "anyOf": [
-              {
-                "properties": {
-                  "against": {
-                    "items": {
-                      "type": "string"
-                    },
-                    "type": [
-                      "array",
-                      "null"
-                    ]
-                  },
-                  "at": {
-                    "type": "integer"
-                  },
-                  "candidates": {
-                    "items": {
-                      "properties": {
-                        "chapters": {
-                          "type": "integer"
-                        },
-                        "class": {
-                          "type": "string"
-                        },
-                        "decoy": {
-                          "type": "boolean"
-                        },
-                        "durationSec": {
-                          "type": "number"
-                        },
-                        "reasons": {
-                          "items": {
-                            "type": "string"
-                          },
-                          "type": [
-                            "array",
-                            "null"
-                          ]
-                        },
-                        "score": {
-                          "type": "number"
-                        },
-                        "ttn": {
-                          "type": "integer"
-                        }
-                      },
-                      "required": [
-                        "chapters",
-                        "class",
-                        "durationSec",
-                        "score",
-                        "ttn"
-                      ],
-                      "type": "object"
-                    },
-                    "type": [
-                      "array",
-                      "null"
-                    ]
-                  },
-                  "confidence": {
-                    "type": "number"
-                  },
-                  "decoys": {
-                    "type": "integer"
-                  },
-                  "engine": {
-                    "type": "string"
-                  },
-                  "episodes": {
-                    "items": {
-                      "properties": {
-                        "chapter": {
-                          "type": "integer"
-                        },
-                        "durationSec": {
-                          "type": "number"
-                        },
-                        "index": {
-                          "type": "integer"
-                        },
-                        "item": {
-                          "type": "integer"
-                        },
-                        "part": {
-                          "type": "boolean"
-                        },
-                        "startSec": {
-                          "type": "number"
-                        },
-                        "ttn": {
-                          "type": "integer"
-                        }
-                      },
-                      "required": [
-                        "durationSec",
-                        "index",
-                        "startSec",
-                        "ttn"
-                      ],
-                      "type": "object"
-                    },
-                    "type": [
-                      "array",
-                      "null"
-                    ]
-                  },
-                  "feature": {
-                    "anyOf": [
-                      {
-                        "properties": {
-                          "assembled": {
-                            "type": "boolean"
-                          },
-                          "durationSec": {
-                            "type": "number"
-                          },
-                          "segments": {
-                            "items": {
-                              "properties": {
-                                "durationSec": {
-                                  "type": "number"
-                                },
-                                "firstCell": {
-                                  "type": "integer"
-                                },
-                                "firstSector": {
-                                  "type": "integer"
-                                },
-                                "lastCell": {
-                                  "type": "integer"
-                                },
-                                "lastSector": {
-                                  "type": "integer"
-                                },
-                                "pgc": {
-                                  "type": "integer"
-                                },
-                                "startSec": {
-                                  "type": "number"
-                                },
-                                "title": {
-                                  "type": "integer"
-                                },
-                                "vts": {
-                                  "type": "integer"
-                                }
-                              },
-                              "required": [
-                                "durationSec",
-                                "firstCell",
-                                "firstSector",
-                                "lastCell",
-                                "lastSector",
-                                "pgc",
-                                "startSec",
-                                "title",
-                                "vts"
-                              ],
-                              "type": "object"
-                            },
-                            "type": [
-                              "array",
-                              "null"
-                            ]
-                          },
-                          "source": {
-                            "type": "string"
-                          },
-                          "titles": {
-                            "items": {
-                              "type": "integer"
-                            },
-                            "type": [
-                              "array",
-                              "null"
-                            ]
-                          }
-                        },
-                        "required": [
-                          "assembled",
-                          "durationSec",
-                          "source",
-                          "titles"
-                        ],
-                        "type": "object"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "hidden": {
-                    "type": "integer"
-                  },
-                  "issueCount": {
-                    "type": "integer"
-                  },
-                  "issues": {
-                    "items": {
-                      "properties": {
-                        "kind": {
-                          "type": "string"
-                        },
-                        "severity": {
-                          "type": "string"
-                        },
-                        "ttn": {
-                          "type": "integer"
-                        },
-                        "what": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "kind",
-                        "severity",
-                        "ttn",
-                        "what"
-                      ],
-                      "type": "object"
-                    },
-                    "type": [
-                      "array",
-                      "null"
-                    ]
-                  },
-                  "level": {
-                    "type": "string"
-                  },
-                  "main": {
-                    "type": "integer"
-                  },
-                  "paddedSectors": {
-                    "type": "integer"
-                  },
-                  "playAll": {
-                    "type": "integer"
-                  },
-                  "protected": {
-                    "type": "boolean"
-                  },
-                  "readRetries": {
-                    "type": "integer"
-                  },
-                  "reasons": {
-                    "items": {
-                      "type": "string"
-                    },
-                    "type": [
-                      "array",
-                      "null"
-                    ]
-                  },
-                  "repairCount": {
-                    "type": "integer"
-                  },
-                  "repairs": {
-                    "items": {
-                      "type": "string"
-                    },
-                    "type": [
-                      "array",
-                      "null"
-                    ]
-                  },
-                  "runnerUp": {
-                    "type": "integer"
-                  },
-                  "secondOpinion": {
-                    "anyOf": [
-                      {
-                        "properties": {
-                          "agrees": {
-                            "type": "boolean"
-                          },
-                          "differences": {
-                            "items": {
-                              "type": "string"
-                            },
-                            "type": [
-                              "array",
-                              "null"
-                            ]
-                          },
-                          "main": {
-                            "type": "integer"
-                          },
-                          "more": {
-                            "type": "integer"
-                          },
-                          "note": {
-                            "type": "string"
-                          },
-                          "source": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "agrees",
-                          "main",
-                          "source"
-                        ],
-                        "type": "object"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "versions": {
-                    "items": {
-                      "properties": {
-                        "angle": {
-                          "type": "integer"
-                        },
-                        "durationSec": {
-                          "type": "number"
-                        },
-                        "kind": {
-                          "type": "string"
-                        },
-                        "label": {
-                          "type": "string"
-                        },
-                        "main": {
-                          "type": "boolean"
-                        },
-                        "parentalLevels": {
-                          "items": {
-                            "type": "integer"
-                          },
-                          "type": [
-                            "array",
-                            "null"
-                          ]
-                        },
-                        "ttn": {
-                          "type": "integer"
-                        }
-                      },
-                      "required": [
-                        "durationSec",
-                        "kind",
-                        "label",
-                        "ttn"
-                      ],
-                      "type": "object"
-                    },
-                    "type": [
-                      "array",
-                      "null"
-                    ]
-                  },
-                  "warnings": {
-                    "items": {
-                      "type": "string"
-                    },
-                    "type": [
-                      "array",
-                      "null"
-                    ]
-                  },
-                  "why": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "at",
-                  "candidates",
-                  "confidence",
-                  "decoys",
-                  "engine",
-                  "hidden",
-                  "issueCount",
-                  "level",
-                  "main",
-                  "paddedSectors",
-                  "playAll",
-                  "readRetries",
-                  "reasons",
-                  "repairCount",
-                  "runnerUp",
-                  "why"
-                ],
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "rankError": {
-            "type": "string"
-          },
-          "ranked": {
-            "type": "boolean"
-          },
-          "secondOpinion": {
-            "anyOf": [
-              {
-                "properties": {
-                  "available": {
-                    "type": "boolean"
-                  },
-                  "enabled": {
-                    "type": "boolean"
-                  },
-                  "reason": {
-                    "type": "string"
-                  },
-                  "version": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "available",
-                  "enabled"
-                ],
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "required": [
-          "canChoose",
-          "chosen",
-          "engineMain",
-          "kind",
-          "main",
-          "pending",
-          "protected",
-          "rank",
-          "ranked"
-        ],
-        "type": "object"
-      },
       "DiscButton": {
         "properties": {
           "auto": {
@@ -2060,25 +1487,6 @@
           "x2",
           "y1",
           "y2"
-        ],
-        "type": "object"
-      },
-      "DiscChapterView": {
-        "properties": {
-          "label": {
-            "type": "string"
-          },
-          "n": {
-            "type": "integer"
-          },
-          "start": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "label",
-          "n",
-          "start"
         ],
         "type": "object"
       },
@@ -2667,30 +2075,6 @@
         ],
         "type": "object"
       },
-      "DiscLabels": {
-        "properties": {
-          "chapters": {
-            "additionalProperties": {
-              "additionalProperties": {
-                "type": "string"
-              },
-              "type": "object"
-            },
-            "type": "object"
-          },
-          "titles": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "type": "object"
-          }
-        },
-        "required": [
-          "chapters",
-          "titles"
-        ],
-        "type": "object"
-      },
       "DiscMenu": {
         "properties": {
           "actionAtSec": {
@@ -2779,25 +2163,6 @@
           "height",
           "selected",
           "width"
-        ],
-        "type": "object"
-      },
-      "DiscMenuView": {
-        "properties": {
-          "kind": {
-            "type": "string"
-          },
-          "label": {
-            "type": "string"
-          },
-          "vts": {
-            "type": "integer"
-          }
-        },
-        "required": [
-          "kind",
-          "label",
-          "vts"
         ],
         "type": "object"
       },
@@ -2898,63 +2263,6 @@
           "subtitleStream",
           "subtitles",
           "subtitlesUrl",
-          "ttn",
-          "wide"
-        ],
-        "type": "object"
-      },
-      "DiscTitleView": {
-        "properties": {
-          "angles": {
-            "type": "integer"
-          },
-          "audio": {
-            "items": {
-              "type": "string"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "chapters": {
-            "items": {
-              "$ref": "#/components/schemas/DiscChapterView"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "durationSec": {
-            "type": "number"
-          },
-          "label": {
-            "type": "string"
-          },
-          "subtitles": {
-            "items": {
-              "type": "string"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "ttn": {
-            "type": "integer"
-          },
-          "wide": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "angles",
-          "audio",
-          "chapters",
-          "durationSec",
-          "label",
-          "subtitles",
           "ttn",
           "wide"
         ],
@@ -6374,6 +5682,106 @@
           },
           "installed": {
             "type": "boolean"
+          },
+          "integrationAdds": {
+            "anyOf": [
+              {
+                "properties": {
+                  "data": {
+                    "type": "boolean"
+                  },
+                  "feature": {
+                    "type": "string"
+                  },
+                  "libraries": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "routeKinds": {
+                    "anyOf": [
+                      {
+                        "properties": {
+                          "admin": {
+                            "type": "integer"
+                          },
+                          "items": {
+                            "type": "integer"
+                          },
+                          "plays": {
+                            "type": "integer"
+                          },
+                          "streams": {
+                            "type": "integer"
+                          },
+                          "ticket": {
+                            "type": "integer"
+                          },
+                          "user": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "admin",
+                          "items",
+                          "plays",
+                          "streams",
+                          "ticket",
+                          "user"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "routes": {
+                    "type": "integer"
+                  },
+                  "screens": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "settings": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "setup": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "routes",
+                  "screens",
+                  "settings"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "lastFailure": {
             "type": "string"
@@ -15549,121 +14957,6 @@
         ],
         "type": "object"
       },
-      "TunerChannelView": {
-        "properties": {
-          "atsc3": {
-            "type": "boolean"
-          },
-          "audioCodec": {
-            "type": "string"
-          },
-          "backups": {
-            "type": "integer"
-          },
-          "brand": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ChannelBrand"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "callsign": {
-            "type": "string"
-          },
-          "canRecord": {
-            "type": "boolean"
-          },
-          "catchupDays": {
-            "type": "integer"
-          },
-          "enabled": {
-            "type": "boolean"
-          },
-          "encrypted": {
-            "type": "string"
-          },
-          "epgId": {
-            "type": "string"
-          },
-          "epgSet": {
-            "type": "string"
-          },
-          "group": {
-            "type": "string"
-          },
-          "hd": {
-            "type": "boolean"
-          },
-          "health": {
-            "type": "string"
-          },
-          "healthAt": {
-            "type": "integer"
-          },
-          "healthMsg": {
-            "type": "string"
-          },
-          "id": {
-            "type": "integer"
-          },
-          "logoSet": {
-            "type": "string"
-          },
-          "logoUrl": {
-            "type": "string"
-          },
-          "mergedInto": {
-            "type": "integer"
-          },
-          "name": {
-            "type": "string"
-          },
-          "nameSet": {
-            "type": "string"
-          },
-          "noRecord": {
-            "type": "string"
-          },
-          "number": {
-            "type": "string"
-          },
-          "numberSet": {
-            "type": "string"
-          },
-          "program": {
-            "type": "integer"
-          },
-          "radio": {
-            "type": "boolean"
-          },
-          "security": {
-            "type": "string"
-          },
-          "sourceId": {
-            "type": "string"
-          },
-          "tunerId": {
-            "type": "integer"
-          },
-          "videoCodec": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "canRecord",
-          "enabled",
-          "id",
-          "name",
-          "number",
-          "security",
-          "sourceId",
-          "tunerId"
-        ],
-        "type": "object"
-      },
       "UpdateInfo": {
         "properties": {
           "changes": {
@@ -16617,7 +15910,7 @@
           }
         },
         "security": [],
-        "summary": "Secure pairing (v2): start a session to show as a QR code and a rotating 6-digit PIN (TOTP, 30 s). `qr` is `wms://pair?v=1\u0026s=\u003cserverId\u003e\u0026u=\u003cbase url\u003e\u0026c=\u003csessionId\u003e\u0026k=\u003ccheck\u003e`; `approveUrl` opens the web approve page. Lasts 5 minutes. Rate limited per address (429), with /pair/start.",
+        "summary": "Secure pairing (v2): start a session to show as a QR code and a rotating 6-digit PIN (TOTP, 30 s). `qr` is `wms://pair?v=1&s=<serverId>&u=<base url>&c=<sessionId>&k=<check>`; `approveUrl` opens the web approve page. Lasts 5 minutes. Rate limited per address (429), with /pair/start.",
         "tags": [
           "Sign-in and accounts"
         ],
@@ -17347,36 +16640,6 @@
         "x-wms-auth": "admin"
       }
     },
-    "/bluray/capabilities": {
-      "get": {
-        "operationId": "getBlurayCapabilities",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "What optional help WittyBluray has on this machine: whether a libbluray can give a second opinion.",
-        "tags": [
-          "Discs"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
     "/branding/logo": {
       "delete": {
         "operationId": "deleteBrandingLogo",
@@ -17903,66 +17166,6 @@
         ],
         "x-wms-auth": "user",
         "x-wms-stream-token": true
-      }
-    },
-    "/cd/{id}/identify": {
-      "post": {
-        "operationId": "postCdIdentify",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Use a release's names and cover. An empty releaseId goes back to the disc's own.",
-        "tags": [
-          "Audio CDs"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/cd/{id}/matches": {
-      "get": {
-        "operationId": "getCdMatches",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "What this disc could be, asked of MusicBrainz using only its table of contents.",
-        "tags": [
-          "Audio CDs"
-        ],
-        "x-wms-auth": "admin"
       }
     },
     "/channels": {
@@ -20614,177 +19817,6 @@
         "x-wms-auth": "user"
       }
     },
-    "/epg/ids": {
-      "get": {
-        "operationId": "getEpgIds",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the guide for this kind of library."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "EPGI ds.",
-        "tags": [
-          "Channels and live TV"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/epg/sources": {
-      "get": {
-        "operationId": "getEpgSources",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the guide for this kind of library."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "EPG sources.",
-        "tags": [
-          "Channels and live TV"
-        ],
-        "x-wms-auth": "admin"
-      },
-      "post": {
-        "operationId": "postEpgSources",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the guide for this kind of library."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Add EPG source.",
-        "tags": [
-          "Channels and live TV"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/epg/sources/{id}": {
-      "delete": {
-        "operationId": "deleteEpgSourcesId",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the guide for this kind of library."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Delete EPG source.",
-        "tags": [
-          "Channels and live TV"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/epg/sources/{id}/refresh": {
-      "post": {
-        "operationId": "postEpgSourcesIdRefresh",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the guide for this kind of library."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Refresh EPG source.",
-        "tags": [
-          "Channels and live TV"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
     "/fs": {
       "get": {
         "operationId": "getFs",
@@ -22087,309 +21119,6 @@
         "x-wms-auth": "user"
       }
     },
-    "/items/{id}/disc": {
-      "get": {
-        "operationId": "getItemsDisc",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "extras": {
-                      "items": {
-                        "$ref": "#/components/schemas/DiscTitleView"
-                      },
-                      "type": "array"
-                    },
-                    "main": {
-                      "anyOf": [
-                        {
-                          "$ref": "#/components/schemas/DiscTitleView"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "menus": {
-                      "items": {
-                        "$ref": "#/components/schemas/DiscMenuView"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "The disc page: the feature, extras and menus to jump into.",
-        "tags": [
-          "Discs"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/items/{id}/disc/analysis": {
-      "get": {
-        "operationId": "getItemsDiscAnalysis",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DiscAnalysis"
-                }
-              }
-            },
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Which title or playlist is the disc's film, why, and how sure the engine is: candidates, versions, episodes, repairs. Works the ranking out first when the kept one is from another engine version.",
-        "tags": [
-          "Discs"
-        ],
-        "x-wms-auth": "user"
-      },
-      "post": {
-        "operationId": "postItemsDiscAnalysis",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "secondOpinion": {
-                    "type": "boolean"
-                  }
-                },
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DiscAnalysis"
-                }
-              }
-            },
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Work the ranking out again; with secondOpinion, also ask a libbluray on this machine (Blu-ray, setting on).",
-        "tags": [
-          "Discs"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/items/{id}/disc/choice": {
-      "delete": {
-        "operationId": "deleteItemsDiscChoice",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DiscAnalysis"
-                }
-              }
-            },
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Forget the chosen film: the engine's pick plays again.",
-        "tags": [
-          "Discs"
-        ],
-        "x-wms-auth": "admin"
-      },
-      "put": {
-        "operationId": "putItemsDiscChoice",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "ttn": {
-                    "type": "integer"
-                  }
-                },
-                "required": [
-                  "ttn"
-                ],
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DiscAnalysis"
-                }
-              }
-            },
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Remember a title (DVD) or playlist (Blu-ray) as this disc's film, for everyone; it beats the engine's pick.",
-        "tags": [
-          "Discs"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/items/{id}/disc/labels": {
-      "put": {
-        "operationId": "putItemsDiscLabels",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DiscLabels"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DiscLabels"
-                }
-              }
-            },
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Name a disc's titles and chapters.",
-        "tags": [
-          "Discs"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
     "/items/{id}/disc/thumb/{ttn}/{n}": {
       "get": {
         "operationId": "getItemsDiscThumbById",
@@ -23070,7 +21799,7 @@
             "bearer": []
           }
         ],
-        "summary": "Forget the position (mark as not started). {id} show-\u003cn\u003e: in every episode of the show.",
+        "summary": "Forget the position (mark as not started). {id} show-<n>: in every episode of the show.",
         "tags": [
           "Browsing"
         ],
@@ -23137,7 +21866,7 @@
             "bearer": []
           }
         ],
-        "summary": "Save the viewer's position. Past 92% counts as watched. Discs send `discTitle` too. {id} show-\u003cn\u003e with {\"watched\": true} marks every episode of the show this profile may see watched.",
+        "summary": "Save the viewer's position. Past 92% counts as watched. Discs send `discTitle` too. {id} show-<n> with {\"watched\": true} marks every episode of the show this profile may see watched.",
         "tags": [
           "Browsing"
         ],
@@ -24192,6 +22921,100 @@
         "summary": "Library show main.",
         "tags": [
           "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libraries/{id}/nfo": {
+      "put": {
+        "operationId": "putLibrariesIdNfo",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "use": {
+                    "type": "boolean"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "{foreignNfo}. The library is scanned again."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Whether the library reads .nfo files other programs wrote.",
+        "tags": [
+          "Browsing"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/libraries/{id}/purge-metadata": {
+      "post": {
+        "operationId": "postLibrariesIdPurgeMetadata",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "{deleted}: how many files. 409 for a read-only library. The library is scanned again."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete every .nfo and .metadata.json file in the library's folders.",
+        "tags": [
+          "Browsing"
         ],
         "x-wms-auth": "admin"
       }
@@ -33269,7 +32092,7 @@
             "bearer": []
           }
         ],
-        "summary": "Whether peer-to-peer connections are on, and what an app needs for them: `serverId` (what to dial), `addrs` (where the server was last reachable, to keep as hints), `devicesOnly`, `layers`. `?device=\u003cid\u003e` adds `enrolled`. See P2P.md.",
+        "summary": "Whether peer-to-peer connections are on, and what an app needs for them: `serverId` (what to dial), `addrs` (where the server was last reachable, to keep as hints), `devicesOnly`, `layers`. `?device=<id>` adds `enrolled`. See P2P.md.",
         "tags": [
           "Remote access and signed-in devices"
         ],
@@ -34425,222 +33248,6 @@
           }
         ],
         "summary": "Photo AI.",
-        "tags": [
-          "Photos"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/photos/albums": {
-      "get": {
-        "operationId": "getPhotosAlbums",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the guide for this kind of library."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Photo albums.",
-        "tags": [
-          "Photos"
-        ],
-        "x-wms-auth": "user"
-      },
-      "post": {
-        "operationId": "postPhotosAlbums",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the guide for this kind of library."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Create album.",
-        "tags": [
-          "Photos"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/photos/albums/{id}": {
-      "delete": {
-        "operationId": "deletePhotosAlbumsId",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the guide for this kind of library."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Delete album.",
-        "tags": [
-          "Photos"
-        ],
-        "x-wms-auth": "user"
-      },
-      "put": {
-        "operationId": "putPhotosAlbumsId",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the guide for this kind of library."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Update album.",
-        "tags": [
-          "Photos"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/photos/albums/{id}/items": {
-      "delete": {
-        "operationId": "deletePhotosAlbumsIdItems",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the guide for this kind of library."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Album remove.",
-        "tags": [
-          "Photos"
-        ],
-        "x-wms-auth": "user"
-      },
-      "post": {
-        "operationId": "postPhotosAlbumsIdItems",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the guide for this kind of library."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Album add.",
         "tags": [
           "Photos"
         ],
@@ -36201,7 +34808,7 @@
     },
     "/recordings": {
       "get": {
-        "description": "channelKey and programme are there only when the profile may watch that channel; pass them to GET /tv/{key}/programme?start=\u003cstart\u003e. POST /recordings answers the scheduled recording with the same fields.",
+        "description": "channelKey and programme are there only when the profile may watch that channel; pass them to GET /tv/{key}/programme?start=<start>. POST /recordings answers the scheduled recording with the same fields.",
         "operationId": "getRecordings",
         "parameters": [],
         "responses": {
@@ -36224,7 +34831,7 @@
             "bearer": []
           }
         ],
-        "summary": "Recordings: each with `channelId`, `channel` (its name), `start`, `stop`, `status`, and `channelKey` and `programme` (`\u003ckey\u003e@\u003cstart\u003e`) for opening More info",
+        "summary": "Recordings: each with `channelId`, `channel` (its name), `start`, `stop`, `status`, and `channelKey` and `programme` (`<key>@<start>`) for opening More info",
         "tags": [
           "Channels and live TV"
         ],
@@ -38300,7 +36907,7 @@
             "bearer": []
           }
         ],
-        "summary": "A token that shows the draft to this administrator alone, on any device they are signed in on, for two hours: {token, expiresAt}. Sent as preview=\u003ctoken\u003e or X-WMS-SDUI-Preview with the page and navigation routes.",
+        "summary": "A token that shows the draft to this administrator alone, on any device they are signed in on, for two hours: {token, expiresAt}. Sent as preview=<token> or X-WMS-SDUI-Preview with the page and navigation routes.",
         "tags": [
           "Server-driven UI"
         ],
@@ -38571,7 +37178,7 @@
             "bearer": []
           }
         ],
-        "summary": "One page (?page=\u003cid\u003e) or the whole configuration as a file: {format: \"wittymedia-ui\", formatVersion, kind, page or config}.",
+        "summary": "One page (?page=<id>) or the whole configuration as a file: {format: \"wittymedia-ui\", formatVersion, kind, page or config}.",
         "tags": [
           "Server-driven UI"
         ],
@@ -39382,7 +37989,7 @@
             "bearer": []
           }
         ],
-        "summary": "A page, rendered for this account and device: an SDUI document (docs/SDUI.md, docs/sdui.schema.json). {page} is a kind of page (home, libraries, library?library=, detail?item= or ?show= or ?collection= or ?library=\u0026artist=\u0026album=, search?q=, livetv, music, photos, books, games, collections), chosen among the pages of that kind by what the request names, or one page's ID. Filled with what the account may see, cut to the device's budget, with components the client can't draw replaced by their fallbacks. 304 with If-None-Match.",
+        "summary": "A page, rendered for this account and device: an SDUI document (docs/SDUI.md, docs/sdui.schema.json). {page} is a kind of page (home, libraries, library?library=, detail?item= or ?show= or ?collection= or ?library=&artist=&album=, search?q=, livetv, music, photos, books, games, collections), chosen among the pages of that kind by what the request names, or one page's ID. Filled with what the account may see, cut to the device's budget, with components the client can't draw replaced by their fallbacks. 304 with If-None-Match.",
         "tags": [
           "Server-driven UI"
         ],
@@ -39632,7 +38239,7 @@
             "bearer": []
           }
         ],
-        "summary": "?since=\u003cetag\u003e: patches from the render the client has, or the whole document when the server no longer has it. 304 when nothing changed.",
+        "summary": "?since=<etag>: patches from the render the client has, or the whole document when the server no longer has it. 304 when nothing changed.",
         "tags": [
           "Server-driven UI"
         ],
@@ -43989,696 +42596,6 @@
         "x-wms-auth": "user"
       }
     },
-    "/tuner-channels/bulk": {
-      "post": {
-        "operationId": "postTunerChannelsBulk",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Many tuner channels at once: `ids`, `action` (enable, disable, renumber with `start`, merge with `into`, unmerge, check)",
-        "tags": [
-          "Channels and live TV"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/tuner-channels/{id}": {
-      "put": {
-        "operationId": "putTunerChannelsId",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TunerChannelView"
-                }
-              }
-            },
-            "description": "See the guide for this kind of library."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Edit tuner channel.",
-        "tags": [
-          "Channels and live TV"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/tuners": {
-      "get": {
-        "operationId": "getTuners",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the guide for this kind of library."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Tuners.",
-        "tags": [
-          "Channels and live TV"
-        ],
-        "x-wms-auth": "admin"
-      },
-      "post": {
-        "operationId": "postTuners",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the guide for this kind of library."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Create tuner.",
-        "tags": [
-          "Channels and live TV"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/tuners/check": {
-      "post": {
-        "operationId": "postTunersCheck",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "{ok, result} when it answered, or {ok: false, problem: {kind, message, hint}}."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Check tuner: what a source says before it's saved. Keeps nothing.",
-        "tags": [
-          "Channels and live TV"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/tuners/discover": {
-      "get": {
-        "operationId": "getTunersDiscover",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the guide for this kind of library."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Tuner discover.",
-        "tags": [
-          "Channels and live TV"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/tuners/drivers": {
-      "get": {
-        "operationId": "getTunersDrivers",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the guide for this kind of library."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Tuner drivers.",
-        "tags": [
-          "Channels and live TV"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/tuners/duplicates": {
-      "get": {
-        "operationId": "getTunersDuplicates",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Channels across every tuner that look like the same station, in groups",
-        "tags": [
-          "Channels and live TV"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/tuners/{id}": {
-      "delete": {
-        "operationId": "deleteTunersId",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the guide for this kind of library."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Delete tuner.",
-        "tags": [
-          "Channels and live TV"
-        ],
-        "x-wms-auth": "admin"
-      },
-      "put": {
-        "operationId": "putTunersId",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the guide for this kind of library."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Update tuner.",
-        "tags": [
-          "Channels and live TV"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/tuners/{id}/channels": {
-      "get": {
-        "operationId": "getTunersIdChannels",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/TunerChannelView"
-                  },
-                  "type": "array"
-                }
-              }
-            },
-            "description": "A tuner's channels, each with canRecord."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Tuner channels.",
-        "tags": [
-          "Channels and live TV"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/tuners/{id}/channels/enable": {
-      "post": {
-        "operationId": "postTunersIdChannelsEnable",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the guide for this kind of library."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Enable all channels.",
-        "tags": [
-          "Channels and live TV"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/tuners/{id}/health": {
-      "delete": {
-        "operationId": "deleteTunersIdHealth",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Stop a tuner's channel check",
-        "tags": [
-          "Channels and live TV"
-        ],
-        "x-wms-auth": "admin"
-      },
-      "get": {
-        "operationId": "getTunersIdHealth",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "How a tuner's channel check is going",
-        "tags": [
-          "Channels and live TV"
-        ],
-        "x-wms-auth": "admin"
-      },
-      "post": {
-        "operationId": "postTunersIdHealth",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "OK"
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Check every enabled channel of a tuner, in the background",
-        "tags": [
-          "Channels and live TV"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/tuners/{id}/refresh": {
-      "post": {
-        "operationId": "postTunersIdRefresh",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the guide for this kind of library."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Refresh tuner.",
-        "tags": [
-          "Channels and live TV"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/tuners/{id}/scan": {
-      "get": {
-        "operationId": "getTunersIdScan",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the guide for this kind of library."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Scan progress2.",
-        "tags": [
-          "Channels and live TV"
-        ],
-        "x-wms-auth": "admin"
-      },
-      "post": {
-        "operationId": "postTunersIdScan",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the guide for this kind of library."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Scan tuner.",
-        "tags": [
-          "Channels and live TV"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/tuners/{id}/test": {
-      "post": {
-        "operationId": "postTunersIdTest",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "{ok, channel, problem, seconds, video, audio, clear}."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Test tuner: tunes one channel for a few seconds. Encrypted channels are refused.",
-        "tags": [
-          "Channels and live TV"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
     "/tv-sets": {
       "get": {
         "operationId": "getTvSets",
@@ -44920,37 +42837,6 @@
           }
         ],
         "summary": "Add and remove channels: `add`, `remove`",
-        "tags": [
-          "Channels and live TV"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/tv/encrypted-help": {
-      "get": {
-        "operationId": "getTvEncryptedHelp",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the guide for this kind of library."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Encrypted help.",
         "tags": [
           "Channels and live TV"
         ],
@@ -46676,6 +44562,53 @@
           "Metadata"
         ],
         "x-wms-auth": "user"
+      }
+    },
+    "/setup/module-steps/skip": {
+      "post": {
+        "summary": "Put off a module's setup step",
+        "description": "An administrator puts off a module's setup step: the Dismiss of \"Finish setting up\" on Home (SDUI command setup.skip). The step stays in the module's Settings.",
+        "tags": [
+          "Setup"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "module",
+                  "step"
+                ],
+                "properties": {
+                  "module": {
+                    "type": "string"
+                  },
+                  "step": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Put off."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "operationId": "skipModuleSetupStep"
       }
     }
   },

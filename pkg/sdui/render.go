@@ -780,6 +780,20 @@ func (r *renderer) build(in instance, depth int) ([]Node, bool) {
 			n.Props["buttonLabel"] = propStr(p, "buttonLabel", "")
 			n.Action = a
 		}
+		if label, op := propStr(p, "dismissLabel", ""), propStr(p, "dismissOp", ""); label != "" && op != "" {
+			d := map[string]any{"label": label, "op": op}
+			if m, _ := p["dismissParams"].(map[string]any); len(m) > 0 {
+				params := map[string]any{}
+				for k, v := range m {
+					if sv, ok := v.(string); ok {
+						v = r.resolveVar(sv, nil)
+					}
+					params[k] = v
+				}
+				d["params"] = params
+			}
+			n.Props["dismiss"] = d
+		}
 	case "Button":
 		n.Props["label"] = r.fill(propStr(p, "label", ""), in.each, nil)
 		copyProps(n.Props, p, "icon", "variant")

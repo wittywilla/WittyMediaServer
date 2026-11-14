@@ -7,7 +7,7 @@ import { useUserPref } from '../ui/userPrefs'
 import { AUTO_SKIP_KEY, anyAutoSkip, autoSkipPrefs, autoSkipStart, autoSkipStep, type AutoSkipAct, type Markers } from './markers'
 import './autoskip.css'
 
-// Skipping without a press, for a profile that asked for it (Settings, Playback & discs,
+// Skipping without a press, for a profile that asked for it (Settings, Playback,
 // Skipping). When to skip is decided in markers.ts; this does it, and says so: a short note
 // with Undo, read out politely. Credits with an episode after them count down to that
 // episode instead, and the countdown can be stopped.

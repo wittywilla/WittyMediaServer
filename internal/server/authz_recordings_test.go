@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
+	"github.com/wittywilla/wittymediaserver/internal/livetv"
 )
 
 func recordingServer(t *testing.T) (call func(method, path, token, body string) (int, string), admin, alice, bob string, s *Server) {
@@ -29,13 +30,9 @@ func recordingServer(t *testing.T) (call func(method, path, token, body string) 
 		return tok
 	}
 	alice, bob = login("alice"), login("bob")
-	if _, err := s.DB.Exec(`INSERT INTO tuners(id, driver, name, options, created_at) VALUES(1, 'stream', 'Test', '{"url":"http://provider.invalid/live/USERNAME/PASSWORD/1.ts"}', 1)`); err != nil {
-		t.Fatal(err)
-	}
-	for id, enabled := range map[int]int{1: 1, 2: 0} {
-		if _, err := s.DB.Exec(`INSERT INTO tuner_channels(id, tuner_id, source_id, number, name, locator, enabled) VALUES(?, 1, ?, ?, ?, 'http://provider.invalid/live/USERNAME/PASSWORD/1.ts', ?)`, id, fmt.Sprint("s", id), fmt.Sprint(id), fmt.Sprint("Channel ", id), enabled); err != nil {
-			t.Fatal(err)
-		}
+	useTuners(t)
+	for id, enabled := range map[int64]bool{1: true, 2: false} {
+		tunerChannel(t, livetv.Channel{ID: id, Number: fmt.Sprint(id), Name: fmt.Sprint("Channel ", id), Enabled: enabled}, "http://provider.invalid/live/USERNAME/PASSWORD/1.ts")
 	}
 	return func(method, path, token, body string) (int, string) {
 		w := tvCall(h, method, path, token, body)

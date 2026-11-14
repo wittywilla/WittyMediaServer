@@ -33,6 +33,9 @@ type Library struct {
 	ShowMain bool `json:"showMain"`
 	// ReadOnly: nothing the server does may change this library's files.
 	ReadOnly bool `json:"readOnly"`
+	// ForeignNFO: .nfo files other programs wrote beside the media are read (they are on unless
+	// turned off; the server's own are read either way).
+	ForeignNFO bool `json:"foreignNfo"`
 }
 
 // CommercialsType is a library of the owner's own adverts and bumpers for
@@ -210,17 +213,18 @@ var ErrNotFound = errors.New("not found")
 // ---------------------------------------------------------------------------
 
 const libraryCols = `l.id, l.name, l.type, IFNULL(l.console, ''), l.created_at, l.last_scan_at, l.scanning,
-	(SELECT COUNT(*) FROM items i WHERE i.library_id = l.id AND i.missing = 0), l.show_main, l.read_only`
+	(SELECT COUNT(*) FROM items i WHERE i.library_id = l.id AND i.missing = 0), l.show_main, l.read_only, l.foreign_nfo`
 
 func scanLibrary(sc interface{ Scan(...any) error }) (*Library, error) {
 	var l Library
-	var scanning, showMain, readOnly int
-	if err := sc.Scan(&l.ID, &l.Name, &l.Type, &l.Console, &l.CreatedAt, &l.LastScanAt, &scanning, &l.ItemCount, &showMain, &readOnly); err != nil {
+	var scanning, showMain, readOnly, foreignNFO int
+	if err := sc.Scan(&l.ID, &l.Name, &l.Type, &l.Console, &l.CreatedAt, &l.LastScanAt, &scanning, &l.ItemCount, &showMain, &readOnly, &foreignNFO); err != nil {
 		return nil, err
 	}
 	l.Scanning = scanning != 0
 	l.ShowMain = showMain != 0
 	l.ReadOnly = readOnly != 0
+	l.ForeignNFO = foreignNFO != 0
 	l.Paths = []string{}
 	return &l, nil
 }
@@ -882,53 +886,6 @@ func (s *Store) saveScanBrands(ctx context.Context, it *Item) error {
 		return nil
 	}
 	return s.setTitleBrands(ctx, TargetItem, it.ID, it.LibraryID, LogoStudio, it.studios)
-}
-
-// DiscLabels are names a user gave to a disc's titles and chapters, keyed by
-// title number and chapter number (as strings, for JSON).
-type DiscLabels struct {
-	Titles   map[string]string            `json:"titles"`
-	Chapters map[string]map[string]string `json:"chapters"`
-}
-
-// Clean drops empty names and trims the rest.
-func (d DiscLabels) Clean() DiscLabels {
-	out := DiscLabels{Titles: map[string]string{}, Chapters: map[string]map[string]string{}}
-	for k, v := range d.Titles {
-		if v = strings.TrimSpace(v); v != "" {
-			out.Titles[k] = v
-		}
-	}
-	for t, m := range d.Chapters {
-		for k, v := range m {
-			if v = strings.TrimSpace(v); v != "" {
-				if out.Chapters[t] == nil {
-					out.Chapters[t] = map[string]string{}
-				}
-				out.Chapters[t][k] = v
-			}
-		}
-	}
-	return out
-}
-
-// DiscLabels returns the stored names for a disc (never nil maps).
-func (s *Store) DiscLabels(ctx context.Context, id int64) DiscLabels {
-	var raw sql.NullString
-	_ = s.DB.QueryRowContext(ctx, `SELECT disc_labels FROM items WHERE id = ?`, id).Scan(&raw)
-	var d DiscLabels
-	_ = json.Unmarshal([]byte(raw.String), &d)
-	return d.Clean()
-}
-
-// SetDiscLabels replaces the names for a disc.
-func (s *Store) SetDiscLabels(ctx context.Context, id int64, d DiscLabels) error {
-	b, err := json.Marshal(d.Clean())
-	if err != nil {
-		return err
-	}
-	_, err = s.DB.ExecContext(ctx, `UPDATE items SET disc_labels = ? WHERE id = ?`, string(b), id)
-	return err
 }
 
 // SetItemPrefs stores per-item viewer preferences.

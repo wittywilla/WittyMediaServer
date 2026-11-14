@@ -1297,12 +1297,8 @@ and without `meta.generatedAt` and `meta.etag`; `ETag(doc)` is `W/"sha256-`
 
 ### The music table
 
-`GET /api/sdui/catalog` carries `music` (`pkg/sdui/data/music.json`): the mini player's controls and the visualizer's.
-`music.visualizer.presets` are the effects the effects picker offers, the same as WittyVisualizer's `effects/*.glsl`
-(the 17 classics and Aurora Rings, in the order of its README): `{id, name, motion, calm, cost}`. `motion` is
-`gentle` or `lively`, `calm` is true when calm mode keeps the effect (the gentle ones; it is on by default when the
-system asks for reduced motion), `cost` is how hard it works the graphics card (1 to 3). The `preset` control's
-default is `skyline`. Every effect takes both of the other two controls, so show them for every effect: `speedPct` (an int, 50 to 200 %, default 100; it multiplies the animation clock) and `colour` (`effect`, the default: each effect's own colour families, or `theme`: a family built from the theme's accent). There is no album-art colour source. They are also the module's settings keys, `speedPct` and `colour`. A new effect in WittyVisualizer is a new entry here.
+`GET /api/sdui/catalog` carries `music` (`pkg/sdui/data/music.json`): the mini player's controls (`miniPlayer`), the karaoke controls, and `visualizer.defaultOn` (whether the full player opens with the visualizer; it doesn't).
+The visualizer's effects and their controls are WittyVisualizer's own, not the catalogue's: an app lists the effects from the module's settings page (`GET /api/sdui/modules/wittyvisualizer/settings`, the `effect` row's options, the same as its `effects/*.glsl`) and saves a person's choices there (`speedPct`, `colour`, `intensity` and the rest are its settings keys). Without the module there is no visualizer.
 
 ## Reference
 
@@ -2215,10 +2211,13 @@ Focus: takes none. Accessibility: Role: heading for pageTitle (level 1), heading
 | `params` | object |  | Command's values. The command's other values by name, each a text or a $variable. |
 | `confirm` | text, at most 120 |  | Ask first. A question the app asks before the command runs, such as Delete this memory? |
 | `back` | bool | `false` | Goes back. Closes the page: Back. |
+| `dismissLabel` | text, at most 40 |  | Dismiss button. A second button beside the first, such as Dismiss: it runs dismissOp. Sent as dismiss {label, op, params}. |
+| `dismissOp` | enum |  | Dismiss runs. The command the dismiss button runs; the page is asked for again after it. |
+| `dismissParams` | object |  | Dismiss's values. The dismiss command's values by name, each a text or a $variable. |
 
 How it is drawn:
 
-- **Everywhere.** A rounded block in token bg2 with a 4-point bar at its leading edge in the tone's colour (accent, ok, warn, danger), the icon, title in the title size, text in body, and the button at the end (below on a phone). It takes focus only when it has a button.
+- **Everywhere.** A rounded block in token bg2 with a 4-point bar at its leading edge in the tone's colour (accent, ok, warn, danger), the icon, title in the title size, text in body, and the button at the end (below on a phone). With dismiss, a second, quieter button beside the first (after it; below it on a phone) runs dismiss.op with dismiss.params, then the page is asked for again. It takes focus only when it has a button; on a TV each button is its own focus stop, the main one first.
 
 Focus: the node takes focus when it can be acted on. Accessibility: Role: status (alert for warning and danger). Label: "<title>. <text>".
 
@@ -3729,10 +3728,6 @@ A menu entry (`type: native`) may open the screens marked *menu*; the others nee
 | `watched.clear` | Forgets the profile's progress in the title; for a show, in every episode. | `DELETE /api/v1/items/{item}/progress` |
 | `selectTab` | Asks for the page again with tab=<params.tab>, or shows the tab's content when the client already has it. |  |
 | `control.open` | Client-handled, from a Dock: params.control is sort, filter, view or jump and params.target the Grid. sort and filter open the page's FilterBar choices for the target; view switches it between its grid and a list and remembers it for the profile on the device; jump opens a letter picker (A to Z and #) and brings the grid to the first title starting with the letter by asking its more.url until one has arrived, at most 20 pages. |  |
-| `disc.choose` | Discs: an administrator makes params.ttn (a DVD's title or a Blu-ray's playlist) the disc's film (item), for everyone, instead of the engine's pick. | `PUT /api/v1/items/{item}/disc/choice` with `{"ttn":"{ttn}"}`; `ttn` (int, required) |
-| `disc.clearChoice` | Discs: forgets the film an administrator chose for the disc (item): the engine's pick plays again. | `DELETE /api/v1/items/{item}/disc/choice` |
-| `disc.rank` | Discs: an administrator has the disc's module work out which title of the disc (item) is the film again. | `POST /api/v1/items/{item}/disc/analysis` with `{"secondOpinion":false}` |
-| `disc.compare` | Blu-rays: an administrator has a libbluray installed on the server compare its reading of the disc (item); the setting has to allow it. | `POST /api/v1/items/{item}/disc/analysis` with `{"secondOpinion":true}` |
 | `wittyplay.room.create` | WittyPlay Online: opens the game being played (item: its session) to the friends who may see it, so they join with no code. Answers the host's code. | `POST /api/modules/wittyplay/play/{item}/room` with `{"open":true}` |
 | `wittyplay.room.join` | WittyPlay Online: takes a seat in an open room (item: its session) or, with params.code, the room that code belongs to (no item). | `POST /api/modules/wittyplay/play/join` with `{"room":"{item}","code":"{code}"}`; `code` (string) |
 | `wittyplay.room.invite` | WittyPlay Online: a join code for the game being played (item: its session), good for a short while, which a phone's QR join link carries. Answers {code, expiresAt}. | `POST /api/modules/wittyplay/play/{item}/invite` |
@@ -3767,6 +3762,7 @@ A menu entry (`type: native`) may open the screens marked *menu*; the others nee
 | `rewind.open` | Client-handled, in the game player: opens the player's rewind panel. No request. |  |
 | `controller.remap` | Client-handled, in the game player: opens the player's own controller-mapping panel. No request. |  |
 | `refresh` | Asks for the page again. |  |
+| `setup.skip` | Administrators: puts off a module's setup step (params.module, params.step), so "Finish setting up" leaves Home; the step stays in the module's Settings. | `POST /api/setup/module-steps/skip` with `{"module":"{module}","step":"{step}"}`; `module` (string, required); `step` (string, required) |
 
 ### Experiences
 

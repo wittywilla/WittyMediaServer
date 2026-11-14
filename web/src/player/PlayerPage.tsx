@@ -2,12 +2,12 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { api, dvdStartMode, getPrefs, isDisc, type Item, type Prefs } from '../api'
+import { api, getPrefs, isBluray, isDisc, type Item, type Prefs } from '../api'
 import { IconClose } from '../icons'
 import { PlayerChromeContext, usePlayerChrome, type PlayerChrome } from './chrome'
 import { queued } from '../remote/videoQueue'
+import { ModulePlayer } from '../moduleRegistry'
 
-const DvdPlayer = lazy(() => import('./DvdPlayer'))
 const VideoPlayer = lazy(() => import('./VideoPlayer'))
 const loading = <div className="player"><div className="center-spinner"><div className="spinner" /></div></div>
 
@@ -67,16 +67,8 @@ function PlayerPage({ id, search }: { id: string; search: string }) {
   const startParam = params.get('start')
   const startAt = startParam != null ? Number(startParam) : null
   if (isDisc(item)) {
-    // No explicit mode: the item's start setting (menu by default).
-    const m = params.get('mode')
-    const mode = m === 'menu' || m === 'title' ? m : params.get('ttn') ? 'title' : dvdStartMode(item)
-    const ttn = params.get('ttn') ? Number(params.get('ttn')) : undefined
-    const chapter = params.get('chapter') ? Number(params.get('chapter')) : undefined
-    const menu = params.get('menu') || undefined
-    const menuVts = params.get('menuVts') ? Number(params.get('menuVts')) : undefined
-    const episode = params.get('episode') ? Number(params.get('episode')) : undefined
-    const angle = params.get('angle') ? Number(params.get('angle')) : undefined
-    return <Suspense fallback={loading}><DvdPlayer item={item} mode={mode} ttn={ttn} chapter={chapter} startAt={startAt} insert={params.get('insert') === '1'} menu={menu} menuVts={menuVts} episode={episode} angle={angle} /></Suspense>
+    // The disc player is WittyDisc's (players: disc), which WittyDVD and WittyBluray bring.
+    return <ModulePlayer mediaKind="disc" modules={[isBluray(item) ? 'wittybluray' : 'wittydvd']} item={item} params={Object.fromEntries(params)} startAt={startAt} fallback={loading} />
   }
   return <Suspense fallback={loading}><VideoPlayer item={item} startAt={startAt} /></Suspense>
 }

@@ -13,23 +13,18 @@ import (
 
 func programmeLineup(t *testing.T) *Manager {
 	t.Helper()
-	m := bareManager(t)
-	for _, q := range []string{
-		`INSERT INTO tuners(id, driver, name, options, created_at) VALUES(1, 'fake', 'Provider A', '{}', 1), (2, 'fake', 'Off', '{}', 1)`,
-		`UPDATE tuners SET enabled = 0 WHERE id = 2`,
-		`INSERT INTO tuner_channels(id, tuner_id, source_id, number, name, locator, epg_id) VALUES
-		   (1, 1, 'a1', '1', 'Harbour', 'x', 'harbour.test'),
-		   (2, 1, 'a2', '2', 'Harbour backup', 'x', 'harbour.test'),
-		   (3, 1, 'a3', '3', 'Pine', 'x', 'pine.test'),
-		   (4, 2, 'b1', '4', 'On a tuner turned off', 'x', 'pine.test'),
-		   (5, 1, 'a5', '5', 'Turned off', 'x', 'pine.test')`,
-		`UPDATE tuner_channels SET merged_into = 1 WHERE id = 2`,
-		`UPDATE tuner_channels SET enabled = 0 WHERE id = 5`,
-	} {
-		if _, err := m.DB.Exec(q); err != nil {
-			t.Fatal(err)
+	m, d := testManager(t)
+	add := func(tn int64, number, name, epg string, fn func(*Channel)) {
+		c := d.add(tn, Channel{Number: number, Name: name, EPGID: epg}, "x")
+		if fn != nil {
+			d.change(m, c.ID, func(x *Channel) { fn(x) })
 		}
 	}
+	add(1, "1", "Harbour", "harbour.test", nil)
+	add(1, "2", "Harbour backup", "harbour.test", func(c *Channel) { c.MergedInto = 1 })
+	add(1, "3", "Pine", "pine.test", nil)
+	add(2, "4", "On a tuner turned off", "pine.test", func(c *Channel) { c.TunerEnabled = false })
+	add(1, "5", "Turned off", "pine.test", func(c *Channel) { c.Enabled = false })
 	return m
 }
 
@@ -62,9 +57,7 @@ func TestProgrammeAt(t *testing.T) {
 		t.Fatalf("after it ends: %v", err)
 	}
 	// With no guide, what the broadcast said.
-	if _, err := m.DB.Exec(`UPDATE tuner_channels SET epg_id = '' WHERE id = 1`); err != nil {
-		t.Fatal(err)
-	}
+	directory.(*fakeDirectory).change(m, 1, func(c *Channel) { c.EPGID = "" })
 	c, _ = m.Channel(ctx, 1)
 	if p, d, err = m.ProgrammeAt(ctx, c, 1000); err != nil || p.Title != "What the broadcast said" || d.Year != 0 {
 		t.Fatalf("%+v %v", p, err)

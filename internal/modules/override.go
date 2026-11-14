@@ -529,7 +529,8 @@ type UIPage struct {
 	Title string `json:"title"`
 }
 
-// overrideStatus fills in a module's override, held download, status and what it adds. Call with
+// overrideStatus fills in a module's override, held download, status and what it adds to the
+// apps and to this server. Call with
 // m.mu held.
 func (m *Manager) overrideStatus(e *entry, st *Status) {
 	st.Override = e.state.Override.info()
@@ -558,5 +559,8 @@ func (m *Manager) overrideStatus(e *entry, st *Status) {
 			}
 		}
 		st.UIAdds = adds
+	}
+	if e.integ != nil && e.dir != "" && !e.state.Disabled {
+		st.IntegrationAdds = integrationAdds(e.integ)
 	}
 }

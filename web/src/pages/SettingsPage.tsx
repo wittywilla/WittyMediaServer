@@ -84,8 +84,8 @@ const GROUPS: { title: string; pages: Page[] }[] = [
     { to: 'libraries', label: 'Libraries', icon: <IconLibrary />, admin: true, hint: 'Folders of movies, shows, music and books' },
     { to: 'pages', label: 'Pages & menu', icon: <IconSidebar />, admin: true, hint: 'What Home, the libraries and the menu hold, for everyone' },
     { to: 'metadata', label: 'Metadata agents', icon: <IconTag />, admin: true, hint: 'Where posters and plots come from' },
-    { to: 'playback', label: 'Playback & discs', icon: <IconPlay />, admin: true, hint: 'Player, DVDs and Blu-rays' },
-    { to: 'channels', label: 'Channels & tuners', icon: <IconChannels />, admin: true, hint: 'Tuners, IPTV, guide data and WittyTV options' },
+    { to: 'playback', label: 'Playback', icon: <IconPlay />, admin: true, hint: 'Player, skipping and streaming' },
+    { to: 'channels', label: 'Channels & tuners', icon: <IconChannels />, admin: true, hint: 'Library channels and WittyTV options' },
     { to: 'transcoding', label: 'Live transcoding', icon: <IconFilm />, admin: true, hint: 'While someone watches: quality, hardware and formats' },
     { to: 'library-transcoding', label: 'Library transcoding', icon: <IconFilm />, admin: true, hint: 'Convert files ahead of time, and connect Tdarr' },
     { to: 'network', label: 'Network', icon: <IconNetwork />, admin: true, hint: 'The port this server answers on at home' },
@@ -289,6 +289,21 @@ function CommercialsSwitch({ library }: { library: Library }) {
   )
 }
 
+// Other programs' .nfo files (a downloader's, a media centre's) are read unless this is off. Some
+// write a release's file name as the title and the day the file came out as the year.
+function NfoSwitch({ library }: { library: Library }) {
+  const { refreshLibraries } = useApp()
+  const set = async (use: boolean) => {
+    try { await api.put(`/libraries/${library.id}/nfo`, { use }); await refreshLibraries(); toast(use ? `${library.name} reads .nfo files from other programs again, and is being scanned` : `${library.name} now ignores other programs' .nfo files, and is being scanned`) } catch (e: any) { toast(e.message) }
+  }
+  return (
+    <div className="set-lib-switch">
+      <span><b>Use .nfo files from other programs</b><br /><small className="muted">Off: titles, years and details come from the file names and what is found online. The server's own .nfo files are read either way.</small></span>
+      <Switch checked={library.foreignNfo !== false} label={`Use .nfo files from other programs in ${library.name}`} onChange={(v) => void set(v)} />
+    </div>
+  )
+}
+
 // Exported for WittyPlay's Settings, which shows the same list (its games libraries among them).
 export function Libraries() {
   const { libraries, refreshLibraries } = useApp()
@@ -307,6 +322,10 @@ export function Libraries() {
     await api.del(`/libraries/${l.id}`)
     await refreshLibraries()
     toast('Library removed')
+  }
+  const purge = async (l: Library) => {
+    if (!await ask({ title: `Delete the metadata files in “${l.name}”?`, body: `Every .nfo and .metadata.json file in its folders is deleted, whoever wrote it, and the library is scanned again from the file names and what is found online. Your media, pictures and subtitles stay. This can't be undone.`, confirm: 'Delete metadata files', danger: true })) return
+    try { const r = await api.post<{ deleted: number }>(`/libraries/${l.id}/purge-metadata`); toast(`${r.deleted.toLocaleString()} ${r.deleted === 1 ? 'file' : 'files'} deleted. Scanning ${l.name}`); setTimeout(refreshLibraries, 1000) } catch (e: any) { toast(e.message) }
   }
   const scan = async (l: Library) => { await api.post(`/libraries/${l.id}/scan`); toast(`Scanning ${l.name}`); setTimeout(refreshLibraries, 1000) }
   const add = () => setAdding(true)
@@ -343,10 +362,12 @@ export function Libraries() {
               </div>
               <ul className="set-lib-paths">{l.paths.map((p) => <li key={p} title={p}><IconFolder size={14} /><span><bdi>{p}</bdi></span></li>)}</ul>
               {l.type === 'commercials' && <CommercialsSwitch library={l} />}
+              {l.type !== 'radio' && l.type !== 'podcasts' && <NfoSwitch library={l} />}
               <div className="set-lib-actions">
                 <button className="btn sm" onClick={() => scan(l)} disabled={l.scanning}><IconRefresh /> Scan now</button>
                 <button className="btn sm ghost" onClick={() => setEditing(l)}><IconEdit /> Edit</button>
                 <button className="btn sm ghost" onClick={() => setForgetting(l)} disabled={l.scanning} title="Removes what was downloaded for this library, to try matching and downloading again">Remove downloaded details…</button>
+                {l.type !== 'radio' && l.type !== 'podcasts' && <button className="btn sm ghost" onClick={() => void purge(l)} disabled={l.scanning || l.readOnly} title={l.readOnly ? 'This library is read-only' : 'Deletes every .nfo and .metadata.json file in its folders'}>Delete metadata files…</button>}
                 <span className="grow" />
                 <button className="btn sm ghost square danger-hover" onClick={() => remove(l)} aria-label={`Remove ${l.name}`} title="Remove library"><IconTrash /></button>
               </div>
@@ -483,13 +504,6 @@ function SignInScreen() {
 
 // ---------------------------------------------------------------- about
 
-// The readers built into the web app (their versions are set at build time).
-const READERS: Record<string, [string, string]> = {
-  wittyebook: ['WittyEbook', 'EPUB reader'],
-  wittypdf: ['WittyPDF', 'PDF reader'],
-  wittycomics: ['WittyComics', 'Comic and manga reader'],
-  wittyink: ['WittyInk', 'Highlights, notes and pen, shared by the readers'],
-}
 type Engine = { name: string; module: string; version: string; local?: boolean; role: string }
 
 function About() {
@@ -506,7 +520,6 @@ function About() {
   }, [user])
   useEffect(() => { api.get<{ version: string; modules: Engine[] }>('/about').then(setAbout).catch(() => {}) }, [])
   useEffect(() => { if (loc.hash && about) document.getElementById(loc.hash.slice(1))?.scrollIntoView({ block: 'start' }) }, [loc.hash, about])
-  const readers = __WEB_MODULES__.filter((m) => READERS[m.id]).sort((a, b) => Object.keys(READERS).indexOf(a.id) - Object.keys(READERS).indexOf(b.id))
   const hw = (sys?.hardware || []).filter((h: any) => h.working).map((h: any) => h.label)
   return (
     <>
@@ -522,13 +535,6 @@ function About() {
             <a key={m.name} className="mod-row" href={`https://github.com/wittywilla/${m.name}`} target="_blank" rel="noreferrer">
               <span className="mod-name"><b>{m.name}</b><span className="muted">{m.role}</span></span>
               <span className="mod-ver">{m.version}{m.local && <span className="mod-local" title="Built from this server's own copy of the module">built in</span>}</span>
-            </a>
-          ))}
-          <div className="mod-group">Readers</div>
-          {readers.map((m) => (
-            <a key={m.id} className="mod-row" href={`https://github.com/wittywilla/${READERS[m.id][0]}`} target="_blank" rel="noreferrer">
-              <span className="mod-name"><b>{READERS[m.id][0]}</b><span className="muted">{READERS[m.id][1]}</span></span>
-              <span className="mod-ver">{m.version}</span>
             </a>
           ))}
         </div>

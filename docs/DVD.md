@@ -69,14 +69,11 @@ Ranking reads only the disc's index files and menu buttons, never its video. An 
 
 The **Disc settings** button on a DVD's page, for administrators, has:
 
-![The Playback and discs page in Settings](images/settings-playback.webp)
-*Settings, Playback & discs.*
-
 - **What's on this disc:** a movie or episodes of a TV series, or work it out from the name.
 - **When this disc is inserted:** start with the disc menu, or skip menus and play the main feature.
 - **Insert DVD effect:** the tray animation and sound, on or off for this disc.
 
-The defaults for all of these, and DVD region and parental limits, are under **Settings → Playback & discs**.
+The defaults for all of these, and DVD region and parental limits, are under **Settings → DVDs and Blu-rays**.
 
 ## The remote
 
@@ -127,7 +124,7 @@ The floating remote can be moved by its top bar, resized by its corner, and made
 - **Subtitles** are drawn by the player from the disc's own subtitle pictures, so switching is instant and they look as they do on a DVD player. **Forced captions**, for signs and alien speech, show even with subtitles off, and can be turned off in the viewing settings.
 - **Karaoke discs.** A karaoke track is offered twice: with its vocals, and as a sing-along of the front channels only. No karaoke disc has been available to test this on.
 - **Choices made in the disc's own menus** are honoured.
-- **Languages for discs that don't choose:** **Settings → Playback & discs → Preferred languages**.
+- **Languages for discs that don't choose:** **Settings → DVDs and Blu-rays → Preferred languages**.
 
 ## Interactive extras and games
 
@@ -135,7 +132,7 @@ Many discs put buttons inside titles: games, quizzes, "vote for your favourite",
 
 ## On a small machine
 
-- **Settings → Playback & discs → Low-power mode for discs** converts menus and titles faster, at a small cost in quality.
+- **Settings → DVDs and Blu-rays → Low-power mode for discs** converts menus and titles faster, at a small cost in quality.
 - A hardware encoder helps most: see [Live transcoding](TRANSCODING.md#hardware-encoders).
 - Menu scans, button artwork and subtitle pictures are kept for each disc, so going back to a menu or moving the highlight never reads the disc again. The next menu clip is prepared while the current one plays.
 

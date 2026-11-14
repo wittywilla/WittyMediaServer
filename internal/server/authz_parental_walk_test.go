@@ -47,7 +47,7 @@ var idSpaces = map[string]string{
 	// A person: called with every person there is, as "other" numbers are.
 	"/api/people/{id}":        "person",
 	"/api/meta/{target}/{id}": "target",
-	"/api/collections/{id}":   "other", "/api/photos/albums/{id}": "other", "/api/creators/{id}": "other", "/api/hls/{id}": "other",
+	"/api/collections/{id}":   "other", "/api/creators/{id}": "other", "/api/hls/{id}": "other",
 	"/api/console-photos/{id}": "other", // a console's id (snes): a picture of the hardware, the same for everyone
 	"/api/logos/{id}":          "other", "/api/licenses/{id}": "other", "/api/libraries/{id}": "other", "/api/users/{id}": "other",
 	"/api/views/{id}": "other", "/api/channels/{id}": "other",
@@ -77,7 +77,6 @@ type walkFixture struct {
 	fineLibs   []int64
 	hiddenLibs []int64
 	collection int64 // a shared collection of everything hidden
-	album      int64 // a shared album of the hidden photo
 	creator    int64
 	people     []string  // every person credited, on hidden titles and on fine ones
 	tv         string    // the owner's TV, playing what is hidden
@@ -187,7 +186,7 @@ func newWalkFixture(t *testing.T) *walkFixture {
 	if err := ts.Store.SyncBrands(ctx); err != nil {
 		t.Fatal(err)
 	}
-	// A shared collection and a shared album of what is hidden, made by someone who may see it.
+	// A shared collection of what is hidden, made by someone who may see it.
 	bossID := ts.userID(t, f.admin)
 	res, err := ts.DB.ExecContext(ctx, `INSERT INTO collections(owner_id, name, description, shared, created_at, updated_at) VALUES(?, 'Shared by the owner', '', 1, 1, 1)`, bossID)
 	if err != nil {
@@ -204,22 +203,6 @@ func newWalkFixture(t *testing.T) *walkFixture {
 	}
 	if _, err := ts.DB.ExecContext(ctx, `INSERT INTO collection_shows(collection_id, show_id, added_at) VALUES(?, ?, 1)`, f.collection, f.show.ID); err != nil {
 		t.Fatal(err)
-	}
-	for _, it := range f.hidden {
-		if it.Kind != "photo" {
-			continue
-		}
-		w := ts.do(t, "POST", "/api/photos/albums", f.admin, map[string]any{"libraryId": it.LibraryID, "name": "Shared album", "shared": true})
-		var alb struct {
-			ID int64 `json:"id"`
-		}
-		if err := json.Unmarshal(w.Body.Bytes(), &alb); err != nil || alb.ID == 0 {
-			t.Fatalf("%d %s", w.Code, w.Body)
-		}
-		f.album = alb.ID
-		if w := ts.do(t, "POST", fmt.Sprintf("/api/photos/albums/%d/items", alb.ID), f.admin, map[string]any{"ids": []int64{it.ID}}); w.Code >= 300 {
-			t.Fatalf("%d %s", w.Code, w.Body)
-		}
 	}
 	f.sourcesPage(t)
 	rows, err := ts.DB.QueryContext(ctx, `SELECT id FROM people`)
@@ -384,7 +367,7 @@ func (f *walkFixture) walkTargets(t *testing.T, route string) (targets []string,
 		items = append(items, fmt.Sprint(it.ID))
 	}
 	shows = []string{fmt.Sprint(f.show.ID)}
-	others = append(append([]string{"1", "2", "3", fmt.Sprint(f.collection), fmt.Sprint(f.album), fmt.Sprint(f.creator)}, items...), shows...)
+	others = append(append([]string{"1", "2", "3", fmt.Sprint(f.collection), fmt.Sprint(f.creator)}, items...), shows...)
 	for _, lib := range f.hiddenLibs {
 		others = append(others, fmt.Sprint(lib))
 	}

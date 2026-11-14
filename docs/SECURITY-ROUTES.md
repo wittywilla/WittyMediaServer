@@ -46,6 +46,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/setup/state` | Public | Nothing: whether first run is over, its steps and where it is |
 | `PUT /api/setup/state` | Public, until first run is over | Refused once it is over (409). Before the first account: the setup code, as for POST /api/setup. After: an administrator. 4 KB body; step and done are known step names |
 | `POST /api/setup/complete` | Admin | Marks first run over; apps may connect |
+| `POST /api/setup/module-steps/skip` | Admin | Puts off a module's setup step (`{module, step}`): the "Dismiss" of "Finish setting up" on Home (command `setup.skip`) |
 | `GET /api/sdui/preview` | Public | Experience, theme, platform and form factor are checked against what the server has. Generated demo data only: no library, no account. Rate limited per address |
 | `POST /api/login` | Public | 16 KB body. Attempts counted per name and per address. Password, and a code with two-factor sign-in. Password-free profiles only at home with the profile screen on |
 | `POST /api/logout` | Public | Ends the sessions of the tokens the request carries |
@@ -72,6 +73,8 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `PUT /api/libraries/{id}` | Admin | As creating. Refused for a library owned by a game PC |
 | `DELETE /api/libraries/{id}` | Admin | Numeric id |
 | `POST /api/libraries/{id}/scan` | Admin | Library exists |
+| `PUT /api/libraries/{id}/nfo` | Admin | Library exists |
+| `POST /api/libraries/{id}/purge-metadata` | Admin | Library exists and isn't read-only; deletes only `.nfo` and `.metadata.json` files inside its folders |
 | `GET /api/libraries/{id}/scan` | Signed-in | Library is within the account's allowed libraries. File names for admins only |
 | `POST /api/libraries/{id}/forget-metadata` | Admin | Library exists and isn't being scanned. Removes only files the server recorded writing, and NFOs with its marker, inside the library's folders, through the folder (never through a link out of it); a person's `.nfo.bak` goes back. Every item keeps its ID; history, locks and people's edits stay. Logged and shown in Activity |
 | `POST /api/libraries/forget-metadata` | Admin | As for one library, for every library, none being scanned. Also drops downloaded logos and where-to-watch answers |
@@ -147,12 +150,6 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/people` | Signed-in | limits: only people credited on a title the account may see, counting only those titles |
 | `GET /api/people/{id}` | Signed-in | limits: 404 unless credited on a title the account may see; the filmography names only those |
 | `GET /api/people/{id}/photo` | Signed-in; ticket; address token | limits, as the person. Pictures only, from the cache, the internet or inside a library |
-| `GET /api/items/{id}/disc` | Signed-in | limits. Item is a disc |
-| `PUT /api/items/{id}/disc/labels` | Admin | Labels trimmed |
-| `GET /api/items/{id}/disc/analysis` | Signed-in | limits. Item is a disc. Who chose is named to admins only |
-| `POST /api/items/{id}/disc/analysis` | Admin | Item is a disc. A second opinion only for an unencrypted Blu-ray, with the setting on and a libbluray found |
-| `PUT /api/items/{id}/disc/choice` | Admin | Item is a disc. Title exists on it |
-| `DELETE /api/items/{id}/disc/choice` | Admin | Item is a disc |
 | `GET /api/items/{id}/disc/thumb/{ttn}/{n}` | Signed-in; ticket; address token | limits. Item is a disc and not scrambled. Title and chapter exist |
 | `GET /api/artwork/preview` | Admin; address token | Web address, cache name, or a picture inside a library |
 | `GET /api/prefs` | Signed-in | Nothing: server-wide playback defaults |
@@ -188,8 +185,6 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/cd/{id}` | Signed-in; ticket | limits. Disc image inside a library |
 | `GET /api/cd/{id}/audio` | Signed-in; ticket | limits. Disc image inside a library. Format, tracks, start. Limit for viewers away from home |
 | `GET /api/cd/{id}/graphics` | Signed-in; ticket | limits. Disc image inside a library. Sector range |
-| `GET /api/cd/{id}/matches` | Admin | Disc image inside a library |
-| `POST /api/cd/{id}/identify` | Admin | Disc image inside a library. Release id |
 | `GET /api/cd-covers/{release}` | Admin | Release id looked up by the scanner |
 | `GET /api/items/{id}/book` | Signed-in | limits. Book, plain file inside a library |
 | `GET /api/items/{id}/page/{n}` | Signed-in; address token | limits. Book inside a library. Page exists. Restrictive content policy |
@@ -243,7 +238,6 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/dvd/{sid}/bdj` | Signed-in | Blu-ray session exists. An account with limits is checked against what it plays |
 | `GET /api/dvd/{sid}/bdj/frame/{n}` | Signed-in | Blu-ray session exists. An account with limits is checked against what it plays |
 | `GET /api/bdj/status` | Admin | Nothing further |
-| `GET /api/bluray/capabilities` | Admin | Nothing further: names a library's path, so admins only |
 | `GET /api/dvd/{sid}/still/{name}` | Signed-in; ticket; address token | Session exists, and for a ticket is of the ticket's item. Still is one the session made. An account with limits is checked against what it plays |
 | `GET /api/dvd/{sid}/subs` | Signed-in; address token | Session exists. Time window of at most 600 seconds. An account with limits is checked against what it plays |
 | `GET /api/dvd/{sid}/sub/{name}` | Signed-in; ticket; address token | Session exists, and for a ticket is of the ticket's item. Picture exists. An account with limits is checked against what it plays |
@@ -395,13 +389,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/photos/folders` | Signed-in | A photos library the account may open. limits |
 | `GET /api/photos/map` | Signed-in | A photos library the account may open. limits. Box of four numbers |
 | `GET /api/photos/ai` | Signed-in | Nothing: reserved |
-| `GET /api/photos/albums` | Signed-in | A photos library the account may open. Own and shared albums. limits on counts |
-| `POST /api/photos/albums` | Adult | A photos library the account may open. Name and description sizes |
-| `PUT /api/photos/albums/{id}` | Signed-in | Album's owner or an admin. Sizes. Cover is a visible picture of that library |
-| `DELETE /api/photos/albums/{id}` | Signed-in | Album's owner or an admin |
-| `POST /api/photos/albums/{id}/items` | Signed-in | Album's owner or an admin. limits on each picture. Same library. 1 to 2000 |
-| `DELETE /api/photos/albums/{id}/items` | Signed-in | Album's owner or an admin. 1 to 2000 |
-| `GET /api/photos/{id}` | Signed-in | limits. Lists only the caller's own and shared albums |
+| `GET /api/photos/{id}` | Signed-in | limits |
 | `GET /api/items/{id}/image` | Signed-in | limits. Photo or video. Type from a fixed list |
 | `GET /api/items/{id}/original` | Signed-in | limits. Photo or video. Type from a fixed list. Sent as a download |
 | `GET /api/items/{id}/motion` | Signed-in | limits. Clip's path is inside a library |
@@ -452,7 +440,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `DELETE /api/me/history` | Signed-in | own |
 | `GET /api/me/recommended` | Signed-in | own record. limits. Count up to 50 |
 | `GET /api/shares` | Signed-in | own. Everyone's with 'all=1', for an admin |
-| `POST /api/shares` | Adult | Links turned on. Item: limits, photo or video. Album: visible to the caller. Days from 0 to 3650 |
+| `POST /api/shares` | Adult | Links turned on. Item: limits, photo or video. Photos: 1 to 2000, each a photo or video visible to the caller, a title. Days from 0 to 3650 |
 | `DELETE /api/shares/{id}` | Signed-in | Link's maker or an admin |
 | `GET /api/share/{token}` | Public, with the link's secret | Links turned on. Secret's hash, end date. The maker's limits |
 | `GET /api/share/{token}/image/{id}` | Public, with the link's secret | As above. Item is what the link names. Always re-encoded |
@@ -487,32 +475,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/channels/{id}/logo` | Signed-in | Numeric id |
 | `PUT /api/channels/{id}/logo` | Admin | Channel exists. PNG or JPEG of at most 2 MB, 16 to 4096 pixels a side |
 | `DELETE /api/channels/{id}/logo` | Admin | Numeric id |
-| `GET /api/tv/encrypted-help` | Signed-in | Nothing: fixed text |
 | `GET /api/tv/{key}/logo` | Signed-in | Channel key. Account may watch tuner channels, channel enabled. Web address only, internet-only client, pictures only |
-| `GET /api/tuners/drivers` | Admin | Nothing further |
-| `GET /api/tuners/discover` | Admin | 12-second limit |
-| `GET /api/tuners` | Admin | Options masked |
-| `POST /api/tuners` | Admin | Driver and options checked by the tuner manager |
-| `POST /api/tuners/check` | Admin | Playlist file place checked; options checked by the tuner manager; nothing saved; 90-second limit; masked passwords only from the tuner named |
-| `PUT /api/tuners/{id}` | Admin | Tuner exists. Options checked by the tuner manager |
-| `DELETE /api/tuners/{id}` | Admin | Tuner exists |
-| `POST /api/tuners/{id}/refresh` | Admin | Tuner exists |
-| `POST /api/tuners/{id}/scan` | Admin | Tuner exists. Source |
-| `GET /api/tuners/{id}/scan` | Admin | Numeric id |
-| `POST /api/tuners/{id}/test` | Admin | Tuner exists. Channel must be the tuner's. Opened as a viewer's would be: encrypted refused, tuner limits kept; 90-second limit |
-| `GET /api/tuners/{id}/channels` | Admin | Numeric id |
-| `POST /api/tuners/{id}/channels/enable` | Admin | Numeric id |
-| `PUT /api/tuner-channels/{id}` | Admin | Channel exists. Fields |
-| `POST /api/tuner-channels/bulk` | Admin | 1 to 20000 channel ids; a known action; check: up to 50 |
-| `GET /api/tuners/duplicates` | Admin | Nothing further |
-| `POST /api/tuners/{id}/health` | Admin | Tuner exists. One check per tuner at a time, within its stream limit |
-| `GET /api/tuners/{id}/health` | Admin | Tuner exists |
-| `DELETE /api/tuners/{id}/health` | Admin | Tuner exists |
-| `GET /api/epg/sources` | Admin | Nothing further |
-| `POST /api/epg/sources` | Admin | Name and address checked by the tuner manager |
-| `DELETE /api/epg/sources/{id}` | Admin | Source exists |
-| `POST /api/epg/sources/{id}/refresh` | Admin | Numeric id |
-| `GET /api/epg/ids` | Admin | Nothing further |
 | `GET /api/recordings` | Tuner channels | own, and every account's for an administrator |
 | `POST /api/recordings` | Tuner channels | canRecord: a tuner channel, turned on, visible, clear and not marked not to be recorded; never a library channel. 50 waiting per account, none for an administrator |
 | `DELETE /api/recordings/{id}` | Tuner channels | own, and every account's for an administrator |

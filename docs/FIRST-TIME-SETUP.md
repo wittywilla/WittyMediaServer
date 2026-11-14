@@ -183,9 +183,9 @@ This sorts your own titles by which streaming service lists them right now. Noth
 
 ## 9. Live TV
 
-This page appears if you added WittyTuner.
+This page appears if you added WittyTuner, and is WittyTuner's own. On a TV or phone app, the server's "Finish setting up WittyTuner" notice on Home opens the same step: the tuners found on your network, each added with a press.
 
-**Add live TV** walks you through adding a TV tuner on your network, a provider's playlist or a single stream. It finds what it can by itself and takes the rest by hand. Each one you add is listed with how many channels it has, and their channels sit in the guide beside the ones made from your library. **Add another** adds more; **Skip for now** leaves it for later in **Settings → Channels & tuners**.
+**Add live TV** walks you through adding a TV tuner on your network, a provider's playlist or a single stream. It finds what it can by itself and takes the rest by hand. Each one you add is listed with how many channels it has, and their channels sit in the guide beside the ones made from your library. **Add another** adds more; **Skip for now** leaves it for later in **Settings → Live TV & tuners**.
 
 No channel lists or stream addresses come with the server: you bring your own. Encrypted channels are shown as encrypted and never decrypted. See [Channels and live TV](CHANNELS.md).
 

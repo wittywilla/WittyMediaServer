@@ -374,6 +374,20 @@ func (rv *sduiResolver) cleanModuleAction(mod string, a *sdui.Action) *sdui.Acti
 				}
 			case float64, bool:
 				out.Params = putParam(out.Params, p.Name, x)
+			case []any:
+				// A list of ids ("ints" in the catalogue): whole numbers only, at most 500.
+				if p.Type != "ints" || len(x) > 500 {
+					continue
+				}
+				ids := make([]any, 0, len(x))
+				for _, e := range x {
+					if f, ok := e.(float64); ok && f == float64(int64(f)) {
+						ids = append(ids, f)
+					}
+				}
+				if len(ids) == len(x) {
+					out.Params = putParam(out.Params, p.Name, ids)
+				}
 			}
 		}
 	default:

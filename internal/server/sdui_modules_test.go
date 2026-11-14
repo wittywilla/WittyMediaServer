@@ -196,3 +196,21 @@ func TestModuleNavigationKeepsTheAdministratorsPlacement(t *testing.T) {
 		t.Fatalf("the administrator's entry was replaced: %+v", nav.Items)
 	}
 }
+
+// A module's command keeps a list of ids where the catalogue says "ints", and nothing else that's
+// a list.
+func TestModuleCommandKeepsIDLists(t *testing.T) {
+	rv := &sduiResolver{}
+	got := rv.cleanModuleAction("wittyplay", &sdui.Action{Type: sdui.ActCommand, Op: "wittyplay.kids.friends", Item: "7", Params: map[string]any{"friends": []any{2.0, 5.0}}})
+	if got == nil || len(got.Params["friends"].([]any)) != 2 {
+		t.Fatalf("a list of ids: %+v", got)
+	}
+	got = rv.cleanModuleAction("wittyplay", &sdui.Action{Type: sdui.ActCommand, Op: "wittyplay.kids.friends", Item: "7", Params: map[string]any{"friends": []any{2.5, "x"}}})
+	if got == nil || got.Params["friends"] != nil {
+		t.Errorf("a list that isn't whole numbers: %+v", got)
+	}
+	got = rv.cleanModuleAction("wittyplay", &sdui.Action{Type: sdui.ActCommand, Op: "wittyplay.memory.delete", Item: "7", Params: map[string]any{"name": []any{1.0}}})
+	if got == nil || got.Params["name"] != nil {
+		t.Errorf("a list where the catalogue wants text: %+v", got)
+	}
+}

@@ -19,7 +19,9 @@ This plan **supersedes the "server builds with it" half of [module-isolation.md]
 - [Updating a module without a server release](#updating-a-module-without-a-server-release)
 - [When a module is missing, older or newer](#when-a-module-is-missing-older-or-newer)
 - [Client apps](#client-apps)
+- [First-run setup (OOBE)](#first-run-setup-oobe)
 - [Security](#security)
+- [Overrides: bypassing a protection, with warnings](#overrides-bypassing-a-protection-with-warnings)
 - [Module by module](#module-by-module)
 - [Order of work](#order-of-work)
 - [Testing](#testing)
@@ -423,18 +425,108 @@ What the apps use today (from WittyMediaClient):
 
     s4 offers to run this pass.
 
+## First-run setup (OOBE)
+
+Today's setup wizard (`web/src/pages/setup/plan.ts`, `internal/server/setup_state.go`) already has module steps hard-wired. **Live TV** needs WittyTuner, **Games** needs WittyPlay, and **Discs** needs WittyDVD or WittyBluray. Games also asks about game titles and game pictures. Each step says where it is "later" in Settings. API 5 makes these steps the modules' own.
+
+**A module declares its steps** in `integration.json`:
+
+```jsonc
+"setup": [ { "id": "games", "title": "Games", "after": "details",
+             "when": { "libraryKinds": ["games"], "admin": true },
+             "page": "wittyplay-setup",                        // an SDUI page in its sdui.json: native apps draw it too
+             "saves": ["module:wittyplay:titles", "module:wittyplay:pictures"],
+             "later": { "where": "Settings, Games & emulators", "to": "/settings/gaming" } } ]
+```
+
+| Field | What it means |
+|---|---|
+| `id` | Unique within the module. Shown as `<module>.<id>` |
+| `title` | The step's name in the wizard's progress bar |
+| `after` / `before` | Its place relative to a built-in step: `welcome`, `account`, `name`, `look`, `theme`, `modules`, `libraries`, `details`, `people`, `remote`, `ready`. It can never go before `modules` or after `ready` |
+| `when` | `libraryKinds`: shown only if such a library exists or is being added. `admin`: always true today, because setup is the administrator's |
+| `page` | The step's form, as an SDUI page with the module's own settings rows and `Form` component, so every app can draw it. A web bundle may also register a richer `setup` component for the web app |
+| `saves` | Only the module's own settings (its `sdui.json` settings and its own routes); the server checks a step can't write anything else |
+| `later` | Where the step lives in Settings afterwards: the "Do this later" link |
+
+**Rules:**
+
+- **Order.**
+  - Built-in steps keep their places.
+  - Module steps that name the same anchor go in order of module id. A tie can't reorder built-ins.
+  - Two modules can't take the same step id, because ids are namespaced.
+- **Skipping.** Every module step can be skipped. Skipping records nothing and shows the step's `later` link on the Ready page.
+- **Nothing added means today's wizard.** With no module adding steps, the steps, order and screens are exactly today's, checked by the screenshot comparison.
+- **Installed during setup.**
+  - The wizard's own Modules step installs modules. Their steps appear in the remaining plan straight away, because the plan is recomputed after Modules.
+- **Installed or upgraded after setup.**
+  - A version with steps the server hasn't shown gets a **"Finish setting up `<module>`"** notice for administrators, on Home and in Settings → Modules. It opens those steps alone, in the same frame as the wizard.
+  - An upgrade that adds a step does the same, for the new step only.
+  - Steps already done or skipped are remembered by `<module>.<id>` and a version number the module raises when a step changes meaningfully.
+- **Removed during setup.** Its steps leave the plan. Anything they saved stays with the module's data, under the uninstall rule ("keep" by default).
+- **Migrated steps.**
+  - `games`, game titles and game pictures become WittyPlay's.
+  - `tv` becomes WittyTuner's.
+  - `discs` becomes WittyDisc's, shared by DVD and Blu-ray.
+  - The old-version warnings on the Modules step stay the server's.
+  - Until each module ships API 5, the server's own copy of the step shows (legacyFor), so the step is never lost.
+- **Apps.**
+  - The setup wizard is web-only today. Apps show "This server isn't set up yet" with the address.
+  - SDUI step pages let the apps draw the "Finish setting up" steps later, behind a feature flag (`module-setup`) they opt into. Nothing changes for them until then.
+
+`integration.json` gains `web.setup[].title`, `before`, `when`, `page`, `saves` and `later` (WittyModule's `SetupStep`).
+
 ## Security
 
-- **What the server checks before a request reaches a module:** sign-in, admin, parental feature, item access and limits. That is the same rule as today's WittyPlay proxy, now generic. The module still checks `X-Witty-*` itself.
-- **Files:**
-  - A route never takes a file path from a browser.
-  - Files come from `X-Witty-Item` or `host.files(item)`, as read handles the server opened after its access check.
-  - This keeps the rule behind `POST /api/games/{id}/play/emulator`.
-- **Aliases are limited to the server's signed legacy list per module.** A fork's `integration.json` can't claim paths of another module or of the host.
-- **Modules from other publishers** (`custom`, `unsigned`, `untrusted-key`) get **no** aliases, no `fullscreen` frame and no card or player hooks unless the admin ticks each one in the override, following today's grants model. Their web bundles stay as today.
-- **Web bundles run with the signed-in person's access.** That is already true; more UI in bundles means more depends on signatures, so the rule that nothing unsigned is fetched or run stays absolute.
-- **The guards stay in the server:** mpegts, hlsgate, scramble, AACS, the checks on helper answers, the ebook sanitiser. Every transcode the host API runs goes through them.
-- **Permissions stay the server's policy.** `mayHave` is not moved into manifests.
+**Threat model.** Three kinds of attacker, each assumed:
+
+1. **A module that is malicious or taken over:** an official version, a fork, or a third-party store's module.
+2. **A tampered download, or a catalogue in the middle.**
+3. **A person on the server's network or signed in with less access,** trying to reach through a module what they can't reach directly.
+
+The apps and browsers talking to the server must never become a way in.
+
+**What is guaranteed, and where:**
+
+| Guarantee | How |
+|---|---|
+| Only signed code runs | Every archive's SHA-256 is in a signed list. The catalogue is signed. Keys are fixed per module, and a different key is the `untrusted-key` override. Withdrawn versions are refused and taken out of use. A downgrade asks for the admin's password. All of this exists today and is unchanged |
+| Permissions are declared, shown and agreed | `module.json` `permissions` (network, programs, devices, data) and `integration.json` (routes, aliases, frames, card hooks, data import, network hosts) are shown at install. **An upgrade that asks for more asks again.** The store shows the difference ("now also: network access to api.example.com") and installs only after the admin agrees. A grant never widens silently. The server's own list (`mayHave`) still decides which stock modules may hold which permission |
+| A module runs boxed in | Separate process, with each system's sandbox as today: Landlock/seccomp/namespaces, sandbox-exec, job objects, rlimits/jails. Writes only to its own data folder. No network or programs unless granted |
+| The host API is the only door back | It listens on loopback only. **One secret per module per start.** Every call is answered with the asking person's access. Only libraries of the module's own kinds are visible. Another module's data, settings, secrets and pictures are never reachable. Secrets are kept by the server and given only to the module they belong to. Legacy tables can be read only for the module that `data.import` names |
+| Routes can't widen access | Sign-in, admin, parental feature, screen time and item checks are the server's, before the module sees anything. Browser sign-in and `X-Witty-*` headers are dropped. Limits on size and time. Aliases only of the server's own routes for that module. Reserved names are refused. File paths come only from the server |
+| Web bundles stay in the page's rules | The same Content-Security-Policy as the app: no inline scripts, no other origins. Bundles get only the host SDK, and the builder refuses a second copy of React or the router. A bundle's CSS is on only while its screen is. A crash is reported and its screen replaced |
+| Network hosts are declared | `integration.json` gains `network.hosts`: every host a module contacts by itself, with a reason. They're shown at install and must be on the server's privacy list (`internal/legal/legal.json`, Settings → Legal → services), which is generated from the installed modules' lists. Where a system's sandbox can filter by host (Linux, via the network namespace and a proxy), only those hosts are reachable. Elsewhere the list is a declared promise, and an unlisted host seen in the module's log is flagged |
+| Data stays the module's, and leaves with it | Its database is in its own folder, in backups under its declared class, and kept or removed at uninstall as the admin chooses ("keep" by default). The server's own tables are never written by a module |
+| Misbehaviour is contained | Three failures a day take a version out of use (exists today). A module that floods the host API (rate limits per module), keeps routes over time, or sends malformed answers is throttled, then quarantined: turned off, with the reason in its log and a notice to admins |
+| Everything is recorded | The module audit log (exists) gains installs and upgrades with the permissions agreed, overrides, lifecycle calls, refused host API calls and quarantines |
+| Apps are protected | Apps only ever talk to the server's own routes. Module routes and aliases keep the same contract, checked by the contract tests. A module can't set cookies, can't serve pages on the app's origin except as a web bundle under the CSP, and ticket pages are always sandboxed |
+
+**Never possible, overridden or not:** a module reading the server's database or another module's folder; a module receiving a person's sign-in; an alias of a route that isn't the module's own; turning off the encryption guards (scramble, AACS, MPEG-TS, HLS gate); a module served at the app's origin without the CSP; installing a withdrawn-for-security version; a module answering for parental or screen-time decisions.
+
+## Overrides: bypassing a protection, with warnings
+
+Today's override system (`docs/MODULE-STORE.md`, kinds `incomplete`, `out-of-range`, `local-file`, `custom`, `untrusted-key`, `weak-sandbox`, `unsigned`) is the model. API 5 adds kinds. Every override:
+
+- is **admin-only**, needs the admin's password (and 2FA), and at severity 3 or more needs the module's id typed;
+- is **never on by default**;
+- shows **a warning dialog** saying what it allows, the risk in plain words, and how to undo it, with a link to the matching section of a new guide, **`docs/MODULE-SECURITY.md`**;
+- is **recorded** in the audit log, shown as an **Overridden** badge in Settings → Modules and the store, included in the diagnostic report and the support bundle;
+- is **reversible** from the module's page ("Remove override"), which goes back to the last state that needed none;
+- pins the module so it never auto-updates while overridden (exists today).
+
+| Override | What it allows | Severity |
+|---|---|---|
+| **Developer mode** (server-wide switch, new) | Shows "Install from a file" for unsigned modules (today's `unsigned`/`custom`), plus `wittymodule web preview` against this server. Each install still asks for its own override. A banner shows on every admin page while it's on, and it turns itself off after 24 hours unless renewed | 3 |
+| **Trust this publisher** (new, per third-party catalogue) | Accept a store's key for that store's modules. They still get no permissions until each is ticked | 3 |
+| **Grant a permission later** (new) | Tick a permission the manifest asks for that isn't granted, on an installed module (today only at install). Re-asked if a new version changes it | 2 |
+| **Allow an extra network host** (new) | Let a module reach a host its `network.hosts` doesn't list. Added to the privacy list as "added by the administrator" | 2 |
+| **Run outside the sandbox** (exists as `weak-sandbox` for macOS; new elsewhere) | Start a module whose sandbox won't start. Only for modules signed by a trusted key, never for unsigned or custom ones | 4 |
+| `incomplete`, `out-of-range`, `local-file`, `untrusted-key`, `unsigned` | As today | 1–4 |
+
+**Never offered:** turning off the encryption guards; letting a module read another module's data or the server's database; giving a module people's sign-ins; installing a version withdrawn for security; aliasing routes that aren't the module's; running an unsigned module outside the sandbox; forks of WittyTuner (as today); anything at all while `WMS_NO_MODULE_FORKS=1`.
+
+`docs/MODULE-SECURITY.md` (written with the first override that's new): the threat model above in plain words; what each permission and override means, with its risk and how to undo it; how to read the audit log; what quarantine means; and how to report a module.
 
 ## Module by module
 

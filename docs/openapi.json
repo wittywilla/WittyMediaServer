@@ -8340,8 +8340,72 @@
                         "after": {
                           "type": "string"
                         },
+                        "before": {
+                          "type": "string"
+                        },
                         "id": {
                           "type": "string"
+                        },
+                        "later": {
+                          "anyOf": [
+                            {
+                              "properties": {
+                                "to": {
+                                  "type": "string"
+                                },
+                                "where": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "to",
+                                "where"
+                              ],
+                              "type": "object"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "page": {
+                          "type": "string"
+                        },
+                        "saves": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": [
+                            "array",
+                            "null"
+                          ]
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "version": {
+                          "type": "integer"
+                        },
+                        "when": {
+                          "anyOf": [
+                            {
+                              "properties": {
+                                "libraryKinds": {
+                                  "items": {
+                                    "type": "string"
+                                  },
+                                  "type": [
+                                    "array",
+                                    "null"
+                                  ]
+                                }
+                              },
+                              "type": "object"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
                         }
                       },
                       "required": [

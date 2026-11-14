@@ -15,7 +15,7 @@ import { sharedEndedSpec, sharedHeadSpec } from '../spec/specs/share'
 // into the server. No account, no navigation, nothing but what was shared.
 
 type SharedItem = { id: number; kind: 'photo' | 'video'; title: string; takenAt?: number; width: number; height: number; durationSec?: number }
-type Shared = { kind: 'item' | 'album'; title: string; allowDownload: boolean; expiresAt: number | null; items: SharedItem[] }
+type Shared = { kind: 'item' | 'photos'; title: string; allowDownload: boolean; expiresAt: number | null; items: SharedItem[] }
 
 export default function SharedPage() {
   const { token } = useParams()

@@ -10,15 +10,13 @@ import LegalNote from '../../components/LegalNote'
 import { ask } from '../../ui/Overlay'
 import RemoteControlSections from './RemoteControl'
 
-// Uploads, links for people without an account, the online map, and the place
-// kept for the local AI.
+// Uploads, links for people without an account, and the place kept for the local AI. (The
+// photo map's online map is WittyPhotos' own setting, under Modules.)
 
 function ServerSharing() {
   const st = useServerSettings()
   const { s, set, on } = st
   if (!s) return st.failed ? <LoadError what="This page" onRetry={st.retry} /> : null
-  // Unset on servers from before the switch: an address alone meant on.
-  const mapOn = s.mapOnline === '1' || (s.mapOnline !== '0' && !!s.mapTiles)
   return (
     <>
       <Section title="Uploads" desc="Adults can add pictures and videos to Photos and Vertical videos libraries from their devices. Files are saved in an Uploads folder inside the library's first folder and never replace anything.">
@@ -36,20 +34,9 @@ function ServerSharing() {
           </select>
         </Row>
       </Section>
-      <Section title="Links for people without an account" desc="Adults can make a link to one picture, video or album. Whoever has the link sees that and nothing else, without signing in. It only works where this server can be reached: on your home network until you set up remote access.">
+      <Section title="Links for people without an account" desc="Adults can make a link to one picture or video, or to an album's pictures. Whoever has the link sees that and nothing else, without signing in. It only works where this server can be reached: on your home network until you set up remote access.">
         <Row label="Allow links" desc="Turning this off stops every existing link too.">
           <Switch label="Allow links" checked={on('shareLinks')} onChange={(v) => set('shareLinks', v ? '1' : '0')} />
-        </Row>
-      </Section>
-      <Section title="Photo map" desc="The map works without the internet, with a plain outline of the world. An online map shows streets and places, but it means the viewer's device asks that provider for the parts of the map being looked at, so the provider learns roughly what area is being viewed and from where. The pictures and their places stay here. Off by default.">
-        <Row label="Use an online map" desc="The map says so underneath, and each device can still choose the outline. If the provider doesn't answer, the outline comes back by itself.">
-          <Switch label="Use an online map" checked={mapOn} onChange={(v) => set('mapOnline', v ? '1' : '0')} />
-        </Row>
-        <Row label="Online map address" desc={<>An https address containing {'{z}'}, {'{x}'} and {'{y}'} ({'{s}'} too, if the provider asks for it), from a provider whose terms allow it.</>} stack dim={!mapOn}>
-          <input className="input" aria-label="Online map address" value={s.mapTiles || ''} disabled={!mapOn} onChange={(e) => set('mapTiles', e.target.value)} placeholder="https://…/{z}/{x}/{y}.png" spellCheck={false} />
-        </Row>
-        <Row label="Credit to show on the map" desc="What the provider asks to be shown, such as its name and its data's licence. One line of plain text." stack dim={!mapOn}>
-          <input className="input" aria-label="Credit to show on the map" value={s.mapAttribution || ''} disabled={!mapOn} onChange={(e) => set('mapAttribution', e.target.value)} maxLength={200} spellCheck={false} />
         </Row>
       </Section>
       <RemoteControlSections s={s} set={set} />
@@ -78,7 +65,7 @@ function Links() {
       actions={user?.isAdmin ? <label className="set-check"><input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} /> Everyone's</label> : undefined}>
       {links && !links.length && <p className="muted" style={{ padding: '4px 0' }}>No links yet. Make one with Share on a picture, video or album.</p>}
       {links?.map((l) => (
-        <Row key={l.id} label={l.title} desc={[l.kind === 'album' ? 'Album' : 'Single item', l.owner && all ? `by ${l.owner}` : '', `opened ${l.views} ${l.views === 1 ? 'time' : 'times'}`, l.expiresAt ? `until ${new Date(l.expiresAt * 1000).toLocaleDateString()}` : 'no end date', l.allowDownload ? 'downloads allowed' : ''].filter(Boolean).join(' · ')}>
+        <Row key={l.id} label={l.title} desc={[l.kind === 'photos' ? 'Pictures' : 'Single item', l.owner && all ? `by ${l.owner}` : '', `opened ${l.views} ${l.views === 1 ? 'time' : 'times'}`, l.expiresAt ? `until ${new Date(l.expiresAt * 1000).toLocaleDateString()}` : 'no end date', l.allowDownload ? 'downloads allowed' : ''].filter(Boolean).join(' · ')}>
           <button className="btn sm ghost" onClick={() => end(l)}>End link</button>
         </Row>
       ))}

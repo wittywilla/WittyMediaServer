@@ -9,7 +9,7 @@ world-atlas is ISC):
   python3 scripts/world-land.py land-110m.json > web/public/world-land.txt
 
 The output is one SVG path: Web Mercator, the world 1000 units wide with the
-top at 85.05 degrees north, as web/src/pages/photos/mapMath.ts draws it. Every
+top at 85.05 degrees north, as WittyPhotos' web/app/mapMath.ts draws it. Every
 ring is kept: the first outline lost Africa, Europe and Asia, so this fails if
 a ring of that size is missing.
 """

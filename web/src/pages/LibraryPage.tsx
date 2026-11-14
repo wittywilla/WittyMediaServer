@@ -6,11 +6,9 @@ import { EmptyState, Spinner } from '../components/common'
 import { ModuleMissing } from '../components/ModuleMissing'
 import { useApp } from '../state'
 import AudioLibrary from './AudioLibrary'
-import BooksLibrary from './Books'
 import VideoLibrary from './library/VideoLibrary'
 
 // Loaded when opened: most servers have only some of these libraries.
-const PhotosLibrary = lazy(() => import('./photos/PhotosLibrary'))
 const ShortsLibrary = lazy(() => import('./creators/ShortsLibrary'))
 const ChannelsLibrary = lazy(() => import('./creators/ChannelsLibrary'))
 const RadioLibrary = lazy(() => import('./RadioLibrary'))
@@ -23,8 +21,9 @@ export default function LibraryPage() {
   const { libraries } = useApp()
   const lib = libraries.find((l) => String(l.id) === id)
   if (lib && AUDIO.includes(lib.type)) return <AudioLibrary key={lib.id} lib={lib} />
-  if (lib?.type === 'books') return <BooksLibrary key={lib.id} lib={lib} />
-  if (lib?.type === 'photos') return <Suspense fallback={<Spinner />}><PhotosLibrary key={lib.id} lib={lib} /></Suspense>
+  // A photos library is WittyPhotos' (its takeover); without it, it's missing. A books library is
+  // WittyInk's server-driven page; this is only drawn when there is none, as for any other library.
+  if (lib?.type === 'photos') return <ModuleMissing ids={['wittyphotos']} />
   if (lib?.type === 'shorts') return <Suspense fallback={<Spinner />}><ShortsLibrary key={lib.id} lib={lib} /></Suspense>
   if (lib?.type === 'channels' || lib?.type === 'musicvideos') return <Suspense fallback={<Spinner />}><ChannelsLibrary key={lib.id} lib={lib} /></Suspense>
   if (lib?.type === 'radio') return <Suspense fallback={<Spinner />}><RadioLibrary key={lib.id} lib={lib} /></Suspense>

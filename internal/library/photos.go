@@ -6,6 +6,7 @@ package library
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"image"
@@ -23,7 +24,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 )
 
@@ -416,7 +416,9 @@ type PhotoQuery struct {
 	UserID    int64
 	Access    *Access
 	YM        int
-	Album     int64
+	// IDs, when not nil, keeps to these pictures: an album's (WittyPhotos keeps albums) or a
+	// share link's.
+	IDs       []int64
 	Folder    *string
 	Favorites bool
 	Kind      string // photo | video
@@ -456,9 +458,14 @@ func (q *PhotoQuery) where() (string, []any) {
 		w = append(w, "p.ym = ?")
 		args = append(args, q.YM)
 	}
-	if q.Album != 0 {
-		w = append(w, "p.item_id IN (SELECT item_id FROM photo_album_items WHERE album_id = ?)")
-		args = append(args, q.Album)
+	if q.IDs != nil {
+		if len(q.IDs) == 0 {
+			w = append(w, "0")
+		} else {
+			w = append(w, "p.item_id IN (SELECT value FROM json_each(?))")
+			b, _ := json.Marshal(q.IDs)
+			args = append(args, string(b))
+		}
 	}
 	if q.Folder != nil {
 		w = append(w, "p.folder = ?")
@@ -575,14 +582,13 @@ type PhotoDetail struct {
 	Lat      *float64 `json:"lat,omitempty"`
 	Lon      *float64 `json:"lon,omitempty"`
 	Alt      *float64 `json:"alt,omitempty"`
-	Albums   []int64  `json:"albums"`
 	WebSafe  bool     `json:"webSafe"` // the original can be shown as it is
 }
 
 // PhotoDetail loads one picture for an account that may see its item.
 func (s *Store) PhotoDetail(ctx context.Context, userID int64, it *Item) (*PhotoDetail, error) {
 	d := PhotoDetail{Photo: Photo{ID: it.ID, LibraryID: it.LibraryID, Kind: it.Kind, Title: it.Title, Width: it.Width, Height: it.Height, DurationSec: it.RuntimeSec, UpdatedAt: it.UpdatedAt},
-		FileName: filepath.Base(it.Path), Size: it.SizeBytes, WebSafe: WebSafeImage(it.Path), Albums: []int64{}}
+		FileName: filepath.Base(it.Path), Size: it.SizeBytes, WebSafe: WebSafeImage(it.Path)}
 	var mk, model, lens, exposure, motion sql.NullString
 	var fnumber, focal sql.NullFloat64
 	var iso sql.NullInt64
@@ -601,18 +607,7 @@ func (s *Store) PhotoDetail(ctx context.Context, userID int64, it *Item) (*Photo
 	var like sql.NullInt64
 	_ = s.DB.QueryRowContext(ctx, `SELECT value FROM item_reactions WHERE user_id = ? AND item_id = ?`, userID, it.ID).Scan(&like)
 	d.Favorite = like.Int64 > 0
-	rows, err := s.DB.QueryContext(ctx, `SELECT a.album_id FROM photo_album_items a JOIN photo_albums b ON b.id = a.album_id WHERE a.item_id = ? AND (b.owner_id = ? OR b.shared = 1)`, it.ID, userID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var id int64
-		if rows.Scan(&id) == nil {
-			d.Albums = append(d.Albums, id)
-		}
-	}
-	return &d, rows.Err()
+	return &d, nil
 }
 
 // PhotoOrientation and motion clip of a picture, for its thumbnail and player.
@@ -822,131 +817,6 @@ func (s *Store) PhotoBounds(ctx context.Context, q PhotoQuery) (*PhotoBounds, er
 		b.West, b.East = eastFrom.Float64, westTo.Float64
 	}
 	return &b, nil
-}
-
-// ---------------------------------------------------------------------------
-// Albums
-// ---------------------------------------------------------------------------
-
-// PhotoAlbum is a named set of pictures. It belongs to the account that made
-// it; a shared album is also visible to every account that can open the library,
-// which still sees only the pictures its own limits allow.
-type PhotoAlbum struct {
-	ID          int64  `json:"id"`
-	LibraryID   int64  `json:"libraryId"`
-	OwnerID     int64  `json:"ownerId"`
-	Owner       string `json:"owner"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Shared      bool   `json:"shared"`
-	Count       int    `json:"count"`
-	CoverID     int64  `json:"coverId"`
-	CreatedAt   int64  `json:"createdAt"`
-	UpdatedAt   int64  `json:"updatedAt"`
-}
-
-// PhotoAlbums lists the albums an account can see in a library.
-func (s *Store) PhotoAlbums(ctx context.Context, libraryID, userID int64, access *Access) ([]PhotoAlbum, error) {
-	clause, cargs := access.ItemClause()
-	args := append(append(append(append([]any{}, cargs...), cargs...), cargs...), libraryID, userID)
-	rows, err := s.DB.QueryContext(ctx, `SELECT a.id, a.library_id, a.owner_id, IFNULL(u.name, ''), a.name, a.description, a.shared, a.created_at, a.updated_at,
-		(SELECT COUNT(*) FROM photo_album_items x JOIN items i ON i.id = x.item_id WHERE x.album_id = a.id AND i.missing = 0 AND `+clause+`),
-		IFNULL((SELECT i.id FROM items i WHERE i.id = a.cover_item AND i.missing = 0 AND `+clause+`),
-		  (SELECT x.item_id FROM photo_album_items x JOIN items i ON i.id = x.item_id WHERE x.album_id = a.id AND i.missing = 0 AND `+clause+` ORDER BY x.added_at DESC LIMIT 1))
-		FROM photo_albums a LEFT JOIN users u ON u.id = a.owner_id
-		WHERE a.library_id = ? AND (a.owner_id = ? OR a.shared = 1) ORDER BY a.name COLLATE NOCASE LIMIT 2000`, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	out := []PhotoAlbum{}
-	for rows.Next() {
-		var a PhotoAlbum
-		var cover sql.NullInt64
-		if err := rows.Scan(&a.ID, &a.LibraryID, &a.OwnerID, &a.Owner, &a.Name, &a.Description, &a.Shared, &a.CreatedAt, &a.UpdatedAt, &a.Count, &cover); err != nil {
-			return nil, err
-		}
-		a.CoverID = cover.Int64
-		out = append(out, a)
-	}
-	return out, rows.Err()
-}
-
-// PhotoAlbumByID loads one album ("not found" when the account may not see it).
-func (s *Store) PhotoAlbumByID(ctx context.Context, id, userID int64, isAdmin bool) (*PhotoAlbum, error) {
-	var a PhotoAlbum
-	err := s.DB.QueryRowContext(ctx, `SELECT a.id, a.library_id, a.owner_id, IFNULL(u.name, ''), a.name, a.description, a.shared, a.created_at, a.updated_at
-		FROM photo_albums a LEFT JOIN users u ON u.id = a.owner_id WHERE a.id = ?`, id).Scan(
-		&a.ID, &a.LibraryID, &a.OwnerID, &a.Owner, &a.Name, &a.Description, &a.Shared, &a.CreatedAt, &a.UpdatedAt)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, ErrNotFound
-	}
-	if err != nil {
-		return nil, err
-	}
-	if !a.Shared && a.OwnerID != userID && !isAdmin {
-		return nil, ErrNotFound
-	}
-	return &a, nil
-}
-
-// CreatePhotoAlbum makes an album.
-func (s *Store) CreatePhotoAlbum(ctx context.Context, libraryID, ownerID int64, name, description string, shared bool) (*PhotoAlbum, error) {
-	now := db.Now()
-	res, err := s.DB.ExecContext(ctx, `INSERT INTO photo_albums(library_id, owner_id, name, description, shared, created_at, updated_at) VALUES(?,?,?,?,?,?,?)`, libraryID, ownerID, name, description, shared, now, now)
-	if err != nil {
-		return nil, err
-	}
-	id, _ := res.LastInsertId()
-	return s.PhotoAlbumByID(ctx, id, ownerID, true)
-}
-
-// UpdatePhotoAlbum changes an album's name, description, sharing and cover. A
-// cover of 0 goes back to the newest picture.
-func (s *Store) UpdatePhotoAlbum(ctx context.Context, id int64, name, description string, shared bool, cover *int64) error {
-	if cover != nil {
-		var v any
-		if *cover != 0 {
-			v = *cover
-		}
-		if _, err := s.DB.ExecContext(ctx, `UPDATE photo_albums SET cover_item = ? WHERE id = ?`, v, id); err != nil {
-			return err
-		}
-	}
-	_, err := s.DB.ExecContext(ctx, `UPDATE photo_albums SET name = ?, description = ?, shared = ?, updated_at = ? WHERE id = ?`, name, description, shared, db.Now(), id)
-	return err
-}
-
-// DeletePhotoAlbum removes an album; the pictures stay.
-func (s *Store) DeletePhotoAlbum(ctx context.Context, id int64) error {
-	_, err := s.DB.ExecContext(ctx, `DELETE FROM photo_albums WHERE id = ?`, id)
-	return err
-}
-
-// AddToPhotoAlbum adds pictures of the album's library (others are skipped).
-func (s *Store) AddToPhotoAlbum(ctx context.Context, album *PhotoAlbum, ids []int64) (int, error) {
-	now, added := db.Now(), 0
-	for _, id := range ids {
-		res, err := s.DB.ExecContext(ctx, `INSERT OR IGNORE INTO photo_album_items(album_id, item_id, added_at)
-			SELECT ?, id, ? FROM items WHERE id = ? AND library_id = ?`, album.ID, now, id, album.LibraryID)
-		if err != nil {
-			return added, err
-		}
-		n, _ := res.RowsAffected()
-		added += int(n)
-	}
-	_, err := s.DB.ExecContext(ctx, `UPDATE photo_albums SET updated_at = ? WHERE id = ?`, now, album.ID)
-	return added, err
-}
-
-// RemoveFromPhotoAlbum takes pictures out of an album.
-func (s *Store) RemoveFromPhotoAlbum(ctx context.Context, albumID int64, ids []int64) error {
-	for _, id := range ids {
-		if _, err := s.DB.ExecContext(ctx, `DELETE FROM photo_album_items WHERE album_id = ? AND item_id = ?`, albumID, id); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // ---------------------------------------------------------------------------

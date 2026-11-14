@@ -2016,24 +2016,31 @@ Both are modules of API 5: their routes are their own, under `/modules/wittycouc
 
 ### Photos
 
+The server keeps the pictures, what each says about itself (EXIF), uploads and share links. Albums, the online map under the photo map, and the gallery's screens are WittyPhotos' (module API 5): its routes are under `/modules/wittyphotos`, below; without it they answer 424.
+
 | Route | Sign-in | What it does |
 |---|---|---|
-| `GET /photos/months` | user | Photo months. |
-| `GET /photos/list` | user | Photo list. |
+| `GET /photos/months` | user | Photo months. `?ids=` (item numbers with commas, up to 5000) keeps to those pictures: an album's. |
+| `GET /photos/list` | user | Photo list, with the same `ids=`. |
 | `GET /photos/folders` | user | Photo folders. |
-| `GET /photos/map` | user | Photo map. |
+| `GET /photos/map` | user | Photo map: `clusters`, `truncated`, and with `fit=1` `bounds`. The online map is WittyPhotos' `GET /modules/wittyphotos/map`. |
 | `GET /photos/ai` | user | Photo AI. |
-| `GET /photos/albums` | user | Photo albums. |
-| `POST /photos/albums` | user | Create album. |
-| `PUT /photos/albums/{id}` | user | Update album. |
-| `DELETE /photos/albums/{id}` | user | Delete album. |
-| `POST /photos/albums/{id}/items` | user | Album add. |
-| `DELETE /photos/albums/{id}/items` | user | Album remove. |
 | `GET /photos/{id}` | user | Photo detail. |
 | `GET /items/{id}/image` | user | Item image. |
 | `GET /items/{id}/original` | user | Original. |
 | `GET /items/{id}/motion` | user | Motion. |
 | `POST /libraries/{id}/upload` | user | Upload. |
+
+**WittyPhotos** keeps albums in its own database. An album's pictures are the server's: ask WittyPhotos for its item numbers, then `GET /photos/list?library=&ids=`.
+
+| Route (under `/modules/wittyphotos`) | Sign-in | What it does |
+|---|---|---|
+| `GET /albums?library=` | user | The albums this account sees in a photos library (its own and shared ones): `id`, `libraryId`, `ownerId`, `owner`, `name`, `description`, `shared`, `count`, `coverId`, `createdAt`, `updatedAt`. `&item=` keeps to the albums holding that picture. |
+| `POST /albums` | user | Make one: `{libraryId, name, description, shared}`. Adults and administrators; 200 for an account that isn't an administrator. |
+| `PUT /albums/{id}`, `DELETE /albums/{id}` | user | Change (`{name, description, shared, coverId}`) or delete an album of this account's (an administrator's, any). The pictures stay. |
+| `GET /albums/{id}/items` | user | `{ids}`: its pictures this account may see, newest added first. |
+| `POST /albums/{id}/items`, `DELETE /albums/{id}/items` | user | Add or take out pictures: `{ids}`, 1 to 2000. |
+| `GET /map` | user | The online map under the photo map: `{tiles, attribution}`, both "" while it's off. |
 
 ### Vertical and creator videos
 
@@ -2102,7 +2109,7 @@ Favourites use `PUT /items/{id}/reaction` with `{"value": 1}`, as for anything e
 | Route | Sign-in | What it does |
 |---|---|---|
 | `GET /shares` | user | Shares. |
-| `POST /shares` | user | Create share. |
+| `POST /shares` | user | Create share: `{kind: "item", id}`, or a set of pictures (an album's) as they are now, `{kind: "photos", ids, title}` (1 to 2000); with `days` and `allowDownload`. |
 | `DELETE /shares/{id}` | user | Delete share. |
 | `GET /share/{token}` | none | Share open. |
 | `GET /share/{token}/image/{id}` | none | Share image. |

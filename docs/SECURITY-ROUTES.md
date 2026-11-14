@@ -396,13 +396,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/photos/folders` | Signed-in | A photos library the account may open. limits |
 | `GET /api/photos/map` | Signed-in | A photos library the account may open. limits. Box of four numbers |
 | `GET /api/photos/ai` | Signed-in | Nothing: reserved |
-| `GET /api/photos/albums` | Signed-in | A photos library the account may open. Own and shared albums. limits on counts |
-| `POST /api/photos/albums` | Adult | A photos library the account may open. Name and description sizes |
-| `PUT /api/photos/albums/{id}` | Signed-in | Album's owner or an admin. Sizes. Cover is a visible picture of that library |
-| `DELETE /api/photos/albums/{id}` | Signed-in | Album's owner or an admin |
-| `POST /api/photos/albums/{id}/items` | Signed-in | Album's owner or an admin. limits on each picture. Same library. 1 to 2000 |
-| `DELETE /api/photos/albums/{id}/items` | Signed-in | Album's owner or an admin. 1 to 2000 |
-| `GET /api/photos/{id}` | Signed-in | limits. Lists only the caller's own and shared albums |
+| `GET /api/photos/{id}` | Signed-in | limits |
 | `GET /api/items/{id}/image` | Signed-in | limits. Photo or video. Type from a fixed list |
 | `GET /api/items/{id}/original` | Signed-in | limits. Photo or video. Type from a fixed list. Sent as a download |
 | `GET /api/items/{id}/motion` | Signed-in | limits. Clip's path is inside a library |
@@ -453,7 +447,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `DELETE /api/me/history` | Signed-in | own |
 | `GET /api/me/recommended` | Signed-in | own record. limits. Count up to 50 |
 | `GET /api/shares` | Signed-in | own. Everyone's with 'all=1', for an admin |
-| `POST /api/shares` | Adult | Links turned on. Item: limits, photo or video. Album: visible to the caller. Days from 0 to 3650 |
+| `POST /api/shares` | Adult | Links turned on. Item: limits, photo or video. Photos: 1 to 2000, each a photo or video visible to the caller, a title. Days from 0 to 3650 |
 | `DELETE /api/shares/{id}` | Signed-in | Link's maker or an admin |
 | `GET /api/share/{token}` | Public, with the link's secret | Links turned on. Secret's hash, end date. The maker's limits |
 | `GET /api/share/{token}/image/{id}` | Public, with the link's secret | As above. Item is what the link names. Always re-encoded |

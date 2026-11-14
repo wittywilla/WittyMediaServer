@@ -21,6 +21,8 @@
 .play-dock a:focus-visible { outline: none; }
 .play-dock a:focus-visible .play-dock-ic { outline: var(--focus-width) solid var(--focus); outline-offset: 3px; }
 .play-dock-label { font-size: var(--text-xs); font-weight: 700; opacity: 0; }
+/* The page scrolls clear of the dock: its tallest button, its label, the gap under it and the device's safe area. */
+body:has(.play-dock) main.content { padding-block-end: calc(4.5rem + var(--text-xs) * 2 + var(--sp-5) * 2 + var(--dock-space, 0px) + var(--tabbar-space, 0px) + env(safe-area-inset-bottom, 0px)); }
 .play-dock a.on .play-dock-label, .play-dock a:focus-visible .play-dock-label, .play-dock a:hover .play-dock-label { opacity: 1; }
 .play-sys { display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2); min-inline-size: 44px; min-block-size: 44px; padding: 0 var(--sp-3); border: 0; border-radius: var(--r-full); background: var(--wp-chip); color: var(--fg); font: inherit; font-weight: 800; cursor: pointer; transition: background var(--dur-2); }
 .play-sys:hover { background: var(--wp-chip-hover); }

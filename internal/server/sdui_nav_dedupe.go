@@ -64,8 +64,9 @@ func dedupeModuleEntries(items []sdui.NavEntry, personal *sdui.PersonalInfo, fro
 const wittyPlayNavID = "wittyplay-online"
 
 // gamesBecomeWittyPlay: with WittyPlay in the menu, it replaces the games libraries' entries rather than
-// being dropped as a repeat of their label. It takes the first one's place and placement, so Games stays
-// where it was; the libraries are still reached from inside WittyPlay. Every app gets this from here.
+// being dropped as a repeat of their label. It takes the first one's place, and its placement for every
+// kind of device WittyPlay's own entry doesn't place (its own wins: Games on a phone's bottom bar); the
+// libraries are still reached from inside WittyPlay. Every app gets this from here.
 func gamesBecomeWittyPlay(items []sdui.NavEntry, personal *sdui.PersonalInfo, libs []sdui.NavLibrary) ([]sdui.NavEntry, *sdui.PersonalInfo) {
 	at := -1
 	for i, it := range items {
@@ -93,7 +94,10 @@ func gamesBecomeWittyPlay(items []sdui.NavEntry, personal *sdui.PersonalInfo, li
 		if games[it.ID] {
 			dropped[it.ID] = true
 			if !placed {
-				play.Placement = it.Placement
+				// The more prominent of the two: Games stays on the bar where the games library was, and
+				// goes on it where WittyPlay puts itself there (a phone's bottom bar). A games entry an
+				// administrator hid stays hidden.
+				play.Placement = morePlaced(play.Placement, it.Placement)
 				out = append(out, play)
 				placed = true
 			}
@@ -115,4 +119,17 @@ func gamesBecomeWittyPlay(items []sdui.NavEntry, personal *sdui.PersonalInfo, li
 		personal = &p
 	}
 	return out, personal
+}
+
+// morePlaced is the more prominent of a module's placement and the entry it replaces: the bar, then
+// pinned to its end, then More. A replaced entry that was hidden keeps it hidden.
+func morePlaced(module, replaced string) string {
+	if replaced == "hidden" {
+		return replaced
+	}
+	rank := map[string]int{"primary": 3, "": 3, "end": 2, "more": 1, "hidden": 0}
+	if rank[module] >= rank[replaced] {
+		return module
+	}
+	return replaced
 }

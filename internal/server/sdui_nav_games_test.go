@@ -29,6 +29,16 @@ func TestGamesBecomeWittyPlay(t *testing.T) {
 	if len(got) != 4 {
 		t.Fatalf("dedupe dropped WittyPlay: %d entries", len(got))
 	}
+	// WittyPlay on a phone's bar, the games library in More: Games goes on the bar.
+	phone := []sdui.NavEntry{{ID: "home"}, {ID: "lib-7", Label: "Games", Placement: "more"}, {ID: wittyPlayNavID, Label: "Games", Placement: "primary"}}
+	if got, _ := gamesBecomeWittyPlay(phone, nil, libs); len(got) != 2 || got[1].Placement != "primary" {
+		t.Errorf("WittyPlay's own primary: %+v", got)
+	}
+	// A games entry an administrator hid stays hidden.
+	hid := []sdui.NavEntry{{ID: "home"}, {ID: "lib-7", Label: "Games", Placement: "hidden"}, {ID: wittyPlayNavID, Label: "Games", Placement: "primary"}}
+	if got, _ := gamesBecomeWittyPlay(hid, nil, libs); got[1].Placement != "hidden" {
+		t.Errorf("a hidden games entry: %+v", got)
+	}
 	// Without WittyPlay, nothing changes.
 	plain := items[:4]
 	if got, _ := gamesBecomeWittyPlay(plain, nil, libs); len(got) != 4 {

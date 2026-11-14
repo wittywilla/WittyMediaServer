@@ -164,18 +164,18 @@ The rest of this guide is the design, and what has been tested.
                               Moonlight parts: GPL-3.0                            AGPL-3.0-or-later
 ```
 
-- **The server talks to the PC's client API** through `gamestream` in WittyCouch: identifying it, pairing, its games and art, and asking it to start one. The stubs in `internal/couch` call the module's service, and the routes are in `internal/server/api_couch.go`, `api_rigs.go` and `api_wittyrigs.go`.
+- **The modules talk to the PC's client API** through `gamestream` in WittyCouch: identifying it, pairing, its games and art, and asking it to start one. Both are modules of API 5 ([MODULES-API5.md](MODULES-API5.md)): WittyCouch's routes are in its `api/` (a person's own PCs), WittyRigs' in its `api/` (shared PCs, this machine's own Sunshine, and a shared PC's stream in the page, using WittyCouch's `gamestream` and `relay` as a library). Each keeps its own database. The server keeps a rig's library and games as ordinary libraries and items, which WittyRigs adds and removes through the host API.
 - **The stream itself** goes through Moonlight's real streaming core, in a program of its own (WittyCouchHost, with its protocol in `PROTOCOL.md` there). That covers RTSP, ENet control and encrypted video with error correction.
 - **The relay is thin.** It reads whole frames and Opus packets from a pipe and writes them to a WebRTC track. Frames are never decoded or re-encoded.
-- **The pages:** `web/src/pages/Couch.tsx` (your own PCs), `Rigs.tsx` (a shared PC's games), `settings/Couch.tsx`, `settings/GameRigs.tsx` and `settings/WittyRigs.tsx`. The player is `web/` in WittyCouch. `plan.go` there works out what each device can do.
+- **The pages** are the modules' web parts: WittyCouch's (your own PCs, its Settings section, the player) and WittyRigs' (a shared PC's library and games, Settings, Game rigs and WittyRigs). On a TV they are each module's SDUI pages. `plan.go` in WittyCouch works out what each device can do.
 
 ### Design decisions
 
 - **Moonlight's real code, in a program of its own.** This protocol has years of quirks in it, and Sunshine changes. The boundary is a documented protocol over pipes, as with WittyPlay's runner and FFmpeg.
 - **Our own relay rather than an existing web bridge.** It's about 700 lines, reuses this server's accounts and remote access on the same port, and asks for encrypted video. Roles in the bridge looked at couldn't limit anyone to a PC or a game, and its video from PC to server wasn't encrypted.
 - **The same origin.** The player is an ordinary part of the app, on the same port as everything else.
-- **Each person's own PCs.** A person's list, certificate and pairings are theirs (`wittycouch_hosts`, one key file per account).
-- **A shared PC is a library** (`type: games`, `console: rig`). Its games are ordinary items, so every access rule applies with no new code. `POST /games/{id}/play` on one answers 409 with `"rig": true`, and a client calls `POST /rigs/games/{id}/play` instead: see [the client API](CLIENT-API.md#shared-pcs-and-wittyrigs).
+- **Each person's own PCs.** A person's list, certificate and pairings are theirs (WittyCouch's own database, one key file per account).
+- **A shared PC is a library** (`type: games`, `console: rig`). Its games are ordinary items, so every access rule applies with no new code. `POST /games/{id}/play` on one answers 409 with `"rig": true`, and a client calls WittyRigs' `POST /modules/wittyrigs/games/{id}/play` instead: see [the client API](CLIENT-API.md#game-pcs-and-game-rigs-wittycouch-wittyrigs).
 - **WittyRigs is the same thing, for this machine:** that kind of library, for a Sunshine at `127.0.0.1`.
 - **Sunshine's sign-in is never stored.** It can run any command on that PC. Typing a PIN for someone's Moonlight app takes it once, sent only to the certificate pinned at pairing.
 - **H.264 only, for now.** It's what every browser can decode in WebRTC.
@@ -227,7 +227,6 @@ Read from Sunshine at v2026.914.233613, and run against that version. They move 
 | ENet, nanors | Inside moonlight-common-c | MIT |
 | Mbed TLS | Linked into that program | Apache-2.0 |
 | **WittyCouch**: relay, client protocol, player | WittyCouch (`relay/`, `gamestream/`, `web/`, `plan.go`) | **AGPL-3.0-or-later**. Written from the protocol and browser APIs, with no Moonlight code. It exchanges only the messages in `PROTOCOL.md` with a separate program |
-| The API and pages in the server | `internal/server/api_couch.go`, `web/src/pages/Couch.tsx` | AGPL-3.0-or-later, with the server |
 | **WittyRigs** | WittyRigs | AGPL-3.0-or-later: it only looks for a program and talks to it over the network |
 | Sunshine | On someone's PC, or this server if an admin installs it | GPL-3.0, installed separately by whoever owns that computer |
 | Moonlight's own apps | On someone's device | GPL-3.0, installed separately, and only started where a device allows |

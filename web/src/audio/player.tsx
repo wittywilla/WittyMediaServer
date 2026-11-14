@@ -81,7 +81,7 @@ const CdCtx = createContext<CdCtxValue | null>(null)
 export const useCd = () => useContext(CdCtx)!
 
 // Screens that have the speakers and the keyboard to themselves.
-const takesOver = (path: string) => path.startsWith('/play/') || path.startsWith('/game/') || path.startsWith('/couch-rig/') || /^\/couch\/\d+\/play\//.test(path)
+const takesOver = (path: string) => path.startsWith('/play/') || path.startsWith('/game/') || /^\/couch\/\d+\/play\//.test(path) || path.startsWith('/rigs/play/')
 
 function shuffled<T>(list: T[]) {
   const a = [...list]

@@ -153,7 +153,7 @@ func (s *Server) handleUpdateLibrary(w http.ResponseWriter, r *http.Request) {
 	var already []string
 	if cur, err := s.Store.Library(r.Context(), id); err == nil {
 		if cur.IsRig() {
-			writeErr(w, 409, "This library belongs to a gaming PC. Change it in Settings, Game rigs.")
+			writeErr(w, 409, "This library belongs to a gaming PC. Change it in Settings, Game rigs (WittyRigs).")
 			return
 		}
 		already = cur.Paths
@@ -187,11 +187,12 @@ func (s *Server) handleDeleteLibrary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.Scanner.Cancel(id)
-	s.rigLibraryGoing(r.Context(), id)
 	if err := s.Store.DeleteLibrary(r.Context(), id); err != nil {
 		writeErr(w, 500, err.Error())
 		return
 	}
+	// A module holding the library (a game rig's) forgets what it kept for it.
+	s.hostEvents().publish("library.removed", map[string]int64{"library": id})
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
 

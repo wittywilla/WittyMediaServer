@@ -88,7 +88,7 @@ func TestModuleOwnRoutes(t *testing.T) {
 	}
 
 	// A person's own route: who they are, and nothing of their sign-in or of what they forged.
-	w := ts.do(t, "GET", "/api/modules/wittyplay/echo?x=1&token=abc", palTok, nil, "X-Witty-Admin", "1", "X-Witty-User", "1", "Cookie", "wms_token=t; other=1")
+	w := ts.do(t, "GET", "/api/modules/wittyplay/echo?x=1&token=abc", palTok, nil, "X-Witty-Admin", "1", "X-Witty-User", "1", "X-Witty-Limited", "1", "Cookie", "wms_token=t; other=1")
 	if w.Code != 200 {
 		t.Fatalf("echo: %d %s", w.Code, w.Body)
 	}
@@ -104,6 +104,10 @@ func TestModuleOwnRoutes(t *testing.T) {
 	}
 	if !strings.Contains(h.Header.Get("X-Witty-Features"), "games") {
 		t.Errorf("features: %q", h.Header.Get("X-Witty-Features"))
+	}
+	// Where the device reached the server, said by the server alone (a forged one is dropped).
+	if h.Header.Get("X-Witty-Reached") == "" || h.Header.Get("X-Witty-Limited") != "" {
+		t.Errorf("reached and limited: %v", h.Header)
 	}
 	if w.Header().Get("Set-Cookie") != "" || w.Header().Get("X-Content-Type-Options") != "nosniff" {
 		t.Errorf("the answer's headers: %v", w.Header())

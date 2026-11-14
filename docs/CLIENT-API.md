@@ -1979,61 +1979,39 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `PUT /gamemeta/sources` | admin | Set the sources' order and whether each is on: `{sources: [{id, on}]}`. Costs no requests. |
 | `POST /gamemeta/sources/{id}/test` | admin | Does this work? `{fields: {setting: value}}`. Saves nothing. Keys themselves are saved through `PUT /settings`, and masked when read back. |
 
-### Game PCs
+### Game PCs and game rigs (WittyCouch, WittyRigs)
 
-**WittyCouch** plays the games on any PC running Sunshine, through this server. Each account has its own list of PCs, and its own pairing with each.
-A client can show the player in a web view (`/couch/{id}/play/{app}`), or start a stream and connect with `POST /couch/sessions/{sid}/webrtc`:
-H.264 and Opus, with data channels `control` (reliable) and `input` (unordered), whose messages are in `PROTOCOL.md` in WittyCouchHost.
-[GAME-RIGS.md](GAME-RIGS.md) is the design.
+Both are modules of API 5: their routes are their own, under `/modules/wittycouch/` and `/modules/wittyrigs/`, checked by the server as [MODULES-API5.md](MODULES-API5.md) says (feature `games`), and answer 424 with `module` while the module isn't in use. Each module's `integration.json` lists them with who may call each; [GAME-RIGS.md](GAME-RIGS.md) is the design. Their TV screens are SDUI pages of the modules' own (`wittycouch`, `wittycouch-host`, `wittyrigs`, `wittyrigs-rig`, `wittyrigs-local`).
 
-| Route | Sign-in | What it does |
+**WittyCouch** plays the games on any PC running Sunshine. Each account has its own list of PCs, and its own pairing with each. A client can show the player in a web view (`/couch/{id}/play/{app}`), or start a stream and connect with `POST /modules/wittycouch/sessions/{sid}/webrtc`: H.264 and Opus, with data channels `control` (reliable) and `input` (unordered), whose messages are in `PROTOCOL.md` in WittyCouchHost.
+
+| Route (under `/modules/wittycouch`) | Sign-in | What it does |
 |---|---|---|
-| `GET /couch` | user | Whether this account may connect to game PCs, whether this server can stream them, and what they are built on. |
-| `GET /couch/find` | user | Look for PCs running Sunshine on the server's network. |
-| `GET /couch/hosts` | user | This account's own game PCs, and how they are doing. |
-| `POST /couch/hosts` | user | Add a game PC by address. It has to answer as Sunshine. |
-| `PATCH /couch/hosts/{id}` | user | Rename a game PC. |
-| `DELETE /couch/hosts/{id}` | user | Forget a game PC. |
-| `POST /couch/hosts/{id}/pair` | user | Start pairing, and get the PIN to type into Sunshine. |
-| `GET /couch/hosts/{id}/pair` | user | How pairing is going. |
-| `DELETE /couch/hosts/{id}/pair` | user | Stop waiting for a PIN. |
-| `GET /couch/hosts/{id}/apps` | user | What a paired PC offers. |
-| `GET /couch/hosts/{id}/apps/{app}/art` | user | An app's picture. |
-| `POST /couch/hosts/{id}/apps/{app}/play` | user | Start an app, and a stream of it. Body: width, height, fps, bitrate. |
-| `POST /couch/hosts/{id}/wake` | user | Send a game PC the Wake-on-LAN signal. |
-| `POST /couch/hosts/{id}/quit` | user | End what is running on a game PC. |
-| `GET /couch/sessions/{sid}` | user | A stream of this account's. |
-| `POST /couch/sessions/{sid}/webrtc` | user | Connect to a stream: a WebRTC offer in, the answer out. |
-| `DELETE /couch/sessions/{sid}` | user | End a stream. With ?quit=1, close the game too. |
+| `GET /status` | user | Whether this account may connect to game PCs, whether this server can stream them, and what they are built on. |
+| `GET /find` | user | Look for PCs running Sunshine on the server's network. |
+| `GET /hosts`, `POST /hosts` | user | This account's own game PCs; add one by address (it has to answer as Sunshine). |
+| `PATCH /hosts/{id}`, `DELETE /hosts/{id}` | user | Rename or forget a game PC. |
+| `POST`, `GET`, `DELETE /hosts/{id}/pair` | user | Start pairing (the PIN to type into Sunshine), how it's going, stop waiting. |
+| `GET /hosts/{id}/apps`, `GET /hosts/{id}/apps/{app}/art` | user | What a paired PC offers, and an app's picture. |
+| `POST /hosts/{id}/apps/{app}/play` | user | Start an app, and a stream of it. Body: width, height, fps, bitrate. |
+| `POST /hosts/{id}/wake`, `POST /hosts/{id}/quit` | user | Wake-on-LAN; end what is running. |
+| `GET`, `DELETE /sessions/{sid}`, `POST /sessions/{sid}/webrtc` | user | A stream of this account's; end it (`?quit=1` closes the game too); connect to it. |
 
-### Shared PCs and WittyRigs
+**WittyRigs**: a PC an admin shares has a library of its own (`type: games`, `console: rig`), which WittyRigs keeps through the host API. To play, call `POST /modules/wittyrigs/games/{id}/play` with `{"client": "browser|desktop|android|apple", "os": "windows|mac|linux|chromeos|android|androidtv|firetv|ios|tvos"}`. It answers `methods`, best first, each of them something this device can really do: `client` means `POST /modules/wittyrigs/games/{id}/stream` and the player here. WittyPlay's `POST /modules/wittyplay/games/{id}/play` on one of these games answers 409 with `"rig": true`.
 
-A PC an admin shares has a library of its own (`type: games`, `console: rig`). To play, call `POST /rigs/games/{id}/play` with
-`{"client": "browser|desktop|android|apple", "os": "windows|mac|linux|chromeos|android|androidtv|firetv|ios|tvos"}`.
-It answers `methods`, best first, each of them something this device can really do: `client` means `POST /rigs/games/{id}/stream` and the player here. `POST /games/{id}/play` on
-one of these games answers 409 with `"rig": true`.
-
-| Route | Sign-in | What it does |
+| Route (under `/modules/wittyrigs`) | Sign-in | What it does |
 |---|---|---|
 | `GET /rigs` | user | The gaming PCs this account can see, and how they are doing. |
-| `POST /rigs` | admin | Add a gaming PC. It has to answer as Sunshine. |
-| `GET /rigs/find` | admin | Look for PCs running Sunshine on the home network. |
-| `PATCH /rigs/{id}` | admin | Change a rig name, address, address away from home or MAC address. |
-| `DELETE /rigs/{id}` | admin | Forget a rig, with its library. |
-| `POST /rigs/{id}/pair` | admin | Start pairing, and get the PIN to type into Sunshine. |
-| `GET /rigs/{id}/pair` | admin | How pairing is going. |
-| `DELETE /rigs/{id}/pair` | admin | Stop waiting for a PIN. |
+| `GET /rigs/find`, `POST /rigs` | admin | Look for PCs running Sunshine; add one. |
+| `PATCH /rigs/{id}`, `DELETE /rigs/{id}` | admin | Change a rig (name, address, address away from home, MAC address); forget it with its library. |
+| `POST`, `GET`, `DELETE /rigs/{id}/pair` | admin | Pairing, as for WittyCouch. |
 | `POST /rigs/{id}/devices` | admin | Type a PIN into Sunshine for a Moonlight app. Sunshine's sign-in is used once and never kept. |
-| `POST /rigs/{id}/sync` | admin | Read a rig's games again. |
-| `GET /rigs/{id}/apps` | admin | Everything a rig offers, shown in the library or not. |
-| `PUT /rigs/{id}/apps/{app}` | admin | Show or hide an app in the library. |
-| `POST /rigs/{id}/wake` | user | Send a registered rig the Wake-on-LAN signal. |
-| `POST /rigs/{id}/quit` | user | End what is running on a rig: for admins and whoever started it. |
-| `POST /rigs/games/{id}/play` | user | What this device can do to play a rig's game. Starts nothing on the PC. |
-| `POST /rigs/games/{id}/start` | user | Start a rig's game on the PC, for a Moonlight app to resume. |
-| `POST /rigs/games/{id}/stream` | user | Start a stream of a shared PC's game. |
-| `GET /wittyrigs` | admin | WittyRigs: whether it is on, and whether Sunshine is on this machine. |
-| `PUT /wittyrigs` | admin | Turn WittyRigs on or off. |
+| `POST /rigs/{id}/sync`, `GET /rigs/{id}/apps`, `PUT /rigs/{id}/apps/{app}` | admin | Read a rig's games again; everything it offers; show or hide one in the library. |
+| `POST /rigs/{id}/wake`, `POST /rigs/{id}/quit` | user | Wake-on-LAN; end what is running (admins and whoever started it). |
+| `POST /games/{id}/play` | user | What this device can do to play a rig's game. Starts nothing on the PC. |
+| `POST /games/{id}/start` | user | Start a rig's game on the PC, for a Moonlight app to resume. |
+| `POST /games/{id}/stream`, `GET`/`DELETE /sessions/{sid}`, `POST /sessions/{sid}/webrtc` | user | A stream of a shared PC's game in the page, as for WittyCouch. |
+| `GET /local`, `PUT /local` | admin | This server's own Sunshine: whether it is on and running; turn it on or off. |
 
 ### Photos
 

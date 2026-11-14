@@ -4,8 +4,8 @@ import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api, profileName } from '../api'
 import {
-  IconActivity, IconBook, IconCopy, IconDownload, IconDrive, IconEdit, IconFile, IconGamepad, IconGlobe, IconHelp, IconImage, IconInfo, IconLibrary,
-  IconLock, IconLogout, IconNetwork, IconPalette, IconPlay, IconPlug, IconRefresh, IconRight, IconShield, IconStar, IconTag, IconTune, IconTv, IconUsers, IconWrench,
+  IconActivity, IconBook, IconCopy, IconDownload, IconEdit, IconFile, IconGamepad, IconGlobe, IconHelp, IconImage, IconInfo, IconLibrary,
+  IconLock, IconLogout, IconPalette, IconPlay, IconPlug, IconRefresh, IconRight, IconShield, IconStar, IconTag, IconTune, IconTv, IconUsers, IconWrench,
 } from '../icons'
 import { Avatar } from '../pages/AuthPage'
 import { useApp } from '../state'
@@ -82,12 +82,10 @@ export default function You() {
       { key: 'playback', label: 'Playback and discs', icon: <IconPlay />, tint: QUIET, to: '/settings/playback' },
       { key: 'livetv', label: 'Live TV and tuners', icon: <IconTv />, tint: QUIET, to: '/settings/channels' },
       { key: 'gaming', label: 'Consoles and cores', icon: <IconGamepad />, tint: QUIET, to: '/settings/gaming' },
-      { key: 'gamepcs', label: 'Game PCs', icon: <IconNetwork />, tint: QUIET, to: '/settings/couch' },
       { key: 'transcoding', label: 'Live transcoding', icon: <IconTune />, tint: QUIET, to: '/settings/transcoding' },
       { key: 'libtranscoding', label: 'Library transcoding', icon: <IconRefresh />, tint: QUIET, to: '/settings/library-transcoding' },
       { key: 'remote', label: 'Remote access', icon: <IconGlobe />, tint: QUIET, to: '/settings/remote' },
       { key: 'appearance', label: 'Appearance and branding', icon: <IconPalette />, tint: QUIET, to: '/settings/appearance' },
-      { key: 'rigs', label: 'WittyRigs', icon: <IconDrive />, tint: QUIET, to: '/settings/wittyrigs' },
     ]) },
     { key: 'maintenance', label: 'Maintenance', rows: only(admin, [
       { key: 'logs', label: 'WittyLog', icon: <IconFile />, tint: QUIET, to: '/settings/logs' },

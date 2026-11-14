@@ -40,7 +40,7 @@ import (
 // profileHides is what a profile's switches take out of a screen's conditions.
 var profileHides = map[string]struct{ features, modules []string }{
 	library.FeatureGames: {
-		features: []string{"game-metadata", "game-controller-profiles", "game-settings", "custom-game-cores", "game-rigs", "standalone-emulators"},
+		features: []string{"game-metadata", "game-controller-profiles", "game-settings", "custom-game-cores", "standalone-emulators"},
 		modules:  []string{"wittyplay", "wittycouch", "wittyrigs"},
 	},
 	library.FeatureRecordings:    {features: []string{"recordings"}},

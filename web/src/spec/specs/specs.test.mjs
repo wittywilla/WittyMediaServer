@@ -3,37 +3,11 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { problems, reachable, withIds } from '../model.ts'
-import { rigSpec } from './rigs.ts'
-import { couchHostsSpec } from './couch.ts'
 import { podcastAdminSpec, AUTO_STEPS } from './podcastAdmin.ts'
 import { fixGameSpec, versionLinksSpec } from './fixgame.ts'
 
 const ok = (p) => assert.deepEqual(problems(withIds(p)), [], p.key)
 const ids = (p) => p.sections.flatMap((s) => (s.items || []).map((i) => i.id)).concat(p.actions.map((a) => a.id))
-
-test('rigSpec: state words, running game, and only the actions that apply', () => {
-  const base = { name: 'Den PC', state: 'online', message: 'Ready.', paired: true, canWake: false, canQuit: false }
-  let p = rigSpec(base, { isAdmin: false }); ok(p)
-  assert.equal(p.sections[0].items[0].value, 'Online'); assert.equal(p.sections[0].items[0].sub, 'Ready.'); assert.equal(p.sections.length, 1)
-  p = rigSpec({ ...base, state: 'busy', currentGame: 'Racer', canQuit: true }, { isAdmin: false }); ok(p)
-  assert.equal(p.sections[0].items[0].value, 'Online · Running: Racer'); assert.deepEqual(ids(p).slice(-1), ['quit'])
-  p = rigSpec({ ...base, state: 'asleep', canWake: true, paired: false }, { isAdmin: true, wakeLabel: 'Try again' }); ok(p)
-  assert.deepEqual(p.sections[1].items.map((c) => c.title), ['Try again', 'Pair it'])
-  assert.equal(p.sections[1].items[1].to, '/settings/couch')
-  assert.equal(reachable(withIds(p), new Set(['wake'])).length, 2)
-  p = rigSpec({ ...base, state: 'asleep' }, { isAdmin: true }); assert.equal(p.sections.at(-1).kind, 'note')
-  p = rigSpec({ ...base, state: 'asleep', canWake: true }, { isAdmin: false, busy: true }); assert.equal(p.sections[1].items[0].disabled, true)
-  assert.equal(rigSpec({ ...base, state: 'weird' }, { isAdmin: false }).sections[0].items[0].value, 'Weird')
-})
-
-test('couchHostsSpec: one link row per PC', () => {
-  const p = couchHostsSpec([{ id: 3, name: 'Den', paired: true, state: 'online', message: 'Ready.' }, { id: 4, name: 'Study', paired: false, state: 'not-paired', message: 'x' }, { id: 5, name: 'Lab', paired: true, state: 'busy', message: 'm', currentGame: 'G' }])
-  ok(p)
-  const r = p.sections[0].items
-  assert.deepEqual(r.map((x) => x.to), ['/couch/3', '/couch/4', '/couch/5'])
-  assert.deepEqual(r.map((x) => x.value), ['Online', 'Needs pairing', 'Running: G'])
-  assert.equal(r[1].sub, undefined); assert.equal(r[0].sub, 'Ready.')
-})
 
 test('podcastAdminSpec marks the current keep-downloaded step', () => {
   const p = podcastAdminSpec(3); ok(p)

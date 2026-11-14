@@ -43,7 +43,6 @@ const KIND_GROUP: Record<string, string> = {
 export function groupOf(item: NavItem, prefs: NavPrefs): string {
   const chosen = prefs.groups?.[item.id]
   if (chosen !== undefined) return chosen
-  if (item.id === 'couch') return 'Play'
   return (isLibrary(item.id) && (KIND_GROUP[item.kind || ''] || 'Watch')) || ''
 }
 

@@ -149,11 +149,7 @@ type Server struct {
 	audioSlots       chan struct{} // audio transcodes running at once
 	raArchiveOnce    sync.Once
 	raArchive        *gamearchive.Cache // archived games unpacked for their RetroAchievements checksum
-	rigOnce          sync.Once
-	rigSvc           *rigService
-	moonOnce         sync.Once
-	couchSvc         *couchService
-	radioChecks      sync.WaitGroup // "check every station" runs on its own
+	radioChecks      sync.WaitGroup     // "check every station" runs on its own
 	diagOnce         sync.Once
 	diag             *diagnose.Manager // WittyDiagnoser, started when first wanted
 	consolePhotoOnce sync.Once
@@ -634,9 +630,6 @@ func (s *Server) Handler() http.Handler {
 	}
 	s.gameMetaRoutes(m)
 	s.gamePictureRoutes(m)
-	s.rigRoutes(s.needing("wittycouch", m))
-	s.couchRoutes(s.needing("wittycouch", m))
-	s.wittyRigsRoutes(m)
 	s.diagnoseRoutes(m)
 	s.metaFolderRoutes(m)
 	s.parentalRoutes(m)

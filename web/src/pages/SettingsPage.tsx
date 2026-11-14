@@ -9,7 +9,7 @@ import { BackLink, UpdateDot, VersionTag, LoadError } from '../components/common
 import { ChooseFolderButton } from '../components/FolderPicker'
 import { useModulePages } from '../moduleBundles'
 import { ModuleSettingsView, useModuleSettingsTabs, type ModuleSettingsTab } from '../moduleRegistry'
-import { IconHelp, IconActivity, IconChannels, IconClose, IconDownload, IconDrive, IconEdit, IconFile, IconFilm, IconFolder, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconNetwork, IconPalette, IconPlay, IconPlug, IconPlus, IconRefresh, IconRemote, IconRight, IconShield, IconSidebar, IconTag, IconTrash, IconTune, IconUsers, IconWrench, libIcon } from '../icons'
+import { IconHelp, IconActivity, IconChannels, IconClose, IconDownload, IconEdit, IconFile, IconFilm, IconFolder, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconNetwork, IconPalette, IconPlay, IconPlug, IconPlus, IconRefresh, IconRight, IconShield, IconSidebar, IconTag, IconTrash, IconTune, IconUsers, IconWrench, libIcon } from '../icons'
 import { toast, useApp } from '../state'
 import { settingsPageHidden } from '../profileWords'
 import { useMyLimits } from '../myLimits'
@@ -50,8 +50,6 @@ const BackupSettings = lazy(() => import('./settings/Backup'))
 const RepairSettings = lazy(() => import('./settings/Repair'))
 const RemoteAccess = lazy(() => import('./settings/RemoteAccess'))
 const NetworkSettings = lazy(() => import('./settings/Network'))
-const CouchSettings = lazy(() => import('./settings/Couch'))
-const WittyRigsSettings = lazy(() => import('./settings/WittyRigs'))
 const ModuleSettingsList = lazy(() => import('./settings/ModuleSettings').then((m) => ({ default: m.ModuleSettingsList })))
 const ModuleSettingsPage = lazy(() => import('./settings/ModuleSettings').then((m) => ({ default: m.ModuleSettingsPage })))
 const Security = lazy(() => import('./settings/Security'))
@@ -88,7 +86,6 @@ const GROUPS: { title: string; pages: Page[] }[] = [
     { to: 'metadata', label: 'Metadata agents', icon: <IconTag />, admin: true, hint: 'Where posters and plots come from' },
     { to: 'playback', label: 'Playback & discs', icon: <IconPlay />, admin: true, hint: 'Player, DVDs and Blu-rays' },
     { to: 'channels', label: 'Channels & tuners', icon: <IconChannels />, admin: true, hint: 'Tuners, IPTV, guide data and WittyTV options' },
-    { to: 'couch', label: 'Game PCs', icon: <IconDrive />, admin: true, hint: 'Who can play on PCs running Sunshine, and which ones' },
     { to: 'transcoding', label: 'Live transcoding', icon: <IconFilm />, admin: true, hint: 'While someone watches: quality, hardware and formats' },
     { to: 'library-transcoding', label: 'Library transcoding', icon: <IconFilm />, admin: true, hint: 'Convert files ahead of time, and connect Tdarr' },
     { to: 'network', label: 'Network', icon: <IconNetwork />, admin: true, hint: 'The port this server answers on at home' },
@@ -101,9 +98,6 @@ const GROUPS: { title: string; pages: Page[] }[] = [
     { to: 'activity', label: 'Activity', icon: <IconActivity />, hint: 'The button showing library scans and other background work' },
     { to: 'sharing', label: 'Sharing & photos', icon: <IconImage />, hint: 'Uploads, links, the photo map' },
     { to: 'module-settings', label: 'Module settings', icon: <IconPlug />, hint: 'What the modules on this server let you set' },
-  ] },
-  { title: 'Advanced', pages: [
-    { to: 'wittyrigs', label: 'WittyRigs', icon: <IconRemote />, admin: true, hint: 'Hosting demanding games on this server’s own hardware' },
   ] },
   { title: 'System', pages: [
     { to: 'logs', label: 'WittyLog', icon: <IconFile />, admin: true, hint: 'What is recorded and for how long, and downloading logs to share' },
@@ -223,8 +217,6 @@ export default function SettingsPage() {
           <Route path="metadata" element={<MetadataSettings />} />
           <Route path="playback" element={<PlaybackSettings />} />
           <Route path="channels/*" element={<Suspense fallback={<div className="center"><div className="spinner" /></div>}><TvSettings /></Suspense>} />
-          <Route path="couch" element={<Suspense fallback={null}><CouchSettings /></Suspense>} />
-          <Route path="wittyrigs" element={<Suspense fallback={null}><WittyRigsSettings /></Suspense>} />
           <Route path="server" element={<Navigate to="/settings/metadata" replace />} />
           <Route path="transcoding" element={<TranscodeSettings />} />
           <Route path="library-transcoding" element={<Suspense fallback={null}><LibraryTranscoding /></Suspense>} />
@@ -578,8 +570,6 @@ function About() {
       <Section title="Third-party components and services">
         <div className="set-prose">
           <p>Video is converted by <b>FFmpeg</b>, run as a separate program; the bundled builds are GPL-licensed, with sources linked in <code>THIRD_PARTY_LICENSES.md</code>. With your own key, information comes from <b>The Movie Database (TMDB)</b>: this product uses the TMDB API but is not endorsed or certified by TMDB. Without keys, TV information comes from <b>TVmaze</b> (CC BY-SA 4.0), movie facts from <b>Wikidata</b> (CC0) and plot summaries from <b>Wikipedia</b> (CC BY-SA 4.0). Disc menus are run by WittyMediaServer's own WittyDVD and WittyBluray engines.</p>
-          <p><b>WittyCouch</b> is this server’s client for PCs running Sunshine. License: <b>AGPL-3.0-or-later</b>. <a href="https://github.com/wittywilla/WittyCouch" target="_blank" rel="noreferrer">Source</a>. Built on: <b>WittyCouch Host</b>, a separate program it starts, under the <b>AGPL-3.0-or-later</b> with Moonlight-derived parts under the <b>GPL-3.0</b> (<a href="https://github.com/wittywilla/WittyCouchHost" target="_blank" rel="noreferrer">source</a>), which contains <a href="https://github.com/moonlight-stream/moonlight-common-c" target="_blank" rel="noreferrer">moonlight-common-c</a> by the Moonlight project (GPL-3.0). It’s installed separately, and nothing else here contains it. Settings, Game PCs lists every piece.</p>
-          <p><b>WittyRigs</b> is an advanced option for hosting games on this server. License: <b>AGPL-3.0-or-later</b>. <a href="https://github.com/wittywilla/WittyRigs" target="_blank" rel="noreferrer">Source</a>. Built on: <a href="https://github.com/LizardByte/Sunshine" target="_blank" rel="noreferrer">Sunshine</a> by LizardByte (GPL-3.0), which you install yourself. The Moonlight and Sunshine projects didn’t make these, and don’t endorse them.</p>
           <p><b>No warranty.</b> The software is provided “as is”, without warranty of any kind. WittyMediaServer is not affiliated with any other media software project, studio or rights holder; all trademarks belong to their owners.</p>
         </div>
       </Section>

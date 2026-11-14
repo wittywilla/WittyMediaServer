@@ -32,8 +32,6 @@ var DataEntries = map[string]string{
 	"lyrics-corrections":    "lyrics you corrected",
 	"modules":               "downloaded modules",
 	"themes":                "themes",
-	"gamerigs":              "game PC pairings",
-	"wittycouch":            "game streaming pairings",
 	"metadata":              "text files for fixing titles by hand",
 	"setup-code.txt":        "the code for setting up from another network",
 	"settings.ini":          "the port, as Settings or you set it",

@@ -376,7 +376,7 @@ func TestSDUIConditionsFollowTheProfile(t *testing.T) {
 		stillMod          []string
 	}{
 		{"no limits at all", "", nil, nil, []string{"syncplay", "remote-protocol", "recordings", "live-tv", "game-settings", "playback"}, []string{"wittyplay", "wittytv"}},
-		{"games off", `{` + all + `,"liveTv":true,"off":["games"]}`, []string{"game-settings", "game-rigs", "standalone-emulators", "game-metadata"}, []string{"wittyplay", "wittycouch"}, []string{"live-tv", "syncplay", "playback"}, []string{"wittytv", "wittydvd"}},
+		{"games off", `{` + all + `,"liveTv":true,"off":["games"]}`, []string{"game-settings", "standalone-emulators", "game-metadata"}, []string{"wittyplay", "wittycouch"}, []string{"live-tv", "syncplay", "playback"}, []string{"wittytv", "wittydvd"}},
 		{"Live TV off", `{` + all + `,"liveTv":false}`, []string{"live-tv", "tv-favourites", "tv-reminders", "recordings"}, []string{"wittytv"}, []string{"game-settings", "playback"}, []string{"wittyplay"}},
 		{"recordings off", `{` + all + `,"liveTv":true,"off":["recordings"]}`, []string{"recordings"}, nil, []string{"live-tv"}, []string{"wittytv"}},
 		{"watch parties off", `{` + all + `,"liveTv":true,"off":["syncplay"]}`, []string{"syncplay"}, nil, []string{"remote-protocol", "playback"}, nil},

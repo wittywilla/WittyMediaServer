@@ -413,6 +413,16 @@ func (m *Manager) Libraries(id string) []string {
 	return nil
 }
 
+// Requires are the modules a module's version in use is built on (module.json requires).
+func (m *Manager) Requires(id string) []string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if e := m.mods[id]; e != nil && e.man != nil && e.dir != "" {
+		return append([]string(nil), e.man.Requires...)
+	}
+	return nil
+}
+
 // integrate makes the lifecycle call a version in use hasn't had yet: install for the first
 // version of API 5, upgrade when the version changed. A module that asks for neither is
 // simply noted as set up.

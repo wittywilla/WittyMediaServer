@@ -56,8 +56,8 @@ var contractCalls = []contractCall{
 	{name: "profiles resolve", method: "GET", path: "/api/v1/modules/wittyplay/game-profiles/resolve?kind=gamepad&controller=x&console=snes&game={game}"},
 	{name: "game background", method: "GET", path: "/api/v1/modules/wittyplay/game-background"},
 	{name: "play session", method: "GET", path: "/api/v1/modules/wittyplay/play/0123456789abcdef"},
-	{name: "couch", method: "GET", path: "/api/v1/couch"},
-	{name: "rigs", method: "GET", path: "/api/v1/rigs"},
+	{name: "couch", method: "GET", path: "/api/v1/modules/wittycouch/status"},
+	{name: "rigs", method: "GET", path: "/api/v1/modules/wittyrigs/rigs"},
 	{name: "sdui games page", method: "GET", path: "/api/v1/sdui/pages/games"},
 	{name: "module settings", method: "GET", path: "/api/v1/sdui/modules/settings"},
 }

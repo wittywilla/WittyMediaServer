@@ -2,3 +2,7 @@
 /* Copyright (C) 2026 WittyWilla and contributors */
 
 /* What a page shows when the module behind it isn't on this server. */
+
+/* A module's Remove dialog: "Keep what it saved here" (keepData.tsx). */
+.keep-data { display: flex; align-items: flex-start; gap: 10px; margin-top: 12px; font-weight: 400; line-height: 1.4; }
+.keep-data input { margin-top: 3px; flex: none; }

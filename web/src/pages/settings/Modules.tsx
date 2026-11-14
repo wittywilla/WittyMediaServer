@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
+import { keepDataChoice } from './store/keepData'
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { HelpLink } from '../../components/HelpLink'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
@@ -109,7 +110,6 @@ export default function ModulesSettings() {
   const loc = useLocation()
   const target = params.get('add') || loc.hash.slice(1)
   const reached = useRef('')
-  const [hostReady, setHostReady] = useState(false)
   const store = useStoreView()
   const [logOf, setLogOf] = useState<ModuleStatus | null>(null)
   const features = useFeatures()
@@ -118,7 +118,6 @@ export default function ModulesSettings() {
   useEffect(() => {
     api.get<ModuleReport>('/modules').then(setR).catch((e) => setFailed(e.message))
     api.get<Record<string, string>>('/settings').then(setSettings).catch(() => {})
-    api.get<{ ready: boolean }>('/couch').then((m) => setHostReady(m.ready)).catch(() => {})
   }, [])
 
   // While something installs, follow it.
@@ -183,19 +182,20 @@ export default function ModulesSettings() {
     }
     focusRow(m.id)
   }
-  const remove = (m: ModuleStatus) => setAsk({
+  const remove = (m: ModuleStatus) => { const keep = keepDataChoice(m.name); setAsk({
     title: `Remove ${m.name}?`, action: 'Remove', danger: true,
     body: <>
-      <p>{m.name} stops showing in the app and stops checking for updates.{m.libraries?.length ? ` New libraries of these kinds can’t be made: ${m.libraries.map(kindName).join(', ')}.` : ''} Your files, watch history and settings stay as they are.</p>
+      <p>{m.name} stops showing in the app and stops checking for updates.{m.libraries?.length ? ` New libraries of these kinds can’t be made: ${m.libraries.map(kindName).join(', ')}.` : ''} Your files and watch history stay as they are.</p>
       <p>Every version of it that was downloaded is deleted, which frees the disk space{m.source ? ', and the fork it comes from is forgotten' : ''}. You can install it again from the store at any time.</p>
       {!!m.requiredBy?.length && <p>{m.requiredBy.join(', ')} {m.requiredBy.length === 1 ? 'is' : 'are'} built on it.</p>}
+      {keep.node}
     </>,
     run: async () => {
       setRefused(null)
-      try { setR(await api.post<ModuleReport>(`/modules/${m.id}/remove`)); toast(`${m.name} removed`); focusRow(m.id) }
+      try { setR(await api.post<ModuleReport>(`/modules/${m.id}/remove${keep.query()}`)); toast(`${m.name} removed`); focusRow(m.id) }
       catch (e: any) { setRefused({ id: m.id, why: e.message }) }
     },
-  })
+  }) }
   const over = useOverrideDialog()
   // A version the usual rules refuse, installed with an override: the dialog sends it again.
   const overrideInstall = (m: ModuleStatus, version: string, need: NeedsOverride) => over.open(overrideAskFor(m, version, need, (n) => { setR(n); void store.reload(); focusRow(m.id) }))
@@ -315,14 +315,6 @@ export default function ModulesSettings() {
       {ask && <Confirm ask={ask} onClose={() => setAsk(null)} />}
       {logOf && <ModuleLogDialog moduleId={logOf.id} name={logOf.name} onClose={() => setLogOf(null)} />}
 
-      <Section title="Installed separately" desc="A program of its own that runs beside this server, under its own license. The server works without it.">
-        <div className="mod-list">
-          <div className="mod-row">
-            <span className="mod-name"><b>WittyCouch Host</b><span className="muted">Lets people play on Game PCs in the page, built on Moonlight’s own code. License: AGPL-3.0-or-later, with Moonlight-derived parts under the GPL-3.0. <a href="https://github.com/wittywilla/WittyCouchHost" target="_blank" rel="noreferrer noopener">Source</a></span></span>
-            <span className="mod-ver"><span className="mod-local">{hostReady ? 'Installed' : 'Not installed'}</span></span>
-          </div>
-        </div>
-      </Section>
       <LegalNote kind="modules" className="set-legal" />
     </div>
   )

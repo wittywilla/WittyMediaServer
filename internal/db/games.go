@@ -83,6 +83,15 @@ var gameMigrations = []string{
 	 DROP TABLE IF EXISTS game_core_choice;
 	 DROP TABLE IF EXISTS game_core_plays;
 	 ALTER TABLE game_core_audit ADD COLUMN module TEXT NOT NULL DEFAULT '';`,
+	// 8: Game PCs and game rigs are WittyCouch's and WittyRigs' own (module API 5, each its own
+	// database, starting empty): their tables, their settings, and the libraries of the rigs that
+	// were added here, whose games the rigs' module adds again once the rig is.
+	`DROP TABLE IF EXISTS wittycouch_hosts;
+	 DROP TABLE IF EXISTS wittyrigs_apps;
+	 DROP TABLE IF EXISTS wittyrigs_rigs;
+	 DELETE FROM libraries WHERE type = 'games' AND console = 'rig';
+	 DELETE FROM settings WHERE key IN ('couchAccess', 'couchPrivate', 'couchInternet', 'couchCustomPorts',
+	   'couchMaxStreams', 'couchUdpPort', 'couchPublicIp', 'couchStun', 'wittyRigsEnabled');`,
 }
 
 func (d *DB) migrateGames(ctx context.Context) error {

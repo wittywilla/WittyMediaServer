@@ -53,11 +53,7 @@ const RadioStationPage = lazy(() => import('./pages/RadioLibrary').then((m) => (
 const WatchPage = lazy(() => import('./pages/creators/WatchPage'))
 const FixMatches = lazy(() => import('./pages/FixMatches'))
 const BrandPage = lazy(() => import('./pages/library/BrandPage'))
-const CouchPage = lazy(() => import('./pages/Couch'))
 const ModulePage = lazy(() => import('./pages/ModulePage'))
-const CouchHostPage = lazy(() => import('./pages/Couch').then((m) => ({ default: m.CouchHostPage })))
-const CouchPlayPage = lazy(() => import('./pages/Couch').then((m) => ({ default: m.CouchPlayPage })))
-const RigPlayPage = lazy(() => import('./pages/Couch').then((m) => ({ default: m.RigPlayPage })))
 const ReviewPage = lazy(() => import('./pages/ReviewPage'))
 const CreatorPage = lazy(() => import('./pages/creators/ChannelsLibrary').then((m) => ({ default: m.CreatorPage })))
 // Every other page comes when it is opened: the first screen a phone or an
@@ -134,10 +130,11 @@ function Shell() {
   const isTvPlayer = loc.pathname.startsWith('/tv/watch/')
   const isTv = loc.pathname === '/tv' || loc.pathname.startsWith('/tv/')
   const isCouchMode = loc.pathname === '/big' || loc.pathname.startsWith('/big/')
-  const isStream = /^\/couch\/\d+\/play\//.test(loc.pathname) || loc.pathname.startsWith('/couch-rig/')
   // A library of a kind a module draws itself goes to the module's own view of it (takeover).
   const libId = /^\/library\/(\d+)$/.exec(loc.pathname)?.[1]
-  const takeover = libId ? takeoverFor(moduleWeb, libraries.find((l) => String(l.id) === libId)?.type, libId) : null
+  // A games library a module holds (a gaming PC's, console "rig") is of the kind "rig" here.
+  const takenLib = libId ? libraries.find((l) => String(l.id) === libId) : undefined
+  const takeover = libId ? takeoverFor(moduleWeb, takenLib?.type === 'games' && takenLib.console === 'rig' ? 'rig' : takenLib?.type, libId) : null
   if (takeover) return <Navigate to={takeover + loc.search} replace />
   const moduleFull = matchModuleRoute(moduleWeb, loc.pathname, ['fullscreen'])
   if (moduleFull) {
@@ -152,11 +149,10 @@ function Shell() {
   }
   return (
     <AudioProvider>
-      {!isTvPlayer && !isReader && !isStream && !isPlayer && <Scene />}
+      {!isTvPlayer && !isReader && !isPlayer && <Scene />}
       {isTvPlayer ? <Suspense fallback={tvFallback}><Routes><Route path="/tv/watch/:key" element={<TvPlayer />} /></Routes></Suspense>
         : isReader ? <Suspense fallback={<Spinner />}><Routes><Route path="/read/:id" element={<ReaderPage />} /></Routes></Suspense>
         : isCouchMode ? <Suspense fallback={<Spinner />}><Routes><Route path="/big/*" element={<CouchMode />} /></Routes></Suspense>
-        : isStream ? <Suspense fallback={<Spinner />}><Routes><Route path="/couch/:id/play/:app" element={<CouchPlayPage />} /><Route path="/couch-rig/:id" element={<RigPlayPage />} /></Routes></Suspense>
         : isPlayer ? null : tvMode ? <ModuleCards><Suspense fallback={<Spinner />}><TvFrame pages={<PageRoutes />} /></Suspense></ModuleCards> : <ModuleCards><AppFrame /></ModuleCards>}
       <PlayerDock />
       <RemoteHost />
@@ -250,8 +246,6 @@ export function PageRoutes() {
       <Route path="/artist/:lib" element={<Suspense fallback={<Spinner />}><ArtistPage /></Suspense>} />
       <Route path="/radio/:id" element={<Suspense fallback={<Spinner />}><RadioStationPage /></Suspense>} />
       <Route path="/cd/:id" element={<CdPlayer />} />
-      <Route path="/couch" element={<Suspense fallback={<Spinner />}><CouchPage /></Suspense>} />
-      <Route path="/couch/:id" element={<Suspense fallback={<Spinner />}><CouchHostPage /></Suspense>} />
       <Route path="/collections" element={<SduiRoute fallback={<NotFound />} />} />
       <Route path="/collections/:id" element={<SduiRoute fallback={<NotFound />} />} />
       <Route path="/person/:id" element={<SduiRoute fallback={<NotFound />} loading={<RouteSkeleton />} />} />

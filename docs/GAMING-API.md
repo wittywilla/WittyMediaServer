@@ -98,7 +98,7 @@ Each emulator's settings are data: `GET /modules/wittyplay/docker/emulators/{id}
 
 A session belongs to the account that started it; to anyone else its routes answer 404. One game takes at most 8 viewers and 4 connecting at once: past that the oldest goes, and a connection may answer 429 with `Retry-After`.
 
-Games in a shared PC's library (`console: rig`) go another way: see [the client API](CLIENT-API.md#shared-pcs-and-wittyrigs).
+Games in a shared PC's library (`console: rig`) go another way: see [the client API](CLIENT-API.md#game-pcs-and-game-rigs-wittycouch-wittyrigs).
 
 Starting a game can answer:
 
@@ -654,7 +654,7 @@ for its buttons, default layouts, saved layouts, controller profiles and which a
 Nothing about a game lives only in the web player, except this device's own choices: which connection mode to force,
 whether to show touch controls, and which controller is on which player.
 
-**With the rest of the API:** these routes are under `/api/v1` as well. `GET /capabilities` lists `games` in `libraryTypes`, and `game-metadata`, `game-settings`, `game-controller-profiles`, `custom-game-cores` and `game-rigs` in `features`. `POST /items/{id}/playback` is for videos and answers 400 for a game: start one with `POST /modules/wittyplay/games/{id}/play`.
+**With the rest of the API:** these routes are under `/api/v1` as well. `GET /capabilities` lists `games` in `libraryTypes`, and `game-metadata`, `game-settings`, `game-controller-profiles` and `custom-game-cores` in `features` (game rigs are WittyRigs': the module in use says so). `POST /items/{id}/playback` is for videos and answers 400 for a game: start one with `POST /modules/wittyplay/games/{id}/play`.
 
 ---
 

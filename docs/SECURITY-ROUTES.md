@@ -540,42 +540,6 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/gamemeta/sources` | Admin | Nothing further |
 | `PUT /api/gamemeta/sources` | Admin | Source list |
 | `POST /api/gamemeta/sources/{id}/test` | Admin | Known source. Nothing saved |
-| `GET /api/rigs` | Signed-in | Game PCs with a game the account may see. Addresses for admins only |
-| `GET /api/rigs/find` | Admin | Nothing further |
-| `POST /api/rigs` | Admin | Address cleaned. Confirmation for an internet address. Must answer as a game PC |
-| `PATCH /api/rigs/{id}` | Admin | Game PC exists. Name size, address cleaned, confirmation for an internet address |
-| `DELETE /api/rigs/{id}` | Admin | Game PC exists |
-| `POST /api/rigs/{id}/pair` | Admin | Game PC exists |
-| `GET /api/rigs/{id}/pair` | Admin | Game PC exists |
-| `DELETE /api/rigs/{id}/pair` | Admin | Game PC exists |
-| `POST /api/rigs/{id}/devices` | Admin | Game PC exists and is paired. PIN |
-| `POST /api/rigs/{id}/sync` | Admin | Game PC exists |
-| `GET /api/rigs/{id}/apps` | Admin | Game PC exists |
-| `PUT /api/rigs/{id}/apps/{app}` | Admin | Game PC exists. App id |
-| `POST /api/rigs/{id}/wake` | Signed-in | Game PC has a game the account may see. Has a MAC address. One signal per 10 seconds |
-| `POST /api/rigs/{id}/quit` | Signed-in | Game PC has a game the account may see. Whoever started what is running, or an admin |
-| `POST /api/rigs/games/{id}/play` | Signed-in | limits. A game of a game PC. Client and system from fixed lists. Starts nothing |
-| `POST /api/rigs/games/{id}/start` | Signed-in | limits. A game of a game PC. Refused if another game is running |
-| `POST /api/rigs/games/{id}/stream` | Signed-in | limits. A game of a game PC. Nothing else running, or the caller started it |
-| `GET /api/couch` | Signed-in | Answers for the account's access to game PCs |
-| `GET /api/couch/find` | Signed-in with game PC access | Owner's access and network settings. Attempt limit per person. One search at a time |
-| `GET /api/couch/hosts` | Signed-in with game PC access | own |
-| `POST /api/couch/hosts` | Signed-in with game PC access | Address cleaned. Owner's network and port settings. Count and attempt limits. Must answer as a game PC |
-| `PATCH /api/couch/hosts/{id}` | Signed-in with game PC access | own. Name |
-| `DELETE /api/couch/hosts/{id}` | Signed-in with game PC access | own |
-| `POST /api/couch/hosts/{id}/pair` | Signed-in with game PC access | own. Attempt limit |
-| `GET /api/couch/hosts/{id}/pair` | Signed-in with game PC access | own |
-| `DELETE /api/couch/hosts/{id}/pair` | Signed-in with game PC access | own |
-| `GET /api/couch/hosts/{id}/apps` | Signed-in with game PC access | own |
-| `GET /api/couch/hosts/{id}/apps/{app}/art` | Signed-in with game PC access | own. App id, size limit, pictures only |
-| `POST /api/couch/hosts/{id}/apps/{app}/play` | Signed-in with game PC access | own. Request fields cleaned |
-| `POST /api/couch/hosts/{id}/wake` | Signed-in with game PC access | own. Has a MAC address, not an internet address. One signal per 10 seconds |
-| `POST /api/couch/hosts/{id}/quit` | Signed-in with game PC access | own |
-| `GET /api/couch/sessions/{sid}` | Signed-in | Stream started by this account |
-| `POST /api/couch/sessions/{sid}/webrtc` | Signed-in | Stream started by this account. Offer of up to 256 KB |
-| `DELETE /api/couch/sessions/{sid}` | Signed-in | Stream started by this account |
-| `GET /api/wittyrigs` | Admin | Nothing further |
-| `PUT /api/wittyrigs` | Admin | Body says on or off |
 | `GET /api/diagnose/targets` | Admin | Nothing further |
 | `GET /api/diagnose/browse` | Admin | Path resolved inside the allowed places |
 | `POST /api/diagnose/disc` | Admin | Path resolved inside the allowed places |

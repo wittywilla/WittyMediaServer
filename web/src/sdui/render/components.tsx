@@ -1094,14 +1094,24 @@ function NoticeView({ view }: { view: View }) {
   const p = view.node.props || {}
   const step = plan(view.node.action, { externalLinks: page.layout.externalLinks })
   const focus = { 'data-sdui-focus': view.node.focus ? view.id : undefined, 'data-tv-first': view.node.focus?.default || undefined }
+  const main = view.text?.button && step.do !== 'nothing' ? (
+    step.do === 'go' && !page.inert ? <Link className="btn sm" to={step.to} {...focus}>{view.text.button}</Link>
+      : step.do === 'open' ? <a className="btn sm" href={safeHref(step.url) || undefined} target="_blank" rel="noopener noreferrer" {...focus}>{view.text.button}</a>
+        : <button type="button" className="btn sm" {...focus} onClick={() => !page.inert && page.act(view.node.action, view)}>{view.text.button}</button>
+  ) : null
+  const dismiss = obj(p, 'dismiss')
+  const dismissing: Action | undefined = dismiss && str(dismiss, 'op') ? { type: 'command', op: str(dismiss, 'op'), params: (obj(dismiss, 'params') || {}) as Record<string, unknown> } : undefined
   return (
     <div className={'ui-notice sdui-notice ' + (TONE[str(p, 'tone')] || 'info')} role={view.role} data-sdui-section={view.id} style={scopeStyle(view.node)}>
       {p.icon ? <span className="sdui-notice-ic" aria-hidden="true">{sduiIcon(p.icon)}</span> : null}
       <div className="ui-notice-text">{view.text?.title && <strong>{view.text.title}</strong>}<span>{view.text?.text}</span></div>
-      {view.text?.button && step.do !== 'nothing' && (
-        step.do === 'go' && !page.inert ? <Link className="btn sm" to={step.to} {...focus}>{view.text.button}</Link>
-          : step.do === 'open' ? <a className="btn sm" href={safeHref(step.url) || undefined} target="_blank" rel="noopener noreferrer" {...focus}>{view.text.button}</a>
-            : <button type="button" className="btn sm" {...focus} onClick={() => !page.inert && page.act(view.node.action, view)}>{view.text.button}</button>
+      {(main || dismissing) && (
+        <div className="sdui-notice-actions">
+          {main}
+          {/* Dismiss: a second, quieter button after the main one (below it on a phone). It runs its command, and the
+              page is asked for again. */}
+          {dismissing && <button type="button" className="btn sm ghost" onClick={() => !page.inert && page.act(dismissing, view)}>{str(dismiss, 'label') || 'Dismiss'}</button>}
+        </div>
       )}
     </div>
   )

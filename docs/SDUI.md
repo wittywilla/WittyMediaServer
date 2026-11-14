@@ -473,7 +473,7 @@ section's own children are sent in a `Stack`.
 Two regions of the shell are off in every look and belong to WittyPlay Online: `statusBar` (position top) and `systemDock` (bottom or side). A page turns them on by supplying content in its `regions` field, which is sent as `document.regions` (an administrator or a profile can still hide them with placements, and the placement of an experience or module scope turns them on too):
 
 - `statusBar`: up to six items, `{id, kind, text}`. `kind` is `profile` (the profile's name, `text` the line under it), `server` (the server's name drawn from the brand, so the coloured name survives) or `text`. The clock is drawn by every client, and so are a controller's battery and its kind, from the device's own Gamepad API: the server never sends them. Text may hold placeholders (`{user}`, `{server}`).
-- `systemDock`: up to seven round buttons, `{id, label, icon, route, as}`; the one whose route is the page showing is labelled under its button. `as: "layer"` opens that page as a layer.
+- `systemDock`: up to seven round buttons, `{id, label, icon, route, as, current}`; the one whose route is the page showing is labelled under its button, or, on a page no button opens, the one marked `current` (a store under Settings). `as: "layer"` opens that page as a layer.
 
 The regions stay while the module's pages are showing (the same theme scope) and go when the person leaves them.
 

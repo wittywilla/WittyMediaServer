@@ -1331,7 +1331,8 @@
             "id": "settings",
             "label": "Settings",
             "icon": "settings",
-            "route": "/page/wittyplay-settings"
+            "route": "/page/wittyplay-settings",
+            "current": true
           }
         ]
       }
@@ -1444,7 +1445,8 @@
             "id": "settings",
             "label": "Settings",
             "icon": "settings",
-            "route": "/page/wittyplay-settings"
+            "route": "/page/wittyplay-settings",
+            "current": true
           }
         ]
       }

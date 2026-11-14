@@ -704,6 +704,9 @@
         "as": {
           "type": "string"
         },
+        "current": {
+          "type": "boolean"
+        },
         "icon": {
           "type": "string"
         },

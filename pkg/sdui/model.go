@@ -91,6 +91,9 @@ type DockEntry struct {
 	// Route is the place it opens; As "layer" shows that page over the screen.
 	Route string `json:"route"`
 	As    string `json:"as,omitempty"`
+	// Current marks the button a page belongs under when no button opens it (a store under
+	// Settings): it is labelled as the current one, as the button whose route is the page is.
+	Current bool `json:"current,omitempty"`
 }
 
 // Match narrows a page. Zero fields match anything.

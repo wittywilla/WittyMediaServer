@@ -727,7 +727,7 @@ func (rv *sduiResolver) Items(req sdui.SourceRequest) (sdui.SourceResult, error)
 		if !rv.acc.Can(library.FeatureGames) {
 			return sdui.SourceResult{}, nil
 		}
-		rows, err := s.Store.GameList(rv.ctx, rv.u.ID, false, 2*(req.Offset+req.Limit))
+		rows, err := s.Store.RecentlyPlayedGames(rv.ctx, rv.u.ID, 2*(req.Offset+req.Limit))
 		if err != nil {
 			return sdui.SourceResult{}, err
 		}
@@ -1281,7 +1281,7 @@ type playedGame struct {
 // recentlyPlayedGames is someone's most recently played games that they can still see, newest first: what "Jump back in" shows
 // beside what they were watching, reading and listening to.
 func (s *Server) recentlyPlayedGames(rv *sduiResolver, limit int) []playedGame {
-	played, err := s.Store.GameList(rv.ctx, rv.u.ID, false, limit)
+	played, err := s.Store.RecentlyPlayedGames(rv.ctx, rv.u.ID, limit)
 	if err != nil || len(played) == 0 {
 		return nil
 	}

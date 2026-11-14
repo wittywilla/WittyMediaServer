@@ -154,6 +154,7 @@ func (s *Server) setupRoutes(m *http.ServeMux) {
 	m.HandleFunc("GET /api/setup/state", s.handleSetupState)
 	m.HandleFunc("PUT /api/setup/state", s.handleSetupStatePut)
 	m.Handle("POST /api/setup/complete", s.requireAdmin(s.handleSetupComplete))
+	m.Handle("POST /api/setup/module-steps/skip", s.requireAdmin(s.handleModuleStepSkip))
 	m.HandleFunc("GET /api/sdui/preview", s.handleSDUIExperiencePreview)
 }
 

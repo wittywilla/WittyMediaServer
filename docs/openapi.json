@@ -48137,6 +48137,53 @@
         ],
         "x-wms-auth": "user"
       }
+    },
+    "/setup/module-steps/skip": {
+      "post": {
+        "summary": "Put off a module's setup step",
+        "description": "An administrator puts off a module's setup step: the Dismiss of \"Finish setting up\" on Home (SDUI command setup.skip). The step stays in the module's Settings.",
+        "tags": [
+          "Setup"
+        ],
+        "x-wms-auth": "admin",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "module",
+                  "step"
+                ],
+                "properties": {
+                  "module": {
+                    "type": "string"
+                  },
+                  "step": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Put off."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "operationId": "skipModuleSetupStep"
+      }
     }
   },
   "security": [

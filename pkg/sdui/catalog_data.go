@@ -559,8 +559,11 @@ func buildComponents() []ComponentSpec {
 				pEnum("tone", "Tone", "", "info", "info|Information", "success|Good news", "warning|Warning", "danger|Problem"),
 				pText("title", "Title", "", 120), req(pText("text", "Text", "", 400)), propIcon,
 				pText("buttonLabel", "Button", "", 40), propTo, propNative, propURL, propOp, propOpItem, propOpArgs, propConfirm, propBack,
+				rev8(pText("dismissLabel", "Dismiss button", "A second button beside the first, such as Dismiss: it runs dismissOp. Sent as dismiss {label, op, params}.", 40)),
+				rev8(pEnum("dismissOp", "Dismiss runs", "The command the dismiss button runs; the page is asked for again after it.", "", commandOps()...)),
+				rev8(pOf(PropObject, "dismissParams", "Dismiss's values", "The dismiss command's values by name, each a text or a $variable.")),
 			},
-			Renders: map[string]string{"all": "A rounded block in token bg2 with a 4-point bar at its leading edge in the tone's colour (accent, ok, warn, danger), the icon, title in the title size, text in body, and the button at the end (below on a phone). It takes focus only when it has a button."},
+			Renders: map[string]string{"all": "A rounded block in token bg2 with a 4-point bar at its leading edge in the tone's colour (accent, ok, warn, danger), the icon, title in the title size, text in body, and the button at the end (below on a phone). With dismiss, a second, quieter button beside the first (after it; below it on a phone) runs dismiss.op with dismiss.params, then the page is asked for again. It takes focus only when it has a button; on a TV each button is its own focus stop, the main one first."},
 			A11y:    "Role: status (alert for warning and danger). Label: \"<title>. <text>\".",
 			Example: example(`{"id":"setup","component":"Notice","when":{"admin":true,"flag":"setupIncomplete"},"props":{"tone":"info","title":"Finish setting up","text":"A few things are left to choose.","buttonLabel":"Open settings","native":"settings"}}`)},
 
@@ -1211,5 +1214,7 @@ func commandSpecs() []CommandSpec {
 		{Op: "rewind.open", Label: "Rewind", Description: "Client-handled, in the game player: opens the player's rewind panel. No request.", Method: "GET", Path: ""},
 		{Op: "controller.remap", Label: "Remap controls", Description: "Client-handled, in the game player: opens the player's own controller-mapping panel. No request.", Method: "GET", Path: ""},
 		{Op: "refresh", Label: "Refresh", Description: "Asks for the page again.", Method: "GET", Path: ""},
+		{Op: "setup.skip", Label: "Dismiss", Description: "Administrators: puts off a module's setup step (params.module, params.step), so \"Finish setting up\" leaves Home; the step stays in the module's Settings.", Method: "POST", Path: "/api/setup/module-steps/skip", Body: `{"module":"{module}","step":"{step}"}`,
+			Params: []CommandParam{{Name: "module", Type: "string", Label: "Module", Required: true}, {Name: "step", Type: "string", Label: "Step", Required: true}}},
 	}
 }

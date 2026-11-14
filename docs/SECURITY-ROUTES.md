@@ -46,6 +46,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/setup/state` | Public | Nothing: whether first run is over, its steps and where it is |
 | `PUT /api/setup/state` | Public, until first run is over | Refused once it is over (409). Before the first account: the setup code, as for POST /api/setup. After: an administrator. 4 KB body; step and done are known step names |
 | `POST /api/setup/complete` | Admin | Marks first run over; apps may connect |
+| `POST /api/setup/module-steps/skip` | Admin | Puts off a module's setup step (`{module, step}`): the "Dismiss" of "Finish setting up" on Home (command `setup.skip`) |
 | `GET /api/sdui/preview` | Public | Experience, theme, platform and form factor are checked against what the server has. Generated demo data only: no library, no account. Rate limited per address |
 | `POST /api/login` | Public | 16 KB body. Attempts counted per name and per address. Password, and a code with two-factor sign-in. Password-free profiles only at home with the profile screen on |
 | `POST /api/logout` | Public | Ends the sessions of the tokens the request carries |

@@ -5,6 +5,8 @@ package server
 
 import (
 	"context"
+	"encoding/json"
+	"strings"
 	"net/http/httptest"
 	"testing"
 
@@ -34,8 +36,18 @@ func TestModuleSetupSteps(t *testing.T) {
 		t.Fatalf("before: %+v", p)
 	}
 	home := withSetupNotices(sdui.Page{ID: "home", Kind: "home", Sections: []sdui.Section{{ID: "hero", Component: "Hero"}}}, pending())
-	if len(home.Sections) != 2 || home.Sections[0].Component != "Notice" || home.Sections[0].Props["to"] != "/page/wittyplay-setup" {
+	if len(home.Sections) != 2 || home.Sections[0].Component != "Notice" || home.Sections[0].Props["to"] != "/page/wittyplay-setup" || home.Sections[0].Props["dismissOp"] != "setup.skip" {
 		t.Errorf("home: %+v", home.Sections)
+	}
+	// The notice, rendered, has its Dismiss as {label, op, params}.
+	home.Sections = home.Sections[:1]
+	doc, err := sdui.Render(home, &sdui.RenderContext{Admin: true, Flags: map[string]bool{}, Vars: map[string]string{}, Params: map[string]string{}, Resolver: sdui.DemoResolver{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, _ := json.Marshal(doc)
+	if !strings.Contains(string(b), `"dismiss":{"label":"Dismiss","op":"setup.skip","params":{"module":"wittyplay","step":"games"}}`) {
+		t.Errorf("rendered: %s", b)
 	}
 	if err := c.Do(ctx, host.On{User: pal.ID}, "POST", "/setup/games", map[string]bool{}, nil); !host.IsForbidden(err) {
 		t.Errorf("someone who isn't an administrator: %v", err)

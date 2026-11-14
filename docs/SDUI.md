@@ -2215,10 +2215,13 @@ Focus: takes none. Accessibility: Role: heading for pageTitle (level 1), heading
 | `params` | object |  | Command's values. The command's other values by name, each a text or a $variable. |
 | `confirm` | text, at most 120 |  | Ask first. A question the app asks before the command runs, such as Delete this memory? |
 | `back` | bool | `false` | Goes back. Closes the page: Back. |
+| `dismissLabel` | text, at most 40 |  | Dismiss button. A second button beside the first, such as Dismiss: it runs dismissOp. Sent as dismiss {label, op, params}. |
+| `dismissOp` | enum |  | Dismiss runs. The command the dismiss button runs; the page is asked for again after it. |
+| `dismissParams` | object |  | Dismiss's values. The dismiss command's values by name, each a text or a $variable. |
 
 How it is drawn:
 
-- **Everywhere.** A rounded block in token bg2 with a 4-point bar at its leading edge in the tone's colour (accent, ok, warn, danger), the icon, title in the title size, text in body, and the button at the end (below on a phone). It takes focus only when it has a button.
+- **Everywhere.** A rounded block in token bg2 with a 4-point bar at its leading edge in the tone's colour (accent, ok, warn, danger), the icon, title in the title size, text in body, and the button at the end (below on a phone). With dismiss, a second, quieter button beside the first (after it; below it on a phone) runs dismiss.op with dismiss.params, then the page is asked for again. It takes focus only when it has a button; on a TV each button is its own focus stop, the main one first.
 
 Focus: the node takes focus when it can be acted on. Accessibility: Role: status (alert for warning and danger). Label: "<title>. <text>".
 
@@ -3767,6 +3770,7 @@ A menu entry (`type: native`) may open the screens marked *menu*; the others nee
 | `rewind.open` | Client-handled, in the game player: opens the player's rewind panel. No request. |  |
 | `controller.remap` | Client-handled, in the game player: opens the player's own controller-mapping panel. No request. |  |
 | `refresh` | Asks for the page again. |  |
+| `setup.skip` | Administrators: puts off a module's setup step (params.module, params.step), so "Finish setting up" leaves Home; the step stays in the module's Settings. | `POST /api/setup/module-steps/skip` with `{"module":"{module}","step":"{step}"}`; `module` (string, required); `step` (string, required) |
 
 ### Experiences
 

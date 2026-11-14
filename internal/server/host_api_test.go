@@ -74,6 +74,21 @@ func TestHostAPI(t *testing.T) {
 		t.Errorf("films listed to a games module: %+v", list)
 	}
 
+	// Its libraries, with their folders; and its games counted by console.
+	libs, err := c.Libraries(ctx)
+	if err != nil || len(libs) != 1 || libs[0].ID != games || libs[0].Kind != "games" || len(libs[0].Paths) != 1 {
+		t.Fatalf("libraries: %+v %v", libs, err)
+	}
+	if counts, err := c.Counts(ctx, host.On{User: pal.ID}, "games", "console"); err != nil || counts["snes"] != 1 {
+		t.Fatalf("counts: %v %v", counts, err)
+	}
+	if counts, _ := c.Counts(ctx, host.On{User: kid.ID}, "games", "console"); counts["snes"] != 0 {
+		t.Errorf("a game too old for the person asking was counted: %v", counts)
+	}
+	if _, err := c.Counts(ctx, host.On{User: pal.ID}, "movies", "console"); err == nil {
+		t.Error("films were counted for a games module")
+	}
+
 	// What a person may do.
 	if may, err := c.May(ctx, host.On{User: pal.ID}, "games"); !may || err != nil {
 		t.Errorf("pal may play: %v %v", may, err)

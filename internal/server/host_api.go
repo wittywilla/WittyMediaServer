@@ -70,6 +70,8 @@ func (s *Server) HostAPI() http.Handler {
 	h("GET "+b+"/hello", s.hostHello)
 	h("GET "+b+"/items/{id}", s.hostItem)
 	h("GET "+b+"/items", s.hostItems)
+	h("GET "+b+"/items/counts", s.hostCounts)
+	h("GET "+b+"/libraries", s.hostLibraries)
 	h("GET "+b+"/may", s.hostMay)
 	h("GET "+b+"/settings", s.hostSettings)
 	h("GET "+b+"/secrets/{name}", s.hostSecret)
@@ -198,6 +200,57 @@ func (s *Server) hostItems(w http.ResponseWriter, r *http.Request, module string
 		out = out[offset:min(len(out), offset+limit)]
 	}
 	writeJSON(w, 200, map[string]any{"items": out})
+}
+
+// hostLibraries lists the libraries of the module's kinds, with their folders: for its own work
+// (a BIOS sweep), not on anyone's behalf.
+func (s *Server) hostLibraries(w http.ResponseWriter, r *http.Request, module string) {
+	libs, err := s.Store.Libraries(r.Context())
+	if err != nil {
+		writeJSON(w, 500, map[string]string{"error": err.Error()})
+		return
+	}
+	out := []host.Library{}
+	for _, l := range libs {
+		if s.servesKind(module, l.Type) {
+			out = append(out, host.Library{ID: l.ID, Name: l.Name, Kind: l.Type, Console: l.Console, Paths: l.Paths})
+		}
+	}
+	writeJSON(w, 200, map[string]any{"libraries": out})
+}
+
+// hostCounts counts games by console in the module's games libraries, as the person asking may
+// see them (everything, with nobody named). Only the console facet is counted today.
+func (s *Server) hostCounts(w http.ResponseWriter, r *http.Request, module string) {
+	_, a, err := s.onBehalf(r)
+	if err != nil {
+		writeJSON(w, 403, map[string]string{"error": err.Error()})
+		return
+	}
+	kind, by := r.URL.Query().Get("libraryKind"), r.URL.Query().Get("by")
+	if by != "console" || kind != "games" || !s.servesKind(module, kind) {
+		writeJSON(w, 400, map[string]string{"error": "only games, by console, can be counted"})
+		return
+	}
+	libs, err := s.Store.Libraries(r.Context())
+	if err != nil {
+		writeJSON(w, 500, map[string]string{"error": err.Error()})
+		return
+	}
+	out := map[string]int{}
+	for _, l := range libs {
+		if l.Type != kind {
+			continue
+		}
+		counts, err := s.Store.GameCounts(r.Context(), l.ID, a)
+		if err != nil {
+			continue
+		}
+		for id, n := range counts {
+			out[id] += n
+		}
+	}
+	writeJSON(w, 200, map[string]any{"counts": out})
 }
 
 func qIntOf(v string, def int) int {

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
+import { keepDataChoice } from './store/keepData'
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { HelpLink } from '../../components/HelpLink'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
@@ -183,19 +184,20 @@ export default function ModulesSettings() {
     }
     focusRow(m.id)
   }
-  const remove = (m: ModuleStatus) => setAsk({
+  const remove = (m: ModuleStatus) => { const keep = keepDataChoice(m.name); setAsk({
     title: `Remove ${m.name}?`, action: 'Remove', danger: true,
     body: <>
-      <p>{m.name} stops showing in the app and stops checking for updates.{m.libraries?.length ? ` New libraries of these kinds can’t be made: ${m.libraries.map(kindName).join(', ')}.` : ''} Your files, watch history and settings stay as they are.</p>
+      <p>{m.name} stops showing in the app and stops checking for updates.{m.libraries?.length ? ` New libraries of these kinds can’t be made: ${m.libraries.map(kindName).join(', ')}.` : ''} Your files and watch history stay as they are.</p>
       <p>Every version of it that was downloaded is deleted, which frees the disk space{m.source ? ', and the fork it comes from is forgotten' : ''}. You can install it again from the store at any time.</p>
       {!!m.requiredBy?.length && <p>{m.requiredBy.join(', ')} {m.requiredBy.length === 1 ? 'is' : 'are'} built on it.</p>}
+      {keep.node}
     </>,
     run: async () => {
       setRefused(null)
-      try { setR(await api.post<ModuleReport>(`/modules/${m.id}/remove`)); toast(`${m.name} removed`); focusRow(m.id) }
+      try { setR(await api.post<ModuleReport>(`/modules/${m.id}/remove${keep.query()}`)); toast(`${m.name} removed`); focusRow(m.id) }
       catch (e: any) { setRefused({ id: m.id, why: e.message }) }
     },
-  })
+  }) }
   const over = useOverrideDialog()
   // A version the usual rules refuse, installed with an override: the dialog sends it again.
   const overrideInstall = (m: ModuleStatus, version: string, need: NeedsOverride) => over.open(overrideAskFor(m, version, need, (n) => { setR(n); void store.reload(); focusRow(m.id) }))

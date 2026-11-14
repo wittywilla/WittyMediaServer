@@ -7,6 +7,7 @@ import { BackLink } from '../../../components/common'
 import { IconCheck, IconInfo, IconShield } from '../../../icons'
 import type { ModuleReport, VersionInfo } from '../../../moduleStore'
 import { toast } from '../../../state'
+import { keepDataChoice } from './keepData'
 import { ask, Button, Dialog, Notice, Spinner } from '../../../ui'
 import { ConfirmOwner, type OwnerAsk } from '../ConfirmOwner'
 import { actionFor, ActionButton, InPlaceProgress, useInstall } from './ItemCard'
@@ -70,8 +71,9 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
     try { await run(); if (done) toast(done); reload() } catch (e) { setFailure(failureOf(e, it.name)) }
   }
   const remove = async () => {
-    if (!await ask({ title: `Remove ${it.name}?`, body: `${it.name} stops working and stops looking for updates. Your files and what you've watched, read or played stay as they are. You can install it again any time.`, confirm: 'Remove', danger: true })) return
-    await call(() => api.post<ModuleReport>(`/modules/${it.id}/remove`), `${it.name} removed`)
+    const keep = keepDataChoice(it.name)
+    if (!await ask({ title: `Remove ${it.name}?`, body: <><p>{it.name} stops working and stops looking for updates. Your files and what you've watched, read or played stay as they are. You can install it again any time.</p>{keep.node}</>, confirm: 'Remove', danger: true })) return
+    await call(() => api.post<ModuleReport>(`/modules/${it.id}/remove${keep.query()}`), `${it.name} removed`)
   }
   const toggle = (on: boolean) => call(() => api.post<ModuleReport>(`/modules/${it.id}/${on ? 'enable' : 'disable'}`), on ? `${it.name} turned on` : `${it.name} turned off`)
   const rollback = () => {

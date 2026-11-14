@@ -19,7 +19,7 @@ import AuthPage from './pages/AuthPage'
 import { usePageRegions } from './sdui/regions'
 import { isPlayPath, PlayFrame, StatusBar, SystemDock } from './shell/PlayChrome'
 import { MainGames } from './shell/MainGames'
-import { ModuleCards, ModuleFrame, ModuleRouteView, matchModuleRoute, useModuleWeb } from './moduleRegistry'
+import { ModuleCards, ModuleFrame, ModuleRouteView, matchModuleRoute, takeoverFor, useModuleWeb } from './moduleRegistry'
 import { useGamesInPlay } from './shell/PlayRedirect'
 import { PlayerDock } from './player/PlayerPage'
 import { Announcer, useDialogs } from './a11y'
@@ -112,7 +112,7 @@ export default function App() {
 }
 
 function Shell() {
-  const { user, loading, setupRequired, onboarding, needServer, unreachable } = useApp()
+  const { user, loading, setupRequired, onboarding, needServer, unreachable, libraries } = useApp()
   const loc = useLocation()
   const tvMode = useTvMode()
   // WittyPlay installed: the games pages show in its frame too (shell/PlayRedirect.tsx). Asked before any early return.
@@ -153,6 +153,10 @@ function Shell() {
   // A games library's page, with WittyPlay installed: WittyPlay's own view of it (the app's whole games library, in its frame).
   const playLib = gamesInPlay ? /^\/library\/(\d+)$/.exec(loc.pathname)?.[1] : undefined
   const toPlayLibrary = playLib ? '/wittyplay/library/' + playLib + loc.search : ''
+  // A library of a kind a module draws itself goes to the module's own view of it (takeover).
+  const libId = /^\/library\/(\d+)$/.exec(loc.pathname)?.[1]
+  const takeover = libId ? takeoverFor(moduleWeb, libraries.find((l) => String(l.id) === libId)?.type, libId) : null
+  if (takeover) return <Navigate to={takeover + loc.search} replace />
   const moduleFull = matchModuleRoute(moduleWeb, loc.pathname, ['fullscreen'])
   if (moduleFull) {
     return (
@@ -252,7 +256,8 @@ export function PageRoutes() {
   // A page a module of API 5 draws inside the app's frame comes before the app's own.
   const moduleWeb = useModuleWeb()
   const loc = useLocation()
-  const moduleRoute = matchModuleRoute(moduleWeb, loc.pathname, ['app', 'tv'])
+  // A TV-frame screen is a module's only in TV mode, as the app's own TV screens are.
+  const moduleRoute = matchModuleRoute(moduleWeb, loc.pathname, useTvMode() ? ['app', 'tv'] : ['app'])
   if (moduleRoute) return <ModuleRouteView match={moduleRoute} fallback={<RouteSkeleton />} />
   return (
     <Routes>

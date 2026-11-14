@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { Component, Suspense, useEffect, useMemo, useState, useSyncExternalStore, type ComponentType, type ReactNode } from 'react'
-import { matchPath } from 'react-router-dom'
+import { Route, Routes } from 'react-router-dom'
 import { api } from './api'
 import { bundledModule } from './moduleBundles'
 import { ModuleMissing } from './components/ModuleMissing'
@@ -34,6 +34,8 @@ type Bundle = { id: string; version: string; api: number; integration?: WebPart 
 /** What a card hook draws: as GameArtContext's, for any media kind. */
 export type CardArgs = GameArtArgs & { kind: string }
 export type CardParts = {
+  /** Wraps the app's frame and provides the card contexts itself (GameArtContext, CardRouteContext). */
+  Provider?: ComponentType<{ children: ReactNode }>
   art?: (a: CardArgs) => ReactNode | null
   detail?: (a: CardArgs) => ReactNode
   cover?: (a: CardArgs) => ReactNode
@@ -49,7 +51,8 @@ export type Registration = {
   players?: Record<string, ComponentType<{ host: unknown; itemId: string }>>
   readers?: Record<string, ComponentType<{ host: unknown }>>
   settings?: Record<string, ComponentType<{ host: unknown }>>
-  setup?: Record<string, ComponentType<{ host: unknown; onDone: () => void }>>
+  /** A first-run step: given the wizard's own step props too, as the app's own step had them. */
+  setup?: Record<string, ComponentType<Record<string, unknown>>>
 }
 export type RouteProps = { host: unknown; params: Record<string, string | undefined> }
 
@@ -134,14 +137,41 @@ function useRegistration(module: string | undefined): Registration | null | unde
 
 export type RouteMatch = { module: string; route: WebRoute; params: Record<string, string | undefined> }
 
+// A route's path as a pattern: ":name" is one part of the address, "*" at the end is the rest,
+// and a part ending in "*" (wittyplay-*) is any part starting so.
+function routeRegex(path: string): { re: RegExp; names: string[] } {
+  const names: string[] = []
+  const parts = path.split('/').filter(Boolean).map((seg, i, all) => {
+    if (seg === '*' && i === all.length - 1) { names.push('*'); return '(?:/(.*))?' }
+    if (seg.startsWith(':')) { names.push(seg.slice(1)); return '/([^/]+)' }
+    const esc = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    if (seg.endsWith('*')) return '/' + esc(seg.slice(0, -1)) + '[^/]*'
+    return '/' + esc(seg)
+  })
+  return { re: new RegExp('^' + (parts.join('') || '/') + '/?$'), names }
+}
+const regexCache = new Map<string, { re: RegExp; names: string[] }>()
+
 /** The module route a path is, if a module of API 5 in use claims it. The first claim wins. */
 export function matchModuleRoute(list: ModuleWeb[], pathname: string, frames?: WebRoute['frame'][]): RouteMatch | null {
   for (const m of list) {
     for (const r of m.part.routes || []) {
       if (frames && !frames.includes(r.frame)) continue
-      const hit = matchPath({ path: r.path, end: true }, pathname)
-      if (hit) return { module: m.module, route: r, params: hit.params }
+      let rx = regexCache.get(r.path)
+      if (!rx) { rx = routeRegex(r.path); regexCache.set(r.path, rx) }
+      const hit = rx.re.exec(pathname)
+      if (hit) return { module: m.module, route: r, params: Object.fromEntries(rx.names.map((n, i) => [n, hit[i + 1]])) }
     }
+  }
+  return null
+}
+
+/** Where a module takes a library of a kind it draws itself (takeover), if one does. */
+export function takeoverFor(list: ModuleWeb[], libraryKind: string | undefined, library: string): string | null {
+  if (!libraryKind) return null
+  for (const m of list) {
+    const t = (m.part.takeover || []).find((x) => x.libraryKind === libraryKind)
+    if (t) return t.route.replace('{library}', library)
   }
   return null
 }
@@ -151,8 +181,14 @@ export function ModuleRouteView({ match, fallback }: { match: RouteMatch; fallba
   const reg = useRegistration(match.module)
   if (reg === undefined) return <>{fallback ?? null}</>
   const C = reg?.routes?.[match.route.path]
-  if (!C) return <ModuleMissing ids={[match.module]} onReady={() => window.location.reload()} />
-  return <Guarded module={match.module}><C host={hostNow(match.module)} params={match.params} /></Guarded>
+  // Not there at all may change when it's added; there but without this screen won't.
+  if (!C) return reg ? <ModuleMissing ids={[match.module]} /> : <ModuleMissing ids={[match.module]} onReady={() => window.location.reload()} />
+  const view = <Guarded module={match.module}><C host={hostNow(match.module)} params={match.params} /></Guarded>
+  // A path with parameters is drawn inside a route of the same path, so the module's own code
+  // reads them (useParams) as it did in the app's routes. One with "*" isn't: a module's own
+  // <Routes> under it match whole addresses, as they did in the app's frame.
+  if (!match.route.path.includes(':') || match.route.path.includes('*')) return view
+  return <Routes><Route path={match.route.path} element={view} /></Routes>
 }
 
 // The host object a component is given; the bundle's register(host) had the same one.
@@ -172,7 +208,7 @@ class Guarded extends Component<{ module: string; children: ReactNode }, { crash
     const reason = String((err as Error)?.message || err).slice(0, 400)
     api.post(`/modules/${this.props.module}/failed`, { version: known.find((k) => k.module === this.props.module)?.version || '', reason }).catch(() => {})
   }
-  render() { return this.state.crashed ? <ModuleMissing ids={[this.props.module]} onReady={() => window.location.reload()} /> : this.props.children }
+  render() { return this.state.crashed ? <ModuleMissing ids={[this.props.module]} /> : this.props.children }
 }
 
 // ---------------------------------------------------------------- cards
@@ -196,6 +232,7 @@ export function ModuleCards({ children }: { children: ReactNode }) {
     detail: parts.detail ? (a) => parts.detail!({ ...a, kind: 'game' }) : undefined,
     cover: parts.cover ? (a) => parts.cover!({ ...a, kind: 'game' }) : undefined,
   } : null, [parts])
+  if (parts?.Provider) return <parts.Provider>{children}</parts.Provider>
   let out = children
   if (art) out = <GameArtContext.Provider value={art}>{out}</GameArtContext.Provider>
   if (parts?.link) out = <CardRouteContext.Provider value={parts.link}>{out}</CardRouteContext.Provider>
@@ -217,7 +254,7 @@ export function ModuleSettingsView({ tab }: { tab: ModuleSettingsTab }) {
   const reg = useRegistration(tab.module)
   if (reg === undefined) return null
   const C = reg?.settings?.[tab.id]
-  if (!C) return <ModuleMissing ids={[tab.module]} onReady={() => window.location.reload()} />
+  if (!C) return <ModuleMissing ids={[tab.module]} />
   return <Guarded module={tab.module}><C host={hostNow(tab.module)} /></Guarded>
 }
 
@@ -226,3 +263,16 @@ export function ModuleSettingsView({ tab }: { tab: ModuleSettingsTab }) {
 /** A module's full-window screen, for App.tsx, with its own Suspense. */
 export const ModuleFrame = ({ match, fallback }: { match: RouteMatch; fallback: ReactNode }) =>
   <Suspense fallback={fallback}><ModuleRouteView match={match} fallback={fallback} /></Suspense>
+
+// ---------------------------------------------------------------- first-run setup
+
+/** A module's first-run step for an id, if a module of API 5 in use declares one: its component,
+ * once its bundle is loaded; undefined while loading, null when none. */
+export function useModuleSetupStep(id: string): ComponentType<Record<string, unknown>> | null | undefined {
+  const list = useModuleWeb()
+  const owner = list.find((m) => (m.part.setup || []).some((s) => s.id === id))?.module
+  const reg = useRegistration(owner)
+  if (!owner) return null
+  if (reg === undefined) return undefined
+  return reg?.setup?.[id] || null
+}

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
+import { useModuleSetupStep } from '../moduleRegistry'
 import { useCallback, useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { api, setToken, type Library } from '../api'
@@ -134,7 +135,7 @@ export default function SetupWizard() {
               {step.id === 'name' && <Name {...props} onTry={setTryName} />}
               {step.id === 'modules' && <Modules {...props} />}
               {step.id === 'media' && <Media {...props} added={added} onAdded={(l) => setAdded((a) => a.some((x) => x.id === l.id) ? a.map((x) => (x.id === l.id ? l : x)) : [...a, l])} />}
-              {step.id === 'games' && <Games {...props} added={added} goTo={go} />}
+              {step.id === 'games' && <ModuleStep id="games" props={{ ...props, added, goTo: go }} own={<Games {...props} added={added} goTo={go} />} />}
               {step.id === 'discs' && <Discs {...props} />}
               {step.id === 'details' && <Details {...props} />}
               {step.id === 'logos' && <Logos {...props} />}
@@ -154,4 +155,12 @@ export default function SetupWizard() {
       </div>
     </div>
   )
+}
+
+// A first-run step a module of API 5 draws itself (moduleRegistry.tsx), given the same props the
+// app's own step has; the app's own while there is none.
+function ModuleStep({ id, props, own }: { id: string; props: Record<string, unknown>; own: React.ReactNode }) {
+  const C = useModuleSetupStep(id)
+  if (C === undefined) return <div className="center"><div className="spinner" /></div>
+  return C ? <C {...props} /> : <>{own}</>
 }

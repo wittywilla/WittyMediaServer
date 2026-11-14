@@ -17,6 +17,7 @@ import { setPageRegions, usePageRegions } from './sdui/regions'
 import { useTvMode } from './tvmode/mode'
 import { focusFirst } from './tv'
 import { rememberHost } from './moduleRegistry'
+import { appModules } from './moduleApp'
 
 // What a module's web bundle shares with the app, and reads from one global because an
 // inline import map would need the page's security policy loosened. A bundle has to use
@@ -44,6 +45,8 @@ export const moduleHost = {
   pdfjs: () => import('pdfjs-dist/legacy/build/pdf.mjs'),
   pdfjsModule: undefined as unknown,
   pdfWorkerUrl,
+  // The app's own parts, by path (moduleApp.ts): what a bundle imports as @wms/app/<path>.
+  app: appModules,
 }
 
 /** What the server-facing parts of a module's host are: the app's own client. */

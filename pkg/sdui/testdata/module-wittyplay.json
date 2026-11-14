@@ -80,6 +80,85 @@
               ]
             },
             {
+              "id": "consoles",
+              "component": "Tab",
+              "props": {
+                "icon": "game",
+                "label": "Consoles"
+              },
+              "when": {
+                "not": {
+                  "platform": [
+                    "web",
+                    "desktop"
+                  ]
+                }
+              },
+              "children": [
+                {
+                  "id": "consoles-grid",
+                  "component": "Grid",
+                  "props": {
+                    "cardStyle": "tile",
+                    "empty": "message",
+                    "emptyAction": {
+                      "label": "Add a games library",
+                      "native": "settings",
+                      "when": {
+                        "admin": true
+                      }
+                    },
+                    "emptyHint": "An administrator adds a games library in Settings; its games appear after a scan.",
+                    "emptyText": "No games in your libraries yet.",
+                    "title": "Consoles with games"
+                  },
+                  "source": {
+                    "limit": 60,
+                    "type": "wittyplay.library"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "all",
+              "component": "Tab",
+              "props": {
+                "icon": "library",
+                "label": "All games"
+              },
+              "when": {
+                "not": {
+                  "platform": [
+                    "web",
+                    "desktop"
+                  ]
+                }
+              },
+              "children": [
+                {
+                  "id": "libraries-grid",
+                  "component": "Grid",
+                  "props": {
+                    "empty": "message",
+                    "emptyAction": {
+                      "label": "Add a games library",
+                      "native": "settings",
+                      "when": {
+                        "admin": true
+                      }
+                    },
+                    "emptyHint": "An administrator adds a games library in Settings; its games appear after a scan.",
+                    "emptyText": "No games library here yet.",
+                    "title": "Games libraries"
+                  },
+                  "source": {
+                    "kind": "games",
+                    "type": "libraries"
+                  }
+                }
+              ]
+            },
+            {
               "id": "classics",
               "component": "Tab",
               "props": {
@@ -276,8 +355,7 @@
             "id": "settings",
             "label": "Settings",
             "icon": "settings",
-            "route": "/page/wittyplay-privacy",
-            "as": "layer"
+            "route": "/page/wittyplay-settings"
           }
         ]
       }
@@ -358,8 +436,1015 @@
             "id": "settings",
             "label": "Settings",
             "icon": "settings",
-            "route": "/page/wittyplay-privacy",
+            "route": "/page/wittyplay-settings"
+          }
+        ]
+      }
+    },
+    {
+      "id": "wittyplay-library",
+      "kind": "library",
+      "title": "{library}",
+      "icon": "game",
+      "description": "A games library on every app: what you were playing, a shelf for each console, and every game with filters. The web app shows its own (/wittyplay/library).",
+      "match": {
+        "libraryKind": "games"
+      },
+      "scope": "wittyplay",
+      "sections": [
+        {
+          "id": "playing",
+          "component": "Shelf",
+          "props": {
+            "cardStyle": "game",
+            "title": "Continue playing"
+          },
+          "source": {
+            "library": "$library",
+            "type": "continuePlaying"
+          }
+        },
+        {
+          "id": "views",
+          "component": "Tabs",
+          "props": {
+            "default": "consoles",
+            "style": "segments"
+          },
+          "children": [
+            {
+              "id": "consoles",
+              "component": "Tab",
+              "props": {
+                "icon": "game",
+                "label": "By console"
+              },
+              "children": [
+                {
+                  "id": "c-a2600",
+                  "component": "Shelf",
+                  "props": {
+                    "cardStyle": "game",
+                    "seeAll": "never",
+                    "title": "Atari 2600"
+                  },
+                  "source": {
+                    "console": "a2600",
+                    "library": "$library",
+                    "limit": 60,
+                    "type": "wittyplay.library"
+                  }
+                },
+                {
+                  "id": "c-a7800",
+                  "component": "Shelf",
+                  "props": {
+                    "cardStyle": "game",
+                    "seeAll": "never",
+                    "title": "Atari 7800"
+                  },
+                  "source": {
+                    "console": "a7800",
+                    "library": "$library",
+                    "limit": 60,
+                    "type": "wittyplay.library"
+                  }
+                },
+                {
+                  "id": "c-nes",
+                  "component": "Shelf",
+                  "props": {
+                    "cardStyle": "game",
+                    "seeAll": "never",
+                    "title": "NES"
+                  },
+                  "source": {
+                    "console": "nes",
+                    "library": "$library",
+                    "limit": 60,
+                    "type": "wittyplay.library"
+                  }
+                },
+                {
+                  "id": "c-sms",
+                  "component": "Shelf",
+                  "props": {
+                    "cardStyle": "game",
+                    "seeAll": "never",
+                    "title": "Master System"
+                  },
+                  "source": {
+                    "console": "sms",
+                    "library": "$library",
+                    "limit": 60,
+                    "type": "wittyplay.library"
+                  }
+                },
+                {
+                  "id": "c-snes",
+                  "component": "Shelf",
+                  "props": {
+                    "cardStyle": "game",
+                    "seeAll": "never",
+                    "title": "Super Nintendo"
+                  },
+                  "source": {
+                    "console": "snes",
+                    "library": "$library",
+                    "limit": 60,
+                    "type": "wittyplay.library"
+                  }
+                },
+                {
+                  "id": "c-md",
+                  "component": "Shelf",
+                  "props": {
+                    "cardStyle": "game",
+                    "seeAll": "never",
+                    "title": "Mega Drive"
+                  },
+                  "source": {
+                    "console": "md",
+                    "library": "$library",
+                    "limit": 60,
+                    "type": "wittyplay.library"
+                  }
+                },
+                {
+                  "id": "c-pce",
+                  "component": "Shelf",
+                  "props": {
+                    "cardStyle": "game",
+                    "seeAll": "never",
+                    "title": "PC Engine"
+                  },
+                  "source": {
+                    "console": "pce",
+                    "library": "$library",
+                    "limit": 60,
+                    "type": "wittyplay.library"
+                  }
+                },
+                {
+                  "id": "c-n64",
+                  "component": "Shelf",
+                  "props": {
+                    "cardStyle": "game",
+                    "seeAll": "never",
+                    "title": "Nintendo 64"
+                  },
+                  "source": {
+                    "console": "n64",
+                    "library": "$library",
+                    "limit": 60,
+                    "type": "wittyplay.library"
+                  }
+                },
+                {
+                  "id": "c-ps1",
+                  "component": "Shelf",
+                  "props": {
+                    "cardStyle": "game",
+                    "seeAll": "never",
+                    "title": "PlayStation"
+                  },
+                  "source": {
+                    "console": "ps1",
+                    "library": "$library",
+                    "limit": 60,
+                    "type": "wittyplay.library"
+                  }
+                },
+                {
+                  "id": "c-dc",
+                  "component": "Shelf",
+                  "props": {
+                    "cardStyle": "game",
+                    "seeAll": "never",
+                    "title": "Dreamcast"
+                  },
+                  "source": {
+                    "console": "dc",
+                    "library": "$library",
+                    "limit": 60,
+                    "type": "wittyplay.library"
+                  }
+                },
+                {
+                  "id": "c-ps2",
+                  "component": "Shelf",
+                  "props": {
+                    "cardStyle": "game",
+                    "seeAll": "never",
+                    "title": "PlayStation 2"
+                  },
+                  "source": {
+                    "console": "ps2",
+                    "library": "$library",
+                    "limit": 60,
+                    "type": "wittyplay.library"
+                  }
+                },
+                {
+                  "id": "c-gc",
+                  "component": "Shelf",
+                  "props": {
+                    "cardStyle": "game",
+                    "seeAll": "never",
+                    "title": "GameCube"
+                  },
+                  "source": {
+                    "console": "gc",
+                    "library": "$library",
+                    "limit": 60,
+                    "type": "wittyplay.library"
+                  }
+                },
+                {
+                  "id": "c-wii",
+                  "component": "Shelf",
+                  "props": {
+                    "cardStyle": "game",
+                    "seeAll": "never",
+                    "title": "Wii"
+                  },
+                  "source": {
+                    "console": "wii",
+                    "library": "$library",
+                    "limit": 60,
+                    "type": "wittyplay.library"
+                  }
+                },
+                {
+                  "id": "c-xbox",
+                  "component": "Shelf",
+                  "props": {
+                    "cardStyle": "game",
+                    "seeAll": "never",
+                    "title": "Xbox"
+                  },
+                  "source": {
+                    "console": "xbox",
+                    "library": "$library",
+                    "limit": 60,
+                    "type": "wittyplay.library"
+                  }
+                },
+                {
+                  "id": "c-ps3",
+                  "component": "Shelf",
+                  "props": {
+                    "cardStyle": "game",
+                    "seeAll": "never",
+                    "title": "PlayStation 3"
+                  },
+                  "source": {
+                    "console": "ps3",
+                    "library": "$library",
+                    "limit": 60,
+                    "type": "wittyplay.library"
+                  }
+                },
+                {
+                  "id": "c-wiiu",
+                  "component": "Shelf",
+                  "props": {
+                    "cardStyle": "game",
+                    "seeAll": "never",
+                    "title": "Wii U"
+                  },
+                  "source": {
+                    "console": "wiiu",
+                    "library": "$library",
+                    "limit": 60,
+                    "type": "wittyplay.library"
+                  }
+                },
+                {
+                  "id": "c-switch",
+                  "component": "Shelf",
+                  "props": {
+                    "cardStyle": "game",
+                    "seeAll": "never",
+                    "title": "Switch"
+                  },
+                  "source": {
+                    "console": "switch",
+                    "library": "$library",
+                    "limit": 60,
+                    "type": "wittyplay.library"
+                  }
+                },
+                {
+                  "id": "c-switch2",
+                  "component": "Shelf",
+                  "props": {
+                    "cardStyle": "game",
+                    "seeAll": "never",
+                    "title": "Switch 2"
+                  },
+                  "source": {
+                    "console": "switch2",
+                    "library": "$library",
+                    "limit": 60,
+                    "type": "wittyplay.library"
+                  }
+                },
+                {
+                  "id": "c-gb",
+                  "component": "Shelf",
+                  "props": {
+                    "cardStyle": "game",
+                    "seeAll": "never",
+                    "title": "Game Boy"
+                  },
+                  "source": {
+                    "console": "gb",
+                    "library": "$library",
+                    "limit": 60,
+                    "type": "wittyplay.library"
+                  }
+                },
+                {
+                  "id": "c-gg",
+                  "component": "Shelf",
+                  "props": {
+                    "cardStyle": "game",
+                    "seeAll": "never",
+                    "title": "Game Gear"
+                  },
+                  "source": {
+                    "console": "gg",
+                    "library": "$library",
+                    "limit": 60,
+                    "type": "wittyplay.library"
+                  }
+                },
+                {
+                  "id": "c-lynx",
+                  "component": "Shelf",
+                  "props": {
+                    "cardStyle": "game",
+                    "seeAll": "never",
+                    "title": "Lynx"
+                  },
+                  "source": {
+                    "console": "lynx",
+                    "library": "$library",
+                    "limit": 60,
+                    "type": "wittyplay.library"
+                  }
+                },
+                {
+                  "id": "c-ngp",
+                  "component": "Shelf",
+                  "props": {
+                    "cardStyle": "game",
+                    "seeAll": "never",
+                    "title": "Neo Geo Pocket"
+                  },
+                  "source": {
+                    "console": "ngp",
+                    "library": "$library",
+                    "limit": 60,
+                    "type": "wittyplay.library"
+                  }
+                },
+                {
+                  "id": "c-ws",
+                  "component": "Shelf",
+                  "props": {
+                    "cardStyle": "game",
+                    "seeAll": "never",
+                    "title": "WonderSwan"
+                  },
+                  "source": {
+                    "console": "ws",
+                    "library": "$library",
+                    "limit": 60,
+                    "type": "wittyplay.library"
+                  }
+                },
+                {
+                  "id": "c-vb",
+                  "component": "Shelf",
+                  "props": {
+                    "cardStyle": "game",
+                    "seeAll": "never",
+                    "title": "Virtual Boy"
+                  },
+                  "source": {
+                    "console": "vb",
+                    "library": "$library",
+                    "limit": 60,
+                    "type": "wittyplay.library"
+                  }
+                },
+                {
+                  "id": "c-gba",
+                  "component": "Shelf",
+                  "props": {
+                    "cardStyle": "game",
+                    "seeAll": "never",
+                    "title": "Game Boy Advance"
+                  },
+                  "source": {
+                    "console": "gba",
+                    "library": "$library",
+                    "limit": 60,
+                    "type": "wittyplay.library"
+                  }
+                },
+                {
+                  "id": "c-nds",
+                  "component": "Shelf",
+                  "props": {
+                    "cardStyle": "game",
+                    "seeAll": "never",
+                    "title": "Nintendo DS"
+                  },
+                  "source": {
+                    "console": "nds",
+                    "library": "$library",
+                    "limit": 60,
+                    "type": "wittyplay.library"
+                  }
+                },
+                {
+                  "id": "c-psp",
+                  "component": "Shelf",
+                  "props": {
+                    "cardStyle": "game",
+                    "seeAll": "never",
+                    "title": "PSP"
+                  },
+                  "source": {
+                    "console": "psp",
+                    "library": "$library",
+                    "limit": 60,
+                    "type": "wittyplay.library"
+                  }
+                },
+                {
+                  "id": "c-3ds",
+                  "component": "Shelf",
+                  "props": {
+                    "cardStyle": "game",
+                    "seeAll": "never",
+                    "title": "Nintendo 3DS"
+                  },
+                  "source": {
+                    "console": "3ds",
+                    "library": "$library",
+                    "limit": 60,
+                    "type": "wittyplay.library"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "all",
+              "component": "Tab",
+              "props": {
+                "icon": "grid",
+                "label": "All games"
+              },
+              "children": [
+                {
+                  "id": "filters",
+                  "component": "FilterBar",
+                  "props": {
+                    "fields": [
+                      "genre",
+                      "decade"
+                    ],
+                    "sorts": [
+                      "title",
+                      "added",
+                      "newest",
+                      "rating"
+                    ],
+                    "target": "all-games"
+                  }
+                },
+                {
+                  "id": "all-games",
+                  "component": "Grid",
+                  "props": {
+                    "cardStyle": "game",
+                    "empty": "message",
+                    "emptyHint": "Change the filters, or add games to the library's folders; they appear after a scan.",
+                    "emptyText": "No games match."
+                  },
+                  "source": {
+                    "filterable": true,
+                    "library": "$library",
+                    "type": "browse"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "dock",
+          "component": "Dock",
+          "props": {
+            "controls": [
+              "sort",
+              "filter"
+            ],
+            "legend": true,
+            "target": "all-games"
+          }
+        }
+      ],
+      "regions": {
+        "statusBar": [
+          {
+            "id": "me",
+            "kind": "profile",
+            "text": "WittyPlay Online"
+          },
+          {
+            "id": "server",
+            "kind": "server"
+          }
+        ],
+        "systemDock": [
+          {
+            "id": "search",
+            "label": "Search",
+            "icon": "search",
+            "route": "/search"
+          },
+          {
+            "id": "together",
+            "label": "Together",
+            "icon": "users",
+            "route": "/page/wittyplay-online?tab=together"
+          },
+          {
+            "id": "controllers",
+            "label": "Controllers",
+            "icon": "devices",
+            "route": "/page/wittyplay-controllers",
             "as": "layer"
+          },
+          {
+            "id": "memories",
+            "label": "Memories",
+            "icon": "photo",
+            "route": "/page/wittyplay-online?tab=memories"
+          },
+          {
+            "id": "settings",
+            "label": "Settings",
+            "icon": "settings",
+            "route": "/page/wittyplay-settings"
+          }
+        ]
+      }
+    },
+    {
+      "id": "wittyplay-settings",
+      "kind": "custom",
+      "title": "Settings",
+      "icon": "settings",
+      "description": "WittyPlay's Settings on every app: the dock's Settings. The web app shows its own (/wittyplay/settings).",
+      "scope": "wittyplay",
+      "sections": [
+        {
+          "id": "you",
+          "component": "List",
+          "props": {
+            "title": "For you"
+          },
+          "children": [
+            {
+              "id": "privacy",
+              "component": "ListItem",
+              "props": {
+                "icon": "users",
+                "subtitle": "Who sees you online and what you are playing",
+                "title": "Friends and what you play",
+                "to": "/page/wittyplay-privacy"
+              }
+            },
+            {
+              "id": "controllers",
+              "component": "ListItem",
+              "props": {
+                "icon": "devices",
+                "subtitle": "Who is on which player",
+                "title": "Controllers",
+                "to": "/page/wittyplay-controllers"
+              }
+            },
+            {
+              "id": "options",
+              "component": "ListItem",
+              "props": {
+                "icon": "settings",
+                "native": "settings",
+                "subtitle": "In this app's Settings, Modules, Games",
+                "title": "WittyPlay options"
+              }
+            }
+          ]
+        },
+        {
+          "id": "server",
+          "component": "List",
+          "props": {
+            "title": "This server"
+          },
+          "when": {
+            "admin": true
+          },
+          "children": [
+            {
+              "id": "store",
+              "component": "ListItem",
+              "props": {
+                "icon": "disc",
+                "subtitle": "Consoles and their cores, BIOS files and standalone emulators: install, update, choose and remove",
+                "title": "Cores & emulators",
+                "to": "/page/wittyplay-store"
+              }
+            },
+            {
+              "id": "plays",
+              "component": "ListItem",
+              "props": {
+                "icon": "game",
+                "subtitle": "Every console, and whether its games play here",
+                "title": "What this server plays",
+                "to": "/page/wittyplay"
+              }
+            }
+          ]
+        },
+        {
+          "id": "computer",
+          "component": "List",
+          "props": {
+            "focusable": true,
+            "title": "On a computer"
+          },
+          "children": [
+            {
+              "id": "look",
+              "component": "ListItem",
+              "props": {
+                "icon": "info",
+                "subtitle": "Layout, tabs and buttons, game pictures, controller mapping and my game settings are in WittyPlay's Settings in a browser.",
+                "title": "On a computer: how WittyPlay looks and plays"
+              }
+            }
+          ]
+        },
+        {
+          "id": "dock",
+          "component": "Dock",
+          "props": {
+            "legend": true
+          }
+        }
+      ],
+      "regions": {
+        "statusBar": [
+          {
+            "id": "me",
+            "kind": "profile",
+            "text": "WittyPlay Online"
+          },
+          {
+            "id": "server",
+            "kind": "server"
+          }
+        ],
+        "systemDock": [
+          {
+            "id": "search",
+            "label": "Search",
+            "icon": "search",
+            "route": "/search"
+          },
+          {
+            "id": "together",
+            "label": "Together",
+            "icon": "users",
+            "route": "/page/wittyplay-online?tab=together"
+          },
+          {
+            "id": "controllers",
+            "label": "Controllers",
+            "icon": "devices",
+            "route": "/page/wittyplay-controllers",
+            "as": "layer"
+          },
+          {
+            "id": "memories",
+            "label": "Memories",
+            "icon": "photo",
+            "route": "/page/wittyplay-online?tab=memories"
+          },
+          {
+            "id": "settings",
+            "label": "Settings",
+            "icon": "settings",
+            "route": "/page/wittyplay-settings"
+          }
+        ]
+      }
+    },
+    {
+      "id": "wittyplay-store",
+      "kind": "custom",
+      "title": "Cores & emulators",
+      "icon": "disc",
+      "description": "For administrators, on every app: each console's cores (install, update, remove, the one it plays on) and BIOS files, and the standalone emulators.",
+      "scope": "wittyplay",
+      "sections": [
+        {
+          "id": "admins",
+          "component": "Notice",
+          "props": {
+            "text": "Only an administrator installs cores and emulators. What this server plays is in Settings.",
+            "tone": "info"
+          },
+          "when": {
+            "admin": false
+          }
+        },
+        {
+          "id": "store",
+          "component": "Tabs",
+          "props": {
+            "default": "consoles",
+            "style": "tabs"
+          },
+          "when": {
+            "admin": true
+          },
+          "children": [
+            {
+              "id": "consoles",
+              "component": "Tab",
+              "props": {
+                "icon": "game",
+                "label": "Consoles & cores"
+              },
+              "children": [
+                {
+                  "id": "consoles-list",
+                  "component": "List",
+                  "props": {
+                    "empty": "message",
+                    "emptyText": "The consoles couldn't be read. Try again in a moment.",
+                    "focusable": true,
+                    "title": ""
+                  },
+                  "source": {
+                    "type": "wittyplay.storeConsoles"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "emulators",
+              "component": "Tab",
+              "props": {
+                "icon": "devices",
+                "label": "Standalone emulators"
+              },
+              "children": [
+                {
+                  "id": "emulators-list",
+                  "component": "List",
+                  "props": {
+                    "empty": "message",
+                    "emptyText": "The emulators couldn't be read. Try again in a moment.",
+                    "focusable": true,
+                    "title": ""
+                  },
+                  "source": {
+                    "type": "wittyplay.storeEmulators"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "support",
+              "component": "Tab",
+              "props": {
+                "icon": "check",
+                "label": "What this server plays"
+              },
+              "children": [
+                {
+                  "id": "support-grid",
+                  "component": "Grid",
+                  "props": {
+                    "title": ""
+                  },
+                  "source": {
+                    "limit": 60,
+                    "only": "all",
+                    "type": "wittyplay.consoles"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "again",
+          "component": "List",
+          "props": {
+            "title": ""
+          },
+          "when": {
+            "admin": true
+          },
+          "children": [
+            {
+              "id": "check",
+              "component": "ListItem",
+              "props": {
+                "icon": "history",
+                "op": "refresh",
+                "subtitle": "Reads again how downloads and installs are going.",
+                "title": "Check again"
+              }
+            }
+          ]
+        },
+        {
+          "id": "dock",
+          "component": "Dock",
+          "props": {
+            "legend": true
+          }
+        }
+      ],
+      "regions": {
+        "statusBar": [
+          {
+            "id": "me",
+            "kind": "profile",
+            "text": "WittyPlay Online"
+          },
+          {
+            "id": "server",
+            "kind": "server"
+          }
+        ],
+        "systemDock": [
+          {
+            "id": "search",
+            "label": "Search",
+            "icon": "search",
+            "route": "/search"
+          },
+          {
+            "id": "together",
+            "label": "Together",
+            "icon": "users",
+            "route": "/page/wittyplay-online?tab=together"
+          },
+          {
+            "id": "controllers",
+            "label": "Controllers",
+            "icon": "devices",
+            "route": "/page/wittyplay-controllers",
+            "as": "layer"
+          },
+          {
+            "id": "memories",
+            "label": "Memories",
+            "icon": "photo",
+            "route": "/page/wittyplay-online?tab=memories"
+          },
+          {
+            "id": "settings",
+            "label": "Settings",
+            "icon": "settings",
+            "route": "/page/wittyplay-settings"
+          }
+        ]
+      }
+    },
+    {
+      "id": "wittyplay-store-console",
+      "kind": "custom",
+      "title": "{title}",
+      "icon": "game",
+      "description": "For administrators: one console's core, its cores to install, update or remove, and its BIOS files. Opened with ?item=<console>&name=<its name>.",
+      "scope": "wittyplay",
+      "sections": [
+        {
+          "id": "admins",
+          "component": "Notice",
+          "props": {
+            "text": "Only an administrator installs cores and emulators. What this server plays is in Settings.",
+            "tone": "info"
+          },
+          "when": {
+            "admin": false
+          }
+        },
+        {
+          "id": "rows",
+          "component": "List",
+          "props": {
+            "empty": "message",
+            "emptyText": "This server doesn't know this console.",
+            "focusable": true,
+            "title": ""
+          },
+          "source": {
+            "console": "$item",
+            "type": "wittyplay.storeConsoles"
+          },
+          "when": {
+            "admin": true
+          }
+        },
+        {
+          "id": "again",
+          "component": "List",
+          "props": {
+            "title": ""
+          },
+          "when": {
+            "admin": true
+          },
+          "children": [
+            {
+              "id": "check",
+              "component": "ListItem",
+              "props": {
+                "icon": "history",
+                "op": "refresh",
+                "subtitle": "Reads again how downloads and installs are going.",
+                "title": "Check again"
+              }
+            }
+          ]
+        },
+        {
+          "id": "dock",
+          "component": "Dock",
+          "props": {
+            "legend": true
+          }
+        }
+      ],
+      "regions": {
+        "statusBar": [
+          {
+            "id": "me",
+            "kind": "profile",
+            "text": "WittyPlay Online"
+          },
+          {
+            "id": "server",
+            "kind": "server"
+          }
+        ],
+        "systemDock": [
+          {
+            "id": "search",
+            "label": "Search",
+            "icon": "search",
+            "route": "/search"
+          },
+          {
+            "id": "together",
+            "label": "Together",
+            "icon": "users",
+            "route": "/page/wittyplay-online?tab=together"
+          },
+          {
+            "id": "controllers",
+            "label": "Controllers",
+            "icon": "devices",
+            "route": "/page/wittyplay-controllers",
+            "as": "layer"
+          },
+          {
+            "id": "memories",
+            "label": "Memories",
+            "icon": "photo",
+            "route": "/page/wittyplay-online?tab=memories"
+          },
+          {
+            "id": "settings",
+            "label": "Settings",
+            "icon": "settings",
+            "route": "/page/wittyplay-settings"
           }
         ]
       }
@@ -1008,20 +2093,99 @@
       "paged": false,
       "title": "Controllers",
       "since": 8
+    },
+    {
+      "type": "wittyplay.library",
+      "label": "Games by console",
+      "description": "With a console, that console's games by title, in one games library ($library) or every one. Without, the consoles that have games there, each with how many, opening the library that holds them.",
+      "icon": "game",
+      "category": "",
+      "params": [
+        {
+          "name": "library",
+          "type": "library",
+          "label": "Library",
+          "help": "$library on a games library's page; empty for every games library.",
+          "since": 0
+        },
+        {
+          "name": "console",
+          "type": "string",
+          "label": "Console",
+          "help": "A console's ID, such as snes. Empty: the consoles themselves.",
+          "maxLength": 40,
+          "since": 0
+        },
+        {
+          "name": "limit",
+          "type": "int",
+          "label": "At most",
+          "default": 40,
+          "min": 1,
+          "max": 500,
+          "since": 0
+        }
+      ],
+      "yields": [
+        "game",
+        "view"
+      ],
+      "cardStyle": "game",
+      "paged": true,
+      "title": "Games",
+      "since": 8
+    },
+    {
+      "type": "wittyplay.storeConsoles",
+      "label": "Cores & emulators: consoles",
+      "description": "For an administrator: a row for each console, whether it plays here and on what, opening its own rows. With a console: the core it plays on (a choice), each of its cores to install (its licence accepted), update or remove, with a download's progress, and its BIOS files. Nothing for anyone else.",
+      "icon": "disc",
+      "category": "",
+      "params": [
+        {
+          "name": "console",
+          "type": "string",
+          "label": "Console",
+          "help": "A console's ID, $item on a page opened about it. Empty: every console.",
+          "maxLength": 64,
+          "since": 0
+        }
+      ],
+      "yields": [
+        "view"
+      ],
+      "cardStyle": "tile",
+      "paged": false,
+      "title": "Consoles & cores",
+      "since": 8
+    },
+    {
+      "type": "wittyplay.storeEmulators",
+      "label": "Cores & emulators: standalone emulators",
+      "description": "For an administrator: each standalone emulator, its consoles, licence and firmware, and rows to accept its licence and install it, update it, stop a download or remove it. Nothing for anyone else.",
+      "icon": "devices",
+      "category": "",
+      "yields": [
+        "view"
+      ],
+      "cardStyle": "tile",
+      "paged": false,
+      "title": "Standalone emulators",
+      "since": 8
     }
   ],
   "navigation": [
     {
       "id": "wittyplay-online",
-      "label": "WittyPlay Online",
+      "label": "Games",
       "icon": "game",
       "type": "page",
       "page": "wittyplay-online",
       "placement": {
         "desktop": "more",
         "headset": "more",
-        "phone": "more",
-        "tablet": "more",
+        "phone": "primary",
+        "tablet": "primary",
         "web": "more"
       }
     }
@@ -1069,6 +2233,67 @@
           ]
         }
       ]
+    }
+  ],
+  "commands": [
+    {
+      "op": "wittyplay.core.install",
+      "label": "Install the core",
+      "description": "Cores & emulators, administrators: downloads a console's core (item: its ID) from the libretro build server, or downloads it again to update it.",
+      "method": "POST",
+      "path": "/api/modules/wittyplay/gaming/cores/{item}/install"
+    },
+    {
+      "op": "wittyplay.core.remove",
+      "label": "Remove the core",
+      "description": "Cores & emulators, administrators: removes a core this server installed (item: its ID).",
+      "method": "DELETE",
+      "path": "/api/modules/wittyplay/gaming/cores/{item}"
+    },
+    {
+      "op": "wittyplay.console.core",
+      "label": "Choose the console's core",
+      "description": "Cores & emulators, administrators: the core a console (item: its ID) plays on unless a game has its own; params.value is an installed core's ID, empty for automatic. A select row adds value.",
+      "method": "PUT",
+      "path": "/api/modules/wittyplay/gaming/consoles/{item}/core",
+      "body": "{\"core\":\"{value}\"}",
+      "params": [
+        {
+          "name": "value",
+          "type": "string",
+          "label": "Core"
+        }
+      ]
+    },
+    {
+      "op": "wittyplay.emulator.install",
+      "label": "Accept the licence and install",
+      "description": "Cores & emulators, administrators: installs or updates a standalone emulator (item: its ID) in the background; params.license is the licence the row named, which must be the emulator's.",
+      "method": "POST",
+      "path": "/api/modules/wittyplay/docker/emulators/{item}/install",
+      "body": "{\"license\":\"{license}\"}",
+      "params": [
+        {
+          "name": "license",
+          "type": "string",
+          "label": "Licence accepted",
+          "required": true
+        }
+      ]
+    },
+    {
+      "op": "wittyplay.emulator.cancel",
+      "label": "Stop installing",
+      "description": "Cores & emulators, administrators: stops a standalone emulator's download (item: its ID).",
+      "method": "DELETE",
+      "path": "/api/modules/wittyplay/docker/emulators/{item}/install"
+    },
+    {
+      "op": "wittyplay.emulator.remove",
+      "label": "Remove the emulator",
+      "description": "Cores & emulators, administrators: uninstalls a standalone emulator (item: its ID). Saves stay.",
+      "method": "DELETE",
+      "path": "/api/modules/wittyplay/docker/emulators/{item}"
     }
   ]
 }

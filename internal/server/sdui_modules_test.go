@@ -214,3 +214,12 @@ func TestModuleCommandKeepsIDLists(t *testing.T) {
 		t.Errorf("a list where the catalogue wants text: %+v", got)
 	}
 }
+
+// A module's command keeps the question asked before it runs.
+func TestModuleCommandKeepsItsQuestion(t *testing.T) {
+	rv := &sduiResolver{}
+	got := rv.cleanModuleAction("wittyplay", &sdui.Action{Type: sdui.ActCommand, Op: "wittyplay.memory.delete", Item: "7", Confirm: "Delete this memory?", Params: map[string]any{"name": "a.png"}})
+	if got == nil || got.Confirm != "Delete this memory?" {
+		t.Fatalf("the question: %+v", got)
+	}
+}

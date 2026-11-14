@@ -361,6 +361,13 @@ func (rv *sduiResolver) cleanModuleAction(mod string, a *sdui.Action) *sdui.Acti
 			return nil
 		}
 		out.Op, out.Item = a.Op, a.Item
+		// The question asked before it's carried out ("Remove this core?"): plain text, short.
+		if r := []rune(strings.TrimSpace(a.Confirm)); len(r) > 0 {
+			if len(r) > 120 {
+				r = r[:120]
+			}
+			out.Confirm = string(r)
+		}
 		for _, p := range spec.Params {
 			v, ok := a.Params[p.Name]
 			if !ok {

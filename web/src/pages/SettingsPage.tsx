@@ -9,7 +9,7 @@ import { BackLink, UpdateDot, VersionTag, LoadError } from '../components/common
 import { ChooseFolderButton } from '../components/FolderPicker'
 import { useModulePages } from '../moduleBundles'
 import { ModuleSettingsView, useModuleSettingsTabs, type ModuleSettingsTab } from '../moduleRegistry'
-import { IconHelp, IconActivity, IconChannels, IconClose, IconContrast, IconDownload, IconDrive, IconEdit, IconFile, IconFilm, IconFolder, IconGamepad, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconNetwork, IconPalette, IconPlay, IconPlug, IconPlus, IconRefresh, IconRemote, IconRight, IconShield, IconSidebar, IconTag, IconTrash, IconTune, IconUsers, IconWrench, libIcon } from '../icons'
+import { IconHelp, IconActivity, IconChannels, IconClose, IconDownload, IconDrive, IconEdit, IconFile, IconFilm, IconFolder, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconNetwork, IconPalette, IconPlay, IconPlug, IconPlus, IconRefresh, IconRemote, IconRight, IconShield, IconSidebar, IconTag, IconTrash, IconTune, IconUsers, IconWrench, libIcon } from '../icons'
 import { toast, useApp } from '../state'
 import { settingsPageHidden } from '../profileWords'
 import { useMyLimits } from '../myLimits'
@@ -20,9 +20,7 @@ import SupportedFormats from './settings/SupportedFormats'
 import MetadataSettings from './settings/Metadata'
 import PlaybackSettings from './settings/Playback'
 import SharingSettings from './settings/Sharing'
-import GamingSettings from './settings/Gaming'
-import { ConsolePicker, GameSettingsPage } from './games/consoles'
-import { GameTitlesSetting } from './games/GameTitlesSetting'
+import { ConsolePicker } from './games/consoles'
 import { kindTitle, libraryKinds, missingKind, orList, type LibraryKind } from '../moduleStore'
 import { PageHead, Row, SaveBar, Section, Switch, useServerSettings } from './settings/ui'
 import { jumpWhenReady } from './settings/jump'
@@ -53,8 +51,6 @@ const RepairSettings = lazy(() => import('./settings/Repair'))
 const RemoteAccess = lazy(() => import('./settings/RemoteAccess'))
 const NetworkSettings = lazy(() => import('./settings/Network'))
 const CouchSettings = lazy(() => import('./settings/Couch'))
-const EmulatorsSettings = lazy(() => import('./settings/Emulators'))
-const GamesSupport = lazy(() => import('./settings/GamesSupport'))
 const WittyRigsSettings = lazy(() => import('./settings/WittyRigs'))
 const ModuleSettingsList = lazy(() => import('./settings/ModuleSettings').then((m) => ({ default: m.ModuleSettingsList })))
 const ModuleSettingsPage = lazy(() => import('./settings/ModuleSettings').then((m) => ({ default: m.ModuleSettingsPage })))
@@ -92,9 +88,6 @@ const GROUPS: { title: string; pages: Page[] }[] = [
     { to: 'metadata', label: 'Metadata agents', icon: <IconTag />, admin: true, hint: 'Where posters and plots come from' },
     { to: 'playback', label: 'Playback & discs', icon: <IconPlay />, admin: true, hint: 'Player, DVDs and Blu-rays' },
     { to: 'channels', label: 'Channels & tuners', icon: <IconChannels />, admin: true, hint: 'Tuners, IPTV, guide data and WittyTV options' },
-    { to: 'gaming', label: 'Consoles & cores', icon: <IconGamepad />, admin: true, hint: 'Which consoles this server can play, their cores, and game streaming' },
-    { to: 'games-support', label: 'What this server plays', icon: <IconGamepad />, hint: 'Each console, whether its games play here, and how' },
-    { to: 'emulators', label: 'Standalone emulators', icon: <IconGamepad />, admin: true, hint: 'PCSX2, Dolphin, RPCS3 and others: where they run, installs, firmware, controllers and every setting' },
     { to: 'couch', label: 'Game PCs', icon: <IconDrive />, admin: true, hint: 'Who can play on PCs running Sunshine, and which ones' },
     { to: 'transcoding', label: 'Live transcoding', icon: <IconFilm />, admin: true, hint: 'While someone watches: quality, hardware and formats' },
     { to: 'library-transcoding', label: 'Library transcoding', icon: <IconFilm />, admin: true, hint: 'Convert files ahead of time, and connect Tdarr' },
@@ -105,7 +98,6 @@ const GROUPS: { title: string; pages: Page[] }[] = [
     { to: 'users', label: 'Profiles', icon: <IconUsers />, hint: 'People, passwords and limits' },
     { to: 'security', label: 'Sign-in & security', icon: <IconLock />, hint: 'Your devices and two-factor sign-in' },
     { to: 'appearance', label: 'Appearance', icon: <IconPalette />, hint: 'Theme, colours, layout, and the look of WittyTV and the player' },
-    { to: 'games', label: 'My game settings', icon: <IconContrast />, hint: 'Picture, speed, shortcuts and more, for your games' },
     { to: 'activity', label: 'Activity', icon: <IconActivity />, hint: 'The button showing library scans and other background work' },
     { to: 'sharing', label: 'Sharing & photos', icon: <IconImage />, hint: 'Uploads, links, the photo map' },
     { to: 'module-settings', label: 'Module settings', icon: <IconPlug />, hint: 'What the modules on this server let you set' },
@@ -231,10 +223,6 @@ export default function SettingsPage() {
           <Route path="metadata" element={<MetadataSettings />} />
           <Route path="playback" element={<PlaybackSettings />} />
           <Route path="channels/*" element={<Suspense fallback={<div className="center"><div className="spinner" /></div>}><TvSettings /></Suspense>} />
-          <Route path="gaming" element={<GamingSettings />} />
-          <Route path="games" element={<><PageHead title="My game settings" desc="How your games look, sound and behave. Set something for every game, for one console or, from a game’s own page, for one game. It follows you to every device." /><GameTitlesSetting /><GameSettingsPage /></>} />
-          <Route path="emulators" element={<Suspense fallback={null}><EmulatorsSettings /></Suspense>} />
-          <Route path="games-support" element={<Suspense fallback={null}><GamesSupport /></Suspense>} />
           <Route path="couch" element={<Suspense fallback={null}><CouchSettings /></Suspense>} />
           <Route path="wittyrigs" element={<Suspense fallback={null}><WittyRigsSettings /></Suspense>} />
           <Route path="server" element={<Navigate to="/settings/metadata" replace />} />

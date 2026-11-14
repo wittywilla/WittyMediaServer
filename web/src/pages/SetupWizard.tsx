@@ -14,7 +14,6 @@ import { Account } from './setup/Account'
 import { Details } from './setup/Details'
 import { Discs } from './setup/Discs'
 import { Done } from './setup/Done'
-import { Games } from './setup/Games'
 import { Listings } from './setup/Listings'
 import { Tv } from './setup/Tv'
 import { Logos } from './setup/Logos'
@@ -135,7 +134,7 @@ export default function SetupWizard() {
               {step.id === 'name' && <Name {...props} onTry={setTryName} />}
               {step.id === 'modules' && <Modules {...props} />}
               {step.id === 'media' && <Media {...props} added={added} onAdded={(l) => setAdded((a) => a.some((x) => x.id === l.id) ? a.map((x) => (x.id === l.id ? l : x)) : [...a, l])} />}
-              {step.id === 'games' && <ModuleStep id="games" props={{ ...props, added, goTo: go }} own={<Games {...props} added={added} goTo={go} />} />}
+              {step.id === 'games' && <ModuleStep id="games" props={{ ...props, added, goTo: go }} own={null} />}
               {step.id === 'discs' && <Discs {...props} />}
               {step.id === 'details' && <Details {...props} />}
               {step.id === 'logos' && <Logos {...props} />}

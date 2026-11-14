@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { Link, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { profileName } from '../api'
 import { Brand, BrandMark, Spinner } from '../components/common'
@@ -22,9 +22,6 @@ import You from './You'
 // whole screen for anything opened from a tab. Every page of the website shows in it; the tabs only a TV
 // has (Libraries, Games, Search with its keyboard, You) are this folder's own.
 
-const Games = lazy(() => import('./Games'))
-const GamesLibraryScreen = lazy(() => import('./Games').then((m) => ({ default: m.GamesLibraryScreen })))
-const GameScreen = lazy(() => import('./Games').then((m) => ({ default: m.GameScreen })))
 
 // While one of these is open it has the keys: dialogs and menus close on Back, the player and books have
 // their own, and a game being played has the controller.
@@ -162,9 +159,6 @@ export default function TvFrame({ pages }: { pages: ReactNode }) {
         <Suspense fallback={<Spinner />}>
           <Routes>
             <Route path="/libraries" element={<SduiRoute fallback={<Libraries />} />} />
-            <Route path="/games" element={<SduiRoute fallback={<Games />} />} />
-            <Route path="/games/library/:id" element={<GamesLibraryScreen />} />
-            <Route path="/games/game/:id" element={<GameScreen />} />
             <Route path="/search" element={<SduiRoute fallback={<Search />} />} />
             <Route path="/you" element={<You />} />
             <Route path="/more" element={<More />} />

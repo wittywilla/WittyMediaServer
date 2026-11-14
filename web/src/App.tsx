@@ -17,10 +17,8 @@ import ConnectServer from './components/ConnectServer'
 import Unreachable from './components/Unreachable'
 import AuthPage from './pages/AuthPage'
 import { usePageRegions } from './sdui/regions'
-import { isPlayPath, PlayFrame, StatusBar, SystemDock } from './shell/PlayChrome'
-import { MainGames } from './shell/MainGames'
+import { StatusBar, SystemDock } from './shell/Regions'
 import { ModuleCards, ModuleFrame, ModuleRouteView, matchModuleRoute, takeoverFor, useModuleWeb } from './moduleRegistry'
-import { useGamesInPlay } from './shell/PlayRedirect'
 import { PlayerDock } from './player/PlayerPage'
 import { Announcer, useDialogs } from './a11y'
 import LegalNote, { legalAckText } from './components/LegalNote'
@@ -46,20 +44,12 @@ const HomePage = lazy(() => import('./pages/HomePage'))
 const PairPage = lazy(() => import('./pages/PairPage'))
 const SharedPage = lazy(() => import('./pages/SharedPage'))
 const DesignPage = lazy(() => import('./pages/DesignPage'))
-const DesignPlay = lazy(() => import('./pages/DesignPlay'))
-const PlaySettings = lazy(() => import('./pages/PlaySettings'))
-const PlayConsoles = lazy(() => import('./pages/PlayConsoles'))
-const PlayConsoleSettings = lazy(() => import('./pages/PlayConsoles').then((m) => ({ default: m.PlayConsoleSettings })))
-const PlayLibrary = lazy(() => import('./pages/PlayConsoles').then((m) => ({ default: m.PlayLibrary })))
-const PlayGame = lazy(() => import('./pages/PlayGame'))
 const GapsReview = lazy(() => import('./spec/GapsReview'))
 const HelpPage = lazy(() => import('./pages/HelpPage'))
 const HelpPublicPage = lazy(() => import('./pages/HelpPage').then((m) => ({ default: m.HelpPublicPage })))
 const LegalPublicPage = lazy(() => import('./pages/settings/Legal').then((m) => ({ default: m.LegalPublicPage })))
-const GamePage = lazy(() => import('./pages/Games').then((m) => ({ default: m.GamePage })))
 const CouchMode = lazy(() => import('./pages/games/Couch'))
 const RadioStationPage = lazy(() => import('./pages/RadioLibrary').then((m) => ({ default: m.RadioStationPage })))
-const ControllersScreen = lazy(() => import('./pages/Games').then((m) => ({ default: m.ControllersScreen })))
 const WatchPage = lazy(() => import('./pages/creators/WatchPage'))
 const FixMatches = lazy(() => import('./pages/FixMatches'))
 const BrandPage = lazy(() => import('./pages/library/BrandPage'))
@@ -115,8 +105,6 @@ function Shell() {
   const { user, loading, setupRequired, onboarding, needServer, unreachable, libraries } = useApp()
   const loc = useLocation()
   const tvMode = useTvMode()
-  // WittyPlay installed: the games pages show in its frame too (shell/PlayRedirect.tsx). Asked before any early return.
-  const gamesInPlay = useGamesInPlay(loc.pathname)
   // Screens modules of API 5 draw themselves (moduleRegistry.tsx): a full-window one takes the
   // place of the app's frame, as the app's own players and WittyPlay's frame do.
   const moduleWeb = useModuleWeb()
@@ -145,14 +133,8 @@ function Shell() {
   const isReader = loc.pathname.startsWith('/read/')
   const isTvPlayer = loc.pathname.startsWith('/tv/watch/')
   const isTv = loc.pathname === '/tv' || loc.pathname.startsWith('/tv/')
-  const isGame = loc.pathname.startsWith('/game/')
   const isCouchMode = loc.pathname === '/big' || loc.pathname.startsWith('/big/')
   const isStream = /^\/couch\/\d+\/play\//.test(loc.pathname) || loc.pathname.startsWith('/couch-rig/')
-  // WittyPlay Online takes over the window, over the app's frame and in its own palette (shell/PlayChrome.tsx), in TV mode too.
-  const isWPlay = isPlayPath(loc.pathname) || gamesInPlay
-  // A games library's page, with WittyPlay installed: WittyPlay's own view of it (the app's whole games library, in its frame).
-  const playLib = gamesInPlay ? /^\/library\/(\d+)$/.exec(loc.pathname)?.[1] : undefined
-  const toPlayLibrary = playLib ? '/wittyplay/library/' + playLib + loc.search : ''
   // A library of a kind a module draws itself goes to the module's own view of it (takeover).
   const libId = /^\/library\/(\d+)$/.exec(loc.pathname)?.[1]
   const takeover = libId ? takeoverFor(moduleWeb, libraries.find((l) => String(l.id) === libId)?.type, libId) : null
@@ -170,13 +152,12 @@ function Shell() {
   }
   return (
     <AudioProvider>
-      {!isTvPlayer && !isReader && !isStream && !isGame && !isPlayer && !isWPlay && <Scene />}
+      {!isTvPlayer && !isReader && !isStream && !isPlayer && <Scene />}
       {isTvPlayer ? <Suspense fallback={tvFallback}><Routes><Route path="/tv/watch/:key" element={<TvPlayer />} /></Routes></Suspense>
         : isReader ? <Suspense fallback={<Spinner />}><Routes><Route path="/read/:id" element={<ReaderPage />} /></Routes></Suspense>
         : isCouchMode ? <Suspense fallback={<Spinner />}><Routes><Route path="/big/*" element={<CouchMode />} /></Routes></Suspense>
-        : isGame ? <Suspense fallback={<Spinner />}><Routes><Route path="/game/:id" element={<GamePage />} /></Routes></Suspense>
         : isStream ? <Suspense fallback={<Spinner />}><Routes><Route path="/couch/:id/play/:app" element={<CouchPlayPage />} /><Route path="/couch-rig/:id" element={<RigPlayPage />} /></Routes></Suspense>
-        : isPlayer ? null : isWPlay ? <PlayFrame>{toPlayLibrary ? <Navigate to={toPlayLibrary} replace /> : <Suspense fallback={<RouteSkeleton />}><PageRoutes /></Suspense>}</PlayFrame> : tvMode ? <MainGames><ModuleCards><Suspense fallback={<Spinner />}><TvFrame pages={<PageRoutes />} /></Suspense></ModuleCards></MainGames> : <MainGames><ModuleCards><AppFrame /></ModuleCards></MainGames>}
+        : isPlayer ? null : tvMode ? <ModuleCards><Suspense fallback={<Spinner />}><TvFrame pages={<PageRoutes />} /></Suspense></ModuleCards> : <ModuleCards><AppFrame /></ModuleCards>}
       <PlayerDock />
       <RemoteHost />
       {isTv && <Suspense fallback={null}><TvHost /></Suspense>}
@@ -296,21 +277,11 @@ export function PageRoutes() {
       <Route path="/tv/channels/*" element={<Suspense fallback={tvFallback}><ChannelsPage /></Suspense>} />
       <Route path="/tv/sets/*" element={<Suspense fallback={tvFallback}><SetsPage /></Suspense>} />
       <Route path="/tv/encrypted" element={<Suspense fallback={tvFallback}><EncryptedHelp /></Suspense>} />
-      <Route path="/controllers" element={<Suspense fallback={<Spinner />}><ControllersScreen /></Suspense>} />
       <Route path="/settings/*" element={<SettingsPage />} />
       <Route path="/m/:module/:page" element={<Suspense fallback={<Spinner />}><ModulePage /></Suspense>} />
       <Route path="/help" element={<Suspense fallback={<Spinner />}><HelpPage /></Suspense>} />
       <Route path="/help/:guide" element={<Suspense fallback={<Spinner />}><HelpPage /></Suspense>} />
       <Route path="/design" element={<DesignPage />} />
-      <Route path="/design/play" element={<Suspense fallback={<Spinner />}><DesignPlay /></Suspense>} />
-      <Route path="/wittyplay/consoles" element={<Suspense fallback={<Spinner />}><PlayConsoles /></Suspense>} />
-      <Route path="/wittyplay/consoles/:id" element={<Suspense fallback={<Spinner />}><PlayConsoleSettings /></Suspense>} />
-      <Route path="/wittyplay/library" element={<Suspense fallback={<Spinner />}><PlayLibrary /></Suspense>} />
-      <Route path="/wittyplay/library/:id" element={<Suspense fallback={<Spinner />}><PlayLibrary /></Suspense>} />
-      <Route path="/wittyplay/game/:id" element={<Suspense fallback={<Spinner />}><PlayGame /></Suspense>} />
-      <Route path="/wittyplay/settings" element={<Suspense fallback={<Spinner />}><PlaySettings /></Suspense>} />
-      <Route path="/wittyplay/settings/module/:module" element={<Suspense fallback={<Spinner />}><PlaySettings /></Suspense>} />
-      <Route path="/wittyplay/settings/:section/*" element={<Suspense fallback={<Spinner />}><PlaySettings /></Suspense>} />
       <Route path="/design/gaps" element={<Suspense fallback={<Spinner />}><GapsReview /></Suspense>} />
       <Route path="/design/gaps/:key" element={<Suspense fallback={<Spinner />}><GapsReview /></Suspense>} />
       <Route path="*" element={<NotFound />} />

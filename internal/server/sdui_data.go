@@ -1155,6 +1155,9 @@ func (rv *sduiResolver) Facets(lib string, fields []string) ([]sdui.Facet, error
 	if !ok {
 		return nil, nil
 	}
+	if l.Type == "games" {
+		return rv.gameFacets(l.ID, fields)
+	}
 	f, err := rv.s.Store.LibraryFacets(rv.ctx, l.ID, rv.acc)
 	if err != nil || f == nil {
 		return nil, err
@@ -1202,6 +1205,8 @@ func (rv *sduiResolver) Facets(lib string, fields []string) ([]sdui.Facet, error
 			if l.Type == "books" {
 				out = append(out, sdui.Facet{ID: field, Label: "Format", Options: []sdui.EnumOption{{Value: "epub", Label: "Books"}, {Value: "pdf", Label: "PDFs"}, {Value: "cbz", Label: "Comics"}}})
 			}
+		case "minRating":
+			out = append(out, minRatingFacet())
 		case "watched":
 			out = append(out, sdui.Facet{ID: field, Label: "Watched", Options: []sdui.EnumOption{{Value: "no", Label: "Unwatched"}, {Value: "yes", Label: "Watched"}}})
 		case "service":
@@ -1222,6 +1227,52 @@ func (rv *sduiResolver) Facets(lib string, fields []string) ([]sdui.Facet, error
 		}
 	}
 	return out, nil
+}
+
+// gameFacets are a games library's filter choices: its genres, its decades and, when any of its
+// games has a score, the score steps. The rest of a FilterBar's fields have none in a games library.
+func (rv *sduiResolver) gameFacets(lib int64, fields []string) ([]sdui.Facet, error) {
+	f, err := rv.s.Store.GameFacets(rv.ctx, lib, "", rv.acc)
+	if err != nil || f == nil {
+		return nil, err
+	}
+	options := func(list []library.GameFacet, max int) []sdui.EnumOption {
+		var out []sdui.EnumOption
+		for i, x := range list {
+			if i >= max || x.Value == "" {
+				break
+			}
+			out = append(out, sdui.EnumOption{Value: x.Value, Label: x.Value})
+		}
+		return out
+	}
+	var out []sdui.Facet
+	for _, field := range fields {
+		switch field {
+		case "genre":
+			out = append(out, sdui.Facet{ID: field, Label: "Genre", Options: options(f.Genres, 60)})
+		case "decade":
+			opts := options(f.Decades, 20)
+			for i := range opts {
+				opts[i].Label += "s"
+			}
+			out = append(out, sdui.Facet{ID: field, Label: "Decade", Options: opts})
+		case "minRating":
+			if f.Rated > 0 {
+				out = append(out, minRatingFacet())
+			}
+		}
+	}
+	return out, nil
+}
+
+// minRatingFacet is the "score at least" filter: a title's score out of 10.
+func minRatingFacet() sdui.Facet {
+	var opts []sdui.EnumOption
+	for _, n := range []string{"9", "8", "7", "6", "5"} {
+		opts = append(opts, sdui.EnumOption{Value: n, Label: n + " or more"})
+	}
+	return sdui.Facet{ID: "minRating", Label: "Score at least", Options: opts}
 }
 
 // sduiTopShelfRows are the rows a tvOS Top Shelf shows: what this account was in the

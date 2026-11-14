@@ -107,6 +107,7 @@ export const GROUPS: GuideGroup[] = [
     { file: 'P2P', title: 'Peer-to-peer connections', about: 'Reaching a server with nothing set up on the router: the design, the protocol and the threat model.' },
     { file: 'SDUI', title: 'Server-driven screens', about: 'Screens the server describes and every app draws, and how to change them.' },
     { file: 'SDUI-MODULES', title: 'A module\'s screens', about: 'What a module adds to every app as data: its pages, rows, menu entries, settings and colours.' },
+    { file: 'MODULES-API5', title: 'A module that owns its feature', about: 'Module API 5: a module\'s own routes, screens, data and setup, merged into the server so it updates from the store.' },
     { file: 'SECURITY-ROUTES', title: 'Who may call what', about: 'Every route and the role it needs.' },
     { file: 'GAMING-API', title: 'Games API', about: 'The game routes, for apps.' },
     { file: 'GAMING-STREAM', title: 'Games: the stream', about: 'One stream for every device: why, and its wire protocol.' },

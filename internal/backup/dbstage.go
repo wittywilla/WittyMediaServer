@@ -511,7 +511,7 @@ func sanitizeRows(ctx context.Context, d *sql.DB, in *Inspection, f Folders) err
 	}
 	// Anything with a file path must be inside a library folder. Otherwise a row in a
 	// file could make the server serve any file on this machine.
-	for _, t := range []struct{ table, col string }{{"items", "path"}, {"shows", "path"}, {"game_archives", "path"}, {"game_files", "path"}, {"game_review", "path"}, {"game_decisions", "path"}, {"game_discs", "path"}} {
+	for _, t := range []struct{ table, col string }{{"items", "path"}, {"shows", "path"}, {"item_files", "path"}} {
 		n, err := dropOutsideRoots(ctx, d, t.table, t.col, roots)
 		if err != nil {
 			return err

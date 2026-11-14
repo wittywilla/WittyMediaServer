@@ -12,7 +12,6 @@ import VideoLibrary from './library/VideoLibrary'
 const ShortsLibrary = lazy(() => import('./creators/ShortsLibrary'))
 const ChannelsLibrary = lazy(() => import('./creators/ChannelsLibrary'))
 const RadioLibrary = lazy(() => import('./RadioLibrary'))
-const GamesLibrary = lazy(() => import('./games/Library'))
 
 const AUDIO = ['music', 'audiobooks', 'podcasts']
 
@@ -29,7 +28,8 @@ export default function LibraryPage() {
   if (lib?.type === 'radio') return <Suspense fallback={<Spinner />}><RadioLibrary key={lib.id} lib={lib} /></Suspense>
   // A gaming PC's games: WittyRigs draws them (its takeover of the kind "rig"); without it, it's missing.
   if (lib?.type === 'games' && lib.console === 'rig') return <ModuleMissing ids={['wittyrigs']} />
-  if (lib?.type === 'games') return <Suspense fallback={<Spinner />}><GamesLibrary key={lib.id} lib={lib} /></Suspense>
+  // A games library: WittyPlay draws it (its takeover of the kind "games"); without it, it's missing.
+  if (lib?.type === 'games') return <ModuleMissing ids={['wittyplay']} />
   if (!lib) return <EmptyState title="Library not found" action={<Link to="/settings/libraries" className="btn">Manage libraries</Link>} />
   return <VideoLibrary key={lib.id} lib={lib} />
 }

@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
-	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
+	"github.com/wittywilla/wittymodule"
 )
 
 func (s *Server) handleLibraries(w http.ResponseWriter, r *http.Request) {
@@ -60,14 +60,16 @@ func (s *Server) validateLibrary(r *http.Request, b *libraryBody, already []stri
 	if err := b.validate(); err != nil {
 		return err
 	}
-	if b.Type != "games" {
+	// A library of a kind a module scans may be held to one of the module's choices (a games
+	// library to a console: scan.choices).
+	if mod, ok := s.scanModule(b.Type); !ok || mod.Facet == "" {
 		b.Console = ""
 		return nil
 	}
 	if b.Console == "" {
-		b.Console = wittyplay.Auto
+		b.Console = wittymodule.ScanAuto
 	}
-	if !wittyplay.ValidLibraryConsole(b.Console, s.testingGames()) {
+	if !s.validFacet(r.Context(), b.Type, b.Console) {
 		return errors.New("unknown console")
 	}
 	return nil
@@ -116,7 +118,7 @@ func (s *Server) handleCreateLibrary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// First: what's missing says so, where what it would have checked can't be known.
-	if !s.libraryAllowed(w, b.Type) {
+	if !s.libraryAllowed(w, b.Type) || s.scanModuleMissing(w, b.Type) {
 		return
 	}
 	if err := s.validateLibrary(r, &b, nil); err != nil {
@@ -159,7 +161,7 @@ func (s *Server) handleUpdateLibrary(w http.ResponseWriter, r *http.Request) {
 		already = cur.Paths
 	}
 	// First: what's missing says so, where what it would have checked can't be known.
-	if !s.libraryAllowed(w, b.Type) {
+	if !s.libraryAllowed(w, b.Type) || s.scanModuleMissing(w, b.Type) {
 		return
 	}
 	if err := s.validateLibrary(r, &b, already); err != nil {
@@ -221,11 +223,6 @@ func (s *Server) handleScanProgress(w http.ResponseWriter, r *http.Request) {
 		out.Current = "" // the file being scanned may be one this account can't see
 	}
 	res := map[string]any{"scanning": out != nil, "progress": out}
-	// Files a games scan couldn't use, by extension, so the page can say so
-	// instead of quietly showing fewer games than are in the folder.
-	if skipped := s.Store.SkippedGames(r.Context(), id); len(skipped) > 0 && userFrom(r).IsAdmin {
-		res["skipped"] = skipped
-	}
 	writeJSON(w, 200, res)
 }
 
@@ -257,13 +254,8 @@ func (s *Server) handleItems(w http.ResponseWriter, r *http.Request) {
 		DiscContent: r.URL.Query().Get("discContent"),
 		// console=<id>: games for one console; played=1: games this user has played
 		Console: r.URL.Query().Get("console"),
-		// Games: minRating out of 10, decade=1990, players=2 (at least this many)
-		Decade:  qInt(r, "decade", 0),
-		Players: qInt(r, "players", 0),
-		// unmatched=1: games the lookup has finished with and found nothing for
-		Unmatched: qBool(r, "unmatched"),
-		// series=<name>: games of one franchise
-		Series: r.URL.Query().Get("series"),
+		// minRating out of 10, decade=1990
+		Decade: qInt(r, "decade", 0),
 	}
 	if v, err := strconv.ParseFloat(r.URL.Query().Get("minRating"), 64); err == nil {
 		q.MinRating = v
@@ -363,10 +355,27 @@ func (s *Server) handleUpdateItem(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, err.Error())
 		return
 	}
-	// A field someone sets here is theirs, as it is in the edit dialog.
-	if it.Kind != "game" {
-		if err := s.lockEdited(r.Context(), library.TargetItem, it.ID, map[string]bool{"title": b.Title != nil, "year": b.Year != nil, "overview": b.Overview != nil, "tagline": b.Tagline != nil,
-			"contentRating": b.ContentRating != nil, "genres": b.Genres != nil, "poster": b.Poster != nil, "backdrop": b.Backdrop != nil}); err != nil {
+	// A field someone sets here is theirs, as it is in the edit dialog: nothing that describes
+	// the item (a metadata source, the module that scans its library) changes it again.
+	edited := map[string]bool{"title": b.Title != nil, "year": b.Year != nil, "overview": b.Overview != nil, "tagline": b.Tagline != nil,
+		"contentRating": b.ContentRating != nil, "genres": b.Genres != nil, "poster": b.Poster != nil, "backdrop": b.Backdrop != nil}
+	var typed []string
+	for f, on := range edited {
+		if on {
+			typed = append(typed, f)
+		}
+	}
+	if err := s.Store.SetItemEdited(r.Context(), it.ID, typed...); err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	lib, _ := s.Store.Library(r.Context(), it.LibraryID)
+	describedBy, byModule := library.ScanModule{}, false
+	if lib != nil {
+		describedBy, byModule = s.Scanner.DescribesKind(lib.Type)
+	}
+	if !byModule {
+		if err := s.lockEdited(r.Context(), library.TargetItem, it.ID, edited); err != nil {
 			writeErr(w, 500, err.Error())
 			return
 		}
@@ -396,23 +405,22 @@ func (s *Server) handleUpdateItem(w http.ResponseWriter, r *http.Request) {
 	if b.Backdrop != nil {
 		it.Backdrop = *b.Backdrop
 	}
-	if it.Kind == "game" {
-		// Sources leave alone what someone typed. A game's details are looked up in
-		// the background, so refreshing one only puts it back in the queue.
-		edited := map[string]bool{"title": b.Title != nil, "year": b.Year != nil, "overview": b.Overview != nil, "tagline": b.Tagline != nil,
-			"contentRating": b.ContentRating != nil, "genres": b.Genres != nil, "poster": b.Poster != nil, "backdrop": b.Backdrop != nil}
-		for f, on := range edited {
-			if on {
-				_ = s.Store.MarkGameEdited(r.Context(), it.ID, f)
-			}
+	if b.Refresh && byModule {
+		// An item of a library a module scans is described by that module: Refresh asks it
+		// again (scan.describe), after what was typed here is kept.
+		if err := s.Store.UpdateItem(r.Context(), it); err != nil {
+			writeErr(w, 500, err.Error())
+			return
 		}
-		if b.Refresh {
-			if err := s.GameMeta.Refresh(r.Context(), it); err != nil {
-				writeErr(w, sourceStatus(err), sourceMessage(err))
-				return
-			}
-			b.Refresh = false
+		if err := s.Scanner.DescribeItems(r.Context(), it.LibraryID, []int64{it.ID}, true); err != nil {
+			writeErr(w, 502, describedBy.Name+" couldn't look this up again: "+err.Error())
+			return
 		}
+		if it, err = s.Store.Item(r.Context(), it.ID); err != nil {
+			writeErr(w, 404, "item not found")
+			return
+		}
+		b.Refresh = false
 	}
 	if b.Refresh {
 		// A refresh keeps the match it has and whatever is locked, which is what the
@@ -745,7 +753,7 @@ func (s *Server) serveArtSized(w http.ResponseWriter, r *http.Request, src strin
 			writeErr(w, 404, "no artwork")
 			return
 		}
-		if small := s.GameMeta.SmallCopyOf(ctx, f, src, width); small != src {
+		if small := s.Scanner.SmallCopyOf(ctx, f, src, width); small != src {
 			f.Close()
 			s.serveArtSrc(w, r, small)
 			return
@@ -753,7 +761,7 @@ func (s *Server) serveArtSized(w http.ResponseWriter, r *http.Request, src strin
 		s.serveArtFile(w, r, f, filepath.Clean(src)) // the original, from what was checked
 		return
 	}
-	s.serveArtSrc(w, r, s.GameMeta.PosterThumb(ctx, src, width))
+	s.serveArtSrc(w, r, s.Scanner.PosterThumb(ctx, src, width))
 }
 
 // serveArtSrc serves artwork from a cache name, a remote URL (cached) or a

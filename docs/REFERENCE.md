@@ -249,7 +249,6 @@ internal/server        routes, streaming, security, the built-in web app
 | `wms-forwarder` in `cmd` | Ships as `wms` in the `.zip` and `.tar.gz` only, so a copy of 0.5.2-alpha can update |
 | `internal/server` | The HTTP API, streaming, security middleware and the built-in web app |
 | `internal/modules` | The store, catalogue, signatures, sandboxes, and starting helpers |
-| `internal/play` | Stubs written by a generator from WittyPlay's source: its types, and functions that call its service |
 | `internal/dvd`, `internal/bluray`, `internal/cd`, `internal/tuner` | The types those modules answer in, kept as a copy |
 | `isofs` from WittyDisc, `internal/tuner/mpegts` | The server's own disc image reader and encryption guard, so it refuses encrypted media itself, whatever a module says |
 | `internal/library` | Libraries, scanning, shows, music, books, metadata, watch state |
@@ -257,7 +256,7 @@ internal/server        routes, streaming, security, the built-in web app
 | `internal/dvdsession`, `internal/bdsession` | One viewer's DVD or Blu-ray: presentations, menus, subtitles, streams |
 | `internal/hls`, `internal/ffmpeg`, `internal/playback`, `internal/subtitle` | On-demand HLS, finding and probing FFmpeg, how a file plays on each kind of client, subtitles |
 | `internal/libtranscode`, `internal/tasks`, `internal/metrics` | Converting libraries ahead of time, background tasks, server statistics |
-| `internal/gameid`, `internal/gamemeta`, `internal/gamearchive`, `internal/gameregion` | What a game file is, its details, its archive, and which version comes first |
+| `internal/archive` | Reading comics' archives, in a sandboxed worker. What a game file is and its details are WittyPlay's, through the scan hooks |
 | `internal/auth`, `internal/identity`, `internal/remote`, `internal/portmap`, `internal/discovery` | Accounts, this server's identity, remote access, router ports, and being found on the home network |
 | `internal/backup`, `internal/reset`, `internal/metafolder`, `internal/diagnose` | Backups, resets, the metadata folder, repair and the diagnoser |
 | `internal/update`, `internal/layout`, `internal/uninstall` | Updating, what a package holds and what each program is called, and removing everything |

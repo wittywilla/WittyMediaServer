@@ -121,25 +121,12 @@
     }
   },
   "games metadata": {
-    "status": 200,
+    "status": 424,
     "type": "application/json",
     "shape": {
-      "ages": [],
-      "art": [],
-      "confidence": "number",
-      "credits": [],
-      "developer": "string",
-      "franchise": "string",
-      "itemId": "number",
-      "locked": "bool",
-      "matchMethod": "string",
-      "matchSource": "string",
-      "players": "number",
-      "publisher": "string",
-      "released": "string",
-      "scores": [],
-      "status": "string",
-      "tags": "string"
+      "error": "string",
+      "module": "string",
+      "moduleName": "string"
     }
   },
   "games play": {

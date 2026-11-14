@@ -141,8 +141,7 @@ var tableParts = map[string]string{
 	"title_meta": PartLibrary, "meta_history": PartLibrary, "title_brands": PartLibrary, "people": PartLibrary, "credits": PartLibrary, "credits_read": PartLibrary, "logos": PartLibrary, "item_links": PartLibrary,
 	"library_moves": PartLibrary, "categories": PartLibrary, "match_rules": PartLibrary, "listing_titles": PartLibrary, "listings": PartLibrary,
 	"photo_meta": PartLibrary, "creators": PartLibrary, "video_meta": PartLibrary, "podcasts": PartLibrary, "radio_meta": PartLibrary,
-	"game_archives": PartLibrary, "game_meta": PartLibrary, "game_meta_sources": PartLibrary,
-	"game_files": PartLibrary, "game_review": PartLibrary, "game_decisions": PartLibrary, "game_discs": PartLibrary, "game_pictures": PartLibrary,
+	"item_files": PartLibrary, "item_edits": PartLibrary,
 	"ltc_rules": PartLibrary, "music_recording_ids": PartLibrary, "music_video_links": PartLibrary,
 	"media_markers": PartLibrary, "watch_offers_cache": PartLibrary, "saved_files": PartLibrary,
 

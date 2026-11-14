@@ -14,8 +14,6 @@ import (
 	"encoding/json"
 	"sort"
 	"sync"
-
-	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 )
 
 // The groups, in the order they're shown.
@@ -23,7 +21,6 @@ const (
 	GroupServer   = "server"
 	GroupWeb      = "web"
 	GroupPrograms = "programs"
-	GroupCores    = "cores"
 	GroupData     = "data"
 	GroupServices = "services"
 )
@@ -40,7 +37,6 @@ var Groups = []Group{
 	{GroupServer, "Built into the server", "Libraries compiled into WittyMediaServer and its helper programs."},
 	{GroupWeb, "Built into this web app", "Libraries your browser runs as part of this interface."},
 	{GroupPrograms, "Separate programs", "Programs the server starts and talks to, but which aren't part of it, so their licenses don't reach it."},
-	{GroupCores, "Game cores", "Never bundled. Each is a separate file that an admin chooses to install, and a separate program runs it. This is who wrote them and what they're under; Settings, Consoles & cores shows which are installed."},
 	{GroupData, "Bundled data", "Files that come with the server."},
 	{GroupServices, "Online services", "Where information comes from, and the terms it comes with. Each is only asked if it's turned on, or has a key."},
 }
@@ -86,8 +82,6 @@ var written = []Component{
 		Note: "Only in the amd64 Docker image, from Debian, loaded by FFmpeg for hardware transcoding: Mesa's VA-API drivers (MIT, mesa3d.org), Intel's media driver with its encoding kernels (MIT; the kernels come without source, from Debian's non-free section), the i965 driver and its shaders (MIT), Intel's oneVPL runtime (MIT) and vainfo (MIT). Each package's copyright file is in the image under /usr/share/doc."},
 	{Group: GroupPrograms, Name: "Tdarr", License: "Proprietary (Tdarr's own EULA)", URL: "https://github.com/HaveAGitGat/Tdarr/blob/master/LICENSE.md",
 		Note: "Not bundled, downloaded or run. Library transcoding can connect to a copy someone installs themselves, over its HTTP API, if they turn that on. Whoever installs it agrees to its terms. No Tdarr code or plugin is included."},
-	{Group: GroupPrograms, Name: "RetroArch", License: "GPL-3.0", URL: "https://github.com/libretro/RetroArch",
-		Note: "Not bundled or run. If it's installed, its folder of game cores is read."},
 	{Group: GroupPrograms, Name: "Moonlight", License: "GPL-3.0", URL: "https://github.com/moonlight-stream",
 		Note: "WittyCouch Host, a separate program, is built on its code; its source is offered beside each release. Moonlight's own apps aren't bundled, and are only linked."},
 	{Group: GroupPrograms, Name: "Sunshine", License: "GPL-3.0", URL: "https://github.com/LizardByte/Sunshine",
@@ -101,25 +95,18 @@ var written = []Component{
 	{Group: GroupServices, Name: "TheTVDB", License: "TheTVDB's terms", URL: "https://thetvdb.com",
 		Note: "Used with your own key. TV information and images are provided by TheTVDB."},
 	{Group: GroupServices, Name: "TVmaze", License: "CC BY-SA 4.0", URL: "https://www.tvmaze.com/api", Note: "TV information, without keys."},
-	{Group: GroupServices, Name: "Wikidata", License: "CC0", URL: "https://www.wikidata.org", Note: "Facts about movies and games. A film's poster from Wikimedia Commons where it has a free one, each under its own licence, credited on the Legal page."},
+	{Group: GroupServices, Name: "Wikidata", License: "CC0", URL: "https://www.wikidata.org", Note: "Facts about movies. A film's poster from Wikimedia Commons where it has a free one, each under its own licence, credited on the Legal page."},
 	{Group: GroupServices, Name: "Wikipedia", License: "CC BY-SA 4.0", URL: "https://en.wikipedia.org/wiki/Wikipedia:Text_of_the_Creative_Commons_Attribution-ShareAlike_4.0_International_License",
 		Note: "Plot summaries, credited where they're shown."},
 	{Group: GroupServices, Name: "AniList", License: "AniList's terms", URL: "https://anilist.co/terms", Note: "Anime information."},
 	{Group: GroupServices, Name: "Apple Podcasts search", License: "Apple's terms", URL: "https://www.apple.com/legal/internet-services/itunes/", Note: "Finding podcasts to add."},
 	{Group: GroupServices, Name: "Free Dictionary API", License: "The service's terms", URL: "https://dictionaryapi.dev", Note: "Looking up a word while reading."},
-	{Group: GroupServices, Name: "libretro database", License: "CC BY-SA 4.0", URL: "https://github.com/libretro/libretro-database", Note: "Recognising game files, on this server."},
-	{Group: GroupServices, Name: "libretro thumbnails", License: "None stated; pictures belong to their publishers", URL: "https://github.com/libretro-thumbnails/libretro-thumbnails", Note: "Box art and screenshots for games, kept on this server."},
-	{Group: GroupServices, Name: "IGDB", License: "IGDB's terms: non-commercial use", URL: "https://www.igdb.com", Note: "Used with your own key. Game details and scores."},
-	{Group: GroupServices, Name: "RAWG", License: "RAWG's API terms", URL: "https://rawg.io/apidocs", Note: "Used with your own key. Game details, with a link back to RAWG."},
-	{Group: GroupServices, Name: "ScreenScraper", License: "ScreenScraper's terms", URL: "https://www.screenscraper.fr", Note: "Used with your own account. Recognising games and their art."},
-	{Group: GroupServices, Name: "TheGamesDB", License: "No written terms", URL: "https://thegamesdb.net", Note: "Used with your own key. Game details and art, credited."},
 	{Group: GroupServices, Name: "MusicBrainz", License: "CC0 (core data)", URL: "https://musicbrainz.org/doc/About/Data_License", Note: "Album and track names for audio CD images."},
 	{Group: GroupServices, Name: "Cover Art Archive", License: "Each picture's own", URL: "https://coverartarchive.org", Note: "Album covers for audio CD images."},
 	{Group: GroupServices, Name: "LRCLIB", License: "A free, open database; each song's words belong to its writers", URL: "https://lrclib.net", Note: "Timed lyrics, only if the owner turns online lyrics on. Kept in this server's cache, never shared."},
 	{Group: GroupServices, Name: "Musixmatch", License: "Musixmatch's terms", URL: "https://developer.musixmatch.com", Note: "Used with your own key, if you add one. Lyrics."},
 	{Group: GroupServices, Name: "Wikipedia and Wikimedia Commons", License: "CC BY-SA 4.0 (text); each picture's own", URL: "https://en.wikipedia.org/wiki/Wikipedia:Copyrights", Note: "Artist biographies and photos, only if the owner turns online music information on."},
 	{Group: GroupServices, Name: "Radio Browser", License: "Public domain data", URL: "https://www.radio-browser.info", Note: "Finding internet radio stations. The stations themselves belong to whoever runs them."},
-	{Group: GroupServices, Name: "libretro build server", License: "Each core's own", URL: "https://buildbot.libretro.com", Note: "Where a game core comes from, when an admin installs one."},
 }
 
 var (
@@ -160,7 +147,7 @@ func load() {
 			list = append(list, Component{Group: l.Group, Name: l.Name, License: l.License, URL: l.URL, HasText: true})
 			which = append(which, l.Text)
 		}
-		more := append(append([]Component{}, written...), coreComponents()...)
+		more := append([]Component{}, written...)
 		for _, c := range more {
 			list = append(list, c)
 			which = append(which, -1)
@@ -177,25 +164,6 @@ func load() {
 		}
 		list, which = sorted, sortedWhich
 	}()
-}
-
-// coreComponents lists the cores this server offers, from the same table that offers
-// them, so the two can't disagree.
-func coreComponents() []Component {
-	seen := map[string]bool{}
-	var out []Component
-	consoles := wittyplay.Consoles()
-	for i := range consoles {
-		for _, c := range consoles[i].Cores {
-			if seen[c.ID] {
-				continue
-			}
-			seen[c.ID] = true
-			out = append(out, Component{Group: GroupCores, Name: c.Name, License: c.License, URL: "https://github.com/libretro"})
-		}
-	}
-	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
-	return out
 }
 
 // All is every component, grouped, in the order Groups lists. Callers mustn't change it.

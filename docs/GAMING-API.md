@@ -6,11 +6,11 @@ The web player uses exactly these routes and has no private ones. Conventions (s
 [the client API](CLIENT-API.md), which also lists these routes under `/api/v1`, with the game's details and matching. Paths below are written without `/api`.
 
 The server runs the game. A client shows a video stream, plays an audio stream and sends controller
-states, so there is no emulator or game logic to write. Playing, saves, settings, cores and consoles are the WittyPlay
+states, so there is no emulator or game logic to write. Playing, saves, settings, cores and consoles, and a game's details, matching, review and pictures, are the WittyPlay
 module's own routes (module API 5), under `/modules/wittyplay/` (`/api/v1/modules/wittyplay/...`): WittyPlay's `api`
 package answers them, and the server checks sign-in, the game and screen time before passing them on. A server without
-WittyPlay answers them `424`. A game's details, matching, review and pictures are still the server's (`/games/{id}/metadata`,
-`/games/review`, …), until its library scan hands games to WittyPlay. [The design](GAMING.md) explains it.
+WittyPlay answers them `424`. A games library is scanned through WittyPlay too ([scan hooks](MODULES-API5.md#scan-hooks)):
+the server keeps the games as items. [The design](GAMING.md) explains it.
 
 ## Playing a game
 
@@ -66,14 +66,14 @@ Each emulator's settings are data: `GET /modules/wittyplay/docker/emulators/{id}
 | `GET /modules/wittyplay/consoles/{console}/controls?device=` | user | The controller as data |
 | `PUT /modules/wittyplay/consoles/{console}/controls` | user | Saves one layout, or removes it |
 | `POST /modules/wittyplay/games/{id}/prepare` | user | Gets a game ready without waiting: `{state, done, total}`, see below |
-| `GET /games/{id}/versions` | user | `{versions: [{id, label, current}], inside?: [{entry, label, current, altered}], discs?: [{disc, name}]}`: its other versions as games of their own, and for an administrator the versions inside its archive, and its discs |
-| `PUT /games/{id}/version` `{entry}` | admin | Which file in its archive to play, or `""` to choose by the rules |
-| `POST /games/{id}/split` | admin | A version becomes a game of its own, and stays one |
-| `PUT /games/{id}/console` `{console}` | admin | This file is for another console. A scan follows |
-| `POST /games/{id}/not-a-game` | admin | Takes it off the list. Its file stays, and it can be brought back from the review list |
-| `GET /libraries/{id}/games/review?kind=needs\|blocked\|left\|ignored` | admin | Files that didn't become games, or can't play: `{items: [{id, path, name, size, kind, reason, suggest: [{console, name}], itemId}], counts, total}` |
-| `POST /libraries/{id}/games/review/apply` `{ids, action, console}` | admin | `add` says they're games for a console, `ignore` that they aren't games, `forget` takes that back. Up to 5,000 at a time. A scan follows |
-| `GET /libraries/{id}/games/import` | admin | How an import is going: `{scanning, scan, lookup, review, games}` |
+| `GET /modules/wittyplay/games/{id}/versions` | user | `{versions: [{id, label, current}], inside?: [{entry, label, current, altered}], discs?: [{disc, name}]}`: its other versions as games of their own, and for an administrator the versions inside its archive, and its discs |
+| `PUT /modules/wittyplay/games/{id}/version` `{entry}` | admin | Which file in its archive to play, or `""` to choose by the rules |
+| `POST /modules/wittyplay/games/{id}/split` | admin | A version becomes a game of its own, and stays one |
+| `PUT /modules/wittyplay/games/{id}/console` `{console}` | admin | This file is for another console. A scan follows |
+| `POST /modules/wittyplay/games/{id}/not-a-game` | admin | Takes it off the list. Its file stays, and it can be brought back from the review list |
+| `GET /modules/wittyplay/libraries/{id}/games/review?kind=needs\|blocked\|left\|ignored` | admin | Files that didn't become games, or can't play: `{items: [{id, path, name, size, kind, reason, suggest: [{console, name}], itemId}], counts, total}` |
+| `POST /modules/wittyplay/libraries/{id}/games/review/apply` `{ids, action, console}` | admin | `add` says they're games for a console, `ignore` that they aren't games, `forget` takes that back. Up to 5,000 at a time. A scan follows |
+| `GET /modules/wittyplay/libraries/{id}/games/import` | admin | How an import is going: `{scanning, scan, lookup, review, games}` |
 | `GET /modules/wittyplay/game-profiles`, `POST /modules/wittyplay/game-profiles` | user | This account's controller profiles; makes one |
 | `GET`, `PUT`, `DELETE /modules/wittyplay/game-profiles/{id}`; `POST /modules/wittyplay/game-profiles/{id}/copy`, `/active` | user | One profile, only the account's own |
 | `GET /modules/wittyplay/game-profiles/resolve?kind=&controller=&console=&game=&raw=` | user | What a controller should do here: `{profile, map or keys, options}` |

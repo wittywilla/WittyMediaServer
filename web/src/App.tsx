@@ -48,7 +48,6 @@ const GapsReview = lazy(() => import('./spec/GapsReview'))
 const HelpPage = lazy(() => import('./pages/HelpPage'))
 const HelpPublicPage = lazy(() => import('./pages/HelpPage').then((m) => ({ default: m.HelpPublicPage })))
 const LegalPublicPage = lazy(() => import('./pages/settings/Legal').then((m) => ({ default: m.LegalPublicPage })))
-const CouchMode = lazy(() => import('./pages/games/Couch'))
 const RadioStationPage = lazy(() => import('./pages/RadioLibrary').then((m) => ({ default: m.RadioStationPage })))
 const WatchPage = lazy(() => import('./pages/creators/WatchPage'))
 const FixMatches = lazy(() => import('./pages/FixMatches'))
@@ -127,7 +126,6 @@ function Shell() {
   const isReader = loc.pathname.startsWith('/read/')
   const isTvPlayer = loc.pathname.startsWith('/tv/watch/')
   const isTv = loc.pathname === '/tv' || loc.pathname.startsWith('/tv/')
-  const isCouchMode = loc.pathname === '/big' || loc.pathname.startsWith('/big/')
   // A library of a kind a module draws itself goes to the module's own view of it (takeover).
   const libId = /^\/library\/(\d+)$/.exec(loc.pathname)?.[1]
   // A games library a module holds (a gaming PC's, console "rig") is of the kind "rig" here.
@@ -150,7 +148,6 @@ function Shell() {
       {!isTvPlayer && !isReader && !isPlayer && <Scene />}
       {isTvPlayer ? <Suspense fallback={tvFallback}><Routes><Route path="/tv/watch/:key" element={<TvPlayer />} /></Routes></Suspense>
         : isReader ? <Suspense fallback={<Spinner />}><Routes><Route path="/read/:id" element={<ReaderPage />} /></Routes></Suspense>
-        : isCouchMode ? <Suspense fallback={<Spinner />}><Routes><Route path="/big/*" element={<CouchMode />} /></Routes></Suspense>
         : isPlayer ? null : tvMode ? <ModuleCards><Suspense fallback={<Spinner />}><TvFrame pages={<PageRoutes />} /></Suspense></ModuleCards> : <ModuleCards><AppFrame /></ModuleCards>}
       <PlayerDock />
       <RemoteHost />

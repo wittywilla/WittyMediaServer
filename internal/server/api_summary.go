@@ -215,4 +215,16 @@ func (s *Server) protectSecrets(ctx context.Context) {
 	for _, k := range secretSettings {
 		logging.AddSecret(s.DB.GetSetting(ctx, k, ""))
 	}
+	// And what administrators gave modules (api_module_secrets.go).
+	rows, err := s.DB.QueryContext(ctx, `SELECT value FROM settings WHERE key LIKE 'module.%.secret.%' AND value <> ''`)
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var v string
+		if rows.Scan(&v) == nil {
+			logging.AddSecret(v)
+		}
+	}
 }

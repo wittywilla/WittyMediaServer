@@ -12,6 +12,7 @@ export const settingsHelp: Record<string, string> = {
   gaming: 'games',
   emulators: 'games#standalone-emulators',
   'games-support': 'games#standalone-emulators',
+  'game-metadata': 'games',
   couch: 'game-rigs',
   transcoding: 'transcoding',
   'library-transcoding': 'library-transcoding',

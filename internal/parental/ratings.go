@@ -7,7 +7,7 @@ package parental
 // because that is the one thing every board's ratings can be turned into; these
 // tables let someone choose "PG-13" or "FSK 12" and see what else that allows.
 // The ages match the ones the library gives each rating when a title is saved
-// (library.AgeFor and gamemeta.AgeFor); a test keeps the two in step.
+// (library.AgeFor, and library.BoardAge for games' boards); a test keeps the two in step.
 
 // Rating is one step of a system.
 type Rating struct {

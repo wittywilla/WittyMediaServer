@@ -91,7 +91,7 @@ func RemoteArtPath(imagesDir, u string) string {
 	return filepath.Join(imagesDir, "r-"+hex.EncodeToString(h[:10]))
 }
 
-// smallCopies are where the smaller copies of a picture would be (GameMeta.SmallCopyOf names
+// smallCopies are where the smaller copies of a picture would be (Scanner.SmallCopyOf names
 // them by the picture's reference and when it last changed).
 func smallCopies(imagesDir, src string, mod time.Time) []string {
 	h := sha1.Sum([]byte(src + "|" + mod.String()))

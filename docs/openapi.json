@@ -233,42 +233,6 @@
         ],
         "type": "object"
       },
-      "Achievements": {
-        "properties": {
-          "achievements": {
-            "items": {
-              "$ref": "#/components/schemas/Achievement"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "game": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AchievementsGame"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "message": {
-            "type": "string"
-          },
-          "state": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "achievements",
-          "game",
-          "message",
-          "state"
-        ],
-        "type": "object"
-      },
       "AchievementsGame": {
         "properties": {
           "id": {
@@ -2580,146 +2544,6 @@
         ],
         "type": "object"
       },
-      "GameDetails": {
-        "properties": {
-          "ages": {
-            "items": {
-              "$ref": "#/components/schemas/GameAgeRating"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "art": {
-            "items": {
-              "$ref": "#/components/schemas/GameArt"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "confidence": {
-            "type": "integer"
-          },
-          "crcs": {
-            "type": "string"
-          },
-          "credits": {
-            "items": {
-              "$ref": "#/components/schemas/GameCredit"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "detectSure": {
-            "type": "integer"
-          },
-          "detectWhy": {
-            "type": "string"
-          },
-          "detectedBy": {
-            "type": "string"
-          },
-          "developer": {
-            "type": "string"
-          },
-          "discs": {
-            "items": {
-              "properties": {
-                "disc": {
-                  "type": "integer"
-                },
-                "name": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "disc",
-                "name"
-              ],
-              "type": "object"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "entry": {
-            "type": "string"
-          },
-          "franchise": {
-            "type": "string"
-          },
-          "itemId": {
-            "type": "integer"
-          },
-          "locked": {
-            "type": "boolean"
-          },
-          "matchMethod": {
-            "type": "string"
-          },
-          "matchSource": {
-            "type": "string"
-          },
-          "players": {
-            "type": "integer"
-          },
-          "problem": {
-            "type": "string"
-          },
-          "problemText": {
-            "type": "string"
-          },
-          "publisher": {
-            "type": "string"
-          },
-          "released": {
-            "type": "string"
-          },
-          "scores": {
-            "items": {
-              "$ref": "#/components/schemas/GameScore"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "serial": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string"
-          },
-          "tags": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "ages",
-          "art",
-          "confidence",
-          "credits",
-          "developer",
-          "franchise",
-          "itemId",
-          "locked",
-          "matchMethod",
-          "matchSource",
-          "players",
-          "publisher",
-          "released",
-          "scores",
-          "status",
-          "tags"
-        ],
-        "type": "object"
-      },
       "GameFacet": {
         "properties": {
           "count": {
@@ -2732,131 +2556,6 @@
         "required": [
           "count",
           "value"
-        ],
-        "type": "object"
-      },
-      "GameFacets": {
-        "properties": {
-          "decades": {
-            "items": {
-              "$ref": "#/components/schemas/GameFacet"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "genres": {
-            "items": {
-              "$ref": "#/components/schemas/GameFacet"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "letters": {
-            "items": {
-              "$ref": "#/components/schemas/GameFacet"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "players": {
-            "items": {
-              "$ref": "#/components/schemas/GameFacet"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "rated": {
-            "type": "integer"
-          },
-          "series": {
-            "items": {
-              "$ref": "#/components/schemas/GameFacet"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          }
-        },
-        "required": [
-          "decades",
-          "genres",
-          "letters",
-          "players",
-          "rated",
-          "series"
-        ],
-        "type": "object"
-      },
-      "GameMetaStatus": {
-        "properties": {
-          "byChecksum": {
-            "type": "integer"
-          },
-          "consoles": {
-            "additionalProperties": {
-              "$ref": "#/components/schemas/GameConsoleTally"
-            },
-            "type": "object"
-          },
-          "keysSet": {
-            "type": "boolean"
-          },
-          "matched": {
-            "type": "integer"
-          },
-          "paused": {
-            "items": {
-              "$ref": "#/components/schemas/GameSourcePause"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          },
-          "pending": {
-            "type": "integer"
-          },
-          "phase": {
-            "type": "string"
-          },
-          "pictures": {
-            "type": "integer"
-          },
-          "running": {
-            "type": "boolean"
-          },
-          "total": {
-            "type": "integer"
-          },
-          "withDetails": {
-            "type": "integer"
-          },
-          "withPoster": {
-            "type": "integer"
-          }
-        },
-        "required": [
-          "byChecksum",
-          "consoles",
-          "keysSet",
-          "matched",
-          "paused",
-          "pending",
-          "phase",
-          "pictures",
-          "running",
-          "total",
-          "withDetails",
-          "withPoster"
         ],
         "type": "object"
       },
@@ -18822,86 +18521,6 @@
         "x-wms-auth": "user"
       }
     },
-    "/console-photos/{id}": {
-      "get": {
-        "operationId": "getConsolePhotosId",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "A console's picture from Wikimedia Commons for WittyPlay: its address here, author, licence and Commons page. 404 when there is none.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/console-photos/{id}/image": {
-      "get": {
-        "operationId": "getConsolePhotosIdImage",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "A console's picture, from the server's own copy.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
     "/creators": {
       "get": {
         "operationId": "getCreators",
@@ -20292,932 +19911,6 @@
         "x-wms-auth": "admin"
       }
     },
-    "/gamemeta/refetch": {
-      "post": {
-        "operationId": "postGamemetaRefetch",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the guide for this kind of library."
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Forget what every source said about every game and ask again. Locked games stay.",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/gamemeta/sources": {
-      "get": {
-        "operationId": "getGamemetaSources",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the guide for this kind of library."
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Every source, in the order they're believed: what it needs, costs and sends, and whether it's on. Key values are never included.",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "admin"
-      },
-      "put": {
-        "operationId": "putGamemetaSources",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the guide for this kind of library."
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Set the sources' order and whether each is on: {sources: [{id, on}]}. Costs no requests: the answers are kept.",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/gamemeta/sources/{id}/test": {
-      "post": {
-        "operationId": "postGamemetaSourcesIdTest",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the guide for this kind of library."
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Does this work? {fields: {setting: value}}. A field left out uses what's saved. Saves nothing. Answers {ok, message} or {ok: false, error}.",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/gamemeta/status": {
-      "get": {
-        "operationId": "getGamemetaStatus",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GameMetaStatus"
-                }
-              }
-            },
-            "description": "See the guide for this kind of library."
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "How the background lookup is going, by console.",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/games/brand-logos": {
-      "delete": {
-        "operationId": "deleteGamesBrandLogos",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the summary."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Remove every downloaded console logo, files and all, and turn them off. Answers `removed`.",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "admin"
-      },
-      "get": {
-        "operationId": "getGamesBrandLogos",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the summary."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Whether WittyPlay shows console logos (`enabled`, off by default), each console's logo when on (`logos` by console id, with source, licence and credit), and the `warning` an administrator confirms. For an administrator also `appWide`, `pending` and `agreedAt`.",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "user"
-      },
-      "put": {
-        "operationId": "putGamesBrandLogos",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the summary."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Turn console logos on or off: `{enabled, accepted}`. On needs `accepted` (the warning confirmed), then logos are downloaded through the logo service.",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/games/facets": {
-      "get": {
-        "operationId": "getGamesFacets",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GameFacets"
-                }
-              }
-            },
-            "description": "See the guide for this kind of library."
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "What a library's games can be filtered by, with how many there are. Query: library, console. Only counts what this account can see.",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/games/pictures": {
-      "get": {
-        "operationId": "getGamesPictures",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the summary."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "How WittyPlay pictures games, server-wide: `server` (the server's .wittyplay document: default and consoles), `games` (each game's look by id, only games this account may see) and `caseStyles`. See docs/specs/wittyplay-file.md.",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "user"
-      },
-      "put": {
-        "operationId": "putGamesPictures",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object"
-              }
-            },
-            "application/vnd.wittyplay+json": {
-              "schema": {
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the summary."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Set the server's .wittyplay document (body, at most 64 KB). Its games are applied to the games they match as an administrator's choice. Answers `server`, `applied`, `unmatched`. 400 when invalid, 413 when too big.",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/games/pictures/check": {
-      "post": {
-        "operationId": "postGamesPicturesCheck",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object"
-              }
-            },
-            "application/vnd.wittyplay+json": {
-              "schema": {
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the summary."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Read a .wittyplay file (body, at most 64 KB) before importing it into one's own choices: answers the document as read, and `matches`, for each of its games the ids of this account's games it matches. Writes nothing. 400 when invalid, 413 when too big.",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/games/pictures/file": {
-      "get": {
-        "operationId": "getGamesPicturesFile",
-        "responses": {
-          "200": {
-            "content": {
-              "application/vnd.wittyplay+json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the summary."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "The server's choices as a .wittyplay file to download (application/vnd.wittyplay+json).",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/games/{id}/art/{n}": {
-      "get": {
-        "operationId": "getGamesIdArtN",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "n",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "image/*": {
-                "schema": {
-                  "format": "binary",
-                  "type": "string"
-                }
-              }
-            },
-            "description": "The picture."
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "One of a game's pictures, from the art list in its metadata. The server fetches it from the source the first time anyone looks.",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/games/{id}/console": {
-      "put": {
-        "operationId": "putGamesIdConsole",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "console": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "console"
-                ],
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "What it says."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "This file is for another console",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/games/{id}/metadata": {
-      "get": {
-        "operationId": "getGamesIdMetadata",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GameDetails"
-                }
-              }
-            },
-            "description": "See the guide for this kind of library."
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Everything known about a game beyond what its item holds: match, dates, makers, players, scores, age ratings, pictures, and credits to show.",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/games/{id}/metadata/match": {
-      "delete": {
-        "operationId": "deleteGamesIdMetadataMatch",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the guide for this kind of library."
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "This match is wrong and there's no right one: forget what sources filled in, and lock it so it isn't found again.",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "admin"
-      },
-      "put": {
-        "operationId": "putGamesIdMetadataMatch",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GameDetails"
-                }
-              }
-            },
-            "description": "See the guide for this kind of library."
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "This is the right game: {source, id, lock}. Lock defaults to true. With no source, only sets the lock.",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/games/{id}/metadata/refresh": {
-      "post": {
-        "operationId": "postGamesIdMetadataRefresh",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the guide for this kind of library."
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Ask the sources about this game again, in the background.",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/games/{id}/metadata/search": {
-      "get": {
-        "operationId": "getGamesIdMetadataSearch",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the guide for this kind of library."
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Games this might be, from every source in use, for fixing a match. Query: q (default: its title). Answers results and failed, the sources that didn't answer.",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/games/{id}/not-a-game": {
-      "post": {
-        "operationId": "postGamesIdNotAGame",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "What it says."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "This isn't a game. Its file stays",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/games/{id}/picture": {
-      "put": {
-        "operationId": "putGamePicture",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "See the summary."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "An administrator's look for one game `{picture, case, label}` (docs/specs/wittyplay-file.md); an empty one takes it away.",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/games/{id}/split": {
-      "post": {
-        "operationId": "postGamesSplit",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "What it says."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "A version becomes a game of its own",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/games/{id}/version": {
-      "put": {
-        "operationId": "putGamesVersion",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "entry": {
-                    "type": "string"
-                  }
-                },
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "What it says."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Which file in its archive to play",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/games/{id}/versions": {
-      "get": {
-        "operationId": "getGamesVersions",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "What it says."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "A game's other versions and its discs",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
     "/genres": {
       "get": {
         "operationId": "getGenres",
@@ -22002,95 +20695,6 @@
           "Browsing"
         ],
         "x-wms-auth": "admin"
-      }
-    },
-    "/items/{id}/achievements": {
-      "get": {
-        "operationId": "getItemsIdAchievements",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Achievements"
-                }
-              }
-            },
-            "description": "Always 200 for a game: state says whether there are achievements to show, and message why not."
-          },
-          "404": {
-            "description": "Not a game, or not one this account may see."
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "A game's achievements at RetroAchievements, found by a checksum of its file taken on this server. None are earned or tracked yet.",
-        "tags": [
-          "games"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/items/{id}/achievements/badge/{badge}": {
-      "get": {
-        "operationId": "getItemsIdAchievementsBadgeBadge",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "badge",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "image/png": {
-                "schema": {
-                  "format": "binary",
-                  "type": "string"
-                }
-              }
-            },
-            "description": "The picture."
-          },
-          "404": {
-            "description": "Not one of this game's achievement pictures."
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "An achievement's greyed-out picture, fetched from RetroAchievements by the server and kept.",
-        "tags": [
-          "games"
-        ],
-        "x-wms-auth": "user"
       }
     },
     "/items/{id}/annotations": {
@@ -24285,187 +22889,6 @@
         "summary": "Remove a library's downloaded details: the files the server saved beside the media, and what services said about its titles. Watch history, locks and IDs stay.",
         "tags": [
           "Browsing"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/libraries/{id}/games/import": {
-      "get": {
-        "operationId": "getLibrariesIdGamesImport",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "What it says."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "How a library's import is going",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/libraries/{id}/games/review": {
-      "get": {
-        "operationId": "getLibrariesIdGamesReview",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "kind",
-            "schema": {
-              "enum": [
-                "needs",
-                "blocked",
-                "left",
-                "ignored",
-                "duplicate"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
-            "name": "offset",
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "What it says."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Files in a games library that didn't become games, or can't play",
-        "tags": [
-          "Games"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/libraries/{id}/games/review/apply": {
-      "post": {
-        "operationId": "postLibrariesIdGamesReviewApply",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "action": {
-                    "enum": [
-                      "add",
-                      "ignore",
-                      "forget"
-                    ],
-                    "type": "string"
-                  },
-                  "console": {
-                    "type": "string"
-                  },
-                  "ids": {
-                    "items": {
-                      "type": "integer"
-                    },
-                    "type": "array"
-                  }
-                },
-                "required": [
-                  "ids",
-                  "action"
-                ],
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "What it says."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Say what those files are: games for a console, or not games",
-        "tags": [
-          "Games"
         ],
         "x-wms-auth": "admin"
       }
@@ -31363,6 +29786,123 @@
           }
         ],
         "summary": "Go back to the previous version or the built-in copy.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/modules/{id}/secrets": {
+      "get": {
+        "operationId": "getModulesIdSecrets",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "set": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Which secrets an administrator gave the module, by name only: `set`. Values are never answered.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/modules/{id}/secrets/{name}": {
+      "put": {
+        "operationId": "putModulesIdSecretsName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Letters, digits, - _ and ., up to 64",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "value": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Give the module a secret, such as a key for one of its online sources; an empty value removes it. The module reads it through the host API. The value is never answered or logged; the audit log says it was set or removed.",
         "tags": [
           "Server"
         ],
@@ -46121,9 +44661,6 @@
     },
     {
       "name": "Channels and live TV"
-    },
-    {
-      "name": "Games"
     },
     {
       "name": "Remote access and signed-in devices"

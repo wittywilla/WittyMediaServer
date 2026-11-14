@@ -37,7 +37,7 @@ Sources are used in this order, and later ones only fill gaps:
 | 9 | AniList, for Anime libraries | Titles in your chosen language, plots, posters, episode numbering |
 | 10 | A generated thumbnail | A frame 20% into the video |
 
-Audio CDs and games have orders of their own: see [Audio CDs](#audio-cds) and [Video games](#video-games).
+Audio CDs have an order of their own, and games get theirs from WittyPlay: see [Audio CDs](#audio-cds) and [Video games](#video-games).
 
 An [id in a file or folder's name](FIXING-METADATA.md#naming-rules) wins over any search, and a match you chose or a field you locked is never changed by any of these.
 
@@ -89,7 +89,6 @@ With **Save information and artwork next to your media** on, which is the defaul
 | `VIDEO_TS` folder | `movie.nfo`, `poster.jpg`, `fanart.jpg` inside the film's folder |
 | TV show | `tvshow.nfo`, `poster.jpg`, `fanart.jpg`, `season01-poster.jpg` and so on, in the show's folder |
 | Episode | `<name>.nfo`, `<name>-thumb.jpg` |
-| Game | `<name>.nfo`, `<name>-poster.jpg`, `<name>-fanart.jpg` beside the game |
 
 Artwork saved this way is always a real picture from the internet, the image cache or your own disk. A file beside your media or a feed can't make the server copy another kind of file here, or fetch something from your local network.
 
@@ -247,60 +246,15 @@ Pictures are kept in the image cache and served only by this server, so no brows
 
 ## Video games
 
-Games get their details from their own set of sources, in the background, so a scan of thousands of games never waits on the internet. It works out of the box, and a free key adds more.
+A game's details are WittyPlay's, not the server's. A games library is scanned through WittyPlay's [scan hooks](MODULES-API5.md#scan-hooks): the server walks the folders, WittyPlay says what each file is, and its `scan.describe` answer fills in the game's title, summary, genres, makers, ratings, age rating and pictures. What it finds online later (libretro, Wikidata, IGDB, ScreenScraper, RAWG, TheGamesDB, RetroAchievements) it sets on the item through the host API, in the background, so a scan never waits on the internet. Which sources it uses, what each is sent and how a game is matched are in [WittyPlay's own docs](https://github.com/wittywilla/WittyPlay).
 
-### Game sources
+The sources' keys (IGDB, ScreenScraper, RAWG, TheGamesDB, RetroAchievements) are WittyPlay's secrets: an administrator sets them in WittyPlay's settings, which keeps them with `PUT /api/modules/wittyplay/secrets/{name}`. The server never shows a secret again, and only WittyPlay reads it.
 
-Choose which are on, and which is believed first, under **Settings → Metadata agents**, in **Video games**. Keys are added there too. The first source with a value for something wins, except for scores, age ratings and pictures, which are collected from all of them.
-
-| Source | Needs | Good for | Sends |
-|---|---|---|---|
-| **libretro database** | Nothing | Recognising your exact files by checksum, dates, makers, genres, players, some age ratings and scores | Nothing about your games: a list for each console you have is downloaded once, checked monthly, and matched here |
-| **libretro thumbnails** | Nothing | Box art, title screens, in-game pictures | Game names, as the database lists them |
-| **Wikidata and Wikipedia** | Nothing | Summaries, makers, some review scores and age ratings | Which console, and the names of games it matches |
-| **IGDB** | A free Twitch application's id and secret | The fullest source: covers, art, critic and user scores, every age rating board | Game and console names |
-| **ScreenScraper** | A free account, and a developer id if your copy has none built in | Recognising files by checksum, with art, scores and age ratings | Names, console, checksums and sizes |
-| **RAWG** | A free key | Metacritic and user scores, wide backdrops | Game and console names |
-| **TheGamesDB** | A free key | Box art and fan art, some checksums | Names, console and checksums |
-
-Each source's row under **Settings → Metadata agents** gives its licence and limits.
-
-**Files never leave your server.** Only names, checksums and sizes are looked up, as the table says. Turning a source off stops it being asked. Pictures are fetched by the server and kept in its image cache, so a browser or an app never talks to a source.
-
-### How a game is matched
-
-1. **By checksum.** Archives record their files' checksums, so only the headers are read and nothing is unpacked. A cartridge file up to 128 MB is read once, with and without a copier's header. Nothing is read twice unless the file changes.
-2. **By code.** A disc's product code is read from a few sectors near its start, or from its file name. A cartridge's code, and the title in its header, count only when the file's name agrees, because a fan's hack of a game keeps both.
-3. **By name and console.** Region and dump tags are taken off and kept as details. Punctuation, articles and II or 2 don't matter, but different numbers always do. A name must be at least 85% alike to be used without asking, and only an exact name or a checksum renames a game. A close match gets its details, but keeps the name on its file.
-4. **By another version in its archive.** In a set, what's asked about first is the file that would be played. If neither that nor the name is known, a checksum of another version in the archive still gives the game's details and art.
-
-A file saved here earlier is only an old answer, which a better one replaces. An NFO a person wrote is theirs, and stays. A game from a gaming PC has no file to read, so it goes by name alone.
-
-### Fixing a game
-
-Every game's page shows administrators how it was matched and how sure that is, with **Fix match** (search every source and pick), **Lock** (leave it alone from now on) and **Look up again**. **It has no match**, in **Fix match**, clears what sources filled in.
-
-### Keeping requests down
-
-The queue is in the database, so a restart carries on where it stopped. Games are worked on in batches of 50, one console at a time. Each source's answer is kept, so changing the order of sources asks nobody anything, and adding one only asks that one, for what it can add.
-
-| Source | How it's asked |
-|---|---|
-| libretro database | One download a console, then no requests at all |
-| Wikidata | One request a second at most, in large batches. Backs off when it says it's busy |
-| libretro thumbnails | Only covers and one in-game picture are fetched up front, and others when someone looks |
-| IGDB | About three requests a second |
-| ScreenScraper | One every 1.2 seconds, up to 18,000 a day |
-| RAWG | Up to 18,000 a month. Only for games still missing something |
-| TheGamesDB | One a second, for games still missing something, stopping when its monthly allowance runs low |
+**What you typed stays.** A field changed with **Edit** on a game's page is kept by the server (`item_edits`) and passed to WittyPlay as edited, so no scan or lookup changes it. A picture or NFO beside a game still comes first.
 
 ### Age ratings and Kids profiles
 
-ESRB, PEGI, CERO, USK, ACB, GRAC, ClassInd and ELSPA ratings all become a minimum age. The strictest one a game has is its content rating, written like `ESRB T`, and that's what Kids and Guest profiles go by, as for a film. A game above a profile's limit doesn't appear at all, and can't be opened or played. A game with no rating counts as unrated, so it's hidden from profiles that don't allow unrated titles: set one with **Edit** on its page. Ratings a source marks as still pending count as no rating.
-
-### What's kept, and what's saved beside your games
-
-Answers go in the server's database and pictures in its image cache. With saving on, a game gets `<name>.nfo`, `<name>-poster.jpg` and `<name>-fanart.jpg` beside it, and a scan reads them back. With it off, nothing is ever written next to your games. Your own files always win: a picture or NFO beside a game, and anything typed under **Edit**, stays as it is.
+ESRB, PEGI, CERO, USK, ACB, GRAC, ClassInd and ELSPA ratings all become a minimum age, in the server's own ratings code. The strictest one a game has is its content rating, written like `ESRB T`, and that's what Kids and Guest profiles go by, as for a film. A game above a profile's limit doesn't appear at all, and can't be opened or played. A game with no rating counts as unrated, so it's hidden from profiles that don't allow unrated titles: set one with **Edit** on its page.
 
 ## Cast and crew
 
@@ -407,7 +361,7 @@ It renders the logo, or the name in text, on its own. Lookups in the same moment
 
 Kinds: `studio`, `network`, `console`, `gamestudio`, `platform`.
 
-`GET /api/games/consoles` gives each console a `logoName`, the name it goes by on Wikidata. On a games screen, use the marks made for this, which are the same size whichever way a console appears. With no logo they're a short typed label:
+`GET /api/modules/wittyplay/games/consoles` gives each console a `logoName`, the name it goes by on Wikidata. On a games screen, use the marks made for this, which are the same size whichever way a console appears. With no logo they're a short typed label:
 
 ```tsx
 import { ConsoleMark, StudioMark } from '../components/ConsoleMark'
@@ -418,7 +372,7 @@ import { ConsoleMark, StudioMark } from '../components/ConsoleMark'
 
 ### Using logos from the server
 
-When you find a new console or game studio, call `Store.EnsureLogo(ctx, kind, name)`. It only adds a row. `Logos.Kick()` starts looking, and does nothing without the owner's agreement. The studios of films and networks of shows are added by scans already, and so are the consoles of a games library and the studios of its games.
+When you find a new console or game studio, call `Store.EnsureLogo(ctx, kind, name)`. It only adds a row. `Logos.Kick()` starts looking, and does nothing without the owner's agreement. The studios of films and networks of shows are added by scans already. Consoles and game studios are WittyPlay's: it keeps their logos itself (`/api/modules/wittyplay/games/brand-logos`).
 
 ### Logo routes
 
@@ -439,9 +393,7 @@ When you find a new console or game studio, call `Store.EnsureLogo(ctx, kind, na
 
 ### The ScreenScraper developer id
 
-ScreenScraper's terms identify each program by a developer id, which isn't in this repository. Without one the source says so and asks for one in Settings, and other sources aren't affected.
-
-`scripts/build-release.sh` builds one in when `SCREENSCRAPER_DEV_ID` and `SCREENSCRAPER_DEV_PASSWORD` are set, and the release workflow sets those from secrets of the same names. The Docker image isn't built with them, because build arguments stay readable in an image.
+ScreenScraper's terms identify each program by a developer id. It belongs to WittyPlay's ScreenScraper source, and is one of WittyPlay's secrets (`ssDevId`, `ssDevPassword`), not part of the server.
 
 ---
 

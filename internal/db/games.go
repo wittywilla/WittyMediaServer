@@ -92,10 +92,32 @@ var gameMigrations = []string{
 	 DELETE FROM libraries WHERE type = 'games' AND console = 'rig';
 	 DELETE FROM settings WHERE key IN ('couchAccess', 'couchPrivate', 'couchInternet', 'couchCustomPorts',
 	   'couchMaxStreams', 'couchUdpPort', 'couchPublicIp', 'couchStun', 'wittyRigsEnabled');`,
+	// 9: telling what a games library's files are and finding out about each game are
+	// WittyPlay's (module API 5, scan hooks; its own database, starting empty). What the
+	// server kept of it goes: what each file was, review notes and decisions, discs (now the
+	// generic item_files), game metadata and its sources, pictures, and the settings of the
+	// metadata sources (WittyPlay's secrets now), pictures and logos.
+	`DROP TABLE IF EXISTS game_files;
+	 DROP TABLE IF EXISTS game_review;
+	 DROP TABLE IF EXISTS game_decisions;
+	 DROP TABLE IF EXISTS game_discs;
+	 DROP TABLE IF EXISTS game_meta_sources;
+	 DROP TABLE IF EXISTS game_meta;
+	 DROP TABLE IF EXISTS game_pictures;
+	 DROP TABLE IF EXISTS game_archives;
+	 DELETE FROM settings WHERE key IN ('gameSources', 'igdbClientId', 'igdbClientSecret', 'ssUser', 'ssPassword', 'ssDevId',
+	   'ssDevPassword', 'rawgKey', 'tgdbKey', 'retroAchievementsKey', 'wittyplay.pictures', 'wittyplayBrandLogos',
+	   'wittyplayBrandLogosAt', 'gamingRegionOrder');
+	 DELETE FROM settings WHERE key LIKE 'gameSourceUse.%';`,
 }
 
 func (d *DB) migrateGames(ctx context.Context) error {
-	// These add to what the main list makes, so they wait for it.
+	// These add to what the main list makes, so they wait for it: until its game_meta is
+	// made, or once the last of these has dropped it again.
+	version, _ := strconv.Atoi(d.GetSetting(ctx, "schema.games", "0"))
+	if version >= len(gameMigrations) {
+		return nil
+	}
 	var tables int
 	if err := d.QueryRowContext(ctx, `SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'game_meta'`).Scan(&tables); err != nil {
 		return err
@@ -103,7 +125,6 @@ func (d *DB) migrateGames(ctx context.Context) error {
 	if tables == 0 {
 		return nil
 	}
-	version, _ := strconv.Atoi(d.GetSetting(ctx, "schema.games", "0"))
 	for i := version; i < len(gameMigrations); i++ {
 		if _, err := d.ExecContext(ctx, gameMigrations[i]); err != nil {
 			return fmt.Errorf("games migration %d: %w", i+1, err)

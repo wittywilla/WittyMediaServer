@@ -32,8 +32,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/tasks"
 )
 
-// The logo service: logos of studios, networks, consoles, game studios and
-// streaming services, for every part of the app (docs/METADATA.md#the-logo-service).
+// The logo service: logos of studios, networks and streaming services, for every part of the app (docs/METADATA.md#the-logo-service).
 //
 // Logos are never bundled. A logo is either downloaded after the owner agreed
 // (setting logoConsent), from a source whose files say what may be done with
@@ -43,11 +42,9 @@ import (
 
 // The kinds of thing that can have a logo.
 const (
-	LogoStudio     = "studio"
-	LogoNetwork    = "network"
-	LogoConsole    = "console"
-	LogoGameStudio = "gamestudio"
-	LogoPlatform   = "platform"
+	LogoStudio   = "studio"
+	LogoNetwork  = "network"
+	LogoPlatform = "platform"
 )
 
 // What's known about a logo.
@@ -122,7 +119,7 @@ type Logos struct {
 // ValidLogoKind reports whether kind is one the service knows.
 func ValidLogoKind(kind string) bool {
 	switch kind {
-	case LogoStudio, LogoNetwork, LogoConsole, LogoGameStudio, LogoPlatform:
+	case LogoStudio, LogoNetwork, LogoPlatform:
 		return true
 	}
 	return false
@@ -202,55 +199,9 @@ func (s *Store) LogoConsent(ctx context.Context) string {
 	return ""
 }
 
-// WittyPlay's own, narrower agreement (WittyPlay Settings › Game pictures): consoles' logos only, for
-// its cartridges, cases and console marks. Off until an administrator turns it on and confirms the
-// warning; it downloads console logos even when the app-wide agreement above was declined.
-const (
-	ConsoleLogosSetting = "wittyplayBrandLogos"
-	ConsoleLogosVersion = "1"
-)
-
-// ConsoleLogosOn says WittyPlay's agreement to console logos stands.
-func (s *Store) ConsoleLogosOn(ctx context.Context) bool {
-	return s.DB.GetSetting(ctx, ConsoleLogosSetting, "") == ConsoleLogosVersion
-}
-
-// SetConsoleLogos records WittyPlay's agreement. Agreeing makes a row for each console name given and
-// starts looking for their logos; withdrawing stops looking (unless the app-wide agreement stands) and
-// keeps what was downloaded until it's removed (ForgetDownloadedKind).
-func (l *Logos) SetConsoleLogos(ctx context.Context, on bool, names []string) error {
-	v := "0"
-	if on {
-		v = ConsoleLogosVersion
-	}
-	if err := l.Store.DB.SetSetting(ctx, ConsoleLogosSetting, v); err != nil {
-		return err
-	}
-	if err := l.Store.DB.SetSetting(ctx, ConsoleLogosSetting+"At", strconv.FormatInt(db.Now(), 10)); err != nil {
-		return err
-	}
-	if !on {
-		return nil
-	}
-	for _, n := range names {
-		if strings.TrimSpace(n) == "" {
-			continue
-		}
-		if _, err := l.Store.EnsureLogo(ctx, LogoConsole, n); err != nil {
-			return err
-		}
-	}
-	if _, err := l.Store.DB.ExecContext(ctx, `UPDATE logos SET status = ?, tried_at = 0 WHERE status = ? AND kind = ?`, LogoPending, LogoNone, LogoConsole); err != nil {
-		return err
-	}
-	l.Kick()
-	return nil
-}
-
-// downloadsAllowed says which logos may be looked for now: every kind, consoles only, or none.
-func (l *Logos) downloadsAllowed(ctx context.Context) (all, consoles bool) {
-	all = l.Store.LogoConsent(ctx) == "yes"
-	return all, all || l.Store.ConsoleLogosOn(ctx)
+// downloadsAllowed says whether logos may be looked for now.
+func (l *Logos) downloadsAllowed(ctx context.Context) bool {
+	return l.Store.LogoConsent(ctx) == "yes"
 }
 
 // SetLogoConsent records the owner's answer. Agreeing starts the downloads;
@@ -353,7 +304,7 @@ func (s *Store) LogoFor(ctx context.Context, kind, name string) (*Logo, error) {
 }
 
 // EnsureLogo makes sure a name has a row, so the service looks for it. This is
-// what other parts of the server call when they find a console or a game studio.
+// what other parts of the server call when they find a studio or a network.
 // It does nothing for an empty or unknown name, and contacts nobody by itself.
 func (s *Store) EnsureLogo(ctx context.Context, kind, name string) (*Logo, error) {
 	name = cleanBrandName(name)
@@ -516,15 +467,10 @@ func (l *Logos) work(ctx context.Context) {
 	var t *tasks.Handle // only once there's something to do: this wakes after every scan
 	defer func() { t.Finish(nil) }()
 	for {
-		all, consoles := l.downloadsAllowed(ctx)
-		if !consoles {
+		if !l.downloadsAllowed(ctx) {
 			return
 		}
-		only := ""
-		if !all {
-			only = ` AND kind = 'console'`
-		}
-		g, err := scanLogo(l.Store.DB.QueryRowContext(ctx, `SELECT `+logoCols+` FROM logos WHERE status = ?`+only+` ORDER BY kind <> 'console', id LIMIT 1`, LogoPending))
+		g, err := scanLogo(l.Store.DB.QueryRowContext(ctx, `SELECT `+logoCols+` FROM logos WHERE status = ? ORDER BY id LIMIT 1`, LogoPending))
 		if err != nil {
 			return
 		}
@@ -591,21 +537,13 @@ func (l *Logos) Candidates(ctx context.Context, g *Logo, query string) ([]LogoCa
 	return c, err
 }
 
-// BrandLogoKinds are the kinds WittyPlay's agreement (ConsoleLogosOn) covers: a console's logo, which
-// it downloads by itself, and a game studio's, which an administrator may search for and choose.
-var BrandLogoKinds = []string{LogoConsole, LogoGameStudio}
-
-// SearchAllowed says an administrator may search a source for this kind of logo: under the app-wide
-// agreement, or WittyPlay's for its brand kinds.
+// SearchAllowed says an administrator may search a source for a logo: under the agreement.
 func (l *Logos) SearchAllowed(ctx context.Context, kind string) bool {
-	if l.Store.LogoConsent(ctx) == "yes" {
-		return true
-	}
-	return l.Store.ConsoleLogosOn(ctx) && (kind == LogoConsole || kind == LogoGameStudio)
+	return l.Store.LogoConsent(ctx) == "yes"
 }
 
 // Downloaded lists the logos of one kind already downloaded here (not uploaded), to reuse for
-// another name without asking a source again: a console's logo for its other name, say.
+// another name without asking a source again: a studio's logo for its other name, say.
 func (l *Logos) Downloaded(ctx context.Context, kind string, except int64) ([]Logo, error) {
 	rows, err := l.Store.DB.QueryContext(ctx, `SELECT `+logoCols+` FROM logos WHERE kind = ? AND status = ? AND source NOT IN ('you', '') AND id <> ? ORDER BY name COLLATE NOCASE LIMIT 200`, kind, LogoFound, except)
 	if err != nil {

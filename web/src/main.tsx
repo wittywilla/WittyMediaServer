@@ -20,7 +20,6 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 // Pages all over the app use these, and they come first so that styles.css has the last word.
-import './pages/games.css'
 import './pages/setup/setup.css'
 import './pages/pair.css'
 import App from './App'

@@ -12,12 +12,10 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/library"
-	wittyplay "github.com/wittywilla/wittymediaserver/internal/play"
 	"github.com/wittywilla/wittymediaserver/pkg/sdui"
 )
 
@@ -148,7 +146,7 @@ func (rv *sduiResolver) item(it *library.Item) sdui.Item {
 		out.Kind, out.Route = "game", "/game/"+id
 		// Its console as people call it (NES), so a card can draw the game in that console's case.
 		if it.Console != "" {
-			out.Console = consoleShort(it.Console)
+			out.Console = rv.s.consoleShort(rv.ctx, it.Console)
 		}
 		if t := it.Titles; t != nil {
 			out.Titles = &sdui.Titles{Native: t.Native, English: t.English, Romanized: t.Romanized}
@@ -1155,8 +1153,8 @@ func (rv *sduiResolver) Facets(lib string, fields []string) ([]sdui.Facet, error
 	if !ok {
 		return nil, nil
 	}
-	if l.Type == "games" {
-		return rv.gameFacets(l.ID, fields)
+	if _, ok := rv.s.scanModule(l.Type); ok || !library.OwnScan(l.Type) {
+		return rv.moduleFacets(l, fields)
 	}
 	f, err := rv.s.Store.LibraryFacets(rv.ctx, l.ID, rv.acc)
 	if err != nil || f == nil {
@@ -1229,14 +1227,15 @@ func (rv *sduiResolver) Facets(lib string, fields []string) ([]sdui.Facet, error
 	return out, nil
 }
 
-// gameFacets are a games library's filter choices: its genres, its decades and, when any of its
-// games has a score, the score steps. The rest of a FilterBar's fields have none in a games library.
-func (rv *sduiResolver) gameFacets(lib int64, fields []string) ([]sdui.Facet, error) {
-	f, err := rv.s.Store.GameFacets(rv.ctx, lib, "", rv.acc)
+// moduleFacets are the filter choices of a library a module scans (games): its items' genres,
+// their decades and, when any of them has a score, the score steps. The rest of a FilterBar's
+// fields have none there.
+func (rv *sduiResolver) moduleFacets(l *library.Library, fields []string) ([]sdui.Facet, error) {
+	f, err := rv.s.Store.LibraryItemFacets(rv.ctx, l.ID, "", rv.acc)
 	if err != nil || f == nil {
 		return nil, err
 	}
-	options := func(list []library.GameFacet, max int) []sdui.EnumOption {
+	options := func(list []library.ItemFacet, max int) []sdui.EnumOption {
 		var out []sdui.EnumOption
 		for i, x := range list {
 			if i >= max || x.Value == "" {
@@ -1359,27 +1358,3 @@ func (s *Server) recentlyPlayedGames(rv *sduiResolver, limit int) []playedGame {
 	}
 	return out
 }
-
-// consoleShort is a console's short name (SNES, Mega Drive), so a card can draw a game in its
-// console's case; its id when it has none.
-func consoleShort(id string) string {
-	shortOnce.Do(func() {
-		shortNames = map[string]string{}
-		for _, c := range wittyplay.Consoles() {
-			n := c.Short
-			if n == "" {
-				n = c.Name
-			}
-			shortNames[c.ID] = n
-		}
-	})
-	if n := shortNames[id]; n != "" {
-		return n
-	}
-	return id
-}
-
-var (
-	shortOnce  sync.Once
-	shortNames map[string]string
-)

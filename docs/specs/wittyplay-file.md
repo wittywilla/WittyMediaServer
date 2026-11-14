@@ -6,8 +6,8 @@ filling its tile, or the game drawn inside a cartridge or disc case like the one
 every game, for each console, and for single games. It is small, plain JSON, and meant to be written by people as
 easily as by programs.
 
-WittyMediaServer reads and writes it (WittyPlay Settings › Game pictures: Export and Import), and reads one placed
-beside a game file. Anyone may read or write it in any program.
+The WittyPlay module for WittyMediaServer reads and writes it (WittyPlay Settings › Game pictures: Export and Import),
+and reads one placed beside a game file. Anyone may read or write it in any program.
 
 - **File extension:** `.wittyplay`
 - **Media type:** `application/vnd.wittyplay+json` (a JSON document; `application/json` readers can read it)

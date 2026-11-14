@@ -475,8 +475,8 @@ A game started with `POST /modules/wittyplay/games/{id}/play/emulator` is not a 
   WebSocket), `stream/feedback.go` (rate), `stream/haptics.go` (rumble, lights, motion), `libretro/libretro.go` and
   `libretro/sensor_*.go` (the sensor and LED interfaces, several fingers), `host/` (pacing, and carrying them to the core), `web/transport.ts`, `web/arrival.ts` and `web/refresh.ts` (the
   browser's side), `cmd/wittyplay-probe` (measuring, with `-v2`, and `-impair` on TCP as well as UDP).
-- WittyMediaServer: `internal/server/api_games.go` (the two routes, and which devices count as away), `internal/play/stream`
-  (the module's interface, generated).
+- WittyMediaServer: `internal/server/module_routes.go` passes the stream's routes on to WittyPlay (sign-in, the session's
+  owner, a WebSocket from this site only) and tells it which devices count as away (`X-Witty-Away`).
 
 ---
 

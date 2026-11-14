@@ -55,7 +55,6 @@ The server keeps only the shape of what a module says:
 
 | In the server | What it is |
 |---|---|
-| `internal/play/...` | Stubs written by `kit/facade` in WittyModule from `facade.json` in the module: the module's types, and functions that call its service. Never edited by hand, except `manual.go` |
 | `internal/dvd`, `internal/bluray`, `internal/cd`, `internal/tuner` | The types those modules answer in, kept as a copy. A helper and the server compile them separately, and they match by field name |
 | `internal/tuner/mpegts`, and `isofs` from WittyDisc | The server's **own** encryption guard and disc image reader, so it refuses encrypted media itself, whatever a module says |
 | `web/src/moduletypes` | The TypeScript types of the browser parts, from `scripts/sync-module-types.mjs`. Types only: nothing from them runs |
@@ -229,12 +228,12 @@ WittyPlay's standalone emulators are reached this way, under `/api/modules/witty
 - `/docker/status`, `/docker/diagnostics`, `/docker/settings`, `/docker/emulators`, `/docker/installed` and `/docker/emulators/{id}[/install]` are for administrators. The server checks that itself before passing them on, and WittyPlay checks `X-Witty-Admin` as well.
 - `/docker/emulators/{id}/settings`, `/docker/sessions` and `/docker/sessions/{sid}[/connect|/pause|/resume]` are for anyone signed in. WittyPlay decides whose settings and whose session a request touches.
 - Requests are held to 256 KB and answers to 4 MB and 45 seconds, an answer's cookies are dropped, and the server adds `X-Wittyplay-System-Dir` (its BIOS folder) over whatever a client sent.
-- **Starting a game isn't passed through.** `POST /api/games/{id}/play/emulator` is the server's own route: it checks the account may play the game, finds the file, and calls the module (`docker.Launch`) with it. A module route that takes a path from a browser would let anyone read any file the emulator can be pointed at.
+- **Starting a game takes no path from a browser.** `POST /api/modules/wittyplay/games/{id}/play/emulator` names the game as its `item`: the server checks the account may play it, and WittyPlay reads the file from `X-Witty-Item`. A module route that took a path from a browser would let anyone read any file the emulator can be pointed at.
 - `/kasm/{sid}/{ticket}/...` is an emulator's desktop, and is the one module route that asks for no sign-in. What it serves comes out of a container, so it's answered with `Content-Security-Policy: … sandbox` and shown in a sandboxed frame, where it has no origin of the server's and a browser sends no cookie. The session's random 256-bit ticket in the address is the way in; nobody's identity is passed on; nothing can be written.
 
 See [SECURITY-ROUTES.md](SECURITY-ROUTES.md) for the full list.
 
-For WittyPlay and WittyCouch, `kit/facade` in WittyModule writes the stubs on both sides from `facade.json`: see [Developing a server and a module together](#developing-a-server-and-a-module-together).
+The server holds no stubs of a module's code: WittyPlay, WittyCouch and WittyRigs reach it through their routes, their scan hooks and the host API ([MODULES-API5.md](MODULES-API5.md)).
 
 ## Writing a web part
 
@@ -581,13 +580,7 @@ They land in `modules/` beside the program, or in `Contents/Resources/modules` i
 
 A normal build of the server needs only WittyModule and the core libraries `go.mod` names, at released versions. Nothing about a module needs to be beside it. How the repositories are set up on a development machine is in `docs/REPOSITORIES.md`.
 
-**A change that crosses the line** is two changes in two repositories. For WittyPlay and WittyCouch, the server's stubs come from the module's source, so a new exported function means running the generator from a WittyModule checkout, which rewrites `gen.go` on both sides. Anything it can't write goes in `manual.go`:
-
-```bash
-go run ./kit/facade -config <module>/facade.json -module <module> -server <this checkout>
-```
-
-With `-check` it writes nothing and fails if either side's `gen.go` isn't what it would write; CI's `with-modules` job runs that for both modules. What the module uses only itself, such as WittyPlay's relay for standalone emulators, is listed under `internal` in `facade.json`: the server gets no stub for it, and the module answers no call for it.
+**A change that crosses the line** is two changes in two repositories: the module's, and WittyModule's when the contract between them changes (`integration.json`, the scan hooks, the host API). A module asks for what it needs with `host` ranges in its `integration.json`, so a server that doesn't offer it yet refuses the version with the reason.
 
 **To try a real module on a server,** build a catalogue from your checkouts with a throwaway key. Only a server built with the `updatetest` tag reads it, and no release can be:
 

@@ -33,7 +33,6 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/discovery"
 	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
-	"github.com/wittywilla/wittymediaserver/internal/gamemeta"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/instance"
 	"github.com/wittywilla/wittymediaserver/internal/layout"
@@ -227,10 +226,6 @@ func cmdServe(args []string) int {
 	}
 	scanner.SaveMeta = func() bool { return database.GetSetting(context.Background(), "saveMetadata", "1") == "1" }
 	scanner.NoPoster = func() string { return database.GetSetting(context.Background(), "noPoster", library.NoPosterFrame) }
-	gamemeta.UserAgent = "WittyMediaServer/" + version + " (https://github.com/wittywilla/WittyMediaServer)"
-	gameMeta := library.NewGameMeta(store, cfg.ImagesDir, cfg.CacheDir, log)
-	gameMeta.SaveMeta, gameMeta.Save = scanner.SaveMeta, scanner.SaveItemMetadata
-	scanner.GameMeta = gameMeta
 	hlsMgr := hls.NewManager(tools, cfg.TranscodeDir, cfg.MaxTranscode, log)
 	// A small machine: Go keeps its memory inside what there is, and scans give way
 	// while a stream is being converted (internal/pace).
@@ -321,7 +316,7 @@ func cmdServe(args []string) int {
 		webFS = os.DirFS(filepath.Join("web", "dist"))
 	}
 	srv := &server.Server{
-		Cfg: cfg, DB: database, Log: log, Tools: tools, Store: store, Scanner: scanner, GameMeta: gameMeta,
+		Cfg: cfg, DB: database, Log: log, Tools: tools, Store: store, Scanner: scanner,
 		Auth: &auth.Service{DB: database}, HLS: hlsMgr, DVD: dvdMgr, BD: bdMgr, Themes: themeMgr, Web: webFS, Version: version, Logs: logs,
 		Update: updater, Modules: modMgr, ModuleStores: modStores, Crashes: guard, Restart: updater.Restart,
 		Instance: lock.ID(),
@@ -450,7 +445,6 @@ func cmdServe(args []string) int {
 		case <-ctx.Done():
 		}
 	}()
-	go gameMeta.Run(ctx)
 	// When the server stops answering, write down what it was doing: see internal/logging/hang.go.
 	logging.StartWatchdog(ctx, log, srv.WatchChecks(selfURL(ln.Addr()))...)
 	go func() {

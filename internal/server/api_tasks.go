@@ -68,9 +68,6 @@ func (s *Server) wireTasks() {
 	}
 	modmgr.ReportTasksTo(s.Tasks)
 	s.watchModuleRuns()
-	if s.GameMeta != nil {
-		s.GameMeta.Tasks = s.Tasks
-	}
 	if s.Update != nil {
 		s.Update.Tasks = s.Tasks
 	}

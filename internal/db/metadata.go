@@ -152,6 +152,9 @@ var metadataMigrations = []string{
 	`CREATE TABLE IF NOT EXISTS credits_read (
 	   target TEXT NOT NULL, target_id INTEGER NOT NULL, source TEXT NOT NULL, at INTEGER NOT NULL DEFAULT 0,
 	   PRIMARY KEY(target, target_id, source)) WITHOUT ROWID;`,
+	// 14: consoles' and game studios' logos are WittyPlay's (module API 5, its brand logos).
+	`DELETE FROM title_brands WHERE kind IN ('console', 'gamestudio');
+	 DELETE FROM logos WHERE kind IN ('console', 'gamestudio');`,
 }
 
 func (d *DB) migrateMetadata(ctx context.Context) error {

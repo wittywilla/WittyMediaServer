@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/wittywilla/wittymediaserver/internal/gamemeta"
 	"github.com/wittywilla/wittymediaserver/internal/parental"
 )
 
@@ -48,8 +47,8 @@ func AgeFor(rating string) *int {
 	r := strings.ToUpper(strings.TrimSpace(rating))
 	// A game's rating names its board, as boards reuse each other's letters: an ESRB M
 	// isn't an Australian M.
-	if sys, val, ok := strings.Cut(strings.ReplaceAll(r, ":", " "), " "); ok && gamemeta.IsSystem(sys) {
-		return gamemeta.AgeFor(sys, val)
+	if sys, val, ok := strings.Cut(strings.ReplaceAll(r, ":", " "), " "); ok && IsRatingBoard(sys) {
+		return BoardAge(sys, val)
 	}
 	if i := strings.LastIndexAny(r, ":/"); i >= 0 {
 		r = r[i+1:]

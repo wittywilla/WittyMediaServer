@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"slices"
 	"strconv"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
@@ -193,13 +192,11 @@ func (s *Server) handleLogoCandidates(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	// WittyPlay's brand-logo agreement covers consoles and game studios: the logos already downloaded
-	// under it (or the app-wide one) are offered too, to use again without asking a source.
-	brand := s.Store.ConsoleLogosOn(ctx)
+	// The logos already downloaded are offered too, to use again without asking a source.
 	out, err := s.logos().Candidates(ctx, g, r.URL.Query().Get("q"))
 	if err != nil {
 		if errors.Is(err, library.ErrLogosNotAgreed) {
-			writeJSON(w, 409, map[string]any{"error": err.Error(), "brandLogos": brand, "brandKind": slices.Contains(library.BrandLogoKinds, g.Kind)})
+			writeJSON(w, 409, map[string]any{"error": err.Error()})
 			return
 		}
 		writeErr(w, 502, err.Error())
@@ -210,7 +207,7 @@ func (s *Server) handleLogoCandidates(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
-	writeJSON(w, 200, map[string]any{"candidates": out, "downloaded": downloaded, "brandLogos": brand})
+	writeJSON(w, 200, map[string]any{"candidates": out, "downloaded": downloaded})
 }
 
 // GET /api/logos/preview?src=: a candidate's picture, fetched by the server and kept
@@ -221,7 +218,7 @@ func (s *Server) handleLogoPreview(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "not a logo address")
 		return
 	}
-	if s.Store.LogoConsent(r.Context()) != "yes" && !s.Store.ConsoleLogosOn(r.Context()) {
+	if s.Store.LogoConsent(r.Context()) != "yes" {
 		writeErr(w, 409, library.ErrLogosNotAgreed.Error())
 		return
 	}

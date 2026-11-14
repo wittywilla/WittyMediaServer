@@ -69,19 +69,17 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `PUT /api/me/ui` | Signed-in | own. A JSON object of at most 16 KB |
 | `GET /api/home` | Signed-in | own progress. limits |
 | `GET /api/libraries` | Signed-in | limits. Folder paths for admins only |
-| `POST /api/libraries` | Admin | Name, known type, full paths to existing folders, known console. Module for the type is installed |
+| `POST /api/libraries` | Admin | Name, known type, full paths to existing folders. Module for the type is installed; for a games library, a module that scans games is installed and on, and the console is `auto` or one it names |
 | `PUT /api/libraries/{id}` | Admin | As creating. Refused for a library owned by a game PC |
 | `DELETE /api/libraries/{id}` | Admin | Numeric id |
 | `POST /api/libraries/{id}/scan` | Admin | Library exists |
 | `PUT /api/libraries/{id}/nfo` | Admin | Library exists |
 | `POST /api/libraries/{id}/purge-metadata` | Admin | Library exists and isn't read-only; deletes only `.nfo` and `.metadata.json` files inside its folders |
-| `GET /api/libraries/{id}/scan` | Signed-in | Library is within the account's allowed libraries. File names and skipped files for admins only |
+| `GET /api/libraries/{id}/scan` | Signed-in | Library is within the account's allowed libraries. File names for admins only |
 | `POST /api/libraries/{id}/forget-metadata` | Admin | Library exists and isn't being scanned. Removes only files the server recorded writing, and NFOs with its marker, inside the library's folders, through the folder (never through a link out of it); a person's `.nfo.bak` goes back. Every item keeps its ID; history, locks and people's edits stay. Logged and shown in Activity |
 | `POST /api/libraries/forget-metadata` | Admin | As for one library, for every library, none being scanned. Also drops downloaded logos and where-to-watch answers |
 | `GET /api/genres` | Signed-in | limits |
 | `GET /api/items` | Signed-in | limits, in the query. Paths for admins only |
-| `GET /api/console-photos/{id}` | Signed-in | Console id checked. A console's picture from Wikimedia Commons, asked for only with Wikidata on and Wikimedia downloads agreed to |
-| `GET /api/console-photos/{id}/image` | Signed-in | Console id checked. Only a picture this server kept |
 | `GET /api/logos/status` | Signed-in | Whether downloads are agreed to, and the source. Counts for admins only |
 | `PUT /api/logos/consent` | Admin | Body says yes or no |
 | `POST /api/logos/lookup` | Signed-in | Up to 200 names. Only an admin's request can add a name or ask a source |
@@ -342,6 +340,8 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `PUT /api/modules/{id}/source` | Admin | Known module. Repository and key. Confirmation, with own password and a code with two-factor sign-in |
 | `DELETE /api/modules/{id}/source` | Admin | Known module |
 | `POST /api/modules/{id}/add` | Admin | Known module. A version made for an older server only with `confirmOlder` |
+| `GET /api/modules/{id}/secrets` | Admin | Known module. Names only, never values |
+| `PUT /api/modules/{id}/secrets/{name}` | Admin | Known module. Name of letters, digits, `-`, `_` and `.`, up to 64. The value is never answered or logged; the audit log says it was set or removed |
 | `POST /api/modules/{id}/remove` | Admin | Known module. No library needs it |
 | `POST /api/modules/{id}/enable` | Admin | Known module |
 | `POST /api/modules/{id}/disable` | Admin | Known module. No library needs it |
@@ -483,26 +483,6 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/recording-rules` | Tuner channels | canRecord: a tuner channel, turned on, visible, clear and not marked not to be recorded; never a library channel. 20 per account, none for an administrator |
 | `PUT /api/recording-rules/{id}` | Tuner channels | own, and every account's for an administrator. Padding up to an hour before and three after; keep 0 to 1000 |
 | `DELETE /api/recording-rules/{id}` | Tuner channels | own, and every account's for an administrator |
-| `GET /api/games/pictures` | Signed-in | the server's own looks; per-game looks only for games the account may see |
-| `POST /api/games/pictures/check` | Signed-in | reads a .wittyplay file of at most 64 KB; matches only games the account may see. Writes nothing |
-| `GET /api/games/brand-logos` | Signed-in | whether console logos are on, and the logos (ids and credits) when they are. When they were agreed to, for an administrator |
-| `PUT /api/games/pictures` | Admin | A .wittyplay file of at most 64 KB, checked against the format |
-| `GET /api/games/pictures/file` | Admin | Nothing further |
-| `PUT /api/games/{id}/picture` | Admin | A game. A look checked against the format |
-| `PUT /api/games/brand-logos` | Admin | Turning on needs the warning confirmed (accepted) |
-| `DELETE /api/games/brand-logos` | Admin | Removes downloaded console logos only; uploaded ones stay |
-| `GET /api/games/facets` | Signed-in | Library within the account's allowed libraries. limits |
-| `GET /api/games/{id}/metadata` | Signed-in | limits. A game. File hashes and serials for admins only |
-| `GET /api/games/{id}/art/{n}` | Signed-in | limits. A game. Picture number. Pictures only |
-| `GET /api/games/{id}/metadata/search` | Admin | A game. Query length |
-| `PUT /api/games/{id}/metadata/match` | Admin | A game. Source and id |
-| `DELETE /api/games/{id}/metadata/match` | Admin | A game |
-| `POST /api/games/{id}/metadata/refresh` | Admin | A game |
-| `GET /api/gamemeta/status` | Admin | Nothing further |
-| `POST /api/gamemeta/refetch` | Admin | Nothing further |
-| `GET /api/gamemeta/sources` | Admin | Nothing further |
-| `PUT /api/gamemeta/sources` | Admin | Source list |
-| `POST /api/gamemeta/sources/{id}/test` | Admin | Known source. Nothing saved |
 | `GET /api/diagnose/targets` | Admin | Nothing further |
 | `GET /api/diagnose/browse` | Admin | Path resolved inside the allowed places |
 | `POST /api/diagnose/disc` | Admin | Path resolved inside the allowed places |
@@ -549,14 +529,6 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/backup/restore/start` | An admin, or before any account exists this machine or the setup code | Typed RESTORE. Password and code, unless no account exists. An archive that's been checked, and known parts. It's read again as it's unpacked. The swap is made at the next start |
 | `DELETE /api/backup/restore/request` | An admin, or before any account exists this machine or the setup code | Nothing: takes back what's waiting for the next start |
 | `POST /api/backup/undo` | Admin | Password, and code with two-factor sign-in. Safety copy name by form, holding its own list. What it moves stays inside the data folders |
-| `GET /api/libraries/{id}/games/review` | Admin | A games library. Known list. Limit and offset |
-| `POST /api/libraries/{id}/games/review/apply` | Admin | A games library. 1 to 5,000 ids, known action, known console. No file is touched |
-| `GET /api/libraries/{id}/games/import` | Admin | A games library |
-| `GET /api/games/{id}/versions` | Signed-in | limits, on the game and on each version. A game. No paths. What's in an archive for admins only |
-| `PUT /api/games/{id}/version` | Admin | A game. Entry is empty, or one this archive holds and this console runs |
-| `POST /api/games/{id}/split` | Admin | A game |
-| `PUT /api/games/{id}/console` | Admin | A game. Known console. No file is touched |
-| `POST /api/games/{id}/not-a-game` | Admin | A game. No file is touched |
 | `GET /api/libtranscode/options` | Admin | Nothing further |
 | `GET /api/libtranscode/settings` | Admin | Nothing further |
 | `PUT /api/libtranscode/settings` | Admin | Numbers within their ranges |
@@ -667,8 +639,6 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/media-types` | Signed-in | Nothing: known formats and whether this server can play them. Which FFmpeg it runs for admins only |
 | `PUT /api/users/{id}/profile` | Signed-in | Caller may manage that account, or it's their own. Which name shows is anyone's own choice. Username: an adult's own, or a manager's. Profile name and picture: their own unless their limits turn that off, or a manager's. Picture is one of a fixed list. Username has no invisible characters and differs from every other, ignoring case. Display name cleaned and cut to 60 characters |
 | `GET /api/media/{id}/canvas` | Signed-in | limits. Song, video or disc. An upload in the server's own folder, or a file beside the media that is inside a library once links are followed, or a plain file in the metadata folder named for the item; at most 64 MB and 60 seconds |
-| `GET /api/items/{id}/achievements` | Signed-in | limits. A game. Its file is only read, and its checksum is matched on this server. No keys or paths answered |
-| `GET /api/items/{id}/achievements/badge/{badge}` | Signed-in | limits. A game. Badge name is digits, and one of the game's own achievements. Fetched through the server |
 | `GET /api/items/{id}/canvas` | Signed-in | limits. As `GET /api/media/{id}/canvas` |
 | `GET /api/media/{id}/canvas/file` | Signed-in; ticket; address token | limits. As the canvas: only a file the listing would name. Type from its name, MP4 or WebM only. Inert content policy. Limit for viewers away from home |
 | `PUT /api/media/{id}/canvas` | Admin | Song, video or disc. At most 30 MB, MP4 or WebM by its first bytes. Written whole into the server's images folder under a name made from the item's number and a hash of its path, never beside the media; links on the way refused |

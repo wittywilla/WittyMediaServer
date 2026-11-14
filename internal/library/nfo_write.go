@@ -9,6 +9,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/archive"
 	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 	"io"
 	"log/slog"
@@ -40,7 +41,12 @@ func ArtPaths(it *Item) (poster, backdrop, nfo string) {
 	dir := filepath.Dir(it.Path)
 	if it.Kind == "game" {
 		// A folder of games has no one game to call its poster.jpg after.
-		base := gameBaseName(filepath.Base(it.Path))
+		base := filepath.Base(it.Path)
+		if archive.IsArchive(base) {
+			base = archive.BaseName(base) // "Game (USA).tar.gz" is "Game (USA)"
+		} else {
+			base = strings.TrimSuffix(base, filepath.Ext(base))
+		}
 		return filepath.Join(dir, base+"-poster.jpg"), filepath.Join(dir, base+"-fanart.jpg"), filepath.Join(dir, base+".nfo")
 	}
 	base := strings.TrimSuffix(filepath.Base(it.Path), filepath.Ext(it.Path))

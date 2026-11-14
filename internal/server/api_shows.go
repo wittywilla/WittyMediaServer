@@ -358,12 +358,9 @@ func (s *Server) handleArtwork(w http.ResponseWriter, r *http.Request) {
 			dir = it.Path
 		}
 		if it.Kind == "game" {
-			// One folder can hold thousands of games: only this game's pictures, and
-			// whatever the sources have found for it.
+			// One folder can hold thousands of games: only this game's pictures. What its
+			// module found is WittyPlay's to offer (its own art routes).
 			add(gameImages(dir, it.Path)...)
-			for _, c := range s.Store.GameArtCandidates(ctx, it.ID, backdrop) {
-				add(artCandidate{URL: c, Source: "game"})
-			}
 			writeJSON(w, 200, map[string]any{"candidates": out, "warning": ""})
 			return
 		}

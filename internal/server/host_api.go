@@ -69,6 +69,8 @@ func (s *Server) HostAPI() http.Handler {
 	b := host.Base
 	h("GET "+b+"/hello", s.hostHello)
 	h("GET "+b+"/items/{id}", s.hostItem)
+	h("PATCH "+b+"/items/{id}", s.hostSetItem)
+	h("POST "+b+"/libraries/{id}/scan", s.hostRescan)
 	h("GET "+b+"/items", s.hostItems)
 	h("GET "+b+"/items/counts", s.hostCounts)
 	h("GET "+b+"/items/facets", s.hostFacets)
@@ -238,7 +240,7 @@ func (s *Server) hostItems(w http.ResponseWriter, r *http.Request, module string
 			continue
 		}
 		iq := library.ItemQuery{LibraryID: l.ID, Kind: q.Get("kind"), Search: q.Get("search"), Console: q.Get("facet.console"),
-			Sort: sort, Desc: q.Get("desc") == "1", MinRating: minRating, Genre: q.Get("genre"), Series: q.Get("series"), IDs: ids,
+			Sort: sort, Desc: q.Get("desc") == "1", MinRating: minRating, Genre: q.Get("genre"), IDs: ids,
 			Access: a, Brief: true, NoTotal: true, Limit: offset + limit}
 		items, _, err := s.Store.Items(r.Context(), iq)
 		if err != nil {
@@ -277,8 +279,9 @@ func (s *Server) hostItems(w http.ResponseWriter, r *http.Request, module string
 	writeJSON(w, 200, map[string]any{"items": out})
 }
 
-// hostFacets is what a games library of the module's holds, as the person asking may see it:
-// the same counts GET /api/v1/games/facets gives.
+// hostFacets is what a library of the module's holds, as the person asking may see it: the
+// generic facets (genres, decades, scores, first letters). What only the module knows of its
+// items (players, series) it counts itself.
 func (s *Server) hostFacets(w http.ResponseWriter, r *http.Request, module string) {
 	_, a, err := s.onBehalf(r)
 	if err != nil {
@@ -287,11 +290,11 @@ func (s *Server) hostFacets(w http.ResponseWriter, r *http.Request, module strin
 	}
 	id, _ := strconv.ParseInt(r.URL.Query().Get("library"), 10, 64)
 	lib, err := s.Store.Library(r.Context(), id)
-	if err != nil || lib.Type != "games" || !s.servesKind(module, lib.Type) {
+	if err != nil || !s.servesKind(module, lib.Type) {
 		writeJSON(w, 404, map[string]string{"error": "no such library"})
 		return
 	}
-	f, err := s.Store.GameFacets(r.Context(), lib.ID, "", a)
+	f, err := s.Store.LibraryItemFacets(r.Context(), lib.ID, r.URL.Query().Get("facet.console"), a)
 	if err != nil {
 		writeJSON(w, 500, map[string]string{"error": err.Error()})
 		return
@@ -307,10 +310,16 @@ func (s *Server) hostLibraries(w http.ResponseWriter, r *http.Request, module st
 		writeJSON(w, 500, map[string]string{"error": err.Error()})
 		return
 	}
-	out := []host.Library{}
+	// foreignNfo: whether .nfo files other programs wrote beside the media are to be read (a
+	// module scanning the library reads only this server's own otherwise).
+	type library struct {
+		host.Library
+		ForeignNFO bool `json:"foreignNfo"`
+	}
+	out := []library{}
 	for _, l := range libs {
 		if s.servesKind(module, l.Type) {
-			out = append(out, host.Library{ID: l.ID, Name: l.Name, Kind: l.Type, Console: l.Console, Paths: l.Paths})
+			out = append(out, library{host.Library{ID: l.ID, Name: l.Name, Kind: l.Type, Console: l.Console, Paths: l.Paths}, l.ForeignNFO})
 		}
 	}
 	writeJSON(w, 200, map[string]any{"libraries": out})
@@ -350,7 +359,7 @@ func (s *Server) hostCounts(w http.ResponseWriter, r *http.Request, module strin
 		if l.Type != kind || (want != 0 && l.ID != want) {
 			continue
 		}
-		counts, err := s.Store.GameCounts(r.Context(), l.ID, a)
+		counts, err := s.Store.FacetCounts(r.Context(), l.ID, a)
 		if err != nil {
 			continue
 		}

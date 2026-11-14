@@ -7,6 +7,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -678,3 +679,5 @@ func TestOtherSidecarsAreCleaned(t *testing.T) {
 		t.Errorf("%+v", v)
 	}
 }
+
+func itoa(n int64) string { return strconv.FormatInt(n, 10) }

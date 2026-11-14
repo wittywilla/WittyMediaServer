@@ -534,6 +534,17 @@ var migrations = []string{
 	// 37: the names people gave a disc's titles and chapters are WittyDVD's and WittyBluray's
 	// own (module API 5, each its own database, starting empty).
 	`ALTER TABLE items DROP COLUMN disc_labels;`,
+	// 38: generic parts of an item that a module's scan hooks fill (module API 5). An item's
+	// files in order (a game on several discs: one row a disc; the first is its path), and
+	// the fields a person typed in the item editor, which nothing that describes an item
+	// changes again.
+	`CREATE TABLE IF NOT EXISTS item_files (
+	   item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE, n INTEGER NOT NULL, path TEXT NOT NULL,
+	   PRIMARY KEY(item_id, n)) WITHOUT ROWID;
+	 CREATE INDEX IF NOT EXISTS item_files_path ON item_files(path);
+	 CREATE TABLE IF NOT EXISTS item_edits (
+	   item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE, field TEXT NOT NULL,
+	   PRIMARY KEY(item_id, field)) WITHOUT ROWID;`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

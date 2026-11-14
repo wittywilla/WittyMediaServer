@@ -95,6 +95,9 @@ func (s *Server) routing() *moduleRouting {
 
 // handleModuleRoute answers /api/modules/{id}/{path...}: one of a module's own routes.
 func (s *Server) handleModuleRoute(w http.ResponseWriter, r *http.Request) {
+	if s.serveModuleSecrets(w, r) {
+		return // the server's own, for administrators
+	}
 	mux := s.routing().direct[r.PathValue("id")]
 	if mux == nil {
 		// A module that isn't here, or isn't turned on: 424 says which, so an app can say so and
@@ -365,34 +368,23 @@ func moduleItem(it *library.Item) *service.Item {
 	return out
 }
 
-// moduleItemFull is moduleItem with what only a single item's answer carries: a game's discs, each
-// as one of its files, in order, and the file in its archive someone chose (facet "entry").
+// moduleItemFull is moduleItem with what only a single item's answer carries: all its files, in
+// order (a game's discs), as a scan by its module kept them.
 func (s *Server) moduleItemFull(ctx context.Context, it *library.Item) *service.Item {
 	out := moduleItem(it)
-	if it.Kind != "game" || s.Store == nil {
+	if s.Store == nil {
 		return out
 	}
-	if discs, err := s.Store.GameDiscs(ctx, it.ID); err == nil && len(discs) > 1 {
+	if files, err := s.Store.ItemFiles(ctx, it.ID); err == nil && len(files) > 1 {
 		out.Files = out.Files[:0]
-		for _, d := range discs {
-			f := service.File{Path: d.Path}
-			if st, err := os.Stat(d.Path); err == nil && !st.IsDir() {
+		for _, p := range files {
+			f := service.File{Path: p}
+			if st, err := os.Stat(p); err == nil && !st.IsDir() {
 				f.Size = st.Size()
 			}
 			out.Files = append(out.Files, f)
 		}
 	}
-	set := func(k, v string) {
-		if v == "" {
-			return
-		}
-		if out.Facets == nil {
-			out.Facets = map[string]string{}
-		}
-		out.Facets[k] = v
-	}
-	set("entry", s.Store.GameEntry(ctx, it.ID))
-	set("serial", s.Store.GameSerial(ctx, it.ID)) // what the scan read in the file, or its name
 	return out
 }
 

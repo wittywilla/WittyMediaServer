@@ -76,19 +76,6 @@ func (s *Store) SaveRigGame(ctx context.Context, libraryID int64, path, title, t
 	return it.ID, nil
 }
 
-// EnrichRigGame queues a game for the metadata sources, as a scan does for a game file.
-// The title stays the PC's: it counts as set by hand, so sources leave it alone.
-func (s *Store) EnrichRigGame(ctx context.Context, itemID int64) error {
-	it, err := s.Item(ctx, itemID)
-	if err != nil {
-		return err
-	}
-	if it.Overview != "" || it.Provider != "" {
-		return nil
-	}
-	return s.enqueueGame(ctx, it, []string{"title"}, nil)
-}
-
 // RemoveRigGame takes a game out of a rig's library.
 func (s *Store) RemoveRigGame(ctx context.Context, itemID int64) error {
 	_, err := s.DB.ExecContext(ctx, `DELETE FROM items WHERE id = ? AND console = ?`, itemID, RigConsole)

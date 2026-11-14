@@ -161,7 +161,10 @@ What `web` claims, the web app learns from `GET /api/modules/web` (each bundle's
 | `routes` with `frame: "app"` or `"tv"` | The route's page comes before the app's own, inside the app's frame |
 | `cards` | Cards of that media kind take their art, detail panel and link from the module (`game` today) |
 | `settings` | A section of Settings: one with a built-in section's id takes its place, one with `after` goes after that one, any other under "From modules" |
-| `setup`, `players`, `readers`, `takeover`, `navFold` | Declared and checked now; drawn from the module as each module that needs one moves ([Not yet](#not-yet)) |
+| `takeover` | A library of that kind goes to the module's own view of it (`/library/2` → `/wittyplay/library/2`) |
+| `routes` with `frame: "tv"` | In TV mode only, the route's TV screen is the module's |
+| `setup` | The setup wizard's step of that id is the module's, given the wizard's own step props. New steps of a module's own come next ([Not yet](#not-yet)) |
+| `players`, `readers`, `navFold` | Declared and checked now; drawn from the module as each module that needs one moves ([Not yet](#not-yet)) |
 
 `register(host)` returns a `Registration` (types in WittyModule `kit/web/host`, package `@wittywilla/wms-host`):
 
@@ -175,6 +178,8 @@ export function register(host: ModuleHost): Registration {
   }
 }
 ```
+
+**A screen moved out of the app** keeps importing the app's own parts it used, as `@wms/app/<path>` (the app's `web/src/<path>`): WittyModule's builder turns each into the app's own copy at run time, from `moduleHost.app` (`web/src/moduleApp.ts`, exports listed in WittyModule `kit/web/app-exports.json` by `scripts/export-module-kit.mjs`). A part, or an export of one, is only ever added until the next web host API. WittyPlay 0.5.0 is the first: `scripts/import-server-ui.mjs` in WittyPlay copied its screens.
 
 **What a module is given** (`ModuleHost`): the app's API client (`http`) and its own routes (`moduleApi`), the app's state (`useApp`, `useTvMode`), `toast` and `ask`, the app's UI kit (`ui`) and icons, `ModuleMissing` and `LegalNote`, the SDUI renderer's contexts (`sdui`), TV focus (`input`), and `has(feature)`. A screen that crashes is reported as the module's failure and replaced with what's missing; the app goes on.
 
@@ -209,7 +214,7 @@ Until every module has moved, the server keeps its own copy of each module's fea
 
 These are designed in the plan and come with the module that needs them:
 
-- Setup steps, players, readers, library takeover and menu folding from the web part (WittyPlay's move, then discs and readers).
+- A module's own new setup steps (placed by `after`/`before`, shown later as "Finish setting up"), players, readers and menu folding from the web part.
 - Live sessions counted in metrics and screen time, and doctor checks from modules.
 - Module databases in backups.
 - `/capabilities` features from what modules are in use (today they are the server's fixed list; changing that is agreed with the apps first).

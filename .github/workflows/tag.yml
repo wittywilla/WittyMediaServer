@@ -1,0 +1,163 @@
+# The same in every repository that releases: a copy of WittyModule's kit/templates/tag.yml. Change it there.
+#
+# The only way a version tag is made. The repository's rules refuse a v* tag pushed from anywhere
+# else, and refuse moving or deleting one for everyone; only this workflow's deploy key may create
+# one. Run it from the Actions tab (Release, Run workflow) or with:
+#
+#   gh workflow run tag.yml -R <owner>/<repo> -f version=<x.y.z> -f branch=<branch>
+#
+# It checks that the version files say this version and that every check on the commit passed,
+# then pushes the tag with the deploy key, which starts release.yml as a pushed tag always has.
+# Signing there still waits for the owner's approval in the `release` environment.
+name: Release
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: The version, without the v (for example 0.4.0 or 0.8.0-alpha)
+        required: true
+        type: string
+      branch:
+        description: The branch to release from
+        required: true
+        default: main
+        type: string
+      commit:
+        description: The commit to tag (default the branch's newest); it has to be on the branch
+        required: false
+        type: string
+      folder:
+        description: For a Go module in a folder (such as wittydvdplayer), that folder; the tag is then <folder>/v<version>
+        required: false
+        type: string
+      dry_run:
+        description: Check everything, and make no tag
+        required: false
+        default: false
+        type: boolean
+
+permissions: {}
+
+concurrency:
+  group: release-tag
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      tag: ${{ steps.what.outputs.tag }}
+      sha: ${{ steps.what.outputs.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          ref: ${{ inputs.branch }}
+      - name: The commit, the tag, and the version the files give
+        id: what
+        env:
+          VERSION: ${{ inputs.version }}
+          BRANCH: ${{ inputs.branch }}
+          COMMIT: ${{ inputs.commit }}
+          FOLDER: ${{ inputs.folder }}
+        run: |
+          set -euo pipefail
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || { echo "not a version: $VERSION"; exit 1; }
+          sha=$(git rev-parse HEAD)
+          if [ -n "$COMMIT" ]; then
+            sha=$(git rev-parse --verify "$COMMIT^{commit}")
+            git merge-base --is-ancestor "$sha" HEAD || { echo "$COMMIT isn't on $BRANCH"; exit 1; }
+          fi
+          dir=.; tag=v$VERSION
+          if [ -n "$FOLDER" ]; then
+            [[ "$FOLDER" =~ ^[a-z0-9-]+$ ]] && [ -d "$FOLDER" ] || { echo "no folder $FOLDER"; exit 1; }
+            dir=$FOLDER; tag=$FOLDER/v$VERSION
+          fi
+          json() { sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$1" | head -1; }
+          says() { # <file> <version found>: every file that names the version has to agree
+            echo "$1 says $2"
+            [ "$2" = "$VERSION" ] || { echo "::error::$1 says $2, not $VERSION"; exit 1; }
+          }
+          found=0
+          at() { git show "$sha:$dir/$1" 2>/dev/null; }
+          if at module.json >/dev/null; then says module.json "$(at module.json | json /dev/stdin)"; found=1; fi
+          if at cmd/wittymediaserver/main.go >/dev/null; then
+            says cmd/wittymediaserver/main.go "$(at cmd/wittymediaserver/main.go | sed -n 's/^var version = "\(.*\)"/\1/p')"; found=1
+          fi
+          if at CMakeLists.txt >/dev/null && at CMakeLists.txt | grep -q 'VERSION [0-9]'; then
+            says CMakeLists.txt "$(at CMakeLists.txt | sed -n 's/.*project([^)]*VERSION \([0-9][0-9.]*\).*/\1/p' | head -1)"; found=1
+          fi
+          if at apple/project.yml >/dev/null; then
+            says apple/project.yml "$(at apple/project.yml | sed -n 's/^ *MARKETING_VERSION: *"\{0,1\}\([^"]*\)"\{0,1\} *$/\1/p' | head -1)"; found=1
+          fi
+          if at android/app/build.gradle.kts >/dev/null; then
+            says android/app/build.gradle.kts "$(at android/app/build.gradle.kts | sed -n 's/^ *versionName = "\(.*\)"/\1/p' | head -1)"; found=1
+          fi
+          for p in package.json desktop/package.json; do
+            if at "$p" >/dev/null; then says "$p" "$(at "$p" | json /dev/stdin)"; found=1; fi
+          done
+          [ "$found" = 1 ] || { echo "::error::no file here says what version this is"; exit 1; }
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
+            echo "::error::$tag already exists, and tags never move. A published version is never reused: release the next one."
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "Would tag $sha as $tag"
+      - name: Every check on the commit passed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.what.outputs.sha }}
+        run: |
+          set -euo pipefail
+          # Waits for the checks a push started (up to 45 minutes); none at all is allowed only
+          # after 5 minutes, for a branch no workflow runs on.
+          for i in $(seq 1 90); do
+            runs=$(gh run list -R "$GITHUB_REPOSITORY" --commit "$SHA" --event push --limit 50 \
+              --json name,status,conclusion --jq '[.[] | select(.name != "Release")]')
+            n=$(jq length <<<"$runs")
+            pending=$(jq '[.[] | select(.status != "completed")] | length' <<<"$runs")
+            failed=$(jq -r '.[] | select(.status == "completed" and (.conclusion | IN("success","skipped","neutral") | not)) | "\(.name): \(.conclusion)"' <<<"$runs")
+            [ -z "$failed" ] || { echo "::error::checks on this commit didn't pass:"; echo "$failed"; exit 1; }
+            if [ "$n" -gt 0 ] && [ "$pending" = 0 ]; then jq -r '.[] | "\(.name): \(.conclusion)"' <<<"$runs"; exit 0; fi
+            if [ "$n" = 0 ] && [ "$i" -ge 10 ]; then echo "::warning::no checks ran on this commit"; exit 0; fi
+            sleep 30
+          done
+          echo "::error::the checks on this commit didn't finish in 45 minutes"; exit 1
+
+  tag:
+    needs: check
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    # Holds TAG_DEPLOY_KEY, the one key the repository's rules let create a version tag.
+    environment: tag
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          ref: ${{ needs.check.outputs.sha }}
+      - name: Tag it with the deploy key, which starts the release
+        env:
+          TAG: ${{ needs.check.outputs.tag }}
+          SHA: ${{ needs.check.outputs.sha }}
+          KEY: ${{ secrets.TAG_DEPLOY_KEY }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          set -euo pipefail
+          [ -n "$KEY" ] || { echo "::error::the tag environment has no TAG_DEPLOY_KEY: scripts/set-tag-rules.sh in WittyMediaServer"; exit 1; }
+          umask 077
+          printf '%s\n' "$KEY" > "$RUNNER_TEMP/tag.key"
+          git config user.name "$ACTOR"
+          git config user.email "$ACTOR@users.noreply.github.com"
+          git tag -a "$TAG" -m "${GITHUB_REPOSITORY#*/} ${TAG##*v}" "$SHA"
+          GIT_SSH_COMMAND="ssh -i $RUNNER_TEMP/tag.key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
+            git push "git@github.com:$GITHUB_REPOSITORY.git" "refs/tags/$TAG"
+          rm -f "$RUNNER_TEMP/tag.key"
+          echo "Tagged $SHA as $TAG"

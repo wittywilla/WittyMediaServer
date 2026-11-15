@@ -62,7 +62,7 @@ if [ -n "$check" ]; then
     rules=$("$GH" api "repos/$OWNER/$repo/rulesets" --jq '[.[] | select(.target == "tag") | .name] | join("; ")' 2>/dev/null || echo "?")
     key=$("$GH" api "repos/$OWNER/$repo/keys" --jq "[.[] | select(.title == \"$KEY_TITLE\") | if .read_only then \"read-only\" else \"write\" end] | join(\",\")" 2>/dev/null || echo "?")
     secret=$("$GH" secret list --env tag --repo "$OWNER/$repo" --json name --jq '[.[].name] | join(",")' 2>/dev/null || echo "no tag environment")
-    workflow=$("$GH" api "repos/$OWNER/$repo/contents/.github/workflows/tag.yml" --jq .name 2>/dev/null || echo "not on the default branch")
+    workflow=$("$GH" api "repos/$OWNER/$repo/contents/.github/workflows/tag.yml" --jq .name 2>/dev/null) || workflow="not on the default branch"
     echo "$repo: tag rules: ${rules:-none}; deploy key: ${key:-none}; tag secrets: ${secret:-none}; tag.yml: $workflow"
   done
   exit 0

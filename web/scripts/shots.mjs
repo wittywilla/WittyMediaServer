@@ -285,7 +285,8 @@ const scenes = {
       for (let i = 0; i < d.length; i += 4) { const y = (d[i] + d[i + 1] + d[i + 2]) / 3; sum += y; if (y < lo) lo = y; if (y > hi) hi = y }
       return hi - lo < 40 ? 0 : sum / (d.length / 4)
     })()`)
-    const FILMS = /Sintel|Big Buck|Tears of Steel|Sita Sings|Spring|Caminandes|Cosmos|Agent 327|Hero|Coffee Run|Glass Half/i
+    // Colourful animation near the top of the guide: the cartoon channels' long ones first.
+    const FILMS = /Popeye|Gulliver|Princess Iron Fan|Sprite Fright|Elephants Dream|Sintel|Big Buck|Tears of Steel|Sita Sings|Spring|Cosmos/i
     const toFilm = async () => {
       for (let i = 0; i < 15; i++) {
         const now = await page.eval(`document.querySelector('.ctv-hero-title')?.getAttribute('aria-label') || document.querySelector('.ctv-hero-title')?.textContent || ''`)

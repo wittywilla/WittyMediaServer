@@ -346,6 +346,10 @@ input[type=range] { accent-color: var(--accent); }
   .app:has(.home.editing) .topbar { margin-bottom: 0; background: var(--bg); }
   /* The legal notice sits right under the bar, so the bar can't run over the picture and cover it. */
   .app:has(.legal-ack-bar) .topbar { margin-bottom: 0; background: var(--bg); }
+  /* Only the picture runs up under the bar. Anything before it (the page's title, a "Finish setting up"
+     notice) starts below the bar, as it does on a page with no picture at all. */
+  .app:has(.hero, .detail-hero) .content > .sdui:first-child > :first-child:not(.hero, .detail-hero, .sr-only),
+  .app:has(.hero, .detail-hero) .content > .sdui:first-child > .sr-only:first-child + :not(.hero, .detail-hero) { margin-top: var(--topbar-h); }
   @keyframes bar-solid { from { opacity: 0; } to { opacity: 1; } }
 }
 

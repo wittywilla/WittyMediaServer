@@ -104,6 +104,9 @@
   .app .topbar, .app:has(.hero, .detail-hero) .topbar { background: transparent; }
   .app:has(.hero, .detail-hero) .topbar { margin-bottom: calc(-1 * var(--topbar-h)); }
   .app:has(.home.editing) .topbar, .app:has(.legal-ack-bar) .topbar { margin-bottom: 0; }
+  /* Only the picture runs up under the bar: a title or notice before it starts below the bar. */
+  .app:has(.hero, .detail-hero) .content > .sdui:first-child > :first-child:not(.hero, .detail-hero, .sr-only),
+  .app:has(.hero, .detail-hero) .content > .sdui:first-child > .sr-only:first-child + :not(.hero, .detail-hero) { margin-top: var(--topbar-h); }
   .app .topbar::before, .app:has(.hero, .detail-hero) .topbar::before { content: ''; position: absolute; inset: 0; z-index: -1; background: rgb(var(--bg-rgb) / .85); box-shadow: 0 1px 0 var(--border); opacity: 0; animation: none; transition: opacity var(--dur-2) var(--ease-standard); }
   .app .topbar.under::before, .app:has(.hero, .detail-hero) .topbar.under::before { opacity: 1; -webkit-backdrop-filter: blur(20px) saturate(1.4); backdrop-filter: blur(20px) saturate(1.4); } /* design-ok: phones only, a 52-high bar, and only once scrolled under */
   .app .topbar::after { display: none; }

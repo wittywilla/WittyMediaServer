@@ -5,13 +5,14 @@
 // JSON for those who would rather type. Every list of fields comes from the catalogue.
 
 import { useEffect, useState, type ReactNode } from 'react'
+import { t, tk, tn, tx } from '../../../i18n'
 import { IconClose, IconDown, IconPlus, IconUp } from '../../../icons'
 import { sduiIcon } from '../../../sdui/render/icons'
 import { Button, Chip, Chips, Field as Labelled, IconButton, Input, Notice, Select, Switch, Textarea } from '../../../ui'
 import type { Checked } from './api'
 import { ConditionEditor, IconPicker, IssueNotes, PropField, type FieldCtx, type IssueView } from './fields'
 import {
-  componentFields, componentSpec, conditionText, exampleSection, fieldFor, formFactorLabel, libraryKindLabel, pageKindSpec, pretty, sectionTitle,
+  componentFields, componentSpec, conditionText, exampleSection, isEmptyCondition, fieldFor, formFactorLabel, libraryKindLabel, pageKindSpec, pretty, sectionTitle,
   setValue, slug, sourceFields, sourceGroups, sourceRule, sourceSpec, uniqueId, validId, variablesFor, words,
   type Catalogue, type Page, type Section, type Variant,
 } from './editorModel.ts'
@@ -32,13 +33,20 @@ function Group({ title, desc, children, id }: { title: string; desc?: ReactNode;
 }
 
 // An ID is typed freely and taken on when it is a good one, so the tree isn't renamed letter by letter.
-export function IdBox({ value, taken, onCommit, what, hint }: { value: string; taken: string[]; onCommit: (id: string) => void; what: string; hint?: string }) {
+const ID_TAKEN = { entry: tk('Another entry already has this ID.'), section: tk('Another section already has this ID.'), variant: tk('Another variant already has this ID.') }
+const ID_HINT = {
+  entry: tk('What the entry is known by: profiles’ own arrangements and other sections refer to it. Lower-case letters, digits, - and _.'),
+  section: tk('What the section is known by: profiles’ own arrangements and other sections refer to it. Lower-case letters, digits, - and _.'),
+  variant: tk('What the variant is known by: profiles’ own arrangements and other sections refer to it. Lower-case letters, digits, - and _.'),
+}
+
+export function IdBox({ value, taken, onCommit, what, hint }: { value: string; taken: string[]; onCommit: (id: string) => void; what: 'entry' | 'section' | 'variant'; hint?: string }) {
   const [text, setText] = useState(value)
   useEffect(() => { setText(value) }, [value])
-  const problem = text === value ? '' : !validId(text) ? 'Lower-case letters, digits, - and _, starting with a letter.' : taken.includes(text) ? `Another ${what} already has this ID.` : ''
+  const problem = text === value ? '' : !validId(text) ? t('Lower-case letters, digits, - and _, starting with a letter.') : taken.includes(text) ? t(ID_TAKEN[what]) : ''
   const commit = () => { if (text !== value && !problem) onCommit(text); else if (problem) setText(value) }
   return (
-    <Labelled label="ID" hint={hint || `What the ${what} is known by: profiles’ own arrangements and other sections refer to it. Lower-case letters, digits, - and _.`} error={problem || undefined}>
+    <Labelled label={t('ID')} hint={hint || t(ID_HINT[what])} error={problem || undefined}>
       <Input value={text} spellCheck={false} autoCapitalize="none" onChange={(e) => setText(e.target.value)} onBlur={commit} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commit() } }} />
     </Labelled>
   )
@@ -52,25 +60,25 @@ function MapEditor({ cat, value, onChange, issues }: { cat: Catalogue; value: un
   const [line, setLine] = useState('')
   const [detail, setDetail] = useState('')
   const pick = (v: string, set: (s: string) => void, choices: string[] | undefined, label: string) => (choices?.length
-    ? <Select inputSize="sm" aria-label={label} value={v} onChange={(e) => set(e.target.value)}><option value="">{label}…</option>{choices.map((c) => <option key={c} value={c}>{words(c)}</option>)}</Select>
+    ? <Select inputSize="sm" aria-label={label} value={v} onChange={(e) => set(e.target.value)}><option value="">{t('{label}…', { label })}</option>{choices.map((c) => <option key={c} value={c}>{tx(words(c))}</option>)}</Select>
     : <Input inputSize="sm" aria-label={label} placeholder={label} value={v} spellCheck={false} onChange={(e) => set(e.target.value.trim())} />)
   const add = () => { if (line && detail) { onChange({ ...map, [line]: detail }); setLine(''); setDetail('') } }
   return (
     <div className="pe-map">
-      <div className="ui-field-label">Other details on the cards</div>
-      <div className="hint">A card’s line (its title, its subtitle…) can show another detail of each item, such as its studio. The check below names the lines and details there are if one isn’t right.</div>
+      <div className="ui-field-label">{t('Other details on the cards')}</div>
+      <div className="hint">{t('A card’s line (its title, its subtitle…) can show another detail of each item, such as its studio. The check below names the lines and details there are if one isn’t right.')}</div>
       {Object.entries(map).map(([k, v]) => (
         <div key={k} className="pe-map-row">
-          <span className="pe-map-key">{words(k)}</span><span aria-hidden="true">shows</span>
-          {pick(String(v ?? ''), (s) => onChange({ ...map, [k]: s }), cat.mapFields, `What ${k} shows`)}
-          <IconButton size="sm" label={`Remove what ${k} shows`} onClick={() => { const next = { ...map }; delete next[k]; onChange(Object.keys(next).length ? next : undefined) }}><IconClose /></IconButton>
+          <span className="pe-map-key">{tx(words(k))}</span><span aria-hidden="true">{t('shows')}</span>
+          {pick(String(v ?? ''), (s) => onChange({ ...map, [k]: s }), cat.mapFields, t('What {line} shows', { line: k }))}
+          <IconButton size="sm" label={t('Remove what {line} shows', { line: k })} onClick={() => { const next = { ...map }; delete next[k]; onChange(Object.keys(next).length ? next : undefined) }}><IconClose /></IconButton>
         </div>
       ))}
       <div className="pe-map-row">
-        {pick(line, setLine, cat.mapProps?.filter((p) => !(p in map)), 'The card’s line')}
-        <span aria-hidden="true">shows</span>
-        {pick(detail, setDetail, cat.mapFields, 'The item’s detail')}
-        <Button size="sm" variant="ghost" disabled={!line || !detail} onClick={add}>Add</Button>
+        {pick(line, setLine, cat.mapProps?.filter((p) => !(p in map)), t('The card’s line'))}
+        <span aria-hidden="true">{t('shows')}</span>
+        {pick(detail, setDetail, cat.mapFields, t('The item’s detail'))}
+        <Button size="sm" variant="ghost" disabled={!line || !detail} onClick={add}>{t('Add')}</Button>
       </div>
       <IssueNotes issues={issues} />
     </div>
@@ -82,13 +90,13 @@ export function SourceEditor({ section, pageKind, onChange, issues, ctx }: { sec
   const rule = sourceRule(cat, section.component)
   const src = section.source
   const type = typeof src?.type === 'string' ? src.type : ''
-  const label = componentSpec(cat, section.component)?.label || section.component
+  const label = tx(componentSpec(cat, section.component)?.label) || section.component
   if (rule === 'none') {
     if (!src || !Object.keys(src).length) return null
     return (
-      <Group title="Where its items come from">
+      <Group title={t('Where its items come from')}>
         <IssueNotes issues={issues.map((l) => l.view)} />
-        <Button size="sm" onClick={() => onChange(undefined)}>Remove the source: {label} doesn’t take one</Button>
+        <Button size="sm" onClick={() => onChange(undefined)}>{t('Remove the source: {name} doesn’t take one', { name: label })}</Button>
       </Group>
     )
   }
@@ -108,18 +116,18 @@ export function SourceEditor({ section, pageKind, onChange, issues, ctx }: { sec
   const shown = ['source/type', 'source/map', ...fields.map((f) => 'source/' + f.name), ...extra.map((k) => 'source/' + k)]
   const rest = issues.filter((l) => l.field === 'source' || (l.field.startsWith('source/') && !shown.some((f) => l.field === f || l.field.startsWith(f + '/')))).map((l) => l.view)
   return (
-    <Group title="Where its items come from" desc={rule === 'required' ? `${label} is filled from a source: choose one.` : `${label} can be filled from a source, or written by hand.`}>
+    <Group title={t('Where its items come from')} desc={rule === 'required' ? t('{name} is filled from a source: choose one.', { name: label }) : t('{name} can be filled from a source, or written by hand.', { name: label })}>
       <IssueNotes issues={rest} />
       <div className="pe-field">
-        <Labelled label="Source" required={rule === 'required'} hint={spec ? <>{spec.description}{spec.yields?.length ? <span className="pe-facts"> Gives: {spec.yields.map((y) => words(y).toLowerCase()).join(', ')}.</span> : null}</> : undefined} className={at(issues, 'source/type').length ? 'invalid' : undefined}>
+        <Labelled label={t('Source')} required={rule === 'required'} hint={spec ? <>{tx(spec.description)}{spec.yields?.length ? <span className="pe-facts"> {t('Gives: {things}.', { things: spec.yields.map((y) => tx(words(y)).toLowerCase()).join(', ') })}</span> : null}</> : undefined} className={at(issues, 'source/type').length ? 'invalid' : undefined}>
           <Select value={type} onChange={(e) => setType(e.target.value)}>
-            <option value="">{rule === 'required' ? 'Choose a source…' : 'No source'}</option>
+            <option value="">{rule === 'required' ? t('Choose a source…') : t('No source')}</option>
             {groups.map((g) => (
-              <optgroup key={g.category} label={g.label}>
-                {g.items.map((e) => <option key={e.type} value={e.type} disabled={!e.fits && e.type !== type}>{e.label}{e.fits ? '' : ` (${e.why.toLowerCase()})`}</option>)}
+              <optgroup key={g.category} label={tx(g.label)}>
+                {g.items.map((e) => <option key={e.type} value={e.type} disabled={!e.fits && e.type !== type}>{e.fits ? tx(e.label) : t('{name} ({why})', { name: tx(e.label), why: e.why.toLowerCase() })}</option>)}
               </optgroup>
             ))}
-            {type && !known && <option value={type}>{type} (not a source for this)</option>}
+            {type && !known && <option value={type}>{t('{type} (not a source for this)', { type })}</option>}
           </Select>
         </Labelled>
         <IssueNotes issues={at(issues, 'source/type')} />
@@ -127,8 +135,8 @@ export function SourceEditor({ section, pageKind, onChange, issues, ctx }: { sec
       {fields.map((f) => <PropField key={type + f.name} field={f} value={src?.[f.name]} ctx={ctx} issues={at(issues, 'source/' + f.name)} onChange={(v) => onChange(setValue(src, f.name, v))} />)}
       {extra.map((k) => (
         <div key={k} className="pe-cond-rule">
-          <PropField field={fieldFor(cat, { name: k, type: typeof src?.[k] === 'object' ? 'object' : 'string', label: `${k} (not something this source takes)` })} value={src?.[k]} ctx={ctx} issues={at(issues, 'source/' + k)} onChange={(v) => onChange(setValue(src, k, v))} />
-          <IconButton size="sm" label={`Remove ${k}`} onClick={() => onChange(setValue(src, k, undefined))}><IconClose /></IconButton>
+          <PropField field={fieldFor(cat, { name: k, type: typeof src?.[k] === 'object' ? 'object' : 'string', label: t('{name} (not something this source takes)', { name: k }) })} value={src?.[k]} ctx={ctx} issues={at(issues, 'source/' + k)} onChange={(v) => onChange(setValue(src, k, v))} />
+          <IconButton size="sm" label={t('Remove {name}', { name: k })} onClick={() => onChange(setValue(src, k, undefined))}><IconClose /></IconButton>
         </div>
       ))}
       {type && <MapEditor cat={cat} value={src?.map} issues={at(issues, 'source/map')} onChange={(v) => onChange(setValue(src, 'map', v))} />}
@@ -167,23 +175,23 @@ export function SectionForm({ section, page, taken, issues, ctx, onChange, onRen
   const kinds = cat.libraryKinds || []
   const shown = ['id', 'when', 'scope', 'repeat/over', 'repeat/kinds', 'repeat/limit', 'source', ...fields.map((f) => 'props/' + f.name), ...extraProps.map((k) => 'props/' + k)]
   const example = exampleSection(cat, section.component, taken)
-  const onlyOn = spec?.formFactors?.length ? spec.formFactors.map((f) => formFactorLabel(cat, f).toLowerCase()).join(', ') : ''
+  const onlyOn = spec?.formFactors?.length ? spec.formFactors.map((f) => tx(formFactorLabel(cat, f)).toLowerCase()).join(', ') : ''
 
   return (
     <div className="pe-form">
       <header className="pe-form-head">
         <span className="pe-form-icon" aria-hidden="true">{sduiIcon(spec?.icon)}</span>
-        <div><h2 tabIndex={-1}>{sectionTitle(cat, section)}</h2><p>{spec ? <><strong>{spec.label}.</strong> {spec.description}{onlyOn && ` Only shown on: ${onlyOn}.`}</> : `“${section.component}” isn’t a component this server knows.`}</p></div>
+        <div><h2 tabIndex={-1}>{tx(sectionTitle(cat, section))}</h2><p>{spec ? <><strong>{t('{name}.', { name: tx(spec.label) })}</strong> {tx(spec.description)}{onlyOn && <> {t('Only shown on: {devices}.', { devices: onlyOn })}</>}</> : t('“{component}” isn’t a component this server knows.', { component: section.component })}</p></div>
       </header>
       <IssueNotes issues={others(issues, shown)} />
 
       {(fields.length > 0 || extraProps.length > 0) && (
-        <Group title="How it looks">
+        <Group title={t('How it looks')}>
           {fields.map((f) => <PropField key={section.component + f.name} field={f} value={section.props?.[f.name]} ctx={ctx} issues={at(issues, 'props/' + f.name)} onChange={(v) => setProp(f.name, v)} />)}
           {extraProps.map((k) => (
             <div key={k} className="pe-cond-rule">
-              <PropField field={fieldFor(cat, { name: k, type: typeof section.props?.[k] === 'object' ? 'object' : 'string', label: `${k} (not a property of ${spec?.label || 'this'})` })} value={section.props?.[k]} ctx={ctx} issues={at(issues, 'props/' + k)} onChange={(v) => setProp(k, v)} />
-              <IconButton size="sm" label={`Remove ${k}`} onClick={() => setProp(k, undefined)}><IconClose /></IconButton>
+              <PropField field={fieldFor(cat, { name: k, type: typeof section.props?.[k] === 'object' ? 'object' : 'string', label: spec ? t('{name} (not a property of {component})', { name: k, component: tx(spec.label) }) : t('{name} (not a property of this)', { name: k }) })} value={section.props?.[k]} ctx={ctx} issues={at(issues, 'props/' + k)} onChange={(v) => setProp(k, v)} />
+              <IconButton size="sm" label={t('Remove {name}', { name: k })} onClick={() => setProp(k, undefined)}><IconClose /></IconButton>
             </div>
           ))}
         </Group>
@@ -191,18 +199,18 @@ export function SectionForm({ section, page, taken, issues, ctx, onChange, onRen
 
       <SourceEditor section={section} pageKind={page.kind} ctx={ctx} issues={issues.filter((l) => l.field === 'source' || l.field.startsWith('source/'))} onChange={setSource} />
 
-      <Group title="When it is shown" desc="Leave this alone to show the section to everyone, everywhere.">
-        <ConditionEditor value={section.when} ctx={ctx} name={sectionTitle(cat, section)} issues={at(issues, 'when')} onChange={(c) => onChange({ ...section, when: c }, `${section.id}/when`)} />
+      <Group title={t('When it is shown')} desc={t('Leave this alone to show the section to everyone, everywhere.')}>
+        <ConditionEditor value={section.when} ctx={ctx} name={tx(sectionTitle(cat, section))} issues={at(issues, 'when')} onChange={(c) => onChange({ ...section, when: c }, `${section.id}/when`)} />
       </Group>
 
       {(cat.repeats || []).length > 0 && (
-        <Group title="Repeat" desc="One copy of the section for each library, saved view or collection. Use $each in the source for the one each copy is about, and {each} in the title for its name.">
+        <Group title={t('Repeat')} desc={t('One copy of the section for each library, saved view or collection. Use $each in the source for the one each copy is about, and {each} in the title for its name.', { each: '{each}' })}>
           <div className="pe-field">
-            <Labelled label="Make a copy for" className={at(issues, 'repeat/over').length ? 'invalid' : undefined}>
+            <Labelled label={t('Make a copy for')} className={at(issues, 'repeat/over').length ? 'invalid' : undefined}>
               <Select value={repeat?.over || ''} onChange={(e) => setRepeat(e.target.value ? { ...(repeat || {}), over: e.target.value } : undefined)}>
-                <option value="">Nothing: show it once</option>
-                {(cat.repeats || []).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                {repeat?.over && !(cat.repeats || []).some((o) => o.value === repeat.over) && <option value={repeat.over}>{repeat.over} (not a choice)</option>}
+                <option value="">{t('Nothing: show it once')}</option>
+                {(cat.repeats || []).map((o) => <option key={o.value} value={o.value}>{tx(o.label)}</option>)}
+                {repeat?.over && !(cat.repeats || []).some((o) => o.value === repeat.over) && <option value={repeat.over}>{t('{value} (not a choice)', { value: repeat.over })}</option>}
               </Select>
             </Labelled>
             <IssueNotes issues={at(issues, 'repeat/over')} />
@@ -211,44 +219,44 @@ export function SectionForm({ section, page, taken, issues, ctx, onChange, onRen
             <>
               {(repeat.over === 'libraries' || !!repeat.kinds?.length) && kinds.length > 0 && (
                 <div className="pe-field">
-                  <div className="ui-field-label" id={`pe-kinds-${section.id}`}>Only libraries of these kinds</div>
-                  <Chips label="Only libraries of these kinds" className="pe-anyof">
+                  <div className="ui-field-label" id={`pe-kinds-${section.id}`}>{t('Only libraries of these kinds')}</div>
+                  <Chips label={t('Only libraries of these kinds')} className="pe-anyof">
                     {kinds.map((k) => {
                       const on = !!repeat.kinds?.includes(k)
-                      return <Chip key={k} selected={on} onClick={() => { const next = on ? (repeat.kinds || []).filter((x) => x !== k) : [...(repeat.kinds || []), k]; setRepeat({ ...repeat, kinds: next.length ? next : undefined }) }}>{libraryKindLabel(cat, k)}</Chip>
+                      return <Chip key={k} selected={on} onClick={() => { const next = on ? (repeat.kinds || []).filter((x) => x !== k) : [...(repeat.kinds || []), k]; setRepeat({ ...repeat, kinds: next.length ? next : undefined }) }}>{tx(libraryKindLabel(cat, k))}</Chip>
                     })}
-                    {(repeat.kinds || []).filter((k) => !kinds.includes(k)).map((k) => <Chip key={k} onRemove={() => setRepeat({ ...repeat, kinds: (repeat.kinds || []).filter((x) => x !== k) })} removeLabel={`Remove ${k}`}>{k} (not a kind)</Chip>)}
+                    {(repeat.kinds || []).filter((k) => !kinds.includes(k)).map((k) => <Chip key={k} onRemove={() => setRepeat({ ...repeat, kinds: (repeat.kinds || []).filter((x) => x !== k) })} removeLabel={t('Remove {name}', { name: k })}>{t('{value} (not a kind)', { value: k })}</Chip>)}
                   </Chips>
-                  <div className="hint">None chosen: every kind.</div>
+                  <div className="hint">{t('None chosen: every kind.')}</div>
                   <IssueNotes issues={at(issues, 'repeat/kinds')} />
                 </div>
               )}
-              <PropField field={fieldFor(cat, { name: 'limit', type: 'int', label: 'Most copies', help: 'Leave empty to let the device decide.', min: 0 })} value={repeat.limit || undefined} ctx={ctx} issues={at(issues, 'repeat/limit')}
+              <PropField field={fieldFor(cat, { name: 'limit', type: 'int', label: tk('Most copies'), help: tk('Leave empty to let the device decide.'), min: 0 })} value={repeat.limit || undefined} ctx={ctx} issues={at(issues, 'repeat/limit')}
                 onChange={(v) => setRepeat({ ...repeat, limit: typeof v === 'number' && v > 0 ? v : undefined })} />
             </>
           )}
         </Group>
       )}
 
-      <Group title="More">
-        <IdBox value={section.id} taken={taken.filter((t) => t !== section.id)} what="section" onCommit={onRename} />
+      <Group title={t('More')}>
+        <IdBox value={section.id} taken={taken.filter((x) => x !== section.id)} what="section" onCommit={onRename} />
         <IssueNotes issues={at(issues, 'id')} />
-        <PropField field={fieldFor(cat, { name: 'scope', type: 'scope', label: 'Colours of', help: 'The section takes the colours set for this module or name in Appearance. Leave empty for the page’s own.' })} value={section.scope} ctx={ctx} issues={at(issues, 'scope')}
+        <PropField field={fieldFor(cat, { name: 'scope', type: 'scope', label: tk('Colours of'), help: tk('The section takes the colours set for this module or name in Appearance. Leave empty for the page’s own.') })} value={section.scope} ctx={ctx} issues={at(issues, 'scope')}
           onChange={(v) => { const next = { ...section }; if (typeof v === 'string' && v) next.scope = v; else delete next.scope; onChange(next, `${section.id}/scope`) }} />
-        <PropField field={fieldFor(cat, { name: 'locked', type: 'bool', label: 'Keep it where it is', help: 'Profiles can’t hide or move this section when they arrange the page for themselves.' })} value={!!section.locked} ctx={ctx}
+        <PropField field={fieldFor(cat, { name: 'locked', type: 'bool', label: tk('Keep it where it is'), help: tk('Profiles can’t hide or move this section when they arrange the page for themselves.') })} value={!!section.locked} ctx={ctx}
           onChange={(v) => { const next = { ...section }; if (v === true) next.locked = true; else delete next.locked; onChange(next) }} />
       </Group>
 
       {spec && (spec.renders || spec.states || spec.a11y || example) && (
         <details className="pe-about">
-          <summary>How {spec.label} is drawn, and an example</summary>
-          {spec.renders && <dl>{Object.entries(spec.renders).map(([ff, text]) => <div key={ff}><dt>{formFactorLabel(cat, ff)}</dt><dd>{text}</dd></div>)}</dl>}
-          {spec.states && <dl>{Object.entries(spec.states).map(([k, text]) => <div key={k}><dt>{words(k)}</dt><dd>{text}</dd></div>)}</dl>}
-          {spec.a11y && <p><strong>Read aloud as:</strong> {spec.a11y}</p>}
+          <summary>{t('How {name} is drawn, and an example', { name: tx(spec.label) })}</summary>
+          {spec.renders && <dl>{Object.entries(spec.renders).map(([ff, text]) => <div key={ff}><dt>{tx(formFactorLabel(cat, ff))}</dt><dd>{tx(text)}</dd></div>)}</dl>}
+          {spec.states && <dl>{Object.entries(spec.states).map(([k, text]) => <div key={k}><dt>{tx(words(k))}</dt><dd>{tx(text)}</dd></div>)}</dl>}
+          {spec.a11y && <p><strong>{t('Read aloud as:')}</strong> {tx(spec.a11y)}</p>}
           {example && (
             <>
-              <pre className="pe-code" tabIndex={0} aria-label={`An example of ${spec.label}`}>{pretty(spec.example)}</pre>
-              <Button size="sm" variant="ghost" onClick={() => onChange({ ...example, id: section.id })}>Make this section the example</Button>
+              <pre className="pe-code" tabIndex={0} aria-label={t('An example of {name}', { name: tx(spec.label) })}>{pretty(spec.example)}</pre>
+              <Button size="sm" variant="ghost" onClick={() => onChange({ ...example, id: section.id })}>{t('Make this section the example')}</Button>
             </>
           )}
         </details>
@@ -284,43 +292,43 @@ export function PageForm({ page, source, issues, ctx, onChange }: { page: Page; 
   return (
     <div className="pe-form">
       <IssueNotes issues={others(issues, shown)} />
-      <Group title="About the page">
-        <PropField field={fieldFor(cat, { name: 'title', type: 'string', label: 'Title', required: true, maxLength: 120, help: `Shown at the top of the page and in the menu. These fill themselves in: ${placeholders}` })} value={page.title} ctx={ctx} issues={at(issues, 'title')} onChange={(v) => onChange({ ...page, title: typeof v === 'string' ? v : '' }, 'page/title')} />
+      <Group title={t('About the page')}>
+        <PropField field={fieldFor(cat, { name: 'title', type: 'string', label: tk('Title'), required: true, maxLength: 120, help: t('Shown at the top of the page and in the menu. These fill themselves in: {names}', { names: placeholders }) })} value={page.title} ctx={ctx} issues={at(issues, 'title')} onChange={(v) => onChange({ ...page, title: typeof v === 'string' ? v : '' }, 'page/title')} />
         <div className="pe-field">
-          <Labelled label="Icon" hint="For a menu entry made from the page."><IconPicker cat={cat} value={page.icon} onChange={(v) => set('icon', v)} /></Labelled>
+          <Labelled label={t('Icon')} hint={t('For a menu entry made from the page.')}><IconPicker cat={cat} value={page.icon} onChange={(v) => set('icon', v)} /></Labelled>
           <IssueNotes issues={at(issues, 'icon')} />
         </div>
-        <PropField field={fieldFor(cat, { name: 'description', type: 'text', label: 'Note to yourself', maxLength: 500, help: 'For whoever edits the page. Nobody else sees it.' })} value={page.description} ctx={{ ...ctx, cat: { ...cat, placeholders: [] } }} issues={at(issues, 'description')} onChange={(v) => set('description', v)} />
+        <PropField field={fieldFor(cat, { name: 'description', type: 'text', label: tk('Note to yourself'), maxLength: 500, help: tk('For whoever edits the page. Nobody else sees it.') })} value={page.description} ctx={{ ...ctx, cat: { ...cat, placeholders: [] } }} issues={at(issues, 'description')} onChange={(v) => set('description', v)} />
       </Group>
 
-      <Group title="What it is for" desc={kind ? `${kind.label}. ${kind.description} It opens at ${kind.route.replace('{id}', page.id)}.` : undefined}>
+      <Group title={t('What it is for')} desc={kind ? t('{kind}. {description} It opens at {route}.', { kind: tx(kind.label), description: tx(kind.description), route: kind.route.replace('{id}', page.id) }) : undefined}>
         <div className="pe-field">
-          <Labelled label="Kind of page" hint={source === 'custom' ? 'The kind decides when the app opens the page and what its sources may refer to.' : 'A page that takes the place of a built-in one keeps that page’s kind.'} className={at(issues, 'kind').length ? 'invalid' : undefined}>
+          <Labelled label={t('Kind of page')} hint={source === 'custom' ? t('The kind decides when the app opens the page and what its sources may refer to.') : t('A page that takes the place of a built-in one keeps that page’s kind.')} className={at(issues, 'kind').length ? 'invalid' : undefined}>
             <Select value={page.kind} disabled={source !== 'custom'} onChange={(e) => onChange({ ...page, kind: e.target.value })}>
-              {cat.pageKinds.map((k) => <option key={k.kind} value={k.kind}>{k.label}</option>)}
-              {!kind && <option value={page.kind}>{page.kind || 'Not chosen'} (not a kind)</option>}
+              {cat.pageKinds.map((k) => <option key={k.kind} value={k.kind}>{tx(k.label)}</option>)}
+              {!kind && <option value={page.kind}>{t('{value} (not a kind)', { value: page.kind || t('Not chosen') })}</option>}
             </Select>
           </Labelled>
           <IssueNotes issues={at(issues, 'kind')} />
         </div>
         {(matchFields.includes('library') || !!page.match?.library) && (
-          <PropField field={fieldFor(cat, { name: 'library', type: 'library', label: 'Only for the library', help: 'Leave on “Every library” for all of them. The most particular page wins.' })} value={page.match?.library} ctx={ctx} issues={at(issues, 'match/library')} onChange={(v) => setMatch('library', v)} />
+          <PropField field={fieldFor(cat, { name: 'library', type: 'library', label: tk('Only for the library'), help: tk('Leave on “Every library” for all of them. The most particular page wins.') })} value={page.match?.library} ctx={ctx} issues={at(issues, 'match/library')} onChange={(v) => setMatch('library', v)} />
         )}
         {(matchFields.includes('libraryKind') || !!page.match?.libraryKind) && (
-          <PropField field={fieldFor(cat, { name: 'libraryKind', type: 'enum', label: 'Only for libraries of the kind', options: (cat.libraryKinds || []).map((k) => ({ value: k, label: libraryKindLabel(cat, k) })) })} value={page.match?.libraryKind} ctx={ctx} issues={at(issues, 'match/libraryKind')} onChange={(v) => setMatch('libraryKind', v)} />
+          <PropField field={fieldFor(cat, { name: 'libraryKind', type: 'enum', label: tk('Only for libraries of the kind'), options: (cat.libraryKinds || []).map((k) => ({ value: k, label: libraryKindLabel(cat, k) })) })} value={page.match?.libraryKind} ctx={ctx} issues={at(issues, 'match/libraryKind')} onChange={(v) => setMatch('libraryKind', v)} />
         )}
         {(matchFields.includes('mediaKind') || !!page.match?.mediaKind) && (
-          <PropField field={fieldFor(cat, { name: 'mediaKind', type: 'enum', label: 'Only for titles of the kind', options: (cat.mediaKinds || []).map((k) => ({ value: k, label: words(k) })) })} value={page.match?.mediaKind} ctx={ctx} issues={at(issues, 'match/mediaKind')} onChange={(v) => setMatch('mediaKind', v)} />
+          <PropField field={fieldFor(cat, { name: 'mediaKind', type: 'enum', label: tk('Only for titles of the kind'), options: (cat.mediaKinds || []).map((k) => ({ value: k, label: words(k) })) })} value={page.match?.mediaKind} ctx={ctx} issues={at(issues, 'match/mediaKind')} onChange={(v) => setMatch('mediaKind', v)} />
         )}
       </Group>
 
       {kinds.length > 0 && (
-        <Group title="What profiles may change for themselves" desc="Each profile can arrange a page its own way, as far as you allow here. A section you lock stays put whatever they choose.">
+        <Group title={t('What profiles may change for themselves')} desc={t('Each profile can arrange a page its own way, as far as you allow here. A section you lock stays put whatever they choose.')}>
           {kinds.map((k) => {
             const on = allowed.includes(k.value)
             return (
               <div key={k.value} className="pe-bool-row">
-                <span className="ui-field-label" id={`pe-allow-${k.value}`}>{k.label}</span>
+                <span className="ui-field-label" id={`pe-allow-${k.value}`}>{tx(k.label)}</span>
                 <Switch checked={on} labelledBy={`pe-allow-${k.value}`} onChange={(v) => setAllowed(v ? [...allowed, k.value] : allowed.filter((x) => x !== k.value))} />
               </div>
             )
@@ -329,9 +337,9 @@ export function PageForm({ page, source, issues, ctx, onChange }: { page: Page; 
         </Group>
       )}
 
-      <Group title="More">
-        <PropField field={fieldFor(cat, { name: 'scope', type: 'scope', label: 'Colours of', help: 'The whole page takes the colours set for this module or name in Appearance.' })} value={page.scope} ctx={ctx} issues={at(issues, 'scope')} onChange={(v) => set('scope', v)} />
-        <PropField field={fieldFor(cat, { name: 'ttlSeconds', type: 'int', label: 'Ask again after', help: 'How many seconds an app may show the page before asking for it again. Leave empty for the usual.', min: 0, max: 86400 })} value={page.ttlSeconds || undefined} ctx={ctx} issues={at(issues, 'ttlSeconds')} onChange={(v) => set('ttlSeconds', typeof v === 'number' && v > 0 ? v : undefined)} />
+      <Group title={t('More')}>
+        <PropField field={fieldFor(cat, { name: 'scope', type: 'scope', label: tk('Colours of'), help: tk('The whole page takes the colours set for this module or name in Appearance.') })} value={page.scope} ctx={ctx} issues={at(issues, 'scope')} onChange={(v) => set('scope', v)} />
+        <PropField field={fieldFor(cat, { name: 'ttlSeconds', type: 'int', label: tk('Ask again after'), help: tk('How many seconds an app may show the page before asking for it again. Leave empty for the usual.'), min: 0, max: 86400 })} value={page.ttlSeconds || undefined} ctx={ctx} issues={at(issues, 'ttlSeconds')} onChange={(v) => set('ttlSeconds', typeof v === 'number' && v > 0 ? v : undefined)} />
       </Group>
     </div>
   )
@@ -357,24 +365,24 @@ export function VariantsForm({ page, ctx, issuesOf, onChange, onEdit, current, m
   }
   const move = (i: number, to: number) => { const next = [...variants]; const [v] = next.splice(i, 1); next.splice(to, 0, v); setAll(next); if (current === i) onEdit(to) }
   return (
-    <Group title="Variants" id="pe-variants" desc="Another set of sections for the same page, used instead of the page’s own when its condition holds: a simpler Home for Kids profiles, a different one on a television. The first variant whose condition holds is the one shown.">
+    <Group title={t('Variants')} id="pe-variants" desc={t('Another set of sections for the same page, used instead of the page’s own when its condition holds: a simpler Home for Kids profiles, a different one on a television. The first variant whose condition holds is the one shown.')}>
       {variants.map((v, i) => {
         const issues = issuesOf(i)
         const name = v.label || words(v.id)
         return (
           <div key={i} className={'pe-variant' + (current === i ? ' on' : '')}>
             <div className="pe-variant-head">
-              <strong>{i + 1}. {name}</strong>
+              <strong>{t('{n}. {name}', { n: i + 1, name })}</strong>
               <span className="pe-variant-tools">
-                <IconButton size="sm" label={`Try ${name} earlier`} disabled={i === 0} onClick={() => move(i, i - 1)}><IconUp /></IconButton>
-                <IconButton size="sm" label={`Try ${name} later`} disabled={i === variants.length - 1} onClick={() => move(i, i + 1)}><IconDown /></IconButton>
-                <Button size="sm" variant="ghost" onClick={() => onEdit(i)}>{current === i ? 'Editing its sections' : 'Edit its sections'}</Button>
-                <Button size="sm" variant="danger" onClick={() => { setAll(variants.filter((_, n) => n !== i)); onEdit(-1) }}>Remove</Button>
+                <IconButton size="sm" label={t('Try {name} earlier', { name })} disabled={i === 0} onClick={() => move(i, i - 1)}><IconUp /></IconButton>
+                <IconButton size="sm" label={t('Try {name} later', { name })} disabled={i === variants.length - 1} onClick={() => move(i, i + 1)}><IconDown /></IconButton>
+                <Button size="sm" variant="ghost" onClick={() => onEdit(i)}>{current === i ? t('Editing its sections') : t('Edit its sections')}</Button>
+                <Button size="sm" variant="danger" onClick={() => { setAll(variants.filter((_, n) => n !== i)); onEdit(-1) }}>{t('Remove')}</Button>
               </span>
             </div>
-            <p className="hint">{v.sections?.length || 0} sections. Used when: {conditionText(cat, v.when).replace(/^Always$/, 'no condition yet')}</p>
+            <p className="hint">{tn('{count} section. Used when: {condition}', '{count} sections. Used when: {condition}', v.sections?.length || 0, { condition: isEmptyCondition(v.when) ? t('no condition yet') : conditionText(cat, v.when) })}</p>
             <IssueNotes issues={others(issues, ['id', 'when', 'label'])} />
-            <Labelled label="Name" hint="For you, in this editor.">
+            <Labelled label={t('Name')} hint={t('For you, in this editor.')}>
               <Input value={v.label || ''} placeholder={words(v.id)} onChange={(e) => {
                 const label = e.target.value
                 // Until someone gives the variant an ID of their own, it follows the name.
@@ -385,17 +393,17 @@ export function VariantsForm({ page, ctx, issuesOf, onChange, onEdit, current, m
             </Labelled>
             <IdBox value={v.id} taken={variants.filter((_, n) => n !== i).map((x) => x.id)} what="variant" onCommit={(id) => setOne(i, { ...v, id })} />
             <IssueNotes issues={at(issues, 'id')} />
-            <div className="ui-field-label">Use this variant when</div>
-            <ConditionEditor value={v.when} ctx={ctx} name={`the variant ${name}`} issues={at(issues, 'when')} onChange={(c) => setOne(i, { ...v, when: c }, `variant/${i}/when`)} />
+            <div className="ui-field-label">{t('Use this variant when')}</div>
+            <ConditionEditor value={v.when} ctx={ctx} name={t('the variant {name}', { name })} issues={at(issues, 'when')} onChange={(c) => setOne(i, { ...v, when: c }, `variant/${i}/when`)} />
           </div>
         )
       })}
       {variants.length < max
         ? <div className="pe-row-actions">
-            <Button size="sm" icon={<IconPlus size={14} />} onClick={() => add(true)}>Add a variant, starting from the page’s sections</Button>
-            <Button size="sm" variant="ghost" onClick={() => add(false)}>Add an empty variant</Button>
+            <Button size="sm" icon={<IconPlus size={14} />} onClick={() => add(true)}>{t('Add a variant, starting from the page’s sections')}</Button>
+            <Button size="sm" variant="ghost" onClick={() => add(false)}>{t('Add an empty variant')}</Button>
           </div>
-        : <p className="hint">A page has at most {max} variants.</p>}
+        : <p className="hint">{tn('A page has at most {count} variant.', 'A page has at most {count} variants.', max)}</p>}
     </Group>
   )
 }
@@ -438,17 +446,17 @@ export function JsonView<T>({ value, parse, check, onApply, what }: {
   }
   return (
     <div className="pe-json">
-      <Labelled label={`${what} as JSON`} hint="For those who know the format (the guide describes it). Nothing here changes the form until you apply it, and text that isn’t right is never applied." error={error || undefined}>
+      <Labelled label={t('{what} as JSON', { what })} hint={t('For those who know the format (the guide describes it). Nothing here changes the form until you apply it, and text that isn’t right is never applied.')} error={error || undefined}>
         <Textarea className="pe-mono" rows={22} spellCheck={false} autoCapitalize="none" autoCorrect="off" value={text} onChange={(e) => { setText(e.target.value); setResult(null); setError('') }} />
       </Labelled>
       <div className="pe-row-actions">
-        <Button size="sm" variant="primary" disabled={!edited} onClick={apply}>Apply to the form</Button>
-        <Button size="sm" busy={busy} onClick={run}>Check it</Button>
-        <Button size="sm" variant="ghost" disabled={!edited} onClick={() => { setText(now); setError(''); setResult(null) }}>Start again from the form</Button>
+        <Button size="sm" variant="primary" disabled={!edited} onClick={apply}>{t('Apply to the form')}</Button>
+        <Button size="sm" busy={busy} onClick={run}>{t('Check it')}</Button>
+        <Button size="sm" variant="ghost" disabled={!edited} onClick={() => { setText(now); setError(''); setResult(null) }}>{t('Start again from the form')}</Button>
       </div>
       {result && (result.issues.length === 0
-        ? <Notice tone="ok">Nothing wrong with it.</Notice>
-        : <IssueNotes issues={result.issues.map((issue) => ({ issue: { ...issue, message: `${issue.path || 'The whole of it'}: ${issue.message}` }, fix: null }))} />)}
+        ? <Notice tone="ok">{t('Nothing wrong with it.')}</Notice>
+        : <IssueNotes issues={result.issues.map((issue) => ({ issue: { ...issue, message: t('{where}: {message}', { where: issue.path || t('The whole of it'), message: tx(issue.message) }) }, fix: null }))} />)}
     </div>
   )
 }

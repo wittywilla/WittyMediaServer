@@ -8,13 +8,12 @@ import { toast } from '../../../state'
 import { Row, Section, Switch } from '../ui'
 import type { LogModule, LogsView } from './types'
 import { LEVELS } from './WhatToLog'
-
-const plural = (n: number, one: string) => `${n.toLocaleString()} ${one}${n === 1 ? '' : 's'}`
+import { list, t, tn, tx } from '../../../i18n'
 
 function recent(m: LogModule): string {
-  const bad = [m.errors > 0 && plural(m.errors, 'error'), m.warnings > 0 && plural(m.warnings, 'warning')].filter(Boolean).join(' and ')
-  if (bad) return `Recently: ${bad}`
-  return m.lines > 0 ? `Recently: ${plural(m.lines, 'line')}, no problems` : 'Nothing logged recently'
+  const bad = [m.errors > 0 && tn('{count} error', '{count} errors', m.errors), m.warnings > 0 && tn('{count} warning', '{count} warnings', m.warnings)].filter(Boolean) as string[]
+  if (bad.length) return t('Recently: {what}', { what: list(bad) })
+  return m.lines > 0 ? tn('Recently: {count} line, no problems', 'Recently: {count} lines, no problems', m.lines) : t('Nothing logged recently')
 }
 
 function ModuleCard({ m, busy, change }: { m: LogModule; busy: boolean; change: (id: string, body: { level?: string; topics?: Record<string, boolean> }, said: string) => void }) {
@@ -26,30 +25,30 @@ function ModuleCard({ m, busy, change }: { m: LogModule; busy: boolean; change: 
         <div className="lg-file-text">
           <b>
             {m.name}{m.version && <span className="lg-mod-ver"> {m.version}</span>}
-            {m.new && <span className="set-badge lg-new-mod">New</span>}
-            {m.missing && <span className="lg-gone-tag">No longer installed</span>}
+            {m.new && <span className="set-badge lg-new-mod">{t('New')}</span>}
+            {m.missing && <span className="lg-gone-tag">{t('No longer installed')}</span>}
           </b>
           <span>{recent(m)}</span>
         </div>
-        <select className="select" aria-label={`How much ${m.name} logs`} value={m.level} disabled={busy}
-          onChange={(e) => change(m.id, { level: e.target.value }, e.target.value ? LEVELS.find((l) => l.v === e.target.value)?.label || e.target.value : 'Same as its area')}>
-          <option value="">Same as its area</option>
-          {LEVELS.map((l) => <option key={l.v} value={l.v}>{l.label}</option>)}
+        <select className="select" aria-label={t('How much {module} logs', { module: m.name })} value={m.level} disabled={busy}
+          onChange={(e) => change(m.id, { level: e.target.value }, e.target.value ? tx(LEVELS.find((l) => l.v === e.target.value)?.label) || e.target.value : t('Same as its area'))}>
+          <option value="">{t('Same as its area')}</option>
+          {LEVELS.map((l) => <option key={l.v} value={l.v}>{tx(l.label)}</option>)}
         </select>
       </div>
       <div className="lg-actions">
-        <Link className="btn sm ghost" to={`?module=${encodeURIComponent(m.id)}`}>Show what this module logged</Link>
+        <Link className="btn sm ghost" to={`?module=${encodeURIComponent(m.id)}`}>{t('Show what this module logged')}</Link>
         {m.topics.length > 0 && (
           <button type="button" className="btn sm ghost" aria-expanded={open} onClick={() => setOpen(!open)}>
-            Advanced{on > 0 ? ` (${on} on)` : ''}
+            {on > 0 ? tn('Advanced ({count} on)', 'Advanced ({count} on)', on) : t('Advanced')}
           </button>
         )}
       </div>
       {open && (
         <div className="lg-topics">
-          {m.topics.map((t) => (
-            <Row key={t.id} label={t.label} desc={t.description}>
-              <Switch label={`${m.name}: ${t.label}`} checked={t.on} disabled={busy} onChange={(v) => change(m.id, { topics: { [t.id]: v } }, `${t.label} ${v ? 'on' : 'off'}`)} />
+          {m.topics.map((tp) => (
+            <Row key={tp.id} label={tx(tp.label)} desc={tx(tp.description)}>
+              <Switch label={`${m.name}: ${tx(tp.label)}`} checked={tp.on} disabled={busy} onChange={(v) => change(m.id, { topics: { [tp.id]: v } }, v ? t('{topic} on', { topic: tx(tp.label) }) : t('{topic} off', { topic: tx(tp.label) }))} />
             </Row>
           ))}
         </div>
@@ -67,24 +66,24 @@ export default function LogModules({ view, onView }: { view: LogsView; onView: (
     setBusy(id)
     try {
       onView(await api.put<LogsView>('/logs', { modules: { [id]: body } }))
-      toast(`${view.modules.find((m) => m.id === id)?.name || id}: ${said}`)
+      toast(t('{module}: {change}', { module: view.modules.find((m) => m.id === id)?.name || id, change: said }))
     } catch (e: any) { toast(e.message) } finally { setBusy('') }
   }
   const dismiss = async () => {
     try { onView(await api.put<LogsView>('/logs', { modulesSeen: true })) } catch (e: any) { toast(e.message) }
   }
   return (
-    <Section title="Modules" desc="How much each module writes down. A module follows the level of its area unless you choose otherwise. Changes work straight away, with no restart.">
+    <Section title={t('Modules')} desc={t('How much each module writes down. A module follows the level of its area unless you choose otherwise. Changes work straight away, with no restart.')}>
       {fresh.length > 0 && (
         <div className="lg-mod-notice" role="status">
           <span>{fresh.length === 1
-            ? `A new module was found: ${fresh[0].name}. Its logging is ready below.`
-            : `New modules were found: ${fresh.map((m) => m.name).join(', ')}. Their logging is ready below.`}</span>
-          <button type="button" className="btn sm ghost" onClick={() => void dismiss()}><IconClose /> Dismiss</button>
+            ? t('A new module was found: {name}. Its logging is ready below.', { name: fresh[0].name })
+            : t('New modules were found: {names}. Their logging is ready below.', { names: list(fresh.map((m) => m.name)) })}</span>
+          <button type="button" className="btn sm ghost" onClick={() => void dismiss()}><IconClose /> {t('Dismiss')}</button>
         </div>
       )}
       {view.modules.length === 0
-        ? <div className="set-empty"><IconPlug size={28} /><b>No modules found</b><p>Modules appear here as soon as the server notices them.</p></div>
+        ? <div className="set-empty"><IconPlug size={28} /><b>{t('No modules found')}</b><p>{t('Modules appear here as soon as the server notices them.')}</p></div>
         : <ul className="lg-mods">{view.modules.map((m) => <ModuleCard key={m.id} m={m} busy={busy === m.id} change={(id, b, s) => void change(id, b, s)} />)}</ul>}
     </Section>
   )

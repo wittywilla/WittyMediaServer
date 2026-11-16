@@ -9,6 +9,7 @@ import { IconClose, IconFile, IconPause, IconPlay, IconRefresh } from '../../../
 import { toast } from '../../../state'
 import { Section } from '../ui'
 import { copyText, LEVEL_WORDS, scrollKeys, type Category, type EntriesPage, type Health, type LogModule, type LogRecord, type SessionKind } from './types'
+import { date, list, t, tn, tx } from '../../../i18n'
 
 // The live log: newest at the top, so new lines don't push the page around and
 // "Load older" is where you'd look for it. Log text is shown as text, always.
@@ -26,12 +27,12 @@ let nextKey = 1
 const tag = (r: LogRecord): Row => ({ ...r, key: nextKey++ })
 const hasTime = (t: string) => !!t && !t.startsWith('0001-')
 
-const clock = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-const dated = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' })
-function fmtTime(t: string) {
-  if (!hasTime(t)) return ''
-  const d = new Date(t)
-  return (d.toDateString() === new Date().toDateString() ? clock : dated).format(d)
+const CLOCK: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit' }
+const DATED: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' }
+function fmtTime(when: string) {
+  if (!hasTime(when)) return ''
+  const d = new Date(when)
+  return date(d, d.toDateString() === new Date().toDateString() ? CLOCK : DATED)
 }
 
 function rowText(r: LogRecord) {
@@ -74,6 +75,7 @@ function rowKeys(e: React.KeyboardEvent<HTMLLIElement>) {
   next.scrollIntoView({ block: 'nearest' })
 }
 
+// A copied line keeps the English level word, like the log files.
 // One line. Its open or closed state is its own, so opening one doesn't draw the
 // other thousand again.
 const LogRow = memo(function LogRow({ r, catLabel, modLabel, onSession }: { r: Row; catLabel: string; modLabel?: string; onSession: (id: string) => void }) {
@@ -83,34 +85,34 @@ const LogRow = memo(function LogRow({ r, catLabel, modLabel, onSession }: { r: R
   const short = attrs.filter((a) => !long.includes(a) && a.v !== '')
   const times = attrs.find((a) => a.k === 'count' || a.k === 'repeated')?.v
   const failed = attrs.find((a) => a.k === 'request')?.v
-  const copy = async () => toast((await copyText(rowText(r))) ? 'Copied' : 'This browser wouldn’t copy it')
+  const copy = async () => toast((await copyText(rowText(r))) ? t('Copied') : t('This browser wouldn’t copy it'))
   return (
     <li className={'lg-row lv-' + r.level + (open ? ' open' : '')} onKeyDown={rowKeys}>
       <button type="button" className="lg-head" aria-expanded={open} onClick={() => setOpen(!open)}>
         <time className="lg-time" dateTime={hasTime(r.t) ? r.t : undefined}>{fmtTime(r.t)}</time>
-        <span className="lg-level">{LEVEL_WORDS[r.level] || r.level}</span>
+        <span className="lg-level">{tx(LEVEL_WORDS[r.level]) || r.level}</span>
         <span className="lg-cat">{catLabel}</span>
         <span className="lg-msg">
           {modLabel && <span className="lg-tag">{modLabel}</span>}
           {r.msg}{times && <span className="lg-times"> ×{times}</span>}
-          {r.explain && <span className="lg-hint">{r.explain.title}</span>}
+          {r.explain && <span className="lg-hint">{tx(r.explain.title)}</span>}
         </span>
       </button>
       {open && (
         <div className="lg-detail">
           {r.explain && (
             <div className="lg-explain">
-              <b>{r.explain.title}</b>
-              <p>{r.explain.what}</p>
-              <p><b>What to do:</b> {r.explain.fix}</p>
+              <b>{tx(r.explain.title)}</b>
+              <p>{tx(r.explain.what)}</p>
+              <p><b>{t('What to do:')}</b> {tx(r.explain.fix)}</p>
             </div>
           )}
           {(short.length > 0 || r.session || r.req || r.module) && (
             <dl className="lg-attrs">
-              {r.module && <div><dt>module</dt><dd>{r.module}</dd></div>}
-              {r.topic && <div><dt>topic</dt><dd>{r.topic}</dd></div>}
-              {r.session && <div><dt>session</dt><dd>{r.session}</dd></div>}
-              {r.req && <div><dt>request</dt><dd>{r.req}</dd></div>}
+              {r.module && <div><dt>{t('module')}</dt><dd>{r.module}</dd></div>}
+              {r.topic && <div><dt>{t('topic')}</dt><dd>{r.topic}</dd></div>}
+              {r.session && <div><dt>{t('session')}</dt><dd>{r.session}</dd></div>}
+              {r.req && <div><dt>{t('request')}</dt><dd>{r.req}</dd></div>}
               {short.map((a, i) => <div key={i}><dt>{a.k}</dt><dd>{a.v}</dd></div>)}
             </dl>
           )}
@@ -121,10 +123,10 @@ const LogRow = memo(function LogRow({ r, catLabel, modLabel, onSession }: { r: R
             </div>
           ))}
           <div className="lg-actions">
-            {(r.session || r.req) && <button type="button" className="btn sm" onClick={() => onSession((r.session || r.req)!)}>Show everything from this session</button>}
-            {r.session && r.req && <button type="button" className="btn sm ghost" onClick={() => onSession(r.req!)}>Only this request</button>}
-            {failed && <button type="button" className="btn sm ghost" onClick={() => onSession(failed)}>Show the request that failed</button>}
-            <button type="button" className="btn sm ghost" onClick={copy}>Copy</button>
+            {(r.session || r.req) && <button type="button" className="btn sm" onClick={() => onSession((r.session || r.req)!)}>{t('Show everything from this session')}</button>}
+            {r.session && r.req && <button type="button" className="btn sm ghost" onClick={() => onSession(r.req!)}>{t('Only this request')}</button>}
+            {failed && <button type="button" className="btn sm ghost" onClick={() => onSession(failed)}>{t('Show the request that failed')}</button>}
+            <button type="button" className="btn sm ghost" onClick={copy}>{t('Copy')}</button>
           </div>
         </div>
       )}
@@ -213,7 +215,7 @@ export default function Viewer({ categories, modules, kinds, onHealth }: { categ
           })
           setOlder((o) => (o === 'done' ? 'more' : o))
           const bad = p.entries.filter((e) => e.level === 'error' || e.level === 'crash').length
-          if (bad) announce(bad === 1 ? 'A new error in the log' : `${bad} new errors in the log`)
+          if (bad) announce(tn('A new error in the log', '{count} new errors in the log', bad))
         }
         t = window.setTimeout(tick, POLL_MS)
       } catch {
@@ -245,7 +247,7 @@ export default function Viewer({ categories, modules, kinds, onHealth }: { categ
     } catch (e: any) {
       if (g !== generation.current) return
       setOlder('more')
-      toast(e instanceof ApiError && e.status === 429 ? 'Another search of the log files is running. Try again in a moment.' : e.message)
+      toast(e instanceof ApiError && e.status === 429 ? t('Another search of the log files is running. Try again in a moment.') : e.message)
     }
   }
 
@@ -259,7 +261,7 @@ export default function Viewer({ categories, modules, kinds, onHealth }: { categ
     setLive(true)
     setLevel(''); setCats([]); setText(''); setQ('') // everything means everything
     setParams((p) => { const n = new URLSearchParams(p); n.delete('tab'); n.delete('module'); n.set('session', id); return n })
-    announce('Showing everything from this session')
+    announce(t('Showing everything from this session'))
   }, [setParams])
   const leaveSession = () => setParams((p) => { const n = new URLSearchParams(p); n.delete('session'); return n })
   // Focus was on a line that has gone: bring it to the way back.
@@ -270,7 +272,7 @@ export default function Viewer({ categories, modules, kinds, onHealth }: { categ
   const commitSession = () => {
     const v = sessionText.trim()
     if (v === session) return
-    if (v && !VALID_SESSION.test(v)) { toast('That doesn’t look like a session ID'); return }
+    if (v && !VALID_SESSION.test(v)) { toast(t('That doesn’t look like a session ID')); return }
     setParams((p) => { const n = new URLSearchParams(p); if (v) n.set('session', v); else n.delete('session'); return n }, { replace: true })
   }
 
@@ -293,61 +295,61 @@ export default function Viewer({ categories, modules, kinds, onHealth }: { categ
   const modNames = useMemo(() => new Map(modules.map((m) => [m.id, m.name])), [modules])
 
   return (
-    <Section title="Live log" desc="Newest first. Open a line for its details, what it means and what to do."
+    <Section title={t('Live log')} desc={t('Newest first. Open a line for its details, what it means and what to do.')}
       actions={(
         <div className="lg-live">
-          <span className={'set-pill' + (live && visible ? ' live' : '')}>{live ? (visible ? 'Live' : 'Waiting') : 'Paused'}</span>
+          <span className={'set-pill' + (live && visible ? ' live' : '')}>{live ? (visible ? t('Live') : t('Waiting')) : t('Paused')}</span>
           {live
-            ? <button type="button" className="btn sm" onClick={() => setLive(false)}><IconPause /> Pause</button>
-            : <button type="button" className="btn sm" onClick={resume}><IconPlay /> Resume</button>}
+            ? <button type="button" className="btn sm" onClick={() => setLive(false)}><IconPause /> {t('Pause')}</button>
+            : <button type="button" className="btn sm" onClick={resume}><IconPlay /> {t('Resume')}</button>}
         </div>
       )}>
       <div className="lg-filters">
-        <label className="lg-field">Show
+        <label className="lg-field">{t('Show')}
           <select className="select" value={level} onChange={(e) => setLevel(e.target.value)}>
-            <option value="">Everything</option>
-            <option value="info">Normal and above</option>
-            <option value="warn">Warnings and errors</option>
-            <option value="error">Errors only</option>
+            <option value="">{t('Everything')}</option>
+            <option value="info">{t('Normal and above')}</option>
+            <option value="warn">{t('Warnings and errors')}</option>
+            <option value="error">{t('Errors only')}</option>
           </select>
         </label>
-        <label className="lg-field">Module
+        <label className="lg-field">{t('Module')}
           <select className="select" value={moduleId} onChange={(e) => setModule(e.target.value)}>
-            <option value="">All</option>
+            <option value="">{t('All')}</option>
             {modules.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
             {moduleId && !modNames.has(moduleId) && <option value={moduleId}>{moduleId}</option>}
           </select>
         </label>
         {kinds.length > 0 && (
-          <label className="lg-field">Follow
+          <label className="lg-field">{t('Follow')}
             <select className="select" value={kind} onChange={(e) => setKind(e.target.value)} aria-describedby={kind && !session ? 'lg-follow-help' : undefined}>
-              <option value="">Anything</option>
-              {kinds.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
+              <option value="">{t('Anything')}</option>
+              {kinds.map((k) => <option key={k.id} value={k.id}>{tx(k.label)}</option>)}
             </select>
           </label>
         )}
-        <label className="lg-field grow">Search
-          <input className="input" type="search" value={text} placeholder="Words anywhere in a line" onChange={(e) => setText(e.target.value)} />
+        <label className="lg-field grow">{t('Search')}
+          <input className="input" type="search" value={text} placeholder={t('Words anywhere in a line')} onChange={(e) => setText(e.target.value)} />
         </label>
-        <label className="lg-field">Session
-          <input className="input" type="search" value={sessionText} placeholder="A session or request ID" spellCheck={false} autoCapitalize="off"
+        <label className="lg-field">{t('Session')}
+          <input className="input" type="search" value={sessionText} placeholder={t('A session or request ID')} spellCheck={false} autoCapitalize="off"
             onChange={(e) => setSessionText(e.target.value)} onBlur={commitSession} onKeyDown={(e) => { if (e.key === 'Enter') commitSession() }} />
         </label>
       </div>
       <details className="lg-cats">
-        <summary>Areas: {cats.length ? cats.map((c) => labels.get(c) || c).join(', ') : 'all'}</summary>
+        <summary>{cats.length ? t('Areas: {areas}', { areas: list(cats.map((c) => tx(labels.get(c)) || c)) }) : t('Areas: all')}</summary>
         <div className="chips">
           {categories.map((c) => (
-            <button key={c.id} type="button" className={'chip' + (cats.includes(c.id) ? ' active' : '')} aria-pressed={cats.includes(c.id)} onClick={() => toggleCat(c.id)}>{c.label}</button>
+            <button key={c.id} type="button" className={'chip' + (cats.includes(c.id) ? ' active' : '')} aria-pressed={cats.includes(c.id)} onClick={() => toggleCat(c.id)}>{tx(c.label)}</button>
           ))}
         </div>
       </details>
-      {filtered && <button type="button" className="btn sm ghost lg-clear" onClick={clearFilters}><IconClose /> Clear filters</button>}
+      {filtered && <button type="button" className="btn sm ghost lg-clear" onClick={clearFilters}><IconClose /> {t('Clear filters')}</button>}
       {kind && !session && (
         <div className="lg-follow" id="lg-follow-help">
           {kind === 'audit'
-            ? <span>Audit lines: changes that are always recorded, with who made them, whatever the levels say.</span>
-            : <span>{kindSessions.length ? 'Choose one to see it from start to end, on the server, in modules and in the apps:' : 'Lines from this kind of work will appear here. Choose one to follow it from start to end.'}</span>}
+            ? <span>{t('Audit lines: changes that are always recorded, with who made them, whatever the levels say.')}</span>
+            : <span>{kindSessions.length ? t('Choose one to see it from start to end, on the server, in modules and in the apps:') : t('Lines from this kind of work will appear here. Choose one to follow it from start to end.')}</span>}
           {kindSessions.length > 0 && (
             <div className="chips">
               {kindSessions.map((id) => <button key={id} type="button" className="chip" onClick={() => goSession(id)}><code>{id}</code></button>)}
@@ -358,30 +360,30 @@ export default function Viewer({ categories, modules, kinds, onHealth }: { categ
 
       {session && (
         <div className="lg-session">
-          <span>Everything from session <code>{session}</code>, including older log files.</span>
-          <button ref={back} type="button" className="btn sm" onClick={leaveSession}>Back to all lines</button>
+          <span>{t('Everything from session {session}, including older log files.', { session })}</span>
+          <button ref={back} type="button" className="btn sm" onClick={leaveSession}>{t('Back to all lines')}</button>
         </div>
       )}
-      {pollFailed && <div className="warn-box lg-note" role="status">The server isn’t answering. Still trying.</div>}
-      {skipped && <div className="warn-box lg-note">Lines arrived faster than they could be shown, so some in between are missing. Use <b>Load older</b> or the log files to see them.</div>}
-      {partial && <div className="warn-box lg-note">The log files are very large, so only part of them was searched. Narrow the search to find more.</div>}
+      {pollFailed && <div className="warn-box lg-note" role="status">{t('The server isn’t answering. Still trying.')}</div>}
+      {skipped && <div className="warn-box lg-note">{t('Lines arrived faster than they could be shown, so some in between are missing. Use Load older or the log files to see them.')}</div>}
+      {partial && <div className="warn-box lg-note">{t('The log files are very large, so only part of them was searched. Narrow the search to find more.')}</div>}
 
       {rows === null ? <Spinner />
-        : error ? <div className="error lg-note" role="alert">{error}<div className="lg-note-actions"><button type="button" className="btn sm" onClick={() => void load()}><IconRefresh /> Try again</button></div></div>
+        : error ? <div className="error lg-note" role="alert">{error}<div className="lg-note-actions"><button type="button" className="btn sm" onClick={() => void load()}><IconRefresh /> {t('Try again')}</button></div></div>
         : rows.length === 0 ? (
-          <EmptyState icon={<IconFile />} title={filtered || session ? 'No lines match' : 'Nothing logged yet'}
-            text={filtered || session ? 'Nothing recorded so far fits these filters. New lines will appear here as they arrive.' : 'New lines will appear here as they arrive.'} />
+          <EmptyState icon={<IconFile />} title={filtered || session ? t('No lines match') : t('Nothing logged yet')}
+            text={filtered || session ? t('Nothing recorded so far fits these filters. New lines will appear here as they arrive.') : t('New lines will appear here as they arrive.')} />
         ) : (
           <ul className="lg-list">
-            {rows.map((r) => <LogRow key={r.key} r={r} catLabel={labels.get(r.cat) || r.cat} modLabel={r.module ? modNames.get(r.module) || r.module : undefined} onSession={goSession} />)}
+            {rows.map((r) => <LogRow key={r.key} r={r} catLabel={tx(labels.get(r.cat)) || r.cat} modLabel={r.module ? modNames.get(r.module) || r.module : undefined} onSession={goSession} />)}
           </ul>
         )}
       {rows !== null && !error && (
         <div className="lg-foot">
           {older === 'done'
-            ? <span className="muted">That’s everything the log files hold.</span>
-            : <button type="button" className="btn sm" disabled={older === 'loading'} onClick={() => void loadOlder()}>{older === 'loading' ? 'Looking…' : rows.length ? 'Load older' : 'Search older log files'}</button>}
-          {rows.length >= MAX_ROWS && <span className="muted">Showing the {MAX_ROWS.toLocaleString()} lines that fit here.</span>}
+            ? <span className="muted">{t('That’s everything the log files hold.')}</span>
+            : <button type="button" className="btn sm" disabled={older === 'loading'} onClick={() => void loadOlder()}>{older === 'loading' ? t('Looking…') : rows.length ? t('Load older') : t('Search older log files')}</button>}
+          {rows.length >= MAX_ROWS && <span className="muted">{tn('Showing the {count} line that fits here.', 'Showing the {count} lines that fit here.', MAX_ROWS)}</span>}
         </div>
       )}
     </Section>

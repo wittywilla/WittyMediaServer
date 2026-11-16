@@ -15,7 +15,7 @@
 .pe-draft-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
 .pe-draft-what { margin-top: var(--sp-2); font-size: var(--text-sm); }
 .pe-draft-what summary { cursor: pointer; font-weight: 600; min-height: 24px; }
-.pe-draft-what ul, .pe-changes { margin: var(--sp-2) 0 0; padding-left: var(--sp-5); display: grid; gap: var(--sp-1); font-size: var(--text-sm); line-height: 1.5; }
+.pe-draft-what ul, .pe-changes { margin: var(--sp-2) 0 0; padding-inline-start: var(--sp-5); display: grid; gap: var(--sp-1); font-size: var(--text-sm); line-height: 1.5; }
 .pe-draft-what ul ul, .pe-changes ul { margin-top: var(--sp-1); color: var(--fg-2); }
 .pe-draftbar { margin-bottom: var(--sp-4); }
 
@@ -23,7 +23,7 @@
 .pe-toolbar { position: sticky; top: var(--topbar-h); z-index: var(--z-sticky); display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-2); margin: 0 0 var(--sp-4); padding: var(--sp-2) 0; background: var(--bg); border-bottom: 1px solid var(--border); }
 .pe-toolbar-state { flex: 1 1 12rem; display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-2) var(--sp-3); min-width: 0; color: var(--fg-2); font-size: var(--text-sm); }
 .pe-dot { flex: none; width: var(--sp-2); height: var(--sp-2); border-radius: var(--r-full); background: var(--accent); }
-.pe-count { display: inline-grid; place-items: center; min-width: 1.25rem; height: 1.25rem; margin-left: var(--sp-2); padding: 0 var(--sp-1); border-radius: var(--r-full); background: var(--warn-soft); color: var(--fg); font-size: var(--text-2xs); font-weight: 700; }
+.pe-count { display: inline-grid; place-items: center; min-width: 1.25rem; height: 1.25rem; margin-inline-start: var(--sp-2); padding: 0 var(--sp-1); border-radius: var(--r-full); background: var(--warn-soft); color: var(--fg); font-size: var(--text-2xs); font-weight: 700; }
 .pe-count.error { background: var(--danger-soft); }
 
 /* ---------------------------------------------------------------- the panes */
@@ -34,7 +34,7 @@
 /* The menu's rows hold a name, a button and the Move buttons: in a narrow pane the buttons go under the name. */
 .pe-pane .nav-custom-row { flex-wrap: wrap; }
 .pe-pane .nav-custom-name { flex-basis: 9rem; }
-.pe-pane .nav-custom-move { margin-left: auto; }
+.pe-pane .nav-custom-move { margin-inline-start: auto; }
 .pe-pane-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); }
 .pe-pane-head h2 { margin: 0; font-size: var(--text-lg); font-weight: var(--weight-heading); }
 .pe-pane-empty { margin: 0; color: var(--fg-2); font-size: var(--text-sm); line-height: 1.5; }
@@ -57,13 +57,13 @@
 
 /* ---------------------------------------------------------------- the tree of sections */
 .pe-tree { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-1); }
-.pe-tree-row { display: flex; align-items: center; gap: var(--sp-1); margin-left: calc(var(--pe-depth, 0) * var(--sp-5)); padding: var(--sp-1); border: 1px solid transparent; border-radius: var(--r-md); background: var(--bg-3); min-width: 0; }
+.pe-tree-row { display: flex; align-items: center; gap: var(--sp-1); margin-inline-start: calc(var(--pe-depth, 0) * var(--sp-5)); padding: var(--sp-1); border: 1px solid transparent; border-radius: var(--r-md); background: var(--bg-3); min-width: 0; }
 .pe-tree-row.on { background: var(--accent-soft); border-color: var(--accent-line); }
 .pe-tree-row.held { box-shadow: var(--e-2); outline: 2px solid var(--focus); }
 .pe-tree-row.drop-before { box-shadow: 0 -3px 0 var(--focus); }
 .pe-tree-row.drop-after { box-shadow: 0 3px 0 var(--focus); }
 .pe-tree-row.drop-into { outline: 2px dashed var(--focus); outline-offset: -2px; }
-.pe-tree-pick { flex: 1 1 8rem; display: flex; align-items: center; gap: var(--sp-2); min-width: 0; min-height: var(--control-h); padding: 0 var(--sp-1); border: 0; border-radius: var(--r-sm); background: none; color: var(--fg); text-align: left; cursor: pointer; }
+.pe-tree-pick { flex: 1 1 8rem; display: flex; align-items: center; gap: var(--sp-2); min-width: 0; min-height: var(--control-h); padding: 0 var(--sp-1); border: 0; border-radius: var(--r-sm); background: none; color: var(--fg); text-align: start; cursor: pointer; }
 .pe-tree-icon { flex: none; display: grid; place-items: center; width: var(--sp-6); color: var(--fg-3); }
 .pe-tree-icon svg { width: var(--sp-5); height: var(--sp-5); }
 .pe-tree-text { flex: 1; min-width: 0; display: grid; }
@@ -72,7 +72,7 @@
 .pe-tree-move { display: flex; flex: none; gap: 2px; }
 .pe-mark { flex: none; padding: 1px var(--sp-2); border-radius: var(--r-full); font-size: var(--text-2xs); font-weight: 700; color: var(--fg); background: var(--warn-soft); border: 1px solid color-mix(in srgb, var(--warn) 50%, transparent); }
 .pe-mark.error { background: var(--danger-soft); border-color: color-mix(in srgb, var(--danger) 50%, transparent); }
-@container (max-width: 420px) { .pe-tree-row { flex-wrap: wrap; } .pe-tree-move { margin-left: auto; } }
+@container (max-width: 420px) { .pe-tree-row { flex-wrap: wrap; } .pe-tree-move { margin-inline-start: auto; } }
 @media (pointer: coarse) { .pe-tree-pick { min-height: 44px; } }
 
 /* ---------------------------------------------------------------- forms */
@@ -104,7 +104,7 @@
 .pe-issue-fix { flex: 1 1 100%; color: var(--fg-2); overflow-wrap: anywhere; }
 .pe-issue-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-3); }
 .pe-issue-list > li { display: grid; gap: var(--sp-1); }
-.pe-issue-where { justify-self: start; min-height: 24px; text-align: left; font-size: var(--text-sm); font-weight: 600; }
+.pe-issue-where { justify-self: start; min-height: 24px; text-align: start; font-size: var(--text-sm); font-weight: 600; }
 
 /* An icon, chosen from the catalogue's. */
 .pe-icon { display: grid; gap: var(--sp-2); }
@@ -175,7 +175,7 @@
 .pe-palette { display: grid; gap: var(--sp-5); }
 .pe-palette h3 { margin: 0 0 var(--sp-2); font-size: var(--text-2xs); font-weight: 600; letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--fg-2); }
 .pe-palette-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: var(--sp-2); }
-.pe-tile { display: flex; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-3); border: 1px solid var(--border); border-radius: var(--r-md); background: var(--bg-3); color: var(--fg); text-align: left; cursor: pointer; transition: border-color var(--dur-2), background var(--dur-2); }
+.pe-tile { display: flex; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-3); border: 1px solid var(--border); border-radius: var(--r-md); background: var(--bg-3); color: var(--fg); text-align: start; cursor: pointer; transition: border-color var(--dur-2), background var(--dur-2); }
 @media (hover: hover) { .pe-tile:hover { border-color: var(--border-strong); background: var(--bg-4); } }
 .pe-tile-icon { flex: none; display: grid; place-items: center; width: var(--sp-8); height: var(--sp-8); border-radius: var(--r-sm); background: var(--accent-soft); color: var(--accent-text); }
 .pe-tile-icon svg { width: var(--sp-5); height: var(--sp-5); }
@@ -198,8 +198,8 @@
 .pe-page-name { display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-2); font-weight: 600; font-size: var(--text-md); }
 .pe-page-name a { color: var(--fg); }
 .pe-page-name a:hover { text-decoration: underline; text-underline-offset: 3px; }
-.pe-source { display: inline-flex; align-items: center; margin-left: var(--sp-2); padding: 1px var(--sp-2); border: 1px solid var(--border-strong); border-radius: var(--r-full); color: var(--fg-2); font-size: var(--text-2xs); font-weight: 700; white-space: nowrap; }
-.pe-page-name .pe-source, .set-head .pe-source { margin-left: 0; }
+.pe-source { display: inline-flex; align-items: center; margin-inline-start: var(--sp-2); padding: 1px var(--sp-2); border: 1px solid var(--border-strong); border-radius: var(--r-full); color: var(--fg-2); font-size: var(--text-2xs); font-weight: 700; white-space: nowrap; }
+.pe-page-name .pe-source, .set-head .pe-source { margin-inline-start: 0; }
 .pe-source.changed { border-color: color-mix(in srgb, var(--warn) 50%, transparent); background: var(--warn-soft); color: var(--fg); }
 .pe-source.custom { border-color: var(--accent-line); background: var(--accent-soft); color: var(--fg); }
 .pe-preset-add { flex: none; display: flex; align-items: center; gap: var(--sp-2); }

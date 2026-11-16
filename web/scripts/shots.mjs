@@ -129,9 +129,9 @@ const scenes = {
     await press(/Show the full player/)
     await wait(3000)
     await shot('music-full')
-    // It remembers being on, so pressing it blindly could turn it off.
-    await page.eval(`(() => { const b = document.querySelector('.np-viz-toggle'); if (b && b.getAttribute('aria-pressed') !== 'true') b.click() })()`)
-    await wait(1000)
+    // The full player's Album art / Canvas video / Visualizer switch: choosing Visualizer is safe to repeat.
+    await press(/^\s*Visualizer\s*$/)
+    await wait(1500)
     await press(/^\s*Turn on\s*$/)
     await wait(6000)
     await shot('music-visualizer-bars')
@@ -139,8 +139,11 @@ const scenes = {
     await shot('music-visualizer-drift')
     let n = 0
     for (const name of ['Warp Field', 'Molten Glass', 'Northern Veil']) {
-      await press(/More visualizer styles/); await wait(1000)
-      await page.eval(`[...document.querySelectorAll('.np-more-styles button, [role=menu] button, [role=dialog] button')].find((b) => b.textContent.trim() === ${JSON.stringify(name)})?.click()`)
+      // A style chosen before shows beside Bars, Waves and Drift; otherwise it is under More.
+      if (!(await press(new RegExp(`^\\s*${name}\\s*$`)))) {
+        await press(/More visualizer styles/); await wait(1000)
+        await page.eval(`[...document.querySelectorAll('.np-more-styles button, [role=menu] button, [role=dialog] button, [role=option], [role=menuitem]')].find((b) => b.textContent.trim() === ${JSON.stringify(name)})?.click()`)
+      }
       await wait(1000)
       await press(/^\s*Turn on\s*$/)
       await wait(9000)

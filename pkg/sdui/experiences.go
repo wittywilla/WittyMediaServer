@@ -364,12 +364,34 @@ func restructure(list []Section, kind string, st PageStyle) []Section {
 		label := tabLabel(s)
 		row := s
 		row.Component, row.Props = "List", map[string]any{"dense": true}
-		bar.Children = append(bar.Children, Section{ID: s.ID + "-tab", Component: "Tab", When: s.When, Props: map[string]any{"label": label, "icon": "list"}, Children: []Section{row}})
+		bar.Children = append(bar.Children, Section{ID: s.ID + "-tab", Component: "Tab", When: s.When, Props: map[string]any{"label": label, "icon": tabIcon(s)}, Children: []Section{row}})
 	}
 	if len(bar.Children) == 0 {
 		return list
 	}
 	return append(keep, bar)
+}
+
+// crossIcons is the icon of each category a cross bar can have, by what its row shows: each of
+// its own, so the bar's circles can be told apart at a glance.
+var crossIcons = map[string]string{
+	"featured": "star", "libraries": "library", "continueWatching": "play", "nextUp": "history",
+	"recommended": "sparkles", "liveNow": "live", "recordings": "record", "savedView": "filter",
+	"recentlyAdded": "plus", "recentlyReleased": "calendar", "topRated": "fire", "random": "shuffle",
+	"watchLater": "clock", "liked": "heart", "genres": "grid", "genre": "grid", "collections": "collection",
+	"collection": "collection", "studio": "tv", "tag": "list", "books": "book", "browse": "filter",
+	"statistics": "chart", "serverStatus": "devices",
+}
+
+// tabIcon is a cross bar category's icon: a row of saved views is a filter, the rest by source.
+func tabIcon(s Section) string {
+	if s.Repeat != nil && s.Repeat.Over == "pinnedViews" {
+		return "filter"
+	}
+	if icon := crossIcons[s.Source.Type()]; icon != "" {
+		return icon
+	}
+	return "list"
 }
 
 // tabLabel is the name of the category a row becomes in a cross bar: its title, with what a repeated

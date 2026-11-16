@@ -332,6 +332,16 @@ button.np-artist:hover { color: var(--np-fg); text-decoration: underline; text-u
   .kar-rule { display: none; }
   .kar-seg button { padding: 0 10px; font-size: var(--text-sm); }
   .kar-stepper span { min-width: 74px; font-size: var(--text-sm); }
+  /* A phone: the controls take most of the height, so the words get a stage of their own and the whole
+     screen scrolls, instead of the lines running into the buttons. What's behind the words stays put. */
+  .kar { overflow-y: auto; overscroll-behavior: contain; }
+  .kar-bg, .kar-art, .kar-bg ~ .np-canvas, .kar-bg ~ .np-shader, .kar-bg ~ .np-loop { position: fixed; }
+  .kar-top { flex-wrap: wrap; row-gap: 10px; }
+  .kar-song { flex: 1 0 100%; }
+  .kar-top .seg { margin-right: auto; }
+  .kar-stage { flex: 1 0 auto; min-height: 38vh; padding-block: 16px; }
+  .kar-now { min-height: 0; font-size: clamp(1.75rem, 8.6vw, 2.6rem); }
+  .kar-next { font-size: clamp(1.05rem, 5vw, 1.5rem); }
 }
 /* Ten feet: bigger targets. */
 .using-controller .np-styles > button, .using-controller .np-chip, .using-controller .np-viz-toggle { min-height: 52px; }

@@ -1971,7 +1971,7 @@ Playing, a game's details and matching, review, pictures and achievements are Wi
 
 | Route (under `/modules/wittyplay`) | Sign-in | What it does |
 |---|---|---|
-| `GET /gaming/settings` | admin | WittyPlay's settings for the whole server (Settings, Consoles & cores), as text by name, `""` when not set. [GAMING-API.md](GAMING-API.md) lists them. The server's own `/settings` doesn't keep them. |
+| `GET /gaming/settings` | admin | WittyPlay's settings for the whole server (Settings, Games & emulators, Consoles & cores), as text by name, `""` when not set. [GAMING-API.md](GAMING-API.md) lists them. The server's own `/settings` doesn't keep them. |
 | `PUT /gaming/settings` | admin | Change some of them: `{"gamingQuality": "high"}`; `""` unsets one. All are checked before any is kept (400 names the one refused). Answers as `GET`. |
 | `GET /games/{id}/versions` | user | A game's other versions and its discs. |
 | `PUT /games/{id}/version` | admin | Which file in its archive to play. |

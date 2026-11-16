@@ -1,45 +1,22 @@
 # Apps and devices
 
-Use this guide to choose how to reach your server from each device, and to connect an app. It says plainly what has been run on each platform and what hasn't been built.
+Every way to reach your server, and how to connect an app. It also says plainly how far each device has been run.
 
-**A web browser is the only way that does everything today, on everything.** The apps are early, and most haven't been tried on real devices.
-
-## What's been run, platform by platform
-
-| Device | What you use | How far it's been run | Not built or not seen |
-|---|---|---|---|
-| Any computer, phone or TV with a browser | The server's own web app | Works today, and every test of the server uses it on desktop browsers | Safari, phone browsers, hardware HEVC and HDR screens haven't been checked |
-| Windows 10 or later | WittyMediaClient desktop app | Run from source and as a packaged app. Its setup and uninstaller have run under Wine, not on real Windows | Real game controllers and remotes |
-| Linux | WittyMediaClient desktop app | Installed and opened on virtual screens, in containers and a Fedora virtual machine | A real desktop |
-| FreeBSD 15, amd64 | WittyMediaClient desktop app | Installed and played, with sound, in a virtual machine. It needs FreeBSD's own Electron | A real desktop. FreeBSD 14, aarch64 and i386 |
-| Plasma Big Screen | WittyMediaClient desktop app, which opens as a TV app there | The real shell in a virtual machine, with real key presses, picture and sound | A real TV or remote |
-| Mac | WittyMediaClient desktop app, and a native Mac app | Not run. Neither has been opened on a Mac yet | Everything |
-| Android phone | WittyMediaClient for Android | Emulators only: all of it on Android 16, and connecting and playing on Android 6 | Real phones, sound, Android 7 to 15. See below |
-| Android on ARM, 32-bit and 64-bit | The same app | Built into the same APK, and not run: every emulator here is x86 | Any ARM device, which means most real phones and TVs |
-| Android on x86 | The same app | 64-bit ran on the emulators. 32-bit is built and not run | Real devices |
-| Android tablet | The same app | Built and not run | Everything |
-| Android TV | The same app | An Android 16 emulator at 1080p, with arrow keys and OK only | Real TVs and remotes. See below |
-| Google TV, Fire TV | The same app | Built and not run. Fire TV needs Fire OS 6 or later | Everything |
-| iPhone, iPad | WittyMediaClient for Apple | Not run. The code has never been compiled | Everything |
-| Apple TV | WittyMediaClient for Apple | Not run. The code has never been compiled | Everything |
-
-**Not built on the Android and Apple apps:**
-
-- Music, audiobooks and podcasts. Android doesn't offer them yet, and the Apple app lists them with a note that they play in a browser for now.
-- TV channels, live TV and the guide.
-- Books and comics, disc menus, photos and consoles.
-- Playing in the background, and picture in picture, on Android.
-- A prompt for a two-factor code when signing in with a password. Those accounts can [sign in with a code](#sign-in-with-a-code) instead.
-
-These apps say plainly when something can't play yet. For anything on this list, use a browser on that device.
-
-**Games on someone's own PC:** the apps can open the Game PCs pages, and start the separately installed Moonlight app where it's there. No part of this has reached a real PC from an app yet. See [Game PCs](GAME-RIGS.md).
-
-**Not started:** LG and Samsung TV apps, Roku, Windows 7 and games consoles.
+- [A web browser](#a-web-browser)
+- [WittyMediaClient](#wittymediaclient)
+- [What has been run where](#what-has-been-run-where)
+- [How apps find your server](#how-apps-find-your-server)
+- [Typing the address](#typing-the-address)
+- [From away](#from-away)
+- [Signing in](#signing-in)
+- [Big screens](#big-screens)
+- [Moving to another server](#moving-to-another-server)
+- [Other apps from this project](#other-apps-from-this-project)
+- [Removing an app](#removing-an-app)
 
 ## A web browser
 
-Open the server's address, and you have everything: films, TV, music, books, photos, games, discs and live TV.
+Open the server's address in any browser and you have everything: films, TV, music, books, photos, games, discs and live TV. Nothing has to be installed.
 
 ![A Music library at phone width](images/phone-music.webp)
 *Music at phone width. Credited in [the list](images/CREDITS.md).*
@@ -56,23 +33,21 @@ Open the server's address, and you have everything: films, TV, music, books, pho
 ![The home page at phone width](images/phone-home.webp)
 *At phone width. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
 
-1. Find the server's address. An administrator sees it at **Settings → About → This server**, under **Open it on other devices at home**. It looks like `http://192.168.1.20:9797`.
-2. Type it into a browser on any device on your home network, and bookmark it.
+1. Find the server's address. An administrator sees it in **Settings → About**, under **Open it on other devices at home**. It looks like `http://192.168.1.20:9797`.
+2. Type it into a browser on any device at home, and bookmark it.
 
-A browser can't search your network for servers, so you need the address.
+A browser can't search your network for servers, so you need the address. A browser also can't connect [from away](#from-away) peer to peer: that needs the app.
 
 ## WittyMediaClient
 
-The app for putting your server on a device.
+The app for your server, on every platform: Windows, macOS, Linux, FreeBSD, Plasma Bigscreen, Android phones, tablets and TVs, iPhone, iPad and Apple TV. It finds your server at home by itself, signs in with a code, and connects from away with nothing set up on your router.
 
 ![The desktop app showing the home page](images/client-home.webp)
 *WittyMediaClient on a desktop, connected to a test server. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
 
-### On a computer
+Every app draws the same pages, which the server describes. New pages and modules arrive with the server, with no app update. The desktop app is a window around the server's own web app, so it has everything a browser has. If the Android or Apple app can't play something yet, it says so: use a browser on that device for it.
 
-The desktop app is a window around the server's own web app, so every feature arrives with the server. It adds finding servers on your network, a [sign-in code](#sign-in-with-a-code), and a title bar that follows your theme.
-
-Get it from the [WittyMediaClient releases page](https://github.com/wittywilla/WittyMediaClient/releases).
+Get it from the [WittyMediaClient releases page](https://github.com/wittywilla/WittyMediaClient/releases). Nothing is in an app store yet.
 
 | You have | Download |
 |---|---|
@@ -82,74 +57,64 @@ Get it from the [WittyMediaClient releases page](https://github.com/wittywilla/W
 | Debian, Ubuntu and relatives | `wittymediaclient-<version>-linux-amd64.deb` |
 | Fedora and relatives | `wittymediaclient-<version>-linux-amd64.rpm` |
 | Arch and relatives | `wittymediaclient-<version>-linux-amd64.pacman` |
+| Linux with Flatpak or snap | `wittymediaclient-<version>-linux-amd64.flatpak`, `wittymediaclient-<version>-linux-amd64.snap` |
 | Any other Linux | `wittymediaclient-<version>-linux-amd64.AppImage` |
-| FreeBSD, amd64 | `wittymediaclient-<version>-freebsd-amd64.pkg` |
-| Plasma Big Screen | The `.deb`, `.rpm` or `.pacman` for its distribution |
+| FreeBSD, amd64 | `wittymediaclient-<version>-freebsd-amd64.pkg`. It uses FreeBSD's own Electron, which `pkg` installs with it |
+| Plasma Bigscreen | The `.deb`, `.rpm`, `.pacman` or `.flatpak` for its distribution |
+| Android phone, tablet or TV | `wittymediaclient-<version>-android-universal.apk`, or the smaller one for its processor |
+| iPhone or iPad | `wittymediaclient-<version>-ios.ipa`, installed with AltStore, SideStore or Sideloadly |
+| Apple TV | `wittymediaclient-<version>-tvos.ipa`, installed with Sideloadly, or Xcode on a Mac |
 
-The builds aren't code-signed yet, so Windows and macOS warn about them. On Windows, choose **More info**, then **Run anyway**. On a Mac, use **Open Anyway** in **System Settings → Privacy & Security**.
+**Not code-signed yet.** Windows and macOS warn about the desktop app. On Windows, choose **More info**, then **Run anyway**. On a Mac, use **Open Anyway** in **System Settings → Privacy & Security**.
 
-**Good to know:**
-
-- **Keys:** Tab moves around the page. F6 moves between the page and the title bar.
-- **Help** in the title bar has **Open logs folder** and **Copy diagnostic info**.
-- **A weak computer:** the app uses a good deal of memory. A browser uses less.
-- **Plasma Big Screen:** in a Bigscreen session it opens as a TV app by itself, across the whole screen, and works with arrows, Enter and Back. Use a package and not an AppImage, because an AppImage doesn't add itself to the launcher.
-
-### On Android
-
-One app, about 3 MB, covers phones, tablets and TVs on ARM and x86, from Android 6 up. It isn't in any store yet, and has to be installed by hand. It's on the same [releases page](https://github.com/wittywilla/WittyMediaClient/releases), signed with a test key, so it can't be updated to a store version later without uninstalling first.
-
-**On a phone or tablet:** copy the `.apk` over and open it. Android asks you to allow installing from that app.
-
-**On a TV:** in the TV's settings, turn on Developer options and network debugging. Then, from a computer with Android's `adb` tool, use your TV's address and the name of the file you downloaded:
+**Android.** Copy the `.apk` to a phone or tablet and open it. Android asks you to allow installing from that app. On a TV, turn on Developer options and network debugging, then, from a computer with Android's `adb` tool:
 
 ```bash
 adb connect 192.168.1.50
 ```
 
 ```bash
-adb install app-sideload.apk
+adb install wittymediaclient-<version>-android-universal.apk
 ```
 
-What it does, as seen on emulators: home, libraries, shows, search, video with resume, sound tracks and subtitles, skip intro and the next-episode countdown. Phones ask for two channels of sound. A metered connection asks for no more than 8 Mb/s.
+The APKs are signed with a test key, so a store version can't update them later without uninstalling first.
 
-Sound hasn't been listened to, because the emulators have none. Nobody has tried it on a cheap TV stick, so how smooth it is there isn't known.
+**iPhone, iPad and Apple TV.** The `.ipa` files are unsigned. The tool that installs one signs it with your own Apple ID. With a free Apple ID, the app has to be refreshed every 7 days. AltStore and SideStore do that for you, but don't install to an Apple TV.
 
-### On Apple devices
+**On the desktop app:**
 
-The apps for iPhone, iPad, Apple TV and Mac are written, and have never been compiled. Nothing can be downloaded. Apple only allows building and installing from a Mac, and they aren't in the App Store.
+- Tab moves around the page. F6 moves between the page and the title bar.
+- **Help** in the title bar has **Open logs folder** and **Copy diagnostic info**.
+- On Plasma Bigscreen it opens as a TV app, across the whole screen, with arrows, Enter and Back. Elsewhere, `wittymediaclient --tv` does the same.
 
-On an Apple device today, use a browser. Apple TV has no browser, so there's no way to use the server on it yet.
+## What has been run where
 
-## Other apps from this project
+This is an alpha. "Run" means someone used it on that device, against a real server.
 
-**WittyMediaPlayer** and **WittyReader** work on their own. **Neither connects to your server.** Use them for files on the computer in front of you.
+| Device | How far it has been run |
+|---|---|
+| Any browser | Works today. Every test of the server uses desktop browsers. Safari, phone browsers and HDR screens haven't been checked closely |
+| Mac | The desktop app, on Apple silicon, by the owner. Not on an Intel Mac |
+| Windows | The desktop app from source and as a package. Its installer has run under Wine |
+| Linux | Installed, opened, upgraded and removed in containers and a Fedora virtual machine. Not on a real desktop |
+| FreeBSD 14 and 15, amd64 | In virtual machines, with picture and sound on 15 |
+| Plasma Bigscreen | The real shell in a virtual machine. Never on a TV with a real remote |
+| Android phone, tablet and TV | On real devices, with real media, for 0.8.0-alpha |
+| Google TV, Fire TV | Built, not run. Fire TV needs Fire OS 6 or later |
+| Apple TV | On a real Apple TV, for 0.8.0-alpha |
+| iPhone | In Apple's simulator. Not yet on a real iPhone |
+| iPad, Apple Vision Pro | Built, not run |
 
-**WittyMediaPlayer** plays video, audio, DVDs and Blu-rays on your own computer, with real disc menus, from a drive, an image or a folder. It can also make a disc image to add to a server library, and copy audio CDs. It needs no server and no account. It's for Windows 10 version 1809 or newer, and only Windows for now. Its installer has run under Wine, not on real Windows. Get it from the [WittyMediaPlayer releases page](https://github.com/wittywilla/WittyMediaPlayer/releases).
+**Not started:** LG and Samsung TV apps, Roku, Windows 7 and games consoles.
 
-**WittyReader** reads and annotates books, PDFs and comics on your own device, using the same readers as the server, and nothing is uploaded. There are installers for Windows, Mac and Linux, and a copy on your own web server can be installed from a phone's browser. Its Windows installer has run under Wine, not on real Windows, and its Mac installer has not been run on a real Mac yet. Get it from the [WittyReader releases page](https://github.com/wittywilla/WittyReader/releases).
-
-To read books that are on your server, open them in a browser: see [Books](BOOKS.md).
-
-## Big screens
-
-There are two different things here.
-
-![TV mode: Home, Libraries, Games, Live TV and Search along the top, You at the right, and the libraries as large tiles](images/tv-mode.webp)
-*TV mode's Libraries.*
-
-**TV mode** is the whole web app laid out and driven like the Apple TV and Android TV apps, for a TV across the room. Home, Libraries, Games, Live TV and Search run along the top, with You at the right; everything is large, every button is a pill, and a ring shows what's selected. It works with a TV remote, a game controller, a keyboard, and still a mouse or a touch screen. Turn it on at **Settings → Appearance → Motion and big screens**, or with **TV mode** in your account menu at the top right. It applies to that device only. On a TV browser with no easy way to reach Settings, add `?tv=1` to the server's address; `?tv=0` turns it off. To leave it, open **You** and choose **Leave TV mode**. The desktop app on a TV (`--tv`) and on Plasma Bigscreen opens in TV mode by itself.
-
-**Couch mode** is for games on a sofa. It shows only your game libraries, full screen and large, with nothing that needs a mouse. Open it with the **Couch mode** button on a games library, or go to `/big` on your server, such as `http://192.168.1.20:9797/big`. See [Games](GAMES.md).
-
-For moving around with a remote or a controller, see [TV remotes and controllers](PLAYING.md#tv-remotes-and-controllers).
+**Games on someone's own PC:** the apps open the Game PCs pages, and start the separately installed Moonlight app where it's the way in. No app has reached a real PC yet. See [Game PCs](GAME-RIGS.md).
 
 ## How apps find your server
 
-Apps search your home network, and the servers they find are listed under **On your network**. A TV has the first one already selected, so one press of OK chooses it.
+At home, apps search your network, and list the servers they find under **On your network**. A TV has the first one already selected, so one press of OK chooses it.
 
 - **What the server announces:** its name, a random ID, its version and how to connect. Nothing about accounts or folders. Being found opens nothing: connecting still takes a code or a password.
-- **To turn this off:** **Settings → Profiles → Signing in → Let apps find this server**. Apps can still connect by typing the address.
+- **To turn it off:** **Settings → Profiles**, under **Signing in**, turn off **Let apps find this server**. Setup asks this too, as **Find this server automatically**. Apps can still connect by typing the address.
 
 **If your server isn't listed:**
 
@@ -157,15 +122,12 @@ Apps search your home network, and the servers they find are listed under **On y
 - On a Mac, the server may not be allowed on the local network. Turn on **WittyMediaServer** in **System Settings → Privacy & Security → Local Network**. The server notices within a minute.
 - Your Wi-Fi may keep devices apart. Guest networks and "client isolation" do this.
 - The server may be in a container without host networking.
-- The server may only accept connections from its own computer.
 
-In any of these cases, [type the address](#typing-the-address). Searching has found real servers through emulators' and virtual machines' networks, but a phone and a server on one real Wi-Fi hasn't been tried yet. An Android 6 emulator found none.
-
-A server that has stopped stays on the list for up to 45 seconds. If it says it can't be reached, it may have gone.
+In any of these cases, [type the address](#typing-the-address). A server that has stopped stays on the list for up to 45 seconds.
 
 ## Typing the address
 
-Choose **Enter an address** and type it. The server shows its address when it starts, and an administrator can find it at **Settings → About**. `192.168.1.20` is enough: the app adds `http://` and port 9797 by itself. If the port was changed in **Settings → Network**, add it: `192.168.1.20:8096`.
+Choose **Enter an address** and type it. `192.168.1.20` is enough: the app adds `http://` and port 9797. If the port was changed in **Settings → Network**, add it: `192.168.1.20:8096`.
 
 | You're connecting | Type |
 |---|---|
@@ -174,18 +136,32 @@ Choose **Enter an address** and type it. The server shows its address when it st
 | Through a private network | `100.101.102.103` |
 | Through HTTPS | `https://media.example.com` |
 
-For an address on the internet the app insists on `https://`, because your password would otherwise travel unencrypted. To set up access away from home, see [Remote access](REMOTE.md).
+For an address on the internet, the app insists on `https://`, because your password would otherwise travel unencrypted.
+
+## From away
+
+Away from home, the app can reach your server **peer to peer**, with nothing set up on your router and no account with anyone. An administrator turns it on first, in **Settings → Remote Access → Peer-to-peer connections**. [Remote access](REMOTE.md#peer-to-peer-connections) says what that exposes, and how to test it.
+
+There are three ways for a device to join:
+
+- **It was at home first.** Open the app at home, signed in. Within a minute it adds itself to your server's list. Away from home, it then connects by itself. The app's **From away** row, under **You**, says how it's doing.
+- **A link or a QR code.** Someone signed in opens **From away** on the server (the `/away` page) and presses **Make a link**. In the app, choose **Join with a link or code** and paste the link, or **Scan a QR code**. A link works once, for fifteen minutes.
+- **A code on the screen.** For a TV that has never been at home with your server. In the app, choose **Join from away**. It shows a code like `K7QM-2XHD`. On a phone or computer signed in to the server, type it under **A device that shows a code** on the From away page, or **A TV that shows a code** in **Settings → Remote Access**. The TV finds your server and signs in as you.
+
+**Only type in a code you can see on your own device.** Whoever shows it gets in as you. Signing a device in as an administrator asks for the administrator's password again.
+
+A device connected this way counts as away from home: it gets the [limits for viewers away from home](REMOTE.md#limits-for-viewers-away-from-home).
 
 ## Signing in
 
 ### Sign in with a code
 
-The easy way on a TV, with no typing of passwords. There are two ways round.
+The easy way on a TV, with no password to type. There are two ways round.
 
 **The device asks for a code:**
 
-1. On a phone or computer already signed in, open the menu under your name and choose **Sign in a TV**.
-2. Under **Your TV asks for a code**, choose who to sign in as, if you're offered a choice, and press **Get a code**. An adult has to do this.
+1. On a phone or computer already signed in, open your account menu and choose **Sign in a TV**.
+2. Under **Your TV asks for a code**, choose who to sign in as, and press **Get a code**. An adult has to do this.
 3. Type the 6 digits on the device. On a TV, arrows and OK work the number pad.
 
 The code works once, for 5 minutes. Anyone who sees it could use it, so get it when you're ready.
@@ -196,36 +172,61 @@ The code works once, for 5 minutes. Anyone who sees it could use it, so get it w
 2. On a phone or computer already signed in, scan the QR code, or open **Sign in a TV** and type the code under **Your TV shows a code**.
 3. Check the device it names, and press **Sign it in** or **Refuse**.
 
-**Only approve a code if you're looking at it on your own device right now.** Someone can send you their code and ask you to approve it. Approving signs their device in as you. See [Remote access](REMOTE.md#letting-other-people-in).
+**Only approve a code you're looking at on your own device, right now.** Someone can send you their code and ask you to approve it. Approving signs their device in as you. See [Remote access](REMOTE.md#letting-other-people-in).
 
 ### With a password
 
-Choose **Use a password instead**, pick your profile or type your name, and enter your password. If your account uses two-factor sign-in, use a code instead on the native apps.
+Choose **Use a password instead**, pick your profile or type your name, and enter your password. If your account uses two-factor sign-in, the app then asks for the six digits from your authenticator app.
 
 ### If the app warns about the server
 
 Apps remember each server's identity. If a different one answers at the same address, you see **This isn't the server you used before**, and nothing is sent to it.
 
-It could be your server after a reinstall, or a look-alike. To check, compare the fingerprint with the one at the bottom of the **Sign in a TV** page on your server. Only choose **This is my server, trust it** if you know why it changed.
+It could be your server after a reinstall, or a look-alike. Compare the fingerprint with the one at the bottom of the **Sign in a TV** page on your server. Only choose **This is my server, trust it** if you know why it changed.
 
-The first connection trusts whatever it's shown, so comparing the fingerprint is worth doing once. HTTPS protects against this too.
+The first connection trusts what it's shown, so comparing the fingerprint once is worth it. HTTPS protects against this too.
+
+## Big screens
+
+![TV mode: Home, Libraries, Games, Live TV and Search along the top, You at the right, and the libraries as large tiles](images/tv-mode.webp)
+*TV mode's Libraries.*
+
+**TV mode** lays the web app out for a TV across the room. Everything is large, and a ring shows what's selected. It works with a TV remote, a game controller, a keyboard, a mouse or a touch screen.
+
+- Turn it on with **TV mode** in your account menu, or in **Settings → Appearance**. It applies to that device only.
+- On a TV browser with no easy way to Settings, add `?tv=1` to the server's address. `?tv=0` turns it off.
+- To leave it, open **You** and choose **Leave TV mode**.
+- The apps on Android TV, Apple TV and Plasma Bigscreen are laid out this way by themselves.
+
+**Couch mode** is for games on a sofa. It shows only your game libraries, full screen, with nothing that needs a mouse. Open it with **Couch mode** on a games library, or go to `/big` on your server. See [Games](GAMES.md).
+
+For moving around with a remote or a controller, see [TV remotes and controllers](PLAYING.md#tv-remotes-and-controllers).
 
 ## Moving to another server
 
 - **Desktop app:** **Change server** in the title bar. It signs out of the server you're leaving.
-- **Android:** **Change server** on the sign-in screen and on your Profile. To come back, you need to sign in again.
+- **Android and Apple:** **Change server** on the sign-in screen and under **You**. To come back, sign in again.
 
-**Sign out** on Android ends the sign-in on the server too.
+**Sign out** in an app ends that sign-in on the server too.
+
+## Other apps from this project
+
+**WittyMediaPlayer** and **WittyReader** work on their own. **Neither connects to your server.** Use them for files on the computer in front of you.
+
+- **WittyMediaPlayer** plays video, audio, DVDs and Blu-rays on your own computer, with real disc menus, from a drive, an image or a folder. It can also make a disc image to add to a library. It's for Windows 10 version 1809 or newer for now. Get it from the [WittyMediaPlayer releases page](https://github.com/wittywilla/WittyMediaPlayer/releases).
+- **WittyReader** reads and annotates books, PDFs and comics on your own device, with the same readers as the server. Nothing is uploaded. There are installers for Windows, Mac and Linux. Get it from the [WittyReader releases page](https://github.com/wittywilla/WittyReader/releases).
+
+To read books that are on your server, open them in a browser or the app: see [Books](BOOKS.md).
 
 ## Removing an app
 
 - **Windows:** **Settings → Apps → Installed apps**. It asks whether to delete your settings and sign-ins too.
-- **Mac:** **Uninstall WittyMediaClient.command** on the disk image. This has not been run on a real Mac yet.
+- **Mac:** **Uninstall WittyMediaClient.command** on the disk image.
 - **Linux:** your package manager. An AppImage is one file you delete.
 - **FreeBSD:** run `wittymediaclient --uninstall`.
-- **Android:** as for any other app.
+- **Android, iPhone, iPad and Apple TV:** as for any other app.
 
-Removing an app never touches your server or your media.
+Removing an app never touches your server or your media. [Uninstalling](UNINSTALL.md#removing-the-apps) has every folder each app keeps.
 
 ---
 

@@ -55,7 +55,7 @@ Some parts need others, because their numbers refer to each other. Watch history
 These are never in a backup, whatever you tick:
 
 - **Your media files.**
-- **Programs:** modules and their helpers, game cores and BIOS files. A backup can never put a program on your machine. After a restore, install modules again under **Settings → Modules**, and add cores and BIOS files again under **Settings → Consoles & cores**. Which modules were on and how they update does come back.
+- **Programs:** modules and their helpers, game cores and BIOS files. A backup can never put a program on your machine. After a restore, install modules again under **Settings → Modules**, and add cores and BIOS files again under **Settings → Games & emulators → Consoles & cores**. Which modules were on and how they update does come back.
 - **Sign-ins.** Everyone signs in again after a restore.
 - **Game PC pairings and custom cores.** Pair and add them again.
 - **HTTPS certificates.**

@@ -128,7 +128,7 @@ An empty one goes with the rest. A silent removal and `apt purge` leave these if
 
 ## macOS
 
-This has not been run on a real Mac yet.
+The uninstaller app hasn't yet been opened on a real Mac. Its command-line form, `wittymediaserver --uninstall`, runs on GitHub's Mac machines.
 
 **To remove it:**
 
@@ -374,7 +374,7 @@ pw userdel wms
 
 ## Removing the apps
 
-Each app removes itself, and none of them touches your media or your server. On Windows these removals have run under Wine, and the Linux ones in containers. On a Mac, nothing has been run yet.
+Each app removes itself, and none of them touches your media or your server. On Windows these removals have run under Wine, and the Linux ones in containers.
 
 ### WittyMediaClient
 
@@ -385,11 +385,13 @@ Each app removes itself, and none of them touches your media or your server. On 
 | **Debian, Ubuntu** | `sudo apt remove wittymediaclient` | Your own settings: see below |
 | **Fedora and relatives** | `sudo dnf remove wittymediaclient` | Your own settings: see below |
 | **Arch and relatives** | `sudo pacman -R wittymediaclient` | Your own settings: see below |
-| **KDE Plasma Big Screen** | The package manager for its distribution, as above. Big Screen has no uninstall screen of its own, so this needs a keyboard, or KDE Connect from a phone | Your own settings: see below |
+| **KDE Plasma Bigscreen** | The package manager for its distribution, as above. Bigscreen has no uninstall screen of its own, so this needs a keyboard, or KDE Connect from a phone | Your own settings: see below |
 | **FreeBSD** | `wittymediaclient --uninstall` lists what it found, and asks about the program and your settings separately. `sudo pkg delete wittymediaclient` removes the program alone | FreeBSD's Electron and a font, as other programs may use them: `sudo pkg autoremove` removes them if nothing does |
 | **AppImage** | Delete the file | Your own settings: see below |
+| **Flatpak** | `flatpak uninstall com.wittywilla.wittymediaclient`. Add `--delete-data` to take your settings too | Your settings, unless you added `--delete-data` |
+| **Snap** | `sudo snap remove wittymediaclient`. Add `--purge` to take your settings too | Snap keeps a snapshot of your settings for a while, unless you added `--purge` |
 | **Android, Android TV** | Long-press the app and choose **Uninstall**, or use **Settings → Apps**. Android deletes its data with it | Nothing |
-| **iPhone, iPad, Apple TV** | Hold the app and choose **Delete**. The system deletes its data with it. These apps haven't been compiled yet | Nothing |
+| **iPhone, iPad, Apple TV** | Hold the app and choose **Delete**. The system deletes its data with it | Nothing |
 
 - **For scripts on Windows:** `"Uninstall WittyMediaClient.exe" /S` keeps your settings, and `/S /RemoveData` doesn't.
 - **On a Mac:** add `--dry-run` to the uninstaller to see the list and stop.

@@ -174,7 +174,7 @@ Games/
 
 - Zipped games work, and a `.cue` or `.m3u` keeps a multi-file game together.
 - Some consoles need a BIOS file from a console you own. Put them in a folder named `BIOS` inside that console's games folder. It's never listed as a game.
-- Each console needs a core, the program that plays its games. Install one under **Settings → Consoles & cores**.
+- Each console needs a core, the program that plays its games. Install one under **Settings → Games & emulators → Consoles & cores**.
 - Encrypted game files are detected and refused.
 - Anything the scan can't be sure of is listed under **Needs a look** on the library's page.
 

@@ -2,26 +2,33 @@
 
 A theme changes how WittyMediaServer looks: its colours, its corners, even its font. This guide helps you pick one, or make your own in a few lines with no code.
 
-## A look is an experience and a theme
+## A look is a layout and a theme
 
-Two separate choices make a look. The **experience** is the layout, shape, finish, type and motion (fourteen ship: [Experiences](SDUI.md#experiences)); the **theme** is colour and scene. Each experience wears a default theme (Lumen: Witty, Rail: Cinema, Stage: Midnight, Aero: Aero Day, Classic Cable: Cable blue, Retro: Teletext, and so on), and any experience can wear any theme, built in or imported. The order for each part: what an administrator **requires** (for everyone, for kids or for one profile; shown locked with who set it), then the person's own choice, then the server's, then, for the theme, the experience's own default. The server works it out and sends it finished: `look` in `GET /theme`.
+What you see is two choices:
 
-**Import a theme** is under **Settings → Appearance** and in the first run's Theme step: an administrator can install a ZIP (`POST /themes`), and when the administrator allows it (`profileThemes` in the experience policy) each profile can import its own. Imported themes work in every experience. A ZIP whose `theme.css` holds anything but variables is refused with the offending rule named. There are fifteen built-in themes: Witty, Midnight, Cinema, Evergreen, True black, Light, Paper, High contrast, Aero Day, Aero Aurora, Aero Meadow, Aero Sunset, Cable blue, Satellite and Teletext.
+- **The layout** says where the menu sits (along the top, down the side, or both), how pages are arranged, and their shapes, finish and type. Fourteen come with the server: Lumen, Rail, Stage, Aero, Classic, Classic Cable, Classic Satellite, Compact, Paper, Crossbar, Marquee, Big picture, Dashboard and Retro. Each works on a TV, a phone, a tablet, a computer and a headset.
+- **The theme** is the colours. Fifteen come with the server: Witty, Midnight, Cinema, Evergreen, True black, Light, Paper, High contrast, Aero Day, Aero Aurora, Aero Meadow, Aero Sunset, Cable blue, Satellite and Teletext.
+
+Any layout can wear any theme. Each layout has a theme of its own that it wears until you choose another: Lumen wears Witty, Stage wears Midnight, Retro wears Teletext, and so on.
+
+**Who decides.** First-time setup picks the layout and theme everyone starts with. Each person can then choose their own, per device, in **Settings → Appearance**. An administrator can **require** a layout, a theme or both, for everyone, for Kids profiles or for one profile, under **Settings → Pages & menu → Looks**. A required choice shows a lock, and who set it. The most specific one wins: a profile's over the kids', over everyone's.
+
+**Importing a theme.** An administrator can install a theme ZIP under **Settings → Appearance**, or in setup's Theme step. When the administrator allows it, each profile can import its own. An imported theme works with every layout. A ZIP whose `theme.css` holds anything but variables is refused, with the rule named.
 
 ## Changing your theme
 
-
-
-
-
 ![The home page in the Midnight theme](images/theme-midnight-home.webp)
 *The Midnight theme. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
+
 ![A Movies library in the Paper theme](images/theme-paper-movies.webp)
 *The Paper theme. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
+
 ![The home page in the Cinema theme](images/theme-cinema-home.webp)
 *The Cinema theme. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
+
 ![The home page in the Light theme](images/theme-light-home.webp)
 *The Light theme. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
+
 1. Open **Settings → Appearance**.
 2. Point at a theme, or move to it with the keyboard or a remote, to see it in the large preview at the top. Click it, or press Enter or OK, to use it. It applies straight away, on this device only, and other devices aren't affected.
 
@@ -38,7 +45,7 @@ Two separate choices make a look. The **experience** is the layout, shape, finis
 | Paper | Warm off-white and rust, easy on the eyes by day |
 | High contrast | Black and white with bright yellow, for the clearest reading |
 
-If you were using one of the older colour themes, such as Dark Red, you've been moved to the closest of these. A theme you made yourself stays.
+To change the layout instead, use **Look** on the same page: choose a layout, then its colours.
 
 ## Making a theme in the app
 

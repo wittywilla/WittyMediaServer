@@ -80,7 +80,7 @@ TV in when someone approves it from a phone and types the PIN the TV shows. What
   wrong codes, and never answers the PIN or the device's secret.
 - **The older, code-only way.** `/api/pair/start` still signs a device in with its 8-letter code and no PIN,
   for apps that haven't been updated, and a device chooses which to ask for. An owner who wants the PIN always
-  turns on `pairRequirePin` (Settings → Signing in): `/api/pair/start` then answers 426.
+  turns on `pairRequirePin` (Settings → Profiles → Signing in): `/api/pair/start` then answers 426.
 - **What is written down.** Every approval, refusal, wrong PIN, lock-out and refused password is logged under
   `auth` with the device, the account and the address.
 

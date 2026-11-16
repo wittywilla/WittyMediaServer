@@ -24,7 +24,7 @@ FFmpeg comes with the download, so there's nothing else to install first, apart 
 
 Everything is on the project's [Releases page](https://github.com/wittywilla/WittyMediaServer/releases). Most people want the installer. Each file name starts `wittymediaserver-<version>-`, followed by what's in the table.
 
-These files are the server, for the computer that holds your media. **For a phone, a TV or another computer, you don't install the server.** Open the server's address in a web browser, or use the app, [WittyMediaClient](https://github.com/wittywilla/WittyMediaClient/releases), which has its own Releases page. The app is written for Windows, macOS, Linux, FreeBSD, Android, Android TV, iOS, tvOS and Plasma Big Screen, but it's early: Android has been run on emulators only, and iOS and tvOS have never been built. A web browser is the way to reach everything today. [Apps and devices](APPS.md) has the state of each device.
+These files are the server, for the computer that holds your media. **For a phone, a TV or another computer, you don't install the server.** Open the server's address in a web browser, or use the app, [WittyMediaClient](https://github.com/wittywilla/WittyMediaClient/releases), which has its own Releases page. It's for Windows, macOS, Linux, FreeBSD, Plasma Bigscreen, Android, iPhone, iPad and Apple TV. [Apps and devices](APPS.md) has how far each has been run.
 
 | System | Installer | Without installing |
 |---|---|---|
@@ -43,8 +43,8 @@ Each release also has `SHA256SUMS.txt`, a list of every file's checksum, and `SH
 
 | System | How far it has been run |
 |---|---|
-| **Windows** | The `.msi` has been installed on Windows 11, and upgraded and removed under Wine. Before each release it's installed over the one before on GitHub's Windows machines, for everyone, for one account and as a service, with the server running. The ARM64 `.msi` was built once and hasn't been checked |
-| **macOS** | Never built or run. This has not been run on a real Mac yet |
+| **Windows** | 0.8.0-alpha has been built and run on a Windows 11 PC. The `.msi` has been installed on Windows 11, and upgraded and removed under Wine. Before each release it's installed over the one before on GitHub's Windows machines, for everyone, for one account and as a service, with the server running. The ARM64 `.msi` was built once and hasn't been checked |
+| **macOS** | 0.8.0-alpha was built and tested on a Mac with Apple silicon (macOS 27), and used there with a real library. Every test passes there. The `.pkg` is installed, run and removed on GitHub's Mac machines, on both chips. It hasn't yet been installed by a person on a real Mac, and the menu-bar app hasn't been opened. See [macOS](MACOS.md) |
 | **Linux** | The `.deb` and `.rpm` have been installed, upgraded and removed on Debian trixie, Ubuntu 26.04 and Fedora 43, on amd64, in containers with systemd running. The `arm64`, `armv7` and `386` packages haven't been run. **The AppImage, the Flatpak and the snap are new in 0.8.0-alpha and have never been built or run**: use the `.deb`, the `.rpm` or the `.tar.gz` for anything you rely on |
 | **FreeBSD** | The amd64 package and its service have been installed, upgraded and removed in FreeBSD 14.4 and 15.1 virtual machines. Real hardware and arm64 haven't been tried, modules have only been built for it, and a film hasn't been played there |
 | **Docker** | The amd64 image has been built and run in WSL, locked down, as several users, upgraded from 0.6.2-alpha, with NVENC through WSL. arm64 and armv7 have been built, not run. No NAS yet. See [Docker](DOCKER.md#what-has-been-tried) |
@@ -93,8 +93,6 @@ msiexec /i wittymediaserver-<version>-windows-amd64.msi /qn MSIINSTALLPERUSER=""
 
 ## macOS
 
-This has not been run on a real Mac yet.
-
 1. Open the `.pkg`. If the Mac refuses it, see [Warnings you'll see](#warnings-youll-see).
 2. Go through the installer. It puts **WittyMediaServer** and **Uninstall WittyMediaServer** in Applications, and the `wittymediaserver` command in `/usr/local/bin`.
 3. **Customize** lets you leave out **Run in the background**, which otherwise starts the server when the Mac starts, as the person who installed it, even when nobody is signed in. Without it, the server runs while the app is open.
@@ -103,7 +101,7 @@ Your library, accounts and settings are in `~/Library/Application Support/WittyM
 
 Running a newer `.pkg` updates it in place, and takes over from what the `install.sh` of 0.5.2-alpha or older put in `/opt`, keeping its library.
 
-**A limit on a Mac.** A module's helper program runs in Apple's own sandbox, which hasn't been run on a real Mac yet, and Settings, Modules says if it couldn't be used. So a module from another publisher can't be chosen on a Mac for now. See [Modules](MODULE-STORE.md#using-someones-fork).
+**A limit on a Mac.** A module's helper program runs in Apple's own sandbox. **Settings → Modules** says if it couldn't be used, and a module from another publisher never starts without it. See [What limits a module](MODULE-STORE.md#the-sandbox-on-each-system).
 
 **Without installing.** Unpack the `.tar.gz` and open `WittyMediaServer.app`.
 

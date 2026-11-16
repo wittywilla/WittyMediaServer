@@ -85,7 +85,7 @@ It's based on Debian 13 (trixie) slim, because the game cores are built for glib
 | In the container | What it holds | Mount it |
 |---|---|---|
 | `/config` | Everything the server keeps: database, settings, accounts, artwork, logs, modules and game cores, and video being transcoded (`/config/transcode`). Back it up | Read-write. Not `noexec`: modules run from it. On a NAS, an SSD if you have one |
-| `/media`, or folders under it | Your media | Read-only (`:ro`) is fine, unless you want the server to save posters and NFO files next to your videos (**Settings → Metadata → Save information and artwork next to your media**) |
+| `/media`, or folders under it | Your media | Read-only (`:ro`) is fine, unless you want the server to save posters and NFO files next to your videos (**Settings → Metadata agents → Save information and artwork next to your media**) |
 | `/tmp` | Small temporary files | A `tmpfs`, needed with a read-only root |
 | `/config/transcode` | Video while it's being converted, a few GB at most | Optional: mount a RAM disk or SSD here (or set `WMS_TRANSCODE_DIR`) on a NAS with slow disks |
 

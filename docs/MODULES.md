@@ -31,7 +31,7 @@ To add, update or remove modules on a server, see [Modules and the store](MODULE
 - [Overrides, custom modules and installing from a file](#overrides-custom-modules-and-installing-from-a-file)
 - [How the apps use modules](#how-the-apps-use-modules)
 
-**Modules work with WittyMediaServer 0.6.0-alpha and later, and nothing older.** `minServer` 0.6.0-alpha is the start of the line, and a server takes module API 5 only ([MODULES-API5.md](MODULES-API5.md)). The server refuses a version built for anything else, and says why. A later server may keep running a module if its range says it fits, but nothing promises that until the beta.
+**A server takes module API 5 only** ([MODULES-API5.md](MODULES-API5.md)). It refuses a version built for any other API, and says why. `minServer` can't name anything older than 0.6.0-alpha. A later server may keep running a module if its range says it fits, but nothing promises that until the beta.
 
 **Two numbers that aren't the same.** The *module API* (`api` in a manifest, 5 today, `wittymodule.API`) is the contract between a server and its modules. The *client API revision* (`apiRevision`, in [Client API](CLIENT-API.md)) is the one apps use, and has nothing to do with this.
 
@@ -556,7 +556,7 @@ A forked game runner goes through the same limits, and may also write to its own
 - Because one key is shared, the signing job refuses a checksum list naming anything but its own module and version, and required approval on the `release` environment, with a protection rule on `v*` tags, is strongly recommended.
 - Forks have keys of their own, good for one module only.
 
-If a module key leaks, remove it from `moduleKey` and release a new server, and any version it signed stops being trusted. The owner's steps are in `docs/MODULES-CUTOVER.md`.
+If a module key leaks, remove it from `moduleKey` and release a new server, and any version it signed stops being trusted. The owner's steps are in [The module key](PUBLISHING.md#the-module-key).
 
 ## Which systems
 

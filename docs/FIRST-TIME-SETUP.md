@@ -23,7 +23,7 @@ There are always fourteen steps, and a list of them sits beside the page: a tick
 | 13 | [Remote access and apps](#13-remote-access-and-apps) | Always |
 | 14 | [Ready](#14-ready) | Always |
 
-The pictures show what each page holds. They were taken before the current looks, so the colours and shapes on your screen will differ. The page itself wears the look and theme you're trying, as you choose them.
+The pictures show what each page holds. The page itself wears the look and theme you're trying, as you choose them, so its colours and shapes may differ from these.
 
 - [Before you start](#before-you-start)
 - [With a remote, a controller or the keyboard](#with-a-remote-a-controller-or-the-keyboard)
@@ -49,7 +49,7 @@ Install the server first: [Getting started](GETTING_STARTED.md#install-it-and-st
 
 Choose a **name to sign in with**, and optionally the **name people see** (what this profile is called around the app), and a **password** of at least 8 characters, typed twice. **Show what I'm typing** helps on a TV. Tick the box to say that the files you add are your own responsibility, then press **Create account**. On another device, the setup code goes here too.
 
-**Two-step sign-in (recommended)** is a tick under the password. If you tick it, the next page shows a QR code for an authenticator app (or a key to type), asks for the six digits it shows, then shows eight recovery codes, **once**: save them. Each works once in place of a code if you lose your phone. **Skip for now** leaves it off; it can be turned on later in **Settings → Security**. See [Accounts](ACCOUNTS.md).
+**Two-step sign-in (recommended)** is a tick under the password. If you tick it, the next page shows a QR code for an authenticator app (or a key to type), asks for the six digits it shows, then shows eight recovery codes, **once**: save them. Each works once in place of a code if you lose your phone. **Skip for now** leaves it off; it can be turned on later in **Settings → Sign-in & security**. See [Accounts](ACCOUNTS.md).
 
 Keep the password somewhere safe: [forgetting it is hard to undo](ACCOUNTS.md#if-you-forget-your-password).
 
@@ -94,7 +94,7 @@ A look is the layout, shapes, finish and type: how pages are arranged and how th
 | Dashboard | Widgets | Midnight |
 | Retro | Teletext | Teletext |
 
-What you pick is where everyone starts, on every kind of device. People can pick their own later, unless you require one (see [People and rules](#12-people-and-rules)). Each look works on TVs, phones, tablets and computers. See [Themes](THEMES.md#a-look-is-an-experience-and-a-theme).
+What you pick is where everyone starts, on every kind of device. People can pick their own later, unless you require one (see [People and rules](#12-people-and-rules)). Each look works on TVs, phones, tablets and computers. See [Themes](THEMES.md#a-look-is-a-layout-and-a-theme).
 
 Beside the choices, a picture of the look you're trying shows how its menu and Home sit on a **TV**, **Desktop**, **Phone** and **Headset**, in its own colours.
 

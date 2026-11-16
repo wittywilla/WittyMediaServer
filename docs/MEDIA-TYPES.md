@@ -31,7 +31,7 @@ You add a library under **Settings → Libraries → Add library**. A kind of li
 
 - The format table has only been run on Linux.
 - Safari, phones, hardware decoding of HEVC and HDR screens have not been checked.
-- The web app is the most complete way to use all of this, in any browser. The native apps cover less, and [Apps and devices](APPS.md) says what each one does. Android has only run on emulators, and the Apple apps have never been built.
+- The web app is the most complete way to use all of this, in any browser. WittyMediaClient draws the same pages on every platform. Where an app can't play something yet, it says so. [Apps and devices](APPS.md) says how far each device has been run.
 
 ## Films
 
@@ -128,7 +128,7 @@ See [Books and comics](BOOKS.md).
 ## Games
 
 - **Library:** Games, for one console or one folder holding many. Needs **WittyPlay**, plus a core for each console and any BIOS it needs.
-- **Files:** your own game files, as they are or in archives. **Settings → Consoles & cores** lists what this server can play.
+- **Files:** your own game files, as they are or in archives. **Settings → Games & emulators → Consoles & cores** lists what this server can play.
 - **Playing:** games run on the server and stream to a browser, with your controller. Playing on the device itself isn't built. Firefox, Safari, phones, TVs and real networks haven't been tried for game streaming.
 - **Resume:** saves and memory cards follow your account.
 - **Details:** box art and details from game databases, as you choose.

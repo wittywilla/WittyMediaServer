@@ -13,7 +13,7 @@ For developers changing the server. This page covers how to build it, test it an
 | Tool | Version | Get it |
 |---|---|---|
 | Go | 1.26 or newer | [go.dev](https://go.dev/dl/) |
-| Node.js | 22 or newer | [nodejs.org](https://nodejs.org/) |
+| Node.js | 24, as CI uses | [nodejs.org](https://nodejs.org/) |
 | FFmpeg | any recent build | [ffmpeg.org](https://ffmpeg.org/download.html), or the copy inside a release archive |
 | Git | any | [git-scm.com](https://git-scm.com/downloads) |
 
@@ -97,8 +97,10 @@ CI also runs these, which you can run yourself from the top of the repository:
 ```bash
 python3 scripts/theme-contrast.py && python3 scripts/design-tokens.py --check && python3 scripts/design-check.py
 bash scripts/check-executable.sh
-node --experimental-strip-types --test web/src/ui/spatial.test.mjs web/src/ui/themeMaker.test.mjs web/src/shell/navModel.test.mjs web/src/safeLink.test.mjs web/src/pages/setup/plan.test.mjs web/src/pages/tv/tvThemes.test.mjs web/src/pages/settings/searchIndex.test.mjs web/src/pages/games/emulatorsLogic.test.mjs
+node --experimental-strip-types --test web/src/ui/spatial.test.mjs web/src/shell/navModel.test.mjs web/src/pages/setup/plan.test.mjs web/src/sdui/model.test.mjs
 ```
+
+That's a few of the web app's own tests. The `web` job in `.github/workflows/ci.yml` has the full list.
 
 **Scripts made or changed on Windows** lose their executable bit in git, and `check-executable.sh` fails on them. Give it back with `git update-index --chmod=+x <file>`, or add a new script with `git add --chmod=+x <file>`.
 
@@ -112,19 +114,20 @@ node --experimental-strip-types --test web/src/ui/spatial.test.mjs web/src/ui/th
 | `cmd/wittymediaserver-tray` | The app people open: the tray or menu-bar icon |
 | `cmd/wittymediaserver-uninstall` | The uninstaller with windows and buttons, on Windows and macOS |
 | `cmd/wms-forwarder` | Ships as `wms` in archives only, so a copy of 0.5.2-alpha can update |
+| `cmd/wittyconnect`, `pkg/wittyconnect` | Peer-to-peer connections, for reaching a server from away: [P2P](docs/P2P.md) |
 | `internal/server` | The HTTP API |
 | `internal/library` | Libraries, the scanner, TV parsing, metadata agents, NFO reading and writing |
-| `internal/modules` | The module manager, the catalogue and the helpers' sandbox |
+| `internal/modules` | The module manager, the catalogue, the helpers' sandbox, and what a Module API 5 module brings: its routes, screens, data and setup steps. See [Module API 5](docs/MODULES-API5.md) |
+| `pkg/sdui` | Server-driven screens: the pages every app draws. See [SDUI](docs/SDUI.md) |
 | `internal/hls`, `internal/ffmpeg` | On-demand transcoding, and choosing an encoder |
 | `internal/dvdsession`, `internal/bdsession` | Turning a disc engine's steps into what the browser shows |
-| `internal/play` | The server's side of games: generated stubs for WittyPlay |
 | `internal/mediatypes` | Every file type. [Supported formats](docs/SUPPORTED-FORMATS.md) is generated from it |
 | `internal/layout` | What a package holds, and what each program is called |
 | `internal/uninstall` | Removing everything, on every system |
 | `internal/themes`, `themes/` | Theme ZIP handling, and the built-in themes |
-| `packaging/` | The installers: MSI, `.deb`, `.rpm`, `.pkg` |
+| `packaging/` | The installers: MSI, `.deb`, `.rpm`, AppImage, Flatpak, snap, and the macOS and FreeBSD `.pkg` |
 | `scripts/` | Developer tools, none of which ship: [its README](scripts/README.md) |
-| `web/src` | The React and TypeScript interface |
+| `web/src` | The React and TypeScript web app: the shell (top bar, side menu, layouts), setup, Settings, and the renderer for server-driven screens |
 | `docs/` | The guides. The web app bundles them as its Help |
 
 ## Guidelines
@@ -144,10 +147,11 @@ node --experimental-strip-types --test web/src/ui/spatial.test.mjs web/src/ui/th
 
 ## Sending a change
 
-1. Fork the repository on GitHub and clone your fork.
-2. Create a branch: `git checkout -b fix-menu-highlight`.
-3. Commit with a clear message, push, and open a pull request against `master`.
-4. CI runs the checks above.
+1. Open an issue first, or find the one for your change.
+2. Fork the repository on GitHub and clone your fork.
+3. Create a branch: `git checkout -b fix-menu-highlight`.
+4. Commit with a clear message, push, and open a pull request against `master`, or against the release branch while one is open, such as `v0.8.0-alpha`. Say `Closes #<issue>` in it.
+5. CI runs the checks above. A pull request is merged with a merge commit titled `Merge #<number>: <title>`.
 
 New to Git and GitHub? [Publishing changes](docs/PUBLISHING.md) walks through it.
 

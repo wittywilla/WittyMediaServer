@@ -174,7 +174,7 @@ On the approval page, a wrong PIN or password leaves the request open and puts y
 
 **Signing a device in as an administrator asks for your password again.** A phone left unlocked, or a sign-in someone else got hold of, could otherwise put a new device on the server with every right you have. So when you're an administrator and you approve a device as yourself, the page asks for your password (and your authenticator code, if you use one). Signing it in as a Kids or Guest profile doesn't ask.
 
-**To allow only the PIN way,** turn on **Settings → Signing in → Only sign devices in with a PIN**. A device then can't be signed in with a code alone. It's off by default because older apps can only show a code.
+**To allow only the PIN way,** turn on **Settings → Profiles → Signing in → Only sign devices in with a PIN**. A device then can't be signed in with a code alone. It's off by default because older apps can only show a code.
 
 The page also shows this server's fingerprint. If the app shows one, the two should match. [Apps and devices](APPS.md#signing-in) has what each app shows. The native apps don't yet ask for a two-factor code with a password, so an account with two-factor sign-in uses a code there.
 

@@ -22,32 +22,34 @@
   <a href="CHANGELOG.md">What's new</a>
 </p>
 
-> **Alpha.** Version 0.8.x-alpha versions are still changing quickly and can fail or lose data. Keep backups, and back up your data folder before you upgrade. A MAJOR currently known issue is Emulation isn't working. This is due to a new streaming pipeline to work with our newly created iOS and tvOS builds (due to apple being very restrictive on what we can and can't run on those platforms). Right now, the new WittyMediaClient apps crash if games are attempted, and the browser will just perpetually load. 0.6.x Alpha versions still work with emulation, but still suffer from the connection issue dialogue not going away. 
+> **Alpha.** 0.8.x-alpha is still changing quickly. It can fail or lose data. Keep backups, and back up your data folder before you upgrade.
+>
+> **Known issue: games don't play yet.** Games moved to a new streaming pipeline, so they can play on iPhone, iPad and Apple TV, where Apple limits what an app may run. In WittyMediaClient, starting a game closes the app. In a browser, it keeps loading. 0.6.x-alpha still plays games, but its notice about connection problems doesn't go away.
 
 ## Install
 
-Install the server on the computer or NAS that holds your media. Downloads are on the **[Releases page](https://github.com/wittywilla/WittyMediaServer/releases)**, and FFmpeg comes with them. When it's running, open `http://<that computer>:9797/` in a browser to set it up.
+Install the server on the computer or NAS that holds your media. Downloads are on the **[Releases page](https://github.com/wittywilla/WittyMediaServer/releases)**. FFmpeg comes with them. When it's running, open `http://<that computer>:9797/` in a browser to set it up.
 
 | On | Do this | Full guide |
 |---|---|---|
-| **Windows** 10 or 11 | Download `windows-amd64.msi` (`arm64` for ARM PCs), open it, and choose who it's for. Setup opens in your browser | [Windows](docs/INSTALL.md#windows) |
-| **macOS** 11 or later | Download `macos-arm64.pkg` (Apple silicon) or `macos-amd64.pkg` (Intel), open it, then open **WittyMediaServer** from Applications. *Not yet run on a real Mac* | [macOS](docs/INSTALL.md#macos) |
-| **Debian, Ubuntu** | `sudo apt install ./wittymediaserver-<version>-linux-amd64.deb`: the service is running | [Linux](docs/INSTALL.md#linux) |
-| **Fedora, RHEL** | `sudo dnf install ./wittymediaserver-<version>-linux-amd64.rpm`: the service is running | [Linux](docs/INSTALL.md#linux) |
-| **Any other Linux** | Unpack `linux-amd64.tar.gz` (or `arm64`, `armv7`, `386`), then `sudo ./install.sh` for a service, or `./WittyMediaServer` to just run it | [Linux](docs/INSTALL.md#linux) |
+| **Windows** 10 or 11 | Open `windows-amd64.msi` (`arm64` for ARM PCs) and choose who it's for. Setup opens in your browser | [Windows](docs/INSTALL.md#windows) |
+| **macOS** 11 or later | Open `macos-arm64.pkg` (Apple silicon) or `macos-amd64.pkg` (Intel), then **WittyMediaServer** in Applications | [macOS](docs/INSTALL.md#macos) |
+| **Debian, Ubuntu** | `sudo apt install ./wittymediaserver-<version>-linux-amd64.deb`. The service starts by itself | [Linux](docs/INSTALL.md#linux) |
+| **Fedora, RHEL** | `sudo dnf install ./wittymediaserver-<version>-linux-amd64.rpm`. The service starts by itself | [Linux](docs/INSTALL.md#linux) |
+| **Any other Linux** | The AppImage, Flatpak or snap, or unpack `linux-amd64.tar.gz` and run `sudo ./install.sh` for a service | [Linux](docs/INSTALL.md#linux) |
 | **FreeBSD** 14 or later | `pkg add wittymediaserver-<version>-freebsd-amd64.pkg`, `sysrc wittymediaserver_enable=YES`, `service wittymediaserver start` | [FreeBSD](docs/INSTALL.md#freebsd) |
 | **Docker** | `docker run -d -p 9797:9797 -v wms-config:/config -v /path/to/media:/media:ro ghcr.io/wittywilla/wittymediaserver:alpha`, or a [ready compose file](deploy/docker/compose.yml) | [Docker](docs/DOCKER.md) |
 | **A NAS** | Docker, with a guide for each: [UGREEN](docs/DOCKER-UGREEN.md) · [Synology](docs/DOCKER-SYNOLOGY.md) · [QNAP](docs/DOCKER-QNAP.md) · [Unraid](docs/DOCKER-UNRAID.md) · [TrueNAS SCALE](docs/DOCKER-TRUENAS.md) · [Asustor](docs/DOCKER-ASUSTOR.md) | [A NAS](docs/INSTALL.md#a-nas) |
 
-**Then watch from any device.** Every phone, tablet, computer and TV with a browser can open the server's address and use everything. The app, **WittyMediaClient**, adds finding the server by itself and a TV-friendly view. It's early: [Apps and devices](docs/APPS.md) says how far each has been run.
+**Then watch from any device.** Every phone, tablet, computer and TV with a browser can open the server's address and use everything. The app, **WittyMediaClient**, finds your server by itself, has a TV layout, and connects from away with nothing set up on your router.
 
 | Device | Get WittyMediaClient |
 |---|---|
-| Windows, macOS, Linux, FreeBSD, Plasma Big Screen | The installer for your system from the [WittyMediaClient releases page](https://github.com/wittywilla/WittyMediaClient/releases) (`.exe`, `.dmg`, `.deb`, `.rpm`, `.pacman`, `.AppImage`, `.pkg`) |
-| Android phones, tablets and TVs | The `.apk` from the same page, installed by hand (`adb install` on a TV). *Run on emulators only so far* |
-| iPhone, iPad, Apple TV | Not available yet: use the browser. Apple TV has no browser, so it can't be used yet |
+| Windows, macOS, Linux, FreeBSD, Plasma Bigscreen | The installer for your system from the [WittyMediaClient releases page](https://github.com/wittywilla/WittyMediaClient/releases) (`.exe`, `.dmg`, `.deb`, `.rpm`, `.pacman`, `.flatpak`, `.snap`, `.AppImage`, `.pkg`) |
+| Android phones, tablets and TVs | The `.apk` from the same page, installed by hand (`adb install` on a TV) |
+| iPhone, iPad, Apple TV | The `.ipa` from the same page, installed with a sideloading tool that signs it with your own Apple ID |
 
-[Getting started](docs/GETTING_STARTED.md) walks through everything with no command line, and [Installing](docs/INSTALL.md) covers services, updating, and what each download is.
+[Getting started](docs/GETTING_STARTED.md) walks through everything with no command line. [Installing](docs/INSTALL.md) covers services, updating, and what each download is. [Apps and devices](docs/APPS.md) says how far each device has been run.
 
 <!-- hero -->
 <p align="center"><a href="docs/images/home.webp"><img src="docs/images/home.webp" alt="The home page, with a large picture from a film and a row of libraries" width="100%"></a><br><sub>The home page. <a href="https://commons.wikimedia.org/wiki/File:WING_IT!_-_Blender_Open_Movie-full_movie.webm">Wing It!</a>, Blender Studio, <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Everything shown is <a href="docs/images/CREDITS.md">openly licensed</a>.</sub></p>
@@ -63,9 +65,10 @@ Install the server on the computer or NAS that holds your media. Downloads are o
 - **Photos and videos.** A timeline, albums and an offline map, a feed of vertical videos, and creators' videos by channel.
 - **Games.** Your own game files, played in a browser with a gamepad, keyboard or touch.
 - **Everyone at home.** *Who's watching?* profiles with their own progress, and Kids profiles that only show titles for their age.
+- **Your look.** Fourteen layouts and fifteen themes, the same on a TV, a phone and a computer, or a theme of your own.
 - **Yours.** It runs on your computer. No accounts with anyone, no telemetry and no cloud. No media comes with it.
 
-Discs, games, photos, readers and tuners are modules: separate programs you add from a store inside the app, each with its own [repository](docs/REPOSITORIES.md). The server works without any of them.
+Discs, games, photos, readers and tuners are modules: separate programs you add from a store inside the app. Each is its own project, with its own [repository](docs/REPOSITORIES.md), its own database and its own updates. The server works without any of them.
 
 <!-- gallery -->
 ## A look around
@@ -125,17 +128,22 @@ A test server, filled with openly licensed media to show what it can do. No medi
 
 1. [Install it](#install) on the computer or NAS that holds your media.
 2. Open `http://<that computer>:9797/`. On a desktop, the installer opens it for you.
-3. Create your account, point it at your folders and press **Start watching**.
+3. Go through setup: your account, a name for your server, a layout and theme, the modules you want, and your folders. Then press **Start watching**.
 
-[Getting started](docs/GETTING_STARTED.md) has the full walkthrough, and [First-time setup](docs/FIRST-TIME-SETUP.md) shows every page of it with pictures.
+[Getting started](docs/GETTING_STARTED.md) has the full walkthrough. [First-time setup](docs/FIRST-TIME-SETUP.md) shows every page of it.
 
-The server is on your home network only until you turn on **Settings → Remote Access** and follow its steps. See [Remote access](docs/REMOTE.md).
+The server answers on your home network only, until you choose a way in from away in **Settings → Remote Access**. The easiest is **From away**: a device joins with a code, peer to peer, with nothing to set up on your router. See [Remote access](docs/REMOTE.md).
 
 ## Where it has been run
 
-The server is written for Windows, Linux, macOS and FreeBSD, and runs in Docker. Linux gets the most testing, with its packages installed, upgraded and removed on Debian, Ubuntu and Fedora. The Windows installers have been tested under Wine, not on real Windows. Nothing has been run on a real Mac yet. FreeBSD's package and service have run in virtual machines. The Docker image has run in WSL, not yet on a NAS. [What has been tested](docs/INSTALL.md#what-has-been-tested) has the details.
+The server is written for Windows, Linux, macOS and FreeBSD, and runs in Docker.
 
-WittyMediaClient adds Android, Android TV, iOS, tvOS and Plasma Big Screen. Android has been run on emulators only, and iOS and tvOS have never been built. A web browser is the way to reach everything today. See [Apps and devices](docs/APPS.md).
+- **macOS:** 0.8.0-alpha was built and tested on a Mac with Apple silicon. The `.pkg` has been installed on GitHub's Mac machines, not yet by a person on a real Mac.
+- **Windows and Linux:** run on a real PC for 0.8.0-alpha. The Linux packages are installed, upgraded and removed on Debian, Ubuntu and Fedora before each release.
+- **FreeBSD:** the package and its service in virtual machines.
+- **Docker:** the image in WSL, not yet on a NAS.
+
+WittyMediaClient has run on real Android phones, tablets and TVs, a real Apple TV, and desktops. The iPhone app has run in Apple's simulator only. [What has been tested](docs/INSTALL.md#what-has-been-tested) and [Apps and devices](docs/APPS.md) have the details.
 
 ## Guides
 
@@ -173,14 +181,15 @@ WittyMediaClient adds Android, Android TV, iOS, tvOS and Plasma Big Screen. Andr
 | [Modules and the store](docs/MODULE-STORE.md) | Adding, updating and trusting modules |
 | [Remote access](docs/REMOTE.md) | Watching away from home, safely |
 | [Backup and restore](docs/BACKUP.md) · [Repair](docs/REPAIR.md) · [WittyDiagnoser](docs/DIAGNOSER.md) | Keeping it healthy |
-| [Config file and logs](docs/CONFIG.md) · [Statistics](docs/STATS.md) · [Themes](docs/THEMES.md) | Fine tuning |
+| [Themes](docs/THEMES.md) · [Pages and the menu](docs/PAGES.md) | Layouts, colours and what's on each page |
+| [Config file](docs/CONFIG.md) · [Logs](docs/LOGGING.md) · [Statistics](docs/STATS.md) · [Command line](docs/REFERENCE.md) | Fine tuning |
 
-**For developers:** [Contributing](CONTRIBUTING.md), [Repositories](docs/REPOSITORIES.md), [Reference](docs/REFERENCE.md), [Client API](docs/CLIENT-API.md), [Server-driven UI](docs/SDUI.md) and [for modules](docs/SDUI-MODULES.md), [Design 2](docs/design-2/README.md), [Making a module](docs/MODULES.md), [Security model](docs/SECURITY-REVIEW.md) and the [Changelog](CHANGELOG.md).
+**For developers:** [Contributing](CONTRIBUTING.md), [Repositories](docs/REPOSITORIES.md), [Client API](docs/CLIENT-API.md), [Server-driven screens](docs/SDUI.md) and [a module's screens](docs/SDUI-MODULES.md), [Making a module](docs/MODULES.md) and [Module API 5](docs/MODULES-API5.md), [Peer-to-peer connections](docs/P2P.md), [the interface design](docs/design-2/README.md), [Security model](docs/SECURITY-REVIEW.md) and the [Changelog](CHANGELOG.md).
 
 ## Privacy and security
 
 - **No telemetry, no accounts with anyone, no cloud.** Logs stay on your computer and never contain passwords or session tokens.
-- **Your files stay here.** By default, names taken from your file and folder names go to the metadata services you keep switched on, and the server asks GitHub for updates twice a day. **Settings → Legal → Privacy** lists every outside service, what it receives and what controls it.
+- **Your files stay here.** Names taken from your file and folder names go to the metadata services you keep switched on, and the server asks GitHub for updates twice a day. **Settings → Legal → Privacy** lists every outside service, what it receives and what controls it.
 - **Limits by default.** Cross-site requests are refused, feeds and agents can't reach other devices on your network, and modules run in a sandbox where the system offers one.
 - **Copy protection is never bypassed.** Encrypted discs, broadcasts and game files are detected and refused.
 

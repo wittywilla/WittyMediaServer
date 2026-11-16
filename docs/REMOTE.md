@@ -231,7 +231,7 @@ Read this before turning it on. It's the honest list.
 
 1. Go to **Settings → Remote Access → Peer-to-peer connections**. The page lists everyone who'll be contacted. Tick the box and choose **Turn on peer-to-peer connections**. Every way of connecting starts on, the **Public address book** among them: it's how your apps find your server by its ID, and how a TV that has never been at home finds it by a code. In the address book your server announces only its connection ID and its internet address and port, never what's on it or what anyone watches. Each way has its own switch under **Peer-to-peer options**, and one you turn off stays off.
 2. **Pair your devices while they're at home.** Open the app on each phone, TV and laptop while it's on your home network and signed in. Within a minute it adds itself to **Devices that may connect**. That's all: from then on, when the app can't find your server at home, it connects this way by itself.
-3. **A device that isn't at home** (yours while travelling, or a relative's) needs an invite. Choose **Invite a device that isn't at home**, and send them the link or show them the code. In the app they choose **Enter an address** and paste the link. It works once, for fifteen minutes, and signs the device in as you, so send it the way you'd send a password.
+3. **A device that isn't at home** (yours while travelling, or a relative's) needs an invite. Choose **Invite a device that isn't at home**, and send them the link or show them the code. In the app they choose **Join with a link or code** and paste the link, or **Scan a QR code**. It works once, for fifteen minutes, and signs the device in as you, so send it the way you'd send a password.
 4. **A TV that isn't at home** can't take a link in: it has no keyboard worth the name and no camera. In the app on the TV choose **Join from away**. It shows a code of eight letters and digits. Type it into **A TV that shows a code** on this page, with your password, and within a minute or so the TV finds your server and signs in as you. Only type in a code you can see on your own TV: whoever is showing it gets in. It works once, for fifteen minutes, and needs **Public address book** on, as that is how the TV finds your server.
 5. **[Test it](#testing-peer-to-peer-connections).**
 
@@ -450,7 +450,7 @@ Each of these exists for a reason, and each one gives something up. Leave them o
 | **Also count as my home network** | **Remote Access → Advanced** | **Anyone from those addresses is treated as family**: they see profile names and can use password-free profiles, with no HTTPS requirement. A wrong range can mean strangers | List only networks you fully control. Most people should leave it empty |
 | **Trusted reverse proxies**, listed too widely | **Remote Access → Advanced** | **Those machines can claim any visitor address**, so an attacker can claim to be at home and avoid sign-in limits | Only your proxy's exact address |
 | **`-remote-access`, `WMS_REMOTE_ACCESS=1`, `remoteAccess`, or `publicUrl`** | Start-up options and [config file](CONFIG.md) | Devices away from home are let in, and **Home network only** can't be chosen on the page | Choose on the page instead. See [A rented server](#a-rented-server-vps) |
-| **Custom game cores** | `WMS_GAMING_CUSTOM_CORES=1` on the machine, then **Settings → Consoles & cores** | They're programs from outside this project, running on your server. A sandbox limits them, but limits can have bugs | Leave it off, or only use cores you trust, and never from a stranger's link |
+| **Custom game cores** | `WMS_GAMING_CUSTOM_CORES=1` on the machine, then **Settings → Games & emulators → Consoles & cores** | They're programs from outside this project, running on your server. A sandbox limits them, but limits can have bugs | Leave it off, or only use cores you trust, and never from a stranger's link |
 | **Modules from someone's fork, or from another store** | **Settings → Modules** | You're trusting that person with code on your server. The project doesn't check it | Use the project's own modules. If this server is someone else's to run, `WMS_NO_MODULE_FORKS=1` keeps forks off |
 | **`setupFromHome`** | Config file, `-setup-from-home`, `WMS_SETUP_FROM_HOME=1` | Anyone on your network can make the first account on a fresh server and own it | Read the setup code from the console or `setup-code.txt` |
 
@@ -463,7 +463,7 @@ Each of these exists for a reason, and each one gives something up. Leave them o
 | **Do this automatically** (port mapping) | **Remote Access** | You may forget a port is open | [Forward by hand](#forwarding-a-port-on-your-router), or don't |
 | **Game PCs: who may connect, PCs on this server's own network, PCs over the internet** | **Settings → Game PCs** | By default, any adult with no limits can make the server connect to a Sunshine PC on your home network or the internet, and it then handles data from a machine it doesn't control | If you've invited people, allow only admins, and turn off what you don't use |
 | **Ports other than Sunshine's usual one** | **Settings → Game PCs** | Lets adult accounts make the server knock on other services on your network | Leave it off |
-| **UDP port for games** | **Settings → Consoles & cores**, **Settings → Game PCs** | A second port open on the internet | Leave it empty unless games won't connect. See [Games away from home](#games-away-from-home) |
+| **UDP port for games** | **Settings → Games & emulators → Consoles & cores**, **Settings → Game PCs** | A second port open on the internet | Leave it empty unless games won't connect. See [Games away from home](#games-away-from-home) |
 
 ### Worth a thought
 
@@ -530,7 +530,7 @@ Signs include a device or sign-in you don't recognize, an account you didn't mak
 2. **Save the evidence.** Download the logs from **Settings → WittyLog → Download logs**, with **Sanitize for sharing** off so you have the full addresses for yourself, and note the date and what you saw.
 3. **From a different, clean device, change passwords** for your email and your private network's account, and anything that shared a password with this server.
 4. **Check the computer.** Run a full malware scan, and look for programs and accounts you don't recognize. A scan finding nothing doesn't prove the machine is clean. **If you have any real reason to think programs were run on it, the only trustworthy fix is to reinstall the system from scratch** and restore your media from a backup you trust.
-5. **On the server,** sign out every device, delete accounts you don't recognize, delete all share links, change every password and turn on two-factor sign-in. Remove anything under **Custom cores** in **Settings → Consoles & cores**, and anything in **Settings → Modules** that you didn't add, including stores under **Other stores**.
+5. **On the server,** sign out every device, delete accounts you don't recognize, delete all share links, change every password and turn on two-factor sign-in. Remove anything under **Custom cores** in **Settings → Games & emulators → Consoles & cores**, and anything in **Settings → Modules** that you didn't add, including stores under **Other stores**.
 6. **Replace your API keys:** TMDB, TheTVDB, IGDB, RAWG, ScreenScraper, TheGamesDB and any others you added. Revoke the old ones on those services' sites.
 7. **Consider a clean start.** **Settings → Reset** gives you a new install. **Reset doesn't clean the computer**, and if you keep a copy, that copy may hold whatever the intruder changed. Don't bring it back without good reason.
 8. **Check your other devices** on the home network, and change your router's password.
@@ -555,7 +555,7 @@ Signs include a device or sign-in you don't recognize, an account you didn't mak
 - **Some addresses work with no sign-in**, as they must: the sign-in page, basic server information, themes, signing in with a code, and share links. Each is more code a stranger can reach.
 - **There's no web application firewall, and no automatic blocking of bad addresses.**
 - **Server updates aren't automatic.** A fixed bug stays open on your server until you install the fix.
-- **A sandbox limits helpers and game cores. It isn't perfect**, and its protection varies by operating system. On FreeBSD a module's helper program has limits rather than a sandbox, and on macOS Apple's sandbox hasn't been run on a real Mac yet, so modules from other publishers and custom cores can't be used there.
+- **A sandbox limits helpers and game cores. It isn't perfect**, and its protection varies by operating system. On FreeBSD a module's helper program has limits rather than a sandbox, and on macOS a module from another publisher only runs inside Apple's sandbox.
 - **The server can't see your router, your other devices or a stolen phone.**
 
 ## Limits for viewers away from home
@@ -585,7 +585,7 @@ Check a device's address before you sign in on it, and sign out of any device yo
 
 Games use WebRTC, which needs UDP. Most homes need nothing extra: it often finds its own way, with a STUN server if you've set one.
 
-> **Avoid forwarding a UDP port if you can.** It's a second door from the internet. If games won't connect without it, set a fixed port, forward only that port, and close it when you're done. It's **UDP port for WebRTC** under **Settings → Consoles & cores → How games play → Advanced**, and **UDP port** under **Settings → Game PCs → Reaching browsers away from home**.
+> **Avoid forwarding a UDP port if you can.** It's a second door from the internet. If games won't connect without it, set a fixed port, forward only that port, and close it when you're done. It's **UDP port for WebRTC** under **Settings → Games & emulators → Consoles & cores → How games play → Advanced**, and **UDP port** under **Settings → Game PCs → Reaching browsers away from home**.
 
 **A gaming PC at home doesn't need to be on the internet at all**, because the server reaches the PC for you. Keep it that way.
 

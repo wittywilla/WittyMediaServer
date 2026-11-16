@@ -5,6 +5,8 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **First-time setup asks for the language and time zone first,** on a screen before the welcome page. They're saved as soon as the account is made, and the Name and address step shows them again to change. (#385)
+
 ## 0.8.0-alpha
 
 Released 2026-11-16.

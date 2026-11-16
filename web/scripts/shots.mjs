@@ -37,6 +37,18 @@ const key = async (k, code = k, windowsVirtualKeyCode = 0) => {
 }
 const hasVideo = (ms = 60000) => until(`[...document.querySelectorAll('video')].some((v) => v.readyState >= 2 && v.currentTime > 0.5 && v.videoWidth > 0)`, ms, 'the video to play')
 const seek = (t) => page.eval(`(() => { const v = document.querySelector('video'); if (v) v.currentTime = ${t} })()`)
+// A first-visit question (WittyPlay's "Which buttons should we show?", "Getting back to the app"): take its
+// suggestion and close it. Says whether there was one.
+const closeDialogs = async () => {
+  let closed = false
+  for (let i = 0; i < 4; i++) {
+    // The button may carry its key first ("Enter Continue").
+    if (!(await press(/(^|\s)(Continue|Got it|Done|OK)\s*$/, '[role=dialog]'))) break
+    closed = true
+    await wait(1200)
+  }
+  return closed
+}
 const playerGone = async () => { await key('Escape', 'Escape', 27); await wait(400); await press(/Stop playing and close/); await wait(600) }
 
 const scenes = {
@@ -77,7 +89,8 @@ const scenes = {
     const it = await item('Discs', /^Sintel$/)
     await go(`/item/${it.id}`, 3000)
     await shot('dvd-item')
-    await press(/Insert DVD/)
+    // 0.8's disc page plays a disc from its Play button; "Insert DVD" is what earlier pages said.
+    await press(/Insert DVD|^\s*Play\s*$/)
     await wait(1800)
     await shot('dvd-tray')
     await wait(26000)
@@ -90,7 +103,7 @@ const scenes = {
     const it = await item('Discs', /^Sita Sings the Blues$/)
     await go(`/item/${it.id}`, 3000)
     await shot('bluray-item')
-    await press(/Insert Blu-ray/)
+    await press(/Insert Blu-ray|^\s*Play\s*$/)
     await wait(45000)
     await move()
     await shot('bluray-menu')
@@ -175,7 +188,7 @@ const scenes = {
     const pdf = await item('PDFs', /Earth as Art/)
     await go(`/read/${pdf.id}`, 9000)
     await page.eval(`(() => { const e = [...document.querySelectorAll('*')].filter((x) => x.scrollHeight > x.clientHeight + 500 && /auto|scroll/.test(getComputedStyle(x).overflowY)).sort((x, y) => y.scrollHeight - x.scrollHeight)[0]; if (e) e.scrollTop = e.scrollHeight * 0.3 })()`)
-    await wait(7000)
+    await wait(14000) // pages render as they come into view, and a big PDF takes a while on a busy machine
     await shot('reader-pdf')
     for (const [i, f] of [[1, 0.2], [2, 0.35], [3, 0.6]]) {
       await page.eval(`(() => { const e = [...document.querySelectorAll('*')].filter((x) => x.scrollHeight > x.clientHeight + 500 && /auto|scroll/.test(getComputedStyle(x).overflowY)).sort((a, b) => b.scrollHeight - a.scrollHeight)[0]; if (e) e.scrollTop = e.scrollHeight * ${f} })()`)
@@ -187,7 +200,9 @@ const scenes = {
     await page.eval(`window.scrollTo(0, 0)`)
     const comic = (await items('Comics')).find((i) => /Pepper&Carrot 0?6\b|Pepper&Carrot 06/.test(i.title)) || (await items('Comics'))[0]
     await go(`/read/${comic.id}`, 6000)
-    await key('ArrowRight', 'ArrowRight', 39); await wait(2500)
+    // Past the episode's title page, to a page of the story.
+    for (let i = 0; i < 3; i++) { await key('ArrowRight', 'ArrowRight', 39); await wait(1200) }
+    await wait(2500)
     await shot('reader-comic')
   },
   async photos() {
@@ -318,8 +333,11 @@ const scenes = {
   },
   async games() {
     await openLib('Games', 5000)
+    // WittyPlay asks a first-time visitor which buttons to show, then how to get back: answer both first.
+    if (await closeDialogs()) await openLib('Games', 4000)
     await shot('games')
     await go('/settings/gaming', 3000)
+    await closeDialogs()
     await shot('settings-consoles')
   },
   async play() {
@@ -363,6 +381,7 @@ const scenes = {
     await call('DELETE', '/sessions')
     for (const path of ['libraries', 'metadata', 'playback', 'channels', 'couch', 'transcoding', 'library-transcoding', 'remote', 'users', 'security', 'games', 'activity', 'appearance', 'sharing', 'wittyrigs', 'logs', 'diagnoser', 'modules', 'backup', 'repair', 'reset', 'about', 'legal']) {
       await go(`/settings/${path}`, 3500)
+      await closeDialogs()
       await maskAddresses()
       await shot(`settings-${path}`)
     }

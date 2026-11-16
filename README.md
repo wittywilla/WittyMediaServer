@@ -114,7 +114,7 @@ A test server, filled with openly licensed media to show what it can do. No medi
 <td width="50%"><a href="docs/images/tv-mode.webp"><img src="docs/images/tv-mode.webp" alt="TV mode: the tabs along the top and the libraries as large tiles"></a><br><b>TV mode, like the TV apps, for the couch</b><br><sub>Driven with a remote or a game controller</sub></td>
 </tr>
 <tr>
-<td width="50%"><a href="docs/images/module-store.webp"><img src="docs/images/module-store.webp" alt="The module store"></a><br><b>Add only what you want from the store</b><br><sub>From a local test catalogue</sub></td>
+<td width="50%"><a href="docs/images/module-store.webp"><img src="docs/images/module-store.webp" alt="The module store"></a><br><b>Add only what you want from the store</b><br><sub>From the module catalogue</sub></td>
 <td width="50%"><a href="docs/images/settings-libraries.webp"><img src="docs/images/settings-libraries.webp" alt="The Libraries page in Settings"></a><br><b>Everything is in plain settings</b><br><sub>Settings, Libraries</sub></td>
 </tr>
 </table>

@@ -9,6 +9,7 @@ import { Button, Dialog, IconButton } from '../../ui'
 import { Section } from '../settings/ui'
 import { fmtTimecode, parseTimecode, type DiscClip, type DiscOption, type DiscPage, type DiscTitle, type Rules } from './tvApi'
 import './tveditor.css'
+import { t, tn } from '../../i18n'
 
 // Discs on a channel: a whole main feature in one click, or any scenes from any
 // title, picked by chapter from pictures and fine-tuned to the second. Encrypted
@@ -19,10 +20,10 @@ const thumb = (item: number, ttn: number, n: number) => mediaUrl(`/api/items/${i
 
 export function clipLabel(c: DiscClip): string {
   if (c.label) return c.label
-  if (!c.start && !c.end && !c.title) return 'Main feature'
-  if (c.fromChapter && c.toChapter && c.toChapter > c.fromChapter) return `Chapters ${c.fromChapter} to ${c.toChapter}`
-  if (c.fromChapter) return `Chapter ${c.fromChapter}`
-  return 'A scene'
+  if (!c.start && !c.end && !c.title) return t('Main feature')
+  if (c.fromChapter && c.toChapter && c.toChapter > c.fromChapter) return t('Chapters {from} to {to}', { from: c.fromChapter, to: c.toChapter })
+  if (c.fromChapter) return t('Chapter {n}', { n: c.fromChapter })
+  return t('A scene')
 }
 
 export default function DiscScenes({ rules, set, id }: { rules: Rules; set: (p: Partial<Rules>) => void; id?: string }) {
@@ -45,7 +46,7 @@ export default function DiscScenes({ rules, set, id }: { rules: Rules; set: (p: 
     delete rest.clips
     return Object.values(rest).some((v) => v !== undefined && v !== '' && v !== false && !(Array.isArray(v) && v.length === 0))
   }, [rules])
-  const title = (id: number) => discs?.find((d) => d.id === id)?.title || 'A disc'
+  const title = (id: number) => discs?.find((d) => d.id === id)?.title || t('A disc')
   const move = (i: number, by: number) => {
     const n = [...clips]
     const [c] = n.splice(i, 1)
@@ -53,17 +54,17 @@ export default function DiscScenes({ rules, set, id }: { rules: Rules; set: (p: 
     setClips(n)
   }
   if (discs && discs.length === 0) {
-    return <Section id={id} title="Discs and scenes" desc="Play a DVD or Blu-ray's main feature on this channel, or just the scenes you choose."><p className="muted">No discs in your libraries yet. Add a library with DVD or Blu-ray images or folders, and they appear here.</p></Section>
+    return <Section id={id} title={t('Discs and scenes')} desc={t("Play a DVD or Blu-ray's main feature on this channel, or just the scenes you choose.")}><p className="muted">{t('No discs in your libraries yet. Add a library with DVD or Blu-ray images or folders, and they appear here.')}</p></Section>
   }
   const shown = (discs || []).filter((d) => !q || d.title.toLowerCase().includes(q.toLowerCase()))
   return (
-    <Section id={id} title="Discs and scenes" desc="Play a DVD or Blu-ray's main feature on this channel, or just the scenes you choose. Each is a programme of its own in the schedule.">
+    <Section id={id} title={t('Discs and scenes')} desc={t("Play a DVD or Blu-ray's main feature on this channel, or just the scenes you choose. Each is a programme of its own in the schedule.")}>
       {clips.length > 0 && (
         <p className="tvs-note" role="status">
-          {others ? 'These play along with whatever the rules above choose.' : 'This channel plays only these. Set a rule above to mix in anything else.'}
+          {others ? t('These play along with whatever the rules above choose.') : t('This channel plays only these. Set a rule above to mix in anything else.')}
         </p>
       )}
-      {(discs?.length || 0) > 8 && <input className="input tve-find" type="search" placeholder="Find a disc…" aria-label="Find a disc" value={q} onChange={(e) => setQ(e.target.value)} />}
+      {(discs?.length || 0) > 8 && <input className="input tve-find" type="search" placeholder={t('Find a disc…')} aria-label={t('Find a disc')} value={q} onChange={(e) => setQ(e.target.value)} />}
       <ul className="tve-discs">
         {shown.map((d) => {
           const n = clips.filter((c) => c.item === d.id && (c.title || c.start || c.end)).length
@@ -80,8 +81,8 @@ export default function DiscScenes({ rules, set, id }: { rules: Rules; set: (p: 
                 <span>{[d.year, fmtRuntime(d.runtimeSec)].filter(Boolean).join(' · ')}</span>
                 {d.scrambled ? <p className="tve-refused">{refusal}</p> : (
                   <div className="tve-disc-actions">
-                    <Button size="sm" variant={main ? 'primary' : 'default'} aria-pressed={main} onClick={() => toggleMain(d)}>{main ? '✓ Main feature' : 'Main feature'}</Button>
-                    <Button size="sm" aria-haspopup="dialog" onClick={() => setPicking(d)}>{n ? `Scenes (${n})` : 'Choose scenes'}</Button>
+                    <Button size="sm" variant={main ? 'primary' : 'default'} aria-pressed={main} onClick={() => toggleMain(d)}>{main ? t('✓ Main feature') : t('Main feature')}</Button>
+                    <Button size="sm" aria-haspopup="dialog" onClick={() => setPicking(d)}>{n ? t('Scenes ({count})', { count: n }) : t('Choose scenes')}</Button>
                   </div>
                 )}
               </div>
@@ -91,20 +92,20 @@ export default function DiscScenes({ rules, set, id }: { rules: Rules; set: (p: 
       </ul>
       {clips.length > 0 && (
         <>
-          <h3 className="tvs-h3">On this channel, in this order</h3>
+          <h3 className="tvs-h3">{t('On this channel, in this order')}</h3>
           <ol className="tve-picked">
             {clips.map((c, i) => (
               <li key={c.id}>
                 <img src={thumb(c.item, c.title || 0, c.fromChapter || 0)} alt="" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.visibility = 'hidden' }} />
                 <div className="tve-picked-text">
                   <b>{title(c.item)}</b>
-                  <input className="input sm" value={c.label || ''} placeholder={clipLabel(c)} maxLength={200} aria-label={`Name of scene ${i + 1}`} onChange={(e) => setClips(clips.map((x) => (x === c ? { ...x, label: e.target.value || undefined } : x)))} />
-                  <span>{c.end ? `${fmtTimecode(c.start || 0)} to ${fmtTimecode(c.end)} · ${fmtRuntime(c.end - (c.start || 0))}` : c.start ? `From ${fmtTimecode(c.start)} to the end` : 'The whole title'}</span>
+                  <input className="input sm" value={c.label || ''} placeholder={clipLabel(c)} maxLength={200} aria-label={t('Name of scene {n}', { n: i + 1 })} onChange={(e) => setClips(clips.map((x) => (x === c ? { ...x, label: e.target.value || undefined } : x)))} />
+                  <span>{c.end ? `${t('{start} to {end}', { start: fmtTimecode(c.start || 0), end: fmtTimecode(c.end) })} · ${fmtRuntime(c.end - (c.start || 0))}` : c.start ? t('From {start} to the end', { start: fmtTimecode(c.start) }) : t('The whole title')}</span>
                 </div>
                 <div className="tve-picked-actions">
-                  <IconButton size="sm" disabled={i === 0} onClick={() => move(i, -1)} label={`Move ${clipLabel(c)} earlier`}><IconUp size={16} /></IconButton>
-                  <IconButton size="sm" disabled={i === clips.length - 1} onClick={() => move(i, 1)} label={`Move ${clipLabel(c)} later`}><IconDown size={16} /></IconButton>
-                  <IconButton size="sm" onClick={() => setClips(clips.filter((x) => x !== c))} label={`Remove ${clipLabel(c)}`}><IconTrash size={16} /></IconButton>
+                  <IconButton size="sm" disabled={i === 0} onClick={() => move(i, -1)} label={t('Move {name} earlier', { name: clipLabel(c) })}><IconUp size={16} /></IconButton>
+                  <IconButton size="sm" disabled={i === clips.length - 1} onClick={() => move(i, 1)} label={t('Move {name} later', { name: clipLabel(c) })}><IconDown size={16} /></IconButton>
+                  <IconButton size="sm" onClick={() => setClips(clips.filter((x) => x !== c))} label={t('Remove {name}', { name: clipLabel(c) })}><IconTrash size={16} /></IconButton>
                 </div>
               </li>
             ))}
@@ -146,37 +147,37 @@ function ScenePicker({ disc, clips, onAdd, onRemove, onClose }: { disc: DiscOpti
   const chosen = first != null && last != null
   const add = () => {
     if (!cur || !chosen) return
-    if (end - start < 3) { toast('A scene must run for at least 3 seconds'); return }
+    if (end - start < 3) { toast(t('A scene must run for at least 3 seconds')); return }
     onAdd([{ id: newClipId(), item: disc.id, title: cur.ttn, start: Math.round(start * 10) / 10, end: Math.round(end * 10) / 10, fromChapter: first, toChapter: last, label: label.trim() || undefined }])
     setFirst(null); setLast(null); setLabel(''); setPreviewing(false)
-    toast('Scene added')
+    toast(t('Scene added'))
   }
   const addEach = () => {
     if (!cur) return
     onAdd(cur.chapters.map((c, i) => ({ id: newClipId(), item: disc.id, title: cur.ttn, start: c.start, end: chapterEnd(cur, i + 1), fromChapter: c.n, toChapter: c.n, label: c.label || undefined })).filter((c) => c.end - c.start >= 3))
-    toast(`${cur.chapters.length} scenes added`)
+    toast(tn('{count} scene added', '{count} scenes added', cur.chapters.length))
   }
   const here = clips.filter((c) => c.title === ttn)
-  const titleName = (t: DiscTitle, i: number) => t.label || (i === 0 && page?.main ? 'Main feature' : `Title ${t.ttn}`)
+  const titleName = (x: DiscTitle, i: number) => x.label || (i === 0 && page?.main ? t('Main feature') : t('Title {n}', { n: x.ttn }))
   return (
-    <Dialog size="wide" className="tve-picker" title={`Scenes from ${disc.title}`} onClose={onClose}>
+    <Dialog size="wide" className="tve-picker" title={t('Scenes from {title}', { title: disc.title })} onClose={onClose}>
         {err && <p className="tvs-error" role="alert">{err}</p>}
         {!page && !err && <div className="center"><div className="spinner" /></div>}
         {titles.length > 0 && (
           <>
-            <div className="tve-tabs" role="group" aria-label="Which title on the disc" data-nav-group>
-              {titles.map((t, i) => <button key={t.ttn} type="button" className={'tve-tab' + (t.ttn === ttn ? ' on' : '')} aria-pressed={t.ttn === ttn} onClick={() => setTtn(t.ttn)}><b>{titleName(t, i)}</b><span>{fmtRuntime(t.durationSec)}</span></button>)}
+            <div className="tve-tabs" role="group" aria-label={t('Which title on the disc')} data-nav-group>
+              {titles.map((x, i) => <button key={x.ttn} type="button" className={'tve-tab' + (x.ttn === ttn ? ' on' : '')} aria-pressed={x.ttn === ttn} onClick={() => setTtn(x.ttn)}><b>{titleName(x, i)}</b><span>{fmtRuntime(x.durationSec)}</span></button>)}
             </div>
             {cur && (
               <>
-                <p className="muted tve-how">{cur.chapters.length > 1 ? 'Press a chapter to start from it, and another to end with it.' : 'This title has one chapter. Press it, then set the times below.'}</p>
-                <div className="tve-chapters" role="group" aria-label="Chapters" data-nav-group>
+                <p className="muted tve-how">{cur.chapters.length > 1 ? t('Press a chapter to start from it, and another to end with it.') : t('This title has one chapter. Press it, then set the times below.')}</p>
+                <div className="tve-chapters" role="group" aria-label={t('Chapters')} data-nav-group>
                   {cur.chapters.map((c) => {
                     const inRange = chosen && c.n >= first! && c.n <= last!
                     return (
-                      <button key={c.n} type="button" className={'tve-chapter' + (inRange ? ' on' : '')} aria-pressed={inRange} onClick={() => pick(c.n)} aria-label={`Chapter ${c.n}${c.label ? `, ${c.label}` : ''}, at ${fmtTimecode(c.start)}`}>
+                      <button key={c.n} type="button" className={'tve-chapter' + (inRange ? ' on' : '')} aria-pressed={inRange} onClick={() => pick(c.n)} aria-label={c.label ? t('Chapter {n}, {name}, at {time}', { n: c.n, name: c.label, time: fmtTimecode(c.start) }) : t('Chapter {n}, at {time}', { n: c.n, time: fmtTimecode(c.start) })}>
                         <img src={thumb(disc.id, cur.ttn, c.n)} alt="" loading="lazy" decoding="async" onError={(e) => { (e.target as HTMLImageElement).style.visibility = 'hidden' }} />
-                        <span><b>{c.label || `Chapter ${c.n}`}</b><small>{fmtTimecode(c.start)}</small></span>
+                        <span><b>{c.label || t('Chapter {n}', { n: c.n })}</b><small>{fmtTimecode(c.start)}</small></span>
                       </button>
                     )
                   })}
@@ -184,35 +185,35 @@ function ScenePicker({ disc, clips, onAdd, onRemove, onClose }: { disc: DiscOpti
                 <Timeline title={cur} start={chosen ? start : null} end={chosen ? end : null} clips={here} />
                 {chosen && (
                   <div className="tve-range">
-                    <TimeField label="Starts" value={start} max={end - 3} onChange={setStart} />
-                    <TimeField label="Ends" value={end} min={start + 3} max={cur.durationSec} onChange={setEnd} />
-                    <label className="tve-range-name">Name (optional)<input className="input" value={label} maxLength={200} placeholder={first === last ? `Chapter ${first}` : `Chapters ${first} to ${last}`} onChange={(e) => setLabel(e.target.value)} /></label>
+                    <TimeField label={t('Starts')} value={start} max={end - 3} onChange={setStart} />
+                    <TimeField label={t('Ends')} value={end} min={start + 3} max={cur.durationSec} onChange={setEnd} />
+                    <label className="tve-range-name">{t('Name (optional)')}<input className="input" value={label} maxLength={200} placeholder={first === last ? t('Chapter {n}', { n: first }) : t('Chapters {from} to {to}', { from: first, to: last })} onChange={(e) => setLabel(e.target.value)} /></label>
                     <span className="tve-range-len">{fmtRuntime(end - start)}</span>
-                    <Button icon={<IconPlay />} onClick={() => setPreviewing((v) => !v)} aria-expanded={previewing}>{previewing ? 'Stop trying it' : 'Try it'}</Button>
-                    <Button variant="primary" icon={<IconPlus />} onClick={add}>Add this scene</Button>
+                    <Button icon={<IconPlay />} onClick={() => setPreviewing((v) => !v)} aria-expanded={previewing}>{previewing ? t('Stop trying it') : t('Try it')}</Button>
+                    <Button variant="primary" icon={<IconPlus />} onClick={add}>{t('Add this scene')}</Button>
                   </div>
                 )}
                 {chosen && previewing && <ClipTry item={disc.id} ttn={cur.ttn} start={start} end={end} />}
                 {here.length > 0 && (
                   <>
-                    <h3 className="tvs-h3">Chosen from this title</h3>
+                    <h3 className="tvs-h3">{t('Chosen from this title')}</h3>
                     <ul className="tve-chosen">
                       {here.map((c) => (
-                        <li key={c.id}><span><b>{clipLabel(c)}</b> {fmtTimecode(c.start || 0)} to {c.end ? fmtTimecode(c.end) : 'the end'}</span>
-                          <IconButton size="sm" onClick={() => onRemove(c)} label={`Remove ${clipLabel(c)}`}><IconTrash size={16} /></IconButton></li>
+                        <li key={c.id}><span><b>{clipLabel(c)}</b> {c.end ? t('{start} to {end}', { start: fmtTimecode(c.start || 0), end: fmtTimecode(c.end) }) : t('From {start} to the end', { start: fmtTimecode(c.start || 0) })}</span>
+                          <IconButton size="sm" onClick={() => onRemove(c)} label={t('Remove {name}', { name: clipLabel(c) })}><IconTrash size={16} /></IconButton></li>
                       ))}
                     </ul>
                   </>
                 )}
                 <div className="actions">
-                  {cur.chapters.length > 1 && <Button variant="ghost" onClick={addEach}>Add every chapter as a scene of its own</Button>}
-                  <Button variant="primary" onClick={onClose}>Done</Button>
+                  {cur.chapters.length > 1 && <Button variant="ghost" onClick={addEach}>{t('Add every chapter as a scene of its own')}</Button>}
+                  <Button variant="primary" onClick={onClose}>{t('Done')}</Button>
                 </div>
               </>
             )}
           </>
         )}
-        {page && titles.length === 0 && <><p className="muted"><IconDisc /> This disc has no titles that can be played.</p><div className="actions"><Button onClick={onClose}>Close</Button></div></>}
+        {page && titles.length === 0 && <><p className="muted"><IconDisc /> {t('This disc has no titles that can be played.')}</p><div className="actions"><Button onClick={onClose}>{t('Close')}</Button></div></>}
     </Dialog>
   )
 }
@@ -244,10 +245,10 @@ function TimeField({ label, value, min = 0, max, onChange }: { label: string; va
     <div className="tve-time" role="group" aria-label={label}>
       <label>{label}<input className="input" value={text} inputMode="numeric" onChange={(e) => setText(e.target.value)} onBlur={commit} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commit() } }} /></label>
       <div className="tve-nudge">
-        <Button size="sm" variant="ghost" onClick={() => put(value - 5)} aria-label={`${label} 5 seconds earlier`}>−5</Button>
-        <Button size="sm" variant="ghost" onClick={() => put(value - 1)} aria-label={`${label} 1 second earlier`}>−1</Button>
-        <Button size="sm" variant="ghost" onClick={() => put(value + 1)} aria-label={`${label} 1 second later`}>+1</Button>
-        <Button size="sm" variant="ghost" onClick={() => put(value + 5)} aria-label={`${label} 5 seconds later`}>+5</Button>
+        <Button size="sm" variant="ghost" onClick={() => put(value - 5)} aria-label={t('{name} 5 seconds earlier', { name: label })}>−5</Button>
+        <Button size="sm" variant="ghost" onClick={() => put(value - 1)} aria-label={t('{name} 1 second earlier', { name: label })}>−1</Button>
+        <Button size="sm" variant="ghost" onClick={() => put(value + 1)} aria-label={t('{name} 1 second later', { name: label })}>+1</Button>
+        <Button size="sm" variant="ghost" onClick={() => put(value + 5)} aria-label={t('{name} 5 seconds later', { name: label })}>+5</Button>
       </div>
     </div>
   )
@@ -278,7 +279,7 @@ function ClipTry({ item, ttn, start, end }: { item: number; ttn: number; start: 
   useEffect(() => { const v = video.current; if (v && url) v.currentTime = start }, [start, url])
   return (
     <div className="tve-try">
-      <video ref={video} controls playsInline onTimeUpdate={onTime} aria-label="Trying the scene" />
+      <video ref={video} controls playsInline onTimeUpdate={onTime} aria-label={t('Trying the scene')} />
       {msg && <p className="tvs-error" role="alert">{msg}</p>}
     </div>
   )

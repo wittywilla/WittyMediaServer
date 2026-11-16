@@ -14,21 +14,34 @@ export type TvTab = { id: TabId; path: string; label: string; icon?: string; scr
 // placed at the end. Settings is reached from You on a television, as it always was, unless the menu has no You
 // to reach it from.
 export const MORE_PATH = '/more'
-export function tabsFromMenu(items: MenuEntry[]): TvTab[] {
+// BAR_MAX: how many of the menu's own tabs fit in one row at TV size beside the brand, More, Search and You.
+// A menu with more than that (a layout that pins libraries) keeps its first ones in the bar, and the rest
+// lead the More screen, so the row never runs off the edge of the screen.
+export const BAR_MAX = 4
+const tabOf = (it: MenuEntry): TvTab => ({ id: it.id, path: it.to, label: it.label, icon: it.icon, screen: it.screen })
+function split(items: MenuEntry[]) {
   const usable = usableEntries(items)
-  const tab = (it: MenuEntry): TvTab => ({ id: it.id, path: it.to, label: it.label, icon: it.icon, screen: it.screen })
-  const more = usable.filter((it) => it.placement === 'more' && it.id !== 'search')
-  const bar = usable.filter((it) => (it.placement !== 'end' && it.placement !== 'more') || it.id === 'search').map(tab)
-  if (more.length) bar.push({ id: 'more', path: MORE_PATH, label: tk('More'), icon: 'more' })
+  const primary = usable.filter((it) => it.placement !== 'end' && it.placement !== 'more' && it.id !== 'search')
+  return {
+    usable,
+    bar: primary.slice(0, BAR_MAX),
+    more: [...primary.slice(BAR_MAX), ...usable.filter((it) => it.placement === 'more' && it.id !== 'search')],
+    search: usable.find((it) => it.id === 'search'),
+  }
+}
+export function tabsFromMenu(items: MenuEntry[]): TvTab[] {
+  const { usable, bar, more, search } = split(items)
+  const tabs = bar.map(tabOf)
+  if (more.length) tabs.push({ id: 'more', path: MORE_PATH, label: tk('More'), icon: 'more' })
   // Search is always the last thing before You (docs/plans/DESIGN-2.md section 1, rule 4).
-  const at = bar.findIndex((t) => t.id === 'search')
-  if (at >= 0) bar.push(...bar.splice(at, 1))
-  return [...bar, ...usable.filter((it) => it.placement === 'end' && it.id !== 'search').map(tab)]
+  if (search) tabs.push(tabOf(search))
+  return [...tabs, ...usable.filter((it) => it.placement === 'end' && it.id !== 'search').map(tabOf)]
 }
 
-// moreTabs: what the More screen lists, in the menu's order.
+// moreTabs: what the More screen lists: the menu's tabs that didn't fit in the bar, then what it places in
+// More, in the menu's order.
 export function moreTabs(items: MenuEntry[]): TvTab[] {
-  return usableEntries(items).filter((it) => it.placement === 'more' && it.id !== 'search').map((it) => ({ id: it.id, path: it.to, label: it.label, icon: it.icon, screen: it.screen }))
+  return split(items).more.map(tabOf)
 }
 
 type MenuEntry = { id: string; label: string; to: string; icon?: string; placement?: string; screen?: string }

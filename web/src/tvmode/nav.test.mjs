@@ -105,3 +105,21 @@ test('a server menu\'s More entries are gathered under one More tab, before the 
   // Nothing placed under More: no More tab.
   assert.deepEqual(tabsFromMenu(menu.filter((m) => m.placement !== 'more')).map((t) => t.id), ['home', 'lib-1', 'search', 'you'])
 })
+
+test('a menu with more tabs than fit keeps the first ones in the bar, and the rest lead More', () => {
+  const menu = [
+    { id: 'home', label: 'Home', to: '/', placement: 'primary' },
+    { id: 'live', label: 'Live TV', to: '/tv', placement: 'primary' },
+    { id: 'libraries', label: 'Libraries', to: '/libraries', placement: 'primary' },
+    { id: 'lib-3', label: 'Books', to: '/library/3', placement: 'primary' },
+    { id: 'lib-4', label: 'Photos', to: '/library/4', placement: 'primary' },
+    { id: 'games', label: 'Games', to: '/games', placement: 'primary' },
+    { id: 'search', label: 'Search', to: '/search', placement: 'primary' },
+    { id: 'collections', label: 'Collections', to: '/collections', placement: 'more' },
+    { id: 'you', label: 'You', to: '/you', placement: 'end', screen: 'profiles' },
+  ]
+  assert.deepEqual(tabsFromMenu(menu).map((t) => t.id), ['home', 'live', 'libraries', 'lib-3', 'more', 'search', 'you'])
+  assert.deepEqual(moreTabs(menu).map((t) => t.id), ['lib-4', 'games', 'collections'])
+  // Only too many, nothing placed under More: More still appears, for the ones that didn't fit.
+  assert.deepEqual(tabsFromMenu(menu.filter((m) => m.placement !== 'more')).map((t) => t.id), ['home', 'live', 'libraries', 'lib-3', 'more', 'search', 'you'])
+})

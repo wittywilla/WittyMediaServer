@@ -111,7 +111,7 @@ export default function SetupWizard() {
                   <li key={x.id} className={'oobe-step ' + state + (x.missing ? ' missing' : '')} aria-current={state === 'now' ? 'step' : undefined}>
                     {goBack
                       ? <button type="button" onClick={() => go(x.id as StepId)}><i aria-hidden="true">{state === 'done' ? '✓' : i + 1}</i>{x.label}<span className="sr-only"> (done)</span></button>
-                      : <span><i aria-hidden="true">{state === 'done' ? '✓' : i + 1}</i>{x.label}{x.missing && <small> · module not added</small>}{state === 'done' && <span className="sr-only"> (done)</span>}</span>}
+                      : <span><i aria-hidden="true">{state === 'done' ? '✓' : i + 1}</i><span className="oobe-step-label">{x.label}{x.missing && <small><span className="sr-only">, </span>Module not added</small>}</span>{state === 'done' && <span className="sr-only"> (done)</span>}</span>}
                   </li>
                 )
               })}

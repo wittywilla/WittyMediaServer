@@ -160,6 +160,9 @@ html.ten-foot .su-ack a, html.using-controller .su-ack a, html.ten-foot .op-head
 .oobe-steps ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
 .oobe-step > span, .oobe-step > button { display: flex; align-items: center; gap: var(--sp-3); inline-size: 100%; min-block-size: 36px; padding: 0 var(--sp-3); border: 0; border-radius: var(--r-md); background: none; color: var(--fg-2); font: inherit; font-size: var(--text-sm); text-align: start; }
 .oobe-step > button { cursor: pointer; }
+/* A step's name stays on one line; a note about it (a module not added) goes under it, not beside it. */
+.oobe-step-label { display: grid; min-inline-size: 0; padding-block: var(--sp-1); line-height: var(--leading-snug); }
+.oobe-step-label small { font-size: var(--text-2xs); color: var(--fg-3); font-weight: 400; }
 .oobe-step > button:hover { background: var(--hover); color: var(--fg); }
 .oobe-step i { flex: none; display: grid; place-items: center; inline-size: 20px; block-size: 20px; border-radius: 50%; background: var(--bg-3); color: var(--fg-2); font-style: normal; font-size: var(--text-2xs); font-weight: 700; }
 .oobe-step.done i { background: var(--ok-soft); color: var(--ok); }

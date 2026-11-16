@@ -21,14 +21,15 @@ import { ranked } from '../ui/spatial'
 import BrandDialog from '../components/BrandDialog'
 import { applyPreset, DEVICES, deviceOf, LAYOUT_PRESETS, merged, zoneOf, type DeviceId, type Placement, type Placements, type Region, type Zone } from './layoutModel.ts'
 import './layoutEditor.css'
+import { t, tk, tx } from '../i18n'
 
 type Answer = { experience: string; regions: Region[]; placements: Placements; own?: Placements; editable: boolean }
 type Policy = { placements?: Record<string, Placements>; [k: string]: unknown }
 
-const WORDS: Record<string, string> = { start: 'Left', end: 'Right', top: 'Top', bottom: 'Bottom', center: 'Centre', nav: 'In the menu', floating: 'Floating', dock: 'In the Dock', side: 'At the side', billboard: 'Billboard', banner: 'Banner', carousel: 'Carousel', row: 'Row' }
+const WORDS: Record<string, string> = { start: tk('Left'), end: tk('Right'), top: tk('Top'), bottom: tk('Bottom'), center: tk('Centre'), nav: tk('In the menu'), floating: tk('Floating'), dock: tk('In the Dock'), side: tk('At the side'), billboard: tk('Billboard'), banner: tk('Banner'), carousel: tk('Carousel'), row: tk('Row') }
 const ZONES: Zone[] = ['top', 'start', 'main', 'end', 'bottom']
 const rtl = () => typeof document !== 'undefined' && getComputedStyle(document.documentElement).direction === 'rtl'
-const word = (p: string) => (rtl() && (p === 'start' || p === 'end') ? (p === 'start' ? 'Right' : 'Left') : WORDS[p] || p)
+const word = (p: string) => (rtl() && (p === 'start' || p === 'end') ? tx(p === 'start' ? WORDS.end : WORDS.start) : tx(WORDS[p]) || p)
 
 // The device the picture is for: this window's own, or the form factor chosen. Another form factor is asked for without this
 // browser's own name, so what is saved for it is kept for that form factor.
@@ -56,8 +57,8 @@ export function ShellEditor({ onClose }: { onClose: () => void }) {
   const [past, setPast] = useState<Placements[]>([])
   const [future, setFuture] = useState<Placements[]>([])
   const setEdit = (next: Placements | ((e: Placements) => Placements)) => setEditNow((e) => { const n = typeof next === 'function' ? next(e) : next; setPast((p) => [...p, e]); setFuture([]); return n })
-  const undo = () => setPast((p) => { if (!p.length) return p; setFuture((f) => [edit, ...f]); setEditNow(p[p.length - 1]); announce('Undone'); return p.slice(0, -1) })
-  const redo = () => setFuture((f) => { if (!f.length) return f; setPast((p) => [...p, edit]); setEditNow(f[0]); announce('Redone'); return f.slice(1) })
+  const undo = () => setPast((p) => { if (!p.length) return p; setFuture((f) => [edit, ...f]); setEditNow(p[p.length - 1]); announce(t('Undone')); return p.slice(0, -1) })
+  const redo = () => setFuture((f) => { if (!f.length) return f; setPast((p) => [...p, edit]); setEditNow(f[0]); announce(t('Redone')); return f.slice(1) })
   const [busy, setBusy] = useState(false)
   const [etag, setEtag] = useState('')
   const [policy, setPolicy] = useState<Policy>({})
@@ -82,9 +83,9 @@ export function ShellEditor({ onClose }: { onClose: () => void }) {
   useEffect(() => { void api.get<{ experiences: { id: string; name: string; nav?: Record<string, string>; wire?: WireMap }[] }>('/sdui/experiences').then((r) => { setWires(Object.fromEntries(r.experiences.map((x) => [x.id, x.wire]))); setLooks(Object.fromEntries(r.experiences.map((x) => [x.id, x.name]))); setNavs(Object.fromEntries(r.experiences.map((x) => [x.id, x.nav || {}]))) }).catch(() => {}) }, [])
 
   const stage = useRef<HTMLDivElement | null>(null)
-  if (!got) return <Dialog title="Edit layout" size="wide" className="layout-editor" onClose={onClose}><p className="muted">Loading…</p></Dialog>
+  if (!got) return <Dialog title={t('Edit layout')} size="wide" className="layout-editor" onClose={onClose}><p className="muted">{t('Loading…')}</p></Dialog>
 
-  const look = looks[got.experience] || got.experience
+  const look = tx(looks[got.experience]) || got.experience
   const now = (r: Region): Placement => merged(got.placements, edit, r.id)
   const region = (id: string) => got.regions.find((r) => r.id === id)!
   // The menu's place when nothing has been chosen is the look's own for this device (the server's placements name only a default).
@@ -97,7 +98,7 @@ export function ShellEditor({ onClose }: { onClose: () => void }) {
     if (r.id === 'brand' && navDefault && navDefault !== 'start' && (got.placements.brand?.position || 'start') === 'start') return 'top'
     return got.placements[r.id]?.position || r.positions?.[0]
   }
-  const setP = (r: Region, patch: Placement, say: string) => { setEdit((e) => ({ ...e, [r.id]: { ...(e[r.id] || {}), ...patch } })); announce(`${r.label}: ${say}`) }
+  const setP = (r: Region, patch: Placement, say: string) => { setEdit((e) => ({ ...e, [r.id]: { ...(e[r.id] || {}), ...patch } })); announce(t('{region}: {change}', { region: tx(r.label), change: say })) }
   const navAt = place(region('nav')), dockAt = got.regions.some((r) => r.id === 'dock') ? place(region('dock')) : undefined
   const zone = (r: Region, position = place(r)): Zone => zoneOf(r.id, position, navAt, dockAt)
   const shown = got.regions.filter((r) => now(r).visible !== false)
@@ -110,19 +111,19 @@ export function ShellEditor({ onClose }: { onClose: () => void }) {
   // Picking up, moving between the places a region may go, and dropping.
   const targets = () => Array.from(stage.current?.querySelectorAll<HTMLElement>('[data-drop]') || [])
   const pickUp = (r: Region, drag = false) => {
-    if (!r.positions?.length) { announce(`${r.label} has no other place to go. Its choices are on the right.`); return }
+    if (!r.positions?.length) { announce(t('{region} has no other place to go. Its choices are in the panel beside the picture.', { region: tx(r.label) })); return }
     setSel(r.id)
     setHeld({ id: r.id, over: place(r) || '', drag })
-    announce(`${r.label} picked up. Arrows choose where, OK drops it, Back cancels.`)
+    announce(t('{region} picked up. Arrows choose where, OK drops it, Back cancels.', { region: tx(r.label) }))
   }
   const dropOn = (position: string) => {
     if (!held) return
     const r = region(held.id)
-    if (position !== place(r)) { setP(r, { position }, `moved to ${word(position).toLowerCase()}`) } else announce(`${r.label} stays where it was`)
+    if (position !== place(r)) { setP(r, { position }, t('moved to {place}', { place: word(position).toLowerCase() })) } else announce(t('{region} stays where it was', { region: tx(r.label) }))
     setHeld(null)
     requestAnimationFrame(() => stage.current?.querySelector<HTMLElement>(`[data-tile="${r.id}"]`)?.focus())
   }
-  const cancel = () => { if (!held) return; announce('Cancelled'); const id = held.id; setHeld(null); requestAnimationFrame(() => stage.current?.querySelector<HTMLElement>(`[data-tile="${id}"]`)?.focus()) }
+  const cancel = () => { if (!held) return; announce(t('Cancelled')); const id = held.id; setHeld(null); requestAnimationFrame(() => stage.current?.querySelector<HTMLElement>(`[data-tile="${id}"]`)?.focus()) }
   const KEYS: Record<string, 'up' | 'down' | 'left' | 'right'> = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' }
   const onTileKey = (e: KeyboardEvent, r: Region) => {
     if (!held) {
@@ -137,7 +138,7 @@ export function ShellEditor({ onClose }: { onClose: () => void }) {
       const from = all.find((t) => t.dataset.drop === held.over)
       if (!from) return
       const to = ranked(from.getBoundingClientRect(), all.filter((t) => t !== from), (t) => t.getBoundingClientRect(), KEYS[e.key])[0]
-      if (to) { setHeld({ ...held, over: to.dataset.drop || held.over }); announce(`Drop here: ${word(to.dataset.drop || '')}`) }
+      if (to) { setHeld({ ...held, over: to.dataset.drop || held.over }); announce(t('Drop here: {place}', { place: word(to.dataset.drop || '') })) }
     }
   }
   // A mouse or a finger: press a tile's grip, move over a drop place, let go.
@@ -153,7 +154,7 @@ export function ShellEditor({ onClose }: { onClose: () => void }) {
 
   const switchDevice = async (id: DeviceId) => {
     if (id === on) return
-    if (dirty && !(await ask({ title: 'Leave these changes?', body: 'The layout is kept for each kind of device. Changes you haven’t saved for this one will be lost.', confirm: 'Leave them', cancel: 'Stay' }))) return
+    if (dirty && !(await ask({ title: t('Leave these changes?'), body: t('The layout is kept for each kind of device. Changes you haven’t saved for this one will be lost.'), confirm: t('Leave them'), cancel: t('Stay') }))) return
     setGot(null); setOn(id)
   }
 
@@ -163,7 +164,7 @@ export function ShellEditor({ onClose }: { onClose: () => void }) {
       if (scope === 'me') await sduiAsk('PUT', `${SDUI_BASE}/placements?${q}`, { body: { placements: edit } })
       else await sduiAsk('PUT', `${SDUI_BASE}/config/experience`, { body: { ...policy, placements: { ...(policy.placements || {}), [got.experience]: edit } }, headers: { 'If-Match': etag } })
       bump(); void loadThemeOverrides()
-      toast('Layout saved', { tone: 'ok' }); announce('Layout saved')
+      toast(t('Layout saved'), { tone: 'ok' }); announce(t('Layout saved'))
       onClose()
     } catch (e) { toast((e as Error).message, { tone: 'danger' }) } finally { setBusy(false) }
   }
@@ -172,34 +173,34 @@ export function ShellEditor({ onClose }: { onClose: () => void }) {
     try {
       if (scope === 'me') await sduiAsk('DELETE', `${SDUI_BASE}/placements?${q}`)
       else await sduiAsk('PUT', `${SDUI_BASE}/config/experience`, { body: { ...policy, placements: Object.fromEntries(Object.entries(policy.placements || {}).filter(([k]) => k !== got.experience)) }, headers: { 'If-Match': etag } })
-      bump(); void loadThemeOverrides(); announce(`Back to the ${look} look’s own layout`); toast(`Back to the ${look} look’s own layout`, { tone: 'ok' })
+      bump(); void loadThemeOverrides(); announce(t('Back to the {look} look’s own layout', { look })); toast(t('Back to the {look} look’s own layout', { look }), { tone: 'ok' })
       await load()
     } catch (e) { toast((e as Error).message, { tone: 'danger' }) } finally { setBusy(false) }
   }
 
   const selected = region(sel) || got.regions[0]
   const sp = now(selected)
-  const tileName = (r: Region) => { const p = now(r); return r.styles?.length ? `${r.label} · ${word(p.style || r.styles[0])}` : r.positions?.length ? `${r.label} · ${word(place(r) || '')}` : r.label }
+  const tileName = (r: Region) => { const p = now(r); return r.styles?.length ? `${tx(r.label)} · ${word(p.style || r.styles[0])}` : r.positions?.length ? `${tx(r.label)} · ${word(place(r) || '')}` : tx(r.label) }
   const heldRegion = held ? region(held.id) : null
 
   return (
-    <Dialog title="Edit layout" size="wide" className="layout-editor" onClose={onClose}
+    <Dialog title={t('Edit layout')} size="wide" className="layout-editor" onClose={onClose}
       actions={<>
-        <Button variant="primary" busy={busy} onClick={() => void save()}>{scope === 'everyone' ? 'Save for everyone' : 'Save for me'}</Button>
-        <Button variant="ghost" disabled={!past.length} onClick={undo}>Undo</Button>
-        <Button variant="ghost" disabled={!future.length} onClick={redo}>Redo</Button>
-        <Button variant="ghost" disabled={busy} onClick={() => void reset()}>Reset to {look}</Button>
-        <Button variant="ghost" onClick={onClose}>Cancel</Button>
+        <Button variant="primary" busy={busy} onClick={() => void save()}>{scope === 'everyone' ? t('Save for everyone') : t('Save for me')}</Button>
+        <Button variant="ghost" disabled={!past.length} onClick={undo}>{t('Undo')}</Button>
+        <Button variant="ghost" disabled={!future.length} onClick={redo}>{t('Redo')}</Button>
+        <Button variant="ghost" disabled={busy} onClick={() => void reset()}>{t('Reset to {look}', { look })}</Button>
+        <Button variant="ghost" onClick={onClose}>{t('Cancel')}</Button>
       </>}>
       <div className="le-top">
-        {admin && <Segmented label="Who this is for" value={scope} onChange={(v) => { if (v !== scope) { if (dirty) void ask({ title: 'Leave these changes?', body: 'Each is kept on its own.', confirm: 'Leave them', cancel: 'Stay' }).then((y) => { if (y) setScope(v) }); else setScope(v) } }} options={[{ value: 'everyone', label: 'For everyone' }, { value: 'me', label: 'For me' }]} />}
-        <p className="muted">Where things sit in the {look} look. The menu and You can be moved but never hidden, so Settings and the way out are always there.</p>
+        {admin && <Segmented label={t('Who this is for')} value={scope} onChange={(v) => { if (v !== scope) { if (dirty) void ask({ title: t('Leave these changes?'), body: t('Each is kept on its own.'), confirm: t('Leave them'), cancel: t('Stay') }).then((y) => { if (y) setScope(v) }); else setScope(v) } }} options={[{ value: 'everyone', label: t('For everyone') }, { value: 'me', label: t('For me') }]} />}
+        <p className="muted">{t('Where things sit in the {look} look. The menu and You can be moved but never hidden, so Settings and the way out are always there.', { look })}</p>
       </div>
-      {!got.editable && scope === 'me' && <p role="note" className="small-note">This profile may not rearrange. An administrator can allow it.</p>}
+      {!got.editable && scope === 'me' && <p role="note" className="small-note">{t('This profile may not rearrange. An administrator can allow it.')}</p>}
 
       <div className="le-body">
         <div className="le-left">
-          <div ref={stage} className={'le-stage dev-' + on + (held ? ' holding' : '')} role="group" aria-label={`Layout of the ${look} look on a ${DEVICES.find((d) => d.id === on)?.label}`}
+          <div ref={stage} className={'le-stage dev-' + on + (held ? ' holding' : '')} role="group" aria-label={t('Layout of the {look} look on a {device}', { look, device: tx(DEVICES.find((d) => d.id === on)?.label) })}
             style={{ gridTemplateColumns: `${used('start') ? '14rem' : '0'} minmax(0, 1fr) ${used('end') ? '14rem' : '0'}` }}
             onPointerMove={move} onPointerUp={up} onPointerCancel={() => setHeld(null)}>
             {ZONES.map((z) => {
@@ -213,9 +214,9 @@ export function ShellEditor({ onClose }: { onClose: () => void }) {
                     return (
                       <div key={r.id} className={'le-tile' + (sel === r.id ? ' sel' : '') + (isHeld ? ' held' : '') + (r.id === 'hero' ? ' le-hero' : '')}>
                         <button type="button" data-tile={r.id} className="le-tile-main" aria-pressed={isHeld} aria-describedby="le-help"
-                          aria-roledescription={movable ? 'movable region' : undefined}
+                          aria-roledescription={movable ? t('movable region') : undefined}
                           onFocus={() => { if (!held) setSel(r.id) }} onClick={() => setSel(r.id)} onKeyDown={(e) => onTileKey(e, r)}>
-                          {tileName(r)}{isHeld && <span className="sr-only"> (picked up)</span>}
+                          {tileName(r)}{isHeld && <span className="sr-only"> {t('(picked up)')}</span>}
                         </button>
                         {movable && <span className="le-grip" aria-hidden="true" onPointerDown={(e) => down(e, r)}>⠿</span>}
                       </div>
@@ -223,7 +224,7 @@ export function ShellEditor({ onClose }: { onClose: () => void }) {
                   })}
                   {drops.map((p) => (
                     <button key={p} type="button" tabIndex={-1} data-drop={p} className={'le-drop' + (held?.over === p ? ' over' : '')} onClick={() => { if (held && !held.drag) dropOn(p) }}>
-                      Drop here · {word(p)}{p === place(heldRegion!) ? ' (where it is)' : ''}
+                      {p === place(heldRegion!) ? t('Drop here · {place} (where it is)', { place: word(p) }) : t('Drop here · {place}', { place: word(p) })}
                     </button>
                   ))}
                 </div>
@@ -231,43 +232,43 @@ export function ShellEditor({ onClose }: { onClose: () => void }) {
             })}
           </div>
           {hidden.length > 0 && (
-            <div className="le-hidden" role="group" aria-label="Hidden regions">
-              <span>Hidden</span>
-              {hidden.map((r) => <Button key={r.id} size="sm" onClick={() => setP(r, { visible: true }, 'shown')}>Show {r.label}</Button>)}
+            <div className="le-hidden" role="group" aria-label={t('Hidden regions')}>
+              <span>{t('Hidden')}</span>
+              {hidden.map((r) => <Button key={r.id} size="sm" onClick={() => setP(r, { visible: true }, t('shown'))}>{t('Show {region}', { region: tx(r.label) })}</Button>)}
             </div>
           )}
           <div className="le-keys" id="le-help">
-            <span><kbd>OK</kbd> pick up</span><span><kbd>▲ ▼ ◀ ▶</kbd> move</span><span><kbd>OK</kbd> drop</span><span><kbd>Back</kbd> cancel</span>
-            <span className="le-note">Moves are announced to screen readers. Drag works with a pointer or touch.</span>
+            <span><kbd>{t('OK')}</kbd> {t('pick up')}</span><span><kbd>▲ ▼ ◀ ▶</kbd> {t('move')}</span><span><kbd>{t('OK')}</kbd> {t('drop')}</span><span><kbd>{t('Back')}</kbd> {t('cancel')}</span>
+            <span className="le-note">{t('Moves are announced to screen readers. Drag works with a pointer or touch.')}</span>
           </div>
-          <div className="le-devices" role="group" aria-label="Preview for">
-            {DEVICES.map((d) => <button key={d.id} type="button" className={'le-device d-' + d.id + (d.id === on ? ' on' : '')} aria-pressed={d.id === on} onClick={() => void switchDevice(d.id)}><LayoutThumb wire={wires[got.experience]} formFactor={d.id} className="le-thumb" /><span>{d.label}</span></button>)}
+          <div className="le-devices" role="group" aria-label={t('Preview for')}>
+            {DEVICES.map((d) => <button key={d.id} type="button" className={'le-device d-' + d.id + (d.id === on ? ' on' : '')} aria-pressed={d.id === on} onClick={() => void switchDevice(d.id)}><LayoutThumb wire={wires[got.experience]} formFactor={d.id} className="le-thumb" /><span>{tx(d.label)}</span></button>)}
           </div>
-          <div className="le-presets" role="group" aria-label="Presets">
-            <span>Presets</span>
-            {LAYOUT_PRESETS.map((p) => <Button key={p.id} size="sm" onClick={() => { setEdit((e) => applyPreset(got.regions, e, p)); announce(p.label) }}>{p.label}</Button>)}
+          <div className="le-presets" role="group" aria-label={t('Presets')}>
+            <span>{t('Presets')}</span>
+            {LAYOUT_PRESETS.map((p) => <Button key={p.id} size="sm" onClick={() => { setEdit((e) => applyPreset(got.regions, e, p)); announce(tx(p.label)) }}>{tx(p.label)}</Button>)}
           </div>
         </div>
 
-        <aside className="le-panel" aria-label="Selected region">
-          <div className="le-eyebrow">Selected</div>
-          <h3>{selected.label}</h3>
+        <aside className="le-panel" aria-label={t('Selected region')}>
+          <div className="le-eyebrow">{t('Selected')}</div>
+          <h3>{tx(selected.label)}</h3>
           <div className="le-rows">
-            <Row label={`Show ${selected.label}`} text="Show"><Switch label={`Show ${selected.label}`} checked={sp.visible !== false} disabled={selected.locked} onChange={(v) => setP(selected, { visible: v }, v ? 'shown' : 'hidden')} /></Row>
-            {selected.positions && selected.positions.length > 0 && <Row label="Position"><Select inputSize="sm" aria-label={`${selected.label} position`} value={place(selected)} onChange={(e) => setP(selected, { position: e.target.value }, `at ${word(e.target.value).toLowerCase()}`)} options={selected.positions.map((x) => ({ value: x, label: word(x) }))} /></Row>}
-            {selected.styles && selected.styles.length > 0 && <Row label="Style"><Select inputSize="sm" aria-label={`${selected.label} style`} value={sp.style || selected.styles[0]} onChange={(e) => setP(selected, { style: e.target.value }, word(e.target.value))} options={selected.styles.map((x) => ({ value: x, label: word(x) }))} /></Row>}
+            <Row label={t('Show {region}', { region: tx(selected.label) })} text={t('Show')}><Switch label={t('Show {region}', { region: tx(selected.label) })} checked={sp.visible !== false} disabled={selected.locked} onChange={(v) => setP(selected, { visible: v }, v ? t('shown') : t('hidden'))} /></Row>
+            {selected.positions && selected.positions.length > 0 && <Row label={t('Position')}><Select inputSize="sm" aria-label={t('{region} position', { region: tx(selected.label) })} value={place(selected)} onChange={(e) => setP(selected, { position: e.target.value }, t('at {place}', { place: word(e.target.value).toLowerCase() }))} options={selected.positions.map((x) => ({ value: x, label: word(x) }))} /></Row>}
+            {selected.styles && selected.styles.length > 0 && <Row label={t('Style')}><Select inputSize="sm" aria-label={t('{region} style', { region: tx(selected.label) })} value={sp.style || selected.styles[0]} onChange={(e) => setP(selected, { style: e.target.value }, word(e.target.value))} options={selected.styles.map((x) => ({ value: x, label: word(x) }))} /></Row>}
           </div>
-          <div className="le-eyebrow">Shell</div>
+          <div className="le-eyebrow">{t('Shell')}</div>
           <div className="le-rows">
             {(['nav', 'search', 'dock'] as const).filter((id) => got.regions.some((r) => r.id === id) && id !== selected.id).map((id) => {
               const r = region(id)
-              return <Row key={id} label={id === 'nav' ? 'Navigation' : id === 'dock' ? 'Controls row (Dock)' : 'Search'}>
-                <Select inputSize="sm" aria-label={id === 'nav' ? 'Navigation position' : id === 'dock' ? 'Controls row position' : 'Search position'} value={place(r)} onChange={(e) => setP(r, { position: e.target.value }, `at ${word(e.target.value).toLowerCase()}`)} options={(r.positions || []).map((x) => ({ value: x, label: word(x) }))} />
+              return <Row key={id} label={id === 'nav' ? t('Navigation') : id === 'dock' ? t('Controls row (Dock)') : t('Search')}>
+                <Select inputSize="sm" aria-label={id === 'nav' ? t('Navigation position') : id === 'dock' ? t('Controls row position') : t('Search position')} value={place(r)} onChange={(e) => setP(r, { position: e.target.value }, t('at {place}', { place: word(e.target.value).toLowerCase() }))} options={(r.positions || []).map((x) => ({ value: x, label: word(x) }))} />
               </Row>
             })}
-            {admin && <Row label="Server name"><Button size="sm" variant="ghost" onClick={() => setNaming(true)}>Edit name…</Button></Row>}
+            {admin && <Row label={t('Server name')}><Button size="sm" variant="ghost" onClick={() => setNaming(true)}>{t('Edit name…')}</Button></Row>}
           </div>
-          <p className="le-foot muted">Settings and You can’t be hidden. Reset puts everything back to the {look} look. The shelves and widgets on Home are arranged with Customise this page, at the foot of Home.</p>
+          <p className="le-foot muted">{t('Settings and You can’t be hidden. Reset puts everything back to the {look} look. The shelves and widgets on Home are arranged with Customise this page, at the foot of Home.', { look })}</p>
         </aside>
       </div>
       {naming && <BrandDialog onClose={() => setNaming(false)} />}

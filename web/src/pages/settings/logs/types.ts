@@ -2,6 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 // What GET /api/logs and its neighbours return, and the small things the log
 // pages share. See internal/logging and internal/server/api_logs.go.
+import { date, num, t, tk, tn } from '../../../i18n'
 
 export type LogAttr = { k: string; v: string }
 export type Explanation = { id: string; title: string; what: string; fix: string }
@@ -35,24 +36,27 @@ export type BundlePreview = {
   scanned: number; replaced?: Record<string, number>; changed?: { before: string; after: string }[]
 }
 
-// The words for a level. Colour is only ever added to these.
-export const LEVEL_WORDS: Record<string, string> = { debug: 'Debug', info: 'Info', warn: 'Warning', error: 'Error', crash: 'Crash' }
+// The words for a level. Colour is only ever added to these. Shown with tx(); a
+// copied line keeps the English.
+export const LEVEL_WORDS: Record<string, string> = { debug: tk('Debug'), info: tk('Info'), warn: tk('Warning'), error: tk('Error'), crash: tk('Crash') }
 
 export function fmtSize(n = 0): string {
-  if (n >= 1 << 30) return (n / (1 << 30)).toFixed(1) + ' GB'
-  if (n >= 1 << 20) return (n / (1 << 20)).toFixed(1) + ' MB'
-  return Math.max(n ? 1 : 0, Math.round(n / 1024)) + ' KB'
+  const one = { minimumFractionDigits: 1, maximumFractionDigits: 1 }
+  if (n >= 1 << 30) return t('{size} GB', { size: num(n / (1 << 30), one) })
+  if (n >= 1 << 20) return t('{size} MB', { size: num(n / (1 << 20), one) })
+  return t('{size} KB', { size: num(Math.max(n ? 1 : 0, Math.round(n / 1024))) })
 }
 
-export const fmtDate = (t: string) => new Date(t).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+export const fmtDate = (when: string) => date(when, { dateStyle: 'medium', timeStyle: 'short' })
 
-export function fmtAge(t: string): string {
-  const min = Math.round((Date.now() - new Date(t).getTime()) / 60000)
-  if (min < 2) return 'just now'
-  if (min < 90) return `${min} minutes ago`
+export function fmtAge(when: string): string {
+  const min = Math.round((Date.now() - new Date(when).getTime()) / 60000)
+  if (min < 2) return t('just now')
+  if (min < 90) return tn('{count} minute ago', '{count} minutes ago', min)
   const h = Math.round(min / 60)
-  if (h < 36) return `${h} hours ago`
-  return `${Math.round(h / 24)} days ago`
+  if (h < 36) return tn('{count} hour ago', '{count} hours ago', h)
+  const d = Math.round(h / 24)
+  return tn('{count} day ago', '{count} days ago', d)
 }
 
 // A long text in a box: the arrows scroll it until they reach an end, and then

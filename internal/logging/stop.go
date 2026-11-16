@@ -27,6 +27,7 @@ const (
 	StopInstaller      = "installer"       // an installer asked it to close
 	StopUpdate         = "update"          // this server's own updater, restarting into the new version
 	StopRestartSetting = "restart-setting" // a reset, restore or repair that needs a restart
+	StopTimeZone       = "time-zone"       // a new time zone, which the server only takes on at start
 	StopSignal         = "signal"          // SIGINT or SIGTERM: Ctrl+C, kill
 	StopConsoleClosed  = "console-closed"  // its console window was closed
 	StopAPI            = "api"             // an admin pressed Restart in Settings
@@ -103,6 +104,7 @@ var stopWords = map[string]string{
 	StopInstaller:      "an installer closed it",
 	StopUpdate:         "it restarted to finish an update",
 	StopRestartSetting: "it restarted for a reset, restore or repair",
+	StopTimeZone:       "it restarted to use a new time zone",
 	StopSignal:         "it was told to stop (a signal)",
 	StopConsoleClosed:  "its console window was closed",
 	StopAPI:            "an admin restarted it in Settings",

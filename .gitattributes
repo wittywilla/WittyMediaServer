@@ -1,3 +1,8 @@
+# Every text file is checked out with LF, on Windows too: tests compare generated files byte for
+# byte, and files built into the program must be the same on every system. Git for Windows
+# otherwise turns them into CRLF (core.autocrlf=true is its default).
+* text=auto eol=lf
+
 # These run on Linux and macOS whatever machine they were checked out on.
 *.sh text eol=lf
 packaging/macos/scripts/** text eol=lf

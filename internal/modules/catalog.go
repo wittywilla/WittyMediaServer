@@ -416,6 +416,7 @@ func (m *Manager) setDisabled(id string, e *entry, off bool) error {
 // by type; if any would be left with no module, nothing changes and *ErrInUse says
 // which. Its downloaded versions go, and no data is touched.
 func (m *Manager) RemoveModule(id string, libraries map[string][]string) error {
+	m.stopRunningFrom(id, "") // before its versions are deleted; a refusal below only means it restarts when asked
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return m.removeModule(id, libraries)
@@ -486,6 +487,18 @@ func (m *Manager) SetInstalled(ids []string, libraries map[string][]string) erro
 // version made for an older server when that is all there is. Any other such module isn't
 // installed: it says why on its status, as a module that couldn't start does.
 func (m *Manager) SetInstalledOlder(ids []string, libraries map[string][]string, confirmOlder []string) error {
+	// What may be removed stops first, before m.mu: its versions' folders are deleted below.
+	m.mu.Lock()
+	var stop []string
+	for _, id := range m.order {
+		if e := m.mods[id]; !slices.Contains(ids, id) && e.onDisk() && !e.builtin.Core {
+			stop = append(stop, id)
+		}
+	}
+	m.mu.Unlock()
+	for _, id := range stop {
+		m.stopRunningFrom(id, "")
+	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	want := map[string]bool{}

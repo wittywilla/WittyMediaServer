@@ -20,6 +20,9 @@ import (
 // The launcher's limits hold after it becomes the program, so they can't be skipped by
 // what runs. This test is the program too: the launcher applies them and runs it again.
 func TestLauncherStopsWritesAndHoldsMemory(t *testing.T) {
+	if raceEnabled {
+		t.Skip("the race detector needs more memory than the launcher's limit allows: its child can't start a thread")
+	}
 	if os.Getenv("WMS_SANDBOX_CHILD") == "1" {
 		target := os.Getenv("WMS_SANDBOX_TARGET")
 		if err := os.WriteFile(target, []byte("changed"), 0o644); err == nil {

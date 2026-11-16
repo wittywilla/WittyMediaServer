@@ -555,7 +555,11 @@ func (m *Manager) install(ctx context.Context, id string, e *entry, r *release, 
 	if err != nil {
 		return err
 	}
-	if err := os.RemoveAll(dst); err != nil {
+	if _, err := os.Stat(dst); err == nil {
+		// The same version again: its programs may be running from this folder.
+		m.stopRunningFrom(id, dst)
+	}
+	if err := removeRetry(dst); err != nil {
 		return err
 	}
 	if err := renameRetry(stage, dst); err != nil {
@@ -744,6 +748,35 @@ func verifyInstalled(dir string, man *wittymodule.Manifest, keys []ed25519.Publi
 		return fmt.Errorf("%w: a file is missing", errUntrusted)
 	}
 	return nil
+}
+
+// stopRunningFrom stops a module's service, and its helper when it runs from dir (from anywhere
+// when dir is ""), so the folder can be deleted or replaced: Windows won't delete a running
+// program. Either starts again when next asked. Never call it with m.mu held.
+func (m *Manager) stopRunningFrom(id, dir string) {
+	m.stopService(id)
+	m.mu.Lock()
+	var p *proc
+	if e := m.mods[id]; e != nil && e.proc != nil && (dir == "" || e.dir == dir) {
+		p = e.proc
+	}
+	m.mu.Unlock()
+	if p != nil {
+		p.stop("its folder is being replaced")
+	}
+}
+
+// removeRetry is os.RemoveAll that, on Windows, gives a program that is ending, or a virus
+// scanner, a moment to let go of its files.
+func removeRetry(dir string) error {
+	var err error
+	for i := 0; i < 10; i++ {
+		if err = os.RemoveAll(dir); err == nil || runtime.GOOS != "windows" {
+			return err
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+	return err
 }
 
 // renameRetry: on Windows a virus scanner may still hold a new program for a moment.

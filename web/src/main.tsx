@@ -51,7 +51,8 @@ import { installTvMode } from './tvmode/mode'
 import { installDensity } from './ui/density'
 import './tvmode/tvmode.css'
 import { installErrorReporter } from './errorReport'
-import { setLanguage, startingLanguage, useLanguage } from './i18n'
+import { setLanguage, startingLanguage, t, tn, useLanguage } from './i18n'
+import { setWords } from './sdui/words'
 
 installTVInput()
 installDensity()
@@ -67,6 +68,9 @@ const router = createBrowserRouter([{ path: '*', element: <ErrorBoundary><App />
 function InLanguage({ children }: { children: React.ReactNode }) {
   return <React.Fragment key={useLanguage()}>{children}</React.Fragment>
 }
+
+// Page descriptions built in the app use the app's words (sdui/words.ts stays English in node's tests).
+setWords(t, tn)
 
 // The words come before the first page: the language this browser used last (or its own), corrected by the server's
 // status if the server is set to another.

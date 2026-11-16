@@ -1,5 +1,7 @@
 # Next session: plans after 0.8.0-alpha
 
+**On the Mac:** read `MAC-FOLLOW-UPS.md` first. It lists what the Windows and Linux pass (2026-11-15) left for a Mac.
+
 Written 2026-11-15, when the 0.8.0-alpha work was finished on macOS. Read this first, then
 `HANDOVER-0.8.0.md` (what each area built), `docs/plans/MODULAR-MODULES.md` (the module design) and
 `ORCHESTRATION.md` in the parent folder, if it is there (how parallel sessions share work).

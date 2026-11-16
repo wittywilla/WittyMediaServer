@@ -38,9 +38,13 @@ func withExtras(t *testing.T, raw []byte, extra map[string]map[string]any) []byt
 
 func listedVersion(id, delivery string) wittymodule.CatalogModule {
 	m := listedModule(id, strings.ToUpper(id[:1])+id[1:])
+	platform := wittymodule.PlatformAll // web only; a helper names the system it runs on
+	if delivery != wittymodule.DeliveryWeb {
+		platform = thisPlatform()
+	}
 	m.Versions = []wittymodule.CatalogVersion{{Version: "1.0.0", Delivery: delivery, API: API, MinServer: MinModuleServer, MaxServer: "0.6.x", License: "MIT", Released: "2026-11-01",
 		Sums: id + ".sums", Sig: id + ".sums.sig", Manifest: id + ".json",
-		Platforms: map[string]wittymodule.CatalogFile{wittymodule.PlatformAll: {URL: id + ".tar.gz", Size: 10, SHA256: strings.Repeat("a", 64)}}}}
+		Platforms: map[string]wittymodule.CatalogFile{platform: {URL: id + ".tar.gz", Size: 10, SHA256: strings.Repeat("a", 64)}}}}
 	return m
 }
 

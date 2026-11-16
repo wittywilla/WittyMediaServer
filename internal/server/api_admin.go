@@ -125,6 +125,9 @@ func (s *Server) serverSettingsView(r *http.Request) (map[string]string, int) {
 	out["theme"] = s.serverTheme(r.Context()) // the look's own until one is chosen
 	out["timeZoneNow"] = time.Local.String()  // the zone the server runs in, which is timeZone's, else the computer's
 	out["timeZoneComputer"] = computerZone
+	if s.timeZoneWaiting(r.Context()) {
+		out["timeZoneRestart"] = "1" // saved, in use once the server starts again
+	}
 	for _, k := range secretSettings {
 		if out[k] != "" {
 			out[k+"Set"] = "1"
@@ -183,7 +186,7 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if _, ok := in["timeZone"]; ok {
-		s.applyTimeZone(r.Context())
+		s.restartForTimeZone(r.Context(), adminName(r)) // time.Local isn't changed while the server runs
 	}
 	s.protectSecrets(r.Context()) // a new API key is hidden from the log from now on
 	if s.Discovery != nil {

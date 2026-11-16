@@ -96,9 +96,7 @@ func TestForgetFilesRemovesOnlyTheServersOwn(t *testing.T) {
 	putFile(t, outNFO, []byte(nfoMarker))
 	outPic := filepath.Join(outside, "poster.jpg")
 	putFile(t, outPic, pngHead)
-	if err := os.Symlink(outside, filepath.Join(root, "linked")); err != nil {
-		t.Fatal(err)
-	}
+	symlink(t, outside, filepath.Join(root, "linked"))
 	if _, err := s.Store.DB.Exec(`INSERT INTO saved_files(path, written_at, size) VALUES(?, 9999999999, ?)`, filepath.Join(root, "linked", "poster.jpg"), len(pngHead)); err != nil {
 		t.Fatal(err)
 	}

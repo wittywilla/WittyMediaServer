@@ -144,17 +144,38 @@ func (k Kit) Hero(w, h float64, light bool) Art { return k.Scene(w, h, 5, light)
 // InstallerPanel is a tall picture for an installer's first and last pages (Windows Installer's
 // 164×312 strip, NSIS's 164×314): the scene and the mark near the top.
 func (k Kit) InstallerPanel(p Product, w, h float64) Art {
-	a := k.Scene(w, h, 13, false, Box{w * 0.1, h * 0.06, w * 0.9, h * 0.42})
-	t := k.Tile(p, int(w*0.6)).Placed(0, 0, Pt{w / 2, h * 0.24}, w*0.6/Page)
-	return a.With(t.Layers...)
+	s := w * 0.6
+	nameAt := h*0.24 + s/2 + h*0.08
+	a := k.Scene(w, h, 13, false, Box{w * 0.1, h * 0.06, w * 0.9, nameAt + h*0.04})
+	t := k.Tile(p, int(s)).Placed(0, 0, Pt{w / 2, h * 0.24}, s/Page)
+	a = a.With(t.Layers...)
+	// The product's name under the mark, in the wordmark's colours, as wide as the panel allows.
+	runs := k.Wordmark(p, k.Pal.Text, k.Pal.AccentLite)
+	size := math.Min(w*0.105, w*0.86/(TextWidth(runs, 1, true)))
+	words, _ := TextArt(runs, (w-TextWidth(runs, size, true))/2, nameAt, size, true)
+	return a.With(words...)
 }
 
 // InstallerBanner is a strip along the top of installer pages (Windows Installer's 493×58, NSIS's
-// 150×57): white, the mark at the right.
+// 150×57). The installer writes each page's title and words over its left part, in black, so that
+// stays white; the scene comes in from the right, behind the mark. Too narrow for that (NSIS),
+// it is white with the mark at the right.
 func (k Kit) InstallerBanner(p Product, w, h float64) Art {
-	a := Art{W: w, H: h, Layers: []Layer{{Rect(0, 0, w, h, 0), Fill(Hex("#ffffff"))}}}
+	white := Hex("#ffffff")
+	a := Art{W: w, H: h, Layers: []Layer{{Rect(0, 0, w, h, 0), Fill(white)}}}
 	s := h * 0.76
 	t := k.Tile(p, int(s)).Placed(0, 0, Pt{w - s/2 - h*0.12, h / 2}, s/Page)
+	if w < h*5 {
+		return a.With(t.Layers...)
+	}
+	band := h * 3.2 // how far in from the right the scene reaches
+	scene := k.Scene(w, h, 21, false, Box{w - s - h*0.3, 0, w, h})
+	a = a.With(scene.Layers...)
+	// White over everything left of the band, then fading into the scene across its first part.
+	fade := band * 0.55
+	// The white runs a little under the fade, so no seam shows where they meet.
+	a = a.With(Layer{Rect(0, 0, w-band+2, h, 0), Fill(white)},
+		Layer{Rect(w-band, 0, fade, h, 0), Linear(Pt{w - band, 0}, Pt{w - band + fade, 0}, white, white.WithAlpha(0))})
 	return a.With(t.Layers...)
 }
 

@@ -575,7 +575,7 @@ func (p *proc) callOnce(method string, params, out any) (blob []byte, err error,
 // pipeEnded reports an error that says the helper's end of the pipes was gone.
 func pipeEnded(err error) bool {
 	return errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, io.ErrClosedPipe) || errors.Is(err, os.ErrClosed) ||
-		errors.Is(err, syscall.EPIPE) || strings.Contains(err.Error(), "broken pipe") || strings.Contains(err.Error(), "file already closed")
+		errors.Is(err, syscall.EPIPE) || osPipeEnded(err) || strings.Contains(err.Error(), "broken pipe") || strings.Contains(err.Error(), "file already closed")
 }
 
 // Stream asks for a stream: one answer, and then the helper's output is the stream.

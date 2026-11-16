@@ -834,6 +834,12 @@ func (rv *sduiResolver) channels(favouritesOnly bool, search string, limit int, 
 				pg := &sdui.Programme{Title: p.Title, Start: p.Start, End: p.End}
 				if p.Start <= rv.now.Unix() && p.End > rv.now.Unix() {
 					it.Now = pg
+					// A channel with no logo shows a frame of what's on now, so its card is never an empty box.
+					if p.ShowID > 0 {
+						it.Images["backdrop"] = "/api/shows/" + itoa(p.ShowID) + "/art/backdrop"
+					} else if p.ItemID > 0 {
+						it.Images["backdrop"] = "/api/items/" + itoa(p.ItemID) + "/backdrop"
+					}
 				} else if p.Start > rv.now.Unix() && it.Next == nil {
 					it.Next = pg
 					break

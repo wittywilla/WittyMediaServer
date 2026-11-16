@@ -29,6 +29,8 @@ function facts() {
 // on every pixel of a resize.
 let name = ''
 const ownName = () => (name ||= deviceName(facts().desktopShell, typeof localStorage === 'undefined' ? null : localStorage, () => Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)))
+// This window as the server's look needs it, outside React (theme.ts asks for the look with it).
+export const currentDevice = (): Device => describe(facts(), [], ownName())
 
 export function useDevice(): Device {
   const tv = useTvMode()

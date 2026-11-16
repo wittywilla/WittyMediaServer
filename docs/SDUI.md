@@ -2711,7 +2711,7 @@ A `Card` has a `style` and a `shape`. A renderer that doesn't know a style draws
 | `book` | poster | 2/3 | poster | title, subtitle, progress | 2 | 1 | A book or comic cover with the title and author, and how far it has been read. |
 | `game` | poster | 3/4 | poster | title, subtitle, badges | 1 | 1 | Box art with the game's name and console. |
 | `photo` | square | 1/1 | poster, square |  | 0 | 0 | The picture alone, cropped square; its name is only read out. |
-| `channel` | landscape | 16/9 | logo | number, title, now, next, progress | 1 | 2 | A channel's logo on a plain tile, its number and name, what is on now with how far through it is, and what is next. |
+| `channel` | landscape | 16/9 | logo, backdrop | number, title, now, next, progress | 1 | 2 | A channel's logo on a plain tile (or, with no logo, a frame of what is on now), its number and name, what is on now with how far through it is, and what is next. |
 | `tile` | landscape | 16/9 | backdrop, poster | title, count | 1 | 0 | A wide tile with its name over the picture, or over a plain tile with an icon: a library, a collection. |
 | `plate` | poster | 2/3 | poster, backdrop | title, subtitle, badges | 2 | 1 | Upright art with the title over it on a scrim along its foot: the Rail look's card. |
 | `block` | landscape | 16/9 | backdrop, poster | title, subtitle | 2 | 1 | A flat block of colour with the title in it, no picture unless there is room: teletext's cell. |

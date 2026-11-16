@@ -139,7 +139,14 @@ html.tv-mode .sdui-widgets { gap: var(--space-l); }
 .app[data-r-brand="center"] .topbar .top-brand { margin-inline: auto; }
 
 /* ---- finishes of the top-bar nav styles (data-nav-style on the frame), in the theme's own colours ---- */
-.app[data-nav-style="floatingGlassBar"] .topbar { margin: var(--space-s) var(--gutter) 0; border-radius: var(--r-full); background: color-mix(in srgb, var(--elev-2-fill) 86%, transparent); border: 1px solid var(--elev-2-line); box-shadow: var(--elev-3-shadow); background-image: linear-gradient(180deg, color-mix(in srgb, var(--on-image) 14%, transparent), transparent 60%); }
+.app[data-nav-style="floatingGlassBar"] .topbar { margin: var(--space-s) var(--gutter) 0; border-radius: var(--r-full); background: color-mix(in srgb, var(--elev-2-fill) 86%, transparent); border: 1px solid var(--elev-2-line); box-shadow: var(--elev-3-shadow); background-image: linear-gradient(180deg, color-mix(in srgb, var(--on-image) 14%, transparent), transparent 60%); padding-block: calc(var(--sp-3) - 1px); }
+/* The floating bar stands off the top by --space-s, so a picture runs up behind it by that much more than under a
+   bar at the edge, and has no hard edge under the glass. Anything before the picture starts below it. */
+@supports (animation-timeline: scroll()) {
+  .app[data-nav-style="floatingGlassBar"]:has(.hero, .detail-hero):not(:has(.home.editing, .legal-ack-bar)) .topbar { margin-bottom: calc(-1 * (var(--topbar-h) + var(--space-s))); }
+  .app[data-nav-style="floatingGlassBar"]:has(.hero, .detail-hero) .content > .sdui:first-child > :first-child:not(.hero, .detail-hero, .sr-only),
+  .app[data-nav-style="floatingGlassBar"]:has(.hero, .detail-hero) .content > .sdui:first-child > .sr-only:first-child + :not(.hero, .detail-hero) { margin-top: calc(var(--topbar-h) + var(--space-s)); }
+}
 .app[data-nav-style="cableBar"] .topbar { background: var(--bg-2); color: var(--fg); border-radius: 0; border-block-end: 2px solid var(--accent); }
 .app[data-nav-style="cableBar"] .topnav-link { color: var(--fg); border-radius: 0; border: 1px solid var(--border-strong); }
 .app[data-nav-style="cableBar"] .topnav-link.active { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
@@ -150,7 +157,14 @@ html.tv-mode .sdui-widgets { gap: var(--space-l); }
 .app[data-nav-style="teleKeys"] .topnav-link:nth-child(4n+2) { border-bottom-color: var(--ok); }
 .app[data-nav-style="teleKeys"] .topnav-link:nth-child(4n+3) { border-bottom-color: var(--warn); }
 .app[data-nav-style="teleKeys"] .topnav-link:nth-child(4n) { border-bottom-color: var(--accent); }
-.app[data-nav-style="crossbar"] .topnav { gap: var(--space-m); justify-content: center; min-inline-size: 0; flex: 1 1 0; overflow-x: auto; scrollbar-width: none; }
+.app[data-nav-style="crossbar"] .topnav { gap: var(--space-m); justify-content: flex-start; min-inline-size: 0; flex: 1 1 0; overflow-x: auto; scrollbar-width: none; }
+/* Centred while the categories fit; once they don't, they start at the left and scroll, rather than spilling
+   past the left edge where the first one can't be scrolled to (justify-content: center did that). */
+.app[data-nav-style="crossbar"] .topnav > :first-child { margin-inline-start: auto; }
+.app[data-nav-style="crossbar"] .topnav > :last-child { margin-inline-end: auto; }
+/* When they don't fit, the row fades out at its end, as a phone's row of sections does, rather than cutting the
+   last category off against the search, and the last one can scroll clear of the fade. */
+.app[data-nav-style="crossbar"] .topnav { padding-inline-end: var(--space-l); -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - var(--space-l)), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - var(--space-l)), transparent); } /* design-ok: a mask only reads how solid it is */
 .app[data-nav-style="crossbar"] .topnav-link { font-size: var(--role-title-size); background: none; border-radius: 0; border-bottom: 2px solid transparent; color: var(--fg-2); }
 .app[data-nav-style="crossbar"] .topnav-link.active { background: none; color: var(--fg); border-bottom-color: var(--accent); }
 .app[data-nav-style="ornamentTabs"] .topbar { margin: var(--space-m) auto 0; inline-size: fit-content; max-inline-size: calc(100% - 2 * var(--gutter)); border-radius: var(--r-full); background: var(--elev-2-fill); border: 1px solid var(--elev-2-line); box-shadow: var(--elev-3-shadow); }

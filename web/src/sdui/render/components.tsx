@@ -166,7 +166,7 @@ export const CardView = memo(function CardView({ view, showTitles }: { view: Vie
     <Pressable view={view} className={'card' + (SHAPE_CLASS[shape] ?? '') + (style === 'game' ? ' sdui-game' : '') + (channel ? ' sdui-channel' : '') + (style === 'plate' || style === 'block' || style === 'logo' ? ' sdui-' + style : '')} title={(gameName ? gameTitleLabel({ title: text.title, titles: obj(p, 'titles') as GameTitles }, titlePref) : str(p, 'title')) || undefined}>
       {text.rank && <span className="sdui-rank" aria-hidden="true">{text.rank}</span>}
       <div className="poster">
-        {drawn ?? <Picture image={obj(p, 'image')} kind={p.kind} icon={p.icon} contain={channel || str(obj(p, 'image'), 'kind') === 'logo'} title={channel ? undefined : gameName?.main || text.title || str(p, 'title') || undefined} />}
+        {drawn ?? <Picture image={obj(p, 'image')} kind={p.kind} icon={p.icon} contain={str(obj(p, 'image'), 'kind') === 'logo'} title={channel ? undefined : gameName?.main || text.title || str(p, 'title') || undefined} />}
         {shows.includes('badges') && <span className="sdui-badges">{badgesOf(p, text.badges).map((b) => <span key={b} className="badge" data-badge={b.toLowerCase()}>{b}</span>)}</span>}
         {shows.includes('unwatched') && <span className="badge count" aria-hidden="true">{text.unwatched}</span>}
         {shows.includes('watched') && <span className="badge seen" aria-hidden="true"><IconCheck /></span>}

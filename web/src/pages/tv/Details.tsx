@@ -11,6 +11,7 @@ import { useReminders } from './reminders'
 import { resetChannel } from './resetChannel'
 import { canCatchup } from './guideLogic'
 import { canOfferRecord, fmtClock, fmtDay, fmtLeft, fmtSpan, type GuideChannel, type GuidePage, type Programme } from './tvApi'
+import { t, tn, tx } from '../../i18n'
 
 // More about a programme, or the whole of the channel's day: the same dialog,
 // so that one is a key press away from the other.
@@ -34,46 +35,46 @@ export default function DetailsDialog({ ch, p, now, startDay, onClose, onWatch, 
   }, [p.desc, p.itemId])
   const addSeries = async () => {
     if (!canOfferRecord(ch, p, now)) return
-    try { await api.post('/recording-rules', { channel: ch.key, title: p.title }); toast(`Every airing of ${p.title} will be recorded`); onClose() } catch (e) { toast((e as Error).message) }
+    try { await api.post('/recording-rules', { channel: ch.key, title: p.title }); toast(t('Every airing of {title} will be recorded', { title: p.title })); onClose() } catch (e) { toast((e as Error).message) }
   }
   const later = p.start > now
   const reminded = reminders.has(ch.key, p.start)
   const actions = (
     <>
-      <Button variant="ghost" onClick={onClose}>Close</Button>
-      {user?.isAdmin && ch.kind === 'library' && ch.id != null && <LinkButton variant="ghost" to={`/tv/channels/${ch.id}`}>Edit channel</LinkButton>}
-      {user?.isAdmin && ch.kind === 'library' && ch.id != null && <Button variant="ghost" onClick={() => void resetChannel(ch.id!, ch.name).then((done) => { if (done) { onReset?.(); onClose() } })}>Reset channel</Button>}
-      {later && !ch.encrypted && p.kind !== 'none' && p.kind !== 'group' && <Button aria-pressed={reminded} onClick={() => void reminders.toggle(ch.key, p)}>{reminded ? '✓ Reminder set' : 'Remind me'}</Button>}
-      {onAddToSet && <Button variant="ghost" onClick={onAddToSet}>Add to set…</Button>}
+      <Button variant="ghost" onClick={onClose}>{t('Close')}</Button>
+      {user?.isAdmin && ch.kind === 'library' && ch.id != null && <LinkButton variant="ghost" to={`/tv/channels/${ch.id}`}>{t('Edit channel')}</LinkButton>}
+      {user?.isAdmin && ch.kind === 'library' && ch.id != null && <Button variant="ghost" onClick={() => void resetChannel(ch.id!, ch.name).then((done) => { if (done) { onReset?.(); onClose() } })}>{t('Reset channel')}</Button>}
+      {later && !ch.encrypted && p.kind !== 'none' && p.kind !== 'group' && <Button aria-pressed={reminded} onClick={() => void reminders.toggle(ch.key, p)}>{reminded ? t('✓ Reminder set') : t('Remind me')}</Button>}
+      {onAddToSet && <Button variant="ghost" onClick={onAddToSet}>{t('Add to set…')}</Button>}
       {canOfferRecord(ch, p, now) && (onRecordOptions
-        ? <><Button onClick={() => onRecordOptions(true)}>Record every airing…</Button><Button onClick={() => onRecordOptions(false)}>Record this…</Button></>
-        : <><Button onClick={() => void addSeries()}>Record every airing</Button><Button onClick={onRecord}>Record this</Button></>)}
-      {onFromStart && canCatchup(ch, p, now) && <Button icon={<IconPrev />} onClick={onFromStart}>Watch from the start</Button>}
-      {ch.alternative && <LinkButton variant="primary" icon={<IconPlay />} to={`/tv/watch/${ch.alternative.key}`}>Watch {ch.alternative.number} {ch.alternative.name} instead</LinkButton>}
-      {!ch.encrypted && <Button variant={ch.alternative ? 'default' : 'primary'} icon={<IconPlay />} onClick={onWatch}>Watch channel now</Button>}
+        ? <><Button onClick={() => onRecordOptions(true)}>{t('Record every airing…')}</Button><Button onClick={() => onRecordOptions(false)}>{t('Record this…')}</Button></>
+        : <><Button onClick={() => void addSeries()}>{t('Record every airing')}</Button><Button onClick={onRecord}>{t('Record this')}</Button></>)}
+      {onFromStart && canCatchup(ch, p, now) && <Button icon={<IconPrev />} onClick={onFromStart}>{t('Watch from the start')}</Button>}
+      {ch.alternative && <LinkButton variant="primary" icon={<IconPlay />} to={`/tv/watch/${ch.alternative.key}`}>{t('Watch {number} {name} instead', { number: ch.alternative.number, name: ch.alternative.name })}</LinkButton>}
+      {!ch.encrypted && <Button variant={ch.alternative ? 'default' : 'primary'} icon={<IconPlay />} onClick={onWatch}>{t('Watch channel now')}</Button>}
     </>
   )
   return (
-    <Dialog className="ctv-details" title={day ? `Channel ${ch.number}, ${ch.name}` : p.title} onClose={onClose} actions={actions}>
-      <Segmented<'one' | 'day'> label="Show" value={day ? 'day' : 'one'} onChange={(v) => setDay(v === 'day')} className="ctv-tabs"
-        options={[{ value: 'one', label: 'This programme' }, { value: 'day', label: 'The whole day' }]} />
+    <Dialog className="ctv-details" title={day ? t('Channel {number}, {name}', { number: ch.number, name: ch.name }) : p.title} onClose={onClose} actions={actions}>
+      <Segmented<'one' | 'day'> label={t('Show')} value={day ? 'day' : 'one'} onChange={(v) => setDay(v === 'day')} className="ctv-tabs"
+        options={[{ value: 'one', label: t('This programme') }, { value: 'day', label: t('The whole day') }]} />
       {day ? <DayView ch={ch} at={p.start} now={now} /> : (
         <>
           {p.sub && <p className="muted">{p.sub}</p>}
-          <p className="muted">Channel {ch.number}, {ch.name}{p.kind !== 'none' && <> · {fmtDay(p.start)}, {fmtSpan(p)}</>}{p.rating && <> · {p.rating}</>}</p>
-          {p.clip && <p className="muted ctv-note">A scene from this disc{p.clip.label ? `: ${p.clip.label}` : ''}, {fmtLeft(p.clip.end - p.clip.start)} long.</p>}
+          <p className="muted">{t('Channel {number}, {name}', { number: ch.number, name: ch.name })}{p.kind !== 'none' && <> · {fmtDay(p.start)}, {fmtSpan(p)}</>}{p.rating && <> · {p.rating}</>}</p>
+          {p.clip && <p className="muted ctv-note">{p.clip.label ? t('A scene from this disc: {label}, {length} long.', { label: p.clip.label, length: fmtLeft(p.clip.end - p.clip.start) }) : t('A scene from this disc, {length} long.', { length: fmtLeft(p.clip.end - p.clip.start) })}</p>}
           {p.group && (
             <ol className="ctv-day">
               {p.group.map((x) => <li key={x.start}><time>{fmtClock(x.start)}</time><span><b>{x.title}</b>{x.sub && <small> {x.sub}</small>}</span></li>)}
             </ol>
           )}
           {desc && <p>{desc}</p>}
-          {ch.security?.state === 'encrypted' && <p role="alert"><b>{ch.security.label}.</b> {ch.security.detail} <Link to="/tv/encrypted">What can I do?</Link></p>}
-          {ch.security?.state === 'unknown' && <p className="muted ctv-note">{ch.security.detail}</p>}
-          {ch.noRecord && <p className="muted ctv-note">This channel can't be recorded: {ch.noRecord}.</p>}
-          {ch.notices?.map((n) => <p key={n} className="muted ctv-note">{n}</p>)}
-          {ch.kind === 'library' && <p className="muted ctv-note">Library channels can't be recorded: what they play is already in your library.</p>}
-          {onFromStart && !!ch.catchupDays && <p className="muted ctv-note">This channel keeps the last {ch.catchupDays === 1 ? 'day' : `${ch.catchupDays} days`} of its programmes, to watch from their start.</p>}
+          {ch.security?.state === 'encrypted' && <p role="alert"><b>{tx(ch.security.label)}.</b> {tx(ch.security.detail)} <Link to="/tv/encrypted">{t('What can I do?')}</Link></p>}
+          {ch.security?.state === 'unknown' && <p className="muted ctv-note">{tx(ch.security.detail)}</p>}
+          {ch.noRecord && <p className="muted ctv-note">{t("This channel can't be recorded: {reason}.", { reason: tx(ch.noRecord) })}</p>}
+          {ch.notices?.map((n) => <p key={n} className="muted ctv-note">{tx(n)}</p>)}
+          {ch.kind === 'library' && <p className="muted ctv-note">{t("Library channels can't be recorded: what they play is already in your library.")}</p>}
+          {onFromStart && !!ch.catchupDays && <p className="muted ctv-note">{tn('This channel keeps the last day of its programmes, to watch from their start.', 'This channel keeps the last {count} days of its programmes, to watch from their start.', ch.catchupDays)}</p>}
         </>
       )}
     </Dialog>
@@ -95,16 +96,16 @@ function DayView({ ch, at, now }: { ch: DetailChannel; at: number; now: number }
   }, [ch.key, start, now])
   if (err) return <p role="alert">{err}</p>
   if (!list) return <div className="center"><div className="spinner" /></div>
-  if (!list.length) return <p className="muted">Nothing is listed for this day.</p>
+  if (!list.length) return <p className="muted">{t('Nothing is listed for this day.')}</p>
   return (
-    <ol className="ctv-day" ref={box} aria-label={`Schedule for ${fmtDay(start + 3600)}`}>
+    <ol className="ctv-day" ref={box} aria-label={t('Schedule for {day}', { day: fmtDay(start + 3600) })}>
       {list.map((p) => {
         const on = p.start <= now && p.end > now, past = p.end <= now
         return (
           <li key={p.start} className={(on ? 'on' : '') + (past ? ' past' : '')}>
             <time>{fmtClock(p.start)}</time>
-            <span><b>{p.title}</b>{p.sub && <small> {p.sub}</small>}{on && <em> On now</em>}</span>
-            {p.start > now && p.kind !== 'slate' && <Button size="sm" variant="ghost" aria-pressed={reminders.has(ch.key, p.start)} aria-label={`Remind me about ${p.title} at ${fmtClock(p.start)}`} onClick={() => void reminders.toggle(ch.key, p)}>{reminders.has(ch.key, p.start) ? '✓' : 'Remind'}</Button>}
+            <span><b>{p.title}</b>{p.sub && <small> {p.sub}</small>}{on && <em> {t('On now')}</em>}</span>
+            {p.start > now && p.kind !== 'slate' && <Button size="sm" variant="ghost" aria-pressed={reminders.has(ch.key, p.start)} aria-label={t('Remind me about {title} at {time}', { title: p.title, time: fmtClock(p.start) })} onClick={() => void reminders.toggle(ch.key, p)}>{reminders.has(ch.key, p.start) ? '✓' : t('Remind')}</Button>}
           </li>
         )
       })}

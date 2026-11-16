@@ -27,6 +27,8 @@ import type { Action, Document, Node } from './types'
 import { useDevice } from './useSdui'
 import { ask } from '../ui/Overlay'
 import { setPageRegions } from './regions'
+import { date, t, tn, tx } from '../i18n'
+import { setWords } from './words'
 import './sdui.css'
 import './play.css'
 
@@ -35,6 +37,9 @@ const CardMenu = lazy(() => import('./render/CardMenu'))
 const ScreenHost = lazy(() => import('./render/ScreenHost'))
 const LayerHost = lazy(() => import('./render/LayerHost'))
 const PageTools = lazy(() => import('./extras/PageTools'))
+
+// The layout step (model.ts) is also run by node's tests, so it is handed the app's words here.
+setWords(t, tn)
 
 // ---------------------------------------------------------------- the tree, changed without changing it
 
@@ -129,7 +134,7 @@ export function PageView({ doc, device, handlers, width, children }: { doc: Docu
   }, [doc, inert])
 
   // The shell's optional regions (status bar, system dock) show what this page gives them, while it shows.
-  useEffect(() => { if (inert) return; setPageRegions(doc.regions); return () => setPageRegions(undefined) }, [doc.regions, inert])
+  useEffect(() => { if (inert) return; setPageRegions(doc.regions && { statusBar: doc.regions.statusBar?.map((s) => (s.text ? { ...s, text: tx(s.text) } : s)), systemDock: doc.regions.systemDock?.map((d) => ({ ...d, label: tx(d.label) })) }); return () => setPageRegions(undefined) }, [doc.regions, inert])
 
   // The arrows of a remote, a game pad or the keyboard follow the page's order.
   const left = useRef<Record<string, string>>({})
@@ -153,7 +158,7 @@ export function PageView({ doc, device, handlers, width, children }: { doc: Docu
     '--sdui-xs': px(l.spacing.xs || 4, pt), '--sdui-s': px(l.spacing.s || 8, pt), '--sdui-m': px(l.spacing.m || 16, pt), '--sdui-l': px(l.spacing.l || 24, pt), '--sdui-xl': px(l.spacing.xl || 48, pt),
     ...scopeStyle(doc.theme), ...scopeStyle(doc.root),
   } as CSSProperties
-  const title = model.root.label || doc.page.title
+  const title = model.root.label || tx(doc.page.title)
   return (
     <Ctx.Provider value={ctx}>
       <div ref={box} className={`sdui ff-${l.formFactor} bp-${l.breakpoint} density-${l.density || 'comfortable'} kind-${doc.page.kind}` + (inert ? ' inert' : '')} style={style}
@@ -163,7 +168,7 @@ export function PageView({ doc, device, handlers, width, children }: { doc: Docu
         <Sections views={model.root.children} />
         {/* A title's own facts, where else it is listed and the small print go here, after its episodes, cast and more like it (DetailExtras). */}
         {doc.page.kind === 'detail' && <div className="sdui-page-end" data-sdui-end />}
-        {blank && <div className="sdui-nothing"><EmptyState icon={<IconInfo />} title="Nothing here yet" text="When there is something for this page, it will appear here. Check back after you add media or turn a module on." /></div>}
+        {blank && <div className="sdui-nothing"><EmptyState icon={<IconInfo />} title={t('Nothing here yet')} text={t('When there is something for this page, it will appear here. Check back after you add media or turn a module on.')} /></div>}
       </div>
     </Ctx.Provider>
   )
@@ -413,7 +418,7 @@ export default function SduiPage({ page, params, fallback }: { page: string; par
       case 'client': window.dispatchEvent(new CustomEvent('wms:command', { detail: { op: step.op, params: step.params } })); break
       case 'request':
         (step.method === 'POST' ? api.post(step.path, step.body) : step.method === 'PUT' ? api.put(step.path, step.body) : api.del(step.path)).then(() => {
-          const said = a?.op === 'watchLater.add' ? 'Added to Watch later' : a?.op === 'watched.set' ? 'Marked as watched' : a?.op === 'watched.clear' ? 'Marked as not watched' : 'Done'
+          const said = a?.op === 'watchLater.add' ? t('Added to Watch later') : a?.op === 'watched.set' ? t('Marked as watched') : a?.op === 'watched.clear' ? t('Marked as not watched') : t('Done')
           toast(said, { tone: 'ok' }); announce(said)
           bump()
         }).catch((e) => toast((e as Error).message, { tone: 'danger' }))
@@ -422,7 +427,7 @@ export default function SduiPage({ page, params, fallback }: { page: string; par
   }, [nav, play, setQuery])
   // A command with a question asks it first, with Cancel beside, and runs only on a yes.
   const act = useCallback((a: Action | undefined, from?: View) => {
-    if (a?.confirm) { void ask({ title: a.confirm, confirm: String(from?.text?.title || from?.label || 'Yes') }).then((yes) => { if (yes) actNow({ ...a, confirm: undefined }, from) }); return }
+    if (a?.confirm) { void ask({ title: tx(a.confirm), confirm: String(from?.text?.title || from?.label || t('Yes')) }).then((yes) => { if (yes) actNow({ ...a, confirm: undefined }, from) }); return }
     actNow(a, from)
   }, [actNow])
 
@@ -434,10 +439,10 @@ export default function SduiPage({ page, params, fallback }: { page: string; par
 
   if (problem && (!doc || problem.status === 404 || problem.status === 403)) {
     if (problem.status === 404) {
-      return <><h1 className="sr-only">Not available</h1><EmptyState icon={<IconInfo />} title="This isn’t available" text="It may have been removed, or this profile may not be allowed to see it." action={<LinkButton variant="primary" to="/">Go to Home</LinkButton>} /></>
+      return <><h1 className="sr-only">{t('Not available')}</h1><EmptyState icon={<IconInfo />} title={t('This isn’t available')} text={t('It may have been removed, or this profile may not be allowed to see it.')} action={<LinkButton variant="primary" to="/">{t('Go to Home')}</LinkButton>} /></>
     }
-    if (problem.status === 0) return <LoadError what="This page" onRetry={() => setTick((n) => n + 1)} />
-    return <div role="alert"><EmptyState icon={<IconInfo />} title="This page didn’t load" text={problem.message} action={<button type="button" className="btn primary" onClick={() => setTick((n) => n + 1)}>Try again</button>} /></div>
+    if (problem.status === 0) return <LoadError what={t('This page')} onRetry={() => setTick((n) => n + 1)} />
+    return <div role="alert"><EmptyState icon={<IconInfo />} title={t('This page didn’t load')} text={problem.message} action={<button type="button" className="btn primary" onClick={() => setTick((n) => n + 1)}>{t('Try again')}</button>} /></div>
   }
   if (!doc) return <PageLoading device={device} />
   // One of the app's own screens stands in for this page (native.ts says when).
@@ -446,10 +451,15 @@ export default function SduiPage({ page, params, fallback }: { page: string; par
   // A page for a kind of library, with no such library yet: say so and offer the next step (canvas 'empty').
   const wantsLibrary = ({ photos: ['photos'], books: ['books', 'audiobooks'], music: ['music'] } as Record<string, string[]>)[doc.page.kind]
   if (wantsLibrary && !libraries.some((l) => wantsLibrary.includes(l.type))) {
-    const noun = doc.page.kind === 'photos' ? 'photos' : doc.page.kind === 'books' ? 'books' : 'music'
-    return <><h1 className="sr-only">{doc.page.title || noun}</h1><EmptyState icon={<IconInfo />} title={`No ${noun} yet`}
-      text={user?.isAdmin ? `Add a library of ${noun} and it appears here.` : `Ask whoever runs this server to add a library of ${noun}.`}
-      action={user?.isAdmin ? <LinkButton variant="primary" to="/settings/libraries">Add a library</LinkButton> : undefined} /></>
+    const kind = doc.page.kind === 'photos' ? 'photos' : doc.page.kind === 'books' ? 'books' : 'music'
+    const words = {
+      photos: { name: t('Photos'), title: t('No photos yet'), add: t('Add a library of photos and it appears here.'), ask: t('Ask whoever runs this server to add a library of photos.') },
+      books: { name: t('Books'), title: t('No books yet'), add: t('Add a library of books and it appears here.'), ask: t('Ask whoever runs this server to add a library of books.') },
+      music: { name: t('Music'), title: t('No music yet'), add: t('Add a library of music and it appears here.'), ask: t('Ask whoever runs this server to add a library of music.') },
+    }[kind]
+    return <><h1 className="sr-only">{tx(doc.page.title) || words.name}</h1><EmptyState icon={<IconInfo />} title={words.title}
+      text={user?.isAdmin ? words.add : words.ask}
+      action={user?.isAdmin ? <LinkButton variant="primary" to="/settings/libraries">{t('Add a library')}</LinkButton> : undefined} /></>
   }
   const personal = doc.personal
   const canCustomise = !!personal?.editable && (personal.allow || []).length > 0 && (personal.sections || []).length > 0
@@ -458,17 +468,17 @@ export default function SduiPage({ page, params, fallback }: { page: string; par
     <>
       <PageView doc={doc} device={device} handlers={handlers}>
         {hasTools(doc, libraries) && <Suspense fallback={null}><PageTools doc={doc} /></Suspense>}
-        {doc.meta?.source === 'draft' && <div className="ui-notice info sdui-draft" role="status"><div className="ui-notice-text"><strong>This is the draft</strong><span>Only you see it. Publish it from Settings, Pages and menu.</span></div><Link className="btn sm" to="/settings/pages">Open the editor</Link></div>}
+        {doc.meta?.source === 'draft' && <div className="ui-notice info sdui-draft" role="status"><div className="ui-notice-text"><strong>{t('This is the draft')}</strong><span>{t('Only you see it. Publish it from Settings, Pages and menu.')}</span></div><Link className="btn sm" to="/settings/pages">{t('Open the editor')}</Link></div>}
         {st && (
           <div className="ui-notice warn sdui-screentime" role="status">
-            <div className="ui-notice-text"><strong>Screen time is over</strong><span>{st.message || 'This profile can’t watch any more right now.'}{st.nextAt ? ` You can watch again at ${new Date(st.nextAt * 1000).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}.` : ''}</span></div>
+            <div className="ui-notice-text"><strong>{t('Screen time is over')}</strong><span>{tx(st.message) || t('This profile can’t watch any more right now.')}{st.nextAt ? ' ' + t('You can watch again at {time}.', { time: date(st.nextAt * 1000, { hour: 'numeric', minute: '2-digit' }) }) : ''}</span></div>
           </div>
         )}
       </PageView>
       {(canCustomise || user?.isAdmin) && (
         <div className="home-foot sdui-foot">
-          {canCustomise && <button type="button" className="btn sm ghost" data-tv-options aria-haspopup="dialog" onClick={() => setCustomising(true)} title="Rearrange, hide or pin the sections of this page"><IconTune /> Customise this page</button>}
-          {user?.isAdmin && !device.capabilities.includes('touch') && device.formFactor !== 'tv' && <Link className="btn sm ghost" to={`/settings/pages/${encodeURIComponent(doc.page.id)}`} title="Change this page for everyone">Edit for everyone</Link>}
+          {canCustomise && <button type="button" className="btn sm ghost" data-tv-options aria-haspopup="dialog" onClick={() => setCustomising(true)} title={t('Rearrange, hide or pin the sections of this page')}><IconTune /> {t('Customise this page')}</button>}
+          {user?.isAdmin && !device.capabilities.includes('touch') && device.formFactor !== 'tv' && <Link className="btn sm ghost" to={`/settings/pages/${encodeURIComponent(doc.page.id)}`} title={t('Change this page for everyone')}>{t('Edit for everyone')}</Link>}
         </div>
       )}
       <Suspense fallback={null}>
@@ -485,7 +495,7 @@ export default function SduiPage({ page, params, fallback }: { page: string; par
 export function PageLoading({ device }: { device: Device }) {
   const still = device.capabilities.includes('reducedMotion')
   return (
-    <div className={'sdui sdui-loading skeleton-grid' + (still ? ' still' : '')} role="status" aria-label="Loading" aria-busy="true">
+    <div className={'sdui sdui-loading skeleton-grid' + (still ? ' still' : '')} role="status" aria-label={t('Loading')} aria-busy="true">
       {[0, 1, 2].map((r) => (
         <div className="hub" key={r} aria-hidden="true">
           <div className="hub-head"><i className="skel sdui-skel-title" /></div>

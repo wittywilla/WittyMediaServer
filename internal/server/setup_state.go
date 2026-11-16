@@ -228,6 +228,7 @@ func (s *Server) handleSetupComplete(w http.ResponseWriter, r *http.Request) {
 	s.setupFinished.Store(true)
 	s.Log.InfoContext(ctx, "first run finished", "cat", "auth", "by", adminName(r))
 	writeJSON(w, 200, s.setupState(r))
+	s.restartForTimeZone(ctx, adminName(r)) // a zone chosen during setup, held back until now
 }
 
 // GET /api/sdui/preview?experience=<id>[&theme=<id>][&platform=<p>][&formFactor=<f>][&viewport=WxH]:

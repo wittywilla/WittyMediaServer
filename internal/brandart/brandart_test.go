@@ -45,10 +45,40 @@ func TestCommittedWebIconsAreCurrent(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !bytes.Equal(have, files[p]) {
+		if !bytes.Equal(have, files[p]) && !(strings.HasSuffix(p, ".png") && samePicture(t, p, have, files[p])) {
 			t.Errorf("%s is out of date: run scripts/sync-brand.sh", p)
 		}
 	}
+}
+
+// samePicture is true for two PNGs that differ only by rounding: arm64 fuses multiply-adds
+// and amd64 doesn't, so a few edge pixels of an icon drawn on a Mac are a step or two off one
+// drawn on a PC. A real change moves far more than that.
+func samePicture(t *testing.T, name string, a, b []byte) bool {
+	t.Helper()
+	pa, pb := decode(t, name, a), decode(t, name, b)
+	if pa.Bounds() != pb.Bounds() {
+		return false
+	}
+	const step, share = 3, 0.002 // at most 3 of 255 on a channel, on at most 0.2% of the pixels
+	r, off := pa.Bounds(), 0
+	for y := r.Min.Y; y < r.Max.Y; y++ {
+		for x := r.Min.X; x < r.Max.X; x++ {
+			r1, g1, b1, a1 := pa.At(x, y).RGBA()
+			r2, g2, b2, a2 := pb.At(x, y).RGBA()
+			d := 0
+			for _, c := range [][2]uint32{{r1, r2}, {g1, g2}, {b1, b2}, {a1, a2}} {
+				d = max(d, int(math.Abs(float64(c[0]>>8)-float64(c[1]>>8))))
+			}
+			if d > step {
+				return false
+			}
+			if d > 0 {
+				off++
+			}
+		}
+	}
+	return float64(off) <= share*float64(r.Dx()*r.Dy())
 }
 
 func decode(t *testing.T, name string, data []byte) image.Image {

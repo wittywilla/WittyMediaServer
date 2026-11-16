@@ -128,7 +128,7 @@ func (s *Scanner) StartBy(libraryID int64, mode ScanMode, by tasks.By) bool {
 	}
 	ctx, cancel := context.WithCancelCause(context.Background())
 	stop := func() { cancel(nil) }
-	live := &liveScan{last: time.Now(), cancel: cancel, mode: mode}
+	live := &liveScan{last: time.Now(), cancel: cancel, mode: mode, stuckAfter: StuckAfter, stuckCheck: stuckCheck}
 	s.running[libraryID] = stop
 	s.live[libraryID] = live
 	s.Progress[libraryID] = &ScanProgress{LibraryID: libraryID, Phase: "starting", StartedAt: time.Now().Unix(), Mode: mode}

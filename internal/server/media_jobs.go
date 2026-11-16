@@ -35,7 +35,10 @@ var (
 type mediaJobs struct {
 	mu     sync.Mutex
 	queued map[string]string // what is waiting or running, by key → its task
-	turn   chan struct{}     // one job at a time
+	// One job at a time, in the order they were started: the quick karaoke version is asked for
+	// before the real separation, and must not wait behind it for minutes.
+	busy bool
+	line []chan struct{} // the jobs waiting, first first; a job's turn is its channel closed
 	// failed is why the last try at a key failed, until it is tried again. The task says so
 	// too, but not everyone who may start a job may see tasks, and whoever pressed the
 	// button is owed the reason. Memory only, and bounded by maxJobFailures.
@@ -59,6 +62,33 @@ func jobSessionKind(key string) string {
 	return "job"
 }
 
+// next gives the turn to the job waiting longest, or marks none running.
+func (j *mediaJobs) next() {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	if len(j.line) == 0 {
+		j.busy = false
+		return
+	}
+	t := j.line[0]
+	j.line = j.line[1:]
+	close(t)
+}
+
+// leave takes a job that was stopped while waiting out of the line. false: it wasn't there,
+// because its turn had already come.
+func (j *mediaJobs) leave(ticket chan struct{}) bool {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	for i, t := range j.line {
+		if t == ticket {
+			j.line = append(j.line[:i], j.line[i+1:]...)
+			return true
+		}
+	}
+	return false
+}
+
 // jobLog is the logger for work a media job does: category extras, and the job's
 // session when ctx carries one.
 func (s *Server) jobLog(ctx context.Context) *slog.Logger {
@@ -77,7 +107,7 @@ func (s *Server) startMediaJob(key string, by *auth.User, spec tasks.Spec, fn fu
 	j := &s.mediaJobs
 	j.mu.Lock()
 	if j.queued == nil {
-		j.queued, j.turn = map[string]string{}, make(chan struct{}, 1)
+		j.queued = map[string]string{}
 	}
 	if id, ok := j.queued[key]; ok {
 		j.mu.Unlock()
@@ -94,6 +124,13 @@ func (s *Server) startMediaJob(key string, by *auth.User, spec tasks.Spec, fn fu
 	spec.By, spec.Cancel = byUser(by), stop
 	task := s.Tasks.Queue(spec)
 	j.queued[key] = task.ID()
+	ticket := make(chan struct{})
+	if !j.busy && len(j.line) == 0 {
+		j.busy = true
+		close(ticket)
+	} else {
+		j.line = append(j.line, ticket)
+	}
 	j.mu.Unlock()
 	forget := func() {
 		stop()
@@ -110,9 +147,12 @@ func (s *Server) startMediaJob(key string, by *auth.User, spec tasks.Spec, fn fu
 		defer cancel()
 		defer context.AfterFunc(stopped, cancel)()
 		select {
-		case j.turn <- struct{}{}:
-			defer func() { <-j.turn }()
+		case <-ticket:
+			defer j.next()
 		case <-ctx.Done():
+			if !j.leave(ticket) {
+				j.next() // its turn came as it was stopped: the next one's now
+			}
 			log.Debug("media job cancelled", "while", "waiting")
 			task.Finish(context.Canceled)
 			return

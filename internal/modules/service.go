@@ -350,6 +350,19 @@ func ProxyToServiceWith(c *service.Conn, w http.ResponseWriter, r *http.Request,
 }
 
 // closeServices stops every service, as the server stops.
+// stopService ends a module's running service, if it has one, and waits for its process to go.
+// On Windows a running program's file can't be deleted or replaced, so whatever removes or
+// replaces a version's folder stops it first. A later call starts it again. Never call it with
+// m.mu held: svcMu comes first.
+func (m *Manager) stopService(id string) {
+	m.svcMu.Lock()
+	defer m.svcMu.Unlock()
+	if s := m.services[id]; s != nil {
+		delete(m.services, id)
+		s.a.Close()
+	}
+}
+
 func (m *Manager) closeServices() {
 	m.svcMu.Lock()
 	defer m.svcMu.Unlock()
@@ -538,6 +551,7 @@ func (m *Manager) Uninstall(id string, keepData bool) error {
 		return nil
 	}
 	_, err := s.a.Call(wittymodule.CallUninstall, wittymodule.LifecycleArgs{KeepData: keepData}, nil)
+	m.stopService(id) // it is going: its program mustn't keep its folder (Windows locks it)
 	return err
 }
 

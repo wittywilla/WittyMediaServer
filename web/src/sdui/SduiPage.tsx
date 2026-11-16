@@ -39,7 +39,7 @@ const LayerHost = lazy(() => import('./render/LayerHost'))
 const PageTools = lazy(() => import('./extras/PageTools'))
 
 // The layout step (model.ts) is also run by node's tests, so it is handed the app's words here.
-setWords(t, tn)
+setWords(t, tn, tx)
 
 // ---------------------------------------------------------------- the tree, changed without changing it
 

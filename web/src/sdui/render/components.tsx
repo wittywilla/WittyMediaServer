@@ -41,7 +41,7 @@ import { t, tn, tx } from '../../i18n'
 import { setWords } from '../words'
 
 // The layout step (model.ts) is also run by node's tests, so it is handed the app's words here.
-setWords(t, tn)
+setWords(t, tn, tx)
 
 const NativeViewHost = lazy(() => import('./NativeViewHost'))
 const DetailExtras = lazy(() => import('../extras/DetailExtras'))

@@ -12,13 +12,14 @@ type TN = (one: string, other: string, count: number, vars?: Vars) => string
 
 let own: T = (english, vars) => fill(english, vars, 'en')
 let ownN: TN = (one, other, count, vars) => fill(count === 1 ? one : other, { count, ...vars }, 'en')
+let ownX: (text: string) => string = (text) => own(text)
 
-/** Gives this file the app's translations (i18n's t and tn). */
-export function setWords(t: T, tn: TN): void { own = t; ownN = tn }
+/** Gives this file the app's translations (i18n's t and tn, and tx, which also knows server text with names filled in). */
+export function setWords(t: T, tn: TN, x?: (text: string) => string): void { own = t; ownN = tn; ownX = x ?? ((text) => own(text)) }
 
 export const t: T = (english, vars) => own(english, vars)
 export const tn: TN = (one, other, count, vars) => ownN(one, other, count, vars)
 /** Marks English kept in a list made when the file loads: translated where it is shown, with t(label). */
 export const tk = <S extends string>(english: S): S => english
 /** Text from the server: translated when the catalogue knows it, else as it is. */
-export const tx = (text: string | undefined | null): string => (text ? own(text) : '')
+export const tx = (text: string | undefined | null): string => (text ? ownX(text) : '')

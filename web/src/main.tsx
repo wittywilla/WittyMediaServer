@@ -51,7 +51,7 @@ import { installTvMode } from './tvmode/mode'
 import { installDensity } from './ui/density'
 import './tvmode/tvmode.css'
 import { installErrorReporter } from './errorReport'
-import { setLanguage, startingLanguage, t, tn, useLanguage } from './i18n'
+import { setLanguage, startingLanguage, t, tn, tx, useLanguage } from './i18n'
 import { setWords } from './sdui/words'
 
 installTVInput()
@@ -70,7 +70,7 @@ function InLanguage({ children }: { children: React.ReactNode }) {
 }
 
 // Page descriptions built in the app use the app's words (sdui/words.ts stays English in node's tests).
-setWords(t, tn)
+setWords(t, tn, tx)
 
 // The words come before the first page: the language this browser used last (or its own), corrected by the server's
 // status if the server is set to another.

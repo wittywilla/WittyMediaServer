@@ -252,11 +252,26 @@ func (p *pool) groupAt(t int) int64 {
 	return p.groupIDs[p.perm(n, t/n)[t%n]]
 }
 
+// firstIn is where a show starts on this channel, from the channel's seed. With only a few
+// shows, two channels often turn up the same order of shows; starting each show at an
+// episode of their own still gives them different days. Episodes keep their order after it.
+func (p *pool) firstIn(g int64, n int) int {
+	if n < 2 {
+		return 0
+	}
+	r := keySeed(p.key, int64(p.seed^uint64(g)*0x9e3779b97f4a7c15))
+	r.next()
+	return r.intn(n)
+}
+
 // nextInGroup is the entry after the one this group last played.
 func (p *pool) nextInGroup(g int64) (entry, pos int) {
 	list := p.groups[g]
-	gc := p.cur.Groups[g]
+	gc, seen := p.cur.Groups[g]
 	pos = gc.Pos
+	if !seen {
+		pos = p.firstIn(g, len(list))
+	}
 	if gc.Last != 0 {
 		if i, ok := p.gpos[gc.Last]; ok {
 			pos = i + 1

@@ -11,6 +11,7 @@ import { IconDown, IconGrip, IconInfo, IconPause, IconPlay, IconPlus, IconRefres
 import { toast, useApp } from '../state'
 import { emptyHomeWords } from '../profileWords'
 import { useOpenItem } from '../openItem'
+import { num, t, tx } from '../i18n'
 import { useTvMode } from '../tvmode/mode'
 
 // The home page is a column of widgets. Everyone can reorder and hide them
@@ -43,8 +44,8 @@ export default function HomePage() {
   // when the server does.
   useEffect(() => {
     if (!err?.offline) return
-    const t = setTimeout(() => { refreshLibraries(); load() }, 5000)
-    return () => clearTimeout(t)
+    const timer = setTimeout(() => { refreshLibraries(); load() }, 5000)
+    return () => clearTimeout(timer)
   }, [err, load, refreshLibraries])
   useEffect(() => {
     api.get<{ home?: Layout }>('/me/ui').then((u) => {
@@ -60,24 +61,24 @@ export default function HomePage() {
 
   const widgets = useMemo<Widget[]>(() => {
     if (!home) return []
-    const hub = (h: Hub): Widget => ({ id: h.key, title: h.title, render: () => <HubRow hub={h} /> })
+    const hub = (h: Hub): Widget => ({ id: h.key, title: tx(h.title), render: () => <HubRow hub={h} /> })
     const byKey = (k: string) => home.hubs.find((h) => h.key === k)
     // Everything in progress, watching, reading and listening, in one row.
     const going = ['continue', 'continue-reading', 'continue-listening'].map(byKey).filter(Boolean) as Hub[]
-    const jump: Hub = { key: 'jump', title: 'Jump back in', items: going.flatMap((h) => h.items), shows: going.flatMap((h) => h.shows || []) }
+    const jump: Hub = { key: 'jump', title: t('Jump back in'), items: going.flatMap((h) => h.items), shows: going.flatMap((h) => h.shows || []) }
     const list: Widget[] = [
-      { id: 'hero', title: 'Featured', render: () => (home.featured.length > 0 ? <Hero items={home.featured} /> : null) },
+      { id: 'hero', title: t('Featured'), render: () => (home.featured.length > 0 ? <Hero items={home.featured} /> : null) },
       // On a TV, Libraries is a tab of its own.
-      { id: 'libraries', title: 'Your libraries', render: () => (tv ? null : <LibraryTiles />) },
-      { id: 'jump', title: 'Jump back in', render: () => <HubRow hub={jump} /> },
-      { id: 'onnow', title: 'On TV now', render: () => <Suspense fallback={null}><OnNowRow /></Suspense> },
-      { id: 'foryou', title: 'Recommended for you', render: () => (forYou ? <HubRow hub={{ key: 'foryou', title: forYou.because ? `Because you watch ${forYou.because}` : 'Recommended for you', items: forYou.items || [], shows: forYou.shows || [] }} /> : null) },
+      { id: 'libraries', title: t('Your libraries'), render: () => (tv ? null : <LibraryTiles />) },
+      { id: 'jump', title: t('Jump back in'), render: () => <HubRow hub={jump} /> },
+      { id: 'onnow', title: t('On TV now'), render: () => <Suspense fallback={null}><OnNowRow /></Suspense> },
+      { id: 'foryou', title: t('Recommended for you'), render: () => (forYou ? <HubRow hub={{ key: 'foryou', title: forYou.because ? t('Because you watch {title}', { title: forYou.because }) : t('Recommended for you'), items: forYou.items || [], shows: forYou.shows || [] }} /> : null) },
     ]
     const next = byKey('nextup')
     if (next) list.push(hub(next))
     for (const h of home.hubs) if (h.key.startsWith('view-')) list.push(hub(h))
     for (const h of home.hubs) if (h.key.startsWith('recent-')) list.push(hub(h))
-    list.push({ id: 'shuffle', title: 'Can’t decide?', render: () => <Shuffle /> })
+    list.push({ id: 'shuffle', title: t('Can’t decide?'), render: () => <Shuffle /> })
     return list
   }, [forYou, home, tv])
 
@@ -91,7 +92,7 @@ export default function HomePage() {
     const l = { ...next, v: LAYOUT_V }
     setLayout(l)
     // The server keeps these choices whole, and other parts of the app have some there too.
-    api.get<Record<string, unknown>>('/me/ui').then((u) => api.put('/me/ui', { ...u, home: l })).catch(() => toast('Could not save the layout'))
+    api.get<Record<string, unknown>>('/me/ui').then((u) => api.put('/me/ui', { ...u, home: l })).catch(() => toast(t('Could not save the layout')))
   }
   const move = (id: string, to: number) => {
     const ids = ordered.map((w) => w.id).filter((x) => x !== id)
@@ -110,9 +111,9 @@ export default function HomePage() {
     <div className={'home' + (editing ? ' editing' : '')}>
       {editing && (
         <div className="home-tools">
-          <span className="muted">Drag sections, or use the arrows. Hidden sections stay here until you show them again.</span>
-          <button className="btn sm ghost" onClick={() => save({ order: [], hidden: [] })}>Reset</button>
-          <button className="btn sm primary" onClick={() => setEditing(false)}>Done</button>
+          <span className="muted">{t('Drag sections, or use the arrows. Hidden sections stay here until you show them again.')}</span>
+          <button className="btn sm ghost" onClick={() => save({ order: [], hidden: [] })}>{t('Reset')}</button>
+          <button className="btn sm primary" onClick={() => setEditing(false)}>{t('Done')}</button>
         </div>
       )}
       {!editing && <UpdateBanner />}
@@ -122,7 +123,7 @@ export default function HomePage() {
           <span className="home-card-ic"><IconRefresh /></span>
           <h2>{emptyHomeWords(user, scanning).title}</h2>
           <p className="muted">{emptyHomeWords(user, scanning).text}</p>
-          {user?.isAdmin && !scanning && <Link className="btn" to="/settings/libraries">Open library settings</Link>}
+          {user?.isAdmin && !scanning && <Link className="btn" to="/settings/libraries">{t('Open library settings')}</Link>}
         </div>
       )}
       {shown.map((w, i) => {
@@ -138,28 +139,34 @@ export default function HomePage() {
               <span className="grip" aria-hidden="true"><IconGrip size={18} /></span>
               <b>{w.title}</b>
               <span className="grow" />
-              <button className="btn sm ghost square" disabled={i === 0} onClick={() => move(w.id, i - 1)} aria-label={`Move ${w.title} up`}><IconUp /></button>
-              <button className="btn sm ghost square" disabled={i === shown.length - 1} onClick={() => move(w.id, i + 1)} aria-label={`Move ${w.title} down`}><IconDown /></button>
-              <button className="btn sm" onClick={() => toggle(w.id)}>{hidden ? 'Show' : 'Hide'}</button>
+              <button className="btn sm ghost square" disabled={i === 0} onClick={() => move(w.id, i - 1)} aria-label={t('Move {section} up', { section: w.title })}><IconUp /></button>
+              <button className="btn sm ghost square" disabled={i === shown.length - 1} onClick={() => move(w.id, i + 1)} aria-label={t('Move {section} down', { section: w.title })}><IconDown /></button>
+              <button className="btn sm" onClick={() => toggle(w.id)}>{hidden ? t('Show') : t('Hide')}</button>
             </div>
-            {!hidden && <div className="widget-preview">{body || <div className="muted">Nothing to show here right now.</div>}</div>}
+            {!hidden && <div className="widget-preview">{body || <div className="muted">{t('Nothing to show here right now.')}</div>}</div>}
           </div>
         )
       })}
       {/* A page action, not a heading: at the foot of the page. */}
       {!editing && (
         <div className="home-foot">
-          <button className="btn sm ghost" data-tv-options onClick={() => { setEditing(true); window.scrollTo({ top: 0, behavior: 'smooth' }) }} title="Rearrange or hide sections of the home page">Customize home</button>
+          <button className="btn sm ghost" data-tv-options onClick={() => { setEditing(true); window.scrollTo({ top: 0, behavior: 'smooth' }) }} title={t('Rearrange or hide sections of the home page')}>{t('Customize home')}</button>
         </div>
       )}
     </div>
   )
 }
 
-const greeting = () => { const h = new Date().getHours(); return h >= 5 && h < 12 ? 'Good morning' : h >= 12 && h < 18 ? 'Good afternoon' : 'Good evening' }
+// Each greeting is a whole sentence, with and without a name, so word order can change.
+const greeting = (name: string) => {
+  const h = new Date().getHours()
+  if (h >= 5 && h < 12) return name ? t('Good morning, {name}', { name }) : t('Good morning')
+  if (h >= 12 && h < 18) return name ? t('Good afternoon, {name}', { name }) : t('Good afternoon')
+  return name ? t('Good evening, {name}', { name }) : t('Good evening')
+}
 
 function Greeting({ name }: { name: string }) {
-  return <div className="home-greet"><h1>{greeting()}{name ? `, ${name}` : ''}</h1><p className="muted">Here’s what’s on your server.</p></div>
+  return <div className="home-greet"><h1>{greeting(name)}</h1><p className="muted">{t('Here’s what’s on your server.')}</p></div>
 }
 
 // Welcome: the first visit, before any library exists.
@@ -168,10 +175,10 @@ function Welcome({ admin, name, onAdded }: { admin: boolean; name: string; onAdd
     <div className="home-welcome">
       <div className="home-welcome-head">
         <span className="home-card-ic big">{libIcon('movies')}</span>
-        <h1>Welcome{name ? `, ${name}` : ''}! Let’s fill your server.</h1>
+        <h1>{name ? t('Welcome, {name}! Let’s fill your server.', { name }) : t('Welcome! Let’s fill your server.')}</h1>
         <p className="muted">{admin
-          ? 'Choose what kind of media you have, then point to the folder it’s in. Your files stay where they are; nothing is moved or changed. You can add more libraries any time.'
-          : 'There’s nothing to watch, read or listen to yet. Whoever runs this server can add libraries in Settings, and they’ll appear here.'} <HelpLink to="getting-started">Getting started</HelpLink></p>
+          ? t('Choose what kind of media you have, then point to the folder it’s in. Your files stay where they are; nothing is moved or changed. You can add more libraries any time.')
+          : t('There’s nothing to watch, read or listen to yet. Whoever runs this server can add libraries in Settings, and they’ll appear here.')} <HelpLink to="getting-started">{t('Getting started')}</HelpLink></p>
       </div>
       {admin && <Suspense fallback={<Spinner />}><AddLibrary onAdded={onAdded} /></Suspense>}
     </div>
@@ -183,11 +190,11 @@ function HomeProblem({ offline, message, retry }: { offline: boolean; message: s
   return (
     <div className="home-card problem" role="alert">
       <span className="home-card-ic"><IconInfo /></span>
-      <h2>{offline ? 'Can’t reach your server' : 'Home didn’t load'}</h2>
+      <h2>{offline ? t('Can’t reach your server') : t('Home didn’t load')}</h2>
       <p className="muted">{offline
-        ? 'Check that WittyMediaServer is running on its computer and that this device is on the same network. This page tries again by itself every few seconds.'
+        ? t('Check that WittyMediaServer is running on its computer and that this device is on the same network. This page tries again by itself every few seconds.')
         : message}</p>
-      <button className="btn primary" onClick={retry}><IconRefresh /> Try again</button>
+      <button className="btn primary" onClick={retry}><IconRefresh /> {t('Try again')}</button>
     </div>
   )
 }
@@ -202,8 +209,8 @@ function HubRow({ hub }: { hub: Hub }) {
   return (
     <section className="hub">
       <div className="hub-head">
-        <h2>{hub.title}</h2>
-        {hub.libraryId && <Link to={`/library/${hub.libraryId}${hub.query ? `?${hub.query}` : ''}`}>See all <IconRight /></Link>}
+        <h2>{tx(hub.title)}</h2>
+        {hub.libraryId && <Link to={`/library/${hub.libraryId}${hub.query ? `?${hub.query}` : ''}`}>{t('See all')} <IconRight /></Link>}
       </div>
       <CardRow>
         {albumsOnce(hub.items).map((it) => (wideRow ? <ItemCard key={it.id} item={it} wide /> : <ItemCard key={it.id} item={it} />))}
@@ -216,7 +223,7 @@ function HubRow({ hub }: { hub: Hub }) {
 // LibraryTiles: a way into every library, with an Add tile for admins.
 // countOf: how much a library holds, in its own words ("1,204 titles"), or that it's being scanned.
 export function countOf(l: { type: string; itemCount: number; scanning?: boolean }) {
-  return l.scanning ? 'Scanning…' : countWords(l.type, l.itemCount)
+  return l.scanning ? t('Scanning…') : countWords(l.type, l.itemCount)
 }
 function LibraryTiles() {
   const { libraries: allLibraries, user } = useApp()
@@ -224,7 +231,7 @@ function LibraryTiles() {
   if (!libraries.length) return null
   return (
     <section className="hub">
-      <div className="hub-head"><h2>Your libraries</h2>{user?.isAdmin && <Link to="/settings/libraries">Manage <IconRight /></Link>}</div>
+      <div className="hub-head"><h2>{t('Your libraries')}</h2>{user?.isAdmin && <Link to="/settings/libraries">{t('Manage')} <IconRight /></Link>}</div>
       <div className="lib-tiles">
         {libraries.map((l) => (
           <Link key={l.id} to={`/library/${l.id}`} className="lib-tile">
@@ -235,7 +242,7 @@ function LibraryTiles() {
         {user?.isAdmin && (
           <Link to="/settings/libraries" className="lib-tile add">
             <span className="lib-tile-ic" aria-hidden="true"><IconPlus /></span>
-            <span className="lib-tile-txt"><b>Add a library</b><span className="muted">Another folder of media</span></span>
+            <span className="lib-tile-txt"><b>{t('Add a library')}</b><span className="muted">{t('Another folder of media')}</span></span>
           </Link>
         )}
       </div>
@@ -252,7 +259,7 @@ function Shuffle() {
   if (!it) return null
   return (
     <section className="hub">
-      <div className="hub-head"><h2>Can’t decide?</h2></div>
+      <div className="hub-head"><h2>{t('Can’t decide?')}</h2></div>
       <div className="shuffle">
         <div className="shuffle-art" style={backdropUrl(it) ? { backgroundImage: `url(${sized(backdropUrl(it), fitWidth(innerWidth))})` } : undefined} />
         <img className="shuffle-poster" src={sized(posterUrl(it), fitWidth(240))} alt="" loading="lazy" />
@@ -261,8 +268,8 @@ function Shuffle() {
           <div className="muted">{[it.year, fmtRuntime(it.runtimeSec), it.genres.slice(0, 2).join(', ')].filter(Boolean).join(' · ')}</div>
           <div className="actions">
             <button className="btn primary" onClick={() => opener.open(it)}>{opener.icon(it)} {opener.label(it)}</button>
-            <Link className="btn" to={`/item/${it.id}`}><IconInfo /> Details</Link>
-            <button className="btn ghost" onClick={roll}><IconRefresh /> Another</button>
+            <Link className="btn" to={`/item/${it.id}`}><IconInfo /> {t('Details')}</Link>
+            <button className="btn ghost" onClick={roll}><IconRefresh /> {t('Another')}</button>
           </div>
         </div>
       </div>
@@ -280,8 +287,8 @@ function Hero({ items }: { items: Home['featured'] }) {
   const opener = useOpenItem()
   useEffect(() => {
     if (items.length < 2 || paused || hold) return
-    const t = setInterval(() => setI((x) => (x + 1) % items.length), 9000)
-    return () => clearInterval(t)
+    const timer = setInterval(() => setI((x) => (x + 1) % items.length), 9000)
+    return () => clearInterval(timer)
   }, [items.length, paused, hold])
   const it = items[i]
   if (!it) return null
@@ -298,21 +305,21 @@ function Hero({ items }: { items: Home['featured'] }) {
           {it.year && <span>{it.year}</span>}
           {it.runtimeSec > 0 && <span>{fmtRuntime(it.runtimeSec)}</span>}
           {it.contentRating && <span className="pill">{it.contentRating}</span>}
-          {it.rating && <span className="star"><IconStar /> {it.rating.toFixed(1)}</span>}
-          {isDisc(it) && <span>{discName(it)}{it.disc?.hasMenus !== false ? ' · interactive menus' : ''}</span>}
+          {it.rating && <span className="star"><IconStar /> {num(it.rating, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>}
+          {isDisc(it) && <span>{discName(it)}{it.disc?.hasMenus !== false ? ' · ' + t('interactive menus') : ''}</span>}
           {it.genres.slice(0, 3).map((g) => <span key={g}>{g}</span>)}
         </div>
         {it.overview && <p>{it.overview}</p>}
         <div className="actions">
           <button className="btn primary" onClick={() => opener.open(it)}>{opener.icon(it)} {opener.label(it)}</button>
-          {isDisc(it) && it.disc?.hasMenus && <button className="btn" onClick={() => nav(`/play/${it.id}?mode=menu`)}>Disc menu</button>}
-          <Link className="btn ghost" to={`/item/${it.id}`}><IconInfo /> Details</Link>
+          {isDisc(it) && it.disc?.hasMenus && <button className="btn" onClick={() => nav(`/play/${it.id}?mode=menu`)}>{t('Disc menu')}</button>}
+          <Link className="btn ghost" to={`/item/${it.id}`}><IconInfo /> {t('Details')}</Link>
         </div>
       </div>
       {items.length > 1 && (
         <div className="dots">
-          <button type="button" className="hero-pause" aria-label={paused ? 'Start turning the featured titles' : 'Stop turning the featured titles'} title={paused ? 'Play' : 'Pause'} onClick={() => setPaused((p) => !p)}>{paused ? <IconPlay /> : <IconPause />}</button>
-          {items.map((_, k) => <button key={k} type="button" aria-label={`Show featured title ${k + 1}`} aria-current={k === i || undefined} className={k === i ? 'active' : ''} onClick={() => setI(k)} />)}
+          <button type="button" className="hero-pause" aria-label={paused ? t('Start turning the featured titles') : t('Stop turning the featured titles')} title={paused ? t('Play') : t('Pause')} onClick={() => setPaused((p) => !p)}>{paused ? <IconPlay /> : <IconPause />}</button>
+          {items.map((_, k) => <button key={k} type="button" aria-label={t('Show featured title {number}', { number: k + 1 })} aria-current={k === i || undefined} className={k === i ? 'active' : ''} onClick={() => setI(k)} />)}
         </div>
       )}
     </div>

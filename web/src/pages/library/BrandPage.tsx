@@ -14,13 +14,15 @@ import SpecPage from '../../spec/SpecPage'
 import { handledIds } from '../../spec/model'
 import { brandSpec } from '../../spec/specs/brand'
 import { RowCard } from './VideoLibrary'
+import { t, tk, tn, tx } from '../../i18n'
 import './library.css'
 
 // Everything on this server from one studio or network, across libraries.
+// The sort names are marked with tk() and translated where they're handed over.
 
 const SORTS: SortOption[] = [
-  { key: 'title', label: 'Title A to Z' }, { key: 'newest', label: 'Newest' }, { key: 'oldest', label: 'Oldest' },
-  { key: 'added', label: 'Recently added', desc: true }, { key: 'rating', label: 'Highest rated', desc: true }, { key: 'quality', label: 'Best quality', desc: true },
+  { key: 'title', label: tk('Title A to Z') }, { key: 'newest', label: tk('Newest') }, { key: 'oldest', label: tk('Oldest') },
+  { key: 'added', label: tk('Recently added'), desc: true }, { key: 'rating', label: tk('Highest rated'), desc: true }, { key: 'quality', label: tk('Best quality'), desc: true },
 ]
 
 const PAGE = 120
@@ -68,9 +70,9 @@ export default function BrandPage() {
       </div>
       <LibraryHeader
         title={name}
-        count={rows ? `${total} ${total === 1 ? 'title' : 'titles'}` : undefined}
+        count={rows ? tn('{count} title', '{count} titles', total) : undefined}
         sub={lib?.name}
-        sorts={SORTS}
+        sorts={SORTS.map((s) => ({ ...s, label: tx(s.label) }))}
         sort={sort}
         desc={desc}
         onSort={(s, d) => { const p = new URLSearchParams(params); p.set('sort', s); if (d) p.set('desc', '1'); else p.delete('desc'); setParams(p, { replace: true }) }}
@@ -80,10 +82,10 @@ export default function BrandPage() {
           else if (id === 'all-libraries') { const p = new URLSearchParams(params); p.delete('library'); setParams(p, { replace: true }) }
         }} /> : undefined}
       />
-      {!rows ? (failed ? <LoadError what="This page" /> : <SkeletonGrid />) : rows.length === 0 ? <EmptyState title="Nothing here" text="Nothing on this server has this name any more." />
+      {!rows ? (failed ? <LoadError what={t('This page')} /> : <SkeletonGrid />) : rows.length === 0 ? <EmptyState title={t('Nothing here')} text={t('Nothing on this server has this name any more.')} />
         : <div className="grid">{rows.map((r) => <RowCard key={r.type + (r.type === 'item' ? r.item.id : r.show.id)} row={r} />)}</div>}
       {hasMore && <div ref={more} style={{ minHeight: 1 }}><Spinner /></div>}
-      <div className="page-back"><BackLink to={lib ? `/library/${lib.id}` : '/'} label={lib ? `Back to ${lib.name}` : 'Back to home'} /></div>
+      <div className="page-back"><BackLink to={lib ? `/library/${lib.id}` : '/'} label={lib ? t('Back to {name}', { name: lib.name }) : t('Back to home')} /></div>
       <LegalNote kind="logos" />
       {changing && <LogoChooser logo={changing} onClose={() => setChanging(null)} onChanged={() => { forgetLogos(); setTick((n) => n + 1) }} />}
     </div>

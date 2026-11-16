@@ -53,6 +53,8 @@ sed -e "s|\${VERSION}|$VERSION|g" -e "s|\${GRADE}|$GRADE|g" packaging/linux/snap
 
 target="$OUT/wittymediaserver-$VERSION-linux-$ARCH.snap"
 rm -f "$target"
-(cd "$work" && "$SNAPCRAFT" pack --build-for="$ARCH" --output "$target")
+# Snapcraft only writes inside the project it packs, so the snap is made in $work and moved.
+(cd "$work" && "$SNAPCRAFT" pack --build-for="$ARCH" --output "$work/out.snap")
+mv "$work/out.snap" "$target"
 [ -s "$target" ] || { echo "snapcraft made no $target" >&2; exit 1; }
 echo "   -> $target"

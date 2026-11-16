@@ -2,6 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api, ApiError } from '../../api'
+import { t, tk } from '../../i18n'
 import { useModulePages } from '../../moduleBundles'
 import { toast } from '../../state'
 import { AUTO_THEME, currentThemeId, deviceTheme, loadThemeOverrides, type ThemeMeta } from '../../theme'
@@ -38,14 +39,14 @@ type Engine = {
 async function ownColours(id: string, themes: ThemeMeta[]): Promise<Colours> {
   const listed = themes.find((t) => t.id === id)?.colors
   if (listed && Object.keys(listed).length) return normalizedColours(listed)
-  const t = await api.get<{ colors?: Colours }>(`/themes/${encodeURIComponent(id)}/tokens.json`)
+  const got = await api.get<{ colors?: Colours }>(`/themes/${encodeURIComponent(id)}/tokens.json`)
   const camel = (k: string) => k.replace(/-(.)/g, (_, c: string) => c.toUpperCase())
-  return normalizedColours(Object.fromEntries(Object.entries(t.colors || {}).map(([k, v]) => [camel(k), v])))
+  return normalizedColours(Object.fromEntries(Object.entries(got.colors || {}).map(([k, v]) => [camel(k), v])))
 }
 
 async function loadEngine(): Promise<Engine> {
   const [list, theme] = await Promise.all([api.get<{ themes: ThemeMeta[]; default: string }>('/themes'), loadThemeOverrides()])
-  if (!theme) throw new Error('The server’s colours couldn’t be read.')
+  if (!theme) throw new Error(t('The server’s colours couldn’t be read.'))
   const id = currentThemeId(list.default || 'default')
   const scheme = list.themes.find((t) => t.id === id)?.scheme === 'light' ? 'light' : 'dark'
   const looks: Engine['looks'] = id === AUTO_THEME
@@ -92,34 +93,34 @@ export default function EngineColours() {
   const own = deviceTheme()
   const modSaved = engine?.modules[mod] || {}
   const waiting = failed
-    ? <Notice tone="danger" action={<Button size="sm" onClick={load}>Try again</Button>}>{failed}</Notice>
-    : <p className="muted">Reading the server’s colours…</p>
+    ? <Notice tone="danger" action={<Button size="sm" onClick={load}>{t('Try again')}</Button>}>{failed}</Notice>
+    : <p className="muted">{t('Reading the server’s colours…')}</p>
 
   return (
     <>
-      <Section title="Colours for everyone" desc="Change single colours of the server’s theme, for everyone who follows it. A colour you leave alone stays the theme’s.">
+      <Section title={tk('Colours for everyone')} desc={t('Change single colours of the server’s theme, for everyone who follows it. A colour you leave alone stays the theme’s.')}>
         {!engine ? waiting : (
           <>
-            {own && <Notice>This device has a theme of its own, so it won’t show these colours. Devices that follow the server’s theme do.</Notice>}
+            {own && <Notice>{t('This device has a theme of its own, so it won’t show these colours. Devices that follow the server’s theme do.')}</Notice>}
             <ColourOverrides looks={globalLooks} names={engine.names} saved={engine.global} checked={engine.warnings ? engine.warnings.global || [] : null}
-              hasOwn={Object.keys(engine.global).length > 0} clearLabel="Use the theme’s colours"
-              save={(tokens) => saved(api.put('/theme/global', { tokens }), 'Saved for everyone.')}
-              clear={() => saved(api.put('/theme/global', { tokens: {} }), 'Everyone has the theme’s colours again.')} />
+              hasOwn={Object.keys(engine.global).length > 0} clearLabel={t('Use the theme’s colours')}
+              save={(tokens) => saved(api.put('/theme/global', { tokens }), t('Saved for everyone.'))}
+              clear={() => saved(api.put('/theme/global', { tokens: {} }), t('Everyone has the theme’s colours again.'))} />
           </>
         )}
       </Section>
-      <Section title="Module colours" desc="Give one module’s pages colours of their own, for everyone. The rest of the app keeps the theme’s colours.">
+      <Section title={tk('Module colours')} desc={t('Give one module’s pages colours of their own, for everyone. The rest of the app keeps the theme’s colours.')}>
         {!engine ? waiting : (
           <>
             <div className="form full">
-              <Field label="Module" hint={Object.keys(modSaved).length ? 'This module has colours of its own.' : 'This module uses the theme’s colours.'}>
+              <Field label={t('Module')} hint={Object.keys(modSaved).length ? t('This module has colours of its own.') : t('This module uses the theme’s colours.')}>
                 <Select value={mod} onChange={(e) => setMod(e.target.value)} options={mods.map((m) => ({ value: m.id, label: m.name || m.id }))} />
               </Field>
             </div>
             <ColourOverrides key={mod} looks={moduleLooks} names={engine.names} saved={modSaved} checked={engine.warnings ? engine.warnings['module:' + mod] || [] : null}
-              hasOwn={Object.keys(modSaved).length > 0} clearLabel="Use the theme’s colours"
-              save={(tokens) => saved(api.put(`/theme/modules/${mod}`, { tokens }), 'Saved for everyone.')}
-              clear={() => saved(api.del(`/theme/modules/${mod}`), 'This module uses the theme’s colours again.')} />
+              hasOwn={Object.keys(modSaved).length > 0} clearLabel={t('Use the theme’s colours')}
+              save={(tokens) => saved(api.put(`/theme/modules/${mod}`, { tokens }), t('Saved for everyone.'))}
+              clear={() => saved(api.del(`/theme/modules/${mod}`), t('This module uses the theme’s colours again.'))} />
           </>
         )}
       </Section>
@@ -138,7 +139,7 @@ async function loadPersonal() {
   const [list, theme, mine] = await Promise.all([
     api.get<{ themes: ThemeMeta[]; default: string }>('/themes'), loadThemeOverrides(), api.get<Personal>('/theme/personal'),
   ])
-  if (!theme) throw new Error('Your colours couldn’t be read.')
+  if (!theme) throw new Error(t('Your colours couldn’t be read.'))
   const id = currentThemeId(theme.id || list.default || 'default')
   const scheme = list.themes.find((t) => t.id === id)?.scheme === 'light' ? 'light' : 'dark'
   const under = theme.source === 'server' ? normalizedColours(theme.overrides || {}) : {}
@@ -153,7 +154,9 @@ async function loadPersonal() {
 function refusal(e: unknown): Error {
   // The server's words usually name the pairs already; they are added only when they don't.
   if (e instanceof ApiError && Array.isArray(e.data?.contrast) && e.data.contrast.length && !(e.data.contrast as Warning[]).every((w) => e.english.includes(`${w.text} on ${w.surface}`))) {
-    const pairs = (e.data.contrast as Warning[]).slice(0, 6).map((w) => `${w.text} on ${w.surface}${w.variant ? ` (${w.variant})` : ''}: ${w.ratio.toFixed(1)}:1, needs ${w.need}:1`)
+    const pairs = (e.data.contrast as Warning[]).slice(0, 6).map((w) => w.variant
+      ? t('{text} on {surface} ({variant}): {ratio}:1, needs {need}:1', { text: w.text, surface: w.surface, variant: w.variant, ratio: w.ratio.toFixed(1), need: w.need })
+      : t('{text} on {surface}: {ratio}:1, needs {need}:1', { text: w.text, surface: w.surface, ratio: w.ratio.toFixed(1), need: w.need }))
     return new Error(`${e.message} ${pairs.join('; ')}.`)
   }
   return e as Error
@@ -169,14 +172,14 @@ export function PersonalColours() {
     await load(); toast(said, { tone: 'ok' })
   }
   return (
-    <Section title="Your own colours" desc="Change single colours for yourself, over the theme and anything an administrator changed. They follow you to every device. Colours that would make text hard to read aren’t saved.">
-      {failed ? <Notice tone="danger" action={<Button size="sm" onClick={load}>Try again</Button>}>{failed}</Notice>
-        : !got ? <p className="muted">Reading your colours…</p>
+    <Section title={tk('Your own colours')} desc={t('Change single colours for yourself, over the theme and anything an administrator changed. They follow you to every device. Colours that would make text hard to read aren’t saved.')}>
+      {failed ? <Notice tone="danger" action={<Button size="sm" onClick={load}>{t('Try again')}</Button>}>{failed}</Notice>
+        : !got ? <p className="muted">{t('Reading your colours…')}</p>
           : (
             <ColourOverrides looks={got.looks} names={got.names} saved={got.mine} checked={got.warnings}
-              hasOwn={Object.keys(got.mine).length > 0} clearLabel="Use the theme’s colours"
-              save={(tokens) => put(tokens, 'Your colours are saved.')}
-              clear={async () => { await api.del('/theme/personal'); await load(); toast('You have the theme’s colours again.', { tone: 'ok' }) }} />
+              hasOwn={Object.keys(got.mine).length > 0} clearLabel={t('Use the theme’s colours')}
+              save={(tokens) => put(tokens, t('Your colours are saved.'))}
+              clear={async () => { await api.del('/theme/personal'); await load(); toast(t('You have the theme’s colours again.'), { tone: 'ok' }) }} />
           )}
     </Section>
   )

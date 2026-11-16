@@ -8,7 +8,7 @@
   "Settings": "Paramètres",
   "Update available: {version}": "Mise à jour disponible : {version}",
   "Help": "Aide",
-  "Sign in a TV": "Connecter une TV",
+  "Sign in a TV": "Connecter un téléviseur",
   "Switch profile": "Changer de profil",
   "Sign out": "Se déconnecter",
   "Administrator": "Administrateur",
@@ -49,7 +49,7 @@
   "Watch": "Regarder",
   "Listen": "Écouter",
   "Read": "Lire",
-  "Play": "Jouer",
+  "Play": "Lire",
   "Controller": "Manette",
   "Status": "État",
   "P{number}": "J{number}",
@@ -61,8 +61,8 @@
   "System": "Système",
   "{count} minutes": {
     "one": "{count} minute",
-    "other": "{count} minutes",
-    "many": "{count} minutes"
+    "many": "{count} de minutes",
+    "other": "{count} minutes"
   },
   "You can watch again at {time}.": "Vous pourrez regarder à nouveau à {time}.",
   "You can watch again tomorrow at {time}.": "Vous pourrez regarder à nouveau demain à {time}.",
@@ -74,11 +74,11 @@
   "Back": "Retour",
   "Give more time": "Donner plus de temps",
   "OK": "OK",
-  "This profile can’t watch any more right now.": "Ce profil ne peut plus regarder pour le moment.",
+  "This profile can’t watch any more right now.": "Ce profil ne peut plus rien regarder pour l’instant.",
   "{count} titles": {
     "one": "{count} titre",
-    "other": "{count} titres",
-    "many": "{count} titres"
+    "many": "{count} de titres",
+    "other": "{count} titres"
   },
   "Main navigation": "Navigation principale",
   "Home": "Accueil",
@@ -89,7 +89,7 @@
   "That didn’t work.": "Cela n’a pas fonctionné.",
   "Switch to {name}": "Passer à {name}",
   "Switch": "Changer",
-  "Who’s watching?": "Qui regarde ?",
+  "Who’s watching?": "Qui regarde ?",
   "Sign in with another account": "Se connecter avec un autre compte",
   "Cancel": "Annuler",
   "Loading": "Chargement",
@@ -129,7 +129,7 @@
   "Orange": "Orange",
   "Yellow": "Jaune",
   "Green": "Vert",
-  "Teal": "Sarcelle",
+  "Teal": "Bleu canard",
   "Blue": "Bleu",
   "Purple": "Violet",
   "Pink": "Rose",
@@ -151,7 +151,7 @@
   "Options for the thing in focus": "Options pour l’élément sélectionné",
   "Edit the layout": "Modifier la disposition",
   "Next area: page, controls, menu": "Zone suivante : page, commandes, menu",
-  "Page Up and Page Down": "Page Up et Page Down",
+  "Page Up and Page Down": "Page précédente et Page suivante",
   "Page through a long list": "Parcourir une longue liste page par page",
   "Jump to the top": "Aller en haut",
   "Esc or Backspace": "Esc ou Backspace",
@@ -166,8 +166,8 @@
   "Dismiss": "Ignorer",
   "{count} problems": {
     "one": "{count} problème",
-    "other": "{count} problèmes",
-    "many": "{count} problèmes"
+    "many": "{count} de problèmes",
+    "other": "{count} problèmes"
   },
   "Activity": "Activité",
   "Activity settings": "Paramètres de l’activité",
@@ -181,7 +181,7 @@
   "started by {name}": "lancé par {name}",
   "started {when}": "lancé {when}",
   "Pausing…": "Mise en pause…",
-  "Pause {title}": "Mettre en pause {title}",
+  "Pause {title}": "Mettre {title} en pause",
   "Pause": "Pause",
   "Resume {title}": "Reprendre {title}",
   "Resume": "Reprendre",
@@ -191,7 +191,7 @@
   "({count} times)": "({count} fois)",
   "The first {count} are shown here. WittyLog has the rest.": "Les {count} premiers sont affichés ici. WittyLog contient le reste.",
   "The history": "L’historique",
-  "Clear the activity history?": "Effacer l’historique d’activité ?",
+  "Clear the activity history?": "Effacer l’historique d’activité ?",
   "What happened stops being listed here. WittyLog keeps its own record, and anything going on now carries on.": "Ce qui s’est passé ne sera plus listé ici. WittyLog conserve son propre registre, et tout ce qui est en cours continue.",
   "Clear history": "Effacer l’historique",
   "Nothing has failed": "Rien n’a échoué",
@@ -206,8 +206,8 @@
   "Remove {title} from the history": "Retirer {title} de l’historique",
   "{count} folders": {
     "one": "{count} dossier",
-    "other": "{count} dossiers",
-    "many": "{count} dossiers"
+    "many": "{count} de dossiers",
+    "other": "{count} dossiers"
   },
   "Movies": "Films",
   "Movie files. Copies of DVDs and Blu-rays can go here too, and play with their menus": "Fichiers de films. Les copies de DVD et de Blu-ray peuvent aussi aller ici, et se lisent avec leurs menus",
@@ -232,7 +232,7 @@
   "A feed of short videos with likes, comments and a For You page worked out on this server alone": "Un fil de vidéos courtes avec j’aime, commentaires et une page Pour vous calculée uniquement sur ce serveur",
   "Music videos & concerts": "Clips musicaux et concerts",
   "Music videos and live recordings by artist, with setlists from their chapters": "Clips musicaux et enregistrements live par artiste, avec les setlists tirées de leurs chapitres",
-  "Internet radio": "Radio internet",
+  "Internet radio": "Radio Internet",
   "Search a free directory of stations, or add them by their web address; no folder needed": "Cherchez des stations dans un annuaire gratuit, ou ajoutez-les par leur adresse web ; aucun dossier nécessaire",
   "Creator videos": "Vidéos de créateurs",
   "Your archive of creators’ videos, laid out by channel with subscriptions, comments and up next": "Vos archives de vidéos de créateurs, classées par chaîne avec abonnements, commentaires et vidéos suivantes",
@@ -296,15 +296,15 @@
   "Keep separate, with own names": "Garder séparées, avec leurs propres noms",
   "{count} pictures to apply": {
     "one": "{count} image à appliquer",
-    "other": "{count} images à appliquer",
-    "many": "{count} images à appliquer"
+    "many": "{count} images à appliquer",
+    "other": "{count} images à appliquer"
   },
   "Poster": "Affiche",
   "Backdrop": "Arrière-plan",
   "Banner": "Bannière",
   "Title logo": "Logo du titre",
   "In the folder": "Dans le dossier",
-  "In use": "Utilisé",
+  "In use": "En service",
   "Previewing {kind}": "Aperçu : {kind}",
   "Previewing {kind}, {source}": "Aperçu : {kind}, {source}",
   "Previewing {kind} from {source}": "Aperçu : {kind} de {source}",
@@ -341,11 +341,11 @@
   "{size} pixels": "{size} pixels",
   "Apply to use it. Cancel leaves everything as it was.": "Appliquez pour l’utiliser. Annuler laisse tout comme avant.",
   "Title poster": "Affiche de titre",
-  "Words": "Texte",
+  "Words": "Paroles",
   "Second line": "Deuxième ligne",
   "(optional)": "(facultatif)",
   "The year, an edition": "L’année, une édition",
-  "Behind the words": "Derrière le texte",
+  "Behind the words": "Derrière les paroles",
   "A colour": "Une couleur",
   "Colour": "Couleur",
   "Its own colour": "Sa propre couleur",
@@ -366,16 +366,20 @@
   "The logo could not be saved": "Impossible d’enregistrer le logo",
   "{count} episodes": {
     "one": "{count} épisode",
-    "other": "{count} épisodes",
-    "many": "{count} épisodes"
+    "many": "{count} d’épisodes",
+    "other": "{count} épisodes"
   },
   "{count} seasons": {
     "one": "{count} saison",
-    "other": "{count} saisons",
-    "many": "{count} saisons"
+    "many": "{count} de saisons",
+    "other": "{count} saisons"
   },
   "Watched": "Vu",
-  "{count} unwatched": "{count} non vus",
+  "{count} unwatched": {
+    "one": "{count} non vu",
+    "many": "{count} non vus",
+    "other": "{count} non vus"
+  },
   "Version {version} is available": "La version {version} est disponible",
   "Version {version} is available: Settings, About": "La version {version} est disponible : Paramètres, À propos",
   "Something answers at that address, but it isn’t a WittyMediaServer.": "Quelque chose répond à cette adresse, mais ce n’est pas un WittyMediaServer.",
@@ -391,7 +395,7 @@
   "Match": "Correspondance",
   "Details": "Détails",
   "Artwork": "Illustrations",
-  "Skipping": "Passages",
+  "Skipping": "Saut",
   "Organise": "Organiser",
   "Logos": "Logos",
   "A year has four digits.": "Une année comporte quatre chiffres.",
@@ -438,22 +442,22 @@
   "Season": "Saison",
   "Episode": "Épisode",
   "Edition": "Édition",
-  "Director's Cut, Remastered": "Director's Cut, Remasterisé",
+  "Director's Cut, Remastered": "Director’s Cut, Remasterisé",
   "Separate them with commas. Shows on its card, and can be filtered by.": "Séparez-les par des virgules. Affiché sur sa carte, et utilisable comme filtre.",
   "Collection": "Collection",
   "The film series it belongs to": "La série de films à laquelle il appartient",
   "Two or more with the same name appear as a collection on the library page.": "Deux éléments ou plus portant le même nom apparaissent comme une collection sur la page de la bibliothèque.",
   "Tagline": "Accroche",
-  "Overview": "Résumé",
+  "Overview": "Vue d’ensemble",
   "Genres": "Genres",
   "Comedy, Family": "Comédie, Famille",
   "These make the categories on the library page.": "Ils forment les catégories de la page de la bibliothèque.",
-  "Tags": "Tags",
+  "Tags": "Étiquettes",
   "Add your own words": "Ajoutez vos propres mots",
   "Your own groups, for filtering and saved views.": "Vos propres groupes, pour filtrer et pour les vues enregistrées.",
   "Content rating": "Classification",
   "Score out of 10": "Note sur 10",
-  "Network": "Chaîne",
+  "Network": "Réseau",
   "The network it first aired on": "La chaîne sur laquelle il a été diffusé en premier",
   "Continuing, Ended": "En cours, Terminée",
   "Studios": "Studios",
@@ -467,7 +471,7 @@
   "Change the title logo": "Changer le logo du titre",
   "The name as a picture, over its backdrop.": "Le nom sous forme d’image, par-dessus son arrière-plan.",
   "Change opens the picture picker: what each source has, a file of your own, an address or a frame from the video. A picture is used as soon as you apply it, and can be undone.": "Changer ouvre le sélecteur d’images : ce que propose chaque source, un fichier à vous, une adresse ou une image de la vidéo. Une image est utilisée dès que vous l’appliquez, et peut être annulée.",
-  "Change": "Changer",
+  "Change": "Modifier",
   "Save or undo your changes first: picking a time leaves this dialog.": "Enregistrez ou annulez d’abord vos modifications : choisir un moment quitte cette boîte de dialogue.",
   "This show has no episodes to pick a time from.": "Cette série n’a aucun épisode dans lequel choisir un moment.",
   "Where the intro ends": "Où se termine le générique de début",
@@ -504,7 +508,7 @@
   "Not right? Move to": "Pas le bon ? Déplacer vers",
   "What it is": "Ce que c’est",
   "What to call this version": "Nom de cette version",
-  "Director's Cut, 4K": "Director's Cut, 4K",
+  "Director's Cut, 4K": "Director’s Cut, 4K",
   "The film or show it belongs to": "Le film ou la série auquel il appartient",
   "The film it is a version of": "Le film dont il est une version",
   "Search your library": "Rechercher dans votre bibliothèque",
@@ -552,7 +556,7 @@
   "Empty the credits times": "Vider les moments du générique de fin",
   "Leave the end empty for credits that run to the end.": "Laissez la fin vide pour un générique qui dure jusqu’à la fin.",
   "Looking up the skip times…": "Recherche des moments à passer…",
-  "Skip times saved": "Moments à passer enregistrés",
+  "Skip times saved": "Repères de saut enregistrés",
   "None": "Aucun",
   "Type times as minutes and seconds, such as 1:05, or choose Pick in player to mark them while watching. What you set here wins over the file’s chapters and anything beside the file, and no scan changes it. Empty a time you set to go back to what the file says.": "Saisissez les moments en minutes et secondes, par ex. 1:05, ou choisissez Choisir dans le lecteur pour les marquer pendant le visionnage. Ce que vous définissez ici l’emporte sur les chapitres du fichier et sur tout ce qui se trouve à côté du fichier, et aucune analyse ne le modifie. Videz un moment que vous avez défini pour revenir à ce qu’indique le fichier.",
   "Starts": "Début",
@@ -566,29 +570,29 @@
   "Back to what the files say": "Revenir à ce qu’indiquent les fichiers",
   "{count} results, most likely first": {
     "one": "{count} résultat, le plus probable en premier",
-    "other": "{count} résultats, les plus probables en premier",
-    "many": "{count} résultats, les plus probables en premier"
+    "many": "{count} résultats, les plus probables en premier",
+    "other": "{count} résultats, les plus probables en premier"
   },
   "Very likely": "Très probable",
   "Likely": "Probable",
   "Not sure": "Pas sûr",
   "Unlikely": "Peu probable",
   "{label}: {value} out of 100": "{label} : {value} sur 100",
-  "Show": "Série",
+  "Show": "Afficher",
   "Film": "Film",
   "Why?": "Pourquoi ?",
   "Your agent": "Votre agent",
   "Matched with {title}.": "Associé à {title}.",
-  "Remove this match?": "Supprimer cette correspondance ?",
+  "Remove this match?": "Retirer cette correspondance ?",
   "Everything {source} gave goes, and it's named after its file again. What you typed and what's beside the file stays. Nothing is looked up for it until you choose a match.": "Tout ce que {source} a fourni disparaît, et l’élément reprend le nom de son fichier. Ce que vous avez saisi et ce qui se trouve à côté du fichier est conservé. Rien n’est recherché pour lui tant que vous ne choisissez pas de correspondance.",
-  "Remove the match": "Supprimer la correspondance",
+  "Remove the match": "Retirer la correspondance",
   "Match removed.": "Correspondance supprimée.",
   "Matched with {source}, chosen by you.": "Associé à {source}, choisi par vous.",
   "Matched with {source}.": "Associé à {source}.",
   "Wrong film or show? {remove} and keep only what you typed.": "Mauvais film ou mauvaise série ? {remove} et ne gardez que ce que vous avez saisi.",
   "You said this has no match, so nothing is looked up for it. Choosing one below changes that.": "Vous avez indiqué que cet élément n’a pas de correspondance, donc rien n’est recherché pour lui. En choisir une ci-dessous change cela.",
   "Nothing is matched yet. Search below and pick the right title.": "Aucune correspondance pour l’instant. Recherchez ci-dessous et choisissez le bon titre.",
-  "Remove this match": "Supprimer cette correspondance",
+  "Remove this match": "Retirer cette correspondance",
   "Search and match: pick the right title": "Rechercher et associer : choisissez le bon titre",
   "Search for the right title, or paste an id or address": "Recherchez le bon titre, ou collez un identifiant ou une adresse",
   "Check for changes": "Vérifier les changements",
@@ -693,8 +697,8 @@
   "Not installed: no version of {names} for this server is published yet.": "Non installé : aucune version de {names} pour ce serveur n’est encore publiée.",
   "{count} letters": {
     "one": "{count} lettre",
-    "other": "{count} lettres",
-    "many": "{count} lettres"
+    "many": "{count} lettres",
+    "other": "{count} lettres"
   },
   "Accent on “{word}”": "Accent sur « {word} »",
   "Colour changed": "Couleur modifiée",
@@ -734,15 +738,15 @@
   "Use this gradient": "Utiliser ce dégradé",
   "Too many colour changes.": "Trop de changements de couleur.",
   "A name can have {max} runs of colour; this one has {count}. Use fewer colours, or a gradient.": "Un nom peut avoir {max} séquences de couleur ; celui-ci en a {count}. Utilisez moins de couleurs, ou un dégradé.",
-  "Check:": "À vérifier :",
+  "Check:": "À vérifier :",
   "“{text}” is {ratio} to 1 on {surface}.": "« {text} » a un contraste de {ratio} pour 1 sur {surface}.",
   "Words should be at least 4.5 to 1. Use a lighter colour or follow the theme.": "Le texte devrait avoir au moins 4,5 pour 1. Utilisez une couleur plus claire ou suivez le thème.",
-  "Presets": "Préréglages",
+  "Presets": "Préparamètres",
   "Mark for the rail and small spaces": "Emblème pour la barre et les petits espaces",
   "Mark": "Emblème",
   "Letter · {mark}": "Lettre · {mark}",
   "Initials · {mark}": "Initiales · {mark}",
-  "Your own": "Le vôtre",
+  "Your own": "Personnalisé",
   "Logo": "Logo",
   "Your own one or two characters": "Vos propres un ou deux caractères",
   "1 to 2 characters": "1 à 2 caractères",
@@ -795,7 +799,7 @@
   "Restart now, or it moves the next time the server starts.": "Redémarrez maintenant, sinon le changement aura lieu au prochain démarrage du serveur.",
   "Restart the server the way you started it.": "Redémarrez le serveur de la même façon que vous l’avez démarré.",
   "Then it’s at {address}, and anything that uses the old address, such as a bookmark, needs the new one.": "Il sera alors à l’adresse {address}, et tout ce qui utilise l’ancienne adresse, comme un favori, aura besoin de la nouvelle.",
-  "(decides what Kids and Guest profiles can see)": "(détermine ce que les profils Enfants et Invité peuvent voir)",
+  "(decides what Kids and Guest profiles can see)": "(détermine ce que les profils enfants et Invité peuvent voir)",
   "Not rated": "Non classé",
   "TV": "TV",
   "Other…": "Autre…",
@@ -827,12 +831,12 @@
   "More ways to scan": "Plus de façons d’analyser",
   "Link copied": "Lien copié",
   "Couldn't copy the link: select it and copy": "Impossible de copier le lien : sélectionnez-le et copiez-le",
-  "Share “{title}”": "Partager « {title} »",
+  "Share “{title}”": "Partager « {title} »",
   "More information": "Plus d’informations",
   "{first}, and {count} more changes.": {
     "one": "{first}, et {count} autre changement.",
-    "other": "{first}, et {count} autres changements.",
-    "many": "{first}, et {count} autres changements."
+    "many": "{first}, et {count} autres changements.",
+    "other": "{first}, et {count} autres changements."
   },
   "WittyMediaServer {version} is available": "WittyMediaServer {version} est disponible",
   "How to update": "Comment mettre à jour",
@@ -841,13 +845,13 @@
   "A newer version of the server is ready to install.": "Une version plus récente du serveur est prête à être installée.",
   "{count} files added ({size})": {
     "one": "{count} fichier ajouté ({size})",
-    "other": "{count} fichiers ajoutés ({size})",
-    "many": "{count} fichiers ajoutés ({size})"
+    "many": "{count} fichiers ajoutés ({size})",
+    "other": "{count} fichiers ajoutés ({size})"
   },
   "{count} files not added": {
     "one": "{count} fichier non ajouté",
-    "other": "{count} fichiers non ajoutés",
-    "many": "{count} fichiers non ajoutés"
+    "many": "{count} de fichiers non ajoutés",
+    "other": "{count} fichiers non ajoutés"
   },
   "Uploading {n}/{of} ({percent}%)": "Envoi {n}/{of} ({percent} %)",
   "Upload": "Envoyer",
@@ -887,7 +891,7 @@
   "Movies, shows, episodes, music, books and games are all included.": "Films, séries, épisodes, musique, livres et jeux sont tous inclus.",
   "The search didn’t work": "La recherche n’a pas fonctionné",
   "No results": "Aucun résultat",
-  "Nothing on this server matches “{query}”. Try a shorter or different word.": "Rien sur ce serveur ne correspond à « {query} ». Essayez un mot plus court ou différent.",
+  "Nothing on this server matches “{query}”. Try a shorter or different word.": "Rien sur ce serveur ne correspond à « {query} ». Essayez un mot plus court ou différent.",
   "Shows": "Séries",
   "Everything else": "Tout le reste",
   "Skip to content": "Aller au contenu",
@@ -904,7 +908,7 @@
   "Yours": "À vous",
   "Collections and playlists": "Collections et playlists",
   "Share links": "Liens de partage",
-  "Game settings": "Paramètres de jeu",
+  "Game settings": "Paramètres du jeu",
   "On this device": "Sur cet appareil",
   "Theme": "Thème",
   "Server": "Serveur",
@@ -912,16 +916,16 @@
   "Fix matches": "Corriger les correspondances",
   "Playback": "Lecture",
   "Live TV and tuners": "TV en direct et tuners",
-  "Consoles and cores": "Consoles et cores",
+  "Consoles and cores": "Consoles et cœurs",
   "Live transcoding": "Transcodage en direct",
-  "Library transcoding": "Transcodage de la bibliothèque",
+  "Library transcoding": "Transcodage des bibliothèques",
   "Remote access": "Accès à distance",
-  "Appearance and branding": "Apparence et personnalisation",
+  "Appearance and branding": "Apparence et identité visuelle",
   "Maintenance": "Maintenance",
   "Modules": "Modules",
   "Backup": "Sauvegarde",
-  "Repair": "Réparation",
-  "Reset": "Réinitialisation",
+  "Repair": "Réparer",
+  "Reset": "Réinitialiser",
   "Help and about": "Aide et à propos",
   "About this server": "À propos de ce serveur",
   "Legal": "Mentions légales",
@@ -966,14 +970,18 @@
   "{count} paused": "{count} en pause",
   "{count} waiting": "{count} en attente",
   "{percent}% done": "{percent} % effectué",
-  "{count} failed": "{count} en échec",
+  "{count} failed": {
+    "one": "{count} en échec",
+    "many": "{count} en échec",
+    "other": "{count} en échec"
+  },
   "Activity: {parts}": "Activité : {parts}",
   "Activity: nothing going on": "Activité : rien en cours",
   "Page not found": "Page introuvable",
   "There’s no page here": "Il n’y a pas de page ici",
   "The address may have changed, or it may be mistyped.": "L’adresse a peut-être changé, ou elle est mal saisie.",
   "Security warning": "Avertissement de sécurité",
-  "Warning:": "Attention :",
+  "Warning:": "Attention :",
   "Remote Access": "Accès à distance",
   "Understood": "Compris",
   "Text": "Texte",
@@ -988,23 +996,23 @@
   "Rainbow letters": "Lettres arc-en-ciel",
   "{count} days ago": {
     "one": "il y a {count} jour",
-    "other": "il y a {count} jours",
-    "many": "il y a {count} jours"
+    "many": "il y a {count} de jours",
+    "other": "il y a {count} jours"
   },
   "{count} weeks ago": {
     "one": "il y a {count} semaine",
-    "other": "il y a {count} semaines",
-    "many": "il y a {count} semaines"
+    "many": "il y a {count} semaines",
+    "other": "il y a {count} semaines"
   },
   "{count} months ago": {
     "one": "il y a {count} mois",
-    "other": "il y a {count} mois",
-    "many": "il y a {count} mois"
+    "many": "il y a {count} mois",
+    "other": "il y a {count} mois"
   },
   "{count} years ago": {
     "one": "il y a {count} an",
-    "other": "il y a {count} ans",
-    "many": "il y a {count} ans"
+    "many": "il y a {count} ans",
+    "other": "il y a {count} ans"
   },
   "today": "aujourd’hui",
   "yesterday": "hier",
@@ -1012,53 +1020,53 @@
   "Not saved": "Non enregistré",
   "{count} discs": {
     "one": "{count} disque",
-    "other": "{count} disques",
-    "many": "{count} disques"
+    "many": "{count} de disques",
+    "other": "{count} disques"
   },
   "{count} videos": {
     "one": "{count} vidéo",
-    "other": "{count} vidéos",
-    "many": "{count} vidéos"
+    "many": "{count} de vidéos",
+    "other": "{count} vidéos"
   },
   "{count} commercials": {
     "one": "{count} publicité",
-    "other": "{count} publicités",
-    "many": "{count} publicités"
+    "many": "{count} de publicités",
+    "other": "{count} publicités"
   },
   "{count} games": {
     "one": "{count} jeu",
-    "other": "{count} jeux",
-    "many": "{count} jeux"
+    "many": "{count} de jeux",
+    "other": "{count} jeux"
   },
   "{count} tracks": {
     "one": "{count} piste",
-    "other": "{count} pistes",
-    "many": "{count} pistes"
+    "many": "{count} de pistes",
+    "other": "{count} pistes"
   },
   "{count} files": {
     "one": "{count} fichier",
-    "other": "{count} fichiers",
-    "many": "{count} fichiers"
+    "many": "{count} de fichiers",
+    "other": "{count} fichiers"
   },
   "{count} books": {
     "one": "{count} livre",
-    "other": "{count} livres",
-    "many": "{count} livres"
+    "many": "{count} de livres",
+    "other": "{count} livres"
   },
   "{count} pictures": {
     "one": "{count} image",
-    "other": "{count} images",
-    "many": "{count} images"
+    "many": "{count} d’images",
+    "other": "{count} images"
   },
   "{count} stations": {
     "one": "{count} station",
-    "other": "{count} stations",
-    "many": "{count} stations"
+    "many": "{count} de stations",
+    "other": "{count} stations"
   },
   "{count} items": {
     "one": "{count} élément",
-    "other": "{count} éléments",
-    "many": "{count} éléments"
+    "many": "{count} d’éléments",
+    "other": "{count} éléments"
   },
   "The picture is too big: the limit is {limit} MB": "L’image est trop grande : la limite est de {limit} Mo",
   "That picture could not be saved": "Impossible d’enregistrer cette image",
@@ -1156,7 +1164,7 @@
   "You're responsible for what you share and who you share it with, including having the rights to share it. The WittyMediaServer project doesn't host, see or check what you share.": "Vous êtes responsable de ce que vous partagez et des personnes avec qui vous le partagez, y compris de détenir les droits pour le partager. Le projet WittyMediaServer n’héberge pas, ne voit pas et ne vérifie pas ce que vous partagez.",
   "Shared by someone using a server they run themselves. It isn't provided, hosted, endorsed or checked by the WittyMediaServer project, its contributors or affiliates. Ask the person who sent the link about what's here.": "Partagé par une personne qui utilise un serveur qu’elle gère elle-même. Ce contenu n’est ni fourni, ni hébergé, ni approuvé, ni vérifié par le projet WittyMediaServer, ses contributeurs ou ses affiliés. Pour toute question sur ce qui se trouve ici, adressez-vous à la personne qui vous a envoyé le lien.",
   "This lets people reach your server from outside your home. You run it, so what you host and who you let in are your responsibility, and the law where you and they are applies. The WittyMediaServer project doesn't host, see or check any of it.": "Ceci permet à d’autres personnes d’accéder à votre serveur depuis l’extérieur de votre domicile. C’est vous qui le gérez, donc ce que vous hébergez et les personnes que vous laissez entrer relèvent de votre responsabilité, et la loi de l’endroit où vous et elles vous trouvez s’applique. Le projet WittyMediaServer n’héberge pas, ne voit pas et ne vérifie rien de tout cela.",
-  "Age limits rely on ratings from files and third-party services, which can be missing or wrong. A Kids profile helps, but it isn't a guarantee: please check what's suitable yourself.": "Les limites d’âge reposent sur les classifications provenant des fichiers et de services tiers, qui peuvent être absentes ou erronées. Un profil Enfant aide, mais ce n’est pas une garantie : veuillez vérifier vous-même ce qui est adapté.",
+  "Age limits rely on ratings from files and third-party services, which can be missing or wrong. A Kids profile helps, but it isn't a guarantee: please check what's suitable yourself.": "Les limites d’âge reposent sur les classifications provenant des fichiers et de services tiers, qui peuvent être absentes ou erronées. Un profil enfant aide, mais ce n’est pas une garantie : veuillez vérifier vous-même ce qui est adapté.",
   "Logos here were downloaded from Wikimedia Commons because this server's owner asked for them, were named by a channel list the owner added, or were uploaded by the owner, and they stay on this server. They're trademarks of their owners, shown only to name who made something. They, and the companies they belong to, aren't associated with, endorsed by or checked by the WittyMediaServer project, its contributors or affiliates.": "Les logos présents ici ont été téléchargés depuis Wikimedia Commons parce que le propriétaire de ce serveur les a demandés, ont été nommés par une liste de chaînes ajoutée par le propriétaire, ou ont été envoyés par le propriétaire, et ils restent sur ce serveur. Ce sont des marques déposées de leurs propriétaires, affichées uniquement pour indiquer qui a créé quelque chose. Ni eux, ni les entreprises auxquelles ils appartiennent, ne sont associés au projet WittyMediaServer, à ses contributeurs ou à ses affiliés, ni approuvés ou vérifiés par eux.",
   "Logos are their owners' trademarks, shown only to name who made something, and the owners have no part in this.": "Les logos sont des marques déposées de leurs propriétaires, affichées uniquement pour indiquer qui a créé quelque chose, et ces propriétaires n’ont aucun rôle dans ce service.",
   "Nothing here streams from these services, and no account with them is used. This only sorts the media already on this server by public listings from JustWatch, through TMDB, which can be out of date or wrong. These services aren't associated with, endorsed by or checked by the WittyMediaServer project, its contributors or affiliates.": "Rien ici n’est diffusé depuis ces services, et aucun compte chez eux n’est utilisé. Cela ne fait que classer les médias déjà présents sur ce serveur d’après des listes publiques de JustWatch, via TMDB, qui peuvent être obsolètes ou erronées. Ces services ne sont pas associés au projet WittyMediaServer, à ses contributeurs ou à ses affiliés, ni approuvés ou vérifiés par eux.",

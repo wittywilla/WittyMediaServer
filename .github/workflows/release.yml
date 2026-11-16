@@ -300,7 +300,13 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y flatpak flatpak-builder
-          sudo snap install snapcraft --classic
+          # The Snap Store sometimes times out. A release shouldn't stop for that: after four
+          # tries it goes out without the snap, and the AppImage and the Flatpak still cover Linux.
+          for try in 1 2 3 4; do
+            if sudo snap install snapcraft --classic; then echo "SNAP_OK=1" >> "$GITHUB_ENV"; break; fi
+            [ "$try" = 4 ] && { echo "::warning::The Snap Store didn't answer: this release has no snap"; break; }
+            echo "::warning::snap install failed (try $try); trying again in 30s"; sleep 30
+          done
           # flatpak-builder's sandbox needs user namespaces, which Ubuntu 24.04 refuses a program
           # it has no profile for. This machine is thrown away after the job.
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
@@ -314,7 +320,9 @@ jobs:
             tar -xzf "dist/wittymediaserver-$VERSION-linux-$a.tar.gz" -C stage
             packaging/linux/appimage/build-appimage.sh "$VERSION" "stage/wittymediaserver-$VERSION-linux-$a" "$a" installers
             packaging/linux/flatpak/build-flatpak.sh "$VERSION" "stage/wittymediaserver-$VERSION-linux-$a" "$a" installers
-            packaging/linux/snap/build-snap.sh "$VERSION" "stage/wittymediaserver-$VERSION-linux-$a" "$a" installers
+            if [ "${SNAP_OK:-}" = 1 ]; then
+              packaging/linux/snap/build-snap.sh "$VERSION" "stage/wittymediaserver-$VERSION-linux-$a" "$a" installers
+            fi
           done
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:

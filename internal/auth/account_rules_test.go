@@ -57,18 +57,20 @@ func TestPasswordFreeProfileTakesTheSameWork(t *testing.T) {
 	if _, err := s.CreateProfile(ctx, "Tapper", "", KindKids, false, ""); err != nil {
 		t.Fatal(err)
 	}
-	fastest := func(name string) time.Duration {
-		best := time.Hour
-		for range 3 {
-			at := time.Now()
-			if _, _, err := s.Login(ctx, name, "a guess", "test", false); err == nil {
-				t.Fatalf("%s signed in", name)
-			}
-			best = min(best, time.Since(at))
+	once := func(name string) time.Duration {
+		at := time.Now()
+		if _, _, err := s.Login(ctx, name, "a guess", "test", false); err == nil {
+			t.Fatalf("%s signed in", name)
 		}
-		return best
+		return time.Since(at)
 	}
-	unknown, free := fastest("nobody"), fastest("Tapper")
+	// The fastest of each over rounds that take the two names in turn, so a busy machine slows
+	// both alike instead of whichever name it happened to be measuring.
+	unknown, free := time.Hour, time.Hour
+	for range 9 {
+		unknown = min(unknown, once("nobody"))
+		free = min(free, once("Tapper"))
+	}
 	if free < unknown/2 {
 		t.Errorf("a password-free profile answers in %v, an unknown name in %v", free, unknown)
 	}

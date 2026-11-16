@@ -125,7 +125,13 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y flatpak flatpak-builder
-          sudo snap install snapcraft --classic
+          # The Snap Store sometimes times out: after four tries the snap is skipped, with a
+          # warning, so the AppImage and the Flatpak are still checked.
+          for try in 1 2 3 4; do
+            if sudo snap install snapcraft --classic; then echo "SNAP_OK=1" >> "$GITHUB_ENV"; break; fi
+            [ "$try" = 4 ] && { echo "::warning::The Snap Store didn't answer: the snap wasn't built"; break; }
+            echo "::warning::snap install failed (try $try); trying again in 30s"; sleep 30
+          done
           # flatpak-builder's sandbox needs user namespaces, which Ubuntu 24.04 refuses a program
           # it has no profile for. This machine is thrown away after the job.
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
@@ -141,7 +147,9 @@ jobs:
           for a in amd64 arm64; do
             packaging/linux/appimage/build-appimage.sh "$VERSION" "dist/wittymediaserver-$VERSION-linux-$a" "$a" packages
             packaging/linux/flatpak/build-flatpak.sh "$VERSION" "dist/wittymediaserver-$VERSION-linux-$a" "$a" packages
-            packaging/linux/snap/build-snap.sh "$VERSION" "dist/wittymediaserver-$VERSION-linux-$a" "$a" packages
+            if [ "${SNAP_OK:-}" = 1 ]; then
+              packaging/linux/snap/build-snap.sh "$VERSION" "dist/wittymediaserver-$VERSION-linux-$a" "$a" packages
+            fi
           done
           ls -la packages
       # The build machine is amd64, so only those can be run here.
@@ -156,6 +164,7 @@ jobs:
           flatpak install --user --noninteractive "packages/wittymediaserver-$VERSION-linux-amd64.flatpak"
           flatpak run com.wittywilla.WittyMediaServer version | grep wittymediaserver
       - name: The snap's service answers
+        if: env.SNAP_OK == '1'
         run: |
           VERSION="${GITHUB_REF_NAME#v}"; [ "$GITHUB_REF_TYPE" = tag ] || VERSION="dev-${GITHUB_SHA::8}"
           sudo snap install --dangerous "packages/wittymediaserver-$VERSION-linux-amd64.snap"

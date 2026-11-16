@@ -22,8 +22,7 @@
   <a href="CHANGELOG.md">What's new</a>
 </p>
 
-> **Alpha.** Version 0.8.x-alpha versions are still changing quickly and can fail or lose data. Keep backups, and back up your data folder before you upgrade. A MAJOR currently known issue is Emulation isn't working. This is due to a new streaming pipeline to work with our newly created iOS and tvOS builds (due to apple being very restrictive on what we can and can't run on those platforms). Right now, the new WittyMediaClient apps crash if games are attempted, and the browser will just perpetually load. 0.6.x Alpha versions still work with emulation, but still suffer from the connection issue dialogue not going away. 
-
+> **Alpha.** Version 0.8.x-alpha versions are still changing quickly and can fail or lose data. Keep backups, and back up your data folder before you upgrade. 
 ## Install
 
 Install the server on the computer or NAS that holds your media. Downloads are on the **[Releases page](https://github.com/wittywilla/WittyMediaServer/releases)**, and FFmpeg comes with them. When it's running, open `http://<that computer>:9797/` in a browser to set it up.

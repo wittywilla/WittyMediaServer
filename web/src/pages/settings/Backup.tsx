@@ -202,7 +202,7 @@ function MakeBackup({ view, reload, call }: { view: View; reload: () => void; ca
   }
   return (
     <SpecPage embedded page={page} handled={new Set(['make'])} onAction={(id) => { if (id === 'make') void start() }} onField={onField}
-      after={{ [page.sections.findIndex((x) => x.h === MAKE)]: busy && job.kind === 'create' ? <JobProgress job={job} onCancel={cancel} /> : (
+      after={{ [page.sections.findIndex((x) => x.h === t(MAKE))]: busy && job.kind === 'create' ? <JobProgress job={job} onCancel={cancel} /> : (
         <div ref={answer} tabIndex={-1} className="bk-answer">
           {job.kind === 'create' && job.result && (
             <Notice tone={job.problems?.length ? 'warn' : 'ok'} title={job.result}>

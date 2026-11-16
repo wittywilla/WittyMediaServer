@@ -59,5 +59,5 @@ export function Scene() {
   const layers = useSyncExternalStore(subscribeScene, sceneLayers)
   if (!layers.length) return null
   const list = modest() ? layers.slice(0, 1) : layers
-  return <div className="scene" aria-hidden="true">{list.map((l, i) => <Layer key={i} l={l} i={i} />)}</div>
+  return <div className="look-scene" aria-hidden="true">{list.map((l, i) => <Layer key={i} l={l} i={i} />)}</div>
 }

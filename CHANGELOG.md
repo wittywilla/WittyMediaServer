@@ -5,6 +5,8 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **Fixed:** the player's Scenes was an empty strip behind the seek bar. The looks' background picture used the class `scene`, which pinned every scene card behind the page; it's `look-scene` now. The scene cards' own styles, which went with the old disc page in Design 2, are back, so each scene shows its picture and time and "Now playing" sits on its own scene. (#390)
+
 ## 0.8.0-alpha
 
 Released 2026-11-16.

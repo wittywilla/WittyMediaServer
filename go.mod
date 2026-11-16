@@ -9,7 +9,7 @@ require (
 	github.com/bodgit/sevenzip v1.6.5
 	github.com/coder/websocket v1.8.15
 	github.com/ipfs/go-cid v0.6.2
-	github.com/klauspost/compress v1.20.3
+	github.com/klauspost/compress v1.20.4
 	github.com/libp2p/go-libp2p v0.51.0
 	github.com/libp2p/go-libp2p-kad-dht v0.43.0
 	github.com/marcopolo/simnet v0.0.7
@@ -19,12 +19,12 @@ require (
 	github.com/ulikunitz/xz v0.5.17
 	github.com/wittywilla/wittydisc v0.2.0
 	github.com/wittywilla/wittymodule v0.5.3
-	golang.org/x/crypto v0.58.0
-	golang.org/x/image v0.47.0
+	golang.org/x/crypto v0.59.0
+	golang.org/x/image v0.48.0
 	golang.org/x/net v0.62.0
-	golang.org/x/sys v0.49.0
-	golang.org/x/text v0.43.0
-	modernc.org/sqlite v1.61.1
+	golang.org/x/sys v0.50.0
+	golang.org/x/text v0.44.0
+	modernc.org/sqlite v1.62.0
 )
 
 require (
@@ -121,9 +121,10 @@ require (
 	github.com/whyrusleeping/go-keyspace v0.0.0-20160322163242-5b898ac5add1 // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
-	go.opentelemetry.io/otel v1.46.0 // indirect
-	go.opentelemetry.io/otel/metric v1.46.0 // indirect
-	go.opentelemetry.io/otel/trace v1.46.0 // indirect
+	go.opentelemetry.io/otel v1.47.0 // indirect
+	go.opentelemetry.io/otel/log v1.47.0 // indirect
+	go.opentelemetry.io/otel/metric v1.47.0 // indirect
+	go.opentelemetry.io/otel/trace v1.47.0 // indirect
 	go.uber.org/dig v1.19.0 // indirect
 	go.uber.org/fx v1.24.0 // indirect
 	go.uber.org/mock v0.6.0 // indirect
@@ -132,14 +133,14 @@ require (
 	go4.org v0.0.0-20261028031214-ed6929a230fe // indirect
 	golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba // indirect
 	golang.org/x/mod v0.42.0 // indirect
-	golang.org/x/sync v0.24.0 // indirect
+	golang.org/x/sync v0.25.0 // indirect
 	golang.org/x/telemetry v0.0.0-20261009151841-97e8ea77aa2a // indirect
 	golang.org/x/time v0.16.0 // indirect
 	golang.org/x/tools v0.52.0 // indirect
 	gonum.org/v1/gonum v0.17.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 	lukechampine.com/blake3 v1.4.1 // indirect
-	modernc.org/libc v1.79.1 // indirect
+	modernc.org/libc v1.80.1 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect
 )

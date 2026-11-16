@@ -5,6 +5,7 @@
 // pages of items are fetched once each. Nothing here draws anything.
 
 import { ApiError, getToken, serverBase } from '../api'
+import { t } from '../i18n'
 import { applyPatches } from './patch'
 import { query, type Device } from './device'
 import { VERSION, type Document, type Navigation, type Patch, type Personal, type SectionItems } from './types'
@@ -83,7 +84,7 @@ export function kept(page: string, device: Device, params: Record<string, string
 }
 
 function keep(key: string, doc: Document, etag: string) {
-  if (doc.version !== VERSION) throw new ApiError(0, 'This server sends pages in a form this app doesn’t know. Updating the app should fix it.')
+  if (doc.version !== VERSION) throw new ApiError(0, t('This server sends pages in a form this app doesn’t know. Updating the app should fix it.'))
   pages.delete(key)
   pages.set(key, { doc, etag: etag || doc.meta?.etag || '', at: Date.now() })
   while (pages.size > MAX_KEPT) pages.delete(pages.keys().next().value as string)
@@ -120,7 +121,7 @@ export async function fetchPage(page: string, device: Device, params: Record<str
   }
   const r = await ask<Document>('GET', `${path}?${q}`, { signal: opts.signal, headers: had?.etag ? { 'If-None-Match': had.etag } : undefined })
   if (r.status === 304 && had) { pages.set(key, had); had.at = Date.now(); return had.doc }
-  if (!r.data) throw new ApiError(0, 'The server sent no page.')
+  if (!r.data) throw new ApiError(0, t('The server sent no page.'))
   return keep(key, r.data, r.etag)
 }
 
@@ -152,7 +153,7 @@ const inFlight = new Map<string, Promise<SectionItems>>()
 // fetchItems: one page of a section's items. The address is the server's (props.more.url,
 // a season's url); the device is added to it. The same cursor is never asked twice at once.
 export function fetchItems(url: string, device: Device): Promise<SectionItems> {
-  if (!url.startsWith('/api/')) return Promise.reject(new ApiError(0, 'That isn’t an address on this server.'))
+  if (!url.startsWith('/api/')) return Promise.reject(new ApiError(0, t('That isn’t an address on this server.')))
   const [path, had = ''] = url.split('?')
   const q = new URLSearchParams(had)
   for (const [k, v] of new URLSearchParams(pageQuery(device, {}))) if (!q.has(k)) q.set(k, v)
@@ -177,7 +178,7 @@ export async function fetchNavigation(device: Device): Promise<Navigation> {
   const had = nav?.key === key ? nav : null
   const r = await ask<Navigation>('GET', `${BASE}/navigation?${query(device, { preview: preview || undefined })}`, { headers: had?.etag ? { 'If-None-Match': had.etag } : undefined })
   if (r.status === 304 && had) return had.data
-  if (!r.data) throw new ApiError(0, 'The server sent no menu.')
+  if (!r.data) throw new ApiError(0, t('The server sent no menu.'))
   nav = { key, etag: r.etag || r.data.etag || '', data: r.data }
   return r.data
 }

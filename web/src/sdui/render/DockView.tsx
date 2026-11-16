@@ -11,6 +11,7 @@ import { getList, letterOf, setList } from '../gridView'
 import type { Node, Props } from '../types'
 import { usePage } from './context'
 import { sduiIcon } from './icons'
+import { t, tx } from '../../i18n'
 
 const find = (n: Node, id: string): Node | undefined => {
   if (n.id === id) return n
@@ -48,7 +49,7 @@ export function DockView({ view }: { view: View }) {
     const a = b.node.action
     const p = b.node.props || {}
     return {
-      id: b.id, label: String(p.label || ''), icon: p.icon ? sduiIcon(p.icon) : undefined, primary: p.variant === 'primary',
+      id: b.id, label: tx(String(p.label || '')), icon: p.icon ? sduiIcon(p.icon) : undefined, primary: p.variant === 'primary',
       onClick: () => { if (a?.type === 'command' && a.op === 'control.open') control(a); else page.act(a, b) },
     }
   })
@@ -82,34 +83,34 @@ export function DockView({ view }: { view: View }) {
       {page.layout.dock?.placement === 'sheet' ? (
         // A phone has no bar: one Options button, and the same controls in a sheet, without the legend.
         <div className="sdui-dock-sheet">
-          <button type="button" className="btn sm" aria-haspopup="dialog" onClick={() => setSheet(true)}>{view.label || 'Options'}</button>
+          <button type="button" className="btn sm" aria-haspopup="dialog" onClick={() => setSheet(true)}>{view.label || t('Options')}</button>
           {sheet && (
-            <Sheet title={view.label || 'Options'} onClose={() => setSheet(false)}>
+            <Sheet title={view.label || t('Options')} onClose={() => setSheet(false)}>
               <div className="sdui-dock-sheet-list">
                 {actions.map((a) => <button key={a.id} type="button" className="btn" onClick={() => { setSheet(false); a.onClick?.() }}>{a.icon}{a.label}</button>)}
               </div>
             </Sheet>
           )}
         </div>
-      ) : <Dock label={view.label || 'Options'} actions={actions} legend={legend} sticky />}
+      ) : <Dock label={view.label || t('Options')} actions={actions} legend={legend} sticky />}
       {open === 'sort' && sortField && (
-        <Dialog title="Sort" size="sm" onClose={() => setOpen('')}>
-          <Select aria-label="Sort" value={sortField.value} options={sortField.options} onChange={(e) => { page.setQuery({ sort: e.target.value === first ? '' : e.target.value }); setOpen('') }} />
+        <Dialog title={t('Sort')} size="sm" onClose={() => setOpen('')}>
+          <Select aria-label={t('Sort')} value={sortField.value} options={sortField.options} onChange={(e) => { page.setQuery({ sort: e.target.value === first ? '' : e.target.value }); setOpen('') }} />
         </Dialog>
       )}
       {open === 'filter' && (
-        <Dialog title="Filter" size="sm" onClose={() => setOpen('')}>
+        <Dialog title={t('Filter')} size="sm" onClose={() => setOpen('')}>
           {fields.map((f) => (
             <label key={f.id} className="sdui-filter"><span>{f.label}</span>
-              <Select aria-label={f.label} value={f.value} options={[{ value: '', label: 'Any' }, ...f.options]} onChange={(e) => page.setQuery({ [f.id]: e.target.value })} />
+              <Select aria-label={f.label} value={f.value} options={[{ value: '', label: t('Any') }, ...f.options]} onChange={(e) => page.setQuery({ [f.id]: e.target.value })} />
             </label>
           ))}
-          {fields.length === 0 && <p className="muted">Nothing to filter by.</p>}
+          {fields.length === 0 && <p className="muted">{t('Nothing to filter by.')}</p>}
         </Dialog>
       )}
       {open === 'jump' && (
-        <Dialog title="Jump to a letter" size="sm" onClose={() => setOpen('')}>
-          <div className="sdui-letters" role="group" aria-label="Letters">
+        <Dialog title={t('Jump to a letter')} size="sm" onClose={() => setOpen('')}>
+          <div className="sdui-letters" role="group" aria-label={t('Letters')}>
             {LETTERS.map((l) => <button key={l} type="button" className="btn sm" onClick={() => { setOpen(''); setWant({ letter: l, grid: targetGrid, pages: 0 }) }}>{l}</button>)}
           </div>
         </Dialog>

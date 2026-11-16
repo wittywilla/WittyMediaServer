@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom'
 import { Sheet } from '../../ui/Overlay'
 import SduiPage from '../SduiPage'
 import { resolve } from '../routes'
+import { t } from '../../i18n'
 
 export default function LayerHost({ to, onClose }: { to: string; onClose: () => void }) {
   const nav = useNavigate()
@@ -15,5 +16,5 @@ export default function LayerHost({ to, onClose }: { to: string; onClose: () => 
   const page = at?.kind === 'page' ? at : null
   useEffect(() => { if (!page) { onClose(); nav(to) } }, [page, to]) // eslint-disable-line react-hooks/exhaustive-deps
   if (!page) return null
-  return <Sheet title="Menu" onClose={onClose} className="sdui-layer"><SduiPage page={page.page} params={page.params} /></Sheet>
+  return <Sheet title={t('Menu')} onClose={onClose} className="sdui-layer"><SduiPage page={page.page} params={page.params} /></Sheet>
 }

@@ -78,6 +78,8 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 		"brandParts": parts,
 		"brandLogo":  s.DB.GetSetting(r.Context(), "brandLogo", ""),
 		"theme":      s.serverTheme(r.Context()),
+		// The language of the app's pages, before anyone signs in too: the sign-in and setup pages use it.
+		"uiLanguage": s.DB.GetSetting(r.Context(), "uiLanguage", ""),
 	})
 }
 

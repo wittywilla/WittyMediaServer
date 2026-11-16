@@ -25,7 +25,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/library"
 )
 
-var settingKeys = []string{"tmdbKey", "tvdbKey", "tvdbPin", "hwAccel", "maxHeight", "menuLanguage", "audioLanguage", "subtitleLanguage",
+var settingKeys = []string{"tmdbKey", "tvdbKey", "tvdbPin", "hwAccel", "maxHeight", "menuLanguage", "audioLanguage", "subtitleLanguage", "uiLanguage",
 	"serverName", "audioCodec", "lowPower", "bdjEnabled", "dvdRegion", "blurayRegion", "dvdParental", "blurayAge", "discCountry", "saveMetadata", "dvdStart", "insertFx", "episodeView",
 	"hwEncoders", "directPlay", "qualityMode", "qualityProfile", "x264Preset", "crf", "maxBitrate", "audioBitrate",
 	"ffmpegVideoArgs", "ffmpegOutputArgs", "timeZone", "theme", "brandName", "brandColouring", "brandSpans", "brandMark", "maxSpeed",
@@ -277,6 +277,11 @@ func checkSetting(k, v string) error {
 	case "brandMark":
 		if _, err := brandname.ParseMark(v); err != nil {
 			return err
+		}
+	case "uiLanguage":
+		// The language of the app's own pages: a two-letter code, or empty for each browser's own.
+		if v != "" && (len(v) != 2 || strings.ToLower(v) != v || strings.Trim(v, "abcdefghijklmnopqrstuvwxyz") != "") {
+			return errors.New("the language must be a two-letter code such as en or de")
 		}
 	case "brandColouring":
 		if !brandname.Valid(v) {

@@ -5,7 +5,7 @@ import { api } from '../../api'
 import { IconAudio, IconBook, IconGamepad, IconPalette, IconTv, IconUsers } from '../../icons'
 import { Button, Field, Input } from '../../ui'
 import { WhereIsTheCode } from './parts'
-import { LocaleFirst, pendingLocale } from './Locale'
+import { LocaleFirst, localeAsked } from './Locale'
 import { applyPageTitle } from '../../theme'
 
 const RestoreFlow = lazy(() => import('../settings/Backup').then((m) => ({ default: m.RestoreFlow })))
@@ -24,7 +24,7 @@ export function Welcome({ onStart }: { onStart: () => void }) {
   // While a backup is coming back, starting something else would only get in its way.
   const [busy, setBusy] = useState(false)
   // The language and time zone come first, before anything else; once chosen in this browser they aren't asked again.
-  const [asked, setAsked] = useState(() => !!pendingLocale())
+  const [asked, setAsked] = useState(localeAsked)
   // Both screens share one address, so the window's title is set here when one gives way to the other.
   useEffect(() => { applyPageTitle(asked ? 'Let’s set up your server' : 'Language and time zone') }, [asked])
   if (!asked) return <LocaleFirst onDone={() => setAsked(true)} />

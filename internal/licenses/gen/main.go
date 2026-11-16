@@ -41,6 +41,7 @@ var overrides = map[string]string{
 	"github.com/libp2p/go-yamux/v5":      "MPL-2.0 and BSD-3-Clause",
 	"github.com/libp2p/go-buffer-pool":   "MIT and BSD-3-Clause",
 	"go.opentelemetry.io/otel":           "Apache-2.0 and BSD-3-Clause",
+	"go.opentelemetry.io/otel/log":       "Apache-2.0 and BSD-3-Clause",
 	"go.opentelemetry.io/otel/metric":    "Apache-2.0 and BSD-3-Clause",
 	"go.opentelemetry.io/otel/trace":     "Apache-2.0 and BSD-3-Clause",
 	"github.com/hashicorp/golang-lru":    "MPL-2.0",

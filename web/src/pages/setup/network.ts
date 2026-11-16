@@ -18,7 +18,9 @@ export function httpsWords(h: HttpsStatus | null): string {
 export function timeZoneChoices(computer: string, saved: string, known: string[] = defaultZones()): { value: string; label: string }[] {
   const all = new Set(known)
   if (saved) all.add(saved)
-  return [{ value: '', label: computer ? `The computer’s own (${computer})` : 'The computer’s own' }, ...[...all].sort().map((z) => ({ value: z, label: z.replace(/_/g, ' ') }))]
+  // Go names Windows' zone "Local", which says nothing: the computer's own, plainly.
+  const named = computer && computer !== 'Local' ? computer : ''
+  return [{ value: '', label: named ? `The computer’s own (${named})` : 'The computer’s own' }, ...[...all].sort().map((z) => ({ value: z, label: z.replace(/_/g, ' ') }))]
 }
 
 function defaultZones(): string[] {

@@ -5,6 +5,8 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **Fixed:** first-time setup's Choose colours step ticked Witty after another look was chosen, while the page wore that look's colours. It now ticks the theme the chosen look defines until someone picks another, and "Start with the look's own theme" goes back to it. (#380)
+
 ## 0.8.0-alpha
 
 Released 2026-11-16.

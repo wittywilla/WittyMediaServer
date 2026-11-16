@@ -1035,7 +1035,7 @@ disc: neither Blu-ray image on hand has Java menus.
 - **More can update apart from the server:** WittyDVD and WittyBluray run in a helper per open disc, WittyTuner's network sources and WittyPlay's game runner update too, along with the file browser and all four reader modules. [MODULES.md](docs/MODULES.md) says exactly what each can and can't do, and each module's built-in copy stays the default and the fallback.
 - **Using someone's fork.** An admin can point a module at a fork, with a key they trust for that module alone. It runs under stricter limits and never updates by itself, and the server still refuses encrypted media whatever it says. WittyTuner can't be forked. Brand-new custom modules are marked as in development.
 - **Stronger limits on helpers.** On Linux a helper can no longer change any file and has a memory limit, applied so that nothing in it can skip them.
-- **Each module can release from its own repository**, with its own workflows, and the steps and script for moving over are in [MODULES-CUTOVER.md](docs/MODULES-CUTOVER.md). Nothing has been published yet.
+- **Each module can release from its own repository**, with its own workflows, and the steps and script for moving over are in [PUBLISHING.md](docs/PUBLISHING.md). Nothing has been published yet.
 - **Versions in one command:** `wittymodule bump` and `scripts/bump-server.sh`, with a check that a changed module has a new number.
 
 ### Modules update on their own

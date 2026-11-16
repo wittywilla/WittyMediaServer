@@ -134,7 +134,16 @@ export async function loadThemeOverrides() {
   let device = ''
   try { device = localStorage.getItem('wms.sdui.device') || '' } catch { /* the form factor's */ }
   // And the theme this device chose, if it did: the server answers with that theme's scene and finish.
-  try { resolved = await api.get<ResolvedTheme>('/theme' + themeQuery(device, deviceTheme(), !!lightDevice?.matches)) } catch { resolved = null }
+  // And what this device is: the look (its type, finish, shape) is the experience chosen for this kind of
+  // screen. Without it the server answered with the computer's, so a phone took Retro's type from a desktop.
+  const q = new URLSearchParams(themeQuery(device, deviceTheme(), !!lightDevice?.matches).slice(1))
+  try {
+    const { currentDevice } = await import('./sdui/useSdui')
+    const d = currentDevice()
+    q.set('formFactor', d.formFactor); q.set('platform', d.platform)
+    if (d.deviceClass) q.set('deviceClass', d.deviceClass)
+  } catch { /* the server's default for a browser */ }
+  try { resolved = await api.get<ResolvedTheme>('/theme' + (q.toString() ? '?' + q.toString() : '')) } catch { resolved = null }
   applyOverrides()
   // No theme chosen on this device or required: the look brings its own default theme, always the same.
   const wears = resolved?.look?.theme

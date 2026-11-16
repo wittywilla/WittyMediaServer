@@ -162,6 +162,9 @@ html.tv-mode .sdui-widgets { gap: var(--space-l); }
    past the left edge where the first one can't be scrolled to (justify-content: center did that). */
 .app[data-nav-style="crossbar"] .topnav > :first-child { margin-inline-start: auto; }
 .app[data-nav-style="crossbar"] .topnav > :last-child { margin-inline-end: auto; }
+/* When they don't fit, the row fades out at its end, as a phone's row of sections does, rather than cutting the
+   last category off against the search, and the last one can scroll clear of the fade. */
+.app[data-nav-style="crossbar"] .topnav { padding-inline-end: var(--space-l); -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - var(--space-l)), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - var(--space-l)), transparent); } /* design-ok: a mask only reads how solid it is */
 .app[data-nav-style="crossbar"] .topnav-link { font-size: var(--role-title-size); background: none; border-radius: 0; border-bottom: 2px solid transparent; color: var(--fg-2); }
 .app[data-nav-style="crossbar"] .topnav-link.active { background: none; color: var(--fg); border-bottom-color: var(--accent); }
 .app[data-nav-style="ornamentTabs"] .topbar { margin: var(--space-m) auto 0; inline-size: fit-content; max-inline-size: calc(100% - 2 * var(--gutter)); border-radius: var(--r-full); background: var(--elev-2-fill); border: 1px solid var(--elev-2-line); box-shadow: var(--elev-3-shadow); }

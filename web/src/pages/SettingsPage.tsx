@@ -28,6 +28,7 @@ import { jumpWhenReady } from './settings/jump'
 import { commercialsSwitchText, nfoOn, nfoSwitchText } from './settings/librarySwitches'
 import { SettingsResults, SettingsSearch } from './settings/SettingsSearch'
 import TranscodeSettings from './TranscodeSettings'
+import LanguageSettings from './settings/Language'
 import './settings/settings.css'
 import './settings/settings-page.css'
 import LegalNote from '../components/LegalNote'
@@ -222,7 +223,7 @@ export default function SettingsPage() {
           <Route path="server" element={<Navigate to="/settings/metadata" replace />} />
           <Route path="transcoding" element={<TranscodeSettings />} />
           <Route path="library-transcoding" element={<Suspense fallback={null}><LibraryTranscoding /></Suspense>} />
-          <Route path="appearance" element={<><PageHead title="Appearance" desc="How this server looks for you: its theme and colours, where the menus sit, and the look of WittyTV and the player." /><AppearanceSettings /></>} />
+          <Route path="appearance" element={<><PageHead title="Appearance" desc="How this server looks for you: its theme and colours, where the menus sit, and the look of WittyTV and the player." />{user?.isAdmin && <LanguageSettings />}<AppearanceSettings /></>} />
           {/* Other names people try for it, and its parts. */}
           {['theme', 'themes', 'look', 'looks'].map((p) => <Route key={p} path={p} element={<Navigate to="/settings/appearance#theme" replace />} />)}
           {['colours', 'colors'].map((p) => <Route key={p} path={p} element={<Navigate to="/settings/appearance#colours" replace />} />)}

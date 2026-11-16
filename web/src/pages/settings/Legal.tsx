@@ -100,7 +100,7 @@ function Doc({ signedIn }: { signedIn: boolean }) {
   }, [loc.hash])
   return (
     <div className="legal-doc">
-      <nav className="legal-toc" aria-label="On this page">
+      <nav className="legal-toc" aria-label="On this page" data-own-toc>
         <ul>{legal.sections.map((s) => <li key={s.id}><a href={`#${s.id}`} onClick={(e) => { e.preventDefault(); document.getElementById(s.id)?.scrollIntoView({ block: 'start' }) }}>{s.title}</a></li>)}</ul>
       </nav>
       <OwnerNotice owner={owner} />

@@ -8,18 +8,22 @@ import { Input, Select, Textarea } from '../../ui'
 import { jumpTo } from './jump'
 import { applyPageTitle } from '../../theme'
 import { sectionId } from './searchIndex'
+import { t, tx } from '../../i18n'
 
 // The building blocks of every settings page: a page header, section cards,
 // rows (what a setting is and does on the left, its control on the right),
 // switches, and a save bar that appears only when something has changed.
+//
+// A page's and a section's title is given in English, marked with tk('…'): it's shown translated, and a section's
+// anchor (its id) stays the English one, so links and the settings search keep working in every language.
 
 export function PageHead({ title, desc, actions }: { title: string; desc?: ReactNode; actions?: ReactNode }) {
   // The window's title names the page at once, not a moment after it arrives.
-  useLayoutEffect(() => { applyPageTitle(title) }, [title])
+  useLayoutEffect(() => { applyPageTitle(tx(title)) }, [title])
   return (
     <>
       <header className="set-head">
-        <div><h1>{title}</h1>{desc && <p>{desc}</p>}</div>
+        <div><h1>{tx(title)}</h1>{desc && <p>{desc}</p>}</div>
         {actions && <div className="set-head-actions">{actions}</div>}
       </header>
       <PageToc />
@@ -53,7 +57,7 @@ function PageToc() {
         .filter((s) => s.title)
       const key = found.map((s) => s.id + ' ' + s.title).join('|')
       // A page with contents of its own (Legal) keeps those.
-      const own = !!page.querySelector('nav[aria-label="On this page"]:not(.set-toc)')
+      const own = !!page.querySelector('nav[data-own-toc]')
       if (key !== last) { last = key; setItems(found.length >= TOC_FROM && !own ? found : []) }
     }
     const later = () => { if (!frame) frame = requestAnimationFrame(read) }
@@ -84,8 +88,8 @@ function PageToc() {
   }, [items])
   if (!items.length) return <span ref={ref} hidden />
   return (
-    <nav className="set-toc" aria-label="On this page" ref={ref} data-nav-group>
-      <span className="set-toc-label" aria-hidden="true">On this page</span>
+    <nav className="set-toc" aria-label={t('On this page')} ref={ref} data-nav-group>
+      <span className="set-toc-label" aria-hidden="true">{t('On this page')}</span>
       <ul>
         {items.map((s) => (
           <li key={s.id}>
@@ -103,9 +107,9 @@ function PageToc() {
 // A section's id is its title in plain words, so a link or a search result can jump to it.
 export function Section({ title, desc, actions, children, id }: { title: string; desc?: ReactNode; actions?: ReactNode; children: ReactNode; id?: string }) {
   return (
-    <section className="set-card" id={id || sectionId(title)} aria-label={title}>
+    <section className="set-card" id={id || sectionId(title)} aria-label={tx(title)}>
       <header className="set-card-head">
-        <div><h2>{title}</h2>{desc && <p>{desc}</p>}</div>
+        <div><h2>{tx(title)}</h2>{desc && <p>{desc}</p>}</div>
         {actions && <div className="set-card-actions">{actions}</div>}
       </header>
       <div className="set-card-body">{children}</div>
@@ -161,7 +165,7 @@ export function useServerSettings() {
     setBusy(true)
     try {
       const n = await api.put<Record<string, string>>('/settings', draft)
-      setSaved(n); setDraft(n); getPrefs(true); toast('Settings saved')
+      setSaved(n); setDraft(n); getPrefs(true); toast(t('Settings saved'))
     } catch (e: any) { toast(e.message) } finally { setBusy(false) }
   }
   return { s: draft, set, on, dirty, busy, save, discard: () => setDraft(saved), failed, retry: () => setAttempt((n) => n + 1) }
@@ -170,10 +174,10 @@ export function useServerSettings() {
 export function SaveBar({ dirty, busy, save, discard }: { dirty: boolean; busy: boolean; save: () => void; discard: () => void }) {
   if (!dirty) return null
   return (
-    <div className="set-savebar" role="region" aria-label="Unsaved changes">
-      <span><i className="set-dot" />You have unsaved changes</span>
-      <button className="btn ghost sm" onClick={discard} disabled={busy}>Discard</button>
-      <button className="btn primary sm" onClick={save} disabled={busy}>{busy ? 'Saving…' : 'Save changes'}</button>
+    <div className="set-savebar" role="region" aria-label={t('Unsaved changes')}>
+      <span><i className="set-dot" />{t('You have unsaved changes')}</span>
+      <button className="btn ghost sm" onClick={discard} disabled={busy}>{t('Discard')}</button>
+      <button className="btn primary sm" onClick={save} disabled={busy}>{busy ? t('Saving…') : t('Save changes')}</button>
     </div>
   )
 }

@@ -10,6 +10,7 @@ import { HelpLink } from '../components/HelpLink'
 import type { LibraryKind, ModuleReport } from '../moduleStore'
 import { toast, useApp } from '../state'
 import { saveLocale } from './setup/Locale'
+import { t, tx } from '../i18n'
 import { Button, Progress } from '../ui'
 import { Account } from './setup/Account'
 import { Details } from './setup/Details'
@@ -74,7 +75,7 @@ export default function SetupWizard() {
   const { back, next } = neighbours(steps, step.id)
   const number = drawnNumber(steps, step.id)
   const present = new Set(steps.map((x) => drawnId(x.id)))
-  const stepper = ALL_DRAWN.map((x) => ({ id: x.id, label: x.label, missing: !present.has(x.id) && x.id !== 'welcome' && x.id !== 'account' }))
+  const stepper = ALL_DRAWN.map((x) => ({ id: x.id, label: tx(x.label), missing: !present.has(x.id) && x.id !== 'welcome' && x.id !== 'account' }))
   const nowAt = stepper.findIndex((x) => x.id === drawnId(step.id))
   const go = (id: StepId) => navigate(pathOf(id))
   const props: StepProps = { info: step, facts, refresh, next: () => { if (next) go(next.id) }, back: back ? () => go(back.id) : undefined }
@@ -95,15 +96,15 @@ export default function SetupWizard() {
           <div className="brand"><BrandMark /><Brand name={tryName?.name ?? brandName} parts={tryName?.parts} /></div>
           <div className="su-progress">
             <div className="su-progress-line">
-              <p className="su-progress-words" id="su-where">Step {number.at} of {number.of}<span className="su-where-name"> · {ALL_DRAWN.find((x) => x.id === drawnId(step.id))?.label || step.label}</span>{number.page && <span className="su-where-page"> · part {number.page.at} of {number.page.of}: {step.label}</span>}</p>
-              <HelpLink to="getting-started#what-first-time-setup-asks" newTab>Help with setup</HelpLink>
+              <p className="su-progress-words" id="su-where">{t('Step {at} of {of}', { at: number.at, of: number.of })}<span className="su-where-name"> · {tx(ALL_DRAWN.find((x) => x.id === drawnId(step.id))?.label || step.label)}</span>{number.page && <span className="su-where-page"> · {t('part {at} of {of}: {name}', { at: number.page.at, of: number.page.of, name: tx(step.label) })}</span>}</p>
+              <HelpLink to="getting-started#what-first-time-setup-asks" newTab>{t('Help with setup')}</HelpLink>
             </div>
-            <Progress label="How far through setup" value={number.at} max={number.of} />
+            <Progress label={t('How far through setup')} value={number.at} max={number.of} />
           </div>
         </header>
 
         <div className="oobe-body">
-          <nav className="oobe-steps" aria-label="Setup steps">
+          <nav className="oobe-steps" aria-label={t('Setup steps')}>
             <ol>
               {stepper.map((x, i) => {
                 const state = i < nowAt ? 'done' : i === nowAt ? 'now' : 'todo'
@@ -111,8 +112,8 @@ export default function SetupWizard() {
                 return (
                   <li key={x.id} className={'oobe-step ' + state + (x.missing ? ' missing' : '')} aria-current={state === 'now' ? 'step' : undefined}>
                     {goBack
-                      ? <button type="button" onClick={() => go(x.id as StepId)}><i aria-hidden="true">{state === 'done' ? '✓' : i + 1}</i>{x.label}<span className="sr-only"> (done)</span></button>
-                      : <span><i aria-hidden="true">{state === 'done' ? '✓' : i + 1}</i><span className="oobe-step-label">{x.label}{x.missing && <small><span className="sr-only">, </span>Module not added</small>}</span>{state === 'done' && <span className="sr-only"> (done)</span>}</span>}
+                      ? <button type="button" onClick={() => go(x.id as StepId)}><i aria-hidden="true">{state === 'done' ? '✓' : i + 1}</i>{x.label}<span className="sr-only"> {t('(done)')}</span></button>
+                      : <span><i aria-hidden="true">{state === 'done' ? '✓' : i + 1}</i><span className="oobe-step-label">{x.label}{x.missing && <small><span className="sr-only">, </span>{t('Module not added')}</small>}</span>{state === 'done' && <span className="sr-only"> {t('(done)')}</span>}</span>}
                   </li>
                 )
               })}
@@ -131,7 +132,7 @@ export default function SetupWizard() {
                 api.put('/settings', { setupDone: '0' }).catch(() => {})
                 // The language and time zone asked before Welcome are saved now there's an account, before the
                 // Name step reads them back.
-                void saveLocale().catch(() => toast('The language and time zone couldn’t be saved. Choose them again on this page.', { tone: 'danger' }))
+                void saveLocale().catch(() => toast(t('The language and time zone couldn’t be saved. Choose them again on this page.'), { tone: 'danger' }))
                   .finally(() => navigate(pathOf('name'), { replace: true }))
               }} />}
               {step.id === 'name' && <Name {...props} onTry={setTryName} />}
@@ -150,7 +151,7 @@ export default function SetupWizard() {
               {step.id === 'remote' && <Remote {...props} />}
               {step.id === 'done' && <Done steps={steps} onFinish={finish} />}
             </main>
-            {canSkip(step) && next && <p className="oobe-skip"><Button variant="ghost" onClick={() => props.next()}>Skip for now</Button> <span className="muted">You can do this later in {step.later?.where}.</span></p>}
+            {canSkip(step) && next && <p className="oobe-skip"><Button variant="ghost" onClick={() => props.next()}>{t('Skip for now')}</Button> <span className="muted">{t('You can do this later in {where}.', { where: tx(step.later?.where) })}</span></p>}
           </div>
         </div>
         <footer className="oobe-foot"><VersionTag version={version} /></footer>

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { api } from '../../api'
 import { LANGUAGES, browserLanguage } from '../../languages'
-import { language as appLanguage, languageNameHere, nativeName, setLanguage, t } from '../../i18n'
+import { language as appLanguage, languageNameHere, list, nativeName, setLanguage, t, tn } from '../../i18n'
 import { Button, Field, Select } from '../../ui'
 import { timeZoneChoices } from './network'
 import { StepActions, StepHead } from './parts'
@@ -72,7 +72,7 @@ export function LocaleFirst({ onDone }: { onDone: (c: LocaleChoice) => void }) {
           <Select value={language} onChange={(e) => { setLanguageChoice(e.target.value); setOwnTracks(true) }} options={[{ value: '', label: t('The original language') }, ...LANGUAGES.map(([value]) => ({ value, label: languageNameHere(value) }))]} />
         </Field>
         <Field label={t('Time zone')} hint={`${zoneHint}${here ? ` ${t('This device is set to {zone}.', { zone: here.replace(/_/g, ' ') })}` : ''}`}>
-          <Select value={zone} onChange={(e) => setZone(e.target.value)} options={timeZoneChoices('', zone)} />
+          <Select value={zone} onChange={(e) => setZone(e.target.value)} options={timeZoneChoices('', zone, undefined, { t, tn, list })} />
         </Field>
       </div>
       <p className="su-later">{t('You can change these again on the Name and address step, and later in Settings.')}</p>

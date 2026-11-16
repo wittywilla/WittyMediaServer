@@ -300,7 +300,12 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y flatpak flatpak-builder
-          sudo snap install snapcraft --classic
+          # The Snap Store sometimes times out; a release shouldn't stop for that.
+          for try in 1 2 3 4; do
+            sudo snap install snapcraft --classic && break
+            [ "$try" = 4 ] && exit 1
+            echo "::warning::snap install failed (try $try); trying again in 30s"; sleep 30
+          done
           # flatpak-builder's sandbox needs user namespaces, which Ubuntu 24.04 refuses a program
           # it has no profile for. This machine is thrown away after the job.
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true

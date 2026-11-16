@@ -1,12 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { api, ApiError } from '../../../api'
+import { date, num, t, tk, tn } from '../../../i18n'
+import { plugAppWords } from './words'
 import type { ModuleStatus, VersionInfo } from '../../../moduleStore'
 import type { IntegrationSummary, OverrideRecord, UiSummary } from './overrides'
 
 // What the module store's pages ask the server. Everything a page shows about a module comes
 // from here, including its pictures: a page never fetches from an address in a catalogue, and
 // all of a catalogue's words are plain text, shown as text.
+
+// The store's files that are tested on their own speak through words.ts: give them the app's language.
+plugAppWords(t, tn)
 
 export type Failure = { kind: string; title: string; message: string; try: string[]; detail?: string; repair?: boolean }
 export type StoreInfo = {
@@ -64,13 +69,16 @@ export const checkStore = (id: string) => api.post<StoreInfo>(`/modulestore/stor
 export const useFork = (store: string, id: string, confirm: boolean, fingerprint: string | undefined, secrets: OwnerSecrets & { override?: object }) => api.post<ItemDetail>(`/modulestore/stores/${encodeURIComponent(store)}/fork/${encodeURIComponent(id)}`, { confirm, fingerprint, ...secrets })
 
 // The server's words for a failure, or the error's own when it has none.
-export function failureOf(e: unknown, name = 'This module'): Failure {
+export function failureOf(e: unknown, name = t('This module')): Failure {
   if (e instanceof ApiError && e.data?.failure) return e.data.failure as Failure
   const message = e instanceof Error ? e.message : String(e)
-  return { kind: 'other', title: `${name} couldn’t be changed`, message, try: ['Try it again.'] }
+  return { kind: 'other', title: t('{name} couldn’t be changed', { name }), message, try: [t('Try it again.')] }
 }
 
-export const PHASE: Record<string, string> = { downloading: 'Downloading', verifying: 'Checking the signature', installing: 'Installing' }
+// Read when shown, so the words follow the app's language.
+export const PHASE: Record<string, string> = {
+  get downloading() { return t('Downloading') }, get verifying() { return t('Checking the signature') }, get installing() { return t('Installing') },
+}
 export const isBusy = (m?: ModuleStatus) => !!m && !!PHASE[m.phase]
 // One install tells its story on its own card. Only Update All leaves a summary to read.
 export const showsRun = (r?: Run) => !!r && (r.kind === 'update-all' || !r.finished)
@@ -80,19 +88,25 @@ export const anyBusy =(v?: StoreView | null) => !!v && (v.items.some((i) => isBu
 export function failureForStatus(m: ModuleStatus): Failure | null {
   const detail = m.phase === 'failed' ? m.error : m.notice
   if (!detail) return null
-  return { kind: 'other', title: m.phase === 'failed' ? 'The last install didn’t work, and nothing changed' : 'This module needs a look', message: detail, try: ['Try it again, or look at this module’s log.'], detail, repair: true }
+  return { kind: 'other', title: m.phase === 'failed' ? t('The last install didn’t work, and nothing changed') : t('This module needs a look'), message: detail, try: [t('Try it again, or look at this module’s log.')], detail, repair: true }
 }
 
 // The categories, in the order they're offered. A module in a group this build has no name for
 // still shows, under Other. A catalogue chooses a group; it can't add a category's name.
+// Each title is read when shown, so it follows the app's language.
 export const CATEGORIES: { id: string; title: string }[] = [
-  { id: 'discs', title: 'Discs' }, { id: 'games', title: 'Games' }, { id: 'tv', title: 'TV' }, { id: 'read', title: 'Reading' }, { id: 'photos', title: 'Photos' },
-  { id: 'listen', title: 'Listening' }, { id: 'watch', title: 'Watching' }, { id: 'tools', title: 'Tools' }, { id: 'stats', title: 'Stats' }, { id: 'system', title: 'System' },
+  { id: 'discs', get title() { return t('Discs') } }, { id: 'games', get title() { return t('Games') } }, { id: 'tv', get title() { return t('TV') } },
+  { id: 'read', get title() { return t('Reading') } }, { id: 'photos', get title() { return t('Photos') } }, { id: 'listen', get title() { return t('Listening') } },
+  { id: 'watch', get title() { return t('Watching') } }, { id: 'tools', get title() { return t('Tools') } }, { id: 'stats', get title() { return t('Stats') } },
+  { id: 'system', get title() { return t('System') } },
 ]
-export const categoryTitle = (id?: string) => CATEGORIES.find((c) => c.id === id)?.title || 'Other'
+export const categoryTitle = (id?: string) => CATEGORIES.find((c) => c.id === id)?.title || t('Other')
 export const categoryOf = (it: StoreItem) => CATEGORIES.some((c) => c.id === it.group) ? it.group! : 'other'
 
-const PLATFORM_NAMES: Record<string, string> = { windows: 'Windows', darwin: 'macOS', linux: 'Linux', freebsd: 'FreeBSD', amd64: '64-bit', arm64: 'ARM 64-bit', arm: 'ARM 32-bit', '386': '32-bit', all: 'Every system' }
+const PLATFORM_NAMES: Record<string, string> = {
+  windows: 'Windows', darwin: 'macOS', linux: 'Linux', freebsd: 'FreeBSD',
+  get amd64() { return t('64-bit') }, get arm64() { return t('ARM 64-bit') }, get arm() { return t('ARM 32-bit') }, get '386'() { return t('32-bit') }, get all() { return t('Every system') },
+}
 export const platformName = (p: string) => p === 'all' ? PLATFORM_NAMES.all : p.split('-').map((x) => PLATFORM_NAMES[x] || x).join(' ')
 
 // A search matches every word, in the name, description, category or publisher, ignoring case
@@ -145,7 +159,10 @@ export function changelogBlocks(text: string): ChangelogBlock[] {
 }
 
 // What a person sees when a release has nothing notable to report, as on other app stores.
-export const NOTHING_NOTABLE = 'Bug fixes and improvements.'
+// Translated where it's shown, with tx().
+export const NOTHING_NOTABLE = tk('Bug fixes and improvements.')
 
-export const mb = (n = 0) => n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`
-export const dayOf = (s?: string) => { if (!s) return ''; const d = new Date(s + 'T12:00:00'); return isNaN(d.getTime()) ? s : d.toLocaleDateString(undefined, { dateStyle: 'medium' }) }
+export const mb = (n = 0) => n >= 1048576
+  ? t('{size} MB', { size: num(n / 1048576, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) })
+  : t('{size} KB', { size: num(Math.max(1, Math.round(n / 1024))) })
+export const dayOf = (s?: string) => { if (!s) return ''; const d = new Date(s + 'T12:00:00'); return isNaN(d.getTime()) ? s : date(d, { dateStyle: 'medium' }) }

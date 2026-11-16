@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { useState, type ReactNode } from 'react'
-import { api, fmtDateTime } from '../../../api'
+import { api } from '../../../api'
+import { date, t, tk, tn, tx } from '../../../i18n'
 import { IconShield } from '../../../icons'
 import type { ModuleReport, ModuleStatus } from '../../../moduleStore'
 import { toast } from '../../../state'
@@ -9,7 +10,7 @@ import { Button, Notice } from '../../../ui'
 import { ConfirmOwner, type OwnerAsk } from '../ConfirmOwner'
 import { OverrideDialog, type OverrideBody } from './OverrideDialog'
 import {
-  overrideLines, releaseStatus, STATUS_WORDS, statusWarns, toDate, addsLines, type IntegrationSummary, type NeedsOverride, type OverrideRecord, type UiSummary,
+  overrideLines, releaseStatus, STATUS_WORDS, statusTitle, statusWarns, toDate, addsLines, type IntegrationSummary, type NeedsOverride, type OverrideRecord, type UiSummary,
 } from './overrides'
 import './overrides.css'
 
@@ -25,13 +26,13 @@ export function OverrideTags({ override, status }: { override?: OverrideRecord |
   const words = STATUS_WORDS[st]
   return (
     <>
-      {override && <Tag tone="bad" icon={<IconShield size={12} />}>Overridden</Tag>}
-      {st !== 'stable' && <Tag tone={words.tone}>{words.title}</Tag>}
+      {override && <Tag tone="bad" icon={<IconShield size={12} />}>{t('Overridden')}</Tag>}
+      {st !== 'stable' && <Tag tone={words.tone}>{statusTitle(st)}</Tag>}
     </>
   )
 }
 
-const SOURCE_WORDS: Record<string, string> = { catalogue: 'from the official catalogue', upload: 'from an uploaded file', store: 'from another store' }
+const SOURCE_WORDS: Record<string, string> = { catalogue: tk('from the official catalogue'), upload: tk('from an uploaded file'), store: tk('from another store') }
 
 // The override on a module: what was bypassed, who said yes and when, what it was given, and the
 // way back. Removing it goes back to the last version that needed none, or takes the module off.
@@ -43,15 +44,15 @@ export function OverrideRecordBox({ id, name, record, onRemoved, disabled }: { i
   const custom = lines.some((l) => l.kind === 'custom')
   // Taking an override back changes which code runs, so it asks for the password like any other.
   const removeAsk: OwnerAsk = {
-    title: `Remove the override on ${name}?`, action: 'Remove override',
+    title: t('Remove the override on {name}?', { name }), action: t('Remove override'),
     body: <p>{custom
-      ? `${name} isn’t a module this server knows, so there’s no other version to go back to: it’s taken off this server.`
-      : `${name} goes back to the last version on this server that needed no override. If there isn’t one, ${name} is taken off this server.`} Your files and what you’ve watched, read or played stay as they are. This asks for your password.</p>,
+      ? t('{name} isn’t a module this server knows, so there’s no other version to go back to: it’s taken off this server.', { name })
+      : t('{name} goes back to the last version on this server that needed no override. If there isn’t one, {name} is taken off this server.', { name })} {t('Your files and what you’ve watched, read or played stay as they are. This asks for your password.')}</p>,
     run: async (password, code) => {
       const r = await api.del<ModuleReport>(`/modules/${encodeURIComponent(id)}/override`, { password, code })
       const report = r && 'modules' in r ? r : undefined
       const gone = report ? !report.modules.some((m) => m.id === id) : custom
-      toast(gone ? `The override on ${name} was removed, and ${name} was taken off this server` : `The override on ${name} was removed`)
+      toast(gone ? t('The override on {name} was removed, and {name} was taken off this server', { name }) : t('The override on {name} was removed', { name }))
       onRemoved(report)
       // The button that opened this is gone with the module: keep keyboard focus on the page,
       // at its heading, rather than letting it fall to the start of the document.
@@ -59,18 +60,20 @@ export function OverrideRecordBox({ id, name, record, onRemoved, disabled }: { i
     },
   }
   return (
-    <section className={'ov-record' + (serious ? ' danger' : '')} aria-label={`Override on ${name}`}>
-      <h3><IconShield size={18} /> Overridden</h3>
-      <p>{name} was installed past {lines.length === 1 ? 'a rule' : `${lines.length} rules`} that would normally stop it. It stays on this version: automatic updates leave it alone until the override is removed or you choose a version that needs none.</p>
+    <section className={'ov-record' + (serious ? ' danger' : '')} aria-label={t('Override on {name}', { name })}>
+      <h3><IconShield size={18} /> {t('Overridden')}</h3>
+      <p>{lines.length === 1
+        ? t('{name} was installed past a rule that would normally stop it.', { name })
+        : tn('{name} was installed past {count} rule that would normally stop it.', '{name} was installed past {count} rules that would normally stop it.', lines.length, { name })} {t('It stays on this version: automatic updates leave it alone until the override is removed or you choose a version that needs none.')}</p>
       <ul>{lines.map((l) => <li key={l.kind}><b>{l.title}</b>{l.reason ? `: ${l.reason}` : ''}</li>)}</ul>
       <dl className="ms-facts">
-        {(record.by || when) && <div className="wide"><dt>Accepted</dt><dd>{record.by ? `by ${record.by}` : ''}{record.by && when ? ', ' : ''}{when ? <time dateTime={when.toISOString()}>{fmtDateTime(when.getTime())}</time> : ''}</dd></div>}
-        {record.version && <div><dt>Version</dt><dd>{record.version}</dd></div>}
-        {record.source && <div><dt>Came</dt><dd>{SOURCE_WORDS[record.source] || record.source}</dd></div>}
-        {record.fingerprint && <div className="wide"><dt>Key fingerprint</dt><dd className="mono">{record.fingerprint}</dd></div>}
-        <div className="wide"><dt>Permissions given</dt><dd>{record.grants?.length ? record.grants.join(', ') : serious ? 'None: it runs with no permissions, in the strictest sandbox' : 'As the module’s official rules allow'}</dd></div>
+        {(record.by || when) && <div className="wide"><dt>{t('Accepted')}</dt><dd>{record.by ? t('by {user}', { user: record.by }) : ''}{record.by && when ? ', ' : ''}{when ? <time dateTime={when.toISOString()}>{date(when, { dateStyle: 'medium', timeStyle: 'short' })}</time> : ''}</dd></div>}
+        {record.version && <div><dt>{t('Version')}</dt><dd>{record.version}</dd></div>}
+        {record.source && <div><dt>{t('Came')}</dt><dd>{SOURCE_WORDS[record.source] ? tx(SOURCE_WORDS[record.source]) : record.source}</dd></div>}
+        {record.fingerprint && <div className="wide"><dt>{t('Key fingerprint')}</dt><dd className="mono">{record.fingerprint}</dd></div>}
+        <div className="wide"><dt>{t('Permissions given')}</dt><dd>{record.grants?.length ? record.grants.join(', ') : serious ? t('None: it runs with no permissions, in the strictest sandbox') : t('As the module’s official rules allow')}</dd></div>
       </dl>
-      <div><Button size="sm" variant="danger" disabled={disabled} onClick={() => setAsking(true)}>Remove override</Button></div>
+      <div><Button size="sm" variant="danger" disabled={disabled} onClick={() => setAsking(true)}>{t('Remove override')}</Button></div>
       {asking && <ConfirmOwner ask={removeAsk} onClose={() => setAsking(false)} />}
     </section>
   )
@@ -80,10 +83,10 @@ export function OverrideRecordBox({ id, name, record, onRemoved, disabled }: { i
 export function StatusNotice({ status, note, name, installed }: { status?: string; note?: string; name: string; installed?: boolean }) {
   const st = releaseStatus(status)
   if (st === 'stable') return null
-  if (!statusWarns(st)) return note ? <Notice title={`${name} is in beta`}>{note}</Notice> : null
+  if (!statusWarns(st)) return note ? <Notice title={t('{name} is in beta', { name })}>{note}</Notice> : null
   return (
-    <Notice tone="warn" title={st === 'incomplete' ? `${name} isn’t finished` : `${name} is experimental`}>
-      {note || (st === 'incomplete' ? 'Parts of it are missing or don’t work yet.' : 'It may change a lot or break.')} {installed ? 'Its publisher says so; it stays on this version until you choose another.' : 'Installing it needs an override.'}
+    <Notice tone="warn" title={st === 'incomplete' ? t('{name} isn’t finished', { name }) : t('{name} is experimental', { name })}>
+      {note || (st === 'incomplete' ? t('Parts of it are missing or don’t work yet.') : t('It may change a lot or break.'))} {installed ? t('Its publisher says so; it stays on this version until you choose another.') : t('Installing it needs an override.')}
     </Notice>
   )
 }
@@ -95,8 +98,8 @@ export function WhatItAdds({ ui, integration, id, libraries, name }: { ui?: UiSu
   if (!lines.length) return null
   return (
     <section className="st-mod-sec" aria-labelledby="st-adds">
-      <h2 id="st-adds">What this adds</h2>
-      <ul className="ov-adds" aria-label={`What ${name} adds`}>
+      <h2 id="st-adds">{t('What this adds')}</h2>
+      <ul className="ov-adds" aria-label={t('What {name} adds', { name })}>
         {lines.map((l) => <li key={l.label}><b>{l.label}:</b> {l.text}</li>)}
       </ul>
     </section>
@@ -110,14 +113,14 @@ export function PendingNotice({ m, onGo, onDropped }: { m: ModuleStatus; onGo: (
   const drop = async () => {
     try {
       const r = await api.del<ModuleReport>(`/modules/${encodeURIComponent(m.id)}/pending`)
-      toast(`${m.name} ${p.version} was dropped`)
+      toast(t('{name} {version} was dropped', { name: m.name, version: p.version }))
       onDropped(r && 'modules' in r ? r : undefined)
     } catch (e) { toast(e instanceof Error ? e.message : String(e)) }
   }
   return (
-    <Notice tone="warn" title={`${m.name} ${p.version}: downloaded, needs your go-ahead`}
-      action={<span className="ms-actions"><Button size="sm" variant="primary" onClick={onGo}>Review…</Button><Button size="sm" variant="ghost" onClick={drop}>Drop it</Button></span>}>
-      It was downloaded and its signature checked, and then it turned out to need an override. {m.installed ? 'Nothing changed: the version in use keeps running.' : 'Nothing is installed until you say yes.'}
+    <Notice tone="warn" title={t('{name} {version}: downloaded, needs your go-ahead', { name: m.name, version: p.version })}
+      action={<span className="ms-actions"><Button size="sm" variant="primary" onClick={onGo}>{t('Review…')}</Button><Button size="sm" variant="ghost" onClick={drop}>{t('Drop it')}</Button></span>}>
+      {t('It was downloaded and its signature checked, and then it turned out to need an override.')} {m.installed ? t('Nothing changed: the version in use keeps running.') : t('Nothing is installed until you say yes.')}
     </Notice>
   )
 }

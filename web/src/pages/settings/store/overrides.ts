@@ -5,6 +5,7 @@
 // the rules behind what the store and the Modules page show about them, kept apart from the pages
 // so they can be tested on their own (overrides.test.mjs). Nothing here asks the server; every
 // word the server sends is only ever shown as text.
+import { t, tk, tn } from './words.ts'
 
 // ------------------------------------------------------------------ what the server sends
 
@@ -55,15 +56,15 @@ export type AuditEntry = { at: number | string; user?: string; action: string; m
 // Plain names for each kind, in the server's order of severity. The server's own reason for each
 // is shown under its name; a kind this build has no name for is shown by its reason alone.
 export const OVERRIDE_KINDS: Record<string, { title: string; severity: number }> = {
-  incomplete: { title: 'Not finished', severity: 1 },
-  'out-of-range': { title: 'Not made for this server’s version', severity: 2 },
-  'local-file': { title: 'Installed from a file', severity: 2 },
-  custom: { title: 'A module this server doesn’t know', severity: 3 },
-  'untrusted-key': { title: 'Signed by a key this server doesn’t trust', severity: 3 },
-  'weak-sandbox': { title: 'Less boxed in on this system', severity: 3 },
-  unsigned: { title: 'Not signed', severity: 4 },
+  incomplete: { title: tk('Not finished'), severity: 1 },
+  'out-of-range': { title: tk('Not made for this server’s version'), severity: 2 },
+  'local-file': { title: tk('Installed from a file'), severity: 2 },
+  custom: { title: tk('A module this server doesn’t know'), severity: 3 },
+  'untrusted-key': { title: tk('Signed by a key this server doesn’t trust'), severity: 3 },
+  'weak-sandbox': { title: tk('Less boxed in on this system'), severity: 3 },
+  unsigned: { title: tk('Not signed'), severity: 4 },
 }
-export const overrideTitle = (kind: string) => OVERRIDE_KINDS[kind]?.title || cap(kind.replace(/-/g, ' '))
+export const overrideTitle = (kind: string) => OVERRIDE_KINDS[kind] ? t(OVERRIDE_KINDS[kind].title) : cap(kind.replace(/-/g, ' '))
 
 // reasonFor finds the server's reason for one kind, whichever way the reasons came.
 export function reasonFor(o: Pick<NeedsOverride, 'kinds' | 'reasons'>, kind: string): string {
@@ -106,8 +107,8 @@ export function friction(severity: number): Friction {
     level,
     tone: level >= 3 ? 'danger' : 'warn',
     typed: level >= 3,
-    heading: level >= 4 ? 'This is the riskiest kind of install' : level === 3 ? 'This could put your server at risk' : level === 2 ? 'This isn’t the usual way to install' : 'This isn’t finished',
-    button: level >= 3 ? 'Install at my own risk' : 'Install anyway',
+    heading: level >= 4 ? t('This is the riskiest kind of install') : level === 3 ? t('This could put your server at risk') : level === 2 ? t('This isn’t the usual way to install') : t('This isn’t finished'),
+    button: level >= 3 ? t('Install at my own risk') : t('Install anyway'),
   }
 }
 
@@ -118,10 +119,10 @@ export type OverrideAnswers = { accepted: string[]; password: string; code: stri
 export function stillNeeded(need: Pick<NeedsOverride, 'kinds' | 'severity'>, a: OverrideAnswers, id: string, twoFactor: boolean): string[] {
   const out: string[] = []
   const left = (need.kinds || []).filter((k) => !a.accepted.includes(k)).length
-  if (left) out.push(left === 1 ? 'tick the warning' : `tick ${left} warnings`)
-  if (friction(severityOf(need)).typed && a.typed.trim() !== id) out.push('type the module’s ID')
-  if (!a.password) out.push('enter your password')
-  if (twoFactor && !a.code.trim()) out.push('enter the code from your authenticator app')
+  if (left) out.push(left === 1 ? t('tick the warning') : tn('tick {count} warning', 'tick {count} warnings', left))
+  if (friction(severityOf(need)).typed && a.typed.trim() !== id) out.push(t('type the module’s ID'))
+  if (!a.password) out.push(t('enter your password'))
+  if (twoFactor && !a.code.trim()) out.push(t('enter the code from your authenticator app'))
   return out
 }
 
@@ -160,8 +161,10 @@ export const refusalStatus = (e: unknown) => (e as { status?: number } | null)?.
 export const STATUSES = ['stable', 'beta', 'experimental', 'incomplete'] as const
 export type ReleaseStatus = typeof STATUSES[number]
 export const STATUS_WORDS: Record<ReleaseStatus, { title: string; tone?: 'new' | 'warn' | 'bad' }> = {
-  stable: { title: 'Stable' }, beta: { title: 'Beta', tone: 'new' }, experimental: { title: 'Experimental', tone: 'warn' }, incomplete: { title: 'Incomplete', tone: 'bad' },
+  stable: { title: tk('Stable') }, beta: { title: tk('Beta'), tone: 'new' }, experimental: { title: tk('Experimental'), tone: 'warn' }, incomplete: { title: tk('Incomplete'), tone: 'bad' },
 }
+// A release status's name, in the app's language.
+export const statusTitle = (s: ReleaseStatus) => t(STATUS_WORDS[s].title)
 // A status this build doesn't know is read as the most careful one it does.
 export function releaseStatus(s?: string | null): ReleaseStatus {
   if (!s) return 'stable'
@@ -174,8 +177,8 @@ export const statusWarns = (s: ReleaseStatus) => s === 'experimental' || s === '
 
 export const MODULE_KINDS = ['helper', 'web', 'program', 'library'] as const
 export type ModuleKind = typeof MODULE_KINDS[number]
-export const MODULE_KIND_WORDS: Record<ModuleKind, string> = { helper: 'Helper', web: 'Web bundle', program: 'Program', library: 'Library' }
-export const moduleKindTitle = (k?: string) => (k && (MODULE_KIND_WORDS as Record<string, string>)[k]) || ''
+export const MODULE_KIND_WORDS: Record<ModuleKind, string> = { helper: tk('Helper'), web: tk('Web bundle'), program: tk('Program'), library: tk('Library') }
+export const moduleKindTitle = (k?: string) => { const w = k && (MODULE_KIND_WORDS as Record<string, string>)[k]; return w ? t(w) : '' }
 
 // ------------------------------------------------------------------ the store's filters
 
@@ -224,7 +227,6 @@ export function uiLines(ui?: UiSummary | null): UiLines | null {
 }
 
 export type AddsLine = { label: string; text: string }
-const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 const list = (xs?: string[]) => (xs || []).map((x) => String(x).trim()).filter(Boolean)
 
 // addsLines says in plain words what a version adds: to every app (its SDUI) and to this server
@@ -236,39 +238,44 @@ export function addsLines(ui?: UiSummary | null, integ?: IntegrationSummary | nu
     // A title such as "{title}" is filled in per item: those pages are counted, not named.
     const named = l.pages.filter((t) => !/\{[^}]*\}/.test(t))
     const each = l.pages.length - named.length
-    const text = [named.join(', '), each ? `${named.length ? 'and ' : ''}${count(each, 'page', 'pages')} for one item each` : ''].filter(Boolean).join(', ')
-    out.push({ label: `${l.pages.length === 1 ? 'A page' : `${l.pages.length} pages`} in every app, on TV too`, text })
+    const forEach = !each ? '' : named.length
+      ? tn('and {count} page for one item each', 'and {count} pages for one item each', each)
+      : tn('{count} page for one item each', '{count} pages for one item each', each)
+    const text = [named.join(', '), forEach].filter(Boolean).join(', ')
+    out.push({ label: l.pages.length === 1 ? t('A page in every app, on TV too') : tn('{count} page in every app, on TV too', '{count} pages in every app, on TV too', l.pages.length), text })
   }
-  if (l && l.navigation.length) out.push({ label: 'In the menu', text: l.navigation.join(', ') })
+  if (l && l.navigation.length) out.push({ label: t('In the menu'), text: l.navigation.join(', ') })
   if (!integ) {
-    if (l && !l.empty) out.push({ label: 'Settings', text: l.settings ? 'its own page in Settings' : 'none of its own' })
+    if (l && !l.empty) out.push({ label: t('Settings'), text: l.settings ? t('its own page in Settings') : t('none of its own') })
     return out
   }
   const screens = list(integ.screens).length
-  if (screens) out.push({ label: 'In the web app', text: `${count(screens, 'screen', 'screens')} of its own` })
+  if (screens) out.push({ label: t('In the web app'), text: tn('{count} screen of its own', '{count} screens of its own', screens) })
   const settings = list(integ.settings)
-  if (settings.length) out.push({ label: 'In Settings', text: settings.join(', ') })
-  else if (l && !l.empty) out.push({ label: 'Settings', text: l.settings ? 'its own page in Settings' : 'none of its own' })
+  if (settings.length) out.push({ label: t('In Settings'), text: settings.join(', ') })
+  else if (l && !l.empty) out.push({ label: t('Settings'), text: l.settings ? t('its own page in Settings') : t('none of its own') })
   const setup = list(integ.setup)
-  if (setup.length) out.push({ label: 'When setting up the server', text: `${count(setup.length, 'step', 'steps')}: ${setup.join(', ')}` })
+  if (setup.length) out.push({ label: t('When setting up the server'), text: tn('{count} step: {steps}', '{count} steps: {steps}', setup.length, { steps: setup.join(', ') }) })
   const routes = Math.max(0, integ.routes || 0)
   if (routes) {
     const k = integ.routeKinds || {}
     const parts = [
-      k.admin ? `${k.admin} for administrators only` : '',
-      k.ticket ? `${k.ticket} opened by a link, without signing in` : '',
-      k.items ? `${k.items} about one item, checked against what the profile may see` : '',
-      k.streams ? `${k.streams} that ${k.streams === 1 ? 'streams' : 'stream'}` : '',
-      k.plays ? `${k.plays} that ${k.plays === 1 ? 'counts' : 'count'} towards screen time` : '',
+      k.admin ? tn('{count} for administrators only', '{count} for administrators only', k.admin) : '',
+      k.ticket ? tn('{count} opened by a link, without signing in', '{count} opened by a link, without signing in', k.ticket) : '',
+      k.items ? tn('{count} about one item, checked against what the profile may see', '{count} about one item, checked against what the profile may see', k.items) : '',
+      k.streams ? tn('{count} that streams', '{count} that stream', k.streams) : '',
+      k.plays ? tn('{count} that counts towards screen time', '{count} that count towards screen time', k.plays) : '',
     ].filter(Boolean)
-    const where = o.id ? ` at /api/v1/modules/${o.id}/` : ''
-    out.push({ label: 'On this server', text: `answers ${count(routes, 'kind of request', 'kinds of request')} of its own${where}${parts.length ? ` (${parts.join('; ')})` : ''}` })
+    const answers = o.id
+      ? tn('answers {count} kind of request of its own at {path}', 'answers {count} kinds of request of its own at {path}', routes, { path: `/api/v1/modules/${o.id}/` })
+      : tn('answers {count} kind of request of its own', 'answers {count} kinds of request of its own', routes)
+    out.push({ label: t('On this server'), text: `${answers}${parts.length ? ` (${parts.join('; ')})` : ''}` })
   }
-  out.push({ label: 'Its data', text: integ.data ? 'a database of its own, kept with this server’s and in its backups' : 'keeps nothing of its own on this server' })
+  out.push({ label: t('Its data'), text: integ.data ? t('a database of its own, kept with this server’s and in its backups') : t('keeps nothing of its own on this server') })
   const libs = list(integ.libraries).length ? list(integ.libraries) : list(o.libraries)
-  if (libs.length) out.push({ label: 'Libraries', text: libs.join(', ') })
+  if (libs.length) out.push({ label: t('Libraries'), text: libs.join(', ') })
   const feature = (integ.feature || '').trim()
-  if (feature) out.push({ label: 'Who sees it', text: `it all belongs to the “${feature}” feature: a profile without it doesn’t see or reach any of it` })
+  if (feature) out.push({ label: t('Who sees it'), text: t('it all belongs to the “{feature}” feature: a profile without it doesn’t see or reach any of it', { feature }) })
   return out
 }
 
@@ -288,24 +295,24 @@ export type UploadView = {
 // uploadView turns the server's look at an uploaded archive into what the dialog shows: what it
 // is, whether its signature can be trusted, what's wrong with it and what installing it needs.
 export function uploadView(r: UploadResult): UploadView {
-  const name = r.name || r.id || 'This file'
+  const name = r.name || r.id || t('This file')
   const facts: UploadFact[] = []
-  if (r.name) facts.push({ label: 'Name', value: r.name })
-  if (r.id) facts.push({ label: 'ID', value: r.id })
-  if (r.version) facts.push({ label: 'Version', value: r.version })
-  if (r.delivery) facts.push({ label: 'Kind', value: moduleKindTitle(r.delivery) || r.delivery })
-  if (r.api) facts.push({ label: 'Module API', value: String(r.api) })
+  if (r.name) facts.push({ label: t('Name'), value: r.name })
+  if (r.id) facts.push({ label: t('ID'), value: r.id })
+  if (r.version) facts.push({ label: t('Version'), value: r.version })
+  if (r.delivery) facts.push({ label: t('Kind'), value: moduleKindTitle(r.delivery) || r.delivery })
+  if (r.api) facts.push({ label: t('Module API'), value: String(r.api) })
   const st = releaseStatus(r.releaseStatus || r.status)
-  facts.push({ label: 'Status', value: STATUS_WORDS[st].title })
+  facts.push({ label: t('Status'), value: statusTitle(st) })
   const signature: UploadView['signature'] = !r.signed
-    ? { tone: 'danger', words: 'Not signed. Nothing proves who made it or that it wasn’t changed.' }
+    ? { tone: 'danger', words: t('Not signed. Nothing proves who made it or that it wasn’t changed.') }
     : r.trusted
-      ? { tone: 'ok', words: 'Signed by a key this server trusts for this module.' }
-      : { tone: 'warn', words: 'Signed, by a key this server doesn’t trust for this module.' }
+      ? { tone: 'ok', words: t('Signed by a key this server trusts for this module.') }
+      : { tone: 'warn', words: t('Signed, by a key this server doesn’t trust for this module.') }
   const need = r.needsOverride && r.needsOverride.kinds?.length ? r.needsOverride : null
   return {
     state: r.refusal ? 'refused' : need ? 'override' : 'ready',
-    title: r.refusal ? `${name} can’t be installed` : `${name}${r.version ? ' ' + r.version : ''}`,
+    title: r.refusal ? t('{name} can’t be installed', { name }) : `${name}${r.version ? ' ' + r.version : ''}`,
     facts, signature,
     problems: (r.problems || []).filter((p) => p && p.text),
     permissions: r.permissions || [],
@@ -324,12 +331,12 @@ export function toDate(at?: number | string | null): Date | null {
 }
 
 const AUDIT_WORDS: Record<string, string> = {
-  'module-override': 'Installed with an override', 'module-override-removed': 'Removed an override', 'module-upload': 'Uploaded a file to install',
-  'module-older': 'Went back to an older version', 'module-rollback': 'Took a version out of use', 'module-source': 'Changed where it comes from',
-  'module-undo': 'Undid an update', 'fork-refused': 'Refused a fork', 'password-refused': 'Password refused',
-  'store-added': 'Added a store', 'store-removed': 'Removed a store',
+  'module-override': tk('Installed with an override'), 'module-override-removed': tk('Removed an override'), 'module-upload': tk('Uploaded a file to install'),
+  'module-older': tk('Went back to an older version'), 'module-rollback': tk('Took a version out of use'), 'module-source': tk('Changed where it comes from'),
+  'module-undo': tk('Undid an update'), 'fork-refused': tk('Refused a fork'), 'password-refused': tk('Password refused'),
+  'store-added': tk('Added a store'), 'store-removed': tk('Removed a store'),
 }
-export const auditWords = (action: string) => AUDIT_WORDS[action] || cap(action.replace(/[-_]/g, ' '))
+export const auditWords = (action: string) => AUDIT_WORDS[action] ? t(AUDIT_WORDS[action]) : cap(action.replace(/[-_]/g, ' '))
 
 // The audit's rows, newest first, whatever order they came in, and only rows that make sense.
 export function auditRows(raw: unknown): AuditEntry[] {

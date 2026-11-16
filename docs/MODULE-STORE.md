@@ -16,15 +16,15 @@ Modules are the parts of WittyMediaServer you can add and take away. This guide 
 
 ## What a module is
 
-A module adds something your server can do, such as playing DVD menus or streaming console games. Most are projects of their own, with their own versions, and they arrive as signed downloads while the server keeps running. You never need to restart for one.
+A module adds something your server can do, such as playing DVD menus or streaming console games. Each one is a project of its own, with its own version, its own database and its own updates. Modules arrive as signed downloads while the server keeps running. You never need to restart for one.
 
-The server starts and works with very few of them, so you only add what you want. Taking a module away leaves your media, watch history and settings as they are.
+The server works with very few of them, so you only add what you want. Taking a module away leaves your media, watch history and settings as they are. **Remove** asks whether to keep the module's own data, such as its saves or settings, for when you add it again.
 
-Only administrators can add, update or remove modules. The pages are **Settings → Modules** for what's on this server, and **Browse the store** on that page for everything that can be added.
+Only administrators can add, update or remove modules. **Settings → Modules** shows what's on this server. **Browse the store** on that page shows everything that can be added.
 
-**Modules work with 0.6.0-alpha and later, and nothing older.** A module built for an older server can't run, and those older versions won't be fixed or updated.
+**Modules for 0.8 use Module API 5.** That's the only kind this server runs. A module made for 0.7.x or older can't run here, and isn't offered.
 
-**A version made for an older server only installs if you say so.** Each module says which servers it was made for. The modules for 0.8 say 0.8.0-alpha to 0.8.x. A version made for an earlier series, such as WittyPlay 0.3.6 made for 0.6, may still start on this server, but the pages, settings and features from 0.8 will be missing, and it may not work. So nothing installs one by itself: not automatic updates, not Update All, not first-run setup. When it's the only version there is, the store, first-run setup and the **Add** buttons on setup steps open a pop-up first. It names the version, the server it was made for, and what may not work. **Don't install** is the default; only **Install anyway** installs it. When setup installs several modules and more than one is like this, one pop-up lists them all, with a choice for each. A module that's already using such a version says so in **Settings → Modules** and in the store until it changes, with **Update** when a version made for this server is out, or **Remove**.
+**A version made for an older server only installs if you say so.** Each module says which servers it was made for. A version whose range stops below this server may still start, but pages, settings and features may be missing. So nothing installs one by itself: not automatic updates, not **Update all**, not first-time setup. Where it's the only version, a pop-up names it, says what it was made for and what may not work, and **Don't install** is the default. A module already on such a version says so in **Settings → Modules**, with **Update** when a version made for this server is out.
 
 ## Every module and what it adds
 
@@ -82,7 +82,7 @@ IPTV has been tested with local streams and network tuners only against stand-in
 
 | Module | What it adds | Without it |
 |---|---|---|
-| **WittyPlay** | Console games streamed to a browser or an app, with every controller and a touch layout editor. Bring your own games, and add cores in **Settings → Consoles & cores** | You can't make a games library, and one you already have is left as it is |
+| **WittyPlay** | Console games streamed to a browser or an app, with every controller and a touch layout editor. Bring your own games, and add cores in **Settings → Games & emulators → Consoles & cores** | You can't make a games library, and one you already have is left as it is |
 | **WittyCouch** | Plays the games on any PC running Sunshine, in your browser. WittyCouch Host comes with it | No game PCs on this server |
 | **WittyCouch Host** | A separate program (AGPL-3.0-or-later, with Moonlight-derived parts under GPL-3.0) that carries WittyCouch's game streams | WittyCouch can find and pair with PCs, but can't play in the page |
 | **WittyRigs** | An advanced option, off until you turn it on: hosts demanding PC games on your server's own hardware, using a Sunshine you install yourself | Nothing most servers need. It's built on WittyCouch, which comes with it |
@@ -100,16 +100,16 @@ WittyCouch Host has no build for FreeBSD, so WittyCouch and WittyRigs say so the
 
 ## Finding and adding a module
 
-
+![The module store: a grid of modules with their icons](images/module-store.webp)
+*The module store, from the module catalogue.*
 
 ![A module's own page in the store](images/store-module.webp)
 *A module's page in the store.*
-![The module store: a grid of modules with their icons](images/module-store.webp)
-*The module store, from the module catalogue.*
+
 1. Open **Settings → Modules**, and press **Browse the store**.
 2. Type in the search box, or use the category buttons. Every word you type has to match the name, description, category or publisher, so "blu ray" finds Blu-ray.
 3. Narrow it down if you want: **Installed**, **Updates available**, **Publisher**, **Platform**, **Kind** (helper, web bundle, program or library) and **Status** (stable, beta, experimental or incomplete). These stay in the page's address, so Back returns you to the same results.
-4. Open a module to read its page: what it does, **What this adds** (its pages in every app and its menu entries; and, for a module built for module API 5, its screens in the web app, its sections in Settings and steps in the server's setup, how many kinds of request it answers on this server and who may make them, whether it keeps a database of its own, the kinds of library it handles, and which profile feature, such as games, it belongs to), what's new, what it asks for, its licence, which servers it fits, and what an update can change. Before you install, this comes from the catalogue; once it's installed, from the copy on the server, which also says who may call each kind of request.
+4. Open a module to read its page: what it does, what's new, what it asks for, its licence, which servers it fits, and what an update can change. **What this adds** lists its pages in every app, its menu entries, its sections in Settings, its steps in first-time setup, the kinds of library it handles, how many kinds of request it answers and who may make them, and whether it keeps a database of its own. Before you install, this comes from the catalogue; once it's installed, from the copy on the server, which also says who may call each kind of request.
 5. Press **Install**.
 
 If the module is built on others, a dialog lists them in order and asks first: press **Install 2 modules**, or however many it says. You'll see **Downloading**, **Checking the signature** and **Installing**, and then it's ready. If something it's built on fails, the module isn't attempted.

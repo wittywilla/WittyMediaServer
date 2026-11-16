@@ -145,7 +145,7 @@ These are here, and not in Settings, on purpose. Each one changes what someone w
 | `remoteAccess` | Allows connections from outside your home without using **Settings → Remote Access**, for a server nobody can reach from a home network first, such as a rented one. It also locks the switch on that page. See [Remote access](REMOTE.md) | Nothing answers from outside until you ask for it |
 | `trustedProxies` | Reverse proxies whose `X-Forwarded-For` is believed: addresses or networks, separated by commas. These are added to the ones in **Settings → Remote Access** | Anyone else could claim to be at home |
 | `javaPath` | The Java folder, or the `java` program in it, for Blu-ray menus. The server looks for it by itself if this is empty. See [Blu-ray](BLURAY.md) | A web account can't choose what the server runs. A location saved in Settings by an older version is ignored |
-| `gamingCustomCores` | Lets custom game cores be turned on in **Settings → Consoles & cores**. See [Your own core](GAMES.md#your-own-core) | A core is a program, and can read what the server can |
+| `gamingCustomCores` | Lets custom game cores be turned on in **Settings → Games & emulators → Consoles & cores**. See [Your own core](GAMES.md#your-own-core) | A core is a program, and can read what the server can |
 | `stemSeparator` | A program that separates a song into stems for karaoke, as a command line with `{input}` and `{output}`, such as `demucs --two-stems vocals -o {output} {input}`. See [Making stems](LYRICS-KARAOKE.md#making-stems) | It names a program the server will run, with the server's own rights, on songs an administrator picks |
 
 Three more are variables only, with no setting and no flag, so a web session and the config file have no say:

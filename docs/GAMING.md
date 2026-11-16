@@ -58,13 +58,13 @@ Four kinds of process, each doing one job:
 | Hardware-rendered cores | Yes, with OpenGL, on Windows and Linux | Would |
 | Size and upkeep | A few thousand lines of Go, cross-compiled from one machine | A large C codebase to build per platform and merge from upstream |
 
-No console needs the fork. The server would use it if it found a program named `wittyretroarch` (`gameRunner` in `internal/server/api_games.go`), and **Game runner** in Settings, Consoles & cores can choose. See [WittyRetroArch](WITTYRETROARCH.md).
+No console needs the fork. The server would use it if it found a program named `wittyretroarch` (`gameRunner` in `internal/server/api_games.go`), and **Game runner** in Settings, Games & emulators, Consoles & cores can choose. See [WittyRetroArch](WITTYRETROARCH.md).
 
 Cores are the same files RetroArch uses, and a RetroArch install's cores are found.
 
 ### Standalone emulators (optional)
 
-WittyPlay can also run a standalone emulator (PCSX2, PPSSPP, Flycast, melonDS and others), downloaded from its own project, in a hardened Docker container or a bubblewrap sandbox, one per game, and stream it over WebRTC. It's off until an administrator turns it on in **Settings, Standalone emulators**; cores are untouched, and a game goes to an emulator only when someone picks **Play with …** on its page. Nothing is bundled: no emulator, game, BIOS or key.
+WittyPlay can also run a standalone emulator (PCSX2, PPSSPP, Flycast, melonDS and others), downloaded from its own project, in a hardened Docker container or a bubblewrap sandbox, one per game, and stream it over WebRTC. It's off until an administrator turns it on in **Settings, Games & emulators, Standalone emulators**; cores are untouched, and a game goes to an emulator only when someone picks **Play with …** on its page. Nothing is bundled: no emulator, game, BIOS or key.
 
 What the server does, and WittyPlay doesn't:
 
@@ -95,10 +95,10 @@ Nintendo 64, PlayStation 2, PSP, Dreamcast, 3DS and the faster PlayStation cores
 - **The context** is a hidden window with WGL on Windows, which nothing ever shows, and EGL with no display on Linux. On Linux every card is an EGL device, so the runner takes the first that isn't drawn by the CPU, preferring anything to integrated Intel. Under WSL it goes through `/dev/dxg` and Mesa's D3D12 driver.
 - **Reading frames back** doesn't stall the game. The copy is queued behind the frame's own drawing, and the runner only waits for that drawing to finish, after the core has returned. OpenGL's rows are bottom-up, so they are flipped once, on the copy that goes down the pipe.
 - **Encoding:** a game on the graphics card uses whichever hardware encoder works here, whatever the transcoder's setting says, because its frames are large and its card is awake. NVENC is told not to keep a queue of finished frames (`-delay 0`). Its own conversion from RGB is always BT.601, which browsers wouldn't undo correctly, so frames go through FFmpeg's scaler first: see [Encoding](#encoding).
-- **Internal resolution** is a setting in Settings, Consoles & cores: Automatic, or 1x to 4x. Automatic is 2x on Nintendo 64, PlayStation, PSP and Dreamcast, and native otherwise (`DefaultResolution`). The per-core options are in `traits.go`. A choice a core doesn't offer is ignored, so an updated core can't break.
+- **Internal resolution** is a setting in Settings, Games & emulators, Consoles & cores: Automatic, or 1x to 4x. Automatic is 2x on Nintendo 64, PlayStation, PSP and Dreamcast, and native otherwise (`DefaultResolution`). The per-core options are in `traits.go`. A choice a core doesn't offer is ignored, so an updated core can't break.
 - **PlayStation 2 stays native** because its games draw full-screen effects in small tiles, and the fixes that hold those together when upscaled are worked out per game by the core's own database, which doesn't always succeed. One racing game at 2x comes out in bands of the wrong colour with a grid over them, from the moment of a fresh start. A state loaded into a fresh runner hides it, because those fixes aren't applied to one, which makes it look intermittent. Native has no such seams, and a quarter of the pixels to draw, encode and send. Upscaling is still there to choose, game by game.
-- **How many at once:** two by default, set in Settings, Consoles & cores. Past that, starting another says the card is full. Software-rendered games don't count.
-- **No usable card:** OpenGL drawn by the CPU (`llvmpipe`, Microsoft's GDI renderer) doesn't count. Settings, Consoles & cores names the card in use, or says why there is none. What happens to these consoles then is in [Without a graphics card](#without-a-graphics-card).
+- **How many at once:** two by default, set in Settings, Games & emulators, Consoles & cores. Past that, starting another says the card is full. Software-rendered games don't count.
+- **No usable card:** OpenGL drawn by the CPU (`llvmpipe`, Microsoft's GDI renderer) doesn't count. Settings, Games & emulators, Consoles & cores names the card in use, or says why there is none. What happens to these consoles then is in [Without a graphics card](#without-a-graphics-card).
 
 **What it costs.** [Where the time goes](#where-the-time-goes) has the numbers for each console. At 1280x960 on an RTX 3070, NVENC takes about 5 ms a frame. PlayStation 2 on an 8-core laptop runs at 45 to 60 frames a second in a race, with VU1 on a thread of its own (the core's database still turns that off for games known to hang with it) and without waiting on the graphics card at every read-back. Both are in `traits.go`.
 
@@ -164,7 +164,7 @@ Everything else stays: Linux's namespaces, `no_new_privs` and the seccomp filter
 
 What a sandbox can't cover: a graphics driver is a large body of code running inside the process, talking to the kernel through interfaces built for speed. A core taken over by a bad ROM can reach the same driver and kernel surface a game can. Treat a server with a GPU as a machine where a hostile ROM has more to work with.
 
-**As a Windows service:** session 0 has no desktop, and consumer OpenGL drivers often refuse to draw there, so Settings, Consoles & cores says there's no usable card.
+**As a Windows service:** session 0 has no desktop, and consumer OpenGL drivers often refuse to draw there, so Settings, Games & emulators, Consoles & cores says there's no usable card.
 
 **Under the Linux sandbox,** LRPS2, melonDS, SwanStation, PPSSPP and Flycast make files in `/dev/shm` to lay out the console's memory, and crash or refuse to start if they can't. So these may (`-shared-memory`, `CoreTraits.SharedMemory`), in a folder of their own: the runner starts in a mount namespace with one capability, puts an empty `tmpfs` over `/dev/shm`, gives the capability up and starts itself again before anything is loaded. Nothing else can reach that folder and nothing's left behind, however the runner ends. Where namespaces aren't allowed, Landlock lets the core write to the system's `/dev/shm` instead, which is shared with whatever else runs under the same account, so no other core and no custom core is given this. LRPS2's `cache` folder stays beside the save between games (`CoreTraits.CacheIn`), and backups leave it out. No graphics driver here supports program binaries, so a shader file being written and read back hasn't been seen.
 
@@ -388,7 +388,7 @@ These choices are kept in WittyPlay's own database, beside the library's id. A h
 
 A `.cue`, `.gdi` or `.m3u` from an archive is checked before it's used: each file it names must have arrived. A name that differs only in case, or carries a path from the computer it was made on, is corrected in the unpacked copy. A name that matches nothing gives a clear error, which also means a list can't point a core at anything outside the game's folder.
 
-**The cache** is `gaming/unpacked/<id>/` under the data folder, sized in Settings, Consoles & cores (16 GB by default). Nothing is ever written beside the original.
+**The cache** is `gaming/unpacked/<id>/` under the data folder, sized in Settings, Games & emulators, Consoles & cores (16 GB by default). Nothing is ever written beside the original.
 
 - A game is reused on the next play, and the longest unplayed is evicted when room is needed, except a game being played.
 - The id comes from the file's path, size and time, and the console, so a changed archive is a new game.
@@ -430,7 +430,7 @@ A person can download a state or a battery save and put one back. An exported st
 
 ## Which version comes first
 
-*Settings, Consoles & cores, Which version comes first* puts regions in order (`gamingRegionOrder`, such as `japan,europe`: `usa`, `europe`, `australia`, `japan`, `asia`, `brazil`, with any left out going after those, in that order). A country counts as its region, and a version for the world counts as the first. It decides three things:
+*Settings, Games & emulators, Consoles & cores, Which version comes first* puts regions in order (`gamingRegionOrder`, such as `japan,europe`: `usa`, `europe`, `australia`, `japan`, `asia`, `brazil`, with any left out going after those, in that order). A country counts as its region, and a version for the world counts as the first. It decides three things:
 
 - which file of an archive plays,
 - which version leads a tile,
@@ -455,7 +455,7 @@ Values live in layers. The most specific one that has a value wins, one key at a
 | A person's games on one console | That person | `wittyplay_settings` |
 | One game, for one person | That person | `wittyplay_settings` |
 
-Administrators also set **limits**, which aren't defaults, because nobody can go past them: the fastest fast-forward (`gamingMaxSpeed`), rewind's memory per game (`gamingRewindMB`) and whether run-ahead is allowed (`gamingRunAhead`). They are WittyPlay's own settings too, with the rest of *Settings, Consoles & cores* (`GET`/`PUT /api/modules/wittyplay/gaming/settings`). Left alone they follow the machine: 4× and 32 MB, or 2× and 16 MB on one with fewer than four CPU threads.
+Administrators also set **limits**, which aren't defaults, because nobody can go past them: the fastest fast-forward (`gamingMaxSpeed`), rewind's memory per game (`gamingRewindMB`) and whether run-ahead is allowed (`gamingRunAhead`). They are WittyPlay's own settings too, with the rest of *Settings, Games & emulators, Consoles & cores* (`GET`/`PUT /api/modules/wittyplay/gaming/settings`). Left alone they follow the machine: 4× and 32 MB, or 2× and 16 MB on one with fewer than four CPU threads.
 
 Stored values are checked again when they're used, so a value that's stopped being valid is ignored and a game still starts. Reading settings never fails a start.
 
@@ -818,7 +818,7 @@ In a browser, on the real server, with pictures looked at: WebRTC with NES, SNES
 - **Container image:** cores from the build server need Debian's C library rather than Alpine's, which makes the image larger.
 - **No netplay.** Several players means several controllers on one device.
 - **Plain http on a home network:** browsers limit some features to secure pages. Firefox hides gamepads, and WebCodecs is unavailable, which leaves WebRTC or JPEG. Reaching the server over https or `localhost` removes both limits.
-- **Containers:** WebRTC needs UDP. Publish a fixed port set in Settings, Consoles & cores, and fill in the public address, or use host networking.
+- **Containers:** WebRTC needs UDP. Publish a fixed port set in Settings, Games & emulators, Consoles & cores, and fill in the public address, or use host networking.
 
 ---
 

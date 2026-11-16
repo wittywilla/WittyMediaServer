@@ -8,6 +8,8 @@ No games, BIOS files or cores come with WittyMediaServer. Games are yours to bri
 
 To play games installed on a PC rather than on this server, see [Game PCs](GAME-RIGS.md).
 
+> **Known issue in 0.8.0-alpha: games don't play yet.** Games moved to a new streaming pipeline, so they can play on iPhone, iPad and Apple TV. In WittyMediaClient, starting a game closes the app. In a browser, it keeps loading. Adding games, their details and their pages work.
+
 ## Add your games
 
 You need an administrator account for this.
@@ -38,7 +40,7 @@ Games/
 
 You can have several libraries for one console, or one library for everything.
 
-**Archives work.** `.zip`, `.7z`, `.rar` and `.tar` count as the game inside them, and so do files compressed with gzip, bzip2, xz or Zstandard, and split sets such as `.part1.rar` or `.7z.001`. A game in an archive is unpacked the first time it's played, into a cache you can size with **Space for unpacked games** under **Settings → Consoles & cores → How games play → Advanced**. The original is left alone.
+**Archives work.** `.zip`, `.7z`, `.rar` and `.tar` count as the game inside them, and so do files compressed with gzip, bzip2, xz or Zstandard, and split sets such as `.part1.rar` or `.7z.001`. A game in an archive is unpacked the first time it's played, into a cache you can size with **Space for unpacked games** under **Settings → Games & emulators → Consoles & cores → How games play → Advanced**. The original is left alone.
 
 **Discs work.** A `.cue`, `.gdi`, `.ccd` or `.m3u` keeps its files together. Discs of one game named `Disc 2`, `(CD2)` or `disc2of3`, or kept in a folder called `Disc 2`, come together as one game. Change disc from the game menu: **More → Change disc**.
 
@@ -86,7 +88,7 @@ To see why a game was sorted the way it was, open it and expand **Fix this game,
 
 Some consoles' cartridges have no header at all: Atari 2600 and 7800, PC Engine, Virtual Boy and WonderSwan. These go by their folder or library, and by whether the file is a size a cartridge could be.
 
-A NES dump with no header is listed if its size fits a cartridge, and its page says so. Most NES cores can't play one. Mesen can, by working out the game from its checksum, but Mesen is an optional install. Install it under **Settings → Consoles & cores**, on the NES card, under **Cores and BIOS files**.
+A NES dump with no header is listed if its size fits a cartridge, and its page says so. Most NES cores can't play one. Mesen can, by working out the game from its checksum, but Mesen is an optional install. Install it under **Settings → Games & emulators → Consoles & cores**, on the NES card, under **Cores and BIOS files**.
 
 Other consoles rely on their header: Game Boy, Game Boy Advance, Nintendo 64, DS, 3DS, PlayStation, PS2 and PSP. A file for one of them with no header goes on **Needs a look**, because a core wouldn't be able to start it.
 
@@ -106,7 +108,7 @@ Regions and revisions of one name on one console share a tile, led by a released
 
 An archive holding many versions plays the verified one in your first region. Administrators can pick another under **Which version in this archive to play**.
 
-Set your regions in **Settings → Consoles & cores → Which version comes first**. A game someone has played, or given a title, keeps the version it has, as their saves belong to it.
+Set your regions in **Settings → Games & emulators → Consoles & cores → Which version comes first**. A game someone has played, or given a title, keeps the version it has, as their saves belong to it.
 
 ## Cores
 
@@ -116,9 +118,9 @@ A core is the free program that plays one console's games. Each one is someone e
 *[Thwaite](https://github.com/pinobatch/thwaite-nes), Damian Yerrick, GPL-3.0-or-later.*
 
 ![The Consoles and cores page in Settings](images/settings-consoles.webp)
-*Settings, Consoles & cores.*
+*Settings, Games & emulators, Consoles & cores.*
 
-1. Open **Settings → Consoles & cores**. The consoles you have games for are at the top, each saying whether it's ready.
+1. Open **Settings → Games & emulators → Consoles & cores**. The consoles you have games for are at the top, each saying whether it's ready.
 2. Press the button on a card, such as **Install FCEUmm**. When several consoles need one, **Install all 3 recommended cores** at the top does them together.
 3. Read the license and press **Install**.
 
@@ -187,7 +189,7 @@ Those consoles are drawn on the server's graphics card, and they run on Windows,
 - **Dreamcast and 3DS can't.** Their games stay listed, and their pages, the library and Settings say **Not on this server**, with the reason, instead of offering Play.
 - **PlayStation** plays on PCSX ReARMed, which needs no card. A server that would otherwise choose one of the faster PlayStation cores uses it instead.
 
-- **Settings → Consoles & cores → How games play → Advanced** names the card in use, or says why there isn't one. A card simulated on the CPU doesn't count, as it's far too slow.
+- **Settings → Games & emulators → Consoles & cores → How games play → Advanced** names the card in use, or says why there isn't one. A card simulated on the CPU doesn't count, as it's far too slow.
 - **Running as a Windows service:** a service has no desktop, and consumer graphics drivers often refuse to draw there. Run the server in a signed-in session to play these consoles.
 - **In a container:** pass the card in, with `--device /dev/dri` for Intel and AMD, or `--gpus all` for NVIDIA.
 - **Laptops with two cards:** the fast NVIDIA card is chosen by itself. With an AMD card and integrated graphics, Windows may pick the slow one. To fix that, open Windows Settings, System, Display, Graphics, add `wittyplay-game-runner.exe`, choose Options, then High performance.
@@ -198,7 +200,7 @@ A BIOS is firmware copied from a console. Some consoles need one, and some games
 
 1. Make a folder named `BIOS` inside a console's games folder, such as `PS2/BIOS`. Any capitalisation works, and folders inside it are fine. It's never listed as games.
 2. Put your files in it, named however you like: `PSX BIOS (USA).bin` is found as `scph5501.bin`. The server recognises each one by its checksum (from libretro's list of known firmware), so a file with the right name and the wrong contents is never used.
-3. That's all. After a library scan, or when you press Play, the server copies what a core needs to its own BIOS folder and leaves yours alone. **Settings → Consoles & cores**, under **Cores and BIOS files** on each card, lists what it found, its region, which folder it came from, and which one is in use.
+3. That's all. After a library scan, or when you press Play, the server copies what a core needs to its own BIOS folder and leaves yours alone. **Settings → Games & emulators → Consoles & cores**, under **Cores and BIOS files** on each card, lists what it found, its region, which folder it came from, and which one is in use.
 
 **Regions:** a PlayStation 2 game starts on a BIOS from its own region when you have one, going by its disc's serial or its file name, and otherwise on the one shown as in use: a late first-generation US model when you have a whole set. Other consoles' cores pick by name.
 
@@ -317,7 +319,7 @@ Games can contain flashing images, and fast-forward can make them flash quickly.
 
 **Settings** holds **Picture**, **Sound**, **Speed and rewind**, **Saves**, **Cheats**, **Shortcuts**, **On-screen numbers**, **Core options**, **Patches** and **Settings file**.
 
-You can set anything for every game, for one console, or for one game. **Settings → My game settings** is for all your games. On a game's page, the **More** menu has **Settings for this game**. An administrator can choose **Everyone** to set the starting point for the whole server, and limits under **Settings → Consoles & cores → How games play → Advanced**: **Fastest fast-forward**, **Memory for rewind, per game** and **Run-ahead**.
+You can set anything for every game, for one console, or for one game. **Settings → My game settings** is for all your games. On a game's page, the **More** menu has **Settings for this game**. An administrator can choose **Everyone** to set the starting point for the whole server, and limits under **Settings → Games & emulators → Consoles & cores → How games play → Advanced**: **Fastest fast-forward**, **Memory for rewind, per game** and **Run-ahead**.
 
 If a setting breaks a game, **Start with default settings** in the same **More** menu starts it with no settings of yours, no cheats and no patches.
 
@@ -429,7 +431,7 @@ A custom core is for a console or a version this server doesn't offer. It's a pr
 Custom cores are off on every server. Only an administrator with an adult account can reach them, and they need two switches.
 
 1. **Allow them on the machine.** Start the server with `WMS_GAMING_CUSTOM_CORES=1`, or `-gaming-custom-cores`, or put `"gamingCustomCores": true` in its [config file](CONFIG.md). A web session alone can't do this.
-2. **Turn them on.** Open **Settings → Consoles & cores → Custom cores**, turn on **Allow custom cores**, and enter your password.
+2. **Turn them on.** Open **Settings → Games & emulators → Consoles & cores → Custom cores**, turn on **Allow custom cores**, and enter your password.
 3. **Add one.** Press **Add a core**, and pick **Upload a file**, **Web address** (`https` on the public internet only) or **In the cores folder**. If its makers publish a SHA-256, paste it in. Enter your password and press **Test this core**.
 4. **Read what it reports:** its name, version, file types, license and what it needs. That's what the core claims about itself. Passing shows it's a libretro core, not that it's safe.
 5. **Say which consoles it's for.** Tick **Use by default** to make it what a console plays with. Tick the box that says you understand, and press **Add this core**.
@@ -465,7 +467,7 @@ A core is the usual way to play, and the only one most servers need. Some consol
 | Switch | Ryujinx or Lichii, which you install yourself | Never downloaded by this server; see [The Switch and the Switch 2](#the-switch-and-the-switch-2) |
 | Switch 2 | Lichii, which you install yourself | Its games are known by their folder (`Switch 2`) or a Switch 2 library, as their files look like Switch games' |
 
-When a console has no core, its games' **Play** starts the emulator that's set up for it. **Settings → What this server plays** lists every console, whether it plays here, and how.
+When a console has no core, its games' **Play** starts the emulator that's set up for it. **Settings → Games & emulators → What this server plays** lists every console, whether it plays here, and how.
 
 **For everyone.** When one is set up for a game's console, the game's page shows **Play with PCSX2** (or whichever) under Play. If it's greyed out, the sentence beside it says why: firmware is missing, or this server is too small for it. **Emulator settings** beside it holds your own choices (resolution scale, widescreen, the most bitrate), for all your games or just this one. What's different from a core's game:
 
@@ -475,7 +477,7 @@ When a console has no core, its games' **Play** starts the emulator that's set u
 - A few emulators are shown as their own desktop inside the page rather than as a stream: click inside it to use the keyboard and mouse.
 - The game belongs to the profile, on the device, that started it. Signing out, or switching to another profile on that device, ends it. For a profile with [limits](PROFILES.md), the time it runs counts as screen time, and it's ended when the time is up or when games are turned off for the profile.
 
-**For administrators: Settings, Standalone emulators.**
+**For administrators: Settings, Games & emulators, Standalone emulators.**
 
 1. Choose **Where they run**. On a Mac or a Windows PC that's the server's own desktop by default: a Mac needs you to give the server **Screen & System Audio Recording** and **Accessibility** in System Settings, Privacy & Security, and a Windows server must run signed in, not as a service. With Docker, read the warning beside the switch: a Docker daemon that runs as root can do anything on the machine, so a rootless Docker, Podman, or "this machine's own sandbox" (Linux) is the safer choice. **Where emulators run** on that page says what it found, line by line.
 2. Turn it on, and install an emulator from the list. Each is someone else's program under its own licence, which is shown before anything is downloaded; the download comes from the emulator's own project and is checked before it's used. Nothing else comes with it: no games, and no BIOS.
@@ -495,7 +497,7 @@ Two emulators play them, **Ryujinx** (Switch) and **Lichii** (Switch 2, and Swit
 - **Ryujinx:** <https://ryujinx.app> (the Ryubing project). It plays Switch games, and no Switch 2 games.
 - **Lichii:** <https://github.com/zortos293/Lichii/releases>, and nowhere else (its own README warns that lichii.org isn't its authors'). It plays Switch 2 and Switch games; its authors call it very experimental, with rendering errors and crashes to expect. Windows, Linux and Apple silicon Macs on macOS 15 or later.
 
-Then, in **Settings → Standalone emulators**, press **Add it** on the emulator. The server shows what it found where it's usually installed, or takes the program's full path, checks it really is that emulator, and says its version. On a server with no screen, or in Docker, put its **Linux** build (the AppImage, or its unpacked folder) in the folder that page names, on the server's `/config` volume, or name it in the `manual.json` file the page names; the [Standalone emulators guide](https://github.com/wittywilla/WittyPlay/blob/master/docs/STANDALONE-EMULATORS.md#the-switch-and-the-switch-2) has every detail, with what a server in Docker also needs.
+Then, in **Settings → Games & emulators → Standalone emulators**, press **Add it** on the emulator. The server shows what it found where it's usually installed, or takes the program's full path, checks it really is that emulator, and says its version. On a server with no screen, or in Docker, put its **Linux** build (the AppImage, or its unpacked folder) in the folder that page names, on the server's `/config` volume, or name it in the `manual.json` file the page names; the [Standalone emulators guide](https://github.com/wittywilla/WittyPlay/blob/master/docs/STANDALONE-EMULATORS.md#the-switch-and-the-switch-2) has every detail, with what a server in Docker also needs.
 
 Keys and firmware come from your own console, into the same [BIOS folder](#bios-files) as other consoles' files:
 

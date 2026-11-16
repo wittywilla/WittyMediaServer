@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Copyright (C) 2026 WittyWilla and contributors
 # Makes the key that signs modules' releases: a second key, separate from the one that
-# signs the server (docs/MODULES-CUTOVER.md says why). The owner runs this, once.
+# signs the server (docs/PUBLISHING.md, The module key, says why). The owner runs this, once.
 #
 #   scripts/new-module-key.sh ~/.wms-signing/module.key
 #
@@ -29,7 +29,7 @@ public=$(go run ./scripts/sign pubkey -key "$path")
 cat <<EOF
 
 The new key is in $path.
-Back it up now: a password manager, or a USB stick kept safe (docs/MODULES-CUTOVER.md).
+Back it up now: a password manager, or a USB stick kept safe (docs/PUBLISHING.md, The module key).
 
 Its public half, which isn't secret:
 

@@ -46,7 +46,7 @@ Read strictly: one object, at most 256 KiB, and an unknown field anywhere is ref
   "web": {
     "routes": [ { "path": "/wittyplay/*", "frame": "fullscreen" }, { "path": "/game/:id", "frame": "fullscreen" } ],
     "cards": [ { "mediaKind": "game", "art": true, "detail": true, "link": true } ],
-    "settings": [ { "id": "gaming", "label": "Consoles & cores", "admin": true, "search": ["cores", "BIOS"] } ],
+    "settings": [ { "id": "gaming", "label": "Games & emulators", "admin": true, "search": ["cores", "BIOS"] } ],
     "setup": [ { "id": "games" } ],
     "navFold": [ { "libraryKind": "games", "into": "wittyplay-online" } ]
   },

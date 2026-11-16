@@ -4,7 +4,7 @@ Put changes on GitHub, publish a release of the server, and look after the key t
 
 **Releases are signed only with `SIGN=1`, and only by the owner.** Nobody else signs with the release key, and no test build ever does: for a signing test, make a throwaway key. Nothing leaves the development machine, and nothing is pushed or tagged, until the owner says so.
 
-Modules are published separately: see [Publishing the modules](MODULES-CUTOVER.md).
+Modules are signed with a key of their own: see [The module key](#the-module-key).
 
 Words you'll see: a *commit* is a saved snapshot of your changes, *push* uploads commits, a *branch* is a separate line of work, and a *release* is a downloadable version on GitHub's Releases page.
 
@@ -55,8 +55,6 @@ A tag with a suffix such as `-alpha` is published as a pre-release, and its Dock
 
 **To retry,** fix what failed and run the release workflow again on the same tag from the **Actions** tab (**Re-run jobs**). A tag can't be moved or deleted, and a published version number is never used again: if the fix needs a new commit, release the next version.
 
-**This workflow has never run.** The first tag may need fixes. [Publishing the modules](MODULES-CUTOVER.md) has to come first, as the Docker build needs `wittymodule` v0.3.0 on GitHub.
-
 ## Version tags
 
 A version tag (`v0.8.0-alpha`, `v0.4.0`, and a Go module folder's `wittydvdplayer/v0.3.0`) starts a release, and Go's module
@@ -90,7 +88,7 @@ Without the secret, a release comes out unsigned, and servers can't update to it
 `scripts/build-release.sh` doesn't sign unless you ask. Only for a real release:
 
 ```bash
-SIGN=1 scripts/build-release.sh 0.6.0-alpha
+SIGN=1 scripts/build-release.sh 0.8.0-alpha
 ```
 
 It uses `~/.wms-signing/release.key`, or the file in `WMS_SIGNING_KEY`, and checks the signature against the key built into the server. With `SIGN=1`, a missing key warns, and `REQUIRE_SIGNING=1` makes that an error.
@@ -100,8 +98,8 @@ It uses `~/.wms-signing/release.key`, or the file in `WMS_SIGNING_KEY`, and chec
 Download its `SHA256SUMS.txt`, sign it, and upload the `.sig` to the same release:
 
 ```bash
-go run ./scripts/sign sign wittymediaserver-0.6.0-alpha-SHA256SUMS.txt
-go run ./scripts/sign verify wittymediaserver-0.6.0-alpha-SHA256SUMS.txt   # "good signature"
+go run ./scripts/sign sign wittymediaserver-0.8.0-alpha-SHA256SUMS.txt
+go run ./scripts/sign verify wittymediaserver-0.8.0-alpha-SHA256SUMS.txt   # "good signature"
 ```
 
 ### If a release has to be taken back
@@ -121,6 +119,45 @@ Servers stop offering that version, and one already running it says so under **S
 
 - **Exposed:** make a new one with `go run ./scripts/sign keygen -key new.key`, and add its public key to `trustedKeys` in `internal/update/verify.go`, beside the old one. Publish a release signed with the **old** key, so installed servers learn the new one. Sign later releases with the new key, and remove the old public key a release after that. Replace the `WMS_SIGNING_KEY` secret straight away.
 - **Lost, with nothing exposed:** servers can't update themselves any more, as nothing else can sign a release they'll accept. Add a new key the same way, and announce that the next release has to be installed by hand, once.
+
+## The module key
+
+Modules and the module catalogue are signed with a second key, **the module key**, kept apart from the release key. A module key can't sign a server, so losing it can't put a bad server on anyone's machine. Its public half is `moduleKey` in `internal/update/keys.go`, and the private half is at `~/.wms-signing/module.key` on the owner's computer.
+
+**To make one,** on another machine or to replace it, run the command below and put the public half it prints in `keys.go`. It refuses to replace a file that's already there, won't put the key inside this repository, and never opens your existing key.
+
+```bash
+scripts/new-module-key.sh ~/.wms-signing/module.key
+```
+
+**Back it up** the same way as the release key: a password manager, or a USB stick kept somewhere safe.
+
+**Give the repositories the key,** with approval, and check it's there. The second command lists names only, and never prints the key:
+
+```bash
+scripts/set-module-secret.sh --require-approval ~/.wms-signing/module.key
+```
+
+```bash
+scripts/set-module-secret.sh --check
+```
+
+A module's release then stops before it's signed, and waits for you to click **Approve** on its page in the **Actions** tab. Every module shares the one key, so this approval is what stops a compromised build in one repository getting a release of another signed.
+
+The catalogue also needs the public half, as the variable `MODULE_PUBLIC_KEY` in WittyModuleCatalog.
+
+**To release a module,** run its Release workflow, approve the `release` environment on the run it starts, then run the catalogue's `refresh.yml` and approve its `publish` run:
+
+```bash
+gh workflow run tag.yml -R wittywilla/<Repository> -f version=<x.y.z> -f branch=main
+```
+
+`scripts/publish-all.sh` rehearses a release of every repository at once, in throwaway clones, and changes nothing on GitHub unless given `--apply`.
+
+- **Module key lost:** make a new one, set it in `keys.go`, and publish a server release. Older servers can't take new module versions until they update, and keep working with what they have.
+- **Module key stolen:** the same, and replace the secret in every repository straight away.
+
+**Versions.** `wittymodule bump [-part minor] [-note text] [-changelog CHANGELOG.md] <folder>` raises a module's version everywhere it's written, and each module's CI runs `wittymodule needs-bump .`, which fails when code changed since the last tag and the version didn't. `scripts/bump-server.sh <version>` does the same for the server. A bump isn't a release.
 
 ## Building on your own computer
 

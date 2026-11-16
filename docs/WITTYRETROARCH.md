@@ -6,7 +6,7 @@ For developers: what a RetroArch fork would have to do to run games for this ser
 
 A **runner** is the process that runs one game. The server talks to it through a documented protocol over pipes, so any program that speaks it can be a runner. The built-in one, `wittyplay-game-runner`, runs every console, including those drawn on a graphics card. [The design](GAMING.md#two-runners-one-protocol) compares the two.
 
-The server looks for a program named `wittyretroarch` (`gameRunner` in `internal/server/api_games.go`). **Game runner** in **Settings → Consoles & cores → How games play → Advanced** chooses between **Automatic**, **Built in** and **A separate RetroArch-based runner, when installed**. Automatic uses it if it's found. `WMS_WITTYPLAY_RUNNER` names a runner directly and beats that setting.
+The server looks for a program named `wittyretroarch` (`gameRunner` in `internal/server/api_games.go`). **Game runner** in **Settings → Games & emulators → Consoles & cores → How games play → Advanced** chooses between **Automatic**, **Built in** and **A separate RetroArch-based runner, when installed**. Automatic uses it if it's found. `WMS_WITTYPLAY_RUNNER` names a runner directly and beats that setting.
 
 Unmodified RetroArch can't fill this role: its only way to hand frames to another program is its recording feature, which adds several frames of delay. A fork would add Vulkan and RetroArch's own shaders, if something comes to need them. It would cost a C codebase to build for every platform, and frequent merges from upstream.
 

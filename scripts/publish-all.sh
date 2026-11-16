@@ -19,7 +19,7 @@
 #
 # Needs git, go, node, python3, and for anything on GitHub, gh signed in. Run it in WSL, on Linux or
 # on macOS (its own bash 3.2 and BSD sed will do).
-# docs/MODULES-CUTOVER.md says what a person has to do first.
+# docs/PUBLISHING.md, The module key, says what a person has to do first.
 set -euo pipefail
 
 OWNER=wittywilla
@@ -461,7 +461,7 @@ if should_run "$SERVER"; then
 fi
 
 say "Done"
-[ $apply = 1 ] && { echo "Everything's published. Bring your own copies up to date: docs/MODULES-CUTOVER.md, step 6."; } || echo "The dry run passed: nothing left this machine. Run it again with --apply when the steps below are done."
+[ $apply = 1 ] && { echo "Everything's published. Bring your own copies up to date: git pull in each repository."; } || echo "The dry run passed: nothing left this machine. Run it again with --apply when the steps below are done."
 if [ ${#left[@]} -gt 0 ]; then
   echo
   echo "Still needs a person first:"

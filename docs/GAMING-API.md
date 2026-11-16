@@ -149,7 +149,7 @@ for each console, `coreSupport`: for each core on offer, `{here, platforms}`.
 | `api` | With `draws: "gpu"` only: how the runner reaches the card. `opengl` today, everywhere; `vulkan` and `metal` are reserved for when the runner offers them |
 | `note` | In words: what that means, or the speed measured, such as "Full speed on an Apple M3 Pro, on about one processor core." |
 
-Where it shows: Settings → Consoles & cores, for each console and each core; the core a console or a game plays with
+Where it shows: Settings → Games & emulators → Consoles & cores, for each console and each core; the core a console or a game plays with
 (`GET /modules/wittyplay/gaming/games/{id}/core` gives each option's `here`); and a game's page, where `GET /modules/wittyplay/games/{id}/check` adds:
 
 | Field | When | Meaning |
@@ -357,7 +357,7 @@ out `client` counts as native. No such mode exists today.
 
 A `webrtc` mode connects with `POST /modules/wittyplay/play/{sid}/stream`, and the `ws-` modes with the WebSocket `GET /modules/wittyplay/play/{sid}/stream`;
 the hello says which video you want. [The stream](GAMING-STREAM.md) has the hello, the messages and the errors. Out of your
-home network, WebRTC needs a route to the server's UDP port. Admins set that up in Settings, Consoles & cores. If it fails,
+home network, WebRTC needs a route to the server's UDP port. Admins set that up in Settings, Games & emulators, Consoles & cores. If it fails,
 the WebSocket works anywhere HTTP does.
 
 ## Measuring and timing

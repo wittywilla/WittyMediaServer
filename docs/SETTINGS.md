@@ -2,7 +2,7 @@
 
 Use this guide to find where a setting lives and what it does. It goes through every Settings page, in the order the menu lists them.
 
-Open Settings from your name at the top right. On a phone, it's in the **You** tab at the bottom. On a wide screen the menu sits beside the page. On a narrower one the menu is a page of its own, with a one-line note on each item.
+Open Settings from your account menu, the picture at the top right. On a TV or a phone, it's under **You**. On a wide screen the menu sits beside the page. On a narrower one the menu is a page of its own, with a one-line note on each item.
 
 **Finding a setting.** Type in **Search settings**, at the top of the menu: a page's name, a setting's name or a word for it, such as *dark mode*, *colour* or *subtitles*. What it finds takes the menu's place. Press Enter for the first, or move to another with the arrow keys or Tab. Escape empties the search and brings the menu back. Each result goes straight to its part of the page.
 
@@ -24,7 +24,7 @@ Open Settings from your name at the top right. On a phone, it's in the **You** t
 | Allow faster playback speeds | [Playback](#playback) |
 | Add a TV tuner, an IPTV list or guide data | [Channels and tuners](#channels-and-tuners) |
 | Make a channel from my library | [Channels and tuners](#channels-and-tuners) |
-| Install what a console needs to play | [Consoles and cores](#consoles-and-cores) |
+| Install what a console needs to play | [Games and emulators](#consoles-and-cores) |
 | Change how my games look and sound | [My game settings](#my-game-settings) |
 | Make conversion easier on my computer | [Live transcoding](#live-transcoding) |
 | Use my graphics card to convert video | [Live transcoding](#live-transcoding) |
@@ -42,7 +42,8 @@ Open Settings from your name at the top right. On a phone, it's in the **You** t
 | Hide the activity button | [Activity](#activity) |
 | Change the theme, or switch between light and dark | [Appearance](#appearance), **Theme** |
 | Make a theme in my own colours | [Appearance](#appearance), **Colours** |
-| Change the menu layout | [Appearance](#appearance), **Layout** |
+| Change the layout, or where the menu sits | [Appearance](#appearance), **Look** |
+| Require a layout or theme for someone | [Pages and the menu](PAGES.md), **Looks** |
 | Turn off the moving posters | [Appearance](#appearance), **Motion and big screens** |
 | Use this device as a TV | [Appearance](#appearance), **Motion and big screens** |
 | Change how the TV guide looks | [Appearance](#appearance), **WittyTV** |
@@ -58,9 +59,9 @@ Open Settings from your name at the top right. On a phone, it's in the **You** t
 
 Three things people look for here live elsewhere:
 
-- **Rearranging the home page:** **Customize home**, at the foot of the home page.
-- **Controllers:** **Controllers** in the menu under your name, when you have a games library.
-- **Signing in a TV:** **Sign in a TV** in the menu under your name. See [Apps and devices](APPS.md).
+- **Rearranging a page:** **Customise this page**, at the foot of the page. See [Pages and the menu](PAGES.md).
+- **Controllers:** **Controllers** in your account menu, when you have a games library.
+- **Signing in a TV:** **Sign in a TV** in your account menu. See [Apps and devices](APPS.md).
 
 ## Server
 
@@ -141,10 +142,10 @@ More: [Live TV](TV.md), [Channels](CHANNELS.md).
 
 ### Consoles and cores
 
-The page is called **Consoles & cores**. Games run on this server and stream to whatever you're playing on.
+WittyPlay's page is called **Games & emulators**. It opens WittyPlay's own settings, where **Cores & emulators** has three tabs: **Consoles & cores**, **What this server plays** and **Standalone emulators**. Games run on this server and stream to whatever you're playing on.
 
 ![The Consoles and cores page in Settings](images/settings-consoles.webp)
-*Settings, Consoles & cores.*
+*Settings, Games & emulators, Consoles & cores.*
 
 - **Your consoles** shows what each console with games needs. A core is a small free program that plays a console's games. A button to install all the recommended cores appears when more than one is missing. Installing one downloads it from the libretro project's build server, after asking.
 - **BIOS files** says where to put the files some consoles need, copied from a console you own. They're never downloaded for you.
@@ -289,13 +290,15 @@ How this server looks for you, from the app's theme to the look of each part of 
 ![The Appearance page in Settings](images/settings-appearance.webp)
 *Settings, Appearance.*
 
-- **Theme:** a large preview shows the theme in use, and any other you point at or move to, before you choose it. Choosing one changes this device only. **Automatic** follows the device's light or dark setting. Administrators also get **Make default** and **Install a theme ZIP…**.
+- **Theme:** a large preview shows the theme in use, and any other you point at, before you choose it. Choosing one changes this device only. **Automatic** follows the device's light or dark setting. Administrators also get **Make default** and **Install a theme ZIP…**.
 - **Colours:** make a theme of your own from a few choices, with a preview as you go. **Use on this device**, or, for administrators, **Add for everyone**.
-- **Layout:** **Side menu**, **Top bar** or **Both**. Phones always have the bar at the bottom. Below that you can arrange the menu.
-- **Motion and big screens:** **Moving posters** is the tilt when your pointer crosses a poster. **TV mode** lays the app out and drives it like the Apple TV and Android TV apps, with a remote or a controller, on this device. See [Big screens](APPS.md#big-screens).
-- **WittyTV:** the TV guide's own theme, colours, preview and rows, the same as its **Look** panel. See [The look](CHANNELS.md#the-look).
-- **Player:** the seek bar, chapter marks, how soon the controls hide, fitting or filling the screen, and the size of disc subtitles, for every video on this device. A disc or video you've set differently from the player's own menu keeps its own.
-- **Name and logo** (administrators): **Rename…** changes what shows in the corner, on the sign-in page and in the browser tab.
+- **Look:** the layout on this device. Choose one of the fourteen layouts, then its colours. **Use the server's** goes back to the one everyone gets. **Edit layout…** moves the menu, the server's name, search, the Dock and the spotlight, or hides what you don't use. Below that you arrange the menu, and choose **Spacing**: compact, comfortable or spacious.
+- **Motion and big screens:** **Moving posters**, **Moving backgrounds**, and **TV mode**, which lays this device out for a screen across the room. See [Big screens](APPS.md#big-screens).
+- **WittyTV:** the TV guide's own theme, colours, preview and rows. See [The look](CHANNELS.md#the-look).
+- **Player:** the seek bar, chapter marks, how soon the controls hide, fit or fill, and the size of disc subtitles, on this device.
+- **Name and logo** (administrators): the name in the corner, on the sign-in page and in the browser tab, with its colours and mark.
+
+A look or theme an administrator requires shows a lock, and who set it. It's changed under **Settings → Pages & menu → Looks**.
 
 More: [Themes](THEMES.md), [Watching and listening](PLAYING.md#moving-posters).
 

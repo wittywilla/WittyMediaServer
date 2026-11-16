@@ -18,7 +18,18 @@ The command is `wittymediaserver`. With a package it's on your `PATH`. Otherwise
 wittymediaserver [serve] [flags]        start the server (the default)
 wittymediaserver version                the version
 wittymediaserver help                   this list, in short
+wittymediaserver health                 exits 0 if the server on this machine answers: the
+                                        container's health check
 ```
+
+**Hardware:**
+
+```text
+wittymediaserver hardware [--json]      which graphics devices the server can use, which hardware
+                                        encoders work, and what to change when one can't be used
+```
+
+In Docker, run it inside the container: `docker exec wittymediaserver wittymediaserver hardware`. See [Live transcoding](TRANSCODING.md).
 
 **Config:**
 
@@ -131,7 +142,7 @@ The installers run three more themselves, and there's no reason to use them by h
 
 ## Flags
 
-Flags go after `wittymediaserver serve`. Each of them, with its variable and its name in `wms.json`, is in [What you can set](CONFIG.md#what-you-can-set): `-config`, `-data`, `-listen`, `-ffmpeg`, `-ffprobe`, `-java`, `-log`, `-log-dir`, `-max-transcodes`, `-max-connections`, `-public-url`, `-remote-access`, `-trusted-proxies`, `-setup-from-home`, `-allow-network-paths`, `-gaming-custom-cores`, `-open-browser`, `-watch-stdin` and `-dev`.
+Flags go after `wittymediaserver serve`. Each of them, with its variable and its name in `wms.json`, is in [What you can set](CONFIG.md#what-you-can-set): `-config`, `-data`, `-listen`, `-ffmpeg`, `-ffprobe`, `-java`, `-log`, `-log-dir`, `-max-transcodes`, `-max-connections`, `-public-url`, `-remote-access`, `-trusted-proxies`, `-setup-from-home`, `-allow-network-paths`, `-gaming-custom-cores`, `-stem-separator`, `-open-browser`, `-watch-stdin` and `-dev`.
 
 The port is also in [settings.ini](CONFIG.md#the-port) beside the program, which **Settings → Network** changes; `-listen` wins over it.
 
@@ -246,6 +257,7 @@ internal/server        routes, streaming, security, the built-in web app
 | `cmd/wittymediaserver` | The server and its command line |
 | `cmd/wittymediaserver-tray` | The app people open: the tray or menu-bar icon |
 | `cmd/wittymediaserver-uninstall` | The uninstaller with windows and buttons, on Windows and macOS |
+| `cmd/wittyconnect`, `pkg/wittyconnect` | The peer-to-peer connector the apps use to reach a server from away. See [P2P.md](P2P.md) |
 | `wms-forwarder` in `cmd` | Ships as `wms` in the `.zip` and `.tar.gz` only, so a copy of 0.5.2-alpha can update |
 | `internal/server` | The HTTP API, streaming, security middleware and the built-in web app |
 | `internal/modules` | The store, catalogue, signatures, sandboxes, and starting helpers |
@@ -261,7 +273,7 @@ internal/server        routes, streaming, security, the built-in web app
 | `internal/backup`, `internal/reset`, `internal/metafolder`, `internal/diagnose` | Backups, resets, the metadata folder, repair and the diagnoser |
 | `internal/update`, `internal/layout`, `internal/uninstall` | Updating, what a package holds and what each program is called, and removing everything |
 | `internal/db`, `internal/config`, `internal/logging`, `internal/themes`, `internal/legal`, `internal/licenses` | Storage, configuration, logs, themes, legal wording, licences |
-| `packaging` | The installers: MSI, `.deb`, `.rpm`, `.pkg`, and `install.sh` |
+| `packaging` | The installers: MSI, `.deb`, `.rpm`, AppImage, Flatpak, snap, the macOS and FreeBSD `.pkg`, and `install.sh` |
 | `web` | The web app. What a module shows in the browser arrives as a web bundle at run time |
 | `deploy`, `scripts` | Kubernetes, and developer tools. `scripts/README.md` lists them |
 
@@ -281,7 +293,7 @@ More: [Modules](MODULE-STORE.md), [DVDs](DVD.md), [Blu-rays](BLURAY.md).
 
 ### Building from source
 
-You need **Go 1.26 or newer**, which fetches the toolchain `go.mod` names, and **Node 22 or newer**. FFmpeg is only needed to run it.
+You need **Go 1.26 or newer**, which fetches the toolchain `go.mod` names, and **Node 24**, as CI uses. FFmpeg is only needed to run it.
 
 ```bash
 git clone https://github.com/wittywilla/WittyMediaServer && cd WittyMediaServer
@@ -292,14 +304,14 @@ go build -o WittyMediaServer ./cmd/wittymediaserver-tray # the tray app (Windows
 go test ./...
 ```
 
-- A build needs only WittyModule and the core libraries (WittyDisc) from the module repositories, at the versions `go.mod` names, and never a module. Until that's published, point at a checkout once in each checkout of the server: `node scripts/dev-modules.mjs WittyModule=<folder>`.
+- A build needs only WittyModule and the core libraries (WittyDisc) from the module repositories, at the versions `go.mod` names, and never a module. To build against a checkout of one instead, run `node scripts/dev-modules.mjs WittyModule=<folder>` once.
 - Tests of what the server does with a real module need a catalogue: `WMS_TEST_CATALOG=<folder> go test ./...`, from `scripts/make-test-catalog.sh`. They skip without one.
 
 Release archives for every platform:
 
 ```bash
-scripts/build-release.sh 0.6.0-alpha                 # macOS, Linux, WSL
-scripts\build-release.ps1 -Version 0.6.0-alpha       # Windows
+scripts/build-release.sh 0.8.0-alpha                 # macOS, Linux, WSL
+scripts\build-release.ps1 -Version 0.8.0-alpha       # Windows
 ```
 
 These are unsigned, as a test build should be. `docs/PUBLISHING.md` covers real releases.

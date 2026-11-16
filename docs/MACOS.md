@@ -83,7 +83,7 @@ ffmpeg -hide_banner -encoders | grep videotoolbox    # h264_videotoolbox, hevc_v
 ffmpeg -hide_banner -hwaccels                         # videotoolbox
 ```
 
-The server finds FFmpeg next to its own program first (in a release, `WittyMediaServer.app/Contents/Helpers`), then on your path. It then lists **Apple VideoToolbox** under **Settings → Transcoding** when FFmpeg has `h264_videotoolbox`, and a test encode shows it works. `wittymediaserver hardware` runs the same test from Terminal; on an M3 Pro with Homebrew's FFmpeg it says `h264_videotoolbox  works`. GitHub's Mac runners are virtual machines, so whether VideoToolbox really encodes there says nothing about a real Mac.
+The server finds FFmpeg next to its own program first (in a release, `WittyMediaServer.app/Contents/Helpers`), then on your path. It then lists **Apple VideoToolbox** under **Settings → Live transcoding** when FFmpeg has `h264_videotoolbox`, and a test encode shows it works. `wittymediaserver hardware` runs the same test from Terminal; on an M3 Pro with Homebrew's FFmpeg it says `h264_videotoolbox  works`. GitHub's Mac runners are virtual machines, so whether VideoToolbox really encodes there says nothing about a real Mac.
 
 On Apple silicon VideoToolbox is given a constant quality (`-q:v`). FFmpeg allows that there only: on an Intel Mac it refuses to start the encoder with it, so there the server gives it a bitrate for the picture's size instead.
 

@@ -12,6 +12,7 @@ import { useApp } from '../state'
 import { applyPageTitle } from '../theme'
 import SpecPage from '../spec/SpecPage'
 import { helpSpec } from '../spec/specs/help'
+import { t, tn, tx } from '../i18n'
 import '../help/help.css'
 
 // Help: the guides from docs/, built into the web app, so it all works with no internet and
@@ -28,12 +29,12 @@ export default function HelpPage() {
   const onGuide = !!guide && !q
   return (
     <div className={'help' + (onGuide ? ' on-guide' : '')}>
-      <nav className="help-side" aria-label="Help">
-        <div className="help-side-title"><Link to="/help">Help</Link></div>
+      <nav className="help-side" aria-label={t('Help')}>
+        <div className="help-side-title"><Link to="/help">{t('Help')}</Link></div>
         {GROUPS.map((g) => (
           <div key={g.title} className="help-side-group">
-            <div className="help-side-head">{g.title}</div>
-            {g.guides.map((it) => <NavLink key={it.file} to={`/help/${slugOf(it.file)}`} className="help-side-link">{it.title}</NavLink>)}
+            <div className="help-side-head">{tx(g.title)}</div>
+            {g.guides.map((it) => <NavLink key={it.file} to={`/help/${slugOf(it.file)}`} className="help-side-link">{tx(it.title)}</NavLink>)}
           </div>
         ))}
       </nav>
@@ -52,7 +53,7 @@ export default function HelpPage() {
 export function HelpPublicPage() {
   return (
     <div className="help-public">
-      <header className="help-public-head"><Link to="/" className="back-link">Back to the sign-in page</Link></header>
+      <header className="help-public-head"><Link to="/" className="back-link">{t('Back to the sign-in page')}</Link></header>
       <main id="main" tabIndex={-1}><HelpPage /></main>
     </div>
   )
@@ -63,13 +64,13 @@ function SearchBox({ q, onChange }: { q: string; onChange: (v: string) => void }
   useEffect(() => { setText(q) }, [q])
   useEffect(() => {
     if (text === q) return
-    const t = setTimeout(() => onChange(text.trim()), 200)
-    return () => clearTimeout(t)
+    const timer = setTimeout(() => onChange(text.trim()), 200)
+    return () => clearTimeout(timer)
   }, [text]) // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="search help-search" role="search">
       <IconSearch />
-      <input aria-label="Search help" type="search" placeholder="Search help…" value={text} onChange={(e) => setText(e.target.value)} />
+      <input aria-label={t('Search help')} type="search" placeholder={t('Search help…')} value={text} onChange={(e) => setText(e.target.value)} />
     </div>
   )
 }
@@ -88,17 +89,19 @@ function Results({ q }: { q: string }) {
     search(q).then((h) => { if (live) setHits(h) }).catch(() => { if (live) setFailed(true) })
     return () => { live = false }
   }, [q])
-  if (failed) return <p role="status">The search couldn’t load the guides. You can still pick one from the list.</p>
-  if (!hits) return <div role="status" aria-label="Searching"><Spinner /></div>
+  if (failed) return <p role="status">{t('The search couldn’t load the guides. You can still pick one from the list.')}</p>
+  if (!hits) return <div role="status" aria-label={t('Searching')}><Spinner /></div>
   return (
     <>
-      <h1 className="help-results-title">Search help</h1>
-      <p className="muted" role="status">{hits.length === 0 ? `Nothing found for “${q}”. Try fewer words, or a different word for the same thing.` : `${hits.length}${hits.length === 40 ? ' or more' : ''} ${hits.length === 1 ? 'place' : 'places'} for “${q}”`}</p>
+      <h1 className="help-results-title">{t('Search help')}</h1>
+      <p className="muted" role="status">{hits.length === 0 ? t('Nothing found for “{query}”. Try fewer words, or a different word for the same thing.', { query: q })
+        : hits.length === 40 ? t('{count} or more places for “{query}”', { count: hits.length, query: q })
+        : tn('{count} place for “{query}”', '{count} places for “{query}”', hits.length, { query: q })}</p>
       <ul className="help-hits">
         {hits.map((h) => (
           <li key={h.to}>
             <Link to={h.to} className="help-row">
-              <b>{h.heading === h.guide.title ? h.guide.title : `${h.guide.title}: ${h.heading}`}</b>
+              <b>{h.heading === h.guide.title ? tx(h.guide.title) : `${tx(h.guide.title)}: ${h.heading}`}</b>
               <span>{h.before}{h.match && <mark>{h.match}</mark>}{h.after}</span>
             </Link>
           </li>
@@ -111,8 +114,8 @@ function Results({ q }: { q: string }) {
 function NotFound() {
   return (
     <>
-      <h1>There’s no guide here</h1>
-      <p>It may have moved. <Link to="/help">See all the guides</Link>, or search above.</p>
+      <h1>{t('There’s no guide here')}</h1>
+      <p>{t('It may have moved.')} <Link to="/help">{t('See all the guides')}</Link>{t(', or search above.')}</p>
     </>
   )
 }
@@ -124,12 +127,12 @@ function GuideView({ guide, signedIn }: { guide: Guide; signedIn: boolean }) {
   useEffect(() => {
     let live = true
     setErr('')
-    loadGuide(guide).then((text) => { if (live) setMd({ file: guide.file, text }) }).catch(() => { if (live) setErr('This guide couldn’t be loaded. The server may have been updated: reload the page.') })
+    loadGuide(guide).then((text) => { if (live) setMd({ file: guide.file, text }) }).catch(() => { if (live) setErr(t('This guide couldn’t be loaded. The server may have been updated: reload the page.')) })
     return () => { live = false }
   }, [guide])
   const blocks = useMemo<Block[]>(() => (md && md.file === guide.file ? parse(md.text) : []), [md, guide.file])
   useEffect(() => {
-    applyPageTitle(`${guide.title}: Help`)
+    applyPageTitle(t('{title}: Help', { title: tx(guide.title) }))
     return () => applyPageTitle('')
   }, [guide.title])
   const article = useRef<HTMLElement>(null)
@@ -145,7 +148,7 @@ function GuideView({ guide, signedIn }: { guide: Guide; signedIn: boolean }) {
   }, [ready, hash, guide.file])
 
   if (err) return <p role="alert">{err}</p>
-  if (!ready) return <div role="status" aria-label="Loading"><Spinner /></div>
+  if (!ready) return <div role="status" aria-label={t('Loading')}><Spinner /></div>
 
   const intro = blocks.slice(0, firstSection(blocks)).filter((b) => !isContents(b))
   const parts = blocks.filter((b): b is Extract<Block, { t: 'heading' }> => b.t === 'heading' && b.level === 2)
@@ -153,12 +156,12 @@ function GuideView({ guide, signedIn }: { guide: Guide; signedIn: boolean }) {
   const next = allGuides[at + 1]
   return (
     <>
-      <div className="help-back"><BackLink to="/help" label="All guides" /></div>
+      <div className="help-back"><BackLink to="/help" label={t('All guides')} /></div>
       <article className="help-prose" ref={article}>
         <GuideBody blocks={intro} signedIn={signedIn} />
         {parts.length >= 3 && (
           <details className="help-toc" open={parts.length <= 12}>
-            <summary>On this page</summary>
+            <summary>{t('On this page')}</summary>
             <ul>{parts.map((p) => <li key={p.id}><Link to={`#${p.id}`}>{plain(p.c)}</Link></li>)}</ul>
           </details>
         )}
@@ -166,7 +169,7 @@ function GuideView({ guide, signedIn }: { guide: Guide; signedIn: boolean }) {
       </article>
       {next && (
         <p className="help-next">
-          <Link to={`/help/${slugOf(next.file)}`} className="help-row"><span>Next guide</span><b>{next.title} <IconRight size={16} /></b></Link>
+          <Link to={`/help/${slugOf(next.file)}`} className="help-row"><span>{t('Next guide')}</span><b>{tx(next.title)} <IconRight size={16} /></b></Link>
         </p>
       )}
     </>

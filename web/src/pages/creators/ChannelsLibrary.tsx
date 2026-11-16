@@ -18,15 +18,16 @@ import LibraryHeader from '../../components/LibraryHeader'
 import { Dialog } from '../../ui/Overlay'
 import { Button } from '../../ui/Button'
 import { WebLink } from '../../components/WebLink'
+import { t, tk, tn, tx } from '../../i18n'
 
 // WittyChannels: the owner's archive of creator videos, laid out the way people
 // expect from a video site: a home of recommendations, subscriptions, a page per
 // channel. Everything comes from files the owner already has (docs/CREATOR-VIDEOS.md).
 
-const TABS: [string, string][] = [['home', 'Home'], ['latest', 'Latest'], ['subs', 'Subscriptions'], ['channels', 'Channels'], ['history', 'History'], ['liked', 'Liked']]
+const TABS: [string, string][] = [['home', tk('Home')], ['latest', tk('Latest')], ['subs', tk('Subscriptions')], ['channels', tk('Channels')], ['history', tk('History')], ['liked', tk('Liked')]]
 // Music videos and concerts use the same pages: an artist is a channel, and
 // recordings of 20 minutes or more are concerts.
-const MUSIC_TABS: [string, string][] = [['home', 'Home'], ['latest', 'Videos'], ['concerts', 'Concerts'], ['subs', 'Following'], ['channels', 'Artists'], ['history', 'History'], ['liked', 'Liked']]
+const MUSIC_TABS: [string, string][] = [['home', tk('Home')], ['latest', tk('Videos')], ['concerts', tk('Concerts')], ['subs', tk('Following')], ['channels', tk('Artists')], ['history', tk('History')], ['liked', tk('Liked')]]
 
 export default function ChannelsLibrary({ lib }: { lib: Library }) {
   const { user } = useApp()
@@ -60,25 +61,25 @@ export default function ChannelsLibrary({ lib }: { lib: Library }) {
       <LibraryHeader
         title={lib.name}
         end={<form className="ch-search" role="search" onSubmit={(e) => { e.preventDefault(); set({ q: text.trim(), tag: null }) }}>
-          <input className="input" type="search" placeholder="Search this library" aria-label="Search this library" value={text} onChange={(e) => setText(e.target.value)} />
-          <button className="btn" aria-label="Search"><IconSearch /></button>
+          <input className="input" type="search" placeholder={t('Search this library')} aria-label={t('Search this library')} value={text} onChange={(e) => setText(e.target.value)} />
+          <button className="btn" aria-label={t('Search')}><IconSearch /></button>
         </form>}
-        tabs={<div className="seg ch-tabs" role="tablist" aria-label="View">
-          {(music ? MUSIC_TABS : TABS).map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k && !browsing} className={tab === k && !browsing ? 'active' : ''} onClick={() => { set({ tab: k === 'home' ? null : k, q: null, tag: null }); setText('') }}>{l}</button>)}
+        tabs={<div className="seg ch-tabs" role="tablist" aria-label={t('View')}>
+          {(music ? MUSIC_TABS : TABS).map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k && !browsing} className={tab === k && !browsing ? 'active' : ''} onClick={() => { set({ tab: k === 'home' ? null : k, q: null, tag: null }); setText('') }}>{tx(l)}</button>)}
         </div>}
         actions={user?.isAdmin && <ScanControl lib={lib} scanning={scanning} size="sm" onStarted={() => { setScanning(true); setTimeout(() => setScanning(false), 3000) }} />}
       />
       {tags.length > 0 && tab !== 'channels' && (
         <SpecPage bare className="ch-tags" page={topicsSpec(tags, tag || '')} handled={TOPIC_HANDLED(tags)} onAction={(id) => set({ tag: id.slice(4) === tag || id === 'tag:' ? null : id.slice(4) })} />
       )}
-      {browsing ? <Grid query={query} empty={`Nothing matched ${search ? `“${search}”` : tag}.`} />
+      {browsing ? <Grid query={query} empty={search ? t('Nothing matched “{query}”.', { query: search }) : t('Nothing matched {tag}.', { tag })} />
         : tab === 'home' ? <HomeFeed lib={lib} />
         : tab === 'channels' ? <ChannelsTab lib={lib} />
-        : tab === 'concerts' ? <Grid query={query} empty="Recordings of 20 minutes or more appear here, with their chapters as the setlist." />
-        : tab === 'latest' ? <Grid query={query} empty="No videos yet. Put them in this library's folders and scan it." />
-        : tab === 'subs' ? <Grid query={query} empty="Subscribe to a channel and its videos appear here." />
-        : tab === 'history' ? <Grid query={query} empty="What you watch appears here. Only you can see it." />
-        : <Grid query={query} empty="Videos you like appear here." />}
+        : tab === 'concerts' ? <Grid query={query} empty={t('Recordings of 20 minutes or more appear here, with their chapters as the setlist.')} />
+        : tab === 'latest' ? <Grid query={query} empty={t('No videos yet. Put them in this library’s folders and scan it.')} />
+        : tab === 'subs' ? <Grid query={query} empty={t('Subscribe to a channel and its videos appear here.')} />
+        : tab === 'history' ? <Grid query={query} empty={t('What you watch appears here. Only you can see it.')} />
+        : <Grid query={query} empty={t('Videos you like appear here.')} />}
       <LegalNote kind="creators" />
     </div>
   )
@@ -87,7 +88,7 @@ export default function ChannelsLibrary({ lib }: { lib: Library }) {
 function Grid({ query, empty, showCreator = true }: { query: string; empty: string; showCreator?: boolean }) {
   const { items, more, loadMore } = useVideoList(query)
   if (!items) return <Spinner />
-  if (!items.length) return <EmptyState title="Nothing here yet" text={empty} />
+  if (!items.length) return <EmptyState title={t('Nothing here yet')} text={empty} />
   return (
     <>
       <div className="cr-grid">{items.map((v) => <VideoTile key={v.id} v={v} to={`/watch/${v.id}`} showCreator={showCreator} />)}</div>
@@ -113,14 +114,14 @@ function HomeFeed({ lib }: { lib: Library }) {
     setItems([...items, ...r.videos.filter((v) => !have.has(v.id))]); setMore(r.more)
   }
   if (!items) return <Spinner />
-  if (!items.length && !vertical.length) return <EmptyState title="No videos yet" text="One folder per channel works best. Sidecar files add titles, dates and descriptions; pictures beside a video become its thumbnail." />
+  if (!items.length && !vertical.length) return <EmptyState title={t('No videos yet')} text={t('One folder per channel works best. Sidecar files add titles, dates and descriptions; pictures beside a video become its thumbnail.')} />
   const half = Math.min(8, items.length)
   return (
     <>
       <div className="cr-grid">{items.slice(0, half).map((v) => <VideoTile key={v.id} v={v} to={`/watch/${v.id}`} />)}</div>
       {vertical.length > 0 && (
-        <section className="ch-shelf" aria-label="Vertical videos">
-          <h2>Vertical videos</h2>
+        <section className="ch-shelf" aria-label={t('Vertical videos')}>
+          <h2>{t('Vertical videos')}</h2>
           <div className="ch-shelf-row">{vertical.map((v) => <VideoTile key={v.id} v={v} to={`/watch/${v.id}`} showCreator={false} />)}</div>
         </section>
       )}
@@ -134,13 +135,13 @@ function ChannelsTab({ lib }: { lib: Library }) {
   const [list, setList] = useState<Creator[] | null>(null)
   useEffect(() => { api.get<Creator[]>(`/creators?library=${lib.id}`).then(setList).catch(() => setList([])) }, [lib.id])
   if (!list) return <Spinner />
-  if (!list.length) return <EmptyState title="No channels yet" text="Each folder in this library counts as a channel, unless a sidecar file names one." />
+  if (!list.length) return <EmptyState title={t('No channels yet')} text={t('Each folder in this library counts as a channel, unless a sidecar file names one.')} />
   return (
     <div className="cr-people">
       {list.map((c) => (
         <Link key={c.id} to={`/creator/${c.id}`} className="cr-person">
           <Avatar id={c.id} name={c.name} has={c.hasAvatar} size={96} v={c.updatedAt} />
-          <b>{c.name}</b><span className="muted">{c.videos} {c.videos === 1 ? 'video' : 'videos'}{c.subscribed ? ' · subscribed' : ''}</span>
+          <b>{c.name}</b><span className="muted">{tn('{count} video', '{count} videos', c.videos)}{c.subscribed ? ' · ' + t('subscribed') : ''}</span>
         </Link>
       ))}
     </div>
@@ -165,7 +166,7 @@ export function CreatorPage() {
   const load = () => api.get<{ creator: Creator; playlists: Playlist[] }>(`/creators/${id}`).then((r) => { setC(r.creator); setLists(r.playlists) }).catch((e) => setErr(e.message))
   useEffect(() => { load() }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
   const set = (p: Record<string, string | null>) => { const n = new URLSearchParams(params); for (const [k, v] of Object.entries(p)) v === null ? n.delete(k) : n.set(k, v); setParams(n, { replace: true }) }
-  if (err) return <EmptyState title="Channel not found" text={err} />
+  if (err) return <EmptyState title={t('Channel not found')} text={err} />
   if (!c) return <Spinner />
   const lib = libraries.find((l) => l.id === c.libraryId)
   const music = lib?.type === 'musicvideos'
@@ -178,34 +179,34 @@ export function CreatorPage() {
         <Avatar id={c.id} name={c.name} has={c.hasAvatar} size={88} v={c.updatedAt} />
         <div className="ch-head-text">
           <h1>{c.name}</h1>
-          <p className="muted">{[c.handle, `${fmtCount(c.videos)} ${c.videos === 1 ? 'video' : 'videos'}`, c.subscribers ? `${c.subscribers} ${c.subscribers === 1 ? 'subscriber' : 'subscribers'} here` : '', c.platform].filter(Boolean).join(' · ')}</p>
+          <p className="muted">{[c.handle, tn('{count} video', '{count} videos', c.videos, { count: fmtCount(c.videos) }), c.subscribers ? tn('{count} subscriber here', '{count} subscribers here', c.subscribers) : '', c.platform].filter(Boolean).join(' · ')}</p>
         </div>
         <SubscribeButton c={c} onChange={(on) => setC({ ...c, subscribed: on })} />
-        {user?.isAdmin && <button className="btn sm ghost" onClick={() => setEditing(true)}><IconEdit /> Edit</button>}
+        {user?.isAdmin && <button className="btn sm ghost" onClick={() => setEditing(true)}><IconEdit /> {t('Edit')}</button>}
       </header>
-      <div className="seg ch-tabs" role="tablist" aria-label="This channel">
-        {(music ? [['videos', 'Videos'], ['playlists', 'Albums'], ['about', 'About']] : [['videos', 'Videos'], ['shorts', 'Vertical'], ['playlists', 'Playlists'], ['about', 'About']]).map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'active' : ''} onClick={() => set({ tab: k === 'videos' ? null : k, playlist: null })}>{l}</button>)}
+      <div className="seg ch-tabs" role="tablist" aria-label={t('This channel')}>
+        {(music ? [['videos', t('Videos')], ['playlists', t('Albums')], ['about', t('About')]] : [['videos', t('Videos')], ['shorts', t('Vertical')], ['playlists', t('Playlists')], ['about', t('About')]]).map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'active' : ''} onClick={() => set({ tab: k === 'videos' ? null : k, playlist: null })}>{l}</button>)}
       </div>
       {(tab === 'videos' || tab === 'shorts') && (
         <>
           <div className="ch-sort">
-            <label>Sort <select className="select sm" value={sort} onChange={(e) => set({ sort: e.target.value })}><option value="latest">Newest</option><option value="popular">Popular</option><option value="oldest">Oldest</option><option value="title">By title</option></select></label>
+            <label>{t('Sort')} <select className="select sm" value={sort} onChange={(e) => set({ sort: e.target.value })}><option value="latest">{t('Newest')}</option><option value="popular">{t('Popular')}</option><option value="oldest">{t('Oldest')}</option><option value="title">{t('By title')}</option></select></label>
           </div>
-          <Grid query={q} empty="Nothing here." showCreator={false} />
+          <Grid query={q} empty={t('Nothing here.')} showCreator={false} />
         </>
       )}
       {tab === 'playlists' && (playlist !== null
-        ? <><div className="ch-sort"><button className="btn sm ghost" onClick={() => set({ playlist: null })}>‹ Playlists</button> <b>{playlist}</b></div><Grid query={`creator=${c.id}&sort=oldest&playlist=${encodeURIComponent(playlist)}`} empty="Nothing here." showCreator={false} /></>
-        : lists.length === 0 ? <EmptyState title="No playlists" text="Subfolders of a channel's folder become its playlists, and so do playlists named in sidecar files." />
+        ? <><div className="ch-sort"><button className="btn sm ghost" onClick={() => set({ playlist: null })}>‹ {t('Playlists')}</button> <b>{playlist}</b></div><Grid query={`creator=${c.id}&sort=oldest&playlist=${encodeURIComponent(playlist)}`} empty={t('Nothing here.')} showCreator={false} /></>
+        : lists.length === 0 ? <EmptyState title={t('No playlists')} text={t('Subfolders of a channel’s folder become its playlists, and so do playlists named in sidecar files.')} />
         : <div className="cr-grid">{lists.map((p) => (
             <button key={p.name} className="cr-tile" onClick={() => set({ playlist: p.name })}>
-              <span className="cr-thumb"><img src={videoThumb(p.coverId, 480)} alt="" loading="lazy" /><span className="cr-dur">{p.count} videos</span></span>
+              <span className="cr-thumb"><img src={videoThumb(p.coverId, 480)} alt="" loading="lazy" /><span className="cr-dur">{tn('{count} video', '{count} videos', p.count)}</span></span>
               <span className="cr-meta"><span className="cr-text"><b>{p.name}</b></span></span>
             </button>
           ))}</div>)}
       {tab === 'about' && (
         <div className="ch-about">
-          {c.description ? <p>{c.description}</p> : <p className="muted">Nothing written about this channel yet.</p>}
+          {c.description ? <p>{c.description}</p> : <p className="muted">{t('Nothing written about this channel yet.')}</p>}
           {c.url && <p><WebLink href={c.url}>{c.url}</WebLink></p>}
         </div>
       )}
@@ -230,11 +231,11 @@ function CreatorDialog({ c, onClose, onSaved }: { c: Creator; onClose: () => voi
     try { await api.put(`/creators/${c.id}`, { name, handle, description: desc, platform, url }); onSaved() } catch (x: any) { setErr(x.message) }
   }
   return (
-    <Dialog title="Channel details" onClose={onClose}
-      actions={<><Button type="button" variant="ghost" onClick={onClose}>Cancel</Button><Button variant="primary" form="channel-form">Save</Button></>}>
+    <Dialog title={t('Channel details')} onClose={onClose}
+      actions={<><Button type="button" variant="ghost" onClick={onClose}>{t('Cancel')}</Button><Button variant="primary" form="channel-form">{t('Save')}</Button></>}>
       <form id="channel-form" className="ui-dialog-form" onSubmit={save}>
-        <SpecPage embedded page={spec} handled={new Set()} onField={(id, v) => { const t = String(v); if (id === 'name') setName(t); else if (id === 'handle') setHandle(t); else if (id === 'platform') setPlatform(t); else if (id === 'url') setUrl(t) }}
-          after={{ 0: <label className="oobe-field">Description<textarea className="input" rows={4} value={desc} onChange={(e) => setDesc(e.target.value)} /></label> }} />
+        <SpecPage embedded page={spec} handled={new Set()} onField={(id, v) => { const x = String(v); if (id === 'name') setName(x); else if (id === 'handle') setHandle(x); else if (id === 'platform') setPlatform(x); else if (id === 'url') setUrl(x) }}
+          after={{ 0: <label className="oobe-field">{t('Description')}<textarea className="input" rows={4} value={desc} onChange={(e) => setDesc(e.target.value)} /></label> }} />
       </form>
     </Dialog>
   )

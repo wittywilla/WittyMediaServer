@@ -313,6 +313,10 @@ input[type=range] { accent-color: var(--accent); }
 /* Content slides under the bar through a soft edge (no blur: a blur repaints on
    every scrolled frame, which low-end devices can't afford). */
 .topbar::after { content: ''; position: absolute; left: 0; right: 0; top: 100%; height: var(--sp-3); background: linear-gradient(var(--bg), rgb(var(--bg-rgb) / 0)); pointer-events: none; }
+/* Over a picture the edge waits until the page is scrolled under the bar (TopBar sets .under). Where
+   scroll-driven animations run, the animation below does this; without them (Firefox, older Safari)
+   the edge was drawn over the backdrop from the start, as a dark band under the bar. */
+.app:has(.hero, .detail-hero) .topbar:not(.under)::after { opacity: 0; }
 .search { flex: 1; max-width: 520px; position: relative; }
 .search input {
   width: 100%; height: var(--control-h); background: var(--bg-3); border: 1px solid transparent; border-radius: var(--r-full); padding: 0 var(--sp-4) 0 var(--sp-10); outline: none; color: var(--fg); font-size: var(--text-md);

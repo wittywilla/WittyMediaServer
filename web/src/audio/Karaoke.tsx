@@ -170,7 +170,7 @@ export default function Karaoke({ p, ly, onClose, behind, choice }: { p: PlayerV
             {VOCALS.map((x) => <button type="button" role="radio" key={x.v} aria-checked={p.sound.vocalCut === x.v} className={p.sound.vocalCut === x.v ? 'on' : ''} onClick={() => p.setSound({ vocalCut: x.v })}>{tx(x.name)}</button>)}
           </div>
         )}
-        <div className="kar-stepper" role="group" aria-label={t('Key')}>
+        <div className="kar-stepper" role="group" aria-label={t('Musical key')}>
           <button type="button" onClick={() => setKey(p.sound.keyShift - 1)} disabled={p.sound.keyShift <= -6} aria-label={t('Lower key')}>−</button>
           <span aria-live="polite">{t('Key {n}', { n: (p.sound.keyShift > 0 ? '+' : '') + p.sound.keyShift })}</span>
           <button type="button" onClick={() => setKey(p.sound.keyShift + 1)} disabled={p.sound.keyShift >= 6} aria-label={t('Raise key')}>+</button>

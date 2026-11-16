@@ -92,7 +92,7 @@ export default function Hero({ ch, p, next, look, now, previewKey, previewName, 
           {p?.rating && <span className="ctv-rate">{p.rating}</span>}
           {ch?.hd && <span className="ctv-rate">HD</span>}
           {ch?.atsc3 && <span className="ctv-rate">ATSC 3.0</span>}
-          {ch?.security?.state === 'clear' && <span className="ctv-rate">{t('Clear')}</span>}
+          {ch?.security?.state === 'clear' && <span className="ctv-rate">{t('Not scrambled')}</span>}
           {ch?.security?.state === 'unknown' && <span className="ctv-rate" title={tx(ch.security.detail)}>{tx(ch.security.label)}</span>}
         </div>
         {real && p && (

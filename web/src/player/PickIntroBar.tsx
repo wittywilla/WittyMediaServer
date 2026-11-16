@@ -68,7 +68,7 @@ function PickMarkersBar({ item, time }: { item: Item; time: number }) {
   const at = clockText(Math.round(time))
   return (
     <div className="pick-intro pick-markers" role="group" aria-label={t('Mark what can be skipped')} onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
-      <label className="pick-part">{t('Mark')}
+      <label className="pick-part">{t('Part to mark')}
         <select className="select" value={part} onChange={(e) => { setPart(e.target.value as Part); setErr('') }}>
           {PARTS.map((p) => <option key={p.id} value={p.id}>{t(p.label)}</option>)}
         </select>

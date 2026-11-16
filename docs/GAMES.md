@@ -8,7 +8,6 @@ No games, BIOS files or cores come with WittyMediaServer. Games are yours to bri
 
 To play games installed on a PC rather than on this server, see [Game PCs](GAME-RIGS.md).
 
-> **Known issue in 0.8.0-alpha: games don't play yet.** Games moved to a new streaming pipeline, so they can play on iPhone, iPad and Apple TV. In WittyMediaClient, starting a game closes the app. In a browser, it keeps loading. Adding games, their details and their pages work.
 
 ## Add your games
 

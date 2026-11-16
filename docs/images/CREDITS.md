@@ -47,6 +47,8 @@ Licences were read from each work's source on the day it was fetched. This is a 
 | `home.webp` | The home page. Openly licensed and public-domain media, credited in [the list](CREDITS.md) |
 | `module-store.webp` | The module store, from the module catalogue. |
 | `movies.webp` | A Movies library. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
+| `karaoke.webp` | Karaoke over WittyVisualizer's Northern Veil. "Take Me Out to the Ball Game", 1908, public domain. |
+| `phone-karaoke.webp` | Karaoke on a phone. "Take Me Out to the Ball Game", 1908, public domain. |
 | `music-album.webp` | An album's page. Credited in [the list](CREDITS.md). |
 | `music-albums.webp` | Albums. Credited in [the list](CREDITS.md). |
 | `music-artists.webp` | Artists. Credited in [the list](CREDITS.md). |

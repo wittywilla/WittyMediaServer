@@ -1,0 +1,15 @@
+{
+ "Language and time zone": "भाषा और समय क्षेत्र",
+ "Before anything else: the language for these pages, disc menus and sound tracks, and the time zone the server keeps.": "सबसे पहले: इन पेजों, डिस्क मेनू और साउंड ट्रैक की भाषा, और सर्वर का समय क्षेत्र।",
+ "Language": "भाषा",
+ "Everything on these pages, for everyone who uses this server.": "इन पेजों पर सब कुछ, इस सर्वर का उपयोग करने वाले हर व्यक्ति के लिए।",
+ "Disc menus and sound tracks": "डिस्क मेनू और साउंड ट्रैक",
+ "Disc menus, and the sound track a film or show starts with when it has one in this language. Subtitles stay off until someone turns them on.": "डिस्क मेनू, और वह साउंड ट्रैक जिससे कोई फ़िल्म या शो शुरू होता है, जब उसमें इस भाषा का ट्रैक हो। उपशीर्षक तब तक बंद रहते हैं जब तक कोई उन्हें चालू न करे।",
+ "The original language": "मूल भाषा",
+ "Time zone": "समय क्षेत्र",
+ "Guide days, schedules, recordings and the logs follow this. The server restarts once to use it, when setup is finished, if it isn’t the one it’s running in.": "गाइड, शेड्यूल, रिकॉर्डिंग और लॉग इसी के अनुसार चलते हैं। अगर सर्वर किसी और क्षेत्र में चल रहा है, तो सेटअप पूरा होने पर वह एक बार फिर से शुरू होगा।",
+ "The time zone of the computer the server runs on. Guide days, schedules, recordings and the logs follow it.": "उस कंप्यूटर का समय क्षेत्र जिस पर सर्वर चलता है। गाइड, शेड्यूल, रिकॉर्डिंग और लॉग इसी के अनुसार चलते हैं।",
+ "This device is set to {zone}.": "यह डिवाइस {zone} पर सेट है।",
+ "You can change these again on the Name and address step, and later in Settings.": "आप इन्हें नाम और पता चरण में, और बाद में सेटिंग्स में फिर से बदल सकते हैं।",
+ "Continue": "जारी रखें"
+}

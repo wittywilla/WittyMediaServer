@@ -84,7 +84,7 @@ html.tv-mode body { background: var(--bg); }
 .tvm-pill[aria-current="page"] { background: var(--accent-soft); color: var(--accent-text); }
 .tvm-you { margin-left: auto; }
 /* The initial sits in the middle of its circle: its own line height and a size that fits, not the pill's. */
-.tvm-you .avatar-tile { display: grid; place-items: center; flex: none; overflow: hidden; width: calc(var(--tvu) * 28); height: calc(var(--tvu) * 28); border-radius: 50%; font-size: calc(var(--tvu) * 15); font-weight: 700; line-height: 1; color: #fff; }
+.tvm-you .avatar-tile { display: grid; place-items: center; flex: none; overflow: hidden; width: calc(var(--tvu) * 28); height: calc(var(--tvu) * 28); border-radius: 50%; font-size: calc(var(--tvu) * 15); font-weight: 700; line-height: 1; color: #fff; } /* design-ok: white on the person's own colour, as every avatar tile */
 .tvm-you .avatar-tile svg { width: 70%; height: 70%; }
 
 /* A screen opened from a tab has the whole screen. For a mouse or a finger, a round Back at the top left,

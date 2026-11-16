@@ -5,6 +5,8 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **Fixed:** first-time setup's Modules step showed generic glyphs, not each module's own icon. The icons now ship inside the server (`web/public/module-icons`, drawn by `scripts/genicon -target server` from the catalogue), so setup shows the same pictures as the catalogue without fetching anything from the internet. (#382)
+
 ## 0.8.0-alpha
 
 Released 2026-11-16.

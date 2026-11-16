@@ -260,17 +260,20 @@ jobs:
           for arch in arm64 amd64; do
             out="dist/darwin-$arch"; mkdir -p "$out"
             GOARCH=$arch go build -trimpath -ldflags="$GO_LDFLAGS_BASE -X main.version=$VERSION" -o "$out/wittymediaserver" ./cmd/wittymediaserver
-            GOARCH=$arch go build -trimpath -ldflags="$GO_LDFLAGS_BASE -X main.version=$VERSION" -o "$out/WittyMediaServer" ./cmd/wittymediaserver-tray
+            # A Mac's disk ignores case: the tray's WittyMediaServer would replace the
+            # server's wittymediaserver, so it has a folder of its own, as in release.yml.
+            GOARCH=$arch go build -trimpath -ldflags="$GO_LDFLAGS_BASE -X main.version=$VERSION" -o "$out/tray/WittyMediaServer" ./cmd/wittymediaserver-tray
             GOARCH=$arch go build -trimpath -ldflags="$GO_LDFLAGS_BASE -X main.version=$VERSION" -o "$out/Uninstall WittyMediaServer" ./cmd/wittymediaserver-uninstall
             GOARCH=$arch go build -trimpath -ldflags="$GO_LDFLAGS_BASE" -o "$out/wms" ./cmd/wms-forwarder
-            file "$out"/*
+            file "$out"/* "$out"/tray/*
           done
       - name: Universal server binary
         run: |
           mkdir -p dist/darwin-universal
           lipo -create -output dist/darwin-universal/wittymediaserver dist/darwin-arm64/wittymediaserver dist/darwin-amd64/wittymediaserver
-          lipo -create -output dist/darwin-universal/WittyMediaServer dist/darwin-arm64/WittyMediaServer dist/darwin-amd64/WittyMediaServer
-          lipo -info dist/darwin-universal/*
+          mkdir -p dist/darwin-universal/tray
+          lipo -create -output dist/darwin-universal/tray/WittyMediaServer dist/darwin-arm64/tray/WittyMediaServer dist/darwin-amd64/tray/WittyMediaServer
+          lipo -info dist/darwin-universal/wittymediaserver dist/darwin-universal/tray/WittyMediaServer
       # Apple silicon runs both slices: the native one, and the Intel one through Rosetta.
       # Each run gets a minute. One that hangs prints its goroutines and fails the step,
       # instead of holding a runner for hours. An Intel binary is only run when Rosetta

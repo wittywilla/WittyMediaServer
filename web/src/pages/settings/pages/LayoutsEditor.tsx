@@ -92,7 +92,7 @@ export default function LayoutsEditor() {
     <>
       <PageHead title={t('Looks')} desc={t('How the apps look and are laid out: where the menu is and how pages are drawn (the experience), and the colours it wears (the theme). Choose what each kind of device starts with, which looks people may choose, and which you require.')} />
       <DraftBar />
-      <Section title={t('What each device starts with')} desc={t('A profile that hasn’t chosen, or may not rearrange pages, gets this.')}>
+      <Section title={tk('What each device starts with')} desc={t('A profile that hasn’t chosen, or may not rearrange pages, gets this.')}>
         {FORM_FACTORS.map(([ff, label]) => (
           <Row key={ff} label={t(label)}>
             <select className="select" aria-label={t('Look for {devices}', { devices: t(label).toLowerCase() })} value={startOf(ff)} onChange={(e) => setStart(ff, e.target.value)}>
@@ -101,7 +101,7 @@ export default function LayoutsEditor() {
           </Row>
         ))}
       </Section>
-      <Section title={t('What people may choose')} desc={t('Each profile picks one for each of its devices. A look a device starts with is always allowed.')}>
+      <Section title={tk('What people may choose')} desc={t('Each profile picks one for each of its devices. A look a device starts with is always allowed.')}>
         {options.map((o) => {
           const fixed = FORM_FACTORS.some(([ff]) => startOf(ff) === o.id)
           return (
@@ -114,7 +114,7 @@ export default function LayoutsEditor() {
           <Switch label={t('Profiles may import themes')} checked={!!policy.profileThemes} onChange={(on) => setPolicy((p) => ({ ...p, profileThemes: on || undefined }))} />
         </Row>
       </Section>
-      <Section title={t('Required looks')} desc={t('A required look is shown locked, with your name, and the profile can’t change it. The most specific wins: a profile, then kids, then everyone.')}>
+      <Section title={tk('Required looks')} desc={t('A required look is shown locked, with your name, and the profile can’t change it. The most specific wins: a profile, then kids, then everyone.')}>
         {lookRow(t('Everyone'), t('Every profile on every device.'), 'everyone')}
         {lookRow(t('Kids profiles'), t('Every kids profile.'), 'kids')}
         {people.map((u) => lookRow(u.displayName || u.name, u.kind === 'kids' ? t('A kids profile.') : t('This profile only.'), { profile: String(u.id) }))}

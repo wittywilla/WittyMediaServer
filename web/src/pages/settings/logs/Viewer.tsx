@@ -9,7 +9,7 @@ import { IconClose, IconFile, IconPause, IconPlay, IconRefresh } from '../../../
 import { toast } from '../../../state'
 import { Section } from '../ui'
 import { copyText, LEVEL_WORDS, scrollKeys, type Category, type EntriesPage, type Health, type LogModule, type LogRecord, type SessionKind } from './types'
-import { date, list, t, tn, tx } from '../../../i18n'
+import { date, list, t, tk, tn, tx } from '../../../i18n'
 
 // The live log: newest at the top, so new lines don't push the page around and
 // "Load older" is where you'd look for it. Log text is shown as text, always.
@@ -295,7 +295,7 @@ export default function Viewer({ categories, modules, kinds, onHealth }: { categ
   const modNames = useMemo(() => new Map(modules.map((m) => [m.id, m.name])), [modules])
 
   return (
-    <Section title={t('Live log')} desc={t('Newest first. Open a line for its details, what it means and what to do.')}
+    <Section title={tk('Live log')} desc={t('Newest first. Open a line for its details, what it means and what to do.')}
       actions={(
         <div className="lg-live">
           <span className={'set-pill' + (live && visible ? ' live' : '')}>{live ? (visible ? t('Live') : t('Waiting')) : t('Paused')}</span>

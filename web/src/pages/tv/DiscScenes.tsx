@@ -9,7 +9,7 @@ import { Button, Dialog, IconButton } from '../../ui'
 import { Section } from '../settings/ui'
 import { fmtTimecode, parseTimecode, type DiscClip, type DiscOption, type DiscPage, type DiscTitle, type Rules } from './tvApi'
 import './tveditor.css'
-import { t, tn } from '../../i18n'
+import { t, tk, tn } from '../../i18n'
 
 // Discs on a channel: a whole main feature in one click, or any scenes from any
 // title, picked by chapter from pictures and fine-tuned to the second. Encrypted
@@ -54,11 +54,11 @@ export default function DiscScenes({ rules, set, id }: { rules: Rules; set: (p: 
     setClips(n)
   }
   if (discs && discs.length === 0) {
-    return <Section id={id} title={t('Discs and scenes')} desc={t("Play a DVD or Blu-ray's main feature on this channel, or just the scenes you choose.")}><p className="muted">{t('No discs in your libraries yet. Add a library with DVD or Blu-ray images or folders, and they appear here.')}</p></Section>
+    return <Section id={id} title={tk('Discs and scenes')} desc={t("Play a DVD or Blu-ray's main feature on this channel, or just the scenes you choose.")}><p className="muted">{t('No discs in your libraries yet. Add a library with DVD or Blu-ray images or folders, and they appear here.')}</p></Section>
   }
   const shown = (discs || []).filter((d) => !q || d.title.toLowerCase().includes(q.toLowerCase()))
   return (
-    <Section id={id} title={t('Discs and scenes')} desc={t("Play a DVD or Blu-ray's main feature on this channel, or just the scenes you choose. Each is a programme of its own in the schedule.")}>
+    <Section id={id} title={tk('Discs and scenes')} desc={t("Play a DVD or Blu-ray's main feature on this channel, or just the scenes you choose. Each is a programme of its own in the schedule.")}>
       {clips.length > 0 && (
         <p className="tvs-note" role="status">
           {others ? t('These play along with whatever the rules above choose.') : t('This channel plays only these. Set a rule above to mix in anything else.')}

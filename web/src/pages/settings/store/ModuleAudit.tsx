@@ -5,7 +5,7 @@ import { api } from '../../../api'
 import { IconRefresh } from '../../../icons'
 import { Button } from '../../../ui'
 import { Section } from '../ui'
-import { date, t } from '../../../i18n'
+import { date, t, tk } from '../../../i18n'
 import { auditRows, auditWords, toDate, type AuditEntry } from './overrides'
 import './overrides.css'
 
@@ -28,7 +28,7 @@ export function ModuleAudit({ nameOf, stamp }: { nameOf: (id: string) => string;
   useEffect(() => { void load(limit) }, [load, limit, stamp])
   const more = rows !== null && rows.length >= limit && limit < MOST
   return (
-    <Section title={t('Module audit log')} desc={t('Every change to which code runs on this server: installs past a rule, files uploaded, overrides removed, versions chosen by hand and passwords refused. Newest first.')}
+    <Section title={tk('Module audit log')} desc={t('Every change to which code runs on this server: installs past a rule, files uploaded, overrides removed, versions chosen by hand and passwords refused. Newest first.')}
       actions={<Button size="sm" variant="ghost" icon={<IconRefresh />} aria-busy={loading} onClick={() => load(limit)}>{loading ? t('Reading…') : t('Refresh')}</Button>}>
       {err && <p className="error" role="alert">{err}</p>}
       {rows === null && !err && <p className="ms-note" role="status">{t('Reading the log…')}</p>}

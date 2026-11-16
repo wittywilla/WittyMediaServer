@@ -8,7 +8,7 @@ import { toast } from '../../../state'
 import { Row, Section, Switch } from '../ui'
 import type { LogModule, LogsView } from './types'
 import { LEVELS } from './WhatToLog'
-import { list, t, tn, tx } from '../../../i18n'
+import { list, t, tk, tn, tx } from '../../../i18n'
 
 function recent(m: LogModule): string {
   const bad = [m.errors > 0 && tn('{count} error', '{count} errors', m.errors), m.warnings > 0 && tn('{count} warning', '{count} warnings', m.warnings)].filter(Boolean) as string[]
@@ -73,7 +73,7 @@ export default function LogModules({ view, onView }: { view: LogsView; onView: (
     try { onView(await api.put<LogsView>('/logs', { modulesSeen: true })) } catch (e: any) { toast(e.message) }
   }
   return (
-    <Section title={t('Modules')} desc={t('How much each module writes down. A module follows the level of its area unless you choose otherwise. Changes work straight away, with no restart.')}>
+    <Section title={tk('Modules')} desc={t('How much each module writes down. A module follows the level of its area unless you choose otherwise. Changes work straight away, with no restart.')}>
       {fresh.length > 0 && (
         <div className="lg-mod-notice" role="status">
           <span>{fresh.length === 1

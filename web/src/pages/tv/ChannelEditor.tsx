@@ -179,7 +179,7 @@ export default function ChannelEditor() {
         actions={<Link className="btn" to="/tv/channels" onClick={(e) => { if (cameFrom) { e.preventDefault(); back() } }}>{t('Back')}</Link>} />
       {restored && <p className="tvs-note" role="status">{t('Your unsaved changes from last time are back.')} <button className="btn sm ghost" onClick={discard}>{t('Discard them')}</button></p>}
 
-      <Section title={t('The channel')}>
+      <Section title={tk('The channel')}>
         <SpecPage embedded bare page={basicsSpec({ name: draft.name, number: draft.number, description: draft.description, categories })} handled={new Set()}
           onField={(f, v) => { const x = String(v); if (f === 'name') setDraft({ ...draft, name: x.slice(0, 200) }); else if (f === 'number') setDraft({ ...draft, number: x.slice(0, 12) }); else if (f === 'description') setDraft({ ...draft, description: x.slice(0, 2000) }); else if (f === 'categories') { setCategories(x); setDraft({ ...draft, categories: x.split(',').map((y) => y.trim()).filter(Boolean) }) } }}
           after={{ 0: (
@@ -219,12 +219,12 @@ export default function ChannelEditor() {
 
       <Preview def={def} />
 
-      <Section id="ch-who" title={t('Who sees it')}>
+      <Section id="ch-who" title={tk('Who sees it')}>
         <Audience draft={draft} setDraft={setDraft} />
       </Section>
 
       {id && (
-        <Section title={t('More')}>
+        <Section title={tk('More')}>
           {logo && <img className="tvs-logo" src={mediaUrl(`/api/channels/${id}/logo?v=${logo}`)} alt={t('Current logo')} />}
           <SpecPage embedded bare page={moreSpec({ hasLogo: !!logo, dirty, history: history.map((h) => ({ id: h.id, name: h.name, when: fmtDateTime(h.savedAt * 1000) })) })}
             handled={new Set(['removeLogo', 'reshuffle', 'reset', ...history.map((h) => 'restore:' + h.id)])}
@@ -329,7 +329,7 @@ function SimpleLevel({ def, setRules, setDef, opts }: { def: Definition; setRule
     setRules({ networks: undefined, genres: undefined, decades: undefined, shows: undefined, kinds: k === 'movies' ? ['movies'] : undefined })
   }
   return (
-    <Section title={t('What it plays')}>
+    <Section title={tk('What it plays')}>
       <div className="form" style={{ maxWidth: 'none' }}>
         <label>{t('Play')}
           <select className="select" value={kind} onChange={(e) => change(e.target.value)}>
@@ -432,10 +432,10 @@ function RuleFields({ r, set, opts, compact }: { r: Rules; set: (p: Partial<Rule
 function RulesLevel({ def, setRules, setDef, opts }: { def: Definition; setRules: (p: Partial<Rules>) => void; setDef: (p: Partial<Definition>) => void; opts: EditorOptions }) {
   return (
     <>
-      <Section title={t('What it may play')} desc={t('Leave anything empty and it does not limit the channel.')}>
+      <Section title={tk('What it may play')} desc={t('Leave anything empty and it does not limit the channel.')}>
         <RuleFields r={def.rules} set={setRules} opts={opts} />
       </Section>
-      <Section title={t('How it plays')}>
+      <Section title={tk('How it plays')}>
         <div className="form" style={{ maxWidth: 'none' }}>
           <OrderPick order={def.order} onChange={(o) => setDef({ order: o })} />
           <label>{t('Shows start')}
@@ -467,7 +467,7 @@ function DayParts({ def, setDef, opts }: { def: Definition; setDef: (p: Partial<
     setDef({ blocks: [...blocks, ...parts] })
   }
   return (
-    <Section title={t('Day parts')} desc={t('Different things at different times: Saturday morning cartoons, prime time drama, a Christmas season, a weekend marathon. The rest of the day plays the rules above.')}
+    <Section title={tk('Day parts')} desc={t('Different things at different times: Saturday morning cartoons, prime time drama, a Christmas season, a weekend marathon. The rest of the day plays the rules above.')}
       actions={<>
         <button className="btn sm" onClick={addClassic}>{t('Add the classic day parts')}</button>
         <button className="btn sm" onClick={() => setDef({ blocks: [...blocks, { id: newBlockId(), name: t('Holiday season'), start: '00:00', end: '23:59', fromDate: '12-01', toDate: '12-26', rules: { genres: [] } }] })}>{t('Add a holiday block')}</button>
@@ -492,7 +492,7 @@ function TimetableLevel({ def, setDef, setRules, opts }: { def: Definition; setD
   }
   return (
     <>
-      <Section title={t('The week')} desc={t("Slots repeat every week. Time no slot covers plays the channel's rules, if it has any, or a “We'll be right back” card.")}
+      <Section title={tk('The week')} desc={t("Slots repeat every week. Time no slot covers plays the channel's rules, if it has any, or a “We'll be right back” card.")}
         actions={net ? <button className="btn sm" disabled={busy} onClick={() => void asAired()}>{t('Fill in from when {network} shows aired', { network: net })}</button> : undefined}>
         <WeekView blocks={def.blocks || []} />
         <BlockList def={def} setDef={setDef} opts={opts} />
@@ -639,13 +639,13 @@ function CommercialsSection({ def, setDef }: { def: Definition; setDef: (p: Part
   const change = (id: number, patch: Partial<CommercialPick>) => setPicks(picks.map((p) => (p.library === id ? { ...p, ...patch } : p)))
   if (libs.length === 0) {
     return (
-      <Section id="ch-commercials" title={t('Commercials')} desc={t('Your own ads between shows.')}>
+      <Section id="ch-commercials" title={tk('Commercials')} desc={t('Your own ads between shows.')}>
         <p className="muted">{t('You have no commercials library yet.')} <Link to="/settings/libraries">{t('Add one under Libraries')}</Link>. {t('Choose the kind called Commercials. You can have as many as you like: one for the 1990s, one for toys, one for each channel.')}</p>
       </Section>
     )
   }
   return (
-    <Section id="ch-commercials" title={t('Commercials')} desc={t('Play your own ads between shows and in the gaps. Use any of your commercials libraries, whole or only the videos you choose.')}>
+    <Section id="ch-commercials" title={tk('Commercials')} desc={t('Play your own ads between shows and in the gaps. Use any of your commercials libraries, whole or only the videos you choose.')}>
       <ul className="tvs-blocks">
         {libs.map((l) => {
           const p = pickOf(l.id)
@@ -713,7 +713,7 @@ function FillerSection({ def, setDef, opts }: { def: Definition; setDef: (p: Par
   const rules = f.rules
   const setF = (p: Partial<Definition['filler']>) => setDef({ filler: { ...f, ...p } })
   return (
-    <Section title={t('Other filler')} desc={t('Anything else from your files to play between shows: station idents or trailers from any library, chosen by the rules below. They never count as watched.')}>
+    <Section title={tk('Other filler')} desc={t('Anything else from your files to play between shows: station idents or trailers from any library, chosen by the rules below. They never count as watched.')}>
       <div className="form" style={{ maxWidth: 'none' }}>
         <label className="check-row"><input type="checkbox" checked={!!rules} onChange={(e) => setF({ rules: e.target.checked ? {} : undefined })} /> {t('Use filler from my files')}</label>
         {rules && (
@@ -779,7 +779,7 @@ function Preview({ def }: { def: Definition }) {
   const tag = (p: Programme) => ({ pre: t('Before'), post: t('After'), break: t('Break'), ad: t('Commercial'), between: t('Between'), pad: t('Fills gap') } as Record<string, string>)[p.role || ''] || t('Bumper')
   const fmtCut = (n: number) => (n >= 60 ? t('{m}m {s}s', { m: Math.floor(n / 60), s: n % 60 }) : t('{s}s', { s: n }))
   return (
-    <Section id="ch-schedule" title={t('What it will look like')} desc={data ? tn('The rules choose {count} title ({length}).', 'The rules choose {count} titles ({length}).', data.stats.titles, { length: fmtRuntime(data.stats.seconds) || t('no time') }) : undefined}
+    <Section id="ch-schedule" title={tk('What it will look like')} desc={data ? tn('The rules choose {count} title ({length}).', 'The rules choose {count} titles ({length}).', data.stats.titles, { length: fmtRuntime(data.stats.seconds) || t('no time') }) : undefined}
       actions={<>
         <label className="check-row tvs-inline"><input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} /> {t('Bumpers and commercials')}</label>
         <label className="tvs-inline">{t('Day')}<select className="select sm" value={day} onChange={(e) => setDay(Number(e.target.value))}>{Array.from({ length: 8 }, (_, i) => <option key={i} value={i}>{i === 0 ? t('Today') : date(Date.now() + i * 86400000, { weekday: 'long' })}</option>)}</select></label>

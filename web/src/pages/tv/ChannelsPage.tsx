@@ -86,7 +86,7 @@ function ChannelList() {
       <div className="tvc-back"><BackLink to="/tv" label={t('Guide')} /></div>
       <PageHead title={t('Channels')} desc={t('Always-on TV channels made from your library. They run all the time, like real TV: tune in and you join the show part-way through. FFmpeg only runs while someone is watching.')}
         actions={<Link className="btn primary" to="new"><IconPlus /> {t('New channel')}</Link>} />
-      <Section title={t('Your channels')} desc={list && list.length > 0 ? tn('{count} channel, {on} on the air.', '{count} channels, {on} on the air.', list.length, { on: list.filter((c) => c.enabled).length }) : undefined}>
+      <Section title={tk('Your channels')} desc={list && list.length > 0 ? tn('{count} channel, {on} on the air.', '{count} channels, {on} on the air.', list.length, { on: list.filter((c) => c.enabled).length }) : undefined}>
         {!list && <div className="center"><div className="spinner" /></div>}
         {list && list.length === 0 && <p className="muted">{t('No channels from your library yet. Press New channel, or add one of those below with one click.')}</p>}
         {list && list.length > 0 && (
@@ -105,7 +105,7 @@ function ChannelList() {
         )}
       </Section>
       {sug && sug.length > 0 && groups.length > 0 && (
-        <Section title={t('Add with one click')} desc={t('Channels your library can fill. Add puts one on the air; Change first opens it in the editor.')}>
+        <Section title={tk('Add with one click')} desc={t('Channels your library can fill. Add puts one on the air; Change first opens it in the editor.')}>
           {groups.map(({ g, items }) => (
             <div key={g} className="tvs-sug-group" role="group" aria-label={t(GROUP_NAMES[g])}>
               <div className="tvs-sug-head"><h3 className="tvs-h4">{t(GROUP_NAMES[g])}</h3>{items.length > 1 && <button className="btn sm ghost" disabled={!!busy} onClick={() => void addAll(items)}><IconPlus /> {t('Add all {count}', { count: items.length })}</button>}</div>
@@ -127,7 +127,7 @@ function ChannelList() {
         </Section>
       )}
       {sug && sug.length === 0 && <p className="muted">{t('Nothing to suggest yet. Once a TV or film library has been scanned, channels you can add with one click appear here.')}</p>}
-      <Section title={t('More')}>
+      <Section title={tk('More')}>
         <Row label={t('Network facts')} desc={t("Fills in the network and the original day and time of shows that don't have them yet, by asking your metadata services. Files are not touched. Network names are plain facts from metadata: nothing here is affiliated with, or endorsed by, any network.")}>
           <button className="btn sm" disabled={facts?.running} onClick={() => api.post<typeof facts>('/channels/networks/refresh').then(setFacts).catch((e) => toast(e.message))}>
             <IconRefresh /> {facts?.running ? t('Asking… {done} of {total}', { done: facts.done, total: facts.total }) : t('Fill in missing facts')}

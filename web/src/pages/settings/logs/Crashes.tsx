@@ -91,7 +91,7 @@ export default function Crashes({ crashes, reload, onSeen }: { crashes: Crash[];
     } catch (e: any) { toast(e.message) }
   }
   return (
-    <Section title={t('Crash reports')} desc={t('Written when the server crashes, stops without shutting down or stops answering, and when you save what just happened. They stay on this server for 90 days; the newest five keep the detail beside them. Passwords and tokens are left out.')}>
+    <Section title={tk('Crash reports')} desc={t('Written when the server crashes, stops without shutting down or stops answering, and when you save what just happened. They stay on this server for 90 days; the newest five keep the detail beside them. Passwords and tokens are left out.')}>
       {crashes.length === 0
         ? <div className="set-empty"><IconCheck size={28} /><b>{t('No crashes')}</b><p>{t('Nothing has gone wrong that needed a report.')}</p></div>
         : (

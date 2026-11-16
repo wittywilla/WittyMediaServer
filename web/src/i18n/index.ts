@@ -50,17 +50,26 @@ export const tk = <S extends string>(english: S): S => english
 export const tx = (text: string | undefined | null): string => (text ? t(text) : '')
 
 /** Loads a language's catalogues and switches the app to it. An unknown or empty code is English. */
+// loadedFor: the language whose catalogues were last loaded (or tried: a part that failed to load stays English rather
+// than being asked for again, which would redraw the app over and over). asked: the latest language asked for, so a
+// slower earlier load can't win over it.
+let loadedFor = 'en'
+let asked = ''
+
 export async function setLanguage(code: string): Promise<void> {
   const next = known(code) ? code : 'en'
-  if (next === current && (next === 'en' || Object.keys(catalogue).length)) { applyDocument(next); return }
+  asked = next
+  if (next === current && next === loadedFor) { applyDocument(next); return }
   let merged: Catalogue = {}
   if (next !== 'en') {
     const prefix = `./locales/${next}/`
     const parts = await Promise.all(Object.entries(files).filter(([p]) => p.startsWith(prefix)).map(([, load]) => load().then((m) => m.default).catch(() => ({}))))
     merged = Object.assign({}, ...parts)
   }
+  if (asked !== next) return
   catalogue = merged
   current = next
+  loadedFor = next
   try { localStorage.setItem(KEY, next) } catch { /* storage off: the server's status says it again next time */ }
   applyDocument(next)
   listeners.forEach((f) => f())

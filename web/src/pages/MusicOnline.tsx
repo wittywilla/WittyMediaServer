@@ -9,7 +9,7 @@ import { toast } from '../state'
 import { Select } from '../ui'
 import { Row, Section, Switch } from './settings/ui'
 import { TickRow } from './setup/parts'
-import { num, t, tn } from '../i18n'
+import { num, t, tk, tn } from '../i18n'
 
 // Lyrics and artist information from online. Both are off until the owner agrees, here or in
 // first-time setup, and this is where it says exactly what goes where. What's beside the music
@@ -55,7 +55,7 @@ export function MusicOnlineSettings({ s, set, on }: Draft) {
   const auto = s.karaokeAuto || 'auto'
   return (
     <div ref={box} id="lyrics">
-      <Section title={t('Lyrics and music information')} desc={t('A .lrc file beside a song and the lyrics in its tags are always used first, with nothing sent anywhere. These add what they don’t have.')} actions={<PageHelp to="lyrics-karaoke#finding-lyrics-online" />}>
+      <Section title={tk('Lyrics and music information')} desc={t('A .lrc file beside a song and the lyrics in its tags are always used first, with nothing sent anywhere. These add what they don’t have.')} actions={<PageHelp to="lyrics-karaoke#finding-lyrics-online" />}>
         <Row label={t('Find lyrics online')} badge={t('No API key needed')} desc={<>{linked(t('Timed lyrics from {LRCLIB}, a free and open database. Only when someone opens the lyrics of a song with none of its own, your server sends LRCLIB that song’s artist, title, album and length. Never a file name, or who’s listening. Answers are kept in the cache on this server, aren’t shared, and don’t go into backups. The words belong to their writers.'), { LRCLIB: <a href="https://lrclib.net" target="_blank" rel="noreferrer">LRCLIB</a> })}</>}>
           <Switch label={t('Find lyrics online')} checked={useOnline} onChange={(v) => set('lyricsOnline', v ? '1' : '0')} />
         </Row>

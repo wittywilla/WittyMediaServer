@@ -12,7 +12,7 @@ import { forgetOwnerLook } from './look'
 import { THEMES } from './tvThemes'
 import './tvsettings.css'
 import LegalNote from '../../components/LegalNote'
-import { t, tn } from '../../i18n'
+import { t, tk, tn } from '../../i18n'
 
 // Settings → Channels & tuners: library channels and WittyTV's options. Tuners, IPTV and guide data
 // are WittyTuner's own section (Settings → Live TV & tuners).
@@ -55,7 +55,7 @@ function LibraryChannels() {
   useEffect(() => { api.get<Channel[]>('/channels').then(setList).catch((e) => setErr(e.message)) }, [])
   const on = list?.filter((c) => c.enabled).length || 0
   return (
-    <Section title={t('Channels from your library')} desc={t('Always-on channels made from your films and shows. Making and changing them, and the ones suggested from your library, are on their own page.')}>
+    <Section title={tk('Channels from your library')} desc={t('Always-on channels made from your films and shows. Making and changing them, and the ones suggested from your library, are on their own page.')}>
       <Row label={t('Your channels')} desc={err ? t("The list couldn't be read: {error}", { error: err }) : list === null ? '' : list.length === 0 ? t('None yet.') : tn('{count} channel, {on} on the air.', '{count} channels, {on} on the air.', list.length, { on })}>
         <Link className="btn sm primary" to="/tv/channels"><IconEdit /> {t('Open the channel list')}</Link>
       </Row>
@@ -66,7 +66,7 @@ function LibraryChannels() {
 // Tuners, their channels and guide data are WittyTuner's own section of Settings.
 function TunersElsewhere() {
   return (
-    <Section title={t('Tuners and IPTV')} desc={t("Live TV from tuners, IPTV playlists and streams, and guide data for their channels, are WittyTuner's.")}>
+    <Section title={tk('Tuners and IPTV')} desc={t("Live TV from tuners, IPTV playlists and streams, and guide data for their channels, are WittyTuner's.")}>
       <Row label={t('Live TV & tuners')} desc={t('Add and check tuners, choose their channels, and add guide data.')}>
         <Link className="btn sm primary" to="/settings/tuners"><IconTv /> {t('Open Live TV & tuners')}</Link>
       </Row>
@@ -117,7 +117,7 @@ function Options() {
   }
   if (!s) return null
   return (
-    <Section title={t('Options')}>
+    <Section title={tk('Options')}>
       <OwnerTheme s={s} set={set} />
       <Row label={t('Pass H.264 through')} desc={t('Video the browser can already play is sent as it is. Much lighter on the machine; turn it off only if channels stutter when shows change.')}>
         <Switch checked={s.tvCopyVideo === '1'} label={t('Pass H.264 through')} onChange={(v) => void set('tvCopyVideo', v ? '1' : '0')} />

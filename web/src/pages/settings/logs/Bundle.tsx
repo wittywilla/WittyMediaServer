@@ -8,7 +8,7 @@ import { Notice } from '../../../ui'
 import { Row, Section, Switch } from '../ui'
 import { fmtSize, scrollKeys, type BundlePreview } from './types'
 import { Segmented } from '../../../ui/Choice'
-import { t, tn, tx } from '../../../i18n'
+import { t, tk, tn, tx } from '../../../i18n'
 
 const DAYS = [1, 3, 7, 14]
 const SAMPLE_LINES = 8
@@ -45,7 +45,7 @@ export default function Bundle() {
   }, [query])
   const counted = preview?.replaced ? KINDS.filter(([k]) => preview.replaced![k]) : []
   return (
-    <Section title={t('Download logs')} desc={t('One ZIP file for someone helping you: recent logs, crash reports and a summary of this server. It’s made on this server when you ask, and nothing is ever uploaded. You decide who sees it.')}>
+    <Section title={tk('Download logs')} desc={t('One ZIP file for someone helping you: recent logs, crash reports and a summary of this server. It’s made on this server when you ask, and nothing is ever uploaded. You decide who sees it.')}>
       <div className="lg-go">
         <label className="lg-go-toggle">
           <Switch checked={sanitize} onChange={setSanitize} labelledBy={toggleId} />

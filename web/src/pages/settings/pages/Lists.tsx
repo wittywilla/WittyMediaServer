@@ -5,7 +5,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { date, t, tn, tx } from '../../../i18n'
+import { date, t, tk, tn, tx } from '../../../i18n'
 import { IconMore, IconPlus } from '../../../icons'
 import { forgetPages, bump, setPreview } from '../../../sdui/client'
 import { sduiIcon } from '../../../sdui/render/icons'
@@ -77,11 +77,11 @@ export function PagesList() {
         <Button variant="primary" icon={<IconPlus size={16} />} onClick={() => setMaking({})}>{t('New page')}</Button>
       </div>
       {mine.length > 0 && (
-        <Section title={t('Yours and changed')} desc={t('Pages you made, and built-in pages you changed. Resetting a changed page brings the built-in one back.')}>
+        <Section title={tk('Yours and changed')} desc={t('Pages you made, and built-in pages you changed. Resetting a changed page brings the built-in one back.')}>
           <ul className="pe-pages">{mine.map(row)}</ul>
         </Section>
       )}
-      <Section title={t('Built-in pages')} desc={t('The pages the server comes with. Open one to change it for everyone; your version then takes its place.')}>
+      <Section title={tk('Built-in pages')} desc={t('The pages the server comes with. Open one to change it for everyone; your version then takes its place.')}>
         {builtin.length ? <ul className="pe-pages">{builtin.map(row)}</ul> : <p className="pe-pane-empty">{q ? t('No built-in page matches.') : t('Every built-in page has been changed.')}</p>}
       </Section>
       {q && !shown.length && <EmptyState title={t('No page matches')} text={t('Try its title, its ID or its kind.')} icon={sduiIcon('search')} />}
@@ -216,7 +216,7 @@ export function PresetsGallery({ presets }: { presets: Preset[] | null }) {
   if (!presets) return <p className="pe-pane-empty">{t('Loading the gallery…')}</p>
   return (
     <>
-      <Section title={t('Whole pages')} desc={t('A page ready to use. It goes into the draft, where you can change it like any other before you publish.')}>
+      <Section title={tk('Whole pages')} desc={t('A page ready to use. It goes into the draft, where you can change it like any other before you publish.')}>
         <ul className="pe-presets">
           {pages.map((p) => (
             <li key={p.id} className="pe-preset">
@@ -231,7 +231,7 @@ export function PresetsGallery({ presets }: { presets: Preset[] | null }) {
           ))}
         </ul>
       </Section>
-      <Section title={t('Sections')} desc={t('One section to drop into a page. Choose the page, and it is added at the end for you to move and change. They are also in the list when you add a section while editing a page.')}>
+      <Section title={tk('Sections')} desc={t('One section to drop into a page. Choose the page, and it is added at the end for you to move and change. They are also in the list when you add a section while editing a page.')}>
         <ul className="pe-presets">
           {sections.map((p) => {
             const fits = status.pages.filter((x) => !p.pageKinds?.length || p.pageKinds.includes(x.kind))
@@ -357,7 +357,7 @@ export function HistoryAndFiles() {
 
   return (
     <>
-      <Section title={t('History')} desc={t('Every publish is kept as a revision: the last {count} of them. Going back to one makes it what everyone gets again, as a new revision.', { count: history?.keep || 10 })}>
+      <Section title={tk('History')} desc={t('Every publish is kept as a revision: the last {count} of them. Going back to one makes it what everyone gets again, as a new revision.', { count: history?.keep || 10 })}>
         {failed && <Notice tone="danger" action={<Button size="sm" onClick={() => void load()}>{t('Try again')}</Button>}>{t('The history couldn’t be read.')}</Notice>}
         {history && (
           <ul className="pe-revisions">
@@ -376,7 +376,7 @@ export function HistoryAndFiles() {
         )}
       </Section>
 
-      <Section title={t('Compare')} desc={t('What differs between two revisions, or between what is published and the draft.')}>
+      <Section title={tk('Compare')} desc={t('What differs between two revisions, or between what is published and the draft.')}>
         <div className="pe-compare">
           <Labelled label={t('From')}><Select value={from} onChange={(e) => setFrom(e.target.value)}><option value="">{t('Choose…')}</option>{options}</Select></Labelled>
           <Labelled label={t('To')}><Select value={to} onChange={(e) => setTo(e.target.value)}><option value="current">{t('What is published now')}</option>{options}</Select></Labelled>
@@ -444,7 +444,7 @@ function Files({ onDone, onConflict }: { onDone: () => Promise<void>; onConflict
 
   return (
     <>
-      <Section title={t('Export')} desc={t('One page, or every page and the menu, as a file to keep or to bring into another server.')}>
+      <Section title={tk('Export')} desc={t('One page, or every page and the menu, as a file to keep or to bring into another server.')}>
         <div className="pe-compare">
           <Labelled label={t('What')}>
             <Select value={what} onChange={(e) => setWhat(e.target.value)}>
@@ -464,7 +464,7 @@ function Files({ onDone, onConflict }: { onDone: () => Promise<void>; onConflict
         </div>
       </Section>
 
-      <Section title={t('Import')} desc={t('A file that Export made, from this server or another. It is checked first and you are shown what it would change; then it goes into the draft, not straight to everyone.')}>
+      <Section title={tk('Import')} desc={t('A file that Export made, from this server or another. It is checked first and you are shown what it would change; then it goes into the draft, not straight to everyone.')}>
         <input ref={picker} type="file" accept="application/json,.json" hidden aria-label={t('A file exported from a server’s pages')} onChange={(e) => void chosen(e.target.files)} />
         <div className="pe-row-actions"><Button onClick={() => picker.current?.click()}>{t('Choose a file…')}</Button></div>
         {error && <Notice tone="danger">{error}</Notice>}

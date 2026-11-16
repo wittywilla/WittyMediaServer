@@ -8,7 +8,7 @@ import { IconFile, IconFolder, IconRefresh } from '../../../icons'
 import { toast } from '../../../state'
 import { Section } from '../ui'
 import { fmtAge, fmtDate, fmtSize, type LogsView } from './types'
-import { t, tn } from '../../../i18n'
+import { t, tk, tn } from '../../../i18n'
 
 // Where the logs are, how long they're kept, and the files themselves.
 export default function Files({ view, onView, reload }: { view: LogsView; onView: (v: LogsView) => void; reload: () => void }) {
@@ -21,7 +21,7 @@ export default function Files({ view, onView, reload }: { view: LogsView; onView
   const h = view.health
   return (
     <>
-      <Section title={t('Where the logs are')} desc={t('New lines go to the folder you choose. Files already written stay where they are.')}>
+      <Section title={tk('Where the logs are')} desc={t('New lines go to the folder you choose. Files already written stay where they are.')}>
         <div className="lg-dir">
           <IconFolder />
           <code>{view.dir}</code>
@@ -38,7 +38,7 @@ export default function Files({ view, onView, reload }: { view: LogsView; onView
           {tn('Files older than {count} day are deleted, and the oldest go first when the limit is reached.', 'Files older than {count} days are deleted, and the oldest go first when the limit is reached.', h.keepDays)}
         </p>
       </Section>
-      <Section title={t('Log files')} actions={<button type="button" className="btn sm ghost" onClick={reload}><IconRefresh /> {t('Refresh')}</button>}>
+      <Section title={tk('Log files')} actions={<button type="button" className="btn sm ghost" onClick={reload}><IconRefresh /> {t('Refresh')}</button>}>
         {view.files.length === 0
           ? <div className="set-empty"><IconFile size={28} /><b>{t('No log files yet')}</b><p>{t('The first one appears when the server has something to write.')}</p></div>
           : (

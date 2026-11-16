@@ -49,7 +49,7 @@ export default function WhatToLog({ view, onView }: { view: LogsView; onView: (v
   return (
     <>
       <PrivacyNote />
-      <Section title={t('Catch a problem')} desc={t('Records everything for a while, in every area and module, including the titles of what is played. Then try to make the problem happen. It stops by itself, and your settings below aren’t changed.')}>
+      <Section title={tk('Catch a problem')} desc={t('Records everything for a while, in every area and module, including the titles of what is played. Then try to make the problem happen. It stops by itself, and your settings below aren’t changed.')}>
         <Row label={t('How long')}>
           <select className="select" value={minutes} disabled={!!view.recordingUntil} onChange={(e) => setMinutes(Number(e.target.value))}>
             {[10, 30, 60, 120].map((m) => <option key={m} value={m}>{m < 60 ? tn('{count} minute', '{count} minutes', m) : tn('{count} hour', '{count} hours', m / 60)}</option>)}
@@ -57,7 +57,7 @@ export default function WhatToLog({ view, onView }: { view: LogsView; onView: (v
           <button type="button" className="btn primary" disabled={busy === 'record' || !!view.recordingUntil} onClick={() => void record()}>{view.recordingUntil ? t('Recording…') : t('Record everything')}</button>
         </Row>
       </Section>
-      <Section title={t('Keep the last minutes')} desc={t('Kept in memory only, and written down when the server stops answering, when part of it crashes, or when you press Save what just happened. Nothing is written otherwise.')}>
+      <Section title={tk('Keep the last minutes')} desc={t('Kept in memory only, and written down when the server stops answering, when part of it crashes, or when you press Save what just happened. Nothing is written otherwise.')}>
         <Row label={t('The last 10 minutes, in full detail')} desc={t('Everything every area and module says, whatever its level below, including the titles of what is played. Up to 16 MB of memory.')}>
           <Switch checked={view.flight} disabled={busy === 'flight'} label={t('Keep the last 10 minutes')} onChange={(v) => void keep('flight', v)} />
         </Row>
@@ -65,7 +65,7 @@ export default function WhatToLog({ view, onView }: { view: LogsView; onView: (v
           <Switch checked={view.trace} disabled={busy === 'trace'} label={t('Keep an execution trace')} onChange={(v) => void keep('trace', v)} />
         </Row>
       </Section>
-      <Section title={t('What to log')} desc={t('How much each part of the server writes down. Changes work straight away, with no restart. Off still records crashes. Modules can have a level of their own, under Modules.')}>
+      <Section title={tk('What to log')} desc={t('How much each part of the server writes down. Changes work straight away, with no restart. Off still records crashes. Modules can have a level of their own, under Modules.')}>
         {view.categories.map((c) => (
           <Row key={c.id} label={tx(c.label)} desc={tx(c.description)}>
             <select className="select" value={view.levels[c.id] || c.default} disabled={busy === c.id} onChange={(e) => void change(c.id, c.label, e.target.value)}>

@@ -193,7 +193,7 @@ export function BumperSection({ def, setDef, opts, id }: { def: Definition; setD
   const noGrid = !def.alignMin && !(def.blocks || []).length
   return (
     <>
-      <Section id={id} title={t('Bumpers')} desc={t('Short videos around your programmes: a station ident before each one, a sting before one particular film, a break every 15 minutes.')}>
+      <Section id={id} title={tk('Bumpers')} desc={t('Short videos around your programmes: a station ident before each one, a sting before one particular film, a break every 15 minutes.')}>
         <h3 className="tvs-h3">{t('The bumper library')}</h3>
         <p className="muted tve-sub">{t('Shared by every channel.')}</p>
         <BumperLibrary bumpers={bumpers} reload={load} />
@@ -209,7 +209,7 @@ export function BumperSection({ def, setDef, opts, id }: { def: Definition; setD
           <Button size="sm" variant="ghost" icon={<IconPlus />} onClick={() => addRule({})}>{t('Blank rule')}</Button>
         </div>
       </Section>
-      <Section id={id ? id + '-trim' : undefined} title={t('Keeping to the timetable')} desc={t('When a programme runs long, something has to give, or everything after it starts late.')}>
+      <Section id={id ? id + '-trim' : undefined} title={tk('Keeping to the timetable')} desc={t('When a programme runs long, something has to give, or everything after it starts late.')}>
         <div className="tve-trim-switch">
           <Switch checked={!!trim.on} label={t('Cut commercials short to keep to the timetable')} onChange={(v) => setTrim({ on: v })} />
           <div><b>{t('Cut commercials short to keep to the timetable')}</b><span>{t('The next programme starts on time, and the guide says when that really is.')}</span></div>

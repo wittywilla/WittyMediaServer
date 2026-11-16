@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { PageHelp } from '../../../components/HelpLink'
 import { ApiError } from '../../../api'
-import { date, t } from '../../../i18n'
+import { date, t, tk } from '../../../i18n'
 import { BackLink } from '../../../components/common'
 import { ConfirmOwner } from '../ConfirmOwner'
 import { toast } from '../../../state'
@@ -35,7 +35,7 @@ export default function OtherStores() {
       {head}
       <AddStore onAdded={reload} repairRoute={view.repairRoute} />
       <Stores stores={others} onChanged={reload} repairRoute={view.repairRoute} />
-      <Section title={t('Custom modules')} actions={<span className="set-pill">{t('In development')}</span>} desc={t('A store can already offer a different version of a module this server knows, which you choose module by module. Wholly new kinds of module are shown in the store, marked in development, and can’t be installed yet.')} >
+      <Section title={tk('Custom modules')} actions={<span className="set-pill">{t('In development')}</span>} desc={t('A store can already offer a different version of a module this server knows, which you choose module by module. Wholly new kinds of module are shown in the store, marked in development, and can’t be installed yet.')} >
         <p className="ms-note">{t('WittyTuner can’t be replaced by anyone’s version, because it’s what refuses encrypted channels, and the server couldn’t tell whether another version still did.')}</p>
       </Section>
     </div>

@@ -2,7 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { useSyncExternalStore } from 'react'
 import { LANGUAGES } from '../languages'
-import { fill, formatNumber, isRtl, lookup, pickForm, type Catalogue, type Message, type Vars } from './core'
+import { fill, formatNumber, isRtl, lookup, pickForm, templateMatcher, type Catalogue, type Message, type Vars } from './core'
 
 // The app's words in the language the server is set to (the uiLanguage setting, chosen on setup's first screen).
 //
@@ -47,7 +47,28 @@ export function tn(one: string, other: string, count: number, vars?: Vars): stri
 export const tk = <S extends string>(english: S): S => english
 
 /** Translates text that may have come from somewhere marked with tk(), or from the server: unknown text stays as it is. */
-export const tx = (text: string | undefined | null): string => (text ? t(text) : '')
+export function tx(text: string | undefined | null): string {
+  if (!text) return ''
+  if (current === 'en') return text
+  const exact = lookup(catalogue, text)
+  if (exact !== text) return exact
+  return fromServer(text)
+}
+
+// Text the server filled in before sending ("Welcome, Ana"): matched against the server catalogue's keys that still
+// have their {names}. Remembered, as the same labels are drawn again and again.
+let matcher: ((text: string) => string | undefined) | null = null
+let serverCat: Catalogue = {}
+const seen = new Map<string, string>()
+function fromServer(text: string): string {
+  const known = seen.get(text)
+  if (known !== undefined) return known
+  matcher ??= templateMatcher(serverCat, current)
+  const out = matcher(text) ?? text
+  if (seen.size > 5000) seen.clear()
+  seen.set(text, out)
+  return out
+}
 
 /** Loads a language's catalogues and switches the app to it. An unknown or empty code is English. */
 // loadedFor: the language whose catalogues were last loaded (or tried: a part that failed to load stays English rather
@@ -61,13 +82,19 @@ export async function setLanguage(code: string): Promise<void> {
   asked = next
   if (next === current && next === loadedFor) { applyDocument(next); return }
   let merged: Catalogue = {}
+  let server: Catalogue = {}
   if (next !== 'en') {
     const prefix = `./locales/${next}/`
-    const parts = await Promise.all(Object.entries(files).filter(([p]) => p.startsWith(prefix)).map(([, load]) => load().then((m) => m.default).catch(() => ({}))))
+    const mine = Object.entries(files).filter(([p]) => p.startsWith(prefix))
+    const parts = await Promise.all(mine.map(([, load]) => load().then((m) => m.default).catch(() => ({} as Catalogue))))
     merged = Object.assign({}, ...parts)
+    server = parts[mine.findIndex(([p]) => p.endsWith('/server.json'))] ?? {}
   }
   if (asked !== next) return
   catalogue = merged
+  serverCat = server
+  matcher = null
+  seen.clear()
   current = next
   loadedFor = next
   try { localStorage.setItem(KEY, next) } catch { /* storage off: the server's status says it again next time */ }

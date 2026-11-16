@@ -63,6 +63,37 @@ export function formatNumber(n: number, locale: string, opts?: Intl.NumberFormat
   return f.format(n)
 }
 
+/**
+ * Translates text the server has already filled in ("Welcome, Ana"), from catalogue keys that still have their
+ * {names} ("Welcome, {user}"): each such key becomes a pattern, and what each {name} stood for is put into the
+ * translation. Keys with almost no words of their own ("{kind} {number}") are left out, so they can't match
+ * just anything. The longest key that matches wins. Returns undefined when nothing matches.
+ */
+export function templateMatcher(cat: Catalogue, locale: string): (text: string) => string | undefined {
+  const isName = (p: string) => /^\{\w+\}$/.test(p)
+  const list: { re: RegExp; names: string[]; key: string }[] = []
+  for (const key of Object.keys(cat)) {
+    if (!key.includes('{')) continue
+    const parts = key.split(/(\{\w+\})/).filter((p) => p !== '')
+    const names = parts.filter(isName).map((p) => p.slice(1, -1))
+    const words = parts.filter((p) => !isName(p)).join('').replace(/[^\p{L}\p{N}]/gu, '')
+    if (!names.length || words.length < 4) continue
+    const source = parts.map((p) => (isName(p) ? '(.+?)' : p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))).join('')
+    list.push({ re: new RegExp(`^${source}$`, 's'), names, key })
+  }
+  list.sort((a, b) => b.key.length - a.key.length)
+  return (text) => {
+    for (const { re, names, key } of list) {
+      const m = re.exec(text)
+      if (!m) continue
+      const vars: Vars = {}
+      names.forEach((n, i) => { vars[n] = m[i + 1] })
+      return fill(lookup(cat, key), vars, locale)
+    }
+    return undefined
+  }
+}
+
 /** The languages written right to left. */
 export const RTL = new Set(['ar', 'he', 'fa', 'ur'])
 export const isRtl = (code: string) => RTL.has(code)

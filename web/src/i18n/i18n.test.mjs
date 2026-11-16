@@ -3,7 +3,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readdirSync, readFileSync } from 'node:fs'
-import { fill, lookup, pickForm, placeholders, isRtl } from './core.ts'
+import { fill, lookup, pickForm, placeholders, isRtl, templateMatcher } from './core.ts'
 import { messagesIn } from './extract.ts'
 import { LANGUAGES } from '../languages.ts'
 
@@ -22,6 +22,15 @@ test('untranslated text stays English, plural forms follow the language', () => 
   assert.equal(pickForm(ru, 5, 'ru', '', ''), '{count} фильмов')
   assert.equal(pickForm(undefined, 1, 'ru', 'one film', '{count} films'), 'one film')
   assert.ok(isRtl('ar') && isRtl('he') && !isRtl('en'))
+})
+
+test('text the server filled in is matched by its pattern', () => {
+  const m = templateMatcher({ 'Welcome, {user}': 'Bienvenue, {user}', 'New in {each}': 'Nouveau dans {each}', '{kind} {number}': '{kind} n° {number}', 'Sign in': 'Connexion' }, 'fr')
+  assert.equal(m('Welcome, Ana'), 'Bienvenue, Ana')
+  assert.equal(m('New in Movies'), 'Nouveau dans Movies')
+  assert.equal(m('Movies 2'), undefined, 'a key with almost no words of its own matches nothing')
+  assert.equal(m('Sign in'), undefined, 'keys without names are for exact lookups')
+  assert.equal(m('Something else'), undefined)
 })
 
 test('messages are found in the source', () => {

@@ -40,7 +40,8 @@ jobs:
         shell: bash
         env:
           SKIP_WEB: "1"
-          SKIP_FFMPEG: "1"
+          # With FFmpeg, as a release has: the server won't start without it, and the test runs it.
+          STRICT_FFMPEG: "1"
         run: |
           # The installer runs the server to carry a port over, so it has to be this branch's. The
           # web app doesn't matter for that: a page stands in for it.

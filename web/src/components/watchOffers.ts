@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 
+const tk = <S extends string>(english: S): S => english // marks text translated where it's shown (no i18n import: node tests load this file)
+
 // Where a title can be watched, as GET /api/media/{id}/where-to-watch answers: what this
 // library has of it (in which quality, and every version) beside the outside services that
 // offer it in a region, grouped by how (docs/METADATA.md, Where to watch). This turns the
@@ -20,8 +22,8 @@ export type WatchAnswer = {
 // The groups in the order they are shown, with the words for each: what someone already
 // pays for first, then free, then paid.
 export const WATCH_GROUPS: { type: string; title: string }[] = [
-  { type: 'stream', title: 'Stream' }, { type: 'free', title: 'Free' }, { type: 'ads', title: 'Free with adverts' },
-  { type: 'rent', title: 'Rent' }, { type: 'buy', title: 'Buy' },
+  { type: 'stream', title: tk('Stream') }, { type: 'free', title: tk('Free') }, { type: 'ads', title: tk('Free with adverts') },
+  { type: 'rent', title: tk('Rent') }, { type: 'buy', title: tk('Buy') },
 ]
 
 export type WatchProvider = { key: string; name: string; logo: string }
@@ -53,7 +55,7 @@ export function sizeWords(bytes?: number): string {
 export function copyDetail(v: WatchVersion): string {
   const disc = v.kind.startsWith('dvd') || v.kind.startsWith('bluray')
   const codec = v.videoCodec ? CODECS[v.videoCodec.toLowerCase()] || v.videoCodec.toUpperCase() : ''
-  return [v.quality, disc ? (v.kind.endsWith('-iso') ? 'Disc image' : 'Disc folder') : codec, disc ? '' : (v.container || '').split(',')[0].toUpperCase(), sizeWords(v.sizeBytes)].filter(Boolean).join(' · ')
+  return [v.quality, disc ? (v.kind.endsWith('-iso') ? tk('Disc image') : tk('Disc folder')) : codec, disc ? '' : (v.container || '').split(',')[0].toUpperCase(), sizeWords(v.sizeBytes)].filter(Boolean).join(' · ')
 }
 
 // watchView: null when there is nothing worth a section: no services, nothing to say about
@@ -62,7 +64,7 @@ export function copyDetail(v: WatchVersion): string {
 export function watchView(a: WatchAnswer | null, who: { admin: boolean }): WatchView | null {
   if (!a) return null
   const versions = a.local?.versions || []
-  const copies: WatchCopy[] = versions.map((v, i) => ({ itemId: v.itemId, name: v.label || (i === 0 ? 'This copy' : `Version ${i + 1}`), detail: copyDetail(v) }))
+  const copies: WatchCopy[] = versions.map((v, i) => ({ itemId: v.itemId, name: v.label || (i === 0 ? tk('This copy') : `Version ${i + 1}`), detail: copyDetail(v) }))
   const byType = new Map((a.groups || []).map((g) => [g.type, g.providers || []]))
   const groups = WATCH_GROUPS.map((g) => ({
     ...g,

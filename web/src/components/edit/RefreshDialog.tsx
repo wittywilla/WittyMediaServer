@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../../api'
 import { undoBatch, type MatchPreview, type Target, type TitleEditor } from '../../metadata'
 import { toast } from '../../state'
+import { t } from '../../i18n'
 import { Button, Dialog } from '../../ui'
 import LegalNote from '../LegalNote'
 import { PreviewTable } from './MatchPanel'
@@ -32,18 +33,18 @@ export default function RefreshDialog({ target, id, onClose, onChanged }: { targ
     } catch (e: any) { setErr(e.message) }
   }
   return (
-    <Dialog title="Refresh details" size="wide" onClose={onClose}
+    <Dialog title={t('Refresh details')} size="wide" onClose={onClose}
       actions={undo
         ? <>
-            <Button variant="ghost" onClick={() => undoBatch(undo).then(() => { toast('Undone'); onChanged(); onClose() }).catch((e) => setErr(e.message))}>Undo</Button>
-            <Button variant="primary" autoFocus onClick={onClose}>Done</Button>
+            <Button variant="ghost" onClick={() => undoBatch(undo).then(() => { toast(t('Undone')); onChanged(); onClose() }).catch((e) => setErr(e.message))}>{t('Undo')}</Button>
+            <Button variant="primary" autoFocus onClick={onClose}>{t('Done')}</Button>
           </>
-        : !p && err ? <Button variant="ghost" onClick={onClose}>Close</Button> : undefined}>
+        : !p && err ? <Button variant="ghost" onClick={onClose}>{t('Close')}</Button> : undefined}>
       {err && <div className="error" role="alert">{err}</div>}
-      {undo ? <p role="status">Updated.</p>
+      {undo ? <p role="status">{t('Updated.')}</p>
         : !p ? (err ? null : <div className="loading-box"><div className="spinner" /></div>)
         : <>
-            <PreviewTable p={p} picked={picked} setPicked={setPicked} onApply={apply} onBack={onClose} applyLabel={p.changes.length ? 'Update it' : 'Look again anyway'} />
+            <PreviewTable p={p} picked={picked} setPicked={setPicked} onApply={apply} onBack={onClose} applyLabel={p.changes.length ? t('Update it') : t('Look again anyway')} />
             <LegalNote kind="webResults" />
           </>}
     </Dialog>

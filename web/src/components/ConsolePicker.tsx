@@ -5,6 +5,7 @@
 // games library can't be made anyway.
 import { useEffect, useState } from 'react'
 import { api } from '../api'
+import { t } from '../i18n'
 
 type Console = { id: string; name: string; short: string; unavailable?: string; bios?: { file: string; for: string; required: boolean }[] }
 
@@ -28,13 +29,13 @@ function useConsoles() {
 export function ConsolePicker({ value, onChange }: { value: string; onChange: (id: string, name: string) => void }) {
   const consoles = useConsoles()
   return (
-    <label className="oobe-field">Console
+    <label className="oobe-field">{t('Console')}
       <select className="select" value={value} onChange={(e) => {
         const id = e.target.value
-        onChange(id, id === 'auto' ? 'Games' : consoles.find((c) => c.id === id)?.short || id)
+        onChange(id, id === 'auto' ? t('Games') : consoles.find((c) => c.id === id)?.short || id)
       }}>
-        <option value="auto">Many consoles in one folder (sorted by folder and file type)</option>
-        {consoles.map((c) => <option key={c.id} value={c.id}>{c.name}{c.unavailable ? ' (listed only, not playable yet)' : ''}</option>)}
+        <option value="auto">{t('Many consoles in one folder (sorted by folder and file type)')}</option>
+        {consoles.map((c) => <option key={c.id} value={c.id}>{c.unavailable ? t('{console} (listed only, not playable yet)', { console: c.name }) : c.name}</option>)}
       </select>
     </label>
   )
@@ -49,10 +50,12 @@ export function BiosHint({ console: id }: { console: string }) {
   return (
     <p className="muted game-bios-hint">
       {required
-        ? <><b>{c!.name} games need a BIOS</b>: a file such as <code>{required.file}</code>, from a console you own.{' '}</>
-        : <>Some consoles need a BIOS file from a console you own.{' '}</>}
-      Put BIOS files in a folder named <code>BIOS</code> inside {c ? <>your {c.short} games folder</> : <>each console’s games folder</>}, such as <code>{c ? c.short : 'PS2'}/BIOS</code>.
-      Folders inside it are fine. It’s never listed as a game, and the server picks up what it needs when you press Play.
+        ? t('{console} games need a BIOS: a file such as {file}, from a console you own.', { console: c!.name, file: required.file })
+        : t('Some consoles need a BIOS file from a console you own.')}{' '}
+      {c
+        ? t('Put BIOS files in a folder named {folder} inside your {console} games folder, such as {path}.', { folder: 'BIOS', console: c.short, path: c.short + '/BIOS' })
+        : t('Put BIOS files in a folder named {folder} inside each console’s games folder, such as {path}.', { folder: 'BIOS', path: 'PS2/BIOS' })}{' '}
+      {t('Folders inside it are fine. It’s never listed as a game, and the server picks up what it needs when you press Play.')}
     </p>
   )
 }

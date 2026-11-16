@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, serverBase, setToken, type User } from '../api'
 import { useApp } from '../state'
+import { t, tk, tx } from '../i18n'
 import { isBackKey } from '../ui/spatial'
 import { approveLink, browserName, clock, onlyThisDevice, pinGroups, serverClockOffset, typedAddress } from './pairing'
 import SpecPage from '../spec/SpecPage'
@@ -16,10 +17,10 @@ type Started = {
 type Ended = 'expired' | 'denied' | 'locked' | 'failed'
 
 const ENDINGS: Record<Ended, string> = {
-  expired: 'That took too long, so the code has expired.',
-  denied: 'The sign-in was refused on the other device.',
-  locked: 'Too many wrong PINs were typed, so this code was ended.',
-  failed: "This device couldn't ask the server for a code.",
+  expired: tk('That took too long, so the code has expired.'),
+  denied: tk('The sign-in was refused on the other device.'),
+  locked: tk('Too many wrong PINs were typed, so this code was ended.'),
+  failed: tk("This device couldn't ask the server for a code."),
 }
 
 // This device signs in by being approved from one that already is: it shows a QR
@@ -100,8 +101,8 @@ export function PairDevice({ onBack }: { onBack: () => void }) {
 
   const handled = new Set(['again', 'back'])
   const act = (id: string) => { if (id === 'again') start(); else if (id === 'back') onBack() }
-  if (ended) return <SpecPage page={phoneEndedSpec(ENDINGS[ended], why)} handled={handled} onAction={act} />
-  if (!s) return <div className="loading-box" role="status" aria-label="Getting a code"><div className="spinner" /></div>
+  if (ended) return <SpecPage page={phoneEndedSpec(tx(ENDINGS[ended]), why)} handled={handled} onAction={act} />
+  if (!s) return <div className="loading-box" role="status" aria-label={t('Getting a code')}><div className="spinner" /></div>
   const pinLeft = Math.max(0, Math.ceil(pin.until - now))
   const left = s.expiresAt - now
   // A web address a phone's camera opens: the server's own when it knows it, else where this
@@ -114,8 +115,8 @@ export function PairDevice({ onBack }: { onBack: () => void }) {
     <div className="pair-device">
       <SpecPage page={page} handled={handled} onAction={act} />
       {/* The PIN is read out when it changes, once a screen reader has it. */}
-      <p className="sr-only" aria-live="polite" aria-atomic="true">PIN {pin.pin.split('').join(' ')}</p>
-      <progress className="pair-countdown" max={s.period} value={pinLeft} aria-label="Time until the PIN changes" />
+      <p className="sr-only" aria-live="polite" aria-atomic="true">{t('PIN {pin}', { pin: pin.pin.split('').join(' ') })}</p>
+      <progress className="pair-countdown" max={s.period} value={pinLeft} aria-label={t('Time until the PIN changes')} />
     </div>
   )
 }

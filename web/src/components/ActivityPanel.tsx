@@ -8,6 +8,7 @@ import SpecPage from '../spec/SpecPage'
 import { handledIds, withIds } from '../spec/model'
 import { activitySpec } from '../spec/specs/activity'
 import { Button, EmptyState, IconButton, LinkButton, LoadError, Notice, Progress, Sheet, Spinner, Tabs, ask, toast } from '../ui'
+import { t, tn, tx } from '../i18n'
 
 // The panel behind the activity button: what's going on, library by library, and what
 // happened lately, with errors a person can act on. A sheet on phones.
@@ -24,12 +25,12 @@ export default function ActivityPanel({ onClose }: { onClose: () => void }) {
   const upAt = notices.sections.findIndex((x) => x.h === 'Update available')
   const count = (n: number) => (n ? <span className="act-tab-n">{n}</span> : null)
   return (
-    <Sheet title="Activity" onClose={onClose} className="act-sheet" actions={a.access.readOnly ? undefined : (
-      <LinkButton to="/settings/activity" variant="ghost" size="sm" icon={<IconSettings size={16} />} onClick={onClose}>Activity settings</LinkButton>
+    <Sheet title={t('Activity')} onClose={onClose} className="act-sheet" actions={a.access.readOnly ? undefined : (
+      <LinkButton to="/settings/activity" variant="ghost" size="sm" icon={<IconSettings size={16} />} onClick={onClose}>{t('Activity settings')}</LinkButton>
     )}>
-      <Tabs label="Activity" value={tab} onChange={setTab} panelId={panel} items={[{ value: 'now', label: 'Now', badge: count(going) }, { value: 'history', label: 'History' }]} />
+      <Tabs label={t('Activity')} value={tab} onChange={setTab} panelId={panel} items={[{ value: 'now', label: t('Now'), badge: count(going) }, { value: 'history', label: t('History') }]} />
       <div id={panel} role="tabpanel" className="act-body">
-        {notices.sections.length > 0 && <SpecPage embedded page={notices} after={upAt >= 0 ? { [upAt]: <LinkButton to="/settings/about#updates" size="sm" onClick={onClose}>What’s new</LinkButton> } : undefined} />}
+        {notices.sections.length > 0 && <SpecPage embedded page={notices} after={upAt >= 0 ? { [upAt]: <LinkButton to="/settings/about#updates" size="sm" onClick={onClose}>{t('What’s new')}</LinkButton> } : undefined} />}
         {tab === 'now' ? <Now tasks={a.tasks} /> : <History recent={a.recent} readOnly={a.access.readOnly} />}
       </div>
     </Sheet>
@@ -38,23 +39,23 @@ export default function ActivityPanel({ onClose }: { onClose: () => void }) {
 
 // Grouped by library, with the server's own work after them.
 function Now({ tasks }: { tasks: Task[] }) {
-  if (!tasks.length) return <EmptyState icon={<IconCheck />} title="Nothing going on" text="Library scans and other background work show up here while they run." />
+  if (!tasks.length) return <EmptyState icon={<IconCheck />} title={t('Nothing going on')} text={t('Library scans and other background work show up here while they run.')} />
   const groups = new Map<string, Task[]>()
-  for (const t of tasks) {
-    const name = t.libraryName || ''
-    groups.set(name, [...(groups.get(name) ?? []), t])
+  for (const task of tasks) {
+    const name = task.libraryName || ''
+    groups.set(name, [...(groups.get(name) ?? []), task])
   }
   const named = [...groups.keys()].filter(Boolean).sort((x, y) => x.localeCompare(y))
   return (
     <>
       {[...named, ...(groups.has('') ? [''] : [])].map((name) => {
         const list = groups.get(name)!
-        const known = list.filter((t) => t.percent >= 0)
-        const pct = known.length ? known.reduce((n, t) => n + t.percent, 0) / known.length : -1
+        const known = list.filter((task) => task.percent >= 0)
+        const pct = known.length ? known.reduce((n, task) => n + task.percent, 0) / known.length : -1
         return (
-          <section key={name} className="act-group" aria-label={name || 'This server'}>
-            <h3><span>{name || 'This server'}</span>{pct >= 0 && <span className="act-group-pct">{Math.round(pct)}%</span>}</h3>
-            <ul className="act-list">{list.map((t) => <li key={t.id}><LiveTask task={t} /></li>)}</ul>
+          <section key={name} className="act-group" aria-label={name || t('This server')}>
+            <h3><span>{name || t('This server')}</span>{pct >= 0 && <span className="act-group-pct">{Math.round(pct)}%</span>}</h3>
+            <ul className="act-list">{list.map((task) => <li key={task.id}><LiveTask task={task} /></li>)}</ul>
           </section>
         )
       })}
@@ -62,43 +63,43 @@ function Now({ tasks }: { tasks: Task[] }) {
   )
 }
 
-function useAct(t: Task) {
+function useAct(task: Task) {
   const [busy, setBusy] = useState(false)
   const run = async (action: 'pause' | 'resume' | 'cancel' | 'retry') => {
     setBusy(true)
-    try { await taskAction(t.id, action) } catch (e) { toast((e as Error).message) } finally { setBusy(false) }
+    try { await taskAction(task.id, action) } catch (e) { toast((e as Error).message) } finally { setBusy(false) }
   }
   return { busy, run }
 }
 
-function LiveTask({ task: t }: { task: Task }) {
-  const { busy, run } = useAct(t)
-  const facts = [fmtCount(t), fmtRate(t), t.etaSec ? `about ${fmtDuration(t.etaSec)} left` : ''].filter(Boolean)
-  const waiting = t.state === 'queued'
+function LiveTask({ task }: { task: Task }) {
+  const { busy, run } = useAct(task)
+  const facts = [fmtCount(task), fmtRate(task), task.etaSec ? t('about {time} left', { time: fmtDuration(task.etaSec) }) : ''].filter(Boolean)
+  const waiting = task.state === 'queued'
   return (
     <article className="act-task">
       <div className="act-task-head">
         <div>
-          <div className="act-title">{t.title}</div>
-          <div className="act-sub">{[typeName(t.type), t.source, t.by && `started by ${t.by}`, `started ${fmtAgo(t.startedAt)}`].filter(Boolean).join(' · ')}</div>
+          <div className="act-title">{task.title}</div>
+          <div className="act-sub">{[tx(typeName(task.type)), task.source, task.by && t('started by {name}', { name: task.by }), t('started {when}', { when: fmtAgo(task.startedAt) })].filter(Boolean).join(' · ')}</div>
         </div>
         {/* Asked to pause, and carrying on to the next point it can stop at. */}
-        <span className={'act-state ' + t.state}>{t.state === 'running' && t.canResume ? 'Pausing…' : STATE_NAMES[t.state]}</span>
+        <span className={'act-state ' + task.state}>{task.state === 'running' && task.canResume ? t('Pausing…') : tx(STATE_NAMES[task.state])}</span>
       </div>
-      {t.state === 'paused' || waiting
-        ? <Progress label={t.title} value={t.percent >= 0 ? t.percent : 0} />
-        : <Progress label={t.title} value={t.percent >= 0 ? t.percent : undefined} showValue />}
-      {!!t.steps?.length && <Steps task={t} />}
-      {t.phase && t.phase !== t.steps?.[(t.step ?? 0) - 1] && <div className="act-phase">{t.phase}</div>}
+      {task.state === 'paused' || waiting
+        ? <Progress label={task.title} value={task.percent >= 0 ? task.percent : 0} />
+        : <Progress label={task.title} value={task.percent >= 0 ? task.percent : undefined} showValue />}
+      {!!task.steps?.length && <Steps task={task} />}
+      {task.phase && task.phase !== task.steps?.[(task.step ?? 0) - 1] && <div className="act-phase">{tx(task.phase)}</div>}
       {facts.length > 0 && <div className="act-facts">{facts.join(' · ')}</div>}
-      {t.item && <div className="act-item" title={t.path || t.item}>{t.item}</div>}
-      {t.path && t.path !== t.item && <div className="act-path">{t.path}</div>}
-      {!!t.problemCount && <Problems task={t} />}
-      {(t.canPause || t.canResume || t.canCancel) && (
+      {task.item && <div className="act-item" title={task.path || task.item}>{task.item}</div>}
+      {task.path && task.path !== task.item && <div className="act-path">{task.path}</div>}
+      {!!task.problemCount && <Problems task={task} />}
+      {(task.canPause || task.canResume || task.canCancel) && (
         <div className="act-controls">
-          {t.canPause && <Button size="sm" disabled={busy} icon={<IconPause size={16} />} aria-label={`Pause ${t.title}`} onClick={() => run('pause')}>Pause</Button>}
-          {t.canResume && <Button size="sm" disabled={busy} icon={<IconPlay size={16} />} aria-label={`Resume ${t.title}`} onClick={() => run('resume')}>Resume</Button>}
-          {t.canCancel && <Button size="sm" variant="ghost" disabled={busy} icon={<IconStop size={16} />} aria-label={`Cancel ${t.title}`} onClick={() => run('cancel')}>Cancel</Button>}
+          {task.canPause && <Button size="sm" disabled={busy} icon={<IconPause size={16} />} aria-label={t('Pause {title}', { title: task.title })} onClick={() => run('pause')}>{t('Pause')}</Button>}
+          {task.canResume && <Button size="sm" disabled={busy} icon={<IconPlay size={16} />} aria-label={t('Resume {title}', { title: task.title })} onClick={() => run('resume')}>{t('Resume')}</Button>}
+          {task.canCancel && <Button size="sm" variant="ghost" disabled={busy} icon={<IconStop size={16} />} aria-label={t('Cancel {title}', { title: task.title })} onClick={() => run('cancel')}>{t('Cancel')}</Button>}
         </div>
       )}
     </article>
@@ -106,36 +107,36 @@ function LiveTask({ task: t }: { task: Task }) {
 }
 
 // The phases of one bar, so it's plain why it doesn't start again at each.
-function Steps({ task: t }: { task: Task }) {
-  const on = t.step ?? 0
+function Steps({ task }: { task: Task }) {
+  const on = task.step ?? 0
   return (
-    <ol className="act-steps" aria-label="Steps">
-      {t.steps!.map((s, i) => (
+    <ol className="act-steps" aria-label={t('Steps')}>
+      {task.steps!.map((s, i) => (
         <li key={i} className={i + 1 < on ? 'done' : i + 1 === on ? 'on' : undefined} aria-current={i + 1 === on ? 'step' : undefined}>
-          {i + 1 < on && <IconCheck size={14} />}{s}{i + 1 < on && <span className="sr-only">, done</span>}
+          {i + 1 < on && <IconCheck size={14} />}{tx(s)}{i + 1 < on && <span className="sr-only">{t(', done')}</span>}
         </li>
       ))}
     </ol>
   )
 }
 
-function Problems({ task: t }: { task: Task }) {
-  const n = t.problemCount ?? 0
-  const words = n === 1 ? '1 problem' : `${n.toLocaleString()} problems`
-  if (!t.problems?.length) return <div className="act-problem-n"><IconInfo size={16} /> {words}</div>
-  const kept = t.problems.length
+function Problems({ task }: { task: Task }) {
+  const n = task.problemCount ?? 0
+  const words = tn('{count} problem', '{count} problems', n)
+  if (!task.problems?.length) return <div className="act-problem-n"><IconInfo size={16} /> {words}</div>
+  const kept = task.problems.length
   return (
     <details className="act-problems">
       <summary><IconInfo size={16} /> {words}</summary>
       <ul>
-        {t.problems.map((p, i) => (
+        {task.problems.map((p, i) => (
           <li key={i}>
             {p.item && <div className="act-path">{p.item}</div>}
-            <div>{p.message}{p.count && p.count > 1 ? ` (${p.count.toLocaleString()} times)` : ''}</div>
+            <div>{tx(p.message)}{p.count && p.count > 1 ? ' ' + t('({count} times)', { count: p.count }) : ''}</div>
           </li>
         ))}
       </ul>
-      {n > kept && <p className="act-more">The first {kept} are shown here. WittyLog has the rest.</p>}
+      {n > kept && <p className="act-more">{t('The first {count} are shown here. WittyLog has the rest.', { count: kept })}</p>}
     </details>
   )
 }
@@ -157,10 +158,10 @@ function History({ recent, readOnly }: { recent: Task[]; readOnly: boolean }) {
   // Again whenever something finishes, which is when there's something new to read.
   const newest = recent[0]?.id
   useEffect(() => { load() }, [only, newest]) // eslint-disable-line react-hooks/exhaustive-deps
-  if (failed) return <LoadError what="The history" onRetry={() => load()} />
+  if (failed) return <LoadError what={t('The history')} onRetry={() => load()} />
   if (!rows) return <Spinner />
   const clearAll = async () => {
-    if (!await ask({ title: 'Clear the activity history?', body: 'What happened stops being listed here. WittyLog keeps its own record, and anything going on now carries on.', confirm: 'Clear history', danger: true })) return
+    if (!await ask({ title: t('Clear the activity history?'), body: t('What happened stops being listed here. WittyLog keeps its own record, and anything going on now carries on.'), confirm: t('Clear history'), danger: true })) return
     try { await clearTaskHistory(); setRows([]); setMore(false) } catch (e) { toast((e as Error).message) }
   }
   const bar = activitySpec({ tab: 'history', connected: true, loaded: true, readOnly, update: '', isAdmin: false, failedOnly: only, canClear: !readOnly && rows.length > 0 })
@@ -169,39 +170,39 @@ function History({ recent, readOnly }: { recent: Task[]; readOnly: boolean }) {
     <>
       <SpecPage embedded page={bar} handled={barIds} onAction={(id) => { if (id === 'show:all') setOnly(false); else if (id === 'show:failed') setOnly(true); else if (id === 'clear') void clearAll() }} />
       {rows.length === 0
-        ? <EmptyState icon={<IconCheck />} title={only ? 'Nothing has failed' : 'No history yet'} text={only ? 'Anything that fails is listed here with what to do about it.' : 'Finished work is listed here.'} />
-        : <ul className="act-list">{rows.map((t) => <li key={t.id}><PastTask task={t} readOnly={readOnly} onRemoved={() => setRows((r) => r!.filter((x) => x.id !== t.id))} /></li>)}</ul>}
-      {more && <div className="act-load-more"><Button size="sm" onClick={() => load(rows[rows.length - 1].finishedAt)}>Show more</Button></div>}
+        ? <EmptyState icon={<IconCheck />} title={only ? t('Nothing has failed') : t('No history yet')} text={only ? t('Anything that fails is listed here with what to do about it.') : t('Finished work is listed here.')} />
+        : <ul className="act-list">{rows.map((task) => <li key={task.id}><PastTask task={task} readOnly={readOnly} onRemoved={() => setRows((r) => r!.filter((x) => x.id !== task.id))} /></li>)}</ul>}
+      {more && <div className="act-load-more"><Button size="sm" onClick={() => load(rows[rows.length - 1].finishedAt)}>{t('Show more')}</Button></div>}
     </>
   )
 }
 
-function PastTask({ task: t, readOnly, onRemoved }: { task: Task; readOnly: boolean; onRemoved: () => void }) {
-  const { busy, run } = useAct(t)
-  const took = t.finishedAt && t.startedAt ? t.finishedAt - t.startedAt : 0
+function PastTask({ task, readOnly, onRemoved }: { task: Task; readOnly: boolean; onRemoved: () => void }) {
+  const { busy, run } = useAct(task)
+  const took = task.finishedAt && task.startedAt ? task.finishedAt - task.startedAt : 0
   const remove = async () => {
-    try { await clearTaskHistory(t.id); onRemoved() } catch (e) { toast((e as Error).message) }
+    try { await clearTaskHistory(task.id); onRemoved() } catch (e) { toast((e as Error).message) }
   }
   return (
     <article className="act-task">
       <div className="act-task-head">
         <div>
-          <div className="act-title">{t.title}</div>
-          <div className="act-sub">{[t.finishedAt ? fmtAgo(t.finishedAt) : '', took > 0 ? `took ${fmtDuration(took)}` : '', t.by && `started by ${t.by}`].filter(Boolean).join(' · ')}</div>
+          <div className="act-title">{task.title}</div>
+          <div className="act-sub">{[task.finishedAt ? fmtAgo(task.finishedAt) : '', took > 0 ? t('took {time}', { time: fmtDuration(took) }) : '', task.by && t('started by {name}', { name: task.by })].filter(Boolean).join(' · ')}</div>
         </div>
-        <span className={'act-state ' + t.state}>
-          {t.state === 'done' ? <IconCheck size={14} /> : t.state === 'failed' ? <IconClose size={14} /> : t.state === 'cancelled' ? <IconStop size={14} /> : null}
-          {STATE_NAMES[t.state]}
+        <span className={'act-state ' + task.state}>
+          {task.state === 'done' ? <IconCheck size={14} /> : task.state === 'failed' ? <IconClose size={14} /> : task.state === 'cancelled' ? <IconStop size={14} /> : null}
+          {tx(STATE_NAMES[task.state])}
         </span>
       </div>
-      {t.result && <div className="act-facts">{t.result}</div>}
-      {t.error && <Notice tone="danger" title={t.error}>{t.fix}</Notice>}
-      {t.detail && <details className="act-detail"><summary>Technical details</summary><code>{t.detail}</code></details>}
-      {!!t.problemCount && <Problems task={t} />}
+      {task.result && <div className="act-facts">{task.result}</div>}
+      {task.error && <Notice tone="danger" title={tx(task.error)}>{tx(task.fix)}</Notice>}
+      {task.detail && <details className="act-detail"><summary>{t('Technical details')}</summary><code>{task.detail}</code></details>}
+      {!!task.problemCount && <Problems task={task} />}
       {!readOnly && (
         <div className="act-controls">
-          {t.canRetry && <Button size="sm" disabled={busy} icon={<IconRefresh size={16} />} aria-label={`Try ${t.title} again`} onClick={() => run('retry')}>{t.type === 'scan' ? 'Scan again' : 'Try again'}</Button>}
-          <IconButton size="sm" label={`Remove ${t.title} from the history`} onClick={remove}><IconTrash size={16} /></IconButton>
+          {task.canRetry && <Button size="sm" disabled={busy} icon={<IconRefresh size={16} />} aria-label={t('Try {title} again', { title: task.title })} onClick={() => run('retry')}>{task.type === 'scan' ? t('Scan again') : t('Try again')}</Button>}
+          <IconButton size="sm" label={t('Remove {title} from the history', { title: task.title })} onClick={remove}><IconTrash size={16} /></IconButton>
         </div>
       )}
     </article>

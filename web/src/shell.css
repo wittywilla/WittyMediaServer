@@ -26,22 +26,22 @@
 /* The search sits on the right, next to the account; the account is always
    at the far right edge, whatever is shown. */
 .app.nav-top .topbar .search { flex: 0 1 300px; min-width: 200px; max-width: 300px; }
-.topbar .profile-menu { margin-left: auto; }
+.topbar .profile-menu { margin-inline-start: auto; }
 /* Between tablet and laptop widths the links need the room: the search is a
    round button that opens across the bar while it is in use. */
 @media (min-width: 701px) and (max-width: 1180px) {
   .app.nav-top .topbar .search { flex: none; width: 40px; min-width: 40px; }
   .app.nav-top .topbar .search input { height: 40px; padding: 0 0 0 40px; cursor: pointer; background: var(--bg-3); }
   .app.nav-top .topbar .search input::placeholder { color: transparent; }
-  .app.nav-top .topbar .search:focus-within { position: absolute; left: 16px; right: 70px; width: auto; max-width: none; z-index: 3; }
-  .app.nav-top .topbar .search:focus-within input { padding-right: 16px; cursor: text; box-shadow: var(--e-3); }
+  .app.nav-top .topbar .search:focus-within { position: absolute; inset-inline: 16px 70px; width: auto; max-width: none; z-index: 3; }
+  .app.nav-top .topbar .search:focus-within input { padding-inline-end: 16px; cursor: text; box-shadow: var(--e-3); }
   .app.nav-top .topbar .search:focus-within input::placeholder { color: var(--fg-3); }
 }
 
 /* ---------------------------------------------------------------- account menu */
 .profile-menu { position: relative; flex: none; }
 .avatar-btn { background: none; border: 0; padding: 0; border-radius: var(--r-full); display: flex; align-items: center; gap: 10px; color: var(--fg); max-width: 220px; }
-.avatar-name { font-weight: 600; font-size: var(--text-md); padding-left: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.avatar-name { font-weight: 600; font-size: var(--text-md); padding-inline-start: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .avatar-btn:hover .avatar-name, .avatar-btn[aria-expanded="true"] .avatar-name { color: var(--accent-text); }
 @media (max-width: 760px) { .avatar-name { display: none; } }
 .avatar-btn .avatar-tile { width: 36px; height: 36px; font-size: var(--text-base); font-weight: 700; border-radius: 50%; transition: box-shadow var(--dur-2); }
@@ -60,7 +60,7 @@
   .nav-rail .sidebar .brand { justify-content: center; padding-inline: 0; }
   .nav-rail .nav-link { justify-content: center; padding: 0; min-height: var(--sp-12); position: relative; }
   .nav-rail .nav-link svg { width: var(--sp-6); height: var(--sp-6); }
-  .nav-rail .nav-link .upd-dot { position: absolute; top: var(--sp-2); right: var(--sp-3); margin: 0; }
+  .nav-rail .nav-link .upd-dot { position: absolute; top: var(--sp-2); inset-inline-end: var(--sp-3); margin: 0; }
   .nav-rail .nav-group { display: grid; gap: inherit; margin-top: var(--sp-2); padding-top: var(--sp-2); border-top: 1px solid var(--border); }
 }
 @media (min-width: 1000px) {
@@ -79,7 +79,7 @@
   .topbar { padding-block: var(--sp-1); gap: var(--sp-2); }
   /* Sections take the top of the screen; search and the account are on the bar. */
   .topnav, .topbar .menu-toggle, .topbar .search, .topbar .profile-menu, .topbar .spacer { display: none; }
-  .section-row { display: flex; flex: 1 1 0; min-width: 0; gap: var(--sp-5); margin-left: calc(-1 * var(--gutter)); padding-inline: var(--gutter) var(--sp-5); overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
+  .section-row { display: flex; flex: 1 1 0; min-width: 0; gap: var(--sp-5); margin-inline-start: calc(-1 * var(--gutter)); padding-inline: var(--gutter) var(--sp-5); overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
   .section-row::-webkit-scrollbar { display: none; }
   .section-row a { flex: none; display: inline-flex; align-items: center; min-height: 2.75rem; color: var(--fg-2); font-size: var(--text-base); font-weight: 700; white-space: nowrap; }
   .section-row a.active { color: var(--fg); box-shadow: inset 0 -2px var(--accent-text); }
@@ -89,12 +89,12 @@
   .phone-brand .brand-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-md); }
   .phone-brand .brand-name * { white-space: nowrap; }
   @media (max-width: 359px) { .phone-brand .brand-name { display: none; } }
-  .section-row { margin-left: 0; padding-inline: var(--sp-4) var(--sp-5); scroll-snap-type: x proximity; scroll-padding-inline: var(--sp-4) var(--sp-5); }
+  .section-row { margin-inline-start: 0; padding-inline: var(--sp-4) var(--sp-5); scroll-snap-type: x proximity; scroll-padding-inline: var(--sp-4) var(--sp-5); }
   .section-row a { scroll-snap-align: start; }
   /* The row fades out at its end, before the activity button, so a name is never cut off by it. */
   .section-row { -webkit-mask-image: linear-gradient(90deg, transparent, #000 var(--sp-4), #000 calc(100% - var(--sp-10)), transparent); mask-image: linear-gradient(90deg, transparent, #000 var(--sp-4), #000 calc(100% - var(--sp-10)), transparent); } /* design-ok: a mask only reads how solid it is */
   /* Below a tab's first page: Back in the row's place, and the activity button at the far end. */
-  .top-back { position: relative; display: grid; place-items: center; flex: none; width: 40px; height: 40px; margin-right: auto; padding: 0; border: 0; border-radius: 50%; background: rgb(var(--bg-rgb) / .7); color: var(--fg); transition: transform var(--dur-1); }
+  .top-back { position: relative; display: grid; place-items: center; flex: none; width: 40px; height: 40px; margin-inline-end: auto; padding: 0; border: 0; border-radius: 50%; background: rgb(var(--bg-rgb) / .7); color: var(--fg); transition: transform var(--dur-1); }
   .top-back::after { content: ''; position: absolute; inset: -2px; border-radius: 50%; } /* a 44 target around the 40 circle */
   .top-back:active { transform: scale(.975); }
   .topbar .act-btn { width: 40px; height: 40px; min-height: 40px; border-color: transparent; border-radius: 50%; background: rgb(var(--bg-rgb) / .7); }
@@ -134,7 +134,7 @@
   .tabbar svg { width: var(--sp-6); height: var(--sp-6); }
   .tabbar a.active { background: var(--accent-soft); color: var(--accent-text); }
   .tabbar .avatar-tile { width: var(--sp-8); height: var(--sp-8); font-size: var(--text-sm); font-weight: 700; border-radius: 50%; }
-  .tabbar .upd-dot { position: absolute; top: var(--sp-1); right: calc(50% - var(--sp-5)); margin: 0; }
+  .tabbar .upd-dot { position: absolute; top: var(--sp-1); inset-inline-end: calc(50% - var(--sp-5)); margin: 0; }
   .app .content { padding-bottom: calc(var(--sp-6) + var(--tabbar-space) + var(--dock-space)); }
   /* The mini player sits above the bar. */
   .player.mini { bottom: calc(var(--tabbar-space) + var(--sp-2)) !important; }
@@ -153,8 +153,8 @@ html[data-app] { --overlay-foot: var(--tabbar-space); }
 .search-page-box { display: none; }
 @media (max-width: 700px) {
   .search-page-box { display: flex; position: relative; align-items: center; margin-bottom: var(--sp-4); }
-  .search-page-box svg { position: absolute; left: var(--sp-3); width: var(--sp-5); height: var(--sp-5); color: var(--fg-3); pointer-events: none; }
-  .search-page-box input { width: 100%; padding-left: var(--sp-10); }
+  .search-page-box svg { position: absolute; inset-inline-start: var(--sp-3); width: var(--sp-5); height: var(--sp-5); color: var(--fg-3); pointer-events: none; }
+  .search-page-box input { width: 100%; padding-inline-start: var(--sp-10); }
 }
 
 /* Comfortable touch targets on coarse pointers (the control sizes in styles.css follow too). */
@@ -195,11 +195,11 @@ html[data-app] { --overlay-foot: var(--tabbar-space); }
 .nav-custom-foot { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
 /* Phones have one layout, so there's nothing to choose between. */
 @media (max-width: 700px) { .layout-opts { display: none; } .nav-custom { margin-top: 0; } }
-@media (max-width: 600px) { .nav-custom-row { flex-wrap: wrap; } .nav-custom-name { flex-basis: calc(100% - var(--control-h) - var(--sp-3)); } .nav-custom-row .select { flex: 1 1 6rem; } .nav-custom-move { margin-left: auto; } }
+@media (max-width: 600px) { .nav-custom-row { flex-wrap: wrap; } .nav-custom-name { flex-basis: calc(100% - var(--control-h) - var(--sp-3)); } .nav-custom-row .select { flex: 1 1 6rem; } .nav-custom-move { margin-inline-start: auto; } }
 
 /* ---------------------------------------------------------------- choosing a theme */
 .theme-card { cursor: default; }
-.theme-pick { display: grid; gap: var(--sp-1); width: 100%; padding: 0 0 var(--sp-2); border: 0; background: none; color: var(--fg); text-align: left; cursor: pointer; }
+.theme-pick { display: grid; gap: var(--sp-1); width: 100%; padding: 0 0 var(--sp-2); border: 0; background: none; color: var(--fg); text-align: start; cursor: pointer; }
 .theme-pick .muted { padding-inline: var(--sp-3); font-size: var(--text-xs); line-height: var(--leading-snug); }
 .theme-pick:focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: calc(-1 * var(--focus-width)); }
 .theme-name { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; padding: var(--sp-2) var(--sp-3) 0; font-weight: 600; font-size: var(--text-md); }
@@ -258,7 +258,7 @@ html.tilt-on .card:not(.square) .poster.tilting { transition: transform 80ms lin
 
 /* ---------------------------------------------------------------- layout picker */
 .layout-opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
-.layout-opt { display: grid; gap: 4px; justify-items: start; text-align: left; padding: 12px; border-radius: var(--r-md); border: 2px solid var(--border); background: var(--bg-3); color: var(--fg); }
+.layout-opt { display: grid; gap: 4px; justify-items: start; text-align: start; padding: 12px; border-radius: var(--r-md); border: 2px solid var(--border); background: var(--bg-3); color: var(--fg); }
 .layout-opt.on { border-color: var(--accent); }
 .layout-opt .muted { font-size: var(--text-xs); }
 .layout-pic { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: var(--r-sm); background: var(--bg); overflow: hidden; margin-bottom: 6px; }
@@ -276,7 +276,7 @@ html.tilt-on .card:not(.square) .poster.tilting { transition: transform 80ms lin
 .home-tools { position: sticky; top: var(--topbar-h); z-index: var(--z-sticky); display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin: 4px 0 14px; padding: 10px 14px; flex-wrap: wrap;
   border-radius: var(--r-md); background: var(--bg-2); border: 1px solid var(--border); box-shadow: var(--e-1); }
 .home-foot { display: flex; justify-content: center; padding: 18px 0 4px; }
-.home-tools .muted { font-size: var(--text-sm); margin-right: auto; }
+.home-tools .muted { font-size: var(--text-sm); margin-inline-end: auto; }
 .home .widget.edit { border: 1px dashed var(--border-strong); border-radius: var(--r-lg); margin-bottom: var(--sp-3); background: var(--bg-2); }
 .home .widget.edit.dragging { opacity: .4; }
 .home .widget.edit.off { opacity: .55; }
@@ -347,10 +347,10 @@ html.tilt-on .card:not(.square) .poster.tilting { transition: transform 80ms lin
   .app.no-tabbar .topbar .search { display: flex; flex: none; width: 40px; min-width: 40px; }
   .app.no-tabbar .topbar .search input { height: 40px; padding: 0 0 0 40px; cursor: pointer; background: var(--bg-3); }
   .app.no-tabbar .topbar .search input::placeholder { color: transparent; }
-  .app.no-tabbar .topbar .search:focus-within { position: absolute; left: var(--sp-4); right: var(--sp-4); width: auto; z-index: 3; }
-  .app.no-tabbar .topbar .search:focus-within input { padding-right: var(--sp-4); cursor: text; box-shadow: var(--e-3); }
+  .app.no-tabbar .topbar .search:focus-within { position: absolute; inset-inline: var(--sp-4); width: auto; z-index: 3; }
+  .app.no-tabbar .topbar .search:focus-within input { padding-inline-end: var(--sp-4); cursor: text; box-shadow: var(--e-3); }
   .app.no-tabbar .topbar .search:focus-within input::placeholder { color: var(--fg-3); }
-  .app.no-tabbar .topbar .profile-menu { display: flex; margin-left: 0; }
+  .app.no-tabbar .topbar .profile-menu { display: flex; margin-inline-start: 0; }
 }
 .pic-rail .s { width: 8%; }
 .pic-rail .t { display: none; }

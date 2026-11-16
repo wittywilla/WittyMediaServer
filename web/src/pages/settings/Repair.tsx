@@ -156,7 +156,7 @@ export default function Repair() {
       <PageHead title={tk('Repair')} desc={t('Finds and fixes problems with your metadata, the database, modules and this install, and works from the command line too if the server won’t start. It only looks until you press a fix, and a safety copy is made first.')} />
       {tabs}
       <SpecPage embedded page={topPage} handled={new Set(['check', 'allsafe', 'restart'])} onAction={(id) => { if (id === 'check') void start(); else if (id === 'allsafe') void fix({ allSafe: true }).catch((e) => setErr(message(e))); else if (id === 'restart') void restart() }}
-        after={{ [topPage.sections.findIndex((x) => x.h === 'Check this server')]: <>
+        after={{ [topPage.sections.findIndex((x) => x.h === t('Check this server'))]: <>
           {running && <progress className="dgn-bar" max={1} value={view.fraction} aria-label={t('How far along it is')} />}
           {err && <div className="error" role="alert">{err}</div>}
           {rep && !running && <p ref={summary} className="rp-summary" tabIndex={-1} role="status">{countsLine(rep)} {rep.fixable > 0 ? t('{count} can be fixed from here.', { count: rep.fixable }) : ''}</p>}

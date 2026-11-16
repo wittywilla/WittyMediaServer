@@ -22,7 +22,7 @@ export default function ActivityPanel({ onClose }: { onClose: () => void }) {
   const panel = useId()
   const going = a.tasks.length
   const notices = activitySpec({ tab, connected: a.connected, loaded: a.loaded, readOnly: a.access.readOnly, update: update || '', isAdmin: !!user?.isAdmin, failedOnly: false, canClear: false })
-  const upAt = notices.sections.findIndex((x) => x.h === 'Update available')
+  const upAt = notices.sections.findIndex((x) => x.h === t('Update available'))
   const count = (n: number) => (n ? <span className="act-tab-n">{n}</span> : null)
   return (
     <Sheet title={t('Activity')} onClose={onClose} className="act-sheet" actions={a.access.readOnly ? undefined : (

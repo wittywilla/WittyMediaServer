@@ -54,7 +54,7 @@ export default function TranscodeSettings() {
     preset: s.x264Preset || 'veryfast', crf, maxBitrate: s.maxBitrate || '', audioBitrate: s.audioBitrate || '', videoArgs: s.ffmpegVideoArgs || '', outputArgs: s.ffmpegOutputArgs || '',
   }
   const page = transcodeSpec(view)
-  const hwAt = page.sections.findIndex((x) => x.h === HARDWARE)
+  const hwAt = page.sections.findIndex((x) => x.h === t(HARDWARE))
   const onField = (id: string, v: string | number | boolean | File) => set(id, id === 'directPlay' ? (v ? '1' : '0') : String(v))
   const onAction = (id: string) => { if (id.startsWith('mode:')) set('qualityMode', id.slice(5)); else if (id.startsWith('profile:')) set('qualityProfile', id.slice(8)) }
   const handled = new Set([...['easy', 'advanced', 'expert'].map((m) => 'mode:' + m), ...PROFILES.map((p) => 'profile:' + p.id)])

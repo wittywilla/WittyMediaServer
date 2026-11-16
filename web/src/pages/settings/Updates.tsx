@@ -108,7 +108,7 @@ export function Updates() {
     method: st?.method || '', hasInstallerPhase: !!st?.installer?.phase, active, checking, auto,
   }
   const page = updatesSpec(view)
-  const newAt = page.sections.findIndex((x) => x.h === NEWEST)
+  const newAt = page.sections.findIndex((x) => x.h === t(NEWEST))
   const onAction = (id: string) => { if (id === 'check') check(); else if (id === 'apply') apply(); else if (id === 'installer') fetchInstaller() }
   const onField = (id: string, v: string | number | boolean | File) => { if (id === 'auto') setAutoCheck(!!v) }
   const progress = st && st.phase !== 'idle' && (

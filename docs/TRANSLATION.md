@@ -49,3 +49,7 @@ host.i18n.number(n), host.i18n.date(d, opts), host.i18n.relative(v, unit), host.
 ```
 
 Each module brings its own words; the app's catalogues are the app's.
+
+---
+
+<sub>WittyMediaServer documentation</sub>

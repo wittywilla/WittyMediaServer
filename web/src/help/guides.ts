@@ -109,6 +109,7 @@ export const GROUPS: GuideGroup[] = [
     { file: 'SDUI', title: tk('Server-driven screens'), about: tk('Screens the server describes and every app draws, and how to change them.') },
     { file: 'SDUI-MODULES', title: tk('A module\'s screens'), about: tk('What a module adds to every app as data: its pages, rows, menu entries, settings and colours.') },
     { file: 'MODULES-API5', title: tk('A module that owns its feature'), about: tk('Module API 5: a module\'s own routes, screens, data and setup, merged into the server so it updates from the store.') },
+    { file: 'TRANSLATION', title: tk('Translation'), about: tk('The app in the server’s language, and how to add words, catalogues and a module’s own.') },
     { file: 'SECURITY-ROUTES', title: tk('Who may call what'), about: tk('Every route and the role it needs.') },
     { file: 'GAMING-API', title: tk('Games API'), about: tk('The game routes, for apps.') },
     { file: 'GAMING-STREAM', title: tk('Games: the stream'), about: tk('One stream for every device: why, and its wire protocol.') },

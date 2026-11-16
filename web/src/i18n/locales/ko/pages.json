@@ -885,5 +885,7 @@
   "Blu-ray disc quirks": "블루레이 디스크의 특이 사항",
   "The same for Blu-rays.": "블루레이에 대한 같은 내용.",
   "Design standards": "디자인 기준",
-  "The interface’s rules and shared parts.": "인터페이스 규칙과 공통 구성 요소."
+  "The interface’s rules and shared parts.": "인터페이스 규칙과 공통 구성 요소.",
+  "Translation": "번역",
+  "The app in the server’s language, and how to add words, catalogues and a module’s own.": "서버 언어로 표시되는 앱, 그리고 문구·카탈로그·모듈 자체 문구를 추가하는 방법."
 }

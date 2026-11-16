@@ -1035,5 +1035,7 @@
   "Blu-ray disc quirks": "غرائب أقراص Blu-ray",
   "The same for Blu-rays.": "الشيء نفسه لأقراص Blu-ray.",
   "Design standards": "معايير التصميم",
-  "The interface’s rules and shared parts.": "قواعد الواجهة وأجزاؤها المشتركة."
+  "The interface’s rules and shared parts.": "قواعد الواجهة وأجزاؤها المشتركة.",
+  "Translation": "الترجمة",
+  "The app in the server’s language, and how to add words, catalogues and a module’s own.": "التطبيق بلغة الخادم، وكيفية إضافة النصوص والفهارس ونصوص الوحدة الخاصة."
 }

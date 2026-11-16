@@ -975,5 +975,7 @@
   "Blu-ray disc quirks": "Особливості дисків Blu-ray",
   "The same for Blu-rays.": "Те саме для Blu-ray.",
   "Design standards": "Стандарти дизайну",
-  "The interface’s rules and shared parts.": "Правила інтерфейсу та спільні компоненти."
+  "The interface’s rules and shared parts.": "Правила інтерфейсу та спільні компоненти.",
+  "Translation": "Переклад",
+  "The app in the server’s language, and how to add words, catalogues and a module’s own.": "Застосунок мовою сервера і як додавати тексти, каталоги та тексти модуля."
 }

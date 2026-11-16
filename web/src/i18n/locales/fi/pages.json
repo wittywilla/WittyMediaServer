@@ -915,5 +915,7 @@
   "Blu-ray disc quirks": "Blu-ray-levyjen erikoisuudet",
   "The same for Blu-rays.": "Sama Blu-ray-levyille.",
   "Design standards": "Suunnitteluperiaatteet",
-  "The interface’s rules and shared parts.": "Käyttöliittymän säännöt ja yhteiset osat."
+  "The interface’s rules and shared parts.": "Käyttöliittymän säännöt ja yhteiset osat.",
+  "Translation": "Käännökset",
+  "The app in the server’s language, and how to add words, catalogues and a module’s own.": "Sovellus palvelimen kielellä, ja miten lisätään tekstejä, luetteloita ja moduulin omat."
 }

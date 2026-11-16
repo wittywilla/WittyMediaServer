@@ -885,5 +885,7 @@
   "Blu-ray disc quirks": "ความแปลกของแผ่น Blu-ray",
   "The same for Blu-rays.": "เหมือนกันสำหรับ Blu-ray",
   "Design standards": "มาตรฐานการออกแบบ",
-  "The interface’s rules and shared parts.": "กฎของอินเทอร์เฟซและส่วนที่ใช้ร่วมกัน"
+  "The interface’s rules and shared parts.": "กฎของอินเทอร์เฟซและส่วนที่ใช้ร่วมกัน",
+  "Translation": "การแปล",
+  "The app in the server’s language, and how to add words, catalogues and a module’s own.": "แอปในภาษาของเซิร์ฟเวอร์ และวิธีเพิ่มข้อความ แค็ตตาล็อก และข้อความของโมดูลเอง"
 }

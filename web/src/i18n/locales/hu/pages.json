@@ -915,5 +915,7 @@
   "Blu-ray disc quirks": "Blu-ray lemezek furcsaságai",
   "The same for Blu-rays.": "Ugyanez Blu-ray lemezekre.",
   "Design standards": "Tervezési szabványok",
-  "The interface’s rules and shared parts.": "A felület szabályai és közös elemei."
+  "The interface’s rules and shared parts.": "A felület szabályai és közös elemei.",
+  "Translation": "Fordítás",
+  "The app in the server’s language, and how to add words, catalogues and a module’s own.": "Az alkalmazás a szerver nyelvén, és hogyan adhatsz hozzá szövegeket, katalógusokat és egy modul sajátjait."
 }

@@ -885,5 +885,7 @@
   "Blu-ray disc quirks": "蓝光光盘的特殊情况",
   "The same for Blu-rays.": "蓝光光盘的相同内容。",
   "Design standards": "设计规范",
-  "The interface’s rules and shared parts.": "界面规则和共享组件。"
+  "The interface’s rules and shared parts.": "界面规则和共享组件。",
+  "Translation": "翻译",
+  "The app in the server’s language, and how to add words, catalogues and a module’s own.": "以服务器语言显示的应用，以及如何添加文字、目录和模块自己的文字。"
 }

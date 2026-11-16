@@ -45,7 +45,7 @@ Licences were read from each work's source on the day it was fetched. This is a 
 | `home-video-page.webp` | A home video's page. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
 | `home-videos.webp` | Home videos. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
 | `home.webp` | The home page. Openly licensed and public-domain media, credited in [the list](CREDITS.md) |
-| `module-store.webp` | The module store, from a local test catalogue. |
+| `module-store.webp` | The module store, from the module catalogue. |
 | `movies.webp` | A Movies library. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
 | `music-album.webp` | An album's page. Credited in [the list](CREDITS.md). |
 | `music-albums.webp` | Albums. Credited in [the list](CREDITS.md). |

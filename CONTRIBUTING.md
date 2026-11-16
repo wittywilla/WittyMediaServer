@@ -117,7 +117,6 @@ node --experimental-strip-types --test web/src/ui/spatial.test.mjs web/src/ui/th
 | `internal/modules` | The module manager, the catalogue and the helpers' sandbox |
 | `internal/hls`, `internal/ffmpeg` | On-demand transcoding, and choosing an encoder |
 | `internal/dvdsession`, `internal/bdsession` | Turning a disc engine's steps into what the browser shows |
-| `internal/play` | The server's side of games: generated stubs for WittyPlay |
 | `internal/mediatypes` | Every file type. [Supported formats](docs/SUPPORTED-FORMATS.md) is generated from it |
 | `internal/layout` | What a package holds, and what each program is called |
 | `internal/uninstall` | Removing everything, on every system |

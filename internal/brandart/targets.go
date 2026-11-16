@@ -6,6 +6,8 @@ package brandart
 import (
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/draw"
 	"path"
 	"sort"
 	"strings"
@@ -45,7 +47,7 @@ func (k Kit) Build(target string, modules map[string]string) (Files, error) {
 		f["resources/icon.svg"] = k.Tile(Player, 0).SVG()
 		f["resources/icon-256.png"] = k.Tile(Player, 256).PNG(256, 256)
 		f["resources/windows/banner.bmp"] = BMP(k.InstallerBanner(Player, 493, 58).Image(493, 58))
-		f["resources/windows/welcome.bmp"] = BMP(k.wizardWelcome(Player).Image(493, 312))
+		f["resources/windows/welcome.bmp"] = BMP(k.wizardWelcome(Player))
 	case "reader":
 		k.webIcons(f, Reader, "public/")
 		k.desktop(f, Reader, "desktop/build/")
@@ -103,16 +105,18 @@ func (k Kit) serverPackage(f Files) {
 	// Windows Installer's wizard: the strip along the top of its pages, and the first and last
 	// pages' picture.
 	f["banner.bmp"] = BMP(k.InstallerBanner(Server, 493, 58).Image(493, 58))
-	f["welcome.bmp"] = BMP(k.wizardWelcome(Server).Image(493, 312))
+	f["welcome.bmp"] = BMP(k.wizardWelcome(Server))
 	// The macOS installer's background, drawn at 2× and laid out for its 620×418 window.
 	f["pkg-background.png"] = k.Scene(1240, 836, 19, true, Box{40, 520, 300, 780}).With(k.Tile(Server, 300).Placed(0, 0, Pt{170, 650}, 260/Page).Layers...).PNG(1240, 836)
 }
 
-// wizardWelcome is Windows Installer's 493×312 first page: a picture panel 164 wide on the left,
-// white where the words go.
-func (k Kit) wizardWelcome(p Product) Art {
-	a := Art{W: 493, H: 312, Layers: []Layer{{Rect(0, 0, 493, 312, 0), Fill(Hex("#ffffff"))}}}
-	return a.With(k.InstallerPanel(p, 164, 312).Layers...)
+// wizardWelcome is Windows Installer's 493×312 first and last page: a picture panel 164 wide on
+// the left, white where the words go. The panel is drawn on its own and put in place, so its
+// scene's orbits stop at its edge instead of running on under the words.
+func (k Kit) wizardWelcome(p Product) *image.RGBA {
+	img := Art{W: 493, H: 312, Layers: []Layer{{Rect(0, 0, 493, 312, 0), Fill(Hex("#ffffff"))}}}.Image(493, 312)
+	draw.Draw(img, image.Rect(0, 0, 164, 312), k.InstallerPanel(p, 164, 312).Image(164, 312), image.Point{}, draw.Src)
+	return img
 }
 
 // desktop is an Electron app's build resources, where electron-builder looks for them: the

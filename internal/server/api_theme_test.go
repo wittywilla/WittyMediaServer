@@ -327,22 +327,40 @@ func TestSavingTheNameWarnsAboutFixedColours(t *testing.T) {
 // The server's time zone: an IANA name, applied at once, going back to the computer's when empty.
 func TestTimeZoneSetting(t *testing.T) {
 	ts, admin, _, _ := sduiAccounts(t)
-	t.Cleanup(func() { time.Local = computerLoc })
+	restarted := make(chan struct{}, 4)
+	ts.Restart = func() { restarted <- struct{}{} }
+	before := time.Local
 	put := func(v string) int {
 		return ts.do(t, "PUT", "/api/settings", admin, map[string]string{"timeZone": v}).Code
 	}
 	if put("Mars/Olympus") != 400 || put("Local") != 400 {
 		t.Error("a zone that isn't one was accepted")
 	}
-	if put("Asia/Tokyo") != 200 || time.Local.String() != "Asia/Tokyo" {
-		t.Errorf("zone not applied: %s", time.Local)
+	// Saved, and in use once the server has started again, which it does by itself: changing
+	// time.Local while it runs would race with everything reading the clock (#350).
+	if put("Asia/Tokyo") != 200 || time.Local != before {
+		t.Errorf("zone changed while running: %s", time.Local)
+	}
+	select {
+	case <-restarted:
+	case <-time.After(5 * time.Second):
+		t.Fatal("no restart for the new zone")
 	}
 	got := decode[map[string]string](t, ts.do(t, "GET", "/api/settings", admin, nil))
-	if got["timeZone"] != "Asia/Tokyo" || got["timeZoneNow"] != "Asia/Tokyo" || got["timeZoneComputer"] == "" {
+	if got["timeZone"] != "Asia/Tokyo" || got["timeZoneNow"] != before.String() || got["timeZoneRestart"] != "1" || got["timeZoneComputer"] == "" {
 		t.Errorf("settings: %v", got)
 	}
-	if put("") != 200 || time.Local.String() != computerZone {
-		t.Errorf("not back to the computer's zone: %s", time.Local)
+	// Back to the zone it runs in: nothing waits, so no restart.
+	if put("") != 200 {
+		t.Fatal("couldn't go back to the computer's zone")
+	}
+	if got := decode[map[string]string](t, ts.do(t, "GET", "/api/settings", admin, nil)); got["timeZoneRestart"] != "" {
+		t.Errorf("a restart still waiting: %v", got)
+	}
+	select {
+	case <-restarted:
+		t.Error("restarted with nothing to change")
+	case <-time.After(1500 * time.Millisecond):
 	}
 }
 

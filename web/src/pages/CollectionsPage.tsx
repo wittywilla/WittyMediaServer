@@ -57,7 +57,7 @@ export function CollectionDialog({ collection, onClose, onSaved }: { collection?
     else if (id === 'kind:smart') setKind('smart')
     else if (id.startsWith('type:')) setRule((r) => toggleType(r, id.slice(5)))
   }
-  const matchIndex = spec.sections.findIndex((x) => x.kind === 'note' && x.text.includes('match'))
+  const matchIndex = spec.sections.findIndex((x) => x.anchor === 'smartlist-count')
   return (
     <Dialog title={collection ? 'Edit collection' : 'New collection'} size="wide" className="col-dialog" onClose={onClose}
       actions={<><Button type="button" variant="ghost" onClick={onClose}>Cancel</Button><Button variant="primary" form="col-form">{collection ? 'Save' : 'Make it'}</Button></>}>

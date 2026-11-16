@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { Cc, choice, mk, secF, secN, secP, secR } from '../model.ts'
+import { anchored, Cc, choice, mk, secF, secN, secP, secR } from '../model.ts'
 import type { SpecField, SpecPageData, SpecSection } from '../types.ts'
 import { t, tk, tn } from '../../sdui/words.ts'
 
@@ -51,7 +51,8 @@ export function collectionSpec(v: CollectionView): SpecPageData {
       { id: 'episodes', kind: 'switch', label: t('Include TV episodes'), value: !!r.episodes },
     ]
     s.push(secF(t('Everything that matches'), f))
-    if (v.preview) s.push(secN('', tn('{count} match', '{count} matches', v.preview.count)))
+    // The count's note carries the anchor smartlist-count: CollectionsPage puts the preview posters under it.
+    if (v.preview) s.push(anchored(secN('', tn('{count} match', '{count} matches', v.preview.count)), 'smartlist-count'))
   }
   if (v.canShare) s.push(secF(t('Sharing'), [{ id: 'shared', kind: 'switch', label: t('Share with the other profiles'), value: v.shared, hint: t('Each sees what their own limits allow.') }]))
   if (v.error) s.push(secN('', v.error, true))

@@ -16,7 +16,7 @@ function PhoneBox({ q }: { q: string }) {
   return (
     <form className="search-page-box" role="search" onSubmit={(e) => { e.preventDefault(); if (text.trim()) nav('/search?q=' + encodeURIComponent(text.trim())) }}>
       <IconSearch />
-      <input className="input" aria-label={t('Search')} type="search" placeholder={t('Search your libraries…')} value={text} onChange={(e) => setText(e.target.value)} />
+      <input className="input" data-app-search aria-label={t('Search')} type="search" placeholder={t('Search your libraries…')} value={text} onChange={(e) => setText(e.target.value)} />
     </form>
   )
 }

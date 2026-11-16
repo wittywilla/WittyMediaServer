@@ -121,8 +121,8 @@ export default function HomePage() {
       {!editing && empty && (
         <div className="home-card">
           <span className="home-card-ic"><IconRefresh /></span>
-          <h2>{emptyHomeWords(user, scanning).title}</h2>
-          <p className="muted">{emptyHomeWords(user, scanning).text}</p>
+          <h2>{tx(emptyHomeWords(user, scanning).title)}</h2>
+          <p className="muted">{tx(emptyHomeWords(user, scanning).text)}</p>
           {user?.isAdmin && !scanning && <Link className="btn" to="/settings/libraries">{t('Open library settings')}</Link>}
         </div>
       )}

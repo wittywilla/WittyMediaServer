@@ -268,7 +268,7 @@ function GridBody({ rows, failed, onRetry, scanning, filtered, lib, isAdmin, sel
   if (!rows) return failed ? <LoadError what={t('This library')} onRetry={onRetry} /> : <SkeletonGrid />
   if (rows.length === 0) {
     return <EmptyState icon={<IconFilm />} title={scanning ? t('Scanning…') : filtered ? t('Nothing matches') : t('Nothing here yet')}
-      text={scanning ? t('Titles appear as they are found.') : filtered ? t('Try taking away a filter.') : emptyLibraryWords(user, lib.type === 'shows' || lib.type === 'anime' ? t('Organize episodes as {pattern} and scan again.', { pattern: 'Show/Season 1/Show - S01E01 - Title.mkv' }) : t('No videos were found in this library’s folders.'))}
+      text={scanning ? t('Titles appear as they are found.') : filtered ? t('Try taking away a filter.') : tx(emptyLibraryWords(user, lib.type === 'shows' || lib.type === 'anime' ? t('Organize episodes as {pattern} and scan again.', { pattern: 'Show/Season 1/Show - S01E01 - Title.mkv' }) : t('No videos were found in this library’s folders.')))}
       action={!scanning && !filtered && isAdmin ? <Link to="/settings/libraries" className="btn">{t('Check its folders')}</Link> : undefined} />
   }
   if (!selecting) return <div className="grid">{rows.map((r) => <RowCard key={r.type + (r.type === 'item' ? r.item.id : r.show.id)} row={r} />)}</div>

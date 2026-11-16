@@ -169,3 +169,36 @@ func TestAHelperThatLeavesAfterACallIsStartedAgain(t *testing.T) {
 		t.Fatalf("counted as failing: %+v", s)
 	}
 }
+
+// A module taken off while its helper runs loses its downloaded versions all the same, and can be
+// added and installed again: the helper is stopped first, since Windows won't delete a running
+// program, and a version folder left behind would make the next install of it fail.
+func TestRemovingAModuleWhoseHelperRuns(t *testing.T) {
+	w := newWorld(t)
+	w.publishWith("0.4.0", manifestJSON("0.4.0", "0.4.0", "0.5.x", API), map[string][]byte{sdui.ModuleFile: []byte(photosUI)})
+	m := w.manager()
+	defer m.Close()
+	check(t, m)
+	if s := installWait(t, m); s.Version != "0.4.0" {
+		t.Fatalf("%+v", s)
+	}
+	if _, err := m.UIImage("wittyphotos", "g.png"); err != nil { // its helper runs from now on
+		t.Fatal(err)
+	}
+	if err := m.RemoveModule("wittyphotos", nil); err != nil {
+		t.Fatal(err)
+	}
+	if w.installed("0.4.0") {
+		t.Fatal("its version's folder is still there")
+	}
+	if err := m.AddModule("wittyphotos"); err != nil {
+		t.Fatal(err)
+	}
+	check(t, m)
+	if s := installWait(t, m); s.Version != "0.4.0" || s.Error != "" {
+		t.Fatalf("installing it again: %+v", s)
+	}
+	if _, err := m.UIImage("wittyphotos", "g.png"); err != nil {
+		t.Fatalf("after installing it again: %v", err)
+	}
+}

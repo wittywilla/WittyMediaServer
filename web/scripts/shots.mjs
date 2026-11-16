@@ -438,6 +438,13 @@ const scenes = {
     await go(`/library/${m.id}`, 3500); await shot('phone-music')
     await size(1920, 1080)
   },
+  // TV mode: the website as the TV apps are (?tv=1). The docs show its Libraries tab.
+  async tvmode() {
+    await go('/?tv=1', 4000)
+    await go('/libraries', 5000)
+    await move(1, 1)
+    await shot('tv-mode')
+  },
   async big() {
     await go('/big/', 5000)
     await shot('big-screen')

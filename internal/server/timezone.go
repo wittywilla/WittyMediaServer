@@ -7,6 +7,8 @@ import (
 	"context"
 	"strings"
 	"time"
+
+	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
 
 // The computer's own zone, kept as it was at start: the zone the server runs in when the
@@ -28,7 +30,9 @@ func validTimeZone(v string) bool {
 
 // applyTimeZone makes the server run in the zone the administrator chose, or the computer's:
 // the TV guide's days, schedules, recordings and the times in the logs all follow time.Local.
-// Called at start and when the setting is saved.
+// Called once, at start. Go has no safe way to change time.Local while anything else may be
+// reading the clock, so a zone chosen later takes effect when the server starts again
+// (restartForTimeZone), as a new port does.
 func (s *Server) applyTimeZone(ctx context.Context) {
 	name := s.DB.GetSetting(ctx, "timeZone", "")
 	if name != "" {
@@ -38,4 +42,25 @@ func (s *Server) applyTimeZone(ctx context.Context) {
 		}
 	}
 	time.Local = computerLoc
+}
+
+// timeZoneWaiting: a zone was saved that the server isn't running in yet.
+func (s *Server) timeZoneWaiting(ctx context.Context) bool {
+	want := s.DB.GetSetting(ctx, "timeZone", "")
+	if want == "" {
+		return time.Local.String() != computerZone
+	}
+	return want != time.Local.String()
+}
+
+// restartForTimeZone starts the server again, so a zone saved since it started is the one it
+// runs in. Not during first-run setup, which would lose its place: finishing setup does it.
+// by is who changed it, for the log.
+func (s *Server) restartForTimeZone(ctx context.Context, by string) bool {
+	if s.Restart == nil || !s.timeZoneWaiting(ctx) || !s.setupComplete(ctx) {
+		return false
+	}
+	logging.NoteStop(logging.StopTimeZone, "a new time zone", by)
+	time.AfterFunc(time.Second, s.Restart) // the page has its answer first
+	return true
 }

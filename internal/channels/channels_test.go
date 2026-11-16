@@ -81,6 +81,42 @@ func TestRotateKeepsEpisodeOrder(t *testing.T) {
 	}
 }
 
+// Two channels that rotate the same shows don't show the same day (the guide had Saturday
+// Morning and Animation identical): each goes round in an order of its own, from its seed, and
+// keeps that order from one turn round the shows to the next.
+func TestRotateOrderIsEachChannelsOwn(t *testing.T) {
+	var pool []Entry
+	for g := int64(1); g <= 6; g++ {
+		pool = append(pool, eps(g, 10, 1800)...)
+	}
+	def := &Definition{Mode: "simple", Order: Order{Mode: "rotate"}}
+	shows := func(seed uint64) []int64 {
+		progs, _, err := GenerateDay(def, seed, 20000, time.UTC, State{}, fixed(pool), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var out []int64
+		for _, p := range progs[:12] {
+			out = append(out, p.ShowID)
+		}
+		return out
+	}
+	a := shows(11)
+	if reflect.DeepEqual(a, shows(12)) && reflect.DeepEqual(a, shows(13)) {
+		t.Fatalf("three channels rotating the same shows have the same day: %v", a)
+	}
+	if !reflect.DeepEqual(a[:6], a[6:12]) {
+		t.Fatalf("the order changed between turns: %v", a)
+	}
+	seen := map[int64]bool{}
+	for _, id := range a[:6] {
+		seen[id] = true
+	}
+	if len(seen) != 6 {
+		t.Fatalf("a turn didn't take every show once: %v", a[:6])
+	}
+}
+
 func TestSequentialCarriesOverDays(t *testing.T) {
 	pool := eps(1, 500, 3600)
 	def := &Definition{Mode: "simple", Order: Order{Mode: "sequential"}}

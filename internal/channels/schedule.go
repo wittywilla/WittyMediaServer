@@ -245,7 +245,9 @@ func (p *pool) usesGroups() bool { return p.mode == "rotate" || (p.mode == "shuf
 func (p *pool) groupAt(t int) int64 {
 	n := len(p.groupIDs)
 	if p.mode == "rotate" {
-		return p.groupIDs[t%n]
+		// Round and round in one order, the channel's own: from its seed, so two channels that
+		// rotate the same shows don't show the same day, and the same every cycle.
+		return p.groupIDs[p.perm(n, 0)[t%n]]
 	}
 	return p.groupIDs[p.perm(n, t/n)[t%n]]
 }

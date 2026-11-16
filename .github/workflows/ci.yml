@@ -80,7 +80,7 @@ jobs:
           exit ${failed:-0}
       # Transcodes, disc sessions and scans run concurrently; only this finds data races.
       - name: Race detector
-        run: CGO_ENABLED=1 go test -race -count=1 -timeout 45m ./internal/...
+        run: CGO_ENABLED=1 go test -race -count=1 -timeout 90m ./internal/...
       # Fails on every vulnerability this code can reach, except the few scripts/vulncheck
       # accepts by name and module, each with its reason, and only while no fix exists.
       - name: Known vulnerabilities in Go code

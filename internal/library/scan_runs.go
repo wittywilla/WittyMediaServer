@@ -55,10 +55,13 @@ var stuckCheck = 15 * time.Second
 var ErrScanStuck = errors.New("the scan was stopped because nothing moved for a long time")
 
 // stuckError says what was stuck, in words the activity panel can show.
-type stuckError struct{ what string }
+type stuckError struct {
+	what  string
+	after time.Duration
+}
 
 func (e *stuckError) Error() string {
-	return fmt.Sprintf("Nothing moved for %s while %s, so the scan was stopped as stuck.", roundMinutes(StuckAfter), e.what)
+	return fmt.Sprintf("Nothing moved for %s while %s, so the scan was stopped as stuck.", roundMinutes(e.after), e.what)
 }
 
 // stuckFix is what to do about a stuck scan.
@@ -219,6 +222,9 @@ type liveScan struct {
 	mode    ScanMode
 	resumed bool
 	cancel  context.CancelCauseFunc
+	// StuckAfter and stuckCheck as they were when the scan started, so the watchdog never reads
+	// the package's values while a test changes them.
+	stuckAfter, stuckCheck time.Duration
 }
 
 // moved says something moved.
@@ -280,7 +286,7 @@ func (l *liveScan) calling(module, what string, report func(done, total int64)) 
 
 // watch stops the scan once nothing has moved for StuckAfter, until ctx ends.
 func (l *liveScan) watch(ctx context.Context) {
-	t := time.NewTicker(stuckCheck)
+	t := time.NewTicker(l.stuckCheck)
 	defer t.Stop()
 	for {
 		select {
@@ -289,14 +295,14 @@ func (l *liveScan) watch(ctx context.Context) {
 		case <-t.C:
 		}
 		l.mu.Lock()
-		stuck := l.waiting == 0 && time.Since(l.last) >= StuckAfter
+		stuck := l.waiting == 0 && time.Since(l.last) >= l.stuckAfter
 		what := l.what
 		l.mu.Unlock()
 		if stuck {
 			if what == "" {
 				what = "scanning"
 			}
-			l.cancel(&stuckError{what: what})
+			l.cancel(&stuckError{what: what, after: l.stuckAfter})
 			return
 		}
 	}

@@ -127,7 +127,7 @@ function OwnerForm() {
     <>
       <SpecPage embedded page={ownerFormSpec(s.legalOwnerContact || '')} handled={new Set(['contact'])} onField={(id, v) => { if (id === 'contact') set('legalOwnerContact', String(v)) }}
         after={{ 0: (
-          <Field label={t('Your notice')} hint={NOTICE_HELP}>
+          <Field label={t('Your notice')} hint={tx(NOTICE_HELP)}>
             <Textarea rows={4} maxLength={4000} value={s.legalOwnerNotice || ''} onChange={(e) => set('legalOwnerNotice', e.target.value)} />
           </Field>
         ) }} />

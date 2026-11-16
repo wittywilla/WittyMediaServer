@@ -5,6 +5,8 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- Settings → Modules and the module store show each module's picture on a server that hasn't read the module catalogue yet, instead of a drawn letter: the pictures in the list a server is built with are fetched from beside the official catalogue, not from a bare path that was refused. A picture that can't be fetched is logged as a warning (`cat=modules`). (#384)
+
 ## 0.8.0-alpha
 
 Released 2026-11-16.

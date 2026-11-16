@@ -64,9 +64,13 @@ The name appears in every app. The editor is the same one as **Settings → Appe
 - **Mark for the rail and small spaces:** the first letter, the initials, one or two characters of your own, or a PNG or JPEG logo up to 2 MB, always centred in a square badge. A logo that can't load falls back to the letter.
 - A **Check** appears if a colour is under 4.5 to 1 against the side menu or the top bar, with the words affected. The **live preview** shows the name in the side menu, top bar, rail header, sign-in page, and on a light and a black look. Fixed colours and gradients stay as chosen when the theme or look changes; the theme-following ones change with it.
 
-**Network and time:**
+**Language and time:**
 
-- **Time zone:** the computer's own, or any other. The TV guide's days, schedules, recordings and the logs follow it.
+- **Language:** starts on the browser's language. It sets the language of disc menus, and the sound track a film or show starts with when it has one in that language (**The original language** keeps each title's own). Subtitles stay off until someone turns them on. The server's own pages are in English for now.
+- **Time zone:** the computer's own, or any other. The TV guide's days, schedules, recordings and the logs follow it. A zone other than the one the server is running in takes effect when setup is finished: the server restarts once, by itself.
+
+**Network:**
+
 - **Find this server automatically** lets apps on your home network find it by name, with no address to type.
 - **Encrypted connections** says whether HTTPS is on, and links to **Settings → Remote Access**, where it is set up (a certificate needs a domain name).
 - The **port** the server answers on, with **Change the port**.

@@ -14,17 +14,12 @@ import SpecPage from '../../spec/SpecPage'
 import { handledIds } from '../../spec/model'
 import { runPatch, runSettingsSpec } from '../../spec/specs/libtranscode'
 import type { Library, Options, Policy, Run, Settings, Step, FileRow, Preview, Sample } from './libraryTranscodingTypes'
+import { LANGUAGES, languageName } from '../../languages'
 
 // Library transcoding: converting a library's files ahead of time. Everything that could
 // lose something is said before it happens: a preset says what it does, a preview says what
 // would become of one file, and a dry run says what would become of them all.
 
-const LANGUAGES: [string, string][] = [
-  ['en', 'English'], ['es', 'Spanish'], ['fr', 'French'], ['de', 'German'], ['it', 'Italian'], ['pt', 'Portuguese'], ['nl', 'Dutch'],
-  ['sv', 'Swedish'], ['da', 'Danish'], ['no', 'Norwegian'], ['fi', 'Finnish'], ['pl', 'Polish'], ['cs', 'Czech'], ['hu', 'Hungarian'], ['el', 'Greek'], ['tr', 'Turkish'],
-  ['ru', 'Russian'], ['uk', 'Ukrainian'], ['ja', 'Japanese'], ['ko', 'Korean'], ['zh', 'Chinese'], ['hi', 'Hindi'], ['ar', 'Arabic'], ['he', 'Hebrew'], ['th', 'Thai'], ['vi', 'Vietnamese'],
-]
-const languageName = (code: string) => LANGUAGES.find(([c]) => c === code)?.[1] ?? code.toUpperCase()
 
 const OUTPUTS: { value: string; title: string; text: string }[] = [
   { value: 'keep', title: 'Keep the original', text: 'The new file takes over and the old one moves to a hidden folder beside it, where you can put it back or delete it later. The safest choice, and it needs the most room.' },

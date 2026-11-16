@@ -13,6 +13,7 @@ import { Link } from 'react-router-dom'
 import { api } from '../../api'
 import { Button, Field, Select, Spinner } from '../../ui'
 import { timeZoneChoices, httpsWords, type HttpsStatus } from './network'
+import { LANGUAGES, browserLanguage } from '../../languages'
 import { TickRow, LaterNote, StepActions, StepHead, type StepProps } from './parts'
 
 // Step: Name and address. The server's name, its colours and its mark (the same editor as Settings, Appearance), tried in the
@@ -24,7 +25,8 @@ export function Name({ info, next, back, onTry }: StepProps & { onTry: (t: { nam
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
   const net = useNetwork()
-  // Time zone, finding the server from apps on the home network, and whether connections are encrypted (Remote Access sets that up).
+  // Language and time zone, finding the server from apps on the home network, and whether connections are encrypted (Remote Access sets that up).
+  const [language, setLanguage] = useState('')
   const [zone, setZone] = useState('')
   const [zones, setZones] = useState<{ computer: string; now: string }>({ computer: '', now: '' })
   const [find, setFind] = useState(true)
@@ -32,7 +34,11 @@ export function Name({ info, next, back, onTry }: StepProps & { onTry: (t: { nam
   const [warn, setWarn] = useState<BrandWarning[]>([])
   const [readable, setReadable] = useState(true)
   useEffect(() => {
-    api.get<Record<string, string>>('/settings').then((v) => { setZone(v.timeZone || ''); setZones({ computer: v.timeZoneComputer || '', now: v.timeZoneNow || '' }); setFind(v.lanDiscovery !== '0') }).catch(() => {})
+    api.get<Record<string, string>>('/settings').then((v) => {
+      // A language already chosen, else the browser's: menus and sound tracks start from it.
+      setLanguage(v.audioLanguage || (v.menuLanguage && v.menuLanguage !== 'en' ? v.menuLanguage : '') || browserLanguage() || v.menuLanguage || '')
+      setZone(v.timeZone || ''); setZones({ computer: v.timeZoneComputer || '', now: v.timeZoneNow || '' }); setFind(v.lanDiscovery !== '0')
+    }).catch(() => {})
     api.get<{ https?: HttpsStatus }>('/remote').then((r) => setHttps(r.https || null)).catch(() => {})
   }, [])
   useEffect(() => { void loadBrandDraft(brandName, brandColouring).then(setDraft) }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -47,7 +53,8 @@ export function Name({ info, next, back, onTry }: StepProps & { onTry: (t: { nam
     if (!draft) { next(); return }
     setBusy(true); setErr('')
     try {
-      await api.put('/settings', { timeZone: zone, lanDiscovery: find ? '1' : '0' })
+      // Subtitles stay as they are: a subtitle language would turn them on for discs.
+      await api.put('/settings', { timeZone: zone, lanDiscovery: find ? '1' : '0', audioLanguage: language, ...(language ? { menuLanguage: language } : {}) })
       const r = await saveBrandDraft(draft)
       // The server checked the colours against the theme: say so once, and let them carry on.
       if (r.warnings.length && readable && !warn.length) { setWarn(r.warnings); setBusy(false); return }
@@ -64,11 +71,17 @@ export function Name({ info, next, back, onTry }: StepProps & { onTry: (t: { nam
       <StepHead title="Name your server" lead="The name appears in every app. Choose its colours, and what shows in small spaces." />
       {draft ? <NameEditor draft={draft} onChange={change} logoUrl={preview} onLogoError={setErr} onCheck={setReadable} /> : <Spinner />}
       {warn.length > 0 && <div className="ne-note" role="status"><b>Check:</b> {warn.slice(0, 3).map((w, i) => <span key={i}>{i > 0 && ' '}{warningWords(w)}.</span>)} Words should be at least 4.5 to 1. It is saved; change the colours, or press Continue again to keep them.</div>}
-      <h2 className="oobe-sub">Network and time</h2>
+      <h2 className="oobe-sub">Language and time</h2>
       <div className="su-net">
-        <Field label="Time zone" hint={zone ? 'Guide days, schedules, recordings and the logs follow this.' : `The computer’s own${zones.computer ? ` (${zones.computer})` : ''}. Guide days, schedules and recordings follow it.`}>
+        <Field label="Language" hint="Disc menus, and the sound track a film or show starts with when it has one in this language. Subtitles stay off until someone turns them on. This server’s own pages are in English for now.">
+          <Select value={language} onChange={(e) => setLanguage(e.target.value)} options={[{ value: '', label: 'The original language' }, ...LANGUAGES.map(([value, label]) => ({ value, label }))]} />
+        </Field>
+        <Field label="Time zone" hint={`${zone ? 'Guide days, schedules, recordings and the logs follow this.' : `The computer’s own${zones.computer && zones.computer !== 'Local' ? ` (${zones.computer})` : ''}. Guide days, schedules and recordings follow it.`}${zone !== '' && zone !== zones.now ? ' The server restarts once to use it, when setup is finished.' : ''}`}>
           <Select value={zone} onChange={(e) => setZone(e.target.value)} options={timeZoneChoices(zones.computer, zone)} />
         </Field>
+      </div>
+      <h2 className="oobe-sub">Network</h2>
+      <div className="su-net">
         <TickRow kind="switch" checked={find} onChange={setFind} title="Find this server automatically" text="Apps on your home network find it by name, with no address to type." />
         <p className="su-https"><b>Encrypted connections.</b> {httpsWords(https)} <Link to="/settings/remote">Settings, Remote Access</Link></p>
       </div>

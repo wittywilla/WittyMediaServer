@@ -178,7 +178,8 @@
    "shape": "landscape",
    "aspect": "16/9",
    "image": [
-    "logo"
+    "logo",
+    "backdrop"
    ],
    "shows": [
     "number",

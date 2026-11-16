@@ -224,6 +224,10 @@ a.sdui-row:hover, button.sdui-row:hover { background: var(--hover); }
 @media (max-width: 700px) {
   .sdui:not(.ff-tv) .hero { height: auto; min-height: min(66vh, 520px); display: flex; flex-direction: column; justify-content: flex-end; padding-top: calc(var(--topbar-h) + var(--sp-12)); }
   .sdui:not(.ff-tv) .hero .info { position: relative; left: auto; bottom: auto; margin: 0 var(--gutter) var(--sp-6); width: auto; }
+  /* A wide picture filling a tall phone frame kept a third of its width, and cut off the faces at its sides.
+     It keeps a 4:3 window at the top instead, nearly the whole picture across, and fades into the page above
+     the words. */
+  .sdui:not(.ff-tv) .hero:not(.bare) .bg { bottom: auto; aspect-ratio: 4 / 3; background-position: center 30%; -webkit-mask-image: linear-gradient(#000 62%, transparent); mask-image: linear-gradient(#000 62%, transparent); } /* design-ok: a mask only reads how solid it is */
 }
 
 /* The app's own tools under a page's title (extras/PageTools.tsx). */

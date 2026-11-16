@@ -152,7 +152,7 @@ async function loadPersonal() {
 // A refusal, in words: the server's reason, then each pair that is too faint.
 function refusal(e: unknown): Error {
   // The server's words usually name the pairs already; they are added only when they don't.
-  if (e instanceof ApiError && Array.isArray(e.data?.contrast) && e.data.contrast.length && !(e.data.contrast as Warning[]).every((w) => e.message.includes(`${w.text} on ${w.surface}`))) {
+  if (e instanceof ApiError && Array.isArray(e.data?.contrast) && e.data.contrast.length && !(e.data.contrast as Warning[]).every((w) => e.english.includes(`${w.text} on ${w.surface}`))) {
     const pairs = (e.data.contrast as Warning[]).slice(0, 6).map((w) => `${w.text} on ${w.surface}${w.variant ? ` (${w.variant})` : ''}: ${w.ratio.toFixed(1)}:1, needs ${w.need}:1`)
     return new Error(`${e.message} ${pairs.join('; ')}.`)
   }

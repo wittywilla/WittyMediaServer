@@ -53,7 +53,7 @@ fills a 1280×720 TV browser and a 3840×2160 one alike, as a TV app does.
 | Secondary | 20 | Regular | Facts |
 | Caption | 18 | Medium | Badges, captions |
 
-- **Gutter** 90 on both sides; the top bar 24 from the top edge.
+- **Gutter** 90 on both sides; the top bar 24 from the top edge, and the page 32 below the bar.
 - **Focus:** a 4-wide ring in `text`, 4 outside the thing, **concentric** with its corners (the outline follows
   `border-radius`, so a radius-14 tile's ring has an outer radius of 22), and a 1.06 scale. Focusable things sit at
   least 16 apart, and rows leave 24 above and below so a ring is never cut off. Only one thing has focus, always.
@@ -92,6 +92,10 @@ set apart by the space between. 16 between pills. The chosen pill has `accent` a
 `accentText`; the others are `textSecondary`. A focused pill takes the ring and the scale. All six always show; a server
 with no games or no live TV shows that tab with a plain empty state that says what's missing and that an owner adds it
 on the server's website.
+
+A layout's menu for a television can name more tabs than that (pinned libraries, say). The bar keeps the menu's
+first four, then **More**, **Search** and **You**; the rest are listed first on the More screen, so the row never runs
+past the edge of the screen (`BAR_MAX` in `web/src/tvmode/nav.ts`).
 
 ### Home
 

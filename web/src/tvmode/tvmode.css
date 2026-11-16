@@ -71,7 +71,8 @@ html.tv-mode :where(.input, input, select, textarea):focus { border-color: var(-
 /* ---- the frame */
 html.tv-mode body { background: var(--bg); }
 .tvm { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
-.tvm-main { flex: 1; padding: 0 var(--tvm-gutter) calc(var(--tvu) * 64); }
+/* Room under the bar: the bar ends 8 below its pills, so the page starts 32 further down and never touches it. */
+.tvm-main { flex: 1; padding: calc(var(--tvu) * 32) var(--tvm-gutter) calc(var(--tvu) * 64); }
 .tvm-main .legal-foot { margin-top: calc(var(--tvu) * 48); font-size: var(--tvm-caption); }
 
 /* The bar: five pills on the left, You pinned to the right end of the same row. */
@@ -82,7 +83,9 @@ html.tv-mode body { background: var(--bg); }
 .tvm-pill:hover { color: var(--fg); background: var(--hover); }
 .tvm-pill[aria-current="page"] { background: var(--accent-soft); color: var(--accent-text); }
 .tvm-you { margin-left: auto; }
-.tvm-you .avatar-tile { width: calc(var(--tvu) * 28); height: calc(var(--tvu) * 28); border-radius: 50%; font-size: var(--tvm-caption); }
+/* The initial sits in the middle of its circle: its own line height and a size that fits, not the pill's. */
+.tvm-you .avatar-tile { display: grid; place-items: center; flex: none; overflow: hidden; width: calc(var(--tvu) * 28); height: calc(var(--tvu) * 28); border-radius: 50%; font-size: calc(var(--tvu) * 15); font-weight: 700; line-height: 1; color: #fff; }
+.tvm-you .avatar-tile svg { width: 70%; height: 70%; }
 
 /* A screen opened from a tab has the whole screen. For a mouse or a finger, a round Back at the top left,
    which the arrows pass over; with no pointer at all it isn't there. */
@@ -102,6 +105,8 @@ html.tv-mode .empty-ic svg { width: calc(var(--tvu) * 64); height: calc(var(--tv
 
 /* ---- Home: the hero and the rows */
 html.tv-mode .hero { height: calc(var(--tvu) * 620); /* the Hero's 1920x620 */ min-height: 0; max-height: none; margin: 0 calc(-1 * var(--tvm-gutter)) var(--section-gap); }
+/* A server-drawn page already spaces its parts (the flex gap): the hero's own margin would double it. */
+html.tv-mode .sdui > .hero { margin-top: 0; margin-bottom: 0; }
 html.tv-mode .hero .info { left: var(--tvm-gutter); bottom: calc(var(--tvu) * 56); width: min(50vw, calc(100% - 2 * var(--tvm-gutter))); }
 /* A long title wraps, to three lines at most, and is never cut off mid-word. */
 html.tv-mode .hero h1 { font-size: var(--tvm-display); font-weight: 700; line-height: 1.12; margin: 0 0 calc(var(--tvu) * 12); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: normal; text-wrap: balance; }

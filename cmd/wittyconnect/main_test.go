@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -117,5 +119,50 @@ func TestHelperRefusesBadInput(t *testing.T) {
 	}
 	if code := run(bytes.NewReader(nil), &out, nil); code == 0 {
 		t.Fatal("no configuration at all is not a success")
+	}
+}
+
+// Joining by a code, as the desktop app drives it: the code comes back at once in the form
+// people type, a configuration with no key is refused, and closing the input gives up quietly.
+// Finding the server once the code is typed in is tested in internal/p2p.
+func TestHelperJoin(t *testing.T) {
+	var refused bytes.Buffer
+	if code := runJoin(strings.NewReader("{}\n"), &refused, nil); code != 2 || !strings.Contains(refused.String(), `"error"`) {
+		t.Fatalf("no key: exit %d, %s", code, refused.String())
+	}
+
+	inR, inW := io.Pipe()
+	outR, outW := io.Pipe()
+	done := make(chan int, 1)
+	go func() {
+		done <- runJoin(inR, outW, func(c *wittyconnect.JoinConfig) {
+			c.Tune = func(jc *p2p.JoinConfig) {
+				jc.Local, jc.Listen, jc.Bootstrap = true, []string{"/ip4/127.0.0.1/tcp/0"}, nil
+			}
+		})
+		outW.Close()
+	}()
+	key, _ := wittyconnect.NewKey()
+	cfg, _ := json.Marshal(map[string]any{"key": key, "name": "Test PC", "platform": "desktop"})
+	go fmt.Fprintf(inW, "%s\n", cfg)
+	events := bufio.NewScanner(outR)
+	if !events.Scan() {
+		t.Fatal("no event")
+	}
+	var e struct{ Event, Code string }
+	if err := json.Unmarshal(events.Bytes(), &e); err != nil || e.Event != "code" || !regexp.MustCompile(`^[0-9A-Z]{4}-[0-9A-Z]{4}$`).MatchString(e.Code) {
+		t.Fatalf("first event: %s", events.Text())
+	}
+	inW.Close() // the app gave up
+	select {
+	case code := <-done:
+		if code != 0 {
+			t.Fatalf("giving up: exit %d", code)
+		}
+	case <-time.After(20 * time.Second):
+		t.Fatal("still waiting after its input closed")
+	}
+	if events.Scan() {
+		t.Fatalf("said something after giving up: %s", events.Text())
 	}
 }

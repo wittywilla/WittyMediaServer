@@ -24,7 +24,8 @@
 // the app quit or crashed, it exits: it never outlives the app.
 //
 // "wittyconnect keygen" prints a new device key and its ID and exits.
-// "wittyconnect version" prints the version of the protocol it speaks.
+// "wittyconnect join" shows a code and waits for the server to take it: see runJoin.
+// "wittyconnect version" prints the version of the protocol it speaks (2 has join).
 package main
 
 import (
@@ -65,8 +66,10 @@ func main() {
 			_ = json.NewEncoder(os.Stdout).Encode(map[string]string{"key": key, "deviceId": id})
 			return
 		case "version":
-			fmt.Println("wittyconnect 1")
+			fmt.Println("wittyconnect 2")
 			return
+		case "join":
+			os.Exit(runJoin(os.Stdin, os.Stdout, nil))
 		default:
 			fmt.Fprintln(os.Stderr, "wittyconnect is started by the WittyMediaClient app; see docs/P2P.md in WittyMediaServer")
 			os.Exit(2)
@@ -150,4 +153,60 @@ func run(stdin io.Reader, stdout io.Writer, tune func(*wittyconnect.Config)) int
 		}
 	}
 	return 0 // the app closed our input: it is gone, and so are we
+}
+
+// joinFor is how long a join code lasts on the server: fifteen minutes.
+const joinFor = 15 * time.Minute
+
+// runJoin is "wittyconnect join": a device away from home that has never met its server shows a
+// code, which someone signed in types into the server. The app writes
+//
+//	{"key":"…","name":"…","platform":"desktop"}
+//
+// and reads {"event":"code","code":"K7QM-2XHD"} at once, then, when the server has taken the code,
+// {"event":"joined","result":{"ok":true,"serverId":"…","addrs":[…],"code":"123456",…}}, or an
+// {"event":"error"}. Closing the input gives up. tune changes the search, for tests.
+func runJoin(stdin io.Reader, stdout io.Writer, tune func(*wittyconnect.JoinConfig)) int {
+	o := &out{w: json.NewEncoder(stdout)}
+	in := bufio.NewScanner(stdin)
+	in.Buffer(make([]byte, 0, 64<<10), 256<<10)
+	if !in.Scan() {
+		return 2
+	}
+	var cfg wittyconnect.JoinConfig
+	if err := json.Unmarshal(in.Bytes(), &cfg); err != nil || cfg.Key == "" {
+		o.send(map[string]any{"event": "error", "error": "the configuration isn't valid JSON with a key"})
+		return 2
+	}
+	code, err := wittyconnect.NewJoinCode()
+	if err != nil {
+		o.send(map[string]any{"event": "error", "error": err.Error()})
+		return 1
+	}
+	cfg.Code = code
+	if tune != nil {
+		tune(&cfg)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), joinFor)
+	defer cancel()
+	// The app closing our input, because it gave up or quit, ends the wait.
+	go func() {
+		for in.Scan() {
+		}
+		cancel()
+	}()
+	o.send(map[string]any{"event": "code", "code": code})
+	res, err := wittyconnect.Join(ctx, cfg)
+	switch {
+	case ctx.Err() == context.DeadlineExceeded:
+		o.send(map[string]any{"event": "error", "error": "expired"})
+		return 1
+	case ctx.Err() != nil:
+		return 0
+	case err != nil:
+		o.send(map[string]any{"event": "error", "error": err.Error()})
+		return 1
+	}
+	o.send(map[string]any{"event": "joined", "result": res})
+	return 0
 }

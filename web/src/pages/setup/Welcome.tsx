@@ -7,16 +7,17 @@ import { Button, Field, Input } from '../../ui'
 import { WhereIsTheCode } from './parts'
 import { LocaleFirst, localeAsked } from './Locale'
 import { applyPageTitle } from '../../theme'
+import { t, tk } from '../../i18n'
 
 const RestoreFlow = lazy(() => import('../settings/Backup').then((m) => ({ default: m.RestoreFlow })))
 
 const FEATURES = [
-  { icon: <IconTv />, title: 'Movies, TV and discs', text: 'Posters, plots and “continue watching” on every screen. Copies of your discs play with their real menus.' },
-  { icon: <IconAudio />, title: 'Music and podcasts', text: 'Albums, audiobooks that remember your place, and shows you follow.' },
-  { icon: <IconBook />, title: 'Books and comics', text: 'Read them here, with highlights and notes.' },
-  { icon: <IconGamepad />, title: 'Games', text: 'Your own games, played right in the browser.' },
-  { icon: <IconUsers />, title: 'Everyone at home', text: 'A profile for each person, and Kids profiles by age.' },
-  { icon: <IconPalette />, title: 'Yours', text: 'It runs on your own computer. No account with anyone, and nothing is reported back.' },
+  { icon: <IconTv />, title: tk('Movies, TV and discs'), text: tk('Posters, plots and “continue watching” on every screen. Copies of your discs play with their real menus.') },
+  { icon: <IconAudio />, title: tk('Music and podcasts'), text: tk('Albums, audiobooks that remember your place, and shows you follow.') },
+  { icon: <IconBook />, title: tk('Books and comics'), text: tk('Read them here, with highlights and notes.') },
+  { icon: <IconGamepad />, title: tk('Games'), text: tk('Your own games, played right in the browser.') },
+  { icon: <IconUsers />, title: tk('Everyone at home'), text: tk('A profile for each person, and Kids profiles by age.') },
+  { icon: <IconPalette />, title: tk('Yours'), text: tk('It runs on your own computer. No account with anyone, and nothing is reported back.') },
 ]
 
 export function Welcome({ onStart }: { onStart: () => void }) {
@@ -26,21 +27,21 @@ export function Welcome({ onStart }: { onStart: () => void }) {
   // The language and time zone come first, before anything else; once chosen in this browser they aren't asked again.
   const [asked, setAsked] = useState(localeAsked)
   // Both screens share one address, so the window's title is set here when one gives way to the other.
-  useEffect(() => { applyPageTitle(asked ? 'Let’s set up your server' : 'Language and time zone') }, [asked])
+  useEffect(() => { applyPageTitle(asked ? t('Let’s set up your server') : t('Language and time zone')) }, [asked])
   if (!asked) return <LocaleFirst onDone={() => setAsked(true)} />
   return (
     <section className="oobe-welcome">
       <img className="oobe-welcome-logo" src="/icon.svg" alt="" />
-      <h1>Let’s set up your server</h1>
-      <p className="lead">Everything you own, in one place, on every screen in your home. Setup takes a few minutes. You can skip anything you’re not sure about, and change it all later.</p>
+      <h1>{t('Let’s set up your server')}</h1>
+      <p className="lead">{t('Everything you own, in one place, on every screen in your home. Setup takes a few minutes. You can skip anything you’re not sure about, and change it all later.')}</p>
       <div className="su-starts" data-nav-group>
-        {!busy && <Button variant="primary" size="big" autoFocus onClick={onStart}>Set up a new server</Button>}
-        {!busy && <Button size="big" aria-expanded={restoring} onClick={() => setRestoring((o) => !o)}>{restoring ? 'Close restore' : 'Restore from a backup'}</Button>}
+        {!busy && <Button variant="primary" size="big" autoFocus onClick={onStart}>{t('Set up a new server')}</Button>}
+        {!busy && <Button size="big" aria-expanded={restoring} onClick={() => setRestoring((o) => !o)}>{restoring ? t('Close restore') : t('Restore from a backup')}</Button>}
       </div>
-      <p className="muted su-start-note">Coming back from a reset, or moving to this computer? Restoring brings back your accounts, libraries, what you’ve watched and your settings. Modules download again afterwards, as a backup doesn’t hold them.</p>
+      <p className="muted su-start-note">{t('Coming back from a reset, or moving to this computer? Restoring brings back your accounts, libraries, what you’ve watched and your settings. Modules download again afterwards, as a backup doesn’t hold them.')}</p>
       {restoring && <RestorePanel onBusy={setBusy} />}
-      <ul className="oobe-perks" aria-label="What your server does">
-        {FEATURES.map((f) => <li key={f.title}><span className="ic">{f.icon}</span><span><b>{f.title}</b> <span className="muted">{f.text}</span></span></li>)}
+      <ul className="oobe-perks" aria-label={t('What your server does')}>
+        {FEATURES.map((f) => <li key={f.title}><span className="ic">{f.icon}</span><span><b>{t(f.title)}</b> <span className="muted">{t(f.text)}</span></span></li>)}
       </ul>
     </section>
   )
@@ -55,7 +56,7 @@ function RestorePanel({ onBusy }: { onBusy: (b: boolean) => void }) {
     <div className="su-restore">
       {needCode && (
         <>
-          <Field label="Setup code"><Input autoComplete="off" autoCapitalize="characters" spellCheck={false} value={code} onChange={(e) => setCode(e.target.value)} /></Field>
+          <Field label={t('Setup code')}><Input autoComplete="off" autoCapitalize="characters" spellCheck={false} value={code} onChange={(e) => setCode(e.target.value)} /></Field>
           <WhereIsTheCode />
         </>
       )}

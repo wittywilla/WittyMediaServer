@@ -42,6 +42,10 @@ func (k Kit) Build(target string, modules map[string]string) (Files, error) {
 		k.apple(f)
 		k.android(f)
 		k.desktop(f, Client, "desktop/build/")
+		// The marks the desktop app's own pages draw (its connect screen): the app's where it
+		// means itself, the server's where it means a server with no logo of its own.
+		f["shared/brand/mark-client.svg"] = k.Tile(Client, 0).SVG()
+		f["shared/brand/mark-server.svg"] = k.Tile(Server, 0).SVG()
 	case "player":
 		f["resources/WittyMediaPlayer.ico"] = ICO(WindowsSizes, func(px int) Art { return k.Tile(Player, px) })
 		f["resources/icon.svg"] = k.Tile(Player, 0).SVG()

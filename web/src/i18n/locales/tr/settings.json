@@ -59,7 +59,7 @@
   "A list goes in square brackets, with a comma between things and none after the last:": "Liste köşeli parantez içine yazılır, öğeler arasında virgül olur ve sonuncusundan sonra olmaz:",
   "A list of genres": "Tür listesi",
   "A module from another publisher never updates by itself: you choose each version.": "Başka bir yayıncının modülü asla kendiliğinden güncellenmez: her sürümü siz seçersiniz.",
-  "A module is someone’s code running on your server, so only install one from a publisher you trust. Anything unsigned, signed by a key this server doesn’t trust, or new to this server needs an override, gets no permissions you don’t tick, and never updates by itself.": "Modül, sunucunuzda çalışan başka birinin kodudur, bu yüzden yalnızca güvendiğiniz bir yayıncıdan kurun. İmzasız, bu sunucunun güvenmediği bir anahtarla imzalanmış veya bu sunucu için yeni olan her şey bir geçersiz kılma gerektirir, işaretlemediğiniz hiçbir izni almaz ve asla kendiliğinden güncellenmez.",
+  "A module is someone’s code running on your server, so only install one from a publisher you trust. Anything unsigned, signed by a key this server doesn’t trust, or new to this server needs an override, gets no permissions you don’t tick, and never updates by itself.": "Modül, sunucunuzda çalışan başka birinin kodudur, bu yüzden yalnızca güvendiğiniz bir yayıncıdan yükleyin. İmzasız, bu sunucunun güvenmediği bir anahtarla imzalanmış veya bu sunucu için yeni olan her şey bir geçersiz kılma gerektirir, işaretlemediğiniz hiçbir izni almaz ve asla kendiliğinden güncellenmez.",
   "A network, studio, console…": "Bir kanal, stüdyo, konsol…",
   "A new password for {name}": "{name} için yeni parola",
   "A new password or PIN for {name}": "{name} için yeni parola veya PIN",
@@ -185,7 +185,7 @@
   "Anyone watching or playing now is interrupted. To set the server up again from another device, the setup code is shown on the server’s console.": "Şu anda izleyen veya oynayan herkesin oturumu kesilir. Sunucuyu başka bir cihazdan yeniden kurmak için kurulum kodu sunucunun konsolunda gösterilir.",
   "Anyone who gets hold of this server’s connection ID could then reach its sign-in page from anywhere, and try passwords. Paired devices only is safer, and is all the apps need.": "Bu sunucunun bağlantı kimliğini ele geçiren herkes oturum açma sayfasına her yerden ulaşabilir ve parola deneyebilir. Yalnızca eşleştirilmiş cihazlar daha güvenlidir ve uygulamaların ihtiyacı olan da budur.",
   "Anyone who has it will no longer be able to open it.": "Buna sahip olan hiç kimse artık onu açamaz.",
-  "Anyone with the address can reach the sign-in page, so it needs HTTPS and strong passwords. Works from any device, with no app to install.": "Adrese sahip herkes oturum açma sayfasına ulaşabilir, bu yüzden HTTPS ve güçlü parolalar gerekir. Herhangi bir cihazdan, uygulama kurmadan çalışır.",
+  "Anyone with the address can reach the sign-in page, so it needs HTTPS and strong passwords. Works from any device, with no app to install.": "Adrese sahip herkes oturum açma sayfasına ulaşabilir, bu yüzden HTTPS ve güçlü parolalar gerekir. Herhangi bir cihazdan, uygulama yüklemeden çalışır.",
   "Anything converting now carries on to the end or until you cancel it. Nothing new can start. Kept originals stay where they are.": "Şu anda dönüştürülen her şey sonuna kadar ya da siz iptal edene kadar devam eder. Yeni bir şey başlayamaz. Saklanan orijinaller yerinde kalır.",
   "Anything taller is made this size.": "Daha yüksek olan her şey bu boyuta getirilir.",
   "Anything you don't recognise? Sign it out, then change your password.": "Tanımadığınız bir şey var mı? Oturumunu kapatın, sonra parolanızı değiştirin.",
@@ -198,7 +198,7 @@
   "Apps on your home network": "Ev ağınızdaki uygulamalar",
   "Apps on your home network can see this server's name, version and a random ID. They still need a code or a password to connect, and can always connect by typing its address.": "Ev ağınızdaki uygulamalar bu sunucunun adını, sürümünü ve rastgele bir kimliği görebilir. Bağlanmak için yine de bir kod veya parola gerekir ve adresini yazarak her zaman bağlanabilirler.",
   "Arrange the menu": "Menüyü düzenle",
-  "Artwork": "Kapak resmi",
+  "Artwork": "Görseller",
   "As JSON": "JSON olarak",
   "As the server sets it": "Sunucunun ayarladığı gibi",
   "Ask the router to open this one port with UPnP or NAT-PMP, and close it again when this is turned off or the server stops. Some routers don't offer this. Only the HTTPS port is ever opened.": "Yönlendiriciden UPnP veya NAT-PMP ile yalnızca bu bağlantı noktasını açmasını ve bu kapatıldığında veya sunucu durduğunda yeniden kapatmasını isteyin. Bazı yönlendiriciler bunu sunmaz. Yalnızca HTTPS bağlantı noktası açılır.",
@@ -228,7 +228,7 @@
   "Back up by itself": "Kendiliğinden yedekle",
   "Backed up first": "Önce yedeklendi",
   "Background tint": "Arka plan tonu",
-  "Backup": "Yedek",
+  "Backup": "Yedekleme",
   "Backup deleted": "Yedek silindi",
   "Backups on this server": "Bu sunucudaki yedekler",
   "Balanced": "Dengeli",
@@ -254,7 +254,7 @@
   "Brings these libraries": "Şu kitaplıkları getirir",
   "Browse the store": "Mağazaya göz at",
   "Built from this server's own copy of the module": "Bu sunucunun kendi modül kopyasından oluşturuldu",
-  "Built on": "Oluşturulma",
+  "Built on": "Derleme tarihi",
   "Built with": "Şununla oluşturuldu",
   "Built-in agents": "Yerleşik ajanlar",
   "Burn in": "Göm",
@@ -307,7 +307,7 @@
   "Checking…": "Denetleniyor…",
   "Choose a backup file": "Yedek dosyası seçin",
   "Choose a layout": "Düzen seçin",
-  "Choose a library": "Kitaplık seçin",
+  "Choose a library": "Bir kitaplık seçin",
   "Choose colours": "Renkleri seçin",
   "Choose home network only while you’re away from home?": "Evden uzaktayken yalnızca ev ağı seçilsin mi?",
   "Choose how to get a certificate, so that passwords and video are encrypted:": "Parolaların ve videonun şifrelenmesi için sertifikayı nasıl alacağınızı seçin:",
@@ -322,7 +322,7 @@
   "Clear what’s written down about {name}?": "{name} hakkında yazılanlar temizlensin mi?",
   "Close it and use a private network": "Kapatın ve özel ağ kullanın",
   "Close the HTTPS port as well?": "HTTPS bağlantı noktası da kapatılsın mı?",
-  "Code from your authenticator app": "Kimlik doğrulayıcı uygulamanızdaki kod",
+  "Code from your authenticator app": "Kimlik doğrulama uygulamanızdaki kod",
   "Codecs the server knows by name": "Sunucunun adıyla bildiği kodekler",
   "Collections": "Koleksiyonlar",
   "Colour": "Renk",
@@ -340,8 +340,8 @@
   "Compact list": "Sıkışık liste",
   "Computer": "Bilgisayar",
   "Confirm": "Onayla",
-  "Connect it to this computer with a private network: install Tailscale or NetBird on both (this computer is {address}), or WireGuard if you know it.": "Onu bu bilgisayara özel bir ağla bağlayın: ikisine de Tailscale veya NetBird kurun (bu bilgisayar {address}), ya da biliyorsanız WireGuard.",
-  "Connect it to this computer with a private network: install Tailscale or NetBird on both, or WireGuard if you know it.": "Onu bu bilgisayara özel bir ağla bağlayın: ikisine de Tailscale veya NetBird kurun, ya da biliyorsanız WireGuard.",
+  "Connect it to this computer with a private network: install Tailscale or NetBird on both (this computer is {address}), or WireGuard if you know it.": "Onu bu bilgisayara özel bir ağla bağlayın: ikisine de Tailscale veya NetBird yükleyin (bu bilgisayar {address}), ya da biliyorsanız WireGuard.",
+  "Connect it to this computer with a private network: install Tailscale or NetBird on both, or WireGuard if you know it.": "Onu bu bilgisayara özel bir ağla bağlayın: ikisine de Tailscale veya NetBird yükleyin, ya da biliyorsanız WireGuard.",
   "Connect with an invite": "Davetle bağlan",
   "Continue": "Devam",
   "Control": "Denetim",
@@ -356,7 +356,7 @@
   "Convert, losing it": "Dönüştür, onu kaybederek",
   "Converting": "Dönüştürülüyor",
   "Converting a film can keep every core busy for hours. Anyone watching at the same time may see stutters, or a film that takes longer to start, especially if their device needs the server to convert while playing.": "Bir filmi dönüştürmek her çekirdeği saatlerce meşgul edebilir. Aynı anda izleyenler takılmalar görebilir veya filmin başlaması uzayabilir; özellikle cihazları oynatırken sunucunun dönüştürmesine ihtiyaç duyuyorsa.",
-  "Converting competes with people watching. These keep it out of their way.": "Dönüştürme, izleyenlerle yarışır. Bunlar onu yollarından uzak tutar.",
+  "Converting competes with people watching. These keep it out of their way.": "Dönüştürme, izleyenlerle yarışır. Bunlar onu izleyenlerin yolundan uzak tutar.",
   "Converting while someone watches is a separate thing, under": "Biri izlerken dönüştürme ayrı bir konudur, şurada:",
   "Converts the files in a library ahead of time, so they play without being converted later. It changes your files, so it starts off.": "Bir kitaplıktaki dosyaları önceden dönüştürür, böylece sonradan dönüştürülmeden oynatılırlar. Dosyalarınızı değiştirdiği için kapalı başlar.",
   "Copied": "Kopyalandı",
@@ -380,7 +380,7 @@
   "Customise this page": "Bu sayfayı özelleştir",
   "DVD folder: choose": "DVD klasörü: şunu seçin",
   "DVDs & Blu-rays": "DVD’ler ve Blu-ray’ler",
-  "DVDs, Blu-rays & CDs": "DVD’ler, Blu-ray’ler ve CD’ler",
+  "DVDs, Blu-rays & CDs": "DVD'ler, Blu-ray'ler ve CD'ler",
   "Dark": "Koyu",
   "Data folder": "Veri klasörü",
   "Data folder:": "Veri klasörü:",
@@ -409,7 +409,7 @@
   "Disc images: movies and series with their menus, audio CDs in a CD player": "Disk görüntüleri: menüleriyle filmler ve diziler, CD çalarda ses CD’leri",
   "Disc menus are run by WittyMediaServer's own WittyDVD and WittyBluray engines.": "Disk menüleri WittyMediaServer’ın kendi WittyDVD ve WittyBluray motorlarıyla çalışır.",
   "Disc subtitle size": "Disk altyazısı boyutu",
-  "Discard": "Vazgeç",
+  "Discard": "At",
   "Discs": "Diskler",
   "Disk.": "Disk.",
   "Dismiss": "Kapat",
@@ -517,7 +517,7 @@
   "Finds and fixes problems with metadata, the database, modules and this install": "Meta veri, veritabanı, modüller ve bu kurulumdaki sorunları bulur ve düzeltir",
   "Finds and fixes problems with your metadata, the database, modules and this install, and works from the command line too if the server won’t start. It only looks until you press a fix, and a safety copy is made first.": "Meta verilerinizdeki, veritabanındaki, modüllerdeki ve bu kurulumdaki sorunları bulur ve düzeltir; sunucu başlamazsa komut satırından da çalışır. Siz bir düzeltmeye basana kadar yalnızca bakar ve önce bir güvenlik kopyası alınır.",
   "Fine": "İnce",
-  "Finished": "Tamamlandı",
+  "Finished": "Bitti",
   "Finished work is kept so you can see what happened and try again. When either limit is reached, the oldest goes first.": "Biten işler, ne olduğunu görebilmeniz ve yeniden deneyebilmeniz için saklanır. Sınırlardan birine ulaşıldığında en eskisi önce gider.",
   "Finished. {counts}.": "Tamamlandı. {counts}.",
   "Fit": "Sığdır",
@@ -559,7 +559,7 @@
   "From modules": "Modüllerden",
   "Game saves and saved states": "Oyun kayıtları ve kayıtlı durumlar",
   "Games": "Oyunlar",
-  "Get a name for your home, so you don't have to know its address, which can change. A free dynamic DNS name works (for example from DuckDNS or No-IP), or a domain of your own. Set it to your router's outside address.": "Değişebilen adresini bilmek zorunda kalmamak için evinize bir ad alın. Ücretsiz bir dinamik DNS adı (örneğin DuckDNS veya No-IP’den) ya da kendi alan adınız işe yarar. Onu yönlendiricinizin dış adresine ayarlayın.",
+  "Get a name for your home, so you don't have to know its address, which can change. A free dynamic DNS name works (for example from DuckDNS or No-IP), or a domain of your own. Set it to your router's outside address.": "Değişebilen adresinizi bilmek zorunda kalmamak için evinize bir ad alın. Ücretsiz bir dinamik DNS adı (örneğin DuckDNS veya No-IP’den) ya da kendi alan adınız işe yarar. Onu yönlendiricinizin dış adresine ayarlayın.",
   "Get the certificate now": "Sertifikayı şimdi al",
   "Give more time today:": "Bugün daha fazla süre ver:",
   "Give one module’s pages colours of their own, for everyone. The rest of the app keeps the theme’s colours.": "Bir modülün sayfalarına herkes için kendi renklerini verin. Uygulamanın geri kalanı temanın renklerini korur.",
@@ -578,7 +578,7 @@
   "Go to Libraries": "Kitaplıklar’a git",
   "Goes on to the next episode when the credits start, after a short countdown you can stop. With no next episode, it jumps past the credits only when something comes after them.": "Jenerik başladığında, durdurabileceğiniz kısa bir geri sayımdan sonra bir sonraki bölüme geçer. Sonraki bölüm yoksa jeneriği yalnızca ardından bir şey geliyorsa atlar.",
   "Going": "Sürüyor",
-  "Graphics devices found": "Bulunan grafik aygıtları",
+  "Graphics devices found": "Bulunan grafik cihazları",
   "Guest": "Misafir",
   "Guides to everything here, built in": "Buradaki her şeyin yerleşik kılavuzları",
   "H.264 plays on everything. H.265 and AV1 are much smaller, and older devices may not play them. Leaving it alone is quickest and loses nothing.": "H.264 her şeyde çalar. H.265 ve AV1 çok daha küçüktür, eski cihazlar onları oynatamayabilir. Olduğu gibi bırakmak en hızlısıdır ve hiçbir şey kaybettirmez.",
@@ -643,26 +643,26 @@
   "In the app on the other device, choose": "Diğer cihazdaki uygulamada şunu seçin:",
   "In use": "Kullanımda",
   "In use on this device": "Bu cihazda kullanımda",
-  "Install": "Kur",
-  "Install WittyMediaServer {version}?": "WittyMediaServer {version} kurulsun mu?",
-  "Install a module from its release archive: one you built, or one someone gave you. The server checks the file and says what it found before anything is installed. Replacing an existing module with someone’s fork is done from that module above, under Advanced.": "Bir modülü sürüm arşivinden kurun: kendi derlediğiniz ya da birinin size verdiği. Sunucu dosyayı denetler ve bir şey kurulmadan önce ne bulduğunu söyler. Var olan bir modülü birinin çatallamasıyla değiştirmek, yukarıda o modülün Gelişmiş bölümünden yapılır.",
-  "Install a theme ZIP": "Tema ZIP’i kur",
-  "Install and restart": "Kur ve yeniden başlat",
-  "Install anyway": "Yine de kur",
-  "Install anyway…": "Yine de kur…",
-  "Install version {version}": "{version} sürümünü kur",
-  "Install version {version}, made for an older server: asks first": "Daha eski bir sunucu için yapılmış {version} sürümünü kur: önce sorar",
-  "Install version {version}, with an override": "{version} sürümünü bir geçersiz kılmayla kur",
-  "Install {name}": "{name} kur",
-  "Install {name} on your phone or laptop too, and sign in with the same account.": "{name} uygulamasını telefonunuza veya dizüstü bilgisayarınıza da kurun ve aynı hesapla oturum açın.",
-  "Installed": "Kurulu",
-  "Installed module versions, logs, reports, and the cache of posters and converted video.": "Kurulu modül sürümleri, günlükler, raporlar ve afiş ile dönüştürülmüş video önbelleği.",
-  "Installing": "Kuruluyor",
+  "Install": "Yükle",
+  "Install WittyMediaServer {version}?": "WittyMediaServer {version} yüklensin mi?",
+  "Install a module from its release archive: one you built, or one someone gave you. The server checks the file and says what it found before anything is installed. Replacing an existing module with someone’s fork is done from that module above, under Advanced.": "Bir modülü sürüm arşivinden yükleyin: kendi derlediğiniz ya da birinin size verdiği. Sunucu dosyayı denetler ve bir şey yüklenmeden önce ne bulduğunu söyler. Var olan bir modülü birinin çatallamasıyla değiştirmek, yukarıda o modülün Gelişmiş bölümünden yapılır.",
+  "Install a theme ZIP": "Tema ZIP’i yükle",
+  "Install and restart": "Yükle ve yeniden başlat",
+  "Install anyway": "Yine de yükle",
+  "Install anyway…": "Yine de yükle…",
+  "Install version {version}": "{version} sürümünü yükle",
+  "Install version {version}, made for an older server: asks first": "Daha eski bir sunucu için yapılmış {version} sürümünü yükle: önce sorar",
+  "Install version {version}, with an override": "{version} sürümünü bir geçersiz kılmayla yükle",
+  "Install {name}": "{name} yükle",
+  "Install {name} on your phone or laptop too, and sign in with the same account.": "{name} uygulamasını telefonunuza veya dizüstü bilgisayarınıza da yükleyin ve aynı hesapla oturum açın.",
+  "Installed": "Yüklü",
+  "Installed module versions, logs, reports, and the cache of posters and converted video.": "Yüklü modül sürümleri, günlükler, raporlar ve afiş ile dönüştürülmüş video önbelleği.",
+  "Installing": "Yükleniyor",
   "Installing from a file": "Dosyadan kurulum",
-  "Installing it asks you first.": "Kurmadan önce size sorulur.",
-  "Installing the new files…": "Yeni dosyalar kuruluyor…",
-  "Installs new versions when they appear, if they work with this server.": "Yeni sürümler çıktığında, bu sunucuyla çalışıyorlarsa kurar.",
-  "Install…": "Kur…",
+  "Installing it asks you first.": "Yüklemeden önce size sorulur.",
+  "Installing the new files…": "Yeni dosyalar yükleniyor…",
+  "Installs new versions when they appear, if they work with this server.": "Yeni sürümler çıktığında, bu sunucuyla çalışıyorlarsa yükler.",
+  "Install…": "Yükle…",
   "Internet radio": "İnternet radyosu",
   "Internet radio: a free community directory of stations to search, with logos, genres and countries. Your server contacts it when you search, and once a day for stations you added from it, sending only their IDs. It is never told what anyone listens to.": "İnternet radyosu: logolar, türler ve ülkelerle aranabilen ücretsiz bir topluluk istasyon dizini. Sunucunuz siz aradığınızda ve oradan eklediğiniz istasyonlar için günde bir kez, yalnızca kimliklerini göndererek ona bağlanır. Kimin ne dinlediği ona asla söylenmez.",
   "Invite a device as you?": "Bir cihaz sizin adınıza davet edilsin mi?",
@@ -675,8 +675,8 @@
   "It is pinned, so automatic updates leave it alone whatever this says.": "Sabitlenmiş, bu yüzden burada ne yazarsa yazsın otomatik güncellemeler ona dokunmaz.",
   "It only survives if the picture isn’t converted. Files with no ordinary HDR layer inside (profile 5) can’t be converted either way.": "Yalnızca görüntü dönüştürülmezse korunur. İçinde sıradan HDR katmanı olmayan dosyalar (profil 5) hiçbir şekilde dönüştürülemez.",
   "It says a file is broken": "Bir dosyanın bozuk olduğunu söylüyor",
-  "It still looks for new versions and shows them here, and waits for you to install them.": "Yine de yeni sürümleri arar ve burada gösterir, kurmanızı bekler.",
-  "It was installed with an override, so it never updates by itself. Remove the override, or choose a version that needs none, to let it update again.": "Bir geçersiz kılmayla kuruldu, bu yüzden asla kendiliğinden güncellenmez. Yeniden güncellenebilmesi için geçersiz kılmayı kaldırın ya da gerektirmeyen bir sürüm seçin.",
+  "It still looks for new versions and shows them here, and waits for you to install them.": "Yine de yeni sürümleri arar ve burada gösterir, yüklemenizi bekler.",
+  "It was installed with an override, so it never updates by itself. Remove the override, or choose a version that needs none, to let it update again.": "Bir geçersiz kılmayla yüklendi, bu yüzden asla kendiliğinden güncellenmez. Yeniden güncellenebilmesi için geçersiz kılmayı kaldırın ya da gerektirmeyen bir sürüm seçin.",
   "It wasn’t deleted": "Silinmedi",
   "It works! Your phone reached the server {where}, {how}, from {ip}.": "Çalışıyor! Telefonunuz sunucuya {where}, {how}, {ip} adresinden ulaştı.",
   "Its ZIP is deleted from the server’s themes folder.": "ZIP dosyası sunucunun temalar klasöründen silinir.",
@@ -733,7 +733,7 @@
   "Last confirmed {when}, {where}, {how}.": "Son onay: {when}, {where}, {how}.",
   "Last connection: {when}": "Son bağlantı: {when}",
   "Last looked {when}.": "Son bakış: {when}.",
-  "Later": "Daha sonra",
+  "Later": "Sonra",
   "Later, open": "Daha sonra şunu açın:",
   "Latest": "En yeni",
   "Latest automatic conversion": "En son otomatik dönüştürme",
@@ -763,7 +763,7 @@
   "Library channels and WittyTV options": "Kitaplık kanalları ve WittyTV seçenekleri",
   "Library removed": "Kitaplık kaldırıldı",
   "Library saved; scanning": "Kitaplık kaydedildi; taranıyor",
-  "Library transcoding": "Kitaplık kod dönüştürme",
+  "Library transcoding": "Kitaplık dönüştürme",
   "License": "Lisans",
   "Light": "Açık",
   "Light or dark": "Açık veya koyu",
@@ -782,7 +782,7 @@
   "Listings stay off until you've accepted all of them, and turning them off forgets everything they fetched.": "Hepsini kabul edene kadar listeler kapalı kalır ve kapatmak getirdikleri her şeyi unutturur.",
   "Little kids": "Küçük çocuklar",
   "Live TV": "Canlı TV",
-  "Live transcoding": "Canlı kod dönüştürme",
+  "Live transcoding": "Canlı dönüştürme",
   "Loading": "Yükleniyor",
   "Loading the list of formats…": "Biçim listesi yükleniyor…",
   "Loading the list of licenses…": "Lisans listesi yükleniyor…",
@@ -823,7 +823,7 @@
   "Matches, overviews, genres, ratings, artwork, cast and crew and where to watch, and their cached pictures. Titles go back to their file names.": "Eşleşmeler, özetler, türler, derecelendirmeler, kapak resimleri, oyuncular ve ekip, nerede izleneceği ve önbellekteki resimleri. Başlıklar dosya adlarına geri döner.",
   "Measured on this machine.": "Bu makinede ölçüldü.",
   "Messages give the file and the line. Look at that line and the one before it.": "İletiler dosyayı ve satırı verir. O satıra ve bir öncekine bakın.",
-  "Metadata": "Meta veri",
+  "Metadata": "Meta veriler",
   "Metadata agents": "Meta veri ajanları",
   "Metadata files": "Meta veri dosyaları",
   "Metadata files changed by hand": "Elle değiştirilen meta veri dosyaları",
@@ -840,8 +840,8 @@
   "Move inside": "İçeri taşı",
   "Move text ones inside the new file": "Metin olanları yeni dosyanın içine taşı",
   "Move the menu, the server’s name, search, the Dock and the spotlight, or hide what you don’t use: for you on this device, or for everyone.": "Menüyü, sunucunun adını, aramayı, Dock’u ve öne çıkanları taşıyın ya da kullanmadıklarınızı gizleyin: bu cihazda kendiniz için veya herkes için.",
-  "Move {name} down": "{name} aşağı taşı",
-  "Move {name} up": "{name} yukarı taşı",
+  "Move {name} down": "{name} öğesini aşağı taşı",
+  "Move {name} up": "{name} öğesini yukarı taşı",
   "Moved a drive?": "Bir sürücüyü mü taşıdınız?",
   "Movie and show posters lean toward the pointer, or settle in as a remote reaches them.": "Film ve dizi afişleri işaretçiye doğru eğilir ya da kumanda onlara ulaştığında yerine oturur.",
   "Movie files; disc images of movies can go here too": "Film dosyaları; filmlerin disk görüntüleri de buraya konabilir",
@@ -881,7 +881,7 @@
   "New password or PIN saved for {name}. They’re signed out on their devices.": "{name} için yeni parola veya PIN kaydedildi. Cihazlarında oturumları kapatıldı.",
   "New password saved for {name}. They’re signed out on their devices.": "{name} için yeni parola kaydedildi. Cihazlarında oturumları kapatıldı.",
   "New {label}": "Yeni {label}",
-  "Next": "İleri",
+  "Next": "Sonraki",
   "No API key needed": "API anahtarı gerekmez",
   "No backup was made": "Yedek alınmadı",
   "No build here": "Burada derleme yok",
@@ -917,7 +917,7 @@
   "Not enough room": "Yeterli yer yok",
   "Not found on this machine": "Bu makinede bulunamadı",
   "Not included in this FFmpeg build": "Bu FFmpeg derlemesine dahil değil",
-  "Not installed": "Kurulu değil",
+  "Not installed": "Yüklü değil",
   "Not pinned, so automatic updates can move it if you turned them on.": "Sabitlenmemiş, bu yüzden açtıysanız otomatik güncellemeler onu değiştirebilir.",
   "Not set": "Ayarlanmadı",
   "Not supported on this operating system": "Bu işletim sisteminde desteklenmiyor",
@@ -929,7 +929,7 @@
   "Nothing checked yet": "Henüz hiçbir şey denetlenmedi",
   "Nothing else needs changing on this computer.": "Bu bilgisayarda başka bir şeyin değişmesi gerekmiyor.",
   "Nothing found": "Hiçbir şey bulunamadı",
-  "Nothing here": "Burada hiçbir şey yok",
+  "Nothing here": "Burada bir şey yok",
   "Nothing here matches “{query}”. A file of a kind this server doesn’t list may still be recognised by its content.": "Burada “{query}” ile eşleşen bir şey yok. Bu sunucunun listelemediği türde bir dosya yine de içeriğinden tanınabilir.",
   "Nothing here matches.": "Burada eşleşen bir şey yok.",
   "Nothing in settings matches “{query}”. Try fewer or other words, or search Help.": "Ayarlarda “{query}” ile eşleşen bir şey yok. Daha az veya farklı sözcükler deneyin ya da Yardım’da arayın.",
@@ -969,12 +969,12 @@
   "On a PC with Smart App Control on, Windows blocks installers that aren’t signed; signed releases are on the way.": "Akıllı Uygulama Denetimi açık bir bilgisayarda Windows imzasız yükleyicileri engeller; imzalı sürümler yolda.",
   "On a card": "Kartta",
   "On the Mac, open the installer.": "Mac’te yükleyiciyi açın.",
-  "On the rented server, install Caddy and pass visitors on to this computer over that network:": "Kiralık sunucuya Caddy kurun ve ziyaretçileri o ağ üzerinden bu bilgisayara iletin:",
+  "On the rented server, install Caddy and pass visitors on to this computer over that network:": "Kiralık sunucuya Caddy yükleyin ve ziyaretçileri o ağ üzerinden bu bilgisayara iletin:",
   "On the server’s computer, as its administrator, run:": "Sunucunun bilgisayarında, yönetici olarak şunu çalıştırın:",
   "On the server’s computer, open the installer.": "Sunucunun bilgisayarında yükleyiciyi açın.",
   "On the server’s computer, unpack it over the old copy.": "Sunucunun bilgisayarında, eski kopyanın üzerine açın.",
   "On this account": "Bu hesapta",
-  "On this computer, install {name} from": "Bu bilgisayara {name} uygulamasını şuradan kurun:",
+  "On this computer, install {name} from": "Bu bilgisayara {name} uygulamasını şuradan yükleyin:",
   "On this device": "Bu cihazda",
   "On this page": "Bu sayfada",
   "On this server": "Bu sunucuda",
@@ -1066,13 +1066,13 @@
   "Playback": "Oynatma",
   "Player": "Oynatıcı",
   "Player, skipping and streaming": "Oynatıcı, atlama ve akış",
-  "Playlists": "Çalma listeleri",
+  "Playlists": "Oynatma listeleri",
   "Plays first": "Önce oynar",
   "Please read each of these.": "Lütfen bunların her birini okuyun.",
   "Please wait": "Lütfen bekleyin",
-  "Podcasts": "Podcast’ler",
+  "Podcasts": "Podcast'ler",
   "Point your proxy at this server. For Caddy, this is all it takes (it gets its own certificate):": "Vekil sunucunuzu bu sunucuya yönlendirin. Caddy için gereken yalnızca bu (kendi sertifikasını alır):",
-  "Port": "Bağlantı noktası",
+  "Port": "Port",
   "Port forwarding can't work like this.": "Bağlantı noktası yönlendirme bu şekilde çalışamaz.",
   "Port {port} is open on your router ({protocol}), at {address}.": "Bağlantı noktası {port} yönlendiricinizde açık ({protocol}), {address} adresinde.",
   "Port {port} is open on your router ({protocol}).": "Bağlantı noktası {port} yönlendiricinizde açık ({protocol}).",
@@ -1102,7 +1102,7 @@
   "Put it back": "Geri koy",
   "Put stereo ahead of surround": "Stereoyu çevresel sesin önüne al",
   "Put the original back": "Orijinali geri koy",
-  "Puts this server back the way it was first installed, so you can set it up from the start.": "Bu sunucuyu ilk kurulduğu haline döndürür, böylece baştan kurabilirsiniz.",
+  "Puts this server back the way it was first installed, so you can set it up from the start.": "Bu sunucuyu ilk yüklendiği haline döndürür, böylece baştan kurabilirsiniz.",
   "QR code holding the invite": "Daveti içeren QR kodu",
   "QR code holding the test address": "Deneme adresini içeren QR kodu",
   "Quality": "Kalite",
@@ -1153,7 +1153,7 @@
   "Rename": "Yeniden adlandır",
   "Rename the kind {name}": "{name} türünü yeniden adlandır",
   "Rent a small server, and point your domain name at it.": "Küçük bir sunucu kiralayın ve alan adınızı ona yönlendirin.",
-  "Repair": "Onar",
+  "Repair": "Onarım",
   "Replace the original": "Orijinalin yerine koy",
   "Replacing originals deletes them, so this asks for your password.": "Orijinallerin yerine koymak onları siler, bu yüzden parolanız sorulur.",
   "Report": "Rapor",
@@ -1174,7 +1174,7 @@
   "Results": "Sonuçlar",
   "Resume": "Sürdür",
   "Return to latest": "En yeniye dön",
-  "Revert": "Geri al",
+  "Revert": "Geri döndür",
   "Right after applying, press": "Uyguladıktan hemen sonra şuna basın:",
   "Right now this server only answers on this computer.": "Şu anda bu sunucu yalnızca bu bilgisayarda yanıt veriyor.",
   "Robust": "Dayanıklı",
@@ -1235,7 +1235,7 @@
   "Secondary text": "İkincil metin",
   "Secrets left out": "Gizli bilgiler dışarıda bırakıldı",
   "See which of the titles on your server a streaming service currently lists, if you're used to finding things that way. Off unless you turn it on.": "Bir şeyleri bu şekilde bulmaya alışkınsanız, sunucunuzdaki başlıklardan hangilerinin şu anda bir yayın hizmetinde listelendiğini görün. Siz açmadıkça kapalıdır.",
-  "Seek bar": "Arama çubuğu",
+  "Seek bar": "Sarma çubuğu",
   "Select it and copy it by hand": "Seçin ve elle kopyalayın",
   "Select the address and copy it by hand": "Adresi seçin ve elle kopyalayın",
   "Select the text and copy it": "Metni seçin ve kopyalayın",
@@ -1308,7 +1308,7 @@
   "Speed": "Hız",
   "Standard": "Standart",
   "Standard sends the best picture the settings allow, as it always has. Robust favours staying smooth: it measures the viewer’s connection, starts at a steady rate that fits, steps down to a lower quality instead of stalling, keeps a bigger buffer and picks up where it was after the connection drops. It costs the server a little more, since converting is more often needed.": "Standart, her zaman olduğu gibi ayarların izin verdiği en iyi görüntüyü gönderir. Dayanıklı, akıcı kalmayı öne alır: izleyicinin bağlantısını ölçer, uyan sabit bir hızla başlar, takılmak yerine daha düşük kaliteye iner, daha büyük bir arabellek tutar ve bağlantı koptuktan sonra kaldığı yerden devam eder. Dönüştürme daha sık gerektiği için sunucuya biraz daha fazla yük getirir.",
-  "Start again": "Yeniden başla",
+  "Start again": "Baştan başla",
   "Start converting": "Dönüştürmeyi başlat",
   "Stations from a free directory or by stream address; no folder needed": "Ücretsiz bir dizinden veya akış adresiyle istasyonlar; klasör gerekmez",
   "Stereo": "Stereo",
@@ -1347,7 +1347,7 @@
   "TV episode layout": "TV bölümü düzeni",
   "TV guide preview, rows and hours": "TV rehberi önizlemesi, satırlar ve saatler",
   "TV mode": "TV modu",
-  "TV shows": "TV dizileri",
+  "TV shows": "Diziler",
   "TV shows: episode titles, plots, posters and stills. Used until you add a TheTVDB key. Data shared under CC BY-SA 4.0.": "TV dizileri: bölüm başlıkları, konular, afişler ve kareler. Bir TheTVDB anahtarı ekleyene kadar kullanılır. Veriler CC BY-SA 4.0 altında paylaşılır.",
   "Taken out of use before: {reason}": "Daha önce kullanımdan kaldırıldı: {reason}",
   "Taking it back": "Geri alınıyor",
@@ -1372,7 +1372,7 @@
   "That connection came from {where}, so it proves nothing yet. Turn off Wi-Fi and open it again.": "Bu bağlantı {where} konumundan geldi, bu yüzden henüz bir şey kanıtlamıyor. Wi-Fi’yi kapatıp yeniden açın.",
   "That didn’t work, and nothing was changed": "Bu işe yaramadı ve hiçbir şey değişmedi",
   "That password doesn’t open this backup. Try again": "Bu parola bu yedeği açmıyor. Yeniden deneyin",
-  "That theme couldn’t be installed": "Bu tema kurulamadı",
+  "That theme couldn’t be installed": "Bu tema yüklenemedi",
   "That title has gone from the server. Delete the file.": "Bu başlık sunucudan kaldırılmış. Dosyayı silin.",
   "That’s too long: 72 bytes at most.": "Bu çok uzun: en fazla 72 bayt.",
   "The Movie Database (TMDB)": "The Movie Database (TMDB)",
@@ -1412,7 +1412,7 @@
   "The last restore didn’t work": "Son geri yükleme çalışmadı",
   "The light look": "Açık görünüm",
   "The list of formats couldn’t be loaded.": "Biçim listesi yüklenemedi.",
-  "The list of libraries, and everything known about what’s in them: watch progress, favourites, ratings, playlists, collections and notes.": "Kitaplıkların listesi ve içlerindekiler hakkında bilinen her şey: izleme ilerlemesi, favoriler, puanlar, çalma listeleri, koleksiyonlar ve notlar.",
+  "The list of libraries, and everything known about what’s in them: watch progress, favourites, ratings, playlists, collections and notes.": "Kitaplıkların listesi ve içlerindekiler hakkında bilinen her şey: izleme ilerlemesi, favoriler, puanlar, oynatma listeleri, koleksiyonlar ve notlar.",
   "The list of licenses couldn’t be loaded.": "Lisans listesi yüklenemedi.",
   "The log can't be written to its folder: {error}. Until that's fixed, lines are kept only in memory and on the console, and the server tries again every 30 seconds. Check the folder under Files.": "Günlük kendi klasörüne yazılamıyor: {error}. Bu düzelene kadar satırlar yalnızca bellekte ve konsolda tutulur, sunucu 30 saniyede bir yeniden dener. Dosyalar altındaki klasörü denetleyin.",
   "The menu for everyone": "Herkes için menü",
@@ -1440,7 +1440,7 @@
   "The same file after the fix": "Düzeltmeden sonra aynı dosya",
   "The server and this app": "Sunucu ve bu uygulama",
   "The server can use it": "Sunucu bunu kullanabilir",
-  "The server hasn’t come back yet. If it doesn’t, start WittyMediaServer again (tray icon or Start menu); the new version is installed.": "Sunucu henüz geri gelmedi. Gelmezse WittyMediaServer’ı yeniden başlatın (tepsi simgesi veya Başlat menüsü); yeni sürüm kuruldu.",
+  "The server hasn’t come back yet. If it doesn’t, start WittyMediaServer again (tray icon or Start menu); the new version is installed.": "Sunucu henüz geri gelmedi. Gelmezse WittyMediaServer’ı yeniden başlatın (tepsi simgesi veya Başlat menüsü); yeni sürüm yüklendi.",
   "The server hasn’t come back. Start it again by hand: the repair finishes as it starts.": "Sunucu geri gelmedi. Elle yeniden başlatın: onarım başlarken tamamlanır.",
   "The server hasn’t come back. Start it again by hand: the reset happens as it starts.": "Sunucu geri gelmedi. Elle yeniden başlatın: sıfırlama başlarken yapılır.",
   "The server hasn’t come back. Start it again by hand: the restore happens as it starts.": "Sunucu geri gelmedi. Elle yeniden başlatın: geri yükleme başlarken yapılır.",
@@ -1462,7 +1462,7 @@
   "The timeline under the picture.": "Görüntünün altındaki zaman çizelgesi.",
   "The titles are back as they were. Export again to bring their files back into line.": "Başlıklar eski haline döndü. Dosyalarını uyumlu hale getirmek için yeniden dışa aktarın.",
   "The tray or menu-bar icon": "Tepsi veya menü çubuğu simgesi",
-  "The update didn’t install, and the server keeps running the version it has: {error}": "Güncelleme kurulmadı ve sunucu mevcut sürümüyle çalışmaya devam ediyor: {error}",
+  "The update didn’t install, and the server keeps running the version it has: {error}": "Güncelleme yüklenmedi ve sunucu mevcut sürümüyle çalışmaya devam ediyor: {error}",
   "The upload didn't finish. Check the connection and try again.": "Yükleme bitmedi. Bağlantıyı denetleyip yeniden deneyin.",
   "The upload was refused.": "Yükleme reddedildi.",
   "The words of the app, for everyone using this server. Films, shows and their details keep their own languages.": "Bu sunucuyu kullanan herkes için uygulamanın sözcükleri. Filmler, diziler ve ayrıntıları kendi dillerini korur.",
@@ -1477,7 +1477,7 @@
   "Theme, colours, layout, and the look of WittyTV and the player": "Tema, renkler, düzen ve WittyTV ile oynatıcının görünümü",
   "Themes": "Temalar",
   "There were none when the server last looked.": "Sunucu en son baktığında hiç yoktu.",
-  "There’s no earlier version here, so it won’t be working until you install another. This asks for your password.": "Burada daha eski bir sürüm yok, bu yüzden başka birini kurana kadar çalışmayacak. Bu işlem parolanızı ister.",
+  "There’s no earlier version here, so it won’t be working until you install another. This asks for your password.": "Burada daha eski bir sürüm yok, bu yüzden başka bir tane yükleyene kadar çalışmayacak. Parolanız istenir.",
   "There’s no title with the number…": "Şu numaraya sahip bir başlık yok…",
   "There’s something a text can’t hold as it is": "Bir metnin olduğu gibi tutamayacağı bir şey var",
   "These folders are set up elsewhere. What’s in them is moved into a": "Bu klasörler başka yerde ayarlanmış. İçlerindekiler şuraya taşınır:",
@@ -1530,7 +1530,7 @@
   "This page moves on by itself. Everyone signs in again afterwards.": "Bu sayfa kendiliğinden ilerler. Ardından herkes yeniden oturum açar.",
   "This page shows the new version once it’s running, instead of {version}.": "Bu sayfa, yeni sürüm çalışmaya başlayınca {version} yerine onu gösterir.",
   "This page shows the new version once it’s running.": "Bu sayfa, yeni sürüm çalışmaya başlayınca onu gösterir.",
-  "This product uses the TMDB API but is not endorsed or certified by TMDB.": "Bu ürün TMDB API’sini kullanır ancak TMDB tarafından onaylanmamış veya sertifikalandırılmamıştır.",
+  "This product uses the TMDB API but is not endorsed or certified by TMDB.": "Bu ürün TMDB API'sini kullanır ancak TMDB tarafından onaylanmamış veya sertifikalandırılmamıştır.",
   "This profile's password and limits are managed by the adults of this server.": "Bu profilin parolası ve sınırları bu sunucunun yetişkinleri tarafından yönetilir.",
   "This recipe’s preset no longer exists.": "Bu tarifin hazır ayarı artık yok.",
   "This rewrites them. Each new file is checked before anything is replaced, and you choose whether the old one is kept, but a converted file is never better than its original.": "Bu, onları yeniden yazar. Herhangi bir şeyin yerine konmadan önce her yeni dosya denetlenir ve eskisinin saklanıp saklanmayacağını siz seçersiniz; ancak dönüştürülmüş bir dosya asla orijinalinden daha iyi olmaz.",
@@ -1550,7 +1550,7 @@
   "This server refuses unencrypted (http://) connections from the internet, so that passwords can’t be read on the way. Some people reach their server through a network or tunnel of their own that the server can’t recognise, and accept the risk. Leave this off unless you’re one of them.": "Bu sunucu, parolaların yolda okunamaması için internetten gelen şifrelenmemiş (http://) bağlantıları reddeder. Bazı kişiler sunucularına, sunucunun tanıyamadığı kendi ağları veya tünelleri üzerinden ulaşır ve riski kabul eder. Onlardan biri değilseniz bunu kapalı bırakın.",
   "This server refuses unencrypted connections from the internet, so a wrongly forwarded plain port can't expose your password. Anyone can still reach the sign-in page, so use long passwords, and consider two-factor sign-in.": "Bu sunucu internetten gelen şifrelenmemiş bağlantıları reddeder, böylece yanlış yönlendirilmiş düz bir bağlantı noktası parolanızı açığa çıkaramaz. Oturum açma sayfasına yine de herkes ulaşabilir, bu yüzden uzun parolalar kullanın ve iki adımlı oturum açmayı düşünün.",
   "This server will talk to an address it hasn’t been talking to, so this asks for your password.": "Bu sunucu daha önce konuşmadığı bir adresle konuşacak, bu yüzden parolanızı istiyor.",
-  "This server's version, the modules installed on it, its system, its license, every third-party license, and the services it relies on.": "Bu sunucunun sürümü, üzerinde kurulu modüller, sistemi, lisansı, tüm üçüncü taraf lisansları ve dayandığı hizmetler.",
+  "This server's version, the modules installed on it, its system, its license, every third-party license, and the services it relies on.": "Bu sunucunun sürümü, üzerinde yüklü modüller, sistemi, lisansı, tüm üçüncü taraf lisansları ve dayandığı hizmetler.",
   "This server’s FFmpeg can’t encode H.265.": "Bu sunucunun FFmpeg’i H.265 kodlayamıyor.",
   "This server’s connection ID": "Bu sunucunun bağlantı kimliği",
   "This started from a preset, and you’ve changed its details. Choosing a preset above goes back to it.": "Bu bir hazır ayardan başladı ve ayrıntılarını değiştirdiniz. Yukarıdan bir hazır ayar seçmek ona geri döner.",
@@ -1745,7 +1745,7 @@
   "What’s built on it": "Üzerine kurulanlar",
   "What’s in it": "İçinde ne var",
   "What’s in the folder": "Klasörde ne var",
-  "What’s installed, whether it’s whole, and whether it’s signed.": "Ne kurulu, eksiksiz mi ve imzalı mı.",
+  "What’s installed, whether it’s whole, and whether it’s signed.": "Ne yüklü, eksiksiz mi ve imzalı mı.",
   "What’s new": "Yenilikler",
   "What’s new in the {count} versions since yours": "Sizinkinden sonraki {count} sürümdeki yenilikler",
   "What’s on this server now is moved to a safety copy first, and goes back by itself if anything fails. Anything playing is interrupted.": "Bu sunucuda şu anda olanlar önce bir güvenlik kopyasına taşınır ve bir şey başarısız olursa kendiliğinden geri gelir. Oynatılan her şey kesilir.",
@@ -1809,7 +1809,7 @@
   "Working": "Çalışıyor",
   "Working on this machine": "Bu makinede çalışıyor",
   "Working on this machine ({device})": "Bu makinede çalışıyor ({device})",
-  "Working…": "Çalışılıyor…",
+  "Working…": "Çalışıyor…",
   "Works once, for fifteen minutes, and only while you stay signed in here. Treat it like a password until then: whoever has it gets in as you.": "Bir kez, on beş dakika boyunca ve yalnızca burada oturumunuz açık kaldığı sürece çalışır. O zamana kadar ona parola gibi davranın: kimde olursa sizin adınıza girer.",
   "Works with": "Şununla çalışır:",
   "Works with servers {min} to {max}": "{min} - {max} sunucularıyla çalışır",
@@ -1823,7 +1823,7 @@
   "XL": "XL",
   "Year": "Yıl",
   "You": "Siz",
-  "You can install it again from the store at any time.": "İstediğiniz zaman mağazadan yeniden kurabilirsiniz.",
+  "You can install it again from the store at any time.": "İstediğiniz zaman mağazadan yeniden yükleyebilirsiniz.",
   "You can pause or cancel it here or in the activity panel.": "Burada veya etkinlik panelinde duraklatabilir ya da iptal edebilirsiniz.",
   "You don’t need to know anything about JSON. Change the words between the quotes, keep the quotes and commas, and save.": "JSON hakkında bir şey bilmenize gerek yok. Tırnakların arasındaki sözcükleri değiştirin, tırnakları ve virgülleri koruyun ve kaydedin.",
   "You have no collections yet. Make one under Collections, add titles to it, and it can be allowed or hidden here as a whole.": "Henüz koleksiyonunuz yok. Koleksiyonlar altında bir tane oluşturun, ona başlık ekleyin; burada bir bütün olarak izin verilebilir veya gizlenebilir.",
@@ -1850,7 +1850,7 @@
   "Your libraries, settings and watch history are kept.": "Kitaplıklarınız, ayarlarınız ve izleme geçmişiniz korunur.",
   "Your links": "Bağlantılarınız",
   "Your notice": "Bildiriminiz",
-  "Your own": "Kendinizin",
+  "Your own": "Sizinki",
   "Your own ads and bumpers for TV channels; they stay out of Home and search": "TV kanalları için kendi reklamlarınız ve geçiş videolarınız; Ana sayfada ve aramada görünmezler",
   "Your own colours": "Kendi renkleriniz",
   "Your own game files, by console, played in the browser": "Kendi oyun dosyalarınız, konsola göre, tarayıcıda oynanır",
@@ -1974,7 +1974,7 @@
   "with API key": "API anahtarıyla",
   "with {name}": "{name} ile",
   "your media files and game files, wherever they are, anything saved beside them such as posters and info files, the program itself and its config file.": "medya dosyalarınız ve oyun dosyalarınız, nerede olurlarsa olsunlar, yanlarına kaydedilen afişler ve bilgi dosyaları gibi her şey, programın kendisi ve yapılandırma dosyası.",
-  "your profiles, settings and libraries; what everyone has watched and how far; ratings, favourites, lists and playlists; fields you locked or typed yourself; modules, WittyTV and game saves.": "profilleriniz, ayarlarınız ve kitaplıklarınız; herkesin neyi ne kadar izlediği; puanlar, favoriler, listeler ve çalma listeleri; kilitlediğiniz veya kendiniz yazdığınız alanlar; modüller, WittyTV ve oyun kayıtları.",
+  "your profiles, settings and libraries; what everyone has watched and how far; ratings, favourites, lists and playlists; fields you locked or typed yourself; modules, WittyTV and game saves.": "profilleriniz, ayarlarınız ve kitaplıklarınız; herkesin neyi ne kadar izlediği; puanlar, favoriler, listeler ve oynatma listeleri; kilitlediğiniz veya kendiniz yazdığınız alanlar; modüller, WittyTV ve oyun kayıtları.",
   "{caption}, drawn with these colours": "{caption}, bu renklerle çizilmiş",
   "{colour}: pick a colour": "{colour}: bir renk seçin",
   "{colour}: the colour as a code": "{colour}: kod olarak renk",
@@ -2007,10 +2007,10 @@
   "{name} can control other people's devices": "{name} başkalarının cihazlarını yönetebilir",
   "{name} can update again": "{name} yeniden güncellenebilir",
   "{name} can update by itself": "{name} kendiliğinden güncellenebilir",
-  "{name} goes back to the releases of {repo}. Versions downloaded from {fork} are deleted, and it isn’t on this server until you install the official one.": "{name}, {repo} sürümlerine geri döner. {fork} kaynağından indirilen sürümler silinir ve resmi olanı kurana kadar bu sunucuda bulunmaz.",
+  "{name} goes back to the releases of {repo}. Versions downloaded from {fork} are deleted, and it isn’t on this server until you install the official one.": "{name}, {repo} sürümlerine geri döner. {fork} kaynağından indirilen sürümler silinir ve resmi olanı yükleyene kadar bu sunucuda bulunmaz.",
   "{name} helps your devices find each other. Your video travels directly between them whenever it can, encrypted so that only your devices can read it. No port is opened on your router. Devices on your VPN count as away from home: they get the limits below and need a password.": "{name}, cihazlarınızın birbirini bulmasına yardım eder. Videonuz mümkün olduğunda doğrudan cihazlar arasında, yalnızca sizin cihazlarınızın okuyabileceği şekilde şifrelenmiş olarak gider. Yönlendiricinizde hiçbir bağlantı noktası açılmaz. VPN’inizdeki cihazlar evden uzakta sayılır: aşağıdaki sınırlar uygulanır ve parola gerekir.",
   "{name} is back to the official version": "{name} resmi sürüme geri döndü",
-  "{name} is being installed": "{name} kuruluyor",
+  "{name} is being installed": "{name} yükleniyor",
   "{name} is going back to the latest": "{name} en yeni sürüme dönüyor",
   "{name} is hidden, and still plays on channels": "{name} gizli ve kanallarda oynatılmaya devam ediyor",
   "{name} is no longer in use": "{name} artık kullanılmıyor",
@@ -2026,10 +2026,10 @@
   "{name} stops showing in the app and stops checking for updates.": "{name} uygulamada görünmeyi ve güncellemeleri denetlemeyi bırakır.",
   "{name} stops using version {version}, and that version is marked as taken out of use, so automatic updates won’t bring it back. You can still choose it yourself.": "{name}, {version} sürümünü kullanmayı bırakır ve o sürüm kullanımdan kaldırılmış olarak işaretlenir, böylece otomatik güncellemeler onu geri getirmez. Yine de kendiniz seçebilirsiniz.",
   "{name} versions": "{name} sürümleri",
-  "{name} wasn’t installed": "{name} kurulmadı",
+  "{name} wasn’t installed": "{name} yüklenmedi",
   "{name} went back to version {version}": "{name}, {version} sürümüne geri döndü",
   "{name} will wait for you to update it": "{name} güncellemeniz için sizi bekleyecek",
-  "{name} {version} is being installed": "{name} {version} kuruluyor",
+  "{name} {version} is being installed": "{name} {version} yükleniyor",
   "{name}: the last two weeks": "{name}: son iki hafta",
   "{n} s": "{n} sn",
   "{n}% smaller": "%{n} daha küçük",
@@ -2056,59 +2056,206 @@
   "{what} This server can’t restart itself: stop it and start it again, and it happens then.": "{what} Bu sunucu kendini yeniden başlatamaz: durdurup yeniden başlatın, o zaman gerçekleşir.",
   "{what}, {when}": "{what}, {when}",
   "{where}, {how}": "{where}, {how}",
-  "“{name}” is installed": "“{name}” kuruldu",
+  "“{name}” is installed": "“{name}” yüklendi",
   "“{name}” is on the server": "“{name}” sunucuda",
   "“{name}” is your theme on this device": "“{name}” bu cihazdaki temanız",
   "…": "…",
   "…and {count} more.": "…ve {count} tane daha.",
   "…or type a folder path and press Enter": "…ya da bir klasör yolu yazıp Enter’a basın",
-  "{count} bytes": {"one":"{count} bayt","other":"{count} bayt"},
-  "{count} entries": {"one":"{count} kayıt","other":"{count} kayıt"},
-  "{count} files": {"one":"{count} dosya","other":"{count} dosya"},
-  "{count} titles": {"one":"{count} başlık","other":"{count} başlık"},
-  "{count} pieces of text would be hard to read": {"one":"{count} metin parçasının okunması zor olur","other":"{count} metin parçasının okunması zor olur"},
-  "{count} problems": {"one":"{count} sorun","other":"{count} sorun"},
-  "{count} warnings": {"one":"{count} uyarı","other":"{count} uyarı"},
-  "{count} notes": {"one":"{count} not","other":"{count} not"},
-  "{count} things fine": {"one":"{count} şey yolunda","other":"{count} şey yolunda"},
-  "{count} files the server saved beside the media removed, with {companions}.": {"one":"Sunucunun medyanın yanına kaydettiği {count} dosya, {companions} ile birlikte kaldırıldı.","other":"Sunucunun medyanın yanına kaydettiği {count} dosya, {companions} ile birlikte kaldırıldı."},
-  "{count} macOS “._” files": {"one":"{count} macOS “._” dosyası","other":"{count} macOS “._” dosyası"},
-  "{count} files the server saved beside the media removed.": {"one":"Sunucunun medyanın yanına kaydettiği {count} dosya kaldırıldı.","other":"Sunucunun medyanın yanına kaydettiği {count} dosya kaldırıldı."},
-  "{count} NFO files of yours put back from the .nfo.bak copy the server kept.": {"one":"Size ait bir NFO dosyası, sunucunun sakladığı .nfo.bak kopyasından geri konuldu.","other":"Size ait {count} NFO dosyası, sunucunun sakladığı .nfo.bak kopyasından geri konuldu."},
-  "{count} files were left as they were: changed since the server saved them, or couldn’t be removed.": {"one":"{count} dosya olduğu gibi bırakıldı: sunucu kaydettiğinden beri değişmiş ya da kaldırılamadı.","other":"{count} dosya olduğu gibi bırakıldı: sunucu kaydettiğinden beri değişmiş ya da kaldırılamadı."},
-  "{count} shows": {"one":"{count} dizi","other":"{count} dizi"},
-  "{count} fields you locked or typed kept.": {"one":"Kilitlediğiniz veya yazdığınız {count} alan korundu.","other":"Kilitlediğiniz veya yazdığınız {count} alan korundu."},
-  "{count} cached pictures removed.": {"one":"Önbellekteki {count} resim kaldırıldı.","other":"Önbellekteki {count} resim kaldırıldı."},
-  "{count} downloaded logos removed.": {"one":"İndirilen {count} logo kaldırıldı.","other":"İndirilen {count} logo kaldırıldı."},
-  "{count} items": {"one":"{count} öğe","other":"{count} öğe"},
-  "{count} problems so far. They’re in the activity panel.": {"one":"Şimdiye kadar {count} sorun. Etkinlik panelinde görebilirsiniz.","other":"Şimdiye kadar {count} sorun. Etkinlik panelinde görebilirsiniz."},
-  "WittyMediaServer itself, and every Witty module, is AGPL-3.0-or-later. It’s built with {count} open-source libraries, all listed here with their full license text.": {"one":"WittyMediaServer’ın kendisi ve her Witty modülü AGPL-3.0-or-later lisanslıdır. Burada tam lisans metniyle listelenen {count} açık kaynak kitaplıkla oluşturulmuştur.","other":"WittyMediaServer’ın kendisi ve her Witty modülü AGPL-3.0-or-later lisanslıdır. Hepsi burada tam lisans metinleriyle listelenen {count} açık kaynak kitaplıkla oluşturulmuştur."},
-  "{count} files for titles": {"one":"Başlıklar için {count} dosya","other":"Başlıklar için {count} dosya"},
-  "{count} pictures": {"one":"{count} resim","other":"{count} resim"},
-  "{count} files written": {"one":"{count} dosya yazıldı","other":"{count} dosya yazıldı"},
-  "{count} files kept as they are, with edits you haven’t applied.": {"one":"Uygulamadığınız düzenlemeleri olan {count} dosya olduğu gibi bırakıldı.","other":"Uygulamadığınız düzenlemeleri olan {count} dosya olduğu gibi bırakıldı."},
-  "{count} titles would change.": {"one":"{count} başlık değişir.","other":"{count} başlık değişir."},
-  "{count} files with nothing to do.": {"one":"Yapılacak bir şeyi olmayan {count} dosya.","other":"Yapılacak bir şeyi olmayan {count} dosya."},
-  "Apply to {count} titles": {"one":"{count} başlığa uygula","other":"{count} başlığa uygula"},
-  "{count} titles changed": {"one":"{count} başlık değişti","other":"{count} başlık değişti"},
-  "{count} files left out.": {"one":"{count} dosya dışarıda bırakıldı.","other":"{count} dosya dışarıda bırakıldı."},
-  "{names} are built on it.": {"one":"{names} bunun üzerine kurulu.","other":"{names} bunun üzerine kurulu."},
-  "{name} has {count} more minutes today": {"one":"{name} için bugün {count} dakika daha var","other":"{name} için bugün {count} dakika daha var"},
-  "{count} minutes": {"one":"{count} dakika","other":"{count} dakika"},
-  "{count} minutes ago": {"one":"{count} dakika önce","other":"{count} dakika önce"},
-  "{count} hours ago": {"one":"{count} saat önce","other":"{count} saat önce"},
-  "{count} days ago": {"one":"{count} gün önce","other":"{count} gün önce"},
-  "{done}. {count} devices were signed out.": {"one":"{done}. Bir cihazda oturum kapatıldı.","other":"{done}. {count} cihazda oturum kapatıldı."},
-  "{count} devices are signed in that way.": {"one":"Bir cihazda bu şekilde oturum açık.","other":"{count} cihazda bu şekilde oturum açık."},
-  "Certificate for {names} from {issuer}, good for {count} more days.": {"one":"{issuer} tarafından verilen {names} sertifikası, {count} gün daha geçerli.","other":"{issuer} tarafından verilen {names} sertifikası, {count} gün daha geçerli."},
-  "{count} devices signed in without encryption, so they are signed out too.": {"one":"Bir cihaz şifreleme olmadan oturum açtı, bu yüzden onun da oturumu kapatıldı.","other":"{count} cihaz şifreleme olmadan oturum açtı, bu yüzden onların da oturumu kapatıldı."},
-  "{count} devices signed out": {"one":"Bir cihazda oturum kapatıldı","other":"{count} cihazda oturum kapatıldı"},
-  "Sign out the {count} devices that signed in unencrypted": {"one":"Şifrelemeden oturum açan cihazın oturumunu kapat","other":"Şifrelemeden oturum açan {count} cihazın oturumunu kapat"},
-  "{count} checks looked at this server and found nothing wrong.": {"one":"{count} denetim bu sunucuya baktı ve sorun bulmadı.","other":"{count} denetim bu sunucuya baktı ve sorun bulmadı."},
-  "{count} found": {"one":"{count} bulundu","other":"{count} bulundu"},
-  "opened {count} times": {"one":"{count} kez açıldı","other":"{count} kez açıldı"},
-  "This server’s FFmpeg can’t handle these {count}: {names}.": {"one":"Bu sunucunun FFmpeg’i şunu işleyemiyor: {names}.","other":"Bu sunucunun FFmpeg’i şu {count} tanesini işleyemiyor: {names}."},
-  "{count} files deleted. Scanning {name}": {"one":"{count} dosya silindi. {name} taranıyor","other":"{count} dosya silindi. {name} taranıyor"},
-  "{count} libraries": {"one":"{count} kitaplık","other":"{count} kitaplık"},
-  "{count} things turned off": {"one":"{count} şey kapatıldı","other":"{count} şey kapatıldı"}
+  "{count} bytes": {
+    "one": "{count} bayt",
+    "other": "{count} bayt"
+  },
+  "{count} entries": {
+    "one": "{count} kayıt",
+    "other": "{count} kayıt"
+  },
+  "{count} files": {
+    "one": "{count} dosya",
+    "other": "{count} dosya"
+  },
+  "{count} titles": {
+    "one": "{count} başlık",
+    "other": "{count} başlık"
+  },
+  "{count} pieces of text would be hard to read": {
+    "one": "{count} metin parçasının okunması zor olur",
+    "other": "{count} metin parçasının okunması zor olur"
+  },
+  "{count} problems": {
+    "one": "{count} sorun",
+    "other": "{count} sorun"
+  },
+  "{count} warnings": {
+    "one": "{count} uyarı",
+    "other": "{count} uyarı"
+  },
+  "{count} notes": {
+    "one": "{count} not",
+    "other": "{count} not"
+  },
+  "{count} things fine": {
+    "one": "{count} şey yolunda",
+    "other": "{count} şey yolunda"
+  },
+  "{count} files the server saved beside the media removed, with {companions}.": {
+    "one": "Sunucunun medyanın yanına kaydettiği {count} dosya, {companions} ile birlikte kaldırıldı.",
+    "other": "Sunucunun medyanın yanına kaydettiği {count} dosya, {companions} ile birlikte kaldırıldı."
+  },
+  "{count} macOS “._” files": {
+    "one": "{count} macOS “._” dosyası",
+    "other": "{count} macOS “._” dosyası"
+  },
+  "{count} files the server saved beside the media removed.": {
+    "one": "Sunucunun medyanın yanına kaydettiği {count} dosya kaldırıldı.",
+    "other": "Sunucunun medyanın yanına kaydettiği {count} dosya kaldırıldı."
+  },
+  "{count} NFO files of yours put back from the .nfo.bak copy the server kept.": {
+    "one": "Size ait bir NFO dosyası, sunucunun sakladığı .nfo.bak kopyasından geri konuldu.",
+    "other": "Size ait {count} NFO dosyası, sunucunun sakladığı .nfo.bak kopyasından geri konuldu."
+  },
+  "{count} files were left as they were: changed since the server saved them, or couldn’t be removed.": {
+    "one": "{count} dosya olduğu gibi bırakıldı: sunucu kaydettiğinden beri değişmiş ya da kaldırılamadı.",
+    "other": "{count} dosya olduğu gibi bırakıldı: sunucu kaydettiğinden beri değişmiş ya da kaldırılamadı."
+  },
+  "{count} shows": {
+    "one": "{count} dizi",
+    "other": "{count} dizi"
+  },
+  "{count} fields you locked or typed kept.": {
+    "one": "Kilitlediğiniz veya yazdığınız {count} alan korundu.",
+    "other": "Kilitlediğiniz veya yazdığınız {count} alan korundu."
+  },
+  "{count} cached pictures removed.": {
+    "one": "Önbellekteki {count} resim kaldırıldı.",
+    "other": "Önbellekteki {count} resim kaldırıldı."
+  },
+  "{count} downloaded logos removed.": {
+    "one": "İndirilen {count} logo kaldırıldı.",
+    "other": "İndirilen {count} logo kaldırıldı."
+  },
+  "{count} items": {
+    "one": "{count} öğe",
+    "other": "{count} öğe"
+  },
+  "{count} problems so far. They’re in the activity panel.": {
+    "one": "Şimdiye kadar {count} sorun. Etkinlik panelinde görebilirsiniz.",
+    "other": "Şimdiye kadar {count} sorun. Etkinlik panelinde görebilirsiniz."
+  },
+  "WittyMediaServer itself, and every Witty module, is AGPL-3.0-or-later. It’s built with {count} open-source libraries, all listed here with their full license text.": {
+    "one": "WittyMediaServer’ın kendisi ve her Witty modülü AGPL-3.0-or-later lisanslıdır. Burada tam lisans metniyle listelenen {count} açık kaynak kitaplıkla oluşturulmuştur.",
+    "other": "WittyMediaServer’ın kendisi ve her Witty modülü AGPL-3.0-or-later lisanslıdır. Hepsi burada tam lisans metinleriyle listelenen {count} açık kaynak kitaplıkla oluşturulmuştur."
+  },
+  "{count} files for titles": {
+    "one": "Başlıklar için {count} dosya",
+    "other": "Başlıklar için {count} dosya"
+  },
+  "{count} pictures": {
+    "one": "{count} resim",
+    "other": "{count} resim"
+  },
+  "{count} files written": {
+    "one": "{count} dosya yazıldı",
+    "other": "{count} dosya yazıldı"
+  },
+  "{count} files kept as they are, with edits you haven’t applied.": {
+    "one": "Uygulamadığınız düzenlemeleri olan {count} dosya olduğu gibi bırakıldı.",
+    "other": "Uygulamadığınız düzenlemeleri olan {count} dosya olduğu gibi bırakıldı."
+  },
+  "{count} titles would change.": {
+    "one": "{count} başlık değişir.",
+    "other": "{count} başlık değişir."
+  },
+  "{count} files with nothing to do.": {
+    "one": "Yapılacak bir şeyi olmayan {count} dosya.",
+    "other": "Yapılacak bir şeyi olmayan {count} dosya."
+  },
+  "Apply to {count} titles": {
+    "one": "{count} başlığa uygula",
+    "other": "{count} başlığa uygula"
+  },
+  "{count} titles changed": {
+    "one": "{count} başlık değişti",
+    "other": "{count} başlık değişti"
+  },
+  "{count} files left out.": {
+    "one": "{count} dosya dışarıda bırakıldı.",
+    "other": "{count} dosya dışarıda bırakıldı."
+  },
+  "{names} are built on it.": {
+    "one": "{names} bunun üzerine kurulu.",
+    "other": "{names} bunun üzerine kurulu."
+  },
+  "{name} has {count} more minutes today": {
+    "one": "{name} için bugün {count} dakika daha var",
+    "other": "{name} için bugün {count} dakika daha var"
+  },
+  "{count} minutes": {
+    "one": "{count} dakika",
+    "other": "{count} dakika"
+  },
+  "{count} minutes ago": {
+    "one": "{count} dakika önce",
+    "other": "{count} dakika önce"
+  },
+  "{count} hours ago": {
+    "one": "{count} saat önce",
+    "other": "{count} saat önce"
+  },
+  "{count} days ago": {
+    "one": "{count} gün önce",
+    "other": "{count} gün önce"
+  },
+  "{done}. {count} devices were signed out.": {
+    "one": "{done}. Bir cihazda oturum kapatıldı.",
+    "other": "{done}. {count} cihazda oturum kapatıldı."
+  },
+  "{count} devices are signed in that way.": {
+    "one": "Bir cihazda bu şekilde oturum açık.",
+    "other": "{count} cihazda bu şekilde oturum açık."
+  },
+  "Certificate for {names} from {issuer}, good for {count} more days.": {
+    "one": "{issuer} tarafından verilen {names} sertifikası, {count} gün daha geçerli.",
+    "other": "{issuer} tarafından verilen {names} sertifikası, {count} gün daha geçerli."
+  },
+  "{count} devices signed in without encryption, so they are signed out too.": {
+    "one": "Bir cihaz şifreleme olmadan oturum açtı, bu yüzden onun da oturumu kapatıldı.",
+    "other": "{count} cihaz şifreleme olmadan oturum açtı, bu yüzden onların da oturumu kapatıldı."
+  },
+  "{count} devices signed out": {
+    "one": "Bir cihazda oturum kapatıldı",
+    "other": "{count} cihazda oturum kapatıldı"
+  },
+  "Sign out the {count} devices that signed in unencrypted": {
+    "one": "Şifrelemeden oturum açan cihazın oturumunu kapat",
+    "other": "Şifrelemeden oturum açan {count} cihazın oturumunu kapat"
+  },
+  "{count} checks looked at this server and found nothing wrong.": {
+    "one": "{count} denetim bu sunucuya baktı ve sorun bulmadı.",
+    "other": "{count} denetim bu sunucuya baktı ve sorun bulmadı."
+  },
+  "{count} found": {
+    "one": "{count} bulundu",
+    "other": "{count} bulundu"
+  },
+  "opened {count} times": {
+    "one": "{count} kez açıldı",
+    "other": "{count} kez açıldı"
+  },
+  "This server’s FFmpeg can’t handle these {count}: {names}.": {
+    "one": "Bu sunucunun FFmpeg’i şunu işleyemiyor: {names}.",
+    "other": "Bu sunucunun FFmpeg’i şu {count} tanesini işleyemiyor: {names}."
+  },
+  "{count} files deleted. Scanning {name}": {
+    "one": "{count} dosya silindi. {name} taranıyor",
+    "other": "{count} dosya silindi. {name} taranıyor"
+  },
+  "{count} libraries": {
+    "one": "{count} kitaplık",
+    "other": "{count} kitaplık"
+  },
+  "{count} things turned off": {
+    "one": "{count} şey kapatıldı",
+    "other": "{count} şey kapatıldı"
+  }
 }

@@ -103,7 +103,7 @@
   "Activity": "गतिविधि",
   "Activity button": "गतिविधि बटन",
   "Add": "जोड़ें",
-  "Add a Kids profile": "Kids प्रोफ़ाइल जोड़ें",
+  "Add a Kids profile": "बच्चों की प्रोफ़ाइल जोड़ें",
   "Add a custom agent": "कस्टम एजेंट जोड़ें",
   "Add a folder of movies, shows, music or books to get started.": "शुरू करने के लिए फ़िल्मों, शो, संगीत या किताबों का फ़ोल्डर जोड़ें।",
   "Add a language": "भाषा जोड़ें",
@@ -135,13 +135,13 @@
   "Adult": "वयस्क",
   "Adult profiles too": "वयस्क प्रोफ़ाइल भी",
   "Adults": "वयस्क",
-  "Adults can add pictures and videos to Photos and Vertical videos libraries from their devices. Files are saved in an Uploads folder inside the library's first folder and never replace anything.": "वयस्क अपने डिवाइसों से Photos और Vertical videos लाइब्रेरी में तस्वीरें और वीडियो जोड़ सकते हैं। फ़ाइलें लाइब्रेरी के पहले फ़ोल्डर के अंदर Uploads फ़ोल्डर में सहेजी जाती हैं और कभी कुछ नहीं बदलतीं।",
+  "Adults can add pictures and videos to Photos and Vertical videos libraries from their devices. Files are saved in an Uploads folder inside the library's first folder and never replace anything.": "वयस्क अपने डिवाइसों से Photos और Vertical videos लाइब्रेरी में तस्वीरें और वीडियो जोड़ सकते हैं। फ़ाइलें लाइब्रेरी के पहले फ़ोल्डर के अंदर Uploads फ़ोल्डर में सेव की जाती हैं और कभी कुछ नहीं बदलतीं।",
   "Adults can make a link to one picture or video, or to an album's pictures. Whoever has the link sees that and nothing else, without signing in. It only works where this server can be reached: on your home network until you set up remote access.": "वयस्क किसी एक तस्वीर या वीडियो, या किसी एल्बम की तस्वीरों का लिंक बना सकते हैं। जिसके पास लिंक है वह बिना साइन इन किए केवल वही देखता है, और कुछ नहीं। यह केवल वहीं काम करता है जहाँ यह सर्वर पहुँच में हो: जब तक आप रिमोट एक्सेस सेट न करें, आपके घर के नेटवर्क पर।",
   "Advanced": "उन्नत",
   "Advert breaks left in a recording.": "रिकॉर्डिंग में बचे विज्ञापन ब्रेक।",
   "After editing some files, check them. You’ll see each thing that would change, or the file and line of anything that’s wrong. Files you haven’t touched change nothing.": "कुछ फ़ाइलें संपादित करने के बाद, उनकी जाँच करें। आपको हर वह चीज़ दिखेगी जो बदलेगी, या जो कुछ गलत है उसकी फ़ाइल और पंक्ति। जिन फ़ाइलों को आपने नहीं छुआ, वे कुछ नहीं बदलतीं।",
   "Agent added": "एजेंट जोड़ा गया",
-  "Agent saved": "एजेंट सहेजा गया",
+  "Agent saved": "एजेंट सेव किया गया",
   "Agents marked “No API key needed” work straight away. The others need a free key from their website.": "“No API key needed” चिह्नित एजेंट तुरंत काम करते हैं। बाकी को उनकी वेबसाइट से मुफ़्त कुंजी चाहिए।",
   "Albums and songs": "एल्बम और गाने",
   "All": "सभी",
@@ -149,7 +149,7 @@
   "All of it: {cores} threads (people watching will notice)": "पूरा: {cores} थ्रेड (देखने वालों को फ़र्क दिखेगा)",
   "All places": "सभी जगहें",
   "All settings and API keys, Remote Access, TV tuners, channels and scheduled recordings.": "सभी सेटिंग्स और API कुंजियाँ, Remote Access, TV ट्यूनर, चैनल और शेड्यूल की गई रिकॉर्डिंग।",
-  "Allow conversions in this library": "इस लाइब्रेरी में कन्वर्ज़न की अनुमति दें",
+  "Allow conversions in this library": "इस लाइब्रेरी में कन्संस्करण की अनुमति दें",
   "Allow direct play": "डायरेक्ट प्ले की अनुमति दें",
   "Allow links": "लिंक की अनुमति दें",
   "Allow or hide everything in a collection, whatever its rating. A collection made from a rule can’t be used: it has no list of titles to go by.": "किसी संग्रह की हर चीज़ को अनुमति दें या छिपाएँ, उसकी रेटिंग चाहे जो हो। नियम से बने संग्रह का उपयोग नहीं हो सकता: उसमें शीर्षकों की कोई सूची नहीं होती।",
@@ -179,7 +179,7 @@
   "Anime libraries: titles in your chosen language, plots, posters and episode numbering. Anime titles are sent to AniList.": "एनीमे लाइब्रेरी: आपकी चुनी भाषा में शीर्षक, कहानी, पोस्टर और एपिसोड नंबरिंग। एनीमे शीर्षक AniList को भेजे जाते हैं।",
   "Antenna, cable and internet TV channels (tuners, IPTV)": "एंटीना, केबल और इंटरनेट TV चैनल (ट्यूनर, IPTV)",
   "Any device with the ID can reach the sign-in page": "ID वाला कोई भी डिवाइस साइन-इन पेज तक पहुँच सकता है",
-  "Any signed-in device can be played on, and steered, from another: choose a film on a phone and have it start on the TV. Everyone controls devices signed in as their own account. The switches below let an account control devices signed in as anyone, such as the TV on a Kids profile; they take effect at once. Nobody can play something on another device that its account, or their own, isn't allowed to see.": "साइन इन किया हुआ कोई भी डिवाइस किसी दूसरे डिवाइस से चलाया और नियंत्रित किया जा सकता है: फ़ोन पर फ़िल्म चुनें और उसे TV पर शुरू करें। हर कोई अपने खाते से साइन इन किए डिवाइसों को नियंत्रित करता है। नीचे दिए स्विच किसी खाते को किसी के भी नाम से साइन इन किए डिवाइस नियंत्रित करने देते हैं, जैसे Kids प्रोफ़ाइल वाला TV; ये तुरंत लागू होते हैं। कोई भी किसी दूसरे डिवाइस पर ऐसा कुछ नहीं चला सकता जिसे देखने की अनुमति उस डिवाइस के खाते को, या उनके अपने खाते को, न हो।",
+  "Any signed-in device can be played on, and steered, from another: choose a film on a phone and have it start on the TV. Everyone controls devices signed in as their own account. The switches below let an account control devices signed in as anyone, such as the TV on a Kids profile; they take effect at once. Nobody can play something on another device that its account, or their own, isn't allowed to see.": "साइन इन किया हुआ कोई भी डिवाइस किसी दूसरे डिवाइस से चलाया और नियंत्रित किया जा सकता है: फ़ोन पर फ़िल्म चुनें और उसे TV पर शुरू करें। हर कोई अपने खाते से साइन इन किए डिवाइसों को नियंत्रित करता है। नीचे दिए स्विच किसी खाते को किसी के भी नाम से साइन इन किए डिवाइस नियंत्रित करने देते हैं, जैसे बच्चों की प्रोफ़ाइल वाला TV; ये तुरंत लागू होते हैं। कोई भी किसी दूसरे डिवाइस पर ऐसा कुछ नहीं चला सकता जिसे देखने की अनुमति उस डिवाइस के खाते को, या उनके अपने खाते को, न हो।",
   "Any size": "कोई भी आकार",
   "Anyone signed in can join one they have the code for.": "साइन इन किया हुआ कोई भी व्यक्ति कोड होने पर उसमें शामिल हो सकता है।",
   "Anyone watching or playing now is interrupted. To set the server up again from another device, the setup code is shown on the server’s console.": "जो कोई अभी देख या खेल रहा है, उसमें रुकावट आएगी। किसी दूसरे डिवाइस से सर्वर को फिर से सेट करने के लिए, सेटअप कोड सर्वर के कंसोल पर दिखाया जाता है।",
@@ -191,13 +191,13 @@
   "Anything you don't recognise? Sign it out, then change your password.": "कुछ ऐसा जो आप नहीं पहचानते? उसे साइन आउट करें, फिर अपना पासवर्ड बदलें।",
   "Anything you untick stays as it is on this server now, unless it depends on something you’re replacing: watch history, say, can’t stay if the library is replaced, as its numbers would point at other titles.": "जिस पर से आप टिक हटाते हैं, वह इस सर्वर पर अभी जैसा है वैसा ही रहता है, जब तक वह उस चीज़ पर निर्भर न हो जिसे आप बदल रहे हैं: जैसे, अगर लाइब्रेरी बदली जाती है तो देखने का इतिहास नहीं रह सकता, क्योंकि उसके नंबर दूसरे शीर्षकों की ओर इशारा करेंगे।",
   "Anything. A file can’t change anything until you apply it, and you see what it would change first. Whatever a file holds, it’s read as plain text: HTML, scripts and hidden characters are taken out, and you’re told when that happens. A link in this folder is never followed, and a picture has to really be a picture. If you get in a muddle, delete the whole folder and export again: your titles are in the server’s database, not here.": "कुछ भी। कोई फ़ाइल तब तक कुछ नहीं बदल सकती जब तक आप उसे लागू न करें, और पहले आप देखते हैं कि वह क्या बदलेगी। फ़ाइल में जो कुछ भी हो, उसे सादे टेक्स्ट के रूप में पढ़ा जाता है: HTML, स्क्रिप्ट और छिपे वर्ण हटा दिए जाते हैं, और ऐसा होने पर आपको बताया जाता है। इस फ़ोल्डर में किसी लिंक का कभी अनुसरण नहीं किया जाता, और तस्वीर का सचमुच तस्वीर होना ज़रूरी है। अगर आप उलझ जाएँ, तो पूरा फ़ोल्डर हटाकर फिर से एक्सपोर्ट करें: आपके शीर्षक सर्वर के डेटाबेस में हैं, यहाँ नहीं।",
-  "Appearance": "रूप-रंग",
+  "Appearance": "रंग-रूप",
   "Applied": "लागू किया गया",
   "Apply": "लागू करें",
   "Applying…": "लागू हो रहा है…",
   "Apps on your home network": "आपके घर के नेटवर्क पर ऐप्स",
   "Apps on your home network can see this server's name, version and a random ID. They still need a code or a password to connect, and can always connect by typing its address.": "आपके घर के नेटवर्क पर ऐप्स इस सर्वर का नाम, संस्करण और एक रैंडम ID देख सकते हैं। जुड़ने के लिए उन्हें फिर भी कोड या पासवर्ड चाहिए, और वे इसका पता टाइप करके हमेशा जुड़ सकते हैं।",
-  "Arrange the menu": "मेनू व्यवस्थित करें",
+  "Arrange the menu": "मेनू सजाएँ",
   "Artwork": "आर्टवर्क",
   "As JSON": "JSON के रूप में",
   "As the server sets it": "जैसा सर्वर सेट करे",
@@ -215,7 +215,7 @@
   "Audio description": "ऑडियो विवरण",
   "Audiobooks": "ऑडियोबुक",
   "Automatic": "स्वचालित",
-  "Automatic conversion": "स्वचालित कन्वर्ज़न",
+  "Automatic conversion": "स्वचालित कन्संस्करण",
   "Automatic port mapping": "स्वचालित पोर्ट मैपिंग",
   "Automatic updates are off for the whole server, above, so this changes nothing until they are on.": "ऊपर पूरे सर्वर के लिए स्वचालित अपडेट बंद हैं, इसलिए जब तक वे चालू न हों, इससे कुछ नहीं बदलता।",
   "Automatic updates can move it again": "स्वचालित अपडेट इसे फिर से बदल सकते हैं",
@@ -276,9 +276,9 @@
   "Change it if another program on this computer needs 9797, or you’d rather use a port of your own. The server checks that the new one is free, and moves to it when it restarts.": "अगर इस कंप्यूटर पर किसी दूसरे प्रोग्राम को 9797 चाहिए, या आप अपना पोर्ट इस्तेमाल करना चाहते हैं, तो इसे बदलें। सर्वर जाँचता है कि नया पोर्ट खाली है, और रीस्टार्ट होने पर उस पर चला जाता है।",
   "Change its colours": "इसके रंग बदलें",
   "Change password": "पासवर्ड बदलें",
-  "Change single colours for yourself, over the theme and anything an administrator changed. They follow you to every device. Colours that would make text hard to read aren’t saved.": "थीम और व्यवस्थापक द्वारा बदली गई किसी भी चीज़ के ऊपर, अपने लिए अलग-अलग रंग बदलें। ये आपके हर डिवाइस पर लागू होते हैं। जिन रंगों से टेक्स्ट पढ़ना मुश्किल हो, वे सहेजे नहीं जाते।",
+  "Change single colours for yourself, over the theme and anything an administrator changed. They follow you to every device. Colours that would make text hard to read aren’t saved.": "थीम और व्यवस्थापक द्वारा बदली गई किसी भी चीज़ के ऊपर, अपने लिए अलग-अलग रंग बदलें। ये आपके हर डिवाइस पर लागू होते हैं। जिन रंगों से टेक्स्ट पढ़ना मुश्किल हो, वे सेव किए नहीं जाते।",
   "Change single colours of the server’s theme, for everyone who follows it. A colour you leave alone stays the theme’s.": "सर्वर की थीम के अलग-अलग रंग बदलें, उन सबके लिए जो इसे अपनाते हैं। जिस रंग को आप नहीं छूते, वह थीम का ही रहता है।",
-  "Change what’s wrong, and save:": "जो गलत है उसे बदलें, और सहेजें:",
+  "Change what’s wrong, and save:": "जो गलत है उसे बदलें, और सेव करें:",
   "Change your picture": "अपनी तस्वीर बदलें",
   "Changed": "बदला गया",
   "Changed meanwhile": "इस बीच बदला गया",
@@ -346,7 +346,7 @@
   "Continue": "जारी रखें",
   "Control": "नियंत्रण",
   "Controls only their own devices": "केवल अपने डिवाइस नियंत्रित करता है",
-  "Conversion": "कन्वर्ज़न",
+  "Conversion": "कन्संस्करण",
   "Convert": "कन्वर्ट करें",
   "Convert files ahead of time, and connect Tdarr": "फ़ाइलें पहले से कन्वर्ट करें, और Tdarr जोड़ें",
   "Convert from the ordinary layer, losing it": "सामान्य लेयर से कन्वर्ट करें, उसे खोते हुए",
@@ -355,11 +355,11 @@
   "Convert {name}?": "{name} को कन्वर्ट करें?",
   "Convert, losing it": "कन्वर्ट करें, उसे खोते हुए",
   "Converting": "कन्वर्ट हो रहा है",
-  "Converting a film can keep every core busy for hours. Anyone watching at the same time may see stutters, or a film that takes longer to start, especially if their device needs the server to convert while playing.": "एक फ़िल्म कन्वर्ट करने में हर कोर घंटों तक व्यस्त रह सकता है। उसी समय देखने वालों को रुकावटें दिख सकती हैं, या फ़िल्म शुरू होने में ज़्यादा समय लग सकता है, खासकर अगर उनके डिवाइस को चलाते समय सर्वर से कन्वर्ज़न चाहिए।",
-  "Converting competes with people watching. These keep it out of their way.": "कन्वर्ज़न देखने वालों से होड़ करता है। ये इसे उनके रास्ते से दूर रखते हैं।",
+  "Converting a film can keep every core busy for hours. Anyone watching at the same time may see stutters, or a film that takes longer to start, especially if their device needs the server to convert while playing.": "एक फ़िल्म कन्वर्ट करने में हर कोर घंटों तक व्यस्त रह सकता है। उसी समय देखने वालों को रुकावटें दिख सकती हैं, या फ़िल्म शुरू होने में ज़्यादा समय लग सकता है, खासकर अगर उनके डिवाइस को चलाते समय सर्वर से कन्संस्करण चाहिए।",
+  "Converting competes with people watching. These keep it out of their way.": "कन्संस्करण देखने वालों से होड़ करता है। ये इसे उनके रास्ते से दूर रखते हैं।",
   "Converting while someone watches is a separate thing, under": "किसी के देखते समय कन्वर्ट करना एक अलग चीज़ है, यहाँ:",
-  "Converts the files in a library ahead of time, so they play without being converted later. It changes your files, so it starts off.": "लाइब्रेरी की फ़ाइलों को पहले से कन्वर्ट करता है, ताकि वे बाद में बिना कन्वर्ज़न के चलें। यह आपकी फ़ाइलें बदलता है, इसलिए यह बंद से शुरू होता है।",
-  "Copied": "कॉपी किया गया",
+  "Converts the files in a library ahead of time, so they play without being converted later. It changes your files, so it starts off.": "लाइब्रेरी की फ़ाइलों को पहले से कन्वर्ट करता है, ताकि वे बाद में बिना कन्संस्करण के चलें। यह आपकी फ़ाइलें बदलता है, इसलिए यह बंद से शुरू होता है।",
+  "Copied": "कॉपी हो गया",
   "Copies from earlier resets": "पिछले रीसेट की कॉपियाँ",
   "Copy": "कॉपी करें",
   "Copy deleted": "कॉपी हटाई गई",
@@ -369,10 +369,10 @@
   "Copy {value}": "{value} कॉपी करें",
   "Corners": "कोने",
   "Cost.": "लागत।",
-  "Could not save that": "उसे सहेजा नहीं जा सका",
+  "Could not save that": "इसे सेव नहीं किया जा सका",
   "Cover": "कवर",
   "Crash reports": "क्रैश रिपोर्ट",
-  "Creator videos": "रचनाकारों के वीडियो",
+  "Creator videos": "क्रिएटर वीडियो",
   "Crisp": "तीखा",
   "Current password": "मौजूदा पासवर्ड",
   "Custom agents": "कस्टम एजेंट",
@@ -385,7 +385,7 @@
   "Data folder": "डेटा फ़ोल्डर",
   "Data folder:": "डेटा फ़ोल्डर:",
   "Deinterlace": "डीइंटरलेस",
-  "Delete": "हटाएँ",
+  "Delete": "मिटाएँ",
   "Delete everything and reset": "सब कुछ हटाएँ और रीसेट करें",
   "Delete everything for good": "सब कुछ हमेशा के लिए हटाएँ",
   "Delete it": "इसे हटाएँ",
@@ -502,7 +502,7 @@
   "Files": "फ़ाइलें",
   "Files beside it": "इसके बगल की फ़ाइलें",
   "Files beside your media": "आपके मीडिया के बगल की फ़ाइलें",
-  "Files saved beside the media": "मीडिया के बगल में सहेजी गई फ़ाइलें",
+  "Files saved beside the media": "मीडिया के बगल में सेव की गई फ़ाइलें",
   "Files such as Film.en.srt. Left where they are, they keep working, since the name stays the same. Moved inside, the file is no longer needed.": "Film.en.srt जैसी फ़ाइलें। जहाँ हैं वहीं छोड़ने पर वे काम करती रहती हैं, क्योंकि नाम वही रहता है। अंदर ले जाने पर फ़ाइल की ज़रूरत नहीं रहती।",
   "Files that don’t fit will wait and be reported. Free up some space, or choose to replace originals.": "जो फ़ाइलें नहीं समातीं वे इंतज़ार करेंगी और उनकी रिपोर्ट होगी। कुछ जगह खाली करें, या मूल फ़ाइलें बदलना चुनें।",
   "Files that were changed now take {size}.": "बदली गई फ़ाइलें अब {size} लेती हैं।",
@@ -527,7 +527,7 @@
   "Fix this": "इसे ठीक करें",
   "Fix what the server knows about a film or show by hand, or let it find and fix problems for you.": "सर्वर किसी फ़िल्म या शो के बारे में जो जानता है उसे ख़ुद ठीक करें, या उसे आपके लिए समस्याएँ खोजकर ठीक करने दें।",
   "Fix what the server knows about a film or show with any text editor: one plain file for each title, in a folder of its own. Nothing changes until you've seen what would change and said yes.": "सर्वर किसी फ़िल्म या शो के बारे में जो जानता है उसे किसी भी टेक्स्ट एडिटर से ठीक करें: हर शीर्षक के लिए एक सादी फ़ाइल, उसके अपने फ़ोल्डर में। जब तक आप यह न देख लें कि क्या बदलेगा और हाँ न कहें, कुछ नहीं बदलता।",
-  "Folder path": "फ़ोल्डर पथ",
+  "Folder path": "फ़ोल्डर पाथ",
   "Folders": "फ़ोल्डर",
   "Folders of movies, shows, music and books": "फ़िल्मों, शो, संगीत और किताबों के फ़ोल्डर",
   "Folders of one kind now join one library": "एक ही प्रकार के फ़ोल्डर अब एक लाइब्रेरी में जुड़ते हैं",
@@ -550,14 +550,14 @@
   "For viewers away from home": "घर से दूर देखने वालों के लिए",
   "For visitors: limited titles, no settings. Only the administrator can change Guest limits.": "मेहमानों के लिए: सीमित शीर्षक, कोई सेटिंग नहीं। केवल व्यवस्थापक Guest की सीमाएँ बदल सकता है।",
   "Forced subtitles": "फ़ोर्स्ड सबटाइटल",
-  "Forget the saved key": "सहेजी गई कुंजी भूल जाएँ",
+  "Forget the saved key": "सेव की गई कुंजी भूल जाएँ",
   "Format": "फ़ॉर्मैट",
   "Forwarded addresses are believed from these machines only. Until yours is listed, everyone counts as one visitor from the internet, which is safe but makes sign-in limits and the limits below apply to everybody at once.": "फ़ॉरवर्ड किए गए पतों पर केवल इन मशीनों से भरोसा किया जाता है। जब तक आपकी मशीन सूची में न हो, हर कोई इंटरनेट से आए एक ही आगंतुक के रूप में गिना जाता है, जो सुरक्षित है पर इससे साइन-इन सीमाएँ और नीचे की सीमाएँ एक साथ सब पर लागू होती हैं।",
   "Found it: this computer is": "मिल गया: यह कंप्यूटर है",
   "Found {list}.": "{list} मिला।",
   "From another publisher:": "दूसरे प्रकाशक से:",
   "From modules": "मॉड्यूल से",
-  "Game saves and saved states": "गेम सेव और सहेजी गई स्थितियाँ",
+  "Game saves and saved states": "गेम सेव और सेव की गई स्थितियाँ",
   "Games": "गेम",
   "Get a name for your home, so you don't have to know its address, which can change. A free dynamic DNS name works (for example from DuckDNS or No-IP), or a domain of your own. Set it to your router's outside address.": "अपने घर के लिए एक नाम लें, ताकि आपको उसका पता न जानना पड़े, जो बदल सकता है। एक मुफ़्त डायनेमिक DNS नाम काम करता है (उदाहरण के लिए DuckDNS या No-IP से), या आपका अपना डोमेन। इसे अपने राउटर के बाहरी पते पर सेट करें।",
   "Get the certificate now": "अभी प्रमाणपत्र पाएँ",
@@ -587,12 +587,12 @@
   "HTTPS is off": "HTTPS बंद है",
   "HTTPS port on this computer": "इस कंप्यूटर पर HTTPS पोर्ट",
   "HTTPS port {port} is open.": "HTTPS पोर्ट {port} खुला है।",
-  "HTTPS settings saved": "HTTPS सेटिंग्स सहेजी गईं",
+  "HTTPS settings saved": "HTTPS सेटिंग्स सेव की गईं",
   "Half of it: {n} of {cores} threads (recommended)": "आधा: {cores} में से {n} थ्रेड (अनुशंसित)",
   "Hard to read: {pairs}. Text needs 4.5:1.": "पढ़ने में मुश्किल: {pairs}। टेक्स्ट के लिए 4.5:1 चाहिए।",
   "Hardware encoders": "हार्डवेयर एनकोडर",
   "Hardware video": "हार्डवेयर वीडियो",
-  "Help": "सहायता",
+  "Help": "मदद",
   "Hide": "छिपाएँ",
   "Hide disc name and file names": "डिस्क का नाम और फ़ाइल नाम छिपाएँ",
   "Hide genres": "शैलियाँ छिपाएँ",
@@ -608,7 +608,7 @@
   "Home internet connections are often slow when sending. These apply to each stream of anyone away from home, including over a VPN. Playback at home is never affected.": "घर के इंटरनेट कनेक्शन भेजते समय अक्सर धीमे होते हैं। ये घर से दूर किसी की भी हर स्ट्रीम पर लागू होते हैं, VPN पर भी। घर पर प्लेबैक पर कभी असर नहीं पड़ता।",
   "Home network only": "केवल घर का नेटवर्क",
   "Home network only: connections from away are refused": "केवल घर का नेटवर्क: बाहर से कनेक्शन अस्वीकार किए जाते हैं",
-  "Home videos": "होम वीडियो",
+  "Home videos": "घर के वीडियो",
   "How anime titles are written.": "एनीमे शीर्षक कैसे लिखे जाते हैं।",
   "How closely things sit on this device. Compact fits more on the screen; spacious gives everything room. Touch screens keep their full-size buttons.": "इस डिवाइस पर चीज़ें कितनी पास-पास हैं। सघन स्क्रीन पर ज़्यादा समाता है; खुला हर चीज़ को जगह देता है। टच स्क्रीन पर बटन पूरे आकार के रहते हैं।",
   "How far along it is": "यह कितना आगे बढ़ा है",
@@ -641,7 +641,7 @@
   "In": "में",
   "In development": "विकास में",
   "In the app on the other device, choose": "दूसरे डिवाइस के ऐप में, चुनें",
-  "In use": "उपयोग में",
+  "In use": "इस्तेमाल में",
   "In use on this device": "इस डिवाइस पर उपयोग में",
   "Install": "इंस्टॉल करें",
   "Install WittyMediaServer {version}?": "WittyMediaServer {version} इंस्टॉल करें?",
@@ -655,7 +655,7 @@
   "Install version {version}, with an override": "संस्करण {version} इंस्टॉल करें, ओवरराइड के साथ",
   "Install {name}": "{name} इंस्टॉल करें",
   "Install {name} on your phone or laptop too, and sign in with the same account.": "अपने फ़ोन या लैपटॉप पर भी {name} इंस्टॉल करें, और उसी खाते से साइन इन करें।",
-  "Installed": "इंस्टॉल किया गया",
+  "Installed": "इंस्टॉल है",
   "Installed module versions, logs, reports, and the cache of posters and converted video.": "इंस्टॉल किए गए मॉड्यूल संस्करण, लॉग, रिपोर्ट, और पोस्टर व कन्वर्ट किए गए वीडियो का कैश।",
   "Installing": "इंस्टॉल हो रहा है",
   "Installing from a file": "फ़ाइल से इंस्टॉल करना",
@@ -680,12 +680,12 @@
   "It wasn’t deleted": "यह हटाया नहीं गया",
   "It works! Your phone reached the server {where}, {how}, from {ip}.": "यह काम करता है! आपका फ़ोन सर्वर तक {where}, {how}, {ip} से पहुँचा।",
   "Its ZIP is deleted from the server’s themes folder.": "इसका ZIP सर्वर के थीम फ़ोल्डर से हटा दिया जाता है।",
-  "Its height and object information doesn’t survive conversion. Tracks left as they are keep it.": "इसकी ऊँचाई और ऑब्जेक्ट जानकारी कन्वर्ज़न में नहीं बचती। जैसे के तैसे छोड़े गए ट्रैक इसे बनाए रखते हैं।",
+  "Its height and object information doesn’t survive conversion. Tracks left as they are keep it.": "इसकी ऊँचाई और ऑब्जेक्ट जानकारी कन्संस्करण में नहीं बचती। जैसे के तैसे छोड़े गए ट्रैक इसे बनाए रखते हैं।",
   "It’s below, as": "यह नीचे है, इस रूप में:",
   "It’s checked against the release’s signed checksums before it’s kept.": "रखे जाने से पहले रिलीज़ के हस्ताक्षरित चेकसम से इसकी जाँच होती है।",
   "It’s from an older version, and is brought up to date as it’s restored.": "यह पुराने संस्करण का है, और रीस्टोर होते समय इसे अप टू डेट किया जाता है।",
   "It’s off. Turning it on contacts computers outside your home, which nothing else on this page does without being asked. These are all of them:": "यह बंद है। इसे चालू करने पर आपके घर के बाहर के कंप्यूटरों से संपर्क होता है, जो इस पेज पर और कुछ भी बिना पूछे नहीं करता। ये सब हैं:",
-  "It’s saved there as:": "यह वहाँ इस नाम से सहेजा गया है:",
+  "It’s saved there as:": "यह वहाँ इस नाम से सेव किया गया है:",
   "I’ve read who is contacted, and I want this on.": "मैंने पढ़ लिया है कि किससे संपर्क होता है, और मैं इसे चालू करना चाहता/चाहती हूँ।",
   "Japanese": "जापानी",
   "Jumps to where the intro ends.": "वहाँ पहुँचता है जहाँ इंट्रो खत्म होता है।",
@@ -713,12 +713,12 @@
   "Kept:": "रखा गया:",
   "Key accepted": "कुंजी स्वीकार की गई",
   "Key fingerprint": "कुंजी फ़िंगरप्रिंट",
-  "Key saved": "कुंजी सहेजी गई",
+  "Key saved": "कुंजी सेव की गई",
   "Kids": "बच्चे",
   "Kids 7+": "बच्चे 7+",
-  "Kids profile": "Kids प्रोफ़ाइल",
-  "Kids profiles": "Kids प्रोफ़ाइल",
-  "Kids profiles you manage": "आपके द्वारा प्रबंधित Kids प्रोफ़ाइल",
+  "Kids profile": "बच्चों की प्रोफ़ाइल",
+  "Kids profiles": "बच्चों की प्रोफ़ाइलें",
+  "Kids profiles you manage": "आपके द्वारा प्रबंधित बच्चों की प्रोफ़ाइल",
   "Kind of profile": "प्रोफ़ाइल का प्रकार",
   "L": "L",
   "Label on the disc: {label}": "डिस्क पर लेबल: {label}",
@@ -736,9 +736,9 @@
   "Later": "बाद में",
   "Later, open": "बाद में, खोलें",
   "Latest": "नवीनतम",
-  "Latest automatic conversion": "नवीनतम स्वचालित कन्वर्ज़न",
+  "Latest automatic conversion": "नवीनतम स्वचालित कन्संस्करण",
   "Latest check": "नवीनतम जाँच",
-  "Latest conversion": "नवीनतम कन्वर्ज़न",
+  "Latest conversion": "नवीनतम कन्संस्करण",
   "Layout on this device": "इस डिवाइस पर लेआउट",
   "Leave": "छोड़ें",
   "Leave all unticked to allow every library.": "हर लाइब्रेरी की अनुमति देने के लिए सब पर से टिक हटा दें।",
@@ -762,26 +762,26 @@
   "Library": "लाइब्रेरी",
   "Library channels and WittyTV options": "लाइब्रेरी चैनल और WittyTV विकल्प",
   "Library removed": "लाइब्रेरी हटाई गई",
-  "Library saved; scanning": "लाइब्रेरी सहेजी गई; स्कैन हो रही है",
+  "Library saved; scanning": "लाइब्रेरी सेव की गई; स्कैन हो रही है",
   "Library transcoding": "लाइब्रेरी ट्रांसकोडिंग",
   "License": "लाइसेंस",
   "Light": "हल्का",
   "Light or dark": "हल्का या गहरा",
   "Light or dark, as this device is set": "हल्का या गहरा, जैसा यह डिवाइस सेट है",
   "Light or dark, as this device is set.": "हल्का या गहरा, जैसा यह डिवाइस सेट है।",
-  "Limit saved": "सीमा सहेजी गई",
+  "Limit saved": "सीमा सेव की गई",
   "Limits": "सीमाएँ",
   "Limits for viewers away from home": "घर से दूर देखने वालों के लिए सीमाएँ",
   "Limits for {name}": "{name} के लिए सीमाएँ",
-  "Limits saved": "सीमाएँ सहेजी गईं",
+  "Limits saved": "सीमाएँ सेव की गईं",
   "Links for people without an account": "बिना खाते वाले लोगों के लिए लिंक",
   "Links stay valid until their end date, or until you end them here. A link itself can't be shown again: the server only keeps a fingerprint of it.": "लिंक अपनी समाप्ति तिथि तक, या जब तक आप उन्हें यहाँ समाप्त न करें, मान्य रहते हैं। लिंक को दोबारा नहीं दिखाया जा सकता: सर्वर उसका केवल फ़िंगरप्रिंट रखता है।",
   "Listings can be out of date or wrong, and depend on the region I choose. They're dated wherever they appear. They come from JustWatch, through TMDB, whose terms apply and don't allow commercial use.": "सूचियाँ पुरानी या गलत हो सकती हैं, और मेरे चुने क्षेत्र पर निर्भर करती हैं। जहाँ भी वे दिखती हैं, उन पर तारीख होती है। वे JustWatch से, TMDB के ज़रिए आती हैं, जिसकी शर्तें लागू होती हैं और व्यावसायिक उपयोग की अनुमति नहीं देतीं।",
   "Listings differ by country.": "सूचियाँ देश के अनुसार अलग होती हैं।",
-  "Listings need a free TMDB key: add one under Built-in agents and save first. Without a key, this stays off.": "सूचियों के लिए मुफ़्त TMDB कुंजी चाहिए: पहले Built-in agents में एक जोड़ें और सहेजें। कुंजी के बिना यह बंद रहता है।",
+  "Listings need a free TMDB key: add one under Built-in agents and save first. Without a key, this stays off.": "सूचियों के लिए मुफ़्त TMDB कुंजी चाहिए: पहले Built-in agents में एक जोड़ें और सेव करें। कुंजी के बिना यह बंद रहता है।",
   "Listings stay off until you've accepted all of them, and turning them off forgets everything they fetched.": "जब तक आप सभी को स्वीकार न करें, सूचियाँ बंद रहती हैं, और उन्हें बंद करने पर उनका लाया सब कुछ भुला दिया जाता है।",
   "Little kids": "छोटे बच्चे",
-  "Live TV": "लाइव TV",
+  "Live TV": "लाइव टीवी",
   "Live transcoding": "लाइव ट्रांसकोडिंग",
   "Loading": "लोड हो रहा है",
   "Loading the list of formats…": "फ़ॉर्मैट की सूची लोड हो रही है…",
@@ -861,7 +861,7 @@
   "Name and logo": "नाम और लोगो",
   "Name and picture": "नाम और तस्वीर",
   "Name and picture for {name}": "{name} के लिए नाम और तस्वीर",
-  "Names saved": "नाम सहेजे गए",
+  "Names saved": "नाम सेव किए गए",
   "Needs": "ज़रूरत है",
   "Needs a look": "देखने की ज़रूरत है",
   "Needs an override: {reasons}": "ओवरराइड चाहिए: {reasons}",
@@ -878,8 +878,8 @@
   "New libraries of these kinds can’t be made: {kinds}.": "इन प्रकारों की नई लाइब्रेरी नहीं बनाई जा सकती: {kinds}।",
   "New password": "नया पासवर्ड",
   "New password or PIN": "नया पासवर्ड या PIN",
-  "New password or PIN saved for {name}. They’re signed out on their devices.": "{name} के लिए नया पासवर्ड या PIN सहेजा गया। उनके डिवाइसों पर उन्हें साइन आउट कर दिया गया है।",
-  "New password saved for {name}. They’re signed out on their devices.": "{name} के लिए नया पासवर्ड सहेजा गया। उनके डिवाइसों पर उन्हें साइन आउट कर दिया गया है।",
+  "New password or PIN saved for {name}. They’re signed out on their devices.": "{name} के लिए नया पासवर्ड या PIN सेव किया गया। उनके डिवाइसों पर उन्हें साइन आउट कर दिया गया है।",
+  "New password saved for {name}. They’re signed out on their devices.": "{name} के लिए नया पासवर्ड सेव किया गया। उनके डिवाइसों पर उन्हें साइन आउट कर दिया गया है।",
   "New {label}": "नया {label}",
   "Next": "अगला",
   "No API key needed": "API कुंजी की ज़रूरत नहीं",
@@ -937,7 +937,7 @@
   "Nothing newer was found when the server last looked, {when}.": "सर्वर ने पिछली बार {when} देखा, तब कुछ नया नहीं मिला।",
   "Nothing sets it, so it’s the default, 9797": "इसे कुछ सेट नहीं करता, इसलिए यह डिफ़ॉल्ट 9797 है",
   "Nothing streams from these services. This server plays only the files already on it. No account with any service is used or needed, and listing a title doesn't give anyone access to it there.": "इन सेवाओं से कुछ भी स्ट्रीम नहीं होता। यह सर्वर केवल वही फ़ाइलें चलाता है जो पहले से इस पर हैं। किसी भी सेवा का कोई खाता न इस्तेमाल होता है न चाहिए, और किसी शीर्षक को सूची में दिखाने से किसी को वहाँ उसकी पहुँच नहीं मिलती।",
-  "Nothing the server does may change this library’s files: no conversions, and no saved artwork or details beside them. Previews and dry runs still work.": "सर्वर का कोई भी काम इस लाइब्रेरी की फ़ाइलें नहीं बदल सकता: न कन्वर्ज़न, न उनके बगल में सहेजा गया आर्टवर्क या विवरण। पूर्वावलोकन और ड्राई रन फिर भी काम करते हैं।",
+  "Nothing the server does may change this library’s files: no conversions, and no saved artwork or details beside them. Previews and dry runs still work.": "सर्वर का कोई भी काम इस लाइब्रेरी की फ़ाइलें नहीं बदल सकता: न कन्संस्करण, न उनके बगल में सेव किया गया आर्टवर्क या विवरण। पूर्वावलोकन और ड्राई रन फिर भी काम करते हैं।",
   "Nothing to check yet: finish the steps above first.": "अभी जाँचने को कुछ नहीं: पहले ऊपर के चरण पूरे करें।",
   "Nothing to do": "करने को कुछ नहीं",
   "Nothing to report": "बताने को कुछ नहीं",
@@ -1009,7 +1009,7 @@
   "Or give a web address": "या वेब पता दें",
   "Or one already on this server": "या इस सर्वर पर पहले से मौजूद कोई",
   "Or one already on this server…": "या इस सर्वर पर पहले से मौजूद कोई…",
-  "Or save it on this device:": "या इसे इस डिवाइस पर सहेजें:",
+  "Or save it on this device:": "या इसे इस डिवाइस पर सेव करें:",
   "Ordinary pictures play on every screen, and lose the extra brightness and colour.": "सामान्य चित्र हर स्क्रीन पर चलते हैं, और अतिरिक्त चमक और रंग खो देते हैं।",
   "Ordinary pictures play on every screen, but this server’s FFmpeg can’t make them, so those files would be left alone.": "सामान्य चित्र हर स्क्रीन पर चलते हैं, पर इस सर्वर का FFmpeg उन्हें नहीं बना सकता, इसलिए वे फ़ाइलें छोड़ दी जाएँगी।",
   "Original kept: {before}. The new file is {after}.": "मूल रखी गई: {before}। नई फ़ाइल {after} है।",
@@ -1049,7 +1049,7 @@
   "Phone videos and screen recordings often vary, and some devices stutter on them. Left off, it stays as it is, and sound stays in step either way.": "फ़ोन के वीडियो और स्क्रीन रिकॉर्डिंग में अक्सर फ़्रेम दर बदलती रहती है, और कुछ डिवाइस उन पर अटकते हैं। बंद छोड़ने पर यह जैसा है वैसा रहता है, और दोनों तरह आवाज़ तालमेल में रहती है।",
   "Photos": "फ़ोटो",
   "Pick the one that sounds like what you want. The details under each one say exactly what it does.": "वह चुनें जो आपकी ज़रूरत जैसा लगे। हर एक के नीचे का विवरण ठीक-ठीक बताता है कि वह क्या करता है।",
-  "Picture": "चित्र",
+  "Picture": "तस्वीर",
   "Picture details": "चित्र का विवरण",
   "Picture format": "चित्र फ़ॉर्मैट",
   "Picture quality": "चित्र गुणवत्ता",
@@ -1153,7 +1153,7 @@
   "Rename": "नाम बदलें",
   "Rename the kind {name}": "प्रकार {name} का नाम बदलें",
   "Rent a small server, and point your domain name at it.": "एक छोटा सर्वर किराए पर लें, और अपना डोमेन नाम उसकी ओर इंगित करें।",
-  "Repair": "मरम्मत करें",
+  "Repair": "मरम्मत",
   "Replace the original": "मूल को बदलें",
   "Replacing originals deletes them, so this asks for your password.": "मूल फ़ाइलें बदलने से वे हट जाती हैं, इसलिए यह आपका पासवर्ड माँगता है।",
   "Report": "रिपोर्ट",
@@ -1161,7 +1161,7 @@
   "Repository": "रिपॉज़िटरी",
   "Required by {name}": "{name} द्वारा ज़रूरी",
   "Required by {name} for everyone": "सबके लिए {name} द्वारा ज़रूरी",
-  "Required by {name} for kids profiles": "Kids प्रोफ़ाइल के लिए {name} द्वारा ज़रूरी",
+  "Required by {name} for kids profiles": "बच्चों की प्रोफ़ाइल के लिए {name} द्वारा ज़रूरी",
   "Required, so this is what this device wears": "ज़रूरी है, इसलिए यह डिवाइस यही पहनता है",
   "Reset": "रीसेट करें",
   "Reset this server": "यह सर्वर रीसेट करें",
@@ -1171,7 +1171,7 @@
   "Restore a backup": "बैकअप रीस्टोर करें",
   "Restore this backup": "यह बैकअप रीस्टोर करें",
   "Restored": "रीस्टोर किया गया",
-  "Results": "परिणाम",
+  "Results": "नतीजे",
   "Resume": "फिर से शुरू करें",
   "Return to latest": "नवीनतम पर लौटें",
   "Revert": "पहले जैसा करें",
@@ -1191,31 +1191,31 @@
   "S": "S",
   "SDH subtitles": "SDH सबटाइटल",
   "Safe": "सुरक्षित",
-  "Save": "सहेजें",
-  "Save Blu-ray ones as a file beside the video": "Blu-ray वालों को वीडियो के बगल में फ़ाइल के रूप में सहेजें",
-  "Save agent": "एजेंट सहेजें",
-  "Save and scan": "सहेजें और स्कैन करें",
-  "Save beside": "बगल में सहेजें",
-  "Save changes": "बदलाव सहेजें",
-  "Save for everyone": "सबके लिए सहेजें",
-  "Save information and artwork next to your media": "जानकारी और आर्टवर्क अपने मीडिया के बगल में सहेजें",
-  "Save limits": "सीमाएँ सहेजें",
-  "Save names": "नाम सहेजें",
-  "Save next to media": "मीडिया के बगल में सहेजें",
+  "Save": "सेव करें",
+  "Save Blu-ray ones as a file beside the video": "Blu-ray वालों को वीडियो के बगल में फ़ाइल के रूप में सेव करें",
+  "Save agent": "एजेंट सेव करें",
+  "Save and scan": "सेव करें और स्कैन करें",
+  "Save beside": "बगल में सेव करें",
+  "Save changes": "बदलाव सेव करें",
+  "Save for everyone": "सबके लिए सेव करें",
+  "Save information and artwork next to your media": "जानकारी और आर्टवर्क अपने मीडिया के बगल में सेव करें",
+  "Save limits": "सीमाएँ सेव करें",
+  "Save names": "नाम सेव करें",
+  "Save next to media": "मीडिया के बगल में सेव करें",
   "Save space falls back on H.264 at a stronger setting, which saves less. Choose a different FFmpeg with the WMS_FFMPEG setting if you want H.265.": "Save space ज़्यादा सख़्त सेटिंग पर H.264 इस्तेमाल करता है, जिससे कम बचत होती है। H.265 चाहिए तो WMS_FFMPEG सेटिंग से कोई दूसरा FFmpeg चुनें।",
-  "Save the connection": "कनेक्शन सहेजें",
-  "Save the installer": "इंस्टॉलर सहेजें",
-  "Save this address?": "यह पता सहेजें?",
-  "Save this recipe": "यह रेसिपी सहेजें",
-  "Save your changes first: a run does what’s saved.": "पहले अपने बदलाव सहेजें: रन वही करता है जो सहेजा गया है।",
-  "Saved": "सहेजा गया",
-  "Saved for everyone.": "सबके लिए सहेजा गया।",
-  "Saved in": "यहाँ सहेजा गया:",
-  "Saved keys are hidden; paste the key again to test it": "सहेजी गई कुंजियाँ छिपी रहती हैं; जाँचने के लिए कुंजी फिर से पेस्ट करें",
-  "Saved. It’s under Crash reports, and in the logs you download.": "सहेजा गया। यह Crash reports में है, और आपके डाउनलोड किए लॉग में भी।",
-  "Saved. This applies straight away.": "सहेजा गया। यह तुरंत लागू होता है।",
-  "Saving information": "जानकारी सहेजी जा रही है",
-  "Saving…": "सहेजा जा रहा है…",
+  "Save the connection": "कनेक्शन सेव करें",
+  "Save the installer": "इंस्टॉलर सेव करें",
+  "Save this address?": "यह पता सेव करें?",
+  "Save this recipe": "यह रेसिपी सेव करें",
+  "Save your changes first: a run does what’s saved.": "पहले अपने बदलाव सेव करें: रन वही करता है जो सेव किया गया है।",
+  "Saved": "सेव हो गया",
+  "Saved for everyone.": "सबके लिए सेव किया गया।",
+  "Saved in": "यहाँ सेव किया गया:",
+  "Saved keys are hidden; paste the key again to test it": "सेव की गई कुंजियाँ छिपी रहती हैं; जाँचने के लिए कुंजी फिर से पेस्ट करें",
+  "Saved. It’s under Crash reports, and in the logs you download.": "सेव किया गया। यह Crash reports में है, और आपके डाउनलोड किए लॉग में भी।",
+  "Saved. This applies straight away.": "सेव किया गया। यह तुरंत लागू होता है।",
+  "Saving information": "जानकारी सेव की जा रही है",
+  "Saving…": "सेव हो रहा है…",
   "Says it comes from": "कहता है कि यह यहाँ से आया है:",
   "Scan this code with its camera, or type the address:": "इस कोड को उसके कैमरे से स्कैन करें, या पता टाइप करें:",
   "Scanners find it and keep trying. Use long, unique passwords and two-factor sign-in, and keep this server updated. Never forward port {port}: it’s the unencrypted door, for home only. A private network avoids all of this.": "स्कैनर इसे ढूँढ लेते हैं और कोशिश करते रहते हैं। लंबे, अनोखे पासवर्ड और टू-फ़ैक्टर साइन-इन इस्तेमाल करें, और इस सर्वर को अपडेट रखें। पोर्ट {port} कभी फ़ॉरवर्ड न करें: यह बिना एन्क्रिप्शन वाला दरवाज़ा है, केवल घर के लिए। निजी नेटवर्क से इन सबसे बचा जा सकता है।",
@@ -1223,7 +1223,7 @@
   "Scans every library straight away, which matches and downloads everything afresh.": "हर लाइब्रेरी को तुरंत स्कैन करता है, जो सब कुछ नए सिरे से मिलाता और डाउनलोड करता है।",
   "Scans the library straight away, which matches and downloads everything afresh.": "लाइब्रेरी को तुरंत स्कैन करता है, जो सब कुछ नए सिरे से मिलाता और डाउनलोड करता है।",
   "Schedule": "शेड्यूल",
-  "Schedule saved": "शेड्यूल सहेजा गया",
+  "Schedule saved": "शेड्यूल सेव किया गया",
   "Scheduled": "शेड्यूल किया गया",
   "Scheduled backups no longer have a password": "शेड्यूल किए गए बैकअप में अब पासवर्ड नहीं है",
   "School holidays aren’t known to the server: change these when they start.": "सर्वर को स्कूल की छुट्टियों का पता नहीं होता: वे शुरू होने पर इन्हें बदलें।",
@@ -1232,7 +1232,7 @@
   "Search a movie or show…": "कोई फ़िल्म या शो खोजें…",
   "Search settings": "सेटिंग्स में खोजें",
   "Search titles": "शीर्षक खोजें",
-  "Secondary text": "द्वितीयक टेक्स्ट",
+  "Secondary text": "दूसरा टेक्स्ट",
   "Secrets left out": "गोपनीय जानकारी छोड़ी गई",
   "See which of the titles on your server a streaming service currently lists, if you're used to finding things that way. Off unless you turn it on.": "देखें कि आपके सर्वर के कौन-से शीर्षक अभी कोई स्ट्रीमिंग सेवा दिखा रही है, अगर आप चीज़ें इस तरह ढूँढने के आदी हैं। जब तक आप चालू न करें, बंद रहता है।",
   "Seek bar": "सीक बार",
@@ -1249,7 +1249,7 @@
   "Set a logo for this name": "इस नाम के लिए लोगो सेट करें",
   "Set by an administrator for the whole server.": "व्यवस्थापक द्वारा पूरे सर्वर के लिए सेट किया गया।",
   "Settings": "सेटिंग्स",
-  "Settings saved": "सेटिंग्स सहेजी गईं",
+  "Settings saved": "सेटिंग्स सेव की गईं",
   "Sharing & photos": "साझा करना और फ़ोटो",
   "Show": "दिखाएँ",
   "Show in the main menus and on Home": "मुख्य मेनू और Home पर दिखाएँ",
@@ -1289,7 +1289,7 @@
   "Skip credits": "क्रेडिट छोड़ें",
   "Skip intros": "इंट्रो छोड़ें",
   "Skip recaps": "रीकैप छोड़ें",
-  "Skipping": "छोड़ना",
+  "Skipping": "छोड़ा जा रहा है",
   "Slower": "धीमा",
   "Slower makes smaller files for the same quality.": "धीमा होने पर उसी गुणवत्ता में फ़ाइलें छोटी बनती हैं।",
   "Smallest saving worth keeping": "रखने लायक सबसे छोटी बचत",
@@ -1307,7 +1307,7 @@
   "Spacious": "खुला",
   "Speed": "गति",
   "Standard": "मानक",
-  "Standard sends the best picture the settings allow, as it always has. Robust favours staying smooth: it measures the viewer’s connection, starts at a steady rate that fits, steps down to a lower quality instead of stalling, keeps a bigger buffer and picks up where it was after the connection drops. It costs the server a little more, since converting is more often needed.": "मानक, सेटिंग्स जितनी अनुमति दें उतना सबसे अच्छा चित्र भेजता है, जैसा हमेशा से करता आया है। मज़बूत सुचारु बने रहने को प्राथमिकता देता है: यह देखने वाले का कनेक्शन मापता है, उसके अनुकूल स्थिर दर से शुरू करता है, अटकने के बजाय कम गुणवत्ता पर आ जाता है, बड़ा बफ़र रखता है और कनेक्शन टूटने के बाद वहीं से शुरू करता है जहाँ था। इससे सर्वर पर थोड़ा ज़्यादा बोझ पड़ता है, क्योंकि कन्वर्ज़न अधिक बार चाहिए होता है।",
+  "Standard sends the best picture the settings allow, as it always has. Robust favours staying smooth: it measures the viewer’s connection, starts at a steady rate that fits, steps down to a lower quality instead of stalling, keeps a bigger buffer and picks up where it was after the connection drops. It costs the server a little more, since converting is more often needed.": "मानक, सेटिंग्स जितनी अनुमति दें उतना सबसे अच्छा चित्र भेजता है, जैसा हमेशा से करता आया है। मज़बूत सुचारु बने रहने को प्राथमिकता देता है: यह देखने वाले का कनेक्शन मापता है, उसके अनुकूल स्थिर दर से शुरू करता है, अटकने के बजाय कम गुणवत्ता पर आ जाता है, बड़ा बफ़र रखता है और कनेक्शन टूटने के बाद वहीं से शुरू करता है जहाँ था। इससे सर्वर पर थोड़ा ज़्यादा बोझ पड़ता है, क्योंकि कन्संस्करण अधिक बार चाहिए होता है।",
   "Start again": "फिर से शुरू करें",
   "Start converting": "कन्वर्ट करना शुरू करें",
   "Stations from a free directory or by stream address; no folder needed": "मुफ़्त निर्देशिका से या स्ट्रीम पते से स्टेशन; किसी फ़ोल्डर की ज़रूरत नहीं",
@@ -1346,8 +1346,8 @@
   "System": "सिस्टम",
   "TV episode layout": "TV एपिसोड लेआउट",
   "TV guide preview, rows and hours": "TV गाइड पूर्वावलोकन, पंक्तियाँ और घंटे",
-  "TV mode": "TV मोड",
-  "TV shows": "TV शो",
+  "TV mode": "टीवी मोड",
+  "TV shows": "टीवी शो",
   "TV shows: episode titles, plots, posters and stills. Used until you add a TheTVDB key. Data shared under CC BY-SA 4.0.": "TV शो: एपिसोड के शीर्षक, कहानी, पोस्टर और स्टिल। TheTVDB कुंजी जोड़ने तक उपयोग होता है। डेटा CC BY-SA 4.0 के तहत साझा किया गया है।",
   "Taken out of use before: {reason}": "पहले उपयोग से हटाया गया: {reason}",
   "Taking it back": "इसे वापस लिया जा रहा है",
@@ -1365,7 +1365,7 @@
   "Testing…": "जाँच हो रही है…",
   "Testing… (up to a minute)": "जाँच हो रही है… (एक मिनट तक)",
   "Text keeps its quotes. A number, like the year, has none. Then press": "टेक्स्ट के उद्धरण चिह्न बने रहते हैं। संख्या, जैसे वर्ष, के नहीं होते। फिर दबाएँ",
-  "Text needs a contrast of 4.5:1 to be easy to read. You can save anyway.": "आसानी से पढ़ने के लिए टेक्स्ट का कंट्रास्ट 4.5:1 होना चाहिए। आप फिर भी सहेज सकते हैं।",
+  "Text needs a contrast of 4.5:1 to be easy to read. You can save anyway.": "आसानी से पढ़ने के लिए टेक्स्ट का कंट्रास्ट 4.5:1 होना चाहिए। आप फिर भी सेव कर सकते हैं।",
   "Text needs quotes around it. A number doesn’t.": "टेक्स्ट के चारों ओर उद्धरण चिह्न चाहिए। संख्या के नहीं।",
   "Text subtitles": "टेक्स्ट सबटाइटल",
   "That address is shared with others, so the internet still can’t reach it.": "वह पता दूसरों के साथ साझा है, इसलिए इंटरनेट अब भी उस तक नहीं पहुँच सकता।",
@@ -1499,7 +1499,7 @@
   "Third-party licenses": "तृतीय-पक्ष लाइसेंस",
   "This backup is protected. Enter its password": "यह बैकअप सुरक्षित है। इसका पासवर्ड डालें",
   "This backup was refused, and nothing was changed": "यह बैकअप अस्वीकार किया गया, और कुछ नहीं बदला गया",
-  "This browser’s own choice, which wins over the server’s, at home or away: robust helps on poor Wi-Fi at home too. It’s saved on this device straight away, and other devices aren’t changed.": "इस ब्राउज़र की अपनी पसंद, जो घर पर या बाहर, सर्वर की पसंद से ऊपर रहती है: मज़बूत घर पर कमज़ोर Wi-Fi में भी मदद करता है। यह इस डिवाइस पर तुरंत सहेजा जाता है, और दूसरे डिवाइस नहीं बदलते।",
+  "This browser’s own choice, which wins over the server’s, at home or away: robust helps on poor Wi-Fi at home too. It’s saved on this device straight away, and other devices aren’t changed.": "इस ब्राउज़र की अपनी पसंद, जो घर पर या बाहर, सर्वर की पसंद से ऊपर रहती है: मज़बूत घर पर कमज़ोर Wi-Fi में भी मदद करता है। यह इस डिवाइस पर तुरंत सेव किया जाता है, और दूसरे डिवाइस नहीं बदलते।",
   "This can get in the way of people watching.": "इससे देखने वालों को परेशानी हो सकती है।",
   "This changes data, so it asks for your password. A safety copy is made first.": "यह डेटा बदलता है, इसलिए आपका पासवर्ड माँगता है। पहले एक सुरक्षा कॉपी बनाई जाती है।",
   "This check": "यह जाँच",
@@ -1514,7 +1514,7 @@
   "This is part of the server, so a new server brings its new versions.": "यह सर्वर का हिस्सा है, इसलिए नया सर्वर इसके नए संस्करण लाता है।",
   "This is the newest known": "यह सबसे नया ज्ञात है",
   "This isn’t the official {name}, and nobody here has reviewed it. Keep it only if you trust whoever publishes it. Everything else works as for the official one, and this server won’t install its updates by itself.": "यह आधिकारिक {name} नहीं है, और यहाँ किसी ने इसकी समीक्षा नहीं की है। इसे तभी रखें जब आपको इसके प्रकाशक पर भरोसा हो। बाकी सब आधिकारिक की तरह ही काम करता है, और यह सर्वर इसके अपडेट अपने आप इंस्टॉल नहीं करेगा।",
-  "This library has no recipe saved yet. A run does what’s saved.": "इस लाइब्रेरी की अभी कोई रेसिपी सहेजी नहीं गई है। रन वही करता है जो सहेजा गया है।",
+  "This library has no recipe saved yet. A run does what’s saved.": "इस लाइब्रेरी की अभी कोई रेसिपी सेव की नहीं गई है। रन वही करता है जो सेव किया गया है।",
   "This library is being scanned. Try again once the scan has finished.": "यह लाइब्रेरी स्कैन हो रही है। स्कैन पूरा होने के बाद फिर से कोशिश करें।",
   "This library is read-only": "यह लाइब्रेरी केवल-पढ़ने वाली है",
   "This license couldn’t be loaded.": "यह लाइसेंस लोड नहीं हो सका।",
@@ -1611,7 +1611,7 @@
   "Unencrypted connections from away are refused again": "बाहर से बिना एन्क्रिप्शन वाले कनेक्शन फिर से अस्वीकार किए जाते हैं",
   "Unpin": "अनपिन करें",
   "Unreadable": "पढ़ा नहीं जा सकता",
-  "Unsaved changes": "बिना सहेजे बदलाव",
+  "Unsaved changes": "बिना सेव किए बदलाव",
   "Up": "ऊपर",
   "Up to age {age}": "{age} साल की उम्र तक",
   "Update": "अपडेट करें",
@@ -1672,7 +1672,7 @@
   "Video is converted by {ffmpeg}, run as a separate program; the bundled builds are GPL-licensed, with sources linked in {file}.": "वीडियो {ffmpeg} द्वारा कन्वर्ट होता है, जो एक अलग प्रोग्राम के रूप में चलता है; साथ आए बिल्ड GPL-लाइसेंस वाले हैं, जिनके स्रोत {file} में लिंक किए गए हैं।",
   "Viewer": "दर्शक",
   "Viewers pick a speed in every player: video, discs, music, audiobooks, podcasts and vertical videos. Voices keep their pitch at every speed. Above 4×: most browsers mute the sound, and a video that has to be converted must convert faster than it plays, which takes strong hardware. Files that play as they are, in H.264 or VP9 with AAC or Opus, cope best.": "देखने वाले हर प्लेयर में गति चुनते हैं: वीडियो, डिस्क, संगीत, ऑडियोबुक, पॉडकास्ट और वर्टिकल वीडियो। हर गति पर आवाज़ों का सुर वही रहता है। 4× से ऊपर: ज़्यादातर ब्राउज़र आवाज़ बंद कर देते हैं, और जिस वीडियो को कन्वर्ट करना हो उसे चलने से तेज़ कन्वर्ट होना पड़ता है, जिसके लिए दमदार हार्डवेयर चाहिए। जो फ़ाइलें जैसी हैं वैसी चलती हैं, H.264 या VP9 के साथ AAC या Opus में, वे सबसे अच्छी तरह संभलती हैं।",
-  "Waiting": "इंतज़ार हो रहा है",
+  "Waiting": "इंतज़ार में",
   "Waiting for another check to finish (number {position} in line).": "दूसरी जाँच पूरी होने का इंतज़ार (कतार में {position} नंबर)।",
   "Waiting for another check to finish.": "दूसरी जाँच पूरी होने का इंतज़ार।",
   "Waiting for the server": "सर्वर का इंतज़ार",
@@ -1711,7 +1711,7 @@
   "What the fix does": "सुधार क्या करता है",
   "What the modules on this server let you set": "इस सर्वर के मॉड्यूल आपको क्या सेट करने देते हैं",
   "What the modules on this server let you set. Some are for the whole server and only an administrator changes them; others are your own.": "इस सर्वर के मॉड्यूल आपको क्या सेट करने देते हैं। कुछ पूरे सर्वर के लिए हैं और केवल व्यवस्थापक उन्हें बदलता है; बाकी आपके अपने हैं।",
-  "What the player skips by itself, for the profile signed in here. It follows you to your other devices, and is saved straight away. Each time, a note offers Undo, and a part you went back to is left to play. With all of these off, the player shows a button to press instead.": "यहाँ साइन इन की हुई प्रोफ़ाइल के लिए प्लेयर अपने आप क्या छोड़ता है। यह आपके दूसरे डिवाइसों पर भी लागू होता है, और तुरंत सहेजा जाता है। हर बार, एक नोट Undo का विकल्प देता है, और जिस हिस्से पर आप वापस गए उसे चलने दिया जाता है। ये सब बंद होने पर, प्लेयर इसके बजाय दबाने के लिए एक बटन दिखाता है।",
+  "What the player skips by itself, for the profile signed in here. It follows you to your other devices, and is saved straight away. Each time, a note offers Undo, and a part you went back to is left to play. With all of these off, the player shows a button to press instead.": "यहाँ साइन इन की हुई प्रोफ़ाइल के लिए प्लेयर अपने आप क्या छोड़ता है। यह आपके दूसरे डिवाइसों पर भी लागू होता है, और तुरंत सेव किया जाता है। हर बार, एक नोट Undo का विकल्प देता है, और जिस हिस्से पर आप वापस गए उसे चलने दिया जाता है। ये सब बंद होने पर, प्लेयर इसके बजाय दबाने के लिए एक बटन दिखाता है।",
   "What the server can do comes from separate modules, each published on its own. These are the versions on this server.": "सर्वर क्या कर सकता है, यह अलग-अलग मॉड्यूल से आता है, हर एक अलग से प्रकाशित होता है। ये इस सर्वर पर मौजूद संस्करण हैं।",
   "What the server records and for how long, and the logs as a ZIP to share, sanitized if you want. Nothing is ever sent anywhere.": "सर्वर क्या रिकॉर्ड करता है और कितने समय तक, और साझा करने के लिए ZIP के रूप में लॉग, चाहें तो साफ़ किए हुए। कभी कुछ भी कहीं नहीं भेजा जाता।",
   "What they can do": "वे क्या कर सकते हैं",
@@ -1779,7 +1779,7 @@
   "Who can use this server, and from where. It starts as home network only, and this server doesn't contact anyone for remote access unless a step below says so.": "इस सर्वर का उपयोग कौन कर सकता है, और कहाँ से। यह केवल घर के नेटवर्क से शुरू होता है, और जब तक नीचे का कोई चरण ऐसा न कहे, यह सर्वर रिमोट एक्सेस के लिए किसी से संपर्क नहीं करता।",
   "Who else can see it": "इसे और कौन देख सकता है",
   "Who else can see statistics": "आँकड़े और कौन देख सकता है",
-  "Who may manage Kids profiles": "Kids प्रोफ़ाइल कौन प्रबंधित कर सकता है",
+  "Who may manage Kids profiles": "बच्चों की प्रोफ़ाइल कौन प्रबंधित कर सकता है",
   "Wider tracks are converted down.": "ज़्यादा चैनल वाले ट्रैक कम चैनलों में कन्वर्ट किए जाते हैं।",
   "Wikidata and Wikipedia": "Wikidata और Wikipedia",
   "Will be converted": "कन्वर्ट किया जाएगा",
@@ -1806,10 +1806,10 @@
   "WittyTV colours": "WittyTV के रंग",
   "WittyTV look": "WittyTV का रूप",
   "WittyTV theme for new viewers": "नए दर्शकों के लिए WittyTV थीम",
-  "Working": "काम कर रहा है",
+  "Working": "काम चल रहा है",
   "Working on this machine": "इस मशीन पर काम कर रहा है",
   "Working on this machine ({device})": "इस मशीन पर काम कर रहा है ({device})",
-  "Working…": "काम हो रहा है…",
+  "Working…": "काम चल रहा है…",
   "Works once, for fifteen minutes, and only while you stay signed in here. Treat it like a password until then: whoever has it gets in as you.": "एक बार, पंद्रह मिनट तक काम करता है, और केवल तब तक जब तक आप यहाँ साइन इन रहें। तब तक इसे पासवर्ड की तरह मानें: जिसके पास यह है वह आपके रूप में अंदर आ जाता है।",
   "Works with": "इसके साथ काम करता है",
   "Works with servers {min} to {max}": "सर्वर {min} से {max} के साथ काम करता है",
@@ -1821,15 +1821,15 @@
   "Writing files: {done} of {total}": "फ़ाइलें लिखी जा रही हैं: {total} में से {done}",
   "Writing files…": "फ़ाइलें लिखी जा रही हैं…",
   "XL": "XL",
-  "Year": "वर्ष",
+  "Year": "साल",
   "You": "आप",
   "You can install it again from the store at any time.": "आप इसे कभी भी स्टोर से फिर से इंस्टॉल कर सकते हैं।",
   "You can pause or cancel it here or in the activity panel.": "आप इसे यहाँ या गतिविधि पैनल में रोक या रद्द कर सकते हैं।",
-  "You don’t need to know anything about JSON. Change the words between the quotes, keep the quotes and commas, and save.": "आपको JSON के बारे में कुछ जानने की ज़रूरत नहीं। उद्धरण चिह्नों के बीच के शब्द बदलें, उद्धरण चिह्न और कॉमा रहने दें, और सहेजें।",
+  "You don’t need to know anything about JSON. Change the words between the quotes, keep the quotes and commas, and save.": "आपको JSON के बारे में कुछ जानने की ज़रूरत नहीं। उद्धरण चिह्नों के बीच के शब्द बदलें, उद्धरण चिह्न और कॉमा रहने दें, और सेव करें।",
   "You have no collections yet. Make one under Collections, add titles to it, and it can be allowed or hidden here as a whole.": "अभी आपके कोई संग्रह नहीं हैं। Collections में एक बनाएँ, उसमें शीर्षक जोड़ें, और उसे यहाँ पूरे रूप में अनुमति दी या छिपाई जा सकती है।",
   "You have the newest version": "आपके पास सबसे नया संस्करण है",
   "You have the theme’s colours again.": "आपके पास फिर से थीम के रंग हैं।",
-  "You have unsaved changes": "आपके बदलाव सहेजे नहीं गए हैं",
+  "You have unsaved changes": "आपके बदलाव सेव किए नहीं गए हैं",
   "You haven’t checked this library yet, so there’s no estimate.": "आपने अभी यह लाइब्रेरी नहीं जाँची है, इसलिए कोई अनुमान नहीं है।",
   "You may use, change and share it under that license; please keep the": "आप उस लाइसेंस के तहत इसे इस्तेमाल, बदल और साझा कर सकते हैं; कृपया रखें",
   "You see what’s going on, with no file names, no one else’s details and no controls.": "आप देखते हैं कि क्या चल रहा है, बिना फ़ाइल नामों, किसी और के विवरण और नियंत्रणों के।",
@@ -1837,7 +1837,7 @@
   "Your": "आपका",
   "Your accent was adjusted a little so the words on it stay readable.": "आपका एक्सेंट रंग थोड़ा बदला गया ताकि उस पर के शब्द पढ़ने लायक रहें।",
   "Your account": "आपका खाता",
-  "Your colours are saved.": "आपके रंग सहेजे गए।",
+  "Your colours are saved.": "आपके रंग सेव किए गए।",
   "Your colours couldn’t be read.": "आपके रंग पढ़े नहीं जा सके।",
   "Your devices": "आपके डिवाइस",
   "Your devices and two-factor sign-in": "आपके डिवाइस और टू-फ़ैक्टर साइन-इन",
@@ -1925,7 +1925,7 @@
   "mustn’t have a comma. Take it off.": "पर कॉमा नहीं होना चाहिए। उसे हटा दें।",
   "name": "नाम",
   "never": "कभी नहीं",
-  "no Live TV": "लाइव TV नहीं",
+  "no Live TV": "लाइव टीवी नहीं",
   "no age limit": "कोई उम्र सीमा नहीं",
   "no end date": "कोई समाप्ति तिथि नहीं",
   "no folders": "कोई फ़ोल्डर नहीं",
@@ -1970,10 +1970,10 @@
   "volume stays, with your libraries, settings and watch history.": "वॉल्यूम रहता है, आपकी लाइब्रेरी, सेटिंग्स और देखने के इतिहास के साथ।",
   "walks you through it.": "आपको चरण-दर-चरण बताता है।",
   "watch parties": "वॉच पार्टी",
-  "when you’ve saved your edits. Checking doesn’t change anything.": "जब आपने अपने बदलाव सहेज लिए हों। जाँचने से कुछ नहीं बदलता।",
+  "when you’ve saved your edits. Checking doesn’t change anything.": "जब आपने अपने बदलाव सेव कर लिए हों। जाँचने से कुछ नहीं बदलता।",
   "with API key": "API कुंजी के साथ",
   "with {name}": "{name} के साथ",
-  "your media files and game files, wherever they are, anything saved beside them such as posters and info files, the program itself and its config file.": "आपकी मीडिया फ़ाइलें और गेम फ़ाइलें, वे जहाँ भी हों, उनके बगल में सहेजी कोई भी चीज़ जैसे पोस्टर और जानकारी फ़ाइलें, ख़ुद प्रोग्राम और उसकी कॉन्फ़िग फ़ाइल।",
+  "your media files and game files, wherever they are, anything saved beside them such as posters and info files, the program itself and its config file.": "आपकी मीडिया फ़ाइलें और गेम फ़ाइलें, वे जहाँ भी हों, उनके बगल में सेव की कोई भी चीज़ जैसे पोस्टर और जानकारी फ़ाइलें, ख़ुद प्रोग्राम और उसकी कॉन्फ़िग फ़ाइल।",
   "your profiles, settings and libraries; what everyone has watched and how far; ratings, favourites, lists and playlists; fields you locked or typed yourself; modules, WittyTV and game saves.": "आपकी प्रोफ़ाइल, सेटिंग्स और लाइब्रेरी; सबने क्या और कितना देखा; रेटिंग, पसंदीदा, सूचियाँ और प्लेलिस्ट; आपके लॉक किए या ख़ुद टाइप किए फ़ील्ड; मॉड्यूल, WittyTV और गेम सेव।",
   "{caption}, drawn with these colours": "{caption}, इन रंगों में बनाया गया",
   "{colour}: pick a colour": "{colour}: रंग चुनें",
@@ -2021,7 +2021,7 @@
   "{name} on": "{name} पर",
   "{name} reads .nfo files from other programs again, and is being scanned": "{name} फिर से दूसरे प्रोग्रामों की .nfo फ़ाइलें पढ़ता है, और स्कैन हो रहा है",
   "{name} removed": "{name} हटाया गया",
-  "{name} saved; scanning": "{name} सहेजा गया; स्कैन हो रहा है",
+  "{name} saved; scanning": "{name} सेव किया गया; स्कैन हो रहा है",
   "{name} stays on this version": "{name} इसी संस्करण पर रहता है",
   "{name} stops showing in the app and stops checking for updates.": "{name} ऐप में दिखना बंद हो जाता है और अपडेट की जाँच बंद कर देता है।",
   "{name} stops using version {version}, and that version is marked as taken out of use, so automatic updates won’t bring it back. You can still choose it yourself.": "{name} संस्करण {version} का उपयोग बंद कर देता है, और वह संस्करण उपयोग से हटाया गया चिह्नित होता है, ताकि स्वचालित अपडेट उसे वापस न लाएँ। आप फिर भी उसे ख़ुद चुन सकते हैं।",
@@ -2063,199 +2063,199 @@
   "…and {count} more.": "…और {count} और।",
   "…or type a folder path and press Enter": "…या फ़ोल्डर पथ टाइप करें और Enter दबाएँ",
   "{count} bytes": {
-   "one": "{count} बाइट",
-   "other": "{count} बाइट"
+    "one": "{count} बाइट",
+    "other": "{count} बाइट"
   },
   "{count} entries": {
-   "one": "{count} प्रविष्टि",
-   "other": "{count} प्रविष्टियाँ"
+    "one": "{count} प्रविष्टि",
+    "other": "{count} प्रविष्टियाँ"
   },
   "{count} files": {
-   "one": "{count} फ़ाइल",
-   "other": "{count} फ़ाइलें"
+    "one": "{count} फ़ाइल",
+    "other": "{count} फ़ाइलें"
   },
   "{count} titles": {
-   "one": "{count} शीर्षक",
-   "other": "{count} शीर्षक"
+    "one": "{count} टाइटल",
+    "other": "{count} टाइटल"
   },
   "{count} pieces of text would be hard to read": {
-   "one": "टेक्स्ट का {count} हिस्सा पढ़ने में मुश्किल होगा",
-   "other": "टेक्स्ट के {count} हिस्से पढ़ने में मुश्किल होंगे"
+    "one": "टेक्स्ट का {count} हिस्सा पढ़ने में मुश्किल होगा",
+    "other": "टेक्स्ट के {count} हिस्से पढ़ने में मुश्किल होंगे"
   },
   "{count} problems": {
-   "one": "{count} समस्या",
-   "other": "{count} समस्याएँ"
+    "one": "{count} समस्या",
+    "other": "{count} समस्याएँ"
   },
   "{count} warnings": {
-   "one": "{count} चेतावनी",
-   "other": "{count} चेतावनियाँ"
+    "one": "{count} चेतावनी",
+    "other": "{count} चेतावनियाँ"
   },
   "{count} notes": {
-   "one": "{count} नोट",
-   "other": "{count} नोट"
+    "one": "{count} नोट",
+    "other": "{count} नोट"
   },
   "{count} things fine": {
-   "one": "{count} चीज़ ठीक",
-   "other": "{count} चीज़ें ठीक"
+    "one": "{count} चीज़ ठीक",
+    "other": "{count} चीज़ें ठीक"
   },
   "{count} files the server saved beside the media removed, with {companions}.": {
-   "one": "सर्वर द्वारा मीडिया के बगल में सहेजी {count} फ़ाइल हटाई गई, {companions} के साथ।",
-   "other": "सर्वर द्वारा मीडिया के बगल में सहेजी {count} फ़ाइलें हटाई गईं, {companions} के साथ।"
+    "one": "सर्वर द्वारा मीडिया के बगल में सेव की {count} फ़ाइल हटाई गई, {companions} के साथ।",
+    "other": "सर्वर द्वारा मीडिया के बगल में सेव की {count} फ़ाइलें हटाई गईं, {companions} के साथ।"
   },
   "{count} macOS “._” files": {
-   "one": "{count} macOS “._” फ़ाइल",
-   "other": "{count} macOS “._” फ़ाइलें"
+    "one": "{count} macOS “._” फ़ाइल",
+    "other": "{count} macOS “._” फ़ाइलें"
   },
   "{count} files the server saved beside the media removed.": {
-   "one": "सर्वर द्वारा मीडिया के बगल में सहेजी {count} फ़ाइल हटाई गई।",
-   "other": "सर्वर द्वारा मीडिया के बगल में सहेजी {count} फ़ाइलें हटाई गईं।"
+    "one": "सर्वर द्वारा मीडिया के बगल में सेव की {count} फ़ाइल हटाई गई।",
+    "other": "सर्वर द्वारा मीडिया के बगल में सेव की {count} फ़ाइलें हटाई गईं।"
   },
   "{count} NFO files of yours put back from the .nfo.bak copy the server kept.": {
-   "one": "आपकी {count} NFO फ़ाइल सर्वर की रखी .nfo.bak कॉपी से वापस रखी गई।",
-   "other": "आपकी {count} NFO फ़ाइलें सर्वर की रखी .nfo.bak कॉपी से वापस रखी गईं।"
+    "one": "आपकी {count} NFO फ़ाइल सर्वर की रखी .nfo.bak कॉपी से वापस रखी गई।",
+    "other": "आपकी {count} NFO फ़ाइलें सर्वर की रखी .nfo.bak कॉपी से वापस रखी गईं।"
   },
   "{count} files were left as they were: changed since the server saved them, or couldn’t be removed.": {
-   "one": "{count} फ़ाइल जैसी थी वैसी छोड़ी गई: सर्वर के सहेजने के बाद बदली गई, या हटाई नहीं जा सकी।",
-   "other": "{count} फ़ाइलें जैसी थीं वैसी छोड़ी गईं: सर्वर के सहेजने के बाद बदली गईं, या हटाई नहीं जा सकीं।"
+    "one": "{count} फ़ाइल जैसी थी वैसी छोड़ी गई: सर्वर के सेव करने के बाद बदली गई, या हटाई नहीं जा सकी।",
+    "other": "{count} फ़ाइलें जैसी थीं वैसी छोड़ी गईं: सर्वर के सेव करने के बाद बदली गईं, या हटाई नहीं जा सकीं।"
   },
   "{count} shows": {
-   "one": "{count} शो",
-   "other": "{count} शो"
+    "one": "{count} शो",
+    "other": "{count} शो"
   },
   "{count} fields you locked or typed kept.": {
-   "one": "आपका लॉक किया या टाइप किया {count} फ़ील्ड रखा गया।",
-   "other": "आपके लॉक किए या टाइप किए {count} फ़ील्ड रखे गए।"
+    "one": "आपका लॉक किया या टाइप किया {count} फ़ील्ड रखा गया।",
+    "other": "आपके लॉक किए या टाइप किए {count} फ़ील्ड रखे गए।"
   },
   "{count} cached pictures removed.": {
-   "one": "कैश की गई {count} तस्वीर हटाई गई।",
-   "other": "कैश की गई {count} तस्वीरें हटाई गईं।"
+    "one": "कैश की गई {count} तस्वीर हटाई गई।",
+    "other": "कैश की गई {count} तस्वीरें हटाई गईं।"
   },
   "{count} downloaded logos removed.": {
-   "one": "डाउनलोड किया गया {count} लोगो हटाया गया।",
-   "other": "डाउनलोड किए गए {count} लोगो हटाए गए।"
+    "one": "डाउनलोड किया गया {count} लोगो हटाया गया।",
+    "other": "डाउनलोड किए गए {count} लोगो हटाए गए।"
   },
   "{count} items": {
-   "one": "{count} आइटम",
-   "other": "{count} आइटम"
+    "one": "{count} आइटम",
+    "other": "{count} आइटम"
   },
   "{count} problems so far. They’re in the activity panel.": {
-   "one": "अब तक {count} समस्या। ये गतिविधि पैनल में हैं।",
-   "other": "अब तक {count} समस्याएँ। ये गतिविधि पैनल में हैं।"
+    "one": "अब तक {count} समस्या। ये गतिविधि पैनल में हैं।",
+    "other": "अब तक {count} समस्याएँ। ये गतिविधि पैनल में हैं।"
   },
   "WittyMediaServer itself, and every Witty module, is AGPL-3.0-or-later. It’s built with {count} open-source libraries, all listed here with their full license text.": {
-   "one": "WittyMediaServer ख़ुद, और हर Witty मॉड्यूल, AGPL-3.0-or-later के तहत है। यह {count} ओपन-सोर्स लाइब्रेरी से बना है, जो यहाँ उसके पूरे लाइसेंस टेक्स्ट के साथ सूचीबद्ध है।",
-   "other": "WittyMediaServer ख़ुद, और हर Witty मॉड्यूल, AGPL-3.0-or-later के तहत है। यह {count} ओपन-सोर्स लाइब्रेरी से बना है, जो सभी यहाँ अपने पूरे लाइसेंस टेक्स्ट के साथ सूचीबद्ध हैं।"
+    "one": "WittyMediaServer ख़ुद, और हर Witty मॉड्यूल, AGPL-3.0-or-later के तहत है। यह {count} ओपन-सोर्स लाइब्रेरी से बना है, जो यहाँ उसके पूरे लाइसेंस टेक्स्ट के साथ सूचीबद्ध है।",
+    "other": "WittyMediaServer ख़ुद, और हर Witty मॉड्यूल, AGPL-3.0-or-later के तहत है। यह {count} ओपन-सोर्स लाइब्रेरी से बना है, जो सभी यहाँ अपने पूरे लाइसेंस टेक्स्ट के साथ सूचीबद्ध हैं।"
   },
   "{count} files for titles": {
-   "one": "शीर्षकों के लिए {count} फ़ाइल",
-   "other": "शीर्षकों के लिए {count} फ़ाइलें"
+    "one": "शीर्षकों के लिए {count} फ़ाइल",
+    "other": "शीर्षकों के लिए {count} फ़ाइलें"
   },
   "{count} pictures": {
-   "one": "{count} तस्वीर",
-   "other": "{count} तस्वीरें"
+    "one": "{count} तस्वीर",
+    "other": "{count} तस्वीरें"
   },
   "{count} files written": {
-   "one": "{count} फ़ाइल लिखी गई",
-   "other": "{count} फ़ाइलें लिखी गईं"
+    "one": "{count} फ़ाइल लिखी गई",
+    "other": "{count} फ़ाइलें लिखी गईं"
   },
   "{count} files kept as they are, with edits you haven’t applied.": {
-   "one": "{count} फ़ाइल जैसी है वैसी रखी गई, ऐसे बदलावों के साथ जिन्हें आपने लागू नहीं किया।",
-   "other": "{count} फ़ाइलें जैसी हैं वैसी रखी गईं, ऐसे बदलावों के साथ जिन्हें आपने लागू नहीं किया।"
+    "one": "{count} फ़ाइल जैसी है वैसी रखी गई, ऐसे बदलावों के साथ जिन्हें आपने लागू नहीं किया।",
+    "other": "{count} फ़ाइलें जैसी हैं वैसी रखी गईं, ऐसे बदलावों के साथ जिन्हें आपने लागू नहीं किया।"
   },
   "{count} titles would change.": {
-   "one": "{count} शीर्षक बदलेगा।",
-   "other": "{count} शीर्षक बदलेंगे।"
+    "one": "{count} शीर्षक बदलेगा।",
+    "other": "{count} शीर्षक बदलेंगे।"
   },
   "{count} files with nothing to do.": {
-   "one": "{count} फ़ाइल जिसमें करने को कुछ नहीं।",
-   "other": "{count} फ़ाइलें जिनमें करने को कुछ नहीं।"
+    "one": "{count} फ़ाइल जिसमें करने को कुछ नहीं।",
+    "other": "{count} फ़ाइलें जिनमें करने को कुछ नहीं।"
   },
   "Apply to {count} titles": {
-   "one": "{count} शीर्षक पर लागू करें",
-   "other": "{count} शीर्षकों पर लागू करें"
+    "one": "{count} शीर्षक पर लागू करें",
+    "other": "{count} शीर्षकों पर लागू करें"
   },
   "{count} titles changed": {
-   "one": "{count} शीर्षक बदला गया",
-   "other": "{count} शीर्षक बदले गए"
+    "one": "{count} शीर्षक बदला गया",
+    "other": "{count} शीर्षक बदले गए"
   },
   "{count} files left out.": {
-   "one": "{count} फ़ाइल छोड़ी गई।",
-   "other": "{count} फ़ाइलें छोड़ी गईं।"
+    "one": "{count} फ़ाइल छोड़ी गई।",
+    "other": "{count} फ़ाइलें छोड़ी गईं।"
   },
   "{names} are built on it.": {
-   "one": "{names} इस पर बना है।",
-   "other": "{names} इस पर बने हैं।"
+    "one": "{names} इस पर बना है।",
+    "other": "{names} इस पर बने हैं।"
   },
   "{name} has {count} more minutes today": {
-   "one": "आज {name} के पास {count} मिनट और है",
-   "other": "आज {name} के पास {count} मिनट और हैं"
+    "one": "आज {name} के पास {count} मिनट और है",
+    "other": "आज {name} के पास {count} मिनट और हैं"
   },
   "{count} minutes": {
-   "one": "{count} मिनट",
-   "other": "{count} मिनट"
+    "one": "{count} मिनट",
+    "other": "{count} मिनट"
   },
   "{count} minutes ago": {
-   "one": "{count} मिनट पहले",
-   "other": "{count} मिनट पहले"
+    "one": "{count} मिनट पहले",
+    "other": "{count} मिनट पहले"
   },
   "{count} hours ago": {
-   "one": "{count} घंटा पहले",
-   "other": "{count} घंटे पहले"
+    "one": "{count} घंटा पहले",
+    "other": "{count} घंटे पहले"
   },
   "{count} days ago": {
-   "one": "{count} दिन पहले",
-   "other": "{count} दिन पहले"
+    "one": "{count} दिन पहले",
+    "other": "{count} दिन पहले"
   },
   "{done}. {count} devices were signed out.": {
-   "one": "{done}। {count} डिवाइस साइन आउट किया गया।",
-   "other": "{done}। {count} डिवाइस साइन आउट किए गए।"
+    "one": "{done}। {count} डिवाइस साइन आउट किया गया।",
+    "other": "{done}। {count} डिवाइस साइन आउट किए गए।"
   },
   "{count} devices are signed in that way.": {
-   "one": "{count} डिवाइस इस तरह साइन इन है।",
-   "other": "{count} डिवाइस इस तरह साइन इन हैं।"
+    "one": "{count} डिवाइस इस तरह साइन इन है।",
+    "other": "{count} डिवाइस इस तरह साइन इन हैं।"
   },
   "Certificate for {names} from {issuer}, good for {count} more days.": {
-   "one": "{issuer} से {names} के लिए प्रमाणपत्र, {count} दिन और मान्य।",
-   "other": "{issuer} से {names} के लिए प्रमाणपत्र, {count} दिन और मान्य।"
+    "one": "{issuer} से {names} के लिए प्रमाणपत्र, {count} दिन और मान्य।",
+    "other": "{issuer} से {names} के लिए प्रमाणपत्र, {count} दिन और मान्य।"
   },
   "{count} devices signed in without encryption, so they are signed out too.": {
-   "one": "{count} डिवाइस ने बिना एन्क्रिप्शन के साइन इन किया था, इसलिए उसे भी साइन आउट किया गया है।",
-   "other": "{count} डिवाइसों ने बिना एन्क्रिप्शन के साइन इन किया था, इसलिए उन्हें भी साइन आउट किया गया है।"
+    "one": "{count} डिवाइस ने बिना एन्क्रिप्शन के साइन इन किया था, इसलिए उसे भी साइन आउट किया गया है।",
+    "other": "{count} डिवाइसों ने बिना एन्क्रिप्शन के साइन इन किया था, इसलिए उन्हें भी साइन आउट किया गया है।"
   },
   "{count} devices signed out": {
-   "one": "{count} डिवाइस साइन आउट किया गया",
-   "other": "{count} डिवाइस साइन आउट किए गए"
+    "one": "{count} डिवाइस साइन आउट किया गया",
+    "other": "{count} डिवाइस साइन आउट किए गए"
   },
   "Sign out the {count} devices that signed in unencrypted": {
-   "one": "बिना एन्क्रिप्शन के साइन इन करने वाले {count} डिवाइस को साइन आउट करें",
-   "other": "बिना एन्क्रिप्शन के साइन इन करने वाले {count} डिवाइसों को साइन आउट करें"
+    "one": "बिना एन्क्रिप्शन के साइन इन करने वाले {count} डिवाइस को साइन आउट करें",
+    "other": "बिना एन्क्रिप्शन के साइन इन करने वाले {count} डिवाइसों को साइन आउट करें"
   },
   "{count} checks looked at this server and found nothing wrong.": {
-   "one": "{count} जाँच ने इस सर्वर को देखा और कुछ गलत नहीं मिला।",
-   "other": "{count} जाँचों ने इस सर्वर को देखा और कुछ गलत नहीं मिला।"
+    "one": "{count} जाँच ने इस सर्वर को देखा और कुछ गलत नहीं मिला।",
+    "other": "{count} जाँचों ने इस सर्वर को देखा और कुछ गलत नहीं मिला।"
   },
   "{count} found": {
-   "one": "{count} मिला",
-   "other": "{count} मिले"
+    "one": "{count} मिला",
+    "other": "{count} मिले"
   },
   "opened {count} times": {
-   "one": "{count} बार खोला गया",
-   "other": "{count} बार खोला गया"
+    "one": "{count} बार खोला गया",
+    "other": "{count} बार खोला गया"
   },
   "This server’s FFmpeg can’t handle these {count}: {names}.": {
-   "one": "इस सर्वर का FFmpeg इसे नहीं संभाल सकता: {names}।",
-   "other": "इस सर्वर का FFmpeg ये {count} नहीं संभाल सकता: {names}।"
+    "one": "इस सर्वर का FFmpeg इसे नहीं संभाल सकता: {names}।",
+    "other": "इस सर्वर का FFmpeg ये {count} नहीं संभाल सकता: {names}।"
   },
   "{count} files deleted. Scanning {name}": {
-   "one": "{count} फ़ाइल हटाई गई। {name} स्कैन हो रही है",
-   "other": "{count} फ़ाइलें हटाई गईं। {name} स्कैन हो रही है"
+    "one": "{count} फ़ाइल हटाई गई। {name} स्कैन हो रही है",
+    "other": "{count} फ़ाइलें हटाई गईं। {name} स्कैन हो रही है"
   },
   "{count} libraries": {
-   "one": "{count} लाइब्रेरी",
-   "other": "{count} लाइब्रेरी"
+    "one": "{count} लाइब्रेरी",
+    "other": "{count} लाइब्रेरी"
   },
   "{count} things turned off": {
-   "one": "{count} चीज़ बंद की गई",
-   "other": "{count} चीज़ें बंद की गईं"
+    "one": "{count} चीज़ बंद की गई",
+    "other": "{count} चीज़ें बंद की गईं"
   }
 }

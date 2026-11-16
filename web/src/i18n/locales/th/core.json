@@ -1,15 +1,15 @@
 {
- "Language and time zone": "ภาษาและเขตเวลา",
- "Before anything else: the language for these pages, disc menus and sound tracks, and the time zone the server keeps.": "ก่อนอื่น: ภาษาของหน้าเหล่านี้ เมนูแผ่นดิสก์ และแทร็กเสียง รวมถึงเขตเวลาของเซิร์ฟเวอร์",
- "Language": "ภาษา",
- "Everything on these pages, for everyone who uses this server.": "ทุกอย่างในหน้าเหล่านี้ สำหรับทุกคนที่ใช้เซิร์ฟเวอร์นี้",
- "Disc menus and sound tracks": "เมนูแผ่นดิสก์และแทร็กเสียง",
- "Disc menus, and the sound track a film or show starts with when it has one in this language. Subtitles stay off until someone turns them on.": "เมนูแผ่นดิสก์ และแทร็กเสียงที่ภาพยนตร์หรือรายการจะเริ่มเล่นเมื่อมีแทร็กภาษานี้ คำบรรยายจะปิดอยู่จนกว่าจะมีคนเปิด",
- "The original language": "ภาษาต้นฉบับ",
- "Time zone": "เขตเวลา",
- "Guide days, schedules, recordings and the logs follow this. The server restarts once to use it, when setup is finished, if it isn’t the one it’s running in.": "ผังรายการ กำหนดการ การบันทึก และบันทึกระบบจะใช้เขตเวลานี้ ถ้าไม่ใช่เขตที่เซิร์ฟเวอร์ใช้อยู่ เซิร์ฟเวอร์จะรีสตาร์ตหนึ่งครั้งเมื่อตั้งค่าเสร็จ",
- "The time zone of the computer the server runs on. Guide days, schedules, recordings and the logs follow it.": "เขตเวลาของคอมพิวเตอร์ที่เซิร์ฟเวอร์ทำงานอยู่ ผังรายการ กำหนดการ การบันทึก และบันทึกระบบจะใช้เขตเวลานี้",
- "This device is set to {zone}.": "อุปกรณ์นี้ตั้งไว้ที่ {zone}",
- "You can change these again on the Name and address step, and later in Settings.": "คุณเปลี่ยนสิ่งเหล่านี้ได้อีกครั้งในขั้นตอนชื่อและที่อยู่ และภายหลังในการตั้งค่า",
- "Continue": "ดำเนินการต่อ"
+  "Language and time zone": "ภาษาและเขตเวลา",
+  "Before anything else: the language for these pages, disc menus and sound tracks, and the time zone the server keeps.": "ก่อนอื่น: ภาษาของหน้าเหล่านี้ เมนูแผ่นดิสก์และแทร็กเสียง และเขตเวลาที่เซิร์ฟเวอร์ใช้",
+  "Language": "ภาษา",
+  "Everything on these pages, for everyone who uses this server.": "ทุกอย่างในหน้าเหล่านี้ สำหรับทุกคนที่ใช้เซิร์ฟเวอร์นี้",
+  "Disc menus and sound tracks": "เมนูแผ่นดิสก์และแทร็กเสียง",
+  "Disc menus, and the sound track a film or show starts with when it has one in this language. Subtitles stay off until someone turns them on.": "เมนูแผ่นดิสก์ และแทร็กเสียงที่ภาพยนตร์หรือรายการจะเริ่มเล่น หากมีแทร็กภาษานี้ คำบรรยายจะปิดไว้จนกว่าจะมีคนเปิด",
+  "The original language": "ภาษาต้นฉบับ",
+  "Time zone": "เขตเวลา",
+  "Guide days, schedules, recordings and the logs follow this. The server restarts once to use it, when setup is finished, if it isn’t the one it’s running in.": "วันในผังรายการ ตารางเวลา การบันทึก และบันทึกระบบจะเป็นไปตามนี้ เซิร์ฟเวอร์จะรีสตาร์ตหนึ่งครั้งเพื่อใช้ค่านี้เมื่อตั้งค่าเสร็จ หากไม่ใช่เขตเวลาที่ใช้อยู่ตอนนี้",
+  "The time zone of the computer the server runs on. Guide days, schedules, recordings and the logs follow it.": "เขตเวลาของคอมพิวเตอร์ที่เซิร์ฟเวอร์ทำงานอยู่ วันในผังรายการ ตารางเวลา การบันทึก และบันทึกระบบจะเป็นไปตามนี้",
+  "This device is set to {zone}.": "อุปกรณ์นี้ตั้งเป็น {zone}",
+  "You can change these again on the Name and address step, and later in Settings.": "คุณเปลี่ยนค่าเหล่านี้ได้อีกที่ขั้นตอนชื่อและที่อยู่ และภายหลังในการตั้งค่า",
+  "Continue": "ดำเนินการต่อ"
 }

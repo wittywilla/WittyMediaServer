@@ -32,7 +32,7 @@
   "Without a password, secrets are left out": "पासवर्ड के बिना, गोपनीय जानकारी छोड़ दी जाती है",
   "API keys, two-factor secrets, share links and logins in addresses aren’t in the file, so you add them again after a restore. Account passwords are in it as hashes, and titles and file names can be read: keep it private. Anything can be changed in a file with no password, so a restore also leaves out settings holding web addresses.": "API कुंजियाँ, दो-चरणीय गोपनीय जानकारी, साझा लिंक और पतों में लॉगिन फ़ाइल में नहीं होते, इसलिए रीस्टोर के बाद आप इन्हें फिर से जोड़ते हैं। खातों के पासवर्ड इसमें हैश के रूप में होते हैं, और शीर्षक व फ़ाइल नाम पढ़े जा सकते हैं: इसे निजी रखें। बिना पासवर्ड वाली फ़ाइल में कुछ भी बदला जा सकता है, इसलिए रीस्टोर वेब पतों वाली सेटिंग भी छोड़ देता है।",
   "Make a backup now": "अभी बैकअप बनाएँ",
-  "Settings · Backup": "सेटिंग · बैकअप",
+  "Settings · Backup": "सेटिंग्स · बैकअप",
   "Every week": "हर हफ़्ते",
   "The backup is made in the background at the time you choose. If the server was off, it’s made soon after it next starts.": "बैकअप आपके चुने समय पर बैकग्राउंड में बनता है। अगर सर्वर बंद था, तो अगली बार शुरू होने के कुछ ही देर बाद बनता है।",
   "At": "समय",

@@ -15,10 +15,10 @@
   "Accepted": "受け入れ済み",
   "Actions": "操作",
   "Add a rule": "ルールを追加",
-  "Add a store run by someone else, and see the modules it offers alongside this project’s. Everything from one is labelled, and whether to trust it is up to you.": "他の人が運営するストアを追加すると、そのモジュールがこのプロジェクトのモジュールと並んで表示されます。そこから来たものにはすべてラベルが付き、信頼するかどうかはあなた次第です。",
+  "Add a store run by someone else, and see the modules it offers alongside this project’s. Everything from one is labelled, and whether to trust it is up to you.": "他の人が運営するストアを追加すると、そのモジュールがこのプロジェクトのモジュールと並んで表示されます。追加したストアのものにはすべてラベルが付き、信頼するかどうかはあなた次第です。",
   "Add tags": "タグを追加",
   "Add this store": "このストアを追加",
-  "Add to what this server can do. Everything here is signed, and nothing runs until you choose it.": "このサーバーにできることを増やしましょう。ここにあるものはすべて署名済みで、選ぶまで何も実行されません。",
+  "Add to what this server can do. Everything here is signed, and nothing runs until you choose it.": "このサーバーの機能を追加できます。ここにあるものはすべて署名済みで、選ぶまで何も実行されません。",
   "Add {name}?": "{name} を追加しますか？",
   "Added a store": "ストアを追加しました",
   "All": "すべて",
@@ -26,7 +26,7 @@
   "All libraries": "すべてのライブラリ",
   "All versions ({count})": "すべてのバージョン（{count}）",
   "An ID in a file or folder’s name always wins over a search, and doesn’t appear in the title:": "ファイル名やフォルダー名の ID は常に検索より優先され、タイトルには表示されません:",
-  "An older version may lack security fixes, so this asks for your password.": "古いバージョンにはセキュリティ修正が含まれていない場合があるため、パスワードが必要です。",
+  "An older version may lack security fixes, so this asks for your password.": "古いバージョンにはセキュリティ修正が含まれていない可能性があるため、パスワードが必要です。",
   "AniList only": "AniList のみ",
   "As the module’s official rules allow": "モジュールの公式ルールが許す範囲で",
   "Back in its library": "ライブラリに戻りました",
@@ -39,7 +39,7 @@
   "Cancel": "キャンセル",
   "Can’t be installed here": "ここにはインストールできません",
   "Can’t be used": "使用できません",
-  "Can’t reach your server. Check that it’s running and try again.": "サーバーに接続できません。起動しているか確認して、もう一度お試しください。",
+  "Can’t reach your server. Check that it’s running and try again.": "サーバーに接続できません。起動していることを確認して、もう一度お試しください。",
   "Changed where it comes from": "入手元を変更しました",
   "Checking the signature": "署名を確認中",
   "Choose a library": "ライブラリを選択",
@@ -48,8 +48,8 @@
   "Clear search and filters": "検索とフィルターをクリア",
   "Close": "閉じる",
   "Code from your authenticator app": "認証アプリのコード",
-  "Comes with other modules": "他のモジュールと一緒に入ります",
-  "Continue": "続行",
+  "Comes with other modules": "ほかのモジュールに付属",
+  "Continue": "続ける",
   "Copy details": "詳細をコピー",
   "Custom modules": "カスタムモジュール",
   "Details": "詳細",
@@ -83,7 +83,7 @@
   "Finished, with problems": "完了（問題あり）",
   "Fits servers": "対応サーバー",
   "Fits servers {min} to {max}": "対応サーバー: {min} ～ {max}",
-  "Fix matches": "照合の修正",
+  "Fix matches": "照合を修正",
   "Fixing {title}": "{title} を修正中",
   "Folder/{year} - {title}": "フォルダー/{year} - {title}",
   "For example:": "例:",
@@ -94,7 +94,7 @@
   "From other stores": "他のストアから",
   "Games": "ゲーム",
   "Go back": "戻る",
-  "Go back to the official version?": "公式バージョンに戻しますか？",
+  "Go back to the official version?": "公式版に戻しますか？",
   "Go back to version {version}?": "バージョン {version} に戻しますか？",
   "Go back to {name} {version}?": "{name} {version} に戻しますか？",
   "Helper": "ヘルパー",
@@ -126,7 +126,7 @@
   "Installed modules": "インストール済みモジュール",
   "Installed with an override": "例外付きでインストール済み",
   "Installing": "インストール中",
-  "Installing it asks you first.": "インストール前に確認します。",
+  "Installing it asks you first.": "インストールする前に確認します。",
   "Installing it needs an override.": "インストールには例外が必要です。",
   "Installing {name} from {store}": "{store} から {name} をインストール中",
   "Install…": "インストール…",
@@ -139,7 +139,7 @@
   "Its data": "そのデータ",
   "Its publisher says so; it stays on this version until you choose another.": "発行元がそう指定しています。別のバージョンを選ぶまでこのバージョンのままです。",
   "Keep what {name} saved here (its own settings, saves and lists), so installing it again carries on where it left off": "{name} がここに保存したもの（設定、セーブデータ、リスト）を残し、再インストール時に続きから使えるようにする",
-  "Key fingerprint": "鍵のフィンガープリント",
+  "Key fingerprint": "キーのフィンガープリント",
   "Keys:": "キー:",
   "Kind": "種類",
   "Last checked {when}.": "最終確認: {when}。",
@@ -150,9 +150,9 @@
   "Licence": "ライセンス",
   "Listen": "聴く",
   "Listening": "再生",
-  "Live TV": "ライブ TV",
+  "Live TV": "ライブTV",
   "Log lines for {name}": "{name} のログ行",
-  "Logging for {name}": "{name} のログ記録",
+  "Logging for {name}": "{name} のログ",
   "Logging settings": "ログ設定",
   "Look at this store": "このストアを見る",
   "Look everywhere": "すべてを検索",
@@ -176,11 +176,11 @@
   "Name": "名前",
   "Names that say what a file is": "ファイルの中身がわかる名前",
   "Naming rules": "命名ルール",
-  "Needs a look": "要確認",
+  "Needs a look": "確認が必要",
   "Needs a newer server": "新しいサーバーが必要",
   "Needs an override:": "例外が必要:",
-  "Needs your go-ahead": "承認待ち",
-  "Newest": "最新",
+  "Needs your go-ahead": "あなたの許可が必要です",
+  "Newest": "新しい順",
   "No": "いいえ",
   "No changes yet": "まだ変更はありません",
   "No file fits": "該当するファイルはありません",
@@ -194,7 +194,7 @@
   "Nobody at this project has reviewed this. It comes from a store you added, and whoever runs that store holds the key it’s signed with.": "このプロジェクトの誰もこれを確認していません。あなたが追加したストアから来たもので、署名に使われた鍵はそのストアの運営者が持っています。",
   "None of those has a suggestion yet": "どれにもまだ候補がありません",
   "None: it runs with no permissions, in the strictest sandbox": "なし: 権限なしで、最も厳しいサンドボックス内で動きます",
-  "Not available": "利用不可",
+  "Not available": "利用できません",
   "Not finished": "未完了",
   "Not for this computer": "このコンピューター向けではありません",
   "Not listed": "一覧にありません",
@@ -202,7 +202,7 @@
   "Not released yet": "未リリース",
   "Not signed": "署名なし",
   "Not signed. Nothing proves who made it or that it wasn’t changed.": "署名がありません。誰が作ったのか、改変されていないかを証明するものはありません。",
-  "Not sure": "不確か",
+  "Not sure": "不明",
   "Nothing changed: the version in use keeps running.": "変更はありません: 使用中のバージョンが動き続けます。",
   "Nothing has been taken out": "取り除かれたものはありません",
   "Nothing has been written to it yet.": "まだ何も書き込まれていません。",
@@ -215,14 +215,14 @@
   "Nothing needs a look": "確認が必要なものはありません",
   "Number them in order": "順番に番号を振る",
   "Numbers you change are locked, so a scan keeps them.": "変更した番号は固定され、スキャンでも保持されます。",
-  "On": "有効",
-  "On this server": "このサーバー上",
+  "On": "オン",
+  "On this server": "このサーバー",
   "One rule that normally stops this install would be bypassed.": "通常このインストールを止めるルールを 1 つ回避します。",
-  "Only a new server changes:": "新しいサーバーだけが変わります:",
+  "Only a new server changes:": "新しいサーバーでのみ変わるもの:",
   "Open the repair tools": "修復ツールを開く",
   "Other": "その他",
   "Other modules are built on this one, so it stays.": "他のモジュールがこれを基にしているため、残ります。",
-  "Other publisher": "他の発行元",
+  "Other publisher": "ほかの発行元",
   "Other stores": "他のストア",
   "Overridden": "例外適用中",
   "Override on {name}": "{name} の例外",
@@ -232,14 +232,14 @@
   "Permissions given": "付与した権限",
   "Permissions to give it": "付与する権限",
   "Photos": "写真",
-  "Pinned": "固定",
+  "Pinned": "固定済み",
   "Pre-release": "プレリリース",
   "Program": "プログラム",
   "Progress overall": "全体の進行状況",
   "Publisher": "発行元",
   "Read": "読む",
   "Read the warnings again and tick each one.": "警告をもう一度読み、それぞれにチェックを入れてください。",
-  "Reading": "読書",
+  "Reading": "読書中",
   "Reading the log…": "ログを読み込み中…",
   "Reading…": "読み込み中…",
   "Ready.": "準備完了。",
@@ -270,7 +270,7 @@
   "Season of {file}": "{file} のシーズン",
   "Season {n}": "シーズン {n}",
   "See this store": "このストアを見る",
-  "See what limits a module.": "モジュールを制限しているものを見る。",
+  "See what limits a module.": "モジュールを制限しているものを確認します。",
   "Settings": "設定",
   "Severity {level} of 4.": "深刻度 {level}/4。",
   "Show details": "詳細を表示",
@@ -279,7 +279,7 @@
   "Signed by a key this server trusts for this module.": "このサーバーがこのモジュールについて信頼している鍵で署名されています。",
   "Signed, by a key this server doesn’t trust for this module.": "署名はありますが、このサーバーがこのモジュールについて信頼していない鍵です。",
   "Skipped": "スキップ",
-  "Source": "情報源",
+  "Source": "ソース",
   "Specials": "特別編",
   "Stable": "安定版",
   "Stats": "統計",
@@ -317,7 +317,7 @@
   "The uploaded file was discarded": "アップロードしたファイルを破棄しました",
   "The worst {shown} of {total}. Fix these and the rest move up.": "{total} 件中、特に悪い {shown} 件です。これらを直すと残りが繰り上がります。",
   "TheTVDB only": "TheTVDB のみ",
-  "There’s no earlier version here, so it won’t be working until you install another. This asks for your password.": "以前のバージョンがないため、別のものをインストールするまで動きません。パスワードが必要です。",
+  "There’s no earlier version here, so it won’t be working until you install another. This asks for your password.": "ここに以前のバージョンがないため、別のバージョンをインストールするまで動作しません。パスワードが必要です。",
   "These are bonus features": "これらは特典映像です",
   "These couldn’t be read just now.": "今はこれらを読み込めませんでした。",
   "These modules go back to the versions they were on. An older version may lack security fixes, so this asks for your password.": "これらのモジュールは前のバージョンに戻ります。古いバージョンにはセキュリティ修正が含まれていない場合があるため、パスワードが必要です。",
@@ -368,7 +368,7 @@
   "Update All": "すべて更新",
   "Update All Modules": "すべてのモジュールを更新",
   "Update All Modules ({count})": "すべてのモジュールを更新（{count}）",
-  "Update available": "更新あり",
+  "Update available": "アップデートがあります",
   "Update {name} to {version}": "{name} を {version} に更新",
   "Updating your modules": "モジュールを更新中",
   "Updating…": "更新中…",
@@ -394,13 +394,13 @@
   "What happened": "何が起きたか",
   "What happened to {name}": "{name} に起きたこと",
   "What happened: {detail}": "何が起きたか: {detail}",
-  "What it asks for": "要求するもの",
+  "What it asks for": "要求する権限",
   "What it needs": "必要なもの",
   "What overrides mean": "例外の意味",
   "What this adds": "追加されるもの",
   "What this module has said and done lately. Tokens and passwords are taken out before it reaches this page.": "このモジュールが最近出力した内容と行った操作です。トークンとパスワードはこのページに届く前に取り除かれます。",
   "What this needs has changed. Read the warnings again and tick each one.": "必要なものが変わりました。警告をもう一度読み、それぞれにチェックを入れてください。",
-  "What to do": "すべきこと",
+  "What to do": "すること",
   "What to know first": "最初に知っておくこと",
   "What to try": "試すこと",
   "What {name} adds": "{name} で追加されるもの",
@@ -409,11 +409,11 @@
   "When setting up the server": "サーバーのセットアップ時",
   "Where to look": "検索先",
   "Which modules run on this server?": "このサーバーではどのモジュールが動いていますか？",
-  "Who sees it": "表示される人",
+  "Who sees it": "表示する人",
   "Wikidata only": "Wikidata のみ",
-  "Withdrawn": "取り下げ",
+  "Withdrawn": "取り下げ済み",
   "WittyTuner can’t be replaced by anyone’s version, because it’s what refuses encrypted channels, and the server couldn’t tell whether another version still did.": "WittyTuner は誰のバージョンにも置き換えられません。暗号化されたチャンネルを拒否しているのは WittyTuner であり、別のバージョンが同じようにするかどうかをサーバーが判断できないためです。",
-  "Working": "動作中",
+  "Working": "処理中",
   "Working…": "処理中…",
   "Working… {name}": "処理中… {name}",
   "Works on": "動作環境",
@@ -456,20 +456,20 @@
   "trailer": "予告編",
   "type the module’s ID": "モジュールの ID を入力してください",
   "undo": "元に戻す",
-  "{done} of {total}": "{done}/{total}",
+  "{done} of {total}": "{total}件中{done}件",
   "{file} is {size}. A module’s archive can be at most 512 MB.": "{file} は {size} です。モジュールのアーカイブは最大 512 MB までです。",
   "{first} or {last}": "{first} または {last}",
-  "{min} to {max}": "{min} ～ {max}",
+  "{min} to {max}": "{min}～{max}",
   "{min} to {max}, which includes this server": "{min} ～ {max}（このサーバーを含む）",
   "{names} go back to the official version, and what came from this store is deleted.": "{names} は公式バージョンに戻り、このストアから来たものは削除されます。",
   "{names} goes back to the official version, and what came from this store is deleted.": "{names} は公式バージョンに戻り、このストアから来たものは削除されます。",
   "{name} (installed)": "{name}（インストール済み）",
-  "{name} added": "{name} を追加しました",
+  "{name} added": "{name}を追加しました",
   "{name} can’t be installed": "{name} はインストールできません",
   "{name} checked": "{name} を確認しました",
   "{name} couldn’t be changed": "{name} を変更できませんでした",
   "{name} goes back to the last version on this server that needed no override. If there isn’t one, {name} is taken off this server.": "{name} は、このサーバー上で例外が不要だった最後のバージョンに戻ります。それがない場合、{name} はこのサーバーから外されます。",
-  "{name} is back to the official version": "{name} は公式バージョンに戻りました",
+  "{name} is back to the official version": "{name} は公式版に戻りました",
   "{name} is being installed": "{name} をインストール中",
   "{name} is built on a module that isn’t on this server yet, so it will be installed first, in this order.": "{name} はこのサーバーにまだないモジュールを基にしているため、そのモジュールを先に、この順でインストールします。",
   "{name} is built on modules that aren’t on this server yet, so they will be installed first, in this order.": "{name} はこのサーバーにまだないモジュールを基にしているため、それらを先に、この順でインストールします。",
@@ -490,7 +490,7 @@
   "{name} turned on": "{name} を有効にしました",
   "{name} was installed past a rule that would normally stop it.": "{name} は、通常なら止めるルールを越えてインストールされました。",
   "{name} wasn’t installed": "{name} はインストールされませんでした",
-  "{name} went back to version {version}": "{name} をバージョン {version} に戻しました",
+  "{name} went back to version {version}": "{name} はバージョン {version} に戻りました",
   "{name} {version} is being installed": "{name} {version} をインストール中",
   "{name} {version} was downloaded and needs your go-ahead": "{name} {version} をダウンロードしました。承認が必要です",
   "{name} {version} was dropped": "{name} {version} を取りやめました",
@@ -500,7 +500,7 @@
   "{name}, from {store}": "{name}（{store} から）",
   "{name}, screenshot {n} of {total}": "{name}、スクリーンショット {n}/{total}",
   "{name}: third-party licences": "{name}: サードパーティのライセンス",
-  "{phase}, {done} of {total}": "{phase}、{done}/{total}",
+  "{phase}, {done} of {total}": "{phase}、{done} / {total}",
   "{platform} (this server)": "{platform}（このサーバー）",
   "{size} KB": "{size} KB",
   "{size} MB": "{size} MB",
@@ -509,33 +509,91 @@
   "{title}: left with no match.": "{title}: 一致なしのままにしました。",
   "{title}: matched with {match}.": "{title}: {match} と照合しました。",
   "{title}: renumbered.": "{title}: 番号を振り直しました。",
-  "{count} chosen": {"other": "{count} 件選択"},
-  "{title} and {count} more": {"other": "{title} ほか {count} 件"},
-  "{count} files fit": {"other": "{count} 個のファイルが該当"},
-  "{count} numbers aren’t listed there.": {"other": "{count} 個の番号がそこに載っていません。"},
-  "Install {count} modules": {"other": "{count} 個のモジュールをインストール"},
-  "{count} updates found": {"other": "{count} 件の更新が見つかりました"},
-  "{count} modules found": {"other": "{count} 個のモジュールが見つかりました"},
-  "{count} modules": {"other": "{count} 個のモジュール"},
-  "{count} rules that normally stop this install would be bypassed.": {"other": "通常このインストールを止めるルールを {count} 個回避します。"},
-  "{count} modules were made for an older server": {"other": "{count} 個のモジュールが古いサーバー向けです"},
-  "{name} was installed past {count} rules that would normally stop it.": {"other": "{name} は、通常なら止める {count} 個のルールを越えてインストールされました。"},
-  "tick {count} warnings": {"other": "{count} 個の警告にチェックを入れてください"},
-  "and {count} pages for one item each": {"other": "および項目ごとのページ {count} 個"},
-  "{count} pages for one item each": {"other": "項目ごとのページ {count} 個"},
-  "{count} pages in every app, on TV too": {"other": "すべてのアプリ（テレビも含む）のページ {count} 個"},
-  "{count} screens of its own": {"other": "独自の画面 {count} 個"},
-  "{count} steps: {steps}": {"other": "{count} ステップ: {steps}"},
-  "{count} for administrators only": {"other": "{count} 個は管理者専用"},
-  "{count} opened by a link, without signing in": {"other": "{count} 個はサインインなしでリンクから開ける"},
-  "{count} about one item, checked against what the profile may see": {"other": "{count} 個は単一項目について（プロフィールが見られる範囲で確認）"},
-  "{count} that stream": {"other": "{count} 個はストリーミング"},
-  "{count} that count towards screen time": {"other": "{count} 個はスクリーンタイムに加算"},
-  "answers {count} kinds of request of its own at {path}": {"other": "{path} で独自の {count} 種類のリクエストに応答"},
-  "answers {count} kinds of request of its own": {"other": "独自の {count} 種類のリクエストに応答"},
-  "{count} installed": {"other": "{count} 件インストール"},
-  "{count} updated": {"other": "{count} 件更新"},
-  "{count} failed": {"other": "{count} 件失敗"},
-  "{count} skipped": {"other": "{count} 件スキップ"},
-  "{count} updates available": {"other": "{count} 件の更新があります"}
+  "{count} chosen": {
+    "other": "{count} 件選択"
+  },
+  "{title} and {count} more": {
+    "other": "{title} ほか {count} 件"
+  },
+  "{count} files fit": {
+    "other": "{count} 個のファイルが該当"
+  },
+  "{count} numbers aren’t listed there.": {
+    "other": "{count} 個の番号がそこに載っていません。"
+  },
+  "Install {count} modules": {
+    "other": "{count} 個のモジュールをインストール"
+  },
+  "{count} updates found": {
+    "other": "{count} 件の更新が見つかりました"
+  },
+  "{count} modules found": {
+    "other": "{count} 個のモジュールが見つかりました"
+  },
+  "{count} modules": {
+    "other": "{count} 個のモジュール"
+  },
+  "{count} rules that normally stop this install would be bypassed.": {
+    "other": "通常このインストールを止めるルールを {count} 個回避します。"
+  },
+  "{count} modules were made for an older server": {
+    "other": "{count} 個のモジュールが古いサーバー向けです"
+  },
+  "{name} was installed past {count} rules that would normally stop it.": {
+    "other": "{name} は、通常なら止める {count} 個のルールを越えてインストールされました。"
+  },
+  "tick {count} warnings": {
+    "other": "{count} 個の警告にチェックを入れてください"
+  },
+  "and {count} pages for one item each": {
+    "other": "および項目ごとのページ {count} 個"
+  },
+  "{count} pages for one item each": {
+    "other": "項目ごとのページ {count} 個"
+  },
+  "{count} pages in every app, on TV too": {
+    "other": "すべてのアプリ（テレビも含む）のページ {count} 個"
+  },
+  "{count} screens of its own": {
+    "other": "独自の画面 {count} 個"
+  },
+  "{count} steps: {steps}": {
+    "other": "{count} ステップ: {steps}"
+  },
+  "{count} for administrators only": {
+    "other": "{count} 個は管理者専用"
+  },
+  "{count} opened by a link, without signing in": {
+    "other": "{count} 個はサインインなしでリンクから開ける"
+  },
+  "{count} about one item, checked against what the profile may see": {
+    "other": "{count} 個は単一項目について（プロフィールが見られる範囲で確認）"
+  },
+  "{count} that stream": {
+    "other": "{count} 個はストリーミング"
+  },
+  "{count} that count towards screen time": {
+    "other": "{count} 個はスクリーンタイムに加算"
+  },
+  "answers {count} kinds of request of its own at {path}": {
+    "other": "{path} で独自の {count} 種類のリクエストに応答"
+  },
+  "answers {count} kinds of request of its own": {
+    "other": "独自の {count} 種類のリクエストに応答"
+  },
+  "{count} installed": {
+    "other": "{count} 件インストール"
+  },
+  "{count} updated": {
+    "other": "{count} 件更新"
+  },
+  "{count} failed": {
+    "other": "{count} 件失敗"
+  },
+  "{count} skipped": {
+    "other": "{count} 件スキップ"
+  },
+  "{count} updates available": {
+    "other": "{count} 件の更新があります"
+  }
 }

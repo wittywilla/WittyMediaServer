@@ -1,15 +1,15 @@
 {
- "Language and time zone": "שפה ואזור זמן",
- "Before anything else: the language for these pages, disc menus and sound tracks, and the time zone the server keeps.": "לפני הכול: השפה של הדפים האלה, של תפריטי הדיסקים ושל רצועות הקול, ואזור הזמן של השרת.",
- "Language": "שפה",
- "Everything on these pages, for everyone who uses this server.": "כל מה שבדפים האלה, לכל מי שמשתמש בשרת הזה.",
- "Disc menus and sound tracks": "תפריטי דיסקים ורצועות קול",
- "Disc menus, and the sound track a film or show starts with when it has one in this language. Subtitles stay off until someone turns them on.": "תפריטי הדיסקים, ורצועת הקול שבה סרט או סדרה מתחילים כשיש להם רצועה בשפה הזו. הכתוביות נשארות כבויות עד שמישהו מפעיל אותן.",
- "The original language": "השפה המקורית",
- "Time zone": "אזור זמן",
- "Guide days, schedules, recordings and the logs follow this. The server restarts once to use it, when setup is finished, if it isn’t the one it’s running in.": "המדריך, התזמונים, ההקלטות והיומנים פועלים לפיו. אם השרת פועל כעת באזור אחר, הוא יופעל מחדש פעם אחת בסיום ההגדרה.",
- "The time zone of the computer the server runs on. Guide days, schedules, recordings and the logs follow it.": "אזור הזמן של המחשב שעליו השרת פועל. המדריך, התזמונים, ההקלטות והיומנים פועלים לפיו.",
- "This device is set to {zone}.": "המכשיר הזה מוגדר ל־{zone}.",
- "You can change these again on the Name and address step, and later in Settings.": "אפשר לשנות אותם שוב בשלב השם והכתובת, ובהמשך בהגדרות.",
- "Continue": "המשך"
+  "Language and time zone": "שפה ואזור זמן",
+  "Before anything else: the language for these pages, disc menus and sound tracks, and the time zone the server keeps.": "לפני הכול: השפה של הדפים האלה, של תפריטי הדיסקים ופסי הקול, ואזור הזמן של השרת.",
+  "Language": "שפה",
+  "Everything on these pages, for everyone who uses this server.": "כל מה שבדפים האלה, לכל מי שמשתמש בשרת הזה.",
+  "Disc menus and sound tracks": "תפריטי דיסקים ופסי קול",
+  "Disc menus, and the sound track a film or show starts with when it has one in this language. Subtitles stay off until someone turns them on.": "תפריטי דיסקים, ופס הקול שאיתו סרט או סדרה מתחילים אם יש בהם פס בשפה הזו. הכתוביות כבויות עד שמישהו מפעיל אותן.",
+  "The original language": "השפה המקורית",
+  "Time zone": "אזור זמן",
+  "Guide days, schedules, recordings and the logs follow this. The server restarts once to use it, when setup is finished, if it isn’t the one it’s running in.": "ימי המדריך, לוחות הזמנים, ההקלטות והיומנים פועלים לפי זה. השרת יופעל מחדש פעם אחת כדי להשתמש בזה, בסוף ההגדרה, אם זה לא אזור הזמן שבו הוא רץ.",
+  "The time zone of the computer the server runs on. Guide days, schedules, recordings and the logs follow it.": "אזור הזמן של המחשב שעליו השרת רץ. ימי המדריך, לוחות הזמנים, ההקלטות והיומנים פועלים לפיו.",
+  "This device is set to {zone}.": "המכשיר הזה מוגדר ל-{zone}.",
+  "You can change these again on the Name and address step, and later in Settings.": "אפשר לשנות את אלה שוב בשלב השם והכתובת, ומאוחר יותר בהגדרות.",
+  "Continue": "המשך"
 }

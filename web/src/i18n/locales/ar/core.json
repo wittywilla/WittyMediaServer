@@ -1,15 +1,15 @@
 {
- "Language and time zone": "اللغة والمنطقة الزمنية",
- "Before anything else: the language for these pages, disc menus and sound tracks, and the time zone the server keeps.": "قبل أي شيء: لغة هذه الصفحات وقوائم الأقراص والمسارات الصوتية، والمنطقة الزمنية للخادم.",
- "Language": "اللغة",
- "Everything on these pages, for everyone who uses this server.": "كل ما في هذه الصفحات، لكل من يستخدم هذا الخادم.",
- "Disc menus and sound tracks": "قوائم الأقراص والمسارات الصوتية",
- "Disc menus, and the sound track a film or show starts with when it has one in this language. Subtitles stay off until someone turns them on.": "قوائم الأقراص، والمسار الصوتي الذي يبدأ به الفيلم أو المسلسل إذا كان فيه مسار بهذه اللغة. تبقى الترجمة مطفأة حتى يشغّلها أحد.",
- "The original language": "اللغة الأصلية",
- "Time zone": "المنطقة الزمنية",
- "Guide days, schedules, recordings and the logs follow this. The server restarts once to use it, when setup is finished, if it isn’t the one it’s running in.": "يتبعها الدليل والجداول والتسجيلات والسجلات. إذا لم تكن هي التي يعمل بها الخادم، فسيُعاد تشغيله مرة واحدة عند انتهاء الإعداد.",
- "The time zone of the computer the server runs on. Guide days, schedules, recordings and the logs follow it.": "المنطقة الزمنية للحاسوب الذي يعمل عليه الخادم. يتبعها الدليل والجداول والتسجيلات والسجلات.",
- "This device is set to {zone}.": "هذا الجهاز مضبوط على {zone}.",
- "You can change these again on the Name and address step, and later in Settings.": "يمكنك تغييرها مرة أخرى في خطوة الاسم والعنوان، ولاحقًا في الإعدادات.",
- "Continue": "متابعة"
+  "Language and time zone": "اللغة والمنطقة الزمنية",
+  "Before anything else: the language for these pages, disc menus and sound tracks, and the time zone the server keeps.": "قبل كل شيء: لغة هذه الصفحات وقوائم الأقراص والمسارات الصوتية، والمنطقة الزمنية التي يعتمدها الخادم.",
+  "Language": "اللغة",
+  "Everything on these pages, for everyone who uses this server.": "كل ما في هذه الصفحات، لكل من يستخدم هذا الخادم.",
+  "Disc menus and sound tracks": "قوائم الأقراص والمسارات الصوتية",
+  "Disc menus, and the sound track a film or show starts with when it has one in this language. Subtitles stay off until someone turns them on.": "قوائم الأقراص، والمسار الصوتي الذي يبدأ به الفيلم أو المسلسل إن كان فيه مسار بهذه اللغة. تبقى الترجمات متوقفة حتى يشغّلها أحد.",
+  "The original language": "اللغة الأصلية",
+  "Time zone": "المنطقة الزمنية",
+  "Guide days, schedules, recordings and the logs follow this. The server restarts once to use it, when setup is finished, if it isn’t the one it’s running in.": "تتبع هذا أيامُ الدليل والجداول والتسجيلات والسجلات. يُعاد تشغيل الخادم مرة واحدة لاستخدامه عند انتهاء الإعداد، إن لم يكن هو الذي يعمل عليه الآن.",
+  "The time zone of the computer the server runs on. Guide days, schedules, recordings and the logs follow it.": "المنطقة الزمنية للكمبيوتر الذي يعمل عليه الخادم. تتبعها أيام الدليل والجداول والتسجيلات والسجلات.",
+  "This device is set to {zone}.": "هذا الجهاز مضبوط على {zone}.",
+  "You can change these again on the Name and address step, and later in Settings.": "يمكنك تغيير هذه مجددًا في خطوة الاسم والعنوان، ولاحقًا في الإعدادات.",
+  "Continue": "متابعة"
 }

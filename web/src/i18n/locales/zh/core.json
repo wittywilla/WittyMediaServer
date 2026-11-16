@@ -1,15 +1,15 @@
 {
- "Language and time zone": "语言和时区",
- "Before anything else: the language for these pages, disc menus and sound tracks, and the time zone the server keeps.": "首先：选择这些页面、光盘菜单和音轨的语言，以及服务器使用的时区。",
- "Language": "语言",
- "Everything on these pages, for everyone who uses this server.": "这些页面上的所有内容，适用于使用此服务器的每个人。",
- "Disc menus and sound tracks": "光盘菜单和音轨",
- "Disc menus, and the sound track a film or show starts with when it has one in this language. Subtitles stay off until someone turns them on.": "光盘菜单，以及电影或节目有该语言音轨时默认使用的音轨。字幕保持关闭，直到有人打开。",
- "The original language": "原始语言",
- "Time zone": "时区",
- "Guide days, schedules, recordings and the logs follow this. The server restarts once to use it, when setup is finished, if it isn’t the one it’s running in.": "节目指南、日程、录制和日志都按此时区。如果与当前运行的时区不同，服务器会在设置完成后重启一次。",
- "The time zone of the computer the server runs on. Guide days, schedules, recordings and the logs follow it.": "运行服务器的电脑所用的时区。节目指南、日程、录制和日志都按此时区。",
- "This device is set to {zone}.": "此设备设置为 {zone}。",
- "You can change these again on the Name and address step, and later in Settings.": "你可以在“名称和地址”步骤中，以及之后在设置中再次更改。",
- "Continue": "继续"
+  "Language and time zone": "语言和时区",
+  "Before anything else: the language for these pages, disc menus and sound tracks, and the time zone the server keeps.": "首先：选择这些页面、光盘菜单和音轨的语言，以及服务器使用的时区。",
+  "Language": "语言",
+  "Everything on these pages, for everyone who uses this server.": "这些页面上的所有内容，适用于使用此服务器的每个人。",
+  "Disc menus and sound tracks": "光盘菜单和音轨",
+  "Disc menus, and the sound track a film or show starts with when it has one in this language. Subtitles stay off until someone turns them on.": "光盘菜单，以及电影或节目有该语言音轨时默认使用的音轨。字幕保持关闭，直到有人打开。",
+  "The original language": "原始语言",
+  "Time zone": "时区",
+  "Guide days, schedules, recordings and the logs follow this. The server restarts once to use it, when setup is finished, if it isn’t the one it’s running in.": "节目指南、日程、录制和日志都按此时区。如果与当前运行的时区不同，服务器会在设置完成后重启一次。",
+  "The time zone of the computer the server runs on. Guide days, schedules, recordings and the logs follow it.": "运行服务器的电脑所用的时区。节目指南、日程、录制和日志都按此时区。",
+  "This device is set to {zone}.": "此设备设置为 {zone}。",
+  "You can change these again on the Name and address step, and later in Settings.": "你可以在“名称和地址”步骤中，以及之后在设置中再次更改。",
+  "Continue": "继续"
 }

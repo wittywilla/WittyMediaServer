@@ -1,7 +1,7 @@
 {
   "Jump back in": "続きから",
   "Featured": "注目",
-  "Your libraries": "ライブラリ",
+  "Your libraries": "あなたのライブラリ",
   "On TV now": "放送中",
   "Recommended for you": "あなたへのおすすめ",
   "Because you watch {title}": "「{title}」を観ているあなたに",
@@ -66,7 +66,7 @@
   "Next episode": "次のエピソード",
   "Watch party": "ウォッチパーティー",
   "Artwork": "アートワーク",
-  "Canvas": "Canvas",
+  "Canvas": "キャンバス",
   "Edit": "編集",
   "Refresh": "更新",
   "More": "その他",
@@ -85,13 +85,13 @@
   "plot summary from Wikipedia, shared under": "あらすじは Wikipedia より、ライセンス：",
   "TV information from": "テレビ情報の出典：",
   "shared under": "ライセンス：",
-  "Metadata provided by": "メタデータ提供：",
+  "Metadata provided by": "メタデータ提供元",
   "Please consider adding missing information or subscribing.": "足りない情報の追加や、購読をご検討ください。",
   "Anime information from": "アニメ情報の出典：",
   "Details from": "詳細の出典：",
-  "This product uses the TMDB API but is not endorsed or certified by TMDB.": "この製品は TMDB API を使用していますが、TMDB による承認や認定を受けたものではありません。",
+  "This product uses the TMDB API but is not endorsed or certified by TMDB.": "この製品は TMDB API を使用していますが、TMDB による承認または認定を受けたものではありません。",
   "This disc is encrypted, so it can’t be played: encrypted media isn’t supported, and nothing here bypasses copy protection.": "このディスクは暗号化されているため再生できません。暗号化されたメディアには対応しておらず、コピープロテクトを回避する機能もありません。",
-  "Video": "映像",
+  "Video": "動画",
   "Audio": "音声",
   "Subtitles": "字幕",
   "Source": "ソース",
@@ -103,7 +103,7 @@
   "Back to {name}": "{name}に戻る",
   "Back to library": "ライブラリに戻る",
   "{count} titles": {
-    "other": "{count} タイトル"
+    "other": "{count}タイトル"
   },
   "Library not found": "ライブラリが見つかりません",
   "Manage libraries": "ライブラリを管理",
@@ -126,25 +126,25 @@
   "Length": "長さ",
   "Play {title}": "{title}を再生",
   "{count} seasons": {
-    "other": "{count} シーズン"
+    "other": "{count}シーズン"
   },
   "{count} episodes": {
-    "other": "{count} エピソード"
+    "other": "{count}エピソード"
   },
   "{count} ep": {
-    "other": "{count} 話"
+    "other": "{count}話"
   },
   "{count} left": {
-    "other": "残り {count}"
+    "other": "残り{count}"
   },
   "Search": "検索",
   "Search your libraries…": "ライブラリを検索…",
-  "Find anything on this server": "このサーバーのあらゆるものを検索",
+  "Find anything on this server": "このサーバーのすべてを検索",
   "Type a title in the search box: movies, shows, episodes, music, books and games are all included.": "検索ボックスにタイトルを入力してください。映画、番組、エピソード、音楽、本、ゲームがすべて対象です。",
   "“{query}”": "「{query}」",
-  "The search didn’t work": "検索できませんでした",
-  "No results": "結果がありません",
-  "Nothing on this server matches “{query}”. Try a shorter or different word.": "このサーバーには「{query}」に一致するものがありません。短い言葉や別の言葉で試してください。",
+  "The search didn’t work": "検索がうまくいきませんでした",
+  "No results": "結果なし",
+  "Nothing on this server matches “{query}”. Try a shorter or different word.": "このサーバーに「{query}」に一致するものはありません。短い言葉や別の言葉で試してください。",
   "Type what you’re looking for in the search box.": "探しているものを検索ボックスに入力してください。",
   "Shows": "番組",
   "Everything else": "その他すべて",
@@ -236,8 +236,8 @@
   "Find an author…": "著者を探す…",
   "Find an artist…": "アーティストを探す…",
   "All songs": "すべての曲",
-  "Liked": "お気に入り",
-  "Newest": "新着",
+  "Liked": "高評価済み",
+  "Newest": "新しい順",
   "Which songs": "対象の曲",
   "Shuffle": "シャッフル",
   "Find a song": "曲を探す",
@@ -280,7 +280,7 @@
     "other": "{count} 件のポッドキャスト"
   },
   "{count} books": {
-    "other": "{count} 冊"
+    "other": "{count}冊"
   },
   "{count} albums": {
     "other": "{count} 枚のアルバム"
@@ -295,17 +295,17 @@
     "other": "{count} 曲"
   },
   "{count} items": {
-    "other": "{count} 件"
+    "other": "{count}件"
   },
   "{count} chapters": {
     "other": "{count} チャプター"
   },
   "{count} tracks": {
-    "other": "{count} トラック"
+    "other": "{count}曲"
   },
   "{size} MB": "{size} MB",
   "How to install one": "インストール方法",
-  "Looking…": "確認中…",
+  "Looking…": "探しています…",
   "{name} found, but this machine is too small to run it in a sensible time, so songs use the quick method.": "{name} が見つかりましたが、このマシンでは妥当な時間で実行できないため、曲には簡易方式が使われます。",
   "{name} is set in the server’s configuration.": "{name} はサーバーの構成で設定されています。",
   "{name} found on this machine.": "このマシンで {name} が見つかりました。",
@@ -315,7 +315,7 @@
   "Lyrics and music information": "歌詞と音楽情報",
   "A .lrc file beside a song and the lyrics in its tags are always used first, with nothing sent anywhere. These add what they don’t have.": "曲と同じ場所にある .lrc ファイルとタグ内の歌詞が常に優先され、どこにも何も送信されません。以下はそれらにないものを補います。",
   "Find lyrics online": "オンラインで歌詞を探す",
-  "No API key needed": "API キーは不要",
+  "No API key needed": "API キー不要",
   "Timed lyrics from {LRCLIB}, a free and open database. Only when someone opens the lyrics of a song with none of its own, your server sends LRCLIB that song’s artist, title, album and length. Never a file name, or who’s listening. Answers are kept in the cache on this server, aren’t shared, and don’t go into backups. The words belong to their writers.": "無料のオープンなデータベース {LRCLIB} によるタイミング付き歌詞です。歌詞のない曲の歌詞を誰かが開いたときだけ、サーバーはその曲のアーティスト、タイトル、アルバム、長さを LRCLIB に送信します。ファイル名や聴いている人が送られることはありません。結果はこのサーバーのキャッシュに保存され、共有されず、バックアップにも含まれません。歌詞の権利は作詞者に帰属します。",
   "Use LRCLIB’s public service": "LRCLIB の公開サービスを使う",
   "Turn this off if you only want to use your own server or a key below.": "自分のサーバーや下のキーだけを使いたい場合はオフにしてください。",
@@ -329,7 +329,7 @@
   "From {Wikipedia}, credited on the artist’s page. When an artist has no {file} in their folder, your server sends Wikipedia the artist’s name. The text is CC BY-SA 4.0, and each picture has its own licence, linked from its article. Nothing is written beside your music.": "{Wikipedia} から取得し、アーティストのページに出典を表示します。アーティストのフォルダーに {file} がない場合、サーバーはアーティスト名を Wikipedia に送信します。文章は CC BY-SA 4.0 で、画像にはそれぞれのライセンスがあり、記事からリンクされています。音楽ファイルの横には何も書き込まれません。",
   "Vocal separation": "ボーカル分離",
   "Nothing to set up": "設定は不要です",
-  "Look again": "再確認",
+  "Look again": "もう一度探す",
   "Make karaoke versions automatically": "カラオケ版を自動で作成",
   "When someone opens karaoke on a song, the server makes a version with the singer turned down: a quick one in a few seconds, and a properly separated one behind it if a separator is installed. Nothing is written beside your music.": "誰かが曲のカラオケを開くと、サーバーは歌声を小さくしたバージョンを作成します。数秒でできる簡易版と、分離ツールがインストールされていればその後にきちんと分離した版を作ります。音楽ファイルの横には何も書き込まれません。",
   "Automatically": "自動",
@@ -409,10 +409,10 @@
   "Popular stations": "人気の局",
   "Added {name}": "{name}を追加しました",
   "Add {name}": "{name}を追加",
-  "Added": "追加済み",
+  "Added": "追加日",
   "Adding…": "追加中…",
   "Add": "追加",
-  "Show more": "もっと見る",
+  "Show more": "さらに表示",
   "Stations come from {directory}, a free community directory. What you search for is sent to it from your server. Stations themselves are contacted only when someone listens.": "局は無料のコミュニティディレクトリ {directory} から取得されます。検索した内容はサーバーからそこへ送信されます。局そのものに接続するのは、誰かが聴くときだけです。",
   "No stations were found in that playlist.": "そのプレイリストに局は見つかりませんでした。",
   "…or paste it here": "…またはここに貼り付け",
@@ -421,7 +421,7 @@
   "The station answered": "局が応答しました",
   "The station did not answer": "局が応答しませんでした",
   "Details filled in from the directory": "ディレクトリから詳細を入力しました",
-  "Remove {name}?": "{name}を削除しますか？",
+  "Remove {name}?": "{name} を削除しますか？",
   "Remove": "削除",
   "Add to favourites": "お気に入りに追加",
   "Website": "ウェブサイト",
@@ -437,7 +437,7 @@
     "other": "{count} 局を 1 局ずつ確認しています。このページに戻ると更新されます。"
   },
   "{count} stations": {
-    "other": "{count} 局"
+    "other": "{count}局"
   },
   "{count} stations are off the air: they stopped answering. Open one to try again or remove it.": {
     "other": "{count} 局が放送停止中です（応答がなくなりました）。開いて再試行するか、削除してください。"
@@ -485,7 +485,7 @@
   "Channel details": "チャンネルの詳細",
   "Description": "説明",
   "{count} videos": {
-    "other": "{count} 本の動画"
+    "other": "{count}本の動画"
   },
   "{count} subscribers here": {
     "other": "ここでの登録者 {count} 人"
@@ -540,7 +540,7 @@
   "See creators": "クリエイターを見る",
   "Put video files in this library’s folders and scan it. Sidecar files can add creators, tags and where a video came from.": "このライブラリのフォルダーに動画ファイルを入れてスキャンしてください。サイドカーファイルでクリエイター、タグ、動画の入手元を追加できます。",
   "You’ve reached the end.": "最後まで見ました。",
-  "Start again": "最初から",
+  "Start again": "最初からやり直す",
   "{title}, by {creator}. Up and Down change video, Right reaches the buttons.": "{title}、{creator}。上下キーで動画を切り替え、右キーでボタンに移動します。",
   "Video actions": "動画の操作",
   "Like (L)": "高評価 (L)",
@@ -551,15 +551,15 @@
   "Playback speed": "再生速度",
   "Speed": "速度",
   "Normal": "標準",
-  "Sound on": "音声オン",
+  "Sound on": "サウンドオン",
   "Sound off": "音声オフ",
   "Sound (M)": "音声 (M)",
   "Video not found": "動画が見つかりません",
   "Default view": "標準表示",
   "Wide view": "ワイド表示",
   "Show less": "表示を減らす",
-  "Source:": "入手元：",
-  "Up next": "次の動画",
+  "Source:": "提供元:",
+  "Up next": "次に再生",
   "Title A to Z": "タイトル（A→Z）",
   "Highest rated": "評価の高い順",
   "Best quality": "高画質順",
@@ -624,17 +624,17 @@
   "Collections": "コレクション",
   "Studios": "スタジオ",
   "Networks": "放送局",
-  "Also listed on": "掲載しているサービス",
+  "Also listed on": "配信先",
   "Categories come from genres, which come from matching titles.": "カテゴリはジャンルから作られ、ジャンルはタイトルの照合から得られます。",
   "Fix matches to fill them in.": "照合を修正すると埋まります。",
   "{name}, {count} titles": {
     "other": "{name}、{count} タイトル"
   },
   "{count} shows": {
-    "other": "{count} 番組"
+    "other": "{count}番組"
   },
   "{count} discs": {
-    "other": "{count} 枚のディスク"
+    "other": "{count}枚のディスク"
   },
   "{count} films": {
     "other": "{count} 本の映画"
@@ -644,7 +644,7 @@
   },
   "Nobody by that name here": "その名前の人はいません",
   "They may have been moved or renamed.": "移動されたか、名前が変更された可能性があります。",
-  "From": "出典：",
+  "From": "開始",
   ", available under CC BY-SA 4.0. It’s the article with this name, which may not always be the right person.": "（CC BY-SA 4.0 で利用可能）。この名前の記事を表示しているため、別の人物の場合があります。",
   "Biographies and photos can come from Wikipedia, if you turn on online music information.": "オンラインの音楽情報をオンにすると、経歴と写真を Wikipedia から取得できます。",
   "Turn it on": "オンにする",
@@ -731,7 +731,7 @@
   "On time": "ぴったり",
   "{seconds} s": "{seconds} 秒",
   "The words come later": "歌詞を遅らせる",
-  "Later": "遅く",
+  "Later": "あとで",
   "These are the song’s lyrics: fix them from the song’s full-screen player, and the change shows here too.": "これは曲の歌詞です。曲の全画面プレーヤーから修正すると、ここにも反映されます。",
   "Code": "コード",
   "Copied": "コピーしました",
@@ -753,17 +753,17 @@
   "Watching and listening": "視聴と再生",
   "The player, its shortcuts, subtitles and TV remotes.": "プレーヤー、ショートカット、字幕、テレビのリモコン。",
   "Watch parties": "ウォッチパーティー",
-  "Watching together, in step, from different places.": "離れた場所から、同期して一緒に観る。",
+  "Watching together, in step, from different places.": "離れた場所から、同期して一緒に観ます。",
   "Settings tour": "設定ガイド",
   "Where to change what, page by page.": "どこで何を変更するか、ページごとに。",
   "Pages and the menu": "ページとメニュー",
-  "Customise a page for yourself, and change Home, the libraries and the menu for everyone.": "自分用にページをカスタマイズし、全員のホーム、ライブラリ、メニューを変更する。",
+  "Customise a page for yourself, and change Home, the libraries and the menu for everyone.": "自分用にページをカスタマイズし、全員のホーム、ライブラリ、メニューを変更します。",
   "Troubleshooting": "トラブルシューティング",
   "Something’s wrong: find it by what you’re seeing.": "問題が起きたら、見えている症状から探せます。",
   "Your media": "あなたのメディア",
-  "What each media type supports": "メディアの種類ごとの対応機能",
+  "What each media type supports": "各メディアの種類が対応しているもの",
   "Films to games: what works, and what needs a module.": "映画からゲームまで：使える機能と、モジュールが必要なもの。",
-  "Supported formats": "対応フォーマット",
+  "Supported formats": "対応形式",
   "Every file type, and how it plays.": "すべてのファイル形式と、その再生方法。",
   "TV shows": "テレビ番組",
   "Seasons, episodes, specials and naming.": "シーズン、エピソード、特別編、名前の付け方。",
@@ -828,11 +828,11 @@
   "Uninstalling": "アンインストール",
   "Removing everything, or keeping your data, on each system.": "各システムで、すべて削除する方法とデータを残す方法。",
   "Backup and restore": "バックアップと復元",
-  "A ZIP of your data, and bringing it back.": "データの ZIP を作成し、元に戻す。",
+  "A ZIP of your data, and bringing it back.": "データの ZIP を作成し、元に戻します。",
   "Repair": "修復",
-  "Finding and fixing problems, in the app or on the command line.": "アプリやコマンドラインで問題を見つけて直す。",
+  "Finding and fixing problems, in the app or on the command line.": "アプリやコマンドラインで問題を見つけて直します。",
   "Remote access": "リモートアクセス",
-  "Reaching your server from away, safely.": "外出先から安全にサーバーに接続する。",
+  "Reaching your server from away, safely.": "外出先から安全にサーバーに接続します。",
   "Background tasks": "バックグラウンドタスク",
   "The activity button: scans, conversions and what’s running.": "アクティビティボタン：スキャン、変換、実行中の処理。",
   "Server statistics": "サーバー統計",
@@ -849,7 +849,7 @@
   "Modules and the store": "モジュールとストア",
   "Adding and updating modules, other stores and what limits a module.": "モジュールの追加と更新、ほかのストア、モジュールの制限。",
   "Themes": "テーマ",
-  "Choosing a look, or making your own in a few lines.": "見た目を選ぶ、または数行で自分だけのテーマを作る。",
+  "Choosing a look, or making your own in a few lines.": "外観を選ぶか、数行で自分だけのテーマを作ります。",
   "About this release": "このリリースについて",
   "What’s new": "新機能",
   "Every change, release by release.": "リリースごとのすべての変更点。",
@@ -864,14 +864,14 @@
   "Every route, for anyone writing an app.": "アプリを作る人のための全ルート。",
   "Remote Protocol": "リモートプロトコル",
   "One app playing on and steering another: every message.": "あるアプリから別のアプリで再生・操作する：すべてのメッセージ。",
-  "Peer-to-peer connections": "ピアツーピア接続",
+  "Peer-to-peer connections": "P2P 接続",
   "Reaching a server with nothing set up on the router: the design, the protocol and the threat model.": "ルーターの設定なしでサーバーに接続する：設計、プロトコル、脅威モデル。",
   "Server-driven screens": "サーバー駆動の画面",
   "Screens the server describes and every app draws, and how to change them.": "サーバーが記述し各アプリが描画する画面と、その変更方法。",
   "A module's screens": "モジュールの画面",
   "What a module adds to every app as data: its pages, rows, menu entries, settings and colours.": "モジュールがデータとして各アプリに追加するもの：ページ、行、メニュー項目、設定、色。",
   "A module that owns its feature": "機能を持つモジュール",
-  "Module API 5: a module's own routes, screens, data and setup, merged into the server so it updates from the store.": "モジュール API 5：モジュール独自のルート、画面、データ、セットアップをサーバーに統合し、ストアから更新できるようにする。",
+  "Module API 5: a module's own routes, screens, data and setup, merged into the server so it updates from the store.": "モジュール API 5：モジュール独自のルート、画面、データ、セットアップをサーバーに統合し、ストアから更新できるようにします。",
   "Who may call what": "誰が何を呼び出せるか",
   "Every route and the role it needs.": "すべてのルートと必要なロール。",
   "Games API": "ゲーム API",

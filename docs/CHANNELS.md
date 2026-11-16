@@ -210,7 +210,7 @@ The editor has three levels, which are three views of the same channel. Moving b
 
 | Choice | What it does |
 |---|---|
-| **Take turns** | The next episode of each show in turn, like a station running reruns |
+| **Take turns** | The next episode of each show in turn, like a station running reruns. Each channel starts each show at an episode of its own, so two channels with the same shows don't have the same day |
 | **In order** | Every episode of one show, then the next show |
 | **As first aired** | By original air date, across all shows |
 | **Shuffle** | Nothing repeats until everything has played. **Keep each show's episodes in order** is an option |

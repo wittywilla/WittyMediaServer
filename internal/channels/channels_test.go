@@ -70,10 +70,14 @@ func TestRotateKeepsEpisodeOrder(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"E1", "E1", "E2", "E2", "E3", "E3"}
-	for i, w := range want {
-		if progs[i].Sub != w {
-			t.Fatalf("slot %d = %s, want %s", i, progs[i].Sub, w)
+	// Each show starts at the channel's own episode (see TestFewShowsStillGiveEachChannelItsOwnDay),
+	// then goes on in order.
+	for i := 2; i < 6; i++ {
+		var was, now int
+		fmt.Sscanf(progs[i-2].Sub, "E%d", &was)
+		fmt.Sscanf(progs[i].Sub, "E%d", &now)
+		if progs[i].ShowID != progs[i-2].ShowID || now != was%5+1 {
+			t.Fatalf("slot %d: show %d %s after show %d %s", i, progs[i].ShowID, progs[i].Sub, progs[i-2].ShowID, progs[i-2].Sub)
 		}
 	}
 	if progs[0].ShowID == progs[1].ShowID {
@@ -114,6 +118,45 @@ func TestRotateOrderIsEachChannelsOwn(t *testing.T) {
 	}
 	if len(seen) != 6 {
 		t.Fatalf("a turn didn't take every show once: %v", a[:6])
+	}
+}
+
+// Two real channels, Saturday Morning and Animation, rotated the same few shows in the same
+// order. With 2 or 4 shows two seeds often give one order; starting each show at the
+// channel's own episode keeps their days apart, and each show still plays in order.
+func TestFewShowsStillGiveEachChannelItsOwnDay(t *testing.T) {
+	for _, n := range []int64{2, 4} {
+		var pool []Entry
+		for g := int64(1); g <= n; g++ {
+			pool = append(pool, eps(g, 12, 1800)...)
+		}
+		def := &Definition{Mode: "simple", Order: Order{Mode: "rotate"}}
+		day := func(seed uint64) []Programme {
+			progs, _, err := GenerateDay(def, seed, 20000, time.UTC, State{}, fixed(pool), nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			return progs
+		}
+		a, b := day(8402778935431438053), day(8325610817952908554)
+		same := 0
+		for i := range min(len(a), len(b)) {
+			if a[i].ItemID == b[i].ItemID {
+				same++
+			}
+		}
+		if same == min(len(a), len(b)) {
+			t.Fatalf("%d shows: the two channels have the same day", n)
+		}
+		last := map[int64]int{}
+		for _, p := range a {
+			ep := 0
+			fmt.Sscanf(p.Sub, "E%d", &ep)
+			if prev, ok := last[p.ShowID]; ok && ep != prev+1 && !(prev == 12 && ep == 1) {
+				t.Fatalf("%d shows: show %d went from E%d to E%d", n, p.ShowID, prev, ep)
+			}
+			last[p.ShowID] = ep
+		}
 	}
 }
 

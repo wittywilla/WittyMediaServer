@@ -1,5 +1,9 @@
 {
   "Not scrambled": "Ελεύθερο",
   "Musical key": "Τονικότητα",
-  "Part to mark": "Μέρος για σήμανση"
+  "Part to mark": "Μέρος για σήμανση",
+  "kind of title|Show": "Σειρά",
+  "broadcaster|Network": "Κανάλι",
+  "TV network": "Τηλεοπτικό κανάλι",
+  "menu group|Play": "Παιχνίδια"
 }

@@ -43,6 +43,25 @@ export function tn(one: string, other: string, count: number, vars?: Vars): stri
   return fill(pickForm(catalogue[other] as Message | undefined, count, current, one, other), all, current)
 }
 
+/**
+ * A message whose English means more than one thing ("Network": a broadcaster, or the home network). English shows
+ * the text as it is; a catalogue can translate it for this context under "context|English", and otherwise the plain
+ * English's translation is used.
+ */
+export function tc(context: string, english: string, vars?: Vars): string {
+  if (current === 'en') return fill(english, vars, 'en')
+  const key = `${context}|${english}`
+  return fill(key in catalogue ? lookup(catalogue, key) : lookup(catalogue, english), vars, current)
+}
+
+/** tx() with a context, for text kept elsewhere (a menu group's saved name): see tc(). */
+export function txc(context: string, text: string | undefined | null): string {
+  if (!text) return ''
+  if (current === 'en') return text
+  const key = `${context}|${text}`
+  return key in catalogue ? lookup(catalogue, key) : tx(text)
+}
+
 /** Marks English text to be translated later, where it's shown, with t(). */
 export const tk = <S extends string>(english: S): S => english
 

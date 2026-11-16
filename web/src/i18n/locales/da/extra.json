@@ -1,5 +1,9 @@
 {
   "Not scrambled": "Ukrypteret",
   "Musical key": "Toneart",
-  "Part to mark": "Del, der skal markeres"
+  "Part to mark": "Del, der skal markeres",
+  "kind of title|Show": "Serie",
+  "broadcaster|Network": "Kanal",
+  "TV network": "Tv-kanal",
+  "menu group|Play": "Spil"
 }

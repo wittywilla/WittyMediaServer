@@ -2,7 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useRef, useState } from 'react'
 import { api, artPreviewUrl } from '../../api'
-import { t, tn, tx } from '../../i18n'
+import { t, tc, tn, tx } from '../../i18n'
 import { IconStar } from '../../icons'
 import type { FieldChange, MatchCandidate, MatchPreview, SearchResult, Target, TitleEditor } from '../../metadata'
 import { ask, Button, Notice, Progress } from '../../ui'
@@ -30,7 +30,7 @@ export function ResultRow({ c, onChoose, chosen }: { c: MatchCandidate; onChoose
           <span className="meta">
             {c.year && <span>{c.year}</span>}
             {c.rating ? <span className="star"><IconStar size={14} /> {c.rating.toFixed(1)}</span> : null}
-            <span>{c.kind === 'show' ? t('Show') : t('Film')}</span>
+            <span>{c.kind === 'show' ? tc('kind of title', 'Show') : t('Film')}</span>
             <span>{sourceName(c.source)}</span>
           </span>
           {c.overview && <span className="ed-result-over">{c.overview}</span>}

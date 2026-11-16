@@ -1,5 +1,9 @@
 {
   "Not scrambled": "Niekodowany",
   "Musical key": "Tonacja",
-  "Part to mark": "Część do oznaczenia"
+  "Part to mark": "Część do oznaczenia",
+  "kind of title|Show": "Serial",
+  "broadcaster|Network": "Stacja",
+  "TV network": "Stacja telewizyjna",
+  "menu group|Play": "Gry"
 }

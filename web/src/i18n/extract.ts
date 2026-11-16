@@ -6,6 +6,7 @@
 const str = String.raw`'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)"|\x60((?:[^\x60\\$]|\\.)*)\x60`
 const one = new RegExp(String.raw`(?<![\w.$])t[kx]?\(\s*(?:${str})`, 'g')
 const two = new RegExp(String.raw`(?<![\w.$])tn\(\s*(?:${str})\s*,\s*(?:${str})`, 'g')
+const ctx = new RegExp(String.raw`(?<![\w.$])tc\(\s*(?:${str})\s*,\s*(?:${str})`, 'g')
 
 const unescape = (s: string) => s.replace(/\\(u\{[0-9a-fA-F]+\}|u[0-9a-fA-F]{4}|x[0-9a-fA-F]{2}|.)/g, (_, e: string) =>
   e[0] === 'u' ? String.fromCodePoint(parseInt(e.replace(/[u{}]/g, ''), 16)) : e[0] === 'x' ? String.fromCharCode(parseInt(e.slice(1), 16)) : e === 'n' ? '\n' : e === 't' ? '\t' : e)
@@ -14,6 +15,7 @@ export function messagesIn(source: string): string[] {
   const out: string[] = []
   for (const m of source.matchAll(one)) out.push(unescape(m[1] ?? m[2] ?? m[3] ?? ''))
   for (const m of source.matchAll(two)) out.push(unescape(m[1] ?? m[2] ?? m[3] ?? ''), unescape(m[4] ?? m[5] ?? m[6] ?? ''))
+  for (const m of source.matchAll(ctx)) out.push(`${unescape(m[1] ?? m[2] ?? m[3] ?? '')}|${unescape(m[4] ?? m[5] ?? m[6] ?? '')}`)
   return out.filter(Boolean)
 }
 
@@ -22,5 +24,6 @@ export function keysIn(source: string): string[] {
   const out: string[] = []
   for (const m of source.matchAll(one)) out.push(unescape(m[1] ?? m[2] ?? m[3] ?? ''))
   for (const m of source.matchAll(two)) out.push(unescape(m[4] ?? m[5] ?? m[6] ?? ''))
+  for (const m of source.matchAll(ctx)) out.push(`${unescape(m[1] ?? m[2] ?? m[3] ?? '')}|${unescape(m[4] ?? m[5] ?? m[6] ?? '')}`)
   return out.filter(Boolean)
 }

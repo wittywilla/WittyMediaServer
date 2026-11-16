@@ -18,7 +18,7 @@ import { useOlderAsk } from '../pages/settings/store/OlderServerDialog'
 import { GAMES_LINE, onAnotherMachine } from '../pages/setup/plan'
 import { useApp } from '../state'
 import { Segmented } from '../ui/Choice'
-import { num, t, tk, tn, tx } from '../i18n'
+import { num, t, tk, tn, tx, txc } from '../i18n'
 
 // Adding a library in two steps: pick what kind of media it holds, then the
 // folder it's in. Used by the setup wizard and the empty home page. Kinds whose
@@ -190,7 +190,7 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
           if (!usable.length) return null
           return (
             <section key={title}>
-              <h2 className="oobe-type-head">{tx(title)}</h2>
+              <h2 className="oobe-type-head">{txc('menu group', title)}</h2>
               <div className={'oobe-types' + (compact ? ' compact' : '')}>
                 {usable.map((k) => LIB_TYPES.find((x) => x.type === k)!).map((x) => (
                   <button key={x.type} id={'libkind-' + x.type} type="button" className="oobe-type" onClick={() => choose(x.type)}>

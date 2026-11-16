@@ -1,5 +1,9 @@
 {
   "Not scrambled": "Unverschlüsselt",
   "Musical key": "Tonart",
-  "Part to mark": "Zu markierender Teil"
+  "Part to mark": "Zu markierender Teil",
+  "kind of title|Show": "Serie",
+  "broadcaster|Network": "Sender",
+  "TV network": "Fernsehsender",
+  "menu group|Play": "Spiele"
 }

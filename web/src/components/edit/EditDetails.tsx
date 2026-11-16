@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, artPreviewUrl, type Item, type Show } from '../../api'
-import { t, tk, tx } from '../../i18n'
+import { t, tc, tk, tx } from '../../i18n'
 import { IconClose, IconImage, IconLock, IconRefresh, IconTrash, IconUnlock } from '../../icons'
 import { ask, Button, Dialog, IconButton } from '../../ui'
 import { fmtClock, joinOf, listOf, parseClock, undoBatch, type ArtKind, type MetaField, type Target, type TitleEditor } from '../../metadata'
@@ -327,7 +327,7 @@ function DetailFields(p: FieldProps) {
         </div>
       )}
       {text('rating', t('Score out of 10'), { inputMode: 'numeric' })}
-      {text('network', t('Network'), { placeholder: t('The network it first aired on') })}
+      {text('network', tc('broadcaster', 'Network'), { placeholder: t('The network it first aired on') })}
       {text('status', t('Status'), { placeholder: t('Continuing, Ended') })}
       {list('studios', t('Studios'), t('Who made it'))}
     </div>

@@ -1,5 +1,9 @@
 {
   "Not scrambled": "ไม่เข้ารหัส",
   "Musical key": "คีย์เพลง",
-  "Part to mark": "ส่วนที่จะทำเครื่องหมาย"
+  "Part to mark": "ส่วนที่จะทำเครื่องหมาย",
+  "kind of title|Show": "ซีรีส์",
+  "broadcaster|Network": "เครือข่าย",
+  "TV network": "เครือข่ายทีวี",
+  "menu group|Play": "เกม"
 }

@@ -12,7 +12,7 @@ import { ask } from '../ui/Overlay'
 import { toast } from '../ui/Toast'
 import { GROUPS, groupOf, type NavPrefs } from './navModel'
 import { navIcon, setOwnerNavPrefs, useMenu, useNavPrefs } from './useNav'
-import { t, tx } from '../i18n'
+import { t, txc } from '../i18n'
 
 // Arrange the main menu: drag a row by its handle, or use the arrow keys on it, or
 // the Move buttons (which is what a remote has). Each change takes effect at once.
@@ -99,7 +99,7 @@ export default function NavCustomize() {
               const it = rows.find((r) => r.id === row.id)?.item
               return prefs.grouped && it ? (
                 <Select aria-label={t('Group for {name}', { name: row.title })} value={groupOf(it, prefs)} onChange={(e) => saveLook({ groups: { ...prefs.groups, [it.id]: e.target.value } })}
-                  options={[{ value: '', label: t('No group') }, ...GROUPS.map((g) => ({ value: g, label: tx(g) }))]} />
+                  options={[{ value: '', label: t('No group') }, ...GROUPS.map((g) => ({ value: g, label: txc('menu group', g) }))]} />
               ) : null
             }} />
         )}

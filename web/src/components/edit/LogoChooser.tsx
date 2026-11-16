@@ -31,7 +31,7 @@ const byCredit = (credit?: string) => (credit ? t(', by {credit}', { credit }) :
 
 type Candidate = { source: string; sourceId: string; name: string; note?: string; imageUrl: string; pageUrl: string; license: string; licenseUrl?: string; credit?: string; exact: boolean }
 
-export const LOGO_KIND_NAMES: Record<LogoKind, string> = { network: tk('Network'), studio: tk('Studio'), console: tk('Console'), gamestudio: tk('Game studio'), platform: tk('Streaming service') }
+export const LOGO_KIND_NAMES: Record<LogoKind, string> = { network: tk('TV network'), studio: tk('Studio'), console: tk('Console'), gamestudio: tk('Game studio'), platform: tk('Streaming service') }
 // (marked here, translated where shown: tx(LOGO_KIND_NAMES[kind]))
 
 export function LogoRows({ logos, onChanged }: { logos: LogoInfo[]; onChanged: () => void }) {

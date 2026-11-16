@@ -1,5 +1,9 @@
 {
   "Not scrambled": "スクランブルなし",
   "Musical key": "キー",
-  "Part to mark": "マークする部分"
+  "Part to mark": "マークする部分",
+  "kind of title|Show": "番組",
+  "broadcaster|Network": "放送局",
+  "TV network": "テレビ局",
+  "menu group|Play": "ゲーム"
 }

@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject }
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import ActivitySlot from '../components/ActivitySlot'
 import { Brand, BrandMark } from '../components/common'
-import { t, tx } from '../i18n'
+import { t, tx, txc } from '../i18n'
 import { IconDown, IconLeft, IconMenu, IconMore, IconSearch, IconSettings, IconSidebar } from '../icons'
 import { useApp } from '../state'
 import { Menu, type MenuEntry } from '../ui/Menu'
@@ -20,9 +20,9 @@ const itemEntry = (it: NavItem, path: string): MenuEntry => ({ key: it.id, label
 function BarGroup({ group, items, path }: { group: string; items: NavItem[]; path: string }) {
   const here = items.some((it) => isActive(it, path))
   return (
-    <Menu label={tx(group)} align="start" items={items.map((it) => itemEntry(it, path))} trigger={(props) => (
+    <Menu label={txc('menu group', group)} align="start" items={items.map((it) => itemEntry(it, path))} trigger={(props) => (
       <button type="button" {...props} className={'topnav-link' + (here ? ' active' : '')} aria-current={here ? 'true' : undefined}>
-        <span>{tx(group)}</span><IconDown className="topnav-caret" />
+        <span>{txc('menu group', group)}</span><IconDown className="topnav-caret" />
       </button>
     )} />
   )
@@ -86,7 +86,7 @@ function TopNav() {
   const hereItem = restHere && ('item' in restHere ? restHere.item : restHere.items.find((it) => isActive(it, path)))
   const restMenu: MenuEntry[] = rest.flatMap((e): MenuEntry[] => 'item' in e
     ? [itemEntry(e.item, path)]
-    : [{ kind: 'heading', key: 'h:' + e.group, label: tx(e.group) }, ...e.items.map((it) => itemEntry(it, path))])
+    : [{ kind: 'heading', key: 'h:' + e.group, label: txc('menu group', e.group) }, ...e.items.map((it) => itemEntry(it, path))])
   restMenu.push({ kind: 'separator', key: 'sep' }, { key: 'arrange', label: t('Arrange this menu'), icon: <IconSettings />, to: '/settings/appearance#navigation' })
 
   return (

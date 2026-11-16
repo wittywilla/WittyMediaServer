@@ -1,5 +1,9 @@
 {
   "Not scrambled": "Kódolatlan",
   "Musical key": "Hangnem",
-  "Part to mark": "Megjelölendő rész"
+  "Part to mark": "Megjelölendő rész",
+  "kind of title|Show": "Sorozat",
+  "broadcaster|Network": "Csatorna",
+  "TV network": "Tévécsatorna",
+  "menu group|Play": "Játékok"
 }

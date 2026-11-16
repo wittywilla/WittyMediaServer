@@ -6,7 +6,7 @@ import { sduiIcon } from '../sdui/render/icons'
 import { Switch } from '../ui/Field'
 import { Brand, BrandMark, UpdateDot, VersionTag } from '../components/common'
 import { IconSettings } from '../icons'
-import { num, t, tn, tx } from '../i18n'
+import { num, t, tn, tx, txc } from '../i18n'
 import { useApp } from '../state'
 import { isBackKey } from '../ui/spatial'
 import { Tooltip } from '../ui/Tooltip'
@@ -60,8 +60,8 @@ export function Sidebar({ open, rail, drawer, onClose, withDrawer }: { open: boo
         <Link to="/" className="brand" aria-label={rail ? brandName || t('Home') : undefined}><BrandMark /><span className="nav-text"><Brand name={brandName} /></span></Link>
         {list.map((e) => {
           if ('group' in e) return (
-            <div key={e.key} className="nav-group" role="group" aria-label={tx(e.group)}>
-              <div className="nav-section" aria-hidden="true">{tx(e.group)}</div>
+            <div key={e.key} className="nav-group" role="group" aria-label={txc('menu group', e.group)}>
+              <div className="nav-section" aria-hidden="true">{txc('menu group', e.group)}</div>
               {e.items.map(link)}
             </div>
           )

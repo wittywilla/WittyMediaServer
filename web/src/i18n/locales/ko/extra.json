@@ -1,5 +1,9 @@
 {
   "Not scrambled": "비암호화",
   "Musical key": "조성",
-  "Part to mark": "표시할 부분"
+  "Part to mark": "표시할 부분",
+  "kind of title|Show": "시리즈",
+  "broadcaster|Network": "방송사",
+  "TV network": "TV 방송사",
+  "menu group|Play": "게임"
 }

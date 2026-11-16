@@ -1,5 +1,9 @@
 {
   "Not scrambled": "Salaamaton",
   "Musical key": "Sävellaji",
-  "Part to mark": "Merkittävä osa"
+  "Part to mark": "Merkittävä osa",
+  "kind of title|Show": "Sarja",
+  "broadcaster|Network": "Kanava",
+  "TV network": "TV-kanava",
+  "menu group|Play": "Pelit"
 }

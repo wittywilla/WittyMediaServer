@@ -37,6 +37,7 @@ test('messages are found in the source', () => {
   assert.deepEqual(messagesIn(`t('Sign in') + t("It's {n}", { n }) + tk(\`Movies\`) + tn('{count} film', '{count} films', n) + format('x')`),
     ['Sign in', "It's {n}", 'Movies', '{count} film', '{count} films'])
   assert.deepEqual(messagesIn('t(`Hi ${name}`)'), [])
+  assert.deepEqual(messagesIn(`tc('broadcaster', 'Network')`), ['broadcaster|Network'])
 })
 
 test('every catalogue is for a known language, and keeps the English’s {names}', () => {
@@ -52,6 +53,24 @@ test('every catalogue is for a known language, and keeps the English’s {names}
           const got = placeholders(form).filter((p) => p !== 'count')
           assert.deepEqual(got.filter((p) => !want.includes(p)), [], `${lang}/${f}: “${form}” uses a name “${en}” doesn't have`)
         }
+      }
+    }
+  }
+})
+
+test('a message has one translation per language, whichever part of the app it is in', () => {
+  // All of a language's files are merged into one, so two different translations of the same English would show
+  // one or the other depending on the order they load in.
+  const dir = new URL('./locales/', import.meta.url)
+  for (const lang of readdirSync(dir)) {
+    const seen = new Map()
+    for (const f of readdirSync(new URL(`${lang}/`, dir))) {
+      const cat = JSON.parse(readFileSync(new URL(`${lang}/${f}`, dir), 'utf8'))
+      for (const [en, tr] of Object.entries(cat)) {
+        const v = JSON.stringify(tr)
+        const before = seen.get(en)
+        assert.ok(!before || before.v === v, `${lang}: “${en}” is “${before?.v}” in ${before?.f} but “${v}” in ${f}`)
+        if (!before) seen.set(en, { v, f })
       }
     }
   }

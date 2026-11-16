@@ -22,6 +22,7 @@ t('Delete {name}?', { name })
 tn('{count} film', '{count} films', count)   // the right plural form for each language
 tk('Movies')                                 // marks text in a list made when the file loads; shown with tx(label)
 tx(textFromTheServer)                        // translated when the catalogue knows it, otherwise as it is
+tc('broadcaster', 'Network')                // English that means more than one thing: keyed "broadcaster|Network"
 num(1234), date(when, { dateStyle: 'medium' })
 ```
 

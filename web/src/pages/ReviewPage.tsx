@@ -10,6 +10,7 @@ import { MONTHS, hours, yearSpec, type Review } from '../spec/specs/year'
 import { toast } from '../state'
 import '../gallery.css'
 import { ask } from '../ui/Overlay'
+import { t } from '../i18n'
 
 // Year in review: this profile's year, added up on this server from its own
 // record. Nobody else sees it, and nothing is sent anywhere (docs/COLLECTIONS.md).
@@ -23,8 +24,8 @@ export default function ReviewPage() {
   if (!r) return <Spinner />
   const peak = Math.max(1, ...r.byMonth)
   const clear = async () => {
-    if (!await ask({ title: 'Forget what this profile watched and listened to?', body: 'Your year in review, the numbers behind For You and your history start again from nothing. Your places in videos and books stay.', confirm: 'Forget it all', danger: true })) return
-    try { await api.del('/me/history'); load(); toast('History cleared') } catch (e: any) { toast(e.message) }
+    if (!await ask({ title: t('Forget what this profile watched and listened to?'), body: t('Your year in review, the numbers behind For You and your history start again from nothing. Your places in videos and books stay.'), confirm: t('Forget it all'), danger: true })) return
+    try { await api.del('/me/history'); load(); toast(t('History cleared')) } catch (e: any) { toast(e.message) }
   }
   const page = yearSpec(r)
   const act = (id: string) => { if (id === 'clear') void clear() }
@@ -34,6 +35,7 @@ export default function ReviewPage() {
       {r.byMonth.map((v, i) => <div key={i} className="rv-month"><i style={{ height: `${Math.max(v > 0 ? 3 : 0, (v / peak) * 100)}%` }} /><span>{MONTHS[i]}</span></div>)}
     </div>
   )
-  const at = page.sections.findIndex((s) => s.h === 'Month by month')
+  // The heading may be translated by the time it gets here.
+  const at = page.sections.findIndex((s) => s.h === 'Month by month' || s.h === t('Month by month'))
   return <SpecPage page={page} handled={handledIds(page)} onAction={act} onField={field} after={at >= 0 ? { [at]: chart } : undefined} />
 }

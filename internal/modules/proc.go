@@ -484,6 +484,14 @@ func pipes(cmd *exec.Cmd) (io.WriteCloser, io.ReadCloser, io.ReadCloser, error) 
 // has a moment before being killed. Call with p.mu held.
 func (p *proc) halt(why string) { p.haltErr(why) }
 
+// stop ends the helper's process, if it runs, and waits for it to go. Unlike Close, the next
+// call starts it again.
+func (p *proc) stop(why string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.halt(why)
+}
+
 // haltErr is halt, answering how the helper ended: nil when it left with status 0.
 func (p *proc) haltErr(why string) error {
 	if p.idle != nil {

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../../api'
 import { WebLink } from '../../components/WebLink'
+import { num, t, tn, tx } from '../../i18n'
 
 // What this server is made of, and under which licenses. All of it comes from the
 // server (GET /licenses), which builds the list from what's really compiled in.
@@ -24,12 +25,12 @@ function Row({ c }: { c: Component }) {
       <div className="lic-head">
         <span className="lic-name"><WebLink href={c.url}>{c.name}</WebLink>{c.version && <span className="muted"> {c.version}</span>}</span>
         <span className="lic-tag">{c.license}</span>
-        {c.hasText && <button type="button" className="btn sm ghost" aria-expanded={open} onClick={toggle}>{open ? 'Hide license' : 'Read license'}</button>}
+        {c.hasText && <button type="button" className="btn sm ghost" aria-expanded={open} onClick={toggle}>{open ? t('Hide license') : t('Read license')}</button>}
       </div>
       {c.note && <p className="lic-note muted">{c.note}</p>}
       {open && (failed
-        ? <p className="lic-note" role="alert">This license couldn’t be loaded.</p>
-        : <pre className="lic-text" tabIndex={0}>{text ?? 'Loading…'}</pre>)}
+        ? <p className="lic-note" role="alert">{t('This license couldn’t be loaded.')}</p>
+        : <pre className="lic-text" tabIndex={0}>{text ?? t('Loading…')}</pre>)}
     </li>
   )
 }
@@ -46,31 +47,30 @@ export default function LicenseList() {
     for (const c of data?.components || []) if (c.hasText) n.set(c.license, (n.get(c.license) || 0) + 1)
     return [...n.entries()].sort((a, b) => b[1] - a[1])
   }, [data])
-  if (failed) return <p className="muted" role="alert">The list of licenses couldn’t be loaded.</p>
-  if (!data) return <p className="muted">Loading the list of licenses…</p>
+  if (failed) return <p className="muted" role="alert">{t('The list of licenses couldn’t be loaded.')}</p>
+  if (!data) return <p className="muted">{t('Loading the list of licenses…')}</p>
   const built = data.components.filter((c) => c.hasText).length
   return (
     <div className="lic">
       <p className="lic-summary">
-        WittyMediaServer itself, and every Witty module, is <b>AGPL-3.0-or-later</b>. It’s built with {built} open-source libraries,
-        all listed here with their full license text.
+        {tn('WittyMediaServer itself, and every Witty module, is AGPL-3.0-or-later. It’s built with {count} open-source library, listed here with its full license text.', 'WittyMediaServer itself, and every Witty module, is AGPL-3.0-or-later. It’s built with {count} open-source libraries, all listed here with their full license text.', built)}
       </p>
-      <ul className="lic-totals" aria-label="Libraries by license">
-        {totals.map(([l, n]) => <li key={l} className="lic-tag">{n} {l}</li>)}
+      <ul className="lic-totals" aria-label={t('Libraries by license')}>
+        {totals.map(([l, n]) => <li key={l} className="lic-tag">{num(n)} {l}</li>)}
       </ul>
       <label className="lic-find">
-        <span className="sr-only">Find a component or license</span>
-        <input className="input" type="search" placeholder="Find a component or license" value={find} onChange={(e) => setFind(e.target.value)} />
+        <span className="sr-only">{t('Find a component or license')}</span>
+        <input className="input" type="search" placeholder={t('Find a component or license')} value={find} onChange={(e) => setFind(e.target.value)} />
       </label>
-      {q && shown.length === 0 && <p className="muted">Nothing here matches.</p>}
+      {q && shown.length === 0 && <p className="muted">{t('Nothing here matches.')}</p>}
       {data.groups.map((g) => {
         const rows = shown.filter((c) => c.group === g.id)
         if (rows.length === 0) return null
         // The long list of libraries waits to be opened; the rest are worth reading as they are.
         return (
           <details key={g.id} className="lic-group" open={!!q || rows.length <= 30}>
-            <summary><b>{g.title}</b> <span className="muted">({rows.length})</span></summary>
-            <p className="lic-about muted">{g.about}</p>
+            <summary><b>{tx(g.title)}</b> <span className="muted">({rows.length})</span></summary>
+            <p className="lic-about muted">{tx(g.about)}</p>
             <ul className="lic-list">{rows.map((c) => <Row key={c.id} c={c} />)}</ul>
           </details>
         )

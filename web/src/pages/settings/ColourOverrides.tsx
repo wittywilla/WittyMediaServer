@@ -2,6 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useId, useMemo, useState, type CSSProperties } from 'react'
 import { ApiError } from '../../api'
+import { t, tn, tx } from '../../i18n'
 import { checkContrast, draftTokens, normalizeColour, NOT_A_COLOUR, overlay, pickerValue, sameColours, tokenErrors, tokenGroups, tokenLabel, withPicked, type Colours, type ContrastIssue, type Draft, type TokenInfo } from '../../themeColours'
 import { tokenVar } from '../../themeOverrides'
 import { Button } from '../../ui/Button'
@@ -47,29 +48,29 @@ function previewVars(look: Look, tokens: Colours): CSSProperties {
 function LookPreview({ look, tokens, caption }: { look: Look; tokens: Colours; caption: string }) {
   return (
     <figure className="ec-look">
-      <div className="ec-preview" style={previewVars(look, tokens)} role="img" aria-label={caption + ', drawn with these colours'}>
+      <div className="ec-preview" style={previewVars(look, tokens)} role="img" aria-label={t('{caption}, drawn with these colours', { caption })}>
         <div className="ec-panel">
-          <b>Title</b>
-          <span className="ec-fg2">Secondary text</span>
-          <span className="ec-fg3">A hint or caption</span>
-          <span className="ec-link">A link</span>
+          <b>{t('Title')}</b>
+          <span className="ec-fg2">{t('Secondary text')}</span>
+          <span className="ec-fg3">{t('A hint or caption')}</span>
+          <span className="ec-link">{t('A link')}</span>
         </div>
         <div className="ec-page">
           <div className="ec-card">
-            <b>On a card</b>
-            <span className="ec-fg2">Secondary text</span>
-            <span className="ec-fg3">A hint</span>
-            <span className="ec-link">A link</span>
+            <b>{t('On a card')}</b>
+            <span className="ec-fg2">{t('Secondary text')}</span>
+            <span className="ec-fg3">{t('A hint')}</span>
+            <span className="ec-link">{t('A link')}</span>
           </div>
           <div className="ec-line">
-            <span className="btn primary sm">Play</span>
-            <span className="ec-field">Field</span>
-            <span className="ec-picked">Selected</span>
+            <span className="btn primary sm">{t('Play')}</span>
+            <span className="ec-field">{t('Field')}</span>
+            <span className="ec-picked">{t('Selected')}</span>
           </div>
           <div className="ec-line ec-status">
-            <span className="ec-danger">Error</span>
-            <span className="ec-ok">Saved</span>
-            <span className="ec-warn">Warning</span>
+            <span className="ec-danger">{t('Error')}</span>
+            <span className="ec-ok">{t('Saved')}</span>
+            <span className="ec-warn">{t('Warning')}</span>
           </div>
         </div>
       </div>
@@ -78,10 +79,13 @@ function LookPreview({ look, tokens, caption }: { look: Look; tokens: Colours; c
   )
 }
 
-const warningText = (w: Warning, many: boolean) =>
-  `${tokenLabel(w.text)} on ${tokenLabel(w.surface)}${many && w.variant ? ` in the ${w.variant} look` : ''}: ${w.ratio}:1`
+const warningText = (w: Warning, many: boolean) => {
+  const vars = { text: tx(tokenLabel(w.text)), surface: tx(tokenLabel(w.surface)), ratio: w.ratio }
+  if (many && w.variant) return w.variant === 'light' ? t('{text} on {surface} in the light look: {ratio}:1', vars) : t('{text} on {surface} in the dark look: {ratio}:1', vars)
+  return t('{text} on {surface}: {ratio}:1', vars)
+}
 
-function ColourRow({ t, value, theirs, error, serverError, short, onChange }: {
+function ColourRow({ t: tok, value, theirs, error, serverError, short, onChange }: {
   t: TokenInfo; value: string; theirs: string[]; error: string; serverError: boolean; short: string[]; onChange: (v: string) => void
 }) {
   const id = useId()
@@ -91,19 +95,19 @@ function ColourRow({ t, value, theirs, error, serverError, short, onChange }: {
   return (
     <div className={'ec-row' + (set ? ' set' : '')}>
       <div className="ec-row-text">
-        <div className="ec-row-label" id={id + 'l'}>{t.label}{set && <span className="set-badge">Changed</span>}</div>
-        <div className="ec-row-hint" id={id + 'h'}>{t.hint}</div>
+        <div className="ec-row-label" id={id + 'l'}>{tx(tok.label)}{set && <span className="set-badge">{t('Changed')}</span>}</div>
+        <div className="ec-row-hint" id={id + 'h'}>{tx(tok.hint)}</div>
       </div>
       <div className="ec-row-ctl" role="group" aria-labelledby={id + 'l'}>
-        <Input className="theme-colour ec-pick" type="color" aria-label={`${t.label}: pick a colour`} value={pickerValue(shown)}
+        <Input className="theme-colour ec-pick" type="color" aria-label={t('{colour}: pick a colour', { colour: tx(tok.label) })} value={pickerValue(shown)}
           onChange={(e) => onChange(withPicked(e.target.value, shown))} />
-        <Input className={'ec-code' + (theirs.length > 1 ? ' two' : '')} type="text" inputSize="sm" aria-label={`${t.label}: the colour as a code`} aria-describedby={notes} aria-invalid={error ? true : undefined}
+        <Input className={'ec-code' + (theirs.length > 1 ? ' two' : '')} type="text" inputSize="sm" aria-label={t('{colour}: the colour as a code', { colour: tx(tok.label) })} aria-describedby={notes} aria-invalid={error ? true : undefined}
           spellCheck={false} autoCapitalize="off" autoCorrect="off" autoComplete="off" maxLength={40}
-          placeholder={theirs.join(' / ') || 'The theme’s'} value={value} onChange={(e) => onChange(e.target.value)} />
-        <Button size="sm" variant="ghost" disabled={!set} aria-label={`${t.label}: use the theme’s colour`} onClick={() => onChange('')}>Reset</Button>
+          placeholder={theirs.join(' / ') || t('The theme’s')} value={value} onChange={(e) => onChange(e.target.value)} />
+        <Button size="sm" variant="ghost" disabled={!set} aria-label={t('{colour}: use the theme’s colour', { colour: tx(tok.label) })} onClick={() => onChange('')}>{t('Reset')}</Button>
       </div>
-      {error && <div className="ui-field-error ec-row-note" id={id + 'e'} role={serverError ? 'alert' : undefined}>{capital(error)}</div>}
-      {short.length > 0 && <div className="ec-row-note ec-short" id={id + 'w'}>Hard to read: {short.join('; ')}. Text needs 4.5:1.</div>}
+      {error && <div className="ui-field-error ec-row-note" id={id + 'e'} role={serverError ? 'alert' : undefined}>{capital(tx(error))}</div>}
+      {short.length > 0 && <div className="ec-row-note ec-short" id={id + 'w'}>{t('Hard to read: {pairs}. Text needs 4.5:1.', { pairs: short.join('; ') })}</div>}
     </div>
   )
 }
@@ -156,45 +160,45 @@ export default function ColourOverrides({ looks, names, saved, checked, hasOwn, 
       const said = tokenErrors(words, names)
       setRefused(said)
       // The first colour the server refused may be in a group that isn't showing.
-      const first = groups.find((g) => g.tokens.some((t) => said.fields[t.name]))
+      const first = groups.find((g) => g.tokens.some((x) => said.fields[x.name]))
       if (first) setGroup(first.id)
     } finally { setBusy(false) }
   }
 
   const at = groups.find((g) => g.id === group) || groups[0]
   if (!at || looks.length === 0) return null
-  const count = (ids: TokenInfo[]) => ids.filter((t) => (draft[t.name] || '').trim()).length
+  const count = (ids: TokenInfo[]) => ids.filter((x) => (draft[x.name] || '').trim()).length
   return (
     <div className="ec">
       <div className="ec-edit">
-        <Segmented className="ec-groups" label="Which colours" value={at.id} onChange={setGroup}
-          options={groups.map((g) => ({ value: g.id, label: count(g.tokens) ? `${g.title} (${count(g.tokens)})` : g.title }))} />
+        <Segmented className="ec-groups" label={t('Which colours')} value={at.id} onChange={setGroup}
+          options={groups.map((g) => ({ value: g.id, label: count(g.tokens) ? `${tx(g.title)} (${count(g.tokens)})` : tx(g.title) }))} />
         <div className="ec-rows">
-          {at.tokens.map((t) => (
-            <ColourRow key={t.name} t={t} value={draft[t.name] || ''} theirs={looks.map((l) => l.base[t.name]).filter(Boolean)}
-              error={refused.fields[t.name] || (bad.includes(t.name) ? NOT_A_COLOUR : '')} serverError={!!refused.fields[t.name]}
-              short={shortOf(t.name)} onChange={(v) => change(t.name, v)} />
+          {at.tokens.map((x) => (
+            <ColourRow key={x.name} t={x} value={draft[x.name] || ''} theirs={looks.map((l) => l.base[x.name]).filter(Boolean)}
+              error={refused.fields[x.name] || (bad.includes(x.name) ? NOT_A_COLOUR : '')} serverError={!!refused.fields[x.name]}
+              short={shortOf(x.name)} onChange={(v) => change(x.name, v)} />
           ))}
         </div>
       </div>
       <div className="ec-looks">
-        {looks.map((l) => <LookPreview key={l.scheme} look={l} tokens={tokens} caption={many ? (l.scheme === 'dark' ? 'The dark look' : 'The light look') : 'How it looks'} />)}
+        {looks.map((l) => <LookPreview key={l.scheme} look={l} tokens={tokens} caption={many ? (l.scheme === 'dark' ? t('The dark look') : t('The light look')) : t('How it looks')} />)}
       </div>
       <div className="ec-foot">
-        {refused.other && <Notice tone="danger">{capital(refused.other)}</Notice>}
-        {bad.length > 0 && <Notice tone="warn">{bad.map(tokenLabel).join(', ')}: {NOT_A_COLOUR}.</Notice>}
+        {refused.other && <Notice tone="danger">{capital(tx(refused.other))}</Notice>}
+        {bad.length > 0 && <Notice tone="warn">{bad.map((b) => tx(tokenLabel(b))).join(', ')}: {tx(NOT_A_COLOUR)}.</Notice>}
         {warnings.length > 0 && (
-          <Notice tone="warn" title={warnings.length === 1 ? 'One piece of text would be hard to read' : `${warnings.length} pieces of text would be hard to read`}>
+          <Notice tone="warn" title={warnings.length === 1 ? t('One piece of text would be hard to read') : tn('{count} piece of text would be hard to read', '{count} pieces of text would be hard to read', warnings.length)}>
             <ul className="ec-warnings">
               {warnings.map((w) => <li key={`${w.variant}/${w.text}/${w.surface}`}>{warningText(w, many)}</li>)}
             </ul>
-            Text needs a contrast of 4.5:1 to be easy to read. You can save anyway.
-            {!dirty && checked && <span className="muted"> Checked by the server.</span>}
+            {t('Text needs a contrast of 4.5:1 to be easy to read. You can save anyway.')}
+            {!dirty && checked && <span className="muted"> {t('Checked by the server.')}</span>}
           </Notice>
         )}
         <div className="panel-actions">
-          <Button variant="primary" busy={busy} disabled={!dirty || bad.length > 0} onClick={() => run(() => save(tokens))}>Save for everyone</Button>
-          {dirty && <Button variant="ghost" disabled={busy} onClick={() => { setDraft(saved); setRefused({ fields: {}, other: '' }) }}>Undo changes</Button>}
+          <Button variant="primary" busy={busy} disabled={!dirty || bad.length > 0} onClick={() => run(() => save(tokens))}>{t('Save for everyone')}</Button>
+          {dirty && <Button variant="ghost" disabled={busy} onClick={() => { setDraft(saved); setRefused({ fields: {}, other: '' }) }}>{t('Undo changes')}</Button>}
           {hasOwn && <Button variant="ghost" disabled={busy} onClick={() => run(clear)}>{clearLabel}</Button>}
         </div>
       </div>

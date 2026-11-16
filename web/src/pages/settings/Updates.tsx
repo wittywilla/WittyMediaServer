@@ -13,6 +13,7 @@ import { toast, useApp } from '../../state'
 import { ask } from '../../ui/Overlay'
 import SpecPage from '../../spec/SpecPage'
 import { NEWEST, updatesSpec, type UpdatesView } from '../../spec/specs/updates'
+import { date, t } from '../../i18n'
 
 // Updates: what is installed, what GitHub has, what changed since, and the one way this copy
 // updates. A copy that can replace its own files does it with one click: the server verifies the
@@ -45,7 +46,7 @@ export function Updates() {
     if (!active || !st) return
     if (!from.current) from.current = st.current
     const begun = Date.now()
-    const t = setInterval(async () => {
+    const timer = setInterval(async () => {
       try {
         const n = await api.get<UpdateStatus>('/update')
         if (n.current !== from.current) { window.location.reload(); return } // the new version is running
@@ -55,15 +56,15 @@ export function Updates() {
       }
       setSlow(Date.now() - begun > 3 * 60_000)
     }, 1000)
-    return () => clearInterval(t)
+    return () => clearInterval(timer)
   }, [active])
 
   // While the installer downloads: follow it.
   const fetching = st?.installer?.phase === 'downloading' || st?.installer?.phase === 'verifying'
   useEffect(() => {
     if (!fetching) return
-    const t = setInterval(() => { api.get<UpdateStatus>('/update').then(setSt).catch(() => {}) }, 1000)
-    return () => clearInterval(t)
+    const timer = setInterval(() => { api.get<UpdateStatus>('/update').then(setSt).catch(() => {}) }, 1000)
+    return () => clearInterval(timer)
   }, [fetching])
 
   const check = async () => {
@@ -73,11 +74,11 @@ export function Updates() {
       show(n)
       forgetUpdateStatus()
       if (n.checkError) toast(n.checkError)
-      else if (!n.latest) toast('You have the newest version')
+      else if (!n.latest) toast(t('You have the newest version'))
     } catch (e: any) { toast(e.message) } finally { setChecking(false) }
   }
   const apply = async () => {
-    if (!st?.latest || !await ask({ title: `Install WittyMediaServer ${st.latest.version}?`, body: 'The server restarts, which pauses anything playing for a moment. Your library and settings are kept.', confirm: 'Install and restart' })) return
+    if (!st?.latest || !await ask({ title: t('Install WittyMediaServer {version}?', { version: st.latest.version }), body: t('The server restarts, which pauses anything playing for a moment. Your library and settings are kept.'), confirm: t('Install and restart') })) return
     try { from.current = st.current; setSt(await api.post<UpdateStatus>('/update/apply')) } catch (e: any) { toast(e.message) }
   }
   const fetchInstaller = async () => {
@@ -103,7 +104,7 @@ export function Updates() {
   const view: UpdatesView = {
     current: st?.current || '', checkedAt: st?.checkedAt ? fmtDateTime(st.checkedAt) : '', withdrawn: st?.withdrawn || '', checkError: st?.checkError || '',
     upToDate: !!st && !l && !st.checkError && !!st.checkedAt,
-    latest: l ? { title: l.title || '', version: l.version, meta: `Version ${l.version}${l.prerelease ? ' · pre-release' : ''}${l.published ? ` · ${new Date(l.published).toLocaleDateString()}` : ''}${size ? ` · ${mb(size)} MB` : ''}` } : null,
+    latest: l ? { title: l.title || '', version: l.version, meta: [t('Version {version}', { version: l.version }), l.prerelease ? t('pre-release') : '', l.published ? date(l.published, { dateStyle: 'short' }) : '', size ? t('{size} MB', { size: mb(size) }) : ''].filter(Boolean).join(' · ') } : null,
     method: st?.method || '', hasInstallerPhase: !!st?.installer?.phase, active, checking, auto,
   }
   const page = updatesSpec(view)
@@ -113,15 +114,15 @@ export function Updates() {
   const progress = st && st.phase !== 'idle' && (
     <div className={'upd-progress' + (st.phase === 'failed' ? ' failed' : '')} role="status" aria-live="polite">
       {st.phase === 'downloading' && <>
-        <span>Downloading… {mb(st.done)}{st.total ? ` of ${mb(st.total)}` : ''} MB</span>
+        <span>{st.total ? t('Downloading… {done} of {total} MB', { done: mb(st.done), total: mb(st.total) }) : t('Downloading… {done} MB', { done: mb(st.done) })}</span>
         <progress max={st.total || undefined} value={st.total ? st.done || 0 : undefined} />
       </>}
-      {st.phase === 'verifying' && <span>Checking the signature and checksum…</span>}
-      {st.phase === 'installing' && <span>Installing the new files…</span>}
+      {st.phase === 'verifying' && <span>{t('Checking the signature and checksum…')}</span>}
+      {st.phase === 'installing' && <span>{t('Installing the new files…')}</span>}
       {st.phase === 'restarting' && <span>{slow
-        ? 'The server hasn’t come back yet. If it doesn’t, start WittyMediaServer again (tray icon or Start menu); the new version is installed.'
-        : 'Restarting… this page reloads by itself when the new version is running.'}</span>}
-      {st.phase === 'failed' && <span>The update didn’t install, and the server keeps running the version it has: {st.error}</span>}
+        ? t('The server hasn’t come back yet. If it doesn’t, start WittyMediaServer again (tray icon or Start menu); the new version is installed.')
+        : t('Restarting… this page reloads by itself when the new version is running.')}</span>}
+      {st.phase === 'failed' && <span>{t('The update didn’t install, and the server keeps running the version it has: {error}', { error: st.error || '' })}</span>}
     </div>
   )
   return (
@@ -134,7 +135,7 @@ export function Updates() {
             {st.method === 'installer' && st.installer && <InstallerSteps st={st} installer={st.installer} retry={fetchInstaller} />}
             {st.method === 'docker' && <DockerSteps image={st.image || 'ghcr.io/wittywilla/wittymediaserver:alpha'} />}
             <WhatsNew info={l} />
-            <WebLink href={l.url || st.page}>Release page on GitHub ›</WebLink>
+            <WebLink href={l.url || st.page}>{t('Release page on GitHub ›')}</WebLink>
           </div>
         ) } : {}),
       }} />
@@ -152,7 +153,8 @@ function InstallerSteps({ st, installer: d, retry }: { st: UpdateStatus; install
   if (d.phase === 'downloading' || d.phase === 'verifying') {
     return (
       <div className="upd-progress" role="status" aria-live="polite">
-        <span>{d.phase === 'verifying' ? 'Checking it against the release’s signed checksums…' : `Downloading ${d.name}… ${mb(d.done)}${d.size ? ` of ${mb(d.size)}` : ''} MB`}</span>
+        <span>{d.phase === 'verifying' ? t('Checking it against the release’s signed checksums…')
+          : d.size ? t('Downloading {name}… {done} of {total} MB', { name: d.name, done: mb(d.done), total: mb(d.size) }) : t('Downloading {name}… {done} MB', { name: d.name, done: mb(d.done) })}</span>
         <progress max={d.size || undefined} value={d.size ? d.done || 0 : undefined} />
       </div>
     )
@@ -160,23 +162,23 @@ function InstallerSteps({ st, installer: d, retry }: { st: UpdateStatus; install
   if (d.phase === 'failed') {
     return (
       <div className="upd-progress failed" role="alert">
-        <span>The installer didn’t download, and nothing was kept: {d.error}</span>
-        <div><button className="btn sm" onClick={retry}>Try again</button></div>
+        <span>{t('The installer didn’t download, and nothing was kept: {error}', { error: d.error || '' })}</span>
+        <div><button className="btn sm" onClick={retry}>{t('Try again')}</button></div>
       </div>
     )
   }
-  if (d.phase !== 'ready') return <p className="upd-msg">The installer for this computer is <code>{d.name}</code>{d.size ? ` (${mb(d.size)} MB)` : ''}. It’s checked against the release’s signed checksums before it’s kept.</p>
+  if (d.phase !== 'ready') return <p className="upd-msg">{t('The installer for this computer is')} <code>{d.name}</code>{d.size ? ' ' + t('({size} MB)', { size: mb(d.size) }) : ''}. {t('It’s checked against the release’s signed checksums before it’s kept.')}</p>
   return (
     <div className="upd-steps">
-      <p className="upd-ok" role="status"><b>Downloaded and checked.</b> <code>{d.name}</code> matches the release’s signed checksum.</p>
+      <p className="upd-ok" role="status"><b>{t('Downloaded and checked.')}</b> <code>{d.name}</code> {t('matches the release’s signed checksum.')}</p>
       <ol>
         {d.command
-          ? <li>On the server’s computer, as its administrator, run:<Command text={d.command} /></li>
-          : <li>{windows ? 'On the server’s computer, open the installer. ' : mac ? 'On the Mac, open the installer. ' : 'On the server’s computer, unpack it over the old copy. '}It’s saved there as:<Command text={d.path || d.name} label="Where it is" /></li>}
-        <li>Or save it on this device: <button className="btn sm" onClick={save} disabled={saving}><IconDownload /> {saving ? 'Saving…' : 'Save the installer'}</button></li>
-        <li>{windows ? 'The installer updates in place: it stops the server, puts the new version in, and starts it again. Your libraries, settings and watch history are kept.' : 'Your libraries, settings and watch history are kept.'} This page shows the new version once it’s running{st.current ? `, instead of ${st.current}` : ''}.</li>
+          ? <li>{t('On the server’s computer, as its administrator, run:')}<Command text={d.command} /></li>
+          : <li>{windows ? t('On the server’s computer, open the installer.') : mac ? t('On the Mac, open the installer.') : t('On the server’s computer, unpack it over the old copy.')} {t('It’s saved there as:')}<Command text={d.path || d.name} label={t('Where it is')} /></li>}
+        <li>{t('Or save it on this device:')} <button className="btn sm" onClick={save} disabled={saving}><IconDownload /> {saving ? t('Saving…') : t('Save the installer')}</button></li>
+        <li>{windows ? t('The installer updates in place: it stops the server, puts the new version in, and starts it again. Your libraries, settings and watch history are kept.') : t('Your libraries, settings and watch history are kept.')} {st.current ? t('This page shows the new version once it’s running, instead of {version}.', { version: st.current }) : t('This page shows the new version once it’s running.')}</li>
       </ol>
-      {windows && <p className="upd-msg">The installer isn’t code-signed yet, so Windows may say it doesn’t recognise it: choose <b>More info</b>, then <b>Run anyway</b>. On a PC with Smart App Control on, Windows blocks installers that aren’t signed; signed releases are on the way.</p>}
+      {windows && <p className="upd-msg">{t('The installer isn’t code-signed yet, so Windows may say it doesn’t recognise it: choose')} <b>{t('More info')}</b>{t(', then')} <b>{t('Run anyway')}</b>. {t('On a PC with Smart App Control on, Windows blocks installers that aren’t signed; signed releases are on the way.')}</p>}
     </div>
   )
 }
@@ -186,26 +188,26 @@ function InstallerSteps({ st, installer: d, retry }: { st: UpdateStatus; install
 function DockerSteps({ image }: { image: string }) {
   return (
     <div className="upd-steps">
-      <p>With Docker Compose, in the folder with your <code>docker-compose.yml</code>:</p>
+      <p>{t('With Docker Compose, in the folder with your')} <code>docker-compose.yml</code>:</p>
       <Command text={'docker compose pull\ndocker compose up -d'} />
-      <p>With <code>docker run</code>: pull the image, then remove and recreate the container with the same command you started it with.</p>
+      <p>{t('With')} <code>docker run</code>{t(': pull the image, then remove and recreate the container with the same command you started it with.')}</p>
       <Command text={`docker pull ${image}\ndocker rm -f wittymediaserver`} />
-      <p className="upd-msg">Your <code>/config</code> volume stays, with your libraries, settings and watch history.</p>
+      <p className="upd-msg">{t('Your')} <code>/config</code> {t('volume stays, with your libraries, settings and watch history.')}</p>
     </div>
   )
 }
 
-function Command({ text, label = 'Command' }: { text: string; label?: string }) {
+function Command({ text, label }: { text: string; label?: string }) {
   const [copied, setCopied] = useState(false)
   const copy = async () => {
-    if (!await copyText(text)) { toast('Select the text and copy it'); return }
+    if (!await copyText(text)) { toast(t('Select the text and copy it')); return }
     setCopied(true)
     setTimeout(() => setCopied(false), 1800)
   }
   return (
     <div className="help-code upd-command">
-      <pre tabIndex={0} role="group" aria-label={label}><code>{text}</code></pre>
-      <button type="button" className="btn sm ghost help-copy" onClick={copy} aria-label={copied ? 'Copied' : 'Copy this'}><IconCopy size={16} /><span>{copied ? 'Copied' : 'Copy'}</span></button>
+      <pre tabIndex={0} role="group" aria-label={label || t('Command')}><code>{text}</code></pre>
+      <button type="button" className="btn sm ghost help-copy" onClick={copy} aria-label={copied ? t('Copied') : t('Copy this')}><IconCopy size={16} /><span>{copied ? t('Copied') : t('Copy')}</span></button>
     </div>
   )
 }
@@ -219,10 +221,10 @@ function WhatsNew({ info }: { info: UpdateInfo }) {
   if (!changes.length) return null
   return (
     <div className="upd-whatsnew">
-      <h3 className="upd-whatsnew-title">{changes.length > 1 ? `What’s new in the ${changes.length} versions since yours` : 'What’s new'}</h3>
+      <h3 className="upd-whatsnew-title">{changes.length > 1 ? t('What’s new in the {count} versions since yours', { count: changes.length }) : t('What’s new')}</h3>
       {changes.map((c, i) => (
         <details key={c.version} open={i === 0} className="upd-version">
-          <summary>Version {c.version}</summary>
+          <summary>{t('Version {version}', { version: c.version })}</summary>
           <div className="help-prose upd-notes"><GuideBody blocks={c.blocks} signedIn={!!user} idPrefix={`v${c.version.replace(/\W/g, '-')}-`} shift={1} /></div>
         </details>
       ))}

@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 import { ApiError, fmtDateTime, getToken, serverBase, setToken } from '../../api'
 import { Spinner } from '../../components/common'
 import { IconDownload, IconTrash } from '../../icons'
+import { num, t, tk, tn, tx } from '../../i18n'
 import { toast } from '../../state'
 import { Button, Field, Input, Notice, Progress, Select, Tabs } from '../../ui'
 import SpecPage from '../../spec/SpecPage'
@@ -32,7 +33,7 @@ type View = {
 }
 
 const POLL_MS = 1000
-const size = (n = 0) => (n >= 1 << 30 ? `${(n / (1 << 30)).toFixed(1)} GB` : n >= 1 << 20 ? `${(n / (1 << 20)).toFixed(n < 10 << 20 ? 1 : 0)} MB` : n >= 1024 ? `${Math.round(n / 1024)} KB` : `${n} bytes`)
+const size = (n = 0) => (n >= 1 << 30 ? `${num(n / (1 << 30), { minimumFractionDigits: 1, maximumFractionDigits: 1 })} GB` : n >= 1 << 20 ? `${num(n / (1 << 20), { minimumFractionDigits: n < 10 << 20 ? 1 : 0, maximumFractionDigits: n < 10 << 20 ? 1 : 0 })} MB` : n >= 1024 ? `${num(Math.round(n / 1024))} KB` : tn('{count} byte', '{count} bytes', n))
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 // The requests of this page. In first-time setup there's no sign-in, and from another
@@ -46,7 +47,7 @@ function client(setupCode?: string) {
     let r: Response
     try {
       r = await fetch(serverBase() + '/api' + path, { method, headers, credentials: 'same-origin', body: body === undefined ? undefined : JSON.stringify(body) })
-    } catch { throw new ApiError(0, "Can't reach your server.") }
+    } catch { throw new ApiError(0, t("Can't reach your server.")) }
     const text = await r.text()
     let json: any = null
     try { json = text ? JSON.parse(text) : null } catch { /* not JSON */ }
@@ -66,12 +67,12 @@ function upload(file: File, setupCode: string | undefined, onProgress: (done: nu
     if (setupCode) x.setRequestHeader('X-Setup-Code', setupCode)
     x.setRequestHeader('Content-Type', 'application/zip')
     x.upload.onprogress = (e) => onProgress(e.loaded)
-    x.onerror = () => no(new Error("The upload didn't finish. Check the connection and try again."))
+    x.onerror = () => no(new Error(t("The upload didn't finish. Check the connection and try again.")))
     x.onload = () => {
       let json: any = null
       try { json = JSON.parse(x.responseText) } catch { /* not JSON */ }
       if (x.status >= 200 && x.status < 300 && json?.file) ok(json.file)
-      else no(new Error(json?.error || 'The upload was refused.'))
+      else no(new Error(json?.error || t('The upload was refused.')))
     }
     x.send(file)
   })
@@ -92,7 +93,7 @@ async function waitForRestart(say: (s: string) => void) {
       return
     }
   }
-  say('The server hasn’t come back. Start it again by hand: the restore happens as it starts.')
+  say(t('The server hasn’t come back. Start it again by hand: the restore happens as it starts.'))
 }
 
 function useJob(call: ReturnType<typeof client>) {
@@ -115,18 +116,18 @@ function JobProgress({ job, onCancel }: { job: Job; onCancel?: () => void }) {
   const pct = job.total > 0 ? Math.min(100, (job.done / job.total) * 100) : undefined
   return (
     <div className="bk-progress">
-      <p className="bk-phase" role="status" aria-live="polite">{job.phase || 'Working…'}</p>
-      <Progress value={pct} label={job.phase || 'Working'} />
-      {job.total > 0 && <p className="bk-quiet">{size(job.done)} of about {size(job.total)}. You can leave this page while it runs.</p>}
-      {onCancel && <div className="bk-actions"><Button onClick={onCancel}>Stop</Button></div>}
+      <p className="bk-phase" role="status" aria-live="polite">{job.phase || t('Working…')}</p>
+      <Progress value={pct} label={job.phase || t('Working')} />
+      {job.total > 0 && <p className="bk-quiet">{t('{done} of about {total}. You can leave this page while it runs.', { done: size(job.done), total: size(job.total) })}</p>}
+      {onCancel && <div className="bk-actions"><Button onClick={onCancel}>{t('Stop')}</Button></div>}
     </div>
   )
 }
 
 // What a part holds, in words: its files and its rows.
 const holds = (p: Part) => {
-  const words = [p.rows ? `${p.rows.toLocaleString()} ${p.rows === 1 ? 'entry' : 'entries'}` : '', p.files ? `${p.files.toLocaleString()} ${p.files === 1 ? 'file' : 'files'}, ${size(p.bytes)}` : ''].filter(Boolean)
-  return words.join(', ') || 'nothing in it'
+  const words = [p.rows ? tn('{count} entry', '{count} entries', p.rows) : '', p.files ? `${tn('{count} file', '{count} files', p.files)}, ${size(p.bytes)}` : ''].filter(Boolean)
+  return words.join(', ') || t('nothing in it')
 }
 
 function PartChecks({ parts, chosen, setChosen, legend, sizes, inside }: { parts: Part[]; chosen: Set<string>; setChosen: (s: Set<string>) => void; legend: string; sizes?: Record<string, number>; inside?: boolean }) {
@@ -143,14 +144,14 @@ function PartChecks({ parts, chosen, setChosen, legend, sizes, inside }: { parts
     <fieldset className="bk-parts">
       <legend className="sr-only">{legend}</legend>
       {parts.map((p) => {
-        const needs = (p.needs || []).map((id) => parts.find((x) => x.id === id)?.label).filter(Boolean)
+        const needs = (p.needs || []).map((id) => tx(parts.find((x) => x.id === id)?.label)).filter(Boolean)
         const known = sizes?.[p.id]
         return (
           <label key={p.id} className="bk-part">
             <input type="checkbox" checked={chosen.has(p.id)} onChange={(e) => flip(p, e.target.checked)} />
             <span className="bk-part-text">
-              <span className="bk-part-head"><b>{p.label}</b>{inside ? <span className="bk-size">{holds(p)}</span> : known !== undefined && <span className="bk-size">{known > 0 ? `about ${size(known)}` : 'empty'}</span>}</span>
-              <span className="bk-quiet">{p.desc}{needs.length > 0 && ` Needs ${needs.join(' and ')} too.`}</span>
+              <span className="bk-part-head"><b>{tx(p.label)}</b>{inside ? <span className="bk-size">{holds(p)}</span> : known !== undefined && <span className="bk-size">{known > 0 ? t('about {size}', { size: size(known) }) : t('empty')}</span>}</span>
+              <span className="bk-quiet">{tx(p.desc)}{needs.length > 0 && ' ' + t('Needs {parts} too.', { parts: needs.join(t(' and ')) })}</span>
             </span>
           </label>
         )
@@ -205,13 +206,13 @@ function MakeBackup({ view, reload, call }: { view: View; reload: () => void; ca
         <div ref={answer} tabIndex={-1} className="bk-answer">
           {job.kind === 'create' && job.result && (
             <Notice tone={job.problems?.length ? 'warn' : 'ok'} title={job.result}>
-              {job.file && <p>It’s below, as <code>{job.file}</code>. A copy on another drive is what saves you if this one fails, so download it.</p>}
+              {job.file && <p>{t('It’s below, as')} <code>{job.file}</code>. {t('A copy on another drive is what saves you if this one fails, so download it.')}</p>}
               {!!job.problems?.length && <ul className="bk-list">{job.problems.slice(0, 20).map((p) => <li key={p}>{p}</li>)}</ul>}
             </Notice>
           )}
-          {job.kind === 'create' && job.error && <Notice tone="danger" title="No backup was made">{job.error}</Notice>}
+          {job.kind === 'create' && job.error && <Notice tone="danger" title={t('No backup was made')}>{job.error}</Notice>}
           {err && <div role="alert"><Notice tone="danger">{err}</Notice></div>}
-          {busy && <p className="bk-quiet" role="status">Something else is running. This can start when it’s finished.</p>}
+          {busy && <p className="bk-quiet" role="status">{t('Something else is running. This can start when it’s finished.')}</p>}
         </div>
       ) }} />
   )
@@ -242,34 +243,34 @@ function FileList({ view, reload, call, onRestore }: { view: View; reload: () =>
     try {
       await call('DELETE', `/backup/files/${encodeURIComponent(asking)}`, { password, code })
       setAsking(''); setPassword(''); setCode('')
-      toast('Backup deleted'); reload()
+      toast(t('Backup deleted')); reload()
     } catch (e) { setErr(message(e)) }
   }
   return (
-    <Section title="Backups on this server" desc={<>In <code>{view.folder}</code>. They stay through a reset that keeps a copy, and stay on the same drive as everything else, so download one to keep it somewhere safer.</>}>
-      {view.files.length === 0 ? <p className="bk-quiet">None yet.</p> : (
+    <Section title={tk('Backups on this server')} desc={<>{t('In')} <code>{view.folder}</code>. {t('They stay through a reset that keeps a copy, and stay on the same drive as everything else, so download one to keep it somewhere safer.')}</>}>
+      {view.files.length === 0 ? <p className="bk-quiet">{t('None yet.')}</p> : (
         <ul className="bk-files">
           {view.files.map((b) => (
             <li key={b.name} className="bk-file">
               <div className="bk-file-text">
                 <b>{fmtDateTime(b.created)}</b>
-                <span className="bk-quiet">{size(b.size)} · {b.protected ? 'Password protected' : 'Secrets left out'}{b.auto ? ' · Scheduled' : ''}{b.version ? ` · Version ${b.version}` : ''}</span>
+                <span className="bk-quiet">{size(b.size)} · {b.protected ? t('Password protected') : t('Secrets left out')}{b.auto ? ' · ' + t('Scheduled') : ''}{b.version ? ' · ' + t('Version {version}', { version: b.version }) : ''}</span>
                 <small className="mono bk-name">{b.name}</small>
               </div>
               <div className="bk-file-actions">
-                <Button onClick={() => startAsking(b.name, false)} icon={<IconDownload />}>Download</Button>
-                <Button onClick={() => onRestore(b.name)}>Restore</Button>
-                <Button variant="ghost" onClick={() => startAsking(b.name, true)} icon={<IconTrash />} aria-label={`Delete ${b.name}`}>Delete</Button>
+                <Button onClick={() => startAsking(b.name, false)} icon={<IconDownload />}>{t('Download')}</Button>
+                <Button onClick={() => onRestore(b.name)}>{t('Restore')}</Button>
+                <Button variant="ghost" onClick={() => startAsking(b.name, true)} icon={<IconTrash />} aria-label={t('Delete {name}', { name: b.name })}>{t('Delete')}</Button>
               </div>
               {asking === b.name && (
                 <form className="bk-pw" onSubmit={(e) => { e.preventDefault(); void (deleting ? remove() : download()) }}>
-                  <p className="bk-quiet">{deleting ? `${b.name} (${size(b.size)}) is deleted for good. A backup is the way back after something goes wrong, so this asks for your password.` : 'A backup holds your accounts, so taking one off the server asks for your password.'}</p>
-                  <Field label="Your password"><Input type="password" autoComplete="current-password" autoFocus value={password} onChange={(e) => setPassword(e.target.value)} /></Field>
-                  {view.twoFactor && <Field label="Code from your authenticator app"><Input inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} /></Field>}
-                  {err && <Notice tone="warn" title={deleting ? 'It wasn’t deleted' : 'It can’t be downloaded yet'}>{err}</Notice>}
+                  <p className="bk-quiet">{deleting ? t('{name} ({size}) is deleted for good. A backup is the way back after something goes wrong, so this asks for your password.', { name: b.name, size: size(b.size) }) : t('A backup holds your accounts, so taking one off the server asks for your password.')}</p>
+                  <Field label={t('Your password')}><Input type="password" autoComplete="current-password" autoFocus value={password} onChange={(e) => setPassword(e.target.value)} /></Field>
+                  {view.twoFactor && <Field label={t('Code from your authenticator app')}><Input inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} /></Field>}
+                  {err && <Notice tone="warn" title={deleting ? t('It wasn’t deleted') : t('It can’t be downloaded yet')}>{err}</Notice>}
                   <div className="bk-actions">
-                    <Button type="submit" variant={deleting ? 'danger' : 'primary'} disabled={password === '' || (view.twoFactor && code === '')}>{deleting ? 'Delete' : 'Download'}</Button>
-                    <Button onClick={() => setAsking('')}>Cancel</Button>
+                    <Button type="submit" variant={deleting ? 'danger' : 'primary'} disabled={password === '' || (view.twoFactor && code === '')}>{deleting ? t('Delete') : t('Download')}</Button>
+                    <Button onClick={() => setAsking('')}>{t('Cancel')}</Button>
                   </div>
                 </form>
               )}
@@ -299,11 +300,11 @@ function ScheduleForm({ view, reload, call }: { view: View; reload: () => void; 
     setBusy(true); setErr('')
     try {
       await call('PUT', '/backup/schedule', { ...s, parts: [...chosen], password: changePw || !s.protected ? password : '', current, code })
-      setPassword(''); setAgain(''); setChangePw(false); setCurrent(''); setCode(''); toast('Schedule saved'); reload()
+      setPassword(''); setAgain(''); setChangePw(false); setCurrent(''); setCode(''); toast(t('Schedule saved')); reload()
     } catch (e) { setErr(message(e)) } finally { setBusy(false) }
   }
   const clearPw = async () => {
-    try { await call('PUT', '/backup/schedule', { ...s, parts: [...chosen], clearPassword: true }); setS({ ...s, protected: false }); toast('Scheduled backups no longer have a password'); reload() } catch (e) { setErr(message(e)) }
+    try { await call('PUT', '/backup/schedule', { ...s, parts: [...chosen], clearPassword: true }); setS({ ...s, protected: false }); toast(t('Scheduled backups no longer have a password')); reload() } catch (e) { setErr(message(e)) }
   }
   const page = scheduleSpec({
     parts: view.parts, chosen, frequency: s.frequency, weekday: s.weekday, hour: s.hour, keep: s.keep, fewer, twoFactor: view.twoFactor, current, code,
@@ -337,7 +338,7 @@ function ListBlock({ title, items, tone }: { title: string; items: string[]; ton
     <div className={'bk-block' + (tone ? ' warn' : '')}>
       <h3>{title}</h3>
       <ul className="bk-list">{items.slice(0, 50).map((s) => <li key={s}>{s}</li>)}</ul>
-      {items.length > 50 && <p className="bk-quiet">…and {(items.length - 50).toLocaleString()} more.</p>}
+      {items.length > 50 && <p className="bk-quiet">{t('…and {count} more.', { count: num(items.length - 50) })}</p>}
     </div>
   )
 }
@@ -376,7 +377,7 @@ export function RestoreFlow({ firstRun, setupCode, initial, onBusy }: { firstRun
   const restarting = !!view?.job.restarting
   useEffect(() => {
     if (!restarting || waiting) return
-    setWaiting('The server is restarting to bring your data in. This can take a minute.')
+    setWaiting(t('The server is restarting to bring your data in. This can take a minute.'))
     void waitForRestart(setWaiting)
   }, [restarting, waiting])
 
@@ -423,11 +424,11 @@ export function RestoreFlow({ firstRun, setupCode, initial, onBusy }: { firstRun
     } catch (e) { setErr(message(e)) }
   }
   const undoPending = async () => {
-    try { await call('DELETE', '/backup/restore/request'); toast('The restore was cancelled'); setView(null); await load() } catch (e) { toast(message(e)) }
+    try { await call('DELETE', '/backup/restore/request'); toast(t('The restore was cancelled')); setView(null); await load() } catch (e) { toast(message(e)) }
   }
 
   if (!view) return loadErr ? <div role="alert"><Notice tone="danger">{loadErr}</Notice></div> : <Spinner />
-  if (waiting) return <div className="bk-progress" role="status"><p className="bk-phase">{waiting}</p><p className="bk-quiet">This page moves on by itself. Everyone signs in again afterwards.</p><Progress label="Waiting for the server" /></div>
+  if (waiting) return <div className="bk-progress" role="status"><p className="bk-phase">{waiting}</p><p className="bk-quiet">{t('This page moves on by itself. Everyone signs in again afterwards.')}</p><Progress label={t('Waiting for the server')} /></div>
 
   const job = view.job
   const running = job.running && job.kind !== 'create'
@@ -437,66 +438,66 @@ export function RestoreFlow({ firstRun, setupCode, initial, onBusy }: { firstRun
   return (
     <>
       {view.pending && (
-        <Notice tone="warn" title="A restore is waiting" action={<Button onClick={undoPending}>Cancel it</Button>}>
-          It happens the next time this server starts. {view.canRestart ? '' : 'This server can’t restart itself: stop it and start it again.'}
+        <Notice tone="warn" title={t('A restore is waiting')} action={<Button onClick={undoPending}>{t('Cancel it')}</Button>}>
+          {t('It happens the next time this server starts.')} {view.canRestart ? '' : t('This server can’t restart itself: stop it and start it again.')}
         </Notice>
       )}
       <div className="bk-choose">
-        <input ref={fileInput} className="sr-only" type="file" accept=".zip,application/zip" aria-label="Choose a backup file" onChange={(e) => { const f = e.target.files?.[0]; if (f) void pick(f); e.target.value = '' }} disabled={!!uploading || job.running} />
-        <Button variant={view.files.length ? undefined : 'primary'} onClick={() => fileInput.current?.click()} disabled={!!uploading || job.running}>Choose a backup file</Button>
+        <input ref={fileInput} className="sr-only" type="file" accept=".zip,application/zip" aria-label={t('Choose a backup file')} onChange={(e) => { const f = e.target.files?.[0]; if (f) void pick(f); e.target.value = '' }} disabled={!!uploading || job.running} />
+        <Button variant={view.files.length ? undefined : 'primary'} onClick={() => fileInput.current?.click()} disabled={!!uploading || job.running}>{t('Choose a backup file')}</Button>
         {view.files.length > 0 && (
-          <Select aria-label="Or one already on this server" value={file} disabled={!!uploading || job.running} onChange={(e) => { setFile(e.target.value); if (e.target.value) void check(e.target.value, password) }}
-            options={[{ value: '', label: 'Or one already on this server…' }, ...view.files.map((b) => ({ value: b.name, label: `${fmtDateTime(b.created)}, ${size(b.size)}${b.protected ? ', protected' : ''}` }))]} />
+          <Select aria-label={t('Or one already on this server')} value={file} disabled={!!uploading || job.running} onChange={(e) => { setFile(e.target.value); if (e.target.value) void check(e.target.value, password) }}
+            options={[{ value: '', label: t('Or one already on this server…') }, ...view.files.map((b) => ({ value: b.name, label: `${fmtDateTime(b.created)}, ${size(b.size)}${b.protected ? ', ' + t('protected') : ''}` }))]} />
         )}
       </div>
-      {uploading && <div className="bk-progress" role="status" aria-live="polite"><p className="bk-phase">Uploading {size(uploading.done)} of {size(uploading.total)}</p><Progress value={(uploading.done / Math.max(1, uploading.total)) * 100} label="Uploading" /></div>}
+      {uploading && <div className="bk-progress" role="status" aria-live="polite"><p className="bk-phase">{t('Uploading {done} of {total}', { done: size(uploading.done), total: size(uploading.total) })}</p><Progress value={(uploading.done / Math.max(1, uploading.total)) * 100} label={t('Uploading')} /></div>}
       {running && <JobProgress job={job} onCancel={cancelJob} />}
       {!running && job.kind === 'inspect' && job.needsPassword && (
         <form className="bk-pw" onSubmit={(e) => { e.preventDefault(); void check(job.file || file, password) }}>
-          <Field label={password ? 'That password doesn’t open this backup. Try again' : 'This backup is protected. Enter its password'}>
+          <Field label={password ? t('That password doesn’t open this backup. Try again') : t('This backup is protected. Enter its password')}>
             <Input type="password" autoComplete="off" autoFocus value={password} onChange={(e) => setPassword(e.target.value)} />
           </Field>
-          <Button type="submit" variant="primary" disabled={!password}>Open it</Button>
+          <Button type="submit" variant="primary" disabled={!password}>{t('Open it')}</Button>
         </form>
       )}
       {!running && !job.needsPassword && job.error && job.kind !== 'create' && (
-        <div role="alert"><Notice tone="danger" title={job.refused ? 'This backup was refused, and nothing was changed' : 'That didn’t work, and nothing was changed'}>{job.error}</Notice></div>
+        <div role="alert"><Notice tone="danger" title={job.refused ? t('This backup was refused, and nothing was changed') : t('That didn’t work, and nothing was changed')}>{job.error}</Notice></div>
       )}
       {err && <div role="alert"><Notice tone="danger">{err}</Notice></div>}
       {inspection && !stage && !job.needsPassword && (
         <div className="bk-preview">
-          <h2 className="bk-h" ref={heading} tabIndex={-1}>What’s in it</h2>
-          <p>A backup from <b>{fmtDateTime(inspection.created)}</b>, made by version {inspection.serverVersion}, {inspection.protected ? 'protected with a password' : 'with no password'}. Every file in it checked out.{inspection.older ? ' It’s from an older version, and is brought up to date as it’s restored.' : ''}</p>
-          <PartChecks parts={inspection.parts} chosen={chosen} setChosen={setChosen} legend="What to bring back" inside />
-          {needs.length > 0 && <Notice tone="warn">Some of what you’ve chosen needs parts you’ve left out.</Notice>}
-          <p className="bk-quiet">Anything you untick stays as it is on this server now, unless it depends on something you’re replacing: watch history, say, can’t stay if the library is replaced, as its numbers would point at other titles.</p>
+          <h2 className="bk-h" ref={heading} tabIndex={-1}>{t('What’s in it')}</h2>
+          <p>{inspection.protected ? t('A backup from {date}, made by version {version}, protected with a password.', { date: fmtDateTime(inspection.created), version: inspection.serverVersion }) : t('A backup from {date}, made by version {version}, with no password.', { date: fmtDateTime(inspection.created), version: inspection.serverVersion })} {t('Every file in it checked out.')}{inspection.older ? ' ' + t('It’s from an older version, and is brought up to date as it’s restored.') : ''}</p>
+          <PartChecks parts={inspection.parts} chosen={chosen} setChosen={setChosen} legend={t('What to bring back')} inside />
+          {needs.length > 0 && <Notice tone="warn">{t('Some of what you’ve chosen needs parts you’ve left out.')}</Notice>}
+          <p className="bk-quiet">{t('Anything you untick stays as it is on this server now, unless it depends on something you’re replacing: watch history, say, can’t stay if the library is replaced, as its numbers would point at other titles.')}</p>
           {inspection.accounts.length > 0 && chosen.has('users') && (
             <div className="bk-block">
-              <h3>Who can sign in afterwards</h3>
-              <ul className="bk-list">{inspection.accounts.map((a) => <li key={a.name}><b>{a.name}</b>{a.admin ? ' (administrator)' : ''}</li>)}</ul>
-              <p className="bk-quiet">These replace the accounts here, with the passwords they had. If you don’t recognise an administrator here, stop: whoever made this backup could sign in.</p>
+              <h3>{t('Who can sign in afterwards')}</h3>
+              <ul className="bk-list">{inspection.accounts.map((a) => <li key={a.name}><b>{a.name}</b>{a.admin ? ' ' + t('(administrator)') : ''}</li>)}</ul>
+              <p className="bk-quiet">{t('These replace the accounts here, with the passwords they had. If you don’t recognise an administrator here, stop: whoever made this backup could sign in.')}</p>
             </div>
           )}
           {inspection.libraries.length > 0 && chosen.has('library') && (
             <div className="bk-block">
-              <h3>Folders the server will use</h3>
-              <ul className="bk-list">{inspection.libraries.map((l) => <li key={l.name}><b>{l.name}</b> ({l.items.toLocaleString()} titles): <span className="mono">{l.folders.join(', ') || 'no folders'}</span></li>)}</ul>
+              <h3>{t('Folders the server will use')}</h3>
+              <ul className="bk-list">{inspection.libraries.map((l) => <li key={l.name}><b>{l.name}</b> ({tn('{count} title', '{count} titles', l.items)}): <span className="mono">{l.folders.join(', ') || t('no folders')}</span></li>)}</ul>
             </div>
           )}
-          <ListBlock title="Addresses it would contact" items={inspection.addresses} />
-          <ListBlock title="Left out, on purpose" items={inspection.dropped} tone="warn" />
-          <ListBlock title="Metadata files changed by hand" items={inspection.handEdited} />
-          <ListBlock title="Problems in those files" items={inspection.problems} tone="warn" />
-          <ListBlock title="What happens to sign-ins, keys and modules" items={inspection.notes} />
+          <ListBlock title={t('Addresses it would contact')} items={inspection.addresses} />
+          <ListBlock title={t('Left out, on purpose')} items={inspection.dropped} tone="warn" />
+          <ListBlock title={t('Metadata files changed by hand')} items={inspection.handEdited} />
+          <ListBlock title={t('Problems in those files')} items={inspection.problems} tone="warn" />
+          <ListBlock title={t('What happens to sign-ins, keys and modules')} items={inspection.notes} />
           <div className="bk-block">
-            <h3>Bring it back</h3>
-            <p>What’s on this server now is moved to a safety copy first, and goes back by itself if anything fails. Anything playing is interrupted.{view.canRestart ? ' The server restarts.' : ' This server can’t restart itself: stop it and start it again, and it happens then.'}</p>
+            <h3>{t('Bring it back')}</h3>
+            <p>{t('What’s on this server now is moved to a safety copy first, and goes back by itself if anything fails. Anything playing is interrupted.')} {view.canRestart ? t('The server restarts.') : t('This server can’t restart itself: stop it and start it again, and it happens then.')}</p>
             <div className="bk-fields">
-              {!firstRun && <Field label="Your password"><Input type="password" autoComplete="current-password" value={accountPw} onChange={(e) => setAccountPw(e.target.value)} /></Field>}
-              {!firstRun && view.twoFactor && <Field label="Code from your authenticator app"><Input inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} /></Field>}
-              <Field label="Type RESTORE to confirm"><Input autoComplete="off" spellCheck={false} value={typed} onChange={(e) => setTyped(e.target.value)} /></Field>
+              {!firstRun && <Field label={t('Your password')}><Input type="password" autoComplete="current-password" value={accountPw} onChange={(e) => setAccountPw(e.target.value)} /></Field>}
+              {!firstRun && view.twoFactor && <Field label={t('Code from your authenticator app')}><Input inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} /></Field>}
+              <Field label={t('Type RESTORE to confirm')}><Input autoComplete="off" spellCheck={false} value={typed} onChange={(e) => setTyped(e.target.value)} /></Field>
             </div>
-            <div className="bk-actions"><Button variant="danger" disabled={!ready || needs.length > 0} onClick={start}>Restore this backup</Button></div>
+            <div className="bk-actions"><Button variant="danger" disabled={!ready || needs.length > 0} onClick={start}>{t('Restore this backup')}</Button></div>
           </div>
         </div>
       )}
@@ -517,25 +518,25 @@ function LastRestore({ view, reload, call }: { view: View; reload: () => void; c
     setErr('')
     try {
       const r = await call<{ restarting: boolean }>('POST', '/backup/undo', { password, code, copy: copy.name })
-      if (r.restarting) { setWaiting('The server is restarting to put things back.'); void waitForRestart(setWaiting) } else { setWaiting('Stop this server and start it again, and it happens then.'); reload() }
+      if (r.restarting) { setWaiting(t('The server is restarting to put things back.')); void waitForRestart(setWaiting) } else { setWaiting(t('Stop this server and start it again, and it happens then.')); reload() }
     } catch (e) { setErr(message(e)) }
   }
   return (
-    <Section title="The last restore">
-      {last && !last.ok && <div role="alert"><Notice tone="danger" title="The last restore didn’t work">{last.error}</Notice></div>}
-      {last?.ok && <Notice tone="ok" title={last.mode === 'undo' ? 'Put back as it was' : last.mode === 'recovery' ? 'Put back after an interrupted restore' : 'Restored'}>{fmtDateTime(last.at)}{last.name ? ` from ${last.name}` : ''}. {(last.notes || []).join(' ')}</Notice>}
+    <Section title={tk('The last restore')}>
+      {last && !last.ok && <div role="alert"><Notice tone="danger" title={t('The last restore didn’t work')}>{last.error}</Notice></div>}
+      {last?.ok && <Notice tone="ok" title={last.mode === 'undo' ? t('Put back as it was') : last.mode === 'recovery' ? t('Put back after an interrupted restore') : t('Restored')}>{last.name ? t('{date} from {name}', { date: fmtDateTime(last.at), name: last.name }) : fmtDateTime(last.at)}. {(last.notes || []).join(' ')}</Notice>}
       {waiting && <p role="status" className="bk-phase">{waiting}</p>}
       {copy && !waiting && (
         <>
-          <p className="bk-quiet">A safety copy from {fmtDateTime(copy.at)} holds what the last restore replaced.</p>
+          <p className="bk-quiet">{t('A safety copy from {date} holds what the last restore replaced.', { date: fmtDateTime(copy.at) })}</p>
           {undoing ? (
             <form className="bk-pw" onSubmit={(e) => { e.preventDefault(); void undo() }}>
-              <Field label="Your password"><Input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} /></Field>
-              {view.twoFactor && <Field label="Code from your authenticator app"><Input inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} /></Field>}
+              <Field label={t('Your password')}><Input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} /></Field>
+              {view.twoFactor && <Field label={t('Code from your authenticator app')}><Input inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} /></Field>}
               {err && <div role="alert"><Notice tone="danger">{err}</Notice></div>}
-              <div className="bk-actions"><Button variant="ghost" onClick={() => setUndoing(false)}>Keep things as they are</Button><Button type="submit" variant="danger" disabled={!password}>Put it back</Button></div>
+              <div className="bk-actions"><Button variant="ghost" onClick={() => setUndoing(false)}>{t('Keep things as they are')}</Button><Button type="submit" variant="danger" disabled={!password}>{t('Put it back')}</Button></div>
             </form>
-          ) : <div className="bk-actions"><Button onClick={() => setUndoing(true)}>Undo the last restore</Button></div>}
+          ) : <div className="bk-actions"><Button onClick={() => setUndoing(true)}>{t('Undo the last restore')}</Button></div>}
         </>
       )}
     </Section>
@@ -551,8 +552,8 @@ export default function BackupSettings() {
   if (!view) return err ? <div role="alert"><Notice tone="danger">{err}</Notice></div> : <Spinner />
   return (
     <>
-      <PageHead title="Backup" desc="A ZIP of your data and metadata, for when something goes wrong or you move to another machine. Bring one back here, or from first-time setup after a reset." />
-      <Tabs<'make' | 'restore' | 'schedule'> value={tab} onChange={setTab} label="Backup" panelId="bk-panel" items={[{ value: 'make', label: 'Back up' }, { value: 'restore', label: 'Restore' }, { value: 'schedule', label: 'Schedule' }]} />
+      <PageHead title={tk('Backup')} desc={t('A ZIP of your data and metadata, for when something goes wrong or you move to another machine. Bring one back here, or from first-time setup after a reset.')} />
+      <Tabs<'make' | 'restore' | 'schedule'> value={tab} onChange={setTab} label={t('Backup')} panelId="bk-panel" items={[{ value: 'make', label: t('Back up') }, { value: 'restore', label: t('Restore') }, { value: 'schedule', label: t('Schedule') }]} />
       <div id="bk-panel" role="tabpanel">
         {tab === 'make' && (
           <>
@@ -562,7 +563,7 @@ export default function BackupSettings() {
         )}
         {tab === 'restore' && (
           <>
-            <Section title="Restore a backup" desc={<>Bring back a backup from this server or from a file. Every file is checked before anything changes, and archives that don’t pass are refused. To start again first, see <Link to="/settings/reset">Reset</Link>.</>}>
+            <Section title={tk('Restore a backup')} desc={<>{t('Bring back a backup from this server or from a file. Every file is checked before anything changes, and archives that don’t pass are refused.')} {t('To start again first, see')} <Link to="/settings/reset">{t('Reset')}</Link>.</>}>
               <RestoreFlow initial={initial} />
             </Section>
             <LastRestore view={view} reload={() => void load()} call={call} />

@@ -15,7 +15,7 @@ const walk = (d) => { for (const f of readdirSync(d)) { const p = join(d, f); if
 walk(src)
 // Sections drawn from a spec: anchored(secX('Title', ...), 'id'): the title and the heading id are in the spec files.
 const specSrc = readdirSync(join(src, 'spec/specs')).filter((f) => f.endsWith('.ts')).map((f) => readFileSync(join(src, 'spec/specs', f), 'utf8')).join('\n')
-const specTitles = new Set([...specSrc.matchAll(/anchored\(\s*sec[A-Z]\(\s*([A-Za-z_]+|'([^']+)')/g)].map((m) => m[2] || ('{' + m[1] + '}')))
+const specTitles = new Set([...specSrc.matchAll(/anchored\(\s*sec[A-Z]\(\s*(?:t\()?([A-Za-z_]+|'([^']+)')/g)].map((m) => m[2] || ('{' + m[1] + '}')))
 const specConsts = Object.fromEntries([...specSrc.matchAll(/export const ([A-Z]+) = (?:tk\()?'([^']+)'/g)].map((m) => [m[1], m[2]]))
 for (const m of specSrc.matchAll(/anchored\(\s*sec[A-Z]\(\s*(?:t\()?([A-Z]+)\)?,/g)) if (specConsts[m[1]]) specTitles.add(specConsts[m[1]])
 const specIds = new Set([...specSrc.matchAll(/anchored\([^]*?\), '([a-z0-9-]+)'\)/g)].map((m) => m[1]))

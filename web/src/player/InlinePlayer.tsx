@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useRef, useState } from 'react'
-import { api, langName, type PlayInfo } from '../api'
+import { api, type PlayInfo } from '../api'
+import { t } from '../i18n'
+import { trackLang } from './trackLang'
 import { IconPlay } from '../icons'
 import { Controls, setSpeed, useVideoState } from './Controls'
 import { toggleFullscreen, useIdle, useSource } from './hooks'
@@ -99,12 +101,12 @@ export default function InlinePlayer({ id, startAt, autoPlay = true, onEnded, du
     <div className={'player inline ' + className + (compact ? ' compact' : '')} ref={root} tabIndex={0} onKeyDown={onKey} onClick={togglePlay} onDoubleClick={() => toggleFullscreen(root.current)}>{/* design-ok: a click on the picture is the mouse's shortcut for Play and Pause */}
       <div className="stage"><video ref={video} playsInline preload="auto" onEnded={onEnded} /></div>
       {st.waiting && !needClick && <div className="center-spinner"><div className="spinner" /></div>}
-      {needClick && <div className="big-play"><button aria-label="Play" onClick={(e) => { e.stopPropagation(); setNeedClick(false); video.current?.play() }}><IconPlay /></button></div>}
-      {err && <div className="overlay-msg"><div className="box">Playback failed: {err}</div></div>}
+      {needClick && <div className="big-play"><button aria-label={t('Play')} onClick={(e) => { e.stopPropagation(); setNeedClick(false); video.current?.play() }}><IconPlay /></button></div>}
+      {err && <div className="overlay-msg"><div className="box">{t('Playback failed: {error}', { error: err })}</div></div>}
       <Controls video={video} duration={info?.durationSec || durationSec} onSeek={seek} onFullscreen={() => toggleFullscreen(root.current)}
         chapters={chapters} chapterNames={info?.chapters?.map((c) => c.title)}
-        audio={info?.audio.map((a) => ({ id: a.index, label: [langName(a.language), a.title, a.codec?.toUpperCase()].filter(Boolean).join(' · '), active: a.index === audio }))}
-        subtitles={info?.subtitles.map((s) => ({ id: s.index, label: [langName(s.language), s.title].filter(Boolean).join(' · '), active: s.index === sub }))}
+        audio={info?.audio.map((a) => ({ id: a.index, label: [trackLang(a.language), a.title, a.codec?.toUpperCase()].filter(Boolean).join(' · '), active: a.index === audio }))}
+        subtitles={info?.subtitles.map((s) => ({ id: s.index, label: [trackLang(s.language), s.title].filter(Boolean).join(' · '), active: s.index === sub }))}
         onAudio={(n) => switchTrack(setAudio, n)} onSubtitle={(n) => switchTrack(setSub, n)} />
     </div>
   )

@@ -7,6 +7,7 @@ import { IconClose } from '../icons'
 import { PlayerChromeContext, usePlayerChrome, type PlayerChrome } from './chrome'
 import { queued } from '../remote/videoQueue'
 import { ModulePlayer } from '../moduleRegistry'
+import { t } from '../i18n'
 
 const VideoPlayer = lazy(() => import('./VideoPlayer'))
 const loading = <div className="player"><div className="center-spinner"><div className="spinner" /></div></div>
@@ -75,5 +76,5 @@ function PlayerPage({ id, search }: { id: string; search: string }) {
 
 function BackButton() {
   const { close } = usePlayerChrome()
-  return <button className="btn" style={{ marginTop: 10 }} onClick={close}><IconClose /> Close</button>
+  return <button className="btn" style={{ marginTop: 10 }} onClick={close}><IconClose /> {t('Close')}</button>
 }

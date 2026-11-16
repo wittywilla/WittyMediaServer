@@ -6,6 +6,7 @@ import { api, fmtTime, type Item } from '../api'
 import { toast } from '../state'
 import { clockText, markerForm, markerPut, type MarkerAnswer, type MarkerForm, type RangeText } from './markers'
 import './pickintro.css'
+import { t, tk, tx } from '../i18n'
 
 // Pick in player: play to where a part starts or ends, and press the button. It goes back to
 // the edit dialog it came from. mode "show" sets where the intro ends for the whole show;
@@ -15,25 +16,25 @@ export default function PickIntroBar({ item, time, mode }: { item: Item; time: n
   if (mode === 'markers') return <PickMarkersBar item={item} time={time} />
   const back = mode === 'show' && item.showId != null ? `/show/${item.showId}?edit=playback` : `/item/${item.id}?edit=playback`
   const use = async () => {
-    const t = Math.round(time)
+    const sec = Math.round(time)
     try {
       const target = mode === 'show' && item.showId != null ? `/meta/show/${item.showId}` : `/meta/item/${item.id}`
-      await api.put(target, { fields: { introEnd: String(t) } })
-      toast(`The intro ends at ${fmtTime(t)}`)
+      await api.put(target, { fields: { introEnd: String(sec) } })
+      toast(t('The intro ends at {time}', { time: fmtTime(sec) }))
       nav(back, { replace: true })
     } catch (e: any) { toast(e.message) }
   }
   return (
-    <div className="pick-intro" role="group" aria-label="Pick where the intro ends" onClick={(e) => e.stopPropagation()}>
-      <span>Play to where the intro ends, then press this.</span>
-      <button type="button" className="btn primary" onClick={use}>The intro ends at {fmtTime(time)}</button>
-      <button type="button" className="btn ghost" onClick={() => nav(back, { replace: true })}>Never mind</button>
+    <div className="pick-intro" role="group" aria-label={t('Pick where the intro ends')} onClick={(e) => e.stopPropagation()}>
+      <span>{t('Play to where the intro ends, then press this.')}</span>
+      <button type="button" className="btn primary" onClick={use}>{t('The intro ends at {time}', { time: fmtTime(time) })}</button>
+      <button type="button" className="btn ghost" onClick={() => nav(back, { replace: true })}>{t('Never mind')}</button>
     </div>
   )
 }
 
 type Part = 'recap' | 'intro' | 'credits' | 'advert'
-const PARTS: { id: Part; label: string }[] = [{ id: 'intro', label: 'Intro' }, { id: 'recap', label: 'Recap' }, { id: 'credits', label: 'Credits' }, { id: 'advert', label: 'New advert break' }]
+const PARTS: { id: Part; label: string }[] = [{ id: 'intro', label: tk('Intro') }, { id: 'recap', label: tk('Recap') }, { id: 'credits', label: tk('Credits') }, { id: 'advert', label: tk('New advert break') }]
 const EMPTY: RangeText = { start: '', end: '' }
 
 // Marking one part after another: choose which, press Starts here and Ends here as it plays,
@@ -62,22 +63,22 @@ function PickMarkersBar({ item, time }: { item: Item; time: number }) {
     const r = markerPut(saved, part === 'advert' ? { ...form, commercials: [...form.commercials, advert] } : form)
     if (r.error || !r.body) { setErr(r.error || ''); return }
     setBusy(true)
-    try { took(await api.put<MarkerAnswer>(`/media/${item.id}/markers`, r.body)); toast('Skip times saved') } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
+    try { took(await api.put<MarkerAnswer>(`/media/${item.id}/markers`, r.body)); toast(t('Skip times saved')) } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
   }
   const at = clockText(Math.round(time))
   return (
-    <div className="pick-intro pick-markers" role="group" aria-label="Mark what can be skipped" onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
-      <label className="pick-part">Mark
+    <div className="pick-intro pick-markers" role="group" aria-label={t('Mark what can be skipped')} onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
+      <label className="pick-part">{t('Mark')}
         <select className="select" value={part} onChange={(e) => { setPart(e.target.value as Part); setErr('') }}>
-          {PARTS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+          {PARTS.map((p) => <option key={p.id} value={p.id}>{t(p.label)}</option>)}
         </select>
       </label>
-      <button type="button" className="btn" disabled={!form} onClick={() => set({ start: at })}>Starts here ({at})</button>
-      <button type="button" className="btn" disabled={!form} onClick={() => set({ end: at })}>Ends here ({at})</button>
-      <span className="pick-now" role="status">{cur.start || cur.end ? `${cur.start || '0:00'} to ${cur.end || (part === 'credits' ? 'the end' : '…')}` : 'Not marked'}</span>
-      <button type="button" className="btn primary" disabled={!form || busy || !changed} onClick={save}>Save</button>
-      <button type="button" className="btn ghost" onClick={back}>Done</button>
-      {err && <div className="error" role="alert">{err}</div>}
+      <button type="button" className="btn" disabled={!form} onClick={() => set({ start: at })}>{t('Starts here ({time})', { time: at })}</button>
+      <button type="button" className="btn" disabled={!form} onClick={() => set({ end: at })}>{t('Ends here ({time})', { time: at })}</button>
+      <span className="pick-now" role="status">{cur.start || cur.end ? t('{start} to {end}', { start: cur.start || '0:00', end: cur.end || (part === 'credits' ? t('the end') : '…') }) : t('Not marked')}</span>
+      <button type="button" className="btn primary" disabled={!form || busy || !changed} onClick={save}>{t('Save')}</button>
+      <button type="button" className="btn ghost" onClick={back}>{t('Done')}</button>
+      {err && <div className="error" role="alert">{tx(err)}</div>}
     </div>
   )
 }

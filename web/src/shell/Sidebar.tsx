@@ -6,6 +6,7 @@ import { sduiIcon } from '../sdui/render/icons'
 import { Switch } from '../ui/Field'
 import { Brand, BrandMark, UpdateDot, VersionTag } from '../components/common'
 import { IconSettings } from '../icons'
+import { num, t, tn, tx } from '../i18n'
 import { useApp } from '../state'
 import { isBackKey } from '../ui/spatial'
 import { Tooltip } from '../ui/Tooltip'
@@ -47,38 +48,38 @@ export function Sidebar({ open, rail, drawer, onClose, withDrawer }: { open: boo
   const opened = list.flatMap((e) => ('group' in e ? e.items : [e.item])).find((it) => it.id === drawerOf)?.drawer
   const tip = (node: ReactElement<object>, text: string) => rail ? <Tooltip key={text} text={text} side="right" describes={false}>{node}</Tooltip> : node
   const link = (it: NavItem) => tip(
-    <NavLink key={it.id} to={it.to} end={it.end} className={'nav-link' + (it.id === 'home' || it.id === 'tv' || it.id === 'livetv' ? ' nav-dup' : '')} aria-label={rail && !keep ? it.label : undefined}
+    <NavLink key={it.id} to={it.to} end={it.end} className={'nav-link' + (it.id === 'home' || it.id === 'tv' || it.id === 'livetv' ? ' nav-dup' : '')} aria-label={rail && !keep ? tx(it.label) : undefined}
       aria-haspopup={withDrawer && it.drawer ? 'true' : undefined} aria-expanded={withDrawer && it.drawer ? drawerOf === it.id : undefined}
-      onClick={() => setDrawerOf(withDrawer && it.drawer ? it.id : '')}>{navIcon(it)} <span className="nav-text">{it.label}</span>{it.drawer?.count ? <small className="nav-count nav-text">{it.drawer.count.toLocaleString()}</small> : null}</NavLink>, it.label)
+      onClick={() => setDrawerOf(withDrawer && it.drawer ? it.id : '')}>{navIcon(it)} <span className="nav-text">{tx(it.label)}</span>{it.drawer?.count ? <small className="nav-count nav-text">{num(it.drawer.count)}</small> : null}</NavLink>, tx(it.label))
   let libsHead = false
   return (
     <>
       {holding && <div className="backdrop-dim" onClick={onClose} />}
-      <aside className={'sidebar' + (keep ? ' keep-open' : '')} data-nav-zone="bar" aria-label="Main navigation" aria-hidden={!shown} inert={!shown || undefined}
+      <aside className={'sidebar' + (keep ? ' keep-open' : '')} data-nav-zone="bar" aria-label={t('Main navigation')} aria-hidden={!shown} inert={!shown || undefined}
         role={holding ? 'dialog' : undefined} aria-modal={holding || undefined}>
-        <Link to="/" className="brand" aria-label={rail ? brandName || 'Home' : undefined}><BrandMark /><span className="nav-text"><Brand name={brandName} /></span></Link>
+        <Link to="/" className="brand" aria-label={rail ? brandName || t('Home') : undefined}><BrandMark /><span className="nav-text"><Brand name={brandName} /></span></Link>
         {list.map((e) => {
           if ('group' in e) return (
-            <div key={e.key} className="nav-group" role="group" aria-label={e.group}>
-              <div className="nav-section" aria-hidden="true">{e.group}</div>
+            <div key={e.key} className="nav-group" role="group" aria-label={tx(e.group)}>
+              <div className="nav-section" aria-hidden="true">{tx(e.group)}</div>
               {e.items.map(link)}
             </div>
           )
           const first = !libsHead && !prefs.grouped && isLibrary(e.item.id)
           if (first) libsHead = true
-          return first ? <div key={e.key} className="nav-group"><div className="nav-section">Libraries</div>{link(e.item)}</div> : link(e.item)
+          return first ? <div key={e.key} className="nav-group"><div className="nav-section">{t('Libraries')}</div>{link(e.item)}</div> : link(e.item)
         })}
-        {libraries.length === 0 && <div className="nav-empty">No libraries yet</div>}
-        <div className="nav-section nav-dup">Manage</div>
-        {tip(<NavLink to="/settings" className="nav-link nav-dup" aria-label={rail ? 'Settings' : undefined}><IconSettings /> <span className="nav-text">Settings</span><UpdateDot /></NavLink>, 'Settings')}
-        {rail && <div className="rail-keep"><Switch label="Keep menu open" checked={keep} onChange={pin} /><span className="nav-text">Keep menu open</span></div>}
+        {libraries.length === 0 && <div className="nav-empty">{t('No libraries yet')}</div>}
+        <div className="nav-section nav-dup">{t('Manage')}</div>
+        {tip(<NavLink to="/settings" className="nav-link nav-dup" aria-label={rail ? t('Settings') : undefined}><IconSettings /> <span className="nav-text">{t('Settings')}</span><UpdateDot /></NavLink>, t('Settings'))}
+        {rail && <div className="rail-keep"><Switch label={t('Keep menu open')} checked={keep} onChange={pin} /><span className="nav-text">{t('Keep menu open')}</span></div>}
         <div className="sidebar-footer"><VersionTag version={version} /></div>
       </aside>
       {withDrawer && opened && (
-        <nav className="rail-drawer" data-nav-zone="bar" aria-label={opened.title}>
+        <nav className="rail-drawer" data-nav-zone="bar" aria-label={tx(opened.title)}>
           <header className="rail-drawer-head">
             <span className="rail-drawer-ic" aria-hidden="true">{sduiIcon(opened.icon)}</span>
-            <div><h2>{opened.title}</h2>{opened.count ? <p className="muted">{opened.count.toLocaleString()} {opened.count === 1 ? 'title' : 'titles'}</p> : null}</div>
+            <div><h2>{tx(opened.title)}</h2>{opened.count ? <p className="muted">{tn('{count} title', '{count} titles', opened.count)}</p> : null}</div>
           </header>
           {opened.views.map((v) => <DrawerView key={v.id} view={v} onGo={() => setDrawerOf('')} />)}
         </nav>
@@ -94,5 +95,5 @@ function DrawerView({ view, onGo }: { view: { id: string; label: string; icon: s
   const [path, query = ''] = view.route.split('?')
   // A view with no query of its own (All, Collections) is the library's page as it opens: current only if nothing else is.
   const here = loc.pathname === path && !!query && loc.search.replace(/^\?/, '') === query
-  return <Link to={view.route} className={'nav-link' + (here ? ' active' : '')} aria-current={here ? 'page' : undefined} onClick={onGo}>{sduiIcon(view.icon)} <span>{view.label}</span></Link>
+  return <Link to={view.route} className={'nav-link' + (here ? ' active' : '')} aria-current={here ? 'page' : undefined} onClick={onGo}>{sduiIcon(view.icon)} <span>{tx(view.label)}</span></Link>
 }

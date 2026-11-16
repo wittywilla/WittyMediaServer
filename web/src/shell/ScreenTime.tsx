@@ -12,6 +12,7 @@ import { askParentSpec } from '../spec/specs/screentime'
 import { Dialog } from '../ui/Overlay'
 import { useSwitchProfile } from './SwitchProfile'
 import './switchprofile.css'
+import { date, t, tn, tx } from '../i18n'
 
 // Screen time, for a profile that has time rules. The server does the deciding and the stopping:
 // it refuses to play when the time is up and ends what is being sent. This only tells the person
@@ -22,16 +23,16 @@ import './switchprofile.css'
 
 const minutes = (sec: number) => {
   const m = Math.max(1, Math.round(sec / 60))
-  return m === 1 ? '1 minute' : `${m} minutes`
+  return tn('{count} minute', '{count} minutes', m)
 }
 
-const clock = (unix: number) => new Date(unix * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+const clock = (unix: number) => date(unix * 1000, { hour: 'numeric', minute: '2-digit' })
 
 // When playing may start again, in words: "at 7:00" today, "tomorrow at 7:00" otherwise.
 function nextText(st: ScreenTime) {
   if (!st.nextAt) return ''
   const next = new Date(st.nextAt * 1000), now = new Date()
-  return next.toDateString() === now.toDateString() ? `You can watch again at ${clock(st.nextAt)}.` : `You can watch again tomorrow at ${clock(st.nextAt)}.`
+  return next.toDateString() === now.toDateString() ? t('You can watch again at {time}.', { time: clock(st.nextAt) }) : t('You can watch again tomorrow at {time}.', { time: clock(st.nextAt) })
 }
 
 // How long the rules read last are trusted for: when the page comes back into view, and while
@@ -117,7 +118,7 @@ export default function ScreenTimeWatch() {
   }
   if (telling && !st.allowed) return <TimeUp st={st} pin={!!limits?.parentPin} onClose={close} onMore={(next) => { was.current = next.allowed; setSt(next); if (next.allowed) setTelling(false) }} />
   if (st.allowed && st.remainingSec >= 0 && st.remainingSec <= 600) {
-    return <div className="st-left" role="status">{minutes(st.remainingSec)} of screen time left</div>
+    return <div className="st-left" role="status">{t('{time} of screen time left', { time: minutes(st.remainingSec) })}</div>
   }
   return null
 }
@@ -132,7 +133,7 @@ function TimeUp({ st, pin, onClose, onMore }: { st: ScreenTime; pin: boolean; on
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
   const sw = useSwitchProfile()
-  const title = st.reason === 'bedtime' ? 'That’s all for tonight' : st.reason === 'early' ? 'It’s a bit early' : 'Screen time is up'
+  const title = st.reason === 'bedtime' ? t('That’s all for tonight') : st.reason === 'early' ? t('It’s a bit early') : t('Screen time is up')
   const give = async () => {
     setErr(''); setBusy(true)
     try {
@@ -145,8 +146,8 @@ function TimeUp({ st, pin, onClose, onMore }: { st: ScreenTime; pin: boolean; on
   const ready = byPassword ? !!name.trim() && !!password : code.length >= 4
   if (asking) {
     return (
-      <Dialog title="Ask a parent" size="sm" onClose={onClose}
-        actions={<><Button variant="ghost" onClick={() => { setAsking(false); setErr('') }}>Back</Button><Button variant="primary" busy={busy} disabled={!ready} onClick={give}>Give more time</Button></>}>
+      <Dialog title={t('Ask a parent')} size="sm" onClose={onClose}
+        actions={<><Button variant="ghost" onClick={() => { setAsking(false); setErr('') }}>{t('Back')}</Button><Button variant="primary" busy={busy} disabled={!ready} onClick={give}>{t('Give more time')}</Button></>}>
         <form className="st-ask" onSubmit={(e) => { e.preventDefault(); if (ready && !busy) give() }}>
           <SpecPage embedded page={page} handled={handled} onAction={(id) => { if (id.startsWith('more:')) setMore(id.slice(5)); else if (id === 'switch') { setByPassword(!byPassword); setErr('') } }}
             onField={(id, v) => { if (id === 'code') setCode(String(v).replace(/\D/g, '').slice(0, 12)); else if (id === 'name') setName(String(v)); else if (id === 'password') setPassword(String(v)) }} />
@@ -158,8 +159,8 @@ function TimeUp({ st, pin, onClose, onMore }: { st: ScreenTime; pin: boolean; on
   return (
     <>
       <Dialog title={title} size="sm" alert onClose={onClose}
-        actions={<><Button variant="ghost" onClick={sw.start}>Switch profile</Button><Button onClick={() => setAsking(true)}>Ask a parent</Button><Button variant="primary" onClick={onClose}>OK</Button></>}>
-        <p>{st.message || 'This profile can’t watch any more right now.'}</p>
+        actions={<><Button variant="ghost" onClick={sw.start}>{t('Switch profile')}</Button><Button onClick={() => setAsking(true)}>{t('Ask a parent')}</Button><Button variant="primary" onClick={onClose}>{t('OK')}</Button></>}>
+        <p>{tx(st.message) || t('This profile can’t watch any more right now.')}</p>
         <p className="st-when">{nextText(st)}</p>
       </Dialog>
       {sw.dialog}

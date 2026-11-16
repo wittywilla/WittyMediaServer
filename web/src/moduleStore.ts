@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { api } from './api'
+import { t, tk, tx } from './i18n'
 import type { IntegrationSummary, NeedsOverride, OverrideRecord, Pending, UiSummary } from './pages/settings/store/overrides'
 
 // What the server says about modules, for the three places that show them: the
@@ -35,7 +36,7 @@ export type VersionInfo = Offer & { builtin?: boolean; inUse?: boolean; installe
 export type VersionList = { id: string; name: string; repo: string; inUse: string; pin?: string; checkedAt?: number; versions: VersionInfo[] }
 
 // The store's shelves, in order. Core modules sit apart from these.
-const GROUPS: [string, string][] = [['watch', 'Watch'], ['discs', 'Discs'], ['listen', 'Listen'], ['read', 'Read'], ['photos', 'Photos'], ['tv', 'Live TV'], ['games', 'Games'], ['system', 'System']]
+const GROUPS: [string, string][] = [['watch', tk('Watch')], ['discs', tk('Discs')], ['listen', tk('Listen')], ['read', tk('Read')], ['photos', tk('Photos')], ['tv', tk('Live TV')], ['games', tk('Games')], ['system', tk('System')]]
 
 // shelves sorts modules by what they do. One whose group this build has no name
 // for still shows, on a shelf of its own at the end.
@@ -44,8 +45,8 @@ export function shelves(mods: ModuleStatus[]): { id: string; title: string; modu
   // On a shelf, the module that brings the most kinds of library comes first.
   const bySize = (a: ModuleStatus, b: ModuleStatus) => (b.libraries?.length || 0) - (a.libraries?.length || 0)
   return [
-    ...GROUPS.map(([id, title]) => ({ id, title, modules: mods.filter((m) => m.group === id).sort(bySize) })),
-    { id: 'other', title: 'Other', modules: rest },
+    ...GROUPS.map(([id, title]) => ({ id, title: tx(title), modules: mods.filter((m) => m.group === id).sort(bySize) })),
+    { id: 'other', title: t('Other'), modules: rest },
   ].filter((s) => s.modules.length > 0)
 }
 
@@ -57,7 +58,7 @@ export const libraryKinds = () => api.get<{ libraries: LibraryKind[] }>('/module
 // What this server calls a kind of library, if it has chosen a name of its own.
 export const kindTitle = (kinds: LibraryKind[] | null, type: string, usual: string) => kinds?.find((k) => k.type === type)?.label || usual
 
-export const orList = (names: string[]) => names.length < 2 ? names[0] || '' : `${names.slice(0, -1).join(', ')} or ${names[names.length - 1]}`
+export const orList = (names: string[]) => names.length < 2 ? names[0] || '' : t('{list} or {last}', { list: names.slice(0, -1).join(', '), last: names[names.length - 1] })
 
 // The kind's entry if its module is missing; undefined if it can be made.
 export const missingKind = (kinds: LibraryKind[], type: string) => kinds.find((k) => k.type === type && !k.available)

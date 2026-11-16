@@ -3,6 +3,8 @@
 // What the main menu holds and in what order. Plain data and arithmetic, so the
 // same rules can be tested here and ported to the native clients.
 
+const tk = <S extends string>(english: S): S => english // marks text translated where it's shown (no i18n import: node tests load this file)
+
 // icon, placement and screen come with a server's menu (GET /sdui/navigation): the icon's name, where the entry
 // sits (primary, more, end) and, for one of the app's own screens, which.
 export type NavItem = { id: string; label: string; to: string; kind?: string; end?: boolean; icon?: string; placement?: string; screen?: string; drawer?: import('../sdui/types').NavDrawer }
@@ -18,7 +20,7 @@ export function foldGames(items: NavItem[]): NavItem[] {
   if (!items.some(isPlayEntry)) return items
   return items
     .filter((it) => isPlayEntry(it) || !((isLibrary(it.id) && it.kind === 'games') || it.to === '/games'))
-    .map((it) => (isPlayEntry(it) ? { ...it, label: 'Games', icon: it.icon || 'game' } : it))
+    .map((it) => (isPlayEntry(it) ? { ...it, label: tk('Games'), icon: it.icon || 'game' } : it))
 }
 
 export type NavPrefs = {
@@ -31,7 +33,8 @@ export type NavPrefs = {
   style?: 'side' | 'top' | 'both'
 }
 
-export const GROUPS = ['Watch', 'Listen', 'Read', 'Play']
+// The names are kept in prefs as they are here (English); the menu shows them with tx().
+export const GROUPS = [tk('Watch'), tk('Listen'), tk('Read'), tk('Play')]
 
 const KIND_GROUP: Record<string, string> = {
   movies: 'Watch', shows: 'Watch', anime: 'Watch', videos: 'Watch', shorts: 'Watch', channels: 'Watch', musicvideos: 'Watch', photos: 'Watch', commercials: 'Watch',

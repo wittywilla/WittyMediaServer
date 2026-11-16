@@ -6,6 +6,7 @@ import { EmptyState } from '../components/common'
 import { IconLibrary, libIcon } from '../icons'
 import { countOf } from '../pages/HomePage'
 import { useApp } from '../state'
+import { t } from '../i18n'
 
 // Libraries: every library the profile can see, as a grid of tiles. A games library opens Games' view of it.
 export default function Libraries() {
@@ -13,9 +14,9 @@ export default function Libraries() {
   const list = libraries.filter(inMainMenus)
   return (
     <div className="tvm-page">
-      <h1 className="tvm-title">Libraries</h1>
+      <h1 className="tvm-title">{t('Libraries')}</h1>
       {list.length === 0
-        ? <EmptyState icon={<IconLibrary />} title="No libraries here yet" text="An owner adds them in Settings on the server’s website." />
+        ? <EmptyState icon={<IconLibrary />} title={t('No libraries here yet')} text={t('An owner adds them in Settings on the server’s website.')} />
         : (
           <div className="tvm-lib-grid" data-nav-group>
             {list.map((l) => (

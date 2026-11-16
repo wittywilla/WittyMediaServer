@@ -6,12 +6,12 @@
 //   --keys   prints every message found in the source, one per line (for writing a catalogue)
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
-import { messagesIn } from '../src/i18n/extract.ts'
+import { keysIn } from '../src/i18n/extract.ts'
 
 const src = new URL('../src/', import.meta.url).pathname.replace(/^\/(\w:)/, '$1')
 const walk = (d) => readdirSync(d).flatMap((f) => { const p = join(d, f); return statSync(p).isDirectory() ? walk(p) : /\.(tsx?|mts)$/.test(f) ? [p] : [] })
 const keys = new Set()
-for (const f of walk(src)) for (const k of messagesIn(readFileSync(f, 'utf8'))) keys.add(k)
+for (const f of walk(src)) for (const k of keysIn(readFileSync(f, 'utf8'))) keys.add(k)
 const args = process.argv.slice(2)
 if (args.includes('--keys')) { for (const k of [...keys].sort()) console.log(k); process.exit(0) }
 const dir = join(src, 'i18n', 'locales')

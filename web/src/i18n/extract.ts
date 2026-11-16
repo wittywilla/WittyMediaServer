@@ -16,3 +16,11 @@ export function messagesIn(source: string): string[] {
   for (const m of source.matchAll(two)) out.push(unescape(m[1] ?? m[2] ?? m[3] ?? ''), unescape(m[4] ?? m[5] ?? m[6] ?? ''))
   return out.filter(Boolean)
 }
+
+/** The catalogue keys in a source file: like messagesIn, but a count's message is keyed by its plural English only. */
+export function keysIn(source: string): string[] {
+  const out: string[] = []
+  for (const m of source.matchAll(one)) out.push(unescape(m[1] ?? m[2] ?? m[3] ?? ''))
+  for (const m of source.matchAll(two)) out.push(unescape(m[4] ?? m[5] ?? m[6] ?? ''))
+  return out.filter(Boolean)
+}

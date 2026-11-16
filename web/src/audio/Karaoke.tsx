@@ -8,13 +8,14 @@ import { lineAt, ownTiming, useLineIndex, wordTimes, type LyricLine, type useLyr
 import { KaraokeStemsControl, useKaraokeStems } from './KaraokeStems'
 import { soundGraph } from './sound'
 import type { PlayerView } from './types'
+import { num, t, tk, tx } from '../i18n'
 
 // Karaoke. Big words that fill in as they're sung, a count-in before each line after a
 // break, the next line waiting below, the voice turned down, and the key moved to suit the
 // singer. Made to read from across a room, and to work from a TV remote: arrows change line
 // on the screen itself, and move between the controls once you're on them.
 
-const VOCALS = [{ v: 0, name: 'Voice on' }, { v: 0.6, name: 'Voice lower' }, { v: 1, name: 'Voice lowest' }]
+const VOCALS = [{ v: 0, name: tk('Voice on') }, { v: 0.6, name: tk('Voice lower') }, { v: 1, name: tk('Voice lowest') }]
 const COUNT_FROM_MS = 3000 // the count-in before a line
 const LONG_GAP_MS = 5000 // a break long enough to count back in from
 
@@ -124,30 +125,30 @@ export default function Karaoke({ p, ly, onClose, behind, choice }: { p: PlayerV
   const it = p.current!
   const firstAt = lines[0]?.t ?? 0
   return (
-    <div className="kar" ref={root} tabIndex={-1} role="dialog" aria-modal="true" aria-label={`Karaoke: ${it.title}`} onClickCapture={(e) => { if (e.detail > 0) requestAnimationFrame(() => root.current?.focus({ preventScroll: true })) }}>
+    <div className="kar" ref={root} tabIndex={-1} role="dialog" aria-modal="true" aria-label={t('Karaoke: {title}', { title: it.title })} onClickCapture={(e) => { if (e.detail > 0) requestAnimationFrame(() => root.current?.focus({ preventScroll: true })) }}>
       <div className="kar-bg" aria-hidden="true" />
       {behind}
       <header className="kar-top">
         <div className="kar-song"><b>{it.title}</b><span>{it.artist || it.albumArtist}</span></div>
-        <Segmented label="Words" value={lines.length ? mode : 'read'} onChange={setMode} options={[{ value: 'follow', label: 'Follow along', disabled: !lines.length }, { value: 'read', label: 'Read' }]} />
-        <button type="button" className="mp-ibtn" onClick={fullscreen} aria-label="Fill the screen (F)" title="Fill the screen (F)"><IconFull /></button>
-        <button type="button" className="mp-ibtn" onClick={onClose} aria-label="Leave karaoke (Esc)" title="Leave karaoke (Esc)"><IconClose /></button>
+        <Segmented label={t('Words')} value={lines.length ? mode : 'read'} onChange={setMode} options={[{ value: 'follow', label: t('Follow along'), disabled: !lines.length }, { value: 'read', label: t('Read') }]} />
+        <button type="button" className="mp-ibtn" onClick={fullscreen} aria-label={t('Fill the screen (F)')} title={t('Fill the screen (F)')}><IconFull /></button>
+        <button type="button" className="mp-ibtn" onClick={onClose} aria-label={t('Leave karaoke (Esc)')} title={t('Leave karaoke (Esc)')}><IconClose /></button>
       </header>
-      {choice && <div className="kar-choice"><span className="kar-choice-l">Behind the words</span>{choice}</div>}
+      {choice && <div className="kar-choice"><span className="kar-choice-l">{t('Behind the words')}</span>{choice}</div>}
 
       <main className="kar-stage">
         {mode === 'read' && readWords ? <pre className="kar-read" tabIndex={0}>{readWords}</pre>
-          : !lyrics || loading ? <p className="kar-msg">Looking for the words…</p>
+          : !lyrics || loading ? <p className="kar-msg">{t('Looking for the words…')}</p>
           : lines.length === 0 ? (
             <div className="kar-msg">
-              <p>{lyrics.plain ? 'These words have no times, so they can\'t follow the music yet.' : 'No words for this song.'}</p>
+              <p>{lyrics.plain ? t('These words have no times, so they can’t follow the music yet.') : t('No words for this song.')}</p>
               {lyrics.plain && <pre className="kar-plain" tabIndex={0}>{lyrics.plain}</pre>}
-              <p className="kar-sub">A timed <code>.lrc</code> file beside the song gives karaoke what it needs, or use Lyrics, then Fix, then Tap along. <HelpLink to="lyrics-karaoke#adding-your-own-lyrics" newTab>How to add your own</HelpLink></p>
+              <p className="kar-sub">{t('A timed .lrc file beside the song gives karaoke what it needs, or use Lyrics, then Fix, then Tap along.')} <HelpLink to="lyrics-karaoke#adding-your-own-lyrics" newTab>{t('How to add your own')}</HelpLink></p>
             </div>
           ) : (
             <>
               <div className={'kar-count' + (count ? ' on' : '')} aria-hidden="true">{count > 0 && <span key={count}>{count}</span>}</div>
-              {index < 0 && <p className="kar-wait">{firstAt > 5000 ? 'Get ready…' : ''}</p>}
+              {index < 0 && <p className="kar-wait">{firstAt > 5000 ? t('Get ready…') : ''}</p>}
               <p className="kar-now" aria-live="off">
                 {nowLine && nowLine.text
                   ? words.map((w, i) => <span key={index + '-' + i} className="kar-word" ref={(el) => { wordEls.current[i] = el }} data-word={w.text}>{w.text}</span>)
@@ -159,38 +160,38 @@ export default function Karaoke({ p, ly, onClose, behind, choice }: { p: PlayerV
           )}
       </main>
 
-      <footer className="kar-bar" role="toolbar" aria-label="Karaoke controls">
-        <button type="button" className="mp-ibtn" onClick={() => goLine(-1)} aria-label="Previous line"><IconPrev /></button>
-        <button type="button" className="kar-play" onClick={p.toggle} aria-label={p.playing ? 'Pause' : 'Play'}>{p.playing ? <IconPause size={30} /> : <IconPlay size={30} />}</button>
-        <button type="button" className="mp-ibtn" onClick={() => goLine(1)} aria-label="Next line"><IconNext /></button>
+      <footer className="kar-bar" role="toolbar" aria-label={t('Karaoke controls')}>
+        <button type="button" className="mp-ibtn" onClick={() => goLine(-1)} aria-label={t('Previous line')}><IconPrev /></button>
+        <button type="button" className="kar-play" onClick={p.toggle} aria-label={p.playing ? t('Pause') : t('Play')}>{p.playing ? <IconPause size={30} /> : <IconPlay size={30} />}</button>
+        <button type="button" className="mp-ibtn" onClick={() => goLine(1)} aria-label={t('Next line')}><IconNext /></button>
         <span className="kar-rule" aria-hidden="true" />
         {stems.active ? <KaraokeStemsControl k={stems} /> : (
-          <div className="kar-seg" role="radiogroup" aria-label="Singer's voice">
-            {VOCALS.map((x) => <button type="button" role="radio" key={x.v} aria-checked={p.sound.vocalCut === x.v} className={p.sound.vocalCut === x.v ? 'on' : ''} onClick={() => p.setSound({ vocalCut: x.v })}>{x.name}</button>)}
+          <div className="kar-seg" role="radiogroup" aria-label={t('Singer’s voice')}>
+            {VOCALS.map((x) => <button type="button" role="radio" key={x.v} aria-checked={p.sound.vocalCut === x.v} className={p.sound.vocalCut === x.v ? 'on' : ''} onClick={() => p.setSound({ vocalCut: x.v })}>{tx(x.name)}</button>)}
           </div>
         )}
-        <div className="kar-stepper" role="group" aria-label="Key">
-          <button type="button" onClick={() => setKey(p.sound.keyShift - 1)} disabled={p.sound.keyShift <= -6} aria-label="Lower key">−</button>
-          <span aria-live="polite">Key {p.sound.keyShift > 0 ? '+' : ''}{p.sound.keyShift}</span>
-          <button type="button" onClick={() => setKey(p.sound.keyShift + 1)} disabled={p.sound.keyShift >= 6} aria-label="Raise key">+</button>
+        <div className="kar-stepper" role="group" aria-label={t('Key')}>
+          <button type="button" onClick={() => setKey(p.sound.keyShift - 1)} disabled={p.sound.keyShift <= -6} aria-label={t('Lower key')}>−</button>
+          <span aria-live="polite">{t('Key {n}', { n: (p.sound.keyShift > 0 ? '+' : '') + p.sound.keyShift })}</span>
+          <button type="button" onClick={() => setKey(p.sound.keyShift + 1)} disabled={p.sound.keyShift >= 6} aria-label={t('Raise key')}>+</button>
         </div>
-        <div className="kar-stepper" role="group" aria-label="Timing of the words">
-          <button type="button" onClick={() => setOffset(offset - 100)} aria-label="Words sooner">−</button>
-          <span aria-live="polite">Words {offset === 0 ? 'on time' : `${offset > 0 ? '+' : ''}${(offset / 1000).toFixed(1)} s`}{lyrics?.autoSync === 'set' && offset === ownTiming(lyrics) ? ' (by listening)' : ''}</span>
-          <button type="button" onClick={() => setOffset(offset + 100)} aria-label="Words later">+</button>
+        <div className="kar-stepper" role="group" aria-label={t('Timing of the words')}>
+          <button type="button" onClick={() => setOffset(offset - 100)} aria-label={t('Words sooner')}>−</button>
+          <span aria-live="polite">{offset === 0 ? t('Words on time') : t('Words {n} s', { n: (offset > 0 ? '+' : '') + num(offset / 1000, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) })}{lyrics?.autoSync === 'set' && offset === ownTiming(lyrics) ? ' ' + t('(by listening)') : ''}</span>
+          <button type="button" onClick={() => setOffset(offset + 100)} aria-label={t('Words later')}>+</button>
         </div>
       </footer>
       <p className="kar-note">
-        {p.soundNote || stems.note || (mono
-          ? 'This recording is close to mono, so there\'s no way to separate the voice from it.'
+        {p.soundNote || tx(stems.note) || (mono
+          ? t('This recording is close to mono, so there’s no way to separate the voice from it.')
           : p.sound.vocalCut > 0
-            ? 'The voice is turned down by removing what\'s in the middle of the mix. Echoes of it, and songs that spread it wide, will still come through.'
-            : p.sound.keyShift !== 0 ? 'A changed key can warble a little on long notes.'
-              : lines.length > 0 && !timedWords ? 'Lines are timed; the fill within a line is an estimate.' : ' ')}
+            ? t('The voice is turned down by removing what’s in the middle of the mix. Echoes of it, and songs that spread it wide, will still come through.')
+            : p.sound.keyShift !== 0 ? t('A changed key can warble a little on long notes.')
+              : lines.length > 0 && !timedWords ? t('Lines are timed; the fill within a line is an estimate.') : ' ')}
       </p>
       {/* The keys karaoke answers, said as the player says its own (they were there, but nowhere to be seen). */}
       <p className="np-hints kar-hints" aria-hidden="true">
-        <kbd>Esc</kbd> back · <kbd>Space</kbd> play or pause · <kbd>←</kbd> <kbd>→</kbd> previous or next line · <kbd>V</kbd> {stems.active ? 'voice on or off' : 'voice lower'} · <kbd>−</kbd> <kbd>+</kbd> key · <kbd>[</kbd> <kbd>]</kbd> words sooner or later · <kbd>F</kbd> full screen
+        <kbd>Esc</kbd> {t('back')} · <kbd>{t('Space')}</kbd> {t('play or pause')} · <kbd>←</kbd> <kbd>→</kbd> {t('previous or next line')} · <kbd>V</kbd> {stems.active ? t('voice on or off') : t('voice lower')} · <kbd>−</kbd> <kbd>+</kbd> {t('key')} · <kbd>[</kbd> <kbd>]</kbd> {t('words sooner or later')} · <kbd>F</kbd> {t('full screen')}
       </p>
     </div>
   )

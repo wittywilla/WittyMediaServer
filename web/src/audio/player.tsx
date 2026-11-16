@@ -12,6 +12,7 @@ import { canRoute, loadSound, openGraph, saveSound, soundGraph, type SoundSettin
 import type { AudioMode, PlayerView, Repeat } from './types'
 import { useMusicParty } from './partyMusic'
 import AudioTarget from '../remote/AudioTarget'
+import { t } from '../i18n'
 
 export type { AudioMode } from './types'
 
@@ -201,16 +202,16 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     let gone = false
     void (async () => {
       const a = audio.current
-      if (!canRoute(a)) { setSoundNote('This can\'t change the sound here, as the server is on a different address from this page.'); return }
+      if (!canRoute(a)) { setSoundNote(t('This can’t change the sound here, as the server is on a different address from this page.')); return }
       const g = await openGraph()
-      if (!g || gone) { if (!g && !gone) setSoundNote('This browser wouldn\'t start its audio engine.'); return }
+      if (!g || gone) { if (!g && !gone) setSoundNote(t('This browser wouldn’t start its audio engine.')); return }
       for (const el of [deckA.current, deckB.current]) if (el && canRoute(el)) { g.route(el); level(el) }
       const s = soundRef.current
       g.setEq(s.eqOn, s.eqGains, s.preamp)
       g.setVocalCut(s.vocalCut)
       const keyOk = await g.setKey(s.keyShift)
       if (gone) return
-      setSoundNote(keyOk || s.keyShift === 0 ? '' : 'This browser can\'t change the key.')
+      setSoundNote(keyOk || s.keyShift === 0 ? '' : t('This browser can’t change the key.'))
     })()
     return () => { gone = true }
   }, [usesGraph, playing, sound.eqOn, sound.eqGains, sound.preamp, sound.vocalCut, sound.keyShift, current?.id, level])
@@ -363,7 +364,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       const id = it.id
       import('hls.js').then(({ default: Hls }) => {
         if (audio.current !== a || currentId.current !== id || hlsLoad.current !== asked) return
-        if (!Hls.isSupported()) { toast(`${it.title} can't be played in this browser`); return }
+        if (!Hls.isSupported()) { toast(t('{title} can’t be played in this browser', { title: it.title })); return }
         const h = new Hls({
           xhrSetup: (xhr) => { const t = getToken(); if (t) xhr.setRequestHeader('Authorization', 'Bearer ' + t); xhr.withCredentials = !serverBase() },
           maxBufferLength: 30, backBufferLength: 10, lowLatencyMode: false,
@@ -373,13 +374,13 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
           h.destroy()
           if (hls.current === h) hls.current = null
           setPlaying(false)
-          toast(`${it.title} can't be reached`)
+          toast(t('{title} can’t be reached', { title: it.title }))
         })
         h.loadSource(src)
         h.attachMedia(a)
         hls.current = h
         a.play().catch(() => setPlaying(false))
-      }).catch(() => toast(`${it.title} can't be played right now`))
+      }).catch(() => toast(t('{title} can’t be played right now', { title: it.title })))
       return
     }
     if (direct(it)) {
@@ -540,7 +541,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     setPlaying(false)
     if (retries.current >= RETRY_WAITS.length) {
       wasPlaying.current = false
-      toast(`${it.title} stopped, and can't be reached`)
+      toast(t('{title} stopped, and can’t be reached', { title: it.title }))
       return
     }
     setRetrying(true)
@@ -800,7 +801,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     toggleLike,
     startRadio: (it) => {
       api.get<Item[]>(`/music/radio/${it.id}`).then((list) => {
-        if (list.length < 2) { toast('There isn\'t enough here yet to make a station from this song'); return }
+        if (list.length < 2) { toast(t('There isn’t enough here yet to make a station from this song')); return }
         ctx.play(list, 0, 'music')
       }).catch((e: Error) => toast(e.message))
     },
@@ -856,13 +857,13 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       if (cdOn.current) { cd.onError(); return }
       if (!live && current && audio.current?.getAttribute('src')) {
         setPlaying(false)
-        toast(`${current.title} can't be played right now`)
+        toast(t('{title} can’t be played right now', { title: current.title }))
         if (audio.current) reportMediaError(audio.current, `Audio of item ${current.id}`)
         return
       }
       if (!live || !current || !audio.current?.getAttribute('src')) return
       if (wasPlaying.current) { reconnect(); return }
-      const fail = () => { setPlaying(false); toast(`${current.title} can't be reached`); if (audio.current) reportMediaError(audio.current, `Audio of item ${current.id}`) }
+      const fail = () => { setPlaying(false); toast(t('{title} can’t be reached', { title: current.title })); if (audio.current) reportMediaError(audio.current, `Audio of item ${current.id}`) }
       if (current.radio?.hls) { fail(); return }
       // A station added by its address may have turned out to be HLS just now.
       api.get<Item>(`/radio/${current.id}`).then((r) => {
@@ -898,7 +899,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       <audio ref={deckB} preload="none" {...deckEvents} />
       {current && !takenOver && !(cdActive && loc.pathname === `/cd/${cd.now!.disc.id}`) && (
         <>
-          <span className="mp-sr" aria-live="polite">{playing ? `Now playing: ${current.title}${current.artist ? `, by ${current.artist}` : ''}` : ''}</span>
+          <span className="mp-sr" aria-live="polite">{playing ? (current.artist ? t('Now playing: {title}, by {artist}', { title: current.title, artist: current.artist }) : t('Now playing: {title}', { title: current.title })) : ''}</span>
           {!full && <MiniPlayer p={view} cdSpin={cdActive} />}
           {wantFull && <Suspense fallback={null}>{full && <NowPlaying p={view} />}</Suspense>}
         </>

@@ -7,6 +7,7 @@ import { AddToPlaylist, Like, Seek, Volume } from './controls'
 import { musicCatalogue } from '../sdui/catalogue'
 import { IconKaraoke, IconList, IconRepeat, IconRepeatOne, IconShuffle } from './icons'
 import type { PlayerView } from './types'
+import { t } from '../i18n'
 
 // The bar: floating along the bottom while you browse, with room left under the page so it
 // never hides the last row. It collapses to a small button in the corner for anyone who
@@ -19,25 +20,25 @@ export default function MiniPlayer({ p, cdSpin }: { p: PlayerView; cdSpin: boole
   const listed = musicCatalogue()?.miniPlayer
   const wants = (id: string) => !listed || listed.includes(id)
   const sing = p.mode === 'music' && !p.cdActive && !p.live && !p.books
-  const sub = p.live ? (p.retrying ? 'Reconnecting…' : p.stationNow || 'Live') : [it.artist || it.albumArtist, it.album].filter(Boolean).join(' · ')
+  const sub = p.live ? (p.retrying ? t('Reconnecting…') : p.stationNow || t('Live')) : [it.artist || it.albumArtist, it.album].filter(Boolean).join(' · ')
   const art = it.poster
     ? <img src={sized(posterUrl(it), fitWidth(64))} alt="" style={p.live ? { objectFit: 'contain' } : undefined} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
     : p.live ? <Placeholder title={it.title} /> : <IconAudio />
   if (p.collapsed) {
     const pct = p.duration > 0 ? (p.time / p.duration) * 100 : 0
     return (
-      <div className="audio-bar collapsed" role="region" aria-label="Now playing">
+      <div className="audio-bar collapsed" role="region" aria-label={t('Now playing')}>
         <span className="ab-ring" style={{ '--pct': pct + '%' } as React.CSSProperties} aria-hidden="true" />
-        <button className="ab-art" onClick={() => p.setCollapsed(false)} aria-label={`Show the player: ${it.title}`} title="Show the player">{art}</button>
-        <button className="ab-mini-play" onClick={p.toggle} aria-label={p.playing ? 'Pause' : 'Play'}>{p.playing ? <IconPause /> : <IconPlay />}</button>
+        <button className="ab-art" onClick={() => p.setCollapsed(false)} aria-label={t('Show the player: {title}', { title: it.title })} title={t('Show the player')}>{art}</button>
+        <button className="ab-mini-play" onClick={p.toggle} aria-label={p.playing ? t('Pause') : t('Play')}>{p.playing ? <IconPause /> : <IconPlay />}</button>
       </div>
     )
   }
   return (
-    <div className={'audio-bar' + (p.live ? ' live' : '')} role="region" aria-label="Now playing">
-      <button className={'ab-art' + (cdSpin ? ' cd' + (p.playing ? ' spin' : '') : '')} onClick={() => p.openFull()} aria-label="Show the full player" title="Show the full player">{art}</button>
+    <div className={'audio-bar' + (p.live ? ' live' : '')} role="region" aria-label={t('Now playing')}>
+      <button className={'ab-art' + (cdSpin ? ' cd' + (p.playing ? ' spin' : '') : '')} onClick={() => p.openFull()} aria-label={t('Show the full player')} title={t('Show the full player')}>{art}</button>
       {!p.live && <div className="ab-progress"><Seek p={p} slim /></div>}
-      <button className="ab-info" onClick={() => p.openFull()} title="Show the full player">
+      <button className="ab-info" onClick={() => p.openFull()} title={t('Show the full player')}>
         <div className="ab-title">{it.title}</div>
         <div className="ab-sub">{sub}</div>
       </button>
@@ -46,26 +47,26 @@ export default function MiniPlayer({ p, cdSpin }: { p: PlayerView; cdSpin: boole
         {!p.live && <AddToPlaylist items={[it]} up />}
       </div>
       <div className="ab-ctl">
-        {!p.books && !p.live && <button className={'mp-ibtn wide' + (p.shuffle ? ' on' : '')} aria-pressed={p.shuffle} aria-label="Shuffle" title="Shuffle" onClick={() => p.setShuffle(!p.shuffle)}><IconShuffle /></button>}
-        {p.books && <button className="mp-ibtn wide" onClick={() => p.seek(Math.max(0, p.position() - 15))} aria-label="Back 15 seconds"><IconBack15 /></button>}
-        <button className="mp-ibtn wide" onClick={p.prev} aria-label="Previous" title="Previous"><IconPrev /></button>
-        <button className="mp-ibtn big" onClick={p.toggle} aria-label={p.playing ? 'Pause' : 'Play'}>{p.playing ? <IconPause /> : <IconPlay />}</button>
-        <button className="mp-ibtn" onClick={p.next} aria-label="Next" title="Next"><IconNext /></button>
-        {p.books && <button className="mp-ibtn wide" onClick={() => p.seek(p.position() + 30)} aria-label="Forward 30 seconds"><IconForward30 /></button>}
-        {!p.books && !p.live && <button className={'mp-ibtn wide' + (p.repeat !== 'off' ? ' on' : '')} aria-label={p.repeat === 'one' ? 'Repeat this song' : p.repeat === 'all' ? 'Repeat all' : 'Repeat off'} title="Repeat" onClick={p.cycleRepeat}>{p.repeat === 'one' ? <IconRepeatOne /> : <IconRepeat />}</button>}
+        {!p.books && !p.live && <button className={'mp-ibtn wide' + (p.shuffle ? ' on' : '')} aria-pressed={p.shuffle} aria-label={t('Shuffle')} title={t('Shuffle')} onClick={() => p.setShuffle(!p.shuffle)}><IconShuffle /></button>}
+        {p.books && <button className="mp-ibtn wide" onClick={() => p.seek(Math.max(0, p.position() - 15))} aria-label={t('Back 15 seconds')}><IconBack15 /></button>}
+        <button className="mp-ibtn wide" onClick={p.prev} aria-label={t('Previous')} title={t('Previous')}><IconPrev /></button>
+        <button className="mp-ibtn big" onClick={p.toggle} aria-label={p.playing ? t('Pause') : t('Play')}>{p.playing ? <IconPause /> : <IconPlay />}</button>
+        <button className="mp-ibtn" onClick={p.next} aria-label={t('Next')} title={t('Next')}><IconNext /></button>
+        {p.books && <button className="mp-ibtn wide" onClick={() => p.seek(p.position() + 30)} aria-label={t('Forward 30 seconds')}><IconForward30 /></button>}
+        {!p.books && !p.live && <button className={'mp-ibtn wide' + (p.repeat !== 'off' ? ' on' : '')} aria-label={p.repeat === 'one' ? t('Repeat this song') : p.repeat === 'all' ? t('Repeat all') : t('Repeat off')} title={t('Repeat')} onClick={p.cycleRepeat}>{p.repeat === 'one' ? <IconRepeatOne /> : <IconRepeat />}</button>}
       </div>
       <div className="ab-side wide">
         {!p.live && <span className="ab-time">{fmtTime(p.time)} / {fmtTime(p.duration)}</span>}
         <Volume p={p} up />
-        {sing && wants('lyrics') && <button className="mp-ibtn" onClick={() => p.openFull({ panel: 'lyrics' })} aria-label="Lyrics" title="Lyrics (L)"><IconMic size={20} /></button>}
-        {sing && wants('karaoke') && <button className="ab-viz-pill" onClick={() => p.openFull({ panel: 'karaoke' })} title="Karaoke (K)"><IconKaraoke /><span>Karaoke</span></button>}
-        {wants('queue') && <button className="mp-ibtn" onClick={() => p.openFull({ panel: 'queue' })} aria-label="Queue" title="Queue"><IconList /></button>}
-        {!p.live && wants('visualizer') && <button className="ab-viz-pill" onClick={() => p.openFull({ visualizer: true })} title="Visualizer (V)"><IconVisualizer /><span>Visualizer</span></button>}
-        <button className="mp-ibtn ab-expand" onClick={() => p.openFull()} aria-label="Full screen" title="Full screen"><IconExpand /></button>
-        <button className="mp-ibtn" onClick={() => p.setCollapsed(true)} aria-label="Collapse the player" title="Collapse"><IconDown /></button>
-        <button className="mp-ibtn" onClick={p.stop} aria-label="Stop playing and close" title="Stop and close"><IconClose /></button>
+        {sing && wants('lyrics') && <button className="mp-ibtn" onClick={() => p.openFull({ panel: 'lyrics' })} aria-label={t('Lyrics')} title={t('Lyrics (L)')}><IconMic size={20} /></button>}
+        {sing && wants('karaoke') && <button className="ab-viz-pill" onClick={() => p.openFull({ panel: 'karaoke' })} title={t('Karaoke (K)')}><IconKaraoke /><span>{t('Karaoke')}</span></button>}
+        {wants('queue') && <button className="mp-ibtn" onClick={() => p.openFull({ panel: 'queue' })} aria-label={t('Queue')} title={t('Queue')}><IconList /></button>}
+        {!p.live && wants('visualizer') && <button className="ab-viz-pill" onClick={() => p.openFull({ visualizer: true })} title={t('Visualizer (V)')}><IconVisualizer /><span>{t('Visualizer')}</span></button>}
+        <button className="mp-ibtn ab-expand" onClick={() => p.openFull()} aria-label={t('Full screen')} title={t('Full screen')}><IconExpand /></button>
+        <button className="mp-ibtn" onClick={() => p.setCollapsed(true)} aria-label={t('Collapse the player')} title={t('Collapse')}><IconDown /></button>
+        <button className="mp-ibtn" onClick={p.stop} aria-label={t('Stop playing and close')} title={t('Stop and close')}><IconClose /></button>
       </div>
-      <button className="mp-ibtn phone-only" onClick={() => p.openFull()} aria-label="Full screen"><IconUp /></button>
+      <button className="mp-ibtn phone-only" onClick={() => p.openFull()} aria-label={t('Full screen')}><IconUp /></button>
     </div>
   )
 }

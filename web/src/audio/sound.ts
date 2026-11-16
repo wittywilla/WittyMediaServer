@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
+import { tk } from '../i18n'
 // What happens to the sound between the player and the speakers: equaliser, loudness,
 // vocal reduction and key. It's all optional and nothing here runs until someone turns one
 // on: an <audio> element plays straight to the speakers until then, which is both the
@@ -14,16 +15,16 @@ export const EQ_FREQS = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000]
 
 export type EqPreset = { id: string; name: string; gains: number[] }
 export const EQ_PRESETS: EqPreset[] = [
-  { id: 'flat', name: 'Flat', gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
-  { id: 'bass', name: 'More bass', gains: [6, 5, 3, 1, 0, 0, 0, 0, 0, 0] },
-  { id: 'treble', name: 'More treble', gains: [0, 0, 0, 0, 0, 0, 1, 3, 5, 6] },
-  { id: 'vocal', name: 'Clear voices', gains: [-2, -2, -1, 0, 2, 4, 4, 2, 0, -1] },
-  { id: 'rock', name: 'Rock', gains: [4, 3, 1, -1, -1, 0, 2, 3, 4, 4] },
-  { id: 'pop', name: 'Pop', gains: [-1, 0, 2, 3, 3, 1, 0, 0, 1, 1] },
-  { id: 'classical', name: 'Classical', gains: [3, 2, 1, 0, 0, 0, 0, 1, 2, 3] },
-  { id: 'jazz', name: 'Jazz', gains: [3, 2, 1, 1, -1, -1, 0, 1, 2, 3] },
-  { id: 'night', name: 'Quiet room', gains: [-4, -3, -1, 0, 1, 2, 1, 0, -2, -3] },
-  { id: 'speech', name: 'Speech', gains: [-6, -4, -2, 1, 3, 4, 3, 2, 0, -3] },
+  { id: 'flat', name: tk('Flat'), gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+  { id: 'bass', name: tk('More bass'), gains: [6, 5, 3, 1, 0, 0, 0, 0, 0, 0] },
+  { id: 'treble', name: tk('More treble'), gains: [0, 0, 0, 0, 0, 0, 1, 3, 5, 6] },
+  { id: 'vocal', name: tk('Clear voices'), gains: [-2, -2, -1, 0, 2, 4, 4, 2, 0, -1] },
+  { id: 'rock', name: tk('Rock'), gains: [4, 3, 1, -1, -1, 0, 2, 3, 4, 4] },
+  { id: 'pop', name: tk('Pop'), gains: [-1, 0, 2, 3, 3, 1, 0, 0, 1, 1] },
+  { id: 'classical', name: tk('Classical'), gains: [3, 2, 1, 0, 0, 0, 0, 1, 2, 3] },
+  { id: 'jazz', name: tk('Jazz'), gains: [3, 2, 1, 1, -1, -1, 0, 1, 2, 3] },
+  { id: 'night', name: tk('Quiet room'), gains: [-4, -3, -1, 0, 1, 2, 1, 0, -2, -3] },
+  { id: 'speech', name: tk('Speech'), gains: [-6, -4, -2, 1, 3, 4, 3, 2, 0, -3] },
 ]
 
 export type SoundSettings = {

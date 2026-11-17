@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, ApiError } from '../api'
 import { useApp } from '../state'
-import { decodeLevels, defaultLevel, encodeLevels, gainsFor, levelOf, levelsKey, MIX, playable, pollDelay, qualityName, statusLine, type KaraokeAnswer, type Levels } from './stemMix'
+import { decodeLevels, defaultLevel, encodeLevels, levelOf, routesFor, levelsKey, MIX, playable, pollDelay, qualityName, statusLine, type KaraokeAnswer, type Levels } from './stemMix'
 import { StemSet, type StemPlayer } from './stems'
+import { decodeFx, encodeFx, FX_OFF, fxKey, type Fx } from './voiceFx'
 import type { PlayerView } from './types'
 
 // Karaoke from a song's separate parts. Opening karaoke asks the server once; it makes a
@@ -13,6 +14,7 @@ import type { PlayerView } from './types'
 // for the better one when that's ready. Nobody has to set anything up or press anything.
 
 const readLevels = (key: string): Levels => { try { return decodeLevels(localStorage.getItem(key)) } catch { return {} } }
+const readFx = (key: string): Fx => { try { return decodeFx(localStorage.getItem(key)) } catch { return { ...FX_OFF } } }
 
 export function useKaraokeStems(p: PlayerView) {
   const { user } = useApp()
@@ -20,6 +22,8 @@ export function useKaraokeStems(p: PlayerView) {
   const id = p.mode === 'music' && !p.cdActive && !p.live ? p.current?.id : undefined
   const [answer, setAnswer] = useState<KaraokeAnswer | null>(null)
   const [levels, setLevels] = useState<Levels>(() => readLevels(key))
+  const fxStore = fxKey(user?.id)
+  const [fx, setFxState] = useState<Fx>(() => readFx(fxStore))
   const [sing, setSing] = useState(false)
   const [active, setActive] = useState(false)
   const [lost, setLost] = useState('')
@@ -76,8 +80,13 @@ export function useKaraokeStems(p: PlayerView) {
   useEffect(() => () => { set.current?.close(); set.current = null }, [])
 
   useEffect(() => {
-    if (active && playable(answer)) set.current?.setGains(gainsFor(answer, levels, sing), p.sound.muted ? 0 : p.sound.volume)
+    if (active && playable(answer)) set.current?.setRoutes(routesFor(answer, levels, sing), p.sound.muted ? 0 : p.sound.volume)
   }, [active, answer, levels, sing, p.sound.volume, p.sound.muted])
+  useEffect(() => { if (active) set.current?.setFx(fx) }, [active, fx])
+  const setFx = (next: Fx) => {
+    setFxState(next)
+    try { localStorage.setItem(fxStore, encodeFx(next)) } catch { /* a private window */ }
+  }
 
   const setLevel = (stem: string, v: number) => {
     if (stem === 'vocals') setSing(false)
@@ -94,7 +103,7 @@ export function useKaraokeStems(p: PlayerView) {
   }
   // Until the parts play, the Mix holds its place, waiting: asked and not answered yet, or being made.
   const waiting = !!id && !active && !lost && answer?.state !== 'unavailable'
-  return { answer, active, waiting, levels, sing, setSing, setLevel, reset, note: statusLine(answer, lost) }
+  return { answer, active, waiting, levels, sing, setSing, setLevel, reset, fx, setFx, note: statusLine(answer, lost) }
 }
 
 export type KaraokeStemsState = ReturnType<typeof useKaraokeStems>

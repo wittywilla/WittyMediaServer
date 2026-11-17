@@ -7,6 +7,8 @@ import { IconClose, IconFull, IconNext, IconPause, IconPlay, IconPrev } from '..
 import { lineAt, ownTiming, useLineIndex, wordTimes, type LyricLine, type useLyrics } from './lyrics'
 import { KaraokeStemsControl, useKaraokeStems } from './KaraokeStems'
 import { Pop } from './controls'
+import { VoiceFxPanel } from './VoiceFxPanel'
+import { isOff } from './voiceFx'
 import { KAR_PARTS } from './stemMix'
 import type { PlayerView } from './types'
 
@@ -39,6 +41,7 @@ export default function Karaoke({ p, ly, onClose, behind, choice, cover = '', co
   const [count, setCount] = useState(0)
   // Words fill in as they are sung (Follow along), or the whole text to read at your own pace (Read).
   const [mode, setMode] = useState<'follow' | 'read'>('follow')
+  const [fxOpen, setFxOpen] = useState(false)
   const readWords = lyrics?.plain || lines.map((l) => l.text).join('\n')
   const stems = useKaraokeStems(p)
   const sideCover = coverBeside && cover ? cover : ''
@@ -94,6 +97,7 @@ export default function Karaoke({ p, ly, onClose, behind, choice, cover = '', co
       switch (e.key) {
         case 'Escape': case 'GoBack': case 'BrowserBack':
           consume()
+          if (fxOpen) { setFxOpen(false); root.current?.querySelector<HTMLElement>('.kar-fx-btn')?.focus({ preventScroll: true }); return }
           if (document.fullscreenElement === root.current) void document.exitFullscreen().catch(() => {})
           onClose()
           return
@@ -181,6 +185,7 @@ export default function Karaoke({ p, ly, onClose, behind, choice, cover = '', co
           <span aria-live="polite">Words {offset === 0 ? 'on time' : `${offset > 0 ? '+' : ''}${(offset / 1000).toFixed(1)} s`}{lyrics?.autoSync === 'set' && offset === ownTiming(lyrics) ? ' (by listening)' : ''}</span>
           <button type="button" onClick={() => setOffset(offset + 100)} aria-label="Words later">+</button>
         </div>}
+        {!hide.includes('fx') && <button type="button" className={'kar-chip kar-fx-btn' + (fxOpen || !isOff(stems.fx) ? ' on' : '')} aria-expanded={fxOpen} onClick={() => setFxOpen(!fxOpen)} title="Echo, reverb, tone and more, for the voice and the music">Voice settings</button>}
         {onHide && (
           <Pop up label={hide.length ? `Controls shown: ${KAR_PARTS.length - hide.length} of ${KAR_PARTS.length}` : 'Choose the controls shown'} className={'np-chip-pop kar-show' + (hide.length ? ' on' : '')} icon={<span>Controls</span>}>
             {() => (
@@ -195,6 +200,7 @@ export default function Karaoke({ p, ly, onClose, behind, choice, cover = '', co
           </Pop>
         )}
       </footer>
+      {fxOpen && <VoiceFxPanel fx={stems.fx} onFx={stems.setFx} ready={stems.active} quick={stems.answer?.mix === 'blend'} onClose={() => { setFxOpen(false); root.current?.querySelector<HTMLElement>('.kar-fx-btn')?.focus({ preventScroll: true }) }} />}
       <p className="kar-note">
         {p.soundNote || (stems.waiting ? '' : stems.note) || (p.sound.keyShift !== 0 ? 'A changed key can warble a little on long notes.'
           : lines.length > 0 && !timedWords ? 'Lines are timed; the fill within a line is an estimate.' : ' ')}

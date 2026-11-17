@@ -18,7 +18,7 @@
   "Add a store run by someone else, and see the modules it offers alongside this project’s. Everything from one is labelled, and whether to trust it is up to you.": "Lisää jonkun muun ylläpitämä kauppa ja näe sen moduulit tämän projektin moduulien rinnalla. Kaikki sieltä tuleva on merkitty, ja luotatko siihen, on sinun päätöksesi.",
   "Add tags": "Lisää tunnisteita",
   "Add this store": "Lisää tämä kauppa",
-  "Add to what this server can do. Everything here is signed, and nothing runs until you choose it.": "Laajenna sitä, mitä tämä palvelin osaa. Kaikki täällä on allekirjoitettu, eikä mitään ajeta ennen kuin valitset sen.",
+  "Add to what this server can do. Everything here is signed, and nothing runs until you choose it.": "Laajenna sitä, mitä palvelin osaa. Kaikki täällä on allekirjoitettu, eikä mikään käynnisty ennen kuin valitset sen.",
   "Add {name}?": "Lisätäänkö {name}?",
   "Added a store": "Lisäsi kaupan",
   "All": "Kaikki",
@@ -39,7 +39,7 @@
   "Cancel": "Peruuta",
   "Can’t be installed here": "Ei voi asentaa tähän",
   "Can’t be used": "Ei voi käyttää",
-  "Can’t reach your server. Check that it’s running and try again.": "Palvelimeesi ei saada yhteyttä. Tarkista, että se on käynnissä, ja yritä uudelleen.",
+  "Can’t reach your server. Check that it’s running and try again.": "Palvelimeen ei saada yhteyttä. Tarkista, että se on käynnissä, ja yritä uudelleen.",
   "Changed where it comes from": "Muutti lähdettä",
   "Checking the signature": "Tarkistetaan allekirjoitusta",
   "Choose a library": "Valitse kirjasto",
@@ -83,7 +83,7 @@
   "Finished, with problems": "Valmis, ongelmin",
   "Fits servers": "Sopii palvelimille",
   "Fits servers {min} to {max}": "Sopii palvelimille {min}–{max}",
-  "Fix matches": "Korjaa täsmäytyksiä",
+  "Fix matches": "Korjaa tunnistukset",
   "Fixing {title}": "Korjataan: {title}",
   "Folder/{year} - {title}": "Kansio/{year} - {title}",
   "For example:": "Esimerkiksi:",
@@ -194,7 +194,7 @@
   "Nobody at this project has reviewed this. It comes from a store you added, and whoever runs that store holds the key it’s signed with.": "Kukaan tästä projektista ei ole tarkistanut tätä. Se tulee lisäämästäsi kaupasta, ja kaupan ylläpitäjällä on avain, jolla se on allekirjoitettu.",
   "None of those has a suggestion yet": "Millään niistä ei ole vielä ehdotusta",
   "None: it runs with no permissions, in the strictest sandbox": "Ei mitään: se toimii ilman oikeuksia tiukimmassa hiekkalaatikossa",
-  "Not available": "Ei käytettävissä",
+  "Not available": "Ei saatavilla",
   "Not finished": "Kesken",
   "Not for this computer": "Ei tälle tietokoneelle",
   "Not listed": "Ei mainittu",
@@ -215,7 +215,7 @@
   "Nothing needs a look": "Mikään ei vaadi tarkistusta",
   "Number them in order": "Numeroi järjestyksessä",
   "Numbers you change are locked, so a scan keeps them.": "Muuttamasi numerot lukitaan, joten tarkistus säilyttää ne.",
-  "On": "Käytössä",
+  "On": "Päällä",
   "On this server": "Tällä palvelimella",
   "One rule that normally stops this install would be bypassed.": "Yksi sääntö, joka normaalisti estää tämän asennuksen, ohitettaisiin.",
   "Only a new server changes:": "Vain uusi palvelin muuttaa:",
@@ -231,7 +231,7 @@
   "Password refused": "Salasana hylätty",
   "Permissions given": "Annetut oikeudet",
   "Permissions to give it": "Sille annettavat oikeudet",
-  "Photos": "Kuvat",
+  "Photos": "Valokuvat",
   "Pinned": "Kiinnitetty",
   "Pre-release": "Esijulkaisu",
   "Program": "Ohjelma",
@@ -239,7 +239,7 @@
   "Publisher": "Julkaisija",
   "Read": "Lue",
   "Read the warnings again and tick each one.": "Lue varoitukset uudelleen ja valitse jokainen.",
-  "Reading": "Lukeminen",
+  "Reading": "Luetaan",
   "Reading the log…": "Luetaan lokia…",
   "Reading…": "Luetaan…",
   "Ready.": "Valmis.",
@@ -286,7 +286,7 @@
   "Status": "Tila",
   "Stop": "Pysäytä",
   "Stop using it": "Lopeta sen käyttö",
-  "Stop using {name} {version}?": "Lopetetaanko {name} {version} -version käyttö?",
+  "Stop using {name} {version}?": "Lopetetaanko version {name} {version} käyttö?",
   "Switch to this": "Vaihda tähän",
   "System": "Järjestelmä",
   "TMDB only": "Vain TMDB",
@@ -380,7 +380,7 @@
   "Use this fork…": "Käytä tätä haaraa…",
   "Use version {version}": "Käytä versiota {version}",
   "Use version {version}, with an override": "Käytä versiota {version} ohituksella",
-  "Use {name} {version}?": "Käytetäänkö {name} {version}?",
+  "Use {name} {version}?": "Käytetäänkö versiota {name} {version}?",
   "Version": "Versio",
   "Version {version}, already downloaded and checked, waiting for your go-ahead.": "Versio {version}, jo ladattu ja tarkistettu, odottaa lupaasi.",
   "Version {version}.": "Versio {version}.",
@@ -413,8 +413,8 @@
   "Wikidata only": "Vain Wikidata",
   "Withdrawn": "Vedetty pois",
   "WittyTuner can’t be replaced by anyone’s version, because it’s what refuses encrypted channels, and the server couldn’t tell whether another version still did.": "WittyTuneria ei voi korvata kenenkään versiolla, koska juuri se torjuu salatut kanavat, eikä palvelin voisi tietää, tekisikö toinen versio vielä niin.",
-  "Working": "Työstetään",
-  "Working…": "Työstetään…",
+  "Working": "Työskennellään",
+  "Working…": "Työskennellään…",
   "Working… {name}": "Työstetään… {name}",
   "Works on": "Toimii",
   "You chose": "Valitsit",
@@ -489,7 +489,7 @@
   "{name} turned off. Anything installed from it stays until you remove it.": "{name} poistettu käytöstä. Sieltä asennettu säilyy, kunnes poistat sen.",
   "{name} turned on": "{name} otettu käyttöön",
   "{name} was installed past a rule that would normally stop it.": "{name} asennettiin säännön ohi, joka normaalisti estäisi sen.",
-  "{name} wasn’t installed": "{name} jäi asentamatta",
+  "{name} wasn’t installed": "{name} ei asentunut",
   "{name} went back to version {version}": "{name} palasi versioon {version}",
   "{name} {version} is being installed": "{name} {version} asennetaan",
   "{name} {version} was downloaded and needs your go-ahead": "{name} {version} ladattiin ja odottaa lupaasi",
@@ -502,40 +502,127 @@
   "{name}: third-party licences": "{name}: kolmansien osapuolten lisenssit",
   "{phase}, {done} of {total}": "{phase}, {done}/{total}",
   "{platform} (this server)": "{platform} (tämä palvelin)",
-  "{size} KB": "{size} KB",
-  "{size} MB": "{size} MB",
+  "{size} KB": "{size} kt",
+  "{size} MB": "{size} Mt",
   "{source} calls it": "Nimi lähteessä {source}",
   "{title}: kept as it is.": "{title}: säilytetty ennallaan.",
   "{title}: left with no match.": "{title}: jätetty ilman vastinetta.",
   "{title}: matched with {match}.": "{title}: täsmäytetty kohteeseen {match}.",
   "{title}: renumbered.": "{title}: numeroitu uudelleen.",
-  "{count} chosen": { "one": "{count} valittu", "other": "{count} valittu" },
-  "{title} and {count} more": { "one": "{title} ja {count} muu", "other": "{title} ja {count} muuta" },
-  "{count} files fit": { "one": "{count} tiedosto sopii", "other": "{count} tiedostoa sopii" },
-  "{count} numbers aren’t listed there.": { "one": "{count} numero puuttuu sieltä.", "other": "{count} numeroa puuttuu sieltä." },
-  "Install {count} modules": { "one": "Asenna {count} moduuli", "other": "Asenna {count} moduulia" },
-  "{count} updates found": { "one": "{count} päivitys löytyi", "other": "{count} päivitystä löytyi" },
-  "{count} modules found": { "one": "{count} moduuli löytyi", "other": "{count} moduulia löytyi" },
-  "{count} modules": { "one": "{count} moduuli", "other": "{count} moduulia" },
-  "{count} rules that normally stop this install would be bypassed.": { "one": "{count} sääntö, joka normaalisti estää tämän asennuksen, ohitettaisiin.", "other": "{count} sääntöä, jotka normaalisti estävät tämän asennuksen, ohitettaisiin." },
-  "{count} modules were made for an older server": { "one": "{count} moduuli on tehty vanhemmalle palvelimelle", "other": "{count} moduulia on tehty vanhemmalle palvelimelle" },
-  "{name} was installed past {count} rules that would normally stop it.": { "one": "{name} asennettiin {count} säännön ohi, joka normaalisti estäisi sen.", "other": "{name} asennettiin {count} säännön ohi, jotka normaalisti estäisivät sen." },
-  "tick {count} warnings": { "one": "valitse {count} varoitus", "other": "valitse {count} varoitusta" },
-  "and {count} pages for one item each": { "one": "ja {count} sivu yksittäiselle kohteelle", "other": "ja {count} sivua, kukin yhdelle kohteelle" },
-  "{count} pages for one item each": { "one": "{count} sivu yksittäiselle kohteelle", "other": "{count} sivua, kukin yhdelle kohteelle" },
-  "{count} pages in every app, on TV too": { "one": "{count} sivu jokaisessa sovelluksessa, myös TV:ssä", "other": "{count} sivua jokaisessa sovelluksessa, myös TV:ssä" },
-  "{count} screens of its own": { "one": "{count} oma näkymä", "other": "{count} omaa näkymää" },
-  "{count} steps: {steps}": { "one": "{count} vaihe: {steps}", "other": "{count} vaihetta: {steps}" },
-  "{count} for administrators only": { "one": "{count} vain ylläpitäjille", "other": "{count} vain ylläpitäjille" },
-  "{count} opened by a link, without signing in": { "one": "{count} avautuu linkillä ilman kirjautumista", "other": "{count} avautuu linkillä ilman kirjautumista" },
-  "{count} about one item, checked against what the profile may see": { "one": "{count} yhdestä kohteesta, tarkistettu sen mukaan, mitä profiili saa nähdä", "other": "{count} yhdestä kohteesta, tarkistettu sen mukaan, mitä profiili saa nähdä" },
-  "{count} that stream": { "one": "{count}, joka suoratoistaa", "other": "{count}, jotka suoratoistavat" },
-  "{count} that count towards screen time": { "one": "{count}, joka lasketaan ruutuaikaan", "other": "{count}, jotka lasketaan ruutuaikaan" },
-  "answers {count} kinds of request of its own at {path}": { "one": "vastaa {count} omaan pyyntötyyppiin osoitteessa {path}", "other": "vastaa {count} omaan pyyntötyyppiin osoitteessa {path}" },
-  "answers {count} kinds of request of its own": { "one": "vastaa {count} omaan pyyntötyyppiin", "other": "vastaa {count} omaan pyyntötyyppiin" },
-  "{count} installed": { "one": "{count} asennettu", "other": "{count} asennettu" },
-  "{count} updated": { "one": "{count} päivitetty", "other": "{count} päivitetty" },
-  "{count} failed": { "one": "{count} epäonnistui", "other": "{count} epäonnistui" },
-  "{count} skipped": { "one": "{count} ohitettu", "other": "{count} ohitettu" },
-  "{count} updates available": { "one": "{count} päivitys saatavilla", "other": "{count} päivitystä saatavilla" }
+  "{count} chosen": {
+    "one": "{count} valittu",
+    "other": "{count} valittu"
+  },
+  "{title} and {count} more": {
+    "one": "{title} ja {count} muu",
+    "other": "{title} ja {count} muuta"
+  },
+  "{count} files fit": {
+    "one": "{count} tiedosto sopii",
+    "other": "{count} tiedostoa sopii"
+  },
+  "{count} numbers aren’t listed there.": {
+    "one": "{count} numero puuttuu sieltä.",
+    "other": "{count} numeroa puuttuu sieltä."
+  },
+  "Install {count} modules": {
+    "one": "Asenna {count} moduuli",
+    "other": "Asenna {count} moduulia"
+  },
+  "{count} updates found": {
+    "one": "{count} päivitys löytyi",
+    "other": "{count} päivitystä löytyi"
+  },
+  "{count} modules found": {
+    "one": "{count} moduuli löytyi",
+    "other": "{count} moduulia löytyi"
+  },
+  "{count} modules": {
+    "one": "{count} moduuli",
+    "other": "{count} moduulia"
+  },
+  "{count} rules that normally stop this install would be bypassed.": {
+    "one": "{count} sääntö, joka normaalisti estää tämän asennuksen, ohitettaisiin.",
+    "other": "{count} sääntöä, jotka normaalisti estävät tämän asennuksen, ohitettaisiin."
+  },
+  "{count} modules were made for an older server": {
+    "one": "{count} moduuli on tehty vanhemmalle palvelimelle",
+    "other": "{count} moduulia on tehty vanhemmalle palvelimelle"
+  },
+  "{name} was installed past {count} rules that would normally stop it.": {
+    "one": "{name} asennettiin {count} säännön ohi, joka normaalisti estäisi sen.",
+    "other": "{name} asennettiin {count} säännön ohi, jotka normaalisti estäisivät sen."
+  },
+  "tick {count} warnings": {
+    "one": "valitse {count} varoitus",
+    "other": "valitse {count} varoitusta"
+  },
+  "and {count} pages for one item each": {
+    "one": "ja {count} sivu yksittäiselle kohteelle",
+    "other": "ja {count} sivua, kukin yhdelle kohteelle"
+  },
+  "{count} pages for one item each": {
+    "one": "{count} sivu yksittäiselle kohteelle",
+    "other": "{count} sivua, kukin yhdelle kohteelle"
+  },
+  "{count} pages in every app, on TV too": {
+    "one": "{count} sivu jokaisessa sovelluksessa, myös TV:ssä",
+    "other": "{count} sivua jokaisessa sovelluksessa, myös TV:ssä"
+  },
+  "{count} screens of its own": {
+    "one": "{count} oma näkymä",
+    "other": "{count} omaa näkymää"
+  },
+  "{count} steps: {steps}": {
+    "one": "{count} vaihe: {steps}",
+    "other": "{count} vaihetta: {steps}"
+  },
+  "{count} for administrators only": {
+    "one": "{count} vain ylläpitäjille",
+    "other": "{count} vain ylläpitäjille"
+  },
+  "{count} opened by a link, without signing in": {
+    "one": "{count} avautuu linkillä ilman kirjautumista",
+    "other": "{count} avautuu linkillä ilman kirjautumista"
+  },
+  "{count} about one item, checked against what the profile may see": {
+    "one": "{count} yhdestä kohteesta, tarkistettu sen mukaan, mitä profiili saa nähdä",
+    "other": "{count} yhdestä kohteesta, tarkistettu sen mukaan, mitä profiili saa nähdä"
+  },
+  "{count} that stream": {
+    "one": "{count}, joka suoratoistaa",
+    "other": "{count}, jotka suoratoistavat"
+  },
+  "{count} that count towards screen time": {
+    "one": "{count}, joka lasketaan ruutuaikaan",
+    "other": "{count}, jotka lasketaan ruutuaikaan"
+  },
+  "answers {count} kinds of request of its own at {path}": {
+    "one": "vastaa {count} omaan pyyntötyyppiin osoitteessa {path}",
+    "other": "vastaa {count} omaan pyyntötyyppiin osoitteessa {path}"
+  },
+  "answers {count} kinds of request of its own": {
+    "one": "vastaa {count} omaan pyyntötyyppiin",
+    "other": "vastaa {count} omaan pyyntötyyppiin"
+  },
+  "{count} installed": {
+    "one": "{count} asennettu",
+    "other": "{count} asennettu"
+  },
+  "{count} updated": {
+    "one": "{count} päivitetty",
+    "other": "{count} päivitetty"
+  },
+  "{count} failed": {
+    "one": "{count} epäonnistui",
+    "other": "{count} epäonnistui"
+  },
+  "{count} skipped": {
+    "one": "{count} ohitettu",
+    "other": "{count} ohitettu"
+  },
+  "{count} updates available": {
+    "one": "{count} päivitys saatavilla",
+    "other": "{count} päivitystä saatavilla"
+  }
 }

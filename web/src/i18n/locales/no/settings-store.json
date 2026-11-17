@@ -15,15 +15,15 @@
   "Accepted": "Godtatt",
   "Actions": "Handlinger",
   "Add a rule": "Legg til en regel",
-  "Add a store run by someone else, and see the modules it offers alongside this project’s. Everything from one is labelled, and whether to trust it is up to you.": "Legg til en butikk som noen andre driver, og se modulene den tilbyr ved siden av prosjektets egne. Alt derfra er merket, og om du stoler på det, bestemmer du selv.",
+  "Add a store run by someone else, and see the modules it offers alongside this project’s. Everything from one is labelled, and whether to trust it is up to you.": "Legg til en butikk som drives av noen andre, og se modulene den tilbyr ved siden av prosjektets egne. Alt derfra er merket, og om du stoler på det, er opp til deg.",
   "Add tags": "Legg til tagger",
-  "Add this store": "Legg til butikken",
-  "Add to what this server can do. Everything here is signed, and nothing runs until you choose it.": "Utvid hva serveren kan gjøre. Alt her er signert, og ingenting kjører før du velger det.",
+  "Add this store": "Legg til denne butikken",
+  "Add to what this server can do. Everything here is signed, and nothing runs until you choose it.": "Utvid hva denne serveren kan gjøre. Alt her er signert, og ingenting kjører før du velger det.",
   "Add {name}?": "Legge til {name}?",
   "Added a store": "La til en butikk",
   "All": "Alle",
   "All done": "Alt er ferdig",
-  "All libraries": "Alle bibliotek",
+  "All libraries": "Alle biblioteker",
   "All versions ({count})": "Alle versjoner ({count})",
   "An ID in a file or folder’s name always wins over a search, and doesn’t appear in the title:": "En ID i navnet på en fil eller mappe går alltid foran et søk, og vises ikke i tittelen:",
   "An older version may lack security fixes, so this asks for your password.": "En eldre versjon kan mangle sikkerhetsrettinger, så dette krever passordet ditt.",
@@ -66,7 +66,7 @@
   "Drop it": "Dropp den",
   "Each file beside what {source} calls that number.": "Hver fil ved siden av det {source} kaller det nummeret.",
   "Each library has its own rules.": "Hvert bibliotek har sine egne regler.",
-  "Edit together": "Rediger sammen",
+  "Edit together": "Rediger samlet",
   "Episode": "Episode",
   "Episode of {file}": "Episode for {file}",
   "Every change to which code runs on this server: installs past a rule, files uploaded, overrides removed, versions chosen by hand and passwords refused. Newest first.": "Hver endring i hvilken kode som kjører på serveren: installasjoner forbi en regel, opplastede filer, fjernede overstyringer, håndvalgte versjoner og avviste passord. Nyeste først.",
@@ -83,7 +83,7 @@
   "Finished, with problems": "Ferdig, med problemer",
   "Fits servers": "Passer for servere",
   "Fits servers {min} to {max}": "Passer for servere {min} til {max}",
-  "Fix matches": "Rett koblinger",
+  "Fix matches": "Rett treff",
   "Fixing {title}": "Retter {title}",
   "Folder/{year} - {title}": "Mappe/{year} - {title}",
   "For example:": "For eksempel:",
@@ -94,9 +94,9 @@
   "From other stores": "Fra andre butikker",
   "Games": "Spill",
   "Go back": "Gå tilbake",
-  "Go back to the official version?": "Gå tilbake til den offisielle versjonen?",
-  "Go back to version {version}?": "Gå tilbake til versjon {version}?",
-  "Go back to {name} {version}?": "Gå tilbake til {name} {version}?",
+  "Go back to the official version?": "Vil du gå tilbake til den offisielle versjonen?",
+  "Go back to version {version}?": "Vil du gå tilbake til versjon {version}?",
+  "Go back to {name} {version}?": "Vil du gå tilbake til {name} {version}?",
   "Helper": "Hjelper",
   "History": "Historikk",
   "History cleared": "Historikken er tømt",
@@ -114,9 +114,9 @@
   "Install": "Installer",
   "Install a module from a file": "Installer en modul fra en fil",
   "Install anyway": "Installer likevel",
-  "Install anyway…": "Installer likevel…",
+  "Install anyway…": "Installer likevel …",
   "Install at my own risk": "Installer på egen risiko",
-  "Install from a file…": "Installer fra en fil…",
+  "Install from a file…": "Installer fra en fil …",
   "Install {name}": "Installer {name}",
   "Install {name} anyway?": "Installere {name} likevel?",
   "Install {name}, made for an older server: asks first": "Installer {name}, laget for en eldre server: spør først",
@@ -126,10 +126,10 @@
   "Installed modules": "Installerte moduler",
   "Installed with an override": "Installert med en overstyring",
   "Installing": "Installerer",
-  "Installing it asks you first.": "Du blir spurt først før den installeres.",
+  "Installing it asks you first.": "Du blir spurt før den installeres.",
   "Installing it needs an override.": "Å installere den krever en overstyring.",
   "Installing {name} from {store}": "Installerer {name} fra {store}",
-  "Install…": "Installer…",
+  "Install…": "Installer …",
   "It calls itself {name}, the name of a module from this project, and it isn’t that module. Don’t assume it does what that one does.": "Den kaller seg {name}, navnet på en modul fra prosjektet, men den er ikke den modulen. Ikke gå ut fra at den gjør det samme.",
   "It gets none of these unless you tick them. Give only what you’re sure it needs.": "Den får ingenting av dette med mindre du krysser av. Gi bare det du er sikker på at den trenger.",
   "It hasn’t logged anything lately.": "Den har ikke logget noe i det siste.",
@@ -145,7 +145,7 @@
   "Last checked {when}.": "Sist sjekket {when}.",
   "Left alone": "Latt være",
   "Less boxed in on this system": "Mindre avgrenset på dette systemet",
-  "Libraries": "Bibliotek",
+  "Libraries": "Biblioteker",
   "Library": "Bibliotek",
   "Licence": "Lisens",
   "Listen": "Lytt",
@@ -154,7 +154,7 @@
   "Log lines for {name}": "Logglinjer for {name}",
   "Logging for {name}": "Logging for {name}",
   "Logging settings": "Logginnstillinger",
-  "Look at this store": "Se på butikken",
+  "Look at this store": "Se på denne butikken",
   "Look everywhere": "Let overalt",
   "Look on your own network?": "Lete i ditt eget nettverk?",
   "Looks right": "Ser riktig ut",
@@ -240,8 +240,8 @@
   "Read": "Les",
   "Read the warnings again and tick each one.": "Les advarslene igjen og kryss av for hver av dem.",
   "Reading": "Leser",
-  "Reading the log…": "Leser loggen…",
-  "Reading…": "Leser…",
+  "Reading the log…": "Leser loggen …",
+  "Reading…": "Leser …",
   "Ready.": "Klar.",
   "Refresh": "Oppdater",
   "Refused a fork": "Avviste en fork",
@@ -252,7 +252,7 @@
   "Remove store": "Fjern butikk",
   "Remove the override on {name}?": "Fjerne overstyringen på {name}?",
   "Remove the rule {pattern}": "Fjern regelen {pattern}",
-  "Remove {name}?": "Fjerne {name}?",
+  "Remove {name}?": "Vil du fjerne {name}?",
   "Removed": "Fjernet",
   "Removed a store": "Fjernet en butikk",
   "Removed an override": "Fjernet en overstyring",
@@ -261,7 +261,7 @@
   "Replace {name} with this store’s version?": "Erstatte {name} med butikkens versjon?",
   "Replace {name}?": "Erstatte {name}?",
   "Review": "Gå gjennom",
-  "Review…": "Gå gjennom…",
+  "Review…": "Gå gjennom …",
   "Rules saved. They apply to new and changed files on the next scan.": "Reglene er lagret. De gjelder nye og endrede filer ved neste skanning.",
   "Save": "Lagre",
   "Screenshots": "Skjermbilder",
@@ -286,7 +286,7 @@
   "Status": "Status",
   "Stop": "Stopp",
   "Stop using it": "Slutt å bruke den",
-  "Stop using {name} {version}?": "Slutte å bruke {name} {version}?",
+  "Stop using {name} {version}?": "Vil du slutte å bruke {name} {version}?",
   "Switch to this": "Bytt til denne",
   "System": "System",
   "TMDB only": "Bare TMDB",
@@ -371,16 +371,16 @@
   "Update available": "Oppdatering tilgjengelig",
   "Update {name} to {version}": "Oppdater {name} til {version}",
   "Updating your modules": "Oppdaterer modulene dine",
-  "Updating…": "Oppdaterer…",
+  "Updating…": "Oppdaterer …",
   "Upload and check": "Last opp og sjekk",
   "Uploaded a file to install": "Lastet opp en fil for installasjon",
-  "Uploaded. The server is checking it…": "Lastet opp. Serveren sjekker den…",
+  "Uploaded. The server is checking it…": "Lastet opp. Serveren sjekker den …",
   "Uploading {file}": "Laster opp {file}",
   "Uploading {file}: {percent}%": "Laster opp {file}: {percent} %",
-  "Use this fork…": "Bruk denne forken…",
+  "Use this fork…": "Bruk denne forken …",
   "Use version {version}": "Bruk versjon {version}",
   "Use version {version}, with an override": "Bruk versjon {version}, med en overstyring",
-  "Use {name} {version}?": "Bruke {name} {version}?",
+  "Use {name} {version}?": "Vil du bruke {name} {version}?",
   "Version": "Versjon",
   "Version {version}, already downloaded and checked, waiting for your go-ahead.": "Versjon {version}, allerede lastet ned og sjekket, venter på klarsignal fra deg.",
   "Version {version}.": "Versjon {version}.",
@@ -414,8 +414,8 @@
   "Withdrawn": "Trukket tilbake",
   "WittyTuner can’t be replaced by anyone’s version, because it’s what refuses encrypted channels, and the server couldn’t tell whether another version still did.": "WittyTuner kan ikke erstattes av noens versjon, fordi det er den som avviser krypterte kanaler, og serveren kan ikke avgjøre om en annen versjon fortsatt gjør det.",
   "Working": "Jobber",
-  "Working…": "Jobber…",
-  "Working… {name}": "Jobber… {name}",
+  "Working…": "Jobber …",
+  "Working… {name}": "Jobber … {name}",
   "Works on": "Fungerer på",
   "You chose": "Du valgte",
   "You chose this": "Du valgte denne",
@@ -509,33 +509,120 @@
   "{title}: left with no match.": "{title}: latt være uten kobling.",
   "{title}: matched with {match}.": "{title}: koblet til {match}.",
   "{title}: renumbered.": "{title}: nummerert om.",
-  "{count} chosen": { "one": "{count} valgt", "other": "{count} valgt" },
-  "{title} and {count} more": { "one": "{title} og {count} til", "other": "{title} og {count} til" },
-  "{count} files fit": { "one": "{count} fil passer", "other": "{count} filer passer" },
-  "{count} numbers aren’t listed there.": { "one": "{count} nummer er ikke oppført der.", "other": "{count} numre er ikke oppført der." },
-  "Install {count} modules": { "one": "Installer {count} modul", "other": "Installer {count} moduler" },
-  "{count} updates found": { "one": "{count} oppdatering funnet", "other": "{count} oppdateringer funnet" },
-  "{count} modules found": { "one": "{count} modul funnet", "other": "{count} moduler funnet" },
-  "{count} modules": { "one": "{count} modul", "other": "{count} moduler" },
-  "{count} rules that normally stop this install would be bypassed.": { "one": "{count} regel som vanligvis stopper installasjonen, ville blitt omgått.", "other": "{count} regler som vanligvis stopper installasjonen, ville blitt omgått." },
-  "{count} modules were made for an older server": { "one": "{count} modul ble laget for en eldre server", "other": "{count} moduler ble laget for en eldre server" },
-  "{name} was installed past {count} rules that would normally stop it.": { "one": "{name} ble installert forbi {count} regel som vanligvis ville stoppet den.", "other": "{name} ble installert forbi {count} regler som vanligvis ville stoppet den." },
-  "tick {count} warnings": { "one": "kryss av for {count} advarsel", "other": "kryss av for {count} advarsler" },
-  "and {count} pages for one item each": { "one": "og {count} side for ett element om gangen", "other": "og {count} sider for ett element om gangen" },
-  "{count} pages for one item each": { "one": "{count} side for ett element om gangen", "other": "{count} sider for ett element om gangen" },
-  "{count} pages in every app, on TV too": { "one": "{count} side i alle apper, også på TV", "other": "{count} sider i alle apper, også på TV" },
-  "{count} screens of its own": { "one": "{count} egen skjerm", "other": "{count} egne skjermer" },
-  "{count} steps: {steps}": { "one": "{count} trinn: {steps}", "other": "{count} trinn: {steps}" },
-  "{count} for administrators only": { "one": "{count} bare for administratorer", "other": "{count} bare for administratorer" },
-  "{count} opened by a link, without signing in": { "one": "{count} åpnes via en lenke, uten pålogging", "other": "{count} åpnes via en lenke, uten pålogging" },
-  "{count} about one item, checked against what the profile may see": { "one": "{count} om ett element, sjekket mot hva profilen får se", "other": "{count} om ett element, sjekket mot hva profilen får se" },
-  "{count} that stream": { "one": "{count} som strømmer", "other": "{count} som strømmer" },
-  "{count} that count towards screen time": { "one": "{count} som teller med i skjermtiden", "other": "{count} som teller med i skjermtiden" },
-  "answers {count} kinds of request of its own at {path}": { "one": "svarer på {count} egen type forespørsel på {path}", "other": "svarer på {count} egne typer forespørsler på {path}" },
-  "answers {count} kinds of request of its own": { "one": "svarer på {count} egen type forespørsel", "other": "svarer på {count} egne typer forespørsler" },
-  "{count} installed": { "one": "{count} installert", "other": "{count} installert" },
-  "{count} updated": { "one": "{count} oppdatert", "other": "{count} oppdatert" },
-  "{count} failed": { "one": "{count} mislyktes", "other": "{count} mislyktes" },
-  "{count} skipped": { "one": "{count} hoppet over", "other": "{count} hoppet over" },
-  "{count} updates available": { "one": "{count} oppdatering tilgjengelig", "other": "{count} oppdateringer tilgjengelig" }
+  "{count} chosen": {
+    "one": "{count} valgt",
+    "other": "{count} valgt"
+  },
+  "{title} and {count} more": {
+    "one": "{title} og {count} til",
+    "other": "{title} og {count} til"
+  },
+  "{count} files fit": {
+    "one": "{count} fil passer",
+    "other": "{count} filer passer"
+  },
+  "{count} numbers aren’t listed there.": {
+    "one": "{count} nummer er ikke oppført der.",
+    "other": "{count} numre er ikke oppført der."
+  },
+  "Install {count} modules": {
+    "one": "Installer {count} modul",
+    "other": "Installer {count} moduler"
+  },
+  "{count} updates found": {
+    "one": "{count} oppdatering funnet",
+    "other": "{count} oppdateringer funnet"
+  },
+  "{count} modules found": {
+    "one": "{count} modul funnet",
+    "other": "{count} moduler funnet"
+  },
+  "{count} modules": {
+    "one": "{count} modul",
+    "other": "{count} moduler"
+  },
+  "{count} rules that normally stop this install would be bypassed.": {
+    "one": "{count} regel som vanligvis stopper installasjonen, ville blitt omgått.",
+    "other": "{count} regler som vanligvis stopper installasjonen, ville blitt omgått."
+  },
+  "{count} modules were made for an older server": {
+    "one": "{count} modul ble laget for en eldre server",
+    "other": "{count} moduler ble laget for en eldre server"
+  },
+  "{name} was installed past {count} rules that would normally stop it.": {
+    "one": "{name} ble installert forbi {count} regel som vanligvis ville stoppet den.",
+    "other": "{name} ble installert forbi {count} regler som vanligvis ville stoppet den."
+  },
+  "tick {count} warnings": {
+    "one": "kryss av for {count} advarsel",
+    "other": "kryss av for {count} advarsler"
+  },
+  "and {count} pages for one item each": {
+    "one": "og {count} side for ett element om gangen",
+    "other": "og {count} sider for ett element om gangen"
+  },
+  "{count} pages for one item each": {
+    "one": "{count} side for ett element om gangen",
+    "other": "{count} sider for ett element om gangen"
+  },
+  "{count} pages in every app, on TV too": {
+    "one": "{count} side i alle apper, også på TV",
+    "other": "{count} sider i alle apper, også på TV"
+  },
+  "{count} screens of its own": {
+    "one": "{count} egen skjerm",
+    "other": "{count} egne skjermer"
+  },
+  "{count} steps: {steps}": {
+    "one": "{count} trinn: {steps}",
+    "other": "{count} trinn: {steps}"
+  },
+  "{count} for administrators only": {
+    "one": "{count} bare for administratorer",
+    "other": "{count} bare for administratorer"
+  },
+  "{count} opened by a link, without signing in": {
+    "one": "{count} åpnes via en lenke, uten innlogging",
+    "other": "{count} åpnes via en lenke, uten innlogging"
+  },
+  "{count} about one item, checked against what the profile may see": {
+    "one": "{count} om ett element, sjekket mot hva profilen får se",
+    "other": "{count} om ett element, sjekket mot hva profilen får se"
+  },
+  "{count} that stream": {
+    "one": "{count} som strømmer",
+    "other": "{count} som strømmer"
+  },
+  "{count} that count towards screen time": {
+    "one": "{count} som teller med i skjermtiden",
+    "other": "{count} som teller med i skjermtiden"
+  },
+  "answers {count} kinds of request of its own at {path}": {
+    "one": "svarer på {count} egen type forespørsel på {path}",
+    "other": "svarer på {count} egne typer forespørsler på {path}"
+  },
+  "answers {count} kinds of request of its own": {
+    "one": "svarer på {count} egen type forespørsel",
+    "other": "svarer på {count} egne typer forespørsler"
+  },
+  "{count} installed": {
+    "one": "{count} installert",
+    "other": "{count} installert"
+  },
+  "{count} updated": {
+    "one": "{count} oppdatert",
+    "other": "{count} oppdatert"
+  },
+  "{count} failed": {
+    "one": "{count} mislyktes",
+    "other": "{count} mislyktes"
+  },
+  "{count} skipped": {
+    "one": "{count} hoppet over",
+    "other": "{count} hoppet over"
+  },
+  "{count} updates available": {
+    "one": "{count} oppdatering tilgjengelig",
+    "other": "{count} oppdateringer tilgjengelig"
+  }
 }

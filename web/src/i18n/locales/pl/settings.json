@@ -41,12 +41,12 @@
   "A copy on another drive is what saves you if this one fails, so download it.": "Kopia na innym dysku ratuje cię, gdy ten zawiedzie, więc ją pobierz.",
   "A different age for some kinds": "Inny wiek dla niektórych rodzajów",
   "A disc": "Płyta",
-  "A feed of short videos with a For You page": "Kanał krótkich filmów ze stroną Dla Ciebie",
+  "A feed of short videos with a For You page": "Kanał krótkich filmów ze stroną Dla ciebie",
   "A file before the fix": "Plik przed poprawką",
   "A file’s content decides what it is, not its name. The server plays a file directly whenever your player can, rewraps it when only the wrapper is the trouble, converts the sound alone when only that is, and converts the picture only when nothing simpler would play.": "O tym, czym jest plik, decyduje jego zawartość, a nie nazwa. Serwer odtwarza plik bezpośrednio, gdy tylko twój odtwarzacz to potrafi, zmienia kontener, gdy problemem jest tylko on, konwertuje sam dźwięk, gdy tylko on przeszkadza, a obraz konwertuje dopiero wtedy, gdy nic prostszego nie zadziała.",
   "A folder": "Folder",
   "A folder is only needed for episodes you download.": "Folder jest potrzebny tylko dla pobieranych odcinków.",
-  "A frame from the video": "Klatka z wideo",
+  "A frame from the video": "Klatka z filmu",
   "A friend’s server that has “Help other servers” on, or one of your own elsewhere: one address per line, ending in /p2p/ and its ID. They’re used before any other relay.": "Serwer znajomego z włączoną opcją „Pomagaj innym serwerom” albo twój własny gdzie indziej: jeden adres na wiersz, zakończony /p2p/ i jego ID. Są używane przed każdym innym przekaźnikiem.",
   "A full account with its own password and watch history.": "Pełne konto z własnym hasłem i historią oglądania.",
   "A hint": "Wskazówka",
@@ -173,7 +173,7 @@
   "An agent is an address like": "Agent to adres taki jak",
   "An archive of creators’ videos, by channel": "Archiwum filmów twórców, według kanałów",
   "An example of the folder's layout": "Przykładowy układ folderu",
-  "An older version may lack security fixes, so this asks for your password.": "Starszej wersji mogą brakować poprawek bezpieczeństwa, dlatego potrzebne jest hasło.",
+  "An older version may lack security fixes, so this asks for your password.": "Starsza wersja może nie mieć poprawek bezpieczeństwa, więc potrzebne jest twoje hasło.",
   "Anime": "Anime",
   "Anime and TV libraries": "Biblioteki anime i TV",
   "Anime libraries: titles in your chosen language, plots, posters and episode numbering. Anime titles are sent to AniList.": "Biblioteki anime: tytuły w wybranym języku, opisy fabuły, plakaty i numeracja odcinków. Tytuły anime są wysyłane do AniList.",
@@ -312,7 +312,7 @@
   "Choose home network only while you’re away from home?": "Wybrać tylko sieć domową, gdy jesteś poza domem?",
   "Choose how to get a certificate, so that passwords and video are encrypted:": "Wybierz sposób uzyskania certyfikatu, aby hasła i wideo były szyfrowane:",
   "Choose it": "Wybierz",
-  "Choose one. You can change your mind at any time, and only what your choice needs is shown below it.": "Wybierz jedno. Możesz zmienić zdanie w każdej chwili, a poniżej pokazane jest tylko to, czego wymaga twój wybór.",
+  "Choose one. You can change your mind at any time, and only what your choice needs is shown below it.": "Wybierz jedną opcję. Możesz zmienić zdanie w każdej chwili, a poniżej pojawi się tylko to, czego wymaga twój wybór.",
   "Classic": "Klasyczny",
   "Clear": "Wyczyść",
   "Clear history": "Wyczyść historię",
@@ -356,7 +356,7 @@
   "Convert, losing it": "Konwertuj, tracąc ją",
   "Converting": "Konwertowanie",
   "Converting a film can keep every core busy for hours. Anyone watching at the same time may see stutters, or a film that takes longer to start, especially if their device needs the server to convert while playing.": "Konwersja filmu może zająć wszystkie rdzenie na wiele godzin. Ktoś, kto w tym czasie ogląda, może widzieć zacięcia albo film może dłużej się uruchamiać, zwłaszcza gdy jego urządzenie wymaga konwersji na serwerze podczas odtwarzania.",
-  "Converting competes with people watching. These keep it out of their way.": "Konwersja konkuruje z oglądającymi. Te ustawienia trzymają ją z dala od nich.",
+  "Converting competes with people watching. These keep it out of their way.": "Konwersja konkuruje z oglądającymi. Te ustawienia sprawiają, że im nie przeszkadza.",
   "Converting while someone watches is a separate thing, under": "Konwersja podczas oglądania to osobna sprawa, w",
   "Converts the files in a library ahead of time, so they play without being converted later. It changes your files, so it starts off.": "Konwertuje pliki w bibliotece z wyprzedzeniem, aby odtwarzały się później bez konwersji. Zmienia twoje pliki, więc domyślnie jest wyłączone.",
   "Copied": "Skopiowano",
@@ -371,7 +371,7 @@
   "Cost.": "Koszt.",
   "Could not save that": "Nie udało się tego zapisać",
   "Cover": "Okładka",
-  "Crash reports": "Raporty awarii",
+  "Crash reports": "Raporty o awariach",
   "Creator videos": "Filmy twórców",
   "Crisp": "Ostry",
   "Current password": "Obecne hasło",
@@ -466,7 +466,7 @@
   "Every kind of file this server takes, how each plays, and what it needs.": "Każdy rodzaj pliku, który przyjmuje ten serwer, jak każdy jest odtwarzany i czego potrzebuje.",
   "Every line but the last needs a comma at its end. Add it.": "Każdy wiersz oprócz ostatniego musi kończyć się przecinkiem. Dodaj go.",
   "Every module is on this server": "Każdy moduł jest na tym serwerze",
-  "Every module is up to date": "Każdy moduł jest aktualny",
+  "Every module is up to date": "Wszystkie moduły są aktualne",
   "Every version of it that was downloaded is deleted, which frees the disk space, and the fork it comes from is forgotten.": "Każda pobrana wersja zostanie usunięta, co zwalnia miejsce na dysku, a fork, z którego pochodzi, zostanie zapomniany.",
   "Every version of it that was downloaded is deleted, which frees the disk space.": "Każda pobrana wersja zostanie usunięta, co zwalnia miejsce na dysku.",
   "Everyone": "Wszyscy",
@@ -515,7 +515,7 @@
   "Find a logo by name": "Znajdź logo po nazwie",
   "Find or set a logo": "Znajdź lub ustaw logo",
   "Finds and fixes problems with metadata, the database, modules and this install": "Znajduje i naprawia problemy z metadanymi, bazą danych, modułami i tą instalacją",
-  "Finds and fixes problems with your metadata, the database, modules and this install, and works from the command line too if the server won’t start. It only looks until you press a fix, and a safety copy is made first.": "Znajduje i naprawia problemy z metadanymi, bazą danych, modułami i tą instalacją, a działa też z wiersza poleceń, jeśli serwer się nie uruchamia. Tylko sprawdza, dopóki nie naciśniesz poprawki, a najpierw tworzona jest kopia bezpieczeństwa.",
+  "Finds and fixes problems with your metadata, the database, modules and this install, and works from the command line too if the server won’t start. It only looks until you press a fix, and a safety copy is made first.": "Znajduje i naprawia problemy z metadanymi, bazą danych, modułami i tą instalacją, a działa też z wiersza poleceń, jeśli serwer się nie uruchamia. Tylko sprawdza, dopóki nie naciśniesz naprawy, a najpierw tworzy kopię bezpieczeństwa.",
   "Fine": "W porządku",
   "Finished": "Zakończono",
   "Finished work is kept so you can see what happened and try again. When either limit is reached, the oldest goes first.": "Zakończone zadania są przechowywane, aby można było zobaczyć, co się stało, i spróbować ponownie. Gdy zostanie osiągnięty któryś limit, najstarsze znikają najpierw.",
@@ -590,7 +590,7 @@
   "HTTPS settings saved": "Zapisano ustawienia HTTPS",
   "Half of it: {n} of {cores} threads (recommended)": "Połowa: {n} z {cores} wątków (zalecane)",
   "Hard to read: {pairs}. Text needs 4.5:1.": "Trudne do odczytania: {pairs}. Tekst wymaga 4,5:1.",
-  "Hardware encoders": "Koderki sprzętowe",
+  "Hardware encoders": "Kodery sprzętowe",
   "Hardware video": "Wideo sprzętowe",
   "Help": "Pomoc",
   "Hide": "Ukryj",
@@ -600,7 +600,7 @@
   "Hide the controls after": "Ukryj przyciski po",
   "Hide videos with these tags": "Ukryj filmy z tymi tagami",
   "History": "Historia",
-  "History cleared": "Historia wyczyszczona",
+  "History cleared": "Wyczyszczono historię",
   "Home": "Strona główna",
   "Home and away, through WittyRelay": "W domu i poza nim, przez WittyRelay",
   "Home and away, through a private network": "W domu i poza nim, przez sieć prywatną",
@@ -614,7 +614,7 @@
   "How far along it is": "Jak daleko postęp",
   "How far along the check is": "Postęp sprawdzania",
   "How far along the export is": "Postęp eksportu",
-  "How it looks": "Jak wygląda",
+  "How it looks": "Jak to wygląda",
   "How it plays": "Jak się odtwarza",
   "How it runs on this server": "Jak działa na tym serwerze",
   "How it works": "Jak to działa",
@@ -632,7 +632,7 @@
   "I trust this publisher": "Ufam temu wydawcy",
   "I understand how this affects streaming and my files.": "Rozumiem, jak to wpływa na strumieniowanie i moje pliki.",
   "I understand that anyone on the way can read my password and what I watch, and I accept that.": "Rozumiem, że każdy po drodze może odczytać moje hasło i to, co oglądam, i akceptuję to.",
-  "I understand: download logos": "Rozumiem: pobieraj logo",
+  "I understand: download logos": "Rozumiem: pobieraj loga",
   "If a new file doesn’t come out at least this much smaller, the old one stays and it isn’t tried again.": "Jeśli nowy plik nie wyjdzie co najmniej o tyle mniejszy, stary zostaje i nie będzie ponownej próby.",
   "If the file is": "Jeśli plik jest",
   "If the server won’t start, or you’d rather use a terminal, the same things work with the server stopped:": "Jeśli serwer się nie uruchamia albo wolisz terminal, to samo działa przy zatrzymanym serwerze:",
@@ -659,7 +659,7 @@
   "Installed module versions, logs, reports, and the cache of posters and converted video.": "Zainstalowane wersje modułów, logi, raporty oraz pamięć podręczna plakatów i przekonwertowanego wideo.",
   "Installing": "Instalowanie",
   "Installing from a file": "Instalowanie z pliku",
-  "Installing it asks you first.": "Instalacja najpierw cię zapyta.",
+  "Installing it asks you first.": "Przed instalacją pojawi się pytanie.",
   "Installing the new files…": "Instalowanie nowych plików…",
   "Installs new versions when they appear, if they work with this server.": "Instaluje nowe wersje, gdy się pojawią, jeśli działają z tym serwerem.",
   "Install…": "Zainstaluj…",
@@ -723,7 +723,7 @@
   "L": "L",
   "Label on the disc: {label}": "Etykieta na płycie: {label}",
   "Label those tracks as": "Oznacz te ścieżki jako",
-  "Laid out and driven like the Apple TV and Android TV apps, with a remote or a controller, for a screen across the room. Only on this device.": "Ułożony i sterowany jak aplikacje na Apple TV i Android TV, pilotem lub kontrolerem, na ekran po drugiej stronie pokoju. Tylko na tym urządzeniu.",
+  "Laid out and driven like the Apple TV and Android TV apps, with a remote or a controller, for a screen across the room. Only on this device.": "Układ i sterowanie jak w aplikacjach na Apple TV i Android TV, pilotem lub kontrolerem, dla ekranu po drugiej stronie pokoju. Tylko na tym urządzeniu.",
   "Language": "Język",
   "Language of these pages": "Język tych stron",
   "Languages to keep, in this order": "Języki do zachowania, w tej kolejności",
@@ -735,7 +735,7 @@
   "Last looked {when}.": "Ostatnio sprawdzono {when}.",
   "Later": "Później",
   "Later, open": "Później otwórz",
-  "Latest": "Najnowsza",
+  "Latest": "Najnowsze",
   "Latest automatic conversion": "Ostatnia automatyczna konwersja",
   "Latest check": "Ostatnie sprawdzenie",
   "Latest conversion": "Ostatnia konwersja",
@@ -789,8 +789,8 @@
   "Loading…": "Wczytywanie…",
   "Local AI": "Lokalna AI",
   "Logging": "Logowanie zdarzeń",
-  "Logging for {name}": "Logowanie zdarzeń dla {name}",
-  "Logos": "Logo",
+  "Logging for {name}": "Rejestrowanie zdarzeń: {name}",
+  "Logos": "Loga",
   "Logos are still trademarks of their owners.": "Logo nadal są znakami towarowymi ich właścicieli.",
   "Logos of studios, networks, TV channels, consoles and services are": "Logo studiów, sieci, kanałów TV, konsol i usług są",
   "Logos on the cards for studios and networks, TV channels, consoles, game studios and streaming services.": "Logo na kartach studiów i sieci, kanałów TV, konsol, studiów gier i serwisów streamingowych.",
@@ -866,14 +866,14 @@
   "Needs a look": "Wymaga sprawdzenia",
   "Needs an override: {reasons}": "Wymaga obejścia: {reasons}",
   "Needs more: {what}": "Wymaga więcej: {what}",
-  "Needs your go-ahead": "Wymaga twojej zgody",
+  "Needs your go-ahead": "Czeka na twoją zgodę",
   "Needs {modules}.": "Wymaga {modules}.",
   "Needs {parts} too.": "Wymaga też {parts}.",
   "Network": "Sieć",
   "Never": "Nigdy",
   "Never allow": "Nigdy nie zezwalaj",
   "Never:": "Nigdy:",
-  "New": "Nowy",
+  "New": "Nowe",
   "New folders now become libraries of their own": "Nowe foldery stają się teraz osobnymi bibliotekami",
   "New libraries of these kinds can’t be made: {kinds}.": "Nie można tworzyć nowych bibliotek tych rodzajów: {kinds}.",
   "New password": "Nowe hasło",
@@ -889,7 +889,7 @@
   "No custom agents yet": "Brak własnych agentów",
   "No files here.": "Brak plików.",
   "No folders or disc images here.": "Brak folderów i obrazów płyt.",
-  "No libraries yet": "Brak bibliotek",
+  "No libraries yet": "Nie ma jeszcze bibliotek",
   "No limit": "Bez limitu",
   "No limits": "Bez limitów",
   "No links yet. Make one with Share on a picture, video or album.": "Brak linków. Utwórz link opcją Udostępnij na zdjęciu, filmie lub albumie.",
@@ -906,7 +906,7 @@
   "None of the files had anything to apply.": "Żaden z plików nie miał nic do zastosowania.",
   "None of the modules in use has settings for you.": "Żaden z używanych modułów nie ma ustawień dla ciebie.",
   "None of them is run by this project, and none sees your media, your passwords or anything you watch. Each can be turned off separately once this is on.": "Żadna z nich nie jest prowadzona przez ten projekt i żadna nie widzi twoich multimediów, haseł ani tego, co oglądasz. Po włączeniu każdą można wyłączyć osobno.",
-  "None yet.": "Na razie brak.",
+  "None yet.": "Jeszcze nic.",
   "None yet. Add one from the list.": "Na razie brak. Dodaj z listy.",
   "Not before": "Nie wcześniej niż",
   "Not changed: {names}. Their details come from the files themselves, not from a lookup.": "Bez zmian: {names}. Ich szczegóły pochodzą z samych plików, a nie z wyszukiwania.",
@@ -987,7 +987,7 @@
   "Once the new file has been checked, the old one is deleted for good. This frees the most room, and it can’t be undone.": "Gdy nowy plik zostanie sprawdzony, stary jest usuwany na zawsze. To zwalnia najwięcej miejsca i nie da się tego cofnąć.",
   "One eye makes an ordinary film, which is the same picture to anyone without 3D glasses.": "Jedno oko daje zwykły film, który dla każdego bez okularów 3D wygląda tak samo.",
   "One piece of text would be hard to read": "Jeden fragment tekstu byłby trudny do odczytania",
-  "Only a new server changes:": "Zmienia się tylko nowy serwer:",
+  "Only a new server changes:": "Zmienia to tylko nowy serwer:",
   "Only administrators": "Tylko administratorzy",
   "Only asks the router on your home network what it can do; changes nothing.": "Tylko pyta router w sieci domowej, co potrafi; niczego nie zmienia.",
   "Only changes what you see. The work carries on either way.": "Zmienia tylko to, co widzisz. Praca trwa dalej w obu przypadkach.",
@@ -1078,7 +1078,7 @@
   "Port {port} is open on your router ({protocol}).": "Port {port} jest otwarty na routerze ({protocol}).",
   "Posters from Wikimedia Commons": "Plakaty z Wikimedia Commons",
   "Posters, plots and ratings for movies and TV. Get a free key at": "Plakaty, fabuły i oceny filmów i seriali. Bezpłatny klucz uzyskasz na",
-  "Pre-release": "Wersja przedpremierowa",
+  "Pre-release": "Wersja wstępna",
   "Press": "Naciśnij",
   "Press Check now to look.": "Naciśnij Sprawdź teraz, aby sprawdzić.",
   "Preview. Choose it to use it.": "Podgląd. Wybierz, aby go użyć.",
@@ -1153,7 +1153,7 @@
   "Rename": "Zmień nazwę",
   "Rename the kind {name}": "Zmień nazwę rodzaju {name}",
   "Rent a small server, and point your domain name at it.": "Wynajmij mały serwer i skieruj na niego swoją domenę.",
-  "Repair": "Napraw",
+  "Repair": "Naprawa",
   "Replace the original": "Zastąp oryginał",
   "Replacing originals deletes them, so this asks for your password.": "Zastępowanie oryginałów je usuwa, dlatego potrzebne jest hasło.",
   "Report": "Raport",
@@ -1174,7 +1174,7 @@
   "Results": "Wyniki",
   "Resume": "Wznów",
   "Return to latest": "Wróć do najnowszej",
-  "Revert": "Cofnij",
+  "Revert": "Przywróć",
   "Right after applying, press": "Zaraz po zastosowaniu naciśnij",
   "Right now this server only answers on this computer.": "W tej chwili ten serwer odpowiada tylko na tym komputerze.",
   "Robust": "Niezawodny",
@@ -1228,9 +1228,9 @@
   "Scheduled backups no longer have a password": "Zaplanowane kopie zapasowe nie mają już hasła",
   "School holidays aren’t known to the server: change these when they start.": "Serwer nie zna terminów ferii: zmień te ustawienia, gdy się zaczną.",
   "Screen time": "Czas przed ekranem",
-  "Search Help": "Przeszukaj Pomoc",
+  "Search Help": "Szukaj w Pomocy",
   "Search a movie or show…": "Szukaj filmu lub serialu…",
-  "Search settings": "Szukaj w ustawieniach",
+  "Search settings": "Szukaj w Ustawieniach",
   "Search titles": "Szukaj tytułów",
   "Secondary text": "Tekst drugorzędny",
   "Secrets left out": "Pominięto sekrety",
@@ -1240,7 +1240,7 @@
   "Select the address and copy it by hand": "Zaznacz adres i skopiuj go ręcznie",
   "Select the text and copy it": "Zaznacz tekst i skopiuj go",
   "Select them and copy by hand": "Zaznacz je i skopiuj ręcznie",
-  "Selected": "Wybrano",
+  "Selected": "Wybrane",
   "Series in season folders; disc images of a series too": "Seriale w folderach sezonów; także obrazy płyt z serialami",
   "Series with AniList information": "Seriale z informacjami z AniList",
   "Server": "Serwer",
@@ -1268,7 +1268,7 @@
   "Shows": "Seriale",
   "Shows what would become of each track. Nothing is changed.": "Pokazuje, co stałoby się z każdą ścieżką. Nic nie jest zmieniane.",
   "Shows with the genre “Anime”. Needs an Anime library.": "Seriale z gatunkiem „Anime”. Wymaga biblioteki Anime.",
-  "Sign out": "Wyloguj",
+  "Sign out": "Wyloguj się",
   "Sign out every device that signed in without encryption?": "Wylogować każde urządzenie, które zalogowało się bez szyfrowania?",
   "Sign out everywhere except on this device?": "Wylogować wszędzie poza tym urządzeniem?",
   "Sign out the others": "Wyloguj pozostałe",
@@ -1285,8 +1285,8 @@
   "Signing in also asks for a 6-digit code from an app on your phone, so a stolen password isn't enough. It is optional, and worth having if you use Remote Access. Any authenticator app works.": "Logowanie wymaga też 6-cyfrowego kodu z aplikacji na telefonie, więc skradzione hasło nie wystarczy. Jest to opcjonalne i warto to mieć, jeśli używasz Dostępu zdalnego. Działa każda aplikacja uwierzytelniająca.",
   "Signs in as {name}": "Loguje się jako {name}",
   "Single item": "Pojedynczy element",
-  "Skip adverts": "Pomijaj reklamy",
-  "Skip credits": "Pomijaj napisy końcowe",
+  "Skip adverts": "Pomiń reklamy",
+  "Skip credits": "Pomiń napisy końcowe",
   "Skip intros": "Pomijaj czołówki",
   "Skip recaps": "Pomijaj streszczenia",
   "Skipping": "Pomijanie",
@@ -1314,7 +1314,7 @@
   "Stereo": "Stereo",
   "Stop": "Zatrzymaj",
   "Stop this server and start it again, and it happens then.": "Zatrzymaj ten serwer i uruchom go ponownie, a wtedy to nastąpi.",
-  "Stop using it": "Przestań używać",
+  "Stop using it": "Przestań go używać",
   "Stop using this version": "Przestań używać tej wersji",
   "Stop using {name} {version}?": "Przestać używać {name} {version}?",
   "Stopped by a restart": "Zatrzymane przez ponowne uruchomienie",
@@ -1361,7 +1361,7 @@
   "Terms, who’s responsible for what, privacy and notices": "Warunki, kto za co odpowiada, prywatność i informacje",
   "Test": "Testuj",
   "Test my connection": "Testuj moje połączenie",
-  "Test the connection": "Testuj połączenie",
+  "Test the connection": "Przetestuj połączenie",
   "Testing…": "Testowanie…",
   "Testing… (up to a minute)": "Testowanie… (do minuty)",
   "Text keeps its quotes. A number, like the year, has none. Then press": "Tekst zachowuje cudzysłowy. Liczba, np. rok, ich nie ma. Potem naciśnij",
@@ -1530,7 +1530,7 @@
   "This page moves on by itself. Everyone signs in again afterwards.": "Ta strona sama przejdzie dalej. Potem wszyscy logują się ponownie.",
   "This page shows the new version once it’s running, instead of {version}.": "Ta strona pokaże nową wersję zamiast {version}, gdy zacznie działać.",
   "This page shows the new version once it’s running.": "Ta strona pokaże nową wersję, gdy zacznie działać.",
-  "This product uses the TMDB API but is not endorsed or certified by TMDB.": "Ten produkt korzysta z API TMDB, ale nie jest popierany ani certyfikowany przez TMDB.",
+  "This product uses the TMDB API but is not endorsed or certified by TMDB.": "Ten produkt korzysta z API TMDB, ale nie jest wspierany ani certyfikowany przez TMDB.",
   "This profile's password and limits are managed by the adults of this server.": "Hasłem i limitami tego profilu zarządzają dorośli na tym serwerze.",
   "This recipe’s preset no longer exists.": "Ustawienie wstępne tego przepisu już nie istnieje.",
   "This rewrites them. Each new file is checked before anything is replaced, and you choose whether the old one is kept, but a converted file is never better than its original.": "To je przepisuje. Każdy nowy plik jest sprawdzany przed zastąpieniem czegokolwiek, a ty decydujesz, czy stary zostaje, ale przekonwertowany plik nigdy nie jest lepszy od oryginału.",
@@ -1598,7 +1598,7 @@
   "Turning this off stops every existing link too.": "Wyłączenie tego zatrzymuje też wszystkie istniejące linki.",
   "Turns downloads off and deletes the pictures. Logos you uploaded stay.": "Wyłącza pobieranie i usuwa obrazy. Przesłane przez ciebie logo zostają.",
   "Two ways, and either works for": "Dwa sposoby, każdy działa dla",
-  "Two-factor sign-in": "Logowanie dwuetapowe",
+  "Two-factor sign-in": "Logowanie dwuskładnikowe",
   "Two-factor sign-in is off": "Logowanie dwuetapowe jest wyłączone",
   "Type RESTORE to confirm": "Wpisz RESTORE, aby potwierdzić",
   "Type {word} to confirm": "Wpisz {word}, aby potwierdzić",
@@ -1620,7 +1620,7 @@
   "Update this module by itself": "Aktualizuj ten moduł automatycznie",
   "Update to {version}": "Aktualizuj do {version}",
   "Update {name} by itself": "Aktualizuj {name} automatycznie",
-  "Update {name} to {version}": "Aktualizuj {name} do {version}",
+  "Update {name} to {version}": "Zaktualizuj {name} do {version}",
   "Update {name} to {version}?": "Zaktualizować {name} do {version}?",
   "Updates": "Aktualizacje",
   "Updates on its own": "Aktualizuje się samodzielnie",
@@ -1667,12 +1667,12 @@
   "Version {version} was withdrawn for security reasons: {reason}": "Wersja {version} została wycofana ze względów bezpieczeństwa: {reason}",
   "Version, modules, licenses and credits": "Wersja, moduły, licencje i podziękowania",
   "Versions": "Wersje",
-  "Vertical videos": "Pionowe filmy",
+  "Vertical videos": "Filmy pionowe",
   "Video": "Wideo",
   "Video is converted by {ffmpeg}, run as a separate program; the bundled builds are GPL-licensed, with sources linked in {file}.": "Wideo jest konwertowane przez {ffmpeg}, uruchamiany jako osobny program; dołączone kompilacje są na licencji GPL, a źródła są podlinkowane w {file}.",
   "Viewer": "Widz",
   "Viewers pick a speed in every player: video, discs, music, audiobooks, podcasts and vertical videos. Voices keep their pitch at every speed. Above 4×: most browsers mute the sound, and a video that has to be converted must convert faster than it plays, which takes strong hardware. Files that play as they are, in H.264 or VP9 with AAC or Opus, cope best.": "Widzowie wybierają prędkość w każdym odtwarzaczu: wideo, płyty, muzyka, audiobooki, podcasty i pionowe filmy. Głosy zachowują wysokość przy każdej prędkości. Powyżej 4×: większość przeglądarek wycisza dźwięk, a wideo wymagające konwersji musi być konwertowane szybciej, niż jest odtwarzane, co wymaga mocnego sprzętu. Najlepiej radzą sobie pliki odtwarzane bez zmian, w H.264 lub VP9 z AAC lub Opus.",
-  "Waiting": "Oczekiwanie",
+  "Waiting": "Oczekuje",
   "Waiting for another check to finish (number {position} in line).": "Oczekiwanie na zakończenie innego sprawdzenia (miejsce w kolejce: {position}).",
   "Waiting for another check to finish.": "Oczekiwanie na zakończenie innego sprawdzenia.",
   "Waiting for the server": "Oczekiwanie na serwer",
@@ -1724,7 +1724,7 @@
   "What they’re called around the app.": "Jak są nazywani w aplikacji.",
   "What this does": "Co to robi",
   "What this means": "Co to oznacza",
-  "What this server can do, one piece at a time. Add what you want and remove what you don’t.": "Co potrafi ten serwer, element po elemencie. Dodaj, co chcesz, i usuń, czego nie chcesz.",
+  "What this server can do, one piece at a time. Add what you want and remove what you don’t.": "Możliwości tego serwera, kawałek po kawałku. Dodaj to, czego chcesz, i usuń to, czego nie potrzebujesz.",
   "What this server can do: add, remove, update and choose versions": "Co potrafi ten serwer: dodawaj, usuwaj, aktualizuj i wybieraj wersje",
   "What to bring back": "Co przywrócić",
   "What to check": "Co sprawdzić",
@@ -1793,7 +1793,7 @@
   "With this choice your sign-in page is on the internet.": "Przy tym wyborze twoja strona logowania jest w internecie.",
   "With this on, new video files are written, but still no subtitle files or artwork.": "Po włączeniu zapisywane są nowe pliki wideo, ale nadal bez plików napisów i grafik.",
   "With your own key, information comes from {tmdb}: this product uses the TMDB API but is not endorsed or certified by TMDB.": "Z własnym kluczem informacje pochodzą z {tmdb}: ten produkt korzysta z API TMDB, ale nie jest popierany ani certyfikowany przez TMDB.",
-  "Withdrawn": "Wycofana",
+  "Withdrawn": "Wycofany",
   "Withdrawn because it was broken: {reason}": "Wycofana, bo była wadliwa: {reason}",
   "Withdrawn for security reasons: {reason}": "Wycofana ze względów bezpieczeństwa: {reason}",
   "Without encryption,": "Bez szyfrowania",
@@ -2010,7 +2010,7 @@
   "{name} goes back to the releases of {repo}. Versions downloaded from {fork} are deleted, and it isn’t on this server until you install the official one.": "{name} wraca do wydań z {repo}. Wersje pobrane z {fork} zostaną usunięte, a modułu nie będzie na tym serwerze, dopóki nie zainstalujesz oficjalnego.",
   "{name} helps your devices find each other. Your video travels directly between them whenever it can, encrypted so that only your devices can read it. No port is opened on your router. Devices on your VPN count as away from home: they get the limits below and need a password.": "{name} pomaga twoim urządzeniom znaleźć się nawzajem. Wideo przechodzi bezpośrednio między nimi, kiedy tylko się da, szyfrowane tak, by mogły je odczytać tylko twoje urządzenia. Na routerze nie jest otwierany żaden port. Urządzenia w twoim VPN liczą się jako poza domem: obowiązują je limity poniżej i potrzebują hasła.",
   "{name} is back to the official version": "{name} wrócił do oficjalnej wersji",
-  "{name} is being installed": "Instalowanie {name}",
+  "{name} is being installed": "Instalowanie: {name}",
   "{name} is going back to the latest": "{name} wraca do najnowszej",
   "{name} is hidden, and still plays on channels": "{name} jest ukryty i nadal jest odtwarzany na kanałach",
   "{name} is no longer in use": "{name} nie jest już używany",
@@ -2026,10 +2026,10 @@
   "{name} stops showing in the app and stops checking for updates.": "{name} przestaje być widoczny w aplikacji i przestaje sprawdzać aktualizacje.",
   "{name} stops using version {version}, and that version is marked as taken out of use, so automatic updates won’t bring it back. You can still choose it yourself.": "{name} przestaje używać wersji {version}, a ta wersja zostaje oznaczona jako wycofana z użytku, więc automatyczne aktualizacje jej nie przywrócą. Nadal możesz ją wybrać sam(a).",
   "{name} versions": "Wersje {name}",
-  "{name} wasn’t installed": "Nie zainstalowano {name}",
+  "{name} wasn’t installed": "Nie zainstalowano: {name}",
   "{name} went back to version {version}": "{name} wrócił do wersji {version}",
   "{name} will wait for you to update it": "{name} poczeka, aż go zaktualizujesz",
-  "{name} {version} is being installed": "Instalowanie {name} {version}",
+  "{name} {version} is being installed": "Instalowanie: {name} {version}",
   "{name}: the last two weeks": "{name}: ostatnie dwa tygodnie",
   "{n} s": "{n} s",
   "{n}% smaller": "o {n}% mniejszy",
@@ -2060,300 +2060,300 @@
   "“{name}” is on the server": "„{name}” jest na serwerze",
   "“{name}” is your theme on this device": "„{name}” to twój motyw na tym urządzeniu",
   "…": "…",
-  "…and {count} more.": "…i {count} więcej.",
+  "…and {count} more.": "…i jeszcze {count}.",
   "…or type a folder path and press Enter": "…albo wpisz ścieżkę folderu i naciśnij Enter",
   "{count} bytes": {
-   "one": "{count} bajt",
-   "few": "{count} bajty",
-   "many": "{count} bajtów",
-   "other": "{count} bajta"
+    "one": "{count} bajt",
+    "few": "{count} bajty",
+    "many": "{count} bajtów",
+    "other": "{count} bajta"
   },
   "{count} entries": {
-   "one": "{count} wpis",
-   "few": "{count} wpisy",
-   "many": "{count} wpisów",
-   "other": "{count} wpisu"
+    "one": "{count} wpis",
+    "few": "{count} wpisy",
+    "many": "{count} wpisów",
+    "other": "{count} wpisu"
   },
   "{count} files": {
-   "one": "{count} plik",
-   "few": "{count} pliki",
-   "many": "{count} plików",
-   "other": "{count} pliku"
+    "one": "{count} plik",
+    "few": "{count} pliki",
+    "many": "{count} plików",
+    "other": "{count} pliku"
   },
   "{count} titles": {
-   "one": "{count} tytuł",
-   "few": "{count} tytuły",
-   "many": "{count} tytułów",
-   "other": "{count} tytułu"
+    "one": "{count} tytuł",
+    "few": "{count} tytuły",
+    "many": "{count} tytułów",
+    "other": "{count} tytułu"
   },
   "{count} pieces of text would be hard to read": {
-   "one": "{count} fragment tekstu byłby trudny do odczytania",
-   "few": "{count} fragmenty tekstu byłyby trudne do odczytania",
-   "many": "{count} fragmentów tekstu byłoby trudnych do odczytania",
-   "other": "{count} fragmentu tekstu byłoby trudne do odczytania"
+    "one": "{count} fragment tekstu byłby trudny do odczytania",
+    "few": "{count} fragmenty tekstu byłyby trudne do odczytania",
+    "many": "{count} fragmentów tekstu byłoby trudnych do odczytania",
+    "other": "{count} fragmentu tekstu byłoby trudne do odczytania"
   },
   "{count} problems": {
-   "one": "{count} problem",
-   "few": "{count} problemy",
-   "many": "{count} problemów",
-   "other": "{count} problemu"
+    "one": "{count} problem",
+    "few": "{count} problemy",
+    "many": "{count} problemów",
+    "other": "{count} problemu"
   },
   "{count} warnings": {
-   "one": "{count} ostrzeżenie",
-   "few": "{count} ostrzeżenia",
-   "many": "{count} ostrzeżeń",
-   "other": "{count} ostrzeżenia"
+    "one": "{count} ostrzeżenie",
+    "few": "{count} ostrzeżenia",
+    "many": "{count} ostrzeżeń",
+    "other": "{count} ostrzeżenia"
   },
   "{count} notes": {
-   "one": "{count} uwaga",
-   "few": "{count} uwagi",
-   "many": "{count} uwag",
-   "other": "{count} uwagi"
+    "one": "{count} uwaga",
+    "few": "{count} uwagi",
+    "many": "{count} uwag",
+    "other": "{count} uwagi"
   },
   "{count} things fine": {
-   "one": "{count} rzecz w porządku",
-   "few": "{count} rzeczy w porządku",
-   "many": "{count} rzeczy w porządku",
-   "other": "{count} rzeczy w porządku"
+    "one": "{count} rzecz w porządku",
+    "few": "{count} rzeczy w porządku",
+    "many": "{count} rzeczy w porządku",
+    "other": "{count} rzeczy w porządku"
   },
   "{count} files the server saved beside the media removed, with {companions}.": {
-   "one": "Usunięto {count} plik zapisany przez serwer obok multimediów, wraz z {companions}.",
-   "few": "Usunięto {count} pliki zapisane przez serwer obok multimediów, wraz z {companions}.",
-   "many": "Usunięto {count} plików zapisanych przez serwer obok multimediów, wraz z {companions}.",
-   "other": "Usunięto {count} pliku zapisanego przez serwer obok multimediów, wraz z {companions}."
+    "one": "Usunięto {count} plik zapisany przez serwer obok multimediów, wraz z {companions}.",
+    "few": "Usunięto {count} pliki zapisane przez serwer obok multimediów, wraz z {companions}.",
+    "many": "Usunięto {count} plików zapisanych przez serwer obok multimediów, wraz z {companions}.",
+    "other": "Usunięto {count} pliku zapisanego przez serwer obok multimediów, wraz z {companions}."
   },
   "{count} macOS “._” files": {
-   "one": "{count} plik macOS „._”",
-   "few": "{count} pliki macOS „._”",
-   "many": "{count} plików macOS „._”",
-   "other": "{count} pliku macOS „._”"
+    "one": "{count} plik macOS „._”",
+    "few": "{count} pliki macOS „._”",
+    "many": "{count} plików macOS „._”",
+    "other": "{count} pliku macOS „._”"
   },
   "{count} files the server saved beside the media removed.": {
-   "one": "Usunięto {count} plik zapisany przez serwer obok multimediów.",
-   "few": "Usunięto {count} pliki zapisane przez serwer obok multimediów.",
-   "many": "Usunięto {count} plików zapisanych przez serwer obok multimediów.",
-   "other": "Usunięto {count} pliku zapisanego przez serwer obok multimediów."
+    "one": "Usunięto {count} plik zapisany przez serwer obok multimediów.",
+    "few": "Usunięto {count} pliki zapisane przez serwer obok multimediów.",
+    "many": "Usunięto {count} plików zapisanych przez serwer obok multimediów.",
+    "other": "Usunięto {count} pliku zapisanego przez serwer obok multimediów."
   },
   "{count} NFO files of yours put back from the .nfo.bak copy the server kept.": {
-   "one": "Przywrócono jeden twój plik NFO z kopii .nfo.bak zachowanej przez serwer.",
-   "few": "Przywrócono {count} twoje pliki NFO z kopii .nfo.bak zachowanych przez serwer.",
-   "many": "Przywrócono {count} twoich plików NFO z kopii .nfo.bak zachowanych przez serwer.",
-   "other": "Przywrócono {count} twojego pliku NFO z kopii .nfo.bak zachowanych przez serwer."
+    "one": "Przywrócono jeden twój plik NFO z kopii .nfo.bak zachowanej przez serwer.",
+    "few": "Przywrócono {count} twoje pliki NFO z kopii .nfo.bak zachowanych przez serwer.",
+    "many": "Przywrócono {count} twoich plików NFO z kopii .nfo.bak zachowanych przez serwer.",
+    "other": "Przywrócono {count} twojego pliku NFO z kopii .nfo.bak zachowanych przez serwer."
   },
   "{count} files were left as they were: changed since the server saved them, or couldn’t be removed.": {
-   "one": "{count} plik pozostawiono bez zmian: zmienił się od zapisania przez serwer albo nie dało się go usunąć.",
-   "few": "{count} pliki pozostawiono bez zmian: zmieniły się od zapisania przez serwer albo nie dało się ich usunąć.",
-   "many": "{count} plików pozostawiono bez zmian: zmieniły się od zapisania przez serwer albo nie dało się ich usunąć.",
-   "other": "{count} pliku pozostawiono bez zmian: zmieniły się od zapisania przez serwer albo nie dało się ich usunąć."
+    "one": "{count} plik pozostawiono bez zmian: zmienił się od zapisania przez serwer albo nie dało się go usunąć.",
+    "few": "{count} pliki pozostawiono bez zmian: zmieniły się od zapisania przez serwer albo nie dało się ich usunąć.",
+    "many": "{count} plików pozostawiono bez zmian: zmieniły się od zapisania przez serwer albo nie dało się ich usunąć.",
+    "other": "{count} pliku pozostawiono bez zmian: zmieniły się od zapisania przez serwer albo nie dało się ich usunąć."
   },
   "{count} shows": {
-   "one": "{count} serial",
-   "few": "{count} seriale",
-   "many": "{count} seriali",
-   "other": "{count} serialu"
+    "one": "{count} serial",
+    "few": "{count} seriale",
+    "many": "{count} seriali",
+    "other": "{count} serialu"
   },
   "{count} fields you locked or typed kept.": {
-   "one": "Zachowano {count} pole zablokowane lub wpisane przez ciebie.",
-   "few": "Zachowano {count} pola zablokowane lub wpisane przez ciebie.",
-   "many": "Zachowano {count} pól zablokowanych lub wpisanych przez ciebie.",
-   "other": "Zachowano {count} pola zablokowanego lub wpisanego przez ciebie."
+    "one": "Zachowano {count} pole zablokowane lub wpisane przez ciebie.",
+    "few": "Zachowano {count} pola zablokowane lub wpisane przez ciebie.",
+    "many": "Zachowano {count} pól zablokowanych lub wpisanych przez ciebie.",
+    "other": "Zachowano {count} pola zablokowanego lub wpisanego przez ciebie."
   },
   "{count} cached pictures removed.": {
-   "one": "Usunięto {count} obraz z pamięci podręcznej.",
-   "few": "Usunięto {count} obrazy z pamięci podręcznej.",
-   "many": "Usunięto {count} obrazów z pamięci podręcznej.",
-   "other": "Usunięto {count} obrazu z pamięci podręcznej."
+    "one": "Usunięto {count} obraz z pamięci podręcznej.",
+    "few": "Usunięto {count} obrazy z pamięci podręcznej.",
+    "many": "Usunięto {count} obrazów z pamięci podręcznej.",
+    "other": "Usunięto {count} obrazu z pamięci podręcznej."
   },
   "{count} downloaded logos removed.": {
-   "one": "Usunięto {count} pobrane logo.",
-   "few": "Usunięto {count} pobrane logo.",
-   "many": "Usunięto {count} pobranych logo.",
-   "other": "Usunięto {count} pobranego logo."
+    "one": "Usunięto {count} pobrane logo.",
+    "few": "Usunięto {count} pobrane logo.",
+    "many": "Usunięto {count} pobranych logo.",
+    "other": "Usunięto {count} pobranego logo."
   },
   "{count} items": {
-   "one": "{count} element",
-   "few": "{count} elementy",
-   "many": "{count} elementów",
-   "other": "{count} elementu"
+    "one": "{count} element",
+    "few": "{count} elementy",
+    "many": "{count} elementów",
+    "other": "{count} elementu"
   },
   "{count} problems so far. They’re in the activity panel.": {
-   "one": "Na razie {count} problem. Jest w panelu aktywności.",
-   "few": "Na razie {count} problemy. Są w panelu aktywności.",
-   "many": "Na razie {count} problemów. Są w panelu aktywności.",
-   "other": "Na razie {count} problemu. Są w panelu aktywności."
+    "one": "Na razie {count} problem. Jest w panelu aktywności.",
+    "few": "Na razie {count} problemy. Są w panelu aktywności.",
+    "many": "Na razie {count} problemów. Są w panelu aktywności.",
+    "other": "Na razie {count} problemu. Są w panelu aktywności."
   },
   "WittyMediaServer itself, and every Witty module, is AGPL-3.0-or-later. It’s built with {count} open-source libraries, all listed here with their full license text.": {
-   "one": "Sam WittyMediaServer i każdy moduł Witty są na licencji AGPL-3.0-or-later. Zbudowano go z użyciem {count} biblioteki open source, wymienionej tutaj z pełnym tekstem licencji.",
-   "few": "Sam WittyMediaServer i każdy moduł Witty są na licencji AGPL-3.0-or-later. Zbudowano go z użyciem {count} bibliotek open source, wszystkich wymienionych tutaj z pełnym tekstem licencji.",
-   "many": "Sam WittyMediaServer i każdy moduł Witty są na licencji AGPL-3.0-or-later. Zbudowano go z użyciem {count} bibliotek open source, wszystkich wymienionych tutaj z pełnym tekstem licencji.",
-   "other": "Sam WittyMediaServer i każdy moduł Witty są na licencji AGPL-3.0-or-later. Zbudowano go z użyciem {count} biblioteki open source, wszystkich wymienionych tutaj z pełnym tekstem licencji."
+    "one": "Sam WittyMediaServer i każdy moduł Witty są na licencji AGPL-3.0-or-later. Zbudowano go z użyciem {count} biblioteki open source, wymienionej tutaj z pełnym tekstem licencji.",
+    "few": "Sam WittyMediaServer i każdy moduł Witty są na licencji AGPL-3.0-or-later. Zbudowano go z użyciem {count} bibliotek open source, wszystkich wymienionych tutaj z pełnym tekstem licencji.",
+    "many": "Sam WittyMediaServer i każdy moduł Witty są na licencji AGPL-3.0-or-later. Zbudowano go z użyciem {count} bibliotek open source, wszystkich wymienionych tutaj z pełnym tekstem licencji.",
+    "other": "Sam WittyMediaServer i każdy moduł Witty są na licencji AGPL-3.0-or-later. Zbudowano go z użyciem {count} biblioteki open source, wszystkich wymienionych tutaj z pełnym tekstem licencji."
   },
   "{count} files for titles": {
-   "one": "{count} plik dla tytułów",
-   "few": "{count} pliki dla tytułów",
-   "many": "{count} plików dla tytułów",
-   "other": "{count} pliku dla tytułów"
+    "one": "{count} plik dla tytułów",
+    "few": "{count} pliki dla tytułów",
+    "many": "{count} plików dla tytułów",
+    "other": "{count} pliku dla tytułów"
   },
   "{count} pictures": {
-   "one": "{count} obraz",
-   "few": "{count} obrazy",
-   "many": "{count} obrazów",
-   "other": "{count} obrazu"
+    "one": "{count} obraz",
+    "few": "{count} obrazy",
+    "many": "{count} obrazów",
+    "other": "{count} obrazu"
   },
   "{count} files written": {
-   "one": "Zapisano {count} plik",
-   "few": "Zapisano {count} pliki",
-   "many": "Zapisano {count} plików",
-   "other": "Zapisano {count} pliku"
+    "one": "Zapisano {count} plik",
+    "few": "Zapisano {count} pliki",
+    "many": "Zapisano {count} plików",
+    "other": "Zapisano {count} pliku"
   },
   "{count} files kept as they are, with edits you haven’t applied.": {
-   "one": "{count} plik pozostawiono bez zmian, z niezastosowanymi edycjami.",
-   "few": "{count} pliki pozostawiono bez zmian, z niezastosowanymi edycjami.",
-   "many": "{count} plików pozostawiono bez zmian, z niezastosowanymi edycjami.",
-   "other": "{count} pliku pozostawiono bez zmian, z niezastosowanymi edycjami."
+    "one": "{count} plik pozostawiono bez zmian, z niezastosowanymi edycjami.",
+    "few": "{count} pliki pozostawiono bez zmian, z niezastosowanymi edycjami.",
+    "many": "{count} plików pozostawiono bez zmian, z niezastosowanymi edycjami.",
+    "other": "{count} pliku pozostawiono bez zmian, z niezastosowanymi edycjami."
   },
   "{count} titles would change.": {
-   "one": "Zmieniłby się {count} tytuł.",
-   "few": "Zmieniłyby się {count} tytuły.",
-   "many": "Zmieniłoby się {count} tytułów.",
-   "other": "Zmieniłoby się {count} tytułu."
+    "one": "Zmieniłby się {count} tytuł.",
+    "few": "Zmieniłyby się {count} tytuły.",
+    "many": "Zmieniłoby się {count} tytułów.",
+    "other": "Zmieniłoby się {count} tytułu."
   },
   "{count} files with nothing to do.": {
-   "one": "{count} plik bez niczego do zrobienia.",
-   "few": "{count} pliki bez niczego do zrobienia.",
-   "many": "{count} plików bez niczego do zrobienia.",
-   "other": "{count} pliku bez niczego do zrobienia."
+    "one": "{count} plik bez niczego do zrobienia.",
+    "few": "{count} pliki bez niczego do zrobienia.",
+    "many": "{count} plików bez niczego do zrobienia.",
+    "other": "{count} pliku bez niczego do zrobienia."
   },
   "Apply to {count} titles": {
-   "one": "Zastosuj do {count} tytułu",
-   "few": "Zastosuj do {count} tytułów",
-   "many": "Zastosuj do {count} tytułów",
-   "other": "Zastosuj do {count} tytułu"
+    "one": "Zastosuj do {count} tytułu",
+    "few": "Zastosuj do {count} tytułów",
+    "many": "Zastosuj do {count} tytułów",
+    "other": "Zastosuj do {count} tytułu"
   },
   "{count} titles changed": {
-   "one": "Zmieniono {count} tytuł",
-   "few": "Zmieniono {count} tytuły",
-   "many": "Zmieniono {count} tytułów",
-   "other": "Zmieniono {count} tytułu"
+    "one": "Zmieniono {count} tytuł",
+    "few": "Zmieniono {count} tytuły",
+    "many": "Zmieniono {count} tytułów",
+    "other": "Zmieniono {count} tytułu"
   },
   "{count} files left out.": {
-   "one": "Pominięto {count} plik.",
-   "few": "Pominięto {count} pliki.",
-   "many": "Pominięto {count} plików.",
-   "other": "Pominięto {count} pliku."
+    "one": "Pominięto {count} plik.",
+    "few": "Pominięto {count} pliki.",
+    "many": "Pominięto {count} plików.",
+    "other": "Pominięto {count} pliku."
   },
   "{names} are built on it.": {
-   "one": "{names} jest na nim oparty.",
-   "few": "{names} są na nim oparte.",
-   "many": "{names} są na nim oparte.",
-   "other": "{names} są na nim oparte."
+    "one": "{names} jest na nim oparty.",
+    "few": "{names} są na nim oparte.",
+    "many": "{names} są na nim oparte.",
+    "other": "{names} są na nim oparte."
   },
   "{name} has {count} more minutes today": {
-   "one": "{name} ma dziś jeszcze {count} minutę",
-   "few": "{name} ma dziś jeszcze {count} minuty",
-   "many": "{name} ma dziś jeszcze {count} minut",
-   "other": "{name} ma dziś jeszcze {count} minuty"
+    "one": "{name} ma dziś jeszcze {count} minutę",
+    "few": "{name} ma dziś jeszcze {count} minuty",
+    "many": "{name} ma dziś jeszcze {count} minut",
+    "other": "{name} ma dziś jeszcze {count} minuty"
   },
   "{count} minutes": {
-   "one": "{count} minuta",
-   "few": "{count} minuty",
-   "many": "{count} minut",
-   "other": "{count} minuty"
+    "one": "{count} minuta",
+    "few": "{count} minuty",
+    "many": "{count} minut",
+    "other": "{count} minuty"
   },
   "{count} minutes ago": {
-   "one": "{count} minutę temu",
-   "few": "{count} minuty temu",
-   "many": "{count} minut temu",
-   "other": "{count} minuty temu"
+    "one": "{count} minutę temu",
+    "few": "{count} minuty temu",
+    "many": "{count} minut temu",
+    "other": "{count} minuty temu"
   },
   "{count} hours ago": {
-   "one": "{count} godzinę temu",
-   "few": "{count} godziny temu",
-   "many": "{count} godzin temu",
-   "other": "{count} godziny temu"
+    "one": "{count} godzinę temu",
+    "few": "{count} godziny temu",
+    "many": "{count} godzin temu",
+    "other": "{count} godziny temu"
   },
   "{count} days ago": {
-   "one": "{count} dzień temu",
-   "few": "{count} dni temu",
-   "many": "{count} dni temu",
-   "other": "{count} dnia temu"
+    "one": "{count} dzień temu",
+    "few": "{count} dni temu",
+    "many": "{count} dni temu",
+    "other": "{count} dnia temu"
   },
   "{done}. {count} devices were signed out.": {
-   "one": "{done}. Wylogowano jedno urządzenie.",
-   "few": "{done}. Wylogowano {count} urządzenia.",
-   "many": "{done}. Wylogowano {count} urządzeń.",
-   "other": "{done}. Wylogowano {count} urządzenia."
+    "one": "{done}. Wylogowano jedno urządzenie.",
+    "few": "{done}. Wylogowano {count} urządzenia.",
+    "many": "{done}. Wylogowano {count} urządzeń.",
+    "other": "{done}. Wylogowano {count} urządzenia."
   },
   "{count} devices are signed in that way.": {
-   "one": "W ten sposób zalogowane jest jedno urządzenie.",
-   "few": "W ten sposób zalogowane są {count} urządzenia.",
-   "many": "W ten sposób zalogowanych jest {count} urządzeń.",
-   "other": "W ten sposób zalogowanych jest {count} urządzenia."
+    "one": "W ten sposób zalogowane jest jedno urządzenie.",
+    "few": "W ten sposób zalogowane są {count} urządzenia.",
+    "many": "W ten sposób zalogowanych jest {count} urządzeń.",
+    "other": "W ten sposób zalogowanych jest {count} urządzenia."
   },
   "Certificate for {names} from {issuer}, good for {count} more days.": {
-   "one": "Certyfikat dla {names} od {issuer}, ważny jeszcze {count} dzień.",
-   "few": "Certyfikat dla {names} od {issuer}, ważny jeszcze {count} dni.",
-   "many": "Certyfikat dla {names} od {issuer}, ważny jeszcze {count} dni.",
-   "other": "Certyfikat dla {names} od {issuer}, ważny jeszcze {count} dnia."
+    "one": "Certyfikat dla {names} od {issuer}, ważny jeszcze {count} dzień.",
+    "few": "Certyfikat dla {names} od {issuer}, ważny jeszcze {count} dni.",
+    "many": "Certyfikat dla {names} od {issuer}, ważny jeszcze {count} dni.",
+    "other": "Certyfikat dla {names} od {issuer}, ważny jeszcze {count} dnia."
   },
   "{count} devices signed in without encryption, so they are signed out too.": {
-   "one": "Jedno urządzenie zalogowało się bez szyfrowania, więc też zostaje wylogowane.",
-   "few": "{count} urządzenia zalogowały się bez szyfrowania, więc też zostają wylogowane.",
-   "many": "{count} urządzeń zalogowało się bez szyfrowania, więc też zostają wylogowane.",
-   "other": "{count} urządzenia zalogowało się bez szyfrowania, więc też zostają wylogowane."
+    "one": "Jedno urządzenie zalogowało się bez szyfrowania, więc też zostaje wylogowane.",
+    "few": "{count} urządzenia zalogowały się bez szyfrowania, więc też zostają wylogowane.",
+    "many": "{count} urządzeń zalogowało się bez szyfrowania, więc też zostają wylogowane.",
+    "other": "{count} urządzenia zalogowało się bez szyfrowania, więc też zostają wylogowane."
   },
   "{count} devices signed out": {
-   "one": "Wylogowano jedno urządzenie",
-   "few": "Wylogowano {count} urządzenia",
-   "many": "Wylogowano {count} urządzeń",
-   "other": "Wylogowano {count} urządzenia"
+    "one": "Wylogowano jedno urządzenie",
+    "few": "Wylogowano {count} urządzenia",
+    "many": "Wylogowano {count} urządzeń",
+    "other": "Wylogowano {count} urządzenia"
   },
   "Sign out the {count} devices that signed in unencrypted": {
-   "one": "Wyloguj urządzenie, które zalogowało się bez szyfrowania",
-   "few": "Wyloguj {count} urządzenia, które zalogowały się bez szyfrowania",
-   "many": "Wyloguj {count} urządzeń, które zalogowały się bez szyfrowania",
-   "other": "Wyloguj {count} urządzenia, które zalogowały się bez szyfrowania"
+    "one": "Wyloguj urządzenie, które zalogowało się bez szyfrowania",
+    "few": "Wyloguj {count} urządzenia, które zalogowały się bez szyfrowania",
+    "many": "Wyloguj {count} urządzeń, które zalogowały się bez szyfrowania",
+    "other": "Wyloguj {count} urządzenia, które zalogowały się bez szyfrowania"
   },
   "{count} checks looked at this server and found nothing wrong.": {
-   "one": "{count} test sprawdził ten serwer i nie znalazł problemów.",
-   "few": "{count} testy sprawdziły ten serwer i nie znalazły problemów.",
-   "many": "{count} testów sprawdziło ten serwer i nie znalazło problemów.",
-   "other": "{count} testu sprawdziło ten serwer i nie znalazło problemów."
+    "one": "{count} test sprawdził ten serwer i nie znalazł problemów.",
+    "few": "{count} testy sprawdziły ten serwer i nie znalazły problemów.",
+    "many": "{count} testów sprawdziło ten serwer i nie znalazło problemów.",
+    "other": "{count} testu sprawdziło ten serwer i nie znalazło problemów."
   },
   "{count} found": {
-   "one": "Znaleziono {count}",
-   "few": "Znaleziono {count}",
-   "many": "Znaleziono {count}",
-   "other": "Znaleziono {count}"
+    "one": "Znaleziono {count}",
+    "few": "Znaleziono {count}",
+    "many": "Znaleziono {count}",
+    "other": "Znaleziono {count}"
   },
   "opened {count} times": {
-   "one": "otwarto {count} raz",
-   "few": "otwarto {count} razy",
-   "many": "otwarto {count} razy",
-   "other": "otwarto {count} razy"
+    "one": "otwarto {count} raz",
+    "few": "otwarto {count} razy",
+    "many": "otwarto {count} razy",
+    "other": "otwarto {count} razy"
   },
   "This server’s FFmpeg can’t handle these {count}: {names}.": {
-   "one": "FFmpeg tego serwera nie radzi sobie z tym: {names}.",
-   "few": "FFmpeg tego serwera nie radzi sobie z tymi {count}: {names}.",
-   "many": "FFmpeg tego serwera nie radzi sobie z tymi {count}: {names}.",
-   "other": "FFmpeg tego serwera nie radzi sobie z tymi {count}: {names}."
+    "one": "FFmpeg tego serwera nie radzi sobie z tym: {names}.",
+    "few": "FFmpeg tego serwera nie radzi sobie z tymi {count}: {names}.",
+    "many": "FFmpeg tego serwera nie radzi sobie z tymi {count}: {names}.",
+    "other": "FFmpeg tego serwera nie radzi sobie z tymi {count}: {names}."
   },
   "{count} files deleted. Scanning {name}": {
-   "one": "Usunięto {count} plik. Skanowanie {name}",
-   "few": "Usunięto {count} pliki. Skanowanie {name}",
-   "many": "Usunięto {count} plików. Skanowanie {name}",
-   "other": "Usunięto {count} pliku. Skanowanie {name}"
+    "one": "Usunięto {count} plik. Skanowanie {name}",
+    "few": "Usunięto {count} pliki. Skanowanie {name}",
+    "many": "Usunięto {count} plików. Skanowanie {name}",
+    "other": "Usunięto {count} pliku. Skanowanie {name}"
   },
   "{count} libraries": {
-   "one": "{count} biblioteka",
-   "few": "{count} biblioteki",
-   "many": "{count} bibliotek",
-   "other": "{count} biblioteki"
+    "one": "{count} biblioteka",
+    "few": "{count} biblioteki",
+    "many": "{count} bibliotek",
+    "other": "{count} biblioteki"
   },
   "{count} things turned off": {
-   "one": "Wyłączono {count} rzecz",
-   "few": "Wyłączono {count} rzeczy",
-   "many": "Wyłączono {count} rzeczy",
-   "other": "Wyłączono {count} rzeczy"
+    "one": "Wyłączono {count} rzecz",
+    "few": "Wyłączono {count} rzeczy",
+    "many": "Wyłączono {count} rzeczy",
+    "other": "Wyłączono {count} rzeczy"
   }
 }

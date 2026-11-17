@@ -1,15 +1,15 @@
 {
- "Language and time zone": "Język i strefa czasowa",
- "Before anything else: the language for these pages, disc menus and sound tracks, and the time zone the server keeps.": "Na początek: język tych stron, menu płyt i ścieżek dźwiękowych oraz strefa czasowa serwera.",
- "Language": "Język",
- "Everything on these pages, for everyone who uses this server.": "Wszystko na tych stronach, dla każdego, kto korzysta z tego serwera.",
- "Disc menus and sound tracks": "Menu płyt i ścieżki dźwiękowe",
- "Disc menus, and the sound track a film or show starts with when it has one in this language. Subtitles stay off until someone turns them on.": "Menu płyt oraz ścieżka dźwiękowa, od której zaczyna się film lub serial, jeśli ma ją w tym języku. Napisy pozostają wyłączone, dopóki ktoś ich nie włączy.",
- "The original language": "Język oryginalny",
- "Time zone": "Strefa czasowa",
- "Guide days, schedules, recordings and the logs follow this. The server restarts once to use it, when setup is finished, if it isn’t the one it’s running in.": "Program, harmonogramy, nagrania i dzienniki działają według niej. Jeśli serwer działa w innej, uruchomi się ponownie raz po zakończeniu konfiguracji.",
- "The time zone of the computer the server runs on. Guide days, schedules, recordings and the logs follow it.": "Strefa czasowa komputera, na którym działa serwer. Program, harmonogramy, nagrania i dzienniki działają według niej.",
- "This device is set to {zone}.": "To urządzenie ma ustawioną strefę {zone}.",
- "You can change these again on the Name and address step, and later in Settings.": "Możesz to zmienić w kroku Nazwa i adres, a później w Ustawieniach.",
- "Continue": "Dalej"
+  "Language and time zone": "Język i strefa czasowa",
+  "Before anything else: the language for these pages, disc menus and sound tracks, and the time zone the server keeps.": "Na początek: język tych stron, menu płyt i ścieżek dźwiękowych oraz strefa czasowa serwera.",
+  "Language": "Język",
+  "Everything on these pages, for everyone who uses this server.": "Wszystko na tych stronach, dla każdego, kto korzysta z tego serwera.",
+  "Disc menus and sound tracks": "Menu płyt i ścieżki dźwiękowe",
+  "Disc menus, and the sound track a film or show starts with when it has one in this language. Subtitles stay off until someone turns them on.": "Menu płyt oraz ścieżka dźwiękowa, od której zaczyna się film lub serial, jeśli ma taką w tym języku. Napisy są wyłączone, dopóki ktoś ich nie włączy.",
+  "The original language": "Język oryginalny",
+  "Time zone": "Strefa czasowa",
+  "Guide days, schedules, recordings and the logs follow this. The server restarts once to use it, when setup is finished, if it isn’t the one it’s running in.": "Według tego działają dni w przewodniku, harmonogramy, nagrania i logi. Jeśli serwer działa teraz w innej strefie, po zakończeniu konfiguracji uruchomi się raz ponownie, aby jej użyć.",
+  "The time zone of the computer the server runs on. Guide days, schedules, recordings and the logs follow it.": "Strefa czasowa komputera, na którym działa serwer. Według niej działają dni w przewodniku, harmonogramy, nagrania i logi.",
+  "This device is set to {zone}.": "To urządzenie ma ustawioną strefę: {zone}.",
+  "You can change these again on the Name and address step, and later in Settings.": "Możesz to zmienić w kroku Nazwa i adres, a później w Ustawieniach.",
+  "Continue": "Dalej"
 }

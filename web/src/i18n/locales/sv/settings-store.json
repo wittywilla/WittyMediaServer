@@ -17,7 +17,7 @@
   "Add a rule": "Lägg till en regel",
   "Add a store run by someone else, and see the modules it offers alongside this project’s. Everything from one is labelled, and whether to trust it is up to you.": "Lägg till en butik som någon annan driver och se dess moduler bredvid projektets egna. Allt därifrån är märkt, och om du litar på det avgör du själv.",
   "Add tags": "Lägg till taggar",
-  "Add this store": "Lägg till butiken",
+  "Add this store": "Lägg till den här butiken",
   "Add to what this server can do. Everything here is signed, and nothing runs until you choose it.": "Utöka vad servern kan göra. Allt här är signerat, och inget körs förrän du väljer det.",
   "Add {name}?": "Lägga till {name}?",
   "Added a store": "Lade till en butik",
@@ -39,7 +39,7 @@
   "Cancel": "Avbryt",
   "Can’t be installed here": "Kan inte installeras här",
   "Can’t be used": "Kan inte användas",
-  "Can’t reach your server. Check that it’s running and try again.": "Når inte din server. Kontrollera att den är igång och försök igen.",
+  "Can’t reach your server. Check that it’s running and try again.": "Det går inte att nå din server. Kontrollera att den körs och försök igen.",
   "Changed where it comes from": "Ändrade var den kommer ifrån",
   "Checking the signature": "Kontrollerar signaturen",
   "Choose a library": "Välj ett bibliotek",
@@ -48,7 +48,7 @@
   "Clear search and filters": "Rensa sökning och filter",
   "Close": "Stäng",
   "Code from your authenticator app": "Kod från din autentiseringsapp",
-  "Comes with other modules": "Kommer med andra moduler",
+  "Comes with other modules": "Följer med andra moduler",
   "Continue": "Fortsätt",
   "Copy details": "Kopiera detaljer",
   "Custom modules": "Egna moduler",
@@ -61,8 +61,8 @@
   "Don’t install": "Installera inte",
   "Don’t install any": "Installera ingen",
   "Don’t look it up": "Slå inte upp den",
-  "Download": "Ladda ned",
-  "Downloading": "Laddar ned",
+  "Download": "Ladda ner",
+  "Downloading": "Laddar ner",
   "Drop it": "Släpp den",
   "Each file beside what {source} calls that number.": "Varje fil bredvid vad {source} kallar det numret.",
   "Each library has its own rules.": "Varje bibliotek har egna regler.",
@@ -74,7 +74,7 @@
   "Every module is up to date": "Alla moduler är uppdaterade",
   "Every system": "Alla system",
   "Everything": "Allt",
-  "Everything here is matched, and matched well. A new scan may add more.": "Allt här är matchat, och väl matchat. En ny genomsökning kan lägga till fler.",
+  "Everything here is matched, and matched well. A new scan may add more.": "Allt här är matchat, och väl matchat. En ny skanning kan lägga till fler.",
   "Everything keeps working as it is.": "Allt fortsätter fungera som nu.",
   "Experimental": "Experimentell",
   "Failed": "Misslyckades",
@@ -99,7 +99,7 @@
   "Go back to {name} {version}?": "Gå tillbaka till {name} {version}?",
   "Helper": "Hjälpare",
   "History": "Historik",
-  "History cleared": "Historiken rensades",
+  "History cleared": "Historiken har rensats",
   "How the path reads": "Hur sökvägen läses",
   "I trust {store} ({host})": "Jag litar på {store} ({host})",
   "ID": "ID",
@@ -126,7 +126,7 @@
   "Installed modules": "Installerade moduler",
   "Installed with an override": "Installerad med en åsidosättning",
   "Installing": "Installerar",
-  "Installing it asks you first.": "Du tillfrågas först innan den installeras.",
+  "Installing it asks you first.": "Du tillfrågas innan den installeras.",
   "Installing it needs an override.": "Att installera den kräver en åsidosättning.",
   "Installing {name} from {store}": "Installerar {name} från {store}",
   "Install…": "Installera…",
@@ -141,9 +141,9 @@
   "Keep what {name} saved here (its own settings, saves and lists), so installing it again carries on where it left off": "Behåll det {name} har sparat här (egna inställningar, sparningar och listor), så att den fortsätter där den slutade om du installerar den igen",
   "Key fingerprint": "Nyckelns fingeravtryck",
   "Keys:": "Tangenter:",
-  "Kind": "Sort",
+  "Kind": "Typ",
   "Last checked {when}.": "Senast kontrollerad {when}.",
-  "Left alone": "Lämnad ifred",
+  "Left alone": "Lämnades orörd",
   "Less boxed in on this system": "Mindre inlåst på det här systemet",
   "Libraries": "Bibliotek",
   "Library": "Bibliotek",
@@ -154,7 +154,7 @@
   "Log lines for {name}": "Loggrader för {name}",
   "Logging for {name}": "Loggning för {name}",
   "Logging settings": "Logginställningar",
-  "Look at this store": "Titta på butiken",
+  "Look at this store": "Titta på den här butiken",
   "Look everywhere": "Leta överallt",
   "Look on your own network?": "Leta i ditt eget nätverk?",
   "Looks right": "Ser rätt ut",
@@ -206,7 +206,7 @@
   "Nothing changed: the version in use keeps running.": "Inget ändrades: versionen som används fortsätter köras.",
   "Nothing has been taken out": "Inget har tagits ut",
   "Nothing has been written to it yet.": "Inget har skrivits till den än.",
-  "Nothing has changed. This is what each would become on its next scan.": "Inget har ändrats. Så här skulle var och en bli vid nästa genomsökning.",
+  "Nothing has changed. This is what each would become on its next scan.": "Inget har ändrats. Så här skulle var och en bli vid nästa skanning.",
   "Nothing here": "Inget här",
   "Nothing in the store matches these filters.": "Inget i butiken matchar dessa filter.",
   "Nothing in the store matches “{q}”.": "Inget i butiken matchar ”{q}”.",
@@ -214,7 +214,7 @@
   "Nothing major to report": "Inget större att rapportera",
   "Nothing needs a look": "Inget behöver ses över",
   "Number them in order": "Numrera dem i ordning",
-  "Numbers you change are locked, so a scan keeps them.": "Nummer du ändrar låses, så en genomsökning behåller dem.",
+  "Numbers you change are locked, so a scan keeps them.": "Nummer du ändrar låses, så en skanning behåller dem.",
   "On": "På",
   "On this server": "På den här servern",
   "One rule that normally stops this install would be bypassed.": "En regel som normalt stoppar installationen skulle kringgås.",
@@ -237,7 +237,7 @@
   "Program": "Program",
   "Progress overall": "Totalt förlopp",
   "Publisher": "Utgivare",
-  "Read": "Läsa",
+  "Read": "Läs",
   "Read the warnings again and tick each one.": "Läs varningarna igen och kryssa i var och en.",
   "Reading": "Läser",
   "Reading the log…": "Läser loggen…",
@@ -262,7 +262,7 @@
   "Replace {name}?": "Ersätta {name}?",
   "Review": "Granska",
   "Review…": "Granska…",
-  "Rules saved. They apply to new and changed files on the next scan.": "Reglerna sparades. De gäller nya och ändrade filer vid nästa genomsökning.",
+  "Rules saved. They apply to new and changed files on the next scan.": "Reglerna sparades. De gäller nya och ändrade filer vid nästa skanning.",
   "Save": "Spara",
   "Screenshots": "Skärmbilder",
   "Screenshots of {name}": "Skärmbilder av {name}",
@@ -311,7 +311,7 @@
   "The override on {name} was removed": "Åsidosättningen på {name} togs bort",
   "The override on {name} was removed, and {name} was taken off this server": "Åsidosättningen på {name} togs bort, och {name} togs bort från servern",
   "The server didn’t accept the file.": "Servern godtog inte filen.",
-  "The server hasn’t looked yet.": "Servern har inte tittat än.",
+  "The server hasn’t looked yet.": "Servern har inte letat än.",
   "The store": "Butiken",
   "The updates were taken back.": "Uppdateringarna togs tillbaka.",
   "The uploaded file was discarded": "Den uppladdade filen slängdes",
@@ -363,7 +363,7 @@
   "Turned off": "Avstängd",
   "Undid an update": "Ångrade en uppdatering",
   "Undo": "Ångra",
-  "Undone": "Ångrad",
+  "Undone": "Ångrat",
   "Update": "Uppdatera",
   "Update All": "Uppdatera alla",
   "Update All Modules": "Uppdatera alla moduler",
@@ -400,7 +400,7 @@
   "What this adds": "Vad den här lägger till",
   "What this module has said and done lately. Tokens and passwords are taken out before it reaches this page.": "Vad modulen har sagt och gjort på sistone. Token och lösenord tas bort innan det når den här sidan.",
   "What this needs has changed. Read the warnings again and tick each one.": "Vad den här behöver har ändrats. Läs varningarna igen och kryssa i var och en.",
-  "What to do": "Vad du kan göra",
+  "What to do": "Vad du ska göra",
   "What to know first": "Bra att veta först",
   "What to try": "Vad du kan prova",
   "What {name} adds": "Vad {name} lägger till",
@@ -464,7 +464,7 @@
   "{names} go back to the official version, and what came from this store is deleted.": "{names} går tillbaka till den officiella versionen, och det som kom från butiken raderas.",
   "{names} goes back to the official version, and what came from this store is deleted.": "{names} går tillbaka till den officiella versionen, och det som kom från butiken raderas.",
   "{name} (installed)": "{name} (installerad)",
-  "{name} added": "{name} lades till",
+  "{name} added": "{name} har lagts till",
   "{name} can’t be installed": "{name} kan inte installeras",
   "{name} checked": "{name} kontrollerad",
   "{name} couldn’t be changed": "{name} kunde inte ändras",
@@ -482,7 +482,7 @@
   "{name} log": "Logg för {name}",
   "{name} needs other modules": "{name} behöver andra moduler",
   "{name} needs something else": "{name} behöver något mer",
-  "{name} removed": "{name} togs bort",
+  "{name} removed": "{name} har tagits bort",
   "{name} stops using version {version}, and automatic updates won’t bring that version back. You can still choose it yourself.": "{name} slutar använda version {version}, och automatiska uppdateringar tar inte tillbaka den versionen. Du kan fortfarande välja den själv.",
   "{name} stops working and stops looking for updates. Your files and what you’ve watched, read or played stay as they are. You can install it again any time.": "{name} slutar fungera och slutar leta efter uppdateringar. Dina filer och det du har tittat på, läst eller spelat förblir som de är. Du kan installera den igen när som helst.",
   "{name} turned off": "{name} stängdes av",
@@ -502,40 +502,127 @@
   "{name}: third-party licences": "{name}: licenser från tredje part",
   "{phase}, {done} of {total}": "{phase}, {done} av {total}",
   "{platform} (this server)": "{platform} (den här servern)",
-  "{size} KB": "{size} KB",
+  "{size} KB": "{size} kB",
   "{size} MB": "{size} MB",
   "{source} calls it": "{source} kallar det",
   "{title}: kept as it is.": "{title}: behölls som den är.",
   "{title}: left with no match.": "{title}: lämnades utan matchning.",
   "{title}: matched with {match}.": "{title}: matchad med {match}.",
   "{title}: renumbered.": "{title}: omnumrerad.",
-  "{count} chosen": { "one": "{count} vald", "other": "{count} valda" },
-  "{title} and {count} more": { "one": "{title} och {count} till", "other": "{title} och {count} till" },
-  "{count} files fit": { "one": "{count} fil passar", "other": "{count} filer passar" },
-  "{count} numbers aren’t listed there.": { "one": "{count} nummer finns inte listat där.", "other": "{count} nummer finns inte listade där." },
-  "Install {count} modules": { "one": "Installera {count} modul", "other": "Installera {count} moduler" },
-  "{count} updates found": { "one": "{count} uppdatering hittades", "other": "{count} uppdateringar hittades" },
-  "{count} modules found": { "one": "{count} modul hittades", "other": "{count} moduler hittades" },
-  "{count} modules": { "one": "{count} modul", "other": "{count} moduler" },
-  "{count} rules that normally stop this install would be bypassed.": { "one": "{count} regel som normalt stoppar installationen skulle kringgås.", "other": "{count} regler som normalt stoppar installationen skulle kringgås." },
-  "{count} modules were made for an older server": { "one": "{count} modul gjordes för en äldre server", "other": "{count} moduler gjordes för en äldre server" },
-  "{name} was installed past {count} rules that would normally stop it.": { "one": "{name} installerades förbi {count} regel som normalt skulle stoppa den.", "other": "{name} installerades förbi {count} regler som normalt skulle stoppa den." },
-  "tick {count} warnings": { "one": "kryssa i {count} varning", "other": "kryssa i {count} varningar" },
-  "and {count} pages for one item each": { "one": "och {count} sida för ett objekt i taget", "other": "och {count} sidor för ett objekt i taget" },
-  "{count} pages for one item each": { "one": "{count} sida för ett objekt i taget", "other": "{count} sidor för ett objekt i taget" },
-  "{count} pages in every app, on TV too": { "one": "{count} sida i varje app, även på tv", "other": "{count} sidor i varje app, även på tv" },
-  "{count} screens of its own": { "one": "{count} egen skärm", "other": "{count} egna skärmar" },
-  "{count} steps: {steps}": { "one": "{count} steg: {steps}", "other": "{count} steg: {steps}" },
-  "{count} for administrators only": { "one": "{count} bara för administratörer", "other": "{count} bara för administratörer" },
-  "{count} opened by a link, without signing in": { "one": "{count} öppnas via en länk, utan inloggning", "other": "{count} öppnas via en länk, utan inloggning" },
-  "{count} about one item, checked against what the profile may see": { "one": "{count} om ett objekt, kontrollerad mot vad profilen får se", "other": "{count} om ett objekt, kontrollerade mot vad profilen får se" },
-  "{count} that stream": { "one": "{count} som strömmar", "other": "{count} som strömmar" },
-  "{count} that count towards screen time": { "one": "{count} som räknas in i skärmtiden", "other": "{count} som räknas in i skärmtiden" },
-  "answers {count} kinds of request of its own at {path}": { "one": "svarar på {count} egen sorts förfrågan på {path}", "other": "svarar på {count} egna sorters förfrågningar på {path}" },
-  "answers {count} kinds of request of its own": { "one": "svarar på {count} egen sorts förfrågan", "other": "svarar på {count} egna sorters förfrågningar" },
-  "{count} installed": { "one": "{count} installerad", "other": "{count} installerade" },
-  "{count} updated": { "one": "{count} uppdaterad", "other": "{count} uppdaterade" },
-  "{count} failed": { "one": "{count} misslyckades", "other": "{count} misslyckades" },
-  "{count} skipped": { "one": "{count} hoppades över", "other": "{count} hoppades över" },
-  "{count} updates available": { "one": "{count} uppdatering tillgänglig", "other": "{count} uppdateringar tillgängliga" }
+  "{count} chosen": {
+    "one": "{count} vald",
+    "other": "{count} valda"
+  },
+  "{title} and {count} more": {
+    "one": "{title} och {count} till",
+    "other": "{title} och {count} till"
+  },
+  "{count} files fit": {
+    "one": "{count} fil passar",
+    "other": "{count} filer passar"
+  },
+  "{count} numbers aren’t listed there.": {
+    "one": "{count} nummer finns inte listat där.",
+    "other": "{count} nummer finns inte listade där."
+  },
+  "Install {count} modules": {
+    "one": "Installera {count} modul",
+    "other": "Installera {count} moduler"
+  },
+  "{count} updates found": {
+    "one": "{count} uppdatering hittades",
+    "other": "{count} uppdateringar hittades"
+  },
+  "{count} modules found": {
+    "one": "{count} modul hittades",
+    "other": "{count} moduler hittades"
+  },
+  "{count} modules": {
+    "one": "{count} modul",
+    "other": "{count} moduler"
+  },
+  "{count} rules that normally stop this install would be bypassed.": {
+    "one": "{count} regel som normalt stoppar installationen skulle kringgås.",
+    "other": "{count} regler som normalt stoppar installationen skulle kringgås."
+  },
+  "{count} modules were made for an older server": {
+    "one": "{count} modul gjordes för en äldre server",
+    "other": "{count} moduler gjordes för en äldre server"
+  },
+  "{name} was installed past {count} rules that would normally stop it.": {
+    "one": "{name} installerades förbi {count} regel som normalt skulle stoppa den.",
+    "other": "{name} installerades förbi {count} regler som normalt skulle stoppa den."
+  },
+  "tick {count} warnings": {
+    "one": "kryssa i {count} varning",
+    "other": "kryssa i {count} varningar"
+  },
+  "and {count} pages for one item each": {
+    "one": "och {count} sida för ett objekt i taget",
+    "other": "och {count} sidor för ett objekt i taget"
+  },
+  "{count} pages for one item each": {
+    "one": "{count} sida för ett objekt i taget",
+    "other": "{count} sidor för ett objekt i taget"
+  },
+  "{count} pages in every app, on TV too": {
+    "one": "{count} sida i varje app, även på tv",
+    "other": "{count} sidor i varje app, även på tv"
+  },
+  "{count} screens of its own": {
+    "one": "{count} egen skärm",
+    "other": "{count} egna skärmar"
+  },
+  "{count} steps: {steps}": {
+    "one": "{count} steg: {steps}",
+    "other": "{count} steg: {steps}"
+  },
+  "{count} for administrators only": {
+    "one": "{count} bara för administratörer",
+    "other": "{count} bara för administratörer"
+  },
+  "{count} opened by a link, without signing in": {
+    "one": "{count} öppnas via en länk, utan inloggning",
+    "other": "{count} öppnas via en länk, utan inloggning"
+  },
+  "{count} about one item, checked against what the profile may see": {
+    "one": "{count} om ett objekt, kontrollerad mot vad profilen får se",
+    "other": "{count} om ett objekt, kontrollerade mot vad profilen får se"
+  },
+  "{count} that stream": {
+    "one": "{count} som strömmar",
+    "other": "{count} som strömmar"
+  },
+  "{count} that count towards screen time": {
+    "one": "{count} som räknas in i skärmtiden",
+    "other": "{count} som räknas in i skärmtiden"
+  },
+  "answers {count} kinds of request of its own at {path}": {
+    "one": "svarar på {count} egen sorts förfrågan på {path}",
+    "other": "svarar på {count} egna sorters förfrågningar på {path}"
+  },
+  "answers {count} kinds of request of its own": {
+    "one": "svarar på {count} egen sorts förfrågan",
+    "other": "svarar på {count} egna sorters förfrågningar"
+  },
+  "{count} installed": {
+    "one": "{count} installerad",
+    "other": "{count} installerade"
+  },
+  "{count} updated": {
+    "one": "{count} uppdaterad",
+    "other": "{count} uppdaterade"
+  },
+  "{count} failed": {
+    "one": "{count} misslyckades",
+    "other": "{count} misslyckades"
+  },
+  "{count} skipped": {
+    "one": "{count} hoppades över",
+    "other": "{count} hoppades över"
+  },
+  "{count} updates available": {
+    "one": "{count} uppdatering tillgänglig",
+    "other": "{count} uppdateringar tillgängliga"
+  }
 }

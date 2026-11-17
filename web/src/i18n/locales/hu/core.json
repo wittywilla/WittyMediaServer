@@ -1,15 +1,15 @@
 {
- "Language and time zone": "Nyelv és időzóna",
- "Before anything else: the language for these pages, disc menus and sound tracks, and the time zone the server keeps.": "Mindenekelőtt: ezeknek az oldalaknak, a lemezmenüknek és a hangsávoknak a nyelve, valamint a szerver időzónája.",
- "Language": "Nyelv",
- "Everything on these pages, for everyone who uses this server.": "Minden ezeken az oldalakon, mindenkinek, aki ezt a szervert használja.",
- "Disc menus and sound tracks": "Lemezmenük és hangsávok",
- "Disc menus, and the sound track a film or show starts with when it has one in this language. Subtitles stay off until someone turns them on.": "A lemezmenük, és az a hangsáv, amellyel egy film vagy sorozat indul, ha van ilyen nyelvű. A feliratok kikapcsolva maradnak, amíg valaki be nem kapcsolja őket.",
- "The original language": "Az eredeti nyelv",
- "Time zone": "Időzóna",
- "Guide days, schedules, recordings and the logs follow this. The server restarts once to use it, when setup is finished, if it isn’t the one it’s running in.": "A műsorújság, az ütemezések, a felvételek és a naplók ezt követik. Ha a szerver nem ebben fut, a beállítás végén egyszer újraindul.",
- "The time zone of the computer the server runs on. Guide days, schedules, recordings and the logs follow it.": "Annak a számítógépnek az időzónája, amelyen a szerver fut. A műsorújság, az ütemezések, a felvételek és a naplók ezt követik.",
- "This device is set to {zone}.": "Ez az eszköz a(z) {zone} időzónára van állítva.",
- "You can change these again on the Name and address step, and later in Settings.": "Ezeket a Név és cím lépésben, később pedig a Beállításokban módosíthatod.",
- "Continue": "Tovább"
+  "Language and time zone": "Nyelv és időzóna",
+  "Before anything else: the language for these pages, disc menus and sound tracks, and the time zone the server keeps.": "Mindenekelőtt: ezeknek az oldalaknak, a lemezmenüknek és a hangsávoknak a nyelve, valamint a szerver időzónája.",
+  "Language": "Nyelv",
+  "Everything on these pages, for everyone who uses this server.": "Minden ezeken az oldalakon, mindenkinek, aki ezt a szervert használja.",
+  "Disc menus and sound tracks": "Lemezmenük és hangsávok",
+  "Disc menus, and the sound track a film or show starts with when it has one in this language. Subtitles stay off until someone turns them on.": "A lemezmenük, és az a hangsáv, amellyel egy film vagy sorozat indul, ha van ilyen nyelvű. A feliratok kikapcsolva maradnak, amíg valaki be nem kapcsolja őket.",
+  "The original language": "Eredeti nyelv",
+  "Time zone": "Időzóna",
+  "Guide days, schedules, recordings and the logs follow this. The server restarts once to use it, when setup is finished, if it isn’t the one it’s running in.": "Ehhez igazodnak a műsorújság napjai, az ütemezések, a felvételek és a naplók. Ha a szerver most másik időzónában fut, a beállítás végén egyszer újraindul, hogy ezt használja.",
+  "The time zone of the computer the server runs on. Guide days, schedules, recordings and the logs follow it.": "Annak a számítógépnek az időzónája, amelyen a szerver fut. Ehhez igazodnak a műsorújság napjai, az ütemezések, a felvételek és a naplók.",
+  "This device is set to {zone}.": "Ez az eszköz a(z) {zone} időzónára van állítva.",
+  "You can change these again on the Name and address step, and later in Settings.": "Ezeket a Név és cím lépésben újra módosíthatod, később pedig a Beállításokban.",
+  "Continue": "Tovább"
 }

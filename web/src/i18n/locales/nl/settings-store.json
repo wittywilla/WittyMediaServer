@@ -21,7 +21,7 @@
   "Add to what this server can do. Everything here is signed, and nothing runs until you choose it.": "Breid uit wat deze server kan. Alles hier is ondertekend, en niets draait voordat jij het kiest.",
   "Add {name}?": "{name} toevoegen?",
   "Added a store": "Winkel toegevoegd",
-  "All": "Alle",
+  "All": "Alles",
   "All done": "Helemaal klaar",
   "All libraries": "Alle bibliotheken",
   "All versions ({count})": "Alle versies ({count})",
@@ -48,14 +48,14 @@
   "Clear search and filters": "Zoekopdracht en filters wissen",
   "Close": "Sluiten",
   "Code from your authenticator app": "Code uit je authenticator-app",
-  "Comes with other modules": "Komt met andere modules",
+  "Comes with other modules": "Komt mee met andere modules",
   "Continue": "Doorgaan",
   "Copy details": "Details kopiëren",
   "Custom modules": "Eigen modules",
   "Details": "Details",
   "Details copied": "Details gekopieerd",
   "Discard": "Weggooien",
-  "Discs": "Schijven",
+  "Discs": "Discs",
   "Dismiss": "Sluiten",
   "Done": "Klaar",
   "Don’t install": "Niet installeren",
@@ -112,7 +112,7 @@
   "In use": "In gebruik",
   "Incomplete": "Onvolledig",
   "Install": "Installeren",
-  "Install a module from a file": "Een module installeren vanuit een bestand",
+  "Install a module from a file": "Module installeren uit een bestand",
   "Install anyway": "Toch installeren",
   "Install anyway…": "Toch installeren…",
   "Install at my own risk": "Op eigen risico installeren",
@@ -126,7 +126,7 @@
   "Installed modules": "Geïnstalleerde modules",
   "Installed with an override": "Geïnstalleerd met een overschrijving",
   "Installing": "Installeren",
-  "Installing it asks you first.": "Bij installeren wordt het je eerst gevraagd.",
+  "Installing it asks you first.": "Bij het installeren wordt het je eerst gevraagd.",
   "Installing it needs an override.": "Installeren vraagt om een overschrijving.",
   "Installing {name} from {store}": "{name} installeren uit {store}",
   "Install…": "Installeren…",
@@ -152,7 +152,7 @@
   "Listening": "Luisteren",
   "Live TV": "Live-tv",
   "Log lines for {name}": "Logregels van {name}",
-  "Logging for {name}": "Logboek van {name}",
+  "Logging for {name}": "Logboek voor {name}",
   "Logging settings": "Loginstellingen",
   "Look at this store": "Deze winkel bekijken",
   "Look everywhere": "Overal zoeken",
@@ -176,7 +176,7 @@
   "Name": "Naam",
   "Names that say what a file is": "Namen die zeggen wat een bestand is",
   "Naming rules": "Naamregels",
-  "Needs a look": "Bekijken",
+  "Needs a look": "Moet worden bekeken",
   "Needs a newer server": "Heeft een nieuwere server nodig",
   "Needs an override:": "Heeft een overschrijving nodig:",
   "Needs your go-ahead": "Wacht op je toestemming",
@@ -207,7 +207,7 @@
   "Nothing has been taken out": "Er is niets weggehaald",
   "Nothing has been written to it yet.": "Er is nog niets in geschreven.",
   "Nothing has changed. This is what each would become on its next scan.": "Er is niets veranderd. Dit is wat elk bij de volgende scan zou worden.",
-  "Nothing here": "Niets hier",
+  "Nothing here": "Hier staat niets",
   "Nothing in the store matches these filters.": "Niets in de winkel past bij deze filters.",
   "Nothing in the store matches “{q}”.": "Niets in de winkel past bij “{q}”.",
   "Nothing is installed until you say yes.": "Er wordt niets geïnstalleerd tot je ja zegt.",
@@ -287,7 +287,7 @@
   "Stop": "Stoppen",
   "Stop using it": "Niet meer gebruiken",
   "Stop using {name} {version}?": "{name} {version} niet meer gebruiken?",
-  "Switch to this": "Hierop overstappen",
+  "Switch to this": "Hiernaar overschakelen",
   "System": "Systeem",
   "TMDB only": "Alleen TMDB",
   "TV": "Tv",
@@ -317,7 +317,7 @@
   "The uploaded file was discarded": "Het geüploade bestand is weggegooid",
   "The worst {shown} of {total}. Fix these and the rest move up.": "De slechtste {shown} van {total}. Herstel deze en de rest schuift op.",
   "TheTVDB only": "Alleen TheTVDB",
-  "There’s no earlier version here, so it won’t be working until you install another. This asks for your password.": "Er is hier geen eerdere versie, dus het werkt niet tot je een andere installeert. Hiervoor is je wachtwoord nodig.",
+  "There’s no earlier version here, so it won’t be working until you install another. This asks for your password.": "Er is hier geen eerdere versie, dus het werkt niet totdat je een andere installeert. Hiervoor is je wachtwoord nodig.",
   "These are bonus features": "Dit zijn extra’s",
   "These couldn’t be read just now.": "Deze konden zojuist niet worden gelezen.",
   "These modules go back to the versions they were on. An older version may lack security fixes, so this asks for your password.": "Deze modules gaan terug naar de versies die ze hadden. Een oudere versie mist mogelijk beveiligingsupdates, dus hiervoor is je wachtwoord nodig.",
@@ -400,7 +400,7 @@
   "What this adds": "Wat dit toevoegt",
   "What this module has said and done lately. Tokens and passwords are taken out before it reaches this page.": "Wat deze module de laatste tijd heeft gemeld en gedaan. Tokens en wachtwoorden worden eruit gehaald voordat het deze pagina bereikt.",
   "What this needs has changed. Read the warnings again and tick each one.": "Wat dit nodig heeft, is veranderd. Lees de waarschuwingen opnieuw en vink ze allemaal aan.",
-  "What to do": "Wat te doen",
+  "What to do": "Wat je moet doen",
   "What to know first": "Wat je eerst moet weten",
   "What to try": "Wat je kunt proberen",
   "What {name} adds": "Wat {name} toevoegt",
@@ -509,33 +509,120 @@
   "{title}: left with no match.": "{title}: zonder koppeling gelaten.",
   "{title}: matched with {match}.": "{title}: gekoppeld aan {match}.",
   "{title}: renumbered.": "{title}: hernummerd.",
-  "{count} chosen": { "one": "{count} gekozen", "other": "{count} gekozen" },
-  "{title} and {count} more": { "one": "{title} en nog {count}", "other": "{title} en nog {count}" },
-  "{count} files fit": { "one": "{count} bestand past", "other": "{count} bestanden passen" },
-  "{count} numbers aren’t listed there.": { "one": "{count} nummer staat daar niet vermeld.", "other": "{count} nummers staan daar niet vermeld." },
-  "Install {count} modules": { "one": "{count} module installeren", "other": "{count} modules installeren" },
-  "{count} updates found": { "one": "{count} update gevonden", "other": "{count} updates gevonden" },
-  "{count} modules found": { "one": "{count} module gevonden", "other": "{count} modules gevonden" },
-  "{count} modules": { "one": "{count} module", "other": "{count} modules" },
-  "{count} rules that normally stop this install would be bypassed.": { "one": "{count} regel die deze installatie normaal tegenhoudt, wordt omzeild.", "other": "{count} regels die deze installatie normaal tegenhouden, worden omzeild." },
-  "{count} modules were made for an older server": { "one": "{count} module is gemaakt voor een oudere server", "other": "{count} modules zijn gemaakt voor een oudere server" },
-  "{name} was installed past {count} rules that would normally stop it.": { "one": "{name} is geïnstalleerd langs {count} regel die het normaal zou tegenhouden.", "other": "{name} is geïnstalleerd langs {count} regels die het normaal zouden tegenhouden." },
-  "tick {count} warnings": { "one": "vink {count} waarschuwing aan", "other": "vink {count} waarschuwingen aan" },
-  "and {count} pages for one item each": { "one": "en {count} pagina voor telkens één item", "other": "en {count} pagina’s voor telkens één item" },
-  "{count} pages for one item each": { "one": "{count} pagina voor telkens één item", "other": "{count} pagina’s voor telkens één item" },
-  "{count} pages in every app, on TV too": { "one": "{count} pagina in elke app, ook op tv", "other": "{count} pagina’s in elke app, ook op tv" },
-  "{count} screens of its own": { "one": "{count} eigen scherm", "other": "{count} eigen schermen" },
-  "{count} steps: {steps}": { "one": "{count} stap: {steps}", "other": "{count} stappen: {steps}" },
-  "{count} for administrators only": { "one": "{count} alleen voor beheerders", "other": "{count} alleen voor beheerders" },
-  "{count} opened by a link, without signing in": { "one": "{count} geopend via een link, zonder in te loggen", "other": "{count} geopend via een link, zonder in te loggen" },
-  "{count} about one item, checked against what the profile may see": { "one": "{count} over één item, getoetst aan wat het profiel mag zien", "other": "{count} over één item, getoetst aan wat het profiel mag zien" },
-  "{count} that stream": { "one": "{count} die streamt", "other": "{count} die streamen" },
-  "{count} that count towards screen time": { "one": "{count} die meetelt voor schermtijd", "other": "{count} die meetellen voor schermtijd" },
-  "answers {count} kinds of request of its own at {path}": { "one": "beantwoordt {count} eigen soort verzoek op {path}", "other": "beantwoordt {count} eigen soorten verzoeken op {path}" },
-  "answers {count} kinds of request of its own": { "one": "beantwoordt {count} eigen soort verzoek", "other": "beantwoordt {count} eigen soorten verzoeken" },
-  "{count} installed": { "one": "{count} geïnstalleerd", "other": "{count} geïnstalleerd" },
-  "{count} updated": { "one": "{count} bijgewerkt", "other": "{count} bijgewerkt" },
-  "{count} failed": { "one": "{count} mislukt", "other": "{count} mislukt" },
-  "{count} skipped": { "one": "{count} overgeslagen", "other": "{count} overgeslagen" },
-  "{count} updates available": { "one": "{count} update beschikbaar", "other": "{count} updates beschikbaar" }
+  "{count} chosen": {
+    "one": "{count} gekozen",
+    "other": "{count} gekozen"
+  },
+  "{title} and {count} more": {
+    "one": "{title} en nog {count}",
+    "other": "{title} en nog {count}"
+  },
+  "{count} files fit": {
+    "one": "{count} bestand past",
+    "other": "{count} bestanden passen"
+  },
+  "{count} numbers aren’t listed there.": {
+    "one": "{count} nummer staat daar niet vermeld.",
+    "other": "{count} nummers staan daar niet vermeld."
+  },
+  "Install {count} modules": {
+    "one": "{count} module installeren",
+    "other": "{count} modules installeren"
+  },
+  "{count} updates found": {
+    "one": "{count} update gevonden",
+    "other": "{count} updates gevonden"
+  },
+  "{count} modules found": {
+    "one": "{count} module gevonden",
+    "other": "{count} modules gevonden"
+  },
+  "{count} modules": {
+    "one": "{count} module",
+    "other": "{count} modules"
+  },
+  "{count} rules that normally stop this install would be bypassed.": {
+    "one": "{count} regel die deze installatie normaal tegenhoudt, wordt omzeild.",
+    "other": "{count} regels die deze installatie normaal tegenhouden, worden omzeild."
+  },
+  "{count} modules were made for an older server": {
+    "one": "{count} module is gemaakt voor een oudere server",
+    "other": "{count} modules zijn gemaakt voor een oudere server"
+  },
+  "{name} was installed past {count} rules that would normally stop it.": {
+    "one": "{name} is geïnstalleerd langs {count} regel die het normaal zou tegenhouden.",
+    "other": "{name} is geïnstalleerd langs {count} regels die het normaal zouden tegenhouden."
+  },
+  "tick {count} warnings": {
+    "one": "vink {count} waarschuwing aan",
+    "other": "vink {count} waarschuwingen aan"
+  },
+  "and {count} pages for one item each": {
+    "one": "en {count} pagina voor telkens één item",
+    "other": "en {count} pagina’s voor telkens één item"
+  },
+  "{count} pages for one item each": {
+    "one": "{count} pagina voor telkens één item",
+    "other": "{count} pagina’s voor telkens één item"
+  },
+  "{count} pages in every app, on TV too": {
+    "one": "{count} pagina in elke app, ook op tv",
+    "other": "{count} pagina’s in elke app, ook op tv"
+  },
+  "{count} screens of its own": {
+    "one": "{count} eigen scherm",
+    "other": "{count} eigen schermen"
+  },
+  "{count} steps: {steps}": {
+    "one": "{count} stap: {steps}",
+    "other": "{count} stappen: {steps}"
+  },
+  "{count} for administrators only": {
+    "one": "{count} alleen voor beheerders",
+    "other": "{count} alleen voor beheerders"
+  },
+  "{count} opened by a link, without signing in": {
+    "one": "{count} geopend via een link, zonder in te loggen",
+    "other": "{count} geopend via een link, zonder in te loggen"
+  },
+  "{count} about one item, checked against what the profile may see": {
+    "one": "{count} over één item, getoetst aan wat het profiel mag zien",
+    "other": "{count} over één item, getoetst aan wat het profiel mag zien"
+  },
+  "{count} that stream": {
+    "one": "{count} die streamt",
+    "other": "{count} die streamen"
+  },
+  "{count} that count towards screen time": {
+    "one": "{count} die meetelt voor schermtijd",
+    "other": "{count} die meetellen voor schermtijd"
+  },
+  "answers {count} kinds of request of its own at {path}": {
+    "one": "beantwoordt {count} eigen soort verzoek op {path}",
+    "other": "beantwoordt {count} eigen soorten verzoeken op {path}"
+  },
+  "answers {count} kinds of request of its own": {
+    "one": "beantwoordt {count} eigen soort verzoek",
+    "other": "beantwoordt {count} eigen soorten verzoeken"
+  },
+  "{count} installed": {
+    "one": "{count} geïnstalleerd",
+    "other": "{count} geïnstalleerd"
+  },
+  "{count} updated": {
+    "one": "{count} bijgewerkt",
+    "other": "{count} bijgewerkt"
+  },
+  "{count} failed": {
+    "one": "{count} mislukt",
+    "other": "{count} mislukt"
+  },
+  "{count} skipped": {
+    "one": "{count} overgeslagen",
+    "other": "{count} overgeslagen"
+  },
+  "{count} updates available": {
+    "one": "{count} update beschikbaar",
+    "other": "{count} updates beschikbaar"
+  }
 }

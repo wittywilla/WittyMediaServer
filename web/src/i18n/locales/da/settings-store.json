@@ -17,7 +17,7 @@
   "Add a rule": "Tilføj en regel",
   "Add a store run by someone else, and see the modules it offers alongside this project’s. Everything from one is labelled, and whether to trust it is up to you.": "Tilføj en butik, som en anden driver, og se dens moduler ved siden af projektets egne. Alt derfra er mærket, og om du stoler på det, er op til dig.",
   "Add tags": "Tilføj tags",
-  "Add this store": "Tilføj butikken",
+  "Add this store": "Tilføj denne butik",
   "Add to what this server can do. Everything here is signed, and nothing runs until you choose it.": "Udvid, hvad serveren kan. Alt her er signeret, og intet kører, før du vælger det.",
   "Add {name}?": "Tilføj {name}?",
   "Added a store": "Tilføjede en butik",
@@ -26,20 +26,20 @@
   "All libraries": "Alle biblioteker",
   "All versions ({count})": "Alle versioner ({count})",
   "An ID in a file or folder’s name always wins over a search, and doesn’t appear in the title:": "Et ID i en fils eller mappes navn går altid forud for en søgning og vises ikke i titlen:",
-  "An older version may lack security fixes, so this asks for your password.": "En ældre version kan mangle sikkerhedsrettelser, så det kræver din adgangskode.",
+  "An older version may lack security fixes, so this asks for your password.": "En ældre version kan mangle sikkerhedsrettelser, så du skal angive din adgangskode.",
   "AniList only": "Kun AniList",
   "As the module’s official rules allow": "Som modulets officielle regler tillader",
   "Back in its library": "Tilbage i sit bibliotek",
   "Back to the review list": "Tilbage til gennemgangslisten",
   "Beta": "Beta",
-  "Bring it back": "Hent det tilbage",
+  "Bring it back": "Gendan den",
   "Bug fixes and improvements.": "Fejlrettelser og forbedringer.",
   "Built for an older server": "Lavet til en ældre server",
   "Came": "Kom",
   "Cancel": "Annuller",
   "Can’t be installed here": "Kan ikke installeres her",
   "Can’t be used": "Kan ikke bruges",
-  "Can’t reach your server. Check that it’s running and try again.": "Kan ikke nå din server. Tjek, at den kører, og prøv igen.",
+  "Can’t reach your server. Check that it’s running and try again.": "Din server kan ikke nås. Tjek, at den kører, og prøv igen.",
   "Changed where it comes from": "Ændrede, hvor det kommer fra",
   "Checking the signature": "Tjekker signaturen",
   "Choose a library": "Vælg et bibliotek",
@@ -48,21 +48,21 @@
   "Clear search and filters": "Ryd søgning og filtre",
   "Close": "Luk",
   "Code from your authenticator app": "Kode fra din godkendelsesapp",
-  "Comes with other modules": "Kommer med andre moduler",
+  "Comes with other modules": "Følger med andre moduler",
   "Continue": "Fortsæt",
-  "Copy details": "Kopiér detaljer",
+  "Copy details": "Kopier detaljer",
   "Custom modules": "Egne moduler",
   "Details": "Detaljer",
   "Details copied": "Detaljerne er kopieret",
-  "Discard": "Kassér",
+  "Discard": "Kasser",
   "Discs": "Diske",
   "Dismiss": "Luk",
   "Done": "Færdig",
   "Don’t install": "Installer ikke",
   "Don’t install any": "Installer ingen",
   "Don’t look it up": "Slå det ikke op",
-  "Download": "Hent",
-  "Downloading": "Henter",
+  "Download": "Download",
+  "Downloading": "Downloader",
   "Drop it": "Drop det",
   "Each file beside what {source} calls that number.": "Hver fil ved siden af det, {source} kalder det nummer.",
   "Each library has its own rules.": "Hvert bibliotek har sine egne regler.",
@@ -126,7 +126,7 @@
   "Installed modules": "Installerede moduler",
   "Installed with an override": "Installeret med en tilsidesættelse",
   "Installing": "Installerer",
-  "Installing it asks you first.": "Du bliver spurgt først, før det installeres.",
+  "Installing it asks you first.": "Du bliver spurgt, før den installeres.",
   "Installing it needs an override.": "Det kræver en tilsidesættelse at installere det.",
   "Installing {name} from {store}": "Installerer {name} fra {store}",
   "Install…": "Installer…",
@@ -141,9 +141,9 @@
   "Keep what {name} saved here (its own settings, saves and lists), so installing it again carries on where it left off": "Behold det, {name} har gemt her (egne indstillinger, gemte data og lister), så det fortsætter, hvor det slap, hvis du installerer det igen",
   "Key fingerprint": "Nøglens fingeraftryk",
   "Keys:": "Taster:",
-  "Kind": "Slags",
+  "Kind": "Type",
   "Last checked {when}.": "Sidst tjekket {when}.",
-  "Left alone": "Ladt være",
+  "Left alone": "Ladet være",
   "Less boxed in on this system": "Mindre afskærmet på dette system",
   "Libraries": "Biblioteker",
   "Library": "Bibliotek",
@@ -154,7 +154,7 @@
   "Log lines for {name}": "Loglinjer for {name}",
   "Logging for {name}": "Logning for {name}",
   "Logging settings": "Logindstillinger",
-  "Look at this store": "Se butikken",
+  "Look at this store": "Se denne butik",
   "Look everywhere": "Søg overalt",
   "Look on your own network?": "Søg på dit eget netværk?",
   "Looks right": "Ser rigtigt ud",
@@ -176,10 +176,10 @@
   "Name": "Navn",
   "Names that say what a file is": "Navne, der siger, hvad en fil er",
   "Naming rules": "Navneregler",
-  "Needs a look": "Skal ses på",
+  "Needs a look": "Bør ses på",
   "Needs a newer server": "Kræver en nyere server",
   "Needs an override:": "Kræver en tilsidesættelse:",
-  "Needs your go-ahead": "Venter på dit go",
+  "Needs your go-ahead": "Venter på din godkendelse",
   "Newest": "Nyeste",
   "No": "Nej",
   "No changes yet": "Ingen ændringer endnu",
@@ -285,9 +285,9 @@
   "Stats": "Statistik",
   "Status": "Status",
   "Stop": "Stop",
-  "Stop using it": "Hold op med at bruge det",
-  "Stop using {name} {version}?": "Hold op med at bruge {name} {version}?",
-  "Switch to this": "Skift til dette",
+  "Stop using it": "Stop med at bruge den",
+  "Stop using {name} {version}?": "Stop med at bruge {name} {version}?",
+  "Switch to this": "Skift til denne",
   "System": "System",
   "TMDB only": "Kun TMDB",
   "TV": "Tv",
@@ -296,7 +296,7 @@
   "Take these updates back": "Rul disse opdateringer tilbage",
   "Take these updates back?": "Rul disse opdateringer tilbage?",
   "Taken back": "Rullet tilbage",
-  "That couldn’t be copied here. Select the text instead.": "Det kunne ikke kopieres her. Markér teksten i stedet.",
+  "That couldn’t be copied here. Select the text instead.": "Det kunne ikke kopieres her. Marker teksten i stedet.",
   "That password isn’t right.": "Adgangskoden er forkert.",
   "That store": "Den butik",
   "The check": "Tjekket",
@@ -317,7 +317,7 @@
   "The uploaded file was discarded": "Den uploadede fil er kasseret",
   "The worst {shown} of {total}. Fix these and the rest move up.": "De værste {shown} af {total}. Ret dem, så rykker resten op.",
   "TheTVDB only": "Kun TheTVDB",
-  "There’s no earlier version here, so it won’t be working until you install another. This asks for your password.": "Der er ingen tidligere version her, så det virker ikke, før du installerer en anden. Det kræver din adgangskode.",
+  "There’s no earlier version here, so it won’t be working until you install another. This asks for your password.": "Der er ingen tidligere version her, så den virker ikke, før du installerer en anden. Du skal angive din adgangskode.",
   "These are bonus features": "Det er ekstramateriale",
   "These couldn’t be read just now.": "De kunne ikke læses lige nu.",
   "These modules go back to the versions they were on. An older version may lack security fixes, so this asks for your password.": "Disse moduler går tilbage til de versioner, de havde. En ældre version kan mangle sikkerhedsrettelser, så det kræver din adgangskode.",
@@ -382,7 +382,7 @@
   "Use version {version}, with an override": "Brug version {version} med en tilsidesættelse",
   "Use {name} {version}?": "Brug {name} {version}?",
   "Version": "Version",
-  "Version {version}, already downloaded and checked, waiting for your go-ahead.": "Version {version}, allerede hentet og tjekket, venter på dit go.",
+  "Version {version}, already downloaded and checked, waiting for your go-ahead.": "Version {version}, allerede hentet og tjekket, venter på din godkendelse.",
   "Version {version}.": "Version {version}.",
   "Waiting": "Venter",
   "Watch": "Se",
@@ -395,12 +395,12 @@
   "What happened to {name}": "Hvad der skete med {name}",
   "What happened: {detail}": "Hvad der skete: {detail}",
   "What it asks for": "Hvad det beder om",
-  "What it needs": "Hvad det har brug for",
+  "What it needs": "Hvad den kræver",
   "What overrides mean": "Hvad tilsidesættelser betyder",
   "What this adds": "Hvad dette tilføjer",
   "What this module has said and done lately. Tokens and passwords are taken out before it reaches this page.": "Hvad modulet har sagt og gjort for nylig. Tokens og adgangskoder fjernes, før det når denne side.",
   "What this needs has changed. Read the warnings again and tick each one.": "Hvad dette kræver, har ændret sig. Læs advarslerne igen, og sæt flueben ved hver enkelt.",
-  "What to do": "Hvad du kan gøre",
+  "What to do": "Hvad du skal gøre",
   "What to know first": "Godt at vide først",
   "What to try": "Hvad du kan prøve",
   "What {name} adds": "Hvad {name} tilføjer",
@@ -492,11 +492,11 @@
   "{name} wasn’t installed": "{name} blev ikke installeret",
   "{name} went back to version {version}": "{name} gik tilbage til version {version}",
   "{name} {version} is being installed": "{name} {version} installeres",
-  "{name} {version} was downloaded and needs your go-ahead": "{name} {version} er hentet og venter på dit go",
+  "{name} {version} was downloaded and needs your go-ahead": "{name} {version} er hentet og venter på din godkendelse",
   "{name} {version} was dropped": "{name} {version} blev droppet",
   "{name} {version} was made for an older server": "{name} {version} blev lavet til en ældre server",
   "{name} {version} was made for {made}; this server is {here}. Pages, settings and features from {ours} will be missing, and it may not work.": "{name} {version} blev lavet til {made}; denne server er {here}. Sider, indstillinger og funktioner fra {ours} vil mangle, og det virker måske ikke.",
-  "{name} {version}: downloaded, needs your go-ahead": "{name} {version}: hentet, venter på dit go",
+  "{name} {version}: downloaded, needs your go-ahead": "{name} {version}: hentet, venter på din godkendelse",
   "{name}, from {store}": "{name}, fra {store}",
   "{name}, screenshot {n} of {total}": "{name}, skærmbillede {n} af {total}",
   "{name}: third-party licences": "{name}: tredjepartslicenser",
@@ -509,33 +509,120 @@
   "{title}: left with no match.": "{title}: efterladt uden match.",
   "{title}: matched with {match}.": "{title}: matchet med {match}.",
   "{title}: renumbered.": "{title}: omnummereret.",
-  "{count} chosen": { "one": "{count} valgt", "other": "{count} valgt" },
-  "{title} and {count} more": { "one": "{title} og {count} mere", "other": "{title} og {count} mere" },
-  "{count} files fit": { "one": "{count} fil passer", "other": "{count} filer passer" },
-  "{count} numbers aren’t listed there.": { "one": "{count} nummer er ikke angivet der.", "other": "{count} numre er ikke angivet der." },
-  "Install {count} modules": { "one": "Installer {count} modul", "other": "Installer {count} moduler" },
-  "{count} updates found": { "one": "{count} opdatering fundet", "other": "{count} opdateringer fundet" },
-  "{count} modules found": { "one": "{count} modul fundet", "other": "{count} moduler fundet" },
-  "{count} modules": { "one": "{count} modul", "other": "{count} moduler" },
-  "{count} rules that normally stop this install would be bypassed.": { "one": "{count} regel, der normalt stopper installationen, ville blive omgået.", "other": "{count} regler, der normalt stopper installationen, ville blive omgået." },
-  "{count} modules were made for an older server": { "one": "{count} modul blev lavet til en ældre server", "other": "{count} moduler blev lavet til en ældre server" },
-  "{name} was installed past {count} rules that would normally stop it.": { "one": "{name} blev installeret forbi {count} regel, der normalt ville stoppe det.", "other": "{name} blev installeret forbi {count} regler, der normalt ville stoppe det." },
-  "tick {count} warnings": { "one": "sæt flueben ved {count} advarsel", "other": "sæt flueben ved {count} advarsler" },
-  "and {count} pages for one item each": { "one": "og {count} side for ét element ad gangen", "other": "og {count} sider for ét element ad gangen" },
-  "{count} pages for one item each": { "one": "{count} side for ét element ad gangen", "other": "{count} sider for ét element ad gangen" },
-  "{count} pages in every app, on TV too": { "one": "{count} side i alle apps, også på tv", "other": "{count} sider i alle apps, også på tv" },
-  "{count} screens of its own": { "one": "{count} egen skærm", "other": "{count} egne skærme" },
-  "{count} steps: {steps}": { "one": "{count} trin: {steps}", "other": "{count} trin: {steps}" },
-  "{count} for administrators only": { "one": "{count} kun for administratorer", "other": "{count} kun for administratorer" },
-  "{count} opened by a link, without signing in": { "one": "{count} åbnes via et link, uden at logge ind", "other": "{count} åbnes via et link, uden at logge ind" },
-  "{count} about one item, checked against what the profile may see": { "one": "{count} om ét element, tjekket mod hvad profilen må se", "other": "{count} om ét element, tjekket mod hvad profilen må se" },
-  "{count} that stream": { "one": "{count}, der streamer", "other": "{count}, der streamer" },
-  "{count} that count towards screen time": { "one": "{count}, der tæller med i skærmtiden", "other": "{count}, der tæller med i skærmtiden" },
-  "answers {count} kinds of request of its own at {path}": { "one": "besvarer {count} egen slags forespørgsel på {path}", "other": "besvarer {count} egne slags forespørgsler på {path}" },
-  "answers {count} kinds of request of its own": { "one": "besvarer {count} egen slags forespørgsel", "other": "besvarer {count} egne slags forespørgsler" },
-  "{count} installed": { "one": "{count} installeret", "other": "{count} installeret" },
-  "{count} updated": { "one": "{count} opdateret", "other": "{count} opdateret" },
-  "{count} failed": { "one": "{count} mislykkedes", "other": "{count} mislykkedes" },
-  "{count} skipped": { "one": "{count} sprunget over", "other": "{count} sprunget over" },
-  "{count} updates available": { "one": "{count} opdatering tilgængelig", "other": "{count} opdateringer tilgængelige" }
+  "{count} chosen": {
+    "one": "{count} valgt",
+    "other": "{count} valgt"
+  },
+  "{title} and {count} more": {
+    "one": "{title} og {count} mere",
+    "other": "{title} og {count} mere"
+  },
+  "{count} files fit": {
+    "one": "{count} fil passer",
+    "other": "{count} filer passer"
+  },
+  "{count} numbers aren’t listed there.": {
+    "one": "{count} nummer er ikke angivet der.",
+    "other": "{count} numre er ikke angivet der."
+  },
+  "Install {count} modules": {
+    "one": "Installer {count} modul",
+    "other": "Installer {count} moduler"
+  },
+  "{count} updates found": {
+    "one": "{count} opdatering fundet",
+    "other": "{count} opdateringer fundet"
+  },
+  "{count} modules found": {
+    "one": "{count} modul fundet",
+    "other": "{count} moduler fundet"
+  },
+  "{count} modules": {
+    "one": "{count} modul",
+    "other": "{count} moduler"
+  },
+  "{count} rules that normally stop this install would be bypassed.": {
+    "one": "{count} regel, der normalt stopper installationen, ville blive omgået.",
+    "other": "{count} regler, der normalt stopper installationen, ville blive omgået."
+  },
+  "{count} modules were made for an older server": {
+    "one": "{count} modul blev lavet til en ældre server",
+    "other": "{count} moduler blev lavet til en ældre server"
+  },
+  "{name} was installed past {count} rules that would normally stop it.": {
+    "one": "{name} blev installeret forbi {count} regel, der normalt ville stoppe det.",
+    "other": "{name} blev installeret forbi {count} regler, der normalt ville stoppe det."
+  },
+  "tick {count} warnings": {
+    "one": "sæt flueben ved {count} advarsel",
+    "other": "sæt flueben ved {count} advarsler"
+  },
+  "and {count} pages for one item each": {
+    "one": "og {count} side for ét element ad gangen",
+    "other": "og {count} sider for ét element ad gangen"
+  },
+  "{count} pages for one item each": {
+    "one": "{count} side for ét element ad gangen",
+    "other": "{count} sider for ét element ad gangen"
+  },
+  "{count} pages in every app, on TV too": {
+    "one": "{count} side i alle apps, også på tv",
+    "other": "{count} sider i alle apps, også på tv"
+  },
+  "{count} screens of its own": {
+    "one": "{count} egen skærm",
+    "other": "{count} egne skærme"
+  },
+  "{count} steps: {steps}": {
+    "one": "{count} trin: {steps}",
+    "other": "{count} trin: {steps}"
+  },
+  "{count} for administrators only": {
+    "one": "{count} kun for administratorer",
+    "other": "{count} kun for administratorer"
+  },
+  "{count} opened by a link, without signing in": {
+    "one": "{count} åbnes via et link, uden at logge ind",
+    "other": "{count} åbnes via et link, uden at logge ind"
+  },
+  "{count} about one item, checked against what the profile may see": {
+    "one": "{count} om ét element, tjekket mod hvad profilen må se",
+    "other": "{count} om ét element, tjekket mod hvad profilen må se"
+  },
+  "{count} that stream": {
+    "one": "{count}, der streamer",
+    "other": "{count}, der streamer"
+  },
+  "{count} that count towards screen time": {
+    "one": "{count}, der tæller med i skærmtiden",
+    "other": "{count}, der tæller med i skærmtiden"
+  },
+  "answers {count} kinds of request of its own at {path}": {
+    "one": "besvarer {count} egen slags forespørgsel på {path}",
+    "other": "besvarer {count} egne slags forespørgsler på {path}"
+  },
+  "answers {count} kinds of request of its own": {
+    "one": "besvarer {count} egen slags forespørgsel",
+    "other": "besvarer {count} egne slags forespørgsler"
+  },
+  "{count} installed": {
+    "one": "{count} installeret",
+    "other": "{count} installeret"
+  },
+  "{count} updated": {
+    "one": "{count} opdateret",
+    "other": "{count} opdateret"
+  },
+  "{count} failed": {
+    "one": "{count} mislykkedes",
+    "other": "{count} mislykkedes"
+  },
+  "{count} skipped": {
+    "one": "{count} sprunget over",
+    "other": "{count} sprunget over"
+  },
+  "{count} updates available": {
+    "one": "{count} opdatering tilgængelig",
+    "other": "{count} opdateringer tilgængelige"
+  }
 }

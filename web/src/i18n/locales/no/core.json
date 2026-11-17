@@ -1,15 +1,15 @@
 {
- "Language and time zone": "Språk og tidssone",
- "Before anything else: the language for these pages, disc menus and sound tracks, and the time zone the server keeps.": "Først: språket på disse sidene, i platemenyer og lydspor, og tidssonen serveren bruker.",
- "Language": "Språk",
- "Everything on these pages, for everyone who uses this server.": "Alt på disse sidene, for alle som bruker denne serveren.",
- "Disc menus and sound tracks": "Platemenyer og lydspor",
- "Disc menus, and the sound track a film or show starts with when it has one in this language. Subtitles stay off until someone turns them on.": "Platemenyer, og lydsporet en film eller serie starter med når den har et på dette språket. Undertekster er av til noen slår dem på.",
- "The original language": "Originalspråket",
- "Time zone": "Tidssone",
- "Guide days, schedules, recordings and the logs follow this. The server restarts once to use it, when setup is finished, if it isn’t the one it’s running in.": "Guiden, planer, opptak og logger følger denne. Hvis det ikke er den serveren kjører i, starter den på nytt én gang når oppsettet er ferdig.",
- "The time zone of the computer the server runs on. Guide days, schedules, recordings and the logs follow it.": "Tidssonen til datamaskinen serveren kjører på. Guiden, planer, opptak og logger følger den.",
- "This device is set to {zone}.": "Denne enheten er satt til {zone}.",
- "You can change these again on the Name and address step, and later in Settings.": "Du kan endre dette igjen i trinnet Navn og adresse, og senere i Innstillinger.",
- "Continue": "Fortsett"
+  "Language and time zone": "Språk og tidssone",
+  "Before anything else: the language for these pages, disc menus and sound tracks, and the time zone the server keeps.": "Først: språket på disse sidene, i platemenyer og lydspor, og tidssonen serveren bruker.",
+  "Language": "Språk",
+  "Everything on these pages, for everyone who uses this server.": "Alt på disse sidene, for alle som bruker denne serveren.",
+  "Disc menus and sound tracks": "Platemenyer og lydspor",
+  "Disc menus, and the sound track a film or show starts with when it has one in this language. Subtitles stay off until someone turns them on.": "Platemenyer, og lydsporet en film eller serie starter med når den har et på dette språket. Undertekster er av til noen slår dem på.",
+  "The original language": "Originalspråket",
+  "Time zone": "Tidssone",
+  "Guide days, schedules, recordings and the logs follow this. The server restarts once to use it, when setup is finished, if it isn’t the one it’s running in.": "Guiden, planer, opptak og logger følger denne. Hvis det ikke er den serveren kjører i, starter den på nytt én gang når oppsettet er ferdig.",
+  "The time zone of the computer the server runs on. Guide days, schedules, recordings and the logs follow it.": "Tidssonen til datamaskinen serveren kjører på. Guiden, planer, opptak og logger følger den.",
+  "This device is set to {zone}.": "Denne enheten er satt til {zone}.",
+  "You can change these again on the Name and address step, and later in Settings.": "Du kan endre dette igjen i trinnet Navn og adresse, og senere i Innstillinger.",
+  "Continue": "Fortsett"
 }

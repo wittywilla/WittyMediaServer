@@ -53,8 +53,8 @@ export function Shelf({ title, to, children, sub }: { title: string; to?: string
         {sub && <span className="mus-muted">{sub}</span>}
         <span className="mus-grow" />
         <span className="mus-shelf-steps" aria-hidden="true">
-          <button type="button" tabIndex={-1} className="mus-round" disabled={ends[0]} onClick={() => step(-1)}><IconLeft size={18} /></button>
-          <button type="button" tabIndex={-1} className="mus-round" disabled={ends[1]} onClick={() => step(1)}><IconRight size={18} /></button>
+          <button type="button" tabIndex={-1} className="mus-round" aria-label="Scroll back" disabled={ends[0]} onClick={() => step(-1)}><IconLeft size={18} /></button>
+          <button type="button" tabIndex={-1} className="mus-round" aria-label="Scroll on" disabled={ends[1]} onClick={() => step(1)}><IconRight size={18} /></button>
         </span>
         {to && <Link className="mus-showall" to={to}>Show all</Link>}
       </div>
@@ -170,7 +170,7 @@ export function TrackTable({ items, onPlay, showAlbum, showArt, numbers = 'track
             <span className="mus-tr-main">
               {showArt && <span className="mus-tr-art">{t.poster ? <img src={sized(posterUrl(t), fitWidth(48))} alt="" loading="lazy" decoding="async" onError={(e) => { (e.target as HTMLImageElement).style.visibility = 'hidden' }} /> : null}</span>}
               <span className="mus-tr-words">
-                <span className="mus-tr-title" onClick={() => onPlay(i)}>{t.title}</span>
+                <button type="button" tabIndex={-1} className="mus-tr-title" onClick={() => onPlay(i)}>{t.title}</button>
                 {artist && <Link tabIndex={-1} className="mus-tr-sub" to={artistLink(t.libraryId, t.albumArtist || artist)}>{artist}</Link>}
               </span>
             </span>

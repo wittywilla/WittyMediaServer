@@ -45,7 +45,7 @@
 .mus-side-row.on b { color: var(--accent-text); }
 .mus-side-art { display: grid; place-items: center; width: 48px; height: 48px; border-radius: var(--r-sm); overflow: hidden; background: var(--bg-3); color: var(--fg-3); font-weight: 700; }
 .mus-side-art.round { border-radius: 50%; }
-.mus-side-art.liked { background: linear-gradient(135deg, hsl(255 70% 45%), hsl(200 60% 60%)); color: #fff; }
+.mus-side-art.liked { background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 35%, var(--bg-3))); color: var(--accent-fg); }
 .mus-side-art img { width: 100%; height: 100%; object-fit: cover; }
 .mus-side-words { display: grid; min-width: 0; }
 .mus-side-words b, .mus-side-words small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -92,13 +92,13 @@
 .mus-cover.round { border-radius: 50%; }
 .mus-cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .mus-cover .art-ph { position: absolute; inset: 0; }
-.mus-initial { font-size: 2.6rem; font-weight: 700; text-transform: uppercase; }
-.mus-tile { background: linear-gradient(135deg, hsl(var(--h) 65% 42%), hsl(calc(var(--h) + 50) 55% 22%)); color: #fff; }
-.mus-tile b { font-size: 3rem; font-weight: 800; }
+.mus-initial { font-size: var(--text-4xl); font-weight: 700; text-transform: uppercase; }
+.mus-tile { background: linear-gradient(135deg, hsl(var(--h) 65% 42%), hsl(calc(var(--h) + 50) 55% 22%)); color: var(--on-image); } /* design-ok: each list's own hue, as the art placeholders have */
+.mus-tile b { font-size: var(--text-5xl); font-weight: 800; }
 .mus-tile.big { display: grid; place-items: center; width: 100%; height: 100%; }
 .mus-tile.big svg { width: 40%; height: 40%; }
 /* The play button: on a card it rises into view on hover or focus; it's always there on touch. */
-.mus-play { display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 50%; background: var(--accent); color: var(--accent-fg); box-shadow: 0 8px 16px rgb(0 0 0 / .3); cursor: pointer; transition: transform var(--dur-2) var(--ease-out), opacity var(--dur-2), background var(--dur-2); }
+.mus-play { display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 50%; background: var(--accent); color: var(--accent-fg); box-shadow: var(--e-2); cursor: pointer; transition: transform var(--dur-2) var(--ease-out), opacity var(--dur-2), background var(--dur-2); }
 .mus-play:hover { transform: scale(1.06); background: var(--accent-2, var(--accent)); }
 .mus-play:active { transform: scale(.96); }
 .mus-play svg { width: 22px; height: 22px; }
@@ -123,7 +123,7 @@
 .mus-quick-tile > a { display: grid; grid-template-columns: 56px minmax(0, 1fr); align-items: center; gap: var(--sp-3); padding-right: 56px; color: var(--fg); text-decoration: none; }
 .mus-quick-tile b { font-size: var(--text-sm); font-weight: 700; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .mus-quick-art { display: grid; place-items: center; width: 56px; height: 56px; background: var(--bg-3); color: var(--fg-2); font-weight: 700; box-shadow: var(--e-1); }
-.mus-quick-art.liked { background: linear-gradient(135deg, hsl(255 70% 45%), hsl(200 60% 60%)); color: #fff; }
+.mus-quick-art.liked { background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 35%, var(--bg-3))); color: var(--accent-fg); }
 .mus-quick-art img { width: 100%; height: 100%; object-fit: cover; }
 .mus-quick-tile > .mus-play { position: absolute; right: 8px; top: 50%; width: 36px; height: 36px; margin-top: -18px; opacity: 0; }
 .mus-quick-tile:hover > .mus-play, .mus-quick-tile:focus-within > .mus-play { opacity: 1; }
@@ -131,8 +131,8 @@
 @media (max-width: 700px) { .mus-quick-tile > a { padding-right: var(--sp-2); grid-template-columns: 48px minmax(0, 1fr); } .mus-quick-art { width: 48px; height: 48px; } .mus-quick-tile > .mus-play { display: none; } }
 .mus-genres, .mus-browse { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
 .mus-browse { grid-template-columns: repeat(auto-fill, minmax(min(45%, 190px), 1fr)); }
-.mus-genre { display: flex; align-items: flex-start; min-height: 72px; padding: var(--sp-3); border-radius: var(--r-md); overflow: hidden; color: #fff; font-weight: 800; font-size: var(--text-md); text-decoration: none; overflow-wrap: anywhere;
-  background: linear-gradient(135deg, hsl(var(--h) 60% 40%), hsl(calc(var(--h) + 40) 55% 26%)); transition: transform var(--dur-2) var(--ease-out); }
+.mus-genre { display: flex; align-items: flex-start; min-height: 72px; padding: var(--sp-3); border-radius: var(--r-md); overflow: hidden; color: var(--on-image); font-weight: 800; font-size: var(--text-md); text-decoration: none; overflow-wrap: anywhere;
+  background: linear-gradient(135deg, hsl(var(--h) 60% 40%), hsl(calc(var(--h) + 40) 55% 26%)); /* design-ok: each genre's own hue */ transition: transform var(--dur-2) var(--ease-out); }
 .mus-genre.big { min-height: 110px; font-size: var(--text-lg); }
 .mus-genre:hover { transform: scale(1.02); }
 .mus-more-link { margin-top: var(--sp-6); }
@@ -142,7 +142,7 @@
 .mus-head { position: relative; display: grid; grid-template-columns: clamp(140px, 18vw, 232px) minmax(0, 1fr); gap: var(--sp-6); align-items: end;
   margin: 0 calc(-1 * var(--sp-2)); padding: var(--sp-8) var(--sp-4) var(--sp-5); border-radius: var(--r-lg) var(--r-lg) 0 0;
   background: linear-gradient(180deg, rgb(var(--art) / .55), rgb(var(--art) / .18)); transition: background var(--dur-3); }
-.mus-head-cover { aspect-ratio: 1; border-radius: var(--r-sm); overflow: hidden; box-shadow: 0 8px 32px rgb(0 0 0 / .45); background: var(--bg-3); position: relative; }
+.mus-head-cover { aspect-ratio: 1; border-radius: var(--r-sm); overflow: hidden; box-shadow: var(--shadow); background: var(--bg-3); position: relative; }
 .mus-head-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .mus-head-cover .art-ph { position: absolute; inset: 0; }
 .mus-head-words { display: grid; gap: var(--sp-2); min-width: 0; }
@@ -157,8 +157,8 @@ a.mus-by:hover { text-decoration: underline; }
   .mus-head { grid-template-columns: 1fr; justify-items: center; text-align: center; padding-top: var(--sp-4); gap: var(--sp-4); }
   .mus-head-cover { width: min(64vw, 240px); }
   .mus-head-words { justify-items: start; text-align: left; width: 100%; }
-  .mus-title { font-size: 1.6rem; }
-  .mus-title.long { font-size: 1.3rem; }
+  .mus-title { font-size: var(--text-2xl); }
+  .mus-title.long { font-size: var(--text-xl); }
 }
 /* The colour runs on below the header, fading into the page behind the list. */
 .mus-head + .mus-actions, .mus-hero + .mus-actions { background: linear-gradient(180deg, rgb(var(--art) / .18), transparent 120px); }
@@ -191,14 +191,14 @@ a.mus-by:hover { text-decoration: underline; }
 .mus-hero { position: relative; display: flex; align-items: flex-end; min-height: clamp(260px, 38vh, 420px); margin: calc(-1 * var(--sp-2)) calc(-1 * var(--sp-2)) 0; padding: var(--sp-6) var(--sp-4);
   border-radius: var(--r-lg) var(--r-lg) 0 0; overflow: hidden; background: linear-gradient(180deg, rgb(var(--art) / .7), rgb(var(--art) / .2)); }
 .mus-hero-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 25%; z-index: -1;
-  -webkit-mask-image: linear-gradient(180deg, #000 45%, transparent); mask-image: linear-gradient(180deg, #000 45%, transparent); }
-.mus-hero::after { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, transparent 40%, rgb(0 0 0 / .45)); pointer-events: none; }
+  -webkit-mask-image: linear-gradient(180deg, #000 45%, transparent); mask-image: linear-gradient(180deg, #000 45%, transparent); } /* design-ok: a mask's opacity, not a colour */
+.mus-hero::after { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, transparent 40%, var(--scrim)); opacity: .66; pointer-events: none; }
 .mus-hero.no-photo::after { display: none; }
-.mus-hero-words { display: grid; gap: var(--sp-2); min-width: 0; color: #fff; text-shadow: 0 2px 12px rgb(0 0 0 / .35); }
-.mus-hero-words .mus-byline { color: rgb(255 255 255 / .85); }
+.mus-hero-words { display: grid; gap: var(--sp-2); min-width: 0; color: var(--on-image); text-shadow: 0 2px 12px var(--scrim); }
+.mus-hero-words .mus-byline { color: color-mix(in srgb, var(--on-image) 85%, transparent); }
 .mus-hero.no-photo .mus-hero-words { color: var(--fg); text-shadow: none; }
 .mus-hero.no-photo .mus-byline { color: var(--fg-2); }
-@media (max-width: 700px) { .mus-hero { min-height: 240px; } .mus-hero .mus-title { font-size: 2.2rem; } .mus-hero .mus-title.long { font-size: 1.6rem; } }
+@media (max-width: 700px) { .mus-hero { min-height: 240px; } .mus-hero .mus-title { font-size: var(--text-4xl); } .mus-hero .mus-title.long { font-size: var(--text-2xl); } }
 
 /* ------------------------------------------------------------ the list of songs */
 .mus-tracks { --cols: 48px minmax(0, 1fr) 40px 64px 40px; }
@@ -221,7 +221,7 @@ a.mus-by:hover { text-decoration: underline; }
 .mus-tr-art { flex: none; width: var(--mus-row-art); height: var(--mus-row-art); border-radius: var(--r-xs, 4px); overflow: hidden; background: var(--bg-3); }
 .mus-tr-art img { width: 100%; height: 100%; object-fit: cover; }
 .mus-tr-words { display: grid; min-width: 0; }
-.mus-tr-title { color: var(--fg); font-size: var(--text-md); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: default; }
+.mus-tr-title { justify-self: start; max-width: 100%; padding: 0; border: 0; background: none; font-family: inherit; text-align: left; color: var(--fg); font-size: var(--text-md); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: default; }
 .mus-tr-sub, .mus-tr-album a { color: var(--fg-2); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; justify-self: start; max-width: 100%; }
 .mus-tr-sub:hover, .mus-tr-album a:hover { color: var(--fg); text-decoration: underline; }
 .mus-tr-album { min-width: 0; display: grid; }

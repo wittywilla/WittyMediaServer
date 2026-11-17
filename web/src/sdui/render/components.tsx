@@ -844,28 +844,36 @@ function SeasonListView({ view }: { view: View }) {
   }, [list, view.id]) // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <section className="sdui-seasons" role="region" aria-label={view.label} style={{ ...cardVars(view, page.pt), ...scopeStyle(view.node) }} data-sdui-section={view.id}>
-      {seasons.length > 0 && (
-        <div className="season-tabs sdui-season-tabs" role="group" aria-label="Seasons" data-sdui-head data-nav-group>
-          {seasons.map((s) => {
-            const on = s.selected === true
-            const count = num(s, 'count'), left = num(s, 'unwatched')
-            return (
-              <button key={str(s, 'title')} type="button" className={'season-tab sdui-season' + (on ? ' active' : '')} aria-pressed={on} aria-label={`${str(s, 'title')}${on ? ', selected' : ''}`}
-                onClick={() => { if (!on && str(s, 'url')) page.more(view.id, str(s, 'url'), true) }}>
-                <div className="t">{str(s, 'title')}</div>
-                {count > 0 && <div className="sub">{count} ep{left > 0 && left < count ? ` · ${left} left` : ''}</div>}
-              </button>
-            )
-          })}
-        </div>
-      )}
-      {showId && !page.inert && (
-        <div className="view-toggle sdui-episode-view">
-          <span className="muted" id={view.id + '-layout'}>Layout</span>
-          <div className="seg" role="group" aria-labelledby={view.id + '-layout'}>
-            <button type="button" className={!list ? 'active' : ''} aria-pressed={!list} onClick={() => chooseEpisodeView(showId, 'cards')}>Cards</button>
-            <button type="button" className={list ? 'active' : ''} aria-pressed={list} onClick={() => chooseEpisodeView(showId, 'list')}>Playlist</button>
-          </div>
+      {/* One bar above the episodes: the seasons as tabs (or, with one season, its name as a heading), and the
+          Cards / Playlist switch at the far end. */}
+      {(seasons.length > 0 || (showId && !page.inert)) && (
+        <div className="sdui-season-bar" data-sdui-head data-nav-group>
+          {seasons.length === 1 && (
+            <h2 className="sdui-season-one">{str(seasons[0], 'title')}{num(seasons[0], 'count') > 0 && <span className="muted">{seasonCount(seasons[0])}</span>}</h2>
+          )}
+          {seasons.length > 1 && (
+            <div className="sdui-season-tabs" role="group" aria-label="Seasons">
+              {seasons.map((s) => {
+                const on = s.selected === true
+                const count = seasonCount(s)
+                return (
+                  <button key={str(s, 'title')} type="button" className={'sdui-season' + (on ? ' active' : '')} aria-pressed={on} aria-label={`${str(s, 'title')}${count ? ', ' + count : ''}${on ? ', selected' : ''}`}
+                    onClick={() => { if (!on && str(s, 'url')) page.more(view.id, str(s, 'url'), true) }}>
+                    <span className="t">{str(s, 'title')}</span>
+                    {count && <span className="sub" aria-hidden="true">{count}</span>}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+          {showId && !page.inert && (
+            <div className="sdui-episode-view">
+              <div className="seg" role="group" aria-label="Show episodes as">
+                <button type="button" className={!list ? 'active' : ''} aria-pressed={!list} onClick={() => chooseEpisodeView(showId, 'cards')}>Cards</button>
+                <button type="button" className={list ? 'active' : ''} aria-pressed={list} onClick={() => chooseEpisodeView(showId, 'list')}>Playlist</button>
+              </div>
+            </div>
+          )}
         </div>
       )}
       <StateLine view={view} />
@@ -876,6 +884,14 @@ function SeasonListView({ view }: { view: View }) {
       {view.hasMore && !waiting && <Near onNear={() => page.more(view.id)} />}
     </section>
   )
+}
+
+// A season's count beside its name: "10 episodes", or "3 of 10 left" part way through; '' when unknown.
+function seasonCount(s: Props): string {
+  const count = num(s, 'count'), left = num(s, 'unwatched')
+  if (!(count > 0)) return ''
+  if (left > 0 && left < count) return `${left} of ${count} left`
+  return count === 1 ? '1 episode' : `${count} episodes`
 }
 
 // "S2 · E5", or "Episode 5" for one outside a season ("S2 · E13–14" for a file that holds two), from

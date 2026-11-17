@@ -119,12 +119,21 @@ button.lib-tile, button.sdui-row, button.sdui-banner { font: inherit; cursor: po
 }
 
 /* Seasons, episodes, tracks. */
-.sdui-season-tabs { display: flex; gap: var(--sp-2); overflow-x: auto; padding: var(--sp-1) 0 var(--sp-3); margin-bottom: var(--sp-2); }
-.sdui-season { width: auto; min-height: var(--control-h); padding: var(--sp-2) var(--sp-4); border-radius: var(--r-full); border: 1px solid var(--border-strong); background: transparent; color: var(--fg-2); text-align: center; cursor: pointer; }
-.sdui-season .t { margin-top: 0; color: inherit; font-weight: 600; font-size: var(--text-sm); white-space: nowrap; }
-.sdui-season .sub { font-size: var(--text-xs); color: inherit; opacity: .8; white-space: nowrap; }
-.sdui-season:hover { background: var(--hover); color: var(--fg); }
-.sdui-season.active, .sdui-season.active:hover { background: var(--fg); border-color: var(--fg); color: var(--bg); }
+/* The bar above a show's episodes: seasons as underlined tabs on a hairline (one season: its name as a
+   heading), and the Cards / Playlist switch at the far end. */
+.sdui-season-bar { display: flex; align-items: flex-end; gap: var(--sp-4); margin: 0 0 var(--sp-5); border-bottom: 1px solid var(--border); }
+.sdui-season-tabs { display: flex; gap: var(--sp-5); flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none; margin-bottom: -1px; }
+.sdui-season-tabs::-webkit-scrollbar { display: none; }
+.sdui-season { flex: none; display: inline-flex; align-items: baseline; gap: var(--sp-2); min-height: var(--control-h); padding: var(--sp-2) 2px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none; color: var(--fg-2); cursor: pointer; transition: color var(--dur-2), border-color var(--dur-2); }
+.sdui-season .t { font-weight: 600; font-size: var(--text-base); white-space: nowrap; }
+.sdui-season .sub { font-size: var(--text-xs); color: var(--fg-3); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sdui-season:hover { color: var(--fg); border-bottom-color: var(--border-strong); }
+.sdui-season.active, .sdui-season.active:hover { color: var(--fg); border-bottom-color: var(--accent); }
+.sdui-season:focus-visible { outline-offset: -2px; border-radius: var(--r-xs); }
+.sdui-season-one { flex: 1 1 auto; min-width: 0; display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 var(--sp-3); margin: 0; padding: var(--sp-2) 0 var(--sp-3); font-size: var(--text-lg); font-weight: 700; line-height: var(--leading-snug); }
+.sdui-season-one .muted { font-size: var(--text-sm); font-weight: 500; }
+.sdui-episode-view { flex: none; margin-left: auto; padding-bottom: var(--sp-2); }
+@media (max-width: 700px) { .sdui-season-tabs { gap: var(--sp-4); } .sdui-season .sub { display: none; } }
 .sdui-seasons .episode .thumb .sdui-noart svg { max-width: 32px; }
 .sdui-seasons .episode .thumb img { position: relative; }
 .sdui-seasons .episode .t { background: none; border: 0; padding: 0; text-align: left; color: inherit; font: inherit; font-weight: 600; cursor: pointer; }

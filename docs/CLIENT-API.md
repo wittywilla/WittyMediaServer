@@ -416,6 +416,7 @@ Only `profile` is needed. Leave out `audio` and `subtitle` and the server picks 
 [the rules](#rules-every-client-shares)). Leave out `startSec` and it resumes where the viewer stopped.
 `forceTranscode` asks for a conversion, `burnSubtitle` draws the chosen subtitle into the picture
 (for heavily styled ASS). `streaming` and `measuredKbps` are for [robust streaming](#robust-streaming).
+`quality` is the viewer's choice of size and data rate (see [Quality](#quality)).
 
 ```json
 {
@@ -489,6 +490,36 @@ playlist are switched in the player.
 **Stopping.** `DELETE /hls/{streamId}` when the viewer leaves: it stops the conversion straight away.
 Streams also pause after 90 seconds with no requests, and go after 10 minutes. A long pause can
 therefore end in a 404: call `/playback` again.
+
+### Quality
+
+A viewer chooses the size and data rate of what they watch in the player's quality menu. The choice
+is a short string, the same everywhere:
+
+| Choice | Means |
+|---|---|
+| `""` or `auto` | Auto: the profile's saved default for where the device is (home or away), else no limit of its own |
+| `original` | No limit of the viewer's own: the file as it is wherever the device plays it |
+| `h720-b4000` | At most 720 lines (a 16:9 box: a wider film comes out as wide as any 720p picture) and 4000 kbit/s, picture and sound together |
+| `vh264` | Keep only H.264 as it is; convert anything else to it |
+| `a128`, `c2` | Converted sound at 128 kbit/s; stereo (`c6`: 5.1) |
+
+Fields combine in any order (`h1080-b8000-vh264-a192-c2`); anything out of range is dropped. Send it
+as `quality` in `/playback`, or as the `X-WMS-Quality` header on any request that starts a stream:
+`/dvd` for a disc, `/tv/{key}/tune` and `/catchup` for a channel. A live channel's answer carries the
+choice in its `url` (`?quality=`) for the playlist and segments; keep it there.
+
+The server holds every choice to the profile's limits (`/users/{id}/stream-limits`) and, away from
+home, to the limits for viewers away from home. A file already within them still plays directly or
+rewrapped; otherwise it is converted to the size, with the rate as a hard cap on the encoder, using
+the hardware encoders the administrator turned on. Encrypted media stays refused whatever is chosen.
+
+A video's `/playback` answer has `quality` for the menu: `choice` (what streams are made to now),
+`asked`, `presets` (`name`, `height`, `kbps`: the sizes at or below the picture's own, and within
+the limits), `limits`, `away`, the source's size and rate, and `videoCodecs` and `audioRates` for an
+advanced menu. `output` says what is sent: `width`, `height`, `videoCodec`, `audioCodec`, `kbps` (the
+file's own, or the cap it's converted to), `audioKbps`, `audioChannels` and `encoder`. To change the
+choice mid-stream, call `/playback` again with the new `quality` and `startSec` at the position.
 
 ### Robust streaming
 
@@ -1496,6 +1527,8 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /me` | user | The signed-in account. |
 | `GET /me/ui` | user | The account's interface choices: any JSON object the clients agree on (home layout, for one). See "Choices that follow the account". |
 | `PUT /me/ui` | user | Replace them: a JSON object of 16 KB at most. |
+| `GET /me/streaming` | user | The profile's saved quality defaults (`prefs.home`, `prefs.away`), its limits (`profile`), the limits away from home (`remote`), and what a quality menu may offer this device now (`quality`). See [Quality](#quality). |
+| `PUT /me/streaming` | user | Save the profile's quality defaults: `{home, away}`, each a quality choice, `""` for Auto. |
 | `GET /users` | user | Accounts this one may manage: everyone for the admin, Kids profiles for adults allowed to. |
 | `POST /users` | user | Add an account or profile (adults may add Kids profiles unless the admin locked that). |
 | `DELETE /users/{id}` | user | Remove an account this one manages. |
@@ -1631,6 +1664,8 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 |---|---|---|
 | `POST /items/{id}/playback` | user | The way to play anything: say what this client can play, get a decision, ready-to-use addresses, tracks, where to start and what comes next. |
 | `GET /playback/profiles` | user | The built-in client profiles. |
+| `GET /users/{id}/stream-limits` | admin | What a profile is allowed: `maxHeight` and `maxKbps` (0 = no limit). See [Quality](#quality). |
+| `PUT /users/{id}/stream-limits` | admin | Set them. Every stream the profile starts, and its quality menu, keep within them. |
 | `GET /playback/speedtest` | user | `kb` kilobytes (64 to 4096, 512 by default) that don't compress, to time this connection before asking for a [robust stream](#robust-streaming). |
 | `GET /media-types` | user | Every file type, codec and container the server knows: extensions, how each plays, which libraries take it, what it needs, and whether this machine has that (`available`). Read this rather than keep a list. |
 | `POST /items/{id}/stream-token` | user | A stream token for this item's media (see "Stream tokens"). Needs a real sign-in, not another stream token. |

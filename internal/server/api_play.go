@@ -133,6 +133,11 @@ func (s *Server) quality(r *http.Request) (q ffmpeg.Quality, maxHeight int) {
 		}
 		q = q.WithCap(rate)
 	}
+	// What the viewer chose in the player's quality menu, or saved as their default, held to
+	// what they are allowed (api_quality.go).
+	c := s.streamChoice(r)
+	maxHeight = playback.Smallest(maxHeight, c.MaxHeight)
+	q = c.Quality(q)
 	return q, maxHeight
 }
 

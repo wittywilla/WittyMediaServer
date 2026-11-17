@@ -155,6 +155,8 @@ var routeRules = map[string]string{
 	"GET /api/me/recommended":                             "Signed-in: own record. limits. Count up to 50",
 	"GET /api/me/review":                                  "Signed-in: own. Year from 2000 to 3000",
 	"GET /api/me/ui":                                      "Signed-in: own",
+	"GET /api/me/streaming":                               "Signed-in: own",
+	"PUT /api/me/streaming":                               "Signed-in: own. Choices read as quality choices; the profile's limits still apply",
 	"GET /api/meta/{target}/{id}/art/{kind}":              "Signed-in: limits. Banner or logo. Pictures only",
 	"GET /api/meta/{target}/{id}/attached":                "Signed-in: limits, on the title and each extra and version. Paths for admins only",
 	"GET /api/meta/{target}/{id}/listings":                "Signed-in: limits",

@@ -79,7 +79,7 @@ func (s *Server) handleDVDOpen(w http.ResponseWriter, r *http.Request) {
 		AudioLanguage:    firstNonEmpty(b.AudioLanguage, s.DB.GetSetting(r.Context(), "audioLanguage", "")),
 		SubtitleLanguage: firstNonEmpty(b.SubtitleLanguage, s.DB.GetSetting(r.Context(), "subtitleLanguage", "")),
 		Angle:            b.Angle,
-		Tag:              s.capTag(r),
+		Tag:              s.capTag(r) + s.streamTag(r),
 		DVDRegion:        s.intSetting(r.Context(), "dvdRegion"),
 		BDRegion:         s.intSetting(r.Context(), "blurayRegion"),
 		DVDParental:      s.intSetting(r.Context(), "dvdParental"),

@@ -67,6 +67,8 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/me` | Signed-in | The caller's own account |
 | `GET /api/me/ui` | Signed-in | own |
 | `PUT /api/me/ui` | Signed-in | own. A JSON object of at most 16 KB |
+| `GET /api/me/streaming` | Signed-in | own |
+| `PUT /api/me/streaming` | Signed-in | own. Choices read as quality choices; the profile's limits still apply |
 | `GET /api/home` | Signed-in | own progress. limits |
 | `GET /api/libraries` | Signed-in | limits. Folder paths for admins only |
 | `POST /api/libraries` | Admin | Name, known type, full paths to existing folders. Module for the type is installed; for a games library, a module that scans games is installed and on, and the console is `auto` or one it names |
@@ -262,6 +264,8 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/users` | Signed-in | Caller may manage that kind of profile. Administrator flag for admins only. Name and password rules |
 | `DELETE /api/users/{id}` | Signed-in | Caller may manage that account, and it isn't their own |
 | `PUT /api/users/{id}/access` | Signed-in | Caller may manage that account. Not their own, not an administrator's |
+| `GET /api/users/{id}/stream-limits` | Admin | The account exists |
+| `PUT /api/users/{id}/stream-limits` | Admin | The account exists. Numbers in range (0 = none), anything else dropped |
 | `PUT /api/users/{id}/password` | Signed-in | Own password for adults, with the current one and an attempt limit. Another account's if the caller may manage it. Length rules |
 | `DELETE /api/users/{id}/2fa` | Admin | Not their own, not another administrator's |
 | `GET /api/profiles/household` | Signed-in | Names, kinds and pictures of every profile, where the sign-in screen shows profiles, or anywhere for an adult's account. No limits and no passwords |

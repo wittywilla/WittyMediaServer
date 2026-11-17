@@ -58,6 +58,11 @@ type playbackRequest struct {
 	// MeasuredKbps is what this device's connection carried when it last measured it
 	// (GET /playback/speedtest), for a robust stream to start at a rate that fits.
 	MeasuredKbps int `json:"measuredKbps"`
+	// Quality is the viewer's choice of size and rate, as in the X-WMS-Quality header, which
+	// it replaces: "auto" (or left out) goes by the profile's saved default, "original" asks
+	// for no limits of the viewer's own, "h720-b4000" for at most 720p and 4 Mbps. The
+	// limits an administrator set still apply. See docs/CLIENT-API.md, Quality.
+	Quality *string `json:"quality"`
 }
 
 // playbackVideoStream is one picture of a file with several.
@@ -177,6 +182,26 @@ type playbackResponse struct {
 	// Streaming says how a video is streamed (standard or robust) and what the player
 	// should do for that. Videos only.
 	Streaming *playbackStreaming `json:"streaming,omitempty"`
+	// Quality is what the player's quality menu offers, and what is chosen. Videos only.
+	Quality *qualityView `json:"quality,omitempty"`
+	// Output describes the stream as it is sent, for the player's stream information.
+	Output *playbackOutput `json:"output,omitempty"`
+}
+
+// playbackOutput is the picture and sound as they reach the player. For a converted stream
+// the size and rates are the most it will be; the encoder may use less.
+type playbackOutput struct {
+	Width      int    `json:"width,omitempty"`
+	Height     int    `json:"height,omitempty"`
+	VideoCodec string `json:"videoCodec,omitempty"`
+	AudioCodec string `json:"audioCodec,omitempty"`
+	// Kbps is the picture's rate: the file's own for direct play and rewrapping, the limit
+	// it is converted to otherwise (0 when the encoder goes by quality alone).
+	Kbps          int `json:"kbps,omitempty"`
+	AudioKbps     int `json:"audioKbps,omitempty"`
+	AudioChannels int `json:"audioChannels,omitempty"`
+	// Encoder is the video encoder FFmpeg uses for a converted picture.
+	Encoder string `json:"encoder,omitempty"`
 }
 
 // probeSource turns a probe into what the decision needs. The container comes from what
@@ -340,6 +365,14 @@ func (s *Server) handlePlayback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p = b.Capabilities.Apply(p)
+	if b.Quality != nil {
+		// The body's choice counts as the header would, for everything that reads it.
+		if v := strings.TrimSpace(*b.Quality); v == "" || strings.EqualFold(v, "auto") {
+			r.Header.Del(qualityHeader)
+		} else {
+			r.Header.Set(qualityHeader, v)
+		}
+	}
 	if b.MaxHeight < 0 || b.MaxBitrateKbps < 0 || b.MeasuredKbps < 0 {
 		writeErr(w, 400, "maxHeight, maxBitrateKbps and measuredKbps can't be negative")
 		return
@@ -514,14 +547,26 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 		videoPick = *b.Video
 	}
 	q, serverMax := s.quality(r)
+	choice := s.streamChoice(r)
+	p = choice.Profile(p)
+	// The device's own limit on data (in the request or its capabilities) shapes the
+	// conversion as well as the decision.
+	if devKbps := playback.Smallest(b.MaxBitrateKbps, p.MaxBitrateKbps); devKbps > 0 {
+		q = playback.Choice{Set: true, MaxKbps: devKbps}.Quality(q)
+	}
 	mode, modeFrom := s.streamMode(r, b.Streaming)
 	robust := mode == playback.StreamRobust
-	req := playback.Request{AudioIndex: chosen.Audio, SubtitleIndex: chosen.Subtitle, MaxBitrateKbps: b.MaxBitrateKbps, BurnSubtitle: b.BurnSubtitle,
+	req := playback.Request{AudioIndex: chosen.Audio, SubtitleIndex: chosen.Subtitle, MaxBitrateKbps: playback.Smallest(b.MaxBitrateKbps, choice.MaxKbps), BurnSubtitle: b.BurnSubtitle,
 		AllowDirect: s.DB.GetSetting(ctx, "directPlay", "1") == "1", ForceTranscode: b.ForceTranscode, MaxHeight: playback.Smallest(b.MaxHeight, serverMax),
 		VideoIndex: videoPick, Flatten3D: b.Flatten3D, OverLimit: !s.fitsCap(r, it.SizeBytes, pr.Duration()),
 		Robust: robust && src.HasVideo && !playback.FitsRobust(src.BitrateKbps, b.MeasuredKbps)}
 	d := playback.Decide(p, src, req)
 	out.Streaming = &playbackStreaming{Mode: mode, From: modeFrom, MeasuredKbps: b.MeasuredKbps, Player: playback.Hints(mode)}
+	srcW := 0
+	if v := pr.Video(); v != nil {
+		srcW = v.Width
+	}
+	out.Quality = s.qualityFor(r, srcW, src.Height, src.BitrateKbps)
 
 	out.DurationSec = pr.Duration()
 	if len(parts) > 1 || out.DurationSec <= 0 {
@@ -593,6 +638,7 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 		out.Protocol = "file"
 		out.StartAtSec = start
 		out.URL = withStream(fmt.Sprintf("/api/items/%d/file", it.ID), token)
+		out.Output = sourceOutput(src, chosen.Audio, srcW)
 		fillSubtitles(out, src, p, true, subURL)
 		if d.Subtitle == playback.SubSidecar {
 			s.warmSubtitle("", it.Path, chosen.Subtitle, src)
@@ -660,6 +706,11 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 	spec.MaxHeight = playback.Smallest(spec.MaxHeight, p.MaxHeight)
 	if v := pr.Video(); v != nil {
 		spec.Height = min(v.Width, v.Height) // an upright phone video is no bigger than a 1080p one
+		// A size the viewer chose is a 16:9 box: a wide film comes out as wide as any other
+		// picture of that size, not taller.
+		if choice.MaxHeight > 0 && spec.MaxHeight == choice.MaxHeight {
+			spec.MaxHeight = playback.FitHeight(choice.MaxHeight, v.Width, v.Height)
+		}
 	}
 	if d.CopyVideo {
 		spec.CopyVideo, spec.CopyAudio, spec.FMP4, spec.Growing = true, d.CopyAudio, d.FMP4, true
@@ -700,7 +751,7 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 	if robust && src.HasVideo && !d.CopyVideo {
 		// A ladder of steady rates, one stream per rung, made only for the rungs a player
 		// asks for. Its master playlist lists them in the order of the ladder parameter.
-		lad := playback.RobustLadder(src.Height, spec.MaxHeight, s.robustCapKbps(r, b.MaxBitrateKbps), b.MeasuredKbps)
+		lad := playback.RobustLadder(src.Height, spec.MaxHeight, s.robustCapKbps(r, req.MaxBitrateKbps), b.MeasuredKbps)
 		order := append([]playback.Rung{lad.Rungs[lad.Start]}, slices.Delete(slices.Clone(lad.Rungs), lad.Start, lad.Start+1)...)
 		group := fmt.Sprintf("v-%s-r%s", hls.Key(it.Path), hex.EncodeToString(sum[:6]))
 		specs := ladderSpecs(spec, group, order, v.Width, v.Height)
@@ -724,6 +775,10 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 		}
 	}
 	ex.Streaming = playback.ExplainStreaming(mode, modeFrom, out.Streaming.Ladder, b.MeasuredKbps)
+	out.Output = hlsOutput(src, d, spec, chosen.Audio, srcW)
+	if !d.CopyVideo && src.HasVideo && s.Tools != nil {
+		out.Output.Encoder = s.Tools.Plan(spec.Quality).Name
+	}
 	fillSubtitles(out, src, p, false, subURL)
 	if d.Subtitle == playback.SubHLS || d.Subtitle == playback.SubSidecar {
 		s.warmSubtitle(out.StreamID, it.Path, chosen.Subtitle, src)
@@ -1158,4 +1213,45 @@ func timestampedVTT(vtt []byte, pts int64, startSec float64) []byte {
 func vttClock(sec float64) string {
 	ms := int64(math.Round(sec * 1000))
 	return fmt.Sprintf("%02d:%02d:%02d.%03d", ms/3600000, ms/60000%60, ms/1000%60, ms%1000)
+}
+
+// sourceOutput: a file played as it is.
+func sourceOutput(src playback.Source, audio, width int) *playbackOutput {
+	o := &playbackOutput{Width: width, Height: src.Height, VideoCodec: src.VideoCodec, Kbps: src.BitrateKbps}
+	if audio >= 0 && audio < len(src.Audio) {
+		o.AudioCodec, o.AudioChannels = src.Audio[audio].Codec, src.Audio[audio].Channels
+	}
+	return o
+}
+
+// hlsOutput: a stream rewrapped or converted to the spec.
+func hlsOutput(src playback.Source, d playback.Decision, spec hls.Spec, audio, width int) *playbackOutput {
+	o := sourceOutput(src, audio, width)
+	if !d.CopyVideo && src.HasVideo {
+		o.VideoCodec, o.Kbps = "h264", int(ffmpeg.ParseRate(spec.Quality.CapRate)/1000)
+		if spec.MaxHeight > 0 && src.Height > spec.MaxHeight {
+			if src.Height > 0 && width > 0 {
+				o.Width = (spec.MaxHeight*width/src.Height + 1) / 2 * 2
+			}
+			o.Height = spec.MaxHeight
+		}
+	}
+	if spec.NoVideo || audio < 0 || audio >= len(src.Audio) {
+		return o
+	}
+	if !d.CopyAudio || !d.CopyVideo {
+		o.AudioCodec, o.AudioChannels = spec.AudioCodec, spec.AudioChannels
+		if o.AudioChannels > src.Audio[audio].Channels && src.Audio[audio].Channels > 0 {
+			o.AudioChannels = src.Audio[audio].Channels
+		}
+		rate := ffmpeg.ParseRate(spec.Quality.AudioRate)
+		if rate <= 0 {
+			rate = 192000
+			if o.AudioChannels > 2 {
+				rate = 384000
+			}
+		}
+		o.AudioKbps = int(rate / 1000)
+	}
+	return o
 }

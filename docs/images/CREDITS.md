@@ -124,17 +124,17 @@ Licences were read from each work's source on the day it was fetched. This is a 
 | `tv-mode.webp` | TV mode's Libraries. No media is pictured. |
 | `tv-show-page.webp` | A show's page. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
 | `tv-shows.webp` | A TV shows library. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
-| `wittytv-bigpicture.webp` | The Big picture look, playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). |
-| `wittytv-classic.webp` | The Classic look, playing [Singularity](https://commons.wikimedia.org/wiki/File:SINGULARITY_-_Blender_Open_Movie-full_movie.webm), Blender Studio, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). |
-| `wittytv-guide.webp` | WittyTV, with channels made from a library in one press, and the preview playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Other titles in the guide are in [the list](CREDITS.md). |
-| `wittytv-listings.webp` | The Newspaper look, playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). |
-| `wittytv-miniguide.webp` | The mini guide over a channel, playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). |
-| `wittytv-modern.webp` | The Modern look, playing [Singularity](https://commons.wikimedia.org/wiki/File:SINGULARITY_-_Blender_Open_Movie-full_movie.webm), Blender Studio, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). |
+| `wittytv-bigpicture.webp` | The Big picture look, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain. |
+| `wittytv-classic.webp` | The Classic look, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain. |
+| `wittytv-guide.webp` | WittyTV, with channels made from a library in one press, and the preview playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain. Other titles in the guide are in [the list](CREDITS.md). |
+| `wittytv-listings.webp` | The Newspaper look, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain. |
+| `wittytv-miniguide.webp` | The mini guide over a channel, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain. |
+| `wittytv-modern.webp` | The Modern look, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain. |
 | `wittytv-new-channel.webp` | Making a channel. |
 | `wittytv-recordings.webp` | Recordings, on a server with none yet. |
-| `wittytv-satellite.webp` | The Satellite look, playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). |
-| `wittytv-teletext.webp` | The Teletext look, playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). |
-| `wittytv-watching.webp` | A channel, full screen, playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). |
+| `wittytv-satellite.webp` | The Satellite look, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain. |
+| `wittytv-teletext.webp` | The Teletext look, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain. |
+| `wittytv-watching.webp` | A channel, full screen, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain. |
 
 ## Everything on the test server
 
@@ -282,6 +282,9 @@ Licences were read from each work's source on the day it was fetched. This is a 
 | NASA ScienceCasts: Solar Eclipse in the USA | NASA | Public domain | [source](https://commons.wikimedia.org/wiki/File:ScienceCasts_Solar_Eclipse_in_the_USA.webm) |
 | NASA ScienceCasts: Strong Magnetic Fields Found Inside Stars | NASA | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0) | [source](https://commons.wikimedia.org/wiki/File:ScienceCasts-_Strong_Magnetic_Fields_Found_Inside_Stars.webm) |
 | NASA ScienceCasts: The Zero Gravity Coffee Cup | NASA | Public domain | [source](https://commons.wikimedia.org/wiki/File:ScienceCasts-_The_Zero_Gravity_Coffee_Cup.webm) |
+| Popeye Color Specials: Popeye the Sailor Meets Sindbad the Sailor | Dave Fleischer, Fleischer Studios | Public domain | [source](https://commons.wikimedia.org/wiki/File:Popeye_The_Sailor_Meets_Sindbad_The_Sailor_(1936).webm) |
+| Popeye Color Specials: Popeye the Sailor Meets Ali Baba's Forty Thieves | Dave Fleischer, Fleischer Studios | Public domain | [source](https://commons.wikimedia.org/wiki/File:Popeye_The_Sailor_Meets_Ali_Baba%27s_Forty_Thieves_(1937).webm) |
+| Popeye Color Specials: Aladdin and His Wonderful Lamp | Dave Fleischer, Fleischer Studios | Public domain | [source](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm) |
 | The Beverly Hillbillies: Grannys Garden | Paul Henning | Public domain | [source](https://commons.wikimedia.org/wiki/File:Beverly_Hillbillies_Episode_39_Grannys_Garden.ogv) |
 | The Beverly Hillbillies: Jed Buys Stock | Paul Henning | Public domain | [source](https://commons.wikimedia.org/wiki/File:Beverly_Hillbillies_Episode_05_Jed_Buys_Stock.ogv) |
 | The Beverly Hillbillies: Pygmalion And Elly | Paul Henning | Public domain | [source](https://commons.wikimedia.org/wiki/File:Beverly_Hillbillies_Episode_10_Pygmalion_And_Elly.ogv) |

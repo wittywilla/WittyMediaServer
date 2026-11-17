@@ -878,13 +878,15 @@ function SeasonListView({ view }: { view: View }) {
   )
 }
 
-// "S2 · E5", or "Episode 5" for one outside a season, from the numbers the card carries; and its
+// "S2 · E5", or "Episode 5" for one outside a season ("S2 · E13–14" for a file that holds two), from
+// the numbers the card carries; and its
 // name without the "5. " the server puts before it for apps that show the title alone.
 function episodeLabel(p: Props, title: string): { number: string; name: string } {
-  const ep = num(p, 'episode'), season = num(p, 'season')
+  const ep = num(p, 'episode'), season = num(p, 'season'), end = num(p, 'episodeEnd')
   if (!(ep > 0)) return { number: '', name: title }
   const lead = ep + '. '
-  return { number: season > 0 ? `S${season} · E${ep}` : `Episode ${ep}`, name: title.startsWith(lead) ? title.slice(lead.length) : title }
+  const eps = end > ep ? `${ep}–${end}` : String(ep)
+  return { number: season > 0 ? `S${season} · E${eps}` : `Episode${end > ep ? 's' : ''} ${eps}`, name: title.startsWith(lead) ? title.slice(lead.length) : title }
 }
 
 // One episode. As a card: its still (which plays it) with the running time and how far it was

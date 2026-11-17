@@ -191,6 +191,9 @@ func (r *renderer) card(parent, style, size string, it *Item, src Source) Node {
 	// them back out of the title.
 	if style == "episode" && it.Episode > 0 {
 		p["season"], p["episode"] = it.Season, it.Episode
+		if it.EpisodeEnd > it.Episode {
+			p["episodeEnd"] = it.EpisodeEnd
+		}
 	}
 	if shows("number") && it.Number != "" {
 		p["number"] = it.Number

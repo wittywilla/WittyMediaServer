@@ -1579,6 +1579,7 @@ Focus: its children take focus, and it is their group. Accessibility: Role: grid
 | `number` | string |  | Channel number |
 | `season` | int |  | Season number. Episode cards: the episode's season (0 for specials), sent with episode. |
 | `episode` | int |  | Episode number. Episode cards: the episode's number in its season, when known, so a renderer can label it ("S2 · E5") apart from the title. |
+| `episodeEnd` | int |  | Last episode. Episode cards: the last episode a file holds when it holds more than one ("S2 · E13–14"). |
 | `now` | object |  | On now. {title, start, end} |
 | `next` | object |  | On next. {title, start, end} |
 | `icon` | icon |  | Icon. For tiles and chips without a picture. |

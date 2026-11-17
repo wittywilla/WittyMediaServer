@@ -5,6 +5,7 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- Added: **Album art beside the words** in karaoke, a setting kept with the music player's others (`me/ui` `musicPlayer.karArt`, off unless chosen). The cover sits at the left of the words on a computer or a TV, and above them, smaller, on a phone held upright (#408).
 - Removed: karaoke's old in-browser voice control (**Voice on / lower / lowest**, which cancelled the middle of the stereo mix) and the audio nodes and mono check behind it. Karaoke only ever shows the Mix, which plays the server's karaoke version; while that's being made, the Mix waits in its place and says how far along it is, so the old control no longer flashes up first (#407).
 
 ## 0.8.0-alpha

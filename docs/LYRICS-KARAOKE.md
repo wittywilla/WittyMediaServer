@@ -76,6 +76,8 @@ It needs timed lyrics. Without times it shows the words and says so. Use a timed
 
 **The Mix** turns the singer down: a slider for the voice and one for each other part of the song, **Voice off** to take the singer out in one press, **Guide voice** to keep them quietly, and **Reset**. It plays the server's karaoke version of the song ([below](#karaoke-versions-made-for-you)). While that's being made, the Mix is there but still, and says how far along it is.
 
+**Album art beside the words** puts the album's cover at the side of the lyrics: at their left on a computer or a TV, and above them, smaller, on a phone held upright. It's off until you choose it, it's kept for your account with the music player's other settings, and a song without a cover shows the words alone. **Behind the words** still chooses what fills the screen behind them.
+
 **Key** moves the music up to six semitones either way, for the singer, without changing the speed. Long held notes can warble a little. A browser that can't do this says so.
 
 **Words** moves the timing a tenth of a second at a time, the same setting as **Sooner** and **Later**.

@@ -290,6 +290,13 @@
 /* ---------------------------------------------------------------- appearance */
 /* The player is always dark, whatever theme is active. */
 .player, .remote-sheet { color: var(--on-image); --fg: #f1f2f5; --fg-2: #b4b9c6; --fg-3: #949aa8; --bg-2: #171a21; --bg-3: #1f232c; --bg-4: #2a2f3a; --bg: #0f1115; --bg-rgb: 15 17 21; --border: rgb(255 255 255 / .1); --border-strong: rgb(255 255 255 / .2); --hover: rgb(255 255 255 / .1); --control-line: #7b808c; --accent-text: #fff; color-scheme: dark; }
+/* Its menus and dialogs stay solid under a glass finish: the theme's glass (white in the light Aero themes) under the
+   player's light text, or a see-through pane over a moving picture, leaves the options unreadable. */
+html[data-fx-glass] .player .popover { background: var(--bg-3); background-image: none; border-color: var(--border-strong); box-shadow: var(--e-3); }
+html[data-fx-glass] .player .modal { background: var(--bg-2); background-image: none; border-color: var(--border); box-shadow: var(--e-3); }
+/* The same for a dialog opened over the picture but drawn outside the player ("How this is playing"): in the page theme's own
+   solid surface, whose text pairs scripts/theme-contrast.py checks. */
+html[data-fx-glass] .modal.over-picture { background: var(--bg-2); background-image: none; border-color: var(--border); box-shadow: var(--e-3); }
 .brand .brand-name { color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .theme-bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 6px 0 14px; }
 .theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: var(--sp-3); }

@@ -120,23 +120,24 @@ type Server struct {
 		sync.Mutex
 		m map[string]*ffmpeg.Probe
 	}
-	stream    streamTokens
-	radio     radioLive
-	pair      pairings
-	introJob  introJob    // finding intros by ear: one run at a time
-	mediaJobs mediaJobs   // stems and canvases being made: one at a time
-	karaoke   karaokeAuto // the separator found, and who asked for what lately
-	subtitles subtitleFiles
-	idOnce    sync.Once
-	id        *identity.Identity
-	idErr     error
-	netState  atomic.Pointer[netState]
-	applyMu   sync.Mutex // one change of the remote access settings at a time
-	reach     reachTest
-	outside   outsideSeen
-	p2p       p2pState // peer-to-peer connections: see api_p2p.go
-	routerMu  sync.Mutex
-	router    *portmap.Probe // the latest "check my router"
+	stream     streamTokens
+	radio      radioLive
+	pair       pairings
+	introJob   introJob         // finding intros by ear: one run at a time
+	mediaJobs  mediaJobs        // stems and canvases being made: one at a time
+	karaoke    karaokeAuto      // the separator found, and who asked for what lately
+	sepInstall separatorInstall // Demucs being installed with one press
+	subtitles  subtitleFiles
+	idOnce     sync.Once
+	id         *identity.Identity
+	idErr      error
+	netState   atomic.Pointer[netState]
+	applyMu    sync.Mutex // one change of the remote access settings at a time
+	reach      reachTest
+	outside    outsideSeen
+	p2p        p2pState // peer-to-peer connections: see api_p2p.go
+	routerMu   sync.Mutex
+	router     *portmap.Probe // the latest "check my router"
 
 	// setupFinished caches that first run is over: once it is, nothing about it is asked again.
 	setupFinished atomic.Bool
@@ -610,6 +611,7 @@ func (s *Server) Handler() http.Handler {
 	s.mediaExtrasRoutes(m)
 	s.peopleRoutes(m)
 	s.karaokeRoutes(m)
+	s.separatorInstallRoutes(m)
 	s.remoteControlRoutes(m)
 	s.syncplayRoutes(m)
 	s.p2pRoutes(m)

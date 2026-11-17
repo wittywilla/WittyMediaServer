@@ -140,3 +140,10 @@
 /* A page with its sticky table of contents under the top bar: what gets focus is scrolled clear
    of both (a remote or the keyboard never leaves it hidden under the contents row). */
 html:has(.set-toc) { scroll-padding-top: calc(var(--topbar-h) + var(--control-h-sm) + var(--sp-8)); }
+
+/* Demucs for karaoke: the install's confirmation and progress (MusicOnline). */
+.sep-confirm { display: grid; gap: 8px; max-width: 640px; }
+.sep-confirm p, .sep-confirm ul { margin: 0; }
+.sep-confirm ul { padding-left: 1.2em; display: grid; gap: 4px; color: var(--fg-2); }
+.sep-buttons, .sep-progress { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.sep-progress progress { flex: 1; min-width: 160px; height: 10px; accent-color: var(--accent); }

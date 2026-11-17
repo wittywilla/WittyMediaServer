@@ -323,6 +323,7 @@ func (s *Server) separateStems(ctx context.Context, it *library.Item, words []st
 	defer cancel()
 	cmd := exec.CommandContext(cctx, prog, args...)
 	cmd.Dir = work
+	cmd.Env = s.separatorEnv(prog)
 	said := &logging.Tail{}
 	s.karaoke.setProgress(it.ID, 0)
 	defer s.karaoke.setProgress(it.ID, -1)

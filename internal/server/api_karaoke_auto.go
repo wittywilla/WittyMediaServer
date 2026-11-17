@@ -100,7 +100,10 @@ func (s *Server) foundSeparator(ctx context.Context, again bool) *separator.Foun
 	defer k.mu.Unlock()
 	if again || k.looked.IsZero() || (k.found == nil && time.Since(k.looked) > karaokeLookAgain) {
 		first := k.looked.IsZero()
-		k.found = separatorDiscover(ctx)
+		// The one installed from Settings first: it was asked for, and is known to work.
+		if k.found = s.installedSeparator(); k.found == nil {
+			k.found = separatorDiscover(ctx)
+		}
 		k.looked = time.Now()
 		switch {
 		case s.Log == nil:
@@ -130,6 +133,9 @@ func (s *Server) separator(ctx context.Context) (words []string, name, version, 
 		return w, strings.TrimSuffix(filepath.Base(w[0]), filepath.Ext(w[0])), "", "config"
 	}
 	if f := s.foundSeparator(ctx, false); f != nil {
+		if f.Installed {
+			return f.Words, f.Name, f.Version, "installed"
+		}
 		return f.Words, f.Name, f.Version, "found"
 	}
 	return nil, "", "", ""

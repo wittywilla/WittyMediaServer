@@ -2,7 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useRef, useState } from 'react'
 import { HelpLink, PageHelp } from '../components/HelpLink'
-import { useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { api } from '../api'
 import { IconCheck } from '../icons'
 import { toast } from '../state'
@@ -18,6 +18,12 @@ type Draft = { s: Record<string, string>; set: (k: string, v: string) => void; o
 
 type KaraokeStatus = { separator: { available: boolean; usable: boolean; name: string; version: string; source: string }; approximate: boolean; machine: string; usedBytes: number; songs: number }
 
+type SeparatorState = {
+  supported: boolean; why: string; task: string; failed: string; phase: string; percent: number
+  packages: string[]; uv: string; python: string; model: string; downloadMB: number
+  installed?: { version: string; model: string; at: string; sizeBytes: number }
+}
+
 const megabytes = (n: number) => (n >= 1 << 30 ? `${(n / (1 << 30)).toFixed(1)} GB` : `${Math.round(n / (1 << 20))} MB`)
 
 // What the server found to separate songs with, in a sentence.
@@ -26,9 +32,71 @@ function karaokeFound(k: KaraokeStatus | null) {
   if (!k) return 'Looking…'
   const sep = k.separator
   if (sep.available && !sep.usable) return <>{sep.name} found, but this machine is too small to run it in a sensible time, so songs use the quick method.</>
-  if (sep.available) return <>{sep.name}{sep.version ? ` ${sep.version}` : ''} {sep.source === 'config' ? 'is set in the server\'s configuration' : 'found on this machine'}. Songs are separated properly, one at a time, when nothing else needs the processor.</>
+  if (sep.available) return <>{sep.name}{sep.version ? ` ${sep.version}` : ''} {sep.source === 'config' ? 'is set in the server\'s configuration' : sep.source === 'installed' ? 'is installed' : 'found on this machine'}. Songs are separated properly, one at a time, when nothing else needs the processor.</>
   if (k.approximate) return <>Not installed. Songs use the quick method, which turns the singer down but can't remove them. {how}</>
   return <>Not installed, and FFmpeg is missing too, so karaoke versions can't be made. {how}</>
+}
+
+// Demucs with one press: what will be downloaded and from where, said before it starts; progress while it
+// runs; and once it's in, how much room it takes and a way to take it out again. Its licenses are listed in
+// Settings, About.
+function SeparatorInstall({ onChange }: { onChange: () => void }) {
+  const [st, setSt] = useState<SeparatorState | null>(null)
+  const [sure, setSure] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const read = () => api.get<SeparatorState>('/karaoke/separator').then((s) => { setSt(s); return s }).catch(() => null)
+  useEffect(() => { void read() }, [])
+  // While it installs, look every couple of seconds; when it ends, the page's other lines catch up.
+  const running = !!st?.task
+  useEffect(() => {
+    if (!running) return
+    const t = window.setInterval(() => { void read().then((s) => { if (s && !s.task) onChange() }) }, 2000)
+    return () => window.clearInterval(t)
+  }, [running]) // eslint-disable-line react-hooks/exhaustive-deps
+  if (!st) return null
+  const install = () => { setBusy(true); api.post('/karaoke/separator/install').then(() => { setSure(false); return read() }).catch((e: Error) => toast(e.message)).finally(() => setBusy(false)) }
+  const remove = () => { setBusy(true); api.del('/karaoke/separator').then(() => { toast(running ? 'Install stopped' : 'Demucs removed'); onChange(); return read() }).catch((e: Error) => toast(e.message)).finally(() => setBusy(false)) }
+  if (st.installed) {
+    return (
+      <Row label="Demucs for karaoke" badge="Installed" desc={<>Demucs {st.installed.version} with its {st.installed.model} model, taking {megabytes(st.installed.sizeBytes)} in the server's own folder. Its licenses, and those of everything installed with it, are in <Link to="/settings/about">Settings, About</Link>.</>}>
+        <button type="button" className="btn sm" disabled={busy} onClick={remove}>Remove</button>
+      </Row>
+    )
+  }
+  if (!st.supported) return <Row label="Demucs for karaoke" desc={st.why}><span className="muted">Not available here</span></Row>
+  if (running) {
+    return (
+      <Row label="Demucs for karaoke" stack desc={<>{st.phase || 'Starting'}… This takes a while: about {st.downloadMB >= 1000 ? `${(st.downloadMB / 1000).toFixed(1)} GB` : `${st.downloadMB} MB`} is downloaded. Songs use the quick version until it's done.</>}>
+        <div className="sep-progress">
+          <progress max={100} value={st.percent} aria-label="Installing Demucs" />
+          <button type="button" className="btn sm" disabled={busy} onClick={remove}>Stop</button>
+        </div>
+      </Row>
+    )
+  }
+  return (
+    <Row label="Demucs for karaoke" stack desc={<>
+      Installs <a href="https://github.com/facebookresearch/demucs" target="_blank" rel="noreferrer">Demucs</a> (MIT license), the best of the separators, so karaoke versions are properly separated: the voice taken out cleanly, and drums, bass and the rest as parts of their own. It runs on the processor, so a song takes a few minutes, one at a time, when nothing else needs it.
+      {st.failed && <> <strong>The last try failed:</strong> {st.failed}</>}
+    </>}>
+      {!sure ? <button type="button" className="btn sm primary" onClick={() => setSure(true)}>Install Demucs…</button> : (
+        <div className="sep-confirm" role="group" aria-label="Install Demucs">
+          <p>Your server will download about {(st.downloadMB / 1000).toFixed(1)} GB into its own folder, which backups leave out:</p>
+          <ul>
+            <li><a href="https://github.com/astral-sh/uv" target="_blank" rel="noreferrer">uv</a> {st.uv}, an installer (MIT or Apache-2.0), from GitHub, checked against a fingerprint the server carries</li>
+            <li>Python {st.python} (PSF license), through uv, which checks it</li>
+            <li>{st.packages.join(', ')}: Demucs and PyTorch (BSD license) for the processor, from PyPI and pytorch.org</li>
+            <li>The {st.model} model, from Demucs's makers</li>
+          </ul>
+          <p>Nothing about you or your music is sent. Every license is listed in Settings, About once it's in, and Remove takes it all out again.</p>
+          <div className="sep-buttons">
+            <button type="button" className="btn sm primary" disabled={busy} onClick={install}>Download and install</button>
+            <button type="button" className="btn sm" onClick={() => setSure(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
+    </Row>
+  )
 }
 
 // In Settings, part of the page's draft and saved with it.
@@ -63,6 +131,7 @@ export function MusicOnlineSettings({ s, set, on }: Draft) {
         <Row label="Vocal separation" badge={kar?.separator.available ? 'Nothing to set up' : undefined} desc={karaokeFound(kar)}>
           <button type="button" className="btn sm" onClick={() => look(true)}>Look again</button>
         </Row>
+        <SeparatorInstall onChange={() => look(true)} />
         <Row label="Make karaoke versions automatically" desc="When someone opens karaoke on a song, the server makes a version with the singer turned down: a quick one in a few seconds, and a properly separated one behind it if a separator is installed. Nothing is written beside your music.">
           <Select value={auto} aria-label="Make karaoke versions automatically" onChange={(e) => set('karaokeAuto', e.target.value)} options={[
             { value: 'auto', label: 'Automatically' },

@@ -5,6 +5,8 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- Added: **Demucs for karaoke**, installed with one press in Settings → Lyrics and music information, so karaoke's properly separated version is there by default. uv (checked against a pinned SHA-256), Python 3.11, Demucs 4.0.1 and CPU-only PyTorch at pinned versions, and the htdemucs model go into the data folder's `separator/` (about 1.1 GB, left out of backups); **Remove** takes it out. Everything installed is credited with its license text in Settings → About. `GET`/`DELETE /api/karaoke/separator`, `POST /api/karaoke/separator/install`. Not offered on FreeBSD, Windows on ARM, musl Linux or tiny machines.
+
 ## 0.8.0-alpha
 
 Released 2026-11-16.

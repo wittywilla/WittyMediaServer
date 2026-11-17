@@ -5,6 +5,8 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- Removed: karaoke's old in-browser voice control (**Voice on / lower / lowest**, which cancelled the middle of the stereo mix) and the audio nodes and mono check behind it. Karaoke only ever shows the Mix, which plays the server's karaoke version; while that's being made, the Mix waits in its place and says how far along it is, so the old control no longer flashes up first (#407).
+
 ## 0.8.0-alpha
 
 Released 2026-11-16.

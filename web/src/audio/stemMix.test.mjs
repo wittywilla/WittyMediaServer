@@ -10,10 +10,13 @@ const parts = { state: 'ready', quality: 'stems', mix: 'parts', version: 'a', im
 const blend = { state: 'ready', quality: 'approximate', mix: 'blend', version: 'b', improving: true, progress: 40, pollSec: 5, stems: [stem('full', 'full'), stem('instrumental', 'music')] }
 const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, `${a} is not ${b}`)
 
-test('parts: each stem at its own level, the big slider is the voice', () => {
+test('parts: Voice is the singer, Background Music every other part, Track all of it', () => {
   assert.deepEqual(gainsFor(parts, {}, false), { vocals: 1, drums: 1, bass: 0.8, other: 1 })
-  assert.deepEqual(gainsFor(parts, { vocals: 0.25, drums: 0.5 }, false), { vocals: 0.25, drums: 0.5, bass: 0.8, other: 1 })
-  assert.deepEqual(sliders(parts).map((s) => s.id), ['vocals', 'drums', 'bass', 'other'])
+  assert.deepEqual(gainsFor(parts, { vocals: 0.25, music: 0.5 }, false), { vocals: 0.25, drums: 0.5, bass: 0.4, other: 0.5 })
+  const g = gainsFor(parts, { vocals: 1, music: 0.2, track: 0.5 }, false)
+  near(g.vocals, 0.5); near(g.drums, 0.1); near(g.bass, 0.08)
+  assert.deepEqual(sliders(parts).map((s) => s.id), ['vocals', 'music', 'track'])
+  assert.deepEqual(sliders(blend).map((s) => s.label), ['Voice', 'Background Music', 'Track'])
 })
 
 test('Sing takes the voice to nothing and gives it back', () => {
@@ -24,21 +27,21 @@ test('Sing takes the voice to nothing and gives it back', () => {
   assert.equal(gainsFor(blend, levels, true).instrumental, 1)
 })
 
-test('a blend crosses the whole song against the instrumental in a straight line', () => {
+test('a blend: the voice comes from the whole song, the music adds up to the Background Music slider', () => {
   assert.deepEqual(gainsFor(blend, {}, false), { full: 1, instrumental: 0 })
-  for (const v of [0, 0.3, 0.5, 1]) for (const m of [0, 0.4, 1]) {
-    const g = gainsFor(blend, { vocals: v, instrumental: m }, false)
-    near(g.full, m * v)
-    near(g.instrumental, m * (1 - v))
-    near(g.full + g.instrumental, m)
+  for (const v of [0, 0.3, 0.5, 1]) for (const m of [0, 0.4, 1]) for (const t of [0.5, 1]) {
+    const g = gainsFor(blend, { vocals: v, music: m, track: t }, false)
+    near(g.full, t * v) // the voice
+    near(g.full + g.instrumental, t * m) // the music, which is in both
   }
-  assert.deepEqual(sliders(blend), [{ id: 'vocals', label: 'Vocals' }, { id: 'instrumental', label: 'Music' }])
   assert.equal(defaultLevel({ mix: 'blend', stems: [stem('full', 'full', 0.6), stem('instrumental', 'music')] }, 'vocals'), 0.6)
+  assert.equal(defaultLevel(blend, 'music'), 1)
+  assert.equal(defaultLevel(blend, 'track'), 1)
 })
 
 test('levels out of range, and stems nobody knows, do no harm', () => {
-  assert.equal(gainsFor(parts, { vocals: 7, drums: -1, bass: NaN }, false).vocals, 1)
-  assert.equal(gainsFor(parts, { drums: -1 }, false).drums, 0)
+  assert.equal(gainsFor(parts, { vocals: 7, music: NaN }, false).vocals, 1)
+  assert.equal(gainsFor(parts, { music: -1 }, false).drums, 0)
   const odd = { ...parts, stems: [...parts.stems, stem('choir', 'backing')] }
   assert.equal(gainsFor(odd, {}, false).choir, 1)
   assert.equal(gainsFor({ mix: 'parts', stems: [stem('vocals', 'vocals'), stem('full', 'full')] }, {}, false).full, 0)

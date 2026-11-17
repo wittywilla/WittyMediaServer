@@ -19,6 +19,7 @@ import { ReadPanel, useExtras } from './ReadPanel'
 import { SleepPanel } from './SleepPanel'
 import { SoundPanel } from './SoundPanel'
 import PartyButton from './PartyButton'
+import { KAR_PARTS } from './stemMix'
 import type { PlayerView } from './types'
 import { placeIn, useMusicLinks } from '../pages/music/links'
 import { acceptedFlashNotice, shaderEffects, shaderSession, trackingMedia, VisualizerView, type ShaderEffect } from './visualizer'
@@ -30,8 +31,8 @@ const Karaoke = lazy(() => import('./Karaoke'))
 // transport, and from here everything else: lyrics, karaoke, the queue, the sound. It looks
 // the same in every theme because it sits on black, whatever the page behind it is doing.
 
-// karArt: the album's cover beside the words in karaoke (off unless asked for).
-type Prefs = { viz: boolean; canvas: boolean; style: string; slow: boolean; shuffleEvery: number; shufflePool: 'all' | 'mine'; vizArt: VizArt; vizText: VizText; fade: boolean; karArt: boolean }
+// karArt: the album's cover beside the words in karaoke (off unless asked for). karHide: the karaoke controls hidden.
+type Prefs = { viz: boolean; canvas: boolean; style: string; slow: boolean; shuffleEvery: number; shufflePool: 'all' | 'mine'; vizArt: VizArt; vizText: VizText; fade: boolean; karArt: boolean; karHide: string[] }
 // Where the album's cover sits while the visualizer plays: hidden, or in one of these places.
 // And where the song's name and the controls sit over it.
 type VizText = 'top' | 'middle' | 'bottom'
@@ -39,7 +40,7 @@ const VIZ_TEXT: { id: VizText; name: string }[] = [{ id: 'top', name: 'Top' }, {
 type VizArt = 'off' | 'centre' | 'left' | 'right' | 'corner' | 'canvas'
 const VIZ_ART: { id: VizArt; name: string }[] = [{ id: 'off', name: 'Hidden' }, { id: 'centre', name: 'In the middle' }, { id: 'left', name: 'On the left' }, { id: 'right', name: 'On the right' }, { id: 'corner', name: 'Small, in the corner' }, { id: 'canvas', name: 'Canvas video, in the middle' }]
 // The visualizer is off until someone turns it on (docs/plans/DESIGN-2.md section 10).
-const DEFAULT_PREFS: Prefs = { viz: false, canvas: true, style: 'bars', slow: false, shuffleEvery: 0, shufflePool: 'mine', vizArt: 'off', vizText: 'middle', fade: false, karArt: false }
+const DEFAULT_PREFS: Prefs = { viz: false, canvas: true, style: 'bars', slow: false, shuffleEvery: 0, shufflePool: 'mine', vizArt: 'off', vizText: 'middle', fade: false, karArt: false, karHide: [] }
 const SHUFFLE_CHOICES = [0, 15, 30, 60, 120, 300, 600]
 const everyLabel = (s: number) => (s === 0 ? 'Off: stay on this one' : s < 60 ? `Every ${s} seconds` : s === 60 ? 'Every minute' : `Every ${s / 60} minutes`)
 
@@ -60,6 +61,7 @@ function readPrefs(v: unknown): Prefs {
     vizText: VIZ_TEXT.some((a) => a.id === s.vizText) ? (s.vizText as VizText) : 'middle',
     fade: s.fade === true,
     karArt: s.karArt === true,
+    karHide: Array.isArray(s.karHide) ? KAR_PARTS.map((k) => k.id).filter((id) => (s.karHide as unknown[]).includes(id)) : [],
   }
 }
 
@@ -400,7 +402,7 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
         {canSing && <> · <kbd>L</kbd> lyrics · <kbd>K</kbd> karaoke</>}{!p.live && <> · <kbd>V</kbd> visualizer</>}
       </p>
       <div className="mp-sr" aria-live="polite">{said}</div>
-      {karaoke && <Suspense fallback={null}><Karaoke p={p} ly={ly} choice={behindChoice} behind={karaokeBehind} cover={artUrl} coverBeside={prefs.karArt} onCoverBeside={(on) => setPrefs({ karArt: on })} onClose={() => { setKaraoke(false); root.current?.focus({ preventScroll: true }) }} /></Suspense>}
+      {karaoke && <Suspense fallback={null}><Karaoke p={p} ly={ly} choice={behindChoice} behind={karaokeBehind} cover={artUrl} coverBeside={prefs.karArt} onCoverBeside={(on) => setPrefs({ karArt: on })} hide={prefs.karHide} onHide={(h) => setPrefs({ karHide: h })} onClose={() => { setKaraoke(false); root.current?.focus({ preventScroll: true }) }} /></Suspense>}
     </div>
   )
 }

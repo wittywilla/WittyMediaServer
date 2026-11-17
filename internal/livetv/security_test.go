@@ -184,6 +184,10 @@ func TestPlaylistChannelIsCheckedByPlaying(t *testing.T) {
 
 func TestRecordingRestrictionsAreHonoured(t *testing.T) {
 	m, f := testManager(t)
+	// The folder is set before anything is scheduled: the background loop may start the recording as soon as it's
+	// due, and reads it then.
+	folder := t.TempDir()
+	m.Folder = func() string { return folder }
 	srv := iptvServer(t)
 	_, ch := addIPTV(t, f, srv)
 	ctx := context.Background()
@@ -203,8 +207,6 @@ func TestRecordingRestrictionsAreHonoured(t *testing.T) {
 		t.Fatal(err)
 	}
 	noRecord("you marked it as not to be recorded")
-	folder := t.TempDir()
-	m.Folder = func() string { return folder }
 	full, _ := m.recording(ctx, r.ID)
 	m.record(full)
 	got, _ := m.recording(ctx, r.ID)

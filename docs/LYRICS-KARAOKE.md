@@ -88,7 +88,7 @@ The key goes back to normal when you leave karaoke, and doesn't carry over to th
 
 ### Karaoke versions, made for you
 
-You don't have to set anything up. The first time someone opens **Karaoke** on a song, the server makes a karaoke version of it by itself, and and the Mix plays it:
+You don't have to set anything up. The first time someone opens **Karaoke** on a song, the server makes a karaoke version of it by itself, and the Mix plays it:
 
 - **Voice:** how loud the singer is, from 0 to 100%.
 - **Music**, or **Drums**, **Bass** and **Other** for a separated song: a slider for each part there is.

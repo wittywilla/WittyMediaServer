@@ -338,13 +338,16 @@ html[data-fx-glass] .modal.over-picture { background: var(--bg-2); background-im
 .picker h2 { margin: 0 0 6px; font-size: var(--page-title); letter-spacing: var(--tracking-display); }
 .picker-hint { color: var(--fg-2); max-width: 62ch; margin: 0 auto var(--sp-4); font-size: var(--text-md); }
 .picker-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 180px)); justify-content: center; gap: 16px; margin: 18px 0 22px; }
-.picker-tile { position: relative; aspect-ratio: 1; border-radius: var(--r-lg); border: 2px solid var(--border); background: color-mix(in srgb, var(--on-image) 7%, transparent);
-  color: var(--on-image); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: var(--sp-3); transition: background var(--dur-2), border-color var(--dur-2); }
-.picker-tile:hover, .picker-tile:focus-visible { background: color-mix(in srgb, var(--on-image) 16%, transparent); outline: none; border-color: var(--on-image); }
-.picker-tile.active { border-color: var(--accent); background: rgb(var(--accent-rgb) / .22); }
+/* Tiles are solid, not a wash over the picture: over a bright frame a see-through tile left its second and third lines
+   under 4.5:1. In the player's dark tokens: --fg 15:1 and --fg-2 8:1 on --bg-2, and 5.2:1 or more on the chosen tile
+   for any accent (18% of it, even white or yellow). */
+.picker-tile { position: relative; aspect-ratio: 1; border-radius: var(--r-lg); border: 2px solid var(--border); background: var(--bg-2);
+  color: var(--fg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: var(--sp-3); transition: background var(--dur-2), border-color var(--dur-2); }
+.picker-tile:hover, .picker-tile:focus-visible { background: var(--bg-3); outline: none; border-color: var(--fg); }
+.picker-tile.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, var(--bg-2)); }
 .picker-tile .pt-title { font-size: var(--text-lg); font-weight: 600; line-height: 1.2; }
 .picker-tile .pt-sub { font-size: var(--text-sm); color: var(--fg-2); }
-.picker-tile .pt-detail { font-size: var(--text-xs); color: var(--fg-3); }
+.picker-tile .pt-detail { font-size: var(--text-xs); color: var(--fg-2); }
 .picker-tile .pt-check { position: absolute; top: 10px; right: var(--sp-3); color: var(--accent-text); font-weight: 700; }
 .picker-close { min-width: 140px; }
 @media (max-width: 520px) { .picker-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; } .picker-tile .pt-title { font-size: var(--text-lg); } }

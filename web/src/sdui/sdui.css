@@ -222,7 +222,7 @@ a.sdui-row:hover, button.sdui-row:hover { background: var(--hover); }
 /* On a phone the spotlight grows with its words: a long title, a tagline and two lines of
    overview never reach up under the top bar, which lies over the picture. */
 @media (max-width: 700px) {
-  .sdui:not(.ff-tv) .hero { height: auto; min-height: min(66vh, 520px); display: flex; flex-direction: column; justify-content: flex-end; padding-top: calc(var(--topbar-h) + var(--sp-12)); }
+  .sdui:not(.ff-tv) .hero { height: auto; min-height: min(66vh, 520px); display: flex; flex-direction: column; justify-content: flex-end; padding-top: calc(var(--bar-space) + var(--sp-12)); }
   .sdui:not(.ff-tv) .hero .info { position: relative; left: auto; bottom: auto; margin: 0 var(--gutter) var(--sp-6); width: auto; }
   /* A wide picture filling a tall phone frame kept a third of its width, and cut off the faces at its sides.
      It keeps a 4:3 window at the top instead, nearly the whole picture across, and fades into the page above
@@ -258,7 +258,7 @@ a.sdui-row:hover, button.sdui-row:hover { background: var(--hover); }
 .sdui.ff-tv .sdui-episode-view { display: none; } /* a television keeps the page's own layout of episodes */
 /* A spotlight on a title with no backdrop (a poster is never stretched into one): no empty band
    of picture above its words, just room for them under the top bar. */
-.sdui:not(.ff-tv) .hero.bare { height: auto; min-height: 0; max-height: none !important; padding-top: calc(var(--topbar-h) + var(--sp-6)); display: flex; flex-direction: column; justify-content: flex-end; }
+.sdui:not(.ff-tv) .hero.bare { height: auto; min-height: 0; max-height: none !important; padding-top: calc(var(--bar-space) + var(--sp-6)); display: flex; flex-direction: column; justify-content: flex-end; }
 .sdui:not(.ff-tv) .hero.bare .info, .sdui:not(.ff-tv) .hero.bare .dots { position: relative; left: auto; right: auto; top: auto; bottom: auto; margin: 0 var(--gutter) var(--sp-4); width: auto; }
 
 /* Cast and crew (Credits): the cast and guest stars as rows of round portraits, then the crew in

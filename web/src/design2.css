@@ -140,13 +140,8 @@ html.tv-mode .sdui-widgets { gap: var(--space-l); }
 
 /* ---- finishes of the top-bar nav styles (data-nav-style on the frame), in the theme's own colours ---- */
 .app[data-nav-style="floatingGlassBar"] .topbar { margin: var(--space-s) var(--gutter) 0; border-radius: var(--r-full); background: color-mix(in srgb, var(--elev-2-fill) 86%, transparent); border: 1px solid var(--elev-2-line); box-shadow: var(--elev-3-shadow); background-image: linear-gradient(180deg, color-mix(in srgb, var(--on-image) 14%, transparent), transparent 60%); padding-block: calc(var(--sp-3) - 1px); }
-/* The floating bar stands off the top by --space-s, so a picture runs up behind it by that much more than under a
-   bar at the edge, and has no hard edge under the glass. Anything before the picture starts below it. */
-@supports (animation-timeline: scroll()) {
-  .app[data-nav-style="floatingGlassBar"]:has(.hero, .detail-hero):not(:has(.home.editing, .legal-ack-bar)) .topbar { margin-bottom: calc(-1 * (var(--topbar-h) + var(--space-s))); }
-  .app[data-nav-style="floatingGlassBar"]:has(.hero, .detail-hero) .content > .sdui:first-child > :first-child:not(.hero, .detail-hero, .sr-only),
-  .app[data-nav-style="floatingGlassBar"]:has(.hero, .detail-hero) .content > .sdui:first-child > .sr-only:first-child + :not(.hero, .detail-hero) { margin-top: calc(var(--topbar-h) + var(--space-s)); }
-}
+/* The floating bar stands off the top by --space-s. That margin is part of the room the bar measures (--bar-space,
+   styles.css), so a picture that opens the page runs up behind the glass to the very top, and anything else starts below. */
 .app[data-nav-style="cableBar"] .topbar { background: var(--bg-2); color: var(--fg); border-radius: 0; border-block-end: 2px solid var(--accent); }
 .app[data-nav-style="cableBar"] .topnav-link { color: var(--fg); border-radius: 0; border: 1px solid var(--border-strong); }
 .app[data-nav-style="cableBar"] .topnav-link.active { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }

@@ -212,7 +212,7 @@ html[data-density="spacious"] { --density-space: var(--density-spacious-space); 
 *, *::before, *::after { box-sizing: border-box; }
 html, body, #root { height: 100%; }
 /* A focused thing is never hidden under the bars (WCAG 2.4.11). */
-html { scroll-padding-block: calc(var(--topbar-h) + var(--sp-4)) calc(var(--sp-16) + var(--dock-space) + var(--tabbar-space)); -webkit-text-size-adjust: 100%; }
+html { scroll-padding-block: calc(var(--bar-space) + var(--sp-4)) calc(var(--sp-16) + var(--dock-space) + var(--tabbar-space)); -webkit-text-size-adjust: 100%; }
 /* Ten feet from the screen: a controller in use, or a device with no pointer at
    all (a TV browser with a D-pad). Everything in rem grows with the base size,
    the margin clears TV overscan, and focus is what shows you where you are.
@@ -340,21 +340,29 @@ input[type=range] { accent-color: var(--accent); }
 @supports (animation-timeline: scroll()) {
   /* The words in the bar sit low in it, so the fade stays strong down to them, and each gets a
      halo of the page's colour: readable on any picture, light or dark. */
-  .app:has(.hero, .detail-hero) .topbar { margin-bottom: calc(-1 * var(--topbar-h)); background: linear-gradient(rgb(var(--bg-rgb) / .9), rgb(var(--bg-rgb) / .8) 65%, rgb(var(--bg-rgb) / 0)); }
+  .app:has(.hero, .detail-hero) .topbar { background: linear-gradient(rgb(var(--bg-rgb) / .9), rgb(var(--bg-rgb) / .8) 65%, rgb(var(--bg-rgb) / 0)); }
   .app:has(.hero, .detail-hero) .topbar :is(.section-row a, .topnav-link, .top-brand) { text-shadow: 0 0 2px rgb(var(--bg-rgb)), 0 0 8px rgb(var(--bg-rgb)); }
   /* A link on a pill of its own (the active one, in most nav styles) is already readable there, and the
      halo would smudge its dark words on the light pill. Crossbar marks it with a line instead, so keeps it. */
   .app:not([data-nav-style="crossbar"]):has(.hero, .detail-hero) .topbar .topnav-link.active { text-shadow: none; }
   .app:has(.hero, .detail-hero) .topbar::before { content: ''; position: absolute; inset: 0; z-index: -1; background: var(--bg); opacity: 0; animation: bar-solid linear both; animation-timeline: scroll(root); animation-range: var(--sp-4) calc(var(--topbar-h) * 3); }
   .app:has(.hero, .detail-hero) .topbar::after { animation: bar-solid linear both; animation-timeline: scroll(root); animation-range: var(--sp-4) calc(var(--topbar-h) * 3); }
-  .app:has(.home.editing) .topbar { margin-bottom: 0; background: var(--bg); }
+  .app:has(.home.editing) .topbar { background: var(--bg); }
   /* The legal notice sits right under the bar, so the bar can't run over the picture and cover it. */
-  .app:has(.legal-ack-bar) .topbar { margin-bottom: 0; background: var(--bg); }
-  /* Only the picture runs up under the bar. Anything before it (the page's title, a "Finish setting up"
-     notice) starts below the bar, as it does on a page with no picture at all. */
-  .app:has(.hero, .detail-hero) .content > .sdui:first-child > :first-child:not(.hero, .detail-hero, .sr-only),
-  .app:has(.hero, .detail-hero) .content > .sdui:first-child > .sr-only:first-child + :not(.hero, .detail-hero) { margin-top: var(--topbar-h); }
+  .app:has(.legal-ack-bar) .topbar { background: var(--bg); }
   @keyframes bar-solid { from { opacity: 0; } to { opacity: 1; } }
+}
+/* The bar always takes its own room above the page, so a page's title, a "Finish setting up" notice or
+   anything else starts below it, whatever the bar's height. Only a picture that opens the page runs up
+   under it, by the room the bar really takes (--bar-space, which the bar measures: TopBar.tsx). Nothing
+   runs under it while something else sits between the bar and the page (the legal notice, a status bar)
+   or the page is being arranged. */
+:root { --bar-space: var(--topbar-h); }
+@supports (animation-timeline: scroll()) {
+  .app:not(:has(.home.editing, .legal-ack-bar, .play-status)) :is(
+    .content > :first-child > :is(.hero, .detail-hero):first-child,
+    .content > :first-child > .sr-only:first-child + :is(.hero, .detail-hero),
+    .content > :first-child > .sr-only:first-child + * > .detail-hero:first-child) { margin-top: calc(-1 * (var(--sp-2) + var(--bar-space))); }
 }
 
 @media (max-width: 900px) {
@@ -435,7 +443,7 @@ input[type=range] { accent-color: var(--accent); }
   .hero .shade { background: linear-gradient(0deg, var(--bg) 0%, rgb(var(--bg-rgb) / .94) 34%, rgb(var(--bg-rgb) / .72) 56%, rgb(var(--bg-rgb) / 0) 82%); }
   .hero .info { bottom: var(--sp-6); }
   .hero p { -webkit-line-clamp: 2; }
-  .hero .dots { bottom: auto; top: calc(var(--topbar-h) + var(--sp-2)); }
+  .hero .dots { bottom: auto; top: calc(var(--bar-space) + var(--sp-2)); }
 }
 
 /* ---------------------------------------------------------------- hubs */

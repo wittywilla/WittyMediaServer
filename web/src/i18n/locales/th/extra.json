@@ -5,5 +5,6 @@
   "kind of title|Show": "ซีรีส์",
   "broadcaster|Network": "เครือข่าย",
   "TV network": "เครือข่ายทีวี",
-  "menu group|Play": "เกม"
+  "menu group|Play": "เกม",
+  "Language: {language} · Time zone: {zone}": "ภาษา: {language} · เขตเวลา: {zone}"
 }

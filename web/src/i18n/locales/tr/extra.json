@@ -5,5 +5,6 @@
   "kind of title|Show": "Dizi",
   "broadcaster|Network": "Kanal",
   "TV network": "TV kanalı",
-  "menu group|Play": "Oyunlar"
+  "menu group|Play": "Oyunlar",
+  "Language: {language} · Time zone: {zone}": "Dil: {language} · Saat dilimi: {zone}"
 }

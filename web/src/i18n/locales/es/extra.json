@@ -5,5 +5,6 @@
   "kind of title|Show": "Serie",
   "broadcaster|Network": "Cadena",
   "TV network": "Cadena de TV",
-  "menu group|Play": "Juegos"
+  "menu group|Play": "Juegos",
+  "Language: {language} · Time zone: {zone}": "Idioma: {language} · Zona horaria: {zone}"
 }

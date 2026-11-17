@@ -5,5 +5,6 @@
   "kind of title|Show": "Chương trình",
   "broadcaster|Network": "Đài",
   "TV network": "Đài truyền hình",
-  "menu group|Play": "Trò chơi"
+  "menu group|Play": "Trò chơi",
+  "Language: {language} · Time zone: {zone}": "Ngôn ngữ: {language} · Múi giờ: {zone}"
 }

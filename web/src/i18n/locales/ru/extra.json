@@ -5,5 +5,6 @@
   "kind of title|Show": "Сериал",
   "broadcaster|Network": "Телеканал",
   "TV network": "Телеканал",
-  "menu group|Play": "Игры"
+  "menu group|Play": "Игры",
+  "Language: {language} · Time zone: {zone}": "Язык: {language} · Часовой пояс: {zone}"
 }

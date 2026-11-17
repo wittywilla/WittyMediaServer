@@ -5,7 +5,7 @@ import assert from 'node:assert/strict'
 import { readdirSync, readFileSync } from 'node:fs'
 import { fill, lookup, pickForm, placeholders, isRtl, templateMatcher } from './core.ts'
 import { messagesIn } from './extract.ts'
-import { LANGUAGES } from '../languages.ts'
+import { UI_LANGUAGES, uiLanguageFor } from '../languages.ts'
 
 test('messages fill in their names, numbers the language’s way', () => {
   assert.equal(fill('Hello, {name}', { name: 'Ana' }, 'en'), 'Hello, Ana')
@@ -33,6 +33,17 @@ test('text the server filled in is matched by its pattern', () => {
   assert.equal(m('Something else'), undefined)
 })
 
+test('Portuguese comes as written in Brazil and in Portugal', () => {
+  assert.ok(UI_LANGUAGES.includes('pt-BR') && UI_LANGUAGES.includes('pt-PT') && !UI_LANGUAGES.includes('pt'))
+  assert.equal(uiLanguageFor('pt'), 'pt-BR')
+  assert.equal(uiLanguageFor('pt-BR'), 'pt-BR')
+  assert.equal(uiLanguageFor('pt-PT'), 'pt-PT')
+  assert.equal(uiLanguageFor('pt_pt'), 'pt-PT')
+  assert.equal(uiLanguageFor('pt-AO'), 'pt-PT')
+  assert.equal(uiLanguageFor('de-AT'), 'de')
+  assert.equal(uiLanguageFor('xx'), '')
+})
+
 test('messages are found in the source', () => {
   assert.deepEqual(messagesIn(`t('Sign in') + t("It's {n}", { n }) + tk(\`Movies\`) + tn('{count} film', '{count} films', n) + format('x')`),
     ['Sign in', "It's {n}", 'Movies', '{count} film', '{count} films'])
@@ -42,7 +53,7 @@ test('messages are found in the source', () => {
 
 test('every catalogue is for a known language, and keeps the English’s {names}', () => {
   const dir = new URL('./locales/', import.meta.url)
-  const codes = new Set(LANGUAGES.map(([c]) => c))
+  const codes = new Set(UI_LANGUAGES)
   for (const lang of readdirSync(dir)) {
     assert.ok(codes.has(lang) && lang !== 'en', `locales/${lang} isn't a language the app offers`)
     for (const f of readdirSync(new URL(`${lang}/`, dir))) {

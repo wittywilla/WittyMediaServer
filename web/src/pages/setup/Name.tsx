@@ -13,7 +13,7 @@ import { Link } from 'react-router-dom'
 import { api } from '../../api'
 import { Button, Field, Select, Spinner } from '../../ui'
 import { timeZoneChoices, httpsWords, type HttpsStatus } from './network'
-import { LANGUAGES, browserLanguage } from '../../languages'
+import { LANGUAGES, UI_LANGUAGES, browserLanguage, uiLanguageFor } from '../../languages'
 import { language as appLanguage, languageNameHere, list, nativeName, setLanguage, t, tn } from '../../i18n'
 import { TickRow, LaterNote, StepActions, StepHead, type StepProps } from './parts'
 
@@ -47,7 +47,7 @@ export function Name({ info, next, back, onTry }: StepProps & { onTry: (t: { nam
       if (kept) return
       // A language already chosen, else the browser's: menus and sound tracks start from it.
       setTracks(v.audioLanguage || (v.menuLanguage && v.menuLanguage !== 'en' ? v.menuLanguage : '') || browserLanguage() || v.menuLanguage || '')
-      if (v.uiLanguage) setUi(v.uiLanguage)
+      if (v.uiLanguage) setUi(uiLanguageFor(v.uiLanguage) || appLanguage())
       setZone(v.timeZone || ''); setFind(v.lanDiscovery !== '0')
     }).catch(() => {})
     api.get<{ https?: HttpsStatus }>('/remote').then((r) => setHttps(r.https || null)).catch(() => {})
@@ -96,7 +96,7 @@ export function Name({ info, next, back, onTry }: StepProps & { onTry: (t: { nam
       <h2 className="oobe-sub">{t('Language and time')}</h2>
       <div className="su-net">
         <Field label={t('Language')} hint={t('Everything on these pages, for everyone who uses this server.')}>
-          <Select value={ui} onChange={(e) => pickUi(e.target.value)} options={LANGUAGES.map(([value]) => ({ value, label: value === ui ? nativeName(value) : `${nativeName(value)} (${languageNameHere(value)})` }))} />
+          <Select value={ui} onChange={(e) => pickUi(e.target.value)} options={UI_LANGUAGES.map((value) => ({ value, label: value === ui ? nativeName(value) : `${nativeName(value)} (${languageNameHere(value)})` }))} />
         </Field>
         <Field label={t('Disc menus and sound tracks')} hint={t('Disc menus, and the sound track a film or show starts with when it has one in this language. Subtitles stay off until someone turns them on.')}>
           <Select value={tracks} onChange={(e) => setTracks(e.target.value)} options={[{ value: '', label: t('The original language') }, ...LANGUAGES.map(([value]) => ({ value, label: languageNameHere(value) }))]} />

@@ -25,6 +25,9 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/library"
 )
 
+// uiLanguagePattern: the language of the app's own pages, "de" or "pt-PT".
+var uiLanguagePattern = regexp.MustCompile(`^[a-z]{2}(-[A-Z]{2})?$`)
+
 var settingKeys = []string{"tmdbKey", "tvdbKey", "tvdbPin", "hwAccel", "maxHeight", "menuLanguage", "audioLanguage", "subtitleLanguage", "uiLanguage",
 	"serverName", "audioCodec", "lowPower", "bdjEnabled", "dvdRegion", "blurayRegion", "dvdParental", "blurayAge", "discCountry", "saveMetadata", "dvdStart", "insertFx", "episodeView",
 	"hwEncoders", "directPlay", "qualityMode", "qualityProfile", "x264Preset", "crf", "maxBitrate", "audioBitrate",
@@ -279,9 +282,10 @@ func checkSetting(k, v string) error {
 			return err
 		}
 	case "uiLanguage":
-		// The language of the app's own pages: a two-letter code, or empty for each browser's own.
-		if v != "" && (len(v) != 2 || strings.ToLower(v) != v || strings.Trim(v, "abcdefghijklmnopqrstuvwxyz") != "") {
-			return errors.New("the language must be a two-letter code such as en or de")
+		// The language of the app's own pages: a two-letter code, with a region where the app has one (pt-BR,
+		// pt-PT), or empty for each browser's own.
+		if v != "" && !uiLanguagePattern.MatchString(v) {
+			return errors.New("the language must be a code such as en, de or pt-PT")
 		}
 	case "brandColouring":
 		if !brandname.Valid(v) {

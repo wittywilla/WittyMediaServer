@@ -5,5 +5,6 @@
   "kind of title|Show": "Seriál",
   "broadcaster|Network": "Stanice",
   "TV network": "Televizní stanice",
-  "menu group|Play": "Hry"
+  "menu group|Play": "Hry",
+  "Language: {language} · Time zone: {zone}": "Jazyk: {language} · Časové pásmo: {zone}"
 }

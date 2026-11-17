@@ -5,5 +5,6 @@
   "kind of title|Show": "剧集",
   "broadcaster|Network": "电视网",
   "TV network": "电视网",
-  "menu group|Play": "游戏"
+  "menu group|Play": "游戏",
+  "Language: {language} · Time zone: {zone}": "语言：{language} · 时区：{zone}"
 }

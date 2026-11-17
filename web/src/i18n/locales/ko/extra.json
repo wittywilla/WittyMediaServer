@@ -5,5 +5,6 @@
   "kind of title|Show": "시리즈",
   "broadcaster|Network": "방송사",
   "TV network": "TV 방송사",
-  "menu group|Play": "게임"
+  "menu group|Play": "게임",
+  "Language: {language} · Time zone: {zone}": "언어: {language} · 시간대: {zone}"
 }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { useSyncExternalStore } from 'react'
-import { LANGUAGES } from '../languages'
+import { UI_LANGUAGES, uiLanguageFor } from '../languages'
 import { fill, formatNumber, isRtl, lookup, pickForm, templateMatcher, type Catalogue, type Message, type Vars } from './core'
 
 // The app's words in the language the server is set to (the uiLanguage setting, chosen on setup's first screen).
@@ -26,9 +26,9 @@ let current = 'en'
 let catalogue: Catalogue = {}
 const listeners = new Set<() => void>()
 
-const known = (code: string) => LANGUAGES.some(([c]) => c === code)
+const known = (code: string) => UI_LANGUAGES.includes(code)
 
-/** The language the app is in now: a two-letter code from languages.ts. */
+/** The language the app is in now: a code from UI_LANGUAGES in languages.ts (two letters, or pt-BR / pt-PT). */
 export const language = () => current
 
 /** A message in the app's language. */
@@ -97,7 +97,8 @@ let loadedFor = 'en'
 let asked = ''
 
 export async function setLanguage(code: string): Promise<void> {
-  const next = known(code) ? code : 'en'
+  const wanted = uiLanguageFor(code)
+  const next = known(wanted) ? wanted : 'en'
   asked = next
   if (next === current && next === loadedFor) { applyDocument(next); return }
   let merged: Catalogue = {}
@@ -132,11 +133,11 @@ const KEY = 'wms.uiLanguage'
 /** The language to start in before the server has said: the last one this browser used, else the browser's own. */
 export function startingLanguage(): string {
   try {
-    const kept = localStorage.getItem(KEY)
+    const kept = uiLanguageFor(localStorage.getItem(KEY))
     if (kept && known(kept)) return kept
   } catch { /* storage off */ }
   try {
-    const code = new Intl.Locale(navigator.language).language
+    const code = uiLanguageFor(navigator.language)
     if (known(code)) return code
   } catch { /* no usable browser language */ }
   return 'en'

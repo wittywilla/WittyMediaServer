@@ -5,9 +5,9 @@ import { api } from '../../api'
 import { IconAudio, IconBook, IconGamepad, IconPalette, IconTv, IconUsers } from '../../icons'
 import { Button, Field, Input } from '../../ui'
 import { WhereIsTheCode } from './parts'
-import { LocaleFirst, localeAsked } from './Locale'
+import { LocaleFirst, localeAsked, pendingLocale, reopenLocale } from './Locale'
 import { applyPageTitle } from '../../theme'
-import { t, tk } from '../../i18n'
+import { nativeName, t, tk } from '../../i18n'
 
 const RestoreFlow = lazy(() => import('../settings/Backup').then((m) => ({ default: m.RestoreFlow })))
 
@@ -43,7 +43,20 @@ export function Welcome({ onStart }: { onStart: () => void }) {
       <ul className="oobe-perks" aria-label={t('What your server does')}>
         {FEATURES.map((f) => <li key={f.title}><span className="ic">{f.icon}</span><span><b>{t(f.title)}</b> <span className="muted">{t(f.text)}</span></span></li>)}
       </ul>
+      {!busy && <ChosenLocale onBack={() => { reopenLocale(); setAsked(false) }} />}
     </section>
+  )
+}
+
+// What the first screen chose, with Back to change it (it's easy to pick the wrong language or zone in a long list).
+function ChosenLocale({ onBack }: { onBack: () => void }) {
+  const c = pendingLocale()
+  const zone = c?.zone ? c.zone.replace(/_/g, ' ') : t('The computer’s own')
+  return (
+    <div className="su-chosen-locale">
+      <Button variant="ghost" onClick={onBack}>{t('Back')}</Button>
+      <span className="muted">{t('Language: {language} · Time zone: {zone}', { language: nativeName(c?.ui || 'en'), zone })}</span>
+    </div>
   )
 }
 

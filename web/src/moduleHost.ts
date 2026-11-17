@@ -90,7 +90,8 @@ export function hostFor(module: string) {
     LegalNote,
     sdui: { CardRouteContext, GameArtContext, GlyphContext, RowLayoutContext, TabsContext, setPageRegions, usePageRegions },
     input: { focusFirst },
-    /** The language the app's pages are in (the server's uiLanguage), for a module to show its own words in.
+    /** The language the app's pages are in (the server's uiLanguage, a BCP 47 tag: 'de', or 'pt-BR' / 'pt-PT'), for a
+     *  module to show its own words in.
      *  Offered as has('i18n'). The whole app, modules included, is drawn again when it changes. */
     i18n: { language, useLanguage, onLanguage, rtl: () => isRtl(language()), number: num, date, relative, list },
   }

@@ -5,5 +5,6 @@
   "kind of title|Show": "Série",
   "broadcaster|Network": "Emissora",
   "TV network": "Emissora de TV",
-  "menu group|Play": "Jogos"
+  "menu group|Play": "Jogos",
+  "Language: {language} · Time zone: {zone}": "Idioma: {language} · Fuso horário: {zone}"
 }

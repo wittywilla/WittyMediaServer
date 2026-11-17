@@ -2,7 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { useState } from 'react'
 import { api } from '../../api'
-import { LANGUAGES, browserLanguage } from '../../languages'
+import { LANGUAGES, UI_LANGUAGES, browserLanguage, trackLanguage, uiLanguageFor } from '../../languages'
 import { language as appLanguage, languageNameHere, list, nativeName, setLanguage, t, tn } from '../../i18n'
 import { Button, Field, Select } from '../../ui'
 import { timeZoneChoices } from './network'
@@ -19,6 +19,12 @@ const KEY = 'wms.setupLocale'
 
 /** Whether the language and time zone were confirmed with Continue. */
 export const localeAsked = () => !!pendingLocale()?.done
+
+/** Back to the language and time zone screen from Welcome: what was chosen stays filled in. */
+export function reopenLocale() {
+  const c = pendingLocale()
+  if (c) keep({ ...c, done: false })
+}
 
 export function pendingLocale(): LocaleChoice | null {
   try {
@@ -43,17 +49,17 @@ const deviceZone = () => { try { return Intl.DateTimeFormat().resolvedOptions().
 
 export function LocaleFirst({ onDone }: { onDone: (c: LocaleChoice) => void }) {
   const before = pendingLocale()
-  const [ui, setUi] = useState(before?.ui ?? appLanguage())
+  const [ui, setUi] = useState(uiLanguageFor(before?.ui) || appLanguage())
   const [language, setLanguageChoice] = useState(before?.language ?? (browserLanguage() || appLanguage()))
   // Disc menus and sound tracks follow the pages' language until someone picks another for them.
-  const [ownTracks, setOwnTracks] = useState(!!before && before.language !== before.ui)
+  const [ownTracks, setOwnTracks] = useState(!!before && before.language !== trackLanguage(before.ui || ''))
   const [zone, setZone] = useState(before?.zone ?? '')
   const here = deviceZone()
   // The pages switch as soon as a language is picked, and the choice is kept so the switch doesn't lose it.
   const pickUi = (code: string) => {
     setUi(code)
-    const tracks = ownTracks ? language : code
-    if (!ownTracks) setLanguageChoice(code)
+    const tracks = ownTracks ? language : trackLanguage(code)
+    if (!ownTracks) setLanguageChoice(tracks)
     keep({ language: tracks, zone, ui: code })
     void setLanguage(code)
   }
@@ -66,7 +72,7 @@ export function LocaleFirst({ onDone }: { onDone: (c: LocaleChoice) => void }) {
       <StepHead title={t('Language and time zone')} lead={t('Before anything else: the language for these pages, disc menus and sound tracks, and the time zone the server keeps.')} />
       <div className="su-net">
         <Field label={t('Language')} hint={t('Everything on these pages, for everyone who uses this server.')}>
-          <Select autoFocus value={ui} onChange={(e) => pickUi(e.target.value)} options={LANGUAGES.map(([value]) => ({ value, label: value === ui ? nativeName(value) : `${nativeName(value)} (${languageNameHere(value)})` }))} />
+          <Select autoFocus value={ui} onChange={(e) => pickUi(e.target.value)} options={UI_LANGUAGES.map((value) => ({ value, label: value === ui ? nativeName(value) : `${nativeName(value)} (${languageNameHere(value)})` }))} />
         </Field>
         <Field label={t('Disc menus and sound tracks')} hint={t('Disc menus, and the sound track a film or show starts with when it has one in this language. Subtitles stay off until someone turns them on.')}>
           <Select value={language} onChange={(e) => { setLanguageChoice(e.target.value); setOwnTracks(true) }} options={[{ value: '', label: t('The original language') }, ...LANGUAGES.map(([value]) => ({ value, label: languageNameHere(value) }))]} />

@@ -6,7 +6,8 @@ chosen, each browser shows its own language when the app has it, and English whe
 
 There are 26 languages: English, Spanish, French, German, Italian, Portuguese, Dutch, Swedish, Danish, Norwegian,
 Finnish, Polish, Czech, Hungarian, Greek, Turkish, Russian, Ukrainian, Japanese, Korean, Chinese, Hindi, Arabic,
-Hebrew, Thai and Vietnamese. Arabic and Hebrew pages are laid out right to left.
+Hebrew, Thai and Vietnamese, with Portuguese as written in Brazil (pt-BR) and in Portugal (pt-PT). Arabic and
+Hebrew pages are laid out right to left. Disc menus and sound tracks use the plain two-letter languages.
 
 Titles, names and descriptions of your media are never translated: they're shown as your files and the metadata
 sources give them.
@@ -28,7 +29,7 @@ num(1234), date(when, { dateStyle: 'medium' })
 
 - Write the English as a plain quoted string, with `{name}` fill-ins rather than template strings, so the check script
   finds it.
-- Catalogues are in `web/src/i18n/locales/<language>/<part>.json`: English → translation. A message with a count
+- Catalogues are in `web/src/i18n/locales/<language>/<part>.json` (`pt-BR` and `pt-PT` for Portuguese): English → translation. A message with a count
   gives the language's plural forms (`one`, `few`, `many`, `other` and so on). Only the chosen language's files are
   loaded.
 - `node scripts/i18n-check.mjs` (from `web/`) counts what each language has; `node scripts/i18n-check.mjs de` lists
@@ -42,7 +43,7 @@ num(1234), date(when, { dateStyle: 'medium' })
 A module's web part gets the language from its host (web host API 5, `host.has('i18n')`):
 
 ```ts
-host.i18n.language()        // 'de'
+host.i18n.language()        // 'de', or 'pt-BR' / 'pt-PT' (a BCP 47 tag)
 host.i18n.useLanguage()     // the same, as a React hook
 host.i18n.onLanguage(f)     // told when it changes
 host.i18n.rtl()             // true for Arabic and Hebrew

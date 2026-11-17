@@ -6,5 +6,9 @@
   "broadcaster|Network": "Kanal",
   "TV network": "TV-kanal",
   "menu group|Play": "Spel",
-  "Language: {language} · Time zone: {zone}": "Språk: {language} · Tidszon: {zone}"
+  "Language: {language} · Time zone: {zone}": "Språk: {language} · Tidszon: {zone}",
+  "broadcast|Repeat": "Repris",
+  "title card|Card": "Textskylt",
+  "programmes|Schedule": "Tablå",
+  "typeface|Type": "Typsnitt"
 }

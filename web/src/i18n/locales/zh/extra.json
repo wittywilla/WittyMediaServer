@@ -6,5 +6,9 @@
   "broadcaster|Network": "电视网",
   "TV network": "电视网",
   "menu group|Play": "游戏",
-  "Language: {language} · Time zone: {zone}": "语言：{language} · 时区：{zone}"
+  "Language: {language} · Time zone: {zone}": "语言：{language} · 时区：{zone}",
+  "broadcast|Repeat": "重播",
+  "title card|Card": "字幕卡",
+  "programmes|Schedule": "节目单",
+  "typeface|Type": "字体"
 }

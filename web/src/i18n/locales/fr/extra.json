@@ -6,5 +6,9 @@
   "broadcaster|Network": "Chaîne",
   "TV network": "Chaîne de télévision",
   "menu group|Play": "Jeux",
-  "Language: {language} · Time zone: {zone}": "Langue : {language} · Fuseau horaire : {zone}"
+  "Language: {language} · Time zone: {zone}": "Langue : {language} · Fuseau horaire : {zone}",
+  "broadcast|Repeat": "Rediffusion",
+  "title card|Card": "Carton",
+  "programmes|Schedule": "Programmation",
+  "typeface|Type": "Police"
 }

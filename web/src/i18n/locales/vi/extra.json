@@ -6,5 +6,9 @@
   "broadcaster|Network": "Đài",
   "TV network": "Đài truyền hình",
   "menu group|Play": "Trò chơi",
-  "Language: {language} · Time zone: {zone}": "Ngôn ngữ: {language} · Múi giờ: {zone}"
+  "Language: {language} · Time zone: {zone}": "Ngôn ngữ: {language} · Múi giờ: {zone}",
+  "broadcast|Repeat": "Phát lại",
+  "title card|Card": "Thẻ tiêu đề",
+  "programmes|Schedule": "Lịch phát sóng",
+  "typeface|Type": "Kiểu chữ"
 }

@@ -6,5 +6,9 @@
   "broadcaster|Network": "רשת שידור",
   "TV network": "רשת טלוויזיה",
   "menu group|Play": "משחקים",
-  "Language: {language} · Time zone: {zone}": "שפה: {language} · אזור זמן: {zone}"
+  "Language: {language} · Time zone: {zone}": "שפה: {language} · אזור זמן: {zone}",
+  "broadcast|Repeat": "שידור חוזר",
+  "title card|Card": "כרטיס כותרת",
+  "programmes|Schedule": "לוח שידורים",
+  "typeface|Type": "גופן"
 }

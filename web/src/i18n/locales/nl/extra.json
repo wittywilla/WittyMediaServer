@@ -6,5 +6,9 @@
   "broadcaster|Network": "Zender",
   "TV network": "Tv-zender",
   "menu group|Play": "Spelen",
-  "Language: {language} · Time zone: {zone}": "Taal: {language} · Tijdzone: {zone}"
+  "Language: {language} · Time zone: {zone}": "Taal: {language} · Tijdzone: {zone}",
+  "broadcast|Repeat": "Herhaling",
+  "title card|Card": "Titelkaart",
+  "programmes|Schedule": "Programmering",
+  "typeface|Type": "Lettertype"
 }

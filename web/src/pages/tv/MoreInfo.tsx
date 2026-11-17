@@ -12,7 +12,7 @@ import { ChannelMark } from './ChannelLogo'
 import { useLook } from './look'
 import { useReminders } from './reminders'
 import { fmtClock, fmtDay, fmtSpan } from './tvApi'
-import { t, tx } from '../../i18n'
+import { t, tc, tx } from '../../i18n'
 
 type Person = { name: string; role?: string; character?: string; personId?: number }
 type Answer = {
@@ -46,7 +46,7 @@ export default function MoreInfo({ channelKey, at, onClose }: { channelKey: stri
   const p = a.programme, ch = a.channel
   const now = Date.now() / 1000
   const live = p.start <= now && p.end > now
-  const facts = [p.year, p.rating, p.lengthMin ? t('{n} min', { n: p.lengthMin }) : '', p.season ? (p.episode ? t('Season {season}, episode {episode}', { season: p.season, episode: p.episode }) : t('Season {season}', { season: p.season })) : '', p.hd ? 'HD' : '', p.new ? t('New') : p.repeat ? t('Repeat') : '', p.premiere ? t('Premiere') : ''].filter(Boolean)
+  const facts = [p.year, p.rating, p.lengthMin ? t('{n} min', { n: p.lengthMin }) : '', p.season ? (p.episode ? t('Season {season}, episode {episode}', { season: p.season, episode: p.episode }) : t('Season {season}', { season: p.season })) : '', p.hd ? 'HD' : '', p.new ? t('New') : p.repeat ? tc('broadcast', 'Repeat') : '', p.premiere ? t('Premiere') : ''].filter(Boolean)
   const details: [string, string][] = ([
     [t('Genres'), p.genres?.join(', ') || ''], [t('Studio'), p.studio || ''], [t('Country'), p.country || ''], [t('Language'), [p.language, p.origLanguage && p.origLanguage !== p.language ? t('original {language}', { language: p.origLanguage }) : ''].filter(Boolean).join(', ')],
     [t('Audio'), p.audio || ''], [t('Subtitles'), p.subtitles?.join(', ') || ''], [t('Sign language'), p.signLanguage ? t('Yes') : ''], [t('Keywords'), p.keywords?.join(', ') || ''],

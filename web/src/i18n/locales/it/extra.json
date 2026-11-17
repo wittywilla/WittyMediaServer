@@ -6,5 +6,9 @@
   "broadcaster|Network": "Rete",
   "TV network": "Rete televisiva",
   "menu group|Play": "Giochi",
-  "Language: {language} · Time zone: {zone}": "Lingua: {language} · Fuso orario: {zone}"
+  "Language: {language} · Time zone: {zone}": "Lingua: {language} · Fuso orario: {zone}",
+  "broadcast|Repeat": "Replica",
+  "title card|Card": "Cartello",
+  "programmes|Schedule": "Palinsesto",
+  "typeface|Type": "Carattere"
 }

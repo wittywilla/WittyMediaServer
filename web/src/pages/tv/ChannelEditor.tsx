@@ -17,7 +17,7 @@ import DiscScenes from './DiscScenes'
 import { resetChannel } from './resetChannel'
 import './tveditor.css'
 import { brandOf, dayNames, emptyDefinition, type ChannelLook, type CommercialPick, fmtClock, forgetLineup, uploadLogo, type Block, type Channel, type Definition, type EditorOptions, type Order, type PoolStats, type Programme, type Rules, type Suggestion, type Visibility } from './tvApi'
-import { date, t, tk, tn, tx } from '../../i18n'
+import { date, t, tc, tk, tn, tx } from '../../i18n'
 
 // One channel, as much or as little as you want. Simple, Rules and Timetable
 // are three views of the same definition: going from one to another changes
@@ -196,7 +196,7 @@ export default function ChannelEditor() {
         <a href="#ch-commercials" onClick={jump('ch-commercials')}>{t('Commercials')}</a>
         <a href="#ch-bumpers" onClick={jump('ch-bumpers')}>{t('Bumpers')}</a>
         <a href="#ch-bumpers-trim" onClick={jump('ch-bumpers-trim')}>{t('Timetable')}</a>
-        <a href="#ch-schedule" onClick={jump('ch-schedule')}>{t('Schedule')}</a>
+        <a href="#ch-schedule" onClick={jump('ch-schedule')}>{tc('programmes', 'Schedule')}</a>
         <a href="#ch-who" onClick={jump('ch-who')}>{t('Who sees it')}</a>
       </nav>
 
@@ -800,7 +800,7 @@ function Preview({ def }: { def: Definition }) {
           <div className="tve-strip" aria-hidden="true">
             {strip.map((p) => <i key={p.start} className={p.kind + (p.mandatory ? ' must' : '')} style={{ flex: `${Math.min(p.end, stripStart + span) - p.start} 0 0` }} title={p.title} />)}
           </div>
-          <div className="tve-strip-key" aria-hidden="true"><span><i style={{ background: 'var(--accent)' }} />{t('Programme')}</span><span><i style={{ background: 'var(--fg)' }} />{t('Mandatory bumper')}</span><span><i style={{ background: 'var(--fg-2)' }} />{t('Other bumper or commercial')}</span><span><i style={{ background: 'var(--bg-4)' }} />{t('Card')}</span><span>{t('The first two hours')}</span></div>
+          <div className="tve-strip-key" aria-hidden="true"><span><i style={{ background: 'var(--accent)' }} />{t('Programme')}</span><span><i style={{ background: 'var(--fg)' }} />{t('Mandatory bumper')}</span><span><i style={{ background: 'var(--fg-2)' }} />{t('Other bumper or commercial')}</span><span><i style={{ background: 'var(--bg-4)' }} />{tc('title card', 'Card')}</span><span>{t('The first two hours')}</span></div>
         </>
       )}
       <ol className="tve-sched" aria-label={t('Schedule for {day}', { day: date(when) })}>

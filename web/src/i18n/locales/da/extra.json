@@ -6,5 +6,9 @@
   "broadcaster|Network": "Kanal",
   "TV network": "Tv-kanal",
   "menu group|Play": "Spil",
-  "Language: {language} · Time zone: {zone}": "Sprog: {language} · Tidszone: {zone}"
+  "Language: {language} · Time zone: {zone}": "Sprog: {language} · Tidszone: {zone}",
+  "broadcast|Repeat": "Genudsendelse",
+  "title card|Card": "Tekstplakat",
+  "programmes|Schedule": "Programoversigt",
+  "typeface|Type": "Skrifttype"
 }

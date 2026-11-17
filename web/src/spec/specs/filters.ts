@@ -12,7 +12,7 @@ export const FILTER_KEYS = ['genre', 'studio', 'network', 'kind', 'disc', 'decad
 
 // Marked with tk: show them with t(FILTER_LABELS[key]).
 export const FILTER_LABELS: Record<string, string> = {
-  genre: tk('Category'), studio: tk('Studio'), network: tk('Network'), kind: tk('Type'), disc: tk('On disc'), decade: tk('Decade'), year: tk('Year'), content: tk('Age rating'), minRating: tk('Score'), resolution: tk('Picture'),
+  genre: tk('Category'), studio: tk('Studio'), network: tk('TV network'), kind: tk('Type'), disc: tk('On disc'), decade: tk('Decade'), year: tk('Year'), content: tk('Age rating'), minRating: tk('Score'), resolution: tk('Picture'),
   audio: tk('Audio language'), subtitle: tk('Subtitles'), format: tk('Sound'), tag: tk('Tag'), edition: tk('Edition'), series: tk('Collection'), watched: tk('Watched'), platform: tk('Listed on'), search: tk('Words'),
 }
 
@@ -33,7 +33,7 @@ export interface FilterFacets { genres: FacetList[]; studios: FacetList[]; netwo
 
 type Group = [string, string, keyof FilterFacets, number] // key, heading (tk, shown with t), facets field, how many before "N more"
 const FIRST: Group[] = [
-  ['genre', tk('Category'), 'genres', 24], ['kind', tk('Type'), 'kinds', 24], ['studio', tk('Studio'), 'studios', 16], ['network', tk('Network'), 'networks', 16], ['platform', tk('Listed on'), 'platforms', 24],
+  ['genre', tk('Category'), 'genres', 24], ['kind', tk('Type'), 'kinds', 24], ['studio', tk('Studio'), 'studios', 16], ['network', tk('TV network'), 'networks', 16], ['platform', tk('Listed on'), 'platforms', 24],
   ['decade', tk('Decade'), 'decades', 24], ['year', tk('Year'), 'years', 10], ['content', tk('Age rating'), 'content', 24],
 ]
 const LAST: Group[] = [

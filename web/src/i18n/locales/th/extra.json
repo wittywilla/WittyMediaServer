@@ -6,5 +6,9 @@
   "broadcaster|Network": "เครือข่าย",
   "TV network": "เครือข่ายทีวี",
   "menu group|Play": "เกม",
-  "Language: {language} · Time zone: {zone}": "ภาษา: {language} · เขตเวลา: {zone}"
+  "Language: {language} · Time zone: {zone}": "ภาษา: {language} · เขตเวลา: {zone}",
+  "broadcast|Repeat": "รีรัน",
+  "title card|Card": "การ์ดข้อความ",
+  "programmes|Schedule": "ผังรายการ",
+  "typeface|Type": "แบบอักษร"
 }

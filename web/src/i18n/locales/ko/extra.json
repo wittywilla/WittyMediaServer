@@ -6,5 +6,9 @@
   "broadcaster|Network": "방송사",
   "TV network": "TV 방송사",
   "menu group|Play": "게임",
-  "Language: {language} · Time zone: {zone}": "언어: {language} · 시간대: {zone}"
+  "Language: {language} · Time zone: {zone}": "언어: {language} · 시간대: {zone}",
+  "broadcast|Repeat": "재방송",
+  "title card|Card": "타이틀 카드",
+  "programmes|Schedule": "편성표",
+  "typeface|Type": "글꼴"
 }

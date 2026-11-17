@@ -6,5 +6,9 @@
   "broadcaster|Network": "Stacja",
   "TV network": "Stacja telewizyjna",
   "menu group|Play": "Gry",
-  "Language: {language} · Time zone: {zone}": "Język: {language} · Strefa czasowa: {zone}"
+  "Language: {language} · Time zone: {zone}": "Język: {language} · Strefa czasowa: {zone}",
+  "broadcast|Repeat": "Powtórka",
+  "title card|Card": "Plansza",
+  "programmes|Schedule": "Ramówka",
+  "typeface|Type": "Czcionka"
 }

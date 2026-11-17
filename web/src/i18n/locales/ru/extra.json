@@ -6,5 +6,9 @@
   "broadcaster|Network": "Телеканал",
   "TV network": "Телеканал",
   "menu group|Play": "Игры",
-  "Language: {language} · Time zone: {zone}": "Язык: {language} · Часовой пояс: {zone}"
+  "Language: {language} · Time zone: {zone}": "Язык: {language} · Часовой пояс: {zone}",
+  "broadcast|Repeat": "Повтор",
+  "title card|Card": "Заставка",
+  "programmes|Schedule": "Программа передач",
+  "typeface|Type": "Шрифт"
 }

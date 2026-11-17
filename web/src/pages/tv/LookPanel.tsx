@@ -10,7 +10,7 @@ import BackgroundPlayChoice from './BackgroundPlayChoice'
 import { useGuidePrefs } from './guidePrefs'
 import { PAGE_SIZES, pageSizeName, type PageSize } from './guideLogic'
 import './tvthemes.css'
-import { list, num, t, tk } from '../../i18n'
+import { list, num, t, tc, tk } from '../../i18n'
 
 // WittyTV's look, on the guide's Look panel and in Settings. The first thing is one big choice,
 // the theme, with each drawn as a small picture of itself. Everything here shows straight away,
@@ -175,7 +175,7 @@ function CustomParts({ look }: { look: Look }) {
           )
         })}
       </div>
-      <label className="ctv-font ctv-colour-row">{t('Type')}
+      <label className="ctv-font ctv-colour-row">{tc('typeface', 'Type')}
         <select className="select" value={look.custom.font} onChange={(e) => setLook({ custom: { ...look.custom, font: e.target.value as Font } })}>
           {FONTS.map((f) => <option key={f.v} value={f.v}>{t(f.name)}</option>)}
         </select>

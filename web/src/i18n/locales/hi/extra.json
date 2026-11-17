@@ -6,5 +6,9 @@
   "broadcaster|Network": "नेटवर्क",
   "TV network": "टीवी नेटवर्क",
   "menu group|Play": "गेम",
-  "Language: {language} · Time zone: {zone}": "भाषा: {language} · समय क्षेत्र: {zone}"
+  "Language: {language} · Time zone: {zone}": "भाषा: {language} · समय क्षेत्र: {zone}",
+  "broadcast|Repeat": "दोबारा प्रसारण",
+  "title card|Card": "टाइटल कार्ड",
+  "programmes|Schedule": "कार्यक्रम सूची",
+  "typeface|Type": "फ़ॉन्ट"
 }

@@ -507,6 +507,7 @@ type ruleState struct {
 	rule    *BumperRule
 	entries []Entry
 	only    map[int64]bool // nil = every programme
+	own     bool           // the rule names its own videos, rather than using the bumper libraries
 }
 
 func (r *ruleState) count() int {
@@ -585,22 +586,16 @@ func GenerateDay(def *Definition, seed uint64, day int, loc *time.Location, prev
 	return g.out, prev, nil
 }
 
-// loadFiller gathers everything this channel may play between programmes: its
-// filler rules and each of its commercials libraries. A video one of its bumper
-// rules plays is a bumper on this channel, not a commercial as well, even when
-// it is in a commercials library.
+// loadFiller gathers everything this channel may play between programmes (see
+// commercialSets). A video a bumper rule names itself is a bumper on this
+// channel, not a commercial as well, even when it is in a commercials library.
 func (g *generator) loadFiller() error {
-	var sets []Rules
-	if r := g.def.Filler.Rules; r != nil {
-		sets = append(sets, *r)
-	}
-	for _, c := range g.def.Filler.Commercials {
-		if r, ok := c.rules(); ok {
-			sets = append(sets, r)
-		}
-	}
+	sets := g.def.commercialSets()
 	bumper := map[int64]bool{}
 	for _, r := range g.rules {
+		if !r.own {
+			continue
+		}
 		for _, e := range r.entries {
 			bumper[e.ID] = true
 		}
@@ -638,14 +633,14 @@ func (g *generator) loadRules() error {
 		if r.Off {
 			continue
 		}
-		entries, err := g.load(r.Source, 1)
+		entries, err := loadSets(g.load, g.def.ruleSets(r), 1)
 		if err != nil {
 			return err
 		}
 		if len(entries) == 0 {
 			continue
 		}
-		rs := &ruleState{rule: r, entries: entries}
+		rs := &ruleState{rule: r, entries: entries, own: !r.Source.empty()}
 		if r.Only != nil {
 			match, err := g.load(*r.Only, 0)
 			if err != nil {

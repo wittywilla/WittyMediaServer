@@ -1931,6 +1931,7 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `POST /tv/reminders` | user | Body: channel, title, sub, start, end. The same programme twice is one reminder. |
 | `DELETE /tv/reminders/{id}` | user | One of this account's reminders. |
 | `GET /channels/bumpers` | admin | Videos uploaded for the purpose, chosen from any library, or in a commercials library. |
+| `GET /channels/videos` | admin | A page of the videos a channel's bumpers and commercials can come from: ?libraries=3,4 (ids), ?own=1 for the bumper list, ?ids= for just those, ?search=, ?offset=, ?limit= (at most 200). Answers items and total. |
 | `POST /channels/bumpers` | admin | Body: itemId. Any video in any library. |
 | `POST /channels/bumpers/upload` | admin | The body is the file; ?name= is its name. A video of up to 30 minutes and 2 GB. 507 when the disk is nearly full. |
 | `DELETE /channels/bumpers/item/{id}` | admin | An upload goes altogether, its file too. A chosen video only comes off the list. |

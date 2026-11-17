@@ -902,7 +902,10 @@ function episodeLabel(p: Props, title: string): { number: string; name: string }
   if (!(ep > 0)) return { number: '', name: title }
   const lead = ep + '. '
   const eps = end > ep ? `${ep}–${end}` : String(ep)
-  return { number: season > 0 ? `S${season} · E${eps}` : `Episode${end > ep ? 's' : ''} ${eps}`, name: title.startsWith(lead) ? title.slice(lead.length) : title }
+  // Season 0 is the show's Specials (the server always sends the season with the episode).
+  const many = end > ep ? 's' : ''
+  const number = season > 0 ? `S${season} · E${eps}` : p.season === 0 ? `Special${many} ${eps}` : `Episode${many} ${eps}`
+  return { number, name: title.startsWith(lead) ? title.slice(lead.length) : title }
 }
 
 // One episode. As a card: its still (which plays it) with the running time and how far it was

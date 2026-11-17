@@ -587,8 +587,10 @@ func GenerateDay(def *Definition, seed uint64, day int, loc *time.Location, prev
 }
 
 // loadFiller gathers everything this channel may play between programmes (see
-// commercialSets). A video a bumper rule names itself is a bumper on this
-// channel, not a commercial as well, even when it is in a commercials library.
+// commercialSets). A video a bumper rule names itself, or one in the channel's
+// bumper libraries, is a bumper on this channel and not a commercial as well,
+// even when it is in a commercials library too: unless the owner lets
+// commercials come from the bumper libraries.
 func (g *generator) loadFiller() error {
 	sets := g.def.commercialSets()
 	bumper := map[int64]bool{}
@@ -597,6 +599,15 @@ func (g *generator) loadFiller() error {
 			continue
 		}
 		for _, e := range r.entries {
+			bumper[e.ID] = true
+		}
+	}
+	if !g.def.Filler.FromBumpers {
+		libs, err := loadSets(g.load, pickRules(g.def.Bumpers.Libraries), 1)
+		if err != nil {
+			return err
+		}
+		for _, e := range libs {
 			bumper[e.ID] = true
 		}
 	}

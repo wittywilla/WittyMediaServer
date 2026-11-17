@@ -171,6 +171,39 @@ func TestChosenVideosOfALibrary(t *testing.T) {
 	}
 }
 
+// Promos chosen as bumpers out of the commercials library the channel also
+// uses whole: they play as bumpers, and not as commercials too, unless the
+// owner lets commercials come from the bumper libraries.
+func TestBumpersChosenFromTheCommercialsLibrary(t *testing.T) {
+	def := sourceChannel()
+	promos := map[int64]bool{702: true, 703: true}
+	def.Bumpers.Libraries = []CommercialPick{{Library: 60, Only: true, Items: []int64{702, 703}}}
+	asAds, asBumpers := 0, 0
+	for _, p := range sourceDay(t, &def) {
+		switch {
+		case p.Role == RoleAd && promos[p.ItemID]:
+			asAds++
+		case (p.Role == RolePre || p.Role == RolePost) && promos[p.ItemID]:
+			asBumpers++
+		case p.Role == RolePre || p.Role == RolePost:
+			t.Fatalf("a bumper that wasn't chosen played: %+v", p)
+		}
+	}
+	if asBumpers == 0 || asAds != 0 {
+		t.Errorf("chosen promos: %d as bumpers, %d as commercials", asBumpers, asAds)
+	}
+	def.Filler.FromBumpers = true
+	asAds = 0
+	for _, p := range sourceDay(t, &def) {
+		if p.Role == RoleAd && promos[p.ItemID] {
+			asAds++
+		}
+	}
+	if asAds == 0 {
+		t.Error("with commercials from the bumper libraries, the promos should be commercials too")
+	}
+}
+
 // A rule with no videos of its own on a channel with no bumper libraries plays
 // nothing: never the channel's programmes as bumpers.
 func TestEmptyRuleWithoutBumperLibraries(t *testing.T) {

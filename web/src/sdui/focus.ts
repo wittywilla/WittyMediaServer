@@ -16,7 +16,7 @@ export type Stop = { id: string; kind: 'row' | 'grid' | 'single'; members: strin
 
 export type FocusMap = { stops: Stop[]; stopOf: Record<string, number>; start: string }
 
-const SIDEWAYS = new Set(['Shelf', 'Tabs', 'SeasonList'])
+const SIDEWAYS = new Set(['Shelf', 'Tabs'])
 
 // focusMap: the page's stops in order. `columns` says how many columns a grid is drawn
 // with now, which the page knows and the document only suggests.
@@ -47,9 +47,10 @@ export function focusMap(root: Node, columns: (gridId: string, sent: number) => 
     let at = byGroup.get(f.group)
     if (at === undefined) {
       const holder = holders.get(f.group)
-      const grid = holder?.type === 'Grid' || holder?.type === 'List' || holder?.type === 'TrackList'
+      // A show's episodes are a grid of cards, or a playlist of one column (render/components.tsx).
+      const grid = holder?.type === 'Grid' || holder?.type === 'List' || holder?.type === 'TrackList' || holder?.type === 'SeasonList'
       const sent = typeof holder?.props?.columns === 'number' ? holder.props.columns as number : 1
-      const cols = holder?.type === 'Grid' ? Math.max(1, columns(f.group, sent)) : 1
+      const cols = holder?.type === 'Grid' || holder?.type === 'SeasonList' ? Math.max(1, columns(f.group, sent)) : 1
       at = stops.length
       byGroup.set(f.group, at)
       stops.push({ id: f.group, kind: grid ? 'grid' : holder && !SIDEWAYS.has(holder.type) && holder.type !== 'Stack' ? 'row' : 'row', members: [], columns: cols })

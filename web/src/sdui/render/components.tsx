@@ -829,6 +829,19 @@ function SeasonListView({ view }: { view: View }) {
   const own = useEpisodeView(showId)
   const list = own ? own === 'list' : str(p, 'style') === 'list'
   const waiting = loading(view, page.busy(view.id) && view.children.length === 0)
+  // As cards, the episodes are a grid whose column count is set by the width (sdui.css); a remote's
+  // arrows move by row and column in it, so the page is told how many columns are drawn. A playlist is one.
+  const box = useRef<HTMLDivElement | null>(null)
+  useLayoutEffect(() => {
+    const el = box.current
+    if (!el) return
+    const work = () => page.columns(view.id, list ? 1 : Math.max(1, getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length))
+    work()
+    if (list || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(work)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [list, view.id]) // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <section className="sdui-seasons" role="region" aria-label={view.label} style={{ ...cardVars(view, page.pt), ...scopeStyle(view.node) }} data-sdui-section={view.id}>
       {seasons.length > 0 && (
@@ -856,8 +869,8 @@ function SeasonListView({ view }: { view: View }) {
         </div>
       )}
       <StateLine view={view} />
-      <div className={list ? 'sdui-episode-list' : 'episodes'} role="list" aria-label="Episodes" data-nav-group aria-busy={page.busy(view.id) || undefined}>
-        {waiting ? Array.from({ length: 4 }, (_, k) => <div key={k} className="episode sdui-ph" aria-hidden="true"><span className="thumb"><i className="skel" /></span><div className="info" /></div>)
+      <div ref={box} className={list ? 'sdui-episode-list' : 'sdui-episode-grid'} role="list" aria-label="Episodes" data-nav-group aria-busy={page.busy(view.id) || undefined}>
+        {waiting ? Array.from({ length: list ? 4 : 6 }, (_, k) => <div key={k} className={'episode sdui-ph' + (list ? '' : ' ep-card')} aria-hidden="true"><span className="thumb"><i className="skel" /></span><div className="info" /></div>)
           : view.children.map((c) => <div role="listitem" key={c.id}><EpisodeRow view={c} compact={list} synopsis={p.showSynopsis !== false} /></div>)}
       </div>
       {view.hasMore && !waiting && <Near onNear={() => page.more(view.id)} />}
@@ -865,25 +878,47 @@ function SeasonListView({ view }: { view: View }) {
   )
 }
 
-// One episode: its still (which plays it), then its number and name, running time and synopsis.
+// "S2 · E5", or "Episode 5" for one outside a season, from the numbers the card carries; and its
+// name without the "5. " the server puts before it for apps that show the title alone.
+function episodeLabel(p: Props, title: string): { number: string; name: string } {
+  const ep = num(p, 'episode'), season = num(p, 'season')
+  if (!(ep > 0)) return { number: '', name: title }
+  const lead = ep + '. '
+  return { number: season > 0 ? `S${season} · E${ep}` : `Episode ${ep}`, name: title.startsWith(lead) ? title.slice(lead.length) : title }
+}
+
+// One episode. As a card: its still (which plays it) with the running time and how far it was
+// watched on it, then its number, its name and a short synopsis. In a playlist: one line of text.
 function EpisodeRow({ view, compact, synopsis }: { view: View; compact: boolean; synopsis: boolean }) {
   const page = usePage()
   const p = view.node.props || {}
   const text = view.text || {}
   const playId = str(p, 'playId')
+  const watched = view.shows?.includes('watched')
+  if (compact) {
+    return (
+      <div className="episode compact">
+        <div className="info">
+          <Pressable view={view} className="t">{text.title}</Pressable>
+          {text.subtitle && <div className="sub">{text.subtitle}{watched ? ' · watched' : ''}</div>}
+          {synopsis && text.synopsis && <p className="sdui-clamp" style={clamp(view.lines?.synopsis)}>{text.synopsis}</p>}
+        </div>
+      </div>
+    )
+  }
+  const { number, name } = episodeLabel(p, text.title || '')
   return (
-    <div className={'episode' + (compact ? ' compact' : '')}>
-      {!compact && (
-        <button type="button" className="thumb" tabIndex={-1} aria-hidden="true" onClick={() => !page.inert && (playId ? page.act({ type: 'play', item: playId }, view) : page.act(view.node.action, view))}>
-          <Picture image={obj(p, 'image')} kind={p.kind} />
-          {playId && <span className="play"><span><IconPlay /></span></span>}
-          {view.progress !== undefined && view.progress > 0 && <span className="progress"><i style={{ width: Math.min(100, view.progress) + '%' }} /></span>}
-          {view.shows?.includes('watched') && <span className="badge seen"><IconCheck /></span>}
-        </button>
-      )}
+    <div className={'episode ep-card' + (watched ? ' seen' : '')}>
+      <button type="button" className="thumb" tabIndex={-1} aria-hidden="true" onClick={() => !page.inert && (playId ? page.act({ type: 'play', item: playId }, view) : page.act(view.node.action, view))}>
+        <Picture image={obj(p, 'image')} kind={p.kind} />
+        {playId && <span className="play"><span><IconPlay /></span></span>}
+        {text.subtitle && <span className="ep-time">{text.subtitle}</span>}
+        {view.progress !== undefined && view.progress > 0 && <span className="progress"><i style={{ width: Math.min(100, view.progress) + '%' }} /></span>}
+        {watched && <span className="badge seen"><IconCheck /></span>}
+      </button>
       <div className="info">
-        <Pressable view={view} className="t">{text.title}</Pressable>
-        {text.subtitle && <div className="sub">{text.subtitle}{compact && view.shows?.includes('watched') ? ' · watched' : ''}</div>}
+        {number && <div className="ep-num">{number}</div>}
+        <Pressable view={view} className="t">{name}</Pressable>
         {synopsis && text.synopsis && <p className="sdui-clamp" style={clamp(view.lines?.synopsis)}>{text.synopsis}</p>}
       </div>
     </div>

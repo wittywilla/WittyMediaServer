@@ -131,6 +131,29 @@ button.lib-tile, button.sdui-row, button.sdui-banner { font: inherit; cursor: po
 .sdui-episode-list { display: grid; }
 .sdui-episode-list .episode.compact { grid-template-columns: minmax(0, 1fr); padding: var(--sp-3) var(--sp-2); }
 .sdui-episode-list > * + * { box-shadow: 0 -1px var(--border); }
+/* Episodes as cards: a grid, more columns the wider the page and one or two on a phone. Each card is
+   its still (running time and progress on it), the episode's number, its name, and a short synopsis.
+   The name is the card's link, and stretches over the whole card (player.css, .episode .t::after). */
+.sdui-episode-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, calc(var(--sdui-pt, 1) * 248px)), 1fr)); gap: var(--sp-5) var(--sp-4); }
+.sdui-seasons .episode.ep-card { display: flex; flex-direction: column; gap: var(--sp-2); padding: 0; min-width: 0; border-radius: var(--r-md); }
+.sdui-seasons .episode.ep-card:hover { background: none; }
+.episode.ep-card .t::after { border-radius: var(--r-md); }
+.episode.ep-card .t:focus-visible { outline: none; }
+.episode.ep-card .t:focus-visible::after { outline: var(--focus-width) solid var(--focus); outline-offset: var(--focus-offset); }
+.episode.ep-card .thumb { transition: transform var(--dur-2); }
+.episode.ep-card:hover .thumb { transform: translateY(-2px); }
+.episode.ep-card .thumb .ep-time { position: absolute; right: var(--sp-2); bottom: calc(var(--sp-2) + 3px); z-index: 3; max-width: calc(100% - var(--sp-4)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 1px 6px; border-radius: var(--r-xs); background: var(--scrim); color: var(--on-image); font-size: var(--text-xs); font-weight: 600; font-variant-numeric: tabular-nums; }
+.episode.ep-card.seen .thumb img { opacity: .72; }
+.episode.ep-card .info { padding: 0 2px; }
+.episode.ep-card .ep-num { color: var(--fg-3); font-size: var(--text-xs); font-weight: 600; letter-spacing: .02em; font-variant-numeric: tabular-nums; }
+.episode.ep-card .t { margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.episode.ep-card p { margin-top: var(--sp-1); max-width: none; }
+@media (max-width: 700px) {
+  .sdui-episode-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: var(--sp-4) var(--sp-3); }
+  .episode.ep-card p { display: none; } /* two columns on a phone: number and name; the synopsis is on the episode's page */
+}
+@media (prefers-reduced-motion: reduce) { .episode.ep-card .thumb { transition: none; } .episode.ep-card:hover .thumb { transform: none; } }
+.sdui.ff-tv .episode.ep-card .ep-num, .sdui.ff-tv .episode.ep-card .thumb .ep-time { font-size: var(--text-sm); }
 .sdui-seasons .episode.sdui-ph .thumb { position: relative; }
 .sdui-seasons .episode.sdui-ph .thumb .skel { position: absolute; inset: 0; height: 100%; }
 .sdui-tracks { max-width: 960px; }

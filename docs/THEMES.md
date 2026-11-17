@@ -123,10 +123,10 @@ To change a theme that's nearly right, press the download button on its card in 
 WittyTV, the TV guide, has eight themes of its own, separate from the app's theme and from the looks above. An app theme can suggest one, with one more setting in `:root`:
 
 ![The TV guide in the Teletext look](images/wittytv-teletext.webp)
-*The Teletext look, playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
+*The Teletext look, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain.*
 
 ![The TV guide in the Newspaper look, like a printed paper](images/wittytv-listings.webp)
-*The Newspaper look, playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
+*The Newspaper look, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain.*
 
 ```css
 :root {

@@ -188,7 +188,7 @@ The first connection trusts what it's shown, so comparing the fingerprint once i
 
 ## Big screens
 
-![TV mode: Home, Libraries, Games, Live TV and Search along the top, You at the right, and the libraries as large tiles](images/tv-mode.webp)
+![TV mode: Home, Live TV, Libraries, Books, More and Search along the top, You at the right, and the libraries as large tiles](images/tv-mode.webp)
 *TV mode's Libraries.*
 
 **TV mode** lays the web app out for a TV across the room. Everything is large, and a ring shows what's selected. It works with a TV remote, a game controller, a keyboard, a mouse or a touch screen.

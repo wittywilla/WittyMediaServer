@@ -140,6 +140,8 @@ html.tv-mode .sdui-widgets { gap: var(--space-l); }
 
 /* ---- finishes of the top-bar nav styles (data-nav-style on the frame), in the theme's own colours ---- */
 .app[data-nav-style="floatingGlassBar"] .topbar { margin: var(--space-s) var(--gutter) 0; border-radius: var(--r-full); background: color-mix(in srgb, var(--elev-2-fill) 86%, transparent); border: 1px solid var(--elev-2-line); box-shadow: var(--elev-3-shadow); background-image: linear-gradient(180deg, color-mix(in srgb, var(--on-image) 14%, transparent), transparent 60%); padding-block: calc(var(--sp-3) - 1px); }
+/* Its words sit on the bar, and the bar sits on whatever is behind it (a billboard's picture, a scene): solid enough that a black or white picture under it leaves them at 4.5:1 (web/scripts/test-contrast.mjs). */
+.app[data-nav-style="floatingGlassBar"] .topbar { background-color: color-mix(in srgb, var(--elev-2-fill) 95%, transparent); }
 /* The floating bar stands off the top by --space-s, so a picture runs up behind it by that much more than under a
    bar at the edge, and has no hard edge under the glass. Anything before the picture starts below it. */
 @supports (animation-timeline: scroll()) {

@@ -3,7 +3,7 @@
   "name": "Paper",
   "description": "Warm off-white and rust, easy on the eyes by day.",
   "author": "WittyMediaServer",
-  "version": "4",
+  "version": "5",
   "scheme": "light",
   "builtin": true,
   "preview": {
@@ -101,7 +101,7 @@
   },
   "tv": {
     "ringColor": "#221d16",
-    "heroScrim": 0.76,
+    "heroScrim": 0.81,
     "tvText": "#1f1a14"
   }
 }

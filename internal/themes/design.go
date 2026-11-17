@@ -17,8 +17,8 @@ import (
 // the colours in TV and Elevation are the theme's, with the profile's overrides applied.
 
 // TVColors are the ten-foot colours of a theme (theme.json "tv", from --tv-ring-color,
-// --hero-scrim and --tv-text): the focus ring on a screen across the room, how strong the
-// scrim behind hero text is, and body text a little stronger for distance.
+// --hero-scrim and --tv-text): the focus ring on a screen across the room, how solid the
+// scrim in the page colour (bg) behind words over a picture is, and body text a little stronger for distance.
 type TVColors struct {
 	RingColor string  `json:"ringColor"`
 	HeroScrim float64 `json:"heroScrim"` // 0..1
@@ -95,7 +95,7 @@ func DensityTable() Density {
 }
 
 // DefaultHeroScrim is the stylesheet's --hero-scrim.
-const DefaultHeroScrim = 0.72
+const DefaultHeroScrim = 0.8
 
 // TVFor works a theme's ten-foot colours out for the palette in use. own is the theme's
 // own (its theme.json tv block, which may be nil or partial); base is the theme's own

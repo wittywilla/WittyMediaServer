@@ -3,7 +3,7 @@
   "name": "Midnight",
   "description": "Blue-black, with a clear blue accent.",
   "author": "WittyMediaServer",
-  "version": "4",
+  "version": "5",
   "scheme": "dark",
   "builtin": true,
   "preview": {
@@ -101,7 +101,7 @@
   },
   "tv": {
     "ringColor": "#e6ecf7",
-    "heroScrim": 0.74,
+    "heroScrim": 0.79,
     "tvText": "#e8eef8"
   }
 }

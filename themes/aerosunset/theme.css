@@ -22,13 +22,13 @@
   /* Text */
   --fg: #4a1b3a;          /* main text */
   --fg-2: #7a3d62;        /* secondary text */
-  --fg-3: #865468;        /* hints, captions */
+  --fg-3: #6e4556;        /* hints, captions */
 
   /* Accent: buttons, highlights, progress bars, selected items */
   --accent: #b23800;
   --accent-2: #e06b36;      /* hovered or pressed accent */
   --accent-fg: #ffffff;     /* text on the accent */
-  --accent-text: #ae3f0f;   /* the accent as text: links, highlighted words */
+  --accent-text: #8f340c;   /* the accent as text: links, highlighted words */
   --accent-rgb: 178 56 0;
   --brand-accent: var(--accent-text); /* the highlighted word of the name in the corner */
 
@@ -50,5 +50,5 @@
   /* Ten feet away (docs/THEMES.md "The TV pass"): the focus ring, the scrim's strength behind hero text, body text a step stronger */
   --tv-ring-color: #4a1b3a;
   --tv-text: #431834;
-  --hero-scrim: .78;
+  --hero-scrim: 0.89;
 }

@@ -52,5 +52,5 @@
   /* Ten feet away (docs/THEMES.md "The TV pass"): the focus ring, the scrim's strength behind hero text, body text a step stronger */
   --tv-ring-color: #e6ecf7;
   --tv-text: #e8eef8;
-  --hero-scrim: 0.74;
+  --hero-scrim: 0.79;
 }

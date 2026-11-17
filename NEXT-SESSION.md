@@ -90,6 +90,9 @@ Written 2026-11-15, when the 0.8.0-alpha work was finished on macOS. Read this f
   didn't already.
 - CI on WittyPlay `main` failed on an executable bit until 30098f6. Check the other repositories'
   `main` CI is green.
+- Live TV's `TestRecordingRawStream` fails in CI: a second recording of the same airing is
+  accepted once the first has finished (`internal/livetv/livetv_test.go:207`). Found on #389;
+  fix the cause, not the assertion. #431.
 
 ## Rules that still apply
 

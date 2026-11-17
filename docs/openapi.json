@@ -39344,7 +39344,7 @@
     },
     "/setup/module-steps/skip": {
       "post": {
-        "description": "An administrator puts off a module's setup step: the Dismiss of \"Finish setting up\" on Home (SDUI command setup.skip). The step stays in the module's Settings.",
+        "description": "An administrator puts off a module's setup step: the Dismiss of \"Finish setting up\" on Home (SDUI command setup.skip). The step stays in the module's Settings. With done, the step was gone through in first-run setup, where the module draws it itself, and it is audited as done rather than put off.",
         "operationId": "skipModuleSetupStep",
         "parameters": [],
         "requestBody": {
@@ -39352,6 +39352,9 @@
             "application/json": {
               "schema": {
                 "properties": {
+                  "done": {
+                    "type": "boolean"
+                  },
                   "module": {
                     "type": "string"
                   },

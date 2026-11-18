@@ -16,7 +16,7 @@ import { sduiIcon } from '../../sdui/render/icons'
 import { Switch } from '../../ui/Field'
 import { PageHead, Row, Section } from './ui'
 import { useTvMode } from '../../tvmode/mode'
-import { PartNote } from '../../tvmode/OnAComputer'
+import { PartNote, tvNote } from '../../tvmode/OnAComputer'
 
 type Option = { value: string; label: string }
 export type SettingRow = {
@@ -127,7 +127,7 @@ function SettingRowView({ row, view, busy, error, onSave, onComputer }: { row: S
     <>
       {row.help}
       {!allowed && row.kind !== 'info' && <span className="muted">{row.help ? ' ' : ''}Set by an administrator for the whole server.</span>}
-      {allowed && onComputer && row.kind !== 'info' && <span className="muted">{row.help ? ' ' : ''}Changed in the WittyMediaClient app on a computer, or a web browser.</span>}
+      {allowed && onComputer && row.kind !== 'info' && <span className="muted">{row.help ? ' ' : ''}{tvNote()}</span>}
       {error && <span className="error" role="alert" id={id + 'e'}> {error}</span>}
     </>
   )

@@ -47,11 +47,14 @@ type TVPart struct {
 
 // TVLevelTable is data/tvlevels.json, which the catalogue carries as tvLevels.
 type TVLevelTable struct {
-	Levels  []string   `json:"levels"`
-	Default string     `json:"default"`
-	Note    string     `json:"note"`
-	Screens []TVScreen `json:"screens"`
-	Parts   []TVPart   `json:"parts"`
+	Levels  []string `json:"levels"`
+	Default string   `json:"default"`
+	// Note is what a TV device says (Android TV, tvOS, Plasma Bigscreen, a TV's own browser), with the
+	// address and a QR code; NoteDesktop what a computer in TV mode says, with a Leave TV mode button.
+	Note        string     `json:"note"`
+	NoteDesktop string     `json:"noteDesktop"`
+	Screens     []TVScreen `json:"screens"`
+	Parts       []TVPart   `json:"parts"`
 }
 
 var tvTable = sync.OnceValue(func() *TVLevelTable {

@@ -40,6 +40,7 @@ import { Updates } from './settings/Updates'
 import { useFeatures } from '../sdui/useSdui'
 import { useTvMode } from '../tvmode/mode'
 import { tvScreenFor } from '../tvmode/levelTable'
+import { tvElsewhere } from '../tvmode/OnAComputer'
 
 const ModulesSettings = lazy(() => import('./settings/Modules'))
 const ModuleStore = lazy(() => import('./settings/store/ModuleStore'))
@@ -186,7 +187,7 @@ export default function SettingsPage() {
             <div className="set-nav-head">{g.title}</div>
             {g.pages.map((p) => (
               <NavLink key={p.to} to={p.launch || `/settings/${p.to}`} className="set-nav-link" title={p.hint}>
-                <span className="set-nav-icon" style={tint(p.to)}>{p.icon}</span><span className="set-nav-text"><span>{p.label}</span><small className="set-nav-hint">{tvMode && tvScreenFor('/settings/' + p.to)?.level === 'desktopOnly' ? 'On a computer. ' + p.hint : p.hint}</small></span>{p.to === 'about' && <UpdateDot />}<IconRight className="set-nav-go" />
+                <span className="set-nav-icon" style={tint(p.to)}>{p.icon}</span><span className="set-nav-text"><span>{p.label}</span><small className="set-nav-hint">{tvMode && tvScreenFor('/settings/' + p.to)?.level === 'desktopOnly' ? tvElsewhere() + '. ' + p.hint : p.hint}</small></span>{p.to === 'about' && <UpdateDot />}<IconRight className="set-nav-go" />
               </NavLink>
             ))}
           </div>

@@ -15,6 +15,7 @@ import { AUTO_THEME, deviceTheme, type ThemeMeta } from '../theme'
 import { setTvMode } from './mode'
 import { useSwitchProfile } from '../shell/SwitchProfile'
 import { tvScreenFor } from './levelTable'
+import { tvElsewhere } from './OnAComputer'
 
 // You, as on Apple TV: the person on the left third, and on the right two-thirds the groups of the apps'
 // You page (WittyMediaClient docs/APP-DESIGN.md, You and settings), each row opening the website's own page
@@ -127,7 +128,7 @@ export default function You() {
                 <Link key={r.key} to={r.to} className={'tvm-row' + (r.danger ? ' danger' : '')} data-tv-first={(gi === 0 && ri === 0) || undefined}>
                   <span className="tvm-row-ic" style={{ '--tint': r.danger ? 'var(--danger)' : r.tint } as CSSProperties} aria-hidden="true">{r.icon}</span>
                   <span className="tvm-row-name">{r.label}</span>
-                  {(r.value || tvScreenFor(r.to)?.level === 'desktopOnly') && <span className="tvm-row-value">{r.value || 'On a computer'}</span>}
+                  {(r.value || tvScreenFor(r.to)?.level === 'desktopOnly') && <span className="tvm-row-value">{r.value || tvElsewhere()}</span>}
                   <IconRight className="tvm-row-go" />
                 </Link>
               ))}

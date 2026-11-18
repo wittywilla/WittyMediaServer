@@ -7,7 +7,7 @@ import "testing"
 
 func TestTVLevelTable(t *testing.T) {
 	tab := TVLevels()
-	if len(tab.Levels) != 3 || tab.Default != TVFull || tab.Note == "" {
+	if len(tab.Levels) != 3 || tab.Default != TVFull || tab.Note == "" || tab.NoteDesktop == "" {
 		t.Fatalf("levels %v, default %q, note %q", tab.Levels, tab.Default, tab.Note)
 	}
 	ids := map[string]bool{}

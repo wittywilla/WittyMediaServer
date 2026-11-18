@@ -3,7 +3,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { pageAddress, pathMatches, screenFor, strictest } from './levels.ts'
+import { pageAddress, pathMatches, screenFor, strictest, tvClientOf } from './levels.ts'
 
 const table = JSON.parse(readFileSync(new URL('../../../pkg/sdui/data/tvlevels.json', import.meta.url), 'utf8'))
 const level = (p) => screenFor(table, p)?.level || 'full'
@@ -46,4 +46,23 @@ test('the address given is one a phone can open', () => {
   assert.equal(pageAddress('http://192.168.1.9:9797', '/settings/libraries', []), 'http://192.168.1.9:9797/settings/libraries')
   assert.equal(pageAddress('http://localhost:9797', '/settings/libraries', ['http://192.168.1.9:9797']), 'http://192.168.1.9:9797/settings/libraries')
   assert.equal(pageAddress('http://tv.localhost:9797/', 'settings/x', []), 'http://tv.localhost:9797/settings/x')
+})
+
+test('a TV device is told to use a computer, with the address and a QR code', () => {
+  // The apps say so: Android TV and Plasma Bigscreen add ?client=tv, which is remembered.
+  assert.equal(tvClientOf({ client: 'tv', ua: 'Mozilla/5.0 (X11; Linux x86_64) Chrome/140', shell: true }), 'tvDevice')
+  // A TV's own browser says what it is.
+  for (const ua of ['Mozilla/5.0 (SMART-TV; Linux; Tizen 7.0) Chrome/94', 'Mozilla/5.0 (Web0S; Linux/SmartTV) Chrome/108', 'Mozilla/5.0 (Linux; Android 12; AFTKA) Chrome/120', 'Mozilla/5.0 (Linux; Android 11; BRAVIA 4K VH2) Chrome/112']) {
+    assert.equal(tvClientOf({ ua }), 'tvDevice', ua)
+  }
+  assert.ok(table.note.includes('WittyMediaClient'))
+})
+
+test('a computer in TV mode is told to leave TV mode, whatever its window size', () => {
+  assert.equal(tvClientOf({ ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/140' }), 'computer')
+  assert.equal(tvClientOf({ ua: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 15_0) Safari/605' }), 'computer')
+  // The desktop app's own window, started with --tv.
+  assert.equal(tvClientOf({ shell: true, ua: 'Mozilla/5.0 (Windows NT 10.0) Electron/38' }), 'computer')
+  assert.equal(tvClientOf({ client: 'desktop', ua: 'Mozilla/5.0 (SMART-TV; Tizen)' }), 'computer')
+  assert.equal(table.noteDesktop, 'Leave TV mode to change this.')
 })

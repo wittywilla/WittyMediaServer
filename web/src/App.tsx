@@ -36,7 +36,7 @@ import { TopBar } from './shell/TopBar'
 import { Scene } from './ui/Scene'
 import { frameFor } from './shell/navModel'
 import { useMedia, useMenu, useNavMigration, useNavPrefs } from './shell/useNav'
-import { useTvMode } from './tvmode/mode'
+import { backToTvMode, cameFromTvMode, forgetTvReturn, useTvMode } from './tvmode/mode'
 import RemoteHost from './remote/RemoteHost'
 
 // The pages the app drew by hand before pages were server-driven: what an older server still gets, and
@@ -208,6 +208,7 @@ function AppFrame() {
         {regions?.statusBar && <StatusBar parts={regions.statusBar} />}
         <LegalAckBar />
         <PlainAwayBar />
+        <TvReturnBar />
         <main className="content" id="main" data-nav-zone="stage" tabIndex={-1}>
           <Suspense fallback={<RouteSkeleton />}><PageRoutes /></Suspense>
           <LegalNote kind="general" className="legal-foot" />
@@ -319,6 +320,20 @@ function LegalAckBar() {
     <div className="legal-ack-bar" role="region" aria-label="Legal notice">
       <p>{legalAckText()} <Link to="/settings/legal#your-content">Legal</Link></p>
       <button className="btn sm primary" onClick={understood}>Understood</button>
+    </div>
+  )
+}
+
+// TvReturnBar: after Leave TV mode on a screen TV mode sends to the normal layout (docs/TV-MODE.md), the way
+// back, until it's taken or dismissed. Only on the computer that left it.
+function TvReturnBar() {
+  const [shown, setShown] = useState(cameFromTvMode)
+  if (!shown) return null
+  return (
+    <div className="legal-ack-bar tv-return-bar" role="region" aria-label="TV mode">
+      <p>You left TV mode to change this page.</p>
+      <button className="btn sm primary" onClick={() => { setShown(false); backToTvMode() }}>Back to TV mode</button>
+      <button className="btn sm" onClick={() => { setShown(false); forgetTvReturn() }}>Stay here</button>
     </div>
   )
 }

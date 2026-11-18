@@ -4,7 +4,8 @@ import { useEffect, useId, useRef, useState } from 'react'
 import type { QualityPreset, QualityView } from '../api'
 import './quality.css'
 import { useTvMode } from '../tvmode/mode'
-import { TV_NOTE, tvPartLevel, tvPartTitle } from '../tvmode/levelTable'
+import { tvPartLevel, tvPartTitle } from '../tvmode/levelTable'
+import { tvNote } from '../tvmode/OnAComputer'
 import { EMPTY, HEIGHTS, MAX_MBPS, MIN_MBPS, capOf, entryOf, formatChoice, parseChoice, perHour, presetChoice, rate, sizeName, type Choice } from './quality'
 
 // The player's quality menu: Auto, Original, then the sizes the picture has (only those at or
@@ -99,7 +100,7 @@ export default function QualityMenu({ view, decision, presets: given, showInfo, 
           {/* On a television the exact size, rate and codec are set on a computer (docs/TV-MODE.md, player.quality-advanced): a
               profile's defaults there (Settings, Video quality) apply on every device. */}
           {tvAdvanced ? <button type="button" className="qm-more" onClick={() => setPage('advanced')}>Advanced…</button>
-            : <p className="qm-small">{tvPartTitle('player.quality-advanced')}: {TV_NOTE} Your defaults there, in Settings, Video quality, apply here too.</p>}
+            : <p className="qm-small">{tvPartTitle('player.quality-advanced')}: {tvNote()} Your defaults in Settings, Video quality apply here too.</p>}
           <p className="qm-small">Remembered on this device {where === 'away' ? 'away from home' : 'at home'}.</p>
         </>
       ) : (

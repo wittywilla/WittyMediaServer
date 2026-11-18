@@ -2,11 +2,11 @@
 
 A television is for browsing, watching, listening and playing, with a remote or a controller from across the room.
 Editors with many fields, typing, file pickers or drag handles are hard to use there, and can trap the remote. So
-every screen declares a **TV level**, and TV mode (the web app's ten-foot mode, `html.tv-mode`) and every TV app
-(Android TV, tvOS, Plasma Big Screen, and the WittyMediaClient desktop app started with `--tv`) follow it.
+every screen declares a **TV level**, and TV mode follows it everywhere: the TV apps (Android TV, tvOS, Plasma
+Bigscreen), a TV's own browser, and TV mode on a computer (the WittyMediaClient desktop app started with `--tv`, or a
+web browser with TV mode on).
 
-The WittyMediaClient app on a Windows or Mac computer, and any web browser, keep every screen. Only TV mode and the TV
-apps are limited.
+Out of TV mode, the WittyMediaClient app on a Windows or Mac computer and any web browser keep every screen.
 
 ## The three levels
 
@@ -14,14 +14,30 @@ apps are limited.
 |---|---|
 | `full` (the default) | Everything works with a remote or a controller. |
 | `view` | The values are shown, nothing can be changed, with the note below. Each section is a stop for the remote, so a long page can still be read to its end. |
-| `desktopOnly` | A card in its place: the screen's name, the note, the page's address, a QR code that opens it on a phone or computer, and a few lines of what is set now ("4 libraries", "149 commercials and bumpers"). |
+| `desktopOnly` | A card in its place, with a few lines of what is set now ("4 libraries", "149 commercials and bumpers"). What else it says depends on the client, below. |
 
-The note is the table's own: *To change this, use the WittyMediaClient app on a Windows or Mac computer, or a web
-browser.* Under it: *What you change there applies on this TV too.*
+### A TV device, or a computer in TV mode
 
-Navigation never dead-ends. Focus starts on **Back**, Back (or Escape, or B on a controller) leaves the screen the
-way it came, and there are no controls a remote can't reach. Settings on a television opens on its menu, with each
-computer-only row saying "On a computer", instead of jumping into its first page.
+The card says something different on the two kinds of client, because only one of them can simply leave TV mode:
+
+| | A TV device | A computer in TV mode |
+|---|---|---|
+| Which | The Android TV and Apple TV apps, Plasma Bigscreen, a TV's own browser | The WittyMediaClient desktop app started with `--tv`, any web browser with TV mode on |
+| The note | *To change this, use the WittyMediaClient app on a Windows or Mac computer, or a web browser.* (`note`) and *What you change there applies on this TV too.* | *Leave TV mode to change this.* (`noteDesktop`) |
+| Also | The page's address and a QR code that opens it on a phone or computer | No address or QR code |
+| Focus starts on | **Back** | **Leave TV mode**, which turns TV mode off and opens the same page in the normal layout. A bar there offers **Back to TV mode** (or Stay here). |
+| Rows that lead to such screens | "On a computer" | "Outside TV mode" |
+
+Which one it is comes from what the client says, never from the size of the window (`tvClientOf` in
+`web/src/tvmode/levels.ts`): the apps add `?client=tv` (Android TV's `pageAddress`, the desktop app on a Plasma
+Bigscreen session) or `?client=desktop` (the desktop app started with `--tv` anywhere else) to the address, and the
+page remembers it on that device (`wms.tvclient`). With neither, a browser whose name says it is a TV's (Tizen, webOS,
+a Fire TV, a BRAVIA, a Google TV and others) is a TV device, and everything else is a computer. The apps' own TV
+screens (Android TV, tvOS) are always the TV device's card.
+
+Navigation never dead-ends. A button has focus, Back (or Escape, or B on a controller) leaves the screen the way it
+came, and there are no controls a remote can't reach. Settings in TV mode opens on its menu, with each such row saying
+so, instead of jumping into its first page.
 
 ## Where the levels are declared
 
@@ -44,9 +60,14 @@ choices.
 administrator's screens say nothing to anyone else) and the server's addresses on the home network, for a QR code
 that a phone can open when the television itself uses an address only it can reach.
 
-In the web app: `web/src/tvmode/levels.ts` (the rules, tested by `levels.test.mjs`), `levelTable.ts` (the table),
+In the web app: `web/src/tvmode/levels.ts` (the rules, tested by `levels.test.mjs`, which has a test for each kind of
+client), `mode.ts` (`tvClient()`, `leaveTvMode()`, `backToTvMode()`), `levelTable.ts` (the table),
 `TvLevelGate.tsx` (every page TV mode shows passes through it) and `OnAComputer.tsx` (the card, the dialog, the part
 note and the read-only wrapper). In the Android app: `net/TvLevels.kt` and `Nav.serverPage()`.
+
+`npm run test:tv-levels` in `web/` walks both kinds of client on a running test server at 1920x1080 with keys: the TV
+device's card (QR code, Back focused, Back leaves) and the computer's (no QR code, Leave TV mode focused, the same
+page in the normal layout, Back to TV mode).
 
 ## Adding a feature
 

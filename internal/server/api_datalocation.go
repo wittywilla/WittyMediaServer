@@ -57,7 +57,7 @@ func (s *Server) askDataLocation(ctx context.Context) bool {
 // GET /api/data-location (admin)
 func (s *Server) handleDataLocation(w http.ResponseWriter, r *http.Request) {
 	data := s.Cfg.DataDir
-	files, size := datahome.Footprint(data)
+	files, size := datahome.Sized(data)
 	v := dataLocationView{DataDir: data, From: s.Cfg.DataFrom, Ask: s.askDataLocation(r.Context()), Files: files, Bytes: size,
 		Sep: string(filepath.Separator), CanRestart: s.Restart != nil, Local: config.LegacyDataDir(), Synced: config.Synced(data),
 		Pending: datahome.Pending(data), Last: datahome.Last(data), Old: datahome.OldCopy(data)}
@@ -115,7 +115,7 @@ func (s *Server) handleDataLocationCheck(w http.ResponseWriter, r *http.Request)
 	to, why := s.dataTarget(r, b)
 	out := map[string]any{"path": to, "problem": why}
 	if to != "" {
-		_, size := datahome.Footprint(s.Cfg.DataDir)
+		_, size := datahome.Sized(s.Cfg.DataDir)
 		out["free"], out["synced"], out["current"] = datahome.FreeBytes(to), config.Synced(to), datahome.Same(to, s.Cfg.DataDir)
 		if !datahome.Same(to, s.Cfg.DataDir) {
 			out["problem"] = datahome.CheckTarget(s.Cfg.DataDir, to, size)
@@ -161,7 +161,7 @@ func (s *Server) handleDataLocationSet(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 409, "This server can't restart itself, and the data moves while it starts. Stop it, move the folder, and start it with -data.")
 		return
 	}
-	_, size := datahome.Footprint(s.Cfg.DataDir)
+	_, size := datahome.Sized(s.Cfg.DataDir)
 	if p := datahome.CheckTarget(s.Cfg.DataDir, to, size); p != "" {
 		writeErr(w, 400, p)
 		return

@@ -19,6 +19,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/config"
@@ -314,6 +315,29 @@ func Size(n int64) string {
 	}
 	return fmt.Sprintf("%d bytes", n)
 }
+
+// Sized is Footprint, remembered for half a minute: the page asks again as someone types a folder,
+// and a big artwork cache takes a while to walk.
+func Sized(data string) (files int, bytes int64) {
+	sizedMu.Lock()
+	defer sizedMu.Unlock()
+	if sized.dir == data && time.Since(sized.at) < 30*time.Second {
+		return sized.files, sized.bytes
+	}
+	files, bytes = Footprint(data)
+	sized.dir, sized.at, sized.files, sized.bytes = data, time.Now(), files, bytes
+	return files, bytes
+}
+
+var (
+	sizedMu sync.Mutex
+	sized   struct {
+		dir   string
+		at    time.Time
+		files int
+		bytes int64
+	}
+)
 
 // Footprint is how much a move copies: everything but temporary video and the running server's
 // own files.

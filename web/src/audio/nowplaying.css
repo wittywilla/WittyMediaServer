@@ -491,10 +491,10 @@ button.np-artist:hover { color: var(--np-fg); text-decoration: underline; text-u
 }
 .kar-sheet-btn { display: inline-flex; align-items: center; gap: 8px; }
 .kar-sheet-btn svg { fill: currentColor; }
-.kar-sheet-backdrop { position: fixed; inset: 0; z-index: 6; display: flex; align-items: flex-end; justify-content: center; background: rgb(0 0 0 / .4); animation: fade-in var(--dur-2) ease-out; }
+.kar-sheet-backdrop { position: fixed; inset: 0; z-index: 6; display: flex; align-items: flex-end; justify-content: center; background: rgb(0 0 0 / .4); animation: fade-in var(--dur-2) ease-out; } /* design-ok: dims the words behind the sheet, on black in every theme */
 .kar-sheet { display: grid; gap: 14px; justify-items: center; inline-size: 100%; max-inline-size: 34rem; max-block-size: 78dvh; overflow-y: auto; overscroll-behavior: contain;
   padding: 0 16px max(18px, env(safe-area-inset-bottom)); border-radius: var(--r-xl) var(--r-xl) 0 0; background: var(--np-kar-bg); border-top: 1px solid var(--np-line); color: var(--np-white);
-  box-shadow: 0 -12px 40px rgb(0 0 0 / .45); animation: np-up var(--dur-3) var(--ease-out); }
+  box-shadow: var(--np-shadow); animation: np-up var(--dur-3) var(--ease-out); }
 .kar-sheet-head { position: sticky; inset-block-start: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; inline-size: 100%; padding-block: 12px 4px; background: inherit; }
 .kar-sheet-head h3 { margin: 0; font-size: var(--text-md); font-weight: 700; }
 .kar-sheet-head .mp-ibtn { background: var(--np-chip); }

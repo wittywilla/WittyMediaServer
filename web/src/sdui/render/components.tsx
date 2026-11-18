@@ -37,6 +37,11 @@ import { WidgetGridView } from './widgets'
 import { CardRouteContext } from './cardRoute'
 import { gameTitleLabel, gameTitleParts, titleLang, type GameTitles } from './titles'
 import { useGameTitlePref } from './useGameTitles'
+import { t, tn, tx } from '../../i18n'
+import { setWords } from '../words'
+
+// The layout step (model.ts) is also run by node's tests, so it is handed the app's words here.
+setWords(t, tn, tx)
 
 const NativeViewHost = lazy(() => import('./NativeViewHost'))
 const DetailExtras = lazy(() => import('../extras/DetailExtras'))
@@ -167,7 +172,7 @@ export const CardView = memo(function CardView({ view, showTitles }: { view: Vie
       {text.rank && <span className="sdui-rank" aria-hidden="true">{text.rank}</span>}
       <div className="poster">
         {drawn ?? <Picture image={obj(p, 'image')} kind={p.kind} icon={p.icon} contain={str(obj(p, 'image'), 'kind') === 'logo'} title={channel ? undefined : gameName?.main || text.title || str(p, 'title') || undefined} />}
-        {shows.includes('badges') && <span className="sdui-badges">{badgesOf(p, text.badges).map((b) => <span key={b} className="badge" data-badge={b.toLowerCase()}>{b}</span>)}</span>}
+        {shows.includes('badges') && <span className="sdui-badges">{badgesOf(p, text.badges).map((b) => <span key={b} className="badge" data-badge={b.toLowerCase()}>{tx(b)}</span>)}</span>}
         {shows.includes('unwatched') && <span className="badge count" aria-hidden="true">{text.unwatched}</span>}
         {shows.includes('watched') && <span className="badge seen" aria-hidden="true"><IconCheck /></span>}
         {str(p, 'playId') && <div className="play"><span><IconPlay /></span></div>}
@@ -178,7 +183,7 @@ export const CardView = memo(function CardView({ view, showTitles }: { view: Vie
           <div className="title sdui-clamp" style={clamp(view.lines?.title)}>{text.number && <span className="sdui-ch-no">{text.number}</span>}{showTitles ? text.title : null}</div>
           {now && <div className="sub sdui-clamp" style={clamp(view.lines?.now)}>{text.now}</div>}
           {view.progress !== undefined && <div className="sdui-ch-bar" aria-hidden="true"><i style={{ width: Math.min(100, view.progress) + '%' }} /></div>}
-          {text.next && <div className="sub sdui-next sdui-clamp" style={clamp(view.lines?.next)}>Next: {text.next}</div>}
+          {text.next && <div className="sub sdui-next sdui-clamp" style={clamp(view.lines?.next)}>{t('Next: {title}', { title: text.next })}</div>}
         </>
       ) : (
         <>
@@ -231,7 +236,7 @@ function Heading({ view, level = 2, id }: { view: View; level?: 2 | 3; id: strin
   return (
     <div className="hub-head" data-sdui-head data-heading={style === 'band' || style === 'underline' ? style : undefined}>
       <div className="sdui-head-text">{title && <H id={id} className="sdui-clamp" style={clamp(view.lines?.title)}>{title}</H>}{sub && <p className="muted">{sub}</p>}</div>
-      {view.seeAll && !view.seeAllCard && view.seeAll.startsWith('/') && <Link to={view.seeAll} aria-label={`See all: ${title || ''}`}>{str(obj(view.node.props, 'seeAll'), 'label') || 'See all'} <IconRight /></Link>}
+      {view.seeAll && !view.seeAllCard && view.seeAll.startsWith('/') && <Link to={view.seeAll} aria-label={t('See all: {title}', { title: title || '' })}>{tx(str(obj(view.node.props, 'seeAll'), 'label')) || t('See all')} <IconRight /></Link>}
     </div>
   )
 }
@@ -240,19 +245,19 @@ function StateLine({ view }: { view: View }) {
   const page = usePage()
   if (view.state === 'empty') {
     // What the server says: the message, a line of advice, and one button that runs an ordinary action (docs/SDUI.md, empty sections).
-    const hint = str(view.node.props, 'emptyHint')
+    const hint = tx(str(view.node.props, 'emptyHint'))
     const go = obj(view.node.props, 'emptyAction')
     const action = go && obj(go, 'action') as unknown as Action | undefined
     return (
       <div className="sdui-empty sdui-empty-state">
-        <p className="sdui-empty-text">{view.text?.empty || 'Nothing here yet.'}</p>
+        <p className="sdui-empty-text">{view.text?.empty || t('Nothing here yet.')}</p>
         {hint && <p className="muted sdui-empty-hint">{hint}</p>}
-        {go && action && str(go, 'label') && <button type="button" className="btn primary sm" disabled={page.inert} onClick={() => !page.inert && page.act(action, view)}>{str(go, 'label')}</button>}
+        {go && action && str(go, 'label') && <button type="button" className="btn primary sm" disabled={page.inert} onClick={() => !page.inert && page.act(action, view)}>{tx(str(go, 'label'))}</button>}
       </div>
     )
   }
   if (view.state === 'error' || page.failed(view.id)) {
-    return <p className="sdui-error" role="alert"><span>Couldn’t load this</span> <button type="button" className="btn sm" onClick={() => page.more(view.id)} disabled={page.busy(view.id)}>Retry</button></p>
+    return <p className="sdui-error" role="alert"><span>{t('Couldn’t load this')}</span> <button type="button" className="btn sm" onClick={() => page.more(view.id)} disabled={page.busy(view.id)}>{t('Retry')}</button></p>
   }
   return null
 }
@@ -262,7 +267,7 @@ const loading = (view: View, busy: boolean) => view.state === 'deferred' || (bus
 // The card that ends a shelf: the same size as its cards, so the row keeps its rhythm, and a link to the whole list.
 function SeeAllCard({ to, label, title, wide }: { to: string; label: string; title?: string; wide?: boolean }) {
   return (
-    <Link to={to} className={'card sdui-seeall' + (wide ? ' wide' : '')} aria-label={`${label}: ${title || ''}`.trim()}>
+    <Link to={to} className={'card sdui-seeall' + (wide ? ' wide' : '')} aria-label={title ? t('{label}: {title}', { label, title }) : label}>
       <div className="poster"><span className="sdui-seeall-in"><IconRight size={28} /><b>{label}</b></span></div>
     </Link>
   )
@@ -298,7 +303,7 @@ function ShelfView({ view, depth }: { view: View; depth: number }) {
   const chips = view.cardStyle === 'chip'
   // See all is the last card of the row (as well as its heading's link): the end of the row says there is more.
   const seeAllCard = !!view.seeAllCard && !!view.seeAll && view.seeAll.startsWith('/') && view.children.length > 0 && !chips
-  const seeAllLabel = str(obj(view.node.props, 'seeAll'), 'label') || 'See all'
+  const seeAllLabel = tx(str(obj(view.node.props, 'seeAll'), 'label')) || t('See all')
   const wideCards = view.cardStyle === 'landscape' || view.children[0]?.node.props?.shape === 'landscape'
   // focusGrow: the focused card is the large one and the rest stay small; detail: its title, line and actions under the row.
   const grow = view.node.props?.focusGrow === true && !chips && !tiles
@@ -321,7 +326,7 @@ function ShelfView({ view, depth }: { view: View; depth: number }) {
     <section className={'hub sdui-shelf' + (grow ? ' focus-grow layout-' + laid : '') + (grow && detail ? ' has-detail' : '') + (view.type === 'Carousel' ? ' sdui-carousel' : '') + (view.node.props?.focusGrow === true ? ' sdui-focusgrow' : '') + (view.node.props?.numbered ? ' numbered' : '')} style={{ ...cardVars(view, page.pt), '--peek': view.peek || 0, ...scopeStyle(view.node) } as CSSProperties} data-scope={view.scope} data-sdui-section={depth === 1 ? view.id : undefined} aria-busy={waiting || undefined}>
       <Heading view={view} id={id} />
       {view.state === 'deferred' && !failed && <Near onNear={() => page.more(view.id)} />}
-      {consoles.length > 0 && !waiting && !failed && <ConsoleBar consoles={consoles} total={view.children.length} value={onlyConsole} onChange={(c) => { setOnlyConsole(c); setFocusId('') }} label={(view.text?.title || view.label || 'Games') + ': consoles'} />}
+      {consoles.length > 0 && !waiting && !failed && <ConsoleBar consoles={consoles} total={view.children.length} value={onlyConsole} onChange={(c) => { setOnlyConsole(c); setFocusId('') }} label={t('{name}: consoles', { name: view.text?.title || view.label || t('Games') })} />}
       {failed || view.state === 'empty' ? <StateLine view={view} /> : tiles && !waiting ? (
         // Plain tiles (libraries) wrap, as the app's library tiles always have.
         <div className="lib-tiles" role="list" aria-labelledby={view.text?.title ? id : undefined} aria-label={view.text?.title ? undefined : view.label} data-nav-group>
@@ -398,14 +403,14 @@ function ConsoleBar({ consoles, total, value, onChange, label }: { consoles: { n
   }, [page.doc])
   const chip = (name: string, text: string, count: number) => (
     <button key={name || 'all'} type="button" className={'sdui-console-chip' + (value === name ? ' on' : '')} aria-pressed={value === name} onClick={() => onChange(name)}>
-      <span>{text}</span><span className="sdui-console-count" aria-label={count === 1 ? '1 game' : count + ' games'}>{count}</span>
+      <span>{text}</span><span className="sdui-console-count" aria-label={tn('{count} game', '{count} games', count)}>{count}</span>
     </button>
   )
   return (
     <div className="sdui-console-bar">
       <button type="button" className="sdui-console-arrow prev" tabIndex={-1} aria-hidden="true" onClick={() => by(-1)}><IconLeft /></button>
       <div className="sdui-console-chips" ref={bar} role="toolbar" aria-label={label} data-nav-group>
-        {chip('', 'All', total)}
+        {chip('', t('All'), total)}
         {consoles.map((c) => chip(c.name, c.name, c.count))}
       </div>
       <button type="button" className="sdui-console-arrow next" tabIndex={-1} aria-hidden="true" onClick={() => by(1)}><IconRight /></button>
@@ -429,7 +434,7 @@ function ShelfDetail({ view, parent }: { view: View; parent: View }) {
   const sent = buttonsOf(view.node.props)
   const lead = sent.some((b) => b.primary) ? -1 : Math.max(0, sent.findIndex((b) => b.glyph === 'a'))
   const own = sent.map((b, i) => (i === lead ? { ...b, primary: true } : b))
-  const buttons: ButtonSpec[] = own.length ? own : view.node.action ? [{ id: 'open', label: 'Open', glyph: 'a', primary: true, action: view.node.action }] : []
+  const buttons: ButtonSpec[] = own.length ? own : view.node.action ? [{ id: 'open', label: t('Open'), glyph: 'a', primary: true, action: view.node.action }] : []
   // A game's card brings its bio, when the shell draws one (WittyPlay: logo, console, maker, rating, pictures and achievements).
   const p = view.node.props || {}
   const game = p.kind === 'game' && p.itemId != null ? String(p.itemId) : ''
@@ -510,11 +515,11 @@ function QrView({ view }: { view: View }) {
   const value = str(p, 'value')
   if (!value) return null
   const address = p.isRoute === true ? (serverBase() || window.location.origin).replace(/\/+$/, '') + value : value
-  const label = str(p, 'label') || view.text?.title || ''
+  const label = tx(str(p, 'label')) || view.text?.title || ''
   const px = ({ s: 112, m: 160, l: 224 } as Record<string, number>)[str(p, 'size') || 'm'] || 160
   return (
     <figure className="sdui-qr" style={{ '--qr-size': px + 'px' } as CSSProperties}>
-      <QrCode text={address} label={`${label ? label + ': ' : ''}QR code for ${address}`} />
+      <QrCode text={address} label={label ? t('{label}: QR code for {address}', { label, address }) : t('QR code for {address}', { address })} />
       {label && <figcaption>{label}</figcaption>}
       {!page.touch && !page.tv && <code className="sdui-qr-address">{address}</code>}
     </figure>
@@ -600,8 +605,8 @@ function HeroView({ view }: { view: View }) {
             <button type="button" className="sdui-hero-arrow next" tabIndex={-1} aria-hidden="true" onClick={() => step(1)}><IconRight /></button>
           </>}
           <div className="dots">
-            {seconds > 0 && !page.reducedMotion && <button type="button" className="hero-pause" data-nav-skip={page.tv || undefined} aria-label={paused ? 'Start turning the featured titles' : 'Stop turning the featured titles'} title={paused ? 'Play' : 'Pause'} onClick={() => setPaused((x) => !x)}>{paused ? <IconPlay /> : <IconPause />}</button>}
-            {slides.map((s, k) => <button key={s.id} type="button" data-nav-skip={page.tv || undefined} data-sdui-slide={k} aria-label={`Show featured title ${k + 1}`} aria-current={k === at || undefined} className={k === at ? 'active' : ''} onClick={() => setI(k)} />)}
+            {seconds > 0 && !page.reducedMotion && <button type="button" className="hero-pause" data-nav-skip={page.tv || undefined} aria-label={paused ? t('Start turning the featured titles') : t('Stop turning the featured titles')} title={paused ? t('Play') : t('Pause')} onClick={() => setPaused((x) => !x)}>{paused ? <IconPlay /> : <IconPause />}</button>}
+            {slides.map((s, k) => <button key={s.id} type="button" data-nav-skip={page.tv || undefined} data-sdui-slide={k} aria-label={t('Show featured title {number}', { number: k + 1 })} aria-current={k === at || undefined} className={k === at ? 'active' : ''} onClick={() => setI(k)} />)}
           </div>
         </>
       )}
@@ -684,7 +689,7 @@ function DetailHeaderView({ view }: { view: View }) {
               {facts.map((f, k) => (factIds[k] === 'contentRating' ? <span key={k} className="pill">{f}</span> : factIds[k] === 'rating' ? <span key={k} className="star"><IconStar /> {f}</span> : <span key={k}>{f}</span>))}
             </div>
           )}
-          {view.progress !== undefined && view.progress > 0 && <div className="sdui-detail-progress" role="progressbar" aria-label="Watched" aria-valuemin={0} aria-valuemax={100} aria-valuenow={view.progress}><i style={{ width: view.progress + '%' }} /></div>}
+          {view.progress !== undefined && view.progress > 0 && <div className="sdui-detail-progress" role="progressbar" aria-label={t('Watched')} aria-valuemin={0} aria-valuemax={100} aria-valuenow={view.progress}><i style={{ width: view.progress + '%' }} /></div>}
           {/* The main action, then the rest (Watch later, Mark watched, Download, Share) as icons with their names, in one
               centred row that scrolls sideways only when it is wider than the screen: the same on every app. */}
           <div className="actions sdui-detail-actions" data-nav-group>
@@ -695,7 +700,7 @@ function DetailHeaderView({ view }: { view: View }) {
           {overview && (
             <div className="sdui-overview">
               <p className={'overview' + (open ? '' : ' sdui-clamp')} style={open ? undefined : clamp(view.lines?.overview)}>{overview}</p>
-              {overview.length > 280 && <button type="button" className="btn sm ghost" aria-expanded={open} onClick={() => setOpen((o) => !o)}>{open ? 'Less' : 'More'}</button>}
+              {overview.length > 280 && <button type="button" className="btn sm ghost" aria-expanded={open} onClick={() => setOpen((o) => !o)}>{open ? t('Less') : t('More')}</button>}
             </div>
           )}
           {!page.inert && <Suspense fallback={null}><DetailExtras place="below" header={view.node} doc={page.doc} /></Suspense>}
@@ -772,10 +777,10 @@ function CreditsView({ view, depth }: { view: View; depth: number }) {
   const title = view.text?.title
   return (
     <section className="hub sdui-credits" style={{ ...cardVars(view, page.pt), ...scopeStyle(view.node) }} data-scope={view.scope} data-sdui-section={depth === 1 ? view.id : undefined}
-      role="region" aria-labelledby={title ? id : undefined} aria-label={title ? undefined : 'Cast and crew'} aria-busy={busy || undefined}>
+      role="region" aria-labelledby={title ? id : undefined} aria-label={title ? undefined : t('Cast and crew')} aria-busy={busy || undefined}>
       <div className="hub-head" data-sdui-head>
         <div className="sdui-head-text">{title && <h2 id={id} className="sdui-clamp" style={clamp(view.lines?.title)}>{title}</h2>}</div>
-        {more && <button type="button" className="btn sm" onClick={() => page.more(view.id)} disabled={busy} aria-label={`Show all of ${title || 'the cast and crew'}`}>{view.buttons?.[0] || 'Show all'}</button>}
+        {more && <button type="button" className="btn sm" onClick={() => page.more(view.id)} disabled={busy} aria-label={title ? t('Show all of {title}', { title }) : t('Show all of the cast and crew')}>{view.buttons?.[0] || t('Show all')}</button>}
       </div>
       {failed ? <StateLine view={view} /> : (
         <>
@@ -800,7 +805,7 @@ function CreditsView({ view, depth }: { view: View; depth: number }) {
                     <ul className="sdui-dept-list" aria-labelledby={hid} data-nav-group>
                       {(byGroup.get(g.id) || []).map((c) => <li key={c.id}><CrewPerson view={c} /></li>)}
                     </ul>
-                    {g.total > g.shown && !busy && <span className="sdui-dept-more muted">{g.total - g.shown} more</span>}
+                    {g.total > g.shown && !busy && <span className="sdui-dept-more muted">{tn('{count} more', '{count} more', g.total - g.shown)}</span>}
                   </div>
                 )
               })}
@@ -832,15 +837,15 @@ function SeasonListView({ view }: { view: View }) {
   return (
     <section className="sdui-seasons" role="region" aria-label={view.label} style={{ ...cardVars(view, page.pt), ...scopeStyle(view.node) }} data-sdui-section={view.id}>
       {seasons.length > 0 && (
-        <div className="season-tabs sdui-season-tabs" role="group" aria-label="Seasons" data-sdui-head data-nav-group>
+        <div className="season-tabs sdui-season-tabs" role="group" aria-label={t('Seasons')} data-sdui-head data-nav-group>
           {seasons.map((s) => {
             const on = s.selected === true
             const count = num(s, 'count'), left = num(s, 'unwatched')
             return (
-              <button key={str(s, 'title')} type="button" className={'season-tab sdui-season' + (on ? ' active' : '')} aria-pressed={on} aria-label={`${str(s, 'title')}${on ? ', selected' : ''}`}
+              <button key={str(s, 'title')} type="button" className={'season-tab sdui-season' + (on ? ' active' : '')} aria-pressed={on} aria-label={on ? t('{tab}, selected', { tab: tx(str(s, 'title')) }) : tx(str(s, 'title'))}
                 onClick={() => { if (!on && str(s, 'url')) page.more(view.id, str(s, 'url'), true) }}>
-                <div className="t">{str(s, 'title')}</div>
-                {count > 0 && <div className="sub">{count} ep{left > 0 && left < count ? ` · ${left} left` : ''}</div>}
+                <div className="t">{tx(str(s, 'title'))}</div>
+                {count > 0 && <div className="sub">{left > 0 && left < count ? t('{episodes} · {left}', { episodes: tn('{count} ep', '{count} ep', count), left: tn('{count} left', '{count} left', left) }) : tn('{count} ep', '{count} ep', count)}</div>}
               </button>
             )
           })}
@@ -848,15 +853,15 @@ function SeasonListView({ view }: { view: View }) {
       )}
       {showId && !page.inert && (
         <div className="view-toggle sdui-episode-view">
-          <span className="muted" id={view.id + '-layout'}>Layout</span>
+          <span className="muted" id={view.id + '-layout'}>{t('Layout')}</span>
           <div className="seg" role="group" aria-labelledby={view.id + '-layout'}>
-            <button type="button" className={!list ? 'active' : ''} aria-pressed={!list} onClick={() => chooseEpisodeView(showId, 'cards')}>Cards</button>
-            <button type="button" className={list ? 'active' : ''} aria-pressed={list} onClick={() => chooseEpisodeView(showId, 'list')}>Playlist</button>
+            <button type="button" className={!list ? 'active' : ''} aria-pressed={!list} onClick={() => chooseEpisodeView(showId, 'cards')}>{t('Cards')}</button>
+            <button type="button" className={list ? 'active' : ''} aria-pressed={list} onClick={() => chooseEpisodeView(showId, 'list')}>{t('Playlist')}</button>
           </div>
         </div>
       )}
       <StateLine view={view} />
-      <div className={list ? 'sdui-episode-list' : 'episodes'} role="list" aria-label="Episodes" data-nav-group aria-busy={page.busy(view.id) || undefined}>
+      <div className={list ? 'sdui-episode-list' : 'episodes'} role="list" aria-label={t('Episodes')} data-nav-group aria-busy={page.busy(view.id) || undefined}>
         {waiting ? Array.from({ length: 4 }, (_, k) => <div key={k} className="episode sdui-ph" aria-hidden="true"><span className="thumb"><i className="skel" /></span><div className="info" /></div>)
           : view.children.map((c) => <div role="listitem" key={c.id}><EpisodeRow view={c} compact={list} synopsis={p.showSynopsis !== false} /></div>)}
       </div>
@@ -883,7 +888,7 @@ function EpisodeRow({ view, compact, synopsis }: { view: View; compact: boolean;
       )}
       <div className="info">
         <Pressable view={view} className="t">{text.title}</Pressable>
-        {text.subtitle && <div className="sub">{text.subtitle}{compact && view.shows?.includes('watched') ? ' · watched' : ''}</div>}
+        {text.subtitle && <div className="sub">{text.subtitle}{compact && view.shows?.includes('watched') ? ' · ' + t('watched') : ''}</div>}
         {synopsis && text.synopsis && <p className="sdui-clamp" style={clamp(view.lines?.synopsis)}>{text.synopsis}</p>}
       </div>
     </div>
@@ -938,7 +943,7 @@ function TabsView({ view, depth }: { view: View; depth: number }) {
   useEffect(() => { setPeek(null) }, [selected?.id])
   if (!selected) return null
   const choose = (id: string) => { const t = tabs.find((x) => x.id === id); if (t && t !== selected && !page.inert) page.act(t.node.action, t) }
-  const label = 'Views'
+  const label = t('Views')
   const panel = 'sdui-panel-' + view.id
   const icon = (t: View) => sduiIcon(t.node.props?.icon)
   // A shell's own tabs beside the page's (WittyPlay's Consoles), after the tab each names, unless the page has that tab itself.
@@ -981,18 +986,18 @@ function FilterBarView({ view }: { view: View }) {
   return (
     <div className="sdui-filters toolbar" role="toolbar" aria-label={view.label} data-sdui-stop={view.id} data-sdui-focus={view.node.focus ? view.id : undefined} data-sdui-section={view.id} data-nav-group>
       {sort && sort.options.length > 0 && (
-        <label className="sdui-filter"><span>Sort</span>
-          <Select inputSize="sm" aria-label={`Sort: ${sort.options.find((o) => o.value === sort.value)?.label || ''}`} value={sort.value} disabled={page.inert}
+        <label className="sdui-filter"><span>{t('Sort')}</span>
+          <Select inputSize="sm" aria-label={t('Sort: {choice}', { choice: sort.options.find((o) => o.value === sort.value)?.label || '' })} value={sort.value} disabled={page.inert}
             onChange={(e) => page.setQuery({ sort: e.target.value === first ? '' : e.target.value })} options={sort.options} />
         </label>
       )}
       {fields.map((f) => (
         <label className="sdui-filter" key={f.id}><span>{f.label}</span>
-          <Select inputSize="sm" aria-label={`${f.label}: ${f.options.find((o) => o.value === f.value)?.label || 'Any'}`} value={f.value} disabled={page.inert}
-            onChange={(e) => page.setQuery({ [f.id]: e.target.value })} options={[{ value: '', label: 'Any' }, ...f.options]} />
+          <Select inputSize="sm" aria-label={t('{filter}: {choice}', { filter: f.label, choice: f.options.find((o) => o.value === f.value)?.label || t('Any') })} value={f.value} disabled={page.inert}
+            onChange={(e) => page.setQuery({ [f.id]: e.target.value })} options={[{ value: '', label: t('Any') }, ...f.options]} />
         </label>
       ))}
-      {chosen.length > 0 && <button type="button" className="btn sm ghost" onClick={() => page.setQuery(Object.fromEntries(fields.map((f) => [f.id, ''])))}>Clear</button>}
+      {chosen.length > 0 && <button type="button" className="btn sm ghost" onClick={() => page.setQuery(Object.fromEntries(fields.map((f) => [f.id, ''])))}>{t('Clear')}</button>}
       <span className="grow" />
       {view.text?.count && <span className="count" role="status">{view.text.count}</span>}
     </div>
@@ -1036,11 +1041,11 @@ function SearchBoxView({ view }: { view: View }) {
   return (
     <div className="sdui-tv-search" data-sdui-section={view.id} data-sdui-stop={view.id} data-sdui-focus={view.node.focus ? view.id : undefined}>
       {input}
-      <div className="tvm-keys sdui-keys" role="group" aria-label="Keyboard" data-nav-group data-sdui-keys>
+      <div className="tvm-keys sdui-keys" role="group" aria-label={t('Keyboard')} data-nav-group data-sdui-keys>
         {KEYS.map((k, i) => <button key={k} data-tv-first={(i === 0 && view.node.focus?.default) || undefined} type="button" className="tvm-key" onClick={() => type(k)}>{k}</button>)}
-        <button type="button" className="tvm-key wide" onClick={() => type(' ')}>Space</button>
-        <button type="button" className="tvm-key wide" onClick={() => setText((t) => t.slice(0, -1))}>Delete</button>
-        <button type="button" className="tvm-key wide" onClick={() => setText('')}>Clear</button>
+        <button type="button" className="tvm-key wide" onClick={() => type(' ')}>{t('Space')}</button>
+        <button type="button" className="tvm-key wide" onClick={() => setText((x) => x.slice(0, -1))}>{t('Delete')}</button>
+        <button type="button" className="tvm-key wide" onClick={() => setText('')}>{t('Clear')}</button>
       </div>
     </div>
   )
@@ -1110,7 +1115,7 @@ function NoticeView({ view }: { view: View }) {
           {main}
           {/* Dismiss: a second, quieter button after the main one (below it on a phone). It runs its command, and the
               page is asked for again. */}
-          {dismissing && <button type="button" className="btn sm ghost" onClick={() => !page.inert && page.act(dismissing, view)}>{str(dismiss, 'label') || 'Dismiss'}</button>}
+          {dismissing && <button type="button" className="btn sm ghost" onClick={() => !page.inert && page.act(dismissing, view)}>{tx(str(dismiss, 'label')) || t('Dismiss')}</button>}
         </div>
       )}
     </div>
@@ -1135,7 +1140,7 @@ function ImageView({ view }: { view: View }) {
       {src && !failed ? <img src={src} alt={view.role === 'img' && !view.node.action ? view.label : ''} loading="lazy" decoding="async" onError={() => setFailed(true)} /> : <span className="sdui-noart" aria-hidden="true">{sduiIcon('photo')}</span>}
     </span>
   )
-  if (view.node.action) return <Pressable view={view} className="sdui-image-link" label={view.label || 'Open'}>{body}</Pressable>
+  if (view.node.action) return <Pressable view={view} className="sdui-image-link" label={view.label || t('Open')}>{body}</Pressable>
   return <div role={view.role === 'img' ? undefined : 'presentation'} aria-hidden={view.role === 'none' || undefined}>{body}</div>
 }
 
@@ -1176,7 +1181,7 @@ function ListItemView({ view, number }: { view: View; number?: string }) {
         {p.icon ? <span className="sdui-row-ic" aria-hidden="true">{sduiIcon(p.icon)}</span> : null}
         <span className="sdui-row-text"><b>{view.text?.title}</b>{view.text?.subtitle && <span className="muted">{view.text.subtitle}</span>}</span>
         {view.text?.trailing && <span className="muted sdui-row-end">{view.text.trailing}</span>}
-        <ControlView control={control} label={view.text?.title || view.label || 'Setting'} action={view.node.action} />
+        <ControlView control={control} label={view.text?.title || view.label || t('Setting')} action={view.node.action} />
       </div>
     )
   }
@@ -1260,14 +1265,14 @@ export function Draw({ view, depth }: { view: View; depth: number }): ReactNode 
       return <div className="sdui-spacer" aria-hidden="true" style={{ height: px(size, page.pt), width: px(size, page.pt) }} />
     }
     case 'Split': return <SplitView view={view} depth={depth} />
-    case 'Form': return <FormView title={view.text?.title} submitLabel={str(view.node.props, 'submitLabel')} cancelLabel={str(view.node.props, 'cancelLabel')} action={view.node.action} nodes={view.node.children}>{view.children.map((c) => <Draw key={c.id} view={c} depth={depth + 1} />)}</FormView>
+    case 'Form': return <FormView title={view.text?.title} submitLabel={tx(str(view.node.props, 'submitLabel'))} cancelLabel={tx(str(view.node.props, 'cancelLabel'))} action={view.node.action} nodes={view.node.children}>{view.children.map((c) => <Draw key={c.id} view={c} depth={depth + 1} />)}</FormView>
     case 'Button': return <ButtonView view={view} />
     case 'Image': return <ImageView view={view} />
     case 'SearchBox': return <SearchBoxView view={view} />
     case 'List': return <ListView view={view} depth={depth} />
     case 'ListItem': return <ListItemView view={view} />
     case 'NativeView': return (
-      <Suspense fallback={<div className="loading-box" role="status" aria-label="Loading"><div className="spinner" /></div>}>
+      <Suspense fallback={<div className="loading-box" role="status" aria-label={t('Loading')}><div className="spinner" /></div>}>
         <NativeViewHost view={str(view.node.props, 'view')} library={str(view.node.props, 'library')} inert={!!page.inert} props={view.node.props || {}}>
           {view.children.map((c) => <Draw key={c.id} view={c} depth={depth + 1} />)}
         </NativeViewHost>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { IconDown, IconRefresh } from '../icons'
+import { num, t } from '../i18n'
 import { Button, Menu, ask, btnClass, toast, type ButtonSize, type ButtonVariant } from '../ui'
 import './scancontrol.css'
 
@@ -17,22 +18,25 @@ export type ScanProgress = { done?: number; found?: number; mode?: ScanMode; res
 
 // scanProgressText: "Scanning: 12,400 of 16,780 files", or "Full rescan: …".
 export function scanProgressText(p: ScanProgress | null | undefined): string {
-  const what = p?.mode === 'full' ? 'Full rescan' : 'Scanning'
-  if (p?.found && p.found > 0) return `${what}: ${(p.done ?? 0).toLocaleString()} of ${p.found.toLocaleString()} files`
-  return `${what}…`
+  const full = p?.mode === 'full'
+  if (p?.found && p.found > 0) {
+    const n = { done: num(p.done ?? 0), found: num(p.found) }
+    return full ? t('Full rescan: {done} of {found} files', n) : t('Scanning: {done} of {found} files', n)
+  }
+  return full ? t('Full rescan…') : t('Scanning…')
 }
 
 // startScan asks for a scan, after asking the person first for a full rescan. True when one began.
 export async function startScan(lib: { id: number; name: string }, mode: ScanMode): Promise<boolean> {
   if (mode === 'full' && !await ask({
-    title: `Full rescan of “${lib.name}”?`,
-    body: 'Every file and its details are read again from scratch, changed or not. On a big library this can take a long time. The library stays usable meanwhile, and the scan carries on after a restart.',
-    confirm: 'Full rescan',
+    title: t('Full rescan of “{name}”?', { name: lib.name }),
+    body: t('Every file and its details are read again from scratch, changed or not. On a big library this can take a long time. The library stays usable meanwhile, and the scan carries on after a restart.'),
+    confirm: t('Full rescan'),
   })) return false
   try {
     const r = await api.post<{ started: boolean; mode: ScanMode }>(`/libraries/${lib.id}/scan`, { mode })
-    if (!r.started) toast(`${lib.name} is already being scanned`)
-    else toast(mode === 'full' ? `Full rescan of ${lib.name} started` : `Scanning ${lib.name} for changes`)
+    if (!r.started) toast(t('{name} is already being scanned', { name: lib.name }))
+    else toast(mode === 'full' ? t('Full rescan of {name} started', { name: lib.name }) : t('Scanning {name} for changes', { name: lib.name }))
     return r.started
   } catch (e) {
     toast((e as Error).message, { tone: 'danger' })
@@ -56,13 +60,13 @@ export function ScanControl({ lib, progress, scanning, onStarted, size = 'md', v
   }
   const run = (mode: ScanMode) => { void startScan(lib, mode).then((ok) => { if (ok) onStarted?.(mode) }) }
   return (
-    <span className={'scan-ctl' + (className ? ' ' + className : '')} role="group" aria-label={`Scan ${lib.name}`}>
-      <Button size={size} variant={variant} icon={<IconRefresh />} onClick={() => run('changes')} title="Looks only at new, changed or removed files">Scan for changes</Button>
-      <Menu label={`Ways to scan ${lib.name}`} align="end" items={[
-        { key: 'changes', label: 'Scan for changes', hint: 'Only new, changed or removed files', onSelect: () => run('changes') },
-        { key: 'full', label: 'Full rescan…', hint: 'Every file and its details again, from scratch', onSelect: () => run('full') },
+    <span className={'scan-ctl' + (className ? ' ' + className : '')} role="group" aria-label={t('Scan {name}', { name: lib.name })}>
+      <Button size={size} variant={variant} icon={<IconRefresh />} onClick={() => run('changes')} title={t('Looks only at new, changed or removed files')}>{t('Scan for changes')}</Button>
+      <Menu label={t('Ways to scan {name}', { name: lib.name })} align="end" items={[
+        { key: 'changes', label: t('Scan for changes'), hint: t('Only new, changed or removed files'), onSelect: () => run('changes') },
+        { key: 'full', label: t('Full rescan…'), hint: t('Every file and its details again, from scratch'), onSelect: () => run('full') },
       ]} trigger={(props) => (
-        <button type="button" {...props} className={btnClass(variant, size, 'square scan-ctl-more')} aria-label={`More ways to scan ${lib.name}`} title="More ways to scan"><IconDown /></button>
+        <button type="button" {...props} className={btnClass(variant, size, 'square scan-ctl-more')} aria-label={t('More ways to scan {name}', { name: lib.name })} title={t('More ways to scan')}><IconDown /></button>
       )} />
     </span>
   )
@@ -74,17 +78,17 @@ export function useScanProgress(libraryId: number, active: boolean): ScanProgres
   useEffect(() => {
     if (!active) { setProgress(null); return }
     let live = true
-    let t = 0
+    let timer = 0
     const poll = async () => {
       try {
         const r = await api.get<{ scanning: boolean; progress: ScanProgress | null }>(`/libraries/${libraryId}/scan`)
         if (!live) return
         setProgress(r.scanning ? r.progress || {} : null)
       } catch { /* asked again in a moment */ }
-      if (live) t = window.setTimeout(poll, 2000)
+      if (live) timer = window.setTimeout(poll, 2000)
     }
     void poll()
-    return () => { live = false; window.clearTimeout(t) }
+    return () => { live = false; window.clearTimeout(timer) }
   }, [libraryId, active])
   return progress
 }

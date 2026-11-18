@@ -11,6 +11,7 @@ import ShareDialog from '../../components/ShareDialog'
 import { Button } from '../../ui/Button'
 import { Dialog } from '../../ui/Overlay'
 import { toast } from '../../ui/Toast'
+import { t } from '../../i18n'
 
 const PlayOn = lazy(() => import('../../remote/PlayOn'))
 const WatchParty = lazy(() => import('../../remote/WatchParty'))
@@ -38,12 +39,12 @@ function PlaceLink({ title, path, onClose }: { title: string; path: string; onCl
   const field = useRef<HTMLInputElement | null>(null)
   const [copied, setCopied] = useState(false)
   const copy = async () => {
-    try { await navigator.clipboard.writeText(link); setCopied(true); toast('Link copied', { tone: 'ok' }) } catch { field.current?.select() }
+    try { await navigator.clipboard.writeText(link); setCopied(true); toast(t('Link copied'), { tone: 'ok' }) } catch { field.current?.select() }
   }
   return (
-    <Dialog title={`Share ${title}`} onClose={onClose} size="sm" description="This link opens it for anyone who has a profile on this server."
-      actions={<><Button variant="ghost" onClick={onClose}>Close</Button><Button variant="primary" onClick={copy}>{copied ? 'Copied' : 'Copy link'}</Button></>}>
-      <input ref={field} className="input" readOnly aria-label="Link" value={link} onFocus={(e) => e.currentTarget.select()} />
+    <Dialog title={t('Share {title}', { title })} onClose={onClose} size="sm" description={t('This link opens it for anyone who has a profile on this server.')}
+      actions={<><Button variant="ghost" onClick={onClose}>{t('Close')}</Button><Button variant="primary" onClick={copy}>{copied ? t('Copied') : t('Copy link')}</Button></>}>
+      <input ref={field} className="input" readOnly aria-label={t('Link')} value={link} onFocus={(e) => e.currentTarget.select()} />
     </Dialog>
   )
 }

@@ -6,6 +6,7 @@ import { announce } from '../a11y'
 import { useUserPref } from '../ui/userPrefs'
 import { AUTO_SKIP_KEY, anyAutoSkip, autoSkipPrefs, autoSkipStart, autoSkipStep, type AutoSkipAct, type Markers } from './markers'
 import './autoskip.css'
+import { t, tn, tx } from '../i18n'
 
 // Skipping without a press, for a profile that asked for it (Settings, Playback,
 // Skipping). When to skip is decided in markers.ts; this does it, and says so: a short note
@@ -40,9 +41,9 @@ export default function AutoSkip({ itemId, video, markers, now, duration, live, 
     const act = r.act
     if (!act) return
     setNote(act)
-    if (act.next) { setLeft(NEXT_IN); announce(`Credits. The next episode starts in ${NEXT_IN} seconds.`); return }
+    if (act.next) { setLeft(NEXT_IN); announce(tn('Credits. The next episode starts in {count} second.', 'Credits. The next episode starts in {count} seconds.', NEXT_IN)); return }
     seek(act.to)
-    announce(`${act.label}.`)
+    announce(`${tx(act.label)}.`)
   }, [now, live, on, markers, raw]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // The note goes by itself. While it counts down to the next episode it stays, and a seek
@@ -58,13 +59,13 @@ export default function AutoSkip({ itemId, video, markers, now, duration, live, 
   useEffect(() => { if (note?.next && (now < note.from - 1 || now >= note.to)) setNote(null) }, [note, now])
 
   if (!note || mini) return null
-  const undo = () => { seek(note.from); setNote(null); announce('Back where it was.') }
+  const undo = () => { seek(note.from); setNote(null); announce(t('Back where it was.')) }
   return (
-    <div className="auto-skip" role="group" aria-label={note.next ? 'Next episode' : note.label} onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
-      <span>{note.next ? `Credits · next episode in ${left} s` : note.label}</span>
+    <div className="auto-skip" role="group" aria-label={note.next ? t('Next episode') : tx(note.label)} onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
+      <span>{note.next ? t('Credits · next episode in {count} s', { count: left }) : tx(note.label)}</span>
       {note.next
-        ? <button type="button" className="btn sm" onClick={() => { setNote(null); announce('Staying for the credits.') }}>Watch the credits</button>
-        : <button type="button" className="btn sm" onClick={undo}>Undo</button>}
+        ? <button type="button" className="btn sm" onClick={() => { setNote(null); announce(t('Staying for the credits.')) }}>{t('Watch the credits')}</button>
+        : <button type="button" className="btn sm" onClick={undo}>{t('Undo')}</button>}
     </div>
   )
 }

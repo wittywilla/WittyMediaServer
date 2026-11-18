@@ -6,6 +6,7 @@ import { useApp } from '../state'
 import { decodeLevels, defaultLevel, encodeLevels, gainsFor, levelOf, levelsKey, playable, pollDelay, qualityName, sliders, statusLine, type KaraokeAnswer, type Levels } from './stemMix'
 import { StemSet, type StemPlayer } from './stems'
 import type { PlayerView } from './types'
+import { t, tx } from '../i18n'
 
 // Karaoke from a song's separate parts. Opening karaoke asks the server once; it makes a
 // quick version if the song has none, and a properly separated one behind it if it can.
@@ -73,7 +74,7 @@ export function useKaraokeStems(p: PlayerView) {
     }).catch((e: unknown) => {
       if (stop.signal.aborted) return
       drop()
-      setLost(e instanceof Error && !/^stem \d+$/.test(e.message) && e.name === 'Error' ? e.message : 'The song\'s separate parts couldn\'t be played here, so this is the normal track.')
+      setLost(e instanceof Error && !/^stem \d+$/.test(e.message) && e.name === 'Error' ? e.message : t('The song’s separate parts couldn’t be played here, so this is the normal track.'))
     })
     return () => stop.abort()
   }, [version, id, normalSpeed]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -96,7 +97,7 @@ export function useKaraokeStems(p: PlayerView) {
     setLevels({})
     try { localStorage.removeItem(key) } catch { /* a private window */ }
   }
-  return { supported: supported && !!id, answer, active, levels, sing, setSing, setLevel, reset, note: statusLine(answer, lost) }
+  return { supported: supported && !!id, answer, active, levels, sing, setSing, setLevel, reset, note: statusLine(answer, lost, t) }
 }
 
 export type KaraokeStemsState = ReturnType<typeof useKaraokeStems>
@@ -118,20 +119,20 @@ function Level({ label, value, onChange }: { label: string; value: number; onCha
 export function KaraokeStemsControl({ k }: { k: KaraokeStemsState }) {
   const a = k.answer
   if (!k.active || !playable(a)) return null
-  const rows = sliders(a)
+  const rows = sliders(a, t)
   const voice = rows.find((r) => r.id === 'vocals')
   const pristine = !k.sing && rows.every((r) => levelOf(a, k.levels, r.id) === defaultLevel(a, r.id))
   return (
-    <div className="kar-stems kar-mix" role="group" aria-label="Mix">
+    <div className="kar-stems kar-mix" role="group" aria-label={t('Mix')}>
       <div className="kar-mix-rows">
-        {rows.map((r) => <Level key={r.id} label={r.id === 'vocals' ? 'Voice' : r.label} value={r.id === 'vocals' && k.sing ? 0 : levelOf(a, k.levels, r.id)} onChange={(n) => k.setLevel(r.id, n)} />)}
+        {rows.map((r) => <Level key={r.id} label={r.id === 'vocals' ? t('Voice') : tx(r.label)} value={r.id === 'vocals' && k.sing ? 0 : levelOf(a, k.levels, r.id)} onChange={(n) => k.setLevel(r.id, n)} />)}
       </div>
       <div className="kar-mix-pills">
-        {voice && <button type="button" className={'kar-chip' + (k.sing ? ' on' : '')} aria-pressed={k.sing} onClick={() => k.setSing(!k.sing)} title="Take the singer out, or put them back (V)">Voice off</button>}
-        {voice && <button type="button" className="kar-chip" onClick={() => k.setLevel('vocals', 0.2)} title="Keep the singer quietly, as a guide">Guide voice</button>}
-        <button type="button" className="kar-chip" onClick={k.reset} disabled={pristine}>Reset</button>
+        {voice && <button type="button" className={'kar-chip' + (k.sing ? ' on' : '')} aria-pressed={k.sing} onClick={() => k.setSing(!k.sing)} title={t('Take the singer out, or put them back (V)')}>{t('Voice off')}</button>}
+        {voice && <button type="button" className="kar-chip" onClick={() => k.setLevel('vocals', 0.2)} title={t('Keep the singer quietly, as a guide')}>{t('Guide voice')}</button>}
+        <button type="button" className="kar-chip" onClick={k.reset} disabled={pristine}>{t('Reset')}</button>
       </div>
-      <p className="kar-mix-note">{qualityName(a)}. The parts are separated on your server, so the levels are approximate.</p>
+      <p className="kar-mix-note">{t('{quality}. The parts are separated on your server, so the levels are approximate.', { quality: qualityName(a, t) })}</p>
     </div>
   )
 }

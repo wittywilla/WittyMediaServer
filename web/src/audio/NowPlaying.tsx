@@ -22,6 +22,7 @@ import PartyButton from './PartyButton'
 import type { PlayerView } from './types'
 import { placeIn, useMusicLinks } from '../pages/music/links'
 import { acceptedFlashNotice, shaderEffects, shaderSession, trackingMedia, VisualizerView, type ShaderEffect } from './visualizer'
+import { t, tk, tn, tx } from '../i18n'
 import './nowplaying.css'
 
 const Karaoke = lazy(() => import('./Karaoke'))
@@ -34,13 +35,15 @@ type Prefs = { viz: boolean; canvas: boolean; style: string; slow: boolean; shuf
 // Where the album's cover sits while the visualizer plays: hidden, or in one of these places.
 // And where the song's name and the controls sit over it.
 type VizText = 'top' | 'middle' | 'bottom'
-const VIZ_TEXT: { id: VizText; name: string }[] = [{ id: 'top', name: 'Top' }, { id: 'middle', name: 'Middle' }, { id: 'bottom', name: 'Bottom' }]
+const VIZ_TEXT: { id: VizText; name: string }[] = [{ id: 'top', name: tk('Top') }, { id: 'middle', name: tk('Middle') }, { id: 'bottom', name: tk('Bottom') }]
 type VizArt = 'off' | 'centre' | 'left' | 'right' | 'corner' | 'canvas'
-const VIZ_ART: { id: VizArt; name: string }[] = [{ id: 'off', name: 'Hidden' }, { id: 'centre', name: 'In the middle' }, { id: 'left', name: 'On the left' }, { id: 'right', name: 'On the right' }, { id: 'corner', name: 'Small, in the corner' }, { id: 'canvas', name: 'Canvas video, in the middle' }]
+const VIZ_ART: { id: VizArt; name: string }[] = [{ id: 'off', name: tk('Hidden') }, { id: 'centre', name: tk('In the middle') }, { id: 'left', name: tk('On the left') }, { id: 'right', name: tk('On the right') }, { id: 'corner', name: tk('Small, in the corner') }, { id: 'canvas', name: tk('Canvas video, in the middle') }]
 // The visualizer is off until someone turns it on (docs/plans/DESIGN-2.md section 10).
 const DEFAULT_PREFS: Prefs = { viz: false, canvas: true, style: 'bars', slow: false, shuffleEvery: 0, shufflePool: 'mine', vizArt: 'off', vizText: 'middle', fade: false }
 const SHUFFLE_CHOICES = [0, 15, 30, 60, 120, 300, 600]
-const everyLabel = (s: number) => (s === 0 ? 'Off: stay on this one' : s < 60 ? `Every ${s} seconds` : s === 60 ? 'Every minute' : `Every ${s / 60} minutes`)
+const everyLabel = (s: number) => (s === 0 ? t('Off: stay on this one') : s < 60 ? tn('Every {count} second', 'Every {count} seconds', s) : s === 60 ? t('Every minute') : tn('Every {count} minute', 'Every {count} minutes', s / 60))
+// The same, short, for the chip.
+const everyShort = (s: number) => (s < 60 ? tn('{count} second', '{count} seconds', s) : s === 60 ? t('minute') : tn('{count} minute', '{count} minutes', s / 60))
 
 let prefsSaving = Promise.resolve()
 function savePrefs(p: Prefs) {
@@ -214,7 +217,7 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
     setShown('')
     setPrefs({ style: id, viz: true })
     const name = NATIVE_STYLES.find((n) => n.id === id)?.name || shaders.find((s) => s.id === id)?.name
-    if (name) setSaid(`Visualizer: ${name}`)
+    if (name) setSaid(t('Visualizer: {name}', { name: tx(name) }))
   }
   // An effect picked on the whole screen stays picked, if an effect is what was showing.
   const leaveWhole = () => {
@@ -234,19 +237,19 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
   // The Canvas video in the cover's place, the visualizer around it; a song with none shows its cover there.
   const framedCanvas = prefs.viz && prefs.vizArt === 'canvas' && canSing && hasCanvas
   const behindChoice = (
-    <Segmented label="Behind the player" value={prefs.viz ? 'viz' : canSing && prefs.canvas && hasCanvas ? 'canvas' : 'art'}
+    <Segmented label={t('Behind the player')} value={prefs.viz ? 'viz' : canSing && prefs.canvas && hasCanvas ? 'canvas' : 'art'}
                   onChange={(v) => { if (v === 'canvas' && !hasCanvas) { setNoCanvasSaid(true); return } setNoCanvasSaid(false); setPrefs(v === 'viz' ? { viz: true } : v === 'canvas' ? { viz: false, canvas: true } : { viz: false, canvas: false }) }}
-                  options={[{ value: 'art', label: 'Album art' }, ...(canSing ? [{ value: 'canvas', label: 'Canvas video' }] : []), { value: 'viz', label: 'Visualizer', icon: <IconVisualizer size={16} /> }]} />
+                  options={[{ value: 'art', label: t('Album art') }, ...(canSing ? [{ value: 'canvas', label: t('Canvas video') }] : []), { value: 'viz', label: t('Visualizer'), icon: <IconVisualizer size={16} /> }]} />
   )
   const karaokeBehind = prefs.viz
     ? (isNative(style) || p.vizHere) ? <NpBackground style={style} slow={prefs.slow} rgb={rgb} playing={p.playing} media={p.media} trackMedia={trackMedia} onDecline={() => { setShown(''); setPrefs({ style: 'bars' }) }} /> : null
     : prefs.canvas && hasCanvas ? <NowPlayingCanvas itemId={it.id} playing={p.playing} />
       : artUrl ? <div className="kar-art" aria-hidden="true" style={{ backgroundImage: `url(${artUrl})` }} /> : null
-  const subtitle = p.live ? (p.retrying ? 'Reconnecting…' : p.stationNow || 'Live') : it.artist || it.albumArtist || ''
-  const placeLine = p.books ? 'Chapters' : p.live ? 'Stations' : 'Queue'
+  const subtitle = p.live ? (p.retrying ? t('Reconnecting…') : p.stationNow || t('Live')) : it.artist || it.albumArtist || ''
+  const placeLine = p.books ? t('Chapters') : p.live ? t('Stations') : t('Queue')
 
   return (
-    <div className={'np' + (panel ? ' has-panel panel-' + panel : '') + (prefs.viz && prefsLoaded ? ' viz-on' : '') + (idle && quietable ? ' np-idle' : '') + (prefs.viz && prefsLoaded ? ' viz-text-' + prefs.vizText : '') + (prefs.viz && prefsLoaded && prefs.vizArt !== 'off' && artUrl ? ' viz-art-' + (prefs.vizArt === 'canvas' ? 'centre' : prefs.vizArt) : '')} ref={root} tabIndex={-1} role="dialog" aria-modal="true" aria-label={`Now playing: ${it.title}`}
+    <div className={'np' + (panel ? ' has-panel panel-' + panel : '') + (prefs.viz && prefsLoaded ? ' viz-on' : '') + (idle && quietable ? ' np-idle' : '') + (prefs.viz && prefsLoaded ? ' viz-text-' + prefs.vizText : '') + (prefs.viz && prefsLoaded && prefs.vizArt !== 'off' && artUrl ? ' viz-art-' + (prefs.vizArt === 'canvas' ? 'centre' : prefs.vizArt) : '')} ref={root} tabIndex={-1} role="dialog" aria-modal="true" aria-label={t('Now playing: {title}', { title: it.title })}
       style={{ '--art': rgb } as React.CSSProperties} onClickCapture={(e) => { if (e.detail > 0) requestAnimationFrame(() => { if (!document.activeElement?.closest('input, select, textarea, .mp-pop-body, .np-panel')) root.current?.focus({ preventScroll: true }) }) }}>
       <div className="np-glow" aria-hidden="true" />
       {canSing && prefs.canvas && !prefs.viz && <NowPlayingCanvas itemId={it.id} playing={p.playing} />}
@@ -256,29 +259,29 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
       {wholeShader && <VisualizerView media={trackMedia} place="full" onPlace={(pl) => { if (pl !== 'full') leaveWhole() }} onClose={leaveWhole} />}
 
       <header className="np-top">
-        <button type="button" className="mp-ibtn np-close" onClick={p.closeFull} aria-label="Close the full player (Esc)" title="Close (Esc)"><IconDown /></button>
+        <button type="button" className="mp-ibtn np-close" onClick={p.closeFull} aria-label={t('Close the full player (Esc)')} title={t('Close (Esc)')}><IconDown /></button>
         <div className="np-where">
-          <span className="np-label">{p.live ? 'Live now' : p.books ? (p.mode === 'podcasts' ? 'Podcast' : 'Audiobook') : 'Now playing'}</span>
+          <span className="np-label">{p.live ? t('Live now') : p.books ? (p.mode === 'podcasts' ? t('Podcast') : t('Audiobook')) : t('Now playing')}</span>
           <span className="np-where-sub">{p.live ? it.title : it.album || subtitle}</span>
         </div>
         <div className="np-top-right">
           <Volume p={p} />
           {!p.live && <AddToPlaylist items={[it]} />}
-          <button type="button" className={'mp-ibtn' + (panel === 'sleep' || p.sleepAt !== null ? ' on' : '')} aria-pressed={panel === 'sleep'} aria-label={p.sleepAt !== null ? 'Sleep timer: on' : 'Sleep timer'} title="Sleep timer" onClick={() => setPanel(panel === 'sleep' ? '' : 'sleep')}><IconMoon /></button>
-          <button type="button" className={'mp-ibtn' + (panel === 'queue' ? ' on' : '')} aria-pressed={panel === 'queue'} aria-label={placeLine} title={`${placeLine} (Q)`} onClick={() => setPanel(panel === 'queue' ? '' : 'queue')}>{p.books ? <IconChapters /> : <IconList />}</button>
+          <button type="button" className={'mp-ibtn' + (panel === 'sleep' || p.sleepAt !== null ? ' on' : '')} aria-pressed={panel === 'sleep'} aria-label={p.sleepAt !== null ? t('Sleep timer: on') : t('Sleep timer')} title={t('Sleep timer')} onClick={() => setPanel(panel === 'sleep' ? '' : 'sleep')}><IconMoon /></button>
+          <button type="button" className={'mp-ibtn' + (panel === 'queue' ? ' on' : '')} aria-pressed={panel === 'queue'} aria-label={placeLine} title={t('{name} (Q)', { name: placeLine })} onClick={() => setPanel(panel === 'queue' ? '' : 'queue')}>{p.books ? <IconChapters /> : <IconList />}</button>
           <Like p={p} />
           <PartyButton p={p} />
           <AudioPlayOn p={p} />
-          <button type="button" className="mp-ibtn np-fill" onClick={toggleFullscreen} aria-label="Fill the screen (F)" title="Fill the screen (F)"><IconFull /></button>
-          <Pop label="More" icon={<IconMore />}>
+          <button type="button" className="mp-ibtn np-fill" onClick={toggleFullscreen} aria-label={t('Fill the screen (F)')} title={t('Fill the screen (F)')}><IconFull /></button>
+          <Pop label={t('More')} icon={<IconMore />}>
             {(close) => (
               <div className="mp-menu" role="menu">
-                <button type="button" role="menuitem" onClick={() => { setPanel(panel === 'sound' ? '' : 'sound'); close() }}><IconSliders size={18} /> Sound: equaliser and more</button>
-                {canSing && <button type="button" role="menuitem" onClick={() => { p.startRadio(it); close() }}><IconStation size={18} /> Start a station from this song</button>}
-                {p.albumUrl && <button type="button" role="menuitem" onClick={() => p.goTowards(p.albumUrl)}>{p.live ? 'Go to station' : p.books ? 'Go to book' : 'Go to album'}</button>}
-                {p.artistUrl && <button type="button" role="menuitem" onClick={() => p.goTowards(p.artistUrl)}>Go to artist</button>}
-                {video && <button type="button" role="menuitem" onClick={() => { close(); watchVideo() }}>Watch the video</button>}
-                <button type="button" role="menuitem" onClick={p.stop}><IconClose size={18} /> Stop and close</button>
+                <button type="button" role="menuitem" onClick={() => { setPanel(panel === 'sound' ? '' : 'sound'); close() }}><IconSliders size={18} /> {t('Sound: equaliser and more')}</button>
+                {canSing && <button type="button" role="menuitem" onClick={() => { p.startRadio(it); close() }}><IconStation size={18} /> {t('Start a station from this song')}</button>}
+                {p.albumUrl && <button type="button" role="menuitem" onClick={() => p.goTowards(p.albumUrl)}>{p.live ? t('Go to station') : p.books ? t('Go to book') : t('Go to album')}</button>}
+                {p.artistUrl && <button type="button" role="menuitem" onClick={() => p.goTowards(p.artistUrl)}>{t('Go to artist')}</button>}
+                {video && <button type="button" role="menuitem" onClick={() => { close(); watchVideo() }}>{t('Watch the video')}</button>}
+                <button type="button" role="menuitem" onClick={p.stop}><IconClose size={18} /> {t('Stop and close')}</button>
               </div>
             )}
           </Pop>
@@ -289,7 +292,7 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
         <div className="np-main">
           <div className="np-artbox">
             {framedCanvas ? <div className="np-art np-art-wide"><NowPlayingCanvas itemId={it.id} playing={p.playing} framed /></div> : <div className="np-art" style={p.live ? { backgroundSize: 'contain' } : undefined}>
-              {artUrl ? <img src={artUrl} alt={`Cover of ${it.album || it.title}`} style={p.live ? { objectFit: 'contain' } : undefined} /> : <Placeholder title={it.title} />}
+              {artUrl ? <img src={artUrl} alt={t('Cover of {title}', { title: it.album || it.title })} style={p.live ? { objectFit: 'contain' } : undefined} /> : <Placeholder title={it.title} />}
             </div>}
             {artUrl && !p.live && !framedCanvas && <div className="np-reflect" aria-hidden="true"><img src={artUrl} alt="" /></div>}
           </div>
@@ -298,7 +301,7 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
             {p.artistUrl && !p.live
               ? <button type="button" className="np-artist" onClick={() => p.goTowards(p.artistUrl)}>{subtitle}</button>
               : <p className="np-artist plain">{subtitle}</p>}
-            {video && <button type="button" className="np-chip np-video" onClick={watchVideo} title="Watch the video, from here when the two line up"><IconPlay size={16} /> Watch the video</button>}
+            {video && <button type="button" className="np-chip np-video" onClick={watchVideo} title={t('Watch the video, from here when the two line up')}><IconPlay size={16} /> {t('Watch the video')}</button>}
           </div>
           {!p.live && (
             <div className="np-seek">
@@ -307,13 +310,13 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
             </div>
           )}
           <div className="np-transport">
-            {!p.books && !p.live && <button type="button" className={'mp-ibtn tall' + (p.shuffle ? ' on' : '')} aria-pressed={p.shuffle} aria-label="Shuffle" title="Shuffle (S)" onClick={() => p.setShuffle(!p.shuffle)}><IconShuffle /></button>}
-            {p.books && <button type="button" className="mp-ibtn tall" onClick={() => p.seek(Math.max(0, p.position() - 15))} aria-label="Back 15 seconds"><IconBack15 /></button>}
-            <button type="button" className="mp-ibtn taller" onClick={p.prev} aria-label="Previous"><IconPrev /></button>
-            <button type="button" className="np-play" onClick={p.toggle} aria-label={p.playing ? 'Pause' : 'Play'}>{p.playing ? <IconPause size={36} /> : <IconPlay size={36} />}</button>
-            <button type="button" className="mp-ibtn taller" onClick={p.next} aria-label="Next"><IconNext /></button>
-            {p.books && <button type="button" className="mp-ibtn tall" onClick={() => p.seek(p.position() + 30)} aria-label="Forward 30 seconds"><IconForward30 /></button>}
-            {!p.books && !p.live && <button type="button" className={'mp-ibtn tall' + (p.repeat !== 'off' ? ' on' : '')} aria-label={p.repeat === 'one' ? 'Repeat this song' : p.repeat === 'all' ? 'Repeat all' : 'Repeat off'} title="Repeat (R)" onClick={p.cycleRepeat}>{p.repeat === 'one' ? <IconRepeatOne /> : <IconRepeat />}</button>}
+            {!p.books && !p.live && <button type="button" className={'mp-ibtn tall' + (p.shuffle ? ' on' : '')} aria-pressed={p.shuffle} aria-label={t('Shuffle')} title={t('Shuffle (S)')} onClick={() => p.setShuffle(!p.shuffle)}><IconShuffle /></button>}
+            {p.books && <button type="button" className="mp-ibtn tall" onClick={() => p.seek(Math.max(0, p.position() - 15))} aria-label={t('Back 15 seconds')}><IconBack15 /></button>}
+            <button type="button" className="mp-ibtn taller" onClick={p.prev} aria-label={t('Previous')}><IconPrev /></button>
+            <button type="button" className="np-play" onClick={p.toggle} aria-label={p.playing ? t('Pause') : t('Play')}>{p.playing ? <IconPause size={36} /> : <IconPlay size={36} />}</button>
+            <button type="button" className="mp-ibtn taller" onClick={p.next} aria-label={t('Next')}><IconNext /></button>
+            {p.books && <button type="button" className="mp-ibtn tall" onClick={() => p.seek(p.position() + 30)} aria-label={t('Forward 30 seconds')}><IconForward30 /></button>}
+            {!p.books && !p.live && <button type="button" className={'mp-ibtn tall' + (p.repeat !== 'off' ? ' on' : '')} aria-label={p.repeat === 'one' ? t('Repeat this song') : p.repeat === 'all' ? t('Repeat all') : t('Repeat off')} title={t('Repeat (R)')} onClick={p.cycleRepeat}>{p.repeat === 'one' ? <IconRepeatOne /> : <IconRepeat />}</button>}
           </div>
 
           <div className="np-tools">
@@ -321,61 +324,61 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
               <>
                 {/* What is behind the player: the album's art, its Canvas video, or the visualizer. */}
                 {behindChoice}
-                {prefs.viz && <div className="np-styles" role="radiogroup" aria-label="Visualizer style">
-                  {NATIVE_STYLES.map((n) => <button type="button" role="radio" key={n.id} aria-checked={style === n.id} className={style === n.id ? 'on' : ''} onClick={() => pickStyle(n.id)}>{n.name}</button>)}
-                  {p.vizHere && <Pop label="More visualizer styles" className={'np-more-styles' + (!isNative(style) ? ' on' : '')} icon={<span>{isNative(style) ? 'More' : shaders.find((s) => s.id === style)?.name || 'More'}</span>}>
+                {prefs.viz && <div className="np-styles" role="radiogroup" aria-label={t('Visualizer style')}>
+                  {NATIVE_STYLES.map((n) => <button type="button" role="radio" key={n.id} aria-checked={style === n.id} className={style === n.id ? 'on' : ''} onClick={() => pickStyle(n.id)}>{tx(n.name)}</button>)}
+                  {p.vizHere && <Pop label={t('More visualizer styles')} className={'np-more-styles' + (!isNative(style) ? ' on' : '')} icon={<span>{isNative(style) ? t('More') : tx(shaders.find((s) => s.id === style)?.name) || t('More')}</span>}>
                     {(close) => (
                       <div className="mp-menu np-style-menu" role="menu" ref={(el) => { if (el && !shaders.length) loadShaders() }}>
-                        {!shaders.length && <span className="mp-menu-note">Loading…</span>}
-                        {shaders.map((s) => <button type="button" role="menuitemradio" aria-checked={style === s.id} key={s.id} className={style === s.id ? 'on' : ''} onClick={() => { pickStyle(s.id); close() }}>{s.name}</button>)}
+                        {!shaders.length && <span className="mp-menu-note">{t('Loading…')}</span>}
+                        {shaders.map((s) => <button type="button" role="menuitemradio" aria-checked={style === s.id} key={s.id} className={style === s.id ? 'on' : ''} onClick={() => { pickStyle(s.id); close() }}>{tx(s.name)}</button>)}
                         <span className="mp-menu-rule" />
-                        <button type="button" role="menuitem" onClick={() => { setWholeShader(true); close() }}>Effect settings and your own effects…</button>
+                        <button type="button" role="menuitem" onClick={() => { setWholeShader(true); close() }}>{t('Effect settings and your own effects…')}</button>
                       </div>
                     )}
                   </Pop>}
                 </div>}
-                {prefs.viz && p.vizHere && shaders.length > 0 && <button type="button" className={'np-chip' + (effectsOpen ? ' on' : '')} aria-expanded={effectsOpen} title="Effects and their settings" onClick={() => setEffectsOpen(!effectsOpen)}><IconVisualizer size={18} /> Effects</button>}
+                {prefs.viz && p.vizHere && shaders.length > 0 && <button type="button" className={'np-chip' + (effectsOpen ? ' on' : '')} aria-expanded={effectsOpen} title={t('Effects and their settings')} onClick={() => setEffectsOpen(!effectsOpen)}><IconVisualizer size={18} /> {t('Effects')}</button>}
                 {prefs.viz && p.vizHere && shaders.length > 0 && effectsOpen && <EffectChips effects={shaders} current={style} onPick={pickStyle} />}
-                {prefs.viz && <button type="button" className={'np-chip slow-chip' + (prefs.slow ? ' on' : '')} aria-pressed={prefs.slow} title="A slower, gentler pace" onClick={() => setPrefs({ slow: !prefs.slow })}><IconTurtle size={20} /> Slow</button>}
+                {prefs.viz && <button type="button" className={'np-chip slow-chip' + (prefs.slow ? ' on' : '')} aria-pressed={prefs.slow} title={t('A slower, gentler pace')} onClick={() => setPrefs({ slow: !prefs.slow })}><IconTurtle size={20} /> {t('Slow')}</button>}
                 {prefs.viz && (
-                  <Pop label={`Layout: cover ${VIZ_ART.find((a) => a.id === prefs.vizArt)?.name.toLowerCase()}, words ${prefs.vizText}`} className={'np-chip-pop' + (prefs.vizArt !== 'off' || prefs.vizText !== 'middle' ? ' on' : '')} icon={<><IconImage size={18} /><span>Layout</span></>}>
+                  <Pop label={t('Layout: cover {cover}, words {words}', { cover: tx(VIZ_ART.find((a) => a.id === prefs.vizArt)?.name).toLowerCase(), words: tx(VIZ_TEXT.find((a) => a.id === prefs.vizText)?.name).toLowerCase() })} className={'np-chip-pop' + (prefs.vizArt !== 'off' || prefs.vizText !== 'middle' ? ' on' : '')} icon={<><IconImage size={18} /><span>{t('Layout')}</span></>}>
                     {(close) => (
                       <div className="mp-menu np-style-menu" role="menu">
                         {artUrl && <>
-                          <span className="mp-menu-note">The album's cover</span>
-                          {VIZ_ART.filter((a) => a.id !== 'canvas' || (canSing && hasCanvas)).map((a) => <button type="button" key={a.id} role="menuitemradio" aria-checked={prefs.vizArt === a.id} className={prefs.vizArt === a.id ? 'on' : ''} onClick={() => { setPrefs({ vizArt: a.id }); close() }}>{a.name}</button>)}
+                          <span className="mp-menu-note">{t('The album’s cover')}</span>
+                          {VIZ_ART.filter((a) => a.id !== 'canvas' || (canSing && hasCanvas)).map((a) => <button type="button" key={a.id} role="menuitemradio" aria-checked={prefs.vizArt === a.id} className={prefs.vizArt === a.id ? 'on' : ''} onClick={() => { setPrefs({ vizArt: a.id }); close() }}>{tx(a.name)}</button>)}
                           <span className="mp-menu-rule" />
                         </>}
-                        <span className="mp-menu-note">The song's name and the controls</span>
-                        {VIZ_TEXT.map((a) => <button type="button" key={a.id} role="menuitemradio" aria-checked={prefs.vizText === a.id} className={prefs.vizText === a.id ? 'on' : ''} onClick={() => { setPrefs({ vizText: a.id }); close() }}>{a.name}</button>)}
+                        <span className="mp-menu-note">{t('The song’s name and the controls')}</span>
+                        {VIZ_TEXT.map((a) => <button type="button" key={a.id} role="menuitemradio" aria-checked={prefs.vizText === a.id} className={prefs.vizText === a.id ? 'on' : ''} onClick={() => { setPrefs({ vizText: a.id }); close() }}>{tx(a.name)}</button>)}
                         <span className="mp-menu-rule" />
-                        <button type="button" role="menuitemcheckbox" aria-checked={prefs.fade} className={prefs.fade ? 'on' : ''} onClick={() => { setPrefs({ fade: !prefs.fade }); close() }}>Fade the controls when nothing is touched</button>
+                        <button type="button" role="menuitemcheckbox" aria-checked={prefs.fade} className={prefs.fade ? 'on' : ''} onClick={() => { setPrefs({ fade: !prefs.fade }); close() }}>{t('Fade the controls when nothing is touched')}</button>
                       </div>
                     )}
                   </Pop>
                 )}
                 {prefs.viz && (
-                  <Pop label={prefs.shuffleEvery ? `Shuffling visualizers: ${everyLabel(prefs.shuffleEvery)}` : 'Shuffle visualizers'} className={'np-chip-pop' + (prefs.shuffleEvery ? ' on' : '')} icon={<><IconShuffle size={18} /><span>{prefs.shuffleEvery ? everyLabel(prefs.shuffleEvery).replace('Every ', '') : 'Styles'}</span></>}>
+                  <Pop label={prefs.shuffleEvery ? t('Shuffling visualizers: {every}', { every: everyLabel(prefs.shuffleEvery) }) : t('Shuffle visualizers')} className={'np-chip-pop' + (prefs.shuffleEvery ? ' on' : '')} icon={<><IconShuffle size={18} /><span>{prefs.shuffleEvery ? everyShort(prefs.shuffleEvery) : t('Styles')}</span></>}>
                     {(close) => (
                       <div className="mp-menu np-style-menu">
-                        <span className="mp-menu-note">Change style by itself. It stays still unless you choose this.</span>
+                        <span className="mp-menu-note">{t('Change style by itself. It stays still unless you choose this.')}</span>
                         {SHUFFLE_CHOICES.map((c) => <button type="button" key={c} role="menuitemradio" aria-checked={prefs.shuffleEvery === c} className={prefs.shuffleEvery === c ? 'on' : ''} onClick={() => { setPrefs({ shuffleEvery: c }); close() }}>{everyLabel(c)}</button>)}
                         <span className="mp-menu-rule" />
-                        <button type="button" role="menuitemradio" aria-checked={prefs.shufflePool === 'mine'} className={prefs.shufflePool === 'mine' ? 'on' : ''} onClick={() => setPrefs({ shufflePool: 'mine' })}>Bars, Waves and Drift</button>
-                        <button type="button" role="menuitemradio" aria-checked={prefs.shufflePool === 'all'} className={prefs.shufflePool === 'all' ? 'on' : ''} onClick={() => setPrefs({ shufflePool: 'all' })}>Every effect</button>
+                        <button type="button" role="menuitemradio" aria-checked={prefs.shufflePool === 'mine'} className={prefs.shufflePool === 'mine' ? 'on' : ''} onClick={() => setPrefs({ shufflePool: 'mine' })}>{t('Bars, Waves and Drift')}</button>
+                        <button type="button" role="menuitemradio" aria-checked={prefs.shufflePool === 'all'} className={prefs.shufflePool === 'all' ? 'on' : ''} onClick={() => setPrefs({ shufflePool: 'all' })}>{t('Every effect')}</button>
                       </div>
                     )}
                   </Pop>
                 )}
-                {canSing && !hasCanvas && noCanvasSaid && <span className="np-note-inline" role="status">This song and its album have no Canvas video{canvasInfo.blocked ? ' to show on this device' : ''}.</span>}
+                {canSing && !hasCanvas && noCanvasSaid && <span className="np-note-inline" role="status">{canvasInfo.blocked ? t('This song and its album have no Canvas video to show on this device.') : t('This song and its album have no Canvas video.')}</span>}
                 <span className="np-tools-rule" aria-hidden="true" />
               </>
             )}
-            {canSing && <button type="button" className={'np-chip' + (panel === 'lyrics' ? ' on' : '')} aria-pressed={panel === 'lyrics'} title="Lyrics (L)" onClick={() => setPanel(panel === 'lyrics' ? '' : 'lyrics')}><IconMic size={20} /> Lyrics</button>}
-            {canSing && <button type="button" className="np-chip" title="Karaoke (K)" onClick={() => setKaraoke(true)}><IconKaraoke size={20} /> Karaoke</button>}
-            {canSing && <button type="button" className={'np-chip' + (panel === 'read' ? ' on' : '')} aria-pressed={panel === 'read'} title="Read the words, or the album's booklet" onClick={() => setPanel(panel === 'read' ? '' : 'read')}><IconReadOpen size={20} /> Read{extras.length > 0 && <span className="np-count">{extras.length}</span>}</button>}
+            {canSing && <button type="button" className={'np-chip' + (panel === 'lyrics' ? ' on' : '')} aria-pressed={panel === 'lyrics'} title={t('Lyrics (L)')} onClick={() => setPanel(panel === 'lyrics' ? '' : 'lyrics')}><IconMic size={20} /> {t('Lyrics')}</button>}
+            {canSing && <button type="button" className="np-chip" title={t('Karaoke (K)')} onClick={() => setKaraoke(true)}><IconKaraoke size={20} /> {t('Karaoke')}</button>}
+            {canSing && <button type="button" className={'np-chip' + (panel === 'read' ? ' on' : '')} aria-pressed={panel === 'read'} title={t('Read the words, or the album’s booklet')} onClick={() => setPanel(panel === 'read' ? '' : 'read')}><IconReadOpen size={20} /> {t('Read')}{extras.length > 0 && <span className="np-count">{extras.length}</span>}</button>}
             {!p.live && !p.cdActive && (
-              <select className="np-speed" aria-label="Playback speed" title="Playback speed (< and >)" value={p.rate} onChange={(e) => p.changeRate(Number(e.target.value))}>
+              <select className="np-speed" aria-label={t('Playback speed')} title={t('Playback speed (< and >)')} value={p.rate} onChange={(e) => p.changeRate(Number(e.target.value))}>
                 {[0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3].filter((r) => r <= p.maxSpeed).map((r) => <option key={r} value={r}>{r}×</option>)}
               </select>
             )}
@@ -383,7 +386,7 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
         </div>
 
         {panel && (
-          <aside className="np-panel" aria-label={panel === 'lyrics' ? 'Lyrics' : panel === 'queue' ? placeLine : panel === 'sound' ? 'Sound' : panel === 'sleep' ? 'Sleep timer' : 'Read'}>
+          <aside className="np-panel" aria-label={panel === 'lyrics' ? t('Lyrics') : panel === 'queue' ? placeLine : panel === 'sound' ? t('Sound') : panel === 'sleep' ? t('Sleep timer') : t('Read')}>
             {panel === 'lyrics' && <LyricsPanel p={p} ly={ly} onClose={() => setPanel('')} />}
             {panel === 'queue' && <QueuePanel p={p} heading={placeLine} onClose={() => setPanel('')} />}
             {panel === 'sound' && <SoundPanel p={p} onClose={() => setPanel('')} />}
@@ -394,8 +397,8 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
       </div>
 
       <p className="np-hints" aria-hidden="true">
-        <kbd>Esc</kbd> close · <kbd>Space</kbd> play or pause · <kbd>←</kbd> <kbd>→</kbd> previous or next
-        {canSing && <> · <kbd>L</kbd> lyrics · <kbd>K</kbd> karaoke</>}{!p.live && <> · <kbd>V</kbd> visualizer</>}
+        <kbd>Esc</kbd> {t('close')} · <kbd>{t('Space')}</kbd> {t('play or pause')} · <kbd>←</kbd> <kbd>→</kbd> {t('previous or next')}
+        {canSing && <> · <kbd>L</kbd> {t('lyrics')} · <kbd>K</kbd> {t('karaoke')}</>}{!p.live && <> · <kbd>V</kbd> {t('visualizer')}</>}
       </p>
       <div className="mp-sr" aria-live="polite">{said}</div>
       {karaoke && <Suspense fallback={null}><Karaoke p={p} ly={ly} choice={behindChoice} behind={karaokeBehind} onClose={() => { setKaraoke(false); root.current?.focus({ preventScroll: true }) }} /></Suspense>}
@@ -461,33 +464,33 @@ function EffectChips({ effects, current, onPick }: { effects: ShaderEffect[]; cu
   const lively = effects.find((e) => e.id === current)?.motion === 'lively'
   const keeps = (e: ShaderEffect) => !calm || e.motion === 'gentle'
   return (
-    <div className="np-effects" role="group" aria-label="Visualizer effects">
-      {lively && !calm && <p className="np-note np-callout" role="status">This effect flashes. Calm mode leaves out the lively ones and keeps everything else.</p>}
-      <div className="np-effect-chips" role="radiogroup" aria-label="Effect">
+    <div className="np-effects" role="group" aria-label={t('Visualizer effects')}>
+      {lively && !calm && <p className="np-note np-callout" role="status">{t('This effect flashes. Calm mode leaves out the lively ones and keeps everything else.')}</p>}
+      <div className="np-effect-chips" role="radiogroup" aria-label={t('Effect')}>
         {effects.map((e) => (
           <button type="button" role="radio" key={e.id} aria-checked={current === e.id} disabled={!keeps(e)} className={current === e.id ? 'on' : ''} onClick={() => onPick(e.id)}>
-            {e.name}<small>{e.motion === 'gentle' ? 'Gentle' : 'Lively'}</small>
+            {tx(e.name)}<small>{e.motion === 'gentle' ? t('Gentle') : t('Lively')}</small>
           </button>
         ))}
       </div>
       <div className="np-effect-opts">
-        <label className="np-range"><span>Auto-change</span>
+        <label className="np-range"><span>{t('Auto-change')}</span>
           <select className="select sm" value={cycle} onChange={(e) => { const v = Number(e.target.value); setCycle(v); shaderSession()?.update({ cycleSec: v }) }}>
-            {[0, 10, 15, 30, 60, 120, 300].map((c) => <option key={c} value={c}>{c === 0 ? 'Off' : c < 60 ? `Every ${c} s` : `Every ${c / 60} min`}</option>)}
+            {[0, 10, 15, 30, 60, 120, 300].map((c) => <option key={c} value={c}>{c === 0 ? t('Off') : c < 60 ? t('Every {count} s', { count: c }) : t('Every {count} min', { count: c / 60 })}</option>)}
           </select>
         </label>
-        <button type="button" className={'np-chip small' + (calm ? ' on' : '')} aria-pressed={calm} title="Keeps to the gentle effects and slows everything" onClick={() => { const v = !calm; setCalm(v); shaderSession()?.update({ calm: v }) }}>Calm mode</button>
-        <label className="np-range"><span>Intensity</span>
+        <button type="button" className={'np-chip small' + (calm ? ' on' : '')} aria-pressed={calm} title={t('Keeps to the gentle effects and slows everything')} onClick={() => { const v = !calm; setCalm(v); shaderSession()?.update({ calm: v }) }}>{t('Calm mode')}</button>
+        <label className="np-range"><span>{t('Intensity')}</span>
           <input type="range" min={30} max={150} step={5} value={Math.round(intensity * 100)} aria-valuetext={`${Math.round(intensity * 100)}%`}
             onChange={(e) => { const v = Number(e.target.value) / 100; setIntensity(v); shaderSession()?.update({ intensity: v }) }} />
           <output>{Math.round(intensity * 100)}%</output>
         </label>
-        <label className="np-range"><span>Speed</span>
+        <label className="np-range"><span>{t('Speed')}</span>
           <input type="range" min={50} max={200} step={5} value={speed} aria-valuetext={`${speed}%`} onChange={(e) => { const v = Number(e.target.value); setSpeed(v); patch({ speedPct: v }) }} />
           <output>{speed}%</output>
         </label>
-        <Segmented label="Colour" value={colour === 'theme' ? 'theme' : 'effect'} onChange={(v) => { setColour(v); patch({ colour: v }) }}
-          options={[{ value: 'effect', label: "Effect's own" }, { value: 'theme', label: 'Follows the theme' }]} />
+        <Segmented label={t('Colour')} value={colour === 'theme' ? 'theme' : 'effect'} onChange={(v) => { setColour(v); patch({ colour: v }) }}
+          options={[{ value: 'effect', label: t('Effect’s own') }, { value: 'theme', label: t('Follows the theme') }]} />
       </div>
     </div>
   )

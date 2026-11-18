@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect } from 'react'
+import { t } from '../i18n'
 
 // "Insert DVD": the tray opens, the disc drops in, the tray closes and the
 // drive spins up. Sounds are synthesised with Web Audio (no audio files).
@@ -86,7 +87,7 @@ export default function InsertDisc({ poster, title, onDone, sound = true, label 
   // player's lid: lid (front-most) > tray with its recess and the disc >
   // front panel. All sizes are in cqw of the drive, so it scales anywhere.
   return (
-    <div className="insert-disc" onClick={(e) => { e.stopPropagation(); onDone() }} title="Click to skip">
+    <div className="insert-disc" onClick={(e) => { e.stopPropagation(); onDone() }} title={t('Click to skip')}>
       <div className="drive">
         <div className="lid"><span className="lid-shine" /></div>
         <div className="tray">
@@ -103,12 +104,12 @@ export default function InsertDisc({ poster, title, onDone, sound = true, label 
           <span className="slot" />
           <span className="led" />
           <span className="front-label">{label}</span>
-          <span className="front-display">{'LOADING'}</span>
+          <span className="front-display">{t('LOADING')}</span>
         </div>
       </div>
-      <div className="insert-caption" role="status">Loading {title}…</div>
+      <div className="insert-caption" role="status">{t('Loading {title}…', { title })}</div>
       {/* Keys and a remote can skip it too, not only a click. */}
-      <button className="btn sm insert-skip" autoFocus onClick={(e) => { e.stopPropagation(); onDone() }}>Skip</button>
+      <button className="btn sm insert-skip" autoFocus onClick={(e) => { e.stopPropagation(); onDone() }}>{t('Skip')}</button>
     </div>
   )
 }

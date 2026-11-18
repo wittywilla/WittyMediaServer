@@ -19,6 +19,7 @@ import { handledIds } from '../../spec/model'
 import { autoplaySpec, chaptersSpec } from '../../spec/specs/media'
 import { VideoSongPanel } from '../music/SongVideo'
 import { VideoLyrics } from '../music/VideoLyrics'
+import { t, tn } from '../../i18n'
 
 // The watch page: the video, what it is and who made it, comments, and what to
 // watch next beside it.
@@ -50,7 +51,7 @@ export default function WatchPage() {
     api.get<VideoCard[]>(`/videos/${id}/related?limit=20`).then(setNext).catch(() => setNext([]))
   }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (d?.creatorId) api.get<{ creator: Creator }>(`/creators/${d.creatorId}`).then((r) => setCreator(r.creator)).catch(() => setCreator(null)) }, [d?.creatorId])
-  if (err) return <EmptyState title="Video not found" text={err} />
+  if (err) return <EmptyState title={t('Video not found')} text={err} />
   const startParam = params.get('t')
   const start = startParam ? Number(startParam) : d && !d.watched && d.positionSec > 10 ? d.positionSec : undefined
   const setAutoNext = (on: boolean) => { setAuto(on); try { localStorage.setItem(AUTONEXT, on ? '1' : '0') } catch { /* private window */ } }
@@ -73,24 +74,24 @@ export default function WatchPage() {
               {creator && (
                 <div className="ch-owner">
                   <Link to={`/creator/${creator.id}`} className="ch-owner-link"><Avatar id={creator.id} name={creator.name} has={creator.hasAvatar} size={42} v={creator.updatedAt} />
-                    <span><b>{creator.name}</b><span className="muted">{creator.videos} videos{creator.platform ? ` · ${creator.platform}` : ''}</span></span></Link>
+                    <span><b>{creator.name}</b><span className="muted">{tn('{count} video', '{count} videos', creator.videos)}{creator.platform ? ` · ${creator.platform}` : ''}</span></span></Link>
                   <SubscribeButton c={creator} onChange={(on) => setCreator({ ...creator, subscribed: on })} />
                 </div>
               )}
               <div className="ch-actions">
                 <LikeButtons v={d} onChange={(r) => setD({ ...d, reaction: r, likes: d.likes + (r > 0 ? 1 : d.reaction > 0 ? -1 : 0) })} />
-                {canPost(user) && <button className="btn sm" onClick={() => setShare(true)}>Share</button>}
+                {canPost(user) && <button className="btn sm" onClick={() => setShare(true)}>{t('Share')}</button>}
                 <SaveButton itemId={d.id} />
-                <button className={'btn sm ghost ch-theatre'} aria-pressed={theatre} onClick={() => setTheatre(!theatre)}>{theatre ? 'Default view' : 'Wide view'}</button>
-                {user?.isAdmin && <button className="btn sm ghost" onClick={() => setEdit(true)}><IconEdit /> Edit</button>}
+                <button className={'btn sm ghost ch-theatre'} aria-pressed={theatre} onClick={() => setTheatre(!theatre)}>{theatre ? t('Default view') : t('Wide view')}</button>
+                {user?.isAdmin && <button className="btn sm ghost" onClick={() => setEdit(true)}><IconEdit /> {t('Edit')}</button>}
               </div>
             </div>
             <div className="ch-desc">
-              <div className="ch-desc-stats">{[views ? `${fmtCount(views)} views` : '', d.uploadDate ? `${d.uploadDate} (${timeAgo(d.uploadDate)})` : '', d.platform].filter(Boolean).join(' · ')}</div>
+              <div className="ch-desc-stats">{[views ? tn('{count} view', '{count} views', views, { count: fmtCount(views) }) : '', d.uploadDate ? `${d.uploadDate} (${timeAgo(d.uploadDate)})` : '', d.platform].filter(Boolean).join(' · ')}</div>
               {d.description && <p className={more || !long ? '' : 'clamped'}>{d.description}</p>}
-              {long && <button className="btn sm ghost" aria-expanded={more} onClick={() => setMore(!more)}>{more ? 'Show less' : 'Show more'}</button>}
-              {d.tags.length > 0 && <div className="ch-tagline">{d.tags.map((t) => <Link key={t} to={`/library/${d.libraryId}?tag=${encodeURIComponent(t)}`}>#{t}</Link>)}</div>}
-              {d.sourceUrl && <p className="muted ch-source">Source: <WebLink href={d.sourceUrl}>{d.sourceUrl}</WebLink></p>}
+              {long && <button className="btn sm ghost" aria-expanded={more} onClick={() => setMore(!more)}>{more ? t('Show less') : t('Show more')}</button>}
+              {d.tags.length > 0 && <div className="ch-tagline">{d.tags.map((tag) => <Link key={tag} to={`/library/${d.libraryId}?tag=${encodeURIComponent(tag)}`}>#{tag}</Link>)}</div>}
+              {d.sourceUrl && <p className="muted ch-source">{t('Source:')} <WebLink href={d.sourceUrl}>{d.sourceUrl}</WebLink></p>}
               {d.custom && Object.keys(d.custom).length > 0 && (
                 <dl className="ch-custom">{Object.entries(d.custom).map(([k, x]) => <div key={k}><dt>{k}</dt><dd>{String(x)}</dd></div>)}</dl>
               )}
@@ -105,13 +106,13 @@ export default function WatchPage() {
         {!d && !err && <Spinner />}
         {d && <LegalNote kind="creators" />}
       </div>
-      <aside className="ch-next" aria-label="Up next">
-        <h2 className="sr-only">Up next</h2>
+      <aside className="ch-next" aria-label={t('Up next')}>
+        <h2 className="sr-only">{t('Up next')}</h2>
         <SpecPage page={autoplaySpec(auto)} embedded handled={AUTO_IDS} onAction={() => setAutoNext(!auto)} />
         {next.map((v) => (
           <Link key={v.id} to={`/watch/${v.id}`} className="ch-next-item">
             <span className={'ch-next-thumb' + (v.vertical ? ' tall' : '')}><img src={videoThumb(v.id, 320, v.updatedAt)} alt="" loading="lazy" /></span>
-            <span className="cr-text"><b>{v.title}</b><span className="muted">{v.creator}</span><span className="muted">{[viewsOf(v) ? `${fmtCount(viewsOf(v))} views` : '', timeAgo(v.uploadDate)].filter(Boolean).join(' · ')}</span></span>
+            <span className="cr-text"><b>{v.title}</b><span className="muted">{v.creator}</span><span className="muted">{[viewsOf(v) ? tn('{count} view', '{count} views', viewsOf(v), { count: fmtCount(viewsOf(v)) }) : '', timeAgo(v.uploadDate)].filter(Boolean).join(' · ')}</span></span>
           </Link>
         ))}
       </aside>

@@ -10,6 +10,7 @@ import '../gallery.css'
 import LegalNote from '../components/LegalNote'
 import SpecPage from '../spec/SpecPage'
 import { sharedEndedSpec, sharedHeadSpec } from '../spec/specs/share'
+import { date, t } from '../i18n'
 
 // What someone sees when they open a link they were sent: only this, and no way
 // into the server. No account, no navigation, nothing but what was shared.
@@ -28,14 +29,14 @@ export default function SharedPage() {
       setData(d)
       document.title = d.title
       if (d.items.length === 1) setOpen(0)
-    }).catch(() => setErr('This link has ended, or it was never valid.'))
+    }).catch(() => setErr(t('This link has ended, or it was never valid.')))
   }, [base])
   if (err) return <div className="gal-public"><SpecPage page={sharedEndedSpec()} /></div>
   if (!data) return <Spinner />
   const it = open !== null ? data.items[open] : null
   return (
     <div className="gal-public">
-      <SpecPage page={sharedHeadSpec(data.title, data.expiresAt ? new Date(data.expiresAt * 1000).toLocaleDateString() : null)} />
+      <SpecPage page={sharedHeadSpec(data.title, data.expiresAt ? date(data.expiresAt * 1000) : null)} />
       <LegalNote kind="sharedView" newTab />
       <div className="gal-grid">
         {data.items.map((p, i) => {
@@ -57,13 +58,13 @@ export default function SharedPage() {
           }}>
           <div className="gal-stage">
             {it.kind === 'video' ? <SharedVideo key={it.id} url={`${base}/play/${it.id}`} /> : <img className="gal-img" src={`${base}/image/${it.id}?w=1920`} alt={it.title} />}
-            {open > 0 && <button className="gal-nav prev" onClick={() => setOpen(open - 1)} aria-label="Previous"><IconLeft size={32} /></button>}
-            {open + 1 < data.items.length && <button className="gal-nav next" onClick={() => setOpen(open + 1)} aria-label="Next"><IconRight size={32} /></button>}
+            {open > 0 && <button className="gal-nav prev" onClick={() => setOpen(open - 1)} aria-label={t('Previous')}><IconLeft size={32} /></button>}
+            {open + 1 < data.items.length && <button className="gal-nav next" onClick={() => setOpen(open + 1)} aria-label={t('Next')}><IconRight size={32} /></button>}
           </div>
           <div className="gal-v-bar">
-            <button className="ibtn" autoFocus onClick={() => setOpen(null)} aria-label="Close"><IconClose /></button>
+            <button className="ibtn" autoFocus onClick={() => setOpen(null)} aria-label={t('Close')}><IconClose /></button>
             <div className="gal-v-title"><b>{it.title}</b></div>
-            {data.allowDownload && <a className="btn sm" href={`${base}/original/${it.id}`} download>Download</a>}
+            {data.allowDownload && <a className="btn sm" href={`${base}/original/${it.id}`} download>{t('Download')}</a>}
             <LegalNote kind="sharedView" newTab className="gal-v-legal" />
           </div>
         </div>

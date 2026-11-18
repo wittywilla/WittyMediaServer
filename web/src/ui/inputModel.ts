@@ -4,6 +4,8 @@
 // be tested (inputModel.test.mjs) and copied into the apps: which action a key press is, which input the person
 // is using right now, and the key legend for it. tv.ts answers the actions; ui/KeyLegend.tsx draws the legend.
 
+const tk = <S extends string>(english: S): S => english // marks text translated where it's shown (no i18n import: node tests load this file)
+
 export type Action = 'layout' | 'select' | 'back' | 'options' | 'search' | 'tabPrev' | 'tabNext' | 'pageUp' | 'pageDown' | 'top' | 'dock' | 'help'
 export type InputKind = 'keys' | 'pad' | 'remote' | 'touch'
 export type PadFamily = 'xbox' | 'playstation' | 'nintendo' | 'generic'
@@ -69,11 +71,11 @@ const PAD_GLYPHS: Record<PadFamily, Record<string, string>> = {
   generic: { select: 'A', back: 'B', options: 'X', search: 'Y', tab: 'LB / RB', page: 'LT / RT', top: 'R3', dock: 'Start', help: 'Back + Start' },
 }
 const KEY_GLYPHS: Record<string, string> = { select: 'Enter', back: 'Esc', options: '.', search: '/', tab: 'Ctrl [ ]', page: 'PgUp / PgDn', top: 'Home', dock: 'F6', help: '?' }
-const REMOTE_GLYPHS: Record<string, string> = { select: 'OK', back: 'Back', options: 'Hold OK', search: 'Search', tab: 'CH +/-', page: 'CH +/-', top: 'Up Up', dock: 'Menu', help: 'Hold Menu' }
+const REMOTE_GLYPHS: Record<string, string> = { select: 'OK', back: tk('Back'), options: tk('Hold OK'), search: tk('Search'), tab: 'CH +/-', page: 'CH +/-', top: tk('Up Up'), dock: tk('Menu'), help: tk('Hold Menu') }
 
 const ORDER: [string, string, Action][] = [
-  ['select', 'Select', 'select'], ['back', 'Back', 'back'], ['options', 'Options', 'options'], ['search', 'Search', 'search'],
-  ['tab', 'Tabs', 'tabNext'], ['page', 'Page', 'pageDown'], ['dock', 'Dock', 'dock'], ['help', 'Keys', 'help'],
+  ['select', tk('Select'), 'select'], ['back', tk('Back'), 'back'], ['options', tk('Options'), 'options'], ['search', tk('Search'), 'search'],
+  ['tab', tk('Tabs'), 'tabNext'], ['page', tk('Page'), 'pageDown'], ['dock', tk('Dock'), 'dock'], ['help', tk('Keys'), 'help'],
 ]
 
 // legend: the hint row for this input, in a fixed order, so the same thing is always in the same place. Touch has

@@ -277,3 +277,5 @@ html.ten-foot .su-ack a, html.using-controller .su-ack a, html.ten-foot .op-head
 .su-colours-big { display: grid; justify-items: center; gap: var(--sp-2); margin: 0; }
 .su-colours-big .layout-thumb { width: min(100%, 16rem); height: auto; border-radius: var(--r-lg); box-shadow: var(--e-2); }
 .su-colours-big figcaption { color: var(--fg-2); font-size: var(--text-sm); }
+/* Welcome's foot: Back to the language and time zone screen, and what it chose. */
+.su-chosen-locale { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; margin-top: var(--sp-5); font-size: var(--text-sm); }

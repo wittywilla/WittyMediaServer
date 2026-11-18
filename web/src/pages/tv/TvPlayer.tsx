@@ -25,6 +25,7 @@ import { catchupKey } from './guideLogic'
 import { useTvRemote } from '../../remote/tvTarget'
 import './tv.css'
 import './tvthemes.css'
+import { t, tx } from '../../i18n'
 
 haveHls(Hls)
 
@@ -92,7 +93,7 @@ export default function TvPlayer() {
   }, [])
   useEffect(() => {
     const v = video.current
-    if (v) v.setAttribute('aria-label', info ? `Channel ${info.number}, ${info.name}` : 'TV')
+    if (v) v.setAttribute('aria-label', info ? t('Channel {number}, {name}', { number: info.number, name: info.name }) : t('TV'))
   }, [info])
 
   // Each channel: the banner straight away, from what the list already knows. The stream
@@ -109,7 +110,7 @@ export default function TvPlayer() {
   }, [key, liveKey, showBanner])
   useEffect(() => {
     if (!info) return
-    announce(`Channel ${info.number}, ${info.name}${info.now?.title ? ', ' + info.now.title : ''}${info.notices?.length ? '. ' + info.notices.join(' ') : ''}`)
+    announce(t('Channel {number}, {name}', { number: info.number, name: info.name }) + (info.now?.title ? ', ' + info.now.title : '') + (info.notices?.length ? '. ' + info.notices.map((n) => tx(n)).join(' ') : ''))
   }, [info?.key]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!err) return
@@ -201,7 +202,7 @@ export default function TvPlayer() {
       const list = await getLineup().catch(() => [] as GuideChannel[])
       const c = list.find((x) => x.number === n)
       if (c) nav(`/tv/watch/${c.key}`, { replace: true, state: from })
-      else announce(`No channel ${n}`)
+      else announce(t('No channel {number}', { number: n }))
     }, 1300)
   }
   useEffect(() => () => clearTimeout(dialTimer.current), [])
@@ -281,20 +282,20 @@ export default function TvPlayer() {
 
   return (
     <div className={'player ctv-player'} ref={root} tabIndex={-1} onClick={togglePlay} onDoubleClick={() => toggleFullscreen(root.current)} {...playerRoot}>{/* design-ok: a click on the picture is the mouse's shortcut for Play and Pause */}
-      <h1 className="sr-only">{info ? `Channel ${info.number}, ${info.name}` : 'Live TV'}</h1>
+      <h1 className="sr-only">{info ? t('Channel {number}, {name}', { number: info.number, name: info.name }) : t('Live TV')}</h1>
       <div className="stage" ref={stage} />
       {!picture && !err && !needClick && <div className="center-spinner"><div className="spinner" /></div>}
-      {needClick && <div className="big-play"><button aria-label="Play" onClick={(e) => { e.stopPropagation(); setNeedClick(false); video.current?.play() }}><IconPlay /></button></div>}
+      {needClick && <div className="big-play"><button aria-label={t('Play')} onClick={(e) => { e.stopPropagation(); setNeedClick(false); video.current?.play() }}><IconPlay /></button></div>}
       {err && (
         <div className="overlay-msg" role="alert">
           <div className="box">
-            <b>{info ? `Channel ${info.number}, ${info.name}` : 'This channel'}</b><br />{err}<br />
+            <b>{info ? t('Channel {number}, {name}', { number: info.number, name: info.name }) : t('This channel')}</b><br />{tx(err)}<br />
             <div className="ctv-msg-actions" onClick={(e) => e.stopPropagation()}>
-              {alt && <button className="btn primary" onClick={() => nav(`/tv/watch/${alt.key}`, { replace: true })}>Watch {alt.number} {alt.name} instead</button>}
-              {err.includes('Encrypted:') && <button className="btn" onClick={() => nav('/tv/encrypted')}>What can I do?</button>}
-              {fromStart && <button className="btn primary" onClick={goLive}>Watch the channel live</button>}
-              <button className="btn" onClick={guide}>Back to the guide</button>
-              {!fromStart && <button className="btn" onClick={() => void step(1)}>Next channel</button>}
+              {alt && <button className="btn primary" onClick={() => nav(`/tv/watch/${alt.key}`, { replace: true })}>{t('Watch {number} {name} instead', { number: alt.number, name: alt.name })}</button>}
+              {err.includes('Encrypted:') && <button className="btn" onClick={() => nav('/tv/encrypted')}>{t('What can I do?')}</button>}
+              {fromStart && <button className="btn primary" onClick={goLive}>{t('Watch the channel live')}</button>}
+              <button className="btn" onClick={guide}>{t('Back to the guide')}</button>
+              {!fromStart && <button className="btn" onClick={() => void step(1)}>{t('Next channel')}</button>}
             </div>
           </div>
         </div>
@@ -302,25 +303,25 @@ export default function TvPlayer() {
       {info?.now?.kind === 'slate' && !err && <Slate name={info.name} next={info.next} />}
       {dial && <div className="ctv-osd-dial" role="status">{dial}<span className="ctv-blink">_</span></div>}
       <div className="top" onClick={(e) => e.stopPropagation()}>
-        <button className="ibtn" onClick={guide} title="Guide (G)" aria-label="Back to the guide"><IconBack /></button>
-        <div className="grow"><h2>{info ? `${info.number} ${info.name}` : 'Tuning…'}</h2><div className="sub">{fromStart ? 'From the start' : isBehind ? `${Math.round(win.behind / 60)} min behind live` : 'Live'}</div></div>
+        <button className="ibtn" onClick={guide} title={t('Guide (G)')} aria-label={t('Back to the guide')}><IconBack /></button>
+        <div className="grow"><h2>{info ? `${info.number} ${info.name}` : t('Tuning…')}</h2><div className="sub">{fromStart ? t('From the start') : isBehind ? t('{n} min behind live', { n: Math.round(win.behind / 60) }) : t('Live')}</div></div>
       </div>
       {remoteOn && <Remote onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemoteOn(false)} label="WittyTV" />}
       {banner && !mini && (info ? <Banner info={info} look={look} fromStart={fromStart} onMore={() => setMore(true)} /> : zap && <ZapBanner ch={zap} look={look} />)}
       {more && info?.now && <MoreInfo channelKey={info.key} at={Math.max(info.now.start, Date.now() / 1000)} onClose={() => setMore(false)} />}
       {mini && <MiniGuide channel={key} onTune={tuneTo} onClose={() => setMini(false)} onFull={guide} />}
-      {settingsOpen && <Dialog title="Player settings" onClose={() => setSettingsOpen(false)}><BackgroundPlayChoice /></Dialog>}
+      {settingsOpen && <Dialog title={t('Player settings')} onClose={() => setSettingsOpen(false)}><BackgroundPlayChoice /></Dialog>}
       <Controls video={video} duration={windowLen} offset={-win.start} onSeek={(t) => seekTo(win.start + t)} onFullscreen={() => toggleFullscreen(root.current)}
         remoteOn={remoteOn} onRemote={() => setRemoteOn(!remoteOn)} showChapterMarks={false} onSettings={() => setSettingsOpen(true)}
         audio={tracks.audio} subtitles={tracks.subtitles} onAudio={tracks.chooseAudio} onSubtitle={tracks.chooseSubtitle}
         extra={<>
-          {fromStart ? <button className="btn sm primary" onClick={goLive} title="Back to live (L)">● Back to live</button>
-            : isBehind && <button className="btn sm" onClick={goLive} title="Back to live (L)">● Live</button>}
-          <button className="btn sm" onClick={() => void step(-1)} title="Channel down (Page Down)" aria-label="Channel down">CH −</button>
-          <button className="btn sm" onClick={() => void step(1)} title="Channel up (Page Up)" aria-label="Channel up">CH +</button>
-          <button className="btn sm hide-narrow" onClick={last} disabled={!lastKey.current} title="Last channel (Backspace)">Last</button>
-          <button className="btn sm" onClick={() => setMini(true)} title="Now and next (G)">Mini guide</button>
-          <button className="btn sm hide-narrow" onClick={guide} title="The full guide">Guide</button>
+          {fromStart ? <button className="btn sm primary" onClick={goLive} title={t('Back to live (L)')}>● {t('Back to live')}</button>
+            : isBehind && <button className="btn sm" onClick={goLive} title={t('Back to live (L)')}>● {t('Live')}</button>}
+          <button className="btn sm" onClick={() => void step(-1)} title={t('Channel down (Page Down)')} aria-label={t('Channel down')}>{t('CH −')}</button>
+          <button className="btn sm" onClick={() => void step(1)} title={t('Channel up (Page Up)')} aria-label={t('Channel up')}>{t('CH +')}</button>
+          <button className="btn sm hide-narrow" onClick={last} disabled={!lastKey.current} title={t('Last channel (Backspace)')}>{t('Last')}</button>
+          <button className="btn sm" onClick={() => setMini(true)} title={t('Now and next (G)')}>{t('Mini guide')}</button>
+          <button className="btn sm hide-narrow" onClick={guide} title={t('The full guide')}>{t('Guide')}</button>
         </>} />
     </div>
   )
@@ -331,7 +332,7 @@ function ZapBanner({ ch, look }: { ch: GuideChannel; look: Look }) {
   return (
     <div className="ctv-banner" onClick={(e) => e.stopPropagation()}>
       <div className="ctv-banner-ch"><ChannelLogo ch={ch} look={look} on={surfaceOf(look)} /><b>{ch.number}</b><span>{ch.name}</span></div>
-      <div className="ctv-banner-main"><div className="ctv-banner-title">{ch.name}</div><div className="ctv-banner-sub">Tuning…</div></div>
+      <div className="ctv-banner-main"><div className="ctv-banner-title">{ch.name}</div><div className="ctv-banner-sub">{t('Tuning…')}</div></div>
     </div>
   )
 }
@@ -350,14 +351,14 @@ function Banner({ info, look, fromStart, onMore }: { info: TuneInfo; look: Look;
       </div>
       <div className="ctv-banner-main">
         <div className="ctv-banner-title">{p?.title || info.name}{p?.rating && <em>{p.rating}</em>}</div>
-        <div className="ctv-banner-sub">{fromStart && <em className="ctv-banner-tag">From the start</em>}{p?.sub || (p ? '' : 'No guide data')}</div>
-        {fromStart && <div className="ctv-banner-next">Press L or Back to live for the channel as it is now.</div>}
+        <div className="ctv-banner-sub">{fromStart && <em className="ctv-banner-tag">{t('From the start')}</em>}{p?.sub || (p ? '' : t('No guide data'))}</div>
+        {fromStart && <div className="ctv-banner-next">{t('Press L or Back to live for the channel as it is now.')}</div>}
         {p && !fromStart && <div className="ctv-banner-progress"><span>{fmtClock(p.start)}</span><i><u style={{ width: pct + '%' }} /></i><span>{fmtClock(p.end)}</span></div>}
-        {info.next && <div className="ctv-banner-next">Next: {info.next.title} · {fmtSpan(info.next)}</div>}
-        {info.playing && <div className="ctv-banner-next">Playing now: {info.playing.title}</div>}
-        {info.notices?.map((n) => <div key={n} className="ctv-banner-notice">{n}{info.alternative ? ` Channel ${info.alternative.number} has the same station with sound.` : ''}</div>)}
+        {info.next && <div className="ctv-banner-next">{t('Next: {title}', { title: info.next.title })} · {fmtSpan(info.next)}</div>}
+        {info.playing && <div className="ctv-banner-next">{t('Playing now: {title}', { title: info.playing.title })}</div>}
+        {info.notices?.map((n) => <div key={n} className="ctv-banner-notice">{tx(n)}{info.alternative ? ' ' + t('Channel {number} has the same station with sound.', { number: info.alternative.number }) : ''}</div>)}
         <BannerRights ch={info} look={look} />
-        {p && <button type="button" className="ctv-btn sm ctv-banner-more" onClick={() => onMore()} aria-label="More info">More info <kbd aria-hidden="true">I</kbd></button>}
+        {p && <button type="button" className="ctv-btn sm ctv-banner-more" onClick={() => onMore()} aria-label={t('More info')}>{t('More info')} <kbd aria-hidden="true">I</kbd></button>}
       </div>
       <div className="ctv-banner-clock">{fmtClock(now)}</div>
     </div>

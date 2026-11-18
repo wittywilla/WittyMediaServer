@@ -15,6 +15,7 @@ import { IconPlug, IconRight } from '../../icons'
 import { sduiIcon } from '../../sdui/render/icons'
 import { Switch } from '../../ui/Field'
 import { PageHead, Row, Section } from './ui'
+import { t, tk } from '../../i18n'
 
 type Option = { value: string; label: string }
 export type SettingRow = {
@@ -36,12 +37,12 @@ export function ModuleSettingsList() {
   useEffect(load, [load])
   return (
     <>
-      <PageHead title="Module settings" desc="What the modules on this server let you set. Some are for the whole server and only an administrator changes them; others are your own." />
-      {failed ? <LoadError what="Module settings" onRetry={load} />
+      <PageHead title={tk('Module settings')} desc={t('What the modules on this server let you set. Some are for the whole server and only an administrator changes them; others are your own.')} />
+      {failed ? <LoadError what={t('Module settings')} onRetry={load} />
         : !list ? <Spinner />
-          : list.length === 0 ? <EmptyState icon={<IconPlug />} title="No module settings" text="None of the modules in use has settings for you." />
+          : list.length === 0 ? <EmptyState icon={<IconPlug />} title={t('No module settings')} text={t('None of the modules in use has settings for you.')} />
             : (
-              <Section title="Modules">
+              <Section title={tk('Modules')}>
                 {list.map((m) => (
                   <Row key={m.module} label={<Link className="ms-link" to={`/settings/module-settings/${encodeURIComponent(m.module)}`}>{m.icon ? sduiIcon(m.icon) : <IconPlug />} <span>{m.label}</span></Link>}>
                     <IconRight aria-hidden="true" />
@@ -62,7 +63,7 @@ export function ModuleSettingsPage() {
   const [busy, setBusy] = useState<string>('')
   const load = useCallback(() => {
     setFailed('')
-    api.get<ModuleSettingsView>(`${BASE}/${encodeURIComponent(module)}/settings`).then(setV).catch((e) => setFailed(e instanceof ApiError && e.status === 404 ? 'This module isn’t in use, or this profile can’t use it.' : (e as Error).message))
+    api.get<ModuleSettingsView>(`${BASE}/${encodeURIComponent(module)}/settings`).then(setV).catch((e) => setFailed(e instanceof ApiError && e.status === 404 ? t('This module isn’t in use, or this profile can’t use it.') : (e as Error).message))
   }, [module])
   useEffect(load, [load])
 
@@ -82,11 +83,11 @@ export function ModuleSettingsPage() {
     } finally { setBusy('') }
   }
 
-  if (failed) return <><PageHead title="Module settings" /><LoadError what={failed} onRetry={load} /></>
+  if (failed) return <><PageHead title={tk('Module settings')} /><LoadError what={failed} onRetry={load} /></>
   if (!v) return <Spinner />
   return (
     <>
-      <PageHead title={v.label} desc={<Link to="/settings/module-settings">All module settings</Link>} />
+      <PageHead title={v.label} desc={<Link to="/settings/module-settings">{t('All module settings')}</Link>} />
       {v.pages.map((p) => (
         <div key={p.id} className="ms-page">
           {v.pages.length > 1 && <h2 className="ms-page-title">{p.title}</h2>}
@@ -117,14 +118,14 @@ function SettingRowView({ row, view, busy, error, onSave }: { row: SettingRow; v
   const desc = (
     <>
       {row.help}
-      {!editable && row.kind !== 'info' && <span className="muted">{row.help ? ' ' : ''}Set by an administrator for the whole server.</span>}
+      {!editable && row.kind !== 'info' && <span className="muted">{row.help ? ' ' : ''}{t('Set by an administrator for the whole server.')}</span>}
       {error && <span className="error" role="alert" id={id + 'e'}> {error}</span>}
     </>
   )
   if (row.kind === 'info') return <Row label={row.label} desc={row.help} />
   if (!editable) {
-    const shown = row.kind === 'bool' ? (value ? 'On' : 'Off') : row.kind === 'enum' ? row.options?.find((o) => o.value === value)?.label ?? String(value ?? '') : row.kind === 'secret' ? (view.secretsSet.includes(row.key!) ? 'Set' : 'Not set') : `${value ?? ''}${row.unit ? ' ' + row.unit : ''}`
-    return <Row label={row.label} desc={desc}><span className="ms-value" aria-label={`${row.label}: ${shown}, read only`} tabIndex={0}>{shown}</span></Row>
+    const shown = row.kind === 'bool' ? (value ? t('On') : t('Off')) : row.kind === 'enum' ? row.options?.find((o) => o.value === value)?.label ?? String(value ?? '') : row.kind === 'secret' ? (view.secretsSet.includes(row.key!) ? t('Set') : t('Not set')) : `${value ?? ''}${row.unit ? ' ' + row.unit : ''}`
+    return <Row label={row.label} desc={desc}><span className="ms-value" aria-label={t('{label}: {value}, read only', { label: row.label, value: shown })} tabIndex={0}>{shown}</span></Row>
   }
   switch (row.kind) {
     case 'bool':
@@ -178,10 +179,10 @@ function SecretField({ row, set, busy, onSave }: { row: SettingRow; set: boolean
   const [text, setText] = useState('')
   return (
     <span className="ms-secret">
-      <span className="muted" aria-live="polite">{set ? 'Set' : 'Not set'}</span>
-      <input className="input" type="password" autoComplete="off" aria-label={`New ${row.label}`} value={text} maxLength={row.maxLength || 1000} disabled={busy} onChange={(e) => setText(e.target.value)} />
-      <button type="button" className="btn sm" disabled={busy || !text} onClick={() => { onSave(text); setText('') }}>Save</button>
-      {set && <button type="button" className="btn sm ghost" disabled={busy} onClick={() => onSave(null)}>Clear</button>}
+      <span className="muted" aria-live="polite">{set ? t('Set') : t('Not set')}</span>
+      <input className="input" type="password" autoComplete="off" aria-label={t('New {label}', { label: row.label })} value={text} maxLength={row.maxLength || 1000} disabled={busy} onChange={(e) => setText(e.target.value)} />
+      <button type="button" className="btn sm" disabled={busy || !text} onClick={() => { onSave(text); setText('') }}>{t('Save')}</button>
+      {set && <button type="button" className="btn sm ghost" disabled={busy} onClick={() => onSave(null)}>{t('Clear')}</button>}
     </span>
   )
 }

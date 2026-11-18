@@ -19,9 +19,15 @@ export type Markers = {
 }
 export type Skip = { kind: 'intro' | 'recap' | 'credits' | 'commercial' | 'preview' | 'custom'; label: string; to: number }
 
-const LABEL: Record<Skip['kind'], string> = { intro: 'Skip intro', recap: 'Skip recap', credits: 'Skip credits', commercial: 'Skip adverts', preview: 'Skip preview', custom: 'Skip this part' }
+// Marks words for translation; they're translated where they're shown, with tx(). (A local mark, so the tests can
+// load this file without the app's i18n layer.)
+const tk = <S extends string>(english: S): S => english
 
-// customLabel: "Skip dream sequence" for a part someone named, else "Skip this part".
+const LABEL: Record<Skip['kind'], string> = { intro: tk('Skip intro'), recap: tk('Skip recap'), credits: tk('Skip credits'), commercial: tk('Skip adverts'), preview: tk('Skip preview'), custom: tk('Skip this part') }
+
+// customLabel: what to skip a part someone named: the label alone, which the button puts after
+// its own words ("Skip" and the name, in the viewer's language: see skipWords). The English
+// is kept as "Skip …" for players that show the label as it is.
 export const customLabel = (label?: string) => {
   const l = (label || '').trim()
   if (!l) return LABEL.custom
@@ -92,7 +98,7 @@ export function autoSkipPrefs(raw: unknown): AutoSkipPrefs {
 }
 export const anyAutoSkip = (p: AutoSkipPrefs) => p.intro || p.recap || p.credits || p.adverts || p.preview || p.custom || p.fileAuto
 
-const SKIPPED: Record<Skip['kind'], string> = { intro: 'Skipped intro', recap: 'Skipped recap', credits: 'Skipped credits', commercial: 'Skipped adverts', preview: 'Skipped preview', custom: 'Skipped a part' }
+const SKIPPED: Record<Skip['kind'], string> = { intro: tk('Skipped intro'), recap: tk('Skipped recap'), credits: tk('Skipped credits'), commercial: tk('Skipped adverts'), preview: tk('Skipped preview'), custom: tk('Skipped a part') }
 export const skippedLabel = (kind: Skip['kind']) => SKIPPED[kind]
 
 type Part = { kind: Skip['kind']; key: string; startSec: number; endSec: number; fileAuto?: boolean; label?: string; toScene?: boolean }
@@ -180,9 +186,9 @@ export type MarkerPut = { reset: true } | { intro?: PutRange; recap?: PutRange; 
 type PutRange = { start: number; end?: number }
 
 const SOURCE_WORDS: Record<string, string> = {
-  wittyinfo: 'From the .wittyinfo', 'wittyinfo-season': 'The season’s .wittyinfo', 'wittyinfo-show': 'The show’s .wittyinfo',
-  manual: 'Set by hand', 'skip.json': 'From a .skip.json beside the file', edl: 'From an .edl beside the file',
-  chapters: 'From the file’s chapters', detected: 'Found by comparing episodes', show: 'The show’s own intro',
+  wittyinfo: tk('From the .wittyinfo'), 'wittyinfo-season': tk('The season’s .wittyinfo'), 'wittyinfo-show': tk('The show’s .wittyinfo'),
+  manual: tk('Set by hand'), 'skip.json': tk('From a .skip.json beside the file'), edl: tk('From an .edl beside the file'),
+  chapters: tk('From the file’s chapters'), detected: tk('Found by comparing episodes'), show: tk('The show’s own intro'),
 }
 // sourceWords: where a kind of marker came from, in words ('' when there is none).
 export const markerSourceWords = (m: MarkerAnswer | null, kind: string) => SOURCE_WORDS[m?.sources?.[kind] || ''] || ''
@@ -213,14 +219,21 @@ export function markerForm(m: MarkerAnswer | null): MarkerForm {
   return { intro: rangeText(m?.intro), recap: rangeText(m?.recap), credits: rangeText(m?.credits), commercials: (m?.commercials || []).map(rangeText).filter((r) => !blank(r)) }
 }
 
-const NAMES = { intro: 'the intro', recap: 'the recap', credits: 'the credits', commercials: 'an advert break' } as const
+// What's wrong with a range, said for each part in whole sentences, so they translate.
+type Problems = { times: string; ends: string; order: string }
+const PROBLEMS: Record<'intro' | 'recap' | 'credits' | 'commercials', Problems> = {
+  intro: { times: tk('Type the times for the intro as minutes and seconds, such as 1:05.'), ends: tk('Say where the intro ends.'), order: tk('The end of the intro has to come after its start.') },
+  recap: { times: tk('Type the times for the recap as minutes and seconds, such as 1:05.'), ends: tk('Say where the recap ends.'), order: tk('The end of the recap has to come after its start.') },
+  credits: { times: tk('Type the times for the credits as minutes and seconds, such as 1:05.'), ends: tk('Say where the credits end.'), order: tk('The end of the credits has to come after their start.') },
+  commercials: { times: tk('Type the times for an advert break as minutes and seconds, such as 1:05.'), ends: tk('Say where an advert break ends.'), order: tk('The end of an advert break has to come after its start.') },
+}
 
-function readRange(r: RangeText, what: string, openEnd: boolean): PutRange | string {
+function readRange(r: RangeText, say: Problems, openEnd: boolean): PutRange | string {
   const start = clockSeconds(r.start) ?? 0
   const end = clockSeconds(r.end)
-  if (Number.isNaN(start) || Number.isNaN(end)) return `Type the times for ${what} as minutes and seconds, such as 1:05.`
-  if (end == null) return openEnd ? { start } : `Say where ${what} ends.`
-  if (end <= start) return `The end of ${what} has to come after its start.`
+  if (Number.isNaN(start) || Number.isNaN(end)) return say.times
+  if (end == null) return openEnd ? { start } : say.ends
+  if (end <= start) return say.order
   return { start, end }
 }
 
@@ -236,7 +249,7 @@ export function markerPut(saved: MarkerAnswer | null, form: MarkerForm): { body?
   for (const k of ['intro', 'recap', 'credits'] as const) {
     if (!byHand(k) && same(form[k], was[k])) continue
     if (blank(form[k])) continue
-    const r = readRange(form[k], NAMES[k], k === 'credits')
+    const r = readRange(form[k], PROBLEMS[k], k === 'credits')
     if (typeof r === 'string') return { error: r }
     body[k] = r
   }
@@ -245,7 +258,7 @@ export function markerPut(saved: MarkerAnswer | null, form: MarkerForm): { body?
   if ((byHand('commercials') || changed) && breaks.length) {
     const list: PutRange[] = []
     for (const b of breaks) {
-      const r = readRange(b, NAMES.commercials, false)
+      const r = readRange(b, PROBLEMS.commercials, false)
       if (typeof r === 'string') return { error: r }
       list.push(r)
     }

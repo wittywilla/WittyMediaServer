@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, artPreviewUrl, type Item, type Show } from '../../api'
+import { t, tc, tk, tx } from '../../i18n'
 import { IconClose, IconImage, IconLock, IconRefresh, IconTrash, IconUnlock } from '../../icons'
 import { ask, Button, Dialog, IconButton } from '../../ui'
 import { fmtClock, joinOf, listOf, parseClock, undoBatch, type ArtKind, type MetaField, type Target, type TitleEditor } from '../../metadata'
@@ -24,8 +25,8 @@ import './edit.css'
 export type EditSection = 'match' | 'details' | 'artwork' | 'playback' | 'organise' | 'logos'
 
 const SECTIONS: { id: EditSection; label: string }[] = [
-  { id: 'match', label: 'Match' }, { id: 'details', label: 'Details' }, { id: 'artwork', label: 'Artwork' },
-  { id: 'playback', label: 'Skipping' }, { id: 'organise', label: 'Organise' }, { id: 'logos', label: 'Logos' },
+  { id: 'match', label: tk('Match') }, { id: 'details', label: tk('Details') }, { id: 'artwork', label: tk('Artwork') },
+  { id: 'playback', label: tk('Skipping') }, { id: 'organise', label: tk('Organise') }, { id: 'logos', label: tk('Logos') },
 ]
 
 export default function EditDetails({ target, id, start, onClose, onChanged }: {
@@ -96,7 +97,7 @@ export default function EditDetails({ target, id, start, onClose, onChanged }: {
   const save = async () => {
     if (!ed) return
     const year = val('year')
-    if (year && !/^\d{4}$/.test(year)) { setErr('A year has four digits.'); document.getElementById('ed-year')?.focus(); return }
+    if (year && !/^\d{4}$/.test(year)) { setErr(t('A year has four digits.')); document.getElementById('ed-year')?.focus(); return }
     setBusy(true); setErr('')
     try {
       const lock = Object.entries(locks).filter(([, on]) => on).map(([f]) => f)
@@ -104,7 +105,7 @@ export default function EditDetails({ target, id, start, onClose, onChanged }: {
       const r = await api.put<{ editor: TitleEditor; batch: string }>(`/meta/${target}/${id}`, { fields: draft, lock, unlock })
       setEd(r.editor); setDraft({}); setLocks({})
       onChanged()
-      toast('Saved')
+      toast(t('Saved'))
       onClose()
     } catch (e: any) { setErr(e.message); setBusy(false) }
   }
@@ -113,7 +114,7 @@ export default function EditDetails({ target, id, start, onClose, onChanged }: {
     if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'Enter')) { e.preventDefault(); save() }
   }
   const askClose = async () => {
-    if (!dirty || await ask({ title: 'Discard your changes?', body: "You have changes that aren't saved.", confirm: 'Discard them', cancel: 'Keep editing', danger: true })) onClose()
+    if (!dirty || await ask({ title: t('Discard your changes?'), body: t("You have changes that aren't saved."), confirm: t('Discard them'), cancel: t('Keep editing'), danger: true })) onClose()
   }
   const revert = async (f: string) => {
     setErr('')
@@ -127,15 +128,17 @@ export default function EditDetails({ target, id, start, onClose, onChanged }: {
   const lockAll = async (on: boolean) => {
     try {
       const r = await api.put<{ editor: TitleEditor }>(`/meta/${target}/${id}`, on ? { lockAll: true } : { unlockAll: true })
-      setLocks({}); applied(r.editor); toast(on ? 'Every field is locked' : 'Every field is unlocked')
+      setLocks({}); applied(r.editor); toast(on ? t('Every field is locked') : t('Every field is unlocked'))
     } catch (e: any) { setErr(e.message) }
   }
   const remove = async () => {
-    const files = target === 'show' ? 'files stay' : 'file stays'
-    if (!await ask({ title: 'Take this out of its library?', body: `Its ${files} on disk, and it won't come back on a scan. You can bring it back from Fix matches, Removed.`, confirm: 'Take it out', cancel: 'Keep it', danger: true })) return
+    const body = target === 'show'
+      ? t("Its files stay on disk, and it won't come back on a scan. You can bring it back from Fix matches, Removed.")
+      : t("Its file stays on disk, and it won't come back on a scan. You can bring it back from Fix matches, Removed.")
+    if (!await ask({ title: t('Take this out of its library?'), body, confirm: t('Take it out'), cancel: t('Keep it'), danger: true })) return
     try {
       await api.del(`/meta/${target}/${id}`)
-      toast('Taken out of the library. Its file is still there.')
+      toast(t('Taken out of the library. Its file is still there.'))
       onChanged()
       onClose()
       nav(ed ? `/library/${ed.libraryId}` : '/')
@@ -154,28 +157,28 @@ export default function EditDetails({ target, id, start, onClose, onChanged }: {
     e.currentTarget.closest('.ed-dialog')?.querySelector<HTMLElement>('.actions button:not([disabled])')?.focus()
   }
   return (
-    <Dialog title="Edit details" description={ed?.file} size="wide" className="ed-dialog" onClose={askClose}
+    <Dialog title={t('Edit details')} description={ed?.file} size="wide" className="ed-dialog" onClose={askClose}
       actions={<>
-        <Button variant="ghost" className="ed-delete" disabled={!ed} icon={<IconTrash size={18} />} onClick={remove}>Delete</Button>
-        <Button variant="ghost" onClick={askClose}>Cancel</Button>
-        <Button variant="primary" busy={busy} disabled={!ed || !dirty} onClick={save} title="Ctrl+S">Save</Button>
+        <Button variant="ghost" className="ed-delete" disabled={!ed} icon={<IconTrash size={18} />} onClick={remove}>{t('Delete')}</Button>
+        <Button variant="ghost" onClick={askClose}>{t('Cancel')}</Button>
+        <Button variant="primary" busy={busy} disabled={!ed || !dirty} onClick={save} title="Ctrl+S">{t('Save')}</Button>
       </>}>
       <div className="ed-body" onKeyDown={keys}>
         {!ed ? (loadErr ? <div className="error ed-pad" role="alert">{loadErr}</div> : <div className="loading-box"><div className="spinner" /></div>) : (
           <div className="ed-layout">
-            <nav className="ed-nav" aria-label="Sections" data-nav-group onKeyDown={navKeys}>
+            <nav className="ed-nav" aria-label={t('Sections')} data-nav-group onKeyDown={navKeys}>
               {SECTIONS.filter((s) => !(s.id === 'logos' && ed.kind === 'episode') && !(s.id === 'playback' && ed.disc)).map((s) => (
-                <a key={s.id} href={`#ed-${s.id}`} onClick={(e) => { e.preventDefault(); const el = document.getElementById('ed-' + s.id); el?.scrollIntoView({ block: 'start' }); el?.querySelector<HTMLElement>('input, select, textarea, button')?.focus({ preventScroll: true }) }}>{s.label}</a>
+                <a key={s.id} href={`#ed-${s.id}`} onClick={(e) => { e.preventDefault(); const el = document.getElementById('ed-' + s.id); el?.scrollIntoView({ block: 'start' }); el?.querySelector<HTMLElement>('input, select, textarea, button')?.focus({ preventScroll: true }) }}>{tx(s.label)}</a>
               ))}
             </nav>
             <div className="ed-scroll" ref={scroller}>
               <MatchPanel ed={ed} target={target} id={id} onApplied={applied} onError={setErr} />
               <section id="ed-details" className="ed-section" aria-labelledby="ed-details-h">
                 <div className="ed-section-head">
-                  <h3 id="ed-details-h">Details</h3>
-                  <button type="button" className="btn sm ghost" onClick={() => lockAll(!allLocked)}>{allLocked ? <><IconUnlock size={16} /> Unlock all</> : <><IconLock size={16} /> Lock all</>}</button>
+                  <h3 id="ed-details-h">{t('Details')}</h3>
+                  <button type="button" className="btn sm ghost" onClick={() => lockAll(!allLocked)}>{allLocked ? <><IconUnlock size={16} /> {t('Unlock all')}</> : <><IconLock size={16} /> {t('Lock all')}</>}</button>
                 </div>
-                <p className="muted ed-help">A locked field stays as it is: no scan, refresh, new match or file beside it can change it. Anything you type locks itself.</p>
+                <p className="muted ed-help">{t('A locked field stays as it is: no scan, refresh, new match or file beside it can change it. Anything you type locks itself.')}</p>
                 <DetailFields {...fieldProps} />
               </section>
               <ArtworkSection {...fieldProps} target={target} id={id} onApplied={artApplied} />
@@ -183,10 +186,10 @@ export default function EditDetails({ target, id, start, onClose, onChanged }: {
               <OrganiseSection ed={ed} target={target} id={id} onApplied={applied} onError={setErr} />
               {ed.kind !== 'episode' && (
                 <section id="ed-logos" className="ed-section" aria-labelledby="ed-logos-h">
-                  <h3 id="ed-logos-h">Logos</h3>
-                  <p className="muted ed-help">The logo each studio or network wears everywhere on this server and on your devices.</p>
+                  <h3 id="ed-logos-h">{t('Logos')}</h3>
+                  <p className="muted ed-help">{t('The logo each studio or network wears everywhere on this server and on your devices.')}</p>
                   <LogoRows logos={ed.brands} onChanged={load} />
-                  {ed.brands.length === 0 && <p className="muted">No studio or network is set for this yet. Add one under Details, or choose a match.</p>}
+                  {ed.brands.length === 0 && <p className="muted">{t('No studio or network is set for this yet. Add one under Details, or choose a match.')}</p>}
                 </section>
               )}
               <LegalNote kind="metadata" />
@@ -197,9 +200,9 @@ export default function EditDetails({ target, id, start, onClose, onChanged }: {
           <div className="ed-undo" role="status">
             <span>{undo.what}</span>
             <button type="button" className="btn sm" onClick={async () => {
-              try { await undoBatch(undo.batch); setUndo(null); setDraft({}); setLocks({}); await load(); onChanged(); toast('Undone') } catch (e: any) { setErr(e.message) }
-            }}>Undo</button>
-            <IconButton size="sm" label="Dismiss" hideTip onClick={() => setUndo(null)}><IconClose size={16} /></IconButton>
+              try { await undoBatch(undo.batch); setUndo(null); setDraft({}); setLocks({}); await load(); onChanged(); toast(t('Undone')) } catch (e: any) { setErr(e.message) }
+            }}>{t('Undo')}</button>
+            <IconButton size="sm" label={t('Dismiss')} hideTip onClick={() => setUndo(null)}><IconClose size={16} /></IconButton>
           </div>
         )}
         {err && <div className="error ed-err" role="alert">{err}</div>}
@@ -211,19 +214,19 @@ export default function EditDetails({ target, id, start, onClose, onChanged }: {
 type FieldProps = { ed: TitleEditor; val: (f: string) => string; set: (f: string, v: string) => void; isLocked: (f: string) => boolean; toggleLock: (f: string) => void; revert: (f: string) => void }
 
 function LockButton({ label, locked, onClick }: { label: string; locked: boolean; onClick: () => void }) {
-  return <IconButton size="sm" className={'ed-lock' + (locked ? ' on' : '')} aria-pressed={locked} label={locked ? `${label} is locked: nothing can change it` : `Lock ${label}`} onClick={onClick}>{locked ? <IconLock size={16} /> : <IconUnlock size={16} />}</IconButton>
+  return <IconButton size="sm" className={'ed-lock' + (locked ? ' on' : '')} aria-pressed={locked} label={locked ? t('{label} is locked: nothing can change it', { label }) : t('Lock {label}', { label })} onClick={onClick}>{locked ? <IconLock size={16} /> : <IconUnlock size={16} />}</IconButton>
 }
 
 // Where a value came from, in words.
 function sourceWords(m?: MetaField) {
   if (!m || !m.source) return ''
-  if (m.source === 'you') return 'You typed this'
-  if (m.source === 'file') return 'From the file name'
-  if (m.source === 'nfo') return 'From an NFO file'
-  if (m.source === 'saved') return 'Saved earlier'
-  if (m.source === 'local') return 'From beside the file'
-  if (m.source === 'frame') return 'A frame from the video'
-  return 'From ' + m.sourceLabel
+  if (m.source === 'you') return t('You typed this')
+  if (m.source === 'file') return t('From the file name')
+  if (m.source === 'nfo') return t('From an NFO file')
+  if (m.source === 'saved') return t('Saved earlier')
+  if (m.source === 'local') return t('From beside the file')
+  if (m.source === 'frame') return t('A frame from the video')
+  return t('From {source}', { source: m.sourceLabel })
 }
 
 function FieldShell({ name, label, children, p, wide, hint }: { name: string; label: string; children: (id: string, describedBy?: string) => React.ReactNode; p: FieldProps; wide?: boolean; hint?: string }) {
@@ -236,14 +239,14 @@ function FieldShell({ name, label, children, p, wide, hint }: { name: string; la
     <div className={'ed-field' + (wide ? ' wide' : '') + (locked ? ' locked' : '')}>
       <div className="ed-field-label">
         <label htmlFor={id}>{label}</label>
-        <span className="ed-source">{unsaved ? 'Not saved yet' : sourceWords(m)}</span>
+        <span className="ed-source">{unsaved ? t('Not saved yet') : sourceWords(m)}</span>
       </div>
       <div className="ed-field-control">{children(id, hintId)}</div>
       {/* After the field in the tab order, though it's drawn above it: type, then lock. */}
       <div className="ed-field-tools">
         {m?.canRevert && !unsaved && (
-          <button type="button" className="btn sm ghost ed-revert" onClick={() => p.revert(name)} title={m.revertTo ? `Go back to: ${m.revertTo}` : 'Go back to empty'}
-            aria-label={`Go back to what ${m.revertFrom || 'the source'} said for ${label}`}><IconRefresh size={14} /> Revert</button>
+          <button type="button" className="btn sm ghost ed-revert" onClick={() => p.revert(name)} title={m.revertTo ? t('Go back to: {value}', { value: m.revertTo }) : t('Go back to empty')}
+            aria-label={t('Go back to what {source} said for {field}', { source: m.revertFrom || t('the source'), field: label })}><IconRefresh size={14} /> {t('Revert')}</button>
         )}
         <LockButton label={label} locked={locked} onClick={() => p.toggleLock(name)} />
       </div>
@@ -267,7 +270,7 @@ export function TokenField({ id, value, onChange, placeholder, describedBy, sugg
     <div className="ed-tokens">
       {value.map((v) => (
         <span key={v} className="ed-token">{v}
-          <button type="button" aria-label={`Remove ${v}`} onClick={() => onChange(value.filter((x) => x !== v))}><IconClose size={14} /></button>
+          <button type="button" aria-label={t('Remove {name}', { name: v })} onClick={() => onChange(value.filter((x) => x !== v))}><IconClose size={14} /></button>
         </span>
       ))}
       <input id={id} className="ed-token-input" value={text} placeholder={value.length ? '' : placeholder} aria-describedby={describedBy} list={suggestions?.length ? listId : undefined}
@@ -296,46 +299,46 @@ function DetailFields(p: FieldProps) {
   )
   return (
     <div className="ed-fields">
-      {text('title', 'Title', { wide: true })}
-      {text('sortTitle', 'Sort name', { placeholder: 'Where this should sit in A to Z lists', wide: true })}
-      {text('year', 'Year', { inputMode: 'numeric', maxLength: 4 })}
-      {text('director', p.ed.kind === 'show' ? 'Created by' : 'Director')}
-      {p.ed.kind === 'episode' && text('season', 'Season', { inputMode: 'numeric' })}
-      {p.ed.kind === 'episode' && text('episode', 'Episode', { inputMode: 'numeric' })}
-      {list('edition', 'Edition', "Director's Cut, Remastered", 'Separate them with commas. Shows on its card, and can be filtered by.')}
-      {text('series', 'Collection', { placeholder: 'The film series it belongs to', wide: true, hint: 'Two or more with the same name appear as a collection on the library page.' })}
-      {text('tagline', 'Tagline', { wide: true })}
+      {text('title', t('Title'), { wide: true })}
+      {text('sortTitle', t('Sort name'), { placeholder: t('Where this should sit in A to Z lists'), wide: true })}
+      {text('year', t('Year'), { inputMode: 'numeric', maxLength: 4 })}
+      {text('director', p.ed.kind === 'show' ? t('Created by') : t('Director'))}
+      {p.ed.kind === 'episode' && text('season', t('Season'), { inputMode: 'numeric' })}
+      {p.ed.kind === 'episode' && text('episode', t('Episode'), { inputMode: 'numeric' })}
+      {list('edition', t('Edition'), t("Director's Cut, Remastered"), t('Separate them with commas. Shows on its card, and can be filtered by.'))}
+      {text('series', t('Collection'), { placeholder: t('The film series it belongs to'), wide: true, hint: t('Two or more with the same name appear as a collection on the library page.') })}
+      {text('tagline', t('Tagline'), { wide: true })}
       {has('overview') && (
-        <FieldShell name="overview" label="Overview" p={p} wide>
+        <FieldShell name="overview" label={t('Overview')} p={p} wide>
           {(id) => <textarea id={id} className="input" rows={5} value={p.val('overview')} onChange={(e) => p.set('overview', e.target.value)} />}
         </FieldShell>
       )}
-      {list('genres', 'Genres', 'Comedy, Family', 'These make the categories on the library page.')}
-      {list('tags', 'Tags', 'Add your own words', 'Your own groups, for filtering and saved views.')}
+      {list('genres', t('Genres'), t('Comedy, Family'), t('These make the categories on the library page.'))}
+      {list('tags', t('Tags'), t('Add your own words'), t('Your own groups, for filtering and saved views.'))}
       {has('contentRating') && (
         <div className={'ed-field wide' + (p.isLocked('contentRating') ? ' locked' : '')}>
           <div className="ed-field-head">
             <span className="ed-source">{sourceWords(p.ed.fields.contentRating)}</span>
             <div className="ed-field-tools">
-              <LockButton label="Content rating" locked={p.isLocked('contentRating')} onClick={() => p.toggleLock('contentRating')} />
+              <LockButton label={t('Content rating')} locked={p.isLocked('contentRating')} onClick={() => p.toggleLock('contentRating')} />
             </div>
           </div>
           <RatingField tv={p.ed.kind !== 'movie'} value={p.val('contentRating')} onChange={(v) => p.set('contentRating', v)} />
         </div>
       )}
-      {text('rating', 'Score out of 10', { inputMode: 'numeric' })}
-      {text('network', 'Network', { placeholder: 'The network it first aired on' })}
-      {text('status', 'Status', { placeholder: 'Continuing, Ended' })}
-      {list('studios', 'Studios', 'Who made it')}
+      {text('rating', t('Score out of 10'), { inputMode: 'numeric' })}
+      {text('network', tc('broadcaster', 'Network'), { placeholder: t('The network it first aired on') })}
+      {text('status', t('Status'), { placeholder: t('Continuing, Ended') })}
+      {list('studios', t('Studios'), t('Who made it'))}
     </div>
   )
 }
 
-const ART: { kind: ArtKind; label: string; hint: string; wide?: boolean }[] = [
-  { kind: 'poster', label: 'Poster', hint: 'The tall picture on cards.' },
-  { kind: 'backdrop', label: 'Backdrop', hint: 'Behind the title on its page.', wide: true },
-  { kind: 'banner', label: 'Banner', hint: 'A wide strip for rows and guides.', wide: true },
-  { kind: 'logo', label: 'Title logo', hint: 'The name as a picture, over its backdrop.', wide: true },
+const ART: { kind: ArtKind; label: string; change: string; hint: string; wide?: boolean }[] = [
+  { kind: 'poster', label: tk('Poster'), change: tk('Change the poster'), hint: tk('The tall picture on cards.') },
+  { kind: 'backdrop', label: tk('Backdrop'), change: tk('Change the backdrop'), hint: tk('Behind the title on its page.'), wide: true },
+  { kind: 'banner', label: tk('Banner'), change: tk('Change the banner'), hint: tk('A wide strip for rows and guides.'), wide: true },
+  { kind: 'logo', label: tk('Title logo'), change: tk('Change the title logo'), hint: tk('The name as a picture, over its backdrop.'), wide: true },
 ]
 
 type ArtProps = FieldProps & { target: Target; id: number; onApplied: (e: TitleEditor, b: string, w: string) => void }
@@ -345,8 +348,8 @@ function ArtworkSection(p: ArtProps) {
   const kinds = ART.filter((a) => p.ed.order.includes(a.kind))
   return (
     <section id="ed-artwork" className="ed-section" aria-labelledby="ed-artwork-h">
-      <h3 id="ed-artwork-h">Artwork</h3>
-      <p className="muted ed-help">Change opens the picture picker: what each source has, a file of your own, an address or a frame from the video. A picture is used as soon as you apply it, and can be undone.</p>
+      <h3 id="ed-artwork-h">{t('Artwork')}</h3>
+      <p className="muted ed-help">{t('Change opens the picture picker: what each source has, a file of your own, an address or a frame from the video. A picture is used as soon as you apply it, and can be undone.')}</p>
       <div className="ed-art-grid">
         {kinds.map((a) => <ArtSlot key={a.kind} a={a} p={p} onChange={() => setPicking(a.kind)} />)}
       </div>
@@ -363,18 +366,18 @@ function ArtSlot({ a, p, onChange }: { a: (typeof ART)[number]; p: ArtProps; onC
   return (
     <div className={'ed-art' + (a.kind === 'poster' ? ' tall' : ' wide')}>
       <div className="ed-art-pic">
-        {showable ? <img src={artPreviewUrl(value)} alt="" onError={() => setBroken(true)} /> : <span className="muted">None yet</span>}
+        {showable ? <img src={artPreviewUrl(value)} alt="" onError={() => setBroken(true)} /> : <span className="muted">{t('None yet')}</span>}
       </div>
       <div className="ed-art-info">
         <div className="ed-field-head">
-          <b>{a.label}</b>
-          <LockButton label={a.label} locked={p.isLocked(a.kind)} onClick={() => p.toggleLock(a.kind)} />
+          <b>{tx(a.label)}</b>
+          <LockButton label={tx(a.label)} locked={p.isLocked(a.kind)} onClick={() => p.toggleLock(a.kind)} />
         </div>
-        <span className="ed-source">{value !== (p.ed.fields[a.kind]?.value ?? '') ? 'Not saved yet' : sourceWords(p.ed.fields[a.kind]) || a.hint}</span>
+        <span className="ed-source">{value !== (p.ed.fields[a.kind]?.value ?? '') ? t('Not saved yet') : sourceWords(p.ed.fields[a.kind]) || tx(a.hint)}</span>
         <div className="ed-art-btns">
-          <button type="button" className="btn sm" aria-haspopup="dialog" aria-label={`Change the ${a.label.toLowerCase()}`} onClick={onChange}><IconImage size={16} /> Change</button>
-          {value && <button type="button" className="btn sm ghost" onClick={() => p.set(a.kind, '')}>Remove</button>}
-          {p.ed.fields[a.kind]?.canRevert && <button type="button" className="btn sm ghost" onClick={() => p.revert(a.kind)}>Revert</button>}
+          <button type="button" className="btn sm" aria-haspopup="dialog" aria-label={tx(a.change)} onClick={onChange}><IconImage size={16} /> {t('Change')}</button>
+          {value && <button type="button" className="btn sm ghost" onClick={() => p.set(a.kind, '')}>{t('Remove')}</button>}
+          {p.ed.fields[a.kind]?.canRevert && <button type="button" className="btn sm ghost" onClick={() => p.revert(a.kind)}>{t('Revert')}</button>}
         </div>
       </div>
     </div>
@@ -388,20 +391,20 @@ function PlaybackSection(p: FieldProps & { target: Target; id: number; dirty: bo
   const [bad, setBad] = useState(false)
   useEffect(() => { setText(end ? fmtClock(Number(end)) : '') }, [end])
   const commit = (s: string) => {
-    const t = parseClock(s)
-    setBad(t !== null && Number.isNaN(t))
-    if (t === null) p.set('introEnd', '')
-    else if (!Number.isNaN(t)) p.set('introEnd', String(t))
+    const secs = parseClock(s)
+    setBad(secs !== null && Number.isNaN(secs))
+    if (secs === null) p.set('introEnd', '')
+    else if (!Number.isNaN(secs)) p.set('introEnd', String(secs))
   }
   const pick = async () => {
-    if (p.dirty) { p.onError('Save or undo your changes first: picking a time leaves this dialog.'); return }
+    if (p.dirty) { p.onError(t('Save or undo your changes first: picking a time leaves this dialog.')); return }
     if (p.target === 'item') { nav(`/play/${p.id}?pickIntro=1`); return }
     // For a show: its first episode.
     try {
       const d = await api.get<{ show: Show; episodes: Item[] }>(`/shows/${p.id}`)
       const first = d.episodes[0]
       if (first) nav(`/play/${first.id}?pickIntro=show`)
-      else p.onError('This show has no episodes to pick a time from.')
+      else p.onError(t('This show has no episodes to pick a time from.'))
     } catch (e: any) { p.onError(e.message) }
   }
   // An episode or film has every part, set through its markers. The older single time stays
@@ -411,19 +414,19 @@ function PlaybackSection(p: FieldProps & { target: Target; id: number; dirty: bo
   const single = p.target === 'show' || typed
   return (
     <section id="ed-playback" className="ed-section" aria-labelledby="ed-playback-h">
-      <h3 id="ed-playback-h">Skipping</h3>
+      <h3 id="ed-playback-h">{t('Skipping')}</h3>
       {single && (
-        <FieldShell name="introEnd" label="Where the intro ends" p={p} wide hint={p.target === 'show' ? 'Used for every episode that has no intro of its own. Blank means work it out from each file\'s chapters. An episode\'s own recap, credits and advert breaks are set from that episode\'s Edit.' : 'An older, single time. The intro set below wins over it; blank it to leave the times below in charge.'}>
+        <FieldShell name="introEnd" label={t('Where the intro ends')} p={p} wide hint={p.target === 'show' ? t("Used for every episode that has no intro of its own. Blank means work it out from each file's chapters. An episode's own recap, credits and advert breaks are set from that episode's Edit.") : t('An older, single time. The intro set below wins over it; blank it to leave the times below in charge.')}>
           {(id, d) => (
             <div className="field-row">
-              <input id={id} className="input" value={text} placeholder="auto" inputMode="numeric" aria-describedby={d} aria-invalid={bad} onChange={(e) => setText(e.target.value)} onBlur={(e) => commit(e.target.value)} />
-              {p.target === 'show' && <button type="button" className="btn" onClick={pick}>Pick in player</button>}
+              <input id={id} className="input" value={text} placeholder={t('auto')} inputMode="numeric" aria-describedby={d} aria-invalid={bad} onChange={(e) => setText(e.target.value)} onBlur={(e) => commit(e.target.value)} />
+              {p.target === 'show' && <button type="button" className="btn" onClick={pick}>{t('Pick in player')}</button>}
             </div>
           )}
         </FieldShell>
       )}
-      {bad && <div className="error" role="alert">Type the time as minutes and seconds, such as 1:05.</div>}
-      {p.target === 'show' && p.ed.introAuto && !bad && <p className="muted ed-help">Found in the file's chapters.</p>}
+      {bad && <div className="error" role="alert">{t('Type the time as minutes and seconds, such as 1:05.')}</div>}
+      {p.target === 'show' && p.ed.introAuto && !bad && <p className="muted ed-help">{t("Found in the file's chapters.")}</p>}
       {p.target === 'item' && <MarkersEditor id={p.id} dirty={p.dirty} onError={p.onError} />}
     </section>
   )
@@ -439,69 +442,71 @@ function OrganiseSection({ ed, target, id, onApplied, onError }: { ed: TitleEdit
   const unlink = (itemId: number, ok: string) => call(() => api.del<TitleEditor>(`/meta/item/${itemId}/link`).then(() => api.get<TitleEditor>(`/meta/${target}/${id}`)), ok)
   return (
     <section id="ed-organise" className="ed-section" aria-labelledby="ed-organise-h">
-      <h3 id="ed-organise-h">Organise</h3>
+      <h3 id="ed-organise-h">{t('Organise')}</h3>
       {target === 'item' && (
         <div className="ed-block">
-          <h4>Bonus feature</h4>
+          <h4>{t('Bonus feature')}</h4>
           {ed.link ? (
             <>
-              <p>This is {ed.link.link === 'version' ? <>another version of <b>{ed.link.parentName}</b></> : <>a {(ed.link.extraType || 'bonus feature').replace(/-/g, ' ')} of <b>{ed.link.parentName}</b></>}, so it isn't listed by itself.</p>
-              <button type="button" className="btn" onClick={() => unlink(id, 'It has its own place in the library again')}>Make it a title of its own</button>
+              <p>{ed.link.link === 'version'
+                ? t("This is another version of {name}, so it isn't listed by itself.", { name: ed.link.parentName })
+                : t("This is a {kind} of {name}, so it isn't listed by itself.", { kind: ed.link.extraType ? tx(ed.link.extraType.replace(/-/g, ' ')) : t('bonus feature'), name: ed.link.parentName })}</p>
+              <button type="button" className="btn" onClick={() => unlink(id, t('It has its own place in the library again'))}>{t('Make it a title of its own')}</button>
             </>
           ) : (
             <>
-              <p>This shows as {ed.kind === 'episode' ? 'an episode' : 'a film'} of its own.</p>
-              <p className="muted ed-help">If it's really a trailer, a featurette or another extra, put it with the film or show it belongs to.</p>
+              <p>{ed.kind === 'episode' ? t('This shows as an episode of its own.') : t('This shows as a film of its own.')}</p>
+              <p className="muted ed-help">{t("If it's really a trailer, a featurette or another extra, put it with the film or show it belongs to.")}</p>
               {attach === 'extra'
-                ? <AttachPicker ed={ed} target={target} id={id} link="extra" onDone={(e) => { setAttach(''); onApplied(e); toast('Moved to its page') }} onCancel={() => setAttach('')} onError={onError} />
-                : <button type="button" className="btn" onClick={() => setAttach('extra')}>It's a bonus feature</button>}
+                ? <AttachPicker ed={ed} target={target} id={id} link="extra" onDone={(e) => { setAttach(''); onApplied(e); toast(t('Moved to its page')) }} onCancel={() => setAttach('')} onError={onError} />
+                : <button type="button" className="btn" onClick={() => setAttach('extra')}>{t("It's a bonus feature")}</button>}
             </>
           )}
         </div>
       )}
       {ed.extras.length > 0 && (
         <div className="ed-block">
-          <h4>Bonus features here</h4>
+          <h4>{t('Bonus features here')}</h4>
           <ul className="ed-attached">
             {ed.extras.map((x) => (
-              <li key={x.id}><span className="ed-attached-name">{x.title}</span><span className="muted">{(x.extraType || '').replace(/-/g, ' ')}</span>
-                <button type="button" className="btn sm ghost" onClick={() => unlink(x.id, 'It has its own place in the library again')}>Make it a title of its own</button></li>
+              <li key={x.id}><span className="ed-attached-name">{x.title}</span><span className="muted">{tx((x.extraType || '').replace(/-/g, ' '))}</span>
+                <button type="button" className="btn sm ghost" onClick={() => unlink(x.id, t('It has its own place in the library again'))}>{t('Make it a title of its own')}</button></li>
             ))}
           </ul>
         </div>
       )}
       {target === 'item' && ed.kind === 'movie' && !ed.link && (
         <div className="ed-block">
-          <h4>Versions</h4>
-          <p className="muted ed-help">Two copies of the same film, such as a DVD and a 4K file, can be one title with a choice of version.</p>
+          <h4>{t('Versions')}</h4>
+          <p className="muted ed-help">{t('Two copies of the same film, such as a DVD and a 4K file, can be one title with a choice of version.')}</p>
           {ed.versions.length > 0 && (
             <ul className="ed-attached">
               {ed.versions.map((x) => (
                 <li key={x.id}><span className="ed-attached-name">{x.label || x.title}</span><span className="muted">{x.height ? `${x.height}p` : ''}</span>
-                  <button type="button" className="btn sm ghost" onClick={() => unlink(x.id, 'Split into a title of its own')}>Split it off</button></li>
+                  <button type="button" className="btn sm ghost" onClick={() => unlink(x.id, t('Split into a title of its own'))}>{t('Split it off')}</button></li>
               ))}
             </ul>
           )}
           {attach === 'version'
-            ? <AttachPicker ed={ed} target={target} id={id} link="version" onDone={(e) => { setAttach(''); onApplied(e); toast('Merged') }} onCancel={() => setAttach('')} onError={onError} />
-            : <button type="button" className="btn" onClick={() => setAttach('version')}>This is another version of…</button>}
+            ? <AttachPicker ed={ed} target={target} id={id} link="version" onDone={(e) => { setAttach(''); onApplied(e); toast(t('Merged')) }} onCancel={() => setAttach('')} onError={onError} />
+            : <button type="button" className="btn" onClick={() => setAttach('version')}>{t('This is another version of…')}</button>}
         </div>
       )}
       <div className="ed-block">
-        <h4>In the wrong library?</h4>
-        {ed.move.moved && <p className="muted ed-help">Moved here from {ed.move.moved.name}.</p>}
+        <h4>{t('In the wrong library?')}</h4>
+        {ed.move.moved && <p className="muted ed-help">{t('Moved here from {name}.', { name: ed.move.moved.name })}</p>}
         {ed.move.can ? (
           <div className="field-row">
-            <select className="select" aria-label="Library to move it to" value={moveTo} onChange={(e) => setMoveTo(e.target.value)}>
-              <option value="">Choose a library</option>
+            <select className="select" aria-label={t('Library to move it to')} value={moveTo} onChange={(e) => setMoveTo(e.target.value)}>
+              <option value="">{t('Choose a library')}</option>
               {ed.move.options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
             </select>
-            <button type="button" className="btn" disabled={!moveTo} onClick={() => call(() => api.post<TitleEditor>(`/meta/${target}/${id}/move`, { library: Number(moveTo) }), 'Moved. Its files stay where they are.')}>Move to</button>
+            <button type="button" className="btn" disabled={!moveTo} onClick={() => call(() => api.post<TitleEditor>(`/meta/${target}/${id}/move`, { library: Number(moveTo) }), t('Moved. Its files stay where they are.'))}>{t('Move to')}</button>
           </div>
         ) : (
           <>
-            <button type="button" className="btn" disabled>Not right? Move to</button>
-            <p className="muted ed-help">{ed.move.why}</p>
+            <button type="button" className="btn" disabled>{t('Not right? Move to')}</button>
+            <p className="muted ed-help">{tx(ed.move.why)}</p>
           </>
         )}
       </div>
@@ -534,24 +539,24 @@ function AttachPicker({ ed, target, id, link, onDone, onCancel, onError }: { ed:
   return (
     <div className="ed-picker">
       {link === 'extra' ? (
-        <label>What it is
+        <label>{t('What it is')}
           <select className="select" value={extraType} onChange={(e) => setExtraType(e.target.value)}>
-            {ed.extraTypes.map((t) => <option key={t} value={t}>{t.replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase())}</option>)}
+            {ed.extraTypes.map((x) => <option key={x} value={x}>{tx(x.replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase()))}</option>)}
           </select>
         </label>
       ) : (
-        <label>What to call this version <span className="muted">(optional)</span>
-          <input className="input" value={label} placeholder="Director's Cut, 4K" onChange={(e) => setLabel(e.target.value)} />
+        <label>{t('What to call this version')} <span className="muted">{t('(optional)')}</span>
+          <input className="input" value={label} placeholder={t("Director's Cut, 4K")} onChange={(e) => setLabel(e.target.value)} />
         </label>
       )}
-      <label>{link === 'extra' ? 'The film or show it belongs to' : 'The film it is a version of'}
-        <input className="input" autoFocus value={q} placeholder="Search your library" onChange={(e) => setQ(e.target.value)} />
+      <label>{link === 'extra' ? t('The film or show it belongs to') : t('The film it is a version of')}
+        <input className="input" autoFocus value={q} placeholder={t('Search your library')} onChange={(e) => setQ(e.target.value)} />
       </label>
-      <ul className="ed-pick-list" aria-label="Results">
+      <ul className="ed-pick-list" aria-label={t('Results')}>
         {rows?.map((r) => <li key={r.type + r.id}><button type="button" className="btn ghost" onClick={() => pick(r)}>{r.title}{r.year ? ` (${r.year})` : ''}</button></li>)}
-        {rows?.length === 0 && <li className="muted">Nothing by that name.</li>}
+        {rows?.length === 0 && <li className="muted">{t('Nothing by that name.')}</li>}
       </ul>
-      <button type="button" className="btn sm ghost" onClick={onCancel}>Never mind</button>
+      <button type="button" className="btn sm ghost" onClick={onCancel}>{t('Never mind')}</button>
     </div>
   )
 }

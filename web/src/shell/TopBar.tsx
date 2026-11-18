@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject }
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import ActivitySlot from '../components/ActivitySlot'
 import { Brand, BrandMark } from '../components/common'
+import { t, tx, txc } from '../i18n'
 import { IconDown, IconLeft, IconMenu, IconMore, IconSearch, IconSettings, IconSidebar } from '../icons'
 import { useApp } from '../state'
 import { Menu, type MenuEntry } from '../ui/Menu'
@@ -13,14 +14,15 @@ import { navIcon, useNavItems, useNavPrefs } from './useNav'
 
 const GAP = 2
 
-const itemEntry = (it: NavItem, path: string): MenuEntry => ({ key: it.id, label: it.label, text: it.label, icon: navIcon(it), to: it.to, current: isActive(it, path) })
+// The menu's labels come from the server or are marked with tk(): translated here, where they're shown.
+const itemEntry = (it: NavItem, path: string): MenuEntry => ({ key: it.id, label: tx(it.label), text: tx(it.label), icon: navIcon(it), to: it.to, current: isActive(it, path) })
 
 function BarGroup({ group, items, path }: { group: string; items: NavItem[]; path: string }) {
   const here = items.some((it) => isActive(it, path))
   return (
-    <Menu label={group} align="start" items={items.map((it) => itemEntry(it, path))} trigger={(props) => (
+    <Menu label={txc('menu group', group)} align="start" items={items.map((it) => itemEntry(it, path))} trigger={(props) => (
       <button type="button" {...props} className={'topnav-link' + (here ? ' active' : '')} aria-current={here ? 'true' : undefined}>
-        <span>{group}</span><IconDown className="topnav-caret" />
+        <span>{txc('menu group', group)}</span><IconDown className="topnav-caret" />
       </button>
     )} />
   )
@@ -28,7 +30,7 @@ function BarGroup({ group, items, path }: { group: string; items: NavItem[]; pat
 
 function BarEntry({ entry, path }: { entry: NavEntry; path: string }) {
   if ('group' in entry) return <BarGroup group={entry.group} items={entry.items} path={path} />
-  return <NavLink to={entry.item.to} end={entry.item.end} className="topnav-link">{navIcon(entry.item)} <span>{entry.item.label}</span></NavLink>
+  return <NavLink to={entry.item.to} end={entry.item.end} className="topnav-link">{navIcon(entry.item)} <span>{tx(entry.item.label)}</span></NavLink>
 }
 
 // The links along the top. When they don't all fit, the rest go under More, and the
@@ -84,17 +86,17 @@ function TopNav() {
   const hereItem = restHere && ('item' in restHere ? restHere.item : restHere.items.find((it) => isActive(it, path)))
   const restMenu: MenuEntry[] = rest.flatMap((e): MenuEntry[] => 'item' in e
     ? [itemEntry(e.item, path)]
-    : [{ kind: 'heading', key: 'h:' + e.group, label: e.group }, ...e.items.map((it) => itemEntry(it, path))])
-  restMenu.push({ kind: 'separator', key: 'sep' }, { key: 'arrange', label: 'Arrange this menu', icon: <IconSettings />, to: '/settings/appearance#navigation' })
+    : [{ kind: 'heading', key: 'h:' + e.group, label: txc('menu group', e.group) }, ...e.items.map((it) => itemEntry(it, path))])
+  restMenu.push({ kind: 'separator', key: 'sep' }, { key: 'arrange', label: t('Arrange this menu'), icon: <IconSettings />, to: '/settings/appearance#navigation' })
 
   return (
-    <nav className={'topnav' + (scroll ? ' scrolls' : '')} aria-label="Libraries" ref={bar}>
+    <nav className={'topnav' + (scroll ? ' scrolls' : '')} aria-label={t('Libraries')} ref={bar}>
       {shown.map((e) => <BarEntry key={e.key} entry={e} path={path} />)}
-      {measuring && <span className="topnav-link topnav-measure" aria-hidden="true"><IconMore /><span>More</span><IconDown className="topnav-caret" /></span>}
+      {measuring && <span className="topnav-link topnav-measure" aria-hidden="true"><IconMore /><span>{t('More')}</span><IconDown className="topnav-caret" /></span>}
       {rest.length > 0 && (
-        <Menu label="More places" align="end" items={restMenu} trigger={(props) => (
-          <button type="button" {...props} className={'topnav-link topnav-more' + (hereItem ? ' active' : '')} aria-label={hereItem ? `More: ${hereItem.label} is open` : 'More places'}>
-            {hereItem ? <>{navIcon(hereItem)}<span>{hereItem.label}</span></> : <><IconMore /><span>More</span></>}
+        <Menu label={t('More places')} align="end" items={restMenu} trigger={(props) => (
+          <button type="button" {...props} className={'topnav-link topnav-more' + (hereItem ? ' active' : '')} aria-label={hereItem ? t('More: {name} is open', { name: tx(hereItem.label) }) : t('More places')}>
+            {hereItem ? <>{navIcon(hereItem)}<span>{tx(hereItem.label)}</span></> : <><IconMore /><span>{t('More')}</span></>}
             <IconDown className="topnav-caret" />
           </button>
         )} />
@@ -117,9 +119,9 @@ function SectionRow({ list }: { list: NavItem[] }) {
   if (list.length === 0) return <Link to="/" className="brand section-row-brand"><BrandMark /><Brand name={brandName} oneLine /></Link>
   return (
     <>
-      <Link to="/" className="brand phone-brand" aria-label={brandName || 'Home'}><BrandMark /><Brand name={brandName} oneLine /></Link>
-      <nav className="section-row" aria-label="Sections" ref={row}>
-        {list.map((it) => <NavLink key={it.id} to={it.to} end={it.end}>{it.label}</NavLink>)}
+      <Link to="/" className="brand phone-brand" aria-label={brandName || t('Home')}><BrandMark /><Brand name={brandName} oneLine /></Link>
+      <nav className="section-row" aria-label={t('Sections')} ref={row}>
+        {list.map((it) => <NavLink key={it.id} to={it.to} end={it.end}>{tx(it.label)}</NavLink>)}
       </nav>
     </>
   )
@@ -142,7 +144,7 @@ function TopBack() {
   const nav = useNavigate()
   const { pathname } = useLocation()
   const back = () => { if ((window.history.state?.idx ?? 0) > 0) nav(-1); else nav(above(pathname)) }
-  return <button type="button" className="top-back" onClick={back} aria-label="Back"><IconLeft size={24} /></button>
+  return <button type="button" className="top-back" onClick={back} aria-label={t('Back')}><IconLeft size={24} /></button>
 }
 
 // The bar gains its surface once the page is scrolled under it. A class set straight on
@@ -176,7 +178,7 @@ export function TopBar({ onMenu, showMenu, topNav, menuOpen, wide, allTabs }: { 
     <header className="topbar" data-nav-zone="bar" ref={bar}>
       {top ? <SectionRow list={list} /> : <TopBack />}
       {showMenu && (
-        <button type="button" className="btn icon menu-toggle" onClick={onMenu} aria-expanded={menuOpen} aria-label={wide ? (menuOpen ? 'Fold the side menu' : 'Open the side menu') : 'Open the menu'}>
+        <button type="button" className="btn icon menu-toggle" onClick={onMenu} aria-expanded={menuOpen} aria-label={wide ? (menuOpen ? t('Fold the side menu') : t('Open the side menu')) : t('Open the menu')}>
           {wide ? <IconSidebar /> : <IconMenu />}
         </button>
       )}
@@ -184,7 +186,7 @@ export function TopBar({ onMenu, showMenu, topNav, menuOpen, wide, allTabs }: { 
       {topNav && <TopNav />}
       <form className="search" role="search" onSubmit={(e) => { e.preventDefault(); if (q.trim()) nav('/search?q=' + encodeURIComponent(q.trim())) }}>
         <IconSearch />
-        <input aria-label="Search" type="search" placeholder="Search your libraries…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input aria-label={t('Search')} type="search" placeholder={t('Search your libraries…')} value={q} onChange={(e) => setQ(e.target.value)} />
       </form>
       {!topNav && <div className="spacer" />}
       <ActivitySlot />

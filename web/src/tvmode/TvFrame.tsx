@@ -3,6 +3,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { Link, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { profileName } from '../api'
+import { t, tx } from '../i18n'
 import { Brand, BrandMark, Spinner } from '../components/common'
 import LegalNote from '../components/LegalNote'
 import { IconBack } from '../icons'
@@ -37,15 +38,15 @@ function TopBar({ tab, tabs, side }: { tab: TabId; tabs: TvTab[]; side?: { size:
   const style = side ? { '--tvm-side': String(side.size || 120), '--tvm-side-open': String(side.open || 400) } as React.CSSProperties : undefined
   return (
     <header className={'tvm-bar' + (side ? ' tvm-side' : '')} data-nav-zone="bar" data-keep-focus style={style}>
-      <Link to="/" replace className="brand tvm-brand" data-nav-skip aria-label={brandName || 'Home'}><BrandMark />{!side && <Brand name={brandName} />}</Link>
-      <nav className="tvm-tabs" aria-label="TV mode" aria-orientation={side ? 'vertical' : undefined} data-nav-group data-nav-entry=".tvm-pill[aria-current=page]">
-        {tabs.map((t) => {
-          const you = t.screen === 'profiles'
+      <Link to="/" replace className="brand tvm-brand" data-nav-skip aria-label={brandName || t('Home')}><BrandMark />{!side && <Brand name={brandName} />}</Link>
+      <nav className="tvm-tabs" aria-label={t('TV mode')} aria-orientation={side ? 'vertical' : undefined} data-nav-group data-nav-entry=".tvm-pill[aria-current=page]">
+        {tabs.map((p) => {
+          const you = p.screen === 'profiles'
           return (
-            <Link key={t.id} to={t.path} replace data-tab={t.id} className={'tvm-pill' + (you ? ' tvm-you' : '')}
-              aria-current={t.id === tab ? 'page' : undefined} aria-label={you ? `You, ${shown}` : undefined}>
-              {you ? <Avatar name={shown || '?'} avatar={user?.avatar} /> : sduiIcon(t.icon)}
-              <span>{you ? shown : t.label}</span>
+            <Link key={p.id} to={p.path} replace data-tab={p.id} className={'tvm-pill' + (you ? ' tvm-you' : '')}
+              aria-current={p.id === tab ? 'page' : undefined} aria-label={you ? t('You, {name}', { name: shown }) : undefined}>
+              {you ? <Avatar name={shown || '?'} avatar={user?.avatar} /> : sduiIcon(p.icon)}
+              <span>{you ? shown : tx(p.label)}</span>
             </Link>
           )
         })}
@@ -151,10 +152,10 @@ export default function TvFrame({ pages }: { pages: ReactNode }) {
 
   return (
     <div className={'tvm' + (tab ? ' tvm-tab' : ' tvm-pushed') + (sideMenu ? ' tvm-sidemenu' : '')}>
-      <a className="skip-link" data-nav-skip href="#main">Skip to content</a>
+      <a className="skip-link" data-nav-skip href="#main">{t('Skip to content')}</a>
       {tab
         ? <TopBar tab={tab} tabs={tabs} side={sideMenu ? { size: menu.shell!.size, open: menu.shell!.open || 400 } : undefined} />
-        : <button type="button" className="tvm-back" data-nav-skip onClick={goBack} aria-label="Back"><IconBack /></button>}
+        : <button type="button" className="tvm-back" data-nav-skip onClick={goBack} aria-label={t('Back')}><IconBack /></button>}
       <main className="content tvm-main" id="main" data-nav-zone="stage" tabIndex={-1}>
         <Suspense fallback={<Spinner />}>
           <Routes>

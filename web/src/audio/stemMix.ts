@@ -6,6 +6,11 @@
 // from the song's own clock. No sound and no page here, so it's tested on its own. The same
 // rules are in the phone and TV apps: docs/CLIENT-API.md, "Karaoke that sets itself up".
 
+// The words go through say(): English filled in here, so the tests need nothing else; the app passes t() from its
+// translation layer, so they're in the app's language.
+type Say = (english: string, vars?: Record<string, string | number | null | undefined>) => string
+const english: Say = (s, v) => s.replace(/\{(\w+)\}/g, (m, k: string) => (v && v[k] != null ? String(v[k]) : m))
+
 export type Stem = { id: string; label: string; role: 'vocals' | 'music' | 'full' | string; url: string; mime?: string; defaultGain: number }
 export type KaraokeAnswer = {
   state: 'ready' | 'preparing' | 'unavailable' | string
@@ -37,8 +42,8 @@ export function defaultLevel(a: Pick<KaraokeAnswer, 'mix' | 'stems'>, id: string
 export const levelOf = (a: Pick<KaraokeAnswer, 'mix' | 'stems'>, levels: Levels, id: string) => (id in levels ? clamp01(levels[id]) : defaultLevel(a, id))
 
 // The sliders under More: one a stem, or Vocals and Music for a blend.
-export function sliders(a: Pick<KaraokeAnswer, 'mix' | 'stems'>): { id: string; label: string }[] {
-  if (a.mix === 'blend') return [{ id: 'vocals', label: 'Vocals' }, { id: 'instrumental', label: 'Music' }]
+export function sliders(a: Pick<KaraokeAnswer, 'mix' | 'stems'>, t: Say = english): { id: string; label: string }[] {
+  if (a.mix === 'blend') return [{ id: 'vocals', label: t('Vocals') }, { id: 'instrumental', label: t('Music') }]
   return a.stems.filter((s) => s.role !== 'full').map((s) => ({ id: s.role === 'vocals' ? 'vocals' : s.id, label: s.label || s.id }))
 }
 
@@ -81,16 +86,16 @@ export function decodeLevels(text: string | null | undefined): Levels {
   } catch { return {} }
 }
 
-export const qualityName = (a: KaraokeAnswer) => (a.quality === 'stems' ? 'Separated' : 'Quick version')
+export const qualityName = (a: KaraokeAnswer, t: Say = english) => (a.quality === 'stems' ? t('Separated') : t('Quick version'))
 const pct = (n: number) => (n >= 0 && n <= 100 ? ` ${Math.round(n)}%` : '')
 
 // The one line that says where things stand, or '' when there's nothing to say.
-export function statusLine(a: KaraokeAnswer | null, fallback = ''): string {
+export function statusLine(a: KaraokeAnswer | null, fallback = '', t: Say = english): string {
   if (fallback) return fallback
   if (!a) return ''
-  if (a.state === 'preparing') return `Preparing karaoke…${pct(a.progress)}`
-  if (a.state === 'unavailable') return a.reason === 'not-made' ? '' : a.message || 'There\'s no karaoke version of this song.'
-  if (a.improving) return `Preparing a better version…${pct(a.progress)}`
+  if (a.state === 'preparing') return t('Preparing karaoke…{percent}', { percent: pct(a.progress) })
+  if (a.state === 'unavailable') return a.reason === 'not-made' ? '' : a.message || t('There\'s no karaoke version of this song.')
+  if (a.improving) return t('Preparing a better version…{percent}', { percent: pct(a.progress) })
   return ''
 }
 

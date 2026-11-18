@@ -5,6 +5,7 @@
 // them a second; these skip the caches and the error reports the rest of the app's
 // requests go through, which are for pages.
 import { ApiError, getToken, serverBase } from '../api'
+import { t } from '../i18n'
 
 const headers = (json: boolean) => {
   const h: Record<string, string> = {}
@@ -22,7 +23,7 @@ export async function call<T>(method: string, path: string, body?: unknown, sign
     res = await fetch(serverBase() + '/api' + path, { method, headers: headers(body !== undefined), body: body === undefined ? undefined : JSON.stringify(body), credentials: 'same-origin', signal })
   } catch (e) {
     if (signal?.aborted) throw e
-    throw new ApiError(0, "Can't reach your server.")
+    throw new ApiError(0, t('Can’t reach your server.'))
   }
   const text = await res.text()
   let data: any = null
@@ -56,7 +57,7 @@ export async function readEvents(path: string, onEvent: (event: string, data: an
       try { data = await res.json() } catch { /* not JSON */ }
       throw new ApiError(res.status, data?.error || res.statusText, data)
     }
-    if (!res.body) throw new ApiError(0, 'This browser can’t read a stream.')
+    if (!res.body) throw new ApiError(0, t('This browser can’t read a stream.'))
     const reader = res.body.getReader()
     const text = new TextDecoder()
     let buffer = ''

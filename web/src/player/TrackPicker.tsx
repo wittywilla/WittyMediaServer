@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useRef } from 'react'
+import { t } from '../i18n'
 
 // TrackPicker is a full-screen chooser with large square tiles (in the style
 // of a TV app's dialogs) for audio tracks, subtitles and video angles. Works
@@ -44,16 +45,16 @@ export default function TrackPicker({ heading, hint, tiles, onPick, onClose }: {
         <h2>{heading}</h2>
         {hint && <p className="picker-hint">{hint}</p>}
         <div className="picker-grid" ref={grid}>
-          {tiles.map((t) => (
-            <button key={t.id} type="button" className={'picker-tile' + (t.active ? ' active' : '')} onClick={() => { onPick(t.id); onClose() }}>
-              <span className="pt-title">{t.title}</span>
-              {t.sub && <span className="pt-sub">{t.sub}</span>}
-              {t.detail && <span className="pt-detail">{t.detail}</span>}
-              {t.active && <span className="pt-check">✓</span>}
+          {tiles.map((tile) => (
+            <button key={tile.id} type="button" className={'picker-tile' + (tile.active ? ' active' : '')} onClick={() => { onPick(tile.id); onClose() }}>
+              <span className="pt-title">{tile.title}</span>
+              {tile.sub && <span className="pt-sub">{tile.sub}</span>}
+              {tile.detail && <span className="pt-detail">{tile.detail}</span>}
+              {tile.active && <span className="pt-check">✓</span>}
             </button>
           ))}
         </div>
-        <button type="button" className="btn ghost picker-close" onClick={onClose}>Close</button>
+        <button type="button" className="btn ghost picker-close" onClick={onClose}>{t('Close')}</button>
       </div>
     </div>
   )

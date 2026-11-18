@@ -10,6 +10,7 @@ import type { RemoteCommand } from './device'
 import { audioPlayerKind, audioState } from './playerStates'
 import { seekTarget } from './position'
 import { useMediaReports, useRemoteTarget } from './target'
+import { t } from '../i18n'
 
 export default function AudioTarget({ p }: { p: PlayerView }) {
   const cd = useCd()
@@ -18,7 +19,7 @@ export default function AudioTarget({ p }: { p: PlayerView }) {
   const disc = p.cdActive && cd.now ? { id: cd.now.disc.id, trackLen: cd.now.trackLen } : null
   const place = () => (disc ? Math.max(0, cd.now?.trackSec || 0) : p.position())
   const command = (c: RemoteCommand) => {
-    if (!p.current) throw new Error('Nothing is playing there.')
+    if (!p.current) throw new Error(t('Nothing is playing there.'))
     switch (c.type) {
       case 'pause': if (p.playing) p.toggle(); break
       case 'resume': if (!p.playing) p.toggle(); break
@@ -29,7 +30,7 @@ export default function AudioTarget({ p }: { p: PlayerView }) {
       case 'volume': p.setSound({ volume: Math.max(0, Math.min(1, c.level ?? p.sound.volume)), muted: false }); break
       case 'mute': p.setSound({ muted: !!c.muted }); break
       case 'rate': p.changeRate(Math.min(c.rate || 1, p.maxSpeed)); break
-      default: throw new Error('This device can’t do that.')
+      default: throw new Error(t('This device can’t do that.'))
     }
   }
   useRemoteTarget({ kind, itemId: disc ? disc.id : p.current?.id || 0, on: !!p.current, background: true, state: () => audioState(p, place(), disc), command },

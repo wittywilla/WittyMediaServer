@@ -12,6 +12,7 @@ import { switchSpec } from '../spec/specs/auth'
 import { isSubmitKey } from '../spec/specs/submit'
 import { Dialog } from '../ui/Overlay'
 import './switchprofile.css'
+import { t } from '../i18n'
 
 // Switching profile on a device that is already signed in: "Who's watching?" without signing out
 // first. The server signs this device in as the profile chosen, asking for what signing in asks
@@ -63,7 +64,7 @@ function SwitchProfile({ onClose, onSignOut }: { onClose: () => void; onSignOut:
         if (needCode) setErr(e.message)
         setNeedCode(true); setCode('')
       } else {
-        setErr((e as Error).message || 'That didn’t work.')
+        setErr((e as Error).message || t('That didn’t work.'))
         setPassword(''); setNeedCode(false); setCode('')
         setTimeout(() => document.querySelector<HTMLElement>('[data-field="password"]')?.focus())
       }
@@ -78,8 +79,8 @@ function SwitchProfile({ onClose, onSignOut }: { onClose: () => void; onSignOut:
   if (chosen) {
     const name = profileName(chosen)
     return (
-      <Dialog title={`Switch to ${name}`} size="sm" onClose={onClose}
-        actions={<><Button variant="ghost" onClick={() => { setChosen(null); setErr('') }}>Back</Button><Button variant="primary" busy={busy} disabled={needCode ? !code.trim() : !password} onClick={() => go(chosen, password)}>Switch</Button></>}>
+      <Dialog title={t('Switch to {name}', { name })} size="sm" onClose={onClose}
+        actions={<><Button variant="ghost" onClick={() => { setChosen(null); setErr('') }}>{t('Back')}</Button><Button variant="primary" busy={busy} disabled={needCode ? !code.trim() : !password} onClick={() => go(chosen, password)}>{t('Switch')}</Button></>}>
         <div onKeyDown={(e) => { if (isSubmitKey(e)) { e.preventDefault(); if (!busy && (needCode ? code.trim() : password)) go(chosen, password) } }}>
           <div className="sw-chosen"><Avatar name={name} avatar={chosen.avatar} /> <b>{name}</b></div>
           <SpecPage page={switchSpec(chosen.kind, needCode, password, code, err)} embedded onField={(id, v) => { if (id === 'code') setCode(String(v)); else setPassword(String(v)) }} />
@@ -88,9 +89,9 @@ function SwitchProfile({ onClose, onSignOut }: { onClose: () => void; onSignOut:
     )
   }
   return (
-    <Dialog title="Who’s watching?" onClose={onClose}
-      actions={<><Button variant="ghost" onClick={onSignOut}>Sign in with another account</Button><Button onClick={onClose}>Cancel</Button></>}>
-      {!profiles ? <div className="loading-box" role="status" aria-label="Loading"><div className="spinner" /></div> : (
+    <Dialog title={t('Who’s watching?')} onClose={onClose}
+      actions={<><Button variant="ghost" onClick={onSignOut}>{t('Sign in with another account')}</Button><Button onClick={onClose}>{t('Cancel')}</Button></>}>
+      {!profiles ? <div className="loading-box" role="status" aria-label={t('Loading')}><div className="spinner" /></div> : (
         <ul className="sw-grid" role="list">
           {profiles.map((p, i) => (
             <li key={p.id}>
@@ -98,9 +99,9 @@ function SwitchProfile({ onClose, onSignOut }: { onClose: () => void; onSignOut:
                 <Avatar name={profileName(p)} avatar={p.avatar} />
                 <span className="sw-name">{profileName(p)}</span>
                 <span className="sw-sub">
-                  {p.current ? 'Watching now' : p.kind === 'kids' ? 'Kids' : p.kind === 'guest' ? 'Guest' : ''}
+                  {p.current ? t('Watching now') : p.kind === 'kids' ? t('Kids') : p.kind === 'guest' ? t('Guest') : ''}
                   {!p.current && p.hasPassword && <IconLock size={14} />}
-                  {!p.current && p.hasPassword && <span className="sr-only">, asks for a password or PIN</span>}
+                  {!p.current && p.hasPassword && <span className="sr-only">{t(', asks for a password or PIN')}</span>}
                 </span>
               </button>
             </li>

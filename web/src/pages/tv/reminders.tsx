@@ -8,6 +8,7 @@ import { announce } from '../../a11y'
 import { toast, useApp } from '../../state'
 import type { Programme, Reminder } from './tvApi'
 import './reminders.css'
+import { t } from '../../i18n'
 
 // Reminders: "tell me when this starts". The list is one account's, kept on the
 // server, and asked for once; after that a single timer waits for the next one,
@@ -31,11 +32,11 @@ async function toggle(channel: string, p: Pick<Programme, 'title' | 'sub' | 'sta
     if (found) {
       await api.del(`/tv/reminders/${found.id}`)
       list = list.filter((r) => r !== found)
-      announce(`Reminder for ${p.title} removed`)
+      announce(t('Reminder for {title} removed', { title: p.title }))
     } else {
       const r = await api.post<Reminder>('/tv/reminders', { channel, title: p.title, sub: p.sub, start: p.start, end: p.end })
       list = [...list, r].sort((a, b) => a.start - b.start)
-      toast(`We'll tell you when ${p.title} starts`)
+      toast(t("We'll tell you when {title} starts", { title: p.title }))
     }
     emit()
   } catch (e) { toast((e as Error).message) }
@@ -102,10 +103,10 @@ export function ReminderWatcher() {
   const player = document.querySelector('.player:not(.mini):not(.inline)')
   const box = (
     <div className="tv-remind" role="alert" onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
-      <div><b>{due.title}</b>{due.start > Date.now() / 1000 ? ' is about to start' : ' has started'}{due.sub ? <small> {due.sub}</small> : null}</div>
+      <div>{due.start > Date.now() / 1000 ? t('{title} is about to start', { title: due.title }) : t('{title} has started', { title: due.title })}{due.sub ? <small> {due.sub}</small> : null}</div>
       <div className="tv-remind-actions">
-        <button className="btn sm primary" onClick={() => { close(); nav(`/tv/watch/${due.channel}`) }}>Watch</button>
-        <button className="btn sm ghost" onClick={close}>Dismiss</button>
+        <button className="btn sm primary" onClick={() => { close(); nav(`/tv/watch/${due.channel}`) }}>{t('Watch')}</button>
+        <button className="btn sm ghost" onClick={close}>{t('Dismiss')}</button>
       </div>
     </div>
   )

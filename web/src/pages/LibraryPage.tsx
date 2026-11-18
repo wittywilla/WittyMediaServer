@@ -7,6 +7,7 @@ import { ModuleMissing } from '../components/ModuleMissing'
 import { useApp } from '../state'
 import AudioLibrary from './AudioLibrary'
 import VideoLibrary from './library/VideoLibrary'
+import { t } from '../i18n'
 
 // Loaded when opened: most servers have only some of these libraries.
 const ShortsLibrary = lazy(() => import('./creators/ShortsLibrary'))
@@ -30,6 +31,6 @@ export default function LibraryPage() {
   if (lib?.type === 'games' && lib.console === 'rig') return <ModuleMissing ids={['wittyrigs']} />
   // A games library: WittyPlay draws it (its takeover of the kind "games"); without it, it's missing.
   if (lib?.type === 'games') return <ModuleMissing ids={['wittyplay']} />
-  if (!lib) return <EmptyState title="Library not found" action={<Link to="/settings/libraries" className="btn">Manage libraries</Link>} />
+  if (!lib) return <EmptyState title={t('Library not found')} action={<Link to="/settings/libraries" className="btn">{t('Manage libraries')}</Link>} />
   return <VideoLibrary key={lib.id} lib={lib} />
 }

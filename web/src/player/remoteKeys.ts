@@ -107,9 +107,11 @@ export function keyWorks(form: RemoteForm, k: RemoteKey, s: RemoteState = {}): b
   return true
 }
 
-// remoteNote is the line a remote shows when its menu keys can't work, or ''.
+// remoteNote is the line a remote shows when its menu keys can't work, or '': translated where shown, with tx().
+// (tk is a local mark, so the tests can load this file without the app's i18n layer.)
+const tk = <S extends string>(english: S): S => english
 export function remoteNote(form: RemoteForm, s: RemoteState = {}): string {
-  if (form === 'dvd-copy' || form === 'bluray-copy') return 'This copy has no disc menus'
-  if ((form === 'dvd' || form === 'bluray') && s.hasMenus === false && !s.popup && !s.bdj) return 'This disc has no menus'
+  if (form === 'dvd-copy' || form === 'bluray-copy') return tk('This copy has no disc menus')
+  if ((form === 'dvd' || form === 'bluray') && s.hasMenus === false && !s.popup && !s.bdj) return tk('This disc has no menus')
   return ''
 }

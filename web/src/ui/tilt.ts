@@ -6,6 +6,8 @@
 // change, and the poster's place is read once when the pointer arrives. A remote gets
 // the same feeling on focus: the poster settles in from the direction you moved.
 
+import { t } from '../i18n'
+
 const POSTER = '.card:not(.square) .poster'
 const CARD = '.card:not(.square)'
 const PERSPECTIVE = 'perspective(46rem)'
@@ -17,9 +19,9 @@ type Nav = Navigator & { deviceMemory?: number; connection?: { saveData?: boolea
 // Why this device goes without it, in words for the Settings page. '' means it can have it.
 export function tiltBlocked(): string {
   const n = navigator as Nav
-  if (motion.matches) return 'This device is set to reduce motion.'
-  if (n.connection?.saveData) return 'This device is set to save data.'
-  if ((n.deviceMemory !== undefined && n.deviceMemory <= 2) || (n.hardwareConcurrency !== undefined && n.hardwareConcurrency <= 2)) return 'This device is too modest to keep it smooth.'
+  if (motion.matches) return t('This device is set to reduce motion.')
+  if (n.connection?.saveData) return t('This device is set to save data.')
+  if ((n.deviceMemory !== undefined && n.deviceMemory <= 2) || (n.hardwareConcurrency !== undefined && n.hardwareConcurrency <= 2)) return t('This device is too modest to keep it smooth.')
   return ''
 }
 

@@ -7,6 +7,7 @@ import { profileName } from '../../api'
 import { sduiIcon } from './icons'
 import type { View } from '../model'
 import type { Props } from '../types'
+import { date, t } from '../../i18n'
 
 // WidgetGrid and Widget (docs/SDUI.md): a grid of tiles, each in its own cell by x, y, w and h, as the Dashboard look draws
 // it. A phone has two columns at most, and a tile wider than that takes the full width; anywhere else a tile keeps its
@@ -20,7 +21,10 @@ const int = (p: Props | undefined, k: string, d: number, lo: number, hi: number)
 
 // What each kind of tile is called by its picture.
 const KIND_ICON: Record<string, string> = { continue: 'play', liveNow: 'live', recordings: 'record', stats: 'chart', serverStatus: 'devices', clock: 'clock' }
-const greeting = (h: number) => (h < 5 ? 'Good night' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening')
+// Whole sentences, so a language can put the name where it goes.
+const greeting = (h: number, who: string) => (who
+  ? (h < 5 ? t('Good night, {name}', { name: who }) : h < 12 ? t('Good morning, {name}', { name: who }) : h < 18 ? t('Good afternoon, {name}', { name: who }) : t('Good evening, {name}', { name: who }))
+  : (h < 5 ? t('Good night') : h < 12 ? t('Good morning') : h < 18 ? t('Good afternoon') : t('Good evening')))
 
 export function WidgetGridView({ view, draw }: { view: View; draw: (child: View) => ReactNode }) {
   const phone = useMedia('(max-width: 700px)')
@@ -34,7 +38,7 @@ export function WidgetGridView({ view, draw }: { view: View; draw: (child: View)
   const who = user ? profileName(user) : ''
   return (
     <>
-    <p className="sdui-greet">{greeting(new Date().getHours())}{who ? `, ${who}` : ''}</p>
+    <p className="sdui-greet">{greeting(new Date().getHours(), who)}</p>
     <div className="sdui-widgets" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, '--widget-cols': columns } as CSSProperties} data-nav-group data-columns={columns}>
       {view.children.map((c) => <WidgetCell key={c.id} view={c} columns={columns} phone={phone} draw={draw} rows={rows} />)}
     </div>
@@ -77,8 +81,8 @@ function LiveClock() {
   }, [])
   return (
     <p className="sdui-clock">
-      <time className="sdui-clock-time" dateTime={now.toISOString()}>{now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</time>
-      <span className="sdui-clock-date">{now.toLocaleDateString([], { weekday: 'long' })}</span>
+      <time className="sdui-clock-time" dateTime={now.toISOString()}>{date(now, { hour: 'numeric', minute: '2-digit' })}</time>
+      <span className="sdui-clock-date">{date(now, { weekday: 'long' })}</span>
     </p>
   )
 }

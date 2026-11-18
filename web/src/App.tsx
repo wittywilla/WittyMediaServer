@@ -37,6 +37,7 @@ import { frameFor } from './shell/navModel'
 import { useMedia, useMenu, useNavMigration, useNavPrefs } from './shell/useNav'
 import { useTvMode } from './tvmode/mode'
 import RemoteHost from './remote/RemoteHost'
+import { t, tx } from './i18n'
 
 // The pages the app drew by hand before pages were server-driven: what an older server still gets, and
 // what stands in where a server-driven page gives way to one of the app's own screens (sdui/native.ts).
@@ -202,7 +203,7 @@ function AppFrame() {
   }
   return (
     <div className={'app nav-' + style + (open ? ' nav-open' : '') + (rail ? ' nav-rail' : '') + (frame.overlay ? ' nav-overlay' : '') + (frame.tabBar ? '' : ' no-tabbar')} data-nav-style={frame.nav} data-experience={menu.shell?.experience || undefined} {...regionAttrs(menu.shell?.placements)}>
-      <a className="skip-link" data-nav-skip href="#main">Skip to content</a>
+      <a className="skip-link" data-nav-skip href="#main">{t('Skip to content')}</a>
       <Sidebar open={open} rail={rail} drawer={!wide} onClose={() => setDrawer(false)} withDrawer={frame.drawer} />
       <div className="main">
         <TopBar onMenu={toggle} showMenu={side || !wide} topNav={style !== 'side'} menuOpen={open} wide={wide} allTabs={!frame.tabBar} />
@@ -281,7 +282,7 @@ export function PageRoutes() {
 
 // An address that isn't a page: say so, with the way home, rather than landing somewhere unexplained.
 function NotFound() {
-  return <><h1 className="sr-only">Page not found</h1><EmptyState title="There’s no page here" text="The address may have changed, or it may be mistyped." action={<LinkButton variant="primary" to="/">Go to Home</LinkButton>} /></>
+  return <><h1 className="sr-only">{t('Page not found')}</h1><EmptyState title={t('There’s no page here')} text={t('The address may have changed, or it may be mistyped.')} action={<LinkButton variant="primary" to="/">{t('Go to Home')}</LinkButton>} /></>
 }
 
 // PlainAwayBar: while the owner lets the internet in unencrypted, administrators
@@ -294,14 +295,14 @@ function PlainAwayBar() {
     if (!user?.isAdmin) { setWarning(''); return }
     const load = () => api.get<{ plainAwayWarning?: string }>('/status').then((s) => setWarning(s.plainAwayWarning || '')).catch(() => {})
     load()
-    const t = setInterval(() => { if (!document.hidden) load() }, 60000)
+    const timer = setInterval(() => { if (!document.hidden) load() }, 60000)
     window.addEventListener('wms-remote-changed', load)
-    return () => { clearInterval(t); window.removeEventListener('wms-remote-changed', load) }
+    return () => { clearInterval(timer); window.removeEventListener('wms-remote-changed', load) }
   }, [user?.isAdmin])
   if (!warning) return null
   return (
-    <div className="legal-ack-bar plain-away-bar" role="region" aria-label="Security warning">
-      <p><b>Warning:</b> {warning} <Link to="/settings/remote">Remote Access</Link></p>
+    <div className="legal-ack-bar plain-away-bar" role="region" aria-label={t('Security warning')}>
+      <p><b>{t('Warning:')}</b> {tx(warning)} <Link to="/settings/remote">{t('Remote Access')}</Link></p>
     </div>
   )
 }
@@ -313,9 +314,9 @@ function LegalAckBar() {
   if (legalAck) return null
   const understood = () => { setLegalAck(true); api.post('/legal/acknowledge').catch(() => {}) }
   return (
-    <div className="legal-ack-bar" role="region" aria-label="Legal notice">
-      <p>{legalAckText()} <Link to="/settings/legal#your-content">Legal</Link></p>
-      <button className="btn sm primary" onClick={understood}>Understood</button>
+    <div className="legal-ack-bar" role="region" aria-label={t('Legal notice')}>
+      <p>{legalAckText()} <Link to="/settings/legal#your-content">{t('Legal')}</Link></p>
+      <button className="btn sm primary" onClick={understood}>{t('Understood')}</button>
     </div>
   )
 }

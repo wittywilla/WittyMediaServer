@@ -17,6 +17,7 @@ import { ask } from '../ui'
 import SpecPage from '../spec/SpecPage'
 import { handledIds } from '../spec/model'
 import { youSpec } from '../spec/specs/you'
+import { t } from '../i18n'
 import './you.css'
 
 // You, on a phone: the person, their account, this device's choices and, for an
@@ -48,14 +49,14 @@ export default function YouPage() {
   if (!user) return null
 
   const shown = profileName(user)
-  const role = user.isAdmin ? 'Administrator' : user.kind === 'kids' ? 'Kids' : user.kind === 'guest' ? 'Guest' : 'Adult'
+  const role = user.isAdmin ? t('Administrator') : user.kind === 'kids' ? t('Kids') : user.kind === 'guest' ? t('Guest') : t('Adult')
   const games = libraries.some((l) => l.type === 'games' && l.console !== 'rig')
   // An administrator with a newer version waiting is taken to it, as the account menu does.
   const newer = !!update && user.isAdmin
   const mine = deviceTheme()
-  const themeName = mine === AUTO_THEME ? 'Automatic' : mine === CUSTOM_THEME ? 'Your own' : themes.find((t) => t.id === (mine || serverTheme))?.name || ''
+  const themeName = mine === AUTO_THEME ? t('Automatic') : mine === CUSTOM_THEME ? t('Your own') : themes.find((x) => x.id === (mine || serverTheme))?.name || ''
   const address = (serverBase() || window.location.origin).replace(/\/+$/, '')
-  const out = async () => { if (await ask({ title: 'Sign out?', confirm: 'Sign out', danger: true })) signOut() }
+  const out = async () => { if (await ask({ title: t('Sign out?'), confirm: t('Sign out'), danger: true })) signOut() }
   const changeServer = () => { setServerBase(''); window.location.reload() }
 
   const page = youSpec({
@@ -67,12 +68,12 @@ export default function YouPage() {
 
   return (
     <div className="you">
-      <h1 className="sr-only">You</h1>
+      <h1 className="sr-only">{t('You')}</h1>
       <header className="you-head">
         <Avatar name={shown || '?'} avatar={user.avatar} big />
         <div className="you-name">{shown}</div>
         <div className="you-sub">@{user.name} · {role}</div>
-        <button type="button" className="btn you-switch" onClick={sw.start}><IconUsers /> Switch profile</button>
+        <button type="button" className="btn you-switch" onClick={sw.start}><IconUsers /> {t('Switch profile')}</button>
         {sw.dialog}
       </header>
       <SpecPage embedded page={page} handled={handledIds(page)} onAction={act}

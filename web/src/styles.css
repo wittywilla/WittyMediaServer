@@ -101,7 +101,11 @@
   --gutter: clamp(16px, 3vw, 40px);        /* the page's side margin */
   --section-gap: clamp(28px, 3.4vw, 44px); /* between sections of a page */
   --topbar-h: 64px;
-  --rail: 76px;                            /* the side menu collapsed to icons */
+  /* Every page starts the same distance below the bar (--page-top) and sits in one column (--page-max) whose left
+     edge the bar's contents share: a library, Settings and You line up with each other and with the bar. */
+  --page-top: var(--sp-4);
+  --page-max: 1600px;
+  --rail: 76px;                           /* the side menu collapsed to icons */
   --tabbar-h: 60px;                        /* the phone's bottom bar */
   --tabbar-space: 0px;                     /* room kept for that bar: set where it shows */
   --overlay-foot: 0px;                     /* room menus, sheets and dialogs leave at the foot for a bar drawn over the page (the app's): set in shell.css */
@@ -309,7 +313,7 @@ input[type=range] { accent-color: var(--accent); }
 .nav-empty { padding: var(--sp-1) var(--sp-3); font-size: var(--text-sm); color: var(--fg-3); }
 .sidebar-footer { margin-top: auto; padding: var(--sp-4) var(--sp-3) var(--sp-2); color: var(--fg-3); font-size: var(--text-xs); }
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.topbar { position: sticky; top: 0; z-index: var(--z-topbar); display: flex; align-items: center; gap: var(--sp-3); min-height: var(--topbar-h); padding: var(--sp-3) var(--gutter); background: var(--bg); }
+.topbar { position: sticky; top: 0; z-index: var(--z-topbar); display: flex; align-items: center; gap: var(--sp-3); min-height: var(--topbar-h); padding: var(--sp-3) max(var(--gutter), calc((100% - var(--page-max)) / 2)); background: var(--bg); } /* contents on the page column's edge */
 /* Content slides under the bar through a soft edge (no blur: a blur repaints on
    every scrolled frame, which low-end devices can't afford). */
 .topbar::after { content: ''; position: absolute; left: 0; right: 0; top: 100%; height: var(--sp-3); background: linear-gradient(var(--bg), rgb(var(--bg-rgb) / 0)); pointer-events: none; }
@@ -329,7 +333,7 @@ input[type=range] { accent-color: var(--accent); }
 .search svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--fg-3); pointer-events: none; z-index: 1; }
 .topbar .spacer { flex: 1; }
 .avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--accent); display: grid; place-items: center; font-weight: 700; color: var(--accent-fg); border: 0; }
-.content { flex: 1; padding: var(--sp-2) var(--gutter) var(--sp-16); min-width: 0; }
+.content { flex: 1; padding: var(--page-top) var(--gutter) var(--sp-16); min-width: 0; }
 /* Desktop: the hamburger collapses the sidebar entirely. */
 .app:not(.nav-open) .sidebar { display: none; }
 .backdrop-dim { display: none; }
@@ -362,7 +366,10 @@ input[type=range] { accent-color: var(--accent); }
   .app:not(:has(.home.editing, .legal-ack-bar, .play-status)) :is(
     .content > :first-child > :is(.hero, .detail-hero):first-child,
     .content > :first-child > .sr-only:first-child + :is(.hero, .detail-hero),
-    .content > :first-child > .sr-only:first-child + * > .detail-hero:first-child) { margin-top: calc(-1 * (var(--sp-2) + var(--bar-space))); }
+    .content > :first-child > .sr-only:first-child + * > .detail-hero:first-child) { margin-top: calc(-1 * (var(--page-top) + var(--bar-space))); }
+  /* A title's page wraps its picture (.sdui-detail); the wrapper's own top padding would leave a band of page colour
+     above the picture, so it has none while the picture opens the page. */
+  .app:not(:has(.home.editing, .legal-ack-bar, .play-status)) .content > :first-child > .sr-only:first-child + :has(> .detail-hero:first-child) { padding-top: 0; }
 }
 
 @media (max-width: 900px) {
@@ -419,7 +426,7 @@ input[type=range] { accent-color: var(--accent); }
 .meta .pill + *::before { content: none; }
 
 /* ---------------------------------------------------------------- hero */
-.hero { position: relative; height: 62vh; min-height: 400px; max-height: 660px; margin: calc(-1 * var(--sp-2)) calc(-1 * var(--gutter)) var(--section-gap); overflow: hidden; }
+.hero { position: relative; height: 62vh; min-height: 400px; max-height: 660px; margin: calc(-1 * var(--page-top)) calc(-1 * var(--gutter)) var(--section-gap); overflow: hidden; }
 .hero .bg { position: absolute; inset: 0; background-size: cover; background-position: center 20%; transition: opacity var(--dur-4) var(--ease-standard); }
 .hero .shade { position: absolute; inset: 0; background: linear-gradient(90deg, rgb(var(--bg-rgb) / .94) 0%, rgb(var(--bg-rgb) / .78) 40%, rgb(var(--bg-rgb) / 0) 82%), linear-gradient(0deg, var(--bg) 0%, rgb(var(--bg-rgb) / .35) 24%, rgb(var(--bg-rgb) / 0) 52%); }
 .hero .info { position: absolute; left: var(--gutter); bottom: var(--sp-10); width: min(620px, calc(100% - 2 * var(--gutter))); }
@@ -578,7 +585,7 @@ textarea.input { padding: 10px var(--sp-3); line-height: var(--leading-body); re
 .limits .chips { margin-bottom: 0; }
 
 /* ---------------------------------------------------------------- detail */
-.detail-hero { position: relative; margin: calc(-1 * var(--sp-2)) calc(-1 * var(--gutter)) 0; height: 50vh; min-height: 320px; max-height: 560px; overflow: hidden; }
+.detail-hero { position: relative; margin: calc(-1 * var(--page-top)) calc(-1 * var(--gutter)) 0; height: 50vh; min-height: 320px; max-height: 560px; overflow: hidden; }
 .detail-hero .bg { position: absolute; inset: 0; background-size: cover; background-position: center 25%; }
 .detail-hero .shade { position: absolute; inset: 0; background: linear-gradient(0deg, var(--bg) 0%, rgb(var(--bg-rgb) / .9) 24%, rgb(var(--bg-rgb) / .5) 62%, rgb(var(--bg-rgb) / .2) 100%); }
 .detail { display: grid; grid-template-columns: clamp(170px, 17vw, 248px) minmax(0, 1fr); gap: clamp(var(--sp-5), 3vw, var(--sp-10)); margin-top: calc(-1 * clamp(120px, 16vh, 190px)); position: relative; z-index: 2; }

@@ -139,7 +139,7 @@ html.tv-mode .sdui-widgets { gap: var(--space-l); }
 .app[data-r-brand="center"] .topbar .top-brand { margin-inline: auto; }
 
 /* ---- finishes of the top-bar nav styles (data-nav-style on the frame), in the theme's own colours ---- */
-.app[data-nav-style="floatingGlassBar"] .topbar { margin: var(--space-s) var(--gutter) 0; border-radius: var(--r-full); background: color-mix(in srgb, var(--elev-2-fill) 86%, transparent); border: 1px solid var(--elev-2-line); box-shadow: var(--elev-3-shadow); background-image: linear-gradient(180deg, color-mix(in srgb, var(--on-image) 14%, transparent), transparent 60%); padding-block: calc(var(--sp-3) - 1px); }
+.app[data-nav-style="floatingGlassBar"] .topbar { margin: var(--space-s) var(--gutter) 0; border-radius: var(--r-full); background: color-mix(in srgb, var(--elev-2-fill) 86%, transparent); border: 1px solid var(--elev-2-line); box-shadow: var(--elev-3-shadow); background-image: linear-gradient(180deg, color-mix(in srgb, var(--on-image) 14%, transparent), transparent 60%); padding-block: calc(var(--sp-3) - 1px); padding-inline: max(var(--gutter), calc((100% - var(--page-max)) / 2 - var(--gutter))); }
 /* The floating bar stands off the top by --space-s. That margin is part of the room the bar measures (--bar-space,
    styles.css), so a picture that opens the page runs up behind the glass to the very top, and anything else starts below. */
 /* Its backing is the pill's own shape: the surface that fades in as the page scrolls under it (::before) takes the
@@ -167,7 +167,7 @@ html.tv-mode .sdui-widgets { gap: var(--space-l); }
 .app[data-nav-style="crossbar"] .topnav { padding-inline-end: var(--space-l); -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - var(--space-l)), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - var(--space-l)), transparent); } /* design-ok: a mask only reads how solid it is */
 .app[data-nav-style="crossbar"] .topnav-link { font-size: var(--role-title-size); background: none; border-radius: 0; border-bottom: 2px solid transparent; color: var(--fg-2); }
 .app[data-nav-style="crossbar"] .topnav-link.active { background: none; color: var(--fg); border-bottom-color: var(--accent); }
-.app[data-nav-style="ornamentTabs"] .topbar { margin: var(--space-m) auto 0; inline-size: fit-content; max-inline-size: calc(100% - 2 * var(--gutter)); border-radius: var(--r-full); background: var(--elev-2-fill); border: 1px solid var(--elev-2-line); box-shadow: var(--elev-3-shadow); }
+.app[data-nav-style="ornamentTabs"] .topbar { margin: var(--space-m) auto 0; inline-size: fit-content; padding-inline: var(--gutter); /* a pill as wide as its tabs, centred: not on the page column */ max-inline-size: calc(100% - 2 * var(--gutter)); border-radius: var(--r-full); background: var(--elev-2-fill); border: 1px solid var(--elev-2-line); box-shadow: var(--elev-3-shadow); }
 .app[data-nav-style="ornamentTabs"] .topnav-link { min-block-size: 3.75rem; padding-inline: var(--space-l); }
 .ctv-banner-more { margin-top: var(--space-s); }
 

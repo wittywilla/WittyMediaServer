@@ -8,9 +8,9 @@
 .sdui { display: flex; flex-direction: column; gap: var(--sdui-gap); min-width: 0; }
 .sdui > * { min-width: 0; }
 .sdui .hub, .sdui .hero, .sdui .toolbar { margin-bottom: 0; }
-.sdui > .hero:first-child, .sdui > .sr-only + .hero { margin-top: calc(-1 * var(--sp-2)); }
-.sdui.ff-desktop, .sdui.ff-web { max-width: 1600px; width: 100%; margin-inline: auto; }
-.sdui-page-title { margin: var(--sp-2) 0 0; font-size: var(--page-title); letter-spacing: var(--tracking-display); }
+.sdui > .hero:first-child, .sdui > .sr-only + .hero { margin-top: calc(-1 * var(--page-top)); }
+.sdui.ff-desktop, .sdui.ff-web { max-width: var(--page-max); width: 100%; margin-inline: auto; }
+.sdui-page-title { margin: 0; font-size: var(--page-title); letter-spacing: var(--tracking-display); }
 .sdui-stack { display: flex; flex-direction: column; gap: var(--sdui-gap); min-width: 0; }
 .sdui-stack.row-dir { flex-direction: row; }
 .sdui-stack > * { min-width: 0; }

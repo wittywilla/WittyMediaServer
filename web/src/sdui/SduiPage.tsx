@@ -147,7 +147,10 @@ export function PageView({ doc, device, handlers, width, children }: { doc: Docu
   }, [doc.root, inert])
 
   const first = model.root.children[0]
-  const ownHeading = !first || first.type === 'Hero' || first.type === 'DetailHeader' || first.type === 'NativeView' || (first.type === 'Text' && first.role === 'heading 1')
+  // Home never shows the word "Home" over its own picture: with a featured picture anywhere on it (even below a
+  // "Finish setting up" notice) the page's name is for screen readers only. A look whose Home has no picture keeps it.
+  const homeWithPicture = doc.page.kind === 'home' && model.root.children.some((c) => c.type === 'Hero')
+  const ownHeading = !first || homeWithPicture || first.type === 'Hero' || first.type === 'DetailHeader' || first.type === 'NativeView' || (first.type === 'Text' && first.role === 'heading 1')
   const style = {
     '--sdui-gap': px(sectionGap(l), pt), '--section-gap': px(sectionGap(l), pt), '--sdui-pt': String(pt),
     '--sdui-xs': px(l.spacing.xs || 4, pt), '--sdui-s': px(l.spacing.s || 8, pt), '--sdui-m': px(l.spacing.m || 16, pt), '--sdui-l': px(l.spacing.l || 24, pt), '--sdui-xl': px(l.spacing.xl || 48, pt),

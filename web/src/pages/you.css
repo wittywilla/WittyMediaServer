@@ -2,7 +2,7 @@
 /* Copyright (C) 2026 WittyWilla and contributors */
 /* You, on a phone (YouPage.tsx): one column, the person at the top, then grouped lists
    as the apps draw them. --tint is a row's colour. */
-.you { display: grid; gap: var(--sp-6); max-width: 640px; margin: var(--sp-4) auto 0; }
+.you { display: grid; gap: var(--sp-6); max-width: 640px; margin: 0 auto 0 max(0px, calc((100% - var(--page-max)) / 2)); } /* the page column's edge, --page-top below the bar (styles.css) */
 
 .you-head { display: grid; justify-items: center; text-align: center; }
 .you-head .avatar-tile.big { width: 88px; height: 88px; border-radius: 22%; font-size: var(--text-4xl); }

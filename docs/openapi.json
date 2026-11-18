@@ -21589,6 +21589,59 @@
         "x-wms-stream-token": true
       }
     },
+    "/items/{id}/scene/{sec}": {
+      "get": {
+        "operationId": "getItemsSceneById",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sec",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The content."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "streamToken": []
+          }
+        ],
+        "summary": "A small picture (320 wide) of a video file at a whole second, for its scene picker and the seek-bar preview; the first request makes it.",
+        "tags": [
+          "Playback"
+        ],
+        "x-wms-auth": "user",
+        "x-wms-stream-token": true
+      }
+    },
     "/items/{id}/download": {
       "post": {
         "operationId": "postItemsDownload",

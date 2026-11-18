@@ -1695,6 +1695,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /dvd/{sid}/subs` | user | Sub-picture subtitle events for a time window. Normally reached through `title.subtitlesUrl`. |
 | `GET /dvd/{sid}/sub/{name}` | user, `st` | One sub-picture as a PNG. |
 | `GET /items/{id}/disc/thumb/{ttn}/{n}` | user, `st` | A picture of a title (n = 0) or chapter; the first request makes it. |
+| `GET /items/{id}/scene/{sec}` | user, `st` | A small picture (320 wide) of a video file at a whole second, for its scene picker and the seek-bar preview; the first request makes it, at most two at once. |
 
 A disc's page, why a title is its film, the choice of another and the names of its titles are WittyDVD's and WittyBluray's own routes (module API 5), under `/modules/wittydvd/` for a DVD and `/modules/wittybluray/` for a Blu-ray. Each answers for its own kind of disc only (404 for the other's), and 424 with `module` while the module isn't in use. Their sections on a title's page (Feature Presentation, Scenes, Why this title and the rest) come with the page from the modules' `sdui.json`, and their rows run the modules' own commands (`wittydvd.choose`, `wittydvd.clearChoice`, `wittydvd.rank`; `wittybluray.*` the same, and `wittybluray.compare`).
 

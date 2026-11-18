@@ -57,7 +57,9 @@ func TestSongRoundTrip(t *testing.T) {
 }
 
 func TestBadSongsAreRefused(t *testing.T) {
-	audio := func(extra string) []byte { return []byte(`{"format":"wittyaudio","version":1,"audio":{` + extra + `}}`) }
+	audio := func(extra string) []byte {
+		return []byte(`{"format":"wittyaudio","version":1,"audio":{` + extra + `}}`)
+	}
 	for name, b := range map[string][]byte{
 		"music in a film's file": []byte(`{"format":"wittyinfo","version":1,"audio":{"album":"x"}}`),
 		"a film's scope":         []byte(`{"format":"wittyaudio","version":1,"scope":"show"}`),

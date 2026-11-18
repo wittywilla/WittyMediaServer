@@ -1382,7 +1382,10 @@ func (s *Session) commandLine(fromSeg int) (args []string, encoder, dir string, 
 			af += ",apad"
 		}
 		switch {
-		case ch == 2 || ch == 0:
+		// A stream held to a rate (a viewer's choice, the limit away from home) has stereo
+		// sound: the rate's budget for sound is a stereo rate (ffmpeg.Quality.WithCap), and
+		// 5.1 at 384k would take most of a small one.
+		case ch == 2 || ch == 0 || sp.Quality.CapRate != "":
 			args = append(args, "-ac", "2", "-b:a", firstNonEmpty(sp.Quality.AudioRate, "192k"), "-af", af)
 		default:
 			args = append(args, "-ac", strconv.Itoa(ch), "-b:a", "384k", "-af", af)

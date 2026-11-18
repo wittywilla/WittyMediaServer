@@ -1249,6 +1249,9 @@ func hlsOutput(src playback.Source, d playback.Decision, spec hls.Spec, audio, w
 	}
 	if !d.CopyAudio || !d.CopyVideo {
 		o.AudioCodec, o.AudioChannels = spec.AudioCodec, spec.AudioChannels
+		if spec.Quality.CapRate != "" {
+			o.AudioChannels = min(o.AudioChannels, 2) // held to a rate: stereo (hls.go)
+		}
 		if o.AudioChannels > src.Audio[audio].Channels && src.Audio[audio].Channels > 0 {
 			o.AudioChannels = src.Audio[audio].Channels
 		}

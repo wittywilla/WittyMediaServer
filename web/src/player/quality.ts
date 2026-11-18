@@ -77,8 +77,9 @@ export function sizeName(height: number, width = 0): string {
   if (width > 0 && height > 0 && width < height) h = width
   else if (width > 0 && height > 0 && width * 9 > height * 16) h = Math.round((width * 9) / 16)
   if (h >= 2000) return '4K'
-  if (h >= 1400) return '1440p'
-  return h > 0 ? `${h}p` : ''
+  // The name it's known by when it's within a few lines of one (a wide 854×460 is 480p).
+  const near = [1440, 1080, 720, 576, 480, 360, 240].find((n) => Math.abs(h - n) <= n * 0.05)
+  return near ? `${near}p` : h > 0 ? `${h}p` : ''
 }
 
 // A short description of a choice, for the chip and announcements.

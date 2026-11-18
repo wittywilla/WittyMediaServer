@@ -45,6 +45,8 @@ test('data use in words', () => {
   assert.equal(q.perHour(800), '360 MB an hour')
   assert.equal(q.sizeName(800, 1920), '1080p', 'a wide film is named by its width')
   assert.equal(q.sizeName(2160, 3840), '4K')
+  assert.equal(q.sizeName(460, 850), '480p', 'a few lines short of a size is that size')
+  assert.equal(q.sizeName(540, 960), '540p')
 })
 
 test('this device keeps a default for home and for away', () => {

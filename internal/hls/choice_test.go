@@ -43,3 +43,22 @@ func TestChoiceReachesFFmpeg(t *testing.T) {
 		t.Errorf("Original caps nothing:\n%s", got)
 	}
 }
+
+// Surround sound under a rate cap is folded to stereo at the capped rate, so the cap holds;
+// without a cap it stays 5.1.
+func TestCapFoldsSurround(t *testing.T) {
+	line := func(q ffmpeg.Quality) string {
+		tools := &ffmpeg.Tools{Encoders: map[string]bool{"libx264": true}}
+		sp := Spec{InputArgs: []string{"-i", "in.mkv"}, Duration: 60, SegmentSec: 4, AudioIndex: 0, AudioChannels: 6, SubtitleIndex: -1, Quality: q}
+		s := &Session{Spec: sp, Dir: t.TempDir(), tools: tools, m: &Manager{tools: tools}}
+		args, _, _, _ := s.commandLine(0)
+		return strings.Join(args, " ")
+	}
+	base := ffmpeg.Quality{AudioRate: "192k"}
+	if got := line(base); !strings.Contains(got, "-ac 6 -b:a 384k") {
+		t.Errorf("uncapped 5.1:\n%s", got)
+	}
+	if got := line(playback.ParseChoice("h360-b800").Quality(base)); !strings.Contains(got, "-ac 2 -b:a 128k") {
+		t.Errorf("5.1 under an 800 kbps cap:\n%s", got)
+	}
+}

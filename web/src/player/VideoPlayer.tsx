@@ -28,7 +28,7 @@ import { useRemoteAllowed } from '../remote/allowed'
 import { setSpeed } from './speed'
 import { classifyPlayError } from './errors'
 import QualityMenu, { StreamInfo } from './QualityMenu'
-import { describe, deviceChoice, here, noteAway, setDeviceDefault, setShowStreamInfo, showStreamInfo, streamLines } from './quality'
+import { describe, deviceChoice, here, noteAway, setDeviceDefault, setShowStreamInfo, showStreamInfo, sizeName, streamLines } from './quality'
 import { announce } from '../a11y'
 
 // Opened from the player's top bar, and not before.
@@ -414,8 +414,10 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   const subtitle = [item.showTitle, episodeLabel(item)].filter(Boolean).join(' · ')
   // The chip on the bar: the picture's size as a person says it (4K, 1080p), from the stream being played.
   const vid = info?.videos?.find((x) => x.index === info.videoIndex) || info?.videos?.[0]
-  const picH = vid?.height || video.current?.videoHeight || 0
-  const quality = picH >= 2000 ? '4K' : picH >= 1400 ? '1440p' : picH > 0 ? picH + 'p' : ''
+  // What plays now, as the player sees it (a converted stream is smaller than the file), else the file's.
+  const picH = video.current?.videoHeight || vid?.height || 0
+  const picW = video.current?.videoHeight ? video.current.videoWidth : vid?.width || 0
+  const quality = sizeName(picH, picW)
   const stepPrev = () => { if (chapters.length > 1) stepChapter(-1); else seek(0) }
   // A new size or rate: asked for at the same place, and remembered on this device for where it is.
   const chooseQuality = (choice: string) => {

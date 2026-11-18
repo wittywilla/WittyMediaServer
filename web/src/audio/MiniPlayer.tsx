@@ -9,9 +9,11 @@ import { IconKaraoke, IconList, IconRepeat, IconRepeatOne, IconShuffle } from '.
 import type { PlayerView } from './types'
 import { t } from '../i18n'
 
-// The bar: floating along the bottom while you browse, with room left under the page so it
-// never hides the last row. It collapses to a small button in the corner for anyone who
-// wants the screen back. Everything else is one press away in the full player.
+// The bar: along the bottom while you browse, in three parts as music apps lay it out: what's
+// playing on the left, the buttons over the place in the song in the middle, the rest on the
+// right. Room is left under the page so it never hides the last row. It collapses to a small
+// button in the corner for anyone who wants the screen back. Everything else is one press
+// away in the full player.
 
 export default function MiniPlayer({ p, cdSpin }: { p: PlayerView; cdSpin: boolean }) {
   const it = p.current
@@ -34,39 +36,49 @@ export default function MiniPlayer({ p, cdSpin }: { p: PlayerView; cdSpin: boole
       </div>
     )
   }
+  const dur = p.duration
   return (
     <div className={'audio-bar' + (p.live ? ' live' : '')} role="region" aria-label={t('Now playing')}>
-      <button className={'ab-art' + (cdSpin ? ' cd' + (p.playing ? ' spin' : '') : '')} onClick={() => p.openFull()} aria-label={t('Show the full player')} title={t('Show the full player')}>{art}</button>
-      {!p.live && <div className="ab-progress"><Seek p={p} slim /></div>}
-      <button className="ab-info" onClick={() => p.openFull()} title={t('Show the full player')}>
-        <div className="ab-title">{it.title}</div>
-        <div className="ab-sub">{sub}</div>
-      </button>
-      <div className="ab-side wide">
-        <Like p={p} />
-        {!p.live && <AddToPlaylist items={[it]} up />}
+      <div className="ab-left">
+        <button className={'ab-art' + (cdSpin ? ' cd' + (p.playing ? ' spin' : '') : '')} onClick={() => p.openFull()} aria-label={t('Show the full player')} title={t('Show the full player')}>{art}</button>
+        <button className="ab-info" onClick={() => p.openFull()} title={t('Show the full player')}>
+          <div className="ab-title">{it.title}</div>
+          <div className="ab-sub">{sub}</div>
+        </button>
+        <span className="ab-side ab-like"><Like p={p} /></span>
+        {!p.live && <span className="ab-side wide"><AddToPlaylist items={[it]} up /></span>}
       </div>
-      <div className="ab-ctl">
-        {!p.books && !p.live && <button className={'mp-ibtn wide' + (p.shuffle ? ' on' : '')} aria-pressed={p.shuffle} aria-label={t('Shuffle')} title={t('Shuffle')} onClick={() => p.setShuffle(!p.shuffle)}><IconShuffle /></button>}
-        {p.books && <button className="mp-ibtn wide" onClick={() => p.seek(Math.max(0, p.position() - 15))} aria-label={t('Back 15 seconds')}><IconBack15 /></button>}
-        <button className="mp-ibtn wide" onClick={p.prev} aria-label={t('Previous')} title={t('Previous')}><IconPrev /></button>
-        <button className="mp-ibtn big" onClick={p.toggle} aria-label={p.playing ? t('Pause') : t('Play')}>{p.playing ? <IconPause /> : <IconPlay />}</button>
-        <button className="mp-ibtn" onClick={p.next} aria-label={t('Next')} title={t('Next')}><IconNext /></button>
-        {p.books && <button className="mp-ibtn wide" onClick={() => p.seek(p.position() + 30)} aria-label={t('Forward 30 seconds')}><IconForward30 /></button>}
-        {!p.books && !p.live && <button className={'mp-ibtn wide' + (p.repeat !== 'off' ? ' on' : '')} aria-label={p.repeat === 'one' ? t('Repeat this song') : p.repeat === 'all' ? t('Repeat all') : t('Repeat off')} title={t('Repeat')} onClick={p.cycleRepeat}>{p.repeat === 'one' ? <IconRepeatOne /> : <IconRepeat />}</button>}
+      <div className="ab-centre">
+        <div className="ab-ctl">
+          {!p.books && !p.live && <button className={'mp-ibtn wide' + (p.shuffle ? ' on' : '')} aria-pressed={p.shuffle} aria-label={t('Shuffle')} title={t('Shuffle')} onClick={() => p.setShuffle(!p.shuffle)}><IconShuffle /></button>}
+          {p.books && <button className="mp-ibtn wide" onClick={() => p.seek(Math.max(0, p.position() - 15))} aria-label={t('Back 15 seconds')}><IconBack15 /></button>}
+          <button className="mp-ibtn wide" onClick={p.prev} aria-label={t('Previous')} title={t('Previous')}><IconPrev /></button>
+          <button className="mp-ibtn big" onClick={p.toggle} aria-label={p.playing ? t('Pause') : t('Play')}>{p.playing ? <IconPause /> : <IconPlay />}</button>
+          <button className="mp-ibtn" onClick={p.next} aria-label={t('Next')} title={t('Next')}><IconNext /></button>
+          {p.books && <button className="mp-ibtn wide" onClick={() => p.seek(p.position() + 30)} aria-label={t('Forward 30 seconds')}><IconForward30 /></button>}
+          {!p.books && !p.live && <button className={'mp-ibtn wide' + (p.repeat !== 'off' ? ' on' : '')} aria-label={p.repeat === 'one' ? t('Repeat this song') : p.repeat === 'all' ? t('Repeat all') : t('Repeat off')} title={t('Repeat')} onClick={p.cycleRepeat}>{p.repeat === 'one' ? <IconRepeatOne /> : <IconRepeat />}</button>}
+        </div>
+        {!p.live && (
+          <div className="ab-progress">
+            <span className="ab-time" aria-hidden="true">{fmtTime(p.time)}</span>
+            <Seek p={p} slim />
+            <span className="ab-time" aria-hidden="true">{fmtTime(dur)}</span>
+          </div>
+        )}
       </div>
-      <div className="ab-side wide">
-        {!p.live && <span className="ab-time">{fmtTime(p.time)} / {fmtTime(p.duration)}</span>}
-        <Volume p={p} up />
-        {sing && wants('lyrics') && <button className="mp-ibtn" onClick={() => p.openFull({ panel: 'lyrics' })} aria-label={t('Lyrics')} title={t('Lyrics (L)')}><IconMic size={20} /></button>}
-        {sing && wants('karaoke') && <button className="ab-viz-pill" onClick={() => p.openFull({ panel: 'karaoke' })} title={t('Karaoke (K)')}><IconKaraoke /><span>{t('Karaoke')}</span></button>}
-        {wants('queue') && <button className="mp-ibtn" onClick={() => p.openFull({ panel: 'queue' })} aria-label={t('Queue')} title={t('Queue')}><IconList /></button>}
-        {!p.live && wants('visualizer') && <button className="ab-viz-pill" onClick={() => p.openFull({ visualizer: true })} title={t('Visualizer (V)')}><IconVisualizer /><span>{t('Visualizer')}</span></button>}
-        <button className="mp-ibtn ab-expand" onClick={() => p.openFull()} aria-label={t('Full screen')} title={t('Full screen')}><IconExpand /></button>
-        <button className="mp-ibtn" onClick={() => p.setCollapsed(true)} aria-label={t('Collapse the player')} title={t('Collapse')}><IconDown /></button>
-        <button className="mp-ibtn" onClick={p.stop} aria-label={t('Stop playing and close')} title={t('Stop and close')}><IconClose /></button>
+      <div className="ab-right">
+        <div className="ab-side wide">
+          {sing && wants('lyrics') && <button className="mp-ibtn" onClick={() => p.openFull({ panel: 'lyrics' })} aria-label={t('Lyrics')} title={t('Lyrics (L)')}><IconMic size={20} /></button>}
+          {sing && wants('karaoke') && <button className="ab-viz-pill" onClick={() => p.openFull({ panel: 'karaoke' })} title={t('Karaoke (K)')}><IconKaraoke /><span>{t('Karaoke')}</span></button>}
+          {wants('queue') && <button className="mp-ibtn" onClick={() => p.openFull({ panel: 'queue' })} aria-label={t('Queue')} title={t('Queue')}><IconList /></button>}
+          {!p.live && wants('visualizer') && <button className="ab-viz-pill" onClick={() => p.openFull({ visualizer: true })} title={t('Visualizer (V)')}><IconVisualizer /><span>{t('Visualizer')}</span></button>}
+          <Volume p={p} up />
+          <button className="mp-ibtn ab-expand" onClick={() => p.openFull()} aria-label={t('Full screen')} title={t('Full screen')}><IconExpand /></button>
+          <button className="mp-ibtn" onClick={() => p.setCollapsed(true)} aria-label={t('Collapse the player')} title={t('Collapse')}><IconDown /></button>
+          <button className="mp-ibtn" onClick={p.stop} aria-label={t('Stop playing and close')} title={t('Stop and close')}><IconClose /></button>
+        </div>
+        <button className="mp-ibtn phone-only" onClick={() => p.openFull()} aria-label={t('Full screen')}><IconUp /></button>
       </div>
-      <button className="mp-ibtn phone-only" onClick={() => p.openFull()} aria-label={t('Full screen')}><IconUp /></button>
     </div>
   )
 }

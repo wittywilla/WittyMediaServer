@@ -63,10 +63,13 @@ export type BumperWhen = 'before' | 'after' | 'between' | 'every'
 export type BumperRule = { id: string; name?: string; off?: boolean; when: BumperWhen; everyMin?: number; source: Rules; count?: number; mandatory?: boolean; only?: Rules }
 export type TrimChoice = '' | 'cut' | 'drop' | 'keep'
 export type Trim = { on?: boolean; ads?: TrimChoice; bumpers?: TrimChoice; minKeepSec?: number; tailSec?: number }
-export type BumperPlan = { rules?: BumperRule[]; trim?: Trim }
+// libraries: the channel's bumper libraries. fromCommercials: bumpers may also
+// come from its commercials libraries.
+export type BumperPlan = { rules?: BumperRule[]; trim?: Trim; libraries?: CommercialPick[]; fromCommercials?: boolean }
 export type Definition = {
   mode: 'simple' | 'rules' | 'timetable'; rules: Rules; order: Order; blocks: Block[] | null
-  filler: { rules?: Rules; between?: number; maxSeconds?: number; commercials?: CommercialPick[]; breakEveryMin?: number; breakAds?: number }; alignMin: number
+  // fromBumpers: commercials may also come from the bumper libraries.
+  filler: { rules?: Rules; between?: number; maxSeconds?: number; commercials?: CommercialPick[]; fromBumpers?: boolean; breakEveryMin?: number; breakAds?: number }; alignMin: number
   bumpers?: BumperPlan
 }
 export type CommercialPick = { library: number; only?: boolean; items?: number[] }
@@ -80,6 +83,18 @@ export type Suggestion = { key: string; group: 'network' | 'era' | 'genre' | 'st
 export type NetworkFact = { name: string; shows: number; episodes: number; slots: number; fromYear: number; toYear: number; decades: number[] }
 export type EditorOptions = { networks: NetworkFact[]; genres: string[]; studios: string[]; ratings: string[]; decades: number[]; shows: { id: number; title: string; year?: number; network?: string; seasons: number }[]; collections: { id: number; name: string; items: number }[] }
 export type Bumper = { itemId: number; title: string; durationSec: number; library: string; rating?: string; uploaded: boolean; chosen: boolean; updatedAt: number }
+export type VideoPage = { items: Bumper[]; total: number }
+// A page of the videos a channel's bumpers and commercials can come from.
+export const channelVideos = (q: { libraries?: number[]; own?: boolean; ids?: number[]; search?: string; offset?: number; limit?: number }) => {
+  const p = new URLSearchParams()
+  if (q.libraries?.length) p.set('libraries', q.libraries.join(','))
+  if (q.own) p.set('own', '1')
+  if (q.ids?.length) p.set('ids', q.ids.join(','))
+  if (q.search) p.set('search', q.search)
+  if (q.offset) p.set('offset', String(q.offset))
+  p.set('limit', String(q.limit || 25))
+  return api.get<VideoPage>('/channels/videos?' + p.toString())
+}
 export type DiscOption = { id: number; title: string; year?: number; format: 'dvd' | 'bluray'; scrambled: boolean; mainTitle: number; runtimeSec: number; updatedAt: number; titles: number }
 export type DiscChapter = { n: number; start: number; label: string }
 export type DiscTitle = { ttn: number; label: string; durationSec: number; chapters: DiscChapter[]; wide: boolean }

@@ -690,8 +690,8 @@ function DetailHeaderView({ view }: { view: View }) {
             </div>
           )}
           {view.progress !== undefined && view.progress > 0 && <div className="sdui-detail-progress" role="progressbar" aria-label={t('Watched')} aria-valuemin={0} aria-valuemax={100} aria-valuenow={view.progress}><i style={{ width: view.progress + '%' }} /></div>}
-          {/* The main action, then the rest (Watch later, Mark watched, Download, Share) as icons with their names, in one
-              centred row that scrolls sideways only when it is wider than the screen: the same on every app. */}
+          {/* The main action, then the rest (Watch later, Mark watched, Download, Share) as icons with their names, lined up
+              under the title on a wide screen and centred under a full-width Play on a phone (sdui.css). */}
           <div className="actions sdui-detail-actions" data-nav-group>
             {buttons.filter((b) => b.primary).map(button)}
             {buttons.some((b) => !b.primary) && <div className="sdui-detail-more">{buttons.filter((b) => !b.primary).map(button)}</div>}
@@ -834,35 +834,56 @@ function SeasonListView({ view }: { view: View }) {
   const own = useEpisodeView(showId)
   const list = own ? own === 'list' : str(p, 'style') === 'list'
   const waiting = loading(view, page.busy(view.id) && view.children.length === 0)
+  // As cards, the episodes are a grid whose column count is set by the width (sdui.css); a remote's
+  // arrows move by row and column in it, so the page is told how many columns are drawn. A playlist is one.
+  const box = useRef<HTMLDivElement | null>(null)
+  useLayoutEffect(() => {
+    const el = box.current
+    if (!el) return
+    const work = () => page.columns(view.id, list ? 1 : Math.max(1, getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length))
+    work()
+    if (list || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(work)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [list, view.id]) // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <section className="sdui-seasons" role="region" aria-label={view.label} style={{ ...cardVars(view, page.pt), ...scopeStyle(view.node) }} data-sdui-section={view.id}>
-      {seasons.length > 0 && (
-        <div className="season-tabs sdui-season-tabs" role="group" aria-label={t('Seasons')} data-sdui-head data-nav-group>
-          {seasons.map((s) => {
-            const on = s.selected === true
-            const count = num(s, 'count'), left = num(s, 'unwatched')
-            return (
-              <button key={str(s, 'title')} type="button" className={'season-tab sdui-season' + (on ? ' active' : '')} aria-pressed={on} aria-label={on ? t('{tab}, selected', { tab: tx(str(s, 'title')) }) : tx(str(s, 'title'))}
-                onClick={() => { if (!on && str(s, 'url')) page.more(view.id, str(s, 'url'), true) }}>
-                <div className="t">{tx(str(s, 'title'))}</div>
-                {count > 0 && <div className="sub">{left > 0 && left < count ? t('{episodes} · {left}', { episodes: tn('{count} ep', '{count} ep', count), left: tn('{count} left', '{count} left', left) }) : tn('{count} ep', '{count} ep', count)}</div>}
-              </button>
-            )
-          })}
-        </div>
-      )}
-      {showId && !page.inert && (
-        <div className="view-toggle sdui-episode-view">
-          <span className="muted" id={view.id + '-layout'}>{t('Layout')}</span>
-          <div className="seg" role="group" aria-labelledby={view.id + '-layout'}>
-            <button type="button" className={!list ? 'active' : ''} aria-pressed={!list} onClick={() => chooseEpisodeView(showId, 'cards')}>{t('Cards')}</button>
-            <button type="button" className={list ? 'active' : ''} aria-pressed={list} onClick={() => chooseEpisodeView(showId, 'list')}>{t('Playlist')}</button>
-          </div>
+      {/* One bar above the episodes: the seasons as tabs (or, with one season, its name as a heading), and the
+          Cards / Playlist switch at the far end. */}
+      {(seasons.length > 0 || (showId && !page.inert)) && (
+        <div className="sdui-season-bar" data-sdui-head data-nav-group>
+          {seasons.length === 1 && (
+            <h2 className="sdui-season-one">{tx(str(seasons[0], 'title'))}{num(seasons[0], 'count') > 0 && <span className="muted">{seasonCount(seasons[0])}</span>}</h2>
+          )}
+          {seasons.length > 1 && (
+            <div className="sdui-season-tabs" role="group" aria-label={t('Seasons')}>
+              {seasons.map((s) => {
+                const on = s.selected === true
+                const count = seasonCount(s)
+                return (
+                  <button key={str(s, 'title')} type="button" className={'sdui-season' + (on ? ' active' : '')} aria-pressed={on} aria-label={seasonName(tx(str(s, 'title')), count, on)}
+                    onClick={() => { if (!on && str(s, 'url')) page.more(view.id, str(s, 'url'), true) }}>
+                    <span className="t">{tx(str(s, 'title'))}</span>
+                    {count && <span className="sub" aria-hidden="true">{count}</span>}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+          {showId && !page.inert && (
+            <div className="sdui-episode-view">
+              <div className="seg" role="group" aria-label={t('Show episodes as')}>
+                <button type="button" className={!list ? 'active' : ''} aria-pressed={!list} onClick={() => chooseEpisodeView(showId, 'cards')}>{t('Cards')}</button>
+                <button type="button" className={list ? 'active' : ''} aria-pressed={list} onClick={() => chooseEpisodeView(showId, 'list')}>{t('Playlist')}</button>
+              </div>
+            </div>
+          )}
         </div>
       )}
       <StateLine view={view} />
-      <div className={list ? 'sdui-episode-list' : 'episodes'} role="list" aria-label={t('Episodes')} data-nav-group aria-busy={page.busy(view.id) || undefined}>
-        {waiting ? Array.from({ length: 4 }, (_, k) => <div key={k} className="episode sdui-ph" aria-hidden="true"><span className="thumb"><i className="skel" /></span><div className="info" /></div>)
+      <div ref={box} className={list ? 'sdui-episode-list' : 'sdui-episode-grid'} role="list" aria-label={t('Episodes')} data-nav-group aria-busy={page.busy(view.id) || undefined}>
+        {waiting ? Array.from({ length: list ? 4 : 6 }, (_, k) => <div key={k} className={'episode sdui-ph' + (list ? '' : ' ep-card')} aria-hidden="true"><span className="thumb"><i className="skel" /></span><div className="info" /></div>)
           : view.children.map((c) => <div role="listitem" key={c.id}><EpisodeRow view={c} compact={list} synopsis={p.showSynopsis !== false} /></div>)}
       </div>
       {view.hasMore && !waiting && <Near onNear={() => page.more(view.id)} />}
@@ -870,25 +891,69 @@ function SeasonListView({ view }: { view: View }) {
   )
 }
 
-// One episode: its still (which plays it), then its number and name, running time and synopsis.
+// A season's count beside its name: "10 episodes", or "3 of 10 left" part way through; '' when unknown.
+function seasonCount(s: Props): string {
+  const count = num(s, 'count'), left = num(s, 'unwatched')
+  if (!(count > 0)) return ''
+  if (left > 0 && left < count) return tn('{left} of {count} left', '{left} of {count} left', count, { left })
+  return tn('{count} episode', '{count} episodes', count)
+}
+
+// A season tab's name for screen readers: "Season 2, 3 of 10 left, selected".
+function seasonName(title: string, count: string, on: boolean): string {
+  const named = count ? t('{season}, {count}', { season: title, count }) : title
+  return on ? t('{tab}, selected', { tab: named }) : named
+}
+
+// "S2 · E5", or "Episode 5" for one outside a season ("S2 · E13–14" for a file that holds two), from
+// the numbers the card carries; and its
+// name without the "5. " the server puts before it for apps that show the title alone.
+function episodeLabel(p: Props, title: string): { number: string; name: string } {
+  const ep = num(p, 'episode'), season = num(p, 'season'), end = num(p, 'episodeEnd')
+  if (!(ep > 0)) return { number: '', name: title }
+  const lead = ep + '. '
+  const eps = end > ep ? `${ep}–${end}` : String(ep)
+  // Season 0 is the show's Specials (the server always sends the season with the episode).
+  const two = end > ep
+  const number = season > 0 ? t('S{season} · E{episode}', { season, episode: eps })
+    : p.season === 0 ? (two ? t('Specials {episodes}', { episodes: eps }) : t('Special {episode}', { episode: eps }))
+    : two ? t('Episodes {episodes}', { episodes: eps }) : t('Episode {episode}', { episode: eps })
+  return { number, name: title.startsWith(lead) ? title.slice(lead.length) : title }
+}
+
+// One episode. As a card: its still (which plays it) with the running time and how far it was
+// watched on it, then its number, its name and a short synopsis. In a playlist: one line of text.
 function EpisodeRow({ view, compact, synopsis }: { view: View; compact: boolean; synopsis: boolean }) {
   const page = usePage()
   const p = view.node.props || {}
   const text = view.text || {}
   const playId = str(p, 'playId')
+  const watched = view.shows?.includes('watched')
+  if (compact) {
+    return (
+      <div className="episode compact">
+        <div className="info">
+          <Pressable view={view} className="t">{text.title}</Pressable>
+          {text.subtitle && <div className="sub">{text.subtitle}{watched ? ' · ' + t('watched') : ''}</div>}
+          {synopsis && text.synopsis && <p className="sdui-clamp" style={clamp(view.lines?.synopsis)}>{text.synopsis}</p>}
+        </div>
+      </div>
+    )
+  }
+  const { number, name } = episodeLabel(p, text.title || '')
   return (
-    <div className={'episode' + (compact ? ' compact' : '')}>
-      {!compact && (
-        <button type="button" className="thumb" tabIndex={-1} aria-hidden="true" onClick={() => !page.inert && (playId ? page.act({ type: 'play', item: playId }, view) : page.act(view.node.action, view))}>
-          <Picture image={obj(p, 'image')} kind={p.kind} />
-          {playId && <span className="play"><span><IconPlay /></span></span>}
-          {view.progress !== undefined && view.progress > 0 && <span className="progress"><i style={{ width: Math.min(100, view.progress) + '%' }} /></span>}
-          {view.shows?.includes('watched') && <span className="badge seen"><IconCheck /></span>}
-        </button>
-      )}
+    <div className={'episode ep-card' + (watched ? ' seen' : '')}>
+      <button type="button" className="thumb" tabIndex={-1} aria-hidden="true" onClick={() => !page.inert && (playId ? page.act({ type: 'play', item: playId }, view) : page.act(view.node.action, view))}>
+        <Picture image={obj(p, 'image')} kind={p.kind} />
+        {playId && <span className="play"><span><IconPlay /></span></span>}
+        {text.subtitle && <span className="ep-time">{text.subtitle}</span>}
+        {view.progress !== undefined && view.progress > 0 && <span className="progress"><i style={{ width: Math.min(100, view.progress) + '%' }} /></span>}
+        {watched && <span className="badge seen"><IconCheck /></span>}
+      </button>
       <div className="info">
-        <Pressable view={view} className="t">{text.title}</Pressable>
-        {text.subtitle && <div className="sub">{text.subtitle}{compact && view.shows?.includes('watched') ? ' · ' + t('watched') : ''}</div>}
+        {number && <div className="ep-num">{number}</div>}
+        {/* A name longer than two lines is cut; the whole of it shows on hover. */}
+        <Pressable view={view} className="t" title={name}>{name}</Pressable>
         {synopsis && text.synopsis && <p className="sdui-clamp" style={clamp(view.lines?.synopsis)}>{text.synopsis}</p>}
       </div>
     </div>

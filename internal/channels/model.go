@@ -137,6 +137,11 @@ type Block struct {
 type BumperPlan struct {
 	Rules []BumperRule `json:"rules,omitempty"`
 	Trim  Trim         `json:"trim,omitzero"`
+	// Libraries are this channel's bumper libraries, each whole or only the
+	// videos chosen here. A rule that names no videos of its own plays these.
+	Libraries []CommercialPick `json:"libraries,omitempty"`
+	// FromCommercials: bumpers may also come from the channel's commercials.
+	FromCommercials bool `json:"fromCommercials,omitempty"`
 }
 
 // When a bumper rule plays.
@@ -221,9 +226,12 @@ type Filler struct {
 	// Commercials are libraries of commercials this channel uses: any number
 	// of them, each whole or only the videos chosen here.
 	Commercials []CommercialPick `json:"commercials,omitempty"`
+	// FromBumpers: commercials may also come from the channel's bumper libraries.
+	FromBumpers bool `json:"fromBumpers,omitempty"`
 }
 
-// CommercialPick is one commercials library on one channel.
+// CommercialPick is one commercials library on one channel, for its
+// commercials or for its bumpers.
 type CommercialPick struct {
 	Library int64 `json:"library"`
 	// Only: just the Items below, rather than the whole library.
@@ -269,6 +277,7 @@ const (
 	maxBumperEach = 5
 	maxTailSec    = 600
 	minClipSec    = 3
+	maxPickLibs   = 100
 )
 
 // Validate refuses anything the editor could not have produced, with a
@@ -342,12 +351,16 @@ func (d *Definition) Validate() error {
 	if d.Filler.BreakAds < 0 || d.Filler.BreakAds > 5 {
 		return errors.New("from 0 to 5 commercials in a break")
 	}
-	if len(d.Filler.Commercials) > 100 {
-		return errors.New("too many commercials libraries")
+	return validatePicks(d.Filler.Commercials, "commercials")
+}
+
+func validatePicks(picks []CommercialPick, what string) error {
+	if len(picks) > maxPickLibs {
+		return fmt.Errorf("too many %s libraries", what)
 	}
-	for _, c := range d.Filler.Commercials {
+	for _, c := range picks {
 		if len(c.Items) > maxListLen {
-			return errors.New("too many commercials chosen")
+			return fmt.Errorf("too many %s chosen", what)
 		}
 	}
 	return nil
@@ -379,6 +392,9 @@ func (p *BumperPlan) validate() error {
 				return fmt.Errorf("bumper rule %d: %w", i+1, err)
 			}
 		}
+	}
+	if err := validatePicks(p.Libraries, "bumper"); err != nil {
+		return err
 	}
 	t := &p.Trim
 	if !trims[t.Ads] || !trims[t.Bumpers] {

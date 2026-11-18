@@ -10,5 +10,7 @@
   "broadcast|Repeat": "再放送",
   "title card|Card": "タイトルカード",
   "programmes|Schedule": "番組表",
-  "typeface|Type": "書体"
+  "typeface|Type": "書体",
+  "One fix, every screen": "一度の修正をすべての画面に",
+  "How a change to the interface reaches every platform’s app.": "インターフェースの変更が各プラットフォームのアプリに届くしくみ。"
 }

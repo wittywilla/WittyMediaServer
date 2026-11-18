@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { api, ApiError } from '../api'
 import { useApp } from '../state'
 import SpecPage from '../spec/SpecPage'
-import { INSTALL, moduleMissingSpec } from '../spec/specs/moduleMissing'
+import { INSTALL, moduleMissingSpec, stillMissing } from '../spec/specs/moduleMissing'
 import { olderOf } from '../pages/settings/store/olderServer'
 import { useOlderAsk } from '../pages/settings/store/OlderServerDialog'
 import { list, t } from '../i18n'
@@ -16,6 +16,18 @@ type Status = { id: string; name: string; summary?: string; unavailable?: string
 type Report = { modules: Status[]; catalog?: { error?: string } }
 
 const POLL_MS = 1500
+
+// Everything the page needed is in use now, so it loads again to find it. Once: if it is still
+// missing after that (a module that is on but won't load), reloading again would only loop.
+function reloadOnce(ids: string[]) {
+  const key = 'wms.missing-reload.' + ids.join()
+  try {
+    const at = Number(sessionStorage.getItem(key) || 0)
+    if (Date.now() - at < 30000) return false
+    sessionStorage.setItem(key, String(Date.now()))
+  } catch { /* private window: it may reload more than once, as it always did */ }
+  return true
+}
 
 export function ModuleMissing({ ids, what, onReady }: { ids: string[]; what?: string; onReady?: () => void }) {
   const { user } = useApp()
@@ -31,10 +43,11 @@ export function ModuleMissing({ ids, what, onReady }: { ids: string[]; what?: st
     let timer = 0
     const look = () => api.get<Report>('/modules').then((r) => {
       if (!live) return
+      const { gone, ready } = stillMissing(ids, r.modules)
       const list = ids.map((id) => r.modules.find((m) => m.id === id)).filter(Boolean) as Status[]
-      setMods(list)
-      if (list.some((m) => m.enabled)) { onReady?.(); return }
-      const failed = list.find((m) => m.error)
+      setMods(gone)
+      if (ready) { if (reloadOnce(ids)) onReady?.(); return }
+      const failed = gone.find((m) => m.error)
       if (failed) setErr(failed.error || '')
       if (list.some((m) => m.phase && m.phase !== 'idle' && m.phase !== 'failed')) timer = window.setTimeout(look, POLL_MS)
     }).catch(() => {})

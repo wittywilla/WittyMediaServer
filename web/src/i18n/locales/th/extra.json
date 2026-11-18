@@ -10,5 +10,7 @@
   "broadcast|Repeat": "รีรัน",
   "title card|Card": "การ์ดข้อความ",
   "programmes|Schedule": "ผังรายการ",
-  "typeface|Type": "แบบอักษร"
+  "typeface|Type": "แบบอักษร",
+  "One fix, every screen": "แก้ครั้งเดียว ทุกหน้าจอ",
+  "How a change to the interface reaches every platform’s app.": "การเปลี่ยนแปลงอินเทอร์เฟซไปถึงแอปของทุกแพลตฟอร์มได้อย่างไร"
 }

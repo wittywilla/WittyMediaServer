@@ -49,8 +49,8 @@ a.album-artist:hover { text-decoration: underline; text-underline-offset: 3px; }
 /* ---------------------------------------------------------------- audio bar */
 /* The bar: floating along the bottom, a pill with the artwork standing out of it, in
    the theme's own colours. Room is left under the page so it never hides anything. */
-.audio-bar { position: fixed; left: 8px; right: 8px; bottom: 8px; z-index: var(--z-dock, 45); display: grid; grid-template-columns: 52px minmax(0, 1fr) auto auto; align-items: center; gap: 0 var(--sp-2);
-  padding: 10px 10px 8px; border-radius: var(--r-xl); background: var(--bg-2); border: 1px solid var(--border-strong); box-shadow: var(--e-3); animation: toast-bar-in var(--dur-3) var(--ease-out); }
+.audio-bar { position: fixed; left: 8px; right: 8px; bottom: 8px; z-index: var(--z-dock, 45); display: flex; align-items: center; gap: var(--sp-2);
+  padding: 8px 8px 10px; border-radius: var(--r-xl); background: var(--bg-2); border: 1px solid var(--border-strong); box-shadow: var(--e-3); animation: toast-bar-in var(--dur-3) var(--ease-out); }
 @keyframes toast-bar-in { from { opacity: 0; } }
 /* While the account menu is open, it comes first. */
 .ab-art { position: relative; width: 52px; height: 52px; border-radius: var(--r-md); overflow: hidden; border: 0; padding: 0; background: var(--bg-3); display: grid; place-items: center; color: var(--fg-3); cursor: pointer; transition: transform var(--dur-2) var(--ease-out); box-shadow: var(--e-1); }
@@ -64,8 +64,14 @@ a.album-artist:hover { text-decoration: underline; text-underline-offset: 3px; }
 .ab-art.cd.spin { animation: ab-disc 2.2s linear infinite; }
 @keyframes ab-disc { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .ab-art.cd.spin { animation: none; } }
-.ab-progress { position: absolute; left: 76px; right: 16px; top: -1px; }
-.ab-progress .range { display: block; width: 100%; height: 14px; }
+.ab-left { display: flex; align-items: center; gap: var(--sp-1); flex: 1; min-width: 0; }
+.ab-centre { display: flex; align-items: center; }
+.ab-right { display: flex; align-items: center; justify-content: flex-end; }
+/* On phones the place in the song is a thin line along the bar's foot, as the big apps show it. */
+.ab-progress { position: absolute; left: 14px; right: 14px; bottom: 1px; display: flex; align-items: center; gap: var(--sp-2); }
+.ab-progress .range { display: block; flex: 1; width: 100%; height: 14px; }
+.ab-progress .ab-time { display: none; }
+.ab-like .mp-ibtn:not(.liked) { color: var(--fg-2); }
 .ab-info { min-width: 0; text-align: left; background: none; border: 0; padding: 4px 8px; border-radius: var(--r-md); color: inherit; font: inherit; cursor: pointer; }
 .ab-info:hover { background: var(--hover); }
 .ab-title { font-weight: 600; font-size: var(--text-md); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -88,16 +94,19 @@ a.album-artist:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 /* Phones: art, words, play, next, above the tab bar. All the rest is in the full player. */
 @media (max-width: 899px) {
-  .audio-bar { bottom: calc(var(--tabbar-space) + var(--sp-2)); padding: 8px; grid-template-columns: 48px minmax(0, 1fr) auto auto; }
+  .audio-bar { bottom: calc(var(--tabbar-space) + var(--sp-2)); padding: 8px 8px 10px; }
   .ab-art { width: 48px; height: 48px; }
-  .ab-progress { left: 16px; right: 16px; top: -7px; }
   .app:has(~ .audio-bar) .content, .app:has(~ .np) .content { padding-bottom: 200px; }
 }
 @media (min-width: 900px) {
-  .audio-bar { left: 50%; right: auto; transform: translateX(-50%); width: min(1320px, calc(100% - 48px)); padding: 12px 12px 8px 12px; grid-template-columns: 64px minmax(120px, 1fr) auto auto auto; gap: 0 4px; }
-  .ab-art { width: 64px; height: 64px; margin-top: -22px; }
-  .audio-bar.live .ab-art { margin-top: 0; }
-  .ab-progress { left: 88px; right: 20px; top: 2px; }
+  /* Three parts: what's playing, the buttons over the place in the song, the rest. */
+  .audio-bar { left: 50%; right: auto; transform: translateX(-50%); width: min(1320px, calc(100% - 48px)); padding: 8px 12px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 1.3fr) minmax(0, 1fr); gap: var(--sp-4); border-radius: var(--r-lg); }
+  .ab-art { width: 56px; height: 56px; }
+  .ab-centre { flex-direction: column; gap: 2px; min-width: 0; }
+  .ab-progress { position: static; width: 100%; max-width: 640px; flex-wrap: nowrap; }
+  .ab-progress .range { flex: 1 1 0; min-width: 0; width: auto; }
+  .ab-progress .ab-time { display: block; flex: none; padding: 0; min-width: 3.2em; text-align: center; }
+  .ab-right .ab-side { flex-wrap: nowrap; }
   .audio-bar .wide { display: inline-grid; }
   .audio-bar .ab-side.wide { display: flex; }
   .audio-bar .phone-only { display: none; }
@@ -107,7 +116,7 @@ a.album-artist:hover { text-decoration: underline; text-underline-offset: 3px; }
   .app:has(~ .audio-bar) .content, .app:has(~ .np) .content { padding-bottom: 128px; }
 }
 @media (min-width: 900px) and (max-width: 1240px) {
-  .ab-viz-pill span, .ab-time { display: none; }
+  .ab-viz-pill span { display: none; }
   .ab-viz-pill { padding: 0 10px; }
 }
 /* Collapsed: a small round button in the corner, keeping the play button to hand. */

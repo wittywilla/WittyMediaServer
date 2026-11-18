@@ -623,6 +623,9 @@ func (t *Tools) Still(ctx context.Context, inputArgs []string, atSec float64, wi
 // one thread. A title's picture doesn't need the exact frame, and going straight to a keyframe takes
 // a tenth of the work and a third of the memory of decoding up to the moment on every core (measured
 // on a 7 GB film: 110 ms and 77 MB against 2560 ms and 219 MB). If that finds nothing, it's Still.
+// It stays on the processor even where the graphics chip decodes the film: for one keyframe,
+// starting the chip costs more than the decoding (a 4K HEVC film's picture took 250 ms on one
+// processor thread and 300 ms through CUDA, measured for #437).
 func (t *Tools) Poster(ctx context.Context, inputArgs []string, atSec float64, width int, out string) error {
 	if err := outFolder(out); err != nil {
 		return err

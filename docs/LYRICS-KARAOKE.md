@@ -74,12 +74,20 @@ It needs timed lyrics. Without times it shows the words and says so. Use a timed
 
 ### What each control really does
 
-**Voice lower and Voice lowest** turn the singer down. **This has limits.** It works by removing what's in the middle of the stereo mix, which is where most singers are.
+**The Mix** has three sliders: **Voice** turns the singer down, **Background Music** turns everything else down so the voice stands out, and **Track** turns the whole song down. **Voice off** takes the singer out in one press, **Guide voice** keeps them quietly, and **Reset** puts the sliders back. It plays the server's karaoke version of the song ([below](#karaoke-versions-made-for-you)). While that's being made, the Mix is there but still, and says how far along it is.
 
-- Echoes of the voice remain, and songs that spread the voice wide keep more of it.
-- Anything else in the middle, often a snare or a solo, goes down with it. Bass is kept.
-- A recording that's close to mono has nothing to separate, and the screen says so.
-- It isn't a separate vocal track, and nothing is sent anywhere to make one.
+**Album art beside the words** puts the album's cover at the side of the lyrics: at their left on a computer or a TV, and above them, smaller, on a phone held upright. It's off until you choose it, it's kept for your account with the music player's other settings, and a song without a cover shows the words alone. **Behind the words** still chooses what fills the screen behind them.
+
+**Voice settings** opens a panel of controls for the singer and the music under them, at the side on a computer or a TV and over the lower half of the screen on a phone. Start from a preset (**Clear voice**, **Studio**, **Concert hall**, **Stadium**, **Slapback echo**, **Old radio**, **Duet spread**) or move any of these:
+
+- **Voice tone:** Low cut (takes out rumble and breath), Warmth, Presence (brings the words forward), Air.
+- **Voice dynamics and place:** Compression (evens out loud and quiet lines), Pan, Doubling (a second, slightly late voice).
+- **Voice echo and reverb:** Echo, Echo time, Echo repeats, Reverb, Room size.
+- **Background Music:** Bass, Treble, and Room for the voice, a dip in the music where voices sit.
+
+They're heard straight away, kept for your account on that device, and **Reset** turns them all off. They work on the karaoke version: with a separated one the voice is a part of its own; with the quick version it's what's left of the song without the music, which is close but not exact.
+
+**Controls**, at the end of the bar, chooses which of Voice, Background Music, Track, Key, the timing of the words and the Voice settings button are shown. What you hide is kept for your account, with the music player's other settings.
 
 **Key** moves the music up to six semitones either way, for the singer, without changing the speed. Long held notes can warble a little. A browser that can't do this says so.
 
@@ -87,21 +95,22 @@ It needs timed lyrics. Without times it shows the words and says so. Use a timed
 
 **The fill across a line** is exact for lyrics with word timing. Otherwise it's estimated from the line's length, so a held note can get ahead of it, and the screen says which it's using.
 
-Voice and key go back to normal when you leave karaoke, and don't carry over to the next time. Both need the sound to be routed through the browser's audio engine, so they don't work with a server on a different address from the page, and on iPhones and iPads they stop when the screen locks. This hasn't been run on a real iPhone or iPad yet.
+The key goes back to normal when you leave karaoke, and doesn't carry over to the next time. It needs the sound to be routed through the browser's audio engine, so they don't work with a server on a different address from the page, and on iPhones and iPads they stop when the screen locks. This hasn't been run on a real iPhone or iPad yet.
 
 ### Karaoke versions, made for you
 
-You don't have to set anything up. The first time someone opens **Karaoke** on a song, the server makes a karaoke version of it by itself, and the player gets three more controls in place of **Voice lower**:
+You don't have to set anything up. The first time someone opens **Karaoke** on a song, the server makes a karaoke version of it by itself, and the Mix plays it:
 
-- **Vocals:** one slider for how loud the singer is, from 0 to 100%.
-- **Sing:** takes the singer out in one press, and puts them back.
-- **More:** a slider for each part there is (music, or drums, bass and the rest), **Reset**, and which version is playing: **Quick version** or **Separated**.
+- **Voice:** how loud the singer is, from 0 to 100%.
+- **Background Music:** how loud everything but the singer is, every other part together (the music, or drums, bass and the rest for a separated song).
+- **Track:** how loud the whole song is.
+- **Voice off** takes the singer out in one press, and puts them back; **Guide voice** keeps them quietly; **Reset** puts every slider back. The line under them says which version is playing: **Quick version** or **Separated**.
 
 Where the sliders were is remembered for your account on that device. Lyrics, seeking, pausing and **Key** carry on working. If the parts can't be played, the normal track plays and the line under the controls says why.
 
 #### What happens by itself
 
-1. **A quick version, in a few seconds.** FFmpeg, which the server already has, removes what the left and right channels share. That turns the singer down but can't remove them; see the limits under [What each control really does](#what-each-control-really-does). It plays as soon as it's ready.
+1. **A quick version, in a few seconds.** FFmpeg, which the server already has, removes what the left and right channels share. That turns the singer down but can't remove them: echoes of the voice remain, songs that spread the voice wide keep more of it, anything else in the middle (often a snare or a solo) goes down with it, and a recording that's close to mono has nothing to separate. It plays as soon as it's ready.
 2. **A properly separated version, if the server has a separator.** It's made behind the quick one, the screen says **Preparing a better version…** with how far along it is, and the sound changes over by itself when it's done. This takes minutes a song.
 3. **Next time, it's there.** What was made is kept, so the song opens straight into karaoke.
 
@@ -197,7 +206,7 @@ Apps ask one thing, `GET /api/v1/media/{id}/karaoke`, and play what it says: see
 | Esc | Leave karaoke |
 | Space | Play or pause |
 | ← → | Previous or next line |
-| V | Voice on, lower or lowest. With a karaoke version: Sing on or off |
+| V | Voice off, or back on |
 | − + | Lower or raise the key |
 | `[` `]` | Words sooner or later |
 | F | Fill the screen |

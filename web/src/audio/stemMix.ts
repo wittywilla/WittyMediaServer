@@ -9,6 +9,7 @@
 // The words go through say(): English filled in here, so the tests need nothing else; the app passes t() from its
 // translation layer, so they're in the app's language.
 type Say = (english: string, vars?: Record<string, string | number | null | undefined>) => string
+const tk = <S extends string>(english: S): S => english // marks labels translated where they're shown (no i18n import: node tests load this file)
 const english: Say = (s, v) => s.replace(/\{(\w+)\}/g, (m, k: string) => (v && v[k] != null ? String(v[k]) : m))
 
 export type Stem = { id: string; label: string; role: 'vocals' | 'music' | 'full' | string; url: string; mime?: string; defaultGain: number }
@@ -23,41 +24,67 @@ export type KaraokeAnswer = {
   canImprove?: boolean
   reason?: string
   message?: string
+  // 'installable': no separator yet, but an administrator could install one in Settings (a cleaner version).
+  separator?: string
   pollSec: number
 }
 
-// Where the sliders are: 0 to 1 by stem id. `vocals` is the big slider in both mixes.
+// Where the sliders are: 0 to 1 by slider id (MIX).
 export type Levels = Record<string, number>
 
 export const clamp01 = (n: number) => (Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 1)
 
 const voiceStem = (a: Pick<KaraokeAnswer, 'mix' | 'stems'>) => a.stems.find((s) => s.role === (a.mix === 'blend' ? 'full' : 'vocals'))
 
-// What a slider starts at: the server's default for that stem.
+// The three sliders, the same whatever version is playing: the singer, everything else (every other part
+// together, so the voice can stand out), and the whole song.
+export type MixId = 'vocals' | 'music' | 'track'
+export const MIX: readonly { id: MixId; label: string }[] = [{ id: 'vocals', label: tk('Voice') }, { id: 'music', label: tk('Background Music') }, { id: 'track', label: tk('Track') }]
+
+// What a slider starts at: the server's default for the voice, and full for the others.
 export function defaultLevel(a: Pick<KaraokeAnswer, 'mix' | 'stems'>, id: string) {
-  const st = id === 'vocals' ? voiceStem(a) : a.stems.find((s) => s.id === id)
-  return clamp01(st?.defaultGain ?? 1)
+  return id === 'vocals' ? clamp01(voiceStem(a)?.defaultGain ?? 1) : 1
 }
 
 export const levelOf = (a: Pick<KaraokeAnswer, 'mix' | 'stems'>, levels: Levels, id: string) => (id in levels ? clamp01(levels[id]) : defaultLevel(a, id))
 
-// The sliders under More: one a stem, or Vocals and Music for a blend.
-export function sliders(a: Pick<KaraokeAnswer, 'mix' | 'stems'>, t: Say = english): { id: string; label: string }[] {
-  if (a.mix === 'blend') return [{ id: 'vocals', label: t('Vocals') }, { id: 'instrumental', label: t('Music') }]
-  return a.stems.filter((s) => s.role !== 'full').map((s) => ({ id: s.role === 'vocals' ? 'vocals' : s.id, label: s.label || s.id }))
-}
+// What can be hidden from karaoke's bar: the Mix's three sliders, the key, the words' timing and the Voice settings button.
+export const KAR_PARTS: readonly { id: string; label: string }[] = [...MIX, { id: 'key', label: tk('Key') }, { id: 'timing', label: tk('Timing of the words') }, { id: 'fx', label: tk('Voice settings') }]
 
-// How loud each stem plays, by stem id. In a blend the whole song and the instrumental are
-// crossed in a straight line: they hold the same music, so the two always add up to it.
+export function sliders(_a?: Pick<KaraokeAnswer, 'mix' | 'stems'>) { return MIX }
+
+// How loud each stem plays, by stem id, for Voice v, Background Music m and Track t.
+//   - Parts: the voice at v, every other part at m (times the server's own level for it), all of it times t.
+//   - A blend (the whole song, and the music without the voice): the whole song at v and the music at m - v,
+//     all of it times t. The music is in both, so it adds up to v + (m - v) = m, and the voice to v. With the
+//     music turned down below the voice, the music is taken away from the whole song: what's left is the voice.
 export function gainsFor(a: Pick<KaraokeAnswer, 'mix' | 'stems'>, levels: Levels, sing: boolean): Record<string, number> {
   const v = sing ? 0 : levelOf(a, levels, 'vocals')
+  const m = levelOf(a, levels, 'music')
+  const t = levelOf(a, levels, 'track')
   const out: Record<string, number> = {}
   if (a.mix === 'blend') {
-    const m = levelOf(a, levels, 'instrumental')
-    for (const s of a.stems) out[s.id] = s.role === 'full' ? m * v : m * (1 - v)
+    for (const s of a.stems) out[s.id] = s.role === 'full' ? t * v : t * (m - v)
     return out
   }
-  for (const s of a.stems) out[s.id] = s.role === 'vocals' ? v : s.role === 'full' ? 0 : levelOf(a, levels, s.id)
+  for (const s of a.stems) out[s.id] = s.role === 'vocals' ? t * v : s.role === 'full' ? 0 : t * m * clamp01(s.defaultGain ?? 1)
+  return out
+}
+
+// The same mix as two sends a stem: how much of it goes to the voice's chain and how much to the music's (voiceFx.ts).
+// Parts: the vocals stem to the voice, the others to the music. A blend has no voice of its own, so the voice is the
+// whole song less the music: `full` to the voice at t·v and `instrumental` to it at −t·v, and `instrumental` to the music
+// at t·m. Added up it is gainsFor exactly, so with every voice setting off it sounds the same as before.
+export type Route = { voice: number; music: number }
+export function routesFor(a: Pick<KaraokeAnswer, 'mix' | 'stems'>, levels: Levels, sing: boolean): Record<string, Route> {
+  const v = sing ? 0 : levelOf(a, levels, 'vocals')
+  const m = levelOf(a, levels, 'music')
+  const t = levelOf(a, levels, 'track')
+  const out: Record<string, Route> = {}
+  for (const s of a.stems) {
+    if (a.mix === 'blend') out[s.id] = s.role === 'full' ? { voice: t * v, music: 0 } : { voice: -t * v, music: t * m }
+    else out[s.id] = s.role === 'vocals' ? { voice: t * v, music: 0 } : s.role === 'full' ? { voice: 0, music: 0 } : { voice: 0, music: t * m * clamp01(s.defaultGain ?? 1) }
+  }
   return out
 }
 

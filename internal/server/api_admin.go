@@ -30,7 +30,7 @@ var uiLanguagePattern = regexp.MustCompile(`^[a-z]{2}(-[A-Z]{2})?$`)
 
 var settingKeys = []string{"tmdbKey", "tvdbKey", "tvdbPin", "hwAccel", "maxHeight", "menuLanguage", "audioLanguage", "subtitleLanguage", "uiLanguage",
 	"serverName", "audioCodec", "lowPower", "bdjEnabled", "dvdRegion", "blurayRegion", "dvdParental", "blurayAge", "discCountry", "saveMetadata", "dvdStart", "insertFx", "episodeView",
-	"hwEncoders", "directPlay", "qualityMode", "qualityProfile", "x264Preset", "crf", "maxBitrate", "audioBitrate",
+	"hwEncoders", "gpuPathsOff", "directPlay", "qualityMode", "qualityProfile", "x264Preset", "crf", "maxBitrate", "audioBitrate",
 	"ffmpegVideoArgs", "ffmpegOutputArgs", "timeZone", "theme", "brandName", "brandColouring", "brandSpans", "brandMark", "maxSpeed",
 	"loginStyle", "profilesRemote", "setupDone", "kidsManagedBy", "insertSound", "tvmaze", "wikidata", "musicbrainz", "animeIn", "animeTitles",
 	"libraryGrouping", "updateCheck", "moduleUpdateCheck", "moduleAutoInstall", "uploads", "uploadMaxMb", "uploadAccountMb", "shareLinks", "lanDiscovery", "radioDirectory", "radioChecks",
@@ -38,7 +38,7 @@ var settingKeys = []string{"tmdbKey", "tvdbKey", "tvdbPin", "hwAccel", "maxHeigh
 
 // settingDefaults are returned when a key has never been saved.
 var settingDefaults = map[string]string{"saveMetadata": "1", "brandMark": brandname.DefaultMark, "noPoster": library.NoPosterFrame, "dvdStart": "menu", "insertFx": "1", "episodeView": "cards",
-	"theme": "default", "brandColouring": brandname.Auto, "directPlay": "1", "qualityMode": "easy", "qualityProfile": "balanced", "x264Preset": "veryfast", "crf": "21", "maxSpeed": "4",
+	"theme": "default", "brandColouring": brandname.Auto, "directPlay": "1", "hwEncoders": "auto", "qualityMode": "easy", "qualityProfile": "balanced", "x264Preset": "veryfast", "crf": "21", "maxSpeed": "4",
 	"loginStyle": "profiles", "profilesRemote": "0", "kidsManagedBy": "adults", "insertSound": "1", "tvmaze": "1", "wikidata": "1", "musicbrainz": "1", "animeIn": "both", "animeTitles": "english",
 	// libraryGrouping: another folder of a kind joins that kind's library
 	// ("combine"), or becomes a library of its own ("separate").
@@ -67,6 +67,7 @@ var settingChecks = map[string]func(string) bool{
 	"crf":               intBetween(0, 51),
 	"maxHeight":         intBetween(0, 4320),
 	"maxSpeed":          floatBetween(1, 16),
+	"gpuPathsOff":       gpuPathList,
 	"x264Preset":        oneOf("ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow"),
 	"qualityMode":       oneOf("easy", "advanced", "expert"),
 	"qualityProfile":    oneOf("speed", "balanced", "quality"),
@@ -188,6 +189,9 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	if v, ok := in["gpuPathsOff"]; ok {
+		ffmpeg.SetGPUPathsOff(strings.Split(v, ","))
+	}
 	if _, ok := in["timeZone"]; ok {
 		s.restartForTimeZone(r.Context(), adminName(r)) // time.Local isn't changed while the server runs
 	}
@@ -295,6 +299,32 @@ func checkSetting(k, v string) error {
 	return nil
 }
 
+// gpuPathList checks gpuPathsOff: GPU path IDs, separated by commas.
+func gpuPathList(v string) bool {
+	for _, id := range strings.Split(v, ",") {
+		if id = strings.TrimSpace(id); id != "" && !slices.ContainsFunc(ffmpeg.GPUPathList, func(p ffmpeg.GPUPath) bool { return p.ID == id }) {
+			return false
+		}
+	}
+	return true
+}
+
+// gpuInUse says what a new stream would use of the graphics chip with the settings as they are:
+// the encoder, and the paths that work for it. A stream uses less when its file needs it (a
+// codec the chip doesn't decode) or after a failure, which the log says.
+func (s *Server) gpuInUse(r *http.Request) map[string]string {
+	get := func(k, def string) string { return s.DB.GetSetting(r.Context(), k, def) }
+	enc := s.Tools.Plan(ffmpeg.Quality{HW: hwAllowed(get)}).Name
+	out := map[string]string{"encoder": enc}
+	if p, ok := ffmpeg.GPUPipeFor(enc, "h264", "yuv420p"); ok && ffmpeg.GPUPathWorks(p.ID()) {
+		out["pipeline"] = p.ID()
+	}
+	if ffmpeg.GPUPathWorks("tonemap:libplacebo") && enc != "h264_vaapi" {
+		out["toneMap"] = "tonemap:libplacebo"
+	}
+	return out
+}
+
 func (s *Server) handleSystem(w http.ResponseWriter, r *http.Request) {
 	host, _ := os.Hostname()
 	s.Tools.StartHardwareProbe() // Settings is asking: it shows which ones work
@@ -318,6 +348,8 @@ func (s *Server) handleSystem(w http.ResponseWriter, r *http.Request) {
 		"encoders":    encoders,
 		"hardware":    hwList,
 		"hwTested":    hwDone,
+		"gpuPaths":    s.Tools.GPUPaths(),
+		"gpuInUse":    s.gpuInUse(r),
 		"gpus":        ffmpeg.GPUs(),
 		"container":   ffmpeg.InContainer(),
 		"dvdSessions": s.DVD.Count(),

@@ -10,5 +10,7 @@
   "broadcast|Repeat": "Replica",
   "title card|Card": "Cartello",
   "programmes|Schedule": "Palinsesto",
-  "typeface|Type": "Carattere"
+  "typeface|Type": "Carattere",
+  "One fix, every screen": "Una correzione, ogni schermo",
+  "How a change to the interface reaches every platform’s app.": "Come una modifica all’interfaccia arriva all’app di ogni piattaforma."
 }

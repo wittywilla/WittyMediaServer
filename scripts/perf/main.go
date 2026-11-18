@@ -313,6 +313,10 @@ func runMain(res *Results) {
 	var tok struct{ Token string }
 	check(json.Unmarshal(b, &tok))
 	s.token = tok.Token
+	// Since 0.8.0 first run has steps of its own, and every other route waits until it's over.
+	if code, b = s.call("POST", "/api/setup/complete", nil); code != 200 {
+		panic(fmt.Sprintf("setup complete: %d %s", code, b))
+	}
 	code, b = s.call("PUT", "/api/settings", map[string]string{
 		"saveMetadata": "0", "updateCheck": "0", "moduleUpdateCheck": "0",
 		"tvmaze": "0", "wikidata": "0", "musicbrainz": "0",

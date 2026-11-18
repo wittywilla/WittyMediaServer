@@ -2,7 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { api, ApiError, episodeLabel, fitWidth, langName, mediaUrl, posterUrl, sized, type Item, type PlaybackAnswer, type Show } from '../api'
+import { api, ApiError, episodeLabel, fitWidth, langName, mediaUrl, posterUrl, sized, type Item, type PlaybackAnswer, type Show, type StreamWork } from '../api'
 import { IconBack, IconClose, IconDevices, IconExpand, IconMini, IconNext, IconPause, IconPlay, IconRemote, IconUsers } from '../icons'
 import { browserCapabilities } from './capabilities'
 import PlayInfoPanel from './PlayInfoPanel'
@@ -425,13 +425,20 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
     if (info?.quality?.asked !== choice) ask({ quality: choice, convert: false })
   }
   // Stream information: what the player sees now, with what the server said it sends.
+  // While it shows, what converts the stream (GPU or CPU) is asked again, as a stream steps
+  // down to the processor if the graphics chip fails it.
   const [, tick] = useState(0)
+  const [work, setWork] = useState<StreamWork | null>(null)
   useEffect(() => {
+    setWork(null)
     if (!statsOn) return
-    const t = setInterval(() => tick((n) => n + 1), 2000)
+    const sid = info?.decision === 'transcode' ? info.streamId : ''
+    const ask = () => { if (sid) api.get<StreamWork>(`/hls/${sid}/work`).then(setWork).catch(() => {}) }
+    ask()
+    const t = setInterval(() => { tick((n) => n + 1); ask() }, 2000)
     return () => clearInterval(t)
-  }, [statsOn])
-  const statLines = statsOn && info ? streamLines(info.decision, info.output, {
+  }, [statsOn, info?.streamId, info?.decision])
+  const statLines = statsOn && info ? streamLines(info.decision, info.output && { ...info.output, work: work || info.output.work }, {
     width: video.current?.videoWidth || 0, height: video.current?.videoHeight || 0,
     // A robust stream's rung, which the player picks as it goes; otherwise what the server said.
     kbps: (() => { const h = hlsRef.current; const l = info.streaming?.ladder && h && h.currentLevel >= 0 ? h.levels[h.currentLevel] : null; return l?.bitrate ? Math.round(l.bitrate / 1000) : 0 })(),

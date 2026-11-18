@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import type { PlaybackOutput, QualityLimits, QualityPreset, QualityView } from '../api'
+import type { PlaybackOutput, QualityLimits, QualityPreset, QualityView, StreamWork } from '../api'
 
 // The viewer's choice of picture size and data rate (docs/CLIENT-API.md, Quality). The same
 // short string the server reads: '' is Auto (the profile's saved default for home or away),
@@ -155,14 +155,26 @@ export function streamLines(decision: string | undefined, out: PlaybackOutput | 
   const a = out?.audioCodec ? [codecName(out.audioCodec), out.audioChannels ? channelName(out.audioChannels) : '', out.audioKbps ? rate(out.audioKbps) : ''].filter(Boolean).join(' ') : ''
   if (v || a) lines.push([v, a].filter(Boolean).join(' · '))
   const mode = decision === 'direct' ? 'Direct play' : decision === 'remux' ? 'Direct stream (rewrapped)' : decision === 'transcode' ? 'Converting' : decision === 'live' ? 'Live' : ''
-  if (mode) lines.push(out?.encoder && decision === 'transcode' ? `${mode} with ${encoderName(out.encoder)}` : mode)
+  if (mode) lines.push(mode)
+  const work = workLine(out?.work)
+  if (work && decision !== 'direct' && decision !== 'remux') lines.push(work)
   return lines
+}
+
+// Whether the graphics chip (GPU) or the processor (CPU) does a conversion, in words.
+export function workLine(w: StreamWork | undefined): string {
+  if (!w?.encoder || w.encoder === 'copy') return ''
+  const name = encoderName(w.encoder)
+  if (!w.gpuEncode) return `CPU: the processor converts it (${name})`
+  const steps = [w.gpuDecode ? 'decodes, resizes' : '', w.gpuToneMap ? 'maps HDR' : '', 'encodes'].filter(Boolean)
+  const and = steps.length > 1 ? steps.slice(0, -1).join(', ') + ' and ' + steps[steps.length - 1] : steps[0]
+  return `GPU: the graphics chip ${and} (${name})${w.gpuDecode ? '' : '; the processor decodes'}`
 }
 
 const CODECS: Record<string, string> = { h264: 'H.264', hevc: 'HEVC', av1: 'AV1', vp9: 'VP9', vp8: 'VP8', mpeg2video: 'MPEG-2', aac: 'AAC', ac3: 'Dolby Digital', eac3: 'Dolby Digital Plus', mp3: 'MP3', opus: 'Opus', flac: 'FLAC', dts: 'DTS', truehd: 'Dolby TrueHD' }
 export const codecName = (c: string) => CODECS[c] || c.toUpperCase()
 export const channelName = (n: number) => (n === 1 ? 'mono' : n === 2 ? 'stereo' : n === 6 ? '5.1' : n === 8 ? '7.1' : `${n} ch`)
-const ENCODERS: Record<string, string> = { libx264: 'the processor', libopenh264: 'the processor', h264_nvenc: 'NVIDIA NVENC', h264_qsv: 'Intel Quick Sync', h264_amf: 'AMD AMF', h264_vaapi: 'VA-API', h264_videotoolbox: 'VideoToolbox' }
+const ENCODERS: Record<string, string> = { libx264: 'x264', libopenh264: 'OpenH264', h264_nvenc: 'NVIDIA NVENC', h264_qsv: 'Intel Quick Sync', h264_amf: 'AMD AMF', h264_vaapi: 'VA-API', h264_videotoolbox: 'VideoToolbox' }
 export const encoderName = (e: string) => ENCODERS[e] || e
 
 // The presets a live channel offers, where the server sent none: all of them, within the limits.

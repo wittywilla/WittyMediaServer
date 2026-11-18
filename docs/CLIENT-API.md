@@ -518,7 +518,8 @@ A video's `/playback` answer has `quality` for the menu: `choice` (what streams 
 `asked`, `presets` (`name`, `height`, `kbps`: the sizes at or below the picture's own, and within
 the limits), `limits`, `away`, the source's size and rate, and `videoCodecs` and `audioRates` for an
 advanced menu. `output` says what is sent: `width`, `height`, `videoCodec`, `audioCodec`, `kbps` (the
-file's own, or the cap it's converted to), `audioKbps`, `audioChannels` and `encoder`. To change the
+file's own, or the cap it's converted to), `audioKbps`, `audioChannels`, `encoder`, and `work`: whether the graphics chip or the processor converts it
+(as `GET /hls/{id}/work`, which says what a running stream really uses, after any step down to the processor). To change the
 choice mid-stream, call `/playback` again with the new `quality` and `startSec` at the position.
 
 ### Robust streaming
@@ -1677,6 +1678,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /hls/{id}/playlist.m3u8` | user, `st` | HLS media playlist. |
 | `GET /hls/{id}/seg/{n}` | user, `st` | One HLS segment (`{n}.ts`, `{n}.m4s`) or the fMP4 header (`init.mp4`). |
 | `GET /hls/{id}/subs/{file}` | user, `st` | One subtitle rendition: `{n}.m3u8` and its `{n}.vtt`. |
+| `GET /hls/{id}/work` | user | What is converting the stream now: `encoder`, and whether the graphics chip encodes (`gpuEncode`), decodes and resizes (`gpuDecode`) and maps HDR (`gpuToneMap`). For stream information. |
 | `DELETE /hls/{id}` | user | Stop a stream when finished, freeing the transcoder. Streams nobody asks for also stop by themselves. |
 
 ### Discs
@@ -1922,6 +1924,7 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `GET /guide` | user | Every channel this account may watch, with its programmes. Each can name `logo`, a picture of its own, or `brand`, for `POST /logos/lookup`, and always has `canRecord`, the only signal for offering Record (see "Recording"). Beside them, `theme`: the owner's WittyTV look for anyone whose own choice and UI suggest none, and `backgroundPlay`: whether a device that hasn't chosen keeps playing in the background. |
 | `GET /tv/{key}/tune` | user | What is on a channel, and starts its stream, with `canRecord`. `streamToken=1` adds `streamUrl` for players that can't set headers. See "Live channels". |
 | `GET /tv/{key}/live/playlist.m3u8` | user, `st` | A channel's live HLS playlist. |
+| `GET /tv/{key}/live/work` | user | The same for the live stream this viewer watches (`quality` as in its playlist address). |
 | `GET /tv/{key}/live/seg/{name}` | user, `st` | One segment of it. |
 | `POST /tv/{key}/leave` | user | This viewer has gone: `viewer`. |
 | `GET /time` | user | The server's clock, `{"now": <milliseconds>}`, for keeping to the same moment on a channel. See "Live channels". |

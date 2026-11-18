@@ -127,7 +127,9 @@ export type QualityView = {
   sourceWidth?: number; sourceHeight?: number; sourceKbps?: number; videoCodecs: string[]; audioRates: number[]
 }
 // The stream as it reaches the player.
-export type PlaybackOutput = { width?: number; height?: number; videoCodec?: string; audioCodec?: string; kbps?: number; audioKbps?: number; audioChannels?: number; encoder?: string }
+export type PlaybackOutput = { width?: number; height?: number; videoCodec?: string; audioCodec?: string; kbps?: number; audioKbps?: number; audioChannels?: number; encoder?: string; work?: StreamWork }
+// What converts a stream: GET /hls/{id}/work (docs/CLIENT-API.md, Quality).
+export type StreamWork = { encoder: string; gpuEncode: boolean; gpuDecode: boolean; gpuToneMap: boolean; running?: boolean }
 export type StreamingPrefs = { prefs: { home: string; away: string }; quality: QualityView; profile: QualityLimits; remote: QualityLimits }
 export type DvdButton = { n: number; x1: number; y1: number; x2: number; y2: number; up: number; down: number; left: number; right: number; auto: boolean; lit: boolean; cmd: string; frames?: number; fps?: number; num?: number; soundSelect?: number; soundPress?: number }
 export type DvdMenu = {

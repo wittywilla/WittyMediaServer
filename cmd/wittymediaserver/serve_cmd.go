@@ -197,7 +197,10 @@ func cmdServe(args []string) int {
 	// Find out which hardware encoders really work here, if any are to be used.
 	{
 		ctx := context.Background()
-		if database.GetSetting(ctx, "hwEncoders", "") != "" || database.GetSetting(ctx, "hwAccel", "0") == "1" {
+		// Never saved is "auto", any that works (see the server's hwAllowed). Where the devices
+		// are files (Linux, FreeBSD), an encoder with no device isn't even started.
+		ffmpeg.SetGPUPathsOff(strings.Split(database.GetSetting(ctx, "gpuPathsOff", ""), ","))
+		if database.GetSetting(ctx, "hwEncoders", "auto") != "" || database.GetSetting(ctx, "hwAccel", "0") == "1" {
 			tools.StartHardwareProbe()
 		}
 	}

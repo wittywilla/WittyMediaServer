@@ -40,6 +40,7 @@ func (s *Server) channelRoutes(m *http.ServeMux) {
 	m.Handle("GET /api/tv/{key}/tune", a(s.handleTune))
 	m.Handle("GET /api/tv/{key}/live/playlist.m3u8", a(s.handleLivePlaylist))
 	m.Handle("GET /api/tv/{key}/live/seg/{name}", a(s.handleLiveSegment))
+	m.Handle("GET /api/tv/{key}/live/work", a(s.handleLiveWork))
 	m.Handle("POST /api/tv/{key}/leave", a(s.handleLiveLeave))
 	m.Handle("GET /api/tv/settings", ad(s.handleTVSettings))
 	m.Handle("PUT /api/tv/settings", ad(s.handlePutTVSettings))
@@ -1216,6 +1217,7 @@ func (s *Server) itemLiveInput(ctx context.Context, p *channels.Programme, off, 
 	}
 	if v := pr.Video(); v != nil {
 		in.Height = min(v.Width, v.Height)
+		in.VideoCodec, in.PixFmt = v.CodecName, v.PixFmt // whether the graphics chip can decode it
 		interlaced := v.FieldOrder == "tt" || v.FieldOrder == "bb" || v.FieldOrder == "tb" || v.FieldOrder == "bt"
 		if interlaced {
 			in.VideoFilter = "bwdif=mode=send_frame:parity=auto:deint=interlaced"

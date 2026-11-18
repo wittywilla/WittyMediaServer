@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import Hls from 'hls.js'
-import { api } from '../../api'
+import { api, type StreamWork } from '../../api'
 import { announce } from '../../a11y'
 import { IconBack, IconPlay } from '../../icons'
 import { Controls } from '../../player/Controls'
@@ -72,6 +72,18 @@ export default function TvPlayer() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [qualityOpen, setQualityOpen] = useState(false)
   const [statsOn, setStatsOn] = useState(showStreamInfo)
+  // What converts the channel (GPU or CPU), asked again every few seconds while it shows.
+  const [work, setWork] = useState<StreamWork | null>(null)
+  useEffect(() => {
+    setWork(null)
+    if (!statsOn || !live.url) return
+    const q = new URL(live.url, location.href).searchParams.get('quality')
+    const path = `/tv/${encodeURIComponent(liveKey)}/live/work${q ? '?quality=' + encodeURIComponent(q) : ''}`
+    const ask = () => { api.get<StreamWork>(path).then(setWork).catch(() => {}) }
+    ask()
+    const t = setInterval(ask, 2000)
+    return () => clearInterval(t)
+  }, [statsOn, live.url, liveKey])
   // Shown the moment a channel is chosen, from what the list already knows: the
   // number and name don't wait for the stream.
   const [zap, setZap] = useState<GuideChannel | null>(null)
@@ -315,7 +327,7 @@ export default function TvPlayer() {
       {more && info?.now && <MoreInfo channelKey={info.key} at={Math.max(info.now.start, Date.now() / 1000)} onClose={() => setMore(false)} />}
       {mini && <MiniGuide channel={key} onTune={tuneTo} onClose={() => setMini(false)} onFull={guide} />}
       {settingsOpen && <Dialog title="Player settings" onClose={() => setSettingsOpen(false)}><BackgroundPlayChoice /></Dialog>}
-      {statsOn && <StreamInfo lines={streamLines('live', { width: video.current?.videoWidth, height: video.current?.videoHeight }, { width: video.current?.videoWidth || 0, height: video.current?.videoHeight || 0, kbps: (() => { const h = liveHls(); const l = h && h.currentLevel >= 0 ? h.levels[h.currentLevel] : null; return l?.bitrate ? Math.round(l.bitrate / 1000) : 0 })() })} />}
+      {statsOn && <StreamInfo lines={streamLines('live', { width: video.current?.videoWidth, height: video.current?.videoHeight, work: work || undefined }, { width: video.current?.videoWidth || 0, height: video.current?.videoHeight || 0, kbps: (() => { const h = liveHls(); const l = h && h.currentLevel >= 0 ? h.levels[h.currentLevel] : null; return l?.bitrate ? Math.round(l.bitrate / 1000) : 0 })() })} />}
       {qualityOpen && info?.quality && (
         <QualityMenu view={info.quality} decision="live" live where={here()} showInfo={statsOn} onShowInfo={(on) => { setStatsOn(on); setShowStreamInfo(on) }} onClose={() => setQualityOpen(false)}
           onChoose={(c) => { setQualityOpen(false); setDeviceDefault(here(), c); announce(`Quality: ${describe(c, info.quality?.presets || [])}`); if (c !== info.quality?.asked) retune() }} />

@@ -16,7 +16,7 @@ func TestToneMapAtTheFinalSize(t *testing.T) {
 	tools := &ffmpeg.Tools{Encoders: map[string]bool{"libx264": true}}
 	vf := func(sp Spec) string {
 		s := &Session{Spec: sp, Dir: t.TempDir(), tools: tools, m: &Manager{tools: tools}}
-		args, _, _ := s.commandLine(0)
+		args, _, _, _ := s.commandLine(0)
 		for i, a := range args {
 			if a == "-vf" {
 				return args[i+1]

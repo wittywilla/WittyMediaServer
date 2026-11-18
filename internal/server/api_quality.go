@@ -276,3 +276,32 @@ func liveSuffix(r *http.Request) string {
 	}
 	return "?" + v.Encode()
 }
+
+// GET /api/hls/{id}/work: what is converting the stream now (hls.Work), for the player's stream
+// information: the graphics chip or the processor, and which encoder.
+func (s *Server) handleHLSWork(w http.ResponseWriter, r *http.Request) {
+	sess := s.visibleStream(r, r.PathValue("id"))
+	if sess == nil {
+		writeErr(w, 404, "no such stream")
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	writeJSON(w, 200, sess.Work())
+}
+
+// GET /api/tv/{key}/live/work?quality=: the same for the live stream this viewer watches.
+func (s *Server) handleLiveWork(w http.ResponseWriter, r *http.Request) {
+	key := r.PathValue("key")
+	kind, id, ok := parseKey(key)
+	if !ok || !s.canWatchLive(r, kind, id) {
+		writeErr(w, 404, "channel not found")
+		return
+	}
+	ls := s.liveLookup(r, kind, key)
+	if ls == nil {
+		writeErr(w, 404, "no such stream")
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	writeJSON(w, 200, ls.Work())
+}

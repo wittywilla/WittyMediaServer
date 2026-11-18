@@ -40,7 +40,7 @@ A channel runs all the time, like real TV: tune in and you join the show part-wa
 The top of the guide says everything about the highlighted programme: channel, title, year and genre, start and end, how far in, and what's next. From there you can **Watch full screen**, **Start over** (the title from the beginning, on your own), open the film or show, make the channel a favourite, change channel, read more, and see the whole day.
 
 ![A TV guide with a row for each channel, and a film playing in the preview](images/wittytv-guide.webp)
-*WittyTV, with channels made from a library in one press, and the preview playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Other titles in the guide are in [the list](images/CREDITS.md).*
+*WittyTV, with channels made from a library in one press, and the preview playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain. Other titles in the guide are in [the list](images/CREDITS.md).*
 
 Above the grid:
 
@@ -92,16 +92,16 @@ Sets need a server with this version; an app or a server from before shows the f
 WittyTV has themes of its own, apart from the app's theme. Press **Look** on the guide, or open **Settings → Appearance** and choose **WittyTV** under **On this page**. Each is drawn as a small picture of itself, and changes show straight away. A theme changes the guide, the player's banner and mini guide, recordings and the other TV pages, not only the grid.
 
 ![The guide in the Satellite look, with a film playing](images/wittytv-satellite.webp)
-*The Satellite look, playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
+*The Satellite look, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain.*
 
 ![The guide in the Modern look, with a film playing](images/wittytv-modern.webp)
-*The Modern look, playing [Singularity](https://commons.wikimedia.org/wiki/File:SINGULARITY_-_Blender_Open_Movie-full_movie.webm), Blender Studio, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).*
+*The Modern look, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain.*
 
 ![The guide in the Big picture look, with a large preview](images/wittytv-bigpicture.webp)
-*The Big picture look, playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
+*The Big picture look, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain.*
 
 ![The same guide in the Classic look, like an old cable box](images/wittytv-classic.webp)
-*The Classic look, playing [Singularity](https://commons.wikimedia.org/wiki/File:SINGULARITY_-_Blender_Open_Movie-full_movie.webm), Blender Studio, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).*
+*The Classic look, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain.*
 
 | Theme | What it is like | Colours |
 |---|---|---|
@@ -156,10 +156,10 @@ Tuning shows a banner with the channel number, name, times, a progress bar and w
 When nothing is scheduled, a channel shows a **We'll be right back** card with the channel's name and what's coming up, in the watch view and in the guide's preview alike, so the picture never looks broken. It goes when the next programme starts.
 
 ![A small list of channels over the picture](images/wittytv-miniguide.webp)
-*The mini guide over a channel, playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
+*The mini guide over a channel, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain.*
 
 ![A channel playing full screen, with what's on along the bottom](images/wittytv-watching.webp)
-*A channel, full screen, playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
+*A channel, full screen, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain.*
 
 | Key | While watching |
 |---|---|

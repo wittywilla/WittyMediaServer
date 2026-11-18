@@ -71,8 +71,12 @@ test('only requests that start a stream carry the choice', () => {
 })
 
 test('stream information says what plays and how', () => {
-  const lines = q.streamLines('transcode', { width: 1280, height: 720, videoCodec: 'h264', audioCodec: 'aac', audioChannels: 2, audioKbps: 192, kbps: 3808, encoder: 'h264_nvenc' })
-  assert.deepEqual(lines, ['1280×720 (720p)', '3.8 Mbps at most', 'H.264 · AAC stereo 192 kbps', 'Converting with NVIDIA NVENC'])
+  const gpu = { encoder: 'h264_nvenc', gpuEncode: true, gpuDecode: true, gpuToneMap: false }
+  const lines = q.streamLines('transcode', { width: 1280, height: 720, videoCodec: 'h264', audioCodec: 'aac', audioChannels: 2, audioKbps: 192, kbps: 3808, encoder: 'h264_nvenc', work: gpu })
+  assert.deepEqual(lines, ['1280×720 (720p)', '3.8 Mbps at most', 'H.264 · AAC stereo 192 kbps', 'Converting', 'GPU: the graphics chip decodes, resizes and encodes (NVIDIA NVENC)'])
+  assert.equal(q.workLine({ ...gpu, gpuDecode: false }), 'GPU: the graphics chip encodes (NVIDIA NVENC); the processor decodes')
+  assert.equal(q.workLine({ ...gpu, gpuToneMap: true }), 'GPU: the graphics chip decodes, resizes, maps HDR and encodes (NVIDIA NVENC)')
+  assert.equal(q.workLine({ encoder: 'libx264', gpuEncode: false, gpuDecode: false, gpuToneMap: false }), 'CPU: the processor converts it (x264)')
   const direct = q.streamLines('direct', { width: 1920, height: 1080, videoCodec: 'hevc', audioCodec: 'eac3', audioChannels: 6, kbps: 9000 })
   assert.deepEqual(direct, ['1920×1080 (1080p)', '9 Mbps', 'HEVC · Dolby Digital Plus 5.1', 'Direct play'])
   // What the player sees wins over what was planned.

@@ -202,6 +202,8 @@ type playbackOutput struct {
 	AudioChannels int `json:"audioChannels,omitempty"`
 	// Encoder is the video encoder FFmpeg uses for a converted picture.
 	Encoder string `json:"encoder,omitempty"`
+	// Work says which steps run on the graphics chip and which on the processor.
+	Work *hls.Work `json:"work,omitempty"`
 }
 
 // probeSource turns a probe into what the decision needs. The container comes from what
@@ -711,6 +713,9 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 		if choice.MaxHeight > 0 && spec.MaxHeight == choice.MaxHeight {
 			spec.MaxHeight = playback.FitHeight(choice.MaxHeight, v.Width, v.Height)
 		}
+		if videoPick == 0 {
+			spec.VideoCodec, spec.PixFmt = v.CodecName, v.PixFmt // whether the graphics chip can decode it
+		}
 	}
 	if d.CopyVideo {
 		spec.CopyVideo, spec.CopyAudio, spec.FMP4, spec.Growing = true, d.CopyAudio, d.FMP4, true
@@ -776,8 +781,11 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 	}
 	ex.Streaming = playback.ExplainStreaming(mode, modeFrom, out.Streaming.Ladder, b.MeasuredKbps)
 	out.Output = hlsOutput(src, d, spec, chosen.Audio, srcW)
-	if !d.CopyVideo && src.HasVideo && s.Tools != nil {
-		out.Output.Encoder = s.Tools.Plan(spec.Quality).Name
+	if sess := s.HLS.Get(out.StreamID); sess != nil && src.HasVideo {
+		// What the stream's first job will use: the graphics chip where it can (the GPU
+		// pipeline), else the processor. GET /hls/{id}/work says what it really does.
+		w := sess.Work()
+		out.Output.Encoder, out.Output.Work = w.Encoder, &w
 	}
 	fillSubtitles(out, src, p, false, subURL)
 	if d.Subtitle == playback.SubHLS || d.Subtitle == playback.SubSidecar {

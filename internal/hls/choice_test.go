@@ -22,7 +22,7 @@ func TestChoiceReachesFFmpeg(t *testing.T) {
 		sp := Spec{InputArgs: []string{"-i", "in.mkv"}, Duration: 60, SegmentSec: 4, AudioIndex: 0, AudioChannels: 2, SubtitleIndex: -1,
 			Quality: c.Quality(base), MaxHeight: height}
 		s := &Session{Spec: sp, Dir: t.TempDir(), tools: tools, m: &Manager{tools: tools}}
-		args, _, _ := s.commandLine(0)
+		args, _, _, _ := s.commandLine(0)
 		return strings.Join(args, " ")
 	}
 	got := line("h720-b4000", 720)

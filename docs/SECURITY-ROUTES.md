@@ -247,6 +247,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/hls/{id}/subs/{file}` | Signed-in; ticket; address token | Stream exists, and for a ticket is of the ticket's item. Name is 'n.m3u8' or 'n.vtt' and the track exists. An account with limits is checked against what it plays |
 | `GET /api/hls/{id}/playlist.m3u8` | Signed-in; ticket; address token | Stream exists, and for a ticket is of the ticket's item. An account with limits is checked against what it plays |
 | `GET /api/hls/{id}/seg/{n}` | Signed-in; ticket; address token | Stream exists, and for a ticket is of the ticket's item. Segment number. An account with limits is checked against what it plays |
+| `GET /api/hls/{id}/work` | Signed-in | Stream exists. An account with limits is checked against what it plays |
 | `DELETE /api/hls/{id}` | Signed-in | Removes the caller as a viewer. The stream stops when no viewer is left. An account with limits is checked against what it plays |
 | `GET /api/settings` | Admin | Secrets masked |
 | `PUT /api/settings` | Admin | Known keys. Numbers, lists and FFmpeg options checked for each setting |
@@ -456,6 +457,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/guide` | Signed-in | Channels the account may watch. Time range, hours, paging |
 | `GET /api/tv/{key}/tune` | Signed-in | Channel key. Channel visible to the account, enabled, and not encrypted. For a library channel, limits on what is on now |
 | `GET /api/tv/{key}/live/playlist.m3u8` | Signed-in | Channel key. Channel checked again on each request |
+| `GET /api/tv/{key}/live/work` | Signed-in | Channel key. Channel checked again on each request |
 | `GET /api/tv/{key}/live/seg/{name}` | Signed-in | Channel key. Channel checked again on each request. Name is a segment the stream made |
 | `POST /api/tv/{key}/leave` | Signed-in | Channel key. Viewer name of up to 40 characters |
 | `GET /api/tv/settings` | Admin | Nothing further |

@@ -20342,6 +20342,46 @@
         "x-wms-stream-token": true
       }
     },
+    "/hls/{id}/work": {
+      "get": {
+        "operationId": "getHlsWork",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What is converting the stream now: `encoder`, and whether the graphics chip encodes (`gpuEncode`), decodes and resizes (`gpuDecode`) and maps HDR (`gpuToneMap`). For stream information.",
+        "tags": [
+          "Playback"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/home": {
       "get": {
         "operationId": "getHome",
@@ -43584,6 +43624,46 @@
         ],
         "x-wms-auth": "user",
         "x-wms-stream-token": true
+      }
+    },
+    "/tv/{key}/live/work": {
+      "get": {
+        "operationId": "getTvLiveWork",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The same for the live stream this viewer watches (`quality` as in its playlist address).",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user"
       }
     },
     "/tv/{key}/logo": {

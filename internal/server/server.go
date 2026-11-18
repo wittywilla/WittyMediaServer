@@ -436,6 +436,7 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/hls/{id}/playlist.m3u8", a(s.handleHLSPlaylist))
 	m.Handle("GET /api/hls/{id}/seg/{n}", a(s.handleHLSSegment))
 	m.Handle("DELETE /api/hls/{id}", a(s.handleHLSStop))
+	m.Handle("GET /api/hls/{id}/work", a(s.handleHLSWork))
 	m.Handle("GET /api/settings", s.requireAdmin(s.handleGetSettings))
 	m.Handle("PUT /api/settings", s.requireAdmin(s.handlePutSettings))
 	m.Handle("GET /api/about", a(s.handleAbout))

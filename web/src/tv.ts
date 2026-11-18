@@ -17,6 +17,7 @@
 //   while one is connected, so this costs nothing otherwise.
 
 import { padKeys } from './ui/gamepad'
+import { installControllerRelease } from './ui/controllerRelease'
 import { noteInput, trackInput } from './ui/inputKind'
 import { installShortcuts, runAction } from './ui/shortcuts'
 import { nav as designNav } from '../../themes/tokens.json'
@@ -501,7 +502,8 @@ export function installTVInput() {
   window.addEventListener('mousedown', (e) => { openSelect = (e.target as Element)?.tagName === 'SELECT' ? (e.target as Element) : null }, { passive: true })
   for (const ev of ['change', 'focusout'] as const) window.addEventListener(ev, () => { openSelect = null })
   window.addEventListener('gamepadconnected', startPolling)
-  // Mouse use hides the controller focus styling again, unless this screen is set up for across the room.
-  window.addEventListener('mousedown', () => { if (!document.documentElement.classList.contains('ten-foot')) document.documentElement.classList.remove('using-controller') }, { passive: true })
+  // Mouse and touch use hide the controller styling again, unless this screen is set up for across the room, and without
+  // moving the page under the pointer (ui/controllerRelease.ts).
+  installControllerRelease(window, document.documentElement)
   if (navigator.getGamepads && Array.from(navigator.getGamepads()).some(Boolean)) startPolling()
 }

@@ -163,6 +163,9 @@ func (rv *sduiResolver) item(it *library.Item) sdui.Item {
 		if it.Episode != nil {
 			out.Episode = *it.Episode
 		}
+		if it.EpisodeEnd != nil && *it.EpisodeEnd > out.Episode {
+			out.EpisodeEnd = *it.EpisodeEnd
+		}
 		out.Subtitle = fmt.Sprintf("S%d E%d", out.Season, out.Episode)
 		if it.ShowTitle != "" {
 			out.Subtitle = it.ShowTitle + " · " + out.Subtitle

@@ -180,6 +180,9 @@ try {
   await press('Enter')
   await page.until(`!location.pathname.startsWith('/setup')`, 15000, 'leaving setup')
   expect('setup is over', !(await call('GET', '/status')).onboarding)
+  // A step a module draws (Games, from WittyPlay) was gone through, so Home doesn't ask for it again (#427).
+  const home = JSON.stringify(await call('GET', '/v1/sdui/pages/home?platform=web&formFactor=web'))
+  expect('Home has no "Finish setting up" for a step gone through', home.includes('"sections"') && !home.includes('Finish setting up'), home.slice(0, 300))
 } catch (e) {
   expect('STOPPED: ' + e.message, false)
   await shot('stopped').catch(() => {})

@@ -132,6 +132,23 @@ test('focus: a grid moves by row and column', () => {
   assert.equal(next(short, 'g:4', 'down'), null)
 })
 
+test('focus: a show’s episodes are a grid of the columns drawn, and a playlist is one column', () => {
+  const eps = (n) => Array.from({ length: n }, (_, i) => ({ type: 'Card', id: 'e:' + (i + 1), focus: { order: i + 2, group: 'e' } }))
+  const page = { type: 'Page', id: 'page', children: [{ type: 'DetailHeader', id: 'h', focus: { order: 1 } }, { type: 'SeasonList', id: 'e', children: eps(7) }] }
+  const cards = focusMap(page, () => 3)
+  assert.equal(cards.stops[cards.stopOf['e:1']].kind, 'grid')
+  assert.equal(next(cards, 'e:1', 'right'), 'e:2')
+  assert.equal(next(cards, 'e:3', 'right'), null)
+  assert.equal(next(cards, 'e:2', 'down'), 'e:5')
+  assert.equal(next(cards, 'e:6', 'down'), 'e:7')
+  assert.equal(next(cards, 'e:5', 'up'), 'e:2')
+  assert.equal(next(cards, 'e:2', 'up'), 'h')
+  // A playlist (the page reports one column): down goes to the next episode, not past the list.
+  const list = focusMap(page)
+  assert.equal(next(list, 'e:1', 'down'), 'e:2')
+  assert.equal(next(list, 'e:1', 'right'), null)
+})
+
 test('customise: move, hide and pin as the server will apply them', () => {
   const info = { editable: true, allow: ['reorder', 'hide', 'pin', 'density', 'cardSize'], url: '/x', sections: [
     { id: 'setup', title: 'Notice', locked: true }, { id: 'hero', title: 'Featured' }, { id: 'jump', title: 'Jump back in' }, { id: 'recent-1', title: 'Films' },

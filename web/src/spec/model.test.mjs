@@ -4,6 +4,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 import { A1, A2, Cc, R, current, mk, problems, reachable, secC, secF, secN, secP, secR, sectionId, withIds } from './model.ts'
 
 const gaps = JSON.parse(readFileSync(new URL('./gaps.json', import.meta.url), 'utf8'))
@@ -64,7 +65,7 @@ test('the catalogue holds all 124 canvas pages, each drawable', () => {
 })
 
 test('gaps.json is what the canvas gives (scripts/spec-from-canvas.mjs --check)', () => {
-  execFileSync(process.execPath, [new URL('../../scripts/spec-from-canvas.mjs', import.meta.url).pathname, '--check'], { stdio: 'pipe' })
+  execFileSync(process.execPath, [fileURLToPath(new URL('../../scripts/spec-from-canvas.mjs', import.meta.url)), '--check'], { stdio: 'pipe' })
 })
 
 test('fields: ids, validation and reach', () => {

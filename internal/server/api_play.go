@@ -79,17 +79,7 @@ func (s *Server) quality(r *http.Request) (q ffmpeg.Quality, maxHeight int) {
 	if v := qInt(r, "maxHeight", 0); v >= 144 && v <= 4320 && (maxHeight <= 0 || v < maxHeight) {
 		maxHeight = v
 	}
-	enabled := get("hwEncoders", "")
-	if enabled == "" && get("hwAccel", "0") == "1" { // settings from older versions: "use any"
-		for _, e := range ffmpeg.HWEncoders {
-			q.HW = append(q.HW, e.Name)
-		}
-	}
-	for _, name := range strings.Split(enabled, ",") {
-		if name = strings.TrimSpace(name); name != "" {
-			q.HW = append(q.HW, name)
-		}
-	}
+	q.HW = hwAllowed(get)
 	switch get("qualityMode", "easy") {
 	case "advanced", "expert":
 		if v := get("x264Preset", "veryfast"); ffmpeg.ValidPreset(v) {
@@ -134,6 +124,28 @@ func (s *Server) quality(r *http.Request) (q ffmpeg.Quality, maxHeight int) {
 		q = q.WithCap(rate)
 	}
 	return q, maxHeight
+}
+
+// hwAllowed is the hardware encoders the owner allows, from the hwEncoders setting. Until it's
+// saved it's "auto": all of them, of which the first found working here is used. Converting on
+// the graphics chip takes a fraction of the processor time, which is what decides how many
+// people a small machine can stream to, so it's on unless the owner turns it off.
+func hwAllowed(get func(k, def string) string) []string {
+	enabled := get("hwEncoders", settingDefaults["hwEncoders"])
+	if enabled == "auto" || (enabled == "" && get("hwAccel", "0") == "1") { // hwAccel: settings from older versions, "use any"
+		var all []string
+		for _, e := range ffmpeg.HWEncoders {
+			all = append(all, e.Name)
+		}
+		return all
+	}
+	var list []string
+	for _, name := range strings.Split(enabled, ",") {
+		if name = strings.TrimSpace(name); name != "" {
+			list = append(list, name)
+		}
+	}
+	return list
 }
 
 func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
@@ -263,6 +275,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 	}
 	if v != nil {
 		spec.Height = min(v.Width, v.Height)
+		spec.VideoCodec, spec.PixFmt = v.CodecName, v.PixFmt // whether the graphics chip can decode it
 	}
 	s.HLS.Ensure(spec)
 	info.Type = "hls"
@@ -446,6 +459,13 @@ func (s *Server) handleHLSSegment(w http.ResponseWriter, r *http.Request) {
 	}
 	if errors.Is(err, hls.ErrBusy) {
 		w.Header().Set("Retry-After", "5")
+		writeErr(w, 503, err.Error())
+		return
+	}
+	if errors.Is(err, hls.ErrSuperseded) {
+		// A newer seek took the stream elsewhere: nothing failed, and a player that still
+		// wants this segment asks again (players retry a 503; a 500 would count as a failure).
+		w.Header().Set("Retry-After", "1")
 		writeErr(w, 503, err.Error())
 		return
 	}

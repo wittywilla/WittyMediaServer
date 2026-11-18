@@ -761,13 +761,10 @@ func (d *Definition) allRules() []Rules {
 	if d.Filler.Rules != nil {
 		out = append(out, *d.Filler.Rules)
 	}
-	for _, c := range d.Filler.Commercials {
-		if r, ok := c.rules(); ok {
-			out = append(out, r)
-		}
-	}
+	out = append(out, pickRules(d.Filler.Commercials)...)
+	out = append(out, pickRules(d.Bumpers.Libraries)...)
 	for i := range d.Bumpers.Rules {
-		if b := &d.Bumpers.Rules[i]; !b.Off {
+		if b := &d.Bumpers.Rules[i]; !b.Off && !b.Source.empty() {
 			out = append(out, b.Source)
 		}
 	}

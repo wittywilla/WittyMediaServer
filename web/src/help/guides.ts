@@ -114,6 +114,7 @@ export const GROUPS: GuideGroup[] = [
     { file: 'DVD-QUIRKS', title: 'DVD disc quirks', about: 'What odd discs do, and how each is handled.' },
     { file: 'BLURAY-QUIRKS', title: 'Blu-ray disc quirks', about: 'The same for Blu-rays.' },
     { file: 'DESIGN', title: 'Design standards', about: 'The interface’s rules and shared parts.' },
+    { file: 'UI-PLATFORMS', title: 'One fix, every screen', about: 'How a change to the interface reaches every platform’s app.' },
   ] },
 ]
 

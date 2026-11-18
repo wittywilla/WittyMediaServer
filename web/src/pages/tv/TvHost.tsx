@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react'
 import { api } from '../../api'
 import { useSource } from '../../player/hooks'
 import { clockOffset, syncStep, type ClockSample } from '../../player/sync'
-import { lendHls, liveNow, liveVideo, liveViewer, setLive, useLiveState } from './live'
+import { lendHls, liveNow, liveVideo, liveViewer, setLive, setLiveCatchUp, useLiveState } from './live'
 import { preflight, type TuneInfo } from './tvApi'
 import { parseCatchupKey } from './guideLogic'
 
@@ -82,16 +82,18 @@ export default function TvHost() {
       const lag = liveNow().info?.kind === 'tuner' ? target : 0
       const behind = (Date.now() + clock.offset - lag * 1000 - at.getTime()) / 1000
       v.dataset.behind = behind.toFixed(3) // for tests and anyone curious
-      if (v.paused || v.seeking || liveNow().away) {
-        if (nudging) { v.playbackRate = 1; nudging = false }
-        return
-      }
       // The nearest a player goes to the newest segment in the playlist (not the end of what it
       // has loaded, which is what a live video's seekable range ends at): three target
       // durations, as HLS asks. A stream running late (a server that can't make it at full
       // speed) can't be caught up, so everyone waits for it there, together.
-      const start = v.seekable.length ? v.seekable.start(0) : v.currentTime
       const nearest = details?.edge != null ? details.edge - target : v.currentTime
+      // How far Back to live would move this player: the watch view shows Live from this, paused or not.
+      setLiveCatchUp(Math.max(0, Math.min(nearest, v.currentTime + behind) - v.currentTime))
+      if (v.paused || v.seeking || liveNow().away) {
+        if (nudging) { v.playbackRate = 1; nudging = false }
+        return
+      }
+      const start = v.seekable.length ? v.seekable.start(0) : v.currentTime
       const step = behind > 0 && v.currentTime >= nearest - 0.5 ? { rate: 1 } : syncStep(behind, nudging)
       if ('seekBy' in step) {
         v.playbackRate = 1
@@ -109,6 +111,7 @@ export default function TvHost() {
       v.removeEventListener('play', onPlay)
       v.playbackRate = 1
       delete v.dataset.behind
+      setLiveCatchUp(null)
     }
   }, [url, ready, hls, key])
   return null

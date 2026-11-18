@@ -85,12 +85,13 @@ function readCache(): ModuleWeb[] {
 // drawn by the app's own copy; then from the server, and a change re-renders.
 let known: ModuleWeb[] = readCache()
 let asked = false
+let asking: Promise<void> = Promise.resolve()
 const listeners = new Set<() => void>()
 
-function ask() {
-  if (asked) return
+function ask(): Promise<void> {
+  if (asked) return asking
   asked = true
-  api.get<{ bundles: Bundle[] }>('/modules/web').then((r) => {
+  asking = api.get<{ bundles: Bundle[] }>('/modules/web').then((r) => {
     const next = (r.bundles || []).filter((b) => b.api <= HOST_API && b.integration).map((b) => ({ module: b.id, version: b.version, part: b.integration as WebPart }))
     const same = JSON.stringify(next) === JSON.stringify(known)
     try { localStorage.setItem(CACHE, JSON.stringify(next)) } catch { /* private mode */ }
@@ -98,7 +99,9 @@ function ask() {
       known = next
       listeners.forEach((l) => l())
     }
-  }).catch(() => {})
+    // Refused (first-time setup before there's an account) or unreachable: whoever looks next asks again.
+  }).catch(() => { asked = false })
+  return asking
 }
 
 const subscribe = (l: () => void) => { ask(); listeners.add(l); return () => { listeners.delete(l) } }
@@ -108,10 +111,10 @@ export function useModuleWeb(): ModuleWeb[] {
   return useSyncExternalStore(subscribe, () => known, () => known)
 }
 
-/** Asks the server again: after a module is added, removed or updated. */
-export function refreshModuleWeb() {
+/** Asks the server again: after a module is added, removed or updated, or once there's an account. */
+export function refreshModuleWeb(): Promise<void> {
   asked = false
-  ask()
+  return ask()
 }
 
 // ---------------------------------------------------------------- loading a bundle's registration
@@ -225,15 +228,16 @@ export function rememberHost(module: string, host: unknown) {
   hostCache.set(module, host)
 }
 
-// A module's screen that crashes is reported and replaced with what's missing; the app goes on.
-class Guarded extends Component<{ module: string; children: ReactNode }, { crashed: boolean }> {
+// A module's screen that crashes is reported and replaced with what's missing (or with what the
+// caller gives instead); the app goes on.
+export class Guarded extends Component<{ module: string; children: ReactNode; instead?: ReactNode }, { crashed: boolean }> {
   state = { crashed: false }
   static getDerivedStateFromError() { return { crashed: true } }
   componentDidCatch(err: unknown) {
     const reason = String((err as Error)?.message || err).slice(0, 400)
     api.post(`/modules/${this.props.module}/failed`, { version: known.find((k) => k.module === this.props.module)?.version || '', reason }).catch(() => {})
   }
-  render() { return this.state.crashed ? <ModuleMissing ids={[this.props.module]} /> : this.props.children }
+  render() { return this.state.crashed ? (this.props.instead ?? <ModuleMissing ids={[this.props.module]} />) : this.props.children }
 }
 
 // ---------------------------------------------------------------- cards
@@ -305,12 +309,16 @@ export const ModuleFrame = ({ match, fallback }: { match: RouteMatch; fallback: 
 /** A module's first-run step for an id, if a module in use declares one: its component,
  * once its bundle is loaded; undefined while loading, null when none. */
 export function useModuleSetupStep(id: string): ComponentType<Record<string, unknown>> | null | undefined {
-  const list = useModuleWeb()
-  const owner = list.find((m) => (m.part.setup || []).some((s) => s.id === id))?.module
+  const owner = useSetupStepOwner(id)
   const reg = useRegistration(owner)
   if (!owner) return null
   if (reg === undefined) return undefined
   return reg?.setup?.[id] || null
+}
+
+/** The module in use that draws a first-run step, if one does. */
+export function useSetupStepOwner(id: string): string | undefined {
+  return useModuleWeb().find((m) => (m.part.setup || []).some((s) => s.id === id))?.module
 }
 
 // ---------------------------------------------------------------- players and a title's menu

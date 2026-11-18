@@ -1215,6 +1215,7 @@ func (s *Server) itemLiveInput(ctx context.Context, p *channels.Programme, off, 
 	}
 	if v := pr.Video(); v != nil {
 		in.Height = min(v.Width, v.Height)
+		in.VideoCodec, in.PixFmt = v.CodecName, v.PixFmt // whether the graphics chip can decode it
 		interlaced := v.FieldOrder == "tt" || v.FieldOrder == "bb" || v.FieldOrder == "tb" || v.FieldOrder == "bt"
 		if interlaced {
 			in.VideoFilter = "bwdif=mode=send_frame:parity=auto:deint=interlaced"

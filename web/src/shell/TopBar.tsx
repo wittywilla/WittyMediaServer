@@ -158,6 +158,32 @@ function useUnder(bar: RefObject<HTMLElement | null>) {
   }, [bar])
 }
 
+// The room the bar takes above the page, measured (its height and its own margins): --bar-space on the
+// root. The page starts below the bar on its own; only a picture that opens the page runs up under it by
+// this much (styles.css), so no guess at the bar's height can leave a title under it. Written only when it
+// changes, and only when the bar changes size: no work while scrolling.
+function useBarSpace(bar: RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const el = bar.current, root = document.documentElement
+    if (!el) return
+    let last = ''
+    const measure = () => {
+      const cs = getComputedStyle(el)
+      const room = el.offsetHeight ? el.offsetHeight + (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0) : 0
+      const v = Math.ceil(room) + 'px'
+      if (v !== last) { last = v; root.style.setProperty('--bar-space', v) }
+    }
+    measure()
+    const ro = window.ResizeObserver ? new ResizeObserver(measure) : null
+    ro?.observe(el)
+    // A new look can change the bar's margins without changing its size.
+    const mo = new MutationObserver(measure)
+    const app = el.closest('.app')
+    if (app) mo.observe(app, { attributes: true, attributeFilter: ['data-nav-style', 'class'] })
+    return () => { ro?.disconnect(); mo.disconnect(); root.style.removeProperty('--bar-space') }
+  }, [bar])
+}
+
 // allTabs: a layout with tabs along the top and no bar at the bottom (topTabs on a phone): the
 // row holds Home and Live TV too, and the search and the profile stay in the bar.
 export function TopBar({ onMenu, showMenu, topNav, menuOpen, wide, allTabs }: { onMenu: () => void; showMenu: boolean; topNav: boolean; menuOpen: boolean; wide: boolean; allTabs?: boolean }) {
@@ -171,6 +197,7 @@ export function TopBar({ onMenu, showMenu, topNav, menuOpen, wide, allTabs }: { 
   const list = useMemo(() => arrange(items, prefs).filter((it) => allTabs || (it.id !== 'home' && it.id !== 'tv' && it.id !== 'livetv')), [items, prefs, allTabs])
   const bar = useRef<HTMLElement | null>(null)
   useUnder(bar)
+  useBarSpace(bar)
   const top = TAB_PAGES.includes(loc.pathname) || list.some((it) => pathOf(it.to) === loc.pathname)
   return (
     <header className="topbar" data-nav-zone="bar" ref={bar}>

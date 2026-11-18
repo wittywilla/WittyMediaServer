@@ -1,22 +1,73 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 
-// Where a video's skippable parts are, as GET /api/media/{id}/markers answers: from what
-// an administrator set, a .skip.json or .edl beside the file, chapter names, what comparing
-// the season's episodes found, and the show's own intro. This picks what to offer now.
+// Where a video's skippable parts are, as GET /api/media/{id}/markers answers: from the
+// video's .wittyinfo, what an administrator set, a .skip.json or .edl beside the file, the
+// season's and the show's .wittyinfo, chapter names, what comparing the season's episodes
+// found, and the show's own intro. This picks what to offer now.
 
-export type Range = { startSec: number; endSec: number }
-export type Markers = { intro?: Range | null; recap?: Range | null; credits?: Range | null; commercials?: Range[] | null }
-export type Skip = { kind: 'intro' | 'recap' | 'credits' | 'commercial'; label: string; to: number }
+export type Range = { startSec: number; endSec: number; label?: string; action?: SegmentAction }
+// button: a skip button while it plays; auto: skipped by itself when the profile allows that;
+// mark: only shown where it is (a scene after the credits, say).
+export type SegmentAction = 'button' | 'auto' | 'mark'
+export type SegmentKind = 'intro' | 'recap' | 'credits' | 'commercial' | 'preview' | 'postcredits' | 'custom'
+// Every part in one list, in time order, with where it came from (newer servers).
+export type Segment = { kind: SegmentKind; startSec: number; endSec: number; label?: string; action: SegmentAction; source: string }
+export type Markers = {
+  intro?: Range | null; recap?: Range | null; credits?: Range | null; commercials?: Range[] | null
+  preview?: Range | null; postCredits?: Range | null; custom?: Range[] | null; segments?: Segment[] | null
+}
+export type Skip = { kind: 'intro' | 'recap' | 'credits' | 'commercial' | 'preview' | 'custom'; label: string; to: number }
 
-const LABEL: Record<Skip['kind'], string> = { intro: 'Skip intro', recap: 'Skip recap', credits: 'Skip credits', commercial: 'Skip adverts' }
+const LABEL: Record<Skip['kind'], string> = { intro: 'Skip intro', recap: 'Skip recap', credits: 'Skip credits', commercial: 'Skip adverts', preview: 'Skip preview', custom: 'Skip this part' }
+
+// customLabel: "Skip dream sequence" for a part someone named, else "Skip this part".
+export const customLabel = (label?: string) => {
+  const l = (label || '').trim()
+  if (!l) return LABEL.custom
+  const short = l.length > 40 ? l.slice(0, 39) + '…' : l
+  return `Skip ${short.charAt(0).toLowerCase() + short.slice(1)}`
+}
+
+// Which part wins when two overlap: the one that comes first in this list.
+const ORDER: SegmentKind[] = ['recap', 'intro', 'commercial', 'custom', 'preview', 'credits']
+
+// creditsTo is where skipping the credits lands. A scene after them is worth not missing, so
+// the skip stops where it starts.
+export function creditsTo(m: Markers, credits: Range): number {
+  const pc = m.postCredits || m.segments?.find((s) => s.kind === 'postcredits')
+  if (pc && pc.startSec > credits.startSec && pc.startSec <= credits.endSec + 5) return Math.min(pc.startSec, credits.endSec)
+  return credits.endSec
+}
+const postCreditsAfter = (m: Markers, credits: Range) => {
+  const pc = m.postCredits || m.segments?.find((s) => s.kind === 'postcredits')
+  return !!pc && pc.startSec > credits.startSec && pc.startSec <= credits.endSec + 5
+}
 
 // skipAt is the part playing at now, if skipping it is worth a button: more than a second
 // of it is left, and for credits there is something after them (credits that run to the
-// end are what "next episode" is for). null when there is nothing to skip.
+// end are what "next episode" is for; a scene after the credits counts). null when there is
+// nothing to skip. A part only marked (action "mark") never has a button.
 export function skipAt(m: Markers | null, now: number, duration: number): Skip | null {
   if (!m) return null
   const inside = (r?: Range | null) => !!r && r.endSec > r.startSec && now >= r.startSec && now < r.endSec - 1
+  if (m.segments && m.segments.length) {
+    const here = m.segments.filter((s) => s.action !== 'mark' && s.kind !== 'postcredits' && inside(s))
+      .sort((a, b) => ORDER.indexOf(a.kind) - ORDER.indexOf(b.kind))
+    for (const s of here) {
+      if (s.kind === 'credits') {
+        if (postCreditsAfter(m, s)) {
+          if (now < creditsTo(m, s) - 1) return { kind: 'credits', label: LABEL.credits, to: creditsTo(m, s) }
+          continue
+        }
+        if (duration > 0 && s.endSec < duration - 5) return { kind: 'credits', label: LABEL.credits, to: s.endSec }
+        continue
+      }
+      if (s.kind === 'custom') return { kind: 'custom', label: customLabel(s.label), to: s.endSec }
+      return { kind: s.kind as Skip['kind'], label: LABEL[s.kind as Skip['kind']], to: s.endSec }
+    }
+    return null
+  }
   if (inside(m.recap)) return { kind: 'recap', label: LABEL.recap, to: m.recap!.endSec }
   if (inside(m.intro)) return { kind: 'intro', label: LABEL.intro, to: m.intro!.endSec }
   for (const c of m.commercials || []) if (inside(c)) return { kind: 'commercial', label: LABEL.commercial, to: c.endSec }
@@ -28,25 +79,36 @@ export function skipAt(m: Markers | null, now: number, duration: number): Skip |
 
 // What a profile has asked to be skipped without pressing anything. It is kept with the
 // account's other choices (/me/ui, as "autoSkip"), so it follows the person to every device.
-export type AutoSkipPrefs = { intro: boolean; recap: boolean; credits: boolean; adverts: boolean }
-export const NO_AUTO_SKIP: AutoSkipPrefs = { intro: false, recap: false, credits: false, adverts: false }
+// fileAuto: also skip what a .wittyinfo says to skip by itself (on unless turned off).
+export type AutoSkipPrefs = { intro: boolean; recap: boolean; credits: boolean; adverts: boolean; preview: boolean; custom: boolean; fileAuto: boolean }
+export const NO_AUTO_SKIP: AutoSkipPrefs = { intro: false, recap: false, credits: false, adverts: false, preview: false, custom: false, fileAuto: false }
 export const AUTO_SKIP_KEY = 'autoSkip'
 
-// autoSkipPrefs reads the stored choice, whatever is there: anything but true is off.
+// autoSkipPrefs reads the stored choice, whatever is there: anything but true is off, except
+// following the file, which anything but false leaves on.
 export function autoSkipPrefs(raw: unknown): AutoSkipPrefs {
   const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
-  return { intro: r.intro === true, recap: r.recap === true, credits: r.credits === true, adverts: r.adverts === true }
+  return { intro: r.intro === true, recap: r.recap === true, credits: r.credits === true, adverts: r.adverts === true, preview: r.preview === true, custom: r.custom === true, fileAuto: r.fileAuto !== false }
 }
-export const anyAutoSkip = (p: AutoSkipPrefs) => p.intro || p.recap || p.credits || p.adverts
+export const anyAutoSkip = (p: AutoSkipPrefs) => p.intro || p.recap || p.credits || p.adverts || p.preview || p.custom || p.fileAuto
 
-const SKIPPED: Record<Skip['kind'], string> = { intro: 'Skipped intro', recap: 'Skipped recap', credits: 'Skipped credits', commercial: 'Skipped adverts' }
+const SKIPPED: Record<Skip['kind'], string> = { intro: 'Skipped intro', recap: 'Skipped recap', credits: 'Skipped credits', commercial: 'Skipped adverts', preview: 'Skipped preview', custom: 'Skipped a part' }
 export const skippedLabel = (kind: Skip['kind']) => SKIPPED[kind]
 
-type Part = { kind: Skip['kind']; key: string; startSec: number; endSec: number }
+type Part = { kind: Skip['kind']; key: string; startSec: number; endSec: number; fileAuto?: boolean; label?: string; toScene?: boolean }
 
 // The parts of a video in the order skipAt offers them, each with a name of its own.
 function partsOf(m: Markers): Part[] {
   const out: Part[] = []
+  if (m.segments && m.segments.length) {
+    const segs = m.segments.filter((s) => s.action !== 'mark' && s.kind !== 'postcredits' && s.endSec > s.startSec)
+      .sort((a, b) => ORDER.indexOf(a.kind) - ORDER.indexOf(b.kind))
+    for (const s of segs) {
+      const toScene = s.kind === 'credits' && postCreditsAfter(m, s)
+      out.push({ kind: s.kind as Skip['kind'], key: `${s.kind}:${s.startSec}:${s.endSec}`, startSec: s.startSec, endSec: toScene ? creditsTo(m, s) : s.endSec, fileAuto: s.action === 'auto', label: s.label, toScene })
+    }
+    return out
+  }
   const add = (kind: Skip['kind'], r?: Range | null) => { if (r && r.endSec > r.startSec) out.push({ kind, key: `${kind}:${r.startSec}:${r.endSec}`, startSec: r.startSec, endSec: r.endSec }) }
   add('recap', m.recap)
   add('intro', m.intro)
@@ -86,8 +148,8 @@ export function autoSkipStep(state: AutoSkipState, m: Markers | null, prefs: Aut
   const natural = last == null || (step >= 0 && step <= (where.maxStep ?? 3))
   const stay = (pending: AutoSkipState['pending'] = null, spent = state.spent) => ({ state: { last: now, pending, spent }, act: null })
   if (!m || where.party === 'follow' || !anyAutoSkip(prefs)) return stay()
-  const wanted = (k: Skip['kind']) => (k === 'commercial' ? prefs.adverts : prefs[k])
-  const part = partsOf(m).find((p) => wanted(p.kind) && now >= p.startSec && now < p.endSec - 1)
+  const wanted = (p: Part) => (p.kind === 'commercial' ? prefs.adverts : prefs[p.kind]) || (!!p.fileAuto && prefs.fileAuto)
+  const part = partsOf(m).find((p) => wanted(p) && now >= p.startSec && now < p.endSec - 1)
   if (!part) return stay()
   if (state.spent.includes(part.key)) return stay()
   if (!natural) return stay({ key: part.key, back: step < 0 })
@@ -96,13 +158,14 @@ export function autoSkipStep(state: AutoSkipState, m: Markers | null, prefs: Aut
   // Playing on inside a part that was jumped into: back means leave it be, forward means skip.
   if (state.pending?.key === part.key && state.pending.back) return stay(null, [...state.spent, part.key])
   let next = false
-  if (part.kind === 'credits') {
+  if (part.kind === 'credits' && !part.toScene) {
     if (where.hasNext) {
       if (where.party !== 'none') return stay()
       next = true
     } else if (!(where.duration > 0 && part.endSec < where.duration - 5)) return stay()
   }
-  const act: AutoSkipAct = { kind: part.kind, key: part.key, label: SKIPPED[part.kind], from: now, to: part.endSec, next }
+  const label = part.kind === 'custom' && part.label ? 'Skipped ' + part.label.charAt(0).toLowerCase() + part.label.slice(1) : SKIPPED[part.kind]
+  const act: AutoSkipAct = { kind: part.kind, key: part.key, label, from: now, to: part.endSec, next }
   // The jump is the player's own: the next position follows on from where it lands.
   return { state: { last: next ? now : part.endSec, pending: null, spent: [...state.spent, part.key] }, act }
 }
@@ -117,11 +180,12 @@ export type MarkerPut = { reset: true } | { intro?: PutRange; recap?: PutRange; 
 type PutRange = { start: number; end?: number }
 
 const SOURCE_WORDS: Record<string, string> = {
+  wittyinfo: 'From the .wittyinfo', 'wittyinfo-season': 'The season’s .wittyinfo', 'wittyinfo-show': 'The show’s .wittyinfo',
   manual: 'Set by hand', 'skip.json': 'From a .skip.json beside the file', edl: 'From an .edl beside the file',
   chapters: 'From the file’s chapters', detected: 'Found by comparing episodes', show: 'The show’s own intro',
 }
 // sourceWords: where a kind of marker came from, in words ('' when there is none).
-export const markerSourceWords = (m: MarkerAnswer | null, kind: 'intro' | 'recap' | 'credits' | 'commercials') => SOURCE_WORDS[m?.sources?.[kind] || ''] || ''
+export const markerSourceWords = (m: MarkerAnswer | null, kind: string) => SOURCE_WORDS[m?.sources?.[kind] || ''] || ''
 
 // clockText writes seconds as m:ss (h:mm:ss past an hour), keeping tenths when there are any.
 export function clockText(sec: number): string {
@@ -192,3 +256,8 @@ export function markerPut(saved: MarkerAnswer | null, form: MarkerForm): { body?
 
 // anyByHand: something is set by hand, so there is something to go back from.
 export const anyByHand = (m: MarkerAnswer | null) => Object.values(m?.sources || {}).includes('manual')
+
+// usesWittyinfo: some part comes from a .wittyinfo (the video's own, its season's or its show's).
+export const usesWittyinfo = (m: MarkerAnswer | null) => Object.values(m?.sources || {}).some((s) => s.startsWith('wittyinfo'))
+// sourceWords is what a source's name means, in words.
+export const sourceWords = (source: string) => SOURCE_WORDS[source] || ''

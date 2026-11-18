@@ -148,9 +148,13 @@ Each kind is taken from the most trusted source that has it, so an EDL's advert 
 
 A range that doesn't make sense (one that ends before it starts, or a file that can't be read) is ignored. Apps read them all from `GET /api/v1/media/{id}/markers`, and get them with the playback answer when something starts. The web player shows **Skip recap**, **Skip intro**, **Skip adverts** and **Skip credits** from the same list (credits that run to the very end are left to **Next episode**). An administrator sets them in the title's **Edit**, under **Skipping** (see [Fixing metadata](FIXING-METADATA.md#skipping)), or with `PUT` on the same address, and `{"reset": true}` goes back to what the files say. See [the client API](CLIENT-API.md#media-extras).
 
+**A `.wittyinfo`** beside the video (or for a whole season or show) says all of this and more: a preview of the next episode, a scene after the credits (skipping the credits then stops there), any other part someone named ("Skip dream sequence"), scenes in place of the chapters, and content filters. It wins over everything above, and a season's or show's file wins over chapters and what was found by itself. Each part says whether to offer a button, skip by itself, or only mark where it is. Edit it from a title's ⋯ menu, **Edit scenes and skips**, or from the player's ⋯ menu while watching. See [the .wittyinfo format](formats/wittyinfo.md).
+
 ### Skipping without pressing anything
 
-Each profile can have the player skip by itself: **Settings → Playback → Skipping** for an administrator, **Settings → Appearance → Skipping** for everyone else. There are four switches, all off to begin with: **Skip intros**, **Skip recaps**, **Skip credits** and **Skip adverts**. The choice is kept with the account, so it follows you to your other devices.
+Each profile can have the player skip by itself: **Settings → Playback → Skipping** for an administrator, **Settings → Appearance → Skipping** for everyone else. There are six switches, all off to begin with: **Skip intros**, **Skip recaps**, **Skip credits**, **Skip adverts**, **Skip previews** and **Skip other marked parts**. A seventh, **Do as the video's file says**, is on to begin with: a part a `.wittyinfo` says to skip by itself is skipped (with the same note and **Undo**); off, it gets a button instead.
+
+**Content**, below them, says what to do about parts a video's `.wittyinfo` marks as violence, strong language, nudity, sex, drugs, frightening scenes, flashing lights, discrimination or other: play it, warn, mute the sound while it lasts, or skip it, and only from a chosen strength up. Nothing happens for a profile that chose nothing, so a child's profile can skip what an adult's plays. The choice is kept with the account, so it follows you to your other devices.
 
 | | |
 |---|---|

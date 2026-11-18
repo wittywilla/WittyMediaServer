@@ -113,6 +113,22 @@ These save at once, with their own button, not with the dialog's **Save**.
 
 Save or undo your other changes first, because picking a time leaves the dialog. Discs have their own menus, so none of this is offered for them.
 
+### Scenes and skips
+
+**⋯ → Edit scenes and skips** on a film's or an episode's page (or the player's ⋯ menu while it plays) edits the title's `.wittyinfo` ([the format](formats/wittyinfo.md)), which can say much more than the section above and wins over it:
+
+- **Skips**: any number of parts, each an intro, recap, credits, preview, a scene after the credits, an advert break or any other part you name, with a **Skip button**, **Skip by itself** or **Only mark it**. Drag them on the timeline, or type exact times. **This video has no…** stops the season's or show's defaults and anything found by itself from adding a kind. The faint bands on the timeline, and **What plays now**, show what is in force and where it came from.
+- **Scenes**: titles and start times that take the place of the file's chapters in the player's Scenes; **Copy the video's chapters** starts from those.
+- **Content**: what some people may not want to see or hear, and how strong it is. Each profile chooses what to do about it.
+- **Details**, **Pictures**: a title, overview, genres and the rest, and a poster, backdrop, logo or episode picture kept in the file itself.
+- **File**: where it is, which cut it was made for, **Export**, **Import…** and **Remove**.
+
+In the player, **Mark start** and **Mark end** set the picked part (or start a new one) at the moment playing; **Frame** steps a frame and **±1 s** moves the part. The player's own skip button tries the parts as they are, before saving. From a title's page, **Preview** saves and opens the player a few seconds before the part.
+
+On a show, **⋯ → Skip defaults for every episode** edits `show.wittyinfo`, or a season's file with **For**.
+
+**Saving** writes the `.wittyinfo` beside the video when **Settings → Metadata → Save information and artwork next to your media** and **Write scenes and skips next to your media** are both on. Otherwise the server keeps it, and **Export** downloads it to put there by hand; the server's copy wins over a file beside the video until you **Remove** it. A file made for another cut of the video (its length is off by more than a few seconds) isn't used: the editor says so and offers **Use it anyway**.
+
 ## Bonus features, versions and moving
 
 The **Organise** section:

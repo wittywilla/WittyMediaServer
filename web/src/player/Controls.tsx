@@ -29,6 +29,8 @@ type Props = {
   angles?: number
   onFullscreen: () => void
   onSettings?: () => void
+  // onEditInfo: open the scenes and skips editor beside the picture (administrators).
+  onEditInfo?: () => void
   remoteOn?: boolean
   onRemote?: () => void
   showSeek?: boolean
@@ -71,7 +73,7 @@ export function useVideoState(video: React.RefObject<HTMLVideoElement | null>) {
 }
 
 export function Controls({ video, duration, chapters = [], chapterNames, chapterThumb, onSeek, onPrev, onNext, audio, subtitles, onAudio, onSubtitle, onPick, angles = 1,
-  onFullscreen, onSettings, remoteOn, onRemote, showSeek = true, showChapterMarks = true, extra, offset = 0, disc = false, copy = false, quality, onQuality }: Props) {
+  onFullscreen, onSettings, onEditInfo, remoteOn, onRemote, showSeek = true, showChapterMarks = true, extra, offset = 0, disc = false, copy = false, quality, onQuality }: Props) {
   const st = useVideoState(video)
   const [pop, setPop] = useState<'audio' | 'subs' | 'chapters' | 'speed' | 'more' | null>(null)
   // Where the pointer is on the timeline, or being dragged to (0 to 1): the time and scene there are shown above it.
@@ -208,6 +210,7 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
         <div className="popover more-pop" role="menu" aria-label="More">
           {onSettings && <button role="menuitem" onClick={() => { setPop(null); onSettings() }}><IconSettings /> Viewing settings</button>}
           {onQuality && <button role="menuitem" onClick={() => { setPop(null); onQuality() }}><IconInfo /> How this is playing</button>}
+          {onEditInfo && <button role="menuitem" onClick={() => { setPop(null); onEditInfo() }}><IconChapters /> Edit scenes and skips</button>}
           <button role="menuitem" onClick={() => { setPop(null); setHelp(true) }}><span className="kbd-help" aria-hidden="true">?</span> Keyboard shortcuts</button>
         </div>
       )}

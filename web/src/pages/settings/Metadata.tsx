@@ -93,6 +93,9 @@ export default function MetadataSettings() {
         <Row label="Save information and artwork next to your media" desc="Writes standard NFO files and poster.jpg / fanart.jpg that other media servers can read too. Existing NFO files are kept as .nfo.bak.">
           <Switch label="Save next to media" checked={on('saveMetadata', '0')} onChange={(v) => set('saveMetadata', v ? '1' : '0')} />
         </Row>
+        <Row label="Write scenes and skips next to your media" desc="Saves what is edited in Scenes and skips as a .wittyinfo file beside the video, so it goes wherever the video goes. Off, or with the switch above off, edits are kept on the server and can be exported.">
+          <Switch label="Write .wittyinfo files" checked={on('saveWittyinfo', '1')} disabled={!on('saveMetadata', '0')} onChange={(v) => set('saveWittyinfo', v ? '1' : '0')} />
+        </Row>
       </Section>
       <LegalNote kind="webResults" className="set-legal" />
       <SaveBar {...st} />

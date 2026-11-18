@@ -13,7 +13,9 @@ import { toast, useApp } from '../../state'
 import { onEpisodeViewChosen, setEpisodeView, useEpisodeView, type EpisodeView } from './episodeView'
 import TitleArtPicker, { appliedOnPage } from '../../components/edit/TitleArtPicker'
 import LegalNote from '../../components/LegalNote'
-import { IconEdit, IconFilm, IconImage, IconMore, IconPlay, IconRefresh, IconSettings } from '../../icons'
+import { IconChapters, IconEdit, IconFilm, IconImage, IconMore, IconPlay, IconRefresh, IconSettings } from '../../icons'
+import { sourceWords, usesWittyinfo, type MarkerAnswer } from '../../player/markers'
+import '../../wittyinfo/badge.css'
 import { Menu, type MenuEntry } from '../../ui/Menu'
 import { bump } from '../client'
 import { useModuleItemMenu } from '../../moduleRegistry'
@@ -24,6 +26,7 @@ const RefreshDialog = lazy(() => import('../../components/edit/RefreshDialog'))
 const TitleExtras = lazy(() => import('../../components/edit/TitleExtras'))
 const CanvasManager = lazy(() => import('../../canvas/CanvasManager'))
 const AlbumCanvasManager = lazy(() => import('../../canvas/AlbumCanvasManager'))
+const InfoDialog = lazy(() => import('../../wittyinfo/InfoDialog'))
 
 type Target = { target: 'item'; id: number } | { target: 'show'; id: number } | null
 
@@ -67,7 +70,7 @@ export default function DetailExtras({ place, header, doc }: { place: 'tools' | 
   const { user } = useApp()
   const t = targetOf(header)
   const title = useTitle(t, doc.meta?.etag || '')
-  const [open, setOpen] = useState<'' | 'art' | 'edit' | 'refresh' | 'canvas'>('')
+  const [open, setOpen] = useState<'' | 'art' | 'edit' | 'refresh' | 'canvas' | 'info'>('')
   // A disc's own tools (Disc settings, names of its titles) are WittyDisc's, with its player.
   const discItem = t?.target === 'item' && title && isDisc(title as Item) ? title as Item : null
   const discMenu = useModuleItemMenu(discItem ? 'disc' : null, discItem, !!user?.isAdmin)
@@ -83,6 +86,7 @@ export default function DetailExtras({ place, header, doc }: { place: 'tools' | 
       { key: 'art', label: 'Artwork', icon: <IconImage />, onSelect: () => setOpen('art') },
       { key: 'edit', label: 'Edit details', icon: <IconEdit />, onSelect: () => setOpen('edit') },
       ...(item && (item.kind === 'video' || isDisc(item)) ? [{ key: 'canvas', label: 'Canvas', icon: <IconFilm />, onSelect: () => setOpen('canvas') } as MenuEntry] : []),
+      ...(item && (item.kind === 'video' || isDisc(item)) ? [{ key: 'info', label: 'Edit scenes and skips', icon: <IconChapters />, onSelect: () => setOpen('info') } as MenuEntry] : []),
       ...discMenu.entries.map((e) => ({ key: e.key, label: e.label, icon: e.icon === 'edit' ? <IconEdit /> : <IconSettings />, onSelect: () => discMenu.choose(e) } as MenuEntry)),
       ...(item?.showId == null ? [{ key: 'refresh', label: 'Check for new details', icon: <IconRefresh />, onSelect: () => setOpen('refresh') } as MenuEntry] : []),
     ]
@@ -94,6 +98,7 @@ export default function DetailExtras({ place, header, doc }: { place: 'tools' | 
           {open === 'edit' && <EditDetails target={t.target} id={t.id} start="match" onClose={() => setOpen('')} onChanged={changed} />}
           {open === 'refresh' && <RefreshDialog target={t.target} id={t.id} onClose={() => setOpen('')} onChanged={changed} />}
           {discMenu.dialog(changed)}
+          {open === 'info' && item && <InfoDialog target="item" id={item.id} title={item.showTitle ? `${item.showTitle} · ${item.title}` : item.title} onClose={() => setOpen('')} onChanged={changed} />}
           {open === 'canvas' && item && <CanvasManager itemId={item.id} title={item.title} kind={isDisc(item) ? 'disc' : 'video'} runtimeSec={item.runtimeSec} onClose={() => { setOpen(''); changed() }} />}
         </Suspense>
       </>
@@ -106,6 +111,7 @@ export default function DetailExtras({ place, header, doc }: { place: 'tools' | 
     <AtPageEnd>
     <div className="sdui-extras">
       <Credit provider={title.provider} providerId={title.providerId} />
+      {item && (item.kind === 'video' || disc) && <CustomInfoNote itemId={item.id} />}
       {item && (item.width > 0 || item.container || disc) && (
         <div className="facts">
           {item.width > 0 && <div className="fact"><div className="k">Video</div><div className="v">{item.width}×{item.height} {codecName(item.videoCodec)}{disc && main ? ` · ${isBluray(item) ? main.standard : ''}` : ''}</div></div>}
@@ -137,7 +143,7 @@ function AtPageEnd({ children }: { children: ReactNode }) {
 // everyone, else the server's default), and for an administrator the same menu as a film's
 // with "Find intros and credits", which compares a season's episodes by ear as a task.
 function ShowTools({ show, admin, onPick, open, close, t, changed }: {
-  show: Show; admin: boolean; onPick: (w: 'art' | 'edit' | 'refresh') => void; open: string; close: () => void; t: NonNullable<Target>; changed: () => void
+  show: Show; admin: boolean; onPick: (w: 'art' | 'edit' | 'refresh' | 'info') => void; open: string; close: () => void; t: NonNullable<Target>; changed: () => void
 }) {
   const key = `show-${show.id}`
   const now = useEpisodeView(key)
@@ -166,7 +172,10 @@ function ShowTools({ show, admin, onPick, open, close, t, changed }: {
     { key: 'edit', label: 'Edit details', icon: <IconEdit />, onSelect: () => onPick('edit') },
     { key: 'refresh', label: 'Check for new details', icon: <IconRefresh />, onSelect: () => onPick('refresh') },
     { key: 'intros', label: 'Find intros and credits', icon: <IconPlay />, onSelect: () => void findIntros() },
+    { key: 'info', label: 'Skip defaults for every episode', icon: <IconChapters />, onSelect: () => onPick('info') },
   ]
+  const seasons = ((show as Show & { seasons?: number[] }).seasons || []) as number[]
+  const season = Number(new URLSearchParams(location.search).get('season'))
   return (
     <>
       <Menu label="Manage this show" align="end" items={entries} trigger={(props) => <button type="button" {...props} className="btn ghost square" aria-label="Manage this show" title="Manage this show"><IconMore /></button>} />
@@ -174,8 +183,37 @@ function ShowTools({ show, admin, onPick, open, close, t, changed }: {
         {open === 'art' && <TitleArtPicker target={t.target} id={t.id} onApplied={appliedOnPage(changed)} onClose={close} />}
         {open === 'edit' && <EditDetails target={t.target} id={t.id} start="match" onClose={close} onChanged={changed} />}
         {open === 'refresh' && <RefreshDialog target={t.target} id={t.id} onClose={close} onChanged={changed} />}
+        {open === 'info' && <ShowInfo show={show} seasons={seasons} season={season >= 0 && new URLSearchParams(location.search).has('season') ? season : null} close={close} changed={changed} />}
       </Suspense>
     </>
+  )
+}
+
+// The show's seasons, for its skip defaults: one file for the whole show, or one a season.
+function ShowInfo({ show, seasons, season, close, changed }: { show: Show; seasons: number[]; season: number | null; close: () => void; changed: () => void }) {
+  const [list, setList] = useState<number[]>(seasons)
+  useEffect(() => {
+    if (seasons.length) return
+    api.get<{ seasons?: { number: number }[] }>(`/shows/${show.id}`).then((r) => setList((r.seasons || []).map((s) => s.number))).catch(() => {})
+  }, [show.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  return <InfoDialog target="show" id={show.id} title={show.title} seasons={list} season={season != null && season > 0 && list.includes(season) ? season : null} onClose={close} onChanged={changed} />
+}
+
+// CustomInfoNote says when a .wittyinfo decides where this video's skips are, and which one.
+function CustomInfoNote({ itemId }: { itemId: number }) {
+  const [m, setM] = useState<MarkerAnswer | null>(null)
+  useEffect(() => {
+    const stop = new AbortController()
+    api.get<MarkerAnswer>(`/media/${itemId}/markers`, stop.signal).then(setM).catch(() => {})
+    return () => stop.abort()
+  }, [itemId])
+  if (!usesWittyinfo(m)) return null
+  const from = [...new Set(Object.values(m?.sources || {}).filter((s) => s.startsWith('wittyinfo')))].map((s) => sourceWords(s).replace(/^From the /, 'the ')).join(' and ')
+  const parts = (m?.segments || []).filter((s) => s.source.startsWith('wittyinfo')).length
+  return (
+    <p className="wi-note" role="note">
+      <span className="wi-badge file">Custom info</span> {parts} skip{parts === 1 ? '' : 's'} from {from || 'a .wittyinfo'}, in place of what was found by itself.
+    </p>
   )
 }
 

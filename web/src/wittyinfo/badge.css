@@ -1,0 +1,8 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
+/* Where a .wittyinfo is, and that one is in use: small enough to load with a title's page. */
+.wi-badge { display: inline-flex; align-items: center; padding: 2px var(--sp-2); border-radius: var(--r-full); font-size: var(--text-xs); font-weight: 600; background: var(--bg-3); color: var(--fg); border: 1px solid var(--border); }
+.wi-badge.file { background: color-mix(in oklab, var(--ok) 22%, var(--bg-2)); border-color: color-mix(in oklab, var(--ok) 55%, var(--border)); }
+.wi-badge.stored { background: color-mix(in oklab, var(--accent) 20%, var(--bg-2)); border-color: color-mix(in oklab, var(--accent) 55%, var(--border)); }
+.wi-badge.dirty { background: color-mix(in oklab, var(--warn) 25%, var(--bg-2)); border-color: color-mix(in oklab, var(--warn) 60%, var(--border)); }
+.wi-note { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin: 0 0 var(--sp-2); font-size: var(--text-sm); color: var(--fg-2); }

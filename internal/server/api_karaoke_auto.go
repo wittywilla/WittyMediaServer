@@ -278,10 +278,13 @@ type karaokeAnswer struct {
 	// Improving: a really separated version is being made while this one plays.
 	Improving bool `json:"improving"`
 	// Progress of what is being made, 0 to 100, or -1 when there's no telling.
-	Progress   int    `json:"progress"`
-	CanImprove bool   `json:"canImprove"`
-	Reason     string `json:"reason,omitempty"`
-	Message    string `json:"message,omitempty"`
+	Progress   int  `json:"progress"`
+	CanImprove bool `json:"canImprove"`
+	// Separator is "installable" when there's no separator yet but one could be installed from
+	// Settings (api_separator_install.go), so the player can say so; empty otherwise.
+	Separator string `json:"separator,omitempty"`
+	Reason    string `json:"reason,omitempty"`
+	Message   string `json:"message,omitempty"`
 	// PollSec: ask again after this many seconds; 0 when nothing will change by itself.
 	PollSec int `json:"pollSec"`
 }
@@ -387,8 +390,19 @@ func karaokeVersion(stems []karaokeStem) string {
 	return strconv.FormatUint(h.Sum64(), 36)
 }
 
-// karaokeFor works out the answer for a song, starting what is missing when prepare is set.
+// karaokeFor works out the answer for a song, starting what is missing when prepare is set, and
+// says when a separator could be installed to make it better.
 func (s *Server) karaokeFor(r *http.Request, it *library.Item, prepare bool) karaokeAnswer {
+	a := s.karaokeAnswerFor(r, it, prepare)
+	if a.Quality != "stems" && s.foundSeparator(r.Context(), false) == nil && (s.Cfg == nil || s.Cfg.StemSeparator == "") {
+		if ok, _ := s.separatorInstallable(); ok {
+			a.Separator = "installable"
+		}
+	}
+	return a
+}
+
+func (s *Server) karaokeAnswerFor(r *http.Request, it *library.Item, prepare bool) karaokeAnswer {
 	ctx := r.Context()
 	a := karaokeAnswer{Stems: []karaokeStem{}, Progress: -1}
 	unavailable := func(reason string) karaokeAnswer {

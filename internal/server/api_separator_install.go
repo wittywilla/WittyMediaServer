@@ -6,6 +6,7 @@ package server
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -17,6 +18,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/pace"
 	"github.com/wittywilla/wittymediaserver/internal/separator"
+	"github.com/wittywilla/wittymediaserver/internal/sysinfo"
 	"github.com/wittywilla/wittymediaserver/internal/tasks"
 )
 
@@ -66,12 +68,27 @@ func (s *Server) separatorInstallRoutes(m *http.ServeMux) {
 	m.Handle("DELETE /api/karaoke/separator", s.requireAdmin(s.handleSeparatorRemove))
 }
 
-func (s *Server) handleSeparatorState(w http.ResponseWriter, r *http.Request) {
-	ok, why := separator.Supported()
-	machine := pace.Machine()
-	if ok && machine == pace.Tiny {
-		ok, why = false, "This machine is too small to separate songs: one would take hours. Songs use the quick version."
+// separatorMinMemoryMB is the least memory Demucs is offered with: separating a song on the processor
+// holds about 3 GB at its peak, and the server and the system need theirs.
+const separatorMinMemoryMB = 3500
+
+// separatorInstallable says whether Demucs can be installed on this machine, and why not.
+func (s *Server) separatorInstallable() (bool, string) {
+	if ok, why := separator.Supported(); !ok {
+		return false, why
 	}
+	if pace.Machine() == pace.Tiny {
+		return false, "This machine is too small to separate songs: one would take hours. Songs use the quick version."
+	}
+	if mb := sysinfo.MemoryMB(); mb > 0 && mb < separatorMinMemoryMB {
+		return false, fmt.Sprintf("This machine has %.1f GB of memory; separating a song needs about 4 GB. Songs use the quick version.", float64(mb)/1024)
+	}
+	return true, ""
+}
+
+func (s *Server) handleSeparatorState(w http.ResponseWriter, r *http.Request) {
+	ok, why := s.separatorInstallable()
+	machine := pace.Machine()
 	j := &s.sepInstall
 	j.mu.Lock()
 	task, failed, phase, pct := j.task, j.failed, j.phase, j.pct
@@ -90,12 +107,12 @@ func (s *Server) handleSeparatorState(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleSeparatorInstall(w http.ResponseWriter, r *http.Request) {
-	if ok, why := separator.Supported(); !ok {
-		writeJSON(w, 409, map[string]any{"error": why, "reason": "unsupported"})
-		return
-	}
-	if pace.Machine() == pace.Tiny {
-		writeJSON(w, 409, map[string]any{"error": "This machine is too small to separate songs.", "reason": "too-small"})
+	if ok, why := s.separatorInstallable(); !ok {
+		reason := "unsupported"
+		if sup, _ := separator.Supported(); sup {
+			reason = "too-small"
+		}
+		writeJSON(w, 409, map[string]any{"error": why, "reason": reason})
 		return
 	}
 	if separator.ReadInfo(s.separatorDir()) != nil {

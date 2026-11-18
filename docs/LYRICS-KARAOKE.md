@@ -120,6 +120,10 @@ Stems you put beside a song yourself ([below](#stems-the-real-vocal-track)) are 
 - **Credits.** Settings → About → Third-party licenses lists everything installed, under **Separate programs**: uv, Python, and every package with its version, license and full license text, read from the packages themselves.
 - Not offered on FreeBSD, Windows on ARM, or Linux with musl (Alpine), which PyTorch isn't made for, or on a very small machine such as a Raspberry Pi 3. Install a separator by hand there, or use the quick version.
 
+**The whole library ahead of time.** **Separate the whole library ahead of time** (off unless chosen) separates every song in your music libraries in the background, one at a time, oldest added first, only while nothing else is being made and nobody is being served something it would slow. It stops when the space for karaoke versions is 80% full, so it never clears songs people actually sang. Without it, a song is separated the first time someone opens karaoke on it, and the quick version plays meanwhile.
+
+**When it isn't installed,** karaoke works as before with the quick version, and the Mix says a separated version is an optional install (with a link to the setting for administrators). Machines with less than about 4 GB of memory aren't offered it.
+
 **By hand.** Install a separator on the machine the server runs on. That's all: the server looks for one when it starts and finds it on its own. It looks on the `PATH` and in the usual places `pip`, `pipx`, Homebrew and Conda put programs, for these, best first:
 
 | Separator | Install, for example | What you get |

@@ -161,6 +161,14 @@ export function MusicOnlineSettings({ s, set, on }: Draft) {
             { value: '51200', label: '50 GB' },
           ]} />
         </Row>
+        <Row label="Separate the whole library ahead of time" dim={auto === 'never' || !kar?.separator.available} desc={kar?.separator.available
+          ? 'Off unless you choose it. Songs are separated one at a time, only while nothing else is being made and nobody is watching or listening to something it would slow, and it stops when the space for karaoke versions is 80% full, so it never clears songs people sang to make room. Without it, a song is separated the first time someone opens karaoke on it.'
+          : 'Needs a separator: install Demucs above. Until then a song is made into a karaoke version the first time someone opens karaoke on it.'}>
+          <Select value={s.karaokeLibrary || 'off'} aria-label="Separate the whole library ahead of time" disabled={auto === 'never' || !kar?.separator.available} onChange={(e) => set('karaokeLibrary', e.target.value)} options={[
+            { value: 'off', label: 'Off' },
+            { value: 'idle', label: 'When the server is idle' },
+          ]} />
+        </Row>
         <Row label="Lyrics kept from online" desc="Forget everything fetched so far. Corrections made on this server are kept.">
           <button type="button" className="btn sm" disabled={cleared} onClick={() => { api.del('/music/lyrics-cache').then(() => { setCleared(true); toast('Lyrics from online forgotten') }).catch((e: Error) => toast(e.message)) }}>{cleared ? <><IconCheck size={16} /> Forgotten</> : 'Forget them'}</button>
         </Row>

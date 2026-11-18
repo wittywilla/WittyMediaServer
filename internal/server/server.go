@@ -123,10 +123,11 @@ type Server struct {
 	stream     streamTokens
 	radio      radioLive
 	pair       pairings
-	introJob   introJob         // finding intros by ear: one run at a time
-	mediaJobs  mediaJobs        // stems and canvases being made: one at a time
-	karaoke    karaokeAuto      // the separator found, and who asked for what lately
-	sepInstall separatorInstall // Demucs being installed with one press
+	introJob   introJob            // finding intros by ear: one run at a time
+	mediaJobs  mediaJobs           // stems and canvases being made: one at a time
+	karaoke    karaokeAuto         // the separator found, and who asked for what lately
+	sepInstall separatorInstall    // Demucs being installed with one press
+	kLib       karaokeLibraryState // the whole music library separated in the background, if asked
 	subtitles  subtitleFiles
 	idOnce     sync.Once
 	id         *identity.Identity
@@ -203,6 +204,7 @@ func tokenFrom(r *http.Request) string {
 func (s *Server) StartMetadata() {
 	s.applyTimeZone(context.Background())
 	logging.Go("statistics", func() { s.Metrics.Run(context.Background()) }, "cat", "server")
+	s.startKaraokeLibrary()
 	s.Scanner.OnScanned = func() {
 		s.logos().Kick()
 		s.Scanner.KickListings()

@@ -9,6 +9,7 @@
 package playback
 
 import (
+	"github.com/wittywilla/wittymediaserver/pkg/langtag"
 	"slices"
 	"strings"
 
@@ -543,6 +544,10 @@ func NormalizeLanguage(tag string) string {
 	if s, ok := languages[tag]; ok {
 		return s
 	}
+	// Every other ISO 639 code, in any of its forms (pkg/langtag).
+	if b := langtag.Base(tag); b != "" {
+		return b
+	}
 	return tag
 }
 
@@ -571,6 +576,11 @@ func LanguageFromWord(w string) string {
 	if _, ok := languageNames[base]; ok && (len(w) == 2 || len(w) == 3 || strings.ContainsAny(w, "-_")) {
 		return base
 	}
+	// Any other language by its code ("Film.geo.srt" is Georgian), but only a code: a word
+	// such as "sub" or "dub" is no language.
+	if langtag.Known(w) && base != "und" && base != "mis" && (len(w) == 3 || strings.ContainsAny(w, "-_")) {
+		return base
+	}
 	for code, name := range languageNames {
 		if strings.EqualFold(name, w) {
 			return code
@@ -580,7 +590,12 @@ func LanguageFromWord(w string) string {
 }
 
 // LanguageName is a language tag in English words, "" when it isn't known.
-func LanguageName(tag string) string { return languageNames[NormalizeLanguage(tag)] }
+func LanguageName(tag string) string {
+	if n := languageNames[NormalizeLanguage(tag)]; n != "" {
+		return n
+	}
+	return langtag.Name(tag)
+}
 
 // ResumeMinSec: a video started less than this long ago starts over.
 const ResumeMinSec = 60

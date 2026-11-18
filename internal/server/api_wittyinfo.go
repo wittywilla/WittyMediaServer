@@ -4,6 +4,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -15,6 +16,8 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/playback"
+	"github.com/wittywilla/wittymediaserver/pkg/langtag"
 	"github.com/wittywilla/wittymediaserver/pkg/wittyinfo"
 )
 
@@ -577,6 +580,12 @@ type playbackInfo struct {
 	StartAt *float64 `json:"startAt,omitempty"`
 	// Defaults: a season's or a show's file adds times.
 	Defaults bool `json:"defaults,omitempty"`
+	// VolumeDB: make it louder or quieter by this much. AspectRatio: show the picture at this
+	// shape ("16:9", "2.39:1"), for a file that says it wrong.
+	VolumeDB    *float64 `json:"volumeDb,omitempty"`
+	AspectRatio string   `json:"aspectRatio,omitempty"`
+	// Language: the language the labels and scene titles are in.
+	Language string `json:"language,omitempty"`
 }
 
 // fillInfo puts what the .wittyinfo files say in a playback answer: scenes in place of the
@@ -605,10 +614,105 @@ func fillInfo(infos library.ItemInfos, out *playbackResponse) {
 			}
 		}
 		pi.Filters = x.Filters
-		if p := x.Playback; p != nil && p.StartAt != nil {
-			v := float64(*p.StartAt)
-			pi.StartAt = &v
+		pi.Language = x.Language
+		if p := x.Playback; p != nil {
+			if p.StartAt != nil {
+				v := float64(*p.StartAt)
+				pi.StartAt = &v
+			}
+			pi.VolumeDB, pi.AspectRatio = p.VolumeDB, p.AspectRatio
 		}
 	}
 	out.Info = pi
+}
+
+// ------------------------------------------------------------------ languages and playing
+
+type viewerLangKey struct{}
+
+// viewerLanguage is the language the person asking reads: ?lang=, else what their browser or
+// app says it reads (Accept-Language), else the app's language, else the disc menus'.
+func (s *Server) viewerLanguage(r *http.Request) string {
+	if v := r.URL.Query().Get("lang"); langtag.Valid(v) {
+		return v
+	}
+	for _, part := range strings.Split(r.Header.Get("Accept-Language"), ",") {
+		tag, _, _ := strings.Cut(strings.TrimSpace(part), ";")
+		if tag != "*" && langtag.Valid(tag) {
+			return tag
+		}
+	}
+	if v := s.DB.GetSetting(r.Context(), "uiLanguage", ""); v != "" {
+		return v
+	}
+	return s.DB.GetSetting(r.Context(), "menuLanguage", "")
+}
+
+// withViewerLanguage is the request's context, carrying the viewer's language for what
+// reads .wittyinfo text further down.
+func (s *Server) withViewerLanguage(r *http.Request) context.Context {
+	return context.WithValue(r.Context(), viewerLangKey{}, s.viewerLanguage(r))
+}
+
+func langFrom(ctx context.Context) string { v, _ := ctx.Value(viewerLangKey{}).(string); return v }
+
+// infoPlayback is what a video's .wittyinfo says about playing it, or nothing.
+func (s *Server) infoPlayback(ctx context.Context, it *library.Item) wittyinfo.Playback {
+	infos := s.Store.InfosFor(ctx, it)
+	if x := infos.UsableItem(); x != nil && x.Playback != nil {
+		return *x.Playback
+	}
+	return wittyinfo.Playback{}
+}
+
+// subtitleByMode follows a file's subtitleMode when the viewer didn't pick a track: off, only
+// forced subtitles (in the sound's language, else any), or always (the language chosen,
+// else the first text track).
+func subtitleByMode(src playback.Source, pb wittyinfo.Playback, chosen playback.Chosen) int {
+	switch pb.SubtitleMode {
+	case "off":
+		return -1
+	case "forced":
+		audio := ""
+		if chosen.Audio >= 0 && chosen.Audio < len(src.Audio) {
+			audio = src.Audio[chosen.Audio].Language
+		}
+		any := -1
+		for i, st := range src.Subtitles {
+			if !st.Forced {
+				continue
+			}
+			if langtag.Same(st.Language, audio) {
+				return i
+			}
+			if any < 0 {
+				any = i
+			}
+		}
+		return any
+	case "always":
+		if chosen.Subtitle >= 0 {
+			return chosen.Subtitle
+		}
+		for i, st := range src.Subtitles {
+			if pb.SubtitleLanguage == "" || langtag.Same(st.Language, pb.SubtitleLanguage) {
+				return i
+			}
+		}
+		if len(src.Subtitles) > 0 {
+			return 0
+		}
+	}
+	return chosen.Subtitle
+}
+
+var infoSubtitleCodecs = map[string]string{"srt": "subrip", "vtt": "webvtt", "ass": "ass", "ssa": "ssa"}
+
+// addInfoSubtitles lists the subtitles a video's .wittyinfo carries after its own, as files
+// beside it are: each is a track players can pick, converted to WebVTT like any other.
+func (s *Server) addInfoSubtitles(ctx context.Context, it *library.Item, src *playback.Source) {
+	for _, f := range s.Store.InfoSubtitles(ctx, it, s.Cfg.CacheDir) {
+		src.Subtitles = append(src.Subtitles, playback.Subtitle{Codec: infoSubtitleCodecs[f.Format], Language: f.Language, Title: f.Title,
+			Forced: f.Forced, SDH: f.SDH, File: f.Path, Format: f.Format})
+	}
 }

@@ -497,14 +497,21 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 		return err
 	}
 	src := probeSource(it, pr)
+	s.addInfoSubtitles(ctx, it, &src)
 	parts := library.StackedParts(it.Path)
 	src.Parts = len(parts)
-	chosen := playback.ChooseTracks(src, firstNonEmpty(b.AudioLanguage, s.DB.GetSetting(ctx, "audioLanguage", "")), firstNonEmpty(b.SubtitleLanguage, s.DB.GetSetting(ctx, "subtitleLanguage", "")))
+	// A title's .wittyinfo can say which sound and subtitles suit it (an anime in Japanese
+	// with English subtitles): that comes before the server's own choice, after the viewer's.
+	pb := s.infoPlayback(ctx, it)
+	chosen := playback.ChooseTracks(src, firstNonEmpty(b.AudioLanguage, pb.AudioLanguage, s.DB.GetSetting(ctx, "audioLanguage", "")),
+		firstNonEmpty(b.SubtitleLanguage, pb.SubtitleLanguage, s.DB.GetSetting(ctx, "subtitleLanguage", "")))
 	if b.Audio != nil {
 		chosen.Audio = *b.Audio
 	}
 	if b.Subtitle != nil {
 		chosen.Subtitle = *b.Subtitle
+	} else {
+		chosen.Subtitle = subtitleByMode(src, pb, chosen)
 	}
 	if chosen.Audio < 0 || (chosen.Audio > 0 && chosen.Audio >= len(src.Audio)) {
 		return errBadTrack{"no such audio track"}
@@ -565,6 +572,8 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 	start := out.ResumeSec
 	if b.StartSec != nil {
 		start = *b.StartSec
+	} else if start == 0 && pb.StartAt != nil {
+		start = float64(*pb.StartAt) // the first time: where the file says (past a studio logo)
 	}
 	if start > out.DurationSec && out.DurationSec > 0 {
 		start = 0
@@ -581,7 +590,7 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 		}
 		out.Intro = &in
 	}
-	s.fillMarkers(ctx, it, out)
+	s.fillMarkers(s.withViewerLanguage(r), it, out)
 	logStarted := func(session string) {
 		s.Log.InfoContext(ctx, "playback started", "cat", "playback", "session", session, "item", it.ID, "title", it.Title, "profile", p.ID, "mode", d.Mode, "reasons", strings.Join(d.Reasons, ","), "audioTrack", chosen.Audio, "subtitleTrack", chosen.Subtitle,
 			"streaming", mode, "streamingFrom", modeFrom, "measuredKbps", b.MeasuredKbps, "ladder", ladderParam(out.Streaming.Ladder))
@@ -1037,6 +1046,7 @@ func (s *Server) handleItemSubtitle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	src := probeSource(it, pr)
+	s.addInfoSubtitles(r.Context(), it, &src)
 	if n >= len(src.Subtitles) || !playback.IsTextSubtitle(src.Subtitles[n].Codec) {
 		writeErr(w, 404, "no such text subtitle")
 		return

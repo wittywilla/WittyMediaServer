@@ -623,6 +623,7 @@ func (x *Info) Check() error {
 		c.text(w+".title", s.Title, MaxShortText)
 	}
 	c.text("notes", x.Notes, MaxLongText)
+	x.checkLanguages(c)
 	if len(x.Extensions) > 100 {
 		c.bad("extensions", "more than 100 extensions")
 	}

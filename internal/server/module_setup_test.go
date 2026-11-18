@@ -76,3 +76,43 @@ func TestModuleSetupSteps(t *testing.T) {
 		t.Errorf("state: %+v %v", state, err)
 	}
 }
+
+// First-run setup draws a module's step with the module's own page, which may never tell the
+// server it was done. The wizard says so itself when someone moves on: done from the step's own
+// Next, put off from Skip for now. Either way "Finish setting up" leaves Home.
+func TestModuleStepDoneFromSetup(t *testing.T) {
+	ts := newTestServer(t)
+	integ := &wittymodule.Integration{Module: "wittytuner", Web: &wittymodule.WebPart{Setup: []wittymodule.SetupStep{{ID: "tv", Title: "Live TV", Page: "wittytuner-setup", Version: 1}}}}
+	ts.hostModsForTest = fakeHostModules{in: integ}
+	ctx := context.Background()
+	_, admin := ts.user(t, "step-admin", "adult", true, "")
+	_, pal := ts.user(t, "step-pal", "adult", false, "")
+	in := []modules.InUse{{ID: "wittytuner", Name: "WittyTuner", Integration: integ}}
+	pending := func() []pendingModuleStep { return pendingSteps(in, ts.moduleStepsDone(ctx)) }
+
+	if rr := ts.do(t, "POST", "/api/setup/module-steps/skip", pal, map[string]any{"module": "wittytuner", "step": "tv", "done": true}); rr.Code != 403 {
+		t.Errorf("someone who isn't an administrator: %d", rr.Code)
+	}
+	if rr := ts.do(t, "POST", "/api/setup/module-steps/skip", admin, map[string]any{"module": "wittytuner", "step": "nope", "done": true}); rr.Code != 404 {
+		t.Errorf("a step it doesn't have: %d", rr.Code)
+	}
+	if len(pending()) != 1 {
+		t.Fatalf("before: %+v", pending())
+	}
+	if rr := ts.do(t, "POST", "/api/setup/module-steps/skip", admin, map[string]any{"module": "wittytuner", "step": "tv", "done": true}); rr.Code != 204 {
+		t.Fatalf("done: %d %s", rr.Code, rr.Body)
+	}
+	if p := pending(); len(p) != 0 {
+		t.Errorf("after going through it: %+v", p)
+	}
+	if done := ts.moduleStepsDone(ctx); len(done) != 1 || done[0] != "wittytuner.tv@1" {
+		t.Errorf("done: %v", done)
+	}
+	// Twice, as the wizard and the module's own page may both say so, is still one.
+	if rr := ts.do(t, "POST", "/api/setup/module-steps/skip", admin, map[string]any{"module": "wittytuner", "step": "tv"}); rr.Code != 204 {
+		t.Fatalf("again: %d", rr.Code)
+	}
+	if done := ts.moduleStepsDone(ctx); len(done) != 1 {
+		t.Errorf("recorded twice: %v", done)
+	}
+}

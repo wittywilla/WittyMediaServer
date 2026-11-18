@@ -29,6 +29,7 @@ var DataEntries = map[string]string{
 	"branding":              "your server's logo",
 	"channel-logos":         "TV channel logos",
 	"bumpers":               "TV bumpers",
+	"separator":             "the karaoke voice separator (Demucs) and its Python",
 	"lyrics-corrections":    "lyrics you corrected",
 	"modules":               "downloaded modules",
 	"themes":                "themes",

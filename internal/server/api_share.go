@@ -424,6 +424,11 @@ func (s *Server) handleShareHLSSegment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p, err := sess.Segment(r.Context(), n)
+	if errors.Is(err, hls.ErrBusy) || errors.Is(err, hls.ErrSuperseded) {
+		w.Header().Set("Retry-After", "1")
+		writeErr(w, 503, "try again in a moment")
+		return
+	}
 	if err != nil {
 		if !errors.Is(err, context.Canceled) {
 			// The visitor is told nothing about the server; the owner should be.

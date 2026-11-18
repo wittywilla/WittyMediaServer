@@ -99,6 +99,8 @@
   --sp-12: 48px;
   --sp-16: 64px;
   --gutter: clamp(16px, 3vw, 40px);        /* the page's side margin */
+  --page-max: 1600px;                      /* the widest a page's column gets; wider screens centre it. The top bar's contents follow the same edges (--page-inset) */
+  --page-inset: max(var(--gutter), calc((100% - var(--page-max)) / 2)); /* the column's left and right edge, as padding or margin on a full-width bar */
   --section-gap: clamp(28px, 3.4vw, 44px); /* between sections of a page */
   --topbar-h: 64px;
   --rail: 76px;                            /* the side menu collapsed to icons */
@@ -309,7 +311,7 @@ input[type=range] { accent-color: var(--accent); }
 .nav-empty { padding: var(--sp-1) var(--sp-3); font-size: var(--text-sm); color: var(--fg-3); }
 .sidebar-footer { margin-top: auto; padding: var(--sp-4) var(--sp-3) var(--sp-2); color: var(--fg-3); font-size: var(--text-xs); }
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.topbar { position: sticky; top: 0; z-index: var(--z-topbar); display: flex; align-items: center; gap: var(--sp-3); min-height: var(--topbar-h); padding: var(--sp-3) var(--gutter); background: var(--bg); }
+.topbar { position: sticky; top: 0; z-index: var(--z-topbar); display: flex; align-items: center; gap: var(--sp-3); min-height: var(--topbar-h); padding: var(--sp-3) var(--page-inset); background: var(--bg); }
 /* Content slides under the bar through a soft edge (no blur: a blur repaints on
    every scrolled frame, which low-end devices can't afford). */
 .topbar::after { content: ''; position: absolute; left: 0; right: 0; top: 100%; height: var(--sp-3); background: linear-gradient(var(--bg), rgb(var(--bg-rgb) / 0)); pointer-events: none; }

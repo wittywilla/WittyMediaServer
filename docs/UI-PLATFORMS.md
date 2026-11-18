@@ -34,7 +34,11 @@ also need.
    height whatever supplies them.
 5. **One element, one place.** A page's help link, notices and back link share the top of the page: the back link at
    the left, the help link in the corner on the same row, notices below.
-6. **Touch targets are 40px or more** on a phone or tablet (`--control-h`), 24px on a pointer, with the touch size
+6. **The bar and the page share one column.** `--page-max` (1600px, exported as `layout.pageMax` in `themes/tokens.json`) is the
+   widest a page gets, and `--page-inset` is that column's edge as padding or margin on anything full width. The top bar's
+   contents use it, so on a wide screen the logo, the title and the grid start at the same x. Native clients: cap the
+   page at `pageMax` and inset the bar the same way.
+7. **Touch targets are 40px or more** on a phone or tablet (`--control-h`), 24px on a pointer, with the touch size
    reached by padding, not by drawing a larger control.
 
 ## Checked automatically

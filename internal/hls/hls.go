@@ -174,6 +174,10 @@ type Session struct {
 	// lastAsked is the newest segment a viewer asked for; FFmpeg rests once it
 	// is far ahead of this.
 	lastAsked atomic.Int64
+	// starts numbers the requests that needed FFmpeg started somewhere else; the newest wins
+	// (see startFor).
+	starts    atomic.Int64
+	lastStart time.Time // when FFmpeg last started; guarded by mu
 	prunedTo  int
 	lastPrune time.Time
 	// viewers: who has been watching lately (several accounts can share one
@@ -839,7 +843,7 @@ func (s *Session) Segment(ctx context.Context, n int) (string, error) {
 	if s.Spec.HoldLastFrame {
 		from = 0
 	}
-	j, err := s.ensureJob(n, from)
+	j, err := s.startFor(ctx, n, from)
 	if err != nil {
 		return "", err
 	}
@@ -856,9 +860,18 @@ func (s *Session) Segment(ctx context.Context, n int) (string, error) {
 			if fileReady(p) {
 				return p, nil
 			}
+			if j.stopped.Load() {
+				// Stopped on purpose, which says nothing about this segment: usually a seek
+				// elsewhere took the stream over. Wait for whatever runs now if it will get
+				// here, and give way to the newer request if not.
+				if j, err = s.afterStop(ctx, n, from); err != nil {
+					return "", err
+				}
+				continue
+			}
 			if j.gpu != "" && s.noGPU.Load() {
 				// The GPU pipeline failed (see gpuExit): the same again on the processor.
-				if j, err = s.ensureJob(n, from); err != nil {
+				if j, err = s.startFor(ctx, n, from); err != nil {
 					return "", err
 				}
 				continue
@@ -905,27 +918,116 @@ func (s *Session) wantsStart(n int) bool {
 	return !s.Spec.HoldLastFrame && n > int(j.lastSeg.Load())+6
 }
 
+// ErrSuperseded: a newer request moved the stream elsewhere before this one's segment was made,
+// as when a viewer skips several times in a row. Nothing is wrong with the stream; a player that
+// still wants the segment asks again (the server answers 503, which players retry).
+var ErrSuperseded = errors.New("the stream moved to another place; ask again")
+
 // ensureJob returns a job that will produce segment n, starting FFmpeg at
 // segment from if there is none.
 func (s *Session) ensureJob(n, from int) (*job, error) {
+	return s.startFor(context.Background(), n, from)
+}
+
+// exitWait is how long a restart waits for the FFmpeg it stopped to be gone. A killed FFmpeg
+// goes within milliseconds on an idle machine; on a busy one it can take a while, and until
+// then it may still hold the files its successor writes (Windows refuses to open or replace a
+// file another process has open) or finish a segment the new run is also making.
+var exitWait = 3 * time.Second
+
+// A restart within burstGap of the last start is part of a burst of seeks, and waits
+// burstSettle before starting, which lets a newer seek take its place (see startFor).
+var (
+	burstGap    = time.Second
+	burstSettle = 250 * time.Millisecond
+)
+
+// startFor returns a job that will produce segment n for a request that gives up when ctx
+// ends, starting FFmpeg at segment from if nothing running will get there soon.
+//
+// Seeks come in bursts (a viewer pressing skip five times, or dragging along the timeline),
+// and each one would otherwise stop FFmpeg and start another. The newest request wins: one
+// that finds a newer one asked for a start meanwhile gives way (ErrSuperseded) without
+// starting anything, and one whose viewer has gone starts nothing either. A run that is
+// stopped is waited for before the next one starts.
+func (s *Session) startFor(ctx context.Context, n, from int) (*job, error) {
 	s.mu.Lock()
 	if !s.wantsStart(n) {
 		defer s.mu.Unlock()
 		return s.job, nil
 	}
-	s.stopLocked()
+	mine := s.starts.Add(1)
+	old := s.stopLocked()
+	burst := time.Since(s.lastStart) < burstGap
 	s.mu.Unlock()
+	old.waitGone(exitWait)
+	if burst {
+		// FFmpeg was started a moment ago: another seek is likely on its way, and starting
+		// FFmpeg for a place the viewer is already leaving costs more than this short wait.
+		select {
+		case <-ctx.Done():
+		case <-time.After(burstSettle):
+		}
+	}
+	if err := ctx.Err(); err != nil { // the player moved on while the old run went
+		return nil, err
+	}
 	// Without the session's lock: makeRoom looks at the other sessions.
 	if err := s.m.makeRoom(s); err != nil {
 		return nil, err
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if !s.wantsStart(n) { // another request for this stream got here first
-		return s.job, nil
+	for {
+		s.mu.Lock()
+		if !s.wantsStart(n) { // another request for this stream got here first
+			defer s.mu.Unlock()
+			return s.job, nil
+		}
+		if s.starts.Load() != mine {
+			s.mu.Unlock()
+			return nil, ErrSuperseded
+		}
+		running := s.stopLocked()
+		if running == nil || running.finished() {
+			defer s.mu.Unlock()
+			return s.startLocked(from)
+		}
+		// Something else (a resumed run) started meanwhile: let it go first, as above.
+		s.mu.Unlock()
+		running.waitGone(exitWait)
 	}
-	s.stopLocked()
-	return s.startLocked(from)
+}
+
+// afterStop is what a request waiting for segment n does when the run it waited on was stopped
+// on purpose: wait on the run that replaced it if that will make n, start one if nothing runs
+// (a rest, or the limit on transcodes, stopped it), and give way to a newer request if that
+// moved the stream elsewhere.
+func (s *Session) afterStop(ctx context.Context, n, from int) (*job, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	s.mu.Lock()
+	j := s.job
+	moved := j != nil && !j.finished()
+	if moved && !s.wantsStart(n) {
+		s.mu.Unlock()
+		return j, nil
+	}
+	s.mu.Unlock()
+	if moved || s.lastAsked.Load() != int64(n) {
+		return nil, ErrSuperseded
+	}
+	return s.startFor(ctx, n, from)
+}
+
+// waitGone waits up to d for a stopped run's FFmpeg to have exited. A nil job has nothing to wait for.
+func (j *job) waitGone(d time.Duration) {
+	if j == nil {
+		return
+	}
+	select {
+	case <-j.done:
+	case <-time.After(d):
+	}
 }
 
 // wake starts FFmpeg again when it rested (see maxAheadSegs, and pause) and
@@ -1004,7 +1106,7 @@ func (s *Session) WarmAt(sec float64) {
 // logFailedStart is for starts nobody is waiting on, so nobody receives the
 // error. A server at its limit will try again when the viewer gets there.
 func (s *Session) logFailedStart(msg string, err error) {
-	if errors.Is(err, ErrBusy) {
+	if errors.Is(err, ErrBusy) || errors.Is(err, ErrSuperseded) {
 		s.logger().Debug(msg, "err", err)
 		return
 	}
@@ -1047,6 +1149,7 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 		return nil, err
 	}
 	s.job = j
+	s.lastStart = started
 	logID := s.logID
 	logging.Go("ffmpeg wait", func() {
 		j.err = cmd.Wait()
@@ -1503,9 +1606,11 @@ func tail(s string, n int) string {
 	return s
 }
 
-func (s *Session) stopLocked() {
+// stopLocked ends the running FFmpeg, if any, and returns its job so the caller can wait for
+// it to be gone (it doesn't wait itself: the caller holds the session's lock).
+func (s *Session) stopLocked() *job {
 	if s.job == nil {
-		return
+		return nil
 	}
 	j := s.job
 	s.job = nil
@@ -1513,6 +1618,7 @@ func (s *Session) stopLocked() {
 		j.stopped.Store(true)
 		_ = j.cmd.Process.Kill()
 	}
+	return j
 }
 
 func (s *Session) stop() {

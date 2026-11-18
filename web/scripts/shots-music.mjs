@@ -16,10 +16,12 @@ const api = server.replace(/\/\/[^/:]+\.localhost/, '//127.0.0.1')
 const wait = (ms) => new Promise((d) => setTimeout(d, ms))
 const login = await (await fetch(api + '/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: process.env.WMS_NAME, password: process.env.WMS_PASS }) })).json()
 const libs = await (await fetch(api + '/api/libraries', { headers: { Authorization: 'Bearer ' + login.token } })).json()
-const lib = libs.find((l) => l.type === 'music')
+// WMS_LIB picks the library by id; otherwise the first music library.
+const lib = libs.find((l) => (process.env.WMS_LIB ? String(l.id) === process.env.WMS_LIB : l.type === 'music'))
 const albums = await (await fetch(`${api}/api/music/albums?library=${lib.id}&sort=title`, { headers: { Authorization: 'Bearer ' + login.token } })).json()
 const real = albums.find((a) => /21/.test(a.title) && /Adele/i.test(a.artist)) || albums[0]
-const long = albums.find((a) => a.title.length > 60) || albums[1]
+const long = [...albums].sort((a, b) => b.title.length - a.title.length)[0]
+const bare = albums.find((a) => !a.coverItem) || albums[2]
 const albumUrl = (a) => `/album/${lib.id}?artist=${encodeURIComponent(a.artist)}&album=${encodeURIComponent(a.title)}`
 const artistUrl = (n) => `/artist/${lib.id}?name=${encodeURIComponent(n)}`
 
@@ -78,6 +80,8 @@ for (const [name, size] of Object.entries(SIZES)) {
   await shot('album-real')
   await visit(albumUrl(long))
   await shot('album-long-name')
+  await visit(albumUrl(bare))
+  await shot('album-no-art')
   await visit(artistUrl(real.artist))
   await shot('artist')
   // Something playing: the bar, then the full player with its queue.
@@ -90,7 +94,7 @@ for (const [name, size] of Object.entries(SIZES)) {
   await page.key('Escape')
   await wait(600)
   // Music's own search where there is one (after), the app's search otherwise (before).
-  await visit(process.env.MUSIC_SEARCH ? `/library/${lib.id}?tab=search&q=Velvet` : `/search?q=${encodeURIComponent('Velvet')}`)
+  await visit(process.env.MUSIC_SEARCH ? `/library/${lib.id}?tab=search&q=${encodeURIComponent(process.env.WMS_QUERY || 'Velvet')}` : `/search?q=${encodeURIComponent('Velvet')}`)
   await shot('search')
   // Keyboard: where Tab goes first on the album page.
   await visit(albumUrl(real))

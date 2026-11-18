@@ -590,6 +590,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `PUT /api/sdui/pages/{page}/personal` | Signed-in | own arrangement only. Page exists. The profile's editLayout switch and the server's personalisation switch (403). 8 KB, strict JSON, IDs by form, at most 64 pages a profile |
 | `DELETE /api/sdui/pages/{page}/personal` | Signed-in | own arrangement only. Page exists. The same switches as saving |
 | `GET /api/sdui/topshelf` | Signed-in | limits. The account's own continue-watching and what is new in libraries it may open, at most 4 rows of 10. Device class by form. No games with games turned off for the profile |
+| `GET /api/sdui/tv-summary/{id}` | Signed-in | limits. Counts of what the account may see; administrators' screens (modules, backup, transcoding, network, every channel) only for an admin. Home-network addresses only on the home network |
 | `GET /api/sdui/experiences` | Signed-in | the same for everyone. The experiences the server ships and the themes installed; what a person may choose is GET /api/sdui/experience |
 | `GET /api/sdui/placements` | Signed-in | own choice only. The shell's regions and where they are on this device |
 | `PUT /api/sdui/placements` | Signed-in | own choice only, for this device. The profile's editLayout switch and the server's personalisation switch (403). Known regions and positions only; the menu and You can't be hidden (400) |

@@ -39079,6 +39079,69 @@
         "x-wms-auth": "admin"
       }
     },
+    "/sdui/tv-summary/{id}": {
+      "get": {
+        "operationId": "getSduiTvSummary",
+        "parameters": [
+          {
+            "description": "A screen's summary in the catalogue's tvLevels: libraries, channels, modules, backup, transcoding or network.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "addresses": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "lines": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "lines",
+                    "addresses"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What a television shows in place of an editor it doesn't offer (docs/TV-MODE.md): a few lines of what is set now, only what the account may already see (administrators' screens say nothing to anyone else), and this server's addresses on the home network for the card's QR code, asked from there. Unknown ids answer with no lines.",
+        "tags": [
+          "Server-driven UI"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/sessions": {
       "delete": {
         "operationId": "deleteSessions",

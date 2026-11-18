@@ -59,6 +59,9 @@ type Page struct {
 	// Regions are what the page puts into the shell's own regions while it, or its theme scope, is
 	// showing: the status bar's items and the system dock's actions (docs/SDUI.md, "Shell regions").
 	Regions *PageRegions `json:"regions,omitempty"`
+	// TV says how much of the page a television offers (docs/TV-MODE.md): full (the default), view
+	// (shown, nothing changed) or desktopOnly (a card that says to use a computer, with the address).
+	TV string `json:"tv,omitempty"`
 }
 
 // PageRegions is a page's contribution to the shell: the content of the regions that take any.

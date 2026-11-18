@@ -316,6 +316,7 @@
         "theme": {
           "$ref": "#/$defs/ThemeRoles"
         },
+        "tvLevels": {},
         "tvThemes": {}
       },
       "required": [
@@ -333,6 +334,7 @@
         "tvThemes",
         "remote",
         "music",
+        "tvLevels",
         "icons",
         "placeholders",
         "repeats",
@@ -1718,6 +1720,9 @@
         },
         "ttlSeconds": {
           "type": "integer"
+        },
+        "tv": {
+          "type": "string"
         },
         "variants": {
           "items": {

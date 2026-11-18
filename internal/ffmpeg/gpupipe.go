@@ -22,7 +22,11 @@ type GPUPipe struct {
 	// where FFmpeg brings each frame back itself and the rest is as without this.
 	family string
 	deint  string // the chip's deinterlacer, "" = none that takes the same options
+	id     string // its GPUPath
 }
+
+// ID is the pipeline's GPUPath ID, "pipeline:cuda" and so on.
+func (p GPUPipe) ID() string { return p.id }
 
 // gpuDecodes are the pictures each family's decoder takes, with their pixel formats: what's
 // outside these (H.264 at 10 bits, 4:2:2 and 4:4:4 pictures, older codecs) FFmpeg would decode
@@ -34,7 +38,8 @@ var gpuDecodes = map[string][]string{
 	"videotoolbox": {"h264", "hevc", "vp9", "av1", "mpeg2video"},
 }
 
-// GPUPipeFor is the pipeline for this encoder and source picture, if there is one.
+// GPUPipeFor is the pipeline for this encoder and source picture, if there is one, whether or not
+// it works here (GPUPipeline also asks that).
 func GPUPipeFor(encoder, codec, pixFmt string) (GPUPipe, bool) {
 	family := ""
 	switch encoder {
@@ -63,21 +68,21 @@ func GPUPipeFor(encoder, codec, pixFmt string) (GPUPipe, bool) {
 	}
 	switch family {
 	case "cuda":
-		return GPUPipe{family: "cuda", Input: []string{"-hwaccel", "cuda", "-hwaccel_output_format", "cuda"}, deint: "bwdif_cuda"}, true
+		return GPUPipe{id: "pipeline:cuda", family: "cuda", Input: []string{"-hwaccel", "cuda", "-hwaccel_output_format", "cuda"}, deint: "bwdif_cuda"}, true
 	case "qsv":
 		in := []string{"-hwaccel", "qsv", "-hwaccel_output_format", "qsv"}
 		if DeviceArgs("qsv") != nil { // the device named "qs" there, on the Intel chip's node
 			in = append(in, "-hwaccel_device", "qs")
 		}
-		return GPUPipe{family: "qsv", Input: in}, true
+		return GPUPipe{id: "pipeline:qsv", family: "qsv", Input: in}, true
 	case "vaapi":
 		in := []string{"-hwaccel", "vaapi", "-hwaccel_output_format", "vaapi"}
 		if dev := planDevice(Plan{InputArgs: DeviceArgs("vaapi")}); dev != "" {
 			in = append(in, "-hwaccel_device", dev)
 		}
-		return GPUPipe{family: "vaapi", Input: in}, true
+		return GPUPipe{id: "pipeline:vaapi", family: "vaapi", Input: in}, true
 	default:
-		return GPUPipe{Input: []string{"-hwaccel", "videotoolbox"}}, true
+		return GPUPipe{id: "pipeline:videotoolbox", Input: []string{"-hwaccel", "videotoolbox"}}, true
 	}
 }
 
@@ -107,19 +112,24 @@ func (p GPUPipe) Scale(maxHeight int, pixFmt string) (scale, download string) {
 	return scale, "hwdownload,format=" + pixFmt
 }
 
-// PretendWorking marks hardware encoders as tested and working, for tests in other packages
-// that look at the command lines made for them. The returned function puts things back.
+// PretendWorking marks hardware encoders ("h264_nvenc") and GPU paths ("pipeline:cuda") as
+// tested and working, for tests in other packages that look at the command lines made for them.
+// The returned function puts things back.
 func PretendWorking(names ...string) (restore func()) {
 	hw.mu.Lock()
-	old := hw.status
-	hw.status = map[string]*HWStatus{}
+	old, oldPaths, oldOff := hw.status, hw.paths, hw.pathsOff
+	hw.status, hw.paths, hw.pathsOff = map[string]*HWStatus{}, map[string]*GPUPath{}, nil
 	for _, n := range names {
+		if strings.Contains(n, ":") {
+			hw.paths[n] = &GPUPath{ID: n, Tested: true, Working: true}
+			continue
+		}
 		hw.status[n] = &HWStatus{HWEncoder: HWEncoder{Name: n}, Compiled: true, Tested: true, Working: true}
 	}
 	hw.mu.Unlock()
 	return func() {
 		hw.mu.Lock()
-		hw.status = old
+		hw.status, hw.paths, hw.pathsOff = old, oldPaths, oldOff
 		hw.mu.Unlock()
 	}
 }

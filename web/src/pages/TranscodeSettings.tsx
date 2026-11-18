@@ -16,6 +16,9 @@ type HW = { name: string; label: string; vendor: string; compiled: boolean; test
 // A graphics device the server found, and why it can't use one (Linux and FreeBSD).
 type GPU = { path: string; vendor?: string; driver?: string; group: number; mode?: string; usable: boolean; problem?: string; fix?: string }
 type Mode = 'easy' | 'advanced' | 'expert'
+// Other work the graphics chip can take from the processor, each tested with a tiny real job.
+type GPUPath = { id: string; label: string; kind: string; encoder?: string; tested: boolean; working: boolean; off: boolean; device?: string; reason?: string; error?: string }
+type InUse = { encoder: string; pipeline?: string; toneMap?: string }
 
 export default function TranscodeSettings() {
   const st = useServerSettings()
@@ -23,11 +26,15 @@ export default function TranscodeSettings() {
   const [hw, setHw] = useState<HW[]>([])
   const [hwDone, setHwDone] = useState(false)
   const [gpus, setGpus] = useState<GPU[]>([])
+  const [paths, setPaths] = useState<GPUPath[]>([])
+  const [inUse, setInUse] = useState<InUse | null>(null)
   useEffect(() => {
     let t: ReturnType<typeof setTimeout>
-    const load = () => api.get<{ hardware?: HW[]; hwTested?: boolean; gpus?: GPU[] }>('/system').then((r) => {
+    const load = () => api.get<{ hardware?: HW[]; hwTested?: boolean; gpus?: GPU[]; gpuPaths?: GPUPath[]; gpuInUse?: InUse }>('/system').then((r) => {
       setHw(r.hardware || [])
       setGpus(r.gpus || [])
+      setPaths(r.gpuPaths || [])
+      setInUse(r.gpuInUse || null)
       setHwDone(!!r.hwTested)
       if (!r.hwTested) t = setTimeout(load, 2000) // only until the first test has finished
     }).catch(() => {})
@@ -41,6 +48,10 @@ export default function TranscodeSettings() {
   // Never saved ("auto"): every encoder that works here, until the owner chooses.
   const enabled = new Set((s.hwEncoders ?? 'auto') === 'auto' ? hw.filter((h) => h.compiled && h.working).map((h) => h.name) : (s.hwEncoders || '').split(',').filter(Boolean))
   const toggleHW = (name: string, want: boolean) => set('hwEncoders', hw.map((h) => h.name).filter((n) => (n === name ? want : enabled.has(n))).join(','))
+  const pathsOff = new Set((s.gpuPathsOff || '').split(',').filter(Boolean))
+  const togglePath = (id: string, use: boolean) => set('gpuPathsOff', paths.map((p) => p.id).filter((p) => (p === id ? !use : pathsOff.has(p))).join(','))
+  const pathStatus = (p: GPUPath) => p.working ? 'Working on this machine' + (p.device ? ' (' + p.device + ')' : '') : p.reason || (hwDone ? 'Not found on this machine' : 'Testing…')
+  const named = (id?: string) => hw.find((h) => h.name === id)?.label || paths.find((p) => p.id === id)?.label || id
   // An older setting that the list of encoders replaced: saving says it's gone.
   const save = () => { set('hwAccel', ''); st.save() }
   const status = (h: HW) => !h.compiled ? 'Not included in this FFmpeg build'
@@ -79,6 +90,29 @@ export default function TranscodeSettings() {
           })}
           {hw.length === 0 && <div className="muted">Loading…</div>}
         </div>
+        {paths.length > 0 && (
+          <div className="hw-devices">
+            <h4>More work on the graphics chip</h4>
+            <div className="hw-list">
+              {paths.map((p) => (
+                <label key={p.id} className={'hw-item' + (p.working ? '' : ' disabled')} title={p.error || pathStatus(p)}>
+                  <input type="checkbox" disabled={!p.working} checked={p.working && !pathsOff.has(p.id)} onChange={(e) => togglePath(p.id, e.target.checked)} />
+                  <div>
+                    <div className="hw-name"><b>{p.label}</b> <code>{p.id}</code></div>
+                    <div className={'hw-status' + (p.working ? ' ok' : '')}>{pathStatus(p)}</div>
+                  </div>
+                </label>
+              ))}
+            </div>
+            {inUse && (
+              <p className="muted">
+                New streams use {inUse.encoder === 'libx264' || inUse.encoder === 'libopenh264' ? 'the processor (' + inUse.encoder + ')' : named(inUse.encoder)}
+                {inUse.pipeline ? ', with the picture decoded and resized on the chip' : ''}
+                {inUse.toneMap ? ', and map HDR on the chip' : ''}. A file the chip can’t decode, or a job that fails on it, goes on with the processor instead, without stopping.
+              </p>
+            )}
+          </div>
+        )}
         {gpus.length > 0 && (
           <div className="hw-devices">
             <h4>Graphics devices found</h4>

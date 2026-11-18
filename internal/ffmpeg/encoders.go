@@ -57,9 +57,12 @@ type hwState struct {
 	qsv    string // the Intel render node Quick Sync is given, "" to let FFmpeg choose
 	done   bool
 	once   sync.Once
+	// paths are the other ways of using the chip (see GPUPath), pathsOff those the owner turned off.
+	paths    map[string]*GPUPath
+	pathsOff map[string]bool
 }
 
-var hw = &hwState{status: map[string]*HWStatus{}}
+var hw = &hwState{status: map[string]*HWStatus{}, paths: map[string]*GPUPath{}}
 
 // defaultVAAPIDevice is used until the devices have been looked at.
 const defaultVAAPIDevice = "/dev/dri/renderD128"
@@ -125,6 +128,7 @@ func (t *Tools) ProbeHardware(ctx context.Context) {
 		hw.status[e.Name] = st
 		hw.mu.Unlock()
 	}
+	t.probePaths(ctx, log)
 	hw.mu.Lock()
 	hw.done = true
 	hw.mu.Unlock()

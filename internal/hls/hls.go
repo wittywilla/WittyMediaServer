@@ -150,7 +150,7 @@ type Rendition struct {
 
 type job struct {
 	startSeg int
-	gpu      string // the GPU pipeline's key (see gpuKey) when it's used, "" otherwise
+	hw       hwChoice // what it uses of the graphics chip
 	cmd      *exec.Cmd
 	done     chan struct{}
 	err      error
@@ -183,9 +183,9 @@ type Session struct {
 	// viewers: who has been watching lately (several accounts can share one
 	// stream), so one of them leaving doesn't end it for the others.
 	viewers map[string]time.Time
-	// noGPU: FFmpeg failed with the picture kept on the graphics chip, so this stream
-	// decodes on the processor from now on, as it did before there was such a way.
-	noGPU atomic.Bool
+	// fallback is how much of the graphics chip this stream's next jobs use (levelGPU, …): a
+	// job that failed takes it a step down, so the next one does without what failed.
+	fallback atomic.Int32
 }
 
 // Manager owns sessions and the temp directory.
@@ -201,6 +201,7 @@ type Manager struct {
 	// gpuFailed: encoder and source picture kinds whose GPU pipeline failed here, so that
 	// other streams of the same kind don't each fail once first. Guarded by mu.
 	gpuFailed map[string]bool
+	hwRunning map[string]int // jobs running on each hardware encoder (see hwCaps); guarded by mu
 }
 
 // ErrBusy: as many transcodes are running as the server allows
@@ -869,8 +870,8 @@ func (s *Session) Segment(ctx context.Context, n int) (string, error) {
 				}
 				continue
 			}
-			if j.gpu != "" && s.noGPU.Load() {
-				// The GPU pipeline failed (see gpuExit): the same again on the processor.
+			if j.hw.level < s.fallback.Load() {
+				// It failed using the chip (see hwExit): the same again with less of it.
 				if j, err = s.startFor(ctx, n, from); err != nil {
 					return "", err
 				}
@@ -1132,16 +1133,16 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 	if err := os.MkdirAll(s.Dir, 0o755); err != nil {
 		s.log.Warn("could not make the stream's folder", "dir", s.Dir, "err", err)
 	}
-	args, encoder, dir, gpu := s.commandLine(fromSeg)
+	args, encoder, dir, hc := s.commandLine(fromSeg)
 	cmd := ffmpeg.Command(context.Background(), s.tools.FFmpeg, args...)
 	if s.Spec.FMP4 {
 		cmd.Dir = dir
 	}
-	j := &job{startSeg: fromSeg, cmd: cmd, done: make(chan struct{}), gpu: gpu}
+	j := &job{startSeg: fromSeg, cmd: cmd, done: make(chan struct{}), hw: hc}
 	j.lastSeg.Store(int64(fromSeg) - 1)
 	cmd.Stderr = &j.stderr
 	cmdline := ffmpeg.RedactArgs(args)
-	s.log.Info("transcode started", "segment", fromSeg, "encoder", encoder, "height", s.Spec.MaxHeight, "gpuPipeline", gpu != "")
+	s.log.Info("transcode started", "segment", fromSeg, "encoder", encoder, "height", s.Spec.MaxHeight, "gpuPipeline", hc.onGPU, "gpuToneMap", hc.placebo, "level", hc.level)
 	s.log.Debug("ffmpeg command", "args", cmdline)
 	started := time.Now()
 	if err := cmd.Start(); err != nil {
@@ -1150,10 +1151,12 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 	}
 	s.job = j
 	s.lastStart = started
+	s.m.hwStarted(encoder)
 	logID := s.logID
 	logging.Go("ffmpeg wait", func() {
 		j.err = cmd.Wait()
-		s.gpuExit(j)
+		s.m.hwEnded(encoder)
+		s.hwExit(j)
 		close(j.done)
 		logging.ChildExit(s.logger(), "ffmpeg", j.err, j.stopped.Load(), &j.stderr, started, "segment", fromSeg, "args", cmdline)
 	}, "cat", "transcode", "session", logID)
@@ -1163,18 +1166,18 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 
 // commandLine is FFmpeg's command for this stream from segment fromSeg on, what makes its
 // picture ("copy" when nothing does), and the folder FFmpeg runs in.
-func (s *Session) commandLine(fromSeg int) (args []string, encoder, dir, gpu string) {
+func (s *Session) commandLine(fromSeg int) (args []string, encoder, dir string, hc hwChoice) {
 	sp := s.Spec
 	start := float64(fromSeg) * sp.SegmentSec
 	// Damaged discs and rips often carry runs of broken audio frames; ffmpeg
 	// would abort once 2/3 of the frames failed to decode and leave the
 	// stream unfinished, so decode errors never end a transcode.
 	args = []string{"-hide_banner", "-loglevel", "warning", "-nostdin", "-y", "-max_error_rate", "1"}
-	plan := s.tools.Plan(sp.Quality)
-	if sp.Preset != "" && plan.Name == "libx264" && len(sp.Quality.VideoArgs) == 0 {
-		q := sp.Quality
-		q.Preset = sp.Preset
-		plan = s.tools.Plan(q)
+	hc = s.m.chooseHW(sp.Quality, sp.Preset, s.fallback.Load(), hwSource{codec: sp.VideoCodec, pixFmt: sp.PixFmt, videoFilter: sp.VideoFilter,
+		toneMap: sp.ToneMap, subs: sp.SubtitleIndex >= 0, cpuOnly: sp.CopyVideo || sp.NoVideo || sp.HoldLastFrame || len(sp.Holes) > 0 || len(sp.Quality.VideoArgs) > 0})
+	plan := hc.plan
+	if hc.placebo {
+		args = append(args, ffmpeg.VulkanDevice...)
 	}
 	outHeight := sp.Height
 	if sp.MaxHeight > 0 && (outHeight == 0 || sp.MaxHeight < outHeight) {
@@ -1184,19 +1187,15 @@ func (s *Session) commandLine(fromSeg int) (args []string, encoder, dir, gpu str
 	if ownThreads(sp.Quality) {
 		encThreads = 0 // the expert options say, and FFmpeg would warn about two
 	}
-	pipe, onGPU := s.gpuPipe(plan)
-	if onGPU {
-		gpu = gpuKey(plan.Name, sp)
-	}
 	if !sp.CopyVideo {
 		args = append(args, plan.InputArgs...)
 		switch {
-		case onGPU:
-			args = append(args, pipe.Input...)
-		case plan.Name == "h264_nvenc":
+		case hc.onGPU:
+			args = append(args, hc.pipe.Input...)
+		case plan.Name == "h264_nvenc" && hc.level == levelGPU:
 			args = append(args, "-hwaccel", "auto")
 		}
-		if decThreads > 0 && !onGPU { // the first input's decoder: the picture's
+		if decThreads > 0 && !hc.onGPU { // the first input's decoder: the picture's
 			args = append(args, "-threads", strconv.Itoa(decThreads))
 		}
 	}
@@ -1270,24 +1269,31 @@ func (s *Session) commandLine(fromSeg int) (args []string, encoder, dir, gpu str
 		var vf []string
 		// burn: something is drawn into the picture, which only the processor does.
 		burn := sp.SubtitleIndex >= 0
-		onChip := onGPU && pipe.OnChip()
+		onChip := hc.onGPU && hc.pipe.OnChip()
+		toneMap := func(maxHeight int) string {
+			if hc.placebo {
+				tm, _ := ffmpeg.GPUToneMap(sp.ToneMap, maxHeight)
+				return tm
+			}
+			return ffmpeg.ToneMapTo(sp.ToneMap, maxHeight)
+		}
 		if onChip {
 			// Deinterlaced and brought to size on the chip, which is where the picture stays
 			// unless the processor has work to do on it.
 			if sp.VideoFilter != "" {
-				vf = append(vf, pipe.Deinterlace(sp.VideoFilter))
+				vf = append(vf, hc.pipe.Deinterlace(sp.VideoFilter))
 			}
 			pf := "nv12"
 			if sp.ToneMap != "" && tenBit(sp.PixFmt) {
 				pf = "p010le"
 			}
-			scale, download := pipe.Scale(sp.MaxHeight, pf)
+			scale, download := hc.pipe.Scale(sp.MaxHeight, pf)
 			vf = append(vf, scale)
 			if sp.ToneMap != "" || burn {
 				vf = append(vf, download)
 			}
 			if sp.ToneMap != "" {
-				vf = append(vf, ffmpeg.ToneMapTo(sp.ToneMap, 0))
+				vf = append(vf, toneMap(0))
 			}
 		} else {
 			if keep, shift := holeExprs(sp.Holes, read); keep != "" {
@@ -1298,7 +1304,7 @@ func (s *Session) commandLine(fromSeg int) (args []string, encoder, dir, gpu str
 			}
 			vf = append(vf, "scale=trunc(iw*sar/2)*2:ih") // H.264 refuses an odd width, and widescreen NTSC comes to 853
 			if sp.ToneMap != "" {
-				vf = append(vf, ffmpeg.ToneMapTo(sp.ToneMap, sp.MaxHeight)) // which also brings it down to size
+				vf = append(vf, toneMap(sp.MaxHeight)) // which also brings it down to size
 			} else if sp.MaxHeight > 0 {
 				vf = append(vf, fmt.Sprintf("scale=-2:'min(ih,%d)'", sp.MaxHeight))
 			}
@@ -1428,49 +1434,33 @@ func (s *Session) commandLine(fromSeg int) (args []string, encoder, dir, gpu str
 	if sp.CopyVideo {
 		encoder = "copy"
 	}
-	return args, encoder, dir, gpu
+	return args, encoder, dir, hc
 }
 
-// gpuPipe is the way this stream's picture can stay on the graphics chip, if it can.
-func (s *Session) gpuPipe(plan ffmpeg.Plan) (ffmpeg.GPUPipe, bool) {
-	sp := s.Spec
-	// What only the processor does before the picture is brought to size: cutting out
-	// stretches, holding a last frame, and filters other than a deinterlacer the chip has.
-	if sp.CopyVideo || sp.NoVideo || sp.VideoCodec == "" || sp.HoldLastFrame || len(sp.Holes) > 0 || len(sp.Quality.VideoArgs) > 0 || s.noGPU.Load() {
-		return ffmpeg.GPUPipe{}, false
-	}
-	pipe, ok := ffmpeg.GPUPipeFor(plan.Name, sp.VideoCodec, sp.PixFmt)
-	if !ok || (sp.VideoFilter != "" && pipe.OnChip() && pipe.Deinterlace(sp.VideoFilter) == "") {
-		return ffmpeg.GPUPipe{}, false
-	}
-	s.m.mu.Lock()
-	failed := s.m.gpuFailed[gpuKey(plan.Name, sp)]
-	s.m.mu.Unlock()
-	return pipe, !failed
-}
-
-// gpuKey names an encoder and the kind of picture it was given, for gpuFailed.
-func gpuKey(encoder string, sp Spec) string {
-	return encoder + "|" + sp.VideoCodec + "|" + sp.PixFmt + "|" + strconv.FormatBool(sp.ToneMap != "") + "|" + strconv.FormatBool(sp.SubtitleIndex >= 0)
-}
-
-// gpuExit: a job with its picture on the graphics chip ended in failure before it made its
-// first segment. The driver, the chip or this FFmpeg can't do it after all (an older card
-// without that codec, a driver too old, a container without the device's libraries), so this
-// stream, and others of the same kind, decode on the processor from now on.
-func (s *Session) gpuExit(j *job) {
-	if j.gpu == "" || j.err == nil || j.stopped.Load() || fileReady(s.segPath(j.startSeg)) {
+// hwExit: a job that used the chip, or its encoder, ended in failure. The stream's next jobs
+// use less of it (see stepDown), and when the job failed before it made anything, for a reason
+// other than the chip being full, other streams of the same kind don't try that either (the
+// driver, the chip or this FFmpeg can't do it after all: an older card without that codec, a
+// driver too old, a container without the device's libraries).
+func (s *Session) hwExit(j *job) {
+	if j.err == nil || j.stopped.Load() {
 		return
 	}
-	s.noGPU.Store(true)
-	s.m.mu.Lock()
-	if s.m.gpuFailed == nil {
-		s.m.gpuFailed = map[string]bool{}
+	said := j.stderrTail(4000)
+	next, forget := stepDown(j.hw, !fileReady(s.segPath(j.startSeg)), said)
+	if next <= j.hw.level || !s.fallback.CompareAndSwap(j.hw.level, next) {
+		return
 	}
-	s.m.gpuFailed[j.gpu] = true
-	s.m.mu.Unlock()
-	s.logger().Warn("the graphics chip could not decode and resize this picture: doing that on the processor instead", "cat", "transcode",
-		"pipeline", j.gpu, "ffmpeg", j.stderrTail(500))
+	if forget {
+		s.m.mu.Lock()
+		if s.m.gpuFailed == nil {
+			s.m.gpuFailed = map[string]bool{}
+		}
+		s.m.gpuFailed[j.hw.key] = true
+		s.m.mu.Unlock()
+	}
+	s.logger().Warn("FFmpeg failed using the graphics chip: the stream goes on with less of it", "cat", "transcode",
+		"encoder", j.hw.plan.Name, "gpuPipeline", j.hw.onGPU, "gpuToneMap", j.hw.placebo, "level", next, "forAll", forget, "ffmpeg", tail(said, 500))
 }
 
 // tenBit: a pixel format with more than eight bits a sample.

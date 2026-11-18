@@ -74,9 +74,11 @@ It needs timed lyrics. Without times it shows the words and says so. Use a timed
 
 ### What each control really does
 
-**The Mix** turns the singer down: a slider for the voice and one for each other part of the song, **Voice off** to take the singer out in one press, **Guide voice** to keep them quietly, and **Reset**. It plays the server's karaoke version of the song ([below](#karaoke-versions-made-for-you)). While that's being made, the Mix is there but still, and says how far along it is.
+**The Mix** has three sliders: **Voice** turns the singer down, **Background Music** turns everything else down so the voice stands out, and **Track** turns the whole song down. **Voice off** takes the singer out in one press, **Guide voice** keeps them quietly, and **Reset** puts the sliders back. It plays the server's karaoke version of the song ([below](#karaoke-versions-made-for-you)). While that's being made, the Mix is there but still, and says how far along it is.
 
 **Album art beside the words** puts the album's cover at the side of the lyrics: at their left on a computer or a TV, and above them, smaller, on a phone held upright. It's off until you choose it, it's kept for your account with the music player's other settings, and a song without a cover shows the words alone. **Behind the words** still chooses what fills the screen behind them.
+
+**Controls**, at the end of the bar, chooses which of Voice, Background Music, Track, Key and the timing of the words are shown. What you hide is kept for your account, with the music player's other settings.
 
 **Key** moves the music up to six semitones either way, for the singer, without changing the speed. Long held notes can warble a little. A browser that can't do this says so.
 
@@ -91,7 +93,8 @@ The key goes back to normal when you leave karaoke, and doesn't carry over to th
 You don't have to set anything up. The first time someone opens **Karaoke** on a song, the server makes a karaoke version of it by itself, and the Mix plays it:
 
 - **Voice:** how loud the singer is, from 0 to 100%.
-- **Music**, or **Drums**, **Bass** and **Other** for a separated song: a slider for each part there is.
+- **Background Music:** how loud everything but the singer is, every other part together (the music, or drums, bass and the rest for a separated song).
+- **Track:** how loud the whole song is.
 - **Voice off** takes the singer out in one press, and puts them back; **Guide voice** keeps them quietly; **Reset** puts every slider back. The line under them says which version is playing: **Quick version** or **Separated**.
 
 Where the sliders were is remembered for your account on that device. Lyrics, seeking, pausing and **Key** carry on working. If the parts can't be played, the normal track plays and the line under the controls says why.

@@ -6,6 +6,8 @@ import { HelpLink } from '../components/HelpLink'
 import { IconClose, IconFull, IconNext, IconPause, IconPlay, IconPrev } from '../icons'
 import { lineAt, ownTiming, useLineIndex, wordTimes, type LyricLine, type useLyrics } from './lyrics'
 import { KaraokeStemsControl, useKaraokeStems } from './KaraokeStems'
+import { Pop } from './controls'
+import { KAR_PARTS } from './stemMix'
 import type { PlayerView } from './types'
 
 // Karaoke. Big words that fill in as they're sung, a count-in before each line after a
@@ -18,9 +20,12 @@ const LONG_GAP_MS = 5000 // a break long enough to count back in from
 
 const NO_LINES: LyricLine[] = []
 
+const NO_HIDE: string[] = []
+
 // cover: the album's cover, '' for none. coverBeside: the setting that shows it at the side of the words (beside them on
-// a wide screen and a TV, above them on a phone held upright), kept with the music player's other settings.
-export default function Karaoke({ p, ly, onClose, behind, choice, cover = '', coverBeside = false, onCoverBeside }: { p: PlayerView; ly: ReturnType<typeof useLyrics>; onClose: () => void; behind?: ReactNode; choice?: ReactNode; cover?: string; coverBeside?: boolean; onCoverBeside?: (on: boolean) => void }) {
+// a wide screen and a TV, above them on a phone held upright), kept with the music player's other settings. hide: the parts of the bar (KAR_PARTS) the
+// person has hidden, kept there too.
+export default function Karaoke({ p, ly, onClose, behind, choice, cover = '', coverBeside = false, onCoverBeside, hide = NO_HIDE, onHide }: { p: PlayerView; ly: ReturnType<typeof useLyrics>; onClose: () => void; behind?: ReactNode; choice?: ReactNode; cover?: string; coverBeside?: boolean; onCoverBeside?: (on: boolean) => void; hide?: string[]; onHide?: (hide: string[]) => void }) {
   const { lyrics, loading, setOffset } = ly
   const lines = lyrics?.synced ? lyrics.lines : NO_LINES
   const offset = lyrics?.offsetMs || 0
@@ -165,17 +170,30 @@ export default function Karaoke({ p, ly, onClose, behind, choice, cover = '', co
         <button type="button" className="kar-play" onClick={p.toggle} aria-label={p.playing ? 'Pause' : 'Play'}>{p.playing ? <IconPause size={30} /> : <IconPlay size={30} />}</button>
         <button type="button" className="mp-ibtn" onClick={() => goLine(1)} aria-label="Next line"><IconNext /></button>
         <span className="kar-rule" aria-hidden="true" />
-        <KaraokeStemsControl k={stems} />
-        <div className="kar-stepper" role="group" aria-label="Key">
+        <KaraokeStemsControl k={stems} hide={hide} />
+        {!hide.includes('key') && <div className="kar-stepper" role="group" aria-label="Key">
           <button type="button" onClick={() => setKey(p.sound.keyShift - 1)} disabled={p.sound.keyShift <= -6} aria-label="Lower key">−</button>
           <span aria-live="polite">Key {p.sound.keyShift > 0 ? '+' : ''}{p.sound.keyShift}</span>
           <button type="button" onClick={() => setKey(p.sound.keyShift + 1)} disabled={p.sound.keyShift >= 6} aria-label="Raise key">+</button>
-        </div>
-        <div className="kar-stepper" role="group" aria-label="Timing of the words">
+        </div>}
+        {!hide.includes('timing') && <div className="kar-stepper" role="group" aria-label="Timing of the words">
           <button type="button" onClick={() => setOffset(offset - 100)} aria-label="Words sooner">−</button>
           <span aria-live="polite">Words {offset === 0 ? 'on time' : `${offset > 0 ? '+' : ''}${(offset / 1000).toFixed(1)} s`}{lyrics?.autoSync === 'set' && offset === ownTiming(lyrics) ? ' (by listening)' : ''}</span>
           <button type="button" onClick={() => setOffset(offset + 100)} aria-label="Words later">+</button>
-        </div>
+        </div>}
+        {onHide && (
+          <Pop up label={hide.length ? `Controls shown: ${KAR_PARTS.length - hide.length} of ${KAR_PARTS.length}` : 'Choose the controls shown'} className={'np-chip-pop kar-show' + (hide.length ? ' on' : '')} icon={<span>Controls</span>}>
+            {() => (
+              <div className="mp-menu" role="menu" aria-label="Controls shown">
+                <span className="mp-menu-note">Show these controls</span>
+                {KAR_PARTS.map((c) => {
+                  const shown = !hide.includes(c.id)
+                  return <button type="button" key={c.id} role="menuitemcheckbox" aria-checked={shown} className={shown ? 'on' : ''} onClick={() => onHide(shown ? [...hide, c.id] : hide.filter((h) => h !== c.id))}>{c.label}</button>
+                })}
+              </div>
+            )}
+          </Pop>
+        )}
       </footer>
       <p className="kar-note">
         {p.soundNote || (stems.waiting ? '' : stems.note) || (p.sound.keyShift !== 0 ? 'A changed key can warble a little on long notes.'

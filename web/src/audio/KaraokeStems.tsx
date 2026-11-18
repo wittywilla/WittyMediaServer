@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, ApiError } from '../api'
 import { useApp } from '../state'
-import { decodeLevels, defaultLevel, encodeLevels, gainsFor, levelOf, levelsKey, playable, pollDelay, qualityName, sliders, statusLine, type KaraokeAnswer, type Levels } from './stemMix'
+import { decodeLevels, defaultLevel, encodeLevels, gainsFor, levelOf, levelsKey, MIX, playable, pollDelay, qualityName, statusLine, type KaraokeAnswer, type Levels } from './stemMix'
 import { StemSet, type StemPlayer } from './stems'
 import type { PlayerView } from './types'
 
@@ -110,38 +110,36 @@ function Level({ label, value, onChange, disabled }: { label: string; value: num
   )
 }
 
-// The Mix: a row for each part the song has been separated into (Voice, then whatever else there is: Music, Drums,
-// Bass, Other), each with its level as a pill, and the three shortcuts under them (board "stems"). Only drawn while
-// the parts are what's playing; until then, the same Mix, still, saying how far along the karaoke version is, so
+// The Mix: Voice, Background Music and Track, each with its level as a pill, less any the person has hidden, and
+// the shortcuts under them (Voice off and Guide voice go with Voice). Only drawn while the parts are what's playing; until then, the same Mix, still, saying how far along the karaoke version is, so
 // nothing on the bar changes shape when it arrives.
 const noop = () => {}
-export function KaraokeStemsControl({ k }: { k: KaraokeStemsState }) {
+export function KaraokeStemsControl({ k, hide = [] }: { k: KaraokeStemsState; hide?: readonly string[] }) {
   const a = k.answer
+  const rows = MIX.filter((r) => !hide.includes(r.id))
+  const voice = rows.some((r) => r.id === 'vocals')
   if (!k.active || !playable(a)) {
     if (!k.waiting) return null
     return (
       <div className="kar-stems kar-mix kar-mix-wait" role="group" aria-label="Mix" aria-busy="true">
-        <div className="kar-mix-rows">
-          <Level label="Voice" value={1} onChange={noop} disabled />
-          <Level label="Music" value={1} onChange={noop} disabled />
-        </div>
+        {rows.length > 0 && <div className="kar-mix-rows">
+          {rows.map((r) => <Level key={r.id} label={r.label} value={1} onChange={noop} disabled />)}
+        </div>}
         <div className="kar-mix-pills" aria-hidden="true">
-          <button type="button" className="kar-chip" disabled tabIndex={-1}>Voice off</button>
-          <button type="button" className="kar-chip" disabled tabIndex={-1}>Guide voice</button>
+          {voice && <button type="button" className="kar-chip" disabled tabIndex={-1}>Voice off</button>}
+          {voice && <button type="button" className="kar-chip" disabled tabIndex={-1}>Guide voice</button>}
           <button type="button" className="kar-chip" disabled tabIndex={-1}>Reset</button>
         </div>
         <p className="kar-mix-note" role="status">{k.note || 'Getting the karaoke version…'}</p>
       </div>
     )
   }
-  const rows = sliders(a)
-  const voice = rows.find((r) => r.id === 'vocals')
-  const pristine = !k.sing && rows.every((r) => levelOf(a, k.levels, r.id) === defaultLevel(a, r.id))
+  const pristine = !k.sing && MIX.every((r) => levelOf(a, k.levels, r.id) === defaultLevel(a, r.id))
   return (
     <div className="kar-stems kar-mix" role="group" aria-label="Mix">
-      <div className="kar-mix-rows">
-        {rows.map((r) => <Level key={r.id} label={r.id === 'vocals' ? 'Voice' : r.label} value={r.id === 'vocals' && k.sing ? 0 : levelOf(a, k.levels, r.id)} onChange={(n) => k.setLevel(r.id, n)} />)}
-      </div>
+      {rows.length > 0 && <div className="kar-mix-rows">
+        {rows.map((r) => <Level key={r.id} label={r.label} value={r.id === 'vocals' && k.sing ? 0 : levelOf(a, k.levels, r.id)} onChange={(n) => k.setLevel(r.id, n)} />)}
+      </div>}
       <div className="kar-mix-pills">
         {voice && <button type="button" className={'kar-chip' + (k.sing ? ' on' : '')} aria-pressed={k.sing} onClick={() => k.setSing(!k.sing)} title="Take the singer out, or put them back (V)">Voice off</button>}
         {voice && <button type="button" className="kar-chip" onClick={() => k.setLevel('vocals', 0.2)} title="Keep the singer quietly, as a guide">Guide voice</button>}

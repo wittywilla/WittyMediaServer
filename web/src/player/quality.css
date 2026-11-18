@@ -18,7 +18,7 @@
 .qmenu .qm-label { display: flex; align-items: center; gap: var(--sp-2); width: 100%; }
 .qmenu .qm-item.active .qm-label::after { content: '✓'; margin-left: auto; font-weight: 700; }
 .qmenu .qm-note { color: var(--fg-2); font-size: var(--text-xs); font-weight: 400; }
-.qmenu .qm-badge { font-size: var(--text-2xs); font-weight: 600; color: var(--fg-2); border: 1px solid var(--border-strong); border-radius: 999px; padding: 0 var(--sp-2); line-height: 1.6; }
+.qmenu .qm-badge { font-size: var(--text-2xs); font-weight: 600; color: var(--fg-2); border: 1px solid var(--border-strong); border-radius: var(--r-full); padding: 0 var(--sp-2); line-height: 1.6; }
 .qmenu .qm-more { min-height: 44px; justify-content: center; margin-top: var(--sp-1); border-top: 1px solid var(--border); border-radius: 0 0 var(--r-sm) var(--r-sm); font-weight: 600; }
 .qmenu .qm-small { margin: var(--sp-1) var(--sp-3); color: var(--fg-2); font-size: var(--text-xs); }
 /* Advanced */
@@ -44,4 +44,4 @@ html.ten-foot .qmenu { width: min(460px, calc(100% - 2 * var(--sp-4))); }
 html.ten-foot .qmenu .qm-item { min-height: 60px; font-size: var(--text-lg); }
 
 /* Show stream info: a corner of the picture, white on black whatever the picture. */
-.player .stream-info { position: absolute; top: 76px; left: var(--sp-4); z-index: 5; padding: var(--sp-2) var(--sp-3); border-radius: var(--r-sm); background: rgb(0 0 0 / .78); color: #fff; font: 600 12px/1.55 ui-monospace, SFMono-Regular, Consolas, monospace; pointer-events: none; max-width: calc(100% - 2 * var(--sp-4)); }
+.player .stream-info { position: absolute; top: 76px; left: var(--sp-4); z-index: 5; padding: var(--sp-2) var(--sp-3); border-radius: var(--r-sm); background: rgb(0 0 0 / .78); color: #fff; font: 600 12px/1.55 ui-monospace, SFMono-Regular, Consolas, monospace; pointer-events: none; max-width: calc(100% - 2 * var(--sp-4)); } /* design-ok: white on black whatever the picture */

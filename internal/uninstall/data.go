@@ -47,7 +47,6 @@ var DataEntries = map[string]string{
 	"repair-result.json":    "the last repair's result",
 	"instance.lock":         "what keeps a second server off this folder",
 	"instance.json":         "where the running server is",
-	"separator":             "the separated parts of songs, for karaoke",
 	"ui_config.json":        "the layout of pages and menus",
 	"ui_config.draft.json":  "a layout being edited",
 	"ui_config.json.bad":    "a layout that didn't load",

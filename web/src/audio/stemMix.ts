@@ -18,6 +18,8 @@ export type KaraokeAnswer = {
   canImprove?: boolean
   reason?: string
   message?: string
+  // 'installable': no separator yet, but an administrator could install one in Settings (a cleaner version).
+  separator?: string
   pollSec: number
 }
 
@@ -40,8 +42,8 @@ export function defaultLevel(a: Pick<KaraokeAnswer, 'mix' | 'stems'>, id: string
 
 export const levelOf = (a: Pick<KaraokeAnswer, 'mix' | 'stems'>, levels: Levels, id: string) => (id in levels ? clamp01(levels[id]) : defaultLevel(a, id))
 
-// What can be hidden from karaoke's bar: the Mix's three sliders, the key and the words' timing.
-export const KAR_PARTS: readonly { id: string; label: string }[] = [...MIX, { id: 'key', label: 'Key' }, { id: 'timing', label: 'Timing of the words' }]
+// What can be hidden from karaoke's bar: the Mix's three sliders, the key, the words' timing and the Voice settings button.
+export const KAR_PARTS: readonly { id: string; label: string }[] = [...MIX, { id: 'key', label: 'Key' }, { id: 'timing', label: 'Timing of the words' }, { id: 'fx', label: 'Voice settings' }]
 
 export function sliders(_a?: Pick<KaraokeAnswer, 'mix' | 'stems'>) { return MIX }
 
@@ -60,6 +62,23 @@ export function gainsFor(a: Pick<KaraokeAnswer, 'mix' | 'stems'>, levels: Levels
     return out
   }
   for (const s of a.stems) out[s.id] = s.role === 'vocals' ? t * v : s.role === 'full' ? 0 : t * m * clamp01(s.defaultGain ?? 1)
+  return out
+}
+
+// The same mix as two sends a stem: how much of it goes to the voice's chain and how much to the music's (voiceFx.ts).
+// Parts: the vocals stem to the voice, the others to the music. A blend has no voice of its own, so the voice is the
+// whole song less the music: `full` to the voice at t·v and `instrumental` to it at −t·v, and `instrumental` to the music
+// at t·m. Added up it is gainsFor exactly, so with every voice setting off it sounds the same as before.
+export type Route = { voice: number; music: number }
+export function routesFor(a: Pick<KaraokeAnswer, 'mix' | 'stems'>, levels: Levels, sing: boolean): Record<string, Route> {
+  const v = sing ? 0 : levelOf(a, levels, 'vocals')
+  const m = levelOf(a, levels, 'music')
+  const t = levelOf(a, levels, 'track')
+  const out: Record<string, Route> = {}
+  for (const s of a.stems) {
+    if (a.mix === 'blend') out[s.id] = s.role === 'full' ? { voice: t * v, music: 0 } : { voice: -t * v, music: t * m }
+    else out[s.id] = s.role === 'vocals' ? { voice: t * v, music: 0 } : s.role === 'full' ? { voice: 0, music: 0 } : { voice: 0, music: t * m * clamp01(s.defaultGain ?? 1) }
+  }
   return out
 }
 

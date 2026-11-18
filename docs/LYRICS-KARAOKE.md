@@ -78,7 +78,16 @@ It needs timed lyrics. Without times it shows the words and says so. Use a timed
 
 **Album art beside the words** puts the album's cover at the side of the lyrics: at their left on a computer or a TV, and above them, smaller, on a phone held upright. It's off until you choose it, it's kept for your account with the music player's other settings, and a song without a cover shows the words alone. **Behind the words** still chooses what fills the screen behind them.
 
-**Controls**, at the end of the bar, chooses which of Voice, Background Music, Track, Key and the timing of the words are shown. What you hide is kept for your account, with the music player's other settings.
+**Voice settings** opens a panel of controls for the singer and the music under them, at the side on a computer or a TV and over the lower half of the screen on a phone. Start from a preset (**Clear voice**, **Studio**, **Concert hall**, **Stadium**, **Slapback echo**, **Old radio**, **Duet spread**) or move any of these:
+
+- **Voice tone:** Low cut (takes out rumble and breath), Warmth, Presence (brings the words forward), Air.
+- **Voice dynamics and place:** Compression (evens out loud and quiet lines), Pan, Doubling (a second, slightly late voice).
+- **Voice echo and reverb:** Echo, Echo time, Echo repeats, Reverb, Room size.
+- **Background Music:** Bass, Treble, and Room for the voice, a dip in the music where voices sit.
+
+They're heard straight away, kept for your account on that device, and **Reset** turns them all off. They work on the karaoke version: with a separated one the voice is a part of its own; with the quick version it's what's left of the song without the music, which is close but not exact.
+
+**Controls**, at the end of the bar, chooses which of Voice, Background Music, Track, Key, the timing of the words and the Voice settings button are shown. What you hide is kept for your account, with the music player's other settings.
 
 **Key** moves the music up to six semitones either way, for the singer, without changing the speed. Long held notes can warble a little. A browser that can't do this says so.
 

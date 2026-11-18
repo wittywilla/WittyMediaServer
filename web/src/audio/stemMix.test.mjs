@@ -3,7 +3,7 @@
 // The karaoke mixing and sync rules, with made-up answers and clocks.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { decodeLevels, defaultLevel, drifted, DRIFT, encodeLevels, gainsFor, LEAD, levelsKey, partsAt, playable, pollDelay, qualityName, sliders, startPlan, statusLine, streamedParts, streamStep, MAX_SECONDS } from './stemMix.ts'
+import { decodeLevels, defaultLevel, drifted, DRIFT, encodeLevels, gainsFor, LEAD, levelsKey, partsAt, playable, pollDelay, qualityName, routesFor, sliders, startPlan, statusLine, streamedParts, streamStep, MAX_SECONDS } from './stemMix.ts'
 
 const stem = (id, role, defaultGain = 1) => ({ id, role, label: id[0].toUpperCase() + id.slice(1), url: '/api/media/1/stems/' + id, defaultGain })
 const parts = { state: 'ready', quality: 'stems', mix: 'parts', version: 'a', improving: false, progress: -1, pollSec: 0, stems: [stem('vocals', 'vocals'), stem('drums', 'music'), stem('bass', 'music', 0.8), stem('other', 'music')] }
@@ -17,6 +17,18 @@ test('parts: Voice is the singer, Background Music every other part, Track all o
   near(g.vocals, 0.5); near(g.drums, 0.1); near(g.bass, 0.08)
   assert.deepEqual(sliders(parts).map((s) => s.id), ['vocals', 'music', 'track'])
   assert.deepEqual(sliders(blend).map((s) => s.label), ['Voice', 'Background Music', 'Track'])
+})
+
+test('the two sends a stem add up to the mix, and the voice chain gets only the voice', () => {
+  for (const a of [parts, blend]) for (const v of [0, 0.4, 1]) for (const m of [0, 0.3, 1]) for (const t of [0.5, 1]) {
+    const lv = { vocals: v, music: m, track: t }
+    const g = gainsFor(a, lv, false), r = routesFor(a, lv, false)
+    for (const s of a.stems) near(r[s.id].voice + r[s.id].music, g[s.id])
+  }
+  // A blend's voice send is the whole song less the music; its music send is the music alone.
+  const r = routesFor(blend, { vocals: 0.5, music: 1, track: 1 }, false)
+  near(r.full.voice, 0.5); near(r.instrumental.voice, -0.5); near(r.instrumental.music, 1); near(r.full.music, 0)
+  assert.equal(routesFor(parts, {}, true).vocals.voice, 0)
 })
 
 test('Sing takes the voice to nothing and gives it back', () => {

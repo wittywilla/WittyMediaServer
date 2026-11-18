@@ -417,6 +417,26 @@ button.np-artist:hover { color: var(--np-fg); text-decoration: underline; text-u
 .kar-mix-pills { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 .kar-mix-note { margin: 0; font-size: var(--text-sm); color: var(--np-fg-2); }
 .kar-mix-wait .kar-level { opacity: .55; }
+/* Voice settings: a panel at the side, over the words' right edge, scrolling on its own. */
+.kar-fx { position: absolute; z-index: 3; top: max(64px, env(safe-area-inset-top)); right: clamp(8px, 2vw, 32px); bottom: 12px; width: min(420px, calc(100% - 16px)); overflow-y: auto; overscroll-behavior: contain; padding: 14px 16px 18px; border-radius: var(--r-lg); background: var(--np-kar-bg); border: 1px solid var(--np-line); box-shadow: var(--np-shadow); display: grid; align-content: start; gap: 12px; }
+.kar-fx-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.kar-fx-head h2 { margin: 0; font-size: var(--text-lg); }
+.kar-fx-head .mp-ibtn { background: var(--np-chip); }
+.kar-fx-note { margin: 0; font-size: var(--text-sm); color: var(--np-fg-2); }
+.kar-fx-preset { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+.kar-fx-preset select { flex: 1; min-width: 0; min-height: 44px; padding: 0 12px; border-radius: var(--r-full); border: 0; background: var(--np-chip); color: var(--np-white); font: inherit; }
+.kar-fx-preset select option { color: initial; }
+.kar-fx-preset .kar-chip { min-height: 44px; }
+.kar-fx-group { margin: 0; padding: 10px 12px 6px; border: 1px solid var(--np-line); border-radius: var(--r-md); display: grid; gap: 4px; }
+.kar-fx-group legend { padding: 0 6px; font-size: var(--text-sm); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--np-fg-2); }
+.kar-fx-row { display: grid; grid-template-columns: 8.5em 1fr 5.4em; align-items: center; gap: 10px; min-height: 40px; font-weight: 600; font-size: var(--text-md); }
+.kar-fx-row input { width: 100%; min-height: 36px; margin: 0; accent-color: var(--np-white); cursor: pointer; }
+.kar-fx-row output { text-align: right; font-variant-numeric: tabular-nums; color: var(--np-fg-2); font-size: var(--text-sm); }
+.using-controller .kar-fx-row { min-height: 52px; }
+@media (max-width: 700px) {
+  .kar-fx { position: fixed; top: auto; left: 0; right: 0; bottom: 0; width: auto; max-height: 72vh; border-radius: var(--r-lg) var(--r-lg) 0 0; padding-bottom: max(18px, env(safe-area-inset-bottom)); }
+  .kar-fx-row { grid-template-columns: 7em 1fr 4.6em; }
+}
 .kar-mix-wait .kar-level input { cursor: default; }
 
 /* The visualizer on and nothing touched for a few seconds: the controls fade so the picture has the

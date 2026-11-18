@@ -1,155 +1,146 @@
 <p align="center">
-  <img src="web/public/icon-192.png" width="96" alt="">
+  <img src="web/public/icon-192.png" width="88" alt="">
 </p>
 
-<h1 align="center">WittyMediaServer</h1>
+<h1 align="center">Your media. Right at home.</h1>
 
 <p align="center">
-  <b>Your films, shows, discs, music, books and games, on every screen in your home.</b><br>
+  <b>WittyMediaServer</b> puts your films, shows, discs, music, books and games on every screen in your home.<br>
   A self-hosted media server that plays DVDs and Blu-rays <i>with their real menus</i>, in any browser.
+</p>
+
+<p align="center">
+  <a href="https://github.com/wittywilla/WittyMediaServer/releases/latest"><img alt="Download" src="https://img.shields.io/badge/Download-0.8.0--alpha-6d4aff?style=for-the-badge"></a>
+  <a href="https://wittymediaserver.com"><img alt="Website" src="https://img.shields.io/badge/Website-wittymediaserver.com-1f1d2b?style=for-the-badge"></a>
+  <a href="docs/GETTING_STARTED.md"><img alt="Get started" src="https://img.shields.io/badge/Get%20started-guide-1f1d2b?style=for-the-badge"></a>
 </p>
 
 <p align="center">
   <a href="LICENSE"><img alt="Licence: AGPL-3.0-or-later" src="https://img.shields.io/badge/licence-AGPL--3.0--or--later-blue.svg"></a>
   <img alt="Runs on Windows, macOS, Linux, FreeBSD and Docker" src="https://img.shields.io/badge/runs%20on-Windows%20·%20macOS%20·%20Linux%20·%20FreeBSD%20·%20Docker-8b6cff.svg">
-  <img alt="Version 0.8.x-alpha versions" src="https://img.shields.io/badge/version-0.8.0--alpha-orange.svg">
+  <a href="CHANGELOG.md"><img alt="What's new" src="https://img.shields.io/badge/what's%20new-changelog-orange.svg"></a>
 </p>
 
 <p align="center">
-  <a href="docs/GETTING_STARTED.md"><b>Get started</b></a> ·
-  <a href="#install">Install</a> ·
-  <a href="#guides">Guides</a> ·
-  <a href="CHANGELOG.md">What's new</a>
+  <a href="docs/images/home.webp"><img src="docs/images/home.webp" alt="The home page, with a large picture from a film and a row of libraries" width="74%"></a>
+  <a href="docs/images/phone-home.webp"><img src="docs/images/phone-home.webp" alt="The home page on a phone" width="20%"></a>
+  <br><sub>Home on a computer and a phone. <a href="https://commons.wikimedia.org/wiki/File:WING_IT!_-_Blender_Open_Movie-full_movie.webm">Wing It!</a>, Blender Studio, <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Everything shown is <a href="docs/images/CREDITS.md">openly licensed</a>.</sub>
 </p>
 
-> **Alpha.** 0.8.x-alpha is still changing quickly. It can fail or lose data. Keep backups, and back up your data folder before you upgrade.
->
-> **Known issue: games don't play yet.** Games moved to a new streaming pipeline, so they can play on iPhone, iPad and Apple TV, where Apple limits what an app may run. In WittyMediaClient, starting a game closes the app. In a browser, it keeps loading. 0.6.x-alpha still plays games, but its notice about connection problems doesn't go away.
-
-## Install
-
-Install the server on the computer or NAS that holds your media. Downloads are on the **[Releases page](https://github.com/wittywilla/WittyMediaServer/releases)**. FFmpeg comes with them. When it's running, open `http://<that computer>:9797/` in a browser to set it up.
-
-| On | Do this | Full guide |
-|---|---|---|
-| **Windows** 10 or 11 | Open `windows-amd64.msi` (`arm64` for ARM PCs) and choose who it's for. Setup opens in your browser | [Windows](docs/INSTALL.md#windows) |
-| **macOS** 11 or later | Open `macos-arm64.pkg` (Apple silicon) or `macos-amd64.pkg` (Intel), then **WittyMediaServer** in Applications | [macOS](docs/INSTALL.md#macos) |
-| **Debian, Ubuntu** | `sudo apt install ./wittymediaserver-<version>-linux-amd64.deb`. The service starts by itself | [Linux](docs/INSTALL.md#linux) |
-| **Fedora, RHEL** | `sudo dnf install ./wittymediaserver-<version>-linux-amd64.rpm`. The service starts by itself | [Linux](docs/INSTALL.md#linux) |
-| **Any other Linux** | The AppImage, Flatpak or snap, or unpack `linux-amd64.tar.gz` and run `sudo ./install.sh` for a service | [Linux](docs/INSTALL.md#linux) |
-| **FreeBSD** 14 or later | `pkg add wittymediaserver-<version>-freebsd-amd64.pkg`, `sysrc wittymediaserver_enable=YES`, `service wittymediaserver start` | [FreeBSD](docs/INSTALL.md#freebsd) |
-| **Docker** | `docker run -d -p 9797:9797 -v wms-config:/config -v /path/to/media:/media:ro ghcr.io/wittywilla/wittymediaserver:alpha`, or a [ready compose file](deploy/docker/compose.yml) | [Docker](docs/DOCKER.md) |
-| **A NAS** | Docker, with a guide for each: [UGREEN](docs/DOCKER-UGREEN.md) · [Synology](docs/DOCKER-SYNOLOGY.md) · [QNAP](docs/DOCKER-QNAP.md) · [Unraid](docs/DOCKER-UNRAID.md) · [TrueNAS SCALE](docs/DOCKER-TRUENAS.md) · [Asustor](docs/DOCKER-ASUSTOR.md) | [A NAS](docs/INSTALL.md#a-nas) |
-
-**Then watch from any device.** Every phone, tablet, computer and TV with a browser can open the server's address and use everything. The app, **WittyMediaClient**, finds your server by itself, has a TV layout, and connects from away with nothing set up on your router.
-
-| Device | Get WittyMediaClient |
-|---|---|
-| Windows, macOS, Linux, FreeBSD, Plasma Bigscreen | The installer for your system from the [WittyMediaClient releases page](https://github.com/wittywilla/WittyMediaClient/releases) (`.exe`, `.dmg`, `.deb`, `.rpm`, `.pacman`, `.flatpak`, `.snap`, `.AppImage`, `.pkg`) |
-| Android phones, tablets and TVs | The `.apk` from the same page, installed by hand (`adb install` on a TV) |
-| iPhone, iPad, Apple TV | The `.ipa` from the same page, installed with a sideloading tool that signs it with your own Apple ID |
-
-[Getting started](docs/GETTING_STARTED.md) walks through everything with no command line. [Installing](docs/INSTALL.md) covers services, updating, and what each download is. [Apps and devices](docs/APPS.md) says how far each device has been run.
-
-<!-- hero -->
-<p align="center"><a href="docs/images/home.webp"><img src="docs/images/home.webp" alt="The home page, with a large picture from a film and a row of libraries" width="100%"></a><br><sub>The home page. <a href="https://commons.wikimedia.org/wiki/File:WING_IT!_-_Blender_Open_Movie-full_movie.webm">Wing It!</a>, Blender Studio, <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Everything shown is <a href="docs/images/CREDITS.md">openly licensed</a>.</sub></p>
-<!-- /hero -->
-
-## What it does
-
-- **Films and TV.** Posters, plots and ratings, *Continue watching*, skip intro and instant seeking. Information arrives with no API key, and you can add free keys or your own agents for more.
-- **DVDs and Blu-rays.** Disc images play like a disc player: intros, animated menus, scene selection, extras and the disc's own subtitles.
-- **Live TV and channels.** Channels made from your library, a guide, tuners, IPTV and recording.
-- **Music, audiobooks and podcasts.** Albums and artists, lyrics and karaoke, books that remember your place, and shows you follow.
-- **Books and comics.** EPUB, PDF, comics and manga, with highlights, notes and a pen.
-- **Photos and videos.** A timeline, albums and an offline map, a feed of vertical videos, and creators' videos by channel.
-- **Games.** Your own game files, played in a browser with a gamepad, keyboard or touch.
-- **Everyone at home.** *Who's watching?* profiles with their own progress, and Kids profiles that only show titles for their age.
-- **Your look.** Fourteen layouts and fifteen themes, the same on a TV, a phone and a computer, or a theme of your own.
-- **Yours.** It runs on your computer. No accounts with anyone, no telemetry and no cloud. No media comes with it.
-
-Discs, games, photos, readers and tuners are modules: separate programs you add from a store inside the app. Each is its own project, with its own [repository](docs/REPOSITORIES.md), its own database and its own updates. The server works without any of them.
-
-<!-- gallery -->
-## A look around
-
-A test server, filled with openly licensed media to show what it can do. No media comes with it. Every work on that server is named in [the credits](docs/images/CREDITS.md), with its licence. See [every step of first-time setup](docs/FIRST-TIME-SETUP.md) too.
-
-<table>
+<table align="center">
 <tr>
-<td width="50%"><a href="docs/images/movies.webp"><img src="docs/images/movies.webp" alt="A wall of film posters"></a><br><b>Films</b><br><sub>Open-licence and public-domain media, <a href="docs/images/CREDITS.md">credited here</a></sub></td>
-<td width="50%"><a href="docs/images/film-page.webp"><img src="docs/images/film-page.webp" alt="A film's page"></a><br><b>A film's page</b><br><sub><a href="https://durian.blender.org/">Sintel</a>, Blender Foundation, <a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a></sub></td>
-</tr>
-<tr>
-<td width="50%"><a href="docs/images/dvd-menu.webp"><img src="docs/images/dvd-menu.webp" alt="A DVD's own menu in a browser"></a><br><b>A DVD's real menu, in a browser</b><br><sub><a href="https://durian.blender.org/">Sintel</a>, Blender Foundation, <a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a>, from its original DVD</sub></td>
-<td width="50%"><a href="docs/images/bluray-menu.webp"><img src="docs/images/bluray-menu.webp" alt="A Blu-ray playing in a browser"></a><br><b>Blu-rays too</b><br><sub><a href="https://archive.org/details/SitaSingsTheBlues_201812">Sita Sings the Blues</a>, Nina Paley, <a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0</a></sub></td>
-</tr>
-<tr>
-<td width="50%"><a href="docs/images/wittytv-guide.webp"><img src="docs/images/wittytv-guide.webp" alt="A TV guide with a film playing in the preview"></a><br><b>WittyTV: channels made from your library</b><br><sub><a href="https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm">Caminandes: Llamigos</a>, Pablo Vazquez, Blender Foundation, <a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a></sub></td>
-<td width="50%"><a href="docs/images/wittytv-classic.webp"><img src="docs/images/wittytv-classic.webp" alt="The guide in the Classic look"></a><br><b>Looks of its own to choose from</b><br><sub><a href="https://commons.wikimedia.org/wiki/File:SINGULARITY_-_Blender_Open_Movie-full_movie.webm">Singularity</a>, Blender Studio, <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></sub></td>
-</tr>
-<tr>
-<td width="50%"><a href="docs/images/music-visualizer.webp"><img src="docs/images/music-visualizer.webp" alt="A light show behind the music player"></a><br><b>Music, with WittyVisualizer</b><br><sub><a href="https://archive.org/details/SRS08807">Collide</a>, Aryll Fae, <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></sub></td>
-<td width="50%"><a href="docs/images/music-lyrics.webp"><img src="docs/images/music-lyrics.webp" alt="Lyrics beside the player"></a><br><b>Lyrics and karaoke</b><br><sub>"Take Me Out to the Ball Game", 1908, public domain</sub></td>
-</tr>
-<tr>
-<td width="50%"><a href="docs/images/gameplay-ucity.webp"><img src="docs/images/gameplay-ucity.webp" alt="A city-building game running in a browser"></a><br><b>Games, played in a browser</b><br><sub><a href="https://github.com/AntonioND/ucity">µCity</a>, Antonio Niño Díaz, GPL-3.0-or-later and CC BY-SA 4.0</sub></td>
-<td width="50%"><a href="docs/images/games.webp"><img src="docs/images/games.webp" alt="A library of games"></a><br><b>Open-licence homebrew on many consoles</b><br><sub>Each <a href="docs/images/CREDITS.md">credited here</a></sub></td>
-</tr>
-<tr>
-<td width="50%"><a href="docs/images/gameplay-thwaite.webp"><img src="docs/images/gameplay-thwaite.webp" alt="An arcade game running in a browser"></a><br><b>Thwaite</b><br><sub><a href="https://github.com/pinobatch/thwaite-nes">Thwaite</a>, Damian Yerrick, GPL-3.0-or-later</sub></td>
-<td width="50%"><a href="docs/images/gameplay-super-tilt-bro.webp"><img src="docs/images/gameplay-super-tilt-bro.webp" alt="A fighting game running in a browser"></a><br><b>Super Tilt Bro</b><br><sub><a href="https://github.com/sgadrat/super-tilt-bro">Super Tilt Bro</a>, Sylvain Gadrat, WTFPL</sub></td>
-</tr>
-<tr>
-<td width="50%"><a href="docs/images/reader-epub.webp"><img src="docs/images/reader-epub.webp" alt="A book open in the reader"></a><br><b>Books</b><br><sub><a href="https://standardebooks.org/">Standard Ebooks</a>, <a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0</a></sub></td>
-<td width="50%"><a href="docs/images/reader-comic.webp"><img src="docs/images/reader-comic.webp" alt="A comic open in the reader"></a><br><b>Comics</b><br><sub><a href="https://www.peppercarrot.com/">Pepper&amp;Carrot</a>, David Revoy, <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></sub></td>
-</tr>
-<tr>
-<td width="50%"><a href="docs/images/photos.webp"><img src="docs/images/photos.webp" alt="A timeline of photos"></a><br><b>Photos</b><br><sub>From Wikimedia Commons, <a href="docs/images/CREDITS.md">credited here</a></sub></td>
-<td width="50%"><a href="docs/images/tv-show-page.webp"><img src="docs/images/tv-show-page.webp" alt="A show's page with its episodes"></a><br><b>TV shows</b><br><sub>Open-licence and public-domain media, <a href="docs/images/CREDITS.md">credited here</a></sub></td>
-</tr>
-<tr>
-<td width="50%"><a href="docs/images/podcasts.webp"><img src="docs/images/podcasts.webp" alt="A page of podcasts"></a><br><b>Podcasts and audiobooks</b><br><sub><a href="docs/images/CREDITS.md">Credited here</a></sub></td>
-<td width="50%"><a href="docs/images/shorts.webp"><img src="docs/images/shorts.webp" alt="A feed of vertical videos"></a><br><b>Vertical videos</b><br><sub>Clips cropped from open films, <a href="docs/images/CREDITS.md">credited here</a></sub></td>
-</tr>
-<tr>
-<td width="50%"><a href="docs/images/theme-light-home.webp"><img src="docs/images/theme-light-home.webp" alt="The home page in the Light theme"></a><br><b>Themes</b><br><sub>Open-licence and public-domain media, <a href="docs/images/CREDITS.md">credited here</a></sub></td>
-<td width="50%"><a href="docs/images/tv-mode.webp"><img src="docs/images/tv-mode.webp" alt="TV mode: the tabs along the top and the libraries as large tiles"></a><br><b>TV mode, like the TV apps, for the couch</b><br><sub>Driven with a remote or a game controller</sub></td>
-</tr>
-<tr>
-<td width="50%"><a href="docs/images/module-store.webp"><img src="docs/images/module-store.webp" alt="The module store"></a><br><b>Add only what you want from the store</b><br><sub>From the module catalogue</sub></td>
-<td width="50%"><a href="docs/images/settings-libraries.webp"><img src="docs/images/settings-libraries.webp" alt="The Libraries page in Settings"></a><br><b>Everything is in plain settings</b><br><sub>Settings, Libraries</sub></td>
+<td align="center"><b>Streaming at home</b><br>free</td>
+<td align="center"><b>Streaming from anywhere</b><br>free</td>
+<td align="center"><b>Every feature, for everyone</b><br>free</td>
 </tr>
 </table>
 
-<!-- /gallery -->
+> [!NOTE]
+> **Alpha.** 0.8.x-alpha is still changing quickly. It can fail or lose data. Keep backups, and back up your data folder before you upgrade.
 
-## Get started
+## What it does
 
-1. [Install it](#install) on the computer or NAS that holds your media.
-2. Open `http://<that computer>:9797/`. On a desktop, the installer opens it for you.
-3. Go through setup: your account, a name for your server, a layout and theme, the modules you want, and your folders. Then press **Start watching**.
+<table>
+<tr>
+<td width="33%" valign="top"><a href="docs/images/film-page.webp"><img src="docs/images/film-page.webp" alt="A film's page"></a><br><b>Films and TV</b><br>Posters, plots and ratings, <i>Continue watching</i>, skip intro and instant seeking. Details arrive with no API key.</td>
+<td width="33%" valign="top"><a href="docs/images/dvd-menu.webp"><img src="docs/images/dvd-menu.webp" alt="A DVD's own menu in a browser"></a><br><b>DVDs and Blu-rays</b><br>Disc images play like a disc player: intros, animated menus, scene selection, extras and the disc's own subtitles.</td>
+<td width="33%" valign="top"><a href="docs/images/wittytv-guide.webp"><img src="docs/images/wittytv-guide.webp" alt="A TV guide with a film playing in the preview"></a><br><b>Live TV and channels</b><br>Channels made from your library, a guide, tuners, IPTV and recording.</td>
+</tr>
+<tr>
+<td width="33%" valign="top"><a href="docs/images/music-visualizer.webp"><img src="docs/images/music-visualizer.webp" alt="A light show behind the music player"></a><br><b>Music, audiobooks and podcasts</b><br>Albums and artists, lyrics, light shows, books that remember your place, and shows you follow.</td>
+<td width="33%" valign="top"><a href="docs/images/reader-comic.webp"><img src="docs/images/reader-comic.webp" alt="A comic open in the reader"></a><br><b>Books and comics</b><br>EPUB, PDF, comics and manga, with highlights, notes and a pen.</td>
+<td width="33%" valign="top"><a href="docs/images/photos.webp"><img src="docs/images/photos.webp" alt="A timeline of photos"></a><br><b>Photos and videos</b><br>A timeline, albums and an offline map, a feed of vertical videos, and creators' videos by channel.</td>
+</tr>
+<tr>
+<td width="33%" valign="top"><a href="docs/images/games.webp"><img src="docs/images/games.webp" alt="A library of games"></a><br><b>Games</b><br>Your own game files run on the server and stream to the screen in front of you, with a gamepad, keyboard or touch.</td>
+<td width="33%" valign="top"><a href="docs/images/theme-light-home.webp"><img src="docs/images/theme-light-home.webp" alt="The home page in the Light theme"></a><br><b>Your look</b><br>Fourteen layouts and fifteen themes, the same on a TV, a phone and a computer, or a theme of your own.</td>
+<td width="33%" valign="top"><a href="docs/images/module-store.webp"><img src="docs/images/module-store.webp" alt="The module store"></a><br><b>Only what you want</b><br>Discs, games, photos, readers and tuners are modules you add from a store inside the app.</td>
+</tr>
+</table>
 
-[Getting started](docs/GETTING_STARTED.md) has the full walkthrough. [First-time setup](docs/FIRST-TIME-SETUP.md) shows every page of it.
+**Everyone at home** gets a *Who's watching?* profile with their own progress, and Kids profiles only show titles for their age. **It's yours:** it runs on your computer, with no accounts with anyone, no telemetry and no cloud. No media comes with it.
 
-The server answers on your home network only, until you choose a way in from away in **Settings → Remote Access**. The easiest is **From away**: a device joins with a code, peer to peer, with nothing to set up on your router. See [Remote access](docs/REMOTE.md).
+## Where can I use it?
 
-## Where it has been run
+The server runs on a computer you already have. Every other screen reaches it in a web browser, or with the optional app, **WittyMediaClient**.
 
-The server is written for Windows, Linux, macOS and FreeBSD, and runs in Docker.
+| The server runs on | Watch, listen and read on |
+|---|---|
+| **Windows** 10 and 11 | **Any web browser:** computers, phones, tablets and TVs. Nothing to install |
+| **macOS** 11 and newer | **Android:** phones and tablets |
+| **Linux:** Debian, Ubuntu, Fedora and most others | **Android TV and Fire TV:** an app made for the remote, with game controllers and QR sign-in. Google TV too |
+| **FreeBSD** 14 and newer | **Apple:** iPhone, iPad and Apple TV |
+| **Docker and NAS:** any NAS or server that runs Docker | **Desktop:** Windows, macOS, Linux and Plasma Bigscreen |
 
-- **macOS:** 0.8.0-alpha was built and tested on a Mac with Apple silicon. The `.pkg` has been installed on GitHub's Mac machines, not yet by a person on a real Mac.
-- **Windows and Linux:** run on a real PC for 0.8.0-alpha. The Linux packages are installed, upgraded and removed on Debian, Ubuntu and Fedora before each release.
-- **FreeBSD:** the package and its service in virtual machines.
-- **Docker:** the image in WSL, not yet on a NAS.
+> [!TIP]
+> The apps aren't in the app stores yet: for now, each one is installed by hand (sideloaded) from the [WittyMediaClient releases page](https://github.com/wittywilla/WittyMediaClient/releases/latest). App store listings are coming soon.
 
-WittyMediaClient has run on real Android phones, tablets and TVs, a real Apple TV, and desktops. The iPhone app has run in Apple's simulator only. [What has been tested](docs/INSTALL.md#what-has-been-tested) and [Apps and devices](docs/APPS.md) have the details.
+## Install
+
+Install the server on the computer or NAS that holds your media. Downloads are on the **[Releases page](https://github.com/wittywilla/WittyMediaServer/releases)**, and FFmpeg comes with them. When it's running, open `http://<that computer>:9797/` in a browser to set it up.
+
+| On | Do this | Full guide |
+|---|---|---|
+| **Windows** | Open `windows-amd64.msi` (`arm64` for ARM PCs) and choose who it's for. Setup opens in your browser | [Windows](docs/INSTALL.md#windows) |
+| **macOS** | Open `macos-arm64.pkg` (Apple silicon) or `macos-amd64.pkg` (Intel), then **WittyMediaServer** in Applications | [macOS](docs/INSTALL.md#macos) |
+| **Debian, Ubuntu** | `sudo apt install ./wittymediaserver-<version>-linux-amd64.deb`. The service starts by itself | [Linux](docs/INSTALL.md#linux) |
+| **Fedora, RHEL** | `sudo dnf install ./wittymediaserver-<version>-linux-amd64.rpm`. The service starts by itself | [Linux](docs/INSTALL.md#linux) |
+| **Any other Linux** | The AppImage, Flatpak or snap, or unpack `linux-amd64.tar.gz` and run `sudo ./install.sh` for a service | [Linux](docs/INSTALL.md#linux) |
+| **FreeBSD** | `pkg add wittymediaserver-<version>-freebsd-amd64.pkg`, `sysrc wittymediaserver_enable=YES`, `service wittymediaserver start` | [FreeBSD](docs/INSTALL.md#freebsd) |
+| **Docker** | `docker run -d -p 9797:9797 -v wms-config:/config -v /path/to/media:/media:ro ghcr.io/wittywilla/wittymediaserver:alpha`, or a [ready compose file](deploy/docker/compose.yml) | [Docker](docs/DOCKER.md) |
+| **A NAS** | Docker, with a guide for each: [UGREEN](docs/DOCKER-UGREEN.md) · [Synology](docs/DOCKER-SYNOLOGY.md) · [QNAP](docs/DOCKER-QNAP.md) · [Unraid](docs/DOCKER-UNRAID.md) · [TrueNAS SCALE](docs/DOCKER-TRUENAS.md) · [Asustor](docs/DOCKER-ASUSTOR.md) | [A NAS](docs/INSTALL.md#a-nas) |
+
+Then go through setup: your account, a name, your language and time zone, a layout and theme, the modules you want, and your folders. [Getting started](docs/GETTING_STARTED.md) walks through it with no command line, and [First-time setup](docs/FIRST-TIME-SETUP.md) shows every page.
+
+## Your server, from anywhere
+
+**New in 0.8.0-alpha.** Turn on peer-to-peer connections in **Settings → Remote Access**, and the app on your phone, TV or laptop finds its own way home: no port forwarding, no rented server, and no account with anyone.
+
+- Encrypted from end to end, to a key only your server holds.
+- Only devices you approved can connect, and they still sign in.
+- A TV that has never been home joins with a code it shows.
+
+Until you choose a way in, the server answers on your home network only. See [Remote access](docs/REMOTE.md).
+
+## Karaoke night
+
+<p>
+  <a href="docs/images/karaoke.webp"><img src="docs/images/karaoke.webp" alt="Karaoke: the line being sung fills word by word over a light show" width="74%"></a>
+  <a href="docs/images/phone-karaoke.webp"><img src="docs/images/phone-karaoke.webp" alt="Karaoke on a phone" width="20%"></a>
+</p>
+
+Any song in your library, ready to sing. The singer is turned down in seconds, on your own server, and the words fill in as they're sung, big enough to read from across the room. <sub>"Take Me Out to the Ball Game", 1908, public domain, over WittyVisualizer's Northern Veil.</sub> See [Lyrics and karaoke](docs/LYRICS-KARAOKE.md).
+
+## A look around
+
+A test server, filled with openly licensed media to show what it can do. Every work on it is named in [the credits](docs/images/CREDITS.md), with its licence.
+
+<table>
+<tr>
+<td width="33%"><a href="docs/images/movies.webp"><img src="docs/images/movies.webp" alt="A wall of film posters"></a><br><sub><b>Films.</b> <a href="docs/images/CREDITS.md">Credited here</a></sub></td>
+<td width="33%"><a href="docs/images/bluray-menu.webp"><img src="docs/images/bluray-menu.webp" alt="A Blu-ray playing in a browser"></a><br><sub><b>Blu-rays.</b> <a href="https://archive.org/details/SitaSingsTheBlues_201812">Sita Sings the Blues</a>, Nina Paley, <a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0</a></sub></td>
+<td width="33%"><a href="docs/images/tv-show-page.webp"><img src="docs/images/tv-show-page.webp" alt="A show's page with its episodes"></a><br><sub><b>TV shows.</b> <a href="docs/images/CREDITS.md">Credited here</a></sub></td>
+</tr>
+<tr>
+<td width="33%"><a href="docs/images/music-lyrics.webp"><img src="docs/images/music-lyrics.webp" alt="Lyrics beside the player"></a><br><sub><b>Lyrics.</b> "Take Me Out to the Ball Game", 1908, public domain</sub></td>
+<td width="33%"><a href="docs/images/reader-epub.webp"><img src="docs/images/reader-epub.webp" alt="A book open in the reader"></a><br><sub><b>Books.</b> <a href="https://standardebooks.org/">Standard Ebooks</a>, <a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0</a></sub></td>
+<td width="33%"><a href="docs/images/podcasts.webp"><img src="docs/images/podcasts.webp" alt="A page of podcasts"></a><br><sub><b>Podcasts and audiobooks.</b> <a href="docs/images/CREDITS.md">Credited here</a></sub></td>
+</tr>
+<tr>
+<td width="33%"><a href="docs/images/shorts.webp"><img src="docs/images/shorts.webp" alt="A feed of vertical videos"></a><br><sub><b>Vertical videos.</b> Clips from open films, <a href="docs/images/CREDITS.md">credited here</a></sub></td>
+<td width="33%"><a href="docs/images/gameplay-ucity.webp"><img src="docs/images/gameplay-ucity.webp" alt="A city-building game"></a><br><sub><b>Games.</b> <a href="https://github.com/AntonioND/ucity">µCity</a>, Antonio Niño Díaz, GPL-3.0-or-later and CC BY-SA 4.0</sub></td>
+<td width="33%"><a href="docs/images/settings-libraries.webp"><img src="docs/images/settings-libraries.webp" alt="The Libraries page in Settings"></a><br><sub><b>Plain settings.</b> Settings, Libraries</sub></td>
+</tr>
+</table>
 
 ## Guides
 
 **Everything here is also inside the app, under Help,** so you don't need this page once you're running.
 
-| Getting going | |
+<details>
+<summary><b>Getting going</b></summary>
+
+| | |
 |---|---|
 | [Getting started](docs/GETTING_STARTED.md) | From install to your first film |
 | [First-time setup, step by step](docs/FIRST-TIME-SETUP.md) | Every page of setup, with a picture of each |
@@ -162,7 +153,12 @@ WittyMediaClient has run on real Android phones, tablets and TVs, a real Apple T
 | [Settings tour](docs/SETTINGS.md) | Where every setting lives |
 | [Troubleshooting](docs/TROUBLESHOOTING.md) | Common problems, by what you're seeing |
 
-| Your media | |
+</details>
+
+<details>
+<summary><b>Your media</b></summary>
+
+| | |
 |---|---|
 | [Watching and listening](docs/PLAYING.md) | The player, keys, tracks and remotes |
 | [What each media type supports](docs/MEDIA-TYPES.md) · [Supported formats](docs/SUPPORTED-FORMATS.md) | Which library to make, and every file type |
@@ -174,7 +170,12 @@ WittyMediaClient has run on real Android phones, tablets and TVs, a real Apple T
 | [Collections, radio and Your year](docs/COLLECTIONS.md) | Smart playlists and internet radio |
 | [Games](docs/GAMES.md) | Your own games, from a folder to playing |
 
-| Running a server | |
+</details>
+
+<details>
+<summary><b>Running a server</b></summary>
+
+| | |
 |---|---|
 | [Metadata](docs/METADATA.md) · [Fixing wrong details](docs/FIXING-METADATA.md) · [The metadata folder](docs/METADATA-FOLDER.md) | Posters, plots and wrong matches |
 | [Live transcoding](docs/TRANSCODING.md) · [Library transcoding](docs/LIBRARY-TRANSCODING.md) · [Using Tdarr](docs/TDARR.md) | Converting video |
@@ -184,7 +185,25 @@ WittyMediaClient has run on real Android phones, tablets and TVs, a real Apple T
 | [Themes](docs/THEMES.md) · [Pages and the menu](docs/PAGES.md) | Layouts, colours and what's on each page |
 | [Config file](docs/CONFIG.md) · [Logs](docs/LOGGING.md) · [Statistics](docs/STATS.md) · [Command line](docs/REFERENCE.md) | Fine tuning |
 
-**For developers:** [Contributing](CONTRIBUTING.md), [Repositories](docs/REPOSITORIES.md), [Client API](docs/CLIENT-API.md), [Server-driven screens](docs/SDUI.md) and [a module's screens](docs/SDUI-MODULES.md), [Making a module](docs/MODULES.md) and [Module API 5](docs/MODULES-API5.md), [Peer-to-peer connections](docs/P2P.md), [the interface design](docs/design-2/README.md), [Security model](docs/SECURITY-REVIEW.md) and the [Changelog](CHANGELOG.md).
+</details>
+
+<details>
+<summary><b>For developers</b></summary>
+
+[Contributing](CONTRIBUTING.md), [Repositories](docs/REPOSITORIES.md), [Client API](docs/CLIENT-API.md), [Server-driven screens](docs/SDUI.md) and [a module's screens](docs/SDUI-MODULES.md), [Making a module](docs/MODULES.md) and [Module API 5](docs/MODULES-API5.md), [Peer-to-peer connections](docs/P2P.md), [the interface design](docs/design-2/README.md), [Security model](docs/SECURITY-REVIEW.md) and the [Changelog](CHANGELOG.md).
+
+</details>
+
+## Where it has been run
+
+The server is written for Windows, Linux, macOS and FreeBSD, and runs in Docker.
+
+- **macOS:** 0.8.0-alpha was built and tested on a Mac with Apple silicon. The `.pkg` has been installed on GitHub's Mac machines, not yet by a person on a real Mac.
+- **Windows and Linux:** run on a real PC for 0.8.0-alpha. The Linux packages are installed, upgraded and removed on Debian, Ubuntu and Fedora before each release.
+- **FreeBSD:** the package and its service in virtual machines.
+- **Docker:** the image in WSL, not yet on a NAS.
+
+WittyMediaClient has run on real Android phones, tablets and TVs, a real Apple TV, and desktops. The iPhone app has run in Apple's simulator only. [What has been tested](docs/INSTALL.md#what-has-been-tested) and [Apps and devices](docs/APPS.md) have the details.
 
 ## Privacy and security
 
@@ -226,4 +245,4 @@ The app's own **Legal** page (*Settings → Legal*, or `/legal` on any server) h
 
 ---
 
-<p align="center"><sub>WittyMediaServer 0.8.0-alpha · AGPL-3.0-or-later · Made by <a href="https://github.com/wittywilla">WittyWilla</a></sub></p>
+<p align="center"><sub>WittyMediaServer 0.8.0-alpha · AGPL-3.0-or-later · Made by <a href="https://github.com/wittywilla">WittyWilla</a> · <a href="https://wittymediaserver.com">wittymediaserver.com</a></sub></p>

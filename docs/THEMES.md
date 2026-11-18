@@ -123,10 +123,10 @@ To change a theme that's nearly right, press the download button on its card in 
 WittyTV, the TV guide, has eight themes of its own, separate from the app's theme and from the looks above. An app theme can suggest one, with one more setting in `:root`:
 
 ![The TV guide in the Teletext look](images/wittytv-teletext.webp)
-*The Teletext look, playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
+*The Teletext look, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain.*
 
 ![The TV guide in the Newspaper look, like a printed paper](images/wittytv-listings.webp)
-*The Newspaper look, playing [Caminandes: Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm), Pablo Vazquez, Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
+*The Newspaper look, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain.*
 
 ```css
 :root {
@@ -229,7 +229,7 @@ my-theme.zip
 
 `theme.json` may have a `finish`: `glass` (`hi` and `lo` fills, an `edge` and a `shadow` colour: the recipe for a glass panel) and `gloss` (five colours for a glossy button: highlight, upper body, lower body, glow, edge). The experience says how much to use (`effects`: none, subtle or full). Left out, both are worked out from the colours.
 
-**How the web draws them.** `theme.ts` puts the look on `<html>`: `data-fx-glass`, `-gloss`, `-glow`, `-texture` and `-bevel` (`none`, `subtle`, `full`), `data-type`, `data-card-set`, `data-focus-style` and `data-screen`, plus `--shape-mult` (the radius multiple) and the theme's finish as `--glass-hi`, `--glass-lo`, `--glass-edge`, `--glass-shadow` and `--gloss-hi`, `--gloss-up`, `--gloss-lo`, `--gloss-glow`, `--gloss-edge`. Colours in a finish are accepted only as `#hex`, `rgb()`, `rgba()`, `hsl()` or `hsla()`; anything else is dropped. `web/src/finish.css` turns them into glass bars, menus, dialogs and panels, glossy buttons and rows, bevels, glow, paper grain or scanlines and the focus style, and names no look. The scene is drawn by `web/src/ui/Scene.tsx` behind the page: a gradient (sky), radial lights (a light sweep that drifts), circles (bubbles, bokeh) and a hill. The type sets are bundled (Nunito for `rounded`, Source Sans 3 for `humanist`, Source Serif 4 for `serif`, JetBrains Mono for `mono`, all SIL OFL, in `web/public/fonts`).
+**How the web draws them.** `theme.ts` puts the look on `<html>`: `data-fx-glass`, `-gloss`, `-glow`, `-texture` and `-bevel` (`none`, `subtle`, `full`), `data-type`, `data-card-set`, `data-focus-style` and `data-screen`, plus `--shape-mult` (the radius multiple) and the theme's finish as `--glass-hi`, `--glass-lo`, `--glass-edge`, `--glass-shadow` and `--gloss-hi`, `--gloss-up`, `--gloss-lo`, `--gloss-glow`, `--gloss-edge`. Colours in a finish are accepted only as `#hex`, `rgb()`, `rgba()`, `hsl()` or `hsla()`; anything else is dropped. `web/src/finish.css` turns them into glass bars, menus, dialogs and panels, glossy buttons and rows, bevels, glow, paper grain or scanlines and the focus style, and names no look. The scene is drawn by `web/src/ui/Scene.tsx` behind the page: a gradient (sky), radial lights (a light sweep that drifts), circles (bubbles, bokeh) and a hill whose top fades softly into the sky. On Home the billboard's picture fades into the scene at its bottom edge, the same across its whole width. The type sets are bundled (Nunito for `rounded`, Source Sans 3 for `humanist`, Source Serif 4 for `serif`, JetBrains Mono for `mono`, all SIL OFL, in `web/public/fonts`).
 
 ### Recipes
 

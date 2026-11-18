@@ -7703,6 +7703,16 @@
           "profile": {
             "type": "string"
           },
+          "quality": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "startSec": {
             "anyOf": [
               {
@@ -7751,6 +7761,7 @@
           "maxHeight",
           "measuredKbps",
           "profile",
+          "quality",
           "startSec",
           "streaming",
           "subtitle",
@@ -7914,11 +7925,178 @@
           "nowPlayingUrl": {
             "type": "string"
           },
+          "output": {
+            "anyOf": [
+              {
+                "properties": {
+                  "audioChannels": {
+                    "type": "integer"
+                  },
+                  "audioCodec": {
+                    "type": "string"
+                  },
+                  "audioKbps": {
+                    "type": "integer"
+                  },
+                  "encoder": {
+                    "type": "string"
+                  },
+                  "height": {
+                    "type": "integer"
+                  },
+                  "kbps": {
+                    "type": "integer"
+                  },
+                  "videoCodec": {
+                    "type": "string"
+                  },
+                  "width": {
+                    "type": "integer"
+                  },
+                  "work": {
+                    "anyOf": [
+                      {
+                        "properties": {
+                          "encoder": {
+                            "type": "string"
+                          },
+                          "gpuDecode": {
+                            "type": "boolean"
+                          },
+                          "gpuEncode": {
+                            "type": "boolean"
+                          },
+                          "gpuToneMap": {
+                            "type": "boolean"
+                          },
+                          "running": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "encoder",
+                          "gpuDecode",
+                          "gpuEncode",
+                          "gpuToneMap",
+                          "running"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "progressUrl": {
             "type": "string"
           },
           "protocol": {
             "type": "string"
+          },
+          "quality": {
+            "anyOf": [
+              {
+                "properties": {
+                  "asked": {
+                    "type": "string"
+                  },
+                  "audioRates": {
+                    "items": {
+                      "type": "integer"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "away": {
+                    "type": "boolean"
+                  },
+                  "choice": {
+                    "type": "string"
+                  },
+                  "limits": {
+                    "properties": {
+                      "maxHeight": {
+                        "type": "integer"
+                      },
+                      "maxKbps": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "maxHeight",
+                      "maxKbps"
+                    ],
+                    "type": "object"
+                  },
+                  "presets": {
+                    "items": {
+                      "properties": {
+                        "height": {
+                          "type": "integer"
+                        },
+                        "kbps": {
+                          "type": "integer"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "height",
+                        "kbps",
+                        "name"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "sourceHeight": {
+                    "type": "integer"
+                  },
+                  "sourceKbps": {
+                    "type": "integer"
+                  },
+                  "sourceWidth": {
+                    "type": "integer"
+                  },
+                  "videoCodecs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "asked",
+                  "audioRates",
+                  "away",
+                  "choice",
+                  "limits",
+                  "presets",
+                  "videoCodecs"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "reasons": {
             "items": {
@@ -14930,6 +15108,103 @@
           },
           "positionSec": {
             "type": "number"
+          },
+          "quality": {
+            "anyOf": [
+              {
+                "properties": {
+                  "asked": {
+                    "type": "string"
+                  },
+                  "audioRates": {
+                    "items": {
+                      "type": "integer"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "away": {
+                    "type": "boolean"
+                  },
+                  "choice": {
+                    "type": "string"
+                  },
+                  "limits": {
+                    "properties": {
+                      "maxHeight": {
+                        "type": "integer"
+                      },
+                      "maxKbps": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "maxHeight",
+                      "maxKbps"
+                    ],
+                    "type": "object"
+                  },
+                  "presets": {
+                    "items": {
+                      "properties": {
+                        "height": {
+                          "type": "integer"
+                        },
+                        "kbps": {
+                          "type": "integer"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "height",
+                        "kbps",
+                        "name"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "sourceHeight": {
+                    "type": "integer"
+                  },
+                  "sourceKbps": {
+                    "type": "integer"
+                  },
+                  "sourceWidth": {
+                    "type": "integer"
+                  },
+                  "videoCodecs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "asked",
+                  "audioRates",
+                  "away",
+                  "choice",
+                  "limits",
+                  "presets",
+                  "videoCodecs"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "security": {
             "anyOf": [
@@ -23093,40 +23368,40 @@
                 "schema": {
                   "properties": {
                     "progress": {
-                      "type": [
-                        "object",
-                        "null"
-                      ],
                       "properties": {
-                        "libraryId": {
-                          "type": "integer"
-                        },
-                        "phase": {
-                          "type": "string"
-                        },
                         "current": {
                           "type": "string"
-                        },
-                        "found": {
-                          "type": "integer"
                         },
                         "done": {
                           "type": "integer"
                         },
-                        "startedAt": {
+                        "found": {
+                          "type": "integer"
+                        },
+                        "libraryId": {
                           "type": "integer"
                         },
                         "mode": {
-                          "type": "string",
                           "enum": [
                             "changes",
                             "full"
-                          ]
+                          ],
+                          "type": "string"
+                        },
+                        "phase": {
+                          "type": "string"
                         },
                         "resumed": {
                           "type": "boolean"
+                        },
+                        "startedAt": {
+                          "type": "integer"
                         }
-                      }
+                      },
+                      "type": [
+                        "object",
+                        "null"
+                      ]
                     },
                     "scanning": {
                       "type": "boolean"
@@ -23190,15 +23465,15 @@
               "application/json": {
                 "schema": {
                   "properties": {
-                    "started": {
-                      "type": "boolean"
-                    },
                     "mode": {
-                      "type": "string",
                       "enum": [
                         "changes",
                         "full"
-                      ]
+                      ],
+                      "type": "string"
+                    },
+                    "started": {
+                      "type": "boolean"
                     }
                   },
                   "type": "object"

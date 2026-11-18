@@ -150,3 +150,12 @@ Listed for other owners (not edited here):
 - **Games** (WittyPlay module): the detector reports two small ghost buttons overlapping the pad toggle at 1920 (not confirmed by eye).
 - **Home** takes over 1.6 seconds to show its content on a cold server (it showed loading rows at both tablet and phone in
   the first picture). Owned by `server-perf` and `play-perf`.
+
+## Round five: page column, video player
+
+- **Page column:** the top bar's contents now follow `--page-max` and `--page-inset` (see R7 above and `docs/UI-PLATFORMS.md`).
+- **Video player controls at 1280:** the right-hand cluster wrapped and left the full-screen button alone on a second row
+  (`player-controls-before.png`). Words beside the icons now show only where the whole row fits on one line
+  (`player-controls-after.png`). Phone and tablet were already icon-only.
+- **Player, otherwise:** the chrome renders cleanly at phone and desktop sizes. The headless browser cannot decode the
+  video, so seeking and picture were not exercised (`seek-errors` owns seeking; the quality chip belongs to `transcode-options`).

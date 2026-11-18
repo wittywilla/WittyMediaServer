@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { useModuleSetupStep } from '../moduleRegistry'
+import { refreshModuleWeb, useModuleSetupStep } from '../moduleRegistry'
 import { useCallback, useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { api, setToken, type Library } from '../api'
@@ -24,8 +24,8 @@ import { Remote } from './setup/Remote'
 import { Media } from './setup/Media'
 import { Modules } from './setup/Modules'
 import { Music } from './setup/Music'
-import type { StepProps } from './setup/parts'
-import { ALL_DRAWN, canSkip, currentStep, drawnId, drawnNumber, neighbours, pathOf, planSteps, stepFromPath, type Facts, type StepId } from './setup/plan'
+import { StepHead, type StepProps } from './setup/parts'
+import { ALL_DRAWN, canSkip, currentStep, drawnId, drawnNumber, neighbours, pathOf, planSteps, stepFromPath, type Facts, type StepId, type StepInfo } from './setup/plan'
 import { Name } from './setup/Name'
 import { Welcome } from './setup/Welcome'
 import { doneBefore, SERVER_STEP } from './setup/serverSteps'
@@ -45,12 +45,15 @@ export default function SetupWizard() {
   const [facts, setFacts] = useState<Facts | null>(signedIn ? null : { signedIn: false, store: true, modules: [], kinds: null })
   const [added, setAdded] = useState<Library[]>([])
 
-  // What's on this server decides which steps there are.
+  // What's on this server decides which steps there are. What its modules add to the web app is asked
+  // for again with it: the first ask, before there was an account, was refused, and the Modules step
+  // adds some, so a module's own step (Live TV, Games) would otherwise have nothing to draw.
   const refresh = useCallback(async () => {
     const [report, kinds, libs] = await Promise.all([
       api.get<ModuleReport>('/modules').catch(() => null),
       api.get<{ libraries: LibraryKind[] }>('/modules/libraries').then((r) => r.libraries || []).catch(() => [] as LibraryKind[]),
       api.get<Library[]>('/libraries').catch(() => [] as Library[]),
+      refreshModuleWeb(),
     ])
     setFacts({ signedIn: true, store: !!report, modules: (report?.modules || []).filter((m) => m.installed).map((m) => m.id), kinds })
     setAdded(libs)
@@ -138,13 +141,13 @@ export default function SetupWizard() {
               {step.id === 'name' && <Name {...props} onTry={setTryName} />}
               {step.id === 'modules' && <Modules {...props} />}
               {step.id === 'media' && <Media {...props} added={added} onAdded={(l) => setAdded((a) => a.some((x) => x.id === l.id) ? a.map((x) => (x.id === l.id ? l : x)) : [...a, l])} />}
-              {step.id === 'games' && <ModuleStep id="games" props={{ ...props, added, goTo: go }} own={null} />}
+              {step.id === 'games' && <ModuleStep id="games" props={{ ...props, added, goTo: go }} own={<NotLoaded info={step} />} />}
               {step.id === 'discs' && <Discs {...props} />}
               {step.id === 'details' && <Details {...props} />}
               {step.id === 'logos' && <Logos {...props} />}
               {step.id === 'music' && <Music {...props} />}
               {step.id === 'listings' && <Listings {...props} />}
-              {step.id === 'tv' && <ModuleStep id="tv" props={{ ...props }} own={null} />}
+              {step.id === 'tv' && <ModuleStep id="tv" props={{ ...props }} own={<NotLoaded info={step} />} />}
               {step.id === 'look' && <Look {...props} />}
               {step.id === 'theme' && <Theme {...props} />}
               {step.id === 'people' && <People {...props} />}
@@ -166,4 +169,9 @@ function ModuleStep({ id, props, own }: { id: string; props: Record<string, unkn
   const C = useModuleSetupStep(id)
   if (C === undefined) return <div className="center"><div className="spinner" /></div>
   return C ? <C {...props} /> : <>{own}</>
+}
+
+// A module's step whose page didn't load says so, never an empty card. Skip for now sits under it.
+function NotLoaded({ info }: { info: StepInfo }) {
+  return <StepHead title={info.label} lead={`This step comes from a module, and its page didn’t load. Skip it for now and set it up later in ${info.later?.where || 'Settings'}.`} />
 }

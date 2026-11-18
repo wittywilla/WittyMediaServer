@@ -7,6 +7,7 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 - **The app speaks the server's language.** Every page, for everyone, follows the language chosen in setup or Settings: 26 languages, with Portuguese as written in Brazil or in Portugal, and Arabic and Hebrew laid out right to left. Setup's Welcome screen has Back, to fix a wrong language or time zone. Modules get the language through the host API. (#387)
 - **First-time setup asks for the language and time zone first,** on a screen before the welcome page. They're saved as soon as the account is made, and the Name and address step shows them again to change. (#385)
+- **Fixed:** first-time setup's Live TV and Games steps were an empty card once their module was installed. The app asked what modules add to it only once, before there was an account, and never again; it now asks again after a refusal, with the server's state, and after the Modules step installs something. A module's step that can't load says so instead of drawing nothing. (#378)
 
 ## 0.8.0-alpha
 

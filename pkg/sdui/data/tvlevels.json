@@ -1,7 +1,7 @@
 {
   "levels": ["full", "view", "desktopOnly"],
   "default": "full",
-  "note": "To change this, use the WittyMediaServer desktop app or a web browser.",
+  "note": "To change this, use the WittyMediaClient app on a Windows or Mac computer, or a web browser.",
   "screens": [
     { "id": "settings.libraries", "path": "/settings/libraries", "level": "desktopOnly", "title": "Libraries", "summary": "libraries" },
     { "id": "settings.pages", "path": "/settings/pages/*", "level": "desktopOnly", "title": "Pages and menu" },

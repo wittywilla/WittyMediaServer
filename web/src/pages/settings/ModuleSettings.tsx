@@ -127,7 +127,7 @@ function SettingRowView({ row, view, busy, error, onSave, onComputer }: { row: S
     <>
       {row.help}
       {!allowed && row.kind !== 'info' && <span className="muted">{row.help ? ' ' : ''}Set by an administrator for the whole server.</span>}
-      {allowed && onComputer && row.kind !== 'info' && <span className="muted">{row.help ? ' ' : ''}Changed in the desktop app or a web browser.</span>}
+      {allowed && onComputer && row.kind !== 'info' && <span className="muted">{row.help ? ' ' : ''}Changed in the WittyMediaClient app on a computer, or a web browser.</span>}
       {error && <span className="error" role="alert" id={id + 'e'}> {error}</span>}
     </>
   )

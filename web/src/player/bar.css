@@ -232,3 +232,12 @@ html.tv-mode .picker-x { inline-size: 66px; block-size: 66px; }
 .player:has(.ctl.compact) :is(.view-settings, .qmenu) { inset: auto 0 0 0; inline-size: auto; max-inline-size: 34rem; margin-inline: auto; max-block-size: 85dvh; border-radius: var(--r-xl) var(--r-xl) 0 0; padding-block-end: max(var(--space-m), env(safe-area-inset-bottom)); z-index: 31; }
 .player .ctl.compact .remote-toggle svg { inline-size: 1.5rem; block-size: 1.5rem; }
 .player .ctl.compact .remote-toggle.on { background: color-mix(in srgb, var(--on-image) 18%, transparent); }
+
+/* WittyRemote's sheet open over the player, upright: the picture (and the buttons over its middle) move up to the
+   middle of the room above the sheet, instead of sitting half under it. Remote.tsx sets --remote-space. */
+.player .stage { transition: inset-block-end var(--dur-3) var(--ease-out); }
+@media (orientation: portrait) {
+  .player.remote-up .stage { inset-block-end: var(--remote-space, 0px); }
+  .player.remote-up .ctl.compact .ctl-mid { inset-block-end: calc(50dvh + var(--remote-space, 0px) / 2 - 2.5rem); }
+}
+@media (prefers-reduced-motion: reduce) { .player .stage { transition: none; } }

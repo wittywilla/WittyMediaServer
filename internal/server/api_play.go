@@ -449,6 +449,13 @@ func (s *Server) handleHLSSegment(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 503, err.Error())
 		return
 	}
+	if errors.Is(err, hls.ErrSuperseded) {
+		// A newer seek took the stream elsewhere: nothing failed, and a player that still
+		// wants this segment asks again (players retry a 503; a 500 would count as a failure).
+		w.Header().Set("Retry-After", "1")
+		writeErr(w, 503, err.Error())
+		return
+	}
 	if errors.Is(err, context.Canceled) {
 		return // the viewer moved on
 	}

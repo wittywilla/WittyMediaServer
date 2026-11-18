@@ -9,7 +9,7 @@ import { useTvMode } from '../../tvmode/mode'
 import { albumLink, artistLink, artistPhoto, coverUrl } from './parts'
 import { useKeepScroll, useMusic } from './store'
 import { VirtualRows } from './Virtual'
-import { PageShape } from './ui'
+import { Art, PageShape } from './ui'
 import MusicHome from './MusicHome'
 import MusicSearch from './MusicSearch'
 import MusicLibraryView from './MusicLibraryView'
@@ -127,7 +127,7 @@ function Side({ lib }: { lib: Library }) {
           {!rows || (!artists && !albums && kind !== 'playlists') ? <PageShape kind="list" /> : rows.length === 0 ? <p className="mus-muted mus-side-none">Nothing by that name.</p> : (
             <VirtualRows items={rows} rowHeight={56} inBox label={kind ? `Your ${kind}` : 'Your library'} render={(r) => (
               <Link key={r.key} to={r.to} className={'mus-side-row' + (here === r.to ? ' on' : '')} aria-current={here === r.to ? 'page' : undefined} role="listitem">
-                <span className={'mus-side-art' + (r.round ? ' round' : '') + (r.tile ? ' ' + r.tile : '')}>{r.tile === 'liked' ? <IconHeartOn size={18} /> : r.art ? <img src={r.art} alt="" loading="lazy" decoding="async" onError={(e) => { (e.target as HTMLImageElement).style.visibility = 'hidden' }} /> : <span aria-hidden="true">{r.name[0]}</span>}</span>
+                <span className={'mus-side-art' + (r.round ? ' round' : '') + (r.tile ? ' ' + r.tile : '')}>{r.tile === 'liked' ? <IconHeartOn size={18} /> : <Art src={r.art} fallback={<span aria-hidden="true">{r.name[0]}</span>} />}</span>
                 <span className="mus-side-words"><b>{r.name}</b><small>{r.sub}</small></span>
               </Link>
             )} />

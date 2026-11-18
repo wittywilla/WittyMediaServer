@@ -20,6 +20,14 @@ import { VirtualRows } from './Virtual'
 export const tracksUrl = (libId: number, a: { artist: string; title: string }) => `/music/tracks?library=${libId}&artist=${encodeURIComponent(a.artist)}&album=${encodeURIComponent(a.title)}`
 export const artistUrl = (libId: number, name: string) => `/music/artist?library=${libId}&name=${encodeURIComponent(name)}`
 
+// A picture that gives way to `fallback` when it can't be had (gone, unreadable, refused),
+// so no broken-picture mark or empty square is ever left in its place.
+export function Art({ src, fallback = null, className }: { src: string; fallback?: ReactNode; className?: string }) {
+  const [broken, setBroken] = useState('')
+  if (!src || broken === src) return <>{fallback}</>
+  return <img className={className} src={src} alt="" loading="lazy" decoding="async" onError={() => setBroken(src)} />
+}
+
 // Plays what a card stands for, fetching its songs first; the button says it's loading meanwhile.
 async function playFrom(get: () => Promise<Item[]>, play: (items: Item[]) => void) {
   try {
@@ -58,7 +66,7 @@ export function Shelf({ title, to, children, sub }: { title: string; to?: string
         </span>
         {to && <Link className="mus-showall" to={to}>Show all</Link>}
       </div>
-      <div className="mus-shelf-row" ref={row} role="list">{children}</div>
+      <div className="mus-shelf-row" ref={row} role="list" data-nav-row>{children}</div>
     </section>
   )
 }
@@ -77,7 +85,7 @@ export function PlayButton({ label, onPlay, playing, big, tvFirst }: { label: st
 function Cover({ id, title, round }: { id: number; title: string; round?: boolean }) {
   return (
     <span className={'mus-cover' + (round ? ' round' : '')}>
-      {id ? <img src={sized(coverUrl(id), fitWidth(180))} alt="" loading="lazy" decoding="async" onError={(e) => { (e.target as HTMLImageElement).style.visibility = 'hidden' }} /> : <Placeholder title={title || 'Unknown'} />}
+      <Art src={id ? sized(coverUrl(id), fitWidth(180)) : ''} fallback={<Placeholder title={title || 'Unknown'} />} />
     </span>
   )
 }
@@ -104,7 +112,7 @@ export function ArtistCard({ libId, a }: { libId: number; a: Artist }) {
   return (
     <div className="mus-card artist" role="listitem">
       <Link to={artistLink(libId, a.name)} className="mus-card-link" onPointerEnter={() => prefetch(artistUrl(libId, a.name))} onFocus={() => prefetch(artistUrl(libId, a.name))}>
-        <span className="mus-cover round"><span className="mus-initial" aria-hidden="true">{(a.name || '?')[0]}</span><img src={artistPhoto(libId, a.name)} alt="" loading="lazy" decoding="async" onError={(e) => { (e.target as HTMLImageElement).style.visibility = 'hidden' }} /></span>
+        <span className="mus-cover round"><span className="mus-initial" aria-hidden="true">{(a.name || '?')[0]}</span><Art src={artistPhoto(libId, a.name)} /></span>
         <b title={a.name}>{a.name || 'Unknown artist'}</b>
         <span className="mus-muted">Artist</span>
       </Link>
@@ -138,10 +146,10 @@ export function TrackTable({ items, onPlay, showAlbum, showArt, numbers = 'track
   const rowH = tv ? (showArt ? 72 : 64) : showArt ? 60 : 52
   const move = (e: React.KeyboardEvent, i: number) => {
     const to = e.key === 'ArrowDown' ? i + 1 : e.key === 'ArrowUp' ? i - 1 : e.key === 'Home' ? 0 : e.key === 'End' ? items.length - 1 : -2
-    if (to === -2) return
+    // Past either end, the key is the app's to move on with (to the buttons above, or what's below).
+    if (to === -2 || to < 0 || to >= items.length) return
     e.preventDefault()
     e.stopPropagation()
-    if (to < 0 || to >= items.length) return
     const list = (e.currentTarget as HTMLElement).closest('.mus-tracks') as HTMLElement
     const focus = () => (list.querySelector(`[data-row="${to}"] .mus-tr-play`) as HTMLElement | null)?.focus({ preventScroll: false })
     const top = list.getBoundingClientRect().top + window.scrollY + to * rowH
@@ -168,7 +176,7 @@ export function TrackTable({ items, onPlay, showAlbum, showArt, numbers = 'track
               {on && playing && <i className="ab-eq" aria-hidden="true"><b /><b /><b /></i>}
             </button>
             <span className="mus-tr-main">
-              {showArt && <span className="mus-tr-art">{t.poster ? <img src={sized(posterUrl(t), fitWidth(48))} alt="" loading="lazy" decoding="async" onError={(e) => { (e.target as HTMLImageElement).style.visibility = 'hidden' }} /> : null}</span>}
+              {showArt && <span className="mus-tr-art"><Art src={t.poster ? sized(posterUrl(t), fitWidth(48)) : ''} /></span>}
               <span className="mus-tr-words">
                 <button type="button" tabIndex={-1} className="mus-tr-title" onClick={() => onPlay(i)}>{t.title}</button>
                 {artist && <Link tabIndex={-1} className="mus-tr-sub" to={artistLink(t.libraryId, t.albumArtist || artist)}>{artist}</Link>}

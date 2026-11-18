@@ -10,7 +10,7 @@ import { toast, useApp } from '../../state'
 import { musicTab } from './musicRoute'
 import { albumLink, coverUrl, shuffledCopy } from './parts'
 import { useMusic } from './store'
-import { AlbumCard, ArtistCard, ListCard, PageShape, PlayButton, Shelf, tracksUrl } from './ui'
+import { AlbumCard, Art, ArtistCard, ListCard, PageShape, PlayButton, Shelf, tracksUrl } from './ui'
 import { hasMusicVideos } from './MusicVideos'
 
 // Music's front page: a greeting with the things played lately as quick tiles, then shelves
@@ -74,7 +74,7 @@ export default function MusicHome({ lib }: { lib: Library }) {
         {quick.map((q) => (
           <div key={q.key} className="mus-quick-tile" role="listitem">
             <Link to={q.to}>
-              <span className={'mus-quick-art' + (q.liked ? ' liked' : '')}>{q.art ? <img src={q.art} alt="" loading="lazy" decoding="async" /> : <span aria-hidden="true">{q.liked ? '♥' : q.name[0]}</span>}</span>
+              <span className={'mus-quick-art' + (q.liked ? ' liked' : '')}><Art src={q.art} fallback={<span aria-hidden="true">{q.liked ? '♥' : q.name[0]}</span>} /></span>
               <b>{q.name}</b>
             </Link>
             <PlayButton label={q.name} onPlay={() => q.play().catch((e) => toast(e.message))} />

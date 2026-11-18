@@ -98,7 +98,7 @@
 .mus-tile.big { display: grid; place-items: center; width: 100%; height: 100%; }
 .mus-tile.big svg { width: 40%; height: 40%; }
 /* The play button: on a card it rises into view on hover or focus; it's always there on touch. */
-.mus-play { display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 50%; background: var(--accent); color: var(--accent-fg); box-shadow: var(--e-2); cursor: pointer; transition: transform var(--dur-2) var(--ease-out), opacity var(--dur-2), background var(--dur-2); }
+.mus-play { flex: none; display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 50%; background: var(--accent); color: var(--accent-fg); box-shadow: var(--e-2); cursor: pointer; transition: transform var(--dur-2) var(--ease-out), opacity var(--dur-2), background var(--dur-2); }
 .mus-play:hover { transform: scale(1.06); background: var(--accent-2, var(--accent)); }
 .mus-play:active { transform: scale(.96); }
 .mus-play svg { width: 22px; height: 22px; }
@@ -170,7 +170,7 @@ a.mus-by:hover { text-decoration: underline; }
 .mus-actions.stuck .mus-actions-title { opacity: 1; }
 .mus-actions .mus-grow { order: 1; }
 .mus-actions .mus-grow ~ * { order: 2; }
-.mus-icon, .mus-actions .mp-pop > button { display: inline-grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--fg-2); cursor: pointer; transition: color var(--dur-2), transform var(--dur-1); text-decoration: none; }
+.mus-icon, .mus-actions .mp-pop > button { flex: none; display: inline-grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--fg-2); cursor: pointer; transition: color var(--dur-2), transform var(--dur-1); text-decoration: none; }
 .mus-icon:hover { color: var(--fg); transform: scale(1.06); }
 .mus-icon.liked { color: var(--accent-text); }
 .mus-icon svg { width: 26px; height: 26px; }

@@ -198,6 +198,7 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
             <button className="pbig step" onClick={() => onSeek(Math.min(duration || t + 30, t + 30))} aria-label="Forward 30 seconds"><span aria-hidden="true">+30</span></button>
           </div>
           <div className="ctl-right">
+            {onRemote && <button className={'ibtn remote-toggle' + (remoteOn ? ' on' : '')} onClick={onRemote} aria-label="WittyRemote" aria-pressed={!!remoteOn} title="Show or hide WittyRemote (R)"><IconRemote /></button>}
             <button className="ibtn" onClick={() => setSheet('main')} aria-label="Options" title="Options" aria-haspopup="dialog" aria-expanded={!!sheet}><IconSettings /></button>
             <button className="ibtn" onClick={onFullscreen} aria-label="Full screen" title="Full screen"><IconFull /></button>
           </div>
@@ -252,7 +253,6 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
           ...(quality && (onQualityMenu || onQuality) ? [{ key: 'quality', icon: <IconTune />, label: 'Quality', value: quality, onClick: then(onQualityMenu || onQuality) }] : []),
           { key: 'speed', icon: <IconBolt />, label: 'Playback speed', value: rate === 1 ? 'Normal' : `${rate}×`, onClick: () => setSheet('speed') },
           ...(chapters.length > 1 ? [{ key: 'scenes', icon: <IconChapters />, label: 'Scenes', value: chapName(Math.max(0, curChapter - 1)), onClick: then(() => setPop('chapters')) }] : []),
-          ...(onRemote ? [{ key: 'remote', icon: <IconRemote />, label: 'WittyRemote', value: remoteOn ? 'On' : 'Off', on: remoteOn, onClick: then(onRemote) }] : []),
           ...sheetItems.map((x) => ({ ...x, onClick: then(x.onClick) })),
           ...(onSettings ? [{ key: 'view', icon: <IconSettings />, label: 'Viewing settings', onClick: then(onSettings) }] : []),
           ...(onQuality && onQualityMenu ? [{ key: 'info', icon: <IconInfo />, label: 'How this is playing', onClick: then(onQuality) }] : []),

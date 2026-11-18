@@ -65,11 +65,12 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   const pickIntro = search.get('pickIntro')
   const nextHref = `/play/${item.nextId}${listId ? `?collection=${encodeURIComponent(listId)}` : ''}`
   const mini = chrome.mini
-  // A phone or tablet, upright or on its side (or a narrow window): the picture first, the rest in the Options sheet
-  // (Controls' compact bar). The full bar needs about 900 px for one row.
-  const compact = useMedia('(max-width: 900px), (max-height: 500px) and (pointer: coarse)') && !getTvMode()
   const view = useViewPrefs(item.id, legacyRemote())
   const prefs = view.prefs
+  // A phone or tablet, upright or on its side (or a narrow window): the picture first, the rest in the Options sheet
+  // (Controls' compact bar). The full bar needs about 900 px for one row.
+  const narrow = useMedia('(max-width: 900px), (max-height: 500px) and (pointer: coarse)')
+  const compact = prefs.controls === 'simple' || (prefs.controls !== 'detailed' && narrow && !getTvMode())
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [picker, setPicker] = useState<'audio' | 'subtitle' | null>(null)
   const video = useRef<HTMLVideoElement | null>(null)

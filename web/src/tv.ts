@@ -110,7 +110,8 @@ function scopeOf(el: Element | null): ParentNode {
 const GROUPS = '[data-nav-group], [data-nav-row], .row, .topnav, .sidebar, .set-nav, .tabbar, .section-row'
 const lastIn = new WeakMap<Element, HTMLElement>()
 const groupOf = (el: Element | null) => el?.closest(GROUPS) || null
-const COLUMNS = '.sidebar, .set-nav'
+// Music's library panel (pages/music/MusicShell.tsx) is one too.
+const COLUMNS = '.sidebar, .set-nav, .mus-side'
 
 // Where the focus last was. A button can take itself away when pressed (a row that's removed,
 // a list that closes), and a remote has no other way back to where that was.

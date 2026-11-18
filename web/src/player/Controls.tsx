@@ -5,7 +5,7 @@ import { fmtTime, getPrefs } from '../api'
 import { Thumb } from './ChapterThumb'
 import { announce } from '../a11y'
 import { SPEEDS, setSpeed } from './speed'
-import { IconAngle, IconAudio, IconChapters, IconCheck, IconClose, IconFull, IconMute, IconInfo, IconMore, IconNext, IconPause, IconPlay, IconPrev, IconRemote, IconSettings, IconSubs, IconVolume } from '../icons'
+import { IconAngle, IconAudio, IconBolt, IconChapters, IconCheck, IconTune, IconBack, IconClose, IconFull, IconMute, IconInfo, IconMore, IconNext, IconPause, IconPlay, IconPrev, IconRemote, IconSettings, IconSubs, IconVolume } from '../icons'
 
 export type TrackOpt = { id: number; label: string; active: boolean }
 
@@ -43,7 +43,14 @@ type Props = {
   // The quality menu (QualityMenu.tsx), opened from the chip; without it the chip opens onQuality.
   onQualityMenu?: () => void
   qualityMenuOpen?: boolean
+  // A phone (or a phone on its side): the picture first. Play and the skips sit big in the middle of the picture, the
+  // time, Options and Full screen along the bottom over the seek bar, and everything else in the Options sheet.
+  compact?: boolean
+  // More rows for the Options sheet from the player around these controls (watch party, mini player).
+  sheetItems?: SheetItem[]
 }
+
+export type SheetItem = { key: string; icon: React.ReactNode; label: string; value?: string; on?: boolean; onClick: () => void }
 
 export { SPEEDS, setSpeed }
 
@@ -74,10 +81,12 @@ export function useVideoState(video: React.RefObject<HTMLVideoElement | null>) {
 }
 
 export function Controls({ video, duration, chapters = [], chapterNames, chapterThumb, onSeek, onPrev, onNext, audio, subtitles, onAudio, onSubtitle, onPick, angles = 1,
-  onFullscreen, onSettings, remoteOn, onRemote, showSeek = true, showChapterMarks = true, extra, offset = 0, disc = false, copy = false, quality, onQuality, onQualityMenu, qualityMenuOpen }: Props) {
+  onFullscreen, onSettings, remoteOn, onRemote, showSeek = true, showChapterMarks = true, extra, offset = 0, disc = false, copy = false, quality, onQuality, onQualityMenu, qualityMenuOpen, compact = false, sheetItems = [] }: Props) {
   const st = useVideoState(video)
   const [pop, setPop] = useState<'audio' | 'subs' | 'chapters' | 'speed' | 'more' | null>(null)
   const barRef = useRef<HTMLDivElement | null>(null)
+  const [sheet, setSheet] = useState<SheetPage | null>(null)
+  useEffect(() => { if (!compact) setSheet(null) }, [compact])
   // A menu closed by Esc or Back hands focus back to the button that opened it, so the remote isn't lost.
   const closePop = (refocus: boolean) => {
     const opener = barRef.current?.querySelector<HTMLElement>('.ctl [aria-expanded="true"]')
@@ -180,6 +189,20 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
           {aim && duration > 0 && <SeekTip f={aim.f} duration={duration} chapters={chapters} name={chapName} thumb={chapterThumb} />}
         </div>
       )}
+      {compact ? (
+        <div className="ctl compact">
+          <span className="time" aria-hidden="true">{fmtTime(t)}{showSeek ? ` / ${fmtTime(duration)}` : ''}</span>
+          <div className="ctl-mid" role="group" aria-label="Playback">
+            <button className="pbig step" onClick={() => onSeek(Math.max(0, t - 10))} aria-label="Back 10 seconds"><span aria-hidden="true">−10</span></button>
+            <button className="ibtn big play" onClick={toggle} aria-label={st.playing ? 'Pause' : 'Play'}>{st.playing ? <IconPause /> : <IconPlay />}</button>
+            <button className="pbig step" onClick={() => onSeek(Math.min(duration || t + 30, t + 30))} aria-label="Forward 30 seconds"><span aria-hidden="true">+30</span></button>
+          </div>
+          <div className="ctl-right">
+            <button className="ibtn" onClick={() => setSheet('main')} aria-label="Options" title="Options" aria-haspopup="dialog" aria-expanded={!!sheet}><IconSettings /></button>
+            <button className="ibtn" onClick={onFullscreen} aria-label="Full screen" title="Full screen"><IconFull /></button>
+          </div>
+        </div>
+      ) : (
       <div className="ctl">
         <div className="ctl-left">
           <span className="time" aria-hidden="true">
@@ -216,6 +239,31 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
           <button className="ibtn" title="Full screen (F)" aria-label="Full screen" onClick={onFullscreen}><IconFull /></button>
         </div>
       </div>
+      )}
+      {sheet && (() => {
+        const close = () => setSheet(null)
+        const then = (f?: () => void) => () => { setSheet(null); f?.() }
+        const activeAudio = audio?.find((a) => a.active)
+        const activeSub = subtitles?.find((x) => x.active)
+        const rows: SheetItem[] = [
+          ...(audio && audio.length > 1 ? [{ key: 'audio', icon: <IconAudio />, label: 'Audio', value: activeAudio?.label, onClick: onPick ? then(() => onPick('audio')) : () => setSheet('audio') }] : []),
+          ...(subtitles && subtitles.length > 0 ? [{ key: 'subs', icon: <IconSubs />, label: 'Subtitles', value: activeSub?.label || 'Off', onClick: onPick ? then(() => onPick('subtitle')) : () => setSheet('subs') }] : []),
+          ...(onPick && angles > 1 ? [{ key: 'angle', icon: <IconAngle />, label: 'Video version', onClick: then(() => onPick('angle')) }] : []),
+          ...(quality && (onQualityMenu || onQuality) ? [{ key: 'quality', icon: <IconTune />, label: 'Quality', value: quality, onClick: then(onQualityMenu || onQuality) }] : []),
+          { key: 'speed', icon: <IconBolt />, label: 'Playback speed', value: rate === 1 ? 'Normal' : `${rate}×`, onClick: () => setSheet('speed') },
+          ...(chapters.length > 1 ? [{ key: 'scenes', icon: <IconChapters />, label: 'Scenes', value: chapName(Math.max(0, curChapter - 1)), onClick: then(() => setPop('chapters')) }] : []),
+          ...(onRemote ? [{ key: 'remote', icon: <IconRemote />, label: 'WittyRemote', value: remoteOn ? 'On' : 'Off', on: remoteOn, onClick: then(onRemote) }] : []),
+          ...sheetItems.map((x) => ({ ...x, onClick: then(x.onClick) })),
+          ...(onSettings ? [{ key: 'view', icon: <IconSettings />, label: 'Viewing settings', onClick: then(onSettings) }] : []),
+          ...(onQuality && onQualityMenu ? [{ key: 'info', icon: <IconInfo />, label: 'How this is playing', onClick: then(onQuality) }] : []),
+        ]
+        return (
+          <OptionsSheet page={sheet} onPage={setSheet} onClose={close} rows={rows}
+            speeds={speeds.map((x) => ({ id: x, label: x === 1 ? 'Normal' : `${x}×`, on: x === rate, note: x > 4 ? 'may be muted' : undefined }))} onSpeed={(x) => { changeSpeed(x); close() }}
+            audio={audio?.map((a) => ({ id: a.id, label: a.label, on: a.active }))} onAudio={(id) => { onAudio?.(id); close() }}
+            subtitles={subtitles && [{ id: -1, label: 'Off', on: !activeSub }, ...subtitles.map((x) => ({ id: x.id, label: x.label, on: x.active }))]} onSubtitle={(id) => { onSubtitle?.(id); close() }} />
+        )
+      })()}
       {pop === 'more' && (
         <Menu label="More" className="more-pop" onClose={closePop}>
           {onSettings && <button role="menuitem" onClick={() => { setPop(null); onSettings() }}><IconSettings /> Viewing settings</button>}
@@ -298,6 +346,58 @@ function MenuChoice({ on, onPick, note, children }: { on: boolean; onPick: () =>
       {note && <span className="pm-note">{note}</span>}
       <span className="pm-tick" aria-hidden="true">{on ? <IconCheck /> : null}</span>
     </button>
+  )
+}
+
+// OptionsSheet: everything the phone's bar leaves out, as a sheet from the bottom edge. Each row says what it's set to
+// now; speed (and audio and subtitles where there's no big picker) choose on a page of the sheet itself. Esc, Back, a
+// press above the sheet or its close button put it away.
+type SheetPage = 'main' | 'speed' | 'audio' | 'subs'
+type Choice = { id: number; label: string; on: boolean; note?: string }
+function OptionsSheet({ page, onPage, onClose, rows, speeds, onSpeed, audio, onAudio, subtitles, onSubtitle }: {
+  page: SheetPage; onPage: (p: SheetPage) => void; onClose: () => void; rows: SheetItem[]
+  speeds: Choice[]; onSpeed: (x: number) => void; audio?: Choice[]; onAudio: (id: number) => void; subtitles?: Choice[]; onSubtitle: (id: number) => void
+}) {
+  const box = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    const el = box.current?.querySelector<HTMLElement>('[aria-checked="true"]') || box.current?.querySelector<HTMLElement>('.psheet-row, [role="menuitemradio"]')
+    el?.focus({ preventScroll: true })
+  }, [page])
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' && e.key !== 'GoBack' && e.key !== 'BrowserBack') return
+      e.preventDefault(); e.stopImmediatePropagation()
+      if (page === 'main') onClose(); else onPage('main')
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [page, onClose, onPage])
+  const list = page === 'speed' ? speeds : page === 'audio' ? audio : page === 'subs' ? subtitles : null
+  const pick = page === 'speed' ? onSpeed : page === 'audio' ? onAudio : onSubtitle
+  const title = page === 'speed' ? 'Playback speed' : page === 'audio' ? 'Audio' : page === 'subs' ? 'Subtitles' : 'Options'
+  return (
+    <div className="psheet-backdrop" onClick={onClose}>
+      <div className="psheet" ref={box} role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}>
+        <div className="psheet-head">
+          {page !== 'main'
+            ? <button className="ibtn" onClick={() => onPage('main')} aria-label="Back to options"><IconBack /></button>
+            : <span className="psheet-grip" aria-hidden="true" />}
+          <h3>{title}</h3>
+          <button className="ibtn" onClick={onClose} aria-label="Close"><IconClose /></button>
+        </div>
+        {list ? (
+          <div role="menu" aria-label={title}>
+            {list.map((c) => <MenuChoice key={c.id} on={c.on} note={c.note} onPick={() => pick(c.id)}>{c.label}</MenuChoice>)}
+          </div>
+        ) : rows.map((r) => (
+          <button key={r.key} className={'psheet-row' + (r.on ? ' on' : '')} onClick={r.onClick}>
+            <span className="psheet-icon" aria-hidden="true">{r.icon}</span>
+            <span className="psheet-label">{r.label}</span>
+            {r.value && <span className="psheet-value">{r.value}</span>}
+          </button>
+        ))}
+      </div>
+    </div>
   )
 }
 

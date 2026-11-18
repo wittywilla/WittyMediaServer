@@ -42,9 +42,12 @@ type LiveInput struct {
 	Stdin       io.ReadCloser
 	VideoFilter string // deinterlacing and the like
 	// Height is the shorter side of the input's picture, when known (as Spec.Height).
-	Height     int
-	AudioIndex int  // ffmpeg a:N; -1 = none, silence is added
-	CopyVideo  bool // H.264 sources pass through without converting
+	Height int
+	// VideoCodec and PixFmt are the input picture's, when known (as Spec's): whether the
+	// graphics chip can decode, deinterlace and resize it.
+	VideoCodec, PixFmt string
+	AudioIndex         int  // ffmpeg a:N; -1 = none, silence is added
+	CopyVideo          bool // H.264 sources pass through without converting
 	// Realtime: the input already arrives at viewing speed (a tuner, a live
 	// address), so FFmpeg must not be paced.
 	Realtime bool
@@ -95,6 +98,8 @@ type liveSeg struct {
 type LiveSession struct {
 	Spec LiveSpec
 	Dir  string
+	// fallback is how much of the graphics chip the next runs use (as Session's).
+	fallback atomic.Int32
 
 	m      *Manager
 	log    *slog.Logger
@@ -555,15 +560,17 @@ func (m *Manager) burstSupported() bool {
 
 // liveArgs builds one run's FFmpeg command line.
 func (s *LiveSession) liveArgs(in *LiveInput, run int, burst bool) []string {
+	args, _ := s.liveArgsHW(in, run, burst)
+	return args
+}
+
+// liveArgsHW is liveArgs, with what the run uses of the graphics chip.
+func (s *LiveSession) liveArgsHW(in *LiveInput, run int, burst bool) ([]string, hwChoice) {
 	sp := s.Spec
-	t := s.m.tools
 	args := []string{"-hide_banner", "-loglevel", "warning", "-nostdin", "-y", "-max_error_rate", "1"}
-	plan := t.Plan(sp.Quality)
-	if sp.Preset != "" && plan.Name == "libx264" && len(sp.Quality.VideoArgs) == 0 {
-		q := sp.Quality
-		q.Preset = sp.Preset
-		plan = t.Plan(q)
-	}
+	hc := s.m.chooseHW(sp.Quality, sp.Preset, s.fallback.Load(), hwSource{codec: in.VideoCodec, pixFmt: in.PixFmt, videoFilter: in.VideoFilter,
+		cpuOnly: in.CopyVideo || in.Slate || len(sp.Quality.VideoArgs) > 0})
+	plan := hc.plan
 	outHeight := in.Height
 	if sp.MaxHeight > 0 && (outHeight == 0 || sp.MaxHeight < outHeight) {
 		outHeight = sp.MaxHeight
@@ -574,10 +581,13 @@ func (s *LiveSession) liveArgs(in *LiveInput, run int, burst bool) []string {
 	}
 	if !in.CopyVideo {
 		args = append(args, plan.InputArgs...)
-		if plan.Name == "h264_nvenc" {
+		switch {
+		case hc.onGPU:
+			args = append(args, hc.pipe.Input...)
+		case plan.Name == "h264_nvenc" && hc.level == levelGPU:
 			args = append(args, "-hwaccel", "auto")
 		}
-		if decThreads > 0 {
+		if decThreads > 0 && !hc.onGPU {
 			args = append(args, "-threads", strconv.Itoa(decThreads))
 		}
 	}
@@ -614,16 +624,25 @@ func (s *LiveSession) liveArgs(in *LiveInput, run int, burst bool) []string {
 		args = append(args, "-c:v", "copy")
 	} else {
 		var vf []string
-		if in.VideoFilter != "" {
-			vf = append(vf, in.VideoFilter)
-		}
-		vf = append(vf, "scale=trunc(iw*sar/2)*2:ih") // H.264 refuses an odd width, and widescreen NTSC comes to 853
-		if sp.MaxHeight > 0 {
-			vf = append(vf, fmt.Sprintf("scale=-2:'min(ih,%d)'", sp.MaxHeight))
-		}
-		vf = append(vf, "setsar=1", "format="+plan.PixFmt)
-		if plan.Upload != "" {
-			vf = append(vf, plan.Upload)
+		if hc.onGPU && hc.pipe.OnChip() {
+			// Deinterlaced and resized on the chip, and handed to its encoder there.
+			if in.VideoFilter != "" {
+				vf = append(vf, hc.pipe.Deinterlace(in.VideoFilter))
+			}
+			scale, _ := hc.pipe.Scale(sp.MaxHeight, "nv12")
+			vf = append(vf, scale, "setsar=1")
+		} else {
+			if in.VideoFilter != "" {
+				vf = append(vf, in.VideoFilter)
+			}
+			vf = append(vf, "scale=trunc(iw*sar/2)*2:ih") // H.264 refuses an odd width, and widescreen NTSC comes to 853
+			if sp.MaxHeight > 0 {
+				vf = append(vf, fmt.Sprintf("scale=-2:'min(ih,%d)'", sp.MaxHeight))
+			}
+			vf = append(vf, "setsar=1", "format="+plan.PixFmt)
+			if plan.Upload != "" {
+				vf = append(vf, plan.Upload)
+			}
 		}
 		args = append(args, "-vf", strings.Join(vf, ","), "-c:v", plan.Name)
 		if plan.Name == "libx264" && encThreads > 0 {
@@ -658,7 +677,7 @@ func (s *LiveSession) liveArgs(in *LiveInput, run int, burst bool) []string {
 		"-hls_segment_filename", filepath.Join(s.Dir, fmt.Sprintf("r%05d-%%05d.ts", run)),
 		filepath.Join(s.Dir, fmt.Sprintf("r%05d.m3u8", run)),
 	)
-	return args
+	return args, hc
 }
 
 // nostdinOff: FFmpeg must read its input from standard input.
@@ -672,7 +691,7 @@ func nostdinOff(args []string) []string {
 }
 
 func runLiveFFmpeg(ctx context.Context, s *LiveSession, in *LiveInput, run int, burst bool) error {
-	args := s.liveArgs(in, run, burst)
+	args, hc := s.liveArgsHW(in, run, burst)
 	running, cancel := context.WithCancel(ctx)
 	defer cancel()
 	cmd := ffmpeg.Command(running, s.m.tools.FFmpeg, args...)
@@ -691,6 +710,8 @@ func runLiveFFmpeg(ctx context.Context, s *LiveSession, in *LiveInput, run int, 
 		s.log.Error("ffmpeg could not start", "reason", logging.ExitReason(err), "err", err, "args", cmdline)
 		return err
 	}
+	s.m.hwStarted(hc.plan.Name)
+	defer s.m.hwEnded(hc.plan.Name)
 	done := make(chan error, 1)
 	logging.Go("ffmpeg wait", func() { done <- cmd.Wait() }, "cat", "transcode", "session", s.logID())
 	r := &liveRun{n: run, playlist: filepath.Join(s.Dir, fmt.Sprintf("r%05d.m3u8", run))}
@@ -714,6 +735,7 @@ func runLiveFFmpeg(ctx context.Context, s *LiveSession, in *LiveInput, run int, 
 				if in.OnFail != nil {
 					in.OnFail(stderr.String())
 				}
+				s.hwFailed(hc, r.seen == 0, stderr.String())
 				return fmt.Errorf("%w: %s", err, tail(stderr.String(), 400))
 			}
 			if f := in.fatalCause(); f != nil {
@@ -729,6 +751,25 @@ func runLiveFFmpeg(ctx context.Context, s *LiveSession, in *LiveInput, run int, 
 			s.readRun(r)
 		}
 	}
+}
+
+// hwFailed: a run that used the chip, or its encoder, failed; the next runs use less of it, as a
+// video's stream does (see Session.hwExit).
+func (s *LiveSession) hwFailed(c hwChoice, early bool, said string) {
+	next, forget := stepDown(c, early, said)
+	if next <= c.level || !s.fallback.CompareAndSwap(c.level, next) {
+		return
+	}
+	if forget {
+		s.m.mu.Lock()
+		if s.m.gpuFailed == nil {
+			s.m.gpuFailed = map[string]bool{}
+		}
+		s.m.gpuFailed[c.key] = true
+		s.m.mu.Unlock()
+	}
+	s.log.Warn("FFmpeg failed using the graphics chip: the channel goes on with less of it", "cat", "transcode",
+		"encoder", c.plan.Name, "gpuPipeline", c.onGPU, "level", next, "forAll", forget, "ffmpeg", tail(said, 500))
 }
 
 // fatalCause lets a tuner's stream say why it ended, when it refused to go on.

@@ -660,6 +660,9 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 	spec.MaxHeight = playback.Smallest(spec.MaxHeight, p.MaxHeight)
 	if v := pr.Video(); v != nil {
 		spec.Height = min(v.Width, v.Height) // an upright phone video is no bigger than a 1080p one
+		if videoPick == 0 {
+			spec.VideoCodec, spec.PixFmt = v.CodecName, v.PixFmt // whether the graphics chip can decode it
+		}
 	}
 	if d.CopyVideo {
 		spec.CopyVideo, spec.CopyAudio, spec.FMP4, spec.Growing = true, d.CopyAudio, d.FMP4, true

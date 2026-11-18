@@ -76,6 +76,10 @@ button.lib-tile, button.sdui-row, button.sdui-banner { font: inherit; cursor: po
 .sdui-skel-title { width: 9rem; height: 1.25rem; }
 .sdui-list .sdui-ph .skel, .track-list .sdui-ph .skel { height: 52px; border-radius: var(--r-md); }
 @media (prefers-reduced-motion: reduce) { .sdui .skel::after { animation: none; } }
+/* A page loading is rows of cards, not tiles: .skeleton-grid paints each direct child as one 2:3 tile, and
+   here the children are whole rows, so without this each row was one giant grey slab. */
+.sdui-loading.skeleton-grid > .hub { aspect-ratio: auto; background: none; opacity: 1; animation: none; overflow: visible; border-radius: 0; }
+.sdui-loading.skeleton-grid > .hub::after { content: none; }
 
 /* The spotlight. */
 .sdui-hero.banner { height: 38vh; min-height: 260px; }

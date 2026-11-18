@@ -5,3 +5,7 @@
 .help-link:hover { color: var(--fg); text-decoration: underline; }
 .help-inline { color: var(--accent-text); text-decoration: underline; text-underline-offset: 2px; }
 .set-help { display: flex; justify-content: flex-end; margin-bottom: calc(var(--sp-2) * -1); }
+/* On a Settings page the help link sits in the top corner, on the back link's row, instead of taking a line of
+   its own (it used to sit alone between the back link and the notices, with a gap above and below). */
+.set-main { position: relative; }
+.set-main > .set-help { position: absolute; top: 0; right: 0; margin: 0; min-height: var(--control-h-sm); align-items: center; z-index: 1; }

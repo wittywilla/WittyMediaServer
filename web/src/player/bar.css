@@ -197,20 +197,20 @@ html.tv-mode .picker-x { inline-size: 66px; block-size: 66px; }
 .player .bottom:has(.ctl.compact) .seek .knob { opacity: 1; transform: translateX(-50%) scale(.85); }
 .player .bottom:has(.ctl.compact) .seek.scrubbing .knob { transform: translateX(-50%) scale(1.25); }
 /* While the controls show, a soft shade over the picture keeps the middle buttons readable on a bright frame. */
-.player:has(.ctl.compact) .stage::after { content: ''; position: absolute; inset: 0; background: rgb(0 0 0 / .32); opacity: 1; transition: opacity var(--dur-3); pointer-events: none; }
+.player:has(.ctl.compact) .stage::after { content: ''; position: absolute; inset: 0; background: rgb(0 0 0 / .32); opacity: 1; transition: opacity var(--dur-3); pointer-events: none; } /* design-ok: a shade over the picture, black in every theme */
 .player.controls-hidden:has(.ctl.compact) .stage::after { opacity: 0; }
 /* The things the phone's floating buttons give way to sit higher too. */
 .player:has(.ctl.compact) :is(.skip-intro, .watch-next) { inset-block-end: 7.5rem; }
 
 /* The Options sheet. */
-.psheet-backdrop { position: absolute; inset: auto 0 0 0; block-size: 100dvh; z-index: 30; display: flex; align-items: flex-end; justify-content: center; background: rgb(0 0 0 / .45); animation: fade-in var(--dur-2) ease-out; }
+.psheet-backdrop { position: absolute; inset: auto 0 0 0; block-size: 100dvh; z-index: 30; display: flex; align-items: flex-end; justify-content: center; background: rgb(0 0 0 / .45); animation: fade-in var(--dur-2) ease-out; } /* design-ok: inside the player, over its own layers (the picker is 20); dims the picture */
 .psheet { inline-size: 100%; max-inline-size: 34rem; max-block-size: 88dvh; overflow-y: auto; overscroll-behavior: contain; background: var(--bg-2); color: var(--fg); border-radius: var(--r-xl) var(--r-xl) 0 0; padding: 0 var(--space-s) max(var(--space-m), env(safe-area-inset-bottom)); box-shadow: var(--e-3); animation: psheet-in var(--dur-3) var(--ease-out); }
 @keyframes psheet-in { from { transform: translateY(2rem); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .psheet, .psheet-backdrop { animation: none; } }
 .psheet-head { position: sticky; inset-block-start: 0; z-index: 1; display: grid; grid-template-columns: 2.75rem 1fr 2.75rem; align-items: center; padding-block: var(--space-xs); background: var(--bg-2); }
 .psheet-head h3 { margin: 0; text-align: center; font-size: var(--text-md); font-weight: 700; }
 .psheet-head .ibtn { color: var(--fg); }
-.psheet-grip { justify-self: start; inline-size: 2.5rem; block-size: 4px; border-radius: 2px; background: var(--border-strong); visibility: hidden; }
+.psheet-grip { justify-self: start; inline-size: 2.5rem; block-size: 4px; border-radius: var(--r-xs); background: var(--border-strong); visibility: hidden; }
 .psheet-row { display: flex; align-items: center; gap: var(--space-m); inline-size: 100%; min-block-size: 3.25rem; padding: 0 var(--space-s); background: transparent; border: 0; border-radius: var(--r-md); color: var(--fg); font: inherit; font-size: var(--text-md); text-align: left; }
 .psheet-row:hover, .psheet-row:active { background: var(--bg-4); }
 .psheet-row:focus-visible { background: var(--bg-4); outline: 2px solid var(--fg); outline-offset: -2px; }
@@ -229,7 +229,7 @@ html.tv-mode .picker-x { inline-size: 66px; block-size: 66px; }
 .psheet .pm-tick svg { inline-size: 100%; block-size: 100%; fill: currentColor; }
 .psheet [role="menu"] { border: 0; background: none; box-shadow: none; padding: 0; border-radius: 0; }
 /* Viewing settings and the quality menu open from the Options sheet on a phone or tablet, so they rise the same way. */
-.player:has(.ctl.compact) :is(.view-settings, .qmenu) { inset: auto 0 0 0; inline-size: auto; max-inline-size: 34rem; margin-inline: auto; max-block-size: 85dvh; border-radius: var(--r-xl) var(--r-xl) 0 0; padding-block-end: max(var(--space-m), env(safe-area-inset-bottom)); z-index: 31; }
+.player:has(.ctl.compact) :is(.view-settings, .qmenu) { inset: auto 0 0 0; inline-size: auto; max-inline-size: 34rem; margin-inline: auto; max-block-size: 85dvh; border-radius: var(--r-xl) var(--r-xl) 0 0; padding-block-end: max(var(--space-m), env(safe-area-inset-bottom)); z-index: 31; } /* design-ok: inside the player, just over the Options sheet it opens from */
 .player .ctl.compact .remote-toggle svg { inline-size: 1.5rem; block-size: 1.5rem; }
 .player .ctl.compact .remote-toggle.on { background: color-mix(in srgb, var(--on-image) 18%, transparent); }
 

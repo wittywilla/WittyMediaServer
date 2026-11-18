@@ -18,7 +18,9 @@ const LONG_GAP_MS = 5000 // a break long enough to count back in from
 
 const NO_LINES: LyricLine[] = []
 
-export default function Karaoke({ p, ly, onClose, behind, choice }: { p: PlayerView; ly: ReturnType<typeof useLyrics>; onClose: () => void; behind?: ReactNode; choice?: ReactNode }) {
+// cover: the album's cover, '' for none. coverBeside: the setting that shows it at the side of the words (beside them on
+// a wide screen and a TV, above them on a phone held upright), kept with the music player's other settings.
+export default function Karaoke({ p, ly, onClose, behind, choice, cover = '', coverBeside = false, onCoverBeside }: { p: PlayerView; ly: ReturnType<typeof useLyrics>; onClose: () => void; behind?: ReactNode; choice?: ReactNode; cover?: string; coverBeside?: boolean; onCoverBeside?: (on: boolean) => void }) {
   const { lyrics, loading, setOffset } = ly
   const lines = lyrics?.synced ? lyrics.lines : NO_LINES
   const offset = lyrics?.offsetMs || 0
@@ -34,6 +36,7 @@ export default function Karaoke({ p, ly, onClose, behind, choice }: { p: PlayerV
   const [mode, setMode] = useState<'follow' | 'read'>('follow')
   const readWords = lyrics?.plain || lines.map((l) => l.text).join('\n')
   const stems = useKaraokeStems(p)
+  const sideCover = coverBeside && cover ? cover : ''
 
   useEffect(() => { root.current?.focus({ preventScroll: true }) }, [])
   // Coming back, the key is as it was: this was for the song, not for good.
@@ -123,9 +126,16 @@ export default function Karaoke({ p, ly, onClose, behind, choice }: { p: PlayerV
         <button type="button" className="mp-ibtn" onClick={fullscreen} aria-label="Fill the screen (F)" title="Fill the screen (F)"><IconFull /></button>
         <button type="button" className="mp-ibtn" onClick={onClose} aria-label="Leave karaoke (Esc)" title="Leave karaoke (Esc)"><IconClose /></button>
       </header>
-      {choice && <div className="kar-choice"><span className="kar-choice-l">Behind the words</span>{choice}</div>}
+      {(choice || (cover && onCoverBeside)) && (
+        <div className="kar-choice">
+          {choice && <><span className="kar-choice-l">Behind the words</span>{choice}</>}
+          {cover && onCoverBeside && <button type="button" className={'kar-chip kar-cover-chip' + (coverBeside ? ' on' : '')} aria-pressed={coverBeside} onClick={() => onCoverBeside(!coverBeside)}>Album art beside the words</button>}
+        </div>
+      )}
 
-      <main className="kar-stage">
+      <main className={'kar-stage' + (sideCover ? ' with-cover' : '')}>
+        {sideCover && <img className="kar-cover" src={sideCover} alt="" draggable={false} decoding="async" />}
+        <div className="kar-lyrics">
         {mode === 'read' && readWords ? <pre className="kar-read" tabIndex={0}>{readWords}</pre>
           : !lyrics || loading ? <p className="kar-msg">Looking for the words…</p>
           : lines.length === 0 ? (
@@ -147,6 +157,7 @@ export default function Karaoke({ p, ly, onClose, behind, choice }: { p: PlayerV
               <span className="mp-sr" aria-live="polite">{nowLine?.text || ''}</span>
             </>
           )}
+        </div>
       </main>
 
       <footer className="kar-bar" role="toolbar" aria-label="Karaoke controls">

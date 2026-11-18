@@ -292,7 +292,14 @@ button.np-artist:hover { color: var(--np-fg); text-decoration: underline; text-u
 .kar-song { flex: 1; min-width: 0; display: grid; }
 .kar-song b { font-size: clamp(1rem, 2.4vh, 1.5rem); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .kar-song span { color: var(--np-fg-2); font-size: clamp(.9rem, 1.9vh, 1.2rem); }
-.kar-stage { position: relative; z-index: 1; flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(10px, 3vh, 34px); padding: 0 clamp(16px, 5vw, 80px); text-align: center; }
+.kar-stage { position: relative; z-index: 1; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; gap: clamp(20px, 4vw, 72px); padding: 0 clamp(16px, 5vw, 80px); text-align: center; }
+.kar-lyrics { position: relative; flex: 1; min-width: 0; max-height: 100%; align-self: stretch; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(10px, 3vh, 34px); }
+/* The album's cover at the side of the words (a setting): beside them on a wide screen and a TV. */
+.kar-stage.with-cover { padding-block: 12px; }
+/* As tall as the stage allows, up to a size that suits the screen; square, and never over the controls. */
+.kar-cover { flex: none; align-self: stretch; width: auto; height: auto; min-height: 0; max-height: min(42vh, 30vw, 520px); aspect-ratio: 1; object-fit: cover; border-radius: var(--r-lg); box-shadow: var(--np-shadow); }
+.kar-stage.with-cover .kar-now { font-size: clamp(1.8rem, min(6.6vh, 4.4vw), 4.8rem); }
+.kar-stage.with-cover .kar-next { font-size: clamp(1.1rem, min(3.2vh, 2.2vw), 2.2rem); }
 .kar-now { margin: 0; max-width: 100%; min-height: 2.3em; font-size: clamp(2rem, 7.4vh, 5.4rem); font-weight: 800; line-height: 1.14; letter-spacing: -.01em; overflow-wrap: anywhere; }
 .kar-word { --fill: 0%; color: transparent; background: linear-gradient(90deg, var(--np-white) var(--fill), var(--np-rest) var(--fill)); -webkit-background-clip: text; background-clip: text; white-space: pre-wrap; }
 .kar-rest { color: var(--np-fg-3); }
@@ -336,6 +343,12 @@ button.np-artist:hover { color: var(--np-fg); text-decoration: underline; text-u
   .kar-song { flex: 1 0 100%; }
   .kar-top .seg { margin-right: auto; }
   .kar-stage { flex: 1 0 auto; min-height: 38vh; padding-block: 16px; }
+  /* A phone held upright has no room beside the words: the cover goes above them, smaller. */
+  .kar-stage.with-cover { flex-direction: column; gap: 14px; }
+  .kar-stage.with-cover .kar-lyrics { flex: 1 0 auto; }
+  .kar-cover { align-self: center; width: clamp(96px, 34vw, 150px); max-height: none; border-radius: var(--r-md); }
+  .kar-stage.with-cover .kar-now { font-size: clamp(1.6rem, 7.6vw, 2.3rem); }
+  .kar-stage.with-cover .kar-next { font-size: clamp(1rem, 4.6vw, 1.4rem); }
   .kar-now { min-height: 0; font-size: clamp(1.75rem, 8.6vw, 2.6rem); }
   .kar-next { font-size: clamp(1.05rem, 5vw, 1.5rem); }
 }

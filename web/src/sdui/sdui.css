@@ -101,11 +101,13 @@ button.lib-tile, button.sdui-row, button.sdui-banner { font: inherit; cursor: po
 .sdui-detail .detail.compact { grid-template-columns: minmax(0, 1fr); margin-top: 0; }
 .sdui-detail.layout-compact h1 { text-shadow: none; }
 .sdui-detail .detail .poster.square { aspect-ratio: 1; }
-/* A title's actions, drawn as on every app: the main action filled; under it the rest (Watch later, Mark watched, Download,
-   Share) icons with their names under them, in one centred row that scrolls sideways only when it is wider than the
-   screen ("safe" keeps its start reachable then). One that is on (the title on Watch later) is in the accent. */
-.sdui-detail .sdui-detail-actions { justify-content: center; }
-.sdui-detail-more { flex: 1 1 100%; display: flex; flex-wrap: nowrap; gap: var(--sp-3); justify-content: safe center; min-inline-size: 0; max-inline-size: 100%; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
+/* A title's actions, drawn as on every app: the main action filled, then the rest (Watch later, Mark watched, Download,
+   Share) as icons with their names under them. On a wide screen they line up under the title and overview, Play first and
+   the rest beside it (on their own line, scrolling sideways, when they run out of room); on a phone (below) Play is full width
+   with the rest centred under it ("safe" keeps the start reachable when the row scrolls). One that is on (the title on
+   Watch later) is in the accent. */
+.sdui-detail .sdui-detail-actions { justify-content: flex-start; }
+.sdui-detail-more { flex: 0 1 auto; display: flex; flex-wrap: nowrap; gap: var(--sp-3); justify-content: flex-start; min-inline-size: 0; max-inline-size: 100%; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
 .sdui-detail-more::-webkit-scrollbar { display: none; }
 .sdui-action { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 4px; min-inline-size: 64px; min-block-size: 56px; padding: 0 var(--sp-1); border: 0; border-radius: var(--r-sm); background: none; color: var(--fg); font: inherit; text-decoration: none; cursor: pointer; }
 .sdui-action:hover { background: var(--hover); }
@@ -122,7 +124,10 @@ button.lib-tile, button.sdui-row, button.sdui-banner { font: inherit; cursor: po
 @media (max-width: 760px) {
   .sdui-detail .detail { grid-template-columns: minmax(0, 1fr); }
   .sdui-detail .detail > :first-child:not(:last-child) { width: clamp(120px, 34vw, 170px); }
+  .sdui-detail .sdui-detail-actions { justify-content: center; }
   .sdui-detail-actions .btn.primary { flex: 1 1 100%; }
+  .sdui-detail-more { flex: 1 1 100%; justify-content: safe center; }
+  .sdui-detail-actions > .btn:not(.primary) { flex: 0 0 auto; } /* "⋯" and Canvas keep their size instead of full-width pills */
 }
 
 /* Seasons, episodes, tracks. */

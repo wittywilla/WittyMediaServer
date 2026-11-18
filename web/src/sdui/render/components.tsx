@@ -685,8 +685,8 @@ function DetailHeaderView({ view }: { view: View }) {
             </div>
           )}
           {view.progress !== undefined && view.progress > 0 && <div className="sdui-detail-progress" role="progressbar" aria-label="Watched" aria-valuemin={0} aria-valuemax={100} aria-valuenow={view.progress}><i style={{ width: view.progress + '%' }} /></div>}
-          {/* The main action, then the rest (Watch later, Mark watched, Download, Share) as icons with their names, in one
-              centred row that scrolls sideways only when it is wider than the screen: the same on every app. */}
+          {/* The main action, then the rest (Watch later, Mark watched, Download, Share) as icons with their names, lined up
+              under the title on a wide screen and centred under a full-width Play on a phone (sdui.css). */}
           <div className="actions sdui-detail-actions" data-nav-group>
             {buttons.filter((b) => b.primary).map(button)}
             {buttons.some((b) => !b.primary) && <div className="sdui-detail-more">{buttons.filter((b) => !b.primary).map(button)}</div>}

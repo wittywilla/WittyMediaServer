@@ -117,7 +117,7 @@ const GROUPS: { title: string; pages: Page[] }[] = [
 function withModuleTabs(groups: typeof GROUPS, tabs: ModuleSettingsTab[]): typeof GROUPS {
   if (!tabs.length) return groups
   const own = new Set(groups.flatMap((g) => g.pages.map((p) => p.to)))
-  const row = (t: ModuleSettingsTab, was?: Page): Page => ({ to: t.id, label: t.label, icon: was?.icon ?? <IconPlug />, admin: t.admin, hint: was?.hint ?? '', launch: t.launch })
+  const row = (t: ModuleSettingsTab, was?: Page): Page => ({ to: t.id, label: t.label, icon: was?.icon ?? <IconPlug />, admin: t.admin, hint: was?.hint || 'Added by a module', launch: t.launch })
   const out = groups.map((g) => ({ ...g, pages: g.pages.flatMap((p) => {
     const same = tabs.find((t) => t.id === p.to)
     if (same?.hidden) return [] // the module's own place has it now (launch)
@@ -191,7 +191,7 @@ export default function SettingsPage() {
             <div className="set-nav-head">From modules</div>
             {modulePages.map((p) => (
               <NavLink key={p.module + p.id} to={`/m/${p.module}/${p.id}`} className="set-nav-link">
-                <span className="set-nav-icon" style={tint('')}><IconPlug /></span><span className="set-nav-text"><span>{p.title}</span></span><IconRight className="set-nav-go" />
+                <span className="set-nav-icon" style={tint('')}><IconPlug /></span><span className="set-nav-text"><span>{p.title}</span><small className="set-nav-hint">Added by a module</small></span><IconRight className="set-nav-go" />
               </NavLink>
             ))}
           </div>

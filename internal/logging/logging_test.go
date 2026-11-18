@@ -611,14 +611,16 @@ func TestFloodNeverBlocks(t *testing.T) {
 // One message over and over is counted, not written without end.
 func TestFloodSameMessage(t *testing.T) {
 	old := floodWindow
-	floodWindow = time.Second // long enough that the 5000 calls below fit in one window on a slow runner
+	floodWindow = 200 * time.Millisecond
 	defer func() { floodWindow = old }()
 	l, log := newTest(t)
+	// The other message goes first: the table is hashed with a random seed, and now and then
+	// two messages share a slot, where the second one's arrival starts the first one's count over.
+	log.Warn("something else")
 	for i := 0; i < 5000; i++ {
 		log.Warn("the same thing again")
 	}
-	log.Warn("something else")
-	time.Sleep(1100 * time.Millisecond)
+	time.Sleep(250 * time.Millisecond)
 	log.Warn("the same thing again")
 	out := read(t, l)
 	if n := strings.Count(out, "the same thing again"); n > floodLimit+2 {

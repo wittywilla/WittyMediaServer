@@ -173,5 +173,5 @@ function ModuleStep({ id, props, own }: { id: string; props: Record<string, unkn
 
 // A module's step whose page didn't load says so, never an empty card. Skip for now sits under it.
 function NotLoaded({ info }: { info: StepInfo }) {
-  return <StepHead title={info.label} lead={`This step comes from a module, and its page didn’t load. Skip it for now and set it up later in ${info.later?.where || 'Settings'}.`} />
+  return <StepHead title={tx(info.label)} lead={t('This step comes from a module, and its page didn’t load. Skip it for now and set it up later in {where}.', { where: info.later?.where ? tx(info.later.where) : t('Settings') })} />
 }

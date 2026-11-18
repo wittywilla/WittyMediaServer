@@ -1,0 +1,17 @@
+{
+  "Episode number": "Episodenummer",
+  "Episode {episode}": "Episode {episode}",
+  "Episodes {episodes}": "Episoder {episodes}",
+  "Last episode": "Siste episode",
+  "Season number": "Sesongnummer",
+  "Show episodes as": "Vis episoder som",
+  "Special {episode}": "Spesialepisode {episode}",
+  "Specials {episodes}": "Spesialepisoder {episodes}",
+  "S{season} · E{episode}": "S{season} · E{episode}",
+  "Your graphics chip can convert video for a fraction of the processor work. Each is tested when the server starts, those your machine doesn’t have are greyed out, and every one that works is ticked until you choose: the first ticked one that works is used, and the picture stays on the chip from decoding to encoding where it can. With none ticked it’s all software, which gives the best quality for the size and uses the most processor.": "Grafikkbrikken din kan konvertere video for en brøkdel av prosessorarbeidet. Hver av dem testes når serveren starter, de maskinen din ikke har, er grået ut, og alle som virker, er avkrysset til du velger: den første avkryssede som virker, brukes, og bildet blir på brikken fra dekoding til koding der det går. Med ingen avkrysset er alt programvare, som gir best kvalitet for størrelsen og bruker mest prosessor.",
+  "{left} of {count} left": {
+    "one": "{left} av {count} igjen",
+    "other": "{left} av {count} igjen"
+  },
+  "{season}, {count}": "{season}, {count}"
+}

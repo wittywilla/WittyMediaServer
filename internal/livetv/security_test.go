@@ -199,9 +199,10 @@ func TestRecordingRestrictionsAreHonoured(t *testing.T) {
 	if _, err := m.AddRule(ctx, ch[0].ID, 1, "x"); err == nil {
 		t.Fatal("nor as a series")
 	}
-	// Scheduled first, restricted after: it must not start.
+	// Scheduled first, restricted after: it must not start. An hour away, so the scheduler
+	// (which Schedule wakes) leaves it alone while the test calls record itself.
 	noRecord("")
-	r, err := m.Schedule(ctx, ch[0].ID, 1, "x", "", now, now+60)
+	r, err := m.Schedule(ctx, ch[0].ID, 1, "x", "", now+3600, now+3660)
 	if err != nil {
 		t.Fatal(err)
 	}

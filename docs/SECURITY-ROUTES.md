@@ -664,6 +664,8 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/wittyinfo/{target}/{id}/use-anyway` | Admin | A yes or no kept for the target |
 | `PUT /api/wittyinfo/{target}/{id}/images/{role}` | Admin | Body of at most 16 MB that is a JPEG, PNG or WebP by its first bytes and decodes as one, 8192 pixels across at most; role from a fixed list. Saved as PUT is |
 | `DELETE /api/wittyinfo/{target}/{id}/images/{role}` | Admin | Saved as PUT is |
+| `PUT /api/wittyinfo/{target}/{id}/subtitles/{name}` | Admin | A video only. A name of letters, digits, dots and dashes ending .srt, .vtt, .ass or .ssa; body of at most 2 MB that is UTF-8 text; a language that is a language tag. Saved as PUT is |
+| `DELETE /api/wittyinfo/{target}/{id}/subtitles/{name}` | Admin | Saved as PUT is |
 | `GET /api/wittyinfo/{target}/{id}/files/{name...}` | Signed-in | limits. An item or show the account may see. Only members under images/ with a picture extension, already checked when the file was read; sent with its own image type, nosniff and a CSP that allows nothing |
 | `GET /api/wittyinfo/convert/counts` | Admin | Library ids as numbers, 1000 at most. Looks only at file names beside titles inside libraries, for 20 seconds at most |
 | `POST /api/wittyinfo/convert` | Admin | JSON with a fixed direction. One run at a time, as a task that can be stopped. Reads only files beside titles inside libraries, through the same size limits as a scan, and the .wittyinfo reader's checks; writes only inside libraries that aren't read-only, .wittyinfo files only when saveMetadata and saveWittyinfo are on (else into the database), NFO files and pictures only when saveMetadata is on. Renames to .bak only files it converted from, inside a library |

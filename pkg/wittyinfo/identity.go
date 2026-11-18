@@ -79,7 +79,7 @@ type Match struct {
 // MatchVideo compares a file with the video it is about to be used on. durationSec is the
 // video's length (0 if not known) and fp its fingerprint (nil if not worked out).
 func (x *Info) MatchVideo(durationSec float64, fp *Fingerprint) Match {
-	if x.ScopeOr() != ScopeItem {
+	if !x.Single() {
 		return Match{Result: MatchNotNeeded, Usable: true}
 	}
 	id := x.Identity

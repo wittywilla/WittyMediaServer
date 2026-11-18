@@ -45722,6 +45722,166 @@
         "x-wms-auth": "admin"
       }
     },
+    "/wittyinfo/{target}/{id}/subtitles/{name}": {
+      "delete": {
+        "operationId": "deleteWittyinfoSubtitle",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WittyinfoAnswer"
+                }
+              }
+            },
+            "description": "The .wittyinfo now."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Take a subtitle file out of a video's .wittyinfo.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putWittyinfoSubtitle",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "language",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "forced",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sdh",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "title",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "season",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "text/plain": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WittyinfoAnswer"
+                }
+              }
+            },
+            "description": "The .wittyinfo now."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Put a subtitle file (SRT, WebVTT, ASS or SSA, UTF-8, 2 MB at most) in a video's .wittyinfo as subtitles/\u003cname\u003e.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/wittyinfo/{target}/{id}/use-anyway": {
       "post": {
         "operationId": "useWittyinfoAnyway",

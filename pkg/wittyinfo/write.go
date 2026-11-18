@@ -24,13 +24,13 @@ func New(scope string) *Info {
 // with an id, the scope and format filled in, and members nothing names anymore dropped
 // (pictures and subtitles only: other members are kept, unused).
 func (x *Info) Tidy() {
-	x.Format = Format
+	if x.Format != FormatAudio {
+		x.Format = Format
+	}
 	if x.Version < Version {
 		x.Version = Version
 	}
-	if x.Scope == "" {
-		x.Scope = ScopeItem
-	}
+	x.Scope = x.ScopeOr()
 	sort.SliceStable(x.Segments, func(i, j int) bool { return x.Segments[i].Start < x.Segments[j].Start })
 	sort.SliceStable(x.Scenes, func(i, j int) bool { return x.Scenes[i].Start < x.Scenes[j].Start })
 	sort.SliceStable(x.Filters, func(i, j int) bool { return x.Filters[i].Start < x.Filters[j].Start })

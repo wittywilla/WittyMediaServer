@@ -351,6 +351,9 @@ func checkImage(name string, b []byte) error {
 	return nil
 }
 
+// CheckSubtitle checks that b is a subtitle file of a type the format holds, as UTF-8 text.
+func CheckSubtitle(name string, b []byte) error { return checkSubtitle(name, b) }
+
 func checkSubtitle(name string, b []byte) error {
 	if !SubtitleExts[extOf(name)] {
 		return errors.New("subtitles have to be .srt, .vtt, .ass or .ssa")
@@ -435,18 +438,21 @@ var idRe = regexp.MustCompile(`^[A-Za-z0-9_.:-]{1,64}$`)
 // Check checks everything in the manifest, and that each name it gives is in Files.
 func (x *Info) Check() error {
 	c := &checker{}
-	if x.Format != Format {
-		c.bad("format", "has to be %q", Format)
+	if x.Format != Format && x.Format != FormatAudio {
+		c.bad("format", "has to be %q (or %q for music)", Format, FormatAudio)
 	}
 	if x.Version < 1 {
 		c.bad("version", "has to be 1 or more")
 	}
 	scope := x.ScopeOr()
-	c.oneOf("scope", scope, []string{ScopeItem, ScopeSeason, ScopeShow})
+	if scopes, ok := formatScopes[x.Format]; ok {
+		c.oneOf("scope", scope, scopes)
+	}
+	single := x.Single()
 	if scope == ScopeSeason && (x.Season == nil || *x.Season < 0 || *x.Season > 9999) {
 		c.bad("season", "a season file says which season it is for")
 	}
-	if scope != ScopeItem {
+	if !single {
 		if len(x.Scenes) > 0 {
 			c.bad("scenes", "scenes belong to one video, not to a %s", scope)
 		}
@@ -624,6 +630,7 @@ func (x *Info) Check() error {
 	}
 	c.text("notes", x.Notes, MaxLongText)
 	x.checkLanguages(c)
+	x.checkAudio(c)
 	if len(x.Extensions) > 100 {
 		c.bad("extensions", "more than 100 extensions")
 	}
@@ -633,13 +640,19 @@ func (x *Info) Check() error {
 	return nil
 }
 
-// ScopeOr is the file's scope, "item" when it doesn't say.
+// ScopeOr is the file's scope, "item" (or "song" for music) when it doesn't say.
 func (x *Info) ScopeOr() string {
 	if x.Scope == "" {
+		if x.Format == FormatAudio {
+			return ScopeSong
+		}
 		return ScopeItem
 	}
 	return x.Scope
 }
+
+// Single says whether the file is for one video or one song (rather than defaults).
+func (x *Info) Single() bool { s := x.ScopeOr(); return s == ScopeItem || s == ScopeSong }
 
 func sortedKeys[V any](m map[string]V) []string {
 	out := make([]string, 0, len(m))

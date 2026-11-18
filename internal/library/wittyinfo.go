@@ -35,6 +35,9 @@ const (
 	InfoItem   = "item"
 	InfoShow   = "show"
 	InfoSeason = "season"
+	// InfoAlbum: a song's album, whose album.wittyaudio sits in the song's folder. ID is the
+	// album's first song (AlbumKey).
+	InfoAlbum = "album"
 )
 
 // InfoTarget says what a .wittyinfo is about: an item, a show, or a show's season.
@@ -48,15 +51,20 @@ func (t InfoTarget) key() (string, int64, int) {
 	if t.Kind == InfoItem {
 		return "item", t.ID, -1
 	}
+	if t.Kind == InfoAlbum {
+		return "album", t.ID, -1
+	}
 	if t.Kind == InfoShow {
 		return "show", t.ID, -1
 	}
 	return "show", t.ID, t.Season
 }
 
-// Scope is the scope a file for this target has.
+// Scope is the scope a file for this target has. A song's is "song" (see ScopeFor).
 func (t InfoTarget) Scope() string {
 	switch t.Kind {
+	case InfoAlbum:
+		return wittyinfo.ScopeAlbum
 	case InfoShow:
 		return wittyinfo.ScopeShow
 	case InfoSeason:
@@ -135,17 +143,47 @@ func (s *Store) dropEmptyInfo(ctx context.Context) {
 
 // ------------------------------------------------------------------ files beside the media
 
-// InfoPaths are where an item's .wittyinfo can be, the one to write first.
+// IsSong: an item WittyAudio plays, whose file is a .wittyaudio rather than a .wittyinfo.
+func IsSong(it *Item) bool { return it != nil && it.Kind == "audio" }
+
+// ExtFor is the extension of an item's file: .wittyaudio for a song, .wittyinfo otherwise.
+func ExtFor(it *Item) string {
+	if IsSong(it) {
+		return wittyinfo.ExtAudio
+	}
+	return wittyinfo.Ext
+}
+
+// NewFor starts a file for an item, of the right format.
+func NewFor(it *Item) *wittyinfo.Info {
+	if IsSong(it) {
+		return wittyinfo.NewAudio(wittyinfo.ScopeSong)
+	}
+	return wittyinfo.New(wittyinfo.ScopeItem)
+}
+
+// InfoPaths are where an item's .wittyinfo (a song's .wittyaudio) can be, the one to write first.
 func InfoPaths(it *Item) []string {
-	if it == nil || it.Path == "" || strings.Contains(it.Path, "://") {
+	if it == nil || it.Path == "" || strings.Contains(it.Path, "://") || it.IsCDTrack() {
 		return nil
 	}
+	ext := ExtFor(it)
 	p := filepath.Clean(it.Path)
 	trimmed := strings.TrimSuffix(p, filepath.Ext(p))
 	if trimmed == p || it.Kind == "dvd-folder" || it.Kind == "bluray-folder" {
-		return []string{p + wittyinfo.Ext}
+		return []string{p + ext}
 	}
-	return []string{trimmed + wittyinfo.Ext, p + wittyinfo.Ext}
+	return []string{trimmed + ext, p + ext}
+}
+
+// AlbumKey is the id that stands for a song's album: its album's first song in the library.
+func (s *Store) AlbumKey(ctx context.Context, it *Item) int64 {
+	var id int64
+	if s.DB.QueryRowContext(ctx, `SELECT MIN(id) FROM items WHERE library_id = ? AND kind = 'audio' AND IFNULL(album, '') = ? AND IFNULL(album_artist, '') = ?`,
+		it.LibraryID, it.Album, it.AlbumArtist).Scan(&id) != nil || id == 0 {
+		return it.ID
+	}
+	return id
 }
 
 // ShowInfoPaths are where a show's or a season's .wittyinfo can be. seasonDir is the
@@ -236,6 +274,12 @@ func (s *Store) LoadInfo(ctx context.Context, t InfoTarget) LoadedInfo {
 			return out
 		}
 		paths = InfoPaths(it)
+	case InfoAlbum:
+		it, err := s.Item(ctx, t.ID)
+		if err != nil || it.Path == "" || strings.Contains(it.Path, "://") || it.IsCDTrack() {
+			return out
+		}
+		paths = []string{filepath.Join(filepath.Dir(it.Path), "album"+wittyinfo.ExtAudio)}
 	default:
 		sh, err := s.Show(ctx, t.ID, 0)
 		if err != nil {
@@ -282,9 +326,10 @@ func (s *Store) seasonDir(ctx context.Context, showID int64, season int) string 
 	return filepath.Dir(p)
 }
 
-// ItemInfos are the files that apply to a video: its own, its season's and its show's.
+// ItemInfos are the files that apply to a video: its own, its season's and its show's; or to
+// a song: its own and its album's.
 type ItemInfos struct {
-	Item, Season, Show LoadedInfo
+	Item, Season, Show, Album LoadedInfo
 	// Match: whether the video's own file fits this cut.
 	Match wittyinfo.Match
 }
@@ -323,6 +368,9 @@ func (s *Store) InfosFor(ctx context.Context, it *Item) ItemInfos {
 		}
 		out.Show = s.LoadInfo(ctx, InfoTarget{Kind: InfoShow, ID: *it.ShowID})
 	}
+	if IsSong(it) {
+		out.Album = s.LoadInfo(ctx, InfoTarget{Kind: InfoAlbum, ID: s.AlbumKey(ctx, it)})
+	}
 	return out
 }
 
@@ -358,7 +406,7 @@ func (s *Store) IdentityOf(ctx context.Context, it *Item) *wittyinfo.Identity {
 
 // WriteInfoFile writes a .wittyinfo beside the media in one step. Only inside a library.
 func (s *Store) WriteInfoFile(ctx context.Context, path string, b []byte) error {
-	if !strings.EqualFold(filepath.Ext(path), wittyinfo.Ext) {
+	if !isInfoName(path) {
 		return errors.New("not a .wittyinfo")
 	}
 	err := writeBeside(path, b, s.Roots(ctx))
@@ -372,7 +420,7 @@ func (s *Store) WriteInfoFile(ctx context.Context, path string, b []byte) error 
 // RetireInfoFile moves a .wittyinfo beside the media out of the way, to <name>.wittyinfo.bak,
 // replacing an older .bak.
 func (s *Store) RetireInfoFile(ctx context.Context, path string) error {
-	if !strings.EqualFold(filepath.Ext(path), wittyinfo.Ext) || !s.LibraryFile(ctx, path) {
+	if !isInfoName(path) || !s.LibraryFile(ctx, path) {
 		return ErrNotInLibrary
 	}
 	b, err := readSmall(path, wittyinfo.MaxFile)
@@ -406,8 +454,12 @@ func (s *Scanner) applyInfo(ctx context.Context, it *Item) {
 		return
 	}
 	infos := s.Store.InfosFor(ctx, it)
+	lang := s.Store.serverLanguage(ctx)
+	if a := infos.Album.Info; a != nil {
+		s.takeInfo(it, a.Localize(lang)) // an album's file first: a song's own wins over it
+	}
 	if x := infos.UsableItem(); x != nil {
-		s.takeInfo(it, x.Localize(s.Store.serverLanguage(ctx)))
+		s.takeInfo(it, x.Localize(lang))
 	}
 }
 
@@ -424,11 +476,14 @@ func (s *Scanner) ApplyInfoNow(ctx context.Context, id int64) error {
 	s.applyInfo(ctx, it)
 	if it.Title == before.Title && it.SortTitle == before.SortTitle && it.Overview == before.Overview && it.Tagline == before.Tagline &&
 		it.ContentRating == before.ContentRating && it.Poster == before.Poster && it.Backdrop == before.Backdrop &&
-		strings.Join(it.Genres, "\x00") == strings.Join(before.Genres, "\x00") && intEq(it.Year, before.Year) {
+		strings.Join(it.Genres, "\x00") == strings.Join(before.Genres, "\x00") && intEq(it.Year, before.Year) &&
+		it.Artist == before.Artist && it.Album == before.Album && it.AlbumArtist == before.AlbumArtist && intEq(it.Track, before.Track) && intEq(it.DiscNo, before.DiscNo) {
 		return nil
 	}
-	_, err = s.Store.DB.ExecContext(ctx, `UPDATE items SET title = ?, sort_title = ?, year = ?, overview = ?, tagline = ?, content_rating = ?, poster = ?, backdrop = ?, genres = ? WHERE id = ?`,
-		it.Title, it.SortTitle, it.Year, it.Overview, it.Tagline, it.ContentRating, it.Poster, it.Backdrop, joinList(it.Genres), it.ID)
+	_, err = s.Store.DB.ExecContext(ctx, `UPDATE items SET title = ?, sort_title = ?, year = ?, overview = ?, tagline = ?, content_rating = ?, poster = ?, backdrop = ?, genres = ?,
+		artist = ?, album = ?, album_artist = ?, track = ?, disc_no = ? WHERE id = ?`,
+		it.Title, it.SortTitle, it.Year, it.Overview, it.Tagline, it.ContentRating, it.Poster, it.Backdrop, joinList(it.Genres),
+		it.Artist, it.Album, it.AlbumArtist, it.Track, it.DiscNo, it.ID)
 	return err
 }
 
@@ -436,11 +491,11 @@ func intEq(a, b *int) bool { return (a == nil) == (b == nil) && (a == nil || *a 
 
 func (s *Scanner) takeInfo(it *Item, x *wittyinfo.Info) {
 	if m := x.Metadata; m != nil {
-		if m.Title != "" {
+		if m.Title != "" && x.Single() {
 			it.Title = m.Title
 			it.SortTitle = SortTitle(m.Title)
 		}
-		if m.SortTitle != "" {
+		if m.SortTitle != "" && x.Single() {
 			it.SortTitle = m.SortTitle
 		}
 		if m.Year != nil {
@@ -459,6 +514,29 @@ func (s *Scanner) takeInfo(it *Item, x *wittyinfo.Info) {
 		if m.ContentRating != "" {
 			it.ContentRating = m.ContentRating
 		}
+	}
+	if a := x.Audio; a != nil {
+		if len(a.Artists) > 0 {
+			it.Artist = strings.Join(a.Artists, ", ")
+		}
+		if a.Album != "" && x.ScopeOr() != wittyinfo.ScopeArtist {
+			it.Album = a.Album
+		}
+		if a.AlbumArtist != "" {
+			it.AlbumArtist = a.AlbumArtist
+		}
+		if a.Track != nil && x.Single() {
+			v := *a.Track
+			it.Track = &v
+		}
+		if a.Disc != nil && x.Single() {
+			v := *a.Disc
+			it.DiscNo = &v
+		}
+	}
+	if x.ScopeOr() == wittyinfo.ScopeAlbum && x.Metadata != nil && x.Metadata.Title != "" {
+		// An album's title is the album's name, not each song's.
+		it.Album = x.Metadata.Title
 	}
 	if p := s.infoPicture(x, "poster"); p != "" {
 		it.Poster = p
@@ -588,9 +666,15 @@ func (x *ItemInfos) Localize(lang string) {
 	if lang == "" {
 		return
 	}
-	for _, l := range []*LoadedInfo{&x.Item, &x.Season, &x.Show} {
+	for _, l := range []*LoadedInfo{&x.Item, &x.Season, &x.Show, &x.Album} {
 		if l.Info != nil {
 			l.Info = l.Info.Localize(lang)
 		}
 	}
+}
+
+// isInfoName: a path names a .wittyinfo or a .wittyaudio, the only files written here.
+func isInfoName(path string) bool {
+	ext := filepath.Ext(path)
+	return strings.EqualFold(ext, wittyinfo.Ext) || strings.EqualFold(ext, wittyinfo.ExtAudio)
 }

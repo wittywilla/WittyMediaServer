@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
@@ -42,7 +43,7 @@ func (s *Server) convertLibraries(ctx context.Context, asked []int64) ([]int64, 
 	var out []int64
 	for _, l := range libs {
 		switch l.Type {
-		case "movies", "shows", "anime", "videos", "discs":
+		case "movies", "shows", "anime", "videos", "discs", "music", "audiobooks":
 		default:
 			continue
 		}
@@ -101,12 +102,15 @@ type convertBody struct {
 	Libraries []int64 `json:"libraries"`
 	Subtitles bool    `json:"subtitles"`
 	Retire    bool    `json:"retire"`
+	// Format: "wittyinfo" (films and shows) or "wittyaudio" (songs); left out, both. Each
+	// format runs as a task of its own, so a page can show each one's progress.
+	Format string `json:"format"`
 }
 
 // POST /api/wittyinfo/convert
 func (s *Server) handleConvert(w http.ResponseWriter, r *http.Request) {
 	var b convertBody
-	if err := readJSON(r, &b); err != nil || (b.Direction != "gather" && b.Direction != "spread") {
+	if err := readJSON(r, &b); err != nil || (b.Direction != "gather" && b.Direction != "spread") || (b.Format != "" && b.Format != "wittyinfo" && b.Format != "wittyaudio") {
 		writeErr(w, 400, `expected {"direction": "gather" or "spread", "libraries": [...], "subtitles", "retire"}`)
 		return
 	}
@@ -131,27 +135,40 @@ func (s *Server) handleConvert(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 409, "Writing NFO files and pictures beside your media is off. Turn on “Save information and artwork next to your media” first.")
 		return
 	}
-	j := &s.convertJob
+	// One run of each format at a time.
+	key := b.Format
+	if key == "" {
+		key = "all"
+	}
+	j := &s.convertJobs
 	j.mu.Lock()
-	if j.running {
+	if j.running[key] || j.running["all"] || (key == "all" && len(j.running) > 0) {
 		j.mu.Unlock()
 		writeErr(w, 409, "A conversion is already running. Wait for it to finish, or stop it in Tasks.")
 		return
 	}
-	j.running = true
+	if j.running == nil {
+		j.running = map[string]bool{}
+	}
+	j.running[key] = true
 	j.mu.Unlock()
-	done := func() { j.mu.Lock(); j.running = false; j.mu.Unlock() }
+	done := func() { j.mu.Lock(); delete(j.running, key); j.mu.Unlock() }
 
 	u := userFrom(r)
 	author := u.DisplayName
 	if author == "" {
 		author = u.Name
 	}
-	o := library.ConvertOptions{Subtitles: b.Subtitles, Retire: b.Retire, Beside: s.saveInfoBeside(r), Author: author, Tool: "WittyMediaServer", ToolVersion: s.Version}
-	title := "Gathering NFO files and pictures into .wittyinfo files"
-	if b.Direction == "spread" {
-		title = "Writing NFO files and pictures from .wittyinfo files"
+	o := library.ConvertOptions{Subtitles: b.Subtitles, Retire: b.Retire, Beside: s.saveInfoBeside(r), Author: author, Tool: "WittyMediaServer", ToolVersion: s.Version, Format: b.Format}
+	titles := map[string]string{
+		"gather/":           "Gathering NFO files, pictures and lyrics into .wittyinfo and .wittyaudio files",
+		"gather/wittyinfo":  "Gathering NFO files and pictures into .wittyinfo files",
+		"gather/wittyaudio": "Gathering lyrics, covers and album details into .wittyaudio files",
+		"spread/":           "Writing NFO files, pictures and lyrics from .wittyinfo and .wittyaudio files",
+		"spread/wittyinfo":  "Writing NFO files and pictures from .wittyinfo files",
+		"spread/wittyaudio": "Writing lyrics, covers and album details from .wittyaudio files",
 	}
+	title := titles[b.Direction+"/"+b.Format]
 	stopped, stop := context.WithCancel(context.Background())
 	task := s.Tasks.Start(tasks.Spec{Type: tasks.TypeMetadata, Title: title, Unit: "titles", By: byUser(u), Cancel: stop, AdminOnly: true})
 	sid := logging.NewID("convert")
@@ -221,5 +238,11 @@ func (s *Server) handleConvert(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 503, "the server is stopping")
 		return
 	}
-	writeJSON(w, 202, map[string]any{"ok": true, "task": task.ID(), "libraries": libs})
+	writeJSON(w, 202, map[string]any{"ok": true, "task": task.ID(), "libraries": libs, "format": b.Format})
+}
+
+// convertJobs: the formats being converted now.
+type convertJobs struct {
+	mu      sync.Mutex
+	running map[string]bool
 }

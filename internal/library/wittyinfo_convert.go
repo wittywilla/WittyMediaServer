@@ -40,7 +40,11 @@ type ConvertOptions struct {
 	Beside bool
 	// Author and Tool go in the files' authorship.
 	Author, Tool, ToolVersion string
+	// Format: "wittyinfo" (films and shows) or "wittyaudio" (songs and albums); "" both.
+	Format string
 }
+
+func (o ConvertOptions) does(format string) bool { return o.Format == "" || o.Format == format }
 
 // ConvertReport says what a conversion did.
 type ConvertReport struct {
@@ -62,17 +66,23 @@ func (r *ConvertReport) fail(what string, err error) {
 
 // ConvertCounts says how much a conversion would find, for setup to offer it.
 type ConvertCounts struct {
-	Titles     int `json:"titles"`
-	WithNFO    int `json:"withNfo"`
-	WithArt    int `json:"withArt"`
-	WithSkips  int `json:"withSkips"`
-	WithInfo   int `json:"withInfo"`
-	Shows      int `json:"shows"`
-	ShowsInfo  int `json:"showsWithInfo"`
-	ShowsNFO   int `json:"showsWithNfo"`
-	Libraries  int `json:"libraries"`
-	ReadOnly   int `json:"readOnlyLibraries"`
-	TookMillis int `json:"tookMs"`
+	Titles          int `json:"titles"`
+	WithNFO         int `json:"withNfo"`
+	WithArt         int `json:"withArt"`
+	WithSkips       int `json:"withSkips"`
+	WithInfo        int `json:"withInfo"`
+	Shows           int `json:"shows"`
+	ShowsInfo       int `json:"showsWithInfo"`
+	ShowsNFO        int `json:"showsWithNfo"`
+	Songs           int `json:"songs"`
+	SongsWithLyrics int `json:"songsWithLyrics"`
+	SongsWithInfo   int `json:"songsWithInfo"`
+	Albums          int `json:"albums"`
+	AlbumsWithArt   int `json:"albumsWithArt"`
+	AlbumsWithInfo  int `json:"albumsWithInfo"`
+	Libraries       int `json:"libraries"`
+	ReadOnly        int `json:"readOnlyLibraries"`
+	TookMillis      int `json:"tookMs"`
 }
 
 // convertKinds are the items a .wittyinfo is for.
@@ -434,16 +444,24 @@ func (s *Store) retire(ctx context.Context, paths []string) int {
 // told how far it has got.
 func (s *Scanner) GatherInfo(ctx context.Context, libs []int64, o ConvertOptions, progress func(done, total int, what string)) (ConvertReport, error) {
 	var rep ConvertReport
-	items, err := s.Store.convertItemIDs(ctx, libs)
-	if err != nil {
-		return rep, err
+	var items, shows, songs []int64
+	var err error
+	if o.does(wittyinfo.Format) {
+		if items, err = s.Store.convertItemIDs(ctx, libs); err != nil {
+			return rep, err
+		}
+		if shows, err = s.Store.convertShowIDs(ctx, libs); err != nil {
+			return rep, err
+		}
 	}
-	shows, err := s.Store.convertShowIDs(ctx, libs)
-	if err != nil {
-		return rep, err
+	if o.does(wittyinfo.FormatAudio) {
+		if songs, err = s.Store.songIDs(ctx, libs); err != nil {
+			return rep, err
+		}
 	}
-	total := len(items) + len(shows)
+	total := len(items) + len(shows) + len(songs)
 	done := 0
+
 	for _, id := range items {
 		if err := ctx.Err(); err != nil {
 			return rep, err
@@ -587,7 +605,15 @@ func (s *Scanner) GatherInfo(ctx context.Context, libs []int64, o ConvertOptions
 			rep.Unchanged++
 		}
 	}
-	return rep, nil
+	if o.does(wittyinfo.FormatAudio) {
+		err = s.gatherSongs(ctx, libs, o, &rep, func(what string) {
+			done++
+			if progress != nil {
+				progress(done, total, what)
+			}
+		})
+	}
+	return rep, err
 }
 
 func (s *Store) seasonsOf(ctx context.Context, showID int64) []int {
@@ -612,17 +638,24 @@ func (s *Store) seasonsOf(ctx context.Context, showID int64) []int {
 // pictures, a .skip.json and subtitle files, in the language the server is in.
 func (s *Scanner) SpreadInfo(ctx context.Context, libs []int64, o ConvertOptions, progress func(done, total int, what string)) (ConvertReport, error) {
 	var rep ConvertReport
-	items, err := s.Store.convertItemIDs(ctx, libs)
-	if err != nil {
-		return rep, err
+	var items, shows, songs []int64
+	var err error
+	if o.does(wittyinfo.Format) {
+		if items, err = s.Store.convertItemIDs(ctx, libs); err != nil {
+			return rep, err
+		}
+		if shows, err = s.Store.convertShowIDs(ctx, libs); err != nil {
+			return rep, err
+		}
 	}
-	shows, err := s.Store.convertShowIDs(ctx, libs)
-	if err != nil {
-		return rep, err
+	if o.does(wittyinfo.FormatAudio) {
+		if songs, err = s.Store.songIDs(ctx, libs); err != nil {
+			return rep, err
+		}
 	}
 	lang := s.Store.serverLanguage(ctx)
 	roots := s.Store.Roots(ctx)
-	total, done := len(items)+len(shows), 0
+	total, done := len(items)+len(shows)+len(songs), 0
 	for _, id := range items {
 		if err := ctx.Err(); err != nil {
 			return rep, err
@@ -743,7 +776,15 @@ func (s *Scanner) SpreadInfo(ctx context.Context, libs []int64, o ConvertOptions
 			_ = s.Store.SetStoredInfo(ctx, t, nil)
 		}
 	}
-	return rep, nil
+	if o.does(wittyinfo.FormatAudio) {
+		err = s.spreadSongs(ctx, libs, o, &rep, func(what string) {
+			done++
+			if progress != nil {
+				progress(done, total, what)
+			}
+		})
+	}
+	return rep, err
 }
 
 // ------------------------------------------------------------------ counting
@@ -805,6 +846,9 @@ func (s *Store) CountConvertible(ctx context.Context, libs []int64) (ConvertCoun
 		if fileThere(filepath.Join(sh.Path, "show"+wittyinfo.Ext)) {
 			c.ShowsInfo++
 		}
+	}
+	if err := s.countSongs(ctx, libs, &c); err != nil {
+		return c, err
 	}
 	c.TookMillis = int(time.Since(began).Milliseconds())
 	return c, nil

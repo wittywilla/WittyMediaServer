@@ -10,12 +10,14 @@ import (
 	"io"
 	"net/http"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/lyrics"
 	"github.com/wittywilla/wittymediaserver/internal/playback"
 	"github.com/wittywilla/wittymediaserver/pkg/langtag"
 	"github.com/wittywilla/wittymediaserver/pkg/wittyinfo"
@@ -38,6 +40,8 @@ func (s *Server) wittyinfoRoutes(m *http.ServeMux) {
 	m.Handle("POST /api/wittyinfo/{target}/{id}/use-anyway", ad(s.handleInfoForce))
 	m.Handle("PUT /api/wittyinfo/{target}/{id}/images/{role}", ad(s.handleInfoImagePut))
 	m.Handle("DELETE /api/wittyinfo/{target}/{id}/images/{role}", ad(s.handleInfoImageDelete))
+	m.Handle("PUT /api/wittyinfo/{target}/{id}/subtitles/{name}", ad(s.handleInfoSubtitlePut))
+	m.Handle("DELETE /api/wittyinfo/{target}/{id}/subtitles/{name}", ad(s.handleInfoSubtitleDelete))
 	m.Handle("GET /api/wittyinfo/{target}/{id}/files/{name...}", s.requireUser(s.handleInfoFile))
 }
 
@@ -47,7 +51,7 @@ func infoUploadPath(p string) bool {
 		p = "/api/" + rest
 	}
 	rest, ok := strings.CutPrefix(p, "/api/wittyinfo/")
-	return ok && (strings.HasSuffix(rest, "/import") || strings.Contains(rest, "/images/"))
+	return ok && (strings.HasSuffix(rest, "/import") || strings.Contains(rest, "/images/") || strings.Contains(rest, "/subtitles/"))
 }
 
 // saveInfoBeside: may an edit be written beside the media?
@@ -69,11 +73,19 @@ func (s *Server) infoTarget(w http.ResponseWriter, r *http.Request) (library.Inf
 			writeErr(w, 404, "not found")
 			return library.InfoTarget{}, nil, false
 		}
-		if it.Kind != "video" && !library.IsDiscKind(it.Kind) {
-			writeErr(w, 400, "a .wittyinfo is for films and episodes")
+		if it.Kind != "video" && !library.IsDiscKind(it.Kind) && !library.IsSong(it) {
+			writeErr(w, 400, "a .wittyinfo is for films and episodes, and a .wittyaudio for songs")
 			return library.InfoTarget{}, nil, false
 		}
 		return library.InfoTarget{Kind: library.InfoItem, ID: id}, it, true
+	case "album":
+		// /api/wittyinfo/album/{a song's id}: that song's album.wittyaudio.
+		it, err := s.visibleItem(r, id)
+		if err != nil || !library.IsSong(it) {
+			writeErr(w, 404, "not found")
+			return library.InfoTarget{}, nil, false
+		}
+		return library.InfoTarget{Kind: library.InfoAlbum, ID: s.Store.AlbumKey(r.Context(), it)}, nil, true
 	case "show":
 		if _, err := s.visibleShow(r, id); err != nil {
 			writeErr(w, 404, "not found")
@@ -258,6 +270,13 @@ type infoEdit struct {
 func (s *Server) saveInfo(w http.ResponseWriter, r *http.Request, t library.InfoTarget, it *library.Item, x *wittyinfo.Info) bool {
 	ctx := r.Context()
 	x.Scope = t.Scope()
+	if it != nil && library.IsSong(it) {
+		x.Format, x.Scope = wittyinfo.FormatAudio, wittyinfo.ScopeSong
+	} else if t.Kind == library.InfoAlbum {
+		x.Format = wittyinfo.FormatAudio
+	} else {
+		x.Format = wittyinfo.Format
+	}
 	if t.Kind == library.InfoSeason {
 		n := t.Season
 		x.Season = &n
@@ -318,7 +337,11 @@ func (s *Server) currentInfo(r *http.Request, t library.InfoTarget, it *library.
 		return l.Info.Clone()
 	}
 	x := wittyinfo.New(t.Scope())
+	if t.Kind == library.InfoAlbum {
+		x = wittyinfo.NewAudio(wittyinfo.ScopeAlbum)
+	}
 	if it != nil {
+		x = library.NewFor(it)
 		x.Identity = s.Store.IdentityOf(r.Context(), it)
 	}
 	return x
@@ -466,8 +489,12 @@ func (s *Server) handleInfoImport(w http.ResponseWriter, r *http.Request) {
 		writeInfoErr(w, err)
 		return
 	}
-	if x.ScopeOr() != t.Scope() {
-		writeErr(w, 400, "This .wittyinfo is for a "+x.ScopeOr()+", not a "+t.Scope()+".")
+	want := t.Scope()
+	if it != nil && library.IsSong(it) {
+		want = wittyinfo.ScopeSong
+	}
+	if x.ScopeOr() != want {
+		writeErr(w, 400, "This file is for a "+x.ScopeOr()+", not a "+want+".")
 		return
 	}
 	if !s.saveInfo(w, r, t, it, x) {
@@ -715,4 +742,144 @@ func (s *Server) addInfoSubtitles(ctx context.Context, it *library.Item, src *pl
 		src.Subtitles = append(src.Subtitles, playback.Subtitle{Codec: infoSubtitleCodecs[f.Format], Language: f.Language, Title: f.Title,
 			Forced: f.Forced, SDH: f.SDH, File: f.Path, Format: f.Format})
 	}
+}
+
+// ------------------------------------------------------------------ subtitles in the file
+
+var infoSubtitleName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,80}\.(srt|vtt|ass|ssa)$`)
+
+// PUT /api/wittyinfo/{target}/{id}/subtitles/{name}?language=de&forced=1&sdh=1&title=…: a
+// subtitle file (SRT, WebVTT, ASS or SSA, UTF-8, 2 MB at most) as the body, kept in the file
+// as subtitles/<name>. The same name again replaces it.
+func (s *Server) handleInfoSubtitlePut(w http.ResponseWriter, r *http.Request) {
+	t, it, ok := s.infoTarget(w, r)
+	if !ok {
+		return
+	}
+	if t.Kind != library.InfoItem {
+		writeErr(w, 400, "Subtitles belong to one video.")
+		return
+	}
+	name := r.PathValue("name")
+	if !infoSubtitleName.MatchString(name) {
+		writeErr(w, 400, "Name it like de.forced.srt: letters, digits, dots and dashes, ending .srt, .vtt, .ass or .ssa.")
+		return
+	}
+	q := r.URL.Query()
+	lang := q.Get("language")
+	if lang != "" && !langtag.Valid(lang) {
+		writeErr(w, 400, "language: a language code such as de or pt-BR")
+		return
+	}
+	b, err := io.ReadAll(http.MaxBytesReader(w, r.Body, wittyinfo.MaxSubtitle+1))
+	if err != nil || len(b) > wittyinfo.MaxSubtitle {
+		writeErr(w, 413, "A subtitle file can be 2 MB at most.")
+		return
+	}
+	member := "subtitles/" + name
+	if err := wittyinfo.CheckSubtitle(member, b); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	x := s.currentInfo(r, t, it)
+	if x.Files == nil {
+		x.Files = map[string][]byte{}
+	}
+	x.Files[member] = b
+	sub := wittyinfo.Subtitle{File: member, Language: lang, Title: q.Get("title"), Forced: q.Get("forced") == "1", SDH: q.Get("sdh") == "1"}
+	kept := x.Subtitles[:0]
+	for _, old := range x.Subtitles {
+		if old.File != member {
+			kept = append(kept, old)
+		}
+	}
+	x.Subtitles = append(kept, sub)
+	if !s.saveInfo(w, r, t, it, x) {
+		return
+	}
+	writeJSON(w, 200, s.infoAnswerFor(r, t, it))
+}
+
+// DELETE /api/wittyinfo/{target}/{id}/subtitles/{name}
+func (s *Server) handleInfoSubtitleDelete(w http.ResponseWriter, r *http.Request) {
+	t, it, ok := s.infoTarget(w, r)
+	if !ok {
+		return
+	}
+	member := "subtitles/" + r.PathValue("name")
+	x := s.currentInfo(r, t, it)
+	kept := x.Subtitles[:0]
+	for _, old := range x.Subtitles {
+		if old.File != member {
+			kept = append(kept, old)
+		}
+	}
+	x.Subtitles = kept
+	if !s.saveInfo(w, r, t, it, x) {
+		return
+	}
+	writeJSON(w, 200, s.infoAnswerFor(r, t, it))
+}
+
+// ------------------------------------------------------------------ songs
+
+// songInfo is a song's own .wittyaudio when it fits the song, else its album's, in lang.
+func (s *Server) songInfo(ctx context.Context, it *library.Item, lang string) (song, album *wittyinfo.Info) {
+	if !library.IsSong(it) {
+		return nil, nil
+	}
+	infos := s.Store.InfosFor(ctx, it)
+	infos.Localize(lang)
+	return infos.UsableItem(), infos.Album.Info
+}
+
+// infoLyrics are a song's lyrics from its .wittyaudio, as the lyrics reader has them.
+func infoLyrics(l *wittyinfo.Lyrics) lyrics.Doc {
+	if l == nil {
+		return lyrics.Doc{}
+	}
+	var d lyrics.Doc
+	ms := func(v wittyinfo.Seconds) int64 { return int64(float64(v)*1000 + 0.5) }
+	for i, ln := range l.Lines {
+		out := lyrics.Line{T: ms(ln.Start), Text: ln.Text}
+		if ln.End != nil {
+			out.End = ms(*ln.End)
+		} else if i+1 < len(l.Lines) {
+			out.End = ms(l.Lines[i+1].Start)
+		}
+		for _, w := range ln.Words {
+			out.Words = append(out.Words, lyrics.Word{T: ms(w.Start), Text: w.Text})
+		}
+		d.Timed = append(d.Timed, out)
+	}
+	if len(d.Timed) == 0 {
+		d.Plain = l.Plain
+	}
+	return d
+}
+
+// infoLoudness is a song's loudness from its .wittyaudio (or its album's), if it says.
+func (s *Server) infoLoudness(ctx context.Context, it *library.Item) (loudness, bool) {
+	song, album := s.songInfo(ctx, it, "")
+	var out loudness
+	got := false
+	for _, x := range []*wittyinfo.Info{album, song} {
+		if x == nil || x.Audio == nil || x.Audio.Loudness == nil {
+			continue
+		}
+		g := x.Audio.Loudness
+		if g.TrackGain != nil {
+			out.TrackDB, got = g.TrackGain, true
+		}
+		if g.TrackPeak != nil {
+			out.TrackPeak, got = g.TrackPeak, true
+		}
+		if g.AlbumGain != nil {
+			out.AlbumDB, got = g.AlbumGain, true
+		}
+		if g.AlbumPeak != nil {
+			out.AlbumPeak, got = g.AlbumPeak, true
+		}
+	}
+	return out, got
 }

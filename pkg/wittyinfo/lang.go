@@ -30,8 +30,12 @@ type Translation struct {
 	Filters  map[string]TextPart `json:"filters,omitempty"`
 	Metadata *Metadata           `json:"metadata,omitempty"`
 	Notes    string              `json:"notes,omitempty"`
+	// Lyrics: a song's words in this language (a .wittyaudio), timed like the song's own.
+	Lyrics *Lyrics `json:"lyrics,omitempty"`
 	Extra
 }
+
+func validTag(s string) bool { return langtag.Valid(s) }
 
 // TextPart is the text of one segment, scene or filter in another language.
 type TextPart struct {
@@ -141,6 +145,7 @@ func (x *Info) checkLanguages(c *checker) {
 			c.list(w+".metadata.trivia", m.Trivia, 2000)
 		}
 		c.text(w+".notes", tr.Notes, MaxLongText)
+		checkLyrics(c, w+".lyrics", tr.Lyrics)
 	}
 }
 
@@ -259,6 +264,13 @@ func (x *Info) Localize(want string) *Info {
 		}
 	}
 	y.Notes = firstNonEmpty(tr.Notes, y.Notes)
+	if tr.Lyrics != nil && (len(tr.Lyrics.Lines) > 0 || tr.Lyrics.Plain != "") && y.Audio != nil {
+		l := *tr.Lyrics
+		if l.Language == "" {
+			l.Language = key
+		}
+		y.Audio.Lyrics = &l
+	}
 	return y
 }
 

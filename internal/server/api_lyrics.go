@@ -139,6 +139,12 @@ func (s *Server) localLyrics(ctx context.Context, it *library.Item) (lyrics.Doc,
 	if it.IsCDTrack() || isWeb(it.Path) || !s.Store.LibraryFile(ctx, it.Path) {
 		return lyrics.Doc{}, ""
 	}
+	// The song's .wittyaudio first, in the viewer's language when it has them in it.
+	if song, _ := s.songInfo(ctx, it, langFrom(ctx)); song != nil && song.Audio != nil {
+		if d := infoLyrics(song.Audio.Lyrics); !d.Empty() {
+			return d, "wittyaudio"
+		}
+	}
 	if d := s.sidecarLyrics(ctx, it.Path); !d.Empty() {
 		return d, "sidecar"
 	}
@@ -493,7 +499,7 @@ func (s *Server) handleLyrics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	it := t.it
-	ctx := r.Context()
+	ctx := s.withViewerLanguage(r)
 	u := userFrom(r)
 	out := lyricsReply{ItemID: t.asked.ID, Lines: []lyrics.Line{}, CanEdit: u.IsAdmin, OffsetMS: s.lyricsOffset(ctx, u.ID, t.asked.ID, t.defaultMS)}
 	if it != t.asked {

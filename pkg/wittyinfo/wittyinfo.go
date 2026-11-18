@@ -112,7 +112,9 @@ type Info struct {
 	Notes     string     `json:"notes,omitempty"`
 	// Language: the language the file's own text is in. Translations: the same text in
 	// others, by language tag (lang.go).
-	Language     string                  `json:"language,omitempty"`
+	Language string `json:"language,omitempty"`
+	// Audio: music details, in a .wittyaudio only (audio.go).
+	Audio        *Audio                  `json:"audio,omitempty"`
 	Translations map[string]*Translation `json:"translations,omitempty"`
 	// Extensions: anything a tool wants to keep, under a name of its own ("tool.key").
 	// Kept as it is and never used by this package.

@@ -120,24 +120,24 @@ type Server struct {
 		sync.Mutex
 		m map[string]*ffmpeg.Probe
 	}
-	stream     streamTokens
-	radio      radioLive
-	pair       pairings
-	introJob   introJob    // finding intros by ear: one run at a time
-	convertJob introJob    // converting to and from .wittyinfo: one run at a time
-	mediaJobs  mediaJobs   // stems and canvases being made: one at a time
-	karaoke    karaokeAuto // the separator found, and who asked for what lately
-	subtitles  subtitleFiles
-	idOnce     sync.Once
-	id         *identity.Identity
-	idErr      error
-	netState   atomic.Pointer[netState]
-	applyMu    sync.Mutex // one change of the remote access settings at a time
-	reach      reachTest
-	outside    outsideSeen
-	p2p        p2pState // peer-to-peer connections: see api_p2p.go
-	routerMu   sync.Mutex
-	router     *portmap.Probe // the latest "check my router"
+	stream      streamTokens
+	radio       radioLive
+	pair        pairings
+	introJob    introJob    // finding intros by ear: one run at a time
+	convertJobs convertJobs // converting to and from .wittyinfo and .wittyaudio: one run of each at a time
+	mediaJobs   mediaJobs   // stems and canvases being made: one at a time
+	karaoke     karaokeAuto // the separator found, and who asked for what lately
+	subtitles   subtitleFiles
+	idOnce      sync.Once
+	id          *identity.Identity
+	idErr       error
+	netState    atomic.Pointer[netState]
+	applyMu     sync.Mutex // one change of the remote access settings at a time
+	reach       reachTest
+	outside     outsideSeen
+	p2p         p2pState // peer-to-peer connections: see api_p2p.go
+	routerMu    sync.Mutex
+	router      *portmap.Probe // the latest "check my router"
 
 	// setupFinished caches that first run is over: once it is, nothing about it is asked again.
 	setupFinished atomic.Bool

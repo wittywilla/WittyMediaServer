@@ -6,6 +6,7 @@ import { HelpLink } from '../components/HelpLink'
 import { IconClose, IconFull, IconNext, IconPause, IconPlay, IconPrev } from '../icons'
 import { IconSliders } from './icons'
 import { useMedia } from '../shell/useNav'
+import { UseAComputer, advancedHere } from '../ui/advanced'
 import { lineAt, ownTiming, useLineIndex, wordTimes, type LyricLine, type useLyrics } from './lyrics'
 import { KaraokeStemsControl, useKaraokeStems } from './KaraokeStems'
 import { Pop } from './controls'
@@ -94,6 +95,7 @@ export default function Karaoke({ p, ly, onClose, behind, choice, cover = '', co
   // more"), opened at the thumb beside play, instead of a page that scrolls the words away to reach them.
   const phone = useMedia('(max-width: 700px)')
   const [sheet, setSheet] = useState(false)
+  const [walled, setWalled] = useState(false) // Voice settings asked for on a phone or TV (ui/advanced.tsx)
   useEffect(() => { if (!phone) setSheet(false) }, [phone])
 
   useEffect(() => {
@@ -154,7 +156,7 @@ export default function Karaoke({ p, ly, onClose, behind, choice, cover = '', co
         <span aria-live="polite">Words {offset === 0 ? 'on time' : `${offset > 0 ? '+' : ''}${(offset / 1000).toFixed(1)} s`}{lyrics?.autoSync === 'set' && offset === ownTiming(lyrics) ? ' (by listening)' : ''}</span>
         <button type="button" onClick={() => setOffset(offset + 100)} aria-label="Words later">+</button>
       </div>}
-      {!hide.includes('fx') && <button type="button" className={'kar-chip kar-fx-btn' + (fxOpen || !isOff(stems.fx) ? ' on' : '')} aria-expanded={fxOpen} onClick={() => { setSheet(false); setFxOpen(!fxOpen) }} title="Echo, reverb, tone and more, for the voice and the music">Voice settings</button>}
+      {!hide.includes('fx') && <button type="button" className={'kar-chip kar-fx-btn' + (fxOpen || !isOff(stems.fx) ? ' on' : '')} aria-expanded={fxOpen} onClick={() => { setSheet(false); if (advancedHere()) setFxOpen(!fxOpen); else setWalled(true) }} title="Echo, reverb, tone and more, for the voice and the music">Voice settings</button>}
       {onHide && (
         <Pop up label={hide.length ? `Controls shown: ${KAR_PARTS.length - hide.length} of ${KAR_PARTS.length}` : 'Choose the controls shown'} className={'np-chip-pop kar-show' + (hide.length ? ' on' : '')} icon={<span>Controls</span>}>
           {() => (
@@ -217,6 +219,7 @@ export default function Karaoke({ p, ly, onClose, behind, choice, cover = '', co
           ? <button type="button" className="kar-chip kar-sheet-btn" aria-haspopup="dialog" aria-expanded={sheet} onClick={() => setSheet(true)}><IconSliders size={20} /> Mix and more</button>
           : <><span className="kar-rule" aria-hidden="true" />{tools}</>}
       </footer>
+      {walled && <UseAComputer what="Voice settings" onClose={() => setWalled(false)} />}
       {phone && sheet && (
         <div className="kar-sheet-backdrop" onClick={() => setSheet(false)}>
           <div className="kar-sheet" role="dialog" aria-modal="true" aria-label="Mix and more" onClick={(e) => e.stopPropagation()}>

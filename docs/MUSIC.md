@@ -117,11 +117,11 @@ Press the artwork or title in the bar, or **Full screen**. **F** then fills the 
 ![The full-screen player, with a large album cover and controls](images/music-full.webp)
 *The full-screen player. [Collide](https://archive.org/details/SRS08807), Aryll Fae, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).*
 
-**Top row:** close, volume, add to a playlist, sleep timer, queue, like, fill the screen, and **More**. **More** has **Sound: equaliser and more**, **Start a station from this song**, **Go to album**, **Go to artist** and **Stop and close**.
+**Top row:** close, volume, add to a playlist, sleep timer, queue, like, fill the screen, and **More**. **More** has the **Speed** (0.75× to 3×), **Sound: equaliser and more**, **Start a station from this song**, **Go to album**, **Go to artist** and **Stop and close**. A speed other than normal shows as a chip under the controls; press it for normal speed. On a phone the top row keeps close, queue, like, party, cast and **More**, and the sleep timer is in **More**.
 
-**Below the controls:** **Visualizer** and its styles, **Lyrics**, **Karaoke**, **Read** and playback speed.
+**Below the controls:** what's behind the player (**Album art**, **Canvas video** or **Visualizer**, and the visualizer's styles), **Look**, **Lyrics** and **Karaoke**.
 
-**Read** shows the words at your own pace, and whatever came with the album: text files open in the panel, and a PDF booklet opens in a new tab. A text file named after one song counts as that song's lyrics instead.
+**Lyrics** opens the words with a switch at the top: **In time** follows the song, and **Read** shows them at your own pace, and whatever came with the album: text files open in the panel, and a PDF booklet opens in a new tab. A text file named after one song counts as that song's lyrics instead.
 
 **The sleep timer** stops playing in 15, 30, 45, 60 or 90 minutes, or **After this song**.
 
@@ -143,6 +143,24 @@ Press the artwork or title in the bar, or **Full screen**. **F** then fills the 
 
 Up, Down or OK moves onto the controls, and arrows then move between them, so a remote or a controller reaches everything.
 
+### Look: how the cover looks
+
+**Look** chooses how the cover is drawn, for **Every song** or **This song** alone (a song with a look of its own is marked, and **Use every song's look** forgets it). Each choice is a small picture of itself, drawn with the song's own cover.
+
+| Cover | |
+|---|---|
+| Cover | The picture as it is, softly rounded |
+| Round | Cut to a circle |
+| Record | The cover as the label of a record that turns while the music plays |
+| Disc | Printed on a disc that spins, with a rainbow sheen |
+| Snapshot | An instant photo, a little crooked, the song's name written under it |
+| Float | Leans towards the pointer, a light gliding across it |
+| Drift | Pans and zooms slowly across the picture |
+
+**Behind the player:** a **Glow** of the cover's colour, the **Blurred cover** filling the screen, the **Whole cover** dimmed, **Plain**, the song's **Canvas video**, or the **Visualizer**. **Canvas video** plays **Behind everything**, **In the cover's place** (cut to the cover's shape, here, in the bar and beside karaoke's words) or **Both**. **Touches:** a reflection under the cover, and a gentle pulse with the beat. Nothing moves for someone whose device asks for less motion.
+
+The look is kept with your account, so it is the same on every device. Karaoke follows it: the cover beside the words takes the same look, and what's behind the words follows **Behind the player**.
+
 ### Canvas: a looping video behind the song
 
 A song or an album can have a *canvas*: a short, silent video for an app to loop behind its full-screen player. Put it beside the music:
@@ -158,7 +176,9 @@ You can also put one in the [metadata folder](METADATA-FOLDER.md), named like th
 
 Keep it short (3 to 8 seconds is usual), silent, and small: an upload can be up to 30 MB. A file beside the media that is over 64 MB, or longer than a minute, isn't taken for a canvas: it would be sent to every phone that opened the title. MP4 (H.264) plays everywhere; WebM plays in browsers and Android. An administrator can upload one for any song or title, which is kept in the server's own folder and wins over one beside the media. Apps ask `GET /api/v1/media/{id}/canvas`, and get the video itself with byte ranges and a day's caching. See [the client API](CLIENT-API.md#media-extras).
 
-**From the video itself.** For a film or an episode with no canvas, an administrator can have the server cut one: `POST /api/v1/media/{id}/canvas/generate`, with `startSec` and `durationSec` if the default (a quarter of the way in, 5 to 8 seconds) isn't wanted. It is a [task](TASKS.md) at low priority: FFmpeg takes a few seconds of the picture, drops the sound, makes it small (720 lines at most, 480 or 360 on a small machine), and fades its end into its start so the loop has no jump. It needs an FFmpeg with an H.264 encoder (`libx264`). A song has no picture to cut from, so a song's canvas is always one you supply.
+**The Canvas studio.** An administrator makes one in the **Canvas studio**: from **Look** in the full player, or **Canvas** on a film's, an episode's or an album's page. It shows the canvas there is, and makes a new one **From this device** (an MP4, MOV or WebM clip of up to 512 MB: only the part chosen is kept, and the clip is deleted), from **A video on the server** (a song's own music videos first, then any video found by searching), or from the title's own video. The loop editor shows the whole video above, and a minute around the loop below with pictures along it; drag the two handles, or drag the part between them, or use the arrow keys on a handle (a tenth of a second; Shift for a second, Page Up and Page Down for five). **Play the loop** plays it round and round, and **The seam** shows its last frame beside its first. **Blend the end into the start** (on unless turned off) hides the join. **Set its loop** chooses the part of an existing canvas that loops, with no new file made. The studio is for a computer: on a phone, a tablet or a TV it says so, and what is made on a computer plays there too.
+
+**From the video itself.** The server cuts it: `POST /api/v1/media/{id}/canvas/generate`, with `startSec` and `durationSec` if the default (a quarter of the way in, 5 to 8 seconds) isn't wanted, `fromId` for another video to cut from (a song's music video, say), and `crossfade: false` for no blend. Black bars in the source are cropped away. It is a [task](TASKS.md) at low priority: FFmpeg takes a few seconds of the picture, drops the sound, makes it small (720 lines at most, 480 or 360 on a small machine), and fades its end into its start so the loop has no jump. It needs an FFmpeg with an H.264 encoder (`libx264`). A song has no picture of its own, so its canvas comes from another video, a clip or a file you supply.
 
 **In the web app.** A canvas plays behind the full-screen player while the music does, behind an album's page, and behind a film's, an episode's or a show's page in place of the still backdrop. It is silent, it loops, and it is decoration: it never takes the keyboard and a screen reader isn't told of it. The still artwork stays until the video is really playing, and whenever it can't.
 
@@ -171,7 +191,7 @@ It gives way to everything else. It isn't fetched at all when:
 
 It is only fetched while it would be seen, so one that's scrolled off the page isn't, and it stops while the tab is hidden or the music is paused.
 
-An administrator finds **Canvas** on a film's or an episode's page, and on an album's page for each of its songs: it shows what the title has, cuts one from the video with the progress of that task, uploads one, and removes one that was uploaded or cut. One beside the media is removed from its folder.
+An administrator finds **Canvas** on a film's or an episode's page, and on an album's page for each of its songs: it opens the Canvas studio. One beside the media is removed from its folder.
 
 A canvas beside the media isn't listed as a title of its own: the scan leaves out `Name.canvas.mp4` beside `Name`, and a `canvas.mp4` (up to 64 MB) in a folder that holds titles.
 

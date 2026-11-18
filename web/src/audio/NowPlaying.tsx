@@ -2,6 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { useMedia } from '../shell/useNav'
 import { useApp } from '../state'
+import { UseAComputer, advancedHere } from '../ui/advanced'
 import ArtView from './ArtView'
 import LookPanel, { type LookMode } from './LookPanel'
 import { DEFAULT_LOOK, lookFor, publishLook, readLook, readSongLooks, setSongLook, type Look, type SongLook } from './look'
@@ -180,6 +181,8 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
     else setPrefs({ viz: false, canvas: m === 'canvas' })
   }
   const [studio, setStudio] = useState(false)
+  // An advanced setting asked for on a phone, tablet or TV: where to make it instead (ui/advanced.tsx).
+  const [walled, setWalled] = useState('')
 
   // Shuffle: only ever because someone chose it. Their own styles to pick from, or every
   // effect there is, the lively shaders among them only once the flashing notice has been
@@ -392,7 +395,7 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
                     )}
                   </Pop>}
                 </div>}
-                {prefs.viz && p.vizHere && shaders.length > 0 && <button type="button" className={'np-chip' + (effectsOpen ? ' on' : '')} aria-expanded={effectsOpen} title="Effects and their settings" onClick={() => setEffectsOpen(!effectsOpen)}><IconVisualizer size={18} /> Effects</button>}
+                {prefs.viz && p.vizHere && shaders.length > 0 && <button type="button" className={'np-chip' + (effectsOpen ? ' on' : '')} aria-expanded={effectsOpen} title="Effects and their settings" onClick={() => (advancedHere() ? setEffectsOpen(!effectsOpen) : setWalled('Visualizer effects'))}><IconVisualizer size={18} /> Effects</button>}
                 {prefs.viz && p.vizHere && shaders.length > 0 && effectsOpen && <EffectChips effects={shaders} current={style} onPick={pickStyle} />}
                 {prefs.viz && <button type="button" className={'np-chip slow-chip' + (prefs.slow ? ' on' : '')} aria-pressed={prefs.slow} title="A slower, gentler pace" onClick={() => setPrefs({ slow: !prefs.slow })}><IconTurtle size={20} /> Slow</button>}
                 {prefs.viz && (
@@ -470,6 +473,7 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
         {canSing && <> · <kbd>L</kbd> lyrics · <kbd>K</kbd> karaoke</>}{!p.live && <> · <kbd>V</kbd> visualizer</>}
       </p>
       <div className="mp-sr" aria-live="polite">{said}</div>
+      {walled && <UseAComputer what={walled} onClose={() => setWalled('')} />}
       {studio && <Suspense fallback={null}><CanvasStudio itemId={it.id} title={it.title} kind="song" runtimeSec={p.duration} artist={it.artist || it.albumArtist || ''} onClose={() => setStudio(false)} /></Suspense>}
       {karaoke && <Suspense fallback={null}><Karaoke p={p} ly={ly} choice={behindChoice} behind={karaokeBehind} cover={artUrl} coverArt={karCover} coverBeside={prefs.karArt} onCoverBeside={(on) => setPrefs({ karArt: on })} hide={prefs.karHide} onHide={(h) => setPrefs({ karHide: h })} onClose={() => { setKaraoke(false); root.current?.focus({ preventScroll: true }) }} /></Suspense>}
     </div>

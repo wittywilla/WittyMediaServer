@@ -64,6 +64,8 @@ export const ENTRIES: Entry[] = [
   { page: 'transcoding', title: 'Allow direct play', section: 'Playback', words: 'maximum resolution sound format' },
   { page: 'network', title: 'Port', section: 'Port', words: 'address listen 9797 port number url settings.ini change port in use' },
   { page: 'network', title: 'What follows the port', section: 'What follows the port', words: 'firewall apps find discovery bookmarks reverse proxy' },
+  { page: 'data-folder', title: 'Where the data is now', section: 'Where it is now', words: 'data folder appdata documents database wms.db settings location storage disk size old copy delete' },
+  { page: 'data-folder', title: 'Move the data folder', section: 'Move it', words: 'move data folder documents install folder portable custom drive onedrive icloud synced storage location' },
   { page: 'remote', title: 'Limits for viewers away from home', section: 'Limits for viewers away from home', words: 'bandwidth resolution data' },
   { page: 'remote', title: 'Sign-in protection', section: 'Sign-in protection', words: 'wrong passwords lockout' },
   { page: 'remote', title: 'Peer-to-peer connections', section: 'Peer-to-peer connections', words: 'p2p away from home no port forwarding router nat hole punching relay invite paired devices upnp cgnat libp2p direct connection' },

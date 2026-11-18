@@ -302,6 +302,12 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/logs/save` | Admin | A note of at most 500 characters |
 | `GET /api/logs/bundle` | Admin | Days, redaction |
 | `GET /api/logs/bundle/preview` | Admin | Days, redaction |
+| `GET /api/data-location` | Admin | Nothing further |
+| `POST /api/data-location` | Admin | Only a folder set by setup, Settings or nobody moves. Full path; another computer's folder needs the server's own screen or `-allow-network-paths`; refuses a folder that isn't empty, overlaps the data or program folder, or has no room. Moves at the next start |
+| `POST /api/data-location/check` | Admin | The same checks, changing nothing |
+| `DELETE /api/data-location/request` | Admin | Nothing further |
+| `POST /api/data-location/old/delete` | Admin | Own password, and a code with two-factor sign-in. Deletes only what the move copied out of the old folder |
+| `GET /api/data-location/progress` | Admin | Nothing further. While a move runs, the port answers only this, with two numbers |
 | `GET /api/reset` | Admin | Nothing further |
 | `POST /api/reset` | Admin | Types RESET. Own password, and a code with two-factor sign-in. Folder layout checked |
 | `POST /api/reset/restore` | Admin | Own password, and a code with two-factor sign-in. Copy name |

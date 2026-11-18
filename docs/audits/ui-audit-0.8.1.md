@@ -147,6 +147,6 @@ Listed for other owners (not edited here):
 - **Phone Home hero:** the pause button and dots sit across the middle of the picture, 24px targets.
 - **Music** (`music-nav`, #432): the same album shows three times in Quick picks and in New in your library (three
   entries titled "Love For Sale" under different artists); one album picture is a broken image on the Music page.
-- **Games** (WittyPlay module): "Back to server" style buttons overlap the pad toggle at 1920.
+- **Games** (WittyPlay module): the detector reports two small ghost buttons overlapping the pad toggle at 1920 (not confirmed by eye).
 - **Home** takes over 1.6 seconds to show its content on a cold server (it showed loading rows at both tablet and phone in
   the first picture). Owned by `server-perf` and `play-perf`.

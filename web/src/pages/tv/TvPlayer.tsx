@@ -288,7 +288,8 @@ export default function TvPlayer() {
   // Off live: once the viewer has paused or gone back, live sync leaves this player be, so it's
   // behind until Live; otherwise only when it has fallen further behind than live sync catches up by
   // itself. How far is said when it's known: near a programme change the segments' times can jump.
-  const isBehind = !fromStart && (live.away || win.behind > 10)
+  // Never before the first picture: a channel still starting has nothing to be behind.
+  const isBehind = !fromStart && picture && (live.away || win.behind > 10)
   const behindText = win.behind < 3 ? 'Behind live' : win.behind < 60 ? `${Math.round(win.behind)} s behind live` : `${Math.round(win.behind / 60)} min behind live`
 
   const root_ = themeRoot(look)

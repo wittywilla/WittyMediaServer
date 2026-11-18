@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { api, ApiError, mediaUrl, serverBase, getToken } from '../../api'
+import { api, ApiError, mediaUrl, serverBase, getToken, type QualityView } from '../../api'
 import { parseCatchupKey, type TvSet } from './guideLogic'
 
 // What the TV pages talk to the server about. See docs/CHANNELS.md.
@@ -47,6 +47,8 @@ export type TuneInfo = {
   partEnd?: number
   countProgress: boolean; canRecord: boolean; bufferSec: number; backgroundPlay?: boolean
   atsc3?: boolean; security?: Security; notices?: string[]; alternative?: Alternative
+  // What the quality menu offers, and what is chosen (docs/CLIENT-API.md, Quality).
+  quality?: QualityView
 }
 
 export type Rules = {
@@ -62,10 +64,13 @@ export type BumperWhen = 'before' | 'after' | 'between' | 'every'
 export type BumperRule = { id: string; name?: string; off?: boolean; when: BumperWhen; everyMin?: number; source: Rules; count?: number; mandatory?: boolean; only?: Rules }
 export type TrimChoice = '' | 'cut' | 'drop' | 'keep'
 export type Trim = { on?: boolean; ads?: TrimChoice; bumpers?: TrimChoice; minKeepSec?: number; tailSec?: number }
-export type BumperPlan = { rules?: BumperRule[]; trim?: Trim }
+// libraries: the channel's bumper libraries. fromCommercials: bumpers may also
+// come from its commercials libraries.
+export type BumperPlan = { rules?: BumperRule[]; trim?: Trim; libraries?: CommercialPick[]; fromCommercials?: boolean }
 export type Definition = {
   mode: 'simple' | 'rules' | 'timetable'; rules: Rules; order: Order; blocks: Block[] | null
-  filler: { rules?: Rules; between?: number; maxSeconds?: number; commercials?: CommercialPick[]; breakEveryMin?: number; breakAds?: number }; alignMin: number
+  // fromBumpers: commercials may also come from the bumper libraries.
+  filler: { rules?: Rules; between?: number; maxSeconds?: number; commercials?: CommercialPick[]; fromBumpers?: boolean; breakEveryMin?: number; breakAds?: number }; alignMin: number
   bumpers?: BumperPlan
 }
 export type CommercialPick = { library: number; only?: boolean; items?: number[] }
@@ -79,6 +84,18 @@ export type Suggestion = { key: string; group: 'network' | 'era' | 'genre' | 'st
 export type NetworkFact = { name: string; shows: number; episodes: number; slots: number; fromYear: number; toYear: number; decades: number[] }
 export type EditorOptions = { networks: NetworkFact[]; genres: string[]; studios: string[]; ratings: string[]; decades: number[]; shows: { id: number; title: string; year?: number; network?: string; seasons: number }[]; collections: { id: number; name: string; items: number }[] }
 export type Bumper = { itemId: number; title: string; durationSec: number; library: string; rating?: string; uploaded: boolean; chosen: boolean; updatedAt: number }
+export type VideoPage = { items: Bumper[]; total: number }
+// A page of the videos a channel's bumpers and commercials can come from.
+export const channelVideos = (q: { libraries?: number[]; own?: boolean; ids?: number[]; search?: string; offset?: number; limit?: number }) => {
+  const p = new URLSearchParams()
+  if (q.libraries?.length) p.set('libraries', q.libraries.join(','))
+  if (q.own) p.set('own', '1')
+  if (q.ids?.length) p.set('ids', q.ids.join(','))
+  if (q.search) p.set('search', q.search)
+  if (q.offset) p.set('offset', String(q.offset))
+  p.set('limit', String(q.limit || 25))
+  return api.get<VideoPage>('/channels/videos?' + p.toString())
+}
 export type DiscOption = { id: number; title: string; year?: number; format: 'dvd' | 'bluray'; scrambled: boolean; mainTitle: number; runtimeSec: number; updatedAt: number; titles: number }
 export type DiscChapter = { n: number; start: number; label: string }
 export type DiscTitle = { ttn: number; label: string; durationSec: number; chapters: DiscChapter[]; wide: boolean }
@@ -145,11 +162,12 @@ export async function tune(key: string, viewer: string, signal: AbortSignal): Pr
 }
 
 // This player has gone: the server stops a channel nobody is left watching.
-export function leaveChannel(key: string, viewer: string) {
+// quality: the choice the stream was tuned with, as it may be a stream of its own.
+export function leaveChannel(key: string, viewer: string, quality = '') {
   const headers: Record<string, string> = {}
   const tok = getToken()
   if (tok) headers.Authorization = 'Bearer ' + tok
-  fetch(serverBase() + `/api/tv/${parseCatchupKey(key)?.key ?? key}/leave?viewer=${viewer}`, { method: 'POST', headers, credentials: 'same-origin', keepalive: true }).catch(() => {})
+  fetch(serverBase() + `/api/tv/${parseCatchupKey(key)?.key ?? key}/leave?viewer=${viewer}${quality ? '&quality=' + encodeURIComponent(quality) : ''}`, { method: 'POST', headers, credentials: 'same-origin', keepalive: true }).catch(() => {})
 }
 
 export async function uploadLogo(id: number, file: File): Promise<{ logo: string }> {

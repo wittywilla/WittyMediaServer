@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, ApiError } from '../api'
 import { useApp } from '../state'
-import { decodeLevels, defaultLevel, encodeLevels, gainsFor, levelOf, levelsKey, playable, pollDelay, qualityName, sliders, statusLine, type KaraokeAnswer, type Levels } from './stemMix'
+import { decodeLevels, defaultLevel, encodeLevels, levelOf, routesFor, levelsKey, MIX, playable, pollDelay, qualityName, statusLine, type KaraokeAnswer, type Levels } from './stemMix'
 import { StemSet, type StemPlayer } from './stems'
+import { decodeFx, encodeFx, FX_OFF, fxKey, type Fx } from './voiceFx'
 import type { PlayerView } from './types'
 
 // Karaoke from a song's separate parts. Opening karaoke asks the server once; it makes a
@@ -13,14 +14,16 @@ import type { PlayerView } from './types'
 // for the better one when that's ready. Nobody has to set anything up or press anything.
 
 const readLevels = (key: string): Levels => { try { return decodeLevels(localStorage.getItem(key)) } catch { return {} } }
+const readFx = (key: string): Fx => { try { return decodeFx(localStorage.getItem(key)) } catch { return { ...FX_OFF } } }
 
 export function useKaraokeStems(p: PlayerView) {
   const { user } = useApp()
   const key = levelsKey(user?.id)
   const id = p.mode === 'music' && !p.cdActive && !p.live ? p.current?.id : undefined
   const [answer, setAnswer] = useState<KaraokeAnswer | null>(null)
-  const [supported, setSupported] = useState(true)
   const [levels, setLevels] = useState<Levels>(() => readLevels(key))
+  const fxStore = fxKey(user?.id)
+  const [fx, setFxState] = useState<Fx>(() => readFx(fxStore))
   const [sing, setSing] = useState(false)
   const [active, setActive] = useState(false)
   const [lost, setLost] = useState('')
@@ -44,8 +47,6 @@ export function useKaraokeStems(p: PlayerView) {
         if (wait) timer = window.setTimeout(() => ask(false), wait)
       }).catch((e: unknown) => {
         if (gone) return
-        // A server from before this: karaoke stays as it was.
-        if (e instanceof ApiError && (e.status === 404 || e.status === 405) && first) { setSupported(false); return }
         if (e instanceof ApiError && e.status >= 400 && e.status < 500 && e.status !== 408 && e.status !== 429) { setAnswer(null); return }
         failures++
         timer = window.setTimeout(() => ask(first), pollDelay(null, failures))
@@ -69,7 +70,6 @@ export function useKaraokeStems(p: PlayerView) {
       set.current?.close()
       set.current = s
       setActive(true)
-      p.setSound({ vocalCut: 0 })
     }).catch((e: unknown) => {
       if (stop.signal.aborted) return
       drop()
@@ -80,8 +80,13 @@ export function useKaraokeStems(p: PlayerView) {
   useEffect(() => () => { set.current?.close(); set.current = null }, [])
 
   useEffect(() => {
-    if (active && playable(answer)) set.current?.setGains(gainsFor(answer, levels, sing), p.sound.muted ? 0 : p.sound.volume)
+    if (active && playable(answer)) set.current?.setRoutes(routesFor(answer, levels, sing), p.sound.muted ? 0 : p.sound.volume)
   }, [active, answer, levels, sing, p.sound.volume, p.sound.muted])
+  useEffect(() => { if (active) set.current?.setFx(fx) }, [active, fx])
+  const setFx = (next: Fx) => {
+    setFxState(next)
+    try { localStorage.setItem(fxStore, encodeFx(next)) } catch { /* a private window */ }
+  }
 
   const setLevel = (stem: string, v: number) => {
     if (stem === 'vocals') setSing(false)
@@ -96,42 +101,69 @@ export function useKaraokeStems(p: PlayerView) {
     setLevels({})
     try { localStorage.removeItem(key) } catch { /* a private window */ }
   }
-  return { supported: supported && !!id, answer, active, levels, sing, setSing, setLevel, reset, note: statusLine(answer, lost) }
+  // Until the parts play, the Mix holds its place, waiting: asked and not answered yet, or being made.
+  const waiting = !!id && !active && !lost && answer?.state !== 'unavailable'
+  // No separator on the server, but one could be installed: the quick version says a cleaner one is an optional install.
+  const installable = answer?.separator === 'installable'
+  const admin = !!user?.isAdmin
+  const toSettings = () => p.goTowards('/settings/metadata#lyrics')
+  return { answer, active, waiting, levels, sing, setSing, setLevel, reset, fx, setFx, installable, admin, toSettings, note: statusLine(answer, lost) }
 }
 
 export type KaraokeStemsState = ReturnType<typeof useKaraokeStems>
 
-function Level({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+function Level({ label, value, onChange, disabled }: { label: string; value: number; onChange: (v: number) => void; disabled?: boolean }) {
   const pct = Math.round(value * 100)
   return (
     <label className="kar-level">
       <span>{label}</span>
-      <input type="range" min={0} max={100} step={5} value={pct} onChange={(e) => onChange(Number(e.target.value) / 100)} aria-valuetext={`${pct}%`} />
-      <output className="np-pill">{pct}%</output>
+      <input type="range" min={0} max={100} step={5} value={pct} disabled={disabled} onChange={(e) => onChange(Number(e.target.value) / 100)} aria-valuetext={`${pct}%`} />
+      <output className="np-pill">{disabled ? '' : `${pct}%`}</output>
     </label>
   )
 }
 
-// The Mix: a row for each part the song has been separated into (Voice, then whatever else there is: Music, Drums,
-// Bass, Other), each with its level as a pill, and the three shortcuts under them (board "stems"). Only drawn while
-// the parts are what's playing.
-export function KaraokeStemsControl({ k }: { k: KaraokeStemsState }) {
+// The Mix: Voice, Background Music and Track, each with its level as a pill, less any the person has hidden, and
+// the shortcuts under them (Voice off and Guide voice go with Voice). Only drawn while the parts are what's playing; until then, the same Mix, still, saying how far along the karaoke version is, so
+// nothing on the bar changes shape when it arrives.
+const noop = () => {}
+export function KaraokeStemsControl({ k, hide = [] }: { k: KaraokeStemsState; hide?: readonly string[] }) {
   const a = k.answer
-  if (!k.active || !playable(a)) return null
-  const rows = sliders(a)
-  const voice = rows.find((r) => r.id === 'vocals')
-  const pristine = !k.sing && rows.every((r) => levelOf(a, k.levels, r.id) === defaultLevel(a, r.id))
+  const rows = MIX.filter((r) => !hide.includes(r.id))
+  const voice = rows.some((r) => r.id === 'vocals')
+  if (!k.active || !playable(a)) {
+    if (!k.waiting) return null
+    return (
+      <div className="kar-stems kar-mix kar-mix-wait" role="group" aria-label="Mix" aria-busy="true">
+        {rows.length > 0 && <div className="kar-mix-rows">
+          {rows.map((r) => <Level key={r.id} label={r.label} value={1} onChange={noop} disabled />)}
+        </div>}
+        <div className="kar-mix-pills" aria-hidden="true">
+          {voice && <button type="button" className="kar-chip" disabled tabIndex={-1}>Voice off</button>}
+          {voice && <button type="button" className="kar-chip" disabled tabIndex={-1}>Guide voice</button>}
+          <button type="button" className="kar-chip" disabled tabIndex={-1}>Reset</button>
+        </div>
+        <p className="kar-mix-note" role="status">{k.note || 'Getting the karaoke version…'}</p>
+      </div>
+    )
+  }
+  const pristine = !k.sing && MIX.every((r) => levelOf(a, k.levels, r.id) === defaultLevel(a, r.id))
   return (
     <div className="kar-stems kar-mix" role="group" aria-label="Mix">
-      <div className="kar-mix-rows">
-        {rows.map((r) => <Level key={r.id} label={r.id === 'vocals' ? 'Voice' : r.label} value={r.id === 'vocals' && k.sing ? 0 : levelOf(a, k.levels, r.id)} onChange={(n) => k.setLevel(r.id, n)} />)}
-      </div>
+      {rows.length > 0 && <div className="kar-mix-rows">
+        {rows.map((r) => <Level key={r.id} label={r.label} value={r.id === 'vocals' && k.sing ? 0 : levelOf(a, k.levels, r.id)} onChange={(n) => k.setLevel(r.id, n)} />)}
+      </div>}
       <div className="kar-mix-pills">
         {voice && <button type="button" className={'kar-chip' + (k.sing ? ' on' : '')} aria-pressed={k.sing} onClick={() => k.setSing(!k.sing)} title="Take the singer out, or put them back (V)">Voice off</button>}
         {voice && <button type="button" className="kar-chip" onClick={() => k.setLevel('vocals', 0.2)} title="Keep the singer quietly, as a guide">Guide voice</button>}
         <button type="button" className="kar-chip" onClick={k.reset} disabled={pristine}>Reset</button>
       </div>
-      <p className="kar-mix-note">{qualityName(a)}. The parts are separated on your server, so the levels are approximate.</p>
+      <p className="kar-mix-note">
+        {qualityName(a)}. The parts are separated on your server, so the levels are approximate.
+        {k.installable && a.quality !== 'stems' && (k.admin
+          ? <> A cleaner, properly separated version is an optional install: <button type="button" className="np-link" onClick={k.toSettings}>Demucs in Settings</button>.</>
+          : <> A cleaner, properly separated version is an optional install an administrator can add.</>)}
+      </p>
     </div>
   )
 }

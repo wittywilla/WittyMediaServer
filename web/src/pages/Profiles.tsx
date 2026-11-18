@@ -12,6 +12,7 @@ import { Avatar } from './AuthPage'
 import LegalNote from '../components/LegalNote'
 import { ActivityDialog, AvatarPicker, CollectionRules, FeatureSwitches, KindLimits, ParentPin, TagRules, TimeRulesEditor, useParentalLists } from './settings/ParentalControls'
 import './profiles.css'
+import { StreamLimitsDialog } from './settings/StreamQuality'
 
 // Settings → Users: your account, the profiles you may manage, and their
 // limits. The admin manages everyone; adults manage Kids profiles unless the
@@ -39,6 +40,7 @@ export default function Profiles() {
   const [naming, setNaming] = useState<UserView | null>(null)
   const [settingPw, setSettingPw] = useState<UserView | null>(null)
   const [watching, setWatching] = useState<UserView | null>(null)
+  const [streamFor, setStreamFor] = useState<UserView | null>(null)
   const [mine, setMine] = useState<{ features: Record<string, boolean> } | null>(null)
   useEffect(() => { api.get<{ features: Record<string, boolean> }>('/me/limits').then(setMine).catch(() => {}) }, [user?.id])
   const load =() => api.get<UserView[]>('/users').then(setUsers).catch(() => setUsers([]))
@@ -84,6 +86,7 @@ export default function Profiles() {
                     <Button size="sm" aria-label={`${passwordWord(u)} for ${profileName(u)}`} onClick={() => setSettingPw(u)}>{passwordWord(u)}</Button>
                     {!u.isAdmin && <Button size="sm" aria-label={`Limits for ${profileName(u)}`} onClick={() => setEditing(u)}>Limits</Button>}
                     {!u.isAdmin && <Button size="sm" aria-label={`Report for ${profileName(u)}: what they watched, and more time`} onClick={() => setWatching(u)}>Report</Button>}
+                    {user?.isAdmin && <Button size="sm" aria-label={`Streaming limits for ${profileName(u)}`} onClick={() => setStreamFor(u)}>Streaming</Button>}
                     <IconButton label={`Remove ${profileName(u)}`} size="sm" variant="danger" onClick={() => del(u)}><IconTrash /></IconButton>
                   </div>
                 )}
@@ -102,6 +105,7 @@ export default function Profiles() {
       {naming && <NamesDialog user={naming} onClose={() => setNaming(null)} onSaved={() => { setNaming(null); load() }} />}
       {settingPw && <PasswordDialog user={settingPw} onClose={() => setSettingPw(null)} onSaved={() => { setSettingPw(null); load() }} />}
       {watching && <ActivityDialog user={watching} onClose={() => setWatching(null)} />}
+      {streamFor && <StreamLimitsDialog user={streamFor} onClose={() => setStreamFor(null)} />}
       {user?.isAdmin && <ParentPin />}
     </>
   )

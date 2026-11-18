@@ -249,7 +249,9 @@ func (s *Server) handleItemStreamToken(w http.ResponseWriter, r *http.Request) {
 
 // addLiveTicket fills in what a player that can't set headers needs, when it asks with
 // ?streamToken=1. The web player doesn't ask, so it doesn't use up an account's tickets.
+// Every tune answer passes through here, so it also says what the quality menu may offer.
 func (s *Server) addLiveTicket(r *http.Request, info *tuneInfo) error {
+	info.Quality = s.qualityFor(r, 0, 0, 0)
 	if r.URL.Query().Get("streamToken") != "1" {
 		return nil
 	}

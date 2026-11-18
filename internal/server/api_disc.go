@@ -255,6 +255,12 @@ func (s *Server) handleDiscThumb(w http.ResponseWriter, r *http.Request) {
 			writeErr(w, 404, err.Error())
 			return
 		}
+		if r.Context().Err() != nil {
+			// The pointer moved on along the timeline before the picture was made. FFmpeg was
+			// stopped for it, and how a stopped FFmpeg exits (status 1 on Windows) says nothing.
+			_ = os.Remove(out) // whatever it had begun to write
+			return
+		}
 		if err != nil {
 			writeErr(w, 500, s.viewerError(r, err))
 			return

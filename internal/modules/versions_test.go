@@ -1360,6 +1360,7 @@ func TestLibraryKindsAreSharedOnlyOnPurpose(t *testing.T) {
 		"discs": "wittybluray,wittycd,wittydvd",    // a disc library holds any of these
 		"music": "wittyaudio,wittycd",              // a CD image's tracks show up among the music
 		"books": "wittycomics,wittyebook,wittypdf", // a book library holds any of these
+		"games": "wittyplay,wittyrigs",             // a game PC's games show up among the rest
 	}
 	byKind := map[string][]string{}
 	for _, raw := range ServerManifests() {

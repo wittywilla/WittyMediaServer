@@ -153,6 +153,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/people/{id}` | Signed-in | limits: 404 unless credited on a title the account may see; the filmography names only those |
 | `GET /api/people/{id}/photo` | Signed-in; ticket; address token | limits, as the person. Pictures only, from the cache, the internet or inside a library |
 | `GET /api/items/{id}/disc/thumb/{ttn}/{n}` | Signed-in; ticket; address token | limits. Item is a disc and not scrambled. Title and chapter exist |
+| `GET /api/items/{id}/scene/{sec}` | Signed-in; ticket; address token | limits. Video file. Time within its length |
 | `GET /api/artwork/preview` | Admin; address token | Web address, cache name, or a picture inside a library |
 | `GET /api/prefs` | Signed-in | Nothing: server-wide playback defaults |
 | `POST /api/themes/mine` | Signed-in | own theme only. Profiles may import only when the administrator allows it (403). Same ZIP rules as POST /api/themes, plus variables only; at most five each; never over another's id (409) |

@@ -239,9 +239,23 @@ export function RemoteSheet({ onKey, enabled, onClose, label = 'WittyDVD', note,
     window.addEventListener('keydown', onEsc, true)
     return () => window.removeEventListener('keydown', onEsc, true)
   }, [onClose])
+  // Open over a full player, the sheet says how tall it is (--remote-space on the player), so in portrait the picture
+  // moves up to the middle of the room left above it rather than sit half under it (player/bar.css).
+  const own = useRef<HTMLDivElement | null>(null)
+  useLayoutEffect(() => {
+    const el = own.current
+    const player = el?.closest<HTMLElement>('.player')
+    if (!el || !player || docked) return
+    const set = () => player.style.setProperty('--remote-space', `${Math.round(el.getBoundingClientRect().height)}px`)
+    set()
+    player.classList.add('remote-up')
+    const ro = new ResizeObserver(set)
+    ro.observe(el)
+    return () => { ro.disconnect(); player.classList.remove('remote-up'); player.style.removeProperty('--remote-space') }
+  }, [docked])
   const sheet = (
     <KeyCtx.Provider value={{ enabled, press, pressed }}>
-    <div className={'remote remote-sheet' + (docked ? ' docked' : '')} role="dialog" aria-label={label + ' remote'}
+    <div ref={own} className={'remote remote-sheet' + (docked ? ' docked' : '')} role="dialog" aria-label={label + ' remote'}
       onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
       <div className="sheet-head">
         <B k="eject" cls="round red" title={ejectTip(label)}><IconEject size={16} /></B>

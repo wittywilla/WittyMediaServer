@@ -1,0 +1,47 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
+/* The quality menu (QualityMenu.tsx), on the player's own dark tokens (player.css), as its other
+   menus are: a solid raised surface (--bg-3), labels in --fg (14:1), notes in --fg-2 (8:1), the
+   option in use a filled row with a bar and a tick, not colour alone. Readable in every theme,
+   glass ones included: nothing here is see-through. */
+.qmenu { position: absolute; bottom: 72px; right: var(--sp-5); z-index: 7; width: min(360px, calc(100% - 2 * var(--sp-4))); max-height: calc(100% - 150px); overflow-y: auto; overscroll-behavior: contain;
+  background: var(--bg-3); background-image: none; color: var(--fg); border: 1px solid var(--border-strong); border-radius: var(--r-lg); padding: var(--sp-2); box-shadow: var(--e-3); animation: dialog-in var(--dur-2) var(--ease-out); }
+.qmenu .qm-head { display: flex; align-items: center; gap: var(--sp-2); padding: 0 0 var(--sp-1) var(--sp-2); }
+.qmenu .qm-head h4 { flex: 1; margin: 0; color: var(--fg-2); font-size: var(--text-2xs); font-weight: 600; text-transform: uppercase; letter-spacing: var(--tracking-label); }
+.qmenu .qm-back + h4 { padding-left: 0; }
+.qmenu .ibtn { color: var(--fg); min-width: 36px; min-height: 36px; }
+.qmenu .qm-list { display: grid; gap: 2px; }
+.qmenu .qm-item, .qmenu .qm-more { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; min-height: 48px; padding: var(--sp-2) var(--sp-3); background: transparent; border: 0; border-radius: var(--r-sm); color: var(--fg); text-align: left; font-size: var(--text-md); cursor: pointer; }
+.qmenu .qm-item:hover, .qmenu .qm-more:hover, .qmenu .qm-item:focus-visible, .qmenu .qm-more:focus-visible { background: var(--bg-4); color: var(--fg); }
+.qmenu :focus-visible { outline: 2px solid var(--fg); outline-offset: -2px; }
+.qmenu .qm-item.active { background: var(--bg-4); font-weight: 700; box-shadow: inset 3px 0 0 var(--fg); }
+.qmenu .qm-label { display: flex; align-items: center; gap: var(--sp-2); width: 100%; }
+.qmenu .qm-item.active .qm-label::after { content: '✓'; margin-left: auto; font-weight: 700; }
+.qmenu .qm-note { color: var(--fg-2); font-size: var(--text-xs); font-weight: 400; }
+.qmenu .qm-badge { font-size: var(--text-2xs); font-weight: 600; color: var(--fg-2); border: 1px solid var(--border-strong); border-radius: var(--r-full); padding: 0 var(--sp-2); line-height: 1.6; }
+.qmenu .qm-more { min-height: 44px; justify-content: center; margin-top: var(--sp-1); border-top: 1px solid var(--border); border-radius: 0 0 var(--r-sm) var(--r-sm); font-weight: 600; }
+.qmenu .qm-small { margin: var(--sp-1) var(--sp-3); color: var(--fg-2); font-size: var(--text-xs); }
+/* Advanced */
+.qmenu .qm-adv { display: grid; gap: var(--sp-1); }
+.qmenu .qm-field { display: grid; gap: var(--sp-1); padding: var(--sp-2) var(--sp-3); font-size: var(--text-sm); }
+.qmenu .qm-field > span:first-child, .qmenu .qm-field > label:first-child { color: var(--fg); font-weight: 600; }
+.qmenu .qm-field .qm-small { margin: 0; }
+.qmenu .qm-row { display: flex; align-items: center; justify-content: space-between; }
+.qmenu select, .qmenu input[type="number"] { min-height: 40px; padding: 0 var(--sp-2); background: var(--bg-2); color: var(--fg); border: 1px solid var(--border-strong); border-radius: var(--r-sm); font: inherit; color-scheme: dark; }
+.qmenu .qm-rate { display: flex; align-items: center; gap: var(--sp-3); }
+.qmenu .qm-rate .range { flex: 1; min-width: 0; }
+.qmenu .qm-num { display: inline-flex; align-items: center; gap: var(--sp-1); color: var(--fg-2); }
+.qmenu .qm-num input { width: 6em; }
+.qmenu .seg { flex-wrap: wrap; background: var(--bg-2); }
+.qmenu .seg button:not(.active) { color: var(--fg); }
+.qmenu .qm-actions { display: flex; justify-content: flex-end; gap: var(--sp-2); padding: var(--sp-2) var(--sp-3); }
+/* Phones: a sheet along the bottom, the full width, easy to reach with a thumb. */
+@media (max-width: 600px) {
+  .qmenu { left: var(--sp-2); right: var(--sp-2); bottom: var(--sp-2); width: auto; max-height: 72%; }
+}
+/* TV mode: bigger targets, read from across the room. */
+html.ten-foot .qmenu { width: min(460px, calc(100% - 2 * var(--sp-4))); }
+html.ten-foot .qmenu .qm-item { min-height: 60px; font-size: var(--text-lg); }
+
+/* Show stream info: a corner of the picture, white on black whatever the picture. */
+.player .stream-info { position: absolute; top: 76px; left: var(--sp-4); z-index: 5; padding: var(--sp-2) var(--sp-3); border-radius: var(--r-sm); background: rgb(0 0 0 / .78); color: #fff; font: 600 12px/1.55 ui-monospace, SFMono-Regular, Consolas, monospace; pointer-events: none; max-width: calc(100% - 2 * var(--sp-4)); } /* design-ok: white on black whatever the picture */

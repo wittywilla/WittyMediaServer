@@ -67,6 +67,8 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/me` | Signed-in | The caller's own account |
 | `GET /api/me/ui` | Signed-in | own |
 | `PUT /api/me/ui` | Signed-in | own. A JSON object of at most 16 KB |
+| `GET /api/me/streaming` | Signed-in | own |
+| `PUT /api/me/streaming` | Signed-in | own. Choices read as quality choices; the profile's limits still apply |
 | `GET /api/home` | Signed-in | own progress. limits |
 | `GET /api/libraries` | Signed-in | limits. Folder paths for admins only |
 | `POST /api/libraries` | Admin | Name, known type, full paths to existing folders. Module for the type is installed; for a games library, a module that scans games is installed and on, and the console is `auto` or one it names |
@@ -151,6 +153,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/people/{id}` | Signed-in | limits: 404 unless credited on a title the account may see; the filmography names only those |
 | `GET /api/people/{id}/photo` | Signed-in; ticket; address token | limits, as the person. Pictures only, from the cache, the internet or inside a library |
 | `GET /api/items/{id}/disc/thumb/{ttn}/{n}` | Signed-in; ticket; address token | limits. Item is a disc and not scrambled. Title and chapter exist |
+| `GET /api/items/{id}/scene/{sec}` | Signed-in; ticket; address token | limits. Video file. Time within its length |
 | `GET /api/artwork/preview` | Admin; address token | Web address, cache name, or a picture inside a library |
 | `GET /api/prefs` | Signed-in | Nothing: server-wide playback defaults |
 | `POST /api/themes/mine` | Signed-in | own theme only. Profiles may import only when the administrator allows it (403). Same ZIP rules as POST /api/themes, plus variables only; at most five each; never over another's id (409) |
@@ -245,6 +248,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/hls/{id}/subs/{file}` | Signed-in; ticket; address token | Stream exists, and for a ticket is of the ticket's item. Name is 'n.m3u8' or 'n.vtt' and the track exists. An account with limits is checked against what it plays |
 | `GET /api/hls/{id}/playlist.m3u8` | Signed-in; ticket; address token | Stream exists, and for a ticket is of the ticket's item. An account with limits is checked against what it plays |
 | `GET /api/hls/{id}/seg/{n}` | Signed-in; ticket; address token | Stream exists, and for a ticket is of the ticket's item. Segment number. An account with limits is checked against what it plays |
+| `GET /api/hls/{id}/work` | Signed-in | Stream exists. An account with limits is checked against what it plays |
 | `DELETE /api/hls/{id}` | Signed-in | Removes the caller as a viewer. The stream stops when no viewer is left. An account with limits is checked against what it plays |
 | `GET /api/settings` | Admin | Secrets masked |
 | `PUT /api/settings` | Admin | Known keys. Numbers, lists and FFmpeg options checked for each setting |
@@ -262,6 +266,8 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/users` | Signed-in | Caller may manage that kind of profile. Administrator flag for admins only. Name and password rules |
 | `DELETE /api/users/{id}` | Signed-in | Caller may manage that account, and it isn't their own |
 | `PUT /api/users/{id}/access` | Signed-in | Caller may manage that account. Not their own, not an administrator's |
+| `GET /api/users/{id}/stream-limits` | Admin | The account exists |
+| `PUT /api/users/{id}/stream-limits` | Admin | The account exists. Numbers in range (0 = none), anything else dropped |
 | `PUT /api/users/{id}/password` | Signed-in | Own password for adults, with the current one and an attempt limit. Another account's if the caller may manage it. Length rules |
 | `DELETE /api/users/{id}/2fa` | Admin | Not their own, not another administrator's |
 | `GET /api/profiles/household` | Signed-in | Names, kinds and pictures of every profile, where the sign-in screen shows profiles, or anywhere for an adult's account. No limits and no passwords |
@@ -452,6 +458,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/guide` | Signed-in | Channels the account may watch. Time range, hours, paging |
 | `GET /api/tv/{key}/tune` | Signed-in | Channel key. Channel visible to the account, enabled, and not encrypted. For a library channel, limits on what is on now |
 | `GET /api/tv/{key}/live/playlist.m3u8` | Signed-in | Channel key. Channel checked again on each request |
+| `GET /api/tv/{key}/live/work` | Signed-in | Channel key. Channel checked again on each request |
 | `GET /api/tv/{key}/live/seg/{name}` | Signed-in | Channel key. Channel checked again on each request. Name is a segment the stream made |
 | `POST /api/tv/{key}/leave` | Signed-in | Channel key. Viewer name of up to 40 characters |
 | `GET /api/tv/settings` | Admin | Nothing further |

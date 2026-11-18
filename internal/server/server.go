@@ -258,6 +258,10 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/me", a(s.handleMe))
 	m.Handle("GET /api/me/ui", a(s.handleGetUI))
 	m.Handle("PUT /api/me/ui", a(s.handlePutUI))
+	m.Handle("GET /api/me/streaming", a(s.handleGetStreaming))
+	m.Handle("PUT /api/me/streaming", a(s.handlePutStreaming))
+	m.Handle("GET /api/users/{id}/stream-limits", s.requireAdmin(s.handleGetStreamLimits))
+	m.Handle("PUT /api/users/{id}/stream-limits", s.requireAdmin(s.handlePutStreamLimits))
 	m.Handle("GET /api/home", a(s.handleHome))
 	m.Handle("GET /api/libraries", a(s.handleLibraries))
 	m.Handle("POST /api/libraries", s.requireAdmin(s.handleCreateLibrary))
@@ -337,6 +341,7 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/items/{id}/artwork", s.requireAdmin(s.handleArtwork))
 	m.Handle("GET /api/items/{id}/recommend", a(s.handleRecommend))
 	m.Handle("GET /api/items/{id}/disc/thumb/{ttn}/{n}", a(s.handleDiscThumb))
+	m.Handle("GET /api/items/{id}/scene/{sec}", a(s.handleSceneThumb))
 	m.Handle("GET /api/artwork/preview", s.requireAdmin(s.handleArtPreview))
 	m.Handle("GET /api/prefs", a(s.handlePrefs))
 	m.Handle("POST /api/themes", s.requireAdmin(s.handleThemeUpload))
@@ -432,6 +437,7 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/hls/{id}/playlist.m3u8", a(s.handleHLSPlaylist))
 	m.Handle("GET /api/hls/{id}/seg/{n}", a(s.handleHLSSegment))
 	m.Handle("DELETE /api/hls/{id}", a(s.handleHLSStop))
+	m.Handle("GET /api/hls/{id}/work", a(s.handleHLSWork))
 	m.Handle("GET /api/settings", s.requireAdmin(s.handleGetSettings))
 	m.Handle("PUT /api/settings", s.requireAdmin(s.handlePutSettings))
 	m.Handle("GET /api/about", a(s.handleAbout))
@@ -858,7 +864,7 @@ func (s *Server) cors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if o := r.Header.Get("Origin"); o != "" && s.crossOrigin(r) && s.corsAllowed(r, o) {
 			w.Header().Set("Access-Control-Allow-Origin", o)
-			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-WMS-Token, If-Match, If-None-Match, "+
+			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-WMS-Token, X-WMS-Quality, If-Match, If-None-Match, "+
 				"X-WMS-Platform, X-WMS-Form-Factor, X-WMS-Viewport, X-WMS-Locale, X-WMS-Capabilities, "+pairSecretHeader)
 			w.Header().Set("Access-Control-Expose-Headers", "ETag")
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")

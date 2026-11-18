@@ -60,7 +60,8 @@ func TestFFmpegBench(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if cfg.settings["hwEncoders"] != "" {
+	// As the server does: hardware is tested unless it's turned off (hwEncoders= with nothing).
+	if hw, set := cfg.settings["hwEncoders"]; !set || hw != "" {
 		tools.ProbeHardware(ctx)
 		list, _ := tools.HardwareStatus()
 		for _, h := range list {

@@ -73,10 +73,11 @@
   .app .topbar.under::before, .app:has(.hero, .detail-hero) .topbar.under::before { background: var(--bg); -webkit-backdrop-filter: none; backdrop-filter: none; } /* design-ok: this turns the blur off */
 }
 @media (max-width: 700px) {
-  :root { --topbar-h: 52px; }
+  /* The bar is 52 high below a notch or status bar, when the page runs full screen. */
+  :root { --safe-top: env(safe-area-inset-top, 0px); --topbar-h: calc(52px + var(--safe-top)); }
   html:has(.tabbar) { --tabbar-space: calc(var(--tabbar-h) + var(--sp-4) + env(safe-area-inset-bottom)); }
   .nav-dup { display: none !important; } /* what the bar at the bottom already offers */
-  .topbar { padding-block: var(--sp-1); gap: var(--sp-2); }
+  .topbar { padding-block: calc(var(--sp-1) + var(--safe-top)) var(--sp-1); gap: var(--sp-2); }
   /* Sections take the top of the screen; search and the account are on the bar. */
   .topnav, .topbar .menu-toggle, .topbar .search, .topbar .profile-menu, .topbar .spacer { display: none; }
   .section-row { display: flex; flex: 1 1 0; min-width: 0; gap: var(--sp-5); margin-left: calc(-1 * var(--gutter)); padding-inline: var(--gutter) var(--sp-5); overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
@@ -85,7 +86,7 @@
   .section-row a.active { color: var(--fg); box-shadow: inset 0 -2px var(--accent-text); }
   .section-row-brand { display: flex; flex: 1; }
   /* The server's name stays on a phone: its mark first (and its name when there is room), the sections after it. */
-  .phone-brand { display: inline-flex; flex: none; max-inline-size: min(56%, 13rem); overflow: hidden; } /* room for the whole default name beside its mark */
+  .phone-brand { display: inline-flex; flex: none; max-inline-size: min(56%, 13rem); overflow: hidden; margin: 0; } /* room for the whole default name beside its mark; no sidebar margin, so it sits in the middle of the bar */
   .phone-brand .brand-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-md); }
   .phone-brand .brand-name * { white-space: nowrap; }
   @media (max-width: 359px) { .phone-brand .brand-name { display: none; } }

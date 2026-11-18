@@ -120,7 +120,7 @@ button.lib-tile, button.sdui-row, button.sdui-banner { font: inherit; cursor: po
   .sdui-detail .sdui-detail-actions { justify-content: center; }
   .sdui-detail-actions .btn.primary { flex: 1 1 100%; }
   .sdui-detail-more { flex: 1 1 100%; justify-content: safe center; }
-  .sdui-detail-actions .btn.square { flex: 0 0 auto; } /* the round "⋯" keeps its size instead of a full-width pill */
+  .sdui-detail-actions > .btn:not(.primary) { flex: 0 0 auto; } /* "⋯" and Canvas keep their size instead of full-width pills */
 }
 
 /* Seasons, episodes, tracks. */

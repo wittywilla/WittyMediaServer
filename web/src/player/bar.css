@@ -25,7 +25,9 @@
 .player .ctl .ibtn.play { background: var(--accent); color: var(--accent-fg); inline-size: 3rem; block-size: 3rem; }
 .player .ctl .ibtn.play:hover { background: var(--accent-2); }
 /* Words show in a wide bar; a narrow one keeps the icon (the step buttons and chips have no icon, so they keep theirs). */
-@container pbar (max-width: 899px) { .cbtn:has(svg) .lbl:not(.always) { display: none; } .cbtn:has(svg) { min-inline-size: var(--control-h-sm); } }
+/* Words beside the icons only where the whole row of them fits on one line: at 1280px the right-hand cluster wrapped and left the
+   full-screen button alone on a second row. */
+@container pbar (max-width: 1399px) { .cbtn:has(svg) .lbl:not(.always) { display: none; } .cbtn:has(svg) { min-inline-size: var(--control-h-sm); } }
 @container pbar (max-width: 700px) {
   .player .ctl { grid-template-columns: minmax(0, 1fr); justify-items: center; }
   .ctl-left { inline-size: 100%; justify-content: flex-start; }

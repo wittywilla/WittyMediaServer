@@ -137,28 +137,21 @@ func (s *Server) hostSetupState(w http.ResponseWriter, r *http.Request, module s
 	writeJSON(w, 200, map[string]any{"done": done})
 }
 
-// POST /api/setup/module-steps/skip {module, step}: an administrator puts off a module's setup
-// step (the "Dismiss" of its notice on Home, the command setup.skip). Only a step the module in
-// use declares, at the version it declares.
+// POST /api/setup/module-steps/skip {module, step, done}: an administrator puts off a module's
+// setup step (the "Dismiss" of its notice on Home, the command setup.skip), or, with done, went
+// through it in first-run setup, where the module draws the step itself and may never say so.
+// Only a step the module in use declares, at the version it declares.
 func (s *Server) handleModuleStepSkip(w http.ResponseWriter, r *http.Request) {
 	var in struct {
 		Module string `json:"module"`
 		Step   string `json:"step"`
+		Done   bool   `json:"done"`
 	}
 	if err := json.NewDecoder(io.LimitReader(r.Body, 1<<10)).Decode(&in); err != nil || in.Module == "" || in.Step == "" {
 		writeErr(w, 400, "a step is {module, step}")
 		return
 	}
-	version, found := 0, false
-	if s.Modules != nil {
-		if integ := s.Modules.Integration(in.Module); integ != nil && integ.Web != nil {
-			for _, st := range integ.Web.Setup {
-				if st.ID == in.Step {
-					version, found = st.Version, true
-				}
-			}
-		}
-	}
+	version, found := s.moduleStepVersion(in.Module, in.Step)
 	if !found {
 		writeErr(w, 404, "no module in use has that setup step")
 		return
@@ -168,8 +161,29 @@ func (s *Server) handleModuleStepSkip(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
-	s.writeAudit(ctx, userFrom(r), in.Module+" setup-skipped", in.Module, "setup-skipped", "", in.Step)
+	action := "setup-skipped"
+	if in.Done {
+		action = "setup-done"
+	}
+	s.writeAudit(ctx, userFrom(r), in.Module+" "+action, in.Module, action, "", in.Step)
 	w.WriteHeader(204)
+}
+
+// moduleStepVersion is the version of a setup step a module in use declares, if it declares it.
+func (s *Server) moduleStepVersion(module, step string) (int, bool) {
+	if s.hostModsForTest == nil && s.Modules == nil {
+		return 0, false
+	}
+	integ := s.hostMods().Integration(module)
+	if integ == nil || integ.Web == nil {
+		return 0, false
+	}
+	for _, st := range integ.Web.Setup {
+		if st.ID == step {
+			return st.Version, true
+		}
+	}
+	return 0, false
 }
 
 // recordModuleStep remembers a module's step as done (or skipped) at a version.

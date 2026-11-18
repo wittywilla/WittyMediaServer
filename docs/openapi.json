@@ -17530,6 +17530,86 @@
         "x-wms-auth": "admin"
       }
     },
+    "/channels/videos": {
+      "get": {
+        "operationId": "getChannelsVideos",
+        "parameters": [
+          {
+            "description": "Library ids, comma separated",
+            "in": "query",
+            "name": "libraries",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "1 to include the bumper list: uploads and videos chosen from other libraries",
+            "in": "query",
+            "name": "own",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only these item ids, comma separated",
+            "in": "query",
+            "name": "ids",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Part of a title",
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Where the page starts",
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "At most 200; 50 by default",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "items (each a video, as in the bumper library) and total."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A page of the videos a channel's bumpers and commercials can come from.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/channels/bumpers": {
       "get": {
         "operationId": "getChannelsBumpers",
@@ -39958,7 +40038,7 @@
     },
     "/setup/module-steps/skip": {
       "post": {
-        "description": "An administrator puts off a module's setup step: the Dismiss of \"Finish setting up\" on Home (SDUI command setup.skip). The step stays in the module's Settings.",
+        "description": "An administrator puts off a module's setup step: the Dismiss of \"Finish setting up\" on Home (SDUI command setup.skip). The step stays in the module's Settings. With done, the step was gone through in first-run setup, where the module draws it itself, and it is audited as done rather than put off.",
         "operationId": "skipModuleSetupStep",
         "parameters": [],
         "requestBody": {
@@ -39966,6 +40046,9 @@
             "application/json": {
               "schema": {
                 "properties": {
+                  "done": {
+                    "type": "boolean"
+                  },
                   "module": {
                     "type": "string"
                   },

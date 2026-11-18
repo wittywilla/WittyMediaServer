@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/config"
+	"github.com/wittywilla/wittymediaserver/internal/layout"
 )
 
 const (
@@ -243,8 +244,10 @@ func CheckTarget(data, to string, need int64) string {
 	case within(rt, rd):
 		return "The current data folder is inside that folder. Choose an empty folder of its own."
 	}
+	// An installed package's folder is the program's: only its data folder may be in it. A program
+	// built from source, or one file run from anywhere, has no folder of its own to keep clear.
 	prog := real(config.ProgramDir())
-	if within(rt, prog) || (within(prog, rt) && !Same(rt, real(config.InstallDataDir()))) {
+	if within(rt, prog) || (layout.Current().Kind != layout.KindSource && within(prog, rt) && !Same(rt, real(config.InstallDataDir()))) {
 		return "That's the program's own folder. Choose the install folder option, or a folder outside it."
 	}
 	if st, err := os.Stat(to); err == nil {

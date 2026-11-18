@@ -214,6 +214,8 @@ func TestCheckTarget(t *testing.T) {
 		{another, "already holds"},
 		{file, "a file with that name"},
 		{config.ProgramDir(), "program's own folder"},
+		// A program built from source has no folder of its own to keep clear (it may sit in /tmp).
+		{filepath.Join(config.ProgramDir(), "not-yet-made"), ""},
 		{filepath.Join(root, "fresh", "WittyMediaServer"), ""},
 	} {
 		got := CheckTarget(data, c.to, 0)

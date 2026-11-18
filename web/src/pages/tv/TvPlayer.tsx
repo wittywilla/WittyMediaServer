@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import Hls from 'hls.js'
-import { api } from '../../api'
+import { api, type StreamWork } from '../../api'
 import { announce } from '../../a11y'
 import { IconBack, IconPlay } from '../../icons'
 import { Controls } from '../../player/Controls'
@@ -19,7 +19,9 @@ import MoreInfo from './MoreInfo'
 import MiniGuide from './MiniGuide'
 import Slate from './Slate'
 import { useLiveTracks } from './tracks'
-import { liveCatchUp, liveHls, liveVideo, setLive, setLiveCatchUp, useLive } from './live'
+import { liveCatchUp, liveHls, liveVideo, retune, setLive, setLiveCatchUp, useLive } from './live'
+import QualityMenu, { StreamInfo } from '../../player/QualityMenu'
+import { describe, here, noteAway, setDeviceDefault, setShowStreamInfo, showStreamInfo, sizeName, streamLines } from '../../player/quality'
 import { fmtClock, fmtSpan, getLineup, type Alternative, type GuideChannel, type GuidePage, type TuneInfo } from './tvApi'
 import { catchupKey } from './guideLogic'
 import { useTvRemote } from '../../remote/tvTarget'
@@ -57,6 +59,7 @@ export default function TvPlayer() {
   const live = useLive(liveKey, stage)
   const mine = live.key === liveKey
   const info = mine ? live.info : null
+  useEffect(() => { noteAway(info?.quality?.away) }, [info])
   const err = mine ? live.err : ''
   const picture = mine && live.playing
   const tracks = useLiveTracks(video.current, liveHls, mine && live.ready)
@@ -68,6 +71,20 @@ export default function TvPlayer() {
   const [alt, setAlt] = useState<Alternative | null>(null)
   const [mini, setMini] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [qualityOpen, setQualityOpen] = useState(false)
+  const [statsOn, setStatsOn] = useState(showStreamInfo)
+  // What converts the channel (GPU or CPU), asked again every few seconds while it shows.
+  const [work, setWork] = useState<StreamWork | null>(null)
+  useEffect(() => {
+    setWork(null)
+    if (!statsOn || !live.url) return
+    const q = new URL(live.url, location.href).searchParams.get('quality')
+    const path = `/tv/${encodeURIComponent(liveKey)}/live/work${q ? '?quality=' + encodeURIComponent(q) : ''}`
+    const ask = () => { api.get<StreamWork>(path).then(setWork).catch(() => {}) }
+    ask()
+    const t = setInterval(ask, 2000)
+    return () => clearInterval(t)
+  }, [statsOn, live.url, liveKey])
   // Shown the moment a channel is chosen, from what the list already knows: the
   // number and name don't wait for the stream.
   const [zap, setZap] = useState<GuideChannel | null>(null)
@@ -327,8 +344,15 @@ export default function TvPlayer() {
       {more && info?.now && <MoreInfo channelKey={info.key} at={Math.max(info.now.start, Date.now() / 1000)} onClose={() => setMore(false)} />}
       {mini && <MiniGuide channel={key} onTune={tuneTo} onClose={() => setMini(false)} onFull={guide} />}
       {settingsOpen && <Dialog title={t('Player settings')} onClose={() => setSettingsOpen(false)}><BackgroundPlayChoice /></Dialog>}
+      {statsOn && <StreamInfo lines={streamLines('live', { width: video.current?.videoWidth, height: video.current?.videoHeight, work: work || undefined }, { width: video.current?.videoWidth || 0, height: video.current?.videoHeight || 0, kbps: (() => { const h = liveHls(); const l = h && h.currentLevel >= 0 ? h.levels[h.currentLevel] : null; return l?.bitrate ? Math.round(l.bitrate / 1000) : 0 })() })} />}
+      {qualityOpen && info?.quality && (
+        <QualityMenu view={info.quality} decision="live" live where={here()} showInfo={statsOn} onShowInfo={(on) => { setStatsOn(on); setShowStreamInfo(on) }} onClose={() => setQualityOpen(false)}
+          onChoose={(c) => { setQualityOpen(false); setDeviceDefault(here(), c); announce(t('Quality: {quality}', { quality: describe(c, info.quality?.presets || []) })); if (c !== info.quality?.asked) retune() }} />
+      )}
       <Controls video={video} duration={windowLen} offset={-win.start} onSeek={(t) => seekTo(win.start + t)} onFullscreen={() => toggleFullscreen(root.current)}
         remoteOn={remoteOn} onRemote={() => setRemoteOn(!remoteOn)} showChapterMarks={false} onSettings={() => setSettingsOpen(true)}
+        quality={info?.quality ? sizeName(video.current?.videoHeight || 0, video.current?.videoWidth || 0) || describe(info.quality.asked, info.quality.presets) : undefined}
+        onQualityMenu={info?.quality ? () => setQualityOpen((o) => !o) : undefined} qualityMenuOpen={qualityOpen}
         audio={tracks.audio} subtitles={tracks.subtitles} onAudio={tracks.chooseAudio} onSubtitle={tracks.chooseSubtitle}
         extra={<>
           {fromStart ? <button className="btn sm primary" onClick={goLive} title={t('Back to live (L)')}>● {t('Back to live')}</button>

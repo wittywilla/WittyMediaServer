@@ -12,6 +12,7 @@ import { Avatar } from './AuthPage'
 import LegalNote from '../components/LegalNote'
 import { ActivityDialog, AvatarPicker, CollectionRules, FeatureSwitches, KindLimits, ParentPin, TagRules, TimeRulesEditor, useParentalLists } from './settings/ParentalControls'
 import './profiles.css'
+import { StreamLimitsDialog } from './settings/StreamQuality'
 import { t, tk, tn, tx } from '../i18n'
 
 // Settings → Users: your account, the profiles you may manage, and their
@@ -40,6 +41,7 @@ export default function Profiles() {
   const [naming, setNaming] = useState<UserView | null>(null)
   const [settingPw, setSettingPw] = useState<UserView | null>(null)
   const [watching, setWatching] = useState<UserView | null>(null)
+  const [streamFor, setStreamFor] = useState<UserView | null>(null)
   const [mine, setMine] = useState<{ features: Record<string, boolean> } | null>(null)
   useEffect(() => { api.get<{ features: Record<string, boolean> }>('/me/limits').then(setMine).catch(() => {}) }, [user?.id])
   const load =() => api.get<UserView[]>('/users').then(setUsers).catch(() => setUsers([]))
@@ -85,6 +87,7 @@ export default function Profiles() {
                     <Button size="sm" aria-label={u.kind === 'adult' ? t('Password for {name}', { name: profileName(u) }) : t('Password or PIN for {name}', { name: profileName(u) })} onClick={() => setSettingPw(u)}>{passwordWord(u)}</Button>
                     {!u.isAdmin && <Button size="sm" aria-label={t('Limits for {name}', { name: profileName(u) })} onClick={() => setEditing(u)}>{t('Limits')}</Button>}
                     {!u.isAdmin && <Button size="sm" aria-label={t('Report for {name}: what they watched, and more time', { name: profileName(u) })} onClick={() => setWatching(u)}>{t('Report')}</Button>}
+                    {user?.isAdmin && <Button size="sm" aria-label={t('Streaming limits for {name}', { name: profileName(u) })} onClick={() => setStreamFor(u)}>{t('Streaming')}</Button>}
                     <IconButton label={t('Remove {name}', { name: profileName(u) })} size="sm" variant="danger" onClick={() => del(u)}><IconTrash /></IconButton>
                   </div>
                 )}
@@ -103,6 +106,7 @@ export default function Profiles() {
       {naming && <NamesDialog user={naming} onClose={() => setNaming(null)} onSaved={() => { setNaming(null); load() }} />}
       {settingPw && <PasswordDialog user={settingPw} onClose={() => setSettingPw(null)} onSaved={() => { setSettingPw(null); load() }} />}
       {watching && <ActivityDialog user={watching} onClose={() => setWatching(null)} />}
+      {streamFor && <StreamLimitsDialog user={streamFor} onClose={() => setStreamFor(null)} />}
       {user?.isAdmin && <ParentPin />}
     </>
   )

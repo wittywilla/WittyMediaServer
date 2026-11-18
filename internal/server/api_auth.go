@@ -684,6 +684,8 @@ func (s *Server) handleDeleteUser(w http.ResponseWriter, r *http.Request) {
 	}
 	s.accountGone(id)            // its sign-ins, and all they had open, ended with it (live_ends.go)
 	s.p2pForgetGone(r.Context()) // its devices went with it: their connections close now
+	// Its quality defaults and limits go with it (api_quality.go).
+	_, _ = s.DB.ExecContext(r.Context(), `DELETE FROM settings WHERE key IN (?, ?)`, streamPrefsKey(id), streamLimitsKey(id))
 	// Modules of API 5 keep their own data about people: they hear of it (host_api.go).
 	s.hostEvents().publish("user.deleted", map[string]int64{"user": id})
 	if s.TV != nil {

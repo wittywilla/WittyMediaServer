@@ -20,6 +20,7 @@ import LicenseList from './settings/Licenses'
 import SupportedFormats from './settings/SupportedFormats'
 import MetadataSettings from './settings/Metadata'
 import PlaybackSettings from './settings/Playback'
+import StreamQualitySettings from './settings/StreamQuality'
 import SharingSettings from './settings/Sharing'
 import { ConsolePicker } from '../components/ConsolePicker'
 import { kindTitle, libraryKinds, missingKind, orList, type LibraryKind } from '../moduleStore'
@@ -98,6 +99,7 @@ const GROUPS: { title: string; pages: Page[] }[] = [
   { title: tk('You'), pages: [
     { to: 'users', label: tk('Profiles'), icon: <IconUsers />, hint: tk('People, passwords and limits') },
     { to: 'security', label: tk('Sign-in & security'), icon: <IconLock />, hint: tk('Your devices and two-factor sign-in') },
+    { to: 'quality', label: tk('Video quality'), icon: <IconPlay />, hint: tk('The picture size and data videos play at, at home and away') },
     { to: 'appearance', label: tk('Appearance'), icon: <IconPalette />, hint: tk('Theme, colours, layout, and the look of WittyTV and the player') },
     { to: 'activity', label: tk('Activity'), icon: <IconActivity />, hint: tk('The button showing library scans and other background work') },
     { to: 'sharing', label: tk('Sharing & photos'), icon: <IconImage />, hint: tk('Uploads, links, the photo map') },
@@ -220,6 +222,7 @@ export default function SettingsPage() {
           <Route path="pages/*" element={<Suspense fallback={<div className="loading-box"><div className="spinner" /></div>}><PagesSettings /></Suspense>} />
           <Route path="metadata" element={<MetadataSettings />} />
           <Route path="playback" element={<PlaybackSettings />} />
+          <Route path="quality" element={<StreamQualitySettings />} />
           <Route path="channels/*" element={<Suspense fallback={<div className="center"><div className="spinner" /></div>}><TvSettings /></Suspense>} />
           <Route path="server" element={<Navigate to="/settings/metadata" replace />} />
           <Route path="transcoding" element={<TranscodeSettings />} />

@@ -7,6 +7,7 @@ export const settingsHelp: Record<string, string> = {
   'module-settings': 'sdui-modules#settings',
   metadata: 'metadata',
   playback: 'settings#playback',
+  quality: 'transcoding#quality-modes',
   discs: 'settings#dvds-and-blu-rays',
   channels: 'channels',
   gaming: 'games',

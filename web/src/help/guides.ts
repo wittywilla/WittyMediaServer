@@ -143,6 +143,7 @@ export const settingsPages: Record<string, string> = {
   'What this server plays': 'games-support',
   'Metadata agents': 'metadata',
   Playback: 'playback',
+  'Video quality': 'quality',
   'DVDs and Blu-rays': 'discs',
   'Channels & tuners': 'channels',
   'Games & emulators': 'gaming',

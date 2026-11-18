@@ -41,6 +41,9 @@ type Props = {
   // The chip beside the pickers ("4K", "720p"): what the picture is, and a press says how it is playing.
   quality?: string
   onQuality?: () => void
+  // The quality menu (QualityMenu.tsx), opened from the chip; without it the chip opens onQuality.
+  onQualityMenu?: () => void
+  qualityMenuOpen?: boolean
 }
 
 export { SPEEDS, setSpeed }
@@ -72,7 +75,7 @@ export function useVideoState(video: React.RefObject<HTMLVideoElement | null>) {
 }
 
 export function Controls({ video, duration, chapters = [], chapterNames, chapterThumb, onSeek, onPrev, onNext, audio, subtitles, onAudio, onSubtitle, onPick, angles = 1,
-  onFullscreen, onSettings, remoteOn, onRemote, showSeek = true, showChapterMarks = true, extra, offset = 0, disc = false, copy = false, quality, onQuality }: Props) {
+  onFullscreen, onSettings, remoteOn, onRemote, showSeek = true, showChapterMarks = true, extra, offset = 0, disc = false, copy = false, quality, onQuality, onQualityMenu, qualityMenuOpen }: Props) {
   const st = useVideoState(video)
   const [pop, setPop] = useState<'audio' | 'subs' | 'chapters' | 'speed' | 'more' | null>(null)
   // Where the pointer is on the timeline, or being dragged to (0 to 1): the time and scene there are shown above it.
@@ -193,7 +196,9 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
           {audio && audio.length > 1 && <button className="cbtn" title={t('Audio & language')} aria-label={t('Audio and language')} onClick={() => (onPick ? onPick('audio') : setPop(pop === 'audio' ? null : 'audio'))}><IconAudio /><span className="lbl">{t('Audio')}</span></button>}
           {subtitles && subtitles.length > 0 && <button className="cbtn" title={t('Subtitles')} aria-label={t('Subtitles')} onClick={() => (onPick ? onPick('subtitle') : setPop(pop === 'subs' ? null : 'subs'))}><IconSubs /><span className="lbl">{t('Subtitles')}</span></button>}
           {onPick && angles > 1 && <button className="cbtn" title={t('Video version (camera angle)')} aria-label={t('Video version')} onClick={() => onPick('angle')}><IconAngle /><span className="lbl">{t('Angle')}</span></button>}
-          {quality && <button className="cbtn chip-q" title={t('How this is playing (I)')} aria-label={t('Picture {quality}. How this is playing', { quality })} onClick={onQuality} disabled={!onQuality}><span className="lbl always">{quality}</span></button>}
+          {quality && (onQualityMenu
+            ? <button className={'cbtn chip-q' + (qualityMenuOpen ? ' on' : '')} title={t('Quality (Q)')} aria-label={t('Quality: {quality}', { quality })} aria-haspopup="dialog" aria-expanded={!!qualityMenuOpen} onClick={onQualityMenu}><span className="lbl always">{quality}</span></button>
+            : <button className="cbtn chip-q" title={t('How this is playing (I)')} aria-label={t('Picture {quality}. How this is playing', { quality })} onClick={onQuality} disabled={!onQuality}><span className="lbl always">{quality}</span></button>)}
           <button className="cbtn chip-s" title={t('Playback speed (< and >)')} aria-label={t('Playback speed {rate} times', { rate })} aria-expanded={pop === 'speed'} onClick={() => setPop(pop === 'speed' ? null : 'speed')}><span className="lbl always">{rate}×</span></button>
           {chapters.length > 1 && <button className={'cbtn' + (pop === 'chapters' ? ' on' : '')} title={t('Scenes')} aria-label={t('Chapters')} aria-expanded={pop === 'chapters'} onClick={() => setPop(pop === 'chapters' ? null : 'chapters')}><IconChapters /><span className="lbl">{t('Chapters')}</span></button>}
           {onRemote && (
@@ -293,6 +298,7 @@ const KEYS: [string, string, ('disc' | 'file' | 'chapters')?][] = [
   ['↑ and ↓', tk('Volume up or down'), 'file'],
   ['M', tk('Mute or unmute'), 'file'],
   ['I', tk('Details of what’s playing'), 'file'],
+  ['Q', tk('Quality: picture size and data'), 'file'],
   ['< and >', tk('Slower or faster')],
   ['F', tk('Fullscreen')],
   ['R', tk('Show or hide the remote')],

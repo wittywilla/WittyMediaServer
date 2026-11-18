@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { api, ApiError, mediaUrl, serverBase, getToken } from '../../api'
+import { api, ApiError, mediaUrl, serverBase, getToken, type QualityView } from '../../api'
 import { parseCatchupKey, type TvSet } from './guideLogic'
 import { date, t } from '../../i18n'
 
@@ -48,6 +48,8 @@ export type TuneInfo = {
   partEnd?: number
   countProgress: boolean; canRecord: boolean; bufferSec: number; backgroundPlay?: boolean
   atsc3?: boolean; security?: Security; notices?: string[]; alternative?: Alternative
+  // What the quality menu offers, and what is chosen (docs/CLIENT-API.md, Quality).
+  quality?: QualityView
 }
 
 export type Rules = {
@@ -161,11 +163,12 @@ export async function tune(key: string, viewer: string, signal: AbortSignal): Pr
 }
 
 // This player has gone: the server stops a channel nobody is left watching.
-export function leaveChannel(key: string, viewer: string) {
+// quality: the choice the stream was tuned with, as it may be a stream of its own.
+export function leaveChannel(key: string, viewer: string, quality = '') {
   const headers: Record<string, string> = {}
   const tok = getToken()
   if (tok) headers.Authorization = 'Bearer ' + tok
-  fetch(serverBase() + `/api/tv/${parseCatchupKey(key)?.key ?? key}/leave?viewer=${viewer}`, { method: 'POST', headers, credentials: 'same-origin', keepalive: true }).catch(() => {})
+  fetch(serverBase() + `/api/tv/${parseCatchupKey(key)?.key ?? key}/leave?viewer=${viewer}${quality ? '&quality=' + encodeURIComponent(quality) : ''}`, { method: 'POST', headers, credentials: 'same-origin', keepalive: true }).catch(() => {})
 }
 
 export async function uploadLogo(id: number, file: File): Promise<{ logo: string }> {

@@ -1762,6 +1762,9 @@
         "title": {
           "type": "string"
         },
+        "tv": {
+          "type": "string"
+        },
         "variant": {
           "type": "string"
         }

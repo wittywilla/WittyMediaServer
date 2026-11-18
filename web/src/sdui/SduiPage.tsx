@@ -23,6 +23,8 @@ import { changedRows, refreshDelay } from './refresh'
 import { Ctx, px, type PageCtx } from './render/context'
 import { scopeStyle, Sections } from './render/components'
 import { setPageMove } from '../tv'
+import { useTvMode } from '../tvmode/mode'
+import { OnAComputer, OnAComputerDialog } from '../tvmode/OnAComputer'
 import type { Action, Document, Node } from './types'
 import { useDevice } from './useSdui'
 import { ask } from '../ui/Overlay'
@@ -265,6 +267,7 @@ export default function SduiPage({ page, params, fallback }: { page: string; par
   const audio = useAudio()
   const opener = useOpenItem()
   const key = page + '?' + JSON.stringify(params)
+  const tvMode = useTvMode()
   const [doc, setDoc] = useState<Document | null>(() => kept(page, device, params))
   const [problem, setProblem] = useState<Problem | null>(null)
   const [busy, setBusy] = useState<Set<string>>(() => new Set())
@@ -454,6 +457,11 @@ export default function SduiPage({ page, params, fallback }: { page: string; par
   const personal = doc.personal
   const canCustomise = !!personal?.editable && (personal.allow || []).length > 0 && (personal.sections || []).length > 0
   const st = doc.screenTime
+  // A page that says it isn't for a television (its tv level, docs/TV-MODE.md) is the card that says
+  // to use a computer there; one that says view is shown with its controls off.
+  if (tvMode && (doc.page.tv === 'desktopOnly' || doc.page.tv === 'view')) {
+    return <OnAComputer level={doc.page.tv} title={doc.page.title || 'This page'} path={loc.pathname + loc.search}><PageView doc={doc} device={device} handlers={handlers} /></OnAComputer>
+  }
   return (
     <>
       <PageView doc={doc} device={device} handlers={handlers}>
@@ -472,7 +480,7 @@ export default function SduiPage({ page, params, fallback }: { page: string; par
         </div>
       )}
       <Suspense fallback={null}>
-        {customising && personal && <Customise doc={doc} onClose={() => setCustomising(false)} />}
+        {customising && personal && (tvMode ? <OnAComputerDialog part="page.customise" onClose={() => setCustomising(false)} /> : <Customise doc={doc} onClose={() => setCustomising(false)} />)}
         {menu && <CardMenu card={menu.card} x={menu.x} y={menu.y} act={act} onClose={() => setMenu(null)} />}
         {screen && <ScreenHost {...screen} onClose={() => setScreen(null)} />}
         {layer && <LayerHost to={layer} onClose={() => setLayer('')} />}

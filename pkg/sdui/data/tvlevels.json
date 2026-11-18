@@ -29,7 +29,9 @@
     { "id": "smart-list", "path": "/smart-list", "level": "desktopOnly", "title": "Smart lists" },
     { "id": "tv.channel-editor", "path": "/tv/channels/:id", "level": "desktopOnly", "title": "Channel editor", "summary": "channels" },
     { "id": "tv.channels", "path": "/tv/channels", "level": "view", "title": "WittyTV channels", "summary": "channels" },
-    { "id": "design", "path": "/design/*", "level": "desktopOnly", "title": "Design review" }
+    { "id": "design", "path": "/design/*", "level": "desktopOnly", "title": "Design review" },
+    { "id": "settings.game-metadata", "path": "/settings/game-metadata", "level": "desktopOnly", "title": "Game metadata" },
+    { "id": "wittyplay.libraries", "path": "/wittyplay/settings/libraries", "level": "desktopOnly", "title": "Game libraries", "summary": "libraries" }
   ],
   "parts": [
     { "id": "appearance.colours", "level": "desktopOnly", "title": "Making a theme" },
@@ -45,6 +47,8 @@
     { "id": "music.canvas-studio", "level": "desktopOnly", "title": "Canvas studio" },
     { "id": "app.layout-editor", "level": "desktopOnly", "title": "Editing the layout" },
     { "id": "app.brand-editor", "level": "desktopOnly", "title": "Name and logo" },
-    { "id": "title.canvas", "level": "desktopOnly", "title": "Making a canvas" }
+    { "id": "title.canvas", "level": "desktopOnly", "title": "Making a canvas" },
+    { "id": "wittyplay.custom-cores", "level": "desktopOnly", "title": "Custom cores" },
+    { "id": "wittyplay.picture-import", "level": "desktopOnly", "title": "Importing game pictures" }
   ]
 }

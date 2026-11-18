@@ -359,6 +359,9 @@ type PageInfo struct {
 	Variant string `json:"variant,omitempty"`
 	// Params are what the page was opened with (library, item, q, ...).
 	Params map[string]string `json:"params,omitempty"`
+	// TV is the page's television level (Page.TV): a renderer on a television draws a page that says
+	// desktopOnly as the card that says to use a computer, and one that says view without its controls.
+	TV string `json:"tv,omitempty"`
 }
 
 // ThemeScope is a theme scope and its colour overrides: token → colour.

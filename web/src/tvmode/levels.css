@@ -1,0 +1,47 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
+/* What a television shows in place of a screen it doesn't offer (OnAComputer.tsx, docs/TV-MODE.md). Sizes are
+   TV mode's (tvmode.css); off TV mode the same card is drawn at the website's own sizes. */
+
+.tvl-page { display: flex; flex-direction: column; gap: var(--sp-8); padding-block: var(--sp-6); }
+
+.tvl-card {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-10); align-items: center;
+  padding: var(--sp-8); border-radius: var(--r-xl);
+  background: var(--bg-2); border: 1px solid var(--border); box-shadow: var(--card-shadow);
+}
+.tvl-text { display: flex; flex-direction: column; gap: var(--sp-4); min-width: 0; }
+.tvl-title { margin: 0; font-size: var(--page-title); }
+.tvl-note { margin: 0; font-size: var(--text-lg); }
+.tvl-addr { margin: 0; font-family: var(--font-mono); color: var(--accent-text); overflow-wrap: anywhere; }
+.tvl-now { margin: 0; padding: var(--sp-4) var(--sp-6); list-style: none; display: flex; flex-direction: column; gap: var(--sp-2); border-radius: var(--r-lg); background: var(--accent-soft); }
+.tvl-follow { margin: 0; color: var(--fg-2); }
+.tvl-actions { display: flex; gap: var(--sp-4); margin-top: var(--sp-2); }
+.tvl-qr { margin: 0; display: flex; flex-direction: column; align-items: center; gap: var(--sp-3); color: var(--fg-2); }
+.tvl-qr .rem-qr { border-radius: var(--r-md); }
+
+.tvl-view { border: 0; margin: 0; padding: 0; min-width: 0; display: contents; }
+.tvl-view :is(section, .set-card):focus-visible { outline: 3px solid var(--accent); outline-offset: var(--sp-1); }
+
+.tvl-dialog { display: flex; gap: var(--sp-6); align-items: center; }
+.tvl-dialog p { margin: 0 0 var(--sp-3); }
+
+.tvl-part { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); align-items: baseline; padding: var(--sp-4) var(--sp-5); border-radius: var(--r-lg); background: var(--accent-soft); }
+
+html.tv-mode .tvl-page { gap: calc(var(--tvu) * 48); padding: 0; }
+html.tv-mode .tvl-card { gap: calc(var(--tvu) * 80); padding: calc(var(--tvu) * 64); border-radius: var(--tvm-r-tile); }
+html.tv-mode .tvl-title { font-size: var(--tvm-pagetitle); }
+html.tv-mode .tvl-note { font-size: var(--tvm-title); }
+html.tv-mode .tvl-addr { font-size: var(--tvm-body); }
+html.tv-mode .tvl-now, html.tv-mode .tvl-follow, html.tv-mode .tvl-part { font-size: var(--tvm-body); }
+html.tv-mode .tvl-qr { font-size: var(--tvm-caption); }
+html.tv-mode .tvl-qr .rem-qr { width: calc(var(--tvu) * 360); height: calc(var(--tvu) * 360); }
+
+@media (max-width: 700px) {
+  .tvl-card { grid-template-columns: 1fr; }
+}
+
+/* Settings on a television: its menu is the page (SettingsPage.tsx), across the screen. */
+html.tv-mode .set-shell.tv-menu { display: block; }
+html.tv-mode .set-shell.tv-menu .set-main { display: none; }
+html.tv-mode .set-shell.tv-menu .set-nav { position: static; width: auto; max-width: none; max-height: none; }

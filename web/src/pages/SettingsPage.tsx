@@ -37,6 +37,8 @@ import { Segmented } from '../ui/Choice'
 import { UpdateBanner } from '../components/UpdateBanner'
 import { Updates } from './settings/Updates'
 import { useFeatures } from '../sdui/useSdui'
+import { useTvMode } from '../tvmode/mode'
+import { tvScreenFor } from '../tvmode/levelTable'
 
 const ModulesSettings = lazy(() => import('./settings/Modules'))
 const ModuleStore = lazy(() => import('./settings/store/ModuleStore'))
@@ -155,6 +157,7 @@ export default function SettingsPage() {
   }, [loc.pathname, loc.hash])
   const slug = loc.pathname.split('/')[2]
   const narrow = useNarrow()
+  const tvMode = useTvMode()
   // A crash the owner hasn't looked at yet is pointed out on every settings page.
   // Asked again on leaving the logs page, where it may just have been dealt with.
   const [unseenCrashes, setUnseenCrashes] = useState<string[]>([])
@@ -171,7 +174,7 @@ export default function SettingsPage() {
   }
   if (!user?.isAdmin && GROUPS.some((g) => g.pages.some((p) => p.admin && p.to === slug))) return <Navigate to="/settings/users" replace />
   return (
-    <div className={'set-shell' + (slug ? '' : ' at-menu')}>
+    <div className={'set-shell' + (slug ? '' : ' at-menu') + (tvMode && !slug ? ' tv-menu' : '')}>
       <nav className="set-nav" aria-label="Settings">
         <div className="set-nav-title">Settings</div>
         <SettingsSearch value={query} onChange={setQuery} />
@@ -181,7 +184,7 @@ export default function SettingsPage() {
             <div className="set-nav-head">{g.title}</div>
             {g.pages.map((p) => (
               <NavLink key={p.to} to={p.launch || `/settings/${p.to}`} className="set-nav-link" title={p.hint}>
-                <span className="set-nav-icon" style={tint(p.to)}>{p.icon}</span><span className="set-nav-text"><span>{p.label}</span><small className="set-nav-hint">{p.hint}</small></span>{p.to === 'about' && <UpdateDot />}<IconRight className="set-nav-go" />
+                <span className="set-nav-icon" style={tint(p.to)}>{p.icon}</span><span className="set-nav-text"><span>{p.label}</span><small className="set-nav-hint">{tvMode && tvScreenFor('/settings/' + p.to)?.level === 'desktopOnly' ? 'On a computer. ' + p.hint : p.hint}</small></span>{p.to === 'about' && <UpdateDot />}<IconRight className="set-nav-go" />
               </NavLink>
             ))}
           </div>
@@ -213,7 +216,8 @@ export default function SettingsPage() {
         )}
         {slug !== 'about' && <UpdateBanner />}
         {moduleTab?.launch ? <Navigate to={moduleTab.launch} replace /> : moduleTab ? <ModuleSettingsView tab={moduleTab} /> : <Routes>
-          <Route index element={narrow ? null : <Navigate to={user?.isAdmin ? '/settings/libraries' : '/settings/users'} replace />} />
+          {/* On a television the menu is the page: its first choice may be one a computer changes (docs/TV-MODE.md). */}
+          <Route index element={narrow || tvMode ? null : <Navigate to={user?.isAdmin ? '/settings/libraries' : '/settings/users'} replace />} />
           <Route path="libraries" element={<Libraries />} />
           <Route path="pages/*" element={<Suspense fallback={<div className="loading-box"><div className="spinner" /></div>}><PagesSettings /></Suspense>} />
           <Route path="metadata" element={<MetadataSettings />} />
@@ -248,7 +252,7 @@ export default function SettingsPage() {
           <Route path="modules/stores" element={<Suspense fallback={null}><OtherStores /></Suspense>} />
           <Route path="about" element={<About />} />
           <Route path="legal" element={<Suspense fallback={null}><LegalSettings /></Suspense>} />
-          <Route path="*" element={<Navigate to={user?.isAdmin ? '/settings/libraries' : '/settings/users'} replace />} />
+          <Route path="*" element={<Navigate to={tvMode ? '/settings' : user?.isAdmin ? '/settings/libraries' : '/settings/users'} replace />} />
         </Routes>}
       </div>
     </div>

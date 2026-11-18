@@ -749,11 +749,17 @@ h3.section-title { font-size: var(--text-lg); margin-top: var(--sp-6); }
 .seek .knob { position: absolute; width: 14px; height: 14px; border-radius: 50%; background: #fff; transform: translateX(-50%) scale(.6); box-shadow: 0 1px 4px rgb(0 0 0 / .5); opacity: 0; transition: opacity var(--dur-2), transform var(--dur-2); }
 .seek:hover .knob, .seek:focus-visible .knob { opacity: 1; transform: translateX(-50%); }
 .seek .chap { position: absolute; width: 2px; height: 6px; background: rgba(0,0,0,.65); top: 9px; pointer-events: none; }
-.popover { position: absolute; bottom: 64px; right: var(--sp-5); background: rgb(20 22 28 / .98); border: 1px solid rgb(255 255 255 / .1); border-radius: var(--r-lg); padding: var(--sp-2); min-width: 220px; box-shadow: var(--e-3); z-index: 6; animation: dialog-in var(--dur-2) var(--ease-out); }
-.popover h4 { margin: var(--sp-1) var(--sp-2) 6px; color: var(--fg-3); font-size: var(--text-2xs); font-weight: 600; text-transform: uppercase; letter-spacing: var(--tracking-label); }
-.popover button { display: flex; width: 100%; background: transparent; border: 0; color: var(--fg-2); padding: var(--sp-2) 10px; min-height: 36px; align-items: center; border-radius: var(--r-sm); text-align: left; gap: var(--sp-2); font-size: var(--text-md); }
-.popover button:hover { background: rgba(255,255,255,.08); color: #fff; }
-.popover button.active { color: var(--accent-text); font-weight: 600; }
+/* The player's menus (speed, audio, subtitles, More): a solid raised surface in the tokens, never a fixed colour
+   (--bg-3 itself: the --elev-* tokens resolve on :root, to the page theme's colours).
+   The player sets its own dark tokens (player.css), so in every theme the labels are --fg (14:1 on --bg-3,
+   12:1 on --bg-4) and the heading and notes --fg-2 (8:1, 6.8:1): WCAG AA and more. */
+.popover { position: absolute; bottom: 64px; right: var(--sp-5); background: var(--bg-3); border: 1px solid var(--border-strong); border-radius: var(--r-lg); padding: var(--sp-2); min-width: 220px; box-shadow: var(--e-3); z-index: 6; animation: dialog-in var(--dur-2) var(--ease-out); }
+.popover h4 { margin: var(--sp-1) var(--sp-2) 6px; color: var(--fg-2); font-size: var(--text-2xs); font-weight: 600; text-transform: uppercase; letter-spacing: var(--tracking-label); }
+.popover button { display: flex; width: 100%; background: transparent; border: 0; color: var(--fg); padding: var(--sp-2) 10px; min-height: 36px; align-items: center; border-radius: var(--r-sm); text-align: left; gap: var(--sp-2); font-size: var(--text-md); }
+.popover button:hover, .popover button:focus-visible { background: var(--bg-4); color: var(--fg); }
+.popover button .muted { color: var(--fg-2); }
+/* The option in use: a filled row and a bolder label, not colour alone. */
+.popover button.active { background: var(--bg-4); color: var(--fg); font-weight: 700; box-shadow: inset 3px 0 0 var(--fg); }
 .player .overlay-msg { position: absolute; inset: 0; display: grid; place-items: center; color: var(--fg-2); z-index: 4; text-align: center; padding: var(--sp-5); }
 .player .overlay-msg .box { background: rgb(0 0 0 / .68); padding: var(--sp-4) var(--sp-6); border-radius: var(--r-lg); max-width: 56ch; }
 .player .center-spinner { position: absolute; inset: 0; display: grid; place-items: center; z-index: 3; pointer-events: none; }

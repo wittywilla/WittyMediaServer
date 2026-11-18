@@ -1421,6 +1421,12 @@ Paths are relative to `/api/v1`. Full request and response shapes are in `openap
 | `GET /diagnose/jobs/{id}` | admin | One check, with progress and findings. |
 | `DELETE /diagnose/jobs/{id}` | admin | Cancel a check. |
 | `GET /diagnose/jobs/{id}/report` | admin | The report as a file: `format=json` or `txt`, `redact=1` hides the disc name and file names. Nothing copyrighted is in it. |
+| `GET /data-location` | admin | Where the data folder is: `{dataDir, from, movable, why, ask, options, local, synced, files, bytes, apart, pending, last, old}`. `from` is `flag`, `env`, `config`, `portable`, `pointer`, `install`, `container`, `service` or `default`; `ask` is true while first-time setup should ask (a desktop install nobody has told). `options` are Documents and the install folder, each with `available` and `why`. |
+| `POST /data-location` | admin | Keep the data in another folder: `{choice: "documents" \| "install" \| "custom", path}`. 202 `{restarting: true, dataDir}`, then the server restarts, copies, checks and switches; 200 `{restarting: false}` when the data is already there and only the choice is saved. In first-time setup the old folder is cleared; otherwise it is kept until deleted. See docs/DATA-FOLDER.md. |
+| `POST /data-location/check` | admin | What choosing a place would mean, changing nothing: `{path, problem, free, synced, current}`. |
+| `DELETE /data-location/request` | admin | Take back a move waiting for the next start. |
+| `POST /data-location/old/delete` | admin | Delete the copy a move kept: `{password, code}`. Only what the move copied out of it goes. |
+| `GET /data-location/progress` | admin | `{moving: false, dataDir, last}`. While a move runs, the server's port answers only this, without signing in, with `{moving: true, done, total}` in bytes. |
 | `GET /reset` | admin | What a reset would do here: the data folder, folders set elsewhere, why it can't be done, copies kept, one waiting, how the last went. |
 | `POST /reset` | admin | Back to a new install: `{password, code, confirm: "RESET", delete}`. 202, then the server restarts and does it. Keeps a copy unless `delete`. |
 | `POST /reset/restore` | admin | Bring a kept copy back: `{password, code, copy}`. 202, then the server restarts. What's there now becomes another copy. |

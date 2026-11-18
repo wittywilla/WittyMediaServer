@@ -33,7 +33,7 @@
   .app.nav-top .topbar .search { flex: none; width: 40px; min-width: 40px; }
   .app.nav-top .topbar .search input { height: 40px; padding: 0 0 0 40px; cursor: pointer; background: var(--bg-3); }
   .app.nav-top .topbar .search input::placeholder { color: transparent; }
-  .app.nav-top .topbar .search:focus-within { position: absolute; inset-inline: 16px 70px; width: auto; max-width: none; z-index: 3; }
+  .app.nav-top .topbar .search:focus-within { position: absolute; inset-inline: 16px 70px; width: auto; max-width: none; z-index: 3; } /* design-ok: the open search box stops short of the profile button, as it did with left and right */
   .app.nav-top .topbar .search:focus-within input { padding-inline-end: 16px; cursor: text; box-shadow: var(--e-3); }
   .app.nav-top .topbar .search:focus-within input::placeholder { color: var(--fg-3); }
 }

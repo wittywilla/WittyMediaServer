@@ -185,16 +185,34 @@ func (t *Tools) testEncoder(ctx context.Context, log *slog.Logger, st *HWStatus,
 	args = append(args, "-vf", vf, "-c:v", plan.Name)
 	args = append(args, plan.Args...)
 	args = append(args, "-f", "null", "-")
-	cctx, cancel := context.WithTimeout(ctx, 20*time.Second)
-	cmd := Command(cctx, t.FFmpeg, args...)
-	var stderr logging.Tail
-	cmd.Stderr = &stderr
-	started := time.Now()
-	err := cmd.Run()
-	cancel()
+	// A test takes a second or two, but starting FFmpeg on a machine busy with other work (or
+	// waking a laptop's graphics card) can take far longer: with every core busy, each test here
+	// took 21 seconds, ran out of a 20-second limit, and the server then converted everything on
+	// the processor until it was restarted. A test that runs out of time says nothing about the
+	// chip, so it's tried again with longer.
+	var (
+		err     error
+		stderr  *logging.Tail
+		started time.Time
+	)
+	for _, limit := range []time.Duration{20 * time.Second, time.Minute, 3 * time.Minute} {
+		stderr = &logging.Tail{}
+		cctx, cancel := context.WithTimeout(ctx, limit)
+		cmd := Command(cctx, t.FFmpeg, args...)
+		cmd.Stderr = stderr
+		started = time.Now()
+		err = cmd.Run()
+		timedOut := cctx.Err() == context.DeadlineExceeded && ctx.Err() == nil
+		cancel()
+		if !timedOut {
+			break
+		}
+		log.Info("hardware encoder test ran out of time: trying again with longer", "encoder", st.Name, "limit", limit.String())
+		err = fmt.Errorf("the test encode took longer than %s: the machine may be too busy", limit)
+	}
 	// FFmpeg lists encoders this machine has no hardware for, so most of
 	// these failing says nothing is wrong: the details are only a debug line.
-	logging.ChildExit(log, "ffmpeg", err, true, &stderr, started, "encoder", st.Name)
+	logging.ChildExit(log, "ffmpeg", err, true, stderr, started, "encoder", st.Name)
 	st.Tested, st.Working = true, err == nil
 	if err == nil {
 		log.Info("hardware encoder works", "encoder", st.Name, "device", st.Device)
@@ -202,6 +220,9 @@ func (t *Tools) testEncoder(ctx context.Context, log *slog.Logger, st *HWStatus,
 	}
 	msg := strings.TrimSpace(stderr.String())
 	st.Reason = explainEncoderError(st.Vendor, msg, container)
+	if st.Reason == "" && strings.HasPrefix(err.Error(), "the test encode took longer") {
+		st.Reason = "The test encode took too long: the machine may have been too busy. It's tested again when the server restarts."
+	}
 	if st.Vendor == "vaapi" && st.Reason != "" {
 		// A driver "missing" for a chip that has none here, such as WSL's own device.
 		for _, d := range GPUs() {

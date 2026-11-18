@@ -68,7 +68,7 @@ go test -c -o bench-before.exe ./internal/server
 | `WMS_FFBENCH_RUNS` | Runs of each case | 3 |
 | `WMS_FFBENCH_SEGMENTS` | Segments timed after the first, for the speed | 8 (32 seconds) |
 | `WMS_FFBENCH_ONLY` | A regular expression: only the cases it matches | all |
-| `WMS_FFBENCH_SETTINGS` | Server settings as an administrator would set them, such as `hwEncoders=h264_nvenc,lowPower=1`. Naming hardware encoders tests them first, as the server does | none: libx264 |
+| `WMS_FFBENCH_SETTINGS` | Server settings as an administrator would set them, such as `hwEncoders=h264_nvenc,lowPower=1`. The hardware encoders are tested first, as the server does, and the first that works is used unless they're named or turned off with `hwEncoders=` (nothing after it), which measures libx264 | none: any hardware encoder that works |
 | `WMS_FFBENCH_OUT` | A JSON file for every run's numbers, the machine and the FFmpeg version | none |
 | `WMS_TEST_CATALOG` | The module catalogue, for the disc cases | none |
 

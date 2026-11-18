@@ -38,7 +38,8 @@ export default function TranscodeSettings() {
   if (st.failed) return <>{head}<LoadError what="This page" onRetry={st.retry} /></>
   if (!s) return head
   const mode = (s.qualityMode || 'easy') as Mode
-  const enabled = new Set((s.hwEncoders || '').split(',').filter(Boolean))
+  // Never saved ("auto"): every encoder that works here, until the owner chooses.
+  const enabled = new Set((s.hwEncoders ?? 'auto') === 'auto' ? hw.filter((h) => h.compiled && h.working).map((h) => h.name) : (s.hwEncoders || '').split(',').filter(Boolean))
   const toggleHW = (name: string, want: boolean) => set('hwEncoders', hw.map((h) => h.name).filter((n) => (n === name ? want : enabled.has(n))).join(','))
   // An older setting that the list of encoders replaced: saving says it's gone.
   const save = () => { set('hwAccel', ''); st.save() }

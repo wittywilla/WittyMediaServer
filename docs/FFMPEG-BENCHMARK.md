@@ -94,6 +94,27 @@ Things that mislead:
 
 ## Figures
 
+### 0.8.1-alpha: the graphics chip by default (#437)
+
+The same laptop, now also with its RTX 3070 Laptop and Iris Xe in use, FFmpeg N-128142, the owner's media on `E:\ServerMedia`, with nothing else running. Two runs of each case; default settings each time, so before is libx264 and after is whatever the hardware test found (NVENC, with the picture decoded, resized and HDR-mapped on the chip).
+
+| Case | First segment ms | Speed × | CPU s per min | Peak MB | Seek ms |
+|---|---|---|---|---|---|
+| `remux-h264-1080p` | 357 → 358 | 5.8 → 5.8 | 0.7 → 0.7 | 37 → 37 | 533 → 452 |
+| `x264-1080p` | 517 → 1081 (406–1756) | 9.7 → 20.6 | 47.4 → **1.8** | 430 → 267 | 827 → 668 |
+| `x264-1080p-to-720p-4M` | 316 → 382 | 18.5 → 25.6 | 32.1 → **2.1** | 269 → 245 | 528 → 599 |
+| `hevc-1080p-to-h264` | 431 → 423 | 9.2 → 20.5 | 44.8 → **2.7** | 441 → 278 | 414 → 582 |
+| `tonemap-4k-hdr-to-1080p` | 1670 → 1993 | 3.5 → 5.2 | 249.3 → **8.5** | 1012 → 738 | 2518 → 1907 |
+| `burn-text-subtitles` | 424 → 456 | 8.5 → 23.6 | 47.3 → **5.0** | 361 → 279 | 517 → 601 |
+| `burn-picture-subtitles` | 516 → 498 | 8.1 → 19.9 | 56.3 → **13.5** | 513 → 388 | 467 → 638 |
+| `audio-transcode` | 41 → 43 | 167 → 165 | 0.4 → 0.4 | 24 → 24 | 63 → 65 |
+| `live-channel-1080p` | 297 → 327 | 1.0 → 1.0 | 1.3 → 1.4 | 38 → 37 | |
+| `live-channel-1080p-converted` | 1048 → 798 | 1.0 → 1.0 | 43.0 → **2.3** | 170 → 267 | |
+
+With NVENC named in the settings before as well, so that only keeping the picture on the chip differs: 1080p 4.2 → 1.8 CPU s per minute, 720p 5.8 → 2.1, HEVC 5.0 → 2.7, 4K HDR 213.6 → 8.5 (the mapping, now on the chip), a converted channel 4.2 → 2.3; peak memory 413 → 267 MB for 1080p. The slow first segment of one 1080p run in each (about 1.7 s) is the laptop's graphics card waking up.
+
+### 0.6.2-alpha
+
 Measured on a laptop with a 12th-generation Intel Core i7-12700H (14 cores, 20 threads) and 64 GB of memory, Windows 11, FFmpeg N-128142 (2026-10-28), libx264, with other work running on it.
 
 These are for 0.6.2-alpha, with the machine's processors fully busy with other work the whole time, so the times are slow and spread out. Processor seconds and memory hardly change with that. On a quieter moment, the same 1080p conversion had its first segment in 1 second and ran at 6.7 times real time.

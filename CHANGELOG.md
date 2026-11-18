@@ -5,6 +5,8 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **Fixed:** first-time setup's Live TV and Games steps were an empty card once their module was installed. The app asked what modules add to it only once, before there was an account, and never again; it now asks again after a refusal, with the server's state, and after the Modules step installs something. A module's step that can't load says so instead of drawing nothing. (#378)
+
 ## 0.8.0-alpha
 
 Released 2026-11-16.

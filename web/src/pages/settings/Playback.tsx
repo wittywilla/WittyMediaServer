@@ -8,6 +8,7 @@ import { PageHead, Row, SaveBar, Section, useServerSettings } from './ui'
 import { Segmented } from '../../ui'
 import { deviceStreaming, setDeviceStreaming, type DeviceStreaming } from '../../player/streaming'
 import AutoSkipSection from './AutoSkip'
+import { QualityLimitsSection } from './StreamQuality'
 
 // How things play: the player, TV episode lists, skipping intros and streaming. DVDs and Blu-rays
 // are WittyDisc's own section of Settings.
@@ -36,6 +37,8 @@ export default function PlaybackSettings() {
       <AutoSkipSection />
 
       <StreamingSection value={s.remoteStreaming || 'standard'} set={(v) => set('remoteStreaming', v)} />
+
+      <QualityLimitsSection />
 
       <SaveBar {...st} />
     </>

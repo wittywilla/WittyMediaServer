@@ -77,7 +77,7 @@ func main() {
 	case "catalog":
 		modules, err = catalogModules(filepath.Join(*out, "catalog.json"))
 		check(err)
-	case "kit":
+	case "kit", "server":
 		// The module icons come too when WittyModuleCatalog is beside this repository.
 		modules, _ = catalogModules(*catalog)
 	}

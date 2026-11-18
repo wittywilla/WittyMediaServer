@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/url"
 	"os"
 	"path"
@@ -447,12 +448,33 @@ var pngStart = []byte("\x89PNG\r\n\x1a\n")
 
 // IconFile is where a module's picture from the catalogue is kept, fetched the first time it's
 // asked for. It's checked against the signed catalogue, so it can't be swapped for anything else.
+// A module with no picture is ErrUnknown; any other failure is logged once, since the page only
+// draws a letter in its place.
 func (m *Manager) IconFile(ctx context.Context, id string) (string, error) {
+	p, err := m.iconFile(ctx, id)
+	if err != nil && !errors.Is(err, ErrUnknown) {
+		m.logOnce(slog.LevelWarn, "modules: a module's picture couldn't be fetched", "module", id, "err", err)
+	}
+	return p, err
+}
+
+// listedFrom is where a module's listing's relative addresses resolve from: the catalogue it
+// came from or, for one known only from the list this server was built with, the official
+// catalogue that list is a copy of. Call with m.mu held.
+func (m *Manager) listedFrom(id string, e *entry) string {
+	if m.cat != nil && m.cat.Find(id) == e.listed {
+		return m.catFrom
+	}
+	return m.cfg.CatalogURL
+}
+
+func (m *Manager) iconFile(ctx context.Context, id string) (string, error) {
 	m.mu.Lock()
-	e, from := m.mods[id], m.catFrom
+	e := m.mods[id]
 	var icon *wittymodule.CatalogFile
+	var from string
 	if e != nil && e.listed != nil {
-		icon = e.listed.Icon
+		icon, from = e.listed.Icon, m.listedFrom(id, e)
 	}
 	m.mu.Unlock()
 	if icon == nil {

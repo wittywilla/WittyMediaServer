@@ -5,6 +5,7 @@ import { useEffect, useRef } from 'react'
 import { getToken, mediaUrl, serverBase, type StreamingHints } from '../api'
 import { reportClient, reportHlsError, watchPlayback } from '../errorReport'
 import { mediaSourceWorks } from './mse'
+import { settleSeeks } from './seekSettle'
 import { rememberSpeed } from './streaming'
 
 type HlsClass = typeof Hls
@@ -71,6 +72,8 @@ export function useSource(video: React.RefObject<HTMLVideoElement | null>, url: 
           } : {}),
         })
         hlsRef.current = hls
+        // Before attachMedia, so it hears of each seek before hls.js does (see seekSettle.ts).
+        const unsettle = settleSeeks(hls, v)
         hls.loadSource(abs)
         hls.attachMedia(v)
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
@@ -89,6 +92,17 @@ export function useSource(video: React.RefObject<HTMLVideoElement | null>, url: 
         let gone = 0
         let mediaErrors = 0
         hls.on(Hls.Events.FRAG_LOADED, () => { gone = 0 })
+        // Media errors count until the picture has played on for a while: a stream this browser
+        // really can't decode fails again at once, while a hiccup around a seek, an hour into a
+        // film, mustn't add to one from long before and end playback.
+        let playedSinceError = 0
+        let lastT = v.currentTime
+        const played = () => {
+          const d = v.currentTime - lastT
+          lastT = v.currentTime
+          if (mediaErrors && !v.seeking && d > 0 && d < 1 && (playedSinceError += d) > 10) { mediaErrors = 0; playedSinceError = 0 }
+        }
+        v.addEventListener('timeupdate', played)
         const watch = robust ? robustWatch(Hls, hls, v, optsRef) : null
         hls.on(Hls.Events.ERROR, (_e, data) => {
           if (!data.fatal) return
@@ -99,12 +113,15 @@ export function useSource(video: React.RefObject<HTMLVideoElement | null>, url: 
             else hls.startLoad()
           } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
             // Once is worth it; a stream this browser really can't decode would go round for ever.
+            playedSinceError = 0
             if (++mediaErrors <= 2) hls.recoverMediaError()
             else optsRef.current.onError?.(data.details || 'playback error')
           }
           else optsRef.current.onError?.(data.details || 'playback error')
         })
         return () => {
+          unsettle()
+          v.removeEventListener('timeupdate', played)
           watch?.stop()
           if (watch && hls.bandwidthEstimate > 0) rememberSpeed(hls.bandwidthEstimate / 1000)
           hls.destroy(); hlsRef.current = null

@@ -4,6 +4,7 @@ import { useLayoutEffect, useRef, useSyncExternalStore } from 'react'
 import type Hls from 'hls.js'
 import { BACKGROUND_KEY, STILL_HERE_MS, keepsPlaying, letGo, readChoice, resumeOnShow, sayStillHere, type Choice } from './backgroundPlay'
 import { leaveChannel, makeViewer, preflight, tune, type TuneInfo } from './tvApi'
+import { deviceChoice } from '../../player/quality'
 
 // One player for the whole TV section: one <video>, one stream, for as long as someone stays
 // on a channel. The guide's preview and the watch view are only places to draw it (slots), so
@@ -49,6 +50,14 @@ export const useLiveState = () => useSyncExternalStore(subscribe, () => live)
 export const liveNow = () => live
 export const liveViewer = () => viewer
 
+// How many seconds this player could move forward to be back where everyone on the channel is:
+// live sync works it out every 2 seconds, paused or not (TvHost). Null when it can't tell, such as
+// before the first program date-time or for a programme watched from its start. Kept out of the
+// state above so the guide and the pages don't draw again each time it moves.
+let catchUp: number | null = null
+export const setLiveCatchUp = (s: number | null) => { catchUp = s }
+export const liveCatchUp = () => catchUp
+
 // The video, made once. Until a slot wants it, it waits in a corner of the page: still in the
 // document, as taking a video out of it pauses it, and still on screen, as some browsers stop
 // a muted video they think nobody can see.
@@ -65,7 +74,7 @@ export function liveVideo(): HTMLVideoElement {
   parking.style.cssText = 'position:fixed;right:0;bottom:0;width:2px;height:2px;overflow:hidden;opacity:0;pointer-events:none;z-index:-1'
   document.body.appendChild(parking)
   parking.appendChild(video)
-  window.addEventListener('pagehide', () => { if (live.key) leaveChannel(live.key, viewer) })
+  window.addEventListener('pagehide', () => { if (live.key) leaveChannel(live.key, viewer, tunedQuality) })
   document.addEventListener('visibilitychange', onVisibility)
   return video
 }
@@ -189,8 +198,12 @@ function settle(leaveNow = false) {
   }
 }
 
+// The quality choice the channel was tuned with (player/quality.ts): leaving names it.
+let tunedQuality = ''
+
 function start(key: string) {
-  if (live.key) leaveChannel(live.key, viewer)
+  if (live.key) leaveChannel(live.key, viewer, tunedQuality)
+  tunedQuality = deviceChoice()
   ac?.abort()
   const a = (ac = new AbortController())
   setLive({ ...IDLE, key })
@@ -211,9 +224,12 @@ function stop() {
   leaveTimer = undefined
   ac?.abort()
   ac = null
-  if (live.key) leaveChannel(live.key, viewer)
+  if (live.key) leaveChannel(live.key, viewer, tunedQuality)
   setLive(IDLE)
 }
+
+// retune asks for the channel again: after a new quality choice, whose stream is another.
+export function retune() { if (live.key) start(live.key) }
 
 // A page's place for the picture. `key` is the channel it wants, or '' for none yet; `slot`
 // is the element the video goes in while this is the page that wants it.

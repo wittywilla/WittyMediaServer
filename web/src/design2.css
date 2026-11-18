@@ -139,14 +139,14 @@ html.tv-mode .sdui-widgets { gap: var(--space-l); }
 .app[data-r-brand="center"] .topbar .top-brand { margin-inline: auto; }
 
 /* ---- finishes of the top-bar nav styles (data-nav-style on the frame), in the theme's own colours ---- */
-.app[data-nav-style="floatingGlassBar"] .topbar { margin: var(--space-s) var(--gutter) 0; border-radius: var(--r-full); background: color-mix(in srgb, var(--elev-2-fill) 86%, transparent); border: 1px solid var(--elev-2-line); box-shadow: var(--elev-3-shadow); background-image: linear-gradient(180deg, color-mix(in srgb, var(--on-image) 14%, transparent), transparent 60%); padding-block: calc(var(--sp-3) - 1px); }
-/* The floating bar stands off the top by --space-s, so a picture runs up behind it by that much more than under a
-   bar at the edge, and has no hard edge under the glass. Anything before the picture starts below it. */
-@supports (animation-timeline: scroll()) {
-  .app[data-nav-style="floatingGlassBar"]:has(.hero, .detail-hero):not(:has(.home.editing, .legal-ack-bar)) .topbar { margin-bottom: calc(-1 * (var(--topbar-h) + var(--space-s))); }
-  .app[data-nav-style="floatingGlassBar"]:has(.hero, .detail-hero) .content > .sdui:first-child > :first-child:not(.hero, .detail-hero, .sr-only),
-  .app[data-nav-style="floatingGlassBar"]:has(.hero, .detail-hero) .content > .sdui:first-child > .sr-only:first-child + :not(.hero, .detail-hero) { margin-top: calc(var(--topbar-h) + var(--space-s)); }
-}
+.app[data-nav-style="floatingGlassBar"] .topbar { margin: var(--space-s) var(--gutter) 0; border-radius: var(--r-full); background: color-mix(in srgb, var(--elev-2-fill) 86%, transparent); border: 1px solid var(--elev-2-line); box-shadow: var(--elev-3-shadow); background-image: linear-gradient(180deg, color-mix(in srgb, var(--on-image) 14%, transparent), transparent 60%); padding-block: calc(var(--sp-3) - 1px); padding-inline: max(var(--gutter), calc((100% - var(--page-max)) / 2 - var(--gutter))); }
+/* The floating bar stands off the top by --space-s. That margin is part of the room the bar measures (--bar-space,
+   styles.css), so a picture that opens the page runs up behind the glass to the very top, and anything else starts below. */
+/* Its backing is the pill's own shape: the surface that fades in as the page scrolls under it (::before) takes the
+   bar's corners, and the soft edge drawn under a bar at the top of the window (::after) isn't drawn, since a floating
+   bar has page all round it, not below it. Doubled class: these beat the phone's and the picture's rules. */
+.app[data-nav-style="floatingGlassBar"] .topbar.topbar::before { border-radius: inherit; }
+.app[data-nav-style="floatingGlassBar"] .topbar.topbar::after { display: none; }
 .app[data-nav-style="cableBar"] .topbar { background: var(--bg-2); color: var(--fg); border-radius: 0; border-block-end: 2px solid var(--accent); }
 .app[data-nav-style="cableBar"] .topnav-link { color: var(--fg); border-radius: 0; border: 1px solid var(--border-strong); }
 .app[data-nav-style="cableBar"] .topnav-link.active { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
@@ -167,7 +167,7 @@ html.tv-mode .sdui-widgets { gap: var(--space-l); }
 .app[data-nav-style="crossbar"] .topnav { padding-inline-end: var(--space-l); -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - var(--space-l)), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - var(--space-l)), transparent); } /* design-ok: a mask only reads how solid it is */
 .app[data-nav-style="crossbar"] .topnav-link { font-size: var(--role-title-size); background: none; border-radius: 0; border-bottom: 2px solid transparent; color: var(--fg-2); }
 .app[data-nav-style="crossbar"] .topnav-link.active { background: none; color: var(--fg); border-bottom-color: var(--accent); }
-.app[data-nav-style="ornamentTabs"] .topbar { margin: var(--space-m) auto 0; inline-size: fit-content; max-inline-size: calc(100% - 2 * var(--gutter)); border-radius: var(--r-full); background: var(--elev-2-fill); border: 1px solid var(--elev-2-line); box-shadow: var(--elev-3-shadow); }
+.app[data-nav-style="ornamentTabs"] .topbar { margin: var(--space-m) auto 0; inline-size: fit-content; padding-inline: var(--gutter); /* a pill as wide as its tabs, centred: not on the page column */ max-inline-size: calc(100% - 2 * var(--gutter)); border-radius: var(--r-full); background: var(--elev-2-fill); border: 1px solid var(--elev-2-line); box-shadow: var(--elev-3-shadow); }
 .app[data-nav-style="ornamentTabs"] .topnav-link { min-block-size: 3.75rem; padding-inline: var(--space-l); }
 .ctv-banner-more { margin-top: var(--space-s); }
 
@@ -361,8 +361,16 @@ html[data-card-set="row"] .sdui-row:is(:hover, :focus-visible) :is(.muted, .sdui
 
 /* With a scene behind the page, a billboard shades only its left for the words; the scene shows through the rest. */
 html[data-scene] .hero .shade { background: linear-gradient(90deg, rgb(var(--bg-rgb) / .5) 0%, rgb(var(--bg-rgb) / 0) 70%); }
-/* With a scene there is no page colour to fade to, so the picture itself fades out at the bottom and the scene shows through. */
-html[data-scene] .hero .bg { -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent 100%); mask-image: linear-gradient(180deg, #000 55%, transparent 100%); } /* design-ok: a mask takes only alpha; black is fully shown, not a colour */
+/* With a scene there is no page colour to fade to, so the picture and its shade fade out together at the bottom and the
+   scene shows through: one soft edge across the whole width, not a soft picture beside a hard-edged shade. The fade eases
+   out (slow at the end) so it has no visible line where it starts or stops. A mask is painted once, not every frame. */
+html[data-scene] .hero :is(.bg, .shade) { -webkit-mask-image: var(--hero-fade); mask-image: var(--hero-fade); }
+/* When something sits above the billboard (a "Finish setting up" notice, the page title it brings), the billboard no longer
+   starts under the see-through top bar, so its top edge fades in from the page too instead of starting on a hard line.
+   Only then: a billboard at the very top keeps its picture right up under the bar. */
+.sdui > :not(.hero, .sr-only) ~ .hero { --hero-top: transparent 0%, rgb(0 0 0 / .08) 4%, rgb(0 0 0 / .3) 9%, rgb(0 0 0 / .6) 14%, rgb(0 0 0 / .85) 19%, #000 25%; } /* design-ok: a mask takes only alpha; black is fully shown, not a colour */
+html:not([data-scene]) .sdui > :not(.hero, .sr-only) ~ .hero .bg { -webkit-mask-image: linear-gradient(180deg, var(--hero-top)); mask-image: linear-gradient(180deg, var(--hero-top)); }
+html[data-scene] .hero { --hero-fade: linear-gradient(180deg, var(--hero-top, #000 0%), #000 48%, rgb(0 0 0 / .86) 60%, rgb(0 0 0 / .62) 71%, rgb(0 0 0 / .36) 81%, rgb(0 0 0 / .15) 90%, rgb(0 0 0 / .04) 96%, transparent 100%); } /* design-ok: a mask takes only alpha; black is fully shown, not a colour */
 /* An upright frame (a phone, a tablet) is sized by its height, so it doesn't grow taller than the card beside it. */
 .look-opts .layout-opt .layout-thumb:is(.lt-phone, .lt-tablet), .su-card .layout-thumb:is(.lt-phone, .lt-tablet) { inline-size: auto; width: auto; block-size: 9rem; height: 9rem; max-inline-size: 100%; margin-inline: auto; }
 .look-colours-big .layout-thumb:is(.lt-phone, .lt-tablet), .su-colours-big .layout-thumb:is(.lt-phone, .lt-tablet) { inline-size: auto; width: auto; block-size: min(22rem, 60vh); height: min(22rem, 60vh); }

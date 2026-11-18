@@ -1,31 +1,102 @@
 {
+ "app.css": {
+  "spacing": 1
+ },
  "audio.css": {
+  "bar-offset": 1,
   "radius": 1,
-  "raw-colour": 10
+  "raw-colour": 10,
+  "spacing": 17
+ },
+ "audio/nowplaying.css": {
+  "bar-offset": 2,
+  "spacing": 58
+ },
+ "components/nameEditor.css": {
+  "spacing": 1
+ },
+ "creators.css": {
+  "bar-offset": 1,
+  "spacing": 42
+ },
+ "gallery.css": {
+  "spacing": 7
  },
  "oobe.css": {
   "radius": 1,
-  "raw-colour": 11
+  "raw-colour": 11,
+  "spacing": 44
+ },
+ "pages/layoutEditor.css": {
+  "spacing": 2
+ },
+ "pages/music/music.css": {
+  "spacing": 15
+ },
+ "pages/settings/modules.css": {
+  "spacing": 1
+ },
+ "pages/settings/remote.css": {
+  "spacing": 32
+ },
+ "pages/settings/settings-page.css": {
+  "bar-offset": 1,
+  "spacing": 22
+ },
+ "pages/settings/settings.css": {
+  "bar-offset": 2,
+  "spacing": 12
+ },
+ "pages/setup/setup.css": {
+  "spacing": 2
+ },
+ "pages/tv/onnow.css": {
+  "spacing": 1
+ },
+ "pages/tv/reminders.css": {
+  "bar-offset": 1,
+  "spacing": 2
+ },
+ "pages/tv/tv.css": {
+  "bar-offset": 6,
+  "spacing": 54
+ },
+ "pages/tv/tveditor.css": {
+  "spacing": 36
+ },
+ "pages/tv/tvsets.css": {
+  "spacing": 12
+ },
+ "pages/tv/tvsettings.css": {
+  "spacing": 30
+ },
+ "pages/tv/tvthemes.css": {
+  "spacing": 17
  },
  "player.css": {
+  "bar-offset": 9,
   "blur": 2,
   "font-size": 1,
+  "spacing": 50,
   "z-index": 3
- },
- "player/Controls.tsx": {
-  "click-div": 1,
-  "icon-label": 7
- },
- "player/DvdPlayer.tsx": {
-  "click-div": 2,
-  "icon-label": 8,
-  "raw-colour": 1
  },
  "player/VideoPlayer.tsx": {
   "click-div": 3,
-  "icon-label": 7
+  "icon-label": 6
  },
- "player/cd.css": {
-  "z-index": 1
+ "player/bar.css": {
+  "bar-offset": 3
+ },
+ "remote/party.css": {
+  "bar-offset": 1
+ },
+ "remote/remote.css": {
+  "bar-offset": 1
+ },
+ "sdui/play.css": {
+  "spacing": 1
+ },
+ "shell.css": {
+  "spacing": 15
  }
 }

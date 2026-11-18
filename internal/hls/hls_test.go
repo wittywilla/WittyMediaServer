@@ -616,7 +616,7 @@ func TestStreamThreads(t *testing.T) {
 	tools := &ffmpeg.Tools{Encoders: map[string]bool{"libx264": true}}
 	line := func(sp Spec) string {
 		s := &Session{Spec: sp, Dir: t.TempDir(), tools: tools, m: &Manager{tools: tools}}
-		args, _, _ := s.commandLine(0)
+		args, _, _, _ := s.commandLine(0)
 		return strings.Join(args, " ")
 	}
 	base := Spec{InputArgs: []string{"-i", "in.mkv"}, Duration: 60, SegmentSec: 4, AudioIndex: 0, SubtitleIndex: -1}

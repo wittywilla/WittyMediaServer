@@ -416,6 +416,7 @@ Only `profile` is needed. Leave out `audio` and `subtitle` and the server picks 
 [the rules](#rules-every-client-shares)). Leave out `startSec` and it resumes where the viewer stopped.
 `forceTranscode` asks for a conversion, `burnSubtitle` draws the chosen subtitle into the picture
 (for heavily styled ASS). `streaming` and `measuredKbps` are for [robust streaming](#robust-streaming).
+`quality` is the viewer's choice of size and data rate (see [Quality](#quality)).
 
 ```json
 {
@@ -489,6 +490,37 @@ playlist are switched in the player.
 **Stopping.** `DELETE /hls/{streamId}` when the viewer leaves: it stops the conversion straight away.
 Streams also pause after 90 seconds with no requests, and go after 10 minutes. A long pause can
 therefore end in a 404: call `/playback` again.
+
+### Quality
+
+A viewer chooses the size and data rate of what they watch in the player's quality menu. The choice
+is a short string, the same everywhere:
+
+| Choice | Means |
+|---|---|
+| `""` or `auto` | Auto: the profile's saved default for where the device is (home or away), else no limit of its own |
+| `original` | No limit of the viewer's own: the file as it is wherever the device plays it |
+| `h720-b4000` | At most 720 lines (a 16:9 box: a wider film comes out as wide as any 720p picture) and 4000 kbit/s, picture and sound together |
+| `vh264` | Keep only H.264 as it is; convert anything else to it |
+| `a128`, `c2` | Converted sound at 128 kbit/s; stereo (`c6`: 5.1) |
+
+Fields combine in any order (`h1080-b8000-vh264-a192-c2`); anything out of range is dropped. Send it
+as `quality` in `/playback`, or as the `X-WMS-Quality` header on any request that starts a stream:
+`/dvd` for a disc, `/tv/{key}/tune` and `/catchup` for a channel. A live channel's answer carries the
+choice in its `url` (`?quality=`) for the playlist and segments; keep it there.
+
+The server holds every choice to the profile's limits (`/users/{id}/stream-limits`) and, away from
+home, to the limits for viewers away from home. A file already within them still plays directly or
+rewrapped; otherwise it is converted to the size, with the rate as a hard cap on the encoder, using
+the hardware encoders the administrator turned on. Encrypted media stays refused whatever is chosen.
+
+A video's `/playback` answer has `quality` for the menu: `choice` (what streams are made to now),
+`asked`, `presets` (`name`, `height`, `kbps`: the sizes at or below the picture's own, and within
+the limits), `limits`, `away`, the source's size and rate, and `videoCodecs` and `audioRates` for an
+advanced menu. `output` says what is sent: `width`, `height`, `videoCodec`, `audioCodec`, `kbps` (the
+file's own, or the cap it's converted to), `audioKbps`, `audioChannels`, `encoder`, and `work`: whether the graphics chip or the processor converts it
+(as `GET /hls/{id}/work`, which says what a running stream really uses, after any step down to the processor). To change the
+choice mid-stream, call `/playback` again with the new `quality` and `startSec` at the position.
 
 ### Robust streaming
 
@@ -1496,6 +1528,8 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /me` | user | The signed-in account. |
 | `GET /me/ui` | user | The account's interface choices: any JSON object the clients agree on (home layout, for one). See "Choices that follow the account". |
 | `PUT /me/ui` | user | Replace them: a JSON object of 16 KB at most. |
+| `GET /me/streaming` | user | The profile's saved quality defaults (`prefs.home`, `prefs.away`), its limits (`profile`), the limits away from home (`remote`), and what a quality menu may offer this device now (`quality`). See [Quality](#quality). |
+| `PUT /me/streaming` | user | Save the profile's quality defaults: `{home, away}`, each a quality choice, `""` for Auto. |
 | `GET /users` | user | Accounts this one may manage: everyone for the admin, Kids profiles for adults allowed to. |
 | `POST /users` | user | Add an account or profile (adults may add Kids profiles unless the admin locked that). |
 | `DELETE /users/{id}` | user | Remove an account this one manages. |
@@ -1631,6 +1665,8 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 |---|---|---|
 | `POST /items/{id}/playback` | user | The way to play anything: say what this client can play, get a decision, ready-to-use addresses, tracks, where to start and what comes next. |
 | `GET /playback/profiles` | user | The built-in client profiles. |
+| `GET /users/{id}/stream-limits` | admin | What a profile is allowed: `maxHeight` and `maxKbps` (0 = no limit). See [Quality](#quality). |
+| `PUT /users/{id}/stream-limits` | admin | Set them. Every stream the profile starts, and its quality menu, keep within them. |
 | `GET /playback/speedtest` | user | `kb` kilobytes (64 to 4096, 512 by default) that don't compress, to time this connection before asking for a [robust stream](#robust-streaming). |
 | `GET /media-types` | user | Every file type, codec and container the server knows: extensions, how each plays, which libraries take it, what it needs, and whether this machine has that (`available`). Read this rather than keep a list. |
 | `POST /items/{id}/stream-token` | user | A stream token for this item's media (see "Stream tokens"). Needs a real sign-in, not another stream token. |
@@ -1642,6 +1678,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /hls/{id}/playlist.m3u8` | user, `st` | HLS media playlist. |
 | `GET /hls/{id}/seg/{n}` | user, `st` | One HLS segment (`{n}.ts`, `{n}.m4s`) or the fMP4 header (`init.mp4`). |
 | `GET /hls/{id}/subs/{file}` | user, `st` | One subtitle rendition: `{n}.m3u8` and its `{n}.vtt`. |
+| `GET /hls/{id}/work` | user | What is converting the stream now: `encoder`, and whether the graphics chip encodes (`gpuEncode`), decodes and resizes (`gpuDecode`) and maps HDR (`gpuToneMap`). For stream information. |
 | `DELETE /hls/{id}` | user | Stop a stream when finished, freeing the transcoder. Streams nobody asks for also stop by themselves. |
 
 ### Discs
@@ -1773,7 +1810,7 @@ says, and `GET /media/{id}/karaoke` again every `pollSec` seconds while it isn't
 |---|---|
 | `state` | `ready`: play `stems`. `preparing`: nothing to play yet, keep the normal track and say "Preparing karaoke…" with `progress`. `unavailable`: keep the normal track and show `message`. |
 | `quality` | `stems` (really separated: "Separated") or `approximate` (FFmpeg's quick version: "Quick version"). |
-| `mix` | `parts`: one stem with `role: "vocals"` and one or more with `role: "music"` (`instrumental`, or `drums`, `bass`, `other`); play all of them in step, each at its own gain, and the Vocals control is the vocals stem's gain. `blend`: exactly two stems, `full` (the whole song) and `instrumental`; for a voice level `v` and a music level `m`, both 0 to 1, play `full` at `m·v` and `instrumental` at `m·(1−v)`, linearly. |
+| `mix` | `parts`: one stem with `role: "vocals"` and one or more with `role: "music"` (`instrumental`, or `drums`, `bass`, `other`); play all of them in step. `blend`: exactly two stems, `full` (the whole song) and `instrumental`. Either way an app offers three levels, each 0 to 1: Voice `v`, Background Music `m` and Track `t`. With `parts`, play the vocals stem at `t·v` and each music stem at `t·m·defaultGain`. With `blend`, play `full` at `t·v` and `instrumental` at `t·(m−v)`, linearly: the music is in both, so it adds up to `t·m` and the voice to `t·v`, and with `m` below `v` the negative gain takes the music out of the whole song so the voice stands out. |
 | `stems` | What to play. `url` is relative to the server and takes byte ranges; what the server made is AAC in an MP4, the same length and delay for every stem of a song. A stem the owner put beside the song can be any audio type: if one can't be played, go back to the normal track. `defaultGain` is where its control starts. |
 | `version` | Changes when the stems change. When it does (the real version replacing the quick one), load the new ones and carry on from the same place. |
 | `improving`, `progress` | A real version is being made while the quick one plays: "Preparing a better version… 40%". `progress` is -1 when the separator doesn't say. |
@@ -1840,7 +1877,7 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `GET /setup/state` | none | First run: `{complete, steps, step, done, url}`. The steps are welcome, account, name, look, theme, modules, libraries, details, livetv, games, discs, people, remote, ready. Until `complete`, every route an app uses answers 503 `setup_required` (below). |
 | `PUT /setup/state` | none, until first run is over | `{step, done}`. Before the first account: the setup code (`X-WMS-Setup-Code` from another device). After: an administrator. 409 once first run is over. |
 | `POST /setup/complete` | admin | First run is over: apps may connect. |
-| `POST /setup/module-steps/skip` | admin | Puts off a module's setup step, `{module, step}`: the Dismiss of "Finish setting up" on Home (SDUI command `setup.skip`). 204. |
+| `POST /setup/module-steps/skip` | admin | Puts off a module's setup step, `{module, step}`: the Dismiss of "Finish setting up" on Home (SDUI command `setup.skip`). With `done: true`, the step was gone through in first-run setup (the wizard sends it when someone moves on from a step a module draws), audited as done. 204. |
 | `GET /sdui/preview` | none | `experience=<id>` (and `theme`, `platform`, `formFactor`, `viewport`): `{experience, document, navigation, theme}`, a sample Home and menu made from generated demo data with the resolved theme (tokens, shape, type, finish, scene, tv, elevation, brand), so the first-run chooser draws every look with the client's own renderer before anyone has signed in. Rate limited. |
 | `POST /themes/mine` | user | Import a theme ZIP (the body, at most 26 MB) for this profile when the administrator allows it (`profileThemes`; administrators always may, and theirs is the server's). 403 when not allowed, 400 with the offending rule named when `theme.css` holds anything but variables, 409 for an id someone else has or after five themes. A profile's theme is offered to that profile only. |
 | `GET /sdui/placements` | user | `{experience, regions, placements, own, editable}`: the shell's regions (brand, nav, search, profile, clock, dock, legend, hero; the menu and You are locked), where each is on this device (the experience's, the administrator's and the profile's merged: also `layout.shell.placements`), the profile's own and whether it may change them. `device=` as for `/sdui/experience`. |
@@ -1888,6 +1925,7 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `GET /guide` | user | Every channel this account may watch, with its programmes. Each can name `logo`, a picture of its own, or `brand`, for `POST /logos/lookup`, and always has `canRecord`, the only signal for offering Record (see "Recording"). Beside them, `theme`: the owner's WittyTV look for anyone whose own choice and UI suggest none, and `backgroundPlay`: whether a device that hasn't chosen keeps playing in the background. |
 | `GET /tv/{key}/tune` | user | What is on a channel, and starts its stream, with `canRecord`. `streamToken=1` adds `streamUrl` for players that can't set headers. See "Live channels". |
 | `GET /tv/{key}/live/playlist.m3u8` | user, `st` | A channel's live HLS playlist. |
+| `GET /tv/{key}/live/work` | user | The same for the live stream this viewer watches (`quality` as in its playlist address). |
 | `GET /tv/{key}/live/seg/{name}` | user, `st` | One segment of it. |
 | `POST /tv/{key}/leave` | user | This viewer has gone: `viewer`. |
 | `GET /time` | user | The server's clock, `{"now": <milliseconds>}`, for keeping to the same moment on a channel. See "Live channels". |
@@ -1932,6 +1970,7 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `POST /tv/reminders` | user | Body: channel, title, sub, start, end. The same programme twice is one reminder. |
 | `DELETE /tv/reminders/{id}` | user | One of this account's reminders. |
 | `GET /channels/bumpers` | admin | Videos uploaded for the purpose, chosen from any library, or in a commercials library. |
+| `GET /channels/videos` | admin | A page of the videos a channel's bumpers and commercials can come from: ?libraries=3,4 (ids), ?own=1 for the bumper list, ?ids= for just those, ?search=, ?offset=, ?limit= (at most 200). Answers items and total. |
 | `POST /channels/bumpers` | admin | Body: itemId. Any video in any library. |
 | `POST /channels/bumpers/upload` | admin | The body is the file; ?name= is its name. A video of up to 30 minutes and 2 GB. 507 when the disk is nearly full. |
 | `DELETE /channels/bumpers/item/{id}` | admin | An upload goes altogether, its file too. A chosen video only comes off the list. |

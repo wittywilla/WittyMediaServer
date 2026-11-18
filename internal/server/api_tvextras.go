@@ -38,6 +38,7 @@ func (s *Server) tvExtraRoutes(m *http.ServeMux) {
 	m.Handle("POST /api/tv/reminders", a(s.handleAddTVReminder))
 	m.Handle("DELETE /api/tv/reminders/{id}", a(s.handleDeleteTVReminder))
 	m.Handle("GET /api/channels/bumpers", ad(s.handleBumpers))
+	m.Handle("GET /api/channels/videos", ad(s.handleChannelVideos))
 	m.Handle("POST /api/channels/bumpers", ad(s.handleAddBumper))
 	m.Handle("POST /api/channels/bumpers/upload", ad(s.handleUploadBumper))
 	m.Handle("DELETE /api/channels/bumpers/item/{id}", ad(s.handleDeleteBumper))
@@ -304,6 +305,39 @@ func (s *Server) handleBumpers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, 200, list)
+}
+
+// GET /api/channels/videos?libraries=3,4&own=1&ids=…&search=…&offset=0&limit=50:
+// a page of the videos a channel's bumpers and commercials can come from.
+func (s *Server) handleChannelVideos(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	ids := func(name string) ([]int64, bool) {
+		var out []int64
+		for _, p := range strings.Split(q.Get(name), ",") {
+			if p = strings.TrimSpace(p); p == "" {
+				continue
+			}
+			n, err := strconv.ParseInt(p, 10, 64)
+			if err != nil || n <= 0 {
+				return nil, false
+			}
+			out = append(out, n)
+		}
+		return out, true
+	}
+	libs, ok1 := ids("libraries")
+	only, ok2 := ids("ids")
+	if !ok1 || !ok2 {
+		writeErr(w, 400, "bad list of ids")
+		return
+	}
+	page, err := s.Channels.Videos(r.Context(), channels.VideoQuery{Libraries: libs, Own: qBool(r, "own"), IDs: only,
+		Search: q.Get("search"), Offset: qInt(r, "offset", 0), Limit: qInt(r, "limit", 50)})
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	writeJSON(w, 200, page)
 }
 
 // POST /api/channels/bumpers {"itemId": 12}: any video in any library can be one.

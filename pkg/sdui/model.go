@@ -523,10 +523,12 @@ type Item struct {
 	// ResumeSec is where Play picks up, 0 to start over.
 	ResumeSec float64 `json:"resumeSec,omitempty"`
 	// Season and Episode number an episode; ShowTitle names its show.
-	Season    int    `json:"season,omitempty"`
-	Episode   int    `json:"episode,omitempty"`
-	ShowTitle string `json:"showTitle,omitempty"`
-	ShowID    string `json:"showId,omitempty"`
+	Season  int `json:"season,omitempty"`
+	Episode int `json:"episode,omitempty"`
+	// EpisodeEnd is the last episode a file holds when it holds more than one (S02E13-E14).
+	EpisodeEnd int    `json:"episodeEnd,omitempty"`
+	ShowTitle  string `json:"showTitle,omitempty"`
+	ShowID     string `json:"showId,omitempty"`
 	// Artist and Track are a song's; Count is how many things an album,
 	// artist, library, collection or season holds.
 	Artist string `json:"artist,omitempty"`

@@ -69,8 +69,10 @@ func (s *Server) wireLibTranscode() {
 			return s.DB.GetSetting(context.Background(), "saveMetadata", settingDefaults["saveMetadata"]) == "1"
 		},
 		HardwareAllowed: func() []string {
+			// Files kept for good are made in software unless the owner chose encoders: live
+			// streams' "auto" (see hwAllowed) is for speed, these are for quality for the size.
 			v := s.DB.GetSetting(context.Background(), "hwEncoders", "")
-			if v == "" {
+			if v == "" || v == "auto" {
 				return nil
 			}
 			return strings.Split(v, ",")

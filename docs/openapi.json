@@ -7990,6 +7990,9 @@
             "anyOf": [
               {
                 "properties": {
+                  "aspectRatio": {
+                    "type": "string"
+                  },
                   "defaults": {
                     "type": "boolean"
                   },
@@ -8030,6 +8033,9 @@
                       "null"
                     ]
                   },
+                  "language": {
+                    "type": "string"
+                  },
                   "match": {
                     "anyOf": [
                       {
@@ -8062,6 +8068,16 @@
                     "type": "string"
                   },
                   "startAt": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "volumeDb": {
                     "anyOf": [
                       {
                         "type": "number"
@@ -45049,6 +45065,136 @@
           "Metadata"
         ],
         "x-wms-auth": "user"
+      }
+    },
+    "/wittyinfo/convert": {
+      "post": {
+        "operationId": "postWittyinfoConvert",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "direction": {
+                    "enum": [
+                      "gather",
+                      "spread"
+                    ]
+                  },
+                  "libraries": {
+                    "items": {
+                      "type": "integer"
+                    },
+                    "type": "array"
+                  },
+                  "retire": {
+                    "type": "boolean"
+                  },
+                  "subtitles": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "direction"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "libraries": {
+                      "items": {
+                        "type": "integer"
+                      },
+                      "type": "array"
+                    },
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "task": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Started as a task."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Gather NFO files, pictures, skips and subtitles into .wittyinfo files, or write them back out (spread), as a task.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/wittyinfo/convert/counts": {
+      "get": {
+        "operationId": "getWittyinfoConvertCounts",
+        "parameters": [
+          {
+            "description": "Library ids, separated by commas; all films and shows when left out.",
+            "in": "query",
+            "name": "libraries",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "canWrite": {
+                      "type": "boolean"
+                    },
+                    "counts": {
+                      "type": "object"
+                    },
+                    "saveMetadata": {
+                      "type": "boolean"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "What there is to convert."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "How many titles and shows have NFO files, pictures, skip files or .wittyinfo files beside them.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "admin"
       }
     },
     "/wittyinfo/{target}/{id}": {

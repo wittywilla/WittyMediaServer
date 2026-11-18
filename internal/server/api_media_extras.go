@@ -545,6 +545,7 @@ func (s *Server) mediaMarkers(ctx context.Context, it *library.Item) mediaextras
 func (s *Server) mediaMarkersAndInfo(ctx context.Context, it *library.Item) (mediaextras.Markers, library.ItemInfos) {
 	stored := s.Store.Markers(ctx, it.ID)
 	infos := s.Store.InfosFor(ctx, it)
+	infos.Localize(langFrom(ctx))
 	var layers []mediaextras.Layer
 	if x := infos.UsableItem(); x != nil {
 		layers = append(layers, mediaextras.Layer{Source: mediaextras.SourceWittyinfo, Markers: mediaextras.FromWittyinfo(x)})
@@ -603,13 +604,13 @@ func (s *Server) mediaMarkersAndInfo(ctx context.Context, it *library.Item) (med
 	return m, infos
 }
 
-// GET /api/media/{id}/markers
+// GET /api/media/{id}/markers (?lang= for labels in another language than the viewer's)
 func (s *Server) handleMarkers(w http.ResponseWriter, r *http.Request) {
 	it := s.extrasItem(w, r)
 	if it == nil {
 		return
 	}
-	writeJSON(w, 200, s.mediaMarkers(r.Context(), it))
+	writeJSON(w, 200, s.mediaMarkers(s.withViewerLanguage(r), it))
 }
 
 // markersEdit is the body of PUT /api/media/{id}/markers: a skip file, or reset to go back

@@ -110,6 +110,10 @@ type Info struct {
 	Playback  *Playback  `json:"playback,omitempty"`
 	Subtitles []Subtitle `json:"subtitles,omitempty"`
 	Notes     string     `json:"notes,omitempty"`
+	// Language: the language the file's own text is in. Translations: the same text in
+	// others, by language tag (lang.go).
+	Language     string                  `json:"language,omitempty"`
+	Translations map[string]*Translation `json:"translations,omitempty"`
 	// Extensions: anything a tool wants to keep, under a name of its own ("tool.key").
 	// Kept as it is and never used by this package.
 	Extensions map[string]json.RawMessage `json:"extensions,omitempty"`

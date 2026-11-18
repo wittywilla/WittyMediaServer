@@ -398,7 +398,7 @@ func (s *Scanner) applyInfo(ctx context.Context, it *Item) {
 			info, found, err := s.Store.ReadInfoFile(ctx, p)
 			if found {
 				if err == nil && info.MatchVideo(it.RuntimeSec, nil).Usable {
-					s.takeInfo(it, info)
+					s.takeInfo(it, info.Localize(s.Store.serverLanguage(ctx)))
 				}
 				return
 			}
@@ -407,7 +407,7 @@ func (s *Scanner) applyInfo(ctx context.Context, it *Item) {
 	}
 	infos := s.Store.InfosFor(ctx, it)
 	if x := infos.UsableItem(); x != nil {
-		s.takeInfo(it, x)
+		s.takeInfo(it, x.Localize(s.Store.serverLanguage(ctx)))
 	}
 }
 
@@ -487,4 +487,110 @@ func (s *Scanner) infoPicture(x *wittyinfo.Info, role string) string {
 		}
 	}
 	return "cache:" + out
+}
+
+// ------------------------------------------------------------------ languages and shows
+
+// serverLanguage is the language the library's details are kept in: the app's language,
+// else the one disc menus follow. "" leaves a file's own text.
+func (s *Store) serverLanguage(ctx context.Context) string {
+	if v := s.DB.GetSetting(ctx, "uiLanguage", ""); v != "" {
+		return v
+	}
+	return s.DB.GetSetting(ctx, "menuLanguage", "")
+}
+
+// applyShowInfo puts what a show's own show.wittyinfo says about it in place of what was
+// found: its details and pictures, in the server's language.
+func (s *Scanner) applyShowInfo(ctx context.Context, sh *Show) {
+	if sh.Path == "" {
+		return
+	}
+	var x *wittyinfo.Info
+	if sh.ID != 0 {
+		x = s.Store.LoadInfo(ctx, InfoTarget{Kind: InfoShow, ID: sh.ID}).Info
+	} else if info, found, err := s.Store.ReadInfoFile(ctx, ShowInfoPaths(sh.Path, -1, "")[0]); found && err == nil {
+		x = info
+	}
+	if x == nil {
+		return
+	}
+	x = x.Localize(s.Store.serverLanguage(ctx))
+	if m := x.Metadata; m != nil {
+		if m.Title != "" {
+			sh.Title, sh.SortTitle = m.Title, SortTitle(m.Title)
+		}
+		if m.SortTitle != "" {
+			sh.SortTitle = m.SortTitle
+		}
+		if m.Year != nil {
+			y := *m.Year
+			sh.Year = &y
+		}
+		if m.Overview != "" {
+			sh.Overview = m.Overview
+		}
+		if len(m.Genres) > 0 {
+			sh.Genres = append([]string(nil), m.Genres...)
+		}
+		if m.ContentRating != "" {
+			sh.ContentRating = m.ContentRating
+		}
+	}
+	if p := s.infoPicture(x, "poster"); p != "" {
+		sh.Poster = p
+	}
+	if p := s.infoPicture(x, "backdrop"); p != "" {
+		sh.Backdrop = p
+	}
+}
+
+// InfoSubtitle is a subtitle file kept in a .wittyinfo, copied out where players can read it.
+type InfoSubtitle struct {
+	Path     string // in the server's own cache
+	Format   string // srt, vtt, ass or ssa
+	Language string
+	Title    string
+	Forced   bool
+	SDH      bool
+}
+
+// InfoSubtitles copies the subtitles in a video's .wittyinfo (if it fits this cut) into
+// cacheDir, once each, and lists them.
+func (s *Store) InfoSubtitles(ctx context.Context, it *Item, cacheDir string) []InfoSubtitle {
+	infos := s.InfosFor(ctx, it)
+	x := infos.UsableItem()
+	if x == nil || len(x.Subtitles) == 0 {
+		return nil
+	}
+	dir := filepath.Join(cacheDir, "wittyinfo-subtitles")
+	var out []InfoSubtitle
+	for _, sub := range x.Subtitles {
+		b := x.Files[sub.File]
+		if len(b) == 0 {
+			continue
+		}
+		ext := strings.ToLower(strings.TrimPrefix(filepath.Ext(sub.File), "."))
+		h := sha1.Sum(b)
+		p := filepath.Join(dir, hex.EncodeToString(h[:12])+"."+ext)
+		if st, err := os.Stat(p); err != nil || st.Size() != int64(len(b)) {
+			if os.MkdirAll(dir, 0o755) != nil || os.WriteFile(p, b, 0o644) != nil {
+				continue
+			}
+		}
+		out = append(out, InfoSubtitle{Path: p, Format: ext, Language: sub.Language, Title: sub.Title, Forced: sub.Forced, SDH: sub.SDH})
+	}
+	return out
+}
+
+// Localize puts each file's text in the language closest to lang (see wittyinfo.Localize).
+func (x *ItemInfos) Localize(lang string) {
+	if lang == "" {
+		return
+	}
+	for _, l := range []*LoadedInfo{&x.Item, &x.Season, &x.Show} {
+		if l.Info != nil {
+			l.Info = l.Info.Localize(lang)
+		}
+	}
 }

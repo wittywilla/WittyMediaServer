@@ -379,6 +379,7 @@ func (s *Scanner) tvShow(ctx context.Context, lib *Library, ref EpisodeRef, tv *
 		if before.ID != 0 {
 			keepLockedShow(sh, &before, meta)
 		}
+		s.applyShowInfo(ctx, sh) // what someone wrote in show.wittyinfo wins
 		if err := s.saveShow(ctx, sh, &before); err != nil {
 			return nil, err
 		}
@@ -394,6 +395,7 @@ func (s *Scanner) tvShow(ctx context.Context, lib *Library, ref EpisodeRef, tv *
 		if before.ID != 0 {
 			keepLockedShow(sh, &before, meta)
 		}
+		s.applyShowInfo(ctx, sh) // what someone wrote in show.wittyinfo wins
 		if err := s.saveShow(ctx, sh, &before); err != nil {
 			return nil, err
 		}

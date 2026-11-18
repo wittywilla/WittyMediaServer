@@ -67,6 +67,7 @@ func (x *Info) Tidy() {
 	if len(x.Artwork) == 0 {
 		x.Artwork = nil
 	}
+	x.tidyLanguages()
 }
 
 func newID(prefix string) string {

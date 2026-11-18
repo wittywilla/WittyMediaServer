@@ -13,10 +13,12 @@ package `pkg/wittyinfo`; the manifest's JSON Schema is
 - [Where the files go](#where-the-files-go)
 - [The archive](#the-archive)
 - [The manifest](#the-manifest)
+- [Languages and translations](#languages-and-translations)
 - [Which cut it was made for](#which-cut-it-was-made-for)
 - [What wins](#what-wins)
 - [Safety](#safety)
 - [In WittyMediaServer](#in-wittymediaserver)
+- [Converting a library](#converting-a-library)
 - [The wittyinfo program](#the-wittyinfo-program)
 - [Changing the format](#changing-the-format)
 
@@ -141,6 +143,8 @@ millisecond.
 | `playback` | How it plays best. |
 | `subtitles` | Subtitle files in the archive. |
 | `notes` | Free text. |
+| `language` | The language the file's own text is in (labels, titles, details, notes). |
+| `translations` | The same text in other languages: see [Languages and translations](#languages-and-translations). |
 | `extensions` | A tool's own data, under a name of its own (`tool.key`). Kept, never used. |
 
 Fields this version doesn't know, at any level, are kept when the file is saved again and
@@ -214,12 +218,66 @@ picture), `banner`, `clearart`, `disc` and `square`. Each names a picture in the
 | `volumeDb` | A loudness change, −30 to 30 dB, for a quiet or loud file. |
 | `aspectRatio` | How to show the picture (`16:9`, `2.39:1`), for a file that says it wrong. |
 
-Players follow what they can; the rest is a preference, not a promise.
+Players follow what they can; the rest is a preference, not a promise. WittyMediaServer
+follows all of them for every player: it starts the first play at `startAt` (carrying on, or
+choosing a time, wins), picks the sound and subtitle tracks by language when the viewer hasn't
+(the viewer's own choice wins, then the file's, then the server's), and follows `subtitleMode`
+(`forced` picks a forced track in the sound's language). `volumeDb` and `aspectRatio` are passed
+to the player, which applies them.
 
 ### Subtitles
 
 `{"file": "subtitles/en.srt", "language": "en", "title": "…", "forced": false, "sdh": false}`.
-UTF-8 text in SRT, WebVTT, ASS or SSA.
+UTF-8 text in SRT, WebVTT, ASS or SSA. WittyMediaServer offers each as a track after the
+video's own and the files beside it, converted to WebVTT like any other.
+
+## Languages and translations
+
+Every language a file mentions is a language tag in any of the forms media carries: an ISO
+639-1 code (`de`), an ISO 639-2 code in either form (`ger`, `deu`), an ISO 639-3 code (`yue`,
+`fil`) or a BCP 47 tag with a script or region (`pt-BR`, `zh-Hant`, `sr-Latn`, `es-419`). These
+are the languages WittyMediaPlayer, the apps and the browsers name: every ISO 639-1 language
+and any well formed code beyond them. Writers put each in its usual form (`ger` is written
+`de`, `pt_br` is `pt-BR`). This holds for `language`, `playback.audioLanguage` and
+`subtitleLanguage`, `subtitles[].language`, `metadata.languages` and the keys of
+`translations`.
+
+`translations` holds the file's text in other languages, by language tag. Each names the parts
+it translates by their `id` (writers give every part one), so a translation stays with its
+part however the parts move:
+
+```json
+"language": "en",
+"segments": [{ "id": "seg-3", "type": "custom", "start": 2710, "end": 2745, "label": "Dream sequence" }],
+"scenes": [{ "id": "scene-2", "title": "The heist", "start": "12:00" }],
+"translations": {
+  "de": {
+    "segments": { "seg-3": { "label": "Traumsequenz" } },
+    "scenes": { "scene-2": { "title": "Der Raub" } },
+    "metadata": { "title": "Der Film", "overview": "…" }
+  },
+  "pt-BR": { "segments": { "seg-3": { "label": "Sequência do sonho" } } },
+  "ja": { "scenes": { "scene-2": { "title": "強盗" } }, "notes": "…" }
+}
+```
+
+| In a translation | Translates |
+| --- | --- |
+| `segments.<id>` | `label`, `note` |
+| `scenes.<id>` | `title`, `description` |
+| `filters.<id>` | `label` |
+| `metadata` | `title`, `originalTitle`, `sortTitle`, `edition`, `overview`, `tagline`, `collection`, `genres`, `tags`, `trivia` |
+| `notes` | The notes |
+
+Anything a translation leaves out stays in the file's own language. A reader picks the
+translation closest to the viewer: the same tag, else the same language whatever its region or
+script (`pt-PT` gets `pt-BR` when that is all there is, and `pt` before either), else the file's
+own text. A translation that names a part the file doesn't have, or two keys that are the same
+language (`de` and `ger`), make the file unusable, like any other mistake. Up to 200 languages.
+
+WittyMediaServer gives each person the text in their language: `?lang=` on an address, else the
+languages their browser or app asks for (`Accept-Language`), else the language the server is
+set to. The library's titles and overviews follow the server's language.
 
 ## Which cut it was made for
 
@@ -266,7 +324,8 @@ The editor shows each part with where it came from, and the item page shows a "C
 info" badge when a `.wittyinfo` is in use.
 
 For metadata and pictures, the video's own file beats everything the server found, when it
-fits the cut.
+fits the cut. A show's `show.wittyinfo` does the same for the show: its title, overview, year,
+genres, rating, poster and backdrop.
 
 ## Safety
 
@@ -294,7 +353,10 @@ A `.wittyinfo` is a file anyone could have left beside the media, so readers tru
   markers or the player ask (a changed file is read again), and the season's and show's
   with it.
 - **Editing.** On an item's page, ⋯ → **Edit scenes and skips**, or the same in the player.
-  Show and season defaults are edited from the show's page.
+  Show and season defaults are edited from the show's page. Editing is on desktop only: in the
+  web app on a computer and in the desktop app. TV mode and TV apps don't offer it: a remote
+  can't place a time to the frame, and a TV's hardware isn't made for scrubbing through a film
+  while editing, so they say where to do it instead. Files made anywhere play everywhere.
 - **Saving.** An edit is written beside the media when **Settings → Metadata → Save
   metadata beside media** and **Write .wittyinfo files** are both on (`saveMetadata` and
   `saveWittyinfo`). Otherwise the server keeps it, and **Export** downloads it to put
@@ -303,6 +365,30 @@ A `.wittyinfo` is a file anyone could have left beside the media, so readers tru
 - **Import and export** for any film, episode, season or show.
 - **The API** is in [CLIENT-API.md](../CLIENT-API.md#media-extras) (`/api/wittyinfo/...`),
   and markers and playback answers carry `segments`, with each one's `action` and `source`.
+
+## Converting a library
+
+A library that already has NFO files and pictures beside its titles can be turned into
+`.wittyinfo` files in one go, and back:
+
+- **Gather into .wittyinfo files** takes, for each film and episode, its NFO's details, its
+  pictures (poster, backdrop, logo, clear art, banner, disc art; an episode's thumbnail), the
+  skips in a `.skip.json` or `.edl` and, if asked, its text subtitle files (SRT, WebVTT, ASS,
+  SSA). For each show it takes `tvshow.nfo` and the show folder's pictures into `show.wittyinfo`,
+  and each season's poster into `seasonNN.wittyinfo`.
+- **Write NFO files and pictures from .wittyinfo files** does the reverse: NFO files and
+  pictures in the usual layout, a `.skip.json` for the skips, and the subtitles named as
+  players read them (`Film.de.forced.srt`), in the server's language.
+
+What a `.wittyinfo` already says is never replaced by what lies beside it. The old files stay,
+unless **Rename the old files to .bak** is ticked: each one converted from is then renamed with
+`.bak` on the end, which no scan reads and anyone can rename back. Read-only libraries are left
+alone. It runs as a task (Tasks shows how far it has got, and can stop it), after any scan of
+those libraries has finished.
+
+It is offered in first-run setup (**Posters and details**), when the libraries just added have
+something to convert, and at any time in **Settings → Metadata → Convert a library**. The API
+is `GET /api/wittyinfo/convert/counts` and `POST /api/wittyinfo/convert`.
 
 ## The wittyinfo program
 

@@ -147,3 +147,6 @@ html:has(.set-toc) { scroll-padding-top: calc(var(--topbar-h) + var(--control-h-
 .sep-confirm ul { padding-left: 1.2em; display: grid; gap: 4px; color: var(--fg-2); }
 .sep-buttons, .sep-progress { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .sep-progress progress { flex: 1; min-width: 160px; height: 10px; accent-color: var(--accent); }
+.sep-card { display: flex; align-items: flex-start; gap: 8px; font-weight: 600; }
+.sep-card input { margin-top: 3px; }
+.sep-card small { display: block; font-weight: 400; color: var(--fg-2); }

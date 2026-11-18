@@ -19,6 +19,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/mediaextras"
+	"github.com/wittywilla/wittymediaserver/internal/separator"
 	"github.com/wittywilla/wittymediaserver/internal/tasks"
 )
 
@@ -345,6 +346,13 @@ func (s *Server) separateStems(ctx context.Context, it *library.Item, words []st
 		var notFound *exec.Error
 		if errors.As(err, &notFound) {
 			return fmt.Errorf("the separator %q couldn't be started: %w", prog, err)
+		}
+		// On a graphics card (the installed Demucs, -d cuda or mps), a failure is usually the card's:
+		// its memory, or its driver. The processor always works, so the song is done again there.
+		if cpu := separator.OnProcessor(words); cpu != nil && ctx.Err() == nil {
+			log.Warn("separating on the graphics card failed; doing it again on the processor", "err", err, "output", said.Last(5))
+			task.Phase("Separating on the processor")
+			return s.separateStems(ctx, it, cpu, task)
 		}
 		return fmt.Errorf("the separator failed: %w: %s", err, said)
 	}

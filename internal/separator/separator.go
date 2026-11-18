@@ -32,6 +32,8 @@ type Found struct {
 	Installed bool `json:"installed,omitempty"`
 	// Env is added to the environment it runs in.
 	Env []string `json:"-"`
+	// Accel is what the installed one runs on (zero for one found on the machine).
+	Accel Accel `json:"accel,omitempty"`
 }
 
 // Options say where to look. The zero value looks where a real machine has them.

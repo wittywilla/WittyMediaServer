@@ -76,14 +76,15 @@ func (s *Server) handleSeparatorState(w http.ResponseWriter, r *http.Request) {
 	j.mu.Lock()
 	task, failed, phase, pct := j.task, j.failed, j.phase, j.pct
 	j.mu.Unlock()
+	acc := separator.DetectAccel()
 	out := map[string]any{
 		"supported": ok, "why": why, "machine": machine.String(),
 		"task": task, "failed": failed, "phase": phase, "percent": pct,
 		"packages": separator.Packages(runtime.GOOS, runtime.GOARCH), "uv": separator.UVVersion, "python": separator.PythonVersion, "model": separator.Model,
-		"downloadMB": 1100,
+		"accel": acc, "downloadMB": acc.DownloadMB, "cpuDownloadMB": separator.AccelByID("cpu").DownloadMB,
 	}
 	if in := separator.ReadInfo(s.separatorDir()); in != nil {
-		out["installed"] = map[string]any{"version": in.Version, "model": in.Model, "at": in.Installed, "sizeBytes": separator.Size(s.separatorDir())}
+		out["installed"] = map[string]any{"version": in.Version, "model": in.Model, "at": in.Installed, "sizeBytes": separator.Size(s.separatorDir()), "accel": separator.AccelByID(in.Accel)}
 	}
 	writeJSON(w, 200, out)
 }
@@ -101,6 +102,12 @@ func (s *Server) handleSeparatorInstall(w http.ResponseWriter, r *http.Request) 
 		writeJSON(w, 409, map[string]any{"error": "Demucs is already installed.", "reason": "installed"})
 		return
 	}
+	// The graphics card when there's one PyTorch can use, unless the administrator chose the
+	// processor only (?accel=cpu: a smaller download).
+	acc := separator.DetectAccel()
+	if r.URL.Query().Get("accel") == "cpu" {
+		acc = separator.AccelByID("cpu")
+	}
 	j := &s.sepInstall
 	j.mu.Lock()
 	if j.task != "" {
@@ -115,14 +122,14 @@ func (s *Server) handleSeparatorInstall(w http.ResponseWriter, r *http.Request) 
 	j.mu.Unlock()
 
 	log := s.Log.With("cat", "extras", "session", logging.NewID("separator"))
-	log.Info("installing Demucs for karaoke", "dir", s.separatorDir(), "uv", separator.UVVersion)
+	log.Info("installing Demucs for karaoke", "dir", s.separatorDir(), "uv", separator.UVVersion, "accel", acc.ID)
 	ffmpegDir := ""
 	if s.Tools != nil && s.Tools.FFmpeg != "" {
 		ffmpegDir = filepath.Dir(s.Tools.FFmpeg)
 	}
 	logging.Go("separator-install", func() {
 		said := &logging.Tail{}
-		err := separator.Install(ctx, s.separatorDir(), ffmpegDir, func(phase string, pct int) {
+		err := separator.Install(ctx, s.separatorDir(), ffmpegDir, acc, func(phase string, pct int) {
 			t.Phase(phase)
 			t.Progress(int64(pct), 100)
 			j.mu.Lock()

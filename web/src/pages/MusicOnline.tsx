@@ -20,9 +20,12 @@ type KaraokeStatus = { separator: { available: boolean; usable: boolean; name: s
 
 type SeparatorState = {
   supported: boolean; why: string; task: string; failed: string; phase: string; percent: number
-  packages: string[]; uv: string; python: string; model: string; downloadMB: number
-  installed?: { version: string; model: string; at: string; sizeBytes: number }
+  packages: string[]; uv: string; python: string; model: string; downloadMB: number; cpuDownloadMB: number
+  accel: Accel
+  installed?: { version: string; model: string; at: string; sizeBytes: number; accel: Accel }
 }
+type Accel = { id: string; name: string; device: string; downloadMB: number; why?: string }
+const gb = (mb: number) => `${(mb / 1000).toFixed(1)} GB`
 
 const megabytes = (n: number) => (n >= 1 << 30 ? `${(n / (1 << 30)).toFixed(1)} GB` : `${Math.round(n / (1 << 20))} MB`)
 
@@ -44,6 +47,8 @@ function SeparatorInstall({ onChange }: { onChange: () => void }) {
   const [st, setSt] = useState<SeparatorState | null>(null)
   const [sure, setSure] = useState(false)
   const [busy, setBusy] = useState(false)
+  // The graphics card when there's one Demucs can use: on unless turned off here.
+  const [useCard, setUseCard] = useState(true)
   const read = () => api.get<SeparatorState>('/karaoke/separator').then((s) => { setSt(s); return s }).catch(() => null)
   useEffect(() => { void read() }, [])
   // While it installs, look every couple of seconds; when it ends, the page's other lines catch up.
@@ -54,11 +59,14 @@ function SeparatorInstall({ onChange }: { onChange: () => void }) {
     return () => window.clearInterval(t)
   }, [running]) // eslint-disable-line react-hooks/exhaustive-deps
   if (!st) return null
-  const install = () => { setBusy(true); api.post('/karaoke/separator/install').then(() => { setSure(false); return read() }).catch((e: Error) => toast(e.message)).finally(() => setBusy(false)) }
+  const card = st.accel.id !== 'cpu'
+  const willUse = card && useCard
+  const download = willUse ? st.downloadMB : st.cpuDownloadMB
+  const install = () => { setBusy(true); api.post('/karaoke/separator/install' + (willUse ? '' : '?accel=cpu')).then(() => { setSure(false); return read() }).catch((e: Error) => toast(e.message)).finally(() => setBusy(false)) }
   const remove = () => { setBusy(true); api.del('/karaoke/separator').then(() => { toast(running ? 'Install stopped' : 'Demucs removed'); onChange(); return read() }).catch((e: Error) => toast(e.message)).finally(() => setBusy(false)) }
   if (st.installed) {
     return (
-      <Row label="Demucs for karaoke" badge="Installed" desc={<>Demucs {st.installed.version} with its {st.installed.model} model, taking {megabytes(st.installed.sizeBytes)} in the server's own folder. Its licenses, and those of everything installed with it, are in <Link to="/settings/about">Settings, About</Link>.</>}>
+      <Row label="Demucs for karaoke" badge="Installed" desc={<>Demucs {st.installed.version} with its {st.installed.model} model, running on {st.installed.accel.name}{st.installed.accel.id !== 'cpu' ? ", and on the processor for any song the card can't manage" : ''}, taking {megabytes(st.installed.sizeBytes)} in the server's own folder. Its licenses, and those of everything installed with it, are in <Link to="/settings/about">Settings, About</Link>.</>}>
         <button type="button" className="btn sm" disabled={busy} onClick={remove}>Remove</button>
       </Row>
     )
@@ -66,7 +74,7 @@ function SeparatorInstall({ onChange }: { onChange: () => void }) {
   if (!st.supported) return <Row label="Demucs for karaoke" desc={st.why}><span className="muted">Not available here</span></Row>
   if (running) {
     return (
-      <Row label="Demucs for karaoke" stack desc={<>{st.phase || 'Starting'}… This takes a while: about {st.downloadMB >= 1000 ? `${(st.downloadMB / 1000).toFixed(1)} GB` : `${st.downloadMB} MB`} is downloaded. Songs use the quick version until it's done.</>}>
+      <Row label="Demucs for karaoke" stack desc={<>{st.phase || 'Starting'}… This takes a while: up to {gb(st.downloadMB)} is downloaded. Songs use the quick version until it's done.</>}>
         <div className="sep-progress">
           <progress max={100} value={st.percent} aria-label="Installing Demucs" />
           <button type="button" className="btn sm" disabled={busy} onClick={remove}>Stop</button>
@@ -76,16 +84,22 @@ function SeparatorInstall({ onChange }: { onChange: () => void }) {
   }
   return (
     <Row label="Demucs for karaoke" stack desc={<>
-      Installs <a href="https://github.com/facebookresearch/demucs" target="_blank" rel="noreferrer">Demucs</a> (MIT license), the best of the separators, so karaoke versions are properly separated: the voice taken out cleanly, and drums, bass and the rest as parts of their own. It runs on the processor, so a song takes a few minutes, one at a time, when nothing else needs it.
+      Installs <a href="https://github.com/facebookresearch/demucs" target="_blank" rel="noreferrer">Demucs</a> (MIT license), the best of the separators, so karaoke versions are properly separated: the voice taken out cleanly, and drums, bass and the rest as parts of their own. {card ? <> This server has {st.accel.name}, so songs are separated there, in well under a minute each, and on the processor if the card can't manage one.</> : <> {st.accel.why} A song takes a few minutes there, one at a time, when nothing else needs it.</>}
       {st.failed && <> <strong>The last try failed:</strong> {st.failed}</>}
     </>}>
       {!sure ? <button type="button" className="btn sm primary" onClick={() => setSure(true)}>Install Demucs…</button> : (
         <div className="sep-confirm" role="group" aria-label="Install Demucs">
-          <p>Your server will download about {(st.downloadMB / 1000).toFixed(1)} GB into its own folder, which backups leave out:</p>
+          {card && (
+            <label className="sep-card">
+              <input type="checkbox" checked={useCard} onChange={(e) => setUseCard(e.target.checked)} />
+              <span>Use {st.accel.name} <small>(on by default; off is a smaller download, {gb(st.cpuDownloadMB)}, and slower songs)</small></span>
+            </label>
+          )}
+          <p>Your server will download about {gb(download)} into its own folder, which backups leave out:</p>
           <ul>
             <li><a href="https://github.com/astral-sh/uv" target="_blank" rel="noreferrer">uv</a> {st.uv}, an installer (MIT or Apache-2.0), from GitHub, checked against a fingerprint the server carries</li>
             <li>Python {st.python} (PSF license), through uv, which checks it</li>
-            <li>{st.packages.join(', ')}: Demucs and PyTorch (BSD license) for the processor, from PyPI and pytorch.org</li>
+            <li>{st.packages.join(', ')}: Demucs and PyTorch (BSD license) built for {willUse ? st.accel.name : 'the processor'}, from PyPI and pytorch.org{willUse && st.accel.id === 'cuda' ? ", with the CUDA libraries it needs (NVIDIA's license)" : ''}</li>
             <li>The {st.model} model, from Demucs's makers</li>
           </ul>
           <p>Nothing about you or your music is sent. Every license is listed in Settings, About once it's in, and Remove takes it all out again.</p>

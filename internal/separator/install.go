@@ -9,14 +9,15 @@ package separator
 //	<data>/separator/
 //	    uv/            the installer (uv, by Astral), its download checked against a SHA-256 kept here
 //	    python/        Python 3.11, fetched and checked by uv
-//	    venv/          Demucs, PyTorch (CPU only) and what they need, at pinned versions
+//	    venv/          Demucs, PyTorch (for the graphics card when there is one, accel.go) and what they need, pinned
 //	    models/        Demucs's model, fetched once from its makers (TORCH_HOME)
 //	    installed.json written last: without it the folder is an unfinished install, and is removed
 //
 // What's downloaded, and from where: uv from GitHub (astral-sh/uv), Python from GitHub
 // (astral-sh/python-build-standalone, chosen and checked by uv), the packages from PyPI and
 // download.pytorch.org (the CPU builds, so no graphics card drivers come with them), and the
-// model from dl.fbaipublicfiles.com. About 1 GB in all. Removing it deletes the folder.
+// model from dl.fbaipublicfiles.com. About 1 GB in all, 3 to 4 GB with a graphics card's build.
+// Removing it deletes the folder.
 
 import (
 	"archive/tar"
@@ -106,6 +107,7 @@ type Info struct {
 	UV        string    `json:"uv"`
 	Python    string    `json:"python"`
 	Packages  []string  `json:"packages"`
+	Accel     string    `json:"accel"` // what it was installed for: cuda, rocm, mps or cpu
 	Installed time.Time `json:"installed"`
 }
 
@@ -148,15 +150,16 @@ func InstalledAt(dir string) *Found {
 		return nil
 	}
 	return &Found{Name: "Demucs", Version: in.Version, Path: py, Installed: true, Env: Env(dir),
-		Words: []string{py, "-m", "demucs", "-n", in.Model, "-o", "{output}", "{input}"}}
+		Accel: AccelByID(in.Accel),
+		Words: []string{py, "-m", "demucs", "-n", in.Model, "-d", AccelByID(in.Accel).Device, "-o", "{output}", "{input}"}}
 }
 
 // Step says where an install is: a sentence for people, and how far along, 0 to 100.
 type Step func(phase string, pct int)
 
-// Install puts Demucs in dir. A failed or stopped install leaves nothing behind. ffmpegDir is
-// put first on the PATH of what it runs (Demucs reads songs with FFmpeg).
-func Install(ctx context.Context, dir, ffmpegDir string, step Step, logw io.Writer) (err error) {
+// Install puts Demucs in dir, built for acc. A failed or stopped install leaves nothing behind.
+// ffmpegDir is put first on the PATH of what it runs (Demucs reads songs with FFmpeg).
+func Install(ctx context.Context, dir, ffmpegDir string, acc Accel, step Step, logw io.Writer) (err error) {
 	if ok, why := Supported(); !ok {
 		return errors.New(why)
 	}
@@ -219,9 +222,12 @@ func Install(ctx context.Context, dir, ffmpegDir string, step Step, logw io.Writ
 	}
 	py := venvPython(dir)
 	pkgs := Packages(runtime.GOOS, runtime.GOARCH)
-	args := append([]string{"pip", "install", "--python", py, "--index-url", "https://download.pytorch.org/whl/cpu",
+	if acc.Index == "" {
+		acc = cpuAccel
+	}
+	args := append([]string{"pip", "install", "--python", py, "--index-url", acc.Index,
 		"--extra-index-url", "https://pypi.org/simple", "--index-strategy", "unsafe-best-match"}, pkgs...)
-	if err := run("Getting Demucs and PyTorch (about 1 GB)", 20, uv, args...); err != nil {
+	if err := run(fmt.Sprintf("Getting Demucs and PyTorch for %s (about %.1f GB)", acc.Name, float64(acc.DownloadMB)/1000), 20, uv, args...); err != nil {
 		return err
 	}
 	if err := run("Getting Demucs's model", 85, py, "-c", "from demucs.pretrained import get_model; get_model('"+Model+"')"); err != nil {
@@ -233,7 +239,20 @@ func Install(ctx context.Context, dir, ffmpegDir string, step Step, logw io.Writ
 		return fmt.Errorf("Demucs was installed but won't start: %w", err)
 	}
 	_ = os.RemoveAll(filepath.Join(dir, "cache")) // the downloads, now unpacked: a few hundred MB
-	in := Info{Version: strings.TrimSpace(string(ver)), Model: Model, UV: UVVersion, Python: PythonVersion, Packages: pkgs, Installed: time.Now().UTC()}
+	// Whether the card really works with this build; if not, it's kept for the processor, which
+	// works anywhere, rather than failing every song first.
+	if acc.ID != "cpu" {
+		step("Checking the graphics card", 97)
+		probe := "import torch,sys;sys.exit(0 if (torch.backends.mps.is_available() if '" + acc.Device + "'=='mps' else torch.cuda.is_available()) else 1)"
+		if err := exec.CommandContext(ctx, py, "-c", probe).Run(); err != nil {
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+			fmt.Fprintf(logw, "%s isn't usable from PyTorch here, so Demucs will use the processor\n", acc.Name)
+			acc = cpuAccel
+		}
+	}
+	in := Info{Version: strings.TrimSpace(string(ver)), Model: Model, UV: UVVersion, Python: PythonVersion, Packages: pkgs, Accel: acc.ID, Installed: time.Now().UTC()}
 	b, _ := json.MarshalIndent(in, "", "  ")
 	if err := os.WriteFile(filepath.Join(dir, infoFile), b, 0o644); err != nil {
 		return err

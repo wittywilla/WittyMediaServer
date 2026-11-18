@@ -939,7 +939,8 @@ function EpisodeRow({ view, compact, synopsis }: { view: View; compact: boolean;
       </button>
       <div className="info">
         {number && <div className="ep-num">{number}</div>}
-        <Pressable view={view} className="t">{name}</Pressable>
+        {/* A name longer than two lines is cut; the whole of it shows on hover. */}
+        <Pressable view={view} className="t" title={name}>{name}</Pressable>
         {synopsis && text.synopsis && <p className="sdui-clamp" style={clamp(view.lines?.synopsis)}>{text.synopsis}</p>}
       </div>
     </div>

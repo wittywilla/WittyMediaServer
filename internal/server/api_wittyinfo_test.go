@@ -130,7 +130,7 @@ func TestInfoWrongCut(t *testing.T) {
 		t.Fatalf("times for another cut were used: %+v %v", m.Intro, m.Sources)
 	}
 	a := decode[infoAnswer](t, ts.do(t, "GET", f.url("/api/wittyinfo/item/%d", f.video), f.admin, nil))
-	if a.Match == nil || a.Match.Result != wittyinfo.MatchOtherCut || a.Match.Usable || !strings.Contains(a.Match.Message, "53:20") || a.Origin != "file" {
+	if a.Match == nil || a.Match.Result != wittyinfo.MatchOtherCut || a.Match.Usable || !strings.Contains(a.Match.Message, "53:20") || !strings.Contains(a.Match.Message, "aren't used") || a.Origin != "file" {
 		t.Fatalf("not flagged: %+v", a.Match)
 	}
 	if w := ts.do(t, "POST", f.url("/api/wittyinfo/item/%d/use-anyway", f.video), f.admin, map[string]bool{"use": true}); w.Code != 200 {
@@ -188,7 +188,8 @@ func TestInfoEditWriteExportImport(t *testing.T) {
 	}
 	w := ts.do(t, "PUT", u, f.admin, map[string]any{"info": manifest})
 	a := decode[infoAnswer](t, w)
-	if w.Code != 200 || a.Origin != "stored" || a.CanWrite || a.Info.Authorship.Author != "boss" || a.Info.Authorship.Tool.Name != "WittyMediaServer" {
+	if w.Code != 200 || a.Origin != "stored" || a.CanWrite || a.Info.Authorship.Author != "boss" || a.Info.Authorship.Tool.Name != "WittyMediaServer" ||
+		a.Info.Identity == nil || a.Info.Identity.DurationSec != 1400 || a.Info.Identity.FileName != "Film.mkv" {
 		t.Fatalf("%d %s", w.Code, w.Body.String())
 	}
 	if _, err := os.Stat(beside); err == nil {

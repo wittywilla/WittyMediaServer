@@ -190,6 +190,13 @@ func (s *Server) infoAnswerFor(r *http.Request, t library.InfoTarget, it *librar
 			}
 		}
 		out.Chapters = s.fileChapters(r, it)
+	} else {
+		// A show's or a season's defaults: the longest of its episodes, so every time fits.
+		q, args := `SELECT IFNULL(MAX(runtime_sec), 0) FROM items WHERE show_id = ?`, []any{t.ID}
+		if t.Kind == library.InfoSeason {
+			q, args = q+` AND season = ?`, append(args, t.Season)
+		}
+		_ = s.DB.QueryRowContext(ctx, q, args...).Scan(&out.Duration)
 	}
 	return out
 }
@@ -339,7 +346,15 @@ func (s *Server) handleInfoPut(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	x.Files = s.currentInfo(r, t, it).Files
+	cur := s.currentInfo(r, t, it)
+	x.Files = cur.Files
+	// A file says which cut it was made for: one made here without saying is for this one.
+	if it != nil && x.Identity == nil {
+		x.Identity = cur.Identity
+		if x.Identity == nil {
+			x.Identity = s.Store.IdentityOf(r.Context(), it)
+		}
+	}
 	if !s.saveInfo(w, r, t, it, x) {
 		return
 	}

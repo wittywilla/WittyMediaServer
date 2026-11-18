@@ -101,7 +101,7 @@ func (x *Info) MatchVideo(durationSec float64, fp *Fingerprint) Match {
 		return Match{Result: MatchSameCut, Usable: true, DeltaSec: round3(delta)}
 	}
 	return Match{Result: MatchOtherCut, Usable: false, DeltaSec: round3(delta),
-		Message: fmt.Sprintf("Made for a %s cut; this video is %s long. Its times weren't used.", Clock(float64(id.DurationSec)), Clock(durationSec))}
+		Message: fmt.Sprintf("Made for a %s cut; this video is %s long.", Clock(math.Round(float64(id.DurationSec))), Clock(math.Round(durationSec)))}
 }
 
 func round3(v float64) float64 { return math.Round(v*1000) / 1000 }

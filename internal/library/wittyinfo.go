@@ -312,6 +312,9 @@ func (s *Store) InfosFor(ctx context.Context, it *Item) ItemInfos {
 		if !out.Match.Usable && out.Item.Force {
 			out.Match.Result = wittyinfo.MatchForced
 			out.Match.Usable = true
+			out.Match.Message += " Used anyway, as asked."
+		} else if !out.Match.Usable {
+			out.Match.Message += " Its times aren't used."
 		}
 	}
 	if it.ShowID != nil {

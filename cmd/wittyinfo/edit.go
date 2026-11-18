@@ -346,6 +346,9 @@ func (e *editor) api(w http.ResponseWriter, r *http.Request, rest string) {
 		}
 		cur := e.current()
 		x.Files, x.Scope, x.Season = cur.Files, cur.Scope, cur.Season
+		if x.Identity == nil && x.ScopeOr() == wittyinfo.ScopeItem {
+			x.Identity = cur.Identity
+		}
 		if e.save(w, x) {
 			writeJSON(w, 200, e.answer())
 		}

@@ -192,7 +192,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   }, [])
   useEffect(() => { level(deckA.current); level(deckB.current) }, [sound.volume, sound.muted, level])
 
-  const usesGraph = sound.eqOn || sound.replayGain !== 'off' || sound.vocalCut > 0 || sound.keyShift !== 0
+  const usesGraph = sound.eqOn || sound.replayGain !== 'off' || sound.keyShift !== 0
   // Whenever something needs the graph: this runs from a press (turning it on), or once
   // something plays, which a press also started.
   useEffect(() => {
@@ -207,13 +207,12 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       for (const el of [deckA.current, deckB.current]) if (el && canRoute(el)) { g.route(el); level(el) }
       const s = soundRef.current
       g.setEq(s.eqOn, s.eqGains, s.preamp)
-      g.setVocalCut(s.vocalCut)
       const keyOk = await g.setKey(s.keyShift)
       if (gone) return
       setSoundNote(keyOk || s.keyShift === 0 ? '' : 'This browser can\'t change the key.')
     })()
     return () => { gone = true }
-  }, [usesGraph, playing, sound.eqOn, sound.eqGains, sound.preamp, sound.vocalCut, sound.keyShift, current?.id, level])
+  }, [usesGraph, playing, sound.eqOn, sound.eqGains, sound.preamp, sound.keyShift, current?.id, level])
 
   // A file tagged with how loud it is, brought to one level.
   const loudKnown = useRef(new Map<number, { trackDb: number | null; albumDb: number | null; trackPeak: number | null; albumPeak: number | null }>())

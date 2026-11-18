@@ -6,15 +6,13 @@ import { HelpLink } from '../components/HelpLink'
 import { IconClose, IconFull, IconNext, IconPause, IconPlay, IconPrev } from '../icons'
 import { lineAt, ownTiming, useLineIndex, wordTimes, type LyricLine, type useLyrics } from './lyrics'
 import { KaraokeStemsControl, useKaraokeStems } from './KaraokeStems'
-import { soundGraph } from './sound'
 import type { PlayerView } from './types'
 
 // Karaoke. Big words that fill in as they're sung, a count-in before each line after a
-// break, the next line waiting below, the voice turned down, and the key moved to suit the
-// singer. Made to read from across a room, and to work from a TV remote: arrows change line
+// break, the next line waiting below, the server's karaoke version with the voice turned
+// down, and the key moved to suit the singer. Made to read from across a room, and to work from a TV remote: arrows change line
 // on the screen itself, and move between the controls once you're on them.
 
-const VOCALS = [{ v: 0, name: 'Voice on' }, { v: 0.6, name: 'Voice lower' }, { v: 1, name: 'Voice lowest' }]
 const COUNT_FROM_MS = 3000 // the count-in before a line
 const LONG_GAP_MS = 5000 // a break long enough to count back in from
 
@@ -32,15 +30,14 @@ export default function Karaoke({ p, ly, onClose, behind, choice }: { p: PlayerV
   const timedWords = !!nowLine?.words?.length
   const wordEls = useRef<(HTMLSpanElement | null)[]>([])
   const [count, setCount] = useState(0)
-  const [mono, setMono] = useState(false)
   // Words fill in as they are sung (Follow along), or the whole text to read at your own pace (Read).
   const [mode, setMode] = useState<'follow' | 'read'>('follow')
   const readWords = lyrics?.plain || lines.map((l) => l.text).join('\n')
   const stems = useKaraokeStems(p)
 
   useEffect(() => { root.current?.focus({ preventScroll: true }) }, [])
-  // Coming back, the voice and key are as they were: this was for the song, not for good.
-  useEffect(() => () => { p.setSound({ vocalCut: 0, keyShift: 0 }) }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  // Coming back, the key is as it was: this was for the song, not for good.
+  useEffect(() => () => { p.setSound({ keyShift: 0 }) }, []) // eslint-disable-line react-hooks/exhaustive-deps
   // The fill and the count-in, a frame at a time: written straight to the page, as React
   // has no need to know about either, and a cheap TV has better things to do.
   useEffect(() => {
@@ -69,13 +66,6 @@ export default function Karaoke({ p, ly, onClose, behind, choice }: { p: PlayerV
     raf = requestAnimationFrame(step)
     return () => cancelAnimationFrame(raf)
   }, [words, lines, offset, p.position])
-
-  // Whether there's a voice to take away at all, while it's trying to.
-  useEffect(() => {
-    if (!p.sound.vocalCut) { setMono(false); return }
-    const t = setInterval(() => { const m = soundGraph()?.nearlyMono(); if (m !== null && m !== undefined) setMono(m) }, 1500)
-    return () => clearInterval(t)
-  }, [p.sound.vocalCut])
 
   const goLine = (d: number) => {
     const to = lines[Math.max(0, index + d)]
@@ -108,7 +98,7 @@ export default function Karaoke({ p, ly, onClose, behind, choice }: { p: PlayerV
       }
       if (t.tagName === 'INPUT' || t.tagName === 'SELECT') return
       switch (e.key.toLowerCase()) {
-        case 'v': consume(); if (stems.active) { stems.setSing(!stems.sing); return } p.setSound({ vocalCut: VOCALS[(VOCALS.findIndex((x) => x.v === p.sound.vocalCut) + 1) % VOCALS.length].v }); return
+        case 'v': consume(); if (stems.active) stems.setSing(!stems.sing); return
         case '-': consume(); setKey(p.sound.keyShift - 1); return
         case '+': case '=': consume(); setKey(p.sound.keyShift + 1); return
         case '[': consume(); setOffset(offset - 100); return
@@ -164,11 +154,7 @@ export default function Karaoke({ p, ly, onClose, behind, choice }: { p: PlayerV
         <button type="button" className="kar-play" onClick={p.toggle} aria-label={p.playing ? 'Pause' : 'Play'}>{p.playing ? <IconPause size={30} /> : <IconPlay size={30} />}</button>
         <button type="button" className="mp-ibtn" onClick={() => goLine(1)} aria-label="Next line"><IconNext /></button>
         <span className="kar-rule" aria-hidden="true" />
-        {stems.active ? <KaraokeStemsControl k={stems} /> : (
-          <div className="kar-seg" role="radiogroup" aria-label="Singer's voice">
-            {VOCALS.map((x) => <button type="button" role="radio" key={x.v} aria-checked={p.sound.vocalCut === x.v} className={p.sound.vocalCut === x.v ? 'on' : ''} onClick={() => p.setSound({ vocalCut: x.v })}>{x.name}</button>)}
-          </div>
-        )}
+        <KaraokeStemsControl k={stems} />
         <div className="kar-stepper" role="group" aria-label="Key">
           <button type="button" onClick={() => setKey(p.sound.keyShift - 1)} disabled={p.sound.keyShift <= -6} aria-label="Lower key">−</button>
           <span aria-live="polite">Key {p.sound.keyShift > 0 ? '+' : ''}{p.sound.keyShift}</span>
@@ -181,16 +167,12 @@ export default function Karaoke({ p, ly, onClose, behind, choice }: { p: PlayerV
         </div>
       </footer>
       <p className="kar-note">
-        {p.soundNote || stems.note || (mono
-          ? 'This recording is close to mono, so there\'s no way to separate the voice from it.'
-          : p.sound.vocalCut > 0
-            ? 'The voice is turned down by removing what\'s in the middle of the mix. Echoes of it, and songs that spread it wide, will still come through.'
-            : p.sound.keyShift !== 0 ? 'A changed key can warble a little on long notes.'
-              : lines.length > 0 && !timedWords ? 'Lines are timed; the fill within a line is an estimate.' : ' ')}
+        {p.soundNote || (stems.waiting ? '' : stems.note) || (p.sound.keyShift !== 0 ? 'A changed key can warble a little on long notes.'
+          : lines.length > 0 && !timedWords ? 'Lines are timed; the fill within a line is an estimate.' : ' ')}
       </p>
       {/* The keys karaoke answers, said as the player says its own (they were there, but nowhere to be seen). */}
       <p className="np-hints kar-hints" aria-hidden="true">
-        <kbd>Esc</kbd> back · <kbd>Space</kbd> play or pause · <kbd>←</kbd> <kbd>→</kbd> previous or next line · <kbd>V</kbd> {stems.active ? 'voice on or off' : 'voice lower'} · <kbd>−</kbd> <kbd>+</kbd> key · <kbd>[</kbd> <kbd>]</kbd> words sooner or later · <kbd>F</kbd> full screen
+        <kbd>Esc</kbd> back · <kbd>Space</kbd> play or pause · <kbd>←</kbd> <kbd>→</kbd> previous or next line · <kbd>V</kbd> voice on or off · <kbd>−</kbd> <kbd>+</kbd> key · <kbd>[</kbd> <kbd>]</kbd> words sooner or later · <kbd>F</kbd> full screen
       </p>
     </div>
   )

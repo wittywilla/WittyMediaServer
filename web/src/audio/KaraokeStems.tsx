@@ -19,7 +19,6 @@ export function useKaraokeStems(p: PlayerView) {
   const key = levelsKey(user?.id)
   const id = p.mode === 'music' && !p.cdActive && !p.live ? p.current?.id : undefined
   const [answer, setAnswer] = useState<KaraokeAnswer | null>(null)
-  const [supported, setSupported] = useState(true)
   const [levels, setLevels] = useState<Levels>(() => readLevels(key))
   const [sing, setSing] = useState(false)
   const [active, setActive] = useState(false)
@@ -44,8 +43,6 @@ export function useKaraokeStems(p: PlayerView) {
         if (wait) timer = window.setTimeout(() => ask(false), wait)
       }).catch((e: unknown) => {
         if (gone) return
-        // A server from before this: karaoke stays as it was.
-        if (e instanceof ApiError && (e.status === 404 || e.status === 405) && first) { setSupported(false); return }
         if (e instanceof ApiError && e.status >= 400 && e.status < 500 && e.status !== 408 && e.status !== 429) { setAnswer(null); return }
         failures++
         timer = window.setTimeout(() => ask(first), pollDelay(null, failures))
@@ -69,7 +66,6 @@ export function useKaraokeStems(p: PlayerView) {
       set.current?.close()
       set.current = s
       setActive(true)
-      p.setSound({ vocalCut: 0 })
     }).catch((e: unknown) => {
       if (stop.signal.aborted) return
       drop()
@@ -96,28 +92,48 @@ export function useKaraokeStems(p: PlayerView) {
     setLevels({})
     try { localStorage.removeItem(key) } catch { /* a private window */ }
   }
-  return { supported: supported && !!id, answer, active, levels, sing, setSing, setLevel, reset, note: statusLine(answer, lost) }
+  // Until the parts play, the Mix holds its place, waiting: asked and not answered yet, or being made.
+  const waiting = !!id && !active && !lost && answer?.state !== 'unavailable'
+  return { answer, active, waiting, levels, sing, setSing, setLevel, reset, note: statusLine(answer, lost) }
 }
 
 export type KaraokeStemsState = ReturnType<typeof useKaraokeStems>
 
-function Level({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+function Level({ label, value, onChange, disabled }: { label: string; value: number; onChange: (v: number) => void; disabled?: boolean }) {
   const pct = Math.round(value * 100)
   return (
     <label className="kar-level">
       <span>{label}</span>
-      <input type="range" min={0} max={100} step={5} value={pct} onChange={(e) => onChange(Number(e.target.value) / 100)} aria-valuetext={`${pct}%`} />
-      <output className="np-pill">{pct}%</output>
+      <input type="range" min={0} max={100} step={5} value={pct} disabled={disabled} onChange={(e) => onChange(Number(e.target.value) / 100)} aria-valuetext={`${pct}%`} />
+      <output className="np-pill">{disabled ? '' : `${pct}%`}</output>
     </label>
   )
 }
 
 // The Mix: a row for each part the song has been separated into (Voice, then whatever else there is: Music, Drums,
 // Bass, Other), each with its level as a pill, and the three shortcuts under them (board "stems"). Only drawn while
-// the parts are what's playing.
+// the parts are what's playing; until then, the same Mix, still, saying how far along the karaoke version is, so
+// nothing on the bar changes shape when it arrives.
+const noop = () => {}
 export function KaraokeStemsControl({ k }: { k: KaraokeStemsState }) {
   const a = k.answer
-  if (!k.active || !playable(a)) return null
+  if (!k.active || !playable(a)) {
+    if (!k.waiting) return null
+    return (
+      <div className="kar-stems kar-mix kar-mix-wait" role="group" aria-label="Mix" aria-busy="true">
+        <div className="kar-mix-rows">
+          <Level label="Voice" value={1} onChange={noop} disabled />
+          <Level label="Music" value={1} onChange={noop} disabled />
+        </div>
+        <div className="kar-mix-pills" aria-hidden="true">
+          <button type="button" className="kar-chip" disabled tabIndex={-1}>Voice off</button>
+          <button type="button" className="kar-chip" disabled tabIndex={-1}>Guide voice</button>
+          <button type="button" className="kar-chip" disabled tabIndex={-1}>Reset</button>
+        </div>
+        <p className="kar-mix-note" role="status">{k.note || 'Getting the karaoke version…'}</p>
+      </div>
+    )
+  }
   const rows = sliders(a)
   const voice = rows.find((r) => r.id === 'vocals')
   const pristine = !k.sing && rows.every((r) => levelOf(a, k.levels, r.id) === defaultLevel(a, r.id))

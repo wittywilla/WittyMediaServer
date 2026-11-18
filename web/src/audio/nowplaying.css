@@ -309,9 +309,6 @@ button.np-artist:hover { color: var(--np-fg); text-decoration: underline; text-u
 .kar-bar .mp-ibtn { background: var(--np-chip); width: 52px; height: 52px; }
 .kar-play { display: grid; place-items: center; width: 64px; height: 64px; border: 0; border-radius: 50%; background: var(--np-white); color: var(--np-black); cursor: pointer; }
 .kar-rule { width: 1px; height: 34px; background: var(--np-line); margin: 0 4px; }
-.kar-seg { display: flex; padding: 3px; gap: 2px; border-radius: var(--r-full); background: var(--np-chip); }
-.kar-seg button { min-height: 46px; padding: 0 16px; border: 0; border-radius: var(--r-full); background: transparent; color: var(--np-white); font: inherit; font-weight: 600; cursor: pointer; }
-.kar-seg button.on { background: var(--np-white); color: var(--np-black); }
 .kar-stepper { display: inline-flex; align-items: center; gap: 4px; padding: 3px; border-radius: var(--r-full); background: var(--np-chip); }
 .kar-stepper span { min-width: 92px; text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; font-size: var(--text-md); }
 .kar-stepper button { width: 46px; height: 46px; border: 0; border-radius: 50%; background: var(--np-chip); color: var(--np-white); font-size: var(--text-xl); font-weight: 700; cursor: pointer; }
@@ -330,7 +327,6 @@ button.np-artist:hover { color: var(--np-fg); text-decoration: underline; text-u
 .kar-note { position: relative; z-index: 1; min-height: 1.3em; margin: 0; padding: 0 16px max(10px, env(safe-area-inset-bottom)); text-align: center; color: var(--np-fg-2); font-size: var(--text-sm); }
 @media (max-width: 700px) {
   .kar-rule { display: none; }
-  .kar-seg button { padding: 0 10px; font-size: var(--text-sm); }
   .kar-stepper span { min-width: 74px; font-size: var(--text-sm); }
   /* A phone: the controls take most of the height, so the words get a stage of their own and the whole
      screen scrolls, instead of the lines running into the buttons. What's behind the words stays put. */
@@ -353,8 +349,8 @@ button.np-artist:hover { color: var(--np-fg); text-decoration: underline; text-u
   .np-lines li.now button { transform: none; }
 }
 @media (forced-colors: active) {
-  .np-chip, .np-viz-toggle, .mp-ibtn, .np-styles > button, .kar-seg button, .kar-chip, .kar-level { border: 1px solid ButtonText; }
-  .np-chip.on, .np-styles > button.on, .kar-seg button.on, .kar-chip.on { background: Highlight !important; color: HighlightText !important; }
+  .np-chip, .np-viz-toggle, .mp-ibtn, .np-styles > button, .kar-chip, .kar-level { border: 1px solid ButtonText; }
+  .np-chip.on, .np-styles > button.on, .kar-chip.on { background: Highlight !important; color: HighlightText !important; }
   .kar-word { background: none; color: CanvasText; }
 }
 .np-video { margin-top: 10px; min-height: 40px; font-size: var(--text-sm); }
@@ -402,6 +398,8 @@ button.np-artist:hover { color: var(--np-fg); text-decoration: underline; text-u
 .kar-mix .kar-level input { width: 100%; min-height: 44px; accent-color: var(--np-white); }
 .kar-mix-pills { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 .kar-mix-note { margin: 0; font-size: var(--text-sm); color: var(--np-fg-2); }
+.kar-mix-wait .kar-level { opacity: .55; }
+.kar-mix-wait .kar-level input { cursor: default; }
 
 /* The visualizer on and nothing touched for a few seconds: the controls fade so the picture has the
    screen, and any movement, key or focus brings them back (NowPlaying.tsx, IDLE_MS). The song's name

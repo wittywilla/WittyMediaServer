@@ -49,6 +49,9 @@ func (s *Server) handleLicenses(w http.ResponseWriter, r *http.Request) {
 	for i := range out {
 		out[i].Version = versions[out[i].Name]
 	}
+	// What was installed for karaoke, read from the packages themselves.
+	extra, _ := s.installedLicenses()
+	out = append(out, extra...)
 	writeJSON(w, 200, map[string]any{"groups": licenses.Groups, "components": out})
 }
 
@@ -56,6 +59,15 @@ func (s *Server) handleLicenses(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleLicenseText(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
+		writeErr(w, 404, "not found")
+		return
+	}
+	if id >= installedLicenseBase {
+		_, ls := s.installedLicenses()
+		if i := id - installedLicenseBase; i < len(ls) && ls[i].Text != "" {
+			writeJSON(w, 200, map[string]any{"text": ls[i].Text})
+			return
+		}
 		writeErr(w, 404, "not found")
 		return
 	}

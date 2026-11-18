@@ -22690,6 +22690,168 @@
         "x-wms-auth": "user"
       }
     },
+    "/karaoke/separator": {
+      "delete": {
+        "description": "Deletes the server's separator folder; an install running is stopped instead.",
+        "operationId": "removeKaraokeSeparator",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "removed": {
+                      "type": "boolean"
+                    },
+                    "stopped": {
+                      "type": "boolean"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove the installed Demucs",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "get": {
+        "description": "For Settings' one-press install. `supported` false with `why` on FreeBSD, Windows on ARM, musl Linux and tiny machines.",
+        "operationId": "getKaraokeSeparator",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "downloadMB": {
+                      "type": "integer"
+                    },
+                    "failed": {
+                      "description": "Why the last install failed.",
+                      "type": "string"
+                    },
+                    "installed": {
+                      "properties": {
+                        "at": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "model": {
+                          "type": "string"
+                        },
+                        "sizeBytes": {
+                          "type": "integer"
+                        },
+                        "version": {
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "machine": {
+                      "type": "string"
+                    },
+                    "model": {
+                      "type": "string"
+                    },
+                    "packages": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "python": {
+                      "type": "string"
+                    },
+                    "supported": {
+                      "type": "boolean"
+                    },
+                    "task": {
+                      "description": "The install running now, or empty.",
+                      "type": "string"
+                    },
+                    "uv": {
+                      "type": "string"
+                    },
+                    "why": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Whether Demucs can be installed here, is, or is being",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/karaoke/separator/install": {
+      "post": {
+        "description": "Starts a task that downloads uv (checked against a pinned SHA-256), Python 3.11, Demucs and CPU-only PyTorch at pinned versions, and Demucs's model, into the server's data folder. 409 `reason` `unsupported`, `too-small` or `installed`.",
+        "operationId": "installKaraokeSeparator",
+        "parameters": [],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "task": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Install Demucs for karaoke",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/karaoke/status": {
       "get": {
         "operationId": "getKaraokeStatus",

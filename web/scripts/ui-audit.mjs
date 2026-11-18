@@ -61,7 +61,7 @@ const DETECT = `(() => {
   }
   // 5 small targets
   const touch = matchMedia('(pointer: coarse)').matches || vw < 900
-  for (const e of all.filter((x) => x.matches('button, a[href], [role=button], [role=tab], input:not([type=hidden]), select, [role=menuitem]'))) { const r = e.getBoundingClientRect(); const min = touch ? 40 : 24; const inline = e.matches('a') && getComputedStyle(e).display === 'inline'; if ((r.width < min || r.height < min) && !e.closest('.sr-only') && !inline) add('small-target', e, Math.round(r.width) + 'x' + Math.round(r.height)) }
+  for (const e of all.filter((x) => x.matches('button, a[href], [role=button], [role=tab], input:not([type=hidden]), select, [role=menuitem]'))) { const r0 = e.getBoundingClientRect(); const ps = getComputedStyle(e, '::after'); const slop = ps.content !== 'none' && ps.position === 'absolute' ? [parseFloat(ps.top) || 0, parseFloat(ps.bottom) || 0, parseFloat(ps.left) || 0, parseFloat(ps.right) || 0] : [0, 0, 0, 0]; const r = { width: r0.width - Math.min(0, slop[2]) - Math.min(0, slop[3]), height: r0.height - Math.min(0, slop[0]) - Math.min(0, slop[1]) }; const min = touch ? 40 : 24; const inline = e.matches('a') && getComputedStyle(e).display === 'inline'; if ((r.width < min || r.height < min) && !e.closest('.sr-only') && !inline && !(e.closest('.card, .episode, li, tr') && [...e.closest('.card, .episode, li, tr').querySelectorAll('a, button')].some((o) => o !== e && o.getBoundingClientRect().width >= 40 && o.getBoundingClientRect().height >= 40))) add('small-target', e, Math.round(r.width) + 'x' + Math.round(r.height)) }
   // 6 clipped or ellipsised words
   for (const e of all) { const s = getComputedStyle(e); if (e.scrollWidth > e.clientWidth + 2 && s.textOverflow === 'ellipsis' && e.textContent.trim().length > 0) add('truncated', e, e.scrollWidth + ' > ' + e.clientWidth); else if (e.scrollWidth > e.clientWidth + 4 && /(hidden|clip)/.test(s.overflowX) && e.children.length === 0 && e.textContent.trim().length > 2 && s.textOverflow !== 'ellipsis') add('clipped-text', e, e.scrollWidth + ' > ' + e.clientWidth) }
   // 7 broken pictures
@@ -76,11 +76,20 @@ const DETECT = `(() => {
   return out.slice(0, 120)
 })()`
 
-// Tabs through the page and reports controls that take focus without showing it.
-const FOCUS = `(async () => {
-  const bad = [], seen = new Set(); let n = 0
-  const style = (e) => { const s = getComputedStyle(e); return s.outlineStyle + s.outlineWidth + s.outlineColor + s.boxShadow + s.borderColor + s.backgroundColor + s.transform }
-  return { stops: 0 }
+// Keyboard focus: Tab through a page and report a stop whose focus can't be seen, that is hidden under a fixed
+// bar or off screen, or a trap that never moves on. Run with WMS_FOCUS=1 (30 stops a page).
+const FOCUS_SNAPSHOT = `(() => {
+  const e = document.activeElement
+  if (!e || e === document.body) return null
+  const r = e.getBoundingClientRect(), s = getComputedStyle(e)
+  const shows = (c) => (c.outlineStyle !== 'none' && parseFloat(c.outlineWidth) > 0) || (c.boxShadow && c.boxShadow !== 'none')
+  // A card draws its ring on the picture inside it (and a title link inside a card, on the card), so look there too.
+  const host = e.closest('.card, .episode, .ep-card') || e
+  const ring = shows(s) || shows(getComputedStyle(e, '::after')) || [...host.querySelectorAll('.poster, .thumb, img')].slice(0, 3).some((x) => shows(getComputedStyle(x))) || shows(getComputedStyle(host))
+  const fixed = [...document.querySelectorAll('*')].filter((b) => { const c = getComputedStyle(b); return c.position === 'fixed' && !b.contains(e) && !e.contains(b) && b.getBoundingClientRect().width > innerWidth * 0.3 })
+  const covered = fixed.some((b) => { const q = b.getBoundingClientRect(); return r.top < q.bottom - 2 && r.bottom > q.top + 2 && r.left < q.right && r.right > q.left && getComputedStyle(b).pointerEvents !== 'none' })
+  const key = e.tagName + '|' + (e.id || '') + '|' + String(e.className).slice(0, 40) + '|' + (e.getAttribute('aria-label') || e.textContent || '').trim().slice(0, 30)
+  return { key, ring: !!ring, offscreen: r.bottom < 0 || r.top > innerHeight || r.right < 0 || r.left > innerWidth, covered, bg: s.backgroundColor, tag: e.tagName.toLowerCase() }
 })()`
 
 const s = await open(server, out, { width: 1280, height: 800, path: '/help' })
@@ -111,6 +120,9 @@ for (const theme of themes) {
   for (const sz of sizes) {
     const [w, h, mobile, tv] = SIZES[sz]
     await size(w, h, mobile)
+    // A phone or tablet is a touch screen: the coarse pointer the sizes (--control-h) key off.
+    await page.send('Emulation.setEmulatedMedia', { features: [{ name: 'pointer', value: mobile ? 'coarse' : 'fine' }, { name: 'hover', value: mobile ? 'none' : 'hover' }] })
+    await page.send('Emulation.setTouchEmulationEnabled', mobile ? { enabled: true, maxTouchPoints: 5 } : { enabled: false })
     for (const path of list) {
       const url = server + path + (tv ? (path.includes('?') ? '&' : '?') + 'tv=1' : (path.includes('?') ? '&' : '?') + 'tv=0')
       try {
@@ -119,7 +131,21 @@ for (const theme of themes) {
         await page.until(`document.fonts?.status !== 'loading'`, 8000).catch(() => {})
         const found = await page.eval(DETECT)
         for (const f of found) findings.push({ path, size: sz, theme, ...f })
+        if (process.env.WMS_SCROLLY) { await page.eval(`window.scrollTo(0, ${+process.env.WMS_SCROLLY})`); await wait(500) }
         if (!noShots) writeFileSync(join(out, `${slug(path)}--${sz}--${theme}.png`), await page.shot())
+        if (process.env.WMS_FOCUS) {
+          await page.eval(`document.activeElement?.blur?.(); window.scrollTo(0, 0)`)
+          let last = '', same = 0
+          for (let i = 0; i < 30; i++) {
+            await page.key('Tab'); await wait(60)
+            const f = await page.eval(FOCUS_SNAPSHOT)
+            if (!f) continue
+            if (f.key === last) { if (++same >= 3) { findings.push({ path, size: sz, theme, kind: 'focus-trap', where: f.key, detail: 'Tab no longer moves' }); break } } else { same = 0; last = f.key }
+            if (!f.ring) findings.push({ path, size: sz, theme, kind: 'focus-invisible', where: f.key, detail: 'no outline or shadow on focus (check the fill by eye)' })
+            if (f.covered) findings.push({ path, size: sz, theme, kind: 'focus-covered', where: f.key, detail: 'focused control sits under a fixed bar' })
+            if (f.offscreen) findings.push({ path, size: sz, theme, kind: 'focus-offscreen', where: f.key, detail: 'focus is outside the viewport' })
+          }
+        }
         console.log(theme, sz, path, found.length)
       } catch (e) { findings.push({ path, size: sz, theme, kind: 'harness', detail: String(e.message).slice(0, 200) }); console.log('FAIL', path, e.message) }
     }

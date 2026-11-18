@@ -39,9 +39,9 @@ Most of what shows by eye comes from a few places. They are listed first because
 | R2 | Settings destinations are built in two places; the ones supplied by modules had no description and so were a different height (Game metadata, DVDs and Blu-rays, Games & emulators, Live TV & tuners) | Uneven list, plug icons with no explanation | **Fixed** in `SettingsPage.tsx` |
 | R3 | The Settings help link takes a line of its own between the back link and the notices | A gap above and below it, the notice pushed down | **Fixed** in `components/helplink.css` |
 | R4 | Pixel spacing and bar offsets are written directly in 552 places | The cause of "content under the bar here, too low there": `88px`, `90px`, `96px` for "under the top bar" are written in `audio.css`, `creators.css`, `settings.css` and others | **Guarded**: new lint rules `spacing` and `bar-offset` keep it from growing. Clearing the existing ones belongs with `topbar-overlap` |
-| R5 | Switches (44x26), small and ghost buttons (26 to 32px high) and `a.t` rows (23px) fall under the 40px touch size | Fiddly to tap on phones and tablets | Open |
-| R6 | The Library toolbar shows the Filters button and the same filters inline, with a large gap between the two rows | Looks like two toolbars | Open, needs a design pass |
-| R7 | Settings pages, You and the Library pages each set their own page width and top spacing | Content starts at a different height on each page | Open, pairs with `topbar-overlap` |
+| R5 | Switches (44x26), small and ghost buttons (26 to 32px high) and `a.t` rows (23px) fall under the 40px touch size | Fiddly to tap on phones and tablets | **Mostly a false alarm, rest fixed**: on a real touch screen `--control-h` is already 44px (`pointer: coarse`); the first run measured with a fine pointer. The harness now emulates touch. Switches keep their small look but get a 44px tap area. Remaining small things are inline links inside larger tappable cards |
+| R6 | The Library toolbar shows the Filters button and the same filters inline, with a large gap between the two rows | Looks like two toolbars | **Fixed**: the page title, actions and filters are one header, a step apart (the filters were 40px under the buttons) |
+| R7 | Settings pages, You and the Library pages each set their own page width and top spacing | Content starts at a different height on each page | Measured, not changed: title starts at y=80 on library pages, 88 on Settings sub-pages and 102 on the Settings index. One page-top token belongs with `topbar-overlap`, which owns the content offset |
 
 Checked and not a bug: Music appears dim in a picture taken while the page is still fading in; the second
 picture, taken once loaded, is correct. Pictures need a settle time that is longer under load.
@@ -88,8 +88,20 @@ rebuild (`music-nav`), theme contrast and hero scrims (#423, `theme-readability`
 
 ## Next
 
-R5 (touch size), R6 and R7 (library toolbar and page tops), a loading placeholder for item pages, and the
-remaining slices of the matrix. These come in the follow-up PRs on the umbrella issue.
+Page-top token (with `topbar-overlap`), the tablet, 1920, TV 10-foot, light and Aero Sunset slices, and the
+players (listed only: `seek-errors` and `transcode-options` own seeking and the quality menu).
+
+## Round two
+
+- **Loading shapes:** `PageLoading` (SDUI) is now the shape of the page coming: a poster and lines for a title's
+  page, a header and grid for a library, rows of cards for the rest. Before, a title's page showed a grid of empty
+  tiles and a big panel (see `item-loading-desktop.png`).
+- **Library header (R6):** `R6-library-header-before.png` and `-after.png`.
+- **Keyboard focus:** `WMS_FOCUS=1` tabs through 30 stops a page and reports focus that cannot be seen, is under a
+  fixed bar, is off screen, or a trap. On Home, a library, a title, a show, Settings, Search and You the rings
+  show on buttons and, for cards, on the picture (a lift and a 3px ring); the episode title link draws its ring on its
+  stretched `::after`. The probe was taught both. No trap and nothing under a bar was found on those pages.
+- **Touch:** the harness emulates a coarse pointer for phone and tablet sizes, and counts a pseudo-element's tap area.
 
 ## Before and after
 

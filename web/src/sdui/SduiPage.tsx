@@ -481,15 +481,32 @@ export default function SduiPage({ page, params, fallback }: { page: string; par
   )
 }
 
-// A whole page arriving for the first time: three rows of grey cards.
+// A whole page arriving for the first time, in the shape of what is coming: a title and a poster for a title's page,
+// a header and a grid for a library, rows of cards for anything else (Home, shelves). The same shapes at every size.
 export function PageLoading({ device }: { device: Device }) {
   const still = device.capabilities.includes('reducedMotion')
+  const path = useLocation().pathname
+  const line = (w: string, h = '1em') => <i className="skel" style={{ width: w, height: h }} />
+  const card = (i: number) => <div key={i} className="card sdui-ph"><div className="poster"><i className="skel" /></div></div>
+  const detail = path.startsWith('/item/') || path.startsWith('/show/')
+  const library = path.startsWith('/library/')
   return (
     <div className={'sdui sdui-loading skeleton-grid' + (still ? ' still' : '')} role="status" aria-label="Loading" aria-busy="true">
-      {[0, 1, 2].map((r) => (
+      {detail ? (
+        <div className="hub sdui-loading-detail" aria-hidden="true">
+          <i className="skel skel-detail-poster" />
+          <div className="skel-lines">{line('5rem', '0.75rem')}{line('60%', '2rem')}{line('40%')}<div className="skel-actions">{line('9rem', 'var(--control-h)')}{line('6rem', 'var(--control-h)')}</div>{line('100%')}{line('100%')}{line('70%')}</div>
+        </div>
+      ) : library ? (
+        <div className="hub" aria-hidden="true">
+          <div className="hub-head">{line('9rem', '1.75rem')}</div>
+          <div className="skel-chips">{line('4.5rem', '2rem')}{line('7rem', '2rem')}{line('6rem', '2rem')}</div>
+          <div className="row sdui-loading-grid">{Array.from({ length: 12 }, (_, i) => card(i))}</div>
+        </div>
+      ) : [0, 1, 2].map((r) => (
         <div className="hub" key={r} aria-hidden="true">
           <div className="hub-head"><i className="skel sdui-skel-title" /></div>
-          <div className="row">{Array.from({ length: 8 }, (_, i) => <div key={i} className="card sdui-ph"><div className="poster"><i className="skel" /></div></div>)}</div>
+          <div className="row">{Array.from({ length: 8 }, (_, i) => card(i))}</div>
         </div>
       ))}
     </div>

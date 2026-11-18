@@ -8,7 +8,8 @@ import type { StyledPart } from '../brandStyle.ts'
 import { Brand, BrandMark, Spinner, VersionTag } from '../components/common'
 import { HelpLink } from '../components/HelpLink'
 import type { LibraryKind, ModuleReport } from '../moduleStore'
-import { useApp } from '../state'
+import { toast, useApp } from '../state'
+import { saveLocale } from './setup/Locale'
 import { Button, Progress } from '../ui'
 import { Account } from './setup/Account'
 import { Details } from './setup/Details'
@@ -141,7 +142,10 @@ export default function SetupWizard() {
                 setUser(u)
                 // From here it counts as set up only when the last page says so, even once there are libraries.
                 api.put('/settings', { setupDone: '0' }).catch(() => {})
-                navigate(pathOf('name'), { replace: true })
+                // The language and time zone asked before Welcome are saved now there's an account, before the
+                // Name step reads them back.
+                void saveLocale().catch(() => toast('The language and time zone couldn’t be saved. Choose them again on this page.', { tone: 'danger' }))
+                  .finally(() => navigate(pathOf('name'), { replace: true }))
               }} />}
               {step.id === 'name' && <Name {...props} onTry={setTryName} />}
               {step.id === 'modules' && <Modules {...props} />}

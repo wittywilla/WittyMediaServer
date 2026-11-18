@@ -3,6 +3,8 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { QualityPreset, QualityView } from '../api'
 import './quality.css'
+import { useTvMode } from '../tvmode/mode'
+import { TV_NOTE, tvPartLevel, tvPartTitle } from '../tvmode/levelTable'
 import { EMPTY, HEIGHTS, MAX_MBPS, MIN_MBPS, capOf, entryOf, formatChoice, parseChoice, perHour, presetChoice, rate, sizeName, type Choice } from './quality'
 
 // The player's quality menu: Auto, Original, then the sizes the picture has (only those at or
@@ -31,6 +33,7 @@ export type QualityMenuProps = {
 
 export default function QualityMenu({ view, decision, presets: given, showInfo, onShowInfo, onChoose, onClose, where, live }: QualityMenuProps) {
   const [page, setPage] = useState<'easy' | 'advanced'>('easy')
+  const tvAdvanced = !useTvMode() || tvPartLevel('player.quality-advanced') === 'full'
   const root = useRef<HTMLDivElement | null>(null)
   const presets = given || view.presets
   const asked = view.asked
@@ -93,7 +96,10 @@ export default function QualityMenu({ view, decision, presets: given, showInfo, 
             {current === 'custom' && entry('custom', 'Custom', customNote(asked), asked)}
           </div>
           {limited && <p className="qm-small">Up to {[cap.height ? sizeName(cap.height) : '', cap.kbps ? rate(cap.kbps) : ''].filter(Boolean).join(' and ')} {view.away ? 'away from home' : 'on this profile'}, as the server allows.</p>}
-          <button type="button" className="qm-more" onClick={() => setPage('advanced')}>Advanced…</button>
+          {/* On a television the exact size, rate and codec are set on a computer (docs/TV-MODE.md, player.quality-advanced): a
+              profile's defaults there (Settings, Video quality) apply on every device. */}
+          {tvAdvanced ? <button type="button" className="qm-more" onClick={() => setPage('advanced')}>Advanced…</button>
+            : <p className="qm-small">{tvPartTitle('player.quality-advanced')}: {TV_NOTE} Your defaults there, in Settings, Video quality, apply here too.</p>}
           <p className="qm-small">Remembered on this device {where === 'away' ? 'away from home' : 'at home'}.</p>
         </>
       ) : (

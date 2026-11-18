@@ -48,4 +48,4 @@ html.tv-mode .set-shell.tv-menu .set-nav { position: static; width: auto; max-wi
 /* A view screen in Settings: the page alone under the card, without the Settings menu beside it. */
 .tvl-view .set-shell { display: block; }
 .tvl-view .set-nav, .tvl-view .set-back { display: none; }
-html.tv-mode .set-shell.tv-menu .set-nav-hint { display: block; color: var(--fg-2); font-size: var(--tvm-caption); font-weight: 400; }
+html.tv-mode .set-shell.tv-menu .set-nav-hint { display: block; color: var(--fg-2); font-size: var(--text-sm); font-weight: 400; }

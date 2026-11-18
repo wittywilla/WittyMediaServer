@@ -76,18 +76,18 @@
 .np.backdrop-plain .np-glow { display: none; }
 
 /* ---------------------------------------------------- the Look panel (LookPanel.tsx) */
-.lk { display: grid; gap: 18px; padding: 4px 2px 12px; }
-.lk section { display: grid; gap: 10px; }
+.lk { display: grid; gap: var(--sp-4); padding: var(--sp-1) var(--sp-1) var(--sp-3); }
+.lk section { display: grid; gap: var(--sp-2); }
 .lk h4 { margin: 0; font-size: var(--text-2xs); font-weight: 700; letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--np-fg-2); }
 .lk-scope { display: grid; grid-template-columns: 1fr 1fr; padding: 3px; border-radius: var(--r-full); background: var(--np-chip); }
-.lk-scope button { min-block-size: 40px; border: 0; border-radius: var(--r-full); background: transparent; color: var(--np-fg-2); font: inherit; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; }
+.lk-scope button { min-block-size: 40px; border: 0; border-radius: var(--r-full); background: transparent; color: var(--np-fg-2); font: inherit; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2); cursor: pointer; }
 .lk-scope button.on { background: var(--np-white); color: var(--np-black); }
 .lk-dot { inline-size: 7px; block-size: 7px; border-radius: 50%; background: currentColor; }
 .lk-note { margin: 0; color: var(--np-fg-2); font-size: var(--text-xs); line-height: 1.45; }
 .lk-link { padding: 0; border: 0; background: none; color: var(--np-white); font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
-.lk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 10px; }
+.lk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: var(--sp-2); }
 .lk-grid.wide { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
-.lk-tile { display: grid; gap: 6px; justify-items: center; padding: 8px 6px 7px; border: 0; border-radius: var(--r-lg); background: transparent; color: var(--np-white); font: inherit; cursor: pointer; transition: background var(--dur-2); }
+.lk-tile { display: grid; gap: var(--sp-2); justify-items: center; padding: var(--sp-2) var(--sp-2) var(--sp-2); border: 0; border-radius: var(--r-lg); background: transparent; color: var(--np-white); font: inherit; cursor: pointer; transition: background var(--dur-2); }
 .lk-tile:hover:not(:disabled) { background: var(--np-chip); }
 .lk-tile.on { background: var(--np-chip); box-shadow: inset 0 0 0 2px var(--np-white); }
 .lk-tile:focus-visible { outline: 2px solid var(--np-white); outline-offset: 2px; }
@@ -111,8 +111,8 @@
 .lk-scene.bd-viz i { display: none; }
 @media (prefers-reduced-motion: no-preference) { .lk-tile:hover .lk-scene.bd-canvas, .lk-tile.on .lk-scene.bd-canvas { animation: lk-flow 4s ease-in-out infinite alternate; } }
 @keyframes lk-flow { to { background-position: 100% 100%; } }
-.lk-seg { display: flex; flex-wrap: wrap; gap: 6px; }
-.lk-seg button { min-block-size: 40px; padding: 0 14px; border: 0; border-radius: var(--r-full); background: var(--np-chip); color: var(--np-white); font: inherit; font-size: var(--text-sm); font-weight: 600; cursor: pointer; }
+.lk-seg { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.lk-seg button { min-block-size: 40px; padding: 0 var(--sp-3); border: 0; border-radius: var(--r-full); background: var(--np-chip); color: var(--np-white); font: inherit; font-size: var(--text-sm); font-weight: 600; cursor: pointer; }
 .lk-seg button.on { background: var(--np-white); color: var(--np-black); }
 .lk-studio { justify-self: start; min-block-size: 40px; padding: 0 16px; border: 1px solid var(--np-line); border-radius: var(--r-full); background: transparent; color: var(--np-white); font: inherit; font-weight: 600; cursor: pointer; }
 .lk-studio:hover { background: var(--np-chip); }
@@ -123,7 +123,7 @@
 @media (max-width: 700px) { .kar-cover.kar-cover-art { inline-size: clamp(110px, 38vw, 170px); } }
 .kar-art.blur { inset: -6%; filter: blur(42px) saturate(1.3); opacity: .5; } /* design-ok: the cover itself, blurred behind the words */
 /* The panel scrolls inside the side area, with the side's own gutter. */
-.np-side > .lk { flex: 1; min-block-size: 0; overflow-y: auto; overscroll-behavior: contain; padding: 4px 18px 18px; }
+.np-side > .lk { flex: 1; min-block-size: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--sp-1) var(--sp-4) var(--sp-4); }
 /* The small previews say how each look moves: the lean leans, the drift is zoomed in. */
 .z-tile.s-tilt { perspective: 300px; }
 .z-tile.s-tilt .av-body { transform: rotateX(10deg) rotateY(-18deg); }

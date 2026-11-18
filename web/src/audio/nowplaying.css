@@ -521,8 +521,8 @@ button.np-artist:hover { color: var(--np-fg); text-decoration: underline; text-u
   .kar-song b, .kar-song span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
 /* The words: in time, or to read (Lyrics and Read in one place). */
-.np-words-switch { flex: none; display: grid; grid-template-columns: 1fr 1fr; gap: 2px; margin: 12px 14px 0; padding: 3px; border-radius: var(--r-full); background: var(--np-chip); }
-.np-words-switch button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 38px; border: 0; border-radius: var(--r-full); background: transparent; color: var(--np-fg-2); font: inherit; font-weight: 600; cursor: pointer; }
+.np-words-switch { flex: none; display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-1); margin: var(--sp-3) var(--sp-3) 0; padding: 3px; border-radius: var(--r-full); background: var(--np-chip); }
+.np-words-switch button { display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2); min-height: 38px; border: 0; border-radius: var(--r-full); background: transparent; color: var(--np-fg-2); font: inherit; font-weight: 600; cursor: pointer; }
 .np-words-switch button svg { fill: currentColor; }
 .np-words-switch button.on { background: var(--np-white); color: var(--np-black); }
 .np-words-switch .np-count { margin-left: 2px; }

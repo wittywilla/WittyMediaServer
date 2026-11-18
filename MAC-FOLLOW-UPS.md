@@ -33,3 +33,10 @@ These changed code that also runs on a Mac.
 
 The iPhone pass, anything needing a second account or a real controller, Refresh game details on
 Apple, and screen-reader speech are unchanged: see "Not tested yet" in `NEXT-SESSION.md`.
+
+## TV levels (#469, 2026-11-18)
+
+What a TV offers is one table now (`docs/TV-MODE.md`, `pkg/sdui/data/tvlevels.json`). The web app's TV mode and
+Android TV follow it. Still to do, in WittyMediaClient (its `MAC-FOLLOW-UPS.md` has the steps): tvOS reads
+`tvLevels` from the catalogue and shows the card for `desktopOnly` screens, and the TV mode check on Plasma
+Bigscreen and in the desktop app started with `--tv` on macOS.

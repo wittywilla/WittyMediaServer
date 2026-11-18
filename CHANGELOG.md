@@ -5,6 +5,8 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **TV mode keeps to what a remote does well (#469).** Editors with many fields, typing, files or drag handles (libraries, pages and menu, channels and bumpers, transcoding, network, remote access, logs, modules, backups, the theme maker, the layout editor and more) show a card on a television instead: to change this, use the WittyMediaClient app on a Windows or Mac computer, or a web browser, with the page's address, a QR code that opens it on a phone, and what is set now. Playback, profiles, security and sharing show their values without changing them. Browsing, playing, Live TV, WittyTV, karaoke, music and every console and controller setting stay as they were. One table (`pkg/sdui/data/tvlevels.json`, in the SDUI catalogue as `tvLevels`) decides it for the web app and the TV apps; pages, module settings pages and their rows can say `tv` themselves. `GET /api/sdui/tv-summary/{id}` gives the card its lines. Settings on a television opens on its menu. See docs/TV-MODE.md.
+
 ## 0.8.0-alpha
 
 Released 2026-11-16.

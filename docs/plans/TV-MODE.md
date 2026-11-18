@@ -1,5 +1,7 @@
 # TV mode on the website
 
+> What a television offers of each screen (and what it sends to a computer) is in [TV mode: what a television offers](../TV-MODE.md).
+>
 > **Status: built, 2026-11-05.** Written before the build, as its contract, and corrected where building it showed more. It replaces *Big screen mode*.
 
 **TV mode** is the website laid out and driven like the Apple TV app, which Android TV matches: the same top bar, the

@@ -10327,6 +10327,15 @@
               }
             ]
           },
+          "tvLevels": {
+            "items": {
+              "type": "integer"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "tvThemes": {
             "items": {
               "type": "integer"
@@ -10366,6 +10375,7 @@
           "schemaVersion",
           "sources",
           "spacing",
+          "tvLevels",
           "tvThemes"
         ],
         "type": "object"
@@ -12189,6 +12199,9 @@
           "ttlSeconds": {
             "type": "integer"
           },
+          "tv": {
+            "type": "string"
+          },
           "variants": {
             "items": {
               "$ref": "#/components/schemas/SDUIVariant"
@@ -12277,6 +12290,9 @@
             "type": "string"
           },
           "title": {
+            "type": "string"
+          },
+          "tv": {
             "type": "string"
           },
           "variant": {
@@ -23053,40 +23069,40 @@
                 "schema": {
                   "properties": {
                     "progress": {
-                      "type": [
-                        "object",
-                        "null"
-                      ],
                       "properties": {
-                        "libraryId": {
-                          "type": "integer"
-                        },
-                        "phase": {
-                          "type": "string"
-                        },
                         "current": {
                           "type": "string"
-                        },
-                        "found": {
-                          "type": "integer"
                         },
                         "done": {
                           "type": "integer"
                         },
-                        "startedAt": {
+                        "found": {
+                          "type": "integer"
+                        },
+                        "libraryId": {
                           "type": "integer"
                         },
                         "mode": {
-                          "type": "string",
                           "enum": [
                             "changes",
                             "full"
-                          ]
+                          ],
+                          "type": "string"
+                        },
+                        "phase": {
+                          "type": "string"
                         },
                         "resumed": {
                           "type": "boolean"
+                        },
+                        "startedAt": {
+                          "type": "integer"
                         }
-                      }
+                      },
+                      "type": [
+                        "object",
+                        "null"
+                      ]
                     },
                     "scanning": {
                       "type": "boolean"
@@ -23150,15 +23166,15 @@
               "application/json": {
                 "schema": {
                   "properties": {
-                    "started": {
-                      "type": "boolean"
-                    },
                     "mode": {
-                      "type": "string",
                       "enum": [
                         "changes",
                         "full"
-                      ]
+                      ],
+                      "type": "string"
+                    },
+                    "started": {
+                      "type": "boolean"
                     }
                   },
                   "type": "object"
@@ -39026,59 +39042,6 @@
         "x-wms-auth": "user"
       }
     },
-    "/sdui/validate": {
-      "post": {
-        "operationId": "postSduiValidate",
-        "parameters": [
-          {
-            "description": "draft: a navigation may name the draft's pages (the published configuration's while there is no draft).",
-            "in": "query",
-            "name": "target",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Check {\"page\": ...}, {\"navigation\": ...} or {\"config\": ...} without saving: {ok, issues: [{path, severity, message, fix}]}. ?target=draft: a navigation may name the draft's pages.",
-        "tags": [
-          "Server-driven UI"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
     "/sdui/tv-summary/{id}": {
       "get": {
         "operationId": "getSduiTvSummary",
@@ -39140,6 +39103,59 @@
           "Server-driven UI"
         ],
         "x-wms-auth": "user"
+      }
+    },
+    "/sdui/validate": {
+      "post": {
+        "operationId": "postSduiValidate",
+        "parameters": [
+          {
+            "description": "draft: a navigation may name the draft's pages (the published configuration's while there is no draft).",
+            "in": "query",
+            "name": "target",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Check {\"page\": ...}, {\"navigation\": ...} or {\"config\": ...} without saving: {ok, issues: [{path, severity, message, fix}]}. ?target=draft: a navigation may name the draft's pages.",
+        "tags": [
+          "Server-driven UI"
+        ],
+        "x-wms-auth": "admin"
       }
     },
     "/sessions": {

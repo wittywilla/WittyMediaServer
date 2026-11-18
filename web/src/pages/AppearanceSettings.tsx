@@ -415,6 +415,10 @@ function PlayerSection() {
   const set = (p: Partial<ViewPrefs>) => { setGlobalView(p); setV((x) => ({ ...x, ...p })) }
   return (
     <Section title={tk('Player')} desc={t('How videos look while they play, on this device. A disc or video you’ve set differently from the player’s own menu keeps its own.')}>
+      <Row label={t('Control bar')} desc={t('Detailed puts every button on the bar. Simple keeps the picture clear: play and the skips in the middle, and the rest (sound, subtitles, quality, speed, scenes) in one Options menu. Automatic is simple on a phone or tablet and detailed on a wider screen.')}>
+        <Segmented label={t('Control bar')} value={v.controls} onChange={(controls) => set({ controls })}
+          options={[{ value: 'auto', label: t('Automatic') }, { value: 'detailed', label: t('Detailed') }, { value: 'simple', label: t('Simple') }]} />
+      </Row>
       <Row label={t('Seek bar')} desc={t('The timeline under the picture.')}><Switch label={t('Seek bar')} checked={v.seekBar} onChange={(seekBar) => set({ seekBar })} /></Row>
       <Row label={t('Chapter marks')} desc={t('Where chapters start, on the timeline.')}><Switch label={t('Chapter marks')} checked={v.chapterMarks} onChange={(chapterMarks) => set({ chapterMarks })} /></Row>
       <Row label={t('Hide the controls after')}>

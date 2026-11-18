@@ -52,6 +52,7 @@ export default function ViewSettings({ prefs, scope, onChange, onScope, onClose,
         </div>
       </Row>
       <h5 className="vs-sub">{t('Controls')}</h5>
+      <Row label={t('Control bar')}><Seg k="controls" label={t('Control bar')} opts={[['auto', t('Automatic')], ['detailed', t('Detailed')], ['simple', t('Simple')]]} {...p} /></Row>
       <Row label={t('Seek bar')}><Toggle k="seekBar" label={t('Seek bar')} {...p} /></Row>
       <Row label={t('Chapter marks')}><Toggle k="chapterMarks" label={t('Chapter marks')} {...p} /></Row>
       <Row label={isDisc ? t('Disc remote') : t('Remote')}><Toggle k="remote" label={t('Remote')} {...p} /></Row>

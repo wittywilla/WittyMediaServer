@@ -14,5 +14,5 @@ export function Thumb({ src }: { src: string }) {
     setTimeout(() => setTries((t) => t + 1), 3000 * (tries + 1))
   }
   if (state === 'failed') return <span className="thumb-na">{t('Preview not available')}</span>
-  return <img key={tries} src={tries ? `${src}&retry=${tries}` : src} alt="" loading="lazy" onLoad={() => setState('ok')} onError={onError} className={state === 'ok' ? '' : 'loading'} />
+  return <img key={tries} src={tries ? `${src}${src.includes('?') ? '&' : '?'}retry=${tries}` : src} alt="" loading="lazy" onLoad={() => setState('ok')} onError={onError} className={state === 'ok' ? '' : 'loading'} />
 }

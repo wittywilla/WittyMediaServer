@@ -1,0 +1,12 @@
+{
+  "Control bar": "控制栏",
+  "Detailed puts every button on the bar. Simple keeps the picture clear: play and the skips in the middle, and the rest (sound, subtitles, quality, speed, scenes) in one Options menu. Automatic is simple on a phone or tablet and detailed on a wider screen.": "“详细”把所有按钮都放在控制栏上。“简单”让画面保持清爽：播放和快进快退在中间，其余（声音、字幕、画质、速度、场景）都放在一个“选项”菜单里。“自动”在手机或平板上为简单，在更宽的屏幕上为详细。",
+  "Detailed": "详细",
+  "Back to options": "返回选项",
+  "Mono": "单声道",
+  "Styled text": "带样式的文字",
+  "Keep playing in a corner": "在角落继续播放",
+  "{count} watching": {
+    "other": "{count} 人在看"
+  }
+}

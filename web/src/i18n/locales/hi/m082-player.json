@@ -1,0 +1,13 @@
+{
+  "Control bar": "कंट्रोल बार",
+  "Detailed puts every button on the bar. Simple keeps the picture clear: play and the skips in the middle, and the rest (sound, subtitles, quality, speed, scenes) in one Options menu. Automatic is simple on a phone or tablet and detailed on a wider screen.": "विस्तृत हर बटन को बार पर रखता है। सरल तस्वीर को साफ़ रखता है: चलाना और आगे-पीछे जाना बीच में, और बाकी सब (आवाज़, सबटाइटल, क्वालिटी, गति, सीन) एक ही विकल्प मेन्यू में। स्वचालित फ़ोन या टैबलेट पर सरल और चौड़ी स्क्रीन पर विस्तृत होता है।",
+  "Detailed": "विस्तृत",
+  "Back to options": "विकल्पों पर वापस",
+  "Mono": "मोनो",
+  "Styled text": "स्टाइल वाला टेक्स्ट",
+  "Keep playing in a corner": "कोने में चलाते रहें",
+  "{count} watching": {
+    "one": "{count} देख रहा है",
+    "other": "{count} देख रहे हैं"
+  }
+}

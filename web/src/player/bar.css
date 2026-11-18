@@ -241,3 +241,12 @@ html.tv-mode .picker-x { inline-size: 66px; block-size: 66px; }
   .player.remote-up .ctl.compact .ctl-mid { inset-block-end: calc(50dvh + var(--remote-space, 0px) / 2 - 2.5rem); }
 }
 @media (prefers-reduced-motion: reduce) { .player .stage { transition: none; } }
+
+/* Live TV's channel buttons (CH −, CH +, Last, Mini guide, Guide, Live) sit in the bar as its own chips do: outlined,
+   the same height and type. In a bar narrower than 1500 px, Last and Guide give way (Mini guide reaches both), so the
+   bar keeps one row. */
+.player .ctl-right .btn.sm { min-block-size: var(--control-h-sm); padding: 0 var(--space-s); border: 1px solid color-mix(in srgb, var(--on-image) 24%, transparent); border-radius: var(--r-md); background: color-mix(in srgb, var(--picture-bg) 52%, transparent); color: var(--on-image); font-size: var(--text-sm); font-weight: 600; box-shadow: none; }
+.player .ctl-right .btn.sm:hover:not(:disabled) { background: color-mix(in srgb, var(--on-image) 20%, transparent); }
+.player .ctl-right .btn.sm.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+@container pbar (max-width: 1499px) { .player .ctl-right .btn.sm.hide-narrow { display: none; } }
+html.tv-mode .player .ctl-right .btn.sm { min-block-size: 66px; padding-inline: var(--space-l); font-size: var(--text-xl); border-radius: var(--r-lg); }

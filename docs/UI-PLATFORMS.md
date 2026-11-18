@@ -1,5 +1,3 @@
-<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
-<!-- Copyright (C) 2026 WittyWilla and contributors -->
 # One fix, every screen
 
 How an interface fix reaches the web app, the desktop app, Android, iOS, tvOS, TV and Plasma Big Screen from
@@ -68,3 +66,7 @@ fixed in a token or in a spec, the client needs no change. When it is fixed in a
 should have the part of the same name (card, row, header and hero, skeleton, empty state); if it draws its own,
 copy the rule above that the web fix is based on rather than the web's CSS. `docs/audits/ui-audit-0.8.1.md` lists
 what has to be checked on iOS, tvOS, macOS and Android.
+
+---
+
+<sub>WittyMediaServer documentation</sub>

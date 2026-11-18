@@ -898,12 +898,14 @@ func (s *Server) rowProgrammes(ctx context.Context, row *guideChannel, from, to 
 // ---------------------------------------------------------------------------
 
 type tuneInfo struct {
-	Key    string `json:"key"`
-	Kind   string `json:"kind"`
-	Number string `json:"number"`
-	Name   string `json:"name"`
-	Logo   string `json:"logo,omitempty"`
-	URL    string `json:"url"`
+	// Quality is what the player's quality menu offers for this channel, and what is chosen.
+	Quality *qualityView `json:"quality,omitempty"`
+	Key     string       `json:"key"`
+	Kind    string       `json:"kind"`
+	Number  string       `json:"number"`
+	Name    string       `json:"name"`
+	Logo    string       `json:"logo,omitempty"`
+	URL     string       `json:"url"`
 	// For a player that can't set headers: asked for with ?streamToken=1.
 	StreamURL   string          `json:"streamUrl,omitempty"`
 	StreamToken string          `json:"streamToken,omitempty"`

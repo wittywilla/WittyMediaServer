@@ -4,6 +4,7 @@ import { useLayoutEffect, useRef, useSyncExternalStore } from 'react'
 import type Hls from 'hls.js'
 import { BACKGROUND_KEY, STILL_HERE_MS, keepsPlaying, letGo, readChoice, resumeOnShow, sayStillHere, type Choice } from './backgroundPlay'
 import { leaveChannel, makeViewer, preflight, tune, type TuneInfo } from './tvApi'
+import { deviceChoice } from '../../player/quality'
 
 // One player for the whole TV section: one <video>, one stream, for as long as someone stays
 // on a channel. The guide's preview and the watch view are only places to draw it (slots), so
@@ -65,7 +66,7 @@ export function liveVideo(): HTMLVideoElement {
   parking.style.cssText = 'position:fixed;right:0;bottom:0;width:2px;height:2px;overflow:hidden;opacity:0;pointer-events:none;z-index:-1'
   document.body.appendChild(parking)
   parking.appendChild(video)
-  window.addEventListener('pagehide', () => { if (live.key) leaveChannel(live.key, viewer) })
+  window.addEventListener('pagehide', () => { if (live.key) leaveChannel(live.key, viewer, tunedQuality) })
   document.addEventListener('visibilitychange', onVisibility)
   return video
 }
@@ -189,8 +190,12 @@ function settle(leaveNow = false) {
   }
 }
 
+// The quality choice the channel was tuned with (player/quality.ts): leaving names it.
+let tunedQuality = ''
+
 function start(key: string) {
-  if (live.key) leaveChannel(live.key, viewer)
+  if (live.key) leaveChannel(live.key, viewer, tunedQuality)
+  tunedQuality = deviceChoice()
   ac?.abort()
   const a = (ac = new AbortController())
   setLive({ ...IDLE, key })
@@ -211,9 +216,12 @@ function stop() {
   leaveTimer = undefined
   ac?.abort()
   ac = null
-  if (live.key) leaveChannel(live.key, viewer)
+  if (live.key) leaveChannel(live.key, viewer, tunedQuality)
   setLive(IDLE)
 }
+
+// retune asks for the channel again: after a new quality choice, whose stream is another.
+export function retune() { if (live.key) start(live.key) }
 
 // A page's place for the picture. `key` is the channel it wants, or '' for none yet; `slot`
 // is the element the video goes in while this is the page that wants it.

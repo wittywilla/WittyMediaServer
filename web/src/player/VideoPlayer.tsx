@@ -27,6 +27,9 @@ import PartyNote from '../remote/PartyNote'
 import { useRemoteAllowed } from '../remote/allowed'
 import { setSpeed } from './speed'
 import { classifyPlayError } from './errors'
+import QualityMenu, { StreamInfo } from './QualityMenu'
+import { describe, deviceChoice, here, noteAway, setDeviceDefault, setShowStreamInfo, showStreamInfo, streamLines } from './quality'
+import { announce } from '../a11y'
 
 // Opened from the player's top bar, and not before.
 const PlayOn = lazy(() => import('../remote/PlayOn'))
@@ -57,6 +60,8 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   const root = useIdle(prefs.hideAfter * 1000, [mini])
   const [info, setInfo] = useState<PlaybackAnswer | null>(null)
   const [infoOpen, setInfoOpen] = useState(false)
+  const [qualityOpen, setQualityOpen] = useState(false)
+  const [statsOn, setStatsOn] = useState(showStreamInfo)
   // What has been asked of the server. Each change is a new request. A subtitle the
   // player draws itself changes with none: that's sub, which starts as the server's
   // choice. restartAt: a rewrapped stream only exists from where it started, so going
@@ -64,7 +69,8 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   // reopen counts fresh requests for the same thing at the same place: a robust stream
   // that couldn't go on (the connection was gone, or the server forgot the stream).
   // Another device that started this here may have named a sound track and subtitles.
-  const [want, setWant] = useState<{ audio?: number; burn?: { index: number; styled: boolean } | null; video?: number; flat3d?: boolean; restartAt?: number; convert?: boolean; reopen?: number }>(() => {
+  // quality: the viewer's choice in the quality menu (player/quality.ts); left out, this device's default.
+  const [want, setWant] = useState<{ audio?: number; burn?: { index: number; styled: boolean } | null; video?: number; flat3d?: boolean; restartAt?: number; convert?: boolean; reopen?: number; quality?: string }>(() => {
     const a = search.get('audio')
     return a != null && Number.isInteger(Number(a)) ? { audio: Number(a) } : {}
   })
@@ -153,6 +159,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
     if (burn) { body.subtitle = burn.index; body.burnSubtitle = burn.styled } else if (sub != null) body.subtitle = sub
     if (want.video != null) body.video = want.video
     if (want.convert) body.forceTranscode = true
+    body.quality = (want.quality ?? deviceChoice()) || 'auto'
     const device = deviceStreaming()
     if (device !== 'auto') body.streaming = device
     // A robust stream starts at a rate chosen from what this connection carries.
@@ -162,6 +169,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
         const a = await api.post<PlaybackAnswer>(`/items/${item.id}/playback`, body)
         if (!current) return
         setInfo(a)
+        noteAway(a.quality?.away)
         if (want.reopen) setNote((n) => (n?.kind === 'lost' ? { kind: 'back', text: 'Reconnected, at the same place.' } : n))
         setSub((s) => (s == null ? a.subtitleIndex : s))
         // A stream starts where it was asked to; a file or a full stream seeks once open.
@@ -324,7 +332,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
     if (mini) return
     const onKey = (e: KeyboardEvent) => {
       const v = video.current
-      if (!v || picker || settingsOpen || infoOpen) return
+      if (!v || picker || settingsOpen || infoOpen || qualityOpen) return
       if (document.querySelector('.modal-backdrop, .scene-panel, .party-panel')) return // a window over the player has the keys
       const tag = (e.target as HTMLElement)?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
@@ -339,6 +347,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
         case 'm': v.muted = !v.muted; break
         case 'r': setRemoteOn(!remoteOn); break
         case 'i': setInfoOpen((o) => !o); break
+        case 'q': if (info?.quality) setQualityOpen((o) => !o); break
         case 'n': case 'MediaTrackNext': if (copy) onRemote('next'); break
         case 'p': case 'MediaTrackPrevious': if (copy) onRemote('prev'); break
         // Back leaves the player. In TV mode that stops it, as a TV app does; otherwise it carries on in the corner.
@@ -408,6 +417,25 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   const picH = vid?.height || video.current?.videoHeight || 0
   const quality = picH >= 2000 ? '4K' : picH >= 1400 ? '1440p' : picH > 0 ? picH + 'p' : ''
   const stepPrev = () => { if (chapters.length > 1) stepChapter(-1); else seek(0) }
+  // A new size or rate: asked for at the same place, and remembered on this device for where it is.
+  const chooseQuality = (choice: string) => {
+    setQualityOpen(false)
+    setDeviceDefault(here(), choice)
+    announce(`Quality: ${describe(choice, info?.quality?.presets || [])}`)
+    if (info?.quality?.asked !== choice) ask({ quality: choice, convert: false })
+  }
+  // Stream information: what the player sees now, with what the server said it sends.
+  const [, tick] = useState(0)
+  useEffect(() => {
+    if (!statsOn) return
+    const t = setInterval(() => tick((n) => n + 1), 2000)
+    return () => clearInterval(t)
+  }, [statsOn])
+  const statLines = statsOn && info ? streamLines(info.decision, info.output, {
+    width: video.current?.videoWidth || 0, height: video.current?.videoHeight || 0,
+    // A robust stream's rung, which the player picks as it goes; otherwise what the server said.
+    kbps: (() => { const h = hlsRef.current; const l = info.streaming?.ladder && h && h.currentLevel >= 0 ? h.levels[h.currentLevel] : null; return l?.bitrate ? Math.round(l.bitrate / 1000) : 0 })(),
+  }) : []
   const trackLabel = (t: { language: string; title?: string }) => [langName(t.language), t.title].filter(Boolean).join(' · ')
   const togglePlay = () => { const v = video.current; if (v && !needClick) v.paused ? v.play().catch(() => {}) : v.pause() }
 
@@ -553,7 +581,8 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
           <Controls video={video} duration={duration} offset={offset} onSeek={seek} onFullscreen={() => toggleFullscreen(root.current)}
             chapters={chapters} chapterNames={info?.chapters?.map((c) => c.title)} copy={copy}
             onPrev={stepPrev} onNext={chapters.length > 1 || (hasNext && !party.active) || (hasNext && party.room?.canControl) ? () => stepChapter(1) : undefined}
-            quality={quality} onQuality={info ? () => setInfoOpen(true) : undefined}
+            quality={quality || (info?.quality ? 'Quality' : '')} onQuality={info ? () => setInfoOpen(true) : undefined}
+            onQualityMenu={info?.quality ? () => setQualityOpen((o) => !o) : undefined} qualityMenuOpen={qualityOpen}
             audio={info?.audio.map((a) => ({ id: a.index, label: [langName(a.language), a.title, a.codec?.toUpperCase(), a.channels ? a.channels + 'ch' : ''].filter(Boolean).join(' · '), active: a.index === audio }))}
             subtitles={info?.subtitles.map((s) => ({ id: s.index, label: trackLabel(s), active: s.index === sub }))}
             onAudio={(id) => switchTrack('audio', id)} onSubtitle={(id) => switchTrack('sub', id)} onPick={(k) => { if (k !== 'angle') setPicker(k) }}
@@ -570,6 +599,11 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
                   // ASS can carry placement and styling that plain text loses: keeping it means drawing it into the picture.
                   return x.codec === 'ass' || x.codec === 'ssa' ? [plain, { id: x.index + STYLED, title: langName(x.language), sub: 'With its styling', detail: 'Drawn into the picture', active: x.index === sub && !!burn?.styled }] : [plain]
                 })]} />
+          )}
+          {statsOn && <StreamInfo lines={statLines} />}
+          {qualityOpen && info?.quality && (
+            <QualityMenu view={info.quality} decision={info.decision} where={here()} showInfo={statsOn}
+              onShowInfo={(on) => { setStatsOn(on); setShowStreamInfo(on) }} onChoose={chooseQuality} onClose={() => setQualityOpen(false)} />
           )}
           {infoOpen && info && <PlayInfoPanel info={info} netLog={netLog} flattened={flat3d} onClose={() => setInfoOpen(false)} onFlat3d={(on) => ask({ flat3d: on })} onVideo={(i) => ask({ video: i })} />}
         </>

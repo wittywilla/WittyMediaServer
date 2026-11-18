@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -53,7 +54,15 @@ const (
 // the clip's last second is cross-faded into its first, and the first second is then left
 // off: the last frame shown is the frame just before the first one shown.
 func canvasArgs(sh canvasShape, dur float64, fade bool, encoder, out string) []string {
+	return canvasArgsCrop(sh, dur, fade, encoder, out, "")
+}
+
+// canvasArgsCrop is canvasArgs with the picture first cut to crop (FFmpeg's crop=w:h:x:y), when it is not "".
+func canvasArgsCrop(sh canvasShape, dur float64, fade bool, encoder, out, crop string) []string {
 	scale := fmt.Sprintf("scale=-2:'min(%d,ih)':flags=bilinear,fps=%d,format=yuv420p", sh.height, sh.fps)
+	if crop != "" {
+		scale = crop + "," + scale
+	}
 	args := []string{"-an", "-sn", "-dn", "-map_metadata", "-1", "-map_chapters", "-1"}
 	if fade {
 		f := strconv.FormatFloat(canvasFade, 'f', -1, 64)
@@ -165,7 +174,8 @@ func (s *Server) cutCanvas(ctx context.Context, it *library.Item, from string, s
 	fade := wantFade && s.Tools.HasFilter("xfade")
 	args := []string{"-v", "error", "-nostdin", "-y", "-ss", strconv.FormatFloat(start, 'f', 3, 64), "-t", strconv.FormatFloat(dur+canvasFade+1, 'f', 3, 64)}
 	args = append(args, ffmpeg.FileInput(from)...)
-	args = append(args, canvasArgs(sh, dur, fade, enc, tmp.Name())...)
+	// A film's own black bars are left out: a canvas fills a cover's square or the screen, where bars would show.
+	args = append(args, canvasArgsCrop(sh, dur, fade, enc, tmp.Name(), s.letterbox(ctx, from, start))...)
 	cctx, cancel := context.WithTimeout(ctx, 15*time.Minute)
 	defer cancel()
 	if _, tail, err := ffmpeg.Run(cctx, s.Tools.FFmpeg, args, "for", "canvas", "item", it.ID); err != nil {
@@ -190,4 +200,32 @@ func (s *Server) cutCanvas(ctx context.Context, it *library.Item, from string, s
 	}
 	log.Info("canvas made", "bytes", fi.Size(), "seconds", dur, "height", sh.height)
 	return nil
+}
+
+// cropLine is what FFmpeg's cropdetect says it found.
+var cropLine = regexp.MustCompile(`crop=(\d+):(\d+):(\d+):(\d+)`)
+
+// letterbox finds black bars baked into a video, from two seconds of it at start, as a crop for FFmpeg, or "" when
+// there are none worth cutting (under 8 pixels a side) or it couldn't tell. It reads only those two seconds.
+func (s *Server) letterbox(ctx context.Context, from string, start float64) string {
+	cctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	args := []string{"-v", "info", "-nostdin", "-ss", strconv.FormatFloat(start, 'f', 3, 64), "-t", "2"}
+	args = append(args, ffmpeg.FileInput(from)...)
+	args = append(args, "-an", "-sn", "-dn", "-vf", "cropdetect=limit=24:round=2:reset=0", "-f", "null", "-")
+	_, tail, err := ffmpeg.Run(cctx, s.Tools.FFmpeg, args, "for", "canvas letterbox")
+	if err != nil || tail == nil {
+		return ""
+	}
+	m := cropLine.FindAllStringSubmatch(tail.String(), -1)
+	if len(m) == 0 {
+		return ""
+	}
+	last := m[len(m)-1]
+	x, _ := strconv.Atoi(last[3])
+	y, _ := strconv.Atoi(last[4])
+	if x < 8 && y < 8 {
+		return ""
+	}
+	return "crop=" + last[1] + ":" + last[2] + ":" + last[3] + ":" + last[4]
 }

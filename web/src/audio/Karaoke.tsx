@@ -29,7 +29,7 @@ const NO_HIDE: string[] = []
 // cover: the album's cover, '' for none. coverBeside: the setting that shows it at the side of the words (beside them on
 // a wide screen and a TV, above them on a phone held upright), kept with the music player's other settings. hide: the parts of the bar (KAR_PARTS) the
 // person has hidden, kept there too.
-export default function Karaoke({ p, ly, onClose, behind, choice, cover = '', coverBeside = false, onCoverBeside, hide = NO_HIDE, onHide }: { p: PlayerView; ly: ReturnType<typeof useLyrics>; onClose: () => void; behind?: ReactNode; choice?: ReactNode; cover?: string; coverBeside?: boolean; onCoverBeside?: (on: boolean) => void; hide?: string[]; onHide?: (hide: string[]) => void }) {
+export default function Karaoke({ p, ly, onClose, behind, choice, cover = '', coverArt, coverBeside = false, onCoverBeside, hide = NO_HIDE, onHide }: { p: PlayerView; ly: ReturnType<typeof useLyrics>; onClose: () => void; behind?: ReactNode; choice?: ReactNode; cover?: string; coverArt?: ReactNode; coverBeside?: boolean; onCoverBeside?: (on: boolean) => void; hide?: string[]; onHide?: (hide: string[]) => void }) {
   const { lyrics, loading, setOffset } = ly
   const lines = lyrics?.synced ? lyrics.lines : NO_LINES
   const offset = lyrics?.offsetMs || 0
@@ -183,7 +183,7 @@ export default function Karaoke({ p, ly, onClose, behind, choice, cover = '', co
       {!phone && behindChoice}
 
       <main className={'kar-stage' + (sideCover ? ' with-cover' : '')}>
-        {sideCover && <img className="kar-cover" src={sideCover} alt="" draggable={false} decoding="async" />}
+        {sideCover && (coverArt ? <div className="kar-cover kar-cover-art" aria-hidden="true">{coverArt}</div> : <img className="kar-cover" src={sideCover} alt="" draggable={false} decoding="async" />)}
         <div className="kar-lyrics">
         {mode === 'read' && readWords ? <pre className="kar-read" tabIndex={0}>{readWords}</pre>
           : !lyrics || loading ? <p className="kar-msg">Looking for the words…</p>

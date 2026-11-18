@@ -10,6 +10,8 @@ export type CanvasInfo = {
   available: boolean; url?: string; mime?: string; width?: number; height?: number; durationMs?: number; loop: boolean
   source?: 'upload' | 'generated' | 'sidecar' | 'metadata-folder' | string
   reason?: string; task?: string; canGenerate: boolean; error?: string
+  canCut?: boolean // an administrator can have one cut from another video or a clip (the Canvas studio)
+  loopStartMs?: number; loopEndMs?: number // the part that loops, when one was chosen
   limited?: boolean // the server says this viewer is away from home, with the data of a stream limited
 }
 

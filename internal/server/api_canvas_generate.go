@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
@@ -84,27 +85,31 @@ func (s *Server) canvasEncoder() string {
 	return ""
 }
 
-// POST /api/media/{id}/canvas/generate {startSec?, durationSec?}: cut a looping canvas from
-// the video. It becomes the item's uploaded canvas, replacing one made or uploaded before.
+// POST /api/media/{id}/canvas/generate {startSec?, durationSec?, crossfade?, fromId?}: cut a looping canvas
+// from the item's own video, or from the video fromId names (a song's from its music video, say). It becomes
+// the item's uploaded canvas, replacing one made or uploaded before. crossfade (on unless false) blends the
+// clip's end into its start.
 func (s *Server) handleCanvasGenerate(w http.ResponseWriter, r *http.Request) {
 	it := s.extrasItem(w, r)
 	if it == nil {
 		return
 	}
-	var b struct {
-		StartSec    *float64 `json:"startSec"`
-		DurationSec *float64 `json:"durationSec"`
-	}
+	var b cutRequest
 	if err := readJSON(r, &b); err != nil {
-		writeErr(w, 400, "expected a JSON body: {} or {startSec, durationSec}")
+		writeErr(w, 400, "expected a JSON body: {} or {startSec, durationSec, crossfade, fromId}")
 		return
 	}
-	if it.Kind != "video" {
-		writeErr(w, 400, "A canvas can be made from a video file. A song or a disc has none to cut from: upload one, or put a canvas.mp4 beside it.")
+	if !canvasKind(it) {
+		writeErr(w, 400, "only songs, videos and discs have a canvas")
 		return
 	}
-	if !localFileItem(it) || !s.Store.LibraryFile(r.Context(), it.Path) {
-		writeErr(w, 409, "this video isn't a file in a library")
+	src, err := s.canvasSourceItem(r, it, b.FromID)
+	if err != nil {
+		code := 400
+		if strings.HasPrefix(err.Error(), "that video isn't") {
+			code = 409
+		}
+		writeErr(w, code, err.Error())
 		return
 	}
 	enc := s.canvasEncoder()
@@ -113,34 +118,37 @@ func (s *Server) handleCanvasGenerate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sh := canvasShapeFor(pace.Machine())
-	dur := sh.seconds
-	if b.DurationSec != nil {
-		dur = *b.DurationSec
-	}
-	if !(dur >= 2 && dur <= maxCanvasSeconds) {
-		writeErr(w, 400, fmt.Sprintf("durationSec: from 2 to %g seconds", maxCanvasSeconds))
+	dur, err := cutLength(b)
+	if err != nil {
+		writeErr(w, 400, err.Error())
 		return
 	}
 	// By default, a quarter of the way in: past the logos and titles, before any ending.
-	start := it.RuntimeSec * 0.25
+	start := src.RuntimeSec * 0.25
 	if b.StartSec != nil {
 		start = *b.StartSec
 	}
-	if !(start >= 0) || (it.RuntimeSec > 0 && start+dur+canvasFade > it.RuntimeSec) {
+	fade := b.Crossfade == nil || *b.Crossfade
+	need := dur
+	if fade {
+		need += canvasFade // the blend takes a second more of the video
+	}
+	if !(start >= 0) || (src.RuntimeSec > 0 && start+need > src.RuntimeSec) {
 		writeErr(w, 400, "startSec: the clip has to fit inside the video")
 		return
 	}
-	item := *it
+	target, from := *it, src.Path
 	id, err := s.startMediaJob(fmt.Sprintf("canvas:%d", it.ID), userFrom(r),
 		tasks.Spec{Type: tasks.TypeOther, Title: "Making a canvas", AdminOnly: true},
 		func(ctx context.Context, task *tasks.Handle) error {
-			task.Item(item.Title, "")
-			return s.makeCanvas(ctx, &item, sh, start, dur, enc)
+			task.Item(target.Title, "")
+			return s.cutCanvas(ctx, &target, from, sh, start, dur, enc, fade)
 		})
 	jobAnswer(w, id, err)
 }
 
-func (s *Server) makeCanvas(ctx context.Context, it *library.Item, sh canvasShape, start, dur float64, enc string) error {
+// cutCanvas cuts dur seconds from the video file at from, starting at start, into it's canvas.
+func (s *Server) cutCanvas(ctx context.Context, it *library.Item, from string, sh canvasShape, start, dur float64, enc string, wantFade bool) error {
 	log := s.jobLog(ctx).With("item", it.ID)
 	log.Debug("making a canvas", "start", start, "seconds", dur, "height", sh.height, "encoder", enc)
 	rel := mediaextras.Key(it.ID, it.Path) + "/canvas"
@@ -154,9 +162,9 @@ func (s *Server) makeCanvas(ctx context.Context, it *library.Item, sh canvasShap
 	}
 	tmp.Close()
 	defer os.Remove(tmp.Name())
-	fade := s.Tools.HasFilter("xfade")
+	fade := wantFade && s.Tools.HasFilter("xfade")
 	args := []string{"-v", "error", "-nostdin", "-y", "-ss", strconv.FormatFloat(start, 'f', 3, 64), "-t", strconv.FormatFloat(dur+canvasFade+1, 'f', 3, 64)}
-	args = append(args, ffmpeg.FileInput(it.Path)...)
+	args = append(args, ffmpeg.FileInput(from)...)
 	args = append(args, canvasArgs(sh, dur, fade, enc, tmp.Name())...)
 	cctx, cancel := context.WithTimeout(ctx, 15*time.Minute)
 	defer cancel()
@@ -175,6 +183,7 @@ func (s *Server) makeCanvas(ctx context.Context, it *library.Item, sh canvasShap
 		return err
 	}
 	s.removeOthers(rel, mediaextras.CanvasExts, dst)
+	s.dropCanvasLoop(it)
 	if err := os.WriteFile(filepath.Join(dir, mediaextras.GeneratedMark), nil, 0o644); err != nil {
 		// The canvas is kept, but without the mark it counts as one someone put there.
 		log.Warn("could not mark the canvas as made by the server", "dir", dir, "err", err)

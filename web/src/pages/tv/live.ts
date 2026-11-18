@@ -50,6 +50,14 @@ export const useLiveState = () => useSyncExternalStore(subscribe, () => live)
 export const liveNow = () => live
 export const liveViewer = () => viewer
 
+// How many seconds this player could move forward to be back where everyone on the channel is:
+// live sync works it out every 2 seconds, paused or not (TvHost). Null when it can't tell, such as
+// before the first program date-time or for a programme watched from its start. Kept out of the
+// state above so the guide and the pages don't draw again each time it moves.
+let catchUp: number | null = null
+export const setLiveCatchUp = (s: number | null) => { catchUp = s }
+export const liveCatchUp = () => catchUp
+
 // The video, made once. Until a slot wants it, it waits in a corner of the page: still in the
 // document, as taking a video out of it pauses it, and still on screen, as some browsers stop
 // a muted video they think nobody can see.

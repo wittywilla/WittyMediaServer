@@ -518,6 +518,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/tv/reminders` | Signed-in | own. A channel the account may watch. Title of up to 300 characters, a time ahead. A limit per account |
 | `DELETE /api/tv/reminders/{id}` | Signed-in | own |
 | `GET /api/channels/bumpers` | Admin | Nothing further |
+| `GET /api/channels/videos` | Admin | Ids must be numbers; at most 100 libraries and 2000 ids; search cut to 200 characters; a page holds at most 200 |
 | `POST /api/channels/bumpers` | Admin | A video that exists |
 | `POST /api/channels/bumpers/upload` | Admin | Name cleaned, video extension, first bytes checked, never replaces a file. At most 2 GB and 30 minutes. Keeps room free on the disk. Read as a video before it is kept |
 | `DELETE /api/channels/bumpers/item/{id}` | Admin | Bumper exists. A file is deleted only in the bumpers folder |

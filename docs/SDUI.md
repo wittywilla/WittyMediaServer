@@ -335,7 +335,8 @@ checked without pixels.
 Directional movement (a remote, a game pad, arrow keys in TV mode):
 
 - Inside a `Shelf`, left and right move between its cards and stop at the
-  ends. Inside a `Grid`, the four directions move by row and column.
+  ends. Inside a `Grid`, and a `SeasonList`'s episodes, the four directions
+  move by row and column (a playlist of episodes is one column).
 - Up and down between top-level sections go to the previous or next group in
   `order`, landing on its remembered member. Geometry is never used to pick a
   row: the page's order is.
@@ -1576,6 +1577,9 @@ Focus: its children take focus, and it is their group. Accessibility: Role: grid
 | `badges` | list |  | Badges. At most three short labels. |
 | `rank` | int |  | Rank. In a numbered row. |
 | `number` | string |  | Channel number |
+| `season` | int |  | Season number. Episode cards: the episode's season (0 for specials), sent with episode. |
+| `episode` | int |  | Episode number. Episode cards: the episode's number in its season, when known, so a renderer can label it ("S2 · E5") apart from the title. |
+| `episodeEnd` | int |  | Last episode. Episode cards: the last episode a file holds when it holds more than one ("S2 · E13–14"). |
 | `now` | object |  | On now. {title, start, end} |
 | `next` | object |  | On next. {title, start, end} |
 | `icon` | icon |  | Icon. For tiles and chips without a picture. |
@@ -2034,7 +2038,7 @@ How it is drawn:
 
 - **Television.** A row of season pills, then the episodes as a row of episode cards (still, "<n>. <title>", runtime, two lines of synopsis) that scrolls sideways; focus starts on the next episode to watch.
 - **Phone.** A season menu button, then the episodes as a vertical list: still at the left with a progress bar, title, runtime and two lines of synopsis.
-- **Desktop and web.** Season tabs, then a vertical list (style list) or a wrapping grid of episode cards (style cards).
+- **Desktop and web.** Season tabs, then a vertical list (style list) or a wrapping grid of episode cards (style cards): the still with the running time and progress on it, the episode's number ("S2 · E5"), its name and two lines of synopsis; more columns the wider the window, two on a phone without the synopsis. Focus moves by row and column.
 
 States:
 
@@ -2703,7 +2707,7 @@ A `Card` has a `style` and a `shape`. A renderer that doesn't know a style draws
 | `poster` | poster | 2/3 | poster | title, subtitle, progress, watched, unwatched, badges | 1 | 1 | Upright film and show art with the title and year under it. |
 | `landscape` | landscape | 16/9 | backdrop, poster | title, subtitle, badges | 1 | 1 | A wide still or backdrop with the title under it. |
 | `progress` | landscape | 16/9 | backdrop, poster | title, subtitle, progress, remaining | 1 | 1 | A wide card with a progress bar along its bottom edge and how long is left: Continue watching. |
-| `episode` | landscape | 16/9 | backdrop, poster | title, subtitle, synopsis, progress, watched | 1 | 1 | An episode's still with "<n>. <title>", its running time and two lines of synopsis. |
+| `episode` | landscape | 16/9 | backdrop, poster | title, subtitle, synopsis, progress, watched | 1 | 1 | An episode's still with "<n>. <title>", its running time and two lines of synopsis; season and episode carry the numbers on their own. |
 | `square` | square | 1/1 | square, poster | title, subtitle | 1 | 1 | A square picture with a title and subtitle. |
 | `album` | square | 1/1 | square, poster | title, subtitle | 1 | 1 | An album cover with the album and artist under it. |
 | `circle` | circle | 1/1 | square, poster | title | 2 | 0 | A round picture with a centred name. |

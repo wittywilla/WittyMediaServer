@@ -224,7 +224,7 @@ def tokens():
             'role': type_roles(t),
         },
         'space': space(t),
-        'layout': {'gutter': clamp(t['gutter']), 'sectionGap': clamp(t['section-gap']), 'topBar': px(t['topbar-h']), 'sidebar': px(t['sidebar']), 'rail': px(t['rail']), 'tabBar': px(t['tabbar-h']),
+        'layout': {'gutter': clamp(t['gutter']), 'sectionGap': clamp(t['section-gap']), 'pageMax': px(t['page-max']), 'topBar': px(t['topbar-h']), 'sidebar': px(t['sidebar']), 'rail': px(t['rail']), 'tabBar': px(t['tabbar-h']),
                    'breakpoints': breakpoints(t)},
         'elevation': elevation(t),
         'density': density(t),

@@ -8,6 +8,11 @@ design system, so a page can't quietly drift away from the rest:
   font-size       a font size that isn't a token (--text-*, --page-title, --display)
   radius          a corner radius that isn't a token (--r-*)
   z-index         a stacking number over 9 that isn't a token (--z-*)
+  spacing         padding, margin, gap or inset written as pixels that aren't on the grid (--sp-*, --gutter)
+  bar-offset      a page offset written as a number of pixels that is really the top or bottom bar's
+                  height (top, padding-top, margin-top, scroll-margin-top): use the bar tokens
+  spacing         padding, margin, gap or inset in pixels that aren't on the 4px grid: use --sp-* or --gutter
+  bar-offset      a top or bottom offset in pixels that is really a bar's height: use the bar tokens
   transition-all  transition: all, which makes every change of anything animate
   blur            backdrop-filter or filter: blur on the page (repaints every frame)
   icon-label      a button holding only an icon, with no name for a screen reader
@@ -49,6 +54,10 @@ FONT_SIZE = re.compile(r'font-size:\s*([^;}]+)')
 FONT_SHORT = re.compile(r'\bfont:\s*(\d[\d.]*(?:px|rem|em)\b[^;}]*)')
 RADIUS = re.compile(r'border-(?:[a-z]+-)*radius:\s*([^;}]+)')
 ZINDEX = re.compile(r'z-index:\s*(\d+)')
+# Spacing: a length written out in pixels, on a property that lays things out. The grid is 4px (--sp-1 .. --sp-16):
+# 0, 1px, 2px and 3px (hairlines and optical nudges) are fine, and so is anything in a variable, calc() or clamp().
+SPACING = re.compile(r'(?<![\w-])(?:padding|margin|gap|row-gap|column-gap|inset)(?:-(?:top|right|bottom|left|block|inline)(?:-(?:start|end))?)?:\s*([^;}]+)')
+BAR_OFFSET = re.compile(r'(?<![\w-])(?:top|bottom|padding-top|padding-bottom|margin-top|scroll-margin-top|scroll-padding-top)\s*:\s*([^;}]*\b(?:5[2-9]|6[0-9]|7[0-9]|8[0-9]|9[0-6])px[^;}]*)')
 TSX_STYLE_COLOUR = re.compile(r'style=\{\{[^}]*(?:#[0-9a-fA-F]{3,8}\b|rgba?\(\d)')
 BUTTON = re.compile(r'<button\b((?:\{(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*\}|[^<>{])*?)>\s*(<Icon\w+[^>]*/>)\s*</button>')
 INPUT = re.compile(r'<(input|select|textarea)\b((?:\{(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*\}|[^<>{])*?)/?>')
@@ -95,6 +104,15 @@ def css_problems(text):
         for m in ZINDEX.finditer(body):
             if int(m.group(1)) > 9:
                 found.append((n, 'z-index', m.group(1)))
+        for m in SPACING.finditer(body):
+            v = m.group(1)
+            if any(w in v for w in ('var(', 'calc(', 'clamp(', 'env(')):
+                continue
+            if any(float(x) >= 5 and float(x) % 4 for x in re.findall(r'(?<![\w.-])(-?[\d.]+)px', v)):
+                found.append((n, 'spacing', v.strip()))
+        for m in BAR_OFFSET.finditer(body):
+            if 'var(' not in m.group(1):
+                found.append((n, 'bar-offset', m.group(1).strip()))
         if re.search(r'transition:\s*all\b', body):
             found.append((n, 'transition-all', 'transition: all'))
         if re.search(r'backdrop-filter:(?!\s*none)|[^-]filter:\s*blur', body):

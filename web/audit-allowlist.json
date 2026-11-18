@@ -1,0 +1,10 @@
+{
+  "entries": [
+    {
+      "id": "GHSA-fc5q-39xc-vjpf",
+      "package": "picomatch",
+      "reason": "ReDoS reached only through vite at build time; not shipped to browsers or the server. No patched version existed on 2026-11-18.",
+      "expires": "2026-12-18"
+    }
+  ]
+}

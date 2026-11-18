@@ -99,9 +99,14 @@
   --sp-12: 48px;
   --sp-16: 64px;
   --gutter: clamp(16px, 3vw, 40px);        /* the page's side margin */
+  --page-max: 1600px;                      /* the widest a page's column gets; wider screens centre it. The top bar's contents follow the same edges (--page-inset) */
+  --page-inset: max(var(--gutter), calc((100% - var(--page-max)) / 2)); /* the column's left and right edge, as padding or margin on a full-width bar */
   --section-gap: clamp(28px, 3.4vw, 44px); /* between sections of a page */
   --topbar-h: 64px;
-  --rail: 76px;                            /* the side menu collapsed to icons */
+  /* Every page starts the same distance below the bar (--page-top) and sits in one column (--page-max) whose left
+     edge the bar's contents share: a library, Settings and You line up with each other and with the bar. */
+  --page-top: var(--sp-4);
+  --rail: 76px;                           /* the side menu collapsed to icons */
   --tabbar-h: 60px;                        /* the phone's bottom bar */
   --tabbar-space: 0px;                     /* room kept for that bar: set where it shows */
   --overlay-foot: 0px;                     /* room menus, sheets and dialogs leave at the foot for a bar drawn over the page (the app's): set in shell.css */
@@ -212,7 +217,7 @@ html[data-density="spacious"] { --density-space: var(--density-spacious-space); 
 *, *::before, *::after { box-sizing: border-box; }
 html, body, #root { height: 100%; }
 /* A focused thing is never hidden under the bars (WCAG 2.4.11). */
-html { scroll-padding-block: calc(var(--topbar-h) + var(--sp-4)) calc(var(--sp-16) + var(--dock-space) + var(--tabbar-space)); -webkit-text-size-adjust: 100%; }
+html { scroll-padding-block: calc(var(--bar-space) + var(--sp-4)) calc(var(--sp-16) + var(--dock-space) + var(--tabbar-space)); -webkit-text-size-adjust: 100%; }
 /* Ten feet from the screen: a controller in use, or a device with no pointer at
    all (a TV browser with a D-pad). Everything in rem grows with the base size,
    the margin clears TV overscan, and focus is what shows you where you are.
@@ -309,7 +314,7 @@ input[type=range] { accent-color: var(--accent); }
 .nav-empty { padding: var(--sp-1) var(--sp-3); font-size: var(--text-sm); color: var(--fg-3); }
 .sidebar-footer { margin-top: auto; padding: var(--sp-4) var(--sp-3) var(--sp-2); color: var(--fg-3); font-size: var(--text-xs); }
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.topbar { position: sticky; top: 0; z-index: var(--z-topbar); display: flex; align-items: center; gap: var(--sp-3); min-height: var(--topbar-h); padding: var(--sp-3) var(--gutter); background: var(--bg); }
+.topbar { position: sticky; top: 0; z-index: var(--z-topbar); display: flex; align-items: center; gap: var(--sp-3); min-height: var(--topbar-h); padding: var(--sp-3) var(--page-inset); background: var(--bg); }
 /* Content slides under the bar through a soft edge (no blur: a blur repaints on
    every scrolled frame, which low-end devices can't afford). */
 .topbar::after { content: ''; position: absolute; left: 0; right: 0; top: 100%; height: var(--sp-3); background: linear-gradient(var(--bg), rgb(var(--bg-rgb) / 0)); pointer-events: none; }
@@ -329,7 +334,7 @@ input[type=range] { accent-color: var(--accent); }
 .search svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--fg-3); pointer-events: none; z-index: 1; }
 .topbar .spacer { flex: 1; }
 .avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--accent); display: grid; place-items: center; font-weight: 700; color: var(--accent-fg); border: 0; }
-.content { flex: 1; padding: var(--sp-2) var(--gutter) var(--sp-16); min-width: 0; }
+.content { flex: 1; padding: var(--page-top) var(--gutter) var(--sp-16); min-width: 0; }
 /* Desktop: the hamburger collapses the sidebar entirely. */
 .app:not(.nav-open) .sidebar { display: none; }
 .backdrop-dim { display: none; }
@@ -340,21 +345,32 @@ input[type=range] { accent-color: var(--accent); }
 @supports (animation-timeline: scroll()) {
   /* The words in the bar sit low in it, so the fade stays strong down to them, and each gets a
      halo of the page's colour: readable on any picture, light or dark. */
-  .app:has(.hero, .detail-hero) .topbar { margin-bottom: calc(-1 * var(--topbar-h)); background: linear-gradient(rgb(var(--bg-rgb) / .9), rgb(var(--bg-rgb) / .8) 65%, rgb(var(--bg-rgb) / 0)); }
+  .app:has(.hero, .detail-hero) .topbar { background: linear-gradient(rgb(var(--bg-rgb) / .9), rgb(var(--bg-rgb) / .8) 65%, rgb(var(--bg-rgb) / 0)); }
   .app:has(.hero, .detail-hero) .topbar :is(.section-row a, .topnav-link, .top-brand) { text-shadow: 0 0 2px rgb(var(--bg-rgb)), 0 0 8px rgb(var(--bg-rgb)); }
   /* A link on a pill of its own (the active one, in most nav styles) is already readable there, and the
      halo would smudge its dark words on the light pill. Crossbar marks it with a line instead, so keeps it. */
   .app:not([data-nav-style="crossbar"]):has(.hero, .detail-hero) .topbar .topnav-link.active { text-shadow: none; }
   .app:has(.hero, .detail-hero) .topbar::before { content: ''; position: absolute; inset: 0; z-index: -1; background: var(--bg); opacity: 0; animation: bar-solid linear both; animation-timeline: scroll(root); animation-range: var(--sp-4) calc(var(--topbar-h) * 3); }
   .app:has(.hero, .detail-hero) .topbar::after { animation: bar-solid linear both; animation-timeline: scroll(root); animation-range: var(--sp-4) calc(var(--topbar-h) * 3); }
-  .app:has(.home.editing) .topbar { margin-bottom: 0; background: var(--bg); }
+  .app:has(.home.editing) .topbar { background: var(--bg); }
   /* The legal notice sits right under the bar, so the bar can't run over the picture and cover it. */
-  .app:has(.legal-ack-bar) .topbar { margin-bottom: 0; background: var(--bg); }
-  /* Only the picture runs up under the bar. Anything before it (the page's title, a "Finish setting up"
-     notice) starts below the bar, as it does on a page with no picture at all. */
-  .app:has(.hero, .detail-hero) .content > .sdui:first-child > :first-child:not(.hero, .detail-hero, .sr-only),
-  .app:has(.hero, .detail-hero) .content > .sdui:first-child > .sr-only:first-child + :not(.hero, .detail-hero) { margin-top: var(--topbar-h); }
+  .app:has(.legal-ack-bar) .topbar { background: var(--bg); }
   @keyframes bar-solid { from { opacity: 0; } to { opacity: 1; } }
+}
+/* The bar always takes its own room above the page, so a page's title, a "Finish setting up" notice or
+   anything else starts below it, whatever the bar's height. Only a picture that opens the page runs up
+   under it, by the room the bar really takes (--bar-space, which the bar measures: TopBar.tsx). Nothing
+   runs under it while something else sits between the bar and the page (the legal notice, a status bar)
+   or the page is being arranged. */
+:root { --bar-space: var(--topbar-h); }
+@supports (animation-timeline: scroll()) {
+  .app:not(:has(.home.editing, .legal-ack-bar, .play-status)) :is(
+    .content > :first-child > :is(.hero, .detail-hero):first-child,
+    .content > :first-child > .sr-only:first-child + :is(.hero, .detail-hero),
+    .content > :first-child > .sr-only:first-child + * > .detail-hero:first-child) { margin-top: calc(-1 * (var(--page-top) + var(--bar-space))); }
+  /* A title's page wraps its picture (.sdui-detail); the wrapper's own top padding would leave a band of page colour
+     above the picture, so it has none while the picture opens the page. */
+  .app:not(:has(.home.editing, .legal-ack-bar, .play-status)) .content > :first-child > .sr-only:first-child + :has(> .detail-hero:first-child) { padding-top: 0; }
 }
 
 @media (max-width: 900px) {
@@ -411,9 +427,10 @@ input[type=range] { accent-color: var(--accent); }
 .meta .pill + *::before { content: none; }
 
 /* ---------------------------------------------------------------- hero */
-.hero { position: relative; height: 62vh; min-height: 400px; max-height: 660px; margin: calc(-1 * var(--sp-2)) calc(-1 * var(--gutter)) var(--section-gap); overflow: hidden; }
+.hero { position: relative; height: 62vh; min-height: 400px; max-height: 660px; margin: calc(-1 * var(--page-top)) calc(-1 * var(--gutter)) var(--section-gap); overflow: hidden; }
 .hero .bg { position: absolute; inset: 0; background-size: cover; background-position: center 20%; transition: opacity var(--dur-4) var(--ease-standard); }
-.hero .shade { position: absolute; inset: 0; background: linear-gradient(90deg, rgb(var(--bg-rgb) / .94) 0%, rgb(var(--bg-rgb) / .78) 40%, rgb(var(--bg-rgb) / 0) 82%), linear-gradient(0deg, var(--bg) 0%, rgb(var(--bg-rgb) / .35) 24%, rgb(var(--bg-rgb) / 0) 52%); }
+/* The bottom fades into the page colour along an eased curve (no bend that reads as a line), the same across the whole width. */
+.hero .shade { position: absolute; inset: 0; background: linear-gradient(90deg, rgb(var(--bg-rgb) / .94) 0%, rgb(var(--bg-rgb) / .78) 40%, rgb(var(--bg-rgb) / 0) 82%), linear-gradient(0deg, var(--bg) 0%, rgb(var(--bg-rgb) / .9) 7%, rgb(var(--bg-rgb) / .68) 17%, rgb(var(--bg-rgb) / .42) 28%, rgb(var(--bg-rgb) / .2) 40%, rgb(var(--bg-rgb) / .06) 52%, rgb(var(--bg-rgb) / 0) 62%); }
 .hero .info { position: absolute; left: var(--gutter); bottom: var(--sp-10); width: min(620px, calc(100% - 2 * var(--gutter))); }
 .hero h1 { font-size: var(--display); margin: 0 0 var(--sp-3); letter-spacing: var(--tracking-display); }
 .hero .meta { margin-bottom: var(--sp-3); }
@@ -432,10 +449,10 @@ input[type=range] { accent-color: var(--accent); }
 @media (max-width: 700px) {
   .hero { height: 66vh; min-height: 380px; }
   /* A narrow hero has its words over the picture, not beside it. */
-  .hero .shade { background: linear-gradient(0deg, var(--bg) 0%, rgb(var(--bg-rgb) / .94) 34%, rgb(var(--bg-rgb) / .72) 56%, rgb(var(--bg-rgb) / 0) 82%); }
+  .hero .shade { background: linear-gradient(0deg, var(--bg) 0%, rgb(var(--bg-rgb) / .94) 34%, rgb(var(--bg-rgb) / .72) 56%, rgb(var(--bg-rgb) / .44) 66%, rgb(var(--bg-rgb) / .2) 75%, rgb(var(--bg-rgb) / .06) 83%, rgb(var(--bg-rgb) / 0) 90%); }
   .hero .info { bottom: var(--sp-6); }
   .hero p { -webkit-line-clamp: 2; }
-  .hero .dots { bottom: auto; top: calc(var(--topbar-h) + var(--sp-2)); }
+  .hero .dots { bottom: auto; top: calc(var(--bar-space) + var(--sp-2)); }
 }
 
 /* ---------------------------------------------------------------- hubs */
@@ -570,7 +587,7 @@ textarea.input { padding: 10px var(--sp-3); line-height: var(--leading-body); re
 .limits .chips { margin-bottom: 0; }
 
 /* ---------------------------------------------------------------- detail */
-.detail-hero { position: relative; margin: calc(-1 * var(--sp-2)) calc(-1 * var(--gutter)) 0; height: 50vh; min-height: 320px; max-height: 560px; overflow: hidden; }
+.detail-hero { position: relative; margin: calc(-1 * var(--page-top)) calc(-1 * var(--gutter)) 0; height: 50vh; min-height: 320px; max-height: 560px; overflow: hidden; }
 .detail-hero .bg { position: absolute; inset: 0; background-size: cover; background-position: center 25%; }
 .detail-hero .shade { position: absolute; inset: 0; background: linear-gradient(0deg, var(--bg) 0%, rgb(var(--bg-rgb) / .9) 24%, rgb(var(--bg-rgb) / .5) 62%, rgb(var(--bg-rgb) / .2) 100%); }
 .detail { display: grid; grid-template-columns: clamp(170px, 17vw, 248px) minmax(0, 1fr); gap: clamp(var(--sp-5), 3vw, var(--sp-10)); margin-top: calc(-1 * clamp(120px, 16vh, 190px)); position: relative; z-index: 2; }

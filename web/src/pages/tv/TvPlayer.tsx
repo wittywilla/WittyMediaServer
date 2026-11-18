@@ -19,7 +19,7 @@ import MoreInfo from './MoreInfo'
 import MiniGuide from './MiniGuide'
 import Slate from './Slate'
 import { useLiveTracks } from './tracks'
-import { liveHls, liveVideo, retune, setLive, useLive } from './live'
+import { liveCatchUp, liveHls, liveVideo, retune, setLive, setLiveCatchUp, useLive } from './live'
 import QualityMenu, { StreamInfo } from '../../player/QualityMenu'
 import { describe, here, noteAway, setDeviceDefault, setShowStreamInfo, showStreamInfo, sizeName, streamLines } from '../../player/quality'
 import { fmtClock, fmtSpan, getLineup, type Alternative, type GuideChannel, type GuidePage, type TuneInfo } from './tvApi'
@@ -177,13 +177,18 @@ export default function TvPlayer() {
     return () => { clearInterval(t); send() }
   }, [info?.countProgress, info?.now, info?.positionSec, info?.serverTime, info?.partEnd])
 
-  // Where the live edge is, and how far back the buffer goes.
+  // How far back the buffer goes, and how far behind live this player is. Behind is counted from
+  // where live sync keeps everyone on the channel, not from the end of the seekable range: a live
+  // stream always plays a hold-back (three segments or more) short of that end, so counting from
+  // it, a pause or a press of -10 never looked behind and Live didn't show.
   useEffect(() => {
     const t = setInterval(() => {
       const v = video.current
       if (!v || !v.seekable.length) return
       const start = v.seekable.start(0), end = v.seekable.end(v.seekable.length - 1)
-      setWin({ start, end, behind: Math.max(0, end - v.currentTime) })
+      const sync = liveHls()?.liveSyncPosition
+      const behind = liveCatchUp() ?? Math.max(0, (sync ?? end) - v.currentTime)
+      setWin({ start, end, behind })
     }, 1000)
     return () => clearInterval(t)
   }, [])
@@ -193,7 +198,13 @@ export default function TvPlayer() {
   const goLive = () => {
     // From the start, live is the channel itself.
     if (fromStart) { nav(`/tv/watch/${key}`, { replace: true, state: from }); return }
-    const h = liveHls(); const v = video.current; if (v) { setLive({ away: false }); v.currentTime = h?.liveSyncPosition ?? win.end; v.play().catch(() => {}) }
+    const v = video.current
+    if (!v) return
+    const catchUp = liveCatchUp()
+    setLive({ away: false }); setLiveCatchUp(0)
+    v.currentTime = catchUp != null ? v.currentTime + catchUp : liveHls()?.liveSyncPosition ?? win.end
+    v.play().catch(() => {})
+    setWin((w) => ({ ...w, behind: 0 }))
   }
 
   const step = useCallback(async (dir: 1 | -1) => {
@@ -291,7 +302,12 @@ export default function TvPlayer() {
     audio: tracks.audio, subtitles: tracks.subtitles, chooseAudio: tracks.chooseAudio, chooseSubtitle: tracks.chooseSubtitle,
     seekBy: (sec) => { const v = video.current; if (v) seekTo(v.currentTime + sec) }, step: (dir) => void step(dir), stop: guide })
   const windowLen = Math.max(0, win.end - win.start)
-  const isBehind = win.behind > 20
+  // Off live: once the viewer has paused or gone back, live sync leaves this player be, so it's
+  // behind until Live; otherwise only when it has fallen further behind than live sync catches up by
+  // itself. How far is said when it's known: near a programme change the segments' times can jump.
+  // Never before the first picture: a channel still starting has nothing to be behind.
+  const isBehind = !fromStart && picture && (live.away || win.behind > 10)
+  const behindText = win.behind < 3 ? 'Behind live' : win.behind < 60 ? `${Math.round(win.behind)} s behind live` : `${Math.round(win.behind / 60)} min behind live`
 
   const root_ = themeRoot(look)
   const playerRoot = { ...root_, style: { ...root_.style, ...channelVars(info?.accent, look.bg) } }
@@ -320,7 +336,7 @@ export default function TvPlayer() {
       {dial && <div className="ctv-osd-dial" role="status">{dial}<span className="ctv-blink">_</span></div>}
       <div className="top" onClick={(e) => e.stopPropagation()}>
         <button className="ibtn" onClick={guide} title="Guide (G)" aria-label="Back to the guide"><IconBack /></button>
-        <div className="grow"><h2>{info ? `${info.number} ${info.name}` : 'Tuning…'}</h2><div className="sub">{fromStart ? 'From the start' : isBehind ? `${Math.round(win.behind / 60)} min behind live` : 'Live'}</div></div>
+        <div className="grow"><h2>{info ? `${info.number} ${info.name}` : 'Tuning…'}</h2><div className="sub">{fromStart ? 'From the start' : isBehind ? behindText : 'Live'}</div></div>
       </div>
       {remoteOn && <Remote onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemoteOn(false)} label="WittyTV" />}
       {banner && !mini && (info ? <Banner info={info} look={look} fromStart={fromStart} onMore={() => setMore(true)} /> : zap && <ZapBanner ch={zap} look={look} />)}

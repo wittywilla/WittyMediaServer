@@ -17,6 +17,7 @@
 //   while one is connected, so this costs nothing otherwise.
 
 import { padKeys } from './ui/gamepad'
+import { installControllerRelease } from './ui/controllerRelease'
 import { noteInput, trackInput } from './ui/inputKind'
 import { installShortcuts, runAction } from './ui/shortcuts'
 import { nav as designNav } from '../../themes/tokens.json'
@@ -110,7 +111,8 @@ function scopeOf(el: Element | null): ParentNode {
 const GROUPS = '[data-nav-group], [data-nav-row], .row, .topnav, .sidebar, .set-nav, .tabbar, .section-row'
 const lastIn = new WeakMap<Element, HTMLElement>()
 const groupOf = (el: Element | null) => el?.closest(GROUPS) || null
-const COLUMNS = '.sidebar, .set-nav'
+// Music's library panel (pages/music/MusicShell.tsx) is one too.
+const COLUMNS = '.sidebar, .set-nav, .mus-side'
 
 // Where the focus last was. A button can take itself away when pressed (a row that's removed,
 // a list that closes), and a remote has no other way back to where that was.
@@ -500,7 +502,8 @@ export function installTVInput() {
   window.addEventListener('mousedown', (e) => { openSelect = (e.target as Element)?.tagName === 'SELECT' ? (e.target as Element) : null }, { passive: true })
   for (const ev of ['change', 'focusout'] as const) window.addEventListener(ev, () => { openSelect = null })
   window.addEventListener('gamepadconnected', startPolling)
-  // Mouse use hides the controller focus styling again, unless this screen is set up for across the room.
-  window.addEventListener('mousedown', () => { if (!document.documentElement.classList.contains('ten-foot')) document.documentElement.classList.remove('using-controller') }, { passive: true })
+  // Mouse and touch use hide the controller styling again, unless this screen is set up for across the room, and without
+  // moving the page under the pointer (ui/controllerRelease.ts).
+  installControllerRelease(window, document.documentElement)
   if (navigator.getGamepads && Array.from(navigator.getGamepads()).some(Boolean)) startPolling()
 }

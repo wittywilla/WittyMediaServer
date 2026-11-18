@@ -139,3 +139,116 @@ html.tv-mode .remote.remote-sheet { inset-block-end: 9rem; max-block-size: calc(
 html.tv-mode .remote.remote-sheet { inline-size: min(66rem, calc(100% - 2 * var(--gutter))); overflow-x: hidden; }
 @container (min-width: 560px) { html.tv-mode .sheet-keys { grid-template-columns: minmax(0, 1fr) 240px minmax(0, 1fr) minmax(19rem, 1.5fr); } }
 html.tv-mode .sheet-transport { grid-template-columns: repeat(4, minmax(66px, 1fr)); }
+
+/* The bar's menus (speed, audio, subtitles, More): the choice in use is bold with a tick at the end of its row, and a
+   row under the pointer or the remote gets a lighter fill, so the two never look alike. Nothing hugs the rounded edge. */
+.popover button { min-block-size: 2.5rem; }
+.popover button.active, .popover button.active:hover { background: transparent; box-shadow: none; font-weight: 700; }
+.popover button:hover, .popover button.active:hover { background: var(--bg-4); }
+.popover button:focus-visible { background: var(--bg-4); outline: 2px solid var(--fg); outline-offset: -2px; }
+.popover .pm-label { flex: 1; min-inline-size: 0; }
+.popover .pm-note { color: var(--fg-2); font-size: var(--text-xs); font-weight: 400; white-space: nowrap; }
+.popover .pm-tick { display: grid; place-items: center; inline-size: 1.125rem; block-size: 1.125rem; flex: none; }
+.popover .pm-tick svg { inline-size: 100%; block-size: 100%; fill: currentColor; }
+.speed-pop { min-inline-size: 13rem; max-height: min(34rem, calc(100vh - 8rem)); scrollbar-width: thin; }
+html.tv-mode .popover button { min-block-size: 66px; font-size: var(--text-lg); padding-inline: var(--space-m); }
+html.tv-mode .popover .pm-tick { inline-size: 1.5rem; block-size: 1.5rem; }
+
+/* One row of controls: words beside the icons only where every button fits with them (a wide window), icons alone
+   below that and on a television, where the buttons are already large; on a phone the buttons sit closer together so
+   all eight fit one row (they stay 44 px). */
+@container pbar (max-width: 1499px) { .cbtn:has(svg) .lbl:not(.always) { display: none; } .cbtn:has(svg) { min-inline-size: var(--control-h-sm); } }
+html.tv-mode .player .bottom .cbtn:has(svg) .lbl:not(.always) { display: none; }
+html.tv-mode .player .bottom .cbtn:has(svg) { min-inline-size: 66px; padding-inline: 0; }
+@container pbar (max-width: 460px) { .ctl-right, .ctl-mid { gap: 2px; } .ctl-right .cbtn { padding-inline: var(--space-xs); } }
+/* A television's title is read from across the room, like its buttons. */
+html.tv-mode .player .top h1 { font-size: var(--text-2xl); }
+html.tv-mode .player .top .sub { font-size: var(--text-lg); }
+
+/* The scene picker on a phone or tablet takes the screen rather than sitting over the bar. */
+/* (It sits inside the bar, a container, so it is anchored to the bar's foot and given the screen's height.) */
+.player .bottom:has(.ctl.compact) .scene-panel { inset: auto 8px max(8px, env(safe-area-inset-bottom)); block-size: calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); max-block-size: none; }
+
+/* The mini player: back 10 seconds says so, as on the full bar; on a touch screen its buttons are 44 px. */
+.mini-btns .mini-step span { font-size: var(--text-xs); font-weight: 700; font-variant-numeric: tabular-nums; }
+@media (pointer: coarse) { .mini-btns .ibtn { inline-size: 2.75rem; block-size: 2.75rem; } }
+
+/* The track picker keeps its heading and a close button in view while a long list scrolls. */
+.picker-head { position: sticky; inset-block-start: 0; z-index: 1; display: grid; grid-template-columns: 2.75rem 1fr 2.75rem; align-items: center; padding-block: var(--space-xs); background: rgb(var(--bg-rgb) / .96); }
+.picker-head h2 { grid-column: 2; margin: 0; }
+.picker-x { grid-column: 3; justify-self: end; inline-size: 2.75rem; block-size: 2.75rem; color: var(--fg); }
+html.tv-mode .picker-x { inline-size: 66px; block-size: 66px; }
+
+/* ------------------------------------------------ the phone player (Controls compact, VideoPlayer on a phone)
+   The picture first. Back, the title and Cast along the top; Play and the skips large in the middle of the picture,
+   where a thumb is; the time, Options and Full screen just above a thick seek bar; everything else in the Options
+   sheet. The bar is a size container, so what sits over the middle of the screen is placed from the bar's foot. */
+.player .bottom:has(.ctl.compact) { padding: var(--sp-10) var(--space-m) max(var(--space-s), env(safe-area-inset-bottom)); gap: 0; }
+.player .ctl.compact { display: flex; align-items: center; gap: var(--space-xs); order: -1; position: static; }
+.player .ctl.compact .time { position: static; flex: 1; min-inline-size: 0; margin: 0; font-size: var(--text-sm); font-weight: 600; }
+.player .ctl.compact .ctl-right { display: flex; gap: 2px; flex-wrap: nowrap; }
+.player .ctl.compact .ibtn { inline-size: 2.75rem; block-size: 2.75rem; }
+.player .ctl.compact .ctl-mid { position: absolute; inset-inline: 0; inset-block-end: calc(50dvh - 2.5rem); display: flex; align-items: center; justify-content: center; gap: clamp(1.75rem, 12vw, 4rem); pointer-events: none; }
+.player .ctl.compact .ctl-mid > * { pointer-events: auto; }
+.player .ctl.compact .ctl-mid .ibtn.play { inline-size: 5rem; block-size: 5rem; box-shadow: var(--e-3); }
+.player .ctl.compact .ctl-mid .ibtn.play svg { inline-size: 2.5rem; block-size: 2.5rem; }
+.player .ctl.compact .pbig { display: grid; place-items: center; inline-size: 3.5rem; block-size: 3.5rem; border-radius: 50%; border: 0; background: color-mix(in srgb, var(--picture-bg) 55%, transparent); color: var(--on-image); font: inherit; font-size: var(--text-md); font-weight: 700; font-variant-numeric: tabular-nums; }
+.player .ctl.compact .pbig:active { transform: scale(.94); }
+/* A seek bar a finger can catch, its knob always showing where it is. */
+.player .bottom:has(.ctl.compact) .seek { block-size: 2.25rem; }
+.player .bottom:has(.ctl.compact) .seek .knob { opacity: 1; transform: translateX(-50%) scale(.85); }
+.player .bottom:has(.ctl.compact) .seek.scrubbing .knob { transform: translateX(-50%) scale(1.25); }
+/* While the controls show, a soft shade over the picture keeps the middle buttons readable on a bright frame. */
+.player:has(.ctl.compact) .stage::after { content: ''; position: absolute; inset: 0; background: rgb(0 0 0 / .32); opacity: 1; transition: opacity var(--dur-3); pointer-events: none; } /* design-ok: a shade over the picture, black in every theme */
+.player.controls-hidden:has(.ctl.compact) .stage::after { opacity: 0; }
+/* The things the phone's floating buttons give way to sit higher too. */
+.player:has(.ctl.compact) :is(.skip-intro, .watch-next) { inset-block-end: 7.5rem; }
+
+/* The Options sheet. */
+.psheet-backdrop { position: absolute; inset: auto 0 0 0; block-size: 100dvh; z-index: 30; display: flex; align-items: flex-end; justify-content: center; background: rgb(0 0 0 / .45); animation: fade-in var(--dur-2) ease-out; } /* design-ok: inside the player, over its own layers (the picker is 20); dims the picture */
+.psheet { inline-size: 100%; max-inline-size: 34rem; max-block-size: 88dvh; overflow-y: auto; overscroll-behavior: contain; background: var(--bg-2); color: var(--fg); border-radius: var(--r-xl) var(--r-xl) 0 0; padding: 0 var(--space-s) max(var(--space-m), env(safe-area-inset-bottom)); box-shadow: var(--e-3); animation: psheet-in var(--dur-3) var(--ease-out); }
+@keyframes psheet-in { from { transform: translateY(2rem); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .psheet, .psheet-backdrop { animation: none; } }
+.psheet-head { position: sticky; inset-block-start: 0; z-index: 1; display: grid; grid-template-columns: 2.75rem 1fr 2.75rem; align-items: center; padding-block: var(--space-xs); background: var(--bg-2); }
+.psheet-head h3 { margin: 0; text-align: center; font-size: var(--text-md); font-weight: 700; }
+.psheet-head .ibtn { color: var(--fg); }
+.psheet-grip { justify-self: start; inline-size: 2.5rem; block-size: 4px; border-radius: var(--r-xs); background: var(--border-strong); visibility: hidden; }
+.psheet-row { display: flex; align-items: center; gap: var(--space-m); inline-size: 100%; min-block-size: 3.25rem; padding: 0 var(--space-s); background: transparent; border: 0; border-radius: var(--r-md); color: var(--fg); font: inherit; font-size: var(--text-md); text-align: left; }
+.psheet-row:hover, .psheet-row:active { background: var(--bg-4); }
+.psheet-row:focus-visible { background: var(--bg-4); outline: 2px solid var(--fg); outline-offset: -2px; }
+.psheet-icon { display: grid; place-items: center; inline-size: 1.5rem; block-size: 1.5rem; flex: none; color: var(--fg-2); }
+.psheet-icon svg { inline-size: 100%; block-size: 100%; fill: currentColor; }
+.psheet-label { flex: 1; min-inline-size: 0; }
+.psheet-value { flex: none; max-inline-size: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg-2); font-size: var(--text-sm); }
+.psheet-row.on .psheet-value { color: var(--fg); font-weight: 700; }
+.psheet [role="menuitemradio"] { display: flex; align-items: center; gap: var(--space-s); inline-size: 100%; min-block-size: 3.25rem; padding: 0 var(--space-s); background: transparent; border: 0; border-radius: var(--r-md); color: var(--fg); font: inherit; font-size: var(--text-md); text-align: left; }
+.psheet [role="menuitemradio"].active { font-weight: 700; }
+.psheet [role="menuitemradio"]:hover, .psheet [role="menuitemradio"]:active { background: var(--bg-4); }
+.psheet [role="menuitemradio"]:focus-visible { background: var(--bg-4); outline: 2px solid var(--fg); outline-offset: -2px; }
+.psheet .pm-label { flex: 1; min-inline-size: 0; }
+.psheet .pm-note { color: var(--fg-2); font-size: var(--text-xs); }
+.psheet .pm-tick { display: grid; place-items: center; inline-size: 1.25rem; block-size: 1.25rem; flex: none; }
+.psheet .pm-tick svg { inline-size: 100%; block-size: 100%; fill: currentColor; }
+.psheet [role="menu"] { border: 0; background: none; box-shadow: none; padding: 0; border-radius: 0; }
+/* Viewing settings and the quality menu open from the Options sheet on a phone or tablet, so they rise the same way. */
+.player:has(.ctl.compact) :is(.view-settings, .qmenu) { inset: auto 0 0 0; inline-size: auto; max-inline-size: 34rem; margin-inline: auto; max-block-size: 85dvh; border-radius: var(--r-xl) var(--r-xl) 0 0; padding-block-end: max(var(--space-m), env(safe-area-inset-bottom)); z-index: 31; } /* design-ok: inside the player, just over the Options sheet it opens from */
+.player .ctl.compact .remote-toggle svg { inline-size: 1.5rem; block-size: 1.5rem; }
+.player .ctl.compact .remote-toggle.on { background: color-mix(in srgb, var(--on-image) 18%, transparent); }
+
+/* WittyRemote's sheet open over the player, upright: the picture (and the buttons over its middle) move up to the
+   middle of the room above the sheet, instead of sitting half under it. Remote.tsx sets --remote-space. */
+.player .stage { transition: inset-block-end var(--dur-3) var(--ease-out); }
+@media (orientation: portrait) {
+  .player.remote-up .stage { inset-block-end: var(--remote-space, 0px); }
+  .player.remote-up .ctl.compact .ctl-mid { inset-block-end: calc(50dvh + var(--remote-space, 0px) / 2 - 2.5rem); }
+}
+@media (prefers-reduced-motion: reduce) { .player .stage { transition: none; } }
+
+/* Live TV's channel buttons (CH −, CH +, Last, Mini guide, Guide, Live) sit in the bar as its own chips do: outlined,
+   the same height and type. In a bar narrower than 1500 px, Last and Guide give way (Mini guide reaches both), so the
+   bar keeps one row. */
+.player .ctl-right .btn.sm { min-block-size: var(--control-h-sm); padding: 0 var(--space-s); border: 1px solid color-mix(in srgb, var(--on-image) 24%, transparent); border-radius: var(--r-md); background: color-mix(in srgb, var(--picture-bg) 52%, transparent); color: var(--on-image); font-size: var(--text-sm); font-weight: 600; box-shadow: none; }
+.player .ctl-right .btn.sm:hover:not(:disabled) { background: color-mix(in srgb, var(--on-image) 20%, transparent); }
+.player .ctl-right .btn.sm.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+@container pbar (max-width: 1499px) { .player .ctl-right .btn.sm.hide-narrow { display: none; } }
+html.tv-mode .player .ctl-right .btn.sm { min-block-size: 66px; padding-inline: var(--space-l); font-size: var(--text-xl); border-radius: var(--r-lg); }

@@ -118,7 +118,22 @@ Stems you put beside a song yourself ([below](#stems-the-real-vocal-track)) are 
 
 #### Getting the better version
 
-Install a separator on the machine the server runs on. That's all: the server looks for one when it starts and finds it on its own. It looks on the `PATH` and in the usual places `pip`, `pipx`, Homebrew and Conda put programs, for these, best first:
+**With one press.** In **Settings → Metadata agents → Lyrics and music information**, **Demucs for karaoke** → **Install Demucs…** says what will be downloaded and from where, then **Download and install** does it. From then on karaoke makes properly separated versions by itself, with nothing else to set up.
+
+- What's downloaded, about 1.1 GB: [uv](https://github.com/astral-sh/uv) 0.13.5 (an installer, MIT or Apache-2.0) from GitHub, which the server refuses unless its SHA-256 matches the one the server carries; Python 3.11 (PSF license), fetched and checked by uv; [Demucs](https://github.com/facebookresearch/demucs) 4.0.1 (MIT) and PyTorch 2.5.1 (BSD-3-Clause) built for the processor, at pinned versions, from PyPI and download.pytorch.org (PyTorch 2.2.2 on an Intel Mac, the last made for one); and Demucs's `htdemucs` model, from its makers.
+- **On the graphics card by default.** With an NVIDIA card (Windows or Linux) it installs PyTorch's CUDA build; with an AMD card that has ROCm on Linux, the ROCm build; on a Mac with Apple silicon it uses Metal. A song then takes well under a minute instead of several. If a song fails on the card (its memory is full, or its driver misbehaves), it's separated again on the processor by itself. Intel and AMD cards on Windows stay on the processor: PyTorch's DirectML build can't do the spectrogram steps Demucs needs, and Settings says so. Untick **Use** the card before installing for the processor only, a smaller download.
+- What's downloaded depends on that: about 1.1 GB for the processor, about 3.2 GB with NVIDIA's CUDA libraries (NVIDIA's license), about 4.2 GB for ROCm.
+- Nothing about you or your music is sent: these are plain downloads.
+- It all goes into the `separator` folder in the server's data folder, and nowhere else. Backups leave it out. **Remove** deletes the folder; **Stop** during an install stops it and removes what it had done. A failed install leaves nothing behind, and the line says why it failed.
+- Once installed it's used before any separator found on the machine.
+- **Credits.** Settings → About → Third-party licenses lists everything installed, under **Separate programs**: uv, Python, and every package with its version, license and full license text, read from the packages themselves.
+- Not offered on FreeBSD, Windows on ARM, or Linux with musl (Alpine), which PyTorch isn't made for, or on a very small machine such as a Raspberry Pi 3. Install a separator by hand there, or use the quick version.
+
+**The whole library ahead of time.** **Separate the whole library ahead of time** (off unless chosen) separates every song in your music libraries in the background, one at a time, oldest added first, only while nothing else is being made and nobody is being served something it would slow. It stops when the space for karaoke versions is 80% full, so it never clears songs people actually sang. Without it, a song is separated the first time someone opens karaoke on it, and the quick version plays meanwhile.
+
+**When it isn't installed,** karaoke works as before with the quick version, and the Mix says a separated version is an optional install (with a link to the setting for administrators). Machines with less than about 4 GB of memory aren't offered it.
+
+**By hand.** Install a separator on the machine the server runs on. That's all: the server looks for one when it starts and finds it on its own. It looks on the `PATH` and in the usual places `pip`, `pipx`, Homebrew and Conda put programs, for these, best first:
 
 | Separator | Install, for example | What you get |
 |---|---|---|

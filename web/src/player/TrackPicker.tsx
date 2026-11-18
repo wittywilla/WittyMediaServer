@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useRef } from 'react'
+import { IconClose } from '../icons'
 
 // TrackPicker is a full-screen chooser with large square tiles (in the style
 // of a TV app's dialogs) for audio tracks, subtitles and video angles. Works
@@ -41,7 +42,10 @@ export default function TrackPicker({ heading, hint, tiles, onPick, onClose }: {
   return (
     <div className="picker-backdrop" onClick={(e) => { e.stopPropagation(); onClose() }} onDoubleClick={(e) => e.stopPropagation()}>
       <div className="picker" onClick={(e) => e.stopPropagation()} role="dialog" aria-label={heading}>
-        <h2>{heading}</h2>
+        <div className="picker-head">
+          <h2>{heading}</h2>
+          <button type="button" className="ibtn picker-x" onClick={onClose} aria-label="Close" title="Close"><IconClose /></button>
+        </div>
         {hint && <p className="picker-hint">{hint}</p>}
         <div className="picker-grid" ref={grid}>
           {tiles.map((t) => (

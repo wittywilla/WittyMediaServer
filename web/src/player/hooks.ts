@@ -278,6 +278,8 @@ export function useIdle(ms = 3000, deps: unknown[] = []) {
     const hide = () => {
       const v = el.querySelector('video')
       if (v?.paused && !el.classList.contains('menu-mode')) return
+      // Not while a menu or panel is open over the picture: it would fade away under the pointer or the remote.
+      if (el.querySelector('.popover, .qmenu, .scene-panel, .view-settings, .picker-backdrop, .psheet-backdrop')) { t = setTimeout(hide, ms); return }
       el.classList.add('controls-hidden', 'hide-cursor')
     }
     const show = () => {

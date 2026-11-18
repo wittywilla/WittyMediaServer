@@ -4,7 +4,7 @@
    menus are: a solid raised surface (--bg-3), labels in --fg (14:1), notes in --fg-2 (8:1), the
    option in use a filled row with a bar and a tick, not colour alone. Readable in every theme,
    glass ones included: nothing here is see-through. */
-.qmenu { position: absolute; bottom: 72px; right: var(--sp-5); z-index: 7; width: min(360px, calc(100% - 2 * var(--sp-4))); max-height: calc(100% - 150px); overflow-y: auto; overscroll-behavior: contain;
+.qmenu { position: absolute; bottom: calc(var(--sp-16) + var(--sp-2)); right: var(--sp-5); z-index: 7; width: min(360px, calc(100% - 2 * var(--sp-4))); max-height: calc(100% - 150px); overflow-y: auto; overscroll-behavior: contain;
   background: var(--bg-3); background-image: none; color: var(--fg); border: 1px solid var(--border-strong); border-radius: var(--r-lg); padding: var(--sp-2); box-shadow: var(--e-3); animation: dialog-in var(--dur-2) var(--ease-out); }
 .qmenu .qm-head { display: flex; align-items: center; gap: var(--sp-2); padding: 0 0 var(--sp-1) var(--sp-2); }
 .qmenu .qm-head h4 { flex: 1; margin: 0; color: var(--fg-2); font-size: var(--text-2xs); font-weight: 600; text-transform: uppercase; letter-spacing: var(--tracking-label); }

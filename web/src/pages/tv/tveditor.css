@@ -77,17 +77,17 @@
 .tve-found small { color: var(--fg-2); }
 
 /* A count on the page; the list itself is searched a page at a time in a dialog */
-.tve-vpick { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin: 8px 0; padding: 6px 10px; border-radius: var(--r-md); background: var(--bg-2); font-size: var(--text-sm); }
+.tve-vpick { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin: 8px 0; padding: 8px 12px; border-radius: var(--r-md); background: var(--bg-2); font-size: var(--text-sm); }
 .tve-vpick .tvs-count { color: var(--fg-2); }
 .tve-vpick-dialog { width: min(640px, 100%); max-height: 88dvh; overflow-y: auto; }
-.tve-vpick-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 6px; }
+.tve-vpick-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
 .tve-vpick-bar .input { flex: 1 1 180px; min-width: 0; }
 .tve-vpick-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
-.tve-vpick-list .check-row { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: var(--r-sm); font-size: var(--text-sm); }
+.tve-vpick-list .check-row { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: var(--r-sm); font-size: var(--text-sm); }
 .tve-vpick-list .check-row:hover { background: var(--bg-3); }
 .tve-vpick-title { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .tve-vpick-list small { flex: none; }
-.tve-vpick-pages { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 8px; }
+.tve-vpick-pages { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 8px; }
 
 /* Rules */
 .tve-rules { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 10px; }

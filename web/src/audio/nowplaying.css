@@ -344,7 +344,7 @@ button.np-artist:hover { color: var(--np-fg); text-decoration: underline; text-u
   .kar-top .seg { margin-right: auto; }
   .kar-stage { flex: 1 0 auto; min-height: 38vh; padding-block: 16px; }
   /* A phone held upright has no room beside the words: the cover goes above them, smaller. */
-  .kar-stage.with-cover { flex-direction: column; gap: 14px; }
+  .kar-stage.with-cover { flex-direction: column; gap: 16px; }
   .kar-stage.with-cover .kar-lyrics { flex: 1 0 auto; }
   .kar-cover { align-self: center; width: clamp(96px, 34vw, 150px); max-height: none; border-radius: var(--r-md); }
   .kar-stage.with-cover .kar-now { font-size: clamp(1.6rem, 7.6vw, 2.3rem); }
@@ -410,7 +410,7 @@ button.np-artist:hover { color: var(--np-fg); text-decoration: underline; text-u
 /* A wide screen: Voice, Background Music and Track side by side, so the bar stays short and the words keep their room. */
 @media (min-width: 900px) {
   .kar-mix-rows { grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); width: min(1100px, 100%); gap: 8px; }
-  .kar-mix .kar-level { grid-template-columns: auto 1fr auto; gap: 8px; padding-inline: 14px; }
+  .kar-mix .kar-level { grid-template-columns: auto 1fr auto; gap: 8px; padding-inline: 16px; }
 }
 .kar-mix .kar-level { display: grid; grid-template-columns: 7.5em 1fr auto; align-items: center; gap: 12px; font-size: var(--text-md); font-weight: 600; text-align: left; }
 .kar-mix .kar-level input { width: 100%; min-height: 44px; accent-color: var(--np-white); }
@@ -418,18 +418,18 @@ button.np-artist:hover { color: var(--np-fg); text-decoration: underline; text-u
 .kar-mix-note { margin: 0; font-size: var(--text-sm); color: var(--np-fg-2); }
 .kar-mix-wait .kar-level { opacity: .55; }
 /* Voice settings: a panel at the side, over the words' right edge, scrolling on its own. */
-.kar-fx { position: absolute; z-index: 3; top: max(64px, env(safe-area-inset-top)); right: clamp(8px, 2vw, 32px); bottom: 12px; width: min(420px, calc(100% - 16px)); overflow-y: auto; overscroll-behavior: contain; padding: 14px 16px 18px; border-radius: var(--r-lg); background: var(--np-kar-bg); border: 1px solid var(--np-line); box-shadow: var(--np-shadow); display: grid; align-content: start; gap: 12px; }
+.kar-fx { position: absolute; z-index: 3; top: max(var(--sp-16), env(safe-area-inset-top)); right: clamp(8px, 2vw, 32px); bottom: 12px; width: min(420px, calc(100% - 16px)); overflow-y: auto; overscroll-behavior: contain; padding: 16px 16px 20px; border-radius: var(--r-lg); background: var(--np-kar-bg); border: 1px solid var(--np-line); box-shadow: var(--np-shadow); display: grid; align-content: start; gap: 12px; }
 .kar-fx-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .kar-fx-head h2 { margin: 0; font-size: var(--text-lg); }
 .kar-fx-head .mp-ibtn { background: var(--np-chip); }
 .kar-fx-note { margin: 0; font-size: var(--text-sm); color: var(--np-fg-2); }
-.kar-fx-preset { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+.kar-fx-preset { display: flex; align-items: center; gap: 12px; font-weight: 600; }
 .kar-fx-preset select { flex: 1; min-width: 0; min-height: 44px; padding: 0 12px; border-radius: var(--r-full); border: 0; background: var(--np-chip); color: var(--np-white); font: inherit; }
 .kar-fx-preset select option { color: initial; }
 .kar-fx-preset .kar-chip { min-height: 44px; }
-.kar-fx-group { margin: 0; padding: 10px 12px 6px; border: 1px solid var(--np-line); border-radius: var(--r-md); display: grid; gap: 4px; }
-.kar-fx-group legend { padding: 0 6px; font-size: var(--text-sm); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--np-fg-2); }
-.kar-fx-row { display: grid; grid-template-columns: 8.5em 1fr 5.4em; align-items: center; gap: 10px; min-height: 40px; font-weight: 600; font-size: var(--text-md); }
+.kar-fx-group { margin: 0; padding: 12px 12px 8px; border: 1px solid var(--np-line); border-radius: var(--r-md); display: grid; gap: 4px; }
+.kar-fx-group legend { padding: 0 8px; font-size: var(--text-sm); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--np-fg-2); }
+.kar-fx-row { display: grid; grid-template-columns: 8.5em 1fr 5.4em; align-items: center; gap: 12px; min-height: 40px; font-weight: 600; font-size: var(--text-md); }
 .kar-fx-row input { width: 100%; min-height: 36px; margin: 0; accent-color: var(--np-white); cursor: pointer; }
 .kar-fx-row output { text-align: right; font-variant-numeric: tabular-nums; color: var(--np-fg-2); font-size: var(--text-sm); }
 .using-controller .kar-fx-row { min-height: 52px; }

@@ -17,7 +17,8 @@ export type Markers = {
   intro?: Range | null; recap?: Range | null; credits?: Range | null; commercials?: Range[] | null
   preview?: Range | null; postCredits?: Range | null; custom?: Range[] | null; segments?: Segment[] | null
 }
-export type Skip = { kind: 'intro' | 'recap' | 'credits' | 'commercial' | 'preview' | 'custom'; label: string; to: number }
+// name: what someone called a part ("dream sequence"), for players to say "Skip …" in their language.
+export type Skip = { kind: 'intro' | 'recap' | 'credits' | 'commercial' | 'preview' | 'custom'; label: string; to: number; name?: string }
 
 // Marks words for translation; they're translated where they're shown, with tx(). (A local mark, so the tests can
 // load this file without the app's i18n layer.)
@@ -69,7 +70,7 @@ export function skipAt(m: Markers | null, now: number, duration: number): Skip |
         if (duration > 0 && s.endSec < duration - 5) return { kind: 'credits', label: LABEL.credits, to: s.endSec }
         continue
       }
-      if (s.kind === 'custom') return { kind: 'custom', label: customLabel(s.label), to: s.endSec }
+      if (s.kind === 'custom') return s.label?.trim() ? { kind: 'custom', label: customLabel(s.label), to: s.endSec, name: s.label.trim() } : { kind: 'custom', label: customLabel(s.label), to: s.endSec }
       return { kind: s.kind as Skip['kind'], label: LABEL[s.kind as Skip['kind']], to: s.endSec }
     }
     return null
@@ -130,7 +131,7 @@ export type AutoSkipState = { last: number | null; pending: { key: string; back:
 export const autoSkipStart = (): AutoSkipState => ({ last: null, pending: null, spent: [] })
 
 // next: instead of a jump, go on to the next episode (credits with an episode after them).
-export type AutoSkipAct = { kind: Skip['kind']; key: string; label: string; from: number; to: number; next: boolean }
+export type AutoSkipAct = { kind: Skip['kind']; key: string; label: string; from: number; to: number; next: boolean; name?: string }
 
 // party: "follow" is someone in a watch party who may not control it, "control" someone who may.
 export type AutoSkipWhere = { duration: number; hasNext: boolean; party: 'none' | 'control' | 'follow'; maxStep?: number }
@@ -171,7 +172,7 @@ export function autoSkipStep(state: AutoSkipState, m: Markers | null, prefs: Aut
     } else if (!(where.duration > 0 && part.endSec < where.duration - 5)) return stay()
   }
   const label = part.kind === 'custom' && part.label ? 'Skipped ' + part.label.charAt(0).toLowerCase() + part.label.slice(1) : SKIPPED[part.kind]
-  const act: AutoSkipAct = { kind: part.kind, key: part.key, label, from: now, to: part.endSec, next }
+  const act: AutoSkipAct = { kind: part.kind, key: part.key, label, from: now, to: part.endSec, next, ...(part.kind === 'custom' && part.label ? { name: part.label } : {}) }
   // The jump is the player's own: the next position follows on from where it lands.
   return { state: { last: next ? now : part.endSec, pending: null, spent: [...state.spent, part.key] }, act }
 }

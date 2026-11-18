@@ -21,7 +21,7 @@ import { Menu, type MenuEntry } from '../../ui/Menu'
 import { bump } from '../client'
 import { useModuleItemMenu } from '../../moduleRegistry'
 import type { Document, Node } from '../types'
-import { t, tn } from '../../i18n'
+import { t, tn, tx } from '../../i18n'
 
 const EditDetails = lazy(() => import('../../components/edit/EditDetails'))
 const RefreshDialog = lazy(() => import('../../components/edit/RefreshDialog'))
@@ -217,11 +217,11 @@ function CustomInfoNote({ itemId }: { itemId: number }) {
     return () => stop.abort()
   }, [itemId])
   if (!usesWittyinfo(m)) return null
-  const from = [...new Set(Object.values(m?.sources || {}).filter((s) => s.startsWith('wittyinfo')))].map((s) => sourceWords(s).replace(/^From the /, 'the ')).join(' and ')
+  const from = [...new Set(Object.values(m?.sources || {}).filter((s) => s.startsWith('wittyinfo')))].map((s) => tx(sourceWords(s))).join(', ')
   const parts = (m?.segments || []).filter((s) => s.source.startsWith('wittyinfo')).length
   return (
     <p className="wi-note" role="note">
-      <span className="wi-badge file">Custom info</span> {parts} skip{parts === 1 ? '' : 's'} from {from || 'a .wittyinfo'}, in place of what was found by itself.
+      <span className="wi-badge file">{t('Custom info')}</span> {tn('{count} skip from {from}, in place of what was found by itself.', '{count} skips from {from}, in place of what was found by itself.', parts, { from: from || '.wittyinfo' })}
     </p>
   )
 }
@@ -241,6 +241,23 @@ function AlbumCanvasTool({ doc }: { doc: Document }) {
     <>
       <button type="button" className="btn ghost" aria-haspopup="dialog" onClick={() => setOpen(true)} title={t('The looping video behind these songs')}><IconFilm /> {t('Canvas')}</button>
       {open && <Suspense fallback={null}><AlbumCanvasManager songs={songs} onClose={() => { setOpen(false); bump() }} /></Suspense>}
+      <AlbumInfoTool songs={songs} />
+    </>
+  )
+}
+
+// An album's .wittyaudio and each song's (details, lyrics, loudness), for an administrator:
+// on desktop only, as the editor is.
+function AlbumInfoTool({ songs }: { songs: { id: number; title: string }[] }) {
+  const [open, setOpen] = useState<{ id: number; title: string; album: boolean } | null>(null)
+  const entries: MenuEntry[] = [
+    infoEntry(() => setOpen({ id: songs[0].id, title: t('Album details'), album: true }), t('Album details and cover')),
+    ...songs.map((s) => ({ ...infoEntry(() => setOpen({ id: s.id, title: s.title, album: false }), t('Lyrics and details: {song}', { song: s.title })), key: 'song-' + s.id })),
+  ]
+  return (
+    <>
+      <Menu label={t('Album and song details')} align="end" items={entries} trigger={(props) => <button type="button" {...props} className="btn ghost"><IconChapters /> {t('Details and lyrics')}</button>} />
+      {open && <Suspense fallback={null}><InfoDialog target={open.album ? 'album' : 'item'} song={!open.album} id={open.id} title={open.title} onClose={() => setOpen(null)} onChanged={() => bump()} /></Suspense>}
     </>
   )
 }

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
+import { t, tx } from '../i18n'
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
 import { Segmented } from '../ui'
 import { actOf, clockText, FRAME, filterLabel, moveRange, percent, segLabel, timeAt, type Edge, type Filter, type Scene, type Seg } from './model'
@@ -127,13 +128,13 @@ export default function Timeline(p: Props) {
     p.onSeek(timeAt((e.clientX - r.left) / r.width, duration))
   }
 
-  if (duration <= 0) return <p className="muted wi-help">There is no length to draw a timeline for yet (the videos haven’t been read). Times can still be typed below.</p>
+  if (duration <= 0) return <p className="muted wi-help">{t('There is no length to draw a timeline for yet (the files haven’t been read). Times can still be typed below.')}</p>
   // Where the next scene starts: a scene's title stops before it.
   const nextStart = (t: number) => Math.min(duration, ...p.scenes.map((x) => x.start).filter((x) => x > t))
   const picked = (list: string, i: number) => p.pick?.list === list && p.pick.index === i
 
   const handle = (list: Drag['list'], i: number, edge: 'start' | 'end', at: number, name: string) => (
-    <span className={'wi-handle ' + edge} role="slider" tabIndex={0} aria-label={`${name}, ${edge === 'start' ? 'start' : 'end'}`}
+    <span className={'wi-handle ' + edge} role="slider" tabIndex={0} aria-label={edge === 'start' ? t('{name}, start', { name }) : t('{name}, end', { name })}
       aria-valuemin={0} aria-valuemax={Math.round(duration)} aria-valuenow={Math.round(at * 10) / 10} aria-valuetext={clockText(at)}
       onPointerDown={down(list, i, edge)} onKeyDown={key(list, i, edge)} onFocus={() => p.onPick({ list, index: i })} />
   )
@@ -142,7 +143,7 @@ export default function Timeline(p: Props) {
     <div className="wi-timeline">
       <div className="wi-tl-head">
         <span className="muted wi-tl-len">{clockText(duration)}</span>
-        <Segmented label="Zoom" value={zoom} onChange={setZoom} options={[{ value: '1', label: 'Whole' }, { value: '4', label: '4×' }, { value: '16', label: '16×' }]} />
+        <Segmented label={t('Zoom')} value={zoom} onChange={setZoom} options={[{ value: '1', label: t('Whole') }, { value: '4', label: '4×' }, { value: '16', label: '16×' }]} />
       </div>
       <div className="wi-tl-scroll" ref={scroller}>
         <div className="wi-tl-inner" style={{ width: `${z * 100}%` }} ref={track} onPointerMove={move} onPointerUp={up} onPointerCancel={up}>
@@ -150,31 +151,31 @@ export default function Timeline(p: Props) {
             {ticksFor(duration, z).map((t) => <span key={t} className="wi-tick" style={{ left: `${percent(t, duration)}%` }}>{clockText(t)}</span>)}
           </div>
 
-          <div className="wi-row" style={{ '--lanes': segRows } as React.CSSProperties} role="group" aria-label="Parts to skip" onPointerDown={seekAt}>
-            <span className="wi-row-name" aria-hidden="true">Skips</span>
+          <div className="wi-row" style={{ '--lanes': segRows } as React.CSSProperties} role="group" aria-label={t('Parts to skip')} onPointerDown={seekAt}>
+            <span className="wi-row-name" aria-hidden="true">{t('Skips')}</span>
             {(p.ghosts || []).filter((g) => !g.source.startsWith('wittyinfo')).map((g, i) => (
-              <span key={'g' + i} className={'wi-ghost wi-t-' + g.kind} style={{ left: `${percent(g.startSec, duration)}%`, width: `${Math.max(0.3, percent(g.endSec, duration) - percent(g.startSec, duration))}%` }} title={`${segLabel(g.kind)} found elsewhere (${g.source})`} aria-hidden="true" />
+              <span key={'g' + i} className={'wi-ghost wi-t-' + g.kind} style={{ left: `${percent(g.startSec, duration)}%`, width: `${Math.max(0.3, percent(g.endSec, duration) - percent(g.startSec, duration))}%` }} title={t('{what} found elsewhere ({source})', { what: tx(segLabel(g.kind)), source: g.source })} aria-hidden="true" />
             ))}
             {p.segments.map((s, i) => {
               const end = len(s.end)
-              const name = `${segLabel(s.type)}${s.label ? ' “' + s.label + '”' : ''}`
+              const name = s.label ? `${tx(segLabel(s.type))} “${s.label}”` : tx(segLabel(s.type))
               return (
                 <div key={s.id || i} className={'wi-range wi-t-' + s.type + (actOf(s) === 'mark' ? ' wi-mark' : '') + (picked('segments', i) ? ' wi-picked' : '')}
                   style={{ left: `${percent(s.start, duration)}%`, width: `${Math.max(0.4, percent(end, duration) - percent(s.start, duration))}%`, '--lane': segLanes[i] } as React.CSSProperties}
-                  onPointerDown={down('segments', i, 'both')} title={`${name}: ${clockText(s.start)} – ${s.end == null ? 'the end' : clockText(end)}`}>
+                  onPointerDown={down('segments', i, 'both')} title={`${name}: ${clockText(s.start)} – ${s.end == null ? t('the end') : clockText(end)}`}>
                   {handle('segments', i, 'start', s.start, name)}
-                  <span className="wi-range-label">{s.label || segLabel(s.type)}</span>
+                  <span className="wi-range-label">{s.label || tx(segLabel(s.type))}</span>
                   {handle('segments', i, 'end', end, name)}
                 </div>
               )
             })}
           </div>
 
-          <div className="wi-row wi-scenes" role="group" aria-label="Scenes" onPointerDown={seekAt}>
-            <span className="wi-row-name" aria-hidden="true">Scenes</span>
+          <div className="wi-row wi-scenes" role="group" aria-label={t('Scenes')} onPointerDown={seekAt}>
+            <span className="wi-row-name" aria-hidden="true">{t('Scenes')}</span>
             {p.scenes.map((s, i) => (
               <span key={s.id || i} className={'wi-pin' + (picked('scenes', i) ? ' wi-picked' : '')} style={{ left: `${percent(s.start, duration)}%`, maxWidth: `max(10px, calc(${percent(nextStart(s.start), duration) - percent(s.start, duration)}% - 4px))` }}
-                role="slider" tabIndex={0} aria-label={`Scene “${s.title || i + 1}”`} aria-valuemin={0} aria-valuemax={Math.round(duration)} aria-valuenow={Math.round(s.start)} aria-valuetext={clockText(s.start)}
+                role="slider" tabIndex={0} aria-label={t('Scene “{name}”', { name: s.title || String(i + 1) })} aria-valuemin={0} aria-valuemax={Math.round(duration)} aria-valuenow={Math.round(s.start)} aria-valuetext={clockText(s.start)}
                 onPointerDown={down('scenes', i, 'start')} onKeyDown={key('scenes', i, 'start')} onFocus={() => p.onPick({ list: 'scenes', index: i })} title={`${s.title} · ${clockText(s.start)}`}>
                 <i aria-hidden="true" /><b>{s.title}</b>
               </span>
@@ -182,10 +183,10 @@ export default function Timeline(p: Props) {
           </div>
 
           {p.filters.length > 0 && (
-            <div className="wi-row wi-filters" style={{ '--lanes': filterRows } as React.CSSProperties} role="group" aria-label="Content filters" onPointerDown={seekAt}>
-              <span className="wi-row-name" aria-hidden="true">Filters</span>
+            <div className="wi-row wi-filters" style={{ '--lanes': filterRows } as React.CSSProperties} role="group" aria-label={t('Content filters')} onPointerDown={seekAt}>
+              <span className="wi-row-name" aria-hidden="true">{t('Filters')}</span>
               {p.filters.map((f, i) => {
-                const name = filterLabel(f.category)
+                const name = tx(filterLabel(f.category))
                 return (
                   <div key={f.id || i} className={'wi-range wi-f' + (picked('filters', i) ? ' wi-picked' : '')}
                     style={{ left: `${percent(f.start, duration)}%`, width: `${Math.max(0.4, percent(f.end, duration) - percent(f.start, duration))}%`, '--lane': filterLanes[i] } as React.CSSProperties}

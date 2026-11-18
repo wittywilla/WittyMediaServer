@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
+import { t } from '../i18n'
 import { useEffect } from 'react'
 import { IconClose } from '../icons'
 import { IconButton } from '../ui'
@@ -22,11 +23,11 @@ export default function PlayerPanel({ itemId, title, player, now, onDraft, onSav
     return () => window.removeEventListener('keydown', k, true)
   }, [onClose])
   return (
-    <aside className="wi-player-panel" aria-label="Scenes and skips" onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}
+    <aside className="wi-player-panel" aria-label={t('Scenes and skips')} onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}
       onKeyDown={(e) => { if (e.key !== 'Escape') e.stopPropagation() }}>
       <header>
-        <h2>Scenes and skips</h2>
-        <IconButton size="sm" label="Close" onClick={onClose}><IconClose /></IconButton>
+        <h2>{t('Scenes and skips')}</h2>
+        <IconButton size="sm" label={t('Close')} onClick={onClose}><IconClose /></IconButton>
       </header>
       <p className="muted wi-help">{title}</p>
       <InfoEditor base={`/wittyinfo/item/${itemId}`} scope="item" player={player} now={now} onDraft={onDraft} onSaved={onSaved} compact />

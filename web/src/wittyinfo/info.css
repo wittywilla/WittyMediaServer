@@ -143,3 +143,25 @@ label.btn { position: relative; cursor: pointer; }
 .tv-mode .wi-item.wi-filter-item { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .tv-mode .wi-handle:focus, .tv-mode .wi-pin:focus { outline: var(--focus-width) solid var(--fg); outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) { .wi-tl-scroll { scroll-behavior: auto; } }
+
+/* ------------------------------------------------------------------ languages, lyrics, subtitles */
+.wi-langpick { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.wi-langcode { width: 11em; }
+.wi-translation { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--sp-2) var(--sp-4); }
+.wi-translation > .wi-add, .wi-translation > .wi-h, .wi-translation > .wi-help { grid-column: 1 / -1; }
+.wi-song { width: 100%; }
+.wi-item.wi-lyric { grid-template-columns: 92px minmax(0, 3fr) minmax(0, 1fr) auto; }
+.wi-item.wi-sub-item { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto; }
+.wi-lyrics, .wi-subs, .wi-languages { display: flex; flex-direction: column; gap: var(--sp-3); }
+
+/* ------------------------------------------------------------------ converting a library */
+.wi-convert { display: flex; flex-direction: column; gap: var(--sp-3); }
+.wi-conv-row { border: 1px solid var(--border); border-radius: var(--r-md); padding: var(--sp-3); margin: 0; display: flex; flex-direction: column; gap: var(--sp-1); }
+.wi-conv-row legend { padding: 0 var(--sp-1); font-size: var(--text-md); }
+.wi-conv-row legend code { font-size: var(--text-sm); color: var(--fg-2); }
+.wi-conv-progress { display: flex; flex-direction: column; gap: var(--sp-1); margin-top: var(--sp-2); font-size: var(--text-sm); }
+.wi-conv-opts { display: flex; flex-direction: column; gap: var(--sp-1); }
+@media (max-width: 760px) {
+  .wi-item.wi-lyric, .wi-item.wi-sub-item { grid-template-columns: 1fr 1fr; }
+  .wi-item.wi-lyric > .wi-label { grid-column: 1 / -1; }
+}

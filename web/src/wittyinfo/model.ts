@@ -8,6 +8,10 @@
 
 import { clockSeconds, clockText, type Markers } from '../player/markers.ts'
 
+// Marks words for translation; they're translated where they're shown, with tx(). (A local
+// mark, so the tests can load this file without the app's i18n layer.)
+const tk = <S extends string>(english: S): S => english
+
 export type SegType = 'intro' | 'recap' | 'credits' | 'preview' | 'postcredits' | 'commercial' | 'custom'
 export type SegAction = 'button' | 'auto' | 'mark'
 export type FilterCategory = 'violence' | 'language' | 'nudity' | 'sex' | 'drugs' | 'frightening' | 'flashing' | 'discrimination' | 'other'
@@ -19,8 +23,18 @@ export type Scene = { id?: string; title: string; start: number; thumbnailAt?: n
 export type Filter = { id?: string; category: FilterCategory; severity?: number; start: number; end: number; action?: FilterAction; label?: string; [k: string]: unknown }
 export type Meta = { title?: string; originalTitle?: string; sortTitle?: string; edition?: string; year?: number; overview?: string; tagline?: string; genres?: string[]; contentRating?: string; episodeKind?: string; [k: string]: unknown }
 export type Playback = { startAt?: number; audioLanguage?: string; subtitleLanguage?: string; subtitleMode?: string; volumeDb?: number; aspectRatio?: string; [k: string]: unknown }
+// Translation: the file's text in one language, naming parts by id (docs/formats/wittyinfo.md).
+export type TextPart = { label?: string; title?: string; note?: string; description?: string; [k: string]: unknown }
+export type Translation = {
+  segments?: Record<string, TextPart>; scenes?: Record<string, TextPart>; filters?: Record<string, TextPart>
+  metadata?: Meta; notes?: string; lyrics?: Lyrics; [k: string]: unknown
+}
+export type LyricLine = { start: number; end?: number; text: string; singer?: string; words?: { start: number; text: string }[]; [k: string]: unknown }
+export type Lyrics = { language?: string; plain?: string; lines?: LyricLine[]; instrumental?: boolean; [k: string]: unknown }
+export type Sub = { file: string; language?: string; title?: string; forced?: boolean; sdh?: boolean; [k: string]: unknown }
 export type Manifest = {
   format: 'wittyinfo'; version: number; scope?: string; season?: number
+  language?: string; translations?: Record<string, Translation>; subtitles?: Sub[]
   identity?: { durationSec: number; [k: string]: unknown }
   authorship?: { author?: string; created?: string; updated?: string; tool?: { name: string; version?: string }; [k: string]: unknown }
   segments?: Seg[]; absent?: SegType[]; scenes?: Scene[]; filters?: Filter[]
@@ -43,31 +57,31 @@ export type InfoAnswer = {
 }
 
 export const SEG_TYPES: { value: SegType; label: string; hint: string }[] = [
-  { value: 'intro', label: 'Intro', hint: 'The opening titles or theme song.' },
-  { value: 'recap', label: 'Recap', hint: '“Previously on…”' },
-  { value: 'credits', label: 'Credits', hint: 'The end credits. Leave the end empty if they run to the end.' },
-  { value: 'preview', label: 'Preview', hint: 'A look at the next episode.' },
-  { value: 'postcredits', label: 'After the credits', hint: 'A scene after the credits. Skipping the credits stops here.' },
-  { value: 'commercial', label: 'Advert break', hint: 'Adverts left in a recording.' },
-  { value: 'custom', label: 'Other part', hint: 'Anything else to skip: give it a name.' },
+  { value: 'intro', label: tk('Intro'), hint: tk('The opening titles or theme song.') },
+  { value: 'recap', label: tk('Recap'), hint: tk('“Previously on…”') },
+  { value: 'credits', label: tk('Credits'), hint: tk('The end credits. Leave the end empty if they run to the end.') },
+  { value: 'preview', label: tk('Preview'), hint: tk('A look at the next episode.') },
+  { value: 'postcredits', label: tk('After the credits'), hint: tk('A scene after the credits. Skipping the credits stops here.') },
+  { value: 'commercial', label: tk('Advert break'), hint: tk('Adverts left in a recording.') },
+  { value: 'custom', label: tk('Other part'), hint: tk('Anything else to skip: give it a name.') },
 ]
 export const segLabel = (t: string) => SEG_TYPES.find((x) => x.value === t)?.label || t
 
 export const ACTIONS: { value: SegAction; label: string; hint: string }[] = [
-  { value: 'button', label: 'Skip button', hint: 'Offers a button while it plays.' },
-  { value: 'auto', label: 'Skip by itself', hint: 'Skips it without a press, for anyone who allows that in their settings.' },
-  { value: 'mark', label: 'Only mark it', hint: 'Shows where it is, with no button.' },
+  { value: 'button', label: tk('Skip button'), hint: tk('Offers a button while it plays.') },
+  { value: 'auto', label: tk('Skip by itself'), hint: tk('Skips it without a press, for anyone who allows that in their settings.') },
+  { value: 'mark', label: tk('Only mark it'), hint: tk('Shows where it is, with no button.') },
 ]
 export const defaultAction = (t: SegType): SegAction => (t === 'postcredits' ? 'mark' : 'button')
 export const actOf = (s: Seg): SegAction => s.action || defaultAction(s.type)
 
 export const FILTER_CATEGORIES: { value: FilterCategory; label: string }[] = [
-  { value: 'violence', label: 'Violence' }, { value: 'language', label: 'Strong language' }, { value: 'nudity', label: 'Nudity' },
-  { value: 'sex', label: 'Sex' }, { value: 'drugs', label: 'Drugs' }, { value: 'frightening', label: 'Frightening scenes' },
-  { value: 'flashing', label: 'Flashing lights' }, { value: 'discrimination', label: 'Discrimination' }, { value: 'other', label: 'Other' },
+  { value: 'violence', label: tk('Violence') }, { value: 'language', label: tk('Strong language') }, { value: 'nudity', label: tk('Nudity') },
+  { value: 'sex', label: tk('Sex') }, { value: 'drugs', label: tk('Drugs') }, { value: 'frightening', label: tk('Frightening scenes') },
+  { value: 'flashing', label: tk('Flashing lights') }, { value: 'discrimination', label: tk('Discrimination') }, { value: 'other', label: tk('Other') },
 ]
 export const filterLabel = (c: string) => FILTER_CATEGORIES.find((x) => x.value === c)?.label || c
-export const SEVERITIES = [{ value: 0, label: 'Not said' }, { value: 1, label: 'Mild' }, { value: 2, label: 'Moderate' }, { value: 3, label: 'Strong' }]
+export const SEVERITIES = [{ value: 0, label: tk('Not said') }, { value: 1, label: tk('Mild') }, { value: 2, label: tk('Moderate') }, { value: 3, label: tk('Strong') }]
 
 // The same limits as the server (pkg/wittyinfo); the server checks again.
 export const LIMITS = { segments: 1000, scenes: 1000, filters: 5000, short: 200, long: 20000, maxTime: 7 * 24 * 3600 }
@@ -78,10 +92,15 @@ export const LIMITS = { segments: 1000, scenes: 1000, filters: 5000, short: 200,
 export type Draft = {
   segments: Seg[]; absent: SegType[]; scenes: Scene[]; filters: Filter[]
   metadata: Meta; playback: Playback; notes: string; artwork: Record<string, string>
+  language: string; translations: Record<string, Translation>; subtitles: Sub[]
   rest: Record<string, unknown>
 }
 
-const KNOWN = new Set(['segments', 'absent', 'scenes', 'filters', 'metadata', 'playback', 'notes', 'artwork'])
+const KNOWN = new Set(['segments', 'absent', 'scenes', 'filters', 'metadata', 'playback', 'notes', 'artwork', 'language', 'translations', 'subtitles'])
+
+// newId gives a part an id of its own, as writers do: translations name parts by it.
+export const newId = (prefix: 'seg' | 'scene' | 'filter') => `${prefix}-${Math.random().toString(16).slice(2, 10)}`
+const withIds = <T extends { id?: string }>(l: T[], prefix: 'seg' | 'scene' | 'filter') => l.map((x) => (x.id ? x : { ...x, id: newId(prefix) }))
 
 // draftOf takes a manifest apart for editing; with none, a new one starts from what is in
 // force now (so editing starts from the times the player already uses, not from nothing).
@@ -89,12 +108,13 @@ export function draftOf(info: Manifest | null, now?: InfoAnswer['markers'] | nul
   const rest: Record<string, unknown> = {}
   for (const [k, v] of Object.entries(info || {})) if (!KNOWN.has(k)) rest[k] = v
   if (!info && now?.segments) {
-    return { segments: now.segments.map((s) => ({ type: s.kind as SegType, start: s.startSec, end: s.endSec, ...(s.label ? { label: s.label } : {}) })), absent: [], scenes: [], filters: [], metadata: {}, playback: {}, notes: '', artwork: {}, rest }
+    return { segments: now.segments.map((s) => ({ type: s.kind as SegType, start: s.startSec, end: s.endSec, ...(s.label ? { label: s.label } : {}) })), absent: [], scenes: [], filters: [], metadata: {}, playback: {}, notes: '', artwork: {}, language: '', translations: {}, subtitles: [], rest }
   }
   return {
     segments: (info?.segments || []).map((s) => ({ ...s })), absent: [...(info?.absent || [])], scenes: (info?.scenes || []).map((s) => ({ ...s })),
     filters: (info?.filters || []).map((f) => ({ ...f })), metadata: { ...(info?.metadata || {}) }, playback: { ...(info?.playback || {}) },
-    notes: info?.notes || '', artwork: { ...(info?.artwork || {}) }, rest,
+    notes: info?.notes || '', artwork: { ...(info?.artwork || {}) }, language: info?.language || '',
+    translations: JSON.parse(JSON.stringify(info?.translations || {})), subtitles: (info?.subtitles || []).map((x) => ({ ...x })), rest,
   }
 }
 
@@ -111,17 +131,90 @@ const byStart = <T extends { start: number }>(l: T[]) => [...l].sort((a, b) => a
 // manifestOf puts a draft back together as the manifest PUT sends.
 export function manifestOf(d: Draft): Manifest {
   const m: Manifest = { ...(d.rest as object), format: 'wittyinfo', version: Math.max(1, Number((d.rest as { version?: number }).version) || 1) } as Manifest
-  if (d.segments.length) m.segments = byStart(d.segments).map((s) => tidy({ ...s, end: s.end ?? undefined }) as Seg)
+  // Every part has an id once it has a translation to keep with it.
+  const ided = Object.keys(d.translations).length > 0
+  if (d.segments.length) m.segments = byStart(ided ? withIds(d.segments, 'seg') : d.segments).map((s) => tidy({ ...s, end: s.end ?? undefined }) as Seg)
   if (d.absent.length) m.absent = [...d.absent]
-  if (d.scenes.length) m.scenes = byStart(d.scenes).map((s) => tidy({ ...s, thumbnailAt: s.thumbnailAt ?? undefined }) as Scene)
-  if (d.filters.length) m.filters = byStart(d.filters).map((f) => tidy({ ...f, severity: f.severity || undefined }) as Filter)
+  if (d.scenes.length) m.scenes = byStart(ided ? withIds(d.scenes, 'scene') : d.scenes).map((s) => tidy({ ...s, thumbnailAt: s.thumbnailAt ?? undefined }) as Scene)
+  if (d.filters.length) m.filters = byStart(ided ? withIds(d.filters, 'filter') : d.filters).map((f) => tidy({ ...f, severity: f.severity || undefined }) as Filter)
   const meta = tidy(d.metadata)
   if (meta) m.metadata = meta
   const pb = tidy(d.playback)
   if (pb) m.playback = pb
   if (d.notes.trim()) m.notes = d.notes
   if (Object.keys(d.artwork).length) m.artwork = { ...d.artwork }
+  if (d.language) m.language = d.language
+  if (d.subtitles.length) m.subtitles = d.subtitles.map((x) => ({ ...x }))
+  const trs: Record<string, Translation> = {}
+  for (const [lang, tr] of Object.entries(d.translations)) {
+    const clean = cleanTranslation(tr)
+    if (clean) trs[lang] = clean
+  }
+  if (Object.keys(trs).length) m.translations = trs
   return m
+}
+
+// cleanTranslation drops what is empty from a translation; undefined when nothing is left.
+function cleanTranslation(tr: Translation): Translation | undefined {
+  const out: Translation = {}
+  for (const [k, v] of Object.entries(tr)) {
+    if (k === 'segments' || k === 'scenes' || k === 'filters') {
+      const parts: Record<string, TextPart> = {}
+      for (const [id, p] of Object.entries((v || {}) as Record<string, TextPart>)) {
+        const t = tidy({ ...p })
+        if (t) parts[id] = t
+      }
+      if (Object.keys(parts).length) out[k] = parts
+    } else if (k === 'metadata') {
+      const t = tidy({ ...(v as Meta) })
+      if (t) out.metadata = t
+    } else if (k === 'notes') {
+      if (typeof v === 'string' && v.trim()) out.notes = v
+    } else if (v != null) out[k] = v
+  }
+  return Object.keys(out).length ? out : undefined
+}
+
+// setText changes one text of a translation: a part's (kind and id) or the details' or notes.
+export function setText(d: Draft, lang: string, kind: 'segments' | 'scenes' | 'filters' | 'metadata' | 'notes', id: string, field: string, value: string): Draft {
+  const tr: Translation = { ...(d.translations[lang] || {}) }
+  if (kind === 'notes') tr.notes = value
+  else if (kind === 'metadata') tr.metadata = { ...(tr.metadata || {}), [field]: value }
+  else tr[kind] = { ...(tr[kind] || {}), [id]: { ...((tr[kind] || {})[id] || {}), [field]: value } }
+  return { ...d, translations: { ...d.translations, [lang]: tr } }
+}
+
+// ensureIds gives every part an id, so a translation can name it.
+export const ensureIds = (d: Draft): Draft => ({ ...d, segments: withIds(d.segments, 'seg'), scenes: withIds(d.scenes, 'scene'), filters: withIds(d.filters, 'filter') })
+
+// ---------------------------------------------------------------- languages
+
+// LANGUAGE_CODES: every ISO 639-1 language and the three-letter codes media often has alone,
+// as pkg/langtag (and WittyMediaPlayer's QLocale) know them. Names come from the browser, in
+// the app's language (languageLabel).
+export const LANGUAGE_CODES = ('aa ab ae af ak am an ar as av ay az ba be bg bh bi bm bn bo br bs ca ce ch co cr cs cu cv cy da de dv dz ee el en eo es et eu fa ff fi fj fo fr fy ga gd gl gn gu gv ha he hi ho hr ht hu hy hz ia id ie ig ii ik io is it iu ja jv ka kg ki kj kk kl km kn ko kr ks ku kv kw ky la lb lg li ln lo lt lu lv mg mh mi mk ml mn mr ms mt my na nb nd ne ng nl nn no nr nv ny oc oj om or os pa pi pl ps pt qu rm rn ro ru rw sa sc sd se sg si sk sl sm sn so sq sr ss st su sv sw ta te tg th ti tk tl tn to tr ts tt tw ty ug uk ur uz ve vi vo wa wo xh yi yo za zh zu ' +
+  'ast ceb cmn fil gsw haw hmn kab mni nan nds sco tlh yue wuu').split(' ')
+// Tags people often want that are a language with a region or script.
+export const COMMON_TAGS = ['en-GB', 'en-US', 'es-419', 'es-ES', 'fr-CA', 'pt-BR', 'pt-PT', 'zh-Hans', 'zh-Hant', 'sr-Latn', 'sr-Cyrl']
+
+const LANG_RE = /^[A-Za-z]{2,8}([-_][A-Za-z0-9]{1,8})*$/
+export const validLanguage = (tag: string) => tag.length <= 35 && LANG_RE.test(tag) && !(tag.length > 3 && !/[-_]/.test(tag))
+
+// canonicalLanguage writes a tag in its usual form, as the server does: "pt_br" is "pt-BR".
+export function canonicalLanguage(tag: string): string {
+  if (!validLanguage(tag)) return tag
+  const parts = tag.split(/[-_]/)
+  return [parts[0].toLowerCase(), ...parts.slice(1).map((p) => (/^[A-Za-z]{4}$/.test(p) ? p[0].toUpperCase() + p.slice(1).toLowerCase() : /^([A-Za-z]{2}|\d{3})$/.test(p) ? p.toUpperCase() : p.toLowerCase()))].join('-')
+}
+
+// languageLabel names a tag in the language the app is in ("Deutsch (Österreich)" or
+// "German (Austria)"), and keeps the code when the browser can't name it.
+export function languageLabel(tag: string, inLanguage = 'en'): string {
+  if (!tag) return ''
+  try {
+    const n = new Intl.DisplayNames([inLanguage, 'en'], { type: 'language', fallback: 'none' }).of(canonicalLanguage(tag))
+    return n && n.toLowerCase() !== tag.toLowerCase() ? `${n} (${canonicalLanguage(tag)})` : canonicalLanguage(tag)
+  } catch { return tag }
 }
 
 // changed: the draft differs from what was loaded.
@@ -168,6 +261,20 @@ export function check(d: Draft, scope: 'item' | 'season' | 'show' = 'item'): Pro
   text('metadata.overview', d.metadata.overview, LIMITS.long, out)
   if (d.metadata.year != null && (d.metadata.year < 1800 || d.metadata.year > 3000)) out.push({ where: 'metadata.year', what: 'has to be a year' })
   text('notes', d.notes, LIMITS.long, out)
+  if (d.language && !validLanguage(d.language)) out.push({ where: 'language', what: 'is not a language code' })
+  const seen = new Set<string>()
+  for (const [lang, tr] of Object.entries(d.translations)) {
+    if (!validLanguage(lang)) out.push({ where: `translations.${lang}`, what: 'is not a language code' })
+    const c = canonicalLanguage(lang)
+    if (seen.has(c)) out.push({ where: `translations.${lang}`, what: 'the same language twice' })
+    seen.add(c)
+    for (const kind of ['segments', 'scenes', 'filters'] as const) for (const [id, p] of Object.entries(tr[kind] || {})) {
+      text(`translations.${lang}.${kind}.${id}.label`, p.label, LIMITS.short, out)
+      text(`translations.${lang}.${kind}.${id}.title`, p.title, LIMITS.short, out)
+    }
+    text(`translations.${lang}.metadata.overview`, tr.metadata?.overview, LIMITS.long, out)
+    text(`translations.${lang}.notes`, tr.notes, LIMITS.long, out)
+  }
   return out
 }
 

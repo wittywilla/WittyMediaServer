@@ -546,7 +546,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
             : barAllowed() && (prefs.remoteStyle === 'bar' || prefs.remoteStyle === 'barBelow')
               ? <RemoteBar below={prefs.remoteStyle === 'barBelow'} onKey={onRemote} enabled={remoteEnabled} disc={copy} note={keysNote} form={form} />
               : <Remote onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemoteOn(false)} label={label} note={keysNote} />)}
-          {skip && <button className="btn skip-intro" onClick={(e) => { e.stopPropagation(); seek(skip.to) }}>{tx(skip.label)} ›</button>}
+          {skip && <button className="btn skip-intro" onClick={(e) => { e.stopPropagation(); seek(skip.to) }}>{skip.name ? t('Skip {name}', { name: skip.name }) : tx(skip.label)} ›</button>}
           {pickIntro && <PickIntroBar item={item} time={now} mode={pickIntro} />}
           {editInfo && user?.isAdmin && (
             <Suspense fallback={null}>

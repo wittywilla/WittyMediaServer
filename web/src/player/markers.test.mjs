@@ -55,7 +55,7 @@ const seg = (kind, startSec, endSec, action = 'button', label) => ({ kind, start
 test('segments give buttons by their action', () => {
   const m = { segments: [seg('intro', 10, 40), seg('custom', 100, 130, 'button', 'Dream sequence'), seg('preview', 1400, 1430), seg('custom', 200, 210, 'mark')] }
   assert.deepEqual(skipAt(m, 20, 1500), { kind: 'intro', label: 'Skip intro', to: 40 })
-  assert.deepEqual(skipAt(m, 101, 1500), { kind: 'custom', label: 'Skip dream sequence', to: 130 })
+  assert.deepEqual(skipAt(m, 101, 1500), { kind: 'custom', label: 'Skip dream sequence', to: 130, name: 'Dream sequence' })
   assert.deepEqual(skipAt(m, 1401, 1500), { kind: 'preview', label: 'Skip preview', to: 1430 })
   assert.equal(skipAt(m, 205, 1500), null, 'a part only marked has no button')
   // Overlapping parts: the recap wins over the intro, as before.

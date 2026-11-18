@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
+import { t, tx } from '../i18n'
 import { useEffect, useRef, useState } from 'react'
 import { announce } from '../a11y'
 import { useUserPref } from '../ui/userPrefs'
@@ -20,6 +21,7 @@ export default function ContentFilters({ video, filters, now, live, seek }: {
   const [raw] = useUserPref<unknown>(FILTER_PREFS_KEY, null)
   const prefs = filterPrefs(raw)
   const mutedByUs = useRef(false)
+  const hitWas = useRef('')
   const [note, setNote] = useState('')
   const hit = filters && filters.length ? filterAt(filters, prefs, now) : null
 
@@ -27,7 +29,7 @@ export default function ContentFilters({ video, filters, now, live, seek }: {
     const v = video.current
     if (!v) return
     if (hit?.act === 'mute') {
-      if (!v.muted) { v.muted = true; mutedByUs.current = true; setNote(`Muted: ${filterLabel(hit.filter.category).toLowerCase()}`) }
+      if (!v.muted) { v.muted = true; mutedByUs.current = true; setNote(t('Muted: {what}', { what: tx(filterLabel(hit.filter.category)) })) }
     } else if (mutedByUs.current) {
       v.muted = false
       mutedByUs.current = false
@@ -35,20 +37,20 @@ export default function ContentFilters({ video, filters, now, live, seek }: {
     }
     if (hit?.act === 'skip' && live && !v.seeking) {
       seek(hit.filter.end)
-      const words = `Skipped: ${filterLabel(hit.filter.category).toLowerCase()}`
+      const words = t('Skipped: {what}', { what: tx(filterLabel(hit.filter.category)) })
       setNote(words)
       announce(words + '.')
     }
-    if (hit?.act === 'warn') setNote(`Coming up: ${filterLabel(hit.filter.category).toLowerCase()}${hit.filter.label ? ` (${hit.filter.label})` : ''}`)
+    if (hit?.act === 'warn') setNote(hit.filter.label ? t('Now: {what} ({label})', { what: tx(filterLabel(hit.filter.category)), label: hit.filter.label }) : t('Now: {what}', { what: tx(filterLabel(hit.filter.category)) }))
   }, [hit?.act, hit?.filter.start, live]) // eslint-disable-line react-hooks/exhaustive-deps
   // Leaving the player gives the sound back.
   useEffect(() => () => { if (mutedByUs.current && video.current) video.current.muted = false }, []) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!note || hit?.act === 'mute' || hit?.act === 'warn') return
-    const t = setTimeout(() => setNote(''), 4000)
-    return () => clearTimeout(t)
+    const tm = setTimeout(() => setNote(''), 4000)
+    return () => clearTimeout(tm)
   }, [note, hit?.act])
-  useEffect(() => { if (!hit && note.startsWith('Coming up')) setNote('') }, [hit, note])
+  useEffect(() => { if (!hit && hitWas.current === 'warn') setNote(''); hitWas.current = hit?.act || '' }, [hit, note])
   if (!note) return null
   return <div className="auto-skip content-note" role="status">{note}</div>
 }

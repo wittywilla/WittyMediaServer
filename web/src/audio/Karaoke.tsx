@@ -6,22 +6,29 @@ import { HelpLink } from '../components/HelpLink'
 import { IconClose, IconFull, IconNext, IconPause, IconPlay, IconPrev } from '../icons'
 import { lineAt, ownTiming, useLineIndex, wordTimes, type LyricLine, type useLyrics } from './lyrics'
 import { KaraokeStemsControl, useKaraokeStems } from './KaraokeStems'
-import { soundGraph } from './sound'
+import { Pop } from './controls'
+import { VoiceFxPanel } from './VoiceFxPanel'
+import { isOff } from './voiceFx'
+import { KAR_PARTS } from './stemMix'
 import type { PlayerView } from './types'
-import { num, t, tk, tx } from '../i18n'
+import { num, t, tx } from '../i18n'
 
 // Karaoke. Big words that fill in as they're sung, a count-in before each line after a
-// break, the next line waiting below, the voice turned down, and the key moved to suit the
-// singer. Made to read from across a room, and to work from a TV remote: arrows change line
+// break, the next line waiting below, the server's karaoke version with the voice turned
+// down, and the key moved to suit the singer. Made to read from across a room, and to work from a TV remote: arrows change line
 // on the screen itself, and move between the controls once you're on them.
 
-const VOCALS = [{ v: 0, name: tk('Voice on') }, { v: 0.6, name: tk('Voice lower') }, { v: 1, name: tk('Voice lowest') }]
 const COUNT_FROM_MS = 3000 // the count-in before a line
 const LONG_GAP_MS = 5000 // a break long enough to count back in from
 
 const NO_LINES: LyricLine[] = []
 
-export default function Karaoke({ p, ly, onClose, behind, choice }: { p: PlayerView; ly: ReturnType<typeof useLyrics>; onClose: () => void; behind?: ReactNode; choice?: ReactNode }) {
+const NO_HIDE: string[] = []
+
+// cover: the album's cover, '' for none. coverBeside: the setting that shows it at the side of the words (beside them on
+// a wide screen and a TV, above them on a phone held upright), kept with the music player's other settings. hide: the parts of the bar (KAR_PARTS) the
+// person has hidden, kept there too.
+export default function Karaoke({ p, ly, onClose, behind, choice, cover = '', coverBeside = false, onCoverBeside, hide = NO_HIDE, onHide }: { p: PlayerView; ly: ReturnType<typeof useLyrics>; onClose: () => void; behind?: ReactNode; choice?: ReactNode; cover?: string; coverBeside?: boolean; onCoverBeside?: (on: boolean) => void; hide?: string[]; onHide?: (hide: string[]) => void }) {
   const { lyrics, loading, setOffset } = ly
   const lines = lyrics?.synced ? lyrics.lines : NO_LINES
   const offset = lyrics?.offsetMs || 0
@@ -33,15 +40,16 @@ export default function Karaoke({ p, ly, onClose, behind, choice }: { p: PlayerV
   const timedWords = !!nowLine?.words?.length
   const wordEls = useRef<(HTMLSpanElement | null)[]>([])
   const [count, setCount] = useState(0)
-  const [mono, setMono] = useState(false)
   // Words fill in as they are sung (Follow along), or the whole text to read at your own pace (Read).
   const [mode, setMode] = useState<'follow' | 'read'>('follow')
+  const [fxOpen, setFxOpen] = useState(false)
   const readWords = lyrics?.plain || lines.map((l) => l.text).join('\n')
   const stems = useKaraokeStems(p)
+  const sideCover = coverBeside && cover ? cover : ''
 
   useEffect(() => { root.current?.focus({ preventScroll: true }) }, [])
-  // Coming back, the voice and key are as they were: this was for the song, not for good.
-  useEffect(() => () => { p.setSound({ vocalCut: 0, keyShift: 0 }) }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  // Coming back, the key is as it was: this was for the song, not for good.
+  useEffect(() => () => { p.setSound({ keyShift: 0 }) }, []) // eslint-disable-line react-hooks/exhaustive-deps
   // The fill and the count-in, a frame at a time: written straight to the page, as React
   // has no need to know about either, and a cheap TV has better things to do.
   useEffect(() => {
@@ -71,13 +79,6 @@ export default function Karaoke({ p, ly, onClose, behind, choice }: { p: PlayerV
     return () => cancelAnimationFrame(raf)
   }, [words, lines, offset, p.position])
 
-  // Whether there's a voice to take away at all, while it's trying to.
-  useEffect(() => {
-    if (!p.sound.vocalCut) { setMono(false); return }
-    const t = setInterval(() => { const m = soundGraph()?.nearlyMono(); if (m !== null && m !== undefined) setMono(m) }, 1500)
-    return () => clearInterval(t)
-  }, [p.sound.vocalCut])
-
   const goLine = (d: number) => {
     const to = lines[Math.max(0, index + d)]
     if (to) p.seek(Math.max(0, (to.t + offset) / 1000))
@@ -97,6 +98,7 @@ export default function Karaoke({ p, ly, onClose, behind, choice }: { p: PlayerV
       switch (e.key) {
         case 'Escape': case 'GoBack': case 'BrowserBack':
           consume()
+          if (fxOpen) { setFxOpen(false); root.current?.querySelector<HTMLElement>('.kar-fx-btn')?.focus({ preventScroll: true }); return }
           if (document.fullscreenElement === root.current) void document.exitFullscreen().catch(() => {})
           onClose()
           return
@@ -109,7 +111,7 @@ export default function Karaoke({ p, ly, onClose, behind, choice }: { p: PlayerV
       }
       if (t.tagName === 'INPUT' || t.tagName === 'SELECT') return
       switch (e.key.toLowerCase()) {
-        case 'v': consume(); if (stems.active) { stems.setSing(!stems.sing); return } p.setSound({ vocalCut: VOCALS[(VOCALS.findIndex((x) => x.v === p.sound.vocalCut) + 1) % VOCALS.length].v }); return
+        case 'v': consume(); if (stems.active) stems.setSing(!stems.sing); return
         case '-': consume(); setKey(p.sound.keyShift - 1); return
         case '+': case '=': consume(); setKey(p.sound.keyShift + 1); return
         case '[': consume(); setOffset(offset - 100); return
@@ -134,9 +136,16 @@ export default function Karaoke({ p, ly, onClose, behind, choice }: { p: PlayerV
         <button type="button" className="mp-ibtn" onClick={fullscreen} aria-label={t('Fill the screen (F)')} title={t('Fill the screen (F)')}><IconFull /></button>
         <button type="button" className="mp-ibtn" onClick={onClose} aria-label={t('Leave karaoke (Esc)')} title={t('Leave karaoke (Esc)')}><IconClose /></button>
       </header>
-      {choice && <div className="kar-choice"><span className="kar-choice-l">{t('Behind the words')}</span>{choice}</div>}
+      {(choice || (cover && onCoverBeside)) && (
+        <div className="kar-choice">
+          {choice && <><span className="kar-choice-l">{t('Behind the words')}</span>{choice}</>}
+          {cover && onCoverBeside && <button type="button" className={'kar-chip kar-cover-chip' + (coverBeside ? ' on' : '')} aria-pressed={coverBeside} onClick={() => onCoverBeside(!coverBeside)}>{t('Album art beside the words')}</button>}
+        </div>
+      )}
 
-      <main className="kar-stage">
+      <main className={'kar-stage' + (sideCover ? ' with-cover' : '')}>
+        {sideCover && <img className="kar-cover" src={sideCover} alt="" draggable={false} decoding="async" />}
+        <div className="kar-lyrics">
         {mode === 'read' && readWords ? <pre className="kar-read" tabIndex={0}>{readWords}</pre>
           : !lyrics || loading ? <p className="kar-msg">{t('Looking for the words…')}</p>
           : lines.length === 0 ? (
@@ -158,6 +167,7 @@ export default function Karaoke({ p, ly, onClose, behind, choice }: { p: PlayerV
               <span className="mp-sr" aria-live="polite">{nowLine?.text || ''}</span>
             </>
           )}
+        </div>
       </main>
 
       <footer className="kar-bar" role="toolbar" aria-label={t('Karaoke controls')}>
@@ -165,33 +175,40 @@ export default function Karaoke({ p, ly, onClose, behind, choice }: { p: PlayerV
         <button type="button" className="kar-play" onClick={p.toggle} aria-label={p.playing ? t('Pause') : t('Play')}>{p.playing ? <IconPause size={30} /> : <IconPlay size={30} />}</button>
         <button type="button" className="mp-ibtn" onClick={() => goLine(1)} aria-label={t('Next line')}><IconNext /></button>
         <span className="kar-rule" aria-hidden="true" />
-        {stems.active ? <KaraokeStemsControl k={stems} /> : (
-          <div className="kar-seg" role="radiogroup" aria-label={t('Singer’s voice')}>
-            {VOCALS.map((x) => <button type="button" role="radio" key={x.v} aria-checked={p.sound.vocalCut === x.v} className={p.sound.vocalCut === x.v ? 'on' : ''} onClick={() => p.setSound({ vocalCut: x.v })}>{tx(x.name)}</button>)}
-          </div>
-        )}
-        <div className="kar-stepper" role="group" aria-label={t('Musical key')}>
+        <KaraokeStemsControl k={stems} hide={hide} />
+        {!hide.includes('key') && <div className="kar-stepper" role="group" aria-label={t('Musical key')}>
           <button type="button" onClick={() => setKey(p.sound.keyShift - 1)} disabled={p.sound.keyShift <= -6} aria-label={t('Lower key')}>−</button>
           <span aria-live="polite">{t('Key {n}', { n: (p.sound.keyShift > 0 ? '+' : '') + p.sound.keyShift })}</span>
           <button type="button" onClick={() => setKey(p.sound.keyShift + 1)} disabled={p.sound.keyShift >= 6} aria-label={t('Raise key')}>+</button>
-        </div>
-        <div className="kar-stepper" role="group" aria-label={t('Timing of the words')}>
+        </div>}
+        {!hide.includes('timing') && <div className="kar-stepper" role="group" aria-label={t('Timing of the words')}>
           <button type="button" onClick={() => setOffset(offset - 100)} aria-label={t('Words sooner')}>−</button>
           <span aria-live="polite">{offset === 0 ? t('Words on time') : t('Words {n} s', { n: (offset > 0 ? '+' : '') + num(offset / 1000, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) })}{lyrics?.autoSync === 'set' && offset === ownTiming(lyrics) ? ' ' + t('(by listening)') : ''}</span>
           <button type="button" onClick={() => setOffset(offset + 100)} aria-label={t('Words later')}>+</button>
-        </div>
+        </div>}
+        {!hide.includes('fx') && <button type="button" className={'kar-chip kar-fx-btn' + (fxOpen || !isOff(stems.fx) ? ' on' : '')} aria-expanded={fxOpen} onClick={() => setFxOpen(!fxOpen)} title={t('Echo, reverb, tone and more, for the voice and the music')}>{t('Voice settings')}</button>}
+        {onHide && (
+          <Pop up label={hide.length ? t('Controls shown: {shown} of {total}', { shown: KAR_PARTS.length - hide.length, total: KAR_PARTS.length }) : t('Choose the controls shown')} className={'np-chip-pop kar-show' + (hide.length ? ' on' : '')} icon={<span>{t('Controls')}</span>}>
+            {() => (
+              <div className="mp-menu" role="menu" aria-label={t('Controls shown')}>
+                <span className="mp-menu-note">{t('Show these controls')}</span>
+                {KAR_PARTS.map((c) => {
+                  const shown = !hide.includes(c.id)
+                  return <button type="button" key={c.id} role="menuitemcheckbox" aria-checked={shown} className={shown ? 'on' : ''} onClick={() => onHide(shown ? [...hide, c.id] : hide.filter((h) => h !== c.id))}>{tx(c.label)}</button>
+                })}
+              </div>
+            )}
+          </Pop>
+        )}
       </footer>
+      {fxOpen && <VoiceFxPanel fx={stems.fx} onFx={stems.setFx} ready={stems.active} quick={stems.answer?.mix === 'blend'} onClose={() => { setFxOpen(false); root.current?.querySelector<HTMLElement>('.kar-fx-btn')?.focus({ preventScroll: true }) }} />}
       <p className="kar-note">
-        {p.soundNote || tx(stems.note) || (mono
-          ? t('This recording is close to mono, so there’s no way to separate the voice from it.')
-          : p.sound.vocalCut > 0
-            ? t('The voice is turned down by removing what’s in the middle of the mix. Echoes of it, and songs that spread it wide, will still come through.')
-            : p.sound.keyShift !== 0 ? t('A changed key can warble a little on long notes.')
-              : lines.length > 0 && !timedWords ? t('Lines are timed; the fill within a line is an estimate.') : ' ')}
+        {p.soundNote || (stems.waiting ? '' : stems.note) || (p.sound.keyShift !== 0 ? t('A changed key can warble a little on long notes.')
+          : lines.length > 0 && !timedWords ? t('Lines are timed; the fill within a line is an estimate.') : ' ')}
       </p>
       {/* The keys karaoke answers, said as the player says its own (they were there, but nowhere to be seen). */}
       <p className="np-hints kar-hints" aria-hidden="true">
-        <kbd>Esc</kbd> {t('back')} · <kbd>{t('Space')}</kbd> {t('play or pause')} · <kbd>←</kbd> <kbd>→</kbd> {t('previous or next line')} · <kbd>V</kbd> {stems.active ? t('voice on or off') : t('voice lower')} · <kbd>−</kbd> <kbd>+</kbd> {t('key')} · <kbd>[</kbd> <kbd>]</kbd> {t('words sooner or later')} · <kbd>F</kbd> {t('full screen')}
+        <kbd>Esc</kbd> {t('back')} · <kbd>{t('Space')}</kbd> {t('play or pause')} · <kbd>←</kbd> <kbd>→</kbd> {t('previous or next line')} · <kbd>V</kbd> {t('voice on or off')} · <kbd>−</kbd> <kbd>+</kbd> {t('key')} · <kbd>[</kbd> <kbd>]</kbd> {t('words sooner or later')} · <kbd>F</kbd> {t('full screen')}
       </p>
     </div>
   )

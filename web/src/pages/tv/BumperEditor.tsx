@@ -1,18 +1,26 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { api, fmtRuntime, mediaUrlQ, type Item } from '../../api'
 import { IconPlus, IconSearch, IconTrash } from '../../icons'
 import { toast } from '../../state'
 import { ask, Button, Dialog, IconButton, Input, Switch } from '../../ui'
 import { Section } from '../settings/ui'
-import { uploadBumper, type Bumper, type BumperPlan, type BumperRule, type BumperWhen, type Definition, type EditorOptions, type Rules, type Trim, type TrimChoice } from './tvApi'
+import { channelVideos, uploadBumper, type Bumper, type VideoPage, type BumperPlan, type BumperRule, type BumperWhen, type Definition, type EditorOptions, type Rules, type Trim, type TrimChoice } from './tvApi'
 import './tveditor.css'
 import { ACCEPT_VIDEO } from '../../mediaTypes.generated'
-import { t, tk, tn } from '../../i18n'
+import { LibraryPicks, useShortLibraries, VideoPicker } from './VideoPicks'
+import { num, t, tk, tn } from '../../i18n'
 
 // Bumpers, in sentences: a rule reads as "Before each programme, play one of these,
-// always". The library is shared between channels; each channel has its own rules.
+// always". Each channel chooses its bumper libraries and its own rules; uploads
+// and picks from other libraries are shared between channels.
+
+const OWN_PAGE = 12
+
+// emptyRules: the rules choose nothing in particular, as the server sees it.
+const emptyRules = (r: Rules) => Object.values(r).every((v) => v == null || v === false || v === '' || v === 0 || (Array.isArray(v) && v.length === 0))
 
 const newRuleId = () => 'r' + Math.random().toString(36).slice(2, 9)
 const WHEN: { v: BumperWhen; label: string }[] = [
@@ -20,10 +28,21 @@ const WHEN: { v: BumperWhen; label: string }[] = [
   { v: 'between', label: tk('Between commercials') }, { v: 'every', label: tk('In a break, every…') },
 ]
 
-export function BumperLibrary({ bumpers, reload }: { bumpers: Bumper[] | null; reload: () => void }) {
+// BumperLibrary is the shared list of uploads and videos chosen from other
+// libraries: a count on the page, and the list a page at a time in a dialog.
+export function BumperLibrary() {
   const file = useRef<HTMLInputElement | null>(null)
   const [busy, setBusy] = useState(false)
-  const [finding, setFinding] = useState(false)
+  const [view, setView] = useState<'' | 'list' | 'find'>('')
+  const [offset, setOffset] = useState(0)
+  const [page, setPage] = useState<VideoPage | null>(null)
+  const [tick, setTick] = useState(0)
+  const reload = () => setTick((n) => n + 1)
+  useEffect(() => {
+    let live = true
+    channelVideos({ own: true, offset, limit: OWN_PAGE }).then((r) => { if (live) setPage(r) }).catch((e) => toast((e as Error).message))
+    return () => { live = false }
+  }, [offset, tick])
   const upload = async (files: FileList | null) => {
     if (!files?.length) return
     setBusy(true)
@@ -42,32 +61,45 @@ export function BumperLibrary({ bumpers, reload }: { bumpers: Bumper[] | null; r
     if (b.uploaded && !await ask({ title: t('Delete “{title}”?', { title: b.title }), body: t('The file you uploaded goes too, and any channel using it stops playing it.'), confirm: t('Delete'), danger: true })) return
     try { await api.del(`/channels/bumpers/item/${b.itemId}`); reload() } catch (e) { toast((e as Error).message) }
   }
+  const total = page?.total || 0
   return (
-    <>
-      <div className="tvs-toolbar">
-        <Button size="sm" variant="primary" icon={<IconPlus />} busy={busy} onClick={() => file.current?.click()}>{busy ? t('Uploading…') : t('Upload videos')}</Button>
-        <input ref={file} hidden type="file" accept={"video/*," + ACCEPT_VIDEO} multiple onChange={(e) => void upload(e.target.files)} />
-        <Button size="sm" icon={<IconSearch size={16} />} aria-haspopup="dialog" onClick={() => setFinding(true)}>{t('Choose from my media')}</Button>
-      </div>
-      {bumpers && bumpers.length === 0 && <p className="muted">{t('Nothing here yet. Upload a short video, or choose one you already have. Anything in a Commercials library also appears here.')}</p>}
-      {bumpers && bumpers.length > 0 && (
-        <ul className="tve-bumpers">
-          {bumpers.map((b) => (
-            <li key={b.itemId} className="tve-bumper">
-              <img src={mediaUrlQ(`/api/items/${b.itemId}/poster`, `v=${b.updatedAt}`)} alt="" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.visibility = 'hidden' }} />
-              <div className="tve-bumper-text">
-                <b title={b.title}>{b.title}</b>
-                <span>{fmtRuntime(b.durationSec)} · {b.uploaded ? t('Uploaded') : b.library}</span>
-              </div>
-              {(b.uploaded || b.chosen) && <IconButton size="sm" onClick={() => void remove(b)} label={t('Remove {name}', { name: b.title })}><IconTrash size={16} /></IconButton>}
-            </li>
-          ))}
-        </ul>
-      )}
-      {finding && <MediaFinder onClose={() => setFinding(false)} onPick={async (it) => {
+    <div className="tve-vpick">
+      <span><b>{t('Your uploads and picks')}</b><span className="tvs-count"> · {page ? num(total) : '…'}</span></span>
+      <Button size="sm" aria-haspopup="dialog" onClick={() => setView('list')}>{t('Manage…')}</Button>
+      <input ref={file} hidden type="file" accept={"video/*," + ACCEPT_VIDEO} multiple onChange={(e) => void upload(e.target.files)} />
+      {view === 'list' && <Dialog className="tve-vpick-dialog" title={t('Your uploads and picks')} onClose={() => setView('')} actions={<Button variant="primary" onClick={() => setView('')}>{t('Done')}</Button>}>
+        <p className="muted tve-sub">{t('Shared by every channel. Uploads go into the commercials library called WittyTV bumpers: tick it under Bumper libraries to use them here.')}</p>
+        <div className="tvs-toolbar">
+          <Button size="sm" variant="primary" icon={<IconPlus />} busy={busy} onClick={() => file.current?.click()}>{busy ? t('Uploading…') : t('Upload videos')}</Button>
+          <Button size="sm" icon={<IconSearch size={16} />} aria-haspopup="dialog" onClick={() => setView('find')}>{t('Choose from my media')}</Button>
+        </div>
+        {page && total === 0 && <p className="muted">{t('Nothing here yet. Upload a short video, or choose one you already have.')}</p>}
+        {page && page.items.length > 0 && (
+          <ul className="tve-bumpers">
+            {page.items.map((b) => (
+              <li key={b.itemId} className="tve-bumper">
+                <img src={mediaUrlQ(`/api/items/${b.itemId}/poster`, `v=${b.updatedAt}`)} alt="" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.visibility = 'hidden' }} />
+                <div className="tve-bumper-text">
+                  <b title={b.title}>{b.title}</b>
+                  <span>{fmtRuntime(b.durationSec)} · {b.uploaded ? t('Uploaded') : b.library}</span>
+                </div>
+                <IconButton size="sm" onClick={() => void remove(b)} label={t('Remove {name}', { name: b.title })}><IconTrash size={16} /></IconButton>
+              </li>
+            ))}
+          </ul>
+        )}
+        {total > OWN_PAGE && (
+          <div className="tve-vpick-pages">
+            <Button size="sm" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - OWN_PAGE))}>{t('Previous')}</Button>
+            <span className="tvs-dim">{t('{from}–{to} of {total}', { from: num(offset + 1), to: num(Math.min(offset + OWN_PAGE, total)), total: num(total) })}</span>
+            <Button size="sm" disabled={offset + OWN_PAGE >= total} onClick={() => setOffset(offset + OWN_PAGE)}>{t('Next')}</Button>
+          </div>
+        )}
+      </Dialog>}
+      {view === 'find' && <MediaFinder onClose={() => setView('list')} onPick={async (it) => {
         try { await api.post('/channels/bumpers', { itemId: it.id }); toast(t('{title} added', { title: it.title })); reload() } catch (e) { toast((e as Error).message) }
       }} />}
-    </>
+    </div>
   )
 }
 
@@ -117,11 +149,13 @@ function Chips({ label, options, value, onChange }: { label: string; options: { 
 type OnlyKind = '' | 'films' | 'shows' | 'genres' | 'collections'
 const onlyKindOf = (r?: Rules): OnlyKind => (!r ? '' : r.items?.length ? 'films' : r.shows?.length ? 'shows' : r.genres?.length ? 'genres' : r.collections?.length ? 'collections' : 'films')
 
-function RuleCard({ rule, n, bumpers, opts, films, up, remove }: { rule: BumperRule; n: number; bumpers: Bumper[]; opts: EditorOptions; films: { id: number; title: string }[]; up: (p: Partial<BumperRule>) => void; remove: () => void }) {
+function RuleCard({ rule, n, sources, opts, films, up, remove }: { rule: BumperRule; n: number; sources: number[]; opts: EditorOptions; films: { id: number; title: string }[]; up: (p: Partial<BumperRule>) => void; remove: () => void }) {
   const [onlyKind, setOnlyKind] = useState<OnlyKind>(onlyKindOf(rule.only))
   const label = rule.name || t('Rule {n}', { n })
-  const chosen = (rule.source.items || []).map(String)
-  const empty = chosen.length === 0 && !rule.source.libraries?.length && !rule.source.clips?.length
+  const chosen = rule.source.items || []
+  // A rule that names no videos of its own plays the channel's bumper libraries.
+  const [own, setOwn] = useState(!emptyRules(rule.source))
+  const otherSource = !!(rule.source.libraries?.length || rule.source.clips?.length)
   const setOnly = (k: OnlyKind) => { setOnlyKind(k); up({ only: k === '' ? undefined : {} }) }
   return (
     <li className={'tve-rule' + (rule.off ? ' off' : '')}>
@@ -153,10 +187,14 @@ function RuleCard({ rule, n, bumpers, opts, films, up, remove }: { rule: BumperR
           </select>
         </label>
       </div>
-      {bumpers.length > 0
-        ? <Chips label={t('Videos (they take turns)')} options={bumpers.map((b) => ({ v: String(b.itemId), label: `${b.title} (${fmtRuntime(b.durationSec)})` }))} value={chosen} onChange={(v) => up({ source: { ...rule.source, items: v.map(Number) } })} />
-        : <p className="muted">{t('Add a video to the bumper library first.')}</p>}
-      {empty && bumpers.length > 0 && <p className="tvs-note" role="status">{t('Choose at least one video, or this rule plays nothing.')}</p>}
+      <div className="tvs-days" role="radiogroup" aria-label={t('Videos for {name}', { name: label })}>
+        <button type="button" role="radio" aria-checked={!own} className={'tvs-day' + (!own ? ' on' : '')} onClick={() => { setOwn(false); up({ source: {} }) }}>{t('Any from the bumper libraries')}</button>
+        <button type="button" role="radio" aria-checked={own} className={'tvs-day' + (own ? ' on' : '')} onClick={() => setOwn(true)}>{t('Only these…')}</button>
+      </div>
+      {!own && sources.length === 0 && <p className="tvs-note" role="status">{t('This channel has no bumper libraries yet, so this rule plays nothing. Choose some above.')}</p>}
+      {own && otherSource && <p className="muted tve-sub">{t('This rule also uses videos chosen another way, which it keeps.')}</p>}
+      {own && <VideoPicker label={t('Videos (they take turns)')} libraries={sources} own value={chosen} onChange={(v) => up({ source: { ...rule.source, items: v.length ? v : undefined } })} />}
+      {own && chosen.length === 0 && !otherSource && <p className="tvs-note" role="status">{t('None chosen yet, so this rule plays any from the bumper libraries.')}</p>}
       {onlyKind === 'films' && <Chips label={t('Only with these films')} options={films.map((f) => ({ v: String(f.id), label: f.title }))} value={(rule.only?.items || []).map(String)} onChange={(v) => up({ only: { items: v.map(Number) } })} />}
       {onlyKind === 'shows' && <Chips label={t('Only with these shows')} options={opts.shows.map((s) => ({ v: String(s.id), label: s.title }))} value={(rule.only?.shows || []).map(String)} onChange={(v) => up({ only: { shows: v.map(Number) } })} />}
       {onlyKind === 'genres' && <Chips label={t('Only with these genres')} options={opts.genres.map((g) => ({ v: g, label: g }))} value={rule.only?.genres || []} onChange={(v) => up({ only: { genres: v } })} />}
@@ -176,10 +214,8 @@ const TRIM_BUMPERS: { v: TrimChoice; label: string }[] = [
 const TAILS = [{ v: 0, label: tk('Never') }, { v: 30, label: tk('Up to 30 seconds') }, { v: 60, label: tk('Up to 1 minute') }, { v: 120, label: tk('Up to 2 minutes') }, { v: 300, label: tk('Up to 5 minutes') }]
 
 export function BumperSection({ def, setDef, opts, id }: { def: Definition; setDef: (p: Partial<Definition>) => void; opts: EditorOptions; id?: string }) {
-  const [bumpers, setBumpers] = useState<Bumper[] | null>(null)
   const [films, setFilms] = useState<{ id: number; title: string }[]>([])
-  const load = () => { api.get<Bumper[]>('/channels/bumpers').then(setBumpers).catch((e) => toast(e.message)) }
-  useEffect(load, [])
+  const shortLibs = useShortLibraries()
   useEffect(() => {
     api.get<{ items: Item[] }>('/items?noEpisodes=1&limit=1000&sort=title').then((r) => setFilms(r.items.map((i) => ({ id: i.id, title: i.title })))).catch(() => {})
   }, [])
@@ -191,16 +227,28 @@ export function BumperSection({ def, setDef, opts, id }: { def: Definition; setD
   const trim: Trim = plan.trim || {}
   const setTrim = (p: Partial<Trim>) => setPlan({ trim: { ...trim, ...p } })
   const noGrid = !def.alignMin && !(def.blocks || []).length
+  const libs = plan.libraries || []
+  const adLibs = def.filler?.commercials || []
+  // What a rule's "Only these" chooses from: the bumper libraries, and the
+  // commercials too when they may be bumpers. The shared list is always there.
+  const sources = [...new Set([...libs, ...(plan.fromCommercials ? adLibs : [])].map((p) => p.library))]
+  const count = libs.reduce((n, p) => n + (p.only ? (p.items || []).length : shortLibs.find((l) => l.id === p.library)?.itemCount || 0), 0)
   return (
     <>
       <Section id={id} title={tk('Bumpers')} desc={t('Short videos around your programmes: a station ident before each one, a sting before one particular film, a break every 15 minutes.')}>
-        <h3 className="tvs-h3">{t('The bumper library')}</h3>
-        <p className="muted tve-sub">{t('Shared by every channel.')}</p>
-        <BumperLibrary bumpers={bumpers} reload={load} />
+        <h3 className="tvs-h3">{t('Bumper libraries')}</h3>
+        <p className="muted tve-sub">{libs.length === 0 ? t('None chosen yet. Bumpers come from these, and commercials from the commercials libraries.') : t('{libraries}, {videos}.', { libraries: tn('{count} library', '{count} libraries', libs.length), videos: tn('{count} video', '{count} videos', count) })}</p>
+        {shortLibs.length === 0
+          ? <p className="muted">{t('You have no commercials library yet: bumpers live in one too.')} <Link to="/settings/libraries">{t('Add one under Libraries')}</Link>. {t('Or upload a video below.')}</p>
+          : <LibraryPicks label={t('Bumper libraries')} picks={libs} onChange={(next) => setPlan({ libraries: next.length ? next : undefined })} note={(lid) => (adLibs.some((p) => p.library === lid) ? t('a commercials library here') : '')} />}
+        <label className="check-row">
+          <input type="checkbox" checked={!!plan.fromCommercials} onChange={(e) => setPlan({ fromCommercials: e.target.checked || undefined })} /> {t('Bumpers may also come from the commercials libraries')}
+        </label>
+        <BumperLibrary />
         <h3 className="tvs-h3">{t('Rules for this channel')}</h3>
         {rules.length === 0 && <p className="muted">{t('No rules yet, so no bumpers play on this channel.')}</p>}
         <ul className="tve-rules">
-          {rules.map((r, i) => <RuleCard key={r.id} rule={r} n={i + 1} bumpers={bumpers || []} opts={opts} films={films} up={(p) => setRule(r.id, p)} remove={() => setPlan({ rules: rules.filter((x) => x.id !== r.id) })} />)}
+          {rules.map((r, i) => <RuleCard key={r.id} rule={r} n={i + 1} sources={sources} opts={opts} films={films} up={(p) => setRule(r.id, p)} remove={() => setPlan({ rules: rules.filter((x) => x.id !== r.id) })} />)}
         </ul>
         <div className="tvs-toolbar">
           <Button size="sm" icon={<IconPlus />} onClick={() => addRule({ when: 'before', name: t('Ident before every programme'), mandatory: true })}>{t('Before every programme')}</Button>

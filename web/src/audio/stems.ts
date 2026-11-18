@@ -2,11 +2,36 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { getToken, mediaUrl, serverBase } from '../api'
 import { canRoute, openGraph, type SoundGraph } from './sound'
-import { drifted, startPlan, streamedParts, streamStep, type Stem } from './stemMix'
+import { drifted, startPlan, streamedParts, streamStep, type Route, type Stem } from './stemMix'
+import { FxChain } from './fxChain'
+import type { Fx } from './voiceFx'
 import { t } from '../i18n'
 
 // What plays a song's parts, whichever way it does it.
-export interface StemPlayer { setGains(gains: Record<string, number>, volume: number): void; close(): void }
+// setRoutes: how much of each part goes to the voice's chain and to the music's (stemMix.routesFor); setFx: the voice
+// settings those chains apply (voiceFx.ts).
+export interface StemPlayer { setRoutes(routes: Record<string, Route>, volume: number): void; setFx(fx: Fx): void; close(): void }
+
+// A part's two sends, silent until the first setRoutes.
+type Sends = { voice: GainNode; music: GainNode }
+function sends(ctx: AudioContext, fx: FxChain): Sends & { input: GainNode } {
+  const input = ctx.createGain()
+  const voice = ctx.createGain(), music = ctx.createGain()
+  voice.gain.value = 0
+  music.gain.value = 0
+  input.connect(voice).connect(fx.voice)
+  input.connect(music).connect(fx.music)
+  return { input, voice, music }
+}
+function route(ctx: AudioContext, all: Map<string, Sends>, routes: Record<string, Route>, out: GainNode, volume: number) {
+  const now = ctx.currentTime
+  for (const [id, s] of all) {
+    const r = routes[id] || { voice: 0, music: 0 }
+    s.voice.gain.setTargetAtTime(r.voice, now, 0.03)
+    s.music.gain.setTargetAtTime(r.music, now, 0.03)
+  }
+  out.gain.setTargetAtTime(volume, now, 0.03)
+}
 
 // Plays a song's separate parts in place of the song. The song's own <audio> keeps
 // playing, unheard, and stays in charge: lyrics, seeking, pausing, the lock screen and
@@ -25,6 +50,8 @@ async function fetchSound(ctx: AudioContext, url: string, signal: AbortSignal): 
 
 export class StemSet implements StemPlayer {
   private gains = new Map<string, GainNode>()
+  private sends = new Map<string, Sends>()
+  private fx: FxChain
   private sources: AudioBufferSourceNode[] = []
   private out: GainNode
   private startAt = 0
@@ -38,11 +65,11 @@ export class StemSet implements StemPlayer {
     const ctx = g.ctx
     this.out = ctx.createGain()
     this.out.connect(g.stemIn)
+    this.fx = new FxChain(ctx, this.out)
     for (const id of buffers.keys()) {
-      const gain = ctx.createGain()
-      gain.gain.value = 0
-      gain.connect(this.out)
-      this.gains.set(id, gain)
+      const s = sends(ctx, this.fx)
+      this.gains.set(id, s.input)
+      this.sends.set(id, s)
     }
     for (const ev of ['play', 'playing', 'pause', 'seeking', 'seeked', 'waiting', 'ratechange', 'ended', 'emptied']) el.addEventListener(ev, this.onEvent)
     this.timer = window.setInterval(() => this.watch(), 2000)
@@ -67,11 +94,9 @@ export class StemSet implements StemPlayer {
     return new StemSet(g, el, new Map(stems.map((s, i) => [s.id, list[i]])))
   }
 
-  setGains(gains: Record<string, number>, volume: number) {
-    const now = this.g.ctx.currentTime
-    for (const [id, node] of this.gains) node.gain.setTargetAtTime(gains[id] ?? 0, now, 0.03)
-    this.out.gain.setTargetAtTime(volume, now, 0.03)
-  }
+  setRoutes(routes: Record<string, Route>, volume: number) { route(this.g.ctx, this.sends, routes, this.out, volume) }
+
+  setFx(fx: Fx) { this.fx.set(fx) }
 
   private stopSources() {
     for (const s of this.sources) { try { s.stop() } catch { /* never started */ } s.disconnect() }
@@ -117,6 +142,7 @@ export class StemSet implements StemPlayer {
     window.clearInterval(this.timer)
     for (const ev of ['play', 'playing', 'pause', 'seeking', 'seeked', 'waiting', 'ratechange', 'ended', 'emptied']) this.el.removeEventListener(ev, this.onEvent)
     this.stopSources()
+    this.fx.close()
     this.out.disconnect()
     this.g.hushDecks(false)
   }
@@ -128,8 +154,9 @@ export class StemSet implements StemPlayer {
 // is kept with it by playing a little faster or slower, or by a jump when it's far off.
 class StreamedStems implements StemPlayer {
   private parts: { el: HTMLAudioElement; gain: GainNode; source: MediaElementAudioSourceNode }[] = []
-  private byId = new Map<string, GainNode>()
+  private byId = new Map<string, Sends>()
   private out: GainNode
+  private fx: FxChain
   private timer = 0
   private closed = false
   private onEvent = () => this.sync()
@@ -138,6 +165,7 @@ class StreamedStems implements StemPlayer {
     const ctx = g.ctx
     this.out = ctx.createGain()
     this.out.connect(g.stemIn)
+    this.fx = new FxChain(ctx, this.out)
     for (const s of stems) {
       const el = new Audio()
       el.preload = 'auto'
@@ -145,12 +173,11 @@ class StreamedStems implements StemPlayer {
       el.preservesPitch = true
       el.src = mediaUrl(s.url)
       const source = ctx.createMediaElementSource(el)
-      const gain = ctx.createGain()
-      gain.gain.value = 0
+      const sent = sends(ctx, this.fx)
+      const gain = sent.input
       source.connect(gain)
-      gain.connect(this.out)
       this.parts.push({ el, gain, source })
-      this.byId.set(s.id, gain)
+      this.byId.set(s.id, sent)
     }
     for (const ev of ['play', 'playing', 'pause', 'seeked', 'waiting', 'ratechange', 'ended', 'emptied']) song.addEventListener(ev, this.onEvent)
     this.timer = window.setInterval(() => this.keepUp(), 400)
@@ -174,11 +201,9 @@ class StreamedStems implements StemPlayer {
     return set
   }
 
-  setGains(gains: Record<string, number>, volume: number) {
-    const now = this.g.ctx.currentTime
-    for (const [id, node] of this.byId) node.gain.setTargetAtTime(gains[id] ?? 0, now, 0.03)
-    this.out.gain.setTargetAtTime(volume, now, 0.03)
-  }
+  setRoutes(routes: Record<string, Route>, volume: number) { route(this.g.ctx, this.byId, routes, this.out, volume) }
+
+  setFx(fx: Fx) { this.fx.set(fx) }
 
   // The song paused, moved or changed speed: every part does the same.
   private sync() {
@@ -208,6 +233,7 @@ class StreamedStems implements StemPlayer {
     window.clearInterval(this.timer)
     for (const ev of ['play', 'playing', 'pause', 'seeked', 'waiting', 'ratechange', 'ended', 'emptied']) this.song.removeEventListener(ev, this.onEvent)
     for (const { el, source, gain } of this.parts) { el.pause(); el.removeAttribute('src'); el.load(); source.disconnect(); gain.disconnect() }
+    this.fx.close()
     this.out.disconnect()
     this.g.hushDecks(false)
   }

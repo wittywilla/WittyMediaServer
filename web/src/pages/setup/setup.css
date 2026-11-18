@@ -44,6 +44,7 @@
 .su-tick-switch { pointer-events: none; display: block; margin-top: 2px; }
 .su-tick-ic { flex: none; }
 .su-tick-ic svg { display: block; width: 1.5rem; height: 1.5rem; color: var(--fg-3); }
+.su-module-icon { display: block; width: 2.5rem; height: 2.5rem; border-radius: 22%; }
 .su-tick.on .su-tick-ic svg { color: var(--accent-text); }
 .su-tick-words { flex: 1; min-width: 0; display: grid; gap: var(--sp-1); }
 .su-tick-words b { font-size: var(--text-md); font-weight: 600; line-height: var(--leading-snug); }

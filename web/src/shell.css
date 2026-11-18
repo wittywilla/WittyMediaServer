@@ -33,7 +33,7 @@
   .app.nav-top .topbar .search { flex: none; width: 40px; min-width: 40px; }
   .app.nav-top .topbar .search input { height: 40px; padding: 0 0 0 40px; cursor: pointer; background: var(--bg-3); }
   .app.nav-top .topbar .search input::placeholder { color: transparent; }
-  .app.nav-top .topbar .search:focus-within { position: absolute; inset-inline: 16px 70px; width: auto; max-width: none; z-index: 3; }
+  .app.nav-top .topbar .search:focus-within { position: absolute; inset-inline: 16px 70px; width: auto; max-width: none; z-index: 3; } /* design-ok: the open search box stops short of the profile button, as it did with left and right */
   .app.nav-top .topbar .search:focus-within input { padding-inline-end: 16px; cursor: text; box-shadow: var(--e-3); }
   .app.nav-top .topbar .search:focus-within input::placeholder { color: var(--fg-3); }
 }
@@ -73,10 +73,11 @@
   .app .topbar.under::before, .app:has(.hero, .detail-hero) .topbar.under::before { background: var(--bg); -webkit-backdrop-filter: none; backdrop-filter: none; } /* design-ok: this turns the blur off */
 }
 @media (max-width: 700px) {
-  :root { --topbar-h: 52px; }
+  /* The bar is 52 high below a notch or status bar, when the page runs full screen. */
+  :root { --safe-top: env(safe-area-inset-top, 0px); --topbar-h: calc(52px + var(--safe-top)); }
   html:has(.tabbar) { --tabbar-space: calc(var(--tabbar-h) + var(--sp-4) + env(safe-area-inset-bottom)); }
   .nav-dup { display: none !important; } /* what the bar at the bottom already offers */
-  .topbar { padding-block: var(--sp-1); gap: var(--sp-2); }
+  .topbar { padding-block: calc(var(--sp-1) + var(--safe-top)) var(--sp-1); gap: var(--sp-2); }
   /* Sections take the top of the screen; search and the account are on the bar. */
   .topnav, .topbar .menu-toggle, .topbar .search, .topbar .profile-menu, .topbar .spacer { display: none; }
   .section-row { display: flex; flex: 1 1 0; min-width: 0; gap: var(--sp-5); margin-inline-start: calc(-1 * var(--gutter)); padding-inline: var(--gutter) var(--sp-5); overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
@@ -85,7 +86,7 @@
   .section-row a.active { color: var(--fg); box-shadow: inset 0 -2px var(--accent-text); }
   .section-row-brand { display: flex; flex: 1; }
   /* The server's name stays on a phone: its mark first (and its name when there is room), the sections after it. */
-  .phone-brand { display: inline-flex; flex: none; max-inline-size: min(56%, 13rem); overflow: hidden; } /* room for the whole default name beside its mark */
+  .phone-brand { display: inline-flex; flex: none; max-inline-size: min(56%, 13rem); overflow: hidden; margin: 0; } /* room for the whole default name beside its mark; no sidebar margin, so it sits in the middle of the bar */
   .phone-brand .brand-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-md); }
   .phone-brand .brand-name * { white-space: nowrap; }
   @media (max-width: 359px) { .phone-brand .brand-name { display: none; } }
@@ -102,11 +103,13 @@
      is scrolled under it, it gains the page's colour at 85% with a blur, and a hairline.
      Phones only, and only while scrolled under: it's 52 high, and a phone can afford it. */
   .app .topbar, .app:has(.hero, .detail-hero) .topbar { background: transparent; }
-  .app:has(.hero, .detail-hero) .topbar { margin-bottom: calc(-1 * var(--topbar-h)); }
-  .app:has(.home.editing) .topbar, .app:has(.legal-ack-bar) .topbar { margin-bottom: 0; }
-  /* Only the picture runs up under the bar: a title or notice before it starts below the bar. */
-  .app:has(.hero, .detail-hero) .content > .sdui:first-child > :first-child:not(.hero, .detail-hero, .sr-only),
-  .app:has(.hero, .detail-hero) .content > .sdui:first-child > .sr-only:first-child + :not(.hero, .detail-hero) { margin-top: var(--topbar-h); }
+  /* Only a picture that opens the page runs up under the bar, by the bar's measured room (styles.css,
+     --bar-space); a title or notice starts below it. On a phone in every browser: the bar has no surface here. */
+  .app:not(:has(.home.editing, .legal-ack-bar, .play-status)) :is(
+    .content > :first-child > :is(.hero, .detail-hero):first-child,
+    .content > :first-child > .sr-only:first-child + :is(.hero, .detail-hero),
+    .content > :first-child > .sr-only:first-child + * > .detail-hero:first-child) { margin-top: calc(-1 * (var(--page-top) + var(--bar-space))); }
+  .app:not(:has(.home.editing, .legal-ack-bar, .play-status)) .content > :first-child > .sr-only:first-child + :has(> .detail-hero:first-child) { padding-top: 0; } /* no band above a title's picture (styles.css) */
   .app .topbar::before, .app:has(.hero, .detail-hero) .topbar::before { content: ''; position: absolute; inset: 0; z-index: -1; background: rgb(var(--bg-rgb) / .85); box-shadow: 0 1px 0 var(--border); opacity: 0; animation: none; transition: opacity var(--dur-2) var(--ease-standard); }
   .app .topbar.under::before, .app:has(.hero, .detail-hero) .topbar.under::before { opacity: 1; -webkit-backdrop-filter: blur(20px) saturate(1.4); backdrop-filter: blur(20px) saturate(1.4); } /* design-ok: phones only, a 52-high bar, and only once scrolled under */
   .app .topbar::after { display: none; }
@@ -273,7 +276,7 @@ html.tilt-on .card:not(.square) .poster.tilting { transition: transform 80ms lin
 .pic-both .t { left: 22%; }
 
 /* ---------------------------------------------------------------- home widgets */
-.home-tools { position: sticky; top: var(--topbar-h); z-index: var(--z-sticky); display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin: 4px 0 14px; padding: 10px 14px; flex-wrap: wrap;
+.home-tools { position: sticky; top: var(--bar-space); z-index: var(--z-sticky); display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin: 4px 0 14px; padding: 10px 14px; flex-wrap: wrap;
   border-radius: var(--r-md); background: var(--bg-2); border: 1px solid var(--border); box-shadow: var(--e-1); }
 .home-foot { display: flex; justify-content: center; padding: 18px 0 4px; }
 .home-tools .muted { font-size: var(--text-sm); margin-inline-end: auto; }
@@ -330,14 +333,13 @@ html.tilt-on .card:not(.square) .poster.tilting { transition: transform 80ms lin
 @media (max-width: 600px) { .shuffle { flex-direction: column; align-items: flex-start; } .shuffle-poster { width: 90px; } }
 
 /* ---------------------------------------------------------------- layout options (docs/SDUI.md) */
-/* A layout whose menu lies over the page (streaming): the bar runs over the top of every page,
-   see-through, and turns solid as the page scrolls, as it always has over a backdrop. */
+/* A layout whose menu lies over the page (streaming): the bar is see-through at the top of every page
+   and turns solid as the page scrolls, as it always has over a backdrop. It keeps its own room, so the
+   page starts below it; a picture that opens the page still runs up under it (styles.css, --bar-space). */
 @supports (animation-timeline: scroll()) {
-  .app.nav-overlay .topbar { margin-bottom: calc(-1 * var(--topbar-h)); background: linear-gradient(rgb(var(--bg-rgb) / .9), rgb(var(--bg-rgb) / .8) 65%, rgb(var(--bg-rgb) / 0)); }
+  .app.nav-overlay .topbar { background: linear-gradient(rgb(var(--bg-rgb) / .9), rgb(var(--bg-rgb) / .8) 65%, rgb(var(--bg-rgb) / 0)); }
   .app.nav-overlay .topbar::before { content: ''; position: absolute; inset: 0; z-index: -1; background: var(--bg); opacity: 0; animation: bar-solid linear both; animation-timeline: scroll(root); animation-range: var(--sp-4) calc(var(--topbar-h) * 3); }
-  .app.nav-overlay:has(.legal-ack-bar) .topbar, .app.nav-overlay:has(.home.editing) .topbar { margin-bottom: 0; background: var(--bg); }
-  .app.nav-overlay .content > :first-child:not(.sdui) { padding-top: var(--topbar-h); }
-  .app.nav-overlay .content > .sdui:first-child > :first-child:not(.hero):not(.sr-only), .app.nav-overlay .content > .sdui:first-child > .sr-only + :not(.hero) { margin-top: var(--topbar-h); }
+  .app.nav-overlay:has(.legal-ack-bar) .topbar, .app.nav-overlay:has(.home.editing) .topbar { background: var(--bg); }
 }
 /* Top tabs on a phone too: the tabs along the top are the menu, with no bar at the bottom. */
 @media (max-width: 900px) { .app.no-tabbar .tabbar { display: none; } .app.no-tabbar .content { padding-bottom: var(--sp-6); } html:has(.app.no-tabbar) { --tabbar-space: 0px; } }

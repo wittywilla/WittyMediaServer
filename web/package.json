@@ -13,7 +13,8 @@
     "test:cards": "node scripts/test-module-cards.mjs",
     "test:setup": "node scripts/test-setup.mjs",
     "test:keys": "node scripts/test-keys.mjs",
-    "test:tv": "node scripts/test-tv-themes.mjs"
+    "test:tv": "node scripts/test-tv-themes.mjs",
+    "test:quality": "node scripts/test-quality-menu.mjs"
   },
   "dependencies": {
     "hls.js": "^1.7.4",

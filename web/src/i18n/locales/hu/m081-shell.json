@@ -1,0 +1,17 @@
+{
+  "Episode number": "Epizód száma",
+  "Episode {episode}": "{episode}. epizód",
+  "Episodes {episodes}": "{episodes}. epizód",
+  "Last episode": "Utolsó epizód",
+  "Season number": "Évad száma",
+  "Show episodes as": "Epizódok megjelenítése",
+  "Special {episode}": "{episode}. különkiadás",
+  "Specials {episodes}": "{episodes}. különkiadás",
+  "S{season} · E{episode}": "{season}. évad · {episode}. rész",
+  "Your graphics chip can convert video for a fraction of the processor work. Each is tested when the server starts, those your machine doesn’t have are greyed out, and every one that works is ticked until you choose: the first ticked one that works is used, and the picture stays on the chip from decoding to encoding where it can. With none ticked it’s all software, which gives the best quality for the size and uses the most processor.": "A grafikus chiped a processzormunka töredékéért tud videót átalakítani. A szerver indulásakor mindegyik tesztelve lesz, amelyek nincsenek a gépedben, szürkén jelennek meg, és minden működő be van jelölve, amíg nem választasz: az első bejelölt működő lesz használva, és a kép, ahol lehet, a dekódolástól a kódolásig a chipen marad. Ha egyik sincs bejelölve, minden szoftveres, ami a mérethez képest a legjobb minőséget adja, és a legtöbb processzort használja.",
+  "{left} of {count} left": {
+    "one": "{count} közül {left} van hátra",
+    "other": "{count} közül {left} van hátra"
+  },
+  "{season}, {count}": "{season}, {count}"
+}

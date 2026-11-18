@@ -20,6 +20,7 @@ import LicenseList from './settings/Licenses'
 import SupportedFormats from './settings/SupportedFormats'
 import MetadataSettings from './settings/Metadata'
 import PlaybackSettings from './settings/Playback'
+import StreamQualitySettings from './settings/StreamQuality'
 import SharingSettings from './settings/Sharing'
 import { ConsolePicker } from '../components/ConsolePicker'
 import { kindTitle, libraryKinds, missingKind, orList, type LibraryKind } from '../moduleStore'
@@ -98,6 +99,7 @@ const GROUPS: { title: string; pages: Page[] }[] = [
   { title: tk('You'), pages: [
     { to: 'users', label: tk('Profiles'), icon: <IconUsers />, hint: tk('People, passwords and limits') },
     { to: 'security', label: tk('Sign-in & security'), icon: <IconLock />, hint: tk('Your devices and two-factor sign-in') },
+    { to: 'quality', label: tk('Video quality'), icon: <IconPlay />, hint: tk('The picture size and data videos play at, at home and away') },
     { to: 'appearance', label: tk('Appearance'), icon: <IconPalette />, hint: tk('Theme, colours, layout, and the look of WittyTV and the player') },
     { to: 'activity', label: tk('Activity'), icon: <IconActivity />, hint: tk('The button showing library scans and other background work') },
     { to: 'sharing', label: tk('Sharing & photos'), icon: <IconImage />, hint: tk('Uploads, links, the photo map') },
@@ -119,7 +121,7 @@ const GROUPS: { title: string; pages: Page[] }[] = [
 function withModuleTabs(groups: typeof GROUPS, tabs: ModuleSettingsTab[]): typeof GROUPS {
   if (!tabs.length) return groups
   const own = new Set(groups.flatMap((g) => g.pages.map((p) => p.to)))
-  const row = (t: ModuleSettingsTab, was?: Page): Page => ({ to: t.id, label: t.label, icon: was?.icon ?? <IconPlug />, admin: t.admin, hint: was?.hint ?? '', launch: t.launch })
+  const row = (t: ModuleSettingsTab, was?: Page): Page => ({ to: t.id, label: t.label, icon: was?.icon ?? <IconPlug />, admin: t.admin, hint: was?.hint || tk('Added by a module'), launch: t.launch })
   const out = groups.map((g) => ({ ...g, pages: g.pages.flatMap((p) => {
     const same = tabs.find((t) => t.id === p.to)
     if (same?.hidden) return [] // the module's own place has it now (launch)
@@ -193,7 +195,7 @@ export default function SettingsPage() {
             <div className="set-nav-head">{t('From modules')}</div>
             {modulePages.map((p) => (
               <NavLink key={p.module + p.id} to={`/m/${p.module}/${p.id}`} className="set-nav-link">
-                <span className="set-nav-icon" style={tint('')}><IconPlug /></span><span className="set-nav-text"><span>{p.title}</span></span><IconRight className="set-nav-go" />
+                <span className="set-nav-icon" style={tint('')}><IconPlug /></span><span className="set-nav-text"><span>{p.title}</span><small className="set-nav-hint">{t('Added by a module')}</small></span><IconRight className="set-nav-go" />
               </NavLink>
             ))}
           </div>
@@ -220,6 +222,7 @@ export default function SettingsPage() {
           <Route path="pages/*" element={<Suspense fallback={<div className="loading-box"><div className="spinner" /></div>}><PagesSettings /></Suspense>} />
           <Route path="metadata" element={<MetadataSettings />} />
           <Route path="playback" element={<PlaybackSettings />} />
+          <Route path="quality" element={<StreamQualitySettings />} />
           <Route path="channels/*" element={<Suspense fallback={<div className="center"><div className="spinner" /></div>}><TvSettings /></Suspense>} />
           <Route path="server" element={<Navigate to="/settings/metadata" replace />} />
           <Route path="transcoding" element={<TranscodeSettings />} />

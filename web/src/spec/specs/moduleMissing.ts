@@ -10,6 +10,15 @@ export interface MissingInput { ids: string[]; what?: string; admin: boolean; mo
 
 export const INSTALL = 'install:'
 
+// What the page is still waiting for. A page that needs a reader and the kit it is built on names
+// only what isn't in use: with the reader installed and the kit absent it is about the kit, and
+// offers nothing for the reader. ready: everything it asked for is in use.
+export function stillMissing<T extends { id: string; enabled?: boolean }>(ids: string[], modules: T[]): { gone: T[]; ready: boolean } {
+  const list = ids.map((id) => modules.find((m) => m.id === id)).filter(Boolean) as T[]
+  const gone = list.filter((m) => !m.enabled)
+  return { gone, ready: !gone.length && list.length === ids.length }
+}
+
 export function moduleMissingSpec(i: MissingInput): SpecPageData {
   const name = i.mods?.[0]?.name || i.ids[0]
   const busy = i.mods?.find((m) => m.phase && m.phase !== 'idle' && m.phase !== 'failed')

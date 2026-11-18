@@ -152,7 +152,10 @@ export function PageView({ doc, device, handlers, width, children }: { doc: Docu
   }, [doc.root, inert])
 
   const first = model.root.children[0]
-  const ownHeading = !first || first.type === 'Hero' || first.type === 'DetailHeader' || first.type === 'NativeView' || (first.type === 'Text' && first.role === 'heading 1')
+  // Home never shows the word "Home" over its own picture: with a featured picture anywhere on it (even below a
+  // "Finish setting up" notice) the page's name is for screen readers only. A look whose Home has no picture keeps it.
+  const homeWithPicture = doc.page.kind === 'home' && model.root.children.some((c) => c.type === 'Hero')
+  const ownHeading = !first || homeWithPicture || first.type === 'Hero' || first.type === 'DetailHeader' || first.type === 'NativeView' || (first.type === 'Text' && first.role === 'heading 1')
   const style = {
     '--sdui-gap': px(sectionGap(l), pt), '--section-gap': px(sectionGap(l), pt), '--sdui-pt': String(pt),
     '--sdui-xs': px(l.spacing.xs || 4, pt), '--sdui-s': px(l.spacing.s || 8, pt), '--sdui-m': px(l.spacing.m || 16, pt), '--sdui-l': px(l.spacing.l || 24, pt), '--sdui-xl': px(l.spacing.xl || 48, pt),
@@ -491,15 +494,32 @@ export default function SduiPage({ page, params, fallback }: { page: string; par
   )
 }
 
-// A whole page arriving for the first time: three rows of grey cards.
+// A whole page arriving for the first time, in the shape of what is coming: a title and a poster for a title's page,
+// a header and a grid for a library, rows of cards for anything else (Home, shelves). The same shapes at every size.
 export function PageLoading({ device }: { device: Device }) {
   const still = device.capabilities.includes('reducedMotion')
+  const path = useLocation().pathname
+  const line = (w: string, h = '1em') => <i className="skel" style={{ width: w, height: h }} />
+  const card = (i: number) => <div key={i} className="card sdui-ph"><div className="poster"><i className="skel" /></div></div>
+  const detail = path.startsWith('/item/') || path.startsWith('/show/')
+  const library = path.startsWith('/library/')
   return (
     <div className={'sdui sdui-loading skeleton-grid' + (still ? ' still' : '')} role="status" aria-label={t('Loading')} aria-busy="true">
-      {[0, 1, 2].map((r) => (
+      {detail ? (
+        <div className="hub sdui-loading-detail" aria-hidden="true">
+          <i className="skel skel-detail-poster" />
+          <div className="skel-lines">{line('5rem', '0.75rem')}{line('60%', '2rem')}{line('40%')}<div className="skel-actions">{line('9rem', 'var(--control-h)')}{line('6rem', 'var(--control-h)')}</div>{line('100%')}{line('100%')}{line('70%')}</div>
+        </div>
+      ) : library ? (
+        <div className="hub" aria-hidden="true">
+          <div className="hub-head">{line('9rem', '1.75rem')}</div>
+          <div className="skel-chips">{line('4.5rem', '2rem')}{line('7rem', '2rem')}{line('6rem', '2rem')}</div>
+          <div className="row sdui-loading-grid">{Array.from({ length: 12 }, (_, i) => card(i))}</div>
+        </div>
+      ) : [0, 1, 2].map((r) => (
         <div className="hub" key={r} aria-hidden="true">
           <div className="hub-head"><i className="skel sdui-skel-title" /></div>
-          <div className="row">{Array.from({ length: 8 }, (_, i) => <div key={i} className="card sdui-ph"><div className="poster"><i className="skel" /></div></div>)}</div>
+          <div className="row">{Array.from({ length: 8 }, (_, i) => card(i))}</div>
         </div>
       ))}
     </div>

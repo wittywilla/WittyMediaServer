@@ -117,6 +117,7 @@ export const GROUPS: GuideGroup[] = [
     { file: 'DVD-QUIRKS', title: tk('DVD disc quirks'), about: tk('What odd discs do, and how each is handled.') },
     { file: 'BLURAY-QUIRKS', title: tk('Blu-ray disc quirks'), about: tk('The same for Blu-rays.') },
     { file: 'DESIGN', title: tk('Design standards'), about: tk('The interface’s rules and shared parts.') },
+    { file: 'UI-PLATFORMS', title: tk('One fix, every screen'), about: tk('How a change to the interface reaches every platform’s app.') },
   ] },
 ]
 
@@ -142,6 +143,7 @@ export const settingsPages: Record<string, string> = {
   'What this server plays': 'games-support',
   'Metadata agents': 'metadata',
   Playback: 'playback',
+  'Video quality': 'quality',
   'DVDs and Blu-rays': 'discs',
   'Channels & tuners': 'channels',
   'Games & emulators': 'gaming',

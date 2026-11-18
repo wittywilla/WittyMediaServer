@@ -8,6 +8,7 @@ import { PageHead, Row, SaveBar, Section, useServerSettings } from './ui'
 import { Segmented } from '../../ui'
 import { deviceStreaming, setDeviceStreaming, type DeviceStreaming } from '../../player/streaming'
 import AutoSkipSection, { ContentFiltersSection } from './AutoSkip'
+import { QualityLimitsSection } from './StreamQuality'
 import { t, tk } from '../../i18n'
 
 // How things play: the player, TV episode lists, skipping intros and streaming. DVDs and Blu-rays
@@ -38,6 +39,8 @@ export default function PlaybackSettings() {
       <ContentFiltersSection />
 
       <StreamingSection value={s.remoteStreaming || 'standard'} set={(v) => set('remoteStreaming', v)} />
+
+      <QualityLimitsSection />
 
       <SaveBar {...st} />
     </>

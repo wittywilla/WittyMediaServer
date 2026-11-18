@@ -1,0 +1,17 @@
+{
+  "Episode number": "एपिसोड नंबर",
+  "Episode {episode}": "एपिसोड {episode}",
+  "Episodes {episodes}": "एपिसोड {episodes}",
+  "Last episode": "आख़िरी एपिसोड",
+  "Season number": "सीज़न नंबर",
+  "Show episodes as": "एपिसोड इस तरह दिखाएँ",
+  "Special {episode}": "स्पेशल {episode}",
+  "Specials {episodes}": "स्पेशल {episodes}",
+  "S{season} · E{episode}": "S{season} · E{episode}",
+  "Your graphics chip can convert video for a fraction of the processor work. Each is tested when the server starts, those your machine doesn’t have are greyed out, and every one that works is ticked until you choose: the first ticked one that works is used, and the picture stays on the chip from decoding to encoding where it can. With none ticked it’s all software, which gives the best quality for the size and uses the most processor.": "आपकी ग्राफ़िक्स चिप प्रोसेसर के काम के छोटे से हिस्से में वीडियो कन्वर्ट कर सकती है। सर्वर शुरू होने पर हर एक को टेस्ट किया जाता है, जो आपकी मशीन में नहीं हैं वे धूसर दिखते हैं, और जब तक आप ख़ुद न चुनें, काम करने वाले सभी पर टिक लगा रहता है: टिक वाला जो पहला काम करे वह इस्तेमाल होता है, और जहाँ हो सके तस्वीर डिकोड से एनकोड तक चिप पर ही रहती है। कोई टिक न हो तो सब सॉफ़्टवेयर से होता है, जो आकार के हिसाब से सबसे अच्छी गुणवत्ता देता है और सबसे ज़्यादा प्रोसेसर इस्तेमाल करता है।",
+  "{left} of {count} left": {
+    "one": "{count} में से {left} बाकी",
+    "other": "{count} में से {left} बाकी"
+  },
+  "{season}, {count}": "{season}, {count}"
+}

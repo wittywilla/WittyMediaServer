@@ -59,6 +59,8 @@ export const ENTRIES: Entry[] = [
   { page: 'metadata', title: tk('Custom agents'), section: tk('Custom agents') },
   { page: 'playback', title: tk('Player'), section: tk('Player'), words: 'playback speed episode layout' },
   { page: 'playback', title: tk('Skipping'), section: tk('Skipping'), words: 'auto skip intro recap credits adverts commercials next episode automatically' },
+  { page: 'playback', title: tk('Video quality limits'), section: tk('Video quality'), words: 'quality resolution bitrate limit transcode per profile remote away' },
+  { page: 'quality', title: tk('Video quality'), section: tk('Your profile'), words: 'quality resolution bitrate 4k 1080p 720p 480p data mobile away home device auto original' },
   { page: 'channels', title: tk('WittyTV theme for new viewers'), words: 'tv guide look default' },
   { page: 'channels', title: tk('Tuners and IPTV'), section: tk('Tuners and IPTV'), words: 'm3u playlist hdhomerun antenna live tv' },
   { page: 'transcoding', title: tk('Hardware encoders'), section: tk('Hardware encoders'), words: 'gpu nvenc quick sync vaapi amf videotoolbox acceleration' },

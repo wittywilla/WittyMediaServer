@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strconv"
 	"time"
 
@@ -98,7 +97,7 @@ func (s *Server) handleCatchup(w http.ResponseWriter, r *http.Request) {
 	key := r.PathValue("key")
 	logo, brand := tunerLogo(c)
 	info := tuneInfo{Key: key, Kind: "tuner", Number: c.Number, Name: c.Name, Logo: logo, Brand: brand,
-		URL: fmt.Sprintf("/api/tv/%s/catchup/%d/playlist.m3u8", key, start), Now: shown, ServerTime: time.Now().Unix(),
+		URL: s.liveURL(r, ls, fmt.Sprintf("/api/tv/%s/catchup/%d/playlist.m3u8", key, start)), Now: shown, ServerTime: time.Now().Unix(),
 		BackgroundPlay: s.backgroundPlay(r.Context()), BufferSec: float64(s.tvSettingInt(r.Context(), "tvTunerBufferMin") * 60),
 		Notices: s.channelNotices(c), Security: securityOf(c)}
 	if err := s.addLiveTicket(r, &info); err != nil {
@@ -112,7 +111,7 @@ func (s *Server) handleCatchup(w http.ResponseWriter, r *http.Request) {
 // has to start again part-way (a dropped connection), it asks the archive for where the
 // stream had got to, and the stream ends with the programme.
 func (s *Server) ensureCatchup(r *http.Request, id, start, end int64) (*hls.LiveSession, error) {
-	sid := catchupID(id, start)
+	sid := catchupID(id, start) + s.streamTag(r)
 	if ls := s.HLS.GetLive(sid); ls != nil {
 		ls.Touch()
 		return ls, nil
@@ -163,7 +162,7 @@ func (s *Server) handleCatchupPlaylist(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	ls := s.HLS.GetLive(catchupID(c.ID, start))
+	ls := s.HLS.GetLive(catchupID(c.ID, start) + s.streamTag(r))
 	if ls == nil {
 		var err error
 		if ls, err = s.ensureCatchup(r, c.ID, start, 0); err != nil {
@@ -186,13 +185,7 @@ func (s *Server) handleCatchupPlaylist(w http.ResponseWriter, r *http.Request) {
 		s.tuneError(w, r, err)
 		return
 	}
-	suffix := ""
-	for _, k := range []string{"st", "token"} {
-		if v := r.URL.Query().Get(k); v != "" {
-			suffix = "?" + k + "=" + url.QueryEscape(v)
-			break
-		}
-	}
+	suffix := liveSuffix(r)
 	w.Header().Set("Content-Type", "application/vnd.apple.mpegurl")
 	w.Header().Set("Cache-Control", "no-store")
 	_, _ = w.Write(ls.Playlist(func(f string) string { return "seg/" + f + suffix }))
@@ -203,7 +196,7 @@ func (s *Server) handleCatchupSegment(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	ls := s.HLS.GetLive(catchupID(c.ID, start))
+	ls := s.HLS.GetLive(catchupID(c.ID, start) + s.streamTag(r))
 	if ls == nil {
 		writeErr(w, 404, "no such stream")
 		return

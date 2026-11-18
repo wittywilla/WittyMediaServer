@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import Hls from 'hls.js'
-import { api } from '../../api'
+import { api, type StreamWork } from '../../api'
 import { announce } from '../../a11y'
 import { IconBack, IconPlay } from '../../icons'
 import { Controls } from '../../player/Controls'
@@ -19,7 +19,9 @@ import MoreInfo from './MoreInfo'
 import MiniGuide from './MiniGuide'
 import Slate from './Slate'
 import { useLiveTracks } from './tracks'
-import { liveHls, liveVideo, setLive, useLive } from './live'
+import { liveCatchUp, liveHls, liveVideo, retune, setLive, setLiveCatchUp, useLive } from './live'
+import QualityMenu, { StreamInfo } from '../../player/QualityMenu'
+import { describe, here, noteAway, setDeviceDefault, setShowStreamInfo, showStreamInfo, sizeName, streamLines } from '../../player/quality'
 import { fmtClock, fmtSpan, getLineup, type Alternative, type GuideChannel, type GuidePage, type TuneInfo } from './tvApi'
 import { catchupKey } from './guideLogic'
 import { useTvRemote } from '../../remote/tvTarget'
@@ -57,6 +59,7 @@ export default function TvPlayer() {
   const live = useLive(liveKey, stage)
   const mine = live.key === liveKey
   const info = mine ? live.info : null
+  useEffect(() => { noteAway(info?.quality?.away) }, [info])
   const err = mine ? live.err : ''
   const picture = mine && live.playing
   const tracks = useLiveTracks(video.current, liveHls, mine && live.ready)
@@ -68,6 +71,20 @@ export default function TvPlayer() {
   const [alt, setAlt] = useState<Alternative | null>(null)
   const [mini, setMini] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [qualityOpen, setQualityOpen] = useState(false)
+  const [statsOn, setStatsOn] = useState(showStreamInfo)
+  // What converts the channel (GPU or CPU), asked again every few seconds while it shows.
+  const [work, setWork] = useState<StreamWork | null>(null)
+  useEffect(() => {
+    setWork(null)
+    if (!statsOn || !live.url) return
+    const q = new URL(live.url, location.href).searchParams.get('quality')
+    const path = `/tv/${encodeURIComponent(liveKey)}/live/work${q ? '?quality=' + encodeURIComponent(q) : ''}`
+    const ask = () => { api.get<StreamWork>(path).then(setWork).catch(() => {}) }
+    ask()
+    const t = setInterval(ask, 2000)
+    return () => clearInterval(t)
+  }, [statsOn, live.url, liveKey])
   // Shown the moment a channel is chosen, from what the list already knows: the
   // number and name don't wait for the stream.
   const [zap, setZap] = useState<GuideChannel | null>(null)
@@ -161,13 +178,18 @@ export default function TvPlayer() {
     return () => { clearInterval(t); send() }
   }, [info?.countProgress, info?.now, info?.positionSec, info?.serverTime, info?.partEnd])
 
-  // Where the live edge is, and how far back the buffer goes.
+  // How far back the buffer goes, and how far behind live this player is. Behind is counted from
+  // where live sync keeps everyone on the channel, not from the end of the seekable range: a live
+  // stream always plays a hold-back (three segments or more) short of that end, so counting from
+  // it, a pause or a press of -10 never looked behind and Live didn't show.
   useEffect(() => {
     const t = setInterval(() => {
       const v = video.current
       if (!v || !v.seekable.length) return
       const start = v.seekable.start(0), end = v.seekable.end(v.seekable.length - 1)
-      setWin({ start, end, behind: Math.max(0, end - v.currentTime) })
+      const sync = liveHls()?.liveSyncPosition
+      const behind = liveCatchUp() ?? Math.max(0, (sync ?? end) - v.currentTime)
+      setWin({ start, end, behind })
     }, 1000)
     return () => clearInterval(t)
   }, [])
@@ -177,7 +199,13 @@ export default function TvPlayer() {
   const goLive = () => {
     // From the start, live is the channel itself.
     if (fromStart) { nav(`/tv/watch/${key}`, { replace: true, state: from }); return }
-    const h = liveHls(); const v = video.current; if (v) { setLive({ away: false }); v.currentTime = h?.liveSyncPosition ?? win.end; v.play().catch(() => {}) }
+    const v = video.current
+    if (!v) return
+    const catchUp = liveCatchUp()
+    setLive({ away: false }); setLiveCatchUp(0)
+    v.currentTime = catchUp != null ? v.currentTime + catchUp : liveHls()?.liveSyncPosition ?? win.end
+    v.play().catch(() => {})
+    setWin((w) => ({ ...w, behind: 0 }))
   }
 
   const step = useCallback(async (dir: 1 | -1) => {
@@ -275,7 +303,12 @@ export default function TvPlayer() {
     audio: tracks.audio, subtitles: tracks.subtitles, chooseAudio: tracks.chooseAudio, chooseSubtitle: tracks.chooseSubtitle,
     seekBy: (sec) => { const v = video.current; if (v) seekTo(v.currentTime + sec) }, step: (dir) => void step(dir), stop: guide })
   const windowLen = Math.max(0, win.end - win.start)
-  const isBehind = win.behind > 20
+  // Off live: once the viewer has paused or gone back, live sync leaves this player be, so it's
+  // behind until Live; otherwise only when it has fallen further behind than live sync catches up by
+  // itself. How far is said when it's known: near a programme change the segments' times can jump.
+  // Never before the first picture: a channel still starting has nothing to be behind.
+  const isBehind = !fromStart && picture && (live.away || win.behind > 10)
+  const behindText = win.behind < 3 ? t('Behind live') : win.behind < 60 ? t('{n} s behind live', { n: Math.round(win.behind) }) : t('{n} min behind live', { n: Math.round(win.behind / 60) })
 
   const root_ = themeRoot(look)
   const playerRoot = { ...root_, style: { ...root_.style, ...channelVars(info?.accent, look.bg) } }
@@ -304,15 +337,22 @@ export default function TvPlayer() {
       {dial && <div className="ctv-osd-dial" role="status">{dial}<span className="ctv-blink">_</span></div>}
       <div className="top" onClick={(e) => e.stopPropagation()}>
         <button className="ibtn" onClick={guide} title={t('Guide (G)')} aria-label={t('Back to the guide')}><IconBack /></button>
-        <div className="grow"><h2>{info ? `${info.number} ${info.name}` : t('Tuning…')}</h2><div className="sub">{fromStart ? t('From the start') : isBehind ? t('{n} min behind live', { n: Math.round(win.behind / 60) }) : t('Live')}</div></div>
+        <div className="grow"><h2>{info ? `${info.number} ${info.name}` : t('Tuning…')}</h2><div className="sub">{fromStart ? t('From the start') : isBehind ? behindText : t('Live')}</div></div>
       </div>
       {remoteOn && <Remote onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemoteOn(false)} label="WittyTV" />}
       {banner && !mini && (info ? <Banner info={info} look={look} fromStart={fromStart} onMore={() => setMore(true)} /> : zap && <ZapBanner ch={zap} look={look} />)}
       {more && info?.now && <MoreInfo channelKey={info.key} at={Math.max(info.now.start, Date.now() / 1000)} onClose={() => setMore(false)} />}
       {mini && <MiniGuide channel={key} onTune={tuneTo} onClose={() => setMini(false)} onFull={guide} />}
       {settingsOpen && <Dialog title={t('Player settings')} onClose={() => setSettingsOpen(false)}><BackgroundPlayChoice /></Dialog>}
+      {statsOn && <StreamInfo lines={streamLines('live', { width: video.current?.videoWidth, height: video.current?.videoHeight, work: work || undefined }, { width: video.current?.videoWidth || 0, height: video.current?.videoHeight || 0, kbps: (() => { const h = liveHls(); const l = h && h.currentLevel >= 0 ? h.levels[h.currentLevel] : null; return l?.bitrate ? Math.round(l.bitrate / 1000) : 0 })() })} />}
+      {qualityOpen && info?.quality && (
+        <QualityMenu view={info.quality} decision="live" live where={here()} showInfo={statsOn} onShowInfo={(on) => { setStatsOn(on); setShowStreamInfo(on) }} onClose={() => setQualityOpen(false)}
+          onChoose={(c) => { setQualityOpen(false); setDeviceDefault(here(), c); announce(t('Quality: {quality}', { quality: describe(c, info.quality?.presets || []) })); if (c !== info.quality?.asked) retune() }} />
+      )}
       <Controls video={video} duration={windowLen} offset={-win.start} onSeek={(t) => seekTo(win.start + t)} onFullscreen={() => toggleFullscreen(root.current)}
         remoteOn={remoteOn} onRemote={() => setRemoteOn(!remoteOn)} showChapterMarks={false} onSettings={() => setSettingsOpen(true)}
+        quality={info?.quality ? sizeName(video.current?.videoHeight || 0, video.current?.videoWidth || 0) || describe(info.quality.asked, info.quality.presets) : undefined}
+        onQualityMenu={info?.quality ? () => setQualityOpen((o) => !o) : undefined} qualityMenuOpen={qualityOpen}
         audio={tracks.audio} subtitles={tracks.subtitles} onAudio={tracks.chooseAudio} onSubtitle={tracks.chooseSubtitle}
         extra={<>
           {fromStart ? <button className="btn sm primary" onClick={goLive} title={t('Back to live (L)')}>● {t('Back to live')}</button>

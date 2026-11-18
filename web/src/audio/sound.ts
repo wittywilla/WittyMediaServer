@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { tk } from '../i18n'
-// What happens to the sound between the player and the speakers: equaliser, loudness,
-// vocal reduction and key. It's all optional and nothing here runs until someone turns one
+// What happens to the sound between the player and the speakers: equaliser, loudness
+// and key. It's all optional and nothing here runs until someone turns one
 // on: an <audio> element plays straight to the speakers until then, which is both the
 // cheapest way and the safest.
 //
@@ -38,17 +38,16 @@ export type SoundSettings = {
   gapless: boolean
   crossfade: number // seconds, 0 for none
   crossfadeAlbums: boolean // also between songs of one album, which are often meant to run together
-  vocalCut: number // 0 to 1
   keyShift: number // semitones
 }
 
-export const DEFAULTS: SoundSettings = { volume: 1, muted: false, eqOn: false, eqPreset: 'flat', eqGains: EQ_PRESETS[0].gains, preamp: 0, replayGain: 'off', gapless: true, crossfade: 0, crossfadeAlbums: false, vocalCut: 0, keyShift: 0 }
+export const DEFAULTS: SoundSettings = { volume: 1, muted: false, eqOn: false, eqPreset: 'flat', eqGains: EQ_PRESETS[0].gains, preamp: 0, replayGain: 'off', gapless: true, crossfade: 0, crossfadeAlbums: false, keyShift: 0 }
 const KEY = 'wms.sound'
 
 const num = (v: unknown, lo: number, hi: number, d: number) => (typeof v === 'number' && Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d)
 
-// These belong to a device (speakers differ), so they're kept on it. Vocal reduction and
-// key are for one sitting: nobody wants the next day's music in another key by surprise.
+// These belong to a device (speakers differ), so they're kept on it. The key is for one
+// sitting: nobody wants the next day's music in another key by surprise.
 export function loadSound(): SoundSettings {
   let s: Partial<SoundSettings> = {}
   try { s = JSON.parse(localStorage.getItem(KEY) || '{}') } catch { /* private window */ }
@@ -62,7 +61,7 @@ export function loadSound(): SoundSettings {
 }
 
 export function saveSound(s: SoundSettings) {
-  const { vocalCut: _v, keyShift: _k, ...kept } = s
+  const { keyShift: _k, ...kept } = s
   try { localStorage.setItem(KEY, JSON.stringify(kept)) } catch { /* private window */ }
 }
 
@@ -91,14 +90,11 @@ export class SoundGraph {
   private preamp: GainNode
   private loudness: GainNode
   private master: GainNode
-  private vocalDry: GainNode
-  private vocalWet: GainNode
-  private vocalIn: GainNode
+  // Where the key change sits, when there is one: the sound goes from the input (through it) to here.
+  private body: GainNode
   private pitch: AudioWorkletNode | null = null
   private pitchLoaded: Promise<void> | null = null
   private eqOn = false
-  private sideLevel: AnalyserNode
-  private midLevel: AnalyserNode
   private outputTap: MediaStreamAudioDestinationNode | null = null
 
   constructor() {
@@ -107,10 +103,8 @@ export class SoundGraph {
     this.input = ctx.createGain()
     this.deckBus = ctx.createGain()
     this.deckBus.connect(this.input)
-    this.vocalIn = ctx.createGain()
-    this.vocalDry = ctx.createGain()
-    this.vocalWet = ctx.createGain()
-    this.vocalWet.gain.value = 0
+    this.body = ctx.createGain()
+    this.input.connect(this.body)
     this.preamp = ctx.createGain()
     this.loudness = ctx.createGain()
     this.master = ctx.createGain()
@@ -126,52 +120,7 @@ export class SoundGraph {
     })
     for (let i = 0; i + 1 < this.filters.length; i++) this.filters[i].connect(this.filters[i + 1])
 
-    // Vocal reduction. A singer is usually mixed dead centre, the same in both speakers, so
-    // left minus right removes them, and everything else that's centred: mostly bass and
-    // kick, which are put back from below 150 Hz, with some air from above 9 kHz.
-    const split = ctx.createChannelSplitter(2)
-    const left = ctx.createGain()
-    left.gain.value = 0.7 // what's left is often louder than the mix it came from
-    const right = ctx.createGain()
-    right.gain.value = -0.7
-    const side = ctx.createGain()
-    const sideHigh = ctx.createBiquadFilter()
-    sideHigh.type = 'highpass'
-    sideHigh.frequency.value = 150
-    const merge = ctx.createChannelMerger(2)
-    const bass = ctx.createBiquadFilter()
-    bass.type = 'lowpass'
-    bass.frequency.value = 150
-    const air = ctx.createBiquadFilter()
-    air.type = 'highpass'
-    air.frequency.value = 9000
-    const airLevel = ctx.createGain()
-    airLevel.gain.value = 0.6
-    this.input.connect(this.vocalIn)
-    this.vocalIn.connect(this.vocalDry)
-    this.vocalIn.connect(split)
-    split.connect(left, 0)
-    split.connect(right, 1)
-    left.connect(side)
-    right.connect(side)
-    side.connect(sideHigh)
-    sideHigh.connect(merge, 0, 0)
-    sideHigh.connect(merge, 0, 1)
-    merge.connect(this.vocalWet)
-    this.vocalIn.connect(bass)
-    bass.connect(this.vocalWet)
-    this.vocalIn.connect(air)
-    air.connect(airLevel)
-    airLevel.connect(this.vocalWet)
-    // How much of the sound isn't centred, to say so when there's nothing to separate.
-    this.sideLevel = ctx.createAnalyser()
-    this.midLevel = ctx.createAnalyser()
-    this.sideLevel.fftSize = this.midLevel.fftSize = 1024
-    side.connect(this.sideLevel)
-    this.vocalIn.connect(this.midLevel)
-
-    this.vocalDry.connect(this.preamp)
-    this.vocalWet.connect(this.preamp)
+    this.body.connect(this.preamp)
     this.preamp.connect(this.loudness)
     this.loudness.connect(this.analyser)
     this.loudness.connect(this.master)
@@ -208,11 +157,8 @@ export class SoundGraph {
   setEq(on: boolean, gains: number[], preampDb: number) {
     if (on !== this.eqOn) {
       this.eqOn = on
-      this.vocalDry.disconnect()
-      this.vocalWet.disconnect()
-      const into = on ? this.filters[0] : this.preamp
-      this.vocalDry.connect(into)
-      this.vocalWet.connect(into)
+      this.body.disconnect()
+      this.body.connect(on ? this.filters[0] : this.preamp)
       const last = this.filters[this.filters.length - 1]
       try { last.disconnect() } catch { /* wasn't connected */ }
       if (on) last.connect(this.preamp)
@@ -223,23 +169,6 @@ export class SoundGraph {
 
   setLoudness(db: number) {
     this.loudness.gain.setTargetAtTime(Math.pow(10, db / 20), this.ctx.currentTime, 0.05)
-  }
-
-  setVocalCut(amount: number) {
-    this.vocalWet.gain.setTargetAtTime(amount, this.ctx.currentTime, 0.05)
-    this.vocalDry.gain.setTargetAtTime(1 - amount, this.ctx.currentTime, 0.05)
-  }
-
-  // Whether this recording has anything off-centre to work with. Close to nothing means
-  // it's mono, and cutting the centre would leave almost silence.
-  nearlyMono(): boolean | null {
-    const a = new Float32Array(this.sideLevel.fftSize), b = new Float32Array(this.midLevel.fftSize)
-    this.sideLevel.getFloatTimeDomainData(a)
-    this.midLevel.getFloatTimeDomainData(b)
-    let s = 0, m = 0
-    for (let i = 0; i < a.length; i++) { s += a[i] * a[i]; m += b[i] * b[i] }
-    if (m < 1e-5) return null // silence: can't tell
-    return s / m < 0.01
   }
 
   // A copy of what's going to the speakers, before the volume, for the visualizer on
@@ -262,9 +191,9 @@ export class SoundGraph {
     } catch { this.pitchLoaded = null; return false }
     if (!this.pitch) {
       this.pitch = new AudioWorkletNode(this.ctx, 'wms-pitch', { outputChannelCount: [2] })
-      this.input.disconnect(this.vocalIn)
+      this.input.disconnect(this.body)
       this.input.connect(this.pitch)
-      this.pitch.connect(this.vocalIn)
+      this.pitch.connect(this.body)
     }
     this.pitch.parameters.get('ratio')?.setValueAtTime(Math.pow(2, semitones / 12), this.ctx.currentTime)
     return true

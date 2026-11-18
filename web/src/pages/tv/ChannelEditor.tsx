@@ -2,7 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useBlocker, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { fmtDateTime, api, fmtRuntime, mediaUrl, type Item, type UserView } from '../../api'
+import { fmtDateTime, api, fmtRuntime, mediaUrl, type UserView } from '../../api'
 import { IconPlus, IconTrash } from '../../icons'
 import { toast, useApp } from '../../state'
 import { ask } from '../../ui'
@@ -11,6 +11,7 @@ import BrandLogo from '../../components/BrandLogo'
 import { ChangeLogoButton, LogoConsentHint } from '../../components/edit/LogoChooser'
 import LegalNote from '../../components/LegalNote'
 import { BumperSection } from './BumperEditor'
+import { LibraryPicks, useShortLibraries } from './VideoPicks'
 import SpecPage from '../../spec/SpecPage'
 import { audienceSpec, basicsSpec, moreSpec } from '../../spec/specs/channelEditor'
 import DiscScenes from './DiscScenes'
@@ -626,17 +627,11 @@ function BlockEditor({ n, b, opts, up, remove, copy }: { n: number; b: Block; op
 // Commercials: any number of libraries of them, each whole or only the videos
 // chosen here, per channel.
 function CommercialsSection({ def, setDef }: { def: Definition; setDef: (p: Partial<Definition>) => void }) {
-  const { libraries } = useApp()
-  const libs = libraries.filter((l) => l.type === 'commercials')
+  const libs = useShortLibraries()
   const f = def.filler || {}
   const picks = f.commercials || []
-  const setPicks = (next: CommercialPick[], between = f.between) => setDef({ filler: { ...f, commercials: next, between } })
-  const pickOf = (id: number) => picks.find((p) => p.library === id)
-  const toggle = (id: number, on: boolean) => {
-    if (on) setPicks([...picks, { library: id }], f.between || 2)
-    else setPicks(picks.filter((p) => p.library !== id))
-  }
-  const change = (id: number, patch: Partial<CommercialPick>) => setPicks(picks.map((p) => (p.library === id ? { ...p, ...patch } : p)))
+  const bumperLibs = def.bumpers?.libraries || []
+  const setPicks = (next: CommercialPick[]) => setDef({ filler: { ...f, commercials: next, between: picks.length === 0 && next.length > 0 ? f.between || 2 : f.between } })
   if (libs.length === 0) {
     return (
       <Section id="ch-commercials" title={tk('Commercials')} desc={t('Your own ads between shows.')}>
@@ -644,28 +639,15 @@ function CommercialsSection({ def, setDef }: { def: Definition; setDef: (p: Part
       </Section>
     )
   }
+  const inUse = picks.length > 0 || (!!f.fromBumpers && bumperLibs.length > 0)
   return (
-    <Section id="ch-commercials" title={tk('Commercials')} desc={t('Play your own ads between shows and in the gaps. Use any of your commercials libraries, whole or only the videos you choose.')}>
-      <ul className="tvs-blocks">
-        {libs.map((l) => {
-          const p = pickOf(l.id)
-          return (
-            <li key={l.id} className="tvs-block">
-              <label className="check-row"><input type="checkbox" checked={!!p} onChange={(e) => toggle(l.id, e.target.checked)} /> <b>{l.name}</b> <span className="tvs-dim">{tn('{count} video', '{count} videos', l.itemCount)}</span></label>
-              {p && (
-                <>
-                  <div className="tvs-days" role="radiogroup" aria-label={t('What to use from {name}', { name: l.name })}>
-                    <button type="button" role="radio" aria-checked={!p.only} className={'tvs-day' + (!p.only ? ' on' : '')} onClick={() => change(l.id, { only: false })}>{t('All of them')}</button>
-                    <button type="button" role="radio" aria-checked={!!p.only} className={'tvs-day' + (p.only ? ' on' : '')} onClick={() => change(l.id, { only: true })}>{t('Only these…')}</button>
-                  </div>
-                  {p.only && <CommercialPicker library={l.id} name={l.name} value={p.items || []} onChange={(items) => change(l.id, { items })} />}
-                </>
-              )}
-            </li>
-          )
-        })}
-      </ul>
-      {picks.length > 0 && (
+    <Section id="ch-commercials" title={tk('Commercials')} desc={t('Play your own ads between shows and in the gaps. Tick as many commercials libraries as you like, each whole or only the videos you choose.')}>
+      <LibraryPicks label={t('Commercials libraries')} picks={picks} onChange={setPicks} note={(id) => (bumperLibs.some((p) => p.library === id) ? t('a bumper library here') : '')} />
+      <label className="check-row">
+        <input type="checkbox" checked={!!f.fromBumpers} onChange={(e) => setDef({ filler: { ...f, fromBumpers: e.target.checked || undefined } })} /> {t('Commercials may also come from the bumper libraries')}
+      </label>
+      {f.fromBumpers && bumperLibs.length === 0 && <p className="tvs-note" role="status">{t('This channel has no bumper libraries yet: choose them under Bumpers.')}</p>}
+      {inUse && (
         <div className="tvs-three">
           <label>{t('After each show, play')}
             <select className="select" value={f.between || 0} onChange={(e) => setDef({ filler: { ...f, between: Number(e.target.value) } })}>
@@ -690,20 +672,6 @@ function CommercialsSection({ def, setDef }: { def: Definition; setDef: (p: Part
       {!!f.breakEveryMin && <p className="muted" style={{ fontSize: 13 }}>{t("No break comes so near the end that you'd just wait for the programme to finish. With “Cut commercials short” on, these give way too, once those after the programme have.")}</p>}
       <p className="muted" style={{ fontSize: 13 }}>{t("Commercials count as part of the channel for parental limits. A Kids profile won't see this channel unless these videos have a suitable rating (edit a video to give it one).")}</p>
     </Section>
-  )
-}
-
-function CommercialPicker({ library, name, value, onChange }: { library: number; name: string; value: number[]; onChange: (v: number[]) => void }) {
-  const [items, setItems] = useState<Item[] | null>(null)
-  useEffect(() => { api.get<{ items: Item[] }>(`/items?library=${library}&limit=2000&sort=title`).then((r) => setItems(r.items)).catch((e) => toast(e.message)) }, [library])
-  if (!items) return <p className="muted">{t('Loading…')}</p>
-  if (items.length === 0) return <p className="muted">{t('Nothing is in this library yet. It may still be scanning.')}</p>
-  const options = items.map((i) => ({ v: String(i.id), label: t('{title} ({seconds} s)', { title: i.title, seconds: Math.round(i.runtimeSec) }) }))
-  return (
-    <>
-      <Multi label={t('Videos from {name}', { name })} options={options} value={value.map(String)} onChange={(v) => onChange(v.map(Number))} />
-      {value.length === 0 && <p className="tvs-note" role="status">{t('None chosen yet, so nothing from this library will play.')}</p>}
-    </>
   )
 }
 

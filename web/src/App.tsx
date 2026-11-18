@@ -3,6 +3,7 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useState } from 'react'
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AppProvider, ToastHost, useApp } from './state'
+import { musicLibraryFor } from './pages/music/musicRoute'
 import { ReminderWatcher } from './pages/tv/reminders'
 import { api } from './api'
 import { setThemeModule } from './theme'
@@ -64,6 +65,7 @@ const ItemPage = lazy(() => import('./pages/ItemPage'))
 const ShowPage = lazy(() => import('./pages/ShowPage'))
 const AlbumPage = lazy(() => import('./pages/AudioLibrary').then((m) => ({ default: m.AlbumPage })))
 const ArtistPage = lazy(() => import('./pages/music/ArtistPage'))
+const MusicShell = lazy(() => import('./pages/music/MusicShell'))
 const ReaderPage = lazy(() => import('./pages/Reader'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 const SearchPage = lazy(() => import('./pages/SearchPage'))
@@ -232,9 +234,13 @@ export function PageRoutes() {
   // A page a module of API 5 draws inside the app's frame comes before the app's own.
   const moduleWeb = useModuleWeb()
   const loc = useLocation()
+  const { libraries } = useApp()
   // A TV-frame screen is a module's only in TV mode, as the app's own TV screens are.
   const moduleRoute = matchModuleRoute(moduleWeb, loc.pathname, useTvMode() ? ['app', 'tv'] : ['app'])
   if (moduleRoute) return <ModuleRouteView match={moduleRoute} fallback={<RouteSkeleton />} />
+  // A music library, its albums and its artists: Music's own frame, kept while moving between them.
+  const musicLib = musicLibraryFor(loc.pathname, libraries)
+  if (musicLib) return <Suspense fallback={<RouteSkeleton />}><MusicShell lib={musicLib} /></Suspense>
   return (
     <Routes>
       <Route path="/" element={<SduiRoute fallback={<HomePage />} loading={<RouteSkeleton />} />} />

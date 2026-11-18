@@ -26,7 +26,7 @@ export default function PlayInfoPanel({ info, netLog, onClose, onFlat3d, flatten
 }) {
   const ex = info.explain
   return (
-    <Dialog title={t('How this is playing')} onClose={onClose} actions={<Button onClick={onClose}>{t('Close')}</Button>}>
+    <Dialog title={t('How this is playing')} className="over-picture" onClose={onClose} actions={<Button onClick={onClose}>{t('Close')}</Button>}>
       <div className="playinfo">
         {ex && <p className="playinfo-summary">{tx(ex.summary)} <HelpLink to="playing#quality-direct-play-and-converting" newTab>{t('What this means')}</HelpLink></p>}
         <dl className="playinfo-facts">

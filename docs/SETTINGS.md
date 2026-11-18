@@ -180,7 +180,7 @@ What happens while someone watches a video their device can't play as it is. You
 - **Allow direct play** sends a file untouched when the device can play it. Leave it on.
 - **Maximum resolution** converts taller videos down, even ones that could play as they are. 720p is about half the work of 1080p.
 - **Sound format while converting** is AAC unless a browser can't play it.
-- **Hardware encoders** lists what your graphics chip can do. Tick the ones to use, and the first that works is used. With none ticked it's all software, which gives the best quality for the size and uses the most processor.
+- **Hardware encoders** lists what your graphics chip can do. Every one that passes its test when the server starts is ticked until you choose, and the first ticked one that works is used. Where the chip can also decode the file, the picture stays on it from decoding to encoding, which takes a fifth of the processor time; if that fails, the same stream is decoded on the processor instead. With none ticked it's all software, which gives the best quality for the size and uses the most processor.
 - **Picture quality** starts in **Easy** with **Speed**, **Balanced** and **Quality**, each saying which machines it suits. **Advanced** and **Expert** give you more to choose.
 
 More: [Transcoding](TRANSCODING.md).

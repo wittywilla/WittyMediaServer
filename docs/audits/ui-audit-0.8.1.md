@@ -107,7 +107,7 @@ players (listed only: `seek-errors` and `transcode-options` own seeking and the 
 
 | Fix | Before | After |
 |---|---|---|
-| R1 loading rows, Home on a phone | ![](ui-audit-0.8.1/R1-home-phone-before.png) | A loading page now measures three 292px rows with no tile background (checked in the browser; a loading page cannot be held still for a picture) |
+| R1 loading rows, Home on a phone | ![](ui-audit-0.8.1/R1-home-phone-before.png) | ![](ui-audit-0.8.1/R1-home-phone-loading-after.png) |
 | R2 Settings rows from modules | ![](ui-audit-0.8.1/R2-settings-before.png) | ![](ui-audit-0.8.1/R2-settings-after.png) |
 | R3 help link | ![](ui-audit-0.8.1/R3-help-link-before.png) | ![](ui-audit-0.8.1/R3-help-link-after.png) |
 
@@ -128,3 +128,25 @@ Other pictures referred to above: `item-loading-desktop.png`, `show-phone-band.p
   (`aerosunset-home-hero-text.png`, `tv-home-hero-text.png`). Owner: `theme-readability` (#423).
 - **TV Settings:** the title "Settings" touches the list's scrollbar. Small; Settings page-top work.
 - **Not done:** tablet 768 and 1920 desktop slices, players (list only), and keyboard focus on module pages.
+
+## Round four: tablet, 1920, phone themes, module pages (on a build with #435, #444, #432, #417, #410 merged)
+
+Fixed:
+- **Setup notices on a phone:** the two buttons stacked full width, so each notice took a third of the screen and
+  two pushed Home's picture off the first screen. They now share one row (`notices-phone-before.png`, `notices-phone-after.png`).
+
+Checked and fine: Audiobooks at 1920 (a clean grid), module settings list (one icon style, one row height),
+episode grid, Settings at tablet, keyboard focus on module-settings and modules pages (no traps).
+
+Listed for other owners (not edited here):
+- **Page column against the bar at 1920** (`wide-column-vs-bar.png`): the bar's logo starts at x=40 and a library's title
+  and grid at x=155; Settings is a 760px column further in. Three different left edges. Belongs with the
+  page-top token that `topbar-overlap` owns (R7).
+- **Phone top bar** (`music-nav`, #409): a truncated library tab ("3D BluRay ISO") sits beside the logo while the bottom bar already
+  holds the main places; two navigations compete.
+- **Phone Home hero:** the pause button and dots sit across the middle of the picture, 24px targets.
+- **Music** (`music-nav`, #432): the same album shows three times in Quick picks and in New in your library (three
+  entries titled "Love For Sale" under different artists); one album picture is a broken image on the Music page.
+- **Games** (WittyPlay module): "Back to server" style buttons overlap the pad toggle at 1920.
+- **Home** takes over 1.6 seconds to show its content on a cold server (it showed loading rows at both tablet and phone in
+  the first picture). Owned by `server-perf` and `play-perf`.

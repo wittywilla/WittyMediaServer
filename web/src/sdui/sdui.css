@@ -171,7 +171,9 @@ button.lib-tile, button.sdui-row, button.sdui-banner { font: inherit; cursor: po
 .sdui-notice-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
 .sdui-notice .sdui-notice-actions .btn:not(.ghost) { background: var(--bg-4); } /* a step up from the notice's own fill, so the main button reads as the main one */
 .sdui-notice .sdui-notice-actions .btn:not(.ghost):hover { background: color-mix(in srgb, var(--bg-4) 80%, var(--fg)); }
-@media (max-width: 600px) { .sdui-notice-actions { flex: 1 1 100%; flex-direction: column; align-items: stretch; } }
+/* On a phone the actions share one row under the words (two stacked full-width buttons made each notice a third of the screen,
+   and two notices pushed the page's picture off the first screen). */
+@media (max-width: 600px) { .sdui-notice-actions { flex: 1 1 100%; flex-wrap: nowrap; } .sdui-notice-actions .btn { flex: 1 1 0; min-width: 0; } }
 .sdui-notice-ic { display: grid; flex: none; color: var(--fg-2); }
 .sdui-notice-ic svg { width: 20px; height: 20px; }
 .sdui-text { margin: 0; max-width: 100%; overflow-wrap: anywhere; }

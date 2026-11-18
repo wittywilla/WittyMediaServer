@@ -18,6 +18,8 @@ export type KaraokeAnswer = {
   canImprove?: boolean
   reason?: string
   message?: string
+  // 'installable': no separator yet, but an administrator could install one in Settings (a cleaner version).
+  separator?: string
   pollSec: number
 }
 

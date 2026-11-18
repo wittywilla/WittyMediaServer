@@ -103,7 +103,11 @@ export function useKaraokeStems(p: PlayerView) {
   }
   // Until the parts play, the Mix holds its place, waiting: asked and not answered yet, or being made.
   const waiting = !!id && !active && !lost && answer?.state !== 'unavailable'
-  return { answer, active, waiting, levels, sing, setSing, setLevel, reset, fx, setFx, note: statusLine(answer, lost) }
+  // No separator on the server, but one could be installed: the quick version says a cleaner one is an optional install.
+  const installable = answer?.separator === 'installable'
+  const admin = !!user?.isAdmin
+  const toSettings = () => p.goTowards('/settings/metadata#lyrics')
+  return { answer, active, waiting, levels, sing, setSing, setLevel, reset, fx, setFx, installable, admin, toSettings, note: statusLine(answer, lost) }
 }
 
 export type KaraokeStemsState = ReturnType<typeof useKaraokeStems>
@@ -154,7 +158,12 @@ export function KaraokeStemsControl({ k, hide = [] }: { k: KaraokeStemsState; hi
         {voice && <button type="button" className="kar-chip" onClick={() => k.setLevel('vocals', 0.2)} title="Keep the singer quietly, as a guide">Guide voice</button>}
         <button type="button" className="kar-chip" onClick={k.reset} disabled={pristine}>Reset</button>
       </div>
-      <p className="kar-mix-note">{qualityName(a)}. The parts are separated on your server, so the levels are approximate.</p>
+      <p className="kar-mix-note">
+        {qualityName(a)}. The parts are separated on your server, so the levels are approximate.
+        {k.installable && a.quality !== 'stems' && (k.admin
+          ? <> A cleaner, properly separated version is an optional install: <button type="button" className="np-link" onClick={k.toSettings}>Demucs in Settings</button>.</>
+          : <> A cleaner, properly separated version is an optional install an administrator can add.</>)}
+      </p>
     </div>
   )
 }

@@ -5,6 +5,7 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **Fixed:** first-time setup's Modules step showed generic glyphs, not each module's own icon. The icons now ship inside the server (`web/public/module-icons`, drawn by `scripts/genicon -target server` from the catalogue), so setup shows the same pictures as the catalogue without fetching anything from the internet. (#382)
 - **Fixed:** first-time setup's Live TV and Games steps were an empty card once their module was installed. The app asked what modules add to it only once, before there was an account, and never again; it now asks again after a refusal, with the server's state, and after the Modules step installs something. A module's step that can't load says so instead of drawing nothing. (#378)
 - **Fixed:** after first-time setup, Home still said "Finish setting up WittyTuner" (or WittyPlay) although the Live TV or Games step had been gone through. The step a module draws in setup never told the server; the wizard now records it when someone moves on from it, as done or put off (`POST /api/setup/module-steps/skip` takes `done`). A module's step that crashes shows the "set it up later" note, and setup carries on. (#427)
 

@@ -18,7 +18,15 @@ import { ADVANCED, offerable, PLAIN_WORDS, RECOMMENDED, updateChoiceFrom, update
 // presses the button that says so, and nothing depends on it working.
 
 const kindName = (t: string) => LIB_TYPES.find((x) => x.type === t)?.name || t
-const icon = (m: StoreItem) => m.libraries?.length ? libIcon(m.libraries[0]) : m.group === 'tv' ? <IconTv /> : <IconPlug />
+const glyph = (m: StoreItem) => m.libraries?.length ? libIcon(m.libraries[0]) : m.group === 'tv' ? <IconTv /> : <IconPlug />
+// Each module's own icon, the same picture as the catalogue's, from the server itself (web/public/module-icons, drawn
+// by scripts/genicon): nothing is fetched from the internet. A module without one keeps a glyph.
+function ModulePicture({ m }: { m: StoreItem }) {
+  const [broken, setBroken] = useState(false)
+  if (broken || !/^[a-z0-9-]+$/.test(m.id)) return glyph(m)
+  return <img className="su-module-icon" src={`/module-icons/${m.id}.png`} alt="" width={40} height={40} decoding="async" onError={() => setBroken(true)} />
+}
+const icon = (m: StoreItem) => <ModulePicture m={m} />
 const ready = (m: StoreItem) => !!m.status?.installed
 
 // skipped: its only version was made for an older server, and Install anyway wasn't chosen.

@@ -824,6 +824,11 @@ h3.section-title { font-size: var(--text-lg); margin-top: var(--sp-6); }
 /* ---------------------------------------------------------------- disc page */
 .disc-actions .insert { padding-left: var(--sp-4); padding-right: var(--sp-5); }
 .disc-actions .disc-hint { flex-basis: 100%; font-size: var(--text-xs); }
+/* A scene's picture (the player's Scenes). These went with the old disc page in Design 2, but the player still draws scenes with them. */
+.feature-thumb, .scene-thumb { position: relative; display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; padding: 0; border-radius: var(--r-md); overflow: hidden; background: var(--bg-3); cursor: pointer; color: var(--on-image); }
+.feature-thumb img, .scene-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform var(--dur-3) var(--ease-out); }
+.feature-thumb:focus-visible img, .scene-thumb:focus-visible img { transform: scale(1.03); }
+@media (prefers-reduced-motion: reduce) { .feature-thumb img, .scene-thumb img { transition: none; } }
 @media (hover: hover) { .feature-thumb:hover img, .scene-thumb:hover img { transform: scale(1.03); } }
 .scene-time { position: absolute; right: 6px; bottom: 6px; background: var(--scrim); color: var(--on-image); font-size: var(--text-2xs); font-weight: 600; padding: 1px 6px; border-radius: var(--r-xs); font-variant-numeric: tabular-nums; }
 .scene-grid, .extras-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: var(--sp-4); }

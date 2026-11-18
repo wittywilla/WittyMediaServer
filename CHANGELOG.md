@@ -14,6 +14,7 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - Changed: karaoke's Mix is three sliders, **Voice**, **Background Music** (every part but the singer, together) and **Track** (the whole song), in place of a slider per separated part. **Controls** at the end of the bar hides any of them, and Key and the words' timing; what's hidden is kept in `me/ui` `musicPlayer.karHide`. The rules for apps are in docs/CLIENT-API.md, "Karaoke that sets itself up" (#414).
 - Added: **Album art beside the words** in karaoke, a setting kept with the music player's others (`me/ui` `musicPlayer.karArt`, off unless chosen). The cover sits at the left of the words on a computer or a TV, and above them, smaller, on a phone held upright (#408).
 - Removed: karaoke's old in-browser voice control (**Voice on / lower / lowest**, which cancelled the middle of the stereo mix) and the audio nodes and mono check behind it. Karaoke only ever shows the Mix, which plays the server's karaoke version; while that's being made, the Mix waits in its place and says how far along it is, so the old control no longer flashes up first (#407).
+- **Fixed:** the player's Scenes was an empty strip behind the seek bar. The looks' background picture used the class `scene`, which pinned every scene card behind the page; it's `look-scene` now. The scene cards' own styles, which went with the old disc page in Design 2, are back, so each scene shows its picture and time and "Now playing" sits on its own scene. (#390)
 
 ## 0.8.0-alpha
 

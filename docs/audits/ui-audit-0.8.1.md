@@ -112,3 +112,19 @@ players (listed only: `seek-errors` and `transcode-options` own seeking and the 
 | R3 help link | ![](ui-audit-0.8.1/R3-help-link-before.png) | ![](ui-audit-0.8.1/R3-help-link-after.png) |
 
 Other pictures referred to above: `item-loading-desktop.png`, `show-phone-band.png`, `settings-libraries-phone.png`.
+
+## Round three: TV, light and Aero Sunset
+
+- **Regression found and fixed in R3:** the first help-link fix put the link in the page's corner everywhere, which
+  is right where a back link exists (1280px and narrower) and wrong at TV and wide widths, where the sidebar replaces
+  it and the link landed on the crash notice (`R3-help-link-tv-after.png` is the fixed state). It is now scoped to
+  the widths with a back link.
+- **TV 1920:** no sideways scroll, nothing under the bar. Overlapping ghost buttons on Settings were two buttons
+  wrapped in a row (not overlapping on screen).
+- **Light, desktop:** a title's page ends its backdrop picture on a hard line with the page colour
+  (`light-show-hero-edge.png`), and the title carries a dirty dark glow. Owners: `fade-edges` (#411 covers Home's
+  hero; the detail page's backdrop needs the same mask) and `theme-readability` (#423).
+- **Aero Sunset and TV Home:** the hero's meta line and description are hard to read over the picture
+  (`aerosunset-home-hero-text.png`, `tv-home-hero-text.png`). Owner: `theme-readability` (#423).
+- **TV Settings:** the title "Settings" touches the list's scrollbar. Small; Settings page-top work.
+- **Not done:** tablet 768 and 1920 desktop slices, players (list only), and keyboard focus on module pages.

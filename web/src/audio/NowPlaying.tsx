@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
+import { useMedia } from '../shell/useNav'
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api, fmtTime, posterUrl } from '../api'
 import { Placeholder } from '../components/common'
@@ -72,7 +73,11 @@ type Panel = '' | 'lyrics' | 'queue' | 'sound' | 'read' | 'sleep'
 // How long the controls stay with nothing touched, the visualizer on.
 const IDLE_MS = 4000
 
+// The speeds offered, here and in More on a phone.
+const SPEEDS_NP = [0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3]
+
 export default function NowPlaying({ p }: { p: PlayerView }) {
+  const phone = useMedia('(max-width: 700px)')
   const it = p.current!
   const root = useRef<HTMLDivElement>(null)
   const [prefs, setPrefsState] = useState<Prefs>(DEFAULT_PREFS)
@@ -266,17 +271,28 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
           <span className="np-where-sub">{p.live ? it.title : it.album || subtitle}</span>
         </div>
         <div className="np-top-right">
-          <Volume p={p} />
+          {/* A phone keeps the top row to what's reached for while listening: its own buttons do the volume, the
+              player already fills the screen, and the sleep timer and speed are in More. */}
+          {!phone && <Volume p={p} />}
           {!p.live && <AddToPlaylist items={[it]} />}
-          <button type="button" className={'mp-ibtn' + (panel === 'sleep' || p.sleepAt !== null ? ' on' : '')} aria-pressed={panel === 'sleep'} aria-label={p.sleepAt !== null ? 'Sleep timer: on' : 'Sleep timer'} title="Sleep timer" onClick={() => setPanel(panel === 'sleep' ? '' : 'sleep')}><IconMoon /></button>
+          {!phone && <button type="button" className={'mp-ibtn' + (panel === 'sleep' || p.sleepAt !== null ? ' on' : '')} aria-pressed={panel === 'sleep'} aria-label={p.sleepAt !== null ? 'Sleep timer: on' : 'Sleep timer'} title="Sleep timer" onClick={() => setPanel(panel === 'sleep' ? '' : 'sleep')}><IconMoon /></button>}
           <button type="button" className={'mp-ibtn' + (panel === 'queue' ? ' on' : '')} aria-pressed={panel === 'queue'} aria-label={placeLine} title={`${placeLine} (Q)`} onClick={() => setPanel(panel === 'queue' ? '' : 'queue')}>{p.books ? <IconChapters /> : <IconList />}</button>
           <Like p={p} />
           <PartyButton p={p} />
           <AudioPlayOn p={p} />
-          <button type="button" className="mp-ibtn np-fill" onClick={toggleFullscreen} aria-label="Fill the screen (F)" title="Fill the screen (F)"><IconFull /></button>
+          {!phone && <button type="button" className="mp-ibtn np-fill" onClick={toggleFullscreen} aria-label="Fill the screen (F)" title="Fill the screen (F)"><IconFull /></button>}
           <Pop label="More" icon={<IconMore />}>
             {(close) => (
               <div className="mp-menu" role="menu">
+                {phone && <button type="button" role="menuitem" onClick={() => { setPanel(panel === 'sleep' ? '' : 'sleep'); close() }}><IconMoon size={18} /> {p.sleepAt !== null ? 'Sleep timer: on' : 'Sleep timer'}</button>}
+                {phone && !p.live && !p.cdActive && (
+                  <div className="np-menu-speed" role="group" aria-label="Playback speed">
+                    <span className="mp-menu-note">Speed</span>
+                    <div className="np-menu-speeds">
+                      {SPEEDS_NP.filter((r) => r <= p.maxSpeed).map((r) => <button type="button" key={r} role="menuitemradio" aria-checked={p.rate === r} className={p.rate === r ? 'on' : ''} onClick={() => p.changeRate(r)}>{r}×</button>)}
+                    </div>
+                  </div>
+                )}
                 <button type="button" role="menuitem" onClick={() => { setPanel(panel === 'sound' ? '' : 'sound'); close() }}><IconSliders size={18} /> Sound: equaliser and more</button>
                 {canSing && <button type="button" role="menuitem" onClick={() => { p.startRadio(it); close() }}><IconStation size={18} /> Start a station from this song</button>}
                 {p.albumUrl && <button type="button" role="menuitem" onClick={() => p.goTowards(p.albumUrl)}>{p.live ? 'Go to station' : p.books ? 'Go to book' : 'Go to album'}</button>}
@@ -378,9 +394,9 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
             {canSing && <button type="button" className={'np-chip' + (panel === 'lyrics' ? ' on' : '')} aria-pressed={panel === 'lyrics'} title="Lyrics (L)" onClick={() => setPanel(panel === 'lyrics' ? '' : 'lyrics')}><IconMic size={20} /> Lyrics</button>}
             {canSing && <button type="button" className="np-chip" title="Karaoke (K)" onClick={() => setKaraoke(true)}><IconKaraoke size={20} /> Karaoke</button>}
             {canSing && <button type="button" className={'np-chip' + (panel === 'read' ? ' on' : '')} aria-pressed={panel === 'read'} title="Read the words, or the album's booklet" onClick={() => setPanel(panel === 'read' ? '' : 'read')}><IconReadOpen size={20} /> Read{extras.length > 0 && <span className="np-count">{extras.length}</span>}</button>}
-            {!p.live && !p.cdActive && (
+            {!phone && !p.live && !p.cdActive && (
               <select className="np-speed" aria-label="Playback speed" title="Playback speed (< and >)" value={p.rate} onChange={(e) => p.changeRate(Number(e.target.value))}>
-                {[0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3].filter((r) => r <= p.maxSpeed).map((r) => <option key={r} value={r}>{r}×</option>)}
+                {SPEEDS_NP.filter((r) => r <= p.maxSpeed).map((r) => <option key={r} value={r}>{r}×</option>)}
               </select>
             )}
           </div>

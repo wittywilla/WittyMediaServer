@@ -480,3 +480,43 @@ button.np-artist:hover { color: var(--np-fg); text-decoration: underline; text-u
 .np.viz-on.viz-text-bottom .np-main { justify-content: flex-end; }
 .np.viz-on:is(.viz-art-left, .viz-art-right).viz-text-top .np-main { align-content: start; }
 .np.viz-on:is(.viz-art-left, .viz-art-right).viz-text-bottom .np-main { align-content: end; }
+
+/* Karaoke on a phone: the words have the screen, nothing scrolls them away. The bar keeps play and the lines; the
+   mix, key, timing, what's behind the words and the rest are in the "Mix and more" sheet (Karaoke.tsx). */
+@media (max-width: 700px) {
+  .kar { overflow: hidden; }
+  .kar-stage { flex: 1 1 auto; min-height: 0; }
+  .kar-bar { flex-wrap: nowrap; padding-block-end: max(12px, env(safe-area-inset-bottom)); }
+  .kar-note:empty, .kar-hints { display: none; }
+}
+.kar-sheet-btn { display: inline-flex; align-items: center; gap: 8px; }
+.kar-sheet-btn svg { fill: currentColor; }
+.kar-sheet-backdrop { position: fixed; inset: 0; z-index: 6; display: flex; align-items: flex-end; justify-content: center; background: rgb(0 0 0 / .4); animation: fade-in var(--dur-2) ease-out; }
+.kar-sheet { display: grid; gap: 14px; justify-items: center; inline-size: 100%; max-inline-size: 34rem; max-block-size: 78dvh; overflow-y: auto; overscroll-behavior: contain;
+  padding: 0 16px max(18px, env(safe-area-inset-bottom)); border-radius: var(--r-xl) var(--r-xl) 0 0; background: var(--np-kar-bg); border-top: 1px solid var(--np-line); color: var(--np-white);
+  box-shadow: 0 -12px 40px rgb(0 0 0 / .45); animation: np-up var(--dur-3) var(--ease-out); }
+.kar-sheet-head { position: sticky; inset-block-start: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; inline-size: 100%; padding-block: 12px 4px; background: inherit; }
+.kar-sheet-head h3 { margin: 0; font-size: var(--text-md); font-weight: 700; }
+.kar-sheet-head .mp-ibtn { background: var(--np-chip); }
+.kar-sheet-tools { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; inline-size: 100%; }
+.kar-sheet-tools .kar-stems { inline-size: 100%; }
+.kar-sheet-tools .kar-level { inline-size: 100%; justify-content: space-between; white-space: nowrap; }
+.kar-sheet-tools .kar-level input { flex: 1; inline-size: auto; min-inline-size: 0; }
+.kar-sheet-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; }
+.kar-sheet .kar-choice { padding: 0; }
+.kar-sheet > .kar-chip { display: inline-flex; align-items: center; gap: 8px; }
+.kar-sheet > .kar-chip svg { fill: currentColor; }
+@media (prefers-reduced-motion: reduce) { .kar-sheet, .kar-sheet-backdrop { animation: none; } }
+/* Speed inside More, on a phone. */
+.np-menu-speed { display: grid; gap: 6px; padding: 6px 8px 8px; border-top: 1px solid var(--np-line); margin-top: 4px; }
+.np-menu-speeds { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.np-menu-speeds button { min-height: 40px; padding: 0; justify-content: center; border-radius: var(--r-md); font-variant-numeric: tabular-nums; }
+.np-menu-speeds button.on { background: var(--np-white); color: var(--np-black); font-weight: 700; }
+/* In the sheet each level is a row: its name, a slider taking the rest, the amount; nothing overlaps. */
+.kar-sheet-tools .kar-level { display: grid; grid-template-columns: 9.5rem minmax(0, 1fr) auto; }
+/* The song and the close button share one row on a phone; a long title is cut short rather than pushing it down. */
+@media (max-width: 700px) {
+  .kar-top { flex-wrap: nowrap; }
+  .kar-song { flex: 1 1 auto; min-inline-size: 0; }
+  .kar-song b, .kar-song span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}

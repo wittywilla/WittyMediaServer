@@ -43,6 +43,8 @@ type playInfo struct {
 type chapter struct {
 	Start float64 `json:"start"`
 	Title string  `json:"title"`
+	// ThumbnailAt: the moment to picture it by, when a .wittyinfo says (else Start).
+	ThumbnailAt *float64 `json:"thumbnailAt,omitempty"`
 }
 
 type trackInfo struct {

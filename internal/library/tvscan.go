@@ -227,6 +227,8 @@ func (s *Scanner) indexEpisode(ctx context.Context, lib *Library, c candidate, t
 		// Numbers someone corrected and anything else locked stay.
 		s.Store.keepLockedItem(ctx, it, existing, meta)
 	}
+	// What someone wrote in a .wittyinfo wins over anything found.
+	s.applyInfo(ctx, it)
 	if it.Poster == "" {
 		if p, err := s.thumbnail(ctx, it); err == nil {
 			it.Poster = p

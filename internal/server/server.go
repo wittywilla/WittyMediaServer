@@ -608,6 +608,7 @@ func (s *Server) Handler() http.Handler {
 	s.sduiRoutes(m)
 	s.themeRoutes(m)
 	s.mediaExtrasRoutes(m)
+	s.wittyinfoRoutes(m)
 	s.peopleRoutes(m)
 	s.karaokeRoutes(m)
 	s.remoteControlRoutes(m)

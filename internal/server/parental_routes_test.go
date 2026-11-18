@@ -193,6 +193,7 @@ var plainRoutes = []string{
 	"GET /api/media-types",
 	"GET /api/media/{id}/canvas",
 	"GET /api/media/{id}/markers",
+	"GET /api/wittyinfo/{target}/{id}/files/{name...}",
 	"GET /api/media/{id}/stems",
 	"GET /api/media/{id}/karaoke",
 	"GET /api/media/{id}/where-to-watch",

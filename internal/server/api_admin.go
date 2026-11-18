@@ -26,7 +26,7 @@ import (
 )
 
 var settingKeys = []string{"tmdbKey", "tvdbKey", "tvdbPin", "hwAccel", "maxHeight", "menuLanguage", "audioLanguage", "subtitleLanguage",
-	"serverName", "audioCodec", "lowPower", "bdjEnabled", "dvdRegion", "blurayRegion", "dvdParental", "blurayAge", "discCountry", "saveMetadata", "dvdStart", "insertFx", "episodeView",
+	"serverName", "audioCodec", "lowPower", "bdjEnabled", "dvdRegion", "blurayRegion", "dvdParental", "blurayAge", "discCountry", "saveMetadata", "saveWittyinfo", "dvdStart", "insertFx", "episodeView",
 	"hwEncoders", "directPlay", "qualityMode", "qualityProfile", "x264Preset", "crf", "maxBitrate", "audioBitrate",
 	"ffmpegVideoArgs", "ffmpegOutputArgs", "timeZone", "theme", "brandName", "brandColouring", "brandSpans", "brandMark", "maxSpeed",
 	"loginStyle", "profilesRemote", "setupDone", "kidsManagedBy", "insertSound", "tvmaze", "wikidata", "musicbrainz", "animeIn", "animeTitles",
@@ -34,7 +34,7 @@ var settingKeys = []string{"tmdbKey", "tvdbKey", "tvdbPin", "hwAccel", "maxHeigh
 	"legalOwnerNotice", "legalOwnerContact", "noPoster", "pairRequirePin", settingSecondOpinion}
 
 // settingDefaults are returned when a key has never been saved.
-var settingDefaults = map[string]string{"saveMetadata": "1", "brandMark": brandname.DefaultMark, "noPoster": library.NoPosterFrame, "dvdStart": "menu", "insertFx": "1", "episodeView": "cards",
+var settingDefaults = map[string]string{"saveMetadata": "1", "saveWittyinfo": "1", "brandMark": brandname.DefaultMark, "noPoster": library.NoPosterFrame, "dvdStart": "menu", "insertFx": "1", "episodeView": "cards",
 	"theme": "default", "brandColouring": brandname.Auto, "directPlay": "1", "qualityMode": "easy", "qualityProfile": "balanced", "x264Preset": "veryfast", "crf": "21", "maxSpeed": "4",
 	"loginStyle": "profiles", "profilesRemote": "0", "kidsManagedBy": "adults", "insertSound": "1", "tvmaze": "1", "wikidata": "1", "musicbrainz": "1", "animeIn": "both", "animeTitles": "english",
 	// libraryGrouping: another folder of a kind joins that kind's library

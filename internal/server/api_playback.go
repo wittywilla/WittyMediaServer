@@ -24,6 +24,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/mediaextras"
 	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 	"github.com/wittywilla/wittymediaserver/internal/playback"
 	"github.com/wittywilla/wittymediaserver/internal/subtitle"
@@ -153,6 +154,12 @@ type playbackResponse struct {
 	Recap       *playbackIntro  `json:"recap,omitempty"`
 	Credits     *playbackIntro  `json:"credits,omitempty"`
 	Commercials []playbackIntro `json:"commercials,omitempty"`
+	// Segments: every skippable or marked part, each with its kind, action and source
+	// (previews, scenes after the credits and custom skips are only here).
+	Segments []mediaextras.Segment `json:"segments,omitempty"`
+	// Info: what the video's .wittyinfo adds beyond the times (content filters, where to
+	// start), and whether one is in use.
+	Info *playbackInfo `json:"info,omitempty"`
 	// Stems: a song's separated parts for karaoke, ready to play (stream token included).
 	Stems  []stemView    `json:"stems,omitempty"`
 	NextID *int64        `json:"nextId,omitempty"`

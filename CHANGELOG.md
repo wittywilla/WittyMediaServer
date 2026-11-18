@@ -9,6 +9,7 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - **Fixed:** first-time setup's Live TV and Games steps were an empty card once their module was installed. The app asked what modules add to it only once, before there was an account, and never again; it now asks again after a refusal, with the server's state, and after the Modules step installs something. A module's step that can't load says so instead of drawing nothing. (#378)
 - **Fixed:** after first-time setup, Home still said "Finish setting up WittyTuner" (or WittyPlay) although the Live TV or Games step had been gone through. The step a module draws in setup never told the server; the wizard now records it when someone moves on from it, as done or put off (`POST /api/setup/module-steps/skip` takes `done`). A module's step that crashes shows the "set it up later" note, and setup carries on. (#427)
 - **First-time setup asks for the language and time zone first,** on a screen before the welcome page. They're saved as soon as the account is made, and the Name and address step shows them again to change. (#385)
+- Settings → Modules and the module store show each module's picture on a server that hasn't read the module catalogue yet, instead of a drawn letter: the pictures in the list a server is built with are fetched from beside the official catalogue, not from a bare path that was refused. A picture that can't be fetched is logged as a warning (`cat=modules`). (#384)
 
 ## 0.8.0-alpha
 

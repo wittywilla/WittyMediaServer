@@ -25,11 +25,11 @@
   --fg-3: #6d6354;        /* hints, captions */
 
   /* Accent: buttons, highlights, progress bars, selected items */
-  --accent: #a14b1b;
+  --accent: #97461b;
   --accent-2: #8a3f16;      /* hovered or pressed accent */
   --accent-fg: #ffffff;     /* text on the accent */
   --accent-text: #a14b1b;   /* the accent as text: links, highlighted words */
-  --accent-rgb: 161 75 27;
+  --accent-rgb: 151 70 27;
   --brand-accent: var(--accent-text); /* the highlighted word of the name in the corner */
 
   /* Status */

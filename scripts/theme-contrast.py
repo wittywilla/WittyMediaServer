@@ -218,14 +218,42 @@ def gloss_worst(gloss, label):
     return min(ratio(label, point(p)) for p in range(30, 71))
 
 
+def derived_gloss(accent):
+    """The gloss a theme without its own gets (web/src/finish.css --gloss-*): the accent, lit toward --on-image (white)
+    at the top and the glow, deepened toward --picture-bg (black) below the middle."""
+    return [mix(accent, '#ffffff', .55), accent, mix(accent, '#000000', .86), mix(accent, '#ffffff', .78)]
+
+
+# A theme without a gloss of its own can be worn with a look that has the full gloss, so its worked-out gloss is
+# checked too; --fix deepens (or, under a dark label, lightens) its accent just enough.
 for meta in sorted(pathlib.Path('themes').glob('*/theme.json')):
     m = json.loads(meta.read_text(encoding='utf-8'))
     gloss = (m.get('finish') or {}).get('gloss')
-    if not gloss or len(gloss) < 4:
-        continue
+    own = bool(gloss and len(gloss) >= 4)
     label = m['colors']['accentFg']
-    worst = gloss_worst(gloss, label)
-    print(f'{meta}: gloss label ' + ('passes' if worst >= 4.5 else f'is {worst:.2f}:1 over the middle of the gloss, needs 4.5:1'))
+    accent = m['colors']['accent']
+    worst = gloss_worst(gloss if own else derived_gloss(accent), label)
+    if worst < 4.5 and FIX and not own:
+        dark_label = lum(rgb(label)) < 0.2
+        new = accent
+        for _ in range(200):
+            if gloss_worst(derived_gloss(new), label) >= 4.5:
+                break
+            h, li, sa = colorsys.rgb_to_hls(*rgb(new))
+            new = hexs(colorsys.hls_to_rgb(h, min(1, li + 0.005) if dark_label else max(0, li - 0.005), sa))
+        css_f = meta.parent / 'theme.css'
+        css = css_f.read_text(encoding='utf-8')
+        css = re.sub(r'(--accent:\s*)' + re.escape(accent), r'\g<1>' + new, css, count=1, flags=re.I)
+        r8, g8, b8 = (round(x * 255) for x in rgb(new))
+        css = re.sub(r'(--accent-rgb:\s*)[\d ]+', rf'\g<1>{r8} {g8} {b8}', css, count=1)
+        css_f.write_text(css, encoding='utf-8')
+        if m.get('preview', {}).get('accent', '').lower() == accent.lower():
+            m['preview']['accent'] = new
+            meta.write_text(json.dumps(m, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+        print(f'{meta}: gloss label: --accent {accent} -> {new} ({worst:.2f}:1 -> {gloss_worst(derived_gloss(new), label):.2f}:1)')
+        changed += 1
+        continue
+    print(f'{meta}: {"gloss" if own else "worked-out gloss"} label ' + ('passes' if worst >= 4.5 else f'is {worst:.2f}:1 over the middle of the gloss, needs 4.5:1'))
     if worst < 4.5:
         failed += 1
 

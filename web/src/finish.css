@@ -65,6 +65,12 @@ html[data-scene] .app .topbar.under { background: rgb(var(--bg-rgb) / .86); box-
 html[data-fx-glass="subtle"] :is(.sidebar, .topbar, .tabbar, .dock:not(.ctv-dock), .modal, [role=menu], .ui-menu, .popover, .sdui-widget, .ui-card) { background-image: linear-gradient(180deg, color-mix(in srgb, var(--glass-hi) 45%, transparent), transparent 70%); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--glass-edge) 60%, transparent); }
 html[data-fx-glass="full"] :is(.sidebar, .topbar, .tabbar, .dock:not(.ctv-dock), .modal, [role=menu], .ui-menu, .popover, .sdui-widget, .ui-card, .spec-rows, .spec-card) { background: var(--glass-paint); border-color: var(--glass-edge); box-shadow: 0 8px 22px var(--glass-shadow), inset 0 1px 0 var(--glass-edge); }
 html[data-fx-glass="full"] .topbar { box-shadow: 0 4px 14px var(--glass-shadow), inset 0 1px 0 var(--glass-edge); }
+/* The bars float over whatever is under them, a billboard's picture included, and full glass alone is see-through: under
+   the glass, the raised surface, solid enough that their words read over a white or a black picture (web/scripts/test-contrast.mjs). */
+html[data-fx-glass="full"] :is(.topbar, .tabbar, .dock:not(.ctv-dock)) { background-color: color-mix(in srgb, var(--elev-2-fill) 92%, transparent); }
+/* Full glass is lighter than a dark theme's page, so in the bars the secondary words (links not chosen, key hints) come
+   most of the way to the main text colour: still a step quieter, and 4.5:1 on the glass. */
+html[data-fx-glass="full"] :is(.topbar, .tabbar, .dock:not(.ctv-dock)) { --fg-2: color-mix(in srgb, var(--fg-2) 40%, var(--fg)); }
 html[data-fx-glass="full"] .sidebar { border-inline-end-color: var(--glass-edge); }
 /* Glossy rows: a row is a pane of glass, and the one under the pointer or focus lights up. */
 html[data-fx-glass="full"] :is(.sdui-row, .spec-row, .nav-link) { background: var(--glass-paint); box-shadow: inset 0 1px 0 var(--glass-edge); border-radius: var(--r-lg); }

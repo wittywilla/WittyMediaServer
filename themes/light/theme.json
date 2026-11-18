@@ -10,7 +10,7 @@
     "bg": "#f4f5f8",
     "surface": "#eaedf2",
     "text": "#15171c",
-    "accent": "#6d4fe0"
+    "accent": "#5d3fe0"
   },
   "colors": {
     "bg": "#f4f5f8",
@@ -20,7 +20,7 @@
     "fg": "#15171c",
     "fg2": "#4a5160",
     "fg3": "#636b7a",
-    "accent": "#6d4fe0",
+    "accent": "#5d3fe0",
     "accentHover": "#5838c9",
     "accentFg": "#ffffff",
     "accentText": "#6d4fe0",
@@ -33,8 +33,8 @@
     "controlLine": "#838992",
     "hover": "#15171c12",
     "pressed": "#15171c1f",
-    "accentSoft": "#6d4fe024",
-    "accentLine": "#6d4fe073",
+    "accentSoft": "#5d3fe024",
+    "accentLine": "#5d3fe073",
     "okSoft": "#117b5021",
     "warnSoft": "#9b5d0021",
     "dangerSoft": "#cf25371c",

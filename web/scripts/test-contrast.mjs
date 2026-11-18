@@ -21,7 +21,7 @@
 //
 // WMS_THEMES=aerosunset,midnight and WMS_LOOKS=aero,classic run only those. WMS_PAGES=home,detail,settings,tv
 // picks the pages (all by default; settings and TV mode in each theme's first look only, as they
-// don't change much between looks). WMS_SHOTS=1 also saves a picture of each page. It writes
+// don't change much between looks). WMS_DETAIL=/item/123 picks the title page (else the billboard's first). WMS_SHOTS=1 also saves a picture of each page. It writes
 // contrast.json and contrast.md (the report) to the folder given, and exits 1 if anything fails.
 // node scripts/test-contrast.mjs --report out part1 part2 makes one report of runs made in parts.
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -143,6 +143,9 @@ const PAGE_FN = `(${function (mode, png, backdrop) {
         const x0 = Math.max(0, r.left + 1), x1 = Math.min(innerWidth - 1, r.right - 1)
         const y0 = Math.max(0, r.top + r.height * 0.25), y1 = Math.min(innerHeight - 1, r.bottom - r.height * 0.25)
         if (x1 <= x0 || y1 <= y0) continue
+        // Covered by something else (scrolled under the sticky bar, behind a menu): not what anyone reads there.
+        const top = document.elementFromPoint((x0 + x1) / 2, (y0 + y1) / 2)
+        if (top && !el.contains(top) && !top.contains(el)) continue
         const step = Math.max(1, Math.sqrt(((x1 - x0) * (y1 - y0)) / 600))
         const ratios = []
         let sum = [0, 0, 0], count = 0
@@ -210,7 +213,7 @@ async function settle(selector, what) {
 }
 
 const results = [] // { theme, look, page, backdrop, lines }
-let detailUrl = ''
+let detailUrl = process.env.WMS_DETAIL ? server + process.env.WMS_DETAIL : ''
 const started = Date.now()
 for (const theme of THEMES) {
   for (const [li, look] of LOOKS.entries()) {

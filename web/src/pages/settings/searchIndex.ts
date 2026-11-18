@@ -55,6 +55,8 @@ export const ENTRIES: Entry[] = [
   { page: 'metadata', title: 'Custom agents', section: 'Custom agents' },
   { page: 'playback', title: 'Player', section: 'Player', words: 'playback speed episode layout' },
   { page: 'playback', title: 'Skipping', section: 'Skipping', words: 'auto skip intro recap credits adverts commercials next episode automatically' },
+  { page: 'playback', title: 'Video quality limits', section: 'Video quality', words: 'quality resolution bitrate limit transcode per profile remote away' },
+  { page: 'quality', title: 'Video quality', section: 'Your profile', words: 'quality resolution bitrate 4k 1080p 720p 480p data mobile away home device auto original' },
   { page: 'channels', title: 'WittyTV theme for new viewers', words: 'tv guide look default' },
   { page: 'channels', title: 'Tuners and IPTV', section: 'Tuners and IPTV', words: 'm3u playlist hdhomerun antenna live tv' },
   { page: 'transcoding', title: 'Hardware encoders', section: 'Hardware encoders', words: 'gpu nvenc quick sync vaapi amf videotoolbox acceleration' },

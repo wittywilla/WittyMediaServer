@@ -100,6 +100,8 @@ type LiveSession struct {
 	Dir  string
 	// fallback is how much of the graphics chip the next runs use (as Session's).
 	fallback atomic.Int32
+	// work is what the latest run uses, for the player's stream information.
+	work liveWork
 
 	m      *Manager
 	log    *slog.Logger
@@ -692,6 +694,7 @@ func nostdinOff(args []string) []string {
 
 func runLiveFFmpeg(ctx context.Context, s *LiveSession, in *LiveInput, run int, burst bool) error {
 	args, hc := s.liveArgsHW(in, run, burst)
+	s.work.set(hc.work(in.CopyVideo || in.Slate))
 	running, cancel := context.WithCancel(ctx)
 	defer cancel()
 	cmd := ffmpeg.Command(running, s.m.tools.FFmpeg, args...)

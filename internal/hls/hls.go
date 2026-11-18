@@ -1173,8 +1173,7 @@ func (s *Session) commandLine(fromSeg int) (args []string, encoder, dir string, 
 	// would abort once 2/3 of the frames failed to decode and leave the
 	// stream unfinished, so decode errors never end a transcode.
 	args = []string{"-hide_banner", "-loglevel", "warning", "-nostdin", "-y", "-max_error_rate", "1"}
-	hc = s.m.chooseHW(sp.Quality, sp.Preset, s.fallback.Load(), hwSource{codec: sp.VideoCodec, pixFmt: sp.PixFmt, videoFilter: sp.VideoFilter,
-		toneMap: sp.ToneMap, subs: sp.SubtitleIndex >= 0, cpuOnly: sp.CopyVideo || sp.NoVideo || sp.HoldLastFrame || len(sp.Holes) > 0 || len(sp.Quality.VideoArgs) > 0})
+	hc = s.m.chooseHW(sp.Quality, sp.Preset, s.fallback.Load(), hwSourceOf(sp))
 	plan := hc.plan
 	if hc.placebo {
 		args = append(args, ffmpeg.VulkanDevice...)
@@ -1383,7 +1382,10 @@ func (s *Session) commandLine(fromSeg int) (args []string, encoder, dir string, 
 			af += ",apad"
 		}
 		switch {
-		case ch == 2 || ch == 0:
+		// A stream held to a rate (a viewer's choice, the limit away from home) has stereo
+		// sound: the rate's budget for sound is a stereo rate (ffmpeg.Quality.WithCap), and
+		// 5.1 at 384k would take most of a small one.
+		case ch == 2 || ch == 0 || sp.Quality.CapRate != "":
 			args = append(args, "-ac", "2", "-b:a", firstNonEmpty(sp.Quality.AudioRate, "192k"), "-af", af)
 		default:
 			args = append(args, "-ac", strconv.Itoa(ch), "-b:a", "384k", "-af", af)

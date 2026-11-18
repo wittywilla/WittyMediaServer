@@ -7703,6 +7703,16 @@
           "profile": {
             "type": "string"
           },
+          "quality": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "startSec": {
             "anyOf": [
               {
@@ -7751,6 +7761,7 @@
           "maxHeight",
           "measuredKbps",
           "profile",
+          "quality",
           "startSec",
           "streaming",
           "subtitle",
@@ -7914,11 +7925,178 @@
           "nowPlayingUrl": {
             "type": "string"
           },
+          "output": {
+            "anyOf": [
+              {
+                "properties": {
+                  "audioChannels": {
+                    "type": "integer"
+                  },
+                  "audioCodec": {
+                    "type": "string"
+                  },
+                  "audioKbps": {
+                    "type": "integer"
+                  },
+                  "encoder": {
+                    "type": "string"
+                  },
+                  "height": {
+                    "type": "integer"
+                  },
+                  "kbps": {
+                    "type": "integer"
+                  },
+                  "videoCodec": {
+                    "type": "string"
+                  },
+                  "width": {
+                    "type": "integer"
+                  },
+                  "work": {
+                    "anyOf": [
+                      {
+                        "properties": {
+                          "encoder": {
+                            "type": "string"
+                          },
+                          "gpuDecode": {
+                            "type": "boolean"
+                          },
+                          "gpuEncode": {
+                            "type": "boolean"
+                          },
+                          "gpuToneMap": {
+                            "type": "boolean"
+                          },
+                          "running": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "encoder",
+                          "gpuDecode",
+                          "gpuEncode",
+                          "gpuToneMap",
+                          "running"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "progressUrl": {
             "type": "string"
           },
           "protocol": {
             "type": "string"
+          },
+          "quality": {
+            "anyOf": [
+              {
+                "properties": {
+                  "asked": {
+                    "type": "string"
+                  },
+                  "audioRates": {
+                    "items": {
+                      "type": "integer"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "away": {
+                    "type": "boolean"
+                  },
+                  "choice": {
+                    "type": "string"
+                  },
+                  "limits": {
+                    "properties": {
+                      "maxHeight": {
+                        "type": "integer"
+                      },
+                      "maxKbps": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "maxHeight",
+                      "maxKbps"
+                    ],
+                    "type": "object"
+                  },
+                  "presets": {
+                    "items": {
+                      "properties": {
+                        "height": {
+                          "type": "integer"
+                        },
+                        "kbps": {
+                          "type": "integer"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "height",
+                        "kbps",
+                        "name"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "sourceHeight": {
+                    "type": "integer"
+                  },
+                  "sourceKbps": {
+                    "type": "integer"
+                  },
+                  "sourceWidth": {
+                    "type": "integer"
+                  },
+                  "videoCodecs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "asked",
+                  "audioRates",
+                  "away",
+                  "choice",
+                  "limits",
+                  "presets",
+                  "videoCodecs"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "reasons": {
             "items": {
@@ -14931,6 +15109,103 @@
           "positionSec": {
             "type": "number"
           },
+          "quality": {
+            "anyOf": [
+              {
+                "properties": {
+                  "asked": {
+                    "type": "string"
+                  },
+                  "audioRates": {
+                    "items": {
+                      "type": "integer"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "away": {
+                    "type": "boolean"
+                  },
+                  "choice": {
+                    "type": "string"
+                  },
+                  "limits": {
+                    "properties": {
+                      "maxHeight": {
+                        "type": "integer"
+                      },
+                      "maxKbps": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "maxHeight",
+                      "maxKbps"
+                    ],
+                    "type": "object"
+                  },
+                  "presets": {
+                    "items": {
+                      "properties": {
+                        "height": {
+                          "type": "integer"
+                        },
+                        "kbps": {
+                          "type": "integer"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "height",
+                        "kbps",
+                        "name"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "sourceHeight": {
+                    "type": "integer"
+                  },
+                  "sourceKbps": {
+                    "type": "integer"
+                  },
+                  "sourceWidth": {
+                    "type": "integer"
+                  },
+                  "videoCodecs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "asked",
+                  "audioRates",
+                  "away",
+                  "choice",
+                  "limits",
+                  "presets",
+                  "videoCodecs"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "security": {
             "anyOf": [
               {
@@ -20422,6 +20697,46 @@
         "x-wms-stream-token": true
       }
     },
+    "/hls/{id}/work": {
+      "get": {
+        "operationId": "getHlsWork",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What is converting the stream now: `encoder`, and whether the graphics chip encodes (`gpuEncode`), decodes and resizes (`gpuDecode`) and maps HDR (`gpuToneMap`). For stream information.",
+        "tags": [
+          "Playback"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/home": {
       "get": {
         "operationId": "getHome",
@@ -23133,40 +23448,40 @@
                 "schema": {
                   "properties": {
                     "progress": {
-                      "type": [
-                        "object",
-                        "null"
-                      ],
                       "properties": {
-                        "libraryId": {
-                          "type": "integer"
-                        },
-                        "phase": {
-                          "type": "string"
-                        },
                         "current": {
                           "type": "string"
-                        },
-                        "found": {
-                          "type": "integer"
                         },
                         "done": {
                           "type": "integer"
                         },
-                        "startedAt": {
+                        "found": {
+                          "type": "integer"
+                        },
+                        "libraryId": {
                           "type": "integer"
                         },
                         "mode": {
-                          "type": "string",
                           "enum": [
                             "changes",
                             "full"
-                          ]
+                          ],
+                          "type": "string"
+                        },
+                        "phase": {
+                          "type": "string"
                         },
                         "resumed": {
                           "type": "boolean"
+                        },
+                        "startedAt": {
+                          "type": "integer"
                         }
-                      }
+                      },
+                      "type": [
+                        "object",
+                        "null"
+                      ]
                     },
                     "scanning": {
                       "type": "boolean"
@@ -23230,15 +23545,15 @@
               "application/json": {
                 "schema": {
                   "properties": {
-                    "started": {
-                      "type": "boolean"
-                    },
                     "mode": {
-                      "type": "string",
                       "enum": [
                         "changes",
                         "full"
-                      ]
+                      ],
+                      "type": "string"
+                    },
+                    "started": {
+                      "type": "boolean"
                     }
                   },
                   "type": "object"
@@ -26012,6 +26327,84 @@
         "summary": "Ask a parent: {minutes, pin} or {minutes, name, password} gives this profile more time today. 403 for a wrong PIN or password, 429 after too many.",
         "tags": [
           "Sign-in and accounts"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/me/streaming": {
+      "get": {
+        "operationId": "getMeStreaming",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The profile's saved quality defaults (home and away), its limits, the limits for viewers away from home, and what the quality menu may offer this device now (`quality`: choice, presets, limits, away). See \"Quality\".",
+        "tags": [
+          "Playback"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putMeStreaming",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "away": {
+                    "description": "A quality choice: \"\" (Auto), \"original\", or fields such as \"h720-b4000\" (see Quality in CLIENT-API.md).",
+                    "type": "string"
+                  },
+                  "home": {
+                    "description": "A quality choice: \"\" (Auto), \"original\", or fields such as \"h720-b4000\" (see Quality in CLIENT-API.md).",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save the profile's own quality defaults: `home` and `away`, each a quality choice; \"\" is Auto.",
+        "tags": [
+          "Playback"
         ],
         "x-wms-auth": "user"
       }
@@ -43591,6 +43984,46 @@
         "x-wms-stream-token": true
       }
     },
+    "/tv/{key}/live/work": {
+      "get": {
+        "operationId": "getTvLiveWork",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The same for the live stream this viewer watches (`quality` as in its playlist address).",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/tv/{key}/logo": {
       "get": {
         "operationId": "getTvKeyLogo",
@@ -44375,6 +44808,104 @@
           "Sign-in and accounts"
         ],
         "x-wms-auth": "user"
+      }
+    },
+    "/users/{id}/stream-limits": {
+      "get": {
+        "operationId": "getUsersStreamLimits",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What an administrator allows a profile: the largest picture and the highest rate its streams are made to. 0 is no limit.",
+        "tags": [
+          "Sign-in and accounts"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putUsersStreamLimits",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "maxHeight": {
+                    "description": "Most lines a stream may have; 0 = no limit.",
+                    "type": "integer"
+                  },
+                  "maxKbps": {
+                    "description": "Most kbit/s a converted stream may use, picture and sound; 0 = no limit.",
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set a profile's stream limits (`maxHeight`, `maxKbps`; 0 = none). Every stream it starts, and its quality menu, keep within them.",
+        "tags": [
+          "Sign-in and accounts"
+        ],
+        "x-wms-auth": "admin"
       }
     },
     "/videos": {

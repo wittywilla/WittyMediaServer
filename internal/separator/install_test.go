@@ -99,6 +99,14 @@ func TestLicensesFromPackages(t *testing.T) {
 	os.MkdirAll(ti, 0o755)
 	os.WriteFile(filepath.Join(ti, "METADATA"), []byte("Name: torch\nVersion: 2.5.1\nLicense: BSD-3-Clause\n\n"), 0o644)
 	os.WriteFile(filepath.Join(ti, "LICENSE"), []byte("BSD"), 0o644)
+	// ONNX Runtime keeps its license in its own folder, not in the dist-info.
+	oi := filepath.Join(site, "onnxruntime_directml-1.24.4.dist-info")
+	os.MkdirAll(oi, 0o755)
+	os.WriteFile(filepath.Join(oi, "METADATA"), []byte("Name: onnxruntime-directml\nVersion: 1.24.4\nLicense: MIT License\n\n"), 0o644)
+	os.WriteFile(filepath.Join(oi, "top_level.txt"), []byte("onnxruntime\n"), 0o644)
+	os.MkdirAll(filepath.Join(site, "onnxruntime"), 0o755)
+	os.WriteFile(filepath.Join(site, "onnxruntime", "LICENSE"), []byte("MIT License\nCopyright (c) Microsoft Corporation"), 0o644)
+	os.WriteFile(filepath.Join(site, "onnxruntime", "ThirdPartyNotices.txt"), []byte("Third party notices"), 0o644)
 	os.MkdirAll(filepath.Join(dir, "python", "cpython-3.11"), 0o755)
 	os.WriteFile(filepath.Join(dir, "python", "cpython-3.11", "LICENSE.txt"), []byte("PYTHON SOFTWARE FOUNDATION LICENSE VERSION 2"), 0o644)
 
@@ -111,12 +119,23 @@ func TestLicensesFromPackages(t *testing.T) {
 	for _, l := range ls {
 		names = append(names, l.Name+" "+l.Version+" "+l.License)
 	}
-	want := "uv 0.13.5 MIT OR Apache-2.0|Python 3.11 PSF-2.0|demucs 4.0.1 MIT License|torch 2.5.1 BSD-3-Clause"
+	want := "uv 0.13.5 MIT OR Apache-2.0|Python 3.11 PSF-2.0|demucs 4.0.1 MIT License|onnxruntime-directml 1.24.4 MIT License|torch 2.5.1 BSD-3-Clause|Demucs htdemucs model 4.0.1 MIT"
 	if got := strings.Join(names, "|"); got != want {
 		t.Fatalf("got %s", got)
 	}
-	if !strings.Contains(ls[2].Text, "Meta Platforms") || ls[2].URL == "" || ls[3].Text != "BSD" {
+	if !strings.Contains(ls[2].Text, "Meta Platforms") || ls[2].URL == "" || ls[4].Text != "BSD" {
 		t.Errorf("%+v", ls[2:])
+	}
+	if !strings.Contains(ls[3].Text, "Microsoft") || !strings.Contains(ls[3].Text, "Third party notices") {
+		t.Errorf("license from the package's own folder: %q", ls[3].Text)
+	}
+	// The model's weights: where they came from, and Demucs's license text with them.
+	if m := ls[5]; !strings.Contains(m.Text, ModelURL) || !strings.Contains(m.Text, "Meta Platforms") || strings.Contains(m.Text, "ONNX") {
+		t.Errorf("model: %+v", m)
+	}
+	os.WriteFile(filepath.Join(dir, infoFile), []byte(`{"version":"4.0.1","python":"3.11","uv":"0.13.5","directml":true}`), 0o644)
+	if m := Licenses(dir)[5]; !strings.Contains(m.Text, "converted to ONNX") {
+		t.Errorf("converted here: %s", m.Text)
 	}
 }
 
@@ -127,5 +146,29 @@ func TestWithPath(t *testing.T) {
 	}
 	if env := withPath([]string{"A=1"}, "/ff"); env[1] != "PATH=/ff" {
 		t.Errorf("%v", env)
+	}
+}
+
+func TestDirectMLWheelsArePinned(t *testing.T) {
+	if len(dmlWheels) != len(DirectMLPackages) {
+		t.Fatal("every wheel is listed for Settings")
+	}
+	for i, w := range dmlWheels {
+		if len(w.sha256) != 64 || strings.Trim(w.sha256, "0123456789abcdef") != "" {
+			t.Errorf("%s: no SHA-256", w.name)
+		}
+		if !strings.HasPrefix(w.url, "https://files.pythonhosted.org/") || !strings.HasSuffix(w.url, "/"+w.name) || !strings.HasSuffix(w.name, "-cp311-cp311-win_amd64.whl") {
+			t.Errorf("%s: %s", w.name, w.url)
+		}
+		name, ver, _ := strings.Cut(DirectMLPackages[i], "==")
+		if !strings.HasPrefix(w.name, strings.ReplaceAll(name, "-", "_")+"-"+ver+"-") {
+			t.Errorf("%s isn't %s", w.name, DirectMLPackages[i])
+		}
+	}
+	if !DirectMLOn("windows", "amd64") || DirectMLOn("windows", "arm64") || DirectMLOn("linux", "amd64") || DirectMLOn("darwin", "arm64") {
+		t.Error("DirectML is only on 64-bit Windows for Intel and AMD processors")
+	}
+	if !strings.Contains(string(onnxScript), "SPDX-License-Identifier") {
+		t.Error("the converter script is embedded")
 	}
 }

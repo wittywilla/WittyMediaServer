@@ -10,16 +10,22 @@ package separator
 //	    uv/            the installer (uv, by Astral), its download checked against a SHA-256 kept here
 //	    python/        Python 3.11, fetched and checked by uv
 //	    venv/          Demucs, PyTorch (for the graphics card when there is one, accel.go) and what they need, pinned
-//	    models/        Demucs's model, fetched once from its makers (TORCH_HOME)
+//	    models/        Demucs's model, fetched once from its makers (TORCH_HOME), and on Windows
+//	                   htdemucs.onnx, the same model converted here for DirectML
+//	    demucs_onnx.py on Windows: runs the converted model through ONNX Runtime (DirectML)
 //	    installed.json written last: without it the folder is an unfinished install, and is removed
 //
 // What's downloaded, and from where: uv from GitHub (astral-sh/uv), Python from GitHub
 // (astral-sh/python-build-standalone, chosen and checked by uv), the packages from PyPI and
 // download.pytorch.org (the CPU builds, so no graphics card drivers come with them), and the
 // model from dl.fbaipublicfiles.com. About 1 GB in all, 3 to 4 GB with a graphics card's build.
-// Removing it deletes the folder.
+// On 64-bit Windows, ONNX Runtime's DirectML build and onnx come too (about 40 MB, from PyPI,
+// each checked against a SHA-256 kept here), and the model is converted to ONNX on this machine:
+// nothing converted is downloaded from anyone, us included. Removing it deletes the folder.
 
 import (
+	_ "embed"
+
 	"archive/tar"
 	"archive/zip"
 	"bufio"
@@ -71,6 +77,38 @@ func Packages(goos, goarch string) []string {
 // Model is the Demucs model used, fetched at install so the first song doesn't wait for it.
 const Model = "htdemucs"
 
+// ModelURL is where Demucs fetches the model's weights from: Meta's own server. Demucs, its
+// weights included, is released under the MIT license.
+const ModelURL = "https://dl.fbaipublicfiles.com/demucs/hybrid_transformer/955717e8-8726e21a.th"
+
+// onnxScript converts the model to ONNX and runs it with ONNX Runtime, for DirectML.
+//
+//go:embed demucs_onnx.py
+var onnxScript []byte
+
+const (
+	onnxScriptFile = "demucs_onnx.py"
+	onnxModelFile  = "htdemucs.onnx" // in models/
+)
+
+// wheel is a Python package fetched by the server itself, refused unless its SHA-256 matches.
+type wheel struct{ name, url, sha256 string }
+
+// dmlWheels are the DirectML parts, for Python 3.11 on 64-bit Windows: ONNX Runtime's DirectML
+// build, and onnx, which PyTorch's converter needs. Changing one means changing its hash, from
+// PyPI's page for that file.
+var dmlWheels = []wheel{
+	{"onnxruntime_directml-1.24.4-cp311-cp311-win_amd64.whl",
+		"https://files.pythonhosted.org/packages/be/90/99566dc6398028e7691a5b12720fd85f757a0901818b84599d28abb3f085/onnxruntime_directml-1.24.4-cp311-cp311-win_amd64.whl",
+		"96642a787e5a6f33bf043521c0f06eb1eb663f6b830e5862a2026d03f9c90543"},
+	{"onnx-1.17.0-cp311-cp311-win_amd64.whl",
+		"https://files.pythonhosted.org/packages/51/a5/19b0dfcb567b62e7adf1a21b08b23224f0c2d13842aee4d0abc6f07f9cf5/onnx-1.17.0-cp311-cp311-win_amd64.whl",
+		"95c03e38671785036bb704c30cd2e150825f6ab4763df3a4f1d249da48525957"},
+}
+
+// DirectMLPackages are dmlWheels as Settings lists them.
+var DirectMLPackages = []string{"onnxruntime-directml==1.24.4", "onnx==1.17.0"}
+
 // Supported says whether this machine can have Demucs installed for it, and why not.
 func Supported() (bool, string) {
 	return supportedOn(runtime.GOOS, runtime.GOARCH, muslLinux())
@@ -102,12 +140,15 @@ func muslLinux() bool {
 
 // Info is what installed.json holds.
 type Info struct {
-	Version   string    `json:"version"` // Demucs's
-	Model     string    `json:"model"`
-	UV        string    `json:"uv"`
-	Python    string    `json:"python"`
-	Packages  []string  `json:"packages"`
-	Accel     string    `json:"accel"` // what it was installed for: cuda, rocm, mps or cpu
+	Version  string   `json:"version"` // Demucs's
+	Model    string   `json:"model"`
+	UV       string   `json:"uv"`
+	Python   string   `json:"python"`
+	Packages []string `json:"packages"`
+	Accel    string   `json:"accel"` // what it runs on by itself: cuda, rocm, mps, dml or cpu
+	// DirectML: the model was converted to ONNX and passed a test run on the card through
+	// DirectML, so it can be chosen in Settings even where another card comes first.
+	DirectML  bool      `json:"directml,omitempty"`
 	Installed time.Time `json:"installed"`
 }
 
@@ -140,7 +181,27 @@ func Env(dir string) []string {
 }
 
 // InstalledAt is the Demucs installed in dir, or nil when there's none, or it's unfinished.
-func InstalledAt(dir string) *Found {
+func InstalledAt(dir string) *Found { return InstalledWith(dir, "auto") }
+
+// Choices are what the installed Demucs can run on, best first: the card it was installed for,
+// DirectML when that passed its test, and the processor. Settings offers these, with "auto".
+func Choices(in *Info) []Accel {
+	if in == nil {
+		return nil
+	}
+	var out []Accel
+	if in.Accel != "cpu" && in.Accel != "dml" && in.Accel != "" {
+		out = append(out, AccelByID(in.Accel))
+	}
+	if in.DirectML {
+		out = append(out, dmlAccel)
+	}
+	return append(out, cpuAccel)
+}
+
+// InstalledWith is InstalledAt running on choice: "auto" (or "") for what the install chose, or
+// one of Choices' IDs. A choice the install can't run falls back to what it chose.
+func InstalledWith(dir, choice string) *Found {
 	in := ReadInfo(dir)
 	if in == nil {
 		return nil
@@ -149,9 +210,23 @@ func InstalledAt(dir string) *Found {
 	if fi, err := os.Stat(py); err != nil || fi.IsDir() {
 		return nil
 	}
-	return &Found{Name: "Demucs", Version: in.Version, Path: py, Installed: true, Env: Env(dir),
-		Accel: AccelByID(in.Accel),
-		Words: []string{py, "-m", "demucs", "-n", in.Model, "-d", AccelByID(in.Accel).Device, "-o", "{output}", "{input}"}}
+	acc := AccelByID(in.Accel)
+	for _, c := range Choices(in) {
+		if c.ID == choice {
+			acc = c
+		}
+	}
+	f := &Found{Name: "Demucs", Version: in.Version, Path: py, Installed: true, Env: Env(dir), Accel: acc,
+		Words: []string{py, "-m", "demucs", "-n", in.Model, "-d", acc.Device, "-o", "{output}", "{input}"}}
+	if acc.ID == "dml" {
+		script, model := filepath.Join(dir, onnxScriptFile), filepath.Join(dir, "models", onnxModelFile)
+		if _, err := os.Stat(model); err != nil {
+			f.Accel = cpuAccel // the converted model is gone: Demucs itself, on the processor
+			return f
+		}
+		f.Words = []string{py, script, "separate", "--onnx", model, "--provider", "dml", "-o", "{output}", "{input}"}
+	}
+	return f
 }
 
 // Step says where an install is: a sentence for people, and how far along, 0 to 100.
@@ -196,6 +271,9 @@ func Install(ctx context.Context, dir, ffmpegDir string, acc Accel, step Step, l
 		"UV_NO_CONFIG=1",
 		"UV_NO_PROGRESS=1",
 		"UV_LINK_MODE=copy",
+		// Python stays in the folder: no python3.11 on the user's PATH, nothing in the registry.
+		"UV_PYTHON_INSTALL_BIN=0",
+		"UV_PYTHON_INSTALL_REGISTRY=0",
 	)
 	env = withPath(append(env, Env(dir)...), ffmpegDir)
 	run := func(phase string, pct int, prog string, args ...string) error {
@@ -230,35 +308,110 @@ func Install(ctx context.Context, dir, ffmpegDir string, acc Accel, step Step, l
 	if err := run(fmt.Sprintf("Getting Demucs and PyTorch for %s (about %.1f GB)", acc.Name, float64(acc.DownloadMB)/1000), 20, uv, args...); err != nil {
 		return err
 	}
-	if err := run("Getting Demucs's model", 85, py, "-c", "from demucs.pretrained import get_model; get_model('"+Model+"')"); err != nil {
+	if err := run("Getting Demucs's model", 80, py, "-c", "from demucs.pretrained import get_model; get_model('"+Model+"')"); err != nil {
 		return err
 	}
-	step("Checking it", 95)
+	step("Checking it", 85)
 	ver, err := exec.CommandContext(ctx, py, "-c", "import demucs;print(demucs.__version__)").Output()
 	if err != nil {
 		return fmt.Errorf("Demucs was installed but won't start: %w", err)
 	}
+	// DirectML, for Intel and AMD cards on Windows, and as the next choice where another card
+	// fails its check. Not when the administrator chose the processor only. A failure here is
+	// said in the log and leaves the rest of the install as it is: Demucs works without it.
+	pkgs = append([]string(nil), pkgs...)
+	dml := false
+	if DirectMLOn(runtime.GOOS, runtime.GOARCH) && acc.ID != "cpu" {
+		var got bool
+		var derr error
+		got, dml, derr = installDirectML(ctx, dir, uv, py, env, step, logw)
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		if derr != nil {
+			fmt.Fprintf(logw, "DirectML won't be used: %v\n", derr)
+		}
+		if got {
+			pkgs = append(pkgs, DirectMLPackages...)
+		}
+	}
 	_ = os.RemoveAll(filepath.Join(dir, "cache")) // the downloads, now unpacked: a few hundred MB
-	// Whether the card really works with this build; if not, it's kept for the processor, which
-	// works anywhere, rather than failing every song first.
-	if acc.ID != "cpu" {
+	// Whether the card really works with this build; if not, it's kept for DirectML when that
+	// passed its test, else the processor, which works anywhere, rather than failing every song first.
+	if acc.ID == "dml" && !dml {
+		fmt.Fprintf(logw, "%s didn't pass its test, so Demucs will use the processor\n", acc.Name)
+		acc = cpuAccel
+	}
+	if acc.ID != "cpu" && acc.ID != "dml" {
 		step("Checking the graphics card", 97)
 		probe := "import torch,sys;sys.exit(0 if (torch.backends.mps.is_available() if '" + acc.Device + "'=='mps' else torch.cuda.is_available()) else 1)"
 		if err := exec.CommandContext(ctx, py, "-c", probe).Run(); err != nil {
 			if ctx.Err() != nil {
 				return ctx.Err()
 			}
-			fmt.Fprintf(logw, "%s isn't usable from PyTorch here, so Demucs will use the processor\n", acc.Name)
-			acc = cpuAccel
+			if dml {
+				fmt.Fprintf(logw, "%s isn't usable from PyTorch here, so Demucs will use DirectML\n", acc.Name)
+				acc = dmlAccel
+			} else {
+				fmt.Fprintf(logw, "%s isn't usable from PyTorch here, so Demucs will use the processor\n", acc.Name)
+				acc = cpuAccel
+			}
 		}
 	}
-	in := Info{Version: strings.TrimSpace(string(ver)), Model: Model, UV: UVVersion, Python: PythonVersion, Packages: pkgs, Accel: acc.ID, Installed: time.Now().UTC()}
+	in := Info{Version: strings.TrimSpace(string(ver)), Model: Model, UV: UVVersion, Python: PythonVersion, Packages: pkgs, Accel: acc.ID, DirectML: dml, Installed: time.Now().UTC()}
 	b, _ := json.MarshalIndent(in, "", "  ")
 	if err := os.WriteFile(filepath.Join(dir, infoFile), b, 0o644); err != nil {
 		return err
 	}
 	step("Installed", 100)
 	return nil
+}
+
+// installDirectML adds ONNX Runtime's DirectML build to the install in dir, converts the model
+// to ONNX, checks the conversion against PyTorch on the processor, and runs it once on the card.
+// got: the packages went in; ok: the card passed and DirectML can be used.
+func installDirectML(ctx context.Context, dir, uv, py string, env []string, step Step, logw io.Writer) (got, ok bool, err error) {
+	run := func(timeout time.Duration, prog string, args ...string) error {
+		c, cancel := context.WithTimeout(ctx, timeout)
+		defer cancel()
+		fmt.Fprintf(logw, "> %s %s\n", filepath.Base(prog), strings.Join(args, " "))
+		cmd := exec.CommandContext(c, prog, args...)
+		cmd.Dir = dir
+		cmd.Env = env
+		cmd.Stdout, cmd.Stderr = logw, logw
+		cmd.WaitDelay = 10 * time.Second
+		return cmd.Run()
+	}
+	step("Getting ONNX Runtime for DirectML", 87)
+	wheels := filepath.Join(dir, "cache", "wheels")
+	var paths []string
+	for _, w := range dmlWheels {
+		p, err := fetchChecked(ctx, w.url, w.sha256, filepath.Join(wheels, w.name), 100<<20)
+		if err != nil {
+			return false, false, fmt.Errorf("%s couldn't be downloaded: %w", w.name, err)
+		}
+		paths = append(paths, p)
+	}
+	if err := run(15*time.Minute, uv, append([]string{"pip", "install", "--python", py}, paths...)...); err != nil {
+		return false, false, fmt.Errorf("ONNX Runtime couldn't be installed: %w", err)
+	}
+	script := filepath.Join(dir, onnxScriptFile)
+	if err := os.WriteFile(script, onnxScript, 0o644); err != nil {
+		return true, false, err
+	}
+	model := filepath.Join(dir, "models", onnxModelFile)
+	step("Converting the model for DirectML", 90)
+	// The script compares the converted model with Demucs on the processor and refuses it below
+	// 60 dB (they agree to about 80).
+	if err := run(20*time.Minute, py, script, "export", "--out", model); err != nil {
+		_ = os.Remove(model)
+		return true, false, fmt.Errorf("the model couldn't be converted: %w", err)
+	}
+	step("Checking the graphics card with DirectML", 94)
+	if err := run(5*time.Minute, py, script, "probe", "--onnx", model, "--provider", "dml"); err != nil {
+		return true, false, fmt.Errorf("the test run through DirectML failed: %w", err)
+	}
+	return true, true, nil
 }
 
 // Remove deletes everything Install put in dir.
@@ -303,13 +456,13 @@ func WithPath(env []string, first string) []string { return withPath(env, first)
 
 const uvBase = "https://github.com/astral-sh/uv/releases/download/"
 
-// fetchUV downloads the installer's archive, refuses it unless its SHA-256 is the one kept
-// here, and takes the uv program out of it.
-func fetchUV(ctx context.Context, a uvAsset, into string) (string, error) {
-	if err := os.MkdirAll(into, 0o755); err != nil {
+// fetchChecked downloads url to path, at most limit bytes, and refuses it (removing it) unless
+// its SHA-256 is want.
+func fetchChecked(ctx context.Context, url, want, path string, limit int64) (string, error) {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return "", err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, uvBase+UVVersion+"/"+a.name, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return "", err
 	}
@@ -320,21 +473,33 @@ func fetchUV(ctx context.Context, a uvAsset, into string) (string, error) {
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
-		return "", fmt.Errorf("GitHub answered %s", res.Status)
+		return "", fmt.Errorf("%s answered %s", req.URL.Host, res.Status)
 	}
-	archive := filepath.Join(into, a.name)
-	f, err := os.Create(archive)
+	f, err := os.Create(path)
 	if err != nil {
 		return "", err
 	}
 	h := sha256.New()
-	_, err = io.Copy(io.MultiWriter(f, h), io.LimitReader(res.Body, 200<<20))
+	_, err = io.Copy(io.MultiWriter(f, h), io.LimitReader(res.Body, limit))
 	f.Close()
+	if err == nil {
+		if got := hex.EncodeToString(h.Sum(nil)); got != want {
+			err = fmt.Errorf("its checksum is wrong (%s), so it wasn't used", got[:12])
+		}
+	}
 	if err != nil {
+		_ = os.Remove(path)
 		return "", err
 	}
-	if got := hex.EncodeToString(h.Sum(nil)); got != a.sha256 {
-		return "", fmt.Errorf("its checksum is wrong (%s), so it wasn't used", got[:12])
+	return path, nil
+}
+
+// fetchUV downloads the installer's archive, refuses it unless its SHA-256 is the one kept
+// here, and takes the uv program out of it.
+func fetchUV(ctx context.Context, a uvAsset, into string) (string, error) {
+	archive, err := fetchChecked(ctx, uvBase+UVVersion+"/"+a.name, a.sha256, filepath.Join(into, a.name), 200<<20)
+	if err != nil {
+		return "", err
 	}
 	defer os.Remove(archive)
 	name := "uv"
@@ -439,6 +604,23 @@ func Licenses(dir string) []License {
 	}
 	pk := out[first:]
 	sort.SliceStable(pk, func(i, j int) bool { return strings.ToLower(pk[i].Name) < strings.ToLower(pk[j].Name) })
+	// The model's weights: fetched from Meta, not from us, and under Demucs's own license.
+	mit := ""
+	for _, l := range pk {
+		if strings.EqualFold(l.Name, "demucs") {
+			mit = l.Text
+		}
+	}
+	model := in.Model
+	if model == "" {
+		model = Model
+	}
+	note := "The " + model + " model's weights, as published by Meta Platforms, Inc. with Demucs (" + ModelURL + "), fetched from there by this server when Demucs was installed. Demucs, its pretrained models included, is released under the MIT license."
+	if in.DirectML {
+		note += " On this machine they were also converted to ONNX, for DirectML; the converted copy stays here and isn't shared."
+	}
+	out = append(out, License{Name: "Demucs " + model + " model", Version: in.Version, License: "MIT", URL: "https://github.com/facebookresearch/demucs",
+		Text: strings.TrimSpace(note + "\n\n" + mit)})
 	return out
 }
 
@@ -537,6 +719,29 @@ func readDistInfo(di string) (License, bool) {
 		}
 		return nil
 	})
+	// Some packages (ONNX Runtime) keep their license in the package's own folder instead:
+	// the folders top_level.txt names, beside the dist-info, at their top only.
+	if len(texts) == 0 {
+		if b, err := os.ReadFile(filepath.Join(di, "top_level.txt")); err == nil {
+			for _, top := range strings.Fields(string(b)) {
+				if top == "" || strings.ContainsAny(top, `/\.`) {
+					continue
+				}
+				ents, _ := os.ReadDir(filepath.Join(filepath.Dir(di), top))
+				for _, e := range ents {
+					n := strings.ToUpper(e.Name())
+					if e.IsDir() || !(strings.HasPrefix(n, "LICENSE") || strings.HasPrefix(n, "LICENCE") || strings.HasPrefix(n, "COPYING") || strings.HasPrefix(n, "NOTICE") || strings.HasPrefix(n, "THIRDPARTYNOTICES")) {
+						continue
+					}
+					if fi, e2 := e.Info(); e2 == nil && fi.Size() < 2<<20 {
+						if t, e2 := os.ReadFile(filepath.Join(filepath.Dir(di), top, e.Name())); e2 == nil {
+							texts = append(texts, string(t))
+						}
+					}
+				}
+			}
+		}
+	}
 	l.Text = strings.Join(texts, "\n\n")
 	return l, true
 }

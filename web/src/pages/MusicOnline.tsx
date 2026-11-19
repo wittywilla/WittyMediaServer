@@ -22,7 +22,10 @@ type SeparatorState = {
   supported: boolean; why: string; task: string; failed: string; phase: string; percent: number
   packages: string[]; uv: string; python: string; model: string; downloadMB: number; cpuDownloadMB: number
   accel: Accel
-  installed?: { version: string; model: string; at: string; sizeBytes: number; accel: Accel }
+  // directml: ONNX Runtime's DirectML build comes with an install for a card (64-bit Windows)
+  directml?: boolean; directmlPackages?: string[]
+  // accel: what songs run on now; auto: what the install chose; choices: what karaokeDevice can be
+  installed?: { version: string; model: string; at: string; sizeBytes: number; accel: Accel; auto?: Accel; choices?: Accel[]; device?: string }
 }
 type Accel = { id: string; name: string; device: string; downloadMB: number; why?: string }
 const gb = (mb: number) => `${(mb / 1000).toFixed(1)} GB`
@@ -43,7 +46,7 @@ function karaokeFound(k: KaraokeStatus | null) {
 // Demucs with one press: what will be downloaded and from where, said before it starts; progress while it
 // runs; and once it's in, how much room it takes and a way to take it out again. Its licenses are listed in
 // Settings, About.
-function SeparatorInstall({ onChange }: { onChange: () => void }) {
+function SeparatorInstall({ onChange, s, set }: { onChange: () => void; s: Draft['s']; set: Draft['set'] }) {
   const [st, setSt] = useState<SeparatorState | null>(null)
   const [sure, setSure] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -65,10 +68,22 @@ function SeparatorInstall({ onChange }: { onChange: () => void }) {
   const install = () => { setBusy(true); api.post('/karaoke/separator/install' + (willUse ? '' : '?accel=cpu')).then(() => { setSure(false); return read() }).catch((e: Error) => toast(e.message)).finally(() => setBusy(false)) }
   const remove = () => { setBusy(true); api.del('/karaoke/separator').then(() => { toast(running ? 'Install stopped' : 'Demucs removed'); onChange(); return read() }).catch((e: Error) => toast(e.message)).finally(() => setBusy(false)) }
   if (st.installed) {
+    const ins = st.installed
+    const choices = ins.choices ?? []
     return (
-      <Row label="Demucs for karaoke" badge="Installed" desc={<>Demucs {st.installed.version} with its {st.installed.model} model, running on {st.installed.accel.name}{st.installed.accel.id !== 'cpu' ? ", and on the processor for any song the card can't manage" : ''}, taking {megabytes(st.installed.sizeBytes)} in the server's own folder. Its licenses, and those of everything installed with it, are in <Link to="/settings/about">Settings, About</Link>.</>}>
-        <button type="button" className="btn sm" disabled={busy} onClick={remove}>Remove</button>
-      </Row>
+      <>
+        <Row label="Demucs for karaoke" badge="Installed" desc={<>Demucs {ins.version} with its {ins.model} model, running on {ins.accel.name}{ins.accel.id !== 'cpu' ? ", and on the processor for any song the card can't manage" : ''}, taking {megabytes(ins.sizeBytes)} in the server's own folder. Its licenses, and those of everything installed with it, are in <Link to="/settings/about">Settings, About</Link>.</>}>
+          <button type="button" className="btn sm" disabled={busy} onClick={remove}>Remove</button>
+        </Row>
+        {choices.length > 1 && (
+          <Row label="Runs on" desc="Automatic uses the fastest that passed its test when Demucs was installed. Another choice is used from the next song.">
+            <Select value={s.karaokeDevice || ins.device || 'auto'} aria-label="What Demucs runs on" onChange={(e) => set('karaokeDevice', e.target.value)} options={[
+              { value: 'auto', label: `Automatic (${ins.auto?.name ?? ins.accel.name})` },
+              ...choices.map((c) => ({ value: c.id, label: c.id === 'cpu' ? 'The processor' : c.name })),
+            ]} />
+          </Row>
+        )}
+      </>
     )
   }
   if (!st.supported) return <Row label="Demucs for karaoke" desc={st.why}><span className="muted">Not available here</span></Row>
@@ -101,6 +116,7 @@ function SeparatorInstall({ onChange }: { onChange: () => void }) {
             <li>Python {st.python} (PSF license), through uv, which checks it</li>
             <li>{st.packages.join(', ')}: Demucs and PyTorch (BSD license) built for {willUse ? st.accel.name : 'the processor'}, from PyPI and pytorch.org{willUse && st.accel.id === 'cuda' ? ", with the CUDA libraries it needs (NVIDIA's license)" : ''}</li>
             <li>The {st.model} model, from Demucs's makers</li>
+            {willUse && st.directml && st.directmlPackages && <li>{st.directmlPackages.join(', ')}: ONNX Runtime with DirectML (MIT license) and onnx (Apache-2.0), from PyPI, checked against fingerprints the server carries{st.accel.id === 'dml' ? ', for this card' : ', so DirectML can be chosen later'}. The model is converted for it here, on this machine.</li>}
           </ul>
           <p>Nothing about you or your music is sent. Every license is listed in Settings, About once it's in, and Remove takes it all out again.</p>
           <div className="sep-buttons">
@@ -145,7 +161,7 @@ export function MusicOnlineSettings({ s, set, on }: Draft) {
         <Row label="Vocal separation" badge={kar?.separator.available ? 'Nothing to set up' : undefined} desc={karaokeFound(kar)}>
           <button type="button" className="btn sm" onClick={() => look(true)}>Look again</button>
         </Row>
-        <SeparatorInstall onChange={() => look(true)} />
+        <SeparatorInstall onChange={() => look(true)} s={s} set={set} />
         <Row label="Make karaoke versions automatically" desc="When someone opens karaoke on a song, the server makes a version with the singer turned down: a quick one in a few seconds, and a properly separated one behind it if a separator is installed. Nothing is written beside your music.">
           <Select value={auto} aria-label="Make karaoke versions automatically" onChange={(e) => set('karaokeAuto', e.target.value)} options={[
             { value: 'auto', label: 'Automatically' },

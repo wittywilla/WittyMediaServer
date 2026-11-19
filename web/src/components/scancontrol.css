@@ -4,3 +4,10 @@
 .scan-ctl { display: inline-flex; align-items: stretch; flex: none; }
 .scan-ctl > .btn:first-child { border-top-right-radius: 0; border-bottom-right-radius: 0; }
 .scan-ctl > .scan-ctl-more { border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: 1px; }
+/* How far a scan has got ("Scanning Nintendo Entertainment System (NES): 1,234 of 5,678 files"): it wraps on a narrow
+   screen rather than running off its card, as the Libraries pill and the busy scan button. Two classes each, to win over
+   .set-pill and .btn, whichever stylesheet loads last. */
+.set-pill.scan-progress, .btn.scan-progress { white-space: normal; overflow-wrap: anywhere; text-align: start; max-width: 100%; height: auto; }
+.set-pill.scan-progress { min-height: 26px; padding-block: var(--sp-1); line-height: 1.3; border-radius: var(--r-lg); }
+.set-pill.scan-progress::before { flex: none; }
+.btn.scan-progress { padding-block: var(--sp-2); }

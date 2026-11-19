@@ -1,0 +1,10 @@
+{
+  "Sorting what was found…": "جارٍ فرز ما عُثر عليه…",
+  "Sorting {detail}: {done} of {total}": "جارٍ فرز {detail}: {done} من {total}",
+  "Sorting what was found: {done} of {total}": "جارٍ فرز ما عُثر عليه: {done} من {total}",
+  "Listing what was found…": "جارٍ إدراج ما عُثر عليه…",
+  "Finding out about what’s new: {done} of {total}": "جارٍ معرفة المزيد عن الجديد: {done} من {total}",
+  "Finding out about what’s new…": "جارٍ معرفة المزيد عن الجديد…",
+  "Full rescan, {detail}: {done} of {found} files": "إعادة فحص كاملة، {detail}: {done} من {found} ملف",
+  "Scanning {detail}: {done} of {found} files": "جارٍ فحص {detail}: {done} من {found} ملف"
+}

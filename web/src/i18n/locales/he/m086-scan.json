@@ -1,0 +1,10 @@
+{
+  "Sorting what was found…": "ממיין את מה שנמצא…",
+  "Sorting {detail}: {done} of {total}": "ממיין את {detail}: {done} מתוך {total}",
+  "Sorting what was found: {done} of {total}": "ממיין את מה שנמצא: {done} מתוך {total}",
+  "Listing what was found…": "מוסיף לרשימה את מה שנמצא…",
+  "Finding out about what’s new: {done} of {total}": "מחפש מידע על החדשים: {done} מתוך {total}",
+  "Finding out about what’s new…": "מחפש מידע על החדשים…",
+  "Full rescan, {detail}: {done} of {found} files": "סריקה מחדש מלאה, {detail}: {done} מתוך {found} קבצים",
+  "Scanning {detail}: {done} of {found} files": "סורק את {detail}: {done} מתוך {found} קבצים"
+}

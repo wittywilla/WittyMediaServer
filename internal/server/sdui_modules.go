@@ -205,7 +205,12 @@ func (rv *sduiResolver) moduleItems(mod string, req sdui.SourceRequest) (sdui.So
 		s.Log.WarnContext(rv.r.Context(), "a module's data source failed", "cat", "sdui", "module", mod, "source", req.Source.Type(), "err", err)
 		return sdui.SourceResult{}, err
 	}
-	return rv.cleanModuleResult(mod, req, sdui.SourceResult{Items: ans.Items, Total: ans.Total, More: ans.More}), nil
+	res := rv.cleanModuleResult(mod, req, sdui.SourceResult{Items: ans.Items, Total: ans.Total, More: ans.More})
+	// While a library this module scans is being scanned, what it shows changes as it goes.
+	if s.Scanner != nil && s.Scanner.ScanningFor(rv.r.Context(), mod) {
+		res.RefreshSec = sdui.BusyRefreshSec
+	}
+	return res, nil
 }
 
 // cleanModuleResult keeps what a module's source gave that is safe to send and the profile may

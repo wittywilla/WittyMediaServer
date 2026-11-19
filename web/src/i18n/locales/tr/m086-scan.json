@@ -1,0 +1,10 @@
+{
+  "Sorting what was found…": "Bulunanlar sıralanıyor…",
+  "Sorting {detail}: {done} of {total}": "{detail} sıralanıyor: {done}/{total}",
+  "Sorting what was found: {done} of {total}": "Bulunanlar sıralanıyor: {done}/{total}",
+  "Listing what was found…": "Bulunanlar listeye ekleniyor…",
+  "Finding out about what’s new: {done} of {total}": "Yeniler hakkında bilgi aranıyor: {done}/{total}",
+  "Finding out about what’s new…": "Yeniler hakkında bilgi aranıyor…",
+  "Full rescan, {detail}: {done} of {found} files": "Tam yeniden tarama, {detail}: {done}/{found} dosya",
+  "Scanning {detail}: {done} of {found} files": "{detail} taranıyor: {done}/{found} dosya"
+}

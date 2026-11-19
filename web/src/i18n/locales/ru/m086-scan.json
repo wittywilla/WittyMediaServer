@@ -1,0 +1,10 @@
+{
+  "Sorting what was found…": "Сортировка найденного…",
+  "Sorting {detail}: {done} of {total}": "Сортировка: {detail}, {done} из {total}",
+  "Sorting what was found: {done} of {total}": "Сортировка найденного: {done} из {total}",
+  "Listing what was found…": "Добавление найденного в список…",
+  "Finding out about what’s new: {done} of {total}": "Поиск сведений о новом: {done} из {total}",
+  "Finding out about what’s new…": "Поиск сведений о новом…",
+  "Full rescan, {detail}: {done} of {found} files": "Полное повторное сканирование, {detail}: {done} из {found} файлов",
+  "Scanning {detail}: {done} of {found} files": "Сканирование: {detail}, {done} из {found} файлов"
+}

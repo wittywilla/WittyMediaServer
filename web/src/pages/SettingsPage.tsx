@@ -602,5 +602,5 @@ function About() {
 // LibraryScanPill: how far a library's scan has got, "Scanning: 12,400 of 16,780 files", asked for while it runs.
 function LibraryScanPill({ library }: { library: Library }) {
   const progress = useScanProgress(library.id, library.scanning)
-  return <span className="set-pill live" role="status">{scanProgressText(progress ?? { mode: library.scanMode })}</span>
+  return <span className="set-pill live scan-progress" role="status">{scanProgressText(progress ?? { mode: library.scanMode })}</span>
 }

@@ -1,0 +1,10 @@
+{
+  "Sorting what was found…": "Lajitellaan löydettyä…",
+  "Sorting {detail}: {done} of {total}": "Lajitellaan: {detail}, {done}/{total}",
+  "Sorting what was found: {done} of {total}": "Lajitellaan löydettyä: {done}/{total}",
+  "Listing what was found…": "Listataan löydettyä…",
+  "Finding out about what’s new: {done} of {total}": "Haetaan tietoja uusista: {done}/{total}",
+  "Finding out about what’s new…": "Haetaan tietoja uusista…",
+  "Full rescan, {detail}: {done} of {found} files": "Täysi uudelleenskannaus, {detail}: {done}/{found} tiedostoa",
+  "Scanning {detail}: {done} of {found} files": "Skannataan: {detail}, {done}/{found} tiedostoa"
+}

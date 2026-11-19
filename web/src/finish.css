@@ -49,7 +49,9 @@ html[data-type="mono"] body { letter-spacing: 0; }
 .scene-layer { position: absolute; }
 .scene-sky, .scene-light, .scene-image { inset: 0; inline-size: 100%; block-size: 100%; }
 .scene-image { object-fit: cover; }
-.scene-bubble { translate: -50% -50%; border-radius: var(--r-full); background: radial-gradient(circle at 32% 28%, var(--on-image) 0, transparent 14%), radial-gradient(circle at 50% 50%, transparent 58%, var(--c) 100%), var(--c); background-blend-mode: soft-light, normal, normal; box-shadow: inset 0 0 0 1px var(--c); animation: scene-float 14s ease-in-out infinite alternate; }
+/* Bubbles drift under glass, so words pass over them: drawn at half strength, with a highlight tinted by the bubble's own
+   colour rather than pure white, they stay bubbles and words still read over them (Aero Aurora's menu was 2.9:1). */
+.scene-bubble { opacity: .5; translate: -50% -50%; border-radius: var(--r-full); background: radial-gradient(circle at 32% 28%, color-mix(in srgb, var(--on-image) 35%, var(--c)) 0, transparent 14%), radial-gradient(circle at 50% 50%, transparent 58%, var(--c) 100%), var(--c); background-blend-mode: soft-light, normal, normal; box-shadow: inset 0 0 0 1px var(--c); animation: scene-float 14s ease-in-out infinite alternate; }
 /* The hill's top fades into the sky (a mask in the hill's own oval, eased) instead of ending on a hard rim: painted once, no blur. */
 .scene-hill { translate: -50% -50%; -webkit-mask-image: var(--hill-fade); mask-image: var(--hill-fade); --hill-fade: radial-gradient(closest-side, #000 58%, rgb(0 0 0 / .8) 68%, rgb(0 0 0 / .52) 78%, rgb(0 0 0 / .26) 87%, rgb(0 0 0 / .08) 94%, transparent 100%); } /* design-ok: a mask takes only alpha; black is fully shown, not a colour */
 .scene-light { animation: scene-sweep 26s ease-in-out infinite alternate; }

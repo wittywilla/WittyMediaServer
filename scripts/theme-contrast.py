@@ -315,7 +315,8 @@ for meta in sorted(pathlib.Path('themes').glob('*/theme.json')):
     texts = {k: v[k] for k in ('fg', 'fg-2', 'fg-3', 'accent-text') if k in v}
     dark = lum(rgb(v['bg'])) < 0.2
     # The white (or any) light laid over the sky, at its strongest: the radial glow and the most solid bubble, together.
-    # (The bubbles are left out: small, drifting and see-through, words pass over them; the drawn page is measured too.)
+    # (The bubbles are left out: small, drifting and drawn at half strength with a tinted highlight in web/src/finish.css
+    # so words read over them; the drawn page is measured too.)
     lights = [rgba(l['color']) for l in layers if l['type'] == 'radial']
     def lit(c):
         out = [c]

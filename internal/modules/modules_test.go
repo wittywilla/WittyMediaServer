@@ -40,7 +40,15 @@ import (
 // their helpers under the real limits.
 func TestMain(m *testing.M) {
 	if len(os.Args) > 1 && os.Args[1] == SandboxFlag {
-		os.Exit(RunSandboxed(os.Args[2:]))
+		args := os.Args[2:]
+		// Race-built, this launcher has already mapped far more address space than a helper may
+		// have, so once that limit is set any memory it asks for fails, and a GC before the exec
+		// kills it ("the helper didn't say hello"). The limit is left to the normal run here;
+		// everything else the launcher does still applies.
+		if raceEnabled && len(args) > 0 {
+			args[0] = "0"
+		}
+		os.Exit(RunSandboxed(args))
 	}
 	// Most tests fail a version a few times in a row on purpose: each counts. The tests of
 	// failures that come together (failing_test.go) set this themselves.

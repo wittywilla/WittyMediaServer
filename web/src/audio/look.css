@@ -119,8 +119,8 @@
 .lk-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-block-size: 44px; font-size: var(--text-sm); }
 
 /* Karaoke: the cover beside the words in the song's look, sized as the plain cover was; the blurred backdrop. */
-.kar-cover.kar-cover-art { box-shadow: none; border-radius: 0; inline-size: min(42vh, 30vw, 520px); max-block-size: none; }
-@media (max-width: 700px) { .kar-cover.kar-cover-art { inline-size: clamp(110px, 38vw, 170px); } }
+.kar-cover.kar-cover-art { box-shadow: none; border-radius: 0; --kar-cover: min(42vh, 30vw, 520px); max-block-size: none; }
+@media (max-width: 700px) { .kar-cover.kar-cover-art { --kar-cover: clamp(110px, 38vw, 170px); } }
 .kar-art.blur { inset: -6%; filter: blur(42px) saturate(1.3); opacity: .5; } /* design-ok: the cover itself, blurred behind the words */
 /* The panel scrolls inside the side area, with the side's own gutter. */
 .np-side > .lk { flex: 1; min-block-size: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--sp-1) var(--sp-4) var(--sp-4); }

@@ -46,6 +46,7 @@
     { "id": "wittyinfo.editor", "level": "desktopOnly", "title": "Scenes and skips" },
     { "id": "player.quality-advanced", "level": "desktopOnly", "title": "Advanced quality" },
     { "id": "music.canvas-studio", "level": "desktopOnly", "title": "Canvas studio" },
+    { "id": "karaoke.voice-advanced", "level": "desktopOnly", "title": "Advanced voice settings" },
     { "id": "app.layout-editor", "level": "desktopOnly", "title": "Editing the layout" },
     { "id": "app.brand-editor", "level": "desktopOnly", "title": "Name and logo" },
     { "id": "title.canvas", "level": "desktopOnly", "title": "Making a canvas" },

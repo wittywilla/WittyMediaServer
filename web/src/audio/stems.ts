@@ -4,6 +4,7 @@ import { getToken, mediaUrl, serverBase } from '../api'
 import { canRoute, openGraph, type SoundGraph } from './sound'
 import { drifted, startPlan, streamedParts, streamStep, type Route, type Stem } from './stemMix'
 import { FxChain } from './fxChain'
+import { klog } from './klog'
 import type { Fx } from './voiceFx'
 import { t } from '../i18n'
 
@@ -33,6 +34,35 @@ function route(ctx: AudioContext, all: Map<string, Sends>, routes: Record<string
   out.gain.setTargetAtTime(volume, now, 0.03)
 }
 
+// The parts' way out, through a limiter: the separated parts never add back up to exactly the song, and the voice
+// settings and the Mix can each add more, so together they went over full scale and crackled. The limiter only
+// touches peaks over -1 dB, quickly, and is otherwise not heard.
+function limitedOut(ctx: AudioContext, dest: AudioNode): { out: GainNode; limiter: DynamicsCompressorNode } {
+  const out = ctx.createGain()
+  const limiter = ctx.createDynamicsCompressor()
+  limiter.threshold.value = -1
+  limiter.knee.value = 0
+  limiter.ratio.value = 20
+  limiter.attack.value = 0.002
+  limiter.release.value = 0.12
+  out.connect(limiter).connect(dest)
+  return { out, limiter }
+}
+
+// A new chain in place of one that has stopped making sound (FxChain.broken), with the parts' sends moved over to it.
+function freshChain(ctx: AudioContext, old: FxChain, all: Iterable<Sends>, out: GainNode, fx: Fx | null): FxChain {
+  old.close()
+  const next = new FxChain(ctx, out)
+  for (const s of all) {
+    try { s.voice.disconnect() } catch { /* not connected */ }
+    try { s.music.disconnect() } catch { /* not connected */ }
+    s.voice.connect(next.voice)
+    s.music.connect(next.music)
+  }
+  if (fx) next.set(fx)
+  return next
+}
+
 // Plays a song's separate parts in place of the song. The song's own <audio> keeps
 // playing, unheard, and stays in charge: lyrics, seeking, pausing, the lock screen and
 // the queue all still follow it. The parts are decoded whole and started together on the
@@ -49,22 +79,25 @@ async function fetchSound(ctx: AudioContext, url: string, signal: AbortSignal): 
 }
 
 export class StemSet implements StemPlayer {
+  private lastFx: Fx | null = null
   private gains = new Map<string, GainNode>()
   private sends = new Map<string, Sends>()
   private fx: FxChain
   private sources: AudioBufferSourceNode[] = []
   private out: GainNode
+  private limiter: DynamicsCompressorNode
   private startAt = 0
   private startCtx = 0
   private running = false
   private timer = 0
   private closed = false
-  private onEvent = () => this.sync()
+  private onEvent = (e: Event) => this.sync(e.type)
 
   private constructor(private g: SoundGraph, private el: HTMLAudioElement, private buffers: Map<string, AudioBuffer>) {
     const ctx = g.ctx
-    this.out = ctx.createGain()
-    this.out.connect(g.stemIn)
+    const way = limitedOut(ctx, g.stemIn)
+    this.out = way.out
+    this.limiter = way.limiter
     this.fx = new FxChain(ctx, this.out)
     for (const id of buffers.keys()) {
       const s = sends(ctx, this.fx)
@@ -73,8 +106,9 @@ export class StemSet implements StemPlayer {
     }
     for (const ev of ['play', 'playing', 'pause', 'seeking', 'seeked', 'waiting', 'ratechange', 'ended', 'emptied']) el.addEventListener(ev, this.onEvent)
     this.timer = window.setInterval(() => this.watch(), 2000)
-    g.hushDecks(true)
-    this.sync()
+    g.hushDecks(true, this)
+    klog('decoded set: open', [...buffers.keys()].join('+'))
+    this.sync('open')
   }
 
   // Takes over from the song with its parts: decoded whole at normal speed, streamed for a
@@ -96,7 +130,7 @@ export class StemSet implements StemPlayer {
 
   setRoutes(routes: Record<string, Route>, volume: number) { route(this.g.ctx, this.sends, routes, this.out, volume) }
 
-  setFx(fx: Fx) { this.fx.set(fx) }
+  setFx(fx: Fx) { this.lastFx = fx; this.fx.set(fx) }
 
   private stopSources() {
     for (const s of this.sources) { try { s.stop() } catch { /* never started */ } s.disconnect() }
@@ -105,14 +139,18 @@ export class StemSet implements StemPlayer {
   }
 
   // Starts every part again from where the song is, or stops them if it isn't playing.
-  private sync() {
+  private sync(why = 'event') {
     if (this.closed) return
+    const was = this.running
     this.stopSources()
     const el = this.el
     // Decoded parts can't keep their key at another speed; the page streams them instead
     // (StemSet.open), and these stay quiet until that has taken over.
-    if (el.playbackRate !== 1) return
-    if (el.paused || el.ended || el.seeking || el.readyState < 3) return
+    if (el.playbackRate !== 1) { if (was) klog('decoded set: stopped, speed', el.playbackRate); return }
+    if (el.paused || el.ended || el.seeking || el.readyState < 3) {
+      if (was) klog('decoded set: stopped,', why, el.paused ? 'paused' : el.ended ? 'ended' : el.seeking ? 'seeking' : 'readyState ' + el.readyState, 'at', el.currentTime.toFixed(2))
+      return
+    }
     const ctx = this.g.ctx
     const plan = startPlan(el.currentTime, ctx.currentTime)
     for (const [id, buf] of this.buffers) {
@@ -126,13 +164,16 @@ export class StemSet implements StemPlayer {
     this.startAt = plan.offset
     this.startCtx = plan.when
     this.running = true
+    klog('decoded set: started,', why, 'at', plan.offset.toFixed(2), was ? '(restart)' : '', 'engine', ctx.state)
   }
 
   private watch() {
     if (this.closed) return
+    if (this.fx.broken()) { klog('decoded set: voice chain broken, made again'); this.fx = freshChain(this.g.ctx, this.fx, this.sends.values(), this.out, this.lastFx) }
     const el = this.el
     const playing = !el.paused && !el.ended && !el.seeking && el.readyState >= 3
-    if (playing !== this.running || (playing && drifted(this.startAt, this.startCtx, this.g.ctx.currentTime, el.currentTime))) this.sync()
+    if (playing !== this.running) this.sync('watch')
+    else if (playing && drifted(this.startAt, this.startCtx, this.g.ctx.currentTime, el.currentTime)) this.sync('drift')
   }
 
   // Gives the sound back to the song.
@@ -141,10 +182,12 @@ export class StemSet implements StemPlayer {
     this.closed = true
     window.clearInterval(this.timer)
     for (const ev of ['play', 'playing', 'pause', 'seeking', 'seeked', 'waiting', 'ratechange', 'ended', 'emptied']) this.el.removeEventListener(ev, this.onEvent)
+    klog('decoded set: close')
     this.stopSources()
     this.fx.close()
     this.out.disconnect()
-    this.g.hushDecks(false)
+    this.limiter.disconnect()
+    this.g.hushDecks(false, this)
   }
 }
 
@@ -153,9 +196,12 @@ export class StemSet implements StemPlayer {
 // part's key at another speed as it does the song's. The song stays in charge, and each part
 // is kept with it by playing a little faster or slower, or by a jump when it's far off.
 class StreamedStems implements StemPlayer {
+  private lastFx: Fx | null = null
+  private checked = 0
   private parts: { el: HTMLAudioElement; gain: GainNode; source: MediaElementAudioSourceNode }[] = []
   private byId = new Map<string, Sends>()
   private out: GainNode
+  private limiter: DynamicsCompressorNode
   private fx: FxChain
   private timer = 0
   private closed = false
@@ -163,8 +209,9 @@ class StreamedStems implements StemPlayer {
 
   private constructor(private g: SoundGraph, private song: HTMLAudioElement, stems: Stem[]) {
     const ctx = g.ctx
-    this.out = ctx.createGain()
-    this.out.connect(g.stemIn)
+    const way = limitedOut(ctx, g.stemIn)
+    this.out = way.out
+    this.limiter = way.limiter
     this.fx = new FxChain(ctx, this.out)
     for (const s of stems) {
       const el = new Audio()
@@ -196,14 +243,15 @@ class StreamedStems implements StemPlayer {
         signal.addEventListener('abort', () => fail(new DOMException('gone', 'AbortError')), { once: true })
       })))
     } catch (e) { set.close(); throw e }
-    g.hushDecks(true)
+    g.hushDecks(true, set)
+    klog('streamed set: open', stems.map((s) => s.id).join('+'))
     set.sync()
     return set
   }
 
   setRoutes(routes: Record<string, Route>, volume: number) { route(this.g.ctx, this.byId, routes, this.out, volume) }
 
-  setFx(fx: Fx) { this.fx.set(fx) }
+  setFx(fx: Fx) { this.lastFx = fx; this.fx.set(fx) }
 
   // The song paused, moved or changed speed: every part does the same.
   private sync() {
@@ -218,11 +266,13 @@ class StreamedStems implements StemPlayer {
   }
 
   private keepUp() {
-    if (this.closed || this.song.paused || this.song.ended) return
+    if (this.closed) return
+    if (++this.checked % 5 === 0 && this.fx.broken()) { klog('streamed set: voice chain broken, made again'); this.fx = freshChain(this.g.ctx, this.fx, this.byId.values(), this.out, this.lastFx) }
+    if (this.song.paused || this.song.ended) return
     for (const { el } of this.parts) {
       if (el.paused || el.seeking) continue
       const step = streamStep(this.song.playbackRate, this.song.currentTime - el.currentTime)
-      if (step.seek) el.currentTime = this.song.currentTime
+      if (step.seek) { klog('streamed set: part jumped', (this.song.currentTime - el.currentTime).toFixed(2), 's'); el.currentTime = this.song.currentTime }
       el.playbackRate = step.rate
     }
   }
@@ -232,9 +282,11 @@ class StreamedStems implements StemPlayer {
     this.closed = true
     window.clearInterval(this.timer)
     for (const ev of ['play', 'playing', 'pause', 'seeked', 'waiting', 'ratechange', 'ended', 'emptied']) this.song.removeEventListener(ev, this.onEvent)
+    klog('streamed set: close')
     for (const { el, source, gain } of this.parts) { el.pause(); el.removeAttribute('src'); el.load(); source.disconnect(); gain.disconnect() }
     this.fx.close()
     this.out.disconnect()
-    this.g.hushDecks(false)
+    this.limiter.disconnect()
+    this.g.hushDecks(false, this)
   }
 }

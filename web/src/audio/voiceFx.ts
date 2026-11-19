@@ -56,16 +56,45 @@ export const FX_OFF: Fx = {
   musicBass: 0, musicTreble: 0, pocket: 0,
 }
 
-// Starting points; any control can be moved after choosing one.
+// The simple presets Voice settings opens on: the kind of voice (female, mid-range, low) and where in that range
+// it sits (high, medium, low). Nine shapes of the same few controls, each suited to where that voice's sound is:
+//   - Low cut sits under the lowest note the range sings (a soprano's lowest is near 250 Hz, a bass's near 80 Hz),
+//     so it takes away rumble, breath and, in the quick version, the music's low end left in the voice, without
+//     thinning the voice itself. Higher voices: higher cut.
+//   - Warmth (a shelf at 200 Hz) is a little lower for high voices, where that region is only boom and mud, and a
+//     little higher for low voices, where it is the body of the voice.
+//   - Presence (around 3 kHz) is where words are understood. Low voices have little of their own there and are
+//     lost under the music without it; high voices have plenty, and more would only be harsh, so it rises as the
+//     voice goes down.
+//   - Air (a shelf at 10 kHz) is sparkle and breath: up for high voices, left alone for low ones, where it would only
+//     add hiss.
+//   - Compression rises as the voice goes down: low voices swing more between quiet and loud chest notes.
+//   - Doubling and reverb are light, and lighter for low voices, which they muddy; Room for the voice dips the
+//     music more for low voices, which share more of the music's range.
+// Each one differs from every other in at least one control, so the panel can say which is chosen.
+export const VOICE_RANGES = [
+  { id: 'female', name: tk('Female vocal') },
+  { id: 'mid', name: tk('Mid-range vocal') },
+  { id: 'low', name: tk('Low vocal') },
+] as const
+export const VOICE_LEVELS = [{ id: 'high', name: tk('High') }, { id: 'medium', name: tk('Medium') }, { id: 'low', name: tk('Low') }] as const
+export type VoicePreset = { id: string; range: string; level: string; name: string; fx: Partial<Fx> }
+export const VOICE_PRESETS: VoicePreset[] = [
+  { id: 'female-high', range: 'female', level: 'high', name: tk('Female vocal, high'), fx: { lowCut: 180, bass: -2, presence: 2, air: 4, compress: 35, double: 10, reverb: 16, room: 1.4, pocket: 3 } },
+  { id: 'female-medium', range: 'female', level: 'medium', name: tk('Female vocal, medium'), fx: { lowCut: 150, bass: -1, presence: 3, air: 3, compress: 40, double: 10, reverb: 14, room: 1.3, pocket: 3 } },
+  { id: 'female-low', range: 'female', level: 'low', name: tk('Female vocal, low'), fx: { lowCut: 120, bass: 1, presence: 4, air: 2, compress: 45, double: 8, reverb: 12, room: 1.2, pocket: 3 } },
+  { id: 'mid-high', range: 'mid', level: 'high', name: tk('Mid-range vocal, high'), fx: { lowCut: 120, presence: 4, air: 3, compress: 45, double: 8, reverb: 14, room: 1.3, pocket: 4 } },
+  { id: 'mid-medium', range: 'mid', level: 'medium', name: tk('Mid-range vocal, medium'), fx: { lowCut: 100, bass: 1, presence: 4, air: 2, compress: 50, double: 6, reverb: 12, room: 1.2, pocket: 4 } },
+  { id: 'mid-low', range: 'mid', level: 'low', name: tk('Mid-range vocal, low'), fx: { lowCut: 90, bass: 2, presence: 5, air: 1, compress: 50, double: 6, reverb: 10, room: 1.1, pocket: 4 } },
+  { id: 'low-high', range: 'low', level: 'high', name: tk('Low vocal, high'), fx: { lowCut: 90, bass: 1, presence: 5, air: 2, compress: 50, double: 4, reverb: 10, room: 1.2, pocket: 5 } },
+  { id: 'low-medium', range: 'low', level: 'medium', name: tk('Low vocal, medium'), fx: { lowCut: 70, bass: 2, presence: 6, air: 1, compress: 55, double: 4, reverb: 8, room: 1.1, pocket: 5 } },
+  { id: 'low-low', range: 'low', level: 'low', name: tk('Low vocal, low'), fx: { lowCut: 50, bass: 3, presence: 6, compress: 60, reverb: 8, room: 1, pocket: 6 } },
+]
+
+// Every preset: As recorded (all off), then the nine voices. Any control can be moved after choosing one.
 export const FX_PRESETS: { id: string; name: string; fx: Partial<Fx> }[] = [
   { id: 'off', name: tk('As recorded'), fx: {} },
-  { id: 'clear', name: tk('Clear voice'), fx: { lowCut: 100, presence: 4, air: 2, compress: 40, pocket: 4 } },
-  { id: 'studio', name: tk('Studio'), fx: { lowCut: 80, bass: 1, presence: 3, air: 3, compress: 55, reverb: 18, room: 1.1, double: 15 } },
-  { id: 'hall', name: tk('Concert hall'), fx: { lowCut: 80, presence: 2, compress: 30, reverb: 45, room: 3.6 } },
-  { id: 'stadium', name: tk('Stadium'), fx: { lowCut: 100, presence: 3, compress: 50, echo: 25, echoTime: 420, echoRepeats: 35, reverb: 40, room: 4.5 } },
-  { id: 'slapback', name: tk('Slapback echo'), fx: { lowCut: 90, presence: 2, compress: 35, echo: 35, echoTime: 120, echoRepeats: 10 } },
-  { id: 'radio', name: tk('Old radio'), fx: { lowCut: 380, bass: -8, presence: 8, air: -12, compress: 70 } },
-  { id: 'duet', name: tk('Duet spread'), fx: { double: 60, pan: -30, reverb: 15, room: 1.4 } },
+  ...VOICE_PRESETS,
 ]
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
@@ -114,7 +143,10 @@ export function fxValue(c: Pick<Control, 'unit' | 'id'>, v: number, t: Say = eng
 //   - compression: threshold from 0 to -40 dB and ratio from 1 to 8 as the control goes up, with
 //     make-up gain so turning it up doesn't just make it quieter.
 //   - echo and reverb are sends: the dry voice stays at full, the wet one is added.
-export function fxNodes(fx: Fx) {
+// Every value is from cleanFx, so within its control's range and never NaN, whatever was kept or passed in: one NaN
+// reaching a filter or the echo's loop would silence everything after it until the page is loaded again.
+export function fxNodes(raw: Fx) {
+  const fx = cleanFx(raw)
   const c = fx.compress / 100
   return {
     lowCutHz: fx.lowCut,

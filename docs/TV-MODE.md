@@ -81,7 +81,8 @@ Every new screen or editor decides its TV level when it is made:
    `internal/server/api_tv_levels.go`.
 3. A button that opens an editor stays on a television and opens `OnAComputerDialog` instead (Customise this page,
    Edit layout). The walls for advanced settings on phones (`web/src/ui/advanced.tsx`, `UseAComputer`: the Canvas
-   studio, karaoke's voice settings, Advanced quality) show the same dialog in TV mode.
+   studio, Advanced quality) show the same dialog in TV mode. Karaoke's Voice settings open everywhere on their
+   simple presets (`full`); only their Advanced pane is walled, as the part `karaoke.voice-advanced`.
 4. Whatever it sets is kept on the server, per person or per server, never only in the browser, so that a change
    made on a computer reaches the television.
 
@@ -142,7 +143,7 @@ friends, WittyPlay options, cores and emulators, console photos.
 
 Parts, desktop only: making a theme, importing a theme, editing the layout (the shell editor and the menu
 editor), name and logo, the server's colours, your colours, Customise this page, the `.wittyinfo` scenes and skips
-editor, the advanced quality menu's fields, the Canvas studio, WittyPlay's custom cores and importing game
+editor, the advanced quality menu's fields, the Canvas studio, karaoke's advanced voice settings, WittyPlay's custom cores and importing game
 pictures; in the apps, their own layout editor, name and logo editor, and making a canvas.
 
 ## Settings apply everywhere

@@ -125,6 +125,8 @@ func cmdServe(args []string) int {
 		return 1
 	}
 	datahome.WriteReadme(cfg.DataDir)
+	// The server's time zone, while nothing else is running yet to read the clock.
+	server.EarlyTimeZone(cfg.DataDir)
 	// Armed before anything else can go wrong: a crash from here on leaves a report. It
 	// reads what the last run left before this one's standard error can replace it.
 	crashDir := filepath.Join(cfg.DataDir, "crash")

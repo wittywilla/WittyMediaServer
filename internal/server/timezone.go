@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
 
@@ -33,15 +34,37 @@ func validTimeZone(v string) bool {
 // Called once, at start. Go has no safe way to change time.Local while anything else may be
 // reading the clock, so a zone chosen later takes effect when the server starts again
 // (restartForTimeZone), as a new port does.
+//
+// By then the log and more are running, so time.Local is only written when the zone really
+// differs: EarlyTimeZone has normally set it already, before any of them started.
 func (s *Server) applyTimeZone(ctx context.Context) {
-	name := s.DB.GetSetting(ctx, "timeZone", "")
+	if want := zoneFor(s.DB.GetSetting(ctx, "timeZone", "")); time.Local.String() != want.String() {
+		time.Local = want
+	}
+}
+
+// zoneFor is the zone a timeZone setting names, or the computer's.
+func zoneFor(name string) *time.Location {
 	if name != "" {
 		if loc, err := time.LoadLocation(name); err == nil {
-			time.Local = loc
-			return
+			return loc
 		}
 	}
-	time.Local = computerLoc
+	return computerLoc
+}
+
+// EarlyTimeZone sets the saved zone before anything else runs, from a read-only look at the
+// database in dataDir: the log's goroutine reads the clock from the moment it starts, and Go
+// has no safe way to change time.Local under it. No database yet means the computer's zone.
+func EarlyTimeZone(dataDir string) {
+	d, err := db.OpenExisting(dataDir, true)
+	if err != nil {
+		return
+	}
+	defer d.Close()
+	if want := zoneFor(d.GetSetting(context.Background(), "timeZone", "")); time.Local.String() != want.String() {
+		time.Local = want
+	}
 }
 
 // timeZoneWaiting: a zone was saved that the server isn't running in yet.

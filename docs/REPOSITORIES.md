@@ -35,6 +35,7 @@ Every one in this list is on GitHub under its final name, with its history, so n
 | WittyReader | The standalone reader app |
 | WittyMediaPlayer | The standalone desktop player |
 | WittyMediaClient | The client apps for desktop, Android, Apple and others |
+| WittyRelay | A relay for peer-to-peer connections that anyone can run in Docker, for networks where a device and its server can't connect directly. It carries end-to-end encrypted connections it can't read, and is the base of the planned hosted relay, which is to be free. Images are published only for a version tag. **AGPL-3.0-or-later**. Design in [P2P.md](P2P.md#wittyrelay-and-what-relays-allow) |
 | WittyMediaRemoteMedia | A small program for a NAS (native or Docker) that would give a server read-only access to its media folders. Not built, on purpose: the repository holds the decision and the design (README, docs/DESIGN.md), because the server must first read media through a file-system seam instead of local paths. It is not a module. Until then, mount the share (SMB/NFS) on the server's computer, or run the server on the NAS |
 
 ### To make
@@ -46,7 +47,6 @@ The owner makes these, as below. A chat never creates a repository.
 | wittymediaserver.com | The project's website as plain files, built and kept at `D:\projects\wittymediaserver.com` with local commits only. See [the website plan](plans/WEBSITE.md) |
 | .github | Issue forms and settings GitHub uses for every repository that has none of its own. Steps are in [#114](https://github.com/wittywilla/WittyMediaServer/issues/114) |
 | WittyBroadcast | Reading MPEG transport streams and XMLTV guides, including the check that refuses scrambled channels. Built with by WittyTuner and the server. **AGPL-3.0-or-later**. A core library from [Modules that stand on their own](plans/module-isolation.md#core-libraries); steps in [#105](https://github.com/wittywilla/WittyMediaServer/issues/105) |
-| WittyRelay | `wittywilla/WittyRelay`. A relay for peer-to-peer connections that anyone can run in Docker, for networks where a device and its server can't connect directly; it carries end-to-end encrypted connections it can't read. Also the base of the planned hosted relay, which is to be free. **AGPL-3.0-or-later**. Settings: **Public**, **Issues** and **Discussions** on; no README, `.gitignore` or licence on GitHub (the code is ready at `D:\projects-0.8.0\WittyRelay`, `main`). Design in [P2P.md](P2P.md#wittyrelay-and-what-relays-allow); issue [#476](https://github.com/wittywilla/WittyMediaServer/issues/476) |
 | WittyGameCore | What a game file is, the region order, reading game archives safely, game metadata sources, and the sandbox a game runner puts itself in. Used by WittyPlay; the server has no game code of its own. **AGPL-3.0-or-later**. A core library, as above; steps in [#105](https://github.com/wittywilla/WittyMediaServer/issues/105) |
 
 **A new one on GitHub:** make it under `wittywilla`, as **Public**, with no README, `.gitignore` or licence.

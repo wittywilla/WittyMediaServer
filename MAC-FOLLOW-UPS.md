@@ -7,7 +7,8 @@ sections. The apps' Mac items (iPhone, iPad, Apple TV, the macOS desktop app) ar
 
 ## 0.8.1-alpha: what the Mac must do
 
-Written 2026-11-19 on the Windows PC, for Claude on the owner's MacBook. Nothing here was run on a Mac. Use the
+Written 2026-11-19 on the Windows PC, for Claude on the owner's MacBook. Nothing here was run on a Mac. Issues: #527
+(the exit 78), #528 (data folder and setup), #529 (VideoToolbox), #530 (karaoke on Metal). Use the
 server's `v0.8.1-alpha` branch:
 
 ```bash

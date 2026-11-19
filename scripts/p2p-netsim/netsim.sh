@@ -183,8 +183,8 @@ run() {
   done
   case "$during" in
     link-drop) # the app's connection drops for 12 seconds (a tunnel, a lift)
-      for _ in $(seq 1 240); do grep -q '"mbps"' "$dir/client2.json" 2>/dev/null && break; [ -s "$dir/client2.json" ] && break; sleep 0.5; done
-      sleep 20; echo "   link down"; ns rc ip link set wan down; sleep 12; ns rc ip link set wan up; echo "   link up" ;;
+      # The app has connected, fetched and settled by about 15 s, and keeps asking until about 90 s.
+      sleep 40; echo "   link down"; ns rc ip link set wan down; sleep 12; ns rc ip link set wan up; echo "   link up" ;;
     address-change) # the app's network gets a new outside address (Wi-Fi to mobile data)
       sleep 45; echo "   new outside address"
       ns rc ip addr del 80.0.2.1/16 dev wan; ns rc ip addr add 80.0.2.99/16 dev wan

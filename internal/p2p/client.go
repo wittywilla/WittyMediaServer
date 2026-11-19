@@ -526,7 +526,11 @@ func (c *Client) DialContext(ctx context.Context, _, _ string) (net.Conn, error)
 		return nil, fmt.Errorf("the server refused the connection (is this device still on its list?): %w", err)
 	}
 	a := &Addr{Peer: c.server.String()}
-	return &streamConn{Stream: s, local: a, remote: a}, nil
+	// A request that fails part-way (a timeout, a reset) is the first sign of a
+	// connection that died without saying so: the network changed under it and
+	// the system didn't tell (a router given a new outside address). The keeper
+	// is asked to check it at once rather than wait for the transport to notice.
+	return &streamConn{Stream: s, local: a, remote: a, onError: c.keeper.kick}, nil
 }
 
 // Transport sends HTTP requests to the server, whatever host they name.

@@ -362,7 +362,7 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
               : p.live ? <div className="np-art" style={{ backgroundSize: 'contain' }}>{artUrl ? <img src={artUrl} alt={t('Cover of {title}', { title: it.title })} style={{ objectFit: 'contain' }} /> : <Placeholder title={it.title} />}</div>
               : <ArtView look={look} src={artUrl} alt={t('Cover of {title}', { title: it.album || it.title })} caption={it.title} playing={p.playing} media={p.media}
                   canvas={canvasInArt ? { info: canvasInfo.info, blocked: canvasInfo.blocked } : null} fallback={<Placeholder title={it.title} />} />}
-            {artUrl && !p.live && !framedCanvas && !canvasInArt && look.reflection && (look.art === 'square' || look.art === 'drift' || look.art === 'tilt') && <div className="np-reflect" aria-hidden="true"><img src={artUrl} alt="" /></div>}
+            {artUrl && !p.live && !framedCanvas && !canvasInArt && look.reflection && (look.art === 'square' || look.art === 'drift' || look.art === 'tilt') && <div className="np-reflect" aria-hidden="true"><img src={artUrl} alt="" onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} /></div>}
           </div>
           <div className="np-title">
             <h2 className="ab-title">{it.title}</h2>

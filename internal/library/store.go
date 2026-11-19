@@ -690,11 +690,11 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 		args = append(args, q.ShowID)
 	}
 	if q.Album != nil {
-		where = append(where, "IFNULL(i.album, '') = ?")
+		where = append(where, "IFNULL(i.album, '') = ? COLLATE NOCASE")
 		args = append(args, *q.Album)
 	}
 	if q.AlbumArtist != nil {
-		where = append(where, albumArtist+" = ?")
+		where = append(where, albumArtist+" = ? COLLATE NOCASE")
 		args = append(args, *q.AlbumArtist)
 	}
 	if q.Containers != nil {

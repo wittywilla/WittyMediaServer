@@ -100,3 +100,15 @@
 .rem-advanced > summary { cursor: pointer; padding: 2px 0; }
 .rem-advanced > summary h2 { display: inline; font-size: inherit; margin: 0; }
 .rem-advanced .set-form { margin-top: 14px; }
+
+/* The connection test's answer in one line, then what to do about it. */
+.p2p-verdict { color: var(--fg); margin: var(--sp-3) 0 0; padding: var(--sp-3) var(--sp-4); border-radius: var(--r-sm); background: var(--bg-3); border-left: 3px solid var(--bg-4); display: grid; gap: var(--sp-1); }
+.p2p-verdict.ok { border-left-color: var(--ok); color: var(--fg); }
+.p2p-verdict.warn { border-left-color: var(--accent); }
+.p2p-verdict.fail { border-left-color: var(--danger); }
+.p2p-verdict b { font-size: var(--text-md); }
+.p2p-verdict p { margin: 0; font-size: var(--text-sm); }
+.p2p-verdict ul { margin: var(--sp-1) 0 0; padding-left: var(--sp-5); font-size: var(--text-sm); }
+.p2p-relay { display: grid; gap: var(--sp-2); }
+.p2p-relay .input { width: 100%; }
+.p2p-allows { font-size: var(--text-sm); }

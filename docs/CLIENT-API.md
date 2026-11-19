@@ -2207,6 +2207,7 @@ Favourites use `PUT /items/{id}/reaction` with `{"value": 1}`, as for anything e
 | `PUT /p2p/settings` | admin | Change them. Turning the feature on needs `accept: true`. |
 | `GET /p2p/status` | admin | Only how every layer is doing, for a page that stays open. |
 | `POST /p2p/test` | admin | Connect to this server as an app away from home would, from a second node, and say how far it got. |
+| `POST /p2p/relay-check` | admin | Ask a WittyRelay what it allows (speed, picture size, data and time per connection) before adding it: `{addr}`. Registers nothing. |
 | `POST /p2p/rotate` | admin | Give the server a new connection key and ID: `{password, code}`. Every device must learn the new ID. |
 | `GET /sessions` | user | Sessions. |
 | `DELETE /sessions` | user | End other sessions. |

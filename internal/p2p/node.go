@@ -15,6 +15,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/libp2p/go-libp2p"
@@ -48,6 +49,12 @@ type NodeConfig struct {
 	// (0: no limit). Relays are other people's connections.
 	RelayBitrate int64
 	Devices      Devices
+	// OwnRelays are WittyRelays the owner named: registered with, and held a
+	// place on before any other relay. DeviceIDs lists the devices they are
+	// told may come through them; Name is what their operators see.
+	OwnRelays []OwnRelay
+	DeviceIDs func() []string
+	Name      string
 	// Enrol answers a device showing an invite. from is the address it is
 	// counted under.
 	Enrol func(ctx context.Context, id string, req EnrolRequest, from netip.Addr) EnrolResponse
@@ -88,22 +95,27 @@ type Node struct {
 	started time.Time
 
 	enrolAll, enrolPeer, enrolAddr *window
+	count                          counters
 	joins                          joins // codes typed into the server, waiting for their devices: join.go
 
-	mu           sync.Mutex
-	streams      map[peer.ID]int
-	buckets      map[network.Conn]*bucket
-	temp         map[peer.ID]time.Time // keys let in for a moment: the connection test
-	reachability network.Reachability
-	natUDP       network.NATDeviceType
-	natTCP       network.NATDeviceType
-	reachable    []ma.Multiaddr
-	unreachable  []ma.Multiaddr
-	unchecked    []ma.Multiaddr
-	relayAddrs   []ma.Multiaddr
-	paths        map[peer.ID]string // each connected device's way here, to log when it changes
-	refused      int
-	refusedNote  time.Time
+	mu             sync.Mutex
+	streams        map[peer.ID]int
+	buckets        map[network.Conn]*bucket
+	temp           map[peer.ID]time.Time // keys let in for a moment: the connection test
+	reachability   network.Reachability
+	natUDP         network.NATDeviceType
+	natTCP         network.NATDeviceType
+	reachable      []ma.Multiaddr
+	unreachable    []ma.Multiaddr
+	unchecked      []ma.Multiaddr
+	relayAddrs     []ma.Multiaddr
+	paths          map[peer.ID]string // each connected device's way here, to log when it changes
+	ownRelays      []OwnRelayStatus
+	ownCircuits    map[int][]ma.Multiaddr // this server's addresses through each WittyRelay it holds a place on
+	devicesChanged chan struct{}
+	registered     chan struct{} // closed once each WittyRelay has been tried once
+	refused        int
+	refusedNote    time.Time
 }
 
 // StartNode starts the server's node. The feature is on from here on: it
@@ -120,6 +132,7 @@ func StartNode(cfg NodeConfig) (*Node, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	n := &Node{cfg: cfg, log: lg, ctx: ctx, cancel: cancel, started: time.Now(),
 		streams: map[peer.ID]int{}, buckets: map[network.Conn]*bucket{}, temp: map[peer.ID]time.Time{}, paths: map[peer.ID]string{},
+		devicesChanged: make(chan struct{}, 1), registered: make(chan struct{}),
 		// An invite's secret is 128 bits, so these are not what keeps guessing
 		// out; they keep strangers from keeping the server busy.
 		enrolAll:  newWindow(60, time.Minute, 1),
@@ -133,10 +146,28 @@ func StartNode(cfg NodeConfig) (*Node, error) {
 		}
 		n.maps.IPv6 = cfg.Layers.IPv6
 	}
+	// The owner's WittyRelays come first among the relays a place is held on.
+	static := []string{}
+	for _, r := range cfg.OwnRelays {
+		n.ownRelays = append(n.ownRelays, OwnRelayStatus{Addr: r.Addr, State: "wait"})
+		if ai, err := ParseRelayAddr(r.Addr); err == nil {
+			for _, a := range ai.Addrs {
+				static = append(static, a.String()+"/p2p/"+ai.ID.String())
+			}
+		}
+	}
+	static = append(static, cfg.StaticRelays...)
 	h, err := NewHost(HostConfig{
-		Seed: cfg.Seed, Port: cfg.Port, Server: true, Layers: cfg.Layers, StaticRelays: cfg.StaticRelays,
-		RelayService: cfg.RelayService, ExtraAddrs: n.mapped, Log: lg,
+		Seed: cfg.Seed, Port: cfg.Port, Server: true, Layers: cfg.Layers, StaticRelays: static,
+		RelayService: cfg.RelayService, ExtraAddrs: n.extraAddrs, Log: lg,
 		Bootstrap: cfg.Bootstrap, Local: cfg.Local, Listen: cfg.Listen, Options: cfg.Options, PunchTimeout: cfg.PunchTimeout,
+		BeforeRelays: func(ctx context.Context) {
+			select {
+			case <-n.registered:
+			case <-ctx.Done():
+			case <-time.After(45 * time.Second): // a relay that doesn't answer holds nobody up for long
+			}
+		},
 	})
 	if err != nil {
 		cancel()
@@ -193,7 +224,8 @@ func StartNode(cfg NodeConfig) (*Node, error) {
 			n.log.Info("peer-to-peer: device disconnected", "session", ConnSession(p.String()), "device", ShortID(p.String()), "path", path)
 		}
 	}})
-	n.wg.Add(2)
+	n.wg.Add(3)
+	Spawn("p2p wittyrelay", n.keepRegistered)
 	Spawn("p2p http", func() {
 		defer n.wg.Done()
 		if err := n.http.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) && !errors.Is(err, net.ErrClosed) {
@@ -217,6 +249,15 @@ func StartNode(cfg NodeConfig) (*Node, error) {
 // ID is the server's connection ID.
 func (n *Node) ID() string { return n.host.ID().String() }
 
+// RelayOffer is what the relay a connection came through said it allows.
+func (n *Node) RelayOffer(relay string) (RelayOffer, bool) {
+	p, err := peer.Decode(relay)
+	if err != nil {
+		return RelayOffer{}, false
+	}
+	return n.host.RelayOfferOf(p)
+}
+
 // Host is the node underneath, for tests and the connection test.
 func (n *Node) Host() *Host { return n.host }
 
@@ -236,6 +277,18 @@ func (n *Node) Port() int {
 		}
 	}
 	return n.cfg.Port
+}
+
+// extraAddrs are what this node announces besides what libp2p finds: the
+// router's mapping, and its places on the owner's WittyRelays.
+func (n *Node) extraAddrs() []ma.Multiaddr {
+	out := n.mapped()
+	n.mu.Lock()
+	for _, list := range n.ownCircuits {
+		out = append(out, list...)
+	}
+	n.mu.Unlock()
+	return out
 }
 
 // mapped is what the router's port mapping adds to this node's addresses.
@@ -288,6 +341,12 @@ func (n *Node) watch(sub event.Subscription) {
 			case event.EvtAutoRelayAddrsUpdated:
 				before, after := relayIDs(n.relayAddrs), relayIDs(ev.RelayAddrs)
 				n.relayAddrs = ev.RelayAddrs
+				for _, a := range ev.RelayAddrs {
+					if r := relayOf(a); r != "" {
+						// What it allows: shown in Settings, and kept to.
+						n.host.learnOffer(r, nil)
+					}
+				}
 				if before != after {
 					if after == "" {
 						n.log.Info("peer-to-peer: no relay holds a place for this server now")
@@ -334,7 +393,9 @@ func (n *Node) remoteOf(s network.Stream, known bool) *Addr {
 	ra := c.RemoteMultiaddr()
 	relayed := c.Stat().Limited || isRelayed(ra)
 	ip := ipOf(ra)
+	var relay string
 	if relayed {
+		relay = relayOf(ra).String()
 		// The far end's own address isn't known through a relay: the relay's
 		// is, from this node's connection to it.
 		ip = netip.Addr{}
@@ -345,7 +406,7 @@ func (n *Node) remoteOf(s network.Stream, known bool) *Addr {
 			}
 		}
 	}
-	return &Addr{IP: presentedIP(ip, relayed, known, c.RemotePeer()), Peer: c.RemotePeer().String(), Relayed: relayed, Known: known}
+	return &Addr{IP: presentedIP(ip, relayed, known, c.RemotePeer()), Peer: c.RemotePeer().String(), Relayed: relayed, Relay: relay, Known: known}
 }
 
 func (n *Node) noteRefused(s network.Stream, why string) {
@@ -368,6 +429,7 @@ func (n *Node) handleHTTP(s network.Stream) {
 	p := s.Conn().RemotePeer()
 	known := n.cfg.Devices.Allowed(p.String())
 	if n.cfg.DevicesOnly && !known && !n.briefly(p) {
+		n.count.refusedNotListed.Add(1)
 		n.noteRefused(s, "not on the list of devices")
 		_ = s.Reset()
 		return
@@ -375,6 +437,7 @@ func (n *Node) handleHTTP(s network.Stream) {
 	n.mu.Lock()
 	if n.streams[p] >= maxStreamsPerPeer {
 		n.mu.Unlock()
+		n.count.refusedTooMany.Add(1)
 		n.noteRefused(s, "too many connections from one device")
 		_ = s.Reset()
 		return
@@ -383,15 +446,35 @@ func (n *Node) handleHTTP(s network.Stream) {
 	n.mu.Unlock()
 	var b *bucket
 	addr := n.remoteOf(s, known)
-	if addr.Relayed && n.cfg.RelayBitrate > 0 {
-		n.mu.Lock()
-		if b = n.buckets[s.Conn()]; b == nil {
-			b = newBucket(n.cfg.RelayBitrate)
-			n.buckets[s.Conn()] = b
+	if addr.Relayed {
+		if limit := n.RelayStreamLimit(addr.Relay); limit > 0 {
+			n.mu.Lock()
+			if b = n.buckets[s.Conn()]; b == nil {
+				b = newBucket(limit)
+				n.buckets[s.Conn()] = b
+			}
+			n.mu.Unlock()
 		}
-		n.mu.Unlock()
 	}
-	conn := &streamConn{Stream: s, local: n.ln.addr, remote: addr, bucket: b, onClose: func() {
+	if known {
+		// Noted before the connection is handed over, so that whatever the
+		// device asks first is already counted as coming from it, this way.
+		n.host.ConnManager().Protect(p, "wittymedia")
+		path := "direct"
+		if addr.Relayed {
+			path = "relayed"
+		}
+		n.notePath(p, path)
+		n.cfg.Devices.Seen(p.String(), path)
+	}
+	var sent *atomic.Int64
+	if addr.Relayed {
+		n.count.streamsRelayed.Add(1)
+		sent = &n.count.relayedBytes
+	} else {
+		n.count.streamsDirect.Add(1)
+	}
+	conn := &streamConn{Stream: s, local: n.ln.addr, remote: addr, bucket: b, sent: sent, onClose: func() {
 		n.mu.Lock()
 		if n.streams[p] <= 1 {
 			delete(n.streams, p)
@@ -403,16 +486,6 @@ func (n *Node) handleHTTP(s network.Stream) {
 	if err := n.ln.offer(conn); err != nil {
 		_ = s.Reset()
 		conn.once.Do(conn.onClose)
-		return
-	}
-	if known {
-		n.host.ConnManager().Protect(p, "wittymedia")
-		path := "direct"
-		if addr.Relayed {
-			path = "relayed"
-		}
-		n.notePath(p, path)
-		n.cfg.Devices.Seen(p.String(), path)
 	}
 }
 
@@ -427,6 +500,7 @@ func (n *Node) notePath(p peer.ID, path string) {
 	case !had:
 		n.log.Info("peer-to-peer: device connected", "session", ConnSession(p.String()), "device", ShortID(p.String()), "path", path)
 	case was != path:
+		n.count.pathChanges.Add(1)
 		n.log.Info("peer-to-peer: path changed", "session", ConnSession(p.String()), "device", ShortID(p.String()), "from", was, "to", path)
 	}
 }
@@ -455,10 +529,12 @@ func (n *Node) handleEnrol(s network.Stream) {
 	// their share of the others.
 	okAll, okPeer, okAddr := n.enrolAll.allow("all"), n.enrolPeer.allow(id), n.enrolAddr.allow(addr.IP.String())
 	if !okAll || !okPeer || !okAddr {
+		n.count.enrolsRefused.Add(1)
 		n.noteRefused(s, "too many tries at an invite")
 		answer(EnrolResponse{Reason: "too-many-tries", Error: "Too many tries. Wait a minute and try again."})
 		return
 	}
+	n.count.enrols.Add(1)
 	var req EnrolRequest
 	if err := readMessage(s, &req); err != nil || req.V != 1 {
 		answer(EnrolResponse{Reason: "wrong", Error: "That isn't an invite this server understands."})
@@ -521,6 +597,10 @@ type RelayStatus struct {
 	ID        string `json:"id"`
 	Addr      string `json:"addr"`
 	Community bool   `json:"community"`
+	// Offer is what the relay said it allows, and Allows the same in words;
+	// both empty for a relay that didn't say (a public one).
+	Offer  *RelayOffer `json:"offer,omitempty"`
+	Allows string      `json:"allows,omitempty"`
 }
 
 // Status is the state of every layer, for Settings and the diagnostics.
@@ -542,7 +622,11 @@ type Status struct {
 	NetworkPeers int                  `json:"networkPeers"`
 	DHTPeers     int                  `json:"dhtPeers"`
 	RelayService bool                 `json:"relayService"`
-	Devices      []DeviceConn         `json:"devices"`
+	// Offer is what this server tells others it allows, as a community relay.
+	Offer     *RelayOffer      `json:"offer,omitempty"`
+	OwnRelays []OwnRelayStatus `json:"ownRelays"`
+	Devices   []DeviceConn     `json:"devices"`
+	Counters  Counters         `json:"counters"`
 }
 
 func reachWord(r network.Reachability) string {
@@ -574,6 +658,10 @@ func (n *Node) Status() Status {
 	if h.DHT != nil {
 		st.DHTPeers = h.DHT.RoutingTable().Size()
 	}
+	if n.cfg.RelayService != nil {
+		o := offerOf(*n.cfg.RelayService)
+		st.Offer = &o
+	}
 	if n.maps != nil {
 		st.Mapping = n.maps.Status()
 	}
@@ -583,6 +671,8 @@ func (n *Node) Status() Status {
 	st.Unreachable = append(st.Unreachable, addrStrings(n.unreachable)...)
 	st.Unchecked = append(st.Unchecked, addrStrings(n.unchecked)...)
 	relays := append([]ma.Multiaddr(nil), n.relayAddrs...)
+	st.OwnRelays = append([]OwnRelayStatus{}, n.ownRelays...)
+	st.Counters = n.count.snapshot()
 	streams := map[peer.ID]int{}
 	for p, c := range n.streams {
 		streams[p] = c
@@ -595,7 +685,11 @@ func (n *Node) Status() Status {
 			continue
 		}
 		seen[r] = true
-		st.Relays = append(st.Relays, RelayStatus{ID: r.String(), Addr: a.String(), Community: h.IsCommunityRelay(r)})
+		rs := RelayStatus{ID: r.String(), Addr: a.String(), Community: h.IsCommunityRelay(r)}
+		if o, ok := h.RelayOfferOf(r); ok {
+			rs.Offer, rs.Allows = &o, o.Words()
+		}
+		st.Relays = append(st.Relays, rs)
 	}
 	for _, c := range h.Network().Conns() {
 		p := c.RemotePeer()

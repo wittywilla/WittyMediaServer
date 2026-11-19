@@ -31,6 +31,8 @@ Use this guide to reach your server safely when you're away from home. You don't
 - **The ways in, safest first**
   - [The recommended way: a private network](#the-recommended-way-a-private-network)
   - [Peer-to-peer connections](#peer-to-peer-connections)
+    - [Try it yourself](#try-it-yourself)
+    - [Your own WittyRelay](#your-own-wittyrelay)
   - [A rented server (VPS)](#a-rented-server-vps)
   - [A reverse proxy you already run](#a-reverse-proxy-you-already-run)
   - [Forwarding a port on your router](#forwarding-a-port-on-your-router)
@@ -233,7 +235,7 @@ Read this before turning it on. It's the honest list.
 2. **Pair your devices while they're at home.** Open the app on each phone, TV and laptop while it's on your home network and signed in. Within a minute it adds itself to **Devices that may connect**. That's all: from then on, when the app can't find your server at home, it connects this way by itself.
 3. **A device that isn't at home** (yours while travelling, or a relative's) needs an invite. Choose **Invite a device that isn't at home**, and send them the link or show them the code. In the app they choose **Join with a link or code** and paste the link, or **Scan a QR code**. It works once, for fifteen minutes, and signs the device in as you, so send it the way you'd send a password.
 4. **A TV that isn't at home** can't take a link in: it has no keyboard worth the name and no camera. In the app on the TV choose **Join from away**. It shows a code of eight letters and digits. Type it into **A TV that shows a code** on this page, with your password, and within a minute or so the TV finds your server and signs in as you. Only type in a code you can see on your own TV: whoever is showing it gets in. It works once, for fifteen minutes, and needs **Public address book** on, as that is how the TV finds your server.
-5. **[Test it](#testing-peer-to-peer-connections).**
+5. **[Test it](#testing-peer-to-peer-connections)**, or follow [Try it yourself](#try-it-yourself) step by step.
 
 You don't have to change the three choices at the top of the page. Peer-to-peer connections work with **Home network only** chosen, which keeps every other way in closed.
 
@@ -250,7 +252,7 @@ Each line says how one way of connecting is doing. The app tries them best first
 | **Public address book** | Whether your server has reached the network apps find it on |
 | **Relays** | Which relays your server has a place on. **Public relays** only introduce; **community relays** can carry a whole film, slowly, when nothing else works |
 
-**When it can't connect.** If hole punching fails (a strict router at home, or on the network your phone is on) and there's no community relay, the app says a direct connection couldn't be made. Try another network: a different Wi-Fi, or mobile data. If your home router is the strict one, look for a setting called UPnP in it, or use a private network instead.
+**When it can't connect.** If hole punching fails (a strict router at home, or on the network your phone is on) and there's no community relay, the app says a direct connection couldn't be made. Try another network: a different Wi-Fi, or mobile data. If your home router is the strict one, look for a setting called UPnP in it, add [your own WittyRelay](#your-own-wittyrelay), or use a private network instead.
 
 **Community relays** are other WittyMediaServer owners who turned on **Help other servers**. If your server can be reached from outside, you can turn it on too: up to 16 other people's connections may then pass through your internet connection, 2 GiB each at most, and you see none of it.
 
@@ -263,6 +265,80 @@ Each line says how one way of connecting is doing. The app tries them best first
 3. It should connect within about half a minute the first time. In **Settings → Remote Access**, the device shows as **Connected directly** or **Connected through a relay**.
 
 On a computer, the desktop app's title bar says how it's connected: **direct**, or **through a relay**.
+
+### Try it yourself
+
+About fifteen minutes, with a phone (or a second computer) that has the WittyMediaClient app. Nothing on your router needs changing.
+
+**On the server** (the computer WittyMediaServer runs on):
+
+1. Open WittyMediaServer in a web browser and sign in as the administrator.
+2. Go to **Settings → Remote Access** and choose the **Peer-to-peer connections** tab.
+3. Read the list of who is contacted. Tick **I've read who is contacted, and I want this on**, then choose **Turn on peer-to-peer connections**. That's all the setup.
+4. Wait about five minutes. The box at the top of the section changes from **Still finding out** to one of these:
+   - **Direct connection works**: your devices will connect straight to your server. Go on to the phone.
+   - **Your network blocks direct connections; we'll use a relay when WittyRelay is available**: it can still work from some networks, but not everywhere. The box lists what to do. The surest is [your own WittyRelay](#your-own-wittyrelay), below.
+   - **This server can't reach the internet for peer-to-peer connections**: a firewall on the computer is in the way. Allow WittyMediaServer through it, then choose **Test my connection**.
+5. Choose **Test my connection**. After up to a minute it says, line by line, whether the server could be found and whether it answered. All three lines should say OK.
+
+**On the phone** (or the second computer):
+
+6. Connect the phone to your **home Wi-Fi**. Open WittyMediaClient and sign in to your server as you normally would. Leave the app open for a minute: it adds itself to the server's list by itself.
+7. Back on the server, under **Devices that may connect**, the phone now appears. If it doesn't, wait another minute and reload the page.
+8. On the phone, **turn Wi-Fi off**, so it uses mobile data. (On a second computer, connect it to a phone's hotspot instead.)
+9. Open the app again. Within about half a minute it shows your server. Where it says which server it is on, it reads:
+   - **Peer to peer · direct**: connected straight through. The best result.
+   - **Peer to peer · through a relay · 8 Mbit/s, 1080p** (or other numbers): connected through a relay, which can't see what it carries. The numbers are what that relay allows; films are made to fit them.
+   - **Peer to peer · connecting directly…** for more than a minute: the network the phone is on, or your home router, blocks direct connections, and there's no relay to carry it. Add your own WittyRelay.
+10. Play something for a minute, to be sure it plays. Then turn Wi-Fi back on: the app goes back to connecting at home by itself.
+
+**Somebody else's device** (a relative's TV, a laptop that has never been at home): on the server choose **Invite a device that isn't at home** and send them the link, or for a TV type in the code it shows under **A TV that shows a code**. See [Turning it on](#turning-it-on), steps 3 and 4.
+
+If anything goes differently, the server's log has every step under **Settings → Logs**, category *p2p*: each device connecting, which way, and every refusal with its reason.
+
+### Your own WittyRelay
+
+Some networks never let a direct connection through: a router that changes ports for every connection (a "symmetric NAT"), an internet provider that shares one address between many homes (CGNAT) on both ends, and office, school and hotel networks that block everything but web browsing. Then a device needs a **relay**: a computer both ends can reach, which passes the connection on. It can't read what it passes on: that stays encrypted between your device and your server.
+
+A hosted WittyRelay is planned as a **free** service. Until it exists, and whenever you'd rather, you can run your own. **WittyRelay** is a small program that runs in Docker. It needs a machine with its own public internet address that you can open a port on: a small rented server (a VPS), or a computer at a friend's or family member's home with a forwarded port. A relay in the same home as your server doesn't help.
+
+**Run it** (on that machine, with Docker installed):
+
+1. Copy `docker-compose.yml` from [WittyRelay](https://github.com/wittywilla/WittyRelay) onto it.
+2. Make an access key, and put it into the file after `WITTYRELAY_KEYS:`:
+
+   ```bash
+   docker compose run --rm wittyrelay key
+   ```
+
+3. In the same file, set `WITTYRELAY_ANNOUNCE` to the machine's name or public address, for example `/dns4/relay.example.com/udp/4001/quic-v1,/dns4/relay.example.com/tcp/4001`. Change the limits if you like: speed per connection, speed for everyone together, picture size, and how long and how much each connection may use.
+4. Open **port 4001, UDP and TCP**, in that machine's firewall (and its provider's, for a rented server).
+5. Start it, and copy its address:
+
+   ```bash
+   docker compose up -d
+   docker compose logs wittyrelay | grep "relay address"
+   ```
+
+   The address looks like `/dns4/relay.example.com/udp/4001/quic-v1/p2p/12D3KooW…`.
+
+**Use it**, on your server, in **Settings → Remote Access → Peer-to-peer connections → Your own WittyRelay**:
+
+6. Paste the address, and the access key.
+7. Choose **Check**. The page asks the relay what it allows and shows it, for example *Up to 8 Mbit/s per connection, 50 Mbit/s for everyone together, pictures up to 1080p.* Read it before going on: that is what your devices get when they use it.
+8. Choose **Use this relay**. Within a few seconds it says **Working**, with the same limits. The box at the top changes to **Connections will go through your relay** if your network blocks direct connections, or keeps **Direct connection works** (the relay is then only used from networks that need it).
+
+The server tells the relay which of your devices may come through it, and keeps telling it every five minutes: a device you remove is cut off from the relay within minutes as well. Nobody else's devices can use it to reach your server. With `WITTYRELAY_ACCESS: "open"`, other servers may register with it too, within its limits; with `"key"` (the default), only servers you gave a key to.
+
+**What a relay sees**: your server's and your device's internet addresses, when, and how much. Never what's sent.
+
+### Limits on relays
+
+Every relay that carries whole connections says what it allows **before** it is used: this server shows it under **Your own WittyRelay** and in **Each way of connecting**, and the apps show it beside "through a relay".
+
+- **Speed** is held to by the relay itself. This server also keeps to its own **Limit through a relay** (under Peer-to-peer options), whichever is lower.
+- **Picture size** can't be held to by the relay, which can't see inside what it carries. This server makes everything it sends through that relay the size the relay asks for, or smaller, and at a data rate that fits through it, so a film plays smoothly rather than stalling.
+- **Help other servers**: when your server helps as a relay, you choose **Upload you share** (for everyone together) and **Picture size through your relay**, and other servers are told both before they use it.
 
 ### Taking a device off
 

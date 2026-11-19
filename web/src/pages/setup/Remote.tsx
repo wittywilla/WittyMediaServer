@@ -11,7 +11,7 @@ export function Remote({ info, next, back }: StepProps) {
     <section>
       <StepHead title="Remote access and apps" lead="Use the server away from home, and on your phones, tablets and TVs. None of this is needed to start watching on this network." />
       <ul className="tvs-list">
-        <li className="tvs-item"><div className="tvs-item-text"><b>Away from home</b><span>Turn on Remote Access, and choose how the server is reached. <Link to="/settings/remote">Settings, Remote Access</Link></span></div></li>
+        <li className="tvs-item"><div className="tvs-item-text"><b>Away from home</b><span>Turn on Remote Access, and choose how the server is reached. The quickest is peer-to-peer connections: two clicks, and nothing to set up on your router. <Link to="/settings/remote#p2p">Settings, Remote Access</Link></span></div></li>
         <li className="tvs-item"><div className="tvs-item-text"><b>Pair an app</b><span>Phones and TVs connect with a code or a QR code. <Link to="/pair">Pair a device</Link></span></div></li>
       </ul>
       <LaterNote info={info} />

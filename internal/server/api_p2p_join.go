@@ -35,6 +35,9 @@ func (s *Server) handleP2PJoin(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 403, "this profile can't sign devices in")
 		return
 	}
+	if !s.p2pPairAllowed(w, r) {
+		return
+	}
 	var b struct {
 		Code     string `json:"code"`
 		UserID   int64  `json:"userId"`

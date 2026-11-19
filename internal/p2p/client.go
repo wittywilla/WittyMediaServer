@@ -19,6 +19,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/peerstore"
+	"github.com/libp2p/go-libp2p/p2p/net/swarm"
 	"github.com/libp2p/go-libp2p/p2p/protocol/ping"
 	ma "github.com/multiformats/go-multiaddr"
 )
@@ -71,6 +72,7 @@ type Client struct {
 	gaveUpAt time.Time // when waiting for a direct path last ran out
 	punches  int       // hole punches asked for again on this relayed spell
 	punchAt  time.Time // when the last one was
+	soonAt   time.Time // when punchSoon last asked
 }
 
 // NewClient starts an app's node and begins connecting. It returns at once;
@@ -155,7 +157,11 @@ func NewClient(cfg ClientConfig) (*Client, error) {
 				if !ok {
 					return
 				}
-				if first { // the node finding its own addresses at the start is no change
+				// Whenever this device learns an address of its own (its outside
+				// address, as the network sees it, comes a few seconds after it
+				// starts), a hole punch has something new to aim at.
+				c.punchSoon()
+				if first { // the node finding its own addresses at the start is no network change
 					first = false
 					continue
 				}
@@ -224,7 +230,15 @@ func (c *Client) current() State {
 	}
 	if relayed != nil {
 		r := relayOf(relayed.RemoteMultiaddr())
-		return State{Path: PathRelayed, Relay: r.String(), Community: c.host.IsCommunityRelay(r)}
+		s := State{Path: PathRelayed, Relay: r.String(), Community: c.host.IsCommunityRelay(r)}
+		if s.Community {
+			if o, ok := c.host.RelayOfferOf(r); ok {
+				s.RelayKbps, s.RelayMaxHeight, s.RelayAllows = o.Kbps, o.MaxHeight, o.Words()
+			} else {
+				c.host.learnOffer(r, c.keeper.noteChanged)
+			}
+		}
+		return s
 	}
 	return State{}
 }
@@ -232,6 +246,11 @@ func (c *Client) current() State {
 // connect tries what is known first, then asks the address book, then the
 // relays the owner named.
 func (c *Client) connect(ctx context.Context) error {
+	// libp2p keeps its own list of addresses that failed lately and won't dial
+	// them again for up to five minutes. The keeper has its own, shorter
+	// back-off, so a server that comes back (a restart, a router reboot) would
+	// otherwise wait out libp2p's as well.
+	c.clearDialBackoff()
 	var last error
 	try := func(addrs []ma.Multiaddr, d time.Duration) bool {
 		if len(addrs) == 0 && len(c.host.Peerstore().Addrs(c.server)) == 0 {
@@ -277,6 +296,13 @@ func (c *Client) connect(ctx context.Context) error {
 		return errors.New("no address is known for the server yet")
 	}
 	return plainDialError(last)
+}
+
+// clearDialBackoff forgets libp2p's record of failed dials to the server.
+func (c *Client) clearDialBackoff() {
+	if sw, ok := c.host.Network().(*swarm.Swarm); ok {
+		sw.Backoff().Clear(c.server)
+	}
 }
 
 // plainDialError shortens libp2p's account of every address it tried to what
@@ -344,12 +370,26 @@ func (c *Client) punchAgain(conns []network.Conn) {
 	if !due {
 		return
 	}
-	for _, conn := range conns {
-		for _, s := range conn.GetStreams() {
-			if s.Protocol() == ProtoHTTP || s.Protocol() == ProtoEnrol {
-				return // in use (a community relay carrying a film): leave it be
+	// HTTP connections kept open for the next request are streams too; they
+	// are closed first, so that only a request under way keeps the relay.
+	if c.tr != nil {
+		c.tr.CloseIdleConnections()
+	}
+	inUse := func() bool {
+		for _, conn := range conns {
+			for _, s := range conn.GetStreams() {
+				if s.Protocol() == ProtoHTTP || s.Protocol() == ProtoEnrol {
+					return true
+				}
 			}
 		}
+		return false
+	}
+	for i := 0; inUse(); i++ {
+		if i == 10 {
+			return // in use (a community relay carrying a film): leave it be
+		}
+		time.Sleep(50 * time.Millisecond) // a closed stream takes a moment to leave the list
 	}
 	c.mu.Lock()
 	c.punches++
@@ -359,6 +399,33 @@ func (c *Client) punchAgain(conns []network.Conn) {
 	for _, conn := range conns {
 		_ = conn.Close()
 	}
+}
+
+// punchSoon makes the next look at a relayed connection ask for a direct one
+// at once. The server tries a hole punch the moment an app arrives through a
+// relay, which is often before the app has learnt its own outside address
+// from the network: that try has nothing to aim at. When this device's
+// addresses change, a new try has something to aim at, so it is made now
+// rather than at the next wait in punchWaits.
+func (c *Client) punchSoon() {
+	conns := c.host.Network().ConnsToPeer(c.server)
+	for _, conn := range conns {
+		if !conn.Stat().Limited && !isRelayed(conn.RemoteMultiaddr()) {
+			return // already direct
+		}
+	}
+	if len(conns) == 0 || !c.cfg.Layers.HolePunch {
+		return
+	}
+	c.mu.Lock()
+	if time.Since(c.soonAt) < 5*time.Second {
+		c.mu.Unlock()
+		return // addresses often change several times in a row
+	}
+	c.soonAt = time.Now()
+	c.punchAt = time.Now().Add(-time.Hour)
+	c.mu.Unlock()
+	c.punchAgain(conns)
 }
 
 // check pings the server over what is open, and closes it all if nothing
@@ -373,6 +440,7 @@ func (c *Client) check(ctx context.Context) {
 	select {
 	case res := <-ping.Ping(pctx, c.host, c.server):
 		if res.Error == nil {
+			c.punchSoon()
 			return
 		}
 	case <-pctx.Done():
@@ -380,6 +448,7 @@ func (c *Client) check(ctx context.Context) {
 	if ctx.Err() == nil {
 		c.log.Info("the connection stopped answering after a network change; reconnecting")
 		_ = c.host.Network().ClosePeer(c.server)
+		c.clearDialBackoff() // what failed on the old network may work on the new one
 	}
 }
 
@@ -435,10 +504,24 @@ func (c *Client) ready(ctx context.Context) error {
 // DialContext opens one HTTP connection to the server. The address asked for
 // is ignored: there is only one place this leads.
 func (c *Client) DialContext(ctx context.Context, _, _ string) (net.Conn, error) {
-	if err := c.ready(ctx); err != nil {
-		return nil, err
+	var s network.Stream
+	var err error
+	// A connection can be closing just as a stream is asked for on it (the
+	// network changed, or the server closed it): nothing has been sent yet,
+	// so another try on a fresh connection is safe for any request.
+	for try := 0; try < 3; try++ {
+		if err = c.ready(ctx); err != nil {
+			return nil, err
+		}
+		s, err = c.host.NewStream(c.allow(ctx), c.server, ProtoHTTP)
+		if err == nil || ctx.Err() != nil {
+			break
+		}
+		select {
+		case <-ctx.Done():
+		case <-time.After(time.Duration(try+1) * 100 * time.Millisecond):
+		}
 	}
-	s, err := c.host.NewStream(c.allow(ctx), c.server, ProtoHTTP)
 	if err != nil {
 		return nil, fmt.Errorf("the server refused the connection (is this device still on its list?): %w", err)
 	}
@@ -478,3 +561,6 @@ func (c *Client) Enrol(ctx context.Context, secret, name, platform string) (Enro
 	}
 	return res, nil
 }
+
+// Host is the node underneath, for tools that simulate networks.
+func (c *Client) Host() *Host { return c.host }

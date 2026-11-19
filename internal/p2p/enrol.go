@@ -39,12 +39,18 @@ type EnrolResponse struct {
 
 const maxEnrolMessage = 4 << 10
 
-func writeMessage(w io.Writer, v any) error {
+func writeMessage(w io.Writer, v any) error { return writeMessageN(w, v, maxEnrolMessage) }
+
+func readMessage(r io.Reader, v any) error { return readMessageN(r, v, maxEnrolMessage) }
+
+// writeMessageN writes one message of at most limit bytes: a 4-byte
+// big-endian length, then that much JSON.
+func writeMessageN(w io.Writer, v any, limit int) error {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return err
 	}
-	if len(b) > maxEnrolMessage {
+	if len(b) > limit {
 		return errors.New("message too long")
 	}
 	buf := make([]byte, 4+len(b))
@@ -54,13 +60,15 @@ func writeMessage(w io.Writer, v any) error {
 	return err
 }
 
-func readMessage(r io.Reader, v any) error {
+// readMessageN reads what writeMessageN wrote, refusing anything longer
+// than limit before reading it.
+func readMessageN(r io.Reader, v any, limit int) error {
 	var head [4]byte
 	if _, err := io.ReadFull(r, head[:]); err != nil {
 		return err
 	}
 	n := binary.BigEndian.Uint32(head[:])
-	if n == 0 || n > maxEnrolMessage {
+	if n == 0 || int64(n) > int64(limit) {
 		return errors.New("message too long")
 	}
 	b := make([]byte, n)
@@ -115,3 +123,14 @@ func (w *window) allow(key string) bool {
 	w.tries[key] = append(keep, now)
 	return true
 }
+
+// TryLimit is a window for others to use: so many tries per key in a span.
+type TryLimit struct{ w *window }
+
+// NewTryLimit allows limit tries per key in each span, for at most maxKeys keys.
+func NewTryLimit(limit int, span time.Duration, maxKeys int) *TryLimit {
+	return &TryLimit{w: newWindow(limit, span, maxKeys)}
+}
+
+// Allow counts a try and says whether it may go ahead.
+func (t *TryLimit) Allow(key string) bool { return t.w.allow(key) }

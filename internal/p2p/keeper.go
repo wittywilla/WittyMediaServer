@@ -68,10 +68,16 @@ type State struct {
 	Transport string `json:"transport,omitempty"` // quic | tcp
 	Relay     string `json:"relay,omitempty"`
 	Community bool   `json:"community,omitempty"`
-	Error     string `json:"error,omitempty"`    // why the last try failed
-	Attempts  int    `json:"attempts,omitempty"` // tries since it last worked
-	NextTry   int64  `json:"nextTry,omitempty"`  // when the next one is due
-	Since     int64  `json:"since,omitempty"`    // when this path began
+	// What that relay said it allows: kbit/s per connection and the picture
+	// height streams through it keep to (0: no limit, or it didn't say), and
+	// the same in words, for the app to show.
+	RelayKbps      int    `json:"relayKbps,omitempty"`
+	RelayMaxHeight int    `json:"relayMaxHeight,omitempty"`
+	RelayAllows    string `json:"relayAllows,omitempty"`
+	Error          string `json:"error,omitempty"`    // why the last try failed
+	Attempts       int    `json:"attempts,omitempty"` // tries since it last worked
+	NextTry        int64  `json:"nextTry,omitempty"`  // when the next one is due
+	Since          int64  `json:"since,omitempty"`    // when this path began
 }
 
 // Connected says requests can be sent.

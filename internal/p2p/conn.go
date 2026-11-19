@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/netip"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/libp2p/go-libp2p/core/network"
@@ -23,7 +24,9 @@ type Addr struct {
 	IP      netip.Addr
 	Peer    string // the other end's ID
 	Relayed bool
-	Known   bool // on the server's list of devices
+	// Relay is the relay's ID on a relayed connection, when it is known.
+	Relay string
+	Known bool // on the server's list of devices
 }
 
 func (a *Addr) Network() string { return "p2p" }
@@ -66,7 +69,8 @@ func presentedIP(remote netip.Addr, relayed, known bool, id peer.ID) netip.Addr 
 type streamConn struct {
 	network.Stream
 	local, remote net.Addr
-	bucket        *bucket // nil: no limit
+	bucket        *bucket       // nil: no limit
+	sent          *atomic.Int64 // counts what is written, when not nil
 	onClose       func()
 	once          sync.Once
 }
@@ -74,7 +78,10 @@ type streamConn struct {
 func (c *streamConn) LocalAddr() net.Addr  { return c.local }
 func (c *streamConn) RemoteAddr() net.Addr { return c.remote }
 
-func (c *streamConn) Write(b []byte) (int, error) {
+func (c *streamConn) Write(b []byte) (n int, err error) {
+	if c.sent != nil {
+		defer func() { c.sent.Add(int64(n)) }()
+	}
 	if c.bucket == nil {
 		return c.Stream.Write(b)
 	}

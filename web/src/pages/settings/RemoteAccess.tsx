@@ -228,7 +228,7 @@ function Chooser({ st, choice, save, busy }: { st: Status; choice: Choice; save:
     <Section title="Who can connect" desc="Choose one. You can change your mind at any time, and only what your choice needs is shown below it.">
       <SpecPage embedded page={page} handled={handled} onAction={(id) => void choose(id.slice(7) as Choice)} />
       <div className="rem-method disabled" role="note">
-        <span><b>Home and away, through WittyRelay<span className="set-badge">Coming later</span></b><small>A hosted relay that would connect you without any setup. It doesn’t exist yet: it’s planned as a free service, and nothing on this server uses it.</small></span>
+        <span><b>Home and away, through WittyRelay<span className="set-badge">Coming later</span></b><small>A hosted relay that would connect you without any setup. It doesn’t exist yet: it’s planned as a free service, and nothing on this server uses it. You can run a WittyRelay of your own now, in Docker: Peer-to-peer connections, Your own WittyRelay.</small></span>
       </div>
       {choice === 'home' && <HomeOnly />}
       {choice === 'private' && <PrivateSteps st={st} save={save} busy={busy} />}

@@ -5,6 +5,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 	"sync"
@@ -170,12 +171,28 @@ func viaName(c remote.Client, r *http.Request) string {
 // ---------------------------------------------------------------- limits on streams
 
 // remoteCaps returns the limits for a viewer away from home (none at home).
+//
+// Through a relay the relay's own limits count too: the picture size it asks
+// streams to keep to, and a data rate that fits through its speed limit and
+// this server's (relayKbps), so that a film is made small enough to play
+// smoothly rather than sent as it is and stalled by the relay's pacing.
 func (s *Server) remoteCaps(r *http.Request) (maxHeight int, rate string) {
-	if clientFrom(r).Where.AtHome() {
+	c := clientFrom(r)
+	if c.Where.AtHome() {
 		return 0, ""
 	}
 	st := s.state()
-	return st.cfg.MaxHeight, st.cfg.MaxBitrate
+	maxHeight, rate = st.cfg.MaxHeight, st.cfg.MaxBitrate
+	if c.P2P && c.P2PRelayed {
+		h, bps := s.p2pRelayCaps(c.P2PRelay)
+		if h > 0 && (maxHeight == 0 || h < maxHeight) {
+			maxHeight = h
+		}
+		if cur := ffmpeg.ParseRate(rate); bps > 0 && (cur <= 0 || bps < cur) {
+			rate = fmt.Sprintf("%dk", bps/1000)
+		}
+	}
+	return maxHeight, rate
 }
 
 // fitsCap: a file can be sent as it is without going over the limit.

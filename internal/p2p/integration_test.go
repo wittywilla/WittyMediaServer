@@ -151,13 +151,19 @@ func startClient(t *testing.T, seed byte, n *Node, opts ...clientOpt) *Client {
 	return c
 }
 
+// patience is how long a test waits for something that should happen in well
+// under a second. It is long because these tests run with the race detector
+// on CI machines that are busy with other packages: a wait returns as soon as
+// what it waits for happens, so a long one costs nothing when all is well.
+const patience = 90 * time.Second
+
 func get(t *testing.T, c *Client, path string, header ...string) (int, string, error) {
 	t.Helper()
 	req, _ := http.NewRequest("GET", "http://server"+path, nil)
 	for i := 0; i+1 < len(header); i += 2 {
 		req.Header.Set(header[i], header[i+1])
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), patience)
 	defer cancel()
 	res, err := c.Transport().RoundTrip(req.WithContext(ctx))
 	if err != nil {
@@ -170,7 +176,7 @@ func get(t *testing.T, c *Client, path string, header ...string) (int, string, e
 
 func waitPath(t *testing.T, c *Client, want ...string) State {
 	t.Helper()
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), patience)
 	defer cancel()
 	s, err := c.keeper.wait(ctx, func(s State) bool {
 		for _, w := range want {
@@ -575,8 +581,17 @@ func TestReconnectsWhenTheServerComesBack(t *testing.T) {
 	n := startNode(t, 1, devs)
 	port := n.Port()
 	listen := []string{fmt.Sprintf("/ip4/127.0.0.1/udp/%d/quic-v1", port), fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", port)}
-	states := make(chan State, 64)
-	c := startClient(t, 2, n, func(c *ClientConfig) { c.OnState = func(s State) { states <- s } })
+	// Recorded without ever blocking: the keeper calls OnState itself, and a
+	// full channel would stop it reconnecting at all.
+	var mu sync.Mutex
+	var paths []string
+	c := startClient(t, 2, n, func(c *ClientConfig) {
+		c.OnState = func(s State) {
+			mu.Lock()
+			paths = append(paths, s.Path)
+			mu.Unlock()
+		}
+	})
 	waitPath(t, c, PathLocal)
 	n.Close()
 	s := waitPath(t, c, PathOffline, PathConnecting)
@@ -608,10 +623,8 @@ func TestReconnectsWhenTheServerComesBack(t *testing.T) {
 		t.Fatalf("after the server came back: %d %v", code, err)
 	}
 	// The app was told about each change, in order.
-	var paths []string
-	for len(states) > 0 {
-		paths = append(paths, (<-states).Path)
-	}
+	mu.Lock()
+	defer mu.Unlock()
 	joined := strings.Join(paths, " ")
 	if !strings.Contains(joined, PathLocal+" ") || !strings.Contains(joined, PathOffline) || paths[len(paths)-1] != PathLocal {
 		t.Fatalf("states told to the app: %v", paths)

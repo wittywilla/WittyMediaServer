@@ -68,18 +68,29 @@ func AllLayers() Layers {
 	return Layers{DHT: true, Relay: true, HolePunch: true, PortMap: true, IPv6: true}
 }
 
-// RelayLimits are what a community relay gives each connection it passes on.
+// RelayLimits are what a community relay gives each connection it passes on,
+// and what it says it gives (ProtoRelayInfo) before anyone uses it.
 type RelayLimits struct {
 	Duration        time.Duration
 	Data            int64 // bytes each way
 	MaxReservations int
 	MaxCircuits     int // per peer
+	// TotalKbps paces everything passed on, together, so that the owner's
+	// upload is never all given away (0: no limit). Kbps is per connection,
+	// which this node can only ask for, not hold to: it is told to servers,
+	// which pace what they send through it.
+	TotalKbps int
+	Kbps      int
+	// MaxHeight is the picture size, in lines, that streams through this relay
+	// should keep to (0: any). Servers using it hold their streams to it.
+	MaxHeight int
+	Note      string
 }
 
 // DefaultRelayLimits suit a home connection lending a little: two hours and
 // 2 GiB per connection, for at most 16 servers at once.
 func DefaultRelayLimits() RelayLimits {
-	return RelayLimits{Duration: 2 * time.Hour, Data: 2 << 30, MaxReservations: 16, MaxCircuits: 4}
+	return RelayLimits{Duration: 2 * time.Hour, Data: 2 << 30, MaxReservations: 16, MaxCircuits: 4, TotalKbps: 8000, Kbps: 4000, MaxHeight: 720}
 }
 
 // HostConfig is what a node is made from.
@@ -110,6 +121,10 @@ type HostConfig struct {
 	// PunchTimeout shortens how long one try at a direct connection may take
 	// (five seconds otherwise), so tests of hole punching don't wait.
 	PunchTimeout time.Duration
+	// BeforeRelays is waited for before the first relay is asked for a place:
+	// registering with the owner's WittyRelays, which refuse a place to a
+	// server that hasn't.
+	BeforeRelays func(ctx context.Context)
 }
 
 // Host is a running node.
@@ -126,6 +141,11 @@ type Host struct {
 	// ready is closed once Host and DHT are set: libp2p starts asking for
 	// relays and addresses while it is still being put together.
 	ready chan struct{}
+
+	// What relays said they allow (relayinfo.go).
+	offersMu sync.Mutex
+	offers   map[peer.ID]keptOffer
+	asking   map[peer.ID]bool
 }
 
 // relayCID is the DHT key community relays are announced under.
@@ -206,9 +226,14 @@ func NewHost(cfg HostConfig) (*Host, error) {
 			// Places on two relays, chosen once two candidates are known or after
 			// twenty seconds with fewer: a server's first minutes matter less
 			// than not settling for the first relay that happens to answer.
-			ar := []autorelay.Option{autorelay.WithNumRelays(2), autorelay.WithMinCandidates(2), autorelay.WithBootDelay(20 * time.Second)}
+			// A relay that refused is tried again after five minutes, not
+			// libp2p's hour: a WittyRelay that restarted forgets registrations,
+			// and takes this server back as soon as it has registered again.
+			ar := []autorelay.Option{autorelay.WithNumRelays(2), autorelay.WithMinCandidates(2), autorelay.WithBootDelay(20 * time.Second),
+				autorelay.WithBackoff(5 * time.Minute)}
 			if cfg.Local {
-				ar = []autorelay.Option{autorelay.WithNumRelays(2), autorelay.WithMinCandidates(1), autorelay.WithBootDelay(0), autorelay.WithMinInterval(200 * time.Millisecond)}
+				ar = []autorelay.Option{autorelay.WithNumRelays(2), autorelay.WithMinCandidates(1), autorelay.WithBootDelay(0),
+					autorelay.WithMinInterval(200 * time.Millisecond), autorelay.WithBackoff(2 * time.Second)}
 			}
 			opts = append(opts, libp2p.EnableAutoRelayWithPeerSource(h.relaySource, ar...))
 		}
@@ -228,7 +253,11 @@ func NewHost(cfg HostConfig) (*Host, error) {
 		res.Limit = &relayv2.RelayLimit{Duration: rl.Duration, Data: rl.Data}
 		res.MaxReservations, res.MaxCircuits = rl.MaxReservations, rl.MaxCircuits
 		res.MaxReservationsPerIP = 2
-		opts = append(opts, libp2p.EnableRelayService(relayv2.WithResources(res)))
+		ro := []relayv2.Option{relayv2.WithResources(res)}
+		if b := newBucket(int64(rl.TotalKbps) * 1000); b != nil {
+			ro = append(ro, relayv2.WithMetricsTracer(pacer{b}))
+		}
+		opts = append(opts, libp2p.EnableRelayService(ro...))
 	}
 	if cfg.Layers.DHT {
 		opts = append(opts, libp2p.Routing(func(bh host.Host) (routing.PeerRouting, error) {
@@ -249,6 +278,7 @@ func NewHost(cfg HostConfig) (*Host, error) {
 		// Only a marker: an app asks whether a relay is one of these before it
 		// sends anything large through it.
 		lh.SetStreamHandler(ProtoRelay, func(s network.Stream) { _ = s.Close() })
+		lh.SetStreamHandler(ProtoRelayInfo, serveOffer(offerOf(*cfg.RelayService)))
 	}
 	if h.DHT != nil {
 		// Bootstrap only starts the DHT's own upkeep; it keeps trying by itself
@@ -335,6 +365,9 @@ func (h *Host) relaySource(ctx context.Context, num int) <-chan peer.AddrInfo {
 			return
 		case <-h.ctx.Done():
 			return
+		}
+		if h.cfg.BeforeRelays != nil {
+			h.cfg.BeforeRelays(ctx)
 		}
 		seen := map[peer.ID]bool{h.ID(): true}
 		left := num

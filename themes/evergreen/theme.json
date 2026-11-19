@@ -3,7 +3,7 @@
   "name": "Evergreen",
   "description": "Dark forest tones with a fresh green.",
   "author": "WittyMediaServer",
-  "version": "4",
+  "version": "5",
   "scheme": "dark",
   "builtin": true,
   "preview": {
@@ -101,7 +101,7 @@
   },
   "tv": {
     "ringColor": "#e6efe9",
-    "heroScrim": 0.74,
+    "heroScrim": 0.8,
     "tvText": "#e8f1eb"
   }
 }

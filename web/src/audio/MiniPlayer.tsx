@@ -8,6 +8,9 @@ import { musicCatalogue } from '../sdui/catalogue'
 import { IconKaraoke, IconList, IconRepeat, IconRepeatOne, IconShuffle } from './icons'
 import type { PlayerView } from './types'
 import { t } from '../i18n'
+import ArtView from './ArtView'
+import { lookFor, useLookState } from './look'
+import { useCanvas } from '../canvas/useCanvas'
 
 // The bar: along the bottom while you browse, in three parts as music apps lay it out: what's
 // playing on the left, the buttons over the place in the song in the middle, the rest on the
@@ -17,15 +20,27 @@ import { t } from '../i18n'
 
 export default function MiniPlayer({ p, cdSpin }: { p: PlayerView; cdSpin: boolean }) {
   const it = p.current
+  // Hooks first: the bar renders nothing with nothing playing. (sing is said again below, for the rest.)
+  const singing = !!it && p.mode === 'music' && !p.cdActive && !p.live && !p.books
+  const ls = useLookState()
+  const look = lookFor(ls.look, ls.songs, singing ? it!.id : undefined)
+  const canvasHere = singing && !ls.viz && (look.show ? look.show === 'canvas' : ls.canvas) && look.canvasPlace !== 'behind'
+  const canvas = useCanvas(canvasHere ? it!.id : undefined)
   if (!it) return null
   // Which controls the bar offers is the catalogue's list (music.miniPlayer); until it is read, all of them.
   const listed = musicCatalogue()?.miniPlayer
   const wants = (id: string) => !listed || listed.includes(id)
   const sing = p.mode === 'music' && !p.cdActive && !p.live && !p.books
   const sub = p.live ? (p.retrying ? t('Reconnecting…') : p.stationNow || t('Live')) : [it.artist || it.albumArtist, it.album].filter(Boolean).join(' · ')
-  const art = it.poster
-    ? <img src={sized(posterUrl(it), fitWidth(64))} alt="" style={p.live ? { objectFit: 'contain' } : undefined} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
-    : p.live ? <Placeholder title={it.title} /> : <IconAudio />
+  // A song's cover in its look (look.ts), the Canvas video in its place when that's chosen: the same as the full player.
+  const art = sing && look.art !== 'square'
+    ? <ArtView look={{ art: look.art, pulse: false }} src={it.poster ? sized(posterUrl(it), fitWidth(96)) : ''} size="bar" playing={p.playing}
+        canvas={canvasHere && canvas.info?.available ? { info: canvas.info, blocked: canvas.blocked } : null} fallback={<IconAudio />} />
+    : sing && canvasHere && canvas.info?.available && !canvas.blocked
+      ? <ArtView look={{ art: 'square', pulse: false }} src={it.poster ? sized(posterUrl(it), fitWidth(96)) : ''} size="bar" playing={p.playing} canvas={{ info: canvas.info, blocked: canvas.blocked }} fallback={<IconAudio />} />
+      : it.poster
+        ? <img src={sized(posterUrl(it), fitWidth(64))} alt="" style={p.live ? { objectFit: 'contain' } : undefined} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+        : p.live ? <Placeholder title={it.title} /> : <IconAudio />
   if (p.collapsed) {
     const pct = p.duration > 0 ? (p.time / p.duration) * 100 : 0
     return (

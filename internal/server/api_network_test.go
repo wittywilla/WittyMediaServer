@@ -58,9 +58,16 @@ func TestNetworkPort(t *testing.T) {
 		}
 		return c
 	}
-	busy, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
+	// Any free port will do, except the one the server itself uses: that one is "in use now", not "something else".
+	var busy net.Listener
+	for busy == nil || busy.Addr().(*net.TCPAddr).Port == v.Port {
+		if busy != nil {
+			busy.Close()
+		}
+		var err error
+		if busy, err = net.Listen("tcp", "127.0.0.1:0"); err != nil {
+			t.Fatal(err)
+		}
 	}
 	defer busy.Close()
 	for _, c := range []struct {

@@ -79,7 +79,7 @@ func (s *Store) Albums(ctx context.Context, libraryID int64, artist, search, sor
 func (s *Store) AlbumsFiltered(ctx context.Context, libraryID int64, f AlbumFilter, access *Access) ([]Album, error) {
 	where, args := s.groupWhere(libraryID, access)
 	if f.Artist != "" {
-		where = append(where, albumArtist+" = ?")
+		where = append(where, albumArtist+" = ? COLLATE NOCASE")
 		args = append(args, f.Artist)
 	}
 	if f.Search != "" {
@@ -117,7 +117,7 @@ func (s *Store) AlbumsFiltered(ctx context.Context, libraryID int64, f AlbumFilt
 	rows, err := s.DB.QueryContext(ctx, `SELECT `+albumArtist+` AS a, IFNULL(i.album, '') AS i2, MIN(i.year) AS y, COUNT(*), SUM(IFNULL(i.runtime_sec, 0)),
 		MIN(CASE WHEN IFNULL(i.poster, '') <> '' THEN i.id END), MAX(i.added_at) AS added, MAX(IFNULL(i.genres, '')), `+plays+` AS plays,
 		MIN(printf('%04d%06d%019d', IFNULL(i.disc_no, 1), IFNULL(i.track, 999999), i.id))
-		FROM items i WHERE `+strings.Join(where, " AND ")+` GROUP BY a, i2`+having+` ORDER BY `+order+` LIMIT ?`, append(args, limit)...)
+		FROM items i WHERE `+strings.Join(where, " AND ")+` GROUP BY a COLLATE NOCASE, i2 COLLATE NOCASE`+having+` ORDER BY `+order+` LIMIT ?`, append(args, limit)...)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +150,7 @@ func (s *Store) Artists(ctx context.Context, libraryID int64, access *Access) ([
 	where, args := s.groupWhere(libraryID, access)
 	rows, err := s.DB.QueryContext(ctx, `SELECT `+albumArtist+` AS a, COUNT(DISTINCT IFNULL(i.album, '')), COUNT(*),
 		MIN(CASE WHEN IFNULL(i.poster, '') <> '' THEN i.id END)
-		FROM items i WHERE `+strings.Join(where, " AND ")+` GROUP BY a ORDER BY a COLLATE NOCASE LIMIT 5000`, args...)
+		FROM items i WHERE `+strings.Join(where, " AND ")+` GROUP BY a COLLATE NOCASE ORDER BY a COLLATE NOCASE LIMIT 5000`, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -207,7 +207,7 @@ func (s *Store) MusicTracks(ctx context.Context, q MusicQuery, access *Access) (
 	join := ""
 	var joinArgs []any
 	if q.Artist != "" {
-		where = append(where, "("+albumArtist+" = ? OR i.artist = ?)")
+		where = append(where, "("+albumArtist+" = ? COLLATE NOCASE OR i.artist = ? COLLATE NOCASE)")
 		args = append(args, q.Artist, q.Artist)
 	}
 	if q.Genre != "" {

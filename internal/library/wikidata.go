@@ -157,27 +157,19 @@ func (w *Wikidata) Enrich(ctx context.Context, it *Item) error {
 		}
 		cands, byText = ids, true
 	}
-	if len(cands) == 0 {
-		return ErrNotFound
-	}
-	ents, err := w.entities(ctx, cands, "claims|descriptions|sitelinks")
+	best, err := w.pickFilm(ctx, it, cands, byText)
 	if err != nil {
 		return err
 	}
-	// The first film in search order whose year matches (or the first film
-	// when the file name has no year).
-	var best *wdEntity
-	for _, id := range cands {
-		e, ok := ents[id]
-		if !ok {
-			continue
+	if best == nil && it.Year != nil {
+		// Films of that name, but none of that year: "Joy Ride (2023)" among the 2001, 2000 and
+		// 1935 ones. The full text with the year finds the one whose description gives it.
+		ids, err := w.searchTextIDs(ctx, it.Title+" "+strconv.Itoa(*it.Year))
+		if err != nil {
+			return err
 		}
-		if byText && !isA(e, wdFilm) {
-			continue
-		}
-		if it.Year == nil || releasedNear(e, *it.Year) {
-			best = &e
-			break
+		if best, err = w.pickFilm(ctx, it, ids, true); err != nil {
+			return err
 		}
 	}
 	if best == nil {
@@ -256,6 +248,32 @@ func (w *Wikidata) Enrich(ctx context.Context, it *Item) error {
 		it.Provider, it.ProviderID = "wikidata", best.ID
 	}
 	return nil
+}
+
+// pickFilm is the first film in search order whose year matches (or the first film when the
+// file name has no year), nil when none does. Candidates from the full-text search, which
+// finds series too, must be films.
+func (w *Wikidata) pickFilm(ctx context.Context, it *Item, cands []string, byText bool) (*wdEntity, error) {
+	if len(cands) == 0 {
+		return nil, nil
+	}
+	ents, err := w.entities(ctx, cands, "claims|descriptions|sitelinks")
+	if err != nil {
+		return nil, err
+	}
+	for _, id := range cands {
+		e, ok := ents[id]
+		if !ok {
+			continue
+		}
+		if byText && !isA(e, wdFilm) {
+			continue
+		}
+		if it.Year == nil || releasedNear(e, *it.Year) {
+			return &e, nil
+		}
+	}
+	return nil, nil
 }
 
 // isA: whether an entity is an instance of this kind of thing.

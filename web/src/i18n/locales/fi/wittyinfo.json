@@ -303,5 +303,12 @@
   "{what} taken out": "{what} poistettu",
   "“Previously on…”": "”Aiemmin…”",
   "−1 s": "−1 s",
-  "Lyrics and details": "Sanat ja tiedot"
+  "Lyrics and details": "Sanat ja tiedot",
+  "Other pictures for {what}": "Muut kuvat: {what}",
+  "Show this one first": "Näytä tämä ensin",
+  "{what} {n}: show this one first": "{what} {n}: näytä ensin",
+  "Remove {what} {n}": "Poista {what} {n}",
+  "Add another": "Lisää toinen",
+  "This file follows a newer version of the format ({n}) than this server knows ({m}). What it doesn’t know is kept as it is when the file is saved here.": "Tämä tiedosto noudattaa muodon uudempaa versiota ({n}) kuin tämä palvelin tuntee ({m}). Se, mitä palvelin ei tunne, säilyy ennallaan, kun tiedosto tallennetaan täällä.",
+  "{format}, version {n}": "{format}, versio {n}"
 }

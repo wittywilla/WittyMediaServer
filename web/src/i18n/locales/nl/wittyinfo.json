@@ -303,5 +303,12 @@
   "{what} taken out": "{what} verwijderd",
   "“Previously on…”": "‘Eerder in…’",
   "−1 s": "−1 s",
-  "Lyrics and details": "Songtekst en details"
+  "Lyrics and details": "Songtekst en details",
+  "Other pictures for {what}": "Andere afbeeldingen voor {what}",
+  "Show this one first": "Deze eerst tonen",
+  "{what} {n}: show this one first": "{what} {n}: eerst tonen",
+  "Remove {what} {n}": "{what} {n} verwijderen",
+  "Add another": "Nog een toevoegen",
+  "This file follows a newer version of the format ({n}) than this server knows ({m}). What it doesn’t know is kept as it is when the file is saved here.": "Dit bestand volgt een nieuwere versie van het formaat ({n}) dan deze server kent ({m}). Wat hij niet kent, blijft ongewijzigd als het bestand hier wordt opgeslagen.",
+  "{format}, version {n}": "{format}, versie {n}"
 }

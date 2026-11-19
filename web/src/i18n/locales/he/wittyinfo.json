@@ -308,5 +308,12 @@
   "{what} taken out": "{what} הוסר",
   "“Previously on…”": "„בפרקים הקודמים…”",
   "−1 s": "‎−1 ש׳",
-  "Lyrics and details": "מילים ופרטים"
+  "Lyrics and details": "מילים ופרטים",
+  "Other pictures for {what}": "תמונות נוספות עבור {what}",
+  "Show this one first": "להציג את זו ראשונה",
+  "{what} {n}: show this one first": "{what} {n}: להציג ראשונה",
+  "Remove {what} {n}": "הסרת {what} {n}",
+  "Add another": "הוספת עוד",
+  "This file follows a newer version of the format ({n}) than this server knows ({m}). What it doesn’t know is kept as it is when the file is saved here.": "הקובץ הזה עוקב אחר גרסה חדשה יותר של הפורמט ({n}) ממה שהשרת הזה מכיר ({m}). מה שהוא לא מכיר נשמר כפי שהוא כשהקובץ נשמר כאן.",
+  "{format}, version {n}": "{format}, גרסה {n}"
 }

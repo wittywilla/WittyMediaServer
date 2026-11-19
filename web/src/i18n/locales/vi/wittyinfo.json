@@ -298,5 +298,12 @@
   "{what} taken out": "Đã gỡ {what}",
   "“Previously on…”": "“Tập trước…”",
   "−1 s": "−1 giây",
-  "Lyrics and details": "Lời và chi tiết"
+  "Lyrics and details": "Lời và chi tiết",
+  "Other pictures for {what}": "Hình khác cho {what}",
+  "Show this one first": "Hiện hình này trước",
+  "{what} {n}: show this one first": "{what} {n}: hiện trước",
+  "Remove {what} {n}": "Xóa {what} {n}",
+  "Add another": "Thêm hình khác",
+  "This file follows a newer version of the format ({n}) than this server knows ({m}). What it doesn’t know is kept as it is when the file is saved here.": "Tệp này theo phiên bản định dạng mới hơn ({n}) so với phiên bản máy chủ này biết ({m}). Những gì máy chủ không biết được giữ nguyên khi lưu tệp ở đây.",
+  "{format}, version {n}": "{format}, phiên bản {n}"
 }

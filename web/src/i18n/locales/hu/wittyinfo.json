@@ -303,5 +303,12 @@
   "{what} taken out": "{what} eltávolítva",
   "“Previously on…”": "„Az előző részek tartalmából…”",
   "−1 s": "−1 s",
-  "Lyrics and details": "Dalszöveg és részletek"
+  "Lyrics and details": "Dalszöveg és részletek",
+  "Other pictures for {what}": "További képek: {what}",
+  "Show this one first": "Ez legyen az első",
+  "{what} {n}: show this one first": "{what} {n}: legyen az első",
+  "Remove {what} {n}": "{what} {n} eltávolítása",
+  "Add another": "Még egy hozzáadása",
+  "This file follows a newer version of the format ({n}) than this server knows ({m}). What it doesn’t know is kept as it is when the file is saved here.": "Ez a fájl a formátum újabb verzióját ({n}) követi, mint amit ez a szerver ismer ({m}). Amit nem ismer, az itt mentéskor változatlan marad.",
+  "{format}, version {n}": "{format}, {n}. verzió"
 }

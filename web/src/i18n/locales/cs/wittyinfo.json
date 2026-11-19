@@ -313,5 +313,12 @@
   "{what} taken out": "Odebráno: {what}",
   "“Previously on…”": "„Minule jste viděli…“",
   "−1 s": "−1 s",
-  "Lyrics and details": "Text a podrobnosti"
+  "Lyrics and details": "Text a podrobnosti",
+  "Other pictures for {what}": "Další obrázky pro {what}",
+  "Show this one first": "Zobrazit tento jako první",
+  "{what} {n}: show this one first": "{what} {n}: zobrazit jako první",
+  "Remove {what} {n}": "Odebrat {what} {n}",
+  "Add another": "Přidat další",
+  "This file follows a newer version of the format ({n}) than this server knows ({m}). What it doesn’t know is kept as it is when the file is saved here.": "Tento soubor odpovídá novější verzi formátu ({n}), než zná tento server ({m}). Co nezná, zůstane při uložení zde beze změny.",
+  "{format}, version {n}": "{format}, verze {n}"
 }

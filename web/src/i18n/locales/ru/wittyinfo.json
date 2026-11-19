@@ -313,5 +313,12 @@
   "{what} taken out": "Удалено: {what}",
   "“Previously on…”": "«Ранее в сериале…»",
   "−1 s": "−1 с",
-  "Lyrics and details": "Текст и сведения"
+  "Lyrics and details": "Текст и сведения",
+  "Other pictures for {what}": "Другие изображения: {what}",
+  "Show this one first": "Показывать это первым",
+  "{what} {n}: show this one first": "{what} {n}: показывать первым",
+  "Remove {what} {n}": "Удалить {what} {n}",
+  "Add another": "Добавить ещё",
+  "This file follows a newer version of the format ({n}) than this server knows ({m}). What it doesn’t know is kept as it is when the file is saved here.": "Этот файл следует более новой версии формата ({n}), чем знает этот сервер ({m}). То, чего он не знает, сохраняется как есть при сохранении здесь.",
+  "{format}, version {n}": "{format}, версия {n}"
 }

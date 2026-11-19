@@ -298,5 +298,12 @@
   "{what} taken out": "{what}を削除しました",
   "“Previously on…”": "「前回までは…」",
   "−1 s": "−1 秒",
-  "Lyrics and details": "歌詞と詳細"
+  "Lyrics and details": "歌詞と詳細",
+  "Other pictures for {what}": "{what}のほかの画像",
+  "Show this one first": "これを最初に表示",
+  "{what} {n}: show this one first": "{what} {n}: 最初に表示",
+  "Remove {what} {n}": "{what} {n} を削除",
+  "Add another": "もう1つ追加",
+  "This file follows a newer version of the format ({n}) than this server knows ({m}). What it doesn’t know is kept as it is when the file is saved here.": "このファイルは、このサーバーが知っている形式 ({m}) より新しいバージョン ({n}) に従っています。ここで保存しても、知らない部分はそのまま残ります。",
+  "{format}, version {n}": "{format}、バージョン {n}"
 }

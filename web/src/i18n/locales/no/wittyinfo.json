@@ -303,5 +303,12 @@
   "{what} taken out": "{what} fjernet",
   "“Previously on…”": "«Tidligere i…»",
   "−1 s": "−1 s",
-  "Lyrics and details": "Sangtekst og detaljer"
+  "Lyrics and details": "Sangtekst og detaljer",
+  "Other pictures for {what}": "Andre bilder for {what}",
+  "Show this one first": "Vis dette først",
+  "{what} {n}: show this one first": "{what} {n}: vis først",
+  "Remove {what} {n}": "Fjern {what} {n}",
+  "Add another": "Legg til ett til",
+  "This file follows a newer version of the format ({n}) than this server knows ({m}). What it doesn’t know is kept as it is when the file is saved here.": "Denne filen følger en nyere versjon av formatet ({n}) enn denne serveren kjenner ({m}). Det den ikke kjenner, beholdes uendret når filen lagres her.",
+  "{format}, version {n}": "{format}, versjon {n}"
 }

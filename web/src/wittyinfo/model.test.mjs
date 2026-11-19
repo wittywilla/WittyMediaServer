@@ -2,7 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { changed, check, draftOf, filterAt, filterPrefs, manifestOf, markAt, moveRange, newSegment, problemWords, timeAt } from './model.ts'
+import { changed, check, draftOf, picturesOf, filterAt, filterPrefs, manifestOf, markAt, moveRange, newSegment, problemWords, timeAt } from './model.ts'
 
 const file = {
   format: 'wittyinfo', version: 1, identity: { durationSec: 1400 }, authorship: { author: 'Willow' },
@@ -69,4 +69,16 @@ test('content filters follow the profile’s own choices', () => {
   assert.equal(filterAt(filters, { language: 'mute' }, 10.5).act, 'mute')
   assert.equal(filterAt(filters, { language: 'mute', minSeverity: 2 }, 10.5), null, 'milder than cared about')
   assert.equal(filterAt(filters, p, 20), null)
+})
+
+test('a role holds one picture or several, written back the same way', () => {
+  const info = { format: 'wittyinfo', version: 1, artwork: { poster: ['images/poster.jpg', 'images/poster-2.jpg'], backdrop: 'images/backdrop.jpg' } }
+  const d = draftOf(info, null)
+  assert.deepEqual(d.artwork, { poster: ['images/poster.jpg', 'images/poster-2.jpg'], backdrop: ['images/backdrop.jpg'] })
+  const m = manifestOf(d)
+  assert.deepEqual(m.artwork, { poster: ['images/poster.jpg', 'images/poster-2.jpg'], backdrop: 'images/backdrop.jpg' })
+  assert.equal(m.version, 1)
+  // A newer file keeps its version when saved here.
+  assert.equal(manifestOf(draftOf({ ...info, version: 3 }, null)).version, 3)
+  assert.deepEqual(picturesOf({ poster: [], logo: '' }), {})
 })

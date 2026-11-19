@@ -303,5 +303,12 @@
   "{what} taken out": "{what} kaldırıldı",
   "“Previously on…”": "“Önceki bölümlerde…”",
   "−1 s": "−1 sn",
-  "Lyrics and details": "Şarkı sözleri ve ayrıntılar"
+  "Lyrics and details": "Şarkı sözleri ve ayrıntılar",
+  "Other pictures for {what}": "{what} için diğer resimler",
+  "Show this one first": "Önce bunu göster",
+  "{what} {n}: show this one first": "{what} {n}: önce göster",
+  "Remove {what} {n}": "{what} {n} kaldır",
+  "Add another": "Bir tane daha ekle",
+  "This file follows a newer version of the format ({n}) than this server knows ({m}). What it doesn’t know is kept as it is when the file is saved here.": "Bu dosya, bu sunucunun bildiğinden ({m}) daha yeni bir biçim sürümünü ({n}) izliyor. Bilmediği kısımlar dosya burada kaydedilirken olduğu gibi korunur.",
+  "{format}, version {n}": "{format}, sürüm {n}"
 }

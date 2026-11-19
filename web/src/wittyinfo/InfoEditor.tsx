@@ -480,18 +480,46 @@ export default function InfoEditor({ base, scope, player: givenPlayer, onPreview
             {(audio ? [{ role: 'poster', label: t('Cover') }, { role: 'back', label: t('Back of the sleeve') }, { role: 'artist', label: t('Artist') }, { role: 'disc', label: t('Disc') }]
               : [{ role: 'poster', label: t('Poster') }, { role: 'backdrop', label: t('Backdrop') }, { role: 'logo', label: t('Logo') }, { role: 'thumb', label: t('Episode picture') }, { role: 'banner', label: t('Banner') }, { role: 'clearart', label: t('Clear art') }, { role: 'disc', label: t('Disc') }]
             ).map(({ role, label }) => {
-              const name = d.artwork[role]
-              const file = ans.files.find((f) => f.name === name)
+              const list = d.artwork[role] || []
+              const urlOf = (name: string) => ans.files.find((f) => f.name === name)?.url
+              const main = list[0]
+              const pick = (add: boolean) => (e: React.ChangeEvent<HTMLInputElement>) => {
+                const f = e.target.files?.[0]; e.target.value = ''
+                if (f) run(() => uploadFile<InfoAnswer>(under(base, `/images/${role}`, add ? 'add=1' : ''), f, 'PUT'), t('{what} saved', { what: label }))
+              }
               return (
-                <div key={role} className="wi-picture">
-                  <div className={'wi-pic-frame ' + role}>{file?.url ? <img src={mediaUrl(file.url.replace(/^\/api/, '/api'))} alt={label} /> : <span className="muted">{t('None')}</span>}</div>
-                  <b>{label}</b>
-                  <label className="btn sm">
-                    {name ? t('Replace') : t('Add')}
-                    <input type="file" accept="image/jpeg,image/png,image/webp" className="wi-file" disabled={busy}
-                      onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) run(() => uploadFile<InfoAnswer>(under(base, `/images/${role}`), f, 'PUT'), t('{what} saved', { what: label })) }} />
-                  </label>
-                  {name && <button type="button" className="btn sm ghost" disabled={busy} onClick={() => run(() => api.del<InfoAnswer>(under(base, `/images/${role}`)), t('{what} taken out', { what: label }))}>{t('Remove')}</button>}
+                <div key={role} className={'wi-picture' + (list.length > 1 ? ' wi-many' : '')}>
+                  <div className={'wi-pic-frame ' + role + (audio ? ' sq' : '')}>{main && urlOf(main) ? <img src={mediaUrl(urlOf(main)!)} alt={label} /> : <span className="muted">{t('None')}</span>}</div>
+                  <b>{label}{list.length > 1 ? <span className="muted"> · {tn('{count} picture', '{count} pictures', list.length)}</span> : null}</b>
+                  {list.length > 1 && (
+                    <ul className="wi-pic-more" aria-label={t('Other pictures for {what}', { what: label })}>
+                      {list.slice(1).map((name, i) => (
+                        <li key={name}>
+                          <button type="button" className="wi-pic-thumb" disabled={busy} title={t('Show this one first')}
+                            aria-label={t('{what} {n}: show this one first', { what: label, n: i + 2 })}
+                            onClick={() => run(() => api.put<InfoAnswer>(under(base, `/images/${role}`, 'first=' + encodeURIComponent(name)), null), t('{what} saved', { what: label }))}>
+                            {urlOf(name) ? <img src={mediaUrl(urlOf(name)!)} alt="" /> : <span className="muted">{i + 2}</span>}
+                          </button>
+                          <button type="button" className="wi-pic-x" disabled={busy} aria-label={t('Remove {what} {n}', { what: label, n: i + 2 })}
+                            onClick={() => run(() => api.del<InfoAnswer>(under(base, `/images/${role}`, 'name=' + encodeURIComponent(name))), t('{what} taken out', { what: label }))}><IconClose size={14} /></button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <div className="wi-pic-actions">
+                    <label className="btn sm">
+                      {main ? t('Replace') : t('Add')}
+                      <input type="file" accept="image/jpeg,image/png,image/webp" className="wi-file" disabled={busy} onChange={pick(false)} />
+                    </label>
+                    {main && list.length < 32 && (
+                      <label className="btn sm ghost">
+                        {t('Add another')}
+                        <input type="file" accept="image/jpeg,image/png,image/webp" className="wi-file" disabled={busy} onChange={pick(true)} />
+                      </label>
+                    )}
+                    {main && <button type="button" className="btn sm ghost" disabled={busy}
+                      onClick={() => run(() => api.del<InfoAnswer>(under(base, `/images/${role}`, 'name=' + encodeURIComponent(main))), t('{what} taken out', { what: label }))}>{t('Remove')}</button>}
+                  </div>
                 </div>
               )
             })}
@@ -589,11 +617,12 @@ export default function InfoEditor({ base, scope, player: givenPlayer, onPreview
 
         {tab === 'file' && (
           <div className="wi-filetab">
+            {ans.newer && <p className="wi-warn" role="note">{t('This file follows a newer version of the format ({n}) than this server knows ({m}). What it doesn’t know is kept as it is when the file is saved here.', { n: ans.info?.version || 0, m: ans.version || 1 })}</p>}
             <dl className="wi-facts">
               <dt>{t('Where')}</dt><dd>{where}{ans.path ? <> · <code>{ans.path}</code></> : null}</dd>
               {ans.info?.identity && <><dt>{t('Made for')}</dt><dd>{t('{name}, {length} long', { name: String(ans.info.identity.fileName || t('a file')), length: clockText(Number(ans.info.identity.durationSec)) })}{ans.match ? ` · ${ans.match.result === 'exact' ? t('this very file') : ans.match.result === 'same-cut' ? t('the same cut') : ans.match.result === 'other-cut' ? t('another cut') : ans.match.result === 'forced' ? t('another cut, used anyway') : t('not checked')}` : ''}</dd></>}
               {ans.info?.authorship?.tool && <><dt>{t('Written with')}</dt><dd>{ans.info.authorship.tool.name} {ans.info.authorship.tool.version}</dd></>}
-              <dt>{t('Format')}</dt><dd>{audio ? '.wittyaudio' : '.wittyinfo'}</dd>
+              <dt>{t('Format')}</dt><dd>{t('{format}, version {n}', { format: audio ? '.wittyaudio' : '.wittyinfo', n: ans.info?.version || ans.version || 1 })}</dd>
               <dt>{t('Saving')}</dt><dd>{ans.canWrite ? t('Writes the file beside the media.') : t('Kept on the server: writing these files beside the media is off (Settings, Metadata), or there is no place for one.')}</dd>
             </dl>
             <div className="wi-add">

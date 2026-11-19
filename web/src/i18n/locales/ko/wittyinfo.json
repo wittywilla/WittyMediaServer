@@ -298,5 +298,12 @@
   "{what} taken out": "{what} 삭제됨",
   "“Previously on…”": "“지난 이야기…”",
   "−1 s": "−1초",
-  "Lyrics and details": "가사 및 정보"
+  "Lyrics and details": "가사 및 정보",
+  "Other pictures for {what}": "{what}의 다른 그림",
+  "Show this one first": "이 그림을 먼저 표시",
+  "{what} {n}: show this one first": "{what} {n}: 먼저 표시",
+  "Remove {what} {n}": "{what} {n} 삭제",
+  "Add another": "하나 더 추가",
+  "This file follows a newer version of the format ({n}) than this server knows ({m}). What it doesn’t know is kept as it is when the file is saved here.": "이 파일은 이 서버가 아는 형식({m})보다 새로운 버전({n})을 따릅니다. 여기서 저장해도 서버가 모르는 내용은 그대로 유지됩니다.",
+  "{format}, version {n}": "{format}, 버전 {n}"
 }

@@ -303,5 +303,12 @@
   "{what} taken out": "{what}: αφαιρέθηκε",
   "“Previously on…”": "«Στα προηγούμενα…»",
   "−1 s": "−1 δ",
-  "Lyrics and details": "Στίχοι και λεπτομέρειες"
+  "Lyrics and details": "Στίχοι και λεπτομέρειες",
+  "Other pictures for {what}": "Άλλες εικόνες για {what}",
+  "Show this one first": "Εμφάνιση αυτής πρώτης",
+  "{what} {n}: show this one first": "{what} {n}: εμφάνιση πρώτης",
+  "Remove {what} {n}": "Αφαίρεση {what} {n}",
+  "Add another": "Προσθήκη άλλης",
+  "This file follows a newer version of the format ({n}) than this server knows ({m}). What it doesn’t know is kept as it is when the file is saved here.": "Αυτό το αρχείο ακολουθεί νεότερη έκδοση της μορφής ({n}) από αυτή που γνωρίζει ο διακομιστής ({m}). Ό,τι δεν γνωρίζει διατηρείται ως έχει κατά την αποθήκευση εδώ.",
+  "{format}, version {n}": "{format}, έκδοση {n}"
 }

@@ -38,7 +38,7 @@ export type Manifest = {
   identity?: { durationSec: number; [k: string]: unknown }
   authorship?: { author?: string; created?: string; updated?: string; tool?: { name: string; version?: string }; [k: string]: unknown }
   segments?: Seg[]; absent?: SegType[]; scenes?: Scene[]; filters?: Filter[]
-  metadata?: Meta; artwork?: Record<string, string>; playback?: Playback; notes?: string
+  metadata?: Meta; artwork?: Record<string, string | string[]>; playback?: Playback; notes?: string
   [k: string]: unknown
 }
 export type Problem = { where: string; what: string }
@@ -52,6 +52,8 @@ export type InfoAnswer = {
   identity?: Manifest['identity'] | null; markers?: (Markers & { sources?: Record<string, string>; source?: string }) | null
   defaults?: Record<string, { origin: string; segments: number; error?: string }>
   chapters?: { start: number; title: string }[]; durationSec?: number
+  // The newest format version this server writes, and whether the file follows a later one.
+  version?: number; newer?: boolean
   // The wittyinfo program only.
   standalone?: boolean; video?: string; videoName?: string
 }
@@ -91,7 +93,7 @@ export const LIMITS = { segments: 1000, scenes: 1000, filters: 5000, short: 200,
 // Draft is what the editor changes: the manifest's parts, with the rest kept as it was.
 export type Draft = {
   segments: Seg[]; absent: SegType[]; scenes: Scene[]; filters: Filter[]
-  metadata: Meta; playback: Playback; notes: string; artwork: Record<string, string>
+  metadata: Meta; playback: Playback; notes: string; artwork: Record<string, string[]>
   language: string; translations: Record<string, Translation>; subtitles: Sub[]
   rest: Record<string, unknown>
 }
@@ -113,9 +115,20 @@ export function draftOf(info: Manifest | null, now?: InfoAnswer['markers'] | nul
   return {
     segments: (info?.segments || []).map((s) => ({ ...s })), absent: [...(info?.absent || [])], scenes: (info?.scenes || []).map((s) => ({ ...s })),
     filters: (info?.filters || []).map((f) => ({ ...f })), metadata: { ...(info?.metadata || {}) }, playback: { ...(info?.playback || {}) },
-    notes: info?.notes || '', artwork: { ...(info?.artwork || {}) }, language: info?.language || '',
+    notes: info?.notes || '', artwork: picturesOf(info?.artwork), language: info?.language || '',
     translations: JSON.parse(JSON.stringify(info?.translations || {})), subtitles: (info?.subtitles || []).map((x) => ({ ...x })), rest,
   }
+}
+
+// picturesOf reads a manifest's artwork, where a role names one picture or a list of them,
+// the one shown first, as lists.
+export function picturesOf(art?: Record<string, string | string[]>): Record<string, string[]> {
+  const out: Record<string, string[]> = {}
+  for (const [role, v] of Object.entries(art || {})) {
+    const list = (Array.isArray(v) ? v : [v]).filter((x) => typeof x === 'string' && x)
+    if (list.length) out[role] = list
+  }
+  return out
 }
 
 const tidy = <T extends Record<string, unknown>>(o: T): T | undefined => {
@@ -142,7 +155,9 @@ export function manifestOf(d: Draft): Manifest {
   const pb = tidy(d.playback)
   if (pb) m.playback = pb
   if (d.notes.trim()) m.notes = d.notes
-  if (Object.keys(d.artwork).length) m.artwork = { ...d.artwork }
+  const art: Record<string, string | string[]> = {}
+  for (const [role, list] of Object.entries(d.artwork)) if (list.length) art[role] = list.length === 1 ? list[0] : [...list]
+  if (Object.keys(art).length) m.artwork = art
   if (d.language) m.language = d.language
   if (d.subtitles.length) m.subtitles = d.subtitles.map((x) => ({ ...x }))
   const trs: Record<string, Translation> = {}

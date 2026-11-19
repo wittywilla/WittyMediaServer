@@ -298,5 +298,12 @@
   "{what} taken out": "นำ{what}ออกแล้ว",
   "“Previously on…”": "“ตอนที่แล้ว…”",
   "−1 s": "−1 วิ",
-  "Lyrics and details": "เนื้อเพลงและรายละเอียด"
+  "Lyrics and details": "เนื้อเพลงและรายละเอียด",
+  "Other pictures for {what}": "รูปภาพอื่นสำหรับ{what}",
+  "Show this one first": "แสดงรูปนี้ก่อน",
+  "{what} {n}: show this one first": "{what} {n}: แสดงก่อน",
+  "Remove {what} {n}": "ลบ{what} {n}",
+  "Add another": "เพิ่มอีก",
+  "This file follows a newer version of the format ({n}) than this server knows ({m}). What it doesn’t know is kept as it is when the file is saved here.": "ไฟล์นี้ใช้รูปแบบเวอร์ชันใหม่กว่า ({n}) ที่เซิร์ฟเวอร์นี้รู้จัก ({m}) สิ่งที่เซิร์ฟเวอร์ไม่รู้จักจะถูกเก็บไว้ตามเดิมเมื่อบันทึกไฟล์ที่นี่",
+  "{format}, version {n}": "{format} เวอร์ชัน {n}"
 }

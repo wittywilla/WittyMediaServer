@@ -303,5 +303,12 @@
   "{what} taken out": "{what} हटाया गया",
   "“Previously on…”": "“पिछली बार…”",
   "−1 s": "−1 से",
-  "Lyrics and details": "बोल और विवरण"
+  "Lyrics and details": "बोल और विवरण",
+  "Other pictures for {what}": "{what} के अन्य चित्र",
+  "Show this one first": "इसे पहले दिखाएँ",
+  "{what} {n}: show this one first": "{what} {n}: पहले दिखाएँ",
+  "Remove {what} {n}": "{what} {n} हटाएँ",
+  "Add another": "एक और जोड़ें",
+  "This file follows a newer version of the format ({n}) than this server knows ({m}). What it doesn’t know is kept as it is when the file is saved here.": "यह फ़ाइल प्रारूप के उस संस्करण ({n}) का पालन करती है जो इस सर्वर के ज्ञात संस्करण ({m}) से नया है। जो यह नहीं जानता, वह यहाँ सहेजने पर जैसा है वैसा रखा जाता है।",
+  "{format}, version {n}": "{format}, संस्करण {n}"
 }

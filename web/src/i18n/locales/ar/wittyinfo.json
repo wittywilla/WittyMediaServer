@@ -323,5 +323,12 @@
   "{what} taken out": "تمت إزالة {what}",
   "“Previously on…”": "«في الحلقات السابقة…»",
   "−1 s": "−1 ث",
-  "Lyrics and details": "الكلمات والتفاصيل"
+  "Lyrics and details": "الكلمات والتفاصيل",
+  "Other pictures for {what}": "صور أخرى لـ{what}",
+  "Show this one first": "اعرض هذه أولًا",
+  "{what} {n}: show this one first": "{what} {n}: اعرض هذه أولًا",
+  "Remove {what} {n}": "إزالة {what} {n}",
+  "Add another": "إضافة أخرى",
+  "This file follows a newer version of the format ({n}) than this server knows ({m}). What it doesn’t know is kept as it is when the file is saved here.": "يتبع هذا الملف إصدارًا أحدث من الصيغة ({n}) مما يعرفه هذا الخادم ({m}). ما لا يعرفه يبقى كما هو عند حفظ الملف هنا.",
+  "{format}, version {n}": "{format}، الإصدار {n}"
 }

@@ -76,13 +76,25 @@
 .wi-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--sp-2) var(--sp-4); }
 .wi-form > .wi-help, .wi-form > .wi-h, .wi-form > :has(textarea) { grid-column: 1 / -1; }
 .wi-h { grid-column: 1 / -1; margin: var(--sp-2) 0 0; font-size: var(--text-md); }
-.wi-pictures { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--sp-3); }
+.wi-pictures { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--sp-3); align-items: start; }
 .wi-pictures > .wi-help { grid-column: 1 / -1; }
 .wi-picture { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-1); }
 .wi-pic-frame { width: 100%; aspect-ratio: 2 / 3; display: grid; place-items: center; border-radius: var(--r-md); background: var(--bg-3); overflow: hidden; border: 1px solid var(--border); }
 .wi-pic-frame.backdrop, .wi-pic-frame.thumb { aspect-ratio: 16 / 9; }
 .wi-pic-frame.logo { aspect-ratio: 3 / 1; }
+.wi-pic-frame.banner { aspect-ratio: 27 / 5; }
+.wi-pic-frame.clearart { aspect-ratio: 16 / 9; }
+.wi-pic-frame.disc, .wi-pic-frame.artist, .wi-pic-frame.sq { aspect-ratio: 1; }
 .wi-pic-frame img { width: 100%; height: 100%; object-fit: contain; }
+.wi-pic-actions { display: flex; flex-wrap: wrap; gap: var(--sp-1); }
+.wi-pic-more { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--sp-1); }
+.wi-pic-more li { position: relative; }
+.wi-pic-thumb { width: 56px; height: 56px; padding: 0; display: grid; place-items: center; border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--bg-3); overflow: hidden; cursor: pointer; }
+.wi-pic-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.wi-pic-thumb:hover, .wi-pic-thumb:focus-visible { border-color: var(--accent); }
+.wi-pic-x { position: absolute; top: calc(var(--sp-1) * -1); right: calc(var(--sp-1) * -1); width: 24px; height: 24px; padding: 0; display: grid; place-items: center; border-radius: var(--r-full); border: 1px solid var(--border); background: var(--bg-2); color: var(--fg-2); cursor: pointer; }
+.wi-pic-x:hover, .wi-pic-x:focus-visible { color: var(--fg); border-color: var(--border-strong); }
+
 .wi-file { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 label.btn { position: relative; cursor: pointer; }
 .wi-facts { display: grid; grid-template-columns: max-content 1fr; gap: var(--sp-1) var(--sp-3); margin: 0; font-size: var(--text-sm); }

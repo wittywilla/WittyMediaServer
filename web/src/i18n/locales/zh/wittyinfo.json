@@ -298,5 +298,12 @@
   "{what} taken out": "已删除{what}",
   "“Previously on…”": "“前情提要…”",
   "−1 s": "−1 秒",
-  "Lyrics and details": "歌词和信息"
+  "Lyrics and details": "歌词和信息",
+  "Other pictures for {what}": "{what}的其他图片",
+  "Show this one first": "先显示这张",
+  "{what} {n}: show this one first": "{what} {n}：先显示",
+  "Remove {what} {n}": "删除{what} {n}",
+  "Add another": "再添加一张",
+  "This file follows a newer version of the format ({n}) than this server knows ({m}). What it doesn’t know is kept as it is when the file is saved here.": "此文件采用的格式版本（{n}）比此服务器所知的（{m}）更新。在此保存文件时，服务器不认识的内容会原样保留。",
+  "{format}, version {n}": "{format}，版本 {n}"
 }

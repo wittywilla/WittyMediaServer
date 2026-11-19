@@ -313,5 +313,12 @@
   "{what} taken out": "Видалено: {what}",
   "“Previously on…”": "«Раніше в серіалі…»",
   "−1 s": "−1 с",
-  "Lyrics and details": "Текст і відомості"
+  "Lyrics and details": "Текст і відомості",
+  "Other pictures for {what}": "Інші зображення: {what}",
+  "Show this one first": "Показувати це першим",
+  "{what} {n}: show this one first": "{what} {n}: показувати першим",
+  "Remove {what} {n}": "Видалити {what} {n}",
+  "Add another": "Додати ще",
+  "This file follows a newer version of the format ({n}) than this server knows ({m}). What it doesn’t know is kept as it is when the file is saved here.": "Цей файл відповідає новішій версії формату ({n}), ніж знає цей сервер ({m}). Те, чого він не знає, зберігається без змін під час збереження тут.",
+  "{format}, version {n}": "{format}, версія {n}"
 }

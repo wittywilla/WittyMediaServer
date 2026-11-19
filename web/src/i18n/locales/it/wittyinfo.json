@@ -303,5 +303,12 @@
   "{what} taken out": "{what} rimosso",
   "“Previously on…”": "«Nelle puntate precedenti…»",
   "−1 s": "−1 s",
-  "Lyrics and details": "Testo e dettagli"
+  "Lyrics and details": "Testo e dettagli",
+  "Other pictures for {what}": "Altre immagini per {what}",
+  "Show this one first": "Mostra prima questa",
+  "{what} {n}: show this one first": "{what} {n}: mostra per prima",
+  "Remove {what} {n}": "Rimuovi {what} {n}",
+  "Add another": "Aggiungine un’altra",
+  "This file follows a newer version of the format ({n}) than this server knows ({m}). What it doesn’t know is kept as it is when the file is saved here.": "Questo file segue una versione del formato ({n}) più recente di quella che questo server conosce ({m}). Ciò che non conosce resta com’è quando il file viene salvato qui.",
+  "{format}, version {n}": "{format}, versione {n}"
 }

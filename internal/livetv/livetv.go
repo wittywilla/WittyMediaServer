@@ -81,6 +81,9 @@ type Channel struct {
 	TunerStreams int `json:"tunerStreams,omitempty"`
 	// LogoURL is the source's own address for the channel's logo (Logo), as WittyTuner sends it.
 	LogoURL string `json:"logoUrl,omitempty"`
+	// GuideShift moves the channel's guide by this many minutes (a playlist's tvg-shift): a "+1"
+	// channel shows its guide id's programmes an hour later.
+	GuideShift int `json:"guideShift,omitempty"`
 }
 
 // Directory is WittyTuner, as the server's live TV reaches it: every channel of every tuner, and
@@ -197,7 +200,32 @@ func PublicError(err error) string {
 	if errors.As(err, &pe) {
 		return "the recording could not be written to its folder"
 	}
+	if t := ffmpegFailure(err.Error()); t != "" {
+		return t
+	}
 	return addressInText.ReplaceAllString(err.Error(), "(address)")
+}
+
+// ffmpegFailure puts what FFmpeg said as a stream failed into words for a person: its own lines are
+// for the log. "" when the error isn't FFmpeg's.
+func ffmpegFailure(msg string) string {
+	if !strings.HasPrefix(msg, "exit status") && !strings.Contains(msg, "Error opening input") {
+		return ""
+	}
+	l := strings.ToLower(msg)
+	switch {
+	case strings.Contains(l, "404 not found"), strings.Contains(l, "410 gone"):
+		return "the channel's stream isn't there any more (404). Its playlist may be out of date: read it again in Settings, Live TV & tuners"
+	case strings.Contains(l, "403 forbidden"), strings.Contains(l, "401 unauthorized"):
+		return "the channel's stream refused this server (403). Its link may have expired, so reading the playlist again can help, or the provider may want a particular user agent or referrer"
+	case strings.Contains(l, "server returned 5"):
+		return "the provider's server had a problem. Try again in a moment"
+	case strings.Contains(l, "connection refused"), strings.Contains(l, "timed out"), strings.Contains(l, "connection reset"), strings.Contains(l, "network is unreachable"):
+		return "the stream could not be reached"
+	case strings.Contains(l, "invalid data found"):
+		return "the channel sent something that isn't video this server can read"
+	}
+	return "the channel's stream stopped and couldn't be started again. Try again in a moment, or try another channel"
 }
 
 // internetClient reaches the internet and nothing else, checking each connection as it is made.
@@ -225,7 +253,19 @@ func firstNonEmpty(v ...string) string {
 }
 
 // GuideKey is the id that links a channel to guide data.
-func (c *Channel) GuideKey() string { return firstNonEmpty(c.EPGSet, c.EPGID) }
+func (c *Channel) GuideKey() string {
+	k := c.guideBase()
+	if k != "" && c.GuideShift != 0 {
+		return shiftedKey(k, c.GuideShift)
+	}
+	return k
+}
+
+// guideBase is the guide's own id for the channel, before any shift.
+func (c *Channel) guideBase() string { return firstNonEmpty(c.EPGSet, c.EPGID) }
+
+// shiftedKey is where a shifted channel's programmes are kept: its guide id's, moved.
+func shiftedKey(base string, minutes int) string { return base + "@" + strconv.Itoa(minutes) }
 
 func sortChannels(l []*Channel) {
 	sort.SliceStable(l, func(i, j int) bool {

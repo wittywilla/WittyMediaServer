@@ -190,6 +190,10 @@ func TestBroadcastDataFillsTheGuide(t *testing.T) {
 }
 
 func TestRecordingRawStream(t *testing.T) {
+	// The test stream ends after 500 packets, long before the recording does: it's opened again
+	// and added to the same file until the recording's end, as an IPTV stream that drops is.
+	defer func(a int64, f, x time.Duration) { padAfter, recordingRetryFirst, recordingRetryMax = a, f, x }(padAfter, recordingRetryFirst, recordingRetryMax)
+	padAfter, recordingRetryFirst, recordingRetryMax = 0, 50*time.Millisecond, 50*time.Millisecond
 	m, f := testManager(t)
 	srv := iptvServer(t)
 	tn, ch := addIPTV(t, f, srv)
@@ -208,7 +212,7 @@ func TestRecordingRawStream(t *testing.T) {
 	if _, err := m.Schedule(ctx, ch[0].ID, 1, "News", "", later, later+30); err == nil {
 		t.Fatal("a second recording of the same airing should be refused")
 	}
-	r, err := m.Schedule(ctx, ch[0].ID, 1, `News: "Late" / Edition`, "Part 1", now, now+5)
+	r, err := m.Schedule(ctx, ch[0].ID, 1, `News: "Late" / Edition`, "Part 1", now, now+2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -216,8 +220,8 @@ func TestRecordingRawStream(t *testing.T) {
 	select {
 	case p := <-finished:
 		st, err := os.Stat(p)
-		if err != nil || st.Size() != 500*188 {
-			t.Fatalf("%v %v", err, st)
+		if err != nil || st.Size() < 2*500*188 || st.Size()%(500*188) != 0 {
+			t.Fatalf("the stream wasn't opened again and added to the file: %v %v", err, st)
 		}
 		rel, err := filepath.Rel(folder, p)
 		if err != nil || strings.HasPrefix(rel, "..") {
@@ -230,7 +234,7 @@ func TestRecordingRawStream(t *testing.T) {
 		t.Fatal("the recording did not finish")
 	}
 	got, _ := m.recording(ctx, r.ID)
-	if got.Status != "done" || got.SizeBytes != 500*188 {
+	if got.Status != "done" || got.SizeBytes < 2*500*188 || !strings.Contains(got.Error, "dropped") {
 		t.Fatalf("%+v", got)
 	}
 	if n := f.used(tn); n != 0 {
@@ -326,5 +330,21 @@ func TestSafeFileName(t *testing.T) {
 	}
 	if !strings.HasPrefix(safeFileName(strings.Repeat("é", 200)), "é") || len(safeFileName(strings.Repeat("é", 200))) > 120 {
 		t.Error("long names are cut")
+	}
+}
+
+func TestFFmpegFailuresInWords(t *testing.T) {
+	for in, want := range map[string]string{
+		"exit status 0xcbcfcb08:  [in#0] HTTP error 404 Not Found\r\nError opening input: Server returned 404 Not Found": "isn't there any more",
+		"exit status 1: Server returned 403 Forbidden (access denied)":                                                   "refused this server",
+		"exit status 1: Connection refused":                                                                              "could not be reached",
+		"exit status 1: something new":                                                                                   "stopped and couldn't be started again",
+	} {
+		if got := PublicError(errors.New(in)); !strings.Contains(got, want) || strings.Contains(got, "exit status") {
+			t.Errorf("%q: %q", in, got)
+		}
+	}
+	if got := PublicError(errors.New("all of this device's tuners are in use")); got != "all of this device's tuners are in use" {
+		t.Errorf("a plain error changed: %q", got)
 	}
 }

@@ -8,7 +8,10 @@ import (
 	"database/sql"
 	"fmt"
 	"io"
+	"slices"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/tuner/mpegts"
@@ -85,6 +88,9 @@ const (
 	guideBatch   = 500
 )
 
+// ingesting holds a lock for each guide source being read.
+var ingesting sync.Map
+
 // idleReader gives up on a source that stops sending.
 type idleReader struct {
 	r     io.Reader
@@ -103,6 +109,10 @@ func (i *idleReader) Read(p []byte) (int, error) {
 func (m *Manager) Ingest(ctx context.Context, id int64, r io.Reader) (int, map[int64]string, error) {
 	ctx, cancel := context.WithTimeout(ctx, guideMaxTime)
 	defer cancel()
+	// One source's guide is read one at a time: two reads at once would each replace the other's.
+	mu, _ := ingesting.LoadOrStore(id, &sync.Mutex{})
+	mu.(*sync.Mutex).Lock()
+	defer mu.(*sync.Mutex).Unlock()
 	list, _, err := m.allChannels(ctx, true)
 	if err != nil {
 		return 0, nil, err
@@ -125,12 +135,17 @@ func (m *Manager) fetch(ctx context.Context, cancel context.CancelFunc, id int64
 	// What the server has: guide ids, and names to match on when there are none.
 	wanted := map[string]bool{}
 	byName := map[string]int64{}
+	// Channels shown later than their guide id (tvg-shift) get its programmes moved, as their own.
+	shifts := map[string][]int{}
 	for _, c := range list {
 		if !c.Enabled {
 			continue
 		}
-		if k := c.GuideKey(); k != "" {
+		if k := c.guideBase(); k != "" {
 			wanted[k] = true
+			if c.GuideShift != 0 && !slices.Contains(shifts[k], c.GuideShift) {
+				shifts[k] = append(shifts[k], c.GuideShift)
+			}
 		} else {
 			byName[normalizeName(c.Name)] = c.ID
 		}
@@ -145,7 +160,7 @@ func (m *Manager) fetch(ctx context.Context, cancel context.CancelFunc, id int64
 		_, _ = m.DB.ExecContext(context.WithoutCancel(ctx), `DELETE FROM epg_programmes WHERE source = ?`, coming)
 	}
 	discard()
-	type channel struct{ id, name string }
+	type channel struct{ id, name, aliases, icon string }
 	var channels []channel
 	matched := map[int64]string{}
 	var batch []*xmltv.Programme
@@ -175,6 +190,12 @@ func (m *Manager) fetch(ctx context.Context, cancel context.CancelFunc, id int64
 		}
 		count++
 		batch = append(batch, p)
+		for _, sh := range shifts[p.Channel] {
+			moved := *p
+			moved.Channel = shiftedKey(p.Channel, sh)
+			moved.Start, moved.Stop = p.Start.Add(time.Duration(sh)*time.Minute), p.Stop.Add(time.Duration(sh)*time.Minute)
+			batch = append(batch, &moved)
+		}
 		if len(batch) >= guideBatch {
 			return flush()
 		}
@@ -187,7 +208,11 @@ func (m *Manager) fetch(ctx context.Context, cancel context.CancelFunc, id int64
 			name = c.Names[0]
 		}
 		if len(channels) < maxGuideChannels {
-			channels = append(channels, channel{c.ID, clip(name, 200)})
+			var aliases []string
+			for _, n := range c.Names[min(1, len(c.Names)):min(len(c.Names), 6)] {
+				aliases = append(aliases, clip(strings.ReplaceAll(n, "\t", " "), 100))
+			}
+			channels = append(channels, channel{c.ID, clip(name, 200), strings.Join(aliases, "\t"), clip(c.Icon, 500)})
 		}
 		for _, n := range c.Names {
 			if cid, ok := byName[normalizeName(n)]; ok && matched[cid] == "" {
@@ -240,7 +265,7 @@ func (m *Manager) fetch(ctx context.Context, cancel context.CancelFunc, id int64
 		return 0, nil, err
 	}
 	for _, c := range channels {
-		if _, err := tx.ExecContext(ctx, `INSERT OR REPLACE INTO epg_channels(source_id, epg_id, name) VALUES(?,?,?)`, id, c.id, c.name); err != nil {
+		if _, err := tx.ExecContext(ctx, `INSERT OR REPLACE INTO epg_channels(source_id, epg_id, name, aliases, icon) VALUES(?,?,?,?,?)`, id, c.id, c.name, c.aliases, c.icon); err != nil {
 			return 0, nil, err
 		}
 	}
@@ -344,20 +369,36 @@ func (m *Manager) Guide(ctx context.Context, c *Channel, from, to time.Time) ([]
 	return out, rows.Err()
 }
 
-// GuideIDs lists XMLTV channel ids, for mapping channels by hand.
+// GuideIDs lists XMLTV channel ids, for matching channels: each with its name, its other names
+// (tab-separated: numbers and call signs are often among them), its icon, the source it came
+// from, and how far ahead the guide has programmes for it ("until", Unix seconds; "" for none).
 func (m *Manager) GuideIDs(ctx context.Context) ([]map[string]string, error) {
-	rows, err := m.DB.QueryContext(ctx, `SELECT DISTINCT epg_id, name FROM epg_channels ORDER BY name COLLATE NOCASE LIMIT 20000`)
+	rows, err := m.DB.QueryContext(ctx, `SELECT e.epg_id, MIN(e.name), MIN(e.aliases), MIN(e.icon), MIN(e.source_id),
+		(SELECT MAX(p.stop) FROM epg_programmes p WHERE p.channel = e.epg_id)
+		FROM epg_channels e GROUP BY e.epg_id ORDER BY MIN(e.name) COLLATE NOCASE LIMIT 50000`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	out := []map[string]string{}
 	for rows.Next() {
-		var id, name string
-		if err := rows.Scan(&id, &name); err != nil {
+		var id, name, aliases, icon string
+		var source int64
+		var until sql.NullInt64
+		if err := rows.Scan(&id, &name, &aliases, &icon, &source, &until); err != nil {
 			return nil, err
 		}
-		out = append(out, map[string]string{"id": id, "name": name})
+		e := map[string]string{"id": id, "name": name, "source": strconv.FormatInt(source, 10)}
+		if aliases != "" {
+			e["aliases"] = aliases
+		}
+		if icon != "" {
+			e["icon"] = icon
+		}
+		if until.Valid {
+			e["until"] = strconv.FormatInt(until.Int64, 10)
+		}
+		out = append(out, e)
 	}
 	return out, rows.Err()
 }
